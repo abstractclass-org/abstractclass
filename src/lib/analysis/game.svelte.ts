@@ -80,7 +80,7 @@ export class GameAnalysis {
         const p = positions[i].player as Player, opp = (1 - p) as Player;
         const after = new Set(positions[i + 1].edges[opp].map(e => edgeName(e)));
         const cut = positions[i].edges[opp].find(e => !after.has(edgeName(e))) ?? null;
-        return { player: p, edge: parseEdge(m), cut };
+        return { player: p, edge: m === "pass" ? null : parseEdge(m), cut };
       });
       this.positions = positions;
       this.rulesReady = true;

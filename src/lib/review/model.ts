@@ -23,7 +23,8 @@ export interface Position {
   movesLeft: number;
   regions: [Region[], Region[]];
 }
-export interface Move { player: Player; edge: Edge; cut: Edge | null }
+/** A move: an edge, or null for a timeout pass (the rest of the turn forfeited). */
+export interface Move { player: Player; edge: Edge | null; cut: Edge | null }
 /** Values from Blue's side. `lead` (the engine's scoreLead) and `margin` (scoreSelfplay) are in points. */
 export interface Candidate { edge: Edge; visits: number; blueWin: number; lead?: number; margin?: number }
 export interface Analysis { blueWin: number; visits: number; lead?: number; margin?: number; spread?: number; candidates: Candidate[] }
@@ -56,7 +57,7 @@ export const PLAYER_NAME = ["Blue", "Red"] as const;
 export interface EdgeReview {
   index: number; // the move's index: it leads from position index to position index + 1
   player: Player;
-  edge: Edge;
+  edge: Edge | null; // null: a timeout pass
   cut: Edge | null;
   winBefore: number; // the mover's win chance before and after the edge (NaN until analysed)
   winAfter: number;
@@ -109,7 +110,7 @@ export function review(data: ReviewData, kind: ScoreKind = "lead", minVisits = 0
     const before = blueScore[i], after = blueScore[i + 1];
     const pointsLost = known && before !== undefined && after !== undefined
       ? Math.max(0, moverScore(before, m.player) - moverScore(after, m.player)) : undefined;
-    const label = known ? classify(loss, pointsLost, !!best && sameEdge(best.edge, m.edge), onlyEdge(a, m.player)) : null;
+    const label = known ? classify(loss, pointsLost, !!best && !!m.edge && sameEdge(best.edge, m.edge), onlyEdge(a, m.player)) : null;
     return { index: i, player: m.player, edge: m.edge, cut: m.cut, winBefore, winAfter, loss, pointsLost, label, best };
   });
   const turns: TurnReview[] = [];
@@ -154,9 +155,13 @@ export function lossText(e: EdgeReview): string {
   return e.pointsLost !== undefined ? `−${Math.round(e.pointsLost)} pts` : `−${(100 * e.loss).toFixed(0)}%`;
 }
 
+/** The move as text: its edge, or "pass". */
+export const moveName = (edge: Edge | null) => (edge ? edgeName(edge) : "pass");
+
 /** A sentence from facts only (design 04): what was played, and the engine's choice. */
 export function explain(e: EdgeReview): string {
   const who = PLAYER_NAME[e.player];
+  if (!e.edge) return `${who} passed (the clock ran out), and lost the rest of the turn.`;
   if (!e.label) return `${who} played ${edgeName(e.edge)}. Not analysed yet.`;
   if (e.label === "great") return `Great. ${who} found ${edgeName(e.edge)}, the only good edge here.`;
   if (e.label === "best") return `${who} played ${edgeName(e.edge)}, the engine's first choice.`;

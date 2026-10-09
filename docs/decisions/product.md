@@ -121,3 +121,46 @@ The interface, the review, puzzles, lessons, labels and thresholds.
 - **Shared:** two-click edge input (`src/lib/board/edgeInput.svelte.ts`), and the board's crop (`view`) and hint
   edges (`targets`).
 - **Not built:** the analysis board (the review's Analysis tab covers it for now), the personal page.
+
+### Game import, first part: records and the player's games (2026-10-10)
+
+- **Reading a game record** (`src/lib/game/record.ts`): the engine repository's PGN-like record, from its design
+  (`docs/design/04-notation-and-protocol.md` there, which has no record reader in code yet). Tag pairs, turn labels
+  (`1b.`, `2r.`, checked in order and by player), edges (written lower point first), `pass`, the result, and
+  `[%eval]` and `[%clk]` in comments. Branches are skipped: the review needs the main line. A plain list of edges
+  works too. Errors name the problem and its line and column. The engine checks the rules: an illegal move stops the
+  review with the engine's own message. Tests: `npm test` (`node --test`, 7 checks, from the design's own examples
+  and a round trip of the sample game).
+- **The player's games** (`src/lib/game/store.ts`, `src/lib/storage/db.ts`): kept in the browser, as the record's
+  text, with a version, so an export is the record itself and a later server can import it as it is
+  (design 04). The id is the start of the SHA-256 of the moves: a game imported twice is one game. The browser's
+  database is now version 2 (the analyses, and the games). An upgrade only adds stores.
+- **The flow:** Home takes a pasted record, saves it, and opens `/review?game=ID`. Home lists the player's games.
+  The review opens the imported game, or the sample when the address names none.
+- **A timeout pass is a move:** the review model takes a move with no edge (`pass`), and its text says that the clock
+  ran out and the rest of the turn was lost.
+- **meaf.us:** its archive API wants the player's username and a password hash in request headers, and sends no
+  `Access-Control-Allow-Origin`. The site cannot read meaf.us games itself, and must not handle the player's
+  credentials. How a meaf.us game becomes a record is an open question (the backlog).
+
+### Game import, second part: the meaf.us bookmarklet (2026-10-10)
+
+- **Decided:** a bookmarklet now, and later an export from meaf.us itself (its owner's choice, to ask). meaf.us lets
+  no other site read its games, and the site must not handle the player's login.
+- **How it works** (`src/lib/game/bookmarklet.ts`, `src/lib/game/meaf.ts`): the player keeps it in the bookmarks bar
+  and clicks it on a meaf.us game page. It runs in that page. It finds the game the board's React component holds
+  (as the engine repository's `tools/sitebot_driver.js` reads it), writes the game's record, and opens `/import` with
+  the record after the `#`. Browsers never send the `#` to a server. It makes no request to meaf.us and reads nothing
+  from the login.
+- **The record from a meaf.us game:** the players, the date, the time control, the final scores, the result (by
+  score, `R` for a resignation, `F` for a forfeit), the game's id, and the turns. A timeout pass ends the turn in
+  progress. A game in another rule variant is refused, because the engine knows only the online one.
+- **`/import`:** reads the record after the `#`, removes it from the address, checks the moves with the engine's
+  rules, keeps the game, and opens its review. Without a record it shows the bookmarklet and how to install it.
+  Home links to it.
+- **Checked:** `npm test` (11 checks, 4 of them on the conversion: the sample game in meaf.us's shape, a pass, a
+  resignation, another variant). In Chrome, on the production build: the minified bookmarklet (2.7 KB) against a
+  stand-in board of meaf.us's shape wrote the right record, and `/import` with that record opened its review with the
+  players' names. The owner then checked it on a real meaf.us game: it works.
+- **Also:** Home checks a pasted record's moves with the engine's rules before it keeps the game, and names the first
+  illegal edge counting from 1.

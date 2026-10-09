@@ -6,7 +6,7 @@
   import Board, { type BoardCandidate, type BoardLayers, type BoardMark } from "#lib/board/Board.svelte";
   import Graph from "./Graph.svelte";
   import {
-    explain, edgeName, sameEdge, moverWin, largest, lossText, LABELS, LABEL_TEXT, LABEL_PLURAL, LABEL_GLYPH, BAD_LABELS,
+    explain, edgeName, moveName, sameEdge, moverWin, largest, lossText, LABELS, LABEL_TEXT, LABEL_PLURAL, LABEL_GLYPH, BAD_LABELS,
     PLAYER_NAME, type Edge, type Player, type Review,
   } from "./model.ts";
 
@@ -85,8 +85,8 @@
   // Label badges on the edges of the turn just played, as far as the current position.
   const marks = $derived.by((): BoardMark[] => {
     if (!lastMove) return [];
-    return turnOf(lastMove.index).edges.filter(e => e.index < pos && e.label)
-      .map(e => ({ edge: e.edge, label: e.label!, glyph: LABEL_GLYPH[e.label!] }));
+    return turnOf(lastMove.index).edges.filter(e => e.index < pos && e.label && e.edge)
+      .map(e => ({ edge: e.edge!, label: e.label!, glyph: LABEL_GLYPH[e.label!] }));
   });
 
   function go(p: number) {
@@ -217,7 +217,7 @@
         preview={stage === "walk" && atMoment && tried ? tried : hover}
         previewPlayer={mover}
         {marks}
-        ghost={stage === "walk" && atMoment && showGame
+        ghost={stage === "walk" && atMoment && showGame && currentKey.edge
           ? { edge: currentKey.edge, label: currentKey.label!, glyph: LABEL_GLYPH[currentKey.label!] } : null}
         {layers}
         pending={stage === "walk" && atMoment ? pending : null}
@@ -297,7 +297,7 @@
           <li>
             <button class="link" onclick={() => startWalk(0, m.index)}>
               <span class="glyph-badge {m.label}">{LABEL_GLYPH[m.label!]}</span>
-              Edge {m.index + 1}: {PLAYER_NAME[m.player]} played {edgeName(m.edge)}
+              Edge {m.index + 1}: {PLAYER_NAME[m.player]} played {moveName(m.edge)}
               <span class="loss">{lossText(m)}</span>
             </button>
           </li>
@@ -331,7 +331,7 @@
         </div>
         <div class="task">
           <p class="played">
-            Edge {m.index + 1}: {PLAYER_NAME[m.player]} played <strong>{edgeName(m.edge)}</strong>
+            Edge {m.index + 1}: {PLAYER_NAME[m.player]} played <strong>{moveName(m.edge)}</strong>
             <span class="glyph-badge {m.label}">{LABEL_GLYPH[m.label!]}</span>
             and lost {m.pointsLost !== undefined ? `${Math.round(m.pointsLost)} points and ` : ""}{pct(m.loss)} of win chance.
           </p>
@@ -394,7 +394,7 @@
             {#each t.edges as e (e.index)}
               <button class="mv p{e.player}" class:here={pos === e.index + 1} onclick={() => go(e.index + 1)}
                       title={e.label ? LABEL_TEXT[e.label] : "Not analysed yet"}>
-                {edgeName(e.edge)}{#if e.label}<span class="glyph {e.label}">{LABEL_GLYPH[e.label]}</span>{/if}
+                {moveName(e.edge)}{#if e.label}<span class="glyph {e.label}">{LABEL_GLYPH[e.label]}</span>{/if}
               </button>
             {/each}
           </div>
