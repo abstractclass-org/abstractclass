@@ -1,0 +1,30 @@
+{
+  "repository": "seankao31/enclosure-ai",
+  "artifacts": [
+    {
+      "id": "engine-8195171",
+      "kind": "module",
+      "interface": "engine-protocol-1.0",
+      "file": "enclosure-engine.wasm",
+      "source": { "local": "../enclosure/runs/wasm/v2/engine-dev/enclosure-engine.wasm" },
+      "sha256": "a169057b8f050dd152151aa164601e5aa30e82275fedbdcfd679df49722d11ab",
+      "bytes": 1330266
+    },
+    {
+      "id": "b10c128-s46923648-d9407005",
+      "kind": "model",
+      "file": "model-float16.bin",
+      "source": { "local": "../enclosure/runs/wasm/v2/engine-dev/model-float16.bin" },
+      "sha256": "6b2d086e9967ec01d8d3d6a878ca7a5332b65ffd80b6a9e63d3b0fdb1fa0c1a8",
+      "bytes": 6450300
+    },
+    {
+      "id": "b15c192-s48758784-d9703391",
+      "kind": "model",
+      "file": "model-float16.bin",
+      "source": { "local": "../enclosure/runs/wasm/v2/b15c192-s48758784-d9703391/model-float16.bin" },
+      "sha256": "0cc82aa970504e2d1de0652055373c5545b60972267526c44362560c17d013c7",
+      "bytes": 20533716
+    }
+  ]
+}

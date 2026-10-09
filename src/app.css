@@ -1,0 +1,89 @@
+/* Colour tokens. Plain and clear (docs/design/04-product-shape.md). Players: Blue moves first, Red second. */
+:root {
+  --bg: #f6f5f2;
+  --panel: #ffffff;
+  --panel-2: #f0eeea;
+  --text: #24252a;
+  --muted: #74767d;
+  --border: #dddad3;
+  --accent: #2a7d6f;
+  --blue: #2f6fde;
+  --red: #d2453f;
+  --board-bg: #f3ead7;
+  --board-dot: #b9ab8d;
+  --protected: #9fc2ff;
+  --last: #e7b416;
+  /* The engine's candidates: its first choice, and the others. */
+  --engine: #1f7a8c;
+  --candidate: #7b818c;
+  --on-badge: #ffffff;
+  /* Move labels, from the best down. Great is violet so that it is never read as the Blue player. */
+  --great: #8a5cd1;
+  --best: #3f9d4b;
+  --excellent: #6faa52;
+  --good: #8f9a7e;
+  --inaccuracy: #d9a521;
+  --mistake: #e07a2e;
+  --blunder: #d43a3a;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1d1e21;
+    --panel: #26282c;
+    --panel-2: #2f3236;
+    --text: #e4e4e6;
+    --muted: #9a9ca3;
+    --border: #3a3d42;
+    --accent: #4fb3a2;
+    --blue: #5b8ff0;
+    --red: #e8635c;
+    --board-bg: #3a362e;
+    --board-dot: #6d6555;
+    --protected: #4a6fae;
+    --last: #d6a614;
+    --engine: #2f8fa3;
+    --candidate: #8d939c;
+    color-scheme: dark;
+  }
+}
+/* The same dark values, so an explicit choice wins in both directions. */
+:root[data-theme="dark"] {
+  --bg: #1d1e21;
+  --panel: #26282c;
+  --panel-2: #2f3236;
+  --text: #e4e4e6;
+  --muted: #9a9ca3;
+  --border: #3a3d42;
+  --accent: #4fb3a2;
+  --blue: #5b8ff0;
+  --red: #e8635c;
+  --board-bg: #3a362e;
+  --board-dot: #6d6555;
+  --protected: #4a6fae;
+  --last: #d6a614;
+  --engine: #2f8fa3;
+  --candidate: #8d939c;
+  color-scheme: dark;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.45;
+}
+a { color: var(--accent); }
+button {
+  font: inherit;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.3rem 0.7rem;
+  cursor: pointer;
+}
+button:hover:not(:disabled) { border-color: var(--accent); }
+button:disabled { opacity: 0.5; cursor: default; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }

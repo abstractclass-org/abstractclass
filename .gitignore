@@ -1,0 +1,27 @@
+# The engine's artifacts: fetched by `npm run engine` (engine.lock.json), never committed.
+/static/engine/
+
+node_modules
+
+# Output
+.output
+.wrangler
+/.svelte-kit
+/build
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Vite
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
+# The single-file snapshot build (SNAPSHOT=1).
+/build-snapshot
+/scripts/.layout.ts.aside
