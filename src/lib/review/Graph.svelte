@@ -20,7 +20,17 @@
   const yWin = (v: number) => H - v * H;
   const scoreMax = $derived(Math.max(1, ...scoreDiff.map(Math.abs)));
   const yScore = (d: number) => H / 2 - (d / scoreMax) * (H / 2 - 6);
-  const area = $derived(`M0,${H / 2} ` + blueWin.map((v, i) => `L${x(i)},${yWin(v)}`).join(" ") + ` L${W},${H / 2} Z`);
+  // The area around 50%, one closed shape for each run of analysed positions (NaN: not analysed yet).
+  const area = $derived.by(() => {
+    const runs: number[][] = [];
+    blueWin.forEach((v, i) => {
+      if (Number.isNaN(v)) return;
+      const run = runs.at(-1);
+      if (run && run.at(-1) === i - 1) run.push(i); else runs.push([i]);
+    });
+    return runs.map(r => `M${x(r[0])},${H / 2} ` + r.map(i => `L${x(i)},${yWin(blueWin[i])}`).join(" ") +
+                         ` L${x(r.at(-1)!)},${H / 2} Z`).join(" ");
+  });
   const scoreLine = $derived(scoreDiff.map((d, i) => `${i ? "L" : "M"}${x(i)},${yScore(d)}`).join(" "));
 
   let svg: SVGSVGElement;
@@ -41,7 +51,7 @@
   <path d={area} class="red" clip-path="url(#below)" />
   <line x1="0" y1={H / 2} x2={W} y2={H / 2} class="mid" />
   {#if showScore}<path d={scoreLine} class="score" />{/if}
-  {#each moments as m (m.index)}
+  {#each moments.filter(m => !Number.isNaN(blueWin[m.index + 1])) as m (m.index)}
     <circle cx={x(m.index + 1)} cy={yWin(blueWin[m.index + 1])} r="3.5" class="moment {m.label}" />
   {/each}
   <line x1={x(current)} y1="0" x2={x(current)} y2={H} class="cursor" />

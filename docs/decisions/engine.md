@@ -86,3 +86,40 @@ Loading the engine, its speed, the engine interface, and the requests for it.
   all 120 positions, at most 95 MiB an instance. Its times (22 visits a second a worker) do not count: the tab was
   hidden on a loaded machine.
 - **Found:** an analysis without slices was sent with no `id`, which the engine refuses. Fixed in `client.ts`.
+
+### Label agreement against search budget (2026-10-09)
+
+- **Why not "the same position searched twice":** design 01 sets the labels' noise floor that way. The engine is now
+  reproducible (the same request gives the same reply), so two searches always agree. The noise that remains is the
+  budget's: how far labels at a small budget stand from labels at a deep search.
+- **Method** (`scripts/measure/budget-collect.mjs`, `budget-summary.mjs`): 4 bot games from the engine repository's
+  visit ladder (bots at 512 to 2,048 visits, 480 positions, no person's games), b10c128. One search of 1,024 visits a
+  position, read after each slice: the result after a slice equals a fresh search of that many visits, so one search
+  gives every budget. Each edge's loss and label as the review computes them (`labels.ts`, losses across positions),
+  at 32, 64, 128 and 256 visits, compared with 1,024. Great counts as Best (the collector keeps no second candidate).
+  The last edge of each game is left out. 476 edges, 48 of them Inaccuracy or worse at 1,024 visits (24 after the
+  first 16 edges).
+- **Result,** points from the lead, edges after the first 16:
+
+  | Visits | Same label | Mistakes found (of the reference's) | Mistakes flagged that are right | Points lost, mean error |
+  |---|---|---|---|---|
+  | 32 | 56% | 29% | 27% | 11.5 |
+  | 64 | 62% | 29% | 35% | 9.6 |
+  | 128 | 64% | 38% | 43% | 8.0 |
+  | 256 | 71% | 58% | 67% | 6.7 |
+
+  Over every edge the same order holds (at 256 visits: 70% the same label, 67% of mistakes found, 80% right). Points
+  from the margin (`scoreSelfplay`) do about as well, a little worse at 256 visits (65% found, 78% right over every
+  edge).
+- **Reading:**
+  - A 32-visit sweep (KaTrain's budget, 25 visits, is for a much stronger network per visit) cannot label: it finds
+    under a third of the mistakes, and most of what it flags is not one. It still gives the game's shape.
+  - 256 visits is the first budget whose flags are mostly right, and it still misses a third. The reference itself
+    (1,024 visits) is not the truth: a deeper reference (the native engine on the GPU, when it speaks the protocol)
+    would tell how far 1,024 stands from it.
+  - The lead and the margin measure points lost about equally well. The lead stays (KaTrain's choice).
+- **Decided for the review** ([design/05-review-analysis.md](../design/05-review-analysis.md)):
+  - The sweep at 32 visits, for the graph only.
+  - A label pass of every position at 256 visits. A label shows only when both positions of an edge have it.
+  - The position on screen and the key moments deeper, to 1,024 visits.
+- **To do:** a deeper reference, more games, and b15c192 (stronger per visit, slower).

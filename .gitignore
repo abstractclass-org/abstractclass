@@ -25,3 +25,6 @@ vite.config.ts.timestamp-*
 # The single-file snapshot build (SNAPSHOT=1).
 /build-snapshot
 /scripts/.layout.ts.aside
+
+# Measurement outputs (scripts/measure/), summarised in docs/decisions/.
+/runs/

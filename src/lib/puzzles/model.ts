@@ -30,11 +30,11 @@ export function puzzlesFrom(R: Review): Puzzle[] {
   const out: Puzzle[] = [];
   R.data.analysis.forEach((a, i) => {
     const player = R.data.positions[i].player as Player;
-    if (!onlyEdge(a, player)) return;
+    if (!a || !onlyEdge(a, player)) return;
     const [first, second] = a.candidates;
     const gap = moverWin(first.blueWin, player) - moverWin(second.blueWin, player);
     const prev = R.edges[i - 1];
-    const afterMistake = !!prev && prev.player !== player && BAD_LABELS.includes(prev.label);
+    const afterMistake = !!prev && prev.player !== player && !!prev.label && BAD_LABELS.includes(prev.label);
     const phase: Theme = i < 16 ? "opening" : i < 80 ? "middlegame" : "endgame";
     // A guess, to be replaced by ratings from solvers: smaller gaps and later phases read as harder.
     const rating = Math.round(1100 + 900 * Math.max(0, 0.35 - gap) / 0.25 + (phase === "endgame" ? 150 : phase === "middlegame" ? 80 : 0));
