@@ -91,7 +91,8 @@
 {:else if game?.error && !game.rulesReady}
   <p class="{MESSAGE} text-blunder">The engine could not read this game: {game.error}</p>
 {:else if R}
-  <ReviewView {R} {progress} problem={game?.error ?? ""} deepVisits={DEEP_VISITS} onposition={i => (current = i)} />
+  <ReviewView {R} {progress} problem={game?.error ?? ""} deepVisits={DEEP_VISITS} onposition={i => (current = i)}
+              lineSteps={game ? (i, line) => game!.lineSteps(i, line) : undefined} />
 {:else}
   <p class="{MESSAGE} text-muted">Reading the game with the engine's rules…</p>
 {/if}

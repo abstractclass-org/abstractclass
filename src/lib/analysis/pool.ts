@@ -34,33 +34,35 @@ export class EnginePool {
   private free: EngineWorker[] = [];
   private queue: Task[] = [];
   private running = new Set<Task>();
+  // A worker for the rules alone (describe, play): it loads no network and runs no search, so a rules call never
+  // waits behind a search (a worker takes one request at a time). The board's rules, an engine line's cuts and a
+  // player's own moves need answers at once.
+  private rulesWorker = new EngineWorker();
 
   constructor(size: number) {
     this.engines = Array.from({ length: size }, () => new EngineWorker());
   }
 
-  /** Starts the module in every worker, then loads the network. `onRules` runs once the rules work (no network). The
-   *  first worker, which serves the rules calls, loads its network only after `onRules`, so that the board does not
-   *  wait for a network. The other workers load theirs at once. */
+  /** Starts the module in every worker, then loads the network in the search workers. `onRules` runs once the rules
+   *  work, without waiting for a network. */
   async start(manifest: Manifest, modelId: string, onRules?: () => Promise<void>) {
     const module = moduleOf(manifest);
     const model = manifest.artifacts.find(a => a.kind === "model" && a.id === modelId);
     if (!module || !model) throw new Error(`the manifest lacks the module or the network ${modelId}`);
-    const versions = await Promise.all(this.engines.map(e => e.init(module.url)));
-    this.version = versions[0].reply;
     const load = async (e: EngineWorker) => {
+      await e.init(module.url);
       this.model = (await e.loadModel(model.url, model.id)).reply.model;
       this.free.push(e);
       this.dispatch();
     };
     await Promise.all([
-      (async () => { await onRules?.(); await load(this.engines[0]); })(),
-      ...this.engines.slice(1).map(load),
+      (async () => { this.version = (await this.rulesWorker.init(module.url)).reply; await onRules?.(); })(),
+      ...this.engines.map(load),
     ]);
   }
 
-  /** The first worker, for rules calls (describe, play). They work before the network loads. */
-  get rules(): EngineWorker { return this.engines[0]; }
+  /** The worker for rules calls (describe, play). They work before the network loads. */
+  get rules(): EngineWorker { return this.rulesWorker; }
 
   /** Runs `work` on the next free worker, by priority (higher first, then first come). */
   run<T>(priority: number, tag: string, work: Work<T>): Promise<T> {
@@ -120,5 +122,5 @@ export class EnginePool {
     victim.stop!();
   }
 
-  terminate() { this.engines.forEach(e => e.terminate()); }
+  terminate() { this.engines.forEach(e => e.terminate()); this.rulesWorker.terminate(); }
 }

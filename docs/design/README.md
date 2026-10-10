@@ -17,6 +17,7 @@ product decisions.
 | 04 | [The product's shape](04-product-shape.md) | Static now, a server later. Explanations from templates over engine facts. Desktop first, phone usable. Plain and clear, with a few rewards. |
 | 05 | [The review's analysis](05-review-analysis.md) | KaTrain's schedule (rules, a sweep, deeper where the player looks), losses across positions, points from the lead, the worse of two bands, results kept in the browser. |
 | 06 | [The review page's layout](06-review-layout.md) | The board fills the height. Lichess's columns: summary, board, analysis from 1,260 px, tabs below that. The chart under the board. The win chance as a bar (default) or a gauge, in a display menu. |
+| 07 | [The engine's lines and the player's variations](07-lines-and-variations.md) | A candidate's line on the board on hover (KaTrain's), numbered, one edge at a time, with its cuts and regions; only for candidates with enough visits. The player's moves always on, branches inline (Lichess's). |
 
 To add a document: give it the next number, use the same sections, and link it here. When a decision is replaced,
 mark the old document "Status: replaced by NN" instead of deleting it.

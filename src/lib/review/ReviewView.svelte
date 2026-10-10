@@ -12,14 +12,15 @@
   import { Popover, Tabs } from "bits-ui";
   import { MediaQuery } from "svelte/reactivity";
   import { innerHeight, innerWidth } from "svelte/reactivity/window";
-  import Board, { type BoardCandidate, type BoardMark } from "#lib/board/Board.svelte";
+  import Board, { type BoardCandidate, type BoardLineEdge, type BoardMark } from "#lib/board/Board.svelte";
+  import { parseEdge } from "#lib/engine/notation.ts";
   import Swatch from "#lib/ui/Swatch.svelte";
   import { SIDE_TEXT } from "#lib/ui/side.ts";
   import AdvantageChart from "./AdvantageChart.svelte";
   import { loadDisplay, saveDisplay } from "./display.ts";
   import Glyph from "./Glyph.svelte";
   import {
-    explain, edgeName, moveNotation, sameEdge, moverWin, moverScore, largest, lossText, pct, shownCandidates, LABELS, LABEL_TEXT, LABEL_GLYPH, PLAYER_NAME, type Edge, type Label, type Player, type Review,
+    explain, edgeName, moveNotation, sameEdge, moverWin, moverScore, largest, lossText, pct, shownCandidates, lineMovers, enoughVisits, type LineStep, LABELS, LABEL_TEXT, LABEL_GLYPH, PLAYER_NAME, type Edge, type Label, type Player, type Review,
   } from "./model.ts";
 
   interface Props {
@@ -28,8 +29,9 @@
     problem?: string; // an engine error
     deepVisits?: number; // the budget of the position on screen: its search bar is full at this many visits
     onposition?: (pos: number) => void; // the position on screen changed
+    lineSteps?: (pos: number, line: Edge[]) => Promise<LineStep[]>; // a line's edges played: cuts, regions (the rules)
   }
-  let { R, progress = null, problem = "", deepVisits = 0, onposition }: Props = $props();
+  let { R, progress = null, problem = "", deepVisits = 0, onposition, lineSteps }: Props = $props();
   const last = $derived(R.data.positions.length - 1);
   const TABLE_ROWS = 5; // the Analysis table shows this many rows and scrolls, so the move list under it does not move
   const ROW_EM = 1.9; // a table row's height, in em
@@ -101,6 +103,56 @@
     note: rank === 1 ? `${pct(moverWin(c.blueWin, mover))}${c.lead !== undefined ? ` · ${pts(moverScore(c.lead, mover))} pts` : ""}`
       : `vs 1: ${signed(-gap, pct(Math.abs(gap)))}${gapPts !== undefined ? ` · ${signed(-gapPts, `${Math.abs(Math.round(gapPts))} pts`)}` : ""}`,
   })));
+
+  // The engine's line from the candidate pointed at, on the board or in the table (KaTrain's and Lizzie's way): its
+  // first LINE_EDGES edges, each with its mover. Only for a candidate with enough visits (the board's rule): the line of
+  // a barely searched move means little.
+  const LINE_EDGES = 6; // three turns of two edges
+  const hoverCandidate = $derived(hover && analysis ? analysis.candidates.find(c => sameEdge(c.edge, hover!)) : undefined);
+  const line = $derived.by((): BoardLineEdge[] | null => {
+    const c = hoverCandidate;
+    if (!c?.line?.length || !enoughVisits(analysis!, c)) return null;
+    const movers = lineMovers(position, LINE_EDGES);
+    return c.line.slice(0, LINE_EDGES).map((edge, i) => ({ edge, player: movers[i], ...lineStepsNow?.[i] }));
+  });
+  // The line's edges played, from the engine's rules, asked once for each line: the edge each one cuts and the regions
+  // after it. The board shows the cut edges cut, and the regions as they become.
+  const knownSteps = new Map<string, LineStep[]>();
+  let lineStepsNow = $state<LineStep[] | null>(null);
+  const lineKey = $derived(line ? `${pos}|${line.map(l => edgeName(l.edge)).join(" ")}` : null);
+  // The line as far as drawn: animated (the default, a display setting), its first edge, then one more every
+  // LINE_STEP_MS, as KaTrain draws a line (its anim_pv_time), staying drawn at its end; or static, all at once. A click
+  // on the candidate, on the board or in the table, shows the whole line. Pointing at another candidate animates its
+  // line again. With reduced motion asked for, the line is static.
+  const LINE_STEP_MS = 500;
+  let lineWhole = $state(false);
+  let lineShown = $state(0);
+  $effect(() => { void lineKey; lineWhole = false; });
+  $effect(() => {
+    const n = lineKey ? lineKey.split("|")[1].split(" ").length : 0;
+    if (!display.lineSteps || lineWhole || n <= 1 || matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      lineShown = n;
+      return;
+    }
+    lineShown = 1;
+    const timer = setInterval(() => { if (++lineShown >= n) clearInterval(timer); }, LINE_STEP_MS);
+    return () => clearInterval(timer);
+  });
+  const drawnLine = $derived(line && line.slice(0, Math.max(1, lineShown)));
+  // The areas in the players' tags: now, or, while a line shows, after its last drawn edge (from the rules).
+  const lineAreas = $derived(drawnLine ? lineStepsNow?.[drawnLine.length - 1]?.areas ?? null : null);
+  const areas = $derived(lineAreas ?? position.areas);
+  $effect(() => {
+    const key = lineKey;
+    lineStepsNow = key ? knownSteps.get(key) ?? null : null;
+    if (!key || !lineSteps || knownSteps.has(key)) return;
+    const [at, edges] = key.split("|");
+    let current = true;
+    lineSteps(Number(at), edges.split(" ").map(parseEdge))
+      .then(steps => { knownSteps.set(key, steps); if (current) lineStepsNow = steps; })
+      .catch(() => {}); // without them, the line still shows
+    return () => { current = false; };
+  });
 
   // The table: every candidate, in the engine's order, in a box of TABLE_ROWS rows that scrolls. The rows on the board
   // have their number in a badge, as the board draws it.
@@ -229,8 +281,14 @@
     <Swatch player={p} />
     <span class="font-semibold truncate">{p === 0 ? R.data.players.blue : R.data.players.red}</span>
     <span class="text-xs text-muted">{PLAYER_NAME[p]}</span>
+    <!-- The points so far, and the area enclosed now, which each turn's end adds to the points. While the engine's line
+         shows, the area after its last drawn edge, in the accent colour. -->
     <span class="text-sm text-muted tabular-nums whitespace-nowrap">
       <strong class="text-[1.1em] text-ink">{fmtScore(position.scores[p])}</strong> points
+      {#if areas}
+        · <strong class={["text-[1.1em]", lineAreas ? "text-accent" : "text-ink"]}
+                  title={lineAreas ? "The area after the engine's line" : "The area enclosed now, added at the turn's end"}>{fmtScore(areas[p])}</strong> area
+      {/if}
     </span>
   </div>
 {/snippet}
@@ -309,7 +367,9 @@
     <tbody>
       {#each rows as { c, rank } (rank)}
         <tr class={["h-(--row)", rank === 1 && "font-semibold", !!hover && sameEdge(c.edge, hover) && "lit outline outline-accent -outline-offset-1"]}
-            style={rowTint(c.blueWin)} onmouseenter={() => (hover = c.edge)} onmouseleave={() => (hover = null)}>
+            style={rowTint(c.blueWin)} onmouseenter={() => (hover = c.edge)} onmouseleave={() => (hover = null)}
+            onclick={() => (lineWhole = true)}
+            title={analysis && !enoughVisits(analysis, c) ? "Too few visits to show the engine's line" : undefined}>
           <!-- A candidate on the board has its number in a badge, as the board draws it. The others have a plain number. -->
           <td><span class={["inline-flex items-center justify-center min-w-[1.3em] h-[1.3em] px-[0.2em] rounded-full text-[0.8em] font-bold",
                             onBoard.has(rank) ? `${rank === 1 ? "bg-engine" : "bg-candidate"} text-on-badge` : "text-muted"]}
@@ -411,7 +471,9 @@
           cut={lastMove?.cut ?? null}
           {candidates}
           highlight={hover}
-          preview={hover}
+          line={drawnLine}
+          oncandidateclick={() => (lineWhole = true)}
+          preview={line ? null : hover}
           previewPlayer={mover}
           {marks}
           layers={display.layers}
@@ -480,8 +542,8 @@
             <!-- Raised above the panel: a lighter surface, a clear border and a deep shadow. -->
             <fieldset>
               <legend>Win chance</legend>
-              <label><input type="radio" name="win" value="bar" bind:group={display.win} /> A bar above the board</label>
-              <label><input type="radio" name="win" value="gauge" bind:group={display.win} /> A gauge beside the board</label>
+              <label><input type="radio" name="win" value="bar" bind:group={display.win} /> Top horizontal bar</label>
+              <label><input type="radio" name="win" value="gauge" bind:group={display.win} /> Side vertical gauge</label>
             </fieldset>
             <fieldset>
               <legend>On the board</legend>
@@ -489,6 +551,11 @@
               <label><input type="checkbox" bind:checked={display.layers.marks} /> Move labels</label>
               <label><input type="checkbox" bind:checked={display.layers.regions} /> Regions</label>
               <label><input type="checkbox" bind:checked={display.layers.protected} /> Protected edges</label>
+            </fieldset>
+            <fieldset>
+              <legend>The engine's line</legend>
+              <label><input type="radio" name="line" value={true} bind:group={display.lineSteps} /> Animated</label>
+              <label><input type="radio" name="line" value={false} bind:group={display.lineSteps} /> Static</label>
             </fieldset>
             <fieldset>
               <legend>Advantage chart</legend>

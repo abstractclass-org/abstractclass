@@ -12,7 +12,7 @@ It holds no backlog: everything still to do that is not in flight is in
   Tailwind CSS 4), `5686e1c` (the review's tables fitted to their content), `ef407ab` (the review's marks, gauge,
   display menu, side columns and move list), `409eb2c` (the engine module compiled once), `f792275` (the review
   without the "Retry mistakes" tab, and Bits UI for its tabs and display menu), `b73c4ef` (the puzzles' edge input on
-  the engine's rules), then protocol 0.3 (decisions/engine.md, "Protocol 0.3").
+  the engine's rules), `2d979cb` (protocol 0.3), then the engine's line on the board (design 07).
 - **Checks on the working tree:** `npm run check` has no errors or warnings. `npm test` passes (12 checks). `npm run
   build` succeeds.
 - **The engine:** protocol 0.3, build `319a5c4`, the networks b10c128 and b15c192, searching with KataGo's analysis
@@ -20,6 +20,11 @@ It holds no backlog: everything still to do that is not in flight is in
 
 ## In flight
 
+- **The engine's line on the board is done** (design [07-lines-and-variations.md](design/07-lines-and-variations.md);
+  decisions/product.md, "The engine's line on the board"), with the players' areas in their tags. Next: the line's
+  edges listed under the candidates table, a click there playing the line to that edge as a branch; then the game as a
+  tree (the player's moves, inline branches, Lichess's keys). A click on a candidate whose line is shown in full is to
+  play it. Request 05 (`includePVVisits`, the visits of each move of a line) is open in the engine repository.
 - **The engine's lines and exploring variations** (moved here from the backlog), being built. Decided with the owner:
   the line of a candidate on the board while the pointer is on it, as numbered edges (KaTrain's and Lizzie's way; to
   check whether cuts make it messy), and listed under the candidates table, where a click plays it to there as a
@@ -47,6 +52,6 @@ It holds no backlog: everything still to do that is not in flight is in
 
 ## Check first
 
-1. Build the engine's lines and variations as decided. Show the owner the line on the board early (the cuts).
+1. Build the line's list and the variations (design 07).
 2. The speed numbers so far came from a loaded machine. Rerun the lab's review on an idle machine before any change
    of budget.

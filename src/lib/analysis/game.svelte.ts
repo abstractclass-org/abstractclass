@@ -9,10 +9,10 @@
 // agreement against search budget"): 256 visits is the first budget whose mistake flags are mostly right.
 // Results are kept in the browser (cache.ts).
 import { describeGame } from "#lib/engine/describe.ts";
-import { parseEdge } from "#lib/engine/notation.ts";
+import { edgeName, parseEdge, type Edge } from "#lib/engine/notation.ts";
 import type { AnalysisReply, DescribeReply } from "#lib/engine/protocol.ts";
 import { errorText } from "#lib/errors.ts";
-import type { Analysis, Move, Position, ReviewData } from "#lib/review/model.ts";
+import type { Analysis, LineStep, Move, Position, ReviewData } from "#lib/review/model.ts";
 import { analysisKey, cacheGet, cachePut } from "./cache.ts";
 import { Cancelled, type EnginePool } from "./pool.ts";
 
@@ -28,7 +28,7 @@ export function boardPosition(d: DescribeReply): Position {
   return {
     edges: [d.edges.b.map(parseEdge), d.edges.r.map(parseEdge)],
     protected: d.protected.map(parseEdge), placed: d.placed.map(parseEdge),
-    scores: d.scores, player: d.mover === "b" ? 0 : 1, movesLeft: d.movesLeft,
+    scores: d.scores, areas: d.areas, player: d.mover === "b" ? 0 : 1, movesLeft: d.movesLeft,
     regions: [d.regions.b.map(ring), d.regions.r.map(ring)],
   };
 }
@@ -40,8 +40,19 @@ export function toAnalysis(r: AnalysisReply): Analysis {
     spread: r.rootInfo.scoreStdev,
     candidates: [...r.moveInfos].sort((a, b) => a.order - b.order).map(c => ({
       edge: parseEdge(c.move), visits: c.edgeVisits, blueWin: c.winrate, lead: c.scoreLead, margin: c.scoreSelfplay,
+      line: lineOf(c.pv),
     })),
   };
+}
+
+/** A candidate's line (KataGo's pv, the move first), up to its first pass. */
+function lineOf(pv: string[]): Edge[] {
+  const line: Edge[] = [];
+  for (const m of pv) {
+    if (!m.includes("-")) break; // a pass ends the turn: the line stops there
+    line.push(parseEdge(m));
+  }
+  return line;
 }
 
 export class GameAnalysis {
@@ -115,6 +126,15 @@ export class GameAnalysis {
     this.search(i, DEEP_VISITS, PRIORITY.focus, "focus", true, () => generation === this.focusGeneration)
       .catch(this.fail)
       .finally(() => { if (this.focusing === i) this.focusing = null; });
+  }
+
+  /** Each edge of a line from the position after `i` moves, played: the edge it cuts (or null) and the regions after
+   *  it. The rules, no network. */
+  async lineSteps(i: number, line: Edge[]): Promise<LineStep[]> {
+    const { positions, cuts } = await describeGame(this.pool.rules, [...this.moves.slice(0, i), ...line.map(edgeName)], i);
+    return cuts.map((c, k) => ({
+      cut: c === null ? null : parseEdge(c), regions: boardPosition(positions[k + 1]).regions, areas: positions[k + 1].areas,
+    }));
   }
 
   /** Searches these positions deeper, after the focus and before the sweep. */

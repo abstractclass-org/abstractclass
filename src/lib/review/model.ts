@@ -19,6 +19,7 @@ export interface Position {
   protected: Edge[];
   placed: Edge[];
   scores: [number, number];
+  areas?: [number, number]; // the area each player encloses now, added to the score at each turn's end (the engine's)
   player: Player;
   movesLeft: number;
   regions: [Region[], Region[]];
@@ -26,8 +27,9 @@ export interface Position {
 /** A move: an edge, or null for a timeout pass (the rest of the turn forfeited). */
 export interface Move { player: Player; edge: Edge | null; cut: Edge | null }
 /** Values from Blue's side. `lead` (the engine's scoreLead) and `margin` (scoreSelfplay) are in points. `visits` is the
- *  visits through the move (KataGo's edgeVisits). */
-export interface Candidate { edge: Edge; visits: number; blueWin: number; lead?: number; margin?: number }
+ *  visits through the move (KataGo's edgeVisits). `line` is the engine's expected continuation, the move first (KataGo's
+ *  pv), up to a pass. */
+export interface Candidate { edge: Edge; visits: number; blueWin: number; lead?: number; margin?: number; line?: Edge[] }
 export interface Analysis { blueWin: number; visits: number; lead?: number; margin?: number; spread?: number; candidates: Candidate[] }
 export interface ReviewData {
   players: { blue: string; red: string };
@@ -54,6 +56,21 @@ export const LABEL_GLYPH: Record<Label, Glyph> = {
 const OPENING_TURNS = 8;
 
 export const PLAYER_NAME = ["Blue", "Red"] as const;
+
+/** An edge of a line, played: the edge it cuts (or null), and the regions and areas after it. */
+export interface LineStep { cut: Edge | null; regions: Position["regions"]; areas: [number, number] }
+
+/** Who plays each of the next `n` edges from a position: the mover for the edges left in this turn, then each player
+ *  for a turn of two edges. */
+export function lineMovers(p: Position, n: number): Player[] {
+  const movers: Player[] = [];
+  let player = p.player, left = p.movesLeft;
+  for (let i = 0; i < n; i++) {
+    movers.push(player);
+    if (--left === 0) { player = (1 - player) as Player; left = 2; }
+  }
+  return movers;
+}
 
 // --- Derived review -------------------------------------------------------------------------------------------------
 export interface EdgeReview {
@@ -188,6 +205,12 @@ export function explain(e: EdgeReview): string {
 // getPlaySelectionValues). With fewer visits, its value is too uncertain to compare. The board uses the same rule,
 // with visits for weight.
 const MIN_VISIT_SHARE = 0.15;
+
+/** The candidate has enough visits for its values and its line to be trusted: it is the engine's first choice, or it
+ *  has MIN_VISIT_SHARE of the most visited candidate's visits. */
+export function enoughVisits(a: Analysis, c: Candidate): boolean {
+  return c === a.candidates[0] || c.visits >= MIN_VISIT_SHARE * Math.max(...a.candidates.map(x => x.visits));
+}
 
 /** A candidate with its rank (1: the engine's first choice) and how much worse it is than number 1 for the mover: `gap`
  *  in win chance, `gapPts` in points when the analysis has scores. Negative when it is better than number 1. */

@@ -3,14 +3,15 @@
 import type { EngineWorker } from "./client.ts";
 import type { DescribeReply } from "./protocol.ts";
 
-export async function describeGame(engine: EngineWorker, moves: string[]): Promise<{ positions: DescribeReply[]; cuts: (string | null)[] }> {
+/** The positions from move `from` on (the position before `moves[from]` first), and the edge each of those moves cuts. */
+export async function describeGame(engine: EngineWorker, moves: string[], from = 0): Promise<{ positions: DescribeReply[]; cuts: (string | null)[] }> {
   // All at once: the worker runs them back to back, with no round trip between them.
-  const positions = (await Promise.all(Array.from({ length: moves.length + 1 }, (_, i) =>
-    engine.describe({ moves: moves.slice(0, i) })))).map(t => t.reply);
-  const cuts = moves.map((_, i) => {
-    const opponent = positions[i].mover === "b" ? "r" : "b";
-    const after = new Set(positions[i + 1].edges[opponent]);
-    return positions[i].edges[opponent].find(e => !after.has(e)) ?? null;
+  const positions = (await Promise.all(Array.from({ length: moves.length - from + 1 }, (_, k) =>
+    engine.describe({ moves: moves.slice(0, from + k) })))).map(t => t.reply);
+  const cuts = positions.slice(0, -1).map((before, k) => {
+    const opponent = before.mover === "b" ? "r" : "b";
+    const after = new Set(positions[k + 1].edges[opponent]);
+    return before.edges[opponent].find(e => !after.has(e)) ?? null;
   });
   return { positions, cuts };
 }

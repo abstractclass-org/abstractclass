@@ -7,6 +7,7 @@ export interface Display {
   win: "bar" | "gauge"; // a bar above the board (Blue left, Red right), or a vertical gauge beside it
   layers: BoardLayers;
   scoreLine: boolean; // the Advantage chart's score-so-far line
+  lineSteps: boolean; // the engine's line drawn one edge at a time (KaTrain's way, the default), not all at once
 }
 
 const KEY = "learn-enclosure:review-display:1";
@@ -15,6 +16,7 @@ export const DEFAULT_DISPLAY: Display = {
   win: "bar",
   layers: DEFAULT_LAYERS,
   scoreLine: true,
+  lineSteps: true,
 };
 
 export function loadDisplay(): Display {
@@ -25,6 +27,7 @@ export function loadDisplay(): Display {
       win: kept.win === "gauge" ? "gauge" : "bar",
       layers: { ...DEFAULT_DISPLAY.layers, ...kept.layers },
       scoreLine: kept.scoreLine ?? DEFAULT_DISPLAY.scoreLine,
+      lineSteps: kept.lineSteps ?? DEFAULT_DISPLAY.lineSteps,
     };
   } catch {
     return structuredClone(DEFAULT_DISPLAY);

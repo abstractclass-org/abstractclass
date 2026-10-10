@@ -46,9 +46,11 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
 4. **The step controls** (first, back, forward, last), the status line and the display menu are a bar at the bottom of
    the analysis column, as on Lichess, next to the move list that they step through.
 5. **The win chance is a display setting:**
-   - **A bar above the board** (the default): Blue on the left, Red on the right, as the players start. The players'
-     names and scores flank it in one row.
-   - **A vertical gauge beside the board** (the option, as Lichess and chess.com draw it): Blue's share from the
+   - **A bar above the board** ("Top horizontal bar", the default): Blue on the left, Red on the right, as the players
+     start. The players' tags flank it in one row: each player's name, points, and the area the player encloses now,
+     which each turn's end adds to the points. While the engine's line shows (design 07), the area is the one after
+     the line's last drawn edge, in the accent colour.
+   - **A vertical gauge beside the board** ("Side vertical gauge", as Lichess and chess.com draw it): Blue's share from the
      bottom, each side's percentage inside the gauge at its own end (Red's at the top, Blue's at the bottom), as the
      bar shows them at its ends. The percentages are small and written up the gauge, so the gauge is 1rem wide. A
      percentage shows when its side's part of the gauge is long enough for it. The players' names and scores stay in
@@ -57,7 +59,7 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
      puts Blue below Red.
 6. **Display settings** are in a menu on the review page, opened from a button in the step controls' bar, as
    Lichess's analysis menu: the win chance's form, the board's layers (candidates, move labels, regions, protected
-   edges) and the chart's score line. The menu is raised above the panel (a lighter surface, a border and a shadow),
+   edges), the engine's line ("Animated" or "Static", design 07) and the chart's score line. The menu is raised above the panel (a lighter surface, a border and a shadow),
    and the button shows that it is open. The settings are kept in this browser (no accounts yet). A settings page for the whole
    site can come later, when puzzles and lessons have settings too.
 7. **The progress bars go by subject:** the position's search bar is in the position's engine header, at the top of

@@ -454,5 +454,34 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   edge A10-D10; K3 then keeps D10 and says to finish at a marked point; the pointer on A13 shows the edge D10-A13; a
   click on a marked end places the edge, and the puzzle answers "That's not the edge".
 - **Not yet:** the lessons still check edges with their own small tests (the backlog).
+
+### The engine's line on the board (2026-10-10)
+
+- **Decided** (design [07-lines-and-variations.md](../design/07-lines-and-variations.md)): pointing at a candidate,
+  on the board or in the candidates table, draws its line on the board (KaTrain's and Lizzie's way): its first 6
+  edges, dashed in each mover's colour and numbered in circles of the mover's colour, the candidate first. The
+  analyses keep each candidate's line (KataGo's `pv`, up to a pass; the cache's shape version 3).
+- **The cuts and the regions:** the first line tried, from the sample game after edge 30, cut 3 of Red's edges in 6
+  edges (H6-L8, L8-O11, L8-N11), and the board still drew them. Now the edges a line cuts leave the board and are drawn
+  cut, and the regions are the ones after the line's last drawn edge, from the engine's `describe` of each position
+  along the line. The review got a worker for the rules alone, so that these calls never wait behind a search.
+- **One edge at a time,** by default, as KaTrain draws a line: one more edge every half second, then the line stays.
+  A click on the candidate or its table row shows the whole line at once. The display menu names the choice
+  "Animated" or "Static", and the win chance's "Top horizontal bar" or "Side vertical gauge". Reduced motion draws the
+  line all at once.
+- **The players' tags show the area** each encloses now, besides the points (the engine's `areas`, which each turn's end
+  adds to the points). While a line shows, the area is the one after its last drawn edge, in the accent colour. After
+  edge 30 of the sample game, Blue has 46 points and 11 area, Red 30 and 3; number 1's line takes Red to 4 at its first
+  edge and back to 3 when Blue cuts, and Blue to 24 when its sixth edge closes a region.
+- **The other candidates leave the board** while a line shows, so that its only numbers are the line's. The rounded
+  square and the number on the new point were the other choices.
+- **Only for candidates with enough visits** (the first choice, or 15% of the most visited candidate's visits, the
+  board's rule): the line of a barely searched move means little. The other rows say "Too few visits to show the
+  engine's line". The engine repository is asked for the visits of each move of a line (request 05,
+  `includePVVisits`), so that a line can stop where its search ran out.
+- **Checked in Edge:** after edge 30, number 1's line draws one edge at a time (1, then 2, … 6 over three seconds),
+  each cut appearing with its edge; a click on the row draws all 6; Red's cut region near M9 loses its shading and
+  Blue's new region gets it (Red 3 regions to 2, Blue 6 to 7); R8-T11 (6 visits) shows no line and its row has the
+  note; at the first position, pointing at number 1 hides number 2 and leaves number 1.
 - **Checked in Edge** at 1,380 × 904: the players' row has the board's edges (311 to 987 pixels), and the three columns
   end at the chart's bottom (898 pixels).

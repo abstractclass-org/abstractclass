@@ -5,6 +5,9 @@
   export interface BoardCandidate { edge: Edge; rank: number; note: string }
   /** A label badge on a played edge, at its midpoint: an end point is a node that several edges share. */
   export interface BoardMark { edge: Edge; label: Label; glyph: Glyph }
+  /** An edge of the engine's line from the position, with its mover, and, once the engine's rules have played it, the
+   *  edge it cuts and the regions after it. */
+  export interface BoardLineEdge { edge: Edge; player: 0 | 1; cut?: Edge | null; regions?: Position["regions"] }
   export interface BoardLayers { regions: boolean; protected: boolean; candidates: boolean; marks: boolean; coordinates: boolean }
   export const DEFAULT_LAYERS: BoardLayers = { regions: true, protected: true, candidates: true, marks: true, coordinates: true };
 </script>
@@ -23,6 +26,7 @@
     cut?: Edge | null;
     candidates?: BoardCandidate[];
     highlight?: Edge | null; // a candidate pointed at from outside the board (a row of the candidates table)
+    line?: BoardLineEdge[] | null; // the line of the candidate pointed at, as far as drawn: numbered, the candidate first
     preview?: Edge | null;
     previewPlayer?: 0 | 1;
     marks?: BoardMark[];
@@ -35,11 +39,13 @@
     targets?: Edge[]; // edges to point at, drawn as a soft glow (a lesson's hint)
     onpoint?: (x: number, y: number) => void;
     oncandidate?: (edge: Edge | null) => void;
+    oncandidateclick?: (edge: Edge) => void;
   }
   let {
-    position, lastEdge = null, cut = null, candidates = [], highlight = null, preview = null, previewPlayer = 0, marks = [], ghost = null,
+    position, lastEdge = null, cut = null, candidates = [], highlight = null, line = null,
+    preview = null, previewPlayer = 0, marks = [], ghost = null,
     layers: layersSet = {},
-    pending = null, ends = null, active = null, view = [0, 0, 18, 18], targets = [], onpoint, oncandidate,
+    pending = null, ends = null, active = null, view = [0, 0, 18, 18], targets = [], onpoint, oncandidate, oncandidateclick,
   }: Props = $props();
 
   const layers = $derived({ ...DEFAULT_LAYERS, ...layersSet });
@@ -65,6 +71,12 @@
   let hoveredEdge = $state<Edge | null>(null);
   const hovered = $derived(hoveredEdge ? candidates.find(c => sameEdge(c.edge, hoveredEdge!)) ?? null : null);
   const lit = $derived(hovered ?? (highlight ? candidates.find(c => sameEdge(c.edge, highlight!)) ?? null : null));
+  // The board as the line leaves it: the edges it cuts are off the board and drawn as cut (as the last edge's cut is),
+  // and the regions are the ones after its last edge, once the engine's rules have played it.
+  const drawnLine = $derived(line ?? []);
+  const lineCuts = $derived(drawnLine.flatMap(l => (l.cut ? [l.cut] : [])));
+  const shownEdges = $derived(([0, 1] as const).map(p => position.edges[p].filter(e => !lineCuts.some(c => sameEdge(c, e)))));
+  const shownRegions = $derived(drawnLine.at(-1)?.regions ?? position.regions);
   // Edge input: the point under the pointer, for the ghost edge from `pending` to a legal end.
   const pointKey = (x: number, y: number) => x * N + y;
   const activeKeys = $derived(active ? new Set(active.map(([x, y]) => pointKey(x, y))) : null);
@@ -106,7 +118,7 @@
 
   {#if layers.regions}
     {#each [0, 1] as p (p)}
-      {#each position.regions[p] as r, i (i)}
+      {#each shownRegions[p] as r, i (i)}
         <path d={r.rings.map(ringPath).join(" ")} class="region p{p}" fill-rule="evenodd" />
       {/each}
     {/each}
@@ -135,10 +147,10 @@
   {/if}
 
   {#each [0, 1] as p (p)}
-    {#each position.edges[p] as e, i (i)}
+    {#each shownEdges[p] as e, i (i)}
       <line {...seg(e)} class="edge p{p}" />
     {/each}
-    {#each nodes(position.edges[p]) as [x, y] (`${x},${y}`)}
+    {#each nodes(shownEdges[p]) as [x, y] (`${x},${y}`)}
       <circle cx={x} cy={sy(y)} r="0.16" class="node p{p}" />
     {/each}
   {/each}
@@ -155,14 +167,19 @@
   {#if layers.candidates}
     {#each ordered as c (c.rank)}
       {@const [mx, my] = mid(c.edge)}
+      <!-- While a line shows, the other candidates are hidden, so that the board's only numbers are the line's. The lit
+           one stays, so that the pointer keeps its hover. -->
       <g
         class="candidate"
         class:first={c.rank === 1}
+        class:off={!!line?.length && lit?.rank !== c.rank}
         role="button"
         tabindex="-1"
         class:hovered={lit?.rank === c.rank}
         onmouseenter={() => enter(c)}
         onmouseleave={leave}
+        onclick={() => oncandidateclick?.(c.edge)}
+        onkeydown={() => {}}
       >
         <line {...seg(c.edge)} class="cand-hit" />
         <line {...seg(c.edge)} class="cand-line" />
@@ -185,9 +202,35 @@
       <line {...seg(h.edge)} class="cand-halo" />
       <circle cx={mx} cy={my} r="0.56" class="cand-halo-ring" />
       <line {...seg(h.edge)} class="cand-line" />
-      <circle cx={mx} cy={my} r="0.38" class="cand-badge" />
-      <text x={mx} y={my + 0.15} class="cand-rank">{h.rank}</text>
+      {#if !line?.length}
+        <circle cx={mx} cy={my} r="0.38" class="cand-badge" />
+        <text x={mx} y={my + 0.15} class="cand-rank">{h.rank}</text>
+      {/if}
     </g>
+  {/if}
+
+  <!-- The engine's line from the candidate pointed at (KaTrain's and Lizzie's way): its edges dashed in each mover's
+       colour, numbered from the candidate, which is 1. The badges go last, so that no edge covers a number. -->
+  {#if drawnLine.length}
+    <g class="line">
+      {#each lineCuts as c, i (i)}
+        <line {...seg(c)} class="cut" />
+        <text x={mid(c)[0]} y={mid(c)[1] + 0.17} class="cut-mark">×</text>
+      {/each}
+      {#each drawnLine as l, i (i)}
+        <line {...seg(l.edge)} class="line-edge p{l.player}" />
+      {/each}
+      {#each drawnLine as l, i (i)}
+        {@const [lx, ly] = mid(l.edge)}
+        <circle cx={lx} cy={ly} r="0.3" class="line-badge p{l.player}" />
+        <text x={lx} y={ly + 0.13} class="line-number">{i + 1}</text>
+      {/each}
+    </g>
+  {/if}
+
+  {#if layers.candidates && lit}
+    {@const h = lit}
+    {@const [mx, my] = mid(h.edge)}
     {#if hovered === h}
       {@const w = 0.25 * h.note.length + 0.4}
       {@const nx = mx + 0.62 + w > N ? mx - 0.62 - w : mx + 0.62}
@@ -251,6 +294,7 @@
   .candidate { cursor: pointer; opacity: 0.38; transition: opacity 0.12s; }
   .candidate:hover, .candidate.hovered { opacity: 1; }
   .candidate.top { opacity: 1; pointer-events: none; }
+  .candidate.off { visibility: hidden; }
   .cand-hit { stroke: transparent; stroke-width: 0.6; }
   .cand-line { stroke: var(--candidate); stroke-width: 0.11; stroke-linecap: round; stroke-dasharray: 0.32 0.14; }
   .first .cand-line { stroke: var(--engine); stroke-width: 0.17; stroke-dasharray: none; }
@@ -269,6 +313,16 @@
      number 1's note box tells them apart. */
   .cand-note.first rect { fill: color-mix(in srgb, var(--engine) 35%, var(--panel)); stroke: var(--engine); }
   .cand-note.first text { font-weight: 600; }
+
+  /* The engine's line. It takes no pointer events, so that it never takes the hover from the candidate under it. */
+  .line { pointer-events: none; }
+  .line-edge { stroke-width: 0.13; stroke-dasharray: 0.28 0.12; stroke-linecap: round; }
+  .line-edge.p0 { stroke: var(--blue); }
+  .line-edge.p1 { stroke: var(--red); }
+  .line-badge { stroke: var(--board-bg); stroke-width: 0.05; }
+  .line-badge.p0 { fill: var(--blue); }
+  .line-badge.p1 { fill: var(--red); }
+  .line-number { font-size: 0.36px; fill: var(--on-badge); text-anchor: middle; font-weight: 700; font-family: system-ui, sans-serif; }
 
   /* Label badges on the turn just played. */
   .mark circle { stroke: var(--board-bg); stroke-width: 0.06; }

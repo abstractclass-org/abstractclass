@@ -17,8 +17,9 @@ export async function cachePut(key: string, value: unknown): Promise<void> {
 }
 
 // The stored shape's version. A change of what an analysis holds takes the next one, so that older results are not
-// read as the new shape. 2: a candidate's visits are KataGo's edgeVisits, no longer its child node's visits.
-const SHAPE = 2;
+// read as the new shape. 2: a candidate's visits are KataGo's edgeVisits, no longer its child node's visits. 3: a
+// candidate has its line (KataGo's pv).
+const SHAPE = 3;
 
 export const analysisKey = (build: string, model: string, moves: string[], visits: number) =>
   `${SHAPE}|${build}|${model}|${visits}|${moves.join(" ")}`;
