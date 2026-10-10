@@ -3,11 +3,14 @@
 // and the key moments before the sweep of the whole game (KaTrain's priorities, core/engine.py). A task that can stop
 // (a search in slices) gives way: when a more urgent task finds no free worker, the least urgent such task is stopped
 // and waits in the queue again.
-import { EngineWorker, type Manifest } from "#lib/engine/client.ts";
+import { EngineWorker, moduleOf, type Manifest } from "#lib/engine/client.ts";
 import type { ModelInfo, VersionReply } from "#lib/engine/protocol.ts";
 
 /** A task's work. It gets a worker, and can name how to stop its work early (`onStop`). */
 export type Work<T> = (engine: EngineWorker, onStop: (stop: () => void) => void) => Promise<T>;
+
+/** Half the machine's cores, from 1 to 4: one module instance a worker, and room left for the page. */
+export const defaultPoolSize = () => Math.max(1, Math.min(4, Math.floor((navigator.hardwareConcurrency || 2) / 2)));
 
 /** The rejection of a task that was cancelled before it ran. */
 export class Cancelled extends Error {
@@ -40,7 +43,7 @@ export class EnginePool {
    *  first worker, which serves the rules calls, loads its network only after `onRules`, so that the board does not
    *  wait for a network. The other workers load theirs at once. */
   async start(manifest: Manifest, modelId: string, onRules?: () => Promise<void>) {
-    const module = manifest.artifacts.find(a => a.kind === "module");
+    const module = moduleOf(manifest);
     const model = manifest.artifacts.find(a => a.kind === "model" && a.id === modelId);
     if (!module || !model) throw new Error(`the manifest lacks the module or the network ${modelId}`);
     const versions = await Promise.all(this.engines.map(e => e.init(module.url)));
@@ -74,8 +77,6 @@ export class EnginePool {
     this.queue = this.queue.filter(t => !match(t.tag));
     for (const t of dropped) t.reject(new Cancelled());
   }
-
-  get waiting() { return this.queue.length; }
 
   private enqueue(task: Task) {
     this.queue.push(task);

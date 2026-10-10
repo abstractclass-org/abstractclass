@@ -7,7 +7,7 @@
 // least `minVisits` (the label budget: docs/decisions/engine.md, "Label agreement against search budget").
 
 import { edgeName, sameEdge, type Edge } from "#lib/engine/notation.ts";
-import { BAD_LABELS, LABELS, ONLY_EDGE_GAP, classify, type Label } from "./labels.ts";
+import { BAD_LABELS, GOOD_POINTS, GOOD_WIN, LABELS, ONLY_EDGE_GAP, classify, type Label } from "./labels.ts";
 export { edgeName, pointName, sameEdge, type Edge } from "#lib/engine/notation.ts";
 export { BAD_LABELS, LABELS, type Label } from "./labels.ts";
 
@@ -68,21 +68,21 @@ export interface EdgeReview {
   best: Candidate | undefined; // the engine's first choice in the position before the edge
 }
 export interface TurnReview { number: number; player: Player; edges: EdgeReview[]; loss: number; label: Label | null }
-export interface PlayerSummary { counts: Record<Label, number>; accuracy: number; meanLoss: number; meanPointsLost: number | undefined }
+export interface PlayerSummary { counts: Record<Label, number>; accuracy: number; meanPointsLost: number | undefined }
 export interface Review {
   data: ReviewData;
   edges: EdgeReview[];
   turns: TurnReview[];
+  turnOf: TurnReview[]; // by edge index: the turn the edge is in
   summary: [PlayerSummary, PlayerSummary];
   mistakes: EdgeReview[]; // every edge labelled Inaccuracy or worse after the opening, in game order
   keyMoments: EdgeReview[];
   blueWin: number[]; // by position (NaN until analysed), the last from the result
   blueScore: (number | undefined)[]; // by position, the score that measures points lost, from Blue's side
-  analysed: number; // positions analysed
 }
 
 export const moverWin = (blueWin: number, p: Player) => (p === 0 ? blueWin : 1 - blueWin);
-const moverScore = (blue: number, p: Player) => (p === 0 ? blue : -blue);
+export const moverScore = (blue: number, p: Player) => (p === 0 ? blue : -blue);
 const scoreOf = (a: Analysis | Candidate | undefined, kind: ScoreKind) => (kind === "lead" ? a?.lead : a?.margin);
 
 /** The engine's first choice is the only good edge: the second is at least ONLY_EDGE_GAP worse for the mover. */
@@ -114,11 +114,12 @@ export function review(data: ReviewData, kind: ScoreKind = "lead", minVisits = 0
     const label = known ? classify(loss, pointsLost, !!best && !!m.edge && sameEdge(best.edge, m.edge), onlyEdge(a, m.player)) : null;
     return { index: i, player: m.player, edge: m.edge, cut: m.cut, winBefore, winAfter, loss, pointsLost, label, best };
   });
-  const turns: TurnReview[] = [];
+  const turns: TurnReview[] = [], turnOf: TurnReview[] = [];
   for (const e of edges) {
     const last = turns.at(-1);
     if (last && last.player === e.player) last.edges.push(e);
     else turns.push({ number: turns.length + 1, player: e.player, edges: [e], loss: 0, label: null });
+    turnOf.push(turns.at(-1)!);
   }
   for (const t of turns) {
     const first = t.edges[0], last = t.edges.at(-1)!;
@@ -134,7 +135,6 @@ export function review(data: ReviewData, kind: ScoreKind = "lead", minVisits = 0
     return {
       counts,
       accuracy: mine.length ? mine.reduce((s, e) => s + moveAccuracy(100 * e.loss), 0) / mine.length : NaN,
-      meanLoss: mine.length ? mine.reduce((s, e) => s + e.loss, 0) / mine.length : NaN,
       meanPointsLost: withPoints.length ? withPoints.reduce((s, e) => s + e.pointsLost!, 0) / withPoints.length : undefined,
     };
   }) as [PlayerSummary, PlayerSummary];
@@ -142,8 +142,7 @@ export function review(data: ReviewData, kind: ScoreKind = "lead", minVisits = 0
   // The first turns are left out, as Regan and Haworth skip the opening (design 01): the values swing most there.
   const firstTurn = turns[Math.min(OPENING_TURNS, turns.length - 1)].edges[0].index;
   const mistakes = edges.filter(e => e.index >= firstTurn && e.label && BAD_LABELS.includes(e.label));
-  const analysed = data.analysis.filter(Boolean).length;
-  return { data, edges, turns, summary, mistakes, keyMoments: largest(mistakes), blueWin, blueScore, analysed };
+  return { data, edges, turns, turnOf, summary, mistakes, keyMoments: largest(mistakes), blueWin, blueScore };
 }
 
 /** The worst of these edges (by label, then points, then win chance), at most `n`, in game order. */
@@ -151,9 +150,17 @@ export function largest(edges: EdgeReview[], n = 8): EdgeReview[] {
   return [...edges].sort((a, b) => severity(b) - severity(a)).slice(0, n).sort((a, b) => a.index - b.index);
 }
 
+/** A win chance as text, with one decimal wherever it shows. */
+export const pct = (x: number) => `${(100 * x).toFixed(1)}%`;
+
 /** The loss as text: points when known, else win chance. */
 export function lossText(e: EdgeReview): string {
-  return e.pointsLost !== undefined ? `−${Math.round(e.pointsLost)} pts` : `−${(100 * e.loss).toFixed(1)}%`;
+  return e.pointsLost !== undefined ? `−${Math.round(e.pointsLost)} pts` : `−${pct(e.loss)}`;
+}
+
+/** The loss as a phrase: "12 points and 3.4% of win chance", or the win chance alone when the analysis has no scores. */
+export function lossPhrase(e: EdgeReview): string {
+  return `${e.pointsLost !== undefined ? `${Math.round(e.pointsLost)} points and ` : ""}${pct(e.loss)} of win chance`;
 }
 
 /** The move as text: its edge, or "pass". */
@@ -170,9 +177,46 @@ export function explain(e: EdgeReview): string {
   if (e.label === "great") return `Great. ${who} found ${edgeName(e.edge)}, the only good edge here.`;
   if (e.label === "best") return `${who} played ${edgeName(e.edge)}, the engine's first choice.`;
   const better = e.best && !sameEdge(e.best.edge, e.edge) ? ` ${edgeName(e.best.edge)} was best.` : "";
-  const lost = e.pointsLost !== undefined
-    ? `${Math.round(e.pointsLost)} points and ${(100 * e.loss).toFixed(1)}% of win chance`
-    : `${(100 * e.loss).toFixed(1)}% of win chance`;
+  const lost = lossPhrase(e);
   if (e.label === "excellent" || e.label === "good") return `${LABEL_TEXT[e.label]}. ${who} played ${edgeName(e.edge)}, ${lost} from the best.${better}`;
   return `${LABEL_TEXT[e.label]}. ${who} played ${edgeName(e.edge)} and lost ${lost}.${better}`;
+}
+
+// KataGo lets a move compete for its choice (by its lower confidence bound) only when the move has this share of the
+// most visited move's weight (minVisitPropForLCB, its analysis_example.cfg; search/searchresults.cpp,
+// getPlaySelectionValues). With fewer visits, its value is too uncertain to compare. The board uses the same rule,
+// with visits for weight.
+const MIN_VISIT_SHARE = 0.15;
+const SOLVED_MARGIN = 0.02; // Lichess: within 0.04 winning chances of the best, which is 0.02 of win chance
+
+/** A candidate with its rank (1: the engine's first choice) and how much worse it is than number 1 for the mover: `gap`
+ *  in win chance, `gapPts` in points when the analysis has scores. Negative when it is better than number 1. */
+export interface RankedCandidate { c: Candidate; rank: number; gap: number; gapPts: number | undefined }
+
+/** The engine's candidates on the board: its first choice, and every other candidate that has enough visits to compare
+ *  (MIN_VISIT_SHARE of the most visited candidate's) and is within the Good band of the first choice (labels.ts). No
+ *  limit on the count: in an open position the visits spread, and every move that earns them shows. The first choice
+ *  is KataGo's order, its choice of move (the engine repository's design 04, "order"): by play selection value, where
+ *  the move with the best lower confidence bound is raised as far as that bound justifies, at most fivefold. So the
+ *  first choice is usually, not always, the best-LCB move, and it can have fewer visits than another candidate. */
+export function shownCandidates(a: Analysis | undefined, p: Player): RankedCandidate[] {
+  const first = a?.candidates[0];
+  if (!first) return [];
+  const best = moverWin(first.blueWin, p);
+  const most = Math.max(...a.candidates.map(c => c.visits));
+  return a.candidates
+    .map((c, k) => ({
+      c, rank: k + 1, gap: best - moverWin(c.blueWin, p),
+      gapPts: first.lead !== undefined && c.lead !== undefined ? moverScore(first.lead, p) - moverScore(c.lead, p) : undefined,
+    }))
+    .filter(({ c, rank, gap, gapPts }) => rank === 1 || (c.visits >= MIN_VISIT_SHARE * most && gap <= GOOD_WIN
+      && (gapPts === undefined || gapPts <= GOOD_POINTS)));
+}
+
+/** A retry's edge against the engine's analysis of the position: as good as its first choice (within SOLVED_MARGIN),
+ *  worse, or not among its candidates. */
+export function gradeTry(a: Analysis | undefined, p: Player, edge: Edge): "solved" | "worse" | "unknown" {
+  const c = a?.candidates.find(c => sameEdge(c.edge, edge));
+  if (!a || !c) return "unknown";
+  return moverWin(c.blueWin, p) >= moverWin(a.candidates[0].blueWin, p) - SOLVED_MARGIN ? "solved" : "worse";
 }

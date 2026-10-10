@@ -18,6 +18,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
+const { edgeName } = await import(new URL("../../src/lib/engine/notation.ts", import.meta.url).href);
 
 if (isMainThread) {
   const [ladderPath, outPath] = process.argv.slice(2);
@@ -100,7 +101,5 @@ function siteEdge(id) {
   const steps = [];
   for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) if (dx || dy) steps.push([dx, dy]);
   const s = id % 361, [dx, dy] = steps[Math.floor(id / 361)], x = s % 19, y = Math.floor(s / 19);
-  const col = "ABCDEFGHJKLMNOPQRST", p = [x, y], q = [x + dx, y + dy];
-  const [a, b] = p[0] < q[0] || (p[0] === q[0] && p[1] < q[1]) ? [p, q] : [q, p];
-  return `${col[a[0]]}${a[1] + 1}-${col[b[0]]}${b[1] + 1}`;
+  return edgeName([x, y, x + dx, y + dy]);
 }

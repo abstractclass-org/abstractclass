@@ -3,6 +3,7 @@
 // then sends "continue", or "terminate" if stopped. The engine continues the same tree, so slices change no result.
 import { loadEngine, type EngineModule } from "./module.ts";
 import type { WorkerReply, WorkerRequest } from "./messages.ts";
+import { errorText } from "#lib/errors.ts";
 
 let engine: EngineModule | null = null;
 let queue: Promise<void> = Promise.resolve();
@@ -44,5 +45,5 @@ async function handle(m: WorkerRequest) {
 self.onmessage = (event: MessageEvent<WorkerRequest>) => {
   const m = event.data;
   if (m.type === "stop") { stopped.add(m.id); return; }
-  queue = queue.then(() => handle(m)).catch(e => post({ type: "error", id: m.id, message: String(e) }));
+  queue = queue.then(() => handle(m)).catch(e => post({ type: "error", id: m.id, message: errorText(e) }));
 };

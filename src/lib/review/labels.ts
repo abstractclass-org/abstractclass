@@ -15,8 +15,10 @@ export const LABELS: Label[] = ["great", "best", "excellent", "good", "inaccurac
 export const BAD_LABELS: Label[] = ["inaccuracy", "mistake", "blunder"];
 
 export const SCORE_SCALE = 12;
-const WIN_BANDS: [Label, number][] = [["excellent", 0.02], ["good", 0.05], ["inaccuracy", 0.10], ["mistake", 0.20]];
-const POINT_BANDS: [Label, number][] = [["excellent", 1.5 * SCORE_SCALE], ["good", 3 * SCORE_SCALE],
+/** The Good band's upper limits, in win chance and in points: a loss within both is Good or better. */
+export const GOOD_WIN = 0.05, GOOD_POINTS = 3 * SCORE_SCALE;
+const WIN_BANDS: [Label, number][] = [["excellent", 0.02], ["good", GOOD_WIN], ["inaccuracy", 0.10], ["mistake", 0.20]];
+const POINT_BANDS: [Label, number][] = [["excellent", 1.5 * SCORE_SCALE], ["good", GOOD_POINTS],
                                         ["inaccuracy", 6 * SCORE_SCALE], ["mistake", 12 * SCORE_SCALE]];
 export const ONLY_EDGE_GAP = 0.10;
 

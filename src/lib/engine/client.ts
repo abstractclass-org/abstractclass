@@ -1,8 +1,8 @@
 // The page's side of one engine worker: a promise for each request, and partial results while a search runs.
 import type { WorkerReply, WorkerRequest } from "./messages.ts";
 import {
-  PROTOCOL, PROTOCOL_REPORTED, isError, type AnalysisQuery, type AnalysisReply, type DescribeReply, type LoadModelReply,
-  type PlayReply, type PositionQuery, type VersionReply,
+  PROTOCOL, PROTOCOL_REPORTED, isError, type AnalysisQuery, type AnalysisReply, type DescribeReply, type ErrorReply,
+  type LoadModelReply, type PlayReply, type PositionQuery, type VersionReply,
 } from "./protocol.ts";
 
 export interface Timed<T> { reply: T; ms: number; memory: number }
@@ -10,6 +10,25 @@ export interface Timed<T> { reply: T; ms: number; memory: number }
 /** The engine's artifacts that the site was built with (static/engine/manifest.json, scripts/fetch-engine.mjs). */
 export interface Manifest {
   artifacts: { id: string; kind: "module" | "model"; interface: string | null; url: string; sha256: string; bytes: number; released: boolean }[];
+}
+
+/** The manifest, or null when the site has no engine (`npm run engine` was not run). */
+export async function loadManifest(): Promise<Manifest | null> {
+  const response = await fetch("/engine/manifest.json");
+  return response.ok ? response.json() : null;
+}
+
+export const moduleOf = (manifest: Manifest) => manifest.artifacts.find(a => a.kind === "module");
+
+/** An error reply from the engine. `field` names the request's field at fault, as the protocol gives it. */
+export class EngineError extends Error {
+  readonly error: string;
+  readonly field?: string;
+  constructor({ error, field }: ErrorReply) {
+    super(`${error}${field ? ` (${field})` : ""}`);
+    this.error = error;
+    this.field = field;
+  }
 }
 
 type Pending = { resolve: (t: Timed<unknown>) => void; reject: (e: Error) => void; partial?: (r: unknown, ms: number) => void };
@@ -27,7 +46,7 @@ export class EngineWorker {
       if (m.type === "partial") { p.partial?.(m.reply, m.ms); return; }
       this.pending.delete(m.id);
       if (m.type === "error") p.reject(new Error(m.message));
-      else if (isError(m.reply)) p.reject(new Error(`${m.reply.error}${m.reply.field ? ` (${m.reply.field})` : ""}`));
+      else if (isError(m.reply)) p.reject(new EngineError(m.reply));
       else p.resolve({ reply: m.reply, ms: m.ms, memory: m.memory });
     };
   }

@@ -8,9 +8,11 @@
 // The budgets come from the measurement of label agreement against a deep search (docs/decisions/engine.md, "Label
 // agreement against search budget"): 256 visits is the first budget whose mistake flags are mostly right.
 // Results are kept in the browser (cache.ts).
-import { edgeName, parseEdge, type Edge } from "#lib/engine/notation.ts";
+import { describeGame } from "#lib/engine/describe.ts";
+import { parseEdge } from "#lib/engine/notation.ts";
 import type { AnalysisReply, DescribeReply } from "#lib/engine/protocol.ts";
-import type { Analysis, Move, Player, Position, ReviewData } from "#lib/review/model.ts";
+import { errorText } from "#lib/errors.ts";
+import type { Analysis, Move, Position, ReviewData } from "#lib/review/model.ts";
 import { analysisKey, cacheGet, cachePut } from "./cache.ts";
 import { Cancelled, type EnginePool } from "./pool.ts";
 
@@ -52,8 +54,8 @@ export class GameAnalysis {
   engineReady = $state(false);
   swept = $state(0);
   labelled = $state(0);
-  focusing = $state<number | null>(null);
   error = $state("");
+  private focusing: number | null = null;
   private stopFocus: (() => void) | null = null;
   private focusGeneration = 0; // a new focus makes every earlier focus search stale
   private pool: EnginePool;
@@ -74,20 +76,16 @@ export class GameAnalysis {
   /** Describes every position (the rules, no network), then sweeps the game. */
   async start() {
     try {
-      // All at once: the worker runs them back to back, with no round trip between them.
-      const n = this.moves.length;
-      const positions = (await Promise.all(Array.from({ length: n + 1 }, (_, i) =>
-        this.pool.rules.describe({ moves: this.moves.slice(0, i) })))).map(t => boardPosition(t.reply));
+      const game = await describeGame(this.pool.rules, this.moves);
+      const positions = game.positions.map(boardPosition);
       this.played = this.moves.map((m, i) => {
-        const p = positions[i].player as Player, opp = (1 - p) as Player;
-        const after = new Set(positions[i + 1].edges[opp].map(e => edgeName(e)));
-        const cut = positions[i].edges[opp].find(e => !after.has(edgeName(e))) ?? null;
-        return { player: p, edge: m === "pass" ? null : parseEdge(m), cut };
+        const cut = game.cuts[i];
+        return { player: positions[i].player, edge: m === "pass" ? null : parseEdge(m), cut: cut === null ? null : parseEdge(cut) };
       });
       this.positions = positions;
       this.rulesReady = true;
     } catch (e) {
-      this.error = String(e);
+      this.error = errorText(e);
     }
   }
 
@@ -126,7 +124,7 @@ export class GameAnalysis {
 
   /** Keeps an engine error for the page. A task cancelled before it ran is not an error. */
   private fail = (e: unknown) => {
-    if (!(e instanceof Cancelled)) this.error = String(e);
+    if (!(e instanceof Cancelled)) this.error = errorText(e);
   };
 
   /** Searches position i to `visits`, or takes the result from the cache. `wanted` false: the search is no longer

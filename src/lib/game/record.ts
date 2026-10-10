@@ -8,6 +8,7 @@
 // This reader keeps the main line and its tags. It skips comments and branches, but reads `[%clk]` and `[%eval]` from the
 // comments after the main line's edges. It checks the notation, not the rules: the engine checks that every move is
 // legal (describe names the first illegal move). It also accepts a bare list of edges, without turn labels.
+import { edgeName, parseEdge } from "#lib/engine/notation.ts";
 
 export interface GameRecord {
   tags: Record<string, string>;
@@ -29,17 +30,21 @@ export class RecordError extends Error {
 }
 
 const POINT = "[A-HJ-T](?:1[0-9]|[1-9])";
-const EDGE = new RegExp(`^(${POINT})-(${POINT})$`);
-const COLUMNS = "ABCDEFGHJKLMNOPQRST";
+const EDGE = new RegExp(`^${POINT}-${POINT}$`);
 const RESULT = /^(?:[br]\+(?:\d+(?:\.\d+)?|R|F)|0|\*)$/;
 const TURN = /^(\d+)(\.|\.\.\.)$/;
 
 /** The edge's one spelling: the lower point first (by column, then by row). Throws on a malformed edge. */
 export function canonicalEdge(text: string): string {
-  const m = EDGE.exec(text.toUpperCase());
-  if (!m) throw new Error(`not an edge: ${text}`);
-  const key = (p: string) => COLUMNS.indexOf(p[0]) * 100 + Number(p.slice(1));
-  return key(m[1]) <= key(m[2]) ? `${m[1]}-${m[2]}` : `${m[2]}-${m[1]}`;
+  const upper = text.toUpperCase();
+  if (!EDGE.test(upper)) throw new Error(`not an edge: ${text}`);
+  return edgeName(parseEdge(upper));
+}
+
+/** The players' names from the record's tags, or the side's name where a tag is missing or "?". */
+export function playerNames(tags: Record<string, string>): { blue: string; red: string } {
+  const name = (tag: string | undefined, side: string) => (tag && tag !== "?" ? tag : side);
+  return { blue: name(tags.Blue, "Blue"), red: name(tags.Red, "Red") };
 }
 
 type Token = { kind: "tag"; name: string; value: string; at: number }

@@ -1,7 +1,7 @@
 // The review's display settings (docs/design/06-review-layout.md): the win chance's form, the board's layers and the
 // chart's score line. Kept in this browser: there are no accounts yet. Storage can be blocked (a private window,
 // blocked site data), so every read and write may fail, and the defaults then hold.
-import type { BoardLayers } from "#lib/board/Board.svelte";
+import { DEFAULT_LAYERS, type BoardLayers } from "#lib/board/Board.svelte";
 
 export interface Display {
   win: "bar" | "gauge"; // a bar above the board (Blue left, Red right), or a vertical gauge beside it
@@ -13,7 +13,7 @@ const KEY = "learn-enclosure:review-display:1";
 
 export const DEFAULT_DISPLAY: Display = {
   win: "bar",
-  layers: { regions: true, protected: true, candidates: true, marks: true, coordinates: true },
+  layers: DEFAULT_LAYERS,
   scoreLine: true,
 };
 

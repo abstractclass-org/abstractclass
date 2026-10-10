@@ -26,45 +26,25 @@ export function openDb(): Promise<IDBDatabase | null> {
   return db;
 }
 
-export async function dbGet<T>(store: string, key: string): Promise<T | undefined> {
+/** Runs one request in its own transaction, and answers its result once the transaction completes, or `fallback` when
+ *  storage fails. */
+async function run<T>(store: string, mode: IDBTransactionMode, request: (s: IDBObjectStore) => IDBRequest, fallback: T): Promise<T> {
   const d = await openDb();
-  if (!d) return undefined;
+  if (!d) return fallback;
   return new Promise(resolve => {
     try {
-      const req = d.transaction(store).objectStore(store).get(key);
-      req.onsuccess = () => resolve(req.result as T | undefined);
-      req.onerror = () => resolve(undefined);
+      const tx = d.transaction(store, mode);
+      const req = request(tx.objectStore(store));
+      tx.oncomplete = () => resolve(req.result as T);
+      tx.onerror = tx.onabort = () => resolve(fallback);
     } catch {
-      resolve(undefined);
+      resolve(fallback);
     }
   });
 }
 
-export async function dbPut(store: string, key: string, value: unknown): Promise<boolean> {
-  const d = await openDb();
-  if (!d) return false;
-  return new Promise(resolve => {
-    try {
-      const tx = d.transaction(store, "readwrite");
-      tx.objectStore(store).put(value, key);
-      tx.oncomplete = () => resolve(true);
-      tx.onerror = () => resolve(false);
-    } catch {
-      resolve(false);
-    }
-  });
-}
-
-export async function dbAll<T>(store: string): Promise<T[]> {
-  const d = await openDb();
-  if (!d) return [];
-  return new Promise(resolve => {
-    try {
-      const req = d.transaction(store).objectStore(store).getAll();
-      req.onsuccess = () => resolve(req.result as T[]);
-      req.onerror = () => resolve([]);
-    } catch {
-      resolve([]);
-    }
-  });
-}
+export const dbGet = <T>(store: string, key: string) => run<T | undefined>(store, "readonly", s => s.get(key), undefined);
+export const dbAll = <T>(store: string) => run<T[]>(store, "readonly", s => s.getAll(), []);
+/** Answers whether the browser kept the value. */
+export const dbPut = async (store: string, key: string, value: unknown) =>
+  (await run<IDBValidKey | false>(store, "readwrite", s => s.put(value, key), false)) !== false;

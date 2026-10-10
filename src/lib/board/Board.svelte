@@ -6,6 +6,7 @@
   /** A label badge on a played edge, at its midpoint: an end point is a node that several edges share. */
   export interface BoardMark { edge: Edge; label: Label; glyph: string }
   export interface BoardLayers { regions: boolean; protected: boolean; candidates: boolean; marks: boolean; coordinates: boolean }
+  export const DEFAULT_LAYERS: BoardLayers = { regions: true, protected: true, candidates: true, marks: true, coordinates: true };
 </script>
 
 <script lang="ts">
@@ -24,7 +25,7 @@
     previewPlayer?: 0 | 1;
     marks?: BoardMark[];
     ghost?: BoardMark | null; // an edge not on the board, with its label: the game's edge during a retry
-    layers?: BoardLayers;
+    layers?: Partial<BoardLayers>; // the layers that differ from DEFAULT_LAYERS
     pending?: [number, number] | null; // the first point of an edge being entered
     view?: [number, number, number, number]; // the points shown: x0, y0, x1, y1 (a crop for lessons)
     targets?: Edge[]; // edges to point at, drawn as a soft glow (a lesson's hint)
@@ -33,12 +34,15 @@
   }
   let {
     position, lastEdge = null, cut = null, candidates = [], highlight = null, preview = null, previewPlayer = 0, marks = [], ghost = null,
-    layers = { regions: true, protected: true, candidates: true, marks: true, coordinates: true },
+    layers: layersSet = {},
     pending = null, view = [0, 0, 18, 18], targets = [], onpoint, oncandidate,
   }: Props = $props();
 
+  const layers = $derived({ ...DEFAULT_LAYERS, ...layersSet });
   const N = 19;
   const sy = (y: number) => N - 1 - y;
+  /** An edge's line, in the SVG's coordinates. */
+  const seg = (e: Edge) => ({ x1: e[0], y1: sy(e[1]), x2: e[2], y2: sy(e[3]) });
   const points = $derived(Array.from({ length: N * N }, (_, i) => [i % N, Math.floor(i / N)] as const)
     .filter(([x, y]) => x >= view[0] && x <= view[2] && y >= view[1] && y <= view[3]));
   const box = $derived(`${view[0] - 1.3} ${sy(view[3]) - 1.3} ${view[2] - view[0] + 2.6} ${view[3] - view[1] + 2.6}`);
@@ -62,6 +66,15 @@
   function enter(c: BoardCandidate) { hoveredEdge = c.edge; oncandidate?.(c.edge); }
   function leave() { hoveredEdge = null; oncandidate?.(null); }
 </script>
+
+<!-- A label badge at an edge's midpoint. -->
+{#snippet badge(m: BoardMark)}
+  {@const [bx, by] = mid(m.edge)}
+  <g class="mark">
+    <circle cx={bx} cy={by} r="0.36" style:fill="var(--{m.label})" />
+    <text x={bx} y={by + 0.14}>{m.glyph}</text>
+  </g>
+{/snippet}
 
 <svg class="board" viewBox={box} role="img" aria-label="Enclosure board">
   <rect x="-1.3" y="-1.3" width="20.6" height="20.6" class="bg" />
@@ -88,26 +101,26 @@
   {/each}
 
   {#if cut}
-    <line x1={cut[0]} y1={sy(cut[1])} x2={cut[2]} y2={sy(cut[3])} class="cut" />
+    <line {...seg(cut)} class="cut" />
     <text x={mid(cut)[0]} y={mid(cut)[1] + 0.17} class="cut-mark">×</text>
   {/if}
 
   {#if layers.protected}
     {#each position.protected as e, i (i)}
-      <line x1={e[0]} y1={sy(e[1])} x2={e[2]} y2={sy(e[3])} class="protected" />
+      <line {...seg(e)} class="protected" />
     {/each}
   {/if}
   {#each targets as t, i (i)}
-    <line x1={t[0]} y1={sy(t[1])} x2={t[2]} y2={sy(t[3])} class="target" />
+    <line {...seg(t)} class="target" />
   {/each}
 
   {#if lastEdge}
-    <line x1={lastEdge[0]} y1={sy(lastEdge[1])} x2={lastEdge[2]} y2={sy(lastEdge[3])} class="last" />
+    <line {...seg(lastEdge)} class="last" />
   {/if}
 
   {#each [0, 1] as p (p)}
     {#each position.edges[p] as e, i (i)}
-      <line x1={e[0]} y1={sy(e[1])} x2={e[2]} y2={sy(e[3])} class="edge p{p}" />
+      <line {...seg(e)} class="edge p{p}" />
     {/each}
     {#each nodes(position.edges[p]) as [x, y] (`${x},${y}`)}
       <circle cx={x} cy={sy(y)} r="0.16" class="node p{p}" />
@@ -115,16 +128,12 @@
   {/each}
 
   {#if preview}
-    <line x1={preview[0]} y1={sy(preview[1])} x2={preview[2]} y2={sy(preview[3])} class="preview p{previewPlayer}" />
+    <line {...seg(preview)} class="preview p{previewPlayer}" />
   {/if}
 
   {#if ghost}
-    {@const [gx, gy] = mid(ghost.edge)}
-    <line x1={ghost.edge[0]} y1={sy(ghost.edge[1])} x2={ghost.edge[2]} y2={sy(ghost.edge[3])} class="ghost" />
-    <g class="mark {ghost.label}">
-      <circle cx={gx} cy={gy} r="0.36" />
-      <text x={gx} y={gy + 0.14}>{ghost.glyph}</text>
-    </g>
+    <line {...seg(ghost.edge)} class="ghost" />
+    {@render badge(ghost)}
   {/if}
 
   {#if layers.candidates}
@@ -139,8 +148,8 @@
         onmouseenter={() => enter(c)}
         onmouseleave={leave}
       >
-        <line x1={c.edge[0]} y1={sy(c.edge[1])} x2={c.edge[2]} y2={sy(c.edge[3])} class="cand-hit" />
-        <line x1={c.edge[0]} y1={sy(c.edge[1])} x2={c.edge[2]} y2={sy(c.edge[3])} class="cand-line" />
+        <line {...seg(c.edge)} class="cand-hit" />
+        <line {...seg(c.edge)} class="cand-line" />
         <circle cx={mx} cy={my} r="0.38" class="cand-badge" />
         <text x={mx} y={my + 0.15} class="cand-rank">{c.rank}</text>
       </g>
@@ -149,11 +158,7 @@
 
   {#if layers.marks}
     {#each marks as m, i (i)}
-      {@const [bx, by] = mid(m.edge)}
-      <g class="mark {m.label}">
-        <circle cx={bx} cy={by} r="0.36" />
-        <text x={bx} y={by + 0.14}>{m.glyph}</text>
-      </g>
+      {@render badge(m)}
     {/each}
   {/if}
 
@@ -161,9 +166,9 @@
     {@const h = lit}
     {@const [mx, my] = mid(h.edge)}
     <g class="candidate top" class:first={h.rank === 1}>
-      <line x1={h.edge[0]} y1={sy(h.edge[1])} x2={h.edge[2]} y2={sy(h.edge[3])} class="cand-halo" />
+      <line {...seg(h.edge)} class="cand-halo" />
       <circle cx={mx} cy={my} r="0.56" class="cand-halo-ring" />
-      <line x1={h.edge[0]} y1={sy(h.edge[1])} x2={h.edge[2]} y2={sy(h.edge[3])} class="cand-line" />
+      <line {...seg(h.edge)} class="cand-line" />
       <circle cx={mx} cy={my} r="0.38" class="cand-badge" />
       <text x={mx} y={my + 0.15} class="cand-rank">{h.rank}</text>
     </g>
@@ -243,13 +248,6 @@
   /* Label badges on the turn just played. */
   .mark circle { stroke: var(--board-bg); stroke-width: 0.06; }
   .mark text { font-size: 0.4px; fill: var(--on-badge); text-anchor: middle; font-weight: 800; font-family: system-ui, sans-serif; }
-  .mark.great circle { fill: var(--great); }
-  .mark.best circle { fill: var(--best); }
-  .mark.excellent circle { fill: var(--excellent); }
-  .mark.good circle { fill: var(--good); }
-  .mark.inaccuracy circle { fill: var(--inaccuracy); }
-  .mark.mistake circle { fill: var(--mistake); }
-  .mark.blunder circle { fill: var(--blunder); }
 
   .pending { fill: none; stroke: var(--last); stroke-width: 0.1; }
   .hit { fill: transparent; cursor: crosshair; }
