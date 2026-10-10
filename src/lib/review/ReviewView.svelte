@@ -79,13 +79,22 @@
   // The side columns reach down to the Advantage chart's bottom edge when the whole chart is in the window, so that
   // the columns end on one line. When the board fills the window's height, the chart is below the fold: the side
   // columns then keep the board's height, so that the step controls stay in view. The chart's place depends only on
-  // the board's column, so reaching down does not move it.
+  // the board's column, so reaching down does not move it. The chart's place is measured again whenever the board's
+  // column or the page changes size, not only the window: the row above the board, measured after the first paint, or
+  // a bar of the browser's own, move it too.
   let chartBox = $state<HTMLElement>();
+  let boardCol = $state<HTMLElement>();
   let reach = $state(false);
   $effect(() => {
     void innerWidth.current; void wide.current; void display.win;
     const height = innerHeight.current;
-    if (chartBox && height !== undefined) reach = chartBox.getBoundingClientRect().bottom + window.scrollY <= height;
+    if (!chartBox || !boardCol || height === undefined) return;
+    const measure = () => { reach = chartBox!.getBoundingClientRect().bottom + window.scrollY <= window.innerHeight; };
+    measure();
+    const watch = new ResizeObserver(measure);
+    watch.observe(boardCol);
+    watch.observe(document.body);
+    return () => watch.disconnect();
   });
   const mainNames = $derived(R.data.moves.map(m => moveName(m.edge)));
   const here = $derived(pathKey(path));
@@ -370,10 +379,12 @@
     return out;
   });
 
-  // A move's sound (design 08), a pencil line: a step one move on plays it, from any key or button, and so does a move
-  // played or clicked in the move list. Other jumps (back, the start and the end, the chart, the fork keys) are silent.
+  // A move's sound (design 08), a crayon stroke: a step one move on plays it, from any key or button, and so does a move
+  // played or clicked in the move list or in Biggest mistakes. Other jumps (back, the start and the end, the chart, the
+  // fork keys) are silent, and so is a click on the place already on screen: the board does not change.
   function setPath(p: string[], sound = false) {
     const step = p.length === path.length + 1 && sharedLength(p, path) === path.length;
+    if (pathKey(p) === here) sound = false;
     path = p;
     hover = null;
     listHover = null;
@@ -424,7 +435,7 @@
    *  the move itself, nextGlyphSymbol in ui/analyse/src/nodeFinder.ts). */
   function showMove(index: number) {
     stage = "analysis";
-    go(index + 1);
+    go(index + 1, true); // a move clicked, as in the move list: its sound plays
   }
   $effect(() => onposition?.(path));
 
@@ -942,7 +953,7 @@
     </aside>
   {/if}
 
-  <section class="board-col">
+  <section class="board-col" bind:this={boardCol}>
     <!-- The players face each other left and right, as they start: Blue at A10-D10, Red at Q10-T10. The win-chance bar
          is between them. With the gauge, the row keeps the players, and starts after the gauge, at the board's edge. -->
     <div class={["mb-2 ml-(--gauge-w)", display.win === "bar" ? "@container/bar" : "@container/gauge"]} bind:offsetHeight={stripHeight}>

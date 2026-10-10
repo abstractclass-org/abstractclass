@@ -14,8 +14,9 @@ It holds no backlog: everything still to do that is not in flight is in
   without the "Retry mistakes" tab, and Bits UI for its tabs and display menu), `b73c4ef` (the puzzles' edge input on
   the engine's rules), `2d979cb` (protocol 0.3), `c09007c` (the engine's line on the board), `22fde6b` (the line cut
   by its visits, the players' row at narrow widths), `1d746e4` (the listed line, branches, the display settings'
-  panel), `98ddc5c` (the player's own moves, the keys and their list, the move menu), then the move sounds and the
-  progress bars' gleam (design 08).
+  panel), `98ddc5c` (the player's own moves, the keys and their list, the move menu), `3aba039` (the move sounds and
+  the progress bars' gleam, design 08), then the sound only on a change of the board, and the side columns measured
+  again when the layout moves.
 - **Checks on the working tree:** `npm run check` has no errors or warnings. `npm test` passes (21 checks). `npm run
   build` succeeds.
 - **The engine:** protocol 0.3, build `319a5c4`, the networks b10c128 and b15c192, searching with KataGo's analysis

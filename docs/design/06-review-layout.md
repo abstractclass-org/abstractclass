@@ -41,6 +41,7 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
      the whole chart is in the window, so that the columns end on one line. The chart's legend stays below that line,
      as a caption. When the chart does not fit in the window (the board fills the height), the side columns are as
      high as the board's column, so that the step controls stay in view. The move list takes the height that is left.
+     Whether the chart fits is measured again whenever the window, the board's column or the page changes size.
 3. **Under the board:** the Advantage chart and its legend, as Lichess puts its chart under the board. It is below the
    fold when the board fills the height.
 4. **The step controls** (first, back, forward, last), the status line and the display settings' gear are a bar at

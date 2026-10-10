@@ -712,3 +712,20 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   default volume. The other sets were removed before any commit, and with them the sound lab and the choice of strokes
   in the settings: there was nothing more to choose. Design 08 keeps the method and the other sources. Checked in Edge:
   eight steps play eight of the five strokes (0.17 to 0.29 s), from `/sounds/crayon/`.
+- **A move clicked in Biggest mistakes plays its sound,** as a move clicked in the move list does (the owner noticed
+  it was silent).
+- **No sound without a change on the board:** a click on the move already on screen (in the move list, in Biggest
+  mistakes) is silent (the owner's rule: the sound plays only when the board changes).
+
+### The side columns, measured again when the layout moves (2026-10-11)
+
+- **The quirk:** the owner sometimes saw the side columns end at the board, then later reach the chart, and could not
+  repeat it. Whether the chart fits in the window was measured only at load and when the window, the column count or
+  the win chance's form changed. Anything else that moves the chart (the row above the board, measured just after the
+  first paint, or the page's height) left the columns as they were until the next window change. A likely cause of
+  what the owner saw: the bar that Edge shows while the browser extension drives it (about 40 pixels at the window's
+  top), which made the chart not fit at their window, and whose removal resized the window.
+- **Fix:** a ResizeObserver on the board's column and the page measures again on any change of their size.
+  Checked in Edge, in a 900 × 900 frame: the columns reach the chart (its bottom at 730); the header 200 pixels higher,
+  with no change of the window, moves the chart to 921 and the columns stop at the board; the header back, they reach
+  the chart again.
