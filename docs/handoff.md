@@ -26,10 +26,6 @@ It holds no backlog: everything still to do that is not in flight is in
 
 ## In flight
 
-- **Not checked in a browser:** an import with a wrong cut mark (the engine's refusal), and a stored record with marks
-  added. The tests cover the reader and `markCuts`.
-- **Request 04 to the engine repository** ([requests/04-edge-visits-and-order.md](requests/04-edge-visits-and-order.md))
-  is written. The owner passes it on.
 - **The local preview server** runs on port 4173, with the tailnet hostname allowed
   (`__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS`). `vite preview` indexes the build when it starts, so restart it after
   each `npm run build`, or the new files are not found (404).

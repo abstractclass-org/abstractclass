@@ -101,5 +101,3 @@ or a design first:
 - **One search tree across a game:** the notes are in
   [research/02-search-tree-reuse.md](../research/02-search-tree-reuse.md). Not needed for the first release. Decide
   later.
-- **Request 04 to the engine repository** ([requests/04-edge-visits-and-order.md](../requests/04-edge-visits-and-order.md)):
-  document `edgeVisits` and `order` in design 04. The owner passes it on.

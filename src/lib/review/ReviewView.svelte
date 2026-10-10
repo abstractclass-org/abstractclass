@@ -104,8 +104,9 @@
   // The engine's candidates on the board: its first choice, and every other candidate that has enough visits to compare
   // (MIN_VISIT_SHARE of the most visited candidate's) and is within the Good band of the first choice. No limit on the
   // count: in an open position the visits spread, and every move that earns them shows. The first choice is KataGo's
-  // order, its choice of move: the most visited move, unless another move with enough visits has a better lower
-  // confidence bound. So the first choice can have fewer visits than another candidate.
+  // order, its choice of move (the engine repository's design 04, "order"): by play selection value, where the move
+  // with the best lower confidence bound is raised as far as that bound justifies, at most fivefold. So the first
+  // choice is usually, not always, the best-LCB move, and it can have fewer visits than another candidate.
   function candidatesFor(i: number, p: Player): BoardCandidate[] {
     const a = R.data.analysis[i];
     if (!a) return [];

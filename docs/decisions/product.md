@@ -228,6 +228,10 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   engine's rules which moves cut, refuse a mark on a move that cuts nothing, and keep the record with a mark on every
   cutting move (`markCuts`, `src/lib/game/check.ts`). The game's id comes from the bare moves, so a game with and
   without marks is one game. The move list, the Biggest mistakes and the chart's note show the mark.
+- **Checked in Chrome on Home:** `1. D10-E13x 2. Q10-R8 O11-Q10` is refused ("Edge 1 (D10-E13x) is marked as a cut,
+  but it cuts nothing.") and nothing is kept. The sample game's first 13 turns without marks are kept as
+  `… 12. L12-O11 L12-N15x 13. E7-H4x H4-J6x`, the three moves that cut. Its first 12 turns with `L12-N15x` already
+  marked are kept with that one mark, not doubled.
 - **The Advantage chart** is the chart's name, after Lichess's name for its own ("Advantage"), so that players can
   refer to it (`AdvantageChart.svelte`). The win chance is now a solid line, with the area to 50% still filled. The
   score so far is a second line in the accent colour.
@@ -281,6 +285,11 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   visits) the visits are spread, and 53 of 119 positions show more than number 1 (edge 30: eight; edge 92, a lost
   position where many moves are equal: ten). After the deep search (1,024 visits) at edge 30, number 1 has 767 visits
   and the board shows number 1 alone. The table's box stayed 157 pixels high at every position.
+- **Refined by the engine repository** (its design 04, commit `1a377d3`, answering request 04): the best-LCB move is
+  not put on top outright. Its value is raised as far as its lower bound justifies against each other move, at most
+  fivefold, which usually but not always puts it first. The protocol leaves out KataGo's symmetric twins, so the
+  `order` numbers in a reply can have gaps. The review numbers the candidates by their place in the sorted list, so
+  its numbers have none. A move's share of the search is its `edgeVisits`, as the site reads it.
 
 ### The review page's layout (2026-10-10)
 
