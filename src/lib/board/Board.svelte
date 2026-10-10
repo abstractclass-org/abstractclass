@@ -91,6 +91,13 @@
 </script>
 
 <!-- A label badge at an edge's midpoint. -->
+<!-- A candidate's rank in a rounded square: the engine's line numbers its edges in circles (Go's numbered stones), so the
+     candidates take another shape. -->
+{#snippet rankBadge(x: number, y: number, rank: number)}
+  <rect x={x - 0.36} y={y - 0.36} width="0.72" height="0.72" rx="0.17" class="cand-badge" />
+  <text x={x} y={y + 0.15} class="cand-rank">{rank}</text>
+{/snippet}
+
 {#snippet badge(m: BoardMark)}
   {@const [bx, by] = mid(m.edge)}
   <g class="mark">
@@ -183,8 +190,7 @@
       >
         <line {...seg(c.edge)} class="cand-hit" />
         <line {...seg(c.edge)} class="cand-line" />
-        <circle cx={mx} cy={my} r="0.38" class="cand-badge" />
-        <text x={mx} y={my + 0.15} class="cand-rank">{c.rank}</text>
+        {@render rankBadge(mx, my, c.rank)}
       </g>
     {/each}
   {/if}
@@ -200,11 +206,10 @@
     {@const [mx, my] = mid(h.edge)}
     <g class="candidate top" class:first={h.rank === 1}>
       <line {...seg(h.edge)} class="cand-halo" />
-      <circle cx={mx} cy={my} r="0.56" class="cand-halo-ring" />
+      <rect x={mx - 0.55} y={my - 0.55} width="1.1" height="1.1" rx="0.28" class="cand-halo-ring" />
       <line {...seg(h.edge)} class="cand-line" />
       {#if !line?.length}
-        <circle cx={mx} cy={my} r="0.38" class="cand-badge" />
-        <text x={mx} y={my + 0.15} class="cand-rank">{h.rank}</text>
+        {@render rankBadge(mx, my, h.rank)}
       {/if}
     </g>
   {/if}

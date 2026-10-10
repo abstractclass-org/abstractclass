@@ -24,7 +24,7 @@
   let moveCount = $state(0);
   let error = $state("");
   let deepened = false;
-  let current = $state(0); // the position on screen
+  let current = $state<string[]>([]); // the position on screen: its path in the game's tree (review/tree.ts)
 
   const data = $derived(game?.data(players) ?? null);
   const R = $derived(data ? review(data, "lead", LABEL_VISITS) : null);
@@ -42,10 +42,11 @@
     return null;
   });
 
-  // The position on screen is searched deeper once the network is loaded, and again when the player moves.
+  // The position on screen is searched deeper once the network is loaded, and again when the player moves: on the
+  // game's line or in a branch.
   $effect(() => {
-    const g = game, i = current;
-    if (g?.engineReady) untrack(() => g.focus(i));
+    const g = game, path = current;
+    if (g?.engineReady) untrack(() => g.focus(path));
   });
 
   // After the label pass: the key moments deeper, both positions of each (its loss needs both).
@@ -91,8 +92,9 @@
 {:else if game?.error && !game.rulesReady}
   <p class="{MESSAGE} text-blunder">The engine could not read this game: {game.error}</p>
 {:else if R}
-  <ReviewView {R} {progress} problem={game?.error ?? ""} deepVisits={DEEP_VISITS} onposition={i => (current = i)}
-              lineSteps={game ? (i, line) => game!.lineSteps(i, line) : undefined} />
+  <ReviewView {R} {progress} problem={game?.error ?? ""} deepVisits={DEEP_VISITS} onposition={path => (current = path)}
+              branches={game?.branches ?? {}} onplay={path => game!.addLine(path)}
+              lineSteps={game ? (path, line) => game!.lineSteps(path, line) : undefined} />
 {:else}
   <p class="{MESSAGE} text-muted">Reading the game with the engine's rules…</p>
 {/if}

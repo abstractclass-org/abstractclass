@@ -43,8 +43,8 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
      high as the board's column, so that the step controls stay in view. The move list takes the height that is left.
 3. **Under the board:** the Advantage chart and its legend, as Lichess puts its chart under the board. It is below the
    fold when the board fills the height.
-4. **The step controls** (first, back, forward, last), the status line and the display menu are a bar at the bottom of
-   the analysis column, as on Lichess, next to the move list that they step through.
+4. **The step controls** (first, back, forward, last), the status line and the display settings' gear are a bar at
+   the bottom of the analysis column, as on Lichess, next to the move list that they step through.
 5. **The win chance is a display setting:**
    - **A bar above the board** ("Top horizontal bar", the default): Blue on the left, Red on the right, as the players
      start. The players' tags flank it in one row: each player's name, points, and the area the player encloses now,
@@ -63,11 +63,20 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
      the row above the board, Blue on the left and Red on the right, as the players start, from the board's edge and
      with nothing between them. A list of the players, Blue above Red, would put Blue above Red next to a gauge that
      puts Blue below Red.
-6. **Display settings** are in a menu on the review page, opened from a button in the step controls' bar, as
-   Lichess's analysis menu: the win chance's form, the board's layers (candidates, move labels, regions, protected
-   edges), the engine's line ("Animated" or "Static", design 07) and the chart's score line. The menu is raised above the panel (a lighter surface, a border and a shadow),
-   and the button shows that it is open. The settings are kept in this browser (no accounts yet). A settings page for the whole
-   site can come later, when puzzles and lessons have settings too.
+6. **Display settings open in the analysis column,** in the place of the engine header, the candidates and the move
+   list (below 1,260 pixels, of the tabs), as Lichess's analysis menu takes the move list's place. The board stays in
+   view, so each change shows as it is made. The gear in the step controls' bar opens and closes them, and shows that
+   they are open. "Done" and Escape close them too. The panel scrolls when the column is shorter than it.
+   - **Grouped by where a setting shows,** as Lichess groups its analysis settings (Board, Move list): Board (the win
+     chance's form, candidates, move labels, regions, protected edges, the engine's line "Animated" or "Static"), Move
+     list (notes on the key edges, branches and lines "Dots and numbers" or "Text notation", design 07), and Advantage
+     chart (the score so far).
+   - **Each setting says what it does,** in a short line under its name, always in view (Lichess shows a help video for
+     the setting under the pointer, which a touch screen does not show).
+   - **On and off is a switch** at the right of its name, as Lichess's settings; **a choice of two is a pair of
+     buttons** under its name. Bits UI's Switch and RadioGroup give them their roles, focus and keys.
+   - The settings are kept in this browser (no accounts yet). A settings page for the whole site can come later, when
+     puzzles and lessons have settings too.
 7. **The progress bars go by subject:** the position's search bar is in the position's engine header, at the top of
    the analysis (with the expected final margin, the lead and the visits). The review's progress bar is at the top of
    the summary (three columns), or at the top of the right column (fewer), over the tabs.
@@ -100,14 +109,15 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
 - The move list is taller on a tall window.
 - The page must be checked at the column switches (800 and 1,260 pixels), on a common laptop window, and maximised on a
   large screen.
-- The display menu is the place for later display settings (sound, board zoom).
+- The display settings' panel is the place for later display settings (sound, board zoom). It has room for them: it
+  scrolls in the column.
 - Learning from mistakes, when it becomes a mode of the analysis (decisions/open-items.md), takes the place of the
   candidates and the move list in the analysis column.
 
 ## Where it is
 
 - `src/lib/review/ReviewView.svelte`: the columns, the board's size, the engine header, the controls' bar, the
-  display menu.
+  display settings' panel (`settingsPanel`, `toggle`, `choice`).
 - `src/lib/review/display.ts`: the display settings and their storage in the browser.
 
 ## Log entries

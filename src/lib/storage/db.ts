@@ -1,11 +1,13 @@
-// The site's store in the browser (IndexedDB): analyses (analysis/cache.ts) and the player's games (game/store.ts).
+// The site's store in the browser (IndexedDB): analyses (analysis/cache.ts), the player's games (game/store.ts), and
+// the branches a player adds to a game's review (analysis/game.svelte.ts).
 // A player's data lives here until a server exists (docs/design/04-product-shape.md). Storage can fail (a private
 // window, blocked site data): then every call answers as if the store were empty, and the site still works.
 //
-// Versions: 1 had the analyses. 2 adds the games. An upgrade only adds stores, so data is never lost.
+// Versions: 1 had the analyses. 2 adds the games. 3 adds the branches. An upgrade only adds stores, so data is never
+// lost.
 
-const NAME = "learn-enclosure", VERSION = 2;
-export const STORES = { analysis: "analysis", games: "games" } as const;
+const NAME = "learn-enclosure", VERSION = 3;
+export const STORES = { analysis: "analysis", games: "games", branches: "branches" } as const;
 let db: Promise<IDBDatabase | null> | null = null;
 
 export function openDb(): Promise<IDBDatabase | null> {

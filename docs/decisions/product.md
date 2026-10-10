@@ -531,3 +531,95 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   1,280 × 720, where the board is height-bound and gives 3 pixels for the taller row), two at 900 and 600, three at
   800 and on phones. With the gauge the same, except one line at 1,280 × 720 and 600 × 900, and two at 800 × 900 and
   430 × 900.
+
+### The engine's line listed, and branches (2026-10-10)
+
+- **Decided** (design 07): one line listed under the candidates table, as Lichess lists one by default
+  (`ceval.multipv`, 1): the line of the candidate pointed at, or else of the selected one (number 1, or the row or
+  board candidate last clicked). One line for each candidate on the board was the other choice. Pointing at an edge of
+  the list draws the line up to it on the board, all at once, and a click plays the line up to it as a branch
+  (Lichess's `playUciList`).
+- **Without notation by default:** Go tools show variations without notation, and an edge's name is two points to find
+  on a 19 × 19 board. A branch's edges and the listed line's are circles in the mover's colour, numbered from the
+  branch's start as the board numbers a line, with small gaps between turns. "Text notation" in the display menu shows
+  the record's notation instead. Plain dots by turn and a game-tree graph (Sabaki, KaTrain) were the other choices.
+- **The game is a tree** (Lichess's analysis tree): a place is a path of moves, a branch's positions come from the
+  rules, and each is searched when the player looks at it. ← and → go along the line on screen, Home and End to its
+  ends. Branches show under the turn where they start, after its comments, indented with a rule on the left (Lichess's
+  column view). A branch that forks again breaks its row after the fork's first child.
+- **Kept in this browser,** as Lichess keeps its analysis tree (`idbTree.ts`): a game's lines under its id, in a new
+  store (`branches`, the store's version 3). Keeping them for the visit only was the other choice.
+- **A fault found in the check:** a branch's path came from the page as a state proxy, and the worker could not copy it
+  ("could not be cloned"), so the branch was not searched or kept. The analysis now copies a path into a plain array.
+- **Checked in Edge** on the sample game:
+  - After edge 30 the list shows number 1's line, 14 circles (Red 1, Blue 2 and 3, and so on). Pointing at circle 4
+    draws 4 edges and their 2 cuts. The line is the game's own continuation, so a click on circle 6 goes along the game
+    to edge 37.
+  - Before edge 37 (the blunder J6-M8, where A7-A10 was best), a click on circle 3 plays A7-A10, T13-T16 and
+    T10-T13 as a branch: the status says "A branch from edge 37 · Turn 21 · Blue to play", the move list shows the
+    branch under turn 19, and the branch's position is searched. ← goes back along the branch and onto the game, → at
+    the fork takes the game's edge, and End goes to the game's end.
+  - From the branch's first edge, candidate 1's line (M8-O11) makes a branch inside the branch: the rows are the
+    branch to its fork, the inner branch one step further in, then the branch going on.
+  - After a reload the branches are there. In text notation they read "19... A7-A10 20. T13-T16", "20. M8-O11
+    K7-M8x" and "20... T10-T13".
+  - At 390 pixels the 14 circles take two rows of the list's box, and the page does not scroll across.
+
+### The listed line and branches, first feedback (2026-10-10)
+
+- **The candidates' ranks are rounded squares** on the board, in the table and before the listed line. The listed line
+  put a rank badge next to the line's numbered circles, and both read as a line. The line's numbers stay circles (Go's
+  numbered stones).
+- **The circles' digits sat high:** a line box of the text's height (15 pixels in a 16-pixel circle) put the digits
+  0.5 pixels above the centre. With a line box of the font's size (`leading-none`), they are within 0.25 pixels,
+  and centred at six times the size.
+- **A click on a candidate only selects it** for the listed line. It no longer also draws the whole line: a click did
+  two things. Pointing at the list's last edge draws the whole line.
+- **The move list's notes are one line:** "Blunder. N9-Q10 was best.", "Great. The only good edge." A note said twice
+  in a turn shows once. The full sentence stays in the Highlights. The display menu turns the notes off ("Notes on the
+  key edges").
+- **The table no longer scrolls under the pointer:** its box was 0.2em higher than its header and five rows (162
+  pixels for 159.5), and a row partly in view, pointed at, scrolled into view. The box is now the rows' height, and the
+  table scrolls to a row only for a candidate pointed at on the board.
+- **Where an inner branch leaves its branch:** an inner branch keeps its branch's numbers, so its first number is that
+  of the edge it replaces (under "1 2", a branch that replaces 2 reads "2 3"), and each branch row starts with its turn
+  ("5. 8 9 10" under "1. 1 2 3 4 5 6 7 8").
+- **Checked in Edge:** the board's candidates are rounded squares; the table's box is 160 pixels for 159.5 pixels of
+  rows; pointing at row 5 leaves the table where it is; a click on row 2 shows candidate 2's line in the list and
+  draws no line; the notes read as above.
+
+### The listed line and branches, second feedback (2026-10-10)
+
+- **Off-centre numbers, two causes:** the list's circles sat in buttons on a text baseline, 1.3 pixels below the
+  candidate's badge, and the branches' circles took the move list's monospaced font. The buttons are now flex boxes,
+  and each number is a block trimmed to the digits' height (`text-box: trim-both cap alphabetic`, which Edge and
+  Chrome have), so flex centring centres the digits in any font. Measured in Edge: the badge and the circles share one
+  centre line, and the digits' centre is the badge's.
+- **A click pins the candidate:** its line stays on the board and goes on drawing after the pointer leaves (2, 3, 4,
+  5, 6 edges at half-second steps after leaving, in Edge). A second click unpins it.
+- **Every turn has its number in a branch,** and a fork's lines stand side by side, one step further in, as Lichess
+  shows the lines from a fork inside a variation. Before, the fork's first line went on in the branch's row, so "13...
+  K6-M9x" stood to the left of its sibling "13. H5-L7".
+- **Dots, not numbers, in the move list's branches:** with every turn numbered, a branch's own count beside the turn
+  numbers was a second, unrelated count. The dots are in the mover's colour, and the turn numbers place them. The
+  listed line keeps its numbered circles, which match the board's numbered line.
+- **The listed line shows what is already in the tree:** its edges played in the game, or in a branch, are hollow
+  circles (dotted underlines in text), with "played in the game" or "in a branch" in the tooltip. A click on the line
+  goes along those edges, and the branch starts after them, so that turn is where it appears.
+
+### The display settings as a panel (2026-10-10)
+
+- **The problem:** the display menu had grown to eleven controls in six small groups, in a popover above the gear.
+- **Published tools:** Lichess's analysis settings (`ui/analyse/src/view/settingsView.ts`) are a dialog, 720 pixels
+  wide, with switches in boxes by where they act (General, Move list, Board), in two columns or one on a phone, and a
+  help video for the setting under the pointer. Lichess's analysis menu itself opens in the analysis column, in the
+  move list's place.
+- **Decided** (design 06): a panel in the analysis column, in the place of the analysis, so that the board shows each
+  change; grouped by where a setting shows (Board, Move list, Advantage chart); a short line under each setting that
+  says what it does; switches for on and off, and a pair of buttons for a choice of two. A dialog in two columns
+  (Lichess's settings) covers the board; the popover, reorganised, would grow taller than the column. Help on hover
+  does not show on a touch screen, and labels alone say little for "Protected edges" or "Dots and numbers".
+- **Checked in Edge** at 1,372 × 892: the panel fills the column and scrolls (742 pixels of settings in 618); a click on
+  "Side vertical gauge" brings the gauge, and the Regions switch turns the shading off and is kept in the browser;
+  Escape closes the panel and brings back the candidates and the move list. At 390 pixels the panel takes the tabs'
+  place, 309 pixels wide, with nothing cut and no scroll across.

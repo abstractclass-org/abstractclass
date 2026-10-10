@@ -23,6 +23,7 @@ export interface Position {
   player: Player;
   movesLeft: number;
   regions: [Region[], Region[]];
+  over?: boolean; // the game has ended here (the engine's outcome)
 }
 /** A move: an edge, or null for a timeout pass (the rest of the turn forfeited). */
 export interface Move { player: Player; edge: Edge | null; cut: Edge | null }
@@ -200,6 +201,13 @@ export function explain(e: EdgeReview): string {
   const lost = lossPhrase(e);
   if (e.label === "excellent" || e.label === "good") return `${LABEL_TEXT[e.label]}. ${who} played ${edgeName(e.edge)}, ${lost} from the best.${better}`;
   return `${LABEL_TEXT[e.label]}. ${who} played ${edgeName(e.edge)} and lost ${lost}.${better}`;
+}
+
+/** A note for the move list, in one line: the label, and the engine's choice when the edge was not it. */
+export function shortNote(e: EdgeReview): string {
+  if (e.label === "great") return "Great. The only good edge.";
+  const better = e.best && e.edge && !sameEdge(e.best.edge, e.edge) ? ` ${edgeName(e.best.edge)} was best.` : "";
+  return `${e.label ? LABEL_TEXT[e.label] : "Not analysed yet"}.${better}`;
 }
 
 // KataGo lets a move compete for its choice (by its lower confidence bound) only when the move has this share of the
