@@ -12,6 +12,7 @@
   import { errorText } from "#lib/errors.ts";
   import { playerNames } from "#lib/game/record.ts";
   import { loadGame } from "#lib/game/store.ts";
+  import { pathKey } from "#lib/review/tree.ts";
   import { SAMPLE, SAMPLE_MOVES } from "#lib/mock/sample.ts";
 
   const MODEL = "b10c128-s46923648-d9407005";
@@ -96,6 +97,7 @@
               branches={game?.branches ?? {}} onplay={path => game!.addLine(path)} rulesAt={path => game!.rulesAt(path)}
               ondelete={path => game!.deleteFrom(path)} onpromote={path => game!.promote(path)}
               onjudge={path => game!.judge(path)} labelVisits={LABEL_VISITS}
+              searching={!!game && game.focusing === pathKey(current)}
               lineSteps={game ? (path, line) => game!.lineSteps(path, line) : undefined} />
 {:else}
   <p class="{MESSAGE} text-muted">Reading the game with the engine's rules…</p>

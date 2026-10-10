@@ -14,7 +14,8 @@ It holds no backlog: everything still to do that is not in flight is in
   without the "Retry mistakes" tab, and Bits UI for its tabs and display menu), `b73c4ef` (the puzzles' edge input on
   the engine's rules), `2d979cb` (protocol 0.3), `c09007c` (the engine's line on the board), `22fde6b` (the line cut
   by its visits, the players' row at narrow widths), `1d746e4` (the listed line, branches, the display settings'
-  panel), then the player's own moves, the keys and their list, and the move menu (design 07).
+  panel), `98ddc5c` (the player's own moves, the keys and their list, the move menu), then the move sounds and the
+  progress bars' gleam (design 08).
 - **Checks on the working tree:** `npm run check` has no errors or warnings. `npm test` passes (21 checks). `npm run
   build` succeeds.
 - **The engine:** protocol 0.3, build `319a5c4`, the networks b10c128 and b15c192, searching with KataGo's analysis
@@ -29,6 +30,9 @@ It holds no backlog: everything still to do that is not in flight is in
   own moves on the board, Space and the double-click, and the right-click menu (Promote variation, Evaluate move
   quality, Delete from here). A branch's edges have no labels unless the player asks, by the
   owner's choice (a line played to show something should cost no search).
+- **Move sounds and the progress bars' gleam are built** (design 08, design 06; decisions/product.md,
+  "Move sounds, and progress bars that show the work runs"). Every edge sounds like a recorded crayon stroke: five CC0
+  strokes the owner chose by ear.
 - **The owner's order after it:** learning from mistakes as a mode of the analysis. The speed on a visitor's machine
   waits in the backlog.
 - **Testing in Edge:** a hover made with synthetic events is lost when the real pointer rests on the board and the
@@ -48,6 +52,6 @@ It holds no backlog: everything still to do that is not in flight is in
 
 ## Check first
 
-1. Ask the owner how the own moves, the move menu and the key list work for them, and take their feedback.
+1. Take the owner's next item: learning from mistakes as a mode of the analysis (above), or the backlog.
 2. The speed numbers so far came from a loaded machine. Rerun the lab's review on an idle machine before any change
    of budget.

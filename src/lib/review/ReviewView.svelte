@@ -20,6 +20,7 @@
   import { SIDE_TEXT } from "#lib/ui/side.ts";
   import AdvantageChart from "./AdvantageChart.svelte";
   import { loadDisplay, saveDisplay } from "./display.ts";
+  import { playMove, preload } from "#lib/sound.ts";
   import Glyph from "./Glyph.svelte";
   import {
     explain, edgeName, moveName, moveNotation, sameEdge, shortNote, judgeBranchEdge, valuesAfter, moverWin, moverScore, largest, lossText, pct, shownCandidates, lineMovers, enoughVisits, trustedLine, type Candidate, type LineStep, LABELS, LABEL_TEXT, LABEL_GLYPH, PLAYER_NAME, type Edge, type Label, type Player, type Position, type Review,
@@ -40,9 +41,10 @@
     onpromote?: (path: string[]) => Promise<void>; // promotes a branch one step among the branches from its fork
     onjudge?: (path: string[]) => Promise<void>; // evaluates a branch move's quality: searches its two positions
     labelVisits?: number; // the label budget: a move is judged once both its positions have this many visits
+    searching?: boolean; // the position on screen is being searched now
   }
   let { R, progress = null, problem = "", deepVisits = 0, onposition, lineSteps, branches = {}, onplay, rulesAt, ondelete,
-        onpromote, onjudge, labelVisits = 0 }: Props = $props();
+        onpromote, onjudge, labelVisits = 0, searching = false }: Props = $props();
   const last = $derived(R.data.positions.length - 1);
   const TABLE_ROWS = 5; // the Analysis table shows this many rows and scrolls, so the move list under it does not move
   const ROW_EM = 1.9; // a table row's height, in em
@@ -224,7 +226,7 @@
   /** Plays a line from the start: along the tree where it is there, as a new branch where it is not, then goes there. */
   async function playPath(target: string[]) {
     if (onplay) await onplay(target);
-    setPath(target);
+    setPath(target, true);
   }
   // Space plays the pinned candidate, or number 1 (Lichess's Space plays its best move).
   function playCandidate() {
@@ -368,11 +370,16 @@
     return out;
   });
 
-  function setPath(p: string[]) {
+  // A move's sound (design 08), a pencil line: a step one move on plays it, from any key or button, and so does a move
+  // played or clicked in the move list. Other jumps (back, the start and the end, the chart, the fork keys) are silent.
+  function setPath(p: string[], sound = false) {
+    const step = p.length === path.length + 1 && sharedLength(p, path) === path.length;
     path = p;
     hover = null;
     listHover = null;
+    if (display.sound && (sound || step) && p.length) void playMove(display.volume);
   }
+  $effect(() => { if (display.sound) preload(); });
   // Lichess's move menu on a branch's move (ui/analyse/src/treeView/contextMenu.ts): "Promote variation" and "Delete
   // from here". The game's own moves have no menu: the review is of the game, so its line stays first ("Make main line"
   // is for an analysis board, later).
@@ -403,7 +410,7 @@
   const PICKED = "picked outline-2 outline-dashed outline-accent";
   $effect(() => { if (pickedKey) movelist?.querySelector(".picked")?.scrollIntoView({ block: "nearest" }); });
   /** Goes to a position on the game's line. */
-  const go = (p: number) => setPath(mainNames.slice(0, Math.max(0, Math.min(last, p))));
+  const go = (p: number, sound = false) => setPath(mainNames.slice(0, Math.max(0, Math.min(last, p))), sound);
   // Along the line on screen, as Lichess's arrows: back to the parent, forward to the first child (the game's move on
   // its line), and to the line's end.
   const back = () => { if (path.length) setPath(path.slice(0, -1)); };
@@ -551,7 +558,7 @@
     <p class="mb-2.5 text-sm text-blunder" role="alert">Engine error: {problem}</p>
   {:else if progress}
     <div class="mb-2.5">
-      <div class="flex gap-0.5 h-1.5" role="progressbar" aria-label="The review" aria-valuemin="0" aria-valuemax="100"
+      <div class="bar-glider flex gap-0.5 h-1.5 rounded-[3px]" role="progressbar" aria-label="The review" aria-valuemin="0" aria-valuemax="100"
            aria-valuenow={Math.round(100 * progress.parts.reduce((s, p) => s + p.share * p.done, 0))}>
         {#each progress.parts as part, k (k)}
           <div class="bg-panel-2 rounded-[3px] overflow-hidden" style="flex: {part.share}">
@@ -713,7 +720,7 @@
           <button class={["mv flex items-baseline gap-1 px-[0.2rem] py-px font-mono text-[0.95em] text-left whitespace-nowrap bg-transparent border-0",
                           SIDE_TEXT[e.player], mainAt === e.index + 1 ? "here bg-panel-2 outline outline-accent"
                           : pickedKey === pathKey(mainNames.slice(0, e.index + 1)) ? PICKED : "hover:bg-panel-2 hover:outline hover:outline-line"]}
-                  onclick={() => go(e.index + 1)} tabindex="-1"
+                  onclick={() => go(e.index + 1, true)} tabindex="-1"
                   title={[e.label ? LABEL_TEXT[e.label] : "Not analysed yet", after !== undefined ? sideText(after) : ""].filter(Boolean).join(" · ")}>
             <span class="w-[calc(10ch+0.15em)]">{moveNotation(e)}{#if listed(e.label)}<span class="ml-[0.15em] font-extrabold" style:color="var(--{e.label})"><Glyph glyph={LABEL_GLYPH[e.label]} /></span>{/if}</span>
             <span class="w-[5ch] ml-auto text-[0.78em] text-right text-muted tabular-nums">{leadShort(after)}</span>
@@ -784,12 +791,12 @@
             <button class={["mv px-[0.2rem] py-px bg-transparent border-0 whitespace-nowrap", SIDE_TEXT[node.move.player],
                             at ? "here bg-panel-2 outline outline-accent" : pickedKey === pathKey(p) ? PICKED
                             : "hover:bg-panel-2 hover:outline hover:outline-line"]}
-                    onclick={() => setPath(p)} tabindex="-1" data-path={pathKey(p)}
+                    onclick={() => setPath(p, true)} tabindex="-1" data-path={pathKey(p)}
                     title={label ? LABEL_TEXT[label] : waiting ? "Evaluating…" : undefined}>{moveNotation(node.move)}</button>
           {:else}
             <button class={["mv flex p-[0.15em] bg-transparent border-0 rounded-full",
                             at ? "here outline-2 outline-accent" : pickedKey === pathKey(p) ? PICKED : "hover:outline hover:outline-ink"]}
-                    onclick={() => setPath(p)} tabindex="-1" data-path={pathKey(p)}
+                    onclick={() => setPath(p, true)} tabindex="-1" data-path={pathKey(p)}
                     title="{turnText(t)} {moveNotation(node.move)}{label ? ` · ${LABEL_TEXT[label]}` : waiting ? ' · evaluating…' : ''}">
               <span class={["block w-[0.85em] h-[0.85em] rounded-full", node.move.player === 0 ? "bg-blue" : "bg-red"]}></span>
             </button>
@@ -871,6 +878,15 @@
       {@render choice("Branches and lines", "Branches as dots and the engine's line as numbers, or both in the record's notation.",
         [["marks", "Dots and numbers"], ["text", "Text notation"]], () => (display.branchText ? "text" : "marks"),
         v => (display.branchText = v === "text"))}
+      <h3 class={SETTINGS_HEAD}>Sound</h3>
+      {@render toggle("Move sounds", "A crayon stroke, for each edge played or stepped through.",
+        () => display.sound, v => (display.sound = v))}
+      <div class="flex items-center justify-between gap-3 py-1.5">
+        <label for="setting-volume" class={["text-sm font-medium", !display.sound && "text-muted"]}>Volume</label>
+        <input id="setting-volume" type="range" min="0" max="1" step="0.05" bind:value={display.volume} disabled={!display.sound}
+               onchange={() => playMove(display.volume)}
+               class="w-36 accent-(--accent) disabled:opacity-50" />
+      </div>
       <h3 class={SETTINGS_HEAD}>Keyboard</h3>
       <div class="flex items-start justify-between gap-3 py-1.5">
         <div class="min-w-0">
@@ -1012,7 +1028,7 @@
         {:else}Not analysed yet{/if}
       </p>
       <div class="flex items-center gap-2 mt-1">
-        <div class={["flex-1 h-[3px] rounded-sm overflow-hidden", searched !== null && "bg-panel-2"]} role="progressbar"
+        <div class={["flex-1 h-[3px] rounded-sm overflow-hidden", searched !== null && "bg-panel-2", searching && "bar-glider"]} role="progressbar"
              aria-label="This position's search" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(100 * (searched ?? 0))}>
           {#if searched !== null}<div class="h-full bg-accent transition-[width] duration-200" style="width: {100 * searched}%"></div>{/if}
         </div>

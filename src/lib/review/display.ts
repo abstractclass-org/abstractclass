@@ -10,6 +10,8 @@ export interface Display {
   lineSteps: boolean; // the engine's line drawn one edge at a time (KaTrain's way, the default), not all at once
   branchText: boolean; // branches and the listed line in the record's notation, not as numbered circles (Go's way, the default)
   notes: boolean; // the move list's one-line notes on Great edges, mistakes and blunders
+  sound: boolean; // move sounds (design 08), on by default as on Lichess
+  volume: number; // the move sounds' volume, 0 to 1
 }
 
 const KEY = "learn-enclosure:review-display:1";
@@ -21,6 +23,8 @@ export const DEFAULT_DISPLAY: Display = {
   lineSteps: true,
   branchText: false,
   notes: true,
+  sound: true,
+  volume: 0.4,
 };
 
 export function loadDisplay(): Display {
@@ -34,6 +38,8 @@ export function loadDisplay(): Display {
       lineSteps: kept.lineSteps ?? DEFAULT_DISPLAY.lineSteps,
       branchText: kept.branchText ?? DEFAULT_DISPLAY.branchText,
       notes: kept.notes ?? DEFAULT_DISPLAY.notes,
+      sound: kept.sound ?? DEFAULT_DISPLAY.sound,
+      volume: typeof kept.volume === "number" ? Math.min(1, Math.max(0, kept.volume)) : DEFAULT_DISPLAY.volume,
     };
   } catch {
     return structuredClone(DEFAULT_DISPLAY);

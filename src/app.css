@@ -112,3 +112,25 @@
   border-color: var(--accent);
   color: #fff;
 }
+
+/* Lichess's bar-glider (ui/lib/css/component/_bar-glider.scss): a light gleam sweeps a progress bar while its work
+   runs, so that a slow step does not look stopped. None with reduced motion. */
+@keyframes bar-glider {
+  from { transform: translateX(-1300px); }
+  to { transform: translateX(2100px); }
+}
+@layer components {
+  .bar-glider { position: relative; overflow: hidden; }
+  .bar-glider::after {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    left: 0;
+    width: 70px;
+    background: linear-gradient(to right, rgb(255 255 255 / 0), rgb(255 255 255 / 0.3));
+    animation: bar-glider 3s linear infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .bar-glider::after { display: none; }
+  }
+}

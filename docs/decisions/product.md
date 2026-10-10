@@ -670,3 +670,45 @@ The interface, the review, puzzles, lessons, labels and thresholds.
 - **Checked in Edge** with real keys at edge 61 of the sample game: ↓ marks "31... E7-G8x" with the dashed outline; ↓
   again and → enter "31... E11-G8"; x goes to the line before (E7-G8x); b back to the fork; n on to the game's end (no
   fork after); "?" opens the list, Escape closes it, and the settings' "Show" opens it.
+
+### Move sounds, and progress bars that show the work runs (2026-10-11)
+
+- **Progress bars:** Lichess shows a running task with `bar-glider` (`ui/lib/css/component/_bar-glider.scss`), a
+  70-pixel light gleam that sweeps the bar every 3 seconds, hidden with reduced motion. The review's bar has it while
+  its passes run, and the position's search bar while the position on screen is searched (the analysis's `focusing`).
+  Design 06. Checked in Edge: at edge 112 the search bar has the gleam at "256 of 1,024 visits", and loses it at
+  "1,024 visits".
+- **Move sounds** (design 08), first decided with the owner: made in the browser (Web Audio), a tap for an edge, a snap
+  for a cut, a chime for a closed region; played on a step forward, a move played, and a move clicked in the move list, and
+  silent on other jumps; on by default with a switch and a volume slider. Lichess's sounds are not free (its
+  `COPYING.md`: the standard set is a non-free exception), and a CC0 pack was the other choice.
+- **Checked in Edge,** with the page's AudioContext watched: 60 steps forward from the start each play one sound; the
+  18 cuts play the snap; 16 steps chime, each where the mover's area grows (one shows no change in the tag, which
+  rounds a half-point gain); back, Home and End play none.
+- **The owner did not like the first sound, and had no words for why.** So the sounds became voices with a tuning, and
+  a sound lab (`/lab/sounds`) plays seven voices (wooden tap, stone on a board, soft felt, pencil stroke, marimba, glass
+  tick, soft click), each as an edge, a cut, a closed region and a few moves in a row, with sliders for pitch, length,
+  brightness and softness, and "Use these sounds" for the review. Checked in Edge: choosing a voice plays it, "A few
+  moves" plays four moves, and "Use these sounds" keeps the voice and the tuning for the review.
+- **Recorded pencil lines.** The owner liked the idea of a pencil stroke and asked for recorded sounds, at first a line
+  for an edge, an eraser for a cut and colouring for a closed region. Played with the edge's sound, the last two
+  sounded odd, so every edge has one sound: a pencil line. Sources searched: BigSoundBank (all CC0, no account),
+  Freesound filtered to CC0 (downloads need an account, so the public previews were taken), and OpenGameArt (a CC0
+  pack whose "eraser" is a finger rubbing a window). Ten clips of 0.26 to 0.52 seconds were cut with ffmpeg from three
+  Freesound recordings and two BigSoundBank ones (design 08 lists them), with short fades and matched peaks. Each move
+  plays one from the player's set, never the last one, at a speed varied by up to 3%. The sound lab now lists the ten
+  clips to tick, and the synthesised voices are gone. Checked in Edge: the lab loads the ten clips (about 4 to 5 KB
+  each), plays each, and a few moves in a row play clips at 0.97 to 1.03 of their speed.
+- **More strokes, in sets.** The owner asked for more recordings of pencil, marker or crayon strokes, ideally many
+  strokes in one file, for variation with a like sound. Fourteen CC0 recordings were taken (Freesound previews and
+  BigSoundBank), and a script cut each into a set of up to 12 strokes (found by their silences, at most 0.55 s, one
+  gain for the set). Four gave fewer than five strokes and were left out (a continuous pencil, a short crayon, a
+  permanent marker, a felt-tip pen). Eleven sets remain with the first ten clips as a twelfth: 124 strokes, about 495
+  KB. The sound lab shows them by pencil, marker and crayon, plays a set as a few moves or stroke by stroke, chooses a
+  set whole or single strokes. Checked in Edge: 12 sets and 124 strokes listed, every file loads, and choosing the
+  crayon set plays six of its strokes (0.17 to 0.29 s).
+- **The owner's choice: five crayon strokes,** numbers 1, 2, 4, 6 and 9 of the crayon set ("Crayon Drawing on Paper" by
+  wstarling, Freesound 871478, at 4.32, 14.87, 36.6, 83.19 and 97.52 s), at volume 0.4. They became the sound and the
+  default volume. The other sets were removed before any commit, and with them the sound lab and the choice of strokes
+  in the settings: there was nothing more to choose. Design 08 keeps the method and the other sources. Checked in Edge:
+  eight steps play eight of the five strokes (0.17 to 0.29 s), from `/sounds/crayon/`.

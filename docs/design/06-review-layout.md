@@ -69,8 +69,9 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
    they are open. "Done" and Escape close them too. The panel scrolls when the column is shorter than it.
    - **Grouped by where a setting shows,** as Lichess groups its analysis settings (Board, Move list): Board (the win
      chance's form, candidates, move labels, regions, protected edges, the engine's line "Animated" or "Static"), Move
-     list (notes on the key edges, branches and lines "Dots and numbers" or "Text notation", design 07), and Advantage
-     chart (the score so far).
+     list (notes on the key edges, branches and lines "Dots and numbers" or "Text notation", design 07), Sound (move
+     sounds and their volume, design 08), Keyboard (the list of keys and clicks, also on "?"), and Advantage chart (the
+     score so far).
    - **Each setting says what it does,** in a short line under its name, always in view (Lichess shows a help video for
      the setting under the pointer, which a touch screen does not show).
    - **On and off is a switch** at the right of its name, as Lichess's settings; **a choice of two is a pair of
@@ -79,7 +80,10 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
      puzzles and lessons have settings too.
 7. **The progress bars go by subject:** the position's search bar is in the position's engine header, at the top of
    the analysis (with the expected final margin, the lead and the visits). The review's progress bar is at the top of
-   the summary (three columns), or at the top of the right column (fewer), over the tabs.
+   the summary (three columns), or at the top of the right column (fewer), over the tabs. **While a bar's work runs,
+   a light gleam sweeps it** (Lichess's `bar-glider`, `ui/lib/css/component/_bar-glider.scss`: 70 pixels wide, across
+   in 3 seconds), so that a slow step does not look stopped: the review's bar while its passes run, and the search
+   bar while the position on screen is searched. With reduced motion asked for, there is no gleam.
 
 ## Why
 

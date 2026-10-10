@@ -88,7 +88,7 @@ export class GameAnalysis {
   swept = $state(0);
   labelled = $state(0);
   error = $state("");
-  private focusing: string | null = null; // the path key of the position searched for the player
+  focusing = $state<string | null>(null); // the path key of the position searched for the player, while it runs
   private stopFocus: (() => void) | null = null;
   private focusGeneration = 0; // a new focus makes every earlier focus search stale
   private pool: EnginePool;

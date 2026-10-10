@@ -79,9 +79,8 @@ or a design first:
 - **The lessons' edge input on the engine's rules:** the lessons check edges with small hand-written tests. Give
   `EdgeInput` each lesson step's legal edges and the mover's nodes from the engine's `describe`, as the puzzles do (decisions/product.md,
   "Edge input on the engine's rules, in the puzzles"). A lesson's position may need the `position` field of the query.
-- **Sound:** sounds for moves, to make play more satisfying. To design: which events (an edge placed, a cut, a region
-  closed and scored, a label for a mistake, a puzzle solved or failed), a sound set with its licence, a switch to mute
-  it, and no sound before the player interacts (browsers block it).
+- **Sound beyond the review's moves:** the review's move sounds are built (design 08). Still to decide: sounds in the
+  puzzles and the lessons (a move, solved, failed), and whether a mistake's label has one.
 - **Using the review page's space** (design 06): with the board large and three columns, look again at the
   Advantage chart's place and size (under the board, below the fold today), and at what the summary column shows
   besides the Highlights.
@@ -93,8 +92,3 @@ or a design first:
   later.
 - **An Analysis page:** a free analysis board (a position, or a game not reviewed), with the review's lines and
   branches (design 07) and Lichess's "Make main line", which the review leaves out because its line is the game's.
-- **Progress bars that move while the work runs** (low priority): the review's bar (the top of the summary column) and
-  the position's search bar (the engine header) stand still between updates, so a slow pass looks stopped. While the
-  work runs, show that it runs: for example an animated stripe or a pulse on the bar's moving part, stopped when the
-  work is done or stopped. Find how Lichess and chess.com show an analysis that is still running, and keep it still
-  when the visitor asks for reduced motion.
