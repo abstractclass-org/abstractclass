@@ -143,3 +143,18 @@ Loading the engine, its speed, the engine interface, and the requests for it.
   with the key moments' searches running, a step through 50 positions, then the position on screen went from 256 to
   1,024 visits in 27 seconds. The key moments went on after it (4, then 9 positions done at 1,024 visits 30 seconds
   later). No engine error.
+
+### The engine module compiled once (2026-10-10)
+
+- **Now:** the page compiles `enclosure-engine.wasm` once (`WebAssembly.compileStreaming`, one promise for each URL in
+  `src/lib/engine/client.ts`) and posts the compiled `WebAssembly.Module` to each worker, which only instantiates it.
+  Before, each worker fetched and compiled the module itself: four compiles at once for the review's pool, and one
+  more for the import's rules check.
+- **Measured** in Edge on the engine lab, four workers, five page loads each, from creating the workers until all of
+  them answered `query_version` (the lab's new "until all workers started"): before 227, 127, 137, 155 and 209 ms
+  (median 155), after 140, 161, 139, 288 and 94 ms (median 140). Inside the slowest worker the start fell from 54 to
+  109 ms to 34 to 71 ms. The difference on the page is within the noise: on this machine the workers' own start
+  takes most of the time, and the 1.3 MB module compiles fast.
+- **Kept** for what this machine cannot show: one compile in place of four at once on a machine with few cores, and
+  one copy of the compiled code for all the workers. Measure again on a typical laptop with the speed measurement
+  (decisions/open-items.md).

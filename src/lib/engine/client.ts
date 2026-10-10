@@ -20,6 +20,19 @@ export async function loadManifest(): Promise<Manifest | null> {
 
 export const moduleOf = (manifest: Manifest) => manifest.artifacts.find(a => a.kind === "module");
 
+// The module, compiled once for the page and each of its workers. A compiled module can be posted to a worker, which
+// then only instantiates it, and the browser keeps one copy of its code. Before, each worker fetched and compiled it.
+const compiled = new Map<string, Promise<WebAssembly.Module>>();
+function compile(url: string): Promise<WebAssembly.Module> {
+  let module = compiled.get(url);
+  if (!module) {
+    module = WebAssembly.compileStreaming(fetch(url));
+    module.catch(() => compiled.delete(url)); // a failed fetch or compile is tried again on the next start
+    compiled.set(url, module);
+  }
+  return module;
+}
+
 /** An error reply from the engine. `field` names the request's field at fault, as the protocol gives it. */
 export class EngineError extends Error {
   readonly error: string;
@@ -60,9 +73,9 @@ export class EngineWorker {
     return { id, done };
   }
 
-  /** Loads the module. Refuses any protocol version but the one this site was written for. */
+  /** Starts the module in the worker. Refuses any protocol version but the one this site was written for. */
   async init(moduleUrl: string): Promise<Timed<VersionReply>> {
-    const t = await this.send<VersionReply>({ type: "init", moduleUrl }).done;
+    const t = await this.send<VersionReply>({ type: "init", module: await compile(moduleUrl) }).done;
     if (!PROTOCOL_REPORTED.includes(t.reply.protocol))
       throw new Error(`engine protocol ${t.reply.protocol}: this site speaks ${PROTOCOL}`);
     return t;

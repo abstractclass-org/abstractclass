@@ -24,7 +24,8 @@
 
   let version = $state<VersionReply | null>(null);
   let loaded = $state<{ model: ModelInfo; ms: number; memory: number } | null>(null);
-  let initMs = $state(0);
+  let initMs = $state(0); // the slowest worker's start, measured in the worker
+  let start = $state({ ms: 0, workers: 0 }); // from creating the workers until every one has started, on the page
   let described = $state<{ reply: DescribeReply; ms: number } | null>(null);
   let live = $state<{ reply: AnalysisReply; ms: number; final: boolean } | null>(null);
   let stopSearch = $state<(() => void) | null>(null);
@@ -62,8 +63,10 @@
       loaded = null;
       busy = `loading the engine in ${size} worker${size > 1 ? "s" : ""}`;
       const module = moduleOf(manifest!)!;
+      const t0 = performance.now();
       const engines = Array.from({ length: size }, () => new EngineWorker());
       const t = await Promise.all(engines.map(e => e.init(module.url)));
+      start = { ms: performance.now() - t0, workers: size };
       version = t[0].reply;
       initMs = Math.max(...t.map(x => x.ms));
       pool = { key, engines };
@@ -181,7 +184,7 @@
             <tr><td>Build</td><td>{version.build}</td></tr>
             <tr><td>Rules</td><td>{version.rules}</td></tr>
             <tr><td>Trained outputs</td><td>{version.trained.join(", ")}</td></tr>
-            <tr><td>Module start</td><td>{fmt(initMs)}</td></tr>
+            <tr><td>Module start</td><td>{fmt(initMs)} in a worker, {fmt(start.ms)} until all {start.workers} workers started</td></tr>
             {#if loaded}
               <tr><td>Network</td><td>{loaded.model.name}, {(loaded.model.bytes / 1e6).toFixed(1)} MB, loaded in {fmt(loaded.ms)}</td></tr>
               <tr><td>SHA-256</td><td class="font-mono">{loaded.model.sha256.slice(0, 16)}…</td></tr>

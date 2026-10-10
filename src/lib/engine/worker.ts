@@ -19,7 +19,7 @@ function call(request: object): unknown {
 async function handle(m: WorkerRequest) {
   const t0 = performance.now();
   if (m.type === "init") {
-    engine = await loadEngine(await WebAssembly.compileStreaming(fetch(m.moduleUrl)), text => console.debug(text));
+    engine = await loadEngine(m.module, text => console.debug(text)); // compiled by the page (client.ts)
     post({ type: "reply", id: m.id, reply: call({ id: "v", action: "query_version" }), ms: performance.now() - t0, memory: engine.memoryBytes() });
   } else if (m.type === "model") {
     const response = await fetch(m.url);
