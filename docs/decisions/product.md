@@ -427,5 +427,32 @@ The interface, the review, puzzles, lessons, labels and thresholds.
 - **The Biggest mistakes rows are as the move list's moves:** the whole row is the button, the points lost are at its
   right edge, and the row under the pointer has the move list's highlight. Checked in Edge: each row is the list's
   width, and the points lost end at its right edge.
+
+### Edge input on the engine's rules, in the puzzles (2026-10-10)
+
+- **The problem:** any point could start an edge, and the second point only had to be within 3 units. Nothing checked
+  the engine's rules (an edge from the mover's own node, cuts, protection), so a puzzle took an illegal edge as an
+  answer.
+- **Decided:** Constellation's way, with a ghost edge. After the first point, the board marks every point that
+  completes a legal edge from it with a dot in the mover's colour, smaller and fainter than a node, as a chess site
+  marks the legal moves. Rings were tried first, and they were too large. The pointer on a marked point shows the
+  edge as a dashed line, and only there: a click can only place a legal edge, so the line shows exactly what a click
+  places. meaf.us's way (a dashed box of the reach, and a line that turns green or red under the pointer) was the
+  other choice. It needs hover, so on a touch screen a player would learn whether an edge is legal only after the tap.
+- **The first point:** one of the mover's nodes that begins a legal edge, as a new edge starts at the mover's node.
+  An edge has no direction, so the far end could also have come first, but a node first is what a player expects. A
+  click elsewhere does nothing, and the puzzle's card says "Start the edge at one of Blue's nodes". With a first
+  point, a click on another such node makes it the first point, and a click on a point that is neither a marked end
+  nor such a node keeps the first point and says "Finish the edge at a marked point". A click on the first point
+  cancels it. The points that a click does nothing on show no hover.
+- **How:** the puzzles page starts one engine worker with no network and asks `describe` for each puzzle's position:
+  its `legal` list is every legal edge, and `nodes` gives the mover's nodes. `EdgeInput` takes them (`rules`) and gives
+  the ends (`ends`) and the points a click acts on (`active`) to the board. Without the engine (a site where
+  `npm run engine` was not run) the input keeps the rules' box.
+- **Checked in Edge** on the first puzzle (Blue to play): before the first point, the 18 points a click acts on are
+  Blue's 18 nodes; E10 is refused with the card's message; D10 marks 38 legal ends, and not the points on Blue's own
+  edge A10-D10; K3 then keeps D10 and says to finish at a marked point; the pointer on A13 shows the edge D10-A13; a
+  click on a marked end places the edge, and the puzzle answers "That's not the edge".
+- **Not yet:** the lessons still check edges with their own small tests (the backlog).
 - **Checked in Edge** at 1,380 × 904: the players' row has the board's edges (311 to 987 pixels), and the three columns
   end at the chart's bottom (898 pixels).

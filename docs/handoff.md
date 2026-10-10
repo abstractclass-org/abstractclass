@@ -10,8 +10,9 @@ It holds no backlog: everything still to do that is not in flight is in
   (game import), `61bdbad` (the review's feedback, the notation, the board's candidates, the layout), `812c9b2`
   (request 04 done, the cut mark checked in Chrome), `38d157d` (a cleanup of the library), `7bb7fde` (the styles in
   Tailwind CSS 4), `5686e1c` (the review's tables fitted to their content), `ef407ab` (the review's marks, gauge,
-  display menu, side columns and move list), then the engine module compiled once, then the review without the
-  "Retry mistakes" tab and with Bits UI for its tabs and display menu.
+  display menu, side columns and move list), `409eb2c` (the engine module compiled once), `f792275` (the review
+  without the "Retry mistakes" tab, and Bits UI for its tabs and display menu), then the puzzles' edge input on the
+  engine's rules (decisions/product.md, "Edge input on the engine's rules, in the puzzles").
 - **Checks on the working tree:** `npm run check` has no errors or warnings. `npm test` passes (12 checks). `npm run
   build` succeeds.
 - **The engine:** protocol 0.1, build `8195171`, the networks b10c128 and b15c192. Puzzles and learn run on mock
@@ -19,12 +20,9 @@ It holds no backlog: everything still to do that is not in flight is in
 
 ## In flight
 
-- **Move input on the engine's rules, for the puzzles first** (moved here from the backlog). Today any point can
-  start an edge and nothing checks cuts or protection. After the first point, show where an edge may go: meaf.us
-  draws a dashed box of the reach and a ghost edge that shows whether the current choice is legal. Constellation
-  highlights the points that complete a legal edge. Either works. The engine's `describe` gives the legal edges, and
-  `play` checks one. Lessons and the coming retries need the same.
-- **The owner's order after it:** learning from mistakes as a mode of the analysis, then the engine's lines and
+- **The puzzles' bugs:** the owner names the others. The edge input on the engine's rules is done. Its lessons' part
+  is in the backlog.
+- **The owner's order after the puzzles:** learning from mistakes as a mode of the analysis, then the engine's lines and
   variations. The speed on a visitor's machine waits in the backlog.
 - **The comparison kit** is in `runs/tailwind-check/` (not in Git): the old build in `before-build/`, `serve.mjs`
   (a static server), `cdp.mjs` and `shots.json` (old and new screenshots side by side), `styles.mjs` (computed
@@ -43,6 +41,6 @@ It holds no backlog: everything still to do that is not in flight is in
 
 ## Check first
 
-1. Design the move input with the owner (the meaf.us form or the Constellation form), then build it for the puzzles.
+1. Ask the owner for the other puzzle bugs.
 2. The speed numbers so far came from a loaded machine. Rerun the lab's review on an idle machine before any change
    of budget.

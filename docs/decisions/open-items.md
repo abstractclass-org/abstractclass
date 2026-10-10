@@ -82,7 +82,11 @@ or a design first:
   choice can be beyond any human, and a retry of it teaches little. Judge a tried edge by searching the position
   after it, as Lichess does ("Evaluating your move…"). Make it teach: a hint before the solution (the area at stake),
   the engine's line after a solve, and what the game's edge allowed (the opponent's region, the points). It needs
-  move input on the engine's rules (in flight: the handoff). Puzzles need the same judging.
+  move input on the engine's rules (`EdgeInput` with the position's rules, as the puzzles have it). Puzzles
+  need the same judging.
+- **The lessons' edge input on the engine's rules:** the lessons check edges with small hand-written tests. Give
+  `EdgeInput` each lesson step's legal edges and the mover's nodes from the engine's `describe`, as the puzzles do (decisions/product.md,
+  "Edge input on the engine's rules, in the puzzles"). A lesson's position may need the `position` field of the query.
 - **Sound:** sounds for moves, to make play more satisfying. To design: which events (an edge placed, a cut, a region
   closed and scored, a label for a mistake, a puzzle solved or failed), a sound set with its licence, a switch to mute
   it, and no sound before the player interacts (browsers block it).

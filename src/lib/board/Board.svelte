@@ -12,7 +12,9 @@
 <script lang="ts">
   // The Enclosure board as SVG: the lattice, each player's regions and edges, the protected edges, the last edge and
   // the edge it cut, the engine's candidates numbered by rank, a preview edge, label badges on the edges of the turn
-  // just played, and a ghost edge (the game's edge in a retry). Points are 0-18 with y up, as in the engine.
+  // just played, and a ghost edge (the game's edge in a retry). During edge input: the first point, the points that
+  // complete a legal edge from it (dots), and the edge to the marked point under the pointer. Points are 0-18 with y
+  // up, as in the engine.
   import { pointName, sameEdge } from "#lib/review/model.ts";
 
   interface Props {
@@ -27,6 +29,8 @@
     ghost?: BoardMark | null; // an edge not on the board, with its label: the game's edge during a retry
     layers?: Partial<BoardLayers>; // the layers that differ from DEFAULT_LAYERS
     pending?: [number, number] | null; // the first point of an edge being entered
+    ends?: [number, number][] | null; // the points that complete a legal edge from `pending`: dots, with a ghost edge on hover
+    active?: [number, number][] | null; // the points a click acts on (null: every point); the others show no hover
     view?: [number, number, number, number]; // the points shown: x0, y0, x1, y1 (a crop for lessons)
     targets?: Edge[]; // edges to point at, drawn as a soft glow (a lesson's hint)
     onpoint?: (x: number, y: number) => void;
@@ -35,7 +39,7 @@
   let {
     position, lastEdge = null, cut = null, candidates = [], highlight = null, preview = null, previewPlayer = 0, marks = [], ghost = null,
     layers: layersSet = {},
-    pending = null, view = [0, 0, 18, 18], targets = [], onpoint, oncandidate,
+    pending = null, ends = null, active = null, view = [0, 0, 18, 18], targets = [], onpoint, oncandidate,
   }: Props = $props();
 
   const layers = $derived({ ...DEFAULT_LAYERS, ...layersSet });
@@ -61,8 +65,15 @@
   let hoveredEdge = $state<Edge | null>(null);
   const hovered = $derived(hoveredEdge ? candidates.find(c => sameEdge(c.edge, hoveredEdge!)) ?? null : null);
   const lit = $derived(hovered ?? (highlight ? candidates.find(c => sameEdge(c.edge, highlight!)) ?? null : null));
+  // Edge input: the point under the pointer, for the ghost edge from `pending` to a legal end.
+  const pointKey = (x: number, y: number) => x * N + y;
+  const activeKeys = $derived(active ? new Set(active.map(([x, y]) => pointKey(x, y))) : null);
+  const endKeys = $derived(new Set((ends ?? []).map(([x, y]) => pointKey(x, y))));
+  let hoverPoint = $state<[number, number] | null>(null);
+  const ghostEdge = $derived<Edge | null>(pending && hoverPoint && endKeys.has(pointKey(...hoverPoint))
+    ? [pending[0], pending[1], hoverPoint[0], hoverPoint[1]] : null);
   // Another position replaces the elements under the pointer, which then fire no mouseleave.
-  $effect.pre(() => { void position; hoveredEdge = null; });
+  $effect.pre(() => { void position; hoveredEdge = null; hoverPoint = null; });
   function enter(c: BoardCandidate) { hoveredEdge = c.edge; oncandidate?.(c.edge); }
   function leave() { hoveredEdge = null; oncandidate?.(null); }
 </script>
@@ -189,14 +200,23 @@
 
   {#if pending}
     <circle cx={pending[0]} cy={sy(pending[1])} r="0.35" class="pending" />
+    {#each ends ?? [] as [x, y] (pointKey(x, y))}
+      <circle cx={x} cy={sy(y)} r="0.12" class="end p{previewPlayer}" />
+    {/each}
+    {#if ghostEdge}
+      <line {...seg(ghostEdge)} class="preview p{previewPlayer}" />
+    {/if}
   {/if}
 
   {#if onpoint}
-    {#each points as [x, y] (x * N + y)}
+    {#each points as [x, y] (pointKey(x, y))}
+      {@const on = !activeKeys || activeKeys.has(pointKey(x, y))}
       <circle
-        cx={x} cy={sy(y)} r="0.45" class="hit"
+        cx={x} cy={sy(y)} r="0.45" class={["hit", !on && "inert"]}
         role="button" tabindex="-1" aria-label={pointName(x, y)}
         onclick={() => onpoint?.(x, y)}
+        onmouseenter={() => (hoverPoint = [x, y])}
+        onmouseleave={() => (hoverPoint = null)}
         onkeydown={() => {}}
       />
     {/each}
@@ -256,7 +276,14 @@
   .mark path { fill: var(--on-badge); }
 
   .pending { fill: none; stroke: var(--last); stroke-width: 0.1; }
+  /* The points that complete a legal edge from the first point: dots in the mover's colour, smaller and fainter than
+     a node (0.16), as a chess site marks the legal moves. */
+  .end { fill-opacity: 0.55; pointer-events: none; }
+  .end.p0 { fill: var(--blue); }
+  .end.p1 { fill: var(--red); }
   .hit { fill: transparent; cursor: crosshair; }
   .hit:hover { fill: var(--last); fill-opacity: 0.25; }
+  .hit.inert { cursor: default; }
+  .hit.inert:hover { fill: transparent; }
   .hit:focus, .candidate:focus { outline: none; }
 </style>

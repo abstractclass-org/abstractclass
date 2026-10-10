@@ -4,9 +4,11 @@
   // solution. View comes after the end, with the rating change, a vote and "Continue training".
   import Board, { type BoardCandidate } from "#lib/board/Board.svelte";
   import { EdgeInput } from "#lib/board/edgeInput.svelte.ts";
+  import { EngineWorker, loadManifest, moduleOf } from "#lib/engine/client.ts";
+  import { parseEdge, parsePoint } from "#lib/engine/notation.ts";
   import { review, edgeName, sameEdge, PLAYER_NAME, type Edge } from "#lib/review/model.ts";
   import { puzzlesFrom, nextRating, THEME_TEXT, type Puzzle, type Theme } from "#lib/puzzles/model.ts";
-  import { SAMPLE } from "#lib/mock/sample.ts";
+  import { SAMPLE, SAMPLE_MOVES } from "#lib/mock/sample.ts";
   import Swatch from "#lib/ui/Swatch.svelte";
 
   const R = review(SAMPLE);
@@ -35,6 +37,38 @@
   const position = $derived(R.data.positions[puzzle.index]);
   const lastMove = $derived(puzzle.index > 0 ? R.edges[puzzle.index - 1] : null);
   const input = new EdgeInput(edge => attempt(edge));
+
+  // The engine's rules, without a network: the legal edges of each puzzle's position, so that the input takes only a
+  // legal edge. A site without the engine (`npm run engine` not run) keeps the rules' box.
+  let rules = $state<EngineWorker | null>(null);
+  $effect(() => {
+    let worker: EngineWorker | null = null, closed = false;
+    (async () => {
+      const manifest = await loadManifest();
+      const module = manifest && moduleOf(manifest);
+      if (!module || closed) return;
+      worker = new EngineWorker();
+      await worker.init(module.url);
+      if (!closed) rules = worker;
+    })().catch(e => console.warn("puzzles: no engine rules", e));
+    return () => { closed = true; worker?.terminate(); };
+  });
+  $effect(() => {
+    const engine = rules, index = puzzle.index;
+    input.rules = null;
+    if (!engine) return;
+    let current = true;
+    engine.describe({ moves: SAMPLE_MOVES.slice(0, index) })
+      .then(({ reply }) => {
+        if (!current) return;
+        input.rules = {
+          legal: reply.legal.filter(m => m.includes("-")).map(parseEdge), // not "pass"
+          nodes: reply.nodes[reply.mover].map(parsePoint),
+        };
+      })
+      .catch(e => console.warn("puzzles: describe failed", e));
+    return () => { current = false; };
+  });
 
   const candidates = $derived<BoardCandidate[]>(
     mode === "view" ? [{ edge: puzzle.solution, rank: 1, note: "the only good edge" }] : []);
@@ -86,6 +120,18 @@
 
 <svelte:head><title>Puzzles</title></svelte:head>
 
+<!-- What the edge input waits for, or why the last click did nothing. -->
+{#snippet inputHint()}
+  {@const side = PLAYER_NAME[puzzle.player]}
+  <p class="text-sm text-muted">
+    {#if input.refused === "start"}Start the edge at one of {side}'s nodes.
+    {:else if input.refused === "end"}Finish the edge at a marked point, or click another of {side}'s nodes.
+    {:else if input.pending}Now its second point{input.ends ? ": a marked point" : ", at most 3 apart"}.
+    {:else if input.rules}Click one of {side}'s nodes to start the edge.
+    {:else}Click the edge's first point.{/if}
+  </p>
+{/snippet}
+
 <main class="box-content grid items-start gap-5 max-w-[1180px] mx-auto my-4 px-4 min-[961px]:grid-cols-[10rem_minmax(0,600px)_minmax(280px,360px)]">
   <nav class="flex flex-wrap gap-0.5 min-[961px]:flex-col" aria-label="Puzzle modes">
     <button class={menuItem(view === "puzzles" && !theme)} onclick={() => open("puzzles")}>Puzzles</button>
@@ -122,6 +168,8 @@
         previewPlayer={puzzle.player}
         layers={{ marks: false }}
         pending={input.pending}
+        ends={input.ends}
+        active={input.active}
         onpoint={mode !== "view" ? input.click : undefined}
       />
     </section>
@@ -141,10 +189,11 @@
         {#if feedback === "init"}
           <div class="flex items-center gap-1.5 text-lg font-bold"><Swatch player={puzzle.player} /> Your turn</div>
           <p class="font-semibold">Find the best edge for {PLAYER_NAME[puzzle.player]}.</p>
-          <p class="text-sm text-muted">{input.pending ? "Now its second point, at most 3 apart." : "Click the edge's first point."}</p>
+          {@render inputHint()}
         {:else if feedback === "fail" && mode === "try"}
           <p class="font-bold text-mistake">That's not the edge. Try something else.</p>
           <p class="text-sm text-muted">This attempt no longer counts for your rating.</p>
+          {@render inputHint()}
         {:else if feedback === "fail"}
           <p class="font-bold text-mistake">Streak over: {streak} solved.</p>
         {:else if feedback === "win"}
