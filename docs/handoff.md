@@ -1,4 +1,4 @@
-# Handoff (2026-10-10)
+# Handoff (2026-10-11)
 
 **In flight only:** what is half done, and what the next session must check first. Each session rewrites this file.
 It holds no backlog: everything still to do that is not in flight is in
@@ -12,43 +12,28 @@ It holds no backlog: everything still to do that is not in flight is in
   Tailwind CSS 4), `5686e1c` (the review's tables fitted to their content), `ef407ab` (the review's marks, gauge,
   display menu, side columns and move list), `409eb2c` (the engine module compiled once), `f792275` (the review
   without the "Retry mistakes" tab, and Bits UI for its tabs and display menu), `b73c4ef` (the puzzles' edge input on
-  the engine's rules), `2d979cb` (protocol 0.3), `c09007c` (the engine's line on the board, design 07), `22fde6b`
-  (the line cut by its visits, the players' row at narrow widths), then the listed line, branches and the display
-  settings' panel (designs 06 and 07).
-- **Checks on the working tree:** `npm run check` has no errors or warnings. `npm test` passes (19 checks). `npm run
+  the engine's rules), `2d979cb` (protocol 0.3), `c09007c` (the engine's line on the board), `22fde6b` (the line cut
+  by its visits, the players' row at narrow widths), `1d746e4` (the listed line, branches, the display settings'
+  panel), then the player's own moves, the keys and their list, and the move menu (design 07).
+- **Checks on the working tree:** `npm run check` has no errors or warnings. `npm test` passes (21 checks). `npm run
   build` succeeds.
 - **The engine:** protocol 0.3, build `319a5c4`, the networks b10c128 and b15c192, searching with KataGo's analysis
   defaults. Puzzles and learn run on mock data.
 
 ## In flight
 
-- **The engine's line on the board is done** (design [07-lines-and-variations.md](design/07-lines-and-variations.md);
-  decisions/product.md, "The engine's line on the board" and "The engine's line: where it stops"), with the players'
-  areas in their tags. A line stops before its first edge under 25 visits (request 05 done). The players' row folds to
-  two or three lines in a narrow row (design 06).
-- **The listed line and branches are built** (design 07; decisions/product.md, "The
-  engine's line listed, and branches"): one line under the table, a click plays it as a branch, the game as a tree,
-  branches in the move list by turn as dots (text notation in the display settings), kept in the browser. A click on
-  a candidate pins its line. The display settings are a panel in the analysis column (design 06). Two rounds of the
-  owner's feedback are in (decisions/product.md). Next, the rest of design 07: the player's own moves (the puzzles'
-  edge input on the rules worker), and Lichess's keys for forks (↑ and ↓, Shift + ← and →). To decide with the owner
-  then: how to play a candidate from the board (a click now pins it), labels for a branch's edges, and how to delete
-  or promote a branch (Lichess's context menu).
-- **Testing hover in Edge:** a hover made with synthetic events is lost when the real pointer rests on the board and the
-  board redraws. Put the real pointer on the element (the browser tool's hover) for checks that last.
-- **The engine's lines and exploring variations** (moved here from the backlog), being built. Decided with the owner:
-  the line of a candidate on the board while the pointer is on it, as numbered edges (KaTrain's and Lizzie's way; to
-  check whether cuts make it messy), and listed under the candidates table, where a click plays it to there as a
-  branch; a player's own moves always on in the Analysis (Lichess's way, with the puzzles' edge input); branches
-  inline in the move list under their turn, with Lichess's keys. The item as it was in the backlog: show the
-  engine's best line (KataGo's `pv`, in the replies already) for number 1 and for every candidate, and for any other
-  edge on request (search the position after it), so that a player sees why an edge is bad. Play out a line on the
-  board, explore variations by hand, show the branches in the move list, and navigate them with keys, as other
-  analysis tools do (Lichess, chess.com, KaTrain, Sabaki). To design: the game as a tree of moves, the branch notation
-  (the record's `( )` branches), the keys, and how a variation's positions get their analyses. Protocol 0.3 makes an
-  analysis independent of the moves before the position, which variations need.
+- **The engine's lines and the player's variations are built** (design
+  [07-lines-and-variations.md](design/07-lines-and-variations.md); the log entries in decisions/product.md from "The
+  engine's line on the board" to "The picked line at a fork, single keys, and the list of keys"). The owner has tried
+  the keys and asked for the picked line in the move list and single keys, which are in. Still to hear: their view of
+  own moves on the board, Space and the double-click, and the right-click menu (Promote variation, Evaluate move
+  quality, Delete from here). A branch's edges have no labels unless the player asks, by the
+  owner's choice (a line played to show something should cost no search).
 - **The owner's order after it:** learning from mistakes as a mode of the analysis. The speed on a visitor's machine
   waits in the backlog.
+- **Testing in Edge:** a hover made with synthetic events is lost when the real pointer rests on the board and the
+  board redraws: put the real pointer on the element (the browser tool's hover) for checks that last. Convert page
+  coordinates to the screenshot's own size before a real click (the screenshot's width varies, 1,353 to 1,372).
 - **The comparison kit** is in `runs/tailwind-check/` (not in Git): the old build in `before-build/`, `serve.mjs`
   (a static server), `cdp.mjs` and `shots.json` (old and new screenshots side by side), `styles.mjs` (computed
   styles compared element by element), `probe.mjs` (one expression on both builds). They drive headless Edge, which
@@ -63,6 +48,6 @@ It holds no backlog: everything still to do that is not in flight is in
 
 ## Check first
 
-1. Build the line's list and the variations (design 07).
+1. Ask the owner how the own moves, the move menu and the key list work for them, and take their feedback.
 2. The speed numbers so far came from a loaded machine. Rerun the lab's review on an idle machine before any change
    of budget.

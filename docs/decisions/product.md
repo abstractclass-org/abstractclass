@@ -623,3 +623,50 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   "Side vertical gauge" brings the gauge, and the Regions switch turns the shading off and is kept in the browser;
   Escape closes the panel and brings back the candidates and the move list. At 390 pixels the panel takes the tabs'
   place, 309 pixels wide, with nothing cut and no scroll across.
+
+### The player's own moves, keys and the move menu (2026-10-11)
+
+- **Published tools:** Lichess's keys (`ui/analyse/src/keyboard.ts`): at a fork ↑ and ↓ pick the line that → follows,
+  elsewhere the first and the last move; Shift + ← and → the previous and the next fork; Shift + ↑ and ↓ the line
+  beside this one; Space its best move. Its move menu (`treeView/contextMenu.ts`): Promote variation, Make main line,
+  Delete from here. KaTrain analyses each move added to its tree and colours each node by the points it lost; a middle
+  click plays the line under the pointer.
+- **Decided** (design 07): the player's own moves always on, the puzzles' edge input on the position's rules; Lichess's
+  keys; Space plays the pinned candidate or number 1, and a double-click on a candidate plays it; a right-click (or a
+  long press) on a branch's move gives Promote variation and Delete from here. The game's line stays first in the review, so "Make
+  main line" waits for an analysis board (the backlog).
+- **Labels on a branch's edges: built, then left out.** They were judged as the game's edges (one `judgeEdge` for
+  both), with each new branch position searched to the label budget at once, so a label came within seconds and
+  nothing waited for it. The owner left them out: a line is often played only to show something, and its searches
+  would be wasted compute. A branch's positions are now searched only while the player looks at them, and its edges
+  have no labels unless asked.
+- **"Evaluate move quality" in the move menu** (the owner's idea): it searches the two positions of that one edge to
+  the label budget (priority 7, after the position on screen), and the edge is then judged as the game's edges are.
+  The move list shows "…" until then. The edges evaluated are kept with the branches. Checked in Edge: on
+  "31... E7-G8x" and on a fresh "31... E11-G8", a right-click and the item give Blunder ("??") at once, since both
+  positions were already searched (the first from the cache, the second because the player had just been there), and
+  no other branch move gets a label.
+- **Checked in Edge,** with real clicks and keys, at edge 61 of the sample game: Blue's 20 nodes take the pointer;
+  G8, then E7, plays "31... E7-G8x" (with its cut) as a branch (with labels on, it was a Blunder within six seconds;
+  now it has none, and the board shows only the game's badge of that turn); Space plays Red's number 1; ← ← returns to the fork; ↓ picks
+  "line 2 of 2" and shows its edge; → follows it; Shift + ← returns to the fork; a double-click on candidate 1
+  (A10-A13, the game's edge) goes along the game; a second branch (D11-G8) promoted comes first, and its menu then
+  greys out Promote; Delete from here removes it and moves to the fork; after a reload the branches come back in their
+  order.
+
+### The picked line at a fork, single keys, and the list of keys (2026-10-11)
+
+- **The picked line was hard to see:** ↑ and ↓ at a fork said "→ line 2 of 3" at the end of the status line, which the
+  panel cut. Now the picked move has a dashed accent outline in the move list, on the game's move or a branch's dot,
+  and the move list brings it into view. The status line no longer says it.
+- **Single keys beside the Shift keys,** from the owner's question and other tools: Lichess (k and j, Shift + k and j),
+  KaTrain (`gui/theme.py`: z and x beside the arrows, b back to the last branch point, n the next mistake), En Croissant
+  (`src/state/keybinds.ts`: x and c the previous and the next branch), Sabaki (`src/menu.js`: Ctrl + ↑ and ↓ the
+  forks). Every choice offered went in, since none clash: k and j for back and forward; b and n, [ and ], and Shift +
+  k and j for the forks; x and c, and comma and period, for the line before and after. KaTrain's z and x stay out,
+  because x is the line before here. Kept free: m and Shift + m (the next and the previous mistake), and Delete.
+- **A list of keys and clicks,** as Lichess's "?": "?" opens it, and so does "Keys and clicks" in the display settings
+  (its Keyboard group). A Bits UI dialog: Escape and a click outside close it.
+- **Checked in Edge** with real keys at edge 61 of the sample game: ↓ marks "31... E7-G8x" with the dashed outline; ↓
+  again and → enter "31... E11-G8"; x goes to the line before (E7-G8x); b back to the fork; n on to the game's end (no
+  fork after); "?" opens the list, Escape closes it, and the settings' "Show" opens it.

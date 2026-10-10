@@ -91,6 +91,8 @@ or a design first:
 - **One search tree across a game:** the notes are in
   [research/02-search-tree-reuse.md](../research/02-search-tree-reuse.md). Not needed for the first release. Decide
   later.
+- **An Analysis page:** a free analysis board (a position, or a game not reviewed), with the review's lines and
+  branches (design 07) and Lichess's "Make main line", which the review leaves out because its line is the game's.
 - **Progress bars that move while the work runs** (low priority): the review's bar (the top of the summary column) and
   the position's search bar (the engine header) stand still between updates, so a slow pass looks stopped. While the
   work runs, show that it runs: for example an animated stripe or a pulse on the bar's moving part, stopped when the

@@ -38,14 +38,17 @@
     view?: [number, number, number, number]; // the points shown: x0, y0, x1, y1 (a crop for lessons)
     targets?: Edge[]; // edges to point at, drawn as a soft glow (a lesson's hint)
     onpoint?: (x: number, y: number) => void;
+    onlyActive?: boolean; // only the points a click acts on take the pointer, so that the candidates under the others keep it
     oncandidate?: (edge: Edge | null) => void;
     oncandidateclick?: (edge: Edge) => void;
+    oncandidatedblclick?: (edge: Edge) => void;
   }
   let {
     position, lastEdge = null, cut = null, candidates = [], highlight = null, line = null,
     preview = null, previewPlayer = 0, marks = [], ghost = null,
     layers: layersSet = {},
-    pending = null, ends = null, active = null, view = [0, 0, 18, 18], targets = [], onpoint, oncandidate, oncandidateclick,
+    pending = null, ends = null, active = null, view = [0, 0, 18, 18], targets = [], onpoint, onlyActive = false, oncandidate, oncandidateclick,
+    oncandidatedblclick,
   }: Props = $props();
 
   const layers = $derived({ ...DEFAULT_LAYERS, ...layersSet });
@@ -186,6 +189,7 @@
         onmouseenter={() => enter(c)}
         onmouseleave={leave}
         onclick={() => oncandidateclick?.(c.edge)}
+        ondblclick={() => oncandidatedblclick?.(c.edge)}
         onkeydown={() => {}}
       >
         <line {...seg(c.edge)} class="cand-hit" />
@@ -259,6 +263,7 @@
   {#if onpoint}
     {#each points as [x, y] (pointKey(x, y))}
       {@const on = !activeKeys || activeKeys.has(pointKey(x, y))}
+      {#if on || !onlyActive}
       <circle
         cx={x} cy={sy(y)} r="0.45" class={["hit", !on && "inert"]}
         role="button" tabindex="-1" aria-label={pointName(x, y)}
@@ -267,6 +272,7 @@
         onmouseleave={() => (hoverPoint = null)}
         onkeydown={() => {}}
       />
+      {/if}
     {/each}
   {/if}
 </svg>

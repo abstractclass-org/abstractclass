@@ -13,12 +13,13 @@
 // the game's are, when the player looks at them. A game's branches are kept in the browser, as Lichess keeps its
 // analysis tree (ui/analyse/src/idbTree.ts).
 import { describeGame } from "#lib/engine/describe.ts";
-import { edgeName, parseEdge, type Edge } from "#lib/engine/notation.ts";
+import { edgeName, parseEdge, parsePoint, type Edge } from "#lib/engine/notation.ts";
 import type { AnalysisReply, DescribeReply, MoveInfo } from "#lib/engine/protocol.ts";
 import { errorText } from "#lib/errors.ts";
 import { gameId } from "#lib/game/store.ts";
 import type { Analysis, LineStep, Move, Position, ReviewData } from "#lib/review/model.ts";
-import { keepLine, mainIndex, pathKey } from "#lib/review/tree.ts";
+import type { EdgeRules } from "#lib/board/edgeInput.svelte.ts";
+import { mainIndex, pathKey } from "#lib/review/tree.ts";
 import { STORES, dbGet, dbPut } from "#lib/storage/db.ts";
 import { analysisKey, cacheGet, cachePut } from "./cache.ts";
 import { Cancelled, type EnginePool } from "./pool.ts";
@@ -27,7 +28,8 @@ export const SWEEP_VISITS = 32;
 export const LABEL_VISITS = 256;
 export const DEEP_VISITS = 1024;
 const SLICE_VISITS = 32;
-const PRIORITY = { focus: 10, moment: 5, label: 2, sweep: 1 };
+// A branch edge's evaluation, asked for in its menu, comes after the position on screen and before the rest.
+const PRIORITY = { focus: 10, judge: 7, moment: 5, label: 2, sweep: 1 };
 
 /** The engine's description of a position, as the board draws it. */
 export function boardPosition(d: DescribeReply): Position {
@@ -62,11 +64,16 @@ function withLine(c: MoveInfo): { line: Edge[]; lineVisits?: number[] } {
   return { line, ...(c.pvEdgeVisits ? { lineVisits: c.pvEdgeVisits.slice(0, line.length) } : {}) };
 }
 
-/** A position in a branch: the board, the move that led to it, and its analysis once searched. */
-export interface BranchNode { position: Position; move: Move; analysis?: Analysis }
+/** The key of a path's parent, from the path's key. */
+const parentKey = (key: string) => (key.includes(" ") ? key.slice(0, key.lastIndexOf(" ")) : "");
 
-/** A game's branches as kept in the browser: the lines from the start, each to a branch's end. */
-interface KeptBranches { version: 1; lines: string[][] }
+/** A position in a branch: the board, the move that led to it, its analysis once searched, its place among the
+ *  branches from its parent (the lower first), and whether the player asked for the move's quality. */
+export interface BranchNode { position: Position; move: Move; analysis?: Analysis; order: number; judged?: boolean }
+
+/** A game's branches as kept in the browser: each node's path key, its order, and 1 when its move was evaluated.
+ *  Version 1 kept the lines. */
+type KeptBranches = { version: 1; lines: string[][] } | { version: 2; nodes: ([string, number] | [string, number, 1])[] };
 
 export class GameAnalysis {
   moves: string[];
@@ -75,7 +82,7 @@ export class GameAnalysis {
   positions = $state.raw<Position[]>([]);
   played = $state.raw<Move[]>([]);
   analysis = $state.raw<(Analysis | undefined)[]>([]);
-  branches = $state.raw<Record<string, BranchNode>>({}); // by path key, in the order they were added
+  branches = $state.raw<Record<string, BranchNode>>({}); // by path key
   rulesReady = $state(false);
   engineReady = $state(false);
   swept = $state(0);
@@ -86,7 +93,7 @@ export class GameAnalysis {
   private focusGeneration = 0; // a new focus makes every earlier focus search stale
   private pool: EnginePool;
   private id: string | null = null; // the game's id (game/store.ts), under which its branches are kept
-  private lines: string[][] = [];
+  private nextOrder = 0;
 
   constructor(pool: EnginePool, moves: string[]) {
     this.pool = pool;
@@ -126,30 +133,85 @@ export class GameAnalysis {
     return i !== null ? this.analysis[i] : this.branches[pathKey(path)]?.analysis;
   }
 
-  /** Adds a line from the start to the tree: the positions it adds come from the rules. Keeps the game's branches in
-   *  the browser, unless `keep` is false. */
+  /** Adds a line from the start to the tree: the positions it adds come from the rules. They are searched only when the
+   *  player looks at them, so that a line played to show something costs no search. Keeps the game's branches in the
+   *  browser, unless `keep` is false. */
   async addLine(line: string[], keep = true) {
     const path = [...line]; // a plain array, to keep in the browser
     let k = path.length;
     while (k > 0 && !this.known(path.slice(0, k))) k--;
-    if (k < path.length) {
-      const { positions, cuts } = await describeGame(this.pool.rules, [...this.engineMoves(path.slice(0, k)), ...path.slice(k)], k);
-      const next = { ...this.branches };
-      for (let j = 1; j < positions.length; j++) {
-        const m = path[k + j - 1], cut = cuts[j - 1];
-        next[pathKey(path.slice(0, k + j))] = {
-          position: boardPosition(positions[j]),
-          move: { player: positions[j - 1].mover === "b" ? 0 : 1, edge: m === "pass" ? null : parseEdge(m), cut: cut === null ? null : parseEdge(cut) },
-        };
-      }
-      this.branches = next;
+    if (k === path.length) return;
+    const { positions, cuts } = await describeGame(this.pool.rules, [...this.engineMoves(path.slice(0, k)), ...path.slice(k)], k);
+    const next = { ...this.branches };
+    for (let j = 1; j < positions.length; j++) {
+      const m = path[k + j - 1], cut = cuts[j - 1], p = path.slice(0, k + j);
+      if (pathKey(p) in next) continue; // added meanwhile
+      next[pathKey(p)] = {
+        position: boardPosition(positions[j]), order: this.nextOrder++,
+        move: { player: positions[j - 1].mover === "b" ? 0 : 1, edge: m === "pass" ? null : parseEdge(m), cut: cut === null ? null : parseEdge(cut) },
+      };
     }
-    if (!keep || mainIndex(path, this.mainNames) !== null) return;
-    this.lines = keepLine(this.lines, path);
-    if (this.id) await dbPut(STORES.branches, this.id, { version: 1, lines: this.lines } satisfies KeptBranches);
+    this.branches = next;
+    if (keep) await this.keepBranches();
   }
 
-  /** The game's branches kept from an earlier visit. A line that the rules refuse is dropped. */
+  /** Evaluates a branch move's quality on request: searches the positions before and after it to the label budget, so
+   *  that it can be judged as the game's moves are. A branch's moves are not judged unless asked: a line played only to
+   *  show something should cost no search. */
+  async judge(path: string[]) {
+    const key = pathKey(path), node = this.branches[key];
+    if (!node) return;
+    this.branches = { ...this.branches, [key]: { ...node, judged: true } };
+    this.judgeSearches(path);
+    await this.keepBranches();
+  }
+
+  private judgeSearches(path: string[]) {
+    if (!this.engineReady) return; // the sweep starts them
+    for (const p of [path.slice(0, -1), path])
+      if (this.searchable(p)) this.search(p, LABEL_VISITS, PRIORITY.judge, "judge").catch(this.fail);
+  }
+
+  /** Deletes a branch node and every position after it (Lichess's "Delete from here"). */
+  async deleteFrom(path: string[]) {
+    const key = pathKey(path);
+    if (!(key in this.branches)) return;
+    this.branches = Object.fromEntries(Object.entries(this.branches).filter(([k]) => k !== key && !k.startsWith(`${key} `)));
+    await this.keepBranches();
+  }
+
+  /** Promotes a branch one step (Lichess's "Promote variation", ui/lib/src/tree promoteAt): the nearest branch node on
+   *  the path that is not the first of its parent's branches becomes the first. The game's own move stays before them. */
+  async promote(path: string[]) {
+    for (let k = path.length; k > 0; k--) {
+      const node = this.branches[pathKey(path.slice(0, k))];
+      if (!node) return; // on the game's line: nothing above to promote
+      const parent = pathKey(path.slice(0, k - 1));
+      const siblings = Object.entries(this.branches).filter(([s]) => parentKey(s) === parent);
+      const first = Math.min(...siblings.map(([, n]) => n.order));
+      if (node.order > first) {
+        this.branches = { ...this.branches, [pathKey(path.slice(0, k))]: { ...node, order: first - 1 } };
+        await this.keepBranches();
+        return;
+      }
+    }
+  }
+
+  /** The rules of a position anywhere in the tree, for the player's own moves: the legal edges and the mover's nodes. */
+  async rulesAt(path: string[]): Promise<EdgeRules> {
+    const { reply } = await this.pool.rules.describe({ moves: this.engineMoves(path) });
+    return { legal: reply.legal.filter(m => m.includes("-")).map(parseEdge), nodes: reply.nodes[reply.mover].map(parsePoint) };
+  }
+
+  /** Keeps the game's branches in the browser: each node's key and order. */
+  private async keepBranches() {
+    if (!this.id) return;
+    const nodes = Object.entries(this.branches).map(([k, n]): [string, number] | [string, number, 1] =>
+      (n.judged ? [k, n.order, 1] : [k, n.order]));
+    await dbPut(STORES.branches, this.id, { version: 2, nodes } satisfies KeptBranches);
+  }
+
+  /** The game's branches kept from an earlier visit. A node that the rules refuse is dropped. */
   private async loadBranches() {
     try {
       this.id = await gameId(this.moves);
@@ -157,14 +219,19 @@ export class GameAnalysis {
       return; // no hashing here (an insecure page): the branches last for this visit only
     }
     const kept = await dbGet<KeptBranches>(STORES.branches, this.id);
-    for (const line of kept?.lines ?? []) {
+    const nodes = !kept ? [] : kept.version === 1 ? kept.lines.map((l, i): [string, number] => [pathKey(l), i]) : kept.nodes;
+    // Shorter paths first, so that each adds one position; then each node takes its kept order.
+    for (const [key] of [...nodes].sort((a, b) => a[0].length - b[0].length)) {
       try {
-        await this.addLine(line, false);
-        this.lines = keepLine(this.lines, line);
+        await this.addLine(key.split(" "), false);
       } catch {
-        // the line is dropped
+        // the node is dropped
       }
     }
+    const next = { ...this.branches };
+    for (const [key, order, judged] of nodes) if (next[key]) next[key] = { ...next[key], order, ...(judged ? { judged: true } : {}) };
+    this.branches = next;
+    this.nextOrder = Math.max(0, ...Object.values(next).map(n => n.order + 1));
   }
 
   private known(path: string[]) {
@@ -189,6 +256,7 @@ export class GameAnalysis {
   /** The sweep, then the label pass. Call after start() and once the pool has a network. */
   async sweep() {
     this.engineReady = true;
+    for (const [key, node] of Object.entries(this.branches)) if (node.judged) this.judgeSearches(key.split(" ")); // kept from a visit
     const n = this.moves.length;
     const pass = (visits: number, priority: number, tag: string, done: () => void) =>
       Promise.all(Array.from({ length: n }, (_, i) =>

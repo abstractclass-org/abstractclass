@@ -93,7 +93,9 @@
   <p class="{MESSAGE} text-blunder">The engine could not read this game: {game.error}</p>
 {:else if R}
   <ReviewView {R} {progress} problem={game?.error ?? ""} deepVisits={DEEP_VISITS} onposition={path => (current = path)}
-              branches={game?.branches ?? {}} onplay={path => game!.addLine(path)}
+              branches={game?.branches ?? {}} onplay={path => game!.addLine(path)} rulesAt={path => game!.rulesAt(path)}
+              ondelete={path => game!.deleteFrom(path)} onpromote={path => game!.promote(path)}
+              onjudge={path => game!.judge(path)} labelVisits={LABEL_VISITS}
               lineSteps={game ? (path, line) => game!.lineSteps(path, line) : undefined} />
 {:else}
   <p class="{MESSAGE} text-muted">Reading the game with the engine's rules…</p>

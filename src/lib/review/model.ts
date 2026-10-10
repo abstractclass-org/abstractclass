@@ -112,6 +112,37 @@ export function onlyEdge(a: Analysis | undefined, p: Player): boolean {
   return !!first && !!second && moverWin(first.blueWin, p) - moverWin(second.blueWin, p) >= ONLY_EDGE_GAP;
 }
 
+/** An edge's loss and label, from the mover's values before and after it: win chance, and score when both are known.
+ *  `playedBest`: the edge was the engine's first choice; `only`: the first choice was the only good edge. */
+export function judgeEdge(winBefore: number, winAfter: number, scoreBefore: number | undefined, scoreAfter: number | undefined,
+                          playedBest: boolean, only: boolean): { loss: number; pointsLost: number | undefined; label: Label } {
+  const loss = Math.max(0, winBefore - winAfter);
+  const pointsLost = scoreBefore !== undefined && scoreAfter !== undefined ? Math.max(0, scoreBefore - scoreAfter) : undefined;
+  return { loss, pointsLost, label: classify(loss, pointsLost, playedBest, only) };
+}
+
+/** A branch edge's label, judged as the game's edges are: from the analysis before it and the values after it (an
+ *  analysis, or the result where the game ends), each analysis to at least `minVisits`. Null until both are known. */
+export function judgeBranchEdge(before: Analysis | undefined, after: { blueWin: number; blueScore: number | undefined } | undefined,
+                                mover: Player, edge: Edge | null, kind: ScoreKind = "lead", minVisits = 0): Label | null {
+  if (!before || before.visits < minVisits || !after) return null;
+  const best = before.candidates[0], s = scoreOf(before, kind);
+  return judgeEdge(moverWin(before.blueWin, mover), moverWin(after.blueWin, mover),
+                   s !== undefined ? moverScore(s, mover) : undefined,
+                   after.blueScore !== undefined ? moverScore(after.blueScore, mover) : undefined,
+                   !!best && !!edge && sameEdge(best.edge, edge), onlyEdge(before, mover)).label;
+}
+
+/** The values after a position, for judging the edge into it: the result where the game ends, else its analysis once
+ *  it has `minVisits`. */
+export function valuesAfter(p: Position, a: Analysis | undefined, kind: ScoreKind = "lead", minVisits = 0) {
+  if (p.over) {
+    const d = p.scores[0] - p.scores[1];
+    return { blueWin: d > 0 ? 1 : d < 0 ? 0 : 0.5, blueScore: d };
+  }
+  return a && a.visits >= minVisits ? { blueWin: a.blueWin, blueScore: scoreOf(a, kind) } : undefined;
+}
+
 // Lichess's accuracy of one move from the drop in win% (0-100).
 const moveAccuracy = (dropPct: number) => Math.min(100, Math.max(0, 103.1668 * Math.exp(-0.04354 * dropPct) - 3.1669 + 1));
 const severity = (e: EdgeReview) => (e.label ? LABELS.indexOf(e.label) : -1) * 1e6 + (e.pointsLost ?? 0) + e.loss;
@@ -128,12 +159,12 @@ export function review(data: ReviewData, kind: ScoreKind = "lead", minVisits = 0
     const a = data.analysis[i], best = a?.candidates[0];
     const deepEnough = (j: number) => j === n || (data.analysis[j]?.visits ?? 0) >= minVisits;
     const known = !Number.isNaN(winBefore) && !Number.isNaN(winAfter) && deepEnough(i) && deepEnough(i + 1);
-    const loss = known ? Math.max(0, winBefore - winAfter) : 0;
     const before = blueScore[i], after = blueScore[i + 1];
-    const pointsLost = known && before !== undefined && after !== undefined
-      ? Math.max(0, moverScore(before, m.player) - moverScore(after, m.player)) : undefined;
-    const label = known ? classify(loss, pointsLost, !!best && !!m.edge && sameEdge(best.edge, m.edge), onlyEdge(a, m.player)) : null;
-    return { index: i, player: m.player, edge: m.edge, cut: m.cut, winBefore, winAfter, loss, pointsLost, label, best };
+    const j = known ? judgeEdge(winBefore, winAfter, before !== undefined ? moverScore(before, m.player) : undefined,
+                                after !== undefined ? moverScore(after, m.player) : undefined,
+                                !!best && !!m.edge && sameEdge(best.edge, m.edge), onlyEdge(a, m.player)) : null;
+    return { index: i, player: m.player, edge: m.edge, cut: m.cut, winBefore, winAfter, loss: j?.loss ?? 0,
+             pointsLost: j?.pointsLost, label: j?.label ?? null, best };
   });
   const turns: TurnReview[] = [], turnOf: TurnReview[] = [];
   for (const e of edges) {

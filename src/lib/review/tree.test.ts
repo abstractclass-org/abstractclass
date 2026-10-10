@@ -2,7 +2,7 @@
 // a game. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { branchChildren, branchRows, keepLine, mainIndex, pathKey, sharedLength } from "./tree.ts";
+import { branchChildren, branchRows, mainIndex, nextFork, pathKey, prevFork, sharedLength, siblingLine } from "./tree.ts";
 
 const main = ["a", "b", "c", "d"];
 
@@ -32,11 +32,21 @@ test("a branch with no forks is one row", () => {
   assert.deepEqual(branchRows(["x"], p => kids.get(pathKey(p)) ?? []).map(r => r.paths.length), [3]);
 });
 
-test("the lines kept for a game drop the ones a new line extends", () => {
-  let lines: string[][] = [];
-  lines = keepLine(lines, ["a", "x"]);
-  lines = keepLine(lines, ["a", "x", "y"]); // extends the first
-  lines = keepLine(lines, ["a", "x"]); // already held
-  lines = keepLine(lines, ["a", "w"]);
-  assert.deepEqual(lines, [["a", "x", "y"], ["a", "w"]]);
+test("Lichess's fork keys: the previous and next fork, and the line beside this one", () => {
+  // The game a b c d; from after "a", a branch x y, and from after "a x", another line w.
+  const main = ["a", "b", "c", "d"];
+  const kids = branchChildren([["a", "x"], ["a", "x", "y"], ["a", "x", "w"]]);
+  const childrenOf = (p: string[]) => {
+    const i = mainIndex(p, main);
+    return [...(i !== null && i < main.length ? [[...p, main[i]]] : []), ...(kids.get(pathKey(p)) ?? [])];
+  };
+  assert.deepEqual(prevFork(["a", "b", "c"], childrenOf), ["a"]); // the game forks after a
+  assert.deepEqual(prevFork(["a"], childrenOf), []);
+  assert.deepEqual(nextFork([], childrenOf), ["a"]);
+  assert.deepEqual(nextFork(["a", "b"], childrenOf), main); // no fork ahead: the line's end
+  assert.deepEqual(nextFork(["a", "x"], childrenOf), ["a", "x", "y"]); // x forks itself; on to the end of its first line
+  assert.deepEqual(siblingLine(["a", "b", "c"], childrenOf, 1), ["a", "x"]); // from the game to the branch beside it
+  assert.deepEqual(siblingLine(["a", "x", "y"], childrenOf, 1), ["a", "x", "w"]);
+  assert.deepEqual(siblingLine(["a", "x", "w"], childrenOf, 1), ["a", "x", "y"]); // round
+  assert.equal(siblingLine(["a"], childrenOf, 1), null); // no fork above the first move
 });

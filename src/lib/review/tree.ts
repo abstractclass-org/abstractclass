@@ -50,10 +50,34 @@ export function branchRows(first: string[], kidsOf: (path: string[]) => string[]
   return rows;
 }
 
-/** The lines to keep for a game, with a new one added: a line that the new one extends is dropped, and a line that
- *  the kept ones already hold is not added. */
-export function keepLine(lines: string[][], line: string[]): string[][] {
-  const prefix = (a: string[], b: string[]) => a.length <= b.length && a.every((m, k) => b[k] === m);
-  if (lines.some(l => prefix(line, l))) return lines;
-  return [...lines.filter(l => !prefix(l, line)), line];
+// Moving between the lines at forks, as Lichess's keys do (ui/analyse/src/keyboard.ts). `childrenOf` gives a place's
+// children, the game's move first.
+type Children = (path: string[]) => string[][];
+
+/** Shift + ←: back to the nearest earlier place with more than one child, or the start. */
+export function prevFork(path: string[], childrenOf: Children): string[] {
+  for (let k = path.length - 1; k > 0; k--) if (childrenOf(path.slice(0, k)).length > 1) return path.slice(0, k);
+  return [];
+}
+
+/** Shift + →: on along the first children to the next place with more than one child, or the line's end. */
+export function nextFork(path: string[], childrenOf: Children): string[] {
+  let p = path;
+  for (let next = childrenOf(p)[0]; next; next = childrenOf(p)[0]) {
+    p = next;
+    if (childrenOf(p).length > 1) break;
+  }
+  return p;
+}
+
+/** Shift + ↑ and Shift + ↓: from the nearest fork above, the first move of the line before or after this one, round
+ *  the fork's lines (Lichess's stepLine). Null when no fork is above. */
+export function siblingLine(path: string[], childrenOf: Children, step: 1 | -1): string[] | null {
+  for (let k = path.length - 1; k >= 0; k--) {
+    const kids = childrenOf(path.slice(0, k));
+    if (kids.length < 2) continue;
+    const at = kids.findIndex(c => c[k] === path[k]);
+    return kids[(at + step + kids.length) % kids.length];
+  }
+  return null;
 }

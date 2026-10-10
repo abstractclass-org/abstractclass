@@ -9,11 +9,12 @@
   // (Lichess). Learning from the mistakes is to come back as a mode of the analysis (decisions/open-items.md). The
   // review may be partial while the engine works: an edge with no label yet shows none. The layout is design 06 (docs/design/06-review-layout.md): the board fills the window's height,
   // with the summary on its left from 1,260 pixels (Lichess's three columns), and the analysis on its right.
-  import { RadioGroup, Switch, Tabs } from "bits-ui";
+  import { ContextMenu, Dialog, RadioGroup, Switch, Tabs } from "bits-ui";
   import { MediaQuery } from "svelte/reactivity";
   import { innerHeight, innerWidth } from "svelte/reactivity/window";
   import type { BranchNode } from "#lib/analysis/game.svelte.ts";
   import Board, { type BoardCandidate, type BoardLineEdge, type BoardMark } from "#lib/board/Board.svelte";
+  import { EdgeInput, type EdgeRules } from "#lib/board/edgeInput.svelte.ts";
   import { parseEdge } from "#lib/engine/notation.ts";
   import Swatch from "#lib/ui/Swatch.svelte";
   import { SIDE_TEXT } from "#lib/ui/side.ts";
@@ -21,9 +22,9 @@
   import { loadDisplay, saveDisplay } from "./display.ts";
   import Glyph from "./Glyph.svelte";
   import {
-    explain, edgeName, moveName, moveNotation, sameEdge, shortNote, moverWin, moverScore, largest, lossText, pct, shownCandidates, lineMovers, enoughVisits, trustedLine, type Candidate, type LineStep, LABELS, LABEL_TEXT, LABEL_GLYPH, PLAYER_NAME, type Edge, type Label, type Player, type Position, type Review,
+    explain, edgeName, moveName, moveNotation, sameEdge, shortNote, judgeBranchEdge, valuesAfter, moverWin, moverScore, largest, lossText, pct, shownCandidates, lineMovers, enoughVisits, trustedLine, type Candidate, type LineStep, LABELS, LABEL_TEXT, LABEL_GLYPH, PLAYER_NAME, type Edge, type Label, type Player, type Position, type Review,
   } from "./model.ts";
-  import { branchChildren, branchRows, mainIndex, pathKey, sharedLength } from "./tree.ts";
+  import { branchChildren, branchRows, mainIndex, nextFork, pathKey, prevFork, sharedLength, siblingLine } from "./tree.ts";
 
   interface Props {
     R: Review;
@@ -34,8 +35,14 @@
     lineSteps?: (path: string[], line: Edge[]) => Promise<LineStep[]>; // a line's edges played: cuts, regions (the rules)
     branches?: Record<string, BranchNode>; // the branches' positions, by path key (tree.ts), in the order added
     onplay?: (path: string[]) => Promise<void>; // adds a line from the start to the tree
+    rulesAt?: (path: string[]) => Promise<EdgeRules>; // a position's legal edges and mover's nodes, for the player's moves
+    ondelete?: (path: string[]) => Promise<void>; // deletes a branch node and what follows it
+    onpromote?: (path: string[]) => Promise<void>; // promotes a branch one step among the branches from its fork
+    onjudge?: (path: string[]) => Promise<void>; // evaluates a branch move's quality: searches its two positions
+    labelVisits?: number; // the label budget: a move is judged once both its positions have this many visits
   }
-  let { R, progress = null, problem = "", deepVisits = 0, onposition, lineSteps, branches = {}, onplay }: Props = $props();
+  let { R, progress = null, problem = "", deepVisits = 0, onposition, lineSteps, branches = {}, onplay, rulesAt, ondelete,
+        onpromote, onjudge, labelVisits = 0 }: Props = $props();
   const last = $derived(R.data.positions.length - 1);
   const TABLE_ROWS = 5; // the Analysis table shows this many rows and scrolls, so the move list under it does not move
   const ROW_EM = 1.9; // a table row's height, in em
@@ -46,6 +53,8 @@
   // because small text in heavy weights runs together.
   const BADGE = "inline-flex items-center justify-center min-w-[1.8em] h-[1.8em] px-[0.2em] rounded-full text-[0.64em] font-bold text-on-badge";
   const GAUGE_TEXT = "absolute left-1/2 -translate-x-1/2 rotate-180 [writing-mode:vertical-rl] text-[0.6rem] leading-none font-semibold tracking-[0.1em] text-white tabular-nums";
+  const MENU_ITEM = "px-2.5 py-1.5 rounded cursor-pointer outline-none data-highlighted:bg-panel data-disabled:opacity-50 data-disabled:cursor-default";
+  const KBD = "inline-block min-w-[1.6em] px-1 py-px rounded border border-line bg-panel font-mono text-[0.85em] text-center leading-tight";
   const SETTINGS_HEAD = "mt-2 first:mt-0 pb-0.5 text-xs font-semibold uppercase tracking-wide text-muted border-b border-line";
   const TAB = "flex-1 bg-transparent border-transparent border-b-2 border-b-line rounded-none data-[state=active]:border-b-accent data-[state=active]:font-semibold";
 
@@ -89,7 +98,7 @@
   const lastPlayed = $derived(branchNode?.move ?? lastMove); // the move that led here, in the game or a branch
 
   // The tree's children: the game's next move first, on its line, then the branches, in the order they were added.
-  const kids = $derived(branchChildren(Object.keys(branches).map(k => k.split(" "))));
+  const kids = $derived(branchChildren(Object.entries(branches).sort((a, b) => a[1].order - b[1].order).map(([k]) => k.split(" "))));
   const branchKids = (p: string[]) => kids.get(pathKey(p)) ?? [];
   function childrenOf(p: string[]): string[][] {
     const i = mainIndex(p, mainNames);
@@ -180,7 +189,7 @@
   let selectedRank = $state(1);
   let pinned = $state(false);
   let listHover = $state<number | null>(null);
-  $effect(() => { void here; selectedRank = 1; pinned = false; listHover = null; });
+  $effect(() => { void here; selectedRank = 1; pinned = false; listHover = null; forkPick = 0; forkPicked = false; });
   function pick(rank: number) {
     if (pinned && selectedRank === rank) pinned = false;
     else { selectedRank = rank; pinned = true; }
@@ -211,12 +220,35 @@
     }
     return out;
   });
-  async function play(k: number) {
-    if (!listLine || !onplay) return;
-    const target = [...path, ...listLine.slice(0, k + 1).map(edgeName)];
-    await onplay(target);
+  const play = (k: number) => { if (listLine) playPath([...path, ...listLine.slice(0, k + 1).map(edgeName)]); };
+  /** Plays a line from the start: along the tree where it is there, as a new branch where it is not, then goes there. */
+  async function playPath(target: string[]) {
+    if (onplay) await onplay(target);
     setPath(target);
   }
+  // Space plays the pinned candidate, or number 1 (Lichess's Space plays its best move).
+  function playCandidate() {
+    const c = pinnedCandidate ?? analysis?.candidates[0];
+    if (c) playPath([...path, edgeName(c.edge)]);
+  }
+
+  // The player's own moves, always on (Lichess's analysis board): the puzzles' edge input, on the position's rules from
+  // the engine. A move that is the game's goes along the game; another makes a branch.
+  const input = new EdgeInput(edge => playPath([...path, edgeName(edge)]));
+  const knownRules = new Map<string, EdgeRules>();
+  $effect(() => {
+    const key = here, end = over;
+    input.reset();
+    input.rules = null;
+    if (end || !rulesAt) return;
+    const known = knownRules.get(key);
+    if (known) { input.rules = known; return; }
+    let current = true;
+    rulesAt(key ? key.split(" ") : [])
+      .then(r => { knownRules.set(key, r); if (current) input.rules = r; })
+      .catch(() => {}); // without the rules, no own moves here
+    return () => { current = false; };
+  });
 
   // The board's line: the listed line up to the edge pointed at in the list, or the line of the candidate pointed at, or
   // of the pinned one.
@@ -310,11 +342,30 @@
     else if (tableBox.scrollTop < bottom) tableBox.scrollTop = bottom;
   });
 
-  // Label badges on the edges of the turn just played, as far as the current position.
+  // A branch move's label, when the player asked for its quality (its menu's "Evaluate move quality"): judged as the
+  // game's moves are, once its two positions have the label budget. Other branch moves have none: a line played to show
+  // something should cost no search (design 07).
+  function branchLabel(p: string[]): Label | null {
+    const node = branches[pathKey(p)];
+    if (!node?.judged) return null;
+    const parent = p.slice(0, -1), i = mainIndex(parent, mainNames);
+    const before = i !== null ? R.data.analysis[i] : branches[pathKey(parent)]?.analysis;
+    return judgeBranchEdge(before, valuesAfter(node.position, node.analysis, "lead", labelVisits), node.move.player,
+                           node.move.edge, "lead", labelVisits);
+  }
+  // Label badges on the edges of the turn just played, as far as the current position: the game's, and a branch's that
+  // were evaluated.
   const marks = $derived.by((): BoardMark[] => {
-    if (!lastMove || mainAt === null) return []; // a branch's edges have no labels yet
-    return R.turnOf[lastMove.index].edges.filter(e => e.index < mainAt && e.label && e.edge)
-      .map(e => ({ edge: e.edge!, label: e.label!, glyph: LABEL_GLYPH[e.label!] }));
+    const out: BoardMark[] = [];
+    let p = path;
+    for (let k = 0; k < 2 && p.length; k++) { // a turn has at most two edges
+      const i = mainIndex(p, mainNames), e = i !== null ? R.edges[i - 1] : null;
+      const edge = e ? e.edge : branches[pathKey(p)]?.move.edge ?? null, label = e ? e.label : branchLabel(p);
+      if (edge && label) out.push({ edge, label, glyph: LABEL_GLYPH[label] });
+      if (moveFrom(p.slice(0, -1)).first) break; // the turn began with this edge
+      p = p.slice(0, -1);
+    }
+    return out;
   });
 
   function setPath(p: string[]) {
@@ -322,12 +373,41 @@
     hover = null;
     listHover = null;
   }
+  // Lichess's move menu on a branch's move (ui/analyse/src/treeView/contextMenu.ts): "Promote variation" and "Delete
+  // from here". The game's own moves have no menu: the review is of the game, so its line stays first ("Make main line"
+  // is for an analysis board, later).
+  let menuPath = $state<string | null>(null); // the key of the branch move under the menu
+  /** A branch can be promoted when a branch node on its path, from its end back, is not the first branch from its parent. */
+  function canPromote(key: string | null): boolean {
+    if (!key) return false;
+    const p = key.split(" ");
+    for (let k = p.length; k > 0; k--) {
+      const sub = p.slice(0, k);
+      if (!(pathKey(sub) in branches)) return false;
+      if (pathKey(branchKids(sub.slice(0, -1))[0] ?? []) !== pathKey(sub)) return true;
+    }
+    return false;
+  }
+  async function deleteFrom(key: string) {
+    const p = key.split(" ");
+    if (here === key || here.startsWith(`${key} `)) setPath(p.slice(0, -1)); // the place on screen goes too
+    await ondelete?.(p);
+  }
+
+  // At a fork, ↑ and ↓ pick the line that → follows (Lichess's fork.select): the board shows the picked edge.
+  let forkPick = $state(0);
+  let forkPicked = $state(false);
+  const picked = $derived(forkPicked ? childrenOf(path)[forkPick] : undefined);
+  // The picked move is marked in the move list (a dashed outline) and brought into view.
+  const pickedKey = $derived(picked ? pathKey(picked) : null);
+  const PICKED = "picked outline-2 outline-dashed outline-accent";
+  $effect(() => { if (pickedKey) movelist?.querySelector(".picked")?.scrollIntoView({ block: "nearest" }); });
   /** Goes to a position on the game's line. */
   const go = (p: number) => setPath(mainNames.slice(0, Math.max(0, Math.min(last, p))));
   // Along the line on screen, as Lichess's arrows: back to the parent, forward to the first child (the game's move on
   // its line), and to the line's end.
   const back = () => { if (path.length) setPath(path.slice(0, -1)); };
-  const forward = () => { const [next] = childrenOf(path); if (next) setPath(next); };
+  const forward = () => { const kids = childrenOf(path), next = kids[forkPick] ?? kids[0]; if (next) setPath(next); };
   function toEnd() {
     let p = path;
     for (let next = childrenOf(p)[0]; next; next = childrenOf(p)[0]) p = next;
@@ -355,17 +435,64 @@
 
   // The arrow keys step through the game, except in the controls that use them: fields, the tabs, the display menu.
   // So the move list's moves are not in the Tab order (tabindex -1), as on Lichess: a click still goes to a move.
+  // The keys (the list on "?"): Lichess's (ui/analyse/src/keyboard.ts), with single keys beside its Shift keys from
+  // other analysis tools. ← and → along the line (k and j, Lichess's); at a fork ↑ and ↓ pick the line that → follows,
+  // elsewhere they go to the start and the end; the previous and the next fork by Shift + ← and →, b and n (KaTrain's b
+  // goes back to the last branch point), [ and ], or Shift + k and j (Lichess's); the line before and after this one by
+  // Shift + ↑ and ↓, x and c (En Croissant's), or comma and period; Space plays the engine's choice. Escape closes the
+  // settings, or drops an edge begun. Keys kept free for later: m and Shift + m (the next and the previous mistake,
+  // KaTrain's n), and Delete.
+  let keysOpen = $state(false);
   function onkeydown(ev: KeyboardEvent) {
-    if (ev.defaultPrevented || ev.target instanceof HTMLInputElement) return;
-    if (ev.key === "Escape" && settingsOpen) { settingsOpen = false; ev.preventDefault(); return; }
-    if (ev.target instanceof Element && ev.target.closest('[role="tablist"], [role="dialog"], [role="radiogroup"]')) return;
-    if (ev.key === "ArrowLeft") back();
-    else if (ev.key === "ArrowRight") forward();
-    else if (ev.key === "Home") setPath([]);
-    else if (ev.key === "End") toEnd();
+    if (ev.defaultPrevented || ev.target instanceof HTMLInputElement || ev.ctrlKey || ev.metaKey || ev.altKey) return;
+    if (ev.key === "Escape") {
+      if (settingsOpen) settingsOpen = false;
+      else if (input.pending) input.reset();
+      else return;
+      ev.preventDefault();
+      return;
+    }
+    const target = ev.target instanceof Element ? ev.target : null;
+    if (target?.closest('[role="tablist"], [role="dialog"], [role="radiogroup"], [role="menu"]')) return;
+    const key = ev.key.length === 1 ? ev.key.toLowerCase() : ev.key, shift = ev.shiftKey;
+    const kids = childrenOf(path);
+    const line = (step: 1 | -1) => { const l = siblingLine(path, childrenOf, step); if (l) setPath(l); };
+    if (key === "?" || (key === "/" && shift)) keysOpen = !keysOpen;
+    else if ((key === "ArrowLeft" && shift) || key === "b" || key === "[" || (key === "k" && shift)) setPath(prevFork(path, childrenOf));
+    else if ((key === "ArrowRight" && shift) || key === "n" || key === "]" || (key === "j" && shift)) setPath(nextFork(path, childrenOf));
+    else if ((key === "ArrowUp" && shift) || key === "x" || key === ",") line(-1);
+    else if ((key === "ArrowDown" && shift) || key === "c" || key === ".") line(1);
+    else if (key === "ArrowLeft" || key === "k") back();
+    else if (key === "ArrowRight" || key === "j") forward();
+    else if (key === "ArrowUp" || key === "ArrowDown") {
+      const step = key === "ArrowUp" ? -1 : 1;
+      if (kids.length > 1) { forkPick = (forkPick + step + kids.length) % kids.length; forkPicked = true; }
+      else if (step < 0) setPath([]);
+      else toEnd();
+    }
+    else if (key === "Home") setPath([]);
+    else if (key === "End") toEnd();
+    else if (key === " " && !target?.closest('button, [role="switch"], [role="radio"], [role="tab"]')) playCandidate();
     else return;
     ev.preventDefault();
   }
+  // The list of keys, as Lichess's "?" list.
+  const KEYS: [string[], string][] = [
+    [["← / →", "k / j"], "Back and forward along the line on screen"],
+    [["↑ / ↓"], "At a fork, pick the line that → follows. Elsewhere, the start and the line's end"],
+    [["Shift + ← / →", "b / n", "[ / ]", "Shift + k / j"], "The previous and the next fork"],
+    [["Shift + ↑ / ↓", "x / c", ", / ."], "The line before and after this one, from the fork above"],
+    [["Home / End"], "The start, and the line's end"],
+    [["Space"], "Play the pinned candidate, or number 1"],
+    [["Escape"], "Close the settings, or drop an edge begun"],
+    [["?"], "This list"],
+  ];
+  const MOUSE: [string, string][] = [
+    ["Click a candidate", "Pin its line on the board; click again to unpin it"],
+    ["Double-click a candidate", "Play it"],
+    ["Click a node, then a marked point", "Play your own edge"],
+    ["Right-click a branch's move", "Evaluate it, promote its branch, or delete from it"],
+  ];
 
   const scoreDiff = $derived(R.data.positions.map(p => p.scores[0] - p.scores[1]));
   const winner = $derived<Player>(R.data.result.blue > R.data.result.red ? 0 : 1);
@@ -383,6 +510,11 @@
     const k = t.edges.findIndex(e => e.index === pos) + 1;
     return `Edge ${pos + 1} of ${last} · Turn ${t.number} · ${PLAYER_NAME[mover]} to play, edge ${k} of ${t.edges.length}`;
   });
+  const statusLine = $derived(
+    input.refused === "start" ? `Start an edge at one of ${PLAYER_NAME[mover]}'s nodes.`
+    : input.refused === "end" ? `Finish the edge at a marked point, or click another of ${PLAYER_NAME[mover]}'s nodes.`
+    : input.pending ? "Now the edge's second point: a marked point."
+    : status);
   const endWin = (p: Position) => (p.scores[0] > p.scores[1] ? 1 : p.scores[0] < p.scores[1] ? 0 : 0.5);
   const blueWin = $derived(mainAt !== null ? R.blueWin[mainAt] : over ? endWin(position) : analysis?.blueWin ?? NaN);
   // The chart's hover, as Lichess's: the move that led to the position and its label, then one number. The number is
@@ -559,7 +691,13 @@
   </table>
   </div>
   {@render lineList()}
-  <div class="movelist flex-1 min-h-0 overflow-y-auto pt-1.5 text-sm border-t border-line" bind:this={movelist}>
+  <!-- A right-click, or a long press on a touch screen, on a branch's move opens its menu (Bits UI's ContextMenu). On the
+       game's moves the trigger is off, and the browser's own menu opens. -->
+  <ContextMenu.Root>
+  <ContextMenu.Trigger disabled={!menuPath}>
+  {#snippet child({ props })}
+  <div {...props} class="movelist flex-1 min-h-0 overflow-y-auto pt-1.5 text-sm border-t border-line" bind:this={movelist}
+       onpointerdowncapture={e => (menuPath = (e.target as Element).closest<HTMLElement>("[data-path]")?.dataset.path ?? null)}>
     {#each R.turns as t (t.number)}
       <!-- A turn's number, then its edges in two equal columns (Lichess's move list), each at least a move wide:
            with room to spare, the second edge starts halfway across. -->
@@ -573,7 +711,8 @@
                (??, 2), then the glyph's margin. The lead: at most 5 characters (+1.2k), smaller and right-aligned.
                The font is monospaced, so ch is one character of the span's own size. -->
           <button class={["mv flex items-baseline gap-1 px-[0.2rem] py-px font-mono text-[0.95em] text-left whitespace-nowrap bg-transparent border-0",
-                          SIDE_TEXT[e.player], mainAt === e.index + 1 ? "here bg-panel-2 outline outline-accent" : "hover:bg-panel-2 hover:outline hover:outline-line"]}
+                          SIDE_TEXT[e.player], mainAt === e.index + 1 ? "here bg-panel-2 outline outline-accent"
+                          : pickedKey === pathKey(mainNames.slice(0, e.index + 1)) ? PICKED : "hover:bg-panel-2 hover:outline hover:outline-line"]}
                   onclick={() => go(e.index + 1)} tabindex="-1"
                   title={[e.label ? LABEL_TEXT[e.label] : "Not analysed yet", after !== undefined ? sideText(after) : ""].filter(Boolean).join(" · ")}>
             <span class="w-[calc(10ch+0.15em)]">{moveNotation(e)}{#if listed(e.label)}<span class="ml-[0.15em] font-extrabold" style:color="var(--{e.label})"><Glyph glyph={LABEL_GLYPH[e.label]} /></span>{/if}</span>
@@ -595,6 +734,19 @@
       {/each}
     {/each}
   </div>
+  {/snippet}
+  </ContextMenu.Trigger>
+  <ContextMenu.Portal>
+    <ContextMenu.Content class="z-10 min-w-48 p-1 bg-panel-2 border border-muted/50 rounded-md shadow-[0_6px_20px_rgb(0_0_0/0.4)] text-sm">
+      <ContextMenu.Item disabled={!canPromote(menuPath)} onSelect={() => menuPath && onpromote?.(menuPath.split(" "))}
+                        class={MENU_ITEM}>Promote variation</ContextMenu.Item>
+      <ContextMenu.Item disabled={!menuPath || !!branches[menuPath]?.judged} onSelect={() => menuPath && onjudge?.(menuPath.split(" "))}
+                        class={MENU_ITEM}>Evaluate move quality</ContextMenu.Item>
+      <ContextMenu.Separator class="my-1 h-px bg-line" />
+      <ContextMenu.Item onSelect={() => menuPath && deleteFrom(menuPath)} class={MENU_ITEM}>Delete from here</ContextMenu.Item>
+    </ContextMenu.Content>
+  </ContextMenu.Portal>
+  </ContextMenu.Root>
 {/snippet}
 
 <!-- A number centred in its badge: the inner block is trimmed to the digits' height (cap height to baseline), so that
@@ -624,18 +776,26 @@
         {@const node = branches[pathKey(p)]}
         {@const t = moveFrom(p.slice(0, -1))}
         {@const at = pathKey(p) === here}
+        {@const label = branchLabel(p)}
+        {@const waiting = !!node?.judged && !label}
         {#if node}
           {#if k === 0 || t.first}<span class={["text-muted text-[0.9em]", k > 0 && "ml-1"]}>{turnText(t)}</span>{/if}
           {#if display.branchText}
             <button class={["mv px-[0.2rem] py-px bg-transparent border-0 whitespace-nowrap", SIDE_TEXT[node.move.player],
-                            at ? "here bg-panel-2 outline outline-accent" : "hover:bg-panel-2 hover:outline hover:outline-line"]}
-                    onclick={() => setPath(p)} tabindex="-1">{moveNotation(node.move)}</button>
+                            at ? "here bg-panel-2 outline outline-accent" : pickedKey === pathKey(p) ? PICKED
+                            : "hover:bg-panel-2 hover:outline hover:outline-line"]}
+                    onclick={() => setPath(p)} tabindex="-1" data-path={pathKey(p)}
+                    title={label ? LABEL_TEXT[label] : waiting ? "Evaluating…" : undefined}>{moveNotation(node.move)}</button>
           {:else}
-            <button class={["mv flex p-[0.15em] bg-transparent border-0 rounded-full", at ? "here outline-2 outline-accent" : "hover:outline hover:outline-ink"]}
-                    onclick={() => setPath(p)} tabindex="-1" title="{turnText(t)} {moveNotation(node.move)}">
+            <button class={["mv flex p-[0.15em] bg-transparent border-0 rounded-full",
+                            at ? "here outline-2 outline-accent" : pickedKey === pathKey(p) ? PICKED : "hover:outline hover:outline-ink"]}
+                    onclick={() => setPath(p)} tabindex="-1" data-path={pathKey(p)}
+                    title="{turnText(t)} {moveNotation(node.move)}{label ? ` · ${LABEL_TEXT[label]}` : waiting ? ' · evaluating…' : ''}">
               <span class={["block w-[0.85em] h-[0.85em] rounded-full", node.move.player === 0 ? "bg-blue" : "bg-red"]}></span>
             </button>
           {/if}
+          {#if listed(label)}<span class="-ml-0.5 text-[0.9em] font-extrabold" style:color="var(--{label})"><Glyph glyph={LABEL_GLYPH[label]} /></span>
+          {:else if waiting}<span class="-ml-0.5 text-[0.9em] text-muted animate-pulse motion-reduce:animate-none" title="Evaluating…">…</span>{/if}
         {/if}
       {/each}
     </div>
@@ -711,6 +871,14 @@
       {@render choice("Branches and lines", "Branches as dots and the engine's line as numbers, or both in the record's notation.",
         [["marks", "Dots and numbers"], ["text", "Text notation"]], () => (display.branchText ? "text" : "marks"),
         v => (display.branchText = v === "text"))}
+      <h3 class={SETTINGS_HEAD}>Keyboard</h3>
+      <div class="flex items-start justify-between gap-3 py-1.5">
+        <div class="min-w-0">
+          <p class="text-sm font-medium">Keys and clicks</p>
+          <p class="text-xs text-muted">The keys for moving through the game and its branches, and what the clicks do.</p>
+        </div>
+        <button class="flex-none px-2 py-0.5 text-sm" onclick={() => (keysOpen = true)}>Show <kbd class={KBD}>?</kbd></button>
+      </div>
       <h3 class={SETTINGS_HEAD}>Advantage chart</h3>
       {@render toggle("Score so far", "A second line: the score difference after each edge (Blue − Red).",
         () => display.scoreLine, v => (display.scoreLine = v))}
@@ -810,7 +978,13 @@
           highlight={hover ?? pinnedCandidate?.edge ?? null}
           line={drawnLine}
           oncandidateclick={selectRank}
-          preview={line ? null : hover}
+          oncandidatedblclick={e => playPath([...path, edgeName(e)])}
+          pending={input.pending}
+          ends={input.ends}
+          active={input.active}
+          onpoint={input.rules ? input.click : undefined}
+          onlyActive
+          preview={line ? null : hover ?? (picked ? parseEdge(picked.at(-1)!) : null)}
           previewPlayer={mover}
           {marks}
           layers={display.layers}
@@ -863,7 +1037,7 @@
 
     <!-- The step controls and the display settings' gear, at the bottom of the analysis column (Lichess's place). -->
     <div class="mt-1.5 pt-1.5 border-t border-line">
-      <p class="mb-1.5 text-xs text-muted truncate">{status}</p>
+      <p class="mb-1.5 text-xs text-muted truncate" title={statusLine}>{statusLine}</p>
       <div class="flex items-center justify-between">
         <div class="flex gap-1">
           <button onclick={() => setPath([])} aria-label="First">⏮</button>
@@ -877,6 +1051,37 @@
       </div>
     </div>
   </section>
+
+  <!-- The list of keys and clicks: a Bits UI dialog (its focus, Escape and outside click). -->
+  <Dialog.Root bind:open={keysOpen}>
+    <Dialog.Portal>
+      <Dialog.Overlay class="fixed inset-0 z-20 bg-[rgb(0_0_0/0.45)]" />
+      <Dialog.Content class="fixed z-30 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(94vw,34rem)] max-h-[90vh] overflow-y-auto
+                             px-5 py-4 bg-panel-2 border border-muted/50 rounded-md shadow-[0_6px_20px_rgb(0_0_0/0.4)]">
+        <div class="flex items-center justify-between mb-2">
+          <Dialog.Title class="font-semibold">Keys and clicks</Dialog.Title>
+          <Dialog.Close class="px-2 py-0.5 text-sm">Close</Dialog.Close>
+        </div>
+        <table class="w-full text-sm [&_td]:py-1 [&_td]:align-top [&_tr+tr_td]:border-t [&_tr+tr_td]:border-line">
+          <tbody>
+            {#each KEYS as [keys, what] (what)}
+              <tr>
+                <td class="pr-3 w-[45%]"><span class="flex flex-wrap gap-1">{#each keys as k (k)}<kbd class={KBD}>{k}</kbd>{/each}</span></td>
+                <td>{what}</td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+        <table class="w-full mt-3 text-sm [&_td]:py-1 [&_td]:align-top [&_tr+tr_td]:border-t [&_tr+tr_td]:border-line">
+          <tbody>
+            {#each MOUSE as [how, what] (how)}
+              <tr><td class="pr-3 w-[45%] text-muted">{how}</td><td>{what}</td></tr>
+            {/each}
+          </tbody>
+        </table>
+      </Dialog.Content>
+    </Dialog.Portal>
+  </Dialog.Root>
 
   <section class="under">
     <div bind:this={chartBox}>
