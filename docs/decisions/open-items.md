@@ -29,10 +29,6 @@ Rules:
 
 - **Ask meaf.us for an export:** a button or a public record link for finished games would replace the bookmarklet,
   which breaks when meaf.us changes its page. Its owner's choice: the owner of this site asks.
-- **The board:** draw the position from the engine's state (edges, protected edges, regions, scores). Step through
-  the moves.
-- **The review:** analyse every position of the game in a pool of workers at a fixed budget. Show the margin graph,
-  points lost per edge and per turn, and the engine's best line.
 - **The noise floor:** search the same positions twice and measure how often the labels agree, before any label
   ships.
 - **Label thresholds:** fit them on the archive (design 01, principle 3). This needs the archive analysed offline.
@@ -47,34 +43,43 @@ Rules:
 
 ## The owner's feedback on the review, puzzles and import (2026-10-10)
 
-The review on the engine and the meaf.us bookmarklet work (the bookmarklet checked on a real meaf.us game). To do:
+The simple items are done (decisions/product.md, "The review on the engine, first feedback"). These need a decision
+or a design first:
 
-- **The record's turn labels lose their letter** (the engine repository's design changed): `1. D10-G10 2. N11-Q10
-  L10-N11`, a branch at a turn's second edge `4... M12-N9`. Change `record.ts` (read the new form, still accept
-  `1b.`/`2r.` for old records), `writeRecord`, `meaf.ts`, and their tests. The move list on the page can keep a
-  colour mark instead of the letter.
-- **Candidates on the board:**
-  - The numbers are the engine's order, and the board shows number 1 and the others within the Good band of it (at
-    most 3). So it can show 1, 2, 4, which reads as a gap. Choose: renumber what the board shows (1, 2, 3), or show a
-    fixed top three with the weak ones fainter.
-  - The hover note: drop the edge's name (it saves space). Make number 1's note and the others' notes say the same
-    kind of thing, and match the Analysis table (both absolute values, or both differences from number 1).
-  - Hovering a row of the Analysis table highlights its candidate on the board, but number 1 is already fully opaque,
-    so nothing changes for it. Give the hovered candidate a visible mark of its own (a halo or a thicker line), for
-    number 1 too.
-  - Hovering a candidate on the board, or a row of the table: highlight that row.
-- **The move list:** hovering a move highlights its box.
-- **Progress:**
-  - The review in progress needs a clear indicator (a progress bar: the shape, then the labels), not text under the
-    board. The side panel fills in gradually: show that it is still filling (for example, the counts marked as partial
-    until the label pass ends).
-  - The position's own search needs a progress bar too (visits so far against its budget).
-- **The Analysis tab's layout:** the candidates table changes height from position to position, so the move list
-  moves up and down. Give the table a fixed height (a fixed number of rows).
+- **The candidates on the board change with the search's depth** (decisions/product.md, "The candidates: which ones
+  the board shows"): after the label pass (256 visits) many candidates pass the visit rule, after the deep search
+  (1,024) few do. The board can lose candidates while the player looks. To watch: whether players find that
+  confusing. The Good band (5%, 36 points) is still a placeholder.
+- **The engine's lines, and exploring variations:** show the engine's best line (KataGo's `pv`, in the replies
+  already) for number 1 and for every candidate, and for any other edge on request (search the position after it),
+  so that a player sees why an edge is bad. Play out a line on the board, explore variations by hand, show the
+  branches in the move list, and navigate them with keys, as other analysis tools do (Lichess, chess.com, KaTrain,
+  Sabaki). To design: the game as a tree of moves, the branch notation (the record's `( )` branches), the keys, and
+  how a variation's positions get their analyses.
+- **Searching for analysis, not only for the choice of move:** KataGo's analysis engine defaults to `wideRootNoise`
+  0.04, which spreads visits over more moves so that more of them get values (its `analysis_example.cfg`: "explore
+  and give evaluations to a greater variety of moves"). For play it is 0.0. The browser's module embeds the engine's
+  `analysis_enclosure.cfg`, which sets 0.0 ("playing games"). A `load_model` request's `settings` can change it
+  without a change to the engine. The engine repository is moving its bots to KataGo's GTP engine, KataGo's way to
+  play, and keeping `analysis_enclosure.cfg` for analysis only (in progress there). Read that file's settings again
+  when it lands. KaTrain also offers extra analysis on request: "equalize" gives every candidate as
+  many visits as the top move, "sweep" searches every legal move, "alternative" looks for moves beyond the
+  candidates (`analyze_extra`, `core/game.py`). To decide: whether the review searches with 0.04, which changes every
+  value, so the label budget (256) would be measured again; and which extra analyses the page offers. It bears on the
+  Great label below, on the board's candidates, and on the engine's lines for bad edges.
+- **Great is too frequent late in a game:** in the sample game almost every late move is Great (the first choice,
+  with the second at least 10% of win chance worse: En Croissant's rule), each with a comment line in the move list.
+  Tighten the rule, or drop the comment line for Great. A likely cause: the second choice's value comes from the same
+  search, and it often has few visits, so its value is unreliable. A proposal: call an edge the only good one only
+  when the second choice has enough visits (the board's rule: 15% of the most visited move's), or measure first how
+  many Great labels have a second choice under that share.
 - **Learning from mistakes:** not a tab. Make it a mode of the Analysis panel, above the move list, as Lichess's
   "Learn from your mistakes" is, started from the Highlights button too. Make it teach. After a solve, play out the
   engine's line. Show what the game's edge allowed (the opponent's region, the points). Offer a hint before the
-  solution (the area at stake).
+  solution (the area at stake). Judge a tried edge as the review judges a game's edge: when it is not a candidate
+  with enough visits, play it and search the position after it (Lichess shows "Evaluating your move…" and runs the
+  engine on the new position). Today an edge the engine did not search gets "The engine did not consider it", and
+  an edge with few visits gets a noisy verdict. Puzzles need the same.
 - **Move input** (puzzles, retries, lessons): use the engine's rules. Today any point can start an edge and nothing
   checks cuts or protection. After the first point, show where an edge may go: meaf.us draws a dashed box of the reach
   and a ghost edge that shows whether the current choice is legal. Constellation highlights the points that complete a
@@ -82,6 +87,19 @@ The review on the engine and the meaf.us bookmarklet work (the bookmarklet check
 - **Sound:** sounds for moves, to make play more satisfying. To design: which events (an edge placed, a cut, a region
   closed and scored, a label for a mistake, a puzzle solved or failed), a sound set with its licence, a switch to mute
   it, and no sound before the player interacts (browsers block it).
-- **The single-file build** (`SNAPSHOT=1` in `vite.config.ts`, `scripts/snapshot-fragment.cjs`) served only the
-  artifacts, which are deleted. Remove it if the owner agrees.
-
+- **Using the review page's space** (design 06): with the board large and three columns, look again at the
+  Advantage chart's place and size (under the board, below the fold today), and at what the summary column shows
+  besides the Highlights.
+- **The notation, described for players:** Home names the turn labels and the edges in one line. Write a full
+  description of the record (turns, edges, the cut mark `x`, `pass`, results, comments, branches) on a page of the
+  site, from the engine repository's `docs/design/04-notation-and-protocol.md`, and link it from Home and `/import`.
+- **The engine's protocol 0.2** (the engine repository's commit `c168502`, a module build in its
+  `runs/wasm/v2/engine-dev/`): it reads the cut mark in `moves` and `play`, and adds `chooseMove` and `seed`. Before
+  1.0 any version may break a client, and the site accepts only 0.1 (`PROTOCOL` in `src/lib/engine/protocol.ts`). To
+  move: pin the new build in `engine.lock.json`, read its changes, and set `PROTOCOL` to 0.2. Needed for bots, or for
+  sending the marks.
+- **One search tree across a game:** the notes are in
+  [research/02-search-tree-reuse.md](../research/02-search-tree-reuse.md). Not needed for the first release. Decide
+  later.
+- **Request 04 to the engine repository** ([requests/04-edge-visits-and-order.md](../requests/04-edge-visits-and-order.md)):
+  document `edgeVisits` and `order` in design 04. The owner passes it on.

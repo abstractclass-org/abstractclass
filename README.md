@@ -21,7 +21,6 @@ npm run dev         # the dev server
 npm run check       # type checks
 npm run build       # the static site, into build/
 npm run preview     # serve build/
-SNAPSHOT=1 npm run build   # each page as one self-contained HTML file, into build-snapshot/
 ```
 
 `npm run engine` needs the engine repository checked out at `../enclosure` while the lock file names local builds
@@ -32,9 +31,12 @@ SNAPSHOT=1 npm run build   # each page as one self-contained HTML file, into bui
 | Path | What |
 |---|---|
 | `docs/` | The documents: context, handoff, design, decision log, requests to the engine repository ([docs/README.md](docs/README.md)). |
-| `src/lib/engine/` | The engine module (protocol 1.0) in a Web Worker, the page's side of it, the protocol's types and the notation. |
-| `src/routes/` | The pages. `review/` is the review wireframe. `lab/engine/` is the engine lab. |
-| `src/lib/board/`, `src/lib/review/` | The board (SVG), the review's model and its graph. |
+| `src/lib/engine/` | The engine module (protocol 0.1) in a Web Worker, the page's side of it, the protocol's types and the notation. |
+| `src/routes/` | The pages. `review/` is the game review, on the engine. `import/` takes a game from the meaf.us bookmarklet. `lab/engine/` is the engine lab. |
+| `src/lib/analysis/` | The review's analysis in the browser: the pool of engine workers, the schedule, the cache. |
+| `src/lib/storage/` | The browser's database (IndexedDB): analyses and the player's games. |
+| `src/lib/game/` | Game records (reading, the cut mark), the player's games, the meaf.us conversion and bookmarklet. |
+| `src/lib/board/`, `src/lib/review/` | The board (SVG), the review's model and labels, its page (layout: design 06), the Advantage chart, the display settings. |
 | `src/lib/mock/`, `scripts/mock/` | Mock data for the wireframes, and how it was made. |
 | `engine.lock.json`, `scripts/fetch-engine.mjs` | The engine's artifacts, pinned by SHA-256. |
 | `static/engine/` | The engine's artifacts, fetched. Not in Git. |

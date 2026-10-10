@@ -79,6 +79,6 @@ export function meafRecord(g: MeafGame): string {
   if (termination) tags.push(["Termination", termination]);
   if (g.gameID) tags.push(["GameId", g.gameID]);
   const head = tags.map(([k, v]) => `[${k} "${v.replace(/(["\\])/g, "\\$1")}"]`).join("\n");
-  const body = turns.map((t, i) => `${i + 1}${t.player}. ${t.moves.join(" ")}`).join(" ");
+  const body = turns.map((t, i) => `${i + 1}. ${t.moves.join(" ")}`).join(" ");
   return `${head}\n\n${body} ${result}\n`;
 }

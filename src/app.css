@@ -1,5 +1,6 @@
 /* Colour tokens. Plain and clear (docs/design/04-product-shape.md). Players: Blue moves first, Red second. */
 :root {
+  --site-header: 2.5rem; /* the site's header bar (+layout.svelte): pages size their boards from the height below it */
   --bg: #f6f5f2;
   --panel: #ffffff;
   --panel-2: #f0eeea;

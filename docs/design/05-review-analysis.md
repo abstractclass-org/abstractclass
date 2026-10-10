@@ -16,14 +16,16 @@ noise.
 
 1. **The schedule is KaTrain's** (`core/game.py`: `analyze_all_nodes`, `analyze_extra`):
    - **The rules first:** every position from the engine's `describe`, before any network, so the board works at once.
-   - **A sweep:** every position at 32 visits (KaTrain's `fast_visits`, 25), for the game's shape: the graph and the
-     gauge. Its labels are mostly wrong, so it shows none.
+   - **A sweep:** every position at 32 visits (KaTrain's `fast_visits`, 25), for the game's shape: the Advantage chart
+     and the win bar. Its labels are mostly wrong, so it shows none.
    - **A label pass:** every position at 256 visits. An edge gets a label only when both its positions have at least
      256 visits: the first budget whose mistake flags are mostly right (67% of them, finding 58% of the mistakes of a
      1,024-visit search, after the opening).
    - **Deeper where the player looks:** the position on screen to 1,024 visits, in slices, with the results shown as
      they come (KaTrain's `max_visits`). Then the key moments: both positions of each, since a loss needs both.
    - A pool of workers runs the most urgent work first: the position on screen, then the key moments, then the sweep.
+     A search in slices gives way: when the position on screen finds no free worker, the pool stops a key moment's
+     search, which runs again later. A focus that the player has left does not start its search.
 2. **An edge's loss is KaTrain's and Lichess's:** the mover's value before the edge less the mover's value after it,
    each from its position's search. In win chance, and in points.
 3. **Points come from the lead** (`scoreLead`), as KaTrain's points lost do. Whether the expected margin
@@ -31,8 +33,8 @@ noise.
 4. **The label is the worse of two bands** (`src/lib/review/labels.ts`), as OGS colours a move: chess.com's bands of
    expected points on the win chance, and KaTrain's bands of points times the fork's score scale (12) on the points.
    Best and Great as before ([decisions/product.md](../decisions/product.md)).
-5. **Results stay in the browser** (IndexedDB), keyed by the engine build, the network's SHA-256, the moves and the
-   visits. A stored result equals a fresh one, because the engine is reproducible.
+5. **Results stay in the browser** (IndexedDB), keyed by the stored shape's version, the engine build, the network's
+   SHA-256, the moves and the visits. A stored result equals a fresh one, because the engine is reproducible.
 
 ## Why
 
@@ -69,4 +71,6 @@ noise.
 ## Log entries
 
 - [decisions/engine.md](../decisions/engine.md), "The review on the engine" and "Label agreement against search
-  budget" (2026-10-09).
+  budget" (2026-10-09), "The position on screen first: searches that give way" (2026-10-10).
+- [decisions/product.md](../decisions/product.md), "The candidates: which ones the board shows, and the engine's
+  order" (2026-10-10): a candidate's visits are KataGo's `edgeVisits`.

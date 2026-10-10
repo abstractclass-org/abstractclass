@@ -37,7 +37,7 @@
 
   const solutionShown = $derived(mode === "view");
   const candidates = $derived<BoardCandidate[]>(
-    solutionShown ? [{ edge: puzzle.solution, rank: 1, note: `${edgeName(puzzle.solution)} · the only good edge` }] : []);
+    solutionShown ? [{ edge: puzzle.solution, rank: 1, note: "the only good edge" }] : []);
 
   function attempt(edge: Edge) {
     if (mode === "view") return;

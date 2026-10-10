@@ -6,36 +6,44 @@ It holds no backlog: everything still to do that is not in flight is in
 
 ## State
 
-- **Commits:** `39f72e3` (the first state), `bd2df9a` (the review on the engine, the budget measurement). The game
-  import work (record reader, the player's games, the meaf.us bookmarklet, `/import`) is done but not committed:
-  ask the owner.
-- **The engine:** the engine repository's module, protocol 1.0 (`enclosure-engine.wasm`, build `8195171`), with the
-  networks b10c128 and b15c192 loaded at run time (`engine.lock.json`, `npm run engine`). `src/lib/engine/` runs it
-  in Web Workers.
-- **The review** runs on the engine ([design/05-review-analysis.md](design/05-review-analysis.md)): the rules first, a
-  sweep at 32 visits for the graph, a label pass at 256 visits, the position on screen and the key moments to 1,024,
-  results kept in the browser. The budgets are measured ([decisions/engine.md](decisions/engine.md), "Label agreement
-  against search budget").
+- **Commits:** `39f72e3` (the first state), `bd2df9a` (the review on the engine, the budget measurement), `cc7a769`
+  (game import), then the latest commit: the review's feedback rounds, the notation's changes, the protocol's
+  versions, the board's candidates, the pool, and the review page's layout.
+- **The engine:** the engine repository's module, protocol 0.1 (`enclosure-engine.wasm`, build `8195171`, which
+  reports 0.1 as 1.0), with the networks b10c128 and b15c192 loaded at run time (`engine.lock.json`, `npm run
+  engine`). `src/lib/engine/` runs it in Web Workers. The site accepts only protocol 0.1. Protocol 0.2 exists in the
+  engine repository (the backlog).
+- **The review** runs on the engine ([design/05-review-analysis.md](design/05-review-analysis.md)), in the layout of
+  [design/06-review-layout.md](design/06-review-layout.md): the board fills the height, three columns from 1,260
+  pixels, the Advantage chart under the board, a display menu (the win bar or gauge, the board's layers, the chart's
+  score line). The candidates follow KataGo's visit rule ([decisions/product.md](decisions/product.md), "The
+  candidates"). The move list shows the lead after each move.
 - **Game import** ([decisions/product.md](decisions/product.md), "Game import"): a pasted record on Home, or the meaf.us
-  bookmarklet (`/import`). The owner checked the bookmarklet on a real meaf.us game: it works. Games are kept in the
-  browser and listed on Home.
+  bookmarklet (`/import`). Records are kept with the cut mark (`D10-G10x`), from the engine's rules.
 - **Puzzles and learn** still run on mock data.
-- **Tests:** `npm test` (11 checks: the record reader and the meaf.us conversion). `npm run check` for types.
-- **The engine repository's notation changed:** turn labels lose their letter (`1.`, `2.`, `4...`). Not yet followed
-  here (the first item of the owner's feedback in the backlog).
+- **Tests:** `npm test` (12 checks: the record reader with the cut mark, and the meaf.us conversion). `npm run check`
+  for types.
 
 ## In flight
 
-- **A local preview server** may still run on port 4173 (`vite preview`, started by the last session). Stop it, or
-  start one with `exec node node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 4173 --strictPort`.
+- **Not checked in a browser:** an import with a wrong cut mark (the engine's refusal), and a stored record with marks
+  added. The tests cover the reader and `markCuts`.
+- **Request 04 to the engine repository** ([requests/04-edge-visits-and-order.md](requests/04-edge-visits-and-order.md))
+  is written. The owner passes it on.
+- **The local preview server** runs on port 4173, with the tailnet hostname allowed
+  (`__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS`). `vite preview` indexes the build when it starts, so restart it after
+  each `npm run build`, or the new files are not found (404).
 - **The tailnet mapping** `tailscale serve --https=8443` to port 4173 stays until `tailscale serve --https=8443 off`.
-  The owner is at this machine now and does not need it.
+- **The engine repository's visit-ladder match** (`tools/wasm_match.mjs`, 2,048 against 1,024 visits) keeps the CPU
+  near 100%. A review in the browser is slow while it runs, and a hidden tab slows it further. That is not a bug.
+- **The engine repository is moving its bots to KataGo's GTP engine** and keeping `analysis_enclosure.cfg` for
+  analysis only. Read that file's settings again when it lands (the backlog: searching for analysis).
 
 ## Check first
 
-1. Ask the owner whether to commit the game import work.
-2. Work through "The owner's feedback on the review, puzzles and import" in the backlog. Ask the owner which first.
-   The owner's view on "Retry mistakes": not a tab. The proposal recorded there: a mode of the Analysis panel, as on
-   Lichess.
-3. The speed numbers so far came from a loaded machine (the engine repository's self-play ran). Rerun the lab's review
-   on an idle machine before any change of budget.
+1. Ask the owner what is next. The candidates in the backlog: using the review page's space (the chart, the summary
+   column), searching for analysis (`wideRootNoise`, KaTrain's extra analyses; it bears on the Great label), the
+   engine's lines and exploring variations, learning from mistakes as a mode of the analysis, move input on the
+   engine's rules, sound.
+2. The speed numbers so far came from a loaded machine. Rerun the lab's review on an idle machine before any change
+   of budget.

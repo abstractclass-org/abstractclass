@@ -1,7 +1,7 @@
 // The page's side of one engine worker: a promise for each request, and partial results while a search runs.
 import type { WorkerReply, WorkerRequest } from "./messages.ts";
 import {
-  PROTOCOL_MAJOR, isError, type AnalysisQuery, type AnalysisReply, type DescribeReply, type LoadModelReply,
+  PROTOCOL, PROTOCOL_REPORTED, isError, type AnalysisQuery, type AnalysisReply, type DescribeReply, type LoadModelReply,
   type PlayReply, type PositionQuery, type VersionReply,
 } from "./protocol.ts";
 
@@ -41,11 +41,11 @@ export class EngineWorker {
     return { id, done };
   }
 
-  /** Loads the module. Refuses a protocol whose major version this site does not know. */
+  /** Loads the module. Refuses any protocol version but the one this site was written for. */
   async init(moduleUrl: string): Promise<Timed<VersionReply>> {
     const t = await this.send<VersionReply>({ type: "init", moduleUrl }).done;
-    const major = Number(t.reply.protocol.split(".")[0]);
-    if (major !== PROTOCOL_MAJOR) throw new Error(`engine protocol ${t.reply.protocol}: this site speaks ${PROTOCOL_MAJOR}.x`);
+    if (!PROTOCOL_REPORTED.includes(t.reply.protocol))
+      throw new Error(`engine protocol ${t.reply.protocol}: this site speaks ${PROTOCOL}`);
     return t;
   }
   loadModel(url: string, name: string, settings?: Record<string, unknown>) {

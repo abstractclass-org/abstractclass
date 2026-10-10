@@ -1,10 +1,10 @@
 <script lang="ts">
   // Import: a game record after the `#` (from the meaf.us bookmarklet, src/lib/game/bookmarklet.ts) is checked with the
-  // engine's rules, kept in this browser, and opened in the review. Without one, the page shows the bookmarklet and how
+  // engine's rules, given its cut marks, kept in this browser, and opened in the review. Without one, the page shows the bookmarklet and how
   // to install it.
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
-  import { parseRecord } from "#lib/game/record.ts";
+  import { markCuts, parseRecord } from "#lib/game/record.ts";
   import { checkMoves } from "#lib/game/check.ts";
   import { saveGame } from "#lib/game/store.ts";
   import { bookmarkletHref } from "#lib/game/bookmarklet.ts";
@@ -29,9 +29,9 @@
     try {
       const text = decodeURIComponent(hash);
       const record = parseRecord(text);
-      const illegal = await checkMoves(record.moves);
+      const { problem: illegal, cuts } = await checkMoves(record);
       if (illegal) throw new Error(illegal);
-      const { id, kept } = await saveGame(text, record);
+      const { id, kept } = await saveGame(cuts ? markCuts(text, record, cuts) : text, record);
       if (!kept) throw new Error("This browser does not let the site keep games (a private window, or blocked site data).");
       await goto(`/review?game=${id}`, { replaceState: true });
     } catch (e) {

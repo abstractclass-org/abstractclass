@@ -12,13 +12,14 @@
   // The Enclosure board as SVG: the lattice, each player's regions and edges, the protected edges, the last edge and
   // the edge it cut, the engine's candidates numbered by rank, a preview edge, label badges on the edges of the turn
   // just played, and a ghost edge (the game's edge in a retry). Points are 0-18 with y up, as in the engine.
-  import { pointName } from "#lib/review/model.ts";
+  import { pointName, sameEdge } from "#lib/review/model.ts";
 
   interface Props {
     position: Position;
     lastEdge?: Edge | null;
     cut?: Edge | null;
     candidates?: BoardCandidate[];
+    highlight?: Edge | null; // a candidate pointed at from outside the board (a row of the candidates table)
     preview?: Edge | null;
     previewPlayer?: 0 | 1;
     marks?: BoardMark[];
@@ -31,7 +32,7 @@
     oncandidate?: (edge: Edge | null) => void;
   }
   let {
-    position, lastEdge = null, cut = null, candidates = [], preview = null, previewPlayer = 0, marks = [], ghost = null,
+    position, lastEdge = null, cut = null, candidates = [], highlight = null, preview = null, previewPlayer = 0, marks = [], ghost = null,
     layers = { regions: true, protected: true, candidates: true, marks: true, coordinates: true },
     pending = null, view = [0, 0, 18, 18], targets = [], onpoint, oncandidate,
   }: Props = $props();
@@ -48,14 +49,18 @@
     for (const e of edges) { seen.set(`${e[0]},${e[1]}`, [e[0], e[1]]); seen.set(`${e[2]},${e[3]}`, [e[2], e[3]]); }
     return [...seen.values()];
   };
-  // Draw the first choice last, so it stays on top. The hovered candidate is drawn again above everything, with its
-  // note, so that no other candidate covers it.
+  // Draw the first choice last, so it stays on top. The lit candidate (hovered on the board, or highlighted from
+  // outside) is drawn again above everything with a halo, so that no other candidate covers it. A hover on the board
+  // also shows its note.
   const ordered = $derived([...candidates].sort((a, b) => b.rank - a.rank));
-  let hovered = $state<BoardCandidate | null>(null);
-  // New candidates (another position) replace the elements under the pointer, which then fire no mouseleave.
-  $effect.pre(() => { void candidates; hovered = null; });
-  function enter(c: BoardCandidate) { hovered = c; oncandidate?.(c.edge); }
-  function leave() { hovered = null; oncandidate?.(null); }
+  // The hover is kept as an edge: a search in progress renews the candidates after each slice.
+  let hoveredEdge = $state<Edge | null>(null);
+  const hovered = $derived(hoveredEdge ? candidates.find(c => sameEdge(c.edge, hoveredEdge!)) ?? null : null);
+  const lit = $derived(hovered ?? (highlight ? candidates.find(c => sameEdge(c.edge, highlight!)) ?? null : null));
+  // Another position replaces the elements under the pointer, which then fire no mouseleave.
+  $effect.pre(() => { void position; hoveredEdge = null; });
+  function enter(c: BoardCandidate) { hoveredEdge = c.edge; oncandidate?.(c.edge); }
+  function leave() { hoveredEdge = null; oncandidate?.(null); }
 </script>
 
 <svg class="board" viewBox={box} role="img" aria-label="Enclosure board">
@@ -130,7 +135,7 @@
         class:first={c.rank === 1}
         role="button"
         tabindex="-1"
-        class:hovered={hovered?.rank === c.rank}
+        class:hovered={lit?.rank === c.rank}
         onmouseenter={() => enter(c)}
         onmouseleave={leave}
       >
@@ -152,20 +157,24 @@
     {/each}
   {/if}
 
-  {#if layers.candidates && hovered}
-    {@const h = hovered}
+  {#if layers.candidates && lit}
+    {@const h = lit}
     {@const [mx, my] = mid(h.edge)}
-    {@const w = 0.25 * h.note.length + 0.4}
-    {@const nx = mx + 0.5 + w > N ? mx - 0.5 - w : mx + 0.5}
     <g class="candidate top" class:first={h.rank === 1}>
+      <line x1={h.edge[0]} y1={sy(h.edge[1])} x2={h.edge[2]} y2={sy(h.edge[3])} class="cand-halo" />
+      <circle cx={mx} cy={my} r="0.56" class="cand-halo-ring" />
       <line x1={h.edge[0]} y1={sy(h.edge[1])} x2={h.edge[2]} y2={sy(h.edge[3])} class="cand-line" />
       <circle cx={mx} cy={my} r="0.38" class="cand-badge" />
       <text x={mx} y={my + 0.15} class="cand-rank">{h.rank}</text>
     </g>
-    <g class="cand-note">
-      <rect x={nx} y={my - 0.38} width={w} height="0.76" rx="0.15" />
-      <text x={nx + 0.2} y={my + 0.14}>{h.note}</text>
-    </g>
+    {#if hovered === h}
+      {@const w = 0.25 * h.note.length + 0.4}
+      {@const nx = mx + 0.62 + w > N ? mx - 0.62 - w : mx + 0.62}
+      <g class="cand-note" class:first={h.rank === 1}>
+        <rect x={nx} y={my - 0.38} width={w} height="0.76" rx="0.15" />
+        <text x={nx + 0.2} y={my + 0.14}>{h.note}</text>
+      </g>
+    {/if}
   {/if}
 
   {#if pending}
@@ -207,19 +216,29 @@
   .preview.p0 { stroke: var(--blue); }
   .preview.p1 { stroke: var(--red); }
 
-  /* Candidates: the first choice in the accent colour; the others faded until hover. */
+  /* Candidates: the first choice in the engine's colour, the others grey. All are faded until hover, so that none
+     hides a short edge under it. */
   .candidate { cursor: pointer; opacity: 0.38; transition: opacity 0.12s; }
-  .candidate.first, .candidate:hover, .candidate.hovered { opacity: 1; }
+  .candidate:hover, .candidate.hovered { opacity: 1; }
   .candidate.top { opacity: 1; pointer-events: none; }
   .cand-hit { stroke: transparent; stroke-width: 0.6; }
   .cand-line { stroke: var(--candidate); stroke-width: 0.11; stroke-linecap: round; stroke-dasharray: 0.32 0.14; }
   .first .cand-line { stroke: var(--engine); stroke-width: 0.17; stroke-dasharray: none; }
   .cand-badge { fill: var(--candidate); stroke: var(--board-bg); stroke-width: 0.06; }
   .first .cand-badge { fill: var(--engine); }
+  /* The lit candidate's halo: a wide soft band under its line and a ring around its badge. */
+  .cand-halo { stroke: var(--candidate); stroke-width: 0.55; stroke-linecap: round; stroke-opacity: 0.3; }
+  .cand-halo-ring { fill: none; stroke: var(--candidate); stroke-width: 0.1; }
+  .first .cand-halo { stroke: var(--engine); }
+  .first .cand-halo-ring { stroke: var(--engine); }
   .cand-rank { font-size: 0.44px; fill: var(--on-badge); text-anchor: middle; font-weight: 700; font-family: system-ui, sans-serif; pointer-events: none; }
   .cand-note { pointer-events: none; }
   .cand-note rect { fill: var(--panel); stroke: var(--border); stroke-width: 0.04; }
   .cand-note text { font-size: 0.42px; fill: var(--text); font-family: system-ui, sans-serif; }
+  /* Number 1's note gives its own values, the others' notes give their difference from number 1: the colour of
+     number 1's note box tells them apart. */
+  .cand-note.first rect { fill: color-mix(in srgb, var(--engine) 35%, var(--panel)); stroke: var(--engine); }
+  .cand-note.first text { font-weight: 600; }
 
   /* Label badges on the turn just played. */
   .mark circle { stroke: var(--board-bg); stroke-width: 0.06; }

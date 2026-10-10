@@ -16,5 +16,9 @@ export async function cachePut(key: string, value: unknown): Promise<void> {
   await dbPut(STORES.analysis, key, value);
 }
 
+// The stored shape's version. A change of what an analysis holds takes the next one, so that older results are not
+// read as the new shape. 2: a candidate's visits are KataGo's edgeVisits, no longer its child node's visits.
+const SHAPE = 2;
+
 export const analysisKey = (build: string, model: string, moves: string[], visits: number) =>
-  `${build}|${model}|${visits}|${moves.join(" ")}`;
+  `${SHAPE}|${build}|${model}|${visits}|${moves.join(" ")}`;

@@ -25,7 +25,8 @@ export interface Position {
 }
 /** A move: an edge, or null for a timeout pass (the rest of the turn forfeited). */
 export interface Move { player: Player; edge: Edge | null; cut: Edge | null }
-/** Values from Blue's side. `lead` (the engine's scoreLead) and `margin` (scoreSelfplay) are in points. */
+/** Values from Blue's side. `lead` (the engine's scoreLead) and `margin` (scoreSelfplay) are in points. `visits` is the
+ *  visits through the move (KataGo's edgeVisits). */
 export interface Candidate { edge: Edge; visits: number; blueWin: number; lead?: number; margin?: number }
 export interface Analysis { blueWin: number; visits: number; lead?: number; margin?: number; spread?: number; candidates: Candidate[] }
 export interface ReviewData {
@@ -152,11 +153,14 @@ export function largest(edges: EdgeReview[], n = 8): EdgeReview[] {
 
 /** The loss as text: points when known, else win chance. */
 export function lossText(e: EdgeReview): string {
-  return e.pointsLost !== undefined ? `−${Math.round(e.pointsLost)} pts` : `−${(100 * e.loss).toFixed(0)}%`;
+  return e.pointsLost !== undefined ? `−${Math.round(e.pointsLost)} pts` : `−${(100 * e.loss).toFixed(1)}%`;
 }
 
 /** The move as text: its edge, or "pass". */
 export const moveName = (edge: Edge | null) => (edge ? edgeName(edge) : "pass");
+
+/** The move in the record's notation: its edge with the cut mark when it cuts (`D10-G10x`), or "pass". */
+export const moveNotation = (m: { edge: Edge | null; cut: Edge | null }) => `${moveName(m.edge)}${m.cut ? "x" : ""}`;
 
 /** A sentence from facts only (design 04): what was played, and the engine's choice. */
 export function explain(e: EdgeReview): string {
@@ -167,8 +171,8 @@ export function explain(e: EdgeReview): string {
   if (e.label === "best") return `${who} played ${edgeName(e.edge)}, the engine's first choice.`;
   const better = e.best && !sameEdge(e.best.edge, e.edge) ? ` ${edgeName(e.best.edge)} was best.` : "";
   const lost = e.pointsLost !== undefined
-    ? `${Math.round(e.pointsLost)} points and ${(100 * e.loss).toFixed(0)}% of win chance`
-    : `${(100 * e.loss).toFixed(0)}% of win chance`;
+    ? `${Math.round(e.pointsLost)} points and ${(100 * e.loss).toFixed(1)}% of win chance`
+    : `${(100 * e.loss).toFixed(1)}% of win chance`;
   if (e.label === "excellent" || e.label === "good") return `${LABEL_TEXT[e.label]}. ${who} played ${edgeName(e.edge)}, ${lost} from the best.${better}`;
   return `${LABEL_TEXT[e.label]}. ${who} played ${edgeName(e.edge)} and lost ${lost}.${better}`;
 }

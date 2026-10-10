@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { canonicalEdge, parseRecord, writeRecord, RecordError } from "./record.ts";
+import { canonicalEdge, markCuts, parseRecord, writeRecord, RecordError } from "./record.ts";
 
 test("an edge has one spelling: the lower point first", () => {
   assert.equal(canonicalEdge("E11-D10"), "D10-E11");
@@ -13,13 +13,13 @@ test("an edge has one spelling: the lower point first", () => {
 });
 
 test("turns, a pass, and a result", () => {
-  const r = parseRecord("1b. D10-G10 2r. N11-Q10 L10-N11 3b. D10-G9 G9-H10 4r. N9-Q10 pass b+28");
+  const r = parseRecord("1. D10-G10 2. N11-Q10 L10-N11 3. D10-G9 G9-H10 4. N9-Q10 pass b+28");
   assert.deepEqual(r.moves, ["D10-G10", "N11-Q10", "L10-N11", "D10-G9", "G9-H10", "N9-Q10", "pass"]);
   assert.equal(r.result, "b+28");
 });
 
 test("tags, evaluations and clocks in comments (the design's example)", () => {
-  const text = `[Event "Casual"]\n[Blue "a \\"quoted\\" name"]\n\n1b. D10-G10 { [%eval 0.55 +95 205] } 2r. L10-N12 { [%eval 0.55 +95 205] } N12-P10 { [%eval 0.61 +130 200] [%clk 0:00:41] } *`;
+  const text = `[Event "Casual"]\n[Blue "a \\"quoted\\" name"]\n\n1. D10-G10 { [%eval 0.55 +95 205] } 2. L10-N12 { [%eval 0.55 +95 205] } N12-P10 { [%eval 0.61 +130 200] [%clk 0:00:41] } *`;
   const r = parseRecord(text);
   assert.equal(r.tags.Event, "Casual");
   assert.equal(r.tags.Blue, 'a "quoted" name');
@@ -29,8 +29,18 @@ test("tags, evaluations and clocks in comments (the design's example)", () => {
 });
 
 test("branches are skipped, at a turn's start and at its second edge (the design's example)", () => {
-  const r = parseRecord("1b. D10-G10 2r. N11-Q10 L10-N11 3b. D10-G9 G9-H10 4r. N9-Q10 (4r... M12-N9) L10-N9 (4r. N9-Q11 M12-N9) 5b. G9-H8");
+  const r = parseRecord("1. D10-G10 2. N11-Q10 L10-N11 3. D10-G9 G9-H10 4. N9-Q10 (4... M12-N9) L10-N9 (4. N9-Q11 M12-N9) 5. G9-H8");
   assert.deepEqual(r.moves.slice(5), ["N9-Q10", "L10-N9", "G9-H8"]);
+});
+
+test("the cut mark: read with or without it, and written after the move", () => {
+  const text = "1. D10-G10 2. N11-Q10x L10-N11 { [%clk 0:00:41] } 3. D10-G9 G9-H10 *";
+  const r = parseRecord(text);
+  assert.deepEqual(r.moves.slice(0, 3), ["D10-G10", "N11-Q10", "L10-N11"]);
+  assert.deepEqual(r.marked, [false, true, false, false, false]);
+  assert.equal(r.clocks[2], "0:00:41");
+  assert.equal(markCuts(text, r, [false, true, true, false, true]),
+               "1. D10-G10 2. N11-Q10x L10-N11x { [%clk 0:00:41] } 3. D10-G9 G9-H10x *");
 });
 
 test("a bare list of edges", () => {
@@ -38,7 +48,7 @@ test("a bare list of edges", () => {
 });
 
 test("errors name what is wrong and where", () => {
-  for (const bad of ["1b. D10-G10 3r. N11-Q10", "1r. D10-G10", "1b. D10-Z99", "1b. D10-G10 (2r. N11-Q10", "1b. D10-G10 b+3 2r. N11-Q10", ""])
+  for (const bad of ["1. D10-G10 3. N11-Q10", "1. D10-Z99", "1. D10-G10 (2. N11-Q10", "1. D10-G10 b+3 2. N11-Q10", ""])
     assert.throws(() => parseRecord(bad), RecordError, bad);
 });
 
@@ -47,13 +57,13 @@ test("the sample game, written and read back", () => {
   const cols = "ABCDEFGHJKLMNOPQRST";
   const moves: string[] = sample.moves.map((m: { edge: number[] }) =>
     canonicalEdge(`${cols[m.edge[0]]}${m.edge[1] + 1}-${cols[m.edge[2]]}${m.edge[3] + 1}`));
-  const turns: { number: number; player: "b" | "r"; moves: number }[] = [];
-  sample.moves.forEach((m: { player: number }) => {
-    const p = m.player === 0 ? "b" : "r";
-    const last = turns.at(-1);
-    if (last && last.player === p) last.moves++; else turns.push({ number: turns.length + 1, player: p, moves: 1 });
+  const turns: { number: number; moves: number }[] = [];
+  sample.moves.forEach((m: { player: number }, i: number) => {
+    if (i && m.player === sample.moves[i - 1].player) turns[turns.length - 1].moves++;
+    else turns.push({ number: turns.length + 1, moves: 1 });
   });
   const text = writeRecord({ Blue: sample.players.blue, Red: sample.players.red }, moves, turns, "r+60.5");
+  assert.match(text, /\n\n1\. \S+ 2\. \S+ \S+ 3\. /);
   const r = parseRecord(text);
   assert.deepEqual(r.moves, moves);
   assert.equal(r.tags.Blue, sample.players.blue);

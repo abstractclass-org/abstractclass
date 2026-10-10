@@ -7,4 +7,4 @@
 | [design/](design/README.md) | The design documents, one per decision still in force. |
 | [decisions/](decisions/README.md) | The decision log (an archive), by topic, and the one backlog, [open-items.md](decisions/open-items.md). |
 | [requests/](requests/README.md) | Requests to the engine repository, and their status. |
-| [research/](research/01-ux-survey.md) | Research before decisions. [01-ux-survey.md](research/01-ux-survey.md): how chess and Go analysis and training tools design their pages, and first design ideas. |
+| [research/](research/01-ux-survey.md) | Research before decisions. [01-ux-survey.md](research/01-ux-survey.md): how chess and Go analysis and training tools design their pages, and first design ideas. [02-search-tree-reuse.md](research/02-search-tree-reuse.md): reusing the engine's search tree across budgets and positions. |

@@ -7,7 +7,7 @@
   import { review, PLAYER_NAME, type ReviewData } from "#lib/review/model.ts";
   import { puzzlesFrom } from "#lib/puzzles/model.ts";
   import { COURSE } from "#lib/learn/lessons.ts";
-  import { parseRecord, RecordError, type GameRecord } from "#lib/game/record.ts";
+  import { markCuts, parseRecord, RecordError, type GameRecord } from "#lib/game/record.ts";
   import { listGames, saveGame, type StoredGame } from "#lib/game/store.ts";
   import { checkMoves } from "#lib/game/check.ts";
   import data from "#lib/mock/review.json";
@@ -39,9 +39,10 @@
       return;
     }
     checking = true;
-    const illegal = await checkMoves(record.moves).finally(() => (checking = false));
+    const { problem: illegal, cuts } = await checkMoves(record).finally(() => (checking = false));
     if (illegal) { problem = illegal; return; }
-    const { id, kept } = await saveGame(text, record);
+    // The record is kept with a cut mark on every move that cuts, as the notation asks.
+    const { id, kept } = await saveGame(cuts ? markCuts(text, record, cuts) : text, record);
     if (!kept) { problem = "This browser does not let the site keep games (a private window, or blocked site data)."; return; }
     await goto(`/review?game=${id}`);
   }
@@ -58,12 +59,12 @@
     <form onsubmit={importGame}>
       <label for="record">A game record</label>
       <textarea id="record" rows="4" bind:value={text} spellcheck="false"
-                placeholder={'[Blue "you"] [Red "them"]\n1b. D10-G10 2r. N11-Q10 L10-N11 3b. D10-G9 G9-H10 …'}></textarea>
+                placeholder={'[Blue "you"] [Red "them"]\n1. D10-G10 2. N11-Q10 L10-N11 3. D10-G9 G9-H10 …'}></textarea>
       {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
       <div class="row">
         <button class="primary" type="submit" disabled={!text.trim() || checking}>{checking ? "Checking…" : "Review"}</button>
-        <span class="hint">In the engine's notation: turns as <code>1b.</code> and <code>2r.</code>, edges as
-          <code>D10-G10</code>, a timeout as <code>pass</code>. A plain list of edges works too.</span>
+        <span class="hint">In the engine's notation: turns as <code>1.</code> and <code>2.</code>, edges as
+          <code>D10-G10</code>, a cut as <code>D10-G10x</code>, a timeout as <code>pass</code>. A plain list of edges works too.</span>
       </div>
       <p class="hint from-meaf">From meaf.us: use the <a href="/import">bookmarklet</a>, one click on a meaf.us game page.</p>
     </form>

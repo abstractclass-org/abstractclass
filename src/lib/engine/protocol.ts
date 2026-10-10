@@ -1,10 +1,13 @@
-// The engine protocol, version 1 (the engine repository's docs/design/04-notation-and-protocol.md): KataGo's analysis
-// protocol as JSON lines, with the rules as actions. Only the fields the site uses are typed. A minor version only adds
-// fields, which a client ignores. A client refuses a major version it does not know.
+// The engine protocol, version 0.1 (the engine repository's docs/design/04-notation-and-protocol.md): KataGo's analysis
+// protocol as JSON lines, with the rules as actions. Only the fields the site uses are typed. Before 1.0 the protocol
+// is in development (Semantic Versioning's 0.x): any new version may break a client, so a client accepts only the
+// exact version it was written for.
 //
 // Every win chance and score is from Blue's side. Win chance 0-1. Scores in game points.
 
-export const PROTOCOL_MAJOR = 1;
+export const PROTOCOL = "0.1";
+/** The versions a build may report for PROTOCOL: builds before the 0.x numbering reported 0.1 as 1.0. */
+export const PROTOCOL_REPORTED = ["0.1", "1.0"];
 
 export type Side = "b" | "r";
 
@@ -65,7 +68,11 @@ export interface AnalysisQuery extends PositionQuery {
 export interface MoveInfo {
   move: string;
   order: number;
+  // KataGo's two counts (search/searchresults.cpp): `visits` is the child node's, which with graph search includes the
+  // visits that reach the same position by another order of edges (common: a turn's two edges in either order).
+  // `edgeVisits` is the visits through this move: KataGo's order and its LCB check use it.
   visits: number;
+  edgeVisits: number;
   winrate: number;
   scoreSelfplay: number;
   scoreStdev: number;

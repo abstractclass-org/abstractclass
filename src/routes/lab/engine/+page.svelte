@@ -1,5 +1,5 @@
 <script lang="ts">
-  // The engine lab: the engine module (protocol 1.0) in Web Workers. It draws the board from the engine's rules
+  // The engine lab: the engine module (protocol 0.1) in Web Workers. It draws the board from the engine's rules
   // (describe, before any network), analyses one position in slices with a stop, and reviews a whole game over a pool
   // of workers to measure the time a position on this machine.
   import { onMount } from "svelte";
@@ -214,7 +214,7 @@
           <tbody>
             {#each live.reply.moveInfos.slice(0, 10) as c (c.move)}
               <tr>
-                <td>{c.order + 1}</td><td class="mono">{c.move}</td><td>{c.visits}</td><td>{pct(c.winrate)}</td>
+                <td>{c.order + 1}</td><td class="mono">{c.move}</td><td>{c.edgeVisits}</td><td>{pct(c.winrate)}</td>
                 <td>{pts(c.scoreSelfplay)}</td><td>{c.scoreStdev.toFixed(0)}</td><td>{pts(c.scoreLead)}</td><td>{pct(c.prior)}</td>
               </tr>
             {/each}

@@ -37,7 +37,7 @@ test("a timeout pass ends the turn in progress", () => {
   // Blue's second turn: one edge, then the clock runs out.
   const moves = [history[0], history[1], history[2], history[3], { timestamp: 1 }, history[5], history[6]];
   const text = meafRecord({ ...base, moveHistory: moves, winner: undefined });
-  assert.match(text, /3b\. \S+ pass 4r\./);
+  assert.match(text, /3\. \S+ pass 4\./);
   assert.equal(parseRecord(text).moves[4], "pass");
 });
 

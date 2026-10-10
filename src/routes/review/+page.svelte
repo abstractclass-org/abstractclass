@@ -3,8 +3,8 @@
   // player imported (src/lib/game/store.ts). Without it, the sample: a bot game from the engine repository's visit
   // ladder. The board works from the engine's rules at once. Then the sweep, the label pass, deeper searches where the
   // player looks, and the key moments deepened after the label pass (docs/design/05-review-analysis.md).
-  import { onDestroy, onMount } from "svelte";
-  import ReviewView from "#lib/review/ReviewView.svelte";
+  import { onDestroy, onMount, untrack } from "svelte";
+  import ReviewView, { type ReviewProgress } from "#lib/review/ReviewView.svelte";
   import { review, type ReviewData } from "#lib/review/model.ts";
   import { EnginePool } from "#lib/analysis/pool.ts";
   import { GameAnalysis, SWEEP_VISITS, LABEL_VISITS, DEEP_VISITS } from "#lib/analysis/game.svelte.ts";
@@ -21,17 +21,28 @@
   let moveCount = $state(0);
   let error = $state("");
   let deepened = false;
+  let current = $state(0); // the position on screen
 
   const data = $derived(game?.data(players) ?? null);
   const R = $derived(data ? review(data, "lead", LABEL_VISITS) : null);
-  const note = $derived.by(() => {
-    if (!game) return "starting the engine";
-    if (game.error) return `engine error: ${game.error}`;
-    if (!game.engineReady) return "loading the network";
-    if (game.swept < moveCount) return `the game's shape: ${game.swept} of ${moveCount} positions at ${SWEEP_VISITS} visits`;
-    if (game.labelled < moveCount) return `labels: ${game.labelled} of ${moveCount} positions at ${LABEL_VISITS} visits`;
-    if (game.focusing !== null) return `searching this position deeper (${DEEP_VISITS} visits)`;
-    return "";
+  // The review's two passes as one bar, each part as wide as its share of the visits, so the bar moves at an even pace.
+  const progress = $derived.by((): ReviewProgress | null => {
+    const n = Math.max(1, moveCount);
+    const total = SWEEP_VISITS + LABEL_VISITS;
+    const parts = [
+      { share: SWEEP_VISITS / total, done: (game?.swept ?? 0) / n },
+      { share: LABEL_VISITS / total, done: (game?.labelled ?? 0) / n },
+    ];
+    if (!game?.engineReady) return { text: "Loading the engine's network…", parts };
+    if (game.swept < moveCount) return { text: `Reviewing: the game's shape, ${game.swept} of ${moveCount} positions`, parts };
+    if (game.labelled < moveCount) return { text: `Reviewing: move quality, ${game.labelled} of ${moveCount} positions`, parts };
+    return null;
+  });
+
+  // The position on screen is searched deeper once the network is loaded, and again when the player moves.
+  $effect(() => {
+    const g = game, i = current;
+    if (g?.engineReady) untrack(() => g.focus(i));
   });
 
   // After the label pass: the key moments deeper, both positions of each (its loss needs both).
@@ -80,7 +91,7 @@
 {:else if game?.error && !game.rulesReady}
   <p class="message error">The engine could not read this game: {game.error.replace(/^Error: /, "")}</p>
 {:else if R}
-  <ReviewView {R} {note} onposition={i => game?.focus(i)} />
+  <ReviewView {R} {progress} problem={game?.error.replace(/^Error: /, "") ?? ""} deepVisits={DEEP_VISITS} onposition={i => (current = i)} />
 {:else}
   <p class="message">Reading the game with the engine's rules…</p>
 {/if}

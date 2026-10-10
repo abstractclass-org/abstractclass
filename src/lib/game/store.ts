@@ -7,7 +7,7 @@ import { parseRecord, type GameRecord } from "./record.ts";
 export interface StoredGame {
   version: 1;
   id: string;
-  record: string; // the record's text, as imported
+  record: string; // the record's text, as imported, with the cut marks added (check.ts)
   added: string; // ISO date and time
 }
 

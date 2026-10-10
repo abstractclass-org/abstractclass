@@ -123,3 +123,23 @@ Loading the engine, its speed, the engine interface, and the requests for it.
   - A label pass of every position at 256 visits. A label shows only when both positions of an edge have it.
   - The position on screen and the key moments deeper, to 1,024 visits.
 - **To do:** a deeper reference, more games, and b15c192 (stronger per visit, slower).
+
+### The position on screen first: searches that give way (2026-10-10)
+
+- **Found:** after the label pass, the key moments' deep searches (1,024 visits each) filled the workers, and the
+  pool does not stop a running task. On a loaded machine the position on screen waited minutes for its own deep
+  search.
+- **Found too:** a fast step through the game queued a deep search for every position passed. `focus` dropped the
+  waiting focus searches, but each search read the cache first and reached the queue only after the next step's
+  drop. After 50 steps, about 50 deep searches waited before the position on screen.
+- **Now:** a task that can stop (a search in slices) gives way. When a more urgent task finds no free worker, the pool
+  stops the least urgent such task, and that task waits in the queue again (`src/lib/analysis/pool.ts`). The key
+  moments' searches run in slices for this. Slices change no result (the engine's search in slices). A stopped
+  search starts again from nothing: its tree is not kept.
+- **Now:** each focus has a generation. A search for an earlier focus does not start when its turn comes.
+- **Now:** a task dropped from the queue rejects with `Cancelled`, which the callers ignore. Before, its promise never
+  settled.
+- **Checked** in Chrome, on a machine kept busy by the engine repository's visit-ladder match, with the tab hidden:
+  with the key moments' searches running, a step through 50 positions, then the position on screen went from 256 to
+  1,024 visits in 27 seconds. The key moments went on after it (4, then 9 positions done at 1,024 visits 30 seconds
+  later). No engine error.

@@ -164,3 +164,150 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   players' names. The owner then checked it on a real meaf.us game: it works.
 - **Also:** Home checks a pasted record's moves with the engine's rules before it keeps the game, and names the first
   illegal edge counting from 1.
+
+### The review on the engine, first feedback (2026-10-10)
+
+- **Turn labels without the player's letter:** the engine repository's record now writes `1. D10-G10 2. N11-Q10
+  L10-N11`, and `4... M12-N9` for a branch at a turn's second edge (its `docs/design/04-notation-and-protocol.md`). The
+  number gives the player: Blue's turns are odd. The reader, the record writer and the meaf.us conversion take and
+  write only the new form. No record in the old form is kept anywhere. The move list shows the number alone: the
+  moves are already in the player's colour.
+- **Candidates, the board and the table together:** a candidate pointed at, on the board or in the Analysis table,
+  gets a halo (a wide soft band under its line and a ring around its number). Number 1 gets it too, because number 1
+  is always fully opaque and a change of opacity does not show on it. The table row of that candidate is lit.
+- **The hover note** no longer names the edge. The edge is on the board under the pointer.
+- **Number 1's note in the engine's colour:** number 1's note gives its own values (`54% · lead +21`), the others'
+  notes give their difference from number 1 (`−1%, −7 pts`). Number 1's note box has the colour of its badge, so the
+  two kinds read apart. The Analysis table gives absolute values for every candidate.
+- **The hover follows the edge, not the list:** the position's own search renews the candidates after each slice,
+  and the hover and its note stay. A new position clears the hover.
+- **The Analysis table keeps five rows:** the first five candidates in the engine's order, and empty rows when the
+  engine has fewer or none ("Not analysed yet.", "The game is over."). It never has more. The move list under it no
+  longer moves.
+- **The move list:** a move under the pointer gets a box.
+- **The review's progress** is a bar at the top of the side panel, not text under the board. The bar has two parts,
+  the game's shape and the move quality (the labels), each as wide as its share of the visits (32 and 256 a
+  position), so the bar moves at an even pace. A line under it names the pass ("Reviewing: move quality, 39 of 120
+  positions"). "Move quality", not "accuracy": Accuracy is one number in the Highlights, and the pass gives every
+  move its label. While the review runs, the Highlights
+  counts are grey and italic, the summary says that they are partial, and the list says "Biggest mistakes so far".
+  An engine error takes the bar's place.
+- **The position's own search** has a thin bar under the win-chance bar: its visits against the budget of 1,024.
+  As Lichess's depth bar does, it stays full when the search ends, to show that the search is done. The line under it
+  reads "512 of 1,024 visits", then "1,024 visits". The search of the position on screen now also starts when the
+  network has loaded. Before, it started only when the player moved.
+- **The single-file build is removed** (`SNAPSHOT=1`, `scripts/snapshot-fragment.cjs`). It served only the
+  artifacts, which are deleted.
+- **Checked** in Chrome on the production build, on the sample game: both bars (the search bar full and kept at
+  1,024 visits), the halo and the lit row in both directions, both kinds of note, the note during a search, and the
+  table at 153.5 pixels with five candidates and with none. `npm test` (11 checks) and `npm run check` pass.
+
+### The review on the engine, second feedback (2026-10-10)
+
+- **Biggest mistakes in the record's notation:** each line is the label, the move with its turn (`11... L12-O11`, in the
+  mover's colour), and the points lost. `11.` marks a turn's first edge, `11...` its second, as the record's branches
+  do.
+- **Points lost** (`−145 pts`) is the engine's lead (KataGo's `scoreLead`, in Enclosure points) from the mover's
+  side, before the edge less after it: KaTrain's points lost. The lead at a position is the search's value there.
+- **The chart's hover:** the pointer snaps to the nearest position, with a line and a dot on the win-chance curve. A
+  note gives the move that led there with its label (`11... L12-O11 · Blunder`), then one number, as Lichess's
+  "Advantage" note does. The number is the engine's lead (`Lead: Red +37`), which is what KaTrain's graph plots
+  (`B+n`) and what points lost come from. The start says "The start". The end gives the result.
+- **Number 1's note box** is dark teal with a teal border, as the others' note box is darker than their grey line.
+- **The move list:**
+  - The moves line up in two columns. Each move is as wide as the longest (an edge such as `D10-G10` and `??`).
+  - It scrolls with the position: the current move stays three rows from the top.
+  - It shows only the labels Great, Inaccuracy, Mistake and Blunder. Best, Excellent and Good stay on the board. The
+    chart's note shows the same four. The labels themselves do not change.
+
+### The review on the engine, third feedback, and the cut mark (2026-10-10)
+
+- **The cut mark** (the engine repository's notation, its commit `c168502`): a move that cuts an opponent's edge is
+  written with `x` after it, `D10-G10x`. The reader takes a move with or without the mark and keeps the moves bare,
+  because the pinned engine (protocol 0.1) does not read the mark. At import, Home and `/import` find with the
+  engine's rules which moves cut, refuse a mark on a move that cuts nothing, and keep the record with a mark on every
+  cutting move (`markCuts`, `src/lib/game/check.ts`). The game's id comes from the bare moves, so a game with and
+  without marks is one game. The move list, the Biggest mistakes and the chart's note show the mark.
+- **The Advantage chart** is the chart's name, after Lichess's name for its own ("Advantage"), so that players can
+  refer to it (`AdvantageChart.svelte`). The win chance is now a solid line, with the area to 50% still filled. The
+  score so far is a second line in the accent colour.
+- **The move list's column width is a constant:** the widest move is 10 characters, an edge with two-digit rows and
+  the cut mark (`D10-G10x`) and the widest glyph (`??`). The current move stays four rows from the top.
+- **Number 1 on the board is faded as the others are,** in its own colour, so that it does not hide a short edge.
+- **Win chance has one decimal** wherever it shows (`58.5%`).
+- **Hover notes show the difference from number 1 even when it is 0,** with its sign (`+0.0%, −3 pts`): a candidate
+  after number 1 in the engine's order can be a little better than it. "As good as 1" is gone.
+- **The candidates table keeps the engine's numbers and its five rows,** with bad candidates too, for exploring why
+  they are bad. Each row is tinted by Blue's win chance after the candidate: blue the more it favours Blue, red the
+  more it favours Red, none at 50%, full strength (35%) at 25% and 75%. The hovered row has an outline.
+
+### The review on the engine, fourth feedback, and the protocol's versions (2026-10-10)
+
+- **The protocol's versions** (the engine repository's design 04): before 1.0 a version is 0.MINOR, any new version
+  may break a client, and a client accepts only the exact version it was written for. The first protocol is 0.1,
+  which builds before this numbering report as 1.0. The site accepts 0.1 and 1.0, and nothing else (`PROTOCOL`,
+  `src/lib/engine/protocol.ts`). Before, it accepted any 1.x.
+- **Hover notes in one format:** number 1 reads `63.7% · +79 pts`, the others `−4.5% · −33 pts`.
+- **The candidates table has fixed columns** (`table-layout: fixed`). The edge column takes the space left.
+- **The row tint is in steps, not shades:** a diverging scale with equal steps per side, as the data-visualisation
+  rule for diverging scales asks, because steps are easier to tell apart than shades. The steps start at chess.com's
+  win-chance bands (2%, 5%, 10%, 20%, as in `labels.ts`), here as the distance from 50%. So they are narrow near 50%.
+  Under 2% from 50%, no tint.
+- **The table marks and keeps the board's candidates:** their number is in a badge, as on the board (number 1 in
+  teal). The table's five rows are the board's candidates (three at most), then the others in the engine's order. On
+  edge 30 of the sample game, number 1 had 767 visits and the board showed numbers 1, 5 and 11. Before, the table
+  showed 1 to 5 only, without 11.
+- **Checked** in Chrome on edge 30 of the sample game: the table showed 1, 2, 3, 5 and 11, with badges on 1, 5 and
+  11, the three the board showed. The notes read `63.7% · +79 pts` and `−4.5% · −33 pts`.
+
+### The candidates: which ones the board shows, and the engine's order (2026-10-10)
+
+- **The other candidates' notes name their reference:** `vs 1: −4.5% · −33 pts`. Number 1 reads `63.7% · +79 pts`.
+- **The table lists every candidate,** in the engine's order, in a box of five rows that scrolls. The box keeps room
+  for its scroll bar, so the columns do not move. A candidate pointed at on the board brings its row into view.
+- **The board shows number 1 and every candidate that has enough visits and is within the Good band.** Enough visits
+  is KataGo's own rule for a move that may compete for its choice: 15% of the most visited move's weight
+  (`minVisitPropForLCB`, its `analysis_example.cfg`; `getPlaySelectionValues` in `search/searchresults.cpp`). Visits
+  stand for weight here. No limit on the count. The limit of three before had no source, and with it the band chose
+  among barely searched moves almost at random.
+- **The engine's order is KataGo's choice of move, not its visits.** KataGo sorts the moves by their play selection
+  value: each move's weight (about its visits), less the visits it got only for exploration, and then the move with
+  the best lower confidence bound among those with 15% of the top weight is lifted to the top. So number 1 can have
+  fewer visits than number 2 (edge 92 of the sample game: 14 against 49).
+- **A candidate's visits are now KataGo's `edgeVisits`,** the visits through the move. The reply's `visits` is the
+  child node's, which with graph search also counts the visits that reach the same position by another order of
+  edges. The cache's key has a shape version (2), so the analyses kept before are not read as the new shape.
+- **Seen in Chrome on the sample game:** the board's count follows the search's depth. After the label pass (256
+  visits) the visits are spread, and 53 of 119 positions show more than number 1 (edge 30: eight; edge 92, a lost
+  position where many moves are equal: ten). After the deep search (1,024 visits) at edge 30, number 1 has 767 visits
+  and the board shows number 1 alone. The table's box stayed 157 pixels high at every position.
+
+### The review page's layout (2026-10-10)
+
+- **Decided** (design [06-review-layout.md](../design/06-review-layout.md)), from Lichess's analysis layout: the board
+  fills the window's height; three columns from 1,260 pixels (the summary with the Highlights, the board, the
+  analysis); two columns with tabs below that; one column below 800 pixels; the Advantage chart under the board; the
+  step controls and a display menu at the bottom of the analysis column; the engine header (values, visits, search
+  bar) at the top of the analysis; the review's progress at the top of the summary.
+- **The win chance is a display setting:** a bar above the board with the players' names and scores (the default),
+  or a vertical gauge beside the board. The display menu also holds the board's layers and the chart's score line.
+  The choices are kept in the browser (`src/lib/review/display.ts`). The site's header height is a shared CSS
+  variable (`--site-header`), since the board's size depends on it.
+- **Measured in Chrome**, on the sample game:
+  - A 2,498 × 1,266 window (a 2,560 × 1,440 screen, maximised): three columns, a board of 1,160 pixels, the analysis
+    column as high as the board's column (1,194 pixels).
+  - 1,376 × 952: three columns, a board of 694 pixels (limited by the width), the summary 253 and the analysis 343
+    pixels wide. With two columns, the board would be 846 pixels.
+  - 1,100 × 900: two columns with the tabs, a board of 688 pixels.
+  - 700 × 900: one column, the board as wide as the column (653 pixels), in both the bar and the gauge forms.
+- **Found and fixed while checking:** the page's own class for the gauge form (`gauge`) took the gauge's styles, and
+  the one-column board did not leave room for the scroll bar.
+- **Then:** the switch to three columns stays at Lichess's 1,260 pixels. The gauge shows each side's percentage
+  inside it, at its own end, in small text (the gauge is now 2rem wide). The engine header no longer repeats Blue's
+  percentage in the gauge form.
+- **The lead after each move in the move list,** as Lichess shows its evaluation after each move (`renderMoveNodes`,
+  `ui/analyse/src/view/components.ts`: the position's score, not the move's loss). Ours is the engine's lead in the
+  position after the move, from Blue's side, right-aligned and muted: whole points, signed, thousands as `k`, so at
+  most five characters (`+1.2k`). After the last move, the result. A move's hover title is short: its label and
+  the lead ("Blunder · Red +87"). Each move's cell has one width (the move, its glyph and the lead: 110 pixels), so two moves fit the
+  analysis column at its least width (294 pixels of list in a 343-pixel column at 1,376 × 952), checked in Chrome.

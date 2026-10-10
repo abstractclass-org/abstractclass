@@ -41,6 +41,8 @@
 		align-items: center;
 		gap: 1.5rem;
 		padding: 0.55rem 1rem;
+		min-height: var(--site-header);
+		box-sizing: border-box;
 		background: var(--panel);
 		border-bottom: 1px solid var(--border);
 	}
