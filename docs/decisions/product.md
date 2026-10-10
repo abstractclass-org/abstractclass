@@ -320,3 +320,27 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   most five characters (`+1.2k`). After the last move, the result. A move's hover title is short: its label and
   the lead ("Blunder · Red +87"). Each move's cell has one width (the move, its glyph and the lead: 110 pixels), so two moves fit the
   analysis column at its least width (294 pixels of list in a 343-pixel column at 1,376 × 952), checked in Chrome.
+
+### The review's tables fit their content (2026-10-10)
+
+- **The problem:** in a real browser, each Windows scroll bar takes about 15 pixels (the page, the summary, the
+  candidates' box). At 1,380 × 952 the candidates table's edge column had 56 pixels, and names of 7 characters were
+  cut ("D10-…"). The accuracy table's labels had 76 pixels, and 6 of its 10 labels took two lines. The other columns
+  had room to spare. Screenshots from headless Edge had hidden the scroll bars.
+- **The candidates table's fixed columns fit their widest content,** with their padding: the rank's badge (28
+  pixels), the header "Blue wins" (72), a lead of four digits (48), visits of five digits (48). The edge column takes
+  the rest: 98 pixels at the analysis column's least width. The longest names have 7 characters (57 to 62 pixels at
+  14 pixels).
+- **A name that does not fit gets smaller text, not an ellipsis.** This happens with a larger browser font: the
+  columns are in rem, and the analysis column's limits are in pixels. The edge's cell is a size container, and the
+  name's text is `clamp(0.7em, 22cqi, 1em)`. Below 70% of its size the text is hard to read, so the name is cut there.
+- **The accuracy table's number columns are as wide as their content,** and the labels take the rest.
+- **The accuracy table's labels are shorter:** "Avg pts lost" for "Points lost an edge" (its hover title gives the
+  full meaning), and the labels' names ("Great", "Inaccuracy") for "Great edges" and "Inaccuracies", as chess.com's
+  review counts its labels by name.
+- **Checked in Edge,** on the sample game:
+  - At 1,380 × 952 (the analysis column at its least): every name whole at 14 pixels, and no accuracy label wraps.
+    The shorter table also shows all of the biggest mistakes.
+  - At 1,000 and 390 pixels wide, the same.
+  - With a larger root font: at 17 pixels the names are whole. At 18 pixels the text is 13.2 pixels. From 19 pixels
+    the text reaches its least size and the longest names are cut. From 18 pixels some accuracy labels wrap.

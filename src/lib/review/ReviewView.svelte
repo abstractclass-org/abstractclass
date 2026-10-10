@@ -19,7 +19,7 @@
   import { loadDisplay, saveDisplay } from "./display.ts";
   import {
     explain, edgeName, moveName, moveNotation, sameEdge, moverWin, moverScore, largest, lossText, lossPhrase, pct, gradeTry,
-    shownCandidates, LABELS, LABEL_TEXT, LABEL_PLURAL, LABEL_GLYPH, PLAYER_NAME, type Edge, type Label, type Player, type Review,
+    shownCandidates, LABELS, LABEL_TEXT, LABEL_GLYPH, PLAYER_NAME, type Edge, type Label, type Player, type Review,
   } from "./model.ts";
 
   interface Props {
@@ -285,27 +285,28 @@
     {#if progress}The review is still running: the counts and the mistakes below are partial.{/if}
     {#if biggest}The largest mistake came at edge {biggest.index + 1}: {explain(biggest)}{/if}
   </p>
+  <!-- The number columns are as wide as their content, and the labels take the rest. -->
   <table class="w-full text-sm">
     <thead>
-      <tr class="[&>th]:pb-1 [&>th]:font-semibold [&>th]:text-right">
+      <tr class="[&>th]:pb-1 [&>th+th]:pl-3 [&>th]:font-semibold [&>th]:text-right [&>th]:whitespace-nowrap">
         <th></th>
         <th><Swatch player={0} /> Blue</th>
         <th><Swatch player={1} /> Red</th>
       </tr>
     </thead>
-    <tbody class={["[&_td]:py-0.5 [&_td]:border-t [&_td]:border-line [&_td+td]:w-16 [&_td+td]:text-right [&_td+td]:tabular-nums",
-                   progress && "[&_td+td]:italic [&_td+td]:text-muted"]}>
+    <tbody class={["[&_td]:py-0.5 [&_td]:border-t [&_td]:border-line [&_td+td]:w-px [&_td+td]:pl-3 [&_td+td]:text-right",
+                   "[&_td+td]:whitespace-nowrap [&_td+td]:tabular-nums", progress && "[&_td+td]:italic [&_td+td]:text-muted"]}>
       <tr class="text-[1.1em] font-bold">
         <td>Accuracy</td>
         {#each R.summary as s, p (p)}<td>{Number.isNaN(s.accuracy) ? "–" : s.accuracy.toFixed(0)}</td>{/each}
       </tr>
       <tr>
-        <td>Points lost an edge</td>
+        <td title="Points lost an edge, on average">Avg pts lost</td>
         {#each R.summary as s, p (p)}<td>{s.meanPointsLost?.toFixed(0) ?? "–"}</td>{/each}
       </tr>
       {#each LABELS as l (l)}
         <tr>
-          <td><span class={BADGE} style:background="var(--{l})">{LABEL_GLYPH[l]}</span> {LABEL_PLURAL[l]}</td>
+          <td><span class={BADGE} style:background="var(--{l})">{LABEL_GLYPH[l]}</span> {LABEL_TEXT[l]}</td>
           {#each R.summary as s, p (p)}<td>{s.counts[l]}</td>{/each}
         </tr>
       {/each}
@@ -497,11 +498,15 @@
         {@const rows = (analysis?.candidates ?? []).map((c, k) => ({ c, rank: k + 1 }))}
         <!-- The table's box: a fixed height (from TABLE_ROWS), a scroll bar when there are more rows, and room for the
              scroll bar kept at all times, so that the columns do not move when it appears. Fixed columns: the table
-             keeps its layout from position to position, and the space left goes to the edge column. -->
+             keeps its layout from position to position. Each fits its widest content (a two-digit rank, the header
+             "Blue wins", a lead of four digits, five-digit visits), and the space left goes to the edge column. When
+             that column is narrower than the longest edge name (7 characters, about 4.4em), the name's text gets
+             smaller instead of being cut: its cell is a size container, and the text is at most 22% of its width. Below
+             70% of its size the text would be hard to read, so the name is cut there. -->
         <div class="flex-none mb-3 overflow-y-auto [scrollbar-gutter:stable] text-sm" bind:this={tableBox}
              style="height: {(TABLE_ROWS + 1) * ROW_EM + 0.2}em; --row: {ROW_EM}em">
         <table class="w-full table-fixed [&_:is(th,td)]:px-1 [&_:is(th,td)]:py-0.5 [&_:is(th,td)]:border-b [&_:is(th,td)]:border-line [&_:is(th,td)]:truncate">
-          <colgroup><col class="w-7.5" /><col /><col class="w-22" /><col class="w-15" /><col class="w-15" /></colgroup>
+          <colgroup><col class="w-7" /><col /><col class="w-18" /><col class="w-12" /><col class="w-12" /></colgroup>
           <thead>
             <tr class="[&>th]:sticky [&>th]:top-0 [&>th]:z-1 [&>th]:h-(--row) [&>th]:bg-panel [&>th]:text-left [&>th]:font-medium [&>th]:text-muted">
               <th>#</th><th>Edge</th><th>{PLAYER_NAME[mover]} wins</th><th>Lead</th><th>Visits</th>
@@ -515,7 +520,8 @@
                 <td><span class={["inline-flex items-center justify-center min-w-[1.3em] h-[1.3em] px-[0.2em] rounded-full text-[0.8em] font-bold",
                                   onBoard.has(rank) ? `${rank === 1 ? "bg-engine" : "bg-candidate"} text-on-badge` : "text-muted"]}
                           title={onBoard.has(rank) ? "On the board" : undefined}>{rank}</span></td>
-                <td>{edgeName(c.edge)}</td><td>{pct(moverWin(c.blueWin, mover))}</td>
+                <td><div class="@container truncate"><span class="text-[clamp(0.7em,22cqi,1em)]">{edgeName(c.edge)}</span></div></td>
+                <td>{pct(moverWin(c.blueWin, mover))}</td>
                 <td>{c.lead !== undefined ? pts(moverScore(c.lead, mover)) : "–"}</td><td>{c.visits}</td>
               </tr>
             {/each}

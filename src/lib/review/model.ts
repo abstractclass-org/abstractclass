@@ -43,10 +43,6 @@ export const LABEL_TEXT: Record<Label, string> = {
   great: "Great", best: "Best", excellent: "Excellent", good: "Good",
   inaccuracy: "Inaccuracy", mistake: "Mistake", blunder: "Blunder",
 };
-export const LABEL_PLURAL: Record<Label, string> = {
-  great: "Great edges", best: "Best edges", excellent: "Excellent edges", good: "Good edges",
-  inaccuracy: "Inaccuracies", mistake: "Mistakes", blunder: "Blunders",
-};
 export const LABEL_GLYPH: Record<Label, string> = {
   great: "!", best: "★", excellent: "✓", good: "✓", inaccuracy: "?!", mistake: "?", blunder: "??",
 };

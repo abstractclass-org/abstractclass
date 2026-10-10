@@ -9,7 +9,9 @@ It holds no backlog: everything still to do that is not in flight is in
 - **Commits:** `39f72e3` (the first state), `bd2df9a` (the review on the engine, the budget measurement), `cc7a769`
   (game import), `61bdbad` (the review's feedback, the notation, the board's candidates, the layout), `812c9b2`
   (request 04 done, the cut mark checked in Chrome), `38d157d` (a cleanup of the library: shared helpers in place of
-  copies), then the styles in Tailwind CSS 4 with the pages' part of the cleanup.
+  copies), `7bb7fde` (the styles in Tailwind CSS 4 with the pages' part of the cleanup), then the review's tables
+  fitted to their content (the log entry "The review's tables fit their content" in
+  [decisions/product.md](decisions/product.md)).
 - **Styles in Tailwind CSS 4** ([design/03-stack.md](design/03-stack.md), "Styles"; the log entry "Styles in
   Tailwind" in [decisions/architecture.md](decisions/architecture.md)). Every page uses utility classes. Plain CSS
   stays for the board's SVG (`Board.svelte`), the review layout grid (`ReviewView.svelte`), and the tokens and base
@@ -22,11 +24,9 @@ It holds no backlog: everything still to do that is not in flight is in
 
 ## In flight
 
-- **The review's two tables, being reworked.** In a real browser at 1,380 to 1,440 pixels, Windows scroll bars take
-  about 15 px each. The candidates table cuts seven-character edges ("D10-G10" to "D10-…"), and the accuracy table
-  wraps six of its ten labels. The owner asked for three things. Give each column the width its content needs, since
-  the other columns have room to spare. Where text would still be cut, make its font smaller. Make the accuracy
-  table's labels shorter, such as "Avg pts lost" and "Great" for "Great edges".
+- **The owner's next review changes, being made:** decimals for the accuracy and the average points lost; a thumbs-up
+  icon for Excellent, and the check mark for Good only; a narrower win-chance gauge with its text vertical; a display
+  menu that stands out from the panel under it.
 - **The comparison kit** is in `runs/tailwind-check/` (not in Git): the old build in `before-build/`, `serve.mjs`
   (a static server), `cdp.mjs` and `shots.json` (old and new screenshots side by side), `styles.mjs` (computed
   styles compared element by element), `probe.mjs` (one expression on both builds). They drive headless Edge, which
@@ -42,7 +42,7 @@ It holds no backlog: everything still to do that is not in flight is in
 
 ## Check first
 
-1. Finish the review's two tables, check them in Edge at 1,380, 1,000 and 390 pixels, and show the owner.
+1. Finish the owner's review changes, check them in Edge, and show the owner.
 2. Then ask the owner what is next. Candidates in the backlog: Bits UI for the tabs and the display menu, compiling
    the engine module once, using the review page's space, searching for analysis, the engine's lines and variations,
    learning from mistakes as a mode, move input on the engine's rules, sound.

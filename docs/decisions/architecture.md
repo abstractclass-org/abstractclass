@@ -51,6 +51,7 @@ The repository, the stack, hosting, and how the engine's artifacts arrive.
   width of the content, as before. Table columns sized in em grew with the larger text: the candidates table's columns
   are in rem, at their old widths in pixels.
 - **One small change on purpose:** the accuracy table's number columns are 4rem wide, from 4.5rem, so that the larger
-  text does not make more labels wrap.
+  text does not make more labels wrap. Replaced the same day: both review tables now fit their content
+  ([product.md](product.md), "The review's tables fit their content").
 - **Not adopted:** a styled component library. A headless one (Bits UI) is a candidate for the tabs and the display
   menu, whose keyboard and focus handling is incomplete.
