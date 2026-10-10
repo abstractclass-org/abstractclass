@@ -20,35 +20,17 @@
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
-<header class="site">
-	<a class="brand" href="/">Learn Enclosure</a>
-	<nav>
+<header class="flex items-center gap-6 px-4 py-2 min-h-(--site-header) bg-panel border-b border-line">
+	<a class="font-bold text-ink no-underline" href="/">Learn Enclosure</a>
+	<nav class="flex flex-wrap gap-4.5">
 		{#each NAV as item (item.label)}
 			{#if item.href}
-				<a href={item.href} class:active={page.url.pathname.startsWith(item.href)}>{item.label}</a>
+				<a href={item.href} class={["no-underline hover:text-ink", page.url.pathname.startsWith(item.href) ? "text-ink" : "text-muted"]}>{item.label}</a>
 			{:else}
-				<span class="soon" title="Not built yet">{item.label}</span>
+				<span class="text-muted opacity-50 cursor-default" title="Not built yet">{item.label}</span>
 			{/if}
 		{/each}
 	</nav>
 </header>
 
 {@render children()}
-
-<style>
-	.site {
-		display: flex;
-		align-items: center;
-		gap: 1.5rem;
-		padding: 0.55rem 1rem;
-		min-height: var(--site-header);
-		box-sizing: border-box;
-		background: var(--panel);
-		border-bottom: 1px solid var(--border);
-	}
-	.brand { font-weight: 700; color: var(--text); text-decoration: none; }
-	nav { display: flex; gap: 1.1rem; flex-wrap: wrap; }
-	nav a { color: var(--muted); text-decoration: none; }
-	nav a.active, nav a:hover { color: var(--text); }
-	.soon { color: var(--muted); opacity: 0.5; cursor: default; }
-</style>

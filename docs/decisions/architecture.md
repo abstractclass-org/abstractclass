@@ -32,3 +32,25 @@ The repository, the stack, hosting, and how the engine's artifacts arrive.
   and a release for every checkpoint is too much ceremony. A deploy refuses a local source.
 - **Requested:** releases of the builds that the site deploys
   ([requests/03-release-artifacts.md](../requests/03-release-artifacts.md)).
+
+### Styles in Tailwind (2026-10-10)
+
+- **Decided** ([design/03-stack.md](../design/03-stack.md)): the site's styles move from Svelte's scoped CSS to
+  Tailwind CSS 4 utility classes. The reason is the maintainer's method of choice. No player sees a difference.
+- **The colours:** Tailwind's own palette is cleared. The tokens in `src/app.css` are the only colours, so dark mode
+  still follows them. Label colours stay plain tokens, set from the label in the markup.
+- **Plain CSS stays** for the board's SVG styles, the review page's layout grid (design 06), and the tokens and base
+  element styles. About 210 lines of CSS remain, from about 700.
+- **Checked against the build before the change**, page by page: in Edge in dark mode at 1,380, 1,000 and 390
+  pixels, with the display menu, the tabs, a retry, a lesson and a puzzle, and in headless Edge in light mode at
+  1,440, 1,000 and 390 pixels. A comparison of computed styles, element by element, found the causes. Text sizes snap to Tailwind's scale: 0.78 to 0.85em becomes `text-xs` (12 px),
+  and 0.88 to 0.92em becomes `text-sm` (14 px). Spacing rounds to 0.25rem.
+- **Tailwind's reset changed three things, and the site restores them.** Links lost their underline: the base style
+  in `app.css` underlines links again, and links that are not in running text use `no-underline`. Boxes measure their
+  padding inside their width (`border-box`): the pages' `main` elements use `box-content`, so a `max-w-*` limit is the
+  width of the content, as before. Table columns sized in em grew with the larger text: the candidates table's columns
+  are in rem, at their old widths in pixels.
+- **One small change on purpose:** the accuracy table's number columns are 4rem wide, from 4.5rem, so that the larger
+  text does not make more labels wrap.
+- **Not adopted:** a styled component library. A headless one (Bits UI) is a candidate for the tabs and the display
+  menu, whose keyboard and focus handling is incomplete.

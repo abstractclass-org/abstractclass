@@ -16,6 +16,12 @@ new builds arrive often.
 - **Framework:** Svelte with SvelteKit, built to static files (`@sveltejs/adapter-static`). Each product area
   (review, puzzles, training) is a route, and each page is pre-rendered.
 - **Build tool:** Vite (inside SvelteKit). It bundles each Web Worker as a module script.
+- **Styles:** Tailwind CSS 4 (`@tailwindcss/vite`), as utility classes in the markup. The colour tokens in
+  `src/app.css` are Tailwind's only colours (`bg-panel`, `text-muted`, `border-line`), and dark mode follows the
+  tokens. Plain CSS stays where utilities read worse: the board's SVG styles (`Board.svelte`), the review page's
+  layout grid with its `calc()` board size (design 06), and the tokens and base element styles in `app.css`. Links
+  are underlined unless they are not in running text (`no-underline`). A page's `main` uses `box-content`, so its
+  `max-w-*` limit is the width of its content.
 - **Hosting:** Cloudflare (Pages, or Workers static assets). Files larger than 25 MiB go to Cloudflare R2.
 - **The engine's artifacts** (a WebAssembly build and a model) are pinned in a lock file, `engine.lock.json`:
   - Each artifact has an ID (the build's name, such as `v2-b10c128-s46923648-d9407005`), a source, its SHA-256 and
@@ -33,6 +39,9 @@ new builds arrive often.
 
 - **Svelte:** it compiles to small bundles with little runtime, and its fine-grained updates suit results that stream
   in from workers. SvelteKit gives routing and pre-rendering, which a static site needs.
+- **Tailwind:** the styles sit with the markup they style, on one spacing and type scale. It is the method that the
+  site's maintainer reads and writes most easily. Svelte's scoped CSS already kept styles from leaking, so this is a
+  choice of method, not a fix.
 - **Vite:** the standard tool. It handles `new Worker(new URL(...))`, asset URLs and the dev server.
 - **Cloudflare:** a free plan with no stated bandwidth cap, and custom cache headers. The engine files are large, and
   bandwidth is the main cost of a static site that ships them. A file may be 25 MiB, so b15c192 (21.7 MB) fits.
@@ -46,6 +55,10 @@ new builds arrive often.
 - **React with Vite:** the largest ecosystem, but a larger runtime and more boilerplate.
 - **No framework (the Lichess way, TypeScript with Snabbdom):** the smallest output, but routing, state and components
   are ours to write.
+- **Svelte's scoped CSS only** (the site's first styles): no dependency, and SVG and `calc()` layouts read well. It
+  gives no shared scale, and each component names its own classes.
+- **A styled component library** (Skeleton, Flowbite-Svelte, shadcn-svelte): the site's main parts (the board, the
+  chart, the move list) are custom, and these libraries bring their own look.
 - **esbuild alone, or no build:** fewer tools, but we write the dev server, the hashing and the HTML handling.
 - **GitHub Pages:** free and simple, but 100 GB a month of soft bandwidth (about 4,500 first visits at 22 MB), no
   custom headers, and no commercial use.
@@ -62,9 +75,11 @@ new builds arrive often.
 
 ## Where it is
 
-- `package.json`, `svelte.config.js`, `vite.config.ts`: the project.
+- `package.json`, `vite.config.ts`: the project.
+- `src/app.css`: the colour tokens, Tailwind's theme from them, and the base element styles.
 - `engine.lock.json` and `scripts/fetch-engine.mjs`: the engine's artifacts.
 
 ## Log entries
 
 - [decisions/architecture.md](../decisions/architecture.md), "The stack" (2026-10-09).
+- [decisions/architecture.md](../decisions/architecture.md), "Styles in Tailwind" (2026-10-10).

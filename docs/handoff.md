@@ -7,39 +7,44 @@ It holds no backlog: everything still to do that is not in flight is in
 ## State
 
 - **Commits:** `39f72e3` (the first state), `bd2df9a` (the review on the engine, the budget measurement), `cc7a769`
-  (game import), then the latest commit: the review's feedback rounds, the notation's changes, the protocol's
-  versions, the board's candidates, the pool, and the review page's layout.
-- **The engine:** the engine repository's module, protocol 0.1 (`enclosure-engine.wasm`, build `8195171`, which
-  reports 0.1 as 1.0), with the networks b10c128 and b15c192 loaded at run time (`engine.lock.json`, `npm run
-  engine`). `src/lib/engine/` runs it in Web Workers. The site accepts only protocol 0.1. Protocol 0.2 exists in the
-  engine repository (the backlog).
-- **The review** runs on the engine ([design/05-review-analysis.md](design/05-review-analysis.md)), in the layout of
-  [design/06-review-layout.md](design/06-review-layout.md): the board fills the height, three columns from 1,260
-  pixels, the Advantage chart under the board, a display menu (the win bar or gauge, the board's layers, the chart's
-  score line). The candidates follow KataGo's visit rule ([decisions/product.md](decisions/product.md), "The
-  candidates"). The move list shows the lead after each move.
-- **Game import** ([decisions/product.md](decisions/product.md), "Game import"): a pasted record on Home, or the meaf.us
-  bookmarklet (`/import`). Records are kept with the cut mark (`D10-G10x`), from the engine's rules.
-- **Puzzles and learn** still run on mock data.
-- **Tests:** `npm test` (12 checks: the record reader with the cut mark, and the meaf.us conversion). `npm run check`
-  for types.
+  (game import), `61bdbad` (the review's feedback, the notation, the board's candidates, the layout), `812c9b2`
+  (request 04 done, the cut mark checked in Chrome), `38d157d` (a cleanup of the library: shared helpers in place of
+  copies), then the styles in Tailwind CSS 4 with the pages' part of the cleanup.
+- **Styles in Tailwind CSS 4** ([design/03-stack.md](design/03-stack.md), "Styles"; the log entry "Styles in
+  Tailwind" in [decisions/architecture.md](decisions/architecture.md)). Every page uses utility classes. Plain CSS
+  stays for the board's SVG (`Board.svelte`), the review layout grid (`ReviewView.svelte`), and the tokens and base
+  styles (`app.css`). The conversion is checked against the build before it. The log entry has the method and the
+  fixes.
+- **Checks on the working tree:** `npm run check` has no errors or warnings. `npm test` passes (12 checks). `npm run
+  build` succeeds.
+- **The engine, the review, game import, puzzles and learn:** as at `812c9b2`. Protocol 0.1, build `8195171`, the
+  networks b10c128 and b15c192. Puzzles and learn run on mock data.
 
 ## In flight
 
-- **The local preview server** runs on port 4173, with the tailnet hostname allowed
-  (`__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS`). `vite preview` indexes the build when it starts, so restart it after
-  each `npm run build`, or the new files are not found (404).
+- **The review's two tables, being reworked.** In a real browser at 1,380 to 1,440 pixels, Windows scroll bars take
+  about 15 px each. The candidates table cuts seven-character edges ("D10-G10" to "D10-…"), and the accuracy table
+  wraps six of its ten labels. The owner asked for three things. Give each column the width its content needs, since
+  the other columns have room to spare. Where text would still be cut, make its font smaller. Make the accuracy
+  table's labels shorter, such as "Avg pts lost" and "Great" for "Great edges".
+- **The comparison kit** is in `runs/tailwind-check/` (not in Git): the old build in `before-build/`, `serve.mjs`
+  (a static server), `cdp.mjs` and `shots.json` (old and new screenshots side by side), `styles.mjs` (computed
+  styles compared element by element), `probe.mjs` (one expression on both builds). They drive headless Edge, which
+  hides scroll bars. Use them only when the owner agrees. Visual checks go through Claude in Chrome.
+- **Claude in Chrome runs in Edge only.** The owner turned the extension off in Chrome: with both on, the two
+  browsers took turns as one device and every action failed.
+- **The local servers** ran from this session: the new build on port 4173 (`exec node node_modules/vite/bin/vite.js
+  preview --host 127.0.0.1 --port 4173 --strictPort`, again after each `npm run build`) and the old build on port 4174
+  (`node runs/tailwind-check/serve.mjs runs/tailwind-check/before-build 4174`). They stop with the session.
 - **The tailnet mapping** `tailscale serve --https=8443` to port 4173 stays until `tailscale serve --https=8443 off`.
-- **The engine repository's visit-ladder match** (`tools/wasm_match.mjs`, 2,048 against 1,024 visits) keeps the CPU
-  near 100%. A review in the browser is slow while it runs, and a hidden tab slows it further. That is not a bug.
 - **The engine repository is moving its bots to KataGo's GTP engine** and keeping `analysis_enclosure.cfg` for
   analysis only. Read that file's settings again when it lands (the backlog: searching for analysis).
 
 ## Check first
 
-1. Ask the owner what is next. The candidates in the backlog: using the review page's space (the chart, the summary
-   column), searching for analysis (`wideRootNoise`, KaTrain's extra analyses; it bears on the Great label), the
-   engine's lines and exploring variations, learning from mistakes as a mode of the analysis, move input on the
-   engine's rules, sound.
-2. The speed numbers so far came from a loaded machine. Rerun the lab's review on an idle machine before any change
+1. Finish the review's two tables, check them in Edge at 1,380, 1,000 and 390 pixels, and show the owner.
+2. Then ask the owner what is next. Candidates in the backlog: Bits UI for the tabs and the display menu, compiling
+   the engine module once, using the review page's space, searching for analysis, the engine's lines and variations,
+   learning from mistakes as a mode, move input on the engine's rules, sound.
+3. The speed numbers so far came from a loaded machine. Rerun the lab's review on an idle machine before any change
    of budget.

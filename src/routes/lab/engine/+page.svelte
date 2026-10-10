@@ -4,13 +4,14 @@
   // of workers to measure the time a position on this machine.
   import { onMount } from "svelte";
   import Board from "#lib/board/Board.svelte";
-  import { EngineWorker, type Manifest } from "#lib/engine/client.ts";
-  import { edgeName, parseEdge, type Edge } from "#lib/engine/notation.ts";
+  import { EngineWorker, loadManifest, moduleOf, type Manifest } from "#lib/engine/client.ts";
+  import { parseEdge, type Edge } from "#lib/engine/notation.ts";
   import type { AnalysisReply, DescribeReply, VersionReply, ModelInfo } from "#lib/engine/protocol.ts";
-  import type { Position } from "#lib/review/model.ts";
-  import data from "#lib/mock/review.json";
-
-  const MOVES: string[] = data.moves.map(m => edgeName(m.edge as Edge));
+  import { boardPosition } from "#lib/analysis/game.svelte.ts";
+  import { defaultPoolSize } from "#lib/analysis/pool.ts";
+  import { errorText } from "#lib/errors.ts";
+  import { pct, PLAYER_NAME } from "#lib/review/model.ts";
+  import { SAMPLE, SAMPLE_MOVES as MOVES } from "#lib/mock/sample.ts";
 
   let manifest = $state<Manifest | null>(null);
   let modelId = $state("");
@@ -32,25 +33,25 @@
 
   let pool: { key: string; engines: EngineWorker[] } | null = null;
   const cores = typeof navigator === "undefined" ? 1 : navigator.hardwareConcurrency;
-  const pct = (x: number) => `${(100 * x).toFixed(1)}%`;
   const pts = (x: number) => `${x >= 0 ? "+" : "−"}${Math.abs(x).toFixed(0)}`;
+  const FIELDS = "flex flex-wrap items-center gap-x-5 gap-y-2.5 mb-3";
+  const SMALL = "my-3 text-xs text-muted";
   const fmt = (ms: number) => (ms >= 1000 ? `${(ms / 1000).toFixed(2)} s` : `${ms.toFixed(0)} ms`);
   const mib = (b: number) => `${(b / 2 ** 20).toFixed(0)} MiB`;
   const url = (id: string) => manifest!.artifacts.find(a => a.id === id)!.url;
   const query = (k: number) => ({ moves: MOVES.slice(0, k) });
 
   onMount(async () => {
-    workers = Math.max(1, Math.min(4, Math.floor(cores / 2)));
-    const response = await fetch("/engine/manifest.json");
-    if (!response.ok) { error = "No /engine/manifest.json. Run `npm run engine` first."; return; }
-    manifest = await response.json();
+    workers = defaultPoolSize();
+    manifest = await loadManifest();
+    if (!manifest) { error = "No /engine/manifest.json. Run `npm run engine` first."; return; }
     modelId = manifest!.artifacts.find(a => a.kind === "model")?.id ?? "";
     await guarded(showRules);
   });
 
   async function guarded(task: () => Promise<void>) {
     error = "";
-    try { await task(); } catch (e) { error = String(e); } finally { busy = ""; }
+    try { await task(); } catch (e) { error = errorText(e); } finally { busy = ""; }
   }
 
   /** The pool, with the module loaded in each worker. The network is loaded on first need. */
@@ -60,7 +61,7 @@
       pool?.engines.forEach(e => e.terminate());
       loaded = null;
       busy = `loading the engine in ${size} worker${size > 1 ? "s" : ""}`;
-      const module = manifest!.artifacts.find(a => a.kind === "module")!;
+      const module = moduleOf(manifest!)!;
       const engines = Array.from({ length: size }, () => new EngineWorker());
       const t = await Promise.all(engines.map(e => e.init(module.url)));
       version = t[0].reply;
@@ -121,30 +122,20 @@
     console.log("[lab] review", JSON.stringify({ ...review, blueWin: undefined, cores }));
   });
 
-  /** The engine's description of a position, as the board draws it. */
-  function boardPosition(d: DescribeReply): Position {
-    const ring = (poly: [number, number][]) => ({ area: 0, rings: [poly] });
-    return {
-      edges: [d.edges.b.map(parseEdge), d.edges.r.map(parseEdge)],
-      protected: d.protected.map(parseEdge), placed: d.placed.map(parseEdge),
-      scores: d.scores, player: d.mover === "b" ? 0 : 1, movesLeft: d.movesLeft,
-      regions: [d.regions.b.map(ring), d.regions.r.map(ring)],
-    };
-  }
   const board = $derived(described ? boardPosition(described.reply) : null);
   const lastEdge = $derived<Edge | null>(edge > 0 ? parseEdge(MOVES[edge - 1]) : null);
 </script>
 
 <svelte:head><title>Engine lab</title></svelte:head>
 
-<main>
-  <h1>Engine lab</h1>
-  <p class="lead">
+<main class="box-content max-w-288 mx-auto p-4">
+  <h1 class="mb-1 text-3xl font-bold">Engine lab</h1>
+  <p class="mb-4 text-muted">
     The engine module in Web Workers, one instance a worker. All values are from Blue's side. The game: a bot game,
-    {data.players.blue} (Blue) against {data.players.red} (Red), {MOVES.length} edges.
+    {SAMPLE.players.blue} (Blue) against {SAMPLE.players.red} (Red), {MOVES.length} edges.
   </p>
 
-  <fieldset disabled={!!busy || !manifest}>
+  <fieldset class={FIELDS} disabled={!!busy || !manifest}>
     <label>Network
       <select bind:value={modelId}>
         {#each manifest?.artifacts.filter(a => a.kind === "model") ?? [] as a (a.id)}
@@ -152,11 +143,11 @@
         {/each}
       </select>
     </label>
-    <label>Visits <input type="number" min="1" step="1" bind:value={visits} /></label>
-    <label>Slice <input type="number" min="1" step="1" bind:value={sliceVisits} /> visits</label>
-    <label>Workers <input type="number" min="1" max={cores} bind:value={workers} /> of {cores} logical cores</label>
+    <label>Visits <input type="number" class="w-18" min="1" step="1" bind:value={visits} /></label>
+    <label>Slice <input type="number" class="w-18" min="1" step="1" bind:value={sliceVisits} /> visits</label>
+    <label>Workers <input type="number" class="w-18" min="1" max={cores} bind:value={workers} /> of {cores} logical cores</label>
   </fieldset>
-  <fieldset disabled={!!busy || !manifest}>
+  <fieldset class={FIELDS} disabled={!!busy || !manifest}>
     <label>Position after edge
       <input type="range" min="0" max={MOVES.length - 1} bind:value={edge} onchange={() => guarded(showRules)} /> {edge}
     </label>
@@ -165,15 +156,15 @@
   </fieldset>
 
   {#if busy}
-    <p class="status">{busy}… {#if stopSearch}<button onclick={() => stopSearch?.()}>Stop</button>{/if}</p>
+    <p class="my-3.75 text-muted">{busy}… {#if stopSearch}<button onclick={() => stopSearch?.()}>Stop</button>{/if}</p>
   {/if}
-  {#if error}<p class="error">{error}</p>{/if}
+  {#if error}<p class="my-3.75 text-blunder">{error}</p>{/if}
 
-  <div class="cols">
-    <section class="board">
+  <div class="grid items-start gap-6 min-[901px]:grid-cols-[minmax(0,480px)_minmax(0,1fr)]">
+    <section class="rounded overflow-hidden">
       {#if board}
-        <Board position={board} {lastEdge} layers={{ regions: true, protected: true, candidates: false, marks: false, coordinates: true }} />
-        <p class="small">
+        <Board position={board} {lastEdge} layers={{ candidates: false, marks: false }} />
+        <p class={SMALL}>
           From the engine's rules, without a network: {described!.reply.position.length} characters of position,
           {described!.reply.legal.length} legal edges, described in {fmt(described!.ms)}.
           Scores {described!.reply.scores[0]} / {described!.reply.scores[1]}.
@@ -181,10 +172,10 @@
       {/if}
     </section>
 
-    <section class="info">
+    <section class="[&_h2]:mt-4 [&_h2]:mb-1.5 [&_h2]:text-[1.05rem] [&_h2]:font-bold">
       {#if version}
         <h2>The engine</h2>
-        <table class="kv">
+        <table class="[&_td]:pr-3 [&_td]:py-0.5 [&_td]:align-top [&_td:first-child]:text-muted">
           <tbody>
             <tr><td>Protocol</td><td>{version.protocol}</td></tr>
             <tr><td>Build</td><td>{version.build}</td></tr>
@@ -193,7 +184,7 @@
             <tr><td>Module start</td><td>{fmt(initMs)}</td></tr>
             {#if loaded}
               <tr><td>Network</td><td>{loaded.model.name}, {(loaded.model.bytes / 1e6).toFixed(1)} MB, loaded in {fmt(loaded.ms)}</td></tr>
-              <tr><td>SHA-256</td><td class="mono">{loaded.model.sha256.slice(0, 16)}…</td></tr>
+              <tr><td>SHA-256</td><td class="font-mono">{loaded.model.sha256.slice(0, 16)}…</td></tr>
               <tr><td>Memory</td><td>{mib(loaded.memory)} an instance</td></tr>
             {/if}
           </tbody>
@@ -203,65 +194,40 @@
       {#if live}
         {@const r = live.reply.rootInfo}
         <h2>Position after edge {edge} {live.final ? "" : "(searching)"}</h2>
-        <p>
-          {r.currentPlayer === "b" ? "Blue" : "Red"} to play. Blue's win chance <strong>{pct(r.winrate)}</strong>,
+        <p class="my-3.75">
+          {PLAYER_NAME[r.currentPlayer === "b" ? 0 : 1]} to play. Blue's win chance <strong>{pct(r.winrate)}</strong>,
           margin <strong>{pts(r.scoreSelfplay)} ± {r.scoreStdev.toFixed(0)}</strong>, lead {pts(r.scoreLead)}.
           Network alone: {pct(r.rawWinrate)}, {pts(r.rawScoreSelfplay)}.
           {r.visits} visits in {fmt(live.ms)} ({(r.visits / (live.ms / 1000)).toFixed(0)} a second).
         </p>
-        <table class="cands">
+        <table class="text-sm tabular-nums [&_:is(th,td)]:px-2 [&_:is(th,td)]:py-0.5 [&_:is(th,td)]:text-right [&_:is(th,td)]:border-b [&_:is(th,td)]:border-line [&_:is(th,td):nth-child(2)]:text-left">
           <thead><tr><th>#</th><th>Edge</th><th>Visits</th><th>Win</th><th>Margin</th><th>±</th><th>Lead</th><th>Prior</th></tr></thead>
           <tbody>
             {#each live.reply.moveInfos.slice(0, 10) as c (c.move)}
               <tr>
-                <td>{c.order + 1}</td><td class="mono">{c.move}</td><td>{c.edgeVisits}</td><td>{pct(c.winrate)}</td>
+                <td>{c.order + 1}</td><td class="font-mono">{c.move}</td><td>{c.edgeVisits}</td><td>{pct(c.winrate)}</td>
                 <td>{pts(c.scoreSelfplay)}</td><td>{c.scoreStdev.toFixed(0)}</td><td>{pts(c.scoreLead)}</td><td>{pct(c.prior)}</td>
               </tr>
             {/each}
           </tbody>
         </table>
-        <p class="small">{live.reply.moveInfos.length} candidates visited. Engine tag: protocol {live.reply.engine.protocol},
+        <p class={SMALL}>{live.reply.moveInfos.length} candidates visited. Engine tag: protocol {live.reply.engine.protocol},
           build {live.reply.engine.build}, model {live.reply.engine.model.slice(0, 12)}….</p>
       {/if}
 
       {#if review}
         <h2>Whole-game review</h2>
-        <p>
+        <p class="my-3.75">
           {MOVES.length} positions at {review.visits} visits with {review.workers} worker{review.workers > 1 ? "s" : ""}
           ({review.model}): <strong>{fmt(review.wallMs)}</strong> in all. A position: mean {fmt(review.meanMs)},
           slowest {fmt(review.maxMs)}. {review.vps.toFixed(0)} visits a second in each worker. Memory at most
           {mib(review.memory)} an instance.
         </p>
-        <svg viewBox="0 0 {review.blueWin.length} 100" preserveAspectRatio="none" class="graph" aria-label="Blue's win chance by edge">
-          <line x1="0" y1="50" x2={review.blueWin.length} y2="50" class="mid" />
-          <polyline points={review.blueWin.map((w, i) => `${i},${100 - 100 * w}`).join(" ")} />
+        <svg viewBox="0 0 {review.blueWin.length} 100" preserveAspectRatio="none" class="w-full h-28 bg-panel border border-line" aria-label="Blue's win chance by edge">
+          <line x1="0" y1="50" x2={review.blueWin.length} y2="50" class="stroke-muted" stroke-dasharray="2 2" vector-effect="non-scaling-stroke" />
+          <polyline points={review.blueWin.map((w, i) => `${i},${100 - 100 * w}`).join(" ")} class="fill-none stroke-blue" stroke-width="1.5" vector-effect="non-scaling-stroke" />
         </svg>
       {/if}
     </section>
   </div>
 </main>
-
-<style>
-  main { max-width: 72rem; margin: 0 auto; padding: 1rem; }
-  h1 { margin: 0 0 0.3rem; }
-  h2 { font-size: 1.05rem; margin: 1rem 0 0.4rem; }
-  .lead { color: var(--muted); margin-top: 0; }
-  fieldset { display: flex; flex-wrap: wrap; gap: 0.6rem 1.2rem; align-items: center; border: none; padding: 0; margin: 0 0 0.8rem; }
-  input[type="number"] { width: 4.5rem; font: inherit; }
-  select { font: inherit; }
-  .cols { display: grid; grid-template-columns: minmax(0, 480px) minmax(0, 1fr); gap: 1.5rem; align-items: start; }
-  @media (max-width: 900px) { .cols { grid-template-columns: minmax(0, 1fr); } }
-  .board { border-radius: 4px; overflow: hidden; }
-  .small { font-size: 0.85em; color: var(--muted); }
-  .kv td { padding: 0.1rem 0.8rem 0.1rem 0; vertical-align: top; }
-  .kv td:first-child { color: var(--muted); }
-  .mono { font-family: ui-monospace, monospace; }
-  .cands { border-collapse: collapse; font-size: 0.9em; }
-  .cands th, .cands td { padding: 0.15rem 0.5rem; text-align: right; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; }
-  .cands th:nth-child(2), .cands td:nth-child(2) { text-align: left; }
-  .error { color: var(--blunder); }
-  .status { color: var(--muted); }
-  .graph { width: 100%; height: 7rem; border: 1px solid var(--border); background: var(--panel); }
-  .graph polyline { fill: none; stroke: var(--blue); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
-  .graph .mid { stroke: var(--muted); stroke-dasharray: 2 2; vector-effect: non-scaling-stroke; }
-</style>

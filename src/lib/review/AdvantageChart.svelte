@@ -51,59 +51,39 @@
   const tip = $derived(hovered === null ? null : { ...tips[hovered], left: hovered / n <= 0.5, at: (100 * hovered) / n });
 </script>
 
-<div class="wrap" role="figure" aria-label="Advantage chart">
+<div class="relative" role="figure" aria-label="Advantage chart">
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<svg bind:this={svg} viewBox="0 0 {W} {H}" preserveAspectRatio="none" class="graph" onclick={ev => onjump(at(ev))}
-     onmousemove={ev => (hovered = at(ev))} onmouseleave={() => (hovered = null)}>
+<svg bind:this={svg} viewBox="0 0 {W} {H}" preserveAspectRatio="none" class="block w-full h-30 bg-panel rounded cursor-pointer"
+     onclick={ev => onjump(at(ev))} onmousemove={ev => (hovered = at(ev))} onmouseleave={() => (hovered = null)}>
   <defs>
     <clipPath id="above"><rect x="0" y="0" width={W} height={H / 2} /></clipPath>
     <clipPath id="below"><rect x="0" y={H / 2} width={W} height={H / 2} /></clipPath>
   </defs>
-  <path d={area} class="blue" clip-path="url(#above)" />
-  <path d={area} class="red" clip-path="url(#below)" />
-  <line x1="0" y1={H / 2} x2={W} y2={H / 2} class="mid" />
-  {#if showScore}<path d={scoreLine} class="score" />{/if}
-  <path d={winLine} class="win" />
+  <path d={area} class="fill-blue" fill-opacity="0.35" clip-path="url(#above)" />
+  <path d={area} class="fill-red" fill-opacity="0.35" clip-path="url(#below)" />
+  <line x1="0" y1={H / 2} x2={W} y2={H / 2} class="stroke-muted" stroke-dasharray="3 3" vector-effect="non-scaling-stroke" />
+  {#if showScore}<path d={scoreLine} class="fill-none stroke-accent" stroke-width="1.5" vector-effect="non-scaling-stroke" />{/if}
+  <path d={winLine} class="fill-none stroke-ink" stroke-width="1.5" vector-effect="non-scaling-stroke" />
   {#each moments.filter(m => !Number.isNaN(blueWin[m.index + 1])) as m (m.index)}
-    <circle cx={x(m.index + 1)} cy={yWin(blueWin[m.index + 1])} r="3.5" class="moment {m.label}" />
+    <circle cx={x(m.index + 1)} cy={yWin(blueWin[m.index + 1])} r="3.5" class="stroke-panel" style:fill="var(--{m.label})"
+            vector-effect="non-scaling-stroke" />
   {/each}
-  <line x1={x(current)} y1="0" x2={x(current)} y2={H} class="cursor" />
+  <line x1={x(current)} y1="0" x2={x(current)} y2={H} class="stroke-last" stroke-width="2" vector-effect="non-scaling-stroke" />
   {#if hovered !== null}
-    <line x1={x(hovered)} y1="0" x2={x(hovered)} y2={H} class="hover" />
+    <line x1={x(hovered)} y1="0" x2={x(hovered)} y2={H} class="stroke-muted pointer-events-none" vector-effect="non-scaling-stroke" />
   {/if}
 </svg>
 {#if hovered !== null && !Number.isNaN(blueWin[hovered])}
   <!-- A dot drawn in HTML, since the SVG stretches and would draw an ellipse. -->
-  <span class="dot" style="left: {(100 * hovered) / n}%; top: {100 * (1 - blueWin[hovered])}%"></span>
+  <span class="absolute size-2 -mt-1 -ml-1 rounded-full bg-ink border-[1.5px] border-panel pointer-events-none"
+        style="left: {(100 * hovered) / n}%; top: {100 * (1 - blueWin[hovered])}%"></span>
 {/if}
 {#if tip}
-  <div class="tip" style={tip.left ? `left: calc(${tip.at}% + 10px)` : `right: calc(${100 - tip.at}% + 10px)`}>
-    <strong>{tip.title}</strong>
-    <span>{tip.value}</span>
+  <div class="absolute top-1.5 flex flex-col gap-0.5 px-2 py-1 text-xs whitespace-nowrap bg-panel border border-line rounded shadow-[0_2px_6px_rgb(0_0_0/0.25)] pointer-events-none"
+       style={tip.left ? `left: calc(${tip.at}% + 10px)` : `right: calc(${100 - tip.at}% + 10px)`}>
+    <strong class="font-mono">{tip.title}</strong>
+    <span class="text-muted tabular-nums">{tip.value}</span>
   </div>
 {/if}
 </div>
-
-<style>
-  .wrap { position: relative; }
-  .graph { width: 100%; height: 7.5rem; display: block; cursor: pointer; background: var(--panel); border-radius: 4px; }
-  .blue { fill: var(--blue); fill-opacity: 0.35; }
-  .red { fill: var(--red); fill-opacity: 0.35; }
-  .mid { stroke: var(--muted); stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
-  .win { fill: none; stroke: var(--text); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
-  .score { fill: none; stroke: var(--accent); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
-  .cursor { stroke: var(--last); stroke-width: 2; vector-effect: non-scaling-stroke; }
-  .hover { stroke: var(--muted); stroke-width: 1; vector-effect: non-scaling-stroke; pointer-events: none; }
-  .dot { position: absolute; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%; background: var(--text);
-         border: 1.5px solid var(--panel); pointer-events: none; }
-  .tip { position: absolute; top: 0.4rem; display: flex; flex-direction: column; gap: 0.1rem; padding: 0.3rem 0.5rem;
-         background: var(--panel); border: 1px solid var(--border); border-radius: 4px; font-size: 0.82em;
-         white-space: nowrap; pointer-events: none; box-shadow: 0 2px 6px rgb(0 0 0 / 0.25); }
-  .tip strong { font-family: ui-monospace, monospace; }
-  .tip span { color: var(--muted); font-variant-numeric: tabular-nums; }
-  .moment { stroke: var(--panel); stroke-width: 1; vector-effect: non-scaling-stroke; }
-  .moment.inaccuracy { fill: var(--inaccuracy); }
-  .moment.mistake { fill: var(--mistake); }
-  .moment.blunder { fill: var(--blunder); }
-</style>

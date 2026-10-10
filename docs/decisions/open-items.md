@@ -17,6 +17,12 @@ Rules:
 - **Speed on a visitor's machine:** run the engine lab's whole-game review on an idle machine and on a typical
   laptop, with 1, 2, 4 and 8 workers, for b10c128 and b15c192. The first measurement ran on a loaded machine
   ([engine.md](engine.md), "The current module in a Web Worker").
+- **Accessible tabs and menus:** the review's tabs have no `aria-selected` and no arrow keys, and the display menu
+  (`role="dialog"`) does not move focus. A headless library gives that behaviour and leaves the styles to Tailwind:
+  Bits UI 2 (Svelte 5, the most used, the base of shadcn-svelte). Check its peer versions first.
+- **Engine module compiled once:** each worker fetches and compiles `enclosure-engine.wasm` itself. The page could
+  compile it once and send the `WebAssembly.Module` to each worker. Measure the start time in a real browser before
+  and after.
 
 ## Milestone 1: a game report (design/01-analysis-tool.md, section 4)
 

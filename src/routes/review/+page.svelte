@@ -6,18 +6,21 @@
   import { onDestroy, onMount, untrack } from "svelte";
   import ReviewView, { type ReviewProgress } from "#lib/review/ReviewView.svelte";
   import { review, type ReviewData } from "#lib/review/model.ts";
-  import { EnginePool } from "#lib/analysis/pool.ts";
+  import { EnginePool, defaultPoolSize } from "#lib/analysis/pool.ts";
   import { GameAnalysis, SWEEP_VISITS, LABEL_VISITS, DEEP_VISITS } from "#lib/analysis/game.svelte.ts";
-  import { edgeName, type Edge } from "#lib/engine/notation.ts";
-  import type { Manifest } from "#lib/engine/client.ts";
+  import { loadManifest } from "#lib/engine/client.ts";
+  import { errorText } from "#lib/errors.ts";
+  import { playerNames } from "#lib/game/record.ts";
   import { loadGame } from "#lib/game/store.ts";
-  import sample from "#lib/mock/review.json";
+  import { SAMPLE, SAMPLE_MOVES } from "#lib/mock/sample.ts";
 
   const MODEL = "b10c128-s46923648-d9407005";
 
+  const MESSAGE = "box-content max-w-[1100px] mx-auto my-8 px-4";
+
   let pool: EnginePool | null = null;
   let game = $state<GameAnalysis | null>(null);
-  let players = $state<ReviewData["players"]>(sample.players);
+  let players = $state<ReviewData["players"]>(SAMPLE.players);
   let moveCount = $state(0);
   let error = $state("");
   let deepened = false;
@@ -55,11 +58,10 @@
   /** The game to review: the imported one named in the address, or the sample. */
   async function chooseGame(): Promise<string[]> {
     const id = new URLSearchParams(location.search).get("game");
-    if (!id) return sample.moves.map(m => edgeName(m.edge as Edge));
+    if (!id) return SAMPLE_MOVES;
     const stored = await loadGame(id);
     if (!stored) throw new Error(`This browser has no game ${id}. Import it on the home page.`);
-    const t = stored.record.tags;
-    players = { blue: t.Blue && t.Blue !== "?" ? t.Blue : "Blue", red: t.Red && t.Red !== "?" ? t.Red : "Red" };
+    players = playerNames(stored.record.tags);
     return stored.record.moves;
   }
 
@@ -67,18 +69,16 @@
     try {
       const moves = await chooseGame();
       moveCount = moves.length;
-      const response = await fetch("/engine/manifest.json");
-      if (!response.ok) throw new Error("no /engine/manifest.json: run `npm run engine` first");
-      const manifest: Manifest = await response.json();
-      const cores = navigator.hardwareConcurrency || 2;
-      pool = new EnginePool(Math.max(1, Math.min(4, Math.floor(cores / 2))));
+      const manifest = await loadManifest();
+      if (!manifest) throw new Error("no /engine/manifest.json: run `npm run engine` first");
+      pool = new EnginePool(defaultPoolSize());
       const g = new GameAnalysis(pool, moves);
       game = g;
       await pool.start(manifest, MODEL, () => g.start());  // the rules first, then the sweep
       if (!g.rulesReady) return; // the rules refused the game: the page shows why
       await g.sweep();
     } catch (e) {
-      error = String(e).replace(/^Error: /, "");
+      error = errorText(e);
     }
   });
   onDestroy(() => pool?.terminate());
@@ -87,16 +87,11 @@
 <svelte:head><title>Game review</title></svelte:head>
 
 {#if error}
-  <p class="message error">{error}</p>
+  <p class="{MESSAGE} text-blunder">{error}</p>
 {:else if game?.error && !game.rulesReady}
-  <p class="message error">The engine could not read this game: {game.error.replace(/^Error: /, "")}</p>
+  <p class="{MESSAGE} text-blunder">The engine could not read this game: {game.error}</p>
 {:else if R}
-  <ReviewView {R} {progress} problem={game?.error.replace(/^Error: /, "") ?? ""} deepVisits={DEEP_VISITS} onposition={i => (current = i)} />
+  <ReviewView {R} {progress} problem={game?.error ?? ""} deepVisits={DEEP_VISITS} onposition={i => (current = i)} />
 {:else}
-  <p class="message">Reading the game with the engine's rules…</p>
+  <p class="{MESSAGE} text-muted">Reading the game with the engine's rules…</p>
 {/if}
-
-<style>
-  .message { max-width: 1100px; margin: 2rem auto; padding: 0 1rem; color: var(--muted); }
-  .error { color: var(--blunder); }
-</style>
