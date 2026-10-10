@@ -10,7 +10,7 @@
 // Results are kept in the browser (cache.ts).
 import { describeGame } from "#lib/engine/describe.ts";
 import { edgeName, parseEdge, type Edge } from "#lib/engine/notation.ts";
-import type { AnalysisReply, DescribeReply } from "#lib/engine/protocol.ts";
+import type { AnalysisReply, DescribeReply, MoveInfo } from "#lib/engine/protocol.ts";
 import { errorText } from "#lib/errors.ts";
 import type { Analysis, LineStep, Move, Position, ReviewData } from "#lib/review/model.ts";
 import { analysisKey, cacheGet, cachePut } from "./cache.ts";
@@ -40,19 +40,19 @@ export function toAnalysis(r: AnalysisReply): Analysis {
     spread: r.rootInfo.scoreStdev,
     candidates: [...r.moveInfos].sort((a, b) => a.order - b.order).map(c => ({
       edge: parseEdge(c.move), visits: c.edgeVisits, blueWin: c.winrate, lead: c.scoreLead, margin: c.scoreSelfplay,
-      line: lineOf(c.pv),
+      ...withLine(c),
     })),
   };
 }
 
-/** A candidate's line (KataGo's pv, the move first), up to its first pass. */
-function lineOf(pv: string[]): Edge[] {
+/** A candidate's line (KataGo's pv, the move first), up to its first pass, with the visits through each of its edges. */
+function withLine(c: MoveInfo): { line: Edge[]; lineVisits?: number[] } {
   const line: Edge[] = [];
-  for (const m of pv) {
+  for (const m of c.pv) {
     if (!m.includes("-")) break; // a pass ends the turn: the line stops there
     line.push(parseEdge(m));
   }
-  return line;
+  return { line, ...(c.pvEdgeVisits ? { lineVisits: c.pvEdgeVisits.slice(0, line.length) } : {}) };
 }
 
 export class GameAnalysis {
@@ -157,7 +157,7 @@ export class GameAnalysis {
     if ((this.analysis[i]?.visits ?? 0) >= visits || !wanted()) return;
     await this.pool.run(priority, tag, async (engine, onStop) => {
       if ((this.analysis[i]?.visits ?? 0) >= visits || !wanted()) return;
-      const run = engine.analyse({ moves, maxVisits: visits, ...(sliced ? { slice: { visits: SLICE_VISITS } } : {}) },
+      const run = engine.analyse({ moves, maxVisits: visits, includePVVisits: true, ...(sliced ? { slice: { visits: SLICE_VISITS } } : {}) },
                                  r => this.keep(i, toAnalysis(r)));
       if (sliced) onStop(run.stop); // the pool may stop it to give way, and runs it again later
       if (tag === "focus") this.stopFocus = run.stop;

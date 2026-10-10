@@ -50,6 +50,12 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
      start. The players' tags flank it in one row: each player's name, points, and the area the player encloses now,
      which each turn's end adds to the points. While the engine's line shows (design 07), the area is the one after
      the line's last drawn edge, in the accent colour.
+   - **The tags fold in a narrow row,** and the bar stays between them: one line from 38rem, two lines (the numbers
+     under the name) from 27.5rem, three below that (the points, then the area). The widths are the row's own
+     (container queries), set by a game's widest numbers (points in the thousands) so that the bar keeps its 6rem.
+     With the gauge, the tags fold at 32rem and 21.25rem, where they would meet. A game keeps one form throughout, so
+     the board does not change size as the scores grow. The row's height is measured, and the board and the side
+     columns take it. At a 1,280×720 window the tags take two lines; at 800×900 and on phones, three.
    - **A vertical gauge beside the board** ("Side vertical gauge", as Lichess and chess.com draw it): Blue's share from the
      bottom, each side's percentage inside the gauge at its own end (Red's at the top, Blue's at the bottom), as the
      bar shows them at its ends. The percentages are small and written up the gauge, so the gauge is 1rem wide. A

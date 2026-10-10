@@ -396,6 +396,8 @@ The interface, the review, puzzles, lessons, labels and thresholds.
 - **The players stay in the row above the board in the gauge form too,** Blue on the left and Red on the right, from
   the board's edge, with nothing between them. Before, the gauge form listed them at the top of the summary column,
   Blue above Red, next to a gauge with Blue below Red. The row costs the board 2.1rem of height in the gauge form.
+- **Checked in Edge** at 1,380 × 904: the players' row has the board's edges (311 to 987 pixels), and the three columns
+  end at the chart's bottom (898 pixels).
 - **The chart is in the window when its bottom edge is,** not its bottom edge and the page's margin under it. With the
   row above the board, the chart ended at 898 pixels in a 904-pixel window, and the margin would have kept the side
   columns from reaching it.
@@ -483,5 +485,49 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   each cut appearing with its edge; a click on the row draws all 6; Red's cut region near M9 loses its shading and
   Blue's new region gets it (Red 3 regions to 2, Blue 6 to 7); R8-T11 (6 visits) shows no line and its row has the
   note; at the first position, pointing at number 1 hides number 2 and leaves number 1.
-- **Checked in Edge** at 1,380 × 904: the players' row has the board's edges (311 to 987 pixels), and the three columns
-  end at the chart's bottom (898 pixels).
+
+### The engine's line: where it stops (2026-10-10)
+
+- **The engine gives the visits of each edge of a line** (request 05, engine repository commit `0886496`, no protocol
+  change): with `includePVVisits: true`, each candidate has `pvVisits` and `pvEdgeVisits`, one number for each move
+  of its `pv`. Every search of the review asks for them, and the analyses keep `pvEdgeVisits` with the line (the
+  cache's shape version 4).
+- **Published tools:** KaTrain and Lizzie draw the whole line and do not ask for its visits (KaTrain's `anim_pv_moves`
+  is 100; Lizzie's `limit-branch-length` is 0, no limit). KaTrain's one count for "too few visits" is `low_visits`,
+  25 (`trainer/low_visits` in its `config.json`): a candidate with fewer is drawn small and faint, without its numbers
+  (`gui/badukpan.py`).
+- **Decided** (design 07): a line stops before its first edge with fewer than 25 visits through it (`pvEdgeVisits`),
+  and needs one edge after the candidate. The 6-edge cap and the 15% rule stay. Drawing the thin edges faint, and a
+  share of the candidate's visits, were the other choices. The visits through a move can grow along a line (graph
+  search: another order of moves reaches the same position), so the cut is at the first thin edge.
+- **Measured** on the sample game, the candidates with a line (`pvEdgeVisits` of the first 6 edges):
+  - At 1,024 visits (a position once its deep search ends), after 0, 10, 30, 50, 70 and 90 edges: 1 of 10 lines is
+    shortened, O17-R18's after edge 50 (182, 104, 103, 25, 19, 11) to 4 edges.
+  - At 256 visits (what shows before), 8 of 11 lines are shortened: Q1-T1's after edge 90 (253, 66, 9, …) to 2 edges,
+    and H6-L8's and J5-L8's after edge 10 (32, 7, … and 35, 9, …) to the candidate alone, so they show no line.
+- **The line grows with the search,** and its drawn edges stay: the drawing goes on from there, and the regions and
+  areas of the shared edges stay until the rules give those of the new ones. Checked in Edge, with the pointer on number
+  1 (H9-L9) after edge 101 while its deep search ran: 2 edges at 256 visits, 3 from 288, 4 from 384, 5 from 576, and
+  never a restart.
+
+### The players' row at narrow widths (2026-10-10)
+
+- **The problem:** the row above the board is the board's width. At an 800 × 900 window it is 388 pixels wide and on a
+  390-pixel phone 343. There the names shrank to nothing and Red's numbers ran under the win-chance bar.
+- **Decided** (design 06): the tags fold, and the bar stays between them. Two lines (the numbers under the name) and
+  "pts" for "points" at phone width was the choice. Putting the bar on its own row, and the players above and below the
+  board (Lichess and chess.com), were the other choices.
+- **Measured:** the points reach the thousands by a game's end ("3,405 points · 131 area"), so a tag is 247 pixels on
+  one line, 161 on two lines, and 142 on two with "pts". With the bar's 6rem, two lines with "pts" need a row of 396
+  pixels, more than 388 or 343. Three lines (the points, then the area) need 94 pixels a tag and keep "points": a
+  row of 313 pixels (a 360-pixel phone) leaves the bar 109. So the narrowest form is three lines, not "pts".
+- **The forms,** by the row's own width (container queries): one line from 38rem, two from 27.5rem, three below. With
+  the gauge, 32rem and 21.25rem. The thresholds take a game's widest numbers, so a game keeps one form and the board
+  does not change size as the scores grow. The page measures the row's height, and the board and the side columns
+  take it.
+- **Checked in Edge** at a game's last position, at 1,920 × 1,000, 1,380 × 904, 1,280 × 720, 1,100 × 800, 900 × 900,
+  800 × 900, 600 × 900, 430 × 900, 390 × 844 and 360 × 740: no tag overflows, no name is cut, no tag meets the bar, no
+  page scrolls across, and the board and the side columns end level. One line at 1,100 pixels and up (two at
+  1,280 × 720, where the board is height-bound and gives 3 pixels for the taller row), two at 900 and 600, three at
+  800 and on phones. With the gauge the same, except one line at 1,280 × 720 and 600 × 900, and two at 800 × 900 and
+  430 × 900.

@@ -67,6 +67,7 @@ export interface AnalysisQuery extends PositionQuery {
   slice?: { visits: number } | { ms: number };
   includePolicy?: boolean;
   includeOwnership?: boolean;
+  includePVVisits?: boolean; // KataGo's: the reply gives the visits of each move of each pv
 }
 
 export interface MoveInfo {
@@ -85,6 +86,10 @@ export interface MoveInfo {
   lcb: number;
   utility: number;
   pv: string[];
+  // With includePVVisits, one number for each move of `pv` (KataGo's): `pvVisits` the node's visits after the move,
+  // `pvEdgeVisits` the visits through the move. With graph search both can grow along a line.
+  pvVisits?: number[];
+  pvEdgeVisits?: number[];
 }
 
 export interface RootInfo {

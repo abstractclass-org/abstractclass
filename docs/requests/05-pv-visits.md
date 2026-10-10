@@ -1,6 +1,14 @@
 # The visits behind each move of a line: KataGo's `includePVVisits`
 
-**Status:** open.
+**Status:** done, with no protocol change (engine repository commit `0886496`). The module the site has (build
+`319a5c4`, protocol 0.3) takes `includePVVisits: true` and adds `pvVisits` and `pvEdgeVisits` to each move in
+`moveInfos`. Design 04 lists both under "The fields", with their meanings, and the query field under "What a reply
+holds". The engine repository checked that `pvVisits[0]` equals `visits` and `pvEdgeVisits[0]` equals `edgeVisits` (all
+182 moves of 10 positions at 1,000 visits). One correction to the check below: the numbers can grow along a line. With
+graph search, a position that another order of moves also reaches collects visits from both paths. `pvVisits` grew
+along 2 of 132 lines. `pvEdgeVisits` grew along none, but it can in principle, and it was never above `pvVisits`. To end
+a line where the search thinned out, read `pvEdgeVisits` and stop at the first move under the threshold. The site does
+so (decisions/product.md, "The engine's line: where it stops").
 
 ## What
 

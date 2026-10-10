@@ -20,7 +20,7 @@
   import { loadDisplay, saveDisplay } from "./display.ts";
   import Glyph from "./Glyph.svelte";
   import {
-    explain, edgeName, moveNotation, sameEdge, moverWin, moverScore, largest, lossText, pct, shownCandidates, lineMovers, enoughVisits, type LineStep, LABELS, LABEL_TEXT, LABEL_GLYPH, PLAYER_NAME, type Edge, type Label, type Player, type Review,
+    explain, edgeName, moveNotation, sameEdge, moverWin, moverScore, largest, lossText, pct, shownCandidates, lineMovers, enoughVisits, trustedLine, type Candidate, type LineStep, LABELS, LABEL_TEXT, LABEL_GLYPH, PLAYER_NAME, type Edge, type Label, type Player, type Review,
   } from "./model.ts";
 
   interface Props {
@@ -55,6 +55,8 @@
   const display = $state(loadDisplay());
   $effect(() => saveDisplay($state.snapshot(display)));
   let gaugeHeight = $state(0);
+  // The row above the board is one line high, or two in a narrow row: the board and the side columns take its height.
+  let stripHeight = $state(0);
   // The side columns reach down to the Advantage chart's bottom edge when the whole chart is in the window, so that
   // the columns end on one line. When the board fills the window's height, the chart is below the fold: the side
   // columns then keep the board's height, so that the step controls stay in view. The chart's place depends only on
@@ -105,54 +107,84 @@
   })));
 
   // The engine's line from the candidate pointed at, on the board or in the table (KaTrain's and Lizzie's way): its
-  // first LINE_EDGES edges, each with its mover. Only for a candidate with enough visits (the board's rule): the line of
-  // a barely searched move means little.
+  // first LINE_EDGES edges, each with its mover. Only for a candidate with enough visits (the board's rule), and only as
+  // far as the search trusts it (trustedLine): the line of a barely searched move means little. A line needs an edge
+  // after the candidate.
   const LINE_EDGES = 6; // three turns of two edges
+  const shownLine = (c: Candidate): Edge[] | null => {
+    if (!analysis || !enoughVisits(analysis, c)) return null;
+    const edges = trustedLine(c).slice(0, LINE_EDGES);
+    return edges.length >= 2 ? edges : null;
+  };
   const hoverCandidate = $derived(hover && analysis ? analysis.candidates.find(c => sameEdge(c.edge, hover!)) : undefined);
+  const lineEdges = $derived(hoverCandidate ? shownLine(hoverCandidate) : null);
+  const lineKey = $derived(lineEdges ? `${pos}|${lineEdges.map(edgeName).join(" ")}` : null);
   const line = $derived.by((): BoardLineEdge[] | null => {
-    const c = hoverCandidate;
-    if (!c?.line?.length || !enoughVisits(analysis!, c)) return null;
+    if (!lineEdges) return null;
     const movers = lineMovers(position, LINE_EDGES);
-    return c.line.slice(0, LINE_EDGES).map((edge, i) => ({ edge, player: movers[i], ...lineStepsNow?.[i] }));
+    return lineEdges.map((edge, i) => ({ edge, player: movers[i], ...stepsNow?.[i] }));
   });
-  // The line's edges played, from the engine's rules, asked once for each line: the edge each one cuts and the regions
-  // after it. The board shows the cut edges cut, and the regions as they become.
+
+  // The line's edges played, from the engine's rules, asked once for each line: the edge each one cuts, and the regions
+  // and areas after it. The board shows the cut edges cut, and the regions as they become.
   const knownSteps = new Map<string, LineStep[]>();
-  let lineStepsNow = $state<LineStep[] | null>(null);
-  const lineKey = $derived(line ? `${pos}|${line.map(l => edgeName(l.edge)).join(" ")}` : null);
+  let lineStepsHad = $state<{ key: string; steps: LineStep[] } | null>(null);
+  $effect(() => {
+    const key = lineKey;
+    if (!key) return;
+    const known = knownSteps.get(key);
+    if (known) { lineStepsHad = { key, steps: known }; return; }
+    if (!lineSteps) return;
+    const [at, edges] = key.split("|");
+    let current = true;
+    lineSteps(Number(at), edges.split(" ").map(parseEdge))
+      .then(steps => { knownSteps.set(key, steps); if (current) lineStepsHad = { key, steps }; })
+      .catch(() => {}); // without them, the line still shows
+    return () => { current = false; };
+  });
+  // The search can lengthen or change a line while it shows. Until the new line's steps come, the steps of the edges
+  // that it shares with the line before stay.
+  const stepsNow = $derived.by((): LineStep[] | null => {
+    const had = lineStepsHad;
+    if (!lineKey || !had) return null;
+    if (had.key === lineKey) return had.steps;
+    const [at, edges] = lineKey.split("|"), [hadAt, hadEdges] = had.key.split("|");
+    if (at !== hadAt) return null;
+    const a = edges.split(" "), b = hadEdges.split(" ");
+    let k = 0;
+    while (k < a.length && k < b.length && a[k] === b[k]) k++;
+    return had.steps.slice(0, k);
+  });
+
   // The line as far as drawn: animated (the default, a display setting), its first edge, then one more every
   // LINE_STEP_MS, as KaTrain draws a line (its anim_pv_time), staying drawn at its end; or static, all at once. A click
   // on the candidate, on the board or in the table, shows the whole line. Pointing at another candidate animates its
-  // line again. With reduced motion asked for, the line is static.
+  // line again. When the search lengthens the line, the drawn edges stay and the drawing goes on. With reduced motion
+  // asked for, the line is static.
   const LINE_STEP_MS = 500;
   let lineWhole = $state(false);
   let lineShown = $state(0);
-  $effect(() => { void lineKey; lineWhole = false; });
+  let drawnKey = ""; // the position and the edges drawn so far: not state, so that each step does not restart the drawing
+  const lineOwner = $derived(lineEdges ? `${pos}|${edgeName(lineEdges[0])}` : null);
+  $effect(() => { void lineOwner; lineWhole = false; });
   $effect(() => {
-    const n = lineKey ? lineKey.split("|")[1].split(" ").length : 0;
-    if (!display.lineSteps || lineWhole || n <= 1 || matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      lineShown = n;
+    const key = lineKey;
+    const n = key ? key.split(" ").length : 0;
+    const show = (k: number) => { lineShown = k; drawnKey = key ? key.split(" ").slice(0, k).join(" ") : ""; };
+    if (!key || !display.lineSteps || lineWhole || n <= 1 || matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      show(n);
       return;
     }
-    lineShown = 1;
-    const timer = setInterval(() => { if (++lineShown >= n) clearInterval(timer); }, LINE_STEP_MS);
+    const kept = drawnKey && `${key} `.startsWith(`${drawnKey} `) ? drawnKey.split(" ").length : 1;
+    show(Math.min(kept, n));
+    if (kept >= n) return;
+    const timer = setInterval(() => { show(lineShown + 1); if (lineShown >= n) clearInterval(timer); }, LINE_STEP_MS);
     return () => clearInterval(timer);
   });
   const drawnLine = $derived(line && line.slice(0, Math.max(1, lineShown)));
   // The areas in the players' tags: now, or, while a line shows, after its last drawn edge (from the rules).
-  const lineAreas = $derived(drawnLine ? lineStepsNow?.[drawnLine.length - 1]?.areas ?? null : null);
+  const lineAreas = $derived(drawnLine ? stepsNow?.[drawnLine.length - 1]?.areas ?? null : null);
   const areas = $derived(lineAreas ?? position.areas);
-  $effect(() => {
-    const key = lineKey;
-    lineStepsNow = key ? knownSteps.get(key) ?? null : null;
-    if (!key || !lineSteps || knownSteps.has(key)) return;
-    const [at, edges] = key.split("|");
-    let current = true;
-    lineSteps(Number(at), edges.split(" ").map(parseEdge))
-      .then(steps => { knownSteps.set(key, steps); if (current) lineStepsNow = steps; })
-      .catch(() => {}); // without them, the line still shows
-    return () => { current = false; };
-  });
 
   // The table: every candidate, in the engine's order, in a box of TABLE_ROWS rows that scrolls. The rows on the board
   // have their number in a badge, as the board draws it.
@@ -276,18 +308,30 @@
 
 <!-- A player's name, side and score, in the row above the board, facing the other player. -->
 {#snippet player(p: Player)}
-  <div class={["flex items-baseline gap-1.5 px-1.5 py-0.5 rounded min-w-0 max-w-64", p === 1 && "flex-row-reverse",
+  <!-- One line where the row has room. In a narrower row (design 06), two lines: the numbers under the name. In the
+       narrowest, three: the points, then the area. The widths are the row's own (container queries), set by the widest
+       numbers of a game (points in thousands): with the bar, where it keeps its 6rem; with the gauge, where the two tags
+       meet. -->
+  <div class={["flex items-baseline gap-x-1.5 px-1.5 py-0.5 rounded min-w-0 max-w-64",
+               "@max-[38rem]/bar:flex-col @max-[38rem]/bar:leading-tight @max-[32rem]/gauge:flex-col @max-[32rem]/gauge:leading-tight",
+               p === 0 ? "@max-[38rem]/bar:items-start @max-[32rem]/gauge:items-start"
+                       : "flex-row-reverse @max-[38rem]/bar:items-end @max-[32rem]/gauge:items-end",
                pos < last && mover === p && "bg-panel-2 shadow-[inset_0_-2px_0_var(--last)]"]}>
-    <Swatch player={p} />
-    <span class="font-semibold truncate">{p === 0 ? R.data.players.blue : R.data.players.red}</span>
-    <span class="text-xs text-muted">{PLAYER_NAME[p]}</span>
+    <span class={["flex items-baseline gap-1.5 min-w-0 max-w-full", p === 1 && "flex-row-reverse"]}>
+      <Swatch player={p} />
+      <span class="font-semibold truncate">{p === 0 ? R.data.players.blue : R.data.players.red}</span>
+      <span class="text-xs text-muted">{PLAYER_NAME[p]}</span>
+    </span>
     <!-- The points so far, and the area enclosed now, which each turn's end adds to the points. While the engine's line
          shows, the area after its last drawn edge, in the accent colour. -->
-    <span class="text-sm text-muted tabular-nums whitespace-nowrap">
-      <strong class="text-[1.1em] text-ink">{fmtScore(position.scores[p])}</strong> points
+    <span class={["flex items-baseline gap-x-1 text-sm text-muted tabular-nums whitespace-nowrap",
+                  "@max-[27.5rem]/bar:flex-col @max-[21.25rem]/gauge:flex-col",
+                  p === 1 && "@max-[27.5rem]/bar:items-end @max-[21.25rem]/gauge:items-end"]}>
+      <span><strong class="text-[1.1em] text-ink">{fmtScore(position.scores[p])}</strong> points</span>
       {#if areas}
-        · <strong class={["text-[1.1em]", lineAreas ? "text-accent" : "text-ink"]}
-                  title={lineAreas ? "The area after the engine's line" : "The area enclosed now, added at the turn's end"}>{fmtScore(areas[p])}</strong> area
+        <span class="@max-[27.5rem]/bar:hidden @max-[21.25rem]/gauge:hidden" aria-hidden="true">·</span>
+        <span><strong class={["text-[1.1em]", lineAreas ? "text-accent" : "text-ink"]}
+                      title={lineAreas ? "The area after the engine's line" : "The area enclosed now, added at the turn's end"}>{fmtScore(areas[p])}</strong> area</span>
       {/if}
     </span>
   </div>
@@ -369,7 +413,7 @@
         <tr class={["h-(--row)", rank === 1 && "font-semibold", !!hover && sameEdge(c.edge, hover) && "lit outline outline-accent -outline-offset-1"]}
             style={rowTint(c.blueWin)} onmouseenter={() => (hover = c.edge)} onmouseleave={() => (hover = null)}
             onclick={() => (lineWhole = true)}
-            title={analysis && !enoughVisits(analysis, c) ? "Too few visits to show the engine's line" : undefined}>
+            title={analysis && !shownLine(c) ? "Too few visits to show the engine's line" : undefined}>
           <!-- A candidate on the board has its number in a badge, as the board draws it. The others have a plain number. -->
           <td><span class={["inline-flex items-center justify-center min-w-[1.3em] h-[1.3em] px-[0.2em] rounded-full text-[0.8em] font-bold",
                             onBoard.has(rank) ? `${rank === 1 ? "bg-engine" : "bg-candidate"} text-on-badge` : "text-muted"]}
@@ -416,7 +460,8 @@
   </div>
 {/snippet}
 
-<main class={["review", wide.current && "wide", display.win === "gauge" && "gauge-mode", reach && "reach"]}>
+<main class={["review", wide.current && "wide", display.win === "gauge" && "gauge-mode", reach && "reach"]}
+      style:--strip={stripHeight ? `calc(${stripHeight}px + 0.5rem)` : null}>
   {#if wide.current}
     <aside class="summary-col {PANEL} overflow-y-auto">
       {@render panelHead()}
@@ -427,7 +472,9 @@
   <section class="board-col">
     <!-- The players face each other left and right, as they start: Blue at A10-D10, Red at Q10-T10. The win-chance bar
          is between them. With the gauge, the row keeps the players, and starts after the gauge, at the board's edge. -->
-    <div class="grid grid-cols-[auto_minmax(6rem,1fr)_auto] items-center gap-2 h-[calc(var(--strip)-0.5rem)] mb-2 ml-(--gauge-w)"
+    <div class={["mb-2 ml-(--gauge-w)", display.win === "bar" ? "@container/bar" : "@container/gauge"]} bind:offsetHeight={stripHeight}>
+    <div class={["grid items-center gap-2 h-[1.6rem] @max-[38rem]/bar:h-auto @max-[32rem]/gauge:h-auto",
+                 display.win === "bar" ? "grid-cols-[auto_minmax(6rem,1fr)_auto]" : "grid-cols-[auto_1fr_auto]"]}
          aria-label={display.win === "bar" ? "Players, scores and win chance" : "Players and scores"}>
       {@render player(0)}
       {#if display.win === "bar"}
@@ -448,6 +495,7 @@
         <div></div>
       {/if}
       {@render player(1)}
+    </div>
     </div>
     <div class="flex">
       {#if display.win === "gauge"}
@@ -589,7 +637,7 @@
     --gap: 1.25rem;
     --row-gap: 0.8rem;
     --chart: 7.5rem; /* the Advantage chart's height (h-30 in AdvantageChart.svelte) */
-    --strip: 2.1rem; /* the bar above the board, with its margin */
+    --strip: 2.1rem; /* the row above the board, with its margin: its one-line height until the page measures it */
     --gauge-w: 0px;
     --summary-min: 250px;
     --summary-max: 350px;

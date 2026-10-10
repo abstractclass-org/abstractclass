@@ -42,9 +42,14 @@ cut edges that are on the board, so a line drawn over the board can show edges t
    - While a line shows, the other candidates leave the board, so that its only numbers are the line's. The table
      keeps the candidates' ranks.
    - A line is shown only for a candidate with enough visits: the engine's first choice, or 15% of the most visited
-     candidate's visits (the board's own rule, KataGo's `minVisitPropForLCB`). Another candidate's table row says that
-     it has too few visits for a line. When the engine gives the visits of each move of a line
-     ([request 05](../requests/05-pv-visits.md)), a line is to stop where its visits run out.
+     candidate's visits (the board's own rule, KataGo's `minVisitPropForLCB`).
+   - **A line stops where its search thins out:** before its first edge with fewer than 25 visits through it (KataGo's
+     `pvEdgeVisits`, asked for with `includePVVisits`, [request 05](../requests/05-pv-visits.md)). 25 is KaTrain's
+     `low_visits`: below it, KaTrain draws a candidate small and faint, without its numbers. A line needs one edge after
+     the candidate. Another candidate's table row says that it has too few visits for a line.
+   - **The line grows with the search.** While the position is searched, a line can lengthen or change. The edges
+     already drawn stay, and the drawing goes on from there. The regions and areas of the shared edges stay until the
+     rules give those of the new edges.
 2. **A player's own moves are always on in the Analysis** (Lichess's way, not a separate mode): at any position, one
    of the mover's nodes, then a marked end (the puzzles' edge input on the engine's rules). A move that differs from
    the game's makes a branch, and the new position is searched. A click on a candidate whose line is shown in full is
@@ -62,7 +67,9 @@ cut edges that are on the board, so a line drawn over the board can show edges t
   edges (the sample game after edge 30). Drawn over the board as it was, the line crossed edges that would be gone.
 - **Hiding the other candidates** keeps one set of numbers on the board at a time, without a second shape to learn.
 - **Lines from barely searched candidates mislead.** A candidate with a handful of visits has a line from a handful
-  of visits.
+  of visits, and the end of any line can rest on a visit or two. KaTrain and Lizzie draw the whole line and do not ask
+  for its visits. The site cuts it, with the count that KaTrain uses for an uncertain candidate. The visits through a
+  move can grow along a line (graph search), so a line stops at its first thin edge, not where the visits sum up.
 - **Always-on moves and inline branches** are the analysis board's common way (Lichess), and need no step to start.
 
 ## Alternatives
@@ -74,12 +81,17 @@ cut edges that are on the board, so a line drawn over the board can show edges t
 - **A different shape for the line's numbers** (rounded squares): a second shape to learn.
 - **A search when pointing at a weak candidate:** a line for every candidate, but the machine works while the player
   only looks, and the line comes late.
+- **The thin edges drawn faint** (KaTrain's way for its uncertain candidates): more to see, but faint edges still draw
+  the eye and invite a reading.
+- **A share of the candidate's visits** as the line's threshold: it scales with the search, but no published tool uses
+  one.
 - **A separate Explore mode** (chess.com): a stray click never changes the line, but there is a step to start.
 - **A tree beside the move list** (Sabaki): clear for many branches, but it takes space the analysis column lacks.
 
 ## Consequences
 
-- The analyses keep each candidate's line (the cache's shape version 3).
+- The analyses keep each candidate's line and the visits through each of its edges (the cache's shape version 4).
+  Every search asks for them (`includePVVisits`).
 - The review has a worker for the rules alone (`EnginePool.rules`): a line's positions and a player's moves need the
   rules at once, and a search worker takes one request at a time.
 - A position in a branch needs its own analysis. Protocol 0.3 gives the network no moves from before the root, so a
@@ -91,9 +103,11 @@ cut edges that are on the board, so a line drawn over the board can show edges t
 - `src/lib/review/ReviewView.svelte`: the line of the candidate pointed at, its animation, the click that shows it
   whole, and the players' areas.
 - `src/lib/analysis/game.svelte.ts`: `lineSteps` (the line's positions from the rules), `toAnalysis` (the line).
-- `src/lib/review/model.ts`: `lineMovers`, `enoughVisits`, `LineStep`.
+- `src/lib/review/model.ts`: `lineMovers`, `enoughVisits`, `trustedLine` (the 25-visit cut, with its tests in
+  `model.test.ts`), `LineStep`.
 - `src/lib/review/display.ts`: the "one edge at a time" setting.
 
 ## Log entries
 
-- [decisions/product.md](../decisions/product.md), "The engine's line on the board".
+- [decisions/product.md](../decisions/product.md), "The engine's line on the board" and "The engine's line: where it
+  stops".

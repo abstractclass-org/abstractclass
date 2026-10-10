@@ -91,3 +91,8 @@ or a design first:
 - **One search tree across a game:** the notes are in
   [research/02-search-tree-reuse.md](../research/02-search-tree-reuse.md). Not needed for the first release. Decide
   later.
+- **Progress bars that move while the work runs** (low priority): the review's bar (the top of the summary column) and
+  the position's search bar (the engine header) stand still between updates, so a slow pass looks stopped. While the
+  work runs, show that it runs: for example an animated stripe or a pulse on the bar's moving part, stopped when the
+  work is done or stopped. Find how Lichess and chess.com show an analysis that is still running, and keep it still
+  when the visitor asks for reduced motion.

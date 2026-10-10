@@ -28,8 +28,10 @@ export interface Position {
 export interface Move { player: Player; edge: Edge | null; cut: Edge | null }
 /** Values from Blue's side. `lead` (the engine's scoreLead) and `margin` (scoreSelfplay) are in points. `visits` is the
  *  visits through the move (KataGo's edgeVisits). `line` is the engine's expected continuation, the move first (KataGo's
- *  pv), up to a pass. */
-export interface Candidate { edge: Edge; visits: number; blueWin: number; lead?: number; margin?: number; line?: Edge[] }
+ *  pv), up to a pass, and `lineVisits` the visits through each of its edges (KataGo's pvEdgeVisits). */
+export interface Candidate {
+  edge: Edge; visits: number; blueWin: number; lead?: number; margin?: number; line?: Edge[]; lineVisits?: number[];
+}
 export interface Analysis { blueWin: number; visits: number; lead?: number; margin?: number; spread?: number; candidates: Candidate[] }
 export interface ReviewData {
   players: { blue: string; red: string };
@@ -210,6 +212,19 @@ const MIN_VISIT_SHARE = 0.15;
  *  has MIN_VISIT_SHARE of the most visited candidate's visits. */
 export function enoughVisits(a: Analysis, c: Candidate): boolean {
   return c === a.candidates[0] || c.visits >= MIN_VISIT_SHARE * Math.max(...a.candidates.map(x => x.visits));
+}
+
+// KaTrain trusts a candidate from LOW_VISITS visits: with fewer, it draws the candidate small and faint, without its
+// numbers (trainer/low_visits in its config.json; gui/badukpan.py). A line is cut by the same count.
+const LOW_VISITS = 25;
+
+/** The part of the candidate's line that the search trusts: up to its first edge with fewer than LOW_VISITS visits.
+ *  An analysis without the visits of its lines (older results) keeps the whole line. */
+export function trustedLine(c: Candidate): Edge[] {
+  const line = c.line ?? [];
+  if (!c.lineVisits) return line;
+  const thin = c.lineVisits.findIndex(v => v < LOW_VISITS);
+  return thin < 0 ? line : line.slice(0, thin);
 }
 
 /** A candidate with its rank (1: the engine's first choice) and how much worse it is than number 1 for the mover: `gap`
