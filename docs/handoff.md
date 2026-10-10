@@ -11,19 +11,28 @@ It holds no backlog: everything still to do that is not in flight is in
   (request 04 done, the cut mark checked in Chrome), `38d157d` (a cleanup of the library), `7bb7fde` (the styles in
   Tailwind CSS 4), `5686e1c` (the review's tables fitted to their content), `ef407ab` (the review's marks, gauge,
   display menu, side columns and move list), `409eb2c` (the engine module compiled once), `f792275` (the review
-  without the "Retry mistakes" tab, and Bits UI for its tabs and display menu), then the puzzles' edge input on the
-  engine's rules (decisions/product.md, "Edge input on the engine's rules, in the puzzles").
+  without the "Retry mistakes" tab, and Bits UI for its tabs and display menu), `b73c4ef` (the puzzles' edge input on
+  the engine's rules), then protocol 0.3 (decisions/engine.md, "Protocol 0.3").
 - **Checks on the working tree:** `npm run check` has no errors or warnings. `npm test` passes (12 checks). `npm run
   build` succeeds.
-- **The engine:** protocol 0.1, build `8195171`, the networks b10c128 and b15c192. Puzzles and learn run on mock
-  data.
+- **The engine:** protocol 0.3, build `319a5c4`, the networks b10c128 and b15c192, searching with KataGo's analysis
+  defaults. Puzzles and learn run on mock data.
 
 ## In flight
 
-- **The puzzles' bugs:** the owner names the others. The edge input on the engine's rules is done. Its lessons' part
-  is in the backlog.
-- **The owner's order after the puzzles:** learning from mistakes as a mode of the analysis, then the engine's lines and
-  variations. The speed on a visitor's machine waits in the backlog.
+- **The engine's lines and exploring variations** (moved here from the backlog), being built. Decided with the owner:
+  the line of a candidate on the board while the pointer is on it, as numbered edges (KaTrain's and Lizzie's way; to
+  check whether cuts make it messy), and listed under the candidates table, where a click plays it to there as a
+  branch; a player's own moves always on in the Analysis (Lichess's way, with the puzzles' edge input); branches
+  inline in the move list under their turn, with Lichess's keys. The item as it was in the backlog: show the
+  engine's best line (KataGo's `pv`, in the replies already) for number 1 and for every candidate, and for any other
+  edge on request (search the position after it), so that a player sees why an edge is bad. Play out a line on the
+  board, explore variations by hand, show the branches in the move list, and navigate them with keys, as other
+  analysis tools do (Lichess, chess.com, KaTrain, Sabaki). To design: the game as a tree of moves, the branch notation
+  (the record's `( )` branches), the keys, and how a variation's positions get their analyses. Protocol 0.3 makes an
+  analysis independent of the moves before the position, which variations need.
+- **The owner's order after it:** learning from mistakes as a mode of the analysis. The speed on a visitor's machine
+  waits in the backlog.
 - **The comparison kit** is in `runs/tailwind-check/` (not in Git): the old build in `before-build/`, `serve.mjs`
   (a static server), `cdp.mjs` and `shots.json` (old and new screenshots side by side), `styles.mjs` (computed
   styles compared element by element), `probe.mjs` (one expression on both builds). They drive headless Edge, which
@@ -35,12 +44,9 @@ It holds no backlog: everything still to do that is not in flight is in
   preview --host 127.0.0.1 --port 4173 --strictPort`, again after each `npm run build`) and the old build on port 4174
   (`node runs/tailwind-check/serve.mjs runs/tailwind-check/before-build 4174`). They stop with the session.
 - **The tailnet mapping** `tailscale serve --https=8443` to port 4173 stays until `tailscale serve --https=8443 off`.
-- **The engine repository split its configurations** (its commit `cc18f75`): `analysis_play_enclosure.cfg` for
-  playing games, and `analysis_enclosure.cfg`, still unchanged (`wideRootNoise` 0.0), left for analysis. The backlog
-  item "Searching for analysis" can go on from there.
 
 ## Check first
 
-1. Ask the owner for the other puzzle bugs.
+1. Build the engine's lines and variations as decided. Show the owner the line on the board early (the cuts).
 2. The speed numbers so far came from a loaded machine. Rerun the lab's review on an idle machine before any change
    of budget.

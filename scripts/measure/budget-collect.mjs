@@ -47,8 +47,11 @@ if (isMainThread) {
   console.log(`${games.length} games (${games.map(g => g.id).join(", ")}), ${tasks.length} positions to search, ` +
               `budgets ${budgets.join("/")}, ${nWorkers} workers`);
 
+  // The module the site is built with (static/engine/manifest.json, `npm run engine`), and the b10c128 network.
+  const manifest = JSON.parse(readFileSync(join(root, "static", "engine", "manifest.json"), "utf8"));
+  const pinned = manifest.artifacts.find(a => a.kind === "module");
+  const module = join(root, "static", pinned.url);
   const model = join(root, "static", "engine", "b10c128-s46923648-d9407005", "model-float16.bin");
-  const module = join(root, "static", "engine", "engine-8195171", "enclosure-engine.wasm");
   let next = 0, finished = 0;
   const t0 = performance.now();
   await Promise.all(Array.from({ length: nWorkers }, () => new Promise(resolveWorker => {

@@ -158,3 +158,30 @@ Loading the engine, its speed, the engine interface, and the requests for it.
 - **Kept** for what this machine cannot show: one compile in place of four at once on a machine with few cores, and
   one copy of the compiled code for all the workers. Measure again on a typical laptop with the speed measurement
   (decisions/open-items.md).
+
+### Protocol 0.3 (2026-10-10)
+
+- **Now:** the site pins the module build `319a5c4` (protocol 0.3, `engine.lock.json`) and accepts only 0.3
+  (`PROTOCOL` in `src/lib/engine/protocol.ts`). The network b10c128 is the same file. The engine repository's commit
+  `319a5c4` and its design 04 give the changes. 0.2 added `chooseMove`, `seed`, the chosen move's settings in
+  `overrideSettings`, a position's turn number from its edge count, and the cut mark `x` read in moves. 0.3 seeds the
+  search from `seed`, and makes KataGo's analysis defaults the engine's search settings.
+- **Decided: the review keeps KataGo's analysis defaults,** and sends no settings. Root noise is on
+  (`wideRootNoise = 0.04`, before 0.0), so more candidates get visits and values: from the start at 400 visits, the
+  engine repository measured 251 to 308 visits for the top move (before 377) and 70 to 129 for the second (before
+  14). The Great label compares the first choice with the second, and the board's candidates need 15% of the most
+  visited move's visits, so both had rested on moves with a handful of visits. The moves before the position no
+  longer reach the network (`ignorePreRootHistory = true`), so a position gets the same analysis however it was
+  reached: the variations to come need that. The play values stay in the engine repository's play config.
+- **The cost:** every value changes, so the label budget (256 visits, "Label agreement against search budget") must
+  be measured again under these settings (decisions/open-items.md).
+- **Unchanged for the site:** it sends bare moves (the cut mark is optional), no `seed`, and no `history`.
+- **Found while checking:** Edge served its kept copy of `/engine/manifest.json`, which named the old build, and the
+  site refused the old module ("engine protocol 1.0: this site speaks 0.3"). The preview server sends no cache headers,
+  so the browser may keep a copy, and a host can do the same after a deploy. `loadManifest` now fetches the manifest
+  with `cache: "no-cache"`, so the browser asks the server each time. The artifacts are in folders named by build and
+  network, so they can stay cached.
+- **Checked in Edge:** the lab reports protocol 0.3 and build `319a5c4`; two analyses of the position after edge 40 at
+  256 visits, without a seed, gave the same reply, row for row; at that position number 1 had 109 visits and the next
+  candidates 54, 32, 29 and 17. The review starts afresh (the cache key holds the build), with two candidates on the
+  board at the first position. The puzzles' rules work.

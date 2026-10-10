@@ -2,13 +2,13 @@
   "repository": "seankao31/enclosure-ai",
   "artifacts": [
     {
-      "id": "engine-8195171",
+      "id": "engine-319a5c4",
       "kind": "module",
-      "interface": "engine-protocol-1.0",
+      "interface": "engine-protocol-0.3",
       "file": "enclosure-engine.wasm",
       "source": { "local": "../enclosure/runs/wasm/v2/engine-dev/enclosure-engine.wasm" },
-      "sha256": "a169057b8f050dd152151aa164601e5aa30e82275fedbdcfd679df49722d11ab",
-      "bytes": 1330266
+      "sha256": "b63d47b3cac92d6f1d55c565e614ef39bf2dc7628ac63d98d792bd49fe4441d7",
+      "bytes": 1346270
     },
     {
       "id": "b10c128-s46923648-d9407005",

@@ -1,13 +1,17 @@
-// The engine protocol, version 0.1 (the engine repository's docs/design/04-notation-and-protocol.md): KataGo's analysis
+// The engine protocol, version 0.3 (the engine repository's docs/design/04-notation-and-protocol.md): KataGo's analysis
 // protocol as JSON lines, with the rules as actions. Only the fields the site uses are typed. Before 1.0 the protocol
 // is in development (Semantic Versioning's 0.x): any new version may break a client, so a client accepts only the
 // exact version it was written for.
 //
+// 0.3 searches with KataGo's analysis defaults (root noise on, no moves from before the root to the network), and a
+// request without a `seed` gives the same reply each time. The site sends no settings, so it keeps those defaults
+// (docs/decisions/engine.md, "Protocol 0.3").
+//
 // Every win chance and score is from Blue's side. Win chance 0-1. Scores in game points.
 
-export const PROTOCOL = "0.1";
-/** The versions a build may report for PROTOCOL: builds before the 0.x numbering reported 0.1 as 1.0. */
-export const PROTOCOL_REPORTED = ["0.1", "1.0"];
+export const PROTOCOL = "0.3";
+/** The versions a build may report for PROTOCOL. */
+export const PROTOCOL_REPORTED = ["0.3"];
 
 export type Side = "b" | "r";
 

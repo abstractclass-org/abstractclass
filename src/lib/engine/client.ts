@@ -12,9 +12,11 @@ export interface Manifest {
   artifacts: { id: string; kind: "module" | "model"; interface: string | null; url: string; sha256: string; bytes: number; released: boolean }[];
 }
 
-/** The manifest, or null when the site has no engine (`npm run engine` was not run). */
+/** The manifest, or null when the site has no engine (`npm run engine` was not run). The browser asks the server for
+ *  it each time (`no-cache`): a kept copy would name an earlier build after an update. The artifacts themselves are in
+ *  folders named by their build or network, so they can stay cached. */
 export async function loadManifest(): Promise<Manifest | null> {
-  const response = await fetch("/engine/manifest.json");
+  const response = await fetch("/engine/manifest.json", { cache: "no-cache" });
   return response.ok ? response.json() : null;
 }
 

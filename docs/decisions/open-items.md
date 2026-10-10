@@ -51,29 +51,21 @@ or a design first:
   the board shows"): after the label pass (256 visits) many candidates pass the visit rule, after the deep search
   (1,024) few do. The board can lose candidates while the player looks. To watch: whether players find that
   confusing. The Good band (5%, 36 points) is still a placeholder.
-- **The engine's lines, and exploring variations:** show the engine's best line (KataGo's `pv`, in the replies
-  already) for number 1 and for every candidate, and for any other edge on request (search the position after it),
-  so that a player sees why an edge is bad. Play out a line on the board, explore variations by hand, show the
-  branches in the move list, and navigate them with keys, as other analysis tools do (Lichess, chess.com, KaTrain,
-  Sabaki). To design: the game as a tree of moves, the branch notation (the record's `( )` branches), the keys, and
-  how a variation's positions get their analyses.
-- **Searching for analysis, not only for the choice of move:** KataGo's analysis engine defaults to `wideRootNoise`
-  0.04, which spreads visits over more moves so that more of them get values (its `analysis_example.cfg`: "explore
-  and give evaluations to a greater variety of moves"). For play it is 0.0. The browser's module embeds the engine's
-  `analysis_enclosure.cfg`, which sets 0.0 ("playing games"). A `load_model` request's `settings` can change it
-  without a change to the engine. The engine repository is moving its bots to KataGo's GTP engine, KataGo's way to
-  play, and keeping `analysis_enclosure.cfg` for analysis only (in progress there). Read that file's settings again
-  when it lands. KaTrain also offers extra analysis on request: "equalize" gives every candidate as
-  many visits as the top move, "sweep" searches every legal move, "alternative" looks for moves beyond the
-  candidates (`analyze_extra`, `core/game.py`). To decide: whether the review searches with 0.04, which changes every
-  value, so the label budget (256) would be measured again; and which extra analyses the page offers. It bears on the
-  Great label below, on the board's candidates, and on the engine's lines for bad edges.
+- **The label budget, measured again under KataGo's analysis defaults:** the review now searches with them (protocol
+  0.3: root noise on, no moves from before the root; [engine.md](engine.md), "Protocol 0.3"), so every value changed.
+  Run the budget measurement again (`scripts/measure/budget-collect.mjs`, [engine.md](engine.md), "Label agreement
+  against search budget") and keep or change the 256 visits of the label pass.
+- **Extra analysis on request:** KaTrain offers "equalize" (every candidate gets as many visits as the top move),
+  "sweep" (every legal move searched) and "alternative" (moves beyond the candidates) (`analyze_extra`,
+  `core/game.py`). To decide which the page offers. It bears on the Great label below, on the board's candidates, and
+  on the engine's lines for bad edges.
 - **Great is too frequent late in a game:** in the sample game almost every late move is Great (the first choice,
   with the second at least 10% of win chance worse: En Croissant's rule), each with a comment line in the move list.
   Tighten the rule, or drop the comment line for Great. A likely cause: the second choice's value comes from the same
-  search, and it often has few visits, so its value is unreliable. A proposal: call an edge the only good one only
-  when the second choice has enough visits (the board's rule: 15% of the most visited move's), or measure first how
-  many Great labels have a second choice under that share.
+  search, and it often has few visits, so its value is unreliable. Root noise (protocol 0.3) gives the second choice
+  more visits: look again at the sample game under it first. A proposal: call an edge the only good one only when
+  the second choice has enough visits (the board's rule: 15% of the most visited move's), or measure first how many
+  Great labels have a second choice under that share.
 - **Learning from mistakes:** the "Retry mistakes" tab is removed (decisions/product.md, "The 'Retry mistakes' tab
   removed"). Bring it back as a mode of the Analysis panel, above the move list, as Lichess's "Learn from your
   mistakes" is, started from the Highlights. Follow Lichess's rules (research/01-ux-survey.md, "Learning from the
@@ -96,11 +88,6 @@ or a design first:
 - **The notation, described for players:** Home names the turn labels and the edges in one line. Write a full
   description of the record (turns, edges, the cut mark `x`, `pass`, results, comments, branches) on a page of the
   site, from the engine repository's `docs/design/04-notation-and-protocol.md`, and link it from Home and `/import`.
-- **The engine's protocol 0.2** (the engine repository's commit `c168502`, a module build in its
-  `runs/wasm/v2/engine-dev/`): it reads the cut mark in `moves` and `play`, and adds `chooseMove` and `seed`. Before
-  1.0 any version may break a client, and the site accepts only 0.1 (`PROTOCOL` in `src/lib/engine/protocol.ts`). To
-  move: pin the new build in `engine.lock.json`, read its changes, and set `PROTOCOL` to 0.2. Needed for bots, or for
-  sending the marks.
 - **One search tree across a game:** the notes are in
   [research/02-search-tree-reuse.md](../research/02-search-tree-reuse.md). Not needed for the first release. Decide
   later.
