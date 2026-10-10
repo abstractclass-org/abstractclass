@@ -406,5 +406,26 @@ The interface, the review, puzzles, lessons, labels and thresholds.
 - **A move fills its column, and its lead is at the column's right edge,** as in Lichess's move list, where each move's
   evaluation is at the right of its cell. The highlight of the current move and of the move under the pointer covers
   the whole cell (184 pixels at 1,900 × 1,000).
+
+### The "Retry mistakes" tab removed (2026-10-10)
+
+- **Removed for now:** the tab, the "Learn from your mistakes" button, and the code behind them (`gradeTry` in
+  `model.ts`). The retry asked for an edge as good as the engine's first choice. The engine's first choice is often
+  hard to spot, and sometimes no human would find it, so a retry of it teaches little. Learning from mistakes is to
+  come back as a mode of the analysis (decisions/open-items.md), on Lichess's rules.
+- **Lichess's rules, read in its source** (research/01-ux-survey.md, "Learning from the game"): it picks the moves
+  where the win chance swung by more than 10 points, and it accepts any move that keeps the win chance within 4
+  points of the position before the mistake, after a search of that move. Win chance flattens near a decided
+  result, so a missed long mate in a won position is never picked.
+- **A correction:** the retry's margin (2% of win chance) came from a misreading of Lichess's 0.04. Lichess's
+  `povDiff` already halves the winning chances (−1 to +1), so its 0.04 is 4 points of win chance, measured against
+  the position before the mistake, not against the first choice.
+- **The Biggest mistakes** in the Highlights now go to the move in the analysis, the position after it, where the move
+  list explains it, as Lichess's summary goes to the move (`nextGlyphSymbol`).
+- **The tabs show only below 1,260 pixels,** where the Highlights and the Analysis share a column. With three columns
+  the analysis column has no tabs.
+- **The Biggest mistakes rows are as the move list's moves:** the whole row is the button, the points lost are at its
+  right edge, and the row under the pointer has the move list's highlight. Checked in Edge: each row is the list's
+  width, and the points lost end at its right edge.
 - **Checked in Edge** at 1,380 × 904: the players' row has the board's edges (311 to 987 pixels), and the three columns
   end at the chart's bottom (898 pixels).

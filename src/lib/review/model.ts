@@ -188,7 +188,6 @@ export function explain(e: EdgeReview): string {
 // getPlaySelectionValues). With fewer visits, its value is too uncertain to compare. The board uses the same rule,
 // with visits for weight.
 const MIN_VISIT_SHARE = 0.15;
-const SOLVED_MARGIN = 0.02; // Lichess: within 0.04 winning chances of the best, which is 0.02 of win chance
 
 /** A candidate with its rank (1: the engine's first choice) and how much worse it is than number 1 for the mover: `gap`
  *  in win chance, `gapPts` in points when the analysis has scores. Negative when it is better than number 1. */
@@ -212,12 +211,4 @@ export function shownCandidates(a: Analysis | undefined, p: Player): RankedCandi
     }))
     .filter(({ c, rank, gap, gapPts }) => rank === 1 || (c.visits >= MIN_VISIT_SHARE * most && gap <= GOOD_WIN
       && (gapPts === undefined || gapPts <= GOOD_POINTS)));
-}
-
-/** A retry's edge against the engine's analysis of the position: as good as its first choice (within SOLVED_MARGIN),
- *  worse, or not among its candidates. */
-export function gradeTry(a: Analysis | undefined, p: Player, edge: Edge): "solved" | "worse" | "unknown" {
-  const c = a?.candidates.find(c => sameEdge(c.edge, edge));
-  if (!a || !c) return "unknown";
-  return moverWin(c.blueWin, p) >= moverWin(a.candidates[0].blueWin, p) - SOLVED_MARGIN ? "solved" : "worse";
 }

@@ -29,9 +29,9 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
 2. **The columns follow Lichess's widths,** and its fixed switch to three columns at 1,260 pixels, although the third
    column makes the board smaller on a window just above that width (694 pixels against 846 at 1,376 × 952):
    - **Three columns from 1,260 pixels:** the summary on the left, the board in the middle, the analysis on the
-     right. The summary is the review's progress and the Highlights (the result, the counts, the biggest mistakes,
-     "Learn from your mistakes"). The analysis is the position's engine header, the candidates, the move list and the
-     step controls. Highlights is no longer a tab.
+     right. The summary is the review's progress and the Highlights (the result, the counts, the biggest mistakes).
+     The analysis is the position's engine header, the candidates, the move list and the step controls. Highlights
+     is no longer a tab, so this layout has no tabs.
    - **Two columns from 800 to 1,260 pixels:** the board, and one right column with the tabs (Highlights,
      Analysis), as before.
    - **One column below 800 pixels:** the board, then the right column's content.

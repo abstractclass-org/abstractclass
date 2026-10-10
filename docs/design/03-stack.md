@@ -22,6 +22,9 @@ new builds arrive often.
   layout grid with its `calc()` board size (design 06), and the tokens and base element styles in `app.css`. Links
   are underlined unless they are not in running text (`no-underline`). A page's `main` uses `box-content`, so its
   `max-w-*` limit is the width of its content.
+- **Components with keyboard and focus behaviour:** Bits UI 2 (`bits-ui`), a headless library for Svelte 5. It gives
+  the roles, the keys and the focus handling, and leaves the styles to Tailwind. The review's tabs and its display
+  menu use it (`Tabs`, `Popover`).
 - **Hosting:** Cloudflare (Pages, or Workers static assets). Files larger than 25 MiB go to Cloudflare R2.
 - **The engine's artifacts** (a WebAssembly build and a model) are pinned in a lock file, `engine.lock.json`:
   - Each artifact has an ID (the build's name, such as `v2-b10c128-s46923648-d9407005`), a source, its SHA-256 and

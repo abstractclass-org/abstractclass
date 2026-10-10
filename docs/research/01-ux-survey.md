@@ -97,9 +97,17 @@ notes.
 
 ### Learning from the game
 
-- **Lichess "Learn from your mistakes"** (`retroCtrl.ts`): the candidates are the moves where the winning chances
-  swing by more than 0.1. The player finds a better move. It counts as solved when it is within 0.04 winning chances
-  of the engine's best. States: find, evaluating, win, fail, view, off track. A counter shows the progress.
+- **Lichess "Learn from your mistakes"** (`ui/analyse/src/retrospect/retroCtrl.ts`, `nodeFinder.ts`):
+  - **Which moves:** the player's moves where the win chance swings by more than 10 points (`evalSwings`: `povDiff`
+    over 0.1; `povDiff` is half the difference of the winning chances, −1 to +1, so it is in win chance, 0 to 1). A
+    lost mate in 3 or fewer counts too. Moves in the opening explorer are left out, and so are moves whose position
+    has no computer line. Win chance flattens near a decided result, so a missed long mate in a won position is not a
+    mistake here.
+  - **What counts as solved:** the computer line's move, a move in the opening explorer, or a mate. Any other move is
+    searched in the position after it ("Evaluating your move…"), and it is solved when the mover's win chance is
+    within 4 points of the win chance before the mistake (`checkCeval`: `povDiff` over −0.04). The game's own move
+    fails. So the player need not find the engine's first choice, only a move that does not lose.
+  - States: find, evaluating, win, fail, view, off track. A counter shows the progress.
 - **Chess.com "Retry"** and **Key Moments:** retries for inaccuracies, mistakes, blunders and missed wins. Key moments
   also include the end of the opening, turning points and good moves. After the retries the review shows an adjusted
   accuracy.

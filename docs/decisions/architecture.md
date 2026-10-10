@@ -55,3 +55,26 @@ The repository, the stack, hosting, and how the engine's artifacts arrive.
   ([product.md](product.md), "The review's tables fit their content").
 - **Not adopted:** a styled component library. A headless one (Bits UI) is a candidate for the tabs and the display
   menu, whose keyboard and focus handling is incomplete.
+
+### Bits UI for the tabs and the display menu (2026-10-10)
+
+- **Decided** ([design/03-stack.md](../design/03-stack.md)): Bits UI 2, a headless component library for Svelte 5
+  (the base of shadcn-svelte), for components with keyboard and focus behaviour. The styles stay Tailwind classes.
+- **The version:** 2.19.3, from 22 September 2026. The newest, 2.19.5, was a week old. It needs Svelte 5.33 or later
+  (the site has 5.57) and `@internationalized/date`, which npm installs with it.
+- **The review's tabs** (Highlights and Analysis, below 1,260 pixels) are `Tabs`: the tab roles, `aria-selected`, one
+  tab in the tab order, and the arrow keys between the tabs. The review's own arrow keys, which step through the game,
+  leave the tabs and the menu alone. With three columns there are no tabs, and the Analysis shows directly.
+- **The display menu** is `Popover`: it opens above the gear, moves the focus into the menu and back to the gear, and
+  closes on Escape or a click outside it. Bits UI gives the menu no role, so the site gives it `role="dialog"`, as the
+  gear's `aria-haspopup` says.
+- **The move list's moves are out of the Tab order** (`tabindex="-1"`), as on Lichess: the arrow keys step through
+  the game. Before, the 120 moves of the sample game were Tab stops before the step controls and the gear. The review
+  page now has 17 Tab stops: the site's header, the biggest mistakes, the step controls and the gear. A click still
+  goes to a move.
+- **Checked in Edge:** the roles and `aria-selected`; ArrowRight and ArrowLeft between the tabs (they wrap) while the
+  game's position stays; the menu opens and closes with the gear, with Escape and with a click outside. In a visible
+  window, Enter on the gear opens the menu with the focus on its first control, Tab moves within the menu, and Escape
+  closes it with the focus back on the gear. In a hidden window (behind another) the focus does not move and an
+  outside click acts seconds late: a hidden page runs no animation frames and slows its timers, and Bits UI moves the
+  focus in an animation frame and handles an outside click after a timer.

@@ -16,13 +16,8 @@ Rules:
   ([requests/03-release-artifacts.md](../requests/03-release-artifacts.md)).
 - **Speed on a visitor's machine:** run the engine lab's whole-game review on an idle machine and on a typical
   laptop, with 1, 2, 4 and 8 workers, for b10c128 and b15c192. The first measurement ran on a loaded machine
-  ([engine.md](engine.md), "The current module in a Web Worker").
-- **Accessible tabs and menus:** the review's tabs have no `aria-selected` and no arrow keys, and the display menu
-  (`role="dialog"`) does not move focus. A headless library gives that behaviour and leaves the styles to Tailwind:
-  Bits UI 2 (Svelte 5, the most used, the base of shadcn-svelte). Check its peer versions first.
-- **Engine module compiled once:** each worker fetches and compiles `enclosure-engine.wasm` itself. The page could
-  compile it once and send the `WebAssembly.Module` to each worker. Measure the start time in a real browser before
-  and after.
+  ([engine.md](engine.md), "The current module in a Web Worker"). Note the lab's start time too: the module compiled
+  once showed no gain on a fast machine ([engine.md](engine.md), "The engine module compiled once").
 
 ## Milestone 1: a game report (design/01-analysis-tool.md, section 4)
 
@@ -79,17 +74,15 @@ or a design first:
   search, and it often has few visits, so its value is unreliable. A proposal: call an edge the only good one only
   when the second choice has enough visits (the board's rule: 15% of the most visited move's), or measure first how
   many Great labels have a second choice under that share.
-- **Learning from mistakes:** not a tab. Make it a mode of the Analysis panel, above the move list, as Lichess's
-  "Learn from your mistakes" is, started from the Highlights button too. Make it teach. After a solve, play out the
-  engine's line. Show what the game's edge allowed (the opponent's region, the points). Offer a hint before the
-  solution (the area at stake). Judge a tried edge as the review judges a game's edge: when it is not a candidate
-  with enough visits, play it and search the position after it (Lichess shows "Evaluating your move…" and runs the
-  engine on the new position). Today an edge the engine did not search gets "The engine did not consider it", and
-  an edge with few visits gets a noisy verdict. Puzzles need the same.
-- **Move input** (puzzles, retries, lessons): use the engine's rules. Today any point can start an edge and nothing
-  checks cuts or protection. After the first point, show where an edge may go: meaf.us draws a dashed box of the reach
-  and a ghost edge that shows whether the current choice is legal. Constellation highlights the points that complete a
-  legal edge. Either works. The engine's `describe` gives the legal edges, and `play` checks one.
+- **Learning from mistakes:** the "Retry mistakes" tab is removed (decisions/product.md, "The 'Retry mistakes' tab
+  removed"). Bring it back as a mode of the Analysis panel, above the move list, as Lichess's "Learn from your
+  mistakes" is, started from the Highlights. Follow Lichess's rules (research/01-ux-survey.md, "Learning from the
+  game"): pick the moves where the win chance swung by more than 10 points, and accept any edge that keeps the win
+  chance within 4 points of the position before the mistake, not only the engine's first choice. The engine's first
+  choice can be beyond any human, and a retry of it teaches little. Judge a tried edge by searching the position
+  after it, as Lichess does ("Evaluating your move…"). Make it teach: a hint before the solution (the area at stake),
+  the engine's line after a solve, and what the game's edge allowed (the opponent's region, the points). It needs
+  move input on the engine's rules (in flight: the handoff). Puzzles need the same judging.
 - **Sound:** sounds for moves, to make play more satisfying. To design: which events (an edge placed, a cut, a region
   closed and scored, a label for a mistake, a puzzle solved or failed), a sound set with its licence, a switch to mute
   it, and no sound before the player interacts (browsers block it).

@@ -5,23 +5,21 @@
 </script>
 
 <script lang="ts">
-  // The review of one game: three stages on one page (docs/research/01-ux-survey.md, section 8): Highlights
-  // (chess.com), learning from the mistakes with retries (chess.com's key moments, Lichess's "Learn from your
-  // mistakes"), and free analysis (Lichess). The review may be partial while the engine works: an edge with no label
-  // yet shows none. The layout is design 06 (docs/design/06-review-layout.md): the board fills the window's height,
+  // The review of one game (docs/research/01-ux-survey.md, section 8): Highlights (chess.com) and free analysis
+  // (Lichess). Learning from the mistakes is to come back as a mode of the analysis (decisions/open-items.md). The
+  // review may be partial while the engine works: an edge with no label yet shows none. The layout is design 06 (docs/design/06-review-layout.md): the board fills the window's height,
   // with the summary on its left from 1,260 pixels (Lichess's three columns), and the analysis on its right.
+  import { Popover, Tabs } from "bits-ui";
   import { MediaQuery } from "svelte/reactivity";
   import { innerHeight, innerWidth } from "svelte/reactivity/window";
   import Board, { type BoardCandidate, type BoardMark } from "#lib/board/Board.svelte";
-  import { EdgeInput } from "#lib/board/edgeInput.svelte.ts";
   import Swatch from "#lib/ui/Swatch.svelte";
   import { SIDE_TEXT } from "#lib/ui/side.ts";
   import AdvantageChart from "./AdvantageChart.svelte";
   import { loadDisplay, saveDisplay } from "./display.ts";
   import Glyph from "./Glyph.svelte";
   import {
-    explain, edgeName, moveName, moveNotation, sameEdge, moverWin, moverScore, largest, lossText, lossPhrase, pct, gradeTry,
-    shownCandidates, LABELS, LABEL_TEXT, LABEL_GLYPH, PLAYER_NAME, type Edge, type Label, type Player, type Review,
+    explain, edgeName, moveNotation, sameEdge, moverWin, moverScore, largest, lossText, pct, shownCandidates, LABELS, LABEL_TEXT, LABEL_GLYPH, PLAYER_NAME, type Edge, type Label, type Player, type Review,
   } from "./model.ts";
 
   interface Props {
@@ -42,20 +40,18 @@
   // because small text in heavy weights runs together.
   const BADGE = "inline-flex items-center justify-center min-w-[1.8em] h-[1.8em] px-[0.2em] rounded-full text-[0.64em] font-bold text-on-badge";
   const GAUGE_TEXT = "absolute left-1/2 -translate-x-1/2 rotate-180 [writing-mode:vertical-rl] text-[0.6rem] leading-none font-semibold tracking-[0.1em] text-white tabular-nums";
-  const tab = (on: boolean) => ["flex-1 bg-transparent border-transparent border-b-2 rounded-none", on ? "border-b-accent font-semibold" : "border-b-line"];
+  const TAB = "flex-1 bg-transparent border-transparent border-b-2 border-b-line rounded-none data-[state=active]:border-b-accent data-[state=active]:font-semibold";
 
-  type Stage = "highlights" | "walk" | "analysis";
+  type Stage = "highlights" | "analysis";
   let stage = $state<Stage>("highlights");
   let pos = $state(0);
   let hover = $state<Edge | null>(null);
   // Three columns from Lichess's width for them (its $x-large, 1,260 pixels): the summary gets its own column, and
   // Highlights is no longer a tab.
   const wide = new MediaQuery("min-width: 1260px");
-  const view = $derived(wide.current && stage === "highlights" ? "analysis" : stage);
-  // The display settings, kept in this browser (display.ts), and their menu.
+  // The display settings, kept in this browser (display.ts). Their menu is a Bits UI popover.
   const display = $state(loadDisplay());
   $effect(() => saveDisplay($state.snapshot(display)));
-  let menuOpen = $state(false);
   let gaugeHeight = $state(0);
   // The side columns reach down to the Advantage chart's bottom edge when the whole chart is in the window, so that
   // the columns end on one line. When the board fills the window's height, the chart is below the fold: the side
@@ -68,24 +64,6 @@
     const height = innerHeight.current;
     if (chartBox && height !== undefined) reach = chartBox.getBoundingClientRect().bottom + window.scrollY <= height;
   });
-  function onwindowclick(ev: MouseEvent) {
-    if (menuOpen && !(ev.target instanceof Element && ev.target.closest(".menu-wrap"))) menuOpen = false;
-  }
-
-  // Learning from the mistakes (Lichess's "Learn from your mistakes", chess.com's Retry): the largest mistakes of the
-  // chosen side, one at a time, each from the position before it. Lichess asks whose mistakes. Chess.com lets the
-  // player highlight their own, the opponent's, or both. With no accounts, the page cannot know which side is the
-  // visitor's, so it asks.
-  let side = $state<"both" | Player>("both");
-  const moments = $derived(largest(R.mistakes.filter(e => side === "both" || e.player === side)));
-  let moment = $state(0);
-  let attempt = $state<"find" | "solved" | "worse" | "unknown" | "shown">("find");
-  let tried = $state<Edge | null>(null);
-  // Edge input: a first point, then a second within 3 units (the rules' box).
-  const input = new EdgeInput(check);
-  let showGame = $state(false); // the game's edge as a ghost, with its label
-  const solved = $state<Record<number, boolean>>({}); // by the mistake's edge index
-
   const position = $derived(R.data.positions[pos]);
   const analysis = $derived(pos < last ? R.data.analysis[pos] : undefined);
   const mover = $derived(position.player as Player);
@@ -100,9 +78,6 @@
   const listed = (l: Label | null): l is Label => !!l && LISTED.includes(l);
   // The move list explains these labels under their turn.
   const COMMENTED: Label[] = ["great", "mistake", "blunder"];
-  const currentKey = $derived(moments[Math.min(moment, moments.length - 1)]);
-  const atMoment = $derived(!!currentKey && pos === currentKey.index);
-  const walking = $derived(stage === "walk" && atMoment); // at the walk's mistake, where the player tries edges
 
   const pts = (x: number) => `${x >= 0 ? "+" : "−"}${Math.abs(Math.round(x))}`;
   const fmtScore = (s: number) => Math.round(s).toLocaleString("en");
@@ -145,8 +120,6 @@
     else if (tableBox.scrollTop < bottom) tableBox.scrollTop = bottom;
   });
 
-  // In the walk, the board shows only the solution, once it is found or shown.
-  const boardCandidates = $derived(walking ? (attempt === "shown" || attempt === "solved" ? candidates.slice(0, 1) : []) : candidates);
   // Label badges on the edges of the turn just played, as far as the current position.
   const marks = $derived.by((): BoardMark[] => {
     if (!lastMove) return [];
@@ -157,6 +130,12 @@
   function go(p: number) {
     pos = Math.max(0, Math.min(last, p));
     hover = null;
+  }
+  /** Shows a move in the analysis: the position after it, where the move list explains it (Lichess's summary jumps to
+   *  the move itself, nextGlyphSymbol in ui/analyse/src/nodeFinder.ts). */
+  function showMove(index: number) {
+    stage = "analysis";
+    go(index + 1);
   }
   $effect(() => onposition?.(pos));
 
@@ -172,47 +151,12 @@
     movelist.scrollTop = top - SCROLL_ROWS * here.offsetHeight;
   });
 
-  /** Opens the walk at a moment: by its index in the list, or at the mistake on a given edge. */
-  function startWalk(k = 0, edgeIndex?: number) {
-    stage = "walk";
-    if (edgeIndex !== undefined) {
-      if (!moments.some(m => m.index === edgeIndex)) side = "both";
-      k = Math.max(0, moments.findIndex(m => m.index === edgeIndex));
-    }
-    moment = k;
-    resetAttempt();
-  }
-  function toMoment(k: number) {
-    moment = Math.max(0, Math.min(moments.length - 1, k));
-    resetAttempt();
-  }
-  function resetAttempt() {
-    attempt = "find";
-    tried = null;
-    input.reset();
-    showGame = false;
-    if (currentKey) go(currentKey.index);
-  }
-  function setSide(s: "both" | Player) {
-    side = s;
-    moment = 0;
-    resetAttempt();
-  }
-
-  // A point clicked at the mistake counts while the player still tries edges.
-  function onpoint(x: number, y: number) {
-    if (attempt === "find" || attempt === "worse" || attempt === "unknown") input.click(x, y);
-  }
-  function check(edge: Edge) {
-    tried = edge;
-    attempt = gradeTry(analysis, mover, edge);
-    if (attempt === "solved") solved[currentKey.index] = true;
-  }
-
+  // The arrow keys step through the game, except in the controls that use them: fields, the tabs, the display menu.
+  // So the move list's moves are not in the Tab order (tabindex -1), as on Lichess: a click still goes to a move.
   function onkeydown(ev: KeyboardEvent) {
-    if (ev.target instanceof HTMLInputElement) return;
-    if (ev.key === "Escape" && menuOpen) menuOpen = false;
-    else if (ev.key === "ArrowLeft") go(pos - 1);
+    if (ev.defaultPrevented || ev.target instanceof HTMLInputElement) return;
+    if (ev.target instanceof Element && ev.target.closest('[role="tablist"], [role="dialog"]')) return;
+    if (ev.key === "ArrowLeft") go(pos - 1);
     else if (ev.key === "ArrowRight") go(pos + 1);
     else if (ev.key === "Home") go(0);
     else if (ev.key === "End") go(last);
@@ -257,7 +201,7 @@
   const searched = $derived(analysis && deepVisits ? Math.min(1, analysis.visits / deepVisits) : null);
 </script>
 
-<svelte:window {onkeydown} onclick={onwindowclick} />
+<svelte:window {onkeydown} />
 
 <!-- The top of the side panel: the review's progress or an engine error. -->
 {#snippet panelHead()}
@@ -331,15 +275,85 @@
   <ol class="mb-3.5 pl-5 list-decimal">
     {#each R.keyMoments as m (m.index)}
       <li>
-        <button class="px-0 py-0.5 text-left bg-transparent border-0 hover:text-accent" onclick={() => startWalk(0, m.index)}>
+        <!-- As a move in the move list: the whole row is the button, with the points lost at its right edge. -->
+        <button class="flex items-baseline gap-1.5 w-full px-[0.2rem] py-0.5 text-left bg-transparent border-0 hover:bg-panel-2 hover:outline hover:outline-line"
+                onclick={() => showMove(m.index)}>
           <span class={BADGE} style:background="var(--{m.label})"><Glyph glyph={LABEL_GLYPH[m.label!]} /></span>
           <span class="font-mono text-[0.95em] {SIDE_TEXT[m.player]}">{moveText(m.index)}</span>
-          <span class="ml-1 text-sm text-muted">{lossText(m)}</span>
+          <span class="ml-auto text-sm text-muted tabular-nums whitespace-nowrap">{lossText(m)}</span>
         </button>
       </li>
     {/each}
   </ol>
-  <button class="btn-primary" onclick={() => startWalk(0)}>Learn from your mistakes</button>
+{/snippet}
+
+<!-- The Analysis: the candidates table and the move list. -->
+{#snippet analysisView()}
+  {@const rows = (analysis?.candidates ?? []).map((c, k) => ({ c, rank: k + 1 }))}
+  <!-- The table's box: a fixed height (from TABLE_ROWS), a scroll bar when there are more rows, and room for the
+       scroll bar kept at all times, so that the columns do not move when it appears. Fixed columns: the table
+       keeps its layout from position to position. Each fits its widest content (a two-digit rank, the header
+       "Blue wins", a lead of four digits, five-digit visits), and the space left goes to the edge column. When
+       that column is narrower than the longest edge name (7 characters, about 4.4em), the name's text gets
+       smaller instead of being cut: its cell is a size container, and the text is at most 22% of its width. Below
+       70% of its size the text would be hard to read, so the name is cut there. -->
+  <div class="flex-none mb-3 overflow-y-auto [scrollbar-gutter:stable] text-sm" bind:this={tableBox}
+       style="height: {(TABLE_ROWS + 1) * ROW_EM + 0.2}em; --row: {ROW_EM}em">
+  <table class="w-full table-fixed [&_:is(th,td)]:px-1 [&_:is(th,td)]:py-0.5 [&_:is(th,td)]:border-b [&_:is(th,td)]:border-line [&_:is(th,td)]:truncate">
+    <colgroup><col class="w-7" /><col /><col class="w-18" /><col class="w-12" /><col class="w-12" /></colgroup>
+    <thead>
+      <tr class="[&>th]:sticky [&>th]:top-0 [&>th]:z-1 [&>th]:h-(--row) [&>th]:bg-panel [&>th]:text-left [&>th]:font-medium [&>th]:text-muted">
+        <th>#</th><th>Edge</th><th>{PLAYER_NAME[mover]} wins</th><th>Lead</th><th>Visits</th>
+      </tr>
+    </thead>
+    <tbody>
+      {#each rows as { c, rank } (rank)}
+        <tr class={["h-(--row)", rank === 1 && "font-semibold", !!hover && sameEdge(c.edge, hover) && "lit outline outline-accent -outline-offset-1"]}
+            style={rowTint(c.blueWin)} onmouseenter={() => (hover = c.edge)} onmouseleave={() => (hover = null)}>
+          <!-- A candidate on the board has its number in a badge, as the board draws it. The others have a plain number. -->
+          <td><span class={["inline-flex items-center justify-center min-w-[1.3em] h-[1.3em] px-[0.2em] rounded-full text-[0.8em] font-bold",
+                            onBoard.has(rank) ? `${rank === 1 ? "bg-engine" : "bg-candidate"} text-on-badge` : "text-muted"]}
+                    title={onBoard.has(rank) ? "On the board" : undefined}>{rank}</span></td>
+          <td><div class="@container truncate"><span class="text-[clamp(0.7em,22cqi,1em)]">{edgeName(c.edge)}</span></div></td>
+          <td>{pct(moverWin(c.blueWin, mover))}</td>
+          <td>{c.lead !== undefined ? pts(moverScore(c.lead, mover)) : "–"}</td><td>{c.visits}</td>
+        </tr>
+      {/each}
+      {#each Array.from({ length: Math.max(0, TABLE_ROWS - rows.length) }, (_, k) => k) as k (k)}
+        <tr class="h-(--row)">
+          <td class="italic text-muted" colspan="5">{k === 0 && !rows.length ? (pos === last ? "The game is over." : "Not analysed yet.") : ""}</td>
+        </tr>
+      {/each}
+    </tbody>
+  </table>
+  </div>
+  <div class="movelist flex-1 min-h-0 overflow-y-auto pt-1.5 text-sm border-t border-line" bind:this={movelist}>
+    {#each R.turns as t (t.number)}
+      <!-- A turn's number, then its edges in two equal columns (Lichess's move list), each at least a move wide:
+           with room to spare, the second edge starts halfway across. -->
+      <div class="grid grid-cols-[2.2rem_repeat(2,minmax(max-content,1fr))] items-baseline gap-x-1">
+        <span class="text-muted tabular-nums">{t.number}.</span>
+        {#each t.edges as e (e.index)}
+          {@const after = R.blueScore[e.index + 1]}
+          <!-- A move fills its column, and its lead is at the column's right edge (Lichess's move list). The move's
+               text has one width, so a column is never narrower than the widest move: the widest in the notation
+               is 10 characters, an edge with two-digit rows and the cut mark (D10-G10x, 8) and the widest glyph
+               (??, 2), then the glyph's margin. The lead: at most 5 characters (+1.2k), smaller and right-aligned.
+               The font is monospaced, so ch is one character of the span's own size. -->
+          <button class={["mv flex items-baseline gap-1 px-[0.2rem] py-px font-mono text-[0.95em] text-left whitespace-nowrap bg-transparent border-0",
+                          SIDE_TEXT[e.player], pos === e.index + 1 ? "here bg-panel-2 outline outline-accent" : "hover:bg-panel-2 hover:outline hover:outline-line"]}
+                  onclick={() => go(e.index + 1)} tabindex="-1"
+                  title={[e.label ? LABEL_TEXT[e.label] : "Not analysed yet", after !== undefined ? sideText(after) : ""].filter(Boolean).join(" · ")}>
+            <span class="w-[calc(10ch+0.15em)]">{moveNotation(e)}{#if listed(e.label)}<span class="ml-[0.15em] font-extrabold" style:color="var(--{e.label})"><Glyph glyph={LABEL_GLYPH[e.label]} /></span>{/if}</span>
+            <span class="w-[5ch] ml-auto text-[0.78em] text-right text-muted tabular-nums">{leadShort(after)}</span>
+          </button>
+        {/each}
+      </div>
+      {#each t.edges.filter(e => !!e.label && COMMENTED.includes(e.label)) as e (e.index)}
+        <div class="mt-0.5 mb-1.5 ml-10 text-sm text-muted">{explain(e)}</div>
+      {/each}
+    {/each}
+  </div>
 {/snippet}
 
 <main class={["review", wide.current && "wide", display.win === "gauge" && "gauge-mode", reach && "reach"]}>
@@ -395,16 +409,12 @@
           {position}
           lastEdge={lastMove?.edge ?? null}
           cut={lastMove?.cut ?? null}
-          candidates={boardCandidates}
+          {candidates}
           highlight={hover}
-          preview={walking && tried ? tried : hover}
+          preview={hover}
           previewPlayer={mover}
           {marks}
-          ghost={walking && showGame && currentKey.edge
-            ? { edge: currentKey.edge, label: currentKey.label!, glyph: LABEL_GLYPH[currentKey.label!] } : null}
           layers={display.layers}
-          pending={walking ? input.pending : null}
-          onpoint={walking ? onpoint : undefined}
           oncandidate={e => (hover = e)}
         />
       </div>
@@ -433,154 +443,20 @@
         <span class="text-xs text-muted tabular-nums whitespace-nowrap">{#if analysis}{analysis.visits.toLocaleString("en")}{searched !== null && searched < 1 ? ` of ${deepVisits.toLocaleString("en")}` : ""} visits{/if}</span>
       </div>
     </div>
-    <div class="flex gap-1 mb-2" role="tablist">
-      {#if !wide.current}
-        <button role="tab" class={tab(view === "highlights")} onclick={() => (stage = "highlights")}>Highlights</button>
-      {/if}
-      <button role="tab" class={tab(view === "walk")} onclick={() => startWalk(moment)}>Retry mistakes</button>
-      <button role="tab" class={tab(view === "analysis")} onclick={() => (stage = "analysis")}>Analysis</button>
-    </div>
-
-    <div class={["flex-1 min-h-0", view === "analysis" ? "flex flex-col overflow-hidden" : "overflow-y-auto"]}>
-      {#if view === "highlights"}
-        {@render highlights()}
-      {:else if view === "walk"}
-        <h2 class="mb-2 text-[1.05rem] font-bold">Learn from your mistakes</h2>
-        <div class="flex flex-wrap items-center gap-1 mb-3 text-sm text-muted" role="radiogroup" aria-label="Whose mistakes">
-          <span>Whose mistakes:</span>
-          {#each [["both", "Both"], [0, "Blue"], [1, "Red"]] as const as [v, text] (v)}
-            <button role="radio" aria-checked={side === v} onclick={() => setSide(v)}
-                    class={["inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[0.95em]", side === v && "bg-panel border-accent text-ink font-semibold"]}>
-              {#if v !== "both"}<Swatch player={v} />{/if}{text}
-            </button>
-          {/each}
-        </div>
-        {#if !currentKey}
-          <p class="mb-3">No mistakes for this side after the opening.</p>
-        {:else}
-          {@const m = currentKey}
-          <div class="flex items-center gap-1.5 mb-2.5 text-sm text-muted">
-            <button class="px-2 py-0.5" onclick={() => toMoment(moment - 1)} disabled={moment === 0} aria-label="Previous mistake">◀</button>
-            <span>Mistake {moment + 1} of {moments.length}</span>
-            <button class="px-2 py-0.5" onclick={() => toMoment(moment + 1)} disabled={moment + 1 >= moments.length} aria-label="Next mistake">▶</button>
-            <span class="flex items-center gap-[5px] ml-auto">
-              {#each moments as mm, k (mm.index)}
-                <button class={["size-[11px] p-0 rounded-full border-0", solved[mm.index] ? "bg-best" : "bg-line", k === moment && "outline-2 outline-offset-1 outline-accent"]}
-                        onclick={() => toMoment(k)} aria-label="Mistake {k + 1}, edge {mm.index + 1}"></button>
-              {/each}
-            </span>
-          </div>
-          <div class="grid gap-2 px-3 py-2.75 bg-panel-2 rounded-md">
-            <p>
-              Edge {m.index + 1}: {PLAYER_NAME[m.player]} played <strong>{moveName(m.edge)}</strong>
-              <span class={BADGE} style:background="var(--{m.label})"><Glyph glyph={LABEL_GLYPH[m.label!]} /></span>
-              and lost {lossPhrase(m)}.
-            </p>
-            {#if !atMoment}
-              <p class="text-sm text-muted">You moved away from this position.</p>
-              <div class="flex flex-wrap gap-1.5"><button class="btn-primary" onclick={resetAttempt}>Back to the mistake</button></div>
-            {:else if attempt === "find"}
-              <p class="text-[1.05em] font-bold">Find a better edge for {PLAYER_NAME[m.player]}.</p>
-              <p class="text-sm text-muted">
-                {input.pending ? "Now click its second point, at most 3 apart." : "Click the edge's first point on the board."}
-              </p>
-            {:else if attempt === "solved"}
-              <p class="font-semibold text-best">Good edge! {edgeName(tried ?? m.best!.edge)} is as good as the engine's first choice.</p>
-            {:else if attempt === "worse"}
-              <p class="text-mistake">Better than the game's edge, but not the best. Try another edge.</p>
-            {:else if attempt === "unknown"}
-              <p class="text-mistake">The engine did not consider {edgeName(tried!)}. Try another edge.</p>
-            {:else}
-              <p>The solution: <strong>{edgeName(m.best!.edge)}</strong>, number 1 on the board.</p>
-            {/if}
-            {#if atMoment}
-              <div class="flex flex-wrap gap-1.5">
-                {#if attempt === "solved" || attempt === "shown"}
-                  <button class="btn-primary" disabled={moment + 1 >= moments.length} onclick={() => toMoment(moment + 1)}>
-                    Next mistake
-                  </button>
-                {:else}
-                  <button onclick={() => (attempt = "shown")}>View the solution</button>
-                  <button onclick={() => toMoment(moment + 1)} disabled={moment + 1 >= moments.length}>Skip</button>
-                {/if}
-                <button class="bg-transparent border-transparent text-muted" aria-pressed={showGame} onclick={() => (showGame = !showGame)}>
-                  {showGame ? "Hide" : "Show"} the game's edge
-                </button>
-              </div>
-            {/if}
-          </div>
-          {#if moment + 1 >= moments.length}
-            <p class="mt-2.5 text-sm text-muted">Solved {moments.filter(mm => solved[mm.index]).length} of {moments.length}.</p>
-          {/if}
-        {/if}
-      {:else}
-        {@const rows = (analysis?.candidates ?? []).map((c, k) => ({ c, rank: k + 1 }))}
-        <!-- The table's box: a fixed height (from TABLE_ROWS), a scroll bar when there are more rows, and room for the
-             scroll bar kept at all times, so that the columns do not move when it appears. Fixed columns: the table
-             keeps its layout from position to position. Each fits its widest content (a two-digit rank, the header
-             "Blue wins", a lead of four digits, five-digit visits), and the space left goes to the edge column. When
-             that column is narrower than the longest edge name (7 characters, about 4.4em), the name's text gets
-             smaller instead of being cut: its cell is a size container, and the text is at most 22% of its width. Below
-             70% of its size the text would be hard to read, so the name is cut there. -->
-        <div class="flex-none mb-3 overflow-y-auto [scrollbar-gutter:stable] text-sm" bind:this={tableBox}
-             style="height: {(TABLE_ROWS + 1) * ROW_EM + 0.2}em; --row: {ROW_EM}em">
-        <table class="w-full table-fixed [&_:is(th,td)]:px-1 [&_:is(th,td)]:py-0.5 [&_:is(th,td)]:border-b [&_:is(th,td)]:border-line [&_:is(th,td)]:truncate">
-          <colgroup><col class="w-7" /><col /><col class="w-18" /><col class="w-12" /><col class="w-12" /></colgroup>
-          <thead>
-            <tr class="[&>th]:sticky [&>th]:top-0 [&>th]:z-1 [&>th]:h-(--row) [&>th]:bg-panel [&>th]:text-left [&>th]:font-medium [&>th]:text-muted">
-              <th>#</th><th>Edge</th><th>{PLAYER_NAME[mover]} wins</th><th>Lead</th><th>Visits</th>
-            </tr>
-          </thead>
-          <tbody>
-            {#each rows as { c, rank } (rank)}
-              <tr class={["h-(--row)", rank === 1 && "font-semibold", !!hover && sameEdge(c.edge, hover) && "lit outline outline-accent -outline-offset-1"]}
-                  style={rowTint(c.blueWin)} onmouseenter={() => (hover = c.edge)} onmouseleave={() => (hover = null)}>
-                <!-- A candidate on the board has its number in a badge, as the board draws it. The others have a plain number. -->
-                <td><span class={["inline-flex items-center justify-center min-w-[1.3em] h-[1.3em] px-[0.2em] rounded-full text-[0.8em] font-bold",
-                                  onBoard.has(rank) ? `${rank === 1 ? "bg-engine" : "bg-candidate"} text-on-badge` : "text-muted"]}
-                          title={onBoard.has(rank) ? "On the board" : undefined}>{rank}</span></td>
-                <td><div class="@container truncate"><span class="text-[clamp(0.7em,22cqi,1em)]">{edgeName(c.edge)}</span></div></td>
-                <td>{pct(moverWin(c.blueWin, mover))}</td>
-                <td>{c.lead !== undefined ? pts(moverScore(c.lead, mover)) : "–"}</td><td>{c.visits}</td>
-              </tr>
-            {/each}
-            {#each Array.from({ length: Math.max(0, TABLE_ROWS - rows.length) }, (_, k) => k) as k (k)}
-              <tr class="h-(--row)">
-                <td class="italic text-muted" colspan="5">{k === 0 && !rows.length ? (pos === last ? "The game is over." : "Not analysed yet.") : ""}</td>
-              </tr>
-            {/each}
-          </tbody>
-        </table>
-        </div>
-        <div class="movelist flex-1 min-h-0 overflow-y-auto pt-1.5 text-sm border-t border-line" bind:this={movelist}>
-          {#each R.turns as t (t.number)}
-            <!-- A turn's number, then its edges in two equal columns (Lichess's move list), each at least a move wide:
-                 with room to spare, the second edge starts halfway across. -->
-            <div class="grid grid-cols-[2.2rem_repeat(2,minmax(max-content,1fr))] items-baseline gap-x-1">
-              <span class="text-muted tabular-nums">{t.number}.</span>
-              {#each t.edges as e (e.index)}
-                {@const after = R.blueScore[e.index + 1]}
-                <!-- A move fills its column, and its lead is at the column's right edge (Lichess's move list). The move's
-                     text has one width, so a column is never narrower than the widest move: the widest in the notation
-                     is 10 characters, an edge with two-digit rows and the cut mark (D10-G10x, 8) and the widest glyph
-                     (??, 2), then the glyph's margin. The lead: at most 5 characters (+1.2k), smaller and right-aligned.
-                     The font is monospaced, so ch is one character of the span's own size. -->
-                <button class={["mv flex items-baseline gap-1 px-[0.2rem] py-px font-mono text-[0.95em] text-left whitespace-nowrap bg-transparent border-0",
-                                SIDE_TEXT[e.player], pos === e.index + 1 ? "here bg-panel-2 outline outline-accent" : "hover:bg-panel-2 hover:outline hover:outline-line"]}
-                        onclick={() => go(e.index + 1)}
-                        title={[e.label ? LABEL_TEXT[e.label] : "Not analysed yet", after !== undefined ? sideText(after) : ""].filter(Boolean).join(" · ")}>
-                  <span class="w-[calc(10ch+0.15em)]">{moveNotation(e)}{#if listed(e.label)}<span class="ml-[0.15em] font-extrabold" style:color="var(--{e.label})"><Glyph glyph={LABEL_GLYPH[e.label]} /></span>{/if}</span>
-                  <span class="w-[5ch] ml-auto text-[0.78em] text-right text-muted tabular-nums">{leadShort(after)}</span>
-                </button>
-              {/each}
-            </div>
-            {#each t.edges.filter(e => !!e.label && COMMENTED.includes(e.label)) as e (e.index)}
-              <div class="mt-0.5 mb-1.5 ml-10 text-sm text-muted">{explain(e)}</div>
-            {/each}
-          {/each}
-        </div>
-      {/if}
-    </div>
+    {#if wide.current}
+      <div class="flex flex-col flex-1 min-h-0 overflow-hidden">{@render analysisView()}</div>
+    {:else}
+      <!-- Below 1,260 pixels the Highlights and the Analysis share this column, as tabs. Bits UI gives them the tab
+           roles, the arrow keys and the focus. -->
+      <Tabs.Root value={stage} onValueChange={v => (stage = v as Stage)} class="flex flex-col flex-1 min-h-0">
+        <Tabs.List class="flex gap-1 mb-2">
+          <Tabs.Trigger value="highlights" class={TAB}>Highlights</Tabs.Trigger>
+          <Tabs.Trigger value="analysis" class={TAB}>Analysis</Tabs.Trigger>
+        </Tabs.List>
+        <Tabs.Content value="highlights" class="flex-1 min-h-0 overflow-y-auto">{@render highlights()}</Tabs.Content>
+        <Tabs.Content value="analysis" class="flex flex-col flex-1 min-h-0 overflow-hidden">{@render analysisView()}</Tabs.Content>
+      </Tabs.Root>
+    {/if}
 
     <!-- The step controls and the display menu, at the bottom of the analysis column (Lichess's place). -->
     <div class="mt-1.5 pt-1.5 border-t border-line">
@@ -592,35 +468,34 @@
           <button onclick={() => go(pos + 1)} aria-label="Forward">▶</button>
           <button onclick={() => go(last)} aria-label="Last">⏭</button>
         </div>
-        <div class="menu-wrap relative">
-          <button class="aria-expanded:border-accent aria-expanded:text-accent" aria-label="Display settings"
-                  aria-expanded={menuOpen} aria-haspopup="dialog" onclick={() => (menuOpen = !menuOpen)}>⚙</button>
-          {#if menuOpen}
+        <!-- A Bits UI popover: it moves the focus into the menu and back to the button, and closes on Escape or a click
+             outside it. -->
+        <Popover.Root>
+          <Popover.Trigger class="aria-expanded:border-accent aria-expanded:text-accent" aria-label="Display settings">⚙</Popover.Trigger>
+          <Popover.Content side="top" align="end" sideOffset={6} role="dialog" aria-label="Display settings"
+                           class="z-5 w-60 px-3 py-2.5 bg-panel-2 border border-muted/50 rounded-md shadow-[0_6px_20px_rgb(0_0_0/0.4)]
+                                  [&_fieldset]:grid [&_fieldset]:gap-1 [&_fieldset]:mb-2 [&_fieldset:last-child]:mb-0
+                                  [&_legend]:mb-0.5 [&_legend]:text-xs [&_legend]:font-semibold
+                                  [&_label]:flex [&_label]:items-center [&_label]:gap-1.5 [&_label]:text-sm [&_label]:cursor-pointer">
             <!-- Raised above the panel: a lighter surface, a clear border and a deep shadow. -->
-            <div class="absolute right-0 bottom-[calc(100%+0.4rem)] z-5 w-60 px-3 py-2.5 bg-panel-2 border border-muted/50 rounded-md shadow-[0_6px_20px_rgb(0_0_0/0.4)]
-                        [&_fieldset]:grid [&_fieldset]:gap-1 [&_fieldset]:mb-2 [&_fieldset:last-child]:mb-0
-                        [&_legend]:mb-0.5 [&_legend]:text-xs [&_legend]:font-semibold
-                        [&_label]:flex [&_label]:items-center [&_label]:gap-1.5 [&_label]:text-sm [&_label]:cursor-pointer"
-                 role="dialog" aria-label="Display settings">
-              <fieldset>
-                <legend>Win chance</legend>
-                <label><input type="radio" name="win" value="bar" bind:group={display.win} /> A bar above the board</label>
-                <label><input type="radio" name="win" value="gauge" bind:group={display.win} /> A gauge beside the board</label>
-              </fieldset>
-              <fieldset>
-                <legend>On the board</legend>
-                <label><input type="checkbox" bind:checked={display.layers.candidates} /> Candidates</label>
-                <label><input type="checkbox" bind:checked={display.layers.marks} /> Move labels</label>
-                <label><input type="checkbox" bind:checked={display.layers.regions} /> Regions</label>
-                <label><input type="checkbox" bind:checked={display.layers.protected} /> Protected edges</label>
-              </fieldset>
-              <fieldset>
-                <legend>Advantage chart</legend>
-                <label><input type="checkbox" bind:checked={display.scoreLine} /> Score so far</label>
-              </fieldset>
-            </div>
-          {/if}
-        </div>
+            <fieldset>
+              <legend>Win chance</legend>
+              <label><input type="radio" name="win" value="bar" bind:group={display.win} /> A bar above the board</label>
+              <label><input type="radio" name="win" value="gauge" bind:group={display.win} /> A gauge beside the board</label>
+            </fieldset>
+            <fieldset>
+              <legend>On the board</legend>
+              <label><input type="checkbox" bind:checked={display.layers.candidates} /> Candidates</label>
+              <label><input type="checkbox" bind:checked={display.layers.marks} /> Move labels</label>
+              <label><input type="checkbox" bind:checked={display.layers.regions} /> Regions</label>
+              <label><input type="checkbox" bind:checked={display.layers.protected} /> Protected edges</label>
+            </fieldset>
+            <fieldset>
+              <legend>Advantage chart</legend>
+              <label><input type="checkbox" bind:checked={display.scoreLine} /> Score so far</label>
+            </fieldset>
+          </Popover.Content>
+        </Popover.Root>
       </div>
     </div>
   </section>
@@ -628,7 +503,7 @@
   <section class="under">
     <div bind:this={chartBox}>
       <AdvantageChart blueWin={R.blueWin} {scoreDiff} current={pos} showScore={display.scoreLine} tips={chartTips}
-             moments={(stage === "walk" ? moments : R.keyMoments).map(m => ({ index: m.index, label: m.label! }))} onjump={go} />
+             moments={R.keyMoments.map(m => ({ index: m.index, label: m.label! }))} onjump={go} />
     </div>
     <p class="flex flex-wrap items-center gap-2.5 my-3.75 text-xs text-muted">
       <strong>Advantage chart</strong>
