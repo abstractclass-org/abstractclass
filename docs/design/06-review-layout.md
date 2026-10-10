@@ -37,7 +37,10 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
    - **One column below 800 pixels:** the board, then the right column's content.
    - **Widths:** the summary column 250 to 350 pixels (Lichess's side column). The analysis column 340 to 460 pixels:
      wider than Lichess's 240 to 400, because its candidates table has five columns and a scroll bar.
-   - **Height:** the analysis column is as high as the board's column. Its move list takes the height that is left.
+   - **Height:** the side columns (the summary and the analysis) reach down to the Advantage chart's bottom edge when
+     the whole chart is in the window, so that the columns end on one line. The chart's legend stays below that line,
+     as a caption. When the chart does not fit in the window (the board fills the height), the side columns are as
+     high as the board's column, so that the step controls stay in view. The move list takes the height that is left.
 3. **Under the board:** the Advantage chart and its legend, as Lichess puts its chart under the board. It is below the
    fold when the board fills the height.
 4. **The step controls** (first, back, forward, last), the status line and the display menu are a bar at the bottom of
@@ -46,12 +49,16 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
    - **A bar above the board** (the default): Blue on the left, Red on the right, as the players start. The players'
      names and scores flank it in one row.
    - **A vertical gauge beside the board** (the option, as Lichess and chess.com draw it): Blue's share from the
-     bottom, each side's percentage inside the gauge at its own end (Red's at the top, Blue's at the bottom), in small
-     text, as the bar shows them at its ends. The board then gets the full height. The players' names and scores go to the top of the summary column
-     (three columns), or to the top of the right column (fewer).
+     bottom, each side's percentage inside the gauge at its own end (Red's at the top, Blue's at the bottom), as the
+     bar shows them at its ends. The percentages are small and written up the gauge, so the gauge is 1rem wide. A
+     percentage shows when its side's part of the gauge is long enough for it. The players' names and scores stay in
+     the row above the board, Blue on the left and Red on the right, as the players start, from the board's edge and
+     with nothing between them. A list of the players, Blue above Red, would put Blue above Red next to a gauge that
+     puts Blue below Red.
 6. **Display settings** are in a menu on the review page, opened from a button in the step controls' bar, as
    Lichess's analysis menu: the win chance's form, the board's layers (candidates, move labels, regions, protected
-   edges) and the chart's score line. They are kept in this browser (no accounts yet). A settings page for the whole
+   edges) and the chart's score line. The menu is raised above the panel (a lighter surface, a border and a shadow),
+   and the button shows that it is open. The settings are kept in this browser (no accounts yet). A settings page for the whole
    site can come later, when puzzles and lessons have settings too.
 7. **The progress bars go by subject:** the position's search bar is in the position's engine header, at the top of
    the analysis (with the expected final margin, the lead and the visits). The review's progress bar is at the top of
@@ -66,7 +73,7 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
 - **The controls sit where the eye is.** The step controls by the move list keep the board's column free and the board
   large.
 - **The bar is the default** because the players start on the left and the right of the board: a horizontal bar
-  matches the board's sides. The gauge saves height for those who prefer it.
+  matches the board's sides. The gauge is for those who prefer it.
 
 ## Alternatives
 
@@ -74,7 +81,9 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
 - **Two columns with the chart in the right panel** (chess.com's review): nothing under the board, but the summary
   and the analysis still share one panel.
 - **Three columns at every width:** narrow windows would get a small board.
-- **The vertical gauge as the default:** more board height, but the bar matches the game's left and right sides.
+- **The vertical gauge as the default:** the bar matches the game's left and right sides.
+- **The players at the top of the summary column with the gauge,** to give the board the row's height (2.1rem): the
+  list put Blue above Red, against the gauge's Blue below Red.
 - **A settings page for the site:** one place for every choice, but a page away while reviewing.
 
 ## Consequences

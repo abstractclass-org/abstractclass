@@ -1,10 +1,10 @@
 <script lang="ts" module>
-  import type { Edge, Label, Position } from "#lib/review/model.ts";
+  import type { Edge, Glyph, Label, Position } from "#lib/review/model.ts";
 
   /** An engine candidate: its rank (1 is the engine's first choice) and a note shown on hover. */
   export interface BoardCandidate { edge: Edge; rank: number; note: string }
   /** A label badge on a played edge, at its midpoint: an end point is a node that several edges share. */
-  export interface BoardMark { edge: Edge; label: Label; glyph: string }
+  export interface BoardMark { edge: Edge; label: Label; glyph: Glyph }
   export interface BoardLayers { regions: boolean; protected: boolean; candidates: boolean; marks: boolean; coordinates: boolean }
   export const DEFAULT_LAYERS: BoardLayers = { regions: true, protected: true, candidates: true, marks: true, coordinates: true };
 </script>
@@ -72,7 +72,12 @@
   {@const [bx, by] = mid(m.edge)}
   <g class="mark">
     <circle cx={bx} cy={by} r="0.36" style:fill="var(--{m.label})" />
-    <text x={bx} y={by + 0.14}>{m.glyph}</text>
+    {#if typeof m.glyph === "string"}
+      <text x={bx} y={by + 0.14}>{m.glyph}</text>
+    {:else}
+      <!-- The icon's 24-unit square, 0.4 units wide, centred on the badge. -->
+      <path d={m.glyph.path} transform="translate({bx - 0.2} {by - 0.2}) scale({0.4 / 24})" />
+    {/if}
   </g>
 {/snippet}
 
@@ -248,6 +253,7 @@
   /* Label badges on the turn just played. */
   .mark circle { stroke: var(--board-bg); stroke-width: 0.06; }
   .mark text { font-size: 0.4px; fill: var(--on-badge); text-anchor: middle; font-weight: 800; font-family: system-ui, sans-serif; }
+  .mark path { fill: var(--on-badge); }
 
   .pending { fill: none; stroke: var(--last); stroke-width: 0.1; }
   .hit { fill: transparent; cursor: crosshair; }

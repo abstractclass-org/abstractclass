@@ -344,3 +344,67 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   - At 1,000 and 390 pixels wide, the same.
   - With a larger root font: at 17 pixels the names are whole. At 18 pixels the text is 13.2 pixels. From 19 pixels
     the text reaches its least size and the longest names are cut. From 18 pixels some accuracy labels wrap.
+
+### The review's marks, gauge and display menu (2026-10-10)
+
+- **The accuracy and the average points lost have one decimal** (90.3, 13.4), as chess.com shows its accuracy.
+- **Excellent's mark is a thumbs-up, and Good keeps the check mark,** as on chess.com. Before, both had a check mark.
+  Good's badge is green too (`#8fb57a`, from a grey olive): the lightest of the three greens after Best and Excellent,
+  as chess.com's Good is a muted green.
+  A label's mark is now a character or an icon (`LABEL_GLYPH` in `src/lib/review/model.ts`). `Glyph.svelte` draws it
+  in the page, and the board draws the icon's path in its badge. The icon is Material Design Icons' `thumb_up`
+  (Google, Apache License 2.0), filled, because an outline is hard to read at the badge's size.
+- **The gauge is 1rem wide, from 2rem.** Its percentages are written up the gauge, at 9.6 pixels, semibold, with
+  0.1em between the characters. In bold with no spacing, the digits ran together at that size. A percentage shows
+  when its side's part of the gauge is at least 40 pixels long. Before, it showed when the share was at least 6%, a
+  rule for text written across.
+- **The display menu is raised above the panel:** the lighter surface (`bg-panel-2`), a border in the muted colour,
+  and a deeper shadow. Before, it had the panel's own surface and border, and in dark mode it did not stand out. The
+  gear button has the accent colour while the menu is open.
+- **Checked in Edge** at 1,380 × 952, in dark mode and with the light tokens set on the page: the badges, the
+  decimals, the gauge (16 pixels wide, each percentage 31 pixels long, centred, and 5 pixels from its end), and the
+  menu over the move list.
+- **The badges in the text have the board's proportions:** the mark is 56% of the circle (on the board, 0.4 in 0.72),
+  in bold. Before, the mark was 77% of the circle (the thumbs-up 85%) in extra bold, and it looked too large and too
+  heavy next to the board's badges. In the summary's table the circle is 16 pixels and the mark 9 pixels.
+- **No font is used for the thumbs-up.** Only emoji fonts have the character (U+1F44D), in colour, and a request for
+  the plain text form is ignored on many systems. A web font (Noto Emoji, Material Symbols) would add a download for
+  one mark. The SVG path draws the same everywhere.
+- **Chess.com's own icon files are not used.** They are on chess.com's servers, but chess.com gives no licence to use
+  them. The marks follow chess.com's set with free equivalents instead.
+
+### The side columns reach the chart (2026-10-10)
+
+- **Decided** (design [06-review-layout.md](../design/06-review-layout.md), "Height"): when the whole Advantage chart is
+  in the window, the summary and the analysis columns reach down to the chart's bottom edge, so that the three columns
+  end on one line. Before, they ended at the board's bottom, and the chart stood alone under the board.
+- **The line is the chart's edge, not its legend.** The chart is a box, so its bottom edge lines up with the columns'
+  edges. The legend is text with no edge, and it reads as the chart's caption under the line.
+- **When the chart does not fit in the window,** the board fills the height and the chart is below the fold. The side
+  columns then keep the board's height, so that the step controls at the bottom of the analysis column stay in view.
+  A column that ended in the middle of the chart would line up with nothing.
+- **How:** the page measures the chart's bottom against the window's height when the window, the layout or the win
+  chance's form changes (`reach` in `ReviewView.svelte`). With `reach`, the side columns span the chart's row, with a
+  set height (the board's column, the gap, and the chart's 7.5rem), so they do not make the rows taller. Below 800
+  pixels (one column) nothing changes.
+- **Checked in Edge:** at 1,380 × 904 the three columns end at 865 pixels. In frames: 1,380 × 1,000 the same; 1,000 ×
+  880 (two columns) the analysis column ends at the chart's bottom; 1,380 × 800 (the chart does not fit) the columns
+  end at the board's bottom, as before.
+
+### The players above the board with the gauge, and the move list's columns (2026-10-10)
+
+- **The players stay in the row above the board in the gauge form too,** Blue on the left and Red on the right, from
+  the board's edge, with nothing between them. Before, the gauge form listed them at the top of the summary column,
+  Blue above Red, next to a gauge with Blue below Red. The row costs the board 2.1rem of height in the gauge form.
+- **The chart is in the window when its bottom edge is,** not its bottom edge and the page's margin under it. With the
+  row above the board, the chart ended at 898 pixels in a 904-pixel window, and the margin would have kept the side
+  columns from reaching it.
+- **The move list's turns are a grid,** as Lichess's move list: the turn's number (2.2rem), then two equal columns, each
+  at least a move wide (`minmax(max-content, 1fr)`). With room to spare the second edge starts halfway across. At the
+  analysis column's least width nothing changes. Measured in Edge: the second edge starts 227 pixels into a 411-pixel
+  list (1,900 × 1,000), 177 into 311 (1,000 × 880), and 169 into 294 (390 × 900), with no scroll across.
+- **A move fills its column, and its lead is at the column's right edge,** as in Lichess's move list, where each move's
+  evaluation is at the right of its cell. The highlight of the current move and of the move under the pointer covers
+  the whole cell (184 pixels at 1,900 × 1,000).
+- **Checked in Edge** at 1,380 × 904: the players' row has the board's edges (311 to 987 pixels), and the three columns
+  end at the chart's bottom (898 pixels).

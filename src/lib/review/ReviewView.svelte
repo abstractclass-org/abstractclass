@@ -11,12 +11,14 @@
   // yet shows none. The layout is design 06 (docs/design/06-review-layout.md): the board fills the window's height,
   // with the summary on its left from 1,260 pixels (Lichess's three columns), and the analysis on its right.
   import { MediaQuery } from "svelte/reactivity";
+  import { innerHeight, innerWidth } from "svelte/reactivity/window";
   import Board, { type BoardCandidate, type BoardMark } from "#lib/board/Board.svelte";
   import { EdgeInput } from "#lib/board/edgeInput.svelte.ts";
   import Swatch from "#lib/ui/Swatch.svelte";
   import { SIDE_TEXT } from "#lib/ui/side.ts";
   import AdvantageChart from "./AdvantageChart.svelte";
   import { loadDisplay, saveDisplay } from "./display.ts";
+  import Glyph from "./Glyph.svelte";
   import {
     explain, edgeName, moveName, moveNotation, sameEdge, moverWin, moverScore, largest, lossText, lossPhrase, pct, gradeTry,
     shownCandidates, LABELS, LABEL_TEXT, LABEL_GLYPH, PLAYER_NAME, type Edge, type Label, type Player, type Review,
@@ -33,11 +35,13 @@
   const last = $derived(R.data.positions.length - 1);
   const TABLE_ROWS = 5; // the Analysis table shows this many rows and scrolls, so the move list under it does not move
   const ROW_EM = 1.9; // a table row's height, in em
-  const GAUGE_TEXT_ROOM = 0.06; // a side's share of the gauge that has room for its percentage
+  const GAUGE_TEXT_PX = 40; // the length of a side's part of the gauge that has room for its percentage, written up
   // Class lists used in several places.
   const PANEL = "min-w-0 px-4 py-3 bg-panel border border-line rounded-md";
-  const BADGE = "inline-flex items-center justify-center min-w-[1.3em] h-[1.3em] px-[0.15em] rounded-full text-[0.78em] font-extrabold text-on-badge";
-  const GAUGE_TEXT = "absolute inset-x-0 text-center text-[0.6rem] font-bold text-white tabular-nums";
+  // A label's badge in the text. Its mark is 56% of the circle, as on the board (0.4 in 0.72), and bold, not extra bold,
+  // because small text in heavy weights runs together.
+  const BADGE = "inline-flex items-center justify-center min-w-[1.8em] h-[1.8em] px-[0.2em] rounded-full text-[0.64em] font-bold text-on-badge";
+  const GAUGE_TEXT = "absolute left-1/2 -translate-x-1/2 rotate-180 [writing-mode:vertical-rl] text-[0.6rem] leading-none font-semibold tracking-[0.1em] text-white tabular-nums";
   const tab = (on: boolean) => ["flex-1 bg-transparent border-transparent border-b-2 rounded-none", on ? "border-b-accent font-semibold" : "border-b-line"];
 
   type Stage = "highlights" | "walk" | "analysis";
@@ -52,6 +56,18 @@
   const display = $state(loadDisplay());
   $effect(() => saveDisplay($state.snapshot(display)));
   let menuOpen = $state(false);
+  let gaugeHeight = $state(0);
+  // The side columns reach down to the Advantage chart's bottom edge when the whole chart is in the window, so that
+  // the columns end on one line. When the board fills the window's height, the chart is below the fold: the side
+  // columns then keep the board's height, so that the step controls stay in view. The chart's place depends only on
+  // the board's column, so reaching down does not move it.
+  let chartBox = $state<HTMLElement>();
+  let reach = $state(false);
+  $effect(() => {
+    void innerWidth.current; void wide.current; void display.win;
+    const height = innerHeight.current;
+    if (chartBox && height !== undefined) reach = chartBox.getBoundingClientRect().bottom + window.scrollY <= height;
+  });
   function onwindowclick(ev: MouseEvent) {
     if (menuOpen && !(ev.target instanceof Element && ev.target.closest(".menu-wrap"))) menuOpen = false;
   }
@@ -243,7 +259,7 @@
 
 <svelte:window {onkeydown} onclick={onwindowclick} />
 
-<!-- The top of the side panel: the review's progress or an engine error, and the players when the gauge shows. -->
+<!-- The top of the side panel: the review's progress or an engine error. -->
 {#snippet panelHead()}
   {#if problem}
     <p class="mb-2.5 text-sm text-blunder" role="alert">Engine error: {problem}</p>
@@ -260,17 +276,16 @@
       <p class="mt-1 text-xs text-muted">{progress.text}</p>
     </div>
   {/if}
-  {#if display.win === "gauge"}<div class="grid gap-1 mb-2.5">{@render player(0, false)}{@render player(1, false)}</div>{/if}
 {/snippet}
 
-<!-- A player's name, side and score: in the bar above the board (`strip`), facing the other player, or in a list. -->
-{#snippet player(p: Player, strip: boolean)}
-  <div class={["flex items-baseline gap-1.5 px-1.5 py-0.5 rounded min-w-0", strip && "max-w-64", strip && p === 1 && "flex-row-reverse",
+<!-- A player's name, side and score, in the row above the board, facing the other player. -->
+{#snippet player(p: Player)}
+  <div class={["flex items-baseline gap-1.5 px-1.5 py-0.5 rounded min-w-0 max-w-64", p === 1 && "flex-row-reverse",
                pos < last && mover === p && "bg-panel-2 shadow-[inset_0_-2px_0_var(--last)]"]}>
     <Swatch player={p} />
     <span class="font-semibold truncate">{p === 0 ? R.data.players.blue : R.data.players.red}</span>
     <span class="text-xs text-muted">{PLAYER_NAME[p]}</span>
-    <span class={["text-sm text-muted tabular-nums whitespace-nowrap", !strip && "ml-auto"]}>
+    <span class="text-sm text-muted tabular-nums whitespace-nowrap">
       <strong class="text-[1.1em] text-ink">{fmtScore(position.scores[p])}</strong> points
     </span>
   </div>
@@ -298,15 +313,15 @@
                    "[&_td+td]:whitespace-nowrap [&_td+td]:tabular-nums", progress && "[&_td+td]:italic [&_td+td]:text-muted"]}>
       <tr class="text-[1.1em] font-bold">
         <td>Accuracy</td>
-        {#each R.summary as s, p (p)}<td>{Number.isNaN(s.accuracy) ? "–" : s.accuracy.toFixed(0)}</td>{/each}
+        {#each R.summary as s, p (p)}<td>{Number.isNaN(s.accuracy) ? "–" : s.accuracy.toFixed(1)}</td>{/each}
       </tr>
       <tr>
         <td title="Points lost an edge, on average">Avg pts lost</td>
-        {#each R.summary as s, p (p)}<td>{s.meanPointsLost?.toFixed(0) ?? "–"}</td>{/each}
+        {#each R.summary as s, p (p)}<td>{s.meanPointsLost?.toFixed(1) ?? "–"}</td>{/each}
       </tr>
       {#each LABELS as l (l)}
         <tr>
-          <td><span class={BADGE} style:background="var(--{l})">{LABEL_GLYPH[l]}</span> {LABEL_TEXT[l]}</td>
+          <td><span class={BADGE} style:background="var(--{l})"><Glyph glyph={LABEL_GLYPH[l]} /></span> {LABEL_TEXT[l]}</td>
           {#each R.summary as s, p (p)}<td>{s.counts[l]}</td>{/each}
         </tr>
       {/each}
@@ -317,7 +332,7 @@
     {#each R.keyMoments as m (m.index)}
       <li>
         <button class="px-0 py-0.5 text-left bg-transparent border-0 hover:text-accent" onclick={() => startWalk(0, m.index)}>
-          <span class={BADGE} style:background="var(--{m.label})">{LABEL_GLYPH[m.label!]}</span>
+          <span class={BADGE} style:background="var(--{m.label})"><Glyph glyph={LABEL_GLYPH[m.label!]} /></span>
           <span class="font-mono text-[0.95em] {SIDE_TEXT[m.player]}">{moveText(m.index)}</span>
           <span class="ml-1 text-sm text-muted">{lossText(m)}</span>
         </button>
@@ -327,7 +342,7 @@
   <button class="btn-primary" onclick={() => startWalk(0)}>Learn from your mistakes</button>
 {/snippet}
 
-<main class={["review", wide.current && "wide", display.win === "gauge" && "gauge-mode"]}>
+<main class={["review", wide.current && "wide", display.win === "gauge" && "gauge-mode", reach && "reach"]}>
   {#if wide.current}
     <aside class="summary-col {PANEL} overflow-y-auto">
       {@render panelHead()}
@@ -336,11 +351,12 @@
   {/if}
 
   <section class="board-col">
-    {#if display.win === "bar"}
-      <!-- The players face each other left and right, as they start: Blue at A10-D10, Red at Q10-T10. -->
-      <div class="grid grid-cols-[auto_minmax(6rem,1fr)_auto] items-center gap-2 h-[calc(var(--strip)-0.5rem)] mb-2"
-           aria-label="Players, scores and win chance">
-        {@render player(0, true)}
+    <!-- The players face each other left and right, as they start: Blue at A10-D10, Red at Q10-T10. The win-chance bar
+         is between them. With the gauge, the row keeps the players, and starts after the gauge, at the board's edge. -->
+    <div class="grid grid-cols-[auto_minmax(6rem,1fr)_auto] items-center gap-2 h-[calc(var(--strip)-0.5rem)] mb-2 ml-(--gauge-w)"
+         aria-label={display.win === "bar" ? "Players, scores and win chance" : "Players and scores"}>
+      {@render player(0)}
+      {#if display.win === "bar"}
         <div class={["flex h-[1.15rem] rounded-[3px] overflow-hidden", Number.isNaN(blueWin) ? "items-center justify-center bg-panel-2" : "bg-red"]}
              title="Win chance from the engine's search">
           {#if !Number.isNaN(blueWin)}
@@ -354,20 +370,23 @@
             <span class="text-xs text-muted">not analysed yet</span>
           {/if}
         </div>
-        {@render player(1, true)}
-      </div>
-    {/if}
+      {:else}
+        <div></div>
+      {/if}
+      {@render player(1)}
+    </div>
     <div class="flex">
       {#if display.win === "gauge"}
         <!-- Lichess's and chess.com's gauge: Blue's share from the bottom. -->
-        <div class={["relative flex flex-col-reverse flex-none self-stretch w-8 mr-2 rounded-[3px] overflow-hidden", Number.isNaN(blueWin) ? "bg-panel-2" : "bg-red"]}
-             role="img" aria-label={Number.isNaN(blueWin) ? "Win chance: not analysed yet" : `Blue's win chance ${pct(blueWin)}`}>
+        <div class={["relative flex flex-col-reverse flex-none self-stretch w-4 mr-1.5 rounded-[3px] overflow-hidden", Number.isNaN(blueWin) ? "bg-panel-2" : "bg-red"]}
+             role="img" aria-label={Number.isNaN(blueWin) ? "Win chance: not analysed yet" : `Blue's win chance ${pct(blueWin)}`}
+             bind:clientHeight={gaugeHeight}>
           {#if !Number.isNaN(blueWin)}
             <div class="bg-blue transition-[height] duration-200" style="height: {100 * blueWin}%"></div>
-            <!-- Each side's share at its own end, inside the gauge, as the bar shows them at its ends. Small, so that
-                 "50.0%" fits the gauge's width. -->
-            {#if blueWin <= 1 - GAUGE_TEXT_ROOM}<span class="{GAUGE_TEXT} top-1.25">{pct(1 - blueWin)}</span>{/if}
-            {#if blueWin >= GAUGE_TEXT_ROOM}<span class="{GAUGE_TEXT} bottom-1.25">{pct(blueWin)}</span>{/if}
+            <!-- Each side's share at its own end, inside the gauge, as the bar shows them at its ends. Small and written
+                 up the gauge, so that the gauge can be narrow. -->
+            {#if (1 - blueWin) * gaugeHeight >= GAUGE_TEXT_PX}<span class="{GAUGE_TEXT} top-1.25">{pct(1 - blueWin)}</span>{/if}
+            {#if blueWin * gaugeHeight >= GAUGE_TEXT_PX}<span class="{GAUGE_TEXT} bottom-1.25">{pct(blueWin)}</span>{/if}
           {/if}
         </div>
       {/if}
@@ -454,7 +473,7 @@
           <div class="grid gap-2 px-3 py-2.75 bg-panel-2 rounded-md">
             <p>
               Edge {m.index + 1}: {PLAYER_NAME[m.player]} played <strong>{moveName(m.edge)}</strong>
-              <span class={BADGE} style:background="var(--{m.label})">{LABEL_GLYPH[m.label!]}</span>
+              <span class={BADGE} style:background="var(--{m.label})"><Glyph glyph={LABEL_GLYPH[m.label!]} /></span>
               and lost {lossPhrase(m)}.
             </p>
             {#if !atMoment}
@@ -535,20 +554,23 @@
         </div>
         <div class="movelist flex-1 min-h-0 overflow-y-auto pt-1.5 text-sm border-t border-line" bind:this={movelist}>
           {#each R.turns as t (t.number)}
-            <div class="flex items-baseline gap-1">
-              <span class="flex-none w-[2.2rem] text-muted tabular-nums">{t.number}.</span>
+            <!-- A turn's number, then its edges in two equal columns (Lichess's move list), each at least a move wide:
+                 with room to spare, the second edge starts halfway across. -->
+            <div class="grid grid-cols-[2.2rem_repeat(2,minmax(max-content,1fr))] items-baseline gap-x-1">
+              <span class="text-muted tabular-nums">{t.number}.</span>
               {#each t.edges as e (e.index)}
                 {@const after = R.blueScore[e.index + 1]}
-                <!-- Every move has one width, so the columns line up. The move: the widest in the notation is 10
-                     characters, an edge with two-digit rows and the cut mark (D10-G10x, 8) and the widest glyph (??, 2),
-                     then the glyph's margin. The lead after it: at most 5 characters (+1.2k), smaller and right-aligned.
+                <!-- A move fills its column, and its lead is at the column's right edge (Lichess's move list). The move's
+                     text has one width, so a column is never narrower than the widest move: the widest in the notation
+                     is 10 characters, an edge with two-digit rows and the cut mark (D10-G10x, 8) and the widest glyph
+                     (??, 2), then the glyph's margin. The lead: at most 5 characters (+1.2k), smaller and right-aligned.
                      The font is monospaced, so ch is one character of the span's own size. -->
-                <button class={["mv inline-flex flex-none items-baseline gap-1 px-[0.2rem] py-px font-mono text-[0.95em] text-left whitespace-nowrap bg-transparent border-0",
+                <button class={["mv flex items-baseline gap-1 px-[0.2rem] py-px font-mono text-[0.95em] text-left whitespace-nowrap bg-transparent border-0",
                                 SIDE_TEXT[e.player], pos === e.index + 1 ? "here bg-panel-2 outline outline-accent" : "hover:bg-panel-2 hover:outline hover:outline-line"]}
                         onclick={() => go(e.index + 1)}
                         title={[e.label ? LABEL_TEXT[e.label] : "Not analysed yet", after !== undefined ? sideText(after) : ""].filter(Boolean).join(" · ")}>
-                  <span class="w-[calc(10ch+0.15em)]">{moveNotation(e)}{#if listed(e.label)}<span class="ml-[0.15em] font-extrabold" style:color="var(--{e.label})">{LABEL_GLYPH[e.label]}</span>{/if}</span>
-                  <span class="w-[5ch] text-[0.78em] text-right text-muted tabular-nums">{leadShort(after)}</span>
+                  <span class="w-[calc(10ch+0.15em)]">{moveNotation(e)}{#if listed(e.label)}<span class="ml-[0.15em] font-extrabold" style:color="var(--{e.label})"><Glyph glyph={LABEL_GLYPH[e.label]} /></span>{/if}</span>
+                  <span class="w-[5ch] ml-auto text-[0.78em] text-right text-muted tabular-nums">{leadShort(after)}</span>
                 </button>
               {/each}
             </div>
@@ -571,10 +593,11 @@
           <button onclick={() => go(last)} aria-label="Last">⏭</button>
         </div>
         <div class="menu-wrap relative">
-          <button aria-label="Display settings" aria-expanded={menuOpen} aria-haspopup="dialog"
-                  onclick={() => (menuOpen = !menuOpen)}>⚙</button>
+          <button class="aria-expanded:border-accent aria-expanded:text-accent" aria-label="Display settings"
+                  aria-expanded={menuOpen} aria-haspopup="dialog" onclick={() => (menuOpen = !menuOpen)}>⚙</button>
           {#if menuOpen}
-            <div class="absolute right-0 bottom-[calc(100%+0.4rem)] z-5 w-60 px-3 py-2.5 bg-panel border border-line rounded-md shadow-[0_4px_14px_rgb(0_0_0/0.25)]
+            <!-- Raised above the panel: a lighter surface, a clear border and a deep shadow. -->
+            <div class="absolute right-0 bottom-[calc(100%+0.4rem)] z-5 w-60 px-3 py-2.5 bg-panel-2 border border-muted/50 rounded-md shadow-[0_6px_20px_rgb(0_0_0/0.4)]
                         [&_fieldset]:grid [&_fieldset]:gap-1 [&_fieldset]:mb-2 [&_fieldset:last-child]:mb-0
                         [&_legend]:mb-0.5 [&_legend]:text-xs [&_legend]:font-semibold
                         [&_label]:flex [&_label]:items-center [&_label]:gap-1.5 [&_label]:text-sm [&_label]:cursor-pointer"
@@ -603,8 +626,10 @@
   </section>
 
   <section class="under">
-    <AdvantageChart blueWin={R.blueWin} {scoreDiff} current={pos} showScore={display.scoreLine} tips={chartTips}
-           moments={(stage === "walk" ? moments : R.keyMoments).map(m => ({ index: m.index, label: m.label! }))} onjump={go} />
+    <div bind:this={chartBox}>
+      <AdvantageChart blueWin={R.blueWin} {scoreDiff} current={pos} showScore={display.scoreLine} tips={chartTips}
+             moments={(stage === "walk" ? moments : R.keyMoments).map(m => ({ index: m.index, label: m.label! }))} onjump={go} />
+    </div>
     <p class="flex flex-wrap items-center gap-2.5 my-3.75 text-xs text-muted">
       <strong>Advantage chart</strong>
       <span class="inline-block w-[1.2em] h-0.5 bg-ink"></span> Blue's win chance
@@ -620,6 +645,8 @@
      candidates table. The rest of the page's styles are Tailwind classes in the markup. */
   .review {
     --gap: 1.25rem;
+    --row-gap: 0.8rem;
+    --chart: 7.5rem; /* the Advantage chart's height (h-30 in AdvantageChart.svelte) */
     --strip: 2.1rem; /* the bar above the board, with its margin */
     --gauge-w: 0px;
     --summary-min: 250px;
@@ -634,13 +661,13 @@
     display: grid;
     grid-template-columns: calc(var(--board) + var(--gauge-w)) minmax(var(--side-min), var(--side-max));
     grid-template-areas: "board side" "under .";
-    gap: 0.8rem var(--gap);
+    gap: var(--row-gap) var(--gap);
     justify-content: center;
     align-items: start;
     margin: 1rem auto;
     padding: 0 1rem;
   }
-  .review.gauge-mode { --strip: 0px; --gauge-w: 2.5rem; }
+  .review.gauge-mode { --gauge-w: 1.375rem; } /* the gauge (w-4) and its margin (mr-1.5) */
   .review.wide {
     --others: calc(var(--summary-min) + var(--side-min) + 2 * var(--gap));
     grid-template-columns: minmax(var(--summary-min), var(--summary-max)) calc(var(--board) + var(--gauge-w))
@@ -653,6 +680,16 @@
   /* The analysis column is as high as the board's column; the move list takes what is left. */
   .side { grid-area: side; height: calc(var(--strip) + var(--board)); }
   .under { grid-area: under; min-width: 0; }
+  /* With the whole chart in the window (reach, set in the script), the side columns span the chart's row too, and end
+     at the chart's bottom edge. Their height is set, so they do not make the rows taller. */
+  @media (min-width: 800px) {
+    .review.reach { grid-template-areas: "board side" "under side"; }
+    .review.wide.reach { grid-template-areas: "summary board side" "summary under side"; }
+    .review.reach .side, .review.reach .summary-col {
+      height: calc(var(--strip) + var(--board) + var(--row-gap) + var(--chart));
+      max-height: none;
+    }
+  }
   /* One column below 800 pixels (Lichess's $small): the board as wide as the window, then the analysis. */
   @media (max-width: 799px) {
     .review, .review.wide {
