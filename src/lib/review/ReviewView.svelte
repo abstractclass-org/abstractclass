@@ -1,7 +1,7 @@
 <script lang="ts" module>
   /** The review in progress: what the engine does now, and the passes as parts of one bar, each with its share of the
-   *  work (by visits) and how much of it is done (0 to 1). */
-  export interface ReviewProgress { text: string; parts: { share: number; done: number }[] }
+   *  work (by visits) and how much of it is done (0 to 1). `waiting`: no work runs (the engine is off). */
+  export interface ReviewProgress { text: string; parts: { share: number; done: number }[]; waiting?: boolean }
 </script>
 
 <script lang="ts">
@@ -13,6 +13,9 @@
   import { MediaQuery } from "svelte/reactivity";
   import { innerHeight, innerWidth } from "svelte/reactivity/window";
   import type { BranchNode } from "#lib/analysis/game.svelte.ts";
+  import { CUSTOM_REVIEW, DEPTHS, NETWORKS, REVIEW_PRESETS, TIME_LIMITS, maxWorkers, nearestStep, type EngineSettings,
+           type ReviewDepth }
+    from "#lib/analysis/engineSettings.ts";
   import Board, { type BoardCandidate, type BoardLineEdge, type BoardMark } from "#lib/board/Board.svelte";
   import { EdgeInput, type EdgeRules } from "#lib/board/edgeInput.svelte.ts";
   import { parseEdge } from "#lib/engine/notation.ts";
@@ -42,9 +45,12 @@
     onjudge?: (path: string[]) => Promise<void>; // evaluates a branch move's quality: searches its two positions
     labelVisits?: number; // the label budget: a move is judged once both its positions have this many visits
     searching?: boolean; // the position on screen is being searched now
+    timedOut?: boolean; // the position on screen's search stopped at its time limit
+    engine?: EngineSettings; // the engine's settings (design 09), shown in the settings panel
+    onengine?: (change: Partial<EngineSettings>) => void; // a setting changed in the panel
   }
   let { R, progress = null, problem = "", deepVisits = 0, onposition, lineSteps, branches = {}, onplay, rulesAt, ondelete,
-        onpromote, onjudge, labelVisits = 0, searching = false }: Props = $props();
+        onpromote, onjudge, labelVisits = 0, searching = false, timedOut = false, engine, onengine }: Props = $props();
   const last = $derived(R.data.positions.length - 1);
   const TABLE_ROWS = 5; // the Analysis table shows this many rows and scrolls, so the move list under it does not move
   const ROW_EM = 1.9; // a table row's height, in em
@@ -73,6 +79,10 @@
   const display = $state(loadDisplay());
   $effect(() => saveDisplay($state.snapshot(display)));
   let settingsOpen = $state(false);
+  // The engine's settings (design 09) open under the engine header, from its gear, as Lichess's open from the gear in
+  // its engine box: the header's values and its search bar stay in view while they change. The display settings take the
+  // header's place, so one panel shows at a time.
+  let engineOpen = $state(false);
   let gaugeHeight = $state(0);
   // The row above the board is one line high, or two in a narrow row: the board and the side columns take its height.
   let stripHeight = $state(0);
@@ -457,14 +467,15 @@
   // other analysis tools. ← and → along the line (k and j, Lichess's); at a fork ↑ and ↓ pick the line that → follows,
   // elsewhere they go to the start and the end; the previous and the next fork by Shift + ← and →, b and n (KaTrain's b
   // goes back to the last branch point), [ and ], or Shift + k and j (Lichess's); the line before and after this one by
-  // Shift + ↑ and ↓, x and c (En Croissant's), or comma and period; Space plays the engine's choice. Escape closes the
-  // settings, or drops an edge begun. Keys kept free for later: m and Shift + m (the next and the previous mistake,
+  // Shift + ↑ and ↓, x and c (En Croissant's), or comma and period; Space plays the engine's choice; l turns the engine
+  // on or off (Lichess's). Escape closes the settings, or drops an edge begun. Keys kept free for later: m and Shift + m (the next and the previous mistake,
   // KaTrain's n), and Delete.
   let keysOpen = $state(false);
   function onkeydown(ev: KeyboardEvent) {
     if (ev.defaultPrevented || ev.target instanceof HTMLInputElement || ev.ctrlKey || ev.metaKey || ev.altKey) return;
     if (ev.key === "Escape") {
       if (settingsOpen) settingsOpen = false;
+      else if (engineOpen) engineOpen = false;
       else if (input.pending) input.reset();
       else return;
       ev.preventDefault();
@@ -476,6 +487,7 @@
     const kids = childrenOf(path);
     const line = (step: 1 | -1) => { const l = siblingLine(path, childrenOf, step); if (l) setPath(l); };
     if (key === "?" || (key === "/" && shift)) keysOpen = !keysOpen;
+    else if (key === "l" && engine && onengine) onengine({ on: !engine.on });
     else if ((key === "ArrowLeft" && shift) || key === "b" || key === "[" || (key === "k" && shift)) setPath(prevFork(path, childrenOf));
     else if ((key === "ArrowRight" && shift) || key === "n" || key === "]" || (key === "j" && shift)) setPath(nextFork(path, childrenOf));
     else if ((key === "ArrowUp" && shift) || key === "x" || key === ",") line(-1);
@@ -502,6 +514,7 @@
     [["Shift + ↑ / ↓", "x / c", ", / ."], "The line before and after this one, from the fork above"],
     [["Home / End"], "The start, and the line's end"],
     [["Space"], "Play the pinned candidate, or number 1"],
+    [["l"], "Turn the engine on or off"],
     [["Escape"], "Close the settings, or drop an edge begun"],
     [["?"], "This list"],
   ];
@@ -558,7 +571,11 @@
     return { title, value };
   }));
   // The position's search, as Lichess shows its depth: the bar fills to the budget and stays full when the search ends.
-  const searched = $derived(analysis && deepVisits ? Math.min(1, analysis.visits / deepVisits) : null);
+  // A search stopped at its time limit has ended too: its bar is full (Lichess fills its bar by time).
+  const searched = $derived(analysis && deepVisits ? (timedOut ? 1 : Math.min(1, analysis.visits / deepVisits)) : null);
+  // A slider's place while it moves, by its id: the setting changes when it is let go, so that a drag does not restart
+  // the workers or the search at each step.
+  let drafts = $state<Record<string, number>>({});
 </script>
 
 <svelte:window {onkeydown} />
@@ -569,7 +586,7 @@
     <p class="mb-2.5 text-sm text-blunder" role="alert">Engine error: {problem}</p>
   {:else if progress}
     <div class="mb-2.5">
-      <div class="bar-glider flex gap-0.5 h-1.5 rounded-[3px]" role="progressbar" aria-label="The review" aria-valuemin="0" aria-valuemax="100"
+      <div class={["flex gap-0.5 h-1.5 rounded-[3px]", !progress.waiting && "bar-glider"]} role="progressbar" aria-label="The review" aria-valuemin="0" aria-valuemax="100"
            aria-valuenow={Math.round(100 * progress.parts.reduce((s, p) => s + p.share * p.done, 0))}>
         {#each progress.parts as part, k (k)}
           <div class="bg-panel-2 rounded-[3px] overflow-hidden" style="flex: {part.share}">
@@ -913,6 +930,84 @@
   </div>
 {/snippet}
 
+<!-- The engine's settings (design 09), grouped by what they search: the position on screen, the game's review, and the
+     engine itself. Each has one short line of help. A value in steps is a slider, as in Lichess's engine settings. -->
+{#snippet engineSettingsPanel(e: EngineSettings, set: (change: Partial<EngineSettings>) => void)}
+  {@const memory = NETWORKS.find(n => n.id === e.network)?.memoryMB ?? NETWORKS[0].memoryMB}
+  <div id="engine-settings" role="region" aria-label="Engine settings" class="flex flex-col flex-1 min-h-0">
+    <div class="flex items-center justify-between mb-1">
+      <h2 class="font-semibold">Engine settings</h2>
+      <button class="px-2 py-0.5 text-sm" onclick={() => (engineOpen = false)}>Done</button>
+    </div>
+    <div class="flex-1 min-h-0 overflow-y-auto pr-1">
+      <h3 class={SETTINGS_HEAD}>Position on screen</h3>
+      {@render visitsSteps("Depth", "How far to search it.", DEPTHS, () => e.visits, v => set({ visits: v }))}
+      {@render steps("Time limit", "Stop sooner if this runs out.", TIME_LIMITS.length, () => TIME_LIMITS.indexOf(e.seconds),
+        k => set({ seconds: TIME_LIMITS[k] }), k => (TIME_LIMITS[k] === null ? "None" : `${TIME_LIMITS[k]} s`))}
+      <h3 class={SETTINGS_HEAD}>Game review</h3>
+      {@render choice("Depth per move",
+        `Lite: ${REVIEW_PRESETS.lite} visits. Standard: ${REVIEW_PRESETS.standard.toLocaleString("en")}, surer labels in about 4× the time.`,
+        [["lite", "Lite"], ["standard", "Standard"], ["custom", "Custom"]], () => e.review, v => set({ review: v as ReviewDepth }))}
+      {#if e.review === "custom"}
+        {@render visitsSteps("Custom", "", CUSTOM_REVIEW, () => e.customReview, v => set({ customReview: v }))}
+      {/if}
+      <h3 class={SETTINGS_HEAD}>Engine</h3>
+      {@render choice("Network", "The larger is stronger per visit but about 3× slower. A change reviews the game again.",
+        NETWORKS.map(n => [n.id, `${n.params} parameters`]), () => e.network, v => set({ network: v }))}
+      {@render steps("Workers", `Positions searched at the same time. Each uses about ${memory} MB.`, maxWorkers(),
+        () => e.workers - 1, k => set({ workers: k + 1 }), k => `${k + 1} of ${maxWorkers()}`)}
+    </div>
+  </div>
+{/snippet}
+
+<!-- A value in steps: its name and value, what it does, and a slider over the steps (Lichess's engine settings). The
+     value shows as the slider moves, and the setting changes when it is let go. -->
+{#snippet steps(label: string, help: string, count: number, get: () => number, set: (k: number) => void, text: (k: number) => string)}
+  {@const id = `setting-${label.replace(/\W+/g, "-").toLowerCase()}`}
+  {@const k = drafts[id] ?? get()}
+  <div class="py-1.5">
+    <div class="flex items-baseline justify-between gap-3">
+      <label for={id} class="text-sm font-medium">{label}</label>
+      <span class="text-sm tabular-nums">{text(k)}</span>
+    </div>
+    {#if help}<p class="text-xs text-muted">{help}</p>{/if}
+    <input {id} type="range" min="0" max={count - 1} step="1" value={k} aria-valuetext={text(k)}
+           oninput={ev => (drafts[id] = +ev.currentTarget.value)}
+           onchange={ev => { set(+ev.currentTarget.value); delete drafts[id]; }}
+           class="w-full mt-1 accent-(--accent)" />
+  </div>
+{/snippet}
+
+<!-- A number of visits: a slider over doublings, and a box that takes any whole number in their range. The slider shows
+     the doubling nearest a typed number. The setting changes when the slider is let go or the box is left. -->
+{#snippet visitsSteps(label: string, help: string, steps: number[], get: () => number, set: (visits: number) => void)}
+  {@const id = `setting-${label.replace(/\W+/g, "-").toLowerCase()}`}
+  {@const k = drafts[id] ?? nearestStep(steps, get())}
+  {@const visits = drafts[id] === undefined ? get() : steps[k]}
+  <div class="py-1.5">
+    <div class="flex items-center justify-between gap-3">
+      <label for="{id}-visits" class="text-sm font-medium">{label}</label>
+      <span class="text-sm">
+        <input id="{id}-visits" type="number" min={steps[0]} max={steps.at(-1)} step="1" value={visits}
+               class="w-[4.5rem] text-right tabular-nums"
+               onchange={ev => {
+                 const t = ev.currentTarget, v = t.valueAsNumber;
+                 const kept = Number.isFinite(v) ? Math.min(steps.at(-1)!, Math.max(steps[0], Math.round(v))) : get();
+                 t.value = String(kept);
+                 set(kept);
+               }} />
+        visits
+      </span>
+    </div>
+    {#if help}<p class="text-xs text-muted">{help}</p>{/if}
+    <input {id} type="range" min="0" max={steps.length - 1} step="1" value={k} aria-label={label}
+           aria-valuetext={`${visits.toLocaleString("en")} visits`}
+           oninput={ev => (drafts[id] = +ev.currentTarget.value)}
+           onchange={ev => { set(steps[+ev.currentTarget.value]); delete drafts[id]; }}
+           class="w-full mt-1 accent-(--accent)" />
+  </div>
+{/snippet}
+
 <!-- A setting that is on or off: its name and what it does, and a switch at the right. -->
 {#snippet toggle(label: string, help: string, get: () => boolean, set: (v: boolean) => void)}
   {@const id = `setting-${label.replace(/\W+/g, "-").toLowerCase()}`}
@@ -929,13 +1024,14 @@
   </div>
 {/snippet}
 
-<!-- A choice of two: its name and what it does, then the two options side by side. -->
+<!-- A choice of a few: its name and what it does, then the options side by side. -->
 {#snippet choice(label: string, help: string, options: [string, string][], get: () => string, set: (v: string) => void)}
   <div class="py-1.5">
     <p class="text-sm font-medium">{label}</p>
     <p class="mb-1 text-xs text-muted">{help}</p>
     <RadioGroup.Root value={get()} onValueChange={set} orientation="horizontal" aria-label={label}
-                     class="grid grid-cols-2 gap-0.5 p-0.5 rounded-md border border-line bg-panel-2">
+                     style="grid-template-columns: repeat({options.length}, minmax(0, 1fr))"
+                     class="grid gap-0.5 p-0.5 rounded-md border border-line bg-panel-2">
       {#each options as [value, text] (value)}
         <RadioGroup.Item {value} class="px-2 py-1 text-sm rounded border-0 bg-transparent hover:bg-panel
                                         data-[state=checked]:bg-accent data-[state=checked]:text-on-badge data-[state=checked]:font-medium">{text}</RadioGroup.Item>
@@ -1028,9 +1124,30 @@
     {#if settingsOpen}
       {@render settingsPanel()}
     {:else}
-    <!-- The position's engine header, as Lichess's: its values, its visits, and its search's progress. -->
+    <!-- The position's engine header, as Lichess's engine box: a line with the engine's switch (the l key too), the
+         search's progress and visits, and the engine settings' gear, and under it the values, across the column. -->
     <div class="mb-1.5">
-      <p class="text-xs text-muted tabular-nums">
+      <div class="flex items-center gap-2">
+        {#if engine && onengine}
+          {@const set = onengine}
+          <Switch.Root checked={engine.on} onCheckedChange={v => set({ on: v })} aria-label="Engine" title="Engine on or off (l)"
+                       class="flex-none inline-flex items-center w-9 h-5 p-0 rounded-full border border-line bg-panel-2 transition-colors
+                              data-[state=checked]:bg-accent data-[state=checked]:border-accent">
+            <Switch.Thumb class="block size-3.5 rounded-full bg-ink transition-transform translate-x-0.5 data-[state=checked]:translate-x-[1.1rem] data-[state=checked]:bg-on-badge" />
+          </Switch.Root>
+        {/if}
+        <div class={["flex-1 h-[3px] rounded-sm overflow-hidden bg-panel-2", searching && "bar-glider"]} role="progressbar"
+             aria-label="This position's search" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(100 * (searched ?? 0))}>
+          {#if searched !== null}<div class="h-full bg-accent transition-[width] duration-200" style="width: {100 * searched}%"></div>{/if}
+        </div>
+        {#if analysis}<span class="text-xs text-muted tabular-nums whitespace-nowrap">{analysis.visits.toLocaleString("en")}{searched !== null && searched < 1 ? ` of ${deepVisits.toLocaleString("en")}` : ""} visits{timedOut ? " · time limit" : ""}</span>{/if}
+        {#if engine && onengine}
+          <button class="flex-none px-1.5 py-0 aria-expanded:border-accent aria-expanded:text-accent" aria-label="Engine settings"
+                  title="Engine settings" aria-expanded={engineOpen} aria-controls="engine-settings"
+                  onclick={() => (engineOpen = !engineOpen)}>⚙</button>
+        {/if}
+      </div>
+      <p class="mt-1 text-xs text-muted tabular-nums">
         {#if analysis?.lead !== undefined}
           Expected final margin
           <strong class="text-ink">{pts(analysis.margin!)} ± {Math.round(analysis.spread!)}</strong> for Blue · lead {pts(analysis.lead)}
@@ -1038,15 +1155,10 @@
           Final margin <strong class="text-ink">{pts(position.scores[0] - position.scores[1])}</strong> for Blue
         {:else}Not analysed yet{/if}
       </p>
-      <div class="flex items-center gap-2 mt-1">
-        <div class={["flex-1 h-[3px] rounded-sm overflow-hidden", searched !== null && "bg-panel-2", searching && "bar-glider"]} role="progressbar"
-             aria-label="This position's search" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(100 * (searched ?? 0))}>
-          {#if searched !== null}<div class="h-full bg-accent transition-[width] duration-200" style="width: {100 * searched}%"></div>{/if}
-        </div>
-        <span class="text-xs text-muted tabular-nums whitespace-nowrap">{#if analysis}{analysis.visits.toLocaleString("en")}{searched !== null && searched < 1 ? ` of ${deepVisits.toLocaleString("en")}` : ""} visits{/if}</span>
-      </div>
     </div>
-    {#if wide.current}
+    {#if engineOpen && engine && onengine}
+      {@render engineSettingsPanel(engine, onengine)}
+    {:else if wide.current}
       <div class="flex flex-col flex-1 min-h-0 overflow-hidden">{@render analysisView()}</div>
     {:else}
       <!-- Below 1,260 pixels the Highlights and the Analysis share this column, as tabs. Bits UI gives them the tab
@@ -1062,7 +1174,7 @@
     {/if}
     {/if}
 
-    <!-- The step controls and the display settings' gear, at the bottom of the analysis column (Lichess's place). -->
+    <!-- The step controls and the display settings' button, at the bottom of the analysis column (Lichess's place). -->
     <div class="mt-1.5 pt-1.5 border-t border-line">
       <p class="mb-1.5 text-xs text-muted truncate" title={statusLine}>{statusLine}</p>
       <div class="flex items-center justify-between">
@@ -1072,9 +1184,11 @@
           <button onclick={forward} aria-label="Forward">▶</button>
           <button onclick={toEnd} aria-label="Last">⏭</button>
         </div>
-        <!-- The gear opens the display settings in the analysis's place, and closes them. -->
-        <button class="aria-expanded:border-accent aria-expanded:text-accent" aria-label="Display settings"
-                aria-expanded={settingsOpen} aria-controls="display-settings" onclick={() => (settingsOpen = !settingsOpen)}>⚙</button>
+        <!-- The menu button (Lichess's ☰ in the same place) opens the display settings in the analysis's place, and
+             closes them. The gear is the engine's, in the engine header. -->
+        <button class="aria-expanded:border-accent aria-expanded:text-accent" aria-label="Display settings" title="Display settings"
+                aria-expanded={settingsOpen} aria-controls="display-settings"
+                onclick={() => { settingsOpen = !settingsOpen; engineOpen = false; }}>☰</button>
       </div>
     </div>
   </section>

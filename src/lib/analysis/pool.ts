@@ -2,7 +2,7 @@
 // Work waits in one queue, and a free worker takes the most urgent task: the position on screen before the key moments,
 // and the key moments before the sweep of the whole game (KaTrain's priorities, core/engine.py). A task that can stop
 // (a search in slices) gives way: when a more urgent task finds no free worker, the least urgent such task is stopped
-// and waits in the queue again.
+// and waits in the queue again. The pool can grow or shrink while it works (the engine settings, design 09).
 import { EngineWorker, moduleOf, type Manifest } from "#lib/engine/client.ts";
 import type { ModelInfo, VersionReply } from "#lib/engine/protocol.ts";
 
@@ -34,6 +34,8 @@ export class EnginePool {
   private free: EngineWorker[] = [];
   private queue: Task[] = [];
   private running = new Set<Task>();
+  private retiring = new Set<EngineWorker>(); // workers removed while busy: they end when their task ends
+  private load: ((e: EngineWorker) => Promise<void>) | null = null; // starts a search worker: the module, then the network
   // A worker for the rules alone (describe, play): it loads no network and runs no search, so a rules call never
   // waits behind a search (a worker takes one request at a time). The board's rules, an engine line's cuts and a
   // player's own moves need answers at once.
@@ -49,9 +51,14 @@ export class EnginePool {
     const module = moduleOf(manifest);
     const model = manifest.artifacts.find(a => a.kind === "model" && a.id === modelId);
     if (!module || !model) throw new Error(`the manifest lacks the module or the network ${modelId}`);
-    const load = async (e: EngineWorker) => {
+    const load = this.load = async (e: EngineWorker) => {
       await e.init(module.url);
       this.model = (await e.loadModel(model.url, model.id)).reply.model;
+      if (!this.engines.includes(e)) { // removed while it loaded
+        this.retiring.delete(e);
+        e.terminate();
+        return;
+      }
       this.free.push(e);
       this.dispatch();
     };
@@ -80,6 +87,35 @@ export class EnginePool {
     for (const t of dropped) t.reject(new Cancelled());
   }
 
+  /** Adds search workers or removes them, to `size`. A new worker takes work once it has loaded the network. A removed
+   *  worker ends at once when it is free, or when its task ends. Call after start(). */
+  resize(size: number) {
+    while (this.engines.length < size) {
+      const e = new EngineWorker();
+      this.engines.push(e);
+      this.load?.(e).catch(() => {
+        const k = this.engines.indexOf(e);
+        if (k >= 0) this.engines.splice(k, 1); // a worker that cannot start is dropped
+        e.terminate();
+      });
+    }
+    while (this.engines.length > Math.max(1, size)) {
+      const e = this.engines.pop()!;
+      const k = this.free.indexOf(e);
+      if (k >= 0) {
+        this.free.splice(k, 1);
+        e.terminate();
+      } else this.retiring.add(e); // busy, or still loading (it ends when it has loaded)
+    }
+  }
+
+  /** Stops all searching: the waiting tasks are dropped (Cancelled), and the running tasks that can stop end now. A
+   *  search not in slices finishes its few visits. */
+  halt() {
+    this.cancel(() => true);
+    for (const t of this.running) if (t.stop && !t.stopped) t.stop();
+  }
+
   private enqueue(task: Task) {
     this.queue.push(task);
     this.queue.sort((a, b) => b.priority - a.priority);
@@ -98,7 +134,8 @@ export class EnginePool {
         .finally(() => {
           this.running.delete(task);
           task.stop = undefined;
-          this.free.push(engine);
+          if (this.retiring.delete(engine)) engine.terminate();
+          else this.free.push(engine);
           this.dispatch();
         });
     }
@@ -122,5 +159,9 @@ export class EnginePool {
     victim.stop!();
   }
 
-  terminate() { this.engines.forEach(e => e.terminate()); this.rulesWorker.terminate(); }
+  terminate() {
+    this.engines.forEach(e => e.terminate());
+    this.retiring.forEach(e => e.terminate());
+    this.rulesWorker.terminate();
+  }
 }

@@ -20,9 +20,11 @@ noise.
      and the win bar. Its labels are mostly wrong, so it shows none.
    - **A label pass:** every position at 256 visits. An edge gets a label only when both its positions have at least
      256 visits: the first budget whose mistake flags are mostly right (67% of them, finding 58% of the mistakes of a
-     1,024-visit search, after the opening).
+     1,024-visit search, after the opening). This is the Lite review. Standard runs the pass at 1,024 visits, and
+     Custom at another depth (design 09).
    - **Deeper where the player looks:** the position on screen to 1,024 visits, in slices, with the results shown as
-     they come (KaTrain's `max_visits`). Then the key moments: both positions of each, since a loss needs both.
+     they come (KaTrain's `max_visits`). The engine settings change its visits and give it a time limit (design 09).
+     Then the key moments, to 1,024 visits: both positions of each, since a loss needs both.
    - A pool of workers runs the most urgent work first: the position on screen, then the key moments, then the sweep.
      A search in slices gives way: when the position on screen finds no free worker, the pool stops a key moment's
      search, which runs again later. A focus that the player has left does not start its search.
@@ -72,5 +74,6 @@ noise.
 
 - [decisions/engine.md](../decisions/engine.md), "The review on the engine" and "Label agreement against search
   budget" (2026-10-09), "The position on screen first: searches that give way" (2026-10-10).
+- [decisions/product.md](../decisions/product.md), "The engine's settings" (2026-10-11).
 - [decisions/product.md](../decisions/product.md), "The candidates: which ones the board shows, and the engine's
   order" (2026-10-10): a candidate's visits are KataGo's `edgeVisits`.

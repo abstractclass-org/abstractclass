@@ -1,0 +1,160 @@
+# The engine's settings
+
+**Status:** in force, built in the review. **Decided:** 2026-10-11, from Lichess's and KaTrain's engine settings and
+measurements in Edge.
+
+## Context
+
+The review searches every position on the visitor's CPU (design 02, design 05). Its budgets were fixed: the sweep at
+32 visits, the label pass at 256, the position on screen and the key moments at 1,024, a pool of half the machine's
+cores (1 to 4 workers), and the network b10c128. Machines differ. On a fast desktop one worker of b10c128 searches
+about 70 to 90 visits a second, and b15c192 is three times slower ([decisions/engine.md](../decisions/engine.md)).
+A visitor on a laptop can want less load, and a visitor on a fast desktop can want deeper searches.
+
+Published tools give these settings:
+
+- **Lichess** (`ui/lib/src/ceval/view/settings.ts`, `ctrl.ts`): the engine box at the top of the analysis column has a
+  switch that turns the engine on and off (also the l key), and a gear that opens its settings: the choice of engine,
+  a search time (2 to 30 seconds, and 60, 120, 300 and no limit on a desktop, 8 seconds by default), the number of
+  lines, threads (by default the cores, less one when their number is even) and memory. The display settings are in a
+  separate menu (☰) under the move list.
+- **KaTrain** (`config.json`, `engine`): `max_visits` 500, `fast_visits` 25, `max_time` 8 seconds, and the network. A
+  search stops at its visits or its time, whichever comes first. Continuous analysis searches on until stopped.
+
+## Decision
+
+The engine has its own controls in the engine header, as in Lichess's engine box. The header has two lines. The first
+line has the engine's switch, the search's bar with its visits, and the engine's gear. The second line has the values
+(the expected final margin and the lead) across the column's whole width. The settings are kept in this browser, and
+each applies at once, without a reload.
+
+1. **The engine's switch** is at the first line's left, and the l key works it too (Lichess's). Off, the running
+   searches stop, no search starts, and what was found stays, also the result so far of a stopped search. Results in
+   the browser's store still load. The review's bar says "Engine off. The review is paused." and has no moving gleam.
+   On, the work not done starts again. On by default, and kept between visits, as on Lichess.
+2. **The engine's gear** is at the first line's right. It opens "Engine settings" under the header, in the place of the
+   candidates and the move list, so the header's values and search bar stay in view while a setting changes. "Done",
+   the gear and Escape close it. The display settings move to a menu button (☰) in the step controls' bar, Lichess's
+   button in that place, so that the page has one gear. One panel shows at a time.
+3. **Three groups,** each setting with one short line of help:
+   - **Position on screen:** "Depth", its visits, from 256 to 16,384 (1,024 by default, as before).
+     "Time limit": the search stops at this time even short of its visits (KaTrain's `max_time`: whichever comes
+     first). The steps are Lichess's search times from 10 seconds (10, 20, 30, 60, 120 and 300 seconds, and none),
+     and 30 seconds by default. A search stopped at its limit shows a full bar and "time limit" after its visits. The
+     position is not searched again for the same settings, and is searched again when the depth or the limit changes.
+   - **Game review:** "Depth per move", the label pass's visits for each position: Lite (256), Standard (1,024), or
+     Custom, which shows its visits from 256 to 4,096. Lite by default. An edge gets its label from 256 visits on at
+     every depth, so a deeper review shows the Lite labels first and changes them as the deeper searches arrive. The
+     key moments stay at 1,024 visits. A branch move evaluated on request is searched to the review's depth.
+   - **Engine:** "Network", named by its parameters: 3.2M (b10c128, the default) or 10.3M (b15c192). The board keeps
+     the old pool's rules while a new pool loads the other network. Then the analysis starts again, since every result
+     came from the old network. The browser's store keys results by network, so a network's results come back at once
+     when the player returns to it. "Workers": from 1 to the machine's logical cores, half the cores (1 to 4) by
+     default (design 02). The help line gives a worker's memory for the chosen network. A change adds workers, which
+     load the network and then take work, or removes them: a free worker ends at once, a busy one when its task ends.
+     The work in progress goes on.
+4. **Sliders** set the values in steps, as Lichess's engine settings do. The value shows at the right of the name as
+   the slider moves, and the setting changes when it is let go, so that a drag does not restart the search or the
+   workers at each step.
+5. **A number of visits has a slider and a box:** the Depth and the Custom depth. The slider steps by doublings (256,
+   512, 1,024 and on to the largest). The box at the right of the name takes any whole number in that range, and a
+   number out of the range becomes its nearest end. The setting changes when the box is left or Enter is pressed. The
+   slider then shows the doubling nearest the number, by ratio: 3,000 visits show at 4,096.
+
+## Why
+
+- **The engine's controls in its own header,** as on Lichess: turning the engine on and off is a main action, and the
+  engine's settings are about the search that the header shows. The controls and the bar take one line, so that the
+  values below have the column's whole width.
+- **Doublings on the slider, any number in the box.** A search's time grows with its visits, so each doubling doubles
+  the time, as the Depth's steps always did. Doublings are the numbers that the presets and the measurements use (256,
+  1,024). The box gives any other number without many steps on the slider. KaTrain's `max_visits` is a free number
+  too.
+- **Visits first, time as a limit.** The labels and the engine's lines depend on the visits. A search by time gives
+  different results on different machines. The time limit only bounds the wait and the load on a slow machine or with
+  b15c192. KaTrain does the same.
+- **16,384 visits at most.** Each visit adds a node and its network output to the worker's memory, and a WebAssembly
+  memory does not shrink. Measured in Edge (engine lab, b10c128, the position after edge 40): 16,384 visits in 207
+  seconds (79 a second), and the worker's memory then at 162 MiB, against 95 MiB after the network loaded. That is
+  about 4 KB a visit. Any worker can take the position on screen, so in time each worker reaches that size. A step
+  more (32,768 visits) would take about 7 minutes on this machine.
+- **A time limit of 30 seconds** departs from the 8 seconds of KaTrain and Lichess. KaTrain's 8 seconds go with 500
+  visits on a native engine. In the browser, 1,024 visits of b10c128 take about 11 to 21 seconds on a fast desktop,
+  so 8 seconds would cut the default depth on most machines. With 30 seconds, a fast machine reaches 1,024 visits,
+  and the limit bounds a slow machine or b15c192 (704 visits in 30 seconds, measured in Edge).
+- **The page stops a timed search.** The protocol's `maxTime` does not apply to a search in slices (the engine
+  repository's [design 04](https://github.com/seankao31/enclosure-ai/blob/main/docs/design/04-notation-and-protocol.md),
+  "Fields for bots"). The page sends `terminate` at the limit, counted from the search's start, not from its wait in
+  the queue.
+- **Lite is 256 and Standard 1,024:** 256 is the first budget whose mistake flags are mostly right, and 1,024 is the
+  reference of that measurement ("Label agreement against search budget" in
+  [decisions/engine.md](../decisions/engine.md)). Standard takes about four times as long. Custom starts at 256,
+  because an edge gets no label under 256 visits.
+- **Lite by default:** a new visitor gets labels that are mostly right in a quarter of Standard's time, and a
+  visitor who wants surer labels can choose Standard.
+- **Labels from 256 visits at every depth:** no label disappears when the review becomes deeper. A label changes when
+  a deeper search arrives, as it does when the label pass replaces the sweep (design 05).
+- **Networks by their parameters** (the trainer's counts, 3.22M and 10.25M, in the engine repository's
+  `v2/docs/design/15-network-sizes.md`): a size says what differs. The help line does not call the larger network
+  stronger: it is stronger for each visit, but the smaller gets about three times the visits in the same time, and
+  only a match at the site's clock tells which is stronger (the engine repository's `v2/docs/decisions/build.md`).
+- **More workers make the review faster, not the position on screen.** Each worker searches its own positions with
+  one thread (design 02).
+
+## Alternatives
+
+- **The engine's settings as a group of the display settings:** built first. The switch was then two clicks away, and
+  the settings hid the header that shows their effect.
+- **The switch and the gear at the two sides of the values,** with the bar under the values: built first. The values
+  then had only the width between the controls, and wrapped onto two lines.
+- **Custom steps in half doublings** (256, 384, 512, 768, 1,024 and on, each step about 1.4 times the last): built
+  first, as a choice of this site, not from a published tool. Half of its numbers looked odd, and the box now gives
+  any number between the doublings.
+- **Steps of 256 visits:** each step adds the same time, but most of the numbers look odd too (1,280, 1,792), and the
+  Depth's slider would have 64 steps.
+- **A search time only** (Lichess's way): results would differ between machines.
+- **Visits only:** a deep setting on a slow machine would run for minutes with no bound.
+- **No limit on visits** (Lichess's infinite search, KaTrain's continuous analysis): the worker's memory would grow
+  without a bound.
+- **A search that goes on where it stopped:** a search's tree lives in its worker only until the search ends, and
+  KataGo's analysis does not keep a tree between queries. So a new search of a position starts from zero, and its
+  result shows only once it has more visits than the one held. A short time limit can then add little to the label
+  pass: with 16,384 visits and 5 seconds, a position at 256 visits stayed at 256.
+- **Threads inside one search** (Lichess's threads): they need `SharedArrayBuffer` and headers that many static hosts
+  cannot set (design 02).
+- **The GPU** (WebGPU, in the browser): the network's evaluations, nearly all of a search's time, could run there. It
+  is an engine change (a WebGPU backend for the fork, and a module that can wait for the GPU's answers), so it is for
+  the engine repository. A GPU gains most from batches, and one search on one thread asks for one evaluation at a
+  time, so the gain at small sizes is uncertain until measured.
+- **Lichess's memory and lines settings:** the engine's cache size is set by its configuration, and the candidates
+  table already shows every candidate.
+- **Free budgets for the review's passes:** the label bands were measured at 256 visits. Presets keep the labels
+  comparable, and Custom stays at 256 or more.
+
+## Consequences
+
+- Workers cost memory: 95 MiB each with b10c128 and 244 MiB with b15c192 after loading, and about 4 KB more for each
+  visit of their deepest search. Sixteen workers of b15c192 use about 3.8 GiB before any search.
+- More workers than free cores do not fail: they share the cores, so each runs slower and the review gains little
+  (decisions/engine.md: 8 workers on 8 busy cores ran at 39 visits a second each, against 72 for one). The page
+  competes with them too. The limit is memory: on a machine short of it the browser can end the tab.
+- Another network searches the whole game again, which takes minutes. Returning to a network is quick.
+- A Standard review takes about four times as long as a Lite one.
+- A review in a hidden tab still runs slowly (decisions/open-items.md).
+
+## Where it is
+
+- `src/lib/analysis/engineSettings.ts`: the settings, their steps and defaults, and their storage.
+- `src/lib/analysis/game.svelte.ts`: `setPaused`, `setReview`, `setDepth`, `dropAnalysis`, `usePool`, and the time
+  limit in `search`.
+- `src/lib/analysis/pool.ts`: `resize` and `halt`. `src/lib/engine/client.ts`: `Stopped`, for the requests of an ended
+  worker.
+- `src/routes/review/+page.svelte`: the settings applied as they change, and another network's pool.
+- `src/lib/review/ReviewView.svelte`: the engine header's switch and gear, the l key, the `engineSettingsPanel`,
+  `steps` and `visitsSteps` snippets, and "time limit" in the header.
+- `src/routes/lab/engine/+page.svelte`: a single search's memory, for the measurement above.
+
+## Log entries
+
+- [decisions/product.md](../decisions/product.md), "The engine's settings", "The engine's switch and gear in its
+  header" and "The engine header in two lines, boxes for visits, a slower gleam".

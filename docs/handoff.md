@@ -15,8 +15,8 @@ It holds no backlog: everything still to do that is not in flight is in
   the engine's rules), `2d979cb` (protocol 0.3), `c09007c` (the engine's line on the board), `22fde6b` (the line cut
   by its visits, the players' row at narrow widths), `1d746e4` (the listed line, branches, the display settings'
   panel), `98ddc5c` (the player's own moves, the keys and their list, the move menu), `3aba039` (the move sounds and
-  the progress bars' gleam, design 08), then the sound only on a change of the board, and the side columns measured
-  again when the layout moves.
+  the progress bars' gleam, design 08), `b3fc8c2` (the sound only on a change of the board, the side columns measured
+  again when the layout moves), then the engine's settings (design 09, the latest commit).
 - **Checks on the working tree:** `npm run check` has no errors or warnings. `npm test` passes (21 checks). `npm run
   build` succeeds.
 - **The engine:** protocol 0.3, build `319a5c4`, the networks b10c128 and b15c192, searching with KataGo's analysis
@@ -34,6 +34,10 @@ It holds no backlog: everything still to do that is not in flight is in
 - **Move sounds and the progress bars' gleam are built** (design 08, design 06; decisions/product.md,
   "Move sounds, and progress bars that show the work runs"). Every edge sounds like a recorded crayon stroke: five CC0
   strokes the owner chose by ear.
+- **The engine's settings are built** (design [09-engine-settings.md](design/09-engine-settings.md);
+  decisions/product.md, "The engine's settings", "The engine's switch and gear in its header" and "The engine header
+  in two lines, boxes for visits, a slower gleam"). Still to hear: the owner's view of the two-line header, the number
+  boxes and the slower gleam, and the 30-second limit. The review's default depth is Lite.
 - **The owner's order after it:** learning from mistakes as a mode of the analysis. The speed on a visitor's machine
   waits in the backlog.
 - **Testing in Edge:** a hover made with synthetic events is lost when the real pointer rests on the board and the
@@ -46,10 +50,12 @@ It holds no backlog: everything still to do that is not in flight is in
 - **Claude in Chrome runs in Edge only.** The owner turned the extension off in Chrome: with both on, the two
   browsers took turns as one device and every action failed. Keep the Edge window in front for focus checks: a hidden
   page runs no animation frames.
-- **The local servers** ran from this session: the new build on port 4173 (`exec node node_modules/vite/bin/vite.js
-  preview --host 127.0.0.1 --port 4173 --strictPort`, again after each `npm run build`) and the old build on port 4174
-  (`node runs/tailwind-check/serve.mjs runs/tailwind-check/before-build 4174`). They stop with the session.
+- **The local server** ran from this session: the new build on port 4173 (`exec node node_modules/vite/bin/vite.js
+  preview --host 127.0.0.1 --port 4173 --strictPort`, again after each `npm run build`). It stops with the session.
+  The old build on port 4174 (`node runs/tailwind-check/serve.mjs runs/tailwind-check/before-build 4174`) is not
+  running.
 - **The tailnet mapping** `tailscale serve --https=8443` to port 4173 stays until `tailscale serve --https=8443 off`.
+  The server answers the tailnet's name only with the allowed-host variable, and that is for when the owner asks.
 
 ## Check first
 

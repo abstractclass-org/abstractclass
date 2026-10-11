@@ -729,3 +729,70 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   Checked in Edge, in a 900 × 900 frame: the columns reach the chart (its bottom at 730); the header 200 pixels higher,
   with no change of the window, moves the chart to 921 and the columns stop at the board; the header back, they reach
   the chart again.
+
+### The engine's settings (2026-10-11)
+
+- **Asked for:** engine options, such as the search time or the visits. The owner chose, from a list of four: the
+  search depth, the workers, the network, and the engine on or off. The depth in visits with a time cap (KaTrain's
+  way), not by time alone (Lichess's) or visits alone. And a standard or thorough review, though the label bands were
+  set at 256 visits.
+- **The owner asked whether a static site can run many workers.** It can: a Web Worker is a browser feature, and a
+  static host serves the worker's script and the module as files. The pool already ran 4. What a static host often
+  cannot give is threads inside one search (`SharedArrayBuffer` needs special headers, design 02).
+- **Built** as design 09: an Engine group at the end of the settings panel (now "Settings"). The analysis takes up
+  its work after a change (the passes skip what is done), the pool grows and shrinks in place, and another network
+  loads in a new pool while the old one answers the rules.
+- **A departure, named in design 09:** a 30-second default time limit, where KaTrain and Lichess use 8 seconds. In
+  the browser 1,024 visits of b10c128 take 11 to 21 seconds on a fast desktop.
+- **Limits from measurement,** in Edge on the production build:
+  - 16,384 visits of b10c128 in one worker (engine lab, the position after edge 40): 207 seconds, 79 visits a second.
+    The worker's memory then 162 MiB, against 95 MiB after loading: about 4 KB a visit. So the depth stops at 16,384,
+    and no step is "no limit".
+  - A 5-second limit with 16,384 visits: a position already at 256 visits stayed at 256, since a new search starts
+    from zero. So the limits start at 10 seconds.
+  - b15c192 at 1,024 visits and 30 seconds: 704 visits, then "time limit".
+- **Checked in Edge:** the settings kept in the browser; engine off (header "engine off", the review's bar still and
+  "The engine is off: the review waits."), then on (the work goes on); thorough (the label pass at 1,024, 33
+  positions at once from the store); 4 workers to 8 (4 more worker scripts loaded) and back; b10c128 to b15c192 (the
+  sweep starts again) and back (the review complete from the store in about 5 seconds).
+- **Changed after a check:** a thorough review first judged an edge only at 1,024 visits, so the labels vanished
+  until its pass reached them. Now an edge is judged from 256 visits in both reviews.
+
+### The engine's switch and gear in its header (2026-10-11)
+
+- **Asked for:** the engine's settings as a button of their own, at the top right as on Lichess, and the engine's
+  switch outside any panel. Clearer and shorter help. The review's depths named Lite (256) and Standard (1,024),
+  with a Custom depth on a slider. The networks named by their parameters, not b10 and b15.
+- **Built** (design 09): the switch at the engine header's left (and the l key, Lichess's), the gear at its right.
+  The engine settings open under the header, in three groups: Position on screen, Game review, Engine. The display
+  settings moved to a ☰ button in the step controls' bar (Lichess's button there), so the page has one gear. The
+  networks show 3.2M and 10.3M parameters (the trainer's counts, in the engine repository). Custom runs from 256 to
+  4,096 visits in half doublings: under 256 an edge gets no label. The stored settings moved to a new key, since the
+  name "standard" changed meaning.
+- **The default depth stays Lite** (256), the measured label budget, until the owner chooses (design 05).
+- **The owner asked** what happens with more workers than the machine can run: they share the cores and each runs
+  slower, with no error, and each still holds its memory (design 09, "Consequences"). And whether the GPU could search:
+  through WebGPU in principle, as an engine change; its gain at one evaluation at a time is uncertain until measured.
+- **Checked in Edge:** the gear opens and closes the panel; Custom shows its slider and the review runs to it; the l
+  key turns the engine off ("Engine off. The review is paused.", the bar still) and on; Lite completes from the store;
+  ☰ opens the display settings and closes the engine's.
+
+### The engine header in two lines, boxes for visits, a slower gleam (2026-10-11)
+
+- **Asked for:** the header as a line of the switch, the search's progress and the gear, with the values under it
+  across the column. Custom review steps that look less odd: doublings, with a number box, at most 4,096 visits. A
+  number box for the Depth too. A slower gleam on the progress bars: it flashed across too fast.
+- **Built** (design 09, design 06): the first line has the switch, the search's bar, its visits and the gear. The
+  visits stay by the bar: with the values, they wrapped to a third line in a column of 330 pixels. The Depth (256 to
+  16,384) and the Custom depth (256 to 4,096) have a slider in doublings and a box for any whole number. The gleam
+  crosses the bar in 2 seconds at any width and waits 1 second, against Lichess's third of a second on a bar of 400
+  pixels.
+- **The review's default depth is Lite** (256 visits), the first budget whose mistake flags are mostly right. A new
+  visitor gets labels in about a quarter of Standard's time, and can choose Standard in the engine settings.
+- **The custom steps in half doublings** were a choice of this site, not from a published tool, and were not named as
+  one. A setting's steps now come from a source or say that they do not.
+- **Checked in Edge:** 1,500 typed in the Custom box gives 1,500 visits and puts the slider at 2,048. 9,999 becomes
+  4,096. The slider's left arrow gives 2,048. 3,000 typed in the Depth box shows "1,024 of 3,000 visits" in the header.
+  The gleam on a bar of 118 pixels moved about 94 pixels in half a second. At 1,000 and 495 pixels wide, the header
+  fits its column and the page has no sideways scroll.
+

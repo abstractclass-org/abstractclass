@@ -9,6 +9,10 @@
 // agreement against search budget"): 256 visits is the first budget whose mistake flags are mostly right.
 // Results are kept in the browser (cache.ts).
 //
+// The engine's settings (design 09) change this schedule while it runs: the engine can be off (no search starts, and
+// what was found stays), the label budget can be deeper, the position on screen has its own visits and time limit,
+// and another network starts the analysis again in a new pool.
+//
 // The game is a tree (src/lib/review/tree.ts): the player can add branches, and a branch's positions are searched as
 // the game's are, when the player looks at them. A game's branches are kept in the browser, as Lichess keeps its
 // analysis tree (ui/analyse/src/idbTree.ts).
@@ -22,11 +26,12 @@ import type { EdgeRules } from "#lib/board/edgeInput.svelte.ts";
 import { mainIndex, pathKey } from "#lib/review/tree.ts";
 import { STORES, dbGet, dbPut } from "#lib/storage/db.ts";
 import { analysisKey, cacheGet, cachePut } from "./cache.ts";
+import { Stopped } from "#lib/engine/client.ts";
 import { Cancelled, type EnginePool } from "./pool.ts";
 
 export const SWEEP_VISITS = 32;
-export const LABEL_VISITS = 256;
-export const DEEP_VISITS = 1024;
+export const LABEL_VISITS = 256; // the Lite review's label budget, and the least visits that give an edge a label
+export const DEEP_VISITS = 1024; // the key moments, and the position on screen by default
 const SLICE_VISITS = 32;
 // A branch edge's evaluation, asked for in its menu, comes after the position on screen and before the rest.
 const PRIORITY = { focus: 10, judge: 7, moment: 5, label: 2, sweep: 1 };
@@ -85,12 +90,22 @@ export class GameAnalysis {
   branches = $state.raw<Record<string, BranchNode>>({}); // by path key
   rulesReady = $state(false);
   engineReady = $state(false);
-  swept = $state(0);
-  labelled = $state(0);
+  paused = $state(false); // the engine is off: no search starts
+  labelVisits = $state(LABEL_VISITS); // the label pass's budget
+  focusVisits = $state(DEEP_VISITS); // the position on screen is searched to this many visits,
+  focusSeconds = $state<number | null>(null); // for at most this many seconds (null: no limit)
+  // The positions whose search stopped at the time limit, by path key: the visits and the limit then. Such a position is
+  // not searched again for the same settings.
+  timed = $state.raw<Record<string, string>>({});
   error = $state("");
   focusing = $state<string | null>(null); // the path key of the position searched for the player, while it runs
+  // For each position of the game, the largest pass budget it has met: searched, from the cache, or deeper already.
+  private reached = $state.raw<number[]>([]);
   private stopFocus: (() => void) | null = null;
   private focusGeneration = 0; // a new focus makes every earlier focus search stale
+  private passes = 0; // a new run of the passes makes the earlier one stop after its sweep
+  private moments: number[] = []; // the key moments, searched deeper
+  private era = 0; // another network starts a new era: results from an earlier one are dropped
   private pool: EnginePool;
   private id: string | null = null; // the game's id (game/store.ts), under which its branches are kept
   private nextOrder = 0;
@@ -99,6 +114,16 @@ export class GameAnalysis {
     this.pool = pool;
     this.moves = moves;
     this.analysis = Array(moves.length + 1).fill(undefined);
+    this.reached = Array(moves.length).fill(0);
+  }
+
+  /** The game's positions that the sweep has searched, and the label pass. */
+  get swept() { return this.reached.filter(v => v >= SWEEP_VISITS).length; }
+  get labelled() { return this.reached.filter(v => v >= this.labelVisits).length; }
+
+  /** Whether the search of the position at `path` stopped at the time limit, with the focus settings as they are. */
+  stoppedByTime(path: string[]) {
+    return this.timed[pathKey(path)] === `${this.focusVisits} ${this.focusSeconds}`;
   }
 
   /** The game as the review reads it. */
@@ -169,7 +194,7 @@ export class GameAnalysis {
   private judgeSearches(path: string[]) {
     if (!this.engineReady) return; // the sweep starts them
     for (const p of [path.slice(0, -1), path])
-      if (this.searchable(p)) this.search(p, LABEL_VISITS, PRIORITY.judge, "judge").catch(this.fail);
+      if (this.searchable(p)) this.search(p, this.labelVisits, PRIORITY.judge, "judge").catch(this.fail);
   }
 
   /** Deletes a branch node and every position after it (Lichess's "Delete from here"). */
@@ -253,34 +278,104 @@ export class GameAnalysis {
     return !!node && !node.position.over;
   }
 
-  /** The sweep, then the label pass. Call after start() and once the pool has a network. */
+  /** The sweep, then the label pass, for the positions that lack them: a position already searched that far is
+   *  skipped. Call after start() and once the pool has a network, and again to take the work up after a change (the
+   *  engine on again, another label budget, another network). The branch moves evaluated on request are searched too. */
   async sweep() {
     this.engineReady = true;
+    const run = ++this.passes;
     for (const [key, node] of Object.entries(this.branches)) if (node.judged) this.judgeSearches(key.split(" ")); // kept from a visit
     const n = this.moves.length;
-    const pass = (visits: number, priority: number, tag: string, done: () => void) =>
+    const pass = (visits: number, priority: number, tag: string) =>
       Promise.all(Array.from({ length: n }, (_, i) =>
-        this.search(this.mainNames.slice(0, i), visits, priority, tag).then(done).catch(this.fail)));
-    await pass(SWEEP_VISITS, PRIORITY.sweep, "sweep", () => { this.swept++; });
-    await pass(LABEL_VISITS, PRIORITY.label, "label", () => { this.labelled++; });
+        this.search(this.mainNames.slice(0, i), visits, priority, tag).then(met => {
+          if (met && visits > this.reached[i]) this.reached = this.reached.with(i, visits);
+        }).catch(this.fail)));
+    await pass(SWEEP_VISITS, PRIORITY.sweep, "sweep");
+    if (run !== this.passes) return; // a later run took over
+    await pass(this.labelVisits, PRIORITY.label, "label");
   }
 
-  /** Searches the position deeper, in slices, showing the results as they come. One position at a time. */
+  /** Turns the engine off or on. Off: the searches stop, none starts, and what they found stays. On: the work not done
+   *  starts again, and the page focuses the position on screen again. */
+  setPaused(paused: boolean) {
+    if (paused === this.paused) return;
+    this.paused = paused;
+    if (paused) {
+      this.dropFocus();
+      this.pool.halt();
+    } else if (this.engineReady) {
+      void this.sweep();
+      this.deepen(this.moments);
+    }
+  }
+
+  /** The label pass's budget (the review's depth). The passes run again for it, and the label searches
+   *  still waiting for the old budget are dropped. */
+  setReview(visits: number) {
+    if (visits === this.labelVisits) return;
+    this.labelVisits = visits;
+    this.pool.cancel(t => t === "label" || t === "judge");
+    if (this.engineReady && !this.paused) void this.sweep();
+  }
+
+  /** The search of the position on screen: to `visits`, for at most `seconds`. A change ends the running focus, and
+   *  the page focuses again with the new settings. */
+  setDepth(visits: number, seconds: number | null) {
+    if (visits === this.focusVisits && seconds === this.focusSeconds) return;
+    this.focusVisits = visits;
+    this.focusSeconds = seconds;
+    this.dropFocus();
+  }
+
+  /** Drops the analysis before another network takes over: every result came from the old one. The searches stop, and
+   *  results that still arrive from them are dropped. The engine is not ready again until sweep(). */
+  dropAnalysis() {
+    this.era++;
+    this.dropFocus();
+    this.pool.halt();
+    this.engineReady = false;
+    this.analysis = Array(this.moves.length + 1).fill(undefined);
+    this.branches = Object.fromEntries(Object.entries(this.branches).map(([k, n]) => [k, { ...n, analysis: undefined }]));
+    this.reached = Array(this.moves.length).fill(0);
+    this.timed = {};
+    this.moments = [];
+  }
+
+  /** Moves the work to another pool, already started (another network, after dropAnalysis). The old pool ends. */
+  usePool(pool: EnginePool) {
+    const old = this.pool;
+    this.pool = pool;
+    old.terminate();
+  }
+
+  /** Searches the position deeper, in slices, showing the results as they come, to the focus settings' visits or time
+   *  limit (KaTrain's max_visits and max_time: whichever comes first). One position at a time. */
   focus(path: string[]) {
     const key = pathKey(path);
-    if (!this.engineReady || !this.searchable(path)) return;
+    if (!this.engineReady || this.paused || !this.searchable(path)) return;
     if (this.focusing === key) return;
-    // An earlier focus is stale: stop its search if it runs, drop it if it waits. A search still reading the cache
-    // reaches the queue only after this, so it also checks its generation before it starts.
+    const generation = this.dropFocus();
+    const visits = this.focusVisits, seconds = this.focusSeconds, settings = `${visits} ${seconds}`;
+    if ((this.analysisOf(path)?.visits ?? 0) >= visits || this.timed[key] === settings) return;
+    this.focusing = key;
+    this.search(path, visits, PRIORITY.focus, "focus", {
+      sliced: true, seconds, wanted: () => generation === this.focusGeneration,
+      ontime: () => { this.timed = { ...this.timed, [key]: settings }; },
+    })
+      .catch(this.fail)
+      .finally(() => { if (generation === this.focusGeneration) this.focusing = null; });
+  }
+
+  /** Ends the focus: an earlier focus is stale. Stops its search if it runs, and drops it if it waits. A search still
+   *  reading the cache reaches the queue only after this, so it also checks its generation before it starts. */
+  private dropFocus() {
     const generation = ++this.focusGeneration;
     this.stopFocus?.();
     this.stopFocus = null;
     this.pool.cancel(t => t === "focus");
-    if ((this.analysisOf(path)?.visits ?? 0) >= DEEP_VISITS) { this.focusing = null; return; }
-    this.focusing = key;
-    this.search(path, DEEP_VISITS, PRIORITY.focus, "focus", true, () => generation === this.focusGeneration)
-      .catch(this.fail)
-      .finally(() => { if (this.focusing === key) this.focusing = null; });
+    this.focusing = null;
+    return generation;
   }
 
   /** Each edge of a line from the position at `path`, played: the edge it cuts (or null), and the regions and areas
@@ -294,33 +389,52 @@ export class GameAnalysis {
 
   /** Searches these positions deeper, after the focus and before the sweep. */
   deepen(indices: number[]) {
-    for (const i of indices) this.search(this.mainNames.slice(0, i), DEEP_VISITS, PRIORITY.moment, "moment", true).catch(this.fail);
+    this.moments = indices;
+    for (const i of indices) this.search(this.mainNames.slice(0, i), DEEP_VISITS, PRIORITY.moment, "moment", { sliced: true }).catch(this.fail);
   }
 
-  /** Keeps an engine error for the page. A task cancelled before it ran is not an error. */
+  /** Keeps an engine error for the page. A task cancelled before it ran, or a worker ended for another pool, is not one. */
   private fail = (e: unknown) => {
-    if (!(e instanceof Cancelled)) this.error = errorText(e);
+    if (!(e instanceof Cancelled) && !(e instanceof Stopped)) this.error = errorText(e);
   };
 
-  /** Searches the position at `path` to `visits`, or takes the result from the cache. `wanted` false: the search
-   *  is no longer needed (a stale focus), so it does not start. */
-  private async search(path: string[], visits: number, priority: number, tag: string, sliced = false, wanted = () => true) {
-    const moves = this.engineMoves(path);
-    const key = () => analysisKey(this.pool.version!.build, this.pool.model!.sha256, moves, visits);
+  /** Searches the position at `path` to `visits`, or takes the result from the cache. True when the position has met
+   *  the budget: searched, cached, or held deeper already. False when no search ran to its end: the engine is off, the
+   *  search stopped (at its time limit, for the engine off, or to give way), or it is no longer wanted (a stale focus).
+   *  Options: `sliced` searches in slices, which show their results as they come and can stop; `seconds` is a sliced
+   *  search's time limit, and `ontime` runs when it stops there. */
+  private async search(path: string[], visits: number, priority: number, tag: string, options: {
+    sliced?: boolean; wanted?: () => boolean; seconds?: number | null; ontime?: () => void;
+  } = {}): Promise<boolean> {
+    const { sliced = false, wanted = () => true, seconds = null, ontime } = options;
+    const era = this.era, pool = this.pool, moves = this.engineMoves(path);
+    const key = analysisKey(pool.version!.build, pool.model!.sha256, moves, visits);
     const held = () => this.analysisOf(path)?.visits ?? 0;
-    const cached = await cacheGet<Analysis>(key());
-    if (cached) { this.keep(path, cached); return; }
-    if (held() >= visits || !wanted()) return;
-    await this.pool.run(priority, tag, async (engine, onStop) => {
-      if (held() >= visits || !wanted()) return;
+    const keep = (a: Analysis) => { if (era === this.era) this.keep(path, a); };
+    if (held() >= visits) return true;
+    const cached = await cacheGet<Analysis>(key);
+    if (era !== this.era) return false;
+    if (cached) { keep(cached); return true; }
+    if (held() >= visits) return true;
+    if (this.paused || !wanted()) return false;
+    return pool.run(priority, tag, async (engine, onStop) => {
+      if (held() >= visits) return true;
+      if (this.paused || !wanted() || era !== this.era) return false;
       const run = engine.analyse({ moves, maxVisits: visits, includePVVisits: true, ...(sliced ? { slice: { visits: SLICE_VISITS } } : {}) },
-                                 r => this.keep(path, toAnalysis(r)));
+                                 r => keep(toAnalysis(r)));
       if (sliced) onStop(run.stop); // the pool may stop it to give way, and runs it again later
       if (tag === "focus") this.stopFocus = run.stop;
-      const t = await run.done;
+      // The time limit counts from the search's start, not from its wait in the queue. A search in slices takes no
+      // maxTime (the protocol), so the page stops it.
+      let late = false;
+      const timer = sliced && seconds !== null ? setTimeout(() => { late = true; run.stop(); }, seconds * 1000) : undefined;
+      const t = await run.done.finally(() => clearTimeout(timer));
       const a = toAnalysis(t.reply);
-      this.keep(path, a);
-      if (!t.reply.terminated && a.visits >= visits) await cachePut(key(), a);
+      keep(a);
+      if (late && era === this.era) ontime?.();
+      if (t.reply.terminated) return false;
+      if (a.visits >= visits && era === this.era) await cachePut(key, a);
+      return true;
     });
   }
 

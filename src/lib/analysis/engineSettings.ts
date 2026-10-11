@@ -1,0 +1,87 @@
+// The engine's settings (docs/design/09-engine-settings.md), kept in this browser: whether the engine searches, how
+// far it searches the position on screen (KaTrain's max_visits and max_time: whichever comes first), the review's
+// budget for each position, which network it uses (Lichess's choice of engine), and how many workers search at once
+// (Lichess's threads). Storage can be blocked (a private window, blocked site data): then the defaults hold.
+import { DEEP_VISITS, LABEL_VISITS } from "./game.svelte.ts";
+import { defaultPoolSize } from "./pool.ts";
+
+export type ReviewDepth = "lite" | "standard" | "custom";
+
+export interface EngineSettings {
+  on: boolean;
+  visits: number; // the position on screen: searched up to this many visits,
+  seconds: number | null; // for at most this long (null: no limit)
+  review: ReviewDepth;
+  customReview: number; // the review's visits for each position when `review` is custom
+  network: string; // a model id in the manifest
+  workers: number;
+}
+
+/** The networks, as the manifest names them (engine.lock.json pins both). Their parameters are the trainer's counts
+ *  (the engine repository's v2/docs/design/15-network-sizes.md). A worker's memory once the network is loaded:
+ *  decisions/engine.md (95 and 244 MiB). */
+export const NETWORKS = [
+  { id: "b10c128-s46923648-d9407005", params: "3.2M", memoryMB: 100 },
+  { id: "b15c192-s48758784-d9703391", params: "10.3M", memoryMB: 255 },
+];
+/** The position on screen's visits: any whole number from 256 to 16,384. Its slider steps by doublings, and each step
+ *  doubles the time. The search tree grows with its visits in the worker's memory, and a worker's memory does not
+ *  shrink, so the steps stop at 16,384. */
+export const DEPTHS = [256, 512, 1024, 2048, 4096, 8192, 16384];
+/** The time limits, in seconds: Lichess's search times from 10 seconds, and no limit. A shorter limit adds little: a
+ *  new search starts from zero, and shows only once it passes the label pass's 256 visits. */
+export const TIME_LIMITS: (number | null)[] = [10, 20, 30, 60, 120, 300, null];
+/** The review's visits for each position. Lite is the first budget whose mistake flags are mostly right, and Standard
+ *  the reference that measurement used (decisions/engine.md, "Label agreement against search budget"). A custom budget
+ *  is any whole number from Lite's to four times Standard's: a move gets its label from 256 visits on. Its slider
+ *  steps by doublings, as the Depth slider does. */
+export const REVIEW_PRESETS = { lite: LABEL_VISITS, standard: 4 * LABEL_VISITS } as const;
+export const CUSTOM_REVIEW = [256, 512, 1024, 2048, 4096];
+
+/** A number of visits that a setting with these steps (doublings) can take: a whole number in their range. */
+export const inSteps = (steps: number[], visits: unknown): visits is number =>
+  Number.isInteger(visits) && (visits as number) >= steps[0] && (visits as number) <= steps.at(-1)!;
+/** The step nearest a number of visits, by their ratio. */
+export const nearestStep = (steps: number[], visits: number) =>
+  Math.min(steps.length - 1, Math.max(0, Math.round(Math.log2(visits / steps[0]))));
+
+/** The review's visits for each position, from the settings. */
+export const reviewVisits = (s: EngineSettings) => (s.review === "custom" ? s.customReview : REVIEW_PRESETS[s.review]);
+
+/** Every core the machine reports: a worker more than that only waits. */
+export const maxWorkers = () => Math.max(1, navigator.hardwareConcurrency || 2);
+
+// Version 2: the review's names changed (version 1's "standard" was 256 visits, now Lite's).
+const KEY = "learn-enclosure:engine:2";
+
+export const defaultEngine = (): EngineSettings => ({
+  on: true, visits: DEEP_VISITS, seconds: 30, review: "lite", customReview: 512, network: NETWORKS[0].id,
+  workers: defaultPoolSize(),
+});
+
+export function loadEngine(): EngineSettings {
+  const d = defaultEngine();
+  try {
+    const kept = JSON.parse(localStorage.getItem(KEY) ?? "null") as Partial<EngineSettings> | null;
+    if (!kept) return d;
+    return {
+      on: typeof kept.on === "boolean" ? kept.on : d.on,
+      visits: inSteps(DEPTHS, kept.visits) ? kept.visits : d.visits,
+      seconds: kept.seconds !== undefined && TIME_LIMITS.includes(kept.seconds) ? kept.seconds : d.seconds,
+      review: kept.review === "standard" || kept.review === "custom" ? kept.review : "lite",
+      customReview: inSteps(CUSTOM_REVIEW, kept.customReview) ? kept.customReview : d.customReview,
+      network: NETWORKS.some(n => n.id === kept.network) ? kept.network! : d.network,
+      workers: Number.isInteger(kept.workers) ? Math.min(maxWorkers(), Math.max(1, kept.workers!)) : d.workers,
+    };
+  } catch {
+    return d;
+  }
+}
+
+export function saveEngine(s: EngineSettings) {
+  try {
+    localStorage.setItem(KEY, JSON.stringify(s));
+  } catch {
+    // The settings then last for this page only.
+  }
+}

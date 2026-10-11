@@ -27,7 +27,7 @@
   let initMs = $state(0); // the slowest worker's start, measured in the worker
   let start = $state({ ms: 0, workers: 0 }); // from creating the workers until every one has started, on the page
   let described = $state<{ reply: DescribeReply; ms: number } | null>(null);
-  let live = $state<{ reply: AnalysisReply; ms: number; final: boolean } | null>(null);
+  let live = $state<{ reply: AnalysisReply; ms: number; final: boolean; memory?: number } | null>(null);
   let stopSearch = $state<(() => void) | null>(null);
   let review = $state<{ model: string; visits: number; workers: number; wallMs: number; meanMs: number; maxMs: number;
                         vps: number; memory: number; blueWin: number[] } | null>(null);
@@ -96,7 +96,7 @@
     stopSearch = run.stop;
     const t = await run.done;
     stopSearch = null;
-    live = { reply: t.reply, ms: t.ms, final: true };
+    live = { reply: t.reply, ms: t.ms, final: true, memory: t.memory };
   });
 
   // The real workload: every position of the game, each worker taking the next when it is free.
@@ -202,6 +202,7 @@
           margin <strong>{pts(r.scoreSelfplay)} ± {r.scoreStdev.toFixed(0)}</strong>, lead {pts(r.scoreLead)}.
           Network alone: {pct(r.rawWinrate)}, {pts(r.rawScoreSelfplay)}.
           {r.visits} visits in {fmt(live.ms)} ({(r.visits / (live.ms / 1000)).toFixed(0)} a second).
+          {#if live.memory}The worker's memory after the search: {mib(live.memory)}.{/if}
         </p>
         <table class="text-sm tabular-nums [&_:is(th,td)]:px-2 [&_:is(th,td)]:py-0.5 [&_:is(th,td)]:text-right [&_:is(th,td)]:border-b [&_:is(th,td)]:border-line [&_:is(th,td):nth-child(2)]:text-left">
           <thead><tr><th>#</th><th>Edge</th><th>Visits</th><th>Win</th><th>Margin</th><th>±</th><th>Lead</th><th>Prior</th></tr></thead>

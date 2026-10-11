@@ -21,10 +21,11 @@ Rules:
 
 ## Milestone 1: a game report (design/01-analysis-tool.md, section 4)
 
-- **The review's budget and pool size:** choose them from the speed on visitors' machines. KaTrain's schedule is the
-  model: a fast sweep of the whole game (25 visits), then deeper searches where the player looks (500), and
-  re-analysis on request ([research/01-ux-survey.md](../research/01-ux-survey.md), section 3). Keep within the memory
-  of small machines (95 MiB an instance for b10c128, 244 MiB for b15c192).
+- **The review's budget and pool size:** choose their defaults from the speed on visitors' machines. A visitor can
+  change them in the engine settings (design/09-engine-settings.md). KaTrain's schedule is the model: a fast sweep
+  of the whole game (25 visits), then deeper searches where the player looks (500), and re-analysis on request
+  ([research/01-ux-survey.md](../research/01-ux-survey.md), section 3). Keep within the memory of small machines (95
+  MiB an instance for b10c128, 244 MiB for b15c192).
 - **A review in a hidden tab** runs slowly, because the browser lowers the tab's priority. Decide what the page does:
   tell the visitor, or accept it.
 

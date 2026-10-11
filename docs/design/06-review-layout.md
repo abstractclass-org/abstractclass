@@ -44,7 +44,7 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
      Whether the chart fits is measured again whenever the window, the board's column or the page changes size.
 3. **Under the board:** the Advantage chart and its legend, as Lichess puts its chart under the board. It is below the
    fold when the board fills the height.
-4. **The step controls** (first, back, forward, last), the status line and the display settings' gear are a bar at
+4. **The step controls** (first, back, forward, last), the status line and the display settings' button are a bar at
    the bottom of the analysis column, as on Lichess, next to the move list that they step through.
 5. **The win chance is a display setting:**
    - **A bar above the board** ("Top horizontal bar", the default): Blue on the left, Red on the right, as the players
@@ -66,8 +66,9 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
      puts Blue below Red.
 6. **Display settings open in the analysis column,** in the place of the engine header, the candidates and the move
    list (below 1,260 pixels, of the tabs), as Lichess's analysis menu takes the move list's place. The board stays in
-   view, so each change shows as it is made. The gear in the step controls' bar opens and closes them, and shows that
-   they are open. "Done" and Escape close them too. The panel scrolls when the column is shorter than it.
+   view, so each change shows as it is made. The menu button (☰, Lichess's in the same place) in the step controls' bar
+   opens and closes them, and shows that they are open. The gear is the engine's, in the engine header (design 09).
+   "Done" and Escape close them too. The panel scrolls when the column is shorter than it.
    - **Grouped by where a setting shows,** as Lichess groups its analysis settings (Board, Move list): Board (the win
      chance's form, candidates, move labels, regions, protected edges, the engine's line "Animated" or "Static"), Move
      list (notes on the key edges, branches and lines "Dots and numbers" or "Text notation", design 07), Sound (move
@@ -82,9 +83,11 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
 7. **The progress bars go by subject:** the position's search bar is in the position's engine header, at the top of
    the analysis (with the expected final margin, the lead and the visits). The review's progress bar is at the top of
    the summary (three columns), or at the top of the right column (fewer), over the tabs. **While a bar's work runs,
-   a light gleam sweeps it** (Lichess's `bar-glider`, `ui/lib/css/component/_bar-glider.scss`: 70 pixels wide, across
-   in 3 seconds), so that a slow step does not look stopped: the review's bar while its passes run, and the search
-   bar while the position on screen is searched. With reduced motion asked for, there is no gleam.
+   a light gleam sweeps it** (Lichess's `bar-glider`, `ui/lib/css/component/_bar-glider.scss`: 70 pixels wide, every
+   3 seconds), so that a slow step does not look stopped: the review's bar while its passes run, and the search bar
+   while the position on screen is searched. With reduced motion asked for, there is no gleam. **The gleam is slower
+   than Lichess's:** it crosses the bar in 2 seconds at any width, then waits 1 second. Lichess's gleam moves 3,400
+   pixels in 3 seconds, so it flashes across a bar of 400 pixels in about a third of a second.
 
 ## Why
 

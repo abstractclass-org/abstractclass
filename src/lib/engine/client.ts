@@ -46,6 +46,11 @@ export class EngineError extends Error {
   }
 }
 
+/** The rejection of a request whose worker ended before it replied (terminate). */
+export class Stopped extends Error {
+  constructor() { super("the engine worker ended"); }
+}
+
 type Pending = { resolve: (t: Timed<unknown>) => void; reject: (e: Error) => void; partial?: (r: unknown, ms: number) => void };
 
 export class EngineWorker {
@@ -97,7 +102,12 @@ export class EngineWorker {
                                                   onPartial as (r: unknown, ms: number) => void);
     return { done, stop: () => this.worker.postMessage({ type: "stop", id } satisfies WorkerRequest) };
   }
-  terminate() { this.worker.terminate(); }
+  /** Ends the worker. The requests still waiting for a reply reject with Stopped. */
+  terminate() {
+    this.worker.terminate();
+    for (const p of this.pending.values()) p.reject(new Stopped());
+    this.pending.clear();
+  }
 }
 
 type DistributiveOmit<T, K extends keyof T> = T extends unknown ? Omit<T, K> : never;
