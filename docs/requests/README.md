@@ -15,4 +15,5 @@ accepted, done (with the engine repository's commit, tag or document), or declin
 | 03 | [Releases of the engine builds that the site deploys](03-release-artifacts.md) | accepted, for the first deploy |
 | 04 | [Document `edgeVisits` and `order` in the engine protocol](04-edge-visits-and-order.md) | done (engine repository commit `1a377d3`) |
 | 05 | [The visits behind each move of a line: KataGo's `includePVVisits`](05-pv-visits.md) | done (engine repository commit `0886496`, no protocol change) |
-| 06 | [The network's evaluations on the visitor's GPU: WebGPU](06-webgpu.md) | step 1 measured (batches gain 6 to 27 times, one position at a time little); step 2 not decided, the site's answer on batching sent |
+| 06 | [The network's evaluations on the visitor's GPU: WebGPU](06-webgpu.md) | step 1 measured: on the RTX 5080 batches gain 6 to 27 times, one position at a time little; on an Apple laptop one position gains 2 to 4 times; step 2 not decided, the site's answer on batching sent |
+| 07 | [The archive analysed for the labels: every position at the site's budgets](07-archive-analysis.md) | open |

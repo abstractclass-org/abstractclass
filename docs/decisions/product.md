@@ -926,3 +926,11 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   6 workers. Half the cores leaves room for the page and the visitor's other work. A visitor's stored choice stays: the
   page stores the settings when it loads, so a browser that opened the review before keeps its 4 until changed.
 
+### The archive's games analysed offline for the labels (2026-10-11)
+
+- **Decided:** the engine repository may analyse the meaf.us archive (other players' games) for the label thresholds,
+  the win chance by rating and a deeper reference ([requests/07-archive-analysis.md](../requests/07-archive-analysis.md)).
+- **The limits:** the data carries ratings, not player names; it stays in the engine repository's `runs/`, out of Git;
+  this repository commits only statistics over many games and the thresholds fitted from them, never a game. Any
+  public use of the games themselves still needs its own decision.
+

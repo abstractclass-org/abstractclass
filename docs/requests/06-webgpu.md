@@ -41,8 +41,53 @@ answer to that question is below.
   module pays only if the search evaluates in batches. FP16 is not faster here and is less exact (the same top move in
   30 of 32), so FP32 stays, and the bound "value within 1e-3" holds.
 - **Still to measure:** an idle GPU (at a planned stop of the engine's training: part of the fixed cost may be the
-  shared GPU), and an integrated GPU. Chrome offers WebGPU only on the discrete GPU of the engine's machine. On a
-  laptop: the engine repository's `v2/webgpu` harness, `npm install`, then `node run_bench.mjs`.
+  shared GPU). Chrome offers WebGPU only on the discrete GPU of the engine's machine.
+
+## Step 1 on an integrated GPU: the owner's laptop (2026-10-11)
+
+- **Method:** the engine repository's harness unchanged (`bench.html`, `bench_worker.mjs`, the models of
+  `runs/webgpu/models`), served read-only from the engine's machine over the owner's tailnet, with the harness's own
+  paths and isolation headers, and run in Chrome 154 on the laptop. A page ran each network and precision in turn at
+  batches of 1, 8, 16 and 32, for 3 seconds each.
+- **The machine:** an Apple Silicon Mac, 12 cores, on battery, as for its CPU's sweep. The adapter: Apple,
+  `metal-3`, with 16-bit shaders.
+- **Its CPU, for reference:** the site's WebAssembly module in the engine lab's speed sweep (every sixth position of
+  the sample game at 256 visits, one search thread a worker; decisions/engine.md, "Speed on a laptop"), on battery:
+
+  | Network | Workers | Visits a second, all workers | Each worker | About ms a visit, one worker |
+  |---|---|---|---|---|
+  | b10c128 | 1 | 66 | 66 | 15 |
+  | b10c128 | 2 | 121 | 61 | |
+  | b10c128 | 4 | 242 | 62 | |
+  | b10c128 | 8 | 386 | 57 | |
+  | b15c192 | 1 | 22 | 22 | 45 |
+  | b15c192 | 2 | 40 | 20 | |
+  | b15c192 | 4 | 76 | 20 | |
+  | b15c192 | 8 | 129 | 19 | |
+
+  A visit is one evaluation and its search's work, and the search is about 3% of the time (build.md, "Where the time
+  went"), so a visit's time stands close to an evaluation's.
+- **Times,** ms a position, round trip included:
+
+  | Network | Precision | Same top move | Batch 1 | Batch 8 | Batch 16 | Batch 32 |
+  |---|---|---|---|---|---|---|
+  | b10c128 | FP32 | 32 of 32 | 6.76 | 2.49 | 2.24 | 2.12 |
+  | b10c128 | FP16 | 32 of 32 | 6.53 | 2.19 | 1.92 | 1.78 |
+  | b15c192 | FP32 | 32 of 32 | 11.83 | 6.38 | 5.96 | 5.77 |
+  | b15c192 | FP16 | 32 of 32 | 11.02 | 5.40 | 4.95 | 4.77 |
+
+  FP32 equals the C++ engine (largest difference times the scale: policy 2.3e-5 and 3.9e-5, value 7.6e-6). FP16 keeps
+  the top move in 32 of 32 here, but its value differs by up to 0.18 (times the scale).
+- **Reading:**
+  - The fixed cost is small: about 7 ms a run for b10c128, against about 20 ms on the busy RTX 5080. One position at
+    a time is already about 2 times one CPU worker for b10c128 (6.8 against about 15 ms) and about 4 times for
+    b15c192 (11.8 against about 45 ms). So on this machine a single search, the position on screen, gains without
+    batching, and b15c192 becomes practical for it.
+  - Batches of 32 give about 470 positions a second for b10c128 and 173 for b15c192 in FP32: a little more than all 8
+    CPU workers (386 and 129). The GPU and the CPU workers together would about double a review's speed.
+  - FP16 is 3% to 17% faster here, and less exact. FP32 stays the path, as on the RTX 5080.
+  - The two GPUs behave in opposite ways at one position: slower than the CPU on the RTX 5080, 2 to 4 times faster on
+    this laptop. That supports choosing the GPU's default on each machine by a short test (above).
 
 ## What
 
