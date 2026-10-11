@@ -17,5 +17,6 @@ accepted, done (with the engine repository's commit, tag or document), or declin
 | 05 | [The visits behind each move of a line: KataGo's `includePVVisits`](05-pv-visits.md) | done (engine repository commit `0886496`, no protocol change) |
 | 06 | [The network's evaluations on the visitor's GPU: WebGPU](06-webgpu.md) | step 1 measured: on the RTX 5080 batches gain 6 to 27 times, one position at a time little; on an Apple laptop one position gains 2 to 4 times; step 2 not decided, the site's answer on batching sent |
 | 07 | [The archive analysed for the labels: every position at the site's budgets](07-archive-analysis.md) | done for a sample of 1,000 games (the engine repository's `runs/archive_analysis/`, out of Git), checked here |
-| 08 | [The archive's positions at a first look: the network's prior, 32 visits, and every candidate at 512](08-archive-first-look.md) | open: told to the engine repository |
-| 09 | [Bot games analysed for the win curve: the V2 gauntlet's middle](09-bot-games-analysis.md) | open: to tell the engine repository |
+| 08 | [The archive's positions at a first look: the network's prior, 32 visits, and every candidate at 512](08-archive-first-look.md) | done (the engine repository's `runs/archive_analysis/`, out of Git), checked here |
+| 09 | [Bot games analysed for the win curve: the V2 gauntlet's middle](09-bot-games-analysis.md) | accepted: being run |
+| 10 | [The site's network at fewer visits: the GPU visit ladder analysed](10-visit-ladder-analysis.md) | open: to tell the engine repository |

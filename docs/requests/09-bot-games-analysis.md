@@ -1,6 +1,11 @@
 # Bot games analysed for the win curve: the V2 gauntlet's middle
 
-**Status:** open. **Asked:** 2026-10-12.
+**Status:** accepted: the engine repository runs it with the rule unchanged. **Asked:** 2026-10-12.
+
+**Noted by the engine repository:** 440 of the 620 games have a player that is an earlier checkpoint of b10c128, from
+the same training run as the site's network. Such a player may agree with the site's network more than an unrelated bot
+of the same rating would. The bot names are in each game's facts, so this repository fits the curve on all 620 games
+and on the 180 without such a player, and compares the two.
 
 ## What
 

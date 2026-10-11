@@ -1,6 +1,6 @@
 # The archive's positions at a first look: the network's prior, 32 visits, and every candidate at 512
 
-**Status:** open, told to the engine repository. **Asked:** 2026-10-12.
+**Status:** done on 2026-10-12, and checked here (below, "Delivered"). **Asked:** 2026-10-12.
 
 ## What
 
@@ -30,6 +30,42 @@ fields. This repository commits only statistics over many games, never a game.
 
 **The cost:** about 84,000 positions. The search at 512 visits is about 43 million visits, about 70 minutes at part 1's
 speed (about 10,100 visits a second). The prior and the 32 visits add little. The engine repository chooses when.
+
+## Delivered
+
+`runs/archive_analysis/part1-1000.jsonl.first-look.jsonl` in the engine repository (1.27 GB, out of Git). Its note,
+`README.md` there, section "The first look", gives every field.
+
+- **The positions:** all 79,200 positions of part 1's 911 games that were not abandoned. The lines join part 1 on
+  `game` and `index`.
+- **Two fresh searches per position,** with request 07's settings and seed: 32 visits with the policy, then 512 visits.
+- `policy`: every legal edge with its prior, sorted by prior (20 to 1,183 edges, median 424). A timeout's pass is not
+  an edge, so it has no prior (1,733 positions).
+- `raw`: the network's own values at the position, without search (`rawWinrate`, `rawLead`, `rawScoreSelfplay`,
+  `rawScoreSelfplayStdev` and the network's error estimates).
+- `budgets."32"`: the root's values and the candidates `first`, `second` and `played`, with request 07's fields.
+- `budgets."512"`: the root's values and every candidate that the search visited, in the engine's order (1 to 284,
+  median 18), each with `move`, `visits`, `edgeVisits`, `prior`, `winrate`, `scoreLead` and `scoreSelfplay`. A move's
+  share of the search is its `edgeVisits`.
+
+**The engine repository's check against part 1 at 512 visits:** the same first candidate in 79,183 of 79,200
+positions. The root's win chance is identical in 66,271 and differs by more than 0.01 in 9 (at most 0.10, mean
+0.000006): the GPU's rounding, as in request 07. In most of the 17 positions with another first candidate, the two
+first candidates were nearly equal. A candidate's `prior` and its entry in `policy` come from the two searches'
+separate evaluations, so they can differ by up to 0.000005.
+
+**Points to know:**
+
+- **KaTrain's complexity needs its constants scaled.** Its `game_report` caps the complexity at 1 and weighs each move
+  by `points_lost / 4`, both in Go points. On this engine's scale, 12 times Go's as for the label bands, the cap is 12
+  points and the term is `points_lost / 48`. The median loss of a played edge that is not the first choice is 38
+  points: without the scaling, nearly every position would have the highest complexity.
+- The engine repository sends how good the lead (`scoreLead`) is, against the score and the win chance, with request
+  09's message, with a test of what the lead means.
+
+**Checked here:** 79,200 positions of 911 games, no error, no position twice, every field above present. Every line
+joins part 1, and they are exactly part 1's positions outside the 89 abandoned games. The first candidate at 512
+equals part 1's in 79,183.
 
 ## Why
 

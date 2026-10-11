@@ -555,3 +555,109 @@ scratch space, not committed: the method that is chosen goes into `scripts/measu
 - **Not tested:** whether k differs by rating band among near-equal players (too few games in each band). The ratings
   that choose the near-equal games were fitted on the same games, a weaker leak than a rating term. Request 09's bot
   games, between players of known strength, can check both.
+
+### Three measures of a turn's loss on the archive: the practical chance, KaTrain's points, the lead in spreads (2026-10-12)
+
+Part 1 of request 07 at 1,024 visits, every turn of the games that were not abandoned (40,054 turns), by the rating
+of the player who made the turn. The practical chance: σ(0.99 · lead / spread) lost, with chess.com's bands. KaTrain's
+points: the lead lost, with KaTrain's Go bands times 12 (36, 72, 144 points from Inaccuracy). The lead in spreads: lead
+/ spread lost, the practical chance's input before its curve, with the bands that equal chess.com's in an even game
+(0.2, 0.4, 0.8). Scratch scripts, not committed.
+
+| Measure, its own bands | Inaccuracy or worse / Mistake or worse / Blunder, every turn | Mistake or worse, 1800 and above |
+|---|---|---|
+| Practical chance | 43% / 28% / 12% | 15% |
+| KaTrain's points | 68% / 53% / 32% | 37% |
+| Lead in spreads | 59% / 41% / 20% | 25% |
+
+With KaTrain's bands, 64% of the turns in edges 1 to 40 are Mistake or worse: the lead swings most early, where the
+engine's lead is least sure. At equal shares (each measure's bands set where it flags 43%, 28% and 12% of turns):
+
+| Measure | Its bands | Mistake or worse: below 1600 / 1600 to 1800 / 1800 and above | Weakest to strongest | Mistakes in decided games | Mistake or worse by stage: edges 1 to 40 / 41 to 80 / 81 to 120 |
+|---|---|---|---|---|---|
+| Practical chance | 0.051, 0.101, 0.205 | 37% / 28% / 15% | 2.49 | 24% | 39% / 23% / 12% |
+| KaTrain's points | 101, 161, 286 points | 38% / 25% / 17% | 2.26 | 48% | 36% / 24% / 16% |
+| Lead in spreads | 0.38, 0.61, 1.12 | 38% / 27% / 15% | 2.46 | 44% | 30% / 27% / 26% |
+
+- Decided games (the engine under 5% or over 95% at the turn's start) are 57% of all turns.
+- Each measure flags 1% of the turns played as the engine plays, before the rule for Best.
+- The player with the smaller mean loss won 94% to 96% of the games by every measure: the loser loses more by
+  definition, so this does not tell the measures apart.
+- **Reading:** the lead in spreads separates weak from strong players as well as the practical chance, and keeps
+  counting in decided games, as points do. Raw points separate them least: a point weighs differently at each stage and
+  spread. Which share of flags belongs to decided games is a choice, not a measurement.
+
+### The lead fitted to human games: the practical lead (2026-10-12)
+
+The final margin that people reach from the engine's lead, by stage, on part 1's 387 games that ended on the score
+(their final scores are the game's end). At the game's last searched position the engine's lead and the final margin
+agree: median difference −0.2 points, 80% of games within −15 to +4. Between near-equal players (ratings within 150),
+with a robust scatter (1.4826 × the median absolute residual):
+
+| Edges left | Final margin per point of the engine's lead | Intercept | People's scatter | The engine's spread |
+|---|---|---|---|---|
+| 111 to 120 | 2.12 | −101 | 505 | 314 |
+| 81 to 90 | 1.52 | −88 | 440 | 234 |
+| 61 to 70 | 1.39 | −51 | 362 | 191 |
+| 41 to 50 | 1.15 | −41 | 236 | 194 |
+| 21 to 30 | 1.02 | −32 | 151 | 179 |
+| 1 to 10 | 0.98 | −24 | 51 | 112 |
+
+- **Early leads grow in people's games:** a point of the engine's lead in the first 10 edges ends as about 2 points of
+  margin between near-equal players (about 4 over every game, where the stronger player also gets ahead early). From
+  40 edges left the engine's lead is what people reach.
+- **The side to move falls short** by 24 to 101 points: the turn-start effect of "The win curve's flat middle".
+- **People's margins scatter about twice the engine's spread** in the middle game, and less than it near the end.
+
+**As a label** (scratch script, not committed): the final points people lose in a turn (slope × the lead lost),
+against people's scatter at the turn's start, beside the three measures of "Three measures of a turn's loss". With
+bands that equal chess.com's in an even game (0.125, 0.25, 0.5 of a scatter): 73% / 59% / 38% of turns at Inaccuracy
+or worse, Mistake or worse, Blunder. At equal shares (bands 0.425, 0.665, 1.184): weakest to strongest players 2.15
+(the practical chance 2.49), 53% of its Mistakes in decided games (24%), by stage 31% / 23% / 30% (39% / 23% / 12%).
+Late in the game people's scatter is small, so a small loss of points is many scatters, though it cannot change who
+wins. The practical chance asks of the same fitted lead whether the turn changes who wins: in a game won by any margin,
+that is the question a label answers.
+
+### Weaker versions of the engine in the archive's positions: four measures tested (2026-10-12)
+
+Request 08's first look ([requests/08-archive-first-look.md](../requests/08-archive-first-look.md)): at each of the
+79,200 positions of part 1's games that were not abandoned, the edge each mover chose, judged against the 512-visit
+search's first choice. The movers: the raw network (the top prior, no search), the 32-visit search's first choice, and
+the people who played, by the mover's own rating. Every edge but a pass. An engine's edge is valued within the 512
+search, from that edge's candidate (left out where the search did not visit it: 493 of the raw network's). A person's
+edge too, where the search visited it, else from the next position as labels do: 23% of the edges of people at 1800
+and above, 37% from 1600 to 1800, 52% below 1600. Edges, not turns. Each measure has its own bands: chess.com's in win
+chance (0.05, 0.10, 0.20 from Inaccuracy), KaTrain's Go bands times 12 in points (36, 72, 144), and the even-game
+equivalents in spreads (0.2, 0.4, 0.8). The practical chance takes the position's spread for every candidate: the
+first look has no candidate's own. Scratch script, not committed.
+
+| Measure | Mover | Inaccuracy or worse | Mistake or worse | Blunder | Of its Mistakes: in decided positions / in edges 1 to 40 |
+|---|---|---|---|---|---|
+| The engine's win chance | 32-visit search | 8.1% | 3.1% | 0.6% | 3% / 64% |
+| | Raw network | 14.6% | 8.1% | 2.7% | 5% / 70% |
+| | People, 1800 and above | 19.7% | 12.3% | 5.5% | 9% / 70% |
+| | People, below 1600 | 33.5% | 24.6% | 12.1% | 8% / 76% |
+| Practical chance | 32-visit search | 4.6% | 0.9% | 0.1% | 29% / 37% |
+| | Raw network | 11.4% | 3.4% | 0.6% | 25% / 51% |
+| | People, 1800 and above | 17.6% | 7.5% | 2.0% | 28% / 51% |
+| | People, below 1600 | 33.8% | 15.0% | 3.8% | 23% / 60% |
+| KaTrain's points | 32-visit search | 16.3% | 6.2% | 1.5% | 66% / 42% |
+| | Raw network | 26.2% | 12.8% | 3.9% | 54% / 52% |
+| | People, 1800 and above | 39.9% | 22.9% | 8.8% | 57% / 49% |
+| | People, below 1600 | 60.6% | 39.8% | 16.5% | 51% / 57% |
+| Lead in spreads | 32-visit search | 11.8% | 3.0% | 0.5% | 73% / 20% |
+| | Raw network | 21.5% | 7.5% | 1.7% | 59% / 33% |
+| | People, 1800 and above | 31.4% | 14.9% | 4.7% | 58% / 34% |
+| | People, below 1600 | 51.7% | 26.4% | 8.2% | 50% / 45% |
+
+(People from 1600 to 1800 lie between the two bands shown, in every measure.)
+
+- **Every measure orders the movers the same way:** the 32-visit search, the raw network, people from strong to weak.
+- **Where they flag differs.** The engine's win chance puts two thirds or more of its Mistakes in the first 40 edges,
+  and almost none in decided positions (the engine under 5% or over 95%), where it has saturated. KaTrain's points and
+  the lead in spreads put half or more in decided positions, and so does the 32-visit search's own: 66% and 73% of
+  its Mistakes. There, the search of 32 visits gives away points that the search of 512 keeps, in positions whose
+  result does not change. The practical chance flags the 32-visit search least (0.9% of its edges at Mistake or
+  worse), and spreads every mover's Mistakes between the opening and later play, a quarter of them in decided
+  positions.
+- Decided positions are more than half of the archive's positions (57% of its turns).

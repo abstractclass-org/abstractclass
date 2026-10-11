@@ -398,6 +398,10 @@ export function shortNote(e: EdgeReview): string {
 // getPlaySelectionValues). With fewer visits, its value is too uncertain to compare. The board uses the same rule,
 // with visits for weight.
 const MIN_VISIT_SHARE = 0.15;
+/** How far below the first choice a candidate on the board may be, in the engine's win chance and in points: the Good
+ *  bands that the labels had until they moved to a human's win chance (chess.com's 0.05, KaTrain's 3 Go points times
+ *  12). A candidate in a decided game, where every win chance is near 1, is held by the points. */
+const CANDIDATE_GAP = { win: GOOD_WIN, points: 36 };
 
 /** The candidate has enough visits for its values and its line to be trusted: it is the engine's first choice, or it
  *  has MIN_VISIT_SHARE of the most visited candidate's visits. */
@@ -423,8 +427,9 @@ export function trustedLine(c: Candidate): Edge[] {
 export interface RankedCandidate { c: Candidate; rank: number; gap: number; gapPts: number | undefined }
 
 /** The engine's candidates on the board: its first choice, and every other candidate that has enough visits to compare
- *  (MIN_VISIT_SHARE of the most visited candidate's) and is within the Good band of the first choice, in the win chance
- *  that labels read (labels.ts). `gap` is that win chance below the first choice's, and `gapPts` the points. No
+ *  (MIN_VISIT_SHARE of the most visited candidate's) and is within CANDIDATE_GAP of the first choice. They are the
+ *  engine's view, so `gap` is the engine's own win chance below the first choice's, and `gapPts` the points (design 07).
+ *  No
  *  limit on the count: in an open position the visits spread, and every move that earns them shows. The first choice
  *  is KataGo's order, its choice of move (the engine repository's design 04, "order"): by play selection value, where
  *  the move with the best lower confidence bound is raised as far as that bound justifies, at most fivefold. So the
@@ -432,12 +437,13 @@ export interface RankedCandidate { c: Candidate; rank: number; gap: number; gapP
 export function shownCandidates(a: Analysis | undefined, p: Player): RankedCandidate[] {
   const first = a?.candidates[0];
   if (!first) return [];
-  const best = moverWin(candidateWin(a, first), p);
+  const best = moverWin(first.blueWin, p);
   const most = Math.max(...a.candidates.map(c => c.visits));
   return a.candidates
     .map((c, k) => ({
-      c, rank: k + 1, gap: best - moverWin(candidateWin(a, c), p),
+      c, rank: k + 1, gap: best - moverWin(c.blueWin, p),
       gapPts: first.lead !== undefined && c.lead !== undefined ? moverScore(first.lead, p) - moverScore(c.lead, p) : undefined,
     }))
-    .filter(({ c, rank, gap }) => rank === 1 || (c.visits >= MIN_VISIT_SHARE * most && gap <= GOOD_WIN));
+    .filter(({ c, rank, gap, gapPts }) => rank === 1 || (c.visits >= MIN_VISIT_SHARE * most && gap <= CANDIDATE_GAP.win
+      && (gapPts === undefined || gapPts <= CANDIDATE_GAP.points)));
 }

@@ -43,19 +43,32 @@ It holds no backlog: everything still to do that is not in flight is in
   step, and the Advantage chart is in the Report, above the counts, with an area line, so the page fits the window
   (decisions/product.md, "The Advantage chart moved", "The Report"): the two-column and one-column layouts, where the
   Report is a tab, are not checked yet.
-- **The labels from a human win chance: built** (design 10, decisions/product.md, "Labels from a human win chance:
-  built"): σ(0.99 · lead / scoreStdev), chess.com's fixed bands, no point bands, fitted on the archive's games between
-  near-equal players with a turn-start term in the fit only (`scripts/measure/fit-win-curve.mjs`, decisions/engine.md,
-  "The win curve's flat middle"). Open: whether the chart, the win bar and the candidates table show a human's win
-  chance too (they show the engine's). The data: request 07, in the engine repository's `runs/archive_analysis/`, out
-  of Git; take each game once. Commit only statistics over many games and the curve, never a game. Request 09 ([requests/09-bot-games-analysis.md](requests/09-bot-games-analysis.md), open: the owner
-  takes it to the engine repository) asks for 620 V2 gauntlet games between players rated 2,000 to 3,000, analysed as
-  the archive was, to fit the same curve on bot games and compare.
+- **The labels' measure, reopened.** Built and committed: labels from a practical chance, σ(0.99 · lead /
+  scoreStdev) fitted on the archive's games between near-equal players, with chess.com's fixed bands (design 10,
+  decisions/product.md, "Labels from a human win chance: built"). The owner's doubts: the archive's players are
+  beginners of a two-week-old game, so a curve fitted on them is lenient and will drift as they improve. Points alone
+  (KaTrain: the lead lost, whatever the lead) do not tell 30 points lost at +20 from 30 at +120, which the owner wants
+  told apart. So a turn's loss needs a curve from lead to the chance of winning, and the open question is its
+  steepness: the engine's own win chance (perfect play, too steep), the practical chance (beginners), or a curve
+  fitted on weaker versions of the engine (a fallible, competent player, as Lichess fits on 2300 and above). The
+  measurements: decisions/engine.md, "Three measures of a turn's loss", "The lead fitted to human games".
+  - **A test bench on bot games of known strength:** for each candidate measure, labels should get rarer smoothly as
+    the bot gets stronger, the strongest should get few, they should not pile up in the opening or in decided games,
+    and the accuracy gap between two bots should follow their Elo gap. Request 09
+    ([requests/09-bot-games-analysis.md](requests/09-bot-games-analysis.md), accepted, being run): 620 V2 gauntlet
+    games between players rated 2,000 to 3,000; 440 have an earlier b10c128 checkpoint, so fit with and without them.
+    Request 10 ([requests/10-visit-ladder-analysis.md](requests/10-visit-ladder-analysis.md), open: the owner takes
+    it to the engine repository): the GPU visit ladder's games of the site's network against itself, 16 against 32
+    visits up to 512 against 1,024 (384 games).
+  - **Uncommitted:** the board's candidates back on the engine's own win chance and points (`shownCandidates`). On
+    hold until the measure is chosen: "practical" named in the label notes, and a practical-chance line on the chart.
+  - The data: requests 07 and 08 in the engine repository's `runs/archive_analysis/`, out of Git; take each game once.
+    Commit only statistics over many games and the curve, never a game.
 - **Difficulty:** Guid and Bratko's complexity checked on request 07's readings (decisions/engine.md): it tells when
-  players miss the engine's first choice, not when they err. Request 08
-  ([requests/08-archive-first-look.md](requests/08-archive-first-look.md), open, told to the engine repository)
-  asks for the network's prior, 32 visits and every candidate at
-  512, to test KaTrain's complexity and Guid and Bratko's with a first look.
+  players miss the engine's first choice, not when they err. Request 08 is done and checked
+  ([requests/08-archive-first-look.md](requests/08-archive-first-look.md), "Delivered"): the prior, 32 visits and every
+  candidate at 512 for 79,200 positions. Next: KaTrain's complexity (its constants scaled by 12) and Guid and Bratko's
+  with the first look, against people's errors by rating band at the same stake.
 - **Request 06 (WebGPU)** waits for the engine repository's step 2. Step 1 is measured on the RTX 5080 and on the
   owner's Apple laptop, and the site's answer is written: no need for reproducible searches, batch across searches
   first, the GPU's default chosen on each machine by a short test ([requests/06-webgpu.md](requests/06-webgpu.md)).
