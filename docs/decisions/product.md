@@ -935,3 +935,50 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   Git. This repository commits only statistics over many games and the thresholds fitted from them, never a game. Any
   public use of the games themselves still needs its own decision.
 
+### Biggest mistakes as numbers, the chart's first estimates, and a branch's preview (2026-10-11)
+
+- **Biggest mistakes** give the points lost as a number alone (−136, as the move list gives its numbers), with the
+  whole loss in the number's note ("Lost 136 points and 26.6% of win chance").
+- **The Advantage chart while the review runs** (design 06): the line is dashed and faint where a position has only
+  its sweep (32 visits), and solid where it has the review's depth. The legend says "First estimate, refined as the
+  review runs" while any part is dashed. Checked in Edge: with a depth never searched (2,048), all 120 steps were
+  dashed and the legend's note showed. With a depth searched for a few positions (768), 6 steps were solid and 114
+  dashed. Back on Lite, all 120 were solid, with no note.
+- **A branch's preview** (design 07, item 13): pointing at a branch move shows its row on the board from the row's
+  start, up to that move, drawn as the engine's line, animated or static by the same setting. Chosen over a small
+  board beside the move (Lichess's board on its engine lines): the main board is larger, and it draws as the engine's
+  line does. Checked in Edge with the real pointer on the sixth move of a row from the position after edge 11: the
+  board went to that position and drew edges 1 to 6, one every half second, with the sixth edge's cut, the status
+  line said "Branch preview: 6 edges from the position after edge 11", and the board came back when the pointer left.
+- **Request 07** is accepted for a sample of 1,000 games: the whole archive would take 12 to 16 hours of the GPU.
+
+### A played move's preview (2026-10-11)
+
+- **Asked for:** the position after a played move on the board while the pointer is on the move in the move list.
+  And whether analysis tools do this.
+- **Found:** Lichess's move list has no preview. It draws a small board only for a move of an engine line, under the
+  pointer (`ui/lib/src/ceval/view/main.ts`, `renderPvBoard`, read in lila's source). The help pages of chess.com and
+  Sabaki name no move-list preview. Browser extensions add hover previews to those sites, and one Go client (SWHub)
+  has them. So this is the site's own.
+- **Built** (design 07, item 14): the board shows the position after the move, with the move as the last edge, and
+  nothing of the position on screen, and the status line says "Preview". It ends when the pointer leaves the move
+  list. Checked in Edge with the real pointer on 19... J6-M8: the board showed the position after edge 37 with that
+  edge marked, and came back when the pointer left the list.
+
+### The previews end at the move, and each is a display setting (2026-10-11)
+
+- **Found by the owner:** a preview stayed while the pointer was near the move. It ended only when the pointer left
+  the whole move list (a played move's) or the row (a branch's).
+- **Now:** a preview ends 120 ms after the pointer leaves the move, unless the pointer comes onto another move first,
+  so that crossing the gap between two moves does not send the board back. Checked in Edge with the real pointer, the
+  events logged: the move's `mouseleave`, then the position on screen back 144 ms later, for a played move and for a
+  branch's move.
+- **Display settings** (Move list): "Preview played moves" and "Preview branches", both on by default. Checked: with
+  the first off, pointing at a move left the board as it was.
+
+### "Lines on the board" (2026-10-11)
+
+- **Renamed:** the display setting "The engine's line" (Animated or Static) is "Lines on the board", since it draws a
+  branch's preview too. Its line: "The engine's line and a branch's preview: one edge at a time, or all at once." One
+  setting for both: they draw a numbered line on the board the same way.
+

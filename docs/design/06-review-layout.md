@@ -43,7 +43,11 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
      high as the board's column, so that the step controls stay in view. The move list takes the height that is left.
      Whether the chart fits is measured again whenever the window, the board's column or the page changes size.
 3. **Under the board:** the Advantage chart and its legend, as Lichess puts its chart under the board. It is below the
-   fold when the board fills the height.
+   fold when the board fills the height. **While the review runs,** the line is dashed and faint where a position has
+   only its first search (the sweep's 32 visits), and solid where its search has the review's depth. The legend then
+   says "First estimate, refined as the review runs", and a dashed position's note says "first estimate". This marking
+   is the site's own, not taken from a published tool. The Highlights' biggest mistakes give the points lost as a
+   number alone (−136), as the move list gives its numbers, with the whole loss in the number's note.
 4. **The step controls** (first, back, forward, last), the status line and the display settings' button are a bar at
    the bottom of the analysis column, as on Lichess, next to the move list that they step through.
 5. **The win chance is a display setting:**
@@ -71,10 +75,10 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
    "Done" at the panel's top, away from ☰, and Escape close them too. The panel scrolls when the column is shorter
    than it.
    - **Grouped by where a setting shows,** as Lichess groups its analysis settings (Board, Move list): Board (the win
-     chance's form, candidates, move labels, regions, protected edges, the engine's line "Animated" or "Static"), Move
-     list (notes on the key edges, branches and lines as "Pills", "Dots" or "Notation", design 07), Sound (move
-     sounds and their volume, design 08), Keyboard (the list of keys and clicks, also on "?"), and Advantage chart (the
-     score so far).
+     chance's form, candidates, move labels, regions, protected edges, lines on the board "Animated" or "Static"), Move
+     list (notes on the key edges, the previews of played moves and of branches, branches and lines as "Pills", "Dots"
+     or "Notation", design 07), Sound (move sounds and their volume, design 08), Keyboard (the list of keys and clicks,
+     also on "?"), and Advantage chart (the score so far).
    - **Each setting says what it does,** in a short line under its name, always in view (Lichess shows a help video for
      the setting under the pointer, which a touch screen does not show).
    - **On and off is a switch** at the right of its name, as Lichess's settings; **a choice of two is a pair of

@@ -1,6 +1,7 @@
 # The archive analysed for the labels: every position at the site's budgets
 
-**Status:** open.
+**Status:** accepted for a sample of 1,000 games: the whole archive would take 12 to 16 hours of the GPU. About
+119,000 positions, enough for the percentiles of points lost by rating band if the games spread over the bands.
 
 ## What
 

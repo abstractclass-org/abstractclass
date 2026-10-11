@@ -10,6 +10,7 @@
   // review may be partial while the engine works: an edge with no label yet shows none. The layout is design 06 (docs/design/06-review-layout.md): the board fills the window's height,
   // with the summary on its left from 1,260 pixels (Lichess's three columns), and the analysis on its right.
   import { ContextMenu, Dialog, RadioGroup, Switch, Tabs } from "bits-ui";
+  import { untrack } from "svelte";
   import { MediaQuery } from "svelte/reactivity";
   import { innerHeight, innerWidth } from "svelte/reactivity/window";
   import type { BranchNode } from "#lib/analysis/game.svelte.ts";
@@ -26,7 +27,7 @@
   import { playMove, preload } from "#lib/sound.ts";
   import Glyph from "./Glyph.svelte";
   import {
-    explain, edgeName, moveName, moveNotation, sameEdge, shortNote, judgeBranchEdge, valuesAfter, moverWin, moverScore, largest, lossText, pct, shownCandidates, lineMovers, enoughVisits, trustedLine, type Analysis, type Candidate, type LineStep, LABELS, LABEL_TEXT, LABEL_GLYPH, PLAYER_NAME, type Edge, type Label, type Player, type Position, type Review,
+    explain, edgeName, moveName, moveNotation, sameEdge, shortNote, judgeBranchEdge, valuesAfter, moverWin, moverScore, largest, lossText, lossPhrase, pct, shownCandidates, lineMovers, enoughVisits, trustedLine, type Analysis, type Candidate, type LineStep, LABELS, LABEL_TEXT, LABEL_GLYPH, PLAYER_NAME, type Edge, type Label, type Player, type Position, type Review,
   } from "./model.ts";
   import { branchChildren, branchRows, mainIndex, nextFork, pathKey, prevFork, sharedLength, siblingLine } from "./tree.ts";
 
@@ -41,6 +42,7 @@
     onplay?: (path: string[]) => Promise<void>; // adds a line from the start to the tree
     rulesAt?: (path: string[]) => Promise<EdgeRules>; // a position's legal edges and mover's nodes, for the player's moves
     secondAt?: (path: string[]) => Analysis | undefined; // the position after the engine's second choice, which confirms a Great
+    reviewVisits?: number; // the review's depth: a position searched less is a first estimate on the chart
     ondelete?: (path: string[]) => Promise<void>; // deletes a branch node and what follows it
     onpromote?: (path: string[]) => Promise<void>; // promotes a branch one step among the branches from its fork
     onjudge?: (path: string[]) => Promise<void>; // evaluates a branch move's quality: searches its two positions
@@ -51,7 +53,7 @@
     onengine?: (change: Partial<EngineSettings>) => void; // a setting changed in the panel
   }
   let { R, progress = null, problem = "", deepVisits = 0, onposition, lineSteps, branches = {}, onplay, rulesAt, ondelete,
-        onpromote, onjudge, labelVisits = 0, searching = false, timedOut = false, engine, onengine, secondAt }: Props = $props();
+        onpromote, onjudge, labelVisits = 0, searching = false, timedOut = false, engine, onengine, secondAt, reviewVisits = 0 }: Props = $props();
   const last = $derived(R.data.positions.length - 1);
   const TABLE_ROWS = 5; // the Analysis table shows this many rows and scrolls, so the move list under it does not move
   const ROW_EM = 1.9; // a table row's height, in em
@@ -340,6 +342,71 @@
     return () => clearInterval(timer);
   });
   const drawnLine = $derived(line && line.slice(0, Math.max(1, lineShown)));
+
+  // A branch's preview (design 07): pointing at a move of a branch's row in the move list shows the row on the board,
+  // from the position where the row starts, as the engine's line shows: its edges numbered, one at a time or all at
+  // once (the same display setting), with the edges they cut and the regions they close, from the branch's own
+  // positions. The rows of dots or pills look alike, and the board tells them apart. It ends when the pointer leaves.
+  let branchHover = $state<{ row: string[][]; k: number } | null>(null);
+  const branchPreview = $derived.by(() => {
+    if (!branchHover || !display.previewBranches) return null;
+    const { row, k } = branchHover, start = row[0].slice(0, -1), from = positionOf(start);
+    if (!from) return null;
+    const edges: BoardLineEdge[] = [];
+    for (const p of row.slice(0, k + 1)) {
+      const node = branches[pathKey(p)];
+      if (!node?.move.edge) break;
+      edges.push({ edge: node.move.edge, player: node.move.player, cut: node.move.cut, regions: node.position.regions });
+    }
+    return { key: `${pathKey(start)}|${row.slice(0, k + 1).map(p => p.at(-1)).join(" ")}`, start, from, edges };
+  });
+  const previewKey = $derived(branchPreview?.key ?? null);
+  let previewShown = $state(0);
+  let previewDrawn = ""; // the row's start and the edges drawn so far, as drawnKey for the engine's line
+  $effect(() => {
+    const key = previewKey;
+    const n = untrack(() => branchPreview?.edges.length ?? 0);
+    const show = (k: number) => { previewShown = k; previewDrawn = key ? keyUpTo(key, k) : ""; };
+    if (!key || !display.lineSteps || n <= 1 || matchMedia("(prefers-reduced-motion: reduce)").matches) { show(n); return; }
+    // Pointing at a later move of the same row goes on from the edges drawn.
+    const kept = previewDrawn && `${key} `.startsWith(`${previewDrawn} `) ? Math.max(1, keyLength(previewDrawn)) : 1;
+    show(Math.min(kept, n));
+    if (kept >= n) return;
+    const timer = setInterval(() => { show(previewShown + 1); if (previewShown >= n) clearInterval(timer); }, LINE_STEP_MS);
+    return () => clearInterval(timer);
+  });
+  // A preview's key is the row's start and its edges ("start|e1 e2 …"): the part up to k edges, and the edges' count.
+  const keyUpTo = (key: string, k: number) => { const [s, e] = key.split("|"); return `${s}|${e.split(" ").slice(0, k).join(" ")}`; };
+  const keyLength = (key: string) => key.split("|")[1].split(" ").filter(Boolean).length;
+  const previewLine = $derived(branchPreview && branchPreview.edges.slice(0, Math.max(1, previewShown)));
+  // A played move's preview: pointing at one of the game's moves in the move list shows the position after it, with the
+  // move as the last edge. Not Lichess's (its move list has none; it shows a small board only for a move of an engine
+  // line, ui/lib/src/ceval/view/main.ts): the board tells apart the moves that the list shows as text. It ends when the
+  // pointer leaves the move list, so that the board does not flicker between moves.
+  let moveHover = $state<number | null>(null);
+  const movePreview = $derived(moveHover === null || moveHover + 1 === mainAt || !display.previewMoves ? null
+    : { index: moveHover, position: R.data.positions[moveHover + 1], move: R.data.moves[moveHover] });
+  // Either preview: the board shows nothing of the position on screen.
+  const previewing = $derived(!!branchPreview || !!movePreview);
+  // A preview starts when the pointer comes onto a move and ends a moment after it leaves the move (PREVIEW_END_MS),
+  // so that the pointer can cross the gap to the next move without the board going back between them. Each preview is
+  // a display setting (Move list).
+  const PREVIEW_END_MS = 120;
+  let previewEnd: ReturnType<typeof setTimeout> | undefined;
+  function previewMove(i: number) {
+    clearTimeout(previewEnd);
+    branchHover = null;
+    moveHover = i;
+  }
+  function previewBranch(row: string[][], k: number) {
+    clearTimeout(previewEnd);
+    moveHover = null;
+    branchHover = { row, k };
+  }
+  function endPreview() {
+    clearTimeout(previewEnd);
+    previewEnd = setTimeout(() => { moveHover = null; branchHover = null; }, PREVIEW_END_MS);
+  }
   // The areas in the players' tags: now, or, while a line shows, after its last drawn edge (from the rules).
   const lineAreas = $derived(drawnLine ? stepsNow?.[drawnLine.length - 1]?.areas ?? null : null);
   const areas = $derived(lineAreas ?? position.areas);
@@ -399,6 +466,8 @@
     path = p;
     hover = null;
     listHover = null;
+    branchHover = null;
+    moveHover = null;
     if (display.sound && (sound || step) && p.length) void playMove(display.volume);
   }
   $effect(() => { if (display.sound) preload(); });
@@ -543,7 +612,10 @@
     return `Edge ${pos + 1} of ${last} · Turn ${t.number} · ${PLAYER_NAME[mover]} to play, edge ${k} of ${t.edges.length}`;
   });
   const statusLine = $derived(
-    input.refused === "start" ? `Start an edge at one of ${PLAYER_NAME[mover]}'s nodes.`
+    branchPreview ? `Branch preview: ${branchPreview.edges.length} edge${branchPreview.edges.length > 1 ? "s" : ""} from ${
+      branchPreview.start.length ? `the position after edge ${branchPreview.start.length}` : "the start"}. Click to go there.`
+    : movePreview ? `Preview: the position after edge ${movePreview.index + 1}, ${moveText(movePreview.index)}. Click to go there.`
+    : input.refused === "start" ? `Start an edge at one of ${PLAYER_NAME[mover]}'s nodes.`
     : input.refused === "end" ? `Finish the edge at a marked point, or click another of ${PLAYER_NAME[mover]}'s nodes.`
     : input.pending ? "Now the edge's second point: a marked point."
     : status);
@@ -568,9 +640,14 @@
     const e = i > 0 ? R.edges[i - 1] : null;
     const title = e ? `${moveText(e.index)}${listed(e.label) ? ` · ${LABEL_TEXT[e.label]}` : ""}` : "The start";
     const s = R.blueScore[i];
-    const value = i === last ? `Result: ${sideText(s!, 1)}` : s === undefined ? "Not analysed yet" : `Lead: ${sideText(s)}`;
+    const value = i === last ? `Result: ${sideText(s!, 1)}` : s === undefined ? "Not analysed yet"
+      : `Lead: ${sideText(s)}${chartSettled[i] ? "" : " · first estimate"}`;
     return { title, value };
   }));
+  // The positions whose search has the review's depth (or the end, whose value is the result): the chart draws the rest
+  // as a first estimate.
+  const chartSettled = $derived(R.data.positions.map((_, i) => i === last || (R.data.analysis[i]?.visits ?? 0) >= reviewVisits));
+  const chartRough = $derived(R.blueWin.some((v, i) => !Number.isNaN(v) && !chartSettled[i]));
   // The position's search, as Lichess shows its depth: the bar fills to the budget and stays full when the search ends.
   // A search stopped at its time limit has ended too: its bar is full (Lichess fills its bar by time).
   const searched = $derived(analysis && deepVisits ? (timedOut ? 1 : Math.min(1, analysis.visits / deepVisits)) : null);
@@ -676,7 +753,7 @@
                 onclick={() => showMove(m.index)}>
           <span class={BADGE} style:background="var(--{m.label})"><Glyph glyph={LABEL_GLYPH[m.label!]} /></span>
           <span class="font-mono text-[0.95em] {SIDE_TEXT[m.player]}">{moveText(m.index)}</span>
-          <span class="ml-auto text-sm text-muted tabular-nums whitespace-nowrap">{lossText(m)}</span>
+          <span class="ml-auto text-sm text-muted tabular-nums whitespace-nowrap" title="Lost {lossPhrase(m)}">{lossText(m)}</span>
         </button>
       </li>
     {/each}
@@ -749,7 +826,7 @@
           <button class={["mv flex items-baseline gap-1 px-[0.2rem] py-px font-mono text-[0.95em] text-left whitespace-nowrap bg-transparent border-0",
                           SIDE_TEXT[e.player], mainAt === e.index + 1 ? "here bg-panel-2 outline outline-accent"
                           : pickedKey === pathKey(mainNames.slice(0, e.index + 1)) ? PICKED : "hover:bg-panel-2 hover:outline hover:outline-line"]}
-                  onclick={() => go(e.index + 1, true)} tabindex="-1"
+                  onclick={() => go(e.index + 1, true)} onmouseenter={() => previewMove(e.index)} onmouseleave={endPreview} tabindex="-1"
                   title={[e.label ? LABEL_TEXT[e.label] : "Not analysed yet", after !== undefined ? sideText(after) : ""].filter(Boolean).join(" · ")}>
             <span class="w-[calc(10ch+0.15em)]">{moveNotation(e)}{#if listed(e.label)}<span class="ml-[0.15em] font-extrabold" style:color="var(--{e.label})"><Glyph glyph={LABEL_GLYPH[e.label]} /></span>{/if}</span>
             <span class="w-[5ch] ml-auto text-[0.78em] text-right text-muted tabular-nums">{leadShort(after)}</span>
@@ -830,7 +907,8 @@
 <!-- A branch in the move list, from its first move: its rows (tree.ts), indented by depth, each with a rule on its left.
      Every turn has its number, as in the record. Without notation, an edge is a dot in its mover's colour (Go tools
      show a variation without names): the turn numbers place it, so the dots carry no numbers of their own. Where a
-     branch forks again, its continuations follow, one step further in (Lichess's way inside a variation). -->
+     branch forks again, its continuations follow, one step further in (Lichess's way inside a variation). Pointing at a
+     move shows its row on the board up to that move (branchPreview). -->
 {#snippet branch(first: string[])}
   {#each branchRows(first, branchKids) as row, r (r)}
     <div class={["flex flex-wrap items-center gap-y-0.5 my-0.5 pl-1.5 border-l-2 border-line font-mono text-[0.95em]",
@@ -848,13 +926,13 @@
             <button class={["mv px-[0.2rem] py-px bg-transparent border-0 whitespace-nowrap", SIDE_TEXT[node.move.player],
                             at ? "here bg-panel-2 outline outline-accent" : pickedKey === pathKey(p) ? PICKED
                             : "hover:bg-panel-2 hover:outline hover:outline-line"]}
-                    onclick={() => setPath(p, true)} tabindex="-1" data-path={pathKey(p)}
-                    title={label ? LABEL_TEXT[label] : waiting ? "Evaluating…" : undefined}>{moveNotation(node.move)}</button>
+                    onclick={() => setPath(p, true)} onmouseenter={() => previewBranch(row.paths, k)} onmouseleave={endPreview} tabindex="-1"
+                    data-path={pathKey(p)} title={label ? LABEL_TEXT[label] : waiting ? "Evaluating…" : undefined}>{moveNotation(node.move)}</button>
           {:else}
             <button class={["mv flex p-[0.08em] bg-transparent border-0 rounded-full",
                             at ? "here outline-2 outline-accent" : pickedKey === pathKey(p) ? PICKED : "hover:outline hover:outline-ink"]}
-                    onclick={() => setPath(p, true)} tabindex="-1" data-path={pathKey(p)}
-                    title="{turnText(t)} {moveNotation(node.move)}{label ? ` · ${LABEL_TEXT[label]}` : waiting ? ' · evaluating…' : ''}">
+                    onclick={() => setPath(p, true)} onmouseenter={() => previewBranch(row.paths, k)} onmouseleave={endPreview} tabindex="-1"
+                    data-path={pathKey(p)} title="{turnText(t)} {moveNotation(node.move)}{label ? ` · ${LABEL_TEXT[label]}` : waiting ? ' · evaluating…' : ''}">
               {#if display.branchForm === "pills"}{@render edgePill(node.move.edge, node.move.player, false, null, "")}
               {:else}<span class={["block w-[0.85em] h-[0.85em] rounded-full", node.move.player === 0 ? "bg-blue" : "bg-red"]}></span>{/if}
             </button>
@@ -929,12 +1007,16 @@
         () => display.layers.regions, v => (display.layers.regions = v))}
       {@render toggle("Protected edges", "The edges the opponent cannot cut on the next turn.",
         () => display.layers.protected, v => (display.layers.protected = v))}
-      {@render choice("The engine's line", "The line of the candidate under the pointer: one edge at a time, or all at once.",
+      {@render choice("Lines on the board", "The engine's line and a branch's preview: one edge at a time, or all at once.",
         [["animated", "Animated"], ["static", "Static"]], () => (display.lineSteps ? "animated" : "static"),
         v => (display.lineSteps = v === "animated"))}
       <h3 class={SETTINGS_HEAD}>Move list</h3>
       {@render toggle("Notes on the key edges", "A line under Great edges, Mistakes, and Blunders.",
         () => display.notes, v => (display.notes = v))}
+      {@render toggle("Preview played moves", "Pointing at a move of the game shows the position after it on the board.",
+        () => display.previewMoves, v => (display.previewMoves = v))}
+      {@render toggle("Preview branches", "Pointing at a branch's move draws its row on the board, as the engine's line.",
+        () => display.previewBranches, v => (display.previewBranches = v))}
       {@render choice("Branches and lines", "Each edge as a pill along its direction, a dot, or its notation. In the engine's line, the pills and dots carry the board's numbers.",
         [["pills", "Pills"], ["dots", "Dots"], ["text", "Notation"]], () => display.branchForm,
         v => (display.branchForm = v as Display["branchForm"]))}
@@ -1127,23 +1209,26 @@
         </div>
       {/if}
       <div class="board-wrap rounded overflow-hidden">
+        <!-- While a branch's preview shows, the board is at the row's start, with the row as its line; while a played
+             move's shows, at the position after it. Nothing of the position on screen: no candidates, labels or own
+             moves. -->
         <Board
-          {position}
-          lastEdge={lastPlayed?.edge ?? null}
-          cut={lastPlayed?.cut ?? null}
-          {candidates}
-          highlight={hover ?? pinnedCandidate?.edge ?? null}
-          line={drawnLine}
+          position={branchPreview?.from ?? movePreview?.position ?? position}
+          lastEdge={branchPreview ? null : movePreview ? movePreview.move.edge : lastPlayed?.edge ?? null}
+          cut={branchPreview ? null : movePreview ? movePreview.move.cut : lastPlayed?.cut ?? null}
+          candidates={previewing ? [] : candidates}
+          highlight={previewing ? null : hover ?? pinnedCandidate?.edge ?? null}
+          line={branchPreview ? previewLine : movePreview ? null : drawnLine}
           oncandidateclick={selectRank}
           oncandidatedblclick={e => playPath([...path, edgeName(e)])}
           pending={input.pending}
           ends={input.ends}
           active={input.active}
-          onpoint={input.rules ? input.click : undefined}
+          onpoint={input.rules && !previewing ? input.click : undefined}
           onlyActive
-          preview={line ? null : hover ?? (picked ? parseEdge(picked.at(-1)!) : null)}
+          preview={line || previewing ? null : hover ?? (picked ? parseEdge(picked.at(-1)!) : null)}
           previewPlayer={mover}
-          {marks}
+          marks={previewing ? [] : marks}
           layers={display.layers}
           oncandidate={e => { hoverOnBoard = true; hover = e; }}
         />
@@ -1261,11 +1346,13 @@
   <section class="under">
     <div bind:this={chartBox}>
       <AdvantageChart blueWin={R.blueWin} {scoreDiff} current={pos} showScore={display.scoreLine} tips={chartTips}
-             moments={R.keyMoments.map(m => ({ index: m.index, label: m.label! }))} onjump={go} />
+             settled={chartSettled} moments={R.keyMoments.map(m => ({ index: m.index, label: m.label! }))} onjump={go} />
     </div>
     <p class="flex flex-wrap items-center gap-2.5 my-3.75 text-xs text-muted">
       <strong>Advantage chart</strong>
       <span class="inline-block w-[1.2em] h-0.5 bg-ink"></span> Blue's win chance
+      {#if chartRough}<span class="inline-block w-[1.2em] border-t-[1.5px] border-dashed border-ink opacity-55"></span>
+        First estimate, refined as the review runs{/if}
       {#if display.scoreLine}<span class="inline-block w-[1.2em] h-0.5 bg-accent"></span> Score so far (Blue − Red){/if}
     </p>
   </section>

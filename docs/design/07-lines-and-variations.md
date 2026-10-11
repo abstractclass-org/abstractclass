@@ -137,6 +137,22 @@ cut edges that are on the board, so a line drawn over the board can show edges t
     Lichess's `promoteAt`) and "Delete from here" (the move and what follows it, and the place on screen goes to the
     fork when it was inside). The game's own moves have no menu: the review is of the game, so its line stays first.
     "Make main line" belongs to an analysis board, later (decisions/open-items.md).
+13. **A branch's preview:** pointing at a move of a branch's row in the move list shows the row on the board, from the
+    position where the row starts, up to that move. It is drawn as the engine's line is (item 3): the edges numbered,
+    one at a time or all at once (the same display setting, "Lines on the board"), with the edges they cut and the
+    regions they close, from the branch's own positions. Meanwhile the board shows nothing of the position on screen
+    (no candidates, labels or own moves), and the status line says "Branch preview" and where the row starts. It ends
+    a moment (120 ms) after the pointer leaves the move, unless the pointer comes onto another move first, so that it
+    can cross the gap between two moves without the board going back. A click goes to the move. A display setting
+    turns it off ("Preview branches"). Rows of dots or pills look alike, and the board tells
+    them apart. A small board that pops up beside the move (Lichess's board on its engine lines) was the other choice:
+    the main board is larger, and it draws as the engine's line does.
+14. **A played move's preview:** pointing at one of the game's moves in the move list shows the position after it,
+    with the move as the last edge, and nothing of the position on screen. The status line says "Preview" and the
+    move. It ends as the branch's preview does, a moment after the pointer leaves the move. A display setting turns
+    it off ("Preview played moves"). This is the site's own: Lichess's move list has none (its small board shows only
+    a move of an engine line, `ui/lib/src/ceval/view/main.ts`, `renderPvBoard`), and the help pages of chess.com and
+    Sabaki name none. Hover previews exist in browser extensions for those sites and in one Go client (SWHub).
 
 ## Why
 

@@ -220,8 +220,9 @@ export function largest(edges: EdgeReview[], n = 8): EdgeReview[] {
 export const pct = (x: number) => `${(100 * x).toFixed(1)}%`;
 
 /** The loss as text: points when known, else win chance. */
+/** The loss in short: the points, as the move list shows them, or the win chance when the analysis has no scores. */
 export function lossText(e: EdgeReview): string {
-  return e.pointsLost !== undefined ? `−${Math.round(e.pointsLost)} pts` : `−${pct(e.loss)}`;
+  return e.pointsLost !== undefined ? `−${Math.round(e.pointsLost)}` : `−${pct(e.loss)}`;
 }
 
 /** The loss as a phrase: "12 points and 3.4% of win chance", or the win chance alone when the analysis has no scores. */

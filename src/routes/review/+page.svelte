@@ -166,7 +166,7 @@
 {:else if R}
   <ReviewView {R} {progress} problem={game?.error ?? ""} deepVisits={engine.visits} onposition={path => (current = path)}
               branches={game?.branches ?? {}} onplay={path => game!.addLine(path)} rulesAt={path => game!.rulesAt(path)}
-              secondAt={path => game?.secondAt(path)}
+              secondAt={path => game?.secondAt(path)} reviewVisits={budget}
               ondelete={path => game!.deleteFrom(path)} onpromote={path => game!.promote(path)}
               onjudge={path => game!.judge(path)} labelVisits={LABEL_VISITS} {engine} onengine={change => Object.assign(engine, change)}
               timedOut={!!game?.stoppedByTime(current)}

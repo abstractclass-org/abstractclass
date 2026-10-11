@@ -7,11 +7,15 @@ export interface Display {
   win: "bar" | "gauge"; // a bar above the board (Blue left, Red right), or a vertical gauge beside it
   layers: BoardLayers;
   scoreLine: boolean; // the Advantage chart's score-so-far line
-  lineSteps: boolean; // the engine's line drawn one edge at a time (KaTrain's way, the default), not all at once
+  // "Lines on the board": the engine's line and a branch's preview drawn one edge at a time (KaTrain's way, the
+  // default), not all at once
+  lineSteps: boolean;
   // How an edge shows in the branches and the listed line: a pill along the edge's direction (the default), a dot (Go's
   // way), or the record's notation. In the line, the pills and the dots carry the board's numbers.
   branchForm: "pills" | "dots" | "text";
   notes: boolean; // the move list's one-line notes on Great edges, mistakes and blunders
+  previewMoves: boolean; // the position after a played move on the board, while the pointer is on the move (design 07)
+  previewBranches: boolean; // a branch's row on the board, while the pointer is on one of its moves (design 07)
   sound: boolean; // move sounds (design 08), on by default as on Lichess
   volume: number; // the move sounds' volume, 0 to 1
 }
@@ -25,6 +29,8 @@ export const DEFAULT_DISPLAY: Display = {
   lineSteps: true,
   branchForm: "pills",
   notes: true,
+  previewMoves: true,
+  previewBranches: true,
   sound: true,
   volume: 0.4,
 };
@@ -42,6 +48,8 @@ export function loadDisplay(): Display {
       branchForm: kept.branchForm === "pills" || kept.branchForm === "dots" || kept.branchForm === "text" ? kept.branchForm
         : kept.branchText ? "text" : DEFAULT_DISPLAY.branchForm,
       notes: kept.notes ?? DEFAULT_DISPLAY.notes,
+      previewMoves: kept.previewMoves ?? DEFAULT_DISPLAY.previewMoves,
+      previewBranches: kept.previewBranches ?? DEFAULT_DISPLAY.previewBranches,
       sound: kept.sound ?? DEFAULT_DISPLAY.sound,
       volume: typeof kept.volume === "number" ? Math.min(1, Math.max(0, kept.volume)) : DEFAULT_DISPLAY.volume,
     };

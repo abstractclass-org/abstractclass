@@ -3,6 +3,9 @@
   // the area between it and 50% in the colour of the side ahead (Lichess's chart), the score difference so far as a
   // second line in another colour (Enclosure pays points every turn), the key moments as dots, and the current position as a marker.
   // The pointer snaps to the nearest position and shows its note (Lichess's chart tooltip). A click jumps there.
+  // While the review runs, the line is dashed and faint where a position has only its first, quick search, and solid
+  // where its search has the review's depth: the sweep draws the whole line first, and the label pass then refines it
+  // (design 06).
   import type { Label } from "./model.ts";
 
   interface Props {
@@ -12,9 +15,10 @@
     moments: { index: number; label: Label }[];
     showScore: boolean;
     tips: { title: string; value: string }[]; // by position: the hover note
+    settled?: boolean[]; // by position: its search has the review's depth (all, when not given)
     onjump: (position: number) => void;
   }
-  let { blueWin, scoreDiff, current, moments, showScore, tips, onjump }: Props = $props();
+  let { blueWin, scoreDiff, current, moments, showScore, tips, settled, onjump }: Props = $props();
 
   const W = 600, H = 120;
   const n = $derived(blueWin.length - 1);
@@ -37,8 +41,17 @@
     return runs.map(r => `M${x(r[0])},${H / 2} ` + r.map(i => `L${x(i)},${yWin(blueWin[i])}`).join(" ") +
                          ` L${x(r.at(-1)!)},${H / 2} Z`).join(" ");
   });
-  // The win chance as a line, one piece for each run of analysed positions.
-  const winLine = $derived(runs.map(r => r.map((i, k) => `${k ? "L" : "M"}${x(i)},${yWin(blueWin[i])}`).join(" ")).join(" "));
+  // The win chance as a line over the runs of analysed positions, in two paths: the steps between two settled
+  // positions, and the steps with an end still at its first search.
+  const winLines = $derived.by(() => {
+    const solid: string[] = [], rough: string[] = [];
+    for (const r of runs)
+      for (let k = 1; k < r.length; k++) {
+        const a = r[k - 1], b = r[k], step = `M${x(a)},${yWin(blueWin[a])} L${x(b)},${yWin(blueWin[b])}`;
+        (!settled || (settled[a] && settled[b]) ? solid : rough).push(step);
+      }
+    return { solid: solid.join(" "), rough: rough.join(" ") };
+  });
   const scoreLine = $derived(scoreDiff.map((d, i) => `${i ? "L" : "M"}${x(i)},${yScore(d)}`).join(" "));
 
   let svg: SVGSVGElement;
@@ -64,7 +77,9 @@
   <path d={area} class="fill-red" fill-opacity="0.35" clip-path="url(#below)" />
   <line x1="0" y1={H / 2} x2={W} y2={H / 2} class="stroke-muted" stroke-dasharray="3 3" vector-effect="non-scaling-stroke" />
   {#if showScore}<path d={scoreLine} class="fill-none stroke-accent" stroke-width="1.5" vector-effect="non-scaling-stroke" />{/if}
-  <path d={winLine} class="fill-none stroke-ink" stroke-width="1.5" vector-effect="non-scaling-stroke" />
+  <path d={winLines.solid} class="fill-none stroke-ink" stroke-width="1.5" vector-effect="non-scaling-stroke" />
+  <path d={winLines.rough} class="fill-none stroke-ink" stroke-width="1.5" stroke-dasharray="4 3" stroke-opacity="0.55"
+        vector-effect="non-scaling-stroke" />
   {#each moments.filter(m => !Number.isNaN(blueWin[m.index + 1])) as m (m.index)}
     <circle cx={x(m.index + 1)} cy={yWin(blueWin[m.index + 1])} r="3.5" class="stroke-panel" style:fill="var(--{m.label})"
             vector-effect="non-scaling-stroke" />

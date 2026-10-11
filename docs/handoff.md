@@ -30,10 +30,13 @@ It holds no backlog: everything still to do that is not in flight is in
 - **WebGPU on the owner's laptop, measured** ([requests/06-webgpu.md](requests/06-webgpu.md), "Step 1 on an
   integrated GPU"): one position at a time 2 to 4 times one CPU worker, batches of 32 a little more than eight. The
   owner takes the numbers to the engine repository. The tailnet port 8444 is removed.
-- **Request 07 (the archive analysed for the labels)** is written
+- **Request 07 (the archive analysed for the labels)**, accepted for a sample of 1,000 games, is written
   ([requests/07-archive-analysis.md](requests/07-archive-analysis.md)) and open: every archive position at 256, 512
   and 1,024 visits with the site's network and settings, and a 4,096 reference on about 100 games, for fitting the
   label thresholds before the first deploy. The owner takes it to the engine repository.
+- **Built, not committed:** Biggest mistakes as numbers, the chart's first estimates dashed (design 06), a branch's
+  preview on the board (design 07, item 13), checked by the owner, and a played move's preview (item 14). Both end at
+  the move and are display settings.
 - **Great confirmed by an equal search** (design 05, decisions/product.md): built and checked in Edge on the sample
   game (24 of 28 gaps confirmed).
 - **Label checks done** (decisions/product.md, "Label checks under protocol 0.3"). The two games' check had net1's
