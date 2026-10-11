@@ -375,3 +375,135 @@ placeholder bands (design 10). Points from the lead:
   Enclosure's human play. The fit (decisions/open-items.md, "Label thresholds") sets new ones.
 - **Not tested:** the agreement with the fitted bands, which will differ, since fewer moves will be near a band's
   edge or fewer will be flagged. The reference is a deeper search, not the truth.
+
+### The engine's win chance against human results, and what flags the archive's turns (2026-10-12)
+
+Part 1 of request 07 (1,000 archive games), at 512 visits, by turn, points from the lead.
+
+**The engine's win chance overstates how often human players win.** At each turn's start of the 981 games with a
+winner (resignations and timeouts included), the mover's engine win chance against the share of those positions whose
+mover won the game:
+
+| Engine's win chance | Players below 1600 | 1600 to 1800 | 1800 and above |
+|---|---|---|---|
+| 0 to 5% (mean 1%) | 6% won | 5% | 7% |
+| 5 to 20% (mean 11 to 12%) | 24% | 27% | 20% |
+| 20 to 40% (30%) | 33% | 35% | 31% |
+| 40 to 60% (51 to 52%) | 45% | 46% | 48% |
+| 60 to 80% (69%) | 49% | 53% | 57% |
+| 80 to 95% (88 to 89%) | 62% | 61% | 71% |
+| 95 to 100% (99%) | 88% | 89% | 91% |
+
+The engine's value assumes that both sides play as the engine does. Human players convert an advantage less often:
+where the engine says 89%, they won 61 to 71% of the time. So a loss of 0.20 of the engine's win chance is often a
+smaller loss of a human's real chance. Lichess (one curve) and chess.com (from the player's rating and the evaluation)
+both turn the engine's value into the win chance of human games before they apply their bands (design 01, principle
+2). Each position counts once, so a long decided game weighs more than a short one.
+
+**What flags the archive's turns** with the placeholder bands:
+
+| Mean rating | Turns | Inaccuracy or worse | Flagged by points only | of them, in a game decided (engine under 5% or over 95%) | Win chance lost 0.10 or more | 0.20 or more |
+|---|---|---|---|---|---|---|
+| All | 42,693 | 72% | 43% of the bad | 41% of the bad | 34% | 23% |
+| Below 1200 | 377 | 84% | 36% | 34% | 49% | 41% |
+| 1200 | 9,383 | 84% | 42% | 41% | 42% | 32% |
+| 1400 | 10,046 | 80% | 40% | 39% | 41% | 29% |
+| 1600 | 10,243 | 74% | 41% | 39% | 36% | 25% |
+| 1800 | 9,624 | 57% | 49% | 46% | 21% | 12% |
+| 2000 and above | 3,020 | 47% | 52% | 50% | 14% | 7% |
+
+- Almost every turn that only the point bands flag is in a game the engine already calls decided. chess.com and
+  Lichess judge by win chance so that moves in a decided game are not flagged. The point bands (KaTrain's Go points
+  times 12) bring that problem back.
+- Losses fall as the rating rises, by both measures: the check that design 01's first milestone asks for.
+- Not tested: how many turns a human win chance would flag. The win band alone flags 34% of turns at 0.10 of the
+  engine's win chance, and the table above suggests that a human curve gives smaller losses.
+
+### Guid and Bratko's complexity on the archive (2026-10-12)
+
+Guid and Bratko ("Computer analysis of world chess champions", ICGA Journal 2006) score a position's complexity so:
+search it at depths 2 to 12, and each time the best move differs from the previous depth's, add the gap between the
+best and the second-best moves' values. They found that players found the best move more often where the gap was
+large. Here the depths are the archive's readings: 256, 512 and 1,024 visits (part 1), and up to 4,096 (part 2). The
+human's error: the mover's engine win chance lost by the played edge, at the deepest reading. Edges where the mover's
+win chance is between 5% and 95% only (34,204 of part 1's 80,901), since in a decided game every loss is near 0.
+
+| Complexity (part 1) | Edges | Loss 0.10 or more | Played the engine's first choice | Mean gap, first to second |
+|---|---|---|---|---|
+| 0 (the first choice never changed) | 19,907 | 44% | 17% | 0.080 |
+| up to 0.02 | 5,996 | 32% | 10% | 0.012 |
+| 0.02 to 0.05 | 4,411 | 36% | 9% | 0.029 |
+| 0.05 to 0.10 | 2,578 | 45% | 6% | 0.057 |
+| over 0.10 | 1,312 | 59% | 9% | 0.136 |
+
+The positions with no change have the most errors but also a large gap. So the errors split by the gap at 1,024 visits
+(the stake) and by whether the first choice changed:
+
+| Gap, first to second | Stable: edges | loss 0.10+ | played first | Changed: edges | loss 0.10+ | played first |
+|---|---|---|---|---|---|---|
+| 0 to 0.02 | 6,442 | 35% | 12% | 7,066 | 31% | 10% |
+| 0.02 to 0.05 | 4,106 | 35% | 15% | 3,992 | 38% | 9% |
+| 0.05 to 0.10 | 3,995 | 48% | 18% | 2,101 | 49% | 7% |
+| 0.10 to 0.20 | 3,488 | 60% | 22% | 913 | 59% | 10% |
+| 0.20 to 1 | 1,874 | 61% | 32% | 225 | 76% | 8% |
+
+- **At one stake, a change of the first choice halves how often players find the engine's first choice** (22% against
+  10% at a gap of 0.10 to 0.20): Guid and Bratko's effect holds. **It barely changes how often they lose 0.10 or more**
+  (60% against 59%). Only at a gap of 0.20 or more do the changed positions show more errors (76% against 61%), on 225
+  edges.
+- **The errors rise with the gap,** but partly by construction: where the second choice is 0.10 worse, almost every
+  other edge loses 0.10. The gap measures the stake, not how hard the good edge is to see.
+- The same holds by rating band (players below 1600, 1600 to 1800, 1800 and above): the stronger make fewer errors at
+  every complexity, in the same pattern. Part 2, with readings up to 4,096, gives the same pattern.
+- **Not tested, and the measure's limits here:** the first reading is 256 visits, already deep. Guid and Bratko start
+  at depth 2, and the shallow readings, nearest a player's first look, are not in the archive's data: the network's
+  prior and a search of 32 visits (the review's sweep). Complexity and loss come from the same search. The loss is the
+  engine's win chance, not a human one.
+
+**The games' lengths** (part 1): a full game has 120 edges. Of the 387 games that ended on the score, 322 ran all 120.
+The 524 resigned games had a median of 63 edges, and the 89 abandoned ones 55.
+
+### The human win curve fitted on the archive (2026-10-12)
+
+`scripts/measure/fit-win-curve.mjs` on part 1 of request 07: every position of the 892 games with a winner that were
+not abandoned (Lichess's fit also leaves out abandoned games: lila pull request 11148), from the side of the player to
+move. Each game counts once: a position weighs 1 / its game's positions. The games split by id into 730 to fit and 162
+to test. P(win) = σ(z), the logistic curve.
+
+| Formula | z | Fitted at 1,024 visits | Test log loss | Test Brier |
+|---|---|---|---|---|
+| The engine's win chance, as it is | | | 0.454 | 0.129 |
+| The engine's win chance, refitted | a · logit(W) + b | a 0.352, b −0.132 | 0.388 | 0.127 |
+| The lead | k · L | k 0.0039 | 0.423 | 0.137 |
+| The lead and the edges left (Stern) | k · L / √(E + c) | k 0.033, c 10 | 0.416 | 0.135 |
+| The lead by stage, a k for each 10 edges | k_stage · L | 12 values | 0.417 | 0.136 |
+| **The lead and the spread** | k · L / scoreStdev | **k 1.04** | 0.389 | 0.126 |
+| The same, with a power on the ratio | k · sign(u) · \|u\|^p | k 1.19, p 0.8 | 0.389 | 0.126 |
+| The same, with the normal curve | Φ(k · L / scoreStdev) | k 0.58 | 0.391 | 0.128 |
+
+- **The edges left do not give the lead's weight:** the k fitted for each block of 10 edges is U-shaped (0.0053 with
+  1 to 10 left, 0.0031 with 61 to 70, 0.0052 with 111 to 120), not falling with √E as Stern's model has it. The
+  engine's own spread for each position (`scoreStdev`) gives it better.
+- **The engine's win chance as it is** fits worst: where it says 99%, players won 92%. Refitted, it matches the lead
+  and the spread.
+- **Calibration** of the lead and the spread on the test games: 4% → 2% won, 15% → 11%, 25% → 14%, 35% → 22%, 46% →
+  43%, 54% → 50%, 65% → 68%, 75% → 81%, 85% → 87%, 96% → 98%. The curve is too flat between 20% and 80%. The power and
+  the normal curve do not mend it. The cause is not known.
+- **By rating band**, k fitted on each band alone: 0.98 below 1600, 1.06 from 1600 to 1800, 1.12 at 1800 and above.
+  Stronger players hold a lead more often, as Lichess's author found for chess (the constant from −0.002 for weak
+  players to −0.0038 for strong ones). Fitted on the 233 games at 1800 and above only, k is 1.12, and the test log loss
+  on every rating's test games is 0.386: no worse than the fit on every rating.
+- **At 512 visits** (the review's Lite depth) k is 1.05, and 1.12 on 1800 and above: the curve does not depend on the
+  budget.
+- **The labels by turn,** the share of turns that lose 0.05, 0.10 and 0.20 or more of each chance (Inaccuracy or
+  worse, Mistake or worse, Blunder), by loss only, without the rule for Best:
+
+  | Rating band | Turns | The engine's win chance | The lead and the spread, fitted on every rating |
+  |---|---|---|---|
+  | Every rating | 38,914 | 38% / 31% / 20% | 42% / 27% / 11% |
+  | Below 1600 | 16,701 | 44% / 37% / 26% | 50% / 34% / 14% |
+  | 1600 to 1800 | 9,655 | 42% / 35% / 23% | 47% / 30% / 11% |
+  | 1800 and above | 12,558 | 27% / 19% / 11% | 27% / 15% / 5% |
+
+  Blunders fall by half. Inaccuracies rise a little: where the engine is saturated, at 99% or more, a human chance of
+  96% can still fall to 91%, as principle 1 of design 01 asks.

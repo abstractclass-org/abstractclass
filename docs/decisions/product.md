@@ -1312,3 +1312,27 @@ The interface, the review, puzzles, lessons, labels and thresholds.
 - **Checked in Edge** at 1,407 × 849: the swatches of the three items at 49 pixels and their names at 67, the dots 9
   × 9. At turn 21 the note read "21. M9-P10 J11-K14", "Lead: Red +150.6", "Score: Blue +88.9", "Area: Blue +12.3". With
   the Area box cleared, the note lost its area line.
+
+### Labels from a human win chance: fixed bands, one curve (2026-10-12)
+
+- **Asked:** whether to fit the label bands to human strength at all. A move that loses 20% of the win chance is
+  devastating whoever plays it. The real problem may be that the engine's value assumes the engine's best reply.
+- **What the sites do:** Lichess and KaTrain keep fixed bands for every rating. chess.com keeps fixed bands too, but
+  its expected points come from "the player's rating and the engine evaluation", so the same evaluation can be a
+  Blunder for one player and not for another, and it is more generous with Great and Brilliant for new players. No
+  site grades moves against other players of the same rating.
+- **Measured** (decisions/engine.md, "The engine's win chance against human results"): where the engine gives the
+  mover 89%, human players won 61 to 71% of the time. The engine's win chance is the chance of a game between two
+  engines.
+- **Decided:** the bands stay fixed: chess.com's 0.02, 0.05, 0.10 and 0.20 of win chance. What is fitted on the
+  archive is the curve that turns the engine's value into the win chance of human games (design 01, principle 2), as
+  Lichess and chess.com do. **One curve for every rating**, as Lichess's: a label then means the same for every
+  player, and an imported game may not have the players' ratings. Design 01's principle 3, "the percentiles that
+  separate strong players' moves from weak players'", would grade moves against other players of the same rating,
+  which no site does. It is set aside.
+- **Agreed, after a look at why design 01's principle 1 exists:** the label from the win chance only, with points lost
+  still in the notes. Pending: how the curve keeps principle 1's concern.
+- **Pending:** a measure of a position's difficulty. KaTrain's complexity is the first candidate.
+- **The fit's data:** the archive's games with a winner, without the abandoned ones (as Lichess's fit leaves out
+  abandoned games and time forfeits). Fitted and compared in decisions/engine.md, "The human win curve fitted on the
+  archive". Request 08 asks for the network's prior and a first look at each position, for the measures of difficulty.

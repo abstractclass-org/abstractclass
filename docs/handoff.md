@@ -43,14 +43,24 @@ It holds no backlog: everything still to do that is not in flight is in
   step, and the Advantage chart is in the Report, above the counts, with an area line, so the page fits the window
   (decisions/product.md, "The Advantage chart moved", "The Report"): the two-column and one-column layouts, where the
   Report is a tab, are not checked yet.
-- **Request 07 is done and checked** ([requests/07-archive-analysis.md](requests/07-archive-analysis.md),
-  "Delivered"): 1,000 archive games at 256, 512 and 1,024 visits, 100 of them also at 2,048 and 4,096, the lines at
-  each turn's start, and both Great follow-ups, in the engine repository's `runs/archive_analysis/`, out of Git. The
-  site's module and the native search agree (480 of 480 first candidates). The archive repeats some games: take each
-  once. With the placeholder bands, 70% of the human turns are Inaccuracy or worse (decisions/engine.md, "Label
-  agreement on the archive's games"). Next: fit the label thresholds (decisions/open-items.md, "Label thresholds"),
-  before the first deploy. Commit only statistics over many games and the thresholds, never a game
-  (decisions/product.md, "The archive's games analysed offline for the labels").
+- **The labels from a human win chance** (moved here from decisions/open-items.md, "Label thresholds"). Decided
+  (decisions/product.md, "Labels from a human win chance: fixed bands, one curve"): chess.com's fixed bands (0.02, 0.05,
+  0.10, 0.20) on a win chance fitted on the archive's human games, one curve for every rating, the label from the win
+  chance only (no point bands), points lost still in the notes, abandoned games left out. Fitted
+  (`scripts/measure/fit-win-curve.mjs`, decisions/engine.md, "The human win curve fitted on the archive"): the best
+  formula is σ(k · lead / scoreStdev), k about 1.04 on every rating and 1.12 on 1800 and above. Open: every rating or
+  the strong players' games (Lichess fits on 2300 and above), the curve's flatness between 20% and 80%, then design 10
+  and design 01 (principles 1 to 3) rewritten, and the change in `labels.ts`. The data: request 07
+  ([requests/07-archive-analysis.md](requests/07-archive-analysis.md), "Delivered"), in the engine repository's
+  `runs/archive_analysis/`, out of Git; take each game once. Commit only statistics over many games and the curve,
+  never a game. Request 09 ([requests/09-bot-games-analysis.md](requests/09-bot-games-analysis.md), open: the owner
+  takes it to the engine repository) asks for 620 V2 gauntlet games between players rated 2,000 to 3,000, analysed as
+  the archive was, to fit the same curve on bot games and compare.
+- **Difficulty:** Guid and Bratko's complexity checked on request 07's readings (decisions/engine.md): it tells when
+  players miss the engine's first choice, not when they err. Request 08
+  ([requests/08-archive-first-look.md](requests/08-archive-first-look.md), open, told to the engine repository)
+  asks for the network's prior, 32 visits and every candidate at
+  512, to test KaTrain's complexity and Guid and Bratko's with a first look.
 - **Request 06 (WebGPU)** waits for the engine repository's step 2. Step 1 is measured on the RTX 5080 and on the
   owner's Apple laptop, and the site's answer is written: no need for reproducible searches, batch across searches
   first, the GPU's default chosen on each machine by a short test ([requests/06-webgpu.md](requests/06-webgpu.md)).

@@ -45,24 +45,25 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
    (fewer). Nothing is under the board, so the page fits the window with the board at its full height: under the board
    (Lichess's place), the chart was below the fold whenever the board filled the height, even in a full-screen window.
    chess.com's review also keeps its graph in a side panel. Its lines: Blue's win chance, the score difference and the
-   difference of the areas each player encloses now, each of the last two scaled to its own largest value and above the
-   middle when Blue has more, as the win chance is. The legend names the lines only ("Win chance for Blue", "Score
-   difference", "Area difference"), each name first giving what its line measures, and every item has a box's room,
-   empty for the win chance, so that the swatches and the names line up. **The chart's note** gives the move and its
-   label, the engine's lead, then a line each for the score and the area of the lines shown, with the side ahead named
-   ("Score: Blue +88.9"): the lines have no axis, so their numbers are only there. At the game's end the result replaces
-   the score. **The score and area lines show or hide** in two ways: the display settings ("Score line", "Area line")
-   say whether each shows when a review opens, and a box beside its name in the legend shows or hides it for the moment,
-   without changing the setting. A line that is off by setting keeps its place in the legend, with its box clear. A
-   click on a box does not focus it, so that the arrow keys still step through the moves. **The key moments** are dots
-   in their label's colour, 9 pixels wide. They are drawn in HTML, as the hovered point is: the chart's SVG stretches to
-   the column's width, and in a column as narrow as the summary's, a circle in it is a thin ellipse. The chart's note
-   takes at most the room beside the point, and wraps there. **While the review runs,** the line is dashed and faint
-   where a position has only its first search (the sweep's 32 visits), and solid where its search has the review's
-   depth. The legend then says "First estimate, refined as the review runs", and a dashed position's note says "first
-   estimate". This marking is the site's own, not taken from a published tool. **By turn** (design 10, "Review by"), the
-   chart draws and snaps to the turns' ends only: a turn is one step, and its note names the whole turn. A note gives
-   the label in brackets, as Lichess's chart does: "2. Q10-R8 O11-Q10 [Blunder]".
+   difference of the areas each player encloses now, each of the last two scaled to its own largest value, which reaches
+   70% of the way from the middle to the edge, and above the middle when Blue has more, as the win chance is. The legend
+   names the lines only ("Win chance for Blue", "Score difference", "Area difference"), each name first giving what its
+   line measures, and every item has a box's room, empty for the win chance, so that the swatches and the names line up.
+   **The chart's note** gives the move and its label, the engine's lead, then a line each for the score and the area of
+   the lines shown, with the side ahead named ("Score: Blue +88.9"): the lines have no axis, so their numbers are only
+   there. At the game's end the result replaces the score. **The score and area lines show or hide** in two ways: the
+   display settings ("Score line", "Area line") say whether each shows when a review opens, and a box beside its name in
+   the legend shows or hides it for the moment, without changing the setting. A line that is off by setting keeps its
+   place in the legend, with its box clear. A click on a box does not focus it, so that the arrow keys still step
+   through the moves. **The key moments** are dots in their label's colour, 9 pixels wide. They are drawn in HTML, as
+   the hovered point is: the chart's SVG stretches to the column's width, and in a column as narrow as the summary's, a
+   circle in it is a thin ellipse. The chart's note takes at most the room beside the point, and wraps there. **While
+   the review runs,** the line is dashed and faint where a position has only its first search (the sweep's 32 visits),
+   and solid where its search has the review's depth. The legend then says "First estimate, refined as the review runs",
+   and a dashed position's note says "first estimate". This marking is the site's own, not taken from a published tool.
+   **By turn** (design 10, "Review by"), the chart draws and snaps to the turns' ends only: a turn is one step, and its
+   note names the whole turn. A note gives the label in brackets, as Lichess's chart does: "2. Q10-R8 O11-Q10
+   [Blunder]".
 4. **The step controls** (first, back, forward, last), the status line and the display settings' button are a bar at
    the bottom of the analysis column, as on Lichess, next to the move list that they step through.
 5. **The win chance is a display setting:**

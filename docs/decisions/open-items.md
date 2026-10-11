@@ -35,13 +35,6 @@ Rules:
   archive games with the placeholder bands ([engine.md](engine.md), "Label agreement on the archive's games"). The
   agreement depends on the bands, so measure it again when the fit gives new ones, and choose the review's depths
   from it.
-- **Label thresholds:** fit them on the archive (design 01, principle 3), by turn and by edge (design 10). The data is
-  in: 1,000 archive games analysed at the site's budgets
-  ([requests/07-archive-analysis.md](../requests/07-archive-analysis.md), "Delivered"). Take each game once: the archive
-  repeats some. Before the first deploy. With the placeholder bands, 70% of the archive's turns are Inaccuracy or worse
-  ([engine.md](engine.md), "Label agreement on the archive's games"). Look at the labels of ordinary games, and of
-  extreme ones: games decided early with large scores, such as `3wes2o`, flag 44 of 120 edges with the placeholder point
-  bands (decisions/product.md, "Label checks under protocol 0.3").
 - **Which score measures points lost:** `scoreSelfplay` (the expected final margin) or `scoreLead` (the starting
   score that would make the game even, trained since 2026-10-05). Measure both on reviewed games before the labels
   move from win chance to points (design 01, principle 1). KaTrain uses the lead. The archive's analysis has both, at

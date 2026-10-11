@@ -30,8 +30,10 @@
   const x = (i: number) => (i / n) * W;
   const yWin = (v: number) => H - v * H;
   // A line of differences, Blue less Red, around the middle: scaled to its own largest value, so that the score and the
-  // area, of very different sizes, both fill the chart.
-  const yDiff = (max: number) => (d: number) => H / 2 - (d / max) * (H / 2 - 6);
+  // area, of very different sizes, both show. Its largest value reaches 70% of the way from the middle to the edge, so
+  // that it swings less than the win chance and stays apart from it.
+  const DIFF_REACH = 0.7;
+  const yDiff = (max: number) => (d: number) => H / 2 - (d / max) * (H / 2) * DIFF_REACH;
   const yScore = $derived(yDiff(Math.max(1, ...scoreDiff.map(Math.abs))));
   const yArea = $derived(yDiff(Math.max(1, ...areaDiff.map(Math.abs))));
   const drawn = $derived(points ?? blueWin.map((_, i) => i));
