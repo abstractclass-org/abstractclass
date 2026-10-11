@@ -855,3 +855,22 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   screen had ended its search: 3 labelled edges with 1 position done, 6 with 3. The branch moves evaluated on request
   ran first (their priority is higher), so the label pass started about 28 seconds after the page loaded.
 
+### The GPU module: no need for reproducible searches, and a default chosen on each machine (2026-10-11)
+
+- **Asked:** whether KaTrain batches inside one search (it does not repeat its results then), and whether the site
+  needs reproducible searches.
+- **Found:** KaTrain's KataGo config searches each position with 8 threads and 12 positions at once
+  (`numSearchThreads = 8`, `numAnalysisThreads = 12`, `nnMaxBatchSize = 96`), and KataGo's `analysis_example.cfg` uses
+  16 threads a position. A search on more than one thread varies from run to run. Lichess's Stockfish on more than
+  one thread does too.
+- **Decided: the site does not need reproducible searches.** The published tools do without them. What the site
+  gives up: every machine showing the same labels at one depth, and a noise floor of zero by construction (the noise
+  floor then needs measuring, as the backlog already says). A GPU module would not repeat the CPU module's results in
+  any case: its arithmetic differs in the last digits, which can turn a search.
+- **The answer in request 06:** batch across searches first (the label pass, KataGo's advice for many positions), and
+  inside one search later, if the position on screen should be faster (KataGo's advice for one fast answer).
+- **Decided: the GPU's default is chosen on each machine** by a short test of both modules the first time, shown in
+  the setting's help line. The published tools choose by a fixed order or by the browser's features, so this goes
+  past them (design 09). The integrated GPU's numbers then tell only whether a GPU module is worth building for most
+  visitors' machines.
+

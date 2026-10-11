@@ -223,3 +223,39 @@ Loading the engine, its speed, the engine interface, and the requests for it.
   from 256 visits on (design 05, design 09). A review exists to show the player's mistakes, and 512 finds most of them
   with flags as often right. KaTrain's analysis of a move uses 500 visits (`max_visits`).
 - **To do:** a deeper reference (4,096 visits) and more games (decisions/open-items.md).
+
+### The engine repository's notes: interfaces, tree reuse, play settings, models, WebGPU (2026-10-11)
+
+- **The protocol stays the base.** KataGo has two interfaces: GTP (one stateful session for play and a GUI's
+  analysis, streamed and stopped by a command) and the JSON analysis engine (stateless queries, "primarily intended
+  for people writing tools", KaTrain's backend). The engine protocol is the analysis engine's JSON with search in
+  slices. GTP's streaming needs a second thread, which a WebAssembly worker does not have, and its analysis has Go's
+  shape (points, a policy of 361). The engine repository's advice: keep one protocol, and add to it what the site
+  wants from GTP.
+- **Tree reuse is not built.** The engine's design 04 said it was a query option. Every query clears the tree
+  (`Search::setPosition`), as research/02-search-tree-reuse.md says. Design 04 now says so (engine repository commit
+  `bf61bdb`). Measured on the engine's GTP bot (b15c192, one thread, about 30 visits a second): the second edge of a
+  turn, searched from the first edge's subtree, reaches 1.7 to 2 times the first edge's root visits. Across the
+  opponent's turn, with pondering, 5 of 31 first edges kept 400 to 1,100 visits. A request would be a query that
+  continues the worker's tree by playing moves, off by default, for the position on screen only, so that the labels
+  stay on fresh, reproducible searches. In a review the played move is the player's, so its share of the visits needs
+  measuring first (research/02).
+- **`chooseMove` is not the bot's move.** It applies GTP's move rule to a search with the analysis settings (root
+  noise on, no moves before the root). The GTP bot plays with root noise off and the history on. The site shows no
+  engine move today. If it shows "the bot's move" or lets visitors play the engine, it needs play settings (a
+  request).
+- **Continuous analysis** (a GUI's search until the player moves on) is possible in slices. The site declined it for
+  the worker's memory: its tree grows with its visits, and the memory of a WebAssembly worker does not shrink
+  (design 09, "No limit on visits").
+- **A finished position:** the protocol refuses it (`{"error": "the game is over", "field": "position"}`), since a
+  search of it fails an assert in the engine. Checked in this repository: the site never asks for it. The label pass
+  searches the positions before each edge, `searchable` leaves out the game's end and a branch's finished position,
+  and the key moments leave out the position after the last edge (`src/routes/review/+page.svelte`).
+- **Newer models need a new module.** The models exported since data row 12.44M have 4 RGSC heads, which a module
+  built before that change refuses. The engine's gauntlet (128 visits a move): the site's b10c128-s46923648-d9407005
+  at 3,134 (3,033 to 3,346), the newest b10c128 models 3,286 to 3,374, b15c192 at row 12.84M 3,694 (3,606 to 3,934).
+  The rise since row 12.44M has not settled. A stronger model is a request: the engine repository chooses the model
+  and builds the module.
+- **WebGPU, step 1 of request 06:** the first numbers, on an RTX 5080 with the machine busy, are in
+  [requests/06-webgpu.md](../requests/06-webgpu.md). One position at a time gains nothing for b10c128, and batches
+  gain 6 to 27 times.

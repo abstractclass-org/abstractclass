@@ -28,8 +28,10 @@ It holds no backlog: everything still to do that is not in flight is in
   256 visits during a deeper search (decisions/engine.md, design 05, design 09), "Done" after the engine settings'
   last setting, the pills as the default form with closer spacing (design 07), and request 06. Still to hear: the
   owner's view of the pills in use.
-- **Request 06 (WebGPU)** is written ([requests/06-webgpu.md](requests/06-webgpu.md)) and open. The owner takes it to
-  the engine repository.
+- **Request 06 (WebGPU):** step 1 is measured, and the site's answer for step 2 is written
+  ([requests/06-webgpu.md](requests/06-webgpu.md)): no need for reproducible searches, batch across searches first,
+  and a default chosen on each machine. The owner takes the answer to the engine repository. The engine repository's
+  other notes are in decisions/engine.md ("The engine repository's notes"), not committed.
 - **Learning from mistakes is postponed** (decisions/open-items.md). The speed on a visitor's machine waits in the
   backlog too.
 - **Testing in Edge:** a hover made with synthetic events is lost when the real pointer rests on the board and the

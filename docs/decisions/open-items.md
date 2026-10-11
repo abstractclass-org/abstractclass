@@ -32,7 +32,8 @@ Rules:
 - **Ask meaf.us for an export:** a button or a public record link for finished games would replace the bookmarklet,
   which breaks when meaf.us changes its page. Its owner's choice: the owner of this site asks.
 - **The noise floor:** search the same positions twice and measure how often the labels agree, before any label
-  ships.
+  ships. The CPU module gives the same reply each time, so today this measures nothing. It applies to a GPU module
+  (requests/06-webgpu.md: the site does not need reproducible searches), and between the CPU and GPU modules.
 - **The label budget against a deeper reference:** measure the labels at 256, 512 and 1,024 visits against 4,096
   visits, with more bot games ([engine.md](engine.md), "Label agreement against search budget, under protocol 0.3",
   measured against 1,024). The same scripts take `--deep 4096 --budgets 32,64,128,256,512,1024`. About two hours of
@@ -69,10 +70,10 @@ or a design first:
   Great labels have a second choice under that share.
 - **Learning from mistakes** (postponed): the "Retry mistakes" tab is removed (decisions/product.md, "The 'Retry
   mistakes' tab removed"). Bring it back as a mode of the Analysis panel, above the move list, as Lichess's "Learn
-  from your mistakes" is, started from the Highlights. Follow Lichess's rules (research/01-ux-survey.md, "Learning from the
-  game"): pick the moves where the win chance swung by more than 10 points, and accept any edge that keeps the win
-  chance within 4 points of the position before the mistake, not only the engine's first choice. The engine's first
-  choice can be beyond any human, and a retry of it teaches little. Judge a tried edge by searching the position
+  from your mistakes" is, started from the Highlights. Follow Lichess's rules (research/01-ux-survey.md, "Learning
+  from the game"): pick the moves where the win chance swung by more than 10 points, and accept any edge that keeps
+  the win chance within 4 points of the position before the mistake, not only the engine's first choice. The engine's
+  first choice can be beyond any human, and a retry of it teaches little. Judge a tried edge by searching the position
   after it, as Lichess does ("Evaluating your move…"). Make it teach: a hint before the solution (the area at stake),
   the engine's line after a solve, and what the game's edge allowed (the opponent's region, the points). It needs
   move input on the engine's rules (`EdgeInput` with the position's rules, as the puzzles have it). Puzzles
@@ -92,6 +93,13 @@ or a design first:
   site, from the engine repository's `docs/design/04-notation-and-protocol.md`, and link it from Home and `/import`.
 - **One search tree across a game:** the notes are in
   [research/02-search-tree-reuse.md](../research/02-search-tree-reuse.md). Not needed for the first release. Decide
-  later.
+  later. The engine does not reuse a tree today. Its GTP bot's numbers and the request's shape (a query that continues
+  the worker's tree, for the position on screen only) are in [engine.md](engine.md), "The engine repository's notes".
+  Measure first how many visits the played move gets, since in a review the move is the player's.
+- **A newer model:** the models since data row 12.44M rate higher in the engine's gauntlet (the newest b10c128 3,286
+  to 3,374 against the site's 3,134; b15c192 3,694), and need a new module ([engine.md](engine.md), "The engine
+  repository's notes"). When the rise settles, decide whether to request one.
+- **Play settings:** `chooseMove` searches with the analysis settings, not the GTP bot's. If the site shows the
+  engine's move or lets visitors play the engine, request play settings (root noise off, the history on).
 - **An Analysis page:** a free analysis board (a position, or a game not reviewed), with the review's lines and
   branches (design 07) and Lichess's "Make main line", which the review leaves out because its line is the game's.

@@ -1,6 +1,48 @@
 # The network's evaluations on the visitor's GPU: WebGPU
 
-**Status:** open.
+**Status:** step 1 measured, first numbers (below). Step 2 not decided: its design question is batching. The site's
+answer to that question is below.
+
+## The site's answer for step 2 (2026-10-11)
+
+- **The site does not need reproducible searches.** The published tools do not keep them: KaTrain's KataGo config
+  searches each position with 8 threads and 12 positions at once (`numSearchThreads = 8`, `numAnalysisThreads = 12`,
+  `nnMaxBatchSize = 96`), and KataGo's own `analysis_example.cfg` uses 16 threads a position. A search on more than
+  one thread varies from run to run (the engine repository's design 04). A GPU module would not repeat the CPU
+  module's results in any case: its arithmetic differs in the last digits (about 1e-5 in step 1), and that can turn a
+  search to another move. So reproducibility should not choose the design. Speed should.
+- **Batch across searches first.** Most of a review's work is its label pass: every position of the game, each
+  searched to a fixed budget, independent of the others. Several searches in one module give batches of 16 to 32 at
+  once, where step 1 shows the gain. KataGo's config gives the same advice for many positions: few threads a
+  position, many positions at once.
+- **Batch inside one search later, if at all,** for the position on screen, which is one search. KataGo's config
+  advises more threads a position when one search's answer must come fast. In a worker with one thread, this means a
+  search that takes several leaves a step. It weakens the search a little for each visit, as KataGo's threads do.
+- **The site chooses the default on each machine.** Where the browser has WebGPU, the page times a few evaluations
+  on the CPU module and on the GPU module the first time, in a second or two, and turns the GPU on by default only
+  where it is faster. The setting's help line shows the result. So the integrated GPU's numbers do not set the
+  site's default. They tell only whether step 2 is worth building for most visitors' machines.
+
+## Step 1: the engine repository's first numbers (2026-10-11)
+
+- **Method:** the fork's own ONNX graph (`katago dumponnx`, standard operators, the 48-channel edge policy), pruned to
+  the outputs the search reads, run by ONNX Runtime Web 1.30's WebGPU backend in a dedicated worker in Chrome 155.
+  Each run is the round trip: the inputs written to the GPU, the evaluation, every output read back. In FP32 the
+  graph equals the C++ engine (policy within 1.8e-5, value within 2.5e-6, the same top move in 332 of 332).
+- **Times,** ms a position, on an RTX 5080, with the engine's training using the GPU and the CPU:
+
+  | Network | WebAssembly (CPU) | WebGPU, batch 1 | Batch 8 | Batch 16 | Batch 32 |
+  |---|---|---|---|---|---|
+  | b10c128 | 21.1 | 23.3 | 3.3 | 2.0 | 1.4 |
+  | b15c192 | 55.9 | 28.2 | 4.3 | 2.9 | 2.1 |
+
+- **Reading:** a run has about 20 ms of fixed cost. One position at a time gains nothing for b10c128 and about 2
+  times for b15c192. Batches of 8 to 32 gain 6 to 15 times for b10c128 and 13 to 27 times for b15c192. So a GPU
+  module pays only if the search evaluates in batches. FP16 is not faster here and is less exact (the same top move in
+  30 of 32), so FP32 stays, and the bound "value within 1e-3" holds.
+- **Still to measure:** an idle GPU (at a planned stop of the engine's training: part of the fixed cost may be the
+  shared GPU), and an integrated GPU. Chrome offers WebGPU only on the discrete GPU of the engine's machine. On a
+  laptop: the engine repository's `v2/webgpu` harness, `npm install`, then `node run_bench.mjs`.
 
 ## What
 
@@ -36,10 +78,10 @@ protocol.
 The review searches every position on the visitor's CPU ([design/02](../design/02-static-site.md),
 [design/09](../design/09-engine-settings.md)). The network is 97% of a search's time (build.md, "Where the time went").
 On a fast desktop one worker of b10c128 searches about 70 to 90 visits a second, and b15c192 is three times slower
-([decisions/engine.md](../decisions/engine.md)). A whole game's review at the Lite depth (256 visits a position) takes
-minutes, and at the Standard depth (1,024) about four times as long. The engine repository's own backlog names WebGPU
-for a site of our own (`docs/decisions/open-items.md`, "Other ideas"). The site would offer the GPU as an engine
-setting, off until the measurement shows that it helps.
+([decisions/engine.md](../decisions/engine.md)). A whole game's review at the Lite depth (512 visits a position) takes
+minutes, and at the Standard depth (1,024) about twice as long. The engine repository's own backlog names WebGPU for
+a site of our own (`docs/decisions/open-items.md`, "Other ideas"). The site would offer the GPU as an engine setting,
+on by default where a short test on the visitor's machine finds it faster (above).
 
 ## Done when
 

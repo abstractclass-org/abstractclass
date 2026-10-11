@@ -133,8 +133,13 @@ each applies at once, without a reload.
 - **The GPU** (WebGPU, in the browser): the network's evaluations, nearly all of a search's time, could run there. It
   is an engine change (a WebGPU backend for the fork, and a module that can wait for the GPU's answers), so it is for
   the engine repository. A GPU gains most from batches, and one search on one thread asks for one evaluation at a
-  time, so the gain at small sizes is uncertain until measured. Asked of the engine repository:
-  [requests/06-webgpu.md](../requests/06-webgpu.md).
+  time. Measured by the engine repository ([requests/06-webgpu.md](../requests/06-webgpu.md)): one position at a
+  time gains nothing for b10c128 and about 2 times for b15c192, and batches of 8 to 32 gain 6 to 27 times. So a GPU
+  setting waits for a module that evaluates in batches. When it comes, the page tests both modules on the visitor's
+  machine the first time and turns the GPU on by default only where it is faster. This goes past the published tools,
+  which choose a backend from a fixed order of preference (ONNX Runtime Web's execution providers, TensorFlow.js's
+  backends) or from the browser's features (Lichess's engines). It follows this site's rule of measuring on the real
+  machine.
 - **Lichess's memory and lines settings:** the engine's cache size is set by its configuration, and the candidates
   table already shows every candidate.
 - **Lite at 256 visits:** built first, from the measurement under protocol 0.2 (58% of the mistakes found after the
