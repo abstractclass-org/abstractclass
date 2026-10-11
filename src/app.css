@@ -16,6 +16,7 @@
   --board-dot: #b9ab8d;
   --protected: #9fc2ff;
   --last: #e7b416;
+  --area: #a8508f; /* the Advantage chart's area line: magenta, apart from the players' blue and red and the labels' hues */
   /* The engine's candidates: its first choice, and the others. */
   --engine: #1f7a8c;
   --candidate: #7b818c;
@@ -45,6 +46,7 @@
     --board-dot: #6d6555;
     --protected: #4a6fae;
     --last: #d6a614;
+    --area: #d27fbb;
     --engine: #2f8fa3;
     --candidate: #8d939c;
     color-scheme: dark;
@@ -67,6 +69,7 @@
   --color-red: var(--red);
   --color-board: var(--board-bg);
   --color-last: var(--last);
+  --color-area: var(--area);
   --color-engine: var(--engine);
   --color-candidate: var(--candidate);
   --color-on-badge: var(--on-badge);

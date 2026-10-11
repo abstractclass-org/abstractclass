@@ -327,3 +327,26 @@ Loading the engine, its speed, the engine interface, and the requests for it.
   - The placeholder bands were made for one decision, and a turn is one decision. The archive's fit (request 07) gives
     the turns their own bands.
 - **Decided:** the budgets stay. Labels by turn keep 512 visits for Lite, and a label from 256 visits on.
+
+### The search in a turn's middle: turn 9 of the sample game (2026-10-11)
+
+- **Found:** turn 9 of the sample game (edges 16 and 17, J11-M13 then J11-M14, Blue) is Great by turn, but its note
+  gave the first edge −27 points and the second 0. At 1,024 visits, Blue's lead is −22 at the turn's start, −49 in its
+  middle and −23 at its end: the two ends agree, and the search of the middle alone puts Blue 27 points lower. A turn's
+  loss leaves that search out. Each edge's loss uses it. The engine is reproducible, so the sample game keeps this case:
+  the same build and network give the same values.
+- **Measured** on the budget data (4 bot games, two-edge turns after the first 16 edges), the mover's lead in the
+  middle less the mean of the two ends:
+
+  | Visits | The engine's own turns (both edges its first choice, 60 turns) | Every turn (204) |
+  |---|---|---|
+  | 512 | +4.7, sd 17.3 | +4.7, sd 23.0 |
+  | 1,024 | +2.5, sd 15.2 (3 turns at 25 points or more from it) | +3.8, sd 24.6 |
+
+- **Reading:** the middle is not valued lower than its ends: its mean stands within about 2 standard errors of 0, on
+  the side of the mover. Its spread, about 15 points at 1,024 visits, is the error of one search. Turn 9's 27 points is
+  one such error, near 2 standard deviations, at one position. One position does not show a fault of the network's
+  training, and these are bot games: request 07 gives people's games.
+- **Also seen, not yet understood:** over the engine's own turns the mover's lead rose from the turn's start to its end
+  by 9.6 points on average at 1,024 visits (sd 28.8, standard error 3.7), and 13.4 at 512. Request 07's data will show
+  whether turns gain points on average, which would shift every turn's loss.

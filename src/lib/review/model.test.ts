@@ -3,7 +3,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { Edge } from "#lib/engine/notation.ts";
-import { judgeBranchEdge, trustedLine, valuesAfter, type Analysis, type Candidate, type Position } from "./model.ts";
+import { judgeBranchEdge, review, roundTogether, trustedLine, turnCost, valuesAfter, type Analysis, type Candidate, type Move, type Position,
+         type ReviewData } from "./model.ts";
 
 const edges = (n: number): Edge[] => Array.from({ length: n }, (_, k): Edge => [k, 0, k, 1]);
 const candidate = (lineVisits?: number[], n = lineVisits?.length ?? 6): Candidate =>
@@ -48,4 +49,66 @@ test("the values after a position: the result where the game ends, else its anal
   assert.deepEqual(valuesAfter(p, undefined), { blueWin: 1, blueScore: 10 });
   const q = { scores: [0, 0], over: false } as unknown as Position;
   assert.equal(valuesAfter(q, { blueWin: 0.5, visits: 32, candidates: [] }, "lead", 256), undefined);
+});
+
+// A game of five edges: Blue's first turn (A), Red's turn of two (B then C, or C then B), Blue's turn of two (D, E).
+// Red's turn leads from position 1 to position 3, through position 2. Values are Blue's.
+const [A, B, C, D, E, F] = edges(6);
+const at = (blueWin: number, lead: number, candidates: Candidate[] = []): Analysis => ({ blueWin, visits: 512, lead, candidates });
+const cand = (edge: Edge, blueWin: number, line: Edge[] = [edge]): Candidate => ({ edge, visits: 100, blueWin, line });
+function game(red: [Edge, Edge], analysis: (Analysis | undefined)[], extra: Partial<ReviewData> = {}): ReviewData {
+  const moves: Move[] = [[0, A], [1, red[0]], [1, red[1]], [0, D], [0, E]].map(([player, edge]) => ({ player, edge, cut: null }) as Move);
+  return { players: { blue: "b", red: "r" }, result: { blue: 10, red: 0 }, moves, positions: Array(6).fill({} as Position),
+           analysis, ...extra };
+}
+
+test("a turn's loss comes from its two ends, so the search between them cancels", () => {
+  // In the middle, Red looks 0.10 and 30 points better than at the start: the first edge gains, the second loses.
+  const R = review(game([B, C], [at(0.5, 0), at(0.5, 0), at(0.4, -30), at(0.55, 20), at(0.6, 30)]));
+  const red = R.turns[1];
+  assert.deepEqual([red.start, red.end], [1, 3]);
+  assert.ok(Math.abs(red.loss - 0.05) < 1e-9); // 0.5 less 0.45, not the second edge's 0.15
+  assert.equal(red.pointsLost, 20); // 0 less −20, not the second edge's 50
+  assert.equal(R.edges[2].pointsLost, 50);
+  // The turn's note gives each edge's points after its own, a gain with a plus, so that they add up.
+  assert.equal(turnCost(red), "−5.0% · −20.0 pts (+30.0 pts, −50.0 pts)");
+});
+
+test("a turn is Best when it is the engine's best turn, in either order", () => {
+  // The engine's first choice at Red's start is B, then C: Red played C, then B.
+  const start = at(0.4, -10, [cand(B, 0.4, [B, C]), cand(C, 0.41, [C, B])]);
+  const R = review(game([C, B], [at(0.5, 0), start, at(0.4, -10, [cand(B, 0.4)]), at(0.4, -10), at(0.4, -10)]));
+  assert.equal(R.turns[1].label, "best");
+  // By edge too: C was not the first choice, but it begins the engine's best turn in the other order.
+  assert.deepEqual([R.edges[1].label, R.edges[2].label], ["best", "best"]);
+});
+
+test("a turn is Great when searches from its start and its middle confirm it is the only good turn", () => {
+  // Red's start: B (line B, C) and C (line C, B) are one turn. The other candidate, F, looks 0.15 worse for Red.
+  const start = at(0.4, -10, [cand(B, 0.4, [B, C]), cand(C, 0.41, [C, B]), cand(F, 0.55)]);
+  // The middle, after B: C, then a second choice 0.15 worse for Red.
+  const middle = at(0.4, -10, [cand(C, 0.4), cand(D, 0.55)]);
+  const analysis = [at(0.5, 0), start, middle, at(0.4, -10), at(0.4, -10)];
+  const seconds = [undefined, undefined, at(0.58, 5)]; // after the middle's second choice: 0.18 worse for Red
+  const confirmed = review(game([B, C], analysis, { seconds, others: [undefined, at(0.6, 10)] }));
+  assert.equal(confirmed.turns[1].label, "great");
+  assert.equal(turnCost(confirmed.turns[1]), "0.0% · 0.0 pts"); // the engine's own turn: no parts
+  // By edge, B is only Best: the second choice at the start, C, is the same turn in the other order.
+  assert.equal(confirmed.edges[1].label, "best");
+  // Without the search after F, or with F as good as the turn, the turn stays Best.
+  assert.equal(review(game([B, C], analysis, { seconds })).turns[1].label, "best");
+  assert.equal(review(game([B, C], analysis, { seconds, others: [undefined, at(0.45, 0)] })).turns[1].label, "best");
+});
+
+test("the summary and the key moments come by turn and by edge", () => {
+  const R = review(game([B, C], [at(0.5, 0), at(0.5, 0), at(0.4, -30), at(0.55, 20), at(0.6, 30)]));
+  const labelled = (s: { counts: Record<string, number> }) => Object.values(s.counts).reduce((a, b) => a + b, 0);
+  assert.equal(labelled(R.summary.edge[1]), 2); // Red's two edges
+  assert.equal(labelled(R.summary.turn[1]), 1); // Red's one turn
+});
+
+test("a turn's parts are rounded together, so that they add up to the turn", () => {
+  assert.deepEqual(roundTogether([143.6, 0.8]), [143, 1]); // 144.4: 144, not 144 and 1
+  assert.deepEqual(roundTogether([-30.4, 50.2]), [-30, 50]);
+  assert.deepEqual(roundTogether([0.5, 0.5]), [1, 0]); // 1
 });

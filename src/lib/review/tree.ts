@@ -50,6 +50,21 @@ export function branchRows(first: string[], kidsOf: (path: string[]) => string[]
   return rows;
 }
 
+/** The tree's rules beside each row (Lichess's column view, ui/analyse/css/_tview.scss): `last`, the row is the last of
+ *  its fork's lines at its depth, so its rule ends at its tick; `through`, the shallower depths whose rule passes this
+ *  row on its way to a later line. Rows as branchRows gives them, the lines of one fork after one another. */
+export function treeLines(rows: BranchRow[]): { last: boolean; through: number[] }[] {
+  // Whether a later row has this depth before any row shallower than it.
+  const laterAt = (k: number, depth: number) => {
+    for (let j = k + 1; j < rows.length && rows[j].depth >= depth; j++) if (rows[j].depth === depth) return true;
+    return false;
+  };
+  return rows.map((row, k) => ({
+    last: !laterAt(k, row.depth),
+    through: Array.from({ length: row.depth - 1 }, (_, d) => d + 1).filter(d => laterAt(k, d)),
+  }));
+}
+
 // Moving between the lines at forks, as Lichess's keys do (ui/analyse/src/keyboard.ts). `childrenOf` gives a place's
 // children, the game's move first.
 type Children = (path: string[]) => string[][];

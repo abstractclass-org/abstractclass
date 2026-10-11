@@ -91,10 +91,14 @@ cut edges that are on the board, so a line drawn over the board can show edges t
    for later: m and Shift + m for the next and the previous mistake (KaTrain's n, which the forks take here), and
    Delete. "?" opens the list of keys and clicks (Lichess's "?"), as does "Keys and clicks" in the display settings.
 5. **Branches show in the move list** under the turn where they start, after its comments (Lichess's column view):
-   each on its own row, indented, with a rule on its left, and every turn with its number ("19..." for a row that
-   starts at a turn's second edge). Where a branch forks again, its row ends at the fork, and every line from the fork
-   follows one step further in, the first line too, so that the lines from a fork stand side by side (Lichess's way
-   inside a variation).
+   each on its own row, indented, and every turn with its number ("19..." for a row that starts at a turn's second
+   edge). Where a branch forks again, its row ends at the fork, and every line from the fork follows one step further
+   in, the first line too, so that the lines from a fork stand side by side (Lichess's way inside a variation).
+   Lichess's tree stands beside them (its column view, `ui/analyse/css/_tview.scss`): the lines from one position hang
+   from one rule, each with a tick, the rule ends at the last line's tick, and a shallower fork's rule passes the lines
+   nested in it (`treeLines`). A turn's notes and branches share one band across the move list, as Lichess's
+   "interrupt": a faint background and a rule above and below tie them to the turn, and they start at the
+   list's left, so that a branch's row has the list's whole width.
 6. **Without notation by default** (Go's way): a branch's edges are marks in the mover's colour, after their turn's
    number. The turn numbers place the edges, so the marks carry no numbers: numbers of their own would read as a
    second, unrelated count beside the turns. The listed line's marks are numbered as the board numbers the line. A
@@ -127,15 +131,20 @@ cut edges that are on the board, so a line drawn over the board can show edges t
     double-click on a candidate on the board plays it, and so does the listed line's first edge.
 11. **A branch's edges have no labels unless asked,** and a branch's positions are searched only while the player
     looks at them (Lichess's way). A line is often played only to show something, and searches for its labels would
-    take the machine from the game's review. The move menu's "Evaluate move quality" asks for one edge's label: its
-    two positions are searched to the label budget (after the position on screen, before the rest), and the edge is
-    judged as the game's edges are (`judgeEdge`, the same bands). Until then the move list shows "…" after it. Then
-    the move list shows its label, as for the game's edges (Great, Inaccuracy, Mistake, Blunder), with every label in
-    its tooltip, and the board shows its badge on the turn just played. The edges evaluated are kept with the branches.
-12. **Lichess's move menu** on a branch's move, by a right-click or a long press: "Evaluate move quality" (item 11),
+    take the machine from the game's review. The move menu's "Evaluate quality" asks for the labels of the move's
+    turn: every branch move of the turn is evaluated, and the positions before and after each are searched to the label
+    budget (after the position on screen, before the rest). The turn is judged as the game's turns are (`judgeTurn`),
+    and each edge as the game's edges are (`judgeEdge`, the same bands): "Review by" chooses which shows. Until then
+    the move list shows "…". Then it shows the label as for the game (Great, Inaccuracy, Mistake, Blunder), by turn
+    after the move that ends the turn, with every label in its tooltip, and the board shows the badges of the turn just
+    played. The moves evaluated are kept with the branches. A branch that stops in a turn's middle has no turn label
+    until the turn ends.
+12. **Lichess's move menu** on a branch's move, by a right-click or a long press: "Evaluate quality" (item 11),
     "Promote variation" (the nearest branch on the path that is not the first from its parent becomes the first, as
     Lichess's `promoteAt`) and "Delete from here" (the move and what follows it, and the place on screen goes to the
-    fork when it was inside). The game's own moves have no menu: the review is of the game, so its line stays first.
+    fork when it was inside). On the game's own moves, the engine's lines and the notes, the same menu opens with each
+    action off, not the browser's menu: the review is of the game, so its line stays first, and its moves are
+    evaluated already.
     "Make main line" belongs to an analysis board, later (decisions/open-items.md).
 13. **A branch's preview:** pointing at a move of a branch's row in the move list shows the row on the board, from the
     position where the row starts, up to that move. It is drawn as the engine's line is (item 3): the edges numbered,
@@ -153,6 +162,15 @@ cut edges that are on the board, so a line drawn over the board can show edges t
     it off ("Preview played moves"). This is the site's own: Lichess's move list has none (its small board shows only
     a move of an engine line, `ui/lib/src/ceval/view/main.ts`, `renderPvBoard`), and the help pages of chess.com and
     Sabaki name none. Hover previews exist in browser extensions for those sites and in one Go client (SWHub).
+15. **The engine's best line as a branch** under a Mistake's or a Blunder's note (Lichess shows the engine's line after
+    a mistake as a variation): the first of the branches from where the mistake started (by turn, from the turn's
+    start), with the notes. It is candidate 1's line, as far as the search trusts it (by visits, as the listed line),
+    behind candidate 1's badge, and a little faded, so that the engine's line and the player's own branches read apart.
+    It is not kept: it follows the search. Pointing at an edge previews the line up to it on the board, as a branch's
+    row, and a click plays it up to there as a branch (as the listed line's click does). An edge already in the tree is
+    hollow. While its position's search can still change it (a search of it runs, or the label pass or the key moments'
+    deeper search has yet to reach it), the row gleams as the progress bars do: the line updates after each slice of
+    the search.
 
 ## Why
 
@@ -234,7 +252,7 @@ cut edges that are on the board, so a line drawn over the board can show edges t
   its moves), each branch node's path, its order, and whether its move was evaluated (the kept shape's version 2.
   Version 1 kept the lines, and is still read).
 - An evaluation's searches have the pool's priority 7, between the position on screen and the game's key moments.
-- The Highlights and the Advantage chart are the game's alone. In a branch, the chart marks the position where the
+- The Report and the Advantage chart are the game's alone. In a branch, the chart marks the position where the
   branch leaves the game.
 
 ## Where it is

@@ -2,7 +2,7 @@
 // a game. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { branchChildren, branchRows, mainIndex, nextFork, pathKey, prevFork, sharedLength, siblingLine } from "./tree.ts";
+import { branchChildren, branchRows, mainIndex, nextFork, pathKey, prevFork, sharedLength, siblingLine, treeLines } from "./tree.ts";
 
 const main = ["a", "b", "c", "d"];
 
@@ -49,4 +49,15 @@ test("Lichess's fork keys: the previous and next fork, and the line beside this 
   assert.deepEqual(siblingLine(["a", "x", "y"], childrenOf, 1), ["a", "x", "w"]);
   assert.deepEqual(siblingLine(["a", "x", "w"], childrenOf, 1), ["a", "x", "y"]); // round
   assert.equal(siblingLine(["a"], childrenOf, 1), null); // no fork above the first move
+});
+
+test("the tree's rules: a fork's rule ends at its last line, and passes the lines nested before it", () => {
+  // Two lines from the game (depth 1); the first forks into two lines (depth 2).
+  const rows = [{ depth: 1, paths: [] }, { depth: 2, paths: [] }, { depth: 2, paths: [] }, { depth: 1, paths: [] }];
+  assert.deepEqual(treeLines(rows), [
+    { last: false, through: [] },
+    { last: false, through: [1] }, // the outer rule passes on to the second line from the game
+    { last: true, through: [1] },
+    { last: true, through: [] },
+  ]);
 });

@@ -2,9 +2,12 @@
 //
 // An edge's loss is measured as KaTrain and Lichess measure it: the mover's value before the edge (the position's
 // analysis) less the mover's value after it (the next position's analysis), in win chance and, when the analysis has
-// scores, in points. The labels are in labels.ts. Accuracy is Lichess's per-move formula on win% (AccuracyPercent.scala),
-// averaged plainly. The analysis may be partial: an edge has no label until both its positions are analysed to at
-// least `minVisits` (the label budget: docs/decisions/engine.md, "Label agreement against search budget").
+// scores, in points. A turn's loss is the mover's value at its start less the mover's value after its last edge: the sum
+// of its edges' losses, with the value between them cancelled (design 10). The page
+// judges by turn or by edge (a display setting), so the review gives both. The labels are in labels.ts. Accuracy is
+// Lichess's per-move formula on win% (AccuracyPercent.scala), averaged plainly. The analysis may be partial: an edge or
+// a turn has no label until both its ends are analysed to at least `minVisits` (the label budget:
+// docs/decisions/engine.md, "Label agreement against search budget").
 
 import { edgeName, sameEdge, type Edge } from "#lib/engine/notation.ts";
 import { BAD_LABELS, GOOD_POINTS, GOOD_WIN, LABELS, ONLY_EDGE_GAP, classify, type Label } from "./labels.ts";
@@ -42,6 +45,9 @@ export interface ReviewData {
   analysis: (Analysis | undefined)[]; // by position; undefined until analysed
   // By edge: the position after the engine's second choice, searched to confirm a Great (confirmedOnly)
   seconds?: (Analysis | undefined)[];
+  // By the index of a turn's first edge: the position after the turn's other candidate (otherCandidate), searched to
+  // confirm a Great by turn
+  others?: (Analysis | undefined)[];
 }
 /** Which score measures points lost: the lead (KaTrain's choice) or the expected final margin. To be measured. */
 export type ScoreKind = "lead" | "margin";
@@ -87,19 +93,37 @@ export interface EdgeReview {
   winAfter: number;
   loss: number; // the mover's loss of win chance, at least 0
   pointsLost: number | undefined; // the mover's loss of points, at least 0, when the analysis has scores
+  // The same before the clamp at 0, below 0 for a gain: the notes give them (costText), so that a turn's parts add up
+  rawLoss: number;
+  rawPoints: number | undefined;
   label: Label | null; // null until both positions are analysed
   best: Candidate | undefined; // the engine's first choice in the position before the edge
 }
-export interface TurnReview { number: number; player: Player; edges: EdgeReview[]; loss: number; label: Label | null }
+export interface TurnReview {
+  number: number;
+  player: Player;
+  edges: EdgeReview[];
+  start: number; // the turn leads from position start to position end
+  end: number;
+  loss: number; // the mover's loss of win chance from the turn's start to its end, at least 0
+  pointsLost: number | undefined; // the mover's loss of points, at least 0, when the analysis has scores
+  rawLoss: number; // the same before the clamp at 0, below 0 for a gain
+  rawPoints: number | undefined;
+  label: Label | null; // null until both ends are analysed
+  best: Edge[] | undefined; // the engine's best turn at the start: its first choice, then the next edge of its line
+}
+/** The unit the page judges (design 10): the turn, by default, or each edge. */
+export type Unit = "turn" | "edge";
+/** A turn or an edge, labelled, by the indices of its first and last edges. */
+export interface KeyMoment { first: number; last: number; label: Label }
 export interface PlayerSummary { counts: Record<Label, number>; accuracy: number; meanPointsLost: number | undefined }
 export interface Review {
   data: ReviewData;
   edges: EdgeReview[];
   turns: TurnReview[];
   turnOf: TurnReview[]; // by edge index: the turn the edge is in
-  summary: [PlayerSummary, PlayerSummary];
-  mistakes: EdgeReview[]; // every edge labelled Inaccuracy or worse after the opening, in game order
-  keyMoments: EdgeReview[];
+  summary: Record<Unit, [PlayerSummary, PlayerSummary]>;
+  keyMoments: Record<Unit, KeyMoment[]>;
   blueWin: number[]; // by position (NaN until analysed), the last from the result
   blueScore: (number | undefined)[]; // by position, the score that measures points lost, from Blue's side
 }
@@ -120,6 +144,21 @@ export function onlyEdge(a: Analysis | undefined, p: Player): boolean {
  *  there rests on few visits (GameAnalysis.confirmGreats). */
 export function confirmedOnly(winAfter: number, second: Analysis | undefined, p: Player, minVisits = 0): boolean {
   return !!second && second.visits >= minVisits && winAfter - moverWin(second.blueWin, p) >= ONLY_EDGE_GAP;
+}
+
+/** The first candidate that is not an edge of the played turn: the start of the best other turn, which confirms a
+ *  Great by turn (design 10). The edges of the played turn are left out, because the best turn that starts with one of
+ *  them is often the played turn in the other order. */
+export function otherCandidate(a: Analysis | undefined, played: (Edge | null)[]): Candidate | undefined {
+  return a?.candidates.find(c => !played.some(e => !!e && sameEdge(e, c.edge)));
+}
+
+/** The same turn: the same edges, in either order. */
+function sameTurn(played: (Edge | null)[], turn: Edge[]): boolean {
+  if (played.length !== turn.length || played.some(e => !e)) return false;
+  const [a, b] = played as Edge[];
+  return turn.length === 1 ? sameEdge(a, turn[0])
+    : (sameEdge(a, turn[0]) && sameEdge(b, turn[1])) || (sameEdge(a, turn[1]) && sameEdge(b, turn[0]));
 }
 
 /** An edge's loss and label, from the mover's values before and after it: win chance, and score when both are known.
@@ -158,44 +197,14 @@ export function valuesAfter(p: Position, a: Analysis | undefined, kind: ScoreKin
 
 // Lichess's accuracy of one move from the drop in win% (0-100).
 const moveAccuracy = (dropPct: number) => Math.min(100, Math.max(0, 103.1668 * Math.exp(-0.04354 * dropPct) - 3.1669 + 1));
-const severity = (e: EdgeReview) => (e.label ? LABELS.indexOf(e.label) : -1) * 1e6 + (e.pointsLost ?? 0) + e.loss;
+/** What every judged turn or edge has. */
+interface Judged { player: Player; label: Label | null; loss: number; pointsLost: number | undefined }
+const severity = (e: Judged) => (e.label ? LABELS.indexOf(e.label) : -1) * 1e6 + (e.pointsLost ?? 0) + e.loss;
 
-export function review(data: ReviewData, kind: ScoreKind = "lead", minVisits = 0): Review {
-  const blueResult = data.result.blue - data.result.red;
-  const final = blueResult > 0 ? 1 : blueResult < 0 ? 0 : 0.5;
-  const n = data.moves.length;
-  // The position after the last edge is the end: its value is the result.
-  const blueWin = data.positions.map((_, i) => (i === n ? final : data.analysis[i]?.blueWin ?? NaN));
-  const blueScore = data.positions.map((_, i) => (i === n ? blueResult : scoreOf(data.analysis[i], kind)));
-  const edges: EdgeReview[] = data.moves.map((m, i) => {
-    const winBefore = moverWin(blueWin[i], m.player), winAfter = moverWin(blueWin[i + 1], m.player);
-    const a = data.analysis[i], best = a?.candidates[0];
-    const deepEnough = (j: number) => j === n || (data.analysis[j]?.visits ?? 0) >= minVisits;
-    const known = !Number.isNaN(winBefore) && !Number.isNaN(winAfter) && deepEnough(i) && deepEnough(i + 1);
-    const before = blueScore[i], after = blueScore[i + 1];
-    const j = known ? judgeEdge(winBefore, winAfter, before !== undefined ? moverScore(before, m.player) : undefined,
-                                after !== undefined ? moverScore(after, m.player) : undefined,
-                                !!best && !!m.edge && sameEdge(best.edge, m.edge),
-                                onlyEdge(a, m.player) && confirmedOnly(winAfter, data.seconds?.[i], m.player, minVisits)) : null;
-    return { index: i, player: m.player, edge: m.edge, cut: m.cut, winBefore, winAfter, loss: j?.loss ?? 0,
-             pointsLost: j?.pointsLost, label: j?.label ?? null, best };
-  });
-  const turns: TurnReview[] = [], turnOf: TurnReview[] = [];
-  for (const e of edges) {
-    const last = turns.at(-1);
-    if (last && last.player === e.player) last.edges.push(e);
-    else turns.push({ number: turns.length + 1, player: e.player, edges: [e], loss: 0, label: null });
-    turnOf.push(turns.at(-1)!);
-  }
-  for (const t of turns) {
-    const first = t.edges[0], last = t.edges.at(-1)!;
-    if (t.edges.some(e => !e.label)) continue;
-    t.loss = Math.max(0, first.winBefore - last.winAfter);
-    const pts = t.edges.every(e => e.pointsLost !== undefined) ? t.edges.reduce((s, e) => s + e.pointsLost!, 0) : undefined;
-    t.label = classify(t.loss, pts, t.edges.every(e => e.label === "best" || e.label === "great"), false);
-  }
-  const summary = ([0, 1] as Player[]).map(p => {
-    const mine = edges.filter(e => e.player === p && e.label);
+/** Each player's counts, accuracy and mean points lost, over the judged turns or edges. */
+function summarize(items: Judged[]): [PlayerSummary, PlayerSummary] {
+  return ([0, 1] as Player[]).map(p => {
+    const mine = items.filter(e => e.player === p && e.label);
     const counts = Object.fromEntries(LABELS.map(l => [l, mine.filter(e => e.label === l).length])) as Record<Label, number>;
     const withPoints = mine.filter(e => e.pointsLost !== undefined);
     return {
@@ -204,28 +213,151 @@ export function review(data: ReviewData, kind: ScoreKind = "lead", minVisits = 0
       meanPointsLost: withPoints.length ? withPoints.reduce((s, e) => s + e.pointsLost!, 0) / withPoints.length : undefined,
     };
   }) as [PlayerSummary, PlayerSummary];
-  // Key moments: the worst edges, at least an inaccuracy, in game order (Lichess's evalSwings, chess.com's key moments).
-  // The first turns are left out, as Regan and Haworth skip the opening (design 01): the values swing most there.
-  const firstTurn = turns[Math.min(OPENING_TURNS, turns.length - 1)].edges[0].index;
-  const mistakes = edges.filter(e => e.index >= firstTurn && e.label && BAD_LABELS.includes(e.label));
-  return { data, edges, turns, turnOf, summary, mistakes, keyMoments: largest(mistakes), blueWin, blueScore };
 }
 
-/** The worst of these edges (by label, then points, then win chance), at most `n`, in game order. */
-export function largest(edges: EdgeReview[], n = 8): EdgeReview[] {
-  return [...edges].sort((a, b) => severity(b) - severity(a)).slice(0, n).sort((a, b) => a.index - b.index);
+export function review(data: ReviewData, kind: ScoreKind = "lead", minVisits = 0): Review {
+  const blueResult = data.result.blue - data.result.red;
+  const final = blueResult > 0 ? 1 : blueResult < 0 ? 0 : 0.5;
+  const n = data.moves.length;
+  // The position after the last edge is the end: its value is the result.
+  const blueWin = data.positions.map((_, i) => (i === n ? final : data.analysis[i]?.blueWin ?? NaN));
+  const blueScore = data.positions.map((_, i) => (i === n ? blueResult : scoreOf(data.analysis[i], kind)));
+  const deepEnough = (j: number) => j === n || (data.analysis[j]?.visits ?? 0) >= minVisits;
+  // Both ends of an edge or a turn analysed, to the label budget.
+  const known = (i: number, j: number) => !Number.isNaN(blueWin[i]) && !Number.isNaN(blueWin[j]) && deepEnough(i) && deepEnough(j);
+  const scoreAt = (i: number, p: Player) => (blueScore[i] !== undefined ? moverScore(blueScore[i]!, p) : undefined);
+  const edges: EdgeReview[] = data.moves.map((m, i) => {
+    const winBefore = moverWin(blueWin[i], m.player), winAfter = moverWin(blueWin[i + 1], m.player);
+    const a = data.analysis[i], best = a?.candidates[0];
+    const j = known(i, i + 1) ? judgeEdge(winBefore, winAfter, scoreAt(i, m.player), scoreAt(i + 1, m.player),
+                                          !!best && !!m.edge && sameEdge(best.edge, m.edge),
+                                          onlyEdge(a, m.player) && confirmedOnly(winAfter, data.seconds?.[i], m.player, minVisits)) : null;
+    const before = scoreAt(i, m.player), after = scoreAt(i + 1, m.player);
+    return { index: i, player: m.player, edge: m.edge, cut: m.cut, winBefore, winAfter, loss: j?.loss ?? 0,
+             pointsLost: j?.pointsLost, rawLoss: j ? winBefore - winAfter : 0,
+             rawPoints: j && before !== undefined && after !== undefined ? before - after : undefined,
+             label: j?.label ?? null, best };
+  });
+  const turns: TurnReview[] = [], turnOf: TurnReview[] = [];
+  for (const e of edges) {
+    const last = turns.at(-1);
+    if (last && last.player === e.player) { last.edges.push(e); last.end = e.index + 1; }
+    else turns.push({ number: turns.length + 1, player: e.player, edges: [e], start: e.index, end: e.index + 1, loss: 0,
+                      pointsLost: undefined, rawLoss: 0, rawPoints: undefined, label: null, best: undefined });
+    turnOf.push(turns.at(-1)!);
+  }
+  for (const t of turns) {
+    const p = t.player, first = data.analysis[t.start]?.candidates[0], played = t.edges.map(e => e.edge);
+    t.best = first && (t.edges.length > 1 && (first.line?.length ?? 0) >= 2 ? [first.edge, first.line![1]] : [first.edge]);
+    // By edge too, the engine's best turn in the other order is Best: the same two edges make the same turn, so its
+    // first edge, the second of the engine's line, is not judged by the search between them.
+    if (t.edges.length > 1 && t.best && sameTurn(played, t.best))
+      for (const e of t.edges) if (e.label && e.label !== "great") e.label = "best";
+    if (!known(t.start, t.end)) continue;
+    const j = judgeTurn(p, played, data.analysis[t.start], played.length > 1 ? data.analysis[t.start + 1] : undefined,
+                        { blueWin: blueWin[t.end], blueScore: blueScore[t.end] }, t.end === n, data.others?.[t.start],
+                        data.seconds?.[t.start + 1], kind, minVisits);
+    if (j) Object.assign(t, j);
+  }
+  // Key moments: the worst turns or edges, at least an inaccuracy, in game order (Lichess's evalSwings, chess.com's key
+  // moments). The first turns are left out, as Regan and Haworth skip the opening (design 01): the values swing most
+  // there.
+  const firstTurn = turns[Math.min(OPENING_TURNS, turns.length - 1)].start;
+  const bad = (x: Judged) => !!x.label && BAD_LABELS.includes(x.label);
+  return {
+    data, edges, turns, turnOf, blueWin, blueScore,
+    summary: { turn: summarize(turns), edge: summarize(edges) },
+    keyMoments: {
+      turn: largest(turns.filter(t => t.start >= firstTurn && bad(t)), t => t.start)
+        .map(t => ({ first: t.start, last: t.end - 1, label: t.label! })),
+      edge: largest(edges.filter(e => e.index >= firstTurn && bad(e)), e => e.index)
+        .map(e => ({ first: e.index, last: e.index, label: e.label! })),
+    },
+  };
+}
+
+/** A turn's judgment: its loss from its two ends, before the clamp at 0 too, and its label. */
+export interface TurnJudgment {
+  loss: number; pointsLost: number | undefined; rawLoss: number; rawPoints: number | undefined; label: Label;
+}
+
+/** A turn's label, the game's or a branch's (design 10), from its searches: `start`, the position before it, to
+ *  `minVisits` at least; `middle`, the position after its first edge, for a turn of two; `after`, the values after it
+ *  (valuesAfter); `ends`, the game ends after it (no Great: nothing confirms it); `other`, the position after its other
+ *  candidate, and `second`, the position after the middle's second choice, which confirm a Great. Null until the start
+ *  and the values after are known. */
+export function judgeTurn(mover: Player, played: (Edge | null)[], start: Analysis | undefined, middle: Analysis | undefined,
+                          after: { blueWin: number; blueScore: number | undefined } | undefined, ends: boolean,
+                          other: Analysis | undefined, second: Analysis | undefined, kind: ScoreKind = "lead",
+                          minVisits = 0): TurnJudgment | null {
+  if (!start || start.visits < minVisits || !after || Number.isNaN(start.blueWin) || Number.isNaN(after.blueWin)) return null;
+  const p = mover, first = start.candidates[0], top = middle?.candidates[0];
+  const best = first && (played.length > 1 && (first.line?.length ?? 0) >= 2 ? [first.edge, first.line![1]] : [first.edge]);
+  // Best: the turn reaches the engine's best turn: each edge the first choice of its own search, or the same edges as the
+  // first choice and the next edge of its line, in either order.
+  const firstChoices = !!first && !!played[0] && sameEdge(first.edge, played[0])
+    && (played.length === 1 || (!!middle && middle.visits >= minVisits && !!top && !!played[1] && sameEdge(top.edge, played[1])));
+  const playedBest = firstChoices || (!!best && sameTurn(played, best));
+  const winBefore = moverWin(start.blueWin, p), winAfter = moverWin(after.blueWin, p);
+  const s = scoreOf(start, kind), before = s !== undefined ? moverScore(s, p) : undefined;
+  const afterScore = after.blueScore !== undefined ? moverScore(after.blueScore, p) : undefined;
+  // Great: the only good turn, confirmed by equal searches. From the start: the other candidate (otherCandidate) looks
+  // ONLY_EDGE_GAP worse there, and the position after it, searched as deep, is that much worse than the position after
+  // the turn. From the middle, for a turn of two edges: the played second edge is the first choice there, and its second
+  // choice is that much worse, confirmed as for an edge.
+  const otherFirst = otherCandidate(start, played);
+  const fromStart = !!first && !!otherFirst && moverWin(first.blueWin, p) - moverWin(otherFirst.blueWin, p) >= ONLY_EDGE_GAP
+    && confirmedOnly(winAfter, other, p, minVisits);
+  const fromMiddle = played.length === 1 || (!!top && !!played[1] && sameEdge(top.edge, played[1]) && onlyEdge(middle, p)
+    && confirmedOnly(winAfter, second, p, minVisits));
+  const j = judgeEdge(winBefore, winAfter, before, afterScore, playedBest, playedBest && !ends && fromStart && fromMiddle);
+  return { ...j, rawLoss: winBefore - winAfter, rawPoints: before !== undefined && afterScore !== undefined ? before - afterScore : undefined };
+}
+
+/** The worst of these turns or edges (by label, then points, then win chance), at most `n`, in game order. */
+export function largest<T extends Judged>(items: T[], order: (x: T) => number, n = 8): T[] {
+  return [...items].sort((a, b) => severity(b) - severity(a)).slice(0, n).sort((a, b) => order(a) - order(b));
 }
 
 /** A win chance as text, with one decimal wherever it shows. */
 export const pct = (x: number) => `${(100 * x).toFixed(1)}%`;
 
 /** A cost against the engine's best, as every note writes it: the win chance first, then the points when the analysis
- *  has scores, each with its sign ("−4.0% · −26 pts"). `win` and `points` are losses: a minus marks a loss, a plus a
- *  gain (a candidate after number 1 that looks a little better), and a value that rounds to 0 has no sign. */
+ *  has scores, each with its sign and one decimal ("−4.0% · −26.3 pts"). `win` and `points` are losses: a minus marks a
+ *  loss, a plus a gain (a candidate after number 1 that looks a little better), and a value that rounds to 0 has no
+ *  sign. The other places round the points whole (design 06). */
 export function costText(win: number, points?: number): string {
-  const w = Math.abs(100 * win).toFixed(1), p = points !== undefined ? Math.round(Math.abs(points)) : undefined;
-  const sign = (loss: number) => (loss > 0 ? "−" : "+");
-  return `${w === "0.0" ? w : sign(win) + w}%${p === undefined ? "" : ` · ${p === 0 ? p : sign(points!) + p} pt${p === 1 ? "" : "s"}`}`;
+  const w = Math.abs(100 * win).toFixed(1);
+  return `${w === "0.0" ? w : (win > 0 ? "−" : "+") + w}%${points === undefined ? "" : ` · ${pointsText(points)}`}`;
+}
+
+/** Points lost as every note writes them, to one decimal: "−45.2 pts", "+3.0 pts" for a gain, "0.0 pts". */
+function pointsText(points: number): string {
+  const p = Math.abs(points).toFixed(1);
+  return `${p === "0.0" ? p : (points > 0 ? "−" : "+") + p} pts`;
+}
+
+/** A turn's cost (design 10): the turn's own, then each edge's points in the turn's order, so that one turn can be read
+ *  by edge: "−27.1% · −150.2 pts (−45.0 pts, −105.2 pts)". An edge that gained has a plus. The parts are rounded
+ *  together, in tenths, so that they add up to the turn's points (the largest remainders round up). The engine's own
+ *  turn (Best, Great) has no parts: its edges have nothing to explain, and their losses would show only the search
+ *  between them. */
+export function turnCost(t: TurnReview): string {
+  const parts = t.edges.map(e => e.rawPoints);
+  if (t.edges.length < 2 || t.label === "best" || t.label === "great" || t.rawPoints === undefined
+      || t.edges.some(e => !e.label) || parts.some(x => x === undefined)) return costText(t.rawLoss, t.rawPoints);
+  const tenths = roundTogether((parts as number[]).map(x => 10 * x)).map(x => x / 10);
+  return `${costText(t.rawLoss, tenths.reduce((a, b) => a + b, 0))} (${tenths.map(pointsText).join(", ")})`;
+}
+
+/** Whole numbers that add up to the rounded sum of `parts` (Hamilton's largest remainders): each part rounded down, then
+ *  one more for the parts with the largest remainders. The sum is rounded as costText rounds it, away from 0 at half. */
+export function roundTogether(parts: number[]): number[] {
+  const sum = parts.reduce((a, b) => a + b, 0), total = Math.sign(sum) * Math.round(Math.abs(sum));
+  const down = parts.map(Math.floor), more = total - down.reduce((a, b) => a + b, 0);
+  const order = parts.map((x, k) => k).sort((a, b) => (parts[b] - down[b]) - (parts[a] - down[a]));
+  for (const k of order.slice(0, more)) down[k]++;
+  return down;
 }
 
 /** The move as text: its edge, or "pass". */
@@ -233,6 +365,13 @@ export const moveName = (edge: Edge | null) => (edge ? edgeName(edge) : "pass");
 
 /** The move in the record's notation: its edge with the cut mark when it cuts (`D10-G10x`), or "pass". */
 export const moveNotation = (m: { edge: Edge | null; cut: Edge | null }) => `${moveName(m.edge)}${m.cut ? "x" : ""}`;
+
+/** A turn's note for the move list, in one line: its label, and the engine's best turn when the turn was not it. */
+export function turnShortNote(t: TurnReview): string {
+  if (t.label === "great") return `Great. The only good ${t.edges.length > 1 ? "edges" : "edge"}.`;
+  const better = t.best && t.label !== "best" ? ` ${t.best.map(edgeName).join(" ")} was best.` : "";
+  return `${t.label ? LABEL_TEXT[t.label] : "Not analysed yet"}.${better}`;
+}
 
 /** A note for the move list, in one line: the label, and the engine's choice when the edge was not it. */
 export function shortNote(e: EdgeReview): string {

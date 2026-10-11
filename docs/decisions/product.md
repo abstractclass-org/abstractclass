@@ -1104,3 +1104,176 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   a turn's loss and an edge's loss come from the same values at every position. Great is not fitted (its 0.10 gap is
   En Croissant's rule): the follow-ups make the archive's labels the site's in either mode. They cost a search only
   where a gap shows, and at a turn's second edge the two are one search.
+
+### Turn mode built (2026-10-11)
+
+- **Built** (design 05, "The label belongs to the turn"):
+  - The model gives each turn its loss from its two ends, in win chance and in points, its label, Best when it is the
+    engine's best turn in either order, and Great when the searches from its start and its middle confirm it. The
+    counts, the accuracy, the mean points lost and the key moments come by turn and by edge.
+  - The analysis searches one more position for a turn whose first choice is one of its edges: the position after its
+    other candidate, the first that is not an edge of the turn. The key moments are searched deeper from their start to
+    their end, by turn and by edge.
+  - "Judge by" in the display settings, under Labels: Turn (the default) or Edge.
+  - By turn, the move list gives each turn's glyph and points lost in a last column, with the turn's note, and the
+    note under a turn names the engine's best turn. The board gives the turn's badge on both its edges once the turn has
+    ended, marks both edges as the turn just played, and lights both edges and badges with the turn's note under the
+    pointer. By edge, every badge has its own note.
+- **Tests** (`model.test.ts`, 25 checks): a turn's loss and points from its ends, not its edges' losses added; Best in
+  the other order; Great confirmed from both ends, and Best without either confirmation; the summaries by unit.
+- **Checked in Edge** on the sample game:
+  - By turn: 61 turns counted. Turn 2 reads "?? −198", its note "Blunder: −33.4% · −198 pts (Q10-R8 −143 pts,
+    O11-Q10 −55 pts)", and its comment "Blunder. N9-Q10 M6-N9 was best." Great by turn grew from 2 and 3 to 4 and 4 as
+    the new confirmations ended (by edge: 10 and 12). The chart marks the 8 key moments by turn.
+  - The board at the end of turn 2: two badges with the turn's note, both edges marked. In its middle: no badge, the
+    last edge marked. The real pointer on a badge lit both edges and both badges and showed the note.
+  - By edge: the move list, the counts and the badges as before, each badge with its own note.
+  - Not checked: the chart's notes by turn, and a branch in Turn mode.
+
+### Turn mode, first feedback (2026-10-11)
+
+- **A turn's note** gives each edge's points without the edges' names: "Blunder: −33.4% · −198 pts (−143 pts, −55
+  pts)", the edges in the turn's order. Shorter, and the move list beside it names the edges.
+- **The Advantage chart by turn** draws and snaps to the turns' ends only, 62 points in the sample game (the start and
+  61 turns), and its note names the whole turn with its label. By edge it draws every position, as before.
+- **The black border on a clicked move** was the browser's focus ring: the clicked move kept the focus, and once a
+  key was pressed Edge drew its ring (`rgb(16, 16, 16)`, 1 pixel) around it. Space then pressed that move instead of
+  playing the engine's choice. A click no longer focuses anything in the move list (Lichess's moves take no focus).
+  Checked in Edge with a real click and real keys: the focus stays on the page, and no move has the ring.
+- **Turn 9 of the sample game:** a Great turn whose first edge alone shows −27 points (decisions/engine.md, "The
+  search in a turn's middle").
+
+### Turn mode, second feedback (2026-10-11)
+
+- **A turn's parts add up:** turn 3 read "−144 pts (−144 pts, −1 pt)". Each number was rounded alone, and an edge that
+  gained showed 0. Now the note gives each value before the clamp at 0 (a gain has a plus) and rounds the parts
+  together, Hamilton's largest remainders, so that they make the turn's points: "−25.2% · −144 pts (−144 pts, 0 pts)".
+- **No parts for the engine's own turn** (Best or Great): turn 9 reads "Great: +0.2% · −1 pt".
+- **By edge, the engine's best turn in the other order is Best on both edges.** Turn 9's first edge, J11-M13, was Good
+  by its −27 points from the search in the middle, though it is the second edge of the engine's line and the turn is
+  the engine's. Now it is Best. Its number still shows that search's −27.
+- **"Lead: Blue +38"** in a move's note, for "After it:": the word the header and the chart's notes use.
+- **The chart's note** gives the label in brackets, as Lichess's chart does: "2. Q10-R8 O11-Q10 [Blunder]".
+- **The setting** is "Review by" (Turn or Edge) under "Review": it sets the labels, the move list's numbers, the counts
+  and the chart.
+- **Lichess's tree beside the branches** (design 07, item 5): a rule from the fork down to its last line, a tick to each
+  line, and a shallower fork's rule passing the lines nested in it.
+- **The engine's best line as a branch** (design 07, item 15) under each Mistake's and Blunder's note: 11 rows in the
+  sample game. The listed line, and so this line, ends by visits only: the board's drawn line ends at 6 edges too.
+- **"Evaluate quality"** (design 07, item 11) evaluates the move's turn, every branch move of it, and the label shows by
+  turn or by edge.
+- **Checked in Edge** on the sample game: the notes of turns 2, 3 and 9 as above; the tree under turns 7 and 8; the
+  engine's line under turn 2, before the branch from the same position, and the real pointer on its fourth edge
+  previewed four edges from the position after edge 1; "Evaluate quality" on a branch's 7... F8-J11 gave the turn
+  Excellent on its second edge, and the board, at that move with the pointer off the list, showed both badges with
+  "Excellent: +2.2% · +17 pts" and both edges marked; the chart's note "2. Q10-R8 O11-Q10 [Blunder] | Lead: Blue +93";
+  by edge, J11-M13 Best. Not checked: a click on the engine's line (it plays as the listed line's click does).
+
+### Labels in one place, one decimal in the notes, the move menu everywhere, and one side's review (2026-10-11)
+
+- **Labels in one place** (design 10, "How a turn or an edge gets its label"): a label no longer comes from the two
+  bands alone. Best and Great look at the engine's choices and at further searches, and turns add their own cases.
+  Every rule, with its reason, is now in one document, and design 05 keeps the searches: their schedule and cache.
+- **One decimal for points in every note** ("−197.8 pts (−143.3 pts, −54.5 pts)", "Lead: Blue +38.2"): a note is read
+  closely. The parts of a turn are rounded together in tenths, so that they still make the turn. The move list, the
+  header and the table keep whole points.
+- **"Great. The only good edges."** for a Great turn of two edges ("edge" for a turn of one): "the only good turn"
+  read oddly.
+- **The move menu everywhere in the move list:** a right-click on the game's moves, the engine's lines or a note opened
+  the browser's own menu. It opens the move menu now, with each action off where it does not apply.
+- **"Review for": Both, Blue or Red** (design 10), under "Review" in the display settings. With one player, the other's
+  moves show without labels, numbers, notes or the engine's lines, on the board and on the chart too. The counts keep
+  both players. Imported games do not yet record which side the player was, so the default is Both.
+- **Checked in Edge** on the sample game: the notes of turns 2, 3 and 9 as above, the Great note, a move's note "Lead:
+  Blue +38.2"; a right-click on a game move (as an event, the window hidden) opened the move menu, all three actions
+  off, and no browser menu; "Review for: Blue": Red's turns without glyphs or numbers, Blue's notes only, 7 engine
+  lines (Blue's 4 Mistakes and 3 Blunders), 5 key moments on the chart, both columns of counts.
+
+### The notes and branches in a band at the list's left, on trial (2026-10-12)
+
+- **Tried, for the owner to judge** (Lichess's column view, its "interrupt"): under a turn, its notes and its branches
+  in one band across the move list, with a faint background and a rule above and below, starting at the list's left.
+  The notes were indented about 40 pixels, and the branches of the first depth about 35. The tree's rules stand at the
+  band's left, one step in for each depth. Seen in Edge on the sample game: 23 bands; turn 1's engine line on one row
+  where it took two; the lines from turn 7 with the lines nested in one of them, and their rules.
+- **The review's progress bar after a change of the review's depth** (reported missing): not seen again in Edge, in
+  the three-column layout with the engine settings open. From Custom 1,024 (done): Lite and Standard showed no bar,
+  since every position already met them. Custom 2,048 showed "Reviewing: move quality, 3 of 120 positions" at once.
+  Standard, then Custom again, showed "4 of 120". The bar shows only while positions lack the new depth, so it does not
+  show where the browser's store already holds the depth. The owner's setting was set back to Custom 1,024.
+- **Kept, with no setting:** the owner likes the band. One layout, since the indented one gave nothing that the band
+  lacks, and a setting for a style alone is one more thing to read in the panel.
+- **The progress bar:** the owner had set the review's depth to Custom 256, which every position already met, so the
+  review was done and the bar rightly gone. What moved was the engine's best lines in the move list (next entry).
+
+### Why the engine's best lines move in the move list (2026-10-12)
+
+- **Seen by the owner:** after the review ended, the engine's best lines under the bad turns kept changing.
+- **The cause:** the bad turns are the key moments. After the label pass, the review searches each key moment deeper,
+  to 1,024 visits, in slices of 32 (design 05), and the position on screen too. Each slice replaces the position's
+  analysis, and the engine's line reads that analysis as it is: its first choice can change, and its line grows as its
+  edges reach 25 visits. So each line can change about 30 times while its position is searched.
+- **Asked:** the deeper searches are part of the review, so the progress bar should run while they do, and a line
+  that can still change should show it. The updates after each slice stay.
+- **Built:** the review's bar covers the key moments searched deeper (a third part, as wide as its share of the
+  visits) and then the Great's confirmations ("Reviewing: confirming Great moves, 22 left"), and ends after them. The
+  key moments' positions are estimated from the labels found so far, so that the bar does not go back when that part
+  starts: before, it went from 96% back to 84%. An engine line gleams, as the progress bars do, while its position's
+  search can still change it: a search of it runs, or the label pass or the key moments' deeper search has yet to reach
+  it.
+- **Checked in Edge,** on an origin with an empty store (the tailnet address), Lite, 8 workers: the shape, then move
+  quality (the third part growing from 0.015 to 0.164 of the bar as labels came, the percentage always rising), then
+  at 117 of 120 82% and next "the key moments, deeper, 0 of 25 positions" at 84%, with 7 engine lines gleaming and
+  stopping one by one as their positions ended, then "confirming Great moves" from 22 down, then no bar. Clearing that
+  origin's store for the test also removed a `localforage` database that this site does not make.
+
+### The review's bar: the Great's confirmations, the key moments again, never back (2026-10-12)
+
+- **Asked:** the Great's confirmations fill the bar too, as their own part, not a full bar with a count.
+- **Found in the owner's screenshot** (the key moments' part full at "move quality, 33 of 120"): the page searched the
+  key moments deeper once for a game, after the first label pass, and kept the flag through a change of the review's
+  depth. The bar then showed the old key moments, searched already, while the new label pass ran, and the key moments
+  of the new labels were not searched deeper at all. A full part can be right (those positions do have 1,024 visits);
+  the missing search was the fault.
+- **Built:** the page asks the analysis to search the key moments deeper whenever they change after the label pass (a
+  label changed by a deeper search, another review depth), and the analysis skips a position whose search is queued or
+  done. The bar counts the key moments and the Great's confirmations (`greatChecks`: the searches the analysis asks
+  for, and those with the label budget) from the analysis as it is. Since both grow as labels come, the whole bar's
+  share of the work done dipped at times (81%, 77%, 81%, 79% on `localhost` after Custom 256 to Lite), so the bar now
+  fills from the left by the work done and never shows less than it has shown in that run.
+- **Checked in Edge** on `localhost`: after Custom 256 to Lite, the four parts (the confirmations' part 92% full
+  during the label pass); after Lite to Standard, 34%, 35%, 36%, 39%, never down. The owner's settings there were set
+  back to Lite.
+
+### The Advantage chart moved to the summary, and the review's bar by step (2026-10-12)
+
+- **Seen by the owner:** the bar's fill passed into the third part while its line still said "move quality, 115 of
+  120": it filled from the left by the whole work done, and the Great's confirmations and some key moments end
+  alongside the label pass. Now the bar shows the step its line names: the parts before are full, the later ones
+  empty, and the step's own part fills by its own count and never goes back. Checked in Edge on the tailnet address,
+  Lite to Standard: the shape full, move quality from 22% to 28% of its part (26 to 34 of 120), the confirmations' part
+  empty during it. That origin was set back to Lite.
+- **Seen by the owner:** the Advantage chart was below the fold, often entirely, even in a full-screen window, because
+  the board fills the height. Asked: move the chart rather than change the sizing rules, perhaps under the left panel,
+  though that panel becomes a tab below 1,260 pixels.
+- **Built** (design 06, "The Advantage chart with the summary"): the chart and its legend at the summary column's foot
+  with three columns, and in the Highlights tab with fewer, so that the chart is with the summary in every layout.
+  Nothing is under the board, and the side columns end at the window's bottom (at the board's bottom at least). The
+  chart's note takes at most the room beside the point and wraps. chess.com's review also keeps its graph in a side
+  panel.
+- **Checked in Edge** at 1,399 × 849 (three columns): the page 849 pixels high, no scroll bar, the board ending at 807,
+  the side columns at 833, the chart 226 pixels wide at the summary's foot; its note at turn 24 wrapped to two lines
+  inside the chart. Not checked: the two-column and the one-column layouts (Edge would not take a narrower window).
+
+### The Report, and the area line in the Advantage chart (2026-10-12)
+
+- **Asked:** the chart above the counts, "Report" for the tab that was "Highlights" (the more common name for a game's
+  summary), "Score (Blue − Red)" for "Score so far (Blue − Red)", a line for the area, and no "Advantage chart" title
+  in the legend, which grew long.
+- **Built** (design 06, "The Advantage chart in the Report"): the chart between the result and the counts. A third
+  line, "Area (Blue − Red)": the difference of the areas each player encloses now, the engine's `areas`, which are
+  added to the score at each turn's end. Magenta (`--area`), apart from the players' blue and red and the labels'
+  hues. The score and the area are each scaled to their own largest value, because their sizes differ. Each line is a
+  display setting ("Score", "Area"), on by default. The legend names the lines only.
+- **Checked in Edge** at 1,399 × 849: the chart above the counts, the area line drawn, the legend "Blue's win chance,
+  Score (Blue − Red), Area (Blue − Red)", the page 849 pixels high. The Report tab below 1,260 pixels is not checked.

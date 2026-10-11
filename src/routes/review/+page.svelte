@@ -8,7 +8,7 @@
   import ReviewView, { type ReviewProgress } from "#lib/review/ReviewView.svelte";
   import { review, type ReviewData } from "#lib/review/model.ts";
   import { EnginePool } from "#lib/analysis/pool.ts";
-  import { GameAnalysis, LABEL_VISITS, SWEEP_VISITS } from "#lib/analysis/game.svelte.ts";
+  import { DEEP_VISITS, GameAnalysis, LABEL_VISITS, SWEEP_VISITS } from "#lib/analysis/game.svelte.ts";
   import { loadEngine, reviewVisits, saveEngine } from "#lib/analysis/engineSettings.ts";
   import { loadManifest, type Manifest } from "#lib/engine/client.ts";
   import { errorText } from "#lib/errors.ts";
@@ -26,7 +26,6 @@
   let players = $state<ReviewData["players"]>(SAMPLE.players);
   let moveCount = $state(0);
   let error = $state("");
-  let deepened = false;
   let current = $state<string[]>([]); // the position on screen: its path in the game's tree (review/tree.ts)
   const engine = $state(loadEngine());
   $effect(() => saveEngine($state.snapshot(engine)));
@@ -37,19 +36,56 @@
   const budget = $derived(reviewVisits(engine));
   const data = $derived(game?.data(players) ?? null);
   const R = $derived(data ? review(data, "lead", LABEL_VISITS) : null);
-  // The review's two passes as one bar, each part as wide as its share of the visits, so the bar moves at an even pace.
-  const progress = $derived.by((): ReviewProgress | null => {
-    const n = Math.max(1, moveCount);
-    const total = SWEEP_VISITS + budget;
+  // The key moments' positions, searched deeper after the label pass: every position of each, from its start to its end
+  // (its loss needs both ends, and a turn's note gives its edges' losses too). The key moments by turn and by edge,
+  // whichever the page shows: they are mostly the same positions. Before the label pass ends, the labels found so far
+  // give them, so that the progress bar has their part from the start.
+  const momentPositions = $derived.by(() => {
+    if (!R) return [];
+    const positions = [...R.keyMoments.turn, ...R.keyMoments.edge].flatMap(m => Array.from({ length: m.last - m.first + 2 }, (_, k) => m.first + k));
+    return [...new Set(positions)].filter(i => i < moveCount).sort((a, b) => a - b);
+  });
+  const momentKey = $derived(momentPositions.join(" ")); // one string, so that a new array with the same positions is no change
+  // The review's work as one bar, each part as wide as its share of the visits, so that the bar moves at an even pace:
+  // the sweep, the label pass, the key moments searched deeper, and the Great's confirmations. The last two are counted
+  // from what the analysis asks for so far: they grow as labels come, and each is done when its positions have the
+  // searches, whoever ran them (after a change of the review's depth too). The bar shows the step that its line names:
+  // the steps before are full, the later ones empty, though some of their work can end early, alongside (it shows when
+  // their step comes). The step's own part never shows less than it has shown (held): a count that grows makes it wait
+  // instead of going back. Another review depth, network or game starts it again.
+  let held = $state({ step: -1, done: 0 });
+  $effect(() => { void budget; void game; held = { step: -1, done: 0 }; });
+  const rawProgress = $derived.by((): (ReviewProgress & { step: number }) | null => {
+    const n = Math.max(1, moveCount), deeper = Math.max(0, DEEP_VISITS - budget);
+    const m = momentPositions.length, deepDone = momentPositions.filter(i => (game?.analysis[i]?.visits ?? 0) >= DEEP_VISITS).length;
+    const greats = game?.greatChecks ?? { total: 0, done: 0 };
+    const total = (SWEEP_VISITS + budget) * n + deeper * m + budget * greats.total;
     const parts = [
-      { share: SWEEP_VISITS / total, done: (game?.swept ?? 0) / n },
-      { share: budget / total, done: (game?.labelled ?? 0) / n },
+      { share: (SWEEP_VISITS * n) / total, done: (game?.swept ?? 0) / n },
+      { share: (budget * n) / total, done: (game?.labelled ?? 0) / n },
+      ...(deeper * m ? [{ share: (deeper * m) / total, done: deepDone / m }] : []),
+      ...(greats.total ? [{ share: (budget * greats.total) / total, done: greats.done / greats.total }] : []),
     ];
-    if (!game?.engineReady) return { text: "Loading the engine's network…", parts };
-    if (game.labelled >= moveCount) return null;
-    if (game.paused) return { text: "Engine off. The review is paused.", parts, waiting: true };
-    if (game.swept < moveCount) return { text: `Reviewing: the game's shape, ${game.swept} of ${moveCount} positions`, parts };
-    return { text: `Reviewing: move quality, ${game.labelled} of ${moveCount} positions`, parts };
+    const labelled = game?.labelled !== undefined && game.labelled >= moveCount, deep = deepDone >= m;
+    const step = !game || game.swept < moveCount ? 0 : !labelled ? 1 : !deep && deeper * m ? 2 : parts.length - 1;
+    if (!game?.engineReady) return { text: "Loading the engine's network…", parts, step };
+    if (labelled && deep && greats.done >= greats.total) return null;
+    if (game.paused) return { text: "Engine off. The review is paused.", parts, waiting: true, step };
+    if (step === 0) return { text: `Reviewing: the game's shape, ${game.swept} of ${moveCount} positions`, parts, step };
+    if (step === 1) return { text: `Reviewing: move quality, ${game.labelled} of ${moveCount} positions`, parts, step };
+    if (!deep) return { text: `Reviewing: the key moments, deeper, ${deepDone} of ${m} positions`, parts, step };
+    return { text: `Reviewing: confirming Great moves, ${greats.done} of ${greats.total}`, parts, step };
+  });
+  const rawStepDone = $derived(rawProgress ? rawProgress.parts[rawProgress.step]?.done ?? 1 : 0);
+  $effect(() => {
+    const step = rawProgress?.step ?? -1, done = rawStepDone, was = untrack(() => held);
+    if (step !== was.step || done > was.done) held = { step, done };
+  });
+  const progress = $derived.by((): ReviewProgress | null => {
+    if (!rawProgress) return null;
+    const { step, ...shown } = rawProgress;
+    const own = held.step === step ? Math.max(held.done, rawStepDone) : rawStepDone;
+    return { ...shown, parts: shown.parts.map((p, k) => ({ share: p.share, done: k < step ? 1 : k === step ? own : 0 })) };
   });
 
   // The engine's settings, given to the analysis as they change. The analysis ignores a value it already has.
@@ -88,7 +124,7 @@
     if (!pool || !manifest || !g || id === network) return;
     network = id;
     g.dropAnalysis();
-    deepened = false;
+    held = { step: -1, done: 0 };
     const next = new EnginePool(engine.workers);
     try {
       await next.start(manifest, id);
@@ -103,11 +139,12 @@
     await g.sweep();
   }
 
-  // After the label pass: the key moments deeper, both positions of each (its loss needs both).
+  // After the label pass: the key moments deeper (momentPositions), and again whenever they change (a label changed by
+  // a deeper search, another review depth). The analysis skips a position already queued or done.
   $effect(() => {
-    if (!R || !game || deepened || game.labelled < moveCount) return;
-    deepened = true;
-    game.deepen([...new Set(R.keyMoments.flatMap(m => [m.index, m.index + 1]))].filter(i => i < moveCount));
+    void momentKey;
+    if (!R || !game?.engineReady || game.labelled < moveCount) return;
+    untrack(() => game!.deepen(momentPositions));
   });
 
   // The Greats' confirmations (GameAnalysis.confirmGreats), looked for again as results come: a deeper search can change
@@ -166,7 +203,8 @@
 {:else if R}
   <ReviewView {R} {progress} problem={game?.error ?? ""} deepVisits={engine.visits} onposition={path => (current = path)}
               branches={game?.branches ?? {}} onplay={path => game!.addLine(path)} rulesAt={path => game!.rulesAt(path)}
-              secondAt={path => game?.secondAt(path)} reviewVisits={budget}
+              secondAt={path => game?.secondAt(path)} otherAt={(path, turn) => game?.otherAt(path, turn)}
+              turnKeys={path => game?.turnKeys(path) ?? []} pendingAt={path => game?.pending(path) ?? false} reviewVisits={budget}
               ondelete={path => game!.deleteFrom(path)} onpromote={path => game!.promote(path)}
               onjudge={path => game!.judge(path)} labelVisits={LABEL_VISITS} {engine} onengine={change => Object.assign(engine, change)}
               timedOut={!!game?.stoppedByTime(current)}

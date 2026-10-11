@@ -1,12 +1,18 @@
-// The review's display settings (docs/design/06-review-layout.md): the win chance's form, the board's layers, the
-// chart's score line, and how the engine's line and the branches show (design 07). Kept in this browser: there are no accounts yet. Storage can be blocked (a private window,
-// blocked site data), so every read and write may fail, and the defaults then hold.
+// The review's display settings (docs/design/06-review-layout.md): what the labels judge (design 10), the win chance's
+// form, the board's layers, the chart's score line, and how the engine's line and the branches show (design 07). Kept
+// in this browser: there are no accounts yet. Storage can be blocked (a private window, blocked site data), so every
+// read and write may fail, and the defaults then hold.
 import { DEFAULT_LAYERS, type BoardLayers } from "#lib/board/Board.svelte";
 
 export interface Display {
+  judge: "turn" | "edge"; // what the labels judge: each turn as a whole (the default), or each edge (design 10)
+  // Whose moves the review explains: both players (the default), or one: its labels, numbers, notes and the engine's
+  // lines show, the other's do not
+  reviewFor: "both" | "blue" | "red";
   win: "bar" | "gauge"; // a bar above the board (Blue left, Red right), or a vertical gauge beside it
   layers: BoardLayers;
-  scoreLine: boolean; // the Advantage chart's score-so-far line
+  scoreLine: boolean; // the Advantage chart's score line (Blue − Red)
+  areaLine: boolean; // the Advantage chart's area line: the area each player encloses now (Blue − Red)
   // "Lines on the board": the engine's line and a branch's preview drawn one edge at a time (KaTrain's way, the
   // default), not all at once
   lineSteps: boolean;
@@ -23,9 +29,12 @@ export interface Display {
 const KEY = "learn-enclosure:review-display:1";
 
 export const DEFAULT_DISPLAY: Display = {
+  judge: "turn",
+  reviewFor: "both",
   win: "bar",
   layers: DEFAULT_LAYERS,
   scoreLine: true,
+  areaLine: true,
   lineSteps: true,
   branchForm: "pills",
   notes: true,
@@ -40,9 +49,12 @@ export function loadDisplay(): Display {
     const kept = JSON.parse(localStorage.getItem(KEY) ?? "null") as (Partial<Display> & { branchText?: boolean }) | null;
     if (!kept) return structuredClone(DEFAULT_DISPLAY);
     return {
+      judge: kept.judge === "edge" ? "edge" : "turn",
+      reviewFor: kept.reviewFor === "blue" || kept.reviewFor === "red" ? kept.reviewFor : "both",
       win: kept.win === "gauge" ? "gauge" : "bar",
       layers: { ...DEFAULT_DISPLAY.layers, ...kept.layers },
       scoreLine: kept.scoreLine ?? DEFAULT_DISPLAY.scoreLine,
+      areaLine: kept.areaLine ?? DEFAULT_DISPLAY.areaLine,
       lineSteps: kept.lineSteps ?? DEFAULT_DISPLAY.lineSteps,
       // Kept before the pills as `branchText`, true for the notation
       branchForm: kept.branchForm === "pills" || kept.branchForm === "dots" || kept.branchForm === "text" ? kept.branchForm

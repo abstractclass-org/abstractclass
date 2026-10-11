@@ -22,7 +22,9 @@ import { edgeName, parseEdge, parsePoint, sameEdge, type Edge } from "#lib/engin
 import type { AnalysisReply, DescribeReply, MoveInfo } from "#lib/engine/protocol.ts";
 import { errorText } from "#lib/errors.ts";
 import { gameId } from "#lib/game/store.ts";
-import { onlyEdge, type Analysis, type LineStep, type Move, type Player, type Position, type ReviewData } from "#lib/review/model.ts";
+import { moverWin, onlyEdge, otherCandidate, type Analysis, type Candidate, type LineStep, type Move, type Player, type Position,
+         type ReviewData } from "#lib/review/model.ts";
+import { ONLY_EDGE_GAP } from "#lib/review/labels.ts";
 import type { EdgeRules } from "#lib/board/edgeInput.svelte.ts";
 import { mainIndex, pathKey } from "#lib/review/tree.ts";
 import { STORES, dbGet, dbPut } from "#lib/storage/db.ts";
@@ -108,8 +110,11 @@ export class GameAnalysis {
   private stopFocus: (() => void) | null = null;
   private focusGeneration = 0; // a new focus makes every earlier focus search stale
   private passes = 0; // a new run of the passes makes the earlier one stop after its sweep
-  private moments: number[] = []; // the key moments, searched deeper
+  moments = $state.raw<number[]>([]); // the key moments' positions, searched deeper after the label pass
+  private deepening = new Set<number>(); // their searches queued or running
   private confirming = new Set<string>(); // the Greats' confirmations queued or running, by path key
+  // The positions whose search runs now, by path key: their analysis can still change (the page's gleam on a line)
+  private running = $state.raw<Record<string, number>>({});
   private era = 0; // another network starts a new era: results from an earlier one are dropped
   private pool: EnginePool;
   private id: string | null = null; // the game's id (game/store.ts), under which its branches are kept
@@ -126,6 +131,15 @@ export class GameAnalysis {
   get swept() { return this.reached.filter(v => v >= SWEEP_VISITS).length; }
   get labelled() { return this.reached.filter(v => v >= this.labelVisits).length; }
 
+  /** Whether the review's own work can still change the analysis at `path`: a search of it runs now, or the label pass
+   *  or the key moments' deeper search has yet to reach it. */
+  pending(path: string[]): boolean {
+    if (this.running[pathKey(path)]) return true;
+    const i = mainIndex(path, this.mainNames);
+    if (i === null || i >= this.moves.length || this.paused || !this.engineReady) return false;
+    return this.reached[i] < this.labelVisits || (this.moments.includes(i) && (this.analysis[i]?.visits ?? 0) < DEEP_VISITS);
+  }
+
   /** Whether the search of the position at `path` stopped at the time limit, with the focus settings as they are. */
   stoppedByTime(path: string[]) {
     return this.timed[pathKey(path)] === `${this.focusVisits} ${this.focusSeconds}`;
@@ -135,10 +149,30 @@ export class GameAnalysis {
   data(players: ReviewData["players"]): ReviewData | null {
     if (!this.rulesReady) return null;
     const end = this.positions.at(-1)!.scores;
-    // For each edge but the last, the position after the engine's second choice, which confirms a Great.
+    // For each edge but the last, the position after the engine's second choice, which confirms a Great. For each turn
+    // but the last, the position after its other candidate, which confirms a Great by turn.
     const seconds = this.played.map((_, i) => (i + 1 < this.played.length ? this.secondAt(this.mainNames.slice(0, i)) : undefined));
+    const others = this.played.map((_, i) => {
+      const turn = this.turnAt(i);
+      return turn && i + turn.length < this.played.length ? this.otherAt(this.mainNames.slice(0, i), turn) : undefined;
+    });
     return { players, result: { blue: end[0], red: end[1] }, moves: this.played, positions: this.positions, analysis: this.analysis,
-             seconds };
+             seconds, others };
+  }
+
+  /** The game's edges of the turn that starts with edge `i`, or undefined when no turn starts there. */
+  private turnAt(i: number): (Edge | null)[] | undefined {
+    const m = this.played[i];
+    if (!m || (i > 0 && this.played[i - 1].player === m.player)) return undefined;
+    const next = this.played[i + 1];
+    return next && next.player === m.player ? [m.edge, next.edge] : [m.edge];
+  }
+
+  /** The analysis of the position after the turn's other candidate at `path` (otherCandidate), which confirms a Great by
+   *  turn. */
+  otherAt(path: string[], turn: (Edge | null)[]): Analysis | undefined {
+    const other = otherCandidate(this.analysisOf(path), turn);
+    return other ? this.analysisOf([...path, edgeName(other.edge)]) : undefined;
   }
 
   /** Describes every position (the rules, no network), then sweeps the game. */
@@ -179,23 +213,58 @@ export class GameAnalysis {
    *  on the first choice), while En Croissant's rule compares two equal searches. So the position after the second
    *  choice is searched to the label budget, as the position after the played edge was, and the review compares the two
    *  (KaTrain's "equalize" gives every candidate the top move's visits for the same reason). For the game's edges and
-   *  the branch edges evaluated on request, not where the game ends after the edge. The page calls it as results come:
-   *  a deeper search can change a position's second choice. */
+   *  the branch edges evaluated on request, not where the game ends after the edge. A turn of the game asks for one more
+   *  search when its first choice is one of its edges: the position after its other candidate (otherCandidate), which
+   *  is the second choice unless that is the turn's other edge. The page calls it as results come: a deeper search can
+   *  change a position's second choice. */
   confirmGreats() {
+    for (const t of this.greatTargets()) this.confirmGreat(t.path, t.candidate);
+  }
+
+  /** The searches that the Greats ask for (confirmGreats): at each place, the candidate whose position confirms or
+   *  refutes the gap. */
+  private greatTargets(): { path: string[]; candidate: Candidate }[] {
+    const out: { path: string[]; candidate: Candidate }[] = [];
     const check = (before: string[], edge: Edge | null, mover: Player, over: boolean) => {
       const a = this.analysisOf(before), first = a?.candidates[0];
       if (!over && a && a.visits >= this.labelVisits && first && edge && sameEdge(first.edge, edge) && onlyEdge(a, mover))
-        this.confirmGreat(before);
+        out.push({ path: before, candidate: a.candidates[1] });
     };
     for (let i = 0; i + 1 < this.played.length; i++) check(this.mainNames.slice(0, i), this.played[i].edge, this.played[i].player, false);
     for (const [key, node] of Object.entries(this.branches))
       if (node.judged) check(key.split(" ").slice(0, -1), node.move.edge, node.move.player, !!node.position.over);
+    const checkTurn = (path: string[], turn: (Edge | null)[], mover: Player) => {
+      const a = this.analysisOf(path), first = a?.candidates[0];
+      if (!a || a.visits < this.labelVisits || !first || !turn.some(e => !!e && sameEdge(e, first.edge))) return;
+      const other = otherCandidate(a, turn);
+      if (other && moverWin(first.blueWin, mover) - moverWin(other.blueWin, mover) >= ONLY_EDGE_GAP) out.push({ path, candidate: other });
+    };
+    for (let i = 0; i < this.played.length; i++) {
+      const turn = this.turnAt(i);
+      if (turn && i + turn.length < this.played.length) checkTurn(this.mainNames.slice(0, i), turn, this.played[i].player);
+    }
+    // A branch's turns judged on request: each judged branch move that ends a turn, with its turn's edge before it.
+    for (const [key, node] of Object.entries(this.branches)) {
+      if (!node.judged || node.position.over || node.position.player === node.move.player) continue;
+      const path = key.split(" "), before = this.moveInto(path.slice(0, -1));
+      const twice = !!before && before.player === node.move.player;
+      checkTurn(path.slice(0, twice ? -2 : -1), twice ? [before!.edge, node.move.edge] : [node.move.edge], node.move.player);
+    }
+    return out;
   }
 
-  private confirmGreat(path: string[]) {
-    const second = this.analysisOf(path)?.candidates[1];
-    if (!second || !this.engineReady || this.paused) return;
-    const after = [...path, edgeName(second.edge)], key = pathKey(after);
+  /** The Greats' confirmations as the review's last step: how many searches the analysis asks for so far, and how many
+   *  of them have the label budget. */
+  get greatChecks(): { total: number; done: number } {
+    const keys = new Set(this.greatTargets().map(t => pathKey([...t.path, edgeName(t.candidate.edge)])));
+    const done = [...keys].filter(k => (this.analysisOf(k ? k.split(" ") : [])?.visits ?? 0) >= this.labelVisits).length;
+    return { total: keys.size, done };
+  }
+
+  /** Searches the position after `candidate` at `path` to the label budget, to confirm a Great. */
+  private confirmGreat(path: string[], candidate: Candidate | undefined) {
+    if (!candidate || !this.engineReady || this.paused) return;
+    const after = [...path, edgeName(candidate.edge)], key = pathKey(after);
     if (this.confirming.has(key) || (this.analysisOf(after)?.visits ?? 0) >= this.labelVisits) return;
     this.confirming.add(key);
     this.search(after, this.labelVisits, PRIORITY.label, "confirm", { early: LABEL_VISITS })
@@ -224,15 +293,39 @@ export class GameAnalysis {
     if (keep) await this.keepBranches();
   }
 
-  /** Evaluates a branch move's quality on request: searches the positions before and after it to the label budget, so
-   *  that it can be judged as the game's moves are. A branch's moves are not judged unless asked: a line played only to
-   *  show something should cost no search. */
+  /** Evaluates the quality of a branch move's turn on request: every branch move of the turn (turnKeys) is judged, and
+   *  the positions before and after each are searched to the label budget, so that the turn and each of its edges can
+   *  be judged as the game's are (design 10). A branch's moves are not judged unless asked: a line played only to show
+   *  something should cost no search. */
   async judge(path: string[]) {
-    const key = pathKey(path), node = this.branches[key];
-    if (!node) return;
-    this.branches = { ...this.branches, [key]: { ...node, judged: true } };
-    this.judgeSearches(path);
+    const keys = this.turnKeys(path);
+    if (!keys.length) return;
+    const next = { ...this.branches };
+    for (const k of keys) next[k] = { ...next[k], judged: true };
+    this.branches = next;
+    for (const k of keys) this.judgeSearches(k.split(" "));
     await this.keepBranches();
+  }
+
+  /** The branch moves of the turn of the move at `path`: the move, its turn's edge before it, and, when it begins a turn
+   *  of two, every next move of the same player (each makes a turn with it). The game's moves are judged already. */
+  turnKeys(path: string[]): string[] {
+    const key = pathKey(path), node = this.branches[key];
+    if (!node) return [];
+    const parent = path.slice(0, -1), before = this.moveInto(parent), keys = [key];
+    if (before && before.player === node.move.player) {
+      if (pathKey(parent) in this.branches) keys.push(pathKey(parent));
+    } else {
+      for (const [k, n] of Object.entries(this.branches)) if (parentKey(k) === key && n.move.player === node.move.player) keys.push(k);
+    }
+    return keys;
+  }
+
+  /** The move that leads to `path`: the game's or a branch's (none at the start). */
+  private moveInto(path: string[]): Move | undefined {
+    if (!path.length) return undefined;
+    const i = mainIndex(path, this.mainNames);
+    return i !== null ? this.played[i - 1] : this.branches[pathKey(path)]?.move;
   }
 
   private judgeSearches(path: string[]) {
@@ -432,10 +525,17 @@ export class GameAnalysis {
     }));
   }
 
-  /** Searches these positions deeper, after the focus and before the sweep. */
+  /** Searches these positions deeper, after the focus and before the sweep. The page calls it again when the key
+   *  moments change (another label, another review depth): a position whose search is queued or done is not asked
+   *  again. */
   deepen(indices: number[]) {
     this.moments = indices;
-    for (const i of indices) this.search(this.mainNames.slice(0, i), DEEP_VISITS, PRIORITY.moment, "moment", { sliced: true }).catch(this.fail);
+    for (const i of indices) {
+      if (this.deepening.has(i)) continue;
+      this.deepening.add(i);
+      this.search(this.mainNames.slice(0, i), DEEP_VISITS, PRIORITY.moment, "moment", { sliced: true })
+        .catch(this.fail).finally(() => this.deepening.delete(i));
+    }
   }
 
   /** Keeps an engine error for the page. A task cancelled before it ran, or a worker ended for another pool, is not one. */
@@ -464,7 +564,7 @@ export class GameAnalysis {
     if (cached) { keep(cached); return true; }
     if (held() >= visits) return true;
     if (this.paused || !wanted()) return false;
-    return pool.run(priority, tag, async (engine, onStop) => {
+    return pool.run(priority, tag, (engine, onStop) => this.marked(pathKey(path), async () => {
       if (held() >= visits) return true;
       if (this.paused || !wanted() || era !== this.era) return false;
       const run = engine.analyse({ moves, maxVisits: visits, includePVVisits: true, ...(slice ? { slice: { visits: slice } } : {}) },
@@ -482,7 +582,18 @@ export class GameAnalysis {
       if (t.reply.terminated) return false;
       if (a.visits >= visits && era === this.era) await cachePut(key, a);
       return true;
-    });
+    }));
+  }
+
+  /** Runs a search of the position `key`, marked as running while it runs (pending). */
+  private async marked<T>(key: string, work: () => Promise<T>): Promise<T> {
+    this.running = { ...this.running, [key]: (this.running[key] ?? 0) + 1 };
+    try {
+      return await work();
+    } finally {
+      const left = (this.running[key] ?? 1) - 1, { [key]: _, ...rest } = this.running;
+      this.running = left > 0 ? { ...rest, [key]: left } : rest;
+    }
   }
 
   /** Keeps the deeper of the analysis held and the new one. */

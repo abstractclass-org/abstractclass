@@ -5,7 +5,7 @@
 </script>
 
 <script lang="ts">
-  // The review of one game (docs/research/01-ux-survey.md, section 8): Highlights (chess.com) and free analysis
+  // The review of one game (docs/research/01-ux-survey.md, section 8): a Report (chess.com's Highlights) and free analysis
   // (Lichess). Learning from the mistakes is to come back as a mode of the analysis (decisions/open-items.md). The
   // review may be partial while the engine works: an edge with no label yet shows none. The layout is design 06 (docs/design/06-review-layout.md): the board fills the window's height,
   // with the summary on its left from 1,260 pixels (Lichess's three columns), and the analysis on its right.
@@ -27,9 +27,9 @@
   import { playMove, preload } from "#lib/sound.ts";
   import Glyph from "./Glyph.svelte";
   import {
-    edgeName, moveName, moveNotation, sameEdge, shortNote, judgeBranchEdge, valuesAfter, moverWin, costText, pct, shownCandidates, lineMovers, enoughVisits, trustedLine, type Analysis, type Candidate, type EdgeReview, type LineStep, LABELS, LABEL_TEXT, LABEL_GLYPH, PLAYER_NAME, type Edge, type Label, type Player, type Position, type Review,
+    edgeName, moveName, moveNotation, sameEdge, shortNote, turnShortNote, turnCost, judgeTurn, judgeBranchEdge, valuesAfter, moverWin, costText, pct, shownCandidates, lineMovers, enoughVisits, trustedLine, type Analysis, type Candidate, type EdgeReview, type LineStep, LABELS, LABEL_TEXT, LABEL_GLYPH, PLAYER_NAME, type Edge, type Label, type Player, type Position, type Review, type Unit, type Move, type TurnJudgment,
   } from "./model.ts";
-  import { branchChildren, branchRows, mainIndex, nextFork, pathKey, prevFork, sharedLength, siblingLine } from "./tree.ts";
+  import { branchChildren, branchRows, mainIndex, nextFork, pathKey, prevFork, sharedLength, siblingLine, treeLines, type BranchRow } from "./tree.ts";
 
   interface Props {
     R: Review;
@@ -42,6 +42,9 @@
     onplay?: (path: string[]) => Promise<void>; // adds a line from the start to the tree
     rulesAt?: (path: string[]) => Promise<EdgeRules>; // a position's legal edges and mover's nodes, for the player's moves
     secondAt?: (path: string[]) => Analysis | undefined; // the position after the engine's second choice, which confirms a Great
+    otherAt?: (path: string[], turn: (Edge | null)[]) => Analysis | undefined; // the same for a turn (GameAnalysis.otherAt)
+    turnKeys?: (path: string[]) => string[]; // the branch moves that evaluating this move's quality judges
+    pendingAt?: (path: string[]) => boolean; // the review's own searches can still change this position's analysis
     reviewVisits?: number; // the review's depth: a position searched less is a first estimate on the chart
     ondelete?: (path: string[]) => Promise<void>; // deletes a branch node and what follows it
     onpromote?: (path: string[]) => Promise<void>; // promotes a branch one step among the branches from its fork
@@ -53,7 +56,7 @@
     onengine?: (change: Partial<EngineSettings>) => void; // a setting changed in the panel
   }
   let { R, progress = null, problem = "", deepVisits = 0, onposition, lineSteps, branches = {}, onplay, rulesAt, ondelete,
-        onpromote, onjudge, labelVisits = 0, searching = false, timedOut = false, engine, onengine, secondAt, reviewVisits = 0 }: Props = $props();
+        onpromote, onjudge, labelVisits = 0, searching = false, timedOut = false, engine, onengine, secondAt, otherAt, turnKeys, pendingAt, reviewVisits = 0 }: Props = $props();
   const last = $derived(R.data.positions.length - 1);
   const TABLE_ROWS = 5; // the Analysis table shows this many rows and scrolls, so the move list under it does not move
   const ROW_EM = 1.9; // a table row's height, in em
@@ -75,12 +78,18 @@
   let path = $state<string[]>([]);
   let hover = $state<Edge | null>(null);
   // Three columns from Lichess's width for them (its $x-large, 1,260 pixels): the summary gets its own column, and
-  // Highlights is no longer a tab.
+  // the Report is no longer a tab.
   const wide = new MediaQuery("min-width: 1260px");
   // The display settings, kept in this browser (display.ts). They open in the analysis column, in the place of the
   // analysis (Lichess's analysis menu takes the move list's place), so that the board shows each change.
   const display = $state(loadDisplay());
   $effect(() => saveDisplay($state.snapshot(display)));
+  // What the labels judge (design 10): each turn as a whole, or each edge. It sets the labels' unit in the move list, on
+  // the board, in the counts and on the chart.
+  const unit = $derived<Unit>(display.judge);
+  // Whose moves the review explains ("Review for"): both, or one player. The other's moves show without labels, numbers,
+  // notes or the engine's lines, on the board and on the chart too. The counts keep both players.
+  const forSide = (p: Player) => display.reviewFor === "both" || (display.reviewFor === "blue") === (p === 0);
   let settingsOpen = $state(false);
   // The engine's settings (design 09) open under the engine header, from its gear, as Lichess's open from the gear in
   // its engine box: the header's values and its search bar stay in view while they change. The display settings take the
@@ -89,22 +98,20 @@
   let gaugeHeight = $state(0);
   // The row above the board is one line high, or two in a narrow row: the board and the side columns take its height.
   let stripHeight = $state(0);
-  // The side columns end where the window ends, less the page's margin, but never above the board's bottom edge and
-  // never below the Advantage chart's: so the step controls stay in view, and with the whole chart in the window the
-  // columns end on one line with it. The chart's place depends only on the board's column, so the side columns do not
-  // move it. It is measured again whenever the board's column or the page changes size, not only the window: the row
-  // above the board, measured after the first paint, or a bar of the browser's own, move it too.
-  let chartBox = $state<HTMLElement>();
+  // The side columns end where the window ends, less the page's margin, but never above the board's bottom edge, so that
+  // the step controls stay in view and the page fits the window. They are measured again whenever the board's column or
+  // the page changes size, not only the window: the row above the board, measured after the first paint, or a bar of
+  // the browser's own, move it too.
   let boardCol = $state<HTMLElement>();
   let sideHeight = $state<number | null>(null);
   $effect(() => {
     void innerWidth.current; void wide.current; void display.win;
     const height = innerHeight.current;
-    if (!chartBox || !boardCol || height === undefined) return;
+    if (!boardCol || height === undefined) return;
     const measure = () => {
-      const col = boardCol!.getBoundingClientRect(), chart = chartBox!.getBoundingClientRect();
+      const col = boardCol!.getBoundingClientRect();
       const margin = parseFloat(getComputedStyle(document.documentElement).fontSize); // the page's 1rem
-      sideHeight = Math.max(col.bottom, Math.min(window.innerHeight - window.scrollY - margin, chart.bottom)) - col.top;
+      sideHeight = Math.max(col.bottom, window.innerHeight - window.scrollY - margin) - col.top;
     };
     measure();
     const watch = new ResizeObserver(measure);
@@ -189,7 +196,7 @@
   // it, by a little: its cost then has a plus.
   const candidates = $derived<BoardCandidate[]>(shownCandidates(analysis, mover).map(({ c, rank, gap, gapPts }) => ({
     edge: c.edge, rank,
-    note: rank === 1 ? `${PLAYER_NAME[mover]} wins ${pct(moverWin(c.blueWin, mover))}${c.lead !== undefined ? ` · lead ${sideText(c.lead, 0, "0")}` : ""}`
+    note: rank === 1 ? `${PLAYER_NAME[mover]} wins ${pct(moverWin(c.blueWin, mover))}${c.lead !== undefined ? ` · lead ${sideText(c.lead, 1, "0")}` : ""}`
       : costText(gap, gapPts),
   })));
 
@@ -349,8 +356,27 @@
   // once (the same display setting), with the edges they cut and the regions they close, from the branch's own
   // positions. The rows of dots or pills look alike, and the board tells them apart. It ends when the pointer leaves.
   let branchHover = $state<{ row: string[][]; k: number } | null>(null);
+  // The engine's line shown as a branch under a bad turn's note (bestLine): pointing at one of its edges previews it as a
+  // branch's row, from the line's steps once the rules have played it.
+  let engineHover = $state<{ start: string[]; line: Edge[]; k: number } | null>(null);
+  let engineSteps = $state<Record<string, LineStep[]>>({});
+  $effect(() => {
+    const h = engineHover;
+    if (!h || !lineSteps) return;
+    const key = `${pathKey(h.start)}|${h.line.map(edgeName).join(" ")}`;
+    if (key in engineSteps) return;
+    lineSteps(h.start, h.line).then(steps => (engineSteps = { ...engineSteps, [key]: steps })).catch(() => {});
+  });
   const branchPreview = $derived.by(() => {
-    if (!branchHover || !display.previewBranches) return null;
+    if (!display.previewBranches) return null;
+    if (engineHover) {
+      const { start, line, k } = engineHover, from = positionOf(start);
+      if (!from) return null;
+      const steps = engineSteps[`${pathKey(start)}|${line.map(edgeName).join(" ")}`], movers = lineMovers(from, k + 1);
+      const edges = line.slice(0, k + 1).map((edge, i): BoardLineEdge => ({ edge, player: movers[i], ...steps?.[i] }));
+      return { key: `${pathKey(start)}|${line.slice(0, k + 1).map(edgeName).join(" ")}`, start, from, edges };
+    }
+    if (!branchHover) return null;
     const { row, k } = branchHover, start = row[0].slice(0, -1), from = positionOf(start);
     if (!from) return null;
     const edges: BoardLineEdge[] = [];
@@ -397,17 +423,31 @@
   function previewMove(i: number) {
     clearTimeout(previewEnd);
     branchHover = null;
+    engineHover = null;
     moveHover = i;
   }
   function previewBranch(row: string[][], k: number) {
     clearTimeout(previewEnd);
     moveHover = null;
+    engineHover = null;
     branchHover = { row, k };
+  }
+  function previewEngine(start: string[], line: Edge[], k: number) {
+    clearTimeout(previewEnd);
+    moveHover = null;
+    branchHover = null;
+    engineHover = { start, line, k };
   }
   function endPreview() {
     clearTimeout(previewEnd);
-    previewEnd = setTimeout(() => { moveHover = null; branchHover = null; }, PREVIEW_END_MS);
+    previewEnd = setTimeout(() => { moveHover = null; branchHover = null; engineHover = null; }, PREVIEW_END_MS);
   }
+  // The engine's best line from a position, shown as a branch under a bad turn's note (Lichess shows the engine's line
+  // after a mistake as a variation): its first choice's line, as far as the search trusts it (trustedLine, by visits).
+  const bestLine = (start: string[]): Edge[] => {
+    const first = analysisAt(start)?.candidates[0];
+    return first ? trustedLine(first) : [];
+  };
   // The areas in the players' tags: now, or, while a line shows, after its last drawn edge (from the rules).
   const lineAreas = $derived(drawnLine ? stepsNow?.[drawnLine.length - 1]?.areas ?? null : null);
   const areas = $derived(lineAreas ?? position.areas);
@@ -432,8 +472,8 @@
     else if (tableBox.scrollTop < bottom) tableBox.scrollTop = bottom;
   });
 
-  // A branch move's label, when the player asked for its quality (its menu's "Evaluate move quality"): judged as the
-  // game's moves are, once its two positions have the label budget. Other branch moves have none: a line played to show
+  // A branch move's label, when the player asked for its quality (its menu's "Evaluate quality"): judged as the game's
+  // moves are, once its two positions have the label budget. Other branch moves have none: a line played to show
   // something should cost no search (design 07).
   function branchLabel(p: string[]): Label | null {
     const node = branches[pathKey(p)];
@@ -443,20 +483,65 @@
     return judgeBranchEdge(before, valuesAfter(node.position, node.analysis, "lead", labelVisits), node.move.player,
                            node.move.edge, "lead", labelVisits, secondAt?.(parent));
   }
-  // Label badges on the edges of the turn just played, as far as the current position: the game's, and a branch's that
-  // were evaluated.
-  const marks = $derived.by((): BoardMark[] => {
-    const out: BoardMark[] = [];
+  /** The move that leads to `p` (none at the start), and the analysis at `p`: the game's or a branch's. */
+  const moveInto = (p: string[]): Move | undefined => {
+    const i = mainIndex(p, mainNames);
+    return !p.length ? undefined : i !== null ? R.data.moves[i - 1] : branches[pathKey(p)]?.move;
+  };
+  const analysisAt = (p: string[]) => { const i = mainIndex(p, mainNames); return i !== null ? R.data.analysis[i] : branches[pathKey(p)]?.analysis; };
+  /** The paths of the turn that a branch move ends, or null where the turn goes on after it. */
+  function branchTurnPaths(p: string[]): string[][] | null {
+    const node = branches[pathKey(p)];
+    if (!node || (!node.position.over && node.position.player === node.move.player)) return null;
+    const parent = p.slice(0, -1), before = moveInto(parent);
+    return before && before.player === node.move.player ? [parent, p] : [p];
+  }
+  /** The turn that a branch move ends (design 10), by turn: its moves' paths, and its judgment (judgeTurn) once the player
+   *  asked for its quality and its searches have the label budget. Null where the move does not end a turn, or where
+   *  the turn was not asked for. */
+  function branchTurnAt(p: string[]): { paths: string[][]; judgment: TurnJudgment | null } | null {
+    const node = branches[pathKey(p)], paths = branchTurnPaths(p);
+    if (!node || !paths) return null;
+    const parent = p.slice(0, -1), twice = paths.length > 1;
+    if (!paths.every(q => mainIndex(q, mainNames) !== null || branches[pathKey(q)]?.judged)) return null;
+    const start = p.slice(0, twice ? -2 : -1), turn = paths.map(q => moveInto(q)?.edge ?? null);
+    return { paths, judgment: judgeTurn(node.move.player, turn, analysisAt(start), twice ? analysisAt(parent) : undefined,
+                                        valuesAfter(node.position, node.analysis, "lead", labelVisits), !!node.position.over,
+                                        otherAt?.(start, turn), twice ? secondAt?.(parent) : undefined, "lead", labelVisits) };
+  }
+  // By turn, on the game's line, the turn that ends here: the turn just played, whole. In its middle, none.
+  const endedTurn = $derived(unit === "turn" && mainAt !== null && mainAt > 0 && R.turnOf[mainAt - 1].end === mainAt
+    ? R.turnOf[mainAt - 1] : null);
+  // Label badges on the turn just played, as far as the current position, each with its note. By turn, the turn's badge
+  // on both its edges, one label (design 10), once the turn has ended. By edge, each edge's badge: the game's, and a
+  // branch's that were evaluated (a branch's edges are judged one by one, on request, whatever the unit).
+  const marks = $derived.by((): BoardMark[] => marksHere().filter(m => forSide(m.player)).map(({ player, ...m }) => m));
+  function marksHere(): (BoardMark & { player: Player })[] {
+    if (unit === "turn" && mainAt !== null) {
+      const t = endedTurn, label = t?.label;
+      if (!t || !label) return [];
+      const note = `${LABEL_TEXT[label]}: ${turnCost(t)}`;
+      return t.edges.flatMap(e => (e.edge ? [{ edge: e.edge, label, glyph: LABEL_GLYPH[label], note, group: t.number, player: t.player }] : []));
+    }
+    if (unit === "turn") { // in a branch: the branch's turn that ends here, when it was asked for
+      const bt = branchTurnAt(path), j = bt?.judgment;
+      if (!bt || !j) return [];
+      const note = `${LABEL_TEXT[j.label]}: ${costText(j.rawLoss, j.rawPoints)}`;
+      return bt.paths.flatMap(q => { const m = moveInto(q); return m?.edge ? [{ edge: m.edge, label: j.label, glyph: LABEL_GLYPH[j.label], note, group: 0, player: m.player }] : []; });
+    }
+    const out: (BoardMark & { player: Player })[] = [];
     let p = path;
     for (let k = 0; k < 2 && p.length; k++) { // a turn has at most two edges
       const i = mainIndex(p, mainNames), e = i !== null ? R.edges[i - 1] : null;
       const edge = e ? e.edge : branches[pathKey(p)]?.move.edge ?? null, label = e ? e.label : branchLabel(p);
-      if (edge && label) out.push({ edge, label, glyph: LABEL_GLYPH[label] });
+      const player = e ? e.player : branches[pathKey(p)]?.move.player ?? 0;
+      if (edge && label) out.push({ edge, label, glyph: LABEL_GLYPH[label], player,
+                                    note: e ? `${LABEL_TEXT[label]}: ${costText(e.rawLoss, e.rawPoints)}` : LABEL_TEXT[label] });
       if (moveFrom(p.slice(0, -1)).first) break; // the turn began with this edge
       p = p.slice(0, -1);
     }
     return out;
-  });
+  }
 
   // A move's sound (design 08), a crayon stroke: a step one move on plays it, from any key or button, and so does a move
   // played or clicked in the move list. Other jumps (back, the start and the end, the chart, the fork keys) are silent,
@@ -591,6 +676,7 @@
   ];
 
   const scoreDiff = $derived(R.data.positions.map(p => p.scores[0] - p.scores[1]));
+  const areaDiff = $derived(R.data.positions.map(p => (p.areas ? p.areas[0] - p.areas[1] : 0)));
   const winner = $derived<Player>(R.data.result.blue > R.data.result.red ? 0 : 1);
   const margin = $derived(Math.abs(R.data.result.blue - R.data.result.red));
   const status = $derived.by(() => {
@@ -617,9 +703,9 @@
   const blueWin = $derived(mainAt !== null ? R.blueWin[mainAt] : over ? endWin(position) : analysis?.blueWin ?? NaN);
   // The chart's hover, as Lichess's: the move that led to the position and its label, then one number. The number is
   // the engine's lead, which KaTrain's graph plots (B+n) and from which the points lost come.
-  // A move's loss in the move list: the mover's points lost, in at most 5 characters (−1.2k), or the win chance lost
-  // when the analysis has no scores. Nothing until the move is judged.
-  function lossShort(e: EdgeReview): string {
+  // A turn's or an edge's loss in the move list: the mover's points lost, in at most 5 characters (−1.2k), or the win
+  // chance lost when the analysis has no scores. Nothing until it is judged.
+  function lossShort(e: Pick<EdgeReview, "label" | "loss" | "pointsLost">): string {
     if (!e.label) return "";
     if (e.pointsLost === undefined) return `−${Math.round(100 * e.loss)}%`;
     const a = e.pointsLost, text = a >= 999.5 ? `${(a / 1000).toFixed(1)}k` : `${Math.round(a)}`;
@@ -629,16 +715,20 @@
   // (Go writes "B+3.5"). Even: "even" in a sentence, "0" among numbers. In short, from 1,000 on: "Red +1.2k".
   const sideText = (blue: number, digits = 0, even = "even") => {
     const v = Number(Math.abs(blue).toFixed(digits));
-    return v === 0 ? even : `${PLAYER_NAME[blue > 0 ? 0 : 1]} +${v.toLocaleString("en")}`;
+    const text = v.toLocaleString("en", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+    return v === 0 ? even : `${PLAYER_NAME[blue > 0 ? 0 : 1]} +${text}`;
   };
   const sideShort = (blue: number) =>
     Math.abs(blue) >= 999.5 ? `${PLAYER_NAME[blue > 0 ? 0 : 1]} +${(Math.abs(blue) / 1000).toFixed(1)}k` : sideText(blue, 0, "0");
   const chartTips = $derived(R.data.positions.map((_, i) => {
-    const e = i > 0 ? R.edges[i - 1] : null;
-    const title = e ? `${moveText(e.index)}${listed(e.label) ? ` · ${LABEL_TEXT[e.label]}` : ""}` : "The start";
+    const e = i > 0 ? R.edges[i - 1] : null, t = e ? R.turnOf[e.index] : null;
+    // By turn, the chart shows the turns' ends only: the turn whole, with its label.
+    const label = !e || !forSide(e.player) ? null : unit === "edge" ? e.label : t?.label ?? null;
+    const move = !e ? "" : unit === "edge" ? moveText(e.index) : `${t!.number}. ${t!.edges.map(moveNotation).join(" ")}`;
+    const title = e ? `${move}${listed(label) ? ` [${LABEL_TEXT[label]}]` : ""}` : "The start";
     const s = R.blueScore[i];
     const value = i === last ? `Result: ${sideText(s!, 1)}` : s === undefined ? "Not analysed yet"
-      : `Lead: ${sideText(s)}${chartSettled[i] ? "" : " · first estimate"}`;
+      : `Lead: ${sideText(s, 1)}${chartSettled[i] ? "" : " · first estimate"}`;
     return { title, value };
   }));
   // The positions whose search has the review's depth (or the end, whose value is the result): the chart draws the rest
@@ -713,6 +803,22 @@
     ({fmtScore(R.data.result.blue)} to {fmtScore(R.data.result.red)}).
     {#if progress}The review is still running: the counts below are partial.{/if}
   </p>
+  <!-- The Advantage chart with the report (design 06): in the summary column with three columns, in the Report tab with
+       fewer, above the counts, so that the page fits the window with the board at its full height. Its legend names
+       the lines only. -->
+  <div class="mb-4">
+    <AdvantageChart blueWin={R.blueWin} {scoreDiff} {areaDiff} current={pos} showScore={display.scoreLine} showArea={display.areaLine}
+           tips={chartTips} settled={chartSettled} onjump={go}
+           moments={R.keyMoments[unit].filter(m => forSide(R.edges[m.first].player)).map(m => ({ index: m.last, label: m.label }))}
+           points={unit === "turn" ? [0, ...R.turns.map(t => t.end)] : undefined} />
+    <p class="flex flex-wrap items-center gap-x-2.5 gap-y-1 mt-2 text-xs text-muted">
+      <span class="inline-flex items-center gap-1"><span class="inline-block w-[1.2em] h-0.5 bg-ink"></span> Blue's win chance</span>
+      {#if chartRough}<span class="inline-flex items-center gap-1"><span class="inline-block w-[1.2em] border-t-[1.5px] border-dashed border-ink opacity-55"></span>
+        First estimate, refined as the review runs</span>{/if}
+      {#if display.scoreLine}<span class="inline-flex items-center gap-1"><span class="inline-block w-[1.2em] h-0.5 bg-accent"></span> Score (Blue − Red)</span>{/if}
+      {#if display.areaLine}<span class="inline-flex items-center gap-1"><span class="inline-block w-[1.2em] h-0.5 bg-area"></span> Area (Blue − Red)</span>{/if}
+    </p>
+  </div>
   <!-- The number columns are as wide as their content, and the labels take the rest. -->
   <table class="w-full text-sm">
     <thead>
@@ -726,16 +832,16 @@
                    "[&_td+td]:whitespace-nowrap [&_td+td]:tabular-nums", progress && "[&_td+td]:italic [&_td+td]:text-muted"]}>
       <tr class="text-[1.1em] font-bold">
         <td>Accuracy</td>
-        {#each R.summary as s, p (p)}<td>{Number.isNaN(s.accuracy) ? "–" : s.accuracy.toFixed(1)}</td>{/each}
+        {#each R.summary[unit] as s, p (p)}<td>{Number.isNaN(s.accuracy) ? "–" : s.accuracy.toFixed(1)}</td>{/each}
       </tr>
       <tr>
-        <td title="Points lost an edge, on average">Avg pts lost</td>
-        {#each R.summary as s, p (p)}<td>{s.meanPointsLost?.toFixed(1) ?? "–"}</td>{/each}
+        <td title="Points lost a {unit}, on average">Avg pts lost</td>
+        {#each R.summary[unit] as s, p (p)}<td>{s.meanPointsLost?.toFixed(1) ?? "–"}</td>{/each}
       </tr>
       {#each LABELS as l (l)}
         <tr>
           <td><span class={BADGE} style:background="var(--{l})"><Glyph glyph={LABEL_GLYPH[l]} /></span> {LABEL_TEXT[l]}</td>
-          {#each R.summary as s, p (p)}<td>{s.counts[l]}</td>{/each}
+          {#each R.summary[unit] as s, p (p)}<td>{s.counts[l]}</td>{/each}
         </tr>
       {/each}
     </tbody>
@@ -786,49 +892,79 @@
   </table>
   </div>
   {@render lineList()}
-  <!-- A right-click, or a long press on a touch screen, on a branch's move opens its menu (Bits UI's ContextMenu). On the
-       game's moves the trigger is off, and the browser's own menu opens. -->
+  <!-- A right-click, or a long press on a touch screen, anywhere in the move list opens the move menu (Bits UI's
+       ContextMenu), not the browser's: on a branch's move with its actions, and elsewhere (the game's moves, the
+       engine's line, a note) with each action off, since the game's line stays as it is and its moves are evaluated
+       already. -->
   <ContextMenu.Root>
-  <ContextMenu.Trigger disabled={!menuPath}>
+  <ContextMenu.Trigger>
   {#snippet child({ props })}
+  <!-- A click on a move does not focus it (Lichess's moves take no focus): the keys move through the game from the page,
+       and a move kept in focus would show the browser's focus ring once a key is pressed, and take Space for itself. -->
   <div {...props} class="movelist flex-1 min-h-0 overflow-y-auto pt-1.5 text-sm border-t border-line" bind:this={movelist}
-       onpointerdowncapture={e => (menuPath = (e.target as Element).closest<HTMLElement>("[data-path]")?.dataset.path ?? null)}>
+       onpointerdowncapture={e => (menuPath = (e.target as Element).closest<HTMLElement>("[data-path]")?.dataset.path ?? null)}
+       onmousedown={e => { if ((e.target as Element).closest("button")) e.preventDefault(); }}>
     {#each R.turns as t (t.number)}
       <!-- A turn's number, then its edges in two equal columns (Lichess's move list), each at least a move wide:
-           with room to spare, the second edge starts halfway across. -->
-      <div class="grid grid-cols-[2.2rem_repeat(2,minmax(max-content,1fr))] items-baseline gap-x-1">
+           with room to spare, the second edge starts halfway across. By turn, a last column judges the whole turn. -->
+      <div class={["grid items-baseline gap-x-1", unit === "turn" ? "grid-cols-[2.2rem_repeat(2,minmax(max-content,1fr))_auto]"
+                   : "grid-cols-[2.2rem_repeat(2,minmax(max-content,1fr))]"]}>
         <span class="text-muted tabular-nums">{t.number}.</span>
         {#each t.edges as e (e.index)}
           {@const after = R.blueScore[e.index + 1]}
-          <!-- A move fills its column, and its loss is at the column's right edge, where Lichess's move list has its
-               evaluation: the mover's points lost, so that a number never needs a side to read. The lead after the move is in its note. The move's text has one width, so a column is
-               never narrower than the widest move: the widest in the notation is 10 characters, an edge with
-               two-digit rows and the cut mark (D10-G10x, 8) and the widest glyph (??, 2), then the glyph's margin.
-               The loss: at most 5 characters (−1.2k), smaller and right-aligned. The font is monospaced, so ch is
-               one character of the span's own size. -->
+          {@const judged = unit === "edge" && forSide(e.player) ? (e.label ? `${LABEL_TEXT[e.label]}: ${costText(e.rawLoss, e.rawPoints)}` : "Not analysed yet") : ""}
+          {@const shown = forSide(e.player) ? e.label : null}
+          <!-- A move fills its column. By edge, its glyph follows it, and its loss is at the column's right edge, where
+               Lichess's move list has its evaluation: the mover's points lost, so that a number never needs a side to
+               read. The lead after the move is in its note. The move's text has one width, so a column is never
+               narrower than the widest move: the widest in the notation is 8 characters (D10-G10x), then by edge the
+               widest glyph (??, 2) and the glyph's margin. The loss: at most 5 characters (−1.2k), smaller and
+               right-aligned. The font is monospaced, so ch is one character of the span's own size. -->
           <button class={["mv flex items-baseline gap-1 px-[0.2rem] py-px font-mono text-[0.95em] text-left whitespace-nowrap bg-transparent border-0",
                           SIDE_TEXT[e.player], mainAt === e.index + 1 ? "here bg-panel-2 outline outline-accent"
                           : pickedKey === pathKey(mainNames.slice(0, e.index + 1)) ? PICKED : "hover:bg-panel-2 hover:outline hover:outline-line"]}
                   onclick={() => go(e.index + 1, true)} onmouseenter={() => previewMove(e.index)} onmouseleave={endPreview} tabindex="-1"
-                  title={[e.label ? `${LABEL_TEXT[e.label]}: ${costText(e.loss, e.pointsLost)}` : "Not analysed yet",
-                          after !== undefined ? `After it: ${sideText(after)}` : ""].filter(Boolean).join(" · ")}>
-            <span class="w-[calc(10ch+0.15em)]">{moveNotation(e)}{#if listed(e.label)}<span class="ml-[0.15em] font-extrabold" style:color="var(--{e.label})"><Glyph glyph={LABEL_GLYPH[e.label]} /></span>{/if}</span>
-            <span class="w-[5ch] ml-auto text-[0.78em] text-right text-muted tabular-nums">{lossShort(e)}</span>
+                  title={[judged, after !== undefined ? `Lead: ${sideText(after, 1)}` : ""].filter(Boolean).join(" · ")}>
+            {#if unit === "edge"}
+              <span class="w-[calc(10ch+0.15em)]">{moveNotation(e)}{#if listed(shown)}<span class="ml-[0.15em] font-extrabold" style:color="var(--{shown})"><Glyph glyph={LABEL_GLYPH[shown]} /></span>{/if}</span>
+              <span class="w-[5ch] ml-auto text-[0.78em] text-right text-muted tabular-nums">{forSide(e.player) ? lossShort(e) : ""}</span>
+            {:else}
+              <span class="w-[8ch]">{moveNotation(e)}</span>
+            {/if}
           </button>
         {/each}
+        <!-- By turn: the turn's glyph and its loss, in the same font and sizes as an edge's by edge, and the turn's note
+             with each edge's points. -->
+        {#if unit === "turn" && forSide(t.player)}
+          <span class="col-start-4 flex items-baseline gap-1 px-[0.2rem] py-px font-mono text-[0.95em] whitespace-nowrap {SIDE_TEXT[t.player]}"
+                title={t.label ? `${LABEL_TEXT[t.label]}: ${turnCost(t)}` : "Not analysed yet"}>
+            <span class="w-[2.2ch] font-extrabold" style:color={listed(t.label) ? `var(--${t.label})` : undefined}>{#if listed(t.label)}<Glyph glyph={LABEL_GLYPH[t.label]} />{/if}</span>
+            <span class="w-[5ch] ml-auto text-[0.78em] text-right text-muted tabular-nums">{lossShort(t)}</span>
+          </span>
+        {/if}
       </div>
-      <!-- One line for each note, and a note said twice in a turn once (a turn of two Great edges). -->
-      {#if display.notes}
-        {#each [...new Set(t.edges.filter(e => !!e.label && COMMENTED.includes(e.label)).map(shortNote))] as note (note)}
-          <div class="mb-1 ml-10 text-sm text-muted truncate" title={note}>{note}</div>
-        {/each}
+      <!-- Under the turn, its notes and its branches in one band across the move list (Lichess's column view, its
+           "interrupt"): a faint background and a rule above and below tie them to the turn, and they start at the
+           list's left, so that a branch's row has the list's whole width. One line for each note, and a note said
+           twice in a turn once (a turn of two Great edges). By turn, the turn's. Then the branches from the turn's
+           positions, the lines from one position under one rule, and with the notes, under a Mistake or a Blunder, the
+           engine's best line from where it started, first (by turn, from the turn's start). -->
+      {@const notes = !display.notes ? [] : unit === "turn" ? (t.label && COMMENTED.includes(t.label) && forSide(t.player) ? [turnShortNote(t)] : [])
+        : [...new Set(t.edges.filter(e => !!e.label && COMMENTED.includes(e.label) && forSide(e.player)).map(shortNote))]}
+      {@const bad = (l: Label | null) => l === "mistake" || l === "blunder"}
+      {@const groups = t.edges.map(e => ({
+        rows: branchKids(mainNames.slice(0, e.index)).flatMap(first => branchRows(first, branchKids)),
+        engine: display.notes && forSide(e.player) && (unit === "turn" ? e.index === t.start && bad(t.label) : bad(e.label))
+          ? mainNames.slice(0, e.index) : null,
+      }))}
+      {#if notes.length || groups.some(g => g.rows.length || (g.engine && bestLine(g.engine).length))}
+        <div class="my-1 py-1 bg-panel-2/50 border-y border-line">
+          {#each notes as note (note)}
+            <div class="mb-0.5 px-2 text-sm text-muted truncate" title={note}>{note}</div>
+          {/each}
+          {#each groups as g, k (k)}{@render branchGroup(g.rows, g.engine)}{/each}
+        </div>
       {/if}
-      <!-- The branches from this turn's positions, after its comments (Lichess's column view). -->
-      {#each t.edges as e (e.index)}
-        {#each branchKids(mainNames.slice(0, e.index)) as first (pathKey(first))}
-          {@render branch(first)}
-        {/each}
-      {/each}
     {/each}
   </div>
   {/snippet}
@@ -837,10 +973,10 @@
     <ContextMenu.Content class="z-10 min-w-48 p-1 bg-panel-2 border border-muted/50 rounded-md shadow-[0_6px_20px_rgb(0_0_0/0.4)] text-sm">
       <ContextMenu.Item disabled={!canPromote(menuPath)} onSelect={() => menuPath && onpromote?.(menuPath.split(" "))}
                         class={MENU_ITEM}>Promote variation</ContextMenu.Item>
-      <ContextMenu.Item disabled={!menuPath || !!branches[menuPath]?.judged} onSelect={() => menuPath && onjudge?.(menuPath.split(" "))}
-                        class={MENU_ITEM}>Evaluate move quality</ContextMenu.Item>
+      <ContextMenu.Item disabled={!menuPath || (turnKeys?.(menuPath.split(" ")) ?? [menuPath]).every(k => !!branches[k]?.judged)}
+                        onSelect={() => menuPath && onjudge?.(menuPath.split(" "))} class={MENU_ITEM}>Evaluate quality</ContextMenu.Item>
       <ContextMenu.Separator class="my-1 h-px bg-line" />
-      <ContextMenu.Item onSelect={() => menuPath && deleteFrom(menuPath)} class={MENU_ITEM}>Delete from here</ContextMenu.Item>
+      <ContextMenu.Item disabled={!menuPath} onSelect={() => menuPath && deleteFrom(menuPath)} class={MENU_ITEM}>Delete from here</ContextMenu.Item>
     </ContextMenu.Content>
   </ContextMenu.Portal>
   </ContextMenu.Root>
@@ -888,22 +1024,39 @@
   </span>
 {/snippet}
 
-<!-- A branch in the move list, from its first move: its rows (tree.ts), indented by depth, each with a rule on its left.
-     Every turn has its number, as in the record. Without notation, an edge is a dot in its mover's colour (Go tools
-     show a variation without names): the turn numbers place it, so the dots carry no numbers of their own. Where a
-     branch forks again, its continuations follow, one step further in (Lichess's way inside a variation). Pointing at a
-     move shows its row on the board up to that move (branchPreview). -->
-{#snippet branch(first: string[])}
-  {#each branchRows(first, branchKids) as row, r (r)}
-    <div class={["flex flex-wrap items-center gap-y-0.5 my-0.5 pl-1.5 border-l-2 border-line font-mono text-[0.95em]",
-                 display.branchForm === "text" ? "gap-x-1" : "gap-x-0.5"]}
-         style:margin-left="{1.2 + row.depth}rem">
+<!-- The branches in the move list from one position: their rows (tree.ts), indented by depth, and Lichess's tree beside
+     them (its column view): a rule from the fork down to its last line, with a tick to each line, and the rules of a
+     shallower fork passing the lines nested in it. Every turn has its number, as in the record. Without notation, an
+     edge is a dot in its mover's colour (Go tools show a variation without names): the turn numbers place it, so the
+     dots carry no numbers of their own. Where a branch forks again, its continuations follow, one step further in
+     (Lichess's way inside a variation). Pointing at a move shows its row on the board up to that move (branchPreview). -->
+{#snippet branchGroup(given: BranchRow[], engine: string[] | null)}
+  {@const best = engine ? bestLine(engine) : []}
+  {@const rows = best.length ? [{ depth: 1, paths: [] }, ...given] : given}
+  {@const lines = treeLines(rows)}
+  {#each rows as row, r (r)}
+    {@const rule = (depth: number) => `${depth - 0.55}rem`}
+    <!-- The engine's line gleams as the progress bars do while its position's search can still change it (the review's
+         passes, the key moments searched deeper, or the position on screen): its first choice can change, and its
+         line grows. -->
+    <div class={["relative flex flex-wrap items-center gap-y-0.5 py-0.5 font-mono text-[0.95em]",
+                 display.branchForm === "text" ? "gap-x-1" : "gap-x-0.5", best.length && r === 0 && pendingAt?.(engine!) && "bar-glider"]}
+         style:padding-left="calc({rule(row.depth)} + 0.65rem)">
+      {#each lines[r].through as d (d)}
+        <span class="absolute top-0 bottom-0 border-l-2 border-line" style:left={rule(d)} aria-hidden="true"></span>
+      {/each}
+      <span class={["absolute top-0 border-l-2 border-line", lines[r].last ? "h-[0.95em]" : "bottom-0"]}
+            style:left={rule(row.depth)} aria-hidden="true"></span>
+      <span class="absolute top-[0.95em] w-[0.5rem] border-t-2 border-line" style:left={rule(row.depth)} aria-hidden="true"></span>
+      {#if best.length && r === 0}{@render engineRow(engine!, best)}{/if}
       {#each row.paths as p, k (pathKey(p))}
         {@const node = branches[pathKey(p)]}
         {@const t = moveFrom(p.slice(0, -1))}
         {@const at = pathKey(p) === here}
-        {@const label = branchLabel(p)}
-        {@const waiting = !!node?.judged && !label}
+        <!-- By turn, a turn's glyph after the move that ends it, once asked for (branchTurnAt). By edge, each edge's. -->
+        {@const bt = unit === "turn" ? branchTurnAt(p) : null}
+        {@const label = node && !forSide(node.move.player) ? null : unit === "edge" ? branchLabel(p) : bt?.judgment?.label ?? null}
+        {@const waiting = unit === "edge" ? !!node?.judged && !label : !!bt && !bt.judgment}
         {#if node}
           {#if k === 0 || t.first}<span class={["text-muted text-[0.9em]", k > 0 && "ml-1"]}>{turnText(t)}</span>{/if}
           {#if display.branchForm === "text"}
@@ -926,6 +1079,39 @@
         {/if}
       {/each}
     </div>
+  {/each}
+{/snippet}
+
+<!-- The engine's best line as a branch (bestLine): candidate 1's badge first, since it is that candidate's line, then its
+     edges as a branch's, a little faded, so that it reads as the engine's and the player's own branches as theirs. It
+     is not kept, and follows the search. Pointing at an edge previews the line up to it on the board, and a click plays
+     it up to there as a branch (as the listed line's click does). An edge already in the tree is hollow. -->
+{#snippet engineRow(start: string[], line: Edge[])}
+  {@const from = positionOf(start)}
+  {@const movers = from ? lineMovers(from, line.length) : []}
+  {@const turns = turnsFrom(start, movers)}
+  <span class="inline-flex items-center justify-center min-w-[1.3em] h-[1.3em] mr-0.5 px-[0.2em] rounded-[0.3em] font-sans text-[0.8em] font-bold leading-none bg-engine text-on-badge"
+        title="The engine's best line from here">{@render digits(1)}</span>
+  {#each line as e, k (k)}
+    {@const t = turns[k]}
+    {@const to = [...start, ...line.slice(0, k + 1).map(edgeName)]}
+    {@const known = mainIndex(to, mainNames) !== null || pathKey(to) in branches}
+    {@const note = `${turnText(t)} ${edgeName(e)} · the engine's line · play it to here`}
+    {#if k === 0 || t.first}<span class={["text-muted text-[0.9em]", k > 0 && "ml-1"]}>{turnText(t)}</span>{/if}
+    {#if display.branchForm === "text"}
+      <button class={["mv px-[0.2rem] py-px bg-transparent border-0 whitespace-nowrap opacity-75 hover:opacity-100 hover:bg-panel-2",
+                      SIDE_TEXT[movers[k]], known && "underline decoration-dotted underline-offset-3"]}
+              onclick={() => playPath(to)} onmouseenter={() => previewEngine(start, line, k)} onmouseleave={endPreview} tabindex="-1"
+              title={note}>{edgeName(e)}</button>
+    {:else}
+      <button class="mv flex p-[0.08em] bg-transparent border-0 rounded-full opacity-75 hover:opacity-100 hover:outline hover:outline-ink"
+              onclick={() => playPath(to)} onmouseenter={() => previewEngine(start, line, k)} onmouseleave={endPreview} tabindex="-1"
+              title={note}>
+        {#if display.branchForm === "pills"}{@render edgePill(e, movers[k], known, null, "")}
+        {:else}<span class={["block w-[0.85em] h-[0.85em] rounded-full", known ? `border-2 ${movers[k] === 0 ? "border-blue" : "border-red"}`
+                             : movers[k] === 0 ? "bg-blue" : "bg-red"]}></span>{/if}
+      </button>
+    {/if}
   {/each}
 {/snippet}
 
@@ -980,6 +1166,11 @@
       <button class="px-2 py-0.5 text-sm" onclick={() => (settingsOpen = false)}>Done</button>
     </div>
     <div class="flex-1 min-h-0 overflow-y-auto pr-1">
+      <h3 class={SETTINGS_HEAD}>Review</h3>
+      {@render choice("Review by", "Each turn as a whole, or each edge: the labels, the move list's numbers, the counts and the chart. A turn's note gives its edges' points.",
+        [["turn", "Turn"], ["edge", "Edge"]], () => display.judge, v => (display.judge = v as Display["judge"]))}
+      {@render choice("Review for", "Both players, or one: the labels, numbers, notes and the engine's lines of that player's moves. The counts keep both.",
+        [["both", "Both"], ["blue", "Blue"], ["red", "Red"]], () => display.reviewFor, v => (display.reviewFor = v as Display["reviewFor"]))}
       <h3 class={SETTINGS_HEAD}>Board</h3>
       {@render choice("Win chance", "A bar above the board, or a gauge beside it.",
         [["bar", "Top horizontal bar"], ["gauge", "Side vertical gauge"]], () => display.win, v => (display.win = v as "bar" | "gauge"))}
@@ -995,7 +1186,7 @@
         [["animated", "Animated"], ["static", "Static"]], () => (display.lineSteps ? "animated" : "static"),
         v => (display.lineSteps = v === "animated"))}
       <h3 class={SETTINGS_HEAD}>Move list</h3>
-      {@render toggle("Notes on the key edges", "A line under Great edges, Mistakes, and Blunders.",
+      {@render toggle("Notes on the key moves", "A line under each Great, Mistake and Blunder.",
         () => display.notes, v => (display.notes = v))}
       {@render toggle("Preview played moves", "Pointing at a move of the game shows the position after it on the board.",
         () => display.previewMoves, v => (display.previewMoves = v))}
@@ -1022,8 +1213,10 @@
         <button class="flex-none px-2 py-0.5 text-sm" onclick={() => (keysOpen = true)}>Show <kbd class={KBD}>?</kbd></button>
       </div>
       <h3 class={SETTINGS_HEAD}>Advantage chart</h3>
-      {@render toggle("Score so far", "A second line: the score difference after each edge (Blue − Red).",
+      {@render toggle("Score", "A line: the score difference after each edge (Blue − Red).",
         () => display.scoreLine, v => (display.scoreLine = v))}
+      {@render toggle("Area", "A line: the difference of the areas each player encloses (Blue − Red).",
+        () => display.areaLine, v => (display.areaLine = v))}
     </div>
   </div>
 {/snippet}
@@ -1143,7 +1336,7 @@
 <main class={["review", wide.current && "wide", display.win === "gauge" && "gauge-mode"]} style:--side-h={sideHeight ? `${sideHeight}px` : undefined}
       style:--strip={stripHeight ? `calc(${stripHeight}px + 0.5rem)` : null}>
   {#if wide.current}
-    <aside class="summary-col {PANEL} overflow-y-auto">
+    <aside class="summary-col {PANEL} flex flex-col overflow-y-auto">
       {@render panelHead()}
       {@render highlights()}
     </aside>
@@ -1199,6 +1392,8 @@
         <Board
           position={branchPreview?.from ?? movePreview?.position ?? position}
           lastEdge={branchPreview ? null : movePreview ? movePreview.move.edge : lastPlayed?.edge ?? null}
+          lastTurn={branchPreview || movePreview ? [] : endedTurn ? endedTurn.edges.flatMap(e => (e.edge ? [e.edge] : []))
+            : unit === "turn" && mainAt === null ? (branchTurnPaths(path) ?? []).flatMap(q => { const e = moveInto(q)?.edge; return e ? [e] : []; }) : []}
           cut={branchPreview ? null : movePreview ? movePreview.move.cut : lastPlayed?.cut ?? null}
           candidates={previewing ? [] : candidates}
           highlight={previewing ? null : hover ?? pinnedCandidate?.edge ?? null}
@@ -1266,14 +1461,14 @@
     {:else if wide.current}
       <div class="flex flex-col flex-1 min-h-0 overflow-hidden">{@render analysisView()}</div>
     {:else}
-      <!-- Below 1,260 pixels the Highlights and the Analysis share this column, as tabs. Bits UI gives them the tab
+      <!-- Below 1,260 pixels the Report and the Analysis share this column, as tabs. Bits UI gives them the tab
            roles, the arrow keys and the focus. -->
       <Tabs.Root value={stage} onValueChange={v => (stage = v as Stage)} class="flex flex-col flex-1 min-h-0">
         <Tabs.List class="flex gap-1 mb-2">
-          <Tabs.Trigger value="highlights" class={TAB}>Highlights</Tabs.Trigger>
+          <Tabs.Trigger value="highlights" class={TAB}>Report</Tabs.Trigger>
           <Tabs.Trigger value="analysis" class={TAB}>Analysis</Tabs.Trigger>
         </Tabs.List>
-        <Tabs.Content value="highlights" class="flex-1 min-h-0 overflow-y-auto">{@render highlights()}</Tabs.Content>
+        <Tabs.Content value="highlights" class="flex flex-col flex-1 min-h-0 overflow-y-auto">{@render highlights()}</Tabs.Content>
         <Tabs.Content value="analysis" class="flex flex-col flex-1 min-h-0 overflow-hidden">{@render analysisView()}</Tabs.Content>
       </Tabs.Root>
     {/if}
@@ -1329,19 +1524,6 @@
     </Dialog.Portal>
   </Dialog.Root>
 
-  <section class="under">
-    <div bind:this={chartBox}>
-      <AdvantageChart blueWin={R.blueWin} {scoreDiff} current={pos} showScore={display.scoreLine} tips={chartTips}
-             settled={chartSettled} moments={R.keyMoments.map(m => ({ index: m.index, label: m.label! }))} onjump={go} />
-    </div>
-    <p class="flex flex-wrap items-center gap-2.5 my-3.75 text-xs text-muted">
-      <strong>Advantage chart</strong>
-      <span class="inline-block w-[1.2em] h-0.5 bg-ink"></span> Blue's win chance
-      {#if chartRough}<span class="inline-block w-[1.2em] border-t-[1.5px] border-dashed border-ink opacity-55"></span>
-        First estimate, refined as the review runs{/if}
-      {#if display.scoreLine}<span class="inline-block w-[1.2em] h-0.5 bg-accent"></span> Score so far (Blue − Red){/if}
-    </p>
-  </section>
 </main>
 
 <style>
@@ -1352,7 +1534,6 @@
   .review {
     --gap: 1.25rem;
     --row-gap: 0.8rem;
-    --chart: 7.5rem; /* the Advantage chart's height (h-30 in AdvantageChart.svelte) */
     --strip: 2.1rem; /* the row above the board, with its margin: its one-line height until the page measures it */
     --gauge-w: 0px;
     --summary-min: 250px;
@@ -1366,7 +1547,7 @@
     );
     display: grid;
     grid-template-columns: calc(var(--board) + var(--gauge-w)) minmax(var(--side-min), var(--side-max));
-    grid-template-areas: "board side" "under .";
+    grid-template-areas: "board side";
     gap: var(--row-gap) var(--gap);
     justify-content: center;
     align-items: start;
@@ -1378,19 +1559,16 @@
     --others: calc(var(--summary-min) + var(--side-min) + 2 * var(--gap));
     grid-template-columns: minmax(var(--summary-min), var(--summary-max)) calc(var(--board) + var(--gauge-w))
       minmax(var(--side-min), var(--side-max));
-    grid-template-areas: "summary board side" ". under .";
+    grid-template-areas: "summary board side";
   }
   .summary-col { grid-area: summary; max-height: calc(var(--strip) + var(--board)); }
   .board-col { grid-area: board; }
   .board-wrap { width: var(--board); flex: none; }
   /* The analysis column is as high as the board's column; the move list takes what is left. */
   .side { grid-area: side; height: calc(var(--strip) + var(--board)); }
-  .under { grid-area: under; min-width: 0; }
-  /* The side columns span the chart's row too, as high as --side-h (set in the script): to the window's bottom, from
-     the board's bottom edge down to the chart's at most. Their height is set, so they do not make the rows taller. */
+  /* The side columns are as high as --side-h (set in the script): to the window's bottom, from the board's bottom edge
+     at least. Their height is set, so they do not make the row taller. */
   @media (min-width: 800px) {
-    .review { grid-template-areas: "board side" "under side"; }
-    .review.wide { grid-template-areas: "summary board side" "summary under side"; }
     .review .side, .review .summary-col { height: var(--side-h, calc(var(--strip) + var(--board))); max-height: none; }
   }
   /* One column below 800 pixels (Lichess's $small): the board as wide as the window, then the analysis. */
@@ -1398,7 +1576,7 @@
     .review, .review.wide {
       --board: calc(100vw - 2rem - var(--gauge-w));
       grid-template-columns: minmax(0, 1fr);
-      grid-template-areas: "board" "side" "under";
+      grid-template-areas: "board" "side";
     }
     .side { height: auto; }
     .movelist { max-height: 22rem; }

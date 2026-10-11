@@ -23,7 +23,7 @@ It holds no backlog: everything still to do that is not in flight is in
   of branches and played moves, the chart's first estimates, "Lines on the board"), then the latest commit (labels by
   turn decided and measured, request 07 changed for both modes, numbers from one side, Biggest mistakes removed, the
   side columns that grow with the window).
-- **Checks on the working tree:** `npm run check` has no errors or warnings. `npm test` passes (21 checks). `npm run
+- **Checks on the working tree:** `npm run check` has no errors or warnings. `npm test` passes (27 checks). `npm run
   build` succeeds.
 - **The engine:** protocol 0.3, build `319a5c4`, the networks b10c128 (3.2M parameters) and b15c192 (10.3M),
   searching with KataGo's analysis defaults. The review's Lite depth is 512 visits. Puzzles and learn run on mock
@@ -31,18 +31,19 @@ It holds no backlog: everything still to do that is not in flight is in
 
 ## In flight
 
-- **Labels by turn:** decided, not built (design 05, decisions/product.md "Labels by turn"). Measured on the budget
-  data (decisions/engine.md, "Label agreement by turn"). Request 07 is changed for it, and the owner takes the change
-  to the engine repository. Puzzles by turn are in design 01, principle 7.
-  - **Decided:** a page-wide "Judge by" setting, Turn (the default) or Edge, with a turn's edges in its note (design
-    05). The candidates stay edges: turn rows were tried and taken back (decisions/product.md).
-  - **Built and checked in Edge:** two kinds of number, one form each (design 06, item 8): who is ahead
-    with the side named ("Red +105") in the header, the candidates table and the notes, and the mover's loss ("−143")
-    in the move list, with one form in every note ("−25.0% · −143 pts"). Biggest mistakes and the Highlights' sentence on the largest mistake are removed. The side
-    columns grow with the window, down to the chart at most (design 06, "Height"). A turn's badge goes on both its
-    edges (design 05), not built.
-  - **Building now:** the model's turn label and its points from the turn's two ends, Best and Great by turn, the
-    "Judge by" setting, and by turn: the move list's glyphs and numbers, the badges, the summary and the key moments.
+- **Turn mode: built, checked in Edge, not committed** (decisions/product.md, "Turn mode built", "Turn mode, first
+  feedback", "Turn mode, second feedback"). Labels by turn with "Review by" (Turn by default, or Edge), Great by turn,
+  the move list's turn column, a turn's badges on both its edges, the chart by turn, the engine's best line as a branch
+  under a bad turn, "Evaluate quality" for a branch's turn, Lichess's tree beside the branches, "Review for" (Both,
+  Blue, Red), one decimal in the notes, the move menu everywhere in the move list. The label rules are in design 10.
+  A turn's notes and branches in one band at the list's left, kept (decisions/product.md, "The notes and branches in
+  a band"). The review's progress bar covers the key moments and the Great's confirmations, never goes
+  back, and the key moments are searched again after a change of depth. An engine line gleams while it can still
+  change (decisions/product.md, "Why the engine's best lines move", "The review's bar"). The bar shows its line's
+  step, and the Advantage chart is in the Report, above the counts, with an area line, so the page fits the window
+  (decisions/product.md, "The Advantage chart moved", "The Report"): the two-column and one-column layouts, where the
+  Report is a tab, are not checked yet.
+  Request 07 is changed for both modes, and the owner takes the change to the engine repository.
 - **Request 07 (the archive analysed for the labels)** is accepted for a sample of 1,000 games
   ([requests/07-archive-analysis.md](requests/07-archive-analysis.md)). When the engine repository says where its
   files are (under its `runs/`, out of Git): check them against `runs/measure/budget-b10c128-p03.jsonl` as the request

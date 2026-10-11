@@ -3,8 +3,10 @@
 
   /** An engine candidate: its rank (1 is the engine's first choice) and a note shown on hover. */
   export interface BoardCandidate { edge: Edge; rank: number; note: string }
-  /** A label badge on a played edge, at its midpoint: an end point is a node that several edges share. */
-  export interface BoardMark { edge: Edge; label: Label; glyph: Glyph }
+  /** A label badge on a played edge, at its midpoint: an end point is a node that several edges share. Its note shows
+   *  under the pointer. Badges with the same `group` are one label, a turn's on both its edges: pointing at either
+   *  lights both badges and both edges (design 10). */
+  export interface BoardMark { edge: Edge; label: Label; glyph: Glyph; note?: string; group?: number }
   /** An edge of the engine's line from the position, with its mover, and, once the engine's rules have played it, the
    *  edge it cuts and the regions after it. */
   export interface BoardLineEdge { edge: Edge; player: 0 | 1; cut?: Edge | null; regions?: Position["regions"] }
@@ -23,6 +25,7 @@
   interface Props {
     position: Position;
     lastEdge?: Edge | null;
+    lastTurn?: Edge[]; // the edges of the turn just played, all marked as the move, when the labels judge turns
     cut?: Edge | null;
     candidates?: BoardCandidate[];
     highlight?: Edge | null; // a candidate pointed at from outside the board (a row of the candidates table)
@@ -44,7 +47,7 @@
     oncandidatedblclick?: (edge: Edge) => void;
   }
   let {
-    position, lastEdge = null, cut = null, candidates = [], highlight = null, line = null,
+    position, lastEdge = null, lastTurn = [], cut = null, candidates = [], highlight = null, line = null,
     preview = null, previewPlayer = 0, marks = [], ghost = null,
     layers: layersSet = {},
     pending = null, ends = null, active = null, view = [0, 0, 18, 18], targets = [], onpoint, onlyActive = false, oncandidate, oncandidateclick,
@@ -84,6 +87,19 @@
     return measurer.measureText(text).width / 100;
   }
   const lit = $derived(hovered ?? (highlight ? candidates.find(c => sameEdge(c.edge, highlight!)) ?? null : null));
+  // The label badges by group: the badges of one turn are one label (BoardMark). The badge under the pointer lights its
+  // group and shows its note beside it.
+  const markGroups = $derived.by(() => {
+    const out: BoardMark[][] = [];
+    for (const m of marks) {
+      const last = out.at(-1);
+      if (last && m.group !== undefined && last[0].group === m.group) last.push(m);
+      else out.push([m]);
+    }
+    return out;
+  });
+  let markHover = $state<{ group: number; mark: BoardMark } | null>(null);
+  $effect(() => { void marks; markHover = null; });
   // The board as the line leaves it: the edges it cuts are off the board and drawn as cut (as the last edge's cut is),
   // and the regions are the ones after its last edge, once the engine's rules have played it.
   const drawnLine = $derived(line ?? []);
@@ -162,9 +178,9 @@
     <line {...seg(t)} class="target" />
   {/each}
 
-  {#if lastEdge}
-    <line {...seg(lastEdge)} class="last" />
-  {/if}
+  {#each lastTurn.length ? lastTurn : lastEdge ? [lastEdge] : [] as e, i (i)}
+    <line {...seg(e)} class="last" />
+  {/each}
 
   {#each [0, 1] as p (p)}
     {#each shownEdges[p] as e, i (i)}
@@ -210,8 +226,16 @@
   {/if}
 
   {#if layers.marks}
-    {#each marks as m, i (i)}
-      {@render badge(m)}
+    {#each markGroups as g, gi (gi)}
+      <g class="mark-group" class:lit={markHover?.group === gi}>
+        {#each g as m, i (i)}<line {...seg(m.edge)} class="mark-lit" style:stroke="var(--{m.label})" />{/each}
+        {#each g as m, i (i)}
+          <g role="img" aria-label={m.note ?? m.label} onmouseenter={() => (markHover = { group: gi, mark: m })}
+             onmouseleave={() => (markHover = null)}>
+            {@render badge(m)}
+          </g>
+        {/each}
+      </g>
     {/each}
   {/if}
 
@@ -258,6 +282,18 @@
         <text x={nx + w / 2} y={my + 0.14} text-anchor="middle">{h.note}</text>
       </g>
     {/if}
+  {/if}
+
+  <!-- The note of the badge under the pointer, beside it, as a candidate's note. -->
+  {#if layers.marks && markHover?.mark.note}
+    {@const note = markHover.mark.note}
+    {@const [bx, by] = mid(markHover.mark.edge)}
+    {@const w = noteWidth(note) + 0.4}
+    {@const nx = bx + 0.62 + w > N ? bx - 0.62 - w : bx + 0.62}
+    <g class="cand-note">
+      <rect x={nx} y={by - 0.38} width={w} height="0.76" rx="0.15" />
+      <text x={nx + w / 2} y={by + 0.14} text-anchor="middle">{note}</text>
+    </g>
   {/if}
 
   {#if pending}
@@ -347,6 +383,11 @@
 
   /* Label badges on the turn just played. */
   .mark circle { stroke: var(--board-bg); stroke-width: 0.06; }
+  /* A turn's badges light together (design 10): a band in the label's colour under each of its edges, and a ring on
+     each badge. */
+  .mark-lit { stroke-width: 0.55; stroke-linecap: round; opacity: 0; pointer-events: none; }
+  .mark-group.lit .mark-lit { opacity: 0.45; }
+  .mark-group.lit .mark circle { stroke: var(--text); stroke-width: 0.08; }
   .mark text { font-size: 0.4px; fill: var(--on-badge); text-anchor: middle; font-weight: 800; font-family: system-ui, sans-serif; }
   .mark path { fill: var(--on-badge); }
 

@@ -1,8 +1,10 @@
 <script lang="ts">
   // The advantage chart, named as Lichess names its own ("Advantage"): Blue's win chance by position as a line, with
-  // the area between it and 50% in the colour of the side ahead (Lichess's chart), the score difference so far as a
-  // second line in another colour (Enclosure pays points every turn), the key moments as dots, and the current position as a marker.
-  // The pointer snaps to the nearest position and shows its note (Lichess's chart tooltip). A click jumps there.
+  // the area between it and 50% in the colour of the side ahead (Lichess's chart), the score difference as a second line
+  // in another colour (Enclosure pays points every turn), the difference of the areas each player encloses now as a
+  // third, each scaled to its own largest value, the key moments as dots, and the current position as a marker.
+  // The pointer snaps to the nearest position and shows its note (Lichess's chart tooltip). A click jumps there. By turn,
+  // the chart draws and snaps to the turns' ends only: a turn is one step (design 10).
   // While the review runs, the line is dashed and faint where a position has only its first, quick search, and solid
   // where its search has the review's depth: the sweep draws the whole line first, and the label pass then refines it
   // (design 06).
@@ -11,29 +13,38 @@
   interface Props {
     blueWin: number[];
     scoreDiff: number[]; // Blue minus Red, by position
+    areaDiff: number[]; // the area each player encloses, Blue's minus Red's, by position
     current: number;
     moments: { index: number; label: Label }[];
     showScore: boolean;
+    showArea: boolean;
     tips: { title: string; value: string }[]; // by position: the hover note
     settled?: boolean[]; // by position: its search has the review's depth (all, when not given)
+    points?: number[]; // the positions drawn and snapped to, in order (all, when not given): by turn, the turns' ends
     onjump: (position: number) => void;
   }
-  let { blueWin, scoreDiff, current, moments, showScore, tips, settled, onjump }: Props = $props();
+  let { blueWin, scoreDiff, areaDiff, current, moments, showScore, showArea, tips, settled, points, onjump }: Props = $props();
 
   const W = 600, H = 120;
   const n = $derived(blueWin.length - 1);
   const x = (i: number) => (i / n) * W;
   const yWin = (v: number) => H - v * H;
-  const scoreMax = $derived(Math.max(1, ...scoreDiff.map(Math.abs)));
-  const yScore = (d: number) => H / 2 - (d / scoreMax) * (H / 2 - 6);
-  // The runs of analysed positions (NaN: not analysed yet).
+  // A line of differences, Blue less Red, around the middle: scaled to its own largest value, so that the score and the
+  // area, of very different sizes, both fill the chart.
+  const yDiff = (max: number) => (d: number) => H / 2 - (d / max) * (H / 2 - 6);
+  const yScore = $derived(yDiff(Math.max(1, ...scoreDiff.map(Math.abs))));
+  const yArea = $derived(yDiff(Math.max(1, ...areaDiff.map(Math.abs))));
+  const drawn = $derived(points ?? blueWin.map((_, i) => i));
+  // The runs of analysed positions among those drawn (NaN: not analysed yet).
   const runs = $derived.by(() => {
     const out: number[][] = [];
-    blueWin.forEach((v, i) => {
-      if (Number.isNaN(v)) return;
+    let prev: number | null = null; // the drawn position before, when analysed
+    for (const i of drawn) {
+      if (Number.isNaN(blueWin[i])) { prev = null; continue; }
       const run = out.at(-1);
-      if (run && run.at(-1) === i - 1) run.push(i); else out.push([i]);
-    });
+      if (run && prev !== null && run.at(-1) === prev) run.push(i); else out.push([i]);
+      prev = i;
+    }
     return out;
   });
   // The area around 50%, one closed shape for each run.
@@ -52,13 +63,14 @@
       }
     return { solid: solid.join(" "), rough: rough.join(" ") };
   });
-  const scoreLine = $derived(scoreDiff.map((d, i) => `${i ? "L" : "M"}${x(i)},${yScore(d)}`).join(" "));
+  const scoreLine = $derived(drawn.map((i, k) => `${k ? "L" : "M"}${x(i)},${yScore(scoreDiff[i])}`).join(" "));
+  const areaLine = $derived(drawn.map((i, k) => `${k ? "L" : "M"}${x(i)},${yArea(areaDiff[i] ?? 0)}`).join(" "));
 
   let svg: SVGSVGElement;
   let hovered = $state<number | null>(null);
   const at = (ev: MouseEvent) => {
-    const r = svg.getBoundingClientRect();
-    return Math.max(0, Math.min(n, Math.round(((ev.clientX - r.left) / r.width) * n)));
+    const r = svg.getBoundingClientRect(), f = ((ev.clientX - r.left) / r.width) * n;
+    return drawn.reduce((best, i) => (Math.abs(i - f) < Math.abs(best - f) ? i : best), drawn[0]);
   };
   // The note sits beside the snapped point, on the side with more room.
   const tip = $derived(hovered === null ? null : { ...tips[hovered], left: hovered / n <= 0.5, at: (100 * hovered) / n });
@@ -76,6 +88,7 @@
   <path d={area} class="fill-blue" fill-opacity="0.35" clip-path="url(#above)" />
   <path d={area} class="fill-red" fill-opacity="0.35" clip-path="url(#below)" />
   <line x1="0" y1={H / 2} x2={W} y2={H / 2} class="stroke-muted" stroke-dasharray="3 3" vector-effect="non-scaling-stroke" />
+  {#if showArea}<path d={areaLine} class="fill-none stroke-area" stroke-width="1.5" vector-effect="non-scaling-stroke" />{/if}
   {#if showScore}<path d={scoreLine} class="fill-none stroke-accent" stroke-width="1.5" vector-effect="non-scaling-stroke" />{/if}
   <path d={winLines.solid} class="fill-none stroke-ink" stroke-width="1.5" vector-effect="non-scaling-stroke" />
   <path d={winLines.rough} class="fill-none stroke-ink" stroke-width="1.5" stroke-dasharray="4 3" stroke-opacity="0.55"
@@ -95,8 +108,10 @@
         style="left: {(100 * hovered) / n}%; top: {100 * (1 - blueWin[hovered])}%"></span>
 {/if}
 {#if tip}
-  <div class="absolute top-1.5 flex flex-col gap-0.5 px-2 py-1 text-xs whitespace-nowrap bg-panel border border-line rounded shadow-[0_2px_6px_rgb(0_0_0/0.25)] pointer-events-none"
-       style={tip.left ? `left: calc(${tip.at}% + 10px)` : `right: calc(${100 - tip.at}% + 10px)`}>
+  <!-- The note takes at most the room beside the point, and wraps there: the chart can be as narrow as a side column. -->
+  <div class="absolute top-1.5 flex flex-col gap-0.5 w-max px-2 py-1 text-xs bg-panel border border-line rounded shadow-[0_2px_6px_rgb(0_0_0/0.25)] pointer-events-none"
+       style={tip.left ? `left: calc(${tip.at}% + 10px); max-width: calc(${100 - tip.at}% - 10px)`
+                       : `right: calc(${100 - tip.at}% + 10px); max-width: calc(${tip.at}% - 10px)`}>
     <strong class="font-mono">{tip.title}</strong>
     <span class="text-muted tabular-nums">{tip.value}</span>
   </div>
