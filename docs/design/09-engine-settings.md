@@ -53,8 +53,11 @@ each applies at once, without a reload.
    - **Engine:** "Network", named by its parameters: 3.2M (b10c128, the default) or 10.3M (b15c192). The board keeps
      the old pool's rules while a new pool loads the other network. Then the analysis starts again, since every result
      came from the old network. The browser's store keys results by network, so a network's results come back at once
-     when the player returns to it. "Workers": from 1 to the machine's logical cores, half the cores (1 to 4) by
-     default (design 02). The help line gives a worker's memory for the chosen network. A change adds workers, which
+     when the player returns to it. "Workers": from 1 to the machine's logical cores, half the cores (1 to 8) by
+     default. On a laptop of 12 cores each worker kept 86% of one worker's speed up to 8 workers, so a cap of 4 left
+     about a third of the speed unused (decisions/engine.md, "Speed on a laptop: the engine lab's sweep"). Half the
+     cores leaves room for the page and the visitor's other work, and 8 workers of b10c128 take about 0.75 GB. The
+     help line gives a worker's memory for the chosen network. A change adds workers, which
      load the network and then take work, or removes them: a free worker ends at once, a busy one when its task ends.
      The work in progress goes on.
 4. **Sliders** set the values in steps, as Lichess's engine settings do. The value shows at the right of the name as

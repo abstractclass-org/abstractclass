@@ -9,8 +9,9 @@ import type { ModelInfo, VersionReply } from "#lib/engine/protocol.ts";
 /** A task's work. It gets a worker, and can name how to stop its work early (`onStop`). */
 export type Work<T> = (engine: EngineWorker, onStop: (stop: () => void) => void) => Promise<T>;
 
-/** Half the machine's cores, from 1 to 4: one module instance a worker, and room left for the page. */
-export const defaultPoolSize = () => Math.max(1, Math.min(4, Math.floor((navigator.hardwareConcurrency || 2) / 2)));
+/** Half the machine's cores, from 1 to 8: one module instance a worker, and room left for the page. On a laptop of 12
+ *  cores each worker kept 86% of one worker's speed up to 8 (decisions/engine.md, "Speed on a laptop"). */
+export const defaultPoolSize = () => Math.max(1, Math.min(8, Math.floor((navigator.hardwareConcurrency || 2) / 2)));
 
 /** The rejection of a task that was cancelled before it ran. */
 export class Cancelled extends Error {

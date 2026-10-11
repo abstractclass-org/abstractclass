@@ -918,3 +918,11 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   23, not 24: a few positions hold a deeper search (1,024 visits) now, whose second choice asks for its own
   confirmation.
 
+### The review's default pool: half the cores, up to 8 (2026-10-11)
+
+- **Decided:** the default number of workers is half the machine's logical cores, from 1 to 8 (it was 1 to 4). On
+  the owner's laptop (an Apple Silicon Mac, 12 cores) each worker kept 86% of one worker's speed up to 8 workers, so
+  the cap of 4 left about a third of the speed unused (decisions/engine.md, "Speed on a laptop"). That laptop now gets
+  6 workers. Half the cores leaves room for the page and the visitor's other work. A visitor's stored choice stays: the
+  page stores the settings when it loads, so a browser that opened the review before keeps its 4 until changed.
+

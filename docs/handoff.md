@@ -25,8 +25,8 @@ It holds no backlog: everything still to do that is not in flight is in
 ## In flight
 
 - **Speed on the owner's laptop, measured** (decisions/engine.md, "Speed on a laptop: the engine lab's sweep"): an
-  Apple Silicon Mac, 12 cores, 3.2M at 66 visits a second for one worker and 386 for eight. Still to decide: the
-  review's default workers (decisions/open-items.md, "The review's budget and pool size").
+  Apple Silicon Mac, 12 cores, 3.2M at 66 visits a second for one worker and 386 for eight. The default pool is now
+  half the cores, 1 to 8 (decisions/product.md), not committed.
 - **Great confirmed by an equal search** (design 05, decisions/product.md): built and checked in Edge on the sample
   game (24 of 28 gaps confirmed).
 - **Label checks done** (decisions/product.md, "Label checks under protocol 0.3"). The two games' check had net1's
