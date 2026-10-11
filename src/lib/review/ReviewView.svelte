@@ -22,7 +22,7 @@
   import Swatch from "#lib/ui/Swatch.svelte";
   import { SIDE_TEXT } from "#lib/ui/side.ts";
   import AdvantageChart from "./AdvantageChart.svelte";
-  import { loadDisplay, saveDisplay } from "./display.ts";
+  import { loadDisplay, saveDisplay, type Display } from "./display.ts";
   import { playMove, preload } from "#lib/sound.ts";
   import Glyph from "./Glyph.svelte";
   import {
@@ -799,13 +799,39 @@
                 cls]}>{@render digits(n)}</span>
 {/snippet}
 
+<!-- An edge as a pill along its direction: a capsule in its mover's colour at the edge's own slope on the board (rows
+     count from the bottom, so the screen's angle is atan2(-dy, dx)), every pill the same length. No published tool
+     shows an edge's direction in a move list: this form is the site's own (design 07). A capsule is never taller than
+     its length at any angle, so every pill has one height and a row stays even. Its box is as wide as the pill turned,
+     so a steep pill takes little width. A pass has no edge: a round dot. With a number (the listed line), the number
+     stands upright at the pill's centre, a disc as wide as the pill, so it is always on the pill's colour. Hollow when
+     the edge is already in the tree, as the circles are. -->
+{#snippet edgePill(edge: Edge | null, player: Player, hollow: boolean, n: number | null, cls: string)}
+  {@const turn = edge ? Math.atan2(edge[1] - edge[3], edge[2] - edge[0]) : 0}
+  {@const thick = n === null ? 44 : 66}
+  {@const long = edge ? 100 : thick}
+  {@const wide = (long - thick) * Math.abs(Math.cos(turn)) + thick}
+  {@const stroke = hollow ? 9 : 0}
+  <span class={["relative inline-flex flex-none items-center justify-center",
+                n === null ? "h-[1.15em]" : "h-[2.1em] font-sans text-[0.75em] font-bold leading-none",
+                hollow ? SIDE_TEXT[player] : "text-white", cls]} style:width="{(wide / 100) * (n === null ? 1.15 : 2.1)}em">
+    <svg class={["absolute inset-0 size-full", SIDE_TEXT[player]]} viewBox="{-wide / 2} -50 {wide} 100" aria-hidden="true">
+      <rect x={(stroke - long) / 2} y={(stroke - thick) / 2} width={long - stroke} height={thick - stroke}
+            rx={(thick - stroke) / 2} transform="rotate({(turn * 180) / Math.PI})"
+            fill={hollow ? "none" : "currentColor"} stroke={hollow ? "currentColor" : "none"} stroke-width={stroke} />
+    </svg>
+    {#if n !== null}<span class="relative">{@render digits(n)}</span>{/if}
+  </span>
+{/snippet}
+
 <!-- A branch in the move list, from its first move: its rows (tree.ts), indented by depth, each with a rule on its left.
      Every turn has its number, as in the record. Without notation, an edge is a dot in its mover's colour (Go tools
      show a variation without names): the turn numbers place it, so the dots carry no numbers of their own. Where a
      branch forks again, its continuations follow, one step further in (Lichess's way inside a variation). -->
 {#snippet branch(first: string[])}
   {#each branchRows(first, branchKids) as row, r (r)}
-    <div class="flex flex-wrap items-center gap-x-1 gap-y-0.5 my-0.5 pl-1.5 border-l-2 border-line font-mono text-[0.95em]"
+    <div class={["flex flex-wrap items-center gap-y-0.5 my-0.5 pl-1.5 border-l-2 border-line font-mono text-[0.95em]",
+                 display.branchForm === "text" ? "gap-x-1" : "gap-x-0.5"]}
          style:margin-left="{1.2 + row.depth}rem">
       {#each row.paths as p, k (pathKey(p))}
         {@const node = branches[pathKey(p)]}
@@ -815,18 +841,19 @@
         {@const waiting = !!node?.judged && !label}
         {#if node}
           {#if k === 0 || t.first}<span class={["text-muted text-[0.9em]", k > 0 && "ml-1"]}>{turnText(t)}</span>{/if}
-          {#if display.branchText}
+          {#if display.branchForm === "text"}
             <button class={["mv px-[0.2rem] py-px bg-transparent border-0 whitespace-nowrap", SIDE_TEXT[node.move.player],
                             at ? "here bg-panel-2 outline outline-accent" : pickedKey === pathKey(p) ? PICKED
                             : "hover:bg-panel-2 hover:outline hover:outline-line"]}
                     onclick={() => setPath(p, true)} tabindex="-1" data-path={pathKey(p)}
                     title={label ? LABEL_TEXT[label] : waiting ? "Evaluating…" : undefined}>{moveNotation(node.move)}</button>
           {:else}
-            <button class={["mv flex p-[0.15em] bg-transparent border-0 rounded-full",
+            <button class={["mv flex p-[0.08em] bg-transparent border-0 rounded-full",
                             at ? "here outline-2 outline-accent" : pickedKey === pathKey(p) ? PICKED : "hover:outline hover:outline-ink"]}
                     onclick={() => setPath(p, true)} tabindex="-1" data-path={pathKey(p)}
                     title="{turnText(t)} {moveNotation(node.move)}{label ? ` · ${LABEL_TEXT[label]}` : waiting ? ' · evaluating…' : ''}">
-              <span class={["block w-[0.85em] h-[0.85em] rounded-full", node.move.player === 0 ? "bg-blue" : "bg-red"]}></span>
+              {#if display.branchForm === "pills"}{@render edgePill(node.move.edge, node.move.player, false, null, "")}
+              {:else}<span class={["block w-[0.85em] h-[0.85em] rounded-full", node.move.player === 0 ? "bg-blue" : "bg-red"]}></span>{/if}
             </button>
           {/if}
           {#if listed(label)}<span class="-ml-0.5 text-[0.9em] font-extrabold" style:color="var(--{label})"><Glyph glyph={LABEL_GLYPH[label]} /></span>
@@ -844,7 +871,7 @@
   <div class="flex-none h-[3.6em] mb-2 overflow-y-auto text-sm" role="group" aria-label="The engine's line"
        onmouseleave={() => (listHover = null)}>
     {#if listLine}
-      <div class="flex flex-wrap items-center gap-x-1 gap-y-0.5">
+      <div class={["flex flex-wrap items-center gap-y-0.5", display.branchForm === "text" ? "gap-x-1" : "gap-x-0.5"]}>
         <span class={["inline-flex items-center justify-center min-w-[1.3em] h-[1.3em] mr-1 px-[0.2em] rounded-[0.3em] text-[0.8em] font-bold leading-none",
                       onBoard.has(listRank) ? `${listRank === 1 ? "bg-engine" : "bg-candidate"} text-on-badge` : "text-muted"]}
               title="The engine's line from candidate {listRank}">{@render digits(listRank)}</span>
@@ -854,7 +881,7 @@
           {@const name = `${edgeName(e)}${listSteps?.[k]?.cut ? "x" : ""}`}
           {@const known = listKnown[k]}
           {@const where = known === "game" ? " · played in the game" : known === "branch" ? " · in a branch" : ""}
-          {#if display.branchText}
+          {#if display.branchForm === "text"}
             {#if k === 0 || t.first}<span class="text-muted text-[0.9em]">{turnText(t)}</span>{/if}
             <button class={["px-[0.2rem] py-px font-mono text-[0.95em] bg-transparent border-0 whitespace-nowrap", SIDE_TEXT[player],
                             known && "underline decoration-dotted underline-offset-3",
@@ -862,10 +889,12 @@
                     onmouseenter={() => (listHover = k)} onclick={() => play(k)} tabindex="-1"
                     title="{name}{where} · play the line to here">{name}</button>
           {:else}
+            {@const shade = listHover !== null && k <= listHover ? "" : "opacity-70 hover:opacity-100"}
             {#if k > 0 && t.first}<span class="w-1"></span>{/if}
             <button class="flex p-0 bg-transparent border-0 rounded-full" onmouseenter={() => (listHover = k)} onclick={() => play(k)}
                     tabindex="-1" title="{turnText(t)} {name}{where} · play the line to here">
-              {@render edgeCircle(k + 1, player, !!known, listHover !== null && k <= listHover ? "" : "opacity-70 hover:opacity-100")}
+              {#if display.branchForm === "pills"}{@render edgePill(e, player, !!known, k + 1, shade)}
+              {:else}{@render edgeCircle(k + 1, player, !!known, shade)}{/if}
             </button>
           {/if}
         {/each}
@@ -903,9 +932,9 @@
       <h3 class={SETTINGS_HEAD}>Move list</h3>
       {@render toggle("Notes on the key edges", "A line under Great edges, Mistakes, and Blunders.",
         () => display.notes, v => (display.notes = v))}
-      {@render choice("Branches and lines", "Branches as dots and the engine's line as numbers, or both in the record's notation.",
-        [["marks", "Dots and numbers"], ["text", "Text notation"]], () => (display.branchText ? "text" : "marks"),
-        v => (display.branchText = v === "text"))}
+      {@render choice("Branches and lines", "Each edge as a pill along its direction, a dot, or its notation. In the engine's line, the pills and dots carry the board's numbers.",
+        [["pills", "Pills"], ["dots", "Dots"], ["text", "Notation"]], () => display.branchForm,
+        v => (display.branchForm = v as Display["branchForm"]))}
       <h3 class={SETTINGS_HEAD}>Sound</h3>
       {@render toggle("Move sounds", "A crayon stroke, for each edge played or stepped through.",
         () => display.sound, v => (display.sound = v))}
@@ -935,10 +964,7 @@
 {#snippet engineSettingsPanel(e: EngineSettings, set: (change: Partial<EngineSettings>) => void)}
   {@const memory = NETWORKS.find(n => n.id === e.network)?.memoryMB ?? NETWORKS[0].memoryMB}
   <div id="engine-settings" role="region" aria-label="Engine settings" class="flex flex-col flex-1 min-h-0">
-    <div class="flex items-center justify-between mb-1">
-      <h2 class="font-semibold">Engine settings</h2>
-      <button class="px-2 py-0.5 text-sm" onclick={() => (engineOpen = false)}>Done</button>
-    </div>
+    <h2 class="font-semibold mb-1">Engine settings</h2>
     <div class="flex-1 min-h-0 overflow-y-auto pr-1">
       <h3 class={SETTINGS_HEAD}>Position on screen</h3>
       {@render visitsSteps("Depth", "How far to search it.", DEPTHS, () => e.visits, v => set({ visits: v }))}
@@ -946,7 +972,7 @@
         k => set({ seconds: TIME_LIMITS[k] }), k => (TIME_LIMITS[k] === null ? "None" : `${TIME_LIMITS[k]} s`))}
       <h3 class={SETTINGS_HEAD}>Game review</h3>
       {@render choice("Depth per move",
-        `Lite: ${REVIEW_PRESETS.lite} visits. Standard: ${REVIEW_PRESETS.standard.toLocaleString("en")}, surer labels in about 4× the time.`,
+        `Lite: ${REVIEW_PRESETS.lite} visits. Standard: ${REVIEW_PRESETS.standard.toLocaleString("en")}, surer labels in twice the time.`,
         [["lite", "Lite"], ["standard", "Standard"], ["custom", "Custom"]], () => e.review, v => set({ review: v as ReviewDepth }))}
       {#if e.review === "custom"}
         {@render visitsSteps("Custom", "", CUSTOM_REVIEW, () => e.customReview, v => set({ customReview: v }))}
@@ -956,6 +982,11 @@
         NETWORKS.map(n => [n.id, `${n.params} parameters`]), () => e.network, v => set({ network: v }))}
       {@render steps("Workers", `Positions searched at the same time. Each uses about ${memory} MB.`, maxWorkers(),
         () => e.workers - 1, k => set({ workers: k + 1 }), k => `${k + 1} of ${maxWorkers()}`)}
+      <!-- Done after the last setting, away from the gear that opened it (the display settings' Done is at their top,
+           away from their ☰). -->
+      <div class="flex justify-end mt-2 mb-1">
+        <button class="px-2 py-0.5 text-sm" onclick={() => (engineOpen = false)}>Done</button>
+      </div>
     </div>
   </div>
 {/snippet}

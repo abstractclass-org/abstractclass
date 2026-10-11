@@ -18,10 +18,12 @@ noise.
    - **The rules first:** every position from the engine's `describe`, before any network, so the board works at once.
    - **A sweep:** every position at 32 visits (KaTrain's `fast_visits`, 25), for the game's shape: the Advantage chart
      and the win bar. Its labels are mostly wrong, so it shows none.
-   - **A label pass:** every position at 256 visits. An edge gets a label only when both its positions have at least
-     256 visits: the first budget whose mistake flags are mostly right (67% of them, finding 58% of the mistakes of a
-     1,024-visit search, after the opening). This is the Lite review. Standard runs the pass at 1,024 visits, and
-     Custom at another depth (design 09).
+   - **A label pass:** every position at 512 visits, the Lite review. Standard runs the pass at 1,024 visits, and
+     Custom at another depth (design 09). Under protocol 0.3, after the opening, 512 visits finds 67% of the mistakes
+     of a 1,024-visit search, with 80% of its flags right, and 256 visits finds 42%, with 79% right. An edge gets a
+     label only when both its positions have at least 256 visits, the first budget whose mistake flags are mostly
+     right. A label search shows its result at 256 visits and then at its budget (it runs in slices of 256, which do
+     not give way), so a label shows as early at every depth and can change when the search ends.
    - **Deeper where the player looks:** the position on screen to 1,024 visits, in slices, with the results shown as
      they come (KaTrain's `max_visits`). The engine settings change its visits and give it a time limit (design 09).
      Then the key moments, to 1,024 visits: both positions of each, since a loss needs both.

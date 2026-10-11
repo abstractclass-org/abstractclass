@@ -33,18 +33,22 @@ each applies at once, without a reload.
    the browser's store still load. The review's bar says "Engine off. The review is paused." and has no moving gleam.
    On, the work not done starts again. On by default, and kept between visits, as on Lichess.
 2. **The engine's gear** is at the first line's right. It opens "Engine settings" under the header, in the place of the
-   candidates and the move list, so the header's values and search bar stay in view while a setting changes. "Done",
-   the gear and Escape close it. The display settings move to a menu button (☰) in the step controls' bar, Lichess's
-   button in that place, so that the page has one gear. One panel shows at a time.
+   candidates and the move list, so the header's values and search bar stay in view while a setting changes. The gear,
+   Escape and "Done" close it. "Done" is right after the last setting, a little below it, away from the gear. The
+   display settings, opened from the bottom, have their "Done" at the top: each panel's "Done" is at the end away from
+   the button that opened it, where the eye ends after the last setting. The display settings move to a
+   menu button (☰) in the step controls' bar, Lichess's button in that place, so that the page has one gear. One panel
+   shows at a time.
 3. **Three groups,** each setting with one short line of help:
    - **Position on screen:** "Depth", its visits, from 256 to 16,384 (1,024 by default, as before).
      "Time limit": the search stops at this time even short of its visits (KaTrain's `max_time`: whichever comes
      first). The steps are Lichess's search times from 10 seconds (10, 20, 30, 60, 120 and 300 seconds, and none),
      and 30 seconds by default. A search stopped at its limit shows a full bar and "time limit" after its visits. The
      position is not searched again for the same settings, and is searched again when the depth or the limit changes.
-   - **Game review:** "Depth per move", the label pass's visits for each position: Lite (256), Standard (1,024), or
+   - **Game review:** "Depth per move", the label pass's visits for each position: Lite (512), Standard (1,024), or
      Custom, which shows its visits from 256 to 4,096. Lite by default. An edge gets its label from 256 visits on at
-     every depth, so a deeper review shows the Lite labels first and changes them as the deeper searches arrive. The
+     every depth. A label search shows its result at 256 visits, and again after each further 256, so a label shows as
+     early at every depth and changes as the deeper search goes on. The
      key moments stay at 1,024 visits. A branch move evaluated on request is searched to the review's depth.
    - **Engine:** "Network", named by its parameters: 3.2M (b10c128, the default) or 10.3M (b15c192). The board keeps
      the old pool's rules while a new pool loads the other network. Then the analysis starts again, since every result
@@ -86,14 +90,18 @@ each applies at once, without a reload.
   repository's [design 04](https://github.com/seankao31/enclosure-ai/blob/main/docs/design/04-notation-and-protocol.md),
   "Fields for bots"). The page sends `terminate` at the limit, counted from the search's start, not from its wait in
   the queue.
-- **Lite is 256 and Standard 1,024:** 256 is the first budget whose mistake flags are mostly right, and 1,024 is the
-  reference of that measurement ("Label agreement against search budget" in
-  [decisions/engine.md](../decisions/engine.md)). Standard takes about four times as long. Custom starts at 256,
-  because an edge gets no label under 256 visits.
-- **Lite by default:** a new visitor gets labels that are mostly right in a quarter of Standard's time, and a
-  visitor who wants surer labels can choose Standard.
-- **Labels from 256 visits at every depth:** no label disappears when the review becomes deeper. A label changes when
-  a deeper search arrives, as it does when the label pass replaces the sweep (design 05).
+- **Lite is 512 and Standard 1,024:** under protocol 0.3, after the opening, 256 visits finds only 42% of the
+  mistakes that 1,024 visits finds, and 512 visits finds 67%, with 80% of its flags right ("Label agreement against
+  search budget, under protocol 0.3" in [decisions/engine.md](../decisions/engine.md)). A review exists to show the
+  player's mistakes, so Lite takes the budget that finds most of them. KaTrain analyses a move with 500 visits
+  (`max_visits`). 1,024 is the reference of that measurement. Standard takes about twice as long as Lite. Custom
+  starts at 256, because an edge gets no label under 256 visits.
+- **Lite by default:** a new visitor gets labels that find most mistakes in half of Standard's time, and a visitor
+  who wants surer labels can choose Standard.
+- **Labels from 256 visits at every depth:** no label disappears when the review becomes deeper, and a deeper review
+  shows its first labels as soon as a review at 256 visits would. A label changes when a deeper result arrives, as it
+  does when the label pass replaces the sweep (design 05). The slices of 256 cost one more reply each, not more
+  visits: a search in slices gives the same result as one search.
 - **Networks by their parameters** (the trainer's counts, 3.22M and 10.25M, in the engine repository's
   `v2/docs/design/15-network-sizes.md`): a size says what differs. The help line does not call the larger network
   stronger: it is stronger for each visit, but the smaller gets about three times the visits in the same time, and
@@ -125,9 +133,12 @@ each applies at once, without a reload.
 - **The GPU** (WebGPU, in the browser): the network's evaluations, nearly all of a search's time, could run there. It
   is an engine change (a WebGPU backend for the fork, and a module that can wait for the GPU's answers), so it is for
   the engine repository. A GPU gains most from batches, and one search on one thread asks for one evaluation at a
-  time, so the gain at small sizes is uncertain until measured.
+  time, so the gain at small sizes is uncertain until measured. Asked of the engine repository:
+  [requests/06-webgpu.md](../requests/06-webgpu.md).
 - **Lichess's memory and lines settings:** the engine's cache size is set by its configuration, and the candidates
   table already shows every candidate.
+- **Lite at 256 visits:** built first, from the measurement under protocol 0.2 (58% of the mistakes found after the
+  opening, 67% of flags right). Under protocol 0.3 it finds 42%.
 - **Free budgets for the review's passes:** the label bands were measured at 256 visits. Presets keep the labels
   comparable, and Custom stays at 256 or more.
 
@@ -139,7 +150,8 @@ each applies at once, without a reload.
   (decisions/engine.md: 8 workers on 8 busy cores ran at 39 visits a second each, against 72 for one). The page
   competes with them too. The limit is memory: on a machine short of it the browser can end the tab.
 - Another network searches the whole game again, which takes minutes. Returning to a network is quick.
-- A Standard review takes about four times as long as a Lite one.
+- A Standard review takes about twice as long as a Lite one. A Lite review takes about twice as long as it did at 256
+  visits, but a position's first label comes at 256 visits, as before.
 - A review in a hidden tab still runs slowly (decisions/open-items.md).
 
 ## Where it is

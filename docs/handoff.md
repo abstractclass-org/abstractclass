@@ -16,7 +16,7 @@ It holds no backlog: everything still to do that is not in flight is in
   by its visits, the players' row at narrow widths), `1d746e4` (the listed line, branches, the display settings'
   panel), `98ddc5c` (the player's own moves, the keys and their list, the move menu), `3aba039` (the move sounds and
   the progress bars' gleam, design 08), `b3fc8c2` (the sound only on a change of the board, the side columns measured
-  again when the layout moves), then the engine's settings (design 09, the latest commit).
+  again when the layout moves), `6a87ac5` (the engine's settings, design 09), then the latest commit (below).
 - **Checks on the working tree:** `npm run check` has no errors or warnings. `npm test` passes (21 checks). `npm run
   build` succeeds.
 - **The engine:** protocol 0.3, build `319a5c4`, the networks b10c128 and b15c192, searching with KataGo's analysis
@@ -24,22 +24,14 @@ It holds no backlog: everything still to do that is not in flight is in
 
 ## In flight
 
-- **The engine's lines and the player's variations are built** (design
-  [07-lines-and-variations.md](design/07-lines-and-variations.md); the log entries in decisions/product.md from "The
-  engine's line on the board" to "The picked line at a fork, single keys, and the list of keys"). The owner has tried
-  the keys and asked for the picked line in the move list and single keys, which are in. Still to hear: their view of
-  own moves on the board, Space and the double-click, and the right-click menu (Promote variation, Evaluate move
-  quality, Delete from here). A branch's edges have no labels unless the player asks, by the
-  owner's choice (a line played to show something should cost no search).
-- **Move sounds and the progress bars' gleam are built** (design 08, design 06; decisions/product.md,
-  "Move sounds, and progress bars that show the work runs"). Every edge sounds like a recorded crayon stroke: five CC0
-  strokes the owner chose by ear.
-- **The engine's settings are built** (design [09-engine-settings.md](design/09-engine-settings.md);
-  decisions/product.md, "The engine's settings", "The engine's switch and gear in its header" and "The engine header
-  in two lines, boxes for visits, a slower gleam"). Still to hear: the owner's view of the two-line header, the number
-  boxes and the slower gleam, and the 30-second limit. The review's default depth is Lite.
-- **The owner's order after it:** learning from mistakes as a mode of the analysis. The speed on a visitor's machine
-  waits in the backlog.
+- **Built in the latest commit:** the label budget under protocol 0.3 and Lite at 512 visits, with labels shown from
+  256 visits during a deeper search (decisions/engine.md, design 05, design 09), "Done" after the engine settings'
+  last setting, the pills as the default form with closer spacing (design 07), and request 06. Still to hear: the
+  owner's view of the pills in use.
+- **Request 06 (WebGPU)** is written ([requests/06-webgpu.md](requests/06-webgpu.md)) and open. The owner takes it to
+  the engine repository.
+- **Learning from mistakes is postponed** (decisions/open-items.md). The speed on a visitor's machine waits in the
+  backlog too.
 - **Testing in Edge:** a hover made with synthetic events is lost when the real pointer rests on the board and the
   board redraws: put the real pointer on the element (the browser tool's hover) for checks that last. Convert page
   coordinates to the screenshot's own size before a real click (the screenshot's width varies, 1,353 to 1,372).
@@ -59,6 +51,7 @@ It holds no backlog: everything still to do that is not in flight is in
 
 ## Check first
 
-1. Take the owner's next item: learning from mistakes as a mode of the analysis (above), or the backlog.
+1. The owner looks for new move sounds (decisions/open-items.md, "Other move sounds"). When they have candidates,
+   build a sound lab to compare them by ear (design 08).
 2. The speed numbers so far came from a loaded machine. Rerun the lab's review on an idle machine before any change
    of budget.

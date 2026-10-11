@@ -31,11 +31,12 @@ export const DEPTHS = [256, 512, 1024, 2048, 4096, 8192, 16384];
 /** The time limits, in seconds: Lichess's search times from 10 seconds, and no limit. A shorter limit adds little: a
  *  new search starts from zero, and shows only once it passes the label pass's 256 visits. */
 export const TIME_LIMITS: (number | null)[] = [10, 20, 30, 60, 120, 300, null];
-/** The review's visits for each position. Lite is the first budget whose mistake flags are mostly right, and Standard
- *  the reference that measurement used (decisions/engine.md, "Label agreement against search budget"). A custom budget
- *  is any whole number from Lite's to four times Standard's: a move gets its label from 256 visits on. Its slider
+/** The review's visits for each position. Under protocol 0.3, Lite finds two thirds of the mistakes that Standard's
+ *  search finds, with 80% of its flags right (256 visits found 42%), and Standard is the reference of that measurement
+ *  (decisions/engine.md, "Label agreement against search budget, under protocol 0.3"). KaTrain analyses a move with 500
+ *  visits. A custom budget is any whole number from 256 to 4,096: a move gets its label from 256 visits on. Its slider
  *  steps by doublings, as the Depth slider does. */
-export const REVIEW_PRESETS = { lite: LABEL_VISITS, standard: 4 * LABEL_VISITS } as const;
+export const REVIEW_PRESETS = { lite: 2 * LABEL_VISITS, standard: 4 * LABEL_VISITS } as const;
 export const CUSTOM_REVIEW = [256, 512, 1024, 2048, 4096];
 
 /** A number of visits that a setting with these steps (doublings) can take: a whole number in their range. */

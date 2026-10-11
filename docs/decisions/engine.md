@@ -185,3 +185,41 @@ Loading the engine, its speed, the engine interface, and the requests for it.
   256 visits, without a seed, gave the same reply, row for row; at that position number 1 had 109 visits and the next
   candidates 54, 32, 29 and 17. The review starts afresh (the cache key holds the build), with two candidates on the
   board at the first position. The puzzles' rules work.
+
+### Label agreement against search budget, under protocol 0.3 (2026-10-11)
+
+- **Why:** protocol 0.3 made KataGo's analysis defaults the engine's search settings (root noise on, no moves from
+  before the root), so every value changed ("Protocol 0.3").
+- **Method:** as in "Label agreement against search budget": the same 4 bot games (480 positions, no person's games),
+  b10c128, one search of 1,024 visits a position read after each slice of 32, and the same summary
+  (`scripts/measure/budget-summary.mjs`). 512 visits added to the budgets. The data is in
+  `runs/measure/budget-b10c128-p03.jsonl` (not in Git). **Checked first:** under protocol 0.3 a search read after a
+  slice still equals a fresh search of that many visits (32 and 256 visits, positions 0, 30, 60 and 90 of a ladder
+  game, every candidate's visits and values the same).
+- **Result,** points from the lead, edges after the first 16 (412 edges; 36 Inaccuracies or worse at 1,024 visits,
+  against 24 under protocol 0.2). Protocol 0.2's values in brackets:
+
+  | Visits | Same label | Mistakes found (of the reference's) | Mistake flags that are right | Points lost, mean error |
+  |---|---|---|---|---|
+  | 32 | 52% (56%) | 25% (29%) | 36% (27%) | 12.7 (11.5) |
+  | 64 | 53% (62%) | 14% (29%) | 25% (35%) | 11.9 (9.6) |
+  | 128 | 60% (64%) | 28% (38%) | 59% (43%) | 9.7 (8.0) |
+  | 256 | 67% (71%) | 42% (58%) | 79% (67%) | 7.8 (6.7) |
+  | 512 | 75% | 67% | 80% | 4.9 |
+
+  Over every edge: at 256 visits 67% the same label, 58% of mistakes found, 85% of flags right; at 512 visits 74%,
+  75% and 87%. Points from the margin give about the same (after the first 16 edges, at 256 visits: 38% found, 87%
+  right).
+- **Reading:**
+  - At 256 visits a flag is right more often than under protocol 0.2 (79% against 67%), but the flags find fewer of
+    the reference's mistakes (42% against 58%). 256 visits still gives flags that are mostly right, and it misses more
+    than half of the mistakes after the opening.
+  - 512 visits finds two thirds of them with flags right as often (80%), and its points' error is 4.9 against 7.8.
+  - The samples are small. After the opening, one reference mistake is about 3% of "found": 42% against 58% is about
+    5 mistakes. The reference changed too: 1,024 visits under protocol 0.3 is not the reference of protocol 0.2.
+  - A possible cause, not tested: root noise sends more visits to weaker moves, and the root's value averages them,
+    so a value at a small budget stands further from the deep one.
+- **Decided:** the review's Lite depth searches 512 visits, Standard stays at 1,024, and an edge still gets its label
+  from 256 visits on (design 05, design 09). A review exists to show the player's mistakes, and 512 finds most of them
+  with flags as often right. KaTrain's analysis of a move uses 500 visits (`max_visits`).
+- **To do:** a deeper reference (4,096 visits) and more games (decisions/open-items.md).

@@ -796,3 +796,62 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   The gleam on a bar of 118 pixels moved about 94 pixels in half a second. At 1,000 and 495 pixels wide, the header
   fits its column and the page has no sideways scroll.
 
+### The owner's feedback on the lines, the keys and the engine settings, and "Done" at the bottom (2026-10-11)
+
+- **Tried and kept:** the player's own moves on the board, Space and the double-click that play a candidate, the
+  branch move menu (design 07), the two-line engine header, the number boxes, the slower gleam, and the 30-second
+  time limit (design 09).
+- **"Done" in the engine settings moved to the panel's bottom:** at the top it sat next to the gear. Each settings
+  panel now has its "Done" at the end away from the button that opened it: the engine's at the bottom (the gear is at
+  the top), the display's at the top (☰ is at the bottom). It stays in view when the settings scroll. Checked in
+  Edge: "Done" at the panel's bottom right closes it.
+- **The GPU:** request 06 asks the engine repository to measure the network on WebGPU and, if it gains, to give the
+  site a module that uses it ([requests/06-webgpu.md](../requests/06-webgpu.md)).
+- **Learning from mistakes is postponed** (decisions/open-items.md).
+
+### Pills for the edges in the move list (2026-10-11)
+
+- **Asked for:** a third form for the branches and the engine's line, beside the dots and the notation: a pill along
+  each edge's rough direction.
+- **Chosen:** the edge's exact slope (24 slopes; at this size close slopes look alike, but a pill is never wrong, and
+  there is no rounding rule to explain), the same length for every pill (the shortest edges would shrink to dots), and
+  in the engine's line the board's number upright on each pill.
+- **Built** (design 07): the setting "Branches and lines" has three buttons, Dots (the default), Pills and Notation.
+  The stored `branchText` becomes `branchForm`, and a stored notation choice carries over. A pill is an SVG rounded
+  rectangle with its radius half its thickness, turned to the edge's angle on the screen (rows count from the bottom).
+- **Checked in Edge:** the pills of a line's first six edges turn to the edges' slopes on the board (P10-S8 at 33.7°,
+  down to the right, as on the board; K12-L9 at 71.6°; G8-J6 at 45°), each within its square of 26 pixels. The
+  numbers 1 to 14 read on their pills. A line's edges already in a branch show as outlined pills with the number in
+  the mover's colour (checked with a test branch, deleted after). The branch rows read as short strokes after their
+  turn numbers, and the move on screen has its round accent outline.
+
+### Lite at 512 visits, closer dots and pills, "Done" after the last setting (2026-10-11)
+
+- **The review's Lite depth searches 512 visits** (it was 256), after the label budget was measured again under
+  protocol 0.3 (decisions/engine.md, "Label agreement against search budget, under protocol 0.3"). Standard stays at
+  1,024, now twice Lite's time. An edge still gets its label from 256 visits on. A label search shows its result only
+  when it ends, so a position's first label now comes later. A deeper reference (4,096 visits) waits in the backlog.
+- **"Done" in the engine settings** sits right after the last setting, a little below it, and scrolls with the
+  settings. At the panel's bottom it was too far from them.
+- **Dots and pills stand closer:** an eighth of a rem between them (it was a quarter), and a smaller margin inside the
+  dots' and pills' buttons. A pill's box is now only as wide as the pill turned: a steep pill had empty width on both
+  sides.
+- **The move sounds:** the crayon strokes are to be replaced, perhaps with fountain pen strokes
+  (decisions/open-items.md).
+
+### Pills by default, and labels from 256 visits during a deeper search (2026-10-11)
+
+- **Pills are the default form** of the branches and lines, and the first of the three buttons (Pills, Dots,
+  Notation). A Go move is a point, so Go tools show stones. An Enclosure move is a line between two points, so a pill
+  along it is the nearer form, and it shows the edge's direction, which the turn numbers do not (design 07). A stored
+  choice of Dots or Notation is kept.
+- **A label search shows its result at 256 visits** and then after each further 256, up to its budget: it runs in
+  slices of 256, which do not give way to the position on screen (a stopped search starts again from nothing). So the
+  first labels of a Lite review (512 visits) come as soon as they did at 256 visits, and change when the search ends.
+  The branch edges evaluated on request do the same. A search in slices gives the same result as one search, so the
+  slices cost only one more reply each.
+- **Checked:** in Node, a search of 1,536 visits in slices of 256 replies at 256, 512 and on to 1,536 visits. In
+  Edge, with a review depth never searched before (768 visits), edges got labels while no position but the one on
+  screen had ended its search: 3 labelled edges with 1 position done, 6 with 3. The branch moves evaluated on request
+  ran first (their priority is higher), so the label pass started about 28 seconds after the page loaded.
+

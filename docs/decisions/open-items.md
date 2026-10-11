@@ -33,6 +33,10 @@ Rules:
   which breaks when meaf.us changes its page. Its owner's choice: the owner of this site asks.
 - **The noise floor:** search the same positions twice and measure how often the labels agree, before any label
   ships.
+- **The label budget against a deeper reference:** measure the labels at 256, 512 and 1,024 visits against 4,096
+  visits, with more bot games ([engine.md](engine.md), "Label agreement against search budget, under protocol 0.3",
+  measured against 1,024). The same scripts take `--deep 4096 --budgets 32,64,128,256,512,1024`. About two hours of
+  CPU for 4 games.
 - **Label thresholds:** fit them on the archive (design 01, principle 3). This needs the archive analysed offline.
 - **Which score measures points lost:** `scoreSelfplay` (the expected final margin) or `scoreLead` (the starting
   score that would make the game even, trained since 2026-10-05). Measure both on reviewed games before the labels
@@ -52,10 +56,6 @@ or a design first:
   the board shows"): after the label pass (256 visits) many candidates pass the visit rule, after the deep search
   (1,024) few do. The board can lose candidates while the player looks. To watch: whether players find that
   confusing. The Good band (5%, 36 points) is still a placeholder.
-- **The label budget, measured again under KataGo's analysis defaults:** the review now searches with them (protocol
-  0.3: root noise on, no moves from before the root; [engine.md](engine.md), "Protocol 0.3"), so every value changed.
-  Run the budget measurement again (`scripts/measure/budget-collect.mjs`, [engine.md](engine.md), "Label agreement
-  against search budget") and keep or change the 256 visits of the label pass.
 - **Extra analysis on request:** KaTrain offers "equalize" (every candidate gets as many visits as the top move),
   "sweep" (every legal move searched) and "alternative" (moves beyond the candidates) (`analyze_extra`,
   `core/game.py`). To decide which the page offers. It bears on the Great label below, on the board's candidates, and
@@ -67,9 +67,9 @@ or a design first:
   more visits: look again at the sample game under it first. A proposal: call an edge the only good one only when
   the second choice has enough visits (the board's rule: 15% of the most visited move's), or measure first how many
   Great labels have a second choice under that share.
-- **Learning from mistakes:** the "Retry mistakes" tab is removed (decisions/product.md, "The 'Retry mistakes' tab
-  removed"). Bring it back as a mode of the Analysis panel, above the move list, as Lichess's "Learn from your
-  mistakes" is, started from the Highlights. Follow Lichess's rules (research/01-ux-survey.md, "Learning from the
+- **Learning from mistakes** (postponed): the "Retry mistakes" tab is removed (decisions/product.md, "The 'Retry
+  mistakes' tab removed"). Bring it back as a mode of the Analysis panel, above the move list, as Lichess's "Learn
+  from your mistakes" is, started from the Highlights. Follow Lichess's rules (research/01-ux-survey.md, "Learning from the
   game"): pick the moves where the win chance swung by more than 10 points, and accept any edge that keeps the win
   chance within 4 points of the position before the mistake, not only the engine's first choice. The engine's first
   choice can be beyond any human, and a retry of it teaches little. Judge a tried edge by searching the position
@@ -80,6 +80,8 @@ or a design first:
 - **The lessons' edge input on the engine's rules:** the lessons check edges with small hand-written tests. Give
   `EdgeInput` each lesson step's legal edges and the mover's nodes from the engine's `describe`, as the puzzles do (decisions/product.md,
   "Edge input on the engine's rules, in the puzzles"). A lesson's position may need the `position` field of the query.
+- **Other move sounds:** the crayon strokes (design 08) are to be replaced. Candidates: fountain pen strokes, or
+  other free recordings. Choose by ear in a sound lab, as the crayon strokes were chosen (the lab was not kept).
 - **Sound beyond the review's moves:** the review's move sounds are built (design 08). Still to decide: sounds in the
   puzzles and the lessons (a move, solved, failed), and whether a mistake's label has one.
 - **Using the review page's space** (design 06): with the board large and three columns, look again at the

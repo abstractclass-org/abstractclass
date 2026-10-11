@@ -68,10 +68,11 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
    list (below 1,260 pixels, of the tabs), as Lichess's analysis menu takes the move list's place. The board stays in
    view, so each change shows as it is made. The menu button (☰, Lichess's in the same place) in the step controls' bar
    opens and closes them, and shows that they are open. The gear is the engine's, in the engine header (design 09).
-   "Done" and Escape close them too. The panel scrolls when the column is shorter than it.
+   "Done" at the panel's top, away from ☰, and Escape close them too. The panel scrolls when the column is shorter
+   than it.
    - **Grouped by where a setting shows,** as Lichess groups its analysis settings (Board, Move list): Board (the win
      chance's form, candidates, move labels, regions, protected edges, the engine's line "Animated" or "Static"), Move
-     list (notes on the key edges, branches and lines "Dots and numbers" or "Text notation", design 07), Sound (move
+     list (notes on the key edges, branches and lines as "Pills", "Dots" or "Notation", design 07), Sound (move
      sounds and their volume, design 08), Keyboard (the list of keys and clicks, also on "?"), and Advantage chart (the
      score so far).
    - **Each setting says what it does,** in a short line under its name, always in view (Lichess shows a help video for

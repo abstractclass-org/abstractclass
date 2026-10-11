@@ -95,12 +95,26 @@ cut edges that are on the board, so a line drawn over the board can show edges t
    starts at a turn's second edge). Where a branch forks again, its row ends at the fork, and every line from the fork
    follows one step further in, the first line too, so that the lines from a fork stand side by side (Lichess's way
    inside a variation).
-6. **Without notation by default** (Go's way): a branch's edges are dots in the mover's colour, after their turn's
-   number. The turn numbers place the edges, so the dots carry no numbers: numbers of their own would read as a second,
-   unrelated count beside the turns. The listed line's edges are circles numbered as the board numbers the line. A
-   dot's or circle's tooltip names its turn and edge. The display settings call this "Dots and numbers", and offer
-   "Text notation" (the record's, with the cut mark) instead. The digits in the circles and the rank badges are
-   centred on their own height (`text-box: trim-both cap alphabetic`).
+6. **Without notation by default** (Go's way): a branch's edges are marks in the mover's colour, after their turn's
+   number. The turn numbers place the edges, so the marks carry no numbers: numbers of their own would read as a
+   second, unrelated count beside the turns. The listed line's marks are numbered as the board numbers the line. A
+   mark's tooltip names its turn and edge. The display settings offer "Pills" (the default), "Dots" (circles, Go's
+   stones) and "Notation" (the record's, with the cut mark). The digits in the marks and the rank badges are centred
+   on their own height (`text-box: trim-both cap alphabetic`).
+   - **Pills by default:** Go tools show a variation as stones, since a Go move is a point and a stone is its shape.
+     An Enclosure move is a line between two points, so a pill along it is the nearer form, and it shows what the
+     turn numbers do not: the edge's direction. A dot shows only whose edge it is, which the turn already tells.
+   - **Pills** are this site's own form: no published tool shows an edge's direction in a move list. Each edge is a
+     capsule in its mover's colour, at the edge's exact slope on the board (24 slopes, since an edge has no head), and
+     every pill has the same length, so that a short edge stays as plain as a long one. A pass is a round dot. In the
+     listed line, the number stands upright on the pill's centre: the centre is a disc as wide as the pill, so the
+     number has the pill's colour behind it at every slope. A pill is never taller than its length, so every pill has
+     one height and a row stays even. Its box is only as wide as the pill turned, so a steep pill takes little width.
+     The branch's pills are 1.15 by 0.5 times the text's size (the dots are 0.85 across). The line's pills are about
+     1.6 times the text's size long, against 1.16 for its circles.
+   - **Spacing:** dots and pills stand closer than words: an eighth of a rem between them (a quarter between words),
+     and a dot's or pill's button has a small margin for the outline that marks the move on screen. Between turns the
+     turn number, or a small gap in the line, keeps the turns apart.
 7. **A game's branches are kept in this browser** (Lichess's way), under the game's id, each node with its place
    among the branches from its parent, and come back when the game is opened again. A branch's analyses are in the
    analysis cache, which is keyed by the moves.

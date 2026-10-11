@@ -6,7 +6,8 @@
 //    (KaTrain: max_visits, 500), then the key moments. The key moments' searches run in slices too, so that the
 //    position on screen can stop one when no worker is free (pool.ts), and the stopped one runs again later.
 // The budgets come from the measurement of label agreement against a deep search (docs/decisions/engine.md, "Label
-// agreement against search budget"): 256 visits is the first budget whose mistake flags are mostly right.
+// agreement against search budget", and again under protocol 0.3): 256 visits is the first budget whose mistake flags
+// are mostly right, and the review's Lite depth searches 512, which finds two thirds of the mistakes.
 // Results are kept in the browser (cache.ts).
 //
 // The engine's settings (design 09) change this schedule while it runs: the engine can be off (no search starts, and
@@ -30,7 +31,7 @@ import { Stopped } from "#lib/engine/client.ts";
 import { Cancelled, type EnginePool } from "./pool.ts";
 
 export const SWEEP_VISITS = 32;
-export const LABEL_VISITS = 256; // the Lite review's label budget, and the least visits that give an edge a label
+export const LABEL_VISITS = 256; // the least visits that give an edge a label (the review's depths: engineSettings.ts)
 export const DEEP_VISITS = 1024; // the key moments, and the position on screen by default
 const SLICE_VISITS = 32;
 // A branch edge's evaluation, asked for in its menu, comes after the position on screen and before the rest.
@@ -194,7 +195,7 @@ export class GameAnalysis {
   private judgeSearches(path: string[]) {
     if (!this.engineReady) return; // the sweep starts them
     for (const p of [path.slice(0, -1), path])
-      if (this.searchable(p)) this.search(p, this.labelVisits, PRIORITY.judge, "judge").catch(this.fail);
+      if (this.searchable(p)) this.search(p, this.labelVisits, PRIORITY.judge, "judge", { early: LABEL_VISITS }).catch(this.fail);
   }
 
   /** Deletes a branch node and every position after it (Lichess's "Delete from here"). */
@@ -288,7 +289,7 @@ export class GameAnalysis {
     const n = this.moves.length;
     const pass = (visits: number, priority: number, tag: string) =>
       Promise.all(Array.from({ length: n }, (_, i) =>
-        this.search(this.mainNames.slice(0, i), visits, priority, tag).then(met => {
+        this.search(this.mainNames.slice(0, i), visits, priority, tag, { early: LABEL_VISITS }).then(met => {
           if (met && visits > this.reached[i]) this.reached = this.reached.with(i, visits);
         }).catch(this.fail)));
     await pass(SWEEP_VISITS, PRIORITY.sweep, "sweep");
@@ -402,11 +403,13 @@ export class GameAnalysis {
    *  the budget: searched, cached, or held deeper already. False when no search ran to its end: the engine is off, the
    *  search stopped (at its time limit, for the engine off, or to give way), or it is no longer wanted (a stale focus).
    *  Options: `sliced` searches in slices, which show their results as they come and can stop; `seconds` is a sliced
-   *  search's time limit, and `ontime` runs when it stops there. */
+   *  search's time limit, and `ontime` runs when it stops there. `early` shows the result at that many visits too
+   *  (slices of that size, which do not stop), so that a deep label search shows a label from 256 visits on. */
   private async search(path: string[], visits: number, priority: number, tag: string, options: {
-    sliced?: boolean; wanted?: () => boolean; seconds?: number | null; ontime?: () => void;
+    sliced?: boolean; wanted?: () => boolean; seconds?: number | null; ontime?: () => void; early?: number;
   } = {}): Promise<boolean> {
-    const { sliced = false, wanted = () => true, seconds = null, ontime } = options;
+    const { sliced = false, wanted = () => true, seconds = null, ontime, early } = options;
+    const slice = sliced ? SLICE_VISITS : early && early < visits ? early : null;
     const era = this.era, pool = this.pool, moves = this.engineMoves(path);
     const key = analysisKey(pool.version!.build, pool.model!.sha256, moves, visits);
     const held = () => this.analysisOf(path)?.visits ?? 0;
@@ -420,7 +423,7 @@ export class GameAnalysis {
     return pool.run(priority, tag, async (engine, onStop) => {
       if (held() >= visits) return true;
       if (this.paused || !wanted() || era !== this.era) return false;
-      const run = engine.analyse({ moves, maxVisits: visits, includePVVisits: true, ...(sliced ? { slice: { visits: SLICE_VISITS } } : {}) },
+      const run = engine.analyse({ moves, maxVisits: visits, includePVVisits: true, ...(slice ? { slice: { visits: slice } } : {}) },
                                  r => keep(toAnalysis(r)));
       if (sliced) onStop(run.stop); // the pool may stop it to give way, and runs it again later
       if (tag === "focus") this.stopFocus = run.stop;

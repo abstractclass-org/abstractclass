@@ -8,7 +8,9 @@ export interface Display {
   layers: BoardLayers;
   scoreLine: boolean; // the Advantage chart's score-so-far line
   lineSteps: boolean; // the engine's line drawn one edge at a time (KaTrain's way, the default), not all at once
-  branchText: boolean; // branches and the listed line in the record's notation, not as numbered circles (Go's way, the default)
+  // How an edge shows in the branches and the listed line: a pill along the edge's direction (the default), a dot (Go's
+  // way), or the record's notation. In the line, the pills and the dots carry the board's numbers.
+  branchForm: "pills" | "dots" | "text";
   notes: boolean; // the move list's one-line notes on Great edges, mistakes and blunders
   sound: boolean; // move sounds (design 08), on by default as on Lichess
   volume: number; // the move sounds' volume, 0 to 1
@@ -21,7 +23,7 @@ export const DEFAULT_DISPLAY: Display = {
   layers: DEFAULT_LAYERS,
   scoreLine: true,
   lineSteps: true,
-  branchText: false,
+  branchForm: "pills",
   notes: true,
   sound: true,
   volume: 0.4,
@@ -29,14 +31,16 @@ export const DEFAULT_DISPLAY: Display = {
 
 export function loadDisplay(): Display {
   try {
-    const kept = JSON.parse(localStorage.getItem(KEY) ?? "null") as Partial<Display> | null;
+    const kept = JSON.parse(localStorage.getItem(KEY) ?? "null") as (Partial<Display> & { branchText?: boolean }) | null;
     if (!kept) return structuredClone(DEFAULT_DISPLAY);
     return {
       win: kept.win === "gauge" ? "gauge" : "bar",
       layers: { ...DEFAULT_DISPLAY.layers, ...kept.layers },
       scoreLine: kept.scoreLine ?? DEFAULT_DISPLAY.scoreLine,
       lineSteps: kept.lineSteps ?? DEFAULT_DISPLAY.lineSteps,
-      branchText: kept.branchText ?? DEFAULT_DISPLAY.branchText,
+      // Kept before the pills as `branchText`, true for the notation
+      branchForm: kept.branchForm === "pills" || kept.branchForm === "dots" || kept.branchForm === "text" ? kept.branchForm
+        : kept.branchText ? "text" : DEFAULT_DISPLAY.branchForm,
       notes: kept.notes ?? DEFAULT_DISPLAY.notes,
       sound: kept.sound ?? DEFAULT_DISPLAY.sound,
       volume: typeof kept.volume === "number" ? Math.min(1, Math.max(0, kept.volume)) : DEFAULT_DISPLAY.volume,

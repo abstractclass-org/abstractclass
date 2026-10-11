@@ -31,9 +31,9 @@
   const engine = $state(loadEngine());
   $effect(() => saveEngine($state.snapshot(engine)));
 
-  // The label pass's budget. An edge gets its label from 256 visits on, in a deeper review too: its label then shows as
-  // soon as the Lite review would show it, and changes when the deeper searches arrive, as a label does when a deeper
-  // search replaces a shallow one (design 05).
+  // The label pass's budget. An edge gets its label from 256 visits on, at every depth: a label search shows its result
+  // at 256 visits, then at its budget, and the label changes as it does when a deeper search replaces a shallow one
+  // (design 05).
   const budget = $derived(reviewVisits(engine));
   const data = $derived(game?.data(players) ?? null);
   const R = $derived(data ? review(data, "lead", LABEL_VISITS) : null);
