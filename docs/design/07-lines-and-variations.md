@@ -185,6 +185,12 @@ cut edges that are on the board, so a line drawn over the board can show edges t
 ## Alternatives
 
 - **Text lines only** (Lichess's lines): the board keeps the candidates, and the player reads the line from text.
+- **The candidates as turns** (tried, and taken back): each candidate with the next edge of its line, at the first
+  edge of a turn of two. One search gives one turn for each first edge, the best turn that starts with it. So the
+  rows rank first edges, not turns. When A then B is the best turn, A then C the second, and B then D the third, the
+  table shows A B and then B D, and A C not at all. The second row then reads as the second-best turn. The values do
+  not change either: a first edge's values are already those of its best turn. The listed line under the table shows
+  the second edge of the candidate pointed at.
 - **All at once by default:** simpler, but the order of a scattered line is hard to follow.
 - **Numbers on the new point** (Go's numbered stones): different from the candidates' badges by place, but an edge
   that joins two nodes has no new point.

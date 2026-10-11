@@ -35,7 +35,7 @@ How the sound was chosen (decisions/product.md, "Move sounds, and progress bars 
    through a game does not repeat one sound.
 4. **When:** a step one move on, from any key or button, plays the sound, and so do a move played (the player's own
    edge, a candidate played by Space or a double-click, a line played from the list) and a move clicked in the move
-   list or in the Highlights' Biggest mistakes. Other jumps are silent: back, the start and the end, the chart, the
+   list. Other jumps are silent: back, the start and the end, the chart, the
    fork keys, the line beside. A click on the place already on screen is silent too: the sound plays only when the
    board changes. So holding → plays one sound a step, and the animated engine line plays none.
 5. **On by default,** as on Lichess, at the owner's volume (0.4), with a "Move sounds" switch and a volume slider in

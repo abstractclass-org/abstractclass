@@ -29,25 +29,25 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
 2. **The columns follow Lichess's widths,** and its fixed switch to three columns at 1,260 pixels, although the third
    column makes the board smaller on a window just above that width (694 pixels against 846 at 1,376 × 952):
    - **Three columns from 1,260 pixels:** the summary on the left, the board in the middle, the analysis on the
-     right. The summary is the review's progress and the Highlights (the result, the counts, the biggest mistakes).
-     The analysis is the position's engine header, the candidates, the move list and the step controls. Highlights
-     is no longer a tab, so this layout has no tabs.
+     right. The summary is the review's progress and the Highlights (the result and the counts). The analysis is the
+     position's engine header, the candidates, the move list and the step controls. Highlights is no longer a tab,
+     so this layout has no tabs.
    - **Two columns from 800 to 1,260 pixels:** the board, and one right column with the tabs (Highlights,
      Analysis), as before.
    - **One column below 800 pixels:** the board, then the right column's content.
    - **Widths:** the summary column 250 to 350 pixels (Lichess's side column). The analysis column 340 to 460 pixels:
      wider than Lichess's 240 to 400, because its candidates table has five columns and a scroll bar.
-   - **Height:** the side columns (the summary and the analysis) reach down to the Advantage chart's bottom edge when
-     the whole chart is in the window, so that the columns end on one line. The chart's legend stays below that line,
-     as a caption. When the chart does not fit in the window (the board fills the height), the side columns are as
-     high as the board's column, so that the step controls stay in view. The move list takes the height that is left.
-     Whether the chart fits is measured again whenever the window, the board's column or the page changes size.
+   - **Height:** the side columns (the summary and the analysis) end where the window ends, less the page's margin
+     (1rem), but never above the board's bottom edge and never below the Advantage chart's. So they grow with the
+     window: with the whole chart in the window they end on one line with it, and the chart's legend stays below that
+     line, as a caption. When the board fills the height, they end with the board, so that the step controls stay in
+     view. The move list takes the height that is left. The columns' end is measured again whenever the window, the
+     board's column or the page changes size.
 3. **Under the board:** the Advantage chart and its legend, as Lichess puts its chart under the board. It is below the
    fold when the board fills the height. **While the review runs,** the line is dashed and faint where a position has
    only its first search (the sweep's 32 visits), and solid where its search has the review's depth. The legend then
    says "First estimate, refined as the review runs", and a dashed position's note says "first estimate". This marking
-   is the site's own, not taken from a published tool. The Highlights' biggest mistakes give the points lost as a
-   number alone (−136), as the move list gives its numbers, with the whole loss in the number's note.
+   is the site's own, not taken from a published tool.
 4. **The step controls** (first, back, forward, last), the status line and the display settings' button are a bar at
    the bottom of the analysis column, as on Lichess, next to the move list that they step through.
 5. **The win chance is a display setting:**
@@ -93,6 +93,21 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
    while the position on screen is searched. With reduced motion asked for, there is no gleam. **The gleam is slower
    than Lichess's:** it crosses the bar in 2 seconds at any width, then waits 1 second. Lichess's gleam moves 3,400
    pixels in 3 seconds, so it flashes across a bar of 400 pixels in about a third of a second.
+8. **Two kinds of number, one form each:**
+   - **Who is ahead:** the side ahead is named, and the number is never below 0: "Red +105", whoever is to move, as Go
+     writes "B+3.5". Even reads "0" among numbers and "even" in a sentence. So: the engine header ("Expected final
+     margin Red +116 ± 325 · lead Red +105", at the end "Final margin Red +60.5"), the candidates table's Lead column
+     ("Blue +22", and "Blue +1.2k" from 1,000), number 1's note on the board ("Red wins 67.8% · lead Red +109"), a
+     move's note ("After it: Blue +38") and the chart's notes. The win chance is the mover's, and its column names the
+     side ("Red wins"). The gauge, the chart and the players' tags show both sides.
+   - **What a move cost:** the mover's loss against the engine's best. It needs no side: it is always the mover's. In
+     the move list, the points at the right of each move, where Lichess's move list has its evaluation: "−136". In
+     every note, the win chance first and then the points, each with its sign: a move's note ("Blunder: −25.0% · −143
+     pts · After it: Blue +38") and the other candidates' notes on the board, against number 1 ("−4.0% · −26 pts").
+     A plus marks a gain (a candidate after number 1 that looks a little better), and a value that rounds to 0 has no
+     sign ("0.0% · 0 pts").
+   - Lichess and chess.com give every value from White's side. Here every advantage of Red's would then be a number
+     below 0, and Red's player would read their own choices in reverse.
 
 ## Why
 

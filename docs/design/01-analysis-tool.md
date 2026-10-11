@@ -125,7 +125,17 @@ DecodeChess.
    - **Uniqueness:** each solution edge must beat the second-best by a large margin (the analogue of 0.7 winning
      chances, refitted per principle 3).
    - **Rating:** Glicko-2 from solvers' attempts once people use them. Predicted difficulty (BigData Cup) until then.
-   - **Two edges a turn:** a turn has two edges, so a solution may have to be the pair: set up, then close.
+   - **Two edges a turn:** the solver plays one edge at a time, and each solution edge must be the only good one.
+     So uniqueness, not the turn, sets a puzzle's length:
+     - **One edge:** the first edge is the only good one, and several second edges are good. The puzzle ends at the
+       turn's middle, and then shows the good second edges, so that the turn ends on the board.
+     - **The pair:** both edges are the only good ones: set up, then close. The same two edges in the other order are
+       accepted when both orders are legal.
+     - **Finish the turn:** the puzzle starts at a turn's middle, and only the closing edge is good. A turn whose first
+       edge was good and whose second was a blunder gives such a puzzle.
+     - **The second-best, for a first edge,** is the best other turn, found as the review finds it for Great (design
+       05): the edges of the solution's own turn are left out, because the best turn that starts with one of them is
+       often the solution in the other order.
 8. **Tags as rules on the solution line, as Lichess's `cook.py` does, named in the players' own vocabulary where it
    can be made exact.**
    - **The community's document** ("Enclosure Tech & Strategy Documentation", a Google Doc, read as text, without its

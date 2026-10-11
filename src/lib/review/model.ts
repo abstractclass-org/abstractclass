@@ -219,15 +219,13 @@ export function largest(edges: EdgeReview[], n = 8): EdgeReview[] {
 /** A win chance as text, with one decimal wherever it shows. */
 export const pct = (x: number) => `${(100 * x).toFixed(1)}%`;
 
-/** The loss as text: points when known, else win chance. */
-/** The loss in short: the points, as the move list shows them, or the win chance when the analysis has no scores. */
-export function lossText(e: EdgeReview): string {
-  return e.pointsLost !== undefined ? `−${Math.round(e.pointsLost)}` : `−${pct(e.loss)}`;
-}
-
-/** The loss as a phrase: "12 points and 3.4% of win chance", or the win chance alone when the analysis has no scores. */
-export function lossPhrase(e: EdgeReview): string {
-  return `${e.pointsLost !== undefined ? `${Math.round(e.pointsLost)} points and ` : ""}${pct(e.loss)} of win chance`;
+/** A cost against the engine's best, as every note writes it: the win chance first, then the points when the analysis
+ *  has scores, each with its sign ("−4.0% · −26 pts"). `win` and `points` are losses: a minus marks a loss, a plus a
+ *  gain (a candidate after number 1 that looks a little better), and a value that rounds to 0 has no sign. */
+export function costText(win: number, points?: number): string {
+  const w = Math.abs(100 * win).toFixed(1), p = points !== undefined ? Math.round(Math.abs(points)) : undefined;
+  const sign = (loss: number) => (loss > 0 ? "−" : "+");
+  return `${w === "0.0" ? w : sign(win) + w}%${p === undefined ? "" : ` · ${p === 0 ? p : sign(points!) + p} pt${p === 1 ? "" : "s"}`}`;
 }
 
 /** The move as text: its edge, or "pass". */
@@ -235,19 +233,6 @@ export const moveName = (edge: Edge | null) => (edge ? edgeName(edge) : "pass");
 
 /** The move in the record's notation: its edge with the cut mark when it cuts (`D10-G10x`), or "pass". */
 export const moveNotation = (m: { edge: Edge | null; cut: Edge | null }) => `${moveName(m.edge)}${m.cut ? "x" : ""}`;
-
-/** A sentence from facts only (design 04): what was played, and the engine's choice. */
-export function explain(e: EdgeReview): string {
-  const who = PLAYER_NAME[e.player];
-  if (!e.edge) return `${who} passed (the clock ran out), and lost the rest of the turn.`;
-  if (!e.label) return `${who} played ${edgeName(e.edge)}. Not analysed yet.`;
-  if (e.label === "great") return `Great. ${who} found ${edgeName(e.edge)}, the only good edge here.`;
-  if (e.label === "best") return `${who} played ${edgeName(e.edge)}, the engine's first choice.`;
-  const better = e.best && !sameEdge(e.best.edge, e.edge) ? ` ${edgeName(e.best.edge)} was best.` : "";
-  const lost = lossPhrase(e);
-  if (e.label === "excellent" || e.label === "good") return `${LABEL_TEXT[e.label]}. ${who} played ${edgeName(e.edge)}, ${lost} from the best.${better}`;
-  return `${LABEL_TEXT[e.label]}. ${who} played ${edgeName(e.edge)} and lost ${lost}.${better}`;
-}
 
 /** A note for the move list, in one line: the label, and the engine's choice when the edge was not it. */
 export function shortNote(e: EdgeReview): string {

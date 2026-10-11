@@ -982,3 +982,125 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   branch's preview too. Its line: "The engine's line and a branch's preview: one edge at a time, or all at once." One
   setting for both: they draw a numbered line on the board the same way.
 
+### Labels by turn (2026-10-11)
+
+- **Asked by a player of the community:** judge a turn as a whole, not each edge. What does a turn say when its first
+  edge is a Blunder and its second Good, its first Excellent and its second a Blunder, or its first an Inaccuracy and
+  its second a Blunder?
+- **Decided:** the label belongs to the turn, and the edges explain it (design 05). The labels' counts, the accuracy,
+  Biggest mistakes and the key moments go by turn. Not built yet.
+- **Why:**
+  - A turn is the player's decision. The opponent does not move between its two edges, the score is paid at the
+    turn's end, and both edges are protected together. Lichess and KaTrain give one label to each decision. In their
+    games a move is a turn.
+  - Connect6 has the same turns (one stone, then two a turn), and Arimaa's move is up to four steps. Both record a
+    turn as one move. No review tool for either was checked, so this is the site's own choice, not a published method.
+  - The engine's values serve as they are. A turn's loss is the sum of its edges' losses, and the value between them
+    cancels.
+  - Edge labels read badly in the cases asked about. A first edge's loss assumes the best second edge. So an Excellent
+    first edge before a Blunder praises a plan that the player did not play: the first edge was good only with a
+    second edge that the player did not find.
+- **Measured** (decisions/engine.md, "Label agreement by turn"): on the same 4 bot games, at 256 visits the turn
+  labels find more of a deeper search's mistakes than the edge labels do (54% against 42%), with more of their flags
+  right (88% against 79%). At 512 visits the two are about equal.
+- **Found:** the model already computed a turn's loss and label (`src/lib/review/model.ts`), which the page did not
+  show. Its points added each edge's loss after the clamp at 0, so the middle search's error came back in. A turn's
+  points come from its two ends (design 05).
+- **Request 07 changed** before its run ([requests/07-archive-analysis.md](../requests/07-archive-analysis.md)): the
+  first three candidates' lines at a turn's start, and the Great follow-up by turn.
+
+
+### The candidates as turns: tried, and taken back (2026-10-11)
+
+- **Tried:** at the first edge of a turn of two, each candidate with the next edge of its line, the same two edges in
+  the other order once, the visits in each row's note, and two lines a row only when the column had no room. Checked
+  in Edge on the sample game: one line a row at a 16-pixel root font, the second edges in a column of their own, and
+  two lines a row from 17 pixels. Digits in the page's font differ in width (1 is 5.6 pixels and 4 is 8.1 at 14
+  pixels), so the widest pair was measured on `M14-M16 M14-M16`.
+- **Taken back:** one search gives one turn for each first edge, the best turn that starts with it, so the rows rank
+  first edges, not turns. With A then B the best turn, A then C the second and B then D the third, the table showed
+  A B and then B D, which reads as the second-best turn, and A C not at all. A first edge's values are already those
+  of its best turn, and the listed line shows the second edge of the candidate pointed at. The table lists edges
+  again, as before (design 07, "Alternatives").
+
+### Judged by turn or by edge, and numbers from one side (2026-10-11)
+
+- **Found:** marks on the edges that lost points under a turn's label judge each edge alone. They are labels by edge
+  under another name. Labels by turn exist to drop that judgment, but each edge's own quality is still worth seeing.
+- **Decided:** a display setting for the whole page, "Judge by": Turn (the default) or Edge (design 05). It sets the
+  unit of the labels, the move list's numbers, the counts and the accuracy, Biggest mistakes and the key moments. A
+  turn's note gives its edges' own labels and losses, so that one turn can be read by edge. A switch for each turn
+  was not taken: it mixes units in one list and in the counts. Not built yet.
+- **Found:** the move list gave the lead after each move from Blue's side (Lichess's evaluation after each move),
+  and Biggest mistakes the mover's loss. A Red blunder read "+38". The engine header gave Blue's side, and the
+  candidates table the mover's.
+- **Built** (design 06, "A number reads from one side"): the move list gives each move's loss from the mover's side,
+  as Biggest mistakes does ("−143"), and the lead after it is in the move's note ("After it: Blue +38"). The engine
+  header gives the expected final margin and the lead from the side to move, as the candidates table does, and the
+  final margin from the winner's side. A loss of one point reads "1 point".
+- **Checked in Edge** on the sample game: Red's blunder Q10-R8 reads "−143", its note "Blunder: lost 143 points and
+  25.0% of win chance · After it: Blue +38". At Red's first turn the header reads "Expected final margin +116 ± 325
+  for Red · lead +105" (before: −116 for Blue). At the start, "+23 ± 309 for Blue".
+
+### Biggest mistakes removed, and a turn's badge on both its edges (2026-10-11)
+
+- **Removed:** the Highlights' Biggest mistakes. Each line gave an edge and its points lost, which follows neither
+  judging by turn nor the "Judge by" setting. "Learn from your mistakes" can come later without it
+  (decisions/open-items.md, "Learning from mistakes"). The key moments stay: the Advantage chart marks them, and the
+  review searches them deeper. The Highlights' sentence on the largest mistake still names an edge: it is to follow
+  the "Judge by" setting when that is built. Checked in Edge: the summary ends with the counts.
+- **Decided** (design 05): by turn, the board shows the turn's badge on both its edges, marks both as the turn just
+  played, and lights both badges and edges with the turn's note when the pointer is on either. One badge on the
+  turn's last edge would read as that edge's label. Not built yet.
+
+### The side columns grow with the window, the side ahead named, and the Highlights' sentence dropped (2026-10-11)
+
+- **The side columns' height** (design 06, "Height"): they end where the window ends, less the page's margin, from
+  the board's bottom edge down to the Advantage chart's at most. Before, they reached the chart only when the whole
+  chart was in the window, and else ended with the board, so a window a little too short for the chart left the
+  space under the board empty. Checked in Edge at three window heights (inner heights 586, 890 and 976 pixels):
+  - 586: the board fills the height, and the columns end with it (570), the step controls in view (557).
+  - 890: the board ends at 815 and the chart at 947, below the fold, and the columns end at 874, the window's
+    bottom less 16 pixels. Before, they ended at 815.
+  - 976: the whole chart is in the window, and the columns end with it (878).
+  - The two-column layout (800 to 1,260 pixels) was not checked: the window did not take the narrower width.
+- **Who is ahead, with the side named** (design 06, "Two kinds of number, one form each"): the engine header
+  ("Expected final margin Red +116 ± 325 · lead Red +105", at the end "Final margin Red +60.5"), the candidates
+  table's Lead column ("Blue +22") and number 1's note on the board ("Red wins 67.8% · lead Red +109"). The
+  candidates table keeps the win chance and the lead. Its Lead column grew from 48 to 76 pixels for "Blue +999"
+  (65 pixels in bold at 14 pixels, as wide as "Blue +1.2k"), and the edge column at its least went from 98 to 70,
+  still enough for the longest names (57 to 62). Checked in Edge on all 120 positions of the sample game at the
+  analysis column's least width: no cell cut. The sample game's leads stay under 1,000, so "Blue +1.2k" was measured
+  as text only.
+- **Dropped:** the Highlights' sentence on the largest mistake, which named an edge and its points lost.
+
+### One form for a loss in every note (2026-10-11)
+
+- **Found:** two forms for the same loss. The board's notes for the other candidates read "vs 1: −4.0% · −26 pts",
+  and a move's note in the move list "Blunder: lost 143 points and 25.0% of win chance".
+- **Decided and built** (design 06, "What a move cost"): the win chance first, then the points, each with its sign, and
+  no "vs 1", since the minus sign already says it is a loss against the best. The win chance comes first because it
+  matters more, and so a turn's note can give its edges' points right after its own (design 05). A move's note:
+  "Blunder: −25.0% · −143 pts · After it: Blue +38". A candidate's note: "−4.0% · −26 pts". A value that rounds to 0
+  has no sign, and one point reads "1 pt". The move list's number stays the points. The sentence helper that the
+  Highlights' sentence used is removed with it.
+- **Checked in Edge** on the sample game: the notes of Q10-R8 ("Blunder: −25.0% · −143 pts · After it: Blue +38"),
+  A10-D11 ("Excellent: −1.0% · −1 pt · After it: Red +52") and N11-Q10 ("Best: 0.0% · 0 pts · After it: Red +64"),
+  and candidate 2's note at Red's first turn, with the real pointer on its edge ("−4.0% · −26 pts").
+
+### The board's notes fit their text (2026-10-11)
+
+- **Found:** a candidate's note box took 0.25 of a board unit for each character, an estimate made for the old,
+  shorter notes. "−4.0% · −26 pts" got a box of 4.15 units around 2.92 of text.
+- **Built:** the box is the text's width, measured in the note's own font at 100 times its size, plus 0.2 a side. The
+  board draws the text smaller, where it comes out up to 2% wider, so the text is centred in its box. Checked in Edge
+  with the real pointer on each candidate at Red's first turn: "−4.0% · −26 pts" in 3.32 units (0.2 a side), and
+  "Red wins 67.8% · lead Red +109" in 6.28 units (0.15 a side).
+
+### Request 07 asks for Great by edge and by turn (2026-10-11)
+
+- **Decided:** with labels by turn and by edge on one page, request 07 asks for both Great follow-ups: the one by edge,
+  which the engine repository's driver already has, and the one by turn beside it. The label bands need nothing more:
+  a turn's loss and an edge's loss come from the same values at every position. Great is not fitted (its 0.10 gap is
+  En Croissant's rule): the follow-ups make the archive's labels the site's in either mode. They cost a search only
+  where a gap shows, and at a turn's second edge the two are one search.

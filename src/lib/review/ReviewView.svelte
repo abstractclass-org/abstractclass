@@ -27,7 +27,7 @@
   import { playMove, preload } from "#lib/sound.ts";
   import Glyph from "./Glyph.svelte";
   import {
-    explain, edgeName, moveName, moveNotation, sameEdge, shortNote, judgeBranchEdge, valuesAfter, moverWin, moverScore, largest, lossText, lossPhrase, pct, shownCandidates, lineMovers, enoughVisits, trustedLine, type Analysis, type Candidate, type LineStep, LABELS, LABEL_TEXT, LABEL_GLYPH, PLAYER_NAME, type Edge, type Label, type Player, type Position, type Review,
+    edgeName, moveName, moveNotation, sameEdge, shortNote, judgeBranchEdge, valuesAfter, moverWin, costText, pct, shownCandidates, lineMovers, enoughVisits, trustedLine, type Analysis, type Candidate, type EdgeReview, type LineStep, LABELS, LABEL_TEXT, LABEL_GLYPH, PLAYER_NAME, type Edge, type Label, type Player, type Position, type Review,
   } from "./model.ts";
   import { branchChildren, branchRows, mainIndex, nextFork, pathKey, prevFork, sharedLength, siblingLine } from "./tree.ts";
 
@@ -89,20 +89,23 @@
   let gaugeHeight = $state(0);
   // The row above the board is one line high, or two in a narrow row: the board and the side columns take its height.
   let stripHeight = $state(0);
-  // The side columns reach down to the Advantage chart's bottom edge when the whole chart is in the window, so that
-  // the columns end on one line. When the board fills the window's height, the chart is below the fold: the side
-  // columns then keep the board's height, so that the step controls stay in view. The chart's place depends only on
-  // the board's column, so reaching down does not move it. The chart's place is measured again whenever the board's
-  // column or the page changes size, not only the window: the row above the board, measured after the first paint, or
-  // a bar of the browser's own, move it too.
+  // The side columns end where the window ends, less the page's margin, but never above the board's bottom edge and
+  // never below the Advantage chart's: so the step controls stay in view, and with the whole chart in the window the
+  // columns end on one line with it. The chart's place depends only on the board's column, so the side columns do not
+  // move it. It is measured again whenever the board's column or the page changes size, not only the window: the row
+  // above the board, measured after the first paint, or a bar of the browser's own, move it too.
   let chartBox = $state<HTMLElement>();
   let boardCol = $state<HTMLElement>();
-  let reach = $state(false);
+  let sideHeight = $state<number | null>(null);
   $effect(() => {
     void innerWidth.current; void wide.current; void display.win;
     const height = innerHeight.current;
     if (!chartBox || !boardCol || height === undefined) return;
-    const measure = () => { reach = chartBox!.getBoundingClientRect().bottom + window.scrollY <= window.innerHeight; };
+    const measure = () => {
+      const col = boardCol!.getBoundingClientRect(), chart = chartBox!.getBoundingClientRect();
+      const margin = parseFloat(getComputedStyle(document.documentElement).fontSize); // the page's 1rem
+      sideHeight = Math.max(col.bottom, Math.min(window.innerHeight - window.scrollY - margin, chart.bottom)) - col.top;
+    };
     measure();
     const watch = new ResizeObserver(measure);
     watch.observe(boardCol);
@@ -169,9 +172,7 @@
   // The move list explains these labels under their turn.
   const COMMENTED: Label[] = ["great", "mistake", "blunder"];
 
-  const pts = (x: number) => `${x >= 0 ? "+" : "−"}${Math.abs(Math.round(x))}`;
   const fmtScore = (s: number) => Math.round(s).toLocaleString("en");
-  const signed = (x: number, text: string) => `${x < 0 ? "−" : "+"}${text}`;
   // A candidate's row, tinted by Blue's win chance after it: blue when it favours Blue, red when it favours Red. The
   // tint is a diverging scale in equal steps per side, not a continuous one: steps are easier to tell apart than shades.
   // The steps start at chess.com's win-chance bands (labels.ts: 2%, 5%, 10%, 20%), here as the distance from 50%, so
@@ -183,13 +184,13 @@
     return step ? `background: color-mix(in srgb, var(${blueWin > 0.5 ? "--blue" : "--red"}) ${step[1]}%, transparent)` : "";
   }
 
-  // The engine's candidates on the board (model.ts), each with its note: number 1's own values, and the others'
-  // difference from number 1 ("vs 1"), even when it is 0. A candidate after number 1 in the engine's order can be better
-  // than it, by a little: its difference is then positive.
+  // The engine's candidates on the board (model.ts), each with its note: number 1's own values, and the others' cost
+  // against number 1 (costText), even when it is 0. A candidate after number 1 in the engine's order can be better than
+  // it, by a little: its cost then has a plus.
   const candidates = $derived<BoardCandidate[]>(shownCandidates(analysis, mover).map(({ c, rank, gap, gapPts }) => ({
     edge: c.edge, rank,
-    note: rank === 1 ? `${pct(moverWin(c.blueWin, mover))}${c.lead !== undefined ? ` · ${pts(moverScore(c.lead, mover))} pts` : ""}`
-      : `vs 1: ${signed(-gap, pct(Math.abs(gap)))}${gapPts !== undefined ? ` · ${signed(-gapPts, `${Math.abs(Math.round(gapPts))} pts`)}` : ""}`,
+    note: rank === 1 ? `${PLAYER_NAME[mover]} wins ${pct(moverWin(c.blueWin, mover))}${c.lead !== undefined ? ` · lead ${sideText(c.lead, 0, "0")}` : ""}`
+      : costText(gap, gapPts),
   })));
 
   // The engine's line from the candidate pointed at, on the board or in the table (KaTrain's and Lizzie's way): its
@@ -458,8 +459,8 @@
   });
 
   // A move's sound (design 08), a crayon stroke: a step one move on plays it, from any key or button, and so does a move
-  // played or clicked in the move list or in Biggest mistakes. Other jumps (back, the start and the end, the chart, the
-  // fork keys) are silent, and so is a click on the place already on screen: the board does not change.
+  // played or clicked in the move list. Other jumps (back, the start and the end, the chart, the fork keys) are silent,
+  // and so is a click on the place already on screen: the board does not change.
   function setPath(p: string[], sound = false) {
     const step = p.length === path.length + 1 && sharedLength(p, path) === path.length;
     if (pathKey(p) === here) sound = false;
@@ -510,12 +511,6 @@
     let p = path;
     for (let next = childrenOf(p)[0]; next; next = childrenOf(p)[0]) p = next;
     setPath(p);
-  }
-  /** Shows a move in the analysis: the position after it, where the move list explains it (Lichess's summary jumps to
-   *  the move itself, nextGlyphSymbol in ui/analyse/src/nodeFinder.ts). */
-  function showMove(index: number) {
-    stage = "analysis";
-    go(index + 1, true); // a move clicked, as in the move list: its sound plays
   }
   $effect(() => onposition?.(path));
 
@@ -598,7 +593,6 @@
   const scoreDiff = $derived(R.data.positions.map(p => p.scores[0] - p.scores[1]));
   const winner = $derived<Player>(R.data.result.blue > R.data.result.red ? 0 : 1);
   const margin = $derived(Math.abs(R.data.result.blue - R.data.result.red));
-  const biggest = $derived(largest(R.mistakes, 1)[0]);
   const status = $derived.by(() => {
     if (mainAt === null) {
       // In a branch: where it leaves the game, and the turn as in the game.
@@ -623,19 +617,22 @@
   const blueWin = $derived(mainAt !== null ? R.blueWin[mainAt] : over ? endWin(position) : analysis?.blueWin ?? NaN);
   // The chart's hover, as Lichess's: the move that led to the position and its label, then one number. The number is
   // the engine's lead, which KaTrain's graph plots (B+n) and from which the points lost come.
-  // The move list's number after each move: the engine's lead in the position after it, from Blue's side, as Lichess
-  // shows its evaluation there (+0.3). Whole points, signed, and thousands as "k", so it never needs more than five
-  // characters (+1.2k). After the last move, the result.
-  function leadShort(blue: number | undefined): string {
-    if (blue === undefined) return "";
-    const a = Math.abs(blue);
-    const text = a >= 999.5 ? `${(a / 1000).toFixed(1)}k` : `${Math.round(a)}`;
-    return text === "0" ? "0" : `${blue > 0 ? "+" : "−"}${text}`;
+  // A move's loss in the move list: the mover's points lost, in at most 5 characters (−1.2k), or the win chance lost
+  // when the analysis has no scores. Nothing until the move is judged.
+  function lossShort(e: EdgeReview): string {
+    if (!e.label) return "";
+    if (e.pointsLost === undefined) return `−${Math.round(100 * e.loss)}%`;
+    const a = e.pointsLost, text = a >= 999.5 ? `${(a / 1000).toFixed(1)}k` : `${Math.round(a)}`;
+    return text === "0" ? "0" : `−${text}`;
   }
-  const sideText = (blue: number, digits = 0) => {
+  // Who is ahead, from Blue's value: the side ahead named, and a number never below 0 ("Red +105"), whoever is to move
+  // (Go writes "B+3.5"). Even: "even" in a sentence, "0" among numbers. In short, from 1,000 on: "Red +1.2k".
+  const sideText = (blue: number, digits = 0, even = "even") => {
     const v = Number(Math.abs(blue).toFixed(digits));
-    return v === 0 ? "even" : `${PLAYER_NAME[blue > 0 ? 0 : 1]} +${v.toLocaleString("en")}`;
+    return v === 0 ? even : `${PLAYER_NAME[blue > 0 ? 0 : 1]} +${v.toLocaleString("en")}`;
   };
+  const sideShort = (blue: number) =>
+    Math.abs(blue) >= 999.5 ? `${PLAYER_NAME[blue > 0 ? 0 : 1]} +${(Math.abs(blue) / 1000).toFixed(1)}k` : sideText(blue, 0, "0");
   const chartTips = $derived(R.data.positions.map((_, i) => {
     const e = i > 0 ? R.edges[i - 1] : null;
     const title = e ? `${moveText(e.index)}${listed(e.label) ? ` · ${LABEL_TEXT[e.label]}` : ""}` : "The start";
@@ -714,8 +711,7 @@
   <p class="mb-3.75">
     <strong>{PLAYER_NAME[winner]} won by {margin.toFixed(1)} points</strong>
     ({fmtScore(R.data.result.blue)} to {fmtScore(R.data.result.red)}).
-    {#if progress}The review is still running: the counts and the mistakes below are partial.{/if}
-    {#if biggest}The largest mistake came at edge {biggest.index + 1}: {explain(biggest)}{/if}
+    {#if progress}The review is still running: the counts below are partial.{/if}
   </p>
   <!-- The number columns are as wide as their content, and the labels take the rest. -->
   <table class="w-full text-sm">
@@ -744,20 +740,6 @@
       {/each}
     </tbody>
   </table>
-  <h3 class="mt-4 mb-1 font-bold">Biggest mistakes{#if progress} <span class="ml-1.5 text-sm font-normal text-muted">so far</span>{/if}</h3>
-  <ol class="mb-3.5 pl-5 list-decimal">
-    {#each R.keyMoments as m (m.index)}
-      <li>
-        <!-- As a move in the move list: the whole row is the button, with the points lost at its right edge. -->
-        <button class="flex items-baseline gap-1.5 w-full px-[0.2rem] py-0.5 text-left bg-transparent border-0 hover:bg-panel-2 hover:outline hover:outline-line"
-                onclick={() => showMove(m.index)}>
-          <span class={BADGE} style:background="var(--{m.label})"><Glyph glyph={LABEL_GLYPH[m.label!]} /></span>
-          <span class="font-mono text-[0.95em] {SIDE_TEXT[m.player]}">{moveText(m.index)}</span>
-          <span class="ml-auto text-sm text-muted tabular-nums whitespace-nowrap" title="Lost {lossPhrase(m)}">{lossText(m)}</span>
-        </button>
-      </li>
-    {/each}
-  </ol>
 {/snippet}
 
 <!-- The Analysis: the candidates table and the move list. -->
@@ -766,14 +748,14 @@
   <!-- The table's box: a fixed height (from TABLE_ROWS), a scroll bar when there are more rows, and room for the
        scroll bar kept at all times, so that the columns do not move when it appears. Fixed columns: the table
        keeps its layout from position to position. Each fits its widest content (a two-digit rank, the header
-       "Blue wins", a lead of four digits, five-digit visits), and the space left goes to the edge column. When
-       that column is narrower than the longest edge name (7 characters, about 4.4em), the name's text gets
-       smaller instead of being cut: its cell is a size container, and the text is at most 22% of its width. Below
-       70% of its size the text would be hard to read, so the name is cut there. -->
+       "Blue wins", a lead with its side, "Blue +999" or "Blue +1.2k", five-digit visits), and the space left goes to
+       the edge column. When that column is narrower than the longest edge name (7 characters, about 4.4em), the
+       name's text gets smaller instead of being cut: its cell is a size container, and the text is at most 22% of its
+       width. Below 70% of its size the text would be hard to read, so the name is cut there. -->
   <div class="flex-none mb-3 overflow-y-auto [scrollbar-gutter:stable] text-sm" bind:this={tableBox}
        style="height: {(TABLE_ROWS + 1) * ROW_EM}em; --row: {ROW_EM}em">
   <table class="w-full table-fixed [&_:is(th,td)]:px-1 [&_:is(th,td)]:py-0.5 [&_:is(th,td)]:border-b [&_:is(th,td)]:border-line [&_:is(th,td)]:truncate">
-    <colgroup><col class="w-7" /><col /><col class="w-18" /><col class="w-12" /><col class="w-12" /></colgroup>
+    <colgroup><col class="w-7" /><col /><col class="w-18" /><col class="w-19" /><col class="w-12" /></colgroup>
     <thead>
       <tr class="[&>th]:sticky [&>th]:top-0 [&>th]:z-1 [&>th]:h-(--row) [&>th]:bg-panel [&>th]:text-left [&>th]:font-medium [&>th]:text-muted">
         <th>#</th><th>Edge</th><th>{PLAYER_NAME[mover]} wins</th><th>Lead</th><th>Visits</th>
@@ -792,7 +774,7 @@
                     title={onBoard.has(rank) ? "On the board" : undefined}>{@render digits(rank)}</span></td>
           <td><div class="@container truncate"><span class="text-[clamp(0.7em,22cqi,1em)]">{edgeName(c.edge)}</span></div></td>
           <td>{pct(moverWin(c.blueWin, mover))}</td>
-          <td>{c.lead !== undefined ? pts(moverScore(c.lead, mover)) : "–"}</td><td>{c.visits}</td>
+          <td>{c.lead !== undefined ? sideShort(c.lead) : "–"}</td><td>{c.visits}</td>
         </tr>
       {/each}
       {#each Array.from({ length: Math.max(0, TABLE_ROWS - rows.length) }, (_, k) => k) as k (k)}
@@ -818,18 +800,20 @@
         <span class="text-muted tabular-nums">{t.number}.</span>
         {#each t.edges as e (e.index)}
           {@const after = R.blueScore[e.index + 1]}
-          <!-- A move fills its column, and its lead is at the column's right edge (Lichess's move list). The move's
-               text has one width, so a column is never narrower than the widest move: the widest in the notation
-               is 10 characters, an edge with two-digit rows and the cut mark (D10-G10x, 8) and the widest glyph
-               (??, 2), then the glyph's margin. The lead: at most 5 characters (+1.2k), smaller and right-aligned.
-               The font is monospaced, so ch is one character of the span's own size. -->
+          <!-- A move fills its column, and its loss is at the column's right edge, where Lichess's move list has its
+               evaluation: the mover's points lost, so that a number never needs a side to read. The lead after the move is in its note. The move's text has one width, so a column is
+               never narrower than the widest move: the widest in the notation is 10 characters, an edge with
+               two-digit rows and the cut mark (D10-G10x, 8) and the widest glyph (??, 2), then the glyph's margin.
+               The loss: at most 5 characters (−1.2k), smaller and right-aligned. The font is monospaced, so ch is
+               one character of the span's own size. -->
           <button class={["mv flex items-baseline gap-1 px-[0.2rem] py-px font-mono text-[0.95em] text-left whitespace-nowrap bg-transparent border-0",
                           SIDE_TEXT[e.player], mainAt === e.index + 1 ? "here bg-panel-2 outline outline-accent"
                           : pickedKey === pathKey(mainNames.slice(0, e.index + 1)) ? PICKED : "hover:bg-panel-2 hover:outline hover:outline-line"]}
                   onclick={() => go(e.index + 1, true)} onmouseenter={() => previewMove(e.index)} onmouseleave={endPreview} tabindex="-1"
-                  title={[e.label ? LABEL_TEXT[e.label] : "Not analysed yet", after !== undefined ? sideText(after) : ""].filter(Boolean).join(" · ")}>
+                  title={[e.label ? `${LABEL_TEXT[e.label]}: ${costText(e.loss, e.pointsLost)}` : "Not analysed yet",
+                          after !== undefined ? `After it: ${sideText(after)}` : ""].filter(Boolean).join(" · ")}>
             <span class="w-[calc(10ch+0.15em)]">{moveNotation(e)}{#if listed(e.label)}<span class="ml-[0.15em] font-extrabold" style:color="var(--{e.label})"><Glyph glyph={LABEL_GLYPH[e.label]} /></span>{/if}</span>
-            <span class="w-[5ch] ml-auto text-[0.78em] text-right text-muted tabular-nums">{leadShort(after)}</span>
+            <span class="w-[5ch] ml-auto text-[0.78em] text-right text-muted tabular-nums">{lossShort(e)}</span>
           </button>
         {/each}
       </div>
@@ -1156,7 +1140,7 @@
   </div>
 {/snippet}
 
-<main class={["review", wide.current && "wide", display.win === "gauge" && "gauge-mode", reach && "reach"]}
+<main class={["review", wide.current && "wide", display.win === "gauge" && "gauge-mode"]} style:--side-h={sideHeight ? `${sideHeight}px` : undefined}
       style:--strip={stripHeight ? `calc(${stripHeight}px + 0.5rem)` : null}>
   {#if wide.current}
     <aside class="summary-col {PANEL} overflow-y-auto">
@@ -1268,10 +1252,12 @@
       </div>
       <p class="mt-1 text-xs text-muted tabular-nums">
         {#if analysis?.lead !== undefined}
+          <!-- Who is ahead, with the side named, as everywhere on the page. -->
           Expected final margin
-          <strong class="text-ink">{pts(analysis.margin!)} ± {Math.round(analysis.spread!)}</strong> for Blue · lead {pts(analysis.lead)}
+          <strong class="text-ink">{sideText(analysis.margin!, 0, "0")} ± {Math.round(analysis.spread!)}</strong>
+          · lead {sideText(analysis.lead, 0, "0")}
         {:else if over}
-          Final margin <strong class="text-ink">{pts(position.scores[0] - position.scores[1])}</strong> for Blue
+          Final margin <strong class="text-ink">{sideText(position.scores[0] - position.scores[1], 1, "0")}</strong>
         {:else}Not analysed yet{/if}
       </p>
     </div>
@@ -1400,15 +1386,12 @@
   /* The analysis column is as high as the board's column; the move list takes what is left. */
   .side { grid-area: side; height: calc(var(--strip) + var(--board)); }
   .under { grid-area: under; min-width: 0; }
-  /* With the whole chart in the window (reach, set in the script), the side columns span the chart's row too, and end
-     at the chart's bottom edge. Their height is set, so they do not make the rows taller. */
+  /* The side columns span the chart's row too, as high as --side-h (set in the script): to the window's bottom, from
+     the board's bottom edge down to the chart's at most. Their height is set, so they do not make the rows taller. */
   @media (min-width: 800px) {
-    .review.reach { grid-template-areas: "board side" "under side"; }
-    .review.wide.reach { grid-template-areas: "summary board side" "summary under side"; }
-    .review.reach .side, .review.reach .summary-col {
-      height: calc(var(--strip) + var(--board) + var(--row-gap) + var(--chart));
-      max-height: none;
-    }
+    .review { grid-template-areas: "board side" "under side"; }
+    .review.wide { grid-template-areas: "summary board side" "summary under side"; }
+    .review .side, .review .summary-col { height: var(--side-h, calc(var(--strip) + var(--board))); max-height: none; }
   }
   /* One column below 800 pixels (Lichess's $small): the board as wide as the window, then the analysis. */
   @media (max-width: 799px) {

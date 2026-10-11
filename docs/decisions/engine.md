@@ -287,3 +287,43 @@ Loading the engine, its speed, the engine interface, and the requests for it.
   - One fast laptop. A typical laptop has fewer and slower cores.
 - **This desktop's sweep at the same time** was loaded by the engine repository's training: 3.2M at 48, 86, 172 and
   264 visits a second with 1, 2, 4 and 8 workers. It is no baseline.
+
+### Label agreement by turn (2026-10-11)
+
+- **Why:** the label moves from the edge to the turn (decisions/product.md, "Labels by turn"). A turn's loss is the
+  mover's value at the turn's start less the mover's value after its last edge. The value between its edges cancels,
+  and so does the error of that search. This measures whether turn labels agree with a deeper search better than edge
+  labels do.
+- **Method:** the data of "Label agreement against search budget, under protocol 0.3" (4 bot games, 480 positions,
+  b10c128, a reference of 1,024 visits), with no new search. `scripts/measure/budget-summary.mjs --unit turn` gives
+  each turn's loss and label with the site's placeholder bands, the same bands as for an edge. A turn is Best when
+  each of its edges is the first choice: the collector keeps no line, so the best turn in its other order counts as
+  not Best. The game's last turn is left out, as its last edge is. With `--unit edge` the script gives the edges'
+  numbers above again (412 edges, 36 flags).
+- **Result,** points from the lead, after the first 16 edges: 204 turns, 28 of them Inaccuracy or worse at 1,024
+  visits. The edges' numbers in brackets:
+
+  | Visits | Same label | Mistakes found (of the reference's) | Mistake flags that are right | Points lost, mean error |
+  |---|---|---|---|---|
+  | 256 | 66% (67%) | 54% (42%) | 88% (79%) | 9.6 (7.8) |
+  | 512 | 73% (75%) | 64% (67%) | 82% (80%) | 5.8 (4.9) |
+
+  Over every turn: at 256 visits 65% the same label, 63% of mistakes found, 91% of flags right. At 512 visits 72%,
+  74% and 89%. Points from the margin give about the same (after the first 16 edges, at 512 visits: 65% found, 85%
+  right).
+- **The size of a loss:** after the first 16 edges, at 1,024 visits, a turn loses 16.1 points on average and an edge
+  10.7. The mean error divided by the mean loss is 0.59 for a turn and 0.73 for an edge at 256 visits, 0.36 and 0.45 at
+  512 visits.
+- **The bad turns' edges:** of the 28 bad turns after the opening, at 1,024 visits, 5 have both edges bad alone (each
+  edge's own loss reaches the Inaccuracy band), 19 have one, and 4 have neither: their loss is spread over the two
+  edges. Over every turn: 12, 29 and 5 of 46.
+- **Reading:**
+  - At 256 visits the turn labels do better: they find more of the reference's mistakes (54% against 42%), and more of
+    their flags are right (88% against 79%). At 512 visits the two are about equal.
+  - For its size, a turn's loss is more exact than an edge's at both budgets. The cancelled middle search explains
+    this.
+  - The samples are small. One bad turn is about 4% of "found", so 54% against 42% is about 3 turns. These are bot
+    games: people may share a turn's loss between its edges in another way. Request 07 gives both on the archive.
+  - The placeholder bands were made for one decision, and a turn is one decision. The archive's fit (request 07) gives
+    the turns their own bands.
+- **Decided:** the budgets stay. Labels by turn keep 512 visits for Lite, and a label from 256 visits on.

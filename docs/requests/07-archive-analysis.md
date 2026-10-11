@@ -2,6 +2,24 @@
 
 **Status:** accepted for a sample of 1,000 games: the whole archive would take 12 to 16 hours of the GPU. About
 119,000 positions, enough for the percentiles of points lost by rating band if the games spread over the bands.
+**Changed on 2026-10-11,** before the sample's run: the site labels turns by default, and edges on a setting. Two parts
+are added: the lines at a turn's start, and a Great follow-up by turn beside the one by edge (below, "The change for
+labels by turn").
+
+## The change for labels by turn
+
+The site now gives its label to a turn by default, and to each edge on a setting (this repository's
+`decisions/product.md`, "Labels by turn" and "Judged by turn or by edge"). A turn's loss is the mover's value at the
+turn's start less the mover's value after its last edge. The values of every position give both losses, so the
+searches at the three budgets do not change, and one run serves the fit of both. Two parts are added:
+
+- **The lines at a turn's start:** the first three candidates, each with the first two edges of its line. With them the
+  site finds the turn that the engine thinks best. Three are enough: the first two can be one turn in its two orders.
+- **The Great follow-up by turn,** beside the follow-up by edge, which stays ("For Great, by edge" and "For Great, by
+  turn", below). Most of their searches are the same: at a turn's second edge they are one search. A search that both
+  ask for runs once.
+
+If the run has started, the follow-up by turn can run after it as a second pass over the same positions.
 
 ## What
 
@@ -40,9 +58,27 @@ that its summary scripts read it:
 - **For each budget:** the root's visits, `winrate`, `scoreLead`, `scoreSelfplay` and `scoreStdev`. The first and
   the second candidates (move, visits, `winrate`, `scoreLead`, `scoreSelfplay`). The played edge's candidate when
   the search visited it.
-- **For Great:** where the played edge is the first choice and the second looks at least 0.10 of win chance worse
-  for the mover at 512 visits, also the root values of the position after the second choice, searched to 512 visits.
-  The site confirms Great so (its design 05).
+- **At a turn's first position, for each budget, also:** the first three candidates in the engine's order (move,
+  visits, `winrate`, `scoreLead`, `scoreSelfplay`), each with the first two edges of its line (`pv`) and their
+  `pvVisits` and `pvEdgeVisits`.
+- **For Great, by edge** (at 512 visits): where the played edge is the first choice and the second looks at least 0.10
+  of win chance worse for the mover, the root values of the position after the second choice, searched to 512 visits.
+  The edge is Great when that value is at least 0.10 of win chance below the value of the position after the played
+  edge.
+- **For Great, by turn** (at 512 visits). The played turn is the engine's best turn when each of its edges is the
+  first choice of its position's search, or when it reaches the same position as the first candidate's line after
+  two edges (the same two edges in the other order). Where the played turn is the best turn, give the root values of
+  each search that follows:
+  - **From the turn's start:** take the first candidate that is not an edge of the played turn. When it looks at
+    least 0.10 of win chance worse for the mover than the first choice, search the position after it to 512 visits.
+    That position's value is the value of the best turn that starts with this candidate.
+  - **From the turn's middle,** for a turn of two edges: at the position after the played first edge, when the
+    played second edge is the first choice and the second choice looks at least 0.10 of win chance worse for the
+    mover, search the position after the second choice to 512 visits. This is the follow-up by edge at the turn's
+    second edge.
+  - The turn is Great when each gap shows in its own search, and each follow-up's value is at least 0.10 of win chance
+    below the value of the position after the played turn. The game's last turn gets no follow-up: the protocol
+    refuses the final position. The site confirms Great so (its design 05).
 
 **Where:** under the engine repository's `runs/`, out of Git. This repository reads the file from there on the
 owner's machine. It commits only statistics over many games and the thresholds fitted from them, never a game.
@@ -54,7 +90,8 @@ follows it.
 
 The site's labels use placeholder thresholds: chess.com's bands of win chance and KaTrain's bands of Go points times
 the fork's score scale (`src/lib/review/labels.ts`). Design 01's principle 3 asks for thresholds fitted on Enclosure
-games: the percentiles of points lost that separate strong players' edges from weak players'. Checks on two reviewed
+games: the percentiles of points lost that separate strong players' turns from weak players', and the same for
+edges, for the site's labels by edge. Checks on two reviewed
 games show why it matters: a game decided early flags 44 of its 120 edges, most of them from points lost after the win
 chance has saturated (this repository's `decisions/product.md`, "Label checks under protocol 0.3"). The same data
 serves the rest of the milestone (design 01, section 4):

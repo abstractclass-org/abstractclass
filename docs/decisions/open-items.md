@@ -36,7 +36,8 @@ Rules:
   measured against 1,024). The same scripts take `--deep 4096 --budgets 32,64,128,256,512,1024`. About two hours of
   CPU for 4 games. Asked of the engine repository on about 100 archive games, part 2 of
   [requests/07-archive-analysis.md](../requests/07-archive-analysis.md).
-- **Label thresholds:** fit them on the archive (design 01, principle 3). This needs the archive analysed offline:
+- **Label thresholds:** fit them on the archive (design 01, principle 3), by turn (design 05, "The label belongs to
+  the turn"). This needs the archive analysed offline:
   asked of the engine repository ([requests/07-archive-analysis.md](../requests/07-archive-analysis.md)). Before the
   first deploy. Look at the labels of ordinary games, and of extreme ones: games decided early with large
   scores, such as `3wes2o`, flag 44 of 120 edges with the placeholder point bands (decisions/product.md, "Label checks

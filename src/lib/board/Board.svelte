@@ -73,6 +73,16 @@
   // The hover is kept as an edge: a search in progress renews the candidates after each slice.
   let hoveredEdge = $state<Edge | null>(null);
   const hovered = $derived(hoveredEdge ? candidates.find(c => sameEdge(c.edge, hoveredEdge!)) ?? null : null);
+  // A note's text width in the board's units, measured in the note's own font (.cand-note text) at 100 times its size,
+  // so that its box fits the text, whatever the note says. The board draws the text smaller, where it can come out about
+  // 2% wider, so the text is centred in its box and the difference splits between the two sides.
+  let measurer: CanvasRenderingContext2D | null = null;
+  function noteWidth(text: string): number {
+    measurer ??= document.createElement("canvas").getContext("2d");
+    if (!measurer) return 0.25 * text.length;
+    measurer.font = "42px system-ui, sans-serif";
+    return measurer.measureText(text).width / 100;
+  }
   const lit = $derived(hovered ?? (highlight ? candidates.find(c => sameEdge(c.edge, highlight!)) ?? null : null));
   // The board as the line leaves it: the edges it cuts are off the board and drawn as cut (as the last edge's cut is),
   // and the regions are the ones after its last edge, once the engine's rules have played it.
@@ -241,11 +251,11 @@
     {@const h = lit}
     {@const [mx, my] = mid(h.edge)}
     {#if hovered === h}
-      {@const w = 0.25 * h.note.length + 0.4}
+      {@const w = noteWidth(h.note) + 0.4}
       {@const nx = mx + 0.62 + w > N ? mx - 0.62 - w : mx + 0.62}
       <g class="cand-note" class:first={h.rank === 1}>
         <rect x={nx} y={my - 0.38} width={w} height="0.76" rx="0.15" />
-        <text x={nx + 0.2} y={my + 0.14}>{h.note}</text>
+        <text x={nx + w / 2} y={my + 0.14} text-anchor="middle">{h.note}</text>
       </g>
     {/if}
   {/if}
