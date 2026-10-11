@@ -507,3 +507,51 @@ to test. P(win) = σ(z), the logistic curve.
 
   Blunders fall by half. Inaccuracies rise a little: where the engine is saturated, at 99% or more, a human chance of
   96% can still fall to 91%, as principle 1 of design 01 asks.
+
+### The win curve's flat middle: the side to move, and the stronger player (2026-10-12)
+
+The curve σ(k · lead / scoreStdev), fitted on every archive game ("The human win curve fitted on the archive"), was
+too flat between 20% and 80%. Part 1 at 1,024 visits, the same games and the same split. Scripts in the session's
+scratch space, not committed: the method that is chosen goes into `scripts/measure/fit-win-curve.mjs`.
+
+- **Not a floor of upsets:** a curve ε + (1 − 2ε) σ(k x) fits ε = 0.01 and gains nothing (test log loss 0.3890
+  against 0.3892).
+- **The data's own curve is lopsided.** By bins of x = lead / spread for the player to move: at x near +1.1 the mover
+  won 74% (the curve 75%), at x near −1.1 only 16% (the curve 24%), and at x near 0, 47.5%. A curve that treats both
+  sides alike cannot follow it.
+- **The side to move, at a turn's start, wins less than its lead says.** σ(k x + b): b = −0.27 at a turn's start (two
+  edges to play), −0.02 in its middle (one edge). By colour: −0.21 for Blue to move, −0.07 for Red.
+  - **Not a bias of the engine:** in the 1,568 two-edge turns played as the engine plays (both edges its first choice),
+    the mover's win chance changes by +0.32% from the start to the middle and −0.14% from the middle to the end. At
+    4,096 visits (part 2, 170 turns) the same.
+  - **A human effect:** a human turn loses about 11% of the engine's win chance on average (5.3% for its first edge,
+    5.8% for its second). At a turn's start the mover is the next to err, so on average the mover stands about half a
+    turn's error behind (b = −0.27 is about 7% at an even lead). In a turn's middle, the rest of the mover's turn and
+    the opponent's next turn cancel (b near 0).
+  - **For the labels:** the term belongs in the fit, so that it does not bend k. It stays out of a label's loss: with
+    it, a turn played as the engine plays would gain about 11%, and the label would measure against an average human
+    turn, not against the engine's best.
+- **The stronger player's lead.** With the turn-start term, k fitted for each 10 edges is U-shaped: about 2.0 in the
+  first 10 edges, 0.8 in the middle, 1.1 in the last 10. In the archive, an early lead also shows who is the stronger
+  player, who then keeps playing better, so it predicts the result more than the position does.
+  - With the players' rating difference in the fit, k in the first 10 edges falls from 1.99 to 0.57. But the rating
+    term comes out at 1.34 (2.33 below 1600) on Elo's scale of 1: the archive's ratings were fitted on these same
+    games, so they hold the results. As a term in the fit they take too much.
+  - **Fitted only on games between near-equal players** (ratings within 150: 301 games to fit, 78 to test), with the
+    turn-start term: k by stage is 0.79 to 1.19 (1.17 in the first 10 edges), and one k, 0.96, predicts the test games
+    nearly as well (log loss 0.4142 against 0.4134). Calibration on those test games: 15% → 13% won, 25% → 21%, 35% →
+    34%, 45% → 53%, 54% → 49%, 65% → 67%, 75% → 76%, 85% → 87%. The curve fitted on every game, on the same test
+    games: 25% → 22%, 75% → 71%, 0.4152.
+- **The labels by turn** with the near-equal games' curve (its turn-start term left out), by loss only: Inaccuracy or
+  worse / Mistake or worse / Blunder:
+
+  | Rating band | Turns | The engine's win chance | Every game's curve, one k | Near-equal games' curve |
+  |---|---|---|---|---|
+  | Every rating | 38,914 | 38% / 31% / 20% | 42% / 27% / 11% | 43% / 29% / 12% |
+  | Below 1600 | 16,701 | 44% / 37% / 26% | 50% / 34% / 14% | 51% / 36% / 17% |
+  | 1600 to 1800 | 9,655 | 42% / 35% / 23% | 47% / 30% / 11% | 49% / 32% / 13% |
+  | 1800 and above | 12,558 | 27% / 19% / 11% | 27% / 15% / 5% | 28% / 16% / 6% |
+
+- **Not tested:** whether k differs by rating band among near-equal players (too few games in each band). The ratings
+  that choose the near-equal games were fitted on the same games, a weaker leak than a rating term. Request 09's bot
+  games, between players of known strength, can check both.

@@ -54,7 +54,7 @@ or a design first:
 - **The candidates on the board change with the search's depth** (decisions/product.md, "The candidates: which ones
   the board shows"): after the label pass (256 visits) many candidates pass the visit rule, after the deep search
   (1,024) few do. The board can lose candidates while the player looks. To watch: whether players find that
-  confusing. The Good band (5%, 36 points) is still a placeholder.
+  confusing. The Good band is 5% of a human's win chance (design 10).
 - **Extra analysis on request:** KaTrain offers "equalize" (every candidate gets as many visits as the top move),
   "sweep" (every legal move searched) and "alternative" (moves beyond the candidates) (`analyze_extra`,
   `core/game.py`). To decide which the page offers. It bears on the Great label below, on the board's candidates, and

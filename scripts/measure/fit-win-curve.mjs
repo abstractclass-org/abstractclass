@@ -1,7 +1,14 @@
-// Fits the curve that turns the engine's values into the win chance of human games (design 01, principle 2), on the
-// archive's analysis (requests/07-archive-analysis.md: part 1, out of Git), and compares the candidate formulas.
+// Fits the curve that turns the engine's values into the win chance of human games (design 01, principle 2; design
+// 10), on the archive's analysis (requests/07-archive-analysis.md: part 1, out of Git), and compares the candidate
+// formulas.
 //
-//   node scripts/measure/fit-win-curve.mjs <part1.jsonl> [--budget 1024] [--fit all|1800]
+//   node scripts/measure/fit-win-curve.mjs <part1.jsonl> [--budget 1024] [--fit all|1800] [--near 150]
+//
+// The site's curve (first in the output, HUMAN_WIN_K in src/lib/review/labels.ts): σ(k · L / scoreStdev), fitted on
+// the games between near-equal players only (ratings at most --near apart), with a term for the side to move at a
+// turn's start in the fit only (decisions/engine.md, "The win curve's flat middle"). Between unequal players an early
+// lead also shows who is the stronger player, and at a turn's start the side to move is the next to err: both bend a
+// single k. A label leaves the turn-start term out, so that a turn played as the engine plays loses nothing.
 //
 // Each position of a game with a winner, from the side of the player to move: the engine's lead for them (L, its
 // scoreLead), the edges left (E, of the game's 120), and whether they won. Abandoned games are left out, as Lichess
@@ -23,6 +30,7 @@ const inPath = process.argv[2];
 const arg = (name, def) => { const i = process.argv.indexOf(`--${name}`); return i >= 0 ? process.argv[i + 1] : def; };
 const budget = arg("budget", "1024");
 const fitOn = arg("fit", "all");
+const near = Number(arg("near", 150));
 const GAME_EDGES = 120;
 
 const sigma = z => 1 / (1 + Math.exp(-z));
@@ -44,7 +52,8 @@ for (const [id, { facts, positions }] of games) {
   const w = 1 / positions.size, rating = (facts.ratings.b + facts.ratings.r) / 2;
   for (const [i, r] of positions) {
     const v = r.budgets[budget], sign = v.mover === "b" ? 1 : -1;
-    rows.push({ id, test: testGame(id), w, band: bandOf(rating), rating, y: facts.winner === v.mover ? 1 : 0,
+    const gap = Math.abs(facts.ratings.b - facts.ratings.r);
+    rows.push({ id, test: testGame(id), w, band: bandOf(rating), rating, gap, start: r.edgesLeft === 2, y: facts.winner === v.mover ? 1 : 0,
                 L: sign * v.scoreLead, E: GAME_EDGES - i, W: clampP(v.mover === "b" ? v.winrate : 1 - v.winrate),
                 S: Math.max(1, v.scoreStdev) });
   }
@@ -80,6 +89,21 @@ function fitAB(data, x, withB = true) {
   return [a, b];
 }
 const fitK = (data, x) => fitAB(data, x, false)[0];
+// z = k · x + b · [a turn's start, two edges to play]: Newton's method on two coefficients.
+function fitKStart(data, x) {
+  let k = 0, b = 0;
+  for (let it = 0; it < 100; it++) {
+    let gk = 0, gb = 0, hkk = 0, hkb = 0, hbb = 0;
+    for (const r of data) {
+      const xi = x(r), si = r.start ? 1 : 0, p = sigma(k * xi + b * si), q = r.w * p * (1 - p);
+      gk += r.w * (r.y - p) * xi; gb += r.w * (r.y - p) * si; hkk += q * xi * xi; hkb += q * xi * si; hbb += q * si * si;
+    }
+    const det = hkk * hbb - hkb * hkb, dk = (hbb * gk - hkb * gb) / det, db = (hkk * gb - hkb * gk) / det;
+    k += dk; b += db;
+    if (Math.abs(dk) + Math.abs(db) < 1e-12) break;
+  }
+  return [k, b];
+}
 const logLoss = (data, f) => {
   let s = 0, w = 0;
   for (const r of data) { const p = clampP(f(r)); s -= r.w * (r.y * Math.log(p) + (1 - r.y) * Math.log(1 - p)); w += r.w; }
@@ -127,7 +151,22 @@ const stage = r => Math.min(11, Math.floor((r.E - 1) / 10)); // 0: 1 to 10 edges
 const ks = Array.from({ length: 12 }, (_, s) => fitK(fitRows.filter(r => stage(r) === s), r => r.L));
 models.push({ name: "lead by stage", params: "12 k", f: r => sigma(ks[stage(r)] * r.L) });
 
-console.log(`budget ${budget}, fitted on ${fitOn === "all" ? "every rating" : `mean rating ${fitOn} and above`}: ` +
+// The site's curve.
+{
+  const nearFit = rows.filter(r => !r.test && r.gap <= near), nearTest = rows.filter(r => r.test && r.gap <= near);
+  const [k, b] = fitKStart(nearFit, r => r.L / r.S);
+  const withStart = r => sigma(k * r.L / r.S + (r.start ? b : 0));
+  console.log(`The site's curve, budget ${budget}: σ(k · lead / scoreStdev), fitted on ${new Set(nearFit.map(r => r.id)).size} games ` +
+              `between players at most ${near} apart (${nearFit.length} positions), with b at a turn's start in the fit only`);
+  console.log(`k ${k.toFixed(3)}, b ${b.toFixed(3)}; test log loss on ${new Set(nearTest.map(r => r.id)).size} such games ` +
+              `${logLoss(nearTest, withStart).toFixed(4)}`);
+  const cuts = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.01], t = cuts.map(() => ({ w: 0, p: 0, y: 0, n: 0 }));
+  for (const r of nearTest) { const p = withStart(r), c = t[cuts.findIndex(x => p < x)]; c.w += r.w; c.p += r.w * p; c.y += r.w * r.y; c.n++; }
+  console.log("Calibration on those test games, chance → won: " +
+              cuts.map((_, j) => (t[j].n ? `${(100 * t[j].p / t[j].w).toFixed(0)}% → ${(100 * t[j].y / t[j].w).toFixed(0)}%` : "-")).join(", ") + "\n");
+}
+
+console.log(`The formulas compared. Budget ${budget}, fitted on ${fitOn === "all" ? "every rating" : `mean rating ${fitOn} and above`}: ` +
             `${new Set(fitRows.map(r => r.id)).size} games, ${fitRows.length} positions; tested on ` +
             `${new Set(testRows.map(r => r.id)).size} games, ${testRows.length} positions (every rating)\n`);
 console.log("| Formula | Fitted | Test log loss | Test Brier |\n|---|---|---|---|");

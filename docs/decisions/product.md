@@ -1336,3 +1336,21 @@ The interface, the review, puzzles, lessons, labels and thresholds.
 - **The fit's data:** the archive's games with a winner, without the abandoned ones (as Lichess's fit leaves out
   abandoned games and time forfeits). Fitted and compared in decisions/engine.md, "The human win curve fitted on the
   archive". Request 08 asks for the network's prior and a first look at each position, for the measures of difficulty.
+
+### Labels from a human win chance: built (2026-10-12)
+
+- **Agreed:** σ(k · lead / spread), one k, fitted on the archive's games between near-equal players with a term for the
+  side to move at a turn's start in the fit only (decisions/engine.md, "The win curve's flat middle"). The fit
+  (`scripts/measure/fit-win-curve.mjs`): k 0.986 at 1,024 visits, 0.998 at 512. The site uses 0.99.
+- **Built** (design 10): `humanWin` and `HUMAN_WIN_K` in `labels.ts`, and `classify` by the win chance only (no point
+  bands). In `model.ts`, every loss, the gaps that ask for and confirm a Great, and the board's candidates within the
+  Good band read a human's win chance (`labelWin`, `candidateWin`). Each candidate keeps its own spread
+  (`scoreStdev`). The budget summary reads the same chance. Points lost stay in the notes. A test checks that a lead of
+  1,000 with a spread of 50 loses no label for 100 points, and that the engine's fall from 0.5 to 0.2 with 5 points of
+  a spread of 100 is Excellent.
+- **The sample game, by turn** (Blue / Red), from the cache: Great 4 / 4 → 1 / 2, Best 8 / 12 → 11 / 14, Excellent 9 /
+  7 → 8 / 8, Good 2 / 1 → 3 / 2, Inaccuracy 1 / 2 → 4 / 2, Mistake 4 / 2 → 4 / 2, Blunder 3 / 2 → 0 / 0. Accuracy 85.2
+  / 88.9 → 89.4 / 93.7. Fewer Greats: the gap of 0.10 is now in a human's chance, which is gentler than the engine's.
+  The notes give a human's chance: "Mistake: −14.7% · −197.8 pts (−143.3 pts, −54.5 pts)". Checked in Edge.
+- **Not changed:** the Advantage chart, the win bar and the candidates table still show the engine's win chance. Open:
+  whether they show a human's, so that a note's loss and the chart's fall agree.

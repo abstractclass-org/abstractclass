@@ -22,7 +22,7 @@ import { edgeName, parseEdge, parsePoint, sameEdge, type Edge } from "#lib/engin
 import type { AnalysisReply, DescribeReply, MoveInfo } from "#lib/engine/protocol.ts";
 import { errorText } from "#lib/errors.ts";
 import { gameId } from "#lib/game/store.ts";
-import { moverWin, onlyEdge, otherCandidate, type Analysis, type Candidate, type LineStep, type Move, type Player, type Position,
+import { candidateWin, moverWin, onlyEdge, otherCandidate, type Analysis, type Candidate, type LineStep, type Move, type Player, type Position,
          type ReviewData } from "#lib/review/model.ts";
 import { ONLY_EDGE_GAP } from "#lib/review/labels.ts";
 import type { EdgeRules } from "#lib/board/edgeInput.svelte.ts";
@@ -57,6 +57,7 @@ export function toAnalysis(r: AnalysisReply): Analysis {
     spread: r.rootInfo.scoreStdev,
     candidates: [...r.moveInfos].sort((a, b) => a.order - b.order).map(c => ({
       edge: parseEdge(c.move), visits: c.edgeVisits, blueWin: c.winrate, lead: c.scoreLead, margin: c.scoreSelfplay,
+      spread: c.scoreStdev,
       ...withLine(c),
     })),
   };
@@ -237,7 +238,8 @@ export class GameAnalysis {
       const a = this.analysisOf(path), first = a?.candidates[0];
       if (!a || a.visits < this.labelVisits || !first || !turn.some(e => !!e && sameEdge(e, first.edge))) return;
       const other = otherCandidate(a, turn);
-      if (other && moverWin(first.blueWin, mover) - moverWin(other.blueWin, mover) >= ONLY_EDGE_GAP) out.push({ path, candidate: other });
+      if (other && moverWin(candidateWin(a, first), mover) - moverWin(candidateWin(a, other), mover) >= ONLY_EDGE_GAP)
+        out.push({ path, candidate: other });
     };
     for (let i = 0; i < this.played.length; i++) {
       const turn = this.turnAt(i);

@@ -14,7 +14,7 @@
 // turns have both edges, one edge or no edge bad alone.
 import { readFileSync } from "node:fs";
 
-const { classify, BAD_LABELS } = await import(new URL("../../src/lib/review/labels.ts", import.meta.url).href);
+const { classify, humanWin, BAD_LABELS } = await import(new URL("../../src/lib/review/labels.ts", import.meta.url).href);
 
 const [inPath] = process.argv.slice(2);
 const arg = (name, def) => { const i = process.argv.indexOf(`--${name}`); return i >= 0 ? process.argv[i + 1] : def; };
@@ -30,7 +30,8 @@ for (const r of rows) {
 const budgets = Object.keys(rows[0].budgets).map(Number).sort((a, b) => a - b);
 const deep = budgets.at(-1);
 
-const moverWin = (v, mover) => (mover === "b" ? v.winrate : 1 - v.winrate);
+// The win chance that labels read: a human's, from the lead and the spread (labels.ts, humanWin).
+const moverWin = (v, mover) => { const blue = humanWin(v.scoreLead, v.scoreStdev); return mover === "b" ? blue : 1 - blue; };
 const moverScore = (v, mover, kind) => (mover === "b" ? 1 : -1) * (kind === "lead" ? v.scoreLead : v.scoreSelfplay);
 
 /** Every edge's loss and label at budget b, by score kind. */
@@ -44,7 +45,7 @@ function edgesAt(b, kind) {
       const winLoss = Math.max(0, moverWin(v, mover) - moverWin(w, mover));
       const pointsLost = Math.max(0, moverScore(v, mover, kind) - moverScore(w, mover, kind));
       const playedBest = v.first?.move === r.played;
-      out.push({ key: `${game}:${i}`, index: i, winLoss, pointsLost, label: classify(winLoss, pointsLost, playedBest, false) });
+      out.push({ key: `${game}:${i}`, index: i, winLoss, pointsLost, label: classify(winLoss, playedBest, false) });
     }
   return out;
 }
@@ -64,7 +65,7 @@ function turnsAt(b, kind) {
       const winLoss = Math.max(0, moverWin(v, mover) - moverWin(w, mover));
       const pointsLost = Math.max(0, moverScore(v, mover, kind) - moverScore(w, mover, kind));
       out.push({ key: `${game}:${i}`, index: i, edges: Array.from({ length: j - i }, (_, k) => `${game}:${i + k}`),
-                 winLoss, pointsLost, label: classify(winLoss, pointsLost, playedBest, false) });
+                 winLoss, pointsLost, label: classify(winLoss, playedBest, false) });
     }
   return out;
 }

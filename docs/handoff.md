@@ -43,17 +43,12 @@ It holds no backlog: everything still to do that is not in flight is in
   step, and the Advantage chart is in the Report, above the counts, with an area line, so the page fits the window
   (decisions/product.md, "The Advantage chart moved", "The Report"): the two-column and one-column layouts, where the
   Report is a tab, are not checked yet.
-- **The labels from a human win chance** (moved here from decisions/open-items.md, "Label thresholds"). Decided
-  (decisions/product.md, "Labels from a human win chance: fixed bands, one curve"): chess.com's fixed bands (0.02, 0.05,
-  0.10, 0.20) on a win chance fitted on the archive's human games, one curve for every rating, the label from the win
-  chance only (no point bands), points lost still in the notes, abandoned games left out. Fitted
-  (`scripts/measure/fit-win-curve.mjs`, decisions/engine.md, "The human win curve fitted on the archive"): the best
-  formula is σ(k · lead / scoreStdev), k about 1.04 on every rating and 1.12 on 1800 and above. Open: every rating or
-  the strong players' games (Lichess fits on 2300 and above), the curve's flatness between 20% and 80%, then design 10
-  and design 01 (principles 1 to 3) rewritten, and the change in `labels.ts`. The data: request 07
-  ([requests/07-archive-analysis.md](requests/07-archive-analysis.md), "Delivered"), in the engine repository's
-  `runs/archive_analysis/`, out of Git; take each game once. Commit only statistics over many games and the curve,
-  never a game. Request 09 ([requests/09-bot-games-analysis.md](requests/09-bot-games-analysis.md), open: the owner
+- **The labels from a human win chance: built** (design 10, decisions/product.md, "Labels from a human win chance:
+  built"): σ(0.99 · lead / scoreStdev), chess.com's fixed bands, no point bands, fitted on the archive's games between
+  near-equal players with a turn-start term in the fit only (`scripts/measure/fit-win-curve.mjs`, decisions/engine.md,
+  "The win curve's flat middle"). Open: whether the chart, the win bar and the candidates table show a human's win
+  chance too (they show the engine's). The data: request 07, in the engine repository's `runs/archive_analysis/`, out
+  of Git; take each game once. Commit only statistics over many games and the curve, never a game. Request 09 ([requests/09-bot-games-analysis.md](requests/09-bot-games-analysis.md), open: the owner
   takes it to the engine repository) asks for 620 V2 gauntlet games between players rated 2,000 to 3,000, analysed as
   the archive was, to fit the same curve on bot games and compare.
 - **Difficulty:** Guid and Bratko's complexity checked on request 07's readings (decisions/engine.md): it tells when

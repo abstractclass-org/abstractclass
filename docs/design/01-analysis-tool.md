@@ -80,7 +80,9 @@ DecodeChess.
 
 ## 2. Design principles for Enclosure, each from a source
 
-1. **Measure loss in points, not win chance, once a game is decided.**
+1. **Measure loss in a way that does not saturate once a game is decided.** Done by a human's win chance read from the
+   engine's lead (principle 2, design 10), which keeps the aim below: points lost alone flagged the moves of decided
+   games, so they show in the notes and do not label.
    - **Win chance saturates:** our own review of two lost games found every candidate at a value of −0.97
      ([`v1/docs/decisions/analysis.md`](https://github.com/seankao31/enclosure-ai/blob/main/v1/docs/decisions/analysis.md),
      "Two lost games reviewed"). KaTrain uses points lost for exactly this reason, and Regan & Haworth rescale errors
@@ -93,16 +95,18 @@ DecodeChess.
    - **V2:** KataGo's score outputs are the proper basis once V2 plays. What each output means is in the engine
      repository's
      [`docs/design/04-notation-and-protocol.md`](https://github.com/seankao31/enclosure-ai/blob/main/docs/design/04-notation-and-protocol.md).
-2. **Convert value to a human win chance per rating, fitted on our archive.** This follows Lichess PR #11148
-   (logistic fit of result on eval), with the rating dependence its author measured (−0.002 for weak players to
-   −0.0038 for strong ones).
-   - Fit P(win | engine value, both players' ratings) on the 5,648 archived games, with ratings from
-     `arena.prior_ratings`.
-   - A "blunder" then means the same thing at 1200 as at 1800.
-3. **Fit label thresholds to our data. Copy none.** Lichess's 5/10/15 win% and KaTrain's 0.5–12 points are chess and
-   Go numbers.
-   - Choose Enclosure thresholds from the distribution of points lost per rating band in the archive, e.g. the
-     percentiles that separate strong players' moves from weak players'.
+2. **Convert value to a human win chance, fitted on our archive.** This follows Lichess PR #11148 (logistic fit of
+   result on eval), whose author measured the constant falling from −0.0038 for strong players to −0.002 for weak
+   ones.
+   - **Done** (design 10): σ(k · lead / spread) from the engine's lead and its spread, k = 0.99, one curve for every
+     rating, fitted on the archive's games between near-equal players. A "blunder" means the same thing at 1200 as at
+     1800.
+3. **Fit to our data what depends on the game. Copy none.** KaTrain's 0.5–12 points are Go numbers, and an engine's
+   win chance is a game between engines.
+   - What is fitted: the curve of principle 2, which turns Enclosure's values into the chance of Enclosure's human
+     games. The bands on that chance are chess.com's (0.02, 0.05, 0.10, 0.20), the same for every player, as no site
+     changes its bands by rating. Bands from the percentiles of strong and weak players' losses would grade a move
+     against other players of its rating.
    - Record the method, per our rule that every constant is sourced.
 4. **Position difficulty is a first-class quantity.**
    - **Per position:** KaTrain's complexity (the prior-weighted loss over candidates). Guid & Bratko for its theory.
@@ -123,7 +127,7 @@ DecodeChess.
 7. **Puzzles by Lichess's rules:**
    - **Where they come from:** positions right after a human blunder in the archive.
    - **Uniqueness:** each solution edge must beat the second-best by a large margin (the analogue of 0.7 winning
-     chances, refitted per principle 3).
+     chances, in the human win chance of principle 2).
    - **Rating:** Glicko-2 from solvers' attempts once people use them. Predicted difficulty (BigData Cup) until then.
    - **Two edges a turn:** the solver plays one edge at a time, and each solution edge must be the only good one.
      So uniqueness, not the turn, sets a puzzle's length:

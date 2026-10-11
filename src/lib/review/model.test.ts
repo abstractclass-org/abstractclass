@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import type { Edge } from "#lib/engine/notation.ts";
 import { judgeBranchEdge, review, roundTogether, trustedLine, turnCost, valuesAfter, type Analysis, type Candidate, type Move, type Position,
          type ReviewData } from "./model.ts";
+import { HUMAN_WIN_K, humanWin } from "./labels.ts";
 
 const edges = (n: number): Edge[] => Array.from({ length: n }, (_, k): Edge => [k, 0, k, 1]);
 const candidate = (lineVisits?: number[], n = lineVisits?.length ?? 6): Candidate =>
@@ -72,6 +73,24 @@ test("a turn's loss comes from its two ends, so the search between them cancels"
   assert.equal(R.edges[2].pointsLost, 50);
   // The turn's note gives each edge's points after its own, a gain with a plus, so that they add up.
   assert.equal(turnCost(red), "−5.0% · −20.0 pts (+30.0 pts, −50.0 pts)");
+});
+
+test("labels read a human's win chance, from the lead and the spread, and points lost do not label", () => {
+  assert.equal(humanWin(0, 100), 0.5);
+  assert.ok(Math.abs(humanWin(100, 100) - 1 / (1 + Math.exp(-HUMAN_WIN_K))) < 1e-12);
+  const spread = (a: Analysis, s: number): Analysis => ({ ...a, spread: s });
+  // A decided game: Blue leads by 1,000 points with a spread of 50. Red's turn loses 100 points, but no human chance.
+  const decided = review(game([B, C], [0, 1, 2, 3, 4].map(i => spread(at(0.99, i === 3 ? 1100 : 1000), 50))));
+  assert.equal(decided.turns[1].pointsLost, 100);
+  assert.equal(decided.turns[1].label, "excellent");
+  // The engine's win chance falls from 0.5 to 0.2 for Red, but the lead moves by 5 points of a spread of 100: a human's
+  // chance falls by about 0.012.
+  const R = review(game([B, C], [0, 1, 2, 3, 4].map(i => spread(i === 3 ? at(0.8, 5) : at(0.5, 0), 100))));
+  assert.ok(Math.abs(R.turns[1].loss - (0.5 - humanWin(-5, 100))) < 1e-12);
+  assert.equal(R.turns[1].label, "excellent");
+  // The values after a position give the same chance.
+  const q = { scores: [0, 0], over: false } as unknown as Position;
+  assert.equal(valuesAfter(q, spread(at(0.8, 5), 100))!.blueWin, humanWin(5, 100));
 });
 
 test("a turn is Best when it is the engine's best turn, in either order", () => {
