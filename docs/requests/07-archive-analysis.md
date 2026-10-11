@@ -32,13 +32,13 @@ its labels read. In two parts:
 **For each position,** one JSON line, in the shape of this repository's `scripts/measure/budget-collect.mjs` output, so
 that its summary scripts read it:
 
-- the game (an index or the game's id), the position's index, the mover, and the edge played next (the engine's
-  notation);
-- the game's facts: both players' ratings (`enclosure.arena.prior_ratings` on the archive), the final scores, the
+- **The position:** the game (an index or the game's id), the position's index, the mover, and the edge played next
+  (the engine's notation).
+- **The game's facts:** both players' ratings (`enclosure.arena.prior_ratings` on the archive), the final scores, the
   reason the game ended, and the time control. No player names: the ratings are enough to group the games.
-- for each budget: the root's visits, `winrate`, `scoreLead`, `scoreSelfplay` and `scoreStdev`; the first and the
-  second candidates (move, visits, `winrate`, `scoreLead`, `scoreSelfplay`); and the played edge's candidate when the
-  search visited it.
+- **For each budget:** the root's visits, `winrate`, `scoreLead`, `scoreSelfplay` and `scoreStdev`. The first and
+  the second candidates (move, visits, `winrate`, `scoreLead`, `scoreSelfplay`). The played edge's candidate when
+  the search visited it.
 - **For Great:** where the played edge is the first choice and the second looks at least 0.10 of win chance worse
   for the mover at 512 visits, also the root values of the position after the second choice, searched to 512 visits.
   The site confirms Great so (its design 05).
@@ -58,9 +58,9 @@ games show why it matters: a game decided early flags 44 of its 120 edges, most 
 chance has saturated (this repository's `decisions/product.md`, "Label checks under protocol 0.3"). The same data
 serves the rest of the milestone (design 01, section 4):
 
-- the check that points lost falls with rating (if it does not, the measure is wrong);
-- which score measures points lost better, the lead or the margin (the backlog);
-- the win chance per rating band (principle 2), and the labels' agreement with a deeper search (part 2).
+- The check that points lost falls with rating. If it does not, the measure is wrong.
+- Which score measures points lost better, the lead or the margin (the backlog).
+- The win chance per rating band (principle 2), and the labels' agreement with a deeper search (part 2).
 
 A review of one game takes minutes on a visitor's machine. The archive has about 850,000 positions, so it needs the
 GPU: about 870 million visits for part 1 (1,024 a position), and about 50 million for part 2. The engine repository

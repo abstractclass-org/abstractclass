@@ -52,7 +52,7 @@ answer to that question is below.
 - **The machine:** an Apple Silicon Mac, 12 cores, on battery, as for its CPU's sweep. The adapter: Apple,
   `metal-3`, with 16-bit shaders.
 - **Its CPU, for reference:** the site's WebAssembly module in the engine lab's speed sweep (every sixth position of
-  the sample game at 256 visits, one search thread a worker; decisions/engine.md, "Speed on a laptop"), on battery:
+  the sample game at 256 visits, one search thread a worker, decisions/engine.md, "Speed on a laptop"), on battery:
 
   | Network | Workers | Visits a second, all workers | Each worker | About ms a visit, one worker |
   |---|---|---|---|---|
