@@ -18,7 +18,7 @@
     moments: { index: number; label: Label }[];
     showScore: boolean;
     showArea: boolean;
-    tips: { title: string; value: string }[]; // by position: the hover note
+    tips: { title: string; value: string; details?: string[] }[]; // by position: the hover note, a line for each value
     settled?: boolean[]; // by position: its search has the review's depth (all, when not given)
     points?: number[]; // the positions drawn and snapped to, in order (all, when not given): by turn, the turns' ends
     onjump: (position: number) => void;
@@ -93,15 +93,17 @@
   <path d={winLines.solid} class="fill-none stroke-ink" stroke-width="1.5" vector-effect="non-scaling-stroke" />
   <path d={winLines.rough} class="fill-none stroke-ink" stroke-width="1.5" stroke-dasharray="4 3" stroke-opacity="0.55"
         vector-effect="non-scaling-stroke" />
-  {#each moments.filter(m => !Number.isNaN(blueWin[m.index + 1])) as m (m.index)}
-    <circle cx={x(m.index + 1)} cy={yWin(blueWin[m.index + 1])} r="3.5" class="stroke-panel" style:fill="var(--{m.label})"
-            vector-effect="non-scaling-stroke" />
-  {/each}
   <line x1={x(current)} y1="0" x2={x(current)} y2={H} class="stroke-last" stroke-width="2" vector-effect="non-scaling-stroke" />
   {#if hovered !== null}
     <line x1={x(hovered)} y1="0" x2={x(hovered)} y2={H} class="stroke-muted pointer-events-none" vector-effect="non-scaling-stroke" />
   {/if}
 </svg>
+<!-- The key moments' labels, as dots in their label's colour, 9 pixels wide: drawn in HTML, since the SVG stretches,
+     and in a column as narrow as the summary's a circle in it would be a thin ellipse. -->
+{#each moments.filter(m => !Number.isNaN(blueWin[m.index + 1])) as m (m.index)}
+  <span class="absolute size-[9px] -translate-x-1/2 -translate-y-1/2 rounded-full border-[1.5px] border-panel pointer-events-none"
+        style:left="{(100 * (m.index + 1)) / n}%" style:top="{100 * (1 - blueWin[m.index + 1])}%" style:background="var(--{m.label})"></span>
+{/each}
 {#if hovered !== null && !Number.isNaN(blueWin[hovered])}
   <!-- A dot drawn in HTML, since the SVG stretches and would draw an ellipse. -->
   <span class="absolute size-2 -mt-1 -ml-1 rounded-full bg-ink border-[1.5px] border-panel pointer-events-none"
@@ -114,6 +116,7 @@
                        : `right: calc(${100 - tip.at}% + 10px); max-width: calc(${tip.at}% - 10px)`}>
     <strong class="font-mono">{tip.title}</strong>
     <span class="text-muted tabular-nums">{tip.value}</span>
+    {#each tip.details ?? [] as d (d)}<span class="text-muted tabular-nums">{d}</span>{/each}
   </div>
 {/if}
 </div>

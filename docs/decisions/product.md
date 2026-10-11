@@ -1277,3 +1277,38 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   display setting ("Score", "Area"), on by default. The legend names the lines only.
 - **Checked in Edge** at 1,399 × 849: the chart above the counts, the area line drawn, the legend "Blue's win chance,
   Score (Blue − Red), Area (Blue − Red)", the page 849 pixels high. The Report tab below 1,260 pixels is not checked.
+
+### The Advantage chart's lines shown or hidden at the legend, and larger label dots (2026-10-12)
+
+- **Asked:** larger, more visible labels in the chart. A box at the legend to show or hide the score and area lines
+  for the moment. The display setting gives whether a line shows at first: a line off by setting keeps its legend
+  item, with the box clear, and a box does not change the setting. The setting's text says that it sets the default.
+- **The cause of the small labels:** the key moments were circles in the chart's SVG, which stretches to the column's
+  width. Under the board the chart was about as wide as its 600 units, so the circles were round. In the summary
+  column (226 pixels) each was about 2.6 pixels wide and 7 high. They are now dots drawn in HTML, 10 pixels wide.
+- **Built** (design 06, "The Advantage chart in the Report"): a box before the score's and the area's names in the
+  legend. The settings are "Score line" and "Area line": "Shown when a review opens: … Its box under the chart shows
+  or hides it for the moment." A change of the setting applies again. A click on a box does not focus it: the key
+  handler leaves the keys to a focused input, and the arrow keys must still step through the moves.
+- **Checked in Edge:** a click on the Score box cleared it and hid the line, the stored setting stayed on, and three
+  presses of the right arrow then moved from edge 4 to edge 7. With the Area setting off in storage, the page opened
+  with the Area item in the legend, its box clear and no area line. The setting was set back on.
+- **Open then:** "Score (Blue − Red)" or "Score difference" as the line's name. Decided in the next entry.
+
+### The Advantage chart's values in its note, and the lines named "difference" (2026-10-12)
+
+- **Asked:** the legend's names lined up, the label dots slightly smaller, and the values in the chart's note with the
+  lines renamed.
+- **Why the values:** the score and area lines are scaled to their own largest values and have no axis, so no number
+  of theirs showed anywhere. With the values in the note, the side ahead named ("Score: Blue +88.9"), the names need
+  no "(Blue − Red)": the chart already puts Blue above the middle, and the site names the side ahead rather than give a
+  sign.
+- **Built** (design 06, "The Advantage chart in the Report"): "Score difference" and "Area difference" in the legend.
+  The note gives a line each for the score and the area, one decimal, for the lines shown only. At the game's end the
+  result replaces the score. Every legend item has a box's room, empty for the win chance. The dots are 9 pixels wide.
+  The settings' text says "above the middle when Blue leads" (or "when Blue's is larger") for "(Blue − Red)".
+- **"Win chance for Blue"** for "Blue's win chance" in the legend: each name then starts with what its line measures
+  (win chance, score, area), and the player is not what tells the lines apart.
+- **Checked in Edge** at 1,407 × 849: the swatches of the three items at 49 pixels and their names at 67, the dots 9
+  × 9. At turn 21 the note read "21. M9-P10 J11-K14", "Lead: Red +150.6", "Score: Blue +88.9", "Area: Blue +12.3". With
+  the Area box cleared, the note lost its area line.

@@ -677,6 +677,11 @@
 
   const scoreDiff = $derived(R.data.positions.map(p => p.scores[0] - p.scores[1]));
   const areaDiff = $derived(R.data.positions.map(p => (p.areas ? p.areas[0] - p.areas[1] : 0)));
+  // The chart's score and area lines: the display settings say whether they show when the review opens, and the boxes in
+  // the chart's legend show or hide them for the moment, without changing the settings. A change of a setting applies
+  // again.
+  let showScore = $derived(display.scoreLine);
+  let showArea = $derived(display.areaLine);
   const winner = $derived<Player>(R.data.result.blue > R.data.result.red ? 0 : 1);
   const margin = $derived(Math.abs(R.data.result.blue - R.data.result.red));
   const status = $derived.by(() => {
@@ -702,7 +707,8 @@
   const endWin = (p: Position) => (p.scores[0] > p.scores[1] ? 1 : p.scores[0] < p.scores[1] ? 0 : 0.5);
   const blueWin = $derived(mainAt !== null ? R.blueWin[mainAt] : over ? endWin(position) : analysis?.blueWin ?? NaN);
   // The chart's hover, as Lichess's: the move that led to the position and its label, then one number. The number is
-  // the engine's lead, which KaTrain's graph plots (B+n) and from which the points lost come.
+  // the engine's lead, which KaTrain's graph plots (B+n) and from which the points lost come. Under it, the score and the
+  // area of the lines shown: the lines are scaled and have no axis, so their numbers are only here.
   // A turn's or an edge's loss in the move list: the mover's points lost, in at most 5 characters (−1.2k), or the win
   // chance lost when the analysis has no scores. Nothing until it is judged.
   function lossShort(e: Pick<EdgeReview, "label" | "loss" | "pointsLost">): string {
@@ -729,7 +735,9 @@
     const s = R.blueScore[i];
     const value = i === last ? `Result: ${sideText(s!, 1)}` : s === undefined ? "Not analysed yet"
       : `Lead: ${sideText(s, 1)}${chartSettled[i] ? "" : " · first estimate"}`;
-    return { title, value };
+    const details = [showScore && i !== last && `Score: ${sideText(scoreDiff[i], 1)}`,
+                     showArea && `Area: ${sideText(areaDiff[i], 1)}`].filter(d => d !== false);
+    return { title, value, details };
   }));
   // The positions whose search has the review's depth (or the end, whose value is the result): the chart draws the rest
   // as a first estimate.
@@ -807,16 +815,22 @@
        fewer, above the counts, so that the page fits the window with the board at its full height. Its legend names
        the lines only. -->
   <div class="mb-4">
-    <AdvantageChart blueWin={R.blueWin} {scoreDiff} {areaDiff} current={pos} showScore={display.scoreLine} showArea={display.areaLine}
+    <AdvantageChart blueWin={R.blueWin} {scoreDiff} {areaDiff} current={pos} {showScore} {showArea}
            tips={chartTips} settled={chartSettled} onjump={go}
            moments={R.keyMoments[unit].filter(m => forSide(R.edges[m.first].player)).map(m => ({ index: m.last, label: m.label }))}
            points={unit === "turn" ? [0, ...R.turns.map(t => t.end)] : undefined} />
-    <p class="flex flex-wrap items-center gap-x-2.5 gap-y-1 mt-2 text-xs text-muted">
-      <span class="inline-flex items-center gap-1"><span class="inline-block w-[1.2em] h-0.5 bg-ink"></span> Blue's win chance</span>
-      {#if chartRough}<span class="inline-flex items-center gap-1"><span class="inline-block w-[1.2em] border-t-[1.5px] border-dashed border-ink opacity-55"></span>
+    <!-- A click on a box does not focus it, so that the arrow keys still step through the moves (the key handler
+         leaves the keys to a focused input). The Tab key still reaches the boxes. -->
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+    <!-- Every item has a box's room, empty where the line is always shown, so that the swatches and the names line up. -->
+    <p class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-xs text-muted" onmousedown={e => e.preventDefault()}>
+      <span class="inline-flex items-center gap-1"><span class="size-3 flex-none"></span>
+        <span class="inline-block w-[1.2em] h-0.5 bg-ink"></span> Win chance for Blue</span>
+      {#if chartRough}<span class="inline-flex items-center gap-1"><span class="size-3 flex-none"></span>
+        <span class="inline-block w-[1.2em] flex-none border-t-[1.5px] border-dashed border-ink opacity-55"></span>
         First estimate, refined as the review runs</span>{/if}
-      {#if display.scoreLine}<span class="inline-flex items-center gap-1"><span class="inline-block w-[1.2em] h-0.5 bg-accent"></span> Score (Blue − Red)</span>{/if}
-      {#if display.areaLine}<span class="inline-flex items-center gap-1"><span class="inline-block w-[1.2em] h-0.5 bg-area"></span> Area (Blue − Red)</span>{/if}
+      {@render lineBox("Score difference", "bg-accent", "accent-accent", () => showScore, v => (showScore = v))}
+      {@render lineBox("Area difference", "bg-area", "accent-area", () => showArea, v => (showArea = v))}
     </p>
   </div>
   <!-- The number columns are as wide as their content, and the labels take the rest. -->
@@ -1213,9 +1227,9 @@
         <button class="flex-none px-2 py-0.5 text-sm" onclick={() => (keysOpen = true)}>Show <kbd class={KBD}>?</kbd></button>
       </div>
       <h3 class={SETTINGS_HEAD}>Advantage chart</h3>
-      {@render toggle("Score", "A line: the score difference after each edge (Blue − Red).",
+      {@render toggle("Score line", "Shown when a review opens: the score difference after each edge, above the middle when Blue leads. Its box under the chart shows or hides it for the moment.",
         () => display.scoreLine, v => (display.scoreLine = v))}
-      {@render toggle("Area", "A line: the difference of the areas each player encloses (Blue − Red).",
+      {@render toggle("Area line", "Shown when a review opens: the difference of the areas each player encloses, above the middle when Blue's is larger. Its box under the chart shows or hides it for the moment.",
         () => display.areaLine, v => (display.areaLine = v))}
     </div>
   </div>
@@ -1302,6 +1316,14 @@
 {/snippet}
 
 <!-- A setting that is on or off: its name and what it does, and a switch at the right. -->
+<!-- A line of the Advantage chart that the reader can show or hide, in the chart's legend: its box, its colour, its name. -->
+{#snippet lineBox(name: string, swatch: string, tint: string, get: () => boolean, set: (v: boolean) => void)}
+  <label class="inline-flex items-center gap-1 cursor-pointer select-none">
+    <input type="checkbox" class="size-3 m-0 flex-none cursor-pointer {tint}" checked={get()} onchange={e => set(e.currentTarget.checked)} />
+    <span class="inline-block w-[1.2em] h-0.5 {swatch}"></span> {name}
+  </label>
+{/snippet}
+
 {#snippet toggle(label: string, help: string, get: () => boolean, set: (v: boolean) => void)}
   {@const id = `setting-${label.replace(/\W+/g, "-").toLowerCase()}`}
   <div class="flex items-start justify-between gap-3 py-1.5">
