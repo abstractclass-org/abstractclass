@@ -350,3 +350,28 @@ Loading the engine, its speed, the engine interface, and the requests for it.
 - **Also seen, not yet understood:** over the engine's own turns the mover's lead rose from the turn's start to its end
   by 9.6 points on average at 1,024 visits (sd 28.8, standard error 3.7), and 13.4 at 512. Request 07's data will show
   whether turns gain points on average, which would shift every turn's loss.
+
+### Label agreement on the archive's games (2026-10-12)
+
+The first look at request 07's data ([requests/07-archive-analysis.md](../requests/07-archive-analysis.md),
+"Delivered"): part 2, 100 archive games of human players, 8,533 positions read at 256, 512, 1,024, 2,048 and 4,096
+visits. `scripts/measure/budget-summary.mjs` read the file unchanged, against 4,096 visits as the reference, with the
+placeholder bands (design 10). Points from the lead:
+
+| Visits | By edge: same label | Mistake flag found | Mistake flag right | By turn: same label | Mistake flag found | Mistake flag right |
+|---|---|---|---|---|---|---|
+| 256 | 60% | 85% | 89% | 67% | 90% | 94% |
+| 512 | 66% | 88% | 90% | 73% | 93% | 95% |
+| 1,024 | 73% | 91% | 94% | 78% | 94% | 96% |
+| 2,048 | 81% | 94% | 95% | 85% | 97% | 97% |
+
+- **By turn agrees more than by edge** at every budget, as on the bot games ("Label agreement by turn"): a turn's loss
+  is larger, so it stands further from the error of its two searches.
+- **The margin (`scoreSelfplay`) in place of the lead** gives about the same agreement (within 1 point of %), and a
+  larger mean error of points lost: 17.7 against 16.4 by edge at 512 visits.
+- **The placeholder bands flag most human moves:** at 4,096 visits, 4,240 of 8,433 edges (50%) and 3,025 of 4,337
+  turns (70%) are Inaccuracy or worse. Of those bad turns, 1,246 have both edges bad alone, 1,607 one, and 172
+  neither. The bands are chess's and Go's (design 01, principle 3), and these numbers show that they do not fit
+  Enclosure's human play. The fit (decisions/open-items.md, "Label thresholds") sets new ones.
+- **Not tested:** the agreement with the fitted bands, which will differ, since fewer moves will be near a band's
+  edge or fewer will be flagged. The reference is a deeper search, not the truth.

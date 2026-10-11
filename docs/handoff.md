@@ -43,13 +43,14 @@ It holds no backlog: everything still to do that is not in flight is in
   step, and the Advantage chart is in the Report, above the counts, with an area line, so the page fits the window
   (decisions/product.md, "The Advantage chart moved", "The Report"): the two-column and one-column layouts, where the
   Report is a tab, are not checked yet.
-  Request 07 is changed for both modes, and the owner takes the change to the engine repository.
-- **Request 07 (the archive analysed for the labels)** is accepted for a sample of 1,000 games
-  ([requests/07-archive-analysis.md](requests/07-archive-analysis.md)). When the engine repository says where its
-  files are (under its `runs/`, out of Git): check them against `runs/measure/budget-b10c128-p03.jsonl` as the request
-  asks, then fit the label thresholds (decisions/open-items.md, "Label thresholds"), before the first deploy. Commit
-  only statistics over many games and the thresholds, never a game (decisions/product.md, "The archive's games
-  analysed offline for the labels").
+- **Request 07 is done and checked** ([requests/07-archive-analysis.md](requests/07-archive-analysis.md),
+  "Delivered"): 1,000 archive games at 256, 512 and 1,024 visits, 100 of them also at 2,048 and 4,096, the lines at
+  each turn's start, and both Great follow-ups, in the engine repository's `runs/archive_analysis/`, out of Git. The
+  site's module and the native search agree (480 of 480 first candidates). The archive repeats some games: take each
+  once. With the placeholder bands, 70% of the human turns are Inaccuracy or worse (decisions/engine.md, "Label
+  agreement on the archive's games"). Next: fit the label thresholds (decisions/open-items.md, "Label thresholds"),
+  before the first deploy. Commit only statistics over many games and the thresholds, never a game
+  (decisions/product.md, "The archive's games analysed offline for the labels").
 - **Request 06 (WebGPU)** waits for the engine repository's step 2. Step 1 is measured on the RTX 5080 and on the
   owner's Apple laptop, and the site's answer is written: no need for reproducible searches, batch across searches
   first, the GPU's default chosen on each machine by a short test ([requests/06-webgpu.md](requests/06-webgpu.md)).
@@ -79,5 +80,5 @@ It holds no backlog: everything still to do that is not in flight is in
 
 ## Check first
 
-1. Ask the owner what is next: request 07's data when it comes, the sound lab when they have recordings, or an item
-   of the backlog (decisions/open-items.md).
+1. Ask the owner what is next: the label fit on request 07's data, the sound lab when they have recordings, or an
+   item of the backlog (decisions/open-items.md).

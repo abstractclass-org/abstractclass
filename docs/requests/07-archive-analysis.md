@@ -1,8 +1,9 @@
 # The archive analysed for the labels: every position at the site's budgets
 
-**Status:** accepted for a sample of 1,000 games: the whole archive would take 12 to 16 hours of the GPU. About
-119,000 positions, enough for the percentiles of points lost by rating band if the games spread over the bands.
-**Changed on 2026-10-11,** before the sample's run: the site labels turns by default, and edges on a setting. Two parts
+**Status:** done on 2026-10-11 for a sample of 1,000 games, and checked here (below, "Delivered"). The files are in the
+engine repository's `runs/archive_analysis/`, out of Git, with a note (`README.md`) of every field. Accepted for the
+sample because the whole archive would take 12 to 16 hours of the GPU. **Changed on 2026-10-11,** before the sample's
+run: the site labels turns by default, and edges on a setting. Two parts
 are added: the lines at a turn's start, and a Great follow-up by turn beside the one by edge (below, "The change for
 labels by turn").
 
@@ -85,6 +86,58 @@ owner's machine. It commits only statistics over many games and the thresholds f
 
 If the engine repository has a better way to give the same values (another format, its own summary first), the site
 follows it.
+
+## Delivered
+
+The engine repository's `runs/archive_analysis/`, out of Git. Its `README.md` gives every field, the network, the
+build, the settings and the check. Made by its `v2/tools/archive_analysis.py`. The decision and the run are in its
+`v2/docs/decisions/build.md`, "The archive analysed for the labels: parallel protocol engines".
+
+- `part1-1000.jsonl`: 84,100 positions of 1,000 games, read at 256, 512 and 1,024 visits. At each of the 43,693 turn
+  starts, each budget has the first three candidates (`top3`), each with the first two edges of its line and their
+  `pvVisits` and `pvEdgeVisits`.
+- `part2-100.jsonl`: 8,533 positions of 100 of those games, read at 256, 512, 1,024, 2,048 and 4,096 visits, with the
+  lines at its 4,437 turn starts.
+- `part1-1000.jsonl.great-turn.jsonl`: the Great follow-up by turn, 2,644 best turns and 958 follow-up searches.
+  `part1-1000.jsonl.great-edge.jsonl`: the Great follow-up by edge, 1,597 edges. Both from part 1's readings at 512
+  visits.
+- `*.games.json`: each part's games, with their band and facts. `site-check-native.jsonl`: the positions of the check.
+
+**The sample:** 1,000 of the archive's 6,246 games, spread over the bands of the two players' mean rating: 9, 231, 231,
+231, 230 and 68 games (below 1200, then bands of 200, then 2000 and above). Part 2 takes 100 of them: 9, 19, 18, 18, 18
+and 18. The lowest and the highest bands have fewer games than the others, so their percentiles are less sure.
+
+**The check against the site's module** (`runs/measure/budget-b10c128-p03.jsonl`, 480 positions of 4 ladder games):
+
+| Visits | Same first candidate | Win chance, mean (largest) difference | Lead, mean (largest) difference |
+|---|---|---|---|
+| 256 | 480 of 480 | under 0.0001 (0.0024) | 0.01 (3.5) points |
+| 512 | 480 of 480 | under 0.0001 (0.0029) | 0.02 (3.6) points |
+| 1,024 | 480 of 480 | under 0.0001 (0.0063) | 0.04 (4.6) points |
+
+So the native data stands for the site's search.
+
+**Points to know:**
+
+- **The archive holds some games more than once:** `runs/archive/games.jsonl` has 7,138 records of 6,246 games. 801 ids
+  repeat, with the same moves. Any use of the archive takes each game once.
+- **A search that both Great follow-ups ask for ran once,** so within a game the two files give the same root. 673
+  edge follow-ups are the same search as a turn follow-up of the same game: at a turn's second edge, the middle
+  follow-up. At a turn's first edge, the start follow-up, when the second choice is not an edge of the played turn.
+- **The follow-up by edge covers every position** where the played edge is the first choice and the second is at
+  least 0.10 of win chance worse, whether or not the turn is the engine's best turn.
+- **`after` is null after a game's last edge** (3 lines): the protocol refuses the final position. The game's final
+  scores give its result.
+- **On the GPU, two searches of one position can differ a little.** Of the 729 positions that part 1 searched in more
+  than one game, 221 differ: by 0.00004 of win chance on average, by 0.04 at most. The site's module, on one CPU
+  thread, does not have this difference.
+- No position and no follow-up has an error. Every budget was read at exactly its visits. Every line has one engine
+  tag: protocol 0.3, build `native-0626819c5f71`, the model's SHA-256 `6b2d086e…`.
+
+**Checked here:** part 1 has 84,100 positions of 1,000 games and 43,693 turn starts, no error, and each budget's
+`visits` equals its budget. The lines have the fields that `scripts/measure/budget-summary.mjs` reads: it reads part 2
+unchanged, by edge and by turn ([decisions/engine.md](../decisions/engine.md), "Label agreement on the archive's
+games").
 
 ## Why
 

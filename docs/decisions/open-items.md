@@ -31,26 +31,27 @@ Rules:
 - **The noise floor:** search the same positions twice and measure how often the labels agree, before any label
   ships. The CPU module gives the same reply each time, so today this measures nothing. It applies to a GPU module
   (requests/06-webgpu.md: the site does not need reproducible searches), and between the CPU and GPU modules.
-- **The label budget against a deeper reference:** measure the labels at 256, 512 and 1,024 visits against 4,096
-  visits, with more bot games ([engine.md](engine.md), "Label agreement against search budget, under protocol 0.3",
-  measured against 1,024). The same scripts take `--deep 4096 --budgets 32,64,128,256,512,1024`. About two hours of
-  CPU for 4 games. Asked of the engine repository on about 100 archive games, part 2 of
-  [requests/07-archive-analysis.md](../requests/07-archive-analysis.md).
-- **Label thresholds:** fit them on the archive (design 01, principle 3), by turn and by edge (design 10). This needs
-  the archive analysed offline: asked of the engine repository ([requests/07-archive-analysis.md](../requests/07-archive-analysis.md)). Before the
-  first deploy. Look at the labels of ordinary games, and of extreme ones: games decided early with large
-  scores, such as `3wes2o`, flag 44 of 120 edges with the placeholder point bands (decisions/product.md, "Label checks
-  under protocol 0.3").
+- **The label budget against a deeper reference, with the fitted bands:** measured against 4,096 visits on 100
+  archive games with the placeholder bands ([engine.md](engine.md), "Label agreement on the archive's games"). The
+  agreement depends on the bands, so measure it again when the fit gives new ones, and choose the review's depths
+  from it.
+- **Label thresholds:** fit them on the archive (design 01, principle 3), by turn and by edge (design 10). The data is
+  in: 1,000 archive games analysed at the site's budgets
+  ([requests/07-archive-analysis.md](../requests/07-archive-analysis.md), "Delivered"). Take each game once: the archive
+  repeats some. Before the first deploy. With the placeholder bands, 70% of the archive's turns are Inaccuracy or worse
+  ([engine.md](engine.md), "Label agreement on the archive's games"). Look at the labels of ordinary games, and of
+  extreme ones: games decided early with large scores, such as `3wes2o`, flag 44 of 120 edges with the placeholder point
+  bands (decisions/product.md, "Label checks under protocol 0.3").
 - **Which score measures points lost:** `scoreSelfplay` (the expected final margin) or `scoreLead` (the starting
   score that would make the game even, trained since 2026-10-05). Measure both on reviewed games before the labels
-  move from win chance to points (design 01, principle 1). KaTrain uses the lead.
+  move from win chance to points (design 01, principle 1). KaTrain uses the lead. The archive's analysis has both, at
+  every budget.
 
 ## Offline work (on the engine repository's GPU)
 
-- **Analyse the archive** at the site's budgets, for the thresholds, the win curve by rating, and a deeper reference:
-  [requests/07-archive-analysis.md](../requests/07-archive-analysis.md), open. The archive holds other players' games:
-  the analysis stays in the engine repository's `runs/`, out of Git, and this repository commits only statistics
-  over many games.
+- **The archive's analysis stays offline:** it is other players' games. It stays in the engine repository's `runs/`,
+  out of Git, and this repository commits only statistics over many games and the thresholds fitted from them
+  ([requests/07-archive-analysis.md](../requests/07-archive-analysis.md), done).
 
 ## The owner's feedback on the review, puzzles and import (2026-10-10)
 
