@@ -259,3 +259,31 @@ Loading the engine, its speed, the engine interface, and the requests for it.
 - **WebGPU, step 1 of request 06:** the first numbers, on an RTX 5080 with the machine busy, are in
   [requests/06-webgpu.md](../requests/06-webgpu.md). One position at a time gains nothing for b10c128, and batches
   gain 6 to 27 times.
+
+### Speed on a laptop: the engine lab's sweep (2026-10-11)
+
+- **The machine:** an Apple Silicon Mac (WebGPU "apple metal-3"; Chrome names every Mac "Intel Mac OS X 10_15_7"),
+  12 logical cores, at least 32 GB of memory, Chrome 154, on battery.
+- **Method:** the engine lab's speed sweep: every sixth position of the sample game (20 positions) at 256 visits, for
+  each network and 1, 2, 4 and 8 workers, after one short search in each worker. "A Lite review": 120 positions at 32
+  and 512 visits, at the speed of all the workers.
+
+  | Network | Workers | Visits a second, all workers | Each worker | A Lite review of the game |
+  |---|---|---|---|---|
+  | 3.2M | 1 | 66 | 66 | 16.5 min |
+  | 3.2M | 2 | 121 | 61 | 9.0 min |
+  | 3.2M | 4 | 242 | 62 | 4.5 min |
+  | 3.2M | 8 | 386 | 57 | 2.8 min |
+  | 10.3M | 1 | 22 | 22 | 48.9 min |
+  | 10.3M | 2 | 40 | 20 | 27.4 min |
+  | 10.3M | 4 | 76 | 20 | 14.3 min |
+  | 10.3M | 8 | 129 | 19 | 8.5 min |
+
+- **Reading:**
+  - Each worker keeps 86% to 94% of one worker's speed up to 8 workers, so the speed grows almost in proportion to
+    the workers on this machine. An idle desktop (Ryzen 7 9800X3D) gave 72 visits a second for one worker of 3.2M.
+  - The default pool (half the cores, at most 4: design 02) gives 4 workers here: a Lite review in 4.5 minutes, 2.8
+    with 8 workers. The 10.3M network takes 14 minutes with 4.
+  - One fast laptop. A typical laptop has fewer and slower cores.
+- **This desktop's sweep at the same time** was loaded by the engine repository's training: 3.2M at 48, 86, 172 and
+  264 visits a second with 1, 2, 4 and 8 workers. It is no baseline.

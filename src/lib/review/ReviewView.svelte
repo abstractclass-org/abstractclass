@@ -26,7 +26,7 @@
   import { playMove, preload } from "#lib/sound.ts";
   import Glyph from "./Glyph.svelte";
   import {
-    explain, edgeName, moveName, moveNotation, sameEdge, shortNote, judgeBranchEdge, valuesAfter, moverWin, moverScore, largest, lossText, pct, shownCandidates, lineMovers, enoughVisits, trustedLine, type Candidate, type LineStep, LABELS, LABEL_TEXT, LABEL_GLYPH, PLAYER_NAME, type Edge, type Label, type Player, type Position, type Review,
+    explain, edgeName, moveName, moveNotation, sameEdge, shortNote, judgeBranchEdge, valuesAfter, moverWin, moverScore, largest, lossText, pct, shownCandidates, lineMovers, enoughVisits, trustedLine, type Analysis, type Candidate, type LineStep, LABELS, LABEL_TEXT, LABEL_GLYPH, PLAYER_NAME, type Edge, type Label, type Player, type Position, type Review,
   } from "./model.ts";
   import { branchChildren, branchRows, mainIndex, nextFork, pathKey, prevFork, sharedLength, siblingLine } from "./tree.ts";
 
@@ -40,6 +40,7 @@
     branches?: Record<string, BranchNode>; // the branches' positions, by path key (tree.ts), in the order added
     onplay?: (path: string[]) => Promise<void>; // adds a line from the start to the tree
     rulesAt?: (path: string[]) => Promise<EdgeRules>; // a position's legal edges and mover's nodes, for the player's moves
+    secondAt?: (path: string[]) => Analysis | undefined; // the position after the engine's second choice, which confirms a Great
     ondelete?: (path: string[]) => Promise<void>; // deletes a branch node and what follows it
     onpromote?: (path: string[]) => Promise<void>; // promotes a branch one step among the branches from its fork
     onjudge?: (path: string[]) => Promise<void>; // evaluates a branch move's quality: searches its two positions
@@ -50,7 +51,7 @@
     onengine?: (change: Partial<EngineSettings>) => void; // a setting changed in the panel
   }
   let { R, progress = null, problem = "", deepVisits = 0, onposition, lineSteps, branches = {}, onplay, rulesAt, ondelete,
-        onpromote, onjudge, labelVisits = 0, searching = false, timedOut = false, engine, onengine }: Props = $props();
+        onpromote, onjudge, labelVisits = 0, searching = false, timedOut = false, engine, onengine, secondAt }: Props = $props();
   const last = $derived(R.data.positions.length - 1);
   const TABLE_ROWS = 5; // the Analysis table shows this many rows and scrolls, so the move list under it does not move
   const ROW_EM = 1.9; // a table row's height, in em
@@ -372,7 +373,7 @@
     const parent = p.slice(0, -1), i = mainIndex(parent, mainNames);
     const before = i !== null ? R.data.analysis[i] : branches[pathKey(parent)]?.analysis;
     return judgeBranchEdge(before, valuesAfter(node.position, node.analysis, "lead", labelVisits), node.move.player,
-                           node.move.edge, "lead", labelVisits);
+                           node.move.edge, "lead", labelVisits, secondAt?.(parent));
   }
   // Label badges on the edges of the turn just played, as far as the current position: the game's, and a branch's that
   // were evaluated.
@@ -815,7 +816,9 @@
   <span class={["relative inline-flex flex-none items-center justify-center",
                 n === null ? "h-[1.15em]" : "h-[2.1em] font-sans text-[0.75em] font-bold leading-none",
                 hollow ? SIDE_TEXT[player] : "text-white", cls]} style:width="{(wide / 100) * (n === null ? 1.15 : 2.1)}em">
-    <svg class={["absolute inset-0 size-full", SIDE_TEXT[player]]} viewBox="{-wide / 2} -50 {wide} 100" aria-hidden="true">
+    <!-- Not clipped: the pill's ends touch the box, and a clip at a fraction of a pixel flattens a round end. -->
+    <svg class={["absolute inset-0 size-full overflow-visible", SIDE_TEXT[player]]} viewBox="{-wide / 2} -50 {wide} 100"
+         aria-hidden="true">
       <rect x={(stroke - long) / 2} y={(stroke - thick) / 2} width={long - stroke} height={thick - stroke}
             rx={(thick - stroke) / 2} transform="rotate({(turn * 180) / Math.PI})"
             fill={hollow ? "none" : "currentColor"} stroke={hollow ? "currentColor" : "none"} stroke-width={stroke} />

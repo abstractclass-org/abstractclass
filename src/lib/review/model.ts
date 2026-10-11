@@ -40,6 +40,8 @@ export interface ReviewData {
   moves: Move[];
   positions: Position[];
   analysis: (Analysis | undefined)[]; // by position; undefined until analysed
+  // By edge: the position after the engine's second choice, searched to confirm a Great (confirmedOnly)
+  seconds?: (Analysis | undefined)[];
 }
 /** Which score measures points lost: the lead (KaTrain's choice) or the expected final margin. To be measured. */
 export type ScoreKind = "lead" | "margin";
@@ -112,6 +114,14 @@ export function onlyEdge(a: Analysis | undefined, p: Player): boolean {
   return !!first && !!second && moverWin(first.blueWin, p) - moverWin(second.blueWin, p) >= ONLY_EDGE_GAP;
 }
 
+/** The first choice, played, is the only good edge (Great), confirmed by an equal search: the position after the second
+ *  choice, searched to `minVisits` at least, is ONLY_EDGE_GAP worse for the mover than the position after the played
+ *  edge (`winAfter`, the mover's). The gap within one search (onlyEdge) only asks for that search: the second choice
+ *  there rests on few visits (GameAnalysis.confirmGreats). */
+export function confirmedOnly(winAfter: number, second: Analysis | undefined, p: Player, minVisits = 0): boolean {
+  return !!second && second.visits >= minVisits && winAfter - moverWin(second.blueWin, p) >= ONLY_EDGE_GAP;
+}
+
 /** An edge's loss and label, from the mover's values before and after it: win chance, and score when both are known.
  *  `playedBest`: the edge was the engine's first choice; `only`: the first choice was the only good edge. */
 export function judgeEdge(winBefore: number, winAfter: number, scoreBefore: number | undefined, scoreAfter: number | undefined,
@@ -122,15 +132,18 @@ export function judgeEdge(winBefore: number, winAfter: number, scoreBefore: numb
 }
 
 /** A branch edge's label, judged as the game's edges are: from the analysis before it and the values after it (an
- *  analysis, or the result where the game ends), each analysis to at least `minVisits`. Null until both are known. */
+ *  analysis, or the result where the game ends), each analysis to at least `minVisits`, and `second`, the position after
+ *  the engine's second choice, which confirms a Great. Null until both are known. */
 export function judgeBranchEdge(before: Analysis | undefined, after: { blueWin: number; blueScore: number | undefined } | undefined,
-                                mover: Player, edge: Edge | null, kind: ScoreKind = "lead", minVisits = 0): Label | null {
+                                mover: Player, edge: Edge | null, kind: ScoreKind = "lead", minVisits = 0,
+                                second?: Analysis): Label | null {
   if (!before || before.visits < minVisits || !after) return null;
-  const best = before.candidates[0], s = scoreOf(before, kind);
-  return judgeEdge(moverWin(before.blueWin, mover), moverWin(after.blueWin, mover),
+  const best = before.candidates[0], s = scoreOf(before, kind), winAfter = moverWin(after.blueWin, mover);
+  return judgeEdge(moverWin(before.blueWin, mover), winAfter,
                    s !== undefined ? moverScore(s, mover) : undefined,
                    after.blueScore !== undefined ? moverScore(after.blueScore, mover) : undefined,
-                   !!best && !!edge && sameEdge(best.edge, edge), onlyEdge(before, mover)).label;
+                   !!best && !!edge && sameEdge(best.edge, edge),
+                   onlyEdge(before, mover) && confirmedOnly(winAfter, second, mover, minVisits)).label;
 }
 
 /** The values after a position, for judging the edge into it: the result where the game ends, else its analysis once
@@ -162,7 +175,8 @@ export function review(data: ReviewData, kind: ScoreKind = "lead", minVisits = 0
     const before = blueScore[i], after = blueScore[i + 1];
     const j = known ? judgeEdge(winBefore, winAfter, before !== undefined ? moverScore(before, m.player) : undefined,
                                 after !== undefined ? moverScore(after, m.player) : undefined,
-                                !!best && !!m.edge && sameEdge(best.edge, m.edge), onlyEdge(a, m.player)) : null;
+                                !!best && !!m.edge && sameEdge(best.edge, m.edge),
+                                onlyEdge(a, m.player) && confirmedOnly(winAfter, data.seconds?.[i], m.player, minVisits)) : null;
     return { index: i, player: m.player, edge: m.edge, cut: m.cut, winBefore, winAfter, loss: j?.loss ?? 0,
              pointsLost: j?.pointsLost, label: j?.label ?? null, best };
   });

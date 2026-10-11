@@ -110,6 +110,15 @@
     game.deepen([...new Set(R.keyMoments.flatMap(m => [m.index, m.index + 1]))].filter(i => i < moveCount));
   });
 
+  // The Greats' confirmations (GameAnalysis.confirmGreats), looked for again as results come: a deeper search can change
+  // a position's second choice.
+  $effect(() => {
+    const g = game;
+    if (!g || !g.engineReady || g.paused) return;
+    void [g.analysis, g.branches, g.labelVisits];
+    untrack(() => g.confirmGreats());
+  });
+
   /** The game to review: the imported one named in the address, or the sample. */
   async function chooseGame(): Promise<string[]> {
     const id = new URLSearchParams(location.search).get("game");
@@ -157,6 +166,7 @@
 {:else if R}
   <ReviewView {R} {progress} problem={game?.error ?? ""} deepVisits={engine.visits} onposition={path => (current = path)}
               branches={game?.branches ?? {}} onplay={path => game!.addLine(path)} rulesAt={path => game!.rulesAt(path)}
+              secondAt={path => game?.secondAt(path)}
               ondelete={path => game!.deleteFrom(path)} onpromote={path => game!.promote(path)}
               onjudge={path => game!.judge(path)} labelVisits={LABEL_VISITS} {engine} onengine={change => Object.assign(engine, change)}
               timedOut={!!game?.stoppedByTime(current)}

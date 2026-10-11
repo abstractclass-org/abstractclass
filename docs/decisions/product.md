@@ -874,3 +874,47 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   past them (design 09). The integrated GPU's numbers then tell only whether a GPU module is worth building for most
   visitors' machines.
 
+### Label checks under protocol 0.3 (2026-10-11)
+
+- **Great in the sample game** (Lite, 512 visits, b10c128, read from the browser's store): 28 Greats against 44 Bests
+  where the first choice was played. By part of the game: 10 in edges 1 to 40, 16 in 41 to 80, 2 in 81 to 119, so the
+  late-game excess seen before protocol 0.3 is gone. But 25 of the 28 have a second choice with under 15% of the first
+  choice's visits (1 to 30 visits against 400 to 500), so the 10% gap often rests on a thin value. The choices are in
+  decisions/open-items.md.
+- **The two reviewed games** of design 01's check (the engine repository's `v1/docs/decisions/analysis.md`, from
+  net1 at 20,000 simulations), imported here from the engine repository's `runs/review_games.json` and reviewed at
+  Lite on b10c128. They are games of the engine repository's bot against another player, kept in this browser only:
+  - `oyyjxn` (the bot Blue, lost): Blue's win chance 63% after edge 24, 26% at 28, 6% at 32, then below 15%. The
+    turn is in edges 25 to 40, as the check asks, with Blue's Blunders at edges 28 and 32. Edge 65 (Blue's) is a
+    Blunder, 61 too, and 93 an Inaccuracy: the check's "moves 64 to 65 flagged" holds. 69 is not flagged.
+  - `3wes2o` (the bot Red, lost): Red's edges 22 and 23 are Blunders (−361 and −312 points), and Blue's win chance
+    is 91% after edge 22 and 99% after 24. So the turn comes before edges 25 to 40, and edges 39 and 58, which net1's
+    review flagged, are not flagged here. Net1's review said its own value was saturated there and its policy narrow,
+    so the check's reference is the weaker judgment. A deeper reference would settle it (decisions/open-items.md,
+    "The label budget against a deeper reference").
+  - Both games flag many edges: 31 and 44 of 120 are Inaccuracy or worse. In `3wes2o` Blue's win chance is 99% or
+    more from edge 24, and 20 edges after edge 80 are still Inaccuracy or Mistake, all from points lost. The point
+    bands are placeholders (KaTrain's Go bands times 12): fitting them on real games comes before the first deploy.
+- **The pills' ends:** an SVG clips what passes its box, and each pill's ends touch its box. A clip at a fraction of
+  a pixel flattened a round end, on some pills only. The pills' SVG is no longer clipped.
+
+### Great confirmed by an equal search (2026-10-11)
+
+- **Asked:** whether root noise already gives the second choice enough visits. It does not: the sample game's numbers
+  above are under root noise. Root noise (`wideRootNoise`, 0.04) spreads some visits to moves the network's policy
+  rates low, but a search still sends most visits to the move it finds best, and a move that looks 10% worse gets few.
+- **Built** (design 05): where the played edge was the first choice and the second looks at least 0.10 worse, the
+  position after the second choice is searched to the label budget, and the edge is Great when that value is 0.10
+  below the value after the played edge, each from its own search. Best until then. For the game's edges, but the
+  last, and for the branch edges evaluated on request. The confirmations queue after the label pass, at its priority,
+  and run again when a deeper search changes a position's second choice. Their results stay in the browser's store
+  under the position's moves.
+
+- **Checked in Edge** on the sample game, with its 512-visit searches in the browser's store and no confirmations
+  yet: the page started at 0 Greats and 72 Bests, and Greats came as the confirmations ended, 23 after 80 seconds.
+  From the store: of the 28 gaps in one search, the equal searches confirmed 24 and refuted 4 (edges 22, 26, 45 and
+  62: 0.07 to 0.09 in equal searches). The thin second choices were mostly right: the equal search found the gap as
+  large or larger in 20 of 28. So this game of strong bots has many edges that are the only good one. The page shows
+  23, not 24: a few positions hold a deeper search (1,024 visits) now, whose second choice asks for its own
+  confirmation.
+

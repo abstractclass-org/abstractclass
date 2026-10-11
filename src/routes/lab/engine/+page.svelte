@@ -125,6 +125,72 @@
     console.log("[lab] review", JSON.stringify({ ...review, blueWin: undefined, cores }));
   });
 
+  // The speed on this machine, for the review's defaults (decisions/open-items.md, "Speed on a visitor's machine"):
+  // every sixth position of the game at 256 visits, for each network and 1, 2, 4 and 8 workers (no more than the
+  // machine's cores). The same positions in every run, after one short search in each worker, so that the timed
+  // searches start warm. The result is text to copy, with the machine's description.
+  const SWEEP = { step: 6, visits: 256, workers: [1, 2, 4, 8] };
+  type SweepRow = { model: string; workers: number; positions: number; wallMs: number; vps: number; perWorker: number };
+  let sweep = $state<{ rows: SweepRow[]; machine: string[] } | null>(null);
+  let copied = $state(false);
+  const params = (id: string) => (id.startsWith("b15") ? "10.3M" : id.startsWith("b10") ? "3.2M" : id);
+  // A Lite review of the whole game: the sweep (32 visits) and the label pass (512) of every position.
+  const liteMinutes = (vps: number) => (MOVES.length * (32 + 512)) / vps / 60;
+
+  async function machine(): Promise<string[]> {
+    type GpuInfo = { vendor?: string; architecture?: string; description?: string };
+    type Gpu = { requestAdapter(o?: object): Promise<{ info?: GpuInfo } | null> };
+    const nav = navigator as Navigator & { gpu?: Gpu; deviceMemory?: number; getBattery?: () => Promise<{ charging: boolean }> };
+    const adapter = await nav.gpu?.requestAdapter({ powerPreference: "high-performance" }).catch(() => null);
+    const info = adapter?.info;
+    const battery = await nav.getBattery?.().catch(() => null);
+    return [
+      `${cores} logical cores${nav.deviceMemory ? `, at least ${nav.deviceMemory} GB of memory` : ""}` +
+        (battery ? `, ${battery.charging ? "on mains power" : "on battery"}` : ""),
+      `WebGPU: ${!nav.gpu ? "none" : !adapter ? "no adapter" : [info?.vendor, info?.architecture, info?.description].filter(Boolean).join(" ") || "an adapter, not described"}`,
+      navigator.userAgent,
+    ];
+  }
+
+  const runSweep = () => guarded(async () => {
+    const sizes = SWEEP.workers.filter(k => k <= cores);
+    const models = manifest!.artifacts.filter(a => a.kind === "model").map(a => a.id);
+    const positions = MOVES.map((_, k) => k).filter(k => k % SWEEP.step === 0);
+    sweep = { rows: [], machine: await machine() };
+    copied = false;
+    for (const model of models)
+      for (const size of sizes) {
+        modelId = model;
+        const engines = await getPool(size, true);
+        busy = `sweep: ${params(model)}, ${size} worker${size > 1 ? "s" : ""}, warming up`;
+        await Promise.all(engines.map(e => e.analyse({ moves: [], maxVisits: 32 }).done));
+        let next = 0, finished = 0, visitsDone = 0, searchMs = 0;
+        const t0 = performance.now();
+        await Promise.all(engines.map(async engine => {
+          while (next < positions.length) {
+            const k = positions[next++];
+            const t = await engine.analyse({ ...query(k), maxVisits: SWEEP.visits }).done;
+            visitsDone += t.reply.rootInfo.visits;
+            searchMs += t.ms;
+            busy = `sweep: ${params(model)}, ${size} worker${size > 1 ? "s" : ""}, ${++finished} of ${positions.length} positions`;
+          }
+        }));
+        const wallMs = performance.now() - t0;
+        sweep.rows.push({ model, workers: size, positions: positions.length, wallMs,
+                          vps: visitsDone / (wallMs / 1000), perWorker: visitsDone / (searchMs / 1000) });
+      }
+  });
+
+  const sweepText = $derived(sweep && [
+    `Engine lab speed sweep, ${new Date().toISOString().slice(0, 10)}: every ${SWEEP.step}th position at ${SWEEP.visits} visits`,
+    ...sweep.machine,
+    "",
+    "| Network | Workers | Visits a second, all workers | Each worker | A Lite review of the game |",
+    "|---|---|---|---|---|",
+    ...sweep.rows.map(r => `| ${params(r.model)} | ${r.workers} | ${r.vps.toFixed(0)} | ${r.perWorker.toFixed(0)} | ` +
+                           `${liteMinutes(r.vps).toFixed(1)} min |`),
+  ].join("\n"));
+
   const board = $derived(described ? boardPosition(described.reply) : null);
   const lastEdge = $derived<Edge | null>(edge > 0 ? parseEdge(MOVES[edge - 1]) : null);
 </script>
@@ -156,12 +222,37 @@
     </label>
     <button onclick={analyseOne}>Analyse the position</button>
     <button onclick={reviewGame}>Review the whole game ({MOVES.length} positions)</button>
+    <button onclick={runSweep}>Speed sweep (both networks, 1 to {Math.min(8, cores)} workers)</button>
   </fieldset>
 
   {#if busy}
     <p class="my-3.75 text-muted">{busy}… {#if stopSearch}<button onclick={() => stopSearch?.()}>Stop</button>{/if}</p>
   {/if}
   {#if error}<p class="my-3.75 text-blunder">{error}</p>{/if}
+
+  {#if sweep}
+    <section class="mb-6">
+      <h2>Speed sweep</h2>
+      <p class={SMALL}>
+        Every {SWEEP.step}th position of the game at {SWEEP.visits} visits. "A Lite review": {MOVES.length} positions at
+        32 and 512 visits, at the speed of all the workers.
+      </p>
+      <table class="my-2 text-sm tabular-nums">
+        <thead><tr><th>Network</th><th>Workers</th><th>Visits a second, all workers</th><th>Each worker</th><th>A Lite review</th></tr></thead>
+        <tbody>
+          {#each sweep.rows as r (`${r.model} ${r.workers}`)}
+            <tr><td>{params(r.model)}</td><td>{r.workers}</td><td>{r.vps.toFixed(0)}</td><td>{r.perWorker.toFixed(0)}</td>
+                <td>{liteMinutes(r.vps).toFixed(1)} min</td></tr>
+          {/each}
+        </tbody>
+      </table>
+      {#if sweepText && !busy}
+        <textarea readonly rows="6" class="w-full font-mono text-xs" aria-label="The sweep's result, to copy">{sweepText}</textarea>
+        <button onclick={() => navigator.clipboard.writeText(sweepText).then(() => (copied = true)).catch(e => (error = errorText(e)))}>
+          {copied ? "Copied" : "Copy the result"}</button>
+      {/if}
+    </section>
+  {/if}
 
   <div class="grid items-start gap-6 min-[901px]:grid-cols-[minmax(0,480px)_minmax(0,1fr)]">
     <section class="rounded overflow-hidden">

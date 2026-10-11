@@ -24,6 +24,13 @@ It holds no backlog: everything still to do that is not in flight is in
 
 ## In flight
 
+- **Speed on the owner's laptop, measured** (decisions/engine.md, "Speed on a laptop: the engine lab's sweep"): an
+  Apple Silicon Mac, 12 cores, 3.2M at 66 visits a second for one worker and 386 for eight. Still to decide: the
+  review's default workers (decisions/open-items.md, "The review's budget and pool size").
+- **Great confirmed by an equal search** (design 05, decisions/product.md): built and checked in Edge on the sample
+  game (24 of 28 gaps confirmed).
+- **Label checks done** (decisions/product.md, "Label checks under protocol 0.3"). The two games' check had net1's
+  review as its reference. The pills' SVG is no longer clipped: the owner to look at the ends.
 - **Built in the latest commit:** the label budget under protocol 0.3 and Lite at 512 visits, with labels shown from
   256 visits during a deeper search (decisions/engine.md, design 05, design 09), "Done" after the engine settings'
   last setting, the pills as the default form with closer spacing (design 07), and request 06. Still to hear: the
@@ -31,7 +38,7 @@ It holds no backlog: everything still to do that is not in flight is in
 - **Request 06 (WebGPU):** step 1 is measured, and the site's answer for step 2 is written
   ([requests/06-webgpu.md](requests/06-webgpu.md)): no need for reproducible searches, batch across searches first,
   and a default chosen on each machine. The owner takes the answer to the engine repository. The engine repository's
-  other notes are in decisions/engine.md ("The engine repository's notes"), not committed.
+  other notes are in decisions/engine.md ("The engine repository's notes").
 - **Learning from mistakes is postponed** (decisions/open-items.md). The speed on a visitor's machine waits in the
   backlog too.
 - **Testing in Edge:** a hover made with synthetic events is lost when the real pointer rests on the board and the

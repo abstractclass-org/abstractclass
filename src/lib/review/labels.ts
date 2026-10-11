@@ -8,7 +8,9 @@
 // - The label is the worse of the two, as OGS colours a move (src/components/AIReview/generateHeatmapAndMarks.ts):
 //   a loss of points in a decided game still shows, though the win chance has saturated.
 // - Best: the played edge is the engine's first choice. Great: the first choice, when the second is at least 0.10 of
-//   win chance worse: the only good edge (En Croissant's "!" rule, utils/score.ts).
+//   win chance worse: the only good edge (En Croissant's "!" rule, utils/score.ts). The rule compares two equal
+//   searches, so a gap in one search only asks for a search of the position after the second choice, as deep as the
+//   position after the played edge (model.ts, confirmedOnly).
 
 export type Label = "great" | "best" | "excellent" | "good" | "inaccuracy" | "mistake" | "blunder";
 export const LABELS: Label[] = ["great", "best", "excellent", "good", "inaccuracy", "mistake", "blunder"];

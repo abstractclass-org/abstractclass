@@ -18,11 +18,11 @@
 // the game's are, when the player looks at them. A game's branches are kept in the browser, as Lichess keeps its
 // analysis tree (ui/analyse/src/idbTree.ts).
 import { describeGame } from "#lib/engine/describe.ts";
-import { edgeName, parseEdge, parsePoint, type Edge } from "#lib/engine/notation.ts";
+import { edgeName, parseEdge, parsePoint, sameEdge, type Edge } from "#lib/engine/notation.ts";
 import type { AnalysisReply, DescribeReply, MoveInfo } from "#lib/engine/protocol.ts";
 import { errorText } from "#lib/errors.ts";
 import { gameId } from "#lib/game/store.ts";
-import type { Analysis, LineStep, Move, Position, ReviewData } from "#lib/review/model.ts";
+import { onlyEdge, type Analysis, type LineStep, type Move, type Player, type Position, type ReviewData } from "#lib/review/model.ts";
 import type { EdgeRules } from "#lib/board/edgeInput.svelte.ts";
 import { mainIndex, pathKey } from "#lib/review/tree.ts";
 import { STORES, dbGet, dbPut } from "#lib/storage/db.ts";
@@ -89,6 +89,9 @@ export class GameAnalysis {
   played = $state.raw<Move[]>([]);
   analysis = $state.raw<(Analysis | undefined)[]>([]);
   branches = $state.raw<Record<string, BranchNode>>({}); // by path key
+  // Positions outside the tree, by path key: the positions after the engine's second choice, searched to confirm a
+  // Great (confirmGreat).
+  outside = $state.raw<Record<string, Analysis>>({});
   rulesReady = $state(false);
   engineReady = $state(false);
   paused = $state(false); // the engine is off: no search starts
@@ -106,6 +109,7 @@ export class GameAnalysis {
   private focusGeneration = 0; // a new focus makes every earlier focus search stale
   private passes = 0; // a new run of the passes makes the earlier one stop after its sweep
   private moments: number[] = []; // the key moments, searched deeper
+  private confirming = new Set<string>(); // the Greats' confirmations queued or running, by path key
   private era = 0; // another network starts a new era: results from an earlier one are dropped
   private pool: EnginePool;
   private id: string | null = null; // the game's id (game/store.ts), under which its branches are kept
@@ -131,7 +135,10 @@ export class GameAnalysis {
   data(players: ReviewData["players"]): ReviewData | null {
     if (!this.rulesReady) return null;
     const end = this.positions.at(-1)!.scores;
-    return { players, result: { blue: end[0], red: end[1] }, moves: this.played, positions: this.positions, analysis: this.analysis };
+    // For each edge but the last, the position after the engine's second choice, which confirms a Great.
+    const seconds = this.played.map((_, i) => (i + 1 < this.played.length ? this.secondAt(this.mainNames.slice(0, i)) : undefined));
+    return { players, result: { blue: end[0], red: end[1] }, moves: this.played, positions: this.positions, analysis: this.analysis,
+             seconds };
   }
 
   /** Describes every position (the rules, no network), then sweeps the game. */
@@ -153,10 +160,46 @@ export class GameAnalysis {
     await this.loadBranches();
   }
 
-  /** The analysis of a position anywhere in the tree. */
+  /** The analysis of a position anywhere in the tree, or outside it (a Great's confirmation). */
   analysisOf(path: string[]): Analysis | undefined {
     const i = mainIndex(path, this.mainNames);
-    return i !== null ? this.analysis[i] : this.branches[pathKey(path)]?.analysis;
+    if (i !== null) return this.analysis[i];
+    const key = pathKey(path), node = this.branches[key];
+    return node ? node.analysis : this.outside[key];
+  }
+
+  /** The analysis of the position after the engine's second choice at `path`, which confirms a Great (confirmGreats). */
+  secondAt(path: string[]): Analysis | undefined {
+    const second = this.analysisOf(path)?.candidates[1];
+    return second ? this.analysisOf([...path, edgeName(second.edge)]) : undefined;
+  }
+
+  /** Confirms the Greats: where the played edge was the engine's first choice in a search to the label budget, and its
+   *  second choice looks at least 10% of win chance worse. That second value rests on few visits (the search spends them
+   *  on the first choice), while En Croissant's rule compares two equal searches. So the position after the second
+   *  choice is searched to the label budget, as the position after the played edge was, and the review compares the two
+   *  (KaTrain's "equalize" gives every candidate the top move's visits for the same reason). For the game's edges and
+   *  the branch edges evaluated on request, not where the game ends after the edge. The page calls it as results come:
+   *  a deeper search can change a position's second choice. */
+  confirmGreats() {
+    const check = (before: string[], edge: Edge | null, mover: Player, over: boolean) => {
+      const a = this.analysisOf(before), first = a?.candidates[0];
+      if (!over && a && a.visits >= this.labelVisits && first && edge && sameEdge(first.edge, edge) && onlyEdge(a, mover))
+        this.confirmGreat(before);
+    };
+    for (let i = 0; i + 1 < this.played.length; i++) check(this.mainNames.slice(0, i), this.played[i].edge, this.played[i].player, false);
+    for (const [key, node] of Object.entries(this.branches))
+      if (node.judged) check(key.split(" ").slice(0, -1), node.move.edge, node.move.player, !!node.position.over);
+  }
+
+  private confirmGreat(path: string[]) {
+    const second = this.analysisOf(path)?.candidates[1];
+    if (!second || !this.engineReady || this.paused) return;
+    const after = [...path, edgeName(second.edge)], key = pathKey(after);
+    if (this.confirming.has(key) || (this.analysisOf(after)?.visits ?? 0) >= this.labelVisits) return;
+    this.confirming.add(key);
+    this.search(after, this.labelVisits, PRIORITY.label, "confirm", { early: LABEL_VISITS })
+      .catch(this.fail).finally(() => this.confirming.delete(key));
   }
 
   /** Adds a line from the start to the tree: the positions it adds come from the rules. They are searched only when the
@@ -316,7 +359,7 @@ export class GameAnalysis {
   setReview(visits: number) {
     if (visits === this.labelVisits) return;
     this.labelVisits = visits;
-    this.pool.cancel(t => t === "label" || t === "judge");
+    this.pool.cancel(t => t === "label" || t === "judge" || t === "confirm");
     if (this.engineReady && !this.paused) void this.sweep();
   }
 
@@ -338,6 +381,7 @@ export class GameAnalysis {
     this.engineReady = false;
     this.analysis = Array(this.moves.length + 1).fill(undefined);
     this.branches = Object.fromEntries(Object.entries(this.branches).map(([k, n]) => [k, { ...n, analysis: undefined }]));
+    this.outside = {};
     this.reached = Array(this.moves.length).fill(0);
     this.timed = {};
     this.moments = [];
@@ -453,5 +497,6 @@ export class GameAnalysis {
     }
     const key = pathKey(path), node = this.branches[key];
     if (node) this.branches = { ...this.branches, [key]: { ...node, analysis: a } };
+    else this.outside = { ...this.outside, [key]: a };
   }
 }

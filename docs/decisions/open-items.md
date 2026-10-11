@@ -14,10 +14,6 @@ Rules:
 - **Deploys:** a Cloudflare project, a deploy job that refuses local engine sources, long cache headers for
   `/engine/`. It waits for the first released engine build
   ([requests/03-release-artifacts.md](../requests/03-release-artifacts.md)).
-- **Speed on a visitor's machine:** run the engine lab's whole-game review on an idle machine and on a typical
-  laptop, with 1, 2, 4 and 8 workers, for b10c128 and b15c192. The first measurement ran on a loaded machine
-  ([engine.md](engine.md), "The current module in a Web Worker"). Note the lab's start time too: the module compiled
-  once showed no gain on a fast machine ([engine.md](engine.md), "The engine module compiled once").
 
 ## Milestone 1: a game report (design/01-analysis-tool.md, section 4)
 
@@ -39,6 +35,9 @@ Rules:
   measured against 1,024). The same scripts take `--deep 4096 --budgets 32,64,128,256,512,1024`. About two hours of
   CPU for 4 games.
 - **Label thresholds:** fit them on the archive (design 01, principle 3). This needs the archive analysed offline.
+  Before the first deploy. Look at the labels of ordinary games, and of extreme ones: games decided early with large
+  scores, such as `3wes2o`, flag 44 of 120 edges with the placeholder point bands (decisions/product.md, "Label checks
+  under protocol 0.3").
 - **Which score measures points lost:** `scoreSelfplay` (the expected final margin) or `scoreLead` (the starting
   score that would make the game even, trained since 2026-10-05). Measure both on reviewed games before the labels
   move from win chance to points (design 01, principle 1). KaTrain uses the lead.
@@ -61,13 +60,6 @@ or a design first:
   "sweep" (every legal move searched) and "alternative" (moves beyond the candidates) (`analyze_extra`,
   `core/game.py`). To decide which the page offers. It bears on the Great label below, on the board's candidates, and
   on the engine's lines for bad edges.
-- **Great is too frequent late in a game:** in the sample game almost every late move is Great (the first choice,
-  with the second at least 10% of win chance worse: En Croissant's rule), each with a comment line in the move list.
-  Tighten the rule, or drop the comment line for Great. A likely cause: the second choice's value comes from the same
-  search, and it often has few visits, so its value is unreliable. Root noise (protocol 0.3) gives the second choice
-  more visits: look again at the sample game under it first. A proposal: call an edge the only good one only when
-  the second choice has enough visits (the board's rule: 15% of the most visited move's), or measure first how many
-  Great labels have a second choice under that share.
 - **Learning from mistakes** (postponed): the "Retry mistakes" tab is removed (decisions/product.md, "The 'Retry
   mistakes' tab removed"). Bring it back as a mode of the Analysis panel, above the move list, as Lichess's "Learn
   from your mistakes" is, started from the Highlights. Follow Lichess's rules (research/01-ux-survey.md, "Learning

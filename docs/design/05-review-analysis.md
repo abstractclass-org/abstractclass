@@ -37,6 +37,15 @@ noise.
 4. **The label is the worse of two bands** (`src/lib/review/labels.ts`), as OGS colours a move: chess.com's bands of
    expected points on the win chance, and KaTrain's bands of points times the fork's score scale (12) on the points.
    Best and Great as before ([decisions/product.md](../decisions/product.md)).
+   - **Great is confirmed by an equal search.** Great is the first choice when the second is at least 0.10 of win
+     chance worse (En Croissant's rule, which compares two equal searches). In the search before the edge, the second
+     choice rests on few visits: in the sample game 25 of 28 such gaps had a second choice with under 15% of the
+     first's visits. Root noise does not change that: it spreads some visits, but a search still gives most of them to
+     the move it finds best. So a gap there only asks for a search of the position after the second choice, to the
+     label budget, as deep as the position after the played edge. The edge is Great when the mover's value after the
+     second choice is 0.10 below the value after the played edge, and Best until then. KaTrain's "equalize" gives every
+     candidate the top move's visits for the same reason. It costs one search for each edge that asks for it, about 28
+     in a game of strong bots and 2 to 4 in a person's game. The game's last edge is not confirmed: the game ends.
 5. **Results stay in the browser** (IndexedDB), keyed by the stored shape's version, the engine build, the network's
    SHA-256, the moves and the visits. A stored result equals a fresh one, because the engine is reproducible.
 

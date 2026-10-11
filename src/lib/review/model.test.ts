@@ -24,12 +24,18 @@ test("a line without its visits is kept whole", () => {
   assert.equal(trustedLine(candidate(undefined, 5)).length, 5);
 });
 
-test("a branch edge is judged as the game's: Best when it is the first choice, and by its loss otherwise", () => {
+test("a branch edge is judged as the game's: Best or Great when it is the first choice, and by its loss otherwise", () => {
   const best = edges(2)[0], other = edges(2)[1];
   const before: Analysis = { blueWin: 0.6, visits: 256, lead: 20, candidates: [
     { edge: best, visits: 200, blueWin: 0.6, lead: 20 }, { edge: other, visits: 40, blueWin: 0.45, lead: -10 }] };
-  // Blue played the first choice, and the position after keeps its value: the second is 0.15 worse, so Great.
-  assert.equal(judgeBranchEdge(before, { blueWin: 0.6, blueScore: 20 }, 0, best, "lead", 256), "great");
+  // Blue played the first choice, and the second looks 0.15 worse in that search. Great only when a search of the
+  // position after the second, as deep, confirms the gap: until then Best.
+  const after = { blueWin: 0.6, blueScore: 20 };
+  assert.equal(judgeBranchEdge(before, after, 0, best, "lead", 256), "best");
+  const second = (blueWin: number, visits = 256): Analysis => ({ blueWin, visits, candidates: [] });
+  assert.equal(judgeBranchEdge(before, after, 0, best, "lead", 256, second(0.45)), "great");
+  assert.equal(judgeBranchEdge(before, after, 0, best, "lead", 256, second(0.55)), "best"); // only 0.05 worse
+  assert.equal(judgeBranchEdge(before, after, 0, best, "lead", 256, second(0.45, 32)), "best"); // too shallow
   // Blue played the other edge: 0.15 of win chance and 30 points lost.
   assert.equal(judgeBranchEdge(before, { blueWin: 0.45, blueScore: -10 }, 0, other, "lead", 256), "mistake");
   // Not judged until the position before has the label budget, and the position after has values.
