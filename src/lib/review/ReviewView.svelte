@@ -322,7 +322,8 @@
     : hoverCandidate ? shownLine(hoverCandidate) : pinnedCandidate ? shownLine(pinnedCandidate) : null);
   const line = $derived.by((): BoardLineEdge[] | null => {
     if (!lineEdges) return null;
-    const movers = lineMovers(position, LINE_EDGES);
+    // The listed line can go past LINE_EDGES (pointing at a later edge): a mover for each edge drawn.
+    const movers = lineMovers(position, lineEdges.length);
     return lineEdges.map((edge, i) => ({ edge, player: movers[i], ...stepsNow?.[i] }));
   });
 
