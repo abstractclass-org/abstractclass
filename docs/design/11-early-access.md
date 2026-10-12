@@ -113,6 +113,8 @@ one item for each turn, separated by spaces.
   `src/lib/prose.ts` (their text style).
 - Analytics: `src/lib/analytics.svelte.ts`, `src/lib/ConsentBanner.svelte`, started in `src/routes/+layout.svelte` and
   `src/routes/import/+page.svelte`.
+- Hosting: `package.json` (`build:cloudflare`), `.node-version`, `static/_headers`, `vite.config.ts` (the 404 page and
+  the version). The setup, step by step, and how to deploy: [hosting.md](../hosting.md).
 
 ## Log entries
 

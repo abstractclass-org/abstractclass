@@ -47,14 +47,10 @@ It holds no backlog: everything still to do that is not in flight is in
 - **The early access** ([design/11-early-access.md](design/11-early-access.md), decisions/product.md, "Early access:
   the review only, as Hedge School"). Built and checked in Edge: the build switch, the name, no sample game, the
   pages About, The notation, Privacy and Notices, the Constellation import, unlisted. To do:
-  - **Hosting, with the owner** (their accounts). Done: the domain on Cloudflare with DNSSEC, the private GitHub
-    repository `seankao31/hedgeschool`, and the repository's side of the Pages build (design 11, item 5). To do, in
-    the dashboard: the Pages project from the repository (preset None, build command `npm run build:cloudflare`,
-    output `build`, variables `VITE_EDITION=early` and `VITE_GA_ID=G-C5RY6DWGWN`), the custom domain
-    `hedgeschool.abstractclass.org`, then the first visit checked on the real address.
-  - **Analytics: built and checked in Edge** (decisions/product.md, "Early access: the third round"). To do: the
-    Cloudflare Web Analytics token once the site is live (its manual snippet, not the Pages project's one-click
-    setup). Google Analytics receives the preview's visits (the owner checked).
+  - **Hosting: live** at `hedgeschool.abstractclass.org`, set up as [hosting.md](hosting.md) tells
+    (decisions/product.md, "The site live on Cloudflare Pages"). Not yet checked: a review on the live site in Edge.
+  - **Analytics: live and checked** (decisions/product.md, "The analytics live"): Google Analytics, and Cloudflare Web
+    Analytics with its token, the beacon added by the site's code.
   - Done since: the Review link that opens the last game reviewed, the engine's release (request 03), the notation
     page after request 11, the module's notices.
 - **The labels' measure, reopened.** Built and committed: labels from a practical chance, σ(0.99 · lead /
@@ -109,6 +105,8 @@ It holds no backlog: everything still to do that is not in flight is in
   frames.
 - **This machine is often loaded** by the engine repository's training (WSL, about 28 GB, most of the CPU): its speed
   numbers are no baseline then. The owner's laptop gave the clean ones (decisions/engine.md, "Speed on a laptop").
+- **Local builds leave `VITE_GA_ID` unset** (`VITE_EDITION=early npm run build`), so that test visits do not reach Google
+  Analytics: only the production build on Cloudflare has the ID (hosting.md, section 4).
 - **The local server** ran from this session: the build on port 4173, with the tailnet's name allowed for the
   owner's laptop (`__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS=<machine>.<tailnet>.ts.net exec node
   node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 4173 --strictPort`, again after each `npm run

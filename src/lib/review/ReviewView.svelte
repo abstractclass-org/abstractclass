@@ -25,6 +25,7 @@
   import AdvantageChart from "./AdvantageChart.svelte";
   import { loadDisplay, saveDisplay, type Display } from "./display.ts";
   import { MOVE_SOUND_NAMES, playMove, preload } from "#lib/sound.ts";
+  import lock from "../../../engine.lock.json";
   import Glyph from "./Glyph.svelte";
   import {
     edgeName, moveName, moveNotation, sameEdge, shortNote, turnShortNote, turnCost, judgeTurn, judgeBranchEdge, valuesAfter, moverWin, costText, pct, shownCandidates, lineMovers, enoughVisits, trustedLine, type Analysis, type Candidate, type EdgeReview, type LineStep, LABELS, LABEL_TEXT, LABEL_GLYPH, PLAYER_NAME, type Edge, type Label, type Player, type Position, type Review, type Unit, type Move, type TurnJudgment,
@@ -566,6 +567,9 @@
   }
   $effect(() => { if (display.sound) preload(display.moveSound); });
   const SOUND_CHOICES = Object.entries(MOVE_SOUND_NAMES) as [string, string][];
+  /** A network's download in MB (10^6 bytes), one decimal, from engine.lock.json, which the deploy fetches by: what a
+   *  change of network costs, as Lichess's engine menu gives each engine's size. */
+  const downloadMB = (id: string) => ((lock.artifacts.find(a => a.id === id)?.bytes ?? 0) / 1e6).toFixed(1);
   // Lichess's move menu on a branch's move (ui/analyse/src/treeView/contextMenu.ts): "Promote variation" and "Delete
   // from here". The game's own moves have no menu: the review is of the game, so its line stays first ("Make main line"
   // is for an analysis board, later).
@@ -1267,8 +1271,8 @@
         {@render visitsSteps("Custom", "", CUSTOM_REVIEW, () => e.customReview, v => set({ customReview: v }))}
       {/if}
       <h3 class={SETTINGS_HEAD}>Engine</h3>
-      {@render choice("Network", "The larger is stronger per visit but about 3× slower. A change reviews the game again.",
-        NETWORKS.map(n => [n.id, `${n.params} parameters`]), () => e.network, v => set({ network: v }))}
+      {@render choice("Network", "The larger is stronger per visit but about 3× slower. A change reviews the game again. A network downloads once, and the browser keeps it.",
+        NETWORKS.map(n => [n.id, `${n.params} params (${downloadMB(n.id)} MB)`]), () => e.network, v => set({ network: v }))}
       {@render steps("Workers", `Positions searched at the same time. Each uses about ${memory} MB.`, maxWorkers(),
         () => e.workers - 1, k => set({ workers: k + 1 }), k => `${k + 1} of ${maxWorkers()}`)}
       <!-- Done after the last setting, away from the gear that opened it (the display settings' Done is at their top,

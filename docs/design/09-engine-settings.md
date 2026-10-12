@@ -50,7 +50,9 @@ each applies at once, without a reload.
      every depth. A label search shows its result at 256 visits, and again after each further 256, so a label shows as
      early at every depth and changes as the deeper search goes on. The
      key moments stay at 1,024 visits. A branch move evaluated on request is searched to the review's depth.
-   - **Engine:** "Network", named by its parameters: 3.2M (b10c128, the default) or 10.3M (b15c192). The board keeps
+   - **Engine:** "Network", named by its parameters and its download: "3.2M params (6.5 MB)" (b10c128, the default)
+     or "10.3M params (20.6 MB)" (b15c192), the sizes from `engine.lock.json`. The help line adds that a network
+     downloads once and the browser keeps it. The board keeps
      the old pool's rules while a new pool loads the other network. Then the analysis starts again, since every result
      came from the old network. The browser's store keys results by network, so a network's results come back at once
      when the player returns to it. "Workers": from 1 to the machine's logical cores, half the cores (1 to 8) by
@@ -109,6 +111,12 @@ each applies at once, without a reload.
   `v2/docs/design/15-network-sizes.md`): a size says what differs. The help line does not call the larger network
   stronger: it is stronger for each visit, but the smaller gets about three times the visits in the same time, and
   only a match at the site's clock tells which is stronger (the engine repository's `v2/docs/decisions/build.md`).
+- **The download in the network's name:** what a change of network costs, which matters on a metered connection.
+  Lichess's engine menu gives each engine's size: its default Stockfish network is a small one made for the download
+  (7 MB), and the official one (40 MB) is a choice. Nothing asks before the default network downloads: a review is
+  the engine's work, and the player opened it. A first review fetched the module and the small network once for 8
+  workers (1.3 and 6.5 MB, measured on a server that logged the requests), and a return visit only the 1.2 KB manifest:
+  the browser keeps the engine's files (docs/hosting.md, the headers).
 - **More workers make the review faster, not the position on screen.** Each worker searches its own positions with
   one thread (design 02).
 
@@ -178,3 +186,4 @@ each applies at once, without a reload.
 
 - [decisions/product.md](../decisions/product.md), "The engine's settings", "The engine's switch and gear in its
   header" and "The engine header in two lines, boxes for visits, a slower gleam".
+- [decisions/product.md](../decisions/product.md), "The networks' downloads in the engine settings".

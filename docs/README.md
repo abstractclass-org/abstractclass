@@ -7,4 +7,5 @@
 | [design/](design/README.md) | The design documents, one per decision still in force. |
 | [decisions/](decisions/README.md) | The decision log (an archive), by topic, and the one backlog, [open-items.md](decisions/open-items.md). |
 | [requests/](requests/README.md) | Requests to the engine repository, and their status. |
+| [hosting.md](hosting.md) | How the site is served (the domain, Cloudflare Pages, the analytics), how each part was set up, and how to deploy, check and roll back. |
 | [research/](research/01-ux-survey.md) | Research before decisions. [01-ux-survey.md](research/01-ux-survey.md): how chess and Go analysis and training tools design their pages, and first design ideas. [02-search-tree-reuse.md](research/02-search-tree-reuse.md): reusing the engine's search tree across budgets and positions. |

@@ -1506,3 +1506,50 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   beacon added by Cloudflare) for a proxied hostname unless changed to a manual snippet.
 - **Built:** `.node-version` (24), `npm run build:cloudflare`, `static/_headers`, and the 404 page (design 11, item
   5). The command passed on this machine and from a clean clone with a fresh `npm ci` and fresh engine downloads.
+
+### The site live on Cloudflare Pages (2026-10-12)
+
+- **Live** at `hedgeschool.abstractclass.org` (and `hedgeschool.pages.dev`), built by Pages from `main` at commit
+  `3580146`, with the settings in docs/hosting.md. The framework preset is None: Cloudflare's SvelteKit preset fills
+  in the output of Cloudflare's own adapter (`.svelte-kit/cloudflare`), which renders on a server in a Worker, and the
+  site uses adapter-static.
+- **Checked on the live site:** `noindex` on every file, a real 404, the year's cache on the hashed code and the engine's
+  files and not on the manifest, the module as `application/wasm`, the larger network whole, the early access's header
+  and `/puzzles` leading home, the GA ID in the code, and DNSSEC validated (key tag 2371).
+- **Web Analytics, to correct:** a site was added for `abstractclass.org`, on Cloudflare's automatic setup. A first
+  check found no beacon, but it came just after the site was created. Minutes later every page of Hedge School had
+  Cloudflare's beacon, `/import` too: the automatic setup adds it to every subdomain of the zone, so it can start
+  before the import page removes a record from the address. The site for `abstractclass.org` can stay: Cloudflare
+  accepts its beacon from any hostname that ends with the site's name, and its dashboard has a Host dimension. So one
+  site serves every subdomain, as one Google Analytics property does. The fix: set it to "Enable with JS Snippet
+  installation", and its token as `VITE_CF_ANALYTICS_TOKEN`.
+- **The bare domain and `www`** answer HTTP 525: proxied records to a server that fails Cloudflare's secure
+  connection, most likely Porkbun's parking records copied when the domain was added. Not part of the site.
+- **The setup written down** step by step in docs/hosting.md, from the domain to rolling back.
+
+### The analytics live (2026-10-12)
+
+- **Cloudflare Web Analytics:** its site for `abstractclass.org` set to "Enable with JS Snippet installation", which
+  ended Cloudflare's own injection of the beacon. The token set in the Pages project's production variables, and the
+  deployment retried.
+- **Checked on the live site in Edge:** the served HTML has no beacon. The site's code adds it after the page has
+  started (at 2.9 s, the document loaded at 1.1 s), so on the import page it follows the removal of a record from the
+  address. Cloudflare accepts the reports from `hedgeschool.abstractclass.org`: each answer 204, at the load and at
+  each page change inside the site.
+- **Google Analytics' stream:** its name and URL are labels, renamed for Hedge School. They limit nothing: a hostname's
+  visits are dropped by a data filter, if ever needed. The early trials' visits (from `127.0.0.1` and the tailnet
+  address) stay in the property. Local builds now leave the ID out.
+- **The bare domain's records:** two A records at Cloudflare for `abstractclass.org`, the parking server's addresses
+  (`pixie.porkbun.com` resolves to `207.207.210.107` and `207.207.210.229`). Cloudflare made them from Porkbun's ALIAS
+  record when it read the domain's records. Deleted, with `www`: the bare domain no longer resolves.
+
+### The networks' downloads in the engine settings (2026-10-12)
+
+- **Asked:** whether the site asks before it downloads the networks, and which.
+- **Measured** (the build on a server that logged each engine file, a first visit in Edge, 8 workers): a review
+  fetches the module (1.3 MB) and the default network (6.5 MB) once, whatever the workers; a return visit fetches only
+  the manifest (1.2 KB). The larger network (20.6 MB) downloads only when chosen. Nothing asks.
+- **Decided:** no question before the download, as on Lichess, whose default engine loads with a small network made
+  for the download (7 MB) and whose official one (40 MB) is a choice in its engine menu, with its size. The Network
+  choice now names each network's download: "3.2M params (6.5 MB)", "10.3M params (20.6 MB)", from
+  `engine.lock.json`. Its help line adds that a network downloads once and the browser keeps it.
