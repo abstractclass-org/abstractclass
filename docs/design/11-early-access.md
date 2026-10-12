@@ -96,6 +96,20 @@ one item for each turn, separated by spaces.
   the pointer: a double click undoes its own delete, and never deletes the next game. Each deleted game keeps its own
   Undo, with no time limit.
 
+### One tab for each game's review
+
+- **The problem:** a review keeps the game's branches in memory, reads them once when it opens, and stores them whole
+  after each change. Two tabs on one game would store over each other's branches: a branch added in one tab would be
+  lost after a change in the other, and a deleted branch could come back. Both tabs would also run the engine on the
+  same positions, each with its own workers.
+- **A tab holds the game's lock** (the Web Locks API, `navigator.locks`) while its review runs. Another tab for the same
+  game starts no engine. It says "This game is open in another tab", with a **Review here** button. The button takes
+  the lock (`steal`) and loads the page again. The tab that held the lock stops its engine at once, and says that the
+  game is now open in another tab, with the same button. The browser frees the lock when its tab closes. Reviews of
+  different games in two tabs run as before: they share only the machine.
+- **A game deleted while its review is open** (on the home page, in another tab): the review stores no more branches
+  for it, so a later import of the same game does not bring them back.
+
 ### The meaf.us bookmarklet and userscript
 
 - **It reads the game that the board holds,** in the player's own meaf.us page: React's `game` property of the board.
@@ -151,6 +165,8 @@ one item for each turn, separated by spaces.
   `src/routes/{puzzles,learn,lab/engine}/+page.ts`. Unlisted: `static/robots.txt`, `src/routes/+layout.svelte`.
 - The import of Constellation's export: `src/lib/game/constellation.ts`, with its tests.
 - Deleting a game: `deleteGame` and `restoreGame` in `src/lib/game/store.ts`, the rows in `src/routes/+page.svelte`.
+- One tab for each game's review: `src/lib/game/reviewLock.ts`, used in `src/routes/review/+page.svelte`. The check
+  for a deleted game: `keepBranches` in `src/lib/analysis/game.svelte.ts`.
 - The pages: `src/routes/{about,notation,privacy,notices}/+page.svelte`, `src/lib/SiteFooter.svelte`,
   `src/lib/prose.ts` (their text style).
 - Analytics: `src/lib/analytics.svelte.ts`, `src/lib/ConsentBanner.svelte`, started in `src/routes/+layout.svelte` and

@@ -40,9 +40,9 @@
   import Glyph from "./Glyph.svelte";
   import { LineDrawing } from "./lineDrawing.svelte.ts";
   import {
-    edgeName, moveName, moveNotation, sameEdge, shortNote, turnShortNote, HARD_NOTE, complexity, likelyEdges, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchEdge, valuesAfter, resultWin, moverWin, costText, pct, shownCandidates, lineMovers, enoughVisits, trustedLine, type Analysis, type Candidate, type EdgeReview, type LineStep, LABELS, LABEL_TEXT, LABEL_GLYPH, PLAYER_NAME, type Edge, type Label, type Player, type Position, type Review, type Unit, type Move, type TurnJudgment,
+    edgeName, moveName, moveNotation, sameEdge, shortNote, turnShortNote, HARD_NOTE, complexity, likelyEdges, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchEdge, valuesAfter, resultWin, moverWin, costText, pct, shownCandidates, lineMovers, enoughVisits, trustedLine, type Analysis, type Candidate, type EdgeReview, type LineStep, LABELS, LABEL_TEXT, LABEL_GLYPH, PLAYER_NAME, type Edge, type Label, type Player, type Position, type Review, type Unit, type Move, type TurnJudgment, type TurnReview,
   } from "./model.ts";
-  import { branchChildren, branchRows, mainIndex, nextFork, pathKey, prevFork, sharedLength, siblingLine, treeLines, type BranchRow } from "./tree.ts";
+  import { branchChildren, branchRows, mainIndex, nextFork, pathKey, prevFork, sharedLength, siblingLine, treeLines, withLine, type BranchRow } from "./tree.ts";
 
   interface Props {
     R: Review;
@@ -435,6 +435,39 @@
     const first = analysisAt(start)?.candidates[0];
     return first ? trustedLine(first) : [];
   };
+  // That line in the move list, from where it leaves the game, merged into the branches there (withLine, as Lichess's
+  // computer lines are nodes of its tree): an edge the player has played shows as the branch's own, and the rest of the
+  // line follows it, faded. The line follows the search, and the player's branches stay. When the line changes, a
+  // branch off the new line shows as a branch of its own, and a branch on it merges into it.
+  type EngineStep = { k: number; mover: Player; turn: { turn: number; first: boolean } };
+  interface EngineBranch { search: string[]; start: string[]; line: Edge[]; paths: string[][]; steps: Map<string, EngineStep> }
+  function engineBranch(search: string[]): EngineBranch | null {
+    const best = bestLine(search);
+    let m = 0;
+    while (m < best.length && mainNames[search.length + m] === edgeName(best[m])) m++;
+    const start = mainNames.slice(0, search.length + m), line = best.slice(m), from = positionOf(start);
+    if (!line.length || !from) return null;
+    const movers = lineMovers(from, line.length), turns = turnsFrom(start, movers);
+    const paths = line.map((_, k) => [...start, ...line.slice(0, k + 1).map(edgeName)]);
+    return { search, start, line, paths, steps: new Map(paths.map((p, k) => [pathKey(p), { k, mover: movers[k], turn: turns[k] }])) };
+  }
+  const bad = (l: Label | null) => l === "mistake" || l === "blunder";
+  /** A turn's branches, a group for each of its edges: the lines from the position before the edge. Under a Mistake's
+   *  or a Blunder's note, the engine's best line from where it started (by turn, from the turn's start) joins the
+   *  group where it leaves the game, first. A line that leaves the game after the turn shows nowhere: the engine
+   *  played the turn as the player did. */
+  function turnGroups(t: TurnReview): { rows: BranchRow[]; engine: EngineBranch | null }[] {
+    const engines = new Map<number, EngineBranch>();
+    if (display.notes) for (const e of t.edges) {
+      if (!forSide(e.player) || !(unit === "turn" ? e.index === t.start && bad(t.label) : bad(e.label))) continue;
+      const engine = engineBranch(mainNames.slice(0, e.index));
+      if (engine && !engines.has(engine.start.length)) engines.set(engine.start.length, engine);
+    }
+    return t.edges.map(e => {
+      const engine = engines.get(e.index) ?? null, kidsOf = engine ? withLine(branchKids, engine.paths) : branchKids;
+      return { rows: kidsOf(mainNames.slice(0, e.index)).flatMap(first => branchRows(first, kidsOf)), engine };
+    });
+  }
   // The areas in the players' tags: now, or, while a line shows, after its last drawn edge (from the rules).
   const lineAreas = $derived(drawnLine ? stepsNow?.[drawnLine.length - 1]?.areas ?? null : null);
   const areas = $derived(lineAreas ?? position.areas);
@@ -612,9 +645,11 @@
   // other analysis tools. ← and → along the line (k and j, Lichess's); at a fork ↑ and ↓ pick the line that → follows,
   // elsewhere they go to the start and the end; the previous and the next fork by Shift + ← and →, b and n (KaTrain's b
   // goes back to the last branch point), [ and ], or Shift + k and j (Lichess's); the line before and after this one by
-  // Shift + ↑ and ↓, x and c (En Croissant's), or comma and period; Space plays the engine's choice; l turns the engine
-  // on or off (Lichess's). Escape closes the settings, or drops an edge begun. Keys kept free for later: m and Shift + m (the next and the previous mistake,
-  // KaTrain's n), and Delete.
+  // Shift + ↑ and ↓, x and c (En Croissant's), or comma and period; Space plays the engine's choice; e or l turns the
+  // engine on or off (l is Lichess's; e, for "engine", is the site's own: Lichess's e opens its opening explorer, which
+  // this site does not have). Escape closes the settings, or drops an edge begun. Keys kept free for later: m and
+  // Shift + m (the next and the previous mistake, KaTrain's n), and Delete. The controls' notes name no keys: the list
+  // does.
   let keysOpen = $state(false);
   function onkeydown(ev: KeyboardEvent) {
     if (ev.defaultPrevented || ev.target instanceof HTMLInputElement || ev.ctrlKey || ev.metaKey || ev.altKey) return;
@@ -632,7 +667,7 @@
     const kids = childrenOf(path);
     const line = (step: 1 | -1) => { const l = siblingLine(path, childrenOf, step); if (l) setPath(l); };
     if (key === "?" || (key === "/" && shift)) keysOpen = !keysOpen;
-    else if (key === "l" && engine && onengine) onengine({ on: !engine.on });
+    else if ((key === "e" || key === "l") && engine && onengine) onengine({ on: !engine.on });
     else if ((key === "ArrowLeft" && shift) || key === "b" || key === "[" || (key === "k" && shift)) setPath(prevFork(path, childrenOf));
     else if ((key === "ArrowRight" && shift) || key === "n" || key === "]" || (key === "j" && shift)) setPath(nextFork(path, childrenOf));
     else if ((key === "ArrowUp" && shift) || key === "x" || key === ",") line(-1);
@@ -659,7 +694,7 @@
     [["Shift + ↑ / ↓", "x / c", ", / ."], "The line before and after this one, from the fork above"],
     [["Home / End"], "The start, and the line's end"],
     [["Space"], "Play the pinned candidate, or number 1"],
-    [["l"], "Turn the engine on or off"],
+    [["e", "l"], "Turn the engine on or off"],
     [["Escape"], "Close the settings, or drop an edge begun"],
     [["?"], "This list"],
   ];
@@ -995,17 +1030,12 @@
            "interrupt"): a faint background and a rule above and below tie them to the turn, and they start at the
            list's left, so that a branch's row has the list's whole width. One line for each note, and a note said
            twice in a turn once (a turn of two Great edges). By turn, the turn's. Then the branches from the turn's
-           positions, the lines from one position under one rule, and with the notes, under a Mistake or a Blunder, the
-           engine's best line from where it started, first (by turn, from the turn's start). -->
+           positions, the lines from one position under one rule, and under a Mistake's or a Blunder's note, the
+           engine's best line among them (turnGroups). -->
       {@const notes = !display.notes ? [] : unit === "turn" ? (t.label && COMMENTED.includes(t.label) && forSide(t.player) ? [turnShortNote(t)] : [])
         : [...new Set(t.edges.filter(e => !!e.label && COMMENTED.includes(e.label) && forSide(e.player)).map(shortNote))]}
-      {@const bad = (l: Label | null) => l === "mistake" || l === "blunder"}
-      {@const groups = t.edges.map(e => ({
-        rows: kidsAt(mainKeys[e.index]).flatMap(first => branchRows(first, branchKids)),
-        engine: display.notes && forSide(e.player) && (unit === "turn" ? e.index === t.start && bad(t.label) : bad(e.label))
-          ? mainNames.slice(0, e.index) : null,
-      }))}
-      {#if notes.length || groups.some(g => g.rows.length || (g.engine && bestLine(g.engine).length))}
+      {@const groups = turnGroups(t)}
+      {#if notes.length || groups.some(g => g.rows.length)}
         <div class="my-1 py-1 bg-panel-2/50 border-y border-line">
           {#each notes as note (note)}
             <div class="mb-0.5 px-2 text-sm text-muted truncate" title={note}>{note}</div>
@@ -1086,17 +1116,17 @@
      edge is a dot in its mover's colour (Go tools show a variation without names): the turn numbers place it, so the
      dots carry no numbers of their own. Where a branch forks again, its continuations follow, one step further in
      (Lichess's way inside a variation). Pointing at a move shows its row on the board up to that move (branchPreview). -->
-{#snippet branchGroup(given: BranchRow[], engine: string[] | null)}
-  {@const best = engine ? bestLine(engine) : []}
-  {@const rows = best.length ? [{ depth: 1, paths: [] }, ...given] : given}
+{#snippet branchGroup(rows: BranchRow[], engine: EngineBranch | null)}
   {@const lines = treeLines(rows)}
+  {@const engineStart = engine ? pathKey(engine.paths[0]) : null}
   {#each rows as row, r (r)}
     {@const rule = (depth: number) => `${depth - 0.55}rem`}
-    <!-- The engine's line gleams as the progress bars do while its position's search can still change it (the review's
-         passes, the key moments searched deeper, or the position on screen): its first choice can change, and its
-         line grows. -->
+    <!-- A row of the engine's line gleams as the progress bars do while its position's search can still change it (the
+         review's passes, the key moments searched deeper, or the position on screen): its first choice can change,
+         and its line grows. -->
+    {@const gleams = !!engine && row.paths.some(p => engine.steps.has(pathKey(p))) && !!pendingAt?.(engine.search)}
     <div class={["relative flex flex-wrap items-center gap-y-0.5 py-0.5 font-mono text-[0.95em]",
-                 display.branchForm === "text" ? "gap-x-1" : "gap-x-0.5", best.length && r === 0 && pendingAt?.(engine!) && "bar-glider"]}
+                 display.branchForm === "text" ? "gap-x-1" : "gap-x-0.5", gleams && "bar-glider"]}
          style:padding-left="calc({rule(row.depth)} + 0.65rem)">
       {#each lines[r].through as d (d)}
         <span class="absolute top-0 bottom-0 border-l-2 border-line" style:left={rule(d)} aria-hidden="true"></span>
@@ -1104,9 +1134,10 @@
       <span class={["absolute top-0 border-l-2 border-line", lines[r].last ? "h-[0.95em]" : "bottom-0"]}
             style:left={rule(row.depth)} aria-hidden="true"></span>
       <span class="absolute top-[0.95em] w-[0.5rem] border-t-2 border-line" style:left={rule(row.depth)} aria-hidden="true"></span>
-      {#if best.length && r === 0}{@render engineRow(engine!, best)}{/if}
       {#each row.paths as p, k (pathKey(p))}
         {@const node = branches[pathKey(p)]}
+        {@const step = node ? null : engine?.steps.get(pathKey(p))}
+        {#if pathKey(p) === engineStart}{@render rankBadge(1, "The engine's best line from here", "mr-0.5 font-sans", true)}{/if}
         {@const t = moveFrom(p.slice(0, -1))}
         {@const at = pathKey(p) === here}
         <!-- By turn, a turn's glyph after the move that ends it, once asked for (branchTurnAt). By edge, each edge's. -->
@@ -1132,41 +1163,34 @@
           {/if}
           {#if listed(label)}<span class="-ml-0.5 text-[0.9em] font-extrabold" style:color="var(--{label})"><Glyph glyph={LABEL_GLYPH[label]} /></span>
           {:else if waiting}<span class="-ml-0.5 text-[0.9em] text-muted animate-pulse motion-reduce:animate-none" title="Evaluating…">…</span>{/if}
+        {:else if engine && step}
+          {@render engineEdge(engine, p, step, k)}
         {/if}
       {/each}
     </div>
   {/each}
 {/snippet}
 
-<!-- The engine's best line as a branch (bestLine): candidate 1's badge first, since it is that candidate's line, then its
-     edges as a branch's, a little faded, so that it reads as the engine's and the player's own branches as theirs. It
-     is not kept, and follows the search. Pointing at an edge previews the line up to it on the board, and a click plays
-     it up to there as a branch (as the listed line's click does). An edge already in the tree is hollow. -->
-{#snippet engineRow(start: string[], line: Edge[])}
-  {@const from = positionOf(start)}
-  {@const movers = from ? lineMovers(from, line.length) : []}
-  {@const turns = turnsFrom(start, movers)}
-  {@render rankBadge(1, "The engine's best line from here", "mr-0.5 font-sans", true)}
-  {#each line as e, k (k)}
-    {@const t = turns[k]}
-    {@const to = [...start, ...line.slice(0, k + 1).map(edgeName)]}
-    {@const known = mainIndex(to, mainNames) !== null || pathKey(to) in branches}
-    {@const note = `${turnText(t)} ${edgeName(e)} · the engine's line · play it to here`}
-    {#if k === 0 || t.first}<span class={["text-muted text-[0.9em]", k > 0 && "ml-1"]}>{turnText(t)}</span>{/if}
-    {#if display.branchForm === "text"}
-      <button class={["mv px-[0.2rem] py-px bg-transparent border-0 whitespace-nowrap opacity-75 hover:opacity-100 hover:bg-panel-2",
-                      SIDE_TEXT[movers[k]], known && "underline decoration-dotted underline-offset-3"]}
-              onclick={() => playPath(to)} onmouseenter={() => startPreview({ kind: "engine", start, line, k })} onmouseleave={endPreview} tabindex="-1"
-              title={note}>{edgeName(e)}</button>
-    {:else}
-      <button class="mv flex p-[0.08em] bg-transparent border-0 rounded-full opacity-75 hover:opacity-100 hover:outline hover:outline-ink"
-              onclick={() => playPath(to)} onmouseenter={() => startPreview({ kind: "engine", start, line, k })} onmouseleave={endPreview} tabindex="-1"
-              title={note}>
-        {#if display.branchForm === "pills"}{@render edgePill(e, movers[k], known, null, "")}
-        {:else}<span class={["block w-[0.85em] h-[0.85em] rounded-full", known ? `border-2 ${SIDE_BORDER[movers[k]]}` : SIDE_BG[movers[k]]]}></span>{/if}
-      </button>
-    {/if}
-  {/each}
+<!-- An edge of the engine's best line that the player has not played (engineBranch): after candidate 1's badge, as a
+     branch's edge, a little faded, so that it reads as the engine's and the player's own edges as theirs. It is not
+     kept, and follows the search. Pointing at it previews the line up to it on the board, and a click plays the line up
+     to there as a branch (as the listed line's click does), which then shows here as the player's own. -->
+{#snippet engineEdge(engine: EngineBranch, p: string[], step: EngineStep, k: number)}
+  {@const e = engine.line[step.k]}
+  {@const note = `${turnText(step.turn)} ${edgeName(e)} · the engine's line · play it to here`}
+  {#if k === 0 || step.turn.first}<span class={["text-muted text-[0.9em]", k > 0 && "ml-1"]}>{turnText(step.turn)}</span>{/if}
+  {#if display.branchForm === "text"}
+    <button class={["mv px-[0.2rem] py-px bg-transparent border-0 whitespace-nowrap opacity-75 hover:opacity-100 hover:bg-panel-2", SIDE_TEXT[step.mover]]}
+            onclick={() => playPath(p)} onmouseenter={() => startPreview({ kind: "engine", start: engine.start, line: engine.line, k: step.k })}
+            onmouseleave={endPreview} tabindex="-1" title={note}>{edgeName(e)}</button>
+  {:else}
+    <button class="mv flex p-[0.08em] bg-transparent border-0 rounded-full opacity-75 hover:opacity-100 hover:outline hover:outline-ink"
+            onclick={() => playPath(p)} onmouseenter={() => startPreview({ kind: "engine", start: engine.start, line: engine.line, k: step.k })}
+            onmouseleave={endPreview} tabindex="-1" title={note}>
+      {#if display.branchForm === "pills"}{@render edgePill(e, step.mover, false, null, "")}
+      {:else}<span class={["block w-[0.85em] h-[0.85em] rounded-full", SIDE_BG[step.mover]]}></span>{/if}
+    </button>
+  {/if}
 {/snippet}
 
 <!-- The engine's line under the table: the candidate's badge, then its edges. Pointing at an edge draws the line up to
@@ -1500,7 +1524,7 @@
       <div class="flex items-center gap-2">
         {#if engine && onengine}
           {@const set = onengine}
-          <Switch.Root checked={engine.on} onCheckedChange={v => set({ on: v })} aria-label="Engine" title="Engine on or off (l)"
+          <Switch.Root checked={engine.on} onCheckedChange={v => set({ on: v })} aria-label="Engine" title="Engine on or off"
                        class={SWITCH}>
             <Switch.Thumb class={SWITCH_THUMB} />
           </Switch.Root>

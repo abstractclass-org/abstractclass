@@ -28,6 +28,22 @@ export function branchChildren(paths: string[][]): Map<string, string[][]> {
   return kids;
 }
 
+// A place's children, by its path.
+type Children = (path: string[]) => string[][];
+
+/** The children with a line merged in (the engine's best line, design 07): along the line, each of its paths is the
+ *  first child of the path before it, whether the tree has it or not, and the tree's other children follow. So where a
+ *  branch follows the line, the two are one row, and where they part, a fork. `line` is the line's paths in order. */
+export function withLine(kidsOf: Children, line: string[][]): Children {
+  const next = new Map(line.map(p => [pathKey(p.slice(0, -1)), p]));
+  return path => {
+    const n = next.get(pathKey(path));
+    if (!n) return kidsOf(path);
+    const key = pathKey(n);
+    return [n, ...kidsOf(path).filter(k => pathKey(k) !== key)];
+  };
+}
+
 /** A row of a branch in the move list: its moves (paths), and its indent (1 for a branch from the game). */
 export interface BranchRow { depth: number; paths: string[][] }
 
@@ -67,7 +83,6 @@ export function treeLines(rows: BranchRow[]): { last: boolean; through: number[]
 
 // Moving between the lines at forks, as Lichess's keys do (ui/analyse/src/keyboard.ts). `childrenOf` gives a place's
 // children, the game's move first.
-type Children = (path: string[]) => string[][];
 
 /** Shift + ←: back to the nearest earlier place with more than one child, or the start. */
 export function prevFork(path: string[], childrenOf: Children): string[] {

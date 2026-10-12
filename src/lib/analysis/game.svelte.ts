@@ -404,9 +404,10 @@ export class GameAnalysis {
     return { legal: reply.legal.filter(m => m.includes("-")).map(parseEdge), nodes: reply.nodes[reply.mover].map(parsePoint) };
   }
 
-  /** Keeps the game's branches in the browser: each node's key and order. */
+  /** Keeps the game's branches in the browser: each node's key and order. Not for a game deleted meanwhile (on the
+   *  home page, in another tab): its branches would come back with a later import of the game. */
   private async keepBranches() {
-    if (!this.id) return;
+    if (!this.id || !(await dbGet(STORES.games, this.id))) return;
     const nodes = Object.entries(this.branches).map(([k, n]): [string, number] | [string, number, 1] =>
       (n.judged ? [k, n.order, 1] : [k, n.order]));
     await dbPut(STORES.branches, this.id, { version: 2, nodes } satisfies KeptBranches);

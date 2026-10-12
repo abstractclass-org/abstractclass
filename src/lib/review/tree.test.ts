@@ -2,7 +2,7 @@
 // a game. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { branchChildren, branchRows, mainIndex, nextFork, pathKey, prevFork, sharedLength, siblingLine, treeLines } from "./tree.ts";
+import { branchChildren, branchRows, mainIndex, nextFork, pathKey, prevFork, sharedLength, siblingLine, treeLines, withLine } from "./tree.ts";
 
 const main = ["a", "b", "c", "d"];
 
@@ -30,6 +30,25 @@ test("a branch with no forks is one row", () => {
   const nodes = [["x"], ["x", "y"], ["x", "y", "z"]];
   const kids = branchChildren(nodes);
   assert.deepEqual(branchRows(["x"], p => kids.get(pathKey(p)) ?? []).map(r => r.paths.length), [3]);
+});
+
+test("the engine's line merged into the branches: one row where they agree, a fork where they part", () => {
+  // From the game after "a", the player's branch x y z. Each line is given as its paths, from the game after "a".
+  const kids = branchChildren([["a", "x"], ["a", "x", "y"], ["a", "x", "y", "z"]]);
+  const real = (p: string[]) => kids.get(pathKey(p)) ?? [];
+  const paths = (...edges: string[]) => edges.map((_, k) => ["a", ...edges.slice(0, k + 1)]);
+  const rows = (line: string[][]) => {
+    const kidsOf = withLine(real, line);
+    return kidsOf(["a"]).flatMap(first => branchRows(first, kidsOf)).map(r => [r.depth, r.paths.map(p => p.at(-1)).join("")]);
+  };
+  // The line goes on past the branch: one row, the branch's edges, then the line's.
+  assert.deepEqual(rows(paths("x", "y", "z", "u")), [[1, "xyzu"]]);
+  // The line parts from the branch after x y: a fork there, the line's way first.
+  assert.deepEqual(rows(paths("x", "y", "v", "w")), [[1, "xy"], [2, "vw"], [2, "z"]]);
+  // A line that has changed and starts elsewhere: its own row first, and the branch on its own.
+  assert.deepEqual(rows(paths("q", "r")), [[1, "qr"], [1, "xyz"]]);
+  // No line: the branch alone.
+  assert.deepEqual(rows([]), [[1, "xyz"]]);
 });
 
 test("Lichess's fork keys: the previous and next fork, and the line beside this one", () => {

@@ -50,7 +50,14 @@ It holds no backlog: everything still to do that is not in flight is in
     `deliverExport`, `branchNodes`, `ChartTip`, `rankBadge`). Checked in Edge: the line drawing, the three previews,
     both charts' notes, the board's notes, the candidate's note, the GPU on, off and back. Not checked: an export after
     the cleanup.
-- **For the owner, after this release:**
+- **Then, released to `main` on 2026-10-13:**
+  - The engine's best line merged into the branches (design 07, item 15, decisions/product.md, "The engine's best line
+    merged into the branches"). Checked in Edge.
+  - The e key beside l for the engine's switch, and no key in the switch's note (design 09). Checked in Edge with key
+    events sent from a script: the browser tool's key presses did not reach the page in that run.
+  - One tab for each game's review, with "Review here" (design 11, decisions/product.md, "One tab for each game's
+    review"). Checked in Edge with two tabs.
+- **For the owner, after the release of `99106ff`:**
   - Drag the bookmarklet to the bar again: its code changed.
   - Install the userscript again from the live site's import page, then remove the copy from the local preview in
     Tampermonkey's dashboard. That copy updates from `127.0.0.1:4173`, and its namespace differs, so Tampermonkey

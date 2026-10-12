@@ -1882,3 +1882,40 @@ The interface, the review, puzzles, lessons, labels and thresholds.
 - **Losing the data is more likely.** A browser deletes a best-effort origin's data when the disk is almost full,
   least recently used origin first. Safari deletes a site's data after seven days of browser use without a visit
   (MDN, same page). The backlog has both: stale analyses, and storage that the browser may clear.
+
+### The engine's best line merged into the branches (2026-10-13)
+
+- **The problem:** a click on the engine's best line under a Mistake played it as a branch, and the branch showed as a
+  second row under the engine's row, with the same edges. The engine's row was a display only, outside the tree.
+- **Decided:** the line is part of the tree, as Lichess's computer lines are (design 07, item 15). Along the line, each
+  edge is the first child of the edge before it. The edges in the player's branches show solid, and the rest faded. A
+  branch on the line and the line are one row. Where they part, the row forks, the line's way first.
+- **When the line changes:** the player's branches stay, as the branches they are. The new line merges with any branch
+  that it follows, and a branch it leaves shows as a branch of its own. The faded edges were never kept, so nothing
+  needs moving: each drawing of the move list merges the line of that moment.
+- **Changed with it:** the line starts where it leaves the game, as a branch does, and joins that position's branches.
+  Before, it started at the turn's start and showed the turn's played edges as hollow edges.
+- **Checked** in Edge, on a stored game of 120 edges, with its branches put back after: a click on the second
+  edge of turn 5's line made those two edges solid in the same row, with no second row. A different edge played after
+  them (candidate 2) made a fork: the line's way first, then the player's edge, both one step in. Pointing at a faded
+  edge previewed the line on the board. The unit tests (`tree.test.ts`) check the rows for a line past a branch, a line
+  that parts from it, a line that starts elsewhere (as after a change of the line), and no line.
+- **Not checked** in the browser: a change of the line during a search. The tests cover the rows it gives.
+
+### One tab for each game's review (2026-10-13)
+
+- **The problem:** two tabs on one game store the branches over each other (each tab stores its own set whole after
+  each change), and run the engine twice on the same positions. A review open on a game deleted on the home page
+  stored its branches again after the delete.
+- **The options:** one tab for each game, with "Review here" to move the review (as WhatsApp Web's "Use here"). Or
+  the branches synced between tabs, which keeps the double engine work and needs more code. Or the stored and the
+  kept branches merged on each store, which brings back a branch deleted in the other tab.
+- **Decided:** one tab for each game (design 11), with the Web Locks API. A review stores no branches for a game that
+  is no longer stored.
+- **Checked** in Edge, with two tabs on the same game:
+  - The second tab showed "This game is open in another tab" and loaded no engine file.
+  - Its "Review here" started its review. The first tab stopped its review and showed "This game is now open in
+    another tab", with no error on the page and none in the console.
+  - The first tab's "Review here" took the review back.
+  - After the tab that held the lock closed, a new tab reviewed the game at once.
+- **Not checked:** a game deleted while its review is open.

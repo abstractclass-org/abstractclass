@@ -166,14 +166,23 @@ cut edges that are on the board, so a line drawn over the board can show edges t
     a move of an engine line, `ui/lib/src/ceval/view/main.ts`, `renderPvBoard`), and the help pages of chess.com and
     Sabaki name none. Hover previews exist in browser extensions for those sites and in one Go client (SWHub).
 15. **The engine's best line as a branch** under a Mistake's or a Blunder's note (Lichess shows the engine's line after
-    a mistake as a variation): the first of the branches from where the mistake started (by turn, from the turn's
-    start), with the notes. It is candidate 1's line, as far as the search trusts it (by visits, as the listed line),
-    behind candidate 1's badge, and a little faded, so that the engine's line and the player's own branches read apart.
-    It is not kept: it follows the search. Pointing at an edge previews the line up to it on the board, as a branch's
-    row, and a click plays it up to there as a branch (as the listed line's click does). An edge already in the tree is
-    hollow. While its position's search can still change it (a search of it runs, or the label pass or the key moments'
-    deeper search has yet to reach it), the row gleams as the progress bars do: the line updates after each slice of
-    the search.
+    a mistake as a variation): candidate 1's line from where the mistake started (by turn, from the turn's start), as
+    far as the search trusts it (by visits, as the listed line), behind candidate 1's badge.
+    - **It starts where it leaves the game,** as a branch does, and is the first of the branches from there. A line
+      that leaves the game only after the turn shows nowhere: the engine played the turn as the player did.
+    - **It is part of the tree** (`withLine` in `tree.ts`), as Lichess's computer lines are nodes of its tree, marked as
+      the computer's. Along the line, each edge is the first child of the edge before it. An edge the player has
+      played shows as the branch's own (solid, with its label), and an edge not played shows a little faded, so that
+      the engine's line and the player's own edges read apart. Where a branch follows the line, the two are one row.
+      Where they part, the row forks: the line's way first, then the branch's.
+    - **A click on a faded edge** plays the line up to there as a branch (as the listed line's click does). The played
+      edges then show solid in the same row, with no second row. Pointing at a faded edge previews the line up to it
+      on the board, as a branch's row.
+    - **The line follows the search, and the player's branches stay.** The faded edges are not kept. When the line
+      changes, a branch the player played along the old line shows as a branch of its own, and a branch on the new
+      line merges into it. While its position's search can still change it (a search of it runs, or the label pass or
+      the key moments' deeper search has yet to reach it), the line's rows gleam as the progress bars do: the line
+      updates after each slice of the search.
 16. **The player's notes on the board** (Lichess's circles and arrows, from its chessground board's drawable shapes):
     a right-click on a point rings it, and a right drag from a point to another draws a line between them. A note is
     only a drawing: it is not an edge, and it cuts and encloses nothing. Drawing a note again removes it, and in

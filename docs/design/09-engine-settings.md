@@ -28,9 +28,11 @@ line has the engine's switch, the search's bar with its visits, and the engine's
 (the expected final margin and the lead) across the column's whole width. The settings are kept in this browser, and
 each applies at once, without a reload.
 
-1. **The engine's switch** is at the first line's left, and the l key works it too (Lichess's). Off, the running
-   searches stop, no search starts, and what was found stays, also the result so far of a stopped search. Results in
-   the browser's store still load. The review's bar says "Engine off. The review is paused." and has no moving gleam.
+1. **The engine's switch** is at the first line's left, and the e and l keys work it too: l is Lichess's, and e, for
+   "engine", is the site's own (Lichess's e opens its opening explorer, which this site does not have). The switch's
+   note names no key: the list of keys ("?") does. Off, the running searches stop, no search starts, and what was
+   found stays, also the result so far of a stopped search. Results in the browser's store still load. The review's
+   bar says "Engine off. The review is paused." and has no moving gleam.
    On, the work not done starts again. On by default, and kept between visits, as on Lichess.
 2. **The engine's gear** is at the first line's right. It opens "Engine settings" under the header, in the place of the
    candidates and the move list, so the header's values and search bar stay in view while a setting changes. The gear,
@@ -188,7 +190,7 @@ each applies at once, without a reload.
   worker.
 - `src/routes/review/+page.svelte`: the settings applied as they change, another network's pool, and the GPU
   (`GpuControl`, design 15).
-- `src/lib/review/ReviewView.svelte`: the engine header's switch and gear, the l key, the `engineSettingsPanel`,
+- `src/lib/review/ReviewView.svelte`: the engine header's switch and gear, the e and l keys, the `engineSettingsPanel`,
   `steps` and `visitsSteps` snippets, and "time limit" in the header.
 - `src/routes/lab/engine/+page.svelte`: a single search's memory, for the measurement above.
 

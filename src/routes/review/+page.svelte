@@ -5,7 +5,8 @@
   // The board works from the engine's rules at once. Then the sweep, the label pass, deeper searches where the
   // player looks, and the key moments deepened after the label pass (docs/design/05-review-analysis.md). The engine's
   // settings (docs/design/09-engine-settings.md) apply as they change: the workers, the GPU and the network without a
-  // reload. The GPU worker joins the pool once the network is loaded (docs/design/15-gpu.md).
+  // reload. The GPU worker joins the pool once the network is loaded (docs/design/15-gpu.md). One tab reviews a game at
+  // a time (src/lib/game/reviewLock.ts).
   import { onDestroy, onMount, untrack } from "svelte";
   import ReviewView, { type ReviewProgress } from "#lib/review/ReviewView.svelte";
   import { review, type ReviewData } from "#lib/review/model.ts";
@@ -17,6 +18,7 @@
   import { errorText } from "#lib/errors.ts";
   import { playerNames } from "#lib/game/record.ts";
   import { lastReview, loadGame, markReviewed, rememberReview, reviewMark } from "#lib/game/store.ts";
+  import { holdReview } from "#lib/game/reviewLock.ts";
   import { replaceState } from "$app/navigation";
   import { deliverExport, type ExportKind } from "#lib/game/reviewFile.ts";
   import { annotatedText } from "#lib/review/exportText.ts";
@@ -209,10 +211,27 @@
     return stored.record.moves;
   }
 
+  // The game open in another tab: before this tab's review started ("open"), or after another tab took it ("taken"),
+  // which stops the review here. "Review here" takes the game's lock, then loads the page again, which starts the
+  // review with the lock held.
+  let elsewhere = $state<"open" | "taken" | null>(null);
+  let freeLock: (() => void) | null = null;
+  async function reviewHere() {
+    if (!kept) return;
+    (await holdReview(kept.id, true, () => {}))?.();
+    location.reload();
+  }
+
   onMount(async () => {
     try {
       const moves = await chooseGame();
       if (!moves) { noGame = true; return; }
+      freeLock = await holdReview(kept!.id, false, () => {
+        elsewhere = "taken";
+        gpu?.end();
+        pool?.terminate();
+      });
+      if (!freeLock) { elsewhere = "open"; return; }
       moveCount = moves.length;
       manifest = await loadManifest();
       if (!manifest) throw new Error("no /engine/manifest.json: run `npm run engine` first");
@@ -233,10 +252,10 @@
       controlGpu(first, network);
       await g.sweep();
     } catch (e) {
-      error = errorText(e);
+      if (!elsewhere) error = errorText(e); // a review stopped for another tab fails its searches: no error to show
     }
   });
-  onDestroy(() => { gpu?.end(); pool?.terminate(); }); // a GPU worker that starts later then ends (GpuControl)
+  onDestroy(() => { gpu?.end(); pool?.terminate(); freeLock?.(); }); // a GPU worker that starts later then ends (GpuControl)
 
   /** The review exported (design 13): the review file, with the engine's results, or the annotated record, copied or as
    *  a file. The record's labels are the page's (by turn or by edge). */
@@ -255,6 +274,13 @@
 {#if noGame}
   <p class={MESSAGE}>No game to review yet. <a href="/">Bring one on the home page</a>: paste its record, or use the
     meaf.us bookmarklet.</p>
+{:else if elsewhere}
+  <div class={MESSAGE}>
+    <p class="mb-3">{elsewhere === "taken" ? "This game is now open in another tab, so its review here stopped."
+      : "This game is open in another tab."} A game is reviewed in one tab at a time, so that two tabs do not store over
+      each other's branches.</p>
+    <button class="btn-primary" type="button" onclick={reviewHere}>Review here</button>
+  </div>
 {:else if error}
   <p class="{MESSAGE} text-blunder">{error}</p>
 {:else if game?.error && !game.rulesReady}
