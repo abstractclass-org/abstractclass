@@ -24,7 +24,7 @@
   import { SIDE_TEXT } from "#lib/ui/side.ts";
   import AdvantageChart from "./AdvantageChart.svelte";
   import { loadDisplay, saveDisplay, type Display } from "./display.ts";
-  import { playMove, preload } from "#lib/sound.ts";
+  import { MOVE_SOUND_NAMES, playMove, preload } from "#lib/sound.ts";
   import Glyph from "./Glyph.svelte";
   import {
     edgeName, moveName, moveNotation, sameEdge, shortNote, turnShortNote, turnCost, judgeTurn, judgeBranchEdge, valuesAfter, moverWin, costText, pct, shownCandidates, lineMovers, enoughVisits, trustedLine, type Analysis, type Candidate, type EdgeReview, type LineStep, LABELS, LABEL_TEXT, LABEL_GLYPH, PLAYER_NAME, type Edge, type Label, type Player, type Position, type Review, type Unit, type Move, type TurnJudgment,
@@ -543,9 +543,10 @@
     return out;
   }
 
-  // A move's sound (design 08), a crayon stroke: a step one move on plays it, from any key or button, and so does a move
-  // played or clicked in the move list. Other jumps (back, the start and the end, the chart, the fork keys) are silent,
-  // and so is a click on the place already on screen: the board does not change.
+  // A move's sound (design 08), a button or a pencil stroke, and another for an edge that cuts: a step one move on plays
+  // it, from any key or button, and so does a move played or clicked in the move list. Other jumps (back, the start and
+  // the end, the chart, the fork keys) are silent, and so is a click on the place already on screen: the board does not
+  // change.
   function setPath(p: string[], sound = false) {
     const step = p.length === path.length + 1 && sharedLength(p, path) === path.length;
     if (pathKey(p) === here) sound = false;
@@ -554,9 +555,17 @@
     listHover = null;
     branchHover = null;
     moveHover = null;
-    if (display.sound && (sound || step) && p.length) void playMove(display.volume);
+    if (display.sound && (sound || step) && p.length) void playMove(display.volume, display.moveSound, cutsAt(p));
   }
-  $effect(() => { if (display.sound) preload(); });
+  /** Whether the move that leads to a place cuts an edge: the game's move, or a branch's (a played move's branch exists
+   *  before its sound plays: playPath waits for it). */
+  function cutsAt(p: string[]): boolean {
+    const i = mainIndex(p, mainNames);
+    const move = i !== null ? (i > 0 ? R.edges[i - 1] : null) : branches[pathKey(p)]?.move;
+    return !!move?.cut;
+  }
+  $effect(() => { if (display.sound) preload(display.moveSound); });
+  const SOUND_CHOICES = Object.entries(MOVE_SOUND_NAMES) as [string, string][];
   // Lichess's move menu on a branch's move (ui/analyse/src/treeView/contextMenu.ts): "Promote variation" and "Delete
   // from here". The game's own moves have no menu: the review is of the game, so its line stays first ("Make main line"
   // is for an analysis board, later).
@@ -1210,12 +1219,16 @@
         [["pills", "Pills"], ["dots", "Dots"], ["text", "Notation"]], () => display.branchForm,
         v => (display.branchForm = v as Display["branchForm"]))}
       <h3 class={SETTINGS_HEAD}>Sound</h3>
-      {@render toggle("Move sounds", "A crayon stroke, for each edge played or stepped through.",
+      {@render toggle("Move sounds", "A sound for each edge played or stepped through.",
         () => display.sound, v => (display.sound = v))}
+      {#if SOUND_CHOICES.length > 1}
+        {@render choice("Sound", "The sound of a move.", SOUND_CHOICES, () => display.moveSound,
+          v => { display.moveSound = v as Display["moveSound"]; if (display.sound) void playMove(display.volume, display.moveSound); })}
+      {/if}
       <div class="flex items-center justify-between gap-3 py-1.5">
         <label for="setting-volume" class={["text-sm font-medium", !display.sound && "text-muted"]}>Volume</label>
         <input id="setting-volume" type="range" min="0" max="1" step="0.05" bind:value={display.volume} disabled={!display.sound}
-               onchange={() => playMove(display.volume)}
+               onchange={() => playMove(display.volume, display.moveSound)}
                class="w-36 accent-(--accent) disabled:opacity-50" />
       </div>
       <h3 class={SETTINGS_HEAD}>Keyboard</h3>

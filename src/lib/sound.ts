@@ -1,14 +1,30 @@
-// Move sounds (design 08): a crayon stroke, one sound for every edge. Five strokes cut from one recording released as
-// CC0 (public domain): "Crayon Drawing on Paper" by wstarling (freesound.org/s/871478), at 4.32, 14.87, 36.6, 83.19 and
-// 97.52 seconds. They sound alike but not the same, as one hand's strokes. Each move plays one, never the one just
-// played, at a speed varied by up to 3%, so that a walk through a game does not sound mechanical. Browsers start sound
-// only after the visitor's first click or key.
+// Move sounds (design 08): an edge has one sound, and an edge that cuts has another, from a set that the display
+// settings choose.
+// - Button (the default), from Pixabay under the Pixabay Content License: "Button Press" by DRAGON-STUDIO (382713) for
+//   an edge, "Select Button UI" by Emilianodleon (395763) for a cut.
+// - Pencil: two strokes from "Pencil_lines" by tmkappelt (freesound.org/s/85702, CC0), each without its first 60 ms
+//   of quiet scratching: the one from 1.24 seconds for an edge, the one from 0.72 seconds for a cut, played 12% faster
+//   (two semitones higher). The recording's strokes are about as bright as each other, so the speed makes the cut's
+//   higher pitch.
+// Each sound is fixed, so that a cut is told by ear. Browsers start sound only after the visitor's first click or key.
 
-const CLIPS = [1, 2, 3, 4, 5].map(n => `/sounds/crayon/${n}.mp3`);
+interface Clip {
+  url: string;
+  rate: number; // the playback speed, which also sets the pitch
+}
+
+export const MOVE_SOUNDS = {
+  button: { edge: { url: "/sounds/button/edge.mp3", rate: 1 }, cut: { url: "/sounds/button/cut.mp3", rate: 1 } },
+  pencil: { edge: { url: "/sounds/pencil/edge.mp3", rate: 1 }, cut: { url: "/sounds/pencil/cut.mp3", rate: 1.12 } },
+} satisfies Record<string, Record<"edge" | "cut", Clip>>;
+export type MoveSound = keyof typeof MOVE_SOUNDS;
+/** The sets' names in the display settings, in their order there. The choice shows when there are two or more. */
+export const MOVE_SOUND_NAMES: Record<MoveSound, string> = { button: "Button", pencil: "Pencil" };
+
+const KINDS = ["edge", "cut"] as const;
 let ctx: AudioContext | null = null;
-let files: Promise<ArrayBuffer>[] | null = null;
-let buffers: Promise<AudioBuffer>[] | null = null;
-let last = -1;
+const files: Partial<Record<MoveSound, Promise<ArrayBuffer>[]>> = {};
+const buffers: Partial<Record<MoveSound, Promise<AudioBuffer>[]>> = {};
 
 function audio(): AudioContext | null {
   try {
@@ -20,29 +36,27 @@ function audio(): AudioContext | null {
   }
 }
 
-/** Fetches the strokes ahead, so that the first move's sound is not late. Decoding waits for the first sound. */
-export function preload() {
-  files ??= CLIPS.map(url => fetch(url).then(r => r.arrayBuffer()));
+/** Fetches a set's two sounds ahead, so that the first move's sound is not late. Decoding waits for the first sound. */
+export function preload(set: MoveSound) {
+  files[set] ??= KINDS.map(kind => fetch(MOVE_SOUNDS[set][kind].url).then(r => r.arrayBuffer()));
 }
 
-/** A move's sound at a volume from 0 to 1: a stroke, not the last one played, at a speed varied by up to 3%. */
-export async function playMove(volume: number) {
+/** A move's sound at a volume from 0 to 1: the set's sound for an edge, or for an edge that cuts. */
+export async function playMove(volume: number, set: MoveSound, cut = false) {
   const a = audio();
   if (!a || volume <= 0) return;
-  preload();
-  buffers ??= files!.map(f => f.then(data => a.decodeAudioData(data.slice(0))));
-  const choices = CLIPS.map((_, k) => k).filter(k => k !== last);
-  const k = choices[Math.floor(Math.random() * choices.length)];
-  last = k;
+  preload(set);
+  const decoded = buffers[set] ??= files[set]!.map(f => f.then(data => a.decodeAudioData(data.slice(0))));
+  const kind = cut ? 1 : 0;
   try {
     const src = a.createBufferSource();
-    src.buffer = await buffers[k];
-    src.playbackRate.value = 1 + (Math.random() * 2 - 1) * 0.03;
+    src.buffer = await decoded[kind];
+    src.playbackRate.value = MOVE_SOUNDS[set][KINDS[kind]].rate;
     const gain = a.createGain();
     gain.gain.value = volume;
     src.connect(gain).connect(a.destination);
     src.start();
   } catch {
-    // a stroke that does not load stays silent
+    // a sound that does not load stays silent
   }
 }

@@ -1429,3 +1429,69 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   (`gcs=G101`). A page change inside the site sends a page view. Google answered this machine's hits with HTTP 503,
   but the owner saw the preview's visits arrive in Google Analytics.
 - **The repository on GitHub** exists, private, with no push yet.
+
+### Move sounds: the crayon replaced by a pencil and a keyboard (2026-10-12)
+
+- **Asked:** remove the crayon strokes, and try two recordings the owner downloaded from Pixabay: "Pencil_lines"
+  (Pixabay 91555, uploaded by its community account from tmkappelt's Freesound 85702, CC0 there) and "iPhone Keyboard
+  Typing Sound Effect" (Pixabay 336778, by u_a4gfvwagf1, the Pixabay Content License). Both downloads were complete,
+  though not renamed from `.crdownload`.
+- **Built** (design 08): four pencil strokes and five key taps, cut as the crayon was, and a "Sound" choice in the
+  display settings' Sound group, Pencil by default, so that the owner compares them on a real game. The crayon's
+  files are removed. The notices page names both sources.
+- **A caveat on the keyboard:** its recording is digital, the phone's own keyboard sound captured from the device. The
+  Pixabay licence comes from the uploader, and Pixabay leaves other rights to the user to check. The pencil's original
+  is CC0 on Freesound.
+- **First cuts went wrong,** and were made again: seeking in an MP3 is not exact, a fade counted from the recording's
+  start silenced a clip, and windows of 44 samples taken as 1 millisecond moved the late taps by up to 17
+  milliseconds. The clips are now cut from the decoded samples, each tap from its first sample over −40 dB, and every
+  clip peaks where its set's gain puts it.
+
+### Move sounds: the pencil shortened, the phone keyboard removed (2026-10-12)
+
+- **The pencil was a little long** (the owner, by ear). Each stroke opens with 60 to 90 ms of quiet scratching before
+  it rises. The clips now leave out the first 60 ms: 0.29 to 0.31 s, not 0.35 to 0.37, and the peak comes sooner. A
+  speed-up of 5%, the other way offered, would cut only about 18 ms and raise the pitch.
+- **The phone keyboard is removed:** its recording is the phone's own sound (design 08, Alternatives). A safe keyboard
+  comes from a CC0 recording of a real keyboard on Freesound. Candidates, each checked CC0 on its own page: stu556's
+  Leopold FC660M with MX Brown switches (450282), SamsterBirdies' Cherry MX Blue (489424), khenshom's MacBook Pro 2018
+  (565645), Trollarch2's mechanical keyboard (331656), grcekh's WhiteFox with Hako Violet switches (546167).
+- **The choice of set** shows only when there are two or more sets, so it is hidden with the pencil alone.
+
+### Move sounds: the button (2026-10-12)
+
+- **Asked:** the safe keyboards found (Freesound's CC0 recordings, BigSoundBank's studio keyboards, Kenney's interface
+  clicks) did not please: most of Freesound's have a poor room sound. The owner chose two button sounds from Pixabay
+  instead, to play together, the first more often: "Select Button UI" by Emilianodleon (395763) and "Button Press" by
+  DRAGON-STUDIO (382713), both under the Pixabay Content License. Button is the default, Pencil the second choice.
+- **Checked:** both downloads complete (the sizes match their lengths), and both pages name their sound designers and
+  no product.
+- **Built** (design 08): the two sounds, each its press and release, trimmed of the silence before and the faint tail
+  after; the first plays three times as often (the weight is the site's choice of "more often"). A set of two may
+  repeat a clip: never repeating would make two clips alternate. Three tests check the draw.
+- **The name:** the project is Hedge School everywhere but the browser's storage and the local folder (design 11). The
+  README is rewritten for the site as it is: the early access, the engine from its release, the analytics.
+- **Swapped** (the owner, after listening): "Button Press" now plays three times as often as "Select Button UI".
+
+### Move sounds: a sound for a cut (2026-10-12)
+
+- **Asked:** the button's more frequent sound ("Button Press") for an edge, the other ("Select Button UI") for an edge
+  that cuts. The pencil the same: two fixed strokes, the lower-pitched for an edge, the higher for a cut, in place of
+  four strokes at random.
+- **Measured:** the pencil's four strokes are about as bright as each other: their spectral centroids, weighted by
+  energy, lie within 2% (5,400 to 5,510 Hz), less than the ±3% speed the strokes used to vary by. So a stroke's pitch
+  heard before came mostly from that speed. The darkest stroke is the edge's, the brightest the cut's, and the cut's
+  plays 12% faster (two semitones) so that it is higher by ear. The figure 12% is the site's choice.
+- **Built** (design 08): `cutsAt` tells whether the move that leads to a place cuts, in the game or in a branch, and
+  the sound follows. The sounds are fixed: no random choice, no change of speed. The weights and their tests are gone.
+  A change of set plays the new set's edge sound.
+
+### Move sounds: the pencil as loud as the button (2026-10-12)
+
+- **Asked:** the pencil a little quieter, to match the button's volume.
+- **Measured** (EBU R128's momentary loudness, the loudest 400-ms window, which holds a whole clip): the button's
+  sounds at −28.6 and −28.8 LUFS, the pencil's at −19.4 and −17.3. At equal peaks, the pencil's continuous scratching
+  carries about 10 LU more than the button's two short clicks.
+- **Built:** each pencil stroke cut again from the source with its own gain, to −28.7 LUFS: 9.4 dB down for the edge's
+  stroke, 11.8 dB for the cut's. The four sounds now lie within 0.3 LU (−28.6 to −28.9 LUFS). The cut's stroke still
+  plays 12% faster, which keeps its loudness.

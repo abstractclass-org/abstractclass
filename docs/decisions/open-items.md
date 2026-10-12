@@ -69,8 +69,6 @@ or a design first:
 - **The lessons' edge input on the engine's rules:** the lessons check edges with small hand-written tests. Give
   `EdgeInput` each lesson step's legal edges and the mover's nodes from the engine's `describe`, as the puzzles do (decisions/product.md,
   "Edge input on the engine's rules, in the puzzles"). A lesson's position may need the `position` field of the query.
-- **Other move sounds:** the crayon strokes (design 08) are to be replaced. Candidates: fountain pen strokes, or
-  other free recordings. Choose by ear in a sound lab, as the crayon strokes were chosen (the lab was not kept).
 - **Sound beyond the review's moves:** the review's move sounds are built (design 08). Still to decide: sounds in the
   puzzles and the lessons (a move, solved, failed), and whether a mistake's label has one.
 - **Using the review page's space** (design 06): with the board large and three columns, look again at the

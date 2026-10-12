@@ -1,6 +1,6 @@
-# Learn Enclosure
+# Hedge School
 
-This project builds a website that helps people learn the board game Enclosure. It reviews their games, labels their
+This project builds Hedge School, a website that helps people learn the board game Enclosure. It reviews their games, labels their
 moves, and later offers puzzles and training. Before you change anything, read these documents:
 
 - [docs/handoff.md](docs/handoff.md): the latest session's handoff. It tells what is in flight and what to check

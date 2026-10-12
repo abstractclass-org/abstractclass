@@ -3,6 +3,7 @@
 // in this browser: there are no accounts yet. Storage can be blocked (a private window, blocked site data), so every
 // read and write may fail, and the defaults then hold.
 import { DEFAULT_LAYERS, type BoardLayers } from "#lib/board/Board.svelte";
+import { MOVE_SOUNDS, type MoveSound } from "#lib/sound.ts";
 
 export interface Display {
   judge: "turn" | "edge"; // what the labels judge: each turn as a whole (the default), or each edge (design 10)
@@ -23,6 +24,7 @@ export interface Display {
   previewMoves: boolean; // the position after a played move on the board, while the pointer is on the move (design 07)
   previewBranches: boolean; // a branch's row on the board, while the pointer is on one of its moves (design 07)
   sound: boolean; // move sounds (design 08), on by default as on Lichess
+  moveSound: MoveSound; // which set of sounds (src/lib/sound.ts): a button by default, or a pencil stroke
   volume: number; // the move sounds' volume, 0 to 1
 }
 
@@ -41,6 +43,7 @@ export const DEFAULT_DISPLAY: Display = {
   previewMoves: true,
   previewBranches: true,
   sound: true,
+  moveSound: "button",
   volume: 0.4,
 };
 
@@ -63,6 +66,7 @@ export function loadDisplay(): Display {
       previewMoves: kept.previewMoves ?? DEFAULT_DISPLAY.previewMoves,
       previewBranches: kept.previewBranches ?? DEFAULT_DISPLAY.previewBranches,
       sound: kept.sound ?? DEFAULT_DISPLAY.sound,
+      moveSound: kept.moveSound && kept.moveSound in MOVE_SOUNDS ? kept.moveSound : DEFAULT_DISPLAY.moveSound,
       volume: typeof kept.volume === "number" ? Math.min(1, Math.max(0, kept.volume)) : DEFAULT_DISPLAY.volume,
     };
   } catch {

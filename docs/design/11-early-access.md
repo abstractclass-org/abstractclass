@@ -10,8 +10,10 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
 
 ## Decision
 
-1. **The name: Hedge School.** The repository keeps its name. The address: `hedgeschool.abstractclass.org`, on the
-   owner's domain, so that it matches the name the visitor reads.
+1. **The name: Hedge School,** for the site and the project: the pages, the README, the package and the GitHub
+   repository (`hedgeschool`). The address: `hedgeschool.abstractclass.org`, on the owner's domain, so that it matches
+   the name the visitor reads. The browser's storage keeps its first names (`learn-enclosure`), so that the games and
+   settings a browser holds stay. The local folder keeps its name too.
 2. **The scope: the review only.**
    - **The home page:** import a game, and the player's games. No sample game: a review opens on a game the player
      brought.

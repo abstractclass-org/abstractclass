@@ -71,8 +71,14 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
   <ul>
     <li>The thumbs-up of the Excellent label: <a href="https://fonts.google.com/icons">Material Design Icons</a>' "thumb_up",
       by Google, under the <a href="https://www.apache.org/licenses/LICENSE-2.0">Apache License 2.0</a>.</li>
-    <li>The sound of a move: five strokes from "Crayon Drawing on Paper" by wstarling
-      (<a href="https://freesound.org/s/871478/">Freesound 871478</a>), dedicated to the public domain (CC0).</li>
+    <li>The button sound of a move: "Select Button UI" by Emilianodleon
+      (<a href="https://pixabay.com/sound-effects/film-special-effects-select-button-ui-395763/">Pixabay 395763</a>) and
+      "Button Press" by DRAGON-STUDIO
+      (<a href="https://pixabay.com/sound-effects/film-special-effects-button-press-382713/">Pixabay 382713</a>), under
+      the <a href="https://pixabay.com/service/terms/">Pixabay Content License</a>.</li>
+    <li>The pencil sound of a move: four strokes from "Pencil_lines" by tmkappelt
+      (<a href="https://freesound.org/people/tmkappelt/sounds/85702/">Freesound 85702</a>), dedicated to the public
+      domain (CC0).</li>
   </ul>
 </main>
 

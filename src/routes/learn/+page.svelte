@@ -39,7 +39,7 @@
 
 <main class="box-content max-w-[1000px] mx-auto my-4 px-4">
   {#if !lesson}
-    <h1 class="my-1 text-2xl font-bold">Learn Enclosure</h1>
+    <h1 class="my-1 text-2xl font-bold">Learn the game</h1>
     <p class="mb-4 text-muted">Short lessons on the board, from the rules to the ideas strong players use.</p>
     {#each COURSE as stage, si (stage.title)}
       <section class={["mb-3 px-4 py-3.5 bg-panel border border-line rounded-lg", !stage.ready && "opacity-60"]}>

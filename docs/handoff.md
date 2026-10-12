@@ -91,9 +91,10 @@ It holds no backlog: everything still to do that is not in flight is in
 - **Request 06 (WebGPU)** waits for the engine repository's step 2. Step 1 is measured on the RTX 5080 and on the
   owner's Apple laptop, and the site's answer is written: no need for reproducible searches, batch across searches
   first, the GPU's default chosen on each machine by a short test ([requests/06-webgpu.md](requests/06-webgpu.md)).
-- **Move sounds:** the owner looks for other recordings, perhaps fountain pen strokes (decisions/open-items.md, "Other
-  move sounds"). When they have candidates, build a sound lab to compare them by ear (design 08). The first lab was
-  not kept.
+- **Move sounds** (design 08, decisions/product.md, "Move sounds: a sound for a cut"). Built, not committed: a sound for
+  an edge and another for a cut, in two sets: the button by default ("Button Press", "Select Button UI"), and the
+  pencil (two strokes, the cut's 12% faster). The crayon and the phone keyboard removed. The owner listens. The cutting
+  script is in the session's scratch folder, not in the repository.
 - **Not yet heard:** the owner's view of the pills' round ends after the fix (the SVG is no longer clipped).
 
 ## Working notes
@@ -102,6 +103,9 @@ It holds no backlog: everything still to do that is not in flight is in
   made with synthetic events is lost when the board redraws. After a tool hover, read the page a second or more later,
   or log the element's events: the tool's move can land late. Convert page coordinates to the screenshot's own size
   before a real click (the page here is 1,407 pixels wide, the screenshot 1,372).
+- **Timers in a page behind other windows** run about once a second, and a script the browser tool runs stops after 45
+  seconds. To step through a game from a script, send the keys at once and wait on a `MessageChannel`, not on
+  `setTimeout`. Close other review tabs first: two reviews at once make the page too slow to answer.
 - **Claude in Chrome runs in Edge only.** With the extension on in Chrome too, the two browsers took turns as one
   device and every action failed. Keep the Edge window in front for focus checks: a hidden page runs no animation
   frames.
