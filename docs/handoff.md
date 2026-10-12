@@ -25,8 +25,9 @@ It holds no backlog: everything still to do that is not in flight is in
   side columns that grow with the window).
 - **Checks on the working tree:** `npm run check` has no errors or warnings. `npm test` passes (27 checks). `npm run
   build` succeeds.
-- **The engine:** protocol 0.3, build `319a5c4`, the networks b10c128 (3.2M parameters) and b15c192 (10.3M),
-  searching with KataGo's analysis defaults. The review's Lite depth is 512 visits. Puzzles and learn run on mock
+- **The engine:** protocol 0.3, build `85c2adb` from the release `wasm-v2-engine-85c2adb` (request 03), the networks
+  `b10c128-s66625408` (3.2M parameters) and `b15c192-s66999040` (10.3M), searching with KataGo's analysis defaults.
+  The measurements so far used the older `b10c128-s46923648` (decisions/engine.md, "The released engine"). The review's Lite depth is 512 visits. Puzzles and learn run on mock
   data.
 
 ## In flight
@@ -43,6 +44,21 @@ It holds no backlog: everything still to do that is not in flight is in
   step, and the Advantage chart is in the Report, above the counts, with an area line, so the page fits the window
   (decisions/product.md, "The Advantage chart moved", "The Report"): the two-column and one-column layouts, where the
   Report is a tab, are not checked yet.
+- **The early access** ([design/11-early-access.md](design/11-early-access.md), decisions/product.md, "Early access:
+  the review only, as Hedge School"). Built and checked in Edge: the build switch, the name, no sample game, the
+  pages About, The notation, Privacy and Notices, the Constellation import, unlisted. To do:
+  - **Hosting, with the owner** (their accounts). Done: the domain is active on Cloudflare, and the private GitHub
+    repository `seankao31/hedgeschool` exists, with no push yet. To do: DNSSEC (Cloudflare's DS record at Porkbun);
+    the first push, when the owner says so (the remote `origin` is added, SSH to GitHub works, the repository is empty); the Pages project built from it (`npm ci`,
+    `npm run engine -- --deploy`, tests, type check, `npm run build`, with `VITE_EDITION=early`,
+    `VITE_GA_ID=G-C5RY6DWGWN` and later `VITE_CF_ANALYTICS_TOKEN` as its variables); the custom domain
+    `hedgeschool.abstractclass.org`; long caching for `/engine/` (a `_headers` file). Read Cloudflare's current Pages
+    guide first.
+  - **Analytics: built and checked in Edge** (decisions/product.md, "Early access: the third round"). To do: the
+    Cloudflare Web Analytics token once the site is live (its manual snippet, not the Pages project's one-click
+    setup). Google Analytics receives the preview's visits (the owner checked).
+  - Done since: the Review link that opens the last game reviewed, the engine's release (request 03), the notation
+    page after request 11, the module's notices.
 - **The labels' measure, reopened.** Built and committed: labels from a practical chance, σ(0.99 · lead /
   scoreStdev) fitted on the archive's games between near-equal players, with chess.com's fixed bands (design 10,
   decisions/product.md, "Labels from a human win chance: built"). The owner's doubts: the archive's players are
@@ -60,8 +76,11 @@ It holds no backlog: everything still to do that is not in flight is in
     Request 10 ([requests/10-visit-ladder-analysis.md](requests/10-visit-ladder-analysis.md), open: the owner takes
     it to the engine repository): the GPU visit ladder's games of the site's network against itself, 16 against 32
     visits up to 512 against 1,024 (384 games).
-  - **Uncommitted:** the board's candidates back on the engine's own win chance and points (`shownCandidates`). On
+  - **Committed:** the board's candidates back on the engine's own win chance and points (`shownCandidates`). On
     hold until the measure is chosen: "practical" named in the label notes, and a practical-chance line on the chart.
+  - **The new network:** the curve (k 0.99) was fitted on the old small network, and the site now labels with a
+    newer, more certain one. To ask the owner: should the engine repository analyse the archive again on it (about
+    2.4 hours), and requests 09 and 10 use it?
   - The data: requests 07 and 08 in the engine repository's `runs/archive_analysis/`, out of Git; take each game once.
     Commit only statistics over many games and the curve, never a game.
 - **Difficulty:** Guid and Bratko's complexity checked on request 07's readings (decisions/engine.md): it tells when

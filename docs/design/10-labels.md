@@ -131,7 +131,9 @@ reason. Design 05 gives the searches that the labels read: their schedule, their
 ## Consequences
 
 - The curve is fitted for one network (`b10c128-s46923648-d9407005`) on 301 human games. A newer network, or more
-  games, is fitted again with the same script.
+  games, is fitted again with the same script. The site now ships a newer one (`b10c128-s66625408-d13350730`,
+  [requests/03-release-artifacts.md](../requests/03-release-artifacts.md)), which is more certain, so the curve is
+  not yet fitted for the network that labels the games.
 - An edge's number in the move list is its measured loss, also where the edge is Best: J11-M13 shows −27 beside its
   ★, the error of the search in its turn's middle.
 - A turn whose two ends were searched to different depths mixes two budgets in its loss.

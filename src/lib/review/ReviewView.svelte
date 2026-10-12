@@ -804,8 +804,8 @@
 {/snippet}
 
 {#snippet highlights()}
-  <p class="mb-3 text-xs text-muted">A bot game, analysed in your browser. Labels judge each move by a win chance fitted on
-    people's Enclosure games.</p>
+  <p class="mb-3 text-xs text-muted">Analysed in your browser. Labels judge each move by a win chance fitted on people's
+    Enclosure games.</p>
   <p class="mb-3.75">
     <strong>{PLAYER_NAME[winner]} won by {margin.toFixed(1)} points</strong>
     ({fmtScore(R.data.result.blue)} to {fmtScore(R.data.result.red)}).

@@ -1,7 +1,8 @@
 <script lang="ts">
   // The review page: one game analysed in the browser (src/lib/analysis/game.svelte.ts). `?game=ID` opens a game the
-  // player imported (src/lib/game/store.ts). Without it, the sample: a bot game from the engine repository's visit
-  // ladder. The board works from the engine's rules at once. Then the sweep, the label pass, deeper searches where the
+  // player imported (src/lib/game/store.ts). Without it, the page opens the last game reviewed in this browser, and
+  // with none, asks for one: there is no sample game (design 11).
+  // The board works from the engine's rules at once. Then the sweep, the label pass, deeper searches where the
   // player looks, and the key moments deepened after the label pass (docs/design/05-review-analysis.md). The engine's
   // settings (docs/design/09-engine-settings.md) apply as they change: the workers and the network without a reload.
   import { onDestroy, onMount, untrack } from "svelte";
@@ -13,9 +14,9 @@
   import { loadManifest, type Manifest } from "#lib/engine/client.ts";
   import { errorText } from "#lib/errors.ts";
   import { playerNames } from "#lib/game/record.ts";
-  import { loadGame } from "#lib/game/store.ts";
+  import { lastReview, loadGame, rememberReview } from "#lib/game/store.ts";
+  import { replaceState } from "$app/navigation";
   import { pathKey } from "#lib/review/tree.ts";
-  import { SAMPLE, SAMPLE_MOVES } from "#lib/mock/sample.ts";
 
   const MESSAGE = "box-content max-w-[1100px] mx-auto my-8 px-4";
 
@@ -23,7 +24,7 @@
   let manifest: Manifest | null = null;
   let network = ""; // the network of the pool in use, or of the pool that loads to replace it
   let game = $state<GameAnalysis | null>(null);
-  let players = $state<ReviewData["players"]>(SAMPLE.players);
+  let players = $state<ReviewData["players"]>({ blue: "Blue", red: "Red" });
   let moveCount = $state(0);
   let error = $state("");
   let current = $state<string[]>([]); // the position on screen: its path in the game's tree (review/tree.ts)
@@ -156,12 +157,21 @@
     untrack(() => g.confirmGreats());
   });
 
-  /** The game to review: the imported one named in the address, or the sample. */
-  async function chooseGame(): Promise<string[]> {
-    const id = new URLSearchParams(location.search).get("game");
-    if (!id) return SAMPLE_MOVES;
+  let noGame = $state(false);
+  /** The game to review: the imported one named in the address, else the last one reviewed here. Null when there is
+   *  none. */
+  async function chooseGame(): Promise<string[] | null> {
+    const named = new URLSearchParams(location.search).get("game");
+    const id = named ?? lastReview();
+    if (!id) return null;
     const stored = await loadGame(id);
-    if (!stored) throw new Error(`This browser has no game ${id}. Import it on the home page.`);
+    if (!stored) {
+      if (named) throw new Error(`This browser has no game ${id}. Import it on the home page.`);
+      rememberReview(null); // the last game is gone (its site data was cleared)
+      return null;
+    }
+    if (!named) replaceState(`?game=${id}`, {}); // the address names the game, so a reload keeps it
+    rememberReview(id);
     players = playerNames(stored.record.tags);
     return stored.record.moves;
   }
@@ -169,6 +179,7 @@
   onMount(async () => {
     try {
       const moves = await chooseGame();
+      if (!moves) { noGame = true; return; }
       moveCount = moves.length;
       manifest = await loadManifest();
       if (!manifest) throw new Error("no /engine/manifest.json: run `npm run engine` first");
@@ -196,7 +207,10 @@
 
 <svelte:head><title>Game review</title></svelte:head>
 
-{#if error}
+{#if noGame}
+  <p class={MESSAGE}>No game to review yet. <a href="/">Bring one on the home page</a>: paste its record, or use the
+    meaf.us bookmarklet.</p>
+{:else if error}
   <p class="{MESSAGE} text-blunder">{error}</p>
 {:else if game?.error && !game.rulesReady}
   <p class="{MESSAGE} text-blunder">The engine could not read this game: {game.error}</p>

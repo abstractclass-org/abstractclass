@@ -9,7 +9,7 @@ import { meafRecord } from "./meaf.ts";
 
 /** Runs on the meaf.us page. Self-contained: the bookmarklet carries its source. */
 function grab(toRecord: (game: unknown) => string, origin: string) {
-  const prefix = "Learn Enclosure: ";
+  const prefix = "Hedge School: ";
   const svg = document.querySelector("svg.board") as (Element & Record<string, unknown>) | null;
   const key = svg && Object.keys(svg).find(k => k.startsWith("__reactFiber"));
   let game: { moveHistory?: unknown[] } | null = null;

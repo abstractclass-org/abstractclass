@@ -1354,3 +1354,78 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   The notes give a human's chance: "Mistake: −14.7% · −197.8 pts (−143.3 pts, −54.5 pts)". Checked in Edge.
 - **Not changed:** the Advantage chart, the win bar and the candidates table still show the engine's win chance. Open:
   whether they show a human's, so that a note's loss and the chart's fall agree.
+
+### Early access: the review only, as Hedge School (2026-10-12)
+
+- **Decided** (design 11): an early access with the review only. The site's name is Hedge School, at
+  `hedgeschool.abstractclass.org` on the owner's domain (the owner also weighed `enclosure.abstractclass.org`). No
+  sample game: a review opens on a game the player brought. A private GitHub repository, built by Cloudflare. Unlisted.
+  Feedback in the players' Discord. Cloudflare's analytics and Google Analytics. Both networks ship. No note that the
+  labels may change: a change reaches stored games by itself. The device checks are skipped for now.
+- **Asked:** an import of Constellation's games, whose notation differs, and a page that describes the position and
+  game record notations in detail, as PGN's standard does, for other developers.
+- **Built:**
+  - The build switch `VITE_EDITION=early`. The header shows Review, with The notation and About on its right. The
+    puzzles, lessons and engine lab lead home. The home page drops the sample game, and in the early access the daily
+    puzzle and the next lesson. `/review` without a game asks for one.
+  - The name in the pages and the bookmarklet. The version (the commit) in the footer of the pages that scroll.
+  - Unlisted: `robots.txt` disallows every page, and every page carries `noindex`.
+  - The pages About, The notation, Privacy and Notices. The notices quote the licences from the libraries' own files:
+    KataGo's, nine MIT libraries, the icon (Apache 2.0), the sounds (CC0).
+  - The import of Constellation's export (design 11, "Constellation's export"), as this site's record. The owner's
+    export of a 120-edge game was imported in Edge: the engine took every edge as legal, and the review opened.
+- **Requests:** 11, to settle the notation's open points and confirm the page. Request 03 is due now, with a notice of
+  the module's licences added.
+- **Checked in Edge,** on the early-access build: the home page, the import above, `/review` with no game, `/puzzles`
+  leading home, and the notation page. 32 tests.
+- **Open:** Google Analytics' consent (a banner, or Google's Consent Mode), the Discord's link for the pages, the
+  direction of Constellation's rows (Blue's first edge `D10-A7` runs down and left here), and the hosting steps that
+  need the owner's accounts.
+
+### Early access: the second round (2026-10-12)
+
+- **No Review link in the early access:** a bare Review link opened a review with no game. The name leads home, where
+  a review starts from a game.
+- **Constellation counts rows from the bottom,** as this site does (the owner checked its board): the import is right.
+- **The game's designer:** Enclosure is designed by webgoatguy, who introduces it in a video
+  (`https://youtu.be/BiVaY09xgZ4`). The players' Discord is theirs (`https://discord.gg/DxfvEgmQD`). About credits
+  both, and About and Privacy link the Discord.
+- **The engine repository is private:** GitHub answers 404 without a login. The pages no longer link to it. Its
+  releases cannot be downloaded by a public build without a token, which request 03 had not foreseen. Open: a token in
+  Cloudflare's build, or a public place for the releases.
+- **The domain** was bought at Porkbun and has no DNS host yet.
+
+### Google Analytics in Google's consent mode, advanced (2026-10-12)
+
+- **Decided:** Google's consent mode in its advanced form. The Google tag loads on every page with its cookies denied,
+  so it sends cookieless pings until the visitor accepts. A banner asks once. Accept and Decline look the same, so
+  that declining is as easy as accepting. The privacy page shows the choice and can change it. Ads stay denied: the
+  site has none.
+- **What the advanced form gives, and what it costs:** Google models the visits of those who decline only when a
+  property has at least 1,000 events a day from them and 1,000 daily users who accept, for 7 days (Google's
+  "Behavioral modeling for consent mode"). Below that, the reports count the visitors who accept. The pings before
+  consent still reach Google, and some European data protection authorities question them. The privacy page says
+  what the pings hold.
+- **The basic form,** the other choice: no Google tag until the visitor accepts.
+- **Built:** `src/lib/analytics.svelte.ts` and the banner. The build names the services (`VITE_GA_ID`,
+  `VITE_CF_ANALYTICS_TOKEN`). Without them, as in development, the build holds no code of either. Cloudflare's beacon
+  is added by the page, not by Cloudflare's automatic setup, so that it starts after the import page has removed a
+  record from the address.
+- **The domain** is active on Cloudflare.
+
+### Early access: the third round (2026-10-12)
+
+- **The Review link is back:** it opens the last game reviewed in this browser, and the address then names the game.
+  With none, it asks for one.
+- **The Report's first line** no longer says "A bot game": the games are the players' own.
+- **The engine from its release** (request 03): the module `85c2adb` and the newer networks, both pinned in
+  `engine.lock.json` and downloaded without a login. The notices page lists the works compiled into the module and
+  links to the release's notices, which ship beside it.
+- **The notation page follows request 11:** the clock once a turn after its last edge, the lead as `[%eval]`'s middle
+  number, the tags `BlueRating`, `RedRating` and `Rules`, and `r0` for a finished game. The page is the notations'
+  public description.
+- **Analytics checked in Edge** with the site's Google Analytics property: the tag loads with both kinds of consent
+  denied (`gcs=G100`), Accept stores the choice and hides the banner, and the hits after it carry analytics consent
+  (`gcs=G101`). A page change inside the site sends a page view. Google answered this machine's hits with HTTP 503,
+  but the owner saw the preview's visits arrive in Google Analytics.
+- **The repository on GitHub** exists, private, with no push yet.

@@ -661,3 +661,19 @@ first look has no candidate's own. Scratch script, not committed.
   worse), and spreads every mover's Mistakes between the opening and later play, a quarter of them in decided
   positions.
 - Decided positions are more than half of the archive's positions (57% of its turns).
+
+### The released engine: module 85c2adb and newer networks (2026-10-12)
+
+- **Request 03 done:** the engine's builds are released in `enclosure-engine`, a public repository that holds only
+  the releases. The site pins `wasm-v2-engine-85c2adb`: the module (protocol 0.3), `b10c128-s66625408-d13350730`,
+  `b15c192-s66999040-d13350730`, and the module's notices.
+- **Stronger than the snapshots the site used,** at 512 visits over 64 games each (the engine repository's
+  measurement): +220 Elo for the small network, +270 for the large one. The new small network beats the old large one
+  by about 80 Elo, at a third of the cost per visit.
+- **The old module refuses the new networks.** The new module loads both the new and the old ones.
+- **Not measured here yet:** the speed and the memory of a worker on the new networks. Their sizes are the same, so
+  they should not change.
+- **What can move:** every measurement in this log used `b10c128-s46923648`: the human win curve (k about 0.99), the
+  label agreement, and requests 07 to 10. The new network is more certain (46 of 48 opening visits on one edge, where
+  the old one spread them over four). The engine repository can analyse the archive again on it (its part 1: about
+  2.4 hours).

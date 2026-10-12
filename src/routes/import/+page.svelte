@@ -8,6 +8,7 @@
   import { importRecord } from "#lib/game/import.ts";
   import { errorText } from "#lib/errors.ts";
   import { bookmarkletHref } from "#lib/game/bookmarklet.ts";
+  import { startAnalytics } from "#lib/analytics.svelte.ts";
 
   let phase = $state<"install" | "importing" | "failed">("install");
   let problem = $state("");
@@ -16,6 +17,7 @@
   onMount(() => {
     href = bookmarkletHref(location.origin);
     importFromHash();
+    startAnalytics(); // after the record has left the address (design 11)
     // A tab already on this page gets a new record by its `#` alone, with no new load.
     window.addEventListener("hashchange", importFromHash);
     return () => window.removeEventListener("hashchange", importFromHash);
@@ -55,10 +57,10 @@
       <li>
         Drag this button to the bookmarks bar:
         {#if href}<a class="inline-block ml-1.5 px-3 py-1 rounded-full bg-accent text-white font-semibold no-underline cursor-grab"
-                     {href} onclick={e => e.preventDefault()}>Review in Learn Enclosure</a>{/if}
+                     {href} onclick={e => e.preventDefault()}>Review in Hedge School</a>{/if}
       </li>
       <li>On meaf.us, open a game: one you play or watch, or a finished one from the archive.</li>
-      <li>Click <strong>Review in Learn Enclosure</strong> in the bookmarks bar. The review opens in a new tab.</li>
+      <li>Click <strong>Review in Hedge School</strong> in the bookmarks bar. The review opens in a new tab.</li>
     </ol>
     <p class="text-sm text-muted">
       The bookmarklet depends on how meaf.us builds its page. If meaf.us changes, it may find no game until it is

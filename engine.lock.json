@@ -1,30 +1,38 @@
 {
-  "repository": "seankao31/enclosure-ai",
+  "repository": "seankao31/enclosure-engine",
   "artifacts": [
     {
-      "id": "engine-319a5c4",
+      "id": "engine-85c2adb",
       "kind": "module",
       "interface": "engine-protocol-0.3",
       "file": "enclosure-engine.wasm",
-      "source": { "local": "../enclosure/runs/wasm/v2/engine-dev/enclosure-engine.wasm" },
-      "sha256": "b63d47b3cac92d6f1d55c565e614ef39bf2dc7628ac63d98d792bd49fe4441d7",
-      "bytes": 1346270
+      "source": { "release": { "tag": "wasm-v2-engine-85c2adb", "asset": "enclosure-engine.wasm" } },
+      "sha256": "4351a9608f46228efce022db9372e9c92e84af5c484dd454dc3f94cdcac525e7",
+      "bytes": 1348467
     },
     {
-      "id": "b10c128-s46923648-d9407005",
-      "kind": "model",
-      "file": "model-float16.bin",
-      "source": { "local": "../enclosure/runs/wasm/v2/engine-dev/model-float16.bin" },
-      "sha256": "6b2d086e9967ec01d8d3d6a878ca7a5332b65ffd80b6a9e63d3b0fdb1fa0c1a8",
-      "bytes": 6450300
+      "id": "engine-85c2adb-notices",
+      "kind": "notices",
+      "file": "NOTICES.txt",
+      "source": { "release": { "tag": "wasm-v2-engine-85c2adb", "asset": "NOTICES.txt" } },
+      "sha256": "688cc6fa6262242e587de4ea351c44c1bf0aa9de59d3566cb4c055863e21ee4d",
+      "bytes": 10042
     },
     {
-      "id": "b15c192-s48758784-d9703391",
+      "id": "b10c128-s66625408-d13350730",
       "kind": "model",
       "file": "model-float16.bin",
-      "source": { "local": "../enclosure/runs/wasm/v2/b15c192-s48758784-d9703391/model-float16.bin" },
-      "sha256": "0cc82aa970504e2d1de0652055373c5545b60972267526c44362560c17d013c7",
-      "bytes": 20533716
+      "source": { "release": { "tag": "wasm-v2-engine-85c2adb", "asset": "b10c128-s66625408-d13350730.model-float16.bin" } },
+      "sha256": "67b51d6d25df4706d1c5c5e7039581e3d091d2c0189ac44f57a478fdb68273e7",
+      "bytes": 6499365
+    },
+    {
+      "id": "b15c192-s66999040-d13350730",
+      "kind": "model",
+      "file": "model-float16.bin",
+      "source": { "release": { "tag": "wasm-v2-engine-85c2adb", "asset": "b15c192-s66999040-d13350730.model-float16.bin" } },
+      "sha256": "4bfee7d55f4ae6f48a2833d464b722c723e5e2f04e4b44aa87fc6be0b2cbd214",
+      "bytes": 20597245
     }
   ]
 }

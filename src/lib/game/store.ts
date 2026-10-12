@@ -37,3 +37,26 @@ export async function listGames(): Promise<{ game: StoredGame; record: GameRecor
     try { return [{ game, record: parseRecord(game.record) }]; } catch { return []; }
   });
 }
+
+// The game the Review link opens: the last one reviewed in this browser. Storage can be blocked, so a read or a write
+// may fail, and the link then asks for a game.
+const LAST_REVIEW = "learn-enclosure:last-review:1";
+
+/** The id of the last game reviewed in this browser, or null. */
+export function lastReview(): string | null {
+  try {
+    return localStorage.getItem(LAST_REVIEW);
+  } catch {
+    return null;
+  }
+}
+
+/** Keeps the id of the game a review opened, or forgets it (null). */
+export function rememberReview(id: string | null) {
+  try {
+    if (id) localStorage.setItem(LAST_REVIEW, id);
+    else localStorage.removeItem(LAST_REVIEW);
+  } catch {
+    // Blocked storage: the Review link asks for a game.
+  }
+}

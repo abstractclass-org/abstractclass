@@ -27,14 +27,15 @@ new builds arrive often.
   menu use it (`Tabs`, `Popover`).
 - **Hosting:** Cloudflare (Pages, or Workers static assets). Files larger than 25 MiB go to Cloudflare R2.
 - **The engine's artifacts** (a WebAssembly build and a model) are pinned in a lock file, `engine.lock.json`:
-  - Each artifact has an ID (the build's name, such as `v2-b10c128-s46923648-d9407005`), a source, its SHA-256 and
+  - Each artifact has an ID (the build's name, such as `b10c128-s66625408-d13350730`), a source, its SHA-256 and
     its size.
-  - A source is a **release** (a tag and an asset of a GitHub Release of the engine repository) or a **local** path
-    (a file in `../enclosure`).
+  - A source is a **release** (a tag and an asset of a GitHub Release of `enclosure-engine`, the public repository
+    that holds only the engine's releases, since the engine repository is private) or a **local** path (a file in
+    `../enclosure`).
   - `npm run engine` gets each artifact, checks its SHA-256, and puts it in `static/engine/<ID>/`. It writes
     `static/engine/manifest.json`, which the site reads to find the files and to name them in its results.
-  - **Development uses local sources.** While the networks train, the lock file points at builds in the engine
-    repository's `runs/`. A new build needs no release.
+  - **Development may use local sources,** to try a build in the engine repository's `runs/` before it is released.
+    The lock file in Git points at a release.
   - **A deploy uses releases only.** The deploy refuses a local source. Data that ships (precomputed analyses,
     puzzles) must come from a released build, because the release keeps the exact file that made it.
 

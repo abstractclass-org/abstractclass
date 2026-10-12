@@ -1,6 +1,7 @@
 <script lang="ts">
-  // Home: import a game, the player's games, the sample game, the daily puzzle, the next lesson. Lichess's front page
-  // leads with play. This site leads with review, its main job (design 01).
+  // Home: import a game, the player's games, and in the full site the daily puzzle and the next lesson. Lichess's front
+  // page leads with play. This site leads with review, its main job (design 01). No sample game: a review opens on a
+  // game the player brought (design 11).
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
   import Board from "#lib/board/Board.svelte";
@@ -11,6 +12,9 @@
   import { listGames, type StoredGame } from "#lib/game/store.ts";
   import { importRecord } from "#lib/game/import.ts";
   import { errorText } from "#lib/errors.ts";
+  import { constellationRecord, isConstellation } from "#lib/game/constellation.ts";
+  import { EARLY_ACCESS, SITE_NAME } from "#lib/edition.ts";
+  import SiteFooter from "#lib/SiteFooter.svelte";
   import { SAMPLE } from "#lib/mock/sample.ts";
 
   const R = review(SAMPLE);
@@ -32,17 +36,19 @@
   async function importGame(event: SubmitEvent) {
     event.preventDefault();
     problem = "";
-    let record: GameRecord;
+    let record: GameRecord, recordText = text;
     try {
-      record = parseRecord(text);
+      // Constellation's export becomes this site's record (constellation.ts), which is checked like any other.
+      if (isConstellation(text)) recordText = constellationRecord(text);
+      record = parseRecord(recordText);
     } catch (e) {
-      problem = e instanceof RecordError ? `${e.message} (${where(e.offset)}).` : errorText(e);
+      problem = e instanceof RecordError && recordText === text ? `${e.message} (${where(e.offset)}).` : errorText(e);
       return;
     }
     checking = true;
     let id: string;
     try {
-      id = await importRecord(text, record);
+      id = await importRecord(recordText, record);
     } catch (e) {
       problem = errorText(e);
       return;
@@ -58,7 +64,7 @@
   const title = (r: GameRecord) => { const p = playerNames(r.tags); return `${p.blue} against ${p.red}`; };
 </script>
 
-<svelte:head><title>Learn Enclosure</title></svelte:head>
+<svelte:head><title>{SITE_NAME}</title></svelte:head>
 
 <main class="box-content max-w-[1000px] mx-auto my-6 px-4 grid gap-5">
   <section class="bg-panel border border-line rounded-lg px-5 py-5">
@@ -75,7 +81,8 @@
         <span class="flex-1 min-w-56 text-xs text-muted">In the engine's notation: turns as <code>1.</code> and <code>2.</code>, edges as
           <code>D10-G10</code>, a cut as <code>D10-G10x</code>, a timeout as <code>pass</code>. A plain list of edges works too.</span>
       </div>
-      <p class="mt-2.5 text-xs text-muted">From meaf.us: use the <a href="/import">bookmarklet</a>, one click on a meaf.us game page.</p>
+      <p class="mt-2.5 text-xs text-muted">From meaf.us: use the <a href="/import">bookmarklet</a>, one click on a meaf.us game page.
+        From Constellation: paste what the analysis board's <strong>Export</strong> gives.</p>
     </form>
   </section>
 
@@ -95,14 +102,8 @@
     </section>
   {/if}
 
+  {#if !EARLY_ACCESS}
   <div class="grid grid-cols-[repeat(auto-fit,minmax(16rem,1fr))] items-start gap-3">
-    <a class={CARD} href="/review">
-      <span class={EYEBROW}>Sample game</span>
-      <strong>{R.data.players.blue} against {R.data.players.red}</strong>
-      <span class="text-sm text-muted">A bot game. {PLAYER_NAME[R.data.result.blue > R.data.result.red ? 0 : 1]} won,
-        {Math.round(R.data.result.blue).toLocaleString("en")} to {Math.round(R.data.result.red).toLocaleString("en")}.</span>
-    </a>
-
     <a class={CARD} href="/puzzles">
       <span class={EYEBROW}>Daily puzzle</span>
       <div class="rounded overflow-hidden"><Board position={R.data.positions[daily.index]} layers={{ candidates: false, marks: false, coordinates: false }} /></div>
@@ -115,4 +116,7 @@
       <span class="text-sm text-muted">{COURSE[0].title}: {COURSE[0].lessons.length} short lessons on the board.</span>
     </a>
   </div>
+  {/if}
 </main>
+
+<SiteFooter />

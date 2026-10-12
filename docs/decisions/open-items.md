@@ -11,9 +11,6 @@ Rules:
 
 ## Foundations
 
-- **Deploys:** a Cloudflare project, a deploy job that refuses local engine sources, long cache headers for
-  `/engine/`. It waits for the first released engine build
-  ([requests/03-release-artifacts.md](../requests/03-release-artifacts.md)).
 
 ## Milestone 1: a game report (design/01-analysis-tool.md, section 4)
 

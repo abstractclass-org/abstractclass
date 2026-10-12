@@ -2,8 +2,14 @@ import adapter from '@sveltejs/adapter-static';
 import { sveltekit } from '@sveltejs/kit/vite';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
+import { execSync } from 'node:child_process';
+
+// The site's version: the commit it is built from (Cloudflare's build names it, else Git), for the footer.
+const commit = process.env.CF_PAGES_COMMIT_SHA ?? process.env.WORKERS_CI_COMMIT_SHA
+	?? (() => { try { return execSync('git rev-parse HEAD').toString().trim(); } catch { return 'unknown'; } })();
 
 export default defineConfig({
+	define: { __SITE_VERSION__: JSON.stringify(commit.slice(0, 7)) },
 	plugins: [
 		tailwindcss(),
 		sveltekit({

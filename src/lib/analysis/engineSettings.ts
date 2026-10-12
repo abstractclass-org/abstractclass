@@ -19,10 +19,10 @@ export interface EngineSettings {
 
 /** The networks, as the manifest names them (engine.lock.json pins both). Their parameters are the trainer's counts
  *  (the engine repository's v2/docs/design/15-network-sizes.md). A worker's memory once the network is loaded:
- *  decisions/engine.md (95 and 244 MiB). */
+ *  decisions/engine.md (95 and 244 MiB, measured on the earlier networks of the same sizes). */
 export const NETWORKS = [
-  { id: "b10c128-s46923648-d9407005", params: "3.2M", memoryMB: 100 },
-  { id: "b15c192-s48758784-d9703391", params: "10.3M", memoryMB: 255 },
+  { id: "b10c128-s66625408-d13350730", params: "3.2M", memoryMB: 100 },
+  { id: "b15c192-s66999040-d13350730", params: "10.3M", memoryMB: 255 },
 ];
 /** The position on screen's visits: any whole number from 256 to 16,384. Its slider steps by doublings, and each step
  *  doubles the time. The search tree grows with its visits in the worker's memory, and a worker's memory does not
