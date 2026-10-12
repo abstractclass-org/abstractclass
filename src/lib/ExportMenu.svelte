@@ -1,14 +1,16 @@
 <script lang="ts">
-  // The Export menu (design 13), the same on the review page and beside each game on the home page: the review file,
-  // with the engine's results, or the annotated record, copied or as a file. A short note beside it says what it did,
-  // or why it failed. It opens only once the game's review is done (`ready`): before, `why` says what to do.
+  // The Export menu (design 13), the same on the review page and beside each game on the home page: a link that shares
+  // the review, the review file, with the engine's results, or the annotated record, copied or as a file. A short note
+  // beside it says what it did, or why it failed. It opens only once the game's review is done (`ready`): before,
+  // `why` says what to do.
   import { DropdownMenu } from "bits-ui";
   import { errorText } from "#lib/errors.ts";
   import type { ExportKind } from "#lib/game/reviewFile.ts";
   let { run, side = "top", small = false, ready = true, why = "" }:
-    { run: (kind: ExportKind) => Promise<void>; side?: "top" | "bottom"; small?: boolean; ready?: boolean; why?: string } = $props();
+    { run: (kind: ExportKind) => Promise<string | void>; side?: "top" | "bottom"; small?: boolean; ready?: boolean; why?: string } = $props();
 
   const ITEMS: [ExportKind, string, string][] = [
+    ["link", "Copy a link to share the review", "Link copied"],
     ["file", "Review file, to import elsewhere", "Review file saved"],
     ["copy", "Copy the annotated record", "Annotated record copied"],
     ["text", "Annotated record as a file", "Annotated record saved"],
@@ -21,15 +23,14 @@
     busy = true;
     note = "";
     try {
-      await run(kind);
-      note = done;
+      note = (await run(kind)) || done;
     } catch (e) {
       note = `Export failed: ${errorText(e)}`;
     } finally {
       busy = false;
     }
     clearTimeout(timer);
-    timer = setTimeout(() => (note = ""), 4000);
+    timer = setTimeout(() => (note = ""), note.length > 40 ? 10000 : 4000); // a longer note takes longer to read
   }
 </script>
 

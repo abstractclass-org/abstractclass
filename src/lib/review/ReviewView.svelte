@@ -69,7 +69,7 @@
     onengine?: (change: Partial<EngineSettings>) => void; // a setting changed in the panel
     gpu?: { status: GpuStatus; downloadMB: string }; // what the GPU does in this review, and its first download (design 15)
     // Exports the review (design 13): the review file, or the annotated record copied or as a file, labelled by `unit`
-    onexport?: (kind: ExportKind, unit: Unit) => Promise<void>;
+    onexport?: (kind: ExportKind, unit: Unit) => Promise<string | void>;
     exportReady?: boolean; // the review is done: export only then (design 13)
   }
   let { R, progress = null, problem = "", deepVisits = 0, onposition, lineSteps, branches = {}, onplay, rulesAt, ondelete,
@@ -234,17 +234,14 @@
       : costText(gap, gapPts),
   })));
 
-  // The engine's line from the candidate pointed at, on the board or in the table (KaTrain's and Lizzie's way): its
-  // first LINE_EDGES edges, each with its mover. Only for a candidate with enough visits (the board's rule), and only as
-  // far as the search trusts it (trustedLine): the line of a barely searched move means little. A line needs an edge
-  // after the candidate.
-  const LINE_EDGES = 6; // three turns of two edges
+  // The engine's line from the candidate pointed at, on the board or in the table (KaTrain's and Lizzie's way), each
+  // edge with its mover. Only for a candidate with enough visits (the board's rule), and only as far as the search
+  // trusts it (trustedLine): the line of a barely searched move means little. A line needs an edge after the candidate.
   const trusted = (c: Candidate): Edge[] | null => {
     if (!analysis || !enoughVisits(analysis, c)) return null;
     const edges = trustedLine(c);
     return edges.length >= 2 ? edges : null;
   };
-  const shownLine = (c: Candidate) => trusted(c)?.slice(0, LINE_EDGES) ?? null;
   const hoverCandidate = $derived(hover && analysis ? analysis.candidates.find(c => sameEdge(c.edge, hover!)) : undefined);
 
   // The line listed under the table (Lichess lists the engine's line under its header, one line by default): the line
@@ -319,10 +316,9 @@
   // The board's line: the listed line up to the edge pointed at in the list, or the line of the candidate pointed at, or
   // of the pinned one.
   const lineEdges = $derived(listHover !== null && listLine ? listLine.slice(0, listHover + 1)
-    : hoverCandidate ? shownLine(hoverCandidate) : pinnedCandidate ? shownLine(pinnedCandidate) : null);
+    : hoverCandidate ? trusted(hoverCandidate) : pinnedCandidate ? trusted(pinnedCandidate) : null);
   const line = $derived.by((): BoardLineEdge[] | null => {
     if (!lineEdges) return null;
-    // The listed line can go past LINE_EDGES (pointing at a later edge): a mover for each edge drawn.
     const movers = lineMovers(position, lineEdges.length);
     return lineEdges.map((edge, i) => ({ edge, player: movers[i], ...stepsNow?.[i] }));
   });
@@ -955,7 +951,7 @@
                     pinned && rank === selectedRank && "shadow-[inset_3px_0_0_var(--accent)]"]}
             style={rowTint(c.blueWin)} onmouseenter={() => { hoverOnBoard = false; hover = c.edge; }} onmouseleave={() => (hover = null)}
             onclick={() => pick(rank)}
-            title={analysis && !shownLine(c) ? "Too few visits to show the engine's line" : undefined}>
+            title={analysis && !trusted(c) ? "Too few visits to show the engine's line" : undefined}>
           <!-- A candidate on the board has its number in a badge, as the board draws it. The others have a plain number. -->
           <td>{@render rankBadge(rank, onBoard.has(rank) ? "On the board" : undefined)}</td>
           <td><div class="@container truncate"><span class="text-[clamp(0.7em,22cqi,1em)]">{edgeName(c.edge)}</span></div></td>

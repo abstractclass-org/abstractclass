@@ -259,10 +259,10 @@
 
   /** The review exported (design 13): the review file, with the engine's results, or the annotated record, copied or as
    *  a file. The record's labels are the page's (by turn or by edge). */
-  async function exportAs(kind: ExportKind, unit: Unit) {
+  async function exportAs(kind: ExportKind, unit: Unit): Promise<string | void> {
     const k = kept;
     if (!k) return;
-    await deliverExport(kind, k.id, k.text, manifest, SITE_VERSION, () => {
+    return deliverExport(kind, k.id, k.text, manifest, SITE_VERSION, () => {
       if (!R) throw new Error("the review is not ready");
       return annotatedText(R, unit, k.record, game?.branches ?? {}, network);
     });

@@ -15,13 +15,14 @@ test("a game's positions: each step of its line, and each branch node", () => {
   assert.deepEqual([...p], ["", "D10-G10", "D10-G10 N11-Q10", "D10-G10 N11-Q10 L10-N11", "D10-G10 N11-Q11", "D10-G10 N11-Q11 L10-N11"]);
 });
 
-test("a game's results: its positions' only, in the store's current shape", () => {
+test("a game's results: its positions' and the ones a move from them (the Greats' confirmations), in the store's current shape", () => {
   const entries: [string, unknown][] = [
     [key(""), { a: 1 }], [key("D10-G10 N11-Q10"), { a: 2 }], [key("D10-G10 N11-Q11"), { a: 3 }],
-    [key("A10-D10"), { a: 4 }], // another game
+    [key("D10-G10 O11-R10"), { a: 7 }], // a move from the game: a Great's confirmation
+    [key("A10-D10 N11-Q10"), { a: 4 }], // two moves from it: another game
     [key("D10-G10", SHAPE - 1), { a: 5 }], // an older shape
   ];
-  assert.deepEqual(gameAnalyses(entries, positionKeys(MOVES, BRANCHES)).map(e => e[1]), [{ a: 1 }, { a: 2 }, { a: 3 }]);
+  assert.deepEqual(gameAnalyses(entries, positionKeys(MOVES, BRANCHES)).map(e => e[1]), [{ a: 1 }, { a: 2 }, { a: 3 }, { a: 7 }]);
   // Only the networks the site ships, when they are named
   const other: [string, unknown] = [key("D10-G10", SHAPE, "cd34"), { a: 6 }];
   assert.deepEqual(gameAnalyses([...entries, other], positionKeys(MOVES, BRANCHES), new Set(["cd34"])).map(e => e[1]), [{ a: 6 }]);

@@ -3,7 +3,8 @@
   // userscript.ts) is checked with the engine's rules, given its cut marks, kept in this browser, and opened in the
   // review. Without one, the page shows the bookmarklet and the userscript, and how to install them. A record from an
   // out-of-date tool (importHash.ts) is kept too, and the page then says how to update the tool, with the review a
-  // click away.
+  // click away. A shared review's link (`#s=`, share.ts) shows what it holds and that this browser reviews it again,
+  // and imports it on a click, with the sender's network and depth.
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
   import { parseRecord } from "#lib/game/record.ts";
@@ -11,13 +12,22 @@
   import { errorText } from "#lib/errors.ts";
   import { BOOKMARK_VERSION, bookmarkletHref } from "#lib/game/bookmarklet.ts";
   import { readImportHash, staleTool, type Tool } from "#lib/game/importHash.ts";
+  import { decodeShare, type SharedReview } from "#lib/game/share.ts";
+  import { importShare } from "#lib/game/reviewFile.ts";
+  import { playerNames } from "#lib/game/record.ts";
+  import { loadManifest, moduleOf, modelOf } from "#lib/engine/client.ts";
+  import { NETWORKS, adoptReview, loadEngine, networkName, reviewDepthText, reviewVisits } from "#lib/analysis/engineSettings.ts";
   import { startAnalytics } from "#lib/analytics.svelte.ts";
 
-  let phase = $state<"install" | "importing" | "failed" | "stale">("install");
+  let phase = $state<"install" | "importing" | "failed" | "stale" | "share">("install");
   let problem = $state("");
   let href = $state("");
   let stale = $state<Tool | "older" | null>(null);
   let imported = $state(""); // the game's id, for the review's link while the page asks to update a tool
+  // A shared review, and what this site makes of it: its network here (null when the site no longer has it), whether
+  // the site's engine is the sender's, and whether this browser's settings are the sender's already.
+  let shared = $state.raw<SharedReview | null>(null);
+  let sharedHere = $state.raw<{ network: string | null; sameEngine: boolean; sameSettings: boolean } | null>(null);
 
   onMount(() => {
     href = bookmarkletHref(location.origin);
@@ -28,11 +38,40 @@
     return () => window.removeEventListener("hashchange", importFromHash);
   });
 
+  async function readShared(text: string) {
+    try {
+      const s = decodeShare(text), manifest = await loadManifest(), engine = loadEngine();
+      const network = manifest ? NETWORKS.map(n => n.id).find(id => modelOf(manifest, id)?.sha256.startsWith(s.model)) ?? null : null;
+      shared = s;
+      sharedHere = { network, sameEngine: !!manifest && !!moduleOf(manifest)?.sha256.startsWith(s.module),
+                     sameSettings: network === engine.network && reviewVisits(engine) === s.visits };
+      phase = "share";
+    } catch (e) {
+      phase = "failed";
+      problem = `the share link cannot be read: ${errorText(e)}`;
+    }
+  }
+
+  /** Keeps the shared game and its branches, sets the sender's network and depth, and opens the review. */
+  async function reviewShared() {
+    if (!shared || !sharedHere) return;
+    phase = "importing";
+    try {
+      const id = await importShare(shared);
+      if (sharedHere.network) adoptReview(sharedHere.network, shared.visits);
+      await goto(`/review?game=${id}`, { replaceState: true });
+    } catch (e) {
+      phase = "failed";
+      problem = errorText(e);
+    }
+  }
+
   async function importFromHash() {
     const hash = location.hash.slice(1);
     if (!hash) return;
     phase = "importing";
     history.replaceState(null, "", location.pathname); // the record is kept below, not in the address
+    if (hash.startsWith("s=")) { await readShared(hash.slice(2)); return; }
     try {
       const sent = readImportHash(hash), text = sent.record;
       const id = await importRecord(text, parseRecord(text));
@@ -51,6 +90,22 @@
 <main class="box-content max-w-184 mx-auto my-6 px-4 grid gap-4">
   {#if phase === "importing"}
     <p class="text-muted">Importing the game…</p>
+  {:else if phase === "share" && shared && sharedHere}
+    {@const names = playerNames(shared.tags)}
+    <h1 class="text-2xl font-bold">A shared review</h1>
+    <p><strong>{names.blue} against {names.red}</strong>, {shared.moves.length} edges{shared.branches.length
+      ? `, with ${shared.branches.length} ${shared.branches.length === 1 ? "move" : "moves"} in the sender's branches` : ""}.</p>
+    <p>The link carries the game, not the engine's work: <strong>your browser reviews the game again</strong>, as it does a
+      game you import, and the review fills in as the engine goes. With the sender's engine, network and depth, it comes
+      out as the sender's review: the same labels, lines and accuracy. A GPU computes the network a little differently, so
+      on one a close call can rarely come out otherwise.</p>
+    <p>The sender's review: {sharedHere.network ? networkName(sharedHere.network) : "a network this site no longer has"}, at
+      {reviewDepthText(shared.visits)}.
+      {#if !sharedHere.network}The review uses your network, so its labels can differ.
+      {:else if !sharedHere.sameSettings}Your engine settings change to these, so that the review is the same. You can change
+        them back in the engine settings.{/if}
+      {#if !sharedHere.sameEngine}This site's engine has changed since the link was made, so some labels can differ.{/if}</p>
+    <div><button class="btn-primary" type="button" onclick={reviewShared}>Review it</button></div>
   {:else}
     {#if phase === "failed"}<p class="text-blunder" role="alert">The game could not be imported: {problem}</p>{/if}
     {#if phase === "stale"}

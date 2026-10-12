@@ -29,6 +29,11 @@
   <p>They stay in this browser on this computer: another browser or another computer does not see them. To remove
     them, clear this site's data in your browser's settings.</p>
 
+  <h2>Shared reviews</h2>
+  <p>A link that shares a review carries the game, its branches and the engine's settings after the <code>#</code> in
+    the address. Browsers never send that part of an address to a server, so {SITE_NAME}'s host does not see the game,
+    and the page removes it from the address before the analytics start. Anyone who has the link can open the game.</p>
+
   <h2>The meaf.us bookmarklet and userscript</h2>
   <p>The bookmarklet runs in the meaf.us page that you have open. It reads the game on the board, with nothing from your
     meaf.us login and no request to meaf.us, and opens {SITE_NAME} with the game after the <code>#</code> in the

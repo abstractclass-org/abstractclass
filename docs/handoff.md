@@ -64,6 +64,14 @@ It holds no backlog: everything still to do that is not in flight is in
   - The engine's line listed under the table, pointed at past its 6th edge, drew the later edges with no mover (no
     colour, black badges). Each edge drawn now has its mover. Checked in Edge on a line of 15 edges.
   - `no-cache` for the meaf.us tools' files (hosting.md).
+- **Released to `main` on 2026-10-13, after `5a4be2d`:**
+  - A review shared by link (design 13, item 8, decisions/product.md, "A review shared by link, and the Greats in the
+    review file"). Checked in Edge between two addresses of the local preview.
+  - The review file carries the Greats' confirmations, and its import takes the file's network and depth (the same
+    entry).
+  - The board's line ends by visits only, with no cut at 6 edges (design 07, decisions/product.md, "The board's line
+    ends by visits only").
+  - hosting.md: the zone's cache rule for the tools' files. To do, by the owner: set it in Cloudflare's dashboard.
 - **For the owner, after the release of `99106ff`:**
   - Drag the bookmarklet to the bar again: its code changed.
   - Install the userscript again from the live site's import page, then remove the copy from the local preview in

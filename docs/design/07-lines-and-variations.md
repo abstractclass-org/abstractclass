@@ -42,8 +42,9 @@ cut edges that are on the board, so a line drawn over the board can show edges t
 
 1. **The engine's line is drawn on the board** while the pointer is on a candidate, on the board or in the candidates
    table (KaTrain's and Lizzie's way):
-   - Its first 6 edges (three turns), dashed in each mover's colour, each with a number in a circle of the mover's
-     colour. The candidate is 1.
+   - Its edges as far as the search trusts them (below), dashed in each mover's colour, each with a number in a circle
+     of the mover's colour. The candidate is 1. The first build cut it at 6 edges (three turns), a number of the
+     site's own, not of KaTrain's or Lizzie's: the visits alone end it now, as they end the listed line.
    - The board shows what the line does: the edges it cuts leave the board and are drawn cut (faded, dashed, with ×,
      as the last edge's cut is), and the regions are the ones after the line's last drawn edge. The engine's rules
      give both (`describe` of each position along the line).
@@ -66,8 +67,8 @@ cut edges that are on the board, so a line drawn over the board can show edges t
      rules give those of the new edges.
 2. **One line is listed under the candidates table** (Lichess lists one by default): the line of the candidate
    pointed at, or else of the selected candidate, number 1 or the row last clicked (a click on a candidate on the
-   board selects it too). So the pointer can go from a row to its line. The list shows the trusted line, not only its
-   first 6 edges. Pointing at an edge of the list draws the line up to it on the board, all at once. A click plays
+   board selects it too). So the pointer can go from a row to its line. The list shows the trusted line, as the board
+   does. Pointing at an edge of the list draws the line up to it on the board, all at once. A click plays
    the line up to it as a branch and goes there (Lichess's `playUciList`). Where the line is the game's own
    continuation, the click goes along the game. The list's edges that are already in the tree, the game's own or a
    branch's, show as hollow circles (in text, dotted underlines), with "played in the game" or "in a branch" in their

@@ -73,7 +73,10 @@ What the repository holds for Pages:
   the default: the browser checks it on each load. The meaf.us tools' files (`/bookmarklet.js`,
   `/hedge-school.user.js`, `/hedge-school.meta.js`) have `no-cache`, so the browser checks them at each use: without
   it, Cloudflare lets a browser keep a `.js` file for 4 hours (`max-age=14400`), and a bookmark or Tampermonkey would
-  take a deploy's change up to 4 hours late.
+  take a deploy's change up to 4 hours late. The zone's Browser Cache TTL (4 hours by default) replaces `no-cache` in
+  the reply to the browser, so the zone needs a cache rule: for the hostname `hedgeschool.abstractclass.org`, Browser
+  TTL "Respect origin TTL" (Caching, then Cache Rules). Checked on `5a4be2d`: without the rule, the three files
+  reached the browser with `max-age=14400`, and Cloudflare's edge checked them at Pages each time (`REVALIDATED`).
 - **A 404 page** (`404.html`, adapter-static's fallback, in `vite.config.ts`). Without a `404.html`, Pages serves the
   home page for any address (its rule for single-page applications).
 - **The site's version** in the footer: the commit, which Pages gives the build as `CF_PAGES_COMMIT_SHA`

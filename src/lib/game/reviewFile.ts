@@ -10,6 +10,8 @@ import { parseRecord, playerNames } from "./record.ts";
 import { branchNodes, loadGame, markReviewed, saveGame, type BranchNode, type KeptBranches, type ReviewMark } from "./store.ts";
 import { moduleOf, type Manifest } from "#lib/engine/client.ts";
 import { networkName } from "#lib/analysis/engineSettings.ts";
+import { DISCORD_LIMIT, encodeShare, sharedRecord, type SharedReview } from "./share.ts";
+import { importRecord } from "./import.ts";
 
 export const REVIEW_FORMAT = "hedge-school-review";
 export const REVIEW_FILE_VERSION = 1;
@@ -38,14 +40,16 @@ export function positionKeys(moves: string[], branches: KeptBranches | null): Se
   return out;
 }
 
-/** The results that belong to a game: of its positions, in the store's current shape, and of `models` (the networks'
+/** The results that belong to a game: of its positions, and of the positions one move from them, which confirm the
+ *  Greats (analysis/game.svelte.ts, confirmGreats), in the store's current shape, and of `models` (the networks'
  *  SHA-256) when given: a result of a network that the site no longer ships is of no use to any copy of it. */
 export function gameAnalyses(entries: [string, unknown][], positions: Set<string>, models: Set<string> | null = null): [string, unknown][] {
   return entries.filter(([key]) => belongs(key, positions, models));
 }
 const belongs = (key: string, positions: Set<string>, models: Set<string> | null) => {
   const k = readAnalysisKey(key);
-  return k.shape === SHAPE && positions.has(k.moves) && (!models || models.has(k.model));
+  const parent = k.moves.includes(" ") ? k.moves.slice(0, k.moves.lastIndexOf(" ")) : k.moves ? "" : null;
+  return k.shape === SHAPE && (positions.has(k.moves) || (parent !== null && positions.has(parent))) && (!models || models.has(k.model));
 };
 
 export function buildReviewFile(record: string, branches: KeptBranches | null, entries: [string, unknown][], site: string,
@@ -126,12 +130,43 @@ export const shippedModels = (manifest: { artifacts: { kind: string; sha256: str
 export const shippedModule = (manifest: Manifest | null) => (manifest && moduleOf(manifest)?.sha256) ?? null;
 
 /** The three exports of a game (design 13): the review file, or the annotated record copied or as a text file. */
-export type ExportKind = "file" | "copy" | "text";
+export type ExportKind = "link" | "file" | "copy" | "text";
 
-/** Delivers a game's export: the review file as a download, or the annotated record, which `annotated` writes when it is
- *  asked for, copied or as a download. `site` is the site's version, which the review file names. */
+/** The link that shares a game's review (share.ts): its record, its branches, and the engine, network and visits of its
+ *  review (the game's mark: the deepest review that ran to its end). */
+export async function shareLink(id: string, origin: string): Promise<string> {
+  const stored = await loadGame(id), mark = stored?.game.reviewed;
+  if (!stored || !mark) throw new Error("the game's review is not done");
+  const branches = branchNodes((await dbGet<KeptBranches>(STORES.branches, id)) ?? null);
+  return `${origin}/import#s=${encodeShare({ module: mark.module.slice(0, 8), model: mark.model.slice(0, 8), visits: mark.visits,
+                                            tags: stored.record.tags, moves: stored.record.moves, branches })}`;
+}
+
+/** Keeps a shared review's game and branches in this browser, beside the branches it may have already. Its review is
+ *  not in the link: the review page searches again. Returns the game's id. */
+export async function importShare(shared: SharedReview): Promise<string> {
+  const text = sharedRecord(shared);
+  const id = await importRecord(text, parseRecord(text));
+  if (shared.branches.length) {
+    await dbPut(STORES.branches, id, mergeBranches((await dbGet<KeptBranches>(STORES.branches, id)) ?? null,
+                                                   { version: 2, nodes: shared.branches }));
+  }
+  return id;
+}
+
+/** Delivers a game's export: the share link, copied; the review file as a download; or the annotated record, which
+ *  `annotated` writes when it is asked for, copied or as a download. `site` is the site's version, which the review
+ *  file names. Answers what to tell the player, when that is more than the menu's own note. */
 export async function deliverExport(kind: ExportKind, id: string, record: string, manifest: Manifest | null, site: string,
-                                    annotated: () => string | Promise<string>) {
+                                    annotated: () => string | Promise<string>): Promise<string | void> {
+  if (kind === "link") {
+    const link = await shareLink(id, location.origin);
+    await navigator.clipboard.writeText(link);
+    const n = link.length.toLocaleString("en");
+    return link.length > DISCORD_LIMIT
+      ? `Link copied: ${n} characters, more than a Discord message takes (${DISCORD_LIMIT.toLocaleString("en")}). Delete some branches, or send the review file.`
+      : `Link copied (${n} characters). The recipient's browser reviews the game again.`;
+  }
   const name = reviewFileName(record, id);
   if (kind === "file") {
     download(name, JSON.stringify(await exportReview(id, site, shippedModels(manifest))));

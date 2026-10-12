@@ -1947,3 +1947,50 @@ The interface, the review, puzzles, lessons, labels and thresholds.
     reading of what the tools send (a record with spaces and "+", a bare record, current and old versions).
 - **Not checked:** an install or an update in Tampermonkey itself, and a real click on the bookmark (the loader ran
   from a script).
+
+### The board's line ends by visits only (2026-10-13)
+
+- **Decided:** the line drawn on the board from a candidate pointed at or pinned shows every edge that the search
+  trusts (25 visits through it, design 07), with no cut at 6 edges. The 6 was the site's own number ("three turns"),
+  not KaTrain's or Lizzie's. The listed line, the engine's best line in the move list and the branch previews already
+  ended by visits only.
+- **Found with it:** pointing at the listed line past its 6th edge drew the later edges with no mover, so in no colour
+  and with black badges: the movers came for 6 edges only. Fixed in `9e69bae`.
+
+### A review shared by link, and the Greats in the review file (2026-10-13)
+
+- **Decided** (design 13, item 8): a link that carries the game, the player's branches and the review's settings,
+  after the `#`. The recipient's browser reviews the game again, with the sender's network and depth, so that the review
+  is the same. The recipient's page says that before the review starts, and says when the settings change.
+- **Why no results in the link:** the site stores nothing, so the link must hold all it shares, and a review's results
+  are hundreds of KB (876 KB for 120 edges at two depths). A record is about a thousand characters. Instant reviews
+  would need a server that keeps review files. Lichess's analysis board takes a game's moves in its address in the same
+  spirit, and analyses in the visitor's browser.
+- **Measured** with the encoder (`share.ts`), on the sample game of 120 edges with meaf.us's tags: 653 characters for
+  the whole link (the address's start is 47, the tags 227). A branch's edge in a line costs 3.36 characters, a new line
+  from another position about 22. Within a Discord message (2,000 characters): one line of 403 edges, or 64 lines of 6
+  edges, or 182 lines of 2. Earlier text forms: the plain record in an address, 1,778 characters, and compressed with
+  deflate, 972.
+- **Beyond Discord:** the part after `#` reaches no server, so only the browser and the channel limit it. Chrome and
+  Edge take an address of up to 2 MB, Firefox stops showing one in its bar after about 65,536 characters, and Safari is
+  reported to take 64,000 to 80,000 (published figures, not measured here). At 3.36 characters for each edge: about
+  1,000 branch edges in 4,000 characters, 9,500 in 32,768, 19,300 in 65,536, and 600,000 in 2 MB.
+- **Checked** in Edge: on the owner's game against areax (120 edges, 3 branch moves), the Export menu's new entry
+  copied a link of 451 characters and said so. Opened on another address of the local preview (`localhost`, with its
+  own storage), the page showed the game, its 3 branch moves, and the sender's network and depth (HedgeFund 0.1 Lite,
+  512 visits). "Review it" kept the game under the same id with the 3 branch moves, and the review started: "Reviewing:
+  the game's shape". The address lost its `#` at once. The unit tests check that a link comes back as it was (the
+  order of the branches, their flags, a fork, a branch from the game's end), that a broken link says so, and the
+  record's turns.
+- **Not checked:** a recipient whose settings differ (the page's note and the change of settings), a site whose engine
+  changed, and a link past 2,000 characters.
+- **Found with it: the review file left out the Greats' confirmations.** A search of the position after the engine's
+  second choice confirms a Great, and that position is neither the game's nor a branch's. The file carried
+  only those, so an import with the same settings searched the confirmations again, at the review's depth: on the
+  owner's game at 4,096 visits with the larger network, 5 searches ran after the import, behind the review's bar. The
+  file now carries the results of the positions one move from the game's and the branches' positions.
+- **Then decided: a review file's import takes its settings too,** as a shared link does: the file's network and
+  review depth, when the site ships that network. Before, the review ran with the importer's own, and with another
+  network or a deeper depth it searched again. Checked in Edge: with the larger network at Standard set, a file of the
+  owner's game reviewed with HedgeFund 0.1 Lite at 512 visits set them to Lite at 512, and the home page said so, with
+  "Open the review". Imported again, with the same settings now, the review opened at once.
