@@ -47,13 +47,11 @@ It holds no backlog: everything still to do that is not in flight is in
 - **The early access** ([design/11-early-access.md](design/11-early-access.md), decisions/product.md, "Early access:
   the review only, as Hedge School"). Built and checked in Edge: the build switch, the name, no sample game, the
   pages About, The notation, Privacy and Notices, the Constellation import, unlisted. To do:
-  - **Hosting, with the owner** (their accounts). Done: the domain is active on Cloudflare, and the private GitHub
-    repository `seankao31/hedgeschool` exists, with no push yet. To do: DNSSEC (Cloudflare's DS record at Porkbun);
-    the first push, when the owner says so (the remote `origin` is added, SSH to GitHub works, the repository is empty); the Pages project built from it (`npm ci`,
-    `npm run engine -- --deploy`, tests, type check, `npm run build`, with `VITE_EDITION=early`,
-    `VITE_GA_ID=G-C5RY6DWGWN` and later `VITE_CF_ANALYTICS_TOKEN` as its variables); the custom domain
-    `hedgeschool.abstractclass.org`; long caching for `/engine/` (a `_headers` file). Read Cloudflare's current Pages
-    guide first.
+  - **Hosting, with the owner** (their accounts). Done: the domain on Cloudflare with DNSSEC, the private GitHub
+    repository `seankao31/hedgeschool`, and the repository's side of the Pages build (design 11, item 5). To do, in
+    the dashboard: the Pages project from the repository (preset None, build command `npm run build:cloudflare`,
+    output `build`, variables `VITE_EDITION=early` and `VITE_GA_ID=G-C5RY6DWGWN`), the custom domain
+    `hedgeschool.abstractclass.org`, then the first visit checked on the real address.
   - **Analytics: built and checked in Edge** (decisions/product.md, "Early access: the third round"). To do: the
     Cloudflare Web Analytics token once the site is live (its manual snippet, not the Pages project's one-click
     setup). Google Analytics receives the preview's visits (the owner checked).

@@ -18,7 +18,9 @@ export default defineConfig({
 				runes: ({ filename }) =>
 					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 			},
-			adapter: adapter()
+			// 404.html: the page for an address the site does not have. Without it, Cloudflare Pages would serve the
+			// home page for any address (its rule for single-page applications).
+			adapter: adapter({ fallback: '404.html' })
 		})
 	]
 });

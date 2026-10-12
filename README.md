@@ -29,6 +29,7 @@ npm test                              # the unit tests
 npm run build                         # the full site, into build/
 VITE_EDITION=early npm run build      # the early access
 npm run preview                       # serve build/
+npm run build:cloudflare              # what Cloudflare Pages runs: the engine's release, tests, type check, build
 ```
 
 `npm run engine` downloads the module and the networks from a GitHub Release of

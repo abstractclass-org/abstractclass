@@ -30,10 +30,22 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
    development.
 4. **Unlisted:** `robots.txt` disallows every page, and every page carries `noindex`. The address is shared by hand,
    in the Discord, which is also where players report problems.
-5. **Hosting: Cloudflare,** built from a private GitHub repository on every push. The build fetches the engine from its
-   GitHub Release (`npm run engine -- --deploy`, which refuses local engine files), runs the tests and the type check,
-   then builds. `/engine/` is cached for a long time: its paths name the build and the network, so a file there never
-   changes. Each file is under Cloudflare's limit of 25 MiB (the larger network is 20.5 MB).
+5. **Hosting: Cloudflare Pages,** built from the private GitHub repository on every push to `main`:
+   - **The build command,** `npm run build:cloudflare`: it fetches the engine from its GitHub Release (`npm run engine
+     -- --deploy`, which refuses local engine files), runs the tests and the type check, then builds into `build/`.
+     Pages installs the dependencies first (`npm ci`).
+   - **Node 24** (`.node-version`): Pages' build image has Node 22.16 by default, which cannot run the tests' TypeScript
+     without a flag.
+   - **The build's variables:** `VITE_EDITION=early`, `VITE_GA_ID` and `VITE_CF_ANALYTICS_TOKEN` (item 7). Pages names
+     the commit (`CF_PAGES_COMMIT_SHA`), which the footer shows.
+   - **The headers** (`static/_headers`): `noindex` on every file, and a year's cache, never checked again, for the
+     build's hashed code (`/_app/immutable/`) and the engine's files (`/engine/<id>/<file>`): their paths name their
+     content, so a file there never changes. `/engine/manifest.json` keeps the default check on each load.
+   - **A 404 page** (`404.html`, adapter-static's fallback): without it, Pages serves the home page for any unknown
+     address.
+   - **The size:** 69 files, 29 MB. Each file is under Pages' limit of 25 MiB (the larger network is 20.6 MB).
+   - A build from a clean clone, as Pages makes it, was run on the owner's machine: the engine downloaded, the tests
+     and the type check passed, the site built.
 6. **The engine:** a GitHub Release of `enclosure-engine`, a public repository that holds only the engine's
    releases, while the engine repository stays private
    ([requests/03-release-artifacts.md](../requests/03-release-artifacts.md)). The release has the module, both

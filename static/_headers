@@ -1,0 +1,14 @@
+# Cloudflare Pages' response headers (docs/design/11-early-access.md). Pages reads this file and does not serve it.
+
+# Unlisted while in early access: no page or file is indexed (robots.txt and each page's noindex say the same).
+/*
+  X-Robots-Tag: noindex
+
+# Files whose paths change when their content does: the build's hashed code, and the engine's artifacts, whose
+# folders name the build and the network (engine.lock.json). Browsers keep them for a year without asking again.
+# /engine/manifest.json is not among them: it names the current files, so it is checked on each load.
+/_app/immutable/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/engine/:id/:file
+  Cache-Control: public, max-age=31536000, immutable

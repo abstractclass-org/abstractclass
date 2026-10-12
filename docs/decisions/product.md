@@ -1495,3 +1495,14 @@ The interface, the review, puzzles, lessons, labels and thresholds.
 - **Built:** each pencil stroke cut again from the source with its own gain, to −28.7 LUFS: 9.4 dB down for the edge's
   stroke, 11.8 dB for the cut's. The four sounds now lie within 0.3 LU (−28.6 to −28.9 LUFS). The cut's stroke still
   plays 12% faster, which keeps its loudness.
+
+### Cloudflare Pages: the repository's side (2026-10-12)
+
+- **DNSSEC** is on (Cloudflare's DS record at Porkbun).
+- **Read first:** Cloudflare's current Pages documentation (the Git integration, the build image, `_headers`, custom
+  domains, the limits, serving). The facts that shaped the setup: Node 22.16 by default in the build image; private
+  repositories through Cloudflare's GitHub app; no `404.html` makes Pages serve the home page for any address; a
+  subdomain of a zone on Cloudflare gets its DNS record by itself; Web Analytics turns on its automatic setup (the
+  beacon added by Cloudflare) for a proxied hostname unless changed to a manual snippet.
+- **Built:** `.node-version` (24), `npm run build:cloudflare`, `static/_headers`, and the 404 page (design 11, item
+  5). The command passed on this machine and from a clean clone with a fresh `npm ci` and fresh engine downloads.
