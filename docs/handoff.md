@@ -72,6 +72,12 @@ It holds no backlog: everything still to do that is not in flight is in
   - The board's line ends by visits only, with no cut at 6 edges (design 07, decisions/product.md, "The board's line
     ends by visits only").
   - hosting.md: the zone's cache rule for the tools' files. To do, by the owner: set it in Cloudflare's dashboard.
+- **Released to `main` on 2026-10-13, after `1af74e9`:** the deepest stored result for each position, the Depth's help line and the report's note
+  (decisions/product.md, "A deeper search where the player looks: kept, and said"), the Export menu's lines, the
+  chart's first estimate faint and solid, a Great's confirmation as deep as the position it is compared with, a game
+  that keeps the settings it came with (in place of a change of the browser's), the key moments at twice the
+  review's depth, the likely edges' meter hidden while the engine settings are open, the Export's notes in a toast, and design 16
+  (every depth and setting together, with examples).
 - **For the owner, after the release of `99106ff`:**
   - Drag the bookmarklet to the bar again: its code changed.
   - Install the userscript again from the live site's import page, then remove the copy from the local preview in

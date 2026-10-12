@@ -6,7 +6,8 @@ measurements in Edge.
 ## Context
 
 The review searches every position on the visitor's CPU (design 02, design 05). Its budgets were fixed: the sweep at
-32 visits, the label pass at 256, the position on screen and the key moments at 1,024, a pool of half the machine's
+32 visits, the label pass at 256, the position on screen and the key moments at 1,024 (the key moments now go one
+doubling past the review's depth: below), a pool of half the machine's
 cores (1 to 4 workers), and the network b10c128. Machines differ. On a fast desktop one worker of b10c128 searches
 about 70 to 90 visits a second, and b15c192 is three times slower ([decisions/engine.md](../decisions/engine.md)).
 A visitor on a laptop can want less load, and a visitor on a fast desktop can want deeper searches.
@@ -35,7 +36,9 @@ each applies at once, without a reload.
    bar says "Engine off. The review is paused." and has no moving gleam.
    On, the work not done starts again. On by default, and kept between visits, as on Lichess.
 2. **The engine's gear** is at the first line's right. It opens "Engine settings" under the header, in the place of the
-   candidates and the move list, so the header's values and search bar stay in view while a setting changes. The gear,
+   candidates and the move list, so the header's values and search bar stay in view while a setting changes. The
+   likely edges' meter (design 14), under the values, is hidden while the panel is open: it says nothing about the
+   settings. The values stay, since a change of depth shows in them as the search goes on. The gear,
    Escape and "Done" close it. "Done" is right after the last setting, a little below it, away from the gear. The
    display settings, opened from the bottom, have their "Done" at the top: each panel's "Done" is at the end away from
    the button that opened it, where the eye ends after the last setting. The display settings move to a
@@ -47,11 +50,26 @@ each applies at once, without a reload.
      first). The steps are Lichess's search times from 10 seconds (10, 20, 30, 60, 120 and 300 seconds, and none),
      and 30 seconds by default. A search stopped at its limit shows a full bar and "time limit" after its visits. The
      position is not searched again for the same settings, and is searched again when the depth or the limit changes.
+     - **Deeper than the review, it updates the review there.** Each position keeps the deepest result it has, so the
+       position's labels, the report's counts and accuracy, and the chart follow the deeper search as it runs. A review
+       opened again, or imported, takes the deepest stored result of each position too (`cacheGetAtLeast` in
+       `src/lib/analysis/cache.ts`), so it opens as the player left it. The Depth's help line says so ("Deeper than the
+       review, it also updates the review there: the labels and the report."), and the report says how many of the
+       game's positions have a result deeper than the review asked for (the review's depth, or 1,024 visits for a key
+       moment). With the depth at most the review's, nothing changes: the review's own result is the deepest. Design 16
+       has every depth together, with examples.
    - **Game review:** "Depth per move", the label pass's visits for each position: Lite (512), Standard (1,024), or
      Custom, which shows its visits from 256 to 4,096. Lite by default. An edge gets its label from 256 visits on at
      every depth. A label search shows its result at 256 visits, and again after each further 256, so a label shows as
      early at every depth and changes as the deeper search goes on. The
-     key moments stay at 1,024 visits. A branch move evaluated on request is searched to the review's depth.
+     key moments go one doubling deeper, to twice the review's depth (`momentVisits` in
+     `src/lib/analysis/game.svelte.ts`): Lite's 512 gives 1,024, Standard's 2,048, a custom 4,096 gives 8,192. So the
+     moments that matter most get a surer search at every review depth. They stayed at 1,024 when the depths became
+     settings, so a review at 1,024 or deeper gave them no more than any position. A branch move evaluated on request is
+     searched to the review's depth.
+   - **A game that keeps its own settings** (an imported review file's or a shared link's game, design 13) reviews with
+     its own network and depth per move. The panel says so, shows the game's two, and changes the game's when they
+     change. The settings kept in the browser serve every other game.
    - **Engine:** "Network", named by the engine's release and by its download: "HedgeFund 0.1 Lite (6.5 MB)"
      (b10c128, the default) or "HedgeFund 0.1 (20.6 MB)" (b15c192). The names come from the release's manifest
      (`displayName`, copied into `engine.lock.json`), as the sizes do. A name belongs to one network file for life (the

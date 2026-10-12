@@ -5,9 +5,9 @@
   // third, each scaled to its own largest value, the key moments as dots, and the current position as a marker.
   // The pointer snaps to the nearest position and shows its note (Lichess's chart tooltip). A click jumps there. By turn,
   // the chart draws and snaps to the turns' ends only: a turn is one step (design 10).
-  // While the review runs, the line is dashed and faint where a position has only its first, quick search, and solid
-  // where its search has the review's depth: the sweep draws the whole line first, and the label pass then refines it
-  // (design 06).
+  // While the review runs, the line is faint where a position has only its first, quick search, and full where its
+  // search has the review's depth: the sweep draws the whole line first, and the label pass then refines it (design
+  // 06). Faint, not dashed: the 50% line is dashed.
   import type { Label } from "./model.ts";
   import ChartTip, { pointerAt } from "./ChartTip.svelte";
 
@@ -92,8 +92,7 @@
   {#if showArea}<path d={areaLine} class="fill-none stroke-area" stroke-width="1.5" vector-effect="non-scaling-stroke" />{/if}
   {#if showScore}<path d={scoreLine} class="fill-none stroke-accent" stroke-width="1.5" vector-effect="non-scaling-stroke" />{/if}
   <path d={winLines.solid} class="fill-none stroke-ink" stroke-width="1.5" vector-effect="non-scaling-stroke" />
-  <path d={winLines.rough} class="fill-none stroke-ink" stroke-width="1.5" stroke-dasharray="4 3" stroke-opacity="0.55"
-        vector-effect="non-scaling-stroke" />
+  <path d={winLines.rough} class="fill-none stroke-ink" stroke-width="1.5" stroke-opacity="0.35" vector-effect="non-scaling-stroke" />
   <line x1={x(current)} y1="0" x2={x(current)} y2={H} class="stroke-last" stroke-width="2" vector-effect="non-scaling-stroke" />
   {#if hovered !== null}
     <line x1={x(hovered)} y1="0" x2={x(hovered)} y2={H} class="stroke-muted pointer-events-none" vector-effect="non-scaling-stroke" />

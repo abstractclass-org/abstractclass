@@ -10,13 +10,13 @@
   import { COURSE } from "#lib/learn/lessons.ts";
   import { parseRecord, playerNames, RecordError, type GameRecord } from "#lib/game/record.ts";
   import { deleteGame, listGames, restoreGame, reviewCovers, reviewMark, type DeletedGame, type StoredGame } from "#lib/game/store.ts";
-  import { adoptReview, loadEngine, reviewVisits } from "#lib/analysis/engineSettings.ts";
+  import { loadEngine, reviewVisits } from "#lib/analysis/engineSettings.ts";
   import { importRecord } from "#lib/game/import.ts";
   import { errorText } from "#lib/errors.ts";
   import { constellationRecord, isConstellation } from "#lib/game/constellation.ts";
   import { EARLY_ACCESS, SITE_NAME, SITE_VERSION } from "#lib/edition.ts";
   import { deliverExport, importReview, readReviewFile, shippedModels, shippedModule, type ExportKind } from "#lib/game/reviewFile.ts";
-  import { loadManifest, modelOf } from "#lib/engine/client.ts";
+  import { loadManifest, type Manifest } from "#lib/engine/client.ts";
   import { annotatedFromStore } from "#lib/review/exportText.ts";
   import ExportMenu from "#lib/ExportMenu.svelte";
   import SiteFooter from "#lib/SiteFooter.svelte";
@@ -30,12 +30,14 @@
   let problem = $state("");
   let checking = $state(false);
   let games = $state<{ game: StoredGame; record: GameRecord }[]>([]);
-  // The review a game's export needs (design 13): with this site's engine, and the network and review depth set now
-  let wanted = $state<ReturnType<typeof reviewMark>>(null);
+  // The review a game's export needs (design 13): with this site's engine, and the network and review depth set now,
+  // the game's own when it keeps them (store.ts, `settings`).
+  let manifest = $state.raw<Manifest | null>(null);
+  const engine = loadEngine();
+  const wanted = (g: StoredGame) => manifest && reviewMark(manifest, g.settings?.network ?? engine.network, g.settings?.visits ?? reviewVisits(engine));
   onMount(async () => {
     games = await listGames();
-    const manifest = await loadManifest(), engine = loadEngine();
-    wanted = manifest && reviewMark(manifest, engine.network, reviewVisits(engine));
+    manifest = await loadManifest();
   });
 
   // The games deleted on this visit, by id. The delete is done at once, so it stands if the page closes. A deleted
@@ -88,8 +90,6 @@
   // Review files (design 13): exported beside each game, imported here from a file chosen or dropped on the page. For
   // now they live on the home page, with the rest of what concerns the player's games.
   let fileProblem = $state("");
-  // A review file's settings taken (design 13): what they are now, and the game, whose review opens on a click.
-  let fileSettings = $state<{ text: string; id: string } | null>(null);
   let importing = $state(false);
   let dragging = $state(false);
 
@@ -101,18 +101,12 @@
   async function importFile(file: File | undefined) {
     if (!file) return;
     fileProblem = "";
-    fileSettings = null;
     importing = true;
     try {
       const review = readReviewFile(await file.text());
       // Only the networks this site ships: a result of another network is never asked for here.
       const manifest = await loadManifest();
       const { id } = await importReview(review, shippedModels(manifest), shippedModule(manifest));
-      // The file's network and depth, when the site ships that network: the review then opens as it was made. A change
-      // of the settings is said before the review opens.
-      const r = review.review, shipped = !!r && !!manifest && modelOf(manifest, r.network)?.sha256 === r.model;
-      const changed = shipped ? adoptReview(r!.network, r!.visits) : null;
-      if (changed) { fileSettings = { text: changed, id }; return; }
       await goto(`/review?game=${id}`);
     } catch (e) {
       fileProblem = `The file could not be imported: ${errorText(e)}`;
@@ -167,12 +161,6 @@
         also drop it on this page. The review opens at once when its engine is this site's; with another, it is reviewed again.</span>
     </div>
     {#if fileProblem}<p class="mt-1.5 text-blunder" role="alert">{fileProblem}</p>{/if}
-    {#if fileSettings}
-      <p class="mt-2 text-sm" role="status">The game is imported. Your engine settings are now the file's: {fileSettings.text},
-        so that its review opens as it was made. You can change them back in the engine settings.
-        <a class="inline-block ml-1.5 px-3 py-1 rounded-full bg-accent text-white font-semibold no-underline"
-           href="/review?game={fileSettings.id}">Open the review</a></p>
-    {/if}
   </section>
 
   {#if games.length}
@@ -189,7 +177,7 @@
               <span class="text-sm text-muted">{record.moves.length} edges{record.result && record.result !== "*" ? ` · ${record.result}` : ""} ·
                 imported {new Date(game.added).toLocaleDateString()}</span>
               <span class="ml-auto flex items-center gap-1.5"><ExportMenu small side="bottom" run={kind => exportGame(game.id, game.record, kind)}
-                ready={reviewCovers(game.reviewed, wanted)}
+                ready={reviewCovers(game.reviewed, wanted(game))}
                 why={game.reviewed ? "Open the game to finish its review with the engine settings now, then export." : "Open the game to review it, then export."} />
                 <button type="button" class="px-2 py-0 text-xs" aria-label="Delete {title(record)}"
                         onclick={() => remove(game.id)}>Delete</button></span>

@@ -64,30 +64,43 @@ searching it again, and to share it as text that others can read.
    game: the browser's first, in their order, then the file's new ones. It keeps the results of the networks that this
    site ships, and leaves out the others. When the file's review ran with this site's engine module and a network it
    ships, the game keeps its mark too, so that it exports at once. When the file's review ran with a network that the
-   site ships, the importer's engine settings take its network and review depth (`adoptReview` in
-   `src/lib/analysis/engineSettings.ts`), as a shared link's do (item 8), so that the review opens as it was made. When
-   that changes the settings, the home page says so, and the review opens on a click. Else it opens at once.
+   site ships, **the game keeps that network and review depth** (`StoredGame.settings`, `setGameSettings` in
+   `src/lib/game/store.ts`), as a shared link's game does (item 8), so that its review opens as it was made. Then the
+   review opens.
+   - **Only that game:** its review uses its own network and depth, and the settings kept in the browser serve every
+     other game. The rest of the engine settings (on or off, the position on screen, the workers, the GPU) serve it too.
+   - **Its engine settings** say that the game keeps the settings it came with, and show its own network and depth.
+     A change of them there changes the game's only.
+   - **No "my settings":** the settings kept in the browser are a convenience, the last ones chosen, not a player's
+     settings that the site keeps as an account would. So the page offers no "Use my settings": a game that came with
+     settings keeps them, and the player changes them in that game like any other setting.
+   - The home page's Export of the game asks for a review with the game's own settings.
 6. **Another engine:** the browser's store keys the results by the engine's build and network, so an import into a site
    that ships another network keeps the game and the branches, and the review searches again with that site's engine.
 7. **A deeper result answers a shallower question:** a review asks for each position at its own budget (32 visits, the
-   label pass, the review's depth). When the store has no result at that budget, it takes the least deeper one it has
+   label pass, the review's depth), and takes the deepest result the store has at that budget or deeper
    (`cacheGetAtLeast` in `src/lib/analysis/cache.ts`), as the review already takes a deeper result it holds in memory.
+   So the file's deeper results, from the position on screen where the sender looked (design 09), count everywhere in
+   the importer's review. Design 16 has every depth, and what a file and a link carry, with examples.
    So a file searched to 1,024 visits opens at once in a browser whose review depth is 512.
 8. **A link that shares a review** (the Export menu's first entry, "Copy a link to share the review",
    `src/lib/game/share.ts`): the game's record, the player's branches, and what the review ran with (the engine
    module's and the network's SHA-256, their first 4 bytes, and the review's visits), after the import page's `#`
    (`/import#s=…`). The browser never sends that part of an address to a server.
-   - **It holds no results:** the recipient's browser reviews the game again. The engine gives the same results for
+   - **It holds no results:** the recipient's browser reviews the game again. So it does not carry the sender's deeper
+     looks at positions (design 16, example 9): a review file does. The engine gives the same results for
      the same build, network and visits, so the review is the sender's. On a GPU the network's arithmetic differs a
      little (design 15), so a close call can rarely come out otherwise.
    - **The recipient's page** says so before anything runs: the game, its branches, and the sender's network and depth.
-     "Review it" keeps the game and the branches (beside the recipient's own), sets the recipient's engine settings to
-     the sender's network and depth, and opens the review. The page says when the settings change, when the site no
-     longer has the sender's network (the review then uses the recipient's), and when the site's engine changed after
-     the sender made the link.
+     "Review it" keeps the game and the branches (beside the recipient's own), and the sender's network and depth for
+     that game alone, as an imported file's game keeps them (item 5), and opens the review. The page says that the
+     recipient's settings for other games stay, when the site no longer has the sender's network (the review then uses
+     the recipient's), and when the site's engine changed after the sender made the link.
    - **Its format:** bits, in base64url: each move as two points of 9 bits, the branches as a tree (a node's edge, 1
      bit for "evaluated", its number of children in 1 or 2 bits for none or one), the tags as UTF-8 text. A game's
      move costs 18 bits, and a branch's edge 20 where the branch goes on in one line. A version byte leads.
+   - **The menu says what each export gives.** Under the link: "Short. The recipient's browser reviews the game
+     again." Under the review file: "With the engine's results: the review opens at once."
    - **Its length:** a whole game of 120 edges with meaf.us's tags is a link of 653 characters (the tags 227 of them).
      A branch's edge adds 3.36 characters, and each new line of branches from another position about 22. The note
      after the copy gives the link's length, and warns past 2,000 characters, a Discord message's limit.

@@ -7,7 +7,7 @@
 import { SHAPE, readAnalysisKey } from "#lib/analysis/cache.ts";
 import { STORES, dbEntriesWhere, dbGet, dbPut, dbPutMany } from "#lib/storage/db.ts";
 import { parseRecord, playerNames } from "./record.ts";
-import { branchNodes, loadGame, markReviewed, saveGame, type BranchNode, type KeptBranches, type ReviewMark } from "./store.ts";
+import { branchNodes, loadGame, markReviewed, saveGame, setGameSettings, type BranchNode, type KeptBranches, type ReviewMark } from "./store.ts";
 import { moduleOf, type Manifest } from "#lib/engine/client.ts";
 import { networkName } from "#lib/analysis/engineSettings.ts";
 import { DISCORD_LIMIT, encodeShare, sharedRecord, type SharedReview } from "./share.ts";
@@ -142,15 +142,17 @@ export async function shareLink(id: string, origin: string): Promise<string> {
                                             tags: stored.record.tags, moves: stored.record.moves, branches })}`;
 }
 
-/** Keeps a shared review's game and branches in this browser, beside the branches it may have already. Its review is
- *  not in the link: the review page searches again. Returns the game's id. */
-export async function importShare(shared: SharedReview): Promise<string> {
+/** Keeps a shared review's game and branches in this browser, beside the branches it may have already, and the sender's
+ *  network and depth with the game (`network`: this site's id of the sender's network, null when it has no such
+ *  network). Its review is not in the link: the review page searches again. Returns the game's id. */
+export async function importShare(shared: SharedReview, network: string | null): Promise<string> {
   const text = sharedRecord(shared);
   const id = await importRecord(text, parseRecord(text));
   if (shared.branches.length) {
     await dbPut(STORES.branches, id, mergeBranches((await dbGet<KeptBranches>(STORES.branches, id)) ?? null,
                                                    { version: 2, nodes: shared.branches }));
   }
+  if (network) await setGameSettings(id, { network, visits: shared.visits });
   return id;
 }
 
@@ -189,6 +191,9 @@ export async function importReview(file: ReviewFile, models: Set<string> | null,
   const r = file.review;
   if (r && r.module === module && (!models || models.has(r.model)))
     await markReviewed(id, { module: r.module, model: r.model, network: r.network, visits: r.visits });
+  // The game keeps the file's network and depth, when the site ships that network, so that its review opens as it was
+  // made. The browser's settings stay for the other games.
+  if (r && (!models || models.has(r.model))) await setGameSettings(id, { network: r.network, visits: r.visits });
   return { id, kept, other };
 }
 

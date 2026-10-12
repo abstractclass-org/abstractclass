@@ -23,6 +23,18 @@ export interface StoredGame {
   record: string; // the record's text, as imported, with the cut marks added (check.ts)
   added: string; // ISO date and time
   reviewed?: ReviewMark; // the deepest review that ran to its end with the engine named in it
+  settings?: GameSettings; // the review settings it came with, when it keeps them
+}
+
+/** The review settings that a game keeps (design 13): the network and the review's visits that an imported review file
+ *  or a shared link came with, so that its review is the one it came with. The browser's own settings serve every
+ *  other game. */
+export interface GameSettings { network: string; visits: number }
+
+/** Keeps a game's own review settings. */
+export async function setGameSettings(id: string, settings: GameSettings) {
+  const game = await dbGet<StoredGame>(STORES.games, id);
+  if (game) await dbPut(STORES.games, id, { ...game, settings });
 }
 
 /** A review that ran to its end (design 13): the engine module's and the network's SHA-256 (the manifest's), the

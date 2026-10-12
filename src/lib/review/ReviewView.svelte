@@ -49,6 +49,8 @@
     progress?: ReviewProgress | null; // the review in progress, or null when it is complete
     problem?: string; // an engine error
     deepVisits?: number; // the budget of the position on screen: its search bar is full at this many visits
+    deeperPositions?: number; // the game's positions searched deeper than the review asked, where the player looked
+    ownSettings?: boolean; // the game keeps the network and depth it came with (store.ts, `settings`)
     onposition?: (path: string[]) => void; // the position on screen changed: its path in the game's tree
     lineSteps?: (path: string[], line: Edge[]) => Promise<LineStep[]>; // a line's edges played: cuts, regions (the rules)
     branches?: Record<string, BranchNode>; // the branches' positions, by path key (tree.ts), in the order added
@@ -73,7 +75,7 @@
     exportReady?: boolean; // the review is done: export only then (design 13)
   }
   let { R, progress = null, problem = "", deepVisits = 0, onposition, lineSteps, branches = {}, onplay, rulesAt, ondelete,
-        onpromote, onjudge, labelVisits = 0, searching = false, timedOut = false, engine, onengine, gpu, secondAt, otherAt, turnKeys, pendingAt, reviewVisits = 0, onexport, exportReady = true }: Props = $props();
+        onpromote, onjudge, labelVisits = 0, searching = false, timedOut = false, engine, onengine, gpu, secondAt, otherAt, turnKeys, pendingAt, reviewVisits = 0, onexport, exportReady = true, deeperPositions = 0, ownSettings = false }: Props = $props();
   const last = $derived(R.data.positions.length - 1);
   const TABLE_ROWS = 5; // the Analysis table shows this many rows and scrolls, so the move list under it does not move
   const ROW_EM = 1.9; // a table row's height, in em
@@ -872,7 +874,7 @@
       {:else}
         <span class="inline-flex items-center gap-1"><span class="inline-block w-[1.2em] h-0.5 bg-ink"></span> Win chance for Blue</span>
         {#if chartRough}<span class="inline-flex items-center gap-1" title="Refined as the review runs">
-          <span class="inline-block w-[1.2em] flex-none border-t-[1.5px] border-dashed border-ink opacity-55"></span> First estimate</span>{/if}
+          <span class="inline-block w-[1.2em] h-0.5 flex-none bg-ink opacity-35"></span> Win chance, first estimate</span>{/if}
         {@render lineBox("Score difference", "bg-accent", "accent-accent", () => showScore, v => (showScore = v))}
         {@render lineBox("Area difference", "bg-area", "accent-area", () => showArea, v => (showArea = v))}
       {/if}
@@ -897,6 +899,13 @@
     ({fmtScore(R.data.result.blue)} to {fmtScore(R.data.result.red)}).
     {#if progress}The review is still running: the counts below are partial.{/if}
   </p>
+  <!-- The positions searched deeper than the review by the position on screen's Depth (design 16), here or in the
+       browser that a review file came from: their results replace the review's, so this report follows them. -->
+  {#if deeperPositions}
+    <p class="mb-3 text-xs text-muted">{deeperPositions} {deeperPositions === 1 ? "position was" : "positions were"} searched
+      deeper than the review, by the Depth of the position on screen: the labels there, and this report, use the deeper
+      searches.</p>
+  {/if}
   <!-- The number columns are as wide as their content, and the labels take the rest. -->
   <table class="w-full text-sm">
     <thead>
@@ -1305,8 +1314,13 @@
   <div id="engine-settings" role="region" aria-label="Engine settings" class="flex flex-col flex-1 min-h-0">
     <h2 class="font-semibold mb-1">Engine settings</h2>
     <div class="flex-1 min-h-0 overflow-y-auto pr-1">
+      {#if ownSettings}
+        <p class="mb-1.5 text-xs text-muted">This game keeps the network and depth per move it came with, from a review file or
+          a shared link, so that its review is the one it came with. A change of them here changes this game's only.</p>
+      {/if}
       <h3 class={SETTINGS_HEAD}>Position on screen</h3>
-      {@render visitsSteps("Depth", "How far to search it.", DEPTHS, () => e.visits, v => set({ visits: v }))}
+      {@render visitsSteps("Depth", "How far to search it. Deeper than the review, it also updates the review there: the labels and the report.",
+        DEPTHS, () => e.visits, v => set({ visits: v }))}
       {@render steps("Time limit", "Stop sooner if this runs out.", TIME_LIMITS.length, () => TIME_LIMITS.indexOf(e.seconds),
         k => set({ seconds: TIME_LIMITS[k] }), k => (TIME_LIMITS[k] === null ? "None" : `${TIME_LIMITS[k]} s`))}
       <h3 class={SETTINGS_HEAD}>Game review</h3>
@@ -1550,10 +1564,11 @@
           Final margin <strong class="text-ink">{sideText(position.scores[0] - position.scores[1], 1, "0")}</strong>
         {:else}Not analysed yet{/if}
       </p>
-      {#if meter}
+      {#if meter && !engineOpen}
         <!-- The network's likely edges here (design 14), as Maia's Blunder Meter shows a human's likely moves: the prior
              of the searched edges by the group of their loss, in the labels' colours. The rest of the bar, the panel's
-             grey, is the prior of the edges the search did not visit. -->
+             grey, is the prior of the edges the search did not visit. The engine settings cover it: it says nothing
+             about them. -->
         <div class="flex h-1.5 mt-1 rounded-full overflow-hidden bg-panel-2" role="img" aria-label={meterText(meter)} title={meterText(meter)}>
           {#each METER_GROUPS as g (g)}<span class="h-full" style:width="{100 * meter[g]}%" style:background="var(--{g})"></span>{/each}
         </div>

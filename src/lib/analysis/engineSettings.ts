@@ -66,20 +66,11 @@ export const nearestStep = (steps: number[], visits: number) =>
 /** The review's visits for each position, from the settings. */
 export const reviewVisits = (s: EngineSettings) => (s.review === "custom" ? s.customReview : REVIEW_PRESETS[s.review]);
 
-/** The settings with this network and this review's visits: a preset when one has them, else a custom depth. A shared
- *  review (game/share.ts) runs with the sender's. */
+/** The settings with this network and this review's visits: a preset when one has them, else a custom depth. A game
+ *  that keeps its own settings (game/store.ts, `settings`) runs with them. */
 export function withReview(s: EngineSettings, network: string, visits: number): EngineSettings {
   const preset = (Object.keys(REVIEW_PRESETS) as (keyof typeof REVIEW_PRESETS)[]).find(k => REVIEW_PRESETS[k] === visits);
   return preset ? { ...s, network, review: preset } : { ...s, network, review: "custom", customReview: visits };
-}
-
-/** Sets this browser's settings to a review's network and depth (a review file's, or a shared link's), so that the
- *  review opens as it was made. Answers them in words when they changed, else null. */
-export function adoptReview(network: string, visits: number): string | null {
-  const s = loadEngine();
-  if (s.network === network && reviewVisits(s) === visits) return null;
-  saveEngine(withReview(s, network, visits));
-  return `${networkName(network)}, at ${reviewDepthText(visits)}`;
 }
 
 /** The review's depth in words: "Lite (512 visits a position)". */

@@ -58,8 +58,16 @@ Rules:
   them when its disk is almost full, and Safari deletes them after seven days of use without a visit. Decide whether
   to ask for persistent storage (`navigator.storage.persist()`), and whether the home page should tell the player to
   export the games they want to keep.
+- **A search stopped at its time limit, kept** (design 16, example 6): the store keeps finished searches only, so a
+  deeper look that stops at its time limit changes the review while the page is open, and not after it opens again.
+  The store could keep it under the largest budget its visits reach (2,600 visits as 2,048). A small gain, if any.
+- **A share link with the sender's deeper looks** (design 16, example 9): at the positions the sender searched deeper,
+  the recipient's labels are the review's own until the recipient looks there as deep. The link holds no results, and
+  a review file carries them. A small gain, if any.
 - **A page that explains the review:** how the labels, the accuracy, the complexity and its marks, and the meter are
-  computed, with their formulas and the reasons for them (designs 10 and 14), for a player who wants to know. Later,
+  computed, with their formulas and the reasons for them (designs 10 and 14), for a player who wants to know. Also
+  that the position on screen, searched deeper than the review, updates the review where the player looks (design
+  09). Later,
   not for the early access.
 
 ## Offline work (on the engine repository's GPU)

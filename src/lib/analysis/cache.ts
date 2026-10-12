@@ -29,13 +29,14 @@ export function readAnalysisKey(key: string) {
 // shallow to deep.
 const BUDGETS = [256, 512, 768, 1024, 1536, 2048, 3072, 4096, 8192, 16384];
 
-/** A stored result for a position at `visits`, or else the least deeper one stored: a deeper search answers a shallower
- *  question, as the review takes a deeper result it holds. So a review imported from another browser, searched to
- *  another depth, opens without searching again (game/reviewFile.ts). */
+/** The deepest stored result for a position at `visits` or deeper: a deeper search answers a shallower question, as the
+ *  review takes a deeper result it holds. So a review opened again keeps what the player searched deeper where they
+ *  looked (the position on screen, design 09), as it had it before the page closed, and a review imported from another
+ *  browser, searched to another depth, opens without searching again (game/reviewFile.ts). */
 export async function cacheGetAtLeast<T>(build: string, model: string, moves: string[], visits: number): Promise<T | undefined> {
   const keys = [visits, ...BUDGETS.filter(v => v > visits)].map(v => analysisKey(build, model, moves, v));
   const unread = keys.filter(k => !memory.has(k));
   (await dbGetMany(STORES.analysis, unread)).forEach((value, i) => { if (value !== undefined) memory.set(unread[i], value); });
-  const key = keys.find(k => memory.has(k));
+  const key = [...keys].reverse().find(k => memory.has(k));
   return key === undefined ? undefined : (memory.get(key) as T);
 }

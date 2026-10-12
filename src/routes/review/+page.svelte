@@ -11,13 +11,13 @@
   import ReviewView, { type ReviewProgress } from "#lib/review/ReviewView.svelte";
   import { review, type ReviewData } from "#lib/review/model.ts";
   import { EnginePool } from "#lib/analysis/pool.ts";
-  import { DEEP_VISITS, GameAnalysis, LABEL_VISITS, SWEEP_VISITS } from "#lib/analysis/game.svelte.ts";
-  import { loadEngine, reviewVisits, saveEngine } from "#lib/analysis/engineSettings.ts";
+  import { GameAnalysis, LABEL_VISITS, SWEEP_VISITS, momentVisits } from "#lib/analysis/game.svelte.ts";
+  import { NETWORKS, loadEngine, reviewVisits, saveEngine, withReview, type EngineSettings } from "#lib/analysis/engineSettings.ts";
   import { GpuControl, gpuDownloadMB } from "#lib/analysis/gpu.svelte.ts";
   import { loadManifest, type Manifest } from "#lib/engine/client.ts";
   import { errorText } from "#lib/errors.ts";
   import { playerNames } from "#lib/game/record.ts";
-  import { lastReview, loadGame, markReviewed, rememberReview, reviewMark } from "#lib/game/store.ts";
+  import { lastReview, loadGame, markReviewed, rememberReview, reviewMark, setGameSettings, type GameSettings } from "#lib/game/store.ts";
   import { holdReview } from "#lib/game/reviewLock.ts";
   import { replaceState } from "$app/navigation";
   import { deliverExport, type ExportKind } from "#lib/game/reviewFile.ts";
@@ -40,11 +40,28 @@
   let current = $state<string[]>([]); // the position on screen: its path in the game's tree (review/tree.ts)
   const engine = $state(loadEngine());
   $effect(() => saveEngine($state.snapshot(engine)));
+  // A game that keeps the settings it came with (an imported review file or a shared link, store.ts) reviews with its
+  // own network and depth. The settings kept in the browser serve the other games, and the rest of them (the engine on
+  // or off, the position on screen, the workers, the GPU) serve this one too. The engine settings show and change the
+  // game's two.
+  let own = $state<GameSettings | null>(null);
+  const settings = $derived(own ? withReview(engine, own.network, own.visits) : engine);
+  function changeEngine(change: Partial<EngineSettings>) {
+    const { network, review, customReview, ...rest } = change;
+    if (own && kept && (network !== undefined || review !== undefined || customReview !== undefined)) {
+      const next = { ...settings, ...change };
+      own = { network: next.network, visits: reviewVisits(next) };
+      void setGameSettings(kept.id, own);
+      Object.assign(engine, rest);
+      return;
+    }
+    Object.assign(engine, change);
+  }
 
   // The label pass's budget. An edge gets its label from 256 visits on, at every depth: a label search shows its result
   // at 256 visits, then at its budget, and the label changes as it does when a deeper search replaces a shallow one
   // (design 05).
-  const budget = $derived(reviewVisits(engine));
+  const budget = $derived(reviewVisits(settings));
   const data = $derived(game?.data(players) ?? null);
   const R = $derived(data ? review(data, "lead", LABEL_VISITS) : null);
   // The key moments' positions, searched deeper after the label pass: every position of each, from its start to its end
@@ -57,6 +74,14 @@
     return [...new Set(positions)].filter(i => i < moveCount).sort((a, b) => a - b);
   });
   const momentKey = $derived(momentPositions.join(" ")); // one string, so that a new array with the same positions is no change
+  // The game's positions with a result deeper than the review asked for (the review's depth, or the key moments'),
+  // from the position on screen searched deeper where the player looked (design 09). The report says how many. The
+  // depths step by doublings, so a deeper search has at least twice the visits.
+  const deeperPositions = $derived.by(() => {
+    if (!game) return 0;
+    const moments = new Set(momentPositions);
+    return game.analysis.filter((a, i) => !!a && a.visits >= 1.5 * (moments.has(i) ? momentVisits(budget) : budget)).length;
+  });
   // The review's work as one bar, each part as wide as its share of the visits, so that the bar moves at an even pace:
   // the sweep, the label pass, the key moments searched deeper, and the Great's confirmations. The last two are counted
   // from what the analysis asks for so far: they grow as labels come, and each is done when its positions have the
@@ -67,8 +92,8 @@
   let held = $state({ step: -1, done: 0 });
   $effect(() => { void budget; void game; held = { step: -1, done: 0 }; });
   const rawProgress = $derived.by((): (ReviewProgress & { step: number }) | null => {
-    const n = Math.max(1, moveCount), deeper = Math.max(0, DEEP_VISITS - budget);
-    const m = momentPositions.length, deepDone = momentPositions.filter(i => (game?.analysis[i]?.visits ?? 0) >= DEEP_VISITS).length;
+    const n = Math.max(1, moveCount), momentDepth = momentVisits(budget), deeper = momentDepth - budget;
+    const m = momentPositions.length, deepDone = momentPositions.filter(i => (game?.analysis[i]?.visits ?? 0) >= momentDepth).length;
     const greats = game?.greatChecks ?? { total: 0, done: 0 };
     const total = (SWEEP_VISITS + budget) * n + deeper * m + budget * greats.total;
     const parts = [
@@ -124,7 +149,7 @@
     untrack(() => pool?.resize(workers));
   });
   $effect(() => {
-    const id = engine.network;
+    const id = settings.network;
     untrack(() => void useNetwork(id));
   });
   $effect(() => {
@@ -207,6 +232,8 @@
     if (!named) replaceState(`?game=${id}`, {}); // the address names the game, so a reload keeps it
     rememberReview(id);
     kept = { id, text: stored.game.record, record: stored.record };
+    const s = stored.game.settings;
+    own = s && NETWORKS.some(n => n.id === s.network) ? s : null; // a network the site no longer ships: the browser's
     players = playerNames(stored.record.tags);
     return stored.record.moves;
   }
@@ -236,7 +263,7 @@
       manifest = await loadManifest();
       if (!manifest) throw new Error("no /engine/manifest.json: run `npm run engine` first");
       const first = pool = new EnginePool(engine.workers);
-      network = engine.network;
+      network = settings.network;
       const g = new GameAnalysis(first, moves);
       g.setPaused(!engine.on);
       g.setDepth(engine.visits, engine.seconds);
@@ -286,13 +313,14 @@
 {:else if game?.error && !game.rulesReady}
   <p class="{MESSAGE} text-blunder">The engine could not read this game: {game.error}</p>
 {:else if R}
-  <ReviewView {R} {progress} onexport={exportAs} exportReady={reviewDone} problem={game?.error ?? ""} deepVisits={engine.visits} onposition={path => (current = path)}
+  <ReviewView {R} {progress} {deeperPositions} onexport={exportAs} exportReady={reviewDone} problem={game?.error ?? ""} deepVisits={engine.visits} onposition={path => (current = path)}
               branches={game?.branches ?? {}} onplay={path => game!.addLine(path)} rulesAt={path => game!.rulesAt(path)}
               secondAt={path => game?.secondAt(path)} otherAt={(path, turn) => game?.otherAt(path, turn)}
               turnKeys={path => game?.turnKeys(path) ?? []} pendingAt={path => game?.pending(path) ?? false} reviewVisits={budget}
               ondelete={path => game!.deleteFrom(path)} onpromote={path => game!.promote(path)}
-              onjudge={path => game!.judge(path)} labelVisits={LABEL_VISITS} {engine} onengine={change => Object.assign(engine, change)}
-              gpu={{ status: gpu?.status ?? { state: "off" }, downloadMB: manifest ? gpuDownloadMB(manifest, engine.network) : "?" }}
+              onjudge={path => game!.judge(path)} labelVisits={LABEL_VISITS} engine={settings} onengine={changeEngine}
+              ownSettings={!!own}
+              gpu={{ status: gpu?.status ?? { state: "off" }, downloadMB: manifest ? gpuDownloadMB(manifest, settings.network) : "?" }}
               timedOut={!!game?.stoppedByTime(current)}
               searching={!!game && game.focusing === pathKey(current)}
               lineSteps={game ? (path, line) => game!.lineSteps(path, line) : undefined} />

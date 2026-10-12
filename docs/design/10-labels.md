@@ -62,6 +62,11 @@ reason. Design 05 gives the searches that the labels read: their schedule, their
    15% of the first's visits. So a gap in one search only asks for a search of the position after the other choice, to
    the label budget, as deep as the position after the played move (KaTrain's "equalize" gives every candidate the top
    move's visits for the same reason). Until that search confirms the gap, the move is Best.
+   - **As deep as the position after the played move, when the player searched it deeper** (the position on screen,
+     design 09): the confirmation then searches to the same depth, the largest doubling of the label budget within
+     that position's visits (`equalDepth` in `src/lib/review/model.ts`: the depths step by doublings, and a search
+     still running or stopped at its time limit asks for no more than it has). Until a search that deep confirms the
+     gap, the move is Best, so a Great never rests on unequal searches (design 16, example 5).
    - **An edge** is Great when it is Best, the second choice looks 0.10 worse in the search before it, and the
      position after the second choice is 0.10 below the position after the edge.
    - **A turn** is Great when it is Best and two checks confirm it. From the turn's start: the other candidate (the

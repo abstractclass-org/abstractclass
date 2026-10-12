@@ -16,7 +16,7 @@
   import { importShare } from "#lib/game/reviewFile.ts";
   import { playerNames } from "#lib/game/record.ts";
   import { loadManifest, moduleOf, modelOf } from "#lib/engine/client.ts";
-  import { NETWORKS, adoptReview, loadEngine, networkName, reviewDepthText, reviewVisits } from "#lib/analysis/engineSettings.ts";
+  import { NETWORKS, networkName, reviewDepthText } from "#lib/analysis/engineSettings.ts";
   import { startAnalytics } from "#lib/analytics.svelte.ts";
 
   let phase = $state<"install" | "importing" | "failed" | "stale" | "share">("install");
@@ -24,10 +24,10 @@
   let href = $state("");
   let stale = $state<Tool | "older" | null>(null);
   let imported = $state(""); // the game's id, for the review's link while the page asks to update a tool
-  // A shared review, and what this site makes of it: its network here (null when the site no longer has it), whether
-  // the site's engine is the sender's, and whether this browser's settings are the sender's already.
+  // A shared review, and what this site makes of it: its network here (null when the site no longer has it), and
+  // whether the site's engine is the sender's.
   let shared = $state.raw<SharedReview | null>(null);
-  let sharedHere = $state.raw<{ network: string | null; sameEngine: boolean; sameSettings: boolean } | null>(null);
+  let sharedHere = $state.raw<{ network: string | null; sameEngine: boolean } | null>(null);
 
   onMount(() => {
     href = bookmarkletHref(location.origin);
@@ -40,11 +40,10 @@
 
   async function readShared(text: string) {
     try {
-      const s = decodeShare(text), manifest = await loadManifest(), engine = loadEngine();
+      const s = decodeShare(text), manifest = await loadManifest();
       const network = manifest ? NETWORKS.map(n => n.id).find(id => modelOf(manifest, id)?.sha256.startsWith(s.model)) ?? null : null;
       shared = s;
-      sharedHere = { network, sameEngine: !!manifest && !!moduleOf(manifest)?.sha256.startsWith(s.module),
-                     sameSettings: network === engine.network && reviewVisits(engine) === s.visits };
+      sharedHere = { network, sameEngine: !!manifest && !!moduleOf(manifest)?.sha256.startsWith(s.module) };
       phase = "share";
     } catch (e) {
       phase = "failed";
@@ -52,13 +51,12 @@
     }
   }
 
-  /** Keeps the shared game and its branches, sets the sender's network and depth, and opens the review. */
+  /** Keeps the shared game, its branches and the sender's network and depth for it, and opens the review. */
   async function reviewShared() {
     if (!shared || !sharedHere) return;
     phase = "importing";
     try {
-      const id = await importShare(shared);
-      if (sharedHere.network) adoptReview(sharedHere.network, shared.visits);
+      const id = await importShare(shared, sharedHere.network);
       await goto(`/review?game=${id}`, { replaceState: true });
     } catch (e) {
       phase = "failed";
@@ -102,8 +100,7 @@
     <p>The sender's review: {sharedHere.network ? networkName(sharedHere.network) : "a network this site no longer has"}, at
       {reviewDepthText(shared.visits)}.
       {#if !sharedHere.network}The review uses your network, so its labels can differ.
-      {:else if !sharedHere.sameSettings}Your engine settings change to these, so that the review is the same. You can change
-        them back in the engine settings.{/if}
+      {:else}The game keeps them for its review. Other games review as before.{/if}
       {#if !sharedHere.sameEngine}This site's engine has changed since the link was made, so some labels can differ.{/if}</p>
     <div><button class="btn-primary" type="button" onclick={reviewShared}>Review it</button></div>
   {:else}

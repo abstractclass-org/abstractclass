@@ -28,7 +28,9 @@ noise.
      and can change when the search ends.
    - **Deeper where the player looks:** the position on screen to 1,024 visits, in slices, with the results shown as
      they come (KaTrain's `max_visits`). The engine settings change its visits and give it a time limit (design 09).
-     Then the key moments, to 1,024 visits: both ends of each turn, since a loss needs both.
+     Then the key moments, one doubling past the review's depth (twice its visits: 1,024 with Lite), both ends of each
+     turn, since a loss needs both (design 09). Every depth together, and which result a position uses, with examples:
+     design 16.
    - **One progress bar for all of it** (design 06): the sweep, the label pass, the key moments and the Great's
      confirmations.
    - A pool of workers runs the most urgent work first: the position on screen, then the key moments, then the sweep.

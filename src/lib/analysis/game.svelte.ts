@@ -22,7 +22,7 @@ import { edgeName, parseEdge, parsePoint, sameEdge, type Edge } from "#lib/engin
 import type { AnalysisReply, DescribeReply, MoveInfo } from "#lib/engine/protocol.ts";
 import { errorText } from "#lib/errors.ts";
 import { branchNodes, gameId, type KeptBranches } from "#lib/game/store.ts";
-import { moverWin, onlyEdge, otherCandidate, type Analysis, type Candidate, type LineStep, type Move, type Player, type Position,
+import { equalDepth, moverWin, onlyEdge, otherCandidate, type Analysis, type Candidate, type LineStep, type Move, type Player, type Position,
          type ReviewData } from "#lib/review/model.ts";
 import { ONLY_EDGE_GAP } from "#lib/review/labels.ts";
 import type { EdgeRules } from "#lib/board/edgeInput.svelte.ts";
@@ -34,7 +34,10 @@ import { Cancelled, type EnginePool } from "./pool.ts";
 
 export const SWEEP_VISITS = 32;
 export const LABEL_VISITS = 256; // the least visits that give an edge a label (the review's depths: engineSettings.ts)
-export const DEEP_VISITS = 1024; // the key moments, and the position on screen by default
+export const DEEP_VISITS = 1024; // the position on screen by default
+/** The key moments' depth: twice the review's depth, one step of its doublings deeper, so that the moments that matter
+ *  most get a surer search at every review depth (Lite's 512 gives 1,024, the reference of the labels' measurement). */
+export const momentVisits = (reviewVisits: number) => 2 * reviewVisits;
 const SLICE_VISITS = 32;
 // A search's results so far are applied together, at most this often: with every worker and the GPU's 16 searches
 // posting a slice, they come tens of times a second, and each change of the analysis runs the review again.
@@ -112,7 +115,7 @@ export class GameAnalysis {
   private focusGeneration = 0; // a new focus makes every earlier focus search stale
   private passes = 0; // a new run of the passes makes the earlier one stop after its sweep
   moments = $state.raw<number[]>([]); // the key moments' positions, searched deeper after the label pass
-  private deepening = new Set<number>(); // their searches queued or running
+  private deepening = new Set<string>(); // their searches queued or running, by position and visits
   private confirming = new Set<string>(); // the Greats' confirmations queued or running, by path key
   // The positions whose search runs now, by path key: their analysis can still change (the page's gleam on a line)
   private running = $state.raw<Record<string, number>>({});
@@ -140,7 +143,7 @@ export class GameAnalysis {
     if (this.running[pathKey(path)]) return true;
     const i = mainIndex(path, this.mainNames);
     if (i === null || i >= this.moves.length || this.paused || !this.engineReady) return false;
-    return this.reached[i] < this.labelVisits || (this.moments.includes(i) && (this.analysis[i]?.visits ?? 0) < DEEP_VISITS);
+    return this.reached[i] < this.labelVisits || (this.moments.includes(i) && (this.analysis[i]?.visits ?? 0) < momentVisits(this.labelVisits));
   }
 
   /** Whether the search of the position at `path` stopped at the time limit, with the focus settings as they are. */
@@ -231,18 +234,21 @@ export class GameAnalysis {
    *  is the second choice unless that is the turn's other edge. The page calls it as results come: a deeper search can
    *  change a position's second choice. */
   confirmGreats() {
-    for (const t of this.greatTargets) this.confirmGreat(t.path, t.candidate);
+    for (const t of this.greatTargets) this.confirmGreat(t.path, t.candidate, t.depth);
   }
 
   /** The searches that the Greats ask for (confirmGreats): at each place, the candidate whose position confirms or
    *  refutes the gap. Derived once for each change of the analysis: the page reads it twice at each result. A game
    *  position's path is built only where it has a target. */
+  // Each target has its depth: as deep as the position after the played move or turn, which the confirmation's
+  // position is compared with (equalDepth: the player may have searched that position deeper).
   private greatTargets = $derived.by(() => {
-    const out: { path: string[]; candidate: Candidate }[] = [];
+    const out: { path: string[]; candidate: Candidate; depth: number }[] = [];
+    const depth = (after: () => string[]) => equalDepth(this.labelVisits, this.analysisOf(after())?.visits);
     const check = (a: Analysis | undefined, before: () => string[], edge: Edge | null, mover: Player, over: boolean) => {
       const first = a?.candidates[0];
       if (!over && a && a.visits >= this.labelVisits && first && edge && sameEdge(first.edge, edge) && onlyEdge(a, mover))
-        out.push({ path: before(), candidate: a.candidates[1] });
+        out.push({ path: before(), candidate: a.candidates[1], depth: depth(() => [...before(), edgeName(edge)]) });
     };
     for (let i = 0; i + 1 < this.played.length; i++)
       check(this.analysis[i], () => this.mainNames.slice(0, i), this.played[i].edge, this.played[i].player, false);
@@ -256,7 +262,7 @@ export class GameAnalysis {
       if (!a || a.visits < this.labelVisits || !first || !turn.some(e => !!e && sameEdge(e, first.edge))) return;
       const other = otherCandidate(a, turn);
       if (other && moverWin(first.blueWin, mover) - moverWin(other.blueWin, mover) >= ONLY_EDGE_GAP)
-        out.push({ path: path(), candidate: other });
+        out.push({ path: path(), candidate: other, depth: depth(() => [...path(), ...turn.map(e => (e ? edgeName(e) : "pass"))]) });
     };
     for (let i = 0; i < this.played.length; i++) {
       const turn = this.turnAt(i);
@@ -276,11 +282,12 @@ export class GameAnalysis {
   /** The Greats' confirmations as the review's last step: how many searches the analysis asks for so far, and how many
    *  of them have the label budget. */
   get greatChecks(): { total: number; done: number } {
-    const after = new Map(this.greatTargets.map(t => {
-      const path = [...t.path, edgeName(t.candidate.edge)];
-      return [pathKey(path), path] as const;
-    }));
-    const done = [...after.values()].filter(p => (this.analysisOf(p)?.visits ?? 0) >= this.labelVisits).length;
+    const after = new Map<string, { path: string[]; depth: number }>();
+    for (const t of this.greatTargets) {
+      const path = [...t.path, edgeName(t.candidate.edge)], key = pathKey(path);
+      after.set(key, { path, depth: Math.max(t.depth, after.get(key)?.depth ?? 0) });
+    }
+    const done = [...after.values()].filter(t => (this.analysisOf(t.path)?.visits ?? 0) >= t.depth).length;
     return { total: after.size, done };
   }
 
@@ -301,12 +308,12 @@ export class GameAnalysis {
   }
 
   /** Searches the position after `candidate` at `path` to the label budget, to confirm a Great. */
-  private confirmGreat(path: string[], candidate: Candidate | undefined) {
+  private confirmGreat(path: string[], candidate: Candidate | undefined, depth: number) {
     if (!candidate || !this.engineReady || this.paused) return;
-    const after = [...path, edgeName(candidate.edge)], key = pathKey(after);
-    if (this.confirming.has(key) || (this.analysisOf(after)?.visits ?? 0) >= this.labelVisits) return;
+    const after = [...path, edgeName(candidate.edge)], key = `${pathKey(after)}|${depth}`;
+    if (this.confirming.has(key) || (this.analysisOf(after)?.visits ?? 0) >= depth) return;
     this.confirming.add(key);
-    this.search(after, this.labelVisits, PRIORITY.label, "confirm", { early: LABEL_VISITS })
+    this.search(after, depth, PRIORITY.label, "confirm", { early: LABEL_VISITS })
       .catch(this.fail).finally(() => this.confirming.delete(key));
   }
 
@@ -573,11 +580,13 @@ export class GameAnalysis {
    *  again. */
   deepen(indices: number[]) {
     this.moments = indices;
+    const visits = momentVisits(this.labelVisits);
     for (const i of indices) {
-      if (this.deepening.has(i)) continue;
-      this.deepening.add(i);
-      this.search(this.mainNames.slice(0, i), DEEP_VISITS, PRIORITY.moment, "moment", { sliced: true })
-        .catch(this.fail).finally(() => this.deepening.delete(i));
+      const key = `${i} ${visits}`;
+      if (this.deepening.has(key)) continue;
+      this.deepening.add(key);
+      this.search(this.mainNames.slice(0, i), visits, PRIORITY.moment, "moment", { sliced: true })
+        .catch(this.fail).finally(() => this.deepening.delete(key));
     }
   }
 

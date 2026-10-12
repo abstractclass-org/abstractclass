@@ -63,10 +63,11 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
      step through the moves. **The key moments** are dots in their label's colour, 7 pixels wide. They are drawn in
      HTML, as the hovered point is: the chart's SVG stretches to the column's width, and in a column as narrow as the
      summary's, a circle in it is a thin ellipse. The chart's note takes at most the room beside the point, and wraps
-     there. **While the review runs,** the line is dashed and faint where a position has only its first search (the
-     sweep's 32 visits), and solid where its search has the review's depth. The legend then says "First estimate,
-     refined as the review runs", and a dashed position's note says "first estimate". This marking is the site's own,
-     not taken from a published tool. **By turn** (design 10, "Review by"), the chart draws and snaps to the turns' ends
+     there. **While the review runs,** the line is faint where a position has only its first search (the sweep's 32
+     visits), and full where its search has the review's depth. The legend then says "Win chance, first estimate",
+     with "Refined as the review runs" as its tooltip, and a faint position's note says "first estimate". This marking
+     is the site's own, not taken from a published tool. It was dashed at first, and read as the chart's dashed 50%
+     line. **By turn** (design 10, "Review by"), the chart draws and snaps to the turns' ends
      only: a turn is one step, and its note names the whole turn. A note gives the label in brackets, as Lichess's chart
      does: "2. Q10-R8 O11-Q10 [Blunder]".
 4. **The step controls** (first, back, forward, last), the status line and the display settings' button are a bar at

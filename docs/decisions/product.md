@@ -1994,3 +1994,70 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   network or a deeper depth it searched again. Checked in Edge: with the larger network at Standard set, a file of the
   owner's game reviewed with HedgeFund 0.1 Lite at 512 visits set them to Lite at 512, and the home page said so, with
   "Open the review". Imported again, with the same settings now, the review opened at once.
+
+### A deeper search where the player looks: kept, and said (2026-10-13)
+
+- **The problem:** the position on screen, searched deeper than the review (by default 1,024 visits against Lite's
+  512), replaces the position's result, and with it its labels, the report's counts and accuracy, and the chart, as it
+  runs. But a review opened again took each position's result at the review's depth, so those changes went back after a
+  reload, and a review file's deeper results showed only where the importer looked. It happens only when the position
+  on screen's depth is above the depth that the review asks for that position (its own, or 1,024 for a key moment).
+- **Decided** (design 09):
+  - A review takes the deepest stored result of each position (`cacheGetAtLeast`), so a reload keeps what the player
+    searched deeper, and an import brings it everywhere.
+  - The Depth setting's help line says that a deeper search updates the review there.
+  - The report says how many of the game's positions have a deeper result than the review asked for.
+  - The page that will explain the review (backlog) says it too.
+- **Checked** in Edge, on the owner's game against areax (Lite at 512, the position on screen at 1,024, 37 positions
+  with a result at 1,024, 36 of them key moments): after a reload, the review opened complete, and the report said "1
+  position was searched deeper than the review, where you looked". The Depth's help line shows in the engine settings.
+- **A consequence:** a Great's confirmation compares the position after the played edge with the position after the
+  engine's second choice, searched to the same budget. Where the player searched the first one deeper, the two
+  searches differ in depth, as they did before within a visit.
+- **Also:** the Export menu's link and review file each have a line on what the other end gets.
+- **Also: the chart's first estimate** (design 06) is faint and solid now, not dashed: dashed, it read as the chart's
+  dashed 50% line. Its legend says "Win chance, first estimate". Checked in Edge on a review that was still running.
+- **Then decided: a Great's confirmation is as deep as the position it is compared with.** Where the player searched
+  the position after the played move deeper, the position after the second choice is searched to the same depth, by
+  doublings of the label budget, before the move is Great (design 10). Unit tests check the depth and that a shallower
+  confirmation leaves the move Best. In Edge, a full review opened with no error, on a game that has no Great: the
+  deeper confirmation did not run there.
+
+### A game keeps the settings it came with, and the key moments go one doubling deeper (2026-10-13)
+
+- **The problem:** an imported review file, or a shared link, set the browser's network and depth, so every later
+  review used them until the player changed them back.
+- **Decided** (design 13, items 5 and 8): the imported or shared game keeps its network and depth
+  (`StoredGame.settings`), and its review uses them. The browser's settings serve every other game. In that game, the
+  engine settings say so, show and change the game's two, and offer "Use my settings". Without a change of the
+  player's settings, the pages no longer need to say one.
+- **Checked** in Edge, on the local preview's other address with the browser set to the larger network at Standard
+  (and the engine off): the share link's page said "The game keeps them for its review. Your settings for your other
+  games stay as they are." After "Review it", the game kept HedgeFund 0.1 Lite at 512, and the browser's settings
+  stayed. The game's engine settings showed the note, Lite and Lite. "Use my settings" dropped the game's settings,
+  and the panel showed Standard and the larger network. The browser's settings were put back after.
+- **Found: the key moments' 1,024 visits was a leftover, not a decision.** The first schedule (decisions/engine.md,
+  "Label agreement against search budget") searched the position on screen and the key moments to 1,024, the
+  reference depth of that measurement. When the engine settings made both depths settings (design 09), the key moments
+  stayed at 1,024 with no reason given, so a review at 1,024 or deeper gave them nothing more.
+- **Decided:** the key moments go one doubling past the review's depth, twice its visits (design 09). Lite keeps 1,024.
+- **Then decided: no "Use my settings".** The settings kept in the browser are a convenience, the last ones chosen,
+  like a cache of a preference: the site has no account to keep "my settings" as a promise. A button that treats them
+  as the player's own settings promises what the site cannot keep. The game's engine settings say that it keeps the
+  settings it came with, and a change there changes the game's only.
+
+### The depths and settings in one document, and the Export's notes in a toast (2026-10-13)
+
+- **Written:** design 16 puts every depth a review asks for, the deepest result each position uses, the Greats' equal
+  searches, a game's own settings, and what a review file and a share link carry in one place, with ten worked
+  examples. The owner found the interaction obscure from the separate designs.
+- **Found while writing it:**
+  - The report's note said "where you looked", but an imported review file's deeper results come from where the sender
+    looked. It now says "searched deeper than the review, by the Depth of the position on screen".
+  - A share link does not carry the sender's deeper looks: at those positions the recipient's labels are the review's
+    own (design 16, example 9). A review file carries them.
+  - A search stopped at its time limit changes the review while the page is open, and not after it opens again: the
+    store keeps finished searches only (design 16, example 6).
+- **The Export's notes:** a toast at the foot of the window, with a close button, in place of the short text beside the
+  button, which had no room for a link's length or a warning. Checked in Edge: the copy of a share link showed "Link
+  copied (451 characters). The recipient's browser reviews the game again." in the toast.

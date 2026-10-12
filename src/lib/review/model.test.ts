@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { Edge } from "#lib/engine/notation.ts";
-import { complexity, likelyEdges, judgeBranchEdge, review, roundTogether, trustedLine, turnCost, valuesAfter, type Analysis, type Candidate, type Move, type Position,
+import { complexity, equalDepth, likelyEdges, judgeBranchEdge, review, roundTogether, trustedLine, turnCost, valuesAfter, type Analysis, type Candidate, type Move, type Position,
          type ReviewData } from "./model.ts";
 import { accuracyWeight } from "./labels.ts";
 
@@ -38,11 +38,25 @@ test("a branch edge is judged as the game's: Best or Great when it is the first 
   assert.equal(judgeBranchEdge(before, after, 0, best, "lead", 256, second(0.45)), "great");
   assert.equal(judgeBranchEdge(before, after, 0, best, "lead", 256, second(0.55)), "best"); // only 0.05 worse
   assert.equal(judgeBranchEdge(before, after, 0, best, "lead", 256, second(0.45, 32)), "best"); // too shallow
+  // The position after the played edge searched deeper (the position on screen): the second's must be as deep.
+  const deepAfter = { ...after, visits: 1024 };
+  assert.equal(judgeBranchEdge(before, deepAfter, 0, best, "lead", 256, second(0.45)), "best");
+  assert.equal(judgeBranchEdge(before, deepAfter, 0, best, "lead", 256, second(0.45, 1024)), "great");
   // Blue played the other edge: 0.15 of win chance and 30 points lost.
   assert.equal(judgeBranchEdge(before, { blueWin: 0.45, blueScore: -10 }, 0, other, "lead", 256), "mistake");
   // Not judged until the position before has the label budget, and the position after has values.
   assert.equal(judgeBranchEdge({ ...before, visits: 32 }, { blueWin: 0.6, blueScore: 20 }, 0, best, "lead", 256), null);
   assert.equal(judgeBranchEdge(before, undefined, 0, best, "lead", 256), null);
+});
+
+test("a Great's confirmation is as deep as the position it is compared with, by doublings of the budget", () => {
+  assert.equal(equalDepth(512, 512), 512);
+  assert.equal(equalDepth(512, 1024), 1024);
+  assert.equal(equalDepth(512, 4096), 4096);
+  assert.equal(equalDepth(512, 900), 512); // a search still running asks for no more than it has
+  assert.equal(equalDepth(512, 3000), 2048); // or one stopped at its time limit
+  assert.equal(equalDepth(512, undefined), 512); // the game's end: no search
+  assert.equal(equalDepth(0, 1024), 0);
 });
 
 test("the values after a position: the result where the game ends, else its analysis with enough visits", () => {
