@@ -1,6 +1,7 @@
 // The messages between the page and the GPU worker (gpuWorker.ts, gpuClient.ts). One worker holds several engines,
-// each a search at a time: a request names its engine.
+// each a search at a time: a request names its engine. The worker's replies are every worker's (channel.ts).
 import type { StoredArtifact } from "./artifacts.ts";
+export type { ChannelReply as GpuReply } from "./channel.ts";
 
 export interface GpuInit {
   type: "init";
@@ -18,11 +19,4 @@ export type GpuRequest =
   | GpuInit
   | { type: "search"; id: number; engine: number; request: object }
   | { type: "stop"; id: number }
-  | { type: "stats"; id: number }; // the network evaluations so far (the GPU library's count)
-
-export type GpuReply =
-  | { type: "ready"; id: number; version: unknown; model: unknown; ms: number }
-  | { type: "reply"; id: number; reply: unknown; ms: number; memory: number }
-  | { type: "partial"; id: number; reply: unknown; ms: number }
-  | { type: "stats"; id: number; evaluations: number }
-  | { type: "error"; id: number; message: string };
+  | { type: "stats"; id: number }; // its reply: the network evaluations so far (the GPU library's count)

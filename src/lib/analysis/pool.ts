@@ -7,7 +7,7 @@
 // The GPU module's engines (engine/gpuClient.ts) join the pool as more search engines, a slot each (design 15). The GPU
 // gains by many searches at once, whose evaluations go to it together, and each of its searches runs slower than a CPU
 // worker's. So a task takes a free CPU worker first, and a free GPU slot when no CPU worker is free.
-import { EngineError, EngineWorker, moduleOf, type Manifest, type Timed } from "#lib/engine/client.ts";
+import { EngineError, EngineWorker, modelOf, moduleOf, type Manifest, type Timed } from "#lib/engine/client.ts";
 import type { GpuEngines } from "#lib/engine/gpuClient.ts";
 import type { AnalysisQuery, AnalysisReply, ModelInfo, VersionReply } from "#lib/engine/protocol.ts";
 
@@ -50,9 +50,9 @@ export class EnginePool {
   private running = new Set<Task>();
   private retiring = new Set<SearchEngine>(); // engines removed while busy: they end when their task ends
   private gpu: GpuEngines | null = null; // the GPU worker, while its engines are in the pool
-  private sampler: ReturnType<typeof setInterval> | undefined; // samples the GPU's evaluations for the speed test
-  /** The searches' speed, for the GPU's first-use test (analysis/gpu.ts). */
-  readonly speed = new SpeedMeter();
+  private sampler: ReturnType<typeof setInterval> | undefined; // samples the GPU's evaluations while its test runs
+  /** The searches' speed, for the GPU's first-use test (measureGpu). */
+  private readonly speed = new SpeedMeter();
   /** Called when the GPU fails (a lost device, its worker ended): the pool drops it, and its tasks run again on the CPU
    *  workers. */
   onGpuLost: ((error: unknown) => void) | null = null;
@@ -72,11 +72,11 @@ export class EnginePool {
    *  work, without waiting for a network. */
   async start(manifest: Manifest, modelId: string, onRules?: () => Promise<void>) {
     const module = moduleOf(manifest);
-    const model = manifest.artifacts.find(a => a.kind === "model" && a.id === modelId);
+    const model = modelOf(manifest, modelId);
     if (!module || !model) throw new Error(`the manifest lacks the module or the network ${modelId}`);
     const load = this.load = async (e: EngineWorker) => {
       await e.init(manifest);
-      this.model = (await e.loadModel(model.url, model.id)).reply.model;
+      this.model = (await e.loadModel(model)).reply.model;
       if (!this.engines.includes(e)) { // removed while it loaded
         this.retiring.delete(e);
         e.terminate();
@@ -137,9 +137,6 @@ export class EnginePool {
     this.dropGpu();
     this.gpu = gpu;
     this.speed.gpuReset();
-    this.sampler = setInterval(() => {
-      gpu.evaluations().then(n => { if (this.gpu === gpu) this.speed.gpuSample(n); }, () => {});
-    }, 1000);
     this.free.push(...gpu.slots);
     this.dispatch();
   }
@@ -159,6 +156,19 @@ export class EnginePool {
 
   /** Whether the GPU's engines are in the pool. */
   get hasGpu(): boolean { return this.gpu !== null; }
+
+  /** The GPU's first-use test (analysis/gpu.svelte.ts): a CPU worker's visits a second and the GPU worker's evaluations a
+   *  second, once each has searched for `seconds`. The GPU's count is sampled once a second, only while the test runs.
+   *  It never resolves when the GPU leaves the pool first. */
+  measureGpu(seconds: number): Promise<{ cpu: number; gpu: number }> {
+    const gpu = this.gpu;
+    if (!gpu) return new Promise(() => {});
+    clearInterval(this.sampler);
+    this.sampler = setInterval(() => {
+      gpu.evaluations().then(n => { if (this.gpu === gpu) this.speed.gpuSample(n); }, () => {});
+    }, 1000);
+    return this.speed.measured(seconds).finally(() => clearInterval(this.sampler));
+  }
 
   /** Tasks wait, and no engine is free. */
   get backlogged(): boolean { return this.queue.length > 0 && this.free.length === 0; }
@@ -236,7 +246,7 @@ export class EnginePool {
   }
 }
 
-/** The searches' speed, for the GPU's first-use test (analysis/gpu.ts): a CPU worker's visits a second (its searches'
+/** The searches' speed, for the GPU's first-use test (analysis/gpu.svelte.ts): a CPU worker's visits a second (its searches'
  *  visits over their time in the worker), and the GPU worker's network evaluations a second, all its searches together.
  *  The GPU's count comes from samples of its library's own count, about once a second, so that it counts the work of
  *  searches still running: a search on a slow GPU can take minutes. An interval counts while the GPU's searches run, and

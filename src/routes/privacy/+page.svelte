@@ -29,10 +29,15 @@
   <p>They stay in this browser on this computer: another browser or another computer does not see them. To remove
     them, clear this site's data in your browser's settings.</p>
 
-  <h2>The meaf.us bookmarklet</h2>
+  <h2>The meaf.us bookmarklet and userscript</h2>
   <p>The bookmarklet runs in the meaf.us page that you have open. It reads the game on the board, with nothing from your
     meaf.us login and no request to meaf.us, and opens {SITE_NAME} with the game after the <code>#</code> in the
-    address. Browsers never send that part of an address to a server, and the page removes it at once.</p>
+    address. Browsers never send that part of an address to a server, and the page removes it at once. On your own
+    finished game, which meaf.us shows without its moves, it opens the same meaf.us page again as a watcher's view
+    (<code>spectate=1</code> in the address), and meaf.us loads the moves itself.</p>
+  <p>The userscript, for the Tampermonkey extension, does the same on meaf.us's game pages, from a button or
+    Tampermonkey's menu. Its button and its collie are drawn by the script itself, with no request. Tampermonkey asks
+    this site for the script now and then, to update it: that request carries no game.</p>
 
   <h2>Visits</h2>
   <ul>

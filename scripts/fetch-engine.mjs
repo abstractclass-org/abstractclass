@@ -49,8 +49,6 @@ async function get(artifact) {
 function store(id, file, bytes, compress = false) {
   const dir = join(outDir, id);
   mkdirSync(dir, { recursive: true });
-  for (const old of [file, `${file}.gz`, ...Array.from({ length: 8 }, (_, k) => `${file}.gz.${k}`)])
-    rmSync(join(dir, old), { force: true });
   const url = `/engine/${id}/${file}`;
   if (bytes.length <= LIMIT && !compress) {
     writeFileSync(join(dir, file), bytes);
@@ -69,6 +67,8 @@ function store(id, file, bytes, compress = false) {
   return { url, encoding: "gzip", parts, download: gz.length };
 }
 
+// The folder holds only what this run writes: it is generated (and ignored by Git), and the downloads stay in the cache.
+rmSync(outDir, { recursive: true, force: true });
 const manifest = { artifacts: [] };
 for (const artifact of lock.artifacts) {
   if (deploy && !artifact.source.release)

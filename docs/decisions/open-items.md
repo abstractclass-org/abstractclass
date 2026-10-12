@@ -46,6 +46,18 @@ Rules:
 - **A worker's memory with the build 632f2a0:** its CPU module frees the network's bytes after it loads them. The
   Workers setting's help line gives 100 MB a worker with Lite and 255 MB with the larger network (design 09), measured
   on earlier builds. Measure again in the engine lab, and correct `NETWORKS` in `engineSettings.ts`.
+- **A game that ends early** (a resignation, a forfeit, a timeout): the review values the position after the last
+  edge as the game's end, by the board's scores (model.ts, `review`), and its summary says "won by 0.0 points". The
+  record's Result and Termination say how the game ended. Then the last position needs its own search, as any other,
+  and the summary should name the resignation or the forfeit. It touches the labels of the last turn (design 10).
+- **Stored analyses that no review reads:** a change of the stored shape (`SHAPE` in `analysis/cache.ts`) or of the
+  engine's build leaves the older analyses in the browser, and nothing reads them again. In the owner's Edge, 2,796
+  of 4,607 analyses were of older shapes (decisions/product.md, "Deleting a game, and the browser's storage"). Remove
+  them, for example when the site starts with a new shape or build.
+- **Storage that the browser may clear:** the games and their analyses are best-effort storage. A browser may delete
+  them when its disk is almost full, and Safari deletes them after seven days of use without a visit. Decide whether
+  to ask for persistent storage (`navigator.storage.persist()`), and whether the home page should tell the player to
+  export the games they want to keep.
 - **A page that explains the review:** how the labels, the accuracy, the complexity and its marks, and the meter are
   computed, with their formulas and the reasons for them (designs 10 and 14), for a player who wants to know. Later,
   not for the early access.

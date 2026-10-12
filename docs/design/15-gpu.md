@@ -25,9 +25,9 @@ which Chrome and Edge have from version 137.
    keeps it off from then on. The browser keeps the result for each network, each GPU (by the vendor and
    architecture that WebGPU gives: "nvidia blackwell") and each build of the GPU module, which a new release can make
    faster. The setting's line names the GPU and gives its speed as a multiple of a worker's.
-5. **One cache for both modules.** A result from the GPU is kept under the CPU module's build, as a result from a CPU
-   worker is ([design 05](05-review-analysis.md)). A review can mix the two.
-6. **The large files are stored compressed.** Cloudflare Pages serves no file over 25 MiB. The deploy stores each
+5. **One cache for both modules.** The page keeps a result from the GPU under the CPU module's build, as it keeps a
+   result from a CPU worker ([design 05](05-review-analysis.md)). A review can mix the two.
+6. **The deploy compresses the large files.** Cloudflare Pages serves no file over 25 MiB. The deploy stores each
    network's graph and ONNX Runtime's WebAssembly compressed with gzip, and splits a compressed file over 24 MiB into
    parts. The page joins the parts, decompresses them and checks the SHA-256.
 
@@ -37,8 +37,8 @@ which Chrome and Edge have from version 137.
   either alone, on an Apple laptop too.
 - **The CPU first.** Each search on the GPU waits for its batch, so it runs slower than a search on a CPU worker. On
   the engine repository's RTX 5080, 16 searches ran at 571 visits a second together, 36 each, against 83 for one CPU
-  worker. The GPU gains by the number of its searches. So the CPU workers take the work first, and the GPU takes what
-  is left: in the sweep and the label pass, that is most of the game. A few deep searches, such as the key moments,
+  worker. The GPU gains by the number of its searches. So the CPU workers take the work first, and the GPU takes the
+  rest: in the sweep and the label pass, that is most of the game. A few deep searches, such as the key moments,
   then run mostly on the CPU workers. Where the GPU took them first, they ran in small batches while the CPU workers
   were idle. KataGo's analysis config gives the same advice: many positions at once on the GPU.
 - **Auto, with a test.** GPUs differ a lot. On the engine repository's RTX 5080, the GPU worker ran 7 times faster
@@ -101,12 +101,14 @@ which Chrome and Edge have from version 137.
 - `src/lib/engine/gpuWorker.ts`: the GPU worker: ONNX Runtime, the engine's library `gpu_engine.mjs`, and a search in
   slices for each engine.
 - `src/lib/engine/gpuClient.ts`: the page's side: `GpuEngines` and its slots, and `gpuSupport()`.
+- `src/lib/engine/channel.ts`: both workers' messages, on both sides: a promise for each request, and a search in
+  slices.
 - `src/lib/engine/library.ts`: the engine's library, which the CPU workers use too (`createCpuEngine`).
 - `src/lib/engine/artifacts.ts`: a stored file's bytes: its parts joined, decompressed and checked.
-- `src/lib/analysis/pool.ts`: `SearchEngine`, `addGpu`, `dropGpu`, the choice of engine by priority, and
-  `SpeedMeter`.
-- `src/lib/analysis/gpu.ts`: the setting's states, the test's length and the stored results.
-- `src/routes/review/+page.svelte`: `applyGpu` and `startGpu`.
+- `src/lib/analysis/pool.ts`: `SearchEngine`, `addGpu`, `dropGpu`, `measureGpu`, a CPU worker first, and `SpeedMeter`.
+- `src/lib/analysis/gpu.svelte.ts`: `GpuControl`, one for each pool (the setting applied, the start on a backlog, the
+  test), the setting's states, the test's length and the stored results.
+- `src/routes/review/+page.svelte`: a `GpuControl` for each pool.
 - `scripts/fetch-engine.mjs`: the GPU's files, ONNX Runtime's two files, and the compressed storage.
 - `vite.config.ts`: ONNX Runtime's build that takes its WebAssembly from the page, and module workers.
 

@@ -16,7 +16,7 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
    settings a browser holds stay. The local folder keeps its name too.
 2. **The scope: the review only.**
    - **The home page:** import a game, and the player's games. No sample game: a review opens on a game the player
-     brought.
+     brought. Each game has a Delete ([below](#deleting-a-game)).
    - **The ways to bring a game:** a pasted record in this site's notation, a pasted export of Constellation's
      analysis board, and the meaf.us bookmarklet ([import](#constellations-export) below).
    - **The header:** the name, which leads home, with "Early Access" beside it in the accent colour, which leads to the
@@ -85,6 +85,46 @@ one item for each turn, separated by spaces.
 - The import turns the export into this site's record (`[Site "Constellation"]`, then the turns), which the engine
   checks and the site keeps like any other record.
 
+### Deleting a game
+
+- **Delete removes the game, its branches, and the Review link's pointer to it.** The engine's analyses stay: they
+  belong to positions, which other games can share, and an import of the same game then opens its review at once.
+- **An Undo, not a question.** The site deletes the game at once, as Gmail does, and the game's row then says
+  "Deleted …" with an Undo. A slip costs one click, and a delete the player wants costs one click too. The delete
+  stands if the page closes.
+- **The row stays until the page loads again,** with the Undo where the Delete was. So the list does not move under
+  the pointer: a double click undoes its own delete, and never deletes the next game. Each deleted game keeps its own
+  Undo, with no time limit.
+
+### The meaf.us bookmarklet and userscript
+
+- **It reads the game that the board holds,** in the player's own meaf.us page: React's `game` property of the board.
+  It sends no request to meaf.us and uses nothing from the player's login. It opens the import page with the record
+  after the `#`.
+- **A player's own game, just after it ends, has no moves in the page.** meaf.us asks its server for a game's moves
+  only for a viewer who watches the game (`spectate=1` in the address, or a game of other players), or who opens it
+  from the History page. The game's `historyLength` still counts the moves. On such a page, when the game is over, the
+  bookmarklet opens the same game as a watcher's view, which loads the moves, and asks for a second click. During a
+  game it only says to click again when the game is over: a watcher's view would take the board from the player.
+- **The winner is a name.** meaf.us gives the winner as the winning player's name, as the engine repository's archive
+  tools read it (`tools/analyze_archive.py`). The record's result compares it with the two players' names.
+- **A userscript, a second way, for Tampermonkey.** It runs the bookmarklet's code (`meafPage.ts`, `meaf.ts`) on
+  meaf.us game pages, in the page's own context (`@sandbox raw`: meaf.us sends no content security policy). It shows
+  a round button with the school's collie in the page's lower right corner while a game shows, and adds "Review this
+  game in Hedge School" to Tampermonkey's menu.
+  - **It updates itself.** The site serves it at `/hedge-school.user.js`, Tampermonkey fetches it from there for
+    updates, and each build gives it a later version. A change of meaf.us's page then needs no new install, where the
+    bookmarklet needs dragging to the bar again.
+  - **One click for a finished game.** It opens the review through Tampermonkey (`GM_openInTab`), which no popup
+    blocker stops. So after the reload as a watcher's view, the script runs again, waits for the moves, and opens the
+    review itself.
+  - **No request for its look.** The script draws the button and its collie itself and fetches no image, so neither
+    site learns of a visit from the button.
+  - **The site's address is part of the file** (the build's `SITE_ORIGIN`, `vite.config.ts`): the live site for a build
+    of `main`, the preview for another branch, the local preview server for a local build.
+  - Chrome and Edge from version 138 run a userscript only after the player turns on "Allow User Scripts" for
+    Tampermonkey (Tampermonkey's FAQ, Q209). The import page says so.
+
 ## Alternatives
 
 - **A sample game,** to show the review before a player imports one: a bot game is not the player's own, and the
@@ -110,6 +150,7 @@ one item for each turn, separated by spaces.
   `src/lib/game/store.ts`, read by `src/routes/review/+page.svelte`. The hidden pages:
   `src/routes/{puzzles,learn,lab/engine}/+page.ts`. Unlisted: `static/robots.txt`, `src/routes/+layout.svelte`.
 - The import of Constellation's export: `src/lib/game/constellation.ts`, with its tests.
+- Deleting a game: `deleteGame` and `restoreGame` in `src/lib/game/store.ts`, the rows in `src/routes/+page.svelte`.
 - The pages: `src/routes/{about,notation,privacy,notices}/+page.svelte`, `src/lib/SiteFooter.svelte`,
   `src/lib/prose.ts` (their text style).
 - Analytics: `src/lib/analytics.svelte.ts`, `src/lib/ConsentBanner.svelte`, started in `src/routes/+layout.svelte` and

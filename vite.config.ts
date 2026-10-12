@@ -8,8 +8,15 @@ import { execSync } from 'node:child_process';
 const commit = process.env.CF_PAGES_COMMIT_SHA ?? process.env.WORKERS_CI_COMMIT_SHA
 	?? (() => { try { return execSync('git rev-parse HEAD').toString().trim(); } catch { return 'unknown'; } })();
 
+// The site's address, for what leaves the site and comes back to it: the userscript, which updates from it and opens
+// the review there (src/lib/game/userscript.ts). Cloudflare's build of main is the live site, a build of another branch
+// its preview, and a local build the local preview server. SITE_ORIGIN sets another.
+const origin = process.env.SITE_ORIGIN
+	?? (process.env.CF_PAGES_BRANCH === 'main' ? 'https://hedgeschool.abstractclass.org'
+		: process.env.CF_PAGES_URL ?? 'http://127.0.0.1:4173');
+
 export default defineConfig({
-	define: { __SITE_VERSION__: JSON.stringify(commit.slice(0, 7)) },
+	define: { __SITE_VERSION__: JSON.stringify(commit.slice(0, 7)), __SITE_ORIGIN__: JSON.stringify(origin) },
 	// ONNX Runtime Web (the GPU worker, src/lib/engine/gpuWorker.ts) in its form that takes its WebAssembly from the page:
 	// its usual form makes the build copy that file (26.8 MB) into the site, over Cloudflare Pages' 25 MiB for a file.
 	// scripts/fetch-engine.mjs stores it compressed beside the engine instead.

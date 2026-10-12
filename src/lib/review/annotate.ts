@@ -13,8 +13,9 @@
 // `N...` starts at the turn's second edge and shares its first: `4. N9-Q10 L10-N9 (4... M12-N9)`. Several branches of
 // a turn follow it one after another: those from its start first, then those from its second edge, each in the order
 // the player made them.
-import type { Label } from "./labels.ts";
-import { moveName, moveNotation, type Analysis, type Move, type Player, type Review, type Unit } from "./model.ts";
+import { BAD_LABELS, type Label } from "./labels.ts";
+import { LABEL_TEXT, moveName, moveNotation, type Analysis, type Move, type Player, type Review, type Unit } from "./model.ts";
+import { mainIndex, pathKey as key } from "./tree.ts";
 import { edgeName } from "#lib/engine/notation.ts";
 import { writeTags } from "#lib/game/record.ts";
 
@@ -29,8 +30,8 @@ export interface AnnotateInput {
   annotator?: string; // the `Annotator` tag (PGN's): who annotated the game
 }
 
-const LABEL_TEXT: Partial<Record<Label, string>> = { great: "Great.", inaccuracy: "Inaccuracy.", mistake: "Mistake.", blunder: "Blunder." };
-const BAD = new Set<Label>(["inaccuracy", "mistake", "blunder"]);
+/** The labels that a comment names: Great, and the bad ones. Best, Excellent and Good stay unsaid. */
+const COMMENTED = new Set<Label>(["great", ...BAD_LABELS]);
 /** A turn's quality mark (the notation's, PGN's suffixes): Great `!`, Inaccuracy `?!`, Mistake `?`, Blunder `??`. */
 export const QUALITY_MARK: Partial<Record<Label, string>> = { great: "!", inaccuracy: "?!", mistake: "?", blunder: "??" };
 
@@ -46,7 +47,6 @@ interface Node { path: string[]; text: string; player: Player; comment: string; 
 export function annotatedRecord({ R, unit, tags, result, clocks = [], branches = {}, note, annotator }: AnnotateInput): string {
   const n = R.edges.length;
   const mainNames = R.edges.map(e => moveName(e.edge));
-  const key = (path: string[]) => path.join(" ");
 
   // The game's line, with its labels and evaluations.
   const main: Node[] = R.edges.map((e, i) => {
@@ -60,8 +60,8 @@ export function annotatedRecord({ R, unit, tags, result, clocks = [], branches =
       const t = R.turnOf[i];
       if (t && t.end - 1 === i) { label = t.label; best = t.best?.map(edgeName).join(" "); hard = t.hard; mark = label ? QUALITY_MARK[label] : undefined; }
     }
-    if (label && LABEL_TEXT[label]) parts.push(LABEL_TEXT[label]!);
-    if (label && BAD.has(label) && best) parts.push(`${best} was best.`);
+    if (label && COMMENTED.has(label)) parts.push(`${LABEL_TEXT[label]}.`);
+    if (label && BAD_LABELS.includes(label) && best) parts.push(`${best} was best.`);
     if (hard) parts.push("A hard position.");
     if (clocks[i]) parts.push(`[%clk ${clocks[i]}]`);
     if (i + 1 < n) parts.push(evalCommand(R.data.analysis[i + 1]));
@@ -76,11 +76,10 @@ export function annotatedRecord({ R, unit, tags, result, clocks = [], branches =
     const parent = key(path.slice(0, -1));
     byParent.set(parent, [...(byParent.get(parent) ?? []), node]);
   }
-  const onMain = (path: string[]) => path.length <= n && path.every((m, k) => m === mainNames[k]);
   const nodeAt = new Map<string, Node>([...main.map((m): [string, Node] => [key(m.path), m]),
                                          ...[...byParent.values()].flat().map((b): [string, Node] => [key(b.path), b])]);
   const children = (path: string[]): Node[] => {
-    const first = onMain(path) && path.length < n ? main[path.length] : undefined;
+    const first = mainIndex(path, mainNames) !== null && path.length < n ? main[path.length] : undefined;
     const others = (byParent.get(key(path)) ?? []).filter(b => !first || b.path.at(-1) !== first.path.at(-1));
     return first ? [first, ...others] : others;
   };

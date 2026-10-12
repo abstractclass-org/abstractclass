@@ -1,13 +1,21 @@
 // The player's games, kept in the browser (storage/db.ts) until a server exists (docs/design/04-product-shape.md). A
 // game is stored as its record's text, so an export is the record itself, and a later server can import it as it is.
 // The id is the first 12 hex digits of the SHA-256 of its moves: the same game imported twice is one game.
-import { STORES, dbAll, dbGet, dbPut } from "#lib/storage/db.ts";
+import { STORES, dbAll, dbDelete, dbGet, dbPut } from "#lib/storage/db.ts";
+import { readLocal, writeLocal } from "#lib/storage/local.ts";
 import { parseRecord, type GameRecord } from "./record.ts";
-import type { Manifest } from "#lib/engine/client.ts";
+import { sha256Hex } from "#lib/engine/artifacts.ts";
+import { modelOf, moduleOf, type Manifest } from "#lib/engine/client.ts";
+import { pathKey } from "#lib/review/tree.ts";
 
 /** A game's branches as kept in the browser (analysis/game.svelte.ts): each node's path key (its moves, as the review's
  *  tree names them), its order, and 1 when its move was evaluated. Version 1 kept the lines. */
-export type KeptBranches = { version: 1; lines: string[][] } | { version: 2; nodes: ([string, number] | [string, number, 1])[] };
+export type KeptBranches = { version: 1; lines: string[][] } | { version: 2; nodes: BranchNode[] };
+export type BranchNode = [string, number] | [string, number, 1];
+
+/** The kept branches as version 2's nodes: a version 1 line is the node at its end, in the lines' order. */
+export const branchNodes = (b: KeptBranches | null): BranchNode[] =>
+  !b ? [] : b.version === 2 ? b.nodes : b.lines.map((l, i): BranchNode => [pathKey(l), i]);
 
 export interface StoredGame {
   version: 1;
@@ -24,8 +32,7 @@ export interface ReviewMark { module: string; model: string; network: string; vi
 
 /** The mark of a review run with `manifest`'s engine and `network` at `visits`, or null when the manifest lacks them. */
 export function reviewMark(manifest: Manifest, network: string, visits: number): Omit<ReviewMark, "at"> | null {
-  const module = manifest.artifacts.find(a => a.kind === "module")?.sha256;
-  const model = manifest.artifacts.find(a => a.kind === "model" && a.id === network)?.sha256;
+  const module = moduleOf(manifest)?.sha256, model = modelOf(manifest, network)?.sha256;
   return module && model ? { module, model, network, visits } : null;
 }
 
@@ -41,8 +48,7 @@ export async function markReviewed(id: string, mark: Omit<ReviewMark, "at">) {
 }
 
 export async function gameId(moves: string[]): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(moves.join(" ")));
-  return [...new Uint8Array(digest)].slice(0, 6).map(b => b.toString(16).padStart(2, "0")).join("");
+  return (await sha256Hex(new TextEncoder().encode(moves.join(" ")))).slice(0, 12);
 }
 
 /** Saves a game. Returns its id, and whether the browser kept it (storage can be blocked). */
@@ -67,25 +73,33 @@ export async function listGames(): Promise<{ game: StoredGame; record: GameRecor
   });
 }
 
+/** A deleted game as it was, for its undo: the stored game, its branches, and whether the Review link opened it. */
+export interface DeletedGame { game: StoredGame; branches?: KeptBranches; last: boolean }
+
+/** Deletes a game, its branches, and the Review link's pointer to it. Null when the browser has no such game. The
+ *  engine's analyses stay: they belong to positions, which other games can share, and an import of the same game then
+ *  opens its review from them at once. */
+export async function deleteGame(id: string): Promise<DeletedGame | null> {
+  const [game, branches] = await Promise.all([dbGet<StoredGame>(STORES.games, id), dbGet<KeptBranches>(STORES.branches, id)]);
+  if (!game) return null;
+  const last = lastReview() === id;
+  await Promise.all([dbDelete(STORES.games, id), dbDelete(STORES.branches, id)]);
+  if (last) rememberReview(null);
+  return { game, branches, last };
+}
+
+/** Puts a deleted game back as it was. */
+export async function restoreGame({ game, branches, last }: DeletedGame) {
+  await Promise.all([dbPut(STORES.games, game.id, game), branches && dbPut(STORES.branches, game.id, branches)]);
+  if (last) rememberReview(game.id);
+}
+
 // The game the Review link opens: the last one reviewed in this browser. Storage can be blocked, so a read or a write
 // may fail, and the link then asks for a game.
 const LAST_REVIEW = "learn-enclosure:last-review:1";
 
 /** The id of the last game reviewed in this browser, or null. */
-export function lastReview(): string | null {
-  try {
-    return localStorage.getItem(LAST_REVIEW);
-  } catch {
-    return null;
-  }
-}
+export const lastReview = (): string | null => readLocal(LAST_REVIEW);
 
 /** Keeps the id of the game a review opened, or forgets it (null). */
-export function rememberReview(id: string | null) {
-  try {
-    if (id) localStorage.setItem(LAST_REVIEW, id);
-    else localStorage.removeItem(LAST_REVIEW);
-  } catch {
-    // Blocked storage: the Review link asks for a game.
-  }
-}
+export const rememberReview = (id: string | null) => writeLocal(LAST_REVIEW, id);

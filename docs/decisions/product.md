@@ -1821,3 +1821,64 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   and a bar of the Difficulty chart, with a worked example.
 - **The notes stay out of every export:** the review file and the annotated record hold none. A study, as Lichess's,
   would keep them (open-items.md).
+
+### The bookmarklet on a game just over (2026-10-12)
+
+- **The problem:** on the player's own game, still open after a resignation, the bookmarklet found the game but no
+  moves, and said that the game had no moves yet. The page held `moveHistory: []` and `historyLength: 3`.
+- **The cause, from meaf.us's own page script:** the page asks for a game's moves (`request_game_history` on its
+  websocket) only when its viewer watches (`spectate=1`, or another player's game). The History page fetches a
+  finished game from meaf.us's API with the player's login.
+- **Decided:** the bookmarklet opens the same game again as a watcher's view (`spectate=1`), which loads the moves,
+  and asks for a second click. Only for a game that is over. The other way, the History page's request with the
+  player's login, would take one click but break the privacy page's promise: no request to meaf.us and nothing from
+  the login.
+- **Also fixed:** meaf.us gives the winner as a name, not a colour, and the record's result took only a colour. Every
+  imported decisive game had the result `*`. The engine repository's archive tools compare the winner with the
+  players' names too.
+- **Checked in Edge** on the owner's test game (3 edges, Red by resignation): the first click opened the watcher's view,
+  which held the 3 moves. The second click gave `1. D10-G12 2. N9-Q10 O9-Q10 r+R` with Termination "resignation", and
+  the import opened the review.
+- **Found:** the review values the position after the last edge as the game's end, by the board's scores, also for a
+  game that ended early. It said "Red won by 0.0 points" for a resignation (decisions/open-items.md).
+
+### The userscript, a second way to bring meaf.us games (2026-10-12)
+
+- **Decided:** a Tampermonkey userscript beside the bookmarklet, with a floating button and an entry in Tampermonkey's
+  menu (design 11). The bookmarklet stays: it needs no extension.
+- **Why a userscript:** it updates itself from the site, it can show the school's collie (a bookmarklet has no icon of
+  its own: a bookmark's icon is its page's favicon, and a `javascript:` address has no page), and it opens a finished
+  game's review in one click.
+- **Checked:**
+  - The site serves `/hedge-school.user.js` as `text/javascript`, with Tampermonkey's header (unit tests: the header,
+    and that the code of both parses).
+  - On meaf.us in Edge, with the script's code run in the page and stand-ins for Tampermonkey's two functions: the
+    button showed on the owner's finished game, and hid on the lobby. The script registered its menu entry. Its click
+    reloaded the page as a watcher's view. Run again on that page, as Tampermonkey runs it, it waited for the 3 moves
+    and opened the import page, in one click. That run used a stand-in for the record: the record writer's own check,
+    on the same game, came before.
+  - The collie on the button, drawn from the script's own icon.
+- **Not checked:** an install in Tampermonkey itself, and its updates.
+
+### Deleting a game, and the browser's storage (2026-10-12)
+
+- **Decided:** a Delete on each of the home page's games, with an Undo in the game's row (design 11). It removes the
+  game, its branches and the Review link's pointer. The engine's analyses stay.
+- **Why an Undo:** one click for the common case, and a slip costs nothing (Gmail's pattern), where a question before
+  each delete costs two clicks every time.
+- **Why the row stays:** in the first build, the list closed up after a delete, and the next game's Delete came under
+  the pointer. A double click then deleted two games. With the row in place, the second click of a double click lands
+  on the Undo.
+- **Checked** in Edge, on a game made for the test: the delete removed the game, its branches and the Review link's
+  pointer. The Undo put back all three. A double click on the row left the next game as it was. After a reload, the
+  deleted game was gone.
+- **The storage, measured** in the owner's Edge, on the local preview's address: 7 games, 2 games' branches, and
+  4,607 analyses, which take 8.8 MB on disk (`navigator.storage.estimate()`). Of the analyses, 1,811 have the current
+  shape (6.2 MB as JSON), for 246 positions. The others have an older shape, and no review reads them again. The quota
+  is 11 GB. The storage is not persistent (`navigator.storage.persisted()` is false).
+- **Running out of space is not likely.** Chrome and Edge give an origin up to 60% of the disk, Safari from macOS 14
+  and iOS 17 about 60%, Firefox 10% of the disk or 10 GiB (MDN, "Storage quotas and eviction criteria"). At a few
+  megabytes a reviewed game, that is thousands of games.
+- **Losing the data is more likely.** A browser deletes a best-effort origin's data when the disk is almost full,
+  least recently used origin first. Safari deletes a site's data after seven days of browser use without a visit
+  (MDN, same page). The backlog has both: stale analyses, and storage that the browser may clear.

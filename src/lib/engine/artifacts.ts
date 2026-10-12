@@ -17,7 +17,7 @@ export async function fetchArtifact(a: StoredArtifact): Promise<Uint8Array> {
   let bytes = join(pieces);
   // A server may already have undone the compression (a Content-Encoding header): then the bytes are not gzip.
   if (a.encoding === "gzip" && bytes[0] === GZIP[0] && bytes[1] === GZIP[1]) bytes = await gunzip(bytes);
-  const sha = await sha256(bytes);
+  const sha = await sha256Hex(bytes);
   if (sha !== a.sha256) throw new Error(`${a.url}: SHA-256 ${sha} is not the manifest's ${a.sha256}`);
   return bytes;
 }
@@ -35,7 +35,8 @@ async function gunzip(bytes: Uint8Array): Promise<Uint8Array> {
   return new Uint8Array(await new Response(stream).arrayBuffer());
 }
 
-async function sha256(bytes: Uint8Array): Promise<string> {
+/** The SHA-256 of `bytes`, in hex. */
+export async function sha256Hex(bytes: Uint8Array): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", bytes as BufferSource);
   return Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, "0")).join("");
 }

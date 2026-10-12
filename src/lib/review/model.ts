@@ -209,12 +209,19 @@ export function judgeBranchEdge(before: Analysis | undefined, after: { blueWin: 
                    onlyEdge(before, mover) && confirmedOnly(winAfter, second, mover, minVisits)).label;
 }
 
+/** Blue's win chance at the game's end, from the score difference (Blue less Red): 1, 0, or 0.5 for a draw. */
+export const resultWin = (blueLead: number) => (blueLead > 0 ? 1 : blueLead < 0 ? 0 : 0.5);
+
+/** The engine's best turn from a position's first choice: its edge, and the next edge of its line for a turn of two. */
+const bestTurn = (first: Candidate | undefined, twoEdges: boolean): Edge[] | undefined =>
+  first && (twoEdges && (first.line?.length ?? 0) >= 2 ? [first.edge, first.line![1]] : [first.edge]);
+
 /** The values after a position, for judging the edge into it: the result where the game ends, else its analysis once
  *  it has `minVisits`. */
 export function valuesAfter(p: Position, a: Analysis | undefined, kind: ScoreKind = "lead", minVisits = 0) {
   if (p.over) {
     const d = p.scores[0] - p.scores[1];
-    return { blueWin: d > 0 ? 1 : d < 0 ? 0 : 0.5, blueScore: d };
+    return { blueWin: resultWin(d), blueScore: d };
   }
   return a && a.visits >= minVisits ? { blueWin: a.blueWin, blueScore: scoreOf(a, kind) } : undefined;
 }
@@ -247,7 +254,7 @@ function summarize(items: Judged[]): [PlayerSummary, PlayerSummary] {
 
 export function review(data: ReviewData, kind: ScoreKind = "lead", minVisits = 0): Review {
   const blueResult = data.result.blue - data.result.red;
-  const final = blueResult > 0 ? 1 : blueResult < 0 ? 0 : 0.5;
+  const final = resultWin(blueResult);
   const n = data.moves.length;
   // The position after the last edge is the end: its value is the result.
   const blueWin = data.positions.map((_, i) => (i === n ? final : data.analysis[i]?.blueWin ?? NaN));
@@ -259,10 +266,9 @@ export function review(data: ReviewData, kind: ScoreKind = "lead", minVisits = 0
   const edges: EdgeReview[] = data.moves.map((m, i) => {
     const winBefore = moverWin(blueWin[i], m.player), winAfter = moverWin(blueWin[i + 1], m.player);
     const a = data.analysis[i], best = a?.candidates[0];
-    const j = known(i, i + 1) ? judgeEdge(winBefore, winAfter, scoreAt(i, m.player), scoreAt(i + 1, m.player),
-                                          !!best && !!m.edge && sameEdge(best.edge, m.edge),
-                                          onlyEdge(a, m.player) && confirmedOnly(winAfter, data.seconds?.[i], m.player, minVisits)) : null;
     const before = scoreAt(i, m.player), after = scoreAt(i + 1, m.player);
+    const j = known(i, i + 1) ? judgeEdge(winBefore, winAfter, before, after, !!best && !!m.edge && sameEdge(best.edge, m.edge),
+                                          onlyEdge(a, m.player) && confirmedOnly(winAfter, data.seconds?.[i], m.player, minVisits)) : null;
     return { index: i, player: m.player, edge: m.edge, cut: m.cut, winBefore, winAfter, loss: j?.loss ?? 0,
              pointsLost: j?.pointsLost, rawLoss: j ? winBefore - winAfter : 0,
              rawPoints: j && before !== undefined && after !== undefined ? before - after : undefined,
@@ -280,7 +286,7 @@ export function review(data: ReviewData, kind: ScoreKind = "lead", minVisits = 0
     const cs = t.edges.map(e => e.complexity).filter((c): c is number => c !== undefined);
     Object.assign(t, hardness(cs.length ? Math.max(...cs) : undefined));
     const p = t.player, first = data.analysis[t.start]?.candidates[0], played = t.edges.map(e => e.edge);
-    t.best = first && (t.edges.length > 1 && (first.line?.length ?? 0) >= 2 ? [first.edge, first.line![1]] : [first.edge]);
+    t.best = bestTurn(first, t.edges.length > 1);
     // By edge too, the engine's best turn in the other order is Best: the same two edges make the same turn, so its
     // first edge, the second of the engine's line, is not judged by the search between them.
     if (t.edges.length > 1 && t.best && sameTurn(played, t.best))
@@ -324,7 +330,7 @@ export function judgeTurn(mover: Player, played: (Edge | null)[], start: Analysi
                           minVisits = 0): TurnJudgment | null {
   if (!start || start.visits < minVisits || !after || Number.isNaN(start.blueWin) || Number.isNaN(after.blueWin)) return null;
   const p = mover, first = start.candidates[0], top = middle?.candidates[0];
-  const best = first && (played.length > 1 && (first.line?.length ?? 0) >= 2 ? [first.edge, first.line![1]] : [first.edge]);
+  const best = bestTurn(first, played.length > 1);
   // Best: the turn reaches the engine's best turn: each edge the first choice of its own search, or the same edges as the
   // first choice and the next edge of its line, in either order.
   const firstChoices = !!first && !!played[0] && sameEdge(first.edge, played[0])

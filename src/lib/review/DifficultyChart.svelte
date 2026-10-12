@@ -7,6 +7,7 @@
   // bar under it and names its position: the decision, before its move. A click shows that position.
   import type { Label } from "./model.ts";
   import { HARD } from "./labels.ts";
+  import ChartTip, { pointerAt } from "./ChartTip.svelte";
 
   interface Bar { from: number; to: number; c: number; hard: boolean; title: string; details: string[] }
   interface Props {
@@ -27,12 +28,7 @@
 
   let svg: SVGSVGElement;
   let hovered = $state<Bar | null>(null);
-  const at = (ev: MouseEvent) => {
-    const r = svg.getBoundingClientRect(), f = ((ev.clientX - r.left) / r.width) * n;
-    return bars.find(b => b.from <= f && f < b.to) ?? null;
-  };
-  // The note sits beside the bar, on the side with more room, and wraps there (the chart can be as narrow as a column)
-  const tip = $derived(hovered && { ...hovered, at: (100 * (hovered.from + hovered.to)) / 2 / n });
+  const at = (ev: MouseEvent) => barAt(pointerAt(ev, svg, n)) ?? null;
 </script>
 
 <div class="relative h-full" role="figure" aria-label="Difficulty chart">
@@ -57,12 +53,7 @@
           style:left="{(100 * (b.from + b.to)) / 2 / n}%" style:top="{(100 * (BASE + ROW / 2)) / H}%" style:background="var(--{m.label})"></span>
   {/if}
 {/each}
-{#if tip}
-  <div class="absolute bottom-full mb-1.5 z-10 flex flex-col gap-0.5 w-max px-2 py-1 text-xs bg-panel border border-line rounded shadow-[0_2px_6px_rgb(0_0_0/0.25)] pointer-events-none"
-       style={tip.at <= 50 ? `left: calc(${tip.at}% + 10px); max-width: calc(${100 - tip.at}% - 10px)`
-                           : `right: calc(${100 - tip.at}% + 10px); max-width: calc(${tip.at}% - 10px)`}>
-    <strong class="font-mono">{tip.title}</strong>
-    {#each tip.details as d (d)}<span class="text-muted">{d}</span>{/each}
-  </div>
+{#if hovered}
+  <ChartTip at={(100 * (hovered.from + hovered.to)) / 2 / n} title={hovered.title} lines={hovered.details} />
 {/if}
 </div>

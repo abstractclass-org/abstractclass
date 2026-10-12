@@ -4,10 +4,11 @@
   // of workers to measure the time a position on this machine.
   import { onMount } from "svelte";
   import Board from "#lib/board/Board.svelte";
-  import { EngineWorker, loadManifest, type Manifest } from "#lib/engine/client.ts";
+  import { EngineWorker, loadManifest, megabytes, modelOf, type Manifest } from "#lib/engine/client.ts";
   import { parseEdge, type Edge } from "#lib/engine/notation.ts";
   import type { AnalysisReply, DescribeReply, VersionReply, ModelInfo } from "#lib/engine/protocol.ts";
-  import { boardPosition } from "#lib/analysis/game.svelte.ts";
+  import { SWEEP_VISITS, boardPosition } from "#lib/analysis/game.svelte.ts";
+  import { NETWORKS, REVIEW_PRESETS } from "#lib/analysis/engineSettings.ts";
   import { defaultPoolSize } from "#lib/analysis/pool.ts";
   import { errorText } from "#lib/errors.ts";
   import { pct, PLAYER_NAME } from "#lib/review/model.ts";
@@ -39,7 +40,6 @@
   const SMALL = "my-3 text-xs text-muted";
   const fmt = (ms: number) => (ms >= 1000 ? `${(ms / 1000).toFixed(2)} s` : `${ms.toFixed(0)} ms`);
   const mib = (b: number) => `${(b / 2 ** 20).toFixed(0)} MiB`;
-  const url = (id: string) => manifest!.artifacts.find(a => a.id === id)!.url;
   const query = (k: number) => ({ moves: MOVES.slice(0, k) });
 
   onMount(async () => {
@@ -72,7 +72,8 @@
     }
     if (withModel && loaded?.model.name !== modelId) {
       busy = `loading the network ${modelId}`;
-      const t = await Promise.all(pool!.engines.map(e => e.loadModel(url(modelId), modelId)));
+      const model = modelOf(manifest!, modelId)!;
+      const t = await Promise.all(pool!.engines.map(e => e.loadModel(model)));
       loaded = { model: t[0].reply.model, ms: Math.max(...t.map(x => x.ms)), memory: Math.max(...t.map(x => x.memory)) };
     }
     return pool!.engines;
@@ -132,9 +133,9 @@
   type SweepRow = { model: string; workers: number; positions: number; wallMs: number; vps: number; perWorker: number };
   let sweep = $state<{ rows: SweepRow[]; machine: string[] } | null>(null);
   let copied = $state(false);
-  const params = (id: string) => (id.startsWith("b15") ? "10.3M" : id.startsWith("b10") ? "3.2M" : id);
-  // A Lite review of the whole game: the sweep (32 visits) and the label pass (512) of every position.
-  const liteMinutes = (vps: number) => (MOVES.length * (32 + 512)) / vps / 60;
+  const params = (id: string) => NETWORKS.find(n => n.id === id)?.params ?? id;
+  // A Lite review of the whole game: the sweep and the label pass of every position.
+  const liteMinutes = (vps: number) => (MOVES.length * (SWEEP_VISITS + REVIEW_PRESETS.lite)) / vps / 60;
 
   async function machine(): Promise<string[]> {
     type GpuInfo = { vendor?: string; architecture?: string; description?: string };
@@ -207,7 +208,7 @@
     <label>Network
       <select bind:value={modelId}>
         {#each manifest?.artifacts.filter(a => a.kind === "model") ?? [] as a (a.id)}
-          <option value={a.id}>{a.id} ({(a.bytes / 1e6).toFixed(1)} MB{a.released ? "" : ", local"})</option>
+          <option value={a.id}>{a.id} ({megabytes(a.bytes)} MB{a.released ? "" : ", local"})</option>
         {/each}
       </select>
     </label>
@@ -276,7 +277,7 @@
             <tr><td>Trained outputs</td><td>{version.trained.join(", ")}</td></tr>
             <tr><td>Module start</td><td>{fmt(initMs)} in a worker, {fmt(start.ms)} until all {start.workers} workers started</td></tr>
             {#if loaded}
-              <tr><td>Network</td><td>{loaded.model.name}, {(loaded.model.bytes / 1e6).toFixed(1)} MB, loaded in {fmt(loaded.ms)}</td></tr>
+              <tr><td>Network</td><td>{loaded.model.name}, {megabytes(loaded.model.bytes)} MB, loaded in {fmt(loaded.ms)}</td></tr>
               <tr><td>SHA-256</td><td class="font-mono">{loaded.model.sha256.slice(0, 16)}…</td></tr>
               <tr><td>Memory</td><td>{mib(loaded.memory)} an instance</td></tr>
             {/if}

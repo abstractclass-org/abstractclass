@@ -106,9 +106,9 @@ searching it again, and to share it as text that others can read.
 
 ## Where it is
 
-- `src/lib/game/reviewFile.ts` (the file: build, read, merge, export, import), `src/lib/review/annotate.ts` (the
-  annotated record), `src/lib/analysis/cache.ts` (`cacheGetAtLeast`, `readAnalysisKey`), `src/lib/storage/db.ts`
-  (`dbEntries`), `src/lib/game/record.ts` (`writeTags`).
+- `src/lib/game/reviewFile.ts` (the file: build, read, merge, export, import, `deliverExport`),
+  `src/lib/review/annotate.ts` (the annotated record), `src/lib/analysis/cache.ts` (`cacheGetAtLeast`,
+  `readAnalysisKey`), `src/lib/storage/db.ts` (`dbEntriesWhere`, `dbPutMany`), `src/lib/game/record.ts` (`writeTags`).
 - `src/lib/ExportMenu.svelte` (the menu), `src/lib/review/exportText.ts` (`annotatedText`, `annotatedFromStore`),
   `src/lib/analysis/game.svelte.ts` (`fromStore`: a review from the stored results only).
 - `src/routes/review/+page.svelte` (`exportAs`), `src/lib/review/ReviewView.svelte` (the menu's place),

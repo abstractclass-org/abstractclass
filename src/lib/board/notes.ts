@@ -5,7 +5,7 @@
 export type NoteBrush = "green" | "yellow" | "purple" | "grey";
 export interface BoardNote { at: [number, number]; to?: [number, number]; brush: NoteBrush }
 
-const samePoint = (a: [number, number], b: [number, number]) => a[0] === b[0] && a[1] === b[1];
+export const samePoint = (a: [number, number], b: [number, number]) => a[0] === b[0] && a[1] === b[1];
 
 /** The same ring, or the same line drawn either way. */
 export function sameNote(a: BoardNote, b: BoardNote): boolean {

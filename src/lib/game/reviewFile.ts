@@ -5,9 +5,10 @@
 // analysis in its SGF files in the same spirit. The game's record alone, with evaluations and labels, is the annotated
 // record (review/annotate.ts).
 import { SHAPE, readAnalysisKey } from "#lib/analysis/cache.ts";
-import { STORES, dbEntries, dbGet, dbPut } from "#lib/storage/db.ts";
+import { STORES, dbEntriesWhere, dbGet, dbPut, dbPutMany } from "#lib/storage/db.ts";
 import { parseRecord, playerNames } from "./record.ts";
-import { loadGame, markReviewed, saveGame, type KeptBranches, type ReviewMark } from "./store.ts";
+import { branchNodes, loadGame, markReviewed, saveGame, type BranchNode, type KeptBranches, type ReviewMark } from "./store.ts";
+import { moduleOf, type Manifest } from "#lib/engine/client.ts";
 import { networkName } from "#lib/analysis/engineSettings.ts";
 
 export const REVIEW_FORMAT = "hedge-school-review";
@@ -33,21 +34,19 @@ export interface FileReview extends ReviewMark { networkName: string }
 export function positionKeys(moves: string[], branches: KeptBranches | null): Set<string> {
   const out = new Set<string>();
   for (let i = 0; i <= moves.length; i++) out.add(moves.slice(0, i).join(" "));
-  for (const key of branchKeys(branches)) out.add(key);
+  for (const [key] of branchNodes(branches)) out.add(key);
   return out;
 }
-
-const branchKeys = (b: KeptBranches | null): string[] =>
-  !b ? [] : b.version === 1 ? b.lines.map(l => l.join(" ")) : b.nodes.map(n => n[0]);
 
 /** The results that belong to a game: of its positions, in the store's current shape, and of `models` (the networks'
  *  SHA-256) when given: a result of a network that the site no longer ships is of no use to any copy of it. */
 export function gameAnalyses(entries: [string, unknown][], positions: Set<string>, models: Set<string> | null = null): [string, unknown][] {
-  return entries.filter(([key]) => {
-    const k = readAnalysisKey(key);
-    return k.shape === SHAPE && positions.has(k.moves) && (!models || models.has(k.model));
-  });
+  return entries.filter(([key]) => belongs(key, positions, models));
 }
+const belongs = (key: string, positions: Set<string>, models: Set<string> | null) => {
+  const k = readAnalysisKey(key);
+  return k.shape === SHAPE && positions.has(k.moves) && (!models || models.has(k.model));
+};
 
 export function buildReviewFile(record: string, branches: KeptBranches | null, entries: [string, unknown][], site: string,
                                 models: Set<string> | null = null, reviewed: ReviewMark | null = null, now = new Date()): ReviewFile {
@@ -93,14 +92,12 @@ export function readReviewFile(text: string): ReviewFile {
 /** The branches kept for a game after an import: the kept ones first, in their order, then the file's that are new, after
  *  them in the file's order. */
 export function mergeBranches(kept: KeptBranches | null, added: KeptBranches | null): KeptBranches | null {
-  const nodes = (b: KeptBranches | null) =>
-    !b ? [] : b.version === 2 ? b.nodes : b.lines.map((l, i): [string, number] => [l.join(" "), i]);
-  const mine = nodes(kept), theirs = nodes(added);
+  const mine = branchNodes(kept), theirs = branchNodes(added);
   if (!mine.length && !theirs.length) return kept ?? added;
   const have = new Set(mine.map(n => n[0]));
   const next = Math.max(-1, ...mine.map(n => n[1])) + 1;
   const fresh = theirs.filter(n => !have.has(n[0])).sort((a, b) => a[1] - b[1])
-    .map((n, i): [string, number] | [string, number, 1] => (n[2] ? [n[0], next + i, 1] : [n[0], next + i]));
+    .map((n, i): BranchNode => (n[2] ? [n[0], next + i, 1] : [n[0], next + i]));
   return { version: 2, nodes: [...mine, ...fresh] };
 }
 
@@ -116,12 +113,34 @@ export async function exportReview(id: string, site: string, models: Set<string>
   const stored = await loadGame(id);
   if (!stored) throw new Error(`This browser has no game ${id}.`);
   const branches = (await dbGet<KeptBranches>(STORES.branches, id)) ?? null;
-  return buildReviewFile(stored.game.record, branches, await dbEntries(STORES.analysis), site, models, stored.game.reviewed ?? null);
+  const positions = positionKeys(stored.record.moves, branches);
+  const entries = await dbEntriesWhere(STORES.analysis, key => belongs(key, positions, models));
+  return buildReviewFile(stored.game.record, branches, entries, site, models, stored.game.reviewed ?? null);
 }
 
 /** The networks a manifest ships, by their SHA-256. */
 export const shippedModels = (manifest: { artifacts: { kind: string; sha256: string }[] } | null) =>
   manifest ? new Set(manifest.artifacts.filter(a => a.kind === "model").map(a => a.sha256)) : null;
+
+/** The engine module a manifest ships, by its SHA-256: a file's review counts as done where it ran with it. */
+export const shippedModule = (manifest: Manifest | null) => (manifest && moduleOf(manifest)?.sha256) ?? null;
+
+/** The three exports of a game (design 13): the review file, or the annotated record copied or as a text file. */
+export type ExportKind = "file" | "copy" | "text";
+
+/** Delivers a game's export: the review file as a download, or the annotated record, which `annotated` writes when it is
+ *  asked for, copied or as a download. `site` is the site's version, which the review file names. */
+export async function deliverExport(kind: ExportKind, id: string, record: string, manifest: Manifest | null, site: string,
+                                    annotated: () => string | Promise<string>) {
+  const name = reviewFileName(record, id);
+  if (kind === "file") {
+    download(name, JSON.stringify(await exportReview(id, site, shippedModels(manifest))));
+    return;
+  }
+  const text = await annotated();
+  if (kind === "copy") await navigator.clipboard.writeText(text);
+  else download(name.replace(/\.json$/, ".txt"), text, "text/plain");
+}
 
 /** Keeps a review file's game, branches and results in this browser. `models` are the networks that this site ships
  *  (their SHA-256): results of another network are left out, since this site's engine never asks for them. `module` is
@@ -130,11 +149,8 @@ export const shippedModels = (manifest: { artifacts: { kind: string; sha256: str
 export async function importReview(file: ReviewFile, models: Set<string> | null, module: string | null = null) {
   const { id } = await saveGame(file.record, parseRecord(file.record));
   if (file.branches) await dbPut(STORES.branches, id, mergeBranches((await dbGet<KeptBranches>(STORES.branches, id)) ?? null, file.branches));
-  let kept = 0, other = 0;
-  for (const [key, value] of file.analyses) {
-    if (models && !models.has(readAnalysisKey(key).model)) { other++; continue; }
-    if (await dbPut(STORES.analysis, key, value)) kept++;
-  }
+  const wanted = file.analyses.filter(([key]) => !models || models.has(readAnalysisKey(key).model));
+  const kept = await dbPutMany(STORES.analysis, wanted), other = file.analyses.length - wanted.length;
   const r = file.review;
   if (r && r.module === module && (!models || models.has(r.model)))
     await markReviewed(id, { module: r.module, model: r.model, network: r.network, visits: r.visits });

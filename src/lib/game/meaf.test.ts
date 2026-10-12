@@ -1,5 +1,5 @@
 // Checks the meaf.us game to record conversion: the sample game in meaf.us's shape, a timeout pass, a resignation,
-// and a game in another rule variant. Run: npm test.
+// the winner by name, and a game in another rule variant. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -19,7 +19,7 @@ const history: MeafMove[] = sample.moves.map((m: { player: number; edge: number[
   color: m.player === 0 ? "blue" : "red", timestamp: 1791500000000 + i,
 }));
 const base: MeafGame = {
-  gameID: "abc123", blue: "alice", red: "bob", winner: "red", winReason: "score", initialTimeSeconds: 60, incrementSeconds: 15,
+  gameID: "abc123", blue: "alice", red: "bob", winner: "bob", winReason: "score", initialTimeSeconds: 60, incrementSeconds: 15,
   tempo: "1-2-2", validation: "edges-1", pruneMode: "degree-zero", swallowing: false, startPosition: "central-line",
   scores: { blue: sample.result.blue, red: sample.result.red }, moveHistory: history,
 };
@@ -42,9 +42,15 @@ test("a timeout pass ends the turn in progress", () => {
 });
 
 test("a resignation is written as such", () => {
-  const r = parseRecord(meafRecord({ ...base, winner: "blue", winReason: "resignation" }));
+  const r = parseRecord(meafRecord({ ...base, winner: "alice", winReason: "resignation" }));
   assert.equal(r.result, "b+R");
   assert.equal(r.tags.Termination, "resignation");
+});
+
+test("the winner is a player's name: a colour or an unknown name gives no result", () => {
+  assert.equal(parseRecord(meafRecord({ ...base, winner: "red" })).result, "*");
+  assert.equal(parseRecord(meafRecord({ ...base, winner: "carol" })).result, "*");
+  assert.equal(parseRecord(meafRecord({ ...base, winner: null })).result, "*");
 });
 
 test("another rule variant is refused", () => {

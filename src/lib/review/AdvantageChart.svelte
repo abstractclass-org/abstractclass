@@ -9,6 +9,7 @@
   // where its search has the review's depth: the sweep draws the whole line first, and the label pass then refines it
   // (design 06).
   import type { Label } from "./model.ts";
+  import ChartTip, { pointerAt } from "./ChartTip.svelte";
 
   interface Props {
     blueWin: number[];
@@ -18,12 +19,12 @@
     moments: { index: number; label: Label }[];
     showScore: boolean;
     showArea: boolean;
-    tips: { title: string; value: string; details?: string[] }[]; // by position: the hover note, a line for each value
-    settled?: boolean[]; // by position: its search has the review's depth (all, when not given)
+    tip: (position: number) => { title: string; value: string; details?: string[] }; // the hover note: a line for each value
+    settled: boolean[]; // by position: its search has the review's depth
     points?: number[]; // the positions drawn and snapped to, in order (all, when not given): by turn, the turns' ends
     onjump: (position: number) => void;
   }
-  let { blueWin, scoreDiff, areaDiff, current, moments, showScore, showArea, tips, settled, points, onjump }: Props = $props();
+  let { blueWin, scoreDiff, areaDiff, current, moments, showScore, showArea, tip, settled, points, onjump }: Props = $props();
 
   const W = 600, H = 120;
   const n = $derived(blueWin.length - 1);
@@ -61,7 +62,7 @@
     for (const r of runs)
       for (let k = 1; k < r.length; k++) {
         const a = r[k - 1], b = r[k], step = `M${x(a)},${yWin(blueWin[a])} L${x(b)},${yWin(blueWin[b])}`;
-        (!settled || (settled[a] && settled[b]) ? solid : rough).push(step);
+        (settled[a] && settled[b] ? solid : rough).push(step);
       }
     return { solid: solid.join(" "), rough: rough.join(" ") };
   });
@@ -71,11 +72,9 @@
   let svg: SVGSVGElement;
   let hovered = $state<number | null>(null);
   const at = (ev: MouseEvent) => {
-    const r = svg.getBoundingClientRect(), f = ((ev.clientX - r.left) / r.width) * n;
+    const f = pointerAt(ev, svg, n);
     return drawn.reduce((best, i) => (Math.abs(i - f) < Math.abs(best - f) ? i : best), drawn[0]);
   };
-  // The note sits beside the snapped point, on the side with more room.
-  const tip = $derived(hovered === null ? null : { ...tips[hovered], left: hovered / n <= 0.5, at: (100 * hovered) / n });
 </script>
 
 <div class="relative h-full" role="figure" aria-label="Advantage chart">
@@ -111,14 +110,8 @@
   <span class="absolute size-2 -mt-1 -ml-1 rounded-full bg-ink border-[1.5px] border-panel pointer-events-none"
         style="left: {(100 * hovered) / n}%; top: {100 * (1 - blueWin[hovered])}%"></span>
 {/if}
-{#if tip}
-  <!-- The note takes at most the room beside the point, and wraps there: the chart can be as narrow as a side column. -->
-  <div class="absolute bottom-full mb-1.5 z-10 flex flex-col gap-0.5 w-max px-2 py-1 text-xs bg-panel border border-line rounded shadow-[0_2px_6px_rgb(0_0_0/0.25)] pointer-events-none"
-       style={tip.left ? `left: calc(${tip.at}% + 10px); max-width: calc(${100 - tip.at}% - 10px)`
-                       : `right: calc(${100 - tip.at}% + 10px); max-width: calc(${tip.at}% - 10px)`}>
-    <strong class="font-mono">{tip.title}</strong>
-    <span class="text-muted tabular-nums">{tip.value}</span>
-    {#each tip.details ?? [] as d (d)}<span class="text-muted tabular-nums">{d}</span>{/each}
-  </div>
+{#if hovered !== null}
+  {@const note = tip(hovered)}
+  <ChartTip at={(100 * hovered) / n} title={note.title} lines={[note.value, ...(note.details ?? [])]} />
 {/if}
 </div>

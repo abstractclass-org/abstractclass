@@ -5,6 +5,8 @@
 // The build names the two services (VITE_GA_ID, VITE_CF_ANALYTICS_TOKEN). Without them, as in development, nothing
 // loads and no banner shows. Neither service sees a game: the import page removes a record from the address before it
 // starts them (src/routes/import/+page.svelte), and every other page starts them from the layout.
+import { readLocal, writeLocal } from "#lib/storage/local.ts";
+
 const GA_ID: string | undefined = import.meta.env.VITE_GA_ID;
 const CF_TOKEN: string | undefined = import.meta.env.VITE_CF_ANALYTICS_TOKEN;
 const KEY = "hedge-school:analytics-consent:1";
@@ -18,12 +20,8 @@ export const ASKS_CONSENT = Boolean(GA_ID);
 export const consent = $state<{ choice: Consent | null }>({ choice: readChoice() });
 
 function readChoice(): Consent | null {
-  try {
-    const kept = typeof localStorage === "undefined" ? null : localStorage.getItem(KEY);
-    return kept === "granted" || kept === "denied" ? kept : null;
-  } catch {
-    return null;
-  }
+  const kept = readLocal(KEY);
+  return kept === "granted" || kept === "denied" ? kept : null;
 }
 
 declare global {
@@ -60,11 +58,7 @@ export function startAnalytics() {
 /** Keeps the visitor's choice and tells the Google tag. */
 export function choose(choice: Consent) {
   consent.choice = choice;
-  try {
-    localStorage.setItem(KEY, choice);
-  } catch {
-    // Blocked storage: the choice holds until the page closes.
-  }
+  writeLocal(KEY, choice);
   if (started && GA_ID) gtag("consent", "update", { analytics_storage: choice });
 }
 

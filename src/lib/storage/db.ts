@@ -47,23 +47,65 @@ async function run<T>(store: string, mode: IDBTransactionMode, request: (s: IDBO
 
 export const dbGet = <T>(store: string, key: string) => run<T | undefined>(store, "readonly", s => s.get(key), undefined);
 export const dbAll = <T>(store: string) => run<T[]>(store, "readonly", s => s.getAll(), []);
-/** Every key and value of a store, in key order, or none when storage fails. */
-export async function dbEntries<T>(store: string): Promise<[string, T][]> {
+/** The keys and values of a store whose key `wanted` takes, in key order: the other values are not read. None when
+ *  storage fails. */
+export async function dbEntriesWhere<T>(store: string, wanted: (key: string) => boolean): Promise<[string, T][]> {
   const d = await openDb();
   if (!d) return [];
   return new Promise(resolve => {
     const out: [string, T][] = [];
     try {
-      const tx = d.transaction(store, "readonly");
-      const req = tx.objectStore(store).openCursor();
-      req.onsuccess = () => { const c = req.result; if (c) { out.push([String(c.key), c.value as T]); c.continue(); } };
-      tx.oncomplete = () => resolve(out);
+      const tx = d.transaction(store, "readonly"), s = tx.objectStore(store);
+      const req = s.openKeyCursor();
+      req.onsuccess = () => {
+        const c = req.result;
+        if (!c) return;
+        const key = String(c.key);
+        if (wanted(key)) { const get = s.get(c.key); get.onsuccess = () => out.push([key, get.result as T]); }
+        c.continue();
+      };
+      tx.oncomplete = () => resolve(out.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0)));
       tx.onerror = tx.onabort = () => resolve([]);
     } catch {
       resolve([]);
     }
   });
 }
+/** Several values of a store, read in one transaction: undefined where a key has none, and for every key when storage
+ *  fails. */
+export async function dbGetMany<T>(store: string, keys: string[]): Promise<(T | undefined)[]> {
+  const none = () => keys.map(() => undefined);
+  const d = keys.length ? await openDb() : null;
+  if (!d) return none();
+  return new Promise(resolve => {
+    try {
+      const tx = d.transaction(store, "readonly"), s = tx.objectStore(store);
+      const reqs = keys.map(k => s.get(k));
+      tx.oncomplete = () => resolve(reqs.map(r => r.result as T | undefined));
+      tx.onerror = tx.onabort = () => resolve(none());
+    } catch {
+      resolve(none());
+    }
+  });
+}
 /** Answers whether the browser kept the value. */
 export const dbPut = async (store: string, key: string, value: unknown) =>
   (await run<IDBValidKey | false>(store, "readwrite", s => s.put(value, key), false)) !== false;
+/** Removes a key's value. Answers whether the browser removed it. */
+export const dbDelete = async (store: string, key: string) =>
+  (await run<undefined | false>(store, "readwrite", s => s.delete(key), false)) !== false;
+/** Puts several values in one transaction. Answers how many the browser kept: all, or none when storage fails. */
+export async function dbPutMany(store: string, entries: [string, unknown][]): Promise<number> {
+  const d = entries.length ? await openDb() : null;
+  if (!d) return 0;
+  return new Promise(resolve => {
+    try {
+      const tx = d.transaction(store, "readwrite"), s = tx.objectStore(store);
+      for (const [key, value] of entries) s.put(value, key);
+      tx.oncomplete = () => resolve(entries.length);
+      tx.onerror = tx.onabort = () => resolve(0);
+    } catch {
+      resolve(0);
+    }
+  });
+}

@@ -22,7 +22,7 @@
   // complete a legal edge from it (dots), and the edge to the marked point under the pointer. Points are 0-18 with y
   // up, as in the engine.
   import { pointName, sameEdge } from "#lib/review/model.ts";
-  import { brushFor, toggleNote, type BoardNote, type NoteBrush } from "./notes.ts";
+  import { brushFor, samePoint, toggleNote, type BoardNote, type NoteBrush } from "./notes.ts";
 
   interface Props {
     position: Position;
@@ -126,7 +126,7 @@
   // drags a piece, as it also takes two clicks) begins the edge there, and the release on a point completes it: the
   // dashed edge follows the pointer to a legal end, as on hover. A release elsewhere leaves the edge begun.
   let svg: SVGSVGElement;
-  const same = (a: [number, number] | null | undefined, b: [number, number] | null | undefined) => !!a && !!b && a[0] === b[0] && a[1] === b[1];
+  const same = (a: [number, number] | null | undefined, b: [number, number] | null | undefined) => !!a && !!b && samePoint(a, b);
   /** The lattice point nearest the pointer, within the points shown, or null off the board. */
   function pointAt(ev: PointerEvent): [number, number] | null {
     const m = svg.getScreenCTM();
@@ -148,6 +148,9 @@
   // The notes (notes.ts): the right button rings a point, and a right drag draws a line to another, as Lichess draws
   // circles and arrows. The left button clears the position's notes (chessground's eraseOnClick).
   let sketch = $state<{ id: number; from: [number, number]; to: [number, number]; brush: NoteBrush } | null>(null);
+  // The note being drawn: a ring where the pointer has not left its point, else a line.
+  const sketchNote = $derived<BoardNote | null>(sketch && (same(sketch.from, sketch.to) ? { at: sketch.from, brush: sketch.brush }
+                                                                                      : { at: sketch.from, to: sketch.to, brush: sketch.brush }));
   const toggle = (note: BoardNote) => onnotes?.(toggleNote(notes, note));
   function down(ev: PointerEvent) {
     if (ev.button === 2 && onnotes) {
@@ -169,9 +172,9 @@
   }
   function up(ev: PointerEvent) {
     if (sketch && ev.pointerId === sketch.id) {
-      const s = sketch;
+      const note = sketchNote!;
       sketch = null;
-      toggle(same(s.from, s.to) ? { at: s.from, brush: s.brush } : { at: s.from, to: s.to, brush: s.brush });
+      toggle(note);
     }
     if (!press || ev.pointerId !== press.id) return;
     const p = press;
@@ -186,6 +189,17 @@
     if (press?.id === ev.pointerId) { press = null; hoverPoint = null; }
   }
 </script>
+
+<!-- A note beside a point of the board: a candidate's or a label badge's. On its right, or on its left near the board's
+     right edge. -->
+{#snippet notePopup(x: number, y: number, text: string, first = false)}
+  {@const w = noteWidth(text) + 0.4}
+  {@const nx = x + 0.62 + w > N ? x - 0.62 - w : x + 0.62}
+  <g class="cand-note" class:first>
+    <rect x={nx} y={y - 0.38} width={w} height="0.76" rx="0.15" />
+    <text x={nx + w / 2} y={y + 0.14} text-anchor="middle">{text}</text>
+  </g>
+{/snippet}
 
 <!-- A label badge at an edge's midpoint. -->
 <!-- A candidate's rank in a rounded square: the engine's line numbers its edges in circles (Go's numbered stones), so the
@@ -342,21 +356,13 @@
     </g>
   {/if}
 
-  {#if layers.candidates && lit}
-    {@const h = lit}
-    {@const [mx, my] = mid(h.edge)}
-    {#if hovered === h}
-      {@const w = noteWidth(h.note) + 0.4}
-      {@const nx = mx + 0.62 + w > N ? mx - 0.62 - w : mx + 0.62}
-      <g class="cand-note" class:first={h.rank === 1}>
-        <rect x={nx} y={my - 0.38} width={w} height="0.76" rx="0.15" />
-        <text x={nx + w / 2} y={my + 0.14} text-anchor="middle">{h.note}</text>
-      </g>
-    {/if}
+  {#if layers.candidates && hovered}
+    {@const [mx, my] = mid(hovered.edge)}
+    {@render notePopup(mx, my, hovered.note, hovered.rank === 1)}
   {/if}
 
   <!-- The player's notes, and the one being drawn, over the board: they take no pointer events. -->
-  {#each sketch ? [...notes, same(sketch.from, sketch.to) ? { at: sketch.from, brush: sketch.brush } : { at: sketch.from, to: sketch.to, brush: sketch.brush }] : notes as n, i (i)}
+  {#each sketchNote ? [...notes, sketchNote] : notes as n, i (i)}
     {#if n.to}
       <line x1={n.at[0]} y1={sy(n.at[1])} x2={n.to[0]} y2={sy(n.to[1])} class={["note-line", n.brush, sketch && i === notes.length && "drawing"]} />
     {:else}
@@ -366,14 +372,8 @@
 
   <!-- The note of the badge under the pointer, beside it, as a candidate's note. -->
   {#if layers.marks && markHover?.mark.note}
-    {@const note = markHover.mark.note}
     {@const [bx, by] = mid(markHover.mark.edge)}
-    {@const w = noteWidth(note) + 0.4}
-    {@const nx = bx + 0.62 + w > N ? bx - 0.62 - w : bx + 0.62}
-    <g class="cand-note">
-      <rect x={nx} y={by - 0.38} width={w} height="0.76" rx="0.15" />
-      <text x={nx + w / 2} y={by + 0.14} text-anchor="middle">{note}</text>
-    </g>
+    {@render notePopup(bx, by, markHover.mark.note)}
   {/if}
 
   {#if pending}

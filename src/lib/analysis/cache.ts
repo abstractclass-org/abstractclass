@@ -2,14 +2,9 @@
 // reproducible (the same request and build give the same reply), so a stored result equals a fresh one. The key names
 // the engine build, the network's SHA-256, the position (its moves) and the visits. Results stay in memory too, so the
 // cache works when storage does not.
-import { STORES, dbGet, dbPut } from "#lib/storage/db.ts";
+import { STORES, dbGetMany, dbPut } from "#lib/storage/db.ts";
 
-const memory = new Map<string, unknown>();
-
-export async function cacheGet<T>(key: string): Promise<T | undefined> {
-  if (memory.has(key)) return memory.get(key) as T;
-  return dbGet<T>(STORES.analysis, key);
-}
+const memory = new Map<string, unknown>(); // every result put or read in this visit
 
 export async function cachePut(key: string, value: unknown): Promise<void> {
   memory.set(key, value);
@@ -38,12 +33,9 @@ const BUDGETS = [256, 512, 768, 1024, 1536, 2048, 3072, 4096, 8192, 16384];
  *  question, as the review takes a deeper result it holds. So a review imported from another browser, searched to
  *  another depth, opens without searching again (game/reviewFile.ts). */
 export async function cacheGetAtLeast<T>(build: string, model: string, moves: string[], visits: number): Promise<T | undefined> {
-  const exact = await cacheGet<T>(analysisKey(build, model, moves, visits));
-  if (exact) return exact;
-  for (const v of BUDGETS) {
-    if (v <= visits) continue;
-    const deeper = await cacheGet<T>(analysisKey(build, model, moves, v));
-    if (deeper) return deeper;
-  }
-  return undefined;
+  const keys = [visits, ...BUDGETS.filter(v => v > visits)].map(v => analysisKey(build, model, moves, v));
+  const unread = keys.filter(k => !memory.has(k));
+  (await dbGetMany(STORES.analysis, unread)).forEach((value, i) => { if (value !== undefined) memory.set(unread[i], value); });
+  const key = keys.find(k => memory.has(k));
+  return key === undefined ? undefined : (memory.get(key) as T);
 }

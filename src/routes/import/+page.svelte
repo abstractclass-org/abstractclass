@@ -1,7 +1,7 @@
 <script lang="ts">
-  // Import: a game record after the `#` (from the meaf.us bookmarklet, src/lib/game/bookmarklet.ts) is checked with the
-  // engine's rules, given its cut marks, kept in this browser, and opened in the review. Without one, the page shows the bookmarklet and how
-  // to install it.
+  // Import: a game record after the `#` (from the meaf.us bookmarklet or userscript, src/lib/game/bookmarklet.ts and
+  // userscript.ts) is checked with the engine's rules, given its cut marks, kept in this browser, and opened in the
+  // review. Without one, the page shows the bookmarklet and the userscript, and how to install them.
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
   import { parseRecord } from "#lib/game/record.ts";
@@ -61,10 +61,28 @@
       </li>
       <li>On meaf.us, open a game: one you play or watch, or a finished one from the archive.</li>
       <li>Click <strong>Review in Hedge School</strong> in the bookmarks bar. The review opens in a new tab.</li>
+      <li>On your own game just after it ends, meaf.us shows the game without its moves. The bookmarklet then reloads the
+        page as a watcher's view, which has them. When the game shows again, click <strong>Review in Hedge School</strong>
+        once more.</li>
+    </ol>
+    <h2 class="mt-2 text-lg font-bold">Or with Tampermonkey</h2>
+    <p>
+      With the Tampermonkey extension, a userscript does the same: a button with the collie on meaf.us's game pages,
+      and an entry in Tampermonkey's menu. It updates itself, and it opens the review of your own finished game in one
+      click. It sends nothing to meaf.us and reads nothing from your login.
+    </p>
+    <ol class="grid gap-2.5 pl-5 list-decimal">
+      <li>Install <a href="https://www.tampermonkey.net/">Tampermonkey</a>. In Chrome and Edge from version 138, also turn on
+        <strong>Allow User Scripts</strong> in Tampermonkey's details on the browser's extensions page.</li>
+      <li>Open <a href="/hedge-school.user.js" data-sveltekit-reload>the Hedge School userscript</a>. Tampermonkey shows it
+        with an <strong>Install</strong> button.</li>
+      <li>On meaf.us, open a game, then click the collie in the page's lower right corner, or <strong>Review this game in
+        Hedge School</strong> in Tampermonkey's menu. The review opens in a new tab.</li>
     </ol>
     <p class="text-sm text-muted">
-      The bookmarklet depends on how meaf.us builds its page. If meaf.us changes, it may find no game until it is
-      updated here. You can always paste a game record on the <a href="/">home page</a>.
+      Both depend on how meaf.us builds its page. If meaf.us changes, they may find no game until they are updated
+      here: the userscript then updates itself, and the bookmarklet needs dragging to the bar again. You can always
+      paste a game record on the <a href="/">home page</a>.
     </p>
   {/if}
 </main>

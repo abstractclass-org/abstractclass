@@ -25,7 +25,8 @@ const WIN_BANDS: [Label, number][] = [["excellent", 0.02], ["good", GOOD_WIN], [
 export const METER_GROUPS = ["good", "inaccuracy", "mistake", "blunder"] as const;
 export type MeterGroup = (typeof METER_GROUPS)[number];
 export function meterGroup(winLoss: number): MeterGroup {
-  return winLoss <= GOOD_WIN ? "good" : winLoss <= 0.10 ? "inaccuracy" : winLoss <= 0.20 ? "mistake" : "blunder";
+  const label = classify(winLoss, false, false);
+  return label === "excellent" ? "good" : (label as MeterGroup);
 }
 export const ONLY_EDGE_GAP = 0.10;
 

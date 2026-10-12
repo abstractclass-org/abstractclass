@@ -1,22 +1,22 @@
-// The page's side of one engine worker: a promise for each request, and partial results while a search runs.
-import type { WorkerReply, WorkerRequest } from "./messages.ts";
+// The page's side of one engine worker: a promise for each request, and partial results while a search runs
+// (channel.ts). Also the manifest of the engine's artifacts, and what the site looks up in it.
+import type { StoredArtifact } from "./artifacts.ts";
+import { WorkerChannel, type Timed } from "./channel.ts";
+import type { WorkerRequest } from "./messages.ts";
 import {
-  PROTOCOL, PROTOCOL_REPORTED, isError, type AnalysisQuery, type AnalysisReply, type DescribeReply, type ErrorReply,
-  type LoadModelReply, type PlayReply, type PositionQuery, type VersionReply,
+  PROTOCOL, PROTOCOL_REPORTED, type AnalysisQuery, type AnalysisReply, type DescribeReply, type LoadModelReply,
+  type PlayReply, type PositionQuery, type VersionReply,
 } from "./protocol.ts";
 
-export interface Timed<T> { reply: T; ms: number; memory: number }
+export { EngineError, Stopped, type Timed } from "./channel.ts";
 
 /** The engine's artifacts that the site was built with (static/engine/manifest.json, scripts/fetch-engine.mjs). */
-export interface Manifest {
-  artifacts: {
-    id: string; kind: ArtifactKind; interface: string | null; url: string; sha256: string; bytes: number; released: boolean;
-    displayName?: string; // a network's name (the release's manifest): "HedgeFund 0.1 Lite"
-    graphOf?: string; // a graph's network (its model's id)
-    parts?: string[]; // a file too large to serve whole: its gzip compression, in parts (artifacts.ts)
-    encoding?: "gzip";
-    download: number; // the bytes a browser downloads for it: `bytes`, or the compressed parts'
-  }[];
+export interface Manifest { artifacts: Artifact[] }
+export interface Artifact extends StoredArtifact {
+  id: string; kind: ArtifactKind; interface: string | null; released: boolean;
+  displayName?: string; // a network's name (the release's manifest): "HedgeFund 0.1 Lite"
+  graphOf?: string; // a graph's network (its model's id)
+  download: number; // the bytes a browser downloads for it: `bytes`, or the compressed parts'
 }
 /** The CPU module, the GPU module and its JavaScript half, a network, a network's ONNX graph, the notices, and ONNX
  *  Runtime Web's glue script and WebAssembly. */
@@ -33,11 +33,23 @@ export async function loadManifest(): Promise<Manifest | null> {
 export const moduleOf = (manifest: Manifest) => manifest.artifacts.find(a => a.kind === "module");
 /** The engine's JavaScript library, which drives both modules (library.ts). */
 export const libraryOf = (manifest: Manifest) => manifest.artifacts.find(a => a.kind === "gpu-library");
+/** A network by its id. */
+export const modelOf = (manifest: Manifest, id: string) => manifest.artifacts.find(a => a.kind === "model" && a.id === id);
+/** The files that the GPU worker needs for the network `id`, beside the library: the GPU module, ONNX Runtime's glue
+ *  script and WebAssembly, the network's graph, and the network itself. Null when one is missing. */
+export function gpuFilesOf(manifest: Manifest, id: string) {
+  const kind = (k: ArtifactKind) => manifest.artifacts.find(a => a.kind === k);
+  const files = { module: kind("gpu-module"), glue: kind("ort-glue"), wasm: kind("ort-wasm"),
+                  graph: manifest.artifacts.find(a => a.kind === "graph" && a.graphOf === id), model: modelOf(manifest, id) };
+  return Object.values(files).every(Boolean) ? (files as { [K in keyof typeof files]: Artifact }) : null;
+}
+/** A size in MB (10^6 bytes), one decimal: what a download costs. */
+export const megabytes = (bytes: number) => (bytes / 1e6).toFixed(1);
 
-// The module, compiled once for the page and each of its workers. A compiled module can be posted to a worker, which
+// A module, compiled once for the page and each of its workers. A compiled module can be posted to a worker, which
 // then only instantiates it, and the browser keeps one copy of its code. Before, each worker fetched and compiled it.
 const compiled = new Map<string, Promise<WebAssembly.Module>>();
-function compile(url: string): Promise<WebAssembly.Module> {
+export function compile(url: string): Promise<WebAssembly.Module> {
   let module = compiled.get(url);
   if (!module) {
     module = WebAssembly.compileStreaming(fetch(url));
@@ -47,83 +59,36 @@ function compile(url: string): Promise<WebAssembly.Module> {
   return module;
 }
 
-/** An error reply from the engine. `field` names the request's field at fault, as the protocol gives it. */
-export class EngineError extends Error {
-  readonly error: string;
-  readonly field?: string;
-  constructor({ error, field }: ErrorReply) {
-    super(`${error}${field ? ` (${field})` : ""}`);
-    this.error = error;
-    this.field = field;
-  }
-}
-
-/** The rejection of a request whose worker ended before it replied (terminate). */
-export class Stopped extends Error {
-  constructor() { super("the engine worker ended"); }
-}
-
-type Pending = { resolve: (t: Timed<unknown>) => void; reject: (e: Error) => void; partial?: (r: unknown, ms: number) => void };
-
 export class EngineWorker {
   readonly kind = "cpu" as const;
-  private worker = new Worker(new URL("./worker.ts", import.meta.url), { type: "module" });
-  private pending = new Map<number, Pending>();
-  private nextId = 0;
-
-  constructor() {
-    this.worker.onmessage = (event: MessageEvent<WorkerReply>) => {
-      const m = event.data;
-      const p = this.pending.get(m.id);
-      if (!p) return;
-      if (m.type === "partial") { p.partial?.(m.reply, m.ms); return; }
-      this.pending.delete(m.id);
-      if (m.type === "error") p.reject(new Error(m.message));
-      else if (isError(m.reply)) p.reject(new EngineError(m.reply));
-      else p.resolve({ reply: m.reply, ms: m.ms, memory: m.memory });
-    };
-  }
-
-  private send<T>(m: DistributiveOmit<WorkerRequest, "id">, partial?: (r: unknown, ms: number) => void): { id: number; done: Promise<Timed<T>> } {
-    const id = this.nextId++;
-    const done = new Promise<Timed<T>>((resolve, reject) => {
-      this.pending.set(id, { resolve: resolve as (t: Timed<unknown>) => void, reject, partial });
-      this.worker.postMessage({ ...m, id } as WorkerRequest);
-    });
-    return { id, done };
-  }
+  private channel = new WorkerChannel<WorkerRequest>(new Worker(new URL("./worker.ts", import.meta.url), { type: "module" }));
 
   /** Starts the manifest's module in the worker, through the engine's library (library.ts). Refuses any protocol
    *  version but the one this site was written for. */
   async init(manifest: Manifest): Promise<Timed<VersionReply>> {
     const module = moduleOf(manifest), library = libraryOf(manifest);
     if (!module || !library) throw new Error("the manifest lacks the engine module or its library");
-    const t = await this.send<VersionReply>({ type: "init", module: await compile(module.url), library: library.url }).done;
+    const t = await this.channel.send<VersionReply>({ type: "init", module: await compile(module.url), library: library.url }).done;
     if (!PROTOCOL_REPORTED.includes(t.reply.protocol))
       throw new Error(`engine protocol ${t.reply.protocol}: this site speaks ${PROTOCOL}`);
     return t;
   }
-  loadModel(url: string, name: string, settings?: Record<string, unknown>) {
-    return this.send<LoadModelReply>({ type: "model", url, name, settings }).done;
+  /** Loads a network from the manifest: the worker fetches it and checks its SHA-256 (artifacts.ts). */
+  loadModel(model: Artifact, settings?: Record<string, unknown>) {
+    return this.channel.send<LoadModelReply>({ type: "model", model, name: model.id, settings }).done;
   }
   describe(q: PositionQuery) {
-    return this.send<DescribeReply>({ type: "call", request: { id: "d", action: "describe", ...q } }).done;
+    return this.channel.send<DescribeReply>({ type: "call", request: { id: "d", action: "describe", ...q } }).done;
   }
   play(q: PositionQuery, move: string) {
-    return this.send<PlayReply>({ type: "call", request: { id: "p", action: "play", ...q, move } }).done;
+    return this.channel.send<PlayReply>({ type: "call", request: { id: "p", action: "play", ...q, move } }).done;
   }
   /** Analyses a position. With a slice, `onPartial` gets the results after each slice, and `stop` ends the search. */
   analyse(q: AnalysisQuery, onPartial?: (r: AnalysisReply, ms: number) => void) {
-    const { id, done } = this.send<AnalysisReply>({ type: q.slice ? "search" : "call", request: { id: "a", ...q } },
-                                                  onPartial as (r: unknown, ms: number) => void);
-    return { done, stop: () => this.worker.postMessage({ type: "stop", id } satisfies WorkerRequest) };
+    const { id, done } = this.channel.send<AnalysisReply>({ type: q.slice ? "search" : "call", request: { id: "a", ...q } },
+                                                          onPartial as (r: unknown, ms: number) => void);
+    return { done, stop: () => this.channel.post({ type: "stop", id }) };
   }
   /** Ends the worker. The requests still waiting for a reply reject with Stopped. */
-  terminate() {
-    this.worker.terminate();
-    for (const p of this.pending.values()) p.reject(new Stopped());
-    this.pending.clear();
-  }
+  terminate() { this.channel.terminate(); }
 }
-
-type DistributiveOmit<T, K extends keyof T> = T extends unknown ? Omit<T, K> : never;

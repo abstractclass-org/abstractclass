@@ -75,6 +75,10 @@ What the repository holds for Pages:
   home page for any address (its rule for single-page applications).
 - **The site's version** in the footer: the commit, which Pages gives the build as `CF_PAGES_COMMIT_SHA`
   (`vite.config.ts`).
+- **The site's address in the userscript** (`/hedge-school.user.js`, design 11): it updates from there and opens the
+  review there. A build of `main` (`CF_PAGES_BRANCH`) names `https://hedgeschool.abstractclass.org`, a build of
+  another branch its preview's address (`CF_PAGES_URL`), and a local build the local preview server. The variable
+  `SITE_ORIGIN` sets another, for a test on another address.
 
 To try the build as Pages runs it: `VITE_EDITION=early npm run build:cloudflare`. From a clean clone, run `npm ci`
 first.

@@ -1,15 +1,18 @@
 // A meaf.us game as a game record. The bookmarklet (bookmarklet.ts) runs this on the meaf.us game page, so the
 // functions here are self-contained: no imports, and nothing from outside their own body. A meaf.us game is the
 // object its board holds, the same shape as its archive's records (the engine repository's tools/analyze_archive.py):
-// the players, the rule variant, the final scores, and `moveHistory`, whose entries have `from` and `to` (x and y, 0-18,
-// y up, as the engine's points) and `color`, or no `from` for a timeout pass.
+// the players, the rule variant, the final scores, the winner by name (as the archive's tools compare it with the
+// players), and `moveHistory`, whose entries have `from` and `to` (x and y, 0-18, y up, as the engine's points) and
+// `color`, or no `from` for a timeout pass.
 
 export interface MeafMove { from?: [number, number]; to?: [number, number]; color?: string; pass?: boolean; timestamp?: number }
 export interface MeafGame {
   gameID?: string;
   blue?: string;
   red?: string;
-  winner?: string;
+  winner?: string | null; // the winner's name: `blue` or `red`
+  phase?: string; // "done" once the game is over
+  historyLength?: number; // the moves the game has, though the page can hold fewer in moveHistory (bookmarklet.ts)
   winReason?: string;
   initialTimeSeconds?: number;
   incrementSeconds?: number;
@@ -58,8 +61,8 @@ export function meafRecord(g: MeafGame): string {
   const s = g.scores, reason = (g.winReason ?? "").toLowerCase();
   const fmt = (x: number) => String(Math.round(x * 1e6) / 1e6);
   let result = "*", termination = "";
-  if (g.winner === "blue" || g.winner === "red") {
-    const w = g.winner === "blue" ? "b" : "r";
+  const w = g.winner && g.winner === g.blue ? "b" : g.winner && g.winner === g.red ? "r" : null;
+  if (w) {
     if (/resign/.test(reason)) { result = `${w}+R`; termination = "resignation"; }
     else if (/abandon|forfeit|disconnect/.test(reason)) { result = `${w}+F`; termination = "forfeit"; }
     else if (s) { result = `${w}+${fmt(Math.abs(s.blue - s.red))}`; termination = "normal"; }

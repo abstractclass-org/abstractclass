@@ -1,6 +1,6 @@
 # The network's evaluations on the visitor's GPU: WebGPU
 
-**Status:** done. Step 2 (release `wasm-v2-engine-06534ee`) is built into the site:
+**Status:** done. The site uses step 2, from release `wasm-v2-engine-06534ee` and now `wasm-v2-engine-632f2a0`:
 [design 15](../design/15-gpu.md).
 
 ## Built into the site (2026-10-12)

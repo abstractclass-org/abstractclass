@@ -12,15 +12,13 @@
   import { EnginePool } from "#lib/analysis/pool.ts";
   import { DEEP_VISITS, GameAnalysis, LABEL_VISITS, SWEEP_VISITS } from "#lib/analysis/game.svelte.ts";
   import { loadEngine, reviewVisits, saveEngine } from "#lib/analysis/engineSettings.ts";
-  import { GPU_SEARCHES, TEST_SECONDS, gpuAdapterName, gpuFaster, loadGpuTest, saveGpuTest, type GpuStatus, type GpuTestFor }
-    from "#lib/analysis/gpu.ts";
-  import { GpuEngines, gpuSupport } from "#lib/engine/gpuClient.ts";
+  import { GpuControl, gpuDownloadMB } from "#lib/analysis/gpu.svelte.ts";
   import { loadManifest, type Manifest } from "#lib/engine/client.ts";
   import { errorText } from "#lib/errors.ts";
   import { playerNames } from "#lib/game/record.ts";
   import { lastReview, loadGame, markReviewed, rememberReview, reviewMark } from "#lib/game/store.ts";
   import { replaceState } from "$app/navigation";
-  import { download, exportReview, reviewFileName, shippedModels } from "#lib/game/reviewFile.ts";
+  import { deliverExport, type ExportKind } from "#lib/game/reviewFile.ts";
   import { annotatedText } from "#lib/review/exportText.ts";
   import type { Unit } from "#lib/review/model.ts";
   import type { GameRecord } from "#lib/game/record.ts";
@@ -30,7 +28,7 @@
   const MESSAGE = "box-content max-w-[1100px] mx-auto my-8 px-4";
 
   let pool: EnginePool | null = null;
-  let manifest: Manifest | null = null;
+  let manifest = $state.raw<Manifest | null>(null);
   let network = ""; // the network of the pool in use, or of the pool that loads to replace it
   let game = $state<GameAnalysis | null>(null);
   let players = $state<ReviewData["players"]>({ blue: "Blue", red: "Red" });
@@ -128,79 +126,17 @@
     untrack(() => void useNetwork(id));
   });
   $effect(() => {
-    void engine.gpu;
-    untrack(() => { if (pool && game?.engineReady) void applyGpu(pool, network); });
+    const mode = engine.gpu;
+    untrack(() => { if (game?.engineReady) void gpu?.apply(mode); });
   });
 
-  // The GPU worker (design 15): Off, On, or Auto, which keeps it where its first-use test found it faster than a worker.
-  let gpuStatus = $state<GpuStatus>({ state: "off" });
-  let gpuStarting: EnginePool | null = null;
-  let adapterName: Promise<string | null> | null = null; // the GPU that WebGPU gives the page, asked once
-  /** The GPU's first download: the GPU module, ONNX Runtime and the network's graph, in MB. The engine's library comes
-   *  with the CPU workers already. */
-  const gpuDownloadMB = (id: string) => (((manifest?.artifacts ?? [])
-    .filter(a => ["gpu-module", "ort-glue", "ort-wasm"].includes(a.kind) || (a.kind === "graph" && a.graphOf === id))
-    .reduce((n, a) => n + a.download, 0)) / 1e6).toFixed(1);
-
-  /** Gives the pool `p`, of the network `id`, the GPU or takes it away, as the setting and the stored test of this
-   *  GPU say. */
-  async function applyGpu(p: EnginePool, id: string) {
-    const mode = engine.gpu;
-    p.onBacklog = null;
-    if (mode === "off") {
-      p.dropGpu();
-      gpuStatus = { state: "off" };
-      return;
-    }
-    const support = gpuSupport();
-    if (!support.ok) { gpuStatus = { state: "unsupported", reason: support.reason! }; return; }
-    const adapter = await (adapterName ??= gpuAdapterName());
-    if (pool !== p || engine.gpu !== mode) return; // changed meanwhile: a later call decides
-    if (!adapter) { gpuStatus = { state: "unsupported", reason: "no GPU for WebGPU" }; return; }
-    const module = manifest?.artifacts.find(a => a.kind === "gpu-module")?.id;
-    if (!module) { gpuStatus = { state: "unsupported", reason: "no GPU module in this build of the site" }; return; }
-    const testFor = { network: id, adapter, module }, test = loadGpuTest(testFor);
-    if (mode === "auto" && test && !gpuFaster(test)) {
-      p.dropGpu();
-      gpuStatus = { state: "slower", adapter, test };
-      return;
-    }
-    if (p.hasGpu) {
-      if (gpuStatus.state !== "testing") gpuStatus = { state: "on", adapter, test };
-      return;
-    }
-    // The GPU starts once the workers have more work than they take: a finished review needs no GPU.
-    const start = () => { p.onBacklog = null; void startGpu(p, testFor, mode === "auto" && !test); };
-    if (p.backlogged) start();
-    else { p.onBacklog = start; gpuStatus = { state: "waiting" }; }
-  }
-
-  async function startGpu(p: EnginePool, testFor: GpuTestFor, testing: boolean) {
-    const { network: id, adapter } = testFor;
-    if (!manifest || gpuStarting === p) return;
-    gpuStarting = p;
-    gpuStatus = { state: "loading" };
-    const gpu = new GpuEngines();
-    try {
-      await gpu.start(manifest, id, GPU_SEARCHES);
-    } catch (e) {
-      gpu.terminate();
-      if (pool === p) gpuStatus = { state: "failed", message: errorText(e) };
-      return;
-    } finally {
-      if (gpuStarting === p) gpuStarting = null;
-    }
-    if (pool !== p || engine.gpu === "off") { gpu.terminate(); return; } // another pool, or the GPU turned off meanwhile
-    p.onGpuLost = e => { if (pool === p) gpuStatus = { state: "failed", message: errorText(e) }; };
-    p.addGpu(gpu);
-    if (!testing) { gpuStatus = { state: "on", adapter, test: loadGpuTest(testFor) }; return; }
-    gpuStatus = { state: "testing" };
-    const speed = await p.speed.measured(TEST_SECONDS);
-    const test = { gpu: Math.round(speed.gpu), cpu: Math.round(speed.cpu), at: new Date().toISOString() };
-    saveGpuTest(testFor, test);
-    if (pool !== p) return;
-    if (engine.gpu === "on" || gpuFaster(test)) gpuStatus = { state: "on", adapter, test };
-    else { p.dropGpu(); gpuStatus = { state: "slower", adapter, test }; }
+  // The GPU worker (design 15), one control for each pool: Off, On, or Auto, which keeps the GPU where its first-use
+  // test found it faster than a worker.
+  let gpu = $state<GpuControl | null>(null);
+  function controlGpu(p: EnginePool, id: string) {
+    gpu?.end();
+    gpu = manifest ? new GpuControl(p, manifest, id) : null;
+    void gpu?.apply(engine.gpu);
   }
 
   // The position on screen is searched deeper once the network is loaded, and again when the player moves (on the
@@ -232,7 +168,7 @@
     if (network !== id) { next.terminate(); return; } // another network was chosen meanwhile
     pool = next;
     g.usePool(next);
-    void applyGpu(next, id);
+    controlGpu(next, id);
     await g.sweep();
   }
 
@@ -294,27 +230,23 @@
         return;
       }
       if (!g.rulesReady || pool !== first) return; // the rules refused the game (the page shows why), or another pool took over
-      void applyGpu(first, network);
+      controlGpu(first, network);
       await g.sweep();
     } catch (e) {
       error = errorText(e);
     }
   });
-  onDestroy(() => { pool?.terminate(); pool = null; }); // a GPU worker that starts later then ends (startGpu)
+  onDestroy(() => { gpu?.end(); pool?.terminate(); }); // a GPU worker that starts later then ends (GpuControl)
 
   /** The review exported (design 13): the review file, with the engine's results, or the annotated record, copied or as
    *  a file. The record's labels are the page's (by turn or by edge). */
-  async function exportAs(kind: "file" | "copy" | "text", unit: Unit) {
-    if (!kept) return;
-    const name = reviewFileName(kept.text, kept.id);
-    if (kind === "file") {
-      download(name, JSON.stringify(await exportReview(kept.id, SITE_VERSION, shippedModels(manifest))));
-      return;
-    }
-    if (!R) return;
-    const text = annotatedText(R, unit, kept.record, game?.branches ?? {}, network);
-    if (kind === "copy") await navigator.clipboard.writeText(text);
-    else download(name.replace(/\.json$/, ".txt"), text, "text/plain");
+  async function exportAs(kind: ExportKind, unit: Unit) {
+    const k = kept;
+    if (!k) return;
+    await deliverExport(kind, k.id, k.text, manifest, SITE_VERSION, () => {
+      if (!R) throw new Error("the review is not ready");
+      return annotatedText(R, unit, k.record, game?.branches ?? {}, network);
+    });
   }
 </script>
 
@@ -334,7 +266,7 @@
               turnKeys={path => game?.turnKeys(path) ?? []} pendingAt={path => game?.pending(path) ?? false} reviewVisits={budget}
               ondelete={path => game!.deleteFrom(path)} onpromote={path => game!.promote(path)}
               onjudge={path => game!.judge(path)} labelVisits={LABEL_VISITS} {engine} onengine={change => Object.assign(engine, change)}
-              gpu={{ status: gpuStatus, downloadMB: gpuDownloadMB(engine.network) }}
+              gpu={{ status: gpu?.status ?? { state: "off" }, downloadMB: manifest ? gpuDownloadMB(manifest, engine.network) : "?" }}
               timedOut={!!game?.stoppedByTime(current)}
               searching={!!game && game.focusing === pathKey(current)}
               lineSteps={game ? (path, line) => game!.lineSteps(path, line) : undefined} />

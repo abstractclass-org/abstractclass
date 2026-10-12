@@ -4,8 +4,7 @@
   // or why it failed. It opens only once the game's review is done (`ready`): before, `why` says what to do.
   import { DropdownMenu } from "bits-ui";
   import { errorText } from "#lib/errors.ts";
-
-  export type ExportKind = "file" | "copy" | "text";
+  import type { ExportKind } from "#lib/game/reviewFile.ts";
   let { run, side = "top", small = false, ready = true, why = "" }:
     { run: (kind: ExportKind) => Promise<void>; side?: "top" | "bottom"; small?: boolean; ready?: boolean; why?: string } = $props();
 

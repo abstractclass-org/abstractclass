@@ -810,9 +810,9 @@ Blunder's loss.
   moments (9 searches of 1,024 visits) then ran in small batches on the GPU while the 4 CPU workers were idle. Each
   search on the GPU runs slower than on a CPU worker: 147 / 16 = 9 visits a second against 38. The GPU gains by the
   number of its searches. So every task now takes a free CPU worker first.
-- **The download:** the GPU's first use downloads 16.5 MB with Lite and 34.3 MB with the larger network. The graphs
-  and ONNX Runtime's WebAssembly are stored compressed. The larger graph is in two parts, and the page joined them and
-  checked the SHA-256.
+- **The download:** the GPU's first use downloads 16.5 MB with Lite and 34.3 MB with the larger network. The deploy
+  stores the graphs and ONNX Runtime's WebAssembly compressed. The larger graph is in two parts, and the page joined
+  them and checked the SHA-256.
 - **Checked in Edge:** Auto's test and its stored result, the GPU kept on a reload, Off during a review (the GPU
   worker ends, and its searches run again on the CPU workers), and another network with its own test.
 - **The GPU that Edge gives:** WebGPU in Edge gives the RTX 5080 for every power preference, "low-power" too, though
@@ -825,7 +825,7 @@ Blunder's loss.
   loaded no GPU files, and the line named the GPU and both speeds. With On, the GPU started. Back on Auto, it ended at
   once, and the review went on with the CPU workers. The decision at the end of a real test, where the GPU is slower,
   is not checked: no GPU here is slower than a worker.
-- **The test's count of the GPU was wrong, and is fixed:** with the engine repository's training paused, Windows'
+- **A wrong count of the GPU, and its fix:** with the engine repository's training paused, Windows'
   graphics setting put Edge on the CPU's integrated AMD Radeon (WebGPU: "amd rdna-2"). Auto tested it and turned it
   off, but its line gave 2 visits a second. The meter counted the GPU's visits only from searches that ended, and a
   search of 707 visits took about three minutes on the Radeon. The meter now samples the GPU library's count of
@@ -848,7 +848,8 @@ Blunder's loss.
   the same network files. Its notes give a GPU module 10% to 20% faster (693 visits a second with 16 searches on an RTX
   5080, HedgeFund 0.1 Lite), and a CPU module that frees the network's bytes after it loads them.
 - **Checked:** the two network files have the SHA-256s of the earlier release. The graphs have new folders, named by
-  the build (`b10c128-...-graph-632f2a0`): a file under `/engine/` is cached for a year, so new bytes need a new path.
+  the build (`b10c128-...-graph-632f2a0`): browsers keep a file under `/engine/` for a year, so new bytes need a new
+  path.
   No file of the build exceeds 24 MiB, so no file needs parts now.
 - **The GPU's first download:** 13.7 MB with Lite and 26.5 MB with the larger network, from 16.5 MB and 34.3 MB. gzip
   now saves 9% of a graph (it saved a third of the FP32 graphs). The graphs stay compressed: 1.8 MB less for the

@@ -1,4 +1,4 @@
-# Handoff (2026-10-11)
+# Handoff (2026-10-12)
 
 **In flight only:** what is half done, and what the next session must check first. Each session rewrites this file.
 It holds no backlog: everything still to do that is not in flight is in
@@ -23,7 +23,7 @@ It holds no backlog: everything still to do that is not in flight is in
   of branches and played moves, the chart's first estimates, "Lines on the board"), then the latest commit (labels by
   turn decided and measured, request 07 changed for both modes, numbers from one side, Biggest mistakes removed, the
   side columns that grow with the window).
-- **Checks on the working tree:** `npm run check` has no errors or warnings. `npm test` passes (48 checks). `npm run
+- **Checks on the working tree:** `npm run check` has no errors or warnings. `npm test` passes (52 checks). `npm run
   build` succeeds.
 - **The engine:** protocol 0.3, build `632f2a0` from the release `wasm-v2-engine-632f2a0` (the CPU module, the GPU
   module and the graphs: decisions/engine.md, "The release 632f2a0"), the networks
@@ -32,6 +32,29 @@ It holds no backlog: everything still to do that is not in flight is in
   depth is 512 visits. Puzzles and learn run on mock data.
 
 ## In flight
+
+- **This round, committed after `68d1ab1` and released to `main` on 2026-10-12:**
+  - The bookmarklet on a game just over: it opens the game again as a watcher's view (`spectate=1`), and the result
+    reads the winner by name (design 11, decisions/product.md, "The bookmarklet on a game just over"). Checked in
+    Edge on the owner's test game. The owner drags the bookmarklet to the bar again after the release.
+  - The userscript, a second way beside the bookmarklet (design 11, decisions/product.md, "The userscript, a second
+    way"): a collie button and a Tampermonkey menu entry, served at `/hedge-school.user.js`. Its header names the
+    author (`@author`, `@homepage`). The owner installed it in Edge from the local preview, and its button showed on a
+    game opened from meaf.us's history. The bookmarklet's messages now name the bookmark to click.
+  - Deleting a game, with an Undo in its row (design 11, decisions/product.md, "Deleting a game, and the browser's
+    storage"). The backlog has two new items from it: stale analyses, and storage that the browser may clear.
+  - The second code cleanup (`/simplify` since `7bb7fde`): one message channel for both workers (`channel.ts`), the
+    CPU worker's network through `fetchArtifact`, a `GpuControl` for each pool, the GPU sampled only while its test
+    runs, partial results applied together (`PARTIAL_MS`), the game's positions indexed (`mainKeys`), the cache read
+    in one transaction, `LineDrawing` for both lines, one preview state, shared helpers (`storage/local.ts`,
+    `deliverExport`, `branchNodes`, `ChartTip`, `rankBadge`). Checked in Edge: the line drawing, the three previews,
+    both charts' notes, the board's notes, the candidate's note, the GPU on, off and back. Not checked: an export after
+    the cleanup.
+- **For the owner, after this release:**
+  - Drag the bookmarklet to the bar again: its code changed.
+  - Install the userscript again from the live site's import page, then remove the copy from the local preview in
+    Tampermonkey's dashboard. That copy updates from `127.0.0.1:4173`, and its namespace differs, so Tampermonkey
+    keeps both, and both draw a button.
 
 - **Turn mode: built, checked in Edge, committed** (decisions/product.md, "Turn mode built", "Turn mode, first
   feedback", "Turn mode, second feedback"). Labels by turn with "Review by" (Turn by default, or Edge), Great by turn,
@@ -67,20 +90,10 @@ It holds no backlog: everything still to do that is not in flight is in
   (0.10 or more) with the tooltip "Hard position", the likely edges' meter
   after Maia's under the engine header's line, the Difficulty chart in a tab beside the Advantage chart (both under
   the board now, always in view: design 06), and the accuracy weighed by KaTrain's weights. Checked in Edge.
-- **The GPU in the review: built, checked in Edge, committed and released** (design 15, request 06 done, decisions/engine.md,
-  "The GPU in the review"). `engine.lock.json` on `wasm-v2-engine-632f2a0`, the CPU workers on the release's library (`createCpuEngine`, so
-  `module.ts` is gone), ONNX Runtime Web 1.30.0, the GPU worker
-  with 16 searches beside the CPU workers, a CPU worker first for every task, the setting Auto, On or Off, and Auto's
-  test on the review's own work. The graphs and ONNX Runtime's WebAssembly are stored compressed, the larger graph in
-  two parts. On this machine, under load, the GPU made the label pass 2.05 times as fast. The new build changes the
-  results' keys, so stored reviews search again once. Before a release: run `npm run build:cloudflare` on a clean
-  checkout, and check that no file in `build/` exceeds 25 MiB. Since then: the test's result is kept for each GPU
-  (WebGPU's vendor and architecture), the GPU starts only when the workers have a backlog, and a drop of the GPU ends
-  its worker at once. Auto turning a slower GPU off is checked on the integrated Radeon (Windows' graphics setting
-  for Edge), and the test's meter now samples the GPU's evaluations (decisions/engine.md, "The GPU in the review").
-  The RTX 5080 measured again with the fixed meter, on a quiet machine: 6.5 times a CPU worker. Edge is back on
-  "Let Windows decide".
-- **This round, committed and released to `main` on 2026-10-12:** the labels on the engine's win chance (design 10), the logo (design 12), export and
+- **The GPU in the review: released** (design 15, request 06 done, decisions/engine.md, "The GPU in the review" and
+  "The release 632f2a0"). Checked in Edge: Auto's test, Off and On, the per-GPU results, and Auto turning the
+  integrated Radeon off. Not yet checked: a review on the live site, and a laptop's or a phone's GPU.
+- **The round before, `68d1ab1`, released on 2026-10-12:** the labels on the engine's win chance (design 10), the logo (design 12), export and
   import (design 13), the notation's decisions in the export (request 13, done), difficulty with its numbers step by
   step (design 14), the networks' names (request 12, done), drag to play and notes on the board (design 07), no text
   selection (design 06), the protected edges' halo, the STE pass over the documents, and the GPU (design 15).

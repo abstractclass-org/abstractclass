@@ -1,10 +1,12 @@
 // The engine's settings (docs/design/09-engine-settings.md), kept in this browser: whether the engine searches, how
 // far it searches the position on screen (KaTrain's max_visits and max_time: whichever comes first), the review's
 // budget for each position, which network it uses (Lichess's choice of engine), and how many workers search at once
-// (Lichess's threads), and whether the visitor's GPU searches too (analysis/gpu.ts). Storage can be blocked (a private window, blocked site data): then the defaults hold.
+// (Lichess's threads), and whether the visitor's GPU searches too (analysis/gpu.svelte.ts). Storage can be blocked (a private window, blocked site data): then the defaults hold.
 import lock from "../../../engine.lock.json" with { type: "json" };
 import { DEEP_VISITS, LABEL_VISITS } from "./game.svelte.ts";
 import { defaultPoolSize } from "./pool.ts";
+import { megabytes } from "#lib/engine/client.ts";
+import { readLocalJson, writeLocal } from "#lib/storage/local.ts";
 
 export type ReviewDepth = "lite" | "standard" | "custom";
 
@@ -20,14 +22,17 @@ export interface EngineSettings {
 }
 
 /** Whether the GPU searches with the workers: on, off, or on where its first-use test found it faster than a worker
- *  (analysis/gpu.ts). */
+ *  (analysis/gpu.svelte.ts). */
 export type GpuMode = "auto" | "on" | "off";
 
 /** A network's name, as the engine's release names it (its manifest's `displayName`, copied into engine.lock.json):
  *  "HedgeFund 0.1 Lite". A name belongs to one network file for life (the engine repository's
  *  v2/docs/design/20-network-names.md). The id when the lock gives no name. */
-export const networkName = (id: string): string =>
-  (lock.artifacts as { id: string; displayName?: string }[]).find(a => a.id === id)?.displayName ?? id;
+export const networkName = (id: string): string => locked(id)?.displayName ?? id;
+/** A network's download in MB, from engine.lock.json, which the deploy fetches by: what a change of network costs, as
+ *  Lichess's engine menu gives each engine's size. */
+export const networkMB = (id: string): string => megabytes(locked(id)?.bytes ?? 0);
+const locked = (id: string) => (lock.artifacts as { id: string; displayName?: string; bytes: number }[]).find(a => a.id === id);
 
 /** The networks, as the manifest names them (engine.lock.json pins both). Their parameters are the trainer's counts
  *  (the engine repository's v2/docs/design/15-network-sizes.md). A worker's memory once the network is loaded:
@@ -74,28 +79,18 @@ export const defaultEngine = (): EngineSettings => ({
 
 export function loadEngine(): EngineSettings {
   const d = defaultEngine();
-  try {
-    const kept = JSON.parse(localStorage.getItem(KEY) ?? "null") as Partial<EngineSettings> | null;
-    if (!kept) return d;
-    return {
-      on: typeof kept.on === "boolean" ? kept.on : d.on,
-      visits: inSteps(DEPTHS, kept.visits) ? kept.visits : d.visits,
-      seconds: kept.seconds !== undefined && TIME_LIMITS.includes(kept.seconds) ? kept.seconds : d.seconds,
-      review: kept.review === "standard" || kept.review === "custom" ? kept.review : "lite",
-      customReview: inSteps(CUSTOM_REVIEW, kept.customReview) ? kept.customReview : d.customReview,
-      network: NETWORKS.some(n => n.id === kept.network) ? kept.network! : d.network,
-      workers: Number.isInteger(kept.workers) ? Math.min(maxWorkers(), Math.max(1, kept.workers!)) : d.workers,
-      gpu: kept.gpu === "on" || kept.gpu === "off" ? kept.gpu : d.gpu,
-    };
-  } catch {
-    return d;
-  }
+  const kept = readLocalJson<Partial<EngineSettings>>(KEY);
+  if (!kept) return d;
+  return {
+    on: typeof kept.on === "boolean" ? kept.on : d.on,
+    visits: inSteps(DEPTHS, kept.visits) ? kept.visits : d.visits,
+    seconds: kept.seconds !== undefined && TIME_LIMITS.includes(kept.seconds) ? kept.seconds : d.seconds,
+    review: kept.review === "standard" || kept.review === "custom" ? kept.review : "lite",
+    customReview: inSteps(CUSTOM_REVIEW, kept.customReview) ? kept.customReview : d.customReview,
+    network: NETWORKS.some(n => n.id === kept.network) ? kept.network! : d.network,
+    workers: Number.isInteger(kept.workers) ? Math.min(maxWorkers(), Math.max(1, kept.workers!)) : d.workers,
+    gpu: kept.gpu === "on" || kept.gpu === "off" ? kept.gpu : d.gpu,
+  };
 }
 
-export function saveEngine(s: EngineSettings) {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(s));
-  } catch {
-    // The settings then last for this page only.
-  }
-}
+export const saveEngine = (s: EngineSettings) => writeLocal(KEY, JSON.stringify(s));

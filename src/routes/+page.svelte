@@ -9,16 +9,16 @@
   import { puzzlesFrom } from "#lib/puzzles/model.ts";
   import { COURSE } from "#lib/learn/lessons.ts";
   import { parseRecord, playerNames, RecordError, type GameRecord } from "#lib/game/record.ts";
-  import { listGames, reviewCovers, reviewMark, type StoredGame } from "#lib/game/store.ts";
+  import { deleteGame, listGames, restoreGame, reviewCovers, reviewMark, type DeletedGame, type StoredGame } from "#lib/game/store.ts";
   import { loadEngine, reviewVisits } from "#lib/analysis/engineSettings.ts";
   import { importRecord } from "#lib/game/import.ts";
   import { errorText } from "#lib/errors.ts";
   import { constellationRecord, isConstellation } from "#lib/game/constellation.ts";
   import { EARLY_ACCESS, SITE_NAME, SITE_VERSION } from "#lib/edition.ts";
-  import { download, exportReview, importReview, readReviewFile, reviewFileName, shippedModels } from "#lib/game/reviewFile.ts";
+  import { deliverExport, importReview, readReviewFile, shippedModels, shippedModule, type ExportKind } from "#lib/game/reviewFile.ts";
   import { loadManifest } from "#lib/engine/client.ts";
   import { annotatedFromStore } from "#lib/review/exportText.ts";
-  import ExportMenu, { type ExportKind } from "#lib/ExportMenu.svelte";
+  import ExportMenu from "#lib/ExportMenu.svelte";
   import SiteFooter from "#lib/SiteFooter.svelte";
   import { SAMPLE } from "#lib/mock/sample.ts";
 
@@ -37,6 +37,22 @@
     const manifest = await loadManifest(), engine = loadEngine();
     wanted = manifest && reviewMark(manifest, engine.network, reviewVisits(engine));
   });
+
+  // The games deleted on this visit, by id. The delete is done at once, so it stands if the page closes. A deleted
+  // game's row stays until the page loads again, with an Undo where its Delete was: the list does not move under the
+  // pointer, and the player has no time limit to undo. Raw: IndexedDB cannot store a state proxy.
+  let deleted = $state.raw<Record<string, DeletedGame>>({});
+
+  async function remove(id: string) {
+    const was = await deleteGame(id);
+    if (was) deleted = { ...deleted, [id]: was };
+  }
+
+  async function undo(id: string) {
+    const { [id]: was, ...rest } = deleted;
+    deleted = rest;
+    if (was) await restoreGame(was);
+  }
 
   /** Where in the text: line and column, from the record reader's offset. */
   function where(offset: number) {
@@ -77,14 +93,7 @@
 
   /** A game's export, as on the review page: the annotated record is written from the stored results, with no search. */
   async function exportGame(id: string, record: string, kind: ExportKind) {
-    const name = reviewFileName(record, id);
-    if (kind === "file") {
-      download(name, JSON.stringify(await exportReview(id, SITE_VERSION, shippedModels(await loadManifest()))));
-      return;
-    }
-    const text = await annotatedFromStore(id);
-    if (kind === "copy") await navigator.clipboard.writeText(text);
-    else download(name.replace(/\.json$/, ".txt"), text, "text/plain");
+    await deliverExport(kind, id, record, await loadManifest(), SITE_VERSION, () => annotatedFromStore(id));
   }
 
   async function importFile(file: File | undefined) {
@@ -95,8 +104,7 @@
       const review = readReviewFile(await file.text());
       // Only the networks this site ships: a result of another network is never asked for here.
       const manifest = await loadManifest();
-      const module = manifest?.artifacts.find(a => a.kind === "module")?.sha256 ?? null;
-      const { id } = await importReview(review, shippedModels(manifest), module);
+      const { id } = await importReview(review, shippedModels(manifest), shippedModule(manifest));
       await goto(`/review?game=${id}`);
     } catch (e) {
       fileProblem = `The file could not be imported: ${errorText(e)}`;
@@ -138,7 +146,7 @@
         <span class="flex-1 min-w-56 text-xs text-muted">In the engine's notation: turns as <code>1.</code> and <code>2.</code>, edges as
           <code>D10-G10</code>, a cut as <code>D10-G10x</code>, a timeout as <code>pass</code>. A plain list of edges works too.</span>
       </div>
-      <p class="mt-2.5 text-xs text-muted">From meaf.us: use the <a href="/import">bookmarklet</a>, one click on a meaf.us game page.
+      <p class="mt-2.5 text-xs text-muted">From meaf.us: use the <a href="/import">bookmarklet or the userscript</a>, one click on a meaf.us game page.
         From Constellation: paste what the analysis board's <strong>Export</strong> gives.</p>
     </form>
     <div class="flex flex-wrap items-center gap-3 mt-4 pt-3 border-t border-line">
@@ -159,12 +167,19 @@
       <ul class="grid gap-1.25 mb-1.5">
         {#each games as { game, record } (game.id)}
           <li class="flex flex-wrap items-baseline gap-2.5">
-            <a href="/review?game={game.id}">{title(record)}</a>
-            <span class="text-sm text-muted">{record.moves.length} edges{record.result && record.result !== "*" ? ` · ${record.result}` : ""} ·
-              imported {new Date(game.added).toLocaleDateString()}</span>
-            <span class="ml-auto"><ExportMenu small side="bottom" run={kind => exportGame(game.id, game.record, kind)}
-              ready={reviewCovers(game.reviewed, wanted)}
-              why={game.reviewed ? "Open the game to finish its review with the engine settings now, then export." : "Open the game to review it, then export."} /></span>
+            {#if deleted[game.id]}
+              <span class="text-sm text-muted" role="status">Deleted {title(record)}.</span>
+              <span class="ml-auto"><button type="button" class="px-2 py-0 text-xs" onclick={() => undo(game.id)}>Undo</button></span>
+            {:else}
+              <a href="/review?game={game.id}">{title(record)}</a>
+              <span class="text-sm text-muted">{record.moves.length} edges{record.result && record.result !== "*" ? ` · ${record.result}` : ""} ·
+                imported {new Date(game.added).toLocaleDateString()}</span>
+              <span class="ml-auto flex items-center gap-1.5"><ExportMenu small side="bottom" run={kind => exportGame(game.id, game.record, kind)}
+                ready={reviewCovers(game.reviewed, wanted)}
+                why={game.reviewed ? "Open the game to finish its review with the engine settings now, then export." : "Open the game to review it, then export."} />
+                <button type="button" class="px-2 py-0 text-xs" aria-label="Delete {title(record)}"
+                        onclick={() => remove(game.id)}>Delete</button></span>
+            {/if}
           </li>
         {/each}
       </ul>

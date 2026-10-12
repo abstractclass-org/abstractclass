@@ -4,7 +4,7 @@
 import { GameAnalysis, LABEL_VISITS, type BranchNode } from "#lib/analysis/game.svelte.ts";
 import { loadEngine, networkName, reviewVisits } from "#lib/analysis/engineSettings.ts";
 import { EnginePool } from "#lib/analysis/pool.ts";
-import { loadManifest } from "#lib/engine/client.ts";
+import { loadManifest, modelOf } from "#lib/engine/client.ts";
 import { SITE_NAME } from "#lib/edition.ts";
 import { playerNames, type GameRecord } from "#lib/game/record.ts";
 import { loadGame } from "#lib/game/store.ts";
@@ -31,7 +31,7 @@ export async function annotatedFromStore(id: string): Promise<string> {
   const manifest = await loadManifest();
   if (!manifest) throw new Error("this site has no engine");
   const engine = loadEngine(), visits = reviewVisits(engine);
-  const model = manifest.artifacts.find(a => a.kind === "model" && a.id === engine.network);
+  const model = modelOf(manifest, engine.network);
   if (!model) throw new Error(`this site has no network ${engine.network}`);
   const pool = new EnginePool(0); // the rules alone: no search
   try {
