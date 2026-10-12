@@ -58,7 +58,20 @@
       apart.</li>
   </ul>
   <p>Neither sees your games. The bookmarklet's record leaves the address before either starts, and a review's address
-    names its game by a short code made from the moves, from which the game cannot be read.</p>
+    names its game after the <code>#</code>, which neither records.</p>
+  <p>Google Analytics also receives what you do here, as counts, so that we can tell what to improve:</p>
+  <ul>
+    <li>that you imported a game, and how (pasted, from Constellation, a review file, the bookmarklet, the userscript or
+      a share link), its length as a range (for example 90 to 119 edges), or why an import failed;</li>
+    <li>that a review opened and ended: the engine settings it ran with, your computer's number of cores as a range,
+      how long the review took, and how fast the engine searched;</li>
+    <li>the GPU's first test: faster or slower than the CPU, and the GPU's maker and kind;</li>
+    <li>the engine settings you change, the review's features you use (each once in a review), and your exports, with a
+      share link's length as a range;</li>
+    <li>how many games this browser keeps, as a range.</li>
+  </ul>
+  <p>None of these holds a game, a move, a player's name or a game's code. Until you accept the cookies, Google receives
+    them with nothing that links one to another.</p>
   {#if ASKS_CONSENT && mounted}
     <p>Google Analytics' cookies: {consent.choice ? CHOICE[consent.choice] : "you have not chosen yet"}.</p>
     <p class="flex gap-2">

@@ -132,6 +132,9 @@ export const shippedModule = (manifest: Manifest | null) => (manifest && moduleO
 /** The three exports of a game (design 13): the review file, or the annotated record copied or as a text file. */
 export type ExportKind = "link" | "file" | "copy" | "text";
 
+/** What an export tells the player beyond the menu's own note, and a share link's length (design 17 counts it). */
+export interface ExportResult { note?: string; linkLength?: number }
+
 /** The link that shares a game's review (share.ts): its record, its branches, and the engine, network and visits of its
  *  review (the game's mark: the deepest review that ran to its end). */
 export async function shareLink(id: string, origin: string): Promise<string> {
@@ -160,14 +163,17 @@ export async function importShare(shared: SharedReview, network: string | null):
  *  `annotated` writes when it is asked for, copied or as a download. `site` is the site's version, which the review
  *  file names. Answers what to tell the player, when that is more than the menu's own note. */
 export async function deliverExport(kind: ExportKind, id: string, record: string, manifest: Manifest | null, site: string,
-                                    annotated: () => string | Promise<string>): Promise<string | void> {
+                                    annotated: () => string | Promise<string>): Promise<ExportResult | void> {
   if (kind === "link") {
     const link = await shareLink(id, location.origin);
     await navigator.clipboard.writeText(link);
     const n = link.length.toLocaleString("en");
-    return link.length > DISCORD_LIMIT
-      ? `Link copied: ${n} characters, more than a Discord message takes (${DISCORD_LIMIT.toLocaleString("en")}). Delete some branches, or send the review file.`
-      : `Link copied (${n} characters). The recipient's browser reviews the game again.`;
+    return {
+      linkLength: link.length,
+      note: link.length > DISCORD_LIMIT
+        ? `Link copied: ${n} characters, more than a Discord message takes (${DISCORD_LIMIT.toLocaleString("en")}). Delete some branches, or send the review file.`
+        : `Link copied (${n} characters). The recipient's browser reviews the game again.`,
+    };
   }
   const name = reviewFileName(record, id);
   if (kind === "file") {

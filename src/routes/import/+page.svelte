@@ -17,7 +17,8 @@
   import { playerNames } from "#lib/game/record.ts";
   import { loadManifest, moduleOf, modelOf } from "#lib/engine/client.ts";
   import { NETWORKS, networkName, reviewDepthText } from "#lib/analysis/engineSettings.ts";
-  import { startAnalytics } from "#lib/analytics.svelte.ts";
+  import { startAnalytics, track } from "#lib/analytics.svelte.ts";
+  import { EDGE_RANGES, range } from "#lib/measure.ts";
 
   let phase = $state<"install" | "importing" | "failed" | "stale" | "share">("install");
   let problem = $state("");
@@ -45,9 +46,11 @@
       shared = s;
       sharedHere = { network, sameEngine: !!manifest && !!moduleOf(manifest)?.sha256.startsWith(s.module) };
       phase = "share";
+      track("share_open", { network_found: !!network, same_engine: sharedHere.sameEngine });
     } catch (e) {
       phase = "failed";
       problem = `the share link cannot be read: ${errorText(e)}`;
+      track("import_failed", { source: "share_link", reason: "link" });
     }
   }
 
@@ -57,10 +60,12 @@
     phase = "importing";
     try {
       const id = await importShare(shared, sharedHere.network);
-      await goto(`/review?game=${id}`, { replaceState: true });
+      track("import_game", { source: "share_link", edges: range(shared.moves.length, EDGE_RANGES), with_branches: shared.branches.length > 0 });
+      await goto(`/review#game=${id}`, { replaceState: true });
     } catch (e) {
       phase = "failed";
       problem = errorText(e);
+      track("import_failed", { source: "share_link", reason: "rejected" });
     }
   }
 
@@ -70,15 +75,21 @@
     phase = "importing";
     history.replaceState(null, "", location.pathname); // the record is kept below, not in the address
     if (hash.startsWith("s=")) { await readShared(hash.slice(2)); return; }
+    let source = "older_tool";
     try {
       const sent = readImportHash(hash), text = sent.record;
-      const id = await importRecord(text, parseRecord(text));
+      source = sent.tool ?? source;
+      const record = parseRecord(text), id = await importRecord(text, record);
       stale = staleTool(sent, { bookmarklet: String(BOOKMARK_VERSION), userscript: __USERSCRIPT_CODE__ });
+      // The import by its tool and the game's length, and an out-of-date tool by its kind (design 17).
+      track("import_game", { source, edges: range(record.moves.length, EDGE_RANGES) });
+      if (stale) track("tool_out_of_date", { tool: stale });
       if (stale) { imported = id; phase = "stale"; return; }
-      await goto(`/review?game=${id}`, { replaceState: true });
+      await goto(`/review#game=${id}`, { replaceState: true });
     } catch (e) {
       phase = "failed";
       problem = errorText(e);
+      track("import_failed", { source, reason: "rejected" });
     }
   }
 </script>
@@ -116,7 +127,7 @@
             Drag the bookmarklet below to the bookmarks bar again, in place of the old one: it now loads its code from
             this site, so it stays up to date. For the userscript, open it below, and Tampermonkey offers the update.{/if}
         </p>
-        <p>The game is imported. <a class="inline-block ml-1.5 px-3 py-1 rounded-full bg-accent text-white font-semibold no-underline" href="/review?game={imported}">Open the review</a></p>
+        <p>The game is imported. <a class="inline-block ml-1.5 px-3 py-1 rounded-full bg-accent text-white font-semibold no-underline" href="/review#game={imported}">Open the review</a></p>
       </div>
     {/if}
     <h1 class="text-2xl font-bold">Bring your meaf.us games</h1>

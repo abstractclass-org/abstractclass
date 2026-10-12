@@ -36,7 +36,7 @@
   import { loadDisplay, saveDisplay, type Display } from "./display.ts";
   import { MOVE_SOUND_NAMES, playMove, preload } from "#lib/sound.ts";
   import ExportMenu from "#lib/ExportMenu.svelte";
-  import type { ExportKind } from "#lib/game/reviewFile.ts";
+  import type { ExportKind, ExportResult } from "#lib/game/reviewFile.ts";
   import Glyph from "./Glyph.svelte";
   import { LineDrawing } from "./lineDrawing.svelte.ts";
   import {
@@ -51,6 +51,7 @@
     deepVisits?: number; // the budget of the position on screen: its search bar is full at this many visits
     deeperPositions?: number; // the game's positions searched deeper than the review asked, where the player looked
     ownSettings?: boolean; // the game keeps the network and depth it came with (store.ts, `settings`)
+    onfeature?: (name: string) => void; // a feature used (design 17): the page counts its first use in each review
     onposition?: (path: string[]) => void; // the position on screen changed: its path in the game's tree
     lineSteps?: (path: string[], line: Edge[]) => Promise<LineStep[]>; // a line's edges played: cuts, regions (the rules)
     branches?: Record<string, BranchNode>; // the branches' positions, by path key (tree.ts), in the order added
@@ -71,11 +72,12 @@
     onengine?: (change: Partial<EngineSettings>) => void; // a setting changed in the panel
     gpu?: { status: GpuStatus; downloadMB: string }; // what the GPU does in this review, and its first download (design 15)
     // Exports the review (design 13): the review file, or the annotated record copied or as a file, labelled by `unit`
-    onexport?: (kind: ExportKind, unit: Unit) => Promise<string | void>;
+    onexport?: (kind: ExportKind, unit: Unit) => Promise<ExportResult | void>;
     exportReady?: boolean; // the review is done: export only then (design 13)
   }
   let { R, progress = null, problem = "", deepVisits = 0, onposition, lineSteps, branches = {}, onplay, rulesAt, ondelete,
-        onpromote, onjudge, labelVisits = 0, searching = false, timedOut = false, engine, onengine, gpu, secondAt, otherAt, turnKeys, pendingAt, reviewVisits = 0, onexport, exportReady = true, deeperPositions = 0, ownSettings = false }: Props = $props();
+        onpromote, onjudge, labelVisits = 0, searching = false, timedOut = false, engine, onengine, gpu, secondAt, otherAt, turnKeys, pendingAt, reviewVisits = 0, onexport, exportReady = true, deeperPositions = 0, ownSettings = false, onfeature }: Props = $props();
+  const used = (name: string) => onfeature?.(name);
   const last = $derived(R.data.positions.length - 1);
   const TABLE_ROWS = 5; // the Analysis table shows this many rows and scrolls, so the move list under it does not move
   const ROW_EM = 1.9; // a table row's height, in em
@@ -105,7 +107,15 @@
   // The display settings, kept in this browser (display.ts). They open in the analysis column, in the place of the
   // analysis (Lichess's analysis menu takes the move list's place), so that the board shows each change.
   const display = $state(loadDisplay());
-  $effect(() => saveDisplay($state.snapshot(display)));
+  // Each change of a display setting is kept, and counted by its name (design 17): not the settings as they load.
+  let shownDisplay = $state.snapshot(display);
+  $effect(() => {
+    const now = $state.snapshot(display);
+    saveDisplay(now);
+    const was = shownDisplay;
+    for (const k of Object.keys(now) as (keyof typeof now)[]) if (JSON.stringify(now[k]) !== JSON.stringify(was[k])) used(`display ${k}`);
+    shownDisplay = now;
+  });
   // What the labels judge (design 10): each turn as a whole, or each edge. It sets the labels' unit in the move list, on
   // the board, in the counts and on the chart.
   const unit = $derived<Unit>(display.judge);
@@ -282,7 +292,7 @@
     }
     return out;
   });
-  const play = (k: number) => { if (listLine) playPath([...path, ...listLine.slice(0, k + 1).map(edgeName)]); };
+  const play = (k: number) => { if (listLine) { used("listed line played"); playPath([...path, ...listLine.slice(0, k + 1).map(edgeName)]); } };
   /** Plays a line from the start: along the tree where it is there, as a new branch where it is not, then goes there. */
   async function playPath(target: string[]) {
     if (onplay) await onplay(target);
@@ -291,12 +301,12 @@
   // Space plays the pinned candidate, or number 1 (Lichess's Space plays its best move).
   function playCandidate() {
     const c = pinnedCandidate ?? analysis?.candidates[0];
-    if (c) playPath([...path, edgeName(c.edge)]);
+    if (c) { used("candidate played"); playPath([...path, edgeName(c.edge)]); }
   }
 
   // The player's own moves, always on (Lichess's analysis board): the puzzles' edge input, on the position's rules from
   // the engine. A move that is the game's goes along the game; another makes a branch.
-  const input = new EdgeInput(edge => playPath([...path, edgeName(edge)]));
+  const input = new EdgeInput(edge => { used("own edge played"); playPath([...path, edgeName(edge)]); });
   // The player's notes on the board, by position, for this visit only (Lichess keeps an analysis board's shapes on each
   // position of its tree).
   let notesAt = $state<Record<string, BoardNote[]>>({});
@@ -601,6 +611,7 @@
     return false;
   }
   async function deleteFrom(key: string) {
+    used("branch deleted");
     const p = key.split(" ");
     if (here === key || here.startsWith(`${key} `)) setPath(p.slice(0, -1)); // the place on screen goes too
     await ondelete?.(p);
@@ -665,7 +676,7 @@
     const key = ev.key.length === 1 ? ev.key.toLowerCase() : ev.key, shift = ev.shiftKey;
     const kids = childrenOf(path);
     const line = (step: 1 | -1) => { const l = siblingLine(path, childrenOf, step); if (l) setPath(l); };
-    if (key === "?" || (key === "/" && shift)) keysOpen = !keysOpen;
+    if (key === "?" || (key === "/" && shift)) { keysOpen = !keysOpen; used("keys list"); }
     else if ((key === "e" || key === "l") && engine && onengine) onengine({ on: !engine.on });
     else if ((key === "ArrowLeft" && shift) || key === "b" || key === "[" || (key === "k" && shift)) setPath(prevFork(path, childrenOf));
     else if ((key === "ArrowRight" && shift) || key === "n" || key === "]" || (key === "j" && shift)) setPath(nextFork(path, childrenOf));
@@ -861,7 +872,7 @@
       {#each [["advantage", "Advantage"], ["difficulty", "Difficulty"]] as [key, name] (key)}
         <button class={["px-0 py-0.5 bg-transparent border-0 border-b-2 rounded-none",
                         chart === key ? "border-accent text-ink font-semibold" : "border-transparent text-muted hover:text-ink"]}
-                aria-pressed={chart === key} onclick={() => (chart = key as typeof chart)}>{name}</button>
+                aria-pressed={chart === key} onclick={() => { chart = key as typeof chart; used(`chart ${key}`); }}>{name}</button>
       {/each}
     </div>
     <!-- A click on a box does not focus it, so that the arrow keys still step through the moves (the key handler
@@ -882,10 +893,10 @@
   </div>
   <div class="flex-1 min-h-0">
     {#if chart === "difficulty"}
-      <DifficultyChart positions={gamePositions.length} current={pos} onjump={go} moments={chartMoments} bars={difficultyBars} />
+      <DifficultyChart positions={gamePositions.length} current={pos} onjump={i => { used("chart jump"); go(i); }} moments={chartMoments} bars={difficultyBars} />
     {:else}
     <AdvantageChart blueWin={R.blueWin} {scoreDiff} {areaDiff} current={pos} {showScore} {showArea}
-           tip={chartTip} settled={chartSettled} onjump={go} moments={chartMoments}
+           tip={chartTip} settled={chartSettled} onjump={i => { used("chart jump"); go(i); }} moments={chartMoments}
            points={unit === "turn" ? [0, ...R.turns.map(t => t.end)] : undefined} />
     {/if}
   </div>
@@ -1055,10 +1066,10 @@
   </ContextMenu.Trigger>
   <ContextMenu.Portal>
     <ContextMenu.Content class="z-10 min-w-48 p-1 bg-panel-2 border border-muted/50 rounded-md shadow-[0_6px_20px_rgb(0_0_0/0.4)] text-sm">
-      <ContextMenu.Item disabled={!canPromote(menuPath)} onSelect={() => menuPath && onpromote?.(menuPath.split(" "))}
+      <ContextMenu.Item disabled={!canPromote(menuPath)} onSelect={() => { if (menuPath) { used("branch promoted"); onpromote?.(menuPath.split(" ")); } }}
                         class={MENU_ITEM}>Promote variation</ContextMenu.Item>
       <ContextMenu.Item disabled={!menuPath || (turnKeys?.(menuPath.split(" ")) ?? [menuPath]).every(k => !!branches[k]?.judged)}
-                        onSelect={() => menuPath && onjudge?.(menuPath.split(" "))} class={MENU_ITEM}>Evaluate quality</ContextMenu.Item>
+                        onSelect={() => { if (menuPath) { used("quality evaluated"); onjudge?.(menuPath.split(" ")); } }} class={MENU_ITEM}>Evaluate quality</ContextMenu.Item>
       <ContextMenu.Separator class="my-1 h-px bg-line" />
       <ContextMenu.Item disabled={!menuPath} onSelect={() => menuPath && deleteFrom(menuPath)} class={MENU_ITEM}>Delete from here</ContextMenu.Item>
     </ContextMenu.Content>
@@ -1187,11 +1198,11 @@
   {#if k === 0 || step.turn.first}<span class={["text-muted text-[0.9em]", k > 0 && "ml-1"]}>{turnText(step.turn)}</span>{/if}
   {#if display.branchForm === "text"}
     <button class={["mv px-[0.2rem] py-px bg-transparent border-0 whitespace-nowrap opacity-75 hover:opacity-100 hover:bg-panel-2", SIDE_TEXT[step.mover]]}
-            onclick={() => playPath(p)} onmouseenter={() => startPreview({ kind: "engine", start: engine.start, line: engine.line, k: step.k })}
+            onclick={() => { used("engine line played"); playPath(p); }} onmouseenter={() => startPreview({ kind: "engine", start: engine.start, line: engine.line, k: step.k })}
             onmouseleave={endPreview} tabindex="-1" title={note}>{edgeName(e)}</button>
   {:else}
     <button class="mv flex p-[0.08em] bg-transparent border-0 rounded-full opacity-75 hover:opacity-100 hover:outline hover:outline-ink"
-            onclick={() => playPath(p)} onmouseenter={() => startPreview({ kind: "engine", start: engine.start, line: engine.line, k: step.k })}
+            onclick={() => { used("engine line played"); playPath(p); }} onmouseenter={() => startPreview({ kind: "engine", start: engine.start, line: engine.line, k: step.k })}
             onmouseleave={endPreview} tabindex="-1" title={note}>
       {#if display.branchForm === "pills"}{@render edgePill(e, step.mover, false, null, "")}
       {:else}<span class={["block w-[0.85em] h-[0.85em] rounded-full", SIDE_BG[step.mover]]}></span>{/if}
@@ -1503,7 +1514,7 @@
           highlight={previewing ? null : hover ?? pinnedCandidate?.edge ?? null}
           line={branchPreview ? previewLine : movePreview ? null : drawnLine}
           oncandidateclick={selectRank}
-          oncandidatedblclick={e => playPath([...path, edgeName(e)])}
+          oncandidatedblclick={e => { used("candidate played"); playPath([...path, edgeName(e)]); }}
           pending={input.pending}
           ends={input.ends}
           active={input.active}
@@ -1515,7 +1526,7 @@
           layers={display.layers}
           oncandidate={e => { hoverOnBoard = true; hover = e; }}
           notes={previewing ? [] : notesAt[here] ?? []}
-          onnotes={previewing ? undefined : n => (notesAt[here] = n)}
+          onnotes={previewing ? undefined : n => { if (n.length > (notesAt[here]?.length ?? 0)) used("note drawn"); notesAt[here] = n; }}
         />
       </div>
     </div>

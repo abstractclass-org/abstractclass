@@ -1,6 +1,7 @@
 <script lang="ts">
-  // The review page: one game analysed in the browser (src/lib/analysis/game.svelte.ts). `?game=ID` opens a game the
-  // player imported (src/lib/game/store.ts). Without it, the page opens the last game reviewed in this browser, and
+  // The review page: one game analysed in the browser (src/lib/analysis/game.svelte.ts). `#game=ID` opens a game the
+  // player imported (src/lib/game/store.ts): after the `#`, which neither analytics service records (design 17). An
+  // older address's `?game=ID` moves there. Without it, the page opens the last game reviewed in this browser, and
   // with none, asks for one: there is no sample game (design 11).
   // The board works from the engine's rules at once. Then the sweep, the label pass, deeper searches where the
   // player looks, and the key moments deepened after the label pass (docs/design/05-review-analysis.md). The engine's
@@ -17,10 +18,13 @@
   import { loadManifest, type Manifest } from "#lib/engine/client.ts";
   import { errorText } from "#lib/errors.ts";
   import { playerNames } from "#lib/game/record.ts";
-  import { lastReview, loadGame, markReviewed, rememberReview, reviewMark, setGameSettings, type GameSettings } from "#lib/game/store.ts";
+  import { lastReview, loadGame, markReviewed, rememberReview, reviewCovers, reviewMark, setGameSettings, type GameSettings,
+           type ReviewMark } from "#lib/game/store.ts";
   import { holdReview } from "#lib/game/reviewLock.ts";
-  import { replaceState } from "$app/navigation";
-  import { deliverExport, type ExportKind } from "#lib/game/reviewFile.ts";
+  import { afterNavigate, replaceState } from "$app/navigation";
+  import { track, trackOnce } from "#lib/analytics.svelte.ts";
+  import { CORE_RANGES, EDGE_RANGES, MINUTE_RANGES, range } from "#lib/measure.ts";
+  import { deliverExport, type ExportKind, type ExportResult } from "#lib/game/reviewFile.ts";
   import { annotatedText } from "#lib/review/exportText.ts";
   import type { Unit } from "#lib/review/model.ts";
   import type { GameRecord } from "#lib/game/record.ts";
@@ -46,7 +50,22 @@
   // game's two.
   let own = $state<GameSettings | null>(null);
   const settings = $derived(own ? withReview(engine, own.network, own.visits) : engine);
+  // A setting changed, by its name, its new value and where it applies (design 17): the defaults' test.
+  const SETTING_NAMES: Record<string, string> = { on: "engine_on", visits: "depth_on_screen", seconds: "time_limit", review: "depth_per_move",
+                                                  customReview: "depth_per_move", network: "network", workers: "workers", gpu: "gpu" };
+  function countChange(change: Partial<EngineSettings>) {
+    const next = { ...settings, ...change }, names = new Set<string>();
+    for (const k of Object.keys(change)) {
+      const setting = SETTING_NAMES[k] ?? k;
+      if (names.has(setting)) continue;
+      names.add(setting);
+      const value = setting === "depth_per_move" ? reviewVisits(next) : setting === "network" ? next.network.split("-")[0]
+        : String(next[k as keyof EngineSettings] ?? "none");
+      track("setting_change", { setting, value, scope: own && (setting === "network" || setting === "depth_per_move") ? "game" : "browser" });
+    }
+  }
   function changeEngine(change: Partial<EngineSettings>) {
+    countChange(change);
     const { network, review, customReview, ...rest } = change;
     if (own && kept && (network !== undefined || review !== undefined || customReview !== undefined)) {
       const next = { ...settings, ...change };
@@ -116,11 +135,33 @@
   // The review is done: every step of the bar, with the network loaded. The game keeps the mark of it (store.ts), so
   // that the home page can offer its export, and the Export menu opens (design 13).
   const reviewDone = $derived(!!game?.engineReady && !rawProgress);
+  // The review's events (design 17): when it opens and when it ends, with what it ran with and how long it took. The
+  // time counts from the review's start, or from a change of its network or depth, which starts it again. A review that
+  // opened already done (its results in the store) sends no end.
+  let markBefore: ReviewMark | undefined; // the game's mark when the page opened it
+  let startedAt = 0, doneBefore = false;
+  function reviewParams(): Record<string, string | number | boolean> {
+    return {
+      network: settings.network.split("-")[0], depth: budget, depth_on_screen: engine.visits, time_limit: engine.seconds ?? 0,
+      workers: engine.workers, gpu_mode: engine.gpu, cores: range(navigator.hardwareConcurrency || 1, CORE_RANGES),
+      edges: range(moveCount, EDGE_RANGES), own_settings: !!own,
+    };
+  }
+  $effect(() => {
+    void budget; void settings.network;
+    untrack(() => { if (startedAt) { startedAt = performance.now(); doneBefore = false; } });
+  });
   $effect(() => {
     if (!reviewDone) return;
     untrack(() => {
       const mark = manifest && reviewMark(manifest, network, budget);
       if (kept && mark) void markReviewed(kept.id, mark);
+      if (!kept || !startedAt || doneBefore) return;
+      const seconds = (performance.now() - startedAt) / 1000, speed = pool?.workerSpeed;
+      trackOnce(`${kept.id} done ${network} ${budget}`, "review_done", {
+        ...reviewParams(), review_seconds: Math.round(seconds), minutes: range(seconds / 60, MINUTE_RANGES),
+        gpu_used: gpu?.status.state === "on", ...(speed ? { worker_speed: 5 * Math.round(speed / 5) } : {}),
+      });
     });
   });
   $effect(() => {
@@ -189,7 +230,7 @@
       await next.start(manifest, id);
     } catch (e) {
       next.terminate();
-      if (network === id) error = errorText(e);
+      if (network === id) { error = errorText(e); track("engine_error", { kind: "load" }); }
       return;
     }
     if (network !== id) { next.terminate(); return; } // another network was chosen meanwhile
@@ -217,21 +258,35 @@
   });
 
   let noGame = $state(false);
+  // Another game named after the `#` while the page shows one (an address typed, or back and forward): the page
+  // reviews that one from the start.
+  afterNavigate(() => { if (kept && gameInAddress() !== kept.id) location.reload(); });
+  /** The game the address names: after the `#`, or in an older address's query, which then moves after the `#` at
+   *  once, before the analytics start. */
+  function gameInAddress(): string | null {
+    const named = new URLSearchParams(location.hash.slice(1)).get("game");
+    if (named) return named;
+    const old = new URLSearchParams(location.search).get("game");
+    if (old) replaceState(`/review#game=${old}`, {});
+    return old;
+  }
   /** The game to review: the imported one named in the address, else the last one reviewed here. Null when there is
    *  none. */
   async function chooseGame(): Promise<string[] | null> {
-    const named = new URLSearchParams(location.search).get("game");
+    const named = gameInAddress();
     const id = named ?? lastReview();
     if (!id) return null;
     const stored = await loadGame(id);
     if (!stored) {
-      if (named) throw new Error(`This browser has no game ${id}. Import it on the home page.`);
+      // A review's address opened in a browser that lacks its game (a review's address sent to someone): counted.
+      if (named) { track("game_missing"); throw new Error(`This browser has no game ${id}. Import it on the home page.`); }
       rememberReview(null); // the last game is gone (its site data was cleared)
       return null;
     }
-    if (!named) replaceState(`?game=${id}`, {}); // the address names the game, so a reload keeps it
+    if (!named) replaceState(`#game=${id}`, {}); // the address names the game, so a reload keeps it
     rememberReview(id);
     kept = { id, text: stored.game.record, record: stored.record };
+    markBefore = stored.game.reviewed;
     const s = stored.game.settings;
     own = s && NETWORKS.some(n => n.id === s.network) ? s : null; // a network the site no longer ships: the browser's
     players = playerNames(stored.record.tags);
@@ -275,18 +330,23 @@
         if (pool === first) throw e; // else another network took over while this one loaded
         return;
       }
-      if (!g.rulesReady || pool !== first) return; // the rules refused the game (the page shows why), or another pool took over
+      if (!g.rulesReady) { track("engine_error", { kind: "rules" }); return; } // the rules refused the game: the page shows why
+      if (pool !== first) return; // another pool took over
       controlGpu(first, network);
+      doneBefore = reviewCovers(markBefore, reviewMark(manifest, network, budget));
+      startedAt = performance.now();
+      track("review_open", { ...reviewParams(), done_before: doneBefore });
       await g.sweep();
     } catch (e) {
-      if (!elsewhere) error = errorText(e); // a review stopped for another tab fails its searches: no error to show
+      // A review stopped for another tab fails its searches: no error to show.
+      if (!elsewhere) { error = errorText(e); if (kept) track("engine_error", { kind: "load" }); }
     }
   });
   onDestroy(() => { gpu?.end(); pool?.terminate(); freeLock?.(); }); // a GPU worker that starts later then ends (GpuControl)
 
   /** The review exported (design 13): the review file, with the engine's results, or the annotated record, copied or as
    *  a file. The record's labels are the page's (by turn or by edge). */
-  async function exportAs(kind: ExportKind, unit: Unit): Promise<string | void> {
+  async function exportAs(kind: ExportKind, unit: Unit): Promise<ExportResult | void> {
     const k = kept;
     if (!k) return;
     return deliverExport(kind, k.id, k.text, manifest, SITE_VERSION, () => {
@@ -319,7 +379,7 @@
               turnKeys={path => game?.turnKeys(path) ?? []} pendingAt={path => game?.pending(path) ?? false} reviewVisits={budget}
               ondelete={path => game!.deleteFrom(path)} onpromote={path => game!.promote(path)}
               onjudge={path => game!.judge(path)} labelVisits={LABEL_VISITS} engine={settings} onengine={changeEngine}
-              ownSettings={!!own}
+              ownSettings={!!own} onfeature={name => kept && trackOnce(`${kept.id} ${name}`, "feature", { name })}
               gpu={{ status: gpu?.status ?? { state: "off" }, downloadMB: manifest ? gpuDownloadMB(manifest, settings.network) : "?" }}
               timedOut={!!game?.stoppedByTime(current)}
               searching={!!game && game.focusing === pathKey(current)}

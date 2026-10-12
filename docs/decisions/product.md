@@ -2061,3 +2061,29 @@ The interface, the review, puzzles, lessons, labels and thresholds.
 - **The Export's notes:** a toast at the foot of the window, with a close button, in place of the short text beside the
   button, which had no room for a link's length or a warning. Checked in Edge: the copy of a share link showed "Link
   copied (451 characters). The recipient's browser reviews the game again." in the toast.
+
+### Events for the decisions that wait on data (2026-10-13)
+
+- **What the services gave:** Cloudflare's Web Analytics counts visits, pages, referrers, countries, devices and the
+  pages' speed, and takes no events. Google Analytics counted page views. Neither told whether a visitor imports a game
+  or finishes a review, or how long a review takes. Cloudflare's "Observability" is for Workers, and the site has none.
+- **Decided** (design 17): events to Google Analytics, one for each decision, in counts and ranges, never a game, a
+  name or a game's id. The review's address names its game after the `#` (`/review#game=ID`), which neither service
+  records: Google Analytics records a page's query. The privacy page lists the events.
+- **Checked** in Edge, on the local preview's other address, with a build that had a made-up measurement ID
+  (`G-TEST000000`), so that the events went to the page's `dataLayer` and to no property of the site:
+  - The home page set `games_stored` ("2-4"). An address with `?game=` became `/review#game=…`.
+  - A review of 25 edges sent `review_open` (with its settings, `cores` "9-16", `edges` "1-29", `done_before` false),
+    and at its end `review_done` (66 seconds, "1-2" minutes, `worker_speed` 35, `gpu_used` true). The machine was
+    loaded, so that speed is no baseline.
+  - The key list, opened twice, sent one `feature`. The two chart tabs sent theirs.
+  - A change of the GPU setting sent `setting_change` (gpu, off, browser) and back. A share link copied sent `export`
+    (link, "0-499", not too long).
+  - A record pasted on the home page sent `import_game` (record, "1-29"), and its review `review_open` with
+    `done_before` true and no `review_done`. A share link's page sent `share_open`, and a broken link `import_failed`
+    (share_link, link).
+  - A review address of a game that the browser lacks sent `engine_error` (load) at first: it now sends
+    `game_missing`, and `engine_error` counts the engine's failures only.
+- **Not checked:** `tool_out_of_date`, `gpu_test` (this browser had its GPU's test stored), `game_delete` and
+  `game_restore` in the browser, and the events in Google Analytics itself, which waits on the release and the
+  owner's registration of the parameters.

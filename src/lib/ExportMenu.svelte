@@ -6,9 +6,12 @@
   // the game's review is done (`ready`): before, `why` says what to do.
   import { DropdownMenu } from "bits-ui";
   import { errorText } from "#lib/errors.ts";
-  import type { ExportKind } from "#lib/game/reviewFile.ts";
+  import type { ExportKind, ExportResult } from "#lib/game/reviewFile.ts";
+  import { track } from "#lib/analytics.svelte.ts";
+  import { DISCORD_LIMIT } from "#lib/game/share.ts";
+  import { LINK_RANGES, range } from "#lib/measure.ts";
   let { run, side = "top", small = false, ready = true, why = "" }:
-    { run: (kind: ExportKind) => Promise<string | void>; side?: "top" | "bottom"; small?: boolean; ready?: boolean; why?: string } = $props();
+    { run: (kind: ExportKind) => Promise<ExportResult | void>; side?: "top" | "bottom"; small?: boolean; ready?: boolean; why?: string } = $props();
 
   // Each kind: its entry, a line on what the other end gets (the link and the file differ most there: the link holds
   // no results, design 13), and the note after it.
@@ -28,7 +31,10 @@
     failed = false;
     clearTimeout(timer);
     try {
-      note = (await run(kind)) || done;
+      const r = await run(kind);
+      note = r?.note || done;
+      // Each export by its kind, and a link by its length (design 17).
+      track("export", r?.linkLength ? { kind, link_length: range(r.linkLength, LINK_RANGES), too_long: r.linkLength > DISCORD_LIMIT } : { kind });
     } catch (e) {
       note = `Export failed: ${errorText(e)}`;
       failed = true;

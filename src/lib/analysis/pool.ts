@@ -157,6 +157,10 @@ export class EnginePool {
   /** Whether the GPU's engines are in the pool. */
   get hasGpu(): boolean { return this.gpu !== null; }
 
+  /** A CPU worker's visits a second over the searches that ended so far, or null before one ends: the machine's speed,
+   *  which the review reports when it ends (design 17). */
+  get workerSpeed(): number | null { return this.speed.cpuRate; }
+
   /** The GPU's first-use test (analysis/gpu.svelte.ts): a CPU worker's visits a second and the GPU worker's evaluations a
    *  second, once each has searched for `seconds`. The GPU's count is sampled once a second, only while the test runs.
    *  It never resolves when the GPU leaves the pool first. */
@@ -282,6 +286,9 @@ export class SpeedMeter {
 
   /** Another GPU worker: its count starts from zero. */
   gpuReset() { this.last = null; }
+
+  /** A CPU worker's visits a second, over every search that ended, or null before one ends. */
+  get cpuRate(): number | null { return this.cpu.ms > 0 ? (1000 * this.cpu.visits) / this.cpu.ms : null; }
 
   /** A sample of the GPU worker's evaluations so far. */
   gpuSample(evaluations: number) {

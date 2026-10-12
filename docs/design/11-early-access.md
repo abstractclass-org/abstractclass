@@ -59,8 +59,9 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
    the visitor accepts. A banner asks once, with Accept and Decline alike. The privacy page shows the choice, can
    change it, and names what the pings hold. Neither service sees a game: the bookmarklet hands a game to the import
    page in the address's fragment (after `#`), and that page removes it before it starts them. Every other page
-   starts them from the layout. The build names the services (`VITE_GA_ID`, `VITE_CF_ANALYTICS_TOKEN`). Without
-   them, as in development, nothing loads.
+   starts them from the layout, and the review page names its game after the `#` too (`/review#game=ID`). Google
+   Analytics also takes events, in counts and ranges, for the decisions that wait on data (design 17). The build
+   names the services (`VITE_GA_ID`, `VITE_CF_ANALYTICS_TOKEN`). Without them, as in development, nothing loads.
 8. **The notation page:** a full description of the position notation and the game record notation, written so that
    other developers can follow it, as PGN's standard describes PGN. The notations are decided in the engine
    repository's design (its `docs/design/04-notation-and-protocol.md`). That repository is private, so this page is

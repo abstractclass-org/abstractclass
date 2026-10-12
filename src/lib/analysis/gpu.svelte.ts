@@ -10,6 +10,7 @@ import type { GpuMode } from "./engineSettings.ts";
 import { gpuFilesOf, megabytes, type Manifest } from "#lib/engine/client.ts";
 import { GpuEngines, gpuSupport } from "#lib/engine/gpuClient.ts";
 import { errorText } from "#lib/errors.ts";
+import { track } from "#lib/analytics.svelte.ts";
 import { readLocalJson, writeLocal } from "#lib/storage/local.ts";
 
 /** The searches that the GPU worker runs at once: one for each WebAssembly instance, their evaluations batched. The
@@ -142,7 +143,7 @@ export class GpuControl {
       await gpu.start(this.manifest, testFor.network, GPU_SEARCHES);
     } catch (e) {
       gpu.terminate();
-      if (!this.ended) this.status = { state: "failed", message: errorText(e) };
+      if (!this.ended) { this.status = { state: "failed", message: errorText(e) }; track("engine_error", { kind: "gpu" }); }
       return;
     } finally {
       this.starting = false;
@@ -155,6 +156,9 @@ export class GpuControl {
     const speed = await this.pool.measureGpu(TEST_SECONDS);
     const test = { gpu: Math.round(speed.gpu), cpu: Math.round(speed.cpu), at: new Date().toISOString() };
     saveGpuTest(testFor, test);
+    // The GPU against a worker, by the GPU's maker and kind (design 17): whether the GPU pays off on visitors' machines.
+    track("gpu_test", { outcome: gpuFaster(test) ? "faster" : "slower", ratio: Math.round((10 * test.gpu) / Math.max(1, test.cpu)) / 10,
+                        gpu: adapter, network: testFor.network.split("-")[0] });
     if (this.ended) return;
     if (this.mode === "on" || gpuFaster(test)) this.status = { state: "on", adapter, test };
     else { this.pool.dropGpu(); this.status = { state: "slower", adapter, test }; }

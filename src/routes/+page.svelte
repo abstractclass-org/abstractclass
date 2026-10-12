@@ -19,6 +19,8 @@
   import { loadManifest, type Manifest } from "#lib/engine/client.ts";
   import { annotatedFromStore } from "#lib/review/exportText.ts";
   import ExportMenu from "#lib/ExportMenu.svelte";
+  import { setVisitor, track } from "#lib/analytics.svelte.ts";
+  import { EDGE_RANGES, GAME_RANGES, range } from "#lib/measure.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
   import { SAMPLE } from "#lib/mock/sample.ts";
 
@@ -37,6 +39,7 @@
   const wanted = (g: StoredGame) => manifest && reviewMark(manifest, g.settings?.network ?? engine.network, g.settings?.visits ?? reviewVisits(engine));
   onMount(async () => {
     games = await listGames();
+    setVisitor({ games_stored: range(games.length, GAME_RANGES) }); // how many games a visitor keeps (design 17)
     manifest = await loadManifest();
   });
 
@@ -47,13 +50,13 @@
 
   async function remove(id: string) {
     const was = await deleteGame(id);
-    if (was) deleted = { ...deleted, [id]: was };
+    if (was) { deleted = { ...deleted, [id]: was }; track("game_delete"); }
   }
 
   async function undo(id: string) {
     const { [id]: was, ...rest } = deleted;
     deleted = rest;
-    if (was) await restoreGame(was);
+    if (was) { await restoreGame(was); track("game_restore"); }
   }
 
   /** Where in the text: line and column, from the record reader's offset. */
@@ -66,12 +69,15 @@
     event.preventDefault();
     problem = "";
     let record: GameRecord, recordText = text;
+    // The import counted by its source and the game's length, and a failure by why (design 17): no record leaves.
+    const source = isConstellation(text) ? "constellation" : "record";
     try {
       // Constellation's export becomes this site's record (constellation.ts), which is checked like any other.
-      if (isConstellation(text)) recordText = constellationRecord(text);
+      if (source === "constellation") recordText = constellationRecord(text);
       record = parseRecord(recordText);
     } catch (e) {
       problem = e instanceof RecordError && recordText === text ? `${e.message} (${where(e.offset)}).` : errorText(e);
+      track("import_failed", { source, reason: "record" });
       return;
     }
     checking = true;
@@ -80,11 +86,13 @@
       id = await importRecord(recordText, record);
     } catch (e) {
       problem = errorText(e);
+      track("import_failed", { source, reason: "rejected" });
       return;
     } finally {
       checking = false;
     }
-    await goto(`/review?game=${id}`);
+    track("import_game", { source, edges: range(record.moves.length, EDGE_RANGES) });
+    await goto(`/review#game=${id}`);
   }
 
   // Review files (design 13): exported beside each game, imported here from a file chosen or dropped on the page. For
@@ -107,9 +115,12 @@
       // Only the networks this site ships: a result of another network is never asked for here.
       const manifest = await loadManifest();
       const { id } = await importReview(review, shippedModels(manifest), shippedModule(manifest));
-      await goto(`/review?game=${id}`);
+      track("import_game", { source: "review_file", edges: range(parseRecord(review.record).moves.length, EDGE_RANGES),
+                             with_results: review.analyses.length > 0 });
+      await goto(`/review#game=${id}`);
     } catch (e) {
       fileProblem = `The file could not be imported: ${errorText(e)}`;
+      track("import_failed", { source: "review_file", reason: "file" });
     } finally {
       importing = false;
     }
@@ -173,7 +184,7 @@
               <span class="text-sm text-muted" role="status">Deleted {title(record)}.</span>
               <span class="ml-auto"><button type="button" class="px-2 py-0 text-xs" onclick={() => undo(game.id)}>Undo</button></span>
             {:else}
-              <a href="/review?game={game.id}">{title(record)}</a>
+              <a href="/review#game={game.id}">{title(record)}</a>
               <span class="text-sm text-muted">{record.moves.length} edges{record.result && record.result !== "*" ? ` · ${record.result}` : ""} ·
                 imported {new Date(game.added).toLocaleDateString()}</span>
               <span class="ml-auto flex items-center gap-1.5"><ExportMenu small side="bottom" run={kind => exportGame(game.id, game.record, kind)}

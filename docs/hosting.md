@@ -150,6 +150,10 @@ site (`noindex`). **Preview access** in the project's settings can put them behi
   owner's tailnet address.
 - In the stream's enhanced measurement, keep **"Page changes based on browser history events"** on: it counts the
   site's page changes, which happen without a page load.
+- **The site's events** (design 17): register each parameter as a custom dimension or metric, mark the key events, and
+  set the data retention to 14 months, as design 17's "The setup in Google Analytics" lists them. Without the
+  registration, the events show in Realtime only. The early-access test of the events used a made-up ID
+  (`G-TEST000000`), so none of its events are in the property.
 - The site loads the Google tag itself, in Google's consent mode, advanced form: Google's own snippet is not pasted
   anywhere. A build without `VITE_GA_ID` has no Google code.
 - **One property for Hedge School.** Other sites on the domain, from other repositories, can have their own properties:

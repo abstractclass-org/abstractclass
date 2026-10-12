@@ -4,7 +4,11 @@
 //
 // The build names the two services (VITE_GA_ID, VITE_CF_ANALYTICS_TOKEN). Without them, as in development, nothing
 // loads and no banner shows. Neither service sees a game: the import page removes a record from the address before it
-// starts them (src/routes/import/+page.svelte), and every other page starts them from the layout.
+// starts them (src/routes/import/+page.svelte), every other page starts them from the layout, and the review page
+// names its game after the `#`, which neither records.
+//
+// Google Analytics also takes events (design 17): what a visitor did, in counts and ranges (measure.ts), for the
+// decisions in that design. A visitor who has not accepted sends them as cookieless pings, counted with no visitor.
 import { readLocal, writeLocal } from "#lib/storage/local.ts";
 
 const GA_ID: string | undefined = import.meta.env.VITE_GA_ID;
@@ -53,6 +57,26 @@ export function startAnalytics() {
     gtag("config", GA_ID);
     addScript(`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`);
   }
+}
+
+/** Sends an event to Google Analytics (design 17): its name and parameters, counts and ranges only, never a game, a
+ *  player's name or a game's id. Nothing in a build without it, or before the services start. */
+export function track(name: string, params: Record<string, string | number | boolean> = {}) {
+  if (GA_ID && started) gtag("event", name, params);
+}
+
+const sent = new Set<string>();
+/** Sends an event once for each `key` in this page's life: a feature's first use in a review, not each use. The key
+ *  stays in the page: it may name the game. */
+export function trackOnce(key: string, name: string, params: Record<string, string | number | boolean> = {}) {
+  if (sent.has(key)) return;
+  sent.add(key);
+  track(name, params);
+}
+
+/** Sets properties of the visitor that Google Analytics gives every later event (ranges only). */
+export function setVisitor(properties: Record<string, string>) {
+  if (GA_ID && started) gtag("set", "user_properties", properties);
 }
 
 /** Keeps the visitor's choice and tells the Google tag. */

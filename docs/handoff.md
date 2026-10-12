@@ -78,6 +78,9 @@ It holds no backlog: everything still to do that is not in flight is in
   that keeps the settings it came with (in place of a change of the browser's), the key moments at twice the
   review's depth, the likely edges' meter hidden while the engine settings are open, the Export's notes in a toast, and design 16
   (every depth and setting together, with examples).
+- **Released to `main` on 2026-10-13, after `a6279fa`:** events to Google Analytics (design 17, decisions/product.md, "Events for the decisions that wait on
+  data"), and the review's address with its game after the `#`. To do, by the owner, after the release: register the
+  parameters in Google Analytics (design 17, "The setup in Google Analytics").
 - **For the owner, after the release of `99106ff`:**
   - Drag the bookmarklet to the bar again: its code changed.
   - Install the userscript again from the live site's import page, then remove the copy from the local preview in
