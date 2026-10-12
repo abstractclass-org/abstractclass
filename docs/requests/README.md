@@ -21,3 +21,4 @@ accepted, done (with the engine repository's commit, tag or document), or declin
 | 09 | [Bot games analysed for the win curve: the V2 gauntlet's middle](09-bot-games-analysis.md) | accepted: being run |
 | 10 | [The site's network at fewer visits: the GPU visit ladder analysed](10-visit-ladder-analysis.md) | open: to tell the engine repository |
 | 11 | [The notation, described for other developers: settle its open points and confirm the page](11-notation-page.md) | done (the engine repository's design 04), the page changed |
+| 12 | [The engine's name: HedgeFund, with a name for each released network](12-network-names.md) | open: to tell the engine repository |

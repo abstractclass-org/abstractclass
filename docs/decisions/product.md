@@ -1553,3 +1553,18 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   for the download (7 MB) and whose official one (40 MB) is a choice in its engine menu, with its size. The Network
   choice now names each network's download: "3.2M params (6.5 MB)", "10.3M params (20.6 MB)", from
   `engine.lock.json`. Its help line adds that a network downloads once and the browser keeps it.
+- **The break:** in a narrow panel (a window 1,311 pixels wide gives each choice 145 pixels) the names wrapped inside
+  their parts. No-break spaces inside "3.2M params" and "6.5 MB" leave the space before the parenthesis as the only
+  break. Checked in Edge at the panel's own width and at 260 and 200 pixels.
+
+### The engine named HedgeFund; work on a `dev` branch (2026-10-12)
+
+- **The names:** the engine is HedgeFund. The networks are to show as "HedgeFund 1 Lite (6.5 MB)" and "HedgeFund 1
+  (20.6 MB)". The name identifies the engine and its network everywhere (the site, the bots, the Discord), so the
+  engine repository gives it, in its release manifest, and the site adds the size (request 12). Until then, the
+  settings name the networks by their parameters and sizes.
+- **The branches:** work on `dev`, pushed after each commit, so that GitHub holds the work; `main` is the live site,
+  released by `git push origin dev:main`. Pages builds each push to `dev` as a preview. The other way (work on `main`,
+  Pages deploying another branch) works the same, but keeps less to the convention that `main` is what runs.
+- **The preview's variables** in Pages: `VITE_EDITION=early` and `VITE_GA_ID`, no Cloudflare token. `VITE_GA_ID` is to
+  go from the preview environment, so that visits to previews are not counted.

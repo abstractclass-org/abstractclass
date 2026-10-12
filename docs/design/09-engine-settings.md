@@ -52,7 +52,8 @@ each applies at once, without a reload.
      key moments stay at 1,024 visits. A branch move evaluated on request is searched to the review's depth.
    - **Engine:** "Network", named by its parameters and its download: "3.2M params (6.5 MB)" (b10c128, the default)
      or "10.3M params (20.6 MB)" (b15c192), the sizes from `engine.lock.json`. The help line adds that a network
-     downloads once and the browser keeps it. The board keeps
+     downloads once and the browser keeps it. A panel too narrow for a name on one line breaks it before the
+     parenthesis ("3.2M params" over "(6.5 MB)"): no-break spaces hold each part together. The board keeps
      the old pool's rules while a new pool loads the other network. Then the analysis starts again, since every result
      came from the old network. The browser's store keys results by network, so a network's results come back at once
      when the player returns to it. "Workers": from 1 to the machine's logical cores, half the cores (1 to 8) by

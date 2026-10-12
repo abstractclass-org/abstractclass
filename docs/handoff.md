@@ -47,6 +47,11 @@ It holds no backlog: everything still to do that is not in flight is in
 - **The early access** ([design/11-early-access.md](design/11-early-access.md), decisions/product.md, "Early access:
   the review only, as Hedge School"). Built and checked in Edge: the build switch, the name, no sample game, the
   pages About, The notation, Privacy and Notices, the Constellation import, unlisted. To do:
+  - **Branches:** work on `dev`, pushed after each commit; release with `git push origin dev:main` when the owner says
+    (hosting.md, section 2). To do, by the owner: remove `VITE_GA_ID` from the Pages project's preview variables.
+  - **The engine's name, HedgeFund:** request 12 (open, the owner takes it to the engine repository). When the release
+    manifest names the networks, copy the names into `engine.lock.json` and show "HedgeFund 1 Lite (6.5 MB)" in the
+    engine settings (`networkLabel` in `ReviewView.svelte`).
   - **Hosting: live** at `hedgeschool.abstractclass.org`, set up as [hosting.md](hosting.md) tells
     (decisions/product.md, "The site live on Cloudflare Pages"). Not yet checked: a review on the live site in Edge.
   - **Analytics: live and checked** (decisions/product.md, "The analytics live"): Google Analytics, and Cloudflare Web

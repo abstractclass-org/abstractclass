@@ -11,7 +11,7 @@ entries before it).
 |---|---|---|
 | The domain | `abstractclass.org`, registered at Porkbun | The site's address is `hedgeschool.abstractclass.org`. |
 | DNS | Cloudflare (the zone `abstractclass.org`, free plan), with DNSSEC | Answers for the domain. Porkbun keeps only the registration. |
-| The code | The private GitHub repository `seankao31/hedgeschool`, branch `main` | Every push to `main` deploys. |
+| The code | The private GitHub repository `seankao31/hedgeschool`: `dev` for the work, `main` for the live site | A push to `main` deploys. A push to `dev` builds a preview. |
 | The host | Cloudflare Pages, the project `hedgeschool` | Builds the site from the repository and serves the files. Also at `hedgeschool.pages.dev`. |
 | The engine | GitHub Releases of the public repository `seankao31/enclosure-engine` | The module and the networks, pinned by SHA-256 in `engine.lock.json`. The build downloads them. |
 | Visit counts | Google Analytics (the property's measurement ID `G-C5RY6DWGWN`) and Cloudflare Web Analytics | Counted in the browser (`src/lib/analytics.svelte.ts`). |
@@ -49,7 +49,13 @@ Cloudflare's onboarding also suggests:
 ## 2. The repository
 
 The site's repository is private on GitHub: `seankao31/hedgeschool`. Its remote in the local checkout is `origin`
-(SSH). Pages builds `main`. Other branches build preview deployments, at their own `pages.dev` addresses.
+(SSH). Two branches:
+
+- **`dev`:** the work. Each commit is pushed to it, so that GitHub holds the local work. Pages builds each push to
+  `dev` as a preview deployment, at `dev.hedgeschool.pages.dev` (and at an address for each deployment), with the
+  preview environment's variables.
+- **`main`:** the live site. A release brings `main` to `dev`'s commit: `git push origin dev:main` (a fast-forward).
+  Pages then builds and publishes it at `hedgeschool.abstractclass.org`.
 
 What the repository holds for Pages:
 
@@ -103,8 +109,19 @@ Cloudflare adapter would also put each request through a Worker: the free plan's
 `_headers` does not apply to a Worker's responses.
 
 **The variables** are read when the site is built, so a change needs a new deploy (**Deployments → Retry deployment**,
-or a push). A variable can differ between production and preview deployments: keep `VITE_GA_ID` and
-`VITE_CF_ANALYTICS_TOKEN` on production only, so that previews are not counted.
+or a push). Production and preview deployments have their own (**Settings**, then the environment's selector at the
+top right):
+
+| Variable | Production | Preview |
+|---|---|---|
+| `VITE_EDITION` | `early` | `early` |
+| `VITE_GA_ID` | the measurement ID | none, so that previews are not counted |
+| `VITE_CF_ANALYTICS_TOKEN` | the token | none |
+
+**Preview deployments** (**Settings → Branch control**, preview branch: all branches other than `main`): free, as
+production builds are. Each counts toward the free plan's 500 builds a month, and the free plan builds one at a time,
+so a preview that is building delays a release by a minute or so. Preview addresses are public, and unlisted like the
+site (`noindex`). **Preview access** in the project's settings can put them behind a sign-in (Cloudflare Access).
 
 ## 4. Google Analytics
 
@@ -150,8 +167,8 @@ or a push). A variable can differ between production and preview deployments: ke
 
 ## Deploy, check and roll back
 
-- **Deploy:** push to `main`. Pages builds and publishes in a few minutes. A failed build leaves the live site as it
-  was.
+- **Deploy:** release `dev` to `main` (`git push origin dev:main`). Pages builds and publishes in a minute or two. A
+  failed build leaves the live site as it was. Try a change first on `dev`'s preview.
 - **Check:** the footer's version is the commit that Pages built. On the live site, these hold (all true on
   2026-10-12, at commit `3580146`):
   - every page and file answers with `X-Robots-Tag: noindex`, and an unknown address answers 404;

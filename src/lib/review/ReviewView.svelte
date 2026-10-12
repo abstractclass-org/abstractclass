@@ -570,6 +570,9 @@
   /** A network's download in MB (10^6 bytes), one decimal, from engine.lock.json, which the deploy fetches by: what a
    *  change of network costs, as Lichess's engine menu gives each engine's size. */
   const downloadMB = (id: string) => ((lock.artifacts.find(a => a.id === id)?.bytes ?? 0) / 1e6).toFixed(1);
+  /** A network's name in the settings: "3.2M params (6.5 MB)". Its parts hold no-break spaces, so that a narrow panel
+   *  breaks the name only before the parenthesis. */
+  const networkLabel = (params: string, id: string) => `${params}\u00a0params (${downloadMB(id)}\u00a0MB)`;
   // Lichess's move menu on a branch's move (ui/analyse/src/treeView/contextMenu.ts): "Promote variation" and "Delete
   // from here". The game's own moves have no menu: the review is of the game, so its line stays first ("Make main line"
   // is for an analysis board, later).
@@ -1272,7 +1275,7 @@
       {/if}
       <h3 class={SETTINGS_HEAD}>Engine</h3>
       {@render choice("Network", "The larger is stronger per visit but about 3× slower. A change reviews the game again. A network downloads once, and the browser keeps it.",
-        NETWORKS.map(n => [n.id, `${n.params} params (${downloadMB(n.id)} MB)`]), () => e.network, v => set({ network: v }))}
+        NETWORKS.map(n => [n.id, networkLabel(n.params, n.id)]), () => e.network, v => set({ network: v }))}
       {@render steps("Workers", `Positions searched at the same time. Each uses about ${memory} MB.`, maxWorkers(),
         () => e.workers - 1, k => set({ workers: k + 1 }), k => `${k + 1} of ${maxWorkers()}`)}
       <!-- Done after the last setting, away from the gear that opened it (the display settings' Done is at their top,
