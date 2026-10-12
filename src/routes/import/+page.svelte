@@ -1,18 +1,23 @@
 <script lang="ts">
   // Import: a game record after the `#` (from the meaf.us bookmarklet or userscript, src/lib/game/bookmarklet.ts and
   // userscript.ts) is checked with the engine's rules, given its cut marks, kept in this browser, and opened in the
-  // review. Without one, the page shows the bookmarklet and the userscript, and how to install them.
+  // review. Without one, the page shows the bookmarklet and the userscript, and how to install them. A record from an
+  // out-of-date tool (importHash.ts) is kept too, and the page then says how to update the tool, with the review a
+  // click away.
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
   import { parseRecord } from "#lib/game/record.ts";
   import { importRecord } from "#lib/game/import.ts";
   import { errorText } from "#lib/errors.ts";
-  import { bookmarkletHref } from "#lib/game/bookmarklet.ts";
+  import { BOOKMARK_VERSION, bookmarkletHref } from "#lib/game/bookmarklet.ts";
+  import { readImportHash, staleTool, type Tool } from "#lib/game/importHash.ts";
   import { startAnalytics } from "#lib/analytics.svelte.ts";
 
-  let phase = $state<"install" | "importing" | "failed">("install");
+  let phase = $state<"install" | "importing" | "failed" | "stale">("install");
   let problem = $state("");
   let href = $state("");
+  let stale = $state<Tool | "older" | null>(null);
+  let imported = $state(""); // the game's id, for the review's link while the page asks to update a tool
 
   onMount(() => {
     href = bookmarkletHref(location.origin);
@@ -29,8 +34,10 @@
     phase = "importing";
     history.replaceState(null, "", location.pathname); // the record is kept below, not in the address
     try {
-      const text = decodeURIComponent(hash);
+      const sent = readImportHash(hash), text = sent.record;
       const id = await importRecord(text, parseRecord(text));
+      stale = staleTool(sent, { bookmarklet: String(BOOKMARK_VERSION), userscript: __USERSCRIPT_CODE__ });
+      if (stale) { imported = id; phase = "stale"; return; }
       await goto(`/review?game=${id}`, { replaceState: true });
     } catch (e) {
       phase = "failed";
@@ -46,11 +53,26 @@
     <p class="text-muted">Importing the game…</p>
   {:else}
     {#if phase === "failed"}<p class="text-blunder" role="alert">The game could not be imported: {problem}</p>{/if}
+    {#if phase === "stale"}
+      <div class="grid gap-2 px-4 py-3 bg-panel border border-accent rounded-lg" role="status">
+        <p>
+          {#if stale === "bookmarklet"}Your bookmarklet is an older one. Drag the button below to the bookmarks bar again,
+            in place of the old one.
+          {:else if stale === "userscript"}Your userscript is older than this site's. Tampermonkey updates it when it next
+            checks. To update it now, open the Hedge School userscript below, and Tampermonkey offers the update.
+          {:else}This game came from a bookmarklet or a userscript made before they could tell this site their version.
+            Drag the bookmarklet below to the bookmarks bar again, in place of the old one: it now loads its code from
+            this site, so it stays up to date. For the userscript, open it below, and Tampermonkey offers the update.{/if}
+        </p>
+        <p>The game is imported. <a class="inline-block ml-1.5 px-3 py-1 rounded-full bg-accent text-white font-semibold no-underline" href="/review?game={imported}">Open the review</a></p>
+      </div>
+    {/if}
     <h1 class="text-2xl font-bold">Bring your meaf.us games</h1>
     <p>
       meaf.us does not let other sites read its games, so this site cannot fetch them. A bookmarklet can: you keep it
       in your browser's bookmarks bar, and click it on a meaf.us game. It reads the game from that page, and opens it
-      here for review. It sends nothing to meaf.us and reads nothing from your login.
+      here for review. It sends nothing to meaf.us and reads nothing from your login. At each click it loads its code
+      from this site, so it stays up to date.
     </p>
     <ol class="grid gap-2.5 pl-5 list-decimal">
       <li>Show the bookmarks bar (Ctrl+Shift+B in Chrome and Edge, Ctrl+Shift+B or View in Firefox).</li>
@@ -81,8 +103,7 @@
     </ol>
     <p class="text-sm text-muted">
       Both depend on how meaf.us builds its page. If meaf.us changes, they may find no game until they are updated
-      here: the userscript then updates itself, and the bookmarklet needs dragging to the bar again. You can always
-      paste a game record on the <a href="/">home page</a>.
+      here, and both then update themselves. You can always paste a game record on the <a href="/">home page</a>.
     </p>
   {/if}
 </main>

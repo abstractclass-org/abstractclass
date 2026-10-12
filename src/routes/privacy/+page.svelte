@@ -34,10 +34,14 @@
     meaf.us login and no request to meaf.us, and opens {SITE_NAME} with the game after the <code>#</code> in the
     address. Browsers never send that part of an address to a server, and the page removes it at once. On your own
     finished game, which meaf.us shows without its moves, it opens the same meaf.us page again as a watcher's view
-    (<code>spectate=1</code> in the address), and meaf.us loads the moves itself.</p>
+    (<code>spectate=1</code> in the address), and meaf.us loads the moves itself. At each click, the bookmarklet loads
+    its code from this site, so that it stays up to date: that request carries no game, and by default your browser
+    names only meaf.us as the page that made it.</p>
   <p>The userscript, for the Tampermonkey extension, does the same on meaf.us's game pages, from a button or
     Tampermonkey's menu. Its button and its collie are drawn by the script itself, with no request. Tampermonkey asks
-    this site for the script now and then, to update it: that request carries no game.</p>
+    this site for the script now and then, to update it: that request carries no game. With a game, both tools tell
+    this site which one sent it, and their version, after the same <code>#</code>, so that this site can say when one
+    needs an update.</p>
 
   <h2>Visits</h2>
   <ul>

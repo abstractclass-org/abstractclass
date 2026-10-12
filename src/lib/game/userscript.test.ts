@@ -1,16 +1,18 @@
-// Checks the userscript's file and the bookmarklet (userscript.ts, bookmarklet.ts): their headers and address, that the
-// code they carry as text parses, and what the page functions decide (meafPage.ts). Run: npm test.
+// Checks the userscript's files and the bookmarklet (userscript.ts, bookmarklet.ts): their headers and address, that the
+// code they carry as text parses, what the page functions decide (meafPage.ts), and how the import page reads what they
+// send (importHash.ts). Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { USERSCRIPT_NAME, userscriptSource } from "./userscript.ts";
-import { bookmarkletHref } from "./bookmarklet.ts";
+import { USERSCRIPT_NAME, userscriptHeader, userscriptSource } from "./userscript.ts";
+import { bookmarkletHref, bookmarkletScript } from "./bookmarklet.ts";
 import { explain, missingMoves } from "./meafPage.ts";
+import { readImportHash, staleTool } from "./importHash.ts";
 import type { MeafGame } from "./meaf.ts";
 
 const ORIGIN = "https://hedge.example";
 
 test("the userscript's header names the script, its author, its pages, its rights and its updates", () => {
-  const text = userscriptSource(ORIGIN, "2026.10.12.1530");
+  const text = userscriptSource(ORIGIN, "2026.10.12.1530", "abc");
   const meta = (key: string) => [...text.matchAll(new RegExp(`^// @${key} +(.*)$`, "gm"))].map(m => m[1]);
   assert.match(text, /^\/\/ ==UserScript==\n/);
   assert.deepEqual(meta("name"), [USERSCRIPT_NAME]);
@@ -21,18 +23,38 @@ test("the userscript's header names the script, its author, its pages, its right
   assert.deepEqual(meta("match"), ["https://meaf.us/sst1/*"]);
   assert.deepEqual(meta("sandbox"), ["raw"]);
   assert.deepEqual(meta("grant").sort(), ["GM_openInTab", "GM_registerMenuCommand"]);
-  assert.deepEqual(meta("updateURL"), [`${ORIGIN}/hedge-school.user.js`]);
+  assert.deepEqual(meta("updateURL"), [`${ORIGIN}/hedge-school.meta.js`]); // the header alone, for a small check
   assert.deepEqual(meta("downloadURL"), [`${ORIGIN}/hedge-school.user.js`]);
   assert.match(meta("icon")[0], /^data:image\/svg\+xml;base64,/);
+  // The file that Tampermonkey checks is the same header, with no code.
+  assert.ok(text.startsWith(userscriptHeader(ORIGIN, "2026.10.12.1530")));
+  assert.match(userscriptHeader(ORIGIN, "1"), /==\/UserScript==\n$/);
 });
 
 test("the code that the userscript and the bookmarklet carry parses, with the site's address in it", () => {
-  const script = userscriptSource(ORIGIN, "1");
+  const script = userscriptSource(ORIGIN, "1", "abc");
   assert.doesNotThrow(() => new Function(script));
   assert.ok(script.includes(JSON.stringify(ORIGIN)));
+  // The bookmark is a loader: it names the site's script and its own version.
   const href = bookmarkletHref(ORIGIN);
   assert.ok(href.startsWith("javascript:"));
-  assert.doesNotThrow(() => new Function(decodeURIComponent(href.slice("javascript:".length))));
+  const loader = decodeURIComponent(href.slice("javascript:".length));
+  assert.doesNotThrow(() => new Function(loader));
+  assert.ok(loader.includes(JSON.stringify(ORIGIN)) && loader.includes("/bookmarklet.js?bookmark="));
+  assert.doesNotThrow(() => new Function(bookmarkletScript()));
+});
+
+test("the import page reads the tool, its version and the record, and an older tool's bare record", () => {
+  const record = '[Blue "a b"]\n\n1. D10-G12 2. N9-Q10 O9-Q10 r+R\n';
+  const sent = readImportHash(String(new URLSearchParams({ tool: "userscript", v: "abc", record })));
+  assert.deepEqual(sent, { record, tool: "userscript", version: "abc" }); // spaces and "+" come back as they were
+  assert.deepEqual(readImportHash(encodeURIComponent(record)), { record, tool: null, version: "" });
+  const current = { bookmarklet: "1", userscript: "abc" };
+  assert.equal(staleTool(sent, current), null);
+  assert.equal(staleTool({ tool: "userscript", version: "old" }, current), "userscript");
+  assert.equal(staleTool({ tool: "bookmarklet", version: "1" }, current), null);
+  assert.equal(staleTool({ tool: "bookmarklet", version: "" }, current), "bookmarklet");
+  assert.equal(staleTool({ tool: null, version: "" }, current), "older");
 });
 
 test("a game lacks its moves while it is played, until a watcher's view loads them, or on a finished game", () => {
@@ -45,5 +67,6 @@ test("a game lacks its moves while it is played, until a watcher's view loads th
   assert.equal(missingMoves(game(true, 0, 3)), "reload");
   at("?game=abc&spectate=1");
   assert.equal(missingMoves(game(true, 0, 3)), "loading");
-  assert.match(explain("playing", "the Hedge School button"), /When the game is over, click the Hedge School button again\.$/);
+  assert.match(explain("playing", "the Hedge School button", ORIGIN), /When the game is over, click the Hedge School button again\.$/);
+  assert.ok(explain("none", "the Hedge School button", ORIGIN).includes(`${ORIGIN}/import`)); // where a new tool is
 });

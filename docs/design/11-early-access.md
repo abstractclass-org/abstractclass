@@ -115,6 +115,24 @@ one item for each turn, separated by spaces.
 - **It reads the game that the board holds,** in the player's own meaf.us page: React's `game` property of the board.
   It sends no request to meaf.us and uses nothing from the player's login. It opens the import page with the record
   after the `#`.
+- **The bookmark is a loader** (`bookmarklet.ts`): a short `javascript:` that adds this site's `/bookmarklet.js` to the
+  meaf.us page at each click. So the bookmark stays as it is when the code changes, and the player drags it to the
+  bar once. The script takes the site's address from its own address, so a game goes back to the site that the
+  bookmark came from. A click can open a tab only for a few seconds after it: after a slower load, the meaf.us tab
+  goes to the review instead. When the script cannot load, the bookmark says so.
+  - **It depends on meaf.us's headers:** a content security policy that blocks other sites' scripts would stop it.
+    meaf.us sends none. If one comes, the bookmark needs the code in itself again, as before the loader.
+  - **The request** carries no game. By default the browser names only meaf.us's origin as the page that made it. The
+    privacy page says so.
+- **Each tool says what it is,** with each game (`importHash.ts`): `#tool=…&v=…&record=…` after the import page's
+  address. The bookmarklet sends its loader's version (`BOOKMARK_VERSION`), and the userscript a hash of the files
+  that make its code (the build's `__USERSCRIPT_CODE__`, `vite.config.ts`), so that a build that changes neither
+  flags no one. A tool from before this sends the record alone.
+- **An out-of-date tool:** the import page keeps the game, says how to update the tool (drag the bookmarklet to the
+  bar again, or open the userscript, which Tampermonkey then offers to update), and opens the review on a click. A
+  tool that sent no version counts as out of date.
+- **No game on a page that shows one:** the tools' message says that meaf.us may have changed its page, and names the
+  import page, which has the newest tools.
 - **A player's own game, just after it ends, has no moves in the page.** meaf.us asks its server for a game's moves
   only for a viewer who watches the game (`spectate=1` in the address, or a game of other players), or who opens it
   from the History page. The game's `historyLength` still counts the moves. On such a page, when the game is over, the
@@ -126,9 +144,10 @@ one item for each turn, separated by spaces.
   meaf.us game pages, in the page's own context (`@sandbox raw`: meaf.us sends no content security policy). It shows
   a round button with the school's collie in the page's lower right corner while a game shows, and adds "Review this
   game in Hedge School" to Tampermonkey's menu.
-  - **It updates itself.** The site serves it at `/hedge-school.user.js`, Tampermonkey fetches it from there for
-    updates, and each build gives it a later version. A change of meaf.us's page then needs no new install, where the
-    bookmarklet needs dragging to the bar again.
+  - **It updates itself.** The site serves it at `/hedge-school.user.js`, and its header alone at
+    `/hedge-school.meta.js`, which Tampermonkey checks for a newer version (`@updateURL`, as Greasy Fork serves a
+    `.meta.js`). Each build gives it a later version (the build's time). A change of meaf.us's page then needs no new
+    install.
   - **One click for a finished game.** It opens the review through Tampermonkey (`GM_openInTab`), which no popup
     blocker stops. So after the reload as a watcher's view, the script runs again, waits for the moves, and opens the
     review itself.

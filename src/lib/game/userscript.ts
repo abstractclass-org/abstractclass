@@ -4,8 +4,11 @@
 // while a game shows, and adds an entry to Tampermonkey's menu. Either opens the game in this site's import page, in a
 // new tab, with the record after the `#`. Tampermonkey opens the tab (GM_openInTab), so no popup blocker stops it: a
 // finished game of the player's own reloads as a watcher's view, and its review then opens by itself once the moves
-// come. Tampermonkey fetches the script again from this site to update it (`@updateURL`), so a change of meaf.us's page
-// needs no new install. The site serves the file at /hedge-school.user.js (src/routes/hedge-school.user.js).
+// come. Tampermonkey checks this site for updates (`@updateURL`, a file with the header only, as Greasy Fork serves
+// one), and fetches the script again when its version is newer, so a change of meaf.us's page needs no new install.
+// The script says its code's version with each game (importHash.ts), so that the import page can tell a player whose
+// Tampermonkey has not yet taken a change. The site serves the files at /hedge-school.user.js and
+// /hedge-school.meta.js (src/routes).
 import { HEAD_COAT, HEAD_SILHOUETTE, HEAD_VIEWBOX } from "#lib/collie.ts";
 import { meafRecord, type MeafGame } from "./meaf.ts";
 import { explain, findGame, missingMoves, watcherUrl } from "./meafPage.ts";
@@ -17,8 +20,8 @@ declare function GM_registerMenuCommand(name: string, run: () => void): void;
 export const USERSCRIPT_NAME = "Review in Hedge School";
 
 /** Runs on the meaf.us page. Self-contained: the script carries its source, and that of the functions it gets. */
-function main(origin: string, icon: string, find: typeof findGame, missing: typeof missingMoves, say: typeof explain,
-              watcher: typeof watcherUrl, toRecord: (game: MeafGame) => string) {
+function main(origin: string, icon: string, code: string, find: typeof findGame, missing: typeof missingMoves,
+              say: typeof explain, watcher: typeof watcherUrl, toRecord: (game: MeafGame) => string) {
   const click = "the Hedge School button";
   const PENDING = "hedge-school:review-after-load"; // this tab's finished game whose review opens once its moves come
   const WAIT_MS = 30000; // how long the watcher's view may take to load them
@@ -50,11 +53,11 @@ function main(origin: string, icon: string, find: typeof findGame, missing: type
   const open = (game: MeafGame) => {
     let text: string;
     try { text = toRecord(game); } catch (e) { show("Hedge School: " + (e as Error).message); return; }
-    GM_openInTab(origin + "/import#" + encodeURIComponent(text), { active: true });
+    GM_openInTab(origin + "/import#" + new URLSearchParams({ tool: "userscript", v: code, record: text }), { active: true });
   };
   function review() {
     const game = find();
-    if (!game) { show(say("none", click)); return; }
+    if (!game) { show(say("none", click, origin)); return; }
     const why = missing(game);
     if (why === "reload") {
       sessionStorage.setItem(PENDING, `${game.gameID} ${Date.now()}`);
@@ -62,7 +65,7 @@ function main(origin: string, icon: string, find: typeof findGame, missing: type
       setTimeout(() => location.assign(watcher()), 1500);
       return;
     }
-    if (why) { show(say(why, click)); return; }
+    if (why) { show(say(why, click, origin)); return; }
     open(game);
   }
   button.addEventListener("click", review);
@@ -87,11 +90,13 @@ function main(origin: string, icon: string, find: typeof findGame, missing: type
   }, 500);
 }
 
-/** The userscript's file: its header for Tampermonkey, then its code. `origin` is this site's address, from which the
- *  script updates and opens the review. `version` grows with each build, so that Tampermonkey takes it as an update. */
-export function userscriptSource(origin: string, version: string): string {
-  const svg = (size: number) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${HEAD_VIEWBOX}" width="${size}" height="${size}" `
-    + `fill-rule="evenodd" aria-hidden="true"><path fill="#fff" d="${HEAD_SILHOUETTE}"/><path fill="#0b0c0e" d="${HEAD_COAT}"/></svg>`;
+const svg = (size: number) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${HEAD_VIEWBOX}" width="${size}" height="${size}" `
+  + `fill-rule="evenodd" aria-hidden="true"><path fill="#fff" d="${HEAD_SILHOUETTE}"/><path fill="#0b0c0e" d="${HEAD_COAT}"/></svg>`;
+
+/** The userscript's header for Tampermonkey, alone: the file that Tampermonkey checks for updates. `origin` is this
+ *  site's address, from which the script updates and opens the review. `version` grows with each build, so that
+ *  Tampermonkey takes it as an update. */
+export function userscriptHeader(origin: string, version: string): string {
   const header = [
     ["name", USERSCRIPT_NAME],
     ["namespace", `${origin}/`],
@@ -106,10 +111,15 @@ export function userscriptSource(origin: string, version: string): string {
     ["grant", "GM_registerMenuCommand"],
     ["run-at", "document-idle"],
     ["noframes", ""],
-    ["updateURL", `${origin}/hedge-school.user.js`],
+    ["updateURL", `${origin}/hedge-school.meta.js`],
     ["downloadURL", `${origin}/hedge-school.user.js`],
   ].map(([k, v]) => `// @${k.padEnd(12)} ${v}`.trimEnd());
-  return ["// ==UserScript==", ...header, "// ==/UserScript==", "",
-          `(${main})(${JSON.stringify(origin)}, ${JSON.stringify(svg(44))}, ${findGame}, ${missingMoves}, ${explain}, ${watcherUrl}, ${meafRecord});`,
-          ""].join("\n");
+  return ["// ==UserScript==", ...header, "// ==/UserScript==", ""].join("\n");
+}
+
+/** The userscript's file: its header, then its code. `code` is the version of its code (the build's hash of the files
+ *  it is made from), which it sends with each game. */
+export function userscriptSource(origin: string, version: string, code: string): string {
+  return userscriptHeader(origin, version) + "\n"
+    + `(${main})(${JSON.stringify(origin)}, ${JSON.stringify(svg(44))}, ${JSON.stringify(code)}, ${findGame}, ${missingMoves}, ${explain}, ${watcherUrl}, ${meafRecord});\n`;
 }

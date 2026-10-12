@@ -3,6 +3,8 @@ import { sveltekit } from '@sveltejs/kit/vite';
 import tailwindcss from '@tailwindcss/vite';
 import { defaultClientConditions, defineConfig } from 'vite';
 import { execSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 
 // The site's version: the commit it is built from (Cloudflare's build names it, else Git), for the footer.
 const commit = process.env.CF_PAGES_COMMIT_SHA ?? process.env.WORKERS_CI_COMMIT_SHA
@@ -15,8 +17,20 @@ const origin = process.env.SITE_ORIGIN
 	?? (process.env.CF_PAGES_BRANCH === 'main' ? 'https://hedgeschool.abstractclass.org'
 		: process.env.CF_PAGES_URL ?? 'http://127.0.0.1:4173');
 
+// The userscript's versions (src/lib/game/userscript.ts). For Tampermonkey: the build's time (UTC), which grows with
+// each build, so that Tampermonkey takes each new build as an update. For the import page: a hash of the files that
+// make its code, so that it tells a player of an out-of-date userscript only when that code changed.
+const now = new Date(), pad = (n: number) => String(n).padStart(2, '0');
+const userscriptVersion = `${now.getUTCFullYear()}.${now.getUTCMonth() + 1}.${now.getUTCDate()}.${pad(now.getUTCHours())}${pad(now.getUTCMinutes())}`;
+const userscriptCode = createHash('sha256')
+	.update(['userscript.ts', 'meafPage.ts', 'meaf.ts'].map(f => readFileSync(`src/lib/game/${f}`, 'utf8')).join('\0'))
+	.digest('hex').slice(0, 12);
+
 export default defineConfig({
-	define: { __SITE_VERSION__: JSON.stringify(commit.slice(0, 7)), __SITE_ORIGIN__: JSON.stringify(origin) },
+	define: {
+		__SITE_VERSION__: JSON.stringify(commit.slice(0, 7)), __SITE_ORIGIN__: JSON.stringify(origin),
+		__USERSCRIPT_VERSION__: JSON.stringify(userscriptVersion), __USERSCRIPT_CODE__: JSON.stringify(userscriptCode),
+	},
 	// ONNX Runtime Web (the GPU worker, src/lib/engine/gpuWorker.ts) in its form that takes its WebAssembly from the page:
 	// its usual form makes the build copy that file (26.8 MB) into the site, over Cloudflare Pages' 25 MiB for a file.
 	// scripts/fetch-engine.mjs stores it compressed beside the engine instead.

@@ -57,6 +57,9 @@ It holds no backlog: everything still to do that is not in flight is in
     events sent from a script: the browser tool's key presses did not reach the page in that run.
   - One tab for each game's review, with "Review here" (design 11, decisions/product.md, "One tab for each game's
     review"). Checked in Edge with two tabs.
+- **Released to `main` on 2026-10-13:** the bookmarklet as a loader, and both tools telling the import page their version (design 11,
+  decisions/product.md, "The bookmarklet and the userscript tell when they are out of date"). After its release, the
+  owner drags the bookmarklet to the bar once more: the new one is the loader.
 - **For the owner, after the release of `99106ff`:**
   - Drag the bookmarklet to the bar again: its code changed.
   - Install the userscript again from the live site's import page, then remove the copy from the local preview in

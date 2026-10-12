@@ -1919,3 +1919,31 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   - The first tab's "Review here" took the review back.
   - After the tab that held the lock closed, a new tab reviewed the game at once.
 - **Not checked:** a game deleted while its review is open.
+
+### The bookmarklet and the userscript tell when they are out of date (2026-10-13)
+
+- **The problem:** a bookmarklet's code stays as it was when the player dragged it to the bar, and the userscript
+  updates only when Tampermonkey checks. Neither told the player.
+- **Decided** (design 11):
+  - The bookmark is a loader: it loads its code from the site at each click, so it stays up to date.
+  - Each tool sends its name and version with the game, after the `#`. The import page compares them with its own,
+    and for an out-of-date tool says how to update it, with the review a click away.
+  - The "no game found" message names the import page, in case meaf.us changed its page.
+  - The userscript's update check reads `/hedge-school.meta.js`, the header alone.
+- **Why a loader:** the version check needs the old code to still find the game. When meaf.us changes its page, an
+  old bookmarklet finds no game and never reaches the site. A loader's code is the site's own at each click. The cost:
+  one request to the site at each click, and a dependence on meaf.us sending no content security policy.
+- **Checked** in Edge, against the local preview:
+  - On the owner's finished game on meaf.us, the loader as the import page gives it loaded `/bookmarklet.js` from the
+    local server, read the game, and gave the import address with `tool=bookmarklet`, `v=1` and the whole record. Its
+    script element was gone after. Edge let the https page load the script from `127.0.0.1`.
+  - With nothing at the address, the loader said that it could not load its code.
+  - The built userscript, run on the same page with stand-ins for Tampermonkey's functions, sent `tool=userscript`
+    and its code's version.
+  - The import page: the current bookmarklet's and userscript's games opened the review at once. A bare record and an
+    old userscript version each showed their notice, and "Open the review" opened the game (a click from a script:
+    the browser tool's clicks did not reach the page in that run).
+  - The unit tests: the header with the `.meta.js`, that the loader and the script parse, and the import page's
+    reading of what the tools send (a record with spaces and "+", a bare record, current and old versions).
+- **Not checked:** an install or an update in Tampermonkey itself, and a real click on the bookmark (the loader ran
+  from a script).
