@@ -19,7 +19,8 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
      brought.
    - **The ways to bring a game:** a pasted record in this site's notation, a pasted export of Constellation's
      analysis board, and the meaf.us bookmarklet ([import](#constellations-export) below).
-   - **The header:** the name, which leads home, then Review, and on its right The notation and About. Review opens
+   - **The header:** the name, which leads home, with "Early Access" beside it in the accent colour, which leads to the
+     About page's section on the early access. Then Review, and on its right The notation and About. Review opens
      the last game reviewed in this browser, and the address then names it, so a reload keeps it. With no game
      reviewed yet, it asks for one. **The footer,** on the pages that scroll (the home page and the pages about the
      site): About, The notation, Privacy, Notices, and the site's version (its commit). The review has no footer: it
@@ -31,7 +32,7 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
 4. **Unlisted:** `robots.txt` disallows every page, and every page carries `noindex`. The address is shared by hand,
    in the Discord, which is also where players report problems.
 5. **Hosting: Cloudflare Pages,** built from the private GitHub repository on every push to `main`:
-   - **The build command,** `npm run build:cloudflare`: it fetches the engine from its GitHub Release (`npm run engine
+   - **The build command,** `npm run build:cloudflare`: it downloads the engine from its GitHub Release (`npm run engine
      -- --deploy`, which refuses local engine files), runs the tests and the type check, then builds into `build/`.
      Pages installs the dependencies first (`npm ci`).
    - **Node 24** (`.node-version`): Pages' build image has Node 22.16 by default, which cannot run the tests' TypeScript
@@ -78,7 +79,7 @@ one item for each turn, separated by spaces.
 - **The start:** `[B:… R:…]`, Blue's and Red's edges. The site imports games from the standard start only.
 - **A turn:** one edge (`D10-A7`), two edges that meet, written as a path (`P10-M10-J7`: P10-M10, then M10-J7), or
   two edges apart, separated by a comma (`A7-A10,A7-D4`).
-- **Points:** columns `A` to `S`, with `I`; rows `1` to `19`. This site's columns are `A` to `T` without `I`, as GTP's,
+- **Points:** columns `A` to `S`, with `I`. Rows `1` to `19`. This site's columns are `A` to `T` without `I`, as GTP's,
   so a column keeps its place in the alphabet that skips `I`: `P` is `Q`, `M` is `N`, `J` is `K`. The rows count
   from the bottom on both sites (checked on Constellation's board).
 - The import turns the export into this site's record (`[Site "Constellation"]`, then the turns), which the engine

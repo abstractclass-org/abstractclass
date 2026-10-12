@@ -92,4 +92,4 @@ sweep.
 - The file exists under `runs/archive_analysis/`, with a note of its fields, the network, the build and the settings.
 - The note says that the search at 512 visits matches part 1's reading at 512 (the share of positions with the same
   first candidate, and the mean difference of the root's win chance).
-- This repository has been told where the file is.
+- The engine repository tells this repository where the file is.

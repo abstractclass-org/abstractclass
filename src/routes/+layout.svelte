@@ -6,6 +6,7 @@
 	import { EARLY_ACCESS, SITE_NAME } from '#lib/edition.ts';
 	import { ASKS_CONSENT, consent, startAnalytics } from '#lib/analytics.svelte.ts';
 	import ConsentBanner from '#lib/ConsentBanner.svelte';
+	import Collie from '#lib/Collie.svelte';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();
@@ -33,13 +34,22 @@
 </script>
 
 <svelte:head>
-	<link rel="icon" href={favicon} />
+	<!-- The collie (design 12): a PNG for browsers without SVG icons, the SVG for the rest, and a square tile for iOS. -->
+	<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
+	<link rel="icon" href={favicon} type="image/svg+xml" />
+	<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 	<!-- Unlisted while in early access (design 11): the address is shared by hand. -->
 	<meta name="robots" content="noindex" />
 </svelte:head>
 
 <header class="flex items-center gap-6 px-4 py-2 min-h-(--site-header) bg-panel border-b border-line">
-	<a class="font-bold text-ink no-underline" href="/">{SITE_NAME}</a>
+	<span class="flex items-center gap-2">
+		<a class="flex items-center gap-2 text-xl font-bold text-ink no-underline" href="/">
+			<Collie size={28} />{SITE_NAME}
+		</a>
+		<!-- The early access, in the accent colour beside the name: what it means is on the About page. -->
+		{#if EARLY_ACCESS}<a class="text-xs font-semibold text-accent no-underline hover:underline" href="/about#early-access">Early Access</a>{/if}
+	</span>
 	<nav class="flex flex-wrap gap-4.5">
 		{#each NAV as item (item.label)}
 			{#if item.href}

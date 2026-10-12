@@ -1,8 +1,8 @@
 # How a turn or an edge gets its label
 
 **Status:** in force, built in the review. **Decided:** 2026-10-09 (labels by edge), 2026-10-11 (labels by turn, the
-rules for Best and Great by turn, the special cases below), 2026-10-12 (a human's win chance, fitted on the meaf.us
-archive, in place of the engine's, and no point bands).
+rules for Best and Great by turn, the special cases below), 2026-10-12 (the engine's own win chance, with
+chess.com's bands and no point bands, after a human's win chance fitted on the archive was tried the same day).
 
 ## Context
 
@@ -25,7 +25,7 @@ reason. Design 05 gives the searches that the labels read: their schedule, their
    "Label agreement against search budget, under protocol 0.3", "Label agreement by turn"). The sweep's 32 visits
    give no label. A label can change when a deeper search replaces a shallow one.
 3. **The loss** (KaTrain's and Lichess's): the mover's value before less the mover's value after, each from its own
-   position's search, in a human's win chance (below), and in points (the engine's `scoreLead`, as KaTrain's points
+   position's search, in the engine's win chance (below), and in points (the engine's `scoreLead`, as KaTrain's points
    lost) for the notes. Whether the expected margin (`scoreSelfplay`) serves the points better is measured, not
    assumed (decisions/open-items.md).
    - **An edge's loss:** from the position before it to the position after it. For a turn's first edge, that is its
@@ -34,27 +34,19 @@ reason. Design 05 gives the searches that the labels read: their schedule, their
      losses: the value between them cancels, and so does the error of that search.
    - **The label reads the loss at 0 or more:** a gain is no loss. The notes give the loss before that clamp: a gain
      has a plus.
-4. **A human's win chance, and the bands** (`src/lib/review/labels.ts`).
-   - **A human's win chance,** not the engine's: σ(k · lead / spread), from the engine's lead for the player
-     (`scoreLead`) and the spread of the final score (`scoreStdev`), with k = 0.99. The engine's own win chance is that
-     of a game between two engines: where it gives a player 89%, players of the archive won 61 to 71% of the time.
-     Lichess turns Stockfish's centipawns into the win chance of human games in the same way (lila pull request
-     11148). chess.com reads the engine with the player's rating.
-   - **The fit** (`scripts/measure/fit-win-curve.mjs`, on request 07's analysis of the archive): one curve for every
-     rating, as Lichess's. Fitted on the games between players at most 150 rating points apart (301 games), because
-     between unequal players an early lead also shows who is the stronger player. With a term for the side to move at
-     a turn's start in the fit only: that player is the next to err, and a label measures against the engine's best
-     turn, not against an average one. Abandoned games are left out, as Lichess leaves them out. The formula fitted
-     held-out games better than the engine's win chance, refitted or not, the lead alone, and the lead with the edges
-     left (Stern's model of a lead and the time left). k is 0.986 at 1,024 visits and 0.998 at 512
-     ([decisions/engine.md](../decisions/engine.md), "The human win curve fitted on the archive", "The win curve's
-     flat middle").
+4. **The engine's win chance, and the bands** (`src/lib/review/labels.ts`).
+   - **The engine's own win chance** (its `winrate`), as chess.com and Lichess judge a move by the win chance their
+     engine gives. It saturates once a game is decided, so a move there loses little: a label tells what a move cost
+     the result, and 30 points thrown away at a lead of 120 cost less than 30 at a lead of 20.
    - **The bands:** chess.com's bands of expected points, the same for every player: Excellent to 0.02, Good to 0.05,
      Inaccuracy to 0.10, Mistake to 0.20, then Blunder. No site changes its bands by the player's rating.
    - **Points lost do not label.** They show in the notes. A point band flags the moves of a decided game, which
-     chess.com and Lichess leave alone. A human's win chance does not saturate where the engine's does: from the
-     engine's 99%, players still lost 9 to 12% of their games, so a lead thrown away still costs.
-   - The same curve and bands serve turns and edges.
+     chess.com and Lichess leave alone.
+   - **Tested on games of known strength** ([decisions/engine.md](../decisions/engine.md), "The label rules on games
+     of known strength"): the flags fall as the player gets stronger, for the site's network at 16 to 1,024 visits,
+     for 37 bots rated 2,000 to 3,000, and for people by rating. They fall mostly where the game is still open (73% of
+     people's Mistakes and Blunders in the first 40 edges) and rarely once the engine holds it decided.
+   - The same bands serve turns and edges.
 5. **Best:** the engine's own move, whatever its loss, so that the error of two searches cannot call the engine's own
    choice a mistake.
    - **An edge** is Best when it is the first choice of its position's search (KataGo's order).
@@ -65,7 +57,7 @@ reason. Design 05 gives the searches that the labels read: their schedule, their
      then the second edge of the engine's line, so it is not the first choice of its search, and its loss comes from
      the search between the two edges alone (turn 9 of the sample game: J11-M13 was Good by that search's −27 points).
 6. **Great: the only good move, confirmed by equal searches** (En Croissant's rule: the second choice at least 0.10 of
-   win chance worse, from two equal searches). The win chance is a human's, as for every loss. In the search before a
+   win chance worse, from two equal searches). The win chance is the engine's, as for every loss. In the search before a
    move, the second choice rests on few visits: in the sample game, 25 of 28 such gaps had a second choice with under
    15% of the first's visits. So a gap in one search only asks for a search of the position after the other choice, to
    the label budget, as deep as the position after the played move (KaTrain's "equalize" gives every candidate the top
@@ -94,7 +86,8 @@ reason. Design 05 gives the searches that the labels read: their schedule, their
 8. **What shows** (design 06 and design 07 give the places): the move list and the chart show Great, Inaccuracy,
    Mistake and Blunder, to stay quiet, and the board shows every label. The notes under a turn or an edge are for
    Great, Mistake and Blunder: "Blunder. N9-Q10 M6-N9 was best.", "Great. The only good edges.". Under a Mistake or a
-   Blunder, the engine's best line from where it started shows as a branch.
+   Blunder, the engine's best line from where it started shows as a branch. ◆ beside a loss marks a hard position
+   (design 14), and the player's accuracy weighs each move by the position's difficulty.
 
 ## Why
 
@@ -112,15 +105,21 @@ reason. Design 05 gives the searches that the labels read: their schedule, their
 
 - **The loss within one search** (the best candidate against the played one): less noisy when the played edge was
   searched, but often it was not, and it departs from the published method.
-- **The engine's win chance:** the chance of a game between two engines, and it saturates. **Points only:** a 50-point
-  loss means little in a game decided by 2,000. **The worse of a win-chance band and a point band** (OGS's rule, the
-  labels before 2026-10-12, with KaTrain's Go bands times 12): the point bands flagged the moves of decided games, 41%
-  of the archive's flagged turns.
+- **A human's win chance** (the labels of 2026-10-12, the same day): σ(0.99 · lead / scoreStdev), fitted on the
+  archive's games between near-equal players, as Lichess fits its curve on human games (lila pull request 11148). It
+  does not saturate: from the engine's 99%, the archive's players still lost 9 to 12% of their games. It flagged
+  fewer turns and spread them over the game (23% of people's Mistakes in decided positions). Not kept: the archive's
+  players are beginners of a young game, so a curve fitted on them is lenient and drifts as they improve, and the
+  engine's own chance measures strength as well on games of known strength. Its fit and measurements stay in
+  decisions/engine.md ("The human win curve fitted on the archive", "The win curve's flat middle") and
+  `scripts/measure/fit-win-curve.mjs`.
+- **Points only:** a 50-point loss means little in a game decided by 2,000. **The worse of a win-chance band and a
+  point band** (OGS's rule, the labels before 2026-10-12, with KaTrain's Go bands times 12): the point bands flagged
+  the moves of decided games, 41% of the archive's flagged turns, and 46% of people's Mistakes on games of known
+  strength.
 - **A curve by rating** (chess.com): one curve gives a label the same meaning for every player, and an imported game
   may not have the players' ratings. **Bands set from the percentiles of strong and weak players' losses:** they grade
-  a move against other players of its rating, which no site does. **A curve fitted on strong players' games only**
-  (Lichess's 2300 and above): in the archive, games between near-equal players separate the position from the players
-  better, at every level.
+  a move against other players of its rating, which no site does.
 - **Only a label for each edge** (the review before labels by turn): two labels for one decision. A first edge's loss
   assumes the best second edge, so an Excellent first edge before a Blunder praises a plan that the player did not
   play. **A label for the turn and for each edge together:** labels side by side that disagree. **A switch for each
@@ -130,20 +129,20 @@ reason. Design 05 gives the searches that the labels read: their schedule, their
 
 ## Consequences
 
-- The curve is fitted for one network (`b10c128-s46923648-d9407005`) on 301 human games. A newer network, or more
-  games, is fitted again with the same script. The site now ships a newer one (`b10c128-s66625408-d13350730`,
-  [requests/03-release-artifacts.md](../requests/03-release-artifacts.md)), which is more certain, so the curve is
-  not yet fitted for the network that labels the games.
+- The labels are harsher on beginners than the human curve was: on the archive, Blunder on 30% of the turns of
+  players under 1600, against 18%. They follow the network's certainty: the network the site ships since 2026-10-12
+  is more certain than the one the tests read with, which steepens its win chance.
+- Nothing is fitted to people, so the labels do not move as the players improve.
 - An edge's number in the move list is its measured loss, also where the edge is Best: J11-M13 shows −27 beside its
   ★, the error of the search in its turn's middle.
 - A turn whose two ends were searched to different depths mixes two budgets in its loss.
 
 ## Where it is
 
-- `src/lib/review/labels.ts` (`humanWin`, the bands, `classify`), `src/lib/review/model.ts` (`labelWin`,
-  `candidateWin`, `judgeEdge`, `judgeTurn`, `otherCandidate`, `review`, `costText`, `turnCost`, `roundTogether`),
-  `scripts/measure/fit-win-curve.mjs` (the fit), `src/lib/analysis/game.svelte.ts`
-  (`confirmGreats`: the searches that confirm Great; `judge`: a branch's turn on request),
+- `src/lib/review/labels.ts` (the bands, `classify`), `src/lib/review/model.ts` (`judgeEdge`, `judgeTurn`,
+  `otherCandidate`, `review`, `costText`, `turnCost`, `roundTogether`), `scripts/measure/label-bench.mjs` (the test on
+  games of known strength), `src/lib/analysis/game.svelte.ts`
+  (`confirmGreats`: the searches that confirm Great, `judge`: a branch's turn on request),
   `src/lib/review/ReviewView.svelte` (what shows).
 - The tests: `src/lib/review/model.test.ts`.
 
@@ -157,5 +156,6 @@ reason. Design 05 gives the searches that the labels read: their schedule, their
   agreement against search budget, under protocol 0.3", "Label agreement by turn", "The search in a turn's middle"
   (2026-10-11), "The engine's win chance against human results", "The human win curve fitted on the archive", "The
   win curve's flat middle" (2026-10-12).
-- [decisions/product.md](../decisions/product.md): "Labels from a human win chance: fixed bands, one curve"
-  (2026-10-12).
+- [decisions/product.md](../decisions/product.md): "Labels from a human win chance: fixed bands, one curve", "Labels
+  back on the engine's win chance" (2026-10-12).
+- [decisions/engine.md](../decisions/engine.md): "The label rules on games of known strength" (2026-10-12).

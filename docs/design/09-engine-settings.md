@@ -50,10 +50,12 @@ each applies at once, without a reload.
      every depth. A label search shows its result at 256 visits, and again after each further 256, so a label shows as
      early at every depth and changes as the deeper search goes on. The
      key moments stay at 1,024 visits. A branch move evaluated on request is searched to the review's depth.
-   - **Engine:** "Network", named by its parameters and its download: "3.2M params (6.5 MB)" (b10c128, the default)
-     or "10.3M params (20.6 MB)" (b15c192), the sizes from `engine.lock.json`. The help line adds that a network
-     downloads once and the browser keeps it. A panel too narrow for a name on one line breaks it before the
-     parenthesis ("3.2M params" over "(6.5 MB)"): no-break spaces hold each part together. The board keeps
+   - **Engine:** "Network", named by the engine's release and by its download: "HedgeFund 0.1 Lite (6.5 MB)"
+     (b10c128, the default) or "HedgeFund 0.1 (20.6 MB)" (b15c192). The names come from the release's manifest
+     (`displayName`, copied into `engine.lock.json`), as the sizes do. A name belongs to one network file for life (the
+     engine repository's `v2/docs/design/20-network-names.md`). The help line gives the parameters (3.2M and 10.3M) and
+     adds that a network downloads once. In a narrow panel the label breaks only before the parenthesis ("HedgeFund 0.1
+     Lite" over "(6.5 MB)"): no-break spaces hold each part together. The board keeps
      the old pool's rules while a new pool loads the other network. Then the analysis starts again, since every result
      came from the old network. The browser's store keys results by network, so a network's results come back at once
      when the player returns to it. "Workers": from 1 to the machine's logical cores, half the cores (1 to 8) by
@@ -62,7 +64,10 @@ each applies at once, without a reload.
      cores leaves room for the page and the visitor's other work, and 8 workers of b10c128 take about 0.75 GB. The
      help line gives a worker's memory for the chosen network. A change adds workers, which
      load the network and then take work, or removes them: a free worker ends at once, a busy one when its task ends.
-     The work in progress goes on.
+     The work in progress goes on. "GPU": Auto, On or Off, Auto by default. The GPU searches many positions at once
+     beside the workers, and Auto keeps it where its first-use test finds it faster than a worker
+     ([design 15](15-gpu.md)). The help line gives its first download for the chosen network, and a line under the
+     choice gives its state and the test's two speeds.
 4. **Sliders** set the values in steps, as Lichess's engine settings do. The value shows at the right of the name as
    the slider moves, and the setting changes when it is let go, so that a drag does not restart the search or the
    workers at each step.
@@ -108,14 +113,17 @@ each applies at once, without a reload.
   shows its first labels as soon as a review at 256 visits would. A label changes when a deeper result arrives, as it
   does when the label pass replaces the sweep (design 05). The slices of 256 cost one more reply each, not more
   visits: a search in slices gives the same result as one search.
-- **Networks by their parameters** (the trainer's counts, 3.22M and 10.25M, in the engine repository's
-  `v2/docs/design/15-network-sizes.md`): a size says what differs. The help line does not call the larger network
-  stronger: it is stronger for each visit, but the smaller gets about three times the visits in the same time, and
-  only a match at the site's clock tells which is stronger (the engine repository's `v2/docs/decisions/build.md`).
+- **Networks by the engine's names** (as Lichess's menu names "Stockfish 17"): the engine repository names each network
+  file, so a name is the same on the site, for the bots and in the players' talk, and changes only with the file
+  (requests/12-network-names.md). The parameters (the trainer's counts, 3.22M and 10.25M, in the engine repository's
+  `v2/docs/design/15-network-sizes.md`) stay in the help line: a size says what differs. The help line does not call
+  the larger network stronger: it is stronger for each visit, but the smaller gets about three times the visits in the
+  same time, and only a match at the site's clock tells which is stronger (the engine repository's
+  `v2/docs/decisions/build.md`).
 - **The download in the network's name:** what a change of network costs, which matters on a metered connection.
   Lichess's engine menu gives each engine's size: its default Stockfish network is a small one made for the download
   (7 MB), and the official one (40 MB) is a choice. Nothing asks before the default network downloads: a review is
-  the engine's work, and the player opened it. A first review fetched the module and the small network once for 8
+  the engine's work, and the player opened it. A first review downloaded the module and the small network once for 8
   workers (1.3 and 6.5 MB, measured on a server that logged the requests), and a return visit only the 1.2 KB manifest:
   the browser keeps the engine's files (docs/hosting.md, the headers).
 - **More workers make the review faster, not the position on screen.** Each worker searches its own positions with
@@ -178,7 +186,8 @@ each applies at once, without a reload.
   limit in `search`.
 - `src/lib/analysis/pool.ts`: `resize` and `halt`. `src/lib/engine/client.ts`: `Stopped`, for the requests of an ended
   worker.
-- `src/routes/review/+page.svelte`: the settings applied as they change, and another network's pool.
+- `src/routes/review/+page.svelte`: the settings applied as they change, another network's pool, and the GPU
+  (`applyGpu`, design 15).
 - `src/lib/review/ReviewView.svelte`: the engine header's switch and gear, the l key, the `engineSettingsPanel`,
   `steps` and `visitsSteps` snippets, and "time limit" in the header.
 - `src/routes/lab/engine/+page.svelte`: a single search's memory, for the measurement above.

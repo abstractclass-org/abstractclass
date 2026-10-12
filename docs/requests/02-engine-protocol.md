@@ -2,11 +2,11 @@
 
 **Status:** done. The engine repository's answer is its design
 [`docs/design/04-notation-and-protocol.md`](https://github.com/seankao31/enclosure-ai/blob/main/docs/design/04-notation-and-protocol.md)
-(protocol 0.1, which builds before the 0.x numbering report as 1.0; KataGo's analysis protocol as JSON lines) and the WebAssembly module `enclosure-engine.wasm` (build
-`8195171`), which the site now uses ([decisions/engine.md](../decisions/engine.md), "The engine protocol in the
-browser"). Still to come there: a `seed` field, the human model, and the same protocol in the native engine for the
-offline jobs. This request does not design them. It lists what the product needs, and why, so that the design can
-cover it.
+(protocol 0.1, which builds before the 0.x numbering report as 1.0. KataGo's analysis protocol as JSON lines) and the
+WebAssembly module `enclosure-engine.wasm` (build `8195171`), which the site now uses
+([decisions/engine.md](../decisions/engine.md), "The engine protocol in the browser"). Still to come there: a `seed`
+field, the human model, and the same protocol in the native engine for the offline jobs. This request does not design
+them. It lists what the product needs, and why, so that the design can cover it.
 
 The product: a static site that reviews games, labels moves, and later offers puzzles and training
 ([design/01-analysis-tool.md](../design/01-analysis-tool.md), [design/02-static-site.md](../design/02-static-site.md)).

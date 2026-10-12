@@ -99,7 +99,7 @@ notes.
 
 - **Lichess "Learn from your mistakes"** (`ui/analyse/src/retrospect/retroCtrl.ts`, `nodeFinder.ts`):
   - **Which moves:** the player's moves where the win chance swings by more than 10 points (`evalSwings`: `povDiff`
-    over 0.1; `povDiff` is half the difference of the winning chances, −1 to +1, so it is in win chance, 0 to 1). A
+    over 0.1. `povDiff` is half the difference of the winning chances, −1 to +1, so it is in win chance, 0 to 1). A
     lost mate in 3 or fewer counts too. Moves in the opening explorer are left out, and so are moves whose position
     has no computer line. Win chance flattens near a decided result, so a missed long mate in a won position is not a
     mistake here.

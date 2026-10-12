@@ -28,9 +28,18 @@ test("tags, evaluations and clocks in comments (the design's example)", () => {
   assert.equal(r.clocks[0], null);
 });
 
-test("branches are skipped, at a turn's start and at its second edge (the design's example)", () => {
-  const r = parseRecord("1. D10-G10 2. N11-Q10 L10-N11 3. D10-G9 G9-H10 4. N9-Q10 (4... M12-N9) L10-N9 (4. N9-Q11 M12-N9) 5. G9-H8");
-  assert.deepEqual(r.moves.slice(5), ["N9-Q10", "L10-N9", "G9-H8"]);
+test("branches are skipped, after the turn they change (the design's examples)", () => {
+  const r = parseRecord("1. D10-G10 2. N11-Q10 L10-N11 3. D10-G9 G9-H10 (3. D10-F13 F13-G10) 4. N9-Q10 L10-N9 (4... M12-N9) (4. N9-Q11 M12-N9) 5. G9-H8");
+  assert.deepEqual(r.moves.slice(3), ["D10-G9", "G9-H10", "N9-Q10", "L10-N9", "G9-H8"]);
+});
+
+test("quality marks: read after any edge, a pass or a cut mark, and dropped", () => {
+  const text = "1. D10-G10! 2. N11-Q10x?! L10-N11?? 3. D10-G9? G9-H10!? 4. pass?? *";
+  const r = parseRecord(text);
+  assert.deepEqual(r.moves, ["D10-G10", "N11-Q10", "L10-N11", "D10-G9", "G9-H10", "pass"]);
+  assert.deepEqual(r.marked, [false, true, false, false, false, false]);
+  // The cut mark goes before a quality mark: G9-G12x??
+  assert.equal(markCuts("1. D10-G10?? *", parseRecord("1. D10-G10?? *"), [true]), "1. D10-G10x?? *");
 });
 
 test("the cut mark: read with or without it, and written after the move", () => {

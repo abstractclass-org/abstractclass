@@ -2,8 +2,9 @@
 // record"): tag pairs, then the turns. A turn has a number (`1.`, `2.`: Blue's turns are odd, Red's even), then its
 // edges, or `pass` for a timeout. `{ comments }` and `( branches )` nest. A branch at a turn's second edge writes `...`
 // (`4...`). A move that cuts an opponent's edge carries an `x`: `D10-G10x`. A reader takes a move with or without
-// it, and a mark on a move that cuts nothing is an error (the engine checks that: check.ts). The result ends the record
-// (`b+28`, `r+R`, `b+F`, `0`, `*`).
+// it, and a mark on a move that cuts nothing is an error (the engine checks that: check.ts). A turn's quality mark
+// (PGN's `!!`, `!`, `!?`, `?!`, `?`, `??`) follows its last edge, after any cut mark: `G9-G12x??`. A reader takes a
+// quality mark after any edge, and this one drops it. The result ends the record (`b+28`, `r+R`, `b+F`, `0`, `*`).
 //
 // This reader keeps the main line and its tags. It skips comments and branches, but reads `[%clk]` and `[%eval]` from the
 // comments after the main line's edges. It checks the notation, not the rules: the engine checks that every move is
@@ -31,6 +32,8 @@ export class RecordError extends Error {
 
 const POINT = "[A-HJ-T](?:1[0-9]|[1-9])";
 const EDGE = new RegExp(`^${POINT}-${POINT}$`);
+/** A quality mark at a move's end: PGN's six suffixes. */
+const QUALITY = /(!!|\?\?|!\?|\?!|!|\?)$/;
 const RESULT = /^(?:[br]\+(?:\d+(?:\.\d+)?|R|F)|0|\*)$/;
 const TURN = /^(\d+)(\.|\.\.\.)$/;
 
@@ -117,17 +120,20 @@ export function parseRecord(text: string): GameRecord {
         const number = Number(turn[1]);
         if (number !== expectedTurn) throw new RecordError(`turn ${number} where turn ${expectedTurn} was expected`, t.at);
         expectedTurn++;
-      } else if (w.toLowerCase() === "pass") {
-        record.moves.push("pass");
-        record.marked.push(false);
-        record.ends.push(t.at + w.length);
       } else if (RESULT.test(w)) {
         record.result = w;
       } else {
-        const cut = /x$/i.test(w);
-        try { record.moves.push(canonicalEdge(cut ? w.slice(0, -1) : w)); } catch { throw new RecordError(`not an edge, a turn label or a result: ${w}`, t.at); }
+        const move = w.replace(QUALITY, ""); // the move without its quality mark
+        if (move.toLowerCase() === "pass") {
+          record.moves.push("pass");
+          record.marked.push(false);
+          record.ends.push(t.at + move.length);
+          continue;
+        }
+        const cut = /x$/i.test(move);
+        try { record.moves.push(canonicalEdge(cut ? move.slice(0, -1) : move)); } catch { throw new RecordError(`not an edge, a turn label or a result: ${w}`, t.at); }
         record.marked.push(cut);
-        record.ends.push(t.at + w.length - (cut ? 1 : 0));
+        record.ends.push(t.at + move.length - (cut ? 1 : 0));
       }
     }
   }
@@ -145,12 +151,18 @@ export function markCuts(text: string, record: GameRecord, cuts: boolean[]): str
   return out;
 }
 
+/** A record's tags, one to a line: the seven of PGN's roster first, in their order, with `?` and `-` where a value is not
+ *  known, then the others. */
+export function writeTags(tags: Record<string, string>): string {
+  const order = ["Event", "Site", "Date", "Round", "Blue", "Red", "Result"];
+  const all = { Event: "?", Site: "?", Date: "????.??.??", Round: "-", Blue: "?", Red: "?", Result: "*", ...tags };
+  return [...order, ...Object.keys(all).filter(k => !order.includes(k))]
+    .map(k => `[${k} "${String(all[k as keyof typeof all]).replace(/(["\\])/g, "\\$1")}"]`).join("\n");
+}
+
 /** Writes a game record: the required tags, then the turns. `turns` gives each turn's number and how many moves it has. */
 export function writeRecord(tags: Record<string, string>, moves: string[], turns: { number: number; moves: number }[], result = "*"): string {
-  const order = ["Event", "Site", "Date", "Round", "Blue", "Red", "Result"];
-  const all = { Event: "?", Site: "?", Date: "????.??.??", Round: "-", Blue: "?", Red: "?", Result: result, ...tags };
-  const head = [...order, ...Object.keys(all).filter(k => !order.includes(k))]
-    .map(k => `[${k} "${String(all[k as keyof typeof all]).replace(/(["\\])/g, "\\$1")}"]`).join("\n");
+  const head = writeTags({ ...tags, Result: result });
   let i = 0;
   const body = turns.map(t => `${t.number}. ${moves.slice(i, (i += t.moves)).join(" ")}`).join(" ");
   return `${head}\n\n${body} ${result}\n`;

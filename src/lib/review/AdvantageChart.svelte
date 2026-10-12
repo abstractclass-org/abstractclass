@@ -78,10 +78,10 @@
   const tip = $derived(hovered === null ? null : { ...tips[hovered], left: hovered / n <= 0.5, at: (100 * hovered) / n });
 </script>
 
-<div class="relative" role="figure" aria-label="Advantage chart">
+<div class="relative h-full" role="figure" aria-label="Advantage chart">
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<svg bind:this={svg} viewBox="0 0 {W} {H}" preserveAspectRatio="none" class="block w-full h-30 bg-panel rounded cursor-pointer"
+<svg bind:this={svg} viewBox="0 0 {W} {H}" preserveAspectRatio="none" class="block w-full h-full bg-panel rounded cursor-pointer"
      onclick={ev => onjump(at(ev))} onmousemove={ev => (hovered = at(ev))} onmouseleave={() => (hovered = null)}>
   <defs>
     <clipPath id="above"><rect x="0" y="0" width={W} height={H / 2} /></clipPath>
@@ -100,10 +100,10 @@
     <line x1={x(hovered)} y1="0" x2={x(hovered)} y2={H} class="stroke-muted pointer-events-none" vector-effect="non-scaling-stroke" />
   {/if}
 </svg>
-<!-- The key moments' labels, as dots in their label's colour, 9 pixels wide: drawn in HTML, since the SVG stretches,
+<!-- The key moments' labels, as dots in their label's colour, 7 pixels wide: drawn in HTML, since the SVG stretches,
      and in a column as narrow as the summary's a circle in it would be a thin ellipse. -->
 {#each moments.filter(m => !Number.isNaN(blueWin[m.index + 1])) as m (m.index)}
-  <span class="absolute size-[9px] -translate-x-1/2 -translate-y-1/2 rounded-full border-[1.5px] border-panel pointer-events-none"
+  <span class="absolute size-[7px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-panel pointer-events-none"
         style:left="{(100 * (m.index + 1)) / n}%" style:top="{100 * (1 - blueWin[m.index + 1])}%" style:background="var(--{m.label})"></span>
 {/each}
 {#if hovered !== null && !Number.isNaN(blueWin[hovered])}
@@ -113,7 +113,7 @@
 {/if}
 {#if tip}
   <!-- The note takes at most the room beside the point, and wraps there: the chart can be as narrow as a side column. -->
-  <div class="absolute top-1.5 flex flex-col gap-0.5 w-max px-2 py-1 text-xs bg-panel border border-line rounded shadow-[0_2px_6px_rgb(0_0_0/0.25)] pointer-events-none"
+  <div class="absolute bottom-full mb-1.5 z-10 flex flex-col gap-0.5 w-max px-2 py-1 text-xs bg-panel border border-line rounded shadow-[0_2px_6px_rgb(0_0_0/0.25)] pointer-events-none"
        style={tip.left ? `left: calc(${tip.at}% + 10px); max-width: calc(${100 - tip.at}% - 10px)`
                        : `right: calc(${100 - tip.at}% + 10px); max-width: calc(${tip.at}% - 10px)`}>
     <strong class="font-mono">{tip.title}</strong>

@@ -21,14 +21,14 @@ import { describeGame } from "#lib/engine/describe.ts";
 import { edgeName, parseEdge, parsePoint, sameEdge, type Edge } from "#lib/engine/notation.ts";
 import type { AnalysisReply, DescribeReply, MoveInfo } from "#lib/engine/protocol.ts";
 import { errorText } from "#lib/errors.ts";
-import { gameId } from "#lib/game/store.ts";
-import { candidateWin, moverWin, onlyEdge, otherCandidate, type Analysis, type Candidate, type LineStep, type Move, type Player, type Position,
+import { gameId, type KeptBranches } from "#lib/game/store.ts";
+import { moverWin, onlyEdge, otherCandidate, type Analysis, type Candidate, type LineStep, type Move, type Player, type Position,
          type ReviewData } from "#lib/review/model.ts";
 import { ONLY_EDGE_GAP } from "#lib/review/labels.ts";
 import type { EdgeRules } from "#lib/board/edgeInput.svelte.ts";
 import { mainIndex, pathKey } from "#lib/review/tree.ts";
 import { STORES, dbGet, dbPut } from "#lib/storage/db.ts";
-import { analysisKey, cacheGet, cachePut } from "./cache.ts";
+import { analysisKey, cacheGetAtLeast, cachePut } from "./cache.ts";
 import { Stopped } from "#lib/engine/client.ts";
 import { Cancelled, type EnginePool } from "./pool.ts";
 
@@ -56,8 +56,7 @@ export function toAnalysis(r: AnalysisReply): Analysis {
     blueWin: r.rootInfo.winrate, visits: r.rootInfo.visits, lead: r.rootInfo.scoreLead, margin: r.rootInfo.scoreSelfplay,
     spread: r.rootInfo.scoreStdev,
     candidates: [...r.moveInfos].sort((a, b) => a.order - b.order).map(c => ({
-      edge: parseEdge(c.move), visits: c.edgeVisits, blueWin: c.winrate, lead: c.scoreLead, margin: c.scoreSelfplay,
-      spread: c.scoreStdev,
+      edge: parseEdge(c.move), visits: c.edgeVisits, blueWin: c.winrate, lead: c.scoreLead, margin: c.scoreSelfplay, prior: c.prior,
       ...withLine(c),
     })),
   };
@@ -80,9 +79,6 @@ const parentKey = (key: string) => (key.includes(" ") ? key.slice(0, key.lastInd
  *  branches from its parent (the lower first), and whether the player asked for the move's quality. */
 export interface BranchNode { position: Position; move: Move; analysis?: Analysis; order: number; judged?: boolean }
 
-/** A game's branches as kept in the browser: each node's path key, its order, and 1 when its move was evaluated.
- *  Version 1 kept the lines. */
-type KeptBranches = { version: 1; lines: string[][] } | { version: 2; nodes: ([string, number] | [string, number, 1])[] };
 
 export class GameAnalysis {
   moves: string[];
@@ -238,7 +234,7 @@ export class GameAnalysis {
       const a = this.analysisOf(path), first = a?.candidates[0];
       if (!a || a.visits < this.labelVisits || !first || !turn.some(e => !!e && sameEdge(e, first.edge))) return;
       const other = otherCandidate(a, turn);
-      if (other && moverWin(candidateWin(a, first), mover) - moverWin(candidateWin(a, other), mover) >= ONLY_EDGE_GAP)
+      if (other && moverWin(first.blueWin, mover) - moverWin(other.blueWin, mover) >= ONLY_EDGE_GAP)
         out.push({ path, candidate: other });
     };
     for (let i = 0; i < this.played.length; i++) {
@@ -261,6 +257,22 @@ export class GameAnalysis {
     const keys = new Set(this.greatTargets().map(t => pathKey([...t.path, edgeName(t.candidate.edge)])));
     const done = [...keys].filter(k => (this.analysisOf(k ? k.split(" ") : [])?.visits ?? 0) >= this.labelVisits).length;
     return { total: keys.size, done };
+  }
+
+  /** The review from the browser's store alone, with no search (an export away from the review page, design 13): each
+   *  position of the game and of its branches at the label budget or deeper, or the sweep's where that is all there is,
+   *  then the positions that confirm the Greats. Call after start(). `build` and `model` name the engine whose results
+   *  to read. */
+  async fromStore(build: string, model: string) {
+    const take = async (path: string[]) => {
+      const moves = this.engineMoves(path);
+      const a = (await cacheGetAtLeast<Analysis>(build, model, moves, this.labelVisits))
+        ?? (await cacheGetAtLeast<Analysis>(build, model, moves, SWEEP_VISITS));
+      if (a) this.keep(path, a);
+    };
+    await Promise.all(Array.from({ length: this.moves.length }, (_, i) => take(this.mainNames.slice(0, i))));
+    await Promise.all(Object.keys(this.branches).map(k => take(k.split(" "))));
+    await Promise.all(this.greatTargets().map(t => take([...t.path, edgeName(t.candidate.edge)])));
   }
 
   /** Searches the position after `candidate` at `path` to the label budget, to confirm a Great. */
@@ -561,7 +573,7 @@ export class GameAnalysis {
     const held = () => this.analysisOf(path)?.visits ?? 0;
     const keep = (a: Analysis) => { if (era === this.era) this.keep(path, a); };
     if (held() >= visits) return true;
-    const cached = await cacheGet<Analysis>(key);
+    const cached = await cacheGetAtLeast<Analysis>(pool.version!.build, pool.model!.sha256, moves, visits);
     if (era !== this.era) return false;
     if (cached) { keep(cached); return true; }
     if (held() >= visits) return true;

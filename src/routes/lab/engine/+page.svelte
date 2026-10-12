@@ -4,7 +4,7 @@
   // of workers to measure the time a position on this machine.
   import { onMount } from "svelte";
   import Board from "#lib/board/Board.svelte";
-  import { EngineWorker, loadManifest, moduleOf, type Manifest } from "#lib/engine/client.ts";
+  import { EngineWorker, loadManifest, type Manifest } from "#lib/engine/client.ts";
   import { parseEdge, type Edge } from "#lib/engine/notation.ts";
   import type { AnalysisReply, DescribeReply, VersionReply, ModelInfo } from "#lib/engine/protocol.ts";
   import { boardPosition } from "#lib/analysis/game.svelte.ts";
@@ -62,10 +62,9 @@
       pool?.engines.forEach(e => e.terminate());
       loaded = null;
       busy = `loading the engine in ${size} worker${size > 1 ? "s" : ""}`;
-      const module = moduleOf(manifest!)!;
       const t0 = performance.now();
       const engines = Array.from({ length: size }, () => new EngineWorker());
-      const t = await Promise.all(engines.map(e => e.init(module.url)));
+      const t = await Promise.all(engines.map(e => e.init(manifest!)));
       start = { ms: performance.now() - t0, workers: size };
       version = t[0].reply;
       initMs = Math.max(...t.map(x => x.ms));

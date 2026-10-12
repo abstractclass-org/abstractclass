@@ -1,9 +1,9 @@
 # A game analysis tool for human players: design from sources
 
-**Status:** in force. It is the product's first design. **Written:** in the engine repository, before this
-repository existed, as [`docs/analysis-tool-design.md`](https://github.com/seankao31/enclosure-ai/blob/main/docs/analysis-tool-design.md).
-**Moved here:** 2026-10-09. Where the tool runs and how it gets the engine is in
-[02-static-site.md](02-static-site.md).
+**Status:** in force. It is the product's first design. **Written:** in the engine repository, before this repository
+existed, as
+[`docs/analysis-tool-design.md`](https://github.com/seankao31/enclosure-ai/blob/main/docs/analysis-tool-design.md).
+**Moved here:** 2026-10-09. Where the tool runs and how it gets the engine is in [02-static-site.md](02-static-site.md).
 
 Paths in this document are in the engine repository ([enclosure-ai](https://github.com/seankao31/enclosure-ai)),
 unless a link says otherwise. Paths under `runs/` are not in Git there.
@@ -80,9 +80,10 @@ DecodeChess.
 
 ## 2. Design principles for Enclosure, each from a source
 
-1. **Measure loss in a way that does not saturate once a game is decided.** Done by a human's win chance read from the
-   engine's lead (principle 2, design 10), which keeps the aim below: points lost alone flagged the moves of decided
-   games, so they show in the notes and do not label.
+1. **Measure loss in a way that does not saturate once a game is decided.** Tried with a human's win chance read from
+   the engine's lead (principle 2), and set aside: the labels read the engine's own win chance, which saturates, as
+   chess.com's and Lichess's do (design 10). A label then tells what a move cost the result. Points lost alone flagged
+   the moves of decided games, so they show in the notes and do not label.
    - **Win chance saturates:** our own review of two lost games found every candidate at a value of −0.97
      ([`v1/docs/decisions/analysis.md`](https://github.com/seankao31/enclosure-ai/blob/main/v1/docs/decisions/analysis.md),
      "Two lost games reviewed"). KaTrain uses points lost for exactly this reason, and Regan & Haworth rescale errors
@@ -98,19 +99,21 @@ DecodeChess.
 2. **Convert value to a human win chance, fitted on our archive.** This follows Lichess PR #11148 (logistic fit of
    result on eval), whose author measured the constant falling from −0.0038 for strong players to −0.002 for weak
    ones.
-   - **Done** (design 10): σ(k · lead / spread) from the engine's lead and its spread, k = 0.99, one curve for every
-     rating, fitted on the archive's games between near-equal players. A "blunder" means the same thing at 1200 as at
-     1800.
+   - **Tried, not kept** (design 10, Alternatives): σ(k · lead / spread) from the engine's lead and its spread,
+     k = 0.99, one curve for every rating, fitted on the archive's games between near-equal players. The archive's
+     players are beginners of a young game, so the curve is lenient and drifts as they improve. The engine's own
+     chance measured strength as well on games of known strength.
 3. **Fit to our data what depends on the game. Copy none.** KaTrain's 0.5–12 points are Go numbers, and an engine's
    win chance is a game between engines.
-   - What is fitted: the curve of principle 2, which turns Enclosure's values into the chance of Enclosure's human
-     games. The bands on that chance are chess.com's (0.02, 0.05, 0.10, 0.20), the same for every player, as no site
-     changes its bands by rating. Bands from the percentiles of strong and weak players' losses would grade a move
-     against other players of its rating.
+   - What is fitted: nothing, for the labels. The bands on the engine's win chance are chess.com's (0.02, 0.05, 0.10,
+     0.20), the same for every player, as no site changes its bands by rating, and they were tested on games of known
+     strength. Bands from the percentiles of strong and weak players' losses would grade a move against other players
+     of its rating.
    - Record the method, per our rule that every constant is sourced.
 4. **Position difficulty is a first-class quantity.**
    - **Per position:** KaTrain's complexity (the prior-weighted loss over candidates). Guid & Bratko for its theory.
-   - **Accuracy:** weight moves by it, so easy positions count less.
+     Built in the engine's win chance, with ◆ on hard positions (design 14).
+   - **Accuracy:** weight moves by it, so easy positions count less. Built with KaTrain's weights (design 14).
    - **Puzzles:** use it to choose them.
    - **Human side:** weight by the human policy (principle 5) as well as the engine's. A move a 1400 player would
      never consider is not a "trap" for them.

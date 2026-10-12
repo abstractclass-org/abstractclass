@@ -1,0 +1,28 @@
+// The messages between the page and the GPU worker (gpuWorker.ts, gpuClient.ts). One worker holds several engines,
+// each a search at a time: a request names its engine.
+import type { StoredArtifact } from "./artifacts.ts";
+
+export interface GpuInit {
+  type: "init";
+  id: number;
+  module: WebAssembly.Module; // the GPU module, compiled by the page
+  library: string; // gpu_engine.mjs, the module's JavaScript half
+  ortGlue: string; // ONNX Runtime Web's glue script (its WebGPU build)
+  ortWasm: StoredArtifact; // and its WebAssembly
+  graph: StoredArtifact; // the network as an ONNX graph
+  model: StoredArtifact & { name: string }; // the network's file, which the engines read its shapes from
+  searches: number; // the engines
+}
+
+export type GpuRequest =
+  | GpuInit
+  | { type: "search"; id: number; engine: number; request: object }
+  | { type: "stop"; id: number }
+  | { type: "stats"; id: number }; // the network evaluations so far (the GPU library's count)
+
+export type GpuReply =
+  | { type: "ready"; id: number; version: unknown; model: unknown; ms: number }
+  | { type: "reply"; id: number; reply: unknown; ms: number; memory: number }
+  | { type: "partial"; id: number; reply: unknown; ms: number }
+  | { type: "stats"; id: number; evaluations: number }
+  | { type: "error"; id: number; message: string };

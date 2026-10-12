@@ -18,7 +18,7 @@ export async function checkMoves(record: GameRecord): Promise<Checked> {
   if (!module) return { problem: null, cuts: null }; // no engine on this site: the review will check
   const engine = new EngineWorker();
   try {
-    await engine.init(module.url);
+    await engine.init(manifest);
     await engine.describe({ moves });
   } catch (e) {
     engine.terminate();

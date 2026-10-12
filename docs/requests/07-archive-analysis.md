@@ -20,7 +20,7 @@ searches at the three budgets do not change, and one run serves the fit of both.
   turn", below). Most of their searches are the same: at a turn's second edge they are one search. A search that both
   ask for runs once.
 
-If the run has started, the follow-up by turn can run after it as a second pass over the same positions.
+If the run started already, the follow-up by turn can run after it as a second pass over the same positions.
 
 ## What
 
@@ -146,7 +146,7 @@ the fork's score scale (`src/lib/review/labels.ts`). Design 01's principle 3 ask
 games: the percentiles of points lost that separate strong players' turns from weak players', and the same for
 edges, for the site's labels by edge. Checks on two reviewed
 games show why it matters: a game decided early flags 44 of its 120 edges, most of them from points lost after the win
-chance has saturated (this repository's `decisions/product.md`, "Label checks under protocol 0.3"). The same data
+chance saturates (this repository's `decisions/product.md`, "Label checks under protocol 0.3"). The same data
 serves the rest of the milestone (design 01, section 4):
 
 - The check that points lost falls with rating. If it does not, the measure is wrong.
@@ -164,4 +164,4 @@ chooses when, for example at a planned stop of its training.
   (`runs/measure/budget-b10c128-p03.jsonl`, 480 positions at 256, 512 and 1,024 visits): the note gives the share of
   positions with the same first move, and the mean difference of the root's win chance and lead, at each budget.
   They tell whether the native data stands for the site's search.
-- This repository has been told where the files are.
+- The engine repository tells this repository where the files are.

@@ -195,9 +195,9 @@ The interface, the review, puzzles, lessons, labels and thresholds.
 - **The position's own search** has a thin bar under the win-chance bar: its visits against the budget of 1,024.
   As Lichess's depth bar does, it stays full when the search ends, to show that the search is done. The line under it
   reads "512 of 1,024 visits", then "1,024 visits". The search of the position on screen now also starts when the
-  network has loaded. Before, it started only when the player moved.
+  network loads. Before, it started only when the player moved.
 - **The single-file build is removed** (`SNAPSHOT=1`, `scripts/snapshot-fragment.cjs`). It served only the
-  artifacts, which are deleted.
+  artifacts, which are removed.
 - **Checked** in Chrome on the production build, on the sample game: both bars (the search bar full and kept at
   1,024 visits), the halo and the lit row in both directions, both kinds of note, the note during a search, and the
   table at 153.5 pixels with five candidates and with none. `npm test` (11 checks) and `npm run check` pass.
@@ -261,8 +261,8 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   teal). The table's five rows are the board's candidates (three at most), then the others in the engine's order. On
   edge 30 of the sample game, number 1 had 767 visits and the board showed numbers 1, 5 and 11. Before, the table
   showed 1 to 5 only, without 11.
-- **Checked** in Chrome on edge 30 of the sample game: the table showed 1, 2, 3, 5 and 11, with badges on 1, 5 and
-  11, the three the board showed. The notes read `63.7% · +79 pts` and `−4.5% · −33 pts`.
+- **Checked** in Chrome on edge 30 of the sample game: the table showed 1, 2, 3, 5 and 11.
+  Badges were on 1, 5 and 11, the three that the board showed. The notes read `63.7% · +79 pts` and `−4.5% · −33 pts`.
 
 ### The candidates: which ones the board shows, and the engine's order (2026-10-10)
 
@@ -271,7 +271,7 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   for its scroll bar, so the columns do not move. A candidate pointed at on the board brings its row into view.
 - **The board shows number 1 and every candidate that has enough visits and is within the Good band.** Enough visits
   is KataGo's own rule for a move that may compete for its choice: 15% of the most visited move's weight
-  (`minVisitPropForLCB`, its `analysis_example.cfg`; `getPlaySelectionValues` in `search/searchresults.cpp`). Visits
+  (`minVisitPropForLCB`, its `analysis_example.cfg`, `getPlaySelectionValues` in `search/searchresults.cpp`). Visits
   stand for weight here. No limit on the count. The limit of three before had no source, and with it the band chose
   among barely searched moves almost at random.
 - **The engine's order is KataGo's choice of move, not its visits.** KataGo sorts the moves by their play selection
@@ -282,7 +282,7 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   child node's, which with graph search also counts the visits that reach the same position by another order of
   edges. The cache's key has a shape version (2), so the analyses kept before are not read as the new shape.
 - **Seen in Chrome on the sample game:** the board's count follows the search's depth. After the label pass (256
-  visits) the visits are spread, and 53 of 119 positions show more than number 1 (edge 30: eight; edge 92, a lost
+  visits) the visits are spread, and 53 of 119 positions show more than number 1 (edge 30: eight, edge 92, a lost
   position where many moves are equal: ten). After the deep search (1,024 visits) at edge 30, number 1 has 767 visits
   and the board shows number 1 alone. The table's box stayed 157 pixels high at every position.
 - **Refined by the engine repository** (its design 04, commit `1a377d3`, answering request 04): the best-LCB move is
@@ -294,10 +294,10 @@ The interface, the review, puzzles, lessons, labels and thresholds.
 ### The review page's layout (2026-10-10)
 
 - **Decided** (design [06-review-layout.md](../design/06-review-layout.md)), from Lichess's analysis layout: the board
-  fills the window's height; three columns from 1,260 pixels (the summary with the Highlights, the board, the
-  analysis); two columns with tabs below that; one column below 800 pixels; the Advantage chart under the board; the
-  step controls and a display menu at the bottom of the analysis column; the engine header (values, visits, search
-  bar) at the top of the analysis; the review's progress at the top of the summary.
+  fills the window's height. Three columns from 1,260 pixels (the summary with the Highlights, the board, the
+  analysis). Two columns with tabs below that. One column below 800 pixels. The Advantage chart under the board. The
+  step controls and a display menu at the bottom of the analysis column. The engine header (values, visits, search
+  bar) at the top of the analysis. The review's progress at the top of the summary.
 - **The win chance is a display setting:** a bar above the board with the players' names and scores (the default),
   or a vertical gauge beside the board. The display menu also holds the board's layers and the chart's score line.
   The choices are kept in the browser (`src/lib/review/display.ts`). The site's header height is a shared CSS
@@ -316,17 +316,17 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   percentage in the gauge form.
 - **The lead after each move in the move list,** as Lichess shows its evaluation after each move (`renderMoveNodes`,
   `ui/analyse/src/view/components.ts`: the position's score, not the move's loss). Ours is the engine's lead in the
-  position after the move, from Blue's side, right-aligned and muted: whole points, signed, thousands as `k`, so at
-  most five characters (`+1.2k`). After the last move, the result. A move's hover title is short: its label and
-  the lead ("Blunder · Red +87"). Each move's cell has one width (the move, its glyph and the lead: 110 pixels), so two moves fit the
-  analysis column at its least width (294 pixels of list in a 343-pixel column at 1,376 × 952), checked in Chrome.
+  position after the move, from Blue's side, right-aligned and muted: whole points, signed, thousands as `k`, so at most
+  five characters (`+1.2k`). After the last move, the result. A move's hover title is short: its label and the lead
+  ("Blunder · Red +87"). Each move's cell has one width (the move, its glyph and the lead: 110 pixels), so two moves fit
+  the analysis column at its least width (294 pixels of list in a 343-pixel column at 1,376 × 952), checked in Chrome.
 
 ### The review's tables fit their content (2026-10-10)
 
 - **The problem:** in a real browser, each Windows scroll bar takes about 15 pixels (the page, the summary, the
   candidates' box). At 1,380 × 952 the candidates table's edge column had 56 pixels, and names of 7 characters were
   cut ("D10-…"). The accuracy table's labels had 76 pixels, and 6 of its 10 labels took two lines. The other columns
-  had room to spare. Screenshots from headless Edge had hidden the scroll bars.
+  had room to spare. Screenshots from headless Edge hid the scroll bars.
 - **The candidates table's fixed columns fit their widest content,** with their padding: the rank's badge (28
   pixels), the header "Blue wins" (72), a lead of four digits (48), visits of five digits (48). The edge column takes
   the rest: 98 pixels at the analysis column's least width. The longest names have 7 characters (57 to 62 pixels at
@@ -387,8 +387,8 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   chance's form changes (`reach` in `ReviewView.svelte`). With `reach`, the side columns span the chart's row, with a
   set height (the board's column, the gap, and the chart's 7.5rem), so they do not make the rows taller. Below 800
   pixels (one column) nothing changes.
-- **Checked in Edge:** at 1,380 × 904 the three columns end at 865 pixels. In frames: 1,380 × 1,000 the same; 1,000 ×
-  880 (two columns) the analysis column ends at the chart's bottom; 1,380 × 800 (the chart does not fit) the columns
+- **Checked in Edge:** at 1,380 × 904 the three columns end at 865 pixels. In frames: 1,380 × 1,000 the same. 1,000 ×
+  880 (two columns) the analysis column ends at the chart's bottom. 1,380 × 800 (the chart does not fit) the columns
   end at the board's bottom, as before.
 
 ### The players above the board with the gauge, and the move list's columns (2026-10-10)
@@ -441,8 +441,8 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   edge as a dashed line, and only there: a click can only place a legal edge, so the line shows exactly what a click
   places. meaf.us's way (a dashed box of the reach, and a line that turns green or red under the pointer) was the
   other choice. It needs hover, so on a touch screen a player would learn whether an edge is legal only after the tap.
-- **The first point:** one of the mover's nodes that begins a legal edge, as a new edge starts at the mover's node.
-  An edge has no direction, so the far end could also have come first, but a node first is what a player expects. A
+- **The first point:** one of the mover's nodes that starts a legal edge, as a new edge starts at the mover's node.
+  An edge has no direction, so the far end could also come first, but a node first is what a player expects. A
   click elsewhere does nothing, and the puzzle's card says "Start the edge at one of Blue's nodes". With a first
   point, a click on another such node makes it the first point, and a click on a point that is neither a marked end
   nor such a node keeps the first point and says "Finish the edge at a marked point". A click on the first point
@@ -452,8 +452,8 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   the ends (`ends`) and the points a click acts on (`active`) to the board. Without the engine (a site where
   `npm run engine` was not run) the input keeps the rules' box.
 - **Checked in Edge** on the first puzzle (Blue to play): before the first point, the 18 points a click acts on are
-  Blue's 18 nodes; E10 is refused with the card's message; D10 marks 38 legal ends, and not the points on Blue's own
-  edge A10-D10; K3 then keeps D10 and says to finish at a marked point; the pointer on A13 shows the edge D10-A13; a
+  Blue's 18 nodes. E10 is refused with the card's message. D10 marks 38 legal ends, and not the points on Blue's own
+  edge A10-D10. K3 then keeps D10 and says to finish at a marked point. The pointer on A13 shows the edge D10-A13. A
   click on a marked end places the edge, and the puzzle answers "That's not the edge".
 - **Not yet:** the lessons still check edges with their own small tests (the backlog).
 
@@ -462,7 +462,7 @@ The interface, the review, puzzles, lessons, labels and thresholds.
 - **Decided** (design [07-lines-and-variations.md](../design/07-lines-and-variations.md)): pointing at a candidate,
   on the board or in the candidates table, draws its line on the board (KaTrain's and Lizzie's way): its first 6
   edges, dashed in each mover's colour and numbered in circles of the mover's colour, the candidate first. The
-  analyses keep each candidate's line (KataGo's `pv`, up to a pass; the cache's shape version 3).
+  analyses keep each candidate's line (KataGo's `pv`, up to a pass, the cache's shape version 3).
 - **The cuts and the regions:** the first line tried, from the sample game after edge 30, cut 3 of Red's edges in 6
   edges (H6-L8, L8-O11, L8-N11), and the board still drew them. Now the edges a line cuts leave the board and are drawn
   cut, and the regions are the ones after the line's last drawn edge, from the engine's `describe` of each position
@@ -473,7 +473,7 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   line all at once.
 - **The players' tags show the area** each encloses now, besides the points (the engine's `areas`, which each turn's end
   adds to the points). While a line shows, the area is the one after its last drawn edge, in the accent colour. After
-  edge 30 of the sample game, Blue has 46 points and 11 area, Red 30 and 3; number 1's line takes Red to 4 at its first
+  edge 30 of the sample game, Blue has 46 points and 11 area, Red 30 and 3. Number 1's line takes Red to 4 at its first
   edge and back to 3 when Blue cuts, and Blue to 24 when its sixth edge closes a region.
 - **The other candidates leave the board** while a line shows, so that its only numbers are the line's. The rounded
   square and the number on the new point were the other choices.
@@ -482,9 +482,9 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   engine's line". The engine repository is asked for the visits of each move of a line (request 05,
   `includePVVisits`), so that a line can stop where its search ran out.
 - **Checked in Edge:** after edge 30, number 1's line draws one edge at a time (1, then 2, … 6 over three seconds),
-  each cut appearing with its edge; a click on the row draws all 6; Red's cut region near M9 loses its shading and
-  Blue's new region gets it (Red 3 regions to 2, Blue 6 to 7); R8-T11 (6 visits) shows no line and its row has the
-  note; at the first position, pointing at number 1 hides number 2 and leaves number 1.
+  each cut appearing with its edge. A click on the row draws all 6. Red's cut region near M9 loses its shading and
+  Blue's new region gets it (Red 3 regions to 2, Blue 6 to 7). R8-T11 (6 visits) shows no line and its row has the
+  note. At the first position, pointing at number 1 hides number 2 and leaves number 1.
 
 ### The engine's line: where it stops (2026-10-10)
 
@@ -493,7 +493,7 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   of its `pv`. Every search of the review asks for them, and the analyses keep `pvEdgeVisits` with the line (the
   cache's shape version 4).
 - **Published tools:** KaTrain and Lizzie draw the whole line and do not ask for its visits (KaTrain's `anim_pv_moves`
-  is 100; Lizzie's `limit-branch-length` is 0, no limit). KaTrain's one count for "too few visits" is `low_visits`,
+  is 100, and Lizzie's `limit-branch-length` is 0, no limit). KaTrain's one count for "too few visits" is `low_visits`,
   25 (`trainer/low_visits` in its `config.json`): a candidate with fewer is drawn small and faint, without its numbers
   (`gui/badukpan.py`).
 - **Decided** (design 07): a line stops before its first edge with fewer than 25 visits through it (`pvEdgeVisits`),
@@ -525,8 +525,9 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   the gauge, 32rem and 21.25rem. The thresholds take a game's widest numbers, so a game keeps one form and the board
   does not change size as the scores grow. The page measures the row's height, and the board and the side columns
   take it.
-- **Checked in Edge** at a game's last position, at 1,920 × 1,000, 1,380 × 904, 1,280 × 720, 1,100 × 800, 900 × 900,
-  800 × 900, 600 × 900, 430 × 900, 390 × 844 and 360 × 740: no tag overflows, no name is cut, no tag meets the bar, no
+- **Checked in Edge** at a game's last position, in ten windows. Five were wide: 1,920 × 1,000, 1,380 × 904,
+  1,280 × 720, 1,100 × 800 and 900 × 900. Five were narrow: 800 × 900, 600 × 900, 430 × 900, 390 × 844 and 360 × 740.
+  In each, no tag overflows, no name is cut, no tag meets the bar, no
   page scrolls across, and the board and the side columns end level. One line at 1,100 pixels and up (two at
   1,280 × 720, where the board is height-bound and gives 3 pixels for the taller row), two at 900 and 600, three at
   800 and on phones. With the gauge the same, except one line at 1,280 × 720 and 600 × 900, and two at 800 × 900 and
@@ -534,11 +535,10 @@ The interface, the review, puzzles, lessons, labels and thresholds.
 
 ### The engine's line listed, and branches (2026-10-10)
 
-- **Decided** (design 07): one line listed under the candidates table, as Lichess lists one by default
-  (`ceval.multipv`, 1): the line of the candidate pointed at, or else of the selected one (number 1, or the row or
-  board candidate last clicked). One line for each candidate on the board was the other choice. Pointing at an edge of
-  the list draws the line up to it on the board, all at once, and a click plays the line up to it as a branch
-  (Lichess's `playUciList`).
+- **Decided** (design 07): one line listed under the candidates table, as Lichess lists one by default (`ceval.multipv`,
+  1): the line of the candidate pointed at, or else of the selected one (number 1, or the row or board candidate last
+  clicked). One line for each candidate on the board was the other choice. Pointing at an edge of the list draws the
+  line up to it on the board, all at once. A click plays the line up to it as a branch (Lichess's `playUciList`).
 - **Without notation by default:** Go tools show variations without notation, and an edge's name is two points to find
   on a 19 × 19 board. A branch's edges and the listed line's are circles in the mover's colour, numbered from the
   branch's start as the board numbers a line, with small gaps between turns. "Text notation" in the display menu shows
@@ -584,9 +584,9 @@ The interface, the review, puzzles, lessons, labels and thresholds.
 - **Where an inner branch leaves its branch:** an inner branch keeps its branch's numbers, so its first number is that
   of the edge it replaces (under "1 2", a branch that replaces 2 reads "2 3"), and each branch row starts with its turn
   ("5. 8 9 10" under "1. 1 2 3 4 5 6 7 8").
-- **Checked in Edge:** the board's candidates are rounded squares; the table's box is 160 pixels for 159.5 pixels of
-  rows; pointing at row 5 leaves the table where it is; a click on row 2 shows candidate 2's line in the list and
-  draws no line; the notes read as above.
+- **Checked in Edge:** the board's candidates are rounded squares. The table's box is 160 pixels for 159.5 pixels of
+  rows. Pointing at row 5 leaves the table where it is. A click on row 2 shows candidate 2's line in the list and
+  draws no line. The notes read as above.
 
 ### The listed line and branches, second feedback (2026-10-10)
 
@@ -609,32 +609,32 @@ The interface, the review, puzzles, lessons, labels and thresholds.
 
 ### The display settings as a panel (2026-10-10)
 
-- **The problem:** the display menu had grown to eleven controls in six small groups, in a popover above the gear.
+- **The problem:** the display menu held eleven controls in six small groups, in a popover above the gear.
 - **Published tools:** Lichess's analysis settings (`ui/analyse/src/view/settingsView.ts`) are a dialog, 720 pixels
   wide, with switches in boxes by where they act (General, Move list, Board), in two columns or one on a phone, and a
   help video for the setting under the pointer. Lichess's analysis menu itself opens in the analysis column, in the
   move list's place.
 - **Decided** (design 06): a panel in the analysis column, in the place of the analysis, so that the board shows each
-  change; grouped by where a setting shows (Board, Move list, Advantage chart); a short line under each setting that
-  says what it does; switches for on and off, and a pair of buttons for a choice of two. A dialog in two columns
-  (Lichess's settings) covers the board; the popover, reorganised, would grow taller than the column. Help on hover
+  change. Grouped by where a setting shows (Board, Move list, Advantage chart). A short line under each setting that
+  says what it does. Switches for on and off, and a pair of buttons for a choice of two. A dialog in two columns
+  (Lichess's settings) covers the board. The popover, reorganised, would grow taller than the column. Help on hover
   does not show on a touch screen, and labels alone say little for "Protected edges" or "Dots and numbers".
-- **Checked in Edge** at 1,372 × 892: the panel fills the column and scrolls (742 pixels of settings in 618); a click on
-  "Side vertical gauge" brings the gauge, and the Regions switch turns the shading off and is kept in the browser;
+- **Checked in Edge** at 1,372 × 892: the panel fills the column and scrolls (742 pixels of settings in 618). A click on
+  "Side vertical gauge" brings the gauge, and the Regions switch turns the shading off and is kept in the browser.
   Escape closes the panel and brings back the candidates and the move list. At 390 pixels the panel takes the tabs'
   place, 309 pixels wide, with nothing cut and no scroll across.
 
 ### The player's own moves, keys and the move menu (2026-10-11)
 
 - **Published tools:** Lichess's keys (`ui/analyse/src/keyboard.ts`): at a fork ↑ and ↓ pick the line that → follows,
-  elsewhere the first and the last move; Shift + ← and → the previous and the next fork; Shift + ↑ and ↓ the line
-  beside this one; Space its best move. Its move menu (`treeView/contextMenu.ts`): Promote variation, Make main line,
-  Delete from here. KaTrain analyses each move added to its tree and colours each node by the points it lost; a middle
+  elsewhere the first and the last move. Shift + ← and → the previous and the next fork. Shift + ↑ and ↓ the line
+  beside this one. Space its best move. Its move menu (`treeView/contextMenu.ts`): Promote variation, Make main line,
+  Delete from here. KaTrain analyses each move added to its tree and colours each node by the points it lost. A middle
   click plays the line under the pointer.
-- **Decided** (design 07): the player's own moves always on, the puzzles' edge input on the position's rules; Lichess's
-  keys; Space plays the pinned candidate or number 1, and a double-click on a candidate plays it; a right-click (or a
-  long press) on a branch's move gives Promote variation and Delete from here. The game's line stays first in the review, so "Make
-  main line" waits for an analysis board (the backlog).
+- **Decided** (design 07): the player's own moves always on, the puzzles' edge input on the position's rules. Lichess's
+  keys. Space plays the pinned candidate or number 1, and a double-click on a candidate plays it. A right-click (or a
+  long press) on a branch's move gives Promote variation and Delete from here. The game's line stays first in the
+  review, so "Make main line" waits for an analysis board (the backlog).
 - **Labels on a branch's edges: built, then left out.** They were judged as the game's edges (one `judgeEdge` for
   both), with each new branch position searched to the label budget at once, so a label came within seconds and
   nothing waited for it. The owner left them out: a line is often played only to show something, and its searches
@@ -646,30 +646,30 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   "31... E7-G8x" and on a fresh "31... E11-G8", a right-click and the item give Blunder ("??") at once, since both
   positions were already searched (the first from the cache, the second because the player had just been there), and
   no other branch move gets a label.
-- **Checked in Edge,** with real clicks and keys, at edge 61 of the sample game: Blue's 20 nodes take the pointer;
-  G8, then E7, plays "31... E7-G8x" (with its cut) as a branch (with labels on, it was a Blunder within six seconds;
-  now it has none, and the board shows only the game's badge of that turn); Space plays Red's number 1; ← ← returns to the fork; ↓ picks
-  "line 2 of 2" and shows its edge; → follows it; Shift + ← returns to the fork; a double-click on candidate 1
-  (A10-A13, the game's edge) goes along the game; a second branch (D11-G8) promoted comes first, and its menu then
-  greys out Promote; Delete from here removes it and moves to the fork; after a reload the branches come back in their
-  order.
+- **Checked in Edge,** with real clicks and keys, at edge 61 of the sample game: Blue's 20 nodes take the pointer. G8,
+  then E7, plays "31... E7-G8x" (with its cut) as a branch (with labels on, it was a Blunder within six seconds. Now it
+  has none, and the board shows only the game's badge of that turn). Space plays Red's number 1. ← ← returns to the
+  fork. ↓ picks "line 2 of 2" and shows its edge. → follows it. Shift + ← returns to the fork. A double-click on
+  candidate 1 (A10-A13, the game's edge) goes along the game. A second branch (D11-G8) promoted comes first, and its
+  menu then greys out Promote. Delete from here removes it and moves to the fork. After a reload the branches come back
+  in their order.
 
 ### The picked line at a fork, single keys, and the list of keys (2026-10-11)
 
-- **The picked line was hard to see:** ↑ and ↓ at a fork said "→ line 2 of 3" at the end of the status line, which the
-  panel cut. Now the picked move has a dashed accent outline in the move list, on the game's move or a branch's dot,
-  and the move list brings it into view. The status line no longer says it.
+- **The picked line was hard to see**. At a fork, ↑ and ↓ said "→ line 2 of 3" at the status line's end. The panel
+  cut that end. Now the picked move has a dashed accent outline in the move list, on the game's move or a branch's dot.
+  The move list brings it into view. The status line no longer says it.
 - **Single keys beside the Shift keys,** from the owner's question and other tools: Lichess (k and j, Shift + k and j),
   KaTrain (`gui/theme.py`: z and x beside the arrows, b back to the last branch point, n the next mistake), En Croissant
   (`src/state/keybinds.ts`: x and c the previous and the next branch), Sabaki (`src/menu.js`: Ctrl + ↑ and ↓ the
-  forks). Every choice offered went in, since none clash: k and j for back and forward; b and n, [ and ], and Shift +
-  k and j for the forks; x and c, and comma and period, for the line before and after. KaTrain's z and x stay out,
+  forks). Every choice offered went in, since none clash: k and j for back and forward. b and n, [ and ], and Shift +
+  k and j for the forks. x and c, and comma and period, for the line before and after. KaTrain's z and x stay out,
   because x is the line before here. Kept free: m and Shift + m (the next and the previous mistake), and Delete.
 - **A list of keys and clicks,** as Lichess's "?": "?" opens it, and so does "Keys and clicks" in the display settings
   (its Keyboard group). A Bits UI dialog: Escape and a click outside close it.
-- **Checked in Edge** with real keys at edge 61 of the sample game: ↓ marks "31... E7-G8x" with the dashed outline; ↓
-  again and → enter "31... E11-G8"; x goes to the line before (E7-G8x); b back to the fork; n on to the game's end (no
-  fork after); "?" opens the list, Escape closes it, and the settings' "Show" opens it.
+- **Checked in Edge** with real keys at edge 61 of the sample game: ↓ marks "31... E7-G8x" with the dashed outline. ↓
+  again and → enter "31... E11-G8". x goes to the line before (E7-G8x). b back to the fork. n on to the game's end (no
+  fork after). "?" opens the list, Escape closes it, and the settings' "Show" opens it.
 
 ### Move sounds, and progress bars that show the work runs (2026-10-11)
 
@@ -679,12 +679,12 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   Design 06. Checked in Edge: at edge 112 the search bar has the gleam at "256 of 1,024 visits", and loses it at
   "1,024 visits".
 - **Move sounds** (design 08), first decided with the owner: made in the browser (Web Audio), a tap for an edge, a snap
-  for a cut, a chime for a closed region; played on a step forward, a move played, and a move clicked in the move list, and
-  silent on other jumps; on by default with a switch and a volume slider. Lichess's sounds are not free (its
+  for a cut, a chime for a closed region. Played on a step forward, a move played, and a move clicked in the move list,
+  and silent on other jumps. On by default with a switch and a volume slider. Lichess's sounds are not free (its
   `COPYING.md`: the standard set is a non-free exception), and a CC0 pack was the other choice.
-- **Checked in Edge,** with the page's AudioContext watched: 60 steps forward from the start each play one sound; the
-  18 cuts play the snap; 16 steps chime, each where the mover's area grows (one shows no change in the tag, which
-  rounds a half-point gain); back, Home and End play none.
+- **Checked in Edge,** with the page's AudioContext watched: 60 steps forward from the start each play one sound. The
+  18 cuts play the snap. 16 steps chime, each where the mover's area grows (one shows no change in the tag, which
+  rounds a half-point gain). Back, Home and End play none.
 - **The owner did not like the first sound, and had no words for why.** So the sounds became voices with a tuning, and
   a sound lab (`/lab/sounds`) plays seven voices (wooden tap, stone on a board, soft felt, pencil stroke, marimba, glass
   tick, soft click), each as an edge, a cut, a closed region and a few moves in a row, with sliders for pitch, length,
@@ -726,8 +726,8 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   what the owner saw: the bar that Edge shows while the browser extension drives it (about 40 pixels at the window's
   top), which made the chart not fit at their window, and whose removal resized the window.
 - **Fix:** a ResizeObserver on the board's column and the page measures again on any change of their size.
-  Checked in Edge, in a 900 × 900 frame: the columns reach the chart (its bottom at 730); the header 200 pixels higher,
-  with no change of the window, moves the chart to 921 and the columns stop at the board; the header back, they reach
+  Checked in Edge, in a 900 × 900 frame: the columns reach the chart (its bottom at 730). The header 200 pixels higher,
+  with no change of the window, moves the chart to 921 and the columns stop at the board. The header back, they reach
   the chart again.
 
 ### The engine's settings (2026-10-11)
@@ -751,9 +751,9 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   - A 5-second limit with 16,384 visits: a position already at 256 visits stayed at 256, since a new search starts
     from zero. So the limits start at 10 seconds.
   - b15c192 at 1,024 visits and 30 seconds: 704 visits, then "time limit".
-- **Checked in Edge:** the settings kept in the browser; engine off (header "engine off", the review's bar still and
-  "The engine is off: the review waits."), then on (the work goes on); thorough (the label pass at 1,024, 33
-  positions at once from the store); 4 workers to 8 (4 more worker scripts loaded) and back; b10c128 to b15c192 (the
+- **Checked in Edge:** the settings kept in the browser. Engine off (header "engine off", the review's bar still and
+  "The engine is off: the review waits."), then on (the work goes on). Thorough (the label pass at 1,024, 33
+  positions at once from the store). 4 workers to 8 (4 more worker scripts loaded) and back. b10c128 to b15c192 (the
   sweep starts again) and back (the review complete from the store in about 5 seconds).
 - **Changed after a check:** a thorough review first judged an edge only at 1,024 visits, so the labels vanished
   until its pass reached them. Now an edge is judged from 256 visits in both reviews.
@@ -772,9 +772,9 @@ The interface, the review, puzzles, lessons, labels and thresholds.
 - **The default depth stays Lite** (256), the measured label budget, until the owner chooses (design 05).
 - **The owner asked** what happens with more workers than the machine can run: they share the cores and each runs
   slower, with no error, and each still holds its memory (design 09, "Consequences"). And whether the GPU could search:
-  through WebGPU in principle, as an engine change; its gain at one evaluation at a time is uncertain until measured.
-- **Checked in Edge:** the gear opens and closes the panel; Custom shows its slider and the review runs to it; the l
-  key turns the engine off ("Engine off. The review is paused.", the bar still) and on; Lite completes from the store;
+  through WebGPU in principle, as an engine change. Its gain at one evaluation at a time is uncertain until measured.
+- **Checked in Edge:** the gear opens and closes the panel. Custom shows its slider and the review runs to it. The l
+  key turns the engine off ("Engine off. The review is paused.", the bar still) and on. Lite completes from the store.
   ☰ opens the display settings and closes the engine's.
 
 ### The engine header in two lines, boxes for visits, a slower gleam (2026-10-11)
@@ -813,16 +813,16 @@ The interface, the review, puzzles, lessons, labels and thresholds.
 
 - **Asked for:** a third form for the branches and the engine's line, beside the dots and the notation: a pill along
   each edge's rough direction.
-- **Chosen:** the edge's exact slope (24 slopes; at this size close slopes look alike, but a pill is never wrong, and
+- **Chosen:** the edge's exact slope (24 slopes. At this size close slopes look alike, but a pill is never wrong, and
   there is no rounding rule to explain), the same length for every pill (the shortest edges would shrink to dots), and
   in the engine's line the board's number upright on each pill.
 - **Built** (design 07): the setting "Branches and lines" has three buttons, Dots (the default), Pills and Notation.
   The stored `branchText` becomes `branchForm`, and a stored notation choice carries over. A pill is an SVG rounded
   rectangle with its radius half its thickness, turned to the edge's angle on the screen (rows count from the bottom).
 - **Checked in Edge:** the pills of a line's first six edges turn to the edges' slopes on the board (P10-S8 at 33.7°,
-  down to the right, as on the board; K12-L9 at 71.6°; G8-J6 at 45°), each within its square of 26 pixels. The
+  down to the right, as on the board, K12-L9 at 71.6°, G8-J6 at 45°), each within its square of 26 pixels. The
   numbers 1 to 14 read on their pills. A line's edges already in a branch show as outlined pills with the number in
-  the mover's colour (checked with a test branch, deleted after). The branch rows read as short strokes after their
+  the mover's colour (checked with a test branch, removed after). The branch rows read as short strokes after their
   turn numbers, and the move on screen has its round accent outline.
 
 ### Lite at 512 visits, closer dots and pills, "Done" after the last setting (2026-10-11)
@@ -852,7 +852,7 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   slices cost only one more reply each.
 - **Checked:** in Node, a search of 1,536 visits in slices of 256 replies at 256, 512 and on to 1,536 visits. In
   Edge, with a review depth never searched before (768 visits), edges got labels while no position but the one on
-  screen had ended its search: 3 labelled edges with 1 position done, 6 with 3. The branch moves evaluated on request
+  screen ended its search: 3 labelled edges with 1 position done, 6 with 3. The branch moves evaluated on request
   ran first (their priority is higher), so the label pass started about 28 seconds after the page loaded.
 
 ### The GPU module: no need for reproducible searches, and a default chosen on each machine (2026-10-11)
@@ -1119,8 +1119,8 @@ The interface, the review, puzzles, lessons, labels and thresholds.
     note under a turn names the engine's best turn. The board gives the turn's badge on both its edges once the turn has
     ended, marks both edges as the turn just played, and lights both edges and badges with the turn's note under the
     pointer. By edge, every badge has its own note.
-- **Tests** (`model.test.ts`, 25 checks): a turn's loss and points from its ends, not its edges' losses added; Best in
-  the other order; Great confirmed from both ends, and Best without either confirmation; the summaries by unit.
+- **Tests** (`model.test.ts`, 25 checks): a turn's loss and points from its ends, not its edges' losses added. Best in
+  the other order. Great confirmed from both ends, and Best without either confirmation. The summaries by unit.
 - **Checked in Edge** on the sample game:
   - By turn: 61 turns counted. Turn 2 reads "?? −198", its note "Blunder: −33.4% · −198 pts (Q10-R8 −143 pts,
     O11-Q10 −55 pts)", and its comment "Blunder. N9-Q10 M6-N9 was best." Great by turn grew from 2 and 3 to 4 and 4 as
@@ -1162,12 +1162,12 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   sample game. The listed line, and so this line, ends by visits only: the board's drawn line ends at 6 edges too.
 - **"Evaluate quality"** (design 07, item 11) evaluates the move's turn, every branch move of it, and the label shows by
   turn or by edge.
-- **Checked in Edge** on the sample game: the notes of turns 2, 3 and 9 as above; the tree under turns 7 and 8; the
+- **Checked in Edge** on the sample game: the notes of turns 2, 3 and 9 as above. The tree under turns 7 and 8. The
   engine's line under turn 2, before the branch from the same position, and the real pointer on its fourth edge
-  previewed four edges from the position after edge 1; "Evaluate quality" on a branch's 7... F8-J11 gave the turn
+  previewed four edges from the position after edge 1. "Evaluate quality" on a branch's 7... F8-J11 gave the turn
   Excellent on its second edge, and the board, at that move with the pointer off the list, showed both badges with
-  "Excellent: +2.2% · +17 pts" and both edges marked; the chart's note "2. Q10-R8 O11-Q10 [Blunder] | Lead: Blue +93";
-  by edge, J11-M13 Best. Not checked: a click on the engine's line (it plays as the listed line's click does).
+  "Excellent: +2.2% · +17 pts" and both edges marked. The chart's note "2. Q10-R8 O11-Q10 [Blunder] | Lead: Blue +93".
+  By edge, J11-M13 Best. Not checked: a click on the engine's line (it plays as the listed line's click does).
 
 ### Labels in one place, one decimal in the notes, the move menu everywhere, and one side's review (2026-10-11)
 
@@ -1185,8 +1185,8 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   moves show without labels, numbers, notes or the engine's lines, on the board and on the chart too. The counts keep
   both players. Imported games do not yet record which side the player was, so the default is Both.
 - **Checked in Edge** on the sample game: the notes of turns 2, 3 and 9 as above, the Great note, a move's note "Lead:
-  Blue +38.2"; a right-click on a game move (as an event, the window hidden) opened the move menu, all three actions
-  off, and no browser menu; "Review for: Blue": Red's turns without glyphs or numbers, Blue's notes only, 7 engine
+  Blue +38.2". A right-click on a game move (as an event, the window hidden) opened the move menu, all three actions
+  off, and no browser menu. "Review for: Blue": Red's turns without glyphs or numbers, Blue's notes only, 7 engine
   lines (Blue's 4 Mistakes and 3 Blunders), 5 key moments on the chart, both columns of counts.
 
 ### The notes and branches in a band at the list's left, on trial (2026-10-12)
@@ -1194,8 +1194,8 @@ The interface, the review, puzzles, lessons, labels and thresholds.
 - **Tried, for the owner to judge** (Lichess's column view, its "interrupt"): under a turn, its notes and its branches
   in one band across the move list, with a faint background and a rule above and below, starting at the list's left.
   The notes were indented about 40 pixels, and the branches of the first depth about 35. The tree's rules stand at the
-  band's left, one step in for each depth. Seen in Edge on the sample game: 23 bands; turn 1's engine line on one row
-  where it took two; the lines from turn 7 with the lines nested in one of them, and their rules.
+  band's left, one step in for each depth. Seen in Edge on the sample game: 23 bands. Turn 1's engine line on one row
+  where it took two. The lines from turn 7 with the lines nested in one of them, and their rules.
 - **The review's progress bar after a change of the review's depth** (reported missing): not seen again in Edge, in
   the three-column layout with the engine settings open. From Custom 1,024 (done): Lite and Standard showed no bar,
   since every position already met them. Custom 2,048 showed "Reviewing: move quality, 3 of 120 positions" at once.
@@ -1203,7 +1203,7 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   show where the browser's store already holds the depth. The owner's setting was set back to Custom 1,024.
 - **Kept, with no setting:** the owner likes the band. One layout, since the indented one gave nothing that the band
   lacks, and a setting for a style alone is one more thing to read in the panel.
-- **The progress bar:** the owner had set the review's depth to Custom 256, which every position already met, so the
+- **The progress bar:** the owner set the review's depth to Custom 256, which every position already met, so the
   review was done and the bar rightly gone. What moved was the engine's best lines in the move list (next entry).
 
 ### Why the engine's best lines move in the move list (2026-10-12)
@@ -1233,16 +1233,16 @@ The interface, the review, puzzles, lessons, labels and thresholds.
 - **Found in the owner's screenshot** (the key moments' part full at "move quality, 33 of 120"): the page searched the
   key moments deeper once for a game, after the first label pass, and kept the flag through a change of the review's
   depth. The bar then showed the old key moments, searched already, while the new label pass ran, and the key moments
-  of the new labels were not searched deeper at all. A full part can be right (those positions do have 1,024 visits);
-  the missing search was the fault.
+  of the new labels were not searched deeper at all. A full part can be right (those positions do have 1,024 visits).
+  The missing search was the fault.
 - **Built:** the page asks the analysis to search the key moments deeper whenever they change after the label pass (a
   label changed by a deeper search, another review depth), and the analysis skips a position whose search is queued or
   done. The bar counts the key moments and the Great's confirmations (`greatChecks`: the searches the analysis asks
   for, and those with the label budget) from the analysis as it is. Since both grow as labels come, the whole bar's
   share of the work done dipped at times (81%, 77%, 81%, 79% on `localhost` after Custom 256 to Lite), so the bar now
-  fills from the left by the work done and never shows less than it has shown in that run.
+  fills from the left by the work done and never shows less than it showed earlier in that run.
 - **Checked in Edge** on `localhost`: after Custom 256 to Lite, the four parts (the confirmations' part 92% full
-  during the label pass); after Lite to Standard, 34%, 35%, 36%, 39%, never down. The owner's settings there were set
+  during the label pass). After Lite to Standard, 34%, 35%, 36%, 39%, never down. The owner's settings there were set
   back to Lite.
 
 ### The Advantage chart moved to the summary, and the review's bar by step (2026-10-12)
@@ -1262,7 +1262,7 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   chart's note takes at most the room beside the point and wraps. chess.com's review also keeps its graph in a side
   panel.
 - **Checked in Edge** at 1,399 × 849 (three columns): the page 849 pixels high, no scroll bar, the board ending at 807,
-  the side columns at 833, the chart 226 pixels wide at the summary's foot; its note at turn 24 wrapped to two lines
+  the side columns at 833, the chart 226 pixels wide at the summary's foot. Its note at turn 24 wrapped to two lines
   inside the chart. Not checked: the two-column and the one-column layouts (Edge would not take a narrower window).
 
 ### The Report, and the area line in the Advantage chart (2026-10-12)
@@ -1348,9 +1348,14 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   (`scoreStdev`). The budget summary reads the same chance. Points lost stay in the notes. A test checks that a lead of
   1,000 with a spread of 50 loses no label for 100 points, and that the engine's fall from 0.5 to 0.2 with 5 points of
   a spread of 100 is Excellent.
-- **The sample game, by turn** (Blue / Red), from the cache: Great 4 / 4 → 1 / 2, Best 8 / 12 → 11 / 14, Excellent 9 /
-  7 → 8 / 8, Good 2 / 1 → 3 / 2, Inaccuracy 1 / 2 → 4 / 2, Mistake 4 / 2 → 4 / 2, Blunder 3 / 2 → 0 / 0. Accuracy 85.2
-  / 88.9 → 89.4 / 93.7. Fewer Greats: the gap of 0.10 is now in a human's chance, which is gentler than the engine's.
+- **The sample game, by turn,** from the cache, before and after (Blue / Red):
+
+  | | Great | Best | Excellent | Good | Inaccuracy | Mistake | Blunder | Accuracy |
+  |---|---|---|---|---|---|---|---|---|
+  | Before | 4 / 4 | 8 / 12 | 9 / 7 | 2 / 1 | 1 / 2 | 4 / 2 | 3 / 2 | 85.2 / 88.9 |
+  | After | 1 / 2 | 11 / 14 | 8 / 8 | 3 / 2 | 4 / 2 | 4 / 2 | 0 / 0 | 89.4 / 93.7 |
+
+  Fewer Greats: the gap of 0.10 is now in a human's chance, which is gentler than the engine's.
   The notes give a human's chance: "Mistake: −14.7% · −197.8 pts (−143.3 pts, −54.5 pts)". Checked in Edge.
 - **Not changed:** the Advantage chart, the win bar and the candidates table still show the engine's win chance. Open:
   whether they show a human's, so that a note's loss and the chart's fall agree.
@@ -1409,7 +1414,7 @@ The interface, the review, puzzles, lessons, labels and thresholds.
 - **The basic form,** the other choice: no Google tag until the visitor accepts.
 - **Built:** `src/lib/analytics.svelte.ts` and the banner. The build names the services (`VITE_GA_ID`,
   `VITE_CF_ANALYTICS_TOKEN`). Without them, as in development, the build holds no code of either. Cloudflare's beacon
-  is added by the page, not by Cloudflare's automatic setup, so that it starts after the import page has removed a
+  is added by the page, not by Cloudflare's automatic setup, so that it starts after the import page removes a
   record from the address.
 - **The domain** is active on Cloudflare.
 
@@ -1467,7 +1472,7 @@ The interface, the review, puzzles, lessons, labels and thresholds.
 - **Checked:** both downloads complete (the sizes match their lengths), and both pages name their sound designers and
   no product.
 - **Built** (design 08): the two sounds, each its press and release, trimmed of the silence before and the faint tail
-  after; the first plays three times as often (the weight is the site's choice of "more often"). A set of two may
+  after. The first plays three times as often (the weight is the site's choice of "more often"). A set of two may
   repeat a clip: never repeating would make two clips alternate. Three tests check the draw.
 - **The name:** the project is Hedge School everywhere but the browser's storage and the local folder (design 11). The
   README is rewritten for the site as it is: the early access, the engine from its release, the analytics.
@@ -1500,9 +1505,9 @@ The interface, the review, puzzles, lessons, labels and thresholds.
 
 - **DNSSEC** is on (Cloudflare's DS record at Porkbun).
 - **Read first:** Cloudflare's current Pages documentation (the Git integration, the build image, `_headers`, custom
-  domains, the limits, serving). The facts that shaped the setup: Node 22.16 by default in the build image; private
-  repositories through Cloudflare's GitHub app; no `404.html` makes Pages serve the home page for any address; a
-  subdomain of a zone on Cloudflare gets its DNS record by itself; Web Analytics turns on its automatic setup (the
+  domains, the limits, serving). The facts that shaped the setup: Node 22.16 by default in the build image. Private
+  repositories through Cloudflare's GitHub app. No `404.html` makes Pages serve the home page for any address. A
+  subdomain of a zone on Cloudflare gets its DNS record by itself. Web Analytics turns on its automatic setup (the
   beacon added by Cloudflare) for a proxied hostname unless changed to a manual snippet.
 - **Built:** `.node-version` (24), `npm run build:cloudflare`, `static/_headers`, and the 404 page (design 11, item
   5). The command passed on this machine and from a clean clone with a fresh `npm ci` and fresh engine downloads.
@@ -1513,10 +1518,10 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   `3580146`, with the settings in docs/hosting.md. The framework preset is None: Cloudflare's SvelteKit preset fills
   in the output of Cloudflare's own adapter (`.svelte-kit/cloudflare`), which renders on a server in a Worker, and the
   site uses adapter-static.
-- **Checked on the live site:** `noindex` on every file, a real 404, the year's cache on the hashed code and the engine's
-  files and not on the manifest, the module as `application/wasm`, the larger network whole, the early access's header
-  and `/puzzles` leading home, the GA ID in the code, and DNSSEC validated (key tag 2371).
-- **Web Analytics, to correct:** a site was added for `abstractclass.org`, on Cloudflare's automatic setup. A first
+- **Checked on the live site:** `noindex` on every file, a real 404, the year's cache on the hashed code and the
+  engine's files and not on the manifest, the module as `application/wasm`, the larger network whole, the early access's
+  header and `/puzzles` leading home, the GA ID in the code, and DNSSEC validated (key tag 2371).
+- **Web Analytics, to fix:** a site was added for `abstractclass.org`, on Cloudflare's automatic setup. A first
   check found no beacon, but it came just after the site was created. Minutes later every page of Hedge School had
   Cloudflare's beacon, `/import` too: the automatic setup adds it to every subdomain of the zone, so it can start
   before the import page removes a record from the address. The site for `abstractclass.org` can stay: Cloudflare
@@ -1541,14 +1546,14 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   address) stay in the property. Local builds now leave the ID out.
 - **The bare domain's records:** two A records at Cloudflare for `abstractclass.org`, the parking server's addresses
   (`pixie.porkbun.com` resolves to `207.207.210.107` and `207.207.210.229`). Cloudflare made them from Porkbun's ALIAS
-  record when it read the domain's records. Deleted, with `www`: the bare domain no longer resolves.
+  record when it read the domain's records. Removed, with `www`: the bare domain no longer resolves.
 
 ### The networks' downloads in the engine settings (2026-10-12)
 
 - **Asked:** whether the site asks before it downloads the networks, and which.
 - **Measured** (the build on a server that logged each engine file, a first visit in Edge, 8 workers): a review
-  fetches the module (1.3 MB) and the default network (6.5 MB) once, whatever the workers; a return visit fetches only
-  the manifest (1.2 KB). The larger network (20.6 MB) downloads only when chosen. Nothing asks.
+  downloads the module (1.3 MB) and the default network (6.5 MB) once, whatever the workers. A return visit downloads
+  only the manifest (1.2 KB). The larger network (20.6 MB) downloads only when chosen. Nothing asks.
 - **Decided:** no question before the download, as on Lichess, whose default engine loads with a small network made
   for the download (7 MB) and whose official one (40 MB) is a choice in its engine menu, with its size. The Network
   choice now names each network's download: "3.2M params (6.5 MB)", "10.3M params (20.6 MB)", from
@@ -1557,14 +1562,262 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   their parts. No-break spaces inside "3.2M params" and "6.5 MB" leave the space before the parenthesis as the only
   break. Checked in Edge at the panel's own width and at 260 and 200 pixels.
 
-### The engine named HedgeFund; work on a `dev` branch (2026-10-12)
+### The engine named HedgeFund, and work on a `dev` branch (2026-10-12)
 
 - **The names:** the engine is HedgeFund. The networks are to show as "HedgeFund 1 Lite (6.5 MB)" and "HedgeFund 1
   (20.6 MB)". The name identifies the engine and its network everywhere (the site, the bots, the Discord), so the
   engine repository gives it, in its release manifest, and the site adds the size (request 12). Until then, the
   settings name the networks by their parameters and sizes.
-- **The branches:** work on `dev`, pushed after each commit, so that GitHub holds the work; `main` is the live site,
+- **The branches:** work on `dev`, pushed after each commit, so that GitHub holds the work. `main` is the live site,
   released by `git push origin dev:main`. Pages builds each push to `dev` as a preview. The other way (work on `main`,
   Pages deploying another branch) works the same, but keeps less to the convention that `main` is what runs.
 - **The preview's variables** in Pages: `VITE_EDITION=early` and `VITE_GA_ID`, no Cloudflare token. `VITE_GA_ID` is to
   go from the preview environment, so that visits to previews are not counted.
+
+### Labels back on the engine's win chance (2026-10-12)
+
+- **Decided:** the labels read the engine's own win chance, with chess.com's bands (0.02, 0.05, 0.10, 0.20) and no
+  point bands, as the first labels did without their point bands. The practical chance (a human's, σ(0.99 · lead /
+  scoreStdev)) is removed from the site. The owner came to prefer the first labels: the search for another measure was
+  not going well.
+- **What the data said** (decisions/engine.md, "The label rules on games of known strength"): the engine's chance
+  flags stronger play less on every set of games (the visit ladder, the gauntlet, people by rating), so it measures
+  strength. It is harsher on beginners (Blunder on 30% of turns under 1600, against 18%), and its flags fall where the
+  game is still open: 73% of people's Mistakes and Blunders in the first 40 edges, 13% in decided positions. The point
+  bands stay out: 46% of people's Mistakes in decided positions.
+- **No new measurement** on the released network: the owner chose not to re-measure.
+- **Built:** `labels.ts` and `model.ts` read `blueWin` everywhere (the loss, Best, Great's gaps). `humanWin`,
+  `labelWin`, `candidateWin` and a candidate's spread are gone. The Report says "Labels judge each move by the engine's
+  win chance." The test of the human chance became a test of the engine's. On hold until now, and dropped: a
+  practical-chance line on the chart, and "practical" in the notes.
+
+### The logo: a Border Collie (2026-10-12)
+
+- **Asked:** a logo and mascot, a Border Collie in a simple drawing, readable as a 16-pixel favicon. Collies herd sheep
+  into pens, and pens are what the game is about. It can be the hedge school's schoolmaster.
+- **Built** (design 12): three drawings compared in Edge at 16 to 128 pixels on light and dark backgrounds, and at 16
+  device pixels enlarged. The second, a larger face with a narrow blaze, is the logo and favicon. The third, the same
+  face in a mortarboard, reads from 48 pixels up and is the mascot on the About page ("The schoolmaster"). PNGs for
+  browsers without SVG icons and for iOS.
+
+### The logo in black and white (2026-10-12)
+
+- **Asked:** Lichess's style: a very simple drawing in black and white, without colour, and a larger title.
+- **Built** (design 12): line art and a silhouette compared in Edge from 16 to 128 pixels. The line art blurred at 16
+  pixels and read as a cat at large sizes. The silhouette, refined (tufts at the cheeks, a tipped ear, a narrower
+  muzzle), reads as a collie. It takes the page's ink. The mascot keeps a narrow mortarboard, set above the head with a
+  gap. The title is `text-xl`, the logo 28 pixels, and the header's reserved height 3 rem (the review still fits the
+  window).
+
+### Export and import of reviewed games (2026-10-12)
+
+- **Decided:** both exports: the review file, with the engine's results, and the annotated record. An import into a site
+  with another engine searches again. Export on the review page and beside each game on the home page. Import on the
+  home page, by a button or a file dropped on the page. When the site has more, the home page becomes a home, and these
+  move to the review page.
+- **Precedents:** Lichess keeps an old analysis as it was and lets the player ask for a new one. KaTrain can keep its
+  analysis in its SGF files. Here the engine runs in the player's browser, so searching again costs only the wait.
+- **Built** (design 13). Checked in Edge, without saving files to the owner's folders (the page's file was caught in
+  the page and passed through a local server): the export of a reviewed 120-edge game, 240 results of the shipped
+  network, 876 KB (1.7 MB before the older networks' results were left out). Its import at another address of the same
+  server (another browser's store), dropped on the home page. The review complete within 8 seconds, with no search,
+  though that browser's review depth (512) differs from the file's (1,024), once a stored deeper result answers a
+  shallower question. The annotated record from the review's Export menu, opened from the keyboard.
+- **The notation's branches:** its two examples place a branch in two ways. The export follows them, and request 13
+  asks the engine repository for one rule.
+
+### Export from the home page: the three choices (2026-10-12)
+
+- **Asked:** the home page's Export, beside each game, with the review page's three choices.
+- **Built** (design 13): one menu for both pages (`ExportMenu.svelte`). From the home page, the annotated record is
+  built from the stored results with the rules alone: no search. Checked in Edge, the record caught in the page: a game
+  stored before the store's shape changed gave a record with no evaluations that still said it was reviewed. Such a
+  game now gets the note "open the game to review it first" and no record, and a game reviewed in part "open the game
+  to finish its review first". The first guard counted any stored position, and passed: every game shares the start,
+  which another game's review stored. The guard now leaves the start out.
+- **The two exports compared,** for the owner's questions: the review file is for this site, and holds every stored
+  result (each candidate with its value, visits, prior and line). The annotated record is for people and other
+  programs, and holds one evaluation after each edge, the labels in words, the clocks and the branches. A reader cannot
+  rebuild the labels from it: Best and Great rest on the candidates and on further searches. Request 13 now also asks
+  the notation for marks of a move's quality and for a note before the first turn.
+
+### Hard positions and the accuracy's weights (2026-10-12)
+
+- **Asked:** KaTrain's complexity to weigh the accuracy, and a mark on hard positions.
+- **Measured** on request 08's first look (decisions/engine.md, "KaTrain's complexity on the archive"): in points,
+  KaTrain's cap times 12 holds 70% of the positions. In win chance, the share of played edges that lost 0.10 or more
+  rises from 0% to 62% across the tenths of complexity. KaTrain's weights raise the correlation of a game's accuracy
+  with the player's rating from 0.43 to 0.63.
+- **Built** (design 14): the complexity in win chance, from each candidate's prior, now kept in the stored analysis
+  (the store's shape 5). ◆ marks a position of 0.10 or more, in the move list, the engine header and the annotated
+  record. A player's accuracy weighs each move by KaTrain's weight, with full weight at 0.10 of complexity or 0.20 of
+  loss. Design 14 names the departures from KaTrain and Lichess. A first try put a note under each hard turn: two in
+  the first eleven turns of a game, so the note went, and the mark and its tooltip stayed.
+- **Checked in Edge** on a game of 120 edges between two people, reviewed again under the new shape at 1,024 visits:
+  5 of its 60 turns are hard, the accuracy is 71.1 for Blue and 50.7 for Red, and inside turn 7, where one edge kept
+  the chance and the others lost 12 to 24%, the engine header shows ◆. The word "hard" beside it wrapped the header's
+  line and moved the candidates' table, so the mark stands alone. The annotated record, from the review page and from
+  the home page, has an evaluation after 119 edges and "A hard position." on the same 5 turns.
+
+### The logo in profile (2026-10-12)
+
+- **Asked:** a better drawing, after images found by searching "border collie head line art": not the front view, but
+  the side or a half side.
+- **Drawn and compared** in Edge, from 16 to 128 pixels on light and dark: a front view with black patches round the
+  eyes (not kept: a front view), a solid profile silhouette (it read as a wolf), a three-quarter view (a large empty
+  ruff), and a profile in black and white: the ear, the eye's patch and the cheek filled, the muzzle, blaze and ruff
+  outlined. The last was preferred, and refined: the ear's top tipped forward with a fold line, a pupil, the cheek's
+  black curving round to the jaw, heavier lines below 48 pixels and in the favicon.
+- **Built** (design 12) as a candidate in the site, for a look in place: the header, the favicons (SVG and both PNGs),
+  and the mortarboard on the About page, set forward on the forehead so that the ear shows behind it.
+
+### Export and the hard mark: fixes after a look (2026-10-12)
+
+- **The hard mark moved the labels:** by turn, the turn's cell is right-aligned, so a row with ◆ put its label 12
+  pixels left of the others. Every row now keeps a slot for the mark. Checked in Edge: every label of the first nine
+  turns at the same place, with and without ◆.
+- **The note's depth came from the setting, not from the results:** the same game, searched at 1,024 visits, exported
+  as "at least 1024 visits" and later as "at least 512 visits", after the review depth was set to Lite. The note now
+  gives the least visits among the game's searches.
+- **A pasted annotated record:** the home page reads its tags and moves and skips its comments and branches. A game's
+  id comes from its moves, so in the browser that reviewed it, the paste opens the stored review at once, with
+  nothing searched (checked in Edge). In another browser it is a new game, and the review searches it: the record's
+  evaluations are not read.
+
+### The networks named: HedgeFund 0.1 (2026-10-12)
+
+- **Request 12 done** (requests/12-network-names.md): the release's manifest names each network. "HedgeFund 0.1 Lite"
+  (b10c128) and "HedgeFund 0.1" (b15c192). Versions start at 0.1, every new network file takes the next number, and a
+  name belongs to one file for life.
+- **Built** (design 09): the names copied into `engine.lock.json` and the site's manifest. The engine settings show
+  "HedgeFund 0.1 Lite (6.5 MB)" and "HedgeFund 0.1 (20.6 MB)", with the parameters in the help line. The annotated
+  record's note and the review file name the network by its name and its id. Checked in Edge.
+
+### Export only once the review is done (2026-10-12)
+
+- **Decided:** for simplicity, no export of any kind until the game's review is done.
+- **Built** (design 13): when a review's bar ends, the game keeps the mark of it: the engine module's and the
+  network's SHA-256, the network's id, the review's depth. The review page's Export opens then. The home page reads the
+  marks: a game exports when its mark names the site's engine, the network set now and the review depth set now or
+  deeper. The review file carries the review (the mark with the network's name), and an import keeps the mark when the
+  file's review ran with this site's engine and a network it ships.
+- **The file's version** (design 13): one number. A new field keeps it, and a reader ignores fields it does not know.
+  The `review` field joins version 1, since no release of the site exports files yet.
+- **Checked in Edge:** on the home page, the reviewed game's Export on and the four others off, with the reason in the
+  tooltip. The review file of the reviewed game carries its review: the module's and the network's SHA-256,
+  "HedgeFund 0.1 Lite", 512 visits. Not checked: the tooltip of an Export that is off, with the real pointer.
+
+### Difficulty as pictures: the strip and the likely edges' meter (2026-10-12)
+
+- **Asked:** the hard mark's tooltip was too wordy. Show difficulty as a picture: a short tooltip, a strip under the
+  chart, and a bar after Maia's, with the network's prior for Maia's human moves.
+- **Maia's Blunder Meter** (its platform's `calculateBlunderMeter`, CSSLab/maia-platform-frontend): Maia's policy at a
+  chosen rating, summed by Stockfish's win-rate loss against the best move: Best moves (a loss up to 0.05), OK moves
+  (to 0.10), Blunders. Moves that Stockfish did not value are left out.
+- **Built** (design 14): the tooltips say "Hard position". Under the Advantage chart, a bar for each turn (or edge), as
+  tall as its complexity, dark where it is hard. Under the engine header's line, the network's likely edges in the
+  labels' colours, cut at the labels' bands, with the prior the search did not visit in grey. Checked in Edge on the
+  game of 120 edges: the strip's bars stand in the first quarter of the game, and inside turn 7 the meter reads 2% good
+  or better, 15% inaccuracy, 32% mistake, 51% blunder.
+
+### The logo from the generated drawings (2026-10-12)
+
+- **Given:** ten collie drawings made with an image generator to a brief after Lichess's knight, and dark edits of
+  versions 08 and 09 that keep the black coat and add a light keyline instead of a negative.
+- **Built** (design 12): versions 08 and 09 traced to vector paths and compared from 16 to 256 pixels in both schemes.
+  Version 09 is in the site as the candidate: cleaner at 16 pixels and 14 KB of paths against 34 KB. On a light page
+  its coat takes the ink, and on a dark page it keeps the black coat, the white fur and the keyline. The About page
+  shows the same collie, without the earlier mortarboard. The favicon follows the colour scheme, and the PNGs are its
+  light form.
+
+### Difficulty in its own chart, the simplified collie, the schoolmaster's line (2026-10-12)
+
+- **Asked:** difficulty is not advantage, so it belongs in another chart.
+- **Built** (designs 06 and 14): two tabs above the Report's chart, "Advantage" and "Difficulty", as Lichess's tabs
+  choose among its charts. The Difficulty chart: a bar for each turn (or edge), dark where the position is hard, a
+  dashed line at the hard level, and the key moments' labels as dots on their bars. A click shows the bar's position,
+  the decision. The strip under the Advantage chart is gone. Checked in Edge.
+- **The meter's order** (asked): good on the left, bad on the right, as Maia's meter stands its groups top to bottom
+  and as the Report's counts list the labels. A plain choice, not a measured one.
+- **The schoolmaster's line:** "Collies herd sheep into pens, and pens are what Enclosure is about." read as a slogan.
+  The About page now says "The school is kept by a Border Collie."
+- **The simplified collie** (design 12): simplified versions of drawings 08 and 09 for 16 to 32 pixels, with dark forms
+  in a thick white border. Both traced and compared. The simplified 09 draws the collie below 48 pixels (the header,
+  the favicon, the iOS icon), and the full 09 from 48 pixels up (the About page). Checked in Edge in the dark scheme
+  in the site, and in both schemes on the comparison page.
+
+### The Difficulty chart's details, and the early access in the header (2026-10-12)
+
+- **Fixed:** the Difficulty chart's tooltip ran past the panel's right edge: it had no width limit, and "Hard
+  position" made it wider. It now wraps inside the chart, on the side with more room, as the Advantage chart's does,
+  in lines: the decision ("9. Blue to play"), the move played, and "Hard position" when it is. Checked in Edge at both
+  ends of the chart.
+- **The labels' dots:** 7 pixels wide on both charts (9 before). On the Difficulty chart they moved from the bars' tops
+  to a row under the bars, each under its turn. A dot on a bar's top mixed two measures into one mark, and sat on the
+  floor of a short bar.
+- **The two charts' clicks:** the Advantage chart shows the position after a move, as the move list does, and the
+  Difficulty chart the position before it, where the player decided. Kept, and said in the tooltips ("7. Blue to play"
+  against "7. K9-K10 A9-D10").
+- **The legend's swatches:** one size for "Hard position" and "Easier". Their heights hinted at the bars' heights,
+  and looked off.
+- **The header:** "Early Access" in the accent colour beside the name, a link to the About page's section on the early
+  access (design 11).
+
+### The charts under the board, always in view, and the head alone for small sizes (2026-10-12)
+
+- **Asked:** the chart was too small for a game of 120 edges in the Report's column. Put it under the board, always in
+  view without scrolling, and let its height change with the layout.
+- **Built** (design 06): the charts' area under the board, at the board's width. Its height is what the window's
+  height leaves after a board as wide as the columns allow, at least 6 rem and at most 12 rem: where the board fills
+  the height, the board is 6.5 rem shorter. The tabs and the legend share one row. The charts' notes open above them,
+  over the board. The side columns end with the area. Checked in Edge at 1,311 × 850 (the board limited by the
+  height: the area 6 rem), and in frames of 1,100 × 800 (two columns) and 700 × 840 (one column, the area 8 rem).
+- **The collie's head** (design 12): a head-only drawing for 16 to 32 pixels (no chest, no eye, broad masses and a
+  thick white outline), traced to paths. It draws the collie below 48 pixels (the header, the favicon, the iOS icon)
+  in both colour schemes, in place of the simplified busts. The full drawing stays from 48 pixels up.
+
+### No text cursor, edges by drag, and notes on the board (2026-10-12)
+
+- **Asked:** the review page's text took a selection, and the pointer turned into a text cursor over the move list's
+  labels and marks. Also: drag to play an edge, and right-click notes: a ring on a point, a line by a right drag, that
+  are only drawings (no cut, no enclosure).
+- **Built** (designs 06 and 07): the review page takes no selection (`select-none`), except an engine error. The board
+  takes the pointer's press, drag and release: a click as before, or a drag from a node to a marked end that plays the
+  edge. The notes follow Lichess's circles and arrows (chessground's drawable shapes): they toggle, the keys held
+  choose the colour (green, yellow, purple, grey: Lichess's red and blue would read as the players' colours), and a
+  left click on the board clears the position's notes. They belong to the position on screen, for the visit only.
+- **Checked in Edge:** the move list's cells compute `user-select: none`. A real drag from D10 to G9 played the edge as
+  a branch (then deleted). Real right-clicks ringed K12 and N14, a second right-click on K12 removed its ring (a first
+  try added a second ring: the check of the same note missed rings, and is now tested), and a left click cleared the
+  notes. A right drag was sent as pointer events, as the browser tool has none: it drew a line from M14 to P11, and
+  Shift drew a yellow ring.
+
+### The protected edges' halo, and purple notes (2026-10-12)
+
+- **Asked:** the protected edges' blue halo was unclear on Blue's edges. A white-ish halo, not pure white. Notes purple
+  by default, and every note colour listed in the help.
+- **Built:** the halo is a neutral that is neither player's colour, in each board's contrast: a warm off-white
+  (#ece6d6, at 55%) on the dark board, and a warm grey (#8b7f68, at 45%) on the light board, where an off-white would
+  vanish into the cream. Four candidates for each board were compared in Edge before the choice. On the board, at the
+  second edge of turn 8, Blue's protected A9-D10 and K9-K10 stand out from the blue. The light board was seen only on
+  the comparison page: the machine's colour scheme is dark.
+- **Notes** (design 07): purple with no key, yellow with Shift or Ctrl, green with Alt, grey with both. "Keys and
+  clicks" lists them, each with its colour and keys (checked in Edge).
+
+### The notation's decisions in the export, and the numbers written down (2026-10-12)
+
+- **Request 13 done** (requests/13-branch-placement.md): the export writes each branch after the turn it changes,
+  after the turn's mark and comments, the branches from the turn's start first. By turn, a turn's label is also its
+  quality mark: Great `!`, Inaccuracy `?!`, Mistake `?`, Blunder `??`. By edge, the labels stay in comments. The note
+  comes before the first turn, and `[Annotator "Hedge School"]` names the annotator. The reader drops a quality mark
+  after any edge. The `/notation` page describes the branch rule, the marks, the note and the tag. Tests cover the
+  writer and the reader.
+- **Request 06, step 2 delivered** (requests/06-webgpu.md): the GPU module, in release `wasm-v2-engine-06534ee`. Not
+  built into the site yet: it waits for a decision (open-items.md).
+- **The grey note's keys:** grey is Shift or Ctrl, and Alt. "Keys and clicks" said "Shift and Alt". It now lists the
+  keys in groups: (Shift or Ctrl), and Alt.
+- **The numbers written down** (design 14, "The numbers, step by step"): a move's loss and accuracy, a position's
+  complexity, the hard mark, a move's weight, a player's accuracy, the meter's shares (sums of priors, not counts),
+  and a bar of the Difficulty chart, with a worked example.
+- **The notes stay out of every export:** the review file and the annotated record hold none. A study, as Lichess's,
+  would keep them (open-items.md).

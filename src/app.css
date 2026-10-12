@@ -2,7 +2,7 @@
 
 /* Colour tokens. Plain and clear (docs/design/04-product-shape.md). Players: Blue moves first, Red second. */
 :root {
-  --site-header: 2.5rem; /* the site's header bar (+layout.svelte): pages size their boards from the height below it */
+  --site-header: 3rem; /* the site's header bar (+layout.svelte): pages size their boards from the height below it */
   --bg: #f6f5f2;
   --panel: #ffffff;
   --panel-2: #f0eeea;
@@ -14,7 +14,15 @@
   --red: #d2453f;
   --board-bg: #f3ead7;
   --board-dot: #b9ab8d;
-  --protected: #9fc2ff;
+  /* A protected edge's halo: a neutral that is neither player's colour, a warm grey on the light board and a warm
+     off-white on the dark one, each the board's contrast. */
+  --protected: #8b7f68;
+  --protected-opacity: 0.45;
+  /* The player's notes on the board (board/notes.ts), in colours apart from the players' blue and red */
+  --note-purple: #b37be0;
+  --note-yellow: #e9b81c;
+  --note-green: #4caf50;
+  --note-grey: #a8a8ae;
   --last: #e7b416;
   --area: #a8508f; /* the Advantage chart's area line: magenta, apart from the players' blue and red and the labels' hues */
   /* The engine's candidates: its first choice, and the others. */
@@ -44,7 +52,8 @@
     --red: #e8635c;
     --board-bg: #3a362e;
     --board-dot: #6d6555;
-    --protected: #4a6fae;
+    --protected: #ece6d6;
+    --protected-opacity: 0.55;
     --last: #d6a614;
     --area: #d27fbb;
     --engine: #2f8fa3;

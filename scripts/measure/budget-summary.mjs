@@ -14,7 +14,7 @@
 // turns have both edges, one edge or no edge bad alone.
 import { readFileSync } from "node:fs";
 
-const { classify, humanWin, BAD_LABELS } = await import(new URL("../../src/lib/review/labels.ts", import.meta.url).href);
+const { classify, BAD_LABELS } = await import(new URL("../../src/lib/review/labels.ts", import.meta.url).href);
 
 const [inPath] = process.argv.slice(2);
 const arg = (name, def) => { const i = process.argv.indexOf(`--${name}`); return i >= 0 ? process.argv[i + 1] : def; };
@@ -30,8 +30,8 @@ for (const r of rows) {
 const budgets = Object.keys(rows[0].budgets).map(Number).sort((a, b) => a - b);
 const deep = budgets.at(-1);
 
-// The win chance that labels read: a human's, from the lead and the spread (labels.ts, humanWin).
-const moverWin = (v, mover) => { const blue = humanWin(v.scoreLead, v.scoreStdev); return mover === "b" ? blue : 1 - blue; };
+// The win chance that labels read: the engine's own (labels.ts).
+const moverWin = (v, mover) => (mover === "b" ? v.winrate : 1 - v.winrate);
 const moverScore = (v, mover, kind) => (mover === "b" ? 1 : -1) * (kind === "lead" ? v.scoreLead : v.scoreSelfplay);
 
 /** Every edge's loss and label at budget b, by score kind. */

@@ -1,7 +1,8 @@
 // The engine's settings (docs/design/09-engine-settings.md), kept in this browser: whether the engine searches, how
 // far it searches the position on screen (KaTrain's max_visits and max_time: whichever comes first), the review's
 // budget for each position, which network it uses (Lichess's choice of engine), and how many workers search at once
-// (Lichess's threads). Storage can be blocked (a private window, blocked site data): then the defaults hold.
+// (Lichess's threads), and whether the visitor's GPU searches too (analysis/gpu.ts). Storage can be blocked (a private window, blocked site data): then the defaults hold.
+import lock from "../../../engine.lock.json" with { type: "json" };
 import { DEEP_VISITS, LABEL_VISITS } from "./game.svelte.ts";
 import { defaultPoolSize } from "./pool.ts";
 
@@ -15,7 +16,18 @@ export interface EngineSettings {
   customReview: number; // the review's visits for each position when `review` is custom
   network: string; // a model id in the manifest
   workers: number;
+  gpu: GpuMode;
 }
+
+/** Whether the GPU searches with the workers: on, off, or on where its first-use test found it faster than a worker
+ *  (analysis/gpu.ts). */
+export type GpuMode = "auto" | "on" | "off";
+
+/** A network's name, as the engine's release names it (its manifest's `displayName`, copied into engine.lock.json):
+ *  "HedgeFund 0.1 Lite". A name belongs to one network file for life (the engine repository's
+ *  v2/docs/design/20-network-names.md). The id when the lock gives no name. */
+export const networkName = (id: string): string =>
+  (lock.artifacts as { id: string; displayName?: string }[]).find(a => a.id === id)?.displayName ?? id;
 
 /** The networks, as the manifest names them (engine.lock.json pins both). Their parameters are the trainer's counts
  *  (the engine repository's v2/docs/design/15-network-sizes.md). A worker's memory once the network is loaded:
@@ -57,7 +69,7 @@ const KEY = "learn-enclosure:engine:2";
 
 export const defaultEngine = (): EngineSettings => ({
   on: true, visits: DEEP_VISITS, seconds: 30, review: "lite", customReview: 512, network: NETWORKS[0].id,
-  workers: defaultPoolSize(),
+  workers: defaultPoolSize(), gpu: "auto",
 });
 
 export function loadEngine(): EngineSettings {
@@ -73,6 +85,7 @@ export function loadEngine(): EngineSettings {
       customReview: inSteps(CUSTOM_REVIEW, kept.customReview) ? kept.customReview : d.customReview,
       network: NETWORKS.some(n => n.id === kept.network) ? kept.network! : d.network,
       workers: Number.isInteger(kept.workers) ? Math.min(maxWorkers(), Math.max(1, kept.workers!)) : d.workers,
+      gpu: kept.gpu === "on" || kept.gpu === "off" ? kept.gpu : d.gpu,
     };
   } catch {
     return d;

@@ -14,21 +14,25 @@
   import { MediaQuery } from "svelte/reactivity";
   import { innerHeight, innerWidth } from "svelte/reactivity/window";
   import type { BranchNode } from "#lib/analysis/game.svelte.ts";
-  import { CUSTOM_REVIEW, DEPTHS, NETWORKS, REVIEW_PRESETS, TIME_LIMITS, maxWorkers, nearestStep, type EngineSettings,
-           type ReviewDepth }
+  import { CUSTOM_REVIEW, DEPTHS, NETWORKS, REVIEW_PRESETS, networkName, TIME_LIMITS, maxWorkers, nearestStep, type EngineSettings,
+           type GpuMode, type ReviewDepth }
     from "#lib/analysis/engineSettings.ts";
+  import { gpuStatusText, type GpuStatus } from "#lib/analysis/gpu.ts";
   import Board, { type BoardCandidate, type BoardLineEdge, type BoardMark } from "#lib/board/Board.svelte";
+  import { BRUSH_KEYS, type BoardNote } from "#lib/board/notes.ts";
   import { EdgeInput, type EdgeRules } from "#lib/board/edgeInput.svelte.ts";
   import { parseEdge } from "#lib/engine/notation.ts";
   import Swatch from "#lib/ui/Swatch.svelte";
   import { SIDE_TEXT } from "#lib/ui/side.ts";
   import AdvantageChart from "./AdvantageChart.svelte";
+  import DifficultyChart from "./DifficultyChart.svelte";
   import { loadDisplay, saveDisplay, type Display } from "./display.ts";
   import { MOVE_SOUND_NAMES, playMove, preload } from "#lib/sound.ts";
+  import ExportMenu from "#lib/ExportMenu.svelte";
   import lock from "../../../engine.lock.json";
   import Glyph from "./Glyph.svelte";
   import {
-    edgeName, moveName, moveNotation, sameEdge, shortNote, turnShortNote, turnCost, judgeTurn, judgeBranchEdge, valuesAfter, moverWin, costText, pct, shownCandidates, lineMovers, enoughVisits, trustedLine, type Analysis, type Candidate, type EdgeReview, type LineStep, LABELS, LABEL_TEXT, LABEL_GLYPH, PLAYER_NAME, type Edge, type Label, type Player, type Position, type Review, type Unit, type Move, type TurnJudgment,
+    edgeName, moveName, moveNotation, sameEdge, shortNote, turnShortNote, HARD_NOTE, complexity, likelyEdges, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchEdge, valuesAfter, moverWin, costText, pct, shownCandidates, lineMovers, enoughVisits, trustedLine, type Analysis, type Candidate, type EdgeReview, type LineStep, LABELS, LABEL_TEXT, LABEL_GLYPH, PLAYER_NAME, type Edge, type Label, type Player, type Position, type Review, type Unit, type Move, type TurnJudgment,
   } from "./model.ts";
   import { branchChildren, branchRows, mainIndex, nextFork, pathKey, prevFork, sharedLength, siblingLine, treeLines, type BranchRow } from "./tree.ts";
 
@@ -55,9 +59,13 @@
     timedOut?: boolean; // the position on screen's search stopped at its time limit
     engine?: EngineSettings; // the engine's settings (design 09), shown in the settings panel
     onengine?: (change: Partial<EngineSettings>) => void; // a setting changed in the panel
+    gpu?: { status: GpuStatus; downloadMB: string }; // what the GPU does in this review, and its first download (design 15)
+    // Exports the review (design 13): the review file, or the annotated record copied or as a file, labelled by `unit`
+    onexport?: (kind: "file" | "copy" | "text", unit: Unit) => Promise<void>;
+    exportReady?: boolean; // the review is done: export only then (design 13)
   }
   let { R, progress = null, problem = "", deepVisits = 0, onposition, lineSteps, branches = {}, onplay, rulesAt, ondelete,
-        onpromote, onjudge, labelVisits = 0, searching = false, timedOut = false, engine, onengine, secondAt, otherAt, turnKeys, pendingAt, reviewVisits = 0 }: Props = $props();
+        onpromote, onjudge, labelVisits = 0, searching = false, timedOut = false, engine, onengine, gpu, secondAt, otherAt, turnKeys, pendingAt, reviewVisits = 0, onexport, exportReady = true }: Props = $props();
   const last = $derived(R.data.positions.length - 1);
   const TABLE_ROWS = 5; // the Analysis table shows this many rows and scrolls, so the move list under it does not move
   const ROW_EM = 1.9; // a table row's height, in em
@@ -128,6 +136,13 @@
   const position = $derived(branchNode?.position ?? R.data.positions[pos]);
   const over = $derived(mainAt !== null ? mainAt === last : !!position.over); // the game has ended here
   const analysis = $derived(over ? undefined : mainAt !== null ? R.data.analysis[mainAt] : branchNode?.analysis);
+  // The position's complexity (model.ts) when it is hard, and its likely edges for the meter
+  const hardHere = $derived.by(() => { const c = complexity(analysis, position.player); return c !== undefined && c >= HARD ? c : undefined; });
+  const meter = $derived(likelyEdges(analysis, position.player));
+  const METER_WORDS = { good: "good or better", inaccuracy: "inaccuracy", mistake: "mistake", blunder: "blunder" } as const;
+  const meterText = (m: NonNullable<typeof meter>) =>
+    `Likely edges: ${METER_GROUPS.map(g => `${Math.round(100 * m[g])}% ${METER_WORDS[g]}`).join(" · ")}` +
+    (m.unsearched >= 0.005 ? ` · ${Math.round(100 * m.unsearched)}% not searched` : "");
   const mover = $derived(position.player as Player);
   const lastMove = $derived(mainAt !== null && mainAt > 0 ? R.edges[mainAt - 1] : null); // the game's last move here
   const lastPlayed = $derived(branchNode?.move ?? lastMove); // the move that led here, in the game or a branch
@@ -268,6 +283,9 @@
   // The player's own moves, always on (Lichess's analysis board): the puzzles' edge input, on the position's rules from
   // the engine. A move that is the game's goes along the game; another makes a branch.
   const input = new EdgeInput(edge => playPath([...path, edgeName(edge)]));
+  // The player's notes on the board, by position, for this visit only (Lichess keeps an analysis board's shapes on each
+  // position of its tree).
+  let notesAt = $state<Record<string, BoardNote[]>>({});
   const knownRules = new Map<string, EdgeRules>();
   $effect(() => {
     const key = here, end = over;
@@ -567,12 +585,13 @@
   }
   $effect(() => { if (display.sound) preload(display.moveSound); });
   const SOUND_CHOICES = Object.entries(MOVE_SOUND_NAMES) as [string, string][];
+
   /** A network's download in MB (10^6 bytes), one decimal, from engine.lock.json, which the deploy fetches by: what a
    *  change of network costs, as Lichess's engine menu gives each engine's size. */
   const downloadMB = (id: string) => ((lock.artifacts.find(a => a.id === id)?.bytes ?? 0) / 1e6).toFixed(1);
-  /** A network's name in the settings: "3.2M params (6.5 MB)". Its parts hold no-break spaces, so that a narrow panel
-   *  breaks the name only before the parenthesis. */
-  const networkLabel = (params: string, id: string) => `${params}\u00a0params (${downloadMB(id)}\u00a0MB)`;
+  /** A network's name in the settings: "HedgeFund 0.1 Lite (6.5 MB)". Its parts hold no-break spaces, so that a narrow
+   *  panel breaks the name only before the parenthesis. */
+  const networkLabel = (id: string) => `${networkName(id).replaceAll(" ", "\u00a0")} (${downloadMB(id)}\u00a0MB)`;
   // Lichess's move menu on a branch's move (ui/analyse/src/treeView/contextMenu.ts): "Promote variation" and "Delete
   // from here". The game's own moves have no menu: the review is of the game, so its line stays first ("Make main line"
   // is for an analysis board, later).
@@ -688,6 +707,9 @@
     ["Click a candidate", "Pin its line on the board; click again to unpin it"],
     ["Double-click a candidate", "Play it"],
     ["Click a node, then a marked point", "Play your own edge"],
+    ["Drag from a node to a marked point", "Play your own edge"],
+    ["Right-click a point, or right-drag to another", "Draw a ring, or a line, as a note. Drawing it again removes it, and in another colour (below) changes its colour"],
+    ["Click the board", "Clear the position's notes"],
     ["Right-click a branch's move", "Evaluate it, promote its branch, or delete from it"],
   ];
 
@@ -697,6 +719,8 @@
   // the chart's legend show or hide them for the moment, without changing the settings. A change of a setting applies
   // again.
   let showScore = $derived(display.scoreLine);
+  // The chart shown above the counts, as Lichess's tabs choose among its charts: the advantage, or the difficulty
+  let chart = $state<"advantage" | "difficulty">("advantage");
   let showArea = $derived(display.areaLine);
   const winner = $derived<Player>(R.data.result.blue > R.data.result.red ? 0 : 1);
   const margin = $derived(Math.abs(R.data.result.blue - R.data.result.red));
@@ -772,7 +796,7 @@
 <!-- The top of the side panel: the review's progress or an engine error. -->
 {#snippet panelHead()}
   {#if problem}
-    <p class="mb-2.5 text-sm text-blunder" role="alert">Engine error: {problem}</p>
+    <p class="mb-2.5 text-sm text-blunder select-text" role="alert">Engine error: {problem}</p>
   {:else if progress}
     <div class="mb-2.5">
       <div class={["flex gap-0.5 h-1.5 rounded-[3px]", !progress.waiting && "bar-glider"]} role="progressbar" aria-label="The review" aria-valuemin="0" aria-valuemax="100"
@@ -819,36 +843,66 @@
   </div>
 {/snippet}
 
+<!-- The charts under the board (design 06), as Lichess has its chart: always in view, the board a little smaller for it.
+     The area is as high as the page lets it be (--chart): short where the board fills the window's height, taller
+     where the board's width leaves room. A row of the tabs, which choose the chart as Lichess's tabs choose among its
+     charts, and of the shown chart's legend, then the chart, which takes the rest of the area's height. -->
+{#snippet charts()}
+  <div class="flex flex-wrap items-center gap-x-3 gap-y-0.5 mb-1 text-xs">
+    <div class="flex gap-3" role="group" aria-label="Chart">
+      {#each [["advantage", "Advantage"], ["difficulty", "Difficulty"]] as [key, name] (key)}
+        <button class={["px-0 py-0.5 bg-transparent border-0 border-b-2 rounded-none",
+                        chart === key ? "border-accent text-ink font-semibold" : "border-transparent text-muted hover:text-ink"]}
+                aria-pressed={chart === key} onclick={() => (chart = key as typeof chart)}>{name}</button>
+      {/each}
+    </div>
+    <!-- A click on a box does not focus it, so that the arrow keys still step through the moves (the key handler
+         leaves the keys to a focused input). The Tab key still reaches the boxes. -->
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+    <p class="flex flex-wrap items-center gap-x-3 gap-y-0.5 ml-auto text-muted" onmousedown={e => e.preventDefault()}>
+      {#if chart === "difficulty"}
+        <span class="inline-flex items-center gap-1"><span class="inline-block size-2.5 bg-ink"></span> Hard position</span>
+        <span class="inline-flex items-center gap-1"><span class="inline-block size-2.5 bg-muted/50"></span> Easier</span>
+      {:else}
+        <span class="inline-flex items-center gap-1"><span class="inline-block w-[1.2em] h-0.5 bg-ink"></span> Win chance for Blue</span>
+        {#if chartRough}<span class="inline-flex items-center gap-1" title="Refined as the review runs">
+          <span class="inline-block w-[1.2em] flex-none border-t-[1.5px] border-dashed border-ink opacity-55"></span> First estimate</span>{/if}
+        {@render lineBox("Score difference", "bg-accent", "accent-accent", () => showScore, v => (showScore = v))}
+        {@render lineBox("Area difference", "bg-area", "accent-area", () => showArea, v => (showArea = v))}
+      {/if}
+    </p>
+  </div>
+  <div class="flex-1 min-h-0">
+    {#if chart === "difficulty"}
+      <DifficultyChart positions={R.data.positions.length} current={pos} onjump={go}
+             moments={R.keyMoments[unit].filter(m => forSide(R.edges[m.first].player)).map(m => ({ index: m.last, label: m.label }))}
+             bars={(unit === "turn"
+               ? R.turns.map(t => ({ from: t.start, to: t.end, c: t.complexity, hard: t.hard, player: t.player,
+                                     title: `${t.number}. ${PLAYER_NAME[t.player]} to play`, played: t.edges.map(moveNotation).join(" ") }))
+               : R.edges.map(e => {
+                   const t = R.turnOf[e.index], k = e.index - t.start;
+                   return { from: e.index, to: e.index + 1, c: e.complexity, hard: e.hard, player: e.player, played: moveNotation(e),
+                            title: `${t.number}. ${PLAYER_NAME[e.player]} to play${t.edges.length > 1 ? `, edge ${k + 1}` : ""}` };
+                 }))
+               .flatMap(({ player, c, played, ...b }) => (c !== undefined && forSide(player)
+                 ? [{ ...b, c, details: [`Played ${played}`, ...(b.hard ? [HARD_NOTE] : [])] }] : []))} />
+    {:else}
+    <AdvantageChart blueWin={R.blueWin} {scoreDiff} {areaDiff} current={pos} {showScore} {showArea}
+           tips={chartTips} settled={chartSettled} onjump={go}
+           moments={R.keyMoments[unit].filter(m => forSide(R.edges[m.first].player)).map(m => ({ index: m.last, label: m.label }))}
+           points={unit === "turn" ? [0, ...R.turns.map(t => t.end)] : undefined} />
+    {/if}
+  </div>
+{/snippet}
+
 {#snippet highlights()}
-  <p class="mb-3 text-xs text-muted">Analysed in your browser. Labels judge each move by a win chance fitted on people's
-    Enclosure games.</p>
+  <p class="mb-3 text-xs text-muted">Analysed in your browser. Labels judge each move by the engine's win chance. ◆ marks a
+    hard position.</p>
   <p class="mb-3.75">
     <strong>{PLAYER_NAME[winner]} won by {margin.toFixed(1)} points</strong>
     ({fmtScore(R.data.result.blue)} to {fmtScore(R.data.result.red)}).
     {#if progress}The review is still running: the counts below are partial.{/if}
   </p>
-  <!-- The Advantage chart with the report (design 06): in the summary column with three columns, in the Report tab with
-       fewer, above the counts, so that the page fits the window with the board at its full height. Its legend names
-       the lines only. -->
-  <div class="mb-4">
-    <AdvantageChart blueWin={R.blueWin} {scoreDiff} {areaDiff} current={pos} {showScore} {showArea}
-           tips={chartTips} settled={chartSettled} onjump={go}
-           moments={R.keyMoments[unit].filter(m => forSide(R.edges[m.first].player)).map(m => ({ index: m.last, label: m.label }))}
-           points={unit === "turn" ? [0, ...R.turns.map(t => t.end)] : undefined} />
-    <!-- A click on a box does not focus it, so that the arrow keys still step through the moves (the key handler
-         leaves the keys to a focused input). The Tab key still reaches the boxes. -->
-    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-    <!-- Every item has a box's room, empty where the line is always shown, so that the swatches and the names line up. -->
-    <p class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-xs text-muted" onmousedown={e => e.preventDefault()}>
-      <span class="inline-flex items-center gap-1"><span class="size-3 flex-none"></span>
-        <span class="inline-block w-[1.2em] h-0.5 bg-ink"></span> Win chance for Blue</span>
-      {#if chartRough}<span class="inline-flex items-center gap-1"><span class="size-3 flex-none"></span>
-        <span class="inline-block w-[1.2em] flex-none border-t-[1.5px] border-dashed border-ink opacity-55"></span>
-        First estimate, refined as the review runs</span>{/if}
-      {@render lineBox("Score difference", "bg-accent", "accent-accent", () => showScore, v => (showScore = v))}
-      {@render lineBox("Area difference", "bg-area", "accent-area", () => showArea, v => (showArea = v))}
-    </p>
-  </div>
   <!-- The number columns are as wide as their content, and the labels take the rest. -->
   <table class="w-full text-sm">
     <thead>
@@ -949,7 +1003,9 @@
                read. The lead after the move is in its note. The move's text has one width, so a column is never
                narrower than the widest move: the widest in the notation is 8 characters (D10-G10x), then by edge the
                widest glyph (??, 2) and the glyph's margin. The loss: at most 5 characters (−1.2k), smaller and
-               right-aligned. The font is monospaced, so ch is one character of the span's own size. -->
+               right-aligned. The font is monospaced, so ch is one character of the span's own size. Before the loss, by edge
+               and by turn, a slot for a hard position's ◆ (design 14) on every row, marked or not: a mark never moves
+               the label or widens the column. -->
           <button class={["mv flex items-baseline gap-1 px-[0.2rem] py-px font-mono text-[0.95em] text-left whitespace-nowrap bg-transparent border-0",
                           SIDE_TEXT[e.player], mainAt === e.index + 1 ? "here bg-panel-2 outline outline-accent"
                           : pickedKey === pathKey(mainNames.slice(0, e.index + 1)) ? PICKED : "hover:bg-panel-2 hover:outline hover:outline-line"]}
@@ -957,6 +1013,7 @@
                   title={[judged, after !== undefined ? `Lead: ${sideText(after, 1)}` : ""].filter(Boolean).join(" · ")}>
             {#if unit === "edge"}
               <span class="w-[calc(10ch+0.15em)]">{moveNotation(e)}{#if listed(shown)}<span class="ml-[0.15em] font-extrabold" style:color="var(--{shown})"><Glyph glyph={LABEL_GLYPH[shown]} /></span>{/if}</span>
+              <span class="w-[1.2ch] text-[0.7em] text-muted text-center" title={e.hard && forSide(e.player) ? HARD_NOTE : undefined}>{e.hard && forSide(e.player) ? "◆" : ""}</span>
               <span class="w-[5ch] ml-auto text-[0.78em] text-right text-muted tabular-nums">{forSide(e.player) ? lossShort(e) : ""}</span>
             {:else}
               <span class="w-[8ch]">{moveNotation(e)}</span>
@@ -969,6 +1026,7 @@
           <span class="col-start-4 flex items-baseline gap-1 px-[0.2rem] py-px font-mono text-[0.95em] whitespace-nowrap {SIDE_TEXT[t.player]}"
                 title={t.label ? `${LABEL_TEXT[t.label]}: ${turnCost(t)}` : "Not analysed yet"}>
             <span class="w-[2.2ch] font-extrabold" style:color={listed(t.label) ? `var(--${t.label})` : undefined}>{#if listed(t.label)}<Glyph glyph={LABEL_GLYPH[t.label]} />{/if}</span>
+            <span class="w-[1.2ch] text-[0.7em] text-muted text-center" title={t.hard ? HARD_NOTE : undefined}>{t.hard ? "◆" : ""}</span>
             <span class="w-[5ch] ml-auto text-[0.78em] text-right text-muted tabular-nums">{lossShort(t)}</span>
           </span>
         {/if}
@@ -1274,10 +1332,15 @@
         {@render visitsSteps("Custom", "", CUSTOM_REVIEW, () => e.customReview, v => set({ customReview: v }))}
       {/if}
       <h3 class={SETTINGS_HEAD}>Engine</h3>
-      {@render choice("Network", "The larger is stronger per visit but about 3× slower. A change reviews the game again. A network downloads once, and the browser keeps it.",
-        NETWORKS.map(n => [n.id, networkLabel(n.params, n.id)]), () => e.network, v => set({ network: v }))}
+      {@render choice("Network", `Lite has ${NETWORKS[0].params} parameters, the other ${NETWORKS[1].params}: stronger per visit but about 3× slower. A change reviews the game again. A network downloads once, and the browser keeps it.`,
+        NETWORKS.map(n => [n.id, networkLabel(n.id)]), () => e.network, v => set({ network: v }))}
       {@render steps("Workers", `Positions searched at the same time. Each uses about ${memory} MB.`, maxWorkers(),
         () => e.workers - 1, k => set({ workers: k + 1 }), k => `${k + 1} of ${maxWorkers()}`)}
+      {@render choice("GPU", `Many positions at once on the graphics card, with the workers. Auto tests it on first use, and keeps it where it is faster than a worker. Its first use downloads ${gpu?.downloadMB ?? "?"} MB.`,
+        [["auto", "Auto"], ["on", "On"], ["off", "Off"]], () => e.gpu, v => set({ gpu: v as GpuMode }))}
+      {#if gpu && gpuStatusText(gpu.status)}
+        <p class="-mt-1 mb-1 text-xs text-muted" aria-live="polite">{gpuStatusText(gpu.status)}</p>
+      {/if}
       <!-- Done after the last setting, away from the gear that opened it (the display settings' Done is at their top,
            away from their ☰). -->
       <div class="flex justify-end mt-2 mb-1">
@@ -1375,7 +1438,9 @@
   </div>
 {/snippet}
 
-<main class={["review", wide.current && "wide", display.win === "gauge" && "gauge-mode"]} style:--side-h={sideHeight ? `${sideHeight}px` : undefined}
+<!-- The page's text is a tool's, not a document's: it takes no selection, so the pointer stays an arrow over it. An
+     engine error can be selected, to be copied. -->
+<main class={["review select-none", wide.current && "wide", display.win === "gauge" && "gauge-mode"]} style:--side-h={sideHeight ? `${sideHeight}px` : undefined}
       style:--strip={stripHeight ? `calc(${stripHeight}px + 0.5rem)` : null}>
   {#if wide.current}
     <aside class="summary-col {PANEL} flex flex-col overflow-y-auto">
@@ -1452,9 +1517,12 @@
           marks={previewing ? [] : marks}
           layers={display.layers}
           oncandidate={e => { hoverOnBoard = true; hover = e; }}
+          notes={previewing ? [] : notesAt[here] ?? []}
+          onnotes={previewing ? undefined : n => (notesAt[here] = n)}
         />
       </div>
     </div>
+    <div class="chart-area flex flex-col ml-(--gauge-w)">{@render charts()}</div>
   </section>
 
   <section class="side {PANEL} flex flex-col">
@@ -1493,10 +1561,21 @@
           Expected final margin
           <strong class="text-ink">{sideText(analysis.margin!, 0, "0")} ± {Math.round(analysis.spread!)}</strong>
           · lead {sideText(analysis.lead, 0, "0")}
+          <!-- The mark alone, as in the move list: a word would wrap the line and move the table below it. -->
+          {#if hardHere !== undefined}· <span class="text-ink" title={HARD_NOTE}>◆<span class="sr-only"> A hard
+            position</span></span>{/if}
         {:else if over}
           Final margin <strong class="text-ink">{sideText(position.scores[0] - position.scores[1], 1, "0")}</strong>
         {:else}Not analysed yet{/if}
       </p>
+      {#if meter}
+        <!-- The network's likely edges here (design 14), as Maia's Blunder Meter shows a human's likely moves: the prior
+             of the searched edges by the group of their loss, in the labels' colours. The rest of the bar, the panel's
+             grey, is the prior of the edges the search did not visit. -->
+        <div class="flex h-1.5 mt-1 rounded-full overflow-hidden bg-panel-2" role="img" aria-label={meterText(meter)} title={meterText(meter)}>
+          {#each METER_GROUPS as g (g)}<span class="h-full" style:width="{100 * meter[g]}%" style:background="var(--{g})"></span>{/each}
+        </div>
+      {/if}
     </div>
     {#if engineOpen && engine && onengine}
       {@render engineSettingsPanel(engine, onengine)}
@@ -1526,11 +1605,15 @@
           <button onclick={forward} aria-label="Forward">▶</button>
           <button onclick={toEnd} aria-label="Last">⏭</button>
         </div>
-        <!-- The menu button (Lichess's ☰ in the same place) opens the display settings in the analysis's place, and
-             closes them. The gear is the engine's, in the engine header. -->
-        <button class="aria-expanded:border-accent aria-expanded:text-accent" aria-label="Display settings" title="Display settings"
-                aria-expanded={settingsOpen} aria-controls="display-settings"
-                onclick={() => { settingsOpen = !settingsOpen; engineOpen = false; }}>☰</button>
+        <div class="flex items-center gap-1">
+          <!-- Export (design 13): the review file, with the engine's results, or the annotated record. -->
+          {#if onexport}<ExportMenu run={kind => onexport(kind, display.judge)} ready={exportReady} why="Export once the review is done." />{/if}
+          <!-- The menu button (Lichess's ☰ in the same place) opens the display settings in the analysis's place, and
+               closes them. The gear is the engine's, in the engine header. -->
+          <button class="aria-expanded:border-accent aria-expanded:text-accent" aria-label="Display settings" title="Display settings"
+                  aria-expanded={settingsOpen} aria-controls="display-settings"
+                  onclick={() => { settingsOpen = !settingsOpen; engineOpen = false; }}>☰</button>
+        </div>
       </div>
     </div>
   </section>
@@ -1562,6 +1645,23 @@
             {/each}
           </tbody>
         </table>
+        <!-- The notes' colours and the keys held while drawing, each with its colour's stroke -->
+        <h3 class="mt-3 mb-1 text-sm font-semibold">Note colours</h3>
+        <table class="w-full text-sm [&_td]:py-1 [&_td]:align-top [&_tr+tr_td]:border-t [&_tr+tr_td]:border-line">
+          <tbody>
+            {#each BRUSH_KEYS as [brush, keys] (brush)}
+              <tr>
+                <td class="pr-3 w-[45%]"><span class="inline-flex items-center gap-2"><span class="inline-block w-5 h-1 rounded-full"
+                  style:background="var(--note-{brush})"></span>{brush[0].toUpperCase() + brush.slice(1)}</span></td>
+                <td>{#if !keys.length}<span class="text-muted">No key</span>{:else}<span class="flex flex-wrap items-center gap-1">
+                  <!-- Keys held together joined by +, a group's other keys by "or", in brackets beside another group -->
+                  {#each keys as group, g (g)}{#if g}<span class="text-muted">+</span>{/if}{#if keys.length > 1 && group.length > 1}<span
+                    class="text-muted">(</span>{/if}{#each group as k, i (k)}{#if i}<span class="text-muted">or</span>{/if}<kbd
+                    class={KBD}>{k}</kbd>{/each}{#if keys.length > 1 && group.length > 1}<span class="text-muted">)</span>{/if}{/each}</span>{/if}</td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
       </Dialog.Content>
     </Dialog.Portal>
   </Dialog.Root>
@@ -1583,10 +1683,16 @@
     --side-min: 340px;
     --side-max: 460px;
     --others: calc(var(--side-min) + var(--gap));
-    --board: min(
-      calc(100vh - var(--site-header) - var(--strip) - 2rem),
-      calc(100vw - var(--others) - var(--gauge-w) - 2rem - 20px) /* the page's padding and a scroll bar */
-    );
+    /* The height and the width the board could have, then the charts' area under it: at least --chart-min, and what
+       the width leaves of the height, up to --chart-max. The board then takes the rest of the height, or its width. */
+    --tall: calc(100vh - var(--site-header) - var(--strip) - 2rem);
+    --broad: calc(100vw - var(--others) - var(--gauge-w) - 2rem - 20px); /* the page's padding and a scroll bar */
+    --chart-min: 6rem;
+    --chart-max: 12rem;
+    --chart-gap: 0.5rem;
+    --chart: clamp(var(--chart-min), calc(var(--tall) - var(--chart-gap) - var(--broad)), var(--chart-max));
+    --board: min(calc(var(--tall) - var(--chart-gap) - var(--chart)), var(--broad));
+    --column: calc(var(--strip) + var(--board) + var(--chart-gap) + var(--chart));
     display: grid;
     grid-template-columns: calc(var(--board) + var(--gauge-w)) minmax(var(--side-min), var(--side-max));
     grid-template-areas: "board side";
@@ -1603,20 +1709,22 @@
       minmax(var(--side-min), var(--side-max));
     grid-template-areas: "summary board side";
   }
-  .summary-col { grid-area: summary; max-height: calc(var(--strip) + var(--board)); }
+  .summary-col { grid-area: summary; max-height: var(--column); }
   .board-col { grid-area: board; }
   .board-wrap { width: var(--board); flex: none; }
+  .chart-area { height: var(--chart); margin-top: var(--chart-gap); }
   /* The analysis column is as high as the board's column; the move list takes what is left. */
-  .side { grid-area: side; height: calc(var(--strip) + var(--board)); }
+  .side { grid-area: side; height: var(--column); }
   /* The side columns are as high as --side-h (set in the script): to the window's bottom, from the board's bottom edge
      at least. Their height is set, so they do not make the row taller. */
   @media (min-width: 800px) {
-    .review .side, .review .summary-col { height: var(--side-h, calc(var(--strip) + var(--board))); max-height: none; }
+    .review .side, .review .summary-col { height: var(--side-h, var(--column)); max-height: none; }
   }
   /* One column below 800 pixels (Lichess's $small): the board as wide as the window, then the analysis. */
   @media (max-width: 799px) {
     .review, .review.wide {
       --board: calc(100vw - 2rem - var(--gauge-w));
+      --chart: 8rem;
       grid-template-columns: minmax(0, 1fr);
       grid-template-areas: "board" "side";
     }

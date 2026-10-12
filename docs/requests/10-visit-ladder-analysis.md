@@ -1,6 +1,6 @@
 # The site's network at fewer visits: the GPU visit ladder analysed
 
-**Status:** open. **Asked:** 2026-10-12.
+**Status:** done on 2026-10-12, and checked here (below, "Delivered"). **Asked:** 2026-10-12.
 
 ## What
 
@@ -49,4 +49,27 @@ is a standard of a fallible but competent player, as Lichess fits its curve on p
 ## Done when
 
 - The file exists under `runs/`, with a note of its fields, the network, the build, the settings and the games.
-- This repository has been told where the file is.
+- The engine repository tells this repository where the file is.
+
+## Delivered
+
+`ladder-384.jsonl` in the engine repository's `runs/archive_analysis/` (not in Git): 46,080 positions of 384 games of
+the site's network against itself, from 16 against 32 visits to 512 against 1,024, 64 games a pair, read at 256 and
+512 visits, in part 1's shape. The ladder's ratings are copied as `gpu-ladder-ratings-2026-10-10T15-18-18.json`: 744
+at 16 visits up to 1,547 at 1,024. The same checks as request 09's.
+
+**With it, the engine repository measured the lead** (its `v2/docs/decisions/komi.md`):
+
+- **The lead is the even komi.** 1,000 positions of part 1, searched again at 512 visits with the side behind given
+  the lead as komi: for leads up to 500 points the side ahead's win chance comes to 0.49 to 0.51, at every stage. Above
+  500 points, before the last 30 edges, the network reads such a komi short (the side ahead still wins 75 to 88%).
+- **The lead is nearly the score:** `scoreSelfplay` is 1.16 times the lead in the first 20 edges, 1.00 at the end, 1.02
+  in even positions. A move's points lost by the lead and by the score correlate at r = 0.995, a median of 6 points
+  apart against a median loss of 38. At point thresholds from 12 to 120 they disagree on 3 to 6% of moves.
+- **It predicts the result** (the area under the ROC curve on part 1): the win chance 0.887, the lead 0.875, the lead
+  over `scoreStdev` 0.886.
+- **It moves little with more search:** from 256 to 1,024 visits the lead changes no more than the win chance does,
+  relative to its range, in edges 0 to 90, and about twice as much in the last 30 edges. Its mean change: 17.5 points.
+
+**Checked here:** the label rules tested on these games (decisions/engine.md, "The label rules on games of known
+strength").

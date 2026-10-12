@@ -11,7 +11,7 @@ A move that makes a sound feels placed. Lichess plays a sound for each move, and
 analysis board, and its sound is on by default. Its sound sets are not free to take: its repository's `COPYING.md`
 lists them under "Exceptions (non-free)" (the standard set), AGPLv3+ (Enigmahack's sets) or CC BY-NC-SA (one set).
 
-Browsers start sound only after the visitor has clicked or pressed a key on the page (their autoplay rules).
+Browsers start sound only after the visitor clicks or presses a key on the page (their autoplay rules).
 
 How the sound was chosen (decisions/product.md, "Move sounds, and progress bars that show the work runs"):
 
@@ -44,7 +44,7 @@ How the sound was chosen (decisions/product.md, "Move sounds, and progress bars 
        ([Pixabay 395763](https://pixabay.com/sound-effects/film-special-effects-select-button-ui-395763/)), 0.26
        seconds, 2.5 KB.
 
-     A clip starts 1 millisecond before its first sample over −60 dB, and ends after the release has died away under
+     A clip starts 1 millisecond before its first sample over −60 dB, and ends when the release dies away under
      −60 dB, before a faint tail at the file's end (0.35 and 0.30 seconds into the files), with a 1-millisecond fade in
      and a 30-millisecond fade out. One gain for the two (+2.2 dB) keeps their own levels.
    - **Pencil:** two strokes from "Pencil_lines" by tmkappelt
@@ -101,7 +101,7 @@ How the sound was chosen (decisions/product.md, "Move sounds, and progress bars 
   peak with digital silence between them. Pixabay's licence comes from its uploader, and Pixabay leaves other rights
   in a sound (here, the phone maker's) to the user to check. Removed.
 - **Real keyboards,** recorded under CC0: on Freesound (stu556's MX Brown 450282, SamsterBirdies' MX Blue 489424,
-  khenshom's MacBook Pro 565645, grcekh's WhiteFox 546167, Trollarch2's 331656), most in a poor room sound; and
+  khenshom's MacBook Pro 565645, grcekh's WhiteFox 546167, Trollarch2's 331656), most in a poor room sound, and
   Joseph Sardin's studio recordings on BigSoundBank (slow MacBook, MacBook Pro, iMac, Raspberry Pi and desktop
   keyboards, a typewriter's key). Not taken: the owner chose the button.
 - **Clicks made for interfaces** under CC0: Kenney's UI Audio and Interface Sounds. Not taken, for the same reason.
@@ -118,7 +118,7 @@ How the sound was chosen (decisions/product.md, "Move sounds, and progress bars 
 ## Consequences
 
 - The site ships four small sound files (`static/sounds/button/` and `static/sounds/pencil/`, `edge.mp3` and
-  `cut.mp3` in each, about 11 KB), and fetches the chosen set's when sound is on. A browser without Web Audio stays
+  `cut.mp3` in each, about 11 KB), and downloads the chosen set's when sound is on. A browser without Web Audio stays
   silent.
 - A set adds its two files and a line in `MOVE_SOUNDS`, with each sound's speed.
 - A browser that kept "Pencil" from the trial keeps it: the default changes only where nothing was chosen.

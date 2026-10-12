@@ -33,7 +33,7 @@ noise.
      confirmations.
    - A pool of workers runs the most urgent work first: the position on screen, then the key moments, then the sweep.
      A search in slices gives way: when the position on screen finds no free worker, the pool stops a key moment's
-     search, which runs again later. A focus that the player has left does not start its search.
+     search, which runs again later. When the player leaves a focus, its search does not start.
 2. **The labels** read these searches: [10-labels.md](10-labels.md) gives every rule, by turn and by edge.
 3. **Results stay in the browser** (IndexedDB), keyed by the stored shape's version, the engine build, the network's
    SHA-256, the moves and the visits. A stored result equals a fresh one, because the engine is reproducible.

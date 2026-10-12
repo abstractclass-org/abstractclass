@@ -4,7 +4,9 @@
 //
 //   node scripts/measure/fit-win-curve.mjs <part1.jsonl> [--budget 1024] [--fit all|1800] [--near 150]
 //
-// The site's curve (first in the output, HUMAN_WIN_K in src/lib/review/labels.ts): σ(k · L / scoreStdev), fitted on
+// The curve the site's labels read from 2026-10-12 until they went back to the engine's own win chance the same day
+// (decisions/engine.md, "The label rules on games of known strength"; kept to reproduce the measurements that cite it,
+// first in the output): σ(k · L / scoreStdev), fitted on
 // the games between near-equal players only (ratings at most --near apart), with a term for the side to move at a
 // turn's start in the fit only (decisions/engine.md, "The win curve's flat middle"). Between unequal players an early
 // lead also shows who is the stronger player, and at a turn's start the side to move is the next to err: both bend a

@@ -1,7 +1,7 @@
 import adapter from '@sveltejs/adapter-static';
 import { sveltekit } from '@sveltejs/kit/vite';
 import tailwindcss from '@tailwindcss/vite';
-import { defineConfig } from 'vite';
+import { defaultClientConditions, defineConfig } from 'vite';
 import { execSync } from 'node:child_process';
 
 // The site's version: the commit it is built from (Cloudflare's build names it, else Git), for the footer.
@@ -10,6 +10,12 @@ const commit = process.env.CF_PAGES_COMMIT_SHA ?? process.env.WORKERS_CI_COMMIT_
 
 export default defineConfig({
 	define: { __SITE_VERSION__: JSON.stringify(commit.slice(0, 7)) },
+	// ONNX Runtime Web (the GPU worker, src/lib/engine/gpuWorker.ts) in its form that takes its WebAssembly from the page:
+	// its usual form makes the build copy that file (26.8 MB) into the site, over Cloudflare Pages' 25 MiB for a file.
+	// scripts/fetch-engine.mjs stores it compressed beside the engine instead.
+	resolve: { conditions: ['onnxruntime-web-use-extern-wasm', ...defaultClientConditions] },
+	// The workers as modules: the GPU worker imports the engine's GPU library by URL.
+	worker: { format: 'es' },
 	plugins: [
 		tailwindcss(),
 		sveltekit({

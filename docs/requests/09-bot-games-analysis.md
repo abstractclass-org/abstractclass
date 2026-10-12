@@ -1,6 +1,6 @@
 # Bot games analysed for the win curve: the V2 gauntlet's middle
 
-**Status:** accepted: the engine repository runs it with the rule unchanged. **Asked:** 2026-10-12.
+**Status:** done on 2026-10-12, and checked here (below, "Delivered"). **Asked:** 2026-10-12.
 
 **Noted by the engine repository:** 440 of the 620 games have a player that is an earlier checkpoint of b10c128, from
 the same training run as the site's network. Such a player may agree with the site's network more than an unrelated bot
@@ -56,4 +56,18 @@ the human fit stays the reference.
 
 - The file exists under `runs/`, with a note of its fields, the network, the build, the settings and the rule that
   chose the games.
-- This repository has been told where the file is.
+- The engine repository tells this repository where the file is.
+
+## Delivered
+
+`gauntlet-620.jsonl` in the engine repository's `runs/archive_analysis/` (not in Git. Its `README.md`, "The bot
+games", gives every field): 74,400 positions of 620 gauntlet games, read at 256 and 512 visits, in part 1's shape with
+`top3` at each turn's start. Both players rated 2,000 to 3,000 and at most 300 apart, in the gauntlet's ratings of
+2026-10-12T02:30:22 (copied beside the output: the gauntlet rewrites its file each round). 37 players, all at 128
+visits a move. The facts: the arena's names, ratings (the arena's own Elo scale), scores, winner, `openingPlies` (4 in
+every game: those edges were drawn at random) and each player's visits. Checked there: every position once, no error,
+both budgets at exactly their visits, one engine tag (request 07's), and replaying each game gives the arena's scores
+and winners. 440 games have a player from the site's network's own run (`kg:v2a:b10c128-…`, up to s41421696).
+
+**Checked here:** the label rules tested on these games (decisions/engine.md, "The label rules on games of known
+strength").

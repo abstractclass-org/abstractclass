@@ -48,7 +48,7 @@
       const module = manifest && moduleOf(manifest);
       if (!module || closed) return;
       worker = new EngineWorker();
-      await worker.init(module.url);
+      await worker.init(manifest);
       if (!closed) rules = worker;
     })().catch(e => console.warn("puzzles: no engine rules", e));
     return () => { closed = true; worker?.terminate(); };

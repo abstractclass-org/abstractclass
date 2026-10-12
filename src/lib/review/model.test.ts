@@ -3,9 +3,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { Edge } from "#lib/engine/notation.ts";
-import { judgeBranchEdge, review, roundTogether, trustedLine, turnCost, valuesAfter, type Analysis, type Candidate, type Move, type Position,
+import { complexity, likelyEdges, judgeBranchEdge, review, roundTogether, trustedLine, turnCost, valuesAfter, type Analysis, type Candidate, type Move, type Position,
          type ReviewData } from "./model.ts";
-import { HUMAN_WIN_K, humanWin } from "./labels.ts";
+import { accuracyWeight } from "./labels.ts";
 
 const edges = (n: number): Edge[] => Array.from({ length: n }, (_, k): Edge => [k, 0, k, 1]);
 const candidate = (lineVisits?: number[], n = lineVisits?.length ?? 6): Candidate =>
@@ -75,22 +75,18 @@ test("a turn's loss comes from its two ends, so the search between them cancels"
   assert.equal(turnCost(red), "−5.0% · −20.0 pts (+30.0 pts, −50.0 pts)");
 });
 
-test("labels read a human's win chance, from the lead and the spread, and points lost do not label", () => {
-  assert.equal(humanWin(0, 100), 0.5);
-  assert.ok(Math.abs(humanWin(100, 100) - 1 / (1 + Math.exp(-HUMAN_WIN_K))) < 1e-12);
-  const spread = (a: Analysis, s: number): Analysis => ({ ...a, spread: s });
-  // A decided game: Blue leads by 1,000 points with a spread of 50. Red's turn loses 100 points, but no human chance.
-  const decided = review(game([B, C], [0, 1, 2, 3, 4].map(i => spread(at(0.99, i === 3 ? 1100 : 1000), 50))));
+test("labels read the engine's win chance, and points lost do not label", () => {
+  // A decided game: Blue at 0.99. Red's turn loses 100 points, but its win chance only from 0.01 to 0.005.
+  const decided = review(game([B, C], [0, 1, 2, 3, 4].map(i => (i === 3 ? at(0.995, 1100) : at(0.99, 1000)))));
   assert.equal(decided.turns[1].pointsLost, 100);
   assert.equal(decided.turns[1].label, "excellent");
-  // The engine's win chance falls from 0.5 to 0.2 for Red, but the lead moves by 5 points of a spread of 100: a human's
-  // chance falls by about 0.012.
-  const R = review(game([B, C], [0, 1, 2, 3, 4].map(i => spread(i === 3 ? at(0.8, 5) : at(0.5, 0), 100))));
-  assert.ok(Math.abs(R.turns[1].loss - (0.5 - humanWin(-5, 100))) < 1e-12);
-  assert.equal(R.turns[1].label, "excellent");
-  // The values after a position give the same chance.
+  // An even game: Red's turn loses 5 points, but its win chance falls from 0.5 to 0.2.
+  const R = review(game([B, C], [0, 1, 2, 3, 4].map(i => (i === 3 ? at(0.8, 5) : at(0.5, 0)))));
+  assert.ok(Math.abs(R.turns[1].loss - 0.3) < 1e-12);
+  assert.equal(R.turns[1].label, "blunder");
+  // The values after a position give the engine's chance.
   const q = { scores: [0, 0], over: false } as unknown as Position;
-  assert.equal(valuesAfter(q, spread(at(0.8, 5), 100))!.blueWin, humanWin(5, 100));
+  assert.equal(valuesAfter(q, at(0.8, 5))!.blueWin, 0.8);
 });
 
 test("a turn is Best when it is the engine's best turn, in either order", () => {
@@ -130,4 +126,35 @@ test("a turn's parts are rounded together, so that they add up to the turn", () 
   assert.deepEqual(roundTogether([143.6, 0.8]), [143, 1]); // 144.4: 144, not 144 and 1
   assert.deepEqual(roundTogether([-30.4, 50.2]), [-30, 50]);
   assert.deepEqual(roundTogether([0.5, 0.5]), [1, 0]); // 1
+});
+
+test("KaTrain's complexity in win chance: the candidates' prior-weighted loss, and a hard position from 0.10", () => {
+  // Blue to move at 0.6: one likely edge keeps it (prior 0.5), two lose 0.2 and 0.4 (priors 0.3 and 0.2).
+  const c = (blueWin: number, prior: number): Candidate => ({ edge: A, visits: 10, blueWin, prior });
+  const a: Analysis = { blueWin: 0.6, visits: 512, candidates: [c(0.6, 0.5), c(0.4, 0.3), c(0.2, 0.2)] };
+  assert.ok(Math.abs(complexity(a, 0)! - (0.3 * 0.2 + 0.2 * 0.4) / 1) < 1e-12); // 0.14
+  assert.equal(complexity({ ...a, candidates: a.candidates.map(({ prior: _, ...k }) => k) }, 0), undefined);
+  // The weight: full from a hard position or a Blunder's loss, 0.05 at least, 1 without a complexity.
+  assert.equal(accuracyWeight(0.14, 0), 1);
+  assert.equal(accuracyWeight(0, 0.01), 0.05);
+  assert.ok(Math.abs(accuracyWeight(0.05, 0) - 0.5) < 1e-12);
+  assert.equal(accuracyWeight(0, 0.3), 1);
+  assert.equal(accuracyWeight(undefined, 0), 1);
+  // In a review: the edge and its turn are hard, and the easy turns weigh little in the accuracy.
+  const hard: Analysis = { ...at(0.5, 0), candidates: [c(0.5, 0.5), c(0.3, 0.5)] }; // complexity 0.1 for Blue
+  const R = review(game([B, C], [hard, at(0.5, 0), at(0.5, 0), at(0.5, 0), at(0.5, 0)]));
+  assert.equal(R.edges[0].hard, true);
+  assert.equal(R.turns[0].hard, true);
+  assert.equal(R.turns[1].hard, false);
+});
+
+test("the meter: the network's prior by the group of each searched edge's loss against the best one", () => {
+  // Red to move: the best searched edge leaves Blue 0.40; others lose 0.03, 0.08, 0.15 and 0.30 for Red
+  const c = (blueWin: number, prior: number): Candidate => ({ edge: A, visits: 10, blueWin, prior });
+  const a: Analysis = { blueWin: 0.41, visits: 512, candidates: [c(0.4, 0.3), c(0.43, 0.2), c(0.48, 0.1), c(0.55, 0.15), c(0.7, 0.05)] };
+  const m = likelyEdges(a, 1)!;
+  const near = (x: number, y: number) => Math.abs(x - y) < 1e-12;
+  assert.ok(near(m.good, 0.5) && near(m.inaccuracy, 0.1) && near(m.mistake, 0.15) && near(m.blunder, 0.05), JSON.stringify(m));
+  assert.ok(near(m.unsearched, 0.2)); // the prior the search did not visit
+  assert.equal(likelyEdges({ ...a, candidates: a.candidates.map(({ prior: _, ...k }) => k) }, 1), undefined);
 });

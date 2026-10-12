@@ -2,37 +2,76 @@
   "repository": "seankao31/enclosure-engine",
   "artifacts": [
     {
-      "id": "engine-85c2adb",
+      "id": "engine-632f2a0",
       "kind": "module",
       "interface": "engine-protocol-0.3",
       "file": "enclosure-engine.wasm",
-      "source": { "release": { "tag": "wasm-v2-engine-85c2adb", "asset": "enclosure-engine.wasm" } },
-      "sha256": "4351a9608f46228efce022db9372e9c92e84af5c484dd454dc3f94cdcac525e7",
-      "bytes": 1348467
+      "source": { "release": { "tag": "wasm-v2-engine-632f2a0", "asset": "enclosure-engine.wasm" } },
+      "sha256": "97b2b59c0bcd3d6ecae0ac67a628c6245eaa05bae99f5daebc0b3dcb393f1e20",
+      "bytes": 1352964
     },
     {
-      "id": "engine-85c2adb-notices",
+      "id": "engine-632f2a0-notices",
       "kind": "notices",
       "file": "NOTICES.txt",
-      "source": { "release": { "tag": "wasm-v2-engine-85c2adb", "asset": "NOTICES.txt" } },
+      "source": { "release": { "tag": "wasm-v2-engine-632f2a0", "asset": "NOTICES.txt" } },
       "sha256": "688cc6fa6262242e587de4ea351c44c1bf0aa9de59d3566cb4c055863e21ee4d",
       "bytes": 10042
     },
     {
+      "id": "engine-632f2a0-gpu",
+      "kind": "gpu-module",
+      "interface": "engine-protocol-0.3",
+      "file": "enclosure-engine-gpu.wasm",
+      "source": { "release": { "tag": "wasm-v2-engine-632f2a0", "asset": "enclosure-engine-gpu.wasm" } },
+      "sha256": "428bfbad3ada05907e5bbb038af536c1c6a00d951dfac7dcfbd7c836155fcd73",
+      "bytes": 1146848
+    },
+    {
+      "id": "engine-632f2a0-gpulib",
+      "kind": "gpu-library",
+      "file": "gpu_engine.mjs",
+      "source": { "release": { "tag": "wasm-v2-engine-632f2a0", "asset": "gpu_engine.mjs" } },
+      "sha256": "01bf5ab59f779d40749d2298fdcf3927b5c3843480db0791014ac112af9a0e24",
+      "bytes": 15720
+    },
+    {
       "id": "b10c128-s66625408-d13350730",
       "kind": "model",
+      "displayName": "HedgeFund 0.1 Lite",
       "file": "model-float16.bin",
-      "source": { "release": { "tag": "wasm-v2-engine-85c2adb", "asset": "b10c128-s66625408-d13350730.model-float16.bin" } },
+      "source": { "release": { "tag": "wasm-v2-engine-632f2a0", "asset": "b10c128-s66625408-d13350730.model-float16.bin" } },
       "sha256": "67b51d6d25df4706d1c5c5e7039581e3d091d2c0189ac44f57a478fdb68273e7",
       "bytes": 6499365
     },
     {
       "id": "b15c192-s66999040-d13350730",
       "kind": "model",
+      "displayName": "HedgeFund 0.1",
       "file": "model-float16.bin",
-      "source": { "release": { "tag": "wasm-v2-engine-85c2adb", "asset": "b15c192-s66999040-d13350730.model-float16.bin" } },
+      "source": { "release": { "tag": "wasm-v2-engine-632f2a0", "asset": "b15c192-s66999040-d13350730.model-float16.bin" } },
       "sha256": "4bfee7d55f4ae6f48a2833d464b722c723e5e2f04e4b44aa87fc6be0b2cbd214",
       "bytes": 20597245
+    },
+    {
+      "id": "b10c128-s66625408-d13350730-graph-632f2a0",
+      "kind": "graph",
+      "graphOf": "b10c128-s66625408-d13350730",
+      "displayName": "HedgeFund 0.1 Lite",
+      "file": "model.onnx",
+      "source": { "release": { "tag": "wasm-v2-engine-632f2a0", "asset": "b10c128-s66625408-d13350730.onnx" } },
+      "sha256": "70585e2ec5b751d05cd42b1108539acdf894fcf1b0400fd2a6c09f175d065408",
+      "bytes": 6409947
+    },
+    {
+      "id": "b15c192-s66999040-d13350730-graph-632f2a0",
+      "kind": "graph",
+      "graphOf": "b15c192-s66999040-d13350730",
+      "displayName": "HedgeFund 0.1",
+      "file": "model.onnx",
+      "source": { "release": { "tag": "wasm-v2-engine-632f2a0", "asset": "b15c192-s66999040-d13350730.onnx" } },
+      "sha256": "5d4c8fb41e95feded3bfe934a570ee2787ec7ccf6d55902c0166504b3ba69eeb",
+      "bytes": 20477916
     }
   ]
 }

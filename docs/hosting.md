@@ -62,6 +62,9 @@ What the repository holds for Pages:
 - **The build command,** `npm run build:cloudflare` (`package.json`): it downloads the engine's release and checks each
   file's SHA-256 (`npm run engine -- --deploy`, which refuses a local engine file), runs the tests and the type check,
   then builds into `build/`. A failed test or type error fails the deploy, and the live site stays as it was.
+- **No file over 25 MiB:** Pages refuses a larger file. The engine's step stores each network's graph and ONNX
+  Runtime's WebAssembly compressed with gzip, and splits a compressed file over 24 MiB into parts. The page joins and
+  decompresses them ([design 15](design/15-gpu.md)).
 - **Node 24** (`.node-version`). Pages' build image has Node 22.16 by default, which cannot run the tests' TypeScript
   without a flag.
 - **The response headers** (`static/_headers`, copied into `build/`): `X-Robots-Tag: noindex` on every file, and a
@@ -155,7 +158,7 @@ site (`noindex`). **Preview access** in the project's settings can put them behi
    dashboards.
 2. Cloudflare turns on its **automatic setup** for a domain it proxies: it adds its beacon to each page of every
    subdomain as the page is served. Change it: **Manage site → "Enable with JS Snippet installation" → Update**. The
-   beacon must start only after the import page has removed a game record from the address, and the site's own code
+   beacon must start only after the import page removes a game record from the address, and the site's own code
    makes sure of that.
 3. The snippet that Cloudflare then shows holds the site's token (`data-cf-beacon='{"token": "…"}'`). Set the token
    alone, the 32 hexadecimal digits, as `VITE_CF_ANALYTICS_TOKEN`, and deploy again. The site adds the beacon itself
@@ -171,29 +174,29 @@ site (`noindex`). **Preview access** in the project's settings can put them behi
   failed build leaves the live site as it was. Try a change first on `dev`'s preview.
 - **Check:** the footer's version is the commit that Pages built. On the live site, these hold (all true on
   2026-10-12, at commit `3580146`):
-  - every page and file answers with `X-Robots-Tag: noindex`, and an unknown address answers 404;
+  - every page and file answers with `X-Robots-Tag: noindex`, and an unknown address answers 404.
   - `/_app/immutable/…` and `/engine/<id>/<file>` carry `Cache-Control: public, max-age=31536000, immutable`, and
-    `/engine/manifest.json` does not;
-  - the module is served as `application/wasm`, and the larger network (20.6 MB) downloads whole;
-  - the header shows Review, The notation and About only, and `/puzzles` leads home;
+    `/engine/manifest.json` does not.
+  - the module is served as `application/wasm`, and the larger network (20.6 MB) downloads whole.
+  - the header shows Review, The notation and About only, and `/puzzles` leads home.
   - the domain's answers are signed (DNSSEC validated).
 - **Roll back:** in the project's deployments, choose an earlier production deployment and **Rollback**. The next push
   deploys again.
 - **A new engine:** change `engine.lock.json` to the new release (its tag, each asset's name, SHA-256 and size), and
-  push. The paths under `/engine/` name the build and the network, so browsers fetch the new files and keep no stale
+  push. The paths under `/engine/` name the build and the network, so browsers download the new files and keep no stale
   ones.
 
 ## Not part of the site
 
 - **Porkbun's DNS records are not used:** the nameservers are Cloudflare's, so only Cloudflare's records answer.
-  Records still listed at Porkbun can be deleted, for clarity. Porkbun's URL forwarding and email forwarding would not
+  Records still listed at Porkbun can be removed, for clarity. Porkbun's URL forwarding and email forwarding would not
   work either, for the same reason.
-- **The bare domain and `www`:** Cloudflare copied Porkbun's parking records when the domain was added, all proxied:
-  two A records for `abstractclass.org` (`207.207.210.107` and `207.207.210.229`) and a CNAME for `www`
+- **The bare domain and `www`:** Cloudflare copied Porkbun's parking records when the domain was added, all proxied: two
+  A records for `abstractclass.org` (`207.207.210.107` and `207.207.210.229`) and a CNAME for `www`
   (`pixie.porkbun.com`). Porkbun's parking servers have no certificate for the domain, so Cloudflare answered HTTP 525.
-  Cloudflare reads a domain's records from its old nameservers when the domain is added, and Porkbun's ALIAS record
-  for the bare domain answered as the parking server's two addresses, so Cloudflare kept them as A records. At
-  Porkbun the record showed as an ALIAS to `pixie.porkbun.com`, not as A records. Until the domain has a site of its
-  own, these records go (they went on 2026-10-12, at Porkbun and at Cloudflare): the addresses then do not resolve,
-  which is cleaner than an error page. The only record left is `hedgeschool`'s CNAME to `hedgeschool.pages.dev`. A later site for the bare
-  domain is added as a custom domain of its own Pages project, as section 3 tells, and Pages adds the records.
+  Cloudflare reads a domain's records from its old nameservers when the domain is added, and Porkbun's ALIAS record for
+  the bare domain answered as the parking server's two addresses, so Cloudflare kept them as A records. At Porkbun the
+  record showed as an ALIAS to `pixie.porkbun.com`, not as A records. Until the domain has a site of its own, these
+  records go (they went on 2026-10-12, at Porkbun and at Cloudflare): the addresses then do not resolve, which is
+  cleaner than an error page. The only record left is `hedgeschool`'s CNAME to `hedgeschool.pages.dev`. A later site for
+  the bare domain is added as a custom domain of its own Pages project, as section 3 tells, and Pages adds the records.

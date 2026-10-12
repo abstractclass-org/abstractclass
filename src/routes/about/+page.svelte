@@ -3,6 +3,7 @@
   import { PROSE } from "#lib/prose.ts";
   import { DISCORD, SITE_NAME, SITE_VERSION } from "#lib/edition.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
+  import Collie from "#lib/Collie.svelte";
 </script>
 
 <svelte:head><title>About {SITE_NAME}</title></svelte:head>
@@ -16,7 +17,13 @@
   <p>Enclosure is designed by webgoatguy, who <a href="https://youtu.be/BiVaY09xgZ4">introduces it in a video</a>. Its
     players meet in <a href={DISCORD}>webgoatguy's Discord</a>.</p>
 
-  <h2>Early access</h2>
+  <h2>The schoolmaster</h2>
+  <div class="flex items-center gap-4">
+    <Collie size={96} label="A Border Collie" />
+    <p class="my-0">The school is kept by a Border Collie.</p>
+  </div>
+
+  <h2 id="early-access">Early access</h2>
   <p>For now the site does one thing: it reviews your games. Puzzles and lessons come later. Tell us what works and what
     does not in <a href={DISCORD}>the Discord</a>.</p>
 
@@ -32,8 +39,8 @@
   </ul>
 
   <h2>The engine</h2>
-  <p>The engine is a neural network trained for Enclosure, with a search derived from KataGo, made in the enclosure-ai
-    project. The licences of what the site uses are on <a href="/notices">the notices page</a>.</p>
+  <p>The engine, HedgeFund, is a neural network trained for Enclosure, with a search derived from KataGo, made in the
+    enclosure-ai project. Its networks are named by version: HedgeFund 0.1 Lite, the default, and HedgeFund 0.1. The licences of what the site uses are on <a href="/notices">the notices page</a>.</p>
 
   <h2>This site</h2>
   <p>{SITE_NAME} is made independently of meaf.us and Constellation. What it keeps, and where, is on

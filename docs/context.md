@@ -43,7 +43,7 @@ guidelines.
   |---|---|
   | The notation, the protocol, and what each output means | [`docs/design/04-notation-and-protocol.md`](https://github.com/seankao31/enclosure-ai/blob/main/docs/design/04-notation-and-protocol.md) |
   | The engine module the site uses (`enclosure-engine.wasm`): actions, slices, memory | the same design document, "In the code" |
-  | The reference driver for the module (WASI imports, loading) | [`tools/engine_run.mjs`](https://github.com/seankao31/enclosure-ai/blob/main/tools/engine_run.mjs) |
+  | The driver for both modules (WASI imports, loading, the GPU's batches), which the site loads from the release (`src/lib/engine/library.ts`) | [`v2/wasm/gpu_engine.mjs`](https://github.com/seankao31/enclosure-ai/blob/main/v2/wasm/gpu_engine.mjs) |
   | The WebAssembly builds: how they are built, their speed | [`v2/wasm/README.md`](https://github.com/seankao31/enclosure-ai/blob/main/v2/wasm/README.md) |
   | Strength against search budget | [`v2/docs/decisions/strength.md`](https://github.com/seankao31/enclosure-ai/blob/main/v2/docs/decisions/strength.md) |
   | The spatial outputs (ownership and the others) | [`katago/ENCLOSURE.md`](https://github.com/seankao31/enclosure-ai/blob/main/katago/ENCLOSURE.md), "Spatial targets" |

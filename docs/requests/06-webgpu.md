@@ -1,7 +1,54 @@
 # The network's evaluations on the visitor's GPU: WebGPU
 
-**Status:** step 1 measured, first numbers (below). Step 2 not decided: its design question is batching. The site's
-answer to that question is below.
+**Status:** done. Step 2 (release `wasm-v2-engine-06534ee`) is built into the site:
+[design 15](../design/15-gpu.md).
+
+## Built into the site (2026-10-12)
+
+- `engine.lock.json` pins `wasm-v2-engine-06534ee`: the CPU module, the GPU module, its library and both graphs.
+  ONNX Runtime Web 1.30.0 is a dependency, and the deploy serves its WebAssembly beside the engine.
+- The GPU worker joins the CPU workers in the review's pool, with 16 searches. A task takes a free CPU worker first.
+- The first-use test runs on the review's own work, not as a timing before the review, as the site's answer below
+  first planned. Design 15 gives the reasons. The setting is Auto, On or Off.
+- The 40.9 MB graph and ONNX Runtime's 26.8 MB WebAssembly exceed Cloudflare Pages' 25 MiB for a file. The deploy
+  stores them compressed, the graph in two parts, and the page joins them.
+- Since then, the release `wasm-v2-engine-632f2a0` made the graphs half as large (6.4 MB and 20.5 MB), with the same
+  outputs. The site uses it (decisions/engine.md, "The release 632f2a0").
+
+## Step 2 delivered: the GPU module (2026-10-12)
+
+The release `wasm-v2-engine-06534ee` of `seankao31/enclosure-engine` holds:
+
+- `enclosure-engine-gpu.wasm`: the GPU module, protocol 0.3, build `06534ee`.
+- `gpu_engine.mjs`: its JavaScript half, for the site's GPU worker.
+- `NAME.onnx`: one graph for each network: 12.8 MB for HedgeFund 0.1 Lite and 40.9 MB for HedgeFund 0.1. Each graph
+  keeps its network's display name, and the manifest's `graphOf` names its network file.
+- The CPU module, built again at `06534ee` with the same behaviour, and the same two network files as
+  `wasm-v2-engine-85c2adb`.
+
+Use in a worker:
+
+```js
+import * as ort from "onnxruntime-web/webgpu"; // ONNX Runtime Web 1.30, the site's dependency
+import { createGpuEngines, createOrtEvaluator, gpuEngineSupport } from "./gpu_engine.mjs";
+if (!gpuEngineSupport().ok) { /* keep the CPU module: no JSPI or no WebGPU */ }
+const evaluator = await createOrtEvaluator(ort, graphBytes); // throws when WebGPU has no adapter
+const gpu = await createGpuEngines(await WebAssembly.compile(moduleBytes), evaluator, { searches: 16 });
+await gpu.loadModel(modelBytes, { name }); // NAME.model-float16.bin
+const reply = JSON.parse(await gpu.engines[k].call(request)); // the engine protocol, one search for each engine
+```
+
+- **Each engine** speaks the CPU module's protocol, one request at a time, searches in slices too. Several searches at
+  once (the label pass) send their evaluations to the GPU together.
+- **Needs** JSPI (Chrome and Edge 137 and later, Firefox 153, Safari 27) and WebGPU. `gpuEngineSupport()` says which is
+  missing.
+- **Memory:** about 9 to 13 MB for each engine. The weights are on the GPU, once.
+- **Agreement with the CPU module:** the same top move in 332 of 332 positions, the win chance within 2.1e-6. In
+  Chrome on WebGPU, 64 of 64.
+- **Speed on an RTX 5080,** the label pass at 256 visits: HedgeFund 0.1 Lite 571 visits a second with 16 searches and
+  812 with 32, against about 83 for one CPU module. HedgeFund 0.1: 471 and 647, against about 34 to 39.
+- **Asked of the site:** move `engine.lock.json` to the new release, and keep the first-use speed test, as laptop
+  GPUs differ.
 
 ## The site's answer for step 2 (2026-10-11)
 
@@ -92,7 +139,8 @@ answer to that question is below.
 ## What
 
 Find out whether the browser module can evaluate the network on the visitor's GPU through WebGPU, and if the gain is
-large, give the site a way to use it. In two steps, so that the second is done only if the first shows a gain:
+large, give the site a way to use it. In two steps, so that the engine repository builds the second only if the first
+shows a gain:
 
 1. **A measurement.** The time of one evaluation of b10c128 and of b15c192 through WebGPU in a browser worker, at a
    batch of 1 and at larger batches (8, 16, 32), against the WebAssembly build's time on the same machine (16.5 ms
@@ -103,7 +151,7 @@ large, give the site a way to use it. In two steps, so that the second is done o
    only the second.
 2. **If the gain is large:** a build, or a mode of the module, that evaluates on the GPU and speaks the same protocol
    as the module the site has. The site keeps the CPU module for browsers and machines without WebGPU, and chooses
-   between the two. The engine repository chooses the design. Two constraints are known:
+   between the two. The engine repository chooses the design. The site knows two constraints:
    - **The search is synchronous and the GPU is not.** The module runs on one thread with a synchronous evaluator
      (`NNEVAL_SYNCHRONOUS`), and WebGPU gives its results through promises. A search in slices already returns to the
      page between slices (the engine repository's
@@ -113,7 +161,7 @@ large, give the site a way to use it. In two steps, so that the second is done o
    - **One search thread asks for one evaluation at a time.** A GPU gains most from batches. The review searches many
      positions at once, in several workers, each with its own module. A batch can come from one search (more than one
      leaf a step) or from several searches in one module. Either changes the search, so the step-1 numbers at batch
-     1 tell whether it is needed.
+     1 tell whether the site needs it.
 
 If the protocol should say how a client asks for the GPU, or how it reports which backend runs, the site follows the
 protocol.

@@ -4,18 +4,27 @@
   // with none, asks for one: there is no sample game (design 11).
   // The board works from the engine's rules at once. Then the sweep, the label pass, deeper searches where the
   // player looks, and the key moments deepened after the label pass (docs/design/05-review-analysis.md). The engine's
-  // settings (docs/design/09-engine-settings.md) apply as they change: the workers and the network without a reload.
+  // settings (docs/design/09-engine-settings.md) apply as they change: the workers, the GPU and the network without a
+  // reload. The GPU worker joins the pool once the network is loaded (docs/design/15-gpu.md).
   import { onDestroy, onMount, untrack } from "svelte";
   import ReviewView, { type ReviewProgress } from "#lib/review/ReviewView.svelte";
   import { review, type ReviewData } from "#lib/review/model.ts";
   import { EnginePool } from "#lib/analysis/pool.ts";
   import { DEEP_VISITS, GameAnalysis, LABEL_VISITS, SWEEP_VISITS } from "#lib/analysis/game.svelte.ts";
   import { loadEngine, reviewVisits, saveEngine } from "#lib/analysis/engineSettings.ts";
+  import { GPU_SEARCHES, TEST_SECONDS, gpuAdapterName, gpuFaster, loadGpuTest, saveGpuTest, type GpuStatus, type GpuTestFor }
+    from "#lib/analysis/gpu.ts";
+  import { GpuEngines, gpuSupport } from "#lib/engine/gpuClient.ts";
   import { loadManifest, type Manifest } from "#lib/engine/client.ts";
   import { errorText } from "#lib/errors.ts";
   import { playerNames } from "#lib/game/record.ts";
-  import { lastReview, loadGame, rememberReview } from "#lib/game/store.ts";
+  import { lastReview, loadGame, markReviewed, rememberReview, reviewMark } from "#lib/game/store.ts";
   import { replaceState } from "$app/navigation";
+  import { download, exportReview, reviewFileName, shippedModels } from "#lib/game/reviewFile.ts";
+  import { annotatedText } from "#lib/review/exportText.ts";
+  import type { Unit } from "#lib/review/model.ts";
+  import type { GameRecord } from "#lib/game/record.ts";
+  import { SITE_VERSION } from "#lib/edition.ts";
   import { pathKey } from "#lib/review/tree.ts";
 
   const MESSAGE = "box-content max-w-[1100px] mx-auto my-8 px-4";
@@ -25,6 +34,7 @@
   let network = ""; // the network of the pool in use, or of the pool that loads to replace it
   let game = $state<GameAnalysis | null>(null);
   let players = $state<ReviewData["players"]>({ blue: "Blue", red: "Red" });
+  let kept: { id: string; text: string; record: GameRecord } | null = null; // the stored game, for its export
   let moveCount = $state(0);
   let error = $state("");
   let current = $state<string[]>([]); // the position on screen: its path in the game's tree (review/tree.ts)
@@ -78,6 +88,16 @@
     return { text: `Reviewing: confirming Great moves, ${greats.done} of ${greats.total}`, parts, step };
   });
   const rawStepDone = $derived(rawProgress ? rawProgress.parts[rawProgress.step]?.done ?? 1 : 0);
+  // The review is done: every step of the bar, with the network loaded. The game keeps the mark of it (store.ts), so
+  // that the home page can offer its export, and the Export menu opens (design 13).
+  const reviewDone = $derived(!!game?.engineReady && !rawProgress);
+  $effect(() => {
+    if (!reviewDone) return;
+    untrack(() => {
+      const mark = manifest && reviewMark(manifest, network, budget);
+      if (kept && mark) void markReviewed(kept.id, mark);
+    });
+  });
   $effect(() => {
     const step = rawProgress?.step ?? -1, done = rawStepDone, was = untrack(() => held);
     if (step !== was.step || done > was.done) held = { step, done };
@@ -107,6 +127,81 @@
     const id = engine.network;
     untrack(() => void useNetwork(id));
   });
+  $effect(() => {
+    void engine.gpu;
+    untrack(() => { if (pool && game?.engineReady) void applyGpu(pool, network); });
+  });
+
+  // The GPU worker (design 15): Off, On, or Auto, which keeps it where its first-use test found it faster than a worker.
+  let gpuStatus = $state<GpuStatus>({ state: "off" });
+  let gpuStarting: EnginePool | null = null;
+  let adapterName: Promise<string | null> | null = null; // the GPU that WebGPU gives the page, asked once
+  /** The GPU's first download: the GPU module, ONNX Runtime and the network's graph, in MB. The engine's library comes
+   *  with the CPU workers already. */
+  const gpuDownloadMB = (id: string) => (((manifest?.artifacts ?? [])
+    .filter(a => ["gpu-module", "ort-glue", "ort-wasm"].includes(a.kind) || (a.kind === "graph" && a.graphOf === id))
+    .reduce((n, a) => n + a.download, 0)) / 1e6).toFixed(1);
+
+  /** Gives the pool `p`, of the network `id`, the GPU or takes it away, as the setting and the stored test of this
+   *  GPU say. */
+  async function applyGpu(p: EnginePool, id: string) {
+    const mode = engine.gpu;
+    p.onBacklog = null;
+    if (mode === "off") {
+      p.dropGpu();
+      gpuStatus = { state: "off" };
+      return;
+    }
+    const support = gpuSupport();
+    if (!support.ok) { gpuStatus = { state: "unsupported", reason: support.reason! }; return; }
+    const adapter = await (adapterName ??= gpuAdapterName());
+    if (pool !== p || engine.gpu !== mode) return; // changed meanwhile: a later call decides
+    if (!adapter) { gpuStatus = { state: "unsupported", reason: "no GPU for WebGPU" }; return; }
+    const module = manifest?.artifacts.find(a => a.kind === "gpu-module")?.id;
+    if (!module) { gpuStatus = { state: "unsupported", reason: "no GPU module in this build of the site" }; return; }
+    const testFor = { network: id, adapter, module }, test = loadGpuTest(testFor);
+    if (mode === "auto" && test && !gpuFaster(test)) {
+      p.dropGpu();
+      gpuStatus = { state: "slower", adapter, test };
+      return;
+    }
+    if (p.hasGpu) {
+      if (gpuStatus.state !== "testing") gpuStatus = { state: "on", adapter, test };
+      return;
+    }
+    // The GPU starts once the workers have more work than they take: a finished review needs no GPU.
+    const start = () => { p.onBacklog = null; void startGpu(p, testFor, mode === "auto" && !test); };
+    if (p.backlogged) start();
+    else { p.onBacklog = start; gpuStatus = { state: "waiting" }; }
+  }
+
+  async function startGpu(p: EnginePool, testFor: GpuTestFor, testing: boolean) {
+    const { network: id, adapter } = testFor;
+    if (!manifest || gpuStarting === p) return;
+    gpuStarting = p;
+    gpuStatus = { state: "loading" };
+    const gpu = new GpuEngines();
+    try {
+      await gpu.start(manifest, id, GPU_SEARCHES);
+    } catch (e) {
+      gpu.terminate();
+      if (pool === p) gpuStatus = { state: "failed", message: errorText(e) };
+      return;
+    } finally {
+      if (gpuStarting === p) gpuStarting = null;
+    }
+    if (pool !== p || engine.gpu === "off") { gpu.terminate(); return; } // another pool, or the GPU turned off meanwhile
+    p.onGpuLost = e => { if (pool === p) gpuStatus = { state: "failed", message: errorText(e) }; };
+    p.addGpu(gpu);
+    if (!testing) { gpuStatus = { state: "on", adapter, test: loadGpuTest(testFor) }; return; }
+    gpuStatus = { state: "testing" };
+    const speed = await p.speed.measured(TEST_SECONDS);
+    const test = { gpu: Math.round(speed.gpu), cpu: Math.round(speed.cpu), at: new Date().toISOString() };
+    saveGpuTest(testFor, test);
+    if (pool !== p) return;
+    if (engine.gpu === "on" || gpuFaster(test)) gpuStatus = { state: "on", adapter, test };
+    else { p.dropGpu(); gpuStatus = { state: "slower", adapter, test }; }
+  }
 
   // The position on screen is searched deeper once the network is loaded, and again when the player moves (on the
   // game's line or in a branch), when the engine is on again, or when its depth changes.
@@ -137,6 +232,7 @@
     if (network !== id) { next.terminate(); return; } // another network was chosen meanwhile
     pool = next;
     g.usePool(next);
+    void applyGpu(next, id);
     await g.sweep();
   }
 
@@ -172,6 +268,7 @@
     }
     if (!named) replaceState(`?game=${id}`, {}); // the address names the game, so a reload keeps it
     rememberReview(id);
+    kept = { id, text: stored.game.record, record: stored.record };
     players = playerNames(stored.record.tags);
     return stored.record.moves;
   }
@@ -197,12 +294,28 @@
         return;
       }
       if (!g.rulesReady || pool !== first) return; // the rules refused the game (the page shows why), or another pool took over
+      void applyGpu(first, network);
       await g.sweep();
     } catch (e) {
       error = errorText(e);
     }
   });
-  onDestroy(() => pool?.terminate());
+  onDestroy(() => { pool?.terminate(); pool = null; }); // a GPU worker that starts later then ends (startGpu)
+
+  /** The review exported (design 13): the review file, with the engine's results, or the annotated record, copied or as
+   *  a file. The record's labels are the page's (by turn or by edge). */
+  async function exportAs(kind: "file" | "copy" | "text", unit: Unit) {
+    if (!kept) return;
+    const name = reviewFileName(kept.text, kept.id);
+    if (kind === "file") {
+      download(name, JSON.stringify(await exportReview(kept.id, SITE_VERSION, shippedModels(manifest))));
+      return;
+    }
+    if (!R) return;
+    const text = annotatedText(R, unit, kept.record, game?.branches ?? {}, network);
+    if (kind === "copy") await navigator.clipboard.writeText(text);
+    else download(name.replace(/\.json$/, ".txt"), text, "text/plain");
+  }
 </script>
 
 <svelte:head><title>Game review</title></svelte:head>
@@ -215,12 +328,13 @@
 {:else if game?.error && !game.rulesReady}
   <p class="{MESSAGE} text-blunder">The engine could not read this game: {game.error}</p>
 {:else if R}
-  <ReviewView {R} {progress} problem={game?.error ?? ""} deepVisits={engine.visits} onposition={path => (current = path)}
+  <ReviewView {R} {progress} onexport={exportAs} exportReady={reviewDone} problem={game?.error ?? ""} deepVisits={engine.visits} onposition={path => (current = path)}
               branches={game?.branches ?? {}} onplay={path => game!.addLine(path)} rulesAt={path => game!.rulesAt(path)}
               secondAt={path => game?.secondAt(path)} otherAt={(path, turn) => game?.otherAt(path, turn)}
               turnKeys={path => game?.turnKeys(path) ?? []} pendingAt={path => game?.pending(path) ?? false} reviewVisits={budget}
               ondelete={path => game!.deleteFrom(path)} onpromote={path => game!.promote(path)}
               onjudge={path => game!.judge(path)} labelVisits={LABEL_VISITS} {engine} onengine={change => Object.assign(engine, change)}
+              gpu={{ status: gpuStatus, downloadMB: gpuDownloadMB(engine.network) }}
               timedOut={!!game?.stoppedByTime(current)}
               searching={!!game && game.focusing === pathKey(current)}
               lineSteps={game ? (path, line) => game!.lineSteps(path, line) : undefined} />

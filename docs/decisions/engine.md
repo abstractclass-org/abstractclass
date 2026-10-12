@@ -57,12 +57,12 @@ Loading the engine, its speed, the engine interface, and the requests for it.
 
 - **What arrived:** the engine repository built the protocol that request 02 asked for
   ([`docs/design/04-notation-and-protocol.md`](https://github.com/seankao31/enclosure-ai/blob/main/docs/design/04-notation-and-protocol.md)
-  there): KataGo's analysis protocol as JSON lines, with the rules as actions (`describe`, `play`), the network
-  loaded at run time, search in slices with `continue` and `terminate`, reproducible replies, and the engine tag
-  (protocol, build, the network's SHA-256) on every analysis. The module is `enclosure-engine.wasm` (build
-  `8195171`, 1.3 MB). Its notation: points as GTP, edges sorted, a position in one line.
+  there): KataGo's analysis protocol as JSON lines, with the rules as actions (`describe`, `play`), the network loaded
+  at run time, search in slices with `continue` and `terminate`, reproducible replies, and the engine tag (protocol,
+  build, the network's SHA-256) on every analysis. The module is `enclosure-engine.wasm` (build `8195171`, 1.3 MB). Its
+  notation: points as GTP, edges sorted, a position in one line.
 - **A correction from the engine repository:** the lead head is trained (since 2026-10-05, on 5% of self-play moves).
-  Request 02 had said it was untrained. Whether points-lost labels use `scoreLead` or `scoreSelfplay` is still to
+  Request 02 said it was untrained. Whether points-lost labels use `scoreLead` or `scoreSelfplay` is still to
   be measured.
 - **Done here:**
   - `engine.lock.json` pins the module and two networks apart: b10c128 (6.5 MB) and b15c192 (20.5 MB). Both load
@@ -148,7 +148,7 @@ Loading the engine, its speed, the engine interface, and the requests for it.
 
 - **Now:** the page compiles `enclosure-engine.wasm` once (`WebAssembly.compileStreaming`, one promise for each URL in
   `src/lib/engine/client.ts`) and posts the compiled `WebAssembly.Module` to each worker, which only instantiates it.
-  Before, each worker fetched and compiled the module itself: four compiles at once for the review's pool, and one
+  Before, each worker downloaded and compiled the module itself: four compiles at once for the review's pool, and one
   more for the import's rules check.
 - **Measured** in Edge on the engine lab, four workers, five page loads each, from creating the workers until all of
   them answered `query_version` (the lab's new "until all workers started"): before 227, 127, 137, 155 and 209 ms
@@ -170,7 +170,7 @@ Loading the engine, its speed, the engine interface, and the requests for it.
   (`wideRootNoise = 0.04`, before 0.0), so more candidates get visits and values: from the start at 400 visits, the
   engine repository measured 251 to 308 visits for the top move (before 377) and 70 to 129 for the second (before
   14). The Great label compares the first choice with the second, and the board's candidates need 15% of the most
-  visited move's visits, so both had rested on moves with a handful of visits. The moves before the position no
+  visited move's visits, so both rested on moves with a handful of visits. The moves before the position no
   longer reach the network (`ignorePreRootHistory = true`), so a position gets the same analysis however it was
   reached: the variations to come need that. The play values stay in the engine repository's play config.
 - **The cost:** every value changes, so the label budget (256 visits, "Label agreement against search budget") must
@@ -178,11 +178,11 @@ Loading the engine, its speed, the engine interface, and the requests for it.
 - **Unchanged for the site:** it sends bare moves (the cut mark is optional), no `seed`, and no `history`.
 - **Found while checking:** Edge served its kept copy of `/engine/manifest.json`, which named the old build, and the
   site refused the old module ("engine protocol 1.0: this site speaks 0.3"). The preview server sends no cache headers,
-  so the browser may keep a copy, and a host can do the same after a deploy. `loadManifest` now fetches the manifest
+  so the browser may keep a copy, and a host can do the same after a deploy. `loadManifest` now downloads the manifest
   with `cache: "no-cache"`, so the browser asks the server each time. The artifacts are in folders named by build and
   network, so they can stay cached.
-- **Checked in Edge:** the lab reports protocol 0.3 and build `319a5c4`; two analyses of the position after edge 40 at
-  256 visits, without a seed, gave the same reply, row for row; at that position number 1 had 109 visits and the next
+- **Checked in Edge:** the lab reports protocol 0.3 and build `319a5c4`. Two analyses of the position after edge 40 at
+  256 visits, without a seed, gave the same reply, row for row. At that position number 1 had 109 visits and the next
   candidates 54, 32, 29 and 17. The review starts afresh (the cache key holds the build), with two candidates on the
   board at the first position. The puzzles' rules work.
 
@@ -196,7 +196,7 @@ Loading the engine, its speed, the engine interface, and the requests for it.
   `runs/measure/budget-b10c128-p03.jsonl` (not in Git). **Checked first:** under protocol 0.3 a search read after a
   slice still equals a fresh search of that many visits (32 and 256 visits, positions 0, 30, 60 and 90 of a ladder
   game, every candidate's visits and values the same).
-- **Result,** points from the lead, edges after the first 16 (412 edges; 36 Inaccuracies or worse at 1,024 visits,
+- **Result,** points from the lead, edges after the first 16 (412 edges, 36 Inaccuracies or worse at 1,024 visits,
   against 24 under protocol 0.2). Protocol 0.2's values in brackets:
 
   | Visits | Same label | Mistakes found (of the reference's) | Mistake flags that are right | Points lost, mean error |
@@ -207,7 +207,7 @@ Loading the engine, its speed, the engine interface, and the requests for it.
   | 256 | 67% (71%) | 42% (58%) | 79% (67%) | 7.8 (6.7) |
   | 512 | 75% | 67% | 80% | 4.9 |
 
-  Over every edge: at 256 visits 67% the same label, 58% of mistakes found, 85% of flags right; at 512 visits 74%,
+  Over every edge: at 256 visits 67% the same label, 58% of mistakes found, 85% of flags right. At 512 visits 74%,
   75% and 87%. Points from the margin give about the same (after the first 16 edges, at 256 visits: 38% found, 87%
   right).
 - **Reading:**
@@ -262,7 +262,7 @@ Loading the engine, its speed, the engine interface, and the requests for it.
 
 ### Speed on a laptop: the engine lab's sweep (2026-10-11)
 
-- **The machine:** an Apple Silicon Mac (WebGPU "apple metal-3"; Chrome names every Mac "Intel Mac OS X 10_15_7"),
+- **The machine:** an Apple Silicon Mac (WebGPU "apple metal-3". Chrome names every Mac "Intel Mac OS X 10_15_7"),
   12 logical cores, at least 32 GB of memory, Chrome 154, on battery.
 - **Method:** the engine lab's speed sweep: every sixth position of the sample game (20 positions) at 256 visits, for
   each network and 1, 2, 4 and 8 workers, after one short search in each worker. "A Lite review": 120 positions at 32
@@ -486,8 +486,13 @@ to test. P(win) = σ(z), the logistic curve.
   engine's own spread for each position (`scoreStdev`) gives it better.
 - **The engine's win chance as it is** fits worst: where it says 99%, players won 92%. Refitted, it matches the lead
   and the spread.
-- **Calibration** of the lead and the spread on the test games: 4% → 2% won, 15% → 11%, 25% → 14%, 35% → 22%, 46% →
-  43%, 54% → 50%, 65% → 68%, 75% → 81%, 85% → 87%, 96% → 98%. The curve is too flat between 20% and 80%. The power and
+- **Calibration** of the lead and the spread on the test games, as the chance given and the share of games won:
+
+  | Given | 4% | 15% | 25% | 35% | 46% | 54% | 65% | 75% | 85% | 96% |
+  |---|---|---|---|---|---|---|---|---|---|---|
+  | Won | 2% | 11% | 14% | 22% | 43% | 50% | 68% | 81% | 87% | 98% |
+
+  The curve is too flat between 20% and 80%. The power and
   the normal curve do not mend it. The cause is not known.
 - **By rating band**, k fitted on each band alone: 0.98 below 1600, 1.06 from 1600 to 1800, 1.12 at 1800 and above.
   Stronger players hold a lead more often, as Lichess's author found for chess (the constant from −0.002 for weak
@@ -514,13 +519,13 @@ The curve σ(k · lead / scoreStdev), fitted on every archive game ("The human w
 too flat between 20% and 80%. Part 1 at 1,024 visits, the same games and the same split. Scripts in the session's
 scratch space, not committed: the method that is chosen goes into `scripts/measure/fit-win-curve.mjs`.
 
-- **Not a floor of upsets:** a curve ε + (1 − 2ε) σ(k x) fits ε = 0.01 and gains nothing (test log loss 0.3890
-  against 0.3892).
-- **The data's own curve is lopsided.** By bins of x = lead / spread for the player to move: at x near +1.1 the mover
-  won 74% (the curve 75%), at x near −1.1 only 16% (the curve 24%), and at x near 0, 47.5%. A curve that treats both
-  sides alike cannot follow it.
-- **The side to move, at a turn's start, wins less than its lead says.** σ(k x + b): b = −0.27 at a turn's start (two
-  edges to play), −0.02 in its middle (one edge). By colour: −0.21 for Blue to move, −0.07 for Red.
+- **Not a floor of upsets:** a curve ε + (1 − 2ε) σ(k x) fits ε = 0.01. It gains nothing: the test log loss is 0.3890
+  against 0.3892.
+- **The data's own curve is lopsided**. By bins of x = lead / spread for the player to move: at x near +1.1 the mover
+  won 74% (the curve 75%). At x near −1.1 the mover won only 16% (the curve 24%), and at x near 0, 47.5%. A curve that
+  treats both sides alike cannot follow it.
+- **The side to move, at a turn's start, wins less than its lead says**. In σ(k x + b), b is −0.27 at a turn's start
+  (two edges to play). It is −0.02 in a turn's middle (one edge). By colour: −0.21 for Blue to move, −0.07 for Red.
   - **Not a bias of the engine:** in the 1,568 two-edge turns played as the engine plays (both edges its first choice),
     the mover's win chance changes by +0.32% from the start to the middle and −0.14% from the middle to the end. At
     4,096 visits (part 2, 170 turns) the same.
@@ -592,7 +597,8 @@ engine's lead is least sure. At equal shares (each measure's bands set where it 
 The final margin that people reach from the engine's lead, by stage, on part 1's 387 games that ended on the score
 (their final scores are the game's end). At the game's last searched position the engine's lead and the final margin
 agree: median difference −0.2 points, 80% of games within −15 to +4. Between near-equal players (ratings within 150),
-with a robust scatter (1.4826 × the median absolute residual):
+with a scatter that outliers do not move (1.4826 × the median absolute
+  residual):
 
 | Edges left | Final margin per point of the engine's lead | Intercept | People's scatter | The engine's spread |
 |---|---|---|---|---|
@@ -654,7 +660,7 @@ first look has no candidate's own. Scratch script, not committed.
 
 - **Every measure orders the movers the same way:** the 32-visit search, the raw network, people from strong to weak.
 - **Where they flag differs.** The engine's win chance puts two thirds or more of its Mistakes in the first 40 edges,
-  and almost none in decided positions (the engine under 5% or over 95%), where it has saturated. KaTrain's points and
+  and almost none in decided positions (the engine under 5% or over 95%), where it saturates. KaTrain's points and
   the lead in spreads put half or more in decided positions, and so does the 32-visit search's own: 66% and 73% of
   its Mistakes. There, the search of 32 visits gives away points that the search of 512 keeps, in positions whose
   result does not change. The practical chance flags the 32-visit search least (0.9% of its edges at Mistake or
@@ -677,3 +683,184 @@ first look has no candidate's own. Scratch script, not committed.
   label agreement, and requests 07 to 10. The new network is more certain (46 of 48 opening visits on one edge, where
   the old one spread them over four). The engine repository can analyse the archive again on it (its part 1: about
   2.4 hours).
+
+### The label rules on games of known strength (2026-10-12)
+
+`scripts/measure/label-bench.mjs` on requests 09 and 10 and on part 1 of request 07 (the archive's human games, without
+the abandoned ones). Each rule judges a turn as the site does: the mover's chance at the turn's start against the
+chance after its last edge, from the root of a search of 512 visits, by the network these files were read with
+(`b10c128-s46923648`). A turn played as the engine's first line is Best. The bot games' first four edges were drawn at
+random, so their turns 1 to 3 are left out. The rules, all with chess.com's bands (0.02, 0.05, 0.10, 0.20):
+
+- **Engine:** the engine's own win chance.
+- **Engine and points:** the same, and the worse with KaTrain's point bands times 12 (18, 36, 72, 144): the labels
+  before 2026-10-12.
+- **Practical:** σ(0.99 · lead / scoreStdev), the labels since 2026-10-12.
+
+Mistake or worse, per 100 of a player's turns:
+
+| Players | Engine | Engine and points | Practical |
+|---|---|---|---|
+| The site's network at 16 visits (ladder, rated 744) | 9.8 | 15.4 | 4.7 |
+| At 128 visits (1,243) | 6.1 | 7.5 | 1.9 |
+| At 1,024 visits (1,547) | 2.9 | 3.6 | 1.1 |
+| The gauntlet's weakest, about 2,050 (three players) | 17.5 to 23.0 | 30.0 to 39.0 | 12.3 to 15.9 |
+| The gauntlet's strongest, about 2,970 (three players) | 6.4 to 8.5 | 7.0 to 10.4 | 2.0 to 3.0 |
+| People under 1600 | 40.6 | 70.2 | 37.2 |
+| People 1600 to 1800 | 34.5 | 57.4 | 27.9 |
+| People 1800 and above | 19.4 | 38.5 | 14.7 |
+
+Blunders, people under 1600 / 1600 to 1800 / 1800 and above: engine 30.2 / 23.0 / 11.2, practical 17.6 / 11.4 / 5.3.
+
+- **Every rule flags stronger play less.** The correlation of a player's rate of Mistake or worse with the rating:
+  ladder −0.98 (engine), −0.99 (engine and points), −0.98 (practical). Gauntlet −0.91, −0.93, −0.96. People −0.97,
+  −0.99, −1.00.
+- **Where the Mistakes and Blunders fall** (the turns' own shares: ladder and gauntlet 32% in edges to 39 and 48% in
+  decided positions, the engine's chance at the turn's start over 0.95 or under 0.05. People 47% and 56%):
+
+  | Rule | Edges to 39: ladder / gauntlet / people | Decided: ladder / gauntlet / people |
+  |---|---|---|
+  | Engine | 54% / 62% / 73% | 0.8% / 2.4% / 13% |
+  | Engine and points | 51% / 54% / 55% | 16% / 20% / 46% |
+  | Practical | 34% / 48% / 64% | 20% / 16% / 23% |
+
+- **The engine's own chance** flags early play and almost nothing once the engine holds the game decided: a turn's
+  loss is what it costs the result, and the engine's chance saturates. The point bands add the decided positions back,
+  and fall hard on some bots' play (the two gauntlet bots of other lines, `gnn:net1` and `iv:v1`, at 30 to 39 Mistakes
+  per 100 turns). The practical chance spreads the flags over the game.
+- The player with the higher mean accuracy won 93% to 100% of the games by every rule, and the accuracy gap follows the
+  rating gap at r = 0.39 to 0.42 (bots) and 0.64 to 0.68 (people): the loser loses more by definition, so neither
+  tells the rules apart.
+- These files were read with the network that the site shipped before 2026-10-12. The released network is more certain
+  (decisions/engine.md, "The released engine"), which steepens the engine's own chance.
+
+### KaTrain's complexity on the archive (2026-10-12)
+
+`scripts/measure/complexity-check.mjs` on request 08's first look at part 1 of the archive: 911 games without the
+abandoned ones, 76,615 played edges, each position searched to 512 visits by the network `b10c128-s46923648`.
+KaTrain's complexity (`katrain/core/ai.py`, `game_report`): the mean loss of the searched candidates, each weighed by
+the network's prior, from the root's value, for the mover. Measured in Enclosure's points (the lead) and in the
+engine's win chance. A played edge's loss: the mover's win chance before it less after it, each at 512 visits.
+
+- **In points, KaTrain's cap saturates.** Percentiles 10, 25, 50, 75, 90 and 99: 5.5, 10, 21, 42, 80 and 261 points.
+  KaTrain caps the complexity at 1 Go point. Times 12, the scale of KaTrain's bands used here before, 70% of the
+  positions reach the cap.
+- **In win chance:** 0.000, 0.000, 0.006, 0.041, 0.094 and 0.266. Near 0 in a decided game, where no edge changes the
+  result.
+
+Played edges that lost 0.10 or more (Mistake or worse), by tenth of the positions ordered by complexity in win chance:
+
+| Tenth | Complexity up to | All | Under 1600 | 1600 to 1800 | 1800 and above |
+|---|---|---|---|---|---|
+| 1 to 4 | 0.001 | 0% | 0% | 0% | 0% |
+| 5 | 0.006 | 2% | 3% | 2% | 1% |
+| 6 | 0.016 | 12% | 17% | 12% | 7% |
+| 7 | 0.033 | 23% | 30% | 24% | 12% |
+| 8 | 0.054 | 36% | 49% | 35% | 19% |
+| 9 | 0.094 | 48% | 60% | 48% | 32% |
+| 10 | 0.910 | 62% | 74% | 64% | 44% |
+
+- By complexity in points, the same rate rises less: from 9% in the first tenth to 32% in the last.
+- In every tenth, the players chose the engine's first choice 11% to 16% of the time: the complexity does not tell when
+  they find it. Guid and Bratko's changes of choice do ("Guid and Bratko's complexity on the archive").
+
+A player's accuracy in a game: Lichess's accuracy of each edge (`AccuracyPercent.scala`, on the edge's loss in win%),
+averaged. Its correlation with the player's rating, over 1,774 players' games of 10 edges or more. KaTrain's weight
+for a move is max(0.05, min(1, max(complexity, points lost / 4))), with the complexity in Go points. Carried to win
+chance here: max(0.05, min(1, max(complexity / F, loss / 0.20))), so a move weighs in full at a complexity F or at a
+Blunder's loss.
+
+| Weights | Correlation with the rating | Mean accuracy: under 1600 / 1600 to 1800 / 1800 and above |
+|---|---|---|
+| None (a plain mean) | 0.43 | 79.7 / 84.0 / 90.1 |
+| KaTrain's, F = 0.02 | 0.63 | 66.1 / 73.1 / 82.3 |
+| KaTrain's, F = 0.05 | 0.63 | 62.5 / 69.9 / 80.1 |
+| KaTrain's, F = 0.10 | 0.63 | 59.2 / 66.6 / 77.9 |
+| KaTrain's, F = 0.20 | 0.60 | 56.1 / 63.0 / 74.8 |
+| The complexity alone, F = 0.10 | 0.58 | 63.2 / 70.0 / 80.3 |
+| The loss alone | 0.50 | 52.9 / 58.0 / 68.7 |
+
+- **The weights make a game's accuracy follow the player's strength better:** 0.63 against 0.43. Most of the gain
+  comes from the complexity. F barely matters from 0.02 to 0.10.
+- **Not tested:** turns (these are edges, and the site judges turns by default), the network the site ships now, and a
+  second sample. The complexity and the loss come from the same search. The players are mostly beginners of a young
+  game.
+
+### The GPU in the review (2026-10-12)
+
+- **What:** the review with the GPU module of release `wasm-v2-engine-06534ee` (request 06, design 15). One GPU
+  worker with 16 searches joins the CPU workers. The first-use test compares the GPU worker's visits a second with one
+  CPU worker's, on the review's own work, once each searched for 20 seconds.
+- **The machine:** AMD Ryzen 7 9800X3D (8 cores, 16 threads), RTX 5080, Edge 154, the production build on localhost,
+  4 CPU workers. WSL used about 7 of the 16 threads for other work during every run, and the CPU was about 95% busy.
+  So these numbers are lower bounds for this machine, not a visitor's speed.
+- **The first-use test:**
+
+  | Network | GPU worker, 16 searches | One CPU worker | Ratio |
+  |---|---|---|---|
+  | HedgeFund 0.1 Lite (b10c128) | 147 visits a second | 38 | 3.9 |
+  | HedgeFund 0.1 (b15c192) | 92 | 12 | 7.7 |
+
+  The engine repository measured 571 and 83 for Lite on the same GPU, with its training using the GPU and the CPU.
+- **A review, with and without the GPU:** one game of 120 edges, Lite, the label pass alone (the sweep and the key
+  moments came from the browser's store). At 700 visits with the GPU, 230 s. At 701 visits without it, 472 s. The GPU
+  made the label pass 2.05 times as fast. The test predicts the same: 4 × 38 = 152 visits a second against
+  152 + 147 = 299.
+- **The order of the engines:** the first build sent the tasks that are not urgent to a GPU engine first. The key
+  moments (9 searches of 1,024 visits) then ran in small batches on the GPU while the 4 CPU workers were idle. Each
+  search on the GPU runs slower than on a CPU worker: 147 / 16 = 9 visits a second against 38. The GPU gains by the
+  number of its searches. So every task now takes a free CPU worker first.
+- **The download:** the GPU's first use downloads 16.5 MB with Lite and 34.3 MB with the larger network. The graphs
+  and ONNX Runtime's WebAssembly are stored compressed. The larger graph is in two parts, and the page joined them and
+  checked the SHA-256.
+- **Checked in Edge:** Auto's test and its stored result, the GPU kept on a reload, Off during a review (the GPU
+  worker ends, and its searches run again on the CPU workers), and another network with its own test.
+- **The GPU that Edge gives:** WebGPU in Edge gives the RTX 5080 for every power preference, "low-power" too, though
+  Windows also lists the CPU's integrated AMD Radeon. So a page cannot choose the integrated GPU here. Windows'
+  graphics setting for Edge can. The test's result is now kept for each GPU, by the vendor and architecture that
+  WebGPU gives, so a change of GPU tests again.
+- **A busy GPU:** the RTX 5080 was at 87% use for other work (263 W, 11.5 of 16 GB). The test gave 111 visits a
+  second for the GPU worker and 29 for a CPU worker. Auto kept the GPU.
+- **Auto turning the GPU off,** checked with a stored result made up to say the GPU is slower (20 against 29): Auto
+  loaded no GPU files, and the line named the GPU and both speeds. With On, the GPU started. Back on Auto, it ended at
+  once, and the review went on with the CPU workers. The decision at the end of a real test, where the GPU is slower,
+  is not checked: no GPU here is slower than a worker.
+- **The test's count of the GPU was wrong, and is fixed:** with the engine repository's training paused, Windows'
+  graphics setting put Edge on the CPU's integrated AMD Radeon (WebGPU: "amd rdna-2"). Auto tested it and turned it
+  off, but its line gave 2 visits a second. The meter counted the GPU's visits only from searches that ended, and a
+  search of 707 visits took about three minutes on the Radeon. The meter now samples the GPU library's count of
+  evaluations once a second, from its first batch on. The Radeon then gave 38 evaluations a second against 59 visits a
+  second for a CPU worker (0.64 times), and the test ended about 35 seconds after the page opened. The RTX 5080's
+  numbers above came from the first meter, so they are too low. A search there took 20 to 80 seconds.
+- **The idle RTX 5080, with the first meter:** 138 against 54 for a CPU worker, with the CPU quiet.
+- **The idle RTX 5080, with the fixed meter** (the training paused, the GPU at 0% and WSL idle before the run): 404
+  evaluations a second against 62 visits a second for a CPU worker, 6.5 times. The engine repository measured 571
+  visits a second with 16 searches. The label pass of the same game at 709 visits, with 4 CPU workers and the GPU,
+  took about 110 seconds. That time is an estimate from the progress at 49 and 104 seconds: the page's timer slowed
+  while the window was behind others, and it missed the end. Without the GPU, the test's speeds predict about 340
+  seconds.
+- **Not measured:** a laptop's integrated GPU and a phone.
+
+### The release 632f2a0: graphs half as large (2026-10-12)
+
+- **What:** the engine repository's release `wasm-v2-engine-632f2a0`: both modules at build 632f2a0 (protocol 0.3, no
+  change to the protocol), graphs of 6.4 MB and 20.5 MB in place of 12.8 MB and 40.9 MB, with the same outputs, and
+  the same network files. Its notes give a GPU module 10% to 20% faster (693 visits a second with 16 searches on an RTX
+  5080, HedgeFund 0.1 Lite), and a CPU module that frees the network's bytes after it loads them.
+- **Checked:** the two network files have the SHA-256s of the earlier release. The graphs have new folders, named by
+  the build (`b10c128-...-graph-632f2a0`): a file under `/engine/` is cached for a year, so new bytes need a new path.
+  No file of the build exceeds 24 MiB, so no file needs parts now.
+- **The GPU's first download:** 13.7 MB with Lite and 26.5 MB with the larger network, from 16.5 MB and 34.3 MB. gzip
+  now saves 9% of a graph (it saved a third of the FP32 graphs). The graphs stay compressed: 1.8 MB less for the
+  larger network.
+- **The first-use test, in Edge on the RTX 5080** while the training used it (78%, 278 W): with Lite, 324 evaluations
+  a second against 38 visits a second for a CPU worker (8.5 times). With the larger network, 252 against 12 (21
+  times). Auto kept the GPU for both.
+- **The test's result is now kept for each build of the GPU module too,** so a new release tests again. A GPU that
+  Auto turned off can be faster with a new build.
+- **The stored reviews search again once,** as after every build: the results' keys name the CPU module's build.
+- **The CPU workers now run the module through the release's library** (`createCpuEngine` in `gpu_engine.mjs`, which
+  the engine repository's checks and its Node driver use). The site's own driver, `src/lib/engine/module.ts`, was a
+  port of the engine's reference driver, and is gone. The library comes with the modules it drives, so a module that
+  needs another import brings its driver with it. Each worker loads the library (15.7 KB). Checked in Edge: the
+  review's rules, its search workers and the GPU worker start, and the review runs.

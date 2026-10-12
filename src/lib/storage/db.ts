@@ -47,6 +47,23 @@ async function run<T>(store: string, mode: IDBTransactionMode, request: (s: IDBO
 
 export const dbGet = <T>(store: string, key: string) => run<T | undefined>(store, "readonly", s => s.get(key), undefined);
 export const dbAll = <T>(store: string) => run<T[]>(store, "readonly", s => s.getAll(), []);
+/** Every key and value of a store, in key order, or none when storage fails. */
+export async function dbEntries<T>(store: string): Promise<[string, T][]> {
+  const d = await openDb();
+  if (!d) return [];
+  return new Promise(resolve => {
+    const out: [string, T][] = [];
+    try {
+      const tx = d.transaction(store, "readonly");
+      const req = tx.objectStore(store).openCursor();
+      req.onsuccess = () => { const c = req.result; if (c) { out.push([String(c.key), c.value as T]); c.continue(); } };
+      tx.oncomplete = () => resolve(out);
+      tx.onerror = tx.onabort = () => resolve([]);
+    } catch {
+      resolve([]);
+    }
+  });
+}
 /** Answers whether the browser kept the value. */
 export const dbPut = async (store: string, key: string, value: unknown) =>
   (await run<IDBValidKey | false>(store, "readwrite", s => s.put(value, key), false)) !== false;

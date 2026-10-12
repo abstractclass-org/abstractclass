@@ -22,7 +22,8 @@ A10-D10,D10-E11,D10-F13+ Q10-T10,Q10-T13*,T10-T13* b1 0/4.5 4`;
 
 1. D10-G10 2. N11-Q10 L10-N11 { Red builds toward the centre. }
 3. D10-G9 G9-H10 (3. D10-F13 F13-G10) 4. N11-M13 M13-K12 *`;
-  const BRANCH = "4. N9-Q10 (4... M12-N9) L10-N9";
+  const BRANCH = "4. N9-Q10 L10-N9 (4... M12-N9)";
+  const MARKED = "3. D10-G9 G9-H10? { Mistake. D10-F13 F13-G10 was best. } (3. D10-F13 F13-G10)";
   const COMMANDS = "3. D10-G9 { [%eval 0.58 +9.5 31.2] } G9-H10 { [%clk 0:00:52] [%eval 0.62 +12 30.8] }";
   const CONSTELLATION = "[B:A10-D10 R:P10-S10] D10-A7 P10-M10-J7 A7-A10,A7-D4 …";
 </script>
@@ -125,6 +126,8 @@ A10-D10,D10-E11,D10-F13+ Q10-T10,Q10-T13*,T10-T13* b1 0/4.5 4`;
         standard start (PGN's <code>FEN</code> tag).</td></tr>
       <tr><td><code>Rules</code></td><td>The variant, when the game is not played by the online rules (PGN's
         <code>Variant</code>).</td></tr>
+      <tr><td><code>Annotator</code></td><td>Who annotated the game (PGN's tag): a person, or a program such as
+        {SITE_NAME}.</td></tr>
     </tbody>
   </table>
 
@@ -133,11 +136,28 @@ A10-D10,D10-E11,D10-F13+ Q10-T10,Q10-T13*,T10-T13* b1 0/4.5 4`;
     it is, so the record names no player.</p>
 
   <h3>Comments and branches</h3>
-  <p>A comment is in braces, <code>{"{ … }"}</code>. A branch is in parentheses, <code>( … )</code>: the moves played
-    instead of the moves that follow it. Both can hold others. A branch at a turn's start repeats the turn's number:
-    <code>(3. D10-F13 F13-G10)</code>. A branch at a turn's second edge writes the number with three dots:</p>
+  <p>A comment is in braces, <code>{"{ … }"}</code>. A comment may also come before the first turn, after the tags,
+    as a note on the whole game. A branch is in parentheses, <code>( … )</code>: other moves in place of a turn. Both
+    can hold others. A branch follows the turn it changes, after that turn's last edge, its mark and its comments. Its
+    first number tells where it leaves the line, and it is always the number of the turn before it:</p>
+  <ul>
+    <li><code>N.</code> starts at the turn's start, and replaces the whole turn: <code>3. D10-G9 G9-H10 (3. D10-F13
+      F13-G10)</code>.</li>
+    <li><code>N...</code> starts at the turn's second edge, and keeps its first edge:</li>
+  </ul>
   <pre>{BRANCH}</pre>
-  <p>means: at turn 4, after <code>N9-Q10</code>, <code>M12-N9</code> instead of <code>L10-N9</code>.</p>
+  <p>means: at turn 4, after <code>N9-Q10</code>, <code>M12-N9</code> instead of <code>L10-N9</code>. Several branches
+    of one turn follow it one after another.</p>
+
+  <h3>Marks of a turn's quality</h3>
+  <p>PGN's six marks judge a turn: <code>!!</code> brilliant, <code>!</code> good, <code>!?</code> interesting,
+    <code>?!</code> dubious, <code>?</code> a mistake, <code>??</code> a blunder. A mark comes once, right after the
+    turn's last edge (or its pass), after any cut mark, and before the comments and branches:
+    <code>G9-G12x??</code>.</p>
+  <pre>{MARKED}</pre>
+  <p>A judgement of one edge stays in a comment. A reader accepts a mark after any edge, and may ignore it.
+    {SITE_NAME}'s exports mark its labels by turn: Great <code>!</code>, Inaccuracy <code>?!</code>, Mistake
+    <code>?</code> and Blunder <code>??</code>. Best, Excellent and Good have no mark, as PGN has none for them.</p>
 
   <h3>Commands in comments</h3>
   <p>A comment after a move can hold commands, as Lichess writes the clock and the evaluation:</p>

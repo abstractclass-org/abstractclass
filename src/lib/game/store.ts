@@ -3,12 +3,41 @@
 // The id is the first 12 hex digits of the SHA-256 of its moves: the same game imported twice is one game.
 import { STORES, dbAll, dbGet, dbPut } from "#lib/storage/db.ts";
 import { parseRecord, type GameRecord } from "./record.ts";
+import type { Manifest } from "#lib/engine/client.ts";
+
+/** A game's branches as kept in the browser (analysis/game.svelte.ts): each node's path key (its moves, as the review's
+ *  tree names them), its order, and 1 when its move was evaluated. Version 1 kept the lines. */
+export type KeptBranches = { version: 1; lines: string[][] } | { version: 2; nodes: ([string, number] | [string, number, 1])[] };
 
 export interface StoredGame {
   version: 1;
   id: string;
   record: string; // the record's text, as imported, with the cut marks added (check.ts)
   added: string; // ISO date and time
+  reviewed?: ReviewMark; // the deepest review that ran to its end with the engine named in it
+}
+
+/** A review that ran to its end (design 13): the engine module's and the network's SHA-256 (the manifest's), the
+ *  network's id, and the review's depth. A game exports only when its mark names the site's engine and the network set
+ *  now, at the review depth set now or deeper. */
+export interface ReviewMark { module: string; model: string; network: string; visits: number; at: string }
+
+/** The mark of a review run with `manifest`'s engine and `network` at `visits`, or null when the manifest lacks them. */
+export function reviewMark(manifest: Manifest, network: string, visits: number): Omit<ReviewMark, "at"> | null {
+  const module = manifest.artifacts.find(a => a.kind === "module")?.sha256;
+  const model = manifest.artifacts.find(a => a.kind === "model" && a.id === network)?.sha256;
+  return module && model ? { module, model, network, visits } : null;
+}
+
+/** Whether `mark` covers a review with these: the same engine and network, at least as deep. */
+export const reviewCovers = (mark: ReviewMark | undefined, want: Omit<ReviewMark, "at"> | null) =>
+  !!mark && !!want && mark.module === want.module && mark.model === want.model && mark.visits >= want.visits;
+
+/** Marks a game's review as done. A deeper mark for the same engine and network stays. */
+export async function markReviewed(id: string, mark: Omit<ReviewMark, "at">) {
+  const game = await dbGet<StoredGame>(STORES.games, id);
+  if (!game || reviewCovers(game.reviewed, mark)) return;
+  await dbPut(STORES.games, id, { ...game, reviewed: { ...mark, at: new Date().toISOString() } });
 }
 
 export async function gameId(moves: string[]): Promise<string> {

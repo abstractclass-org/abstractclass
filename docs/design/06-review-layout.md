@@ -29,7 +29,7 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
 2. **The columns follow Lichess's widths,** and its fixed switch to three columns at 1,260 pixels, although the third
    column makes the board smaller on a window just above that width (694 pixels against 846 at 1,376 × 952):
    - **Three columns from 1,260 pixels:** the summary on the left, the board in the middle, the analysis on the
-     right. The summary is the review's progress and the Report (the result, the Advantage chart and the counts). The
+     right. The summary is the review's progress and the Report (the result and the counts). The
      analysis is the position's engine header, the candidates, the move list and the step controls. The Report is no
      longer a tab, so this layout has no tabs.
    - **Two columns from 800 to 1,260 pixels:** the board, and one right column with the tabs (Report, Analysis), as
@@ -41,29 +41,34 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
      (1rem), but never above the board's bottom edge. So the page fits the window, and when the board fills the
      height, they end with the board, so that the step controls stay in view. The move list takes the height that is
      left. The columns' end is measured again whenever the window, the board's column or the page changes size.
-3. **The Advantage chart in the Report:** above the counts, in the summary column (three columns) or in the Report tab
-   (fewer). Nothing is under the board, so the page fits the window with the board at its full height: under the board
-   (Lichess's place), the chart was below the fold whenever the board filled the height, even in a full-screen window.
-   chess.com's review also keeps its graph in a side panel. Its lines: Blue's win chance, the score difference and the
-   difference of the areas each player encloses now, each of the last two scaled to its own largest value, which reaches
-   70% of the way from the middle to the edge, and above the middle when Blue has more, as the win chance is. The legend
-   names the lines only ("Win chance for Blue", "Score difference", "Area difference"), each name first giving what its
-   line measures, and every item has a box's room, empty for the win chance, so that the swatches and the names line up.
-   **The chart's note** gives the move and its label, the engine's lead, then a line each for the score and the area of
-   the lines shown, with the side ahead named ("Score: Blue +88.9"): the lines have no axis, so their numbers are only
-   there. At the game's end the result replaces the score. **The score and area lines show or hide** in two ways: the
-   display settings ("Score line", "Area line") say whether each shows when a review opens, and a box beside its name in
-   the legend shows or hides it for the moment, without changing the setting. A line that is off by setting keeps its
-   place in the legend, with its box clear. A click on a box does not focus it, so that the arrow keys still step
-   through the moves. **The key moments** are dots in their label's colour, 9 pixels wide. They are drawn in HTML, as
-   the hovered point is: the chart's SVG stretches to the column's width, and in a column as narrow as the summary's, a
-   circle in it is a thin ellipse. The chart's note takes at most the room beside the point, and wraps there. **While
-   the review runs,** the line is dashed and faint where a position has only its first search (the sweep's 32 visits),
-   and solid where its search has the review's depth. The legend then says "First estimate, refined as the review runs",
-   and a dashed position's note says "first estimate". This marking is the site's own, not taken from a published tool.
-   **By turn** (design 10, "Review by"), the chart draws and snaps to the turns' ends only: a turn is one step, and its
-   note names the whole turn. A note gives the label in brackets, as Lichess's chart does: "2. Q10-R8 O11-Q10
-   [Blunder]".
+3. **The charts under the board, always in view** (Lichess's place): the board gives up some of its height for them,
+   so the page still fits the window. Two tabs choose the chart, as Lichess's tabs choose among its charts (Computer
+   analysis, Move times): "Advantage", shown first, and "Difficulty" (design 14). The tabs and the shown chart's
+   legend share one row, and the chart takes the rest of the charts' area.
+   - **The area's height** (`--chart`): what the window's height leaves after a board as wide as the columns allow,
+     at least 6 rem and at most 12 rem. Where the board fills the window's height, the area is 6 rem and the board 6.5
+     rem shorter. Where the width limits the board, the area grows into the height that is left. In one column the
+     area is 8 rem. The side columns end with the charts' area.
+   - **The charts' notes open above the chart,** over the board: under it there is no room before the window's edge.
+   - **The Advantage chart's lines:** Blue's win chance, the score difference and the difference of the areas each
+     player encloses now, each of the last two scaled to its own largest value, which reaches 70% of the way from the
+     middle to the edge, and above the middle when Blue has more, as the win chance is. The legend names the lines only
+     ("Win chance for Blue", "Score difference", "Area difference"), each name first giving what its line measures.
+     **The chart's note** gives the move and its label, the engine's lead, then a line each for the score and the area
+     of the lines shown, with the side ahead named ("Score: Blue +88.9"): the lines have no axis, so their numbers are
+     only there. At the game's end the result replaces the score. **The score and area lines show or hide** in two ways:
+     the display settings ("Score line", "Area line") say whether each shows when a review opens, and a box beside its
+     name in the legend shows or hides it for the moment, without changing the setting. A line that is off by setting
+     keeps its place in the legend, with its box clear. A click on a box does not focus it, so that the arrow keys still
+     step through the moves. **The key moments** are dots in their label's colour, 7 pixels wide. They are drawn in
+     HTML, as the hovered point is: the chart's SVG stretches to the column's width, and in a column as narrow as the
+     summary's, a circle in it is a thin ellipse. The chart's note takes at most the room beside the point, and wraps
+     there. **While the review runs,** the line is dashed and faint where a position has only its first search (the
+     sweep's 32 visits), and solid where its search has the review's depth. The legend then says "First estimate,
+     refined as the review runs", and a dashed position's note says "first estimate". This marking is the site's own,
+     not taken from a published tool. **By turn** (design 10, "Review by"), the chart draws and snaps to the turns' ends
+     only: a turn is one step, and its note names the whole turn. A note gives the label in brackets, as Lichess's chart
+     does: "2. Q10-R8 O11-Q10 [Blunder]".
 4. **The step controls** (first, back, forward, last), the status line and the display settings' button are a bar at
    the bottom of the analysis column, as on Lichess, next to the move list that they step through.
 5. **The win chance is a display setting:**
@@ -76,7 +81,7 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
      (container queries), set by a game's widest numbers (points in the thousands) so that the bar keeps its 6rem.
      With the gauge, the tags fold at 32rem and 21.25rem, where they would meet. A game keeps one form throughout, so
      the board does not change size as the scores grow. The row's height is measured, and the board and the side
-     columns take it. At a 1,280×720 window the tags take two lines; at 800×900 and on phones, three.
+     columns take it. At a 1,280×720 window the tags take two lines. At 800×900 and on phones, three.
    - **A vertical gauge beside the board** ("Side vertical gauge", as Lichess and chess.com draw it): Blue's share from
      the bottom, each side's percentage inside the gauge at its own end (Red's at the top, Blue's at the bottom), as the
      bar shows them at its ends. The percentages are small and written up the gauge, so the gauge is 1rem wide. A
@@ -98,7 +103,7 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
      also on "?"), and Advantage chart (whether the score and area lines show when a review opens).
    - **Each setting says what it does,** in a short line under its name, always in view (Lichess shows a help video for
      the setting under the pointer, which a touch screen does not show).
-   - **On and off is a switch** at the right of its name, as Lichess's settings; **a choice of two is a pair of
+   - **On and off is a switch** at the right of its name, as Lichess's settings. **A choice of two is a pair of
      buttons** under its name. Bits UI's Switch and RadioGroup give them their roles, focus and keys.
    - The settings are kept in this browser (no accounts yet). A settings page for the whole site can come later, when
      puzzles and lessons have settings too.
@@ -109,7 +114,7 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
    searched deeper, and the Great's confirmations ("confirming Great moves, 18 of 22"). The last two are counted from
    the labels found so far, so they grow as labels come. The bar shows the step that its line names: the steps before
    are full, the later ones empty, though some of their work ends early, alongside (it shows when their step comes).
-   The step's part never shows less than it has shown: when its count grows, it waits. Another review depth, network
+   The step's part never shows less than it showed before: when its count grows, it waits. Another review depth, network
    or game starts it again. **While a bar's work runs,
    a light gleam sweeps it** (Lichess's `bar-glider`, `ui/lib/css/component/_bar-glider.scss`: 70 pixels wide, every
    3 seconds), so that a slow step does not look stopped: the review's bar while its passes run, and the search bar
@@ -134,6 +139,10 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
      sign ("0.0% · 0 pts").
    - Lichess and chess.com give every value from White's side. Here every advantage of Red's would then be a number
      below 0, and Red's player would read their own choices in reverse.
+9. **No text selection on the review page:** the page's text is a
+   tool's, not a document's, so it takes no selection (`select-none`), and the pointer stays an arrow over the move
+   list's labels and marks instead of a text cursor. An engine error can be selected, to be copied. The board never
+   took a selection.
 
 ## Why
 

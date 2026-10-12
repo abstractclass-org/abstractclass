@@ -23,16 +23,17 @@ It holds no backlog: everything still to do that is not in flight is in
   of branches and played moves, the chart's first estimates, "Lines on the board"), then the latest commit (labels by
   turn decided and measured, request 07 changed for both modes, numbers from one side, Biggest mistakes removed, the
   side columns that grow with the window).
-- **Checks on the working tree:** `npm run check` has no errors or warnings. `npm test` passes (27 checks). `npm run
+- **Checks on the working tree:** `npm run check` has no errors or warnings. `npm test` passes (48 checks). `npm run
   build` succeeds.
-- **The engine:** protocol 0.3, build `85c2adb` from the release `wasm-v2-engine-85c2adb` (request 03), the networks
-  `b10c128-s66625408` (3.2M parameters) and `b15c192-s66999040` (10.3M), searching with KataGo's analysis defaults.
-  The measurements so far used the older `b10c128-s46923648` (decisions/engine.md, "The released engine"). The review's Lite depth is 512 visits. Puzzles and learn run on mock
-  data.
+- **The engine:** protocol 0.3, build `632f2a0` from the release `wasm-v2-engine-632f2a0` (the CPU module, the GPU
+  module and the graphs: decisions/engine.md, "The release 632f2a0"), the networks
+  `b10c128-s66625408` (3.2M parameters) and `b15c192-s66999040` (10.3M), searching with KataGo's analysis defaults. The
+  measurements so far used the older `b10c128-s46923648` (decisions/engine.md, "The released engine"). The review's Lite
+  depth is 512 visits. Puzzles and learn run on mock data.
 
 ## In flight
 
-- **Turn mode: built, checked in Edge, not committed** (decisions/product.md, "Turn mode built", "Turn mode, first
+- **Turn mode: built, checked in Edge, committed** (decisions/product.md, "Turn mode built", "Turn mode, first
   feedback", "Turn mode, second feedback"). Labels by turn with "Review by" (Turn by default, or Edge), Great by turn,
   the move list's turn column, a turn's badges on both its edges, the chart by turn, the engine's best line as a branch
   under a bad turn, "Evaluate quality" for a branch's turn, Lichess's tree beside the branches, "Review for" (Both,
@@ -47,50 +48,53 @@ It holds no backlog: everything still to do that is not in flight is in
 - **The early access** ([design/11-early-access.md](design/11-early-access.md), decisions/product.md, "Early access:
   the review only, as Hedge School"). Built and checked in Edge: the build switch, the name, no sample game, the
   pages About, The notation, Privacy and Notices, the Constellation import, unlisted. To do:
-  - **Branches:** work on `dev`, pushed after each commit; release with `git push origin dev:main` when the owner says
+  - **Branches:** work on `dev`, pushed after each commit. Release with `git push origin dev:main` when the owner says
     (hosting.md, section 2). To do, by the owner: remove `VITE_GA_ID` from the Pages project's preview variables.
-  - **The engine's name, HedgeFund:** request 12 (open, the owner takes it to the engine repository). When the release
-    manifest names the networks, copy the names into `engine.lock.json` and show "HedgeFund 1 Lite (6.5 MB)" in the
-    engine settings (`networkLabel` in `ReviewView.svelte`).
+  - **The engine's name, HedgeFund: done** (request 12, design 09): "HedgeFund 0.1 Lite (6.5 MB)" and "HedgeFund 0.1
+    (20.6 MB)" in the engine settings, from the lock's `displayName`.
   - **Hosting: live** at `hedgeschool.abstractclass.org`, set up as [hosting.md](hosting.md) tells
     (decisions/product.md, "The site live on Cloudflare Pages"). Not yet checked: a review on the live site in Edge.
   - **Analytics: live and checked** (decisions/product.md, "The analytics live"): Google Analytics, and Cloudflare Web
     Analytics with its token, the beacon added by the site's code.
   - Done since: the Review link that opens the last game reviewed, the engine's release (request 03), the notation
     page after request 11, the module's notices.
-- **The labels' measure, reopened.** Built and committed: labels from a practical chance, σ(0.99 · lead /
-  scoreStdev) fitted on the archive's games between near-equal players, with chess.com's fixed bands (design 10,
-  decisions/product.md, "Labels from a human win chance: built"). The owner's doubts: the archive's players are
-  beginners of a two-week-old game, so a curve fitted on them is lenient and will drift as they improve. Points alone
-  (KaTrain: the lead lost, whatever the lead) do not tell 30 points lost at +20 from 30 at +120, which the owner wants
-  told apart. So a turn's loss needs a curve from lead to the chance of winning, and the open question is its
-  steepness: the engine's own win chance (perfect play, too steep), the practical chance (beginners), or a curve
-  fitted on weaker versions of the engine (a fallible, competent player, as Lichess fits on 2300 and above). The
-  measurements: decisions/engine.md, "Three measures of a turn's loss", "The lead fitted to human games".
-  - **A test bench on bot games of known strength:** for each candidate measure, labels should get rarer smoothly as
-    the bot gets stronger, the strongest should get few, they should not pile up in the opening or in decided games,
-    and the accuracy gap between two bots should follow their Elo gap. Request 09
-    ([requests/09-bot-games-analysis.md](requests/09-bot-games-analysis.md), accepted, being run): 620 V2 gauntlet
-    games between players rated 2,000 to 3,000; 440 have an earlier b10c128 checkpoint, so fit with and without them.
-    Request 10 ([requests/10-visit-ladder-analysis.md](requests/10-visit-ladder-analysis.md), open: the owner takes
-    it to the engine repository): the GPU visit ladder's games of the site's network against itself, 16 against 32
-    visits up to 512 against 1,024 (384 games).
-  - **Committed:** the board's candidates back on the engine's own win chance and points (`shownCandidates`). On
-    hold until the measure is chosen: "practical" named in the label notes, and a practical-chance line on the chart.
-  - **The new network:** the curve (k 0.99) was fitted on the old small network, and the site now labels with a
-    newer, more certain one. To ask the owner: should the engine repository analyse the archive again on it (about
-    2.4 hours), and requests 09 and 10 use it?
-  - The data: requests 07 and 08 in the engine repository's `runs/archive_analysis/`, out of Git; take each game once.
-    Commit only statistics over many games and the curve, never a game.
-- **Difficulty:** Guid and Bratko's complexity checked on request 07's readings (decisions/engine.md): it tells when
-  players miss the engine's first choice, not when they err. Request 08 is done and checked
-  ([requests/08-archive-first-look.md](requests/08-archive-first-look.md), "Delivered"): the prior, 32 visits and every
-  candidate at 512 for 79,200 positions. Next: KaTrain's complexity (its constants scaled by 12) and Guid and Bratko's
-  with the first look, against people's errors by rating band at the same stake.
-- **Request 06 (WebGPU)** waits for the engine repository's step 2. Step 1 is measured on the RTX 5080 and on the
-  owner's Apple laptop, and the site's answer is written: no need for reproducible searches, batch across searches
-  first, the GPU's default chosen on each machine by a short test ([requests/06-webgpu.md](requests/06-webgpu.md)).
-- **Move sounds** (design 08, decisions/product.md, "Move sounds: a sound for a cut"). Built, not committed: a sound for
+- **The labels: settled** on the engine's own win chance with chess.com's bands (design 10, decisions/product.md,
+  "Labels back on the engine's win chance"), tested on games of known strength (requests 09 and 10, done). Not
+  committed yet. Request 07 to 10's data stay in the engine repository's `runs/archive_analysis/`, out of Git: commit
+  only statistics over many games, never a game.
+- **Difficulty: built** (design 14, decisions/engine.md, "KaTrain's complexity on the archive"): KaTrain's complexity
+  in win chance from the candidates' priors (the store's shape 5, so stored reviews search again), ◆ on hard positions
+  (0.10 or more) with the tooltip "Hard position", the likely edges' meter
+  after Maia's under the engine header's line, the Difficulty chart in a tab beside the Advantage chart (both under
+  the board now, always in view: design 06), and the accuracy weighed by KaTrain's weights. Checked in Edge.
+- **The GPU in the review: built, checked in Edge, committed and released** (design 15, request 06 done, decisions/engine.md,
+  "The GPU in the review"). `engine.lock.json` on `wasm-v2-engine-632f2a0`, the CPU workers on the release's library (`createCpuEngine`, so
+  `module.ts` is gone), ONNX Runtime Web 1.30.0, the GPU worker
+  with 16 searches beside the CPU workers, a CPU worker first for every task, the setting Auto, On or Off, and Auto's
+  test on the review's own work. The graphs and ONNX Runtime's WebAssembly are stored compressed, the larger graph in
+  two parts. On this machine, under load, the GPU made the label pass 2.05 times as fast. The new build changes the
+  results' keys, so stored reviews search again once. Before a release: run `npm run build:cloudflare` on a clean
+  checkout, and check that no file in `build/` exceeds 25 MiB. Since then: the test's result is kept for each GPU
+  (WebGPU's vendor and architecture), the GPU starts only when the workers have a backlog, and a drop of the GPU ends
+  its worker at once. Auto turning a slower GPU off is checked on the integrated Radeon (Windows' graphics setting
+  for Edge), and the test's meter now samples the GPU's evaluations (decisions/engine.md, "The GPU in the review").
+  The RTX 5080 measured again with the fixed meter, on a quiet machine: 6.5 times a CPU worker. Edge is back on
+  "Let Windows decide".
+- **This round, committed and released to `main` on 2026-10-12:** the labels on the engine's win chance (design 10), the logo (design 12), export and
+  import (design 13), the notation's decisions in the export (request 13, done), difficulty with its numbers step by
+  step (design 14), the networks' names (request 12, done), drag to play and notes on the board (design 07), no text
+  selection (design 06), the protected edges' halo, the STE pass over the documents, and the GPU (design 15).
+- **The STE pass** (`/asd-ste100` over `docs/`, its `ste-lint.py`): no semicolons, sentences at most 25 words, no
+  present perfect where a simple tense says the same, one verb for one action. Left: 22 flags of two verbs for one
+  action that are names or terms ("display settings", a Great's confirmation, DNSSEC validation, the Delete key), and
+  about 290 passive-voice advisories, most in the older decision logs. The documents of this round use the active
+  voice.
+- **The logo: the owner's generated drawing 09,** traced to paths (design 12, decisions/product.md, "The logo from the
+  generated drawings", "The charts under the board"): the full drawing from 48 pixels up, the head alone below
+  (header, favicon, iOS icon). Checked in Edge in the dark scheme in the site, and in both schemes
+  on the comparison page. The tracing scripts are in the session's scratch folder (`trace/`), not in the repository:
+  to trace another drawing, write them into `scripts/` first.
+- **Move sounds** (design 08, decisions/product.md, "Move sounds: a sound for a cut"). Built and committed: a sound for
   an edge and another for a cut, in two sets: the button by default ("Button Press", "Select Button UI"), and the
   pencil (two strokes, the cut's 12% faster). The crayon and the phone keyboard removed. The owner listens. The cutting
   script is in the session's scratch folder, not in the repository.
@@ -110,8 +114,8 @@ It holds no backlog: everything still to do that is not in flight is in
   frames.
 - **This machine is often loaded** by the engine repository's training (WSL, about 28 GB, most of the CPU): its speed
   numbers are no baseline then. The owner's laptop gave the clean ones (decisions/engine.md, "Speed on a laptop").
-- **Local builds leave `VITE_GA_ID` unset** (`VITE_EDITION=early npm run build`), so that test visits do not reach Google
-  Analytics: only the production build on Cloudflare has the ID (hosting.md, section 4).
+- **Local builds leave `VITE_GA_ID` unset** (`VITE_EDITION=early npm run build`), so that test visits do not reach
+  Google Analytics: only the production build on Cloudflare has the ID (hosting.md, section 4).
 - **The local server** ran from this session: the build on port 4173, with the tailnet's name allowed for the
   owner's laptop (`__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS=<machine>.<tailnet>.ts.net exec node
   node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 4173 --strictPort`, again after each `npm run

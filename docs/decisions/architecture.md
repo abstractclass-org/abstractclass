@@ -41,10 +41,11 @@ The repository, the stack, hosting, and how the engine's artifacts arrive.
   still follows them. Label colours stay plain tokens, set from the label in the markup.
 - **Plain CSS stays** for the board's SVG styles, the review page's layout grid (design 06), and the tokens and base
   element styles. About 210 lines of CSS remain, from about 700.
-- **Checked against the build before the change**, page by page: in Edge in dark mode at 1,380, 1,000 and 390
-  pixels, with the display menu, the tabs, a retry, a lesson and a puzzle, and in headless Edge in light mode at
-  1,440, 1,000 and 390 pixels. A comparison of computed styles, element by element, found the causes. Text sizes snap to Tailwind's scale: 0.78 to 0.85em becomes `text-xs` (12 px),
-  and 0.88 to 0.92em becomes `text-sm` (14 px). Spacing rounds to 0.25rem.
+- **Checked against the build before the change**, page by page: in Edge in dark mode at 1,380, 1,000 and 390 pixels,
+  with the display menu, the tabs, a retry, a lesson and a puzzle, and in headless Edge in light mode at 1,440, 1,000
+  and 390 pixels. A comparison of computed styles, element by element, found the causes. Text sizes snap to Tailwind's
+  scale: 0.78 to 0.85em becomes `text-xs` (12 px), and 0.88 to 0.92em becomes `text-sm` (14 px). Spacing rounds to
+  0.25rem.
 - **Tailwind's reset changed three things, and the site restores them.** Links lost their underline: the base style
   in `app.css` underlines links again, and links that are not in running text use `no-underline`. Boxes measure their
   padding inside their width (`border-box`): the pages' `main` elements use `box-content`, so a `max-w-*` limit is the
@@ -72,8 +73,8 @@ The repository, the stack, hosting, and how the engine's artifacts arrive.
   the game. Before, the 120 moves of the sample game were Tab stops before the step controls and the gear. The review
   page now has 17 Tab stops: the site's header, the biggest mistakes, the step controls and the gear. A click still
   goes to a move.
-- **Checked in Edge:** the roles and `aria-selected`; ArrowRight and ArrowLeft between the tabs (they wrap) while the
-  game's position stays; the menu opens and closes with the gear, with Escape and with a click outside. In a visible
+- **Checked in Edge:** the roles and `aria-selected`. ArrowRight and ArrowLeft between the tabs (they wrap) while the
+  game's position stays. The menu opens and closes with the gear, with Escape and with a click outside. In a visible
   window, Enter on the gear opens the menu with the focus on its first control, Tab moves within the menu, and Escape
   closes it with the focus back on the gear. In a hidden window (behind another) the focus does not move and an
   outside click acts seconds late: a hidden page runs no animation frames and slows its timers, and Bits UI moves the

@@ -33,7 +33,7 @@ the engine repository's to decide.
 
 ## Done when
 
-- The open points are decided in the engine repository's design, and this repository has been told.
+- The open points are decided in the engine repository's design, and the engine repository tells this repository.
 - The page agrees with the design.
 
 ## Delivered
@@ -51,7 +51,7 @@ The open points are decided in the engine repository's design (its `docs/design/
   one) are optional tags, beside `Scores`, `TimeControl`, `Termination`, `GameId` and `Position`.
 - **The result** ends the turns, and nothing follows it. `*` also means a result that is not known.
 - **`[%clk H:MM:SS]`** comes once a turn, after the turn's last edge (or the pass that ends it). It gives the mover's
-  time left as the turn ends, increment included: what the clock shows when the mover's next turn begins.
+  time left as the turn ends, increment included: what the clock shows when the mover's next turn starts.
 - **`[%eval W L S]`:** `W` is Blue's win chance. `L` is the lead (`scoreLead`): the komi that would make the game
   even, not the expected final margin. It carries its sign, `+` when Blue is ahead, and a reader accepts it with or
   without `+`. `S` is the spread of the final margin (`scoreStdev`). Any number of decimals.

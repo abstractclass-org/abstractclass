@@ -12,6 +12,7 @@
   export interface BoardLineEdge { edge: Edge; player: 0 | 1; cut?: Edge | null; regions?: Position["regions"] }
   export interface BoardLayers { regions: boolean; protected: boolean; candidates: boolean; marks: boolean; coordinates: boolean }
   export const DEFAULT_LAYERS: BoardLayers = { regions: true, protected: true, candidates: true, marks: true, coordinates: true };
+  export type { BoardNote, NoteBrush } from "./notes.ts";
 </script>
 
 <script lang="ts">
@@ -21,6 +22,7 @@
   // complete a legal edge from it (dots), and the edge to the marked point under the pointer. Points are 0-18 with y
   // up, as in the engine.
   import { pointName, sameEdge } from "#lib/review/model.ts";
+  import { brushFor, toggleNote, type BoardNote, type NoteBrush } from "./notes.ts";
 
   interface Props {
     position: Position;
@@ -45,13 +47,15 @@
     oncandidate?: (edge: Edge | null) => void;
     oncandidateclick?: (edge: Edge) => void;
     oncandidatedblclick?: (edge: Edge) => void;
+    notes?: BoardNote[]; // the player's notes on this position
+    onnotes?: (notes: BoardNote[]) => void; // a note drawn, changed or removed, or all cleared: right-drawing works only with it
   }
   let {
     position, lastEdge = null, lastTurn = [], cut = null, candidates = [], highlight = null, line = null,
     preview = null, previewPlayer = 0, marks = [], ghost = null,
     layers: layersSet = {},
     pending = null, ends = null, active = null, view = [0, 0, 18, 18], targets = [], onpoint, onlyActive = false, oncandidate, oncandidateclick,
-    oncandidatedblclick,
+    oncandidatedblclick, notes = [], onnotes,
   }: Props = $props();
 
   const layers = $derived({ ...DEFAULT_LAYERS, ...layersSet });
@@ -117,6 +121,70 @@
   $effect.pre(() => { void position; hoveredEdge = null; hoverPoint = null; });
   function enter(c: BoardCandidate) { hoveredEdge = c.edge; oncandidate?.(c.edge); }
   function leave() { hoveredEdge = null; oncandidate?.(null); }
+
+  // The pointer on the board. A press and release on a point is a click (onpoint). A press on a point and a drag (Lichess
+  // drags a piece, as it also takes two clicks) begins the edge there, and the release on a point completes it: the
+  // dashed edge follows the pointer to a legal end, as on hover. A release elsewhere leaves the edge begun.
+  let svg: SVGSVGElement;
+  const same = (a: [number, number] | null | undefined, b: [number, number] | null | undefined) => !!a && !!b && a[0] === b[0] && a[1] === b[1];
+  /** The lattice point nearest the pointer, within the points shown, or null off the board. */
+  function pointAt(ev: PointerEvent): [number, number] | null {
+    const m = svg.getScreenCTM();
+    if (!m) return null;
+    const p = new DOMPoint(ev.clientX, ev.clientY).matrixTransform(m.inverse());
+    const x = Math.round(p.x), y = Math.round(N - 1 - p.y);
+    return x >= view[0] && x <= view[2] && y >= view[1] && y <= view[3] ? [x, y] : null;
+  }
+  /** The pointer's later moves come to the board, wherever they go. A pointer that is no longer down cannot be held. */
+  const capture = (ev: PointerEvent) => { try { svg.setPointerCapture(ev.pointerId); } catch { /* not down any more */ } };
+  const DRAG_PX = 4; // a press that moves less is a click
+  let press: { id: number; from: [number, number]; x: number; y: number; moved: boolean } | null = null;
+  function pressPoint(ev: PointerEvent, x: number, y: number) {
+    if (ev.button !== 0) return;
+    press = { id: ev.pointerId, from: [x, y], x: ev.clientX, y: ev.clientY, moved: false };
+    capture(ev);
+  }
+
+  // The notes (notes.ts): the right button rings a point, and a right drag draws a line to another, as Lichess draws
+  // circles and arrows. The left button clears the position's notes (chessground's eraseOnClick).
+  let sketch = $state<{ id: number; from: [number, number]; to: [number, number]; brush: NoteBrush } | null>(null);
+  const toggle = (note: BoardNote) => onnotes?.(toggleNote(notes, note));
+  function down(ev: PointerEvent) {
+    if (ev.button === 2 && onnotes) {
+      const p = pointAt(ev);
+      if (!p) return;
+      ev.preventDefault();
+      sketch = { id: ev.pointerId, from: p, to: p, brush: brushFor(ev) };
+      capture(ev);
+    } else if (ev.button === 0 && notes.length) onnotes?.([]);
+  }
+  function move(ev: PointerEvent) {
+    if (sketch && ev.pointerId === sketch.id) sketch.to = pointAt(ev) ?? sketch.to;
+    if (!press || ev.pointerId !== press.id) return;
+    if (!press.moved && Math.hypot(ev.clientX - press.x, ev.clientY - press.y) > DRAG_PX) {
+      press.moved = true;
+      if (!same(pending, press.from)) onpoint?.(...press.from); // the edge begins at the pressed point
+    }
+    if (press.moved) hoverPoint = pointAt(ev);
+  }
+  function up(ev: PointerEvent) {
+    if (sketch && ev.pointerId === sketch.id) {
+      const s = sketch;
+      sketch = null;
+      toggle(same(s.from, s.to) ? { at: s.from, brush: s.brush } : { at: s.from, to: s.to, brush: s.brush });
+    }
+    if (!press || ev.pointerId !== press.id) return;
+    const p = press;
+    press = null;
+    if (!p.moved) { onpoint?.(...p.from); return; }
+    hoverPoint = null;
+    const q = pointAt(ev);
+    if (q && !same(q, p.from) && same(pending, p.from)) onpoint?.(...q);
+  }
+  function cancel(ev: PointerEvent) {
+    if (sketch?.id === ev.pointerId) sketch = null;
+    if (press?.id === ev.pointerId) { press = null; hoverPoint = null; }
+  }
 </script>
 
 <!-- A label badge at an edge's midpoint. -->
@@ -140,7 +208,10 @@
   </g>
 {/snippet}
 
-<svg class="board" viewBox={box} role="img" aria-label="Enclosure board">
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+<svg class="board" viewBox={box} role="img" aria-label="Enclosure board" bind:this={svg}
+     onpointerdown={down} onpointermove={move} onpointerup={up} onpointercancel={cancel}
+     oncontextmenu={ev => { if (onnotes) ev.preventDefault(); }}>
   <rect x="-1.3" y="-1.3" width="20.6" height="20.6" class="bg" />
 
   {#if layers.coordinates}
@@ -284,6 +355,15 @@
     {/if}
   {/if}
 
+  <!-- The player's notes, and the one being drawn, over the board: they take no pointer events. -->
+  {#each sketch ? [...notes, same(sketch.from, sketch.to) ? { at: sketch.from, brush: sketch.brush } : { at: sketch.from, to: sketch.to, brush: sketch.brush }] : notes as n, i (i)}
+    {#if n.to}
+      <line x1={n.at[0]} y1={sy(n.at[1])} x2={n.to[0]} y2={sy(n.to[1])} class={["note-line", n.brush, sketch && i === notes.length && "drawing"]} />
+    {:else}
+      <circle cx={n.at[0]} cy={sy(n.at[1])} r="0.42" class={["note-ring", n.brush, sketch && i === notes.length && "drawing"]} />
+    {/if}
+  {/each}
+
   <!-- The note of the badge under the pointer, beside it, as a candidate's note. -->
   {#if layers.marks && markHover?.mark.note}
     {@const note = markHover.mark.note}
@@ -313,7 +393,7 @@
       <circle
         cx={x} cy={sy(y)} r="0.45" class={["hit", !on && "inert"]}
         role="button" tabindex="-1" aria-label={pointName(x, y)}
-        onclick={() => onpoint?.(x, y)}
+        onpointerdown={ev => pressPoint(ev, x, y)}
         onmouseenter={() => (hoverPoint = [x, y])}
         onmouseleave={() => (hoverPoint = null)}
         onkeydown={() => {}}
@@ -336,7 +416,7 @@
   .edge.p1 { stroke: var(--red); }
   .node.p0 { fill: var(--blue); }
   .node.p1 { fill: var(--red); }
-  .protected { stroke: var(--protected); stroke-width: 0.42; stroke-linecap: round; stroke-opacity: 0.55; }
+  .protected { stroke: var(--protected); stroke-width: 0.42; stroke-linecap: round; stroke-opacity: var(--protected-opacity); }
   .last { stroke: var(--last); stroke-width: 0.5; stroke-linecap: round; stroke-opacity: 0.85; }
   .cut { stroke: var(--muted); stroke-width: 0.1; stroke-dasharray: 0.2 0.15; }
   .cut-mark { font-size: 0.7px; fill: var(--muted); text-anchor: middle; font-weight: 700; }
@@ -397,7 +477,16 @@
   .end { fill-opacity: 0.55; pointer-events: none; }
   .end.p0 { fill: var(--blue); }
   .end.p1 { fill: var(--red); }
-  .hit { fill: transparent; cursor: crosshair; }
+  /* The player's notes: wide, soft strokes over the board, as Lichess's shapes. */
+  .note-line, .note-ring { fill: none; stroke-linecap: round; pointer-events: none; opacity: 0.8; }
+  .note-line { stroke-width: 0.2; }
+  .note-ring { stroke-width: 0.1; }
+  .drawing { opacity: 0.55; }
+  .purple { stroke: var(--note-purple); }
+  .yellow { stroke: var(--note-yellow); }
+  .green { stroke: var(--note-green); }
+  .grey { stroke: var(--note-grey); }
+  .hit { fill: transparent; cursor: crosshair; touch-action: none; } /* a drag from a point plays, not scrolls */
   .hit:hover { fill: var(--last); fill-opacity: 0.25; }
   .hit.inert { cursor: default; }
   .hit.inert:hover { fill: transparent; }

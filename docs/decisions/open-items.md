@@ -36,6 +36,19 @@ Rules:
   score that would make the game even, trained since 2026-10-05). Measure both on reviewed games before the labels
   move from win chance to points (design 01, principle 1). KaTrain uses the lead. The archive's analysis has both, at
   every budget.
+- **A study, as Lichess's Study:** keep the player's notes on the board (rings and lines) and comments on moves with
+  the game, and export them. The notes are for the visit only now, and no export holds them. The notation has room for
+  them in comments, as Lichess writes `[%csl]` and `[%cal]` (the engine repository's design 04 would define the
+  commands).
+- **The GPU on other machines** (design 15): measure the GPU worker against a CPU worker on a laptop's integrated
+  GPU, on a phone, and on a quiet desktop. On a phone, also its memory (16 searches at about 13 MB each) and its
+  first download (13.7 MB with Lite).
+- **A worker's memory with the build 632f2a0:** its CPU module frees the network's bytes after it loads them. The
+  Workers setting's help line gives 100 MB a worker with Lite and 255 MB with the larger network (design 09), measured
+  on earlier builds. Measure again in the engine lab, and correct `NETWORKS` in `engineSettings.ts`.
+- **A page that explains the review:** how the labels, the accuracy, the complexity and its marks, and the meter are
+  computed, with their formulas and the reasons for them (designs 10 and 14), for a player who wants to know. Later,
+  not for the early access.
 
 ## Offline work (on the engine repository's GPU)
 
@@ -67,8 +80,9 @@ or a design first:
   move input on the engine's rules (`EdgeInput` with the position's rules, as the puzzles have it). Puzzles
   need the same judging.
 - **The lessons' edge input on the engine's rules:** the lessons check edges with small hand-written tests. Give
-  `EdgeInput` each lesson step's legal edges and the mover's nodes from the engine's `describe`, as the puzzles do (decisions/product.md,
-  "Edge input on the engine's rules, in the puzzles"). A lesson's position may need the `position` field of the query.
+  `EdgeInput` each lesson step's legal edges and the mover's nodes from the engine's `describe`, as the puzzles do
+  (decisions/product.md, "Edge input on the engine's rules, in the puzzles"). A lesson's position may need the
+  `position` field of the query.
 - **Sound beyond the review's moves:** the review's move sounds are built (design 08). Still to decide: sounds in the
   puzzles and the lessons (a move, solved, failed), and whether a mistake's label has one.
 - **Using the review page's space** (design 06): with the board large and three columns, look again at the
@@ -83,7 +97,7 @@ or a design first:
   the worker's tree, for the position on screen only) are in [engine.md](engine.md), "The engine repository's notes".
   Measure first how many visits the played move gets, since in a review the move is the player's.
 - **A newer model:** the models since data row 12.44M rate higher in the engine's gauntlet (the newest b10c128 3,286
-  to 3,374 against the site's 3,134; b15c192 3,694), and need a new module ([engine.md](engine.md), "The engine
+  to 3,374 against the site's 3,134, and b15c192 3,694), and need a new module ([engine.md](engine.md), "The engine
   repository's notes"). When the rise settles, decide whether to request one.
 - **Play settings:** `chooseMove` searches with the analysis settings, not the GTP bot's. If the site shows the
   engine's move or lets visitors play the engine, request play settings (root noise off, the history on).

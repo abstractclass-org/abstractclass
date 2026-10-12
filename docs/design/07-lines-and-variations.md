@@ -32,7 +32,7 @@ The tools that the site follows:
   middle click plays the line under the pointer. Its keys (`gui/theme.py`): z and x beside ← and →, b back to the last
   branch point, n to the next mistake.
 - **En Croissant** (`src/state/keybinds.ts`): x and c for the previous and the next branch, Shift + ← and → for the
-  branching points, Delete to delete a move. **Sabaki** (`src/menu.js`): Ctrl + ↑ and ↓ for the previous and the
+  branching points, the Delete key removes a move. **Sabaki** (`src/menu.js`): Ctrl + ↑ and ↓ for the previous and the
   next fork.
 
 Enclosure differs from Go in one way that matters here: an edge can cut the opponent's edges, and a line's edges can
@@ -77,19 +77,22 @@ cut edges that are on the board, so a line drawn over the board can show edges t
    `describe`). Only the points a click acts on take the pointer, so that the candidates under the other points keep
    their hover and their clicks. A move that is the game's goes along the game. Another move makes a branch, and the
    new position is searched. The status line says what the next click does ("Now the edge's second point"). Escape drops
-   an edge begun.
+   an edge started. **A drag plays an edge too** (Lichess drags a piece as well as taking two clicks): a press on a node
+   and a move of more than 4 pixels starts the edge there, the dashed edge follows the pointer to a marked end, and the
+   release there plays it. A release elsewhere leaves the edge started. A press and release on one point is a click. On
+   a touch screen a drag that starts on a point plays, and does not scroll the page.
 4. **The game is a tree, as Lichess's analysis tree.** A place is a path of moves from the start. A node's children are
    the game's next move, then its branches in the order they were added. A branch's positions come from the engine's
    rules, and each is searched, as the game's are, when the player looks at it. **Lichess's keys:** ← and → go along the
    line on screen, back to the parent and on to the first child. At a fork, ↑ and ↓ pick the line that → follows (the
-   board shows the picked edge, and the move list marks the picked move with a dashed outline and brings it into
-   view), and elsewhere they go to the start and the line's end. Shift + ← and → go to the previous and the next fork,
-   and Shift + ↑ and ↓ to the line beside this one, from the nearest fork above. Home and End go to the start and the
-   line's end. **Single keys beside the Shift keys,** from other tools: k and j go back and forward (Lichess's). b and
-   n, [ and ], or Shift + k and j go to the previous and the next fork (KaTrain's b, Lichess's Shift + k and j). x and
-   c, or comma and period, go to the line before and after (En Croissant's x and c). None of them clash. Kept free
-   for later: m and Shift + m for the next and the previous mistake (KaTrain's n, which the forks take here), and
-   Delete. "?" opens the list of keys and clicks (Lichess's "?"), as does "Keys and clicks" in the display settings.
+   board shows the picked edge, and the move list marks the picked move with a dashed outline and brings it into view),
+   and elsewhere they go to the start and the line's end. Shift + ← and → go to the previous and the next fork, and
+   Shift + ↑ and ↓ to the line beside this one, from the nearest fork above. Home and End go to the start and the line's
+   end. **Single keys beside the Shift keys,** from other tools: k and j go back and forward (Lichess's). b and n go to
+   the previous and the next fork (KaTrain's b). So do [ and ], and Shift + k and j (Lichess's). x and c, or comma and
+   period, go to the line before and after (En Croissant's x and c). None of them clash. Kept free for later: m and
+   Shift + m for the next and the previous mistake (KaTrain's n, which the forks take here), and Delete. "?" opens the
+   list of keys and clicks (Lichess's "?"), as does "Keys and clicks" in the display settings.
 5. **Branches show in the move list** under the turn where they start, after its comments (Lichess's column view):
    each on its own row, indented, and every turn with its number ("19..." for a row that starts at a turn's second
    edge). Where a branch forks again, its row ends at the fork, and every line from the fork follows one step further
@@ -171,13 +174,22 @@ cut edges that are on the board, so a line drawn over the board can show edges t
     hollow. While its position's search can still change it (a search of it runs, or the label pass or the key moments'
     deeper search has yet to reach it), the row gleams as the progress bars do: the line updates after each slice of
     the search.
+16. **The player's notes on the board** (Lichess's circles and arrows, from its chessground board's drawable shapes):
+    a right-click on a point rings it, and a right drag from a point to another draws a line between them. A note is
+    only a drawing: it is not an edge, and it cuts and encloses nothing. Drawing a note again removes it, and in
+    another colour changes its colour. The keys held choose the colour, as chessground's brushes: purple with no key,
+    yellow (Shift or Ctrl), green (Alt) and grey (both). Lichess's red and blue would read as the players' colours
+    here. "Keys and clicks" lists the colours with their keys, so that each can be found. A left click
+    on the board clears the position's notes (chessground's `eraseOnClick`). The notes belong to the position on
+    screen, as Lichess keeps an analysis board's shapes on each position of its tree, for the visit only: they are not
+    kept in the browser. They hide while a preview shows another position.
 
 ## Why
 
 - **The board is where the line is read.** A line's edges matter by where they go: which region they close, which
   edge they cut. Text names the edges but leaves the player to find them on the board.
 - **One edge at a time shows the order.** A line can jump from one side of the board to the other, and the numbers
-  alone make the reader search for the next one. The list's last edge shows the whole line for a player who has seen
+  alone make the reader search for the next one. The list's last edge shows the whole line for a player who saw
   the order.
 - **The cuts and the regions keep the line honest.** In the first test, a line of 6 edges cut 3 of the opponent's
   edges (the sample game after edge 30). Drawn over the board as it was, the line crossed edges that would be gone.
@@ -268,7 +280,9 @@ cut edges that are on the board, so a line drawn over the board can show edges t
   `rulesAt` (the rules for the player's moves), and the searches on any path.
 - `src/lib/review/model.ts`: `judgeEdge` (an edge's loss and label, for the game's edges and a branch's),
   `judgeBranchEdge`, `valuesAfter` (tests in `model.test.ts`).
-- `src/lib/board/Board.svelte`: `onlyActive` (the points that take the pointer), `oncandidatedblclick`.
+- `src/lib/board/Board.svelte`: `onlyActive` (the points that take the pointer), `oncandidatedblclick`, the pointer's
+  press, drag and release (a click, a dragged edge, a note), and the notes drawn.
+- `src/lib/board/notes.ts`: the notes, `toggleNote` and `brushFor` (tests in `notes.test.ts`).
 - `src/lib/review/model.ts`: `lineMovers`, `enoughVisits`, `trustedLine` (the 25-visit cut, with its tests in
   `model.test.ts`), `LineStep`.
 - `src/lib/review/display.ts`: the "one edge at a time" setting, and `branchText` (circles or notation).
