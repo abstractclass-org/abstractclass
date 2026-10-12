@@ -41,7 +41,9 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
      the commit (`CF_PAGES_COMMIT_SHA`), which the footer shows.
    - **The headers** (`static/_headers`): `noindex` on every file, and a year's cache, never checked again, for the
      build's hashed code (`/_app/immutable/`) and the engine's files (`/engine/<id>/<file>`): their paths name their
-     content, so a file there never changes. `/engine/manifest.json` keeps the default check on each load.
+     content, so a file there never changes. `/engine/manifest.json` keeps the default check on each load. The meaf.us
+     tools' files are checked at each use (`no-cache`), so that a deploy reaches the bookmark and Tampermonkey at
+     once: Cloudflare's own rule kept a `.js` file for 4 hours.
    - **A 404 page** (`404.html`, adapter-static's fallback): without it, Pages serves the home page for any unknown
      address.
    - **The size:** 69 files, 29 MB. Each file is under Pages' limit of 25 MiB (the larger network is 20.6 MB).

@@ -12,3 +12,16 @@
 
 /engine/:id/:file
   Cache-Control: public, max-age=31536000, immutable
+
+# The meaf.us tools' files (docs/design/11-early-access.md): the bookmarklet's code, which the bookmark loads at each
+# click, and the userscript, which Tampermonkey checks for updates. Their paths stay when their content changes, so a
+# browser asks again each time: an unchanged file costs a "not modified" reply. Without this, Cloudflare lets a
+# browser keep a .js file for 4 hours.
+/bookmarklet.js
+  Cache-Control: no-cache
+
+/hedge-school.user.js
+  Cache-Control: no-cache
+
+/hedge-school.meta.js
+  Cache-Control: no-cache

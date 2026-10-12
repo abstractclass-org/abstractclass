@@ -60,6 +60,10 @@ It holds no backlog: everything still to do that is not in flight is in
 - **Released to `main` on 2026-10-13:** the bookmarklet as a loader, and both tools telling the import page their version (design 11,
   decisions/product.md, "The bookmarklet and the userscript tell when they are out of date"). After its release, the
   owner drags the bookmarklet to the bar once more: the new one is the loader.
+- **Released to `main` on 2026-10-13, after `323a0b5`:**
+  - The engine's line listed under the table, pointed at past its 6th edge, drew the later edges with no mover (no
+    colour, black badges). Each edge drawn now has its mover. Checked in Edge on a line of 15 edges.
+  - `no-cache` for the meaf.us tools' files (hosting.md).
 - **For the owner, after the release of `99106ff`:**
   - Drag the bookmarklet to the bar again: its code changed.
   - Install the userscript again from the live site's import page, then remove the copy from the local preview in

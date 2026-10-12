@@ -70,7 +70,10 @@ What the repository holds for Pages:
 - **The response headers** (`static/_headers`, copied into `build/`): `X-Robots-Tag: noindex` on every file, and a
   year's cache, never checked again, for the build's hashed code (`/_app/immutable/*`) and the engine's files
   (`/engine/:id/:file`). Their paths name their content, so a file there never changes. `/engine/manifest.json` keeps
-  the default: the browser checks it on each load.
+  the default: the browser checks it on each load. The meaf.us tools' files (`/bookmarklet.js`,
+  `/hedge-school.user.js`, `/hedge-school.meta.js`) have `no-cache`, so the browser checks them at each use: without
+  it, Cloudflare lets a browser keep a `.js` file for 4 hours (`max-age=14400`), and a bookmark or Tampermonkey would
+  take a deploy's change up to 4 hours late.
 - **A 404 page** (`404.html`, adapter-static's fallback, in `vite.config.ts`). Without a `404.html`, Pages serves the
   home page for any address (its rule for single-page applications).
 - **The site's version** in the footer: the commit, which Pages gives the build as `CF_PAGES_COMMIT_SHA`
