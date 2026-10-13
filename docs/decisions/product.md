@@ -2168,3 +2168,38 @@ The interface, the review, puzzles, lessons, labels and thresholds.
     scaled to the badge's radius of 0.36 (dx 0.029, dy 0.05, deviation 0.036), on both themes. The other ways seen: a
     dark ring (the hover's ring would need another sign), the halo in the label's colour (chess.com's tint, which
     still needs the shadow), another colour for the halo (yellow is both sites' last move).
+
+### The labels' badges, drawn as shapes, and a choice of badges or text in the move list (2026-10-13)
+
+- **The problem:** the badges' marks were characters of the page's font ("!", "?!", "??", "★", "✓") on a disc. At 9
+  pixels each sat at its own weight and height. Chess.com's icons and Lichess's glyph badges on its board are drawn
+  shapes. On the light theme the move list's Inaccuracy, darkened to 3:1, was an ochre beside the yellow badge.
+- **Decided:**
+  - **The marks are shapes** on a 24-unit square (`src/lib/review/labelShapes.ts`), white on the label's fill: "!" a
+    bar and a dot, "?" an arc that turns into a stem and a dot, "?!" and "??" the single marks smaller side by side, a
+    star, a check, and the thumbs-up from Material Design Icons. The strokes end square with rounded corners (a flat
+    end, continued by a rounded box), the dots are boxes 8% wider than their stroke, and the check's elbow is round.
+    They are drawn here: Lichess's glyph shapes are GPL-3.0 (chessground's `glyph.ts`), and chess.com's icons are its
+    own. A darker lower edge, as chess.com's icons have, was tried and left out.
+  - **The badges are the same everywhere:** in the report, on the board (with its shadow), and in the move list and
+    the branches. A badge in the move list is 1.2 times the text's size: the rows stay 21 pixels high, measured on all
+    25 rows of a game in Edge.
+  - **A display setting chooses the move list's form** (design 06): "Badges" (the default) or "Text", the mark alone
+    in the label's colour, as Lichess's move list shows it. In both, the mark and the hard position's ◆ sit in the
+    same places: measured in Edge with the one swapped for the other.
+- **The move list's text marks on the light theme, firmer:** "?!", "?" and "??" in the label's colour still read dim
+  on white (Inaccuracy #cf9b0a at 2.5:1, Mistake #d36e1e at 3.5:1, Blunder #d43a3a at 4.7:1). Three strengths were
+  compared in Edge, each as the font's characters and as the badges' drawn marks. Taken: the font's characters at
+  Inaccuracy #bc8d07 (3.0:1), Mistake #bb5c03 (4.5:1), Blunder #c62b2f (5.5:1). Lichess's light theme has Blunder
+  #d62929 (5.0:1) and Mistake #b37a00 (3.7:1). The dark theme is unchanged.
+- **By edge, the label, the hard position's ◆ and the loss stand together at the move's right,** as a turn's do at
+  the turn's right: the labels line up down the list, and the ◆ is as near the loss as by turn (4 pixels each). The
+  ◆ is 0.8 of the row's text, from 0.7.
+- **A badge that fell on half a pixel lost its lowest row:** its disc fills its square, and an SVG clips at its square.
+  The badge's square no longer clips.
+- **Kept as it is:** the engine's edges in the branches (75%) and the listed line until it is pointed at (70%) are
+  faded by their opacity, so that they read as the engine's. On the light theme the white behind them makes them
+  pastel beside the board's edges, and on the dark theme the dark behind them keeps them near the board's. Fading
+  toward a fixed grey would look the same on both. The difference was seen and accepted.
+- **Checked in Edge:** the seven badges at 120, 48, 24 and 16 pixels on both themes, and the move list, the report and
+  the board's badges on both themes.

@@ -38,6 +38,7 @@
   import ExportMenu from "#lib/ExportMenu.svelte";
   import type { ExportKind, ExportResult } from "#lib/game/reviewFile.ts";
   import Glyph from "./Glyph.svelte";
+  import LabelBadge from "./LabelBadge.svelte";
   import { LineDrawing } from "./lineDrawing.svelte.ts";
   import {
     edgeName, moveName, moveNotation, sameEdge, shortNote, turnShortNote, HARD_NOTE, complexity, likelyEdges, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchEdge, valuesAfter, resultWin, moverWin, costText, pct, shownCandidates, lineMovers, enoughVisits, trustedLine, type Analysis, type Candidate, type EdgeReview, type LineStep, LABELS, LABEL_TEXT, LABEL_GLYPH, PLAYER_NAME, type Edge, type Label, type Player, type Position, type Review, type Unit, type Move, type TurnJudgment, type TurnReview,
@@ -86,7 +87,6 @@
   const PANEL = "min-w-0 px-4 py-3 bg-panel border border-line rounded-md";
   // A label's badge in the text. Its mark is 56% of the circle, as on the board (0.4 in 0.72), and bold, not extra bold,
   // because small text in heavy weights runs together.
-  const BADGE = "inline-flex items-center justify-center min-w-[1.8em] h-[1.8em] px-[0.2em] rounded-full text-[0.64em] font-bold text-on-badge";
   const GAUGE_TEXT = "absolute left-1/2 -translate-x-1/2 rotate-180 [writing-mode:vertical-rl] text-[0.6rem] leading-none font-semibold tracking-[0.1em] text-white tabular-nums";
   const MENU_ITEM = "px-2.5 py-1.5 rounded cursor-pointer outline-none data-highlighted:bg-panel data-disabled:opacity-50 data-disabled:cursor-default";
   const KBD = "inline-block min-w-[1.6em] px-1 py-px rounded border border-line bg-panel font-mono text-[0.85em] text-center leading-tight";
@@ -812,6 +812,13 @@
 
 <svelte:window {onkeydown} />
 
+<!-- A label in the move list and the branches, in the form the display settings choose: a badge, or its mark in the
+     label's colour. -->
+{#snippet mark(label: Label)}
+  {#if display.marks === "badges"}<LabelBadge {label} />
+  {:else}<span class="font-extrabold" style:color="var(--{label})"><Glyph glyph={LABEL_GLYPH[label]} /></span>{/if}
+{/snippet}
+
 <!-- The top of the side panel: the review's progress or an engine error. -->
 {#snippet panelHead()}
   {#if problem}
@@ -938,7 +945,7 @@
       </tr>
       {#each LABELS as l (l)}
         <tr>
-          <td><span class={BADGE} style:background="var(--{l}-fill)"><Glyph glyph={LABEL_GLYPH[l]} /></span> {LABEL_TEXT[l]}</td>
+          <td><LabelBadge label={l} /> {LABEL_TEXT[l]}</td>
           {#each R.summary[unit] as s, p (p)}<td>{s.counts[l]}</td>{/each}
         </tr>
       {/each}
@@ -1010,11 +1017,12 @@
           {@const after = R.blueScore[e.index + 1]}
           {@const judged = unit === "edge" && forSide(e.player) ? (e.label ? `${LABEL_TEXT[e.label]}: ${costText(e.rawLoss, e.rawPoints)}` : "Not analysed yet") : ""}
           {@const shown = forSide(e.player) ? e.label : null}
-          <!-- A move fills its column. By edge, its glyph follows it, and its loss is at the column's right edge, where
-               Lichess's move list has its evaluation: the mover's points lost, so that a number never needs a side to
-               read. The lead after the move is in its note. The move's text has one width, so a column is never
+          <!-- A move fills its column. By edge, its label, the hard position's ◆ and its loss stand together at the
+               column's right, as a turn's do at the turn's right, so that they line up down the list. The loss is
+               last, where Lichess's move list has its evaluation: the mover's points lost, so that a number never needs
+               a side to read. The lead after the move is in its note. The move's text has one width, so a column is never
                narrower than the widest move: the widest in the notation is 8 characters (D10-G10x), then by edge the
-               widest glyph (??, 2) and the glyph's margin. The loss: at most 5 characters (−1.2k), smaller and
+               label's slot (2.2 characters: a badge, or ?? as text). The loss: at most 5 characters (−1.2k), smaller and
                right-aligned. The font is monospaced, so ch is one character of the span's own size. Before the loss, by edge
                and by turn, a slot for a hard position's ◆ (design 14) on every row, marked or not: a mark never moves
                the label or widens the column. -->
@@ -1024,9 +1032,10 @@
                   onclick={() => go(e.index + 1, true)} onmouseenter={() => startPreview({ kind: "move", index: e.index })} onmouseleave={endPreview} tabindex="-1"
                   title={[judged, after !== undefined ? `Lead: ${sideText(after, 1)}` : ""].filter(Boolean).join(" · ")}>
             {#if unit === "edge"}
-              <span class="w-[calc(10ch+0.15em)]">{moveNotation(e)}{#if listed(shown)}<span class="ml-[0.15em] font-extrabold" style:color="var(--{shown})"><Glyph glyph={LABEL_GLYPH[shown]} /></span>{/if}</span>
-              <span class="w-[1.2ch] text-[0.7em] text-muted text-center" title={e.hard && forSide(e.player) ? HARD_NOTE : undefined}>{e.hard && forSide(e.player) ? "◆" : ""}</span>
-              <span class="w-[5ch] ml-auto text-[0.78em] text-right text-muted tabular-nums">{forSide(e.player) ? lossShort(e) : ""}</span>
+              <span class="w-[8ch]">{moveNotation(e)}</span>
+              <span class="w-[2.2ch] ml-auto">{#if listed(shown)}{@render mark(shown)}{/if}</span>
+              <span class="w-[1.2ch] text-[0.8em] text-muted text-center" title={e.hard && forSide(e.player) ? HARD_NOTE : undefined}>{e.hard && forSide(e.player) ? "◆" : ""}</span>
+              <span class="w-[5ch] text-[0.78em] text-right text-muted tabular-nums">{forSide(e.player) ? lossShort(e) : ""}</span>
             {:else}
               <span class="w-[8ch]">{moveNotation(e)}</span>
             {/if}
@@ -1037,8 +1046,8 @@
         {#if unit === "turn" && forSide(t.player)}
           <span class="col-start-4 flex items-baseline gap-1 px-[0.2rem] py-px font-mono text-[0.95em] whitespace-nowrap {SIDE_TEXT[t.player]}"
                 title={t.label ? `${LABEL_TEXT[t.label]}: ${turnCost(t)}` : "Not analysed yet"}>
-            <span class="w-[2.2ch] font-extrabold" style:color={listed(t.label) ? `var(--${t.label})` : undefined}>{#if listed(t.label)}<Glyph glyph={LABEL_GLYPH[t.label]} />{/if}</span>
-            <span class="w-[1.2ch] text-[0.7em] text-muted text-center" title={t.hard ? HARD_NOTE : undefined}>{t.hard ? "◆" : ""}</span>
+            <span class="w-[2.2ch]">{#if listed(t.label)}{@render mark(t.label)}{/if}</span>
+            <span class="w-[1.2ch] text-[0.8em] text-muted text-center" title={t.hard ? HARD_NOTE : undefined}>{t.hard ? "◆" : ""}</span>
             <span class="w-[5ch] ml-auto text-[0.78em] text-right text-muted tabular-nums">{lossShort(t)}</span>
           </span>
         {/if}
@@ -1178,7 +1187,7 @@
               {:else}<span class={["block w-[0.85em] h-[0.85em] rounded-full", SIDE_BG[node.move.player]]}></span>{/if}
             </button>
           {/if}
-          {#if listed(label)}<span class="-ml-0.5 text-[0.9em] font-extrabold" style:color="var(--{label})"><Glyph glyph={LABEL_GLYPH[label]} /></span>
+          {#if listed(label)}<span class="-ml-0.5 text-[0.9em]">{@render mark(label)}</span>
           {:else if waiting}<span class="-ml-0.5 text-[0.9em] text-muted animate-pulse motion-reduce:animate-none" title="Evaluating…">…</span>{/if}
         {:else if engine && step}
           {@render engineEdge(engine, p, step, k)}
@@ -1279,6 +1288,8 @@
         [["animated", "Animated"], ["static", "Static"]], () => (display.lineSteps ? "animated" : "static"),
         v => (display.lineSteps = v === "animated"))}
       <h3 class={SETTINGS_HEAD}>Move list</h3>
+      {@render choice("Move labels", "Each label as a badge, as in the report and on the board, or as its mark in the label's colour.",
+        [["badges", "Badges"], ["text", "Text"]], () => display.marks, v => (display.marks = v as Display["marks"]))}
       {@render toggle("Notes on the key moves", "A line under each Great, Mistake and Blunder.",
         () => display.notes, v => (display.notes = v))}
       {@render toggle("Preview played moves", "Pointing at a move of the game shows the position after it on the board.",

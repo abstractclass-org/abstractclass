@@ -22,6 +22,7 @@
   // complete a legal edge from it (dots), and the edge to the marked point under the pointer. Points are 0-18 with y
   // up, as in the engine.
   import { pointName, sameEdge } from "#lib/review/model.ts";
+  import LabelMark from "#lib/review/LabelMark.svelte";
   import { brushFor, samePoint, toggleNote, type BoardNote, type NoteBrush } from "./notes.ts";
 
   interface Props {
@@ -215,12 +216,8 @@
   {@const [bx, by] = mid(m.edge)}
   <g class="mark">
     <circle cx={bx} cy={by} r="0.36" style:fill="var(--{m.label}-fill)" filter="url(#{shadowId})" />
-    {#if typeof m.glyph === "string"}
-      <text x={bx} y={by + 0.14}>{m.glyph}</text>
-    {:else}
-      <!-- The icon's 24-unit square, 0.4 units wide, centred on the badge. -->
-      <path d={m.glyph.path} transform="translate({bx - 0.2} {by - 0.2}) scale({0.4 / 24})" />
-    {/if}
+    <!-- The mark's 24-unit square (labelShapes.ts) over the disc, as the move list's badges draw it. -->
+    <LabelMark label={m.label} transform="translate({bx - 0.36} {by - 0.36}) scale({0.72 / 24})" />
   </g>
 {/snippet}
 
@@ -478,8 +475,6 @@
   .mark-lit { stroke-width: 0.55; stroke-linecap: round; opacity: 0; pointer-events: none; }
   .mark-group.lit .mark-lit { opacity: 0.45; }
   .mark-group.lit .mark circle { stroke: var(--text); stroke-width: 0.08; }
-  .mark text { font-size: 0.4px; fill: var(--on-badge); text-anchor: middle; font-weight: 800; font-family: system-ui, sans-serif; }
-  .mark path { fill: var(--on-badge); }
 
   .pending { fill: none; stroke: var(--last); stroke-width: 0.1; }
   /* The points that complete a legal edge from the first point: dots in the mover's colour, smaller and fainter than
