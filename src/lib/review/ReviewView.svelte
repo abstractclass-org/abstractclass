@@ -2,6 +2,9 @@
   /** The review in progress: what the engine does now, and the passes as parts of one bar, each with its share of the
    *  work (by visits) and how much of it is done (0 to 1). `waiting`: no work runs (the engine is off). */
   export interface ReviewProgress { text: string; parts: { share: number; done: number }[]; waiting?: boolean }
+  /** Why a game reviewed before is reviewed again: the engine or its network was updated (store.ts, reviewAgainWhy).
+   *  `text` shows under the progress. The dialog, with `title` and `body`, says it once when `dialog` is set. */
+  export interface ReviewAgain { title: string; text: string; body: string; dialog: boolean }
 
   // The numbers' formats, made once: a formatter is costly to make, and the move list and the tables format many numbers
   // at each result.
@@ -51,6 +54,7 @@
     problem?: string; // an engine error
     deepVisits?: number; // the budget of the position on screen: its search bar is full at this many visits
     deeperPositions?: number; // the game's positions searched deeper than the review asked, where the player looked
+    again?: ReviewAgain | null; // why a game reviewed before is reviewed again, when the site's engine changed
     ownSettings?: boolean; // the game keeps the network and depth it came with (store.ts, `settings`)
     onfeature?: (name: string) => void; // a feature used (design 17): the page counts its first use in each review
     onposition?: (path: string[]) => void; // the position on screen changed: its path in the game's tree
@@ -77,7 +81,7 @@
     exportReady?: boolean; // the review is done: export only then (design 13)
   }
   let { R, progress = null, problem = "", deepVisits = 0, onposition, lineSteps, branches = {}, onplay, rulesAt, ondelete,
-        onpromote, onjudge, labelVisits = 0, searching = false, timedOut = false, engine, onengine, gpu, secondAt, otherAt, turnKeys, pendingAt, reviewVisits = 0, onexport, exportReady = true, deeperPositions = 0, ownSettings = false, onfeature }: Props = $props();
+        onpromote, onjudge, labelVisits = 0, searching = false, timedOut = false, engine, onengine, gpu, secondAt, otherAt, turnKeys, pendingAt, reviewVisits = 0, onexport, exportReady = true, deeperPositions = 0, again = null, ownSettings = false, onfeature }: Props = $props();
   const used = (name: string) => onfeature?.(name);
   const last = $derived(R.data.positions.length - 1);
   const TABLE_ROWS = 5; // the Analysis table shows this many rows and scrolls, so the move list under it does not move
@@ -664,6 +668,8 @@
   // Shift + m (the next and the previous mistake, KaTrain's n), and Delete. The controls' notes name no keys: the list
   // does.
   let keysOpen = $state(false);
+  let againOpen = $state(false);
+  $effect(() => { if (again?.dialog) untrack(() => (againOpen = true)); });
   function onkeydown(ev: KeyboardEvent) {
     if (ev.defaultPrevented || ev.target instanceof HTMLInputElement || ev.ctrlKey || ev.metaKey || ev.altKey) return;
     if (ev.key === "Escape") {
@@ -837,6 +843,7 @@
         {/each}
       </div>
       <p class="mt-1 text-xs text-muted">{progress.text}</p>
+      {#if again}<p class="mt-1 text-xs text-ink">{again.text}</p>{/if}
     </div>
   {/if}
 {/snippet}
@@ -1644,6 +1651,24 @@
       </div>
     </div>
   </section>
+
+  <!-- Why the review runs again (ReviewAgain): a dialog when the review starts, once in a visit. The line under the
+       progress says it while the review runs. -->
+  <Dialog.Root bind:open={againOpen}>
+    <Dialog.Portal>
+      <Dialog.Overlay class="fixed inset-0 z-20 bg-[rgb(0_0_0/0.45)]" />
+      <Dialog.Content class="fixed z-30 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(94vw,28rem)]
+                             px-5 py-4 bg-panel-2 border border-muted/50 rounded-md shadow-[0_6px_20px_rgb(0_0_0/0.4)]">
+        <Dialog.Title class="mb-2 font-semibold">{again?.title}</Dialog.Title>
+        <Dialog.Description class="text-sm">
+          <p>{again?.body}</p>
+          <p class="mt-2 text-muted">The site keeps each result with the engine that found it. The new engine searches each
+            position again, which takes about as long as the first review, and the labels can change a little.</p>
+        </Dialog.Description>
+        <div class="flex justify-end mt-4"><Dialog.Close class="btn-primary px-4 py-1 text-sm">OK</Dialog.Close></div>
+      </Dialog.Content>
+    </Dialog.Portal>
+  </Dialog.Root>
 
   <!-- The list of keys and clicks: a Bits UI dialog (its focus, Escape and outside click). -->
   <Dialog.Root bind:open={keysOpen}>

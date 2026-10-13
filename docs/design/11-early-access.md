@@ -60,6 +60,12 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
    ([requests/03-release-artifacts.md](../requests/03-release-artifacts.md)). The release has the module, both
    networks, as the engine settings offer both, and a notice of the licences of what is compiled into the module.
    The site ships that notice beside the module, and the notices page lists the works and links to it.
+   - **A new engine reviews a game again:** the stored results' keys name the engine's build and the network's file,
+     so a game reviewed before a release is searched again. The player is told why (`reviewAgainWhy` in
+     `src/lib/game/store.ts`): when the review page opens such a game, a dialog says that the engine was updated, once
+     in a visit for each game and build, and a line under the review's progress says it while the review runs. On the
+     home page, the game's Export, off until the review is done, says it too. A network or a depth that the player
+     chose is not an update, and has no notice.
 7. **Analytics: Cloudflare's and Google's.** Cloudflare's sets no cookies. Google Analytics runs in Google's consent
    mode, advanced form: the Google tag loads on every page with its cookies denied, and sends cookieless pings until
    the visitor accepts. A banner asks once, with Accept and Decline alike. The privacy page shows the choice, can

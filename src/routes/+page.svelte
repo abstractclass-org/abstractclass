@@ -9,7 +9,7 @@
   import { puzzlesFrom } from "#lib/puzzles/model.ts";
   import { COURSE } from "#lib/learn/lessons.ts";
   import { parseRecord, playerNames, RecordError, type GameRecord } from "#lib/game/record.ts";
-  import { deleteGame, listGames, restoreGame, reviewCovers, reviewMark, type DeletedGame, type StoredGame } from "#lib/game/store.ts";
+  import { deleteGame, listGames, restoreGame, reviewAgainWhy, reviewCovers, reviewMark, type DeletedGame, type StoredGame } from "#lib/game/store.ts";
   import { loadEngine, reviewVisits } from "#lib/analysis/engineSettings.ts";
   import { importRecord } from "#lib/game/import.ts";
   import { errorText } from "#lib/errors.ts";
@@ -189,7 +189,9 @@
                 imported {new Date(game.added).toLocaleDateString()}</span>
               <span class="ml-auto flex items-center gap-1.5"><ExportMenu small side="bottom" run={kind => exportGame(game.id, game.record, kind)}
                 ready={reviewCovers(game.reviewed, wanted(game))}
-                why={game.reviewed ? "Open the game to finish its review with the engine settings now, then export." : "Open the game to review it, then export."} />
+                why={!game.reviewed ? "Open the game to review it, then export."
+                  : reviewAgainWhy(game.reviewed, wanted(game)) ? "The engine was updated: open the game to review it again, then export."
+                  : "Open the game to finish its review with the engine settings now, then export."} />
                 <button type="button" class="px-2 py-0 text-xs" aria-label="Delete {title(record)}"
                         onclick={() => remove(game.id)}>Delete</button></span>
             {/if}

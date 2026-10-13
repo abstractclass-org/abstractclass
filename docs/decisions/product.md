@@ -2213,3 +2213,17 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   notices page gives the engine repository's wording, links the release's `LICENSE.txt` and `NOTICES.txt`, which the
   site ships beside the modules, and keeps KataGo's copyright notice with the MIT licence's text. The page's line on
   the other works now says that their licences cover neither the site nor its engine. Eigen is in the CPU module only.
+
+### A review searched again after a release: the player is told why (2026-10-13)
+
+- **The problem:** the stored results' keys name the engine's build, so after each release a game reviewed before is
+  searched again. Nothing said why: the review page started its progress again, and the home page's Export said to
+  finish the review "with the engine settings now".
+- **Decided** (design 11, item 6): the site tells the player when the engine's build, or a network's file, changed
+  since the game's last review (`reviewAgainWhy`): a dialog when the review starts, once in a visit for each game and
+  build ("The engine was updated"), a line under the review's progress while it runs, and the home page's Export: "The
+  engine was updated: open the game to review it again, then export." A network or a depth that the player chose has
+  no notice.
+- **Checked in Edge,** with the sample game's mark set back to build 632f2a0: the home page's Export said the update,
+  the review page showed the dialog and the line, and the review marked the game with build fdfe5ad again. A second
+  opening in the same visit showed no dialog.

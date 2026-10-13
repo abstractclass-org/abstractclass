@@ -9,16 +9,16 @@
   // reload. The GPU worker joins the pool once the network is loaded (docs/design/15-gpu.md). One tab reviews a game at
   // a time (src/lib/game/reviewLock.ts).
   import { onDestroy, onMount, untrack } from "svelte";
-  import ReviewView, { type ReviewProgress } from "#lib/review/ReviewView.svelte";
+  import ReviewView, { type ReviewAgain, type ReviewProgress } from "#lib/review/ReviewView.svelte";
   import { review, type ReviewData } from "#lib/review/model.ts";
   import { EnginePool } from "#lib/analysis/pool.ts";
   import { GameAnalysis, LABEL_VISITS, SWEEP_VISITS, momentVisits } from "#lib/analysis/game.svelte.ts";
   import { NETWORKS, loadEngine, reviewVisits, saveEngine, withReview, type EngineSettings } from "#lib/analysis/engineSettings.ts";
   import { GpuControl, gpuDownloadMB } from "#lib/analysis/gpu.svelte.ts";
-  import { loadManifest, type Manifest } from "#lib/engine/client.ts";
+  import { loadManifest, modelOf, type Manifest } from "#lib/engine/client.ts";
   import { errorText } from "#lib/errors.ts";
   import { playerNames } from "#lib/game/record.ts";
-  import { lastReview, loadGame, markReviewed, rememberReview, reviewCovers, reviewMark, setGameSettings, type GameSettings,
+  import { lastReview, loadGame, markReviewed, rememberReview, reviewAgainWhy, reviewCovers, reviewMark, setGameSettings, type GameSettings,
            type ReviewMark } from "#lib/game/store.ts";
   import { holdReview } from "#lib/game/reviewLock.ts";
   import { afterNavigate, replaceState } from "$app/navigation";
@@ -141,6 +141,22 @@
   // opened already done (its results in the store) sends no end.
   let markBefore: ReviewMark | undefined; // the game's mark when the page opened it
   let startedAt = 0, doneBefore = false;
+  // A game reviewed before that is reviewed again because the site's engine or network changed (reviewAgainWhy): the
+  // view says why under its progress, and in a dialog once in a visit for each game and engine (design 11).
+  let again = $state<ReviewAgain | null>(null);
+  function againFor(why: "engine" | "network", want: { module: string }): ReviewAgain {
+    const name = modelOf(manifest!, network)?.displayName ?? "The network";
+    const key = `hedge-school:review-again:${kept!.id}:${want.module}`;
+    let dialog = true;
+    try { dialog = !sessionStorage.getItem(key); sessionStorage.setItem(key, "1"); } catch { /* blocked storage: each time */ }
+    return why === "engine"
+      ? { title: "The engine was updated", dialog,
+          text: "The engine was updated since this game's last review, so the game is reviewed again.",
+          body: "This game's last review used an earlier version of the engine, so the game is reviewed again." }
+      : { title: `${name} was updated`, dialog,
+          text: `${name} was updated since this game's last review, so the game is reviewed again.`,
+          body: `This game's last review used an earlier version of ${name}, so the game is reviewed again.` };
+  }
   function reviewParams(): Record<string, string | number | boolean> {
     return {
       network: settings.network.split("-")[0], depth: budget, depth_on_screen: engine.visits, time_limit: engine.seconds ?? 0,
@@ -334,7 +350,10 @@
       if (!g.rulesReady) { track("engine_error", { kind: "rules" }); return; } // the rules refused the game: the page shows why
       if (pool !== first) return; // another pool took over
       controlGpu(first, network);
-      doneBefore = reviewCovers(markBefore, reviewMark(manifest, network, budget));
+      const want = reviewMark(manifest, network, budget);
+      doneBefore = reviewCovers(markBefore, want);
+      const why = doneBefore ? null : reviewAgainWhy(markBefore, want);
+      again = why && want ? againFor(why, want) : null;
       startedAt = performance.now();
       track("review_open", { ...reviewParams(), done_before: doneBefore });
       await g.sweep();
@@ -374,7 +393,7 @@
 {:else if game?.error && !game.rulesReady}
   <p class="{MESSAGE} text-blunder">The engine could not read this game: {game.error}</p>
 {:else if R}
-  <ReviewView {R} {progress} {deeperPositions} onexport={exportAs} exportReady={reviewDone} problem={game?.error ?? ""} deepVisits={engine.visits} onposition={path => (current = path)}
+  <ReviewView {R} {progress} {deeperPositions} {again} onexport={exportAs} exportReady={reviewDone} problem={game?.error ?? ""} deepVisits={engine.visits} onposition={path => (current = path)}
               branches={game?.branches ?? {}} onplay={path => game!.addLine(path)} rulesAt={path => game!.rulesAt(path)}
               secondAt={path => game?.secondAt(path)} otherAt={(path, turn) => game?.otherAt(path, turn)}
               turnKeys={path => game?.turnKeys(path) ?? []} pendingAt={path => game?.pending(path) ?? false} reviewVisits={budget}

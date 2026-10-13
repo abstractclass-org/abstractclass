@@ -52,6 +52,16 @@ export function reviewMark(manifest: Manifest, network: string, visits: number):
 export const reviewCovers = (mark: ReviewMark | undefined, want: Omit<ReviewMark, "at"> | null) =>
   !!mark && !!want && mark.module === want.module && mark.model === want.model && mark.visits >= want.visits;
 
+/** Why a game reviewed before is reviewed again, when the site changed and the player did not: "engine" when the
+ *  engine's build changed, "network" when the same network has another file, null otherwise (no review before, or the
+ *  player chose another network or a deeper review). The stored results are keyed by both, so the review runs again.
+ *  The page tells the player why (design 11). */
+export function reviewAgainWhy(mark: ReviewMark | undefined, want: Omit<ReviewMark, "at"> | null): "engine" | "network" | null {
+  if (!mark || !want || mark.network !== want.network) return null;
+  if (mark.module !== want.module) return "engine";
+  return mark.model !== want.model ? "network" : null;
+}
+
 /** Marks a game's review as done. A deeper mark for the same engine and network stays. */
 export async function markReviewed(id: string, mark: Omit<ReviewMark, "at">) {
   const game = await dbGet<StoredGame>(STORES.games, id);
