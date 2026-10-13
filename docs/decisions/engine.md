@@ -879,8 +879,10 @@ Blunder's loss.
   position after it used other symmetries of the network, which gave other values (the engine repository measured
   0.018 to 0.025 of win chance between twins' searches at 256 visits, against 0.001 between seeds).
 - **What the site does with a twin** (`src/lib/review/model.ts`):
-  - **Shows it,** with its edge's numbers, in the candidates' table and on the board, at its own rank, as KaTrain
-    shows KataGo's twins. A candidate keeps `twinOf`, the searched edge.
+  - **Shows it,** with its edge's numbers, on the board with its edge's rank, and in the table in its edge's row,
+    with a mirror mark (design 07, item 8). A candidate keeps `twinOf`, the searched edge. The ranks count distinct
+    moves (`rankOf`). KaTrain shows KataGo's twins as candidates of their own, so this is a departure: at the start
+    they spent half the table.
   - **Takes it for the same move:** the second choice that confirms a Great (`secondChoice`, `onlyEdge`) and the other
     candidate of a turn (`otherCandidate`) skip twins (`distinctCandidates`). A played edge that is the first
     choice's twin is Best, and can be Great, as the first choice (`sameMove`), and its note does not name the first

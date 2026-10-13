@@ -194,6 +194,18 @@ export function otherCandidate(a: Analysis | undefined, played: (Edge | null)[])
  *  (protocol 0.4). A second choice, or a count of the search's visits, reads these. */
 export const distinctCandidates = (a: Analysis): Candidate[] => a.candidates.filter(c => !c.twinOf);
 
+/** A searched candidate's symmetric twins: the candidates that are its mirror images, the same move (protocol 0.4). */
+export const twinsOf = (a: Analysis, c: Candidate): Candidate[] => a.candidates.filter(t => !!t.twinOf && sameEdge(t.twinOf, c.edge));
+
+/** An edge's rank among the engine's distinct choices (1: the first, distinctCandidates): a twin has its searched
+ *  edge's rank, as the table and the board show it. 0 when the edge is not a candidate. */
+export function rankOf(a: Analysis | undefined, edge: Edge): number {
+  const c = a?.candidates.find(x => sameEdge(x.edge, edge));
+  if (!a || !c) return 0;
+  const searched = c.twinOf ?? c.edge;
+  return distinctCandidates(a).findIndex(x => sameEdge(x.edge, searched)) + 1;
+}
+
 /** The engine's second choice: its next distinct move after the first (distinctCandidates). */
 export const secondChoice = (a: Analysis | undefined): Candidate | undefined => (a ? distinctCandidates(a)[1] : undefined);
 
@@ -498,14 +510,14 @@ export function trustedLine(c: Candidate): Edge[] {
 }
 
 /** A candidate with its rank (1: the engine's first choice) and how much worse it is than number 1 for the mover: `gap`
- *  in win chance, `gapPts` in points when the analysis has scores. Negative when it is better than number 1. */
-export interface RankedCandidate { c: Candidate; rank: number; gap: number; gapPts: number | undefined }
+ *  in win chance, `gapPts` in points when the analysis has scores. Negative when it is better than number 1. `twins`:
+ *  its symmetric twins, the same move with the same numbers, which share its rank. */
+export interface RankedCandidate { c: Candidate; rank: number; gap: number; gapPts: number | undefined; twins: Candidate[] }
 
 /** The engine's candidates on the board: its first choice, and every other candidate that has enough visits to compare
  *  (MIN_VISIT_SHARE of the most visited candidate's) and is within CANDIDATE_GAP of the first choice. They are the
  *  engine's view, so `gap` is the engine's own win chance below the first choice's, and `gapPts` the points (design 07).
- *  No
- *  limit on the count: in an open position the visits spread, and every move that earns them shows. The first choice
+ *  No limit on the count: in an open position the visits spread, and every move that earns them shows. The first choice
  *  is KataGo's order, its choice of move (the engine repository's design 04, "order"): by play selection value, where
  *  the move with the best lower confidence bound is raised as far as that bound justifies, at most fivefold. So the
  *  first choice is usually, not always, the best-LCB move, and it can have fewer visits than another candidate. */
@@ -514,10 +526,12 @@ export function shownCandidates(a: Analysis | undefined, p: Player): RankedCandi
   if (!first) return [];
   const best = moverWin(first.blueWin, p);
   const most = Math.max(...a.candidates.map(c => c.visits));
-  return a.candidates
+  // One rank for each distinct move: a symmetric twin is the same move, and comes with it (twinsOf).
+  return distinctCandidates(a)
     .map((c, k) => ({
       c, rank: k + 1, gap: best - moverWin(c.blueWin, p),
       gapPts: first.lead !== undefined && c.lead !== undefined ? moverScore(first.lead, p) - moverScore(c.lead, p) : undefined,
+      twins: twinsOf(a, c),
     }))
     .filter(({ c, rank, gap, gapPts }) => rank === 1 || (c.visits >= MIN_VISIT_SHARE * most && gap <= CANDIDATE_GAP.win
       && (gapPts === undefined || gapPts <= CANDIDATE_GAP.points)));

@@ -293,17 +293,17 @@
   {/if}
 
   {#if layers.candidates}
-    {#each ordered as c (c.rank)}
+    {#each ordered as c (`${c.rank} ${c.edge.join(",")}`)}
       {@const [mx, my] = mid(c.edge)}
       <!-- While a line shows, the other candidates are hidden, so that the board's only numbers are the line's. The lit
            one stays, so that the pointer keeps its hover. -->
       <g
         class="candidate"
         class:first={c.rank === 1}
-        class:off={!!line?.length && lit?.rank !== c.rank}
+        class:off={!!line?.length && !(lit && sameEdge(lit.edge, c.edge))}
         role="button"
         tabindex="-1"
-        class:hovered={lit?.rank === c.rank}
+        class:hovered={!!lit && sameEdge(lit.edge, c.edge)}
         onmouseenter={() => enter(c)}
         onmouseleave={leave}
         onclick={() => oncandidateclick?.(c.edge)}
@@ -331,6 +331,8 @@
     {/each}
   {/if}
 
+  <!-- The lit candidate: the edge pointed at, alone. A symmetric twin has the same rank but is another edge, so it is
+       not lit, and while the line shows it leaves the board as the other candidates do. -->
   {#if layers.candidates && lit}
     {@const h = lit}
     {@const [mx, my] = mid(h.edge)}

@@ -41,7 +41,7 @@
   import LabelBadge from "./LabelBadge.svelte";
   import { LineDrawing } from "./lineDrawing.svelte.ts";
   import {
-    edgeName, moveName, moveNotation, sameEdge, shortNote, turnShortNote, HARD_NOTE, complexity, likelyEdges, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchEdge, valuesAfter, resultWin, moverWin, costText, pct, shownCandidates, lineMovers, enoughVisits, trustedLine, type Analysis, type Candidate, type EdgeReview, type LineStep, LABELS, LABEL_TEXT, LABEL_GLYPH, PLAYER_NAME, type Edge, type Label, type Player, type Position, type Review, type Unit, type Move, type TurnJudgment, type TurnReview,
+    edgeName, moveName, moveNotation, sameEdge, shortNote, turnShortNote, HARD_NOTE, complexity, likelyEdges, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchEdge, valuesAfter, resultWin, moverWin, costText, pct, shownCandidates, distinctCandidates, rankOf, twinsOf, lineMovers, enoughVisits, trustedLine, type Analysis, type Candidate, type EdgeReview, type LineStep, LABELS, LABEL_TEXT, LABEL_GLYPH, PLAYER_NAME, type Edge, type Label, type Player, type Position, type Review, type Unit, type Move, type TurnJudgment, type TurnReview,
   } from "./model.ts";
   import { branchChildren, branchRows, mainIndex, nextFork, pathKey, prevFork, sharedLength, siblingLine, treeLines, withLine, type BranchRow } from "./tree.ts";
 
@@ -239,12 +239,13 @@
 
   // The engine's candidates on the board (model.ts), each with its note: number 1's own values, and the others' cost
   // against number 1 (costText), even when it is 0. A candidate after number 1 in the engine's order can be better than
-  // it, by a little: its cost then has a plus.
-  const candidates = $derived<BoardCandidate[]>(shownCandidates(analysis, mover).map(({ c, rank, gap, gapPts }) => ({
-    edge: c.edge, rank,
-    note: rank === 1 ? `${PLAYER_NAME[mover]} wins ${pct(moverWin(c.blueWin, mover))}${c.lead !== undefined ? ` · lead ${sideText(c.lead, 1, "0")}` : ""}`
-      : costText(gap, gapPts),
-  })));
+  // it, by a little: its cost then has a plus. A symmetric twin is drawn too, with its move's rank and note: it is the
+  // same move, and either edge can be played.
+  const candidates = $derived<BoardCandidate[]>(shownCandidates(analysis, mover).flatMap(({ c, rank, gap, gapPts, twins }) => {
+    const note = rank === 1 ? `${PLAYER_NAME[mover]} wins ${pct(moverWin(c.blueWin, mover))}${c.lead !== undefined ? ` · lead ${sideText(c.lead, 1, "0")}` : ""}`
+      : costText(gap, gapPts);
+    return [c, ...twins].map(x => ({ edge: x.edge, rank, note }));
+  }));
 
   // The engine's line from the candidate pointed at, on the board or in the table (KaTrain's and Lizzie's way), each
   // edge with its mover. Only for a candidate with enough visits (the board's rule), and only as far as the search
@@ -270,16 +271,18 @@
     if (pinned && selectedRank === rank) pinned = false;
     else { selectedRank = rank; pinned = true; }
   }
-  const selectedCandidate = $derived(analysis?.candidates[selectedRank - 1]);
+  // Ranks count the engine's distinct moves (rankOf): a symmetric twin has its move's rank.
+  const selectedCandidate = $derived(analysis ? distinctCandidates(analysis)[selectedRank - 1] : undefined);
   const pinnedCandidate = $derived(pinned ? selectedCandidate : undefined);
   const listCandidate = $derived(hoverCandidate ?? selectedCandidate);
-  const listRank = $derived(listCandidate && analysis ? analysis.candidates.indexOf(listCandidate) + 1 : 0);
+  const listRank = $derived(listCandidate && analysis ? rankOf(analysis, listCandidate.edge) : 0);
   const listLine = $derived(listCandidate ? trusted(listCandidate) : null);
   const listTurns = $derived(listLine ? turnsFrom(path, lineMovers(position, listLine.length)) : []);
   const selectRank = (edge: Edge) => {
-    const k = analysis?.candidates.findIndex(c => sameEdge(c.edge, edge)) ?? -1;
-    if (k >= 0) pick(k + 1);
+    const k = rankOf(analysis, edge);
+    if (k > 0) pick(k);
   };
+  const hoverRank = $derived(hover ? rankOf(analysis, hover) : 0);
   // How far the listed line follows the tree from here: its edges played in the game, or in a branch.
   const listKnown = $derived.by((): ("game" | "branch")[] => {
     const out: ("game" | "branch")[] = [];
@@ -955,7 +958,11 @@
 
 <!-- The Analysis: the candidates table and the move list. -->
 {#snippet analysisView()}
-  {@const rows = (analysis?.candidates ?? []).map((c, k) => ({ c, rank: k + 1 }))}
+  <!-- One row for each distinct move: a symmetric twin, the same move with the same numbers, is named in its row's
+       mirror mark. The row is the searched edge: pointing at it lights that edge and draws its line. The name has a
+       slot as wide as the widest edge (M13-O16: 4 em in the first row's semibold), so the marks line up in a column.
+       In em, not ch: a ch of the semibold first row is wider than the other rows'. -->
+  {@const rows = analysis ? distinctCandidates(analysis).map((c, k) => ({ c, rank: k + 1, twins: twinsOf(analysis, c) })) : []}
   <!-- The table's box: a fixed height (from TABLE_ROWS), a scroll bar when there are more rows, and room for the
        scroll bar kept at all times, so that the columns do not move when it appears. Fixed columns: the table
        keeps its layout from position to position. Each fits its widest content (a two-digit rank, the header
@@ -973,15 +980,16 @@
       </tr>
     </thead>
     <tbody>
-      {#each rows as { c, rank } (rank)}
-        <tr class={["h-(--row)", rank === 1 && "font-semibold", !!hover && sameEdge(c.edge, hover) && "lit outline outline-accent -outline-offset-1",
+      {#each rows as { c, rank, twins } (rank)}
+        <tr class={["h-(--row)", rank === 1 && "font-semibold", hoverRank === rank && "lit outline outline-accent -outline-offset-1",
                     pinned && rank === selectedRank && "shadow-[inset_3px_0_0_var(--accent)]"]}
             style={rowTint(c.blueWin)} onmouseenter={() => { hoverOnBoard = false; hover = c.edge; }} onmouseleave={() => (hover = null)}
             onclick={() => pick(rank)}
             title={analysis && !trusted(c) ? "Too few visits to show the engine's line" : undefined}>
           <!-- A candidate on the board has its number in a badge, as the board draws it. The others have a plain number. -->
           <td>{@render rankBadge(rank, onBoard.has(rank) ? "On the board" : undefined)}</td>
-          <td><div class="@container truncate"><span class="text-[clamp(0.7em,22cqi,1em)]">{edgeName(c.edge)}</span></div></td>
+          <td><div class="@container flex items-center gap-1 min-w-0"><span class="flex-none w-[4.1em] truncate text-[clamp(0.7em,22cqi,1em)]">{edgeName(c.edge)}</span>{#if twins.length}<span
+                class="flex-none leading-none font-normal text-muted" title="Mirror: {twins.map(t => edgeName(t.edge)).join(', ')}">⇅</span>{/if}</div></td>
           <td>{pct(moverWin(c.blueWin, mover))}</td>
           <td>{c.lead !== undefined ? sideShort(c.lead) : "–"}</td><td>{c.visits}</td>
         </tr>

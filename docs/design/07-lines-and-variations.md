@@ -129,6 +129,13 @@ cut edges that are on the board, so a line drawn over the board can show edges t
 8. **The candidates' ranks are rounded squares,** on the board, in the table and before the listed line, and the
    line's numbers are circles (Go's numbered stones), so a rank is never read as a line's number. While a line shows,
    the other candidates still leave the board.
+   - **A rank is a distinct move.** In a position that is its own image (the start, under the mirror of row r to row
+     20 - r), the engine searches one edge of each mirror pair and lists the other with the same numbers (protocol
+     0.4, its "symmetric twins"). The table has one row for the pair, with a mirror mark (⇅) whose note names the
+     twin ("Mirror: A10-D11"). The marks stand in one column, after a slot as wide as the widest edge's name. The board draws both edges with the pair's rank. Pointing lights one edge: the row is
+     the searched edge, and on the board the edge under the pointer, with its own line. While that line shows, the
+     other edge of the pair leaves the board, as the other candidates do. The ranks count the distinct moves, so the
+     start's first five moves are ranks 1 to 5, not 1 to 10.
 9. **A click on a candidate pins it,** on the board or in the table: the list shows its line, and the board keeps its
    line, still drawing, when the pointer leaves. A second click unpins it. The pinned row has an accent bar on its left.
 10. **Playing a candidate:** Space plays the pinned candidate, or number 1 (Lichess's Space plays its best move). A
@@ -261,6 +268,10 @@ cut edges that are on the board, so a line drawn over the board can show edges t
 - **No labels on branches at all** (Lichess): no searches, but a try could not be judged as the game's edges are.
 - **Delete only, by a key or a button:** no way to order the branches.
 - **"Make main line" in the review:** the review's labels, chart and summary would follow a line that was not played.
+- **The symmetric twins as rows of their own** (KaTrain's, Lizzie's and Sabaki's way: KataGo lists each twin, and they
+  show it as a candidate): the start's table then spent two rows on each move, with the same numbers, and the ranks
+  counted each move twice. One row for the pair keeps the table's rows for distinct moves, and the board still shows
+  both edges, since either can be played.
 
 ## Consequences
 

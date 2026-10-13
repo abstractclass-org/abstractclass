@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { Edge } from "#lib/engine/notation.ts";
 import { complexity, distinctCandidates, equalDepth, likelyEdges, judgeBranchEdge, onlyEdge, otherCandidate, review, roundTogether,
-         sameMove, secondChoice, shortNote, trustedLine, turnCost, valuesAfter, type Analysis, type Candidate, type Move, type Position,
+         rankOf, sameMove, secondChoice, shortNote, shownCandidates, trustedLine, twinsOf, turnCost, valuesAfter, type Analysis, type Candidate, type Move, type Position,
          type ReviewData } from "./model.ts";
 import { accuracyWeight } from "./labels.ts";
 
@@ -205,3 +205,13 @@ test("a Best edge that is the first choice's twin gets no \"was best\" note", ()
   assert.equal(shortNote(e), "Best.");
 });
 
+test("ranks count distinct moves: a twin shares its move's rank, and comes with it on the board", () => {
+  assert.equal(rankOf(mirrored, A10D9), 1);
+  assert.equal(rankOf(mirrored, A10D11), 1);
+  assert.equal(rankOf(mirrored, D10G10), 2);
+  assert.equal(rankOf(mirrored, [9, 9, 9, 10]), 0); // not a candidate
+  assert.deepEqual(twinsOf(mirrored, mirrored.candidates[0]).map(c => c.edge), [A10D11]);
+  const shown = shownCandidates(mirrored, 0);
+  assert.deepEqual(shown.map(s => s.rank), [1]); // D10-G10 is 0.15 worse: not on the board
+  assert.deepEqual(shown[0].twins.map(c => c.edge), [A10D11]);
+});
