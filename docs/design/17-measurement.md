@@ -365,8 +365,9 @@ change the privacy page in the same release.
 **The changes of 2026-10-14** (design 22, the Analysis board):
 
 - **Step 1:** the custom dimension **Analysis source**.
-- **Exploration 1:** step 1 takes `/review` in the place of `/import`, in both tabs. To change a step, open its tab,
-  click the pencil beside **Steps**, edit the step's condition, and click **Apply**.
+- **Exploration 1:** step 1 takes `/review` in the place of `/import`, in the tab **From the visit** (the tab **By
+  way in** starts at step 2), and its name is **Home or review**. To change a step, open its tab, click the pencil
+  beside **Steps**, edit the step's condition, and click **Apply**.
 - **Exploration 4:** the dimension **Page path and screen class**, and its column in the tab **Feature users**.
 - **Exploration 6:** the dimension **Analysis source**, and the tabs **Analysis ways in** and **Failed analysis**.
 
