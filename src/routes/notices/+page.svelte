@@ -1,7 +1,8 @@
 <script lang="ts">
-  // The licences of what the site ships (design 11): the engine, the libraries in the pages, an icon, the sounds.
+  // The site's own terms, then the licences of what it ships of others' work (design 11): the engine, the libraries in
+  // the pages, an icon, the sounds.
   import { PROSE } from "#lib/prose.ts";
-  import { SITE_NAME } from "#lib/edition.ts";
+  import { SITE_COPYRIGHT, SITE_NAME } from "#lib/edition.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
   import lock from "../../../engine.lock.json";
 
@@ -36,6 +37,10 @@
 <main class={PROSE}>
   <h1>Notices</h1>
 
+  <h2>{SITE_NAME}</h2>
+  <p>{SITE_NAME}'s own code, text and design are {SITE_COPYRIGHT}. All rights reserved.</p>
+  <p>The works below are by others. Their licences cover those works only, not {SITE_NAME}.</p>
+
   <h2>The engine</h2>
   <p>The engine is built by the enclosure-ai project from a fork of <a href="https://github.com/lightvector/KataGo">KataGo</a>,
     under KataGo's licence:</p>
@@ -53,7 +58,7 @@
     {#each MIT as [name, href, copyright] (name)}<li><a {href}>{name}</a>: {copyright}.</li>{/each}
   </ul>
 
-  <h2>The MIT licence</h2>
+  <h2>The MIT licence, of the works above</h2>
   <pre class="whitespace-pre-wrap">Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 documentation files (the "Software"), to deal in the Software without restriction, including without limitation the
 rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit

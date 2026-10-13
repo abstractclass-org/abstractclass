@@ -125,8 +125,15 @@ The property can have 50 event-scoped and 25 user-scoped custom dimensions. Thes
 
 1. In Admin, under **Data display**, click **Events**.
 2. Find `import_game`, `review_done` and `export`. Click the star beside each one.
-3. If an event is not in the list yet (Google has not received it), click **Key events** under **Data display**, then
-   **New key event**. Type the event's name and click **Save**.
+3. If an event is not in the list yet, either wait or create it. The list shows an event only some hours after Google
+   receives it first, and only after a visitor does it on the live site. To create it, click **+ Create event** on the
+   same page:
+   1. Type the event's name exactly (`import_game`), and turn on **Mark as key event**.
+   2. **Default key event value:** do not set one. **Counting method:** once per event.
+   3. Click **Create**.
+
+   If the form asks for **matching conditions**, it makes a new event from other events, and the site's events would
+   then count twice. In that case, cancel it, and wait for the events to show in the list.
 
 #### 4. The data retention
 

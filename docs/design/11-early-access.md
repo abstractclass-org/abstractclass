@@ -23,8 +23,8 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
      About page's section on the early access. Then Review, and on its right The notation and About. Review opens
      the last game reviewed in this browser, and the address then names it, so a reload keeps it. With no game
      reviewed yet, it asks for one. **The footer,** on the pages that scroll (the home page and the pages about the
-     site): About, The notation, Privacy, Notices, and the site's version (its commit). The review has no footer: it
-     fills the window.
+     site): About, The notation, Privacy, Notices, the site's version (its commit), and the site's copyright line. The
+     review has no footer: it fills the window.
    - **Not in the early access:** puzzles, lessons, free analysis and the engine lab. Their addresses lead home. Their
      code stays, for the full site.
 3. **One build switch:** `VITE_EDITION=early` builds the early access. Without it, the build is the full site, for
@@ -69,6 +69,13 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
    ([requests/11-notation-page.md](../requests/11-notation-page.md)).
 9. **The labels:** as built (design 10), with no note that they may change. They are computed again from the stored
    analyses whenever the page opens, so a later change reaches every stored game without a new search.
+10. **The site's own terms:** its code, text and design are under copyright, all rights reserved (`SITE_COPYRIGHT` in
+    `src/lib/edition.ts`: "© 2026 Yshan"). The repository is private and has no licence file. The notices page states
+    these terms first, and then the licences of the works of others that the site ships: the MIT licence there covers
+    those works only. These licences cannot be removed: MIT, for example, requires its notice in every copy, and the
+    site sends those libraries to each visitor. An open licence such as MIT would let anyone serve the site for profit.
+    If the repository becomes public, a licence for non-commercial use (PolyForm Noncommercial 1.0.0) is the nearest
+    to these terms, with the sounds left out: the Pixabay Content License does not permit their passing on alone.
 
 ### Constellation's export
 

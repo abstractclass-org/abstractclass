@@ -2091,3 +2091,16 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   of that name as the event's worth, a number: the review's depth would have added up as worth, and a text value such
   as "off" may not show. The parameter is now `setting_value`. Design 17's setup now gives each registration's fields,
   the dimension's name and what the parameter holds.
+
+### The site's own terms (2026-10-13)
+
+- **The question:** the notices page showed the MIT licence, which a reader could take for the site's own licence. MIT
+  would let anyone serve the site for profit.
+- **Checked:** nothing that the site uses forces a licence on its code. The libraries are under MIT, the icon under
+  Apache 2.0, and the engine's KataGo code under MIT. The site takes Lichess's accuracy formula and the behaviour of
+  its board's notes, not lila's code, so lila's AGPL does not apply. The sounds are under the Pixabay Content License,
+  which no licence of the site's can cover.
+- **Decided** (design 11, item 10): the site's code, text and design are "© 2026 Yshan", all rights reserved, with no
+  licence file while the repository is private. The notices page states this first. Its MIT text stays, under the
+  heading "The MIT licence, of the works above": MIT requires its notice in every copy. The footer shows the copyright
+  line. For a public repository later: PolyForm Noncommercial 1.0.0, with the sounds left out.
