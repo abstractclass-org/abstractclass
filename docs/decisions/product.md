@@ -2087,3 +2087,7 @@ The interface, the review, puzzles, lessons, labels and thresholds.
 - **Not checked:** `tool_out_of_date`, `gpu_test` (this browser had its GPU's test stored), `game_delete` and
   `game_restore` in the browser, and the events in Google Analytics itself, which waits on the release and the
   owner's registration of the parameters.
+- **A parameter renamed:** `setting_change` sent the setting's new value as `value`. Google Analytics reads a parameter
+  of that name as the event's worth, a number: the review's depth would have added up as worth, and a text value such
+  as "off" may not show. The parameter is now `setting_value`. Design 17's setup now gives each registration's fields,
+  the dimension's name and what the parameter holds.

@@ -43,7 +43,7 @@ visitors' machines, and the GPU on other machines.
 | `review_done` | the review ends, in this visit | as `review_open`, and `review_seconds` (a number), `minutes`, `worker_speed` (a CPU worker's visits a second, by 5), `gpu_used` | the engine's defaults: how long a review takes on real machines, by settings and cores |
 | `gpu_test` | Auto's first test of a GPU | `outcome` (faster, slower), `ratio` (the GPU's speed over a worker's), `gpu` (maker and kind, as WebGPU gives them), `network` | the GPU's default, and whether it pays off on laptops and phones |
 | `engine_error` | the engine fails | `kind` (load, rules, gpu) | reliability |
-| `setting_change` | an engine setting changes | `setting`, `value`, `scope` (browser, game) | whether the defaults fit |
+| `setting_change` | an engine setting changes | `setting`, `setting_value`, `scope` (browser, game) | whether the defaults fit |
 | `feature` | a feature's first use in a review | `name` (candidate played, listed line played, engine line played, own edge played, note drawn, quality evaluated, branch promoted, branch deleted, keys list, chart difficulty, chart advantage, chart jump, display and a setting's name) | what to keep, to improve, or to explain |
 | `export` | an export | `kind` (link, file, copy, text), `link_length`, `too_long` | whether players share, and whether links fit a Discord message |
 | `game_delete`, `game_restore` | a game deleted, its Undo | none | whether Undo saves slips |
@@ -55,19 +55,89 @@ browser keeps, as a range.
 
 ### The setup in Google Analytics (once, by the owner)
 
-1. **Admin → Custom definitions → Create custom dimension**, scope Event, for each parameter: `source`, `edges`,
-   `reason`, `tool`, `network_found`, `same_engine`, `with_results`, `with_branches`, `network`, `depth`,
-   `depth_on_screen`, `time_limit`, `workers`, `gpu_mode`, `cores`, `own_settings`, `done_before`, `minutes`,
-   `gpu_used`, `outcome`, `gpu`, `setting`, `value`, `scope`, `name`, `kind`, `link_length`, `too_long` (28 of the 50 a
-   property can have). Scope User: `games_stored`. A parameter that is not registered reaches Google but shows in no
-   report.
-2. **Custom metrics**, scope Event: `review_seconds` (unit: seconds), `worker_speed` and `ratio` (standard).
-3. **Key events:** `import_game`, `review_done`, `export`.
-4. **Data retention:** Admin → Data collection → Data retention, 14 months, so that a comparison across releases has
-   the earlier months.
+Google receives every parameter of every event. A report shows a parameter only after it is registered as a custom
+dimension or a custom metric, and only for the events that come after the registration. Thus register them soon. The
+setup needs the Editor role on the site's property.
 
-The site's address has the events from the release on. Google shows new events in Realtime at once, and in the reports
-within a day or two.
+**Before you start:** go to [analytics.google.com](https://analytics.google.com). Select the site's property in the
+selector at the top left. Click **Admin**, the gear at the bottom left.
+
+#### 1. The custom dimensions (29 rows of the table below)
+
+1. In Admin, under **Data display**, click **Custom definitions**.
+2. On the **Custom dimensions** tab, click **Create custom dimension**.
+3. Fill in the form from one row of the table below:
+   - **Dimension name:** the name in the table. This name shows in the reports. Hyphens are not permitted.
+   - **Scope:** the scope in the table. You cannot change it after you save.
+   - **Description:** optional. The table's last column can serve.
+   - **Event parameter** (for scope User, **User property**): the parameter in the table, exactly as it is written.
+     Select it in the list. If the list does not have it yet, type it: the list shows only the parameters that Google
+     received.
+4. Click **Save**.
+5. Do steps 2 to 4 again for each row.
+
+| Event parameter | Dimension name | Scope | What it holds |
+|---|---|---|---|
+| `source` | Import source | Event | how a game came in: record, constellation, review_file, bookmarklet, userscript, older_tool, share_link |
+| `reason` | Import failure | Event | why an import failed: record, rejected, file, link |
+| `edges` | Game edges | Event | the game's edges, as a range |
+| `with_results` | File with results | Event | a review file that has the engine's results |
+| `with_branches` | Link with branches | Event | a share link that has branches |
+| `tool` | Tool out of date | Event | bookmarklet, userscript, older |
+| `network_found` | Share network found | Event | the share link's network is on this site |
+| `same_engine` | Share same engine | Event | the share link's engine is this site's engine |
+| `network` | Engine network | Event | the network's name |
+| `depth` | Review depth | Event | the review's visits a move |
+| `depth_on_screen` | Depth on screen | Event | the visits for the position on screen |
+| `time_limit` | Time limit | Event | the seconds for the position on screen, 0 for none |
+| `workers` | Workers | Event | the CPU workers |
+| `gpu_mode` | GPU mode | Event | auto, on or off |
+| `cores` | CPU cores | Event | the machine's cores, as a range |
+| `own_settings` | Game own settings | Event | the game has its own settings, from an imported review |
+| `done_before` | Done before | Event | the review opened with its results stored |
+| `minutes` | Review minutes | Event | the review's time, as a range |
+| `gpu_used` | GPU used | Event | the GPU searched in the review |
+| `outcome` | GPU test outcome | Event | faster or slower |
+| `gpu` | GPU | Event | the GPU's maker and kind |
+| `setting` | Setting | Event | the setting that changed |
+| `setting_value` | Setting value | Event | the setting's new value |
+| `scope` | Setting scope | Event | browser (this browser's settings) or game (one game's settings) |
+| `name` | Feature | Event | the feature used |
+| `kind` | Kind | Event | an export's kind (link, file, copy, text), or an engine failure's kind (load, rules, gpu) |
+| `link_length` | Link length | Event | a share link's characters, as a range |
+| `too_long` | Link too long | Event | the link is longer than a Discord message takes |
+| `games_stored` | Games stored | **User** | the games that the browser keeps, as a range |
+
+The property can have 50 event-scoped and 25 user-scoped custom dimensions. These take 28 and 1.
+
+#### 2. The custom metrics (3)
+
+1. In **Custom definitions**, click the **Custom metrics** tab, then **Create custom metric**.
+2. Fill in the form, click **Save**, and do it again for each row:
+
+| Event parameter | Metric name | Scope | Unit of measurement |
+|---|---|---|---|
+| `review_seconds` | Review seconds | Event | Time, then Seconds |
+| `worker_speed` | Worker speed | Event | Standard |
+| `ratio` | GPU speed ratio | Event | Standard |
+
+#### 3. The key events (3)
+
+1. In Admin, under **Data display**, click **Events**.
+2. Find `import_game`, `review_done` and `export`. Click the star beside each one.
+3. If an event is not in the list yet (Google has not received it), click **Key events** under **Data display**, then
+   **New key event**. Type the event's name and click **Save**.
+
+#### 4. The data retention
+
+1. In Admin, under **Data collection and modification**, click **Data retention**.
+2. Set **Event data retention** to **14 months**, and click **Save**. The default, 2 months, is too short to compare a
+   release with the months before it.
+
+#### After the setup
+
+Google shows the events in **Reports → Realtime** at once. The custom dimensions fill the reports within a day or two,
+from the time of their registration on.
 
 ### The questions, and the reports that answer them
 
@@ -79,7 +149,7 @@ within a day or two.
   `minutes`). `worker_speed` by `cores` gives the visitors' machines in visits a second, for the pool's size.
 - **Does the GPU pay off?** `gpu_test`, rows `gpu`, columns `outcome`, values the average `ratio`.
 - **Which features earn their place?** `feature`, rows `name`, value the count of users, against `review_open`'s users.
-- **Do the defaults fit?** `setting_change`, rows `setting` and `value`: a setting that most players change away from
+- **Do the defaults fit?** `setting_change`, rows `setting` and `setting_value`: a setting that most players change away from
   its default asks for another default.
 - **Do shares and imports work?** `share_open` by `network_found`, `import_failed` by `source` and `reason`,
   `tool_out_of_date` by `tool`, `game_missing`.

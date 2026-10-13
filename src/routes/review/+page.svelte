@@ -50,7 +50,8 @@
   // game's two.
   let own = $state<GameSettings | null>(null);
   const settings = $derived(own ? withReview(engine, own.network, own.visits) : engine);
-  // A setting changed, by its name, its new value and where it applies (design 17): the defaults' test.
+  // A setting changed, by its name, its new value and where it applies (design 17): the defaults' test. The value goes
+  // as `setting_value`: Google Analytics reads a parameter called `value` as the event's worth, a number.
   const SETTING_NAMES: Record<string, string> = { on: "engine_on", visits: "depth_on_screen", seconds: "time_limit", review: "depth_per_move",
                                                   customReview: "depth_per_move", network: "network", workers: "workers", gpu: "gpu" };
   function countChange(change: Partial<EngineSettings>) {
@@ -59,9 +60,9 @@
       const setting = SETTING_NAMES[k] ?? k;
       if (names.has(setting)) continue;
       names.add(setting);
-      const value = setting === "depth_per_move" ? reviewVisits(next) : setting === "network" ? next.network.split("-")[0]
+      const value = setting === "depth_per_move" ? String(reviewVisits(next)) : setting === "network" ? next.network.split("-")[0]
         : String(next[k as keyof EngineSettings] ?? "none");
-      track("setting_change", { setting, value, scope: own && (setting === "network" || setting === "depth_per_move") ? "game" : "browser" });
+      track("setting_change", { setting, setting_value: value, scope: own && (setting === "network" || setting === "depth_per_move") ? "game" : "browser" });
     }
   }
   function changeEngine(change: Partial<EngineSettings>) {
