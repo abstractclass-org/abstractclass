@@ -126,3 +126,14 @@ or a design first:
 - **Export a review:** the game's record with each position's evaluation (the record's `[%eval]` comments), the
   labels, and the branches as variations, so that a review can be kept and shared. The sample game needs none: the
   engine is reproducible, so the same build and network give the same review.
+
+## Hedge School's place (design/19-position.md)
+
+- **The licence of the engine's networks:** decide what a play site may embed. If the strongest network is free to
+  embed, a play site's analysis can equal Hedge School's. Choices: all networks open, the older ones open and the
+  newest kept for Hedge School, or none. The engine's terms belong to the engine repository (request 14): decide
+  there.
+- **An open database of enclosuregame.com's games,** as Lichess publishes its games: wait to see whether
+  enclosuregame.com publishes one. If it does not, propose it: its games become puzzles that its players train on.
+- **Accounts through a partner's sign-in,** in the place of Hedge School's own: ask the partners when a feature first
+  needs accounts.

@@ -2337,3 +2337,16 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   change of the privacy page in the same release.
 - **"(not set)" for the import source** in the first day's imports: those events came before the release that sent
   `import_source`, and before its dimension was registered. The live site's code sends `import_source` only.
+
+### Hedge School's place: a school for every play site (2026-10-14)
+
+- **The question:** enclosuregame.com, a play site with accounts and matchmaking, will add tools as Lichess did.
+  Hedge School runs no play, and later needs a backend, accounts, and human games for its puzzles.
+- **Decided** (design 19): Hedge School is a school for every play site. It reviews, explains and teaches (lessons,
+  puzzles, studies), and runs no play. Its edge is teaching: the engine, the explanations and the teaching material.
+  Static files and the browser first: lessons, puzzles from the player's own games, a chosen set of puzzles as files,
+  studies as files and links. A light backend on Cloudflare (Workers, D1) when a feature needs shared data: optional
+  accounts, puzzle ratings from attempts, shared studies. Human games by agreement: play sites, the meaf.us archive
+  with its owner's permission, and players who give a game.
+- **Left open** (the open items, "Hedge School's place"): the licence of the engine's networks, an open database of
+  enclosuregame.com's games (wait to see whether it publishes one), and a partner's sign-in for accounts.
