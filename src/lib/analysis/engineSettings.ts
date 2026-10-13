@@ -35,11 +35,12 @@ export const networkMB = (id: string): string => megabytes(locked(id)?.bytes ?? 
 const locked = (id: string) => (lock.artifacts as { id: string; displayName?: string; bytes: number }[]).find(a => a.id === id);
 
 /** The networks, as the manifest names them (engine.lock.json pins both). Their parameters are the trainer's counts
- *  (the engine repository's v2/docs/design/15-network-sizes.md). A worker's memory once the network is loaded:
- *  decisions/engine.md (95 and 244 MiB, measured on the earlier networks of the same sizes). */
+ *  (the engine repository's v2/docs/design/15-network-sizes.md). Their memory in a worker and on the GPU, measured on
+ *  one machine: decisions/engine.md, "A review's memory". The settings give no number for it: it depends on the
+ *  browser and the graphics card. */
 export const NETWORKS = [
-  { id: "b10c128-s66625408-d13350730", params: "3.2M", memoryMB: 100 },
-  { id: "b15c192-s66999040-d13350730", params: "10.3M", memoryMB: 255 },
+  { id: "b10c128-s66625408-d13350730", params: "3.2M" },
+  { id: "b15c192-s66999040-d13350730", params: "10.3M" },
 ];
 /** The position on screen's visits: any whole number from 256 to 16,384. Its slider steps by doublings, and each step
  *  doubles the time. The search tree grows with its visits in the worker's memory, and a worker's memory does not

@@ -940,4 +940,13 @@ Blunder's loss.
   tab in view, and a tab hidden for over 5 minutes, where Edge runs a page's timers once a minute, so a release can
   come up to a minute late.
 - **What a budget can still take, not done:** fewer default workers or a smaller cache would lower a searching tab's
-  1.3 GB (Lite) or 2.7 GB (HedgeFund 0.1). The help line of the workers' setting gives a worker's memory.
+  1.3 GB (Lite) or 2.7 GB (HedgeFund 0.1). The help lines of the workers' setting and of the GPU's say that each uses
+  more memory, and ask the player to mind it.
+- **The GPU's share, measured alone** (the same review at Standard's depth, 8 workers, with the GPU Off, then On, a
+  minute each, 2 to 3 samples in each state): with Lite, the tab's renderer 884 MiB against 1,316 (+432) and the GPU
+  process +50 to 115 MiB; with HedgeFund 0.1, 2,189 against 2,729 (+540) and +200. So the GPU takes about 0.53 GiB
+  with Lite and 0.74 GiB with HedgeFund 0.1, on this machine only.
+- **The help lines give no number:** a worker's memory depends on the browser, and the GPU's share of the GPU process on
+  the graphics card, its driver and the system (on a laptop's integrated GPU, the graphics memory is the system's). The
+  workers' line gave "about 100 MB" (Lite) and "about 255 MB" (HedgeFund 0.1). Both lines now say that more memory is
+  used, and ask the player to mind it.

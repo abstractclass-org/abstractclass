@@ -1347,7 +1347,6 @@
 <!-- The engine's settings (design 09), grouped by what they search: the position on screen, the game's review, and the
      engine itself. Each has one short line of help. A value in steps is a slider, as in Lichess's engine settings. -->
 {#snippet engineSettingsPanel(e: EngineSettings, set: (change: Partial<EngineSettings>) => void)}
-  {@const memory = NETWORKS.find(n => n.id === e.network)?.memoryMB ?? NETWORKS[0].memoryMB}
   <div id="engine-settings" role="region" aria-label="Engine settings" class="flex flex-col flex-1 min-h-0">
     <h2 class="font-semibold mb-1">Engine settings</h2>
     <div class="flex-1 min-h-0 overflow-y-auto pr-1">
@@ -1370,9 +1369,9 @@
       <h3 class={SETTINGS_HEAD}>Engine</h3>
       {@render choice("Network", `Lite has ${NETWORKS[0].params} parameters, the other ${NETWORKS[1].params}: stronger per visit but about 3× slower. A change reviews the game again. A network downloads once, and the browser keeps it.`,
         NETWORKS.map(n => [n.id, networkLabel(n.id)]), () => e.network, v => set({ network: v }))}
-      {@render steps("Workers", `Positions searched at the same time. Each uses about ${memory} MB.`, maxWorkers(),
+      {@render steps("Workers", "Positions searched at the same time. Each worker uses more of your computer's memory: mind how much it has.", maxWorkers(),
         () => e.workers - 1, k => set({ workers: k + 1 }), k => `${k + 1} of ${maxWorkers()}`)}
-      {@render choice("GPU", `Many positions at once on the graphics card, with the workers. Auto tests it on first use, and keeps it where it is faster than a worker. Its first use downloads ${gpu?.downloadMB ?? "?"} MB.`,
+      {@render choice("GPU", `Many positions at once on the graphics card, with the workers. Auto tests it on first use, and keeps it where it is faster than a worker. Its first use downloads ${gpu?.downloadMB ?? "?"} MB. While it searches, it uses more memory, as the workers do.`,
         [["auto", "Auto"], ["on", "On"], ["off", "Off"]], () => e.gpu, v => set({ gpu: v as GpuMode }))}
       {#if gpu && gpuStatusText(gpu.status)}
         <p class="-mt-1 mb-1 text-xs text-muted" aria-live="polite">{gpuStatusText(gpu.status)}</p>

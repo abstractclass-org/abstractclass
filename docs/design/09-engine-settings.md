@@ -82,15 +82,17 @@ each applies at once, without a reload.
      default. On a laptop of 12 cores each worker kept 86% of one worker's speed up to 8 workers, so a cap of 4 left
      about a third of the speed unused (decisions/engine.md, "Speed on a laptop: the engine lab's sweep"). Half the
      cores leaves room for the page and the visitor's other work, and 8 workers of b10c128 take about 0.75 GB. The
-     help line gives a worker's memory for the chosen network. A change adds workers, which
+     help line says that each worker uses more of the computer's memory, and asks the player to mind it: it gives no
+     number, because a worker's memory depends on the browser and the network. A change adds workers, which
      load the network and then take work, or removes them: a free worker ends at once, a busy one when its task ends.
      **An idle review keeps no search engine:** after a minute with no search (15 seconds in a hidden tab), the
      review ends its workers and the GPU worker, and keeps the rules worker, so that the board still answers at once.
      The next search starts them again, in about a second (`releaseWhenIdle` in `src/lib/analysis/pool.ts`).
      The work in progress goes on. "GPU": Auto, On or Off, Auto by default. The GPU searches many positions at once
      beside the workers, and Auto keeps it where its first-use test finds it faster than a worker
-     ([design 15](15-gpu.md)). The help line gives its first download for the chosen network, and a line under the
-     choice gives its state and the test's two speeds.
+     ([design 15](15-gpu.md)). The help line gives its first download for the chosen network, and says that it uses
+     more memory while it searches, with no number: the GPU's share depends on the graphics card and its driver. A line
+     under the choice gives its state and the test's two speeds.
 4. **Sliders** set the values in steps, as Lichess's engine settings do. The value shows at the right of the name as
    the slider moves, and the setting changes when it is let go, so that a drag does not restart the search or the
    workers at each step.
