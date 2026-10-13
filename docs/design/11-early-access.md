@@ -20,7 +20,11 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
    - **The ways to bring a game:** a pasted record in this site's notation, a pasted export of Constellation's
      analysis board, and the meaf.us bookmarklet ([import](#constellations-export) below).
    - **The header:** the name, which leads home, with "Early Access" beside it in the accent colour, which leads to the
-     About page's section on the early access. Then Review, and on its right The notation and About. Review opens
+     About page's section on the early access. Then Review, and on its right The notation, About and the theme
+     menu: System (the default: the computer's light or dark), Light or Dark. Its button shows the choice: a
+     half-filled circle, a sun or a moon. The choice is kept in this browser, and a script in the page's head applies
+     it before the page draws, so that a page never shows the other theme first. On a phone the header's gaps narrow,
+     so that it fits in 360 pixels. Review opens
      the last game reviewed in this browser, and the address then names it, so a reload keeps it. With no game
      reviewed yet, it asks for one. **The footer,** on the pages that scroll (the home page and the pages about the
      site): About, The notation, Privacy, Notices, the site's version (its commit), the site's copyright line, and

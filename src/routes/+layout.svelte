@@ -6,6 +6,8 @@
 	import { EARLY_ACCESS, SITE_NAME } from '#lib/edition.ts';
 	import { ASKS_CONSENT, consent, startAnalytics } from '#lib/analytics.svelte.ts';
 	import ConsentBanner from '#lib/ConsentBanner.svelte';
+	import ThemeMenu from '#lib/ThemeMenu.svelte';
+	import { startTheme } from '#lib/theme.svelte.ts';
 	import Collie from '#lib/Collie.svelte';
 	import type { LayoutProps } from './$types';
 
@@ -29,6 +31,7 @@
 	let mounted = $state(false);
 	onMount(() => {
 		mounted = true;
+		startTheme();
 		if (page.route.id !== '/import') startAnalytics();
 	});
 </script>
@@ -42,7 +45,8 @@
 	<meta name="robots" content="noindex" />
 </svelte:head>
 
-<header class="flex items-center gap-6 px-4 py-2 min-h-(--site-header) bg-panel border-b border-line">
+<!-- The gaps narrow on a phone, so that the theme menu fits in 360 pixels. -->
+<header class="flex items-center gap-3 sm:gap-6 px-4 py-2 min-h-(--site-header) bg-panel border-b border-line">
 	<span class="flex items-center gap-2">
 		<a class="flex items-center gap-2 text-xl font-bold text-ink no-underline" href="/">
 			<Collie size={28} />{SITE_NAME}
@@ -62,6 +66,7 @@
 	<nav class="flex flex-wrap gap-4.5 ml-auto text-sm">
 		{#each ABOUT as item (item.href)}<a href={item.href} class={linkClass(item.href)}>{item.label}</a>{/each}
 	</nav>
+	<ThemeMenu />
 </header>
 
 {@render children()}

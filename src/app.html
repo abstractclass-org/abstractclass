@@ -4,6 +4,15 @@
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="text-scale" content="scale" />
+		<script>
+			// The theme before the page draws (src/lib/theme.svelte.ts): the visitor's choice, else the system's.
+			(function () {
+				var theme = null;
+				try { theme = localStorage.getItem("hedge-school:theme:1"); } catch (e) {}
+				if (theme !== "light" && theme !== "dark") theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+				document.documentElement.dataset.theme = theme;
+			})();
+		</script>
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">

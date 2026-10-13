@@ -2108,3 +2108,20 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   by webgoatguy", beside the site's copyright line, so that the line does not read as the game's. webgoatguy has not
   spoken of the site. Thus the About page now says that the site is not an official site of the game, and is made
   independently of webgoatguy, meaf.us and Constellation.
+
+### The theme: System, Light or Dark (2026-10-13)
+
+- **Before:** the site followed the system's theme only (`prefers-color-scheme`).
+- **Decided** (design 11, the header): a theme menu at the header's right, on every page: System (the default), Light
+  or Dark, as MDN's header offers its theme. The header is the one bar that every page has: the review has no footer.
+  The choice is kept in this browser's localStorage (`hedge-school:theme:1`), as the review's and the engine's
+  settings are. The privacy page names it.
+- **How:** the page's `data-theme` is always `light` or `dark`. The dark tokens are written once, under
+  `[data-theme="dark"]`, and Tailwind's `dark:` follows the same attribute. A script in `app.html` sets it before the
+  page draws, so a page never shows the other theme first. While the choice is System, the page follows a change of
+  the system's theme at once. A visitor without JavaScript gets the light theme.
+- **Checked in Edge:** with the system dark and no choice, the pages were dark and the button read "Theme: System".
+  Light from the menu turned the page light at once, kept the choice, and the review page opened light. At 360 pixels
+  the header overflowed by 16 pixels with the menu: its gaps are now 12 pixels on a phone (24 from 640 up), and it
+  fits. At 320 pixels it overflows by 4 pixels, as it did before the menu. Not checked: a change of the system's
+  theme while a page is open.

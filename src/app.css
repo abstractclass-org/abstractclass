@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Tailwind's dark: follows the site's theme (src/lib/theme.svelte.ts), not the system's alone. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 /* Colour tokens. Plain and clear (docs/design/04-product-shape.md). Players: Blue moves first, Red second. */
 :root {
   --site-header: 3rem; /* the site's header bar (+layout.svelte): pages size their boards from the height below it */
@@ -39,27 +42,27 @@
   --blunder: #d43a3a;
   color-scheme: light;
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #1d1e21;
-    --panel: #26282c;
-    --panel-2: #2f3236;
-    --text: #e4e4e6;
-    --muted: #9a9ca3;
-    --border: #3a3d42;
-    --accent: #4fb3a2;
-    --blue: #5b8ff0;
-    --red: #e8635c;
-    --board-bg: #3a362e;
-    --board-dot: #6d6555;
-    --protected: #ece6d6;
-    --protected-opacity: 0.55;
-    --last: #d6a614;
-    --area: #d27fbb;
-    --engine: #2f8fa3;
-    --candidate: #8d939c;
-    color-scheme: dark;
-  }
+/* The dark theme: the system's when the visitor has not chosen, else the visitor's choice (src/lib/theme.svelte.ts).
+   A script in app.html sets data-theme before the page draws. */
+:root[data-theme="dark"] {
+  --bg: #1d1e21;
+  --panel: #26282c;
+  --panel-2: #2f3236;
+  --text: #e4e4e6;
+  --muted: #9a9ca3;
+  --border: #3a3d42;
+  --accent: #4fb3a2;
+  --blue: #5b8ff0;
+  --red: #e8635c;
+  --board-bg: #3a362e;
+  --board-dot: #6d6555;
+  --protected: #ece6d6;
+  --protected-opacity: 0.55;
+  --last: #d6a614;
+  --area: #d27fbb;
+  --engine: #2f8fa3;
+  --candidate: #8d939c;
+  color-scheme: dark;
 }
 /* The tokens as Tailwind's colours (bg-panel, text-muted, border-line, …). Tailwind's own palette is cleared, so every
    colour on the site comes from the tokens above, and dark mode follows them. Label colours are set from the label in

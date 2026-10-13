@@ -23,7 +23,7 @@
   <ul>
     <li><strong>Your games:</strong> the records you import, with the players' names that the records hold.</li>
     <li><strong>Their analyses:</strong> the engine's results, so that a review opens at once the next time.</li>
-    <li><strong>Your settings:</strong> the review's and the engine's.</li>
+    <li><strong>Your settings:</strong> the review's, the engine's, and the theme.</li>
     <li><strong>Your choice about Google Analytics' cookies,</strong> and those cookies if you accept them.</li>
   </ul>
   <p>They stay in this browser on this computer: another browser or another computer does not see them. To remove

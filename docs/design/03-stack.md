@@ -16,12 +16,13 @@ new builds arrive often.
 - **Framework:** Svelte with SvelteKit, built to static files (`@sveltejs/adapter-static`). Each product area
   (review, puzzles, training) is a route, and each page is pre-rendered.
 - **Build tool:** Vite (inside SvelteKit). It bundles each Web Worker as a module script.
-- **Styles:** Tailwind CSS 4 (`@tailwindcss/vite`), as utility classes in the markup. The colour tokens in
-  `src/app.css` are Tailwind's only colours (`bg-panel`, `text-muted`, `border-line`), and dark mode follows the
-  tokens. Plain CSS stays where utilities read worse: the board's SVG styles (`Board.svelte`), the review page's
-  layout grid with its `calc()` board size (design 06), and the tokens and base element styles in `app.css`. Links
-  are underlined unless they are not in running text (`no-underline`). A page's `main` uses `box-content`, so its
-  `max-w-*` limit is the width of its content.
+- **Styles:** Tailwind CSS 4 (`@tailwindcss/vite`), as utility classes in the markup. The colour tokens in `src/app.css`
+  are Tailwind's only colours (`bg-panel`, `text-muted`, `border-line`), and dark mode follows the tokens. The page's
+  `data-theme` (`light` or `dark`) chooses the tokens, and Tailwind's `dark:` follows it: the theme menu sets it
+  (`src/lib/theme.svelte.ts`), and with no choice it follows the system's theme. Plain CSS stays where utilities read
+  worse: the board's SVG styles (`Board.svelte`), the review page's layout grid with its `calc()` board size (design
+  06), and the tokens and base element styles in `app.css`. Links are underlined unless they are not in running text
+  (`no-underline`). A page's `main` uses `box-content`, so its `max-w-*` limit is the width of its content.
 - **Components with keyboard and focus behaviour:** Bits UI 2 (`bits-ui`), a headless library for Svelte 5. It gives
   the roles, the keys and the focus handling, and leaves the styles to Tailwind. The review's tabs and its display
   menu use it (`Tabs`, `Popover`).
