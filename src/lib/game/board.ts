@@ -19,7 +19,8 @@ export function boardOfRecord(record: GameRecord): KeptBoard {
 }
 
 /** The link to a board: its tree, and the position on screen as its place on the main line (`at`, 0 at the start).
- *  `via` says where it was made, for the analytics only (design 17). */
+ *  `via` names the import's source when this site's own page made the link (an analysis file), for the analytics only
+ *  (design 17). */
 export function boardLink(origin: string, board: KeptBoard, at: number, via?: string): string {
   const code = encodeShare({ module: NO_ENGINE, model: NO_ENGINE, visits: 1, tags: {}, moves: [], branches: board.nodes });
   return `${origin}/analysis#packed=${code}${at ? `&at=${at}` : ""}${via ? `&via=${via}` : ""}`;

@@ -25,14 +25,13 @@ searching it again, and to share it as text that others can read.
 2. **Where:**
    - **The review page:** an Export menu beside the display settings' ☰: the review file, the annotated record copied,
      or the annotated record as a file. A short note beside it says what it did, or why it failed.
-   - **The home page:** the same menu beside each game, and "Import a review", which takes a file chosen or dropped
-     anywhere on the page. The home page builds its annotated record from the stored results, with no search: the engine
-     reads the rules only. These review things sit on the home page for now: when the site has more, the home page
-     becomes a home, and they move to the review page.
+   - **The Review tab** (design 22): the same menu beside each game, and "Import a review file", which takes a file
+     chosen or dropped anywhere on the page. The tab builds its annotated record from the stored results, with no
+     search: the engine reads the rules only.
 3. **Only a finished review exports,** every kind of export. A review is finished when every step of its bar is done:
    the sweep, the label pass, the key moments searched deeper, and the Greats' confirmations. Until then the Export
    button is off, and its tooltip says why: "Export once the review is done." on the review page, and "Open the game
-   to review it, then export." (or "to finish its review") on the home page.
+   to review it, then export." (or "to finish its review") in the Review tab.
    - **The mark of a finished review:** when a review ends, the browser keeps it with the game
      (`StoredGame.reviewed` in `src/lib/game/store.ts`): the engine module's and the network's SHA-256 (from the
      site's manifest), the network's id, the review's depth, and the time. The home page reads the marks, so it needs
@@ -74,7 +73,7 @@ searching it again, and to share it as text that others can read.
    - **No "my settings":** the settings kept in the browser are a convenience, the last ones chosen, not a player's
      settings that the site keeps as an account would. So the page offers no "Use my settings": a game that came with
      settings keeps them, and the player changes them in that game like any other setting.
-   - The home page's Export of the game asks for a review with the game's own settings.
+   - The Review tab's Export of the game asks for a review with the game's own settings.
 6. **Another engine:** the browser's store keys the results by the engine's build and network. An import keeps the
    file's mark when the site ships its network file, whatever the engine, and a mark of the site's engine stays over
    an earlier engine's. A file from an earlier engine therefore

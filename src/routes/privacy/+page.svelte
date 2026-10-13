@@ -23,7 +23,7 @@
   <ul>
     <li><strong>Your games:</strong> the records you import, with the players' names that the records hold.</li>
     <li><strong>Their analyses:</strong> the engine's results, so that a review opens at once the next time.</li>
-    <li><strong>Your Analysis board:</strong> its lines, the moves you evaluated, and the position you left it at.</li>
+    <li><strong>Your analysis:</strong> the Analysis board's lines, the moves you evaluated, and the position you left it at.</li>
     <li><strong>Your settings:</strong> the review's, the engine's, and the theme.</li>
     <li><strong>Your choice about Google Analytics' cookies,</strong> and those cookies if you accept them.</li>
   </ul>
@@ -74,13 +74,12 @@
     review's address names its game after the <code>#</code>, which neither records.</p>
   <p>Google Analytics also receives what you do here, as counts, so that we can tell what to improve:</p>
   <ul>
-    <li>that you imported a game, and how (pasted, from Constellation, a review file, the bookmarklet, the userscript, a
-      share link, another site's link or a review that another site kept), its length as a range (for example 90 to
-      119 edges), or why an import failed;</li>
+    <li>that you imported a game, to a review or to the Analysis board, and how (pasted, from Constellation, a review
+      or an analysis file, the bookmarklet, the userscript, a share link, another site's link or a review that another
+      site kept), its length as a range (for example 90 to 119 edges), or why an import failed;</li>
     <li>that a review opened and ended: the engine settings it ran with, your computer's number of cores as a range,
       how long the review took, and how fast the engine searched;</li>
-    <li>that the Analysis board opened, and how (from its page, the home page, another site's link, a shared analysis
-      or an analysis file), with its main line's length as a range, or that a line brought to it could not open;</li>
+    <li>that the Analysis board opened, with its main line's length as a range;</li>
     <li>the GPU's first test: faster or slower than the CPU, and the GPU's maker and kind;</li>
     <li>the engine settings you change, the features you use (each once in a review, or in a visit to the Analysis
       board), and your exports (a review saved to a partner site among them), with a share link's length as a range;</li>

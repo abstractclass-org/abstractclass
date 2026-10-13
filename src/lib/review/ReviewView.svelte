@@ -65,6 +65,7 @@
     board?: BoardForm | null; // the Analysis board (design 21)
     start?: string[]; // the position to open at: its path (the start when none)
     exportItems?: [ExportKind, string, string, string][]; // the Export menu's entries, when not the review's
+    onimport?: () => void; // the Analysis board's Import, beside Export: its page opens its own dialog (design 21)
     partner?: string | null; // the partner site the game came from by its link, which takes its review back (design 18)
     siteLink?: { href: string; host: string } | null; // the game's own page, from its record's Site tag
     ownSettings?: boolean; // the game keeps the network and depth it came with (store.ts, `settings`)
@@ -93,7 +94,7 @@
     exportReady?: boolean; // the review is done: export only then (design 13)
   }
   let { R, progress = null, problem = "", deepVisits = 0, onposition, lineSteps, branches = {}, onplay, rulesAt, ondelete,
-        onpromote, onjudge, labelVisits = 0, searching = false, timedOut = false, engine, onengine, gpu, secondAt, otherAt, turnKeys, pendingAt, reviewVisits = 0, onexport, exportReady = true, deeperPositions = 0, again = null, snapshot = null, board = null, start, exportItems, partner = null, siteLink = null, ownSettings = false, onfeature }: Props = $props();
+        onpromote, onjudge, labelVisits = 0, searching = false, timedOut = false, engine, onengine, gpu, secondAt, otherAt, turnKeys, pendingAt, reviewVisits = 0, onexport, exportReady = true, deeperPositions = 0, again = null, snapshot = null, board = null, start, exportItems, onimport, partner = null, siteLink = null, ownSettings = false, onfeature }: Props = $props();
   const used = (name: string) => onfeature?.(name);
   const last = $derived(R.data.positions.length - 1);
   const TABLE_ROWS = 5; // the Analysis table shows this many rows and scrolls, so the move list under it does not move
@@ -1708,6 +1709,7 @@
           <button onclick={toEnd} aria-label="Last">⏭</button>
         </div>
         <div class="flex items-center gap-1">
+          {#if onimport}<button type="button" class="text-sm" onclick={onimport}>Import</button>{/if}
           <!-- Export (design 13): the review file, with the engine's results, or the annotated record. -->
           {#if onexport}<ExportMenu run={kind => onexport(kind, display.judge)} ready={exportReady} items={exportItems}
                                     why={snapshot ? "Review again to export: this review used an earlier engine." : "Export once the review is done."} {partner} />{/if}

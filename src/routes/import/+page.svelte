@@ -1,10 +1,16 @@
 <script lang="ts">
   // The review's old way in (design 22): deprecated, and forwarded during the early access. An address with a `#` part
   // goes on to the review with it: the meaf.us tools' records, another site's `record=` and `from=`. The page alone goes
-  // to the tools for other sites, which it showed. It counts nothing: the layout starts no analytics here.
+  // to the tools for other sites, which it showed. It counts nothing itself: the layout starts no analytics here. It
+  // leaves a mark in the tab's session (FORWARDED), so that the review warns a developer in its console and counts the
+  // links that still use this address (Arrival.svelte).
   import { onMount } from "svelte";
+  import { FORWARDED } from "#lib/game/importHash.ts";
 
-  onMount(() => location.replace(location.hash.length > 1 ? `/review${location.hash}` : "/tools"));
+  onMount(() => {
+    if (location.hash.length > 1) try { sessionStorage.setItem(FORWARDED, "1"); } catch { /* storage blocked: no warning */ }
+    location.replace(location.hash.length > 1 ? `/review${location.hash}` : "/tools");
+  });
 </script>
 
 <svelte:head><title>Hedge School</title></svelte:head>

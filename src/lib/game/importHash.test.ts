@@ -34,7 +34,7 @@ test("a partner's page that sends a kept review names its origin, and may name i
 
 test("the analytics wait while the address holds a game after its `#` (design 22)", () => {
   for (const hash of ["#record=1.%20D10-G10", "#packed=AQx", "#from=https%3A%2F%2Fexample.com", "#tool=userscript&v=1&record=x",
-                      "#s=AQx", "#1.%20D10-G10", "#game=abc&record=x"])
+                      "#1.%20D10-G10", "#game=abc&record=x"])
     assert.equal(holdsGame(hash), true, hash);
   for (const hash of ["", "#", "#game=abc123", "#at=4", "#game=abc&at=2"]) assert.equal(holdsGame(hash), false, hash);
 });

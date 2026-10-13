@@ -15,22 +15,23 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
    the name the visitor reads. The browser's storage keeps its first names (`learn-enclosure`), so that the games and
    settings a browser holds stay. The local folder keeps its name too.
 2. **The scope: the review and the Analysis board** (design 21).
-   - **The home page:** import a game, and the player's games. No sample game: a review opens on a game the player
-     brought. Each game has a Delete ([below](#deleting-a-game)).
+   - **The home page:** what Hedge School is, and the way into each tab (design 22).
+   - **The Review tab:** import a game, continue the last review, and the player's games. No sample game: a review
+     opens on a game the player brought. Each game has a Delete ([below](#deleting-a-game)).
    - **The ways to bring a game:** a pasted record in this site's notation, a pasted export of Constellation's
      analysis board, and the meaf.us bookmarklet ([import](#constellations-export) below).
    - **The header:** the name, which leads home, with "Early Access" beside it in the accent colour, which leads to the
      About page's section on the early access. Then Review and Analysis, and on its right The notation, About and the
      theme menu: System (the default: the computer's light or dark), Light or Dark. Its button shows the choice: a
-     half-filled circle, a sun or a moon. The choice is kept in this browser, and a script in the page's head applies
-     it before the page draws, so that a page never shows the other theme first. On a phone the header's gaps narrow,
-     so that it fits in 360 pixels. Review opens
-     the last game reviewed in this browser, and the address then names it, so a reload keeps it. With no game
-     reviewed yet, it asks for one. **The footer,** on the pages that scroll (the home page and the pages about the
-     site): About, The notation, For developers, Privacy, Notices, the site's version (its commit), the site's
-     copyright line, and "Enclosure by webgoatguy", so that the copyright does not read as the game's. The review has
-     no footer: it fills the window. The About page credits webgoatguy as the game's designer, and says that the site
-     is not an official site of the game: it is made independently of webgoatguy, meaf.us and Constellation.
+     half-filled circle, a sun or a moon. The choice is kept in this browser, and a script in the page's head applies it
+     before the page draws, so that a page never shows the other theme first. On a phone the header's gaps narrow, so
+     that it fits in 360 pixels. Review opens the Review tab, where the last game reviewed in this browser is a click
+     away. A review's address names its game, so a reload keeps it. **The footer,** on the pages that scroll (the home
+     page and the pages about the site): About, The notation, For developers, Privacy, Notices, the site's version (its
+     commit), the site's copyright line, and "Enclosure by webgoatguy", so that the copyright does not read as the
+     game's. The review has no footer: it fills the window. The About page credits webgoatguy as the game's designer,
+     and says that the site is not an official site of the game: it is made independently of webgoatguy, meaf.us and
+     Constellation.
    - **Not in the early access:** puzzles, lessons, free analysis and the engine lab. Their addresses lead home. Their
      code stays, for the full site.
 3. **One build switch:** `VITE_EDITION=early` builds the early access. Without it, the build is the full site, for
@@ -60,12 +61,12 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
    ([requests/03-release-artifacts.md](../requests/03-release-artifacts.md)). The release has the module, both
    networks, as the engine settings offer both, and a notice of the licences of what is compiled into the module.
    The site ships that notice beside the module, and the notices page lists the works and links to it.
-   - **A new engine:** the stored results' keys name the engine's build and the network's file. A game reviewed
-     before a release opens as a snapshot of that review, with Review again (design 20). Where the browser lacks the
-     earlier results, the game is searched again, and the player is told why (`reviewAgainWhy` in
-     `src/lib/game/store.ts`): a dialog says that the engine was updated, once in a visit for each game and build, and
-     a line under the review's progress says it while the review runs. On the home page, the game's Export, off until
-     the review is done, says it too. A network or a depth that the player chose is not an update, and has no notice.
+   - **A new engine:** the stored results' keys name the engine's build and the network's file. A game reviewed before a
+     release opens as a snapshot of that review, with Review again (design 20). Where the browser lacks the earlier
+     results, the game is searched again, and the player is told why (`reviewAgainWhy` in `src/lib/game/store.ts`): a
+     dialog says that the engine was updated, once in a visit for each game and build, and a line under the review's
+     progress says it while the review runs. In the Review tab, the game's Export, off until the review is done, says it
+     too. A network or a depth that the player chose is not an update, and has no notice.
 7. **Analytics: Cloudflare's and Google's.** Cloudflare's sets no cookies. Google Analytics runs in Google's consent
    mode, advanced form: the Google tag loads on every page with its cookies denied, and sends cookieless pings until
    the visitor accepts. A banner asks once, with Accept and Decline alike. The privacy page shows the choice, can
@@ -134,7 +135,7 @@ one item for each turn, separated by spaces.
   the lock (`steal`) and loads the page again. The tab that held the lock stops its engine at once, and says that the
   game is now open in another tab, with the same button. The browser frees the lock when its tab closes. Reviews of
   different games in two tabs run as before: they share only the machine.
-- **A game deleted while its review is open** (on the home page, in another tab): the review stores no more branches
+- **A game deleted while its review is open** (in the Review tab, in another tab): the review stores no more branches
   for it, so a later import of the same game does not bring them back.
 
 ### The meaf.us bookmarklet and userscript
@@ -192,7 +193,8 @@ one item for each turn, separated by spaces.
 - **A public repository:** later. **The free `pages.dev` address:** the owner's domain is the lasting one.
 - **Listed in search engines:** after the first players' reports.
 - **A note that the labels may change:** not needed, since a change reaches stored games by itself.
-- **No Review link:** a bare link led to a review with no game. Opening the last game reviewed gives the link a use.
+- **No Review link:** a bare link led to a review with no game. The Review tab gives the link a use: it imports a
+  game, and the last review is a click away. Before design 22, the link opened the last game reviewed.
 - **Google's consent mode, basic form:** no Google tag until the visitor accepts. The advanced form's modeling needs
   1,000 events a day from visitors who decline and 1,000 daily users who accept, so a small site gains little from it.
 - **Cloudflare's automatic Web Analytics** (one click on a Pages project): it adds the beacon to every page as it is
@@ -207,7 +209,7 @@ one item for each turn, separated by spaces.
 ## Where it is
 
 - The switch, the name and the version: `src/lib/edition.ts`, `vite.config.ts` (the commit). The last game reviewed:
-  `src/lib/game/store.ts`, read by `src/routes/review/+page.svelte`. The hidden pages:
+  `src/lib/game/store.ts`, read by `src/lib/review/ReviewHome.svelte`. The hidden pages:
   `src/routes/{puzzles,learn,lab/engine}/+page.ts`. Unlisted: `static/robots.txt`, `src/routes/+layout.svelte`.
 - The import of Constellation's export: `src/lib/game/constellation.ts`, with its tests.
 - Deleting a game: `deleteGame` and `restoreGame` in `src/lib/game/store.ts`, the rows in `src/routes/+page.svelte`.

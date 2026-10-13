@@ -5,7 +5,7 @@
   //   A record from an out-of-date tool is kept too, and the page then says how to update the tool, with the review a
   //   click away. Another site's link keeps the partner's save page with the game when it names one;
   // - a shared review (`packed=`, share.ts): what it holds, and that this browser reviews it again, then kept on a
-  //   click, with the sender's network and depth. The old import page's `s=` links are not read: they say so;
+  //   click, with the sender's network and depth;
   // - a partner's page that kept a review (`from=`): it sends the review file once this page asks.
   // The game leaves the address at once, then the analytics start. Once the game is kept, the review opens it.
   import { onMount } from "svelte";
@@ -13,7 +13,7 @@
   import { importRecord } from "#lib/game/import.ts";
   import { errorText } from "#lib/errors.ts";
   import { BOOKMARK_VERSION } from "#lib/game/bookmarklet.ts";
-  import { readImportHash, staleTool, type Tool } from "#lib/game/importHash.ts";
+  import { FORWARDED, readImportHash, staleTool, type Tool } from "#lib/game/importHash.ts";
   import { gamePartner, partnerOf, receiveFromPartner } from "#lib/game/partners.ts";
   import { setGamePartner } from "#lib/game/store.ts";
   import { decodeShare, type SharedReview } from "#lib/game/share.ts";
@@ -21,7 +21,7 @@
   import { loadManifest, moduleOf, modelOf } from "#lib/engine/client.ts";
   import { NETWORKS, networkName, reviewDepthText } from "#lib/analysis/engineSettings.ts";
   import { startAnalytics, track } from "#lib/analytics.svelte.ts";
-  import { EDGE_RANGES, range } from "#lib/measure.ts";
+  import { trackImport, trackImportFailed, type ImportSource } from "#lib/game/importEvents.ts";
 
   const MESSAGE = "box-content max-w-184 mx-auto my-6 px-4 grid gap-4";
 
@@ -39,7 +39,9 @@
     const hash = location.hash.slice(1);
     history.replaceState(null, "", location.pathname); // the game is kept below, not in the address
     startAnalytics(); // after the game has left the address (design 22)
-    void arrive(hash);
+    let forwarded = false; // the link used the old address, /import, which forwarded it here
+    try { forwarded = sessionStorage.getItem(FORWARDED) === "1"; sessionStorage.removeItem(FORWARDED); } catch { /* storage blocked */ }
+    void arrive(hash, forwarded);
   });
 
   /** Opens the review of a game now kept in this browser: the review's own address, loaded again. */
@@ -48,34 +50,34 @@
     location.reload();
   }
 
-  async function arrive(hash: string) {
+  async function arrive(hash: string, forwarded: boolean) {
     const p = /^[A-Za-z_]+=/.test(hash) ? new URLSearchParams(hash) : null, packed = p?.get("packed");
     if (packed) { await readShared(packed); return; }
-    if (p?.has("s")) { // the old import page's shared review
-      phase = "failed";
-      problem = "this share link is from an earlier version of Hedge School, and no longer opens. Ask its sender for a new one.";
-      track("import_failed", { import_source: "share_link", import_failure: "link" });
-      return;
-    }
-    let source = "older_tool";
+    let source: ImportSource = "older_tool";
     try {
       const sent = readImportHash(hash), text = sent.record;
+      source = sent.from ? "partner_review" : sent.link ? "site_link" : sent.tool ?? source;
+      if (forwarded) {
+        // The old address still in use (design 22): a warning for the developer whose link it is, and a count by
+        // the link's source, to tell when the forwarding can stop (design 17).
+        console.warn("Hedge School: /import is deprecated, and forwards here only during the early access. Link to /review#… instead: see https://hedgeschool.abstractclass.org/developers#changes");
+        track("import_forwarded", { import_source: source });
+      }
       if (sent.from) { await receiveReview(sent.from, sent.save); return; }
-      source = sent.link ? "site_link" : sent.tool ?? source;
       if (sent.link && !text) throw new Error("the link has no record=, which carries the game");
       const record = parseRecord(text), id = await importRecord(text, record);
       const partner = sent.link ? gamePartner(sent.save) : null;
       if (partner) await setGamePartner(id, partner);
       stale = staleTool(sent, { bookmarklet: String(BOOKMARK_VERSION), userscript: __USERSCRIPT_CODE__ });
       // The import by its tool and the game's length, and an out-of-date tool by its kind (design 17).
-      track("import_game", { import_source: source, edges: range(record.moves.length, EDGE_RANGES) });
+      trackImport("review", source, record.moves.length);
       if (stale) track("tool_out_of_date", { stale_tool: stale });
       if (stale) { imported = id; phase = "stale"; return; }
       review(id);
     } catch (e) {
       phase = "failed";
       problem = errorText(e);
-      track("import_failed", { import_source: source, import_failure: "rejected" });
+      trackImportFailed("review", source, "rejected");
     }
   }
 
@@ -86,11 +88,11 @@
       shared = s;
       sharedHere = { network, sameEngine: !!manifest && !!moduleOf(manifest)?.sha256.startsWith(s.module) };
       phase = "share";
-      track("share_open", { network_found: !!network, same_engine: sharedHere.sameEngine });
+      track("review_share_open", { network_found: !!network, same_engine: sharedHere.sameEngine });
     } catch (e) {
       phase = "failed";
       problem = `the share link cannot be read: ${errorText(e)}`;
-      track("import_failed", { import_source: "share_link", import_failure: "link" });
+      trackImportFailed("review", "review_share_link", "link");
     }
   }
 
@@ -100,12 +102,12 @@
     phase = "importing";
     try {
       const id = await importShare(shared, sharedHere.network);
-      track("import_game", { import_source: "share_link", edges: range(shared.moves.length, EDGE_RANGES), with_branches: shared.branches.length > 0 });
+      trackImport("review", "review_share_link", shared.moves.length, { with_branches: shared.branches.length > 0 });
       review(id);
     } catch (e) {
       phase = "failed";
       problem = errorText(e);
-      track("import_failed", { import_source: "share_link", import_failure: "rejected" });
+      trackImportFailed("review", "review_share_link", "rejected");
     }
   }
 
@@ -123,13 +125,12 @@
       const { id } = await importReview(file, shippedModels(manifest), shippedModule(manifest));
       const kept = gamePartner(save);
       if (kept) await setGamePartner(id, kept);
-      track("import_game", { import_source: "site_review", edges: range(parseRecord(file.record).moves.length, EDGE_RANGES),
-                             with_results: file.analyses.length > 0 });
+      trackImport("review", "partner_review", parseRecord(file.record).moves.length, { with_results: file.analyses.length > 0 });
       review(id);
     } catch (e) {
       phase = "failed";
       problem = errorText(e);
-      track("import_failed", { import_source: "site_review", import_failure: "rejected" });
+      trackImportFailed("review", "partner_review", "rejected");
     }
   }
 </script>

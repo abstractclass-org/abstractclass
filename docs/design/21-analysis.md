@@ -50,10 +50,10 @@ engine does by itself.
    - **Analysis** in the header: the board as the player left it.
    - **A link** that carries a line: `/analysis#record=…` (a record), or `/analysis#packed=…` (a shared analysis),
      with `&at=` for the position (design 22).
-   - **"Analyze"** beside "Review" when the player brings a record: the record opens on the board, not as a game to
-     review, so nothing is searched but the position on screen. The record is not kept in the list of games. It is
-     checked as an import is (the rules, the variant), and its line becomes the main line. Its variations stay behind:
-     the record's reader keeps the line only.
+   - **The board's Import,** beside its Export: a record pasted (or Constellation's export), or an analysis file. A
+     record is checked as an import is (the rules, the variant), and its line becomes the main line. It is not kept
+     in the list of games. Its variations stay behind: the record's reader keeps the line only. An analysis file
+     dropped in the Review tab comes here too.
 6. **One board in each browser:** its main line, its variations and the moves evaluated, in the browser's store (the
    branches' store, under `board`), and the position on screen, in the browser's local storage. It stays when the
    player leaves, as the review's branches stay. A link or a record brought in replaces it. The page asks first when
@@ -64,7 +64,7 @@ engine does by itself.
      shows.
    - **The analysis file,** to open elsewhere: the lines and the engine's results for every position of them, and of
      the positions one move from them, as a review file chooses them (`src/lib/game/analysisFile.ts`). It opens at
-     once, from the home page's "Open a file", which takes a review file or an analysis file.
+     once, from the board's Import.
    - **The record,** copied or as a file: the main line, the variations, the result `*` (unfinished, engine design
      04), the marks of the moves evaluated, and the evaluations of the positions searched (design 13's marks and
      `[%eval]` comments).
@@ -109,9 +109,9 @@ engine does by itself.
 ## Consequences
 
 - **Practice** (request 15) can end on the board too: a practice game is a played game, so it opens in the review.
-- **Analytics:** `analysis_open` and `analysis_failed` (the way in: page, home, record, packed, file), the board's
-  features by `feature_name`, and its settings' changes and exports as the review's: the page's address tells them
-  apart in the reports (design 17).
+- **Analytics** (design 17): `analysis_open` when the board opens. A game brought to it is an import, as one brought
+  to the review: `import_game` with `import_to` = analysis. The board's features, settings' changes and exports are
+  the review's events: the page's address tells them apart in the reports.
 - **An unfinished line's end is searched,** on the board and in a review of an unfinished game: the review reads a
   line's last position as the result only when the game is over there (`review` in `src/lib/review/model.ts`).
 - **The early access shows the board** (design 11).
@@ -121,8 +121,8 @@ engine does by itself.
 - `src/routes/analysis/+page.svelte`: the board, its store and its ways in. `src/lib/review/ReviewView.svelte`: the
   view, in its board form (`BoardForm`). `src/lib/analysis/game.svelte.ts`: the board form of the analysis (`setMain`,
   `playLine`, `judgedMain`, `keptBoard`). `src/lib/game/board.ts`: the link and a record's line.
-  `src/lib/game/analysisFile.ts`: the analysis file. `src/lib/review/model.ts`: `onlyJudged`. `src/routes/+page.svelte`:
-  "Analyze", and "Open a file".
+  `src/lib/game/analysisFile.ts`: the analysis file. `src/lib/review/model.ts`: `onlyJudged`. `src/lib/game/paste.ts`: a
+  pasted record. `src/lib/game/importEvents.ts`: the imports' events.
 
 ## Log entries
 

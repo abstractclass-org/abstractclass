@@ -22,6 +22,7 @@
   import { boardLink, boardOfRecord, readBoardLink } from "#lib/game/board.ts";
   import { download, shippedModels, type ExportKind, type ExportResult } from "#lib/game/reviewFile.ts";
   import { analysisFileName, exportAnalysis } from "#lib/game/analysisFile.ts";
+  import { Dialog as ImportDialog } from "bits-ui";
   import { holdsGame } from "#lib/game/importHash.ts";
   import { parseRecord } from "#lib/game/record.ts";
   import { variantProblem } from "#lib/game/import.ts";
@@ -29,6 +30,9 @@
   import { STORES, dbGet, dbPut } from "#lib/storage/db.ts";
   import { mainIndex, pathKey } from "#lib/review/tree.ts";
   import { startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
+  import { trackImport, trackImportFailed, type ImportSource } from "#lib/game/importEvents.ts";
+  import { readPasted } from "#lib/game/paste.ts";
+  import { fileKind, keepAnalysisResults, readAnalysisFile } from "#lib/game/analysisFile.ts";
   import { SITE_NAME, SITE_VERSION } from "#lib/edition.ts";
   import { EDGE_RANGES, range } from "#lib/measure.ts";
 
@@ -40,10 +44,10 @@
   // The Export menu's entries on the board (design 21), as the review's: the analysis by link, as a file with the
   // engine's results, or as the annotated record.
   const EXPORT_ITEMS: [ExportKind, string, string, string][] = [
-    ["link", "Copy a link to share the analysis", "Its lines and the moves evaluated. The recipient's browser searches what it shows.", "Link copied"],
-    ["file", "Analysis file, to open elsewhere", "With the engine's results: the analysis opens at once.", "Analysis file saved"],
-    ["copy", "Copy the annotated record", "", "Annotated record copied"],
-    ["text", "Annotated record as a file", "", "Annotated record saved"],
+    ["share_link", "Copy a link to share the analysis", "Its lines and the moves evaluated. The recipient's browser searches what it shows.", "Link copied"],
+    ["analysis_file", "Analysis file, to import elsewhere", "With the engine's results: the analysis opens at once.", "Analysis file saved"],
+    ["record_copy", "Copy the annotated record", "", "Annotated record copied"],
+    ["record_file", "Annotated record as a file", "", "Annotated record saved"],
   ];
 
   let pool: EnginePool | null = null;
@@ -143,41 +147,50 @@
   let ask = $state<((open: boolean) => void) | null>(null);
   const choose = () => new Promise<boolean>(resolve => (ask = open => { ask = null; resolve(open); }));
 
-  /** The board to open, and where: the kept place (`at`, a path), or a brought line's place on the main line
-   *  (`atMain`). `via` is the way in, for the analytics: the page itself, the home page's Analyze, another record's
-   *  link, a shared analysis, or an analysis file. */
-  interface Opening { board: KeptBoard | null; at?: string[] | null; atMain?: number; via: "page" | "home" | "record" | "packed" | "file" }
-  /** The board to open: one brought after the `#`, else the one kept in this browser. A brought one replaces the kept
-   *  one, after the player agrees when the kept one has moves. It leaves the address at once, then the analytics start
-   *  (design 22), and a reload keeps the board's own state. */
+  /** The analysis to open, and where: the kept place (`at`, a path), or an imported line's place on the main line
+   *  (`atMain`). `source`: how an imported line came (design 17), none for the analysis kept here. */
+  interface Opening { board: KeptBoard | null; at?: string[] | null; atMain?: number; source?: ImportSource }
+  // The sources that this site's own pages name in the address (`via`): a pasted record or Constellation export, and an
+  // analysis file. Without one, `record=` is another site's link, and `packed=` a shared analysis.
+  const NAMED_SOURCES: ImportSource[] = ["pasted_record", "pasted_constellation", "analysis_file"];
+  /** The analysis to open: one imported after the `#`, else the one kept in this browser. An imported one replaces the
+   *  kept one, after the player agrees when the kept one has moves. It leaves the address at once, then the analytics
+   *  start (design 22), and a reload keeps the analysis's own state. */
   async function chooseBoard(): Promise<Opening> {
     const kept = (await dbGet<KeptBoard>(STORES.branches, BOARD_ID)) ?? null;
     let keptAt: string[] | null = null;
     try { const k = localStorage.getItem(AT_KEY); keptAt = k ? k.split(" ") : []; } catch { /* storage blocked */ }
     const hash = location.hash.slice(1);
-    if (!holdsGame(hash)) { startAnalytics(); return { board: kept, at: keptAt, via: "page" }; }
-    const p = new URLSearchParams(hash), record = p.get("record");
+    if (!holdsGame(hash)) { startAnalytics(); return { board: kept, at: keptAt }; }
+    const p = new URLSearchParams(hash), record = p.get("record"), via = p.get("via") as ImportSource | null;
     replaceState("/analysis", {});
     startAnalytics();
-    const via = p.get("via") === "home" ? "home" : p.get("via") === "file" ? "file" : record !== null ? "record" : "packed";
+    const source: ImportSource = via && NAMED_SOURCES.includes(via) ? via : record !== null ? "site_link" : "analysis_share_link";
     let brought: { board: KeptBoard; at: number };
     try {
       brought = record !== null ? await recordBoard(record, p.get("at")) : readBoardLink(p.get("packed") ?? "", p.get("at"));
     } catch (e) {
-      notice = `${record !== null ? "This record" : "This link"} cannot be opened: ${errorText(e)}. Your own board is here instead.`;
-      track("analysis_failed", { analysis_source: via });
-      return { board: kept, at: keptAt, via };
+      notice = `This ${record !== null ? "record" : "link"} cannot be imported: ${errorText(e)}. Your own analysis is here instead.`;
+      trackImportFailed("analysis", source, e instanceof RecordProblem ? e.failure : "link");
+      return { board: kept, at: keptAt };
     }
-    if (kept?.nodes.length && !(await choose())) return { board: kept, at: keptAt, via };
-    return { board: brought.board, atMain: brought.at, via };
+    if (kept?.nodes.length && !(await choose())) return { board: kept, at: keptAt };
+    return { board: brought.board, atMain: brought.at, source };
+  }
+  /** A record that cannot be imported: unreadable (`record`), or refused by the rules or as a variant (`rejected`). */
+  class RecordProblem extends Error {
+    failure: "record" | "rejected";
+    constructor(message: string, failure: "record" | "rejected") { super(message); this.failure = failure; }
   }
   /** A record brought to the board: checked as an import is (its variant, then its moves by the engine's rules), and its
    *  line becomes the main line. A record without moves is refused by its reader. */
   async function recordBoard(text: string, at: string | null): Promise<{ board: KeptBoard; at: number }> {
-    const record = parseRecord(text), variant = variantProblem(record);
-    if (variant) throw new Error(variant);
+    let record: ReturnType<typeof parseRecord>;
+    try { record = parseRecord(text); } catch (e) { throw new RecordProblem(errorText(e), "record"); }
+    const variant = variantProblem(record);
+    if (variant) throw new RecordProblem(variant, "rejected");
     const { problem } = await checkMoves(record);
-    if (problem) throw new Error(problem);
+    if (problem) throw new RecordProblem(problem, "rejected");
     return { board: boardOfRecord(record), at: Math.max(0, Math.floor(Number(at)) || 0) };
   }
 
@@ -211,7 +224,9 @@
       if (pool !== first) return;
       first.releaseWhenIdle();
       controlGpu(first, network);
-      track("analysis_open", { analysis_source: chosen.via, edges: range(g.mainNames.length, EDGE_RANGES) });
+      // The board opened, and an import when a line came with it (design 17).
+      track("analysis_open", { edges: range(g.mainNames.length, EDGE_RANGES) });
+      if (chosen.source) trackImport("analysis", chosen.source, g.mainNames.length);
       g.ready();
     } catch (e) {
       error = errorText(e);
@@ -220,23 +235,60 @@
   });
   onDestroy(() => { gpu?.end(); pool?.terminate(); });
 
+  // The board's Import (design 21): a record pasted, checked here as an import is, or an analysis file. Either goes
+  // after the `#`, and the page loads again, so that its opening checks it, asks before it replaces the analysis kept
+  // here, and counts the import.
+  let importing = $state(false), pasted = $state(""), importProblem = $state(""), checkingImport = $state(false);
+  function importAddress(hash: string) {
+    history.replaceState(null, "", `/analysis#${hash}`);
+    location.reload();
+  }
+  async function importPasted(event: SubmitEvent) {
+    event.preventDefault();
+    importProblem = "";
+    checkingImport = true;
+    try {
+      const read = readPasted(pasted);
+      await recordBoard(read.recordText, null);
+      importAddress(String(new URLSearchParams({ record: read.recordText, via: read.source })));
+    } catch (e) {
+      importProblem = (e as Error).message;
+    } finally {
+      checkingImport = false;
+    }
+  }
+  async function importFile(file: File | undefined) {
+    if (!file) return;
+    importProblem = "";
+    const content = await file.text();
+    try {
+      if (fileKind(content) === "review") throw new Error("this is a review file: import it in the Review tab");
+      const analysis = readAnalysisFile(content);
+      await keepAnalysisResults(analysis, shippedModels(manifest));
+      importAddress(boardLink("", analysis.board, 0, "analysis_file").split("#")[1]);
+    } catch (e) {
+      importProblem = errorText(e);
+      trackImportFailed("analysis", "analysis_file", "file");
+    }
+  }
+
   /** The board shared or exported (design 21): a link to it, or its record with the lines as variations. */
   async function exportAs(kind: ExportKind, unit: Unit): Promise<ExportResult | void> {
     const g = game, r = R;
     if (!g || !r) return;
-    if (kind === "link") {
+    if (kind === "share_link") {
       const at = mainIndex(current, g.mainNames) ?? 0;
       const link = boardLink(location.origin, g.keptBoard(), at);
       await navigator.clipboard.writeText(link);
       return { linkLength: link.length };
     }
-    if (kind === "file") {
+    if (kind === "analysis_file") {
       download(analysisFileName(), JSON.stringify(await exportAnalysis(g.keptBoard(), SITE_VERSION, shippedModels(manifest))));
       return;
     }
     const text = annotatedRecord({ R: r, unit, tags: {}, result: "*", branches: g.branches, annotator: SITE_NAME,
                                    note: `${SITE_NAME}'s analysis board, with ${networkName(network)} (the network ${network}).` });
-    if (kind === "copy") await navigator.clipboard.writeText(text);
+    if (kind === "record_copy") await navigator.clipboard.writeText(text);
     else download("analysis.txt", text, "text/plain");
   }
 </script>
@@ -261,20 +313,20 @@
               timedOut={g.stoppedByTime(current)} searching={g.focusing === pathKey(current)}
               lineSteps={(path, line) => g.lineSteps(path, line)}
               board={{ judged: g.judgedMain, onmain: path => g.setMain(path) }}
-              onexport={exportAs} exportItems={EXPORT_ITEMS} />
+              onexport={exportAs} exportItems={EXPORT_ITEMS} onimport={() => (importing = true)} />
 {:else if !ask}
   <p class="{MESSAGE} text-muted">Setting up the board with the engine's rules…</p>
 {/if}
 
-<!-- A line brought by a link or a record, over the board kept here: the player chooses. -->
+<!-- A line imported, over the analysis kept here: the player chooses. -->
 <Dialog.Root open={!!ask} onOpenChange={open => { if (!open) ask?.(false); }}>
   <Dialog.Portal>
     <Dialog.Overlay class="fixed inset-0 z-20 bg-[rgb(0_0_0/0.45)]" />
     <Dialog.Content class="fixed z-30 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(94vw,28rem)]
                            px-5 py-4 bg-panel-2 border border-muted/50 rounded-md shadow-[0_6px_20px_rgb(0_0_0/0.4)]">
-      <Dialog.Title class="mb-2 font-semibold">Replace your board?</Dialog.Title>
+      <Dialog.Title class="mb-2 font-semibold">Replace your analysis?</Dialog.Title>
       <Dialog.Description class="text-sm">
-        The line you brought replaces the board you left here, with all its lines. This browser keeps one board.
+        The game you imported replaces the analysis you left here, with all its lines. This browser keeps one analysis.
       </Dialog.Description>
       <div class="flex justify-end gap-2 mt-4">
         <button type="button" class="px-4 py-1 text-sm" onclick={() => ask?.(false)}>Keep mine</button>
@@ -283,3 +335,30 @@
     </Dialog.Content>
   </Dialog.Portal>
 </Dialog.Root>
+
+<!-- The board's Import: a record pasted, or an analysis file (design 21). -->
+<ImportDialog.Root bind:open={importing}>
+  <ImportDialog.Portal>
+    <ImportDialog.Overlay class="fixed inset-0 z-20 bg-[rgb(0_0_0/0.45)]" />
+    <ImportDialog.Content class="fixed z-30 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(94vw,34rem)]
+                                 px-5 py-4 bg-panel-2 border border-muted/50 rounded-md shadow-[0_6px_20px_rgb(0_0_0/0.4)]">
+      <ImportDialog.Title class="mb-2 font-semibold">Import a game</ImportDialog.Title>
+      <form onsubmit={importPasted}>
+        <label for="board-record" class="block mb-1 text-sm">A game record, or Constellation's export</label>
+        <textarea id="board-record" rows="4" bind:value={pasted} spellcheck="false"
+                  class="w-full px-2.5 py-2 font-mono text-sm/[1.4] bg-page text-ink border border-line rounded resize-y focus:outline-2 focus:outline-accent"
+                  placeholder={'1. D10-G10 2. N11-Q10 L10-N11 …'}></textarea>
+        {#if importProblem}<p class="mt-1.5 text-sm text-blunder" role="alert">{importProblem}</p>{/if}
+        <div class="flex flex-wrap items-center gap-3 mt-2">
+          <button class="btn-primary" type="submit" disabled={!pasted.trim() || checkingImport}>{checkingImport ? "Checking…" : "Import"}</button>
+          <label class="px-3 py-1 text-sm rounded border border-line bg-panel cursor-pointer hover:border-accent">
+            Import an analysis file
+            <input type="file" accept=".json,application/json" class="sr-only"
+                   onchange={e => { void importFile(e.currentTarget.files?.[0]); e.currentTarget.value = ""; }} />
+          </label>
+          <ImportDialog.Close class="ml-auto px-3 py-1 text-sm">Cancel</ImportDialog.Close>
+        </div>
+      </form>
+    </ImportDialog.Content>
+  </ImportDialog.Portal>
+</ImportDialog.Root>

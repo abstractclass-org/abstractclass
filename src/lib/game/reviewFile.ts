@@ -131,7 +131,9 @@ export const shippedModels = (manifest: { artifacts: { kind: string; sha256: str
 export const shippedModule = (manifest: Manifest | null) => (manifest && moduleOf(manifest)?.sha256) ?? null;
 
 /** The three exports of a game (design 13): the review file, or the annotated record copied or as a text file. */
-export type ExportKind = "link" | "file" | "copy" | "text" | "partner";
+/** What an export makes, by name (design 17): a share link, a review file or an analysis file, the annotated record
+ *  copied or as a file, or the review file saved to a partner site. */
+export type ExportKind = "share_link" | "review_file" | "analysis_file" | "record_copy" | "record_file" | "partner_save";
 
 /** What an export tells the player beyond the menu's own note, and a share link's length (design 17 counts it). */
 export interface ExportResult { note?: string; linkLength?: number }
@@ -167,13 +169,13 @@ export async function deliverExport(kind: ExportKind, id: string, record: string
                                     annotated: () => string | Promise<string>, partner?: GamePartner): Promise<ExportResult | void> {
   // The review file to the partner site the game came from (design 18): its save page opens first, within the click,
   // and the file goes to it once the page is ready.
-  if (kind === "partner") {
+  if (kind === "partner_save") {
     if (!partner) throw new Error("this game came from no partner site");
     const file = exportReview(id, site, shippedModels(manifest)).then(review => ({ name: reviewFileName(record, id), review }));
     await saveToPartner(partner, file);
     return { note: `Saved to ${partner.name}.` };
   }
-  if (kind === "link") {
+  if (kind === "share_link") {
     const link = await shareLink(id, location.origin);
     await navigator.clipboard.writeText(link);
     const n = link.length.toLocaleString("en");
@@ -185,12 +187,12 @@ export async function deliverExport(kind: ExportKind, id: string, record: string
     };
   }
   const name = reviewFileName(record, id);
-  if (kind === "file") {
+  if (kind === "review_file") {
     download(name, JSON.stringify(await exportReview(id, site, shippedModels(manifest))));
     return;
   }
   const text = await annotated();
-  if (kind === "copy") await navigator.clipboard.writeText(text);
+  if (kind === "record_copy") await navigator.clipboard.writeText(text);
   else download(name.replace(/\.json$/, ".txt"), text, "text/plain");
 }
 

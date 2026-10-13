@@ -2402,11 +2402,28 @@ The interface, the review, puzzles, lessons, labels and thresholds.
 - **Decided** (design 22): each page takes its own way in after the `#`: `/review#record=`, `#packed=`, `#from=`, and
   `/analysis#record=`, `#packed=`, `&at=`. A parameter is named by its payload's format (`record`, `packed`), as
   Lichess's `/analysis/pgn/` and Excalidraw's `#json=` are. `/import` is deprecated: it forwards to `/review` during the
-  early access, and the page for developers says a month before when it stops. The old share links' `s=` are not
-  read. The meaf.us tools' page is `/tools`. The analytics start once a page has taken a game out of its address.
+  early access, and the page for developers says a month before when it stops. The meaf.us tools' page is `/tools`. The
+  analytics start once a page has taken a game out of its address.
 - **Also:** the Analysis board exports its analysis as the review does: a link, an analysis file with the engine's
   results, and the annotated record. The first export, of the lines alone, was a board editor's output.
-- **Checked** in a desktop browser: `/import#record=` forwards and reviews the game, `/import` goes to `/tools`, an
-  old `s=` link says why it does not open, a review's shared link (`#packed=`) opens and reviews, `/analysis#record=`
-  with `at=` opens the line at its place after the question, and an analysis file exported and opened on the home page
-  gives back its lines. Not checked: the meaf.us tools on meaf.us, and a partner's page.
+- **Checked** in a desktop browser: `/import#record=` forwards and reviews the game, `/import` goes to `/tools`, a
+  review's shared link (`#packed=`) opens and reviews, `/analysis#record=` with `at=` opens the line at its place after
+  the question, and an analysis file exported and opened on the home page gives back its lines. Not checked: the meaf.us
+  tools on meaf.us, and a partner's page.
+
+### One import, to the review or the Analysis board, and the Review tab (2026-10-14)
+
+- **The question:** a game brought to the review and a game brought to the Analysis board are the same act, an
+  import, but the events named it two ways (`import_game`, `analysis_open` with its own sources), and their values
+  mixed places, formats and media (`home`, `record`, `file`).
+- **Decided** (designs 17 and 22): one event, `import_game`, for every import, with `import_to` (review, analysis)
+  and `import_source`, each value one way in (`pasted_record`, `review_share_link`, `partner_review`…). The same for
+  `import_failed`. Export kinds name their product (`review_file`, `analysis_file`, `record_copy`…). A shared review's
+  page is `review_share_open`. `analysis_open` counts the board's opens.
+- **The pages:** the Review tab (`/review` without a game) holds the review's import (a pasted record, a review file),
+  the last review and the player's games. The Analysis board has its own Import. Home says what Hedge School is, and
+  leads to both.
+- **`/import`:** a link that still uses it warns in the review's console, and counts (`import_forwarded`), so that
+  the forwarding stops when no link uses it.
+- **Fixed:** the review reloaded itself without end on its own address after the first change of its reload check.
+  It now checks only once the page has chosen its game. A game's link in the Review tab loads the page.

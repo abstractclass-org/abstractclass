@@ -30,24 +30,34 @@ visitors' machines, and the GPU on other machines.
 5. **The privacy page lists every event** in plain words. A visitor who has not accepted the cookies sends the events
    as cookieless pings, which Google counts with nothing that links one to another.
 
+### The words
+
+The events use the site's words (design 22), each for one thing:
+
+- **Import:** a game brought into Hedge School, by a paste, a file or a link, to the review or to the Analysis board.
+  One event, `import_game`, counts every import, with where it went (`import_to`) and how it came (`import_source`).
+- **Source:** one way in, named whole: `pasted_record`, not `record` (a pasted record and another site's record link
+  both carry a record).
+- **Export kind:** what an export made, named by its product: `review_file` and `analysis_file`, not `file`.
+
 ### The events
 
 | Event | When | Parameters | The decision it serves |
 |---|---|---|---|
-| `import_game` | a game kept, from any way in | `import_source` (record, constellation, review_file, bookmarklet, userscript, older_tool, share_link, site_link, site_review), `edges`, `with_results` (a file), `with_branches` (a link) | which ways in to keep and improve, and the funnel's first step |
-| `import_failed` | an import refused | `import_source`, `import_failure` (record: not read, rejected: the rules or the storage refused it, file, link) | what breaks imports |
+| `import_game` | a game imported: brought into Hedge School, to the review (kept, then reviewed) or to the Analysis board | `import_to` (review, analysis), `import_source` (pasted_record, pasted_constellation, review_file, analysis_file, review_share_link, analysis_share_link, site_link, partner_review, bookmarklet, userscript, older_tool), `edges`, `with_results` (a file, a partner's review), `with_branches` (a share link) | which ways in to keep and improve, and the funnel's import step |
+| `import_failed` | an import refused | `import_to`, `import_source`, `import_failure` (record: not read, rejected: the rules or the storage refused it, file, link) | what breaks imports |
+| `import_forwarded` | a link that used the old address, `/import`, forwarded to the review (design 22) | `import_source` | when the forwarding can stop |
 | `tool_out_of_date` | the review asks to update a tool (Arrival) | `stale_tool` (bookmarklet, userscript, older) | how many players still need the new tools |
-| `share_open` | a share link's page | `network_found`, `same_engine` | whether shared reviews arrive whole |
+| `review_share_open` | a review's share link opened, before its import | `network_found`, `same_engine` | whether shared reviews arrive whole |
 | `game_missing` | a review's address in a browser without the game | none | whether players send review addresses, which do not work in another browser |
 | `review_open` | the review starts, with the engine loaded, or a snapshot opens (design 20) | `network`, `depth`, `depth_on_screen`, `time_limit`, `workers`, `gpu_mode`, `cores`, `edges`, `own_settings`, `done_before` | the funnel's second step, and the settings in use |
-| `analysis_open` | the Analysis board opens, with the engine's rules (design 21) | `analysis_source` (page: its own address; home: Analyze on the home page; record: another site's `record=` link; packed: a shared analysis; file: an analysis file), `edges` (the main line's) | how players reach the board |
-| `analysis_failed` | a line brought to the board cannot open: a broken link, a refused record or file | `analysis_source` | broken ways in |
+| `analysis_open` | the Analysis board opens, with the engine's rules (design 21). A game imported with it is an `import_game` too | `edges` (the main line's) | how many players use the board |
 | `review_done` | the review ends, in this visit | as `review_open`, and `review_seconds` (a number), `minutes`, `worker_speed` (a CPU worker's visits a second, by 5), `gpu_used` | the engine's defaults: how long a review takes on real machines, by settings and cores |
 | `gpu_test` | Auto's first test of a GPU | `gpu_outcome` (faster, slower), `gpu_ratio` (the GPU's speed over a worker's), `gpu` (maker and kind, as WebGPU gives them), `network` | the GPU's default, and whether it pays off on laptops and phones |
 | `engine_error` | the engine fails | `error_kind` (load, rules, gpu) | reliability |
 | `setting_change` | an engine setting changes | `setting`, `setting_value`, `setting_scope` (browser, game) | whether the defaults fit |
 | `feature` | a feature's first use in a review, or on the Analysis board in a visit | `feature_name` (the feature, below) | what to keep, to improve, or to explain |
-| `export` | an export | `export_kind` (link, file, copy, text, partner: the review file saved to a partner site, design 18), `link_length`, `link_too_long` | whether players share, and whether links fit a Discord message |
+| `export` | an export, from the review or the Analysis board (the page's address tells which) | `export_kind` (share_link, review_file, analysis_file, record_copy, record_file, partner_save: the review file saved to a partner site, design 18), `link_length`, `link_too_long` | whether players share, and whether links fit a Discord message |
 | `game_delete`, `game_restore` | a game deleted, its Undo | none | whether Undo saves slips |
 
 The features, by their `feature_name` (`ReviewView.svelte`, `used`). Each counts once in a review, at its first use:
@@ -100,15 +110,15 @@ selector at the top left. Click **Admin**, the gear at the bottom left.
 
 | Event parameter | Dimension name | Scope | What it holds |
 |---|---|---|---|
-| `import_source` | Import source | Event | how a game came in: record, constellation, review_file, bookmarklet, userscript, older_tool, share_link, site_link, site_review |
-| `analysis_source` | Analysis source | Event | how the Analysis board was reached: page, home, record, packed, file |
+| `import_to` | Import destination | Event | where an imported game went: review, analysis |
+| `import_source` | Import source | Event | how a game came in: pasted_record, pasted_constellation, review_file, analysis_file, review_share_link, analysis_share_link, site_link, partner_review, bookmarklet, userscript, older_tool |
 | `import_failure` | Import failure | Event | why an import failed: record, rejected, file, link |
 | `edges` | Game edges | Event | the game's edges, as a range |
-| `with_results` | File with results | Event | a review file that has the engine's results |
-| `with_branches` | Link with branches | Event | a share link that has branches |
+| `with_results` | File with results | Event | an imported review file, or a partner's review, that has the engine's results |
+| `with_branches` | Link with branches | Event | a review's share link that has branches |
 | `stale_tool` | Tool out of date | Event | bookmarklet, userscript, older |
-| `network_found` | Share network found | Event | the share link's network is on this site |
-| `same_engine` | Share same engine | Event | the share link's engine is this site's engine |
+| `network_found` | Share network found | Event | a review's share link: its network is on this site |
+| `same_engine` | Share same engine | Event | a review's share link: its engine is this site's engine |
 | `network` | Engine network | Event | the network's name |
 | `depth` | Review depth | Event | the review's visits a move |
 | `depth_on_screen` | Depth on screen | Event | the visits for the position on screen |
@@ -126,7 +136,7 @@ selector at the top left. Click **Admin**, the gear at the bottom left.
 | `setting_value` | Setting value | Event | the setting's new value |
 | `setting_scope` | Setting scope | Event | browser (this browser's settings) or game (one game's settings) |
 | `feature_name` | Feature | Event | the feature used |
-| `export_kind` | Export kind | Event | an export's kind: link, file, copy, text, partner |
+| `export_kind` | Export kind | Event | what an export made: share_link, review_file, analysis_file, record_copy, record_file, partner_save |
 | `error_kind` | Error kind | Event | an engine failure's kind: load, rules, gpu |
 | `link_length` | Link length | Event | a share link's characters, as a range |
 | `link_too_long` | Link too long | Event | the link is longer than a Discord message takes |
@@ -236,7 +246,8 @@ one row for each tab. A row gives all the settings of its tab. "None" means: lea
 
 ##### 1. Funnel: where do players drop off?
 
-The funnel shows where players stop, from the first page to the export.
+The funnel shows where players stop, from the Review tab to the review's export. It follows the review only: its
+import step takes the imports to the review, and its export step the exports on the review's page.
 
 **Variables:** the dimension **Import source**. No metrics.
 
@@ -249,11 +260,11 @@ The steps:
 
 | Step | Name | Condition |
 |---|---|---|
-| 1 | Home or review | **Page path and screen class** exactly matches `/`, **Or** **Page path and screen class** exactly matches `/review` |
-| 2 | Import | **Event name** exactly matches `import_game` |
+| 1 | Review tab | **Page path and screen class** exactly matches `/review` |
+| 2 | Import | **Event name** exactly matches `import_game`, **And** the parameter **import_to** exactly matches `review` |
 | 3 | Review open | **Event name** exactly matches `review_open` |
 | 4 | Review done | **Event name** exactly matches `review_done` |
-| 5 | Export | **Event name** exactly matches `export` |
+| 5 | Export | **Event name** exactly matches `export`, **And** **Page path and screen class** exactly matches `/review` |
 
 To set a tab of the technique Funnel exploration:
 
@@ -261,7 +272,8 @@ To set a tab of the technique Funnel exploration:
    the tab names, and click **Funnel exploration** in the list. Name the tab, as for a tab of Free form.
 2. Click the pencil beside **Steps**. The panel **Edit funnel steps** opens. For each step in the tab's row, type the
    step's name beside **Step**. Set its condition: the dimension (**Event name**, or **Page path and screen class**),
-   **exactly matches**, and the value. For step 1, set the first condition, click **Or**, and set the second. Click
+   **exactly matches**, and the value. For step 2, click **Add parameter** under the event's condition, type
+   `import_to`, and set **exactly matches** `review`. For step 5, click **And**, and set the page's condition. Click
    **Add step** for the next step.
 3. Click **Apply**. Leave **Make open funnel** off.
 4. For the tab "By way in", click **Drop or select dimension** under **Breakdown**, and click **Import source**.
@@ -316,35 +328,37 @@ users**.
 |---|---|---|---|---|---|
 | Feature users | Free form | Feature | Page path and screen class | Total users | exactly matches `feature` |
 | Review users | Free form | None | None | Total users | exactly matches `review_open` |
+| Board users | Free form | None | None | Total users | exactly matches `analysis_open` |
 
 ##### 5. Settings: do the defaults fit?
 
-The exploration shows which engine settings players change, and to what. A setting that most players change away
-from its default asks for another default.
+The exploration shows which engine settings players change, and to what, on the review's page and on the Analysis
+board. A setting that most players change away from its default asks for another default.
 
-**Variables:** the dimensions **Event name**, **Setting** and **Setting value**. The metrics **Event count** and **Total
-users**.
-
-| Tab | Technique | Rows | Columns | Values | Filter: Event name |
-|---|---|---|---|---|---|
-| Changes | Free form | Setting, Setting value | None | Event count, Total users | exactly matches `setting_change` |
-
-##### 6. Imports and shares: do they work?
-
-The exploration shows how games come in, to the review and to the Analysis board, and what fails.
-
-**Variables:** the dimensions **Event name**, **Import source**, **Import failure**, **Share network found**, **Share
-same engine**, **Tool out of date** and **Analysis source**. The metrics **Event count** and **Total users**.
+**Variables:** the dimensions **Event name**, **Setting**, **Setting value** and **Page path and screen class**. The
+metrics **Event count** and **Total users**.
 
 | Tab | Technique | Rows | Columns | Values | Filter: Event name |
 |---|---|---|---|---|---|
-| Ways in | Free form | Import source | None | Event count, Total users | exactly matches `import_game` |
-| Failed imports | Free form | Import source, Import failure | None | Event count | exactly matches `import_failed` |
-| Share links | Free form | Share network found, Share same engine | None | Event count | exactly matches `share_open` |
+| Changes | Free form | Setting, Setting value | Page path and screen class | Event count, Total users | exactly matches `setting_change` |
+
+##### 6. Imports and exports: do they work?
+
+The exploration shows how games come in, to the review and to the Analysis board, what fails, and what goes out.
+
+**Variables:** the dimensions **Event name**, **Import source**, **Import destination**, **Import failure**, **Share
+network found**, **Share same engine**, **Tool out of date**, **Export kind** and **Page path and screen class**. The
+metrics **Event count** and **Total users**.
+
+| Tab | Technique | Rows | Columns | Values | Filter: Event name |
+|---|---|---|---|---|---|
+| Ways in | Free form | Import source | Import destination | Event count, Total users | exactly matches `import_game` |
+| Failed imports | Free form | Import source, Import failure | Import destination | Event count | exactly matches `import_failed` |
+| Share links | Free form | Share network found, Share same engine | None | Event count | exactly matches `review_share_open` |
 | Old tools | Free form | Tool out of date | None | Event count | exactly matches `tool_out_of_date` |
+| Old address | Free form | Import source | None | Event count | exactly matches `import_forwarded` |
 | Missing games | Free form | None | None | Event count | exactly matches `game_missing` |
-| Analysis ways in | Free form | Analysis source | None | Event count, Total users | exactly matches `analysis_open` |
-| Failed analysis | Free form | Analysis source | None | Event count | exactly matches `analysis_failed` |
+| Exports | Free form | Export kind | Page path and screen class | Event count, Total users | exactly matches `export` |
 
 #### 7. The data collection settings
 
@@ -362,14 +376,18 @@ change the privacy page in the same release.
 
 #### After the setup
 
-**The changes of 2026-10-14** (design 22, the Analysis board):
+**The changes of 2026-10-14** (design 22: each page's way in, the Review tab, the Analysis board, one import event):
 
-- **Step 1:** the custom dimension **Analysis source**.
-- **Exploration 1:** step 1 takes `/review` in the place of `/import`, in the tab **From the visit** (the tab **By
-  way in** starts at step 2), and its name is **Home or review**. To change a step, open its tab, click the pencil
-  beside **Steps**, edit the step's condition, and click **Apply**.
-- **Exploration 4:** the dimension **Page path and screen class**, and its column in the tab **Feature users**.
-- **Exploration 6:** the dimension **Analysis source**, and the tabs **Analysis ways in** and **Failed analysis**.
+- **Step 1:** the custom dimension **Import destination**. Archive **Analysis source** (its row's **⋮** menu, then
+  **Archive**).
+- **Exploration 1:** the steps as above, in both tabs: step 1 is the Review tab, step 2 takes `import_to` = review,
+  and step 5 takes the review's page. To change a step, open its tab, click the pencil beside **Steps**, edit the
+  step's condition, and click **Apply**.
+- **Exploration 4:** the dimension **Page path and screen class** and its column in **Feature users**, and the tab
+  **Board users**.
+- **Exploration 5:** the dimension **Page path and screen class**, and its column.
+- **Exploration 6:** its name, its variables, the columns of **Ways in** and **Failed imports**, the filter of **Share
+  links**, and the tabs **Old address** and **Exports**. Delete the tabs **Analysis ways in** and **Failed analysis**.
 
 Google shows the events in **Reports → Realtime** at once. The custom dimensions fill the reports within a day or two,
 from the time of their registration on, and the explorations show them from then. An exploration with few players

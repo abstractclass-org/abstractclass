@@ -14,6 +14,7 @@
   import { onDestroy, onMount, untrack } from "svelte";
   import ReviewView, { type ReviewAgain, type ReviewProgress } from "#lib/review/ReviewView.svelte";
   import Arrival from "#lib/review/Arrival.svelte";
+  import ReviewHome from "#lib/review/ReviewHome.svelte";
   import { holdsGame } from "#lib/game/importHash.ts";
   import { snapshotBuild } from "#lib/analysis/cache.ts";
   import { review, type ReviewData } from "#lib/review/model.ts";
@@ -26,7 +27,7 @@
   import { errorText } from "#lib/errors.ts";
   import { gamePage, playerNames } from "#lib/game/record.ts";
   import type { GamePartner } from "#lib/game/partners.ts";
-  import { lastReview, loadGame, markReviewed, rememberReview, reviewAgainWhy, reviewCovers, reviewMark, setGameSettings, type GameSettings,
+  import { loadGame, markReviewed, rememberReview, reviewAgainWhy, reviewCovers, reviewMark, setGameSettings, type GameSettings,
            type ReviewMark } from "#lib/game/store.ts";
   import { holdReview } from "#lib/game/reviewLock.ts";
   import { afterNavigate, replaceState } from "$app/navigation";
@@ -280,10 +281,18 @@
     untrack(() => g.confirmGreats());
   });
 
-  let noGame = $state(false);
-  // Another game named after the `#` while the page shows one (an address typed, or back and forward): the page
-  // reviews that one from the start.
-  afterNavigate(() => { if (kept && gameInAddress() !== kept.id) location.reload(); });
+  let noGame = $state(false); // the Review tab without a game: ReviewHome
+  // Another game named after the `#` than the one the page shows, or a game named where it shows none (the Review tab's
+  // list, an address typed, back and forward): the page reviews that one from the start. A change of the `#` alone is
+  // the browser's own navigation, with no router's: it fires `hashchange`.
+  // Only once the page has chosen what it shows (`shown`): before, the address's game is the one it loads.
+  let shown: string | null | undefined; // the game shown, or null for the Review tab's page
+  const otherGame = () => { if (!arriving && shown !== undefined && gameInAddress() !== shown) location.reload(); };
+  afterNavigate(otherGame);
+  onMount(() => {
+    window.addEventListener("hashchange", otherGame);
+    return () => window.removeEventListener("hashchange", otherGame);
+  });
   /** The game the address names: after the `#`, or in an older address's query, which then moves after the `#` at
    *  once, before the analytics start. */
   function gameInAddress(): string | null {
@@ -293,20 +302,18 @@
     if (old) replaceState(`/review#game=${old}`, {});
     return old;
   }
-  /** The game to review: the imported one named in the address, else the last one reviewed here. Null when there is
-   *  none. */
+  /** The game to review: the one named in the address. Null when there is none: the Review tab then shows its own page,
+   *  with the last review a click away (design 22). */
   async function chooseGame(): Promise<string[] | null> {
-    const named = gameInAddress();
-    const id = named ?? lastReview();
+    const id = gameInAddress();
+    shown = id;
     if (!id) return null;
     const stored = await loadGame(id);
     if (!stored) {
       // A review's address opened in a browser that lacks its game (a review's address sent to someone): counted.
-      if (named) { track("game_missing"); throw new Error(`This browser has no game ${id}. Import it on the home page.`); }
-      rememberReview(null); // the last game is gone (its site data was cleared)
-      return null;
+      track("game_missing");
+      throw new Error(`This browser has no game ${id}. Import it in the Review tab.`);
     }
-    if (!named) replaceState(`#game=${id}`, {}); // the address names the game, so a reload keeps it
     rememberReview(id);
     kept = { id, text: stored.game.record, record: stored.record, partner: stored.game.partner };
     partnerName = stored.game.partner?.name ?? null;
@@ -439,13 +446,12 @@
   }
 </script>
 
-<svelte:head><title>Game review</title></svelte:head>
+<svelte:head>{#if !noGame}<title>Game review</title>{/if}</svelte:head> <!-- ReviewHome names its own page -->
 
 {#if arriving}
   <Arrival />
 {:else if noGame}
-  <p class={MESSAGE}>No game to review yet. <a href="/">Bring one on the home page</a>: paste its record, or use the
-    meaf.us bookmarklet.</p>
+  <ReviewHome />
 {:else if elsewhere}
   <div class={MESSAGE}>
     <p class="mb-3">{elsewhere === "taken" ? "This game is now open in another tab, so its review here stopped."

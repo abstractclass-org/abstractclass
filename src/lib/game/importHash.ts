@@ -12,6 +12,9 @@
 
 export type Tool = "bookmarklet" | "userscript";
 
+/** The tab's session key that the old import page sets before it forwards to the review (design 22). */
+export const FORWARDED = "hedge-school:forwarded-from-import";
+
 /** The record after the `#`, and what sent it: a tool and its version, none for an older tool's bare record, or a link
  *  from another site with its save page, or the partner's page that sends a kept review. */
 export interface ImportHash { record: string; tool: Tool | null; version: string; link: boolean; save: string | null; from: string | null }

@@ -24,7 +24,7 @@ will add more. A page whose name says "import" cannot say where the game goes.
    | `…&save=<url>` | with `record=` or `from=`: the partner's page that "Save to" opens (design 18) |
    | `/analysis` | the Analysis board kept in this browser |
    | `/analysis#record=<record>` | the record's line on the board, not kept as a game |
-   | `/analysis#packed=<code>` | a shared analysis, or an analysis file opened on the home page |
+   | `/analysis#packed=<code>` | a shared analysis, or an analysis file imported |
    | `…&at=<n>` | the position the board opens at: n edges from the start |
 
    Later pages take theirs the same way: the board editor (`/editor`) and Practice (`/practice`), with a record or a
@@ -40,11 +40,16 @@ will add more. A page whose name says "import" cannot say where the game goes.
    (designs 11 and 17).
 4. **`/import` is deprecated.** During the early access it forwards to `/review` with the same `#` part, and to
    `/tools` without one. It counts nothing. The page for developers says so, and says a month before when it stops.
-   The old shared review's `s=` is not read: a link with it says that it is from an earlier version.
 5. **The pages:**
    - **The header:** Review, Analysis (later Practice, Puzzles, Learn), then The notation and About.
-   - **Home:** bring a game (paste a record, then Review or Analyze, or open a review or an analysis file), and the
-     player's games.
+   - **Home:** what Hedge School is, and the way into each tab.
+   - **The Review tab** (`/review` without a game): import a game to review it (paste its record, or import a review
+     file), continue the last review, and the player's games, with their Export and Delete. A review is
+     `/review#game=…`.
+   - **The Analysis tab** (`/analysis`): the board, with its own Import (a record pasted, or an analysis file) and
+     Export.
+   - **One word for bringing a game in, on every page: import.** An import goes to the review (the game is kept, then
+     reviewed) or to the Analysis board. Its events say where it went and how it came (design 17).
    - **Tools (`/tools`):** the meaf.us bookmarklet and userscript, and how to bring Constellation's export.
    - **The footer** of the pages that scroll: About, The notation, For developers, Privacy, Notices.
 
@@ -59,16 +64,15 @@ will add more. A page whose name says "import" cannot say where the game goes.
 - **`/import` for every page,** with a parameter for the page: one more step in every link, and the page's name still
   says nothing.
 - **The payload in the path,** as Lichess's: the host and the analytics would record every game.
-- **`s` for a shared review:** it names how the link was made, and a shared analysis would read the same and mean
-  another thing.
+- **`s` for a shared review** (the first name): it names how the link was made, and a shared analysis would read the
+  same and mean another thing. The early access's few `s=` links are not read.
 - **`/import` forwarded for good:** an old address kept forever is a second way to write every link. The early access
   is the time to change it.
 
 ## Consequences
 
-- **Analytics** (design 17): the games that links bring land on `/review`, not `/import`. The funnel's first step
-  takes `/` and `/review`. `/analysis` and `/tools` are new pages. The Analysis board has its events: `analysis_open`
-  (with `analysis_source`) and `analysis_failed`.
+- **Analytics** (design 17): every import, to either page, is `import_game` with `import_to` and `import_source`. The
+  funnel starts at the Review tab, and follows the imports to the review. `/analysis` and `/tools` are new pages.
 - **The meaf.us tools** open `/review`. A userscript installed before this change is out of date, and the review says
   how to update it. The bookmarklet loads its code from the site at each click, so it changes with it.
 - **Partners** (design 18) move their links to `/review#…`. enclosuregame.com's links keep working while `/import`

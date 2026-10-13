@@ -1,0 +1,213 @@
+<script lang="ts">
+  // The Review tab without a game (design 22): import a game to review it, by pasting its record or opening a review
+  // file, continue the last review, and the player's games, kept in this browser. A review opens on a game the player
+  // brought: there is no sample game (design 11). An analysis file opened here goes to the Analysis board.
+  import { onMount } from "svelte";
+  import { goto } from "$app/navigation";
+  import { playerNames, parseRecord, type GameRecord } from "#lib/game/record.ts";
+  import { deleteGame, lastReview, listGames, restoreGame, reviewAgainWhy, reviewCovers, reviewMark, type DeletedGame,
+           type StoredGame } from "#lib/game/store.ts";
+  import { loadEngine, reviewVisits } from "#lib/analysis/engineSettings.ts";
+  import { importRecord } from "#lib/game/import.ts";
+  import { pastedSource, readPasted } from "#lib/game/paste.ts";
+  import { boardLink } from "#lib/game/board.ts";
+  import { fileKind, keepAnalysisResults, readAnalysisFile } from "#lib/game/analysisFile.ts";
+  import { errorText } from "#lib/errors.ts";
+  import { SITE_NAME, SITE_VERSION } from "#lib/edition.ts";
+  import { deliverExport, importReview, readReviewFile, shippedModels, shippedModule, type ExportKind } from "#lib/game/reviewFile.ts";
+  import { loadManifest, type Manifest } from "#lib/engine/client.ts";
+  import { annotatedFromStore } from "#lib/review/exportText.ts";
+  import ExportMenu from "#lib/ExportMenu.svelte";
+  import { setVisitor, track } from "#lib/analytics.svelte.ts";
+  import { trackImport, trackImportFailed } from "#lib/game/importEvents.ts";
+  import { GAME_RANGES, range } from "#lib/measure.ts";
+  import SiteFooter from "#lib/SiteFooter.svelte";
+
+  let text = $state("");
+  let problem = $state("");
+  let checking = $state(false);
+  let games = $state<{ game: StoredGame; record: GameRecord }[]>([]);
+  let last = $state<{ game: StoredGame; record: GameRecord } | null>(null); // the game reviewed last, when it is still kept
+  // The review a game's export needs (design 13): with this site's engine, and the network and review depth set now,
+  // the game's own when it keeps them (store.ts, `settings`).
+  let manifest = $state.raw<Manifest | null>(null);
+  const engine = loadEngine();
+  const wanted = (g: StoredGame) => manifest && reviewMark(manifest, g.settings?.network ?? engine.network, g.settings?.visits ?? reviewVisits(engine));
+  onMount(async () => {
+    games = await listGames();
+    const lastId = lastReview();
+    last = games.find(g => g.game.id === lastId) ?? null;
+    setVisitor({ games_stored: range(games.length, GAME_RANGES) }); // how many games a visitor keeps (design 17)
+    manifest = await loadManifest();
+  });
+
+  // The games deleted on this visit, by id. The delete is done at once, so it stands if the page closes. A deleted
+  // game's row stays until the page loads again, with an Undo where its Delete was: the list does not move under the
+  // pointer, and the player has no time limit to undo. Raw: IndexedDB cannot store a state proxy.
+  let deleted = $state.raw<Record<string, DeletedGame>>({});
+  async function remove(id: string) {
+    const was = await deleteGame(id);
+    if (was) { deleted = { ...deleted, [id]: was }; track("game_delete"); }
+  }
+  async function undo(id: string) {
+    const { [id]: was, ...rest } = deleted;
+    deleted = rest;
+    if (was) { await restoreGame(was); track("game_restore"); }
+  }
+
+  /** The pasted game, kept and reviewed. The import counted by its source and the game's length, and a failure by why
+   *  (design 17): no record leaves. */
+  async function importGame(event: SubmitEvent) {
+    event.preventDefault();
+    problem = "";
+    let read: ReturnType<typeof readPasted>;
+    try {
+      read = readPasted(text);
+    } catch (e) {
+      problem = (e as Error).message;
+      trackImportFailed("review", pastedSource(text), "record");
+      return;
+    }
+    checking = true;
+    let id: string;
+    try {
+      id = await importRecord(read.recordText, read.record);
+    } catch (e) {
+      problem = errorText(e);
+      trackImportFailed("review", read.source, "rejected");
+      return;
+    } finally {
+      checking = false;
+    }
+    trackImport("review", read.source, read.record.moves.length);
+    location.assign(`/review#game=${id}`); // the review loads it (hashchange)
+  }
+
+  // Files (designs 13 and 21), chosen or dropped on the page: a review file is kept and reviewed, and an analysis file
+  // goes to the Analysis board, its results kept here.
+  let fileProblem = $state("");
+  let importing = $state(false);
+  let dragging = $state(false);
+
+  /** A game's export, as on the review page: the annotated record is written from the stored results, with no search. */
+  async function exportGame(id: string, record: string, kind: ExportKind) {
+    return deliverExport(kind, id, record, await loadManifest(), SITE_VERSION, () => annotatedFromStore(id));
+  }
+
+  async function importFile(file: File | undefined) {
+    if (!file) return;
+    fileProblem = "";
+    importing = true;
+    const content = await file.text();
+    if (fileKind(content) === "analysis") {
+      try {
+        const analysis = readAnalysisFile(content);
+        await keepAnalysisResults(analysis, shippedModels(await loadManifest()));
+        await goto(boardLink("", analysis.board, 0, "analysis_file")); // the board counts the import
+      } catch (e) {
+        fileProblem = `The file could not be imported: ${errorText(e)}`;
+        trackImportFailed("analysis", "analysis_file", "file");
+      } finally {
+        importing = false;
+      }
+      return;
+    }
+    try {
+      const review = readReviewFile(content);
+      // Only the networks this site ships: a result of another network is never asked for here.
+      const manifest = await loadManifest();
+      const { id } = await importReview(review, shippedModels(manifest), shippedModule(manifest));
+      trackImport("review", "review_file", parseRecord(review.record).moves.length, { with_results: review.analyses.length > 0 });
+      location.assign(`/review#game=${id}`); // the review loads it (hashchange)
+    } catch (e) {
+      fileProblem = `The file could not be imported: ${errorText(e)}`;
+      trackImportFailed("review", "review_file", "file");
+    } finally {
+      importing = false;
+    }
+  }
+
+  function dropped(event: DragEvent) {
+    event.preventDefault();
+    dragging = false;
+    void importFile(event.dataTransfer?.files[0]);
+  }
+
+  // A game's link loads the page again (data-sveltekit-reload): a change of the `#` alone would leave this page as it is.
+  const title = (r: GameRecord) => { const p = playerNames(r.tags); return `${p.blue} against ${p.red}`; };
+</script>
+
+<svelte:head><title>Review a game</title></svelte:head>
+
+<main class={["box-content max-w-[1000px] mx-auto my-6 px-4 grid gap-5 rounded-lg", dragging && "outline-2 outline-dashed outline-accent"]}
+      role="region" aria-label="Review a game"
+      ondragover={e => { if (e.dataTransfer?.types.includes("Files")) { e.preventDefault(); dragging = true; } }}
+      ondragleave={e => { if (e.target === e.currentTarget) dragging = false; }}
+      ondrop={dropped}>
+  {#if last}
+    <a class="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-5 py-3.5 bg-panel border border-line rounded-lg text-ink no-underline hover:border-accent"
+       href="/review#game={last.game.id}" data-sveltekit-reload>
+      <strong>Continue your last review</strong>
+      <span class="text-muted">{title(last.record)}, {last.record.moves.length} edges</span>
+    </a>
+  {/if}
+
+  <section class="bg-panel border border-line rounded-lg px-5 py-5">
+    <h1 class="mb-1 text-2xl font-bold text-balance">Review your Enclosure game</h1>
+    <p class="mb-4 max-w-160 text-muted">See where the game turned, which edges cost you, and what was better. The engine runs in your browser.</p>
+    <form onsubmit={importGame}>
+      <label for="record" class="block mb-1 text-sm font-semibold">A game record</label>
+      <textarea id="record" rows="4" bind:value={text} spellcheck="false"
+                class="w-full px-2.5 py-2 font-mono text-sm/[1.4] bg-page text-ink border border-line rounded resize-y focus:outline-2 focus:outline-accent"
+                placeholder={'[Blue "you"] [Red "them"]\n1. D10-G10 2. N11-Q10 L10-N11 3. D10-G9 G9-H10 …'}></textarea>
+      {#if problem}<p class="mt-1.5 text-blunder" role="alert">{problem}</p>{/if}
+      <div class="flex flex-wrap items-center gap-3 mt-2">
+        <button class="btn-primary" type="submit" disabled={!text.trim() || checking}>{checking ? "Checking…" : "Review"}</button>
+        <span class="flex-1 min-w-56 text-xs text-muted">In the engine's notation: turns as <code>1.</code> and <code>2.</code>, edges as
+          <code>D10-G10</code>, a cut as <code>D10-G10x</code>, a timeout as <code>pass</code>. A plain list of edges works too.</span>
+      </div>
+      <p class="mt-2.5 text-xs text-muted">From meaf.us: use the <a href="/tools">bookmarklet or the userscript</a>, one click on a meaf.us game page.
+        From Constellation: paste what the analysis board's <strong>Export</strong> gives.</p>
+    </form>
+    <div class="flex flex-wrap items-center gap-3 mt-4 pt-3 border-t border-line">
+      <label class={["px-3 py-1 text-sm rounded border border-line bg-panel-2 cursor-pointer hover:border-accent", importing && "opacity-50"]}>
+        {importing ? "Importing…" : "Import a review file"}
+        <input type="file" accept=".json,application/json" class="sr-only" disabled={importing}
+               onchange={e => { void importFile(e.currentTarget.files?.[0]); e.currentTarget.value = ""; }} />
+      </label>
+      <span class="flex-1 min-w-56 text-xs text-muted">A review file that {SITE_NAME} exported, from this browser or another. You can
+        also drop it on this page. It opens at once, with the engine's results it holds.</span>
+    </div>
+    {#if fileProblem}<p class="mt-1.5 text-blunder" role="alert">{fileProblem}</p>{/if}
+  </section>
+
+  {#if games.length}
+    <section class="bg-panel border border-line rounded-lg px-5 py-5">
+      <h2 class="mb-2 text-lg font-bold">Your games</h2>
+      <ul class="grid gap-1.25 mb-1.5">
+        {#each games as { game, record } (game.id)}
+          <li class="flex flex-wrap items-baseline gap-2.5">
+            {#if deleted[game.id]}
+              <span class="text-sm text-muted" role="status">Deleted {title(record)}.</span>
+              <span class="ml-auto"><button type="button" class="px-2 py-0 text-xs" onclick={() => undo(game.id)}>Undo</button></span>
+            {:else}
+              <a href="/review#game={game.id}" data-sveltekit-reload>{title(record)}</a>
+              <span class="text-sm text-muted">{record.moves.length} edges{record.result && record.result !== "*" ? ` · ${record.result}` : ""} ·
+                imported {new Date(game.added).toLocaleDateString()}</span>
+              <span class="ml-auto flex items-center gap-1.5"><ExportMenu small side="bottom" run={kind => exportGame(game.id, game.record, kind)}
+                ready={reviewCovers(game.reviewed, wanted(game))}
+                why={!game.reviewed ? "Open the game to review it, then export."
+                  : reviewAgainWhy(game.reviewed, wanted(game)) ? "The engine was updated: open the game, choose Review again, then export."
+                  : "Open the game to finish its review with the engine settings now, then export."} />
+                <button type="button" class="px-2 py-0 text-xs" aria-label="Delete {title(record)}"
+                        onclick={() => remove(game.id)}>Delete</button></span>
+            {/if}
+          </li>
+        {/each}
+      </ul>
+      <p class="text-sm text-muted">Kept in this browser only.</p>
+    </section>
+  {/if}
+</main>
+
+<SiteFooter />
