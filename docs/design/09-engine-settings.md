@@ -84,6 +84,9 @@ each applies at once, without a reload.
      cores leaves room for the page and the visitor's other work, and 8 workers of b10c128 take about 0.75 GB. The
      help line gives a worker's memory for the chosen network. A change adds workers, which
      load the network and then take work, or removes them: a free worker ends at once, a busy one when its task ends.
+     **An idle review keeps no search engine:** after a minute with no search (15 seconds in a hidden tab), the
+     review ends its workers and the GPU worker, and keeps the rules worker, so that the board still answers at once.
+     The next search starts them again, in about a second (`releaseWhenIdle` in `src/lib/analysis/pool.ts`).
      The work in progress goes on. "GPU": Auto, On or Off, Auto by default. The GPU searches many positions at once
      beside the workers, and Auto keeps it where its first-use test finds it faster than a worker
      ([design 15](15-gpu.md)). The help line gives its first download for the chosen network, and a line under the
@@ -190,7 +193,8 @@ each applies at once, without a reload.
 ## Consequences
 
 - Workers cost memory: 95 MiB each with b10c128 and 244 MiB with b15c192 after loading, and about 4 KB more for each
-  visit of their deepest search. Sixteen workers of b15c192 use about 3.8 GiB before any search.
+  visit of their deepest search. Sixteen workers of b15c192 use about 3.8 GiB before any search. A tab holds them only
+  while it searches: an idle review tab holds about 150 MB (decisions/engine.md, "A review's memory").
 - More workers than free cores do not fail: they share the cores, so each runs slower and the review gains little
   (decisions/engine.md: 8 workers on 8 busy cores ran at 39 visits a second each, against 72 for one). The page
   competes with them too. The limit is memory: on a machine short of it the browser can end the tab.

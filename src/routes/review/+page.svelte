@@ -251,6 +251,7 @@
       return;
     }
     if (network !== id) { next.terminate(); return; } // another network was chosen meanwhile
+    next.releaseWhenIdle(); // an idle tab keeps no engine but the rules' (pool.ts, IDLE_RELEASE_MS)
     pool = next;
     g.usePool(next);
     controlGpu(next, id);
@@ -349,6 +350,7 @@
       }
       if (!g.rulesReady) { track("engine_error", { kind: "rules" }); return; } // the rules refused the game: the page shows why
       if (pool !== first) return; // another pool took over
+      first.releaseWhenIdle(); // an idle tab keeps no engine but the rules' (pool.ts, IDLE_RELEASE_MS)
       controlGpu(first, network);
       const want = reviewMark(manifest, network, budget);
       doneBefore = reviewCovers(markBefore, want);

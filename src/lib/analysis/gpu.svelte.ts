@@ -100,6 +100,9 @@ export class GpuControl {
 
   constructor(private pool: EnginePool, private manifest: Manifest, private network: string) {
     pool.onGpuLost = e => { if (!this.ended) this.status = { state: "failed", message: errorText(e) }; };
+    // The pool released its idle engines, the GPU's among them: the GPU starts again at the next backlog, with its
+    // stored test (apply).
+    pool.onRelease = () => { if (!this.ended && this.mode !== "off") void this.apply(this.mode); };
   }
 
   /** Applies the setting: drops the GPU, keeps it, or starts it once the pool has a backlog. */
@@ -169,5 +172,6 @@ export class GpuControl {
     this.ended = true;
     this.pool.onBacklog = null;
     this.pool.onGpuLost = null;
+    this.pool.onRelease = null;
   }
 }

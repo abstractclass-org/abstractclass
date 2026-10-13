@@ -25,6 +25,12 @@ export type Work<T> = (engine: SearchEngine, onStop: (stop: () => void) => void)
  *  cores each worker kept 86% of one worker's speed up to 8 (decisions/engine.md, "Speed on a laptop"). */
 export const defaultPoolSize = () => Math.max(1, Math.min(8, Math.floor((navigator.hardwareConcurrency || 2) / 2)));
 
+/** How long a pool that releases its engines when idle (releaseWhenIdle) waits, with no task, before it ends them: in a
+ *  tab in view, and in a hidden tab. A search worker holds its module and network for as long as it lives (about 90 MB
+ *  with HedgeFund 0.1 Lite, 240 MB with HedgeFund 0.1: docs/decisions/engine.md, "A review's memory"), and a finished
+ *  review needs none of them until the player searches again. */
+export const IDLE_RELEASE_MS = { shown: 60_000, hidden: 15_000 };
+
 /** The rejection of a task that was cancelled before it ran. */
 export class Cancelled extends Error {
   constructor() { super("cancelled"); }
@@ -59,12 +65,22 @@ export class EnginePool {
   /** Called when tasks wait and no engine is free: the GPU starts then (design 15). */
   onBacklog: (() => void) | null = null;
   private load: ((e: EngineWorker) => Promise<void>) | null = null; // starts a search worker: the module, then the network
+  // The release of idle engines (releaseWhenIdle): the search workers wanted, whether they are released now, and the
+  // timer that releases them.
+  private size: number;
+  private released = false;
+  private idleRelease: { shown: number; hidden: number } | null = null;
+  private idleTimer: ReturnType<typeof setTimeout> | undefined;
+  private onVisibility = () => this.scheduleRelease();
+  /** Called when the idle engines are released: the GPU's control starts the GPU again at the next backlog. */
+  onRelease: (() => void) | null = null;
   // A worker for the rules alone (describe, play): it loads no network and runs no search, so a rules call never
   // waits behind a search (a worker takes one request at a time). The board's rules, an engine line's cuts and a
   // player's own moves need answers at once.
   private rulesWorker = new EngineWorker();
 
   constructor(size: number) {
+    this.size = size;
     this.engines = Array.from({ length: size }, () => new EngineWorker());
   }
 
@@ -94,8 +110,11 @@ export class EnginePool {
   /** The worker for rules calls (describe, play). They work before the network loads. */
   get rules(): EngineWorker { return this.rulesWorker; }
 
-  /** Runs `work` on the next free worker, by priority (higher first, then first come). */
+  /** Runs `work` on the next free worker, by priority (higher first, then first come). Engines released when idle start
+   *  again first. */
   run<T>(priority: number, tag: string, work: Work<T>): Promise<T> {
+    clearTimeout(this.idleTimer);
+    if (this.released) { this.released = false; this.resize(this.size); }
     return new Promise<T>((resolve, reject) => {
       this.enqueue({ priority, tag, work: work as Work<unknown>, resolve: resolve as (v: unknown) => void, reject });
       this.dispatch();
@@ -108,11 +127,14 @@ export class EnginePool {
     const dropped = this.queue.filter(t => match(t.tag));
     this.queue = this.queue.filter(t => !match(t.tag));
     for (const t of dropped) t.reject(new Cancelled());
+    this.scheduleRelease();
   }
 
   /** Adds search workers or removes them, to `size`. A new worker takes work once it has loaded the network. A removed
    *  worker ends at once when it is free, or when its task ends. Call after start(). */
   resize(size: number) {
+    this.size = size;
+    if (this.released) return; // they start at this size with the next task
     while (this.engines.length < size) {
       const e = new EngineWorker();
       this.engines.push(e);
@@ -177,6 +199,35 @@ export class EnginePool {
   /** Tasks wait, and no engine is free. */
   get backlogged(): boolean { return this.queue.length > 0 && this.free.length === 0; }
 
+  /** Ends the search workers and the GPU worker when no task has run for a while (IDLE_RELEASE_MS, shorter in a hidden
+   *  tab), and starts them again with the next task: an open tab then holds their memory only while it searches. The
+   *  rules worker stays, so the board answers at once. Call after start(). */
+  releaseWhenIdle(ms = IDLE_RELEASE_MS) {
+    this.idleRelease = ms;
+    document.addEventListener("visibilitychange", this.onVisibility);
+    this.scheduleRelease();
+  }
+
+  /** Starts the idle timer when no task waits or runs, with the delay for the tab's state now. */
+  private scheduleRelease() {
+    clearTimeout(this.idleTimer);
+    if (!this.idleRelease || this.released || this.queue.length || this.running.size) return;
+    const ms = document.visibilityState === "hidden" ? this.idleRelease.hidden : this.idleRelease.shown;
+    this.idleTimer = setTimeout(() => this.release(), ms);
+  }
+
+  /** Ends the search engines while nothing runs: a worker still loading ends when it has loaded (load), the GPU's worker
+   *  at once (dropGpu). */
+  private release() {
+    if (this.queue.length || this.running.size) return;
+    this.released = true;
+    for (const e of this.engines) if (this.free.includes(e)) e.terminate(); else this.retiring.add(e);
+    this.engines.length = 0;
+    this.free = this.free.filter(e => e.kind === "gpu");
+    this.dropGpu();
+    this.onRelease?.();
+  }
+
   /** Stops all searching: the waiting tasks are dropped (Cancelled), and the running tasks that can stop end now. A
    *  search not in slices finishes its few visits. */
   halt() {
@@ -210,6 +261,7 @@ export class EnginePool {
           if (this.retiring.delete(engine)) engine.terminate();
           else this.free.push(engine);
           this.dispatch();
+          this.scheduleRelease();
         });
     }
     if (this.backlogged) this.onBacklog?.();
@@ -242,6 +294,8 @@ export class EnginePool {
   }
 
   terminate() {
+    clearTimeout(this.idleTimer);
+    if (this.idleRelease) document.removeEventListener("visibilitychange", this.onVisibility);
     this.engines.forEach(e => e.terminate());
     this.retiring.forEach(e => e.terminate());
     this.gpu?.terminate();

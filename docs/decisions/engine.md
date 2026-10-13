@@ -902,3 +902,42 @@ Blunder's loss.
   a second against 35 visits a second for a CPU worker (283 on build 632f2a0).
 - **The stored reviews search again once,** as after every build: the results' keys name the CPU module's build. The
   GPU's first-use test runs again for the new GPU module's build.
+
+### A review's memory, and its engines released when idle (2026-10-13)
+
+- **The report** (the engine repository's memory watcher): through an afternoon of reviews in Edge, Edge's commit
+  charge rose from 14.9 GB to 20.1 GB, and fell to 7.0 GB after the reviews. At 16:28 Windows reached its commit
+  limit (141.7 GB), and its WSL machine stopped the engine's training for 54 minutes.
+- **Measured** in Edge on the owner's machine (16 logical cores, so 8 workers by default), with the GPU on Auto: each
+  Edge process's commit charge every 15 seconds (Task Manager's "Commit size"), and, in a local build only, each
+  worker's WebAssembly memory from its replies (`memoryBytes()`). A review of a 120-edge game:
+
+  | Part | HedgeFund 0.1 Lite | HedgeFund 0.1 |
+  |---|---|---|
+  | A CPU worker | 87 MB loaded, 90 to 93 MB after the review | 243 MB, flat |
+  | The rules worker | 14 MB | 14 MB |
+  | The GPU worker's 16 engines | 12 to 19 MB each, about 0.3 GB | 12 to 15 MB each |
+  | The page's JavaScript | 31 to 37 MB | |
+  | The tab's renderer process | 1.29 to 1.36 GB | 2.6 to 2.75 GB |
+  | The GPU process | 70 to 250 MB more | up to about 500 MB more |
+
+- **No leak:** the renderer was flat from the review's start to its end (about 1.3 GB within 10 seconds of the start,
+  then no trend). A change of network ended the old workers and GPU worker (2.64 GB to 0.88 GB on the way back to
+  Lite), 8 workers to 4 freed 366 MB, and a closed tab freed its renderer whole (1.34 GB) and about 130 MB of the GPU
+  process. No engine instance grew without limit, so the engine repository needs no request.
+- **The cause:** a review tab kept its whole pool for as long as it stayed open, finished and idle too: 1.3 GB with
+  Lite, 2.7 GB with HedgeFund 0.1, and the GPU process's share. Several review tabs left open through the afternoon
+  come to the 10 GB above Edge's usual level, checks of the site in the browser among them. One tab open at the start
+  of these measurements held 2.1 GB.
+- **Decided:** a review ends its search workers and its GPU worker after a minute with no search (15 seconds in a
+  hidden tab), and keeps the rules worker (`releaseWhenIdle`, `IDLE_RELEASE_MS`). The next search starts them again,
+  at the size the settings ask, and the GPU's control starts the GPU again at the next backlog, with its stored test.
+  The engine lab keeps its workers: it drives them itself.
+- **Checked in Edge** (the tab was in the background, so the 15 seconds applied): the reloaded review released its
+  engines within 22 seconds, its renderer from 874 MB to 165 MB. A step to a position that needed a deeper search
+  started the 8 workers and the GPU worker again within about a second, and that search reached 1,024 visits about 5
+  seconds later. Two cycles of start and release each came back to 140 to 165 MB. Not checked: the minute's delay in a
+  tab in view, and a tab hidden for over 5 minutes, where Edge runs a page's timers once a minute, so a release can
+  come up to a minute late.
+- **What a budget can still take, not done:** fewer default workers or a smaller cache would lower a searching tab's
+  1.3 GB (Lite) or 2.7 GB (HedgeFund 0.1). The help line of the workers' setting gives a worker's memory.
