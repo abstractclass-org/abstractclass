@@ -382,8 +382,8 @@ change the privacy page in the same release.
 - **Step 1:** the custom dimension **Import destination**. Archive **Analysis source** (its row's **⋮** menu, then
   **Archive**).
 - **Exploration 1:** the steps as above, in both tabs: step 1 is the Review tab, step 2 takes Import destination =
-  review, and step 5 takes the review's page. To change a step, open its tab, click the pencil beside **Steps**, edit the
-  step's condition, and click **Apply**.
+  review, and step 5 takes the review's page. To change a step, open its tab, click the pencil beside **Steps**, edit
+  the step's condition, and click **Apply**.
 - **Exploration 4:** the dimension **Page path and screen class** and its column in **Feature users**, and the tab
   **Board users**.
 - **Exploration 5:** the dimension **Page path and screen class**, and its column.
