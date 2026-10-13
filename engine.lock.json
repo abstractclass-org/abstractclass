@@ -2,30 +2,38 @@
   "repository": "seankao31/enclosure-engine",
   "artifacts": [
     {
-      "id": "engine-632f2a0",
+      "id": "engine-fdfe5ad",
       "kind": "module",
-      "interface": "engine-protocol-0.3",
+      "interface": "engine-protocol-0.4",
       "file": "enclosure-engine.wasm",
-      "source": { "release": { "tag": "wasm-v2-engine-632f2a0", "asset": "enclosure-engine.wasm" } },
-      "sha256": "97b2b59c0bcd3d6ecae0ac67a628c6245eaa05bae99f5daebc0b3dcb393f1e20",
-      "bytes": 1352964
+      "source": { "release": { "tag": "wasm-v2-engine-fdfe5ad", "asset": "enclosure-engine.wasm" } },
+      "sha256": "b4ab6ed8b93f8ea5edd61a8c8d8778baad32917281d9d80614c7b022da7fae5f",
+      "bytes": 1324603
     },
     {
-      "id": "engine-632f2a0-notices",
+      "id": "engine-fdfe5ad-notices",
       "kind": "notices",
       "file": "NOTICES.txt",
-      "source": { "release": { "tag": "wasm-v2-engine-632f2a0", "asset": "NOTICES.txt" } },
-      "sha256": "688cc6fa6262242e587de4ea351c44c1bf0aa9de59d3566cb4c055863e21ee4d",
-      "bytes": 10042
+      "source": { "release": { "tag": "wasm-v2-engine-fdfe5ad", "asset": "NOTICES.txt" } },
+      "sha256": "d20b7b3efb3873f4ad66fa57ac3cc0fd6ad483b6cbce25bdb13b4dc0c8d17344",
+      "bytes": 10375
     },
     {
-      "id": "engine-632f2a0-gpu",
+      "id": "engine-fdfe5ad-terms",
+      "kind": "terms",
+      "file": "LICENSE.txt",
+      "source": { "release": { "tag": "wasm-v2-engine-fdfe5ad", "asset": "LICENSE.txt" } },
+      "sha256": "78e54748378e7e2cf422c1567d0f361dea7fb7bb74e8b65e801ede4ec0856acc",
+      "bytes": 1487
+    },
+    {
+      "id": "engine-fdfe5ad-gpu",
       "kind": "gpu-module",
-      "interface": "engine-protocol-0.3",
+      "interface": "engine-protocol-0.4",
       "file": "enclosure-engine-gpu.wasm",
-      "source": { "release": { "tag": "wasm-v2-engine-632f2a0", "asset": "enclosure-engine-gpu.wasm" } },
-      "sha256": "428bfbad3ada05907e5bbb038af536c1c6a00d951dfac7dcfbd7c836155fcd73",
-      "bytes": 1146848
+      "source": { "release": { "tag": "wasm-v2-engine-fdfe5ad", "asset": "enclosure-engine-gpu.wasm" } },
+      "sha256": "11c083c0a109e16feb851087c5b0c46b2e801cda34de3ab0108688799214af76",
+      "bytes": 1118487
     },
     {
       "id": "engine-632f2a0-gpulib",

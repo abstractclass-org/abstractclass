@@ -3,7 +3,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { Edge } from "#lib/engine/notation.ts";
-import { complexity, equalDepth, likelyEdges, judgeBranchEdge, review, roundTogether, trustedLine, turnCost, valuesAfter, type Analysis, type Candidate, type Move, type Position,
+import { complexity, distinctCandidates, equalDepth, likelyEdges, judgeBranchEdge, onlyEdge, otherCandidate, review, roundTogether,
+         sameMove, secondChoice, shortNote, trustedLine, turnCost, valuesAfter, type Analysis, type Candidate, type Move, type Position,
          type ReviewData } from "./model.ts";
 import { accuracyWeight } from "./labels.ts";
 
@@ -172,3 +173,35 @@ test("the meter: the network's prior by the group of each searched edge's loss a
   assert.ok(near(m.unsearched, 0.2)); // the prior the search did not visit
   assert.equal(likelyEdges({ ...a, candidates: a.candidates.map(({ prior: _, ...k }) => k) }, 1), undefined);
 });
+
+// The start mirrored: the engine searches A10-D9 and lists its twin A10-D11 right after it with the same values
+// (protocol 0.4, isSymmetryOf). The next distinct move is D10-G10, 0.15 worse for Blue.
+const A10D9: Edge = [0, 8, 3, 9], A10D11: Edge = [0, 10, 3, 9], D10G10: Edge = [3, 9, 6, 9];
+const mirrored: Analysis = { blueWin: 0.6, visits: 256, lead: 20, candidates: [
+  { edge: A10D9, visits: 200, blueWin: 0.6, lead: 20, prior: 0.3 },
+  { edge: A10D11, visits: 200, blueWin: 0.6, lead: 20, prior: 0.3, twinOf: A10D9 },
+  { edge: D10G10, visits: 40, blueWin: 0.45, lead: -10, prior: 0.1 }] };
+
+test("a symmetric twin is the same move: the second choice and the other candidate skip it", () => {
+  assert.deepEqual(distinctCandidates(mirrored).map(c => c.edge), [A10D9, D10G10]);
+  assert.deepEqual(secondChoice(mirrored)?.edge, D10G10);
+  assert.ok(onlyEdge(mirrored, 0)); // the twin's equal values do not hide the gap to the next distinct move
+  assert.ok(sameMove(mirrored, A10D9, A10D11) && sameMove(mirrored, A10D11, A10D9));
+  assert.ok(!sameMove(mirrored, A10D11, D10G10));
+  // Blue played the twin: the other candidate is the next distinct move, not the searched edge.
+  assert.deepEqual(otherCandidate(mirrored, [A10D11])?.edge, D10G10);
+  assert.deepEqual(otherCandidate(mirrored, [A10D9])?.edge, D10G10);
+});
+
+test("the twin of the first choice, played, is Best, and Great once the next distinct move is confirmed worse", () => {
+  const after = { blueWin: 0.6, blueScore: 20 };
+  assert.equal(judgeBranchEdge(mirrored, after, 0, A10D11, "lead", 256), "best");
+  const second: Analysis = { blueWin: 0.45, visits: 256, candidates: [] };
+  assert.equal(judgeBranchEdge(mirrored, after, 0, A10D11, "lead", 256, second), "great");
+});
+
+test("a Best edge that is the first choice's twin gets no \"was best\" note", () => {
+  const e = { label: "best", edge: A10D11, best: mirrored.candidates[0] } as unknown as Parameters<typeof shortNote>[0];
+  assert.equal(shortNote(e), "Best.");
+});
+

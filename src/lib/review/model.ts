@@ -39,6 +39,9 @@ export interface Candidate {
   edge: Edge; visits: number; blueWin: number; lead?: number; margin?: number; line?: Edge[];
   prior?: number; // the network's policy for the move: KaTrain's complexity weighs the candidates by it
   lineVisits?: number[];
+  // A symmetric twin (protocol 0.4): in a position that is its own image, the searched edge of which this edge is the
+  // mirror image. The engine lists the twin right after it, with its values and visits.
+  twinOf?: Edge;
 }
 export interface Analysis { blueWin: number; visits: number; lead?: number; margin?: number; spread?: number; candidates: Candidate[] }
 export interface ReviewData {
@@ -158,7 +161,7 @@ export function complexity(a: Analysis | undefined, p: Player): number | undefin
 
 /** The engine's first choice is the only good edge: the second is at least ONLY_EDGE_GAP worse for the mover. */
 export function onlyEdge(a: Analysis | undefined, p: Player): boolean {
-  const [first, second] = a?.candidates ?? [];
+  const [first, second] = a ? distinctCandidates(a) : [];
   return !!first && !!second && moverWin(first.blueWin, p) - moverWin(second.blueWin, p) >= ONLY_EDGE_GAP;
 }
 
@@ -184,7 +187,22 @@ export function confirmedOnly(winAfter: number, second: Analysis | undefined, p:
  *  Great by turn (design 10). The edges of the played turn are left out, because the best turn that starts with one of
  *  them is often the played turn in the other order. */
 export function otherCandidate(a: Analysis | undefined, played: (Edge | null)[]): Candidate | undefined {
-  return a?.candidates.find(c => !played.some(e => !!e && sameEdge(e, c.edge)));
+  return a && distinctCandidates(a).find(c => !played.some(e => !!e && sameMove(a, e, c.edge)));
+}
+
+/** The engine's distinct choices: its candidates without the symmetric twins, which repeat another candidate's move
+ *  (protocol 0.4). A second choice, or a count of the search's visits, reads these. */
+export const distinctCandidates = (a: Analysis): Candidate[] => a.candidates.filter(c => !c.twinOf);
+
+/** The engine's second choice: its next distinct move after the first (distinctCandidates). */
+export const secondChoice = (a: Analysis | undefined): Candidate | undefined => (a ? distinctCandidates(a)[1] : undefined);
+
+/** Whether two edges are one move in the analysed position: the same edge, or symmetric twins (protocol 0.4), as the
+ *  start's mirror pairs are. */
+export function sameMove(a: Analysis | undefined, x: Edge, y: Edge): boolean {
+  if (sameEdge(x, y)) return true;
+  const searched = (e: Edge) => a?.candidates.find(c => sameEdge(c.edge, e))?.twinOf ?? e;
+  return sameEdge(searched(x), searched(y));
 }
 
 /** The same turn: the same edges, in either order. */
@@ -215,7 +233,7 @@ export function judgeBranchEdge(before: Analysis | undefined, after: { blueWin: 
   return judgeEdge(moverWin(before.blueWin, mover), winAfter,
                    s !== undefined ? moverScore(s, mover) : undefined,
                    after.blueScore !== undefined ? moverScore(after.blueScore, mover) : undefined,
-                   !!best && !!edge && sameEdge(best.edge, edge),
+                   !!best && !!edge && sameMove(before, best.edge, edge),
                    onlyEdge(before, mover) && confirmedOnly(winAfter, second, mover, equalDepth(minVisits, after.visits))).label;
 }
 
@@ -277,7 +295,7 @@ export function review(data: ReviewData, kind: ScoreKind = "lead", minVisits = 0
     const winBefore = moverWin(blueWin[i], m.player), winAfter = moverWin(blueWin[i + 1], m.player);
     const a = data.analysis[i], best = a?.candidates[0];
     const before = scoreAt(i, m.player), after = scoreAt(i + 1, m.player);
-    const j = known(i, i + 1) ? judgeEdge(winBefore, winAfter, before, after, !!best && !!m.edge && sameEdge(best.edge, m.edge),
+    const j = known(i, i + 1) ? judgeEdge(winBefore, winAfter, before, after, !!best && !!m.edge && sameMove(a, best.edge, m.edge),
                                           onlyEdge(a, m.player) && confirmedOnly(winAfter, data.seconds?.[i], m.player,
                                                                                  equalDepth(minVisits, data.analysis[i + 1]?.visits))) : null;
     return { index: i, player: m.player, edge: m.edge, cut: m.cut, winBefore, winAfter, loss: j?.loss ?? 0,
@@ -344,8 +362,8 @@ export function judgeTurn(mover: Player, played: (Edge | null)[], start: Analysi
   const best = bestTurn(first, played.length > 1);
   // Best: the turn reaches the engine's best turn: each edge the first choice of its own search, or the same edges as the
   // first choice and the next edge of its line, in either order.
-  const firstChoices = !!first && !!played[0] && sameEdge(first.edge, played[0])
-    && (played.length === 1 || (!!middle && middle.visits >= minVisits && !!top && !!played[1] && sameEdge(top.edge, played[1])));
+  const firstChoices = !!first && !!played[0] && sameMove(start, first.edge, played[0])
+    && (played.length === 1 || (!!middle && middle.visits >= minVisits && !!top && !!played[1] && sameMove(middle, top.edge, played[1])));
   const playedBest = firstChoices || (!!best && sameTurn(played, best));
   // `after.blueWin` is the win chance that labels read (valuesAfter).
   const winBefore = moverWin(start.blueWin, p), winAfter = moverWin(after.blueWin, p);
@@ -359,7 +377,7 @@ export function judgeTurn(mover: Player, played: (Edge | null)[], start: Analysi
   const fromStart = !!first && !!otherFirst
     && moverWin(first.blueWin, p) - moverWin(otherFirst.blueWin, p) >= ONLY_EDGE_GAP
     && confirmedOnly(winAfter, other, p, confirmDepth);
-  const fromMiddle = played.length === 1 || (!!top && !!played[1] && sameEdge(top.edge, played[1]) && onlyEdge(middle, p)
+  const fromMiddle = played.length === 1 || (!!top && !!played[1] && sameMove(middle, top.edge, played[1]) && onlyEdge(middle, p)
     && confirmedOnly(winAfter, second, p, confirmDepth));
   const j = judgeEdge(winBefore, winAfter, before, afterScore, playedBest, playedBest && !ends && fromStart && fromMiddle);
   return { ...j, rawLoss: winBefore - winAfter, rawPoints: before !== undefined && afterScore !== undefined ? before - afterScore : undefined };
@@ -445,7 +463,8 @@ export function turnShortNote(t: TurnReview): string {
 /** A note for the move list, in one line: the label, and the engine's choice when the edge was not it. */
 export function shortNote(e: EdgeReview): string {
   if (e.label === "great") return "Great. The only good edge.";
-  const better = e.best && e.edge && !sameEdge(e.best.edge, e.edge) ? ` ${edgeName(e.best.edge)} was best.` : "";
+  // Not when the edge is Best: it may be the best edge's symmetric twin (sameMove), another edge with the same move.
+  const better = e.best && e.edge && e.label !== "best" && !sameEdge(e.best.edge, e.edge) ? ` ${edgeName(e.best.edge)} was best.` : "";
   return `${e.label ? LABEL_TEXT[e.label] : "Not analysed yet"}.${better}`;
 }
 

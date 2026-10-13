@@ -1,4 +1,4 @@
-// The engine protocol, version 0.3 (the engine repository's docs/design/04-notation-and-protocol.md): KataGo's analysis
+// The engine protocol, version 0.4 (the engine repository's docs/design/04-notation-and-protocol.md): KataGo's analysis
 // protocol as JSON lines, with the rules as actions. Only the fields the site uses are typed. Before 1.0 the protocol
 // is in development (Semantic Versioning's 0.x): any new version may break a client, so a client accepts only the
 // exact version it was written for.
@@ -7,11 +7,16 @@
 // request without a `seed` gives the same reply each time. The site sends no settings, so it keeps those defaults
 // (docs/decisions/engine.md, "Protocol 0.3").
 //
+// 0.4 keeps KataGo's symmetric twins in `moveInfos` (the engine's design 04, "Symmetric twins"): in a position that is
+// its own image, as the start is under the mirror of row r to row 20 - r, the engine searches one edge of each mirror
+// pair and lists the other right after it, with its values, its line mirrored, and `isSymmetryOf` naming the searched
+// edge. A twin is the same move: a second choice or a count of visits skips it (review/model.ts, distinctCandidates).
+//
 // Every win chance and score is from Blue's side. Win chance 0-1. Scores in game points.
 
-export const PROTOCOL = "0.3";
+export const PROTOCOL = "0.4";
 /** The versions a build may report for PROTOCOL. */
-export const PROTOCOL_REPORTED = ["0.3"];
+export const PROTOCOL_REPORTED = ["0.4"];
 
 export type Side = "b" | "r";
 
@@ -90,6 +95,9 @@ export interface MoveInfo {
   // `pvEdgeVisits` the visits through the move. With graph search both can grow along a line.
   pvVisits?: number[];
   pvEdgeVisits?: number[];
+  // A symmetric twin (0.4): the edge that was searched, of which this edge is the mirror image. Its values, visits and
+  // prior are that edge's, its line and ownership mirrored. Absent for a searched edge.
+  isSymmetryOf?: string;
 }
 
 export interface RootInfo {

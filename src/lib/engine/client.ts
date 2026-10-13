@@ -18,9 +18,11 @@ export interface Artifact extends StoredArtifact {
   graphOf?: string; // a graph's network (its model's id)
   download: number; // the bytes a browser downloads for it: `bytes`, or the compressed parts'
 }
-/** The CPU module, the GPU module and its JavaScript half, a network, a network's ONNX graph, the notices, and ONNX
- *  Runtime Web's glue script and WebAssembly. */
-export type ArtifactKind = "module" | "gpu-module" | "gpu-library" | "model" | "graph" | "notices" | "ort-glue" | "ort-wasm";
+/** The CPU module, the GPU module and its JavaScript half, a network, a network's ONNX graph, the notices (the licences
+ *  of the works of others), the terms (the engine's own: LICENSE.txt), and ONNX Runtime Web's glue script and
+ *  WebAssembly. */
+export type ArtifactKind = "module" | "gpu-module" | "gpu-library" | "model" | "graph" | "notices" | "terms" | "ort-glue"
+  | "ort-wasm";
 
 /** The manifest, or null when the site has no engine (`npm run engine` was not run). The browser asks the server for
  *  it each time (`no-cache`): a kept copy would name an earlier build after an update. The artifacts themselves are in

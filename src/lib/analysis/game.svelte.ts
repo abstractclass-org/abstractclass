@@ -18,12 +18,12 @@
 // the game's are, when the player looks at them. A game's branches are kept in the browser, as Lichess keeps its
 // analysis tree (ui/analyse/src/idbTree.ts).
 import { describeGame } from "#lib/engine/describe.ts";
-import { edgeName, parseEdge, parsePoint, sameEdge, type Edge } from "#lib/engine/notation.ts";
+import { edgeName, parseEdge, parsePoint, type Edge } from "#lib/engine/notation.ts";
 import type { AnalysisReply, DescribeReply, MoveInfo } from "#lib/engine/protocol.ts";
 import { errorText } from "#lib/errors.ts";
 import { branchNodes, gameId, type KeptBranches } from "#lib/game/store.ts";
-import { equalDepth, moverWin, onlyEdge, otherCandidate, type Analysis, type Candidate, type LineStep, type Move, type Player, type Position,
-         type ReviewData } from "#lib/review/model.ts";
+import { equalDepth, moverWin, onlyEdge, otherCandidate, sameMove, secondChoice, type Analysis, type Candidate, type LineStep,
+         type Move, type Player, type Position, type ReviewData } from "#lib/review/model.ts";
 import { ONLY_EDGE_GAP } from "#lib/review/labels.ts";
 import type { EdgeRules } from "#lib/board/edgeInput.svelte.ts";
 import { mainIndex, pathKey } from "#lib/review/tree.ts";
@@ -63,7 +63,7 @@ export function toAnalysis(r: AnalysisReply): Analysis {
     spread: r.rootInfo.scoreStdev,
     candidates: [...r.moveInfos].sort((a, b) => a.order - b.order).map(c => ({
       edge: parseEdge(c.move), visits: c.edgeVisits, blueWin: c.winrate, lead: c.scoreLead, margin: c.scoreSelfplay, prior: c.prior,
-      ...withLine(c),
+      ...withLine(c), ...(c.isSymmetryOf ? { twinOf: parseEdge(c.isSymmetryOf) } : {}),
     })),
   };
 }
@@ -158,7 +158,7 @@ export class GameAnalysis {
     // For each edge but the last, the position after the engine's second choice, which confirms a Great. For each turn
     // but the last, the position after its other candidate, which confirms a Great by turn.
     const after = (i: number, c: Candidate | undefined) => (c ? this.analysisAfter(i, edgeName(c.edge)) : undefined);
-    const seconds = this.played.map((_, i) => (i + 1 < this.played.length ? after(i, this.analysis[i]?.candidates[1]) : undefined));
+    const seconds = this.played.map((_, i) => (i + 1 < this.played.length ? after(i, secondChoice(this.analysis[i])) : undefined));
     const others = this.played.map((_, i) => {
       const turn = this.turnAt(i);
       return turn && i + turn.length < this.played.length ? after(i, otherCandidate(this.analysis[i], turn)) : undefined;
@@ -220,7 +220,7 @@ export class GameAnalysis {
 
   /** The analysis of the position after the engine's second choice at `path`, which confirms a Great (confirmGreats). */
   secondAt(path: string[]): Analysis | undefined {
-    const second = this.analysisOf(path)?.candidates[1];
+    const second = secondChoice(this.analysisOf(path));
     return second ? this.analysisOf([...path, edgeName(second.edge)]) : undefined;
   }
 
@@ -247,8 +247,8 @@ export class GameAnalysis {
     const depth = (after: () => string[]) => equalDepth(this.labelVisits, this.analysisOf(after())?.visits);
     const check = (a: Analysis | undefined, before: () => string[], edge: Edge | null, mover: Player, over: boolean) => {
       const first = a?.candidates[0];
-      if (!over && a && a.visits >= this.labelVisits && first && edge && sameEdge(first.edge, edge) && onlyEdge(a, mover))
-        out.push({ path: before(), candidate: a.candidates[1], depth: depth(() => [...before(), edgeName(edge)]) });
+      if (!over && a && a.visits >= this.labelVisits && first && edge && sameMove(a, first.edge, edge) && onlyEdge(a, mover))
+        out.push({ path: before(), candidate: secondChoice(a)!, depth: depth(() => [...before(), edgeName(edge)]) });
     };
     for (let i = 0; i + 1 < this.played.length; i++)
       check(this.analysis[i], () => this.mainNames.slice(0, i), this.played[i].edge, this.played[i].player, false);
@@ -259,7 +259,7 @@ export class GameAnalysis {
     }
     const checkTurn = (a: Analysis | undefined, path: () => string[], turn: (Edge | null)[], mover: Player) => {
       const first = a?.candidates[0];
-      if (!a || a.visits < this.labelVisits || !first || !turn.some(e => !!e && sameEdge(e, first.edge))) return;
+      if (!a || a.visits < this.labelVisits || !first || !turn.some(e => !!e && sameMove(a, e, first.edge))) return;
       const other = otherCandidate(a, turn);
       if (other && moverWin(first.blueWin, mover) - moverWin(other.blueWin, mover) >= ONLY_EDGE_GAP)
         out.push({ path: path(), candidate: other, depth: depth(() => [...path(), ...turn.map(e => (e ? edgeName(e) : "pass"))]) });

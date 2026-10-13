@@ -25,8 +25,9 @@ It holds no backlog: everything still to do that is not in flight is in
   side columns that grow with the window).
 - **Checks on the working tree:** `npm run check` has no errors or warnings. `npm test` passes (52 checks). `npm run
   build` succeeds.
-- **The engine:** protocol 0.3, build `632f2a0` from the release `wasm-v2-engine-632f2a0` (the CPU module, the GPU
-  module and the graphs: decisions/engine.md, "The release 632f2a0"), the networks
+- **The engine:** protocol 0.4, build `fdfe5ad` from the release `wasm-v2-engine-fdfe5ad` (the two modules, with the
+  symmetric twins: decisions/engine.md, "The release fdfe5ad"), its library and graphs from `wasm-v2-engine-632f2a0`
+  (decisions/engine.md, "The release 632f2a0"), the networks
   `b10c128-s66625408` (3.2M parameters) and `b15c192-s66999040` (10.3M), searching with KataGo's analysis defaults. The
   measurements so far used the older `b10c128-s46923648` (decisions/engine.md, "The released engine"). The review's Lite
   depth is 512 visits. Puzzles and learn run on mock data.

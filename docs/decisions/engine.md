@@ -865,3 +865,38 @@ Blunder's loss.
   port of the engine's reference driver, and is gone. The library comes with the modules it drives, so a module that
   needs another import brings its driver with it. Each worker loads the library (15.7 KB). Checked in Edge: the
   review's rules, its search workers and the GPU worker start, and the review runs.
+
+### The release fdfe5ad: protocol 0.4, the symmetric twins (2026-10-13)
+
+- **What:** the engine repository's release `wasm-v2-engine-fdfe5ad`: both modules at build fdfe5ad, protocol 0.4.
+  The networks, their graphs and `gpu_engine.mjs` are the same bytes as in `wasm-v2-engine-632f2a0`, so the site
+  keeps their folders, which browsers keep for a year. `NOTICES.txt` now names both modules, and `LICENSE.txt` gives
+  the engine's own terms (request 14), which the site now ships too (kind `terms`).
+- **The change** (the engine repository's design 04, "Symmetric twins"): in a position that is its own image, as the
+  start is under the mirror of row r to row 20 - r, KataGo searches one edge of each mirror pair and lists the other
+  right after it, with the same values, its line and ownership mirrored, and `isSymmetryOf` naming the searched edge.
+  Until 0.3 the protocol left the twins out: the site saw a twin as an edge with no search, and a search of the
+  position after it used other symmetries of the network, which gave other values (the engine repository measured
+  0.018 to 0.025 of win chance between twins' searches at 256 visits, against 0.001 between seeds).
+- **What the site does with a twin** (`src/lib/review/model.ts`):
+  - **Shows it,** with its edge's numbers, in the candidates' table and on the board, at its own rank, as KaTrain
+    shows KataGo's twins. A candidate keeps `twinOf`, the searched edge.
+  - **Takes it for the same move:** the second choice that confirms a Great (`secondChoice`, `onlyEdge`) and the other
+    candidate of a turn (`otherCandidate`) skip twins (`distinctCandidates`). A played edge that is the first
+    choice's twin is Best, and can be Great, as the first choice (`sameMove`), and its note does not name the first
+    choice as "best".
+  - **Counts it as its own edge** in the meter and in the complexity: a twin is a legal edge of its own, with the
+    searched edge's prior (KataGo's), near its own. The site counts the search's visits from `rootInfo`, never as a
+    sum over the candidates, so no count repeats a twin's visits.
+- **The labels' measurements stand:** positions that are their own image are the start and a few others along row
+  10. The measurements under protocol 0.3 (the label budgets, the agreement) rest on the rest.
+- **Checked:** every new file has the SHA-256 and the size that the engine repository gave, and the networks', graphs'
+  and library's equal the pinned ones. `npm test` passes (63 checks, three new for twins), `npm run check` has no
+  errors, the build succeeds. In Edge, on the local build: the review started on build fdfe5ad, with no protocol error.
+  At the start, the candidates were A10-D9 and its twin A10-D11 with the same values (53.6%, Blue +13, 407 visits, in
+  a search not yet done), then D10-G9 and D10-G11, and so on in pairs. The sample game's report gave the same counts
+  as on build 632f2a0 (Great 2 and 2, Best 4 and 3, Excellent 3 and 4, Inaccuracy 1 and 1, Mistake 2 and 1, Blunder 1
+  and 1), with its Greats confirmed. The GPU module ran: Auto's first-use test on the new build stored 295 evaluations
+  a second against 35 visits a second for a CPU worker (283 on build 632f2a0).
+- **The stored reviews search again once,** as after every build: the results' keys name the CPU module's build. The
+  GPU's first-use test runs again for the new GPU module's build.
