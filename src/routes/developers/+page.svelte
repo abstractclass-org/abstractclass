@@ -25,10 +25,10 @@ window.opener?.postMessage({ type: "hedge-school:ready" }, HEDGE_SCHOOL);`;
   const BUTTON_CSS = `.hedge-school-button {
   display: inline-flex; align-items: center; gap: 0.45em;
   padding: 0.35em 0.95em 0.35em 0.45em; border: 0; border-radius: 999px;
-  background: #2a7d6f; color: #fff; font: 600 15px/1.4 system-ui, sans-serif;
+  background: #b8a6e8; color: #16181c; font: 600 15px/1.4 system-ui, sans-serif;
   text-decoration: none; cursor: pointer;
 }
-.hedge-school-button:hover { background: #236a5e; }
+.hedge-school-button:hover { background: #c6b8ee; }
 .hedge-school-button img { width: 1.5em; height: 1.5em; margin: 0; flex: none; }`;
   const BUTTONS = `<!-- On a finished game: a link, made as "A link to a review" shows. -->
 <a class="hedge-school-button" href="${LIVE}/import#record=…" target="_blank">

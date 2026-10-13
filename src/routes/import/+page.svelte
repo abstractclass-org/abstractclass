@@ -162,7 +162,7 @@
             Drag the bookmarklet below to the bookmarks bar again, in place of the old one: it now loads its code from
             this site, so it stays up to date. For the userscript, open it below, and Tampermonkey offers the update.{/if}
         </p>
-        <p>The game is imported. <a class="inline-block ml-1.5 px-3 py-1 rounded-full bg-accent text-white font-semibold no-underline" href="/review#game={imported}">Open the review</a></p>
+        <p>The game is imported. <a class="inline-block ml-1.5 px-3 py-1 rounded-full bg-accent text-on-accent font-semibold no-underline" href="/review#game={imported}">Open the review</a></p>
       </div>
     {/if}
     <h1 class="text-2xl font-bold">Bring your meaf.us games</h1>
@@ -176,7 +176,7 @@
       <li>Show the bookmarks bar (Ctrl+Shift+B in Chrome and Edge, Ctrl+Shift+B or View in Firefox).</li>
       <li>
         Drag this button to the bookmarks bar:
-        {#if href}<a class="inline-block ml-1.5 px-3 py-1 rounded-full bg-accent text-white font-semibold no-underline cursor-grab"
+        {#if href}<a class="inline-block ml-1.5 px-3 py-1 rounded-full bg-accent text-on-accent font-semibold no-underline cursor-grab"
                      {href} onclick={e => e.preventDefault()}>Review in Hedge School</a>{/if}
       </li>
       <li>On meaf.us, open a game: one you play or watch, or a finished one from the archive.</li>

@@ -905,7 +905,7 @@
         <span class="inline-flex items-center gap-1"><span class="inline-block w-[1.2em] h-0.5 bg-ink"></span> Win chance for Blue</span>
         {#if chartRough}<span class="inline-flex items-center gap-1" title="Refined as the review runs">
           <span class="inline-block w-[1.2em] h-0.5 flex-none bg-ink opacity-35"></span> Win chance, first estimate</span>{/if}
-        {@render lineBox("Score difference", "bg-accent", "accent-accent", () => showScore, v => (showScore = v))}
+        {@render lineBox("Score difference", "bg-score", "accent-score", () => showScore, v => (showScore = v))}
         {@render lineBox("Area difference", "bg-area", "accent-area", () => showArea, v => (showArea = v))}
       {/if}
     </p>
@@ -1471,7 +1471,7 @@
                      class="grid gap-0.5 p-0.5 rounded-md border border-line bg-panel-2">
       {#each options as [value, text] (value)}
         <RadioGroup.Item {value} class="px-2 py-1 text-sm rounded border-0 bg-transparent hover:bg-panel
-                                        data-[state=checked]:bg-accent data-[state=checked]:text-on-badge data-[state=checked]:font-medium">{text}</RadioGroup.Item>
+                                        data-[state=checked]:bg-accent data-[state=checked]:text-on-accent data-[state=checked]:font-medium">{text}</RadioGroup.Item>
       {/each}
     </RadioGroup.Root>
   </div>

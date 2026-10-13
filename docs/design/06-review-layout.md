@@ -54,6 +54,7 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
      player encloses now, each of the last two scaled to its own largest value, which reaches 70% of the way from the
      middle to the edge, and above the middle when Blue has more, as the win chance is. The legend names the lines only
      ("Win chance for Blue", "Score difference", "Area difference"), each name first giving what its line measures.
+     The score line is teal (`--score`) and the area line magenta (`--area`), apart from the accent's lavender.
      **The chart's note** gives the move and its label, the engine's lead, then a line each for the score and the area
      of the lines shown, with the side ahead named ("Score: Blue +88.9"): the lines have no axis, so their numbers are
      only there. At the game's end the result replaces the score. **The score and area lines show or hide** in two ways:

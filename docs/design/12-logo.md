@@ -1,10 +1,12 @@
-# The logo and the mascot: a Border Collie
+# The logo, the mascot and the colour: a Border Collie, and lavender
 
 **Status:** in force, built. **Decided:** 2026-10-12.
 
 ## Context
 
-Hedge School needs a logo for its header and a favicon for the browser's tab, which shows it at 16 pixels.
+Hedge School needs a logo for its header and a favicon for the browser's tab, which shows it at 16 pixels. It also
+needs a colour of its own: partner sites show buttons that lead to it (design 18), and their default style makes the
+school's colour seen beyond the site.
 
 ## Decision
 
@@ -35,11 +37,28 @@ Hedge School needs a logo for its header and a favicon for the browser's tab, wh
    address, `/brand/hedge-school.svg` (`static/brand/`), with a comment that gives its terms: unchanged but for its
    size, only in a button or a link to Hedge School. A test (`src/lib/collie.test.ts`) keeps it, and the favicon,
    the same as the head in `collie.ts`, so that a change of the drawing changes all three.
+7. **The school's colour is lavender,** the site's accent in both themes and the partners' buttons. The collie stays
+   black and white. Each theme has its own lavender, in one hue (256°), as design 03 tunes every colour:
+   - **The light theme: `#6f5aa8`,** a muted lavender: 5.2:1 as text on the page, 4.9:1 on the light grey panels, and
+     5.7:1 under white text.
+   - **The dark theme: `#b8a6e8`,** a pale lavender: 5.9:1 as text on the darkest panel, and 8.2:1 under near-black
+     text. Text on the accent takes `--on-accent`: white in the light theme, `#16181c` in the dark.
+   - **The partners' buttons:** the pale lavender with near-black text (`#16181c`), and `#c6b8ee` under the pointer.
+     One style reads on white, dark and coloured pages alike.
+   - **Apart from the labels:** Great's purple (264°) is more saturated, and the accent marks controls (a switch, a
+     bar, a chosen option, a link), never a move.
+   - **The chart's score line keeps the earlier teal** (`--score`, `#2a7d6f` and `#4fb3a2`). In lavender it looked
+     like the area line's magenta.
 
 ## Alternatives
 
 - **Colour on a teal tile** (the first drawings: a black-and-white collie with amber eyes on the accent colour):
   the choice went to Lichess's style, without colour.
+- **The teal as the school's colour:** it was the first interface's accent, never chosen as the school's, and a green
+  "Review" button looks like chess.com's Game Review.
+- **Black and white for the partners' buttons,** from the logo: one button for every page, or a pair (black on light
+  pages, white on dark pages, as "Sign in with Apple"). The lavender gives the school a colour, and its pale form
+  reads on every page with one style. On a black button the collie's coat merges into the button.
 - **The face from the front** (a silhouette with the blaze cut out, then a drawing with black patches round the eyes):
   the choice went to a profile, as Lichess's knight. The front view needs both ears and both eyes to read, and gives the
   muzzle no shape.
@@ -65,7 +84,8 @@ Hedge School needs a logo for its header and a favicon for the browser's tab, wh
 - `src/lib/Collie.svelte` (the drawing, with `size` and `label`), `src/lib/collie.ts` (its traced paths),
   `src/lib/assets/favicon.svg`, `static/favicon-32.png`, `static/apple-touch-icon.png`, `static/brand/hedge-school.svg`.
 - `src/routes/+layout.svelte` (the icons, the header), `src/routes/about/+page.svelte` (the mascot), `src/app.css`
-  (`--site-header`).
+  (`--site-header`, `--accent`, `--on-accent`, `--score`). The partners' button style:
+  `src/routes/developers/+page.svelte`.
 - The PNGs were drawn from the SVG by the browser, on a canvas: this machine's ffmpeg cannot read SVG. The tracing
   used the `potrace` package of npm outside the repository: the drawing's dark form split into the dog with its
   keyline, the dog inside it, and the white fur, each traced.
@@ -73,4 +93,4 @@ Hedge School needs a logo for its header and a favicon for the browser's tab, wh
 ## Log entries
 
 - [decisions/product.md](../decisions/product.md): "The logo: a Border Collie", "The logo in black and white", "The
-  logo in profile", "The logo from the generated drawings" (2026-10-12).
+  logo in profile", "The logo from the generated drawings" (2026-10-12), "The school's colour: lavender" (2026-10-13).

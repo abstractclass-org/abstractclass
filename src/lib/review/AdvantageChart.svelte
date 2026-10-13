@@ -90,7 +90,7 @@
   <path d={area} class="fill-red" fill-opacity="0.35" clip-path="url(#below)" />
   <line x1="0" y1={H / 2} x2={W} y2={H / 2} class="stroke-muted" stroke-dasharray="3 3" vector-effect="non-scaling-stroke" />
   {#if showArea}<path d={areaLine} class="fill-none stroke-area" stroke-width="1.5" vector-effect="non-scaling-stroke" />{/if}
-  {#if showScore}<path d={scoreLine} class="fill-none stroke-accent" stroke-width="1.5" vector-effect="non-scaling-stroke" />{/if}
+  {#if showScore}<path d={scoreLine} class="fill-none stroke-score" stroke-width="1.5" vector-effect="non-scaling-stroke" />{/if}
   <path d={winLines.solid} class="fill-none stroke-ink" stroke-width="1.5" vector-effect="non-scaling-stroke" />
   <path d={winLines.rough} class="fill-none stroke-ink" stroke-width="1.5" stroke-opacity="0.35" vector-effect="non-scaling-stroke" />
   <line x1={x(current)} y1="0" x2={x(current)} y2={H} class="stroke-last" stroke-width="2" vector-effect="non-scaling-stroke" />

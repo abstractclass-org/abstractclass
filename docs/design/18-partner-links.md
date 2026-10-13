@@ -59,14 +59,15 @@ must make costs both of them a release.
    - **A list of changes,** with dates.
 9. **Measured as a way in:** `import_game` counts `site_link` and `site_review` (a kept review opened again), and
    `export` counts `partner` (design 17).
-10. **Buttons as a kit, not a widget:** the page gives four labels, "Review in Hedge School" and "Review" for a
-    finished game, "Open in Hedge School" and "Open" for a saved review, each with the collie's head. It gives the
-    head as a file (`/brand/hedge-school.svg`, design 12), a sample style in the site's accent (the pill of the
-    bookmarklet's button), and the markup: "Review" is a link, "Open" a button that runs the open handshake. A short
-    label leaves the site's name to the collie, so its button carries the full label as its `aria-label` and `title`.
-    The partner may change the style, keeps the labels' words, and uses the head unchanged but for its size, only in
-    a button or a link to Hedge School, from its own site. "Review in Hedge School" is the bookmarklet's name, so a
-    player meets one name at every way in. "Save to" is in this site's Export menu, so it needs no button.
+10. **Buttons as a kit, not a widget:** the page gives four labels, "Review in Hedge School" and "Review" for a finished
+    game, "Open in Hedge School" and "Open" for a saved review, each with the collie's head. It gives the head as a file
+    (`/brand/hedge-school.svg`, design 12), a sample style in the school's pale lavender with near-black text (design
+    12, the pill of the bookmarklet's button), and the markup: "Review" is a link, "Open" a button that runs the open
+    handshake. A short label leaves the site's name to the collie, so its button carries the full label as its
+    `aria-label` and `title`. The partner may change the style, keeps the labels' words, and uses the head unchanged but
+    for its size, only in a button or a link to Hedge School, from its own site. "Review in Hedge School" is the
+    bookmarklet's name, so a player meets one name at every way in. "Save to" is in this site's Export menu, so it needs
+    no button.
 
 ## Why
 

@@ -2284,3 +2284,18 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   At 360 pixels the five pages about the site now fit.
 - **Not checked:** enclosuregame.com's own pages, which are not built yet, and the handshake in browsers other than
   Edge.
+
+### The school's colour: lavender (2026-10-13)
+
+- **Why a decision:** the partners' buttons carry a default style, so its colour becomes the school's on other sites.
+  The site's teal was the first interface's accent, never chosen, and the logo (design 12) is black and white.
+- **Compared** on a page with each style on a white, a near-black and a green page: black and white from the logo,
+  a black and white pair, the teal, and two lavenders. On a black button the collie's coat merged into the button.
+- **Decided** (design 12): lavender is the school's colour, the site's accent in both themes (`#6f5aa8` light,
+  `#b8a6e8` dark), and the partners' buttons default to the pale lavender with near-black text. Text on the accent
+  takes `--on-accent`. In the dark theme it is near-black: white on the earlier dark teal was 2.5:1, and near-black on
+  the pale lavender is 8.2:1.
+- **Seen in Edge, both themes:** the home page, the import page, the developers page and a review of 120 edges. In
+  the light theme the chart's score line, in the accent, looked like the magenta area line, so it keeps the teal as
+  its own colour (`--score`). The accent marks controls, never a move, and Great's purple is more saturated than the
+  lavender.
