@@ -29,9 +29,10 @@ will add more. A page whose name says "import" cannot say where the game goes.
 
    Later pages take theirs the same way: the board editor (`/editor`) and Practice (`/practice`), with a record or a
    position.
-2. **A parameter is named by its payload's format,** not by how the link was made: `record`, the notation's text,
-   readable, which anyone can write; `packed`, Hedge School's compact form of a record and its lines (share.ts), which
-   only Hedge School writes. Excalidraw's `#json=` and Lichess's `/analysis/pgn/` name theirs so.
+2. **A parameter is named by its payload's format,** not by how the link was made. Excalidraw's `#json=` and
+   Lichess's `/analysis/pgn/` name theirs so.
+   - `record`: the notation's text, readable, which anyone can write.
+   - `packed`: Hedge School's compact form of a record and its lines (share.ts), which only Hedge School writes.
 3. **The payload stays after the `#`:** a browser never sends that part of an address to a server, and Google
    Analytics does not record it. The analytics start only once a page has taken a game out of its address (`holdsGame`
    in `src/lib/game/importHash.ts`): a kept game's id and a place on the board name no moves, and may stay. This departs

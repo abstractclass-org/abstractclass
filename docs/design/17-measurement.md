@@ -306,13 +306,15 @@ The exploration shows whether the GPU is faster than a worker, for each kind of 
 
 ##### 4. Features: which earn their place?
 
-The exploration shows how many players use each feature, against how many players open a review.
+The exploration shows how many players use each feature, against how many players open a review. Its column tells the
+review's features (`/review`) from the Analysis board's (`/analysis`).
 
-**Variables:** the dimensions **Event name** and **Feature**. The metric **Total users**.
+**Variables:** the dimensions **Event name**, **Feature** and **Page path and screen class**. The metric **Total
+users**.
 
 | Tab | Technique | Rows | Columns | Values | Filter: Event name |
 |---|---|---|---|---|---|
-| Feature users | Free form | Feature | None | Total users | exactly matches `feature` |
+| Feature users | Free form | Feature | Page path and screen class | Total users | exactly matches `feature` |
 | Review users | Free form | None | None | Total users | exactly matches `review_open` |
 
 ##### 5. Settings: do the defaults fit?
@@ -329,10 +331,10 @@ users**.
 
 ##### 6. Imports and shares: do they work?
 
-The exploration shows how games come in, and what fails.
+The exploration shows how games come in, to the review and to the Analysis board, and what fails.
 
 **Variables:** the dimensions **Event name**, **Import source**, **Import failure**, **Share network found**, **Share
-same engine** and **Tool out of date**. The metrics **Event count** and **Total users**.
+same engine**, **Tool out of date** and **Analysis source**. The metrics **Event count** and **Total users**.
 
 | Tab | Technique | Rows | Columns | Values | Filter: Event name |
 |---|---|---|---|---|---|
@@ -341,6 +343,8 @@ same engine** and **Tool out of date**. The metrics **Event count** and **Total 
 | Share links | Free form | Share network found, Share same engine | None | Event count | exactly matches `share_open` |
 | Old tools | Free form | Tool out of date | None | Event count | exactly matches `tool_out_of_date` |
 | Missing games | Free form | None | None | Event count | exactly matches `game_missing` |
+| Analysis ways in | Free form | Analysis source | None | Event count, Total users | exactly matches `analysis_open` |
+| Failed analysis | Free form | Analysis source | None | Event count | exactly matches `analysis_failed` |
 
 #### 7. The data collection settings
 
@@ -357,6 +361,14 @@ If the site ever serves ads, turn on Google signals (and user-provided data, if 
 change the privacy page in the same release.
 
 #### After the setup
+
+**The changes of 2026-10-14** (design 22, the Analysis board):
+
+- **Step 1:** the custom dimension **Analysis source**.
+- **Exploration 1:** step 1 takes `/review` in the place of `/import`, in both tabs. To change a step, open its tab,
+  click the pencil beside **Steps**, edit the step's condition, and click **Apply**.
+- **Exploration 4:** the dimension **Page path and screen class**, and its column in the tab **Feature users**.
+- **Exploration 6:** the dimension **Analysis source**, and the tabs **Analysis ways in** and **Failed analysis**.
 
 Google shows the events in **Reports → Realtime** at once. The custom dimensions fill the reports within a day or two,
 from the time of their registration on, and the explorations show them from then. An exploration with few players
