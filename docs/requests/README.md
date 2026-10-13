@@ -23,3 +23,4 @@ accepted, done (with the engine repository's commit, tag or document), or declin
 | 11 | [The notation, described for other developers: settle its open points and confirm the page](11-notation-page.md) | done (the engine repository's design 04), the page changed |
 | 12 | [The engine's name: HedgeFund, with a name for each released network](12-network-names.md) | done (the release's manifest gives `displayName`. The rule is the engine repository's `v2/docs/design/20-network-names.md`), checked here |
 | 13 | [The notation: where a branch goes, and the marks of a move's quality](13-branch-placement.md) | done (the engine repository's design 04: branches after their turn, PGN's six marks by turn, a note before the first turn, the `Annotator` tag), checked here |
+| 14 | [The terms of the released engine and networks](14-release-terms.md) | open |

@@ -43,7 +43,8 @@
     enclosure-ai project. Its networks are named by version: HedgeFund 0.1 Lite, the default, and HedgeFund 0.1. The licences of what the site uses are on <a href="/notices">the notices page</a>.</p>
 
   <h2>This site</h2>
-  <p>{SITE_NAME} is made independently of meaf.us and Constellation. What it keeps, and where, is on
+  <p>{SITE_NAME} is not an official site of the game: it is made independently of webgoatguy, meaf.us and
+    Constellation. What it keeps, and where, is on
     <a href="/privacy">the privacy page</a>. This is version {SITE_VERSION}.</p>
 </main>
 

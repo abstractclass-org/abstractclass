@@ -23,8 +23,10 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
      About page's section on the early access. Then Review, and on its right The notation and About. Review opens
      the last game reviewed in this browser, and the address then names it, so a reload keeps it. With no game
      reviewed yet, it asks for one. **The footer,** on the pages that scroll (the home page and the pages about the
-     site): About, The notation, Privacy, Notices, the site's version (its commit), and the site's copyright line. The
-     review has no footer: it fills the window.
+     site): About, The notation, Privacy, Notices, the site's version (its commit), the site's copyright line, and
+     "Enclosure by webgoatguy", so that the copyright does not read as the game's. The review has no footer: it fills
+     the window. The About page credits webgoatguy as the game's designer, and says that the site is not an official
+     site of the game: it is made independently of webgoatguy, meaf.us and Constellation.
    - **Not in the early access:** puzzles, lessons, free analysis and the engine lab. Their addresses lead home. Their
      code stays, for the full site.
 3. **One build switch:** `VITE_EDITION=early` builds the early access. Without it, the build is the full site, for

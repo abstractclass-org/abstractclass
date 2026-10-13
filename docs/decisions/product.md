@@ -2104,3 +2104,7 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   licence file while the repository is private. The notices page states this first. Its MIT text stays, under the
   heading "The MIT licence, of the works above": MIT requires its notice in every copy. The footer shows the copyright
   line. For a public repository later: PolyForm Noncommercial 1.0.0, with the sounds left out.
+- **The game's designer:** the About page credited webgoatguy, and no other page did. The footer now ends "Enclosure
+  by webgoatguy", beside the site's copyright line, so that the line does not read as the game's. webgoatguy has not
+  spoken of the site. Thus the About page now says that the site is not an official site of the game, and is made
+  independently of webgoatguy, meaf.us and Constellation.
