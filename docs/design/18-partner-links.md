@@ -47,10 +47,9 @@ must make costs both of them a release.
      that opens Hedge School sends none or `same-origin-allow-popups`. Hedge School sends none. A later header for the
      engine's threads (cross-origin isolation) would cut the tie, and this design would have to change with it.
 8. **One public description,** the page /developers ("For developers", as Lichess names its page for other sites,
-   linked from the footer): the link, its parameters, both handshakes with examples, the tie between the pages, and
-   what can change. The notation
-   page describes the record only: the engine repository decides the notation, and this repository decides the link.
-   The page promises:
+   linked from the footer): the link, its parameters, both handshakes with examples, the tie between the pages, the
+   buttons, testing, and what can change. The notation page describes the record only: the engine repository decides
+   the notation, and this repository decides the link. The page promises:
    - **Lenient reading:** unknown tags, an edge's points in either order, lower case.
    - **Additions only:** new optional tags or parameters. A change that old links could not meet would come with a
      version in the link, and the old form would still be read. A link made once keeps working.
@@ -60,6 +59,14 @@ must make costs both of them a release.
    - **A list of changes,** with dates.
 9. **Measured as a way in:** `import_game` counts `site_link` and `site_review` (a kept review opened again), and
    `export` counts `partner` (design 17).
+10. **Buttons as a kit, not a widget:** the page gives four labels, "Review in Hedge School" and "Review" for a
+    finished game, "Open in Hedge School" and "Open" for a saved review, each with the collie's head. It gives the
+    head as a file (`/brand/hedge-school.svg`, design 12), a sample style in the site's accent (the pill of the
+    bookmarklet's button), and the markup: "Review" is a link, "Open" a button that runs the open handshake. A short
+    label leaves the site's name to the collie, so its button carries the full label as its `aria-label` and `title`.
+    The partner may change the style, keeps the labels' words, and uses the head unchanged but for its size, only in
+    a button or a link to Hedge School, from its own site. "Review in Hedge School" is the bookmarklet's name, so a
+    player meets one name at every way in. "Save to" is in this site's Export menu, so it needs no button.
 
 ## Why
 
@@ -91,6 +98,13 @@ must make costs both of them a release.
 - **A save page on any address the link names:** any site could then ask a player to send it a review.
 - **A saved review opened only from its file:** a download and an import on another device. The same messages the
   other way save those steps, and the partner builds both buttons in one release.
+- **A widget, a script on this site that draws the buttons and runs the handshakes:** less code for the partner, but
+  this site's code would then run in the partner's pages, beside its signed-in players. The partner's security
+  headers would have to allow it, and its buttons would break when this site is down or its script changes. The
+  shared part would grow from a few messages to markup, styles, events and versions. A helper that the partner copies
+  into its own code can come later, if more partners come.
+- **The head served from this site for the buttons:** each partner's page would then depend on this site to draw its
+  buttons. The partner keeps its own copy.
 - **A saved review fetched from an address on the partner's site:** the file would have to be readable without the
   player's sign-in, by anyone with its address, and the partner's server would have to allow this site's requests.
 
@@ -118,10 +132,11 @@ must make costs both of them a release.
   `src/lib/game/import.ts` (`variantProblem`), `src/lib/game/record.ts` (`gamePage`), `src/lib/game/store.ts`
   (`partner`, `setGamePartner`).
 - `src/routes/import/+page.svelte` (the link's import, and a kept review's), `src/lib/game/reviewFile.ts`
-  (`deliverExport`, kind `partner`), `src/lib/ExportMenu.svelte` ("Save to …"), `src/lib/review/ReviewView.svelte` (the
-  link back), `src/routes/review/+page.svelte`.
-- The public description: `src/routes/developers/+page.svelte`, linked from `src/lib/SiteFooter.svelte`. The privacy
-  page: "Games from another site".
+  (`deliverExport`, kind `partner`), `src/lib/ExportMenu.svelte` ("Save to …"), `src/lib/review/ReviewView.svelte`
+  (the link back), `src/routes/review/+page.svelte`.
+- The public description: `src/routes/developers/+page.svelte`, linked from `src/lib/SiteFooter.svelte`. The head for
+  the buttons: `static/brand/hedge-school.svg`, which `src/lib/collie.test.ts` keeps the same as the site's head. The
+  privacy page: "Games from another site".
 - Tests: `src/lib/game/importHash.test.ts`, `src/lib/game/partners.test.ts`.
 
 ## Log entries

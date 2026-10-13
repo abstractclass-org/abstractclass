@@ -2275,5 +2275,12 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   back, and it would keep showing every later change. Only the branch `partner_test` now takes a partner's localhost
   pages. A partner gets the address of one of its deployments, which shows that deployment only, and which deleting
   the deployment withdraws. The `dev` preview takes the partners' own https hosts only, as the live site does.
+- **Buttons for partners, as a kit:** a widget (a script from this site that draws the buttons) was judged too much
+  for one partner: this site's code in the partner's pages, and a larger shared part. The /developers page now gives
+  four labels with the collie ("Review in Hedge School", "Review", "Open in Hedge School", "Open"), the head as a file
+  with its terms, a sample style and the markup. Testing has its own section. In Edge, the buttons show on a white
+  and a near-black strip, 33 pixels high with the head at 22.5. Inline code now breaks where it would leave the page:
+  `/import#from=` with the live address had made the page 415 pixels wide on a 360-pixel phone, on the live site too.
+  At 360 pixels the five pages about the site now fit.
 - **Not checked:** enclosuregame.com's own pages, which are not built yet, and the handshake in browsers other than
   Edge.

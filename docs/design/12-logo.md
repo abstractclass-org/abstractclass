@@ -31,6 +31,10 @@ Hedge School needs a logo for its header and a favicon for the browser's tab, wh
    for browsers without SVG icons (`static/favicon-32.png`) and a 180-pixel PNG for iOS's home screen
    (`static/apple-touch-icon.png`): the head on white. iOS rounds the corners itself and fills transparent ones with
    black, so its PNG is a full square.
+6. **The head for partner sites' buttons** ([design 18](18-partner-links.md)): the favicon's drawing at a fixed
+   address, `/brand/hedge-school.svg` (`static/brand/`), with a comment that gives its terms: unchanged but for its
+   size, only in a button or a link to Hedge School. A test (`src/lib/collie.test.ts`) keeps it, and the favicon,
+   the same as the head in `collie.ts`, so that a change of the drawing changes all three.
 
 ## Alternatives
 
@@ -59,7 +63,7 @@ Hedge School needs a logo for its header and a favicon for the browser's tab, wh
 ## Where it is
 
 - `src/lib/Collie.svelte` (the drawing, with `size` and `label`), `src/lib/collie.ts` (its traced paths),
-  `src/lib/assets/favicon.svg`, `static/favicon-32.png`, `static/apple-touch-icon.png`.
+  `src/lib/assets/favicon.svg`, `static/favicon-32.png`, `static/apple-touch-icon.png`, `static/brand/hedge-school.svg`.
 - `src/routes/+layout.svelte` (the icons, the header), `src/routes/about/+page.svelte` (the mascot), `src/app.css`
   (`--site-header`).
 - The PNGs were drawn from the SVG by the browser, on a canvas: this machine's ffmpeg cannot read SVG. The tracing
