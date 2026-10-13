@@ -51,7 +51,8 @@ window.opener?.postMessage({ type: "hedge-school:ready" }, HEDGE_SCHOOL);`;
                                      ["Open in Hedge School", ""], ["Open", "Open in Hedge School"]];
   const OPEN = `// On the partner's page that shows a kept review, at the player's click:
 const HEDGE_SCHOOL = "${LIVE}";
-const tab = window.open(HEDGE_SCHOOL + "/import#" + new URLSearchParams({ from: location.origin }));
+const tab = window.open(HEDGE_SCHOOL + "/import#" + new URLSearchParams({
+  from: location.origin, save: "https://example.com/hedge-school/save?game=123" }));
 window.addEventListener("message", event => {
   if (event.origin !== HEDGE_SCHOOL || event.source !== tab) return;
   if (event.data?.type !== "hedge-school:ready") return;
@@ -103,7 +104,9 @@ window.addEventListener("message", event => {
       <code>{"{ type: \"hedge-school:saved\" }"}</code>, or <code>{"{ type: \"hedge-school:failed\", message }"}</code>.</li>
   </ol>
   <pre>{SAVE}</pre>
-  <p>{SITE_NAME} waits a minute for each answer.</p>
+  <p>{SITE_NAME} waits a minute for each answer. Each save sends the game's whole review so far: its branches hold those
+    of the earlier save, and its results only grow. Store it in the place of the earlier one, or keep each version if
+    your site wants a history.</p>
 
   <h2 id="open">A saved review opened again</h2>
   <p>In the browser that made a review, the link to the game opens it again at once: the browser keeps the engine's
@@ -112,7 +115,8 @@ window.addEventListener("message", event => {
   <ol>
     <li>At the player's click, the partner's page opens <code>{LIVE}/import#from=</code> and its own origin,
       URL-encoded, with <code>window.open</code>. A link with a <code>target</code> cuts the tie between the two pages.
-      The link can also name the save page, <code>save</code>, as above.</li>
+      Name the save page too, <code>save</code>, as above, so that the player can save the review again after more
+      work on it.</li>
     <li>{SITE_NAME} posts <code>{"{ type: \"hedge-school:ready\", protocol: 1 }"}</code> to the partner's page.</li>
     <li>The partner's page checks that the message comes from the tab it opened, on the origin
       <code>{LIVE}</code>, and answers <code>{"{ type: \"hedge-school:review\", protocol: 1, review }"}</code>

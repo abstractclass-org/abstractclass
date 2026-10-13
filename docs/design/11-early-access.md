@@ -27,10 +27,10 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
      so that it fits in 360 pixels. Review opens
      the last game reviewed in this browser, and the address then names it, so a reload keeps it. With no game
      reviewed yet, it asks for one. **The footer,** on the pages that scroll (the home page and the pages about the
-     site): About, The notation, For developers, Privacy, Notices, the site's version (its commit), the site's copyright line, and
-     "Enclosure by webgoatguy", so that the copyright does not read as the game's. The review has no footer: it fills
-     the window. The About page credits webgoatguy as the game's designer, and says that the site is not an official
-     site of the game: it is made independently of webgoatguy, meaf.us and Constellation.
+     site): About, The notation, For developers, Privacy, Notices, the site's version (its commit), the site's
+     copyright line, and "Enclosure by webgoatguy", so that the copyright does not read as the game's. The review has
+     no footer: it fills the window. The About page credits webgoatguy as the game's designer, and says that the site
+     is not an official site of the game: it is made independently of webgoatguy, meaf.us and Constellation.
    - **Not in the early access:** puzzles, lessons, free analysis and the engine lab. Their addresses lead home. Their
      code stays, for the full site.
 3. **One build switch:** `VITE_EDITION=early` builds the early access. Without it, the build is the full site, for
@@ -60,12 +60,12 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
    ([requests/03-release-artifacts.md](../requests/03-release-artifacts.md)). The release has the module, both
    networks, as the engine settings offer both, and a notice of the licences of what is compiled into the module.
    The site ships that notice beside the module, and the notices page lists the works and links to it.
-   - **A new engine reviews a game again:** the stored results' keys name the engine's build and the network's file,
-     so a game reviewed before a release is searched again. The player is told why (`reviewAgainWhy` in
-     `src/lib/game/store.ts`): when the review page opens such a game, a dialog says that the engine was updated, once
-     in a visit for each game and build, and a line under the review's progress says it while the review runs. On the
-     home page, the game's Export, off until the review is done, says it too. A network or a depth that the player
-     chose is not an update, and has no notice.
+   - **A new engine:** the stored results' keys name the engine's build and the network's file. A game reviewed
+     before a release opens as a snapshot of that review, with Review again (design 20). Where the browser lacks the
+     earlier results, the game is searched again, and the player is told why (`reviewAgainWhy` in
+     `src/lib/game/store.ts`): a dialog says that the engine was updated, once in a visit for each game and build, and
+     a line under the review's progress says it while the review runs. On the home page, the game's Export, off until
+     the review is done, says it too. A network or a depth that the player chose is not an update, and has no notice.
 7. **Analytics: Cloudflare's and Google's.** Cloudflare's sets no cookies. Google Analytics runs in Google's consent
    mode, advanced form: the Google tag loads on every page with its cookies denied, and sends cookieless pings until
    the visitor accepts. A banner asks once, with Accept and Decline alike. The privacy page shows the choice, can

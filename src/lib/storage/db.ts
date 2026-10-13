@@ -47,6 +47,8 @@ async function run<T>(store: string, mode: IDBTransactionMode, request: (s: IDBO
 
 export const dbGet = <T>(store: string, key: string) => run<T | undefined>(store, "readonly", s => s.get(key), undefined);
 export const dbAll = <T>(store: string) => run<T[]>(store, "readonly", s => s.getAll(), []);
+/** A store's keys, without its values. None when storage fails. */
+export const dbKeys = (store: string) => run<IDBValidKey[]>(store, "readonly", s => s.getAllKeys(), []);
 /** The keys and values of a store whose key `wanted` takes, in key order: the other values are not read. None when
  *  storage fails. */
 export async function dbEntriesWhere<T>(store: string, wanted: (key: string) => boolean): Promise<[string, T][]> {

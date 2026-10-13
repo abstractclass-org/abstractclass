@@ -2,7 +2,7 @@
 // reproducible (the same request and build give the same reply), so a stored result equals a fresh one. The key names
 // the engine build, the network's SHA-256, the position (its moves) and the visits. Results stay in memory too, so the
 // cache works when storage does not.
-import { STORES, dbGetMany, dbPut } from "#lib/storage/db.ts";
+import { STORES, dbGetMany, dbKeys, dbPut } from "#lib/storage/db.ts";
 
 const memory = new Map<string, unknown>(); // every result put or read in this visit
 
@@ -39,4 +39,23 @@ export async function cacheGetAtLeast<T>(build: string, model: string, moves: st
   (await dbGetMany(STORES.analysis, unread)).forEach((value, i) => { if (value !== undefined) memory.set(unread[i], value); });
   const key = [...keys].reverse().find(k => memory.has(k));
   return key === undefined ? undefined : (memory.get(key) as T);
+}
+
+/** The engine build of an earlier review, for its snapshot (design 20): a build whose results with the network `model`
+ *  hold each of `positions` (their moves) at `visits` or deeper. `except` is a build not to take: the site's own, when
+ *  the snapshot is of an earlier engine. Undefined when no build holds them all. Reads the stored keys alone. */
+export async function snapshotBuild(model: string, positions: string[][], visits: number, except?: string): Promise<string | undefined> {
+  return buildHolding((await dbKeys(STORES.analysis)).map(String), model, positions, visits, except);
+}
+
+/** snapshotBuild's choice among `keys`. */
+export function buildHolding(keys: string[], model: string, positions: string[][], visits: number, except?: string): string | undefined {
+  const wanted = new Set(positions.map(m => m.join(" ")));
+  const found = new Map<string, Set<string>>();
+  for (const key of keys) {
+    const k = readAnalysisKey(key);
+    if (k.shape !== SHAPE || k.model !== model || k.build === except || k.visits < visits || !wanted.has(k.moves)) continue;
+    found.set(k.build, (found.get(k.build) ?? new Set()).add(k.moves));
+  }
+  return wanted.size ? [...found].find(([, held]) => held.size === wanted.size)?.[0] : undefined;
 }

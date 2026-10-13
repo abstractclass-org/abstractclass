@@ -7,15 +7,17 @@
   // player looks, and the key moments deepened after the label pass (docs/design/05-review-analysis.md). The engine's
   // settings (docs/design/09-engine-settings.md) apply as they change: the workers, the GPU and the network without a
   // reload. The GPU worker joins the pool once the network is loaded (docs/design/15-gpu.md). One tab reviews a game at
-  // a time (src/lib/game/reviewLock.ts).
+  // a time (src/lib/game/reviewLock.ts). A game reviewed with an earlier engine opens as that review, from the stored
+  // results with the engine's rules alone, until the player chooses Review again (docs/design/20-snapshot.md).
   import { onDestroy, onMount, untrack } from "svelte";
   import ReviewView, { type ReviewAgain, type ReviewProgress } from "#lib/review/ReviewView.svelte";
+  import { snapshotBuild } from "#lib/analysis/cache.ts";
   import { review, type ReviewData } from "#lib/review/model.ts";
   import { EnginePool } from "#lib/analysis/pool.ts";
   import { GameAnalysis, LABEL_VISITS, SWEEP_VISITS, momentVisits } from "#lib/analysis/game.svelte.ts";
   import { NETWORKS, loadEngine, reviewVisits, saveEngine, withReview, type EngineSettings } from "#lib/analysis/engineSettings.ts";
   import { GpuControl, gpuDownloadMB } from "#lib/analysis/gpu.svelte.ts";
-  import { loadManifest, modelOf, type Manifest } from "#lib/engine/client.ts";
+  import { loadManifest, moduleOf, modelOf, type Manifest } from "#lib/engine/client.ts";
   import { errorText } from "#lib/errors.ts";
   import { gamePage, playerNames } from "#lib/game/record.ts";
   import type { GamePartner } from "#lib/game/partners.ts";
@@ -38,6 +40,9 @@
   let manifest = $state.raw<Manifest | null>(null);
   let network = ""; // the network of the pool in use, or of the pool that loads to replace it
   let game = $state<GameAnalysis | null>(null);
+  // A review by an earlier engine shown as it was (design 20): its depth and its bar's text. Nothing is searched until
+  // the player chooses Review again.
+  let snapshot = $state<{ visits: number; text: string } | null>(null);
   let players = $state<ReviewData["players"]>({ blue: "Blue", red: "Red" });
   let kept: { id: string; text: string; record: GameRecord; partner?: GamePartner } | null = null; // the stored game, for its export
   // The partner site the game came from by its link (design 18), for the Export menu's "Save to …", and the game's own
@@ -87,6 +92,7 @@
   // at 256 visits, then at its budget, and the label changes as it does when a deeper search replaces a shallow one
   // (design 05).
   const budget = $derived(reviewVisits(settings));
+  const depth = $derived(snapshot?.visits ?? budget); // the depth of the review on screen
   const data = $derived(game?.data(players) ?? null);
   const R = $derived(data ? review(data, "lead", LABEL_VISITS) : null);
   // The key moments' positions, searched deeper after the label pass: every position of each, from its start to its end
@@ -105,7 +111,7 @@
   const deeperPositions = $derived.by(() => {
     if (!game) return 0;
     const moments = new Set(momentPositions);
-    return game.analysis.filter((a, i) => !!a && a.visits >= 1.5 * (moments.has(i) ? momentVisits(budget) : budget)).length;
+    return game.analysis.filter((a, i) => !!a && a.visits >= 1.5 * (moments.has(i) ? momentVisits(depth) : depth)).length;
   });
   // The review's work as one bar, each part as wide as its share of the visits, so that the bar moves at an even pace:
   // the sweep, the label pass, the key moments searched deeper, and the Great's confirmations. The last two are counted
@@ -117,6 +123,7 @@
   let held = $state({ step: -1, done: 0 });
   $effect(() => { void budget; void game; held = { step: -1, done: 0 }; });
   const rawProgress = $derived.by((): (ReviewProgress & { step: number }) | null => {
+    if (snapshot) return null;
     const n = Math.max(1, moveCount), momentDepth = momentVisits(budget), deeper = momentDepth - budget;
     const m = momentPositions.length, deepDone = momentPositions.filter(i => (game?.analysis[i]?.visits ?? 0) >= momentDepth).length;
     const greats = game?.greatChecks ?? { total: 0, done: 0 };
@@ -149,11 +156,12 @@
   // A game reviewed before that is reviewed again because the site's engine or network changed (reviewAgainWhy): the
   // view says why under its progress, and in a dialog once in a visit for each game and engine (design 11).
   let again = $state<ReviewAgain | null>(null);
-  function againFor(why: "engine" | "network", want: { module: string }): ReviewAgain {
+  // After Review again on a snapshot (`chosen`), the line alone: the player knows why.
+  function againFor(why: "engine" | "network", want: { module: string }, chosen: boolean): ReviewAgain {
     const name = modelOf(manifest!, network)?.displayName ?? "The network";
     const key = `hedge-school:review-again:${kept!.id}:${want.module}`;
-    let dialog = true;
-    try { dialog = !sessionStorage.getItem(key); sessionStorage.setItem(key, "1"); } catch { /* blocked storage: each time */ }
+    let dialog = !chosen;
+    if (dialog) try { dialog = !sessionStorage.getItem(key); sessionStorage.setItem(key, "1"); } catch { /* blocked storage: each time */ }
     return why === "engine"
       ? { title: "The engine was updated", dialog,
           text: "The engine was updated since this game's last review, so the game is reviewed again.",
@@ -164,7 +172,7 @@
   }
   function reviewParams(): Record<string, string | number | boolean> {
     return {
-      network: settings.network.split("-")[0], depth: budget, depth_on_screen: engine.visits, time_limit: engine.seconds ?? 0,
+      network: settings.network.split("-")[0], depth, depth_on_screen: engine.visits, time_limit: engine.seconds ?? 0,
       workers: engine.workers, gpu_mode: engine.gpu, cores: range(navigator.hardwareConcurrency || 1, CORE_RANGES),
       edges: range(moveCount, EDGE_RANGES), own_settings: !!own,
     };
@@ -200,7 +208,7 @@
   // The engine's settings, given to the analysis as they change. The analysis ignores a value it already has.
   $effect(() => {
     const g = game, off = !engine.on, visits = engine.visits, seconds = engine.seconds, labels = budget;
-    if (!g) return;
+    if (!g || snapshot) return;
     untrack(() => {
       g.setPaused(off);
       g.setDepth(visits, seconds);
@@ -209,7 +217,7 @@
   });
   $effect(() => {
     const workers = engine.workers;
-    untrack(() => pool?.resize(workers));
+    untrack(() => { if (!snapshot) pool?.resize(workers); }); // a snapshot's pool has the rules alone
   });
   $effect(() => {
     const id = settings.network;
@@ -243,7 +251,7 @@
    *  cache, which keys them by network. */
   async function useNetwork(id: string) {
     const g = game;
-    if (!pool || !manifest || !g || id === network) return;
+    if (snapshot || !pool || !manifest || !g || id === network) return; // a snapshot: from Review again
     network = id;
     g.dropAnalysis();
     held = { step: -1, done: 0 };
@@ -342,35 +350,87 @@
       moveCount = moves.length;
       manifest = await loadManifest();
       if (!manifest) throw new Error("no /engine/manifest.json: run `npm run engine` first");
-      const first = pool = new EnginePool(engine.workers);
-      network = settings.network;
-      const g = new GameAnalysis(first, moves);
-      g.setPaused(!engine.on);
-      g.setDepth(engine.visits, engine.seconds);
-      g.setReview(budget);
-      game = g;
-      try {
-        await first.start(manifest, network, () => g.start()); // the rules first, then the sweep
-      } catch (e) {
-        if (pool === first) throw e; // else another network took over while this one loaded
-        return;
-      }
-      if (!g.rulesReady) { track("engine_error", { error_kind: "rules" }); return; } // the rules refused the game: the page shows why
-      if (pool !== first) return; // another pool took over
-      first.releaseWhenIdle(); // an idle tab keeps no engine but the rules' (pool.ts, IDLE_RELEASE_MS)
-      controlGpu(first, network);
-      const want = reviewMark(manifest, network, budget);
-      doneBefore = reviewCovers(markBefore, want);
-      const why = doneBefore ? null : reviewAgainWhy(markBefore, want);
-      again = why && want ? againFor(why, want) : null;
-      startedAt = performance.now();
-      track("review_open", { ...reviewParams(), done_before: doneBefore });
-      await g.sweep();
+      const want = reviewMark(manifest, settings.network, budget);
+      const why = reviewCovers(markBefore, want) ? null : reviewAgainWhy(markBefore, want);
+      if (why && (await openSnapshot(moves, why))) return;
+      await startReview(moves, false);
     } catch (e) {
       // A review stopped for another tab fails its searches: no error to show.
       if (!elsewhere) { error = errorText(e); if (kept) track("engine_error", { error_kind: "load" }); }
     }
   });
+
+  /** Reviews the game with the site's engine: the rules first, then the sweep. `chosen`: the player chose Review again
+   *  on a snapshot, whose pool ends once the new one has the rules, so that the board keeps working meanwhile. */
+  async function startReview(moves: string[], chosen: boolean) {
+    const before = pool, first = pool = new EnginePool(engine.workers);
+    network = settings.network;
+    const g = new GameAnalysis(first, moves);
+    g.setPaused(!engine.on);
+    g.setDepth(engine.visits, engine.seconds);
+    g.setReview(budget);
+    if (!chosen) game = g;
+    try {
+      await first.start(manifest!, network, async () => { await g.start(); game = g; before?.terminate(); });
+    } catch (e) {
+      before?.terminate();
+      if (pool === first) throw e; // else another network took over while this one loaded
+      return;
+    }
+    if (!g.rulesReady) { track("engine_error", { error_kind: "rules" }); return; } // the rules refused the game: the page shows why
+    if (pool !== first) return; // another pool took over
+    first.releaseWhenIdle(); // an idle tab keeps no engine but the rules' (pool.ts, IDLE_RELEASE_MS)
+    controlGpu(first, network);
+    const want = reviewMark(manifest!, network, budget);
+    doneBefore = reviewCovers(markBefore, want);
+    const why = doneBefore ? null : reviewAgainWhy(markBefore, want);
+    again = why && want ? againFor(why, want, chosen) : null;
+    startedAt = performance.now();
+    if (!chosen) track("review_open", { ...reviewParams(), done_before: doneBefore }); // a snapshot counted the open
+    await g.sweep();
+  }
+
+  /** Opens the game's last review, by an earlier engine or network file, as it was (design 20): the engine's rules
+   *  alone, no network, and the stored results of the build that holds the game's line at the review's depth. The start
+   *  is left out of that test: every game shares it. False, with nothing kept, when the store lacks them. */
+  async function openSnapshot(moves: string[], why: "engine" | "network"): Promise<boolean> {
+    const mark = markBefore!, rules = new EnginePool(0);
+    network = settings.network;
+    try {
+      await rules.start(manifest!, network);
+      const sameEngine = mark.module === moduleOf(manifest!)?.sha256; // a new file of the network alone
+      const lines = Array.from({ length: Math.max(0, moves.length - 1) }, (_, i) => moves.slice(0, i + 1));
+      const build = await snapshotBuild(mark.model, lines, mark.visits, sameEngine ? undefined : rules.version!.build);
+      if (!build) { rules.terminate(); return false; }
+      const g = new GameAnalysis(rules, moves);
+      g.setReview(mark.visits);
+      await g.start();
+      if (!g.rulesReady) { rules.terminate(); return false; } // the review shows why
+      await g.fromStore(build, mark.model);
+      const date = new Date(mark.at).toLocaleDateString("en", { year: "numeric", month: "long", day: "numeric" });
+      const what = why === "engine" ? "the engine" : (modelOf(manifest!, network)?.displayName ?? "the network");
+      snapshot = { visits: mark.visits, text: `Reviewed on ${date} with an earlier version of ${what}.` };
+      pool = rules;
+      game = g;
+      track("review_open", { ...reviewParams(), done_before: true });
+      trackOnce(`${kept!.id} snapshot opened`, "feature", { feature_name: "snapshot opened" });
+      return true;
+    } catch {
+      rules.terminate();
+      return false;
+    }
+  }
+  /** Review again, on a snapshot: the game reviewed with the site's engine, as a new review. The board stays. */
+  async function reviewAgain() {
+    if (!snapshot || !kept) return;
+    trackOnce(`${kept.id} review again`, "feature", { feature_name: "review again" });
+    snapshot = null;
+    try {
+      await startReview(kept.record.moves, true);
+    } catch (e) {
+      if (!elsewhere) { error = errorText(e); track("engine_error", { error_kind: "load" }); }
+    }
+  }
   onDestroy(() => { gpu?.end(); pool?.terminate(); freeLock?.(); }); // a GPU worker that starts later then ends (GpuControl)
 
   /** The review exported (design 13): the review file, with the engine's results, or the annotated record, copied or as
@@ -402,10 +462,10 @@
 {:else if game?.error && !game.rulesReady}
   <p class="{MESSAGE} text-blunder">The engine could not read this game: {game.error}</p>
 {:else if R}
-  <ReviewView {R} {progress} {deeperPositions} {again} partner={partnerName} {siteLink} onexport={exportAs} exportReady={reviewDone} problem={game?.error ?? ""} deepVisits={engine.visits} onposition={path => (current = path)}
+  <ReviewView {R} {progress} {deeperPositions} {again} snapshot={snapshot && { text: snapshot.text, onagain: reviewAgain }} partner={partnerName} {siteLink} onexport={exportAs} exportReady={reviewDone} problem={game?.error ?? ""} deepVisits={snapshot ? 0 : engine.visits} onposition={path => (current = path)}
               branches={game?.branches ?? {}} onplay={path => game!.addLine(path)} rulesAt={path => game!.rulesAt(path)}
               secondAt={path => game?.secondAt(path)} otherAt={(path, turn) => game?.otherAt(path, turn)}
-              turnKeys={path => game?.turnKeys(path) ?? []} pendingAt={path => game?.pending(path) ?? false} reviewVisits={budget}
+              turnKeys={path => game?.turnKeys(path) ?? []} pendingAt={path => game?.pending(path) ?? false} reviewVisits={depth}
               ondelete={path => game!.deleteFrom(path)} onpromote={path => game!.promote(path)}
               onjudge={path => game!.judge(path)} labelVisits={LABEL_VISITS} engine={settings} onengine={changeEngine}
               ownSettings={!!own} onfeature={name => kept && trackOnce(`${kept.id} ${name}`, "feature", { feature_name: name })}

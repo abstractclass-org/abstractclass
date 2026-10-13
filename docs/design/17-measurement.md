@@ -39,7 +39,7 @@ visitors' machines, and the GPU on other machines.
 | `tool_out_of_date` | the import page asks to update a tool | `stale_tool` (bookmarklet, userscript, older) | how many players still need the new tools |
 | `share_open` | a share link's page | `network_found`, `same_engine` | whether shared reviews arrive whole |
 | `game_missing` | a review's address in a browser without the game | none | whether players send review addresses, which do not work in another browser |
-| `review_open` | the review starts, with the engine loaded | `network`, `depth`, `depth_on_screen`, `time_limit`, `workers`, `gpu_mode`, `cores`, `edges`, `own_settings`, `done_before` | the funnel's second step, and the settings in use |
+| `review_open` | the review starts, with the engine loaded, or a snapshot opens (design 20) | `network`, `depth`, `depth_on_screen`, `time_limit`, `workers`, `gpu_mode`, `cores`, `edges`, `own_settings`, `done_before` | the funnel's second step, and the settings in use |
 | `review_done` | the review ends, in this visit | as `review_open`, and `review_seconds` (a number), `minutes`, `worker_speed` (a CPU worker's visits a second, by 5), `gpu_used` | the engine's defaults: how long a review takes on real machines, by settings and cores |
 | `gpu_test` | Auto's first test of a GPU | `gpu_outcome` (faster, slower), `gpu_ratio` (the GPU's speed over a worker's), `gpu` (maker and kind, as WebGPU gives them), `network` | the GPU's default, and whether it pays off on laptops and phones |
 | `engine_error` | the engine fails | `error_kind` (load, rules, gpu) | reliability |
@@ -63,6 +63,8 @@ The features, by their `feature_name` (`ReviewView.svelte`, `used`). Each counts
 | `keys list` | the list of keys opened (`?`) |
 | `chart jump` | a click on the Advantage or the Difficulty chart, to go to a position |
 | `chart advantage`, `chart difficulty` | the chart's tab chosen |
+| `snapshot opened` | a review by an earlier engine opened as it was (design 20) |
+| `review again` | Review again chosen on a snapshot |
 | `display` and a setting | a display setting changed, by its name in `src/lib/review/display.ts`: `display judge`, `display reviewFor`, `display win`, `display layers`, `display scoreLine`, `display areaLine`, `display lineSteps`, `display branchForm`, `display marks`, `display notes`, `display previewMoves`, `display previewBranches`, `display sound`, `display moveSound`, `display volume` |
 
 A property of the visitor, `games_stored`, comes with every event after the home page sets it: how many games the
@@ -111,7 +113,7 @@ selector at the top left. Click **Admin**, the gear at the bottom left.
 | `gpu_mode` | GPU mode | Event | auto, on or off |
 | `cores` | CPU cores | Event | the machine's cores, as a range |
 | `own_settings` | Game own settings | Event | the game has its own settings, from an imported review |
-| `done_before` | Done before | Event | the review opened with its results stored |
+| `done_before` | Done before | Event | the review opened with its results stored, or as a snapshot |
 | `minutes` | Review minutes | Event | the review's time, as a range |
 | `gpu_used` | GPU used | Event | the GPU searched in the review |
 | `gpu_outcome` | GPU test outcome | Event | faster or slower |

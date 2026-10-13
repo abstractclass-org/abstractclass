@@ -75,8 +75,11 @@ searching it again, and to share it as text that others can read.
      settings that the site keeps as an account would. So the page offers no "Use my settings": a game that came with
      settings keeps them, and the player changes them in that game like any other setting.
    - The home page's Export of the game asks for a review with the game's own settings.
-6. **Another engine:** the browser's store keys the results by the engine's build and network, so an import into a site
-   that ships another network keeps the game and the branches, and the review searches again with that site's engine.
+6. **Another engine:** the browser's store keys the results by the engine's build and network. An import keeps the
+   file's mark when the site ships its network file, whatever the engine, and a mark of the site's engine stays over
+   an earlier engine's. A file from an earlier engine therefore
+   opens as a snapshot of its review (design 20), and Review again searches with the site's engine. An import into a
+   site that ships another network keeps the game and the branches, and the review searches again.
 7. **A deeper result answers a shallower question:** a review asks for each position at its own budget (32 visits, the
    label pass, the review's depth), and takes the deepest result the store has at that budget or deeper
    (`cacheGetAtLeast` in `src/lib/analysis/cache.ts`), as the review already takes a deeper result it holds in memory.

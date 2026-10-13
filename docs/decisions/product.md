@@ -2350,3 +2350,29 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   with its owner's permission, and players who give a game.
 - **Left open** (the open items, "Hedge School's place"): the licence of the engine's networks, an open database of
   enclosuregame.com's games (wait to see whether it publishes one), and a partner's sign-in for accounts.
+
+### A review by an earlier engine opens as it was (2026-10-14)
+
+- **The question:** after a release, a game reviewed before was reviewed again when opened, at the cost of a full
+  review, though the earlier results were in the browser. A player may want only a quick look.
+- **Decided** (design 20): such a game opens as a snapshot of its last review, from the stored results, with the
+  engine's rules alone. A snapshot searches nothing, adds no move, changes no branch, and does not export. A bar says
+  when and with what engine it was made, and Review again reviews the game with the site's engine. Without the earlier
+  results, the game is reviewed again with a notice, as before. Imported review files and reviews kept by a partner
+  site open the same way. Precedent: Lichess keeps a game's computer analysis as it was made, and KaTrain opens a saved
+  analysis as it was.
+- **Rejected:** the site's engine for what the player explores in a snapshot (labels between two engines' values),
+  exploration without labels, and a snapshot's export (it holds nothing new: Review again, then export).
+- **Checked** in a desktop browser on the two games that this browser held from the earlier engine: both opened as
+  snapshots, with their labels, report and chart. Space (a candidate's move) was refused, Export was off with its
+  reason, and Review again reviewed the game in place and replaced the mark. Not checked: an imported file from an
+  earlier engine, a review sent back by a partner site, and a game whose earlier results are missing.
+
+### One save to a partner site, which updates (2026-10-14)
+
+- **The question:** whether a partner site needs "Save" and "Save as new", for a saved review opened, explored more,
+  and saved again.
+- **Decided** (design 18): one "Save to", which sends the game's whole review so far. Its branches hold the earlier
+  save's, and its results only grow, so it replaces the earlier save. A partner that wants a history keeps versions.
+  The partner passes `save` on its open link too, so that a reopened review can be saved again. The page /developers
+  says both.

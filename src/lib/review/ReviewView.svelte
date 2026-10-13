@@ -5,6 +5,9 @@
   /** Why a game reviewed before is reviewed again: the engine or its network was updated (store.ts, reviewAgainWhy).
    *  `text` shows under the progress. The dialog, with `title` and `body`, says it once when `dialog` is set. */
   export interface ReviewAgain { title: string; text: string; body: string; dialog: boolean }
+  /** A review by an earlier engine shown as it was (design 20): `text` says when and with what, and `onagain` reviews
+   *  the game with the site's engine. Until then nothing is searched, and no move or branch changes. */
+  export interface ReviewSnapshot { text: string; onagain: () => void }
 
   // The numbers' formats, made once: a formatter is costly to make, and the move list and the tables format many numbers
   // at each result.
@@ -55,6 +58,7 @@
     deepVisits?: number; // the budget of the position on screen: its search bar is full at this many visits
     deeperPositions?: number; // the game's positions searched deeper than the review asked, where the player looked
     again?: ReviewAgain | null; // why a game reviewed before is reviewed again, when the site's engine changed
+    snapshot?: ReviewSnapshot | null; // a review by an earlier engine, shown as it was (design 20)
     partner?: string | null; // the partner site the game came from by its link, which takes its review back (design 18)
     siteLink?: { href: string; host: string } | null; // the game's own page, from its record's Site tag
     ownSettings?: boolean; // the game keeps the network and depth it came with (store.ts, `settings`)
@@ -83,7 +87,7 @@
     exportReady?: boolean; // the review is done: export only then (design 13)
   }
   let { R, progress = null, problem = "", deepVisits = 0, onposition, lineSteps, branches = {}, onplay, rulesAt, ondelete,
-        onpromote, onjudge, labelVisits = 0, searching = false, timedOut = false, engine, onengine, gpu, secondAt, otherAt, turnKeys, pendingAt, reviewVisits = 0, onexport, exportReady = true, deeperPositions = 0, again = null, partner = null, siteLink = null, ownSettings = false, onfeature }: Props = $props();
+        onpromote, onjudge, labelVisits = 0, searching = false, timedOut = false, engine, onengine, gpu, secondAt, otherAt, turnKeys, pendingAt, reviewVisits = 0, onexport, exportReady = true, deeperPositions = 0, again = null, snapshot = null, partner = null, siteLink = null, ownSettings = false, onfeature }: Props = $props();
   const used = (name: string) => onfeature?.(name);
   const last = $derived(R.data.positions.length - 1);
   const TABLE_ROWS = 5; // the Analysis table shows this many rows and scrolls, so the move list under it does not move
@@ -301,21 +305,30 @@
     }
     return out;
   });
-  const play = (k: number) => { if (listLine) { used("listed line played"); playPath([...path, ...listLine.slice(0, k + 1).map(edgeName)]); } };
-  /** Plays a line from the start: along the tree where it is there, as a new branch where it is not, then goes there. */
-  async function playPath(target: string[]) {
+  const play = (k: number) => { if (listLine) playPath([...path, ...listLine.slice(0, k + 1).map(edgeName)], "listed line played"); };
+  /** Plays a line from the start: along the tree where it is there, as a new branch where it is not, then goes there.
+   *  A snapshot plays along the tree alone, and its bar says why (nudge). `feature`: what the player used. */
+  async function playPath(target: string[], feature: string) {
+    if (snapshot && mainIndex(target, mainNames) === null && !(pathKey(target) in branches)) { nudge(); return; }
+    used(feature);
     if (onplay) await onplay(target);
     setPath(target, true);
+  }
+  let nudged = $state(false), nudgeTimer: ReturnType<typeof setTimeout> | undefined;
+  function nudge() {
+    nudged = true;
+    clearTimeout(nudgeTimer);
+    nudgeTimer = setTimeout(() => (nudged = false), 2500);
   }
   // Space plays the pinned candidate, or number 1 (Lichess's Space plays its best move).
   function playCandidate() {
     const c = pinnedCandidate ?? analysis?.candidates[0];
-    if (c) { used("candidate played"); playPath([...path, edgeName(c.edge)]); }
+    if (c) playPath([...path, edgeName(c.edge)], "candidate played");
   }
 
   // The player's own moves, always on (Lichess's analysis board): the puzzles' edge input, on the position's rules from
   // the engine. A move that is the game's goes along the game; another makes a branch.
-  const input = new EdgeInput(edge => { used("own edge played"); playPath([...path, edgeName(edge)]); });
+  const input = new EdgeInput(edge => playPath([...path, edgeName(edge)], "own edge played"));
   // The player's notes on the board, by position, for this visit only (Lichess keeps an analysis board's shapes on each
   // position of its tree).
   let notesAt = $state<Record<string, BoardNote[]>>({});
@@ -688,7 +701,7 @@
     const kids = childrenOf(path);
     const line = (step: 1 | -1) => { const l = siblingLine(path, childrenOf, step); if (l) setPath(l); };
     if (key === "?" || (key === "/" && shift)) { keysOpen = !keysOpen; used("keys list"); }
-    else if ((key === "e" || key === "l") && engine && onengine) onengine({ on: !engine.on });
+    else if ((key === "e" || key === "l") && engine && onengine) { if (snapshot) nudge(); else onengine({ on: !engine.on }); }
     else if ((key === "ArrowLeft" && shift) || key === "b" || key === "[" || (key === "k" && shift)) setPath(prevFork(path, childrenOf));
     else if ((key === "ArrowRight" && shift) || key === "n" || key === "]" || (key === "j" && shift)) setPath(nextFork(path, childrenOf));
     else if ((key === "ArrowUp" && shift) || key === "x" || key === ",") line(-1);
@@ -846,6 +859,15 @@
       </div>
       <p class="mt-1 text-xs text-muted">{progress.text}</p>
       {#if again}<p class="mt-1 text-xs text-ink">{again.text}</p>{/if}
+    </div>
+  {:else if snapshot}
+    <!-- A snapshot (design 20): when and with what, and Review again. A move it cannot add brings out its second line. -->
+    <div class={["mb-2.5 px-3 py-2 rounded-md bg-panel-2 text-xs border", nudged ? "border-accent" : "border-transparent"]} role="status">
+      <div class="flex items-center gap-2">
+        <p class="flex-1">{snapshot.text}</p>
+        <button class="btn-primary flex-none px-3 py-0.5 text-xs" type="button" onclick={snapshot.onagain}>Review again</button>
+      </div>
+      <p class={["mt-1", nudged ? "text-ink" : "text-muted"]}>A snapshot: no searches and no new moves. Review again to explore.</p>
     </div>
   {/if}
 {/snippet}
@@ -1096,12 +1118,12 @@
   </ContextMenu.Trigger>
   <ContextMenu.Portal>
     <ContextMenu.Content class="z-10 min-w-48 p-1 bg-panel-2 border border-muted/50 rounded-md shadow-[0_6px_20px_rgb(0_0_0/0.4)] text-sm">
-      <ContextMenu.Item disabled={!canPromote(menuPath)} onSelect={() => { if (menuPath) { used("branch promoted"); onpromote?.(menuPath.split(" ")); } }}
+      <ContextMenu.Item disabled={!!snapshot || !canPromote(menuPath)} onSelect={() => { if (menuPath) { used("branch promoted"); onpromote?.(menuPath.split(" ")); } }}
                         class={MENU_ITEM}>Promote variation</ContextMenu.Item>
-      <ContextMenu.Item disabled={!menuPath || (turnKeys?.(menuPath.split(" ")) ?? [menuPath]).every(k => !!branches[k]?.judged)}
+      <ContextMenu.Item disabled={!!snapshot || !menuPath || (turnKeys?.(menuPath.split(" ")) ?? [menuPath]).every(k => !!branches[k]?.judged)}
                         onSelect={() => { if (menuPath) { used("quality evaluated"); onjudge?.(menuPath.split(" ")); } }} class={MENU_ITEM}>Evaluate quality</ContextMenu.Item>
       <ContextMenu.Separator class="my-1 h-px bg-line" />
-      <ContextMenu.Item disabled={!menuPath} onSelect={() => menuPath && deleteFrom(menuPath)} class={MENU_ITEM}>Delete from here</ContextMenu.Item>
+      <ContextMenu.Item disabled={!!snapshot || !menuPath} onSelect={() => menuPath && deleteFrom(menuPath)} class={MENU_ITEM}>Delete from here</ContextMenu.Item>
     </ContextMenu.Content>
   </ContextMenu.Portal>
   </ContextMenu.Root>
@@ -1228,11 +1250,11 @@
   {#if k === 0 || step.turn.first}<span class={["text-muted text-[0.9em]", k > 0 && "ml-1"]}>{turnText(step.turn)}</span>{/if}
   {#if display.branchForm === "text"}
     <button class={["mv px-[0.2rem] py-px bg-transparent border-0 whitespace-nowrap opacity-75 hover:opacity-100 hover:bg-panel-2", SIDE_TEXT[step.mover]]}
-            onclick={() => { used("engine line played"); playPath(p); }} onmouseenter={() => startPreview({ kind: "engine", start: engine.start, line: engine.line, k: step.k })}
+            onclick={() => playPath(p, "engine line played")} onmouseenter={() => startPreview({ kind: "engine", start: engine.start, line: engine.line, k: step.k })}
             onmouseleave={endPreview} tabindex="-1" title={note}>{edgeName(e)}</button>
   {:else}
     <button class="mv flex p-[0.08em] bg-transparent border-0 rounded-full opacity-75 hover:opacity-100 hover:outline hover:outline-ink"
-            onclick={() => { used("engine line played"); playPath(p); }} onmouseenter={() => startPreview({ kind: "engine", start: engine.start, line: engine.line, k: step.k })}
+            onclick={() => playPath(p, "engine line played")} onmouseenter={() => startPreview({ kind: "engine", start: engine.start, line: engine.line, k: step.k })}
             onmouseleave={endPreview} tabindex="-1" title={note}>
       {#if display.branchForm === "pills"}{@render edgePill(e, step.mover, false, null, "")}
       {:else}<span class={["block w-[0.85em] h-[0.85em] rounded-full", SIDE_BG[step.mover]]}></span>{/if}
@@ -1545,7 +1567,7 @@
           highlight={previewing ? null : hover ?? pinnedCandidate?.edge ?? null}
           line={branchPreview ? previewLine : movePreview ? null : drawnLine}
           oncandidateclick={selectRank}
-          oncandidatedblclick={e => { used("candidate played"); playPath([...path, edgeName(e)]); }}
+          oncandidatedblclick={e => playPath([...path, edgeName(e)], "candidate played")}
           pending={input.pending}
           ends={input.ends}
           active={input.active}
@@ -1575,7 +1597,18 @@
          search's progress and visits, and the engine settings' gear, and under it the values, across the column. -->
     <div class="mb-1.5">
       <div class="flex items-center gap-2">
-        {#if engine && onengine}
+        {#if engine && onengine && snapshot}
+          <!-- A snapshot searches nothing (design 20): its switch shows off and does not move, and a click on it lights the
+               snapshot's bar. A disabled switch takes no click, so its wrapper does; the e and l keys do the same. -->
+          <!-- svelte-ignore a11y_click_events_have_key_events -->
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <span class="flex-none inline-flex cursor-not-allowed" onclick={nudge}>
+            <Switch.Root checked={false} disabled aria-label="Engine" title="Engine off: this review is a snapshot"
+                         class={[SWITCH, "pointer-events-none opacity-60"]}>
+              <Switch.Thumb class={SWITCH_THUMB} />
+            </Switch.Root>
+          </span>
+        {:else if engine && onengine}
           {@const set = onengine}
           <Switch.Root checked={engine.on} onCheckedChange={v => set({ on: v })} aria-label="Engine" title="Engine on or off"
                        class={SWITCH}>
@@ -1646,7 +1679,8 @@
         </div>
         <div class="flex items-center gap-1">
           <!-- Export (design 13): the review file, with the engine's results, or the annotated record. -->
-          {#if onexport}<ExportMenu run={kind => onexport(kind, display.judge)} ready={exportReady} why="Export once the review is done." {partner} />{/if}
+          {#if onexport}<ExportMenu run={kind => onexport(kind, display.judge)} ready={exportReady}
+                                    why={snapshot ? "Review again to export: this review used an earlier engine." : "Export once the review is done."} {partner} />{/if}
           <!-- The menu button (Lichess's ☰ in the same place) opens the display settings in the analysis's place, and
                closes them. The gear is the engine's, in the engine header. -->
           <button class="aria-expanded:border-accent aria-expanded:text-accent" aria-label="Display settings" title="Display settings"

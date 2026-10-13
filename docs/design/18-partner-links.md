@@ -33,20 +33,27 @@ must make costs both of them a release.
    with `protocol: 1`, the file and its name, and the save page posts `hedge-school:saved` or `hedge-school:failed`.
    The field is `protocol`, not `version`: the review file has a `version` of its own. Each side checks the other's
    origin. This site waits a minute for each answer. The partner's page stores the file with its own sign-in.
-7. **A saved review opens again from the partner's page,** by the same messages the other way. At the player's click,
+7. **A saved review opens again from the partner's page,** by the same messages the other way. A review by an
+   earlier engine opens as a snapshot of it (design 20). At the player's click,
    the partner's page opens `/import#from=` and its origin, with `window.open`. The import page posts
    `hedge-school:ready` (`protocol: 1`) to it, and the partner's page answers `hedge-school:review` with the file, or
    `hedge-school:failed`. The import page takes the file only from the page that opened it, on that origin, and only
    from a partner. It imports the file as the home page does, and the review opens at once, with the engine's results
    (`receiveFromPartner` in `src/lib/game/partners.ts`). The link can name the save page too, so that the game can be
-   saved again. In the browser that ran the review, the partner's first link also opens it again at once: the game's
+   saved again: the partner passes `save` on this link too. In the browser that ran the review, the partner's first
+   link also opens it again at once: the game's
    id comes from its moves, and the browser keeps the engine's results. The player can always import the file on the
    home page.
    - **The tie between the two pages:** a link with a `target` cuts it (browsers then give the new page no opener),
      and so does a `Cross-Origin-Opener-Policy` of `same-origin`. The save page must send no such header, and the page
      that opens Hedge School sends none or `same-origin-allow-popups`. Hedge School sends none. A later header for the
      engine's threads (cross-origin isolation) would cut the tie, and this design would have to change with it.
-8. **One public description,** the page /developers ("For developers", as Lichess names its page for other sites,
+8. **One save, which updates:** "Save to" sends the game's whole review so far. Its branches hold the earlier save's
+   (an opened review's branches merge with the browser's), and its results only grow. A save therefore replaces the
+   earlier one. A partner that wants a history can keep versions: its choice. There is no "Save as new": it would
+   need another message field, a list of versions on the partner's side, and a choice for the player, to keep a copy
+   that the newer save already holds.
+9. **One public description,** the page /developers ("For developers", as Lichess names its page for other sites,
    linked from the footer): the link, its parameters, both handshakes with examples, the tie between the pages, the
    buttons, testing, and what can change. The notation page describes the record only: the engine repository decides
    the notation, and this repository decides the link. The page promises:
@@ -57,9 +64,9 @@ must make costs both of them a release.
      `ready` message, so a page that asks for none keeps protocol 1.
    - **The review file is this site's:** the partner stores it as it is, and its contents can change.
    - **A list of changes,** with dates.
-9. **Measured as a way in:** `import_game` counts `site_link` and `site_review` (a kept review opened again), and
+10. **Measured as a way in:** `import_game` counts `site_link` and `site_review` (a kept review opened again), and
    `export` counts `partner` (design 17).
-10. **Buttons as a kit, not a widget:** the page gives four labels, "Review in Hedge School" and "Review" for a finished
+11. **Buttons as a kit, not a widget:** the page gives four labels, "Review in Hedge School" and "Review" for a finished
     game, "Open in Hedge School" and "Open" for a saved review, each with the collie's head. It gives the head as a file
     (`/brand/hedge-school.svg`, design 12), a sample style in the school's pale lavender with near-black text (design
     12, the pill of the bookmarklet's button), and the markup: "Review" is a link, "Open" a button that runs the open
@@ -143,3 +150,4 @@ must make costs both of them a release.
 ## Log entries
 
 - [decisions/product.md](../decisions/product.md): "Links from another site, and reviews saved back" (2026-10-13).
+- [decisions/product.md](../decisions/product.md): "One save to a partner site, which updates" (2026-10-14).
