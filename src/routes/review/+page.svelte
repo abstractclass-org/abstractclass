@@ -7,15 +7,20 @@
   // player looks, and the key moments deepened after the label pass (docs/design/05-review-analysis.md). The engine's
   // settings (docs/design/09-engine-settings.md) apply as they change: the workers, the GPU and the network without a
   // reload. The GPU worker joins the pool once the network is loaded (docs/design/15-gpu.md). One tab reviews a game at
-  // a time (src/lib/game/reviewLock.ts). A game reviewed with an earlier engine opens as that review, from the stored
-  // results with the engine's rules alone, until the player chooses Review again (docs/design/20-snapshot.md).
+  // a time (src/lib/game/reviewLock.ts). A game that arrives after the `#` (a record, a shared review, a partner's:
+  // the review's ways in, docs/design/22-site-map.md) is kept first, by Arrival, then reviewed. A game reviewed with an
+  // earlier engine opens as that review, from the stored results with the engine's rules alone, until the player
+  // chooses Review again (docs/design/20-snapshot.md).
   import { onDestroy, onMount, untrack } from "svelte";
   import ReviewView, { type ReviewAgain, type ReviewProgress } from "#lib/review/ReviewView.svelte";
+  import Arrival from "#lib/review/Arrival.svelte";
+  import { holdsGame } from "#lib/game/importHash.ts";
   import { snapshotBuild } from "#lib/analysis/cache.ts";
   import { review, type ReviewData } from "#lib/review/model.ts";
   import { EnginePool } from "#lib/analysis/pool.ts";
   import { GameAnalysis, LABEL_VISITS, SWEEP_VISITS, momentVisits } from "#lib/analysis/game.svelte.ts";
   import { NETWORKS, loadEngine, reviewVisits, saveEngine, withReview, type EngineSettings } from "#lib/analysis/engineSettings.ts";
+  import { trackSettingChange } from "#lib/analysis/settingChanges.ts";
   import { GpuControl, gpuDownloadMB } from "#lib/analysis/gpu.svelte.ts";
   import { loadManifest, moduleOf, modelOf, type Manifest } from "#lib/engine/client.ts";
   import { errorText } from "#lib/errors.ts";
@@ -50,6 +55,8 @@
   let partnerName = $state<string | null>(null);
   let siteLink = $state.raw<{ href: string; host: string } | null>(null);
   let moveCount = $state(0);
+  // The positions the passes search: one before each move, and the end of an unfinished game (GameAnalysis.passCount).
+  const passCount = $derived(game?.passCount ?? moveCount);
   let error = $state("");
   let current = $state<string[]>([]); // the position on screen: its path in the game's tree (review/tree.ts)
   const engine = $state(loadEngine());
@@ -60,23 +67,8 @@
   // game's two.
   let own = $state<GameSettings | null>(null);
   const settings = $derived(own ? withReview(engine, own.network, own.visits) : engine);
-  // A setting changed, by its name, its new value and where it applies (design 17): the defaults' test. The value goes
-  // as `setting_value`: Google Analytics reads a parameter called `value` as the event's worth, a number.
-  const SETTING_NAMES: Record<string, string> = { on: "engine_on", visits: "depth_on_screen", seconds: "time_limit", review: "depth_per_move",
-                                                  customReview: "depth_per_move", network: "network", workers: "workers", gpu: "gpu" };
-  function countChange(change: Partial<EngineSettings>) {
-    const next = { ...settings, ...change }, names = new Set<string>();
-    for (const k of Object.keys(change)) {
-      const setting = SETTING_NAMES[k] ?? k;
-      if (names.has(setting)) continue;
-      names.add(setting);
-      const value = setting === "depth_per_move" ? String(reviewVisits(next)) : setting === "network" ? next.network.split("-")[0]
-        : String(next[k as keyof EngineSettings] ?? "none");
-      track("setting_change", { setting, setting_value: value, setting_scope: own && (setting === "network" || setting === "depth_per_move") ? "game" : "browser" });
-    }
-  }
   function changeEngine(change: Partial<EngineSettings>) {
-    countChange(change);
+    trackSettingChange(change, settings, !!own); // design 17
     const { network, review, customReview, ...rest } = change;
     if (own && kept && (network !== undefined || review !== undefined || customReview !== undefined)) {
       const next = { ...settings, ...change };
@@ -124,7 +116,7 @@
   $effect(() => { void budget; void game; held = { step: -1, done: 0 }; });
   const rawProgress = $derived.by((): (ReviewProgress & { step: number }) | null => {
     if (snapshot) return null;
-    const n = Math.max(1, moveCount), momentDepth = momentVisits(budget), deeper = momentDepth - budget;
+    const n = Math.max(1, passCount), momentDepth = momentVisits(budget), deeper = momentDepth - budget;
     const m = momentPositions.length, deepDone = momentPositions.filter(i => (game?.analysis[i]?.visits ?? 0) >= momentDepth).length;
     const greats = game?.greatChecks ?? { total: 0, done: 0 };
     const total = (SWEEP_VISITS + budget) * n + deeper * m + budget * greats.total;
@@ -134,13 +126,13 @@
       ...(deeper * m ? [{ share: (deeper * m) / total, done: deepDone / m }] : []),
       ...(greats.total ? [{ share: (budget * greats.total) / total, done: greats.done / greats.total }] : []),
     ];
-    const labelled = game?.labelled !== undefined && game.labelled >= moveCount, deep = deepDone >= m;
-    const step = !game || game.swept < moveCount ? 0 : !labelled ? 1 : !deep && deeper * m ? 2 : parts.length - 1;
+    const labelled = game?.labelled !== undefined && game.labelled >= passCount, deep = deepDone >= m;
+    const step = !game || game.swept < passCount ? 0 : !labelled ? 1 : !deep && deeper * m ? 2 : parts.length - 1;
     if (!game?.engineReady) return { text: "Loading the engine's network…", parts, step };
     if (labelled && deep && greats.done >= greats.total) return null;
     if (game.paused) return { text: "Engine off. The review is paused.", parts, waiting: true, step };
-    if (step === 0) return { text: `Reviewing: the game's shape, ${game.swept} of ${moveCount} positions`, parts, step };
-    if (step === 1) return { text: `Reviewing: move quality, ${game.labelled} of ${moveCount} positions`, parts, step };
+    if (step === 0) return { text: `Reviewing: the game's shape, ${game.swept} of ${passCount} positions`, parts, step };
+    if (step === 1) return { text: `Reviewing: move quality, ${game.labelled} of ${passCount} positions`, parts, step };
     if (!deep) return { text: `Reviewing: the key moments, deeper, ${deepDone} of ${m} positions`, parts, step };
     return { text: `Reviewing: confirming Great moves, ${greats.done} of ${greats.total}`, parts, step };
   });
@@ -275,7 +267,7 @@
   // a deeper search, another review depth). The analysis skips a position already queued or done.
   $effect(() => {
     void momentKey;
-    if (!R || !game?.engineReady || game.labelled < moveCount) return;
+    if (!R || !game?.engineReady || game.labelled < passCount) return;
     untrack(() => game!.deepen(momentPositions));
   });
 
@@ -337,7 +329,9 @@
     location.reload();
   }
 
+  let arriving = $state(false); // the address holds a game to keep first (Arrival)
   onMount(async () => {
+    if (holdsGame(location.hash)) { arriving = true; return; }
     try {
       const moves = await chooseGame();
       if (!moves) { noGame = true; return; }
@@ -447,7 +441,9 @@
 
 <svelte:head><title>Game review</title></svelte:head>
 
-{#if noGame}
+{#if arriving}
+  <Arrival />
+{:else if noGame}
   <p class={MESSAGE}>No game to review yet. <a href="/">Bring one on the home page</a>: paste its record, or use the
     meaf.us bookmarklet.</p>
 {:else if elsewhere}

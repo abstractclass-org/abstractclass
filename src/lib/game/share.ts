@@ -1,5 +1,5 @@
 // A review shared by link (design 13): the game's record, the player's branches, and what the review ran with (the
-// engine's build, the network, the review's visits), packed after the import page's `#` (`/import#s=…`). The browser
+// engine's build, the network, the review's visits), packed after the review's `#` (`/review#packed=…`, design 22). The browser
 // never sends that part of an address to a server. The link holds no engine results: the recipient's browser reviews
 // the game again. The engine gives the same results for the same build, network and visits, so the review is the
 // sender's (on the GPU, the network's arithmetic differs a little: design 15).

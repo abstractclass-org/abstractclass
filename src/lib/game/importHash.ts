@@ -1,11 +1,14 @@
-// What arrives after the import page's `#`, as URL parameters. The browser never sends that part of an address to a
-// server.
-// - The meaf.us tools (bookmarklet.ts, userscript.ts): the tool, its version, and the game's record. A tool made before
-//   it said so sends the record alone. The import page uses the version to tell a player whose tool is out of date
-//   (design 11).
-// - A link from another site (design 18): `record`, the game's record, and `save`, the page where a partner site takes
-//   the review back (partners.ts). Or, from a partner's page that kept a review, `from`, that page's origin: the
-//   review file then comes by a window message.
+// What arrives after a page's `#`, as URL parameters: the site's ways in (design 22). The browser never sends that
+// part of an address to a server, and the analytics start only once it holds no game (holdsGame).
+// - The review's (`/review`, and `/import` while it forwards there):
+//   - the meaf.us tools (bookmarklet.ts, userscript.ts): the tool, its version, and the game's record. A tool made
+//     before it said so sends the record alone. The review uses the version to tell a player whose tool is out of date
+//     (design 11);
+//   - a link from another site (design 18): `record`, the game's record, and `save`, the page where a partner site
+//     takes the review back (partners.ts). Or, from a partner's page that kept a review, `from`, that page's origin:
+//     the review file then comes by a window message;
+//   - `packed`, a shared review (share.ts), and `game`, a game kept in this browser.
+// - The Analysis board's (`/analysis`): `record`, `packed` (a shared analysis), and `at`, the position on screen.
 
 export type Tool = "bookmarklet" | "userscript";
 
@@ -35,4 +38,14 @@ export function staleTool(sent: Pick<ImportHash, "tool" | "version"> & { link?: 
   if (sent.link) return null;
   if (!sent.tool) return "older";
   return sent.version === current[sent.tool] ? null : sent.tool;
+}
+
+/** Whether the part after `#` holds a game: a record, a packed review or analysis, a tool's record, or a partner's
+ *  page that sends one. The analytics start only once a page has taken it out of the address (design 22). A kept
+ *  game's id and a place on the board name no game's moves. */
+export function holdsGame(hash: string): boolean {
+  const h = hash.replace(/^#/, "");
+  if (!h) return false;
+  if (!/^[A-Za-z_]+=/.test(h)) return true; // an older tool's bare record
+  return [...new URLSearchParams(h).keys()].some(k => k !== "game" && k !== "at");
 }

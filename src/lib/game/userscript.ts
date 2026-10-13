@@ -53,7 +53,7 @@ function main(origin: string, icon: string, code: string, find: typeof findGame,
   const open = (game: MeafGame) => {
     let text: string;
     try { text = toRecord(game); } catch (e) { show("Hedge School: " + (e as Error).message); return; }
-    GM_openInTab(origin + "/import#" + new URLSearchParams({ tool: "userscript", v: code, record: text }), { active: true });
+    GM_openInTab(origin + "/review#" + new URLSearchParams({ tool: "userscript", v: code, record: text }), { active: true });
   };
   function review() {
     const game = find();

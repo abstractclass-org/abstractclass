@@ -47,7 +47,7 @@ export function positionKeys(moves: string[], branches: KeptBranches | null): Se
 export function gameAnalyses(entries: [string, unknown][], positions: Set<string>, models: Set<string> | null = null): [string, unknown][] {
   return entries.filter(([key]) => belongs(key, positions, models));
 }
-const belongs = (key: string, positions: Set<string>, models: Set<string> | null) => {
+export const belongs = (key: string, positions: Set<string>, models: Set<string> | null) => {
   const k = readAnalysisKey(key);
   const parent = k.moves.includes(" ") ? k.moves.slice(0, k.moves.lastIndexOf(" ")) : k.moves ? "" : null;
   return k.shape === SHAPE && (positions.has(k.moves) || (parent !== null && positions.has(parent))) && (!models || models.has(k.model));
@@ -142,7 +142,7 @@ export async function shareLink(id: string, origin: string): Promise<string> {
   const stored = await loadGame(id), mark = stored?.game.reviewed;
   if (!stored || !mark) throw new Error("the game's review is not done");
   const branches = branchNodes((await dbGet<KeptBranches>(STORES.branches, id)) ?? null);
-  return `${origin}/import#s=${encodeShare({ module: mark.module.slice(0, 8), model: mark.model.slice(0, 8), visits: mark.visits,
+  return `${origin}/review#packed=${encodeShare({ module: mark.module.slice(0, 8), model: mark.model.slice(0, 8), visits: mark.visits,
                                             tags: stored.record.tags, moves: stored.record.moves, branches })}`;
 }
 

@@ -64,7 +64,7 @@ export function annotatedRecord({ R, unit, tags, result, clocks = [], branches =
     if (label && BAD_LABELS.includes(label) && best) parts.push(`${best} was best.`);
     if (hard) parts.push("A hard position.");
     if (clocks[i]) parts.push(`[%clk ${clocks[i]}]`);
-    if (i + 1 < n) parts.push(evalCommand(R.data.analysis[i + 1]));
+    if (i + 1 < n || !R.data.positions[n]?.over) parts.push(evalCommand(R.data.analysis[i + 1])); // not at a game's end
     return { path: mainNames.slice(0, i + 1), text: moveNotation(R.data.moves[i]), player: e.player, comment: parts.filter(Boolean).join(" "), mark };
   });
 

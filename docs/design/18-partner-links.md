@@ -12,9 +12,10 @@ must make costs both of them a release.
 
 ## Decision
 
-1. **One link brings a game in:** `/import#record=…`, the game's record URL-encoded after the `#`. The import page
-   keeps the game and opens its review, as the meaf.us tools do, with no notice to update a tool (`readImportHash` in
-   `src/lib/game/importHash.ts`). A link without `record` is refused by name ("the link has no record=").
+1. **One link brings a game in:** `/review#record=…`, the game's record URL-encoded after the `#` (design 22: the
+   first address, `/import#record=…`, is deprecated and forwards there). The review keeps the game and opens it, as
+   the meaf.us tools do, with no notice to update a tool (`readImportHash` in `src/lib/game/importHash.ts`). A link
+   without `record` is refused by name ("the link has no record=").
 2. **The record is this site's notation** (the /notation page), or a plain list of edges. Tags are optional. A web
    address in `Site` (Lichess writes its game's address there) gives the review a link back: "View this game on
    enclosuregame.com" under the result (`gamePage` in `src/lib/game/record.ts`).
@@ -35,9 +36,9 @@ must make costs both of them a release.
    origin. This site waits a minute for each answer. The partner's page stores the file with its own sign-in.
 7. **A saved review opens again from the partner's page,** by the same messages the other way. A review by an
    earlier engine opens as a snapshot of it (design 20). At the player's click,
-   the partner's page opens `/import#from=` and its origin, with `window.open`. The import page posts
+   the partner's page opens `/review#from=` and its origin, with `window.open`. The review posts
    `hedge-school:ready` (`protocol: 1`) to it, and the partner's page answers `hedge-school:review` with the file, or
-   `hedge-school:failed`. The import page takes the file only from the page that opened it, on that origin, and only
+   `hedge-school:failed`. The review takes the file only from the page that opened it, on that origin, and only
    from a partner. It imports the file as the home page does, and the review opens at once, with the engine's results
    (`receiveFromPartner` in `src/lib/game/partners.ts`). The link can name the save page too, so that the game can be
    saved again: the partner passes `save` on this link too. In the browser that ran the review, the partner's first
@@ -79,8 +80,9 @@ must make costs both of them a release.
 ## Why
 
 - **The link sits after the `#`,** so the game never reaches a server, as the bookmarklet's and a share link's do.
-- **The import page, not the review's address:** the review opens games kept in the browser, and the import page
-  keeps them.
+- **The import page, not the review's address** (the first choice, 2026-10-13): the review opened games kept in the
+  browser, and the import page kept them. Replaced by design 22: each page takes its own way in, and the review keeps
+  a game before it opens it.
 - **A list of partners:** "Save to …" sends the player's review, so it goes only to the site that the game came from,
   and only to a site this site agreed with.
 - **Window messages, not a request from this site:** this site has no server, and a request from the page to the
@@ -139,7 +141,7 @@ must make costs both of them a release.
 - `src/lib/game/importHash.ts` (the link), `src/lib/game/partners.ts` (the partners, the handshake),
   `src/lib/game/import.ts` (`variantProblem`), `src/lib/game/record.ts` (`gamePage`), `src/lib/game/store.ts`
   (`partner`, `setGamePartner`).
-- `src/routes/import/+page.svelte` (the link's import, and a kept review's), `src/lib/game/reviewFile.ts`
+- `src/lib/review/Arrival.svelte` (the link's import, and a kept review's), `src/lib/game/reviewFile.ts`
   (`deliverExport`, kind `partner`), `src/lib/ExportMenu.svelte` ("Save to …"), `src/lib/review/ReviewView.svelte`
   (the link back), `src/routes/review/+page.svelte`.
 - The public description: `src/routes/developers/+page.svelte`, linked from `src/lib/SiteFooter.svelte`. The head for

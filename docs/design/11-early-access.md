@@ -14,14 +14,14 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
    repository (`hedgeschool`). The address: `hedgeschool.abstractclass.org`, on the owner's domain, so that it matches
    the name the visitor reads. The browser's storage keeps its first names (`learn-enclosure`), so that the games and
    settings a browser holds stay. The local folder keeps its name too.
-2. **The scope: the review only.**
+2. **The scope: the review and the Analysis board** (design 21).
    - **The home page:** import a game, and the player's games. No sample game: a review opens on a game the player
      brought. Each game has a Delete ([below](#deleting-a-game)).
    - **The ways to bring a game:** a pasted record in this site's notation, a pasted export of Constellation's
      analysis board, and the meaf.us bookmarklet ([import](#constellations-export) below).
    - **The header:** the name, which leads home, with "Early Access" beside it in the accent colour, which leads to the
-     About page's section on the early access. Then Review, and on its right The notation, About and the theme
-     menu: System (the default: the computer's light or dark), Light or Dark. Its button shows the choice: a
+     About page's section on the early access. Then Review and Analysis, and on its right The notation, About and the
+     theme menu: System (the default: the computer's light or dark), Light or Dark. Its button shows the choice: a
      half-filled circle, a sun or a moon. The choice is kept in this browser, and a script in the page's head applies
      it before the page draws, so that a page never shows the other theme first. On a phone the header's gaps narrow,
      so that it fits in 360 pixels. Review opens
@@ -140,8 +140,8 @@ one item for each turn, separated by spaces.
 ### The meaf.us bookmarklet and userscript
 
 - **It reads the game that the board holds,** in the player's own meaf.us page: React's `game` property of the board.
-  It sends no request to meaf.us and uses nothing from the player's login. It opens the import page with the record
-  after the `#`.
+  It sends no request to meaf.us and uses nothing from the player's login. It opens the review with the record after
+  the `#` (design 22).
 - **The bookmark is a loader** (`bookmarklet.ts`): a short `javascript:` that adds this site's `/bookmarklet.js` to the
   meaf.us page at each click. So the bookmark stays as it is when the code changes, and the player drags it to the
   bar once. The script takes the site's address from its own address, so a game goes back to the site that the
@@ -151,15 +151,15 @@ one item for each turn, separated by spaces.
     meaf.us sends none. If one comes, the bookmark needs the code in itself again, as before the loader.
   - **The request** carries no game. By default the browser names only meaf.us's origin as the page that made it. The
     privacy page says so.
-- **Each tool says what it is,** with each game (`importHash.ts`): `#tool=…&v=…&record=…` after the import page's
+- **Each tool says what it is,** with each game (`importHash.ts`): `#tool=…&v=…&record=…` after the review's
   address. The bookmarklet sends its loader's version (`BOOKMARK_VERSION`), and the userscript a hash of the files
   that make its code (the build's `__USERSCRIPT_CODE__`, `vite.config.ts`), so that a build that changes neither
   flags no one. A tool from before this sends the record alone.
-- **An out-of-date tool:** the import page keeps the game, says how to update the tool (drag the bookmarklet to the
-  bar again, or open the userscript, which Tampermonkey then offers to update), and opens the review on a click. A
+- **An out-of-date tool:** the review keeps the game, says how to update the tool (drag the bookmarklet to the bar
+  again, or open the userscript, both on the tools page), and opens the review on a click. A
   tool that sent no version counts as out of date.
 - **No game on a page that shows one:** the tools' message says that meaf.us may have changed its page, and names the
-  import page, which has the newest tools.
+  tools page (`/tools`), which has the newest tools.
 - **A player's own game, just after it ends, has no moves in the page.** meaf.us asks its server for a game's moves
   only for a viewer who watches the game (`spectate=1` in the address, or a game of other players), or who opens it
   from the History page. The game's `historyLength` still counts the moves. On such a page, when the game is over, the
@@ -183,7 +183,7 @@ one item for each turn, separated by spaces.
   - **The site's address is part of the file** (the build's `SITE_ORIGIN`, `vite.config.ts`): the live site for a build
     of `main`, the preview for another branch, the local preview server for a local build.
   - Chrome and Edge from version 138 run a userscript only after the player turns on "Allow User Scripts" for
-    Tampermonkey (Tampermonkey's FAQ, Q209). The import page says so.
+    Tampermonkey (Tampermonkey's FAQ, Q209). The tools page says so.
 
 ## Alternatives
 
@@ -196,7 +196,7 @@ one item for each turn, separated by spaces.
 - **Google's consent mode, basic form:** no Google tag until the visitor accepts. The advanced form's modeling needs
   1,000 events a day from visitors who decline and 1,000 daily users who accept, so a small site gains little from it.
 - **Cloudflare's automatic Web Analytics** (one click on a Pages project): it adds the beacon to every page as it is
-  served, so the beacon would start before the import page removes a record from the address.
+  served, so the beacon would start before a page removes a game from its address (design 22).
 
 ## Consequences
 
@@ -215,8 +215,8 @@ one item for each turn, separated by spaces.
   for a deleted game: `keepBranches` in `src/lib/analysis/game.svelte.ts`.
 - The pages: `src/routes/{about,notation,developers,privacy,notices}/+page.svelte`, `src/lib/SiteFooter.svelte`,
   `src/lib/prose.ts` (their text style).
-- Analytics: `src/lib/analytics.svelte.ts`, `src/lib/ConsentBanner.svelte`, started in `src/routes/+layout.svelte` and
-  `src/routes/import/+page.svelte`.
+- Analytics: `src/lib/analytics.svelte.ts`, `src/lib/ConsentBanner.svelte`, started in `src/routes/+layout.svelte`, or,
+  when the address holds a game, by the page that removes it (design 22).
 - Hosting: `package.json` (`build:cloudflare`), `.node-version`, `static/_headers`, `vite.config.ts` (the 404 page and
   the version). The setup, step by step, and how to deploy: [hosting.md](../hosting.md).
 

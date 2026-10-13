@@ -30,7 +30,7 @@
   <h2>How a review works</h2>
   <ul>
     <li><strong>Your game:</strong> paste its record on the home page, paste the export of Constellation's analysis
-      board, or bring a meaf.us game with the <a href="/import">bookmarklet</a>. The records are described on
+      board, or bring a meaf.us game with the <a href="/tools">bookmarklet</a>. The records are described on
       <a href="/notation">the notation page</a>.</li>
     <li><strong>The engine</strong> runs in your browser, on your computer: nothing is sent to a server. A review takes
       a few minutes, first a quick look at every position, then a deeper search where it matters.</li>

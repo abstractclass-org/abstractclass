@@ -181,7 +181,7 @@ site (`noindex`). **Preview access** in the project's settings can put them behi
    dashboards.
 2. Cloudflare turns on its **automatic setup** for a domain it proxies: it adds its beacon to each page of every
    subdomain as the page is served. Change it: **Manage site → "Enable with JS Snippet installation" → Update**. The
-   beacon must start only after the import page removes a game record from the address, and the site's own code
+   beacon must start only after a page removes a game from its address (design 22), and the site's own code
    makes sure of that.
 3. The snippet that Cloudflare then shows holds the site's token (`data-cf-beacon='{"token": "…"}'`). Set the token
    alone, the 32 hexadecimal digits, as `VITE_CF_ANALYTICS_TOKEN`, and deploy again. The site adds the beacon itself

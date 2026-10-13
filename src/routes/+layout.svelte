@@ -5,6 +5,7 @@
 	import { page } from '$app/state';
 	import { EARLY_ACCESS, SITE_NAME } from '#lib/edition.ts';
 	import { ASKS_CONSENT, consent, startAnalytics } from '#lib/analytics.svelte.ts';
+	import { holdsGame } from '#lib/game/importHash.ts';
 	import ConsentBanner from '#lib/ConsentBanner.svelte';
 	import ThemeMenu from '#lib/ThemeMenu.svelte';
 	import { startTheme } from '#lib/theme.svelte.ts';
@@ -14,10 +15,10 @@
 	let { children }: LayoutProps = $props();
 
 	// The site map (docs/research/01-ux-survey.md, section 8). Sections not built yet show as text. The early access has
-	// the review only. Review opens the last game reviewed in this browser (design 11).
-	const NAV = EARLY_ACCESS ? [{ href: '/review', label: 'Review' }] : [
+	// the review and the Analysis board. Review opens the last game reviewed in this browser (design 11).
+	const NAV = EARLY_ACCESS ? [{ href: '/review', label: 'Review' }, { href: '/analysis', label: 'Analysis' }] : [
 		{ href: '/review', label: 'Review' },
-		{ href: null, label: 'Analysis' },
+		{ href: '/analysis', label: 'Analysis' },
 		{ href: '/puzzles', label: 'Puzzles' },
 		{ href: '/learn', label: 'Learn' },
 		{ href: '/lab/engine', label: 'Engine lab' },
@@ -26,13 +27,14 @@
 	const ABOUT = [{ href: '/notation', label: 'Notation' }, { href: '/about', label: 'About' }];
 	const linkClass = (href: string) => ["no-underline hover:text-ink", page.url.pathname.startsWith(href) ? "text-ink" : "text-muted"];
 
-	// The visit counts start here, except on the import page, which may hold a record in the address: it starts them
-	// once it has removed the record (design 11). The banner shows in the browser only, never in the prerendered page.
+	// The visit counts start here, unless the address holds a game after its `#` (holdsGame): the page that takes it out
+	// of the address starts them then (design 22). The old import page only forwards, and counts nothing. The banner
+	// shows in the browser only, never in the prerendered page.
 	let mounted = $state(false);
 	onMount(() => {
 		mounted = true;
 		startTheme();
-		if (page.route.id !== '/import') startAnalytics();
+		if (page.route.id !== '/import' && !holdsGame(location.hash)) startAnalytics();
 	});
 </script>
 

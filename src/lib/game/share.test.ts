@@ -52,7 +52,7 @@ test("the record has the game's turns, a pass ending its turn, and reads back", 
 });
 
 test("how long a link is: a whole game, and each branch edge more", () => {
-  const prefix = "https://hedgeschool.abstractclass.org/import#s=".length;
+  const prefix = "https://hedgeschool.abstractclass.org/review#packed=".length;
   const game = prefix + encodeShare(base()).length;
   // A line of 40 edges from the middle of the game: 20 bits each, after a little for its fork.
   const line = Array.from({ length: 40 }, (_, k) => [at(60, ...MOVES.slice(0, k + 1).map((_, j) => `A${(j % 16) + 1}-A${(j % 16) + 4}`)), k] as BranchNode);

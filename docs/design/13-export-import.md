@@ -88,8 +88,8 @@ searching it again, and to share it as text that others can read.
    So a file searched to 1,024 visits opens at once in a browser whose review depth is 512.
 8. **A link that shares a review** (the Export menu's first entry but for item 9's, "Copy a link to share the review",
    `src/lib/game/share.ts`): the game's record, the player's branches, and what the review ran with (the engine
-   module's and the network's SHA-256, their first 4 bytes, and the review's visits), after the import page's `#`
-   (`/import#s=…`). The browser never sends that part of an address to a server.
+   module's and the network's SHA-256, their first 4 bytes, and the review's visits), after the review's `#`
+   (`/review#packed=…`, design 22). The browser never sends that part of an address to a server.
    - **It holds no results:** the recipient's browser reviews the game again. So it does not carry the sender's deeper
      looks at positions (design 16, example 9): a review file does. The engine gives the same results for
      the same build, network and visits, so the review is the sender's. On a GPU the network's arithmetic differs a
@@ -158,7 +158,7 @@ searching it again, and to share it as text that others can read.
 - `src/routes/review/+page.svelte` (`exportAs`), `src/lib/review/ReviewView.svelte` (the menu's place),
   `src/routes/+page.svelte` (the menu beside each game, Import a review, the drop).
 - The share link: `src/lib/game/share.ts` (the format), `shareLink` and `importShare` in `src/lib/game/reviewFile.ts`,
-  the recipient's page in `src/routes/import/+page.svelte`, `withReview` in `src/lib/analysis/engineSettings.ts`.
+  the recipient's page in `src/lib/review/Arrival.svelte`, `withReview` in `src/lib/analysis/engineSettings.ts`.
 - The tests: `src/lib/game/reviewFile.test.ts`, `src/lib/review/annotate.test.ts`, `src/lib/game/share.test.ts`.
 
 ## Log entries

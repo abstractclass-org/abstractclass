@@ -2376,3 +2376,37 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   save's, and its results only grow, so it replaces the earlier save. A partner that wants a history keeps versions.
   The partner passes `save` on its open link too, so that a reopened review can be saved again. The page /developers
   says both.
+
+### The Analysis board (2026-10-14)
+
+- **The question:** how an analysis board differs from the review, since Lichess and chess.com have both and they look
+  alike.
+- **Decided** (design 21): the review judges a game played, and its line is the game. The board explores: the
+  standard start or a line brought in, the engine on the position on screen only, the player's main line ("Make main
+  line"), labels only where the player asks ("Evaluate quality"), no report, chart or progress. One board in each
+  browser. A link carries its tree, and the record carries its lines as variations with the result `*`. "Analyze"
+  beside "Review" opens a pasted record on the board. The early access shows it.
+- **Waiting:** the board editor and starts from another position (the record's `[Position]` tag), for the engine's
+  check that a position could occur (request 16).
+- **Also:** a line's last position counts as the result only when the game is over there. A review of an unfinished
+  game now searches its end, so that its last move gets a label.
+- **Checked** in a desktop browser: moves extend the main line, a variation and "Make main line", "Evaluate quality" on
+  a main-line move (its label and mark), the record and the link (the link opens the same board, after the question),
+  "Analyze" on the home page, the board kept across a reload, a phone's width, and a finished game's review unchanged.
+  Not checked: another network or the GPU on the board, and a long line's speed.
+
+### The site's pages and their addresses (2026-10-14)
+
+- **The question:** `/import` took every game that came in and led only to the review. The Analysis board is a second
+  place for a game to go, and more pages will follow.
+- **Decided** (design 22): each page takes its own way in after the `#`: `/review#record=`, `#packed=`, `#from=`, and
+  `/analysis#record=`, `#packed=`, `&at=`. A parameter is named by its payload's format (`record`, `packed`), as
+  Lichess's `/analysis/pgn/` and Excalidraw's `#json=` are. `/import` is deprecated: it forwards to `/review` during the
+  early access, and the page for developers says a month before when it stops. The old share links' `s=` are not
+  read. The meaf.us tools' page is `/tools`. The analytics start once a page has taken a game out of its address.
+- **Also:** the Analysis board exports its analysis as the review does: a link, an analysis file with the engine's
+  results, and the annotated record. The first export, of the lines alone, was a board editor's output.
+- **Checked** in a desktop browser: `/import#record=` forwards and reviews the game, `/import` goes to `/tools`, an
+  old `s=` link says why it does not open, a review's shared link (`#packed=`) opens and reviews, `/analysis#record=`
+  with `at=` opens the line at its place after the question, and an analysis file exported and opened on the home page
+  gives back its lines. Not checked: the meaf.us tools on meaf.us, and a partner's page.

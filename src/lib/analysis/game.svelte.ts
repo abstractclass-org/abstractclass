@@ -17,11 +17,15 @@
 // The game is a tree (src/lib/review/tree.ts): the player can add branches, and a branch's positions are searched as
 // the game's are, when the player looks at them. A game's branches are kept in the browser, as Lichess keeps its
 // analysis tree (ui/analyse/src/idbTree.ts).
+//
+// The Analysis board (design 21) is the same analysis in its board form: its main line is the player's and changes
+// (setMain), its moves have labels only where the player asks (judge), and no pass runs: the engine searches the
+// position on screen and the moves evaluated.
 import { describeGame } from "#lib/engine/describe.ts";
 import { edgeName, parseEdge, parsePoint, type Edge } from "#lib/engine/notation.ts";
 import type { AnalysisReply, DescribeReply, MoveInfo } from "#lib/engine/protocol.ts";
 import { errorText } from "#lib/errors.ts";
-import { branchNodes, gameId, type KeptBranches } from "#lib/game/store.ts";
+import { BOARD_ID, branchNodes, gameId, type BranchNode as KeptNode, type KeptBoard, type KeptBranches } from "#lib/game/store.ts";
 import { equalDepth, moverWin, onlyEdge, otherCandidate, sameMove, secondChoice, type Analysis, type Candidate, type LineStep,
          type Move, type Player, type Position, type ReviewData } from "#lib/review/model.ts";
 import { ONLY_EDGE_GAP } from "#lib/review/labels.ts";
@@ -123,15 +127,24 @@ export class GameAnalysis {
   private pool: EnginePool;
   private id: string | null = null; // the game's id (game/store.ts), under which its branches are kept
   private nextOrder = 0;
+  readonly board: boolean; // the Analysis board's form (design 21)
+  // The board's main-line moves that the player asked to evaluate, by path key: only these have labels. A branch node
+  // keeps its own flag (judged).
+  judgedMain = $state.raw<Record<string, true>>({});
   private partials = new Map<string, { path: string[]; reply: AnalysisReply; era: number }>(); // keepPartial
   private partialTimer: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(pool: EnginePool, moves: string[]) {
+  constructor(pool: EnginePool, moves: string[], board = false) {
     this.pool = pool;
     this.moves = moves;
+    this.board = board;
     this.analysis = Array(moves.length + 1).fill(undefined);
-    this.reached = Array(moves.length).fill(0);
+    this.reached = Array(moves.length + 1).fill(0); // the end too, where the game is not over (passCount)
   }
+
+  /** The positions that the passes search: each before a move, and the end where the game is not over (an unfinished
+   *  game), so that its last move gets a label. */
+  get passCount() { return this.moves.length + (this.positions.at(-1)?.over === false ? 1 : 0); }
 
   /** The game's positions that the sweep has searched, and the label pass. */
   get swept() { return this.reached.filter(v => v >= SWEEP_VISITS).length; }
@@ -142,7 +155,7 @@ export class GameAnalysis {
   pending(path: string[]): boolean {
     if (this.running[pathKey(path)]) return true;
     const i = mainIndex(path, this.mainNames);
-    if (i === null || i >= this.moves.length || this.paused || !this.engineReady) return false;
+    if (this.board || i === null || i >= this.passCount || this.paused || !this.engineReady) return false;
     return this.reached[i] < this.labelVisits || (this.moments.includes(i) && (this.analysis[i]?.visits ?? 0) < momentVisits(this.labelVisits));
   }
 
@@ -199,7 +212,7 @@ export class GameAnalysis {
       this.error = errorText(e);
       return;
     }
-    await this.loadBranches();
+    if (!this.board) await this.loadBranches(); // the board's come from its page (loadBoard)
   }
 
   /** The analysis of the position after the move `name` from the game's position `i`, with no path built: the review
@@ -250,8 +263,9 @@ export class GameAnalysis {
       if (!over && a && a.visits >= this.labelVisits && first && edge && sameMove(a, first.edge, edge) && onlyEdge(a, mover))
         out.push({ path: before(), candidate: secondChoice(a)!, depth: depth(() => [...before(), edgeName(edge)]) });
     };
+    const asked = (i: number) => !this.board || !!this.judgedMain[this.mainKeys[i + 1]]; // the board's: judged only
     for (let i = 0; i + 1 < this.played.length; i++)
-      check(this.analysis[i], () => this.mainNames.slice(0, i), this.played[i].edge, this.played[i].player, false);
+      if (asked(i)) check(this.analysis[i], () => this.mainNames.slice(0, i), this.played[i].edge, this.played[i].player, false);
     for (const [key, node] of Object.entries(this.branches)) {
       if (!node.judged) continue;
       const before = key.split(" ").slice(0, -1);
@@ -266,7 +280,7 @@ export class GameAnalysis {
     };
     for (let i = 0; i < this.played.length; i++) {
       const turn = this.turnAt(i);
-      if (turn && i + turn.length < this.played.length)
+      if (turn && i + turn.length < this.played.length && asked(i))
         checkTurn(this.analysis[i], () => this.mainNames.slice(0, i), turn, this.played[i].player);
     }
     // A branch's turns judged on request: each judged branch move that ends a turn, with its turn's edge before it.
@@ -346,23 +360,26 @@ export class GameAnalysis {
   async judge(path: string[]) {
     const keys = this.turnKeys(path);
     if (!keys.length) return;
-    const next = { ...this.branches };
-    for (const k of keys) next[k] = { ...next[k], judged: true };
+    const next = { ...this.branches }, main = { ...this.judgedMain };
+    for (const k of keys) if (k in next) next[k] = { ...next[k], judged: true }; else main[k] = true; // the board's main line
     this.branches = next;
+    this.judgedMain = main;
     for (const k of keys) this.judgeSearches(k.split(" "));
     await this.keepBranches();
   }
 
   /** The branch moves of the turn of the move at `path`: the move, its turn's edge before it, and, when it begins a turn
-   *  of two, every next move of the same player (each makes a turn with it). The game's moves are judged already. */
+   *  of two, every next move of the same player (each makes a turn with it). The game's moves are judged already. On
+   *  the board, the main line's moves are judged on request too. */
   turnKeys(path: string[]): string[] {
-    const key = pathKey(path), node = this.branches[key];
+    const nodes = this.board ? this.treeNodes() : this.branches;
+    const key = pathKey(path), node = nodes[key];
     if (!node) return [];
     const parent = path.slice(0, -1), before = this.moveInto(parent), keys = [key];
     if (before && before.player === node.move.player) {
-      if (pathKey(parent) in this.branches) keys.push(pathKey(parent));
+      if (pathKey(parent) in nodes) keys.push(pathKey(parent));
     } else {
-      for (const [k, n] of Object.entries(this.branches)) if (parentKey(k) === key && n.move.player === node.move.player) keys.push(k);
+      for (const [k, n] of Object.entries(nodes)) if (parentKey(k) === key && n.move.player === node.move.player) keys.push(k);
     }
     return keys;
   }
@@ -383,6 +400,14 @@ export class GameAnalysis {
   /** Deletes a branch node and every position after it (Lichess's "Delete from here"). */
   async deleteFrom(path: string[]) {
     const key = pathKey(path);
+    if (this.board) { // the main line too: it ends before the move, or goes on along the next line from there
+      const all = this.treeNodes();
+      if (!(key in all)) return;
+      const kept = Object.fromEntries(Object.entries(all).filter(([k]) => k !== key && !k.startsWith(`${key} `)));
+      this.reindex(kept, mainIndex(path, this.mainNames) !== null ? path.slice(0, -1) : this.mainNames);
+      await this.keepBranches();
+      return;
+    }
     if (!(key in this.branches)) return;
     this.branches = Object.fromEntries(Object.entries(this.branches).filter(([k]) => k !== key && !k.startsWith(`${key} `)));
     await this.keepBranches();
@@ -394,6 +419,8 @@ export class GameAnalysis {
     for (let k = path.length; k > 0; k--) {
       const node = this.branches[pathKey(path.slice(0, k))];
       if (!node) return; // on the game's line: nothing above to promote
+      // On the board, a variation from the main line becomes the main line (Lichess's promotion to the main line).
+      if (this.board && mainIndex(path.slice(0, k - 1), this.mainNames) !== null) { await this.setMain(path); return; }
       const parent = pathKey(path.slice(0, k - 1));
       const siblings = Object.entries(this.branches).filter(([s]) => parentKey(s) === parent);
       const first = Math.min(...siblings.map(([, n]) => n.order));
@@ -414,6 +441,10 @@ export class GameAnalysis {
   /** Keeps the game's branches in the browser: each node's key and order. Not for a game deleted meanwhile (on the
    *  home page, in another tab): its branches would come back with a later import of the game. */
   private async keepBranches() {
+    if (this.board) {
+      await dbPut(STORES.branches, BOARD_ID, this.keptBoard());
+      return;
+    }
     if (!this.id || !(await dbGet(STORES.games, this.id))) return;
     const nodes = Object.entries(this.branches).map(([k, n]): [string, number] | [string, number, 1] =>
       (n.judged ? [k, n.order, 1] : [k, n.order]));
@@ -427,7 +458,11 @@ export class GameAnalysis {
     } catch {
       return; // no hashing here (an insecure page): the branches last for this visit only
     }
-    const nodes = branchNodes((await dbGet<KeptBranches>(STORES.branches, this.id)) ?? null);
+    await this.addNodes(branchNodes((await dbGet<KeptBranches>(STORES.branches, this.id)) ?? null));
+  }
+
+  /** Adds kept nodes to the tree. */
+  private async addNodes(nodes: KeptNode[]) {
     // Each leaf's line adds the nodes before it too, with one call of the rules. Where the rules refuse a move of a line,
     // the nodes before it are added one at a time, and the rest of the line is dropped. Then each node takes its order.
     const keys = nodes.map(n => n[0]);
@@ -446,6 +481,92 @@ export class GameAnalysis {
     this.nextOrder = Math.max(0, ...Object.values(next).map(n => n.order + 1));
   }
 
+  /** Board: the tree kept in the browser, or brought by a link or a record (design 21): its nodes, then its main line.
+   *  Call after start(). A node that the rules refuse is dropped, with the rest of its line, and the main line stops
+   *  before it. */
+  async loadBoard(kept: KeptBoard) {
+    await this.addNodes(kept.nodes);
+    const main: string[] = [];
+    for (const m of kept.main) {
+      if (!([...main, m].join(" ") in this.branches)) break;
+      main.push(m);
+    }
+    this.reindex(this.treeNodes(), main);
+  }
+
+  /** Board: the tree as the browser keeps it: every node, the main line's too, and the main line. */
+  keptBoard(): KeptBoard {
+    const nodes = Object.entries(this.treeNodes()).map(([k, n]): KeptNode => (n.judged ? [k, n.order, 1] : [k, n.order]));
+    return { version: 2, nodes, main: [...this.mainNames] };
+  }
+
+  /** Board: the engine is ready once the pool has a network. No pass runs: the engine searches the position on screen
+   *  (focus) and the moves evaluated, whose searches start again here (after another network, or the engine on). */
+  ready() {
+    this.engineReady = true;
+    const judged = [...Object.keys(this.judgedMain), ...Object.entries(this.branches).filter(([, n]) => n.judged).map(([k]) => k)];
+    for (const k of judged) this.judgeSearches(k.split(" "));
+  }
+
+  /** Board: plays a line from the start. A line that goes on from the main line's end makes it longer, as on Lichess's
+   *  board. Another new line is a variation. */
+  async playLine(path: string[]) {
+    const n = this.mainNames.length, longer = path.length > n && mainIndex(path.slice(0, n), this.mainNames) === n;
+    await this.addLine(path, false);
+    if (longer) this.reindex(this.treeNodes(), this.mainNames); // the main end's only child: its new line
+    await this.keepBranches();
+  }
+
+  /** Board: Lichess's "Make main line": the line through `path` becomes the main line, and the main line from where they
+   *  part becomes a variation, the first there. */
+  async setMain(path: string[]) {
+    this.reindex(this.treeNodes(), path);
+    await this.keepBranches();
+  }
+
+  /** Board: every node of the tree by path key, the main line's moves as nodes too, each before its siblings. */
+  private treeNodes(): Record<string, BranchNode> {
+    const nodes: Record<string, BranchNode> = { ...this.branches };
+    for (let i = 1; i < this.positions.length; i++) {
+      const key = this.mainKeys[i], parent = parentKey(key);
+      const first = Math.min(0, ...Object.entries(this.branches).filter(([k]) => parentKey(k) === parent).map(([, n]) => n.order));
+      nodes[key] = { position: this.positions[i], move: this.played[i - 1], order: first - 1,
+                     ...(this.analysis[i] ? { analysis: this.analysis[i] } : {}), ...(this.judgedMain[key] ? { judged: true } : {}) };
+    }
+    return nodes;
+  }
+
+  /** Board: makes `main`, a line of `nodes`, the main line, carried on along each position's first node to its end, and
+   *  the other nodes the variations. Every position is a node already: nothing is asked of the rules or searched. */
+  private reindex(nodes: Record<string, BranchNode>, main: string[]) {
+    const line = [...main];
+    for (;;) {
+      const at = line.join(" ");
+      const next = Object.entries(nodes).filter(([k]) => parentKey(k) === at).sort((a, b) => a[1].order - b[1].order)[0];
+      if (!next) break;
+      line.push(next[0].slice(next[0].lastIndexOf(" ") + 1));
+    }
+    const rest = { ...nodes }, positions = [this.positions[0]], played: Move[] = [], analysis = [this.analysis[0]];
+    const judged: Record<string, true> = {}, keys = line.map((_, i) => line.slice(0, i + 1).join(" "));
+    for (const key of keys) {
+      const node = rest[key];
+      positions.push(node.position);
+      played.push(node.move);
+      analysis.push(node.analysis);
+      if (node.judged) judged[key] = true;
+      delete rest[key];
+    }
+    this.moves = line;
+    this.mainNames = [...line];
+    this.mainKeys = ["", ...keys];
+    this.positions = positions;
+    this.played = played;
+    this.analysis = analysis;
+    this.judgedMain = judged;
+    this.branches = rest;
+    this.reached = Array(line.length + 1).fill(0);
+  }
+
   private known(path: string[]) {
     return mainIndex(path, this.mainNames) !== null || pathKey(path) in this.branches;
   }
@@ -460,7 +581,7 @@ export class GameAnalysis {
   /** A position the engine can search: on the game's line before its end, or a branch node where the game goes on. */
   private searchable(path: string[]) {
     const i = mainIndex(path, this.mainNames);
-    if (i !== null) return i < this.moves.length;
+    if (i !== null) return i < this.moves.length || !this.positions[i]?.over;
     const node = this.branches[pathKey(path)];
     return !!node && !node.position.over;
   }
@@ -469,10 +590,11 @@ export class GameAnalysis {
    *  skipped. Call after start() and once the pool has a network, and again to take the work up after a change (the
    *  engine on again, another label budget, another network). The branch moves evaluated on request are searched too. */
   async sweep() {
+    if (this.board) { this.ready(); return; }
     this.engineReady = true;
     const run = ++this.passes;
     for (const [key, node] of Object.entries(this.branches)) if (node.judged) this.judgeSearches(key.split(" ")); // kept from a visit
-    const n = this.moves.length;
+    const n = this.passCount;
     const pass = (visits: number, priority: number, tag: string) =>
       Promise.all(Array.from({ length: n }, (_, i) =>
         this.search(this.mainNames.slice(0, i), visits, priority, tag, { early: LABEL_VISITS }).then(met => {
@@ -525,7 +647,7 @@ export class GameAnalysis {
     this.analysis = Array(this.moves.length + 1).fill(undefined);
     this.branches = Object.fromEntries(Object.entries(this.branches).map(([k, n]) => [k, { ...n, analysis: undefined }]));
     this.outside = {};
-    this.reached = Array(this.moves.length).fill(0);
+    this.reached = Array(this.moves.length + 1).fill(0);
     this.timed = {};
     this.moments = [];
   }

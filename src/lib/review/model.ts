@@ -295,11 +295,13 @@ function summarize(items: Judged[]): [PlayerSummary, PlayerSummary] {
 export function review(data: ReviewData, kind: ScoreKind = "lead", minVisits = 0): Review {
   const blueResult = data.result.blue - data.result.red;
   const final = resultWin(blueResult);
-  const n = data.moves.length;
-  // The position after the last edge is the end: its value is the result.
-  const blueWin = data.positions.map((_, i) => (i === n ? final : data.analysis[i]?.blueWin ?? NaN));
-  const blueScore = data.positions.map((_, i) => (i === n ? blueResult : scoreOf(data.analysis[i], kind)));
-  const deepEnough = (j: number) => j === n || (data.analysis[j]?.visits ?? 0) >= minVisits;
+  const n = data.moves.length, over = data.positions[n]?.over ?? true;
+  // The position after the last edge is the end when the game is over: its value is the result. A line that stops
+  // before (an unfinished game, the Analysis board's line) has a search there, as any position.
+  const end = (i: number) => i === n && over;
+  const blueWin = data.positions.map((_, i) => (end(i) ? final : data.analysis[i]?.blueWin ?? NaN));
+  const blueScore = data.positions.map((_, i) => (end(i) ? blueResult : scoreOf(data.analysis[i], kind)));
+  const deepEnough = (j: number) => end(j) || (data.analysis[j]?.visits ?? 0) >= minVisits;
   // Both ends of an edge or a turn analysed, to the label budget.
   const known = (i: number, j: number) => !Number.isNaN(blueWin[i]) && !Number.isNaN(blueWin[j]) && deepEnough(i) && deepEnough(j);
   const scoreAt = (i: number, p: Player) => (blueScore[i] !== undefined ? moverScore(blueScore[i]!, p) : undefined);
@@ -334,14 +336,14 @@ export function review(data: ReviewData, kind: ScoreKind = "lead", minVisits = 0
       for (const e of t.edges) if (e.label && e.label !== "great") e.label = "best";
     if (!known(t.start, t.end)) continue;
     const j = judgeTurn(p, played, data.analysis[t.start], played.length > 1 ? data.analysis[t.start + 1] : undefined,
-                        { blueWin: blueWin[t.end], blueScore: blueScore[t.end], visits: data.analysis[t.end]?.visits }, t.end === n, data.others?.[t.start],
+                        { blueWin: blueWin[t.end], blueScore: blueScore[t.end], visits: data.analysis[t.end]?.visits }, end(t.end), data.others?.[t.start],
                         data.seconds?.[t.start + 1], kind, minVisits);
     if (j) Object.assign(t, j);
   }
   // Key moments: the worst turns or edges, at least an inaccuracy, in game order (Lichess's evalSwings, chess.com's key
   // moments). The first turns are left out, as Regan and Haworth skip the opening (design 01): the values swing most
   // there.
-  const firstTurn = turns[Math.min(OPENING_TURNS, turns.length - 1)].start;
+  const firstTurn = turns[Math.min(OPENING_TURNS, turns.length - 1)]?.start ?? 0; // none on an empty board
   const bad = (x: Judged) => !!x.label && BAD_LABELS.includes(x.label);
   return {
     data, edges, turns, turnOf, blueWin, blueScore,
@@ -535,4 +537,18 @@ export function shownCandidates(a: Analysis | undefined, p: Player): RankedCandi
     }))
     .filter(({ c, rank, gap, gapPts }) => rank === 1 || (c.visits >= MIN_VISIT_SHARE * most && gap <= CANDIDATE_GAP.win
       && (gapPts === undefined || gapPts <= CANDIDATE_GAP.points)));
+}
+
+/** The review with labels only on the moves judged (the Analysis board, design 21): another move keeps its move and
+ *  numbers, and loses its label, its loss and its hard-position mark. A turn keeps its own when each of its edges is
+ *  judged. */
+export function onlyJudged(R: Review, judged: (edge: number) => boolean): Review {
+  const plain = <T extends EdgeReview | TurnReview>(x: T): T =>
+    ({ ...x, label: null, loss: 0, pointsLost: undefined, rawLoss: 0, rawPoints: undefined, hard: false });
+  const edges = R.edges.map(e => (judged(e.index) ? e : plain(e)));
+  const turns = R.turns.map(t => {
+    const own = t.edges.map(e => edges[e.index]);
+    return t.edges.every(e => judged(e.index)) ? { ...t, edges: own } : { ...plain(t), edges: own };
+  });
+  return { ...R, edges, turns, turnOf: R.edges.map(e => turns[R.turns.indexOf(R.turnOf[e.index])]) };
 }

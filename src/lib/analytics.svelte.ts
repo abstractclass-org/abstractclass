@@ -3,9 +3,9 @@
 // cookieless pings. "Accept" grants its cookies, "Decline" keeps them denied. Ads are never granted: the site has none.
 //
 // The build names the two services (VITE_GA_ID, VITE_CF_ANALYTICS_TOKEN). Without them, as in development, nothing
-// loads and no banner shows. Neither service sees a game: the import page removes a record from the address before it
-// starts them (src/routes/import/+page.svelte), every other page starts them from the layout, and the review page
-// names its game after the `#`, which neither records.
+// loads and no banner shows. Neither service sees a game: a page whose address holds a game after its `#` (a record, a
+// packed review or analysis, design 22) takes it out of the address before it starts them, every other page starts
+// them from the layout, and the review names its game's id after the `#`, which neither records.
 //
 // Google Analytics also takes events (design 17): what a visitor did, in counts and ranges (measure.ts), for the
 // decisions in that design. A visitor who has not accepted sends them as cookieless pings, counted with no visitor.

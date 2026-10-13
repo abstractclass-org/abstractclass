@@ -4,8 +4,8 @@
 // (grab) runs there, in the player's own page:
 // 1. it finds the game the board holds (meafPage.ts), with no request to meaf.us and nothing from the player's login;
 // 2. it writes the game's record (meaf.ts, carried in the script as it is);
-// 3. it opens this site's /import page with the record after the `#`, which the browser never sends to a server, and
-//    says which tool sent it (importHash.ts), so that the import page can tell a player whose bookmark is an old one.
+// 3. it opens this site's review with the record after the `#`, which the browser never sends to a server, and says
+//    which tool sent it (importHash.ts), so that the review can tell a player whose bookmark is an old one.
 // It depends on meaf.us's page: a change there can break it, and then it says that it found no game. The loader also
 // depends on meaf.us sending no content security policy that blocks other sites' scripts (it sends none).
 //
@@ -51,7 +51,7 @@ function grab(find: typeof findGame, missing: typeof missingMoves, say: typeof e
   if (why) { alert(say(why, click, origin)); return; }
   let text: string;
   try { text = toRecord(game); } catch (e) { alert("Hedge School: " + (e as Error).message); return; }
-  const url = origin + "/import#" + new URLSearchParams({ tool: "bookmarklet", v: version, record: text });
+  const url = origin + "/review#" + new URLSearchParams({ tool: "bookmarklet", v: version, record: text });
   // A slow load can end the click's right to open a tab: then this tab goes to the review.
   if (!window.open(url, "_blank")) location.assign(url);
 }

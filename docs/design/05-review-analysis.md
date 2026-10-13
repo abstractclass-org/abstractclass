@@ -18,7 +18,9 @@ noise.
 1. **The schedule is KaTrain's** (`core/game.py`: `analyze_all_nodes`, `analyze_extra`):
    - **The rules first:** every position from the engine's `describe`, before any network, so the board works at once.
    - **A sweep:** every position at 32 visits (KaTrain's `fast_visits`, 25), for the game's shape: the Advantage chart
-     and the win bar. Its labels are mostly wrong, so it shows none.
+     and the win bar. Its labels are mostly wrong, so it shows none. "Every position" is each position before a move,
+     and the last one when the game is not over (an unfinished game, `*`): there the end has a search, not a result,
+     so that the last move gets its label (`passCount` in `src/lib/analysis/game.svelte.ts`).
    - **A label pass:** every position at 512 visits, the Lite review. Standard runs the pass at 1,024 visits, and
      Custom at another depth (design 09). Under protocol 0.3, after the opening, 512 visits finds 64% of the bad turns
      of a 1,024-visit search, with 82% of its flags right, and 256 visits finds 54%, with 88% right (by edge: 67% and

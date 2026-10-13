@@ -8,6 +8,9 @@
   /** A review by an earlier engine shown as it was (design 20): `text` says when and with what, and `onagain` reviews
    *  the game with the site's engine. Until then nothing is searched, and no move or branch changes. */
   export interface ReviewSnapshot { text: string; onagain: () => void }
+  /** The Analysis board's form of the view (design 21): its main line's moves evaluated on request, by path key, and
+   *  "Make main line". No report, no chart, no progress: the review's columns give way to the board and its moves. */
+  export interface BoardForm { judged: Record<string, true>; onmain: (path: string[]) => void }
 
   // The numbers' formats, made once: a formatter is costly to make, and the move list and the tables format many numbers
   // at each result.
@@ -59,6 +62,9 @@
     deeperPositions?: number; // the game's positions searched deeper than the review asked, where the player looked
     again?: ReviewAgain | null; // why a game reviewed before is reviewed again, when the site's engine changed
     snapshot?: ReviewSnapshot | null; // a review by an earlier engine, shown as it was (design 20)
+    board?: BoardForm | null; // the Analysis board (design 21)
+    start?: string[]; // the position to open at: its path (the start when none)
+    exportItems?: [ExportKind, string, string, string][]; // the Export menu's entries, when not the review's
     partner?: string | null; // the partner site the game came from by its link, which takes its review back (design 18)
     siteLink?: { href: string; host: string } | null; // the game's own page, from its record's Site tag
     ownSettings?: boolean; // the game keeps the network and depth it came with (store.ts, `settings`)
@@ -87,7 +93,7 @@
     exportReady?: boolean; // the review is done: export only then (design 13)
   }
   let { R, progress = null, problem = "", deepVisits = 0, onposition, lineSteps, branches = {}, onplay, rulesAt, ondelete,
-        onpromote, onjudge, labelVisits = 0, searching = false, timedOut = false, engine, onengine, gpu, secondAt, otherAt, turnKeys, pendingAt, reviewVisits = 0, onexport, exportReady = true, deeperPositions = 0, again = null, snapshot = null, partner = null, siteLink = null, ownSettings = false, onfeature }: Props = $props();
+        onpromote, onjudge, labelVisits = 0, searching = false, timedOut = false, engine, onengine, gpu, secondAt, otherAt, turnKeys, pendingAt, reviewVisits = 0, onexport, exportReady = true, deeperPositions = 0, again = null, snapshot = null, board = null, start, exportItems, partner = null, siteLink = null, ownSettings = false, onfeature }: Props = $props();
   const used = (name: string) => onfeature?.(name);
   const last = $derived(R.data.positions.length - 1);
   const TABLE_ROWS = 5; // the Analysis table shows this many rows and scrolls, so the move list under it does not move
@@ -109,11 +115,12 @@
   type Stage = "highlights" | "analysis";
   let stage = $state<Stage>("highlights");
   // The place on screen: a path in the game's tree (tree.ts), the game's own moves or a branch (design 07).
-  let path = $state<string[]>([]);
+  let path = $state<string[]>(untrack(() => start ?? []));
   let hover = $state<Edge | null>(null);
   // Three columns from Lichess's width for them (its $x-large, 1,260 pixels): the summary gets its own column, and
   // the Report is no longer a tab.
   const wide = new MediaQuery("min-width: 1260px");
+  const threeCols = $derived(wide.current && !board); // the summary column: the review's
   // The display settings, kept in this browser (display.ts). They open in the analysis column, in the place of the
   // analysis (Lichess's analysis menu takes the move list's place), so that the board shows each change.
   const display = $state(loadDisplay());
@@ -131,7 +138,8 @@
   const unit = $derived<Unit>(display.judge);
   // Whose moves the review explains ("Review for"): both, or one player. The other's moves show without labels, numbers,
   // notes or the engine's lines, on the board and on the chart too. The counts keep both players.
-  const forSide = (p: Player) => display.reviewFor === "both" || (display.reviewFor === "blue") === (p === 0);
+  // The labels of the player chosen in "Review for". The board labels the moves the player asked for, on both sides.
+  const forSide = (p: Player) => !!board || display.reviewFor === "both" || (display.reviewFor === "blue") === (p === 0);
   let settingsOpen = $state(false);
   // The engine's settings (design 09) open under the engine header, from its gear, as Lichess's open from the gear in
   // its engine box: the header's values and its search bar stay in view while they change. The display settings take the
@@ -172,7 +180,8 @@
   const pos = $derived(mainAt ?? sharedLength(path, mainNames)); // on the game's line: here, or where the branch leaves it
   const branchNode = $derived(mainAt === null ? branches[here] : undefined);
   const position = $derived(branchNode?.position ?? R.data.positions[pos]);
-  const over = $derived(mainAt !== null ? mainAt === last : !!position.over); // the game has ended here
+  // The game has ended here. The board's line ends where the player stopped: only the rules end it.
+  const over = $derived(mainAt !== null && !board ? mainAt === last : !!position.over);
   const analysis = $derived(over ? undefined : mainAt !== null ? R.data.analysis[mainAt] : branchNode?.analysis);
   // The position's complexity (model.ts) when it is hard, and its likely edges for the meter
   const hardHere = $derived.by(() => { const c = complexity(analysis, position.player); return c !== undefined && c >= HARD ? c : undefined; });
@@ -624,6 +633,7 @@
   /** A branch can be promoted when a branch node on its path, from its end back, is not the first branch from its parent. */
   function canPromote(key: string | null): boolean {
     if (!key) return false;
+    if (board) return key in branches;
     const p = key.split(" ");
     for (let k = p.length; k > 0; k--) {
       const sub = p.slice(0, k);
@@ -644,7 +654,9 @@
   const picked = $derived(forkPick === null ? undefined : childrenOf(path)[forkPick]);
   // The picked move is marked in the move list (a dashed outline) and brought into view.
   const pickedKey = $derived(picked ? pathKey(picked) : null);
-  const PICKED = "picked outline-2 outline-dashed outline-accent";
+  // A move's outlines are drawn inside its box (negative offsets): the move list's scroll area clips what is drawn outside
+  // it, at the right column's edge.
+  const PICKED = "picked outline-2 outline-dashed outline-accent -outline-offset-2";
   $effect(() => { if (pickedKey) movelist?.querySelector(".picked")?.scrollIntoView({ block: "nearest" }); });
   /** Goes to a position on the game's line. */
   const go = (p: number, sound = false) => setPath(mainNames.slice(0, Math.max(0, Math.min(last, p))), sound);
@@ -774,6 +786,11 @@
       const t = moveFrom(path), k = t.first ? 1 : 2;
       return `A branch from edge ${pos + 1} · Turn ${t.turn} · ${PLAYER_NAME[mover]} to play, edge ${k} of ${k - 1 + position.movesLeft}`;
     }
+    if (board) { // the board: the position's own turn, as in a branch
+      if (over) return `Game over · ${PLAYER_NAME[position.scores[0] > position.scores[1] ? 0 : 1]} won by ${Math.abs(position.scores[0] - position.scores[1]).toFixed(1)} points`;
+      const t = moveFrom(path), k = t.first ? 1 : 2;
+      return `Edge ${path.length + 1} · Turn ${t.turn} · ${PLAYER_NAME[mover]} to play, edge ${k} of ${k - 1 + position.movesLeft}`;
+    }
     if (pos === last) return `Game over · ${PLAYER_NAME[winner]} won by ${margin.toFixed(1)} points`;
     const t = R.turnOf[pos];
     const k = t.edges.findIndex(e => e.index === pos) + 1;
@@ -886,7 +903,7 @@
     <span class={["flex items-baseline gap-1.5 min-w-0 max-w-full", p === 1 && "flex-row-reverse"]}>
       <Swatch player={p} />
       <span class="font-semibold truncate">{p === 0 ? R.data.players.blue : R.data.players.red}</span>
-      <span class="text-xs text-muted">{PLAYER_NAME[p]}</span>
+      {#if !board}<span class="text-xs text-muted">{PLAYER_NAME[p]}</span>{/if} <!-- the board's names are the sides -->
     </span>
     <!-- The points so far, and the area enclosed now, which each turn's end adds to the points. While the engine's line
          shows, the area after its last drawn edge, in the accent colour. -->
@@ -944,7 +961,7 @@
 {/snippet}
 
 {#snippet highlights()}
-  <p class="mb-3 text-xs text-muted">Analysed in your browser. Labels judge each move by the engine's win chance. ◆ marks a
+  <p class="mb-3 text-xs text-muted">Analyzed in your browser. Labels judge each move by the engine's win chance. ◆ marks a
     hard position.</p>
   <p class="mb-3.75">
     <strong>{PLAYER_NAME[winner]} won by {margin.toFixed(1)} points</strong>
@@ -1058,7 +1075,8 @@
         <span class="text-muted tabular-nums">{t.number}.</span>
         {#each t.edges as e (e.index)}
           {@const after = R.blueScore[e.index + 1]}
-          {@const judged = unit === "edge" && forSide(e.player) ? (e.label ? `${LABEL_TEXT[e.label]}: ${costText(e.rawLoss, e.rawPoints)}` : "Not analysed yet") : ""}
+          {@const asked = !board || !!board.judged[mainKeys[e.index + 1]]} <!-- the board's moves: evaluated on request -->
+          {@const judged = unit === "edge" && forSide(e.player) && asked ? (e.label ? `${LABEL_TEXT[e.label]}: ${costText(e.rawLoss, e.rawPoints)}` : "Not analysed yet") : ""}
           {@const shown = forSide(e.player) ? e.label : null}
           <!-- A move fills its column. By edge, its label, the hard position's ◆ and its loss stand together at the
                column's right, as a turn's do at the turn's right, so that they line up down the list. The loss is
@@ -1069,9 +1087,10 @@
                right-aligned. The font is monospaced, so ch is one character of the span's own size. Before the loss, by edge
                and by turn, a slot for a hard position's ◆ (design 14) on every row, marked or not: a mark never moves
                the label or widens the column. -->
-          <button class={["mv flex items-baseline gap-1 px-[0.2rem] py-px font-mono text-[0.95em] text-left whitespace-nowrap bg-transparent border-0",
-                          SIDE_TEXT[e.player], mainAt === e.index + 1 ? "here bg-panel-2 outline outline-accent"
-                          : pickedKey === mainKeys[e.index + 1] ? PICKED : "hover:bg-panel-2 hover:outline hover:outline-line"]}
+          <button data-path={board ? mainKeys[e.index + 1] : undefined}
+                  class={["mv flex items-baseline gap-1 px-[0.2rem] py-px font-mono text-[0.95em] text-left whitespace-nowrap bg-transparent border-0",
+                          SIDE_TEXT[e.player], mainAt === e.index + 1 ? "here bg-panel-2 outline outline-accent -outline-offset-1"
+                          : pickedKey === mainKeys[e.index + 1] ? PICKED : "hover:bg-panel-2 hover:outline hover:outline-line hover:-outline-offset-1"]}
                   onclick={() => go(e.index + 1, true)} onmouseenter={() => startPreview({ kind: "move", index: e.index })} onmouseleave={endPreview} tabindex="-1"
                   title={[judged, after !== undefined ? `Lead: ${sideText(after, 1)}` : ""].filter(Boolean).join(" · ")}>
             {#if unit === "edge"}
@@ -1088,7 +1107,7 @@
              with each edge's points. -->
         {#if unit === "turn" && forSide(t.player)}
           <span class="col-start-4 flex items-baseline gap-1 px-[0.2rem] py-px font-mono text-[0.95em] whitespace-nowrap {SIDE_TEXT[t.player]}"
-                title={t.label ? `${LABEL_TEXT[t.label]}: ${turnCost(t)}` : "Not analysed yet"}>
+                title={t.label ? `${LABEL_TEXT[t.label]}: ${turnCost(t)}` : board && !t.edges.every(e => board.judged[mainKeys[e.index + 1]]) ? undefined : "Not analysed yet"}>
             <span class="w-[2.2ch]">{#if listed(t.label)}{@render mark(t.label)}{/if}</span>
             <span class="w-[1.2ch] text-[0.8em] text-muted text-center" title={t.hard ? HARD_NOTE : undefined}>{t.hard ? "◆" : ""}</span>
             <span class="w-[5ch] ml-auto text-[0.78em] text-right text-muted tabular-nums">{lossShort(t)}</span>
@@ -1118,9 +1137,14 @@
   </ContextMenu.Trigger>
   <ContextMenu.Portal>
     <ContextMenu.Content class="z-10 min-w-48 p-1 bg-panel-2 border border-muted/50 rounded-md shadow-[0_6px_20px_rgb(0_0_0/0.4)] text-sm">
+      {#if board}
+        {@const form = board}
+        <ContextMenu.Item disabled={!menuPath || !(menuPath in branches)} onSelect={() => { if (menuPath) { used("main line made"); form.onmain(menuPath.split(" ")); } }}
+                          class={MENU_ITEM}>Make main line</ContextMenu.Item>
+      {/if}
       <ContextMenu.Item disabled={!!snapshot || !canPromote(menuPath)} onSelect={() => { if (menuPath) { used("branch promoted"); onpromote?.(menuPath.split(" ")); } }}
                         class={MENU_ITEM}>Promote variation</ContextMenu.Item>
-      <ContextMenu.Item disabled={!!snapshot || !menuPath || (turnKeys?.(menuPath.split(" ")) ?? [menuPath]).every(k => !!branches[k]?.judged)}
+      <ContextMenu.Item disabled={!!snapshot || !menuPath || (turnKeys?.(menuPath.split(" ")) ?? [menuPath]).every(k => !!branches[k]?.judged || !!board?.judged[k])}
                         onSelect={() => { if (menuPath) { used("quality evaluated"); onjudge?.(menuPath.split(" ")); } }} class={MENU_ITEM}>Evaluate quality</ContextMenu.Item>
       <ContextMenu.Separator class="my-1 h-px bg-line" />
       <ContextMenu.Item disabled={!!snapshot || !menuPath} onSelect={() => menuPath && deleteFrom(menuPath)} class={MENU_ITEM}>Delete from here</ContextMenu.Item>
@@ -1217,8 +1241,8 @@
           {#if k === 0 || t.first}<span class={["text-muted text-[0.9em]", k > 0 && "ml-1"]}>{turnText(t)}</span>{/if}
           {#if display.branchForm === "text"}
             <button class={["mv px-[0.2rem] py-px bg-transparent border-0 whitespace-nowrap", SIDE_TEXT[node.move.player],
-                            at ? "here bg-panel-2 outline outline-accent" : pickedKey === pathKey(p) ? PICKED
-                            : "hover:bg-panel-2 hover:outline hover:outline-line"]}
+                            at ? "here bg-panel-2 outline outline-accent -outline-offset-1" : pickedKey === pathKey(p) ? PICKED
+                            : "hover:bg-panel-2 hover:outline hover:outline-line hover:-outline-offset-1"]}
                     onclick={() => setPath(p, true)} onmouseenter={() => startPreview({ kind: "branch", row: row.paths, k })} onmouseleave={endPreview} tabindex="-1"
                     data-path={pathKey(p)} title={label ? LABEL_TEXT[label] : waiting ? "Evaluating…" : undefined}>{moveNotation(node.move)}</button>
           {:else}
@@ -1311,11 +1335,14 @@
       <button class="px-2 py-0.5 text-sm" onclick={() => (settingsOpen = false)}>Done</button>
     </div>
     <div class="flex-1 min-h-0 overflow-y-auto pr-1">
-      <h3 class={SETTINGS_HEAD}>Review</h3>
-      {@render choice("Review by", "Each turn as a whole, or each edge: the labels, the move list's numbers, the counts and the chart. A turn's note gives its edges' points.",
+      <h3 class={SETTINGS_HEAD}>{board ? "Labels" : "Review"}</h3>
+      {@render choice(board ? "Labels by" : "Review by", board ? "Each turn as a whole, or each edge: the labels and the move list's numbers. A turn's note gives its edges' points."
+        : "Each turn as a whole, or each edge: the labels, the move list's numbers, the counts and the chart. A turn's note gives its edges' points.",
         [["turn", "Turn"], ["edge", "Edge"]], () => display.judge, v => (display.judge = v as Display["judge"]))}
-      {@render choice("Review for", "Both players, or one: the labels, numbers, notes and the engine's lines of that player's moves. The counts keep both.",
-        [["both", "Both"], ["blue", "Blue"], ["red", "Red"]], () => display.reviewFor, v => (display.reviewFor = v as Display["reviewFor"]))}
+      {#if !board}<!-- the board's labels are the moves asked for, on both sides -->
+        {@render choice("Review for", "Both players, or one: the labels, numbers, notes and the engine's lines of that player's moves. The counts keep both.",
+          [["both", "Both"], ["blue", "Blue"], ["red", "Red"]], () => display.reviewFor, v => (display.reviewFor = v as Display["reviewFor"]))}
+      {/if}
       <h3 class={SETTINGS_HEAD}>Board</h3>
       {@render choice("Win chance", "A bar above the board, or a gauge beside it.",
         [["bar", "Top horizontal bar"], ["gauge", "Side vertical gauge"]], () => display.win, v => (display.win = v as "bar" | "gauge"))}
@@ -1363,11 +1390,13 @@
         </div>
         <button class="flex-none px-2 py-0.5 text-sm" onclick={() => (keysOpen = true)}>Show <kbd class={KBD}>?</kbd></button>
       </div>
-      <h3 class={SETTINGS_HEAD}>Advantage chart</h3>
-      {@render toggle("Score line", "Shown when a review opens: the score difference after each edge, above the middle when Blue leads. Its box under the chart shows or hides it for the moment.",
-        () => display.scoreLine, v => (display.scoreLine = v))}
-      {@render toggle("Area line", "Shown when a review opens: the difference of the areas each player encloses, above the middle when Blue's is larger. Its box under the chart shows or hides it for the moment.",
-        () => display.areaLine, v => (display.areaLine = v))}
+      {#if !board}<!-- the board has no chart -->
+        <h3 class={SETTINGS_HEAD}>Advantage chart</h3>
+        {@render toggle("Score line", "Shown when a review opens: the score difference after each edge, above the middle when Blue leads. Its box under the chart shows or hides it for the moment.",
+          () => display.scoreLine, v => (display.scoreLine = v))}
+        {@render toggle("Area line", "Shown when a review opens: the difference of the areas each player encloses, above the middle when Blue's is larger. Its box under the chart shows or hides it for the moment.",
+          () => display.areaLine, v => (display.areaLine = v))}
+      {/if}
     </div>
   </div>
 {/snippet}
@@ -1383,19 +1412,20 @@
           a shared link, so that its review is the one it came with. A change of them here changes this game's only.</p>
       {/if}
       <h3 class={SETTINGS_HEAD}>Position on screen</h3>
-      {@render visitsSteps("Depth", "How far to search it. Deeper than the review, it also updates the review there: the labels and the report.",
+      {@render visitsSteps("Depth", board ? "How far to search it." : "How far to search it. Deeper than the review, it also updates the review there: the labels and the report.",
         DEPTHS, () => e.visits, v => set({ visits: v }))}
       {@render steps("Time limit", "Stop sooner if this runs out.", TIME_LIMITS.length, () => TIME_LIMITS.indexOf(e.seconds),
         k => set({ seconds: TIME_LIMITS[k] }), k => (TIME_LIMITS[k] === null ? "None" : `${TIME_LIMITS[k]} s`))}
-      <h3 class={SETTINGS_HEAD}>Game review</h3>
-      {@render choice("Depth per move",
-        `Lite: ${REVIEW_PRESETS.lite} visits. Standard: ${REVIEW_PRESETS.standard.toLocaleString("en")}, surer labels in twice the time.`,
+      <!-- On the board, the review's depth sets only how deep "Evaluate quality" searches (design 21). -->
+      <h3 class={SETTINGS_HEAD}>{board ? "Evaluate quality" : "Game review"}</h3>
+      {@render choice(board ? "Depth" : "Depth per move",
+        `${board ? "How far it searches the positions before and after the move. " : ""}Lite: ${REVIEW_PRESETS.lite} visits. Standard: ${REVIEW_PRESETS.standard.toLocaleString("en")}, surer labels in twice the time.`,
         [["lite", "Lite"], ["standard", "Standard"], ["custom", "Custom"]], () => e.review, v => set({ review: v as ReviewDepth }))}
       {#if e.review === "custom"}
         {@render visitsSteps("Custom", "", CUSTOM_REVIEW, () => e.customReview, v => set({ customReview: v }))}
       {/if}
       <h3 class={SETTINGS_HEAD}>Engine</h3>
-      {@render choice("Network", `Lite has ${NETWORKS[0].params} parameters, the other ${NETWORKS[1].params}: stronger per visit but about 3× slower. A change reviews the game again. A network downloads once, and the browser keeps it.`,
+      {@render choice("Network", `Lite has ${NETWORKS[0].params} parameters, the other ${NETWORKS[1].params}: stronger per visit but about 3× slower. A change ${board ? "searches the positions again" : "reviews the game again"}. A network downloads once, and the browser keeps it.`,
         NETWORKS.map(n => [n.id, networkLabel(n.id)]), () => e.network, v => set({ network: v }))}
       {@render steps("Workers", "Positions searched at the same time. Each worker uses more of your computer's memory: mind how much it has.", maxWorkers(),
         () => e.workers - 1, k => set({ workers: k + 1 }), k => `${k + 1} of ${maxWorkers()}`)}
@@ -1501,9 +1531,9 @@
 
 <!-- The page's text is a tool's, not a document's: it takes no selection, so the pointer stays an arrow over it. An
      engine error can be selected, to be copied. -->
-<main class={["review select-none", wide.current && "wide", display.win === "gauge" && "gauge-mode"]} style:--side-h={sideHeight ? `${sideHeight}px` : undefined}
+<main class={["review select-none", threeCols && "wide", board && "board-form", display.win === "gauge" && "gauge-mode"]} style:--side-h={sideHeight ? `${sideHeight}px` : undefined}
       style:--strip={stripHeight ? `calc(${stripHeight}px + 0.5rem)` : null}>
-  {#if wide.current}
+  {#if threeCols}
     <aside class="summary-col {PANEL} flex flex-col overflow-y-auto">
       {@render panelHead()}
       {@render highlights()}
@@ -1583,11 +1613,11 @@
         />
       </div>
     </div>
-    <div class="chart-area flex flex-col ml-(--gauge-w)">{@render charts()}</div>
+    {#if !board}<div class="chart-area flex flex-col ml-(--gauge-w)">{@render charts()}</div>{/if}
   </section>
 
   <section class="side {PANEL} flex flex-col">
-    {#if !wide.current}
+    {#if !threeCols}
       {@render panelHead()}
     {/if}
     {#if settingsOpen}
@@ -1651,7 +1681,7 @@
     </div>
     {#if engineOpen && engine && onengine}
       {@render engineSettingsPanel(engine, onengine)}
-    {:else if wide.current}
+    {:else if wide.current || board}
       <div class="flex flex-col flex-1 min-h-0 overflow-hidden">{@render analysisView()}</div>
     {:else}
       <!-- Below 1,260 pixels the Report and the Analysis share this column, as tabs. Bits UI gives them the tab
@@ -1679,7 +1709,7 @@
         </div>
         <div class="flex items-center gap-1">
           <!-- Export (design 13): the review file, with the engine's results, or the annotated record. -->
-          {#if onexport}<ExportMenu run={kind => onexport(kind, display.judge)} ready={exportReady}
+          {#if onexport}<ExportMenu run={kind => onexport(kind, display.judge)} ready={exportReady} items={exportItems}
                                     why={snapshot ? "Review again to export: this review used an earlier engine." : "Export once the review is done."} {partner} />{/if}
           <!-- The menu button (Lichess's ☰ in the same place) opens the display settings in the analysis's place, and
                closes them. The gear is the engine's, in the engine header. -->
@@ -1823,4 +1853,6 @@
     .movelist { max-height: 22rem; }
     .board-wrap { width: auto; flex: 1; min-width: 0; } /* the column's width, whatever the scroll bar takes */
   }
+  /* The Analysis board has no chart: the board takes its height (design 21). */
+  .review.board-form { --chart: 0px; --chart-gap: 0px; }
 </style>

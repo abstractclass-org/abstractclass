@@ -68,5 +68,5 @@ test("a game lacks its moves while it is played, until a watcher's view loads th
   at("?game=abc&spectate=1");
   assert.equal(missingMoves(game(true, 0, 3)), "loading");
   assert.match(explain("playing", "the Hedge School button", ORIGIN), /When the game is over, click the Hedge School button again\.$/);
-  assert.ok(explain("none", "the Hedge School button", ORIGIN).includes(`${ORIGIN}/import`)); // where a new tool is
+  assert.ok(explain("none", "the Hedge School button", ORIGIN).includes(`${ORIGIN}/tools`)); // where a new tool is
 });

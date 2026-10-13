@@ -23,21 +23,24 @@
   <ul>
     <li><strong>Your games:</strong> the records you import, with the players' names that the records hold.</li>
     <li><strong>Their analyses:</strong> the engine's results, so that a review opens at once the next time.</li>
+    <li><strong>Your Analysis board:</strong> its lines, the moves you evaluated, and the position you left it at.</li>
     <li><strong>Your settings:</strong> the review's, the engine's, and the theme.</li>
     <li><strong>Your choice about Google Analytics' cookies,</strong> and those cookies if you accept them.</li>
   </ul>
   <p>They stay in this browser on this computer: another browser or another computer does not see them. To remove
     them, clear this site's data in your browser's settings.</p>
 
-  <h2>Shared reviews</h2>
+  <h2>Shared reviews and analyses</h2>
   <p>A link that shares a review carries the game, its branches and the engine's settings after the <code>#</code> in
-    the address. Browsers never send that part of an address to a server, so {SITE_NAME}'s host does not see the game,
-    and the page removes it from the address before the analytics start. Anyone who has the link can open the game.</p>
+    the address. A link that shares an analysis carries its lines and the moves you evaluated. Browsers never send that
+    part of an address to a server, so {SITE_NAME}'s host does not see them, and the page removes them from the address
+    before the analytics start. Anyone who has the link can open them.</p>
 
   <h2>Games from another site</h2>
   <p>A site where you play can open {SITE_NAME} with your game, after the <code>#</code> in the address, as a shared
-    review's link does: browsers never send that part to a server, and the page removes it at once. The game is then
-    kept in your browser, as any game you import.</p>
+    review's link does: browsers never send that part to a server, and the page removes it at once. For a review, the
+    game is then kept in your browser, as any game you import. On the Analysis board, it replaces the board's lines,
+    after you agree when the board has lines of its own.</p>
   <p>When that site is one of {SITE_NAME}'s partners, the review's Export menu offers "Save to" it. Only when you choose
     it, {SITE_NAME} opens that site's page and hands it the review file, from your browser to that site: the game, its
     branches and the engine's results. That site keeps it under its own terms. Nothing goes to it before you choose,
@@ -67,8 +70,8 @@
       address, which Google says it does not keep. If you accept, it also sets cookies that tell your visits
       apart.</li>
   </ul>
-  <p>Neither sees your games. The bookmarklet's record leaves the address before either starts, and a review's address
-    names its game after the <code>#</code>, which neither records.</p>
+  <p>Neither sees your games. A game or a line after the <code>#</code> leaves the address before either starts, and a
+    review's address names its game after the <code>#</code>, which neither records.</p>
   <p>Google Analytics also receives what you do here, as counts, so that we can tell what to improve:</p>
   <ul>
     <li>that you imported a game, and how (pasted, from Constellation, a review file, the bookmarklet, the userscript, a
@@ -76,9 +79,11 @@
       119 edges), or why an import failed;</li>
     <li>that a review opened and ended: the engine settings it ran with, your computer's number of cores as a range,
       how long the review took, and how fast the engine searched;</li>
+    <li>that the Analysis board opened, and how (from its page, the home page, another site's link, a shared analysis
+      or an analysis file), with its main line's length as a range, or that a line brought to it could not open;</li>
     <li>the GPU's first test: faster or slower than the CPU, and the GPU's maker and kind;</li>
-    <li>the engine settings you change, the review's features you use (each once in a review), and your exports (a
-      review saved to a partner site among them), with a share link's length as a range;</li>
+    <li>the engine settings you change, the features you use (each once in a review, or in a visit to the Analysis
+      board), and your exports (a review saved to a partner site among them), with a share link's length as a range;</li>
     <li>how many games this browser keeps, as a range.</li>
   </ul>
   <p>None of these holds a game, a move, a player's name or a game's code. Until you accept the cookies, Google receives

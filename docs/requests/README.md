@@ -25,3 +25,4 @@ accepted, done (with the engine repository's commit, tag or document), or declin
 | 13 | [The notation: where a branch goes, and the marks of a move's quality](13-branch-placement.md) | done (the engine repository's design 04: branches after their turn, PGN's six marks by turn, a note before the first turn, the `Annotator` tag), checked here |
 | 14 | [The terms of the released engine and networks](14-release-terms.md) | done (the engine repository's commit `b76146a`, its v2 design 21: © 2026 Yshan, all rights reserved, with `LICENSE.txt` in each release), checked here |
 | 15 | [Practice games against HedgeFund: the GTP bot in the browser](15-practice-bot.md) | open |
+| 16 | [A position's check: whether it could occur in a game](16-position-check.md) | drafted, not sent yet |

@@ -1,5 +1,5 @@
 // A game record into the player's games: checked with the engine's rules (check.ts), given its cut marks, and kept in
-// this browser (store.ts). The pages that import (Home, and /import from the bookmarklet) show the outcome.
+// this browser (store.ts). The pages that import (Home, and the review's ways in, Arrival.svelte) show the outcome.
 import { checkMoves } from "./check.ts";
 import { markCuts, type GameRecord } from "./record.ts";
 import { saveGame } from "./store.ts";

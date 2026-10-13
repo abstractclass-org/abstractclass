@@ -220,7 +220,7 @@
     <label>Position after edge
       <input type="range" min="0" max={MOVES.length - 1} bind:value={edge} onchange={() => guarded(showRules)} /> {edge}
     </label>
-    <button onclick={analyseOne}>Analyse the position</button>
+    <button onclick={analyseOne}>Analyze the position</button>
     <button onclick={reviewGame}>Review the whole game ({MOVES.length} positions)</button>
     <button onclick={runSweep}>Speed sweep (both networks, 1 to {Math.min(8, cores)} workers)</button>
   </fieldset>

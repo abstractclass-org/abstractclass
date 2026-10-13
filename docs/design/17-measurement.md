@@ -36,15 +36,17 @@ visitors' machines, and the GPU on other machines.
 |---|---|---|---|
 | `import_game` | a game kept, from any way in | `import_source` (record, constellation, review_file, bookmarklet, userscript, older_tool, share_link, site_link, site_review), `edges`, `with_results` (a file), `with_branches` (a link) | which ways in to keep and improve, and the funnel's first step |
 | `import_failed` | an import refused | `import_source`, `import_failure` (record: not read, rejected: the rules or the storage refused it, file, link) | what breaks imports |
-| `tool_out_of_date` | the import page asks to update a tool | `stale_tool` (bookmarklet, userscript, older) | how many players still need the new tools |
+| `tool_out_of_date` | the review asks to update a tool (Arrival) | `stale_tool` (bookmarklet, userscript, older) | how many players still need the new tools |
 | `share_open` | a share link's page | `network_found`, `same_engine` | whether shared reviews arrive whole |
 | `game_missing` | a review's address in a browser without the game | none | whether players send review addresses, which do not work in another browser |
 | `review_open` | the review starts, with the engine loaded, or a snapshot opens (design 20) | `network`, `depth`, `depth_on_screen`, `time_limit`, `workers`, `gpu_mode`, `cores`, `edges`, `own_settings`, `done_before` | the funnel's second step, and the settings in use |
+| `analysis_open` | the Analysis board opens, with the engine's rules (design 21) | `analysis_source` (page: its own address; home: Analyze on the home page; record: another site's `record=` link; packed: a shared analysis; file: an analysis file), `edges` (the main line's) | how players reach the board |
+| `analysis_failed` | a line brought to the board cannot open: a broken link, a refused record or file | `analysis_source` | broken ways in |
 | `review_done` | the review ends, in this visit | as `review_open`, and `review_seconds` (a number), `minutes`, `worker_speed` (a CPU worker's visits a second, by 5), `gpu_used` | the engine's defaults: how long a review takes on real machines, by settings and cores |
 | `gpu_test` | Auto's first test of a GPU | `gpu_outcome` (faster, slower), `gpu_ratio` (the GPU's speed over a worker's), `gpu` (maker and kind, as WebGPU gives them), `network` | the GPU's default, and whether it pays off on laptops and phones |
 | `engine_error` | the engine fails | `error_kind` (load, rules, gpu) | reliability |
 | `setting_change` | an engine setting changes | `setting`, `setting_value`, `setting_scope` (browser, game) | whether the defaults fit |
-| `feature` | a feature's first use in a review | `feature_name` (the feature, below) | what to keep, to improve, or to explain |
+| `feature` | a feature's first use in a review, or on the Analysis board in a visit | `feature_name` (the feature, below) | what to keep, to improve, or to explain |
 | `export` | an export | `export_kind` (link, file, copy, text, partner: the review file saved to a partner site, design 18), `link_length`, `link_too_long` | whether players share, and whether links fit a Discord message |
 | `game_delete`, `game_restore` | a game deleted, its Undo | none | whether Undo saves slips |
 
@@ -57,7 +59,8 @@ The features, by their `feature_name` (`ReviewView.svelte`, `used`). Each counts
 | `engine line played` | an edge of the engine's line played |
 | `own edge played` | an edge drawn on the board by the player |
 | `note drawn` | a note drawn on the board |
-| `quality evaluated` | "Evaluate quality" chosen in a branch's menu |
+| `quality evaluated` | "Evaluate quality" chosen in a move's menu (a branch's, or any on the Analysis board) |
+| `main line made` | "Make main line" chosen on the Analysis board (design 21) |
 | `branch promoted` | a branch promoted in its menu |
 | `branch deleted` | a branch deleted |
 | `keys list` | the list of keys opened (`?`) |
@@ -81,7 +84,7 @@ setup needs the Editor role on the site's property.
 **Before you start:** go to [analytics.google.com](https://analytics.google.com). Select the site's property in the
 selector at the top left. Click **Admin**, the gear at the bottom left.
 
-#### 1. The custom dimensions (30 rows of the table below)
+#### 1. The custom dimensions (31 rows of the table below)
 
 1. In Admin, under **Data display**, click **Custom definitions**.
 2. On the **Custom dimensions** tab, click **Create custom dimension**.
@@ -98,6 +101,7 @@ selector at the top left. Click **Admin**, the gear at the bottom left.
 | Event parameter | Dimension name | Scope | What it holds |
 |---|---|---|---|
 | `import_source` | Import source | Event | how a game came in: record, constellation, review_file, bookmarklet, userscript, older_tool, share_link, site_link, site_review |
+| `analysis_source` | Analysis source | Event | how the Analysis board was reached: page, home, record, packed, file |
 | `import_failure` | Import failure | Event | why an import failed: record, rejected, file, link |
 | `edges` | Game edges | Event | the game's edges, as a range |
 | `with_results` | File with results | Event | a review file that has the engine's results |
@@ -128,7 +132,7 @@ selector at the top left. Click **Admin**, the gear at the bottom left.
 | `link_too_long` | Link too long | Event | the link is longer than a Discord message takes |
 | `games_stored` | Games stored | **User** | the games that the browser keeps, as a range |
 
-The property can have 50 event-scoped and 25 user-scoped custom dimensions. These take 29 and 1.
+The property can have 50 event-scoped and 25 user-scoped custom dimensions. These take 30 and 1.
 
 **No parameter is named `source`, `medium` or `campaign`.** Google Analytics keeps a visit's traffic source in event
 parameters of those names, so it reads the site's own parameter as the session's source. With the import's way in
@@ -245,7 +249,7 @@ The steps:
 
 | Step | Name | Condition |
 |---|---|---|
-| 1 | Home or import page | **Page path and screen class** exactly matches `/`, **Or** **Page path and screen class** exactly matches `/import` |
+| 1 | Home or review | **Page path and screen class** exactly matches `/`, **Or** **Page path and screen class** exactly matches `/review` |
 | 2 | Import | **Event name** exactly matches `import_game` |
 | 3 | Review open | **Event name** exactly matches `review_open` |
 | 4 | Review done | **Event name** exactly matches `review_done` |
@@ -396,7 +400,7 @@ shows few rows. Read it as section "Reading it" says.
 
 - `src/lib/analytics.svelte.ts` (`track`, `trackOnce`, `setVisitor`), `src/lib/measure.ts` (the ranges, tested in
   `src/lib/measure.test.ts`).
-- The events: `src/routes/+page.svelte` (imports, deletes, `games_stored`), `src/routes/import/+page.svelte` (the tools'
+- The events: `src/routes/+page.svelte` (imports, deletes, `games_stored`), `src/lib/review/Arrival.svelte` (the tools'
   and share links' imports), `src/routes/review/+page.svelte` (the review's events, settings, features, `game_missing`,
   the address), `src/lib/review/ReviewView.svelte` (`onfeature`), `src/lib/ExportMenu.svelte` (`export`),
   `src/lib/analysis/gpu.svelte.ts` (`gpu_test`, the GPU's failure), `workerSpeed` in `src/lib/analysis/pool.ts`.

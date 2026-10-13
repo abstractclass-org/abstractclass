@@ -9,9 +9,12 @@
   import SiteFooter from "#lib/SiteFooter.svelte";
 
   const LIVE = "https://hedgeschool.abstractclass.org";
-  const LINK = `const link = "${LIVE}/import#" + new URLSearchParams({ record });
+  const LINK = `const link = "${LIVE}/review#" + new URLSearchParams({ record });
 // with a save page, for a partner site:
-const link = "${LIVE}/import#" + new URLSearchParams({ record, save: "https://example.com/hedge-school/save?game=123" });`;
+const link = "${LIVE}/review#" + new URLSearchParams({ record, save: "https://example.com/hedge-school/save?game=123" });`;
+  const ANALYSIS = `const link = "${LIVE}/analysis#" + new URLSearchParams({ record });
+// opened at the position after the first 12 edges:
+const link = "${LIVE}/analysis#" + new URLSearchParams({ record, at: "12" });`;
   const SAVE = `// On the partner's save page, which Hedge School opened:
 const HEDGE_SCHOOL = "${LIVE}";
 window.addEventListener("message", async event => {
@@ -31,11 +34,11 @@ window.opener?.postMessage({ type: "hedge-school:ready" }, HEDGE_SCHOOL);`;
 .hedge-school-button:hover { background: #c6b8ee; }
 .hedge-school-button img { width: 1.5em; height: 1.5em; margin: 0; flex: none; }`;
   const BUTTONS = `<!-- On a finished game: a link, made as "A link to a review" shows. -->
-<a class="hedge-school-button" href="${LIVE}/import#record=…" target="_blank">
+<a class="hedge-school-button" href="${LIVE}/review#record=…" target="_blank">
   <img src="hedge-school.svg" alt=""> Review in Hedge School
 </a>
 <!-- Where space is short: the collie names the site, and the full label is the name that screen readers say. -->
-<a class="hedge-school-button" href="${LIVE}/import#record=…" target="_blank"
+<a class="hedge-school-button" href="${LIVE}/review#record=…" target="_blank"
    aria-label="Review in Hedge School" title="Review in Hedge School">
   <img src="hedge-school.svg" alt=""> Review
 </a>
@@ -51,7 +54,7 @@ window.opener?.postMessage({ type: "hedge-school:ready" }, HEDGE_SCHOOL);`;
                                      ["Open in Hedge School", ""], ["Open", "Open in Hedge School"]];
   const OPEN = `// On the partner's page that shows a kept review, at the player's click:
 const HEDGE_SCHOOL = "${LIVE}";
-const tab = window.open(HEDGE_SCHOOL + "/import#" + new URLSearchParams({
+const tab = window.open(HEDGE_SCHOOL + "/review#" + new URLSearchParams({
   from: location.origin, save: "https://example.com/hedge-school/save?game=123" }));
 window.addEventListener("message", event => {
   if (event.origin !== HEDGE_SCHOOL || event.source !== tab) return;
@@ -67,8 +70,9 @@ window.addEventListener("message", event => {
 
 <main class={PROSE}>
   <h1>For developers</h1>
-  <p>A site where Enclosure is played can send its games to {SITE_NAME} for review, and a partner site can keep the
-    reviews and open them again. This page describes how. The game goes as a game record, in <a href="/notation">the notation</a>.</p>
+  <p>A site where Enclosure is played can send its games to {SITE_NAME} for review, or to its Analysis board, and a
+    partner site can keep the reviews and open them again. This page describes how. The game goes as a game record, in
+    <a href="/notation">the notation</a>.</p>
 
   <h2 id="link">A link to a review</h2>
   <p>One link sends a finished game here. {SITE_NAME} keeps the game in the player's browser and opens its review.</p>
@@ -85,6 +89,18 @@ window.addEventListener("message", event => {
     <li><strong>A finished game only.</strong> A link to a game in play would give a player the engine's help.</li>
     <li>The record goes after the <code>#</code>, which a browser never sends to a server, and the page removes it
       from the address at once.</li>
+  </ul>
+
+  <h2 id="analysis">A link to the Analysis board</h2>
+  <p>A link to the Analysis board opens a game, or any line from the start, on a free board: the player explores it with
+    the engine, which searches only the position on screen. Nothing is reviewed, and the game is not kept in the
+    player's list of games.</p>
+  <pre>{ANALYSIS}</pre>
+  <ul>
+    <li><strong><code>record</code>:</strong> as for a review. A record that has not ended is welcome: its result is
+      <code>*</code>.</li>
+    <li><strong><code>at</code>:</strong> the position that the board opens at, as a number of edges from the start.
+      Without it, the board opens at the start.</li>
   </ul>
 
   <h2 id="save">The review saved back to a partner site</h2>
@@ -113,7 +129,7 @@ window.addEventListener("message", event => {
     results. In another browser, the partner's page sends the review file that it kept, and the review opens at once,
     with the engine's results. The same messages go the other way:</p>
   <ol>
-    <li>At the player's click, the partner's page opens <code>{LIVE}/import#from=</code> and its own origin,
+    <li>At the player's click, the partner's page opens <code>{LIVE}/review#from=</code> and its own origin,
       URL-encoded, with <code>window.open</code>. A link with a <code>target</code> cuts the tie between the two pages.
       Name the save page too, <code>save</code>, as above, so that the player can save the review again after more
       work on it.</li>
@@ -163,14 +179,24 @@ window.addEventListener("message", event => {
     <li><strong>{SITE_NAME} reads more than it asks for:</strong> unknown tags, an edge's points in either order, lower
       case. A site that writes the notation as its page describes it keeps working.</li>
     <li><strong>Changes are additions:</strong> new optional tags or parameters, which old links do not have. A change
-      that old links could not meet would come with a version in the link, and the old form would still be read. A
-      link made once keeps working.</li>
+      that old links could not meet would come with a version in the link, and the old form would still be read.</li>
+    <li><strong>During the early access, an address can move.</strong> The old address then forwards to the new one for
+      a while, and this page says, a month before, when it stops.</li>
+    <li><strong>Deprecated: <code>/import#…</code>,</strong> the first address of a review's link. It forwards to
+      <code>/review#…</code> with the same parameters during the early access. Move your links to
+      <code>/review</code>.</li>
     <li><strong>The messages have a version,</strong> <code>protocol: 1</code>. A later version would be one that the
       save page asks for in its <code>ready</code> message. A page that asks for none keeps getting version 1.
       {SITE_NAME}'s own <code>ready</code> names the version that it asks for.</li>
     <li><strong>The review file is {SITE_NAME}'s:</strong> store it as it is. Its contents can change, and it carries
       its own format and version, for {SITE_NAME} to read.</li>
-    <li><strong>Changes:</strong> 2026-10-13: the link, and the messages to save and open a review, protocol 1.</li>
+    <li><strong>Changes:</strong>
+      <ul>
+        <li>2026-10-13: the link, and the messages to save and open a review, protocol 1.</li>
+        <li>2026-10-14: the links go to <code>/review</code>, and to <code>/analysis</code> for the Analysis board. The
+          old <code>/import</code> forwards to <code>/review</code>.</li>
+      </ul>
+    </li>
   </ul>
 </main>
 

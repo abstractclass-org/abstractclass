@@ -11,7 +11,10 @@
   import { parseRecord, playerNames, RecordError, type GameRecord } from "#lib/game/record.ts";
   import { deleteGame, listGames, restoreGame, reviewAgainWhy, reviewCovers, reviewMark, type DeletedGame, type StoredGame } from "#lib/game/store.ts";
   import { loadEngine, reviewVisits } from "#lib/analysis/engineSettings.ts";
-  import { importRecord } from "#lib/game/import.ts";
+  import { importRecord, variantProblem } from "#lib/game/import.ts";
+  import { checkMoves } from "#lib/game/check.ts";
+  import { boardLink } from "#lib/game/board.ts";
+  import { fileKind, keepAnalysisResults, readAnalysisFile } from "#lib/game/analysisFile.ts";
   import { errorText } from "#lib/errors.ts";
   import { constellationRecord, isConstellation } from "#lib/game/constellation.ts";
   import { EARLY_ACCESS, SITE_NAME, SITE_VERSION } from "#lib/edition.ts";
@@ -65,21 +68,27 @@
     return `line ${before.length}, column ${before.at(-1)!.length + 1}`;
   }
 
-  async function importGame(event: SubmitEvent) {
-    event.preventDefault();
+  /** The pasted text read as a record, or null with the problem shown. Constellation's export becomes this site's record
+   *  (constellation.ts), which is checked like any other. */
+  function readPasted(): { record: GameRecord; recordText: string; source: "constellation" | "record" } | null {
     problem = "";
-    let record: GameRecord, recordText = text;
-    // The import counted by its source and the game's length, and a failure by why (design 17): no record leaves.
+    let recordText = text;
     const source = isConstellation(text) ? "constellation" : "record";
     try {
-      // Constellation's export becomes this site's record (constellation.ts), which is checked like any other.
       if (source === "constellation") recordText = constellationRecord(text);
-      record = parseRecord(recordText);
+      return { record: parseRecord(recordText), recordText, source };
     } catch (e) {
       problem = e instanceof RecordError && recordText === text ? `${e.message} (${where(e.offset)}).` : errorText(e);
-      track("import_failed", { import_source: source, import_failure: "record" });
-      return;
+      return null;
     }
+  }
+
+  async function importGame(event: SubmitEvent) {
+    event.preventDefault();
+    const read = readPasted();
+    // The import counted by its source and the game's length, and a failure by why (design 17): no record leaves.
+    if (!read) { track("import_failed", { import_source: isConstellation(text) ? "constellation" : "record", import_failure: "record" }); return; }
+    const { record, recordText, source } = read;
     checking = true;
     let id: string;
     try {
@@ -93,6 +102,26 @@
     }
     track("import_game", { import_source: source, edges: range(record.moves.length, EDGE_RANGES) });
     await goto(`/review#game=${id}`);
+  }
+
+  /** The record opened on the Analysis board (design 21), checked as an import is, but not kept as a game: nothing is
+   *  searched but the position on screen. It goes by a board link (board.ts). */
+  async function analyze() {
+    const read = readPasted();
+    if (!read) return;
+    const variant = variantProblem(read.record);
+    if (variant) { problem = variant; return; }
+    checking = true;
+    try {
+      const { problem: wrong } = await checkMoves(read.record);
+      if (wrong) { problem = wrong; return; }
+    } catch (e) {
+      problem = errorText(e);
+      return;
+    } finally {
+      checking = false;
+    }
+    await goto(`/analysis#${new URLSearchParams({ record: read.recordText, via: "home" })}`);
   }
 
   // Review files (design 13): exported beside each game, imported here from a file chosen or dropped on the page. For
@@ -110,8 +139,23 @@
     if (!file) return;
     fileProblem = "";
     importing = true;
+    const text = await file.text();
+    // An analysis file (design 21): its results are kept here, and its lines open on the Analysis board by their link.
+    if (fileKind(text) === "analysis") {
+      try {
+        const analysis = readAnalysisFile(text);
+        await keepAnalysisResults(analysis, shippedModels(await loadManifest()));
+        await goto(boardLink("", analysis.board, 0, "file"));
+      } catch (e) {
+        fileProblem = `The file could not be opened: ${errorText(e)}`;
+        track("analysis_failed", { analysis_source: "file" });
+      } finally {
+        importing = false;
+      }
+      return;
+    }
     try {
-      const review = readReviewFile(await file.text());
+      const review = readReviewFile(text);
       // Only the networks this site ships: a result of another network is never asked for here.
       const manifest = await loadManifest();
       const { id } = await importReview(review, shippedModels(manifest), shippedModule(manifest));
@@ -156,20 +200,23 @@
       {#if problem}<p class="mt-1.5 text-blunder" role="alert">{problem}</p>{/if}
       <div class="flex flex-wrap items-center gap-3 mt-2">
         <button class="btn-primary" type="submit" disabled={!text.trim() || checking}>{checking ? "Checking…" : "Review"}</button>
+        <!-- The Analysis board (design 21): the line to look at, with no review of the whole game. -->
+        <button type="button" disabled={!text.trim() || checking} onclick={analyze}
+                title="Open the line on the Analysis board: the engine searches only the position on screen">Analyze</button>
         <span class="flex-1 min-w-56 text-xs text-muted">In the engine's notation: turns as <code>1.</code> and <code>2.</code>, edges as
           <code>D10-G10</code>, a cut as <code>D10-G10x</code>, a timeout as <code>pass</code>. A plain list of edges works too.</span>
       </div>
-      <p class="mt-2.5 text-xs text-muted">From meaf.us: use the <a href="/import">bookmarklet or the userscript</a>, one click on a meaf.us game page.
+      <p class="mt-2.5 text-xs text-muted">From meaf.us: use the <a href="/tools">bookmarklet or the userscript</a>, one click on a meaf.us game page.
         From Constellation: paste what the analysis board's <strong>Export</strong> gives.</p>
     </form>
     <div class="flex flex-wrap items-center gap-3 mt-4 pt-3 border-t border-line">
       <label class={["px-3 py-1 text-sm rounded border border-line bg-panel-2 cursor-pointer hover:border-accent", importing && "opacity-50"]}>
-        {importing ? "Importing…" : "Import a review"}
+        {importing ? "Opening…" : "Open a file"}
         <input type="file" accept=".json,application/json" class="sr-only" disabled={importing}
                onchange={e => { void importFile(e.currentTarget.files?.[0]); e.currentTarget.value = ""; }} />
       </label>
-      <span class="flex-1 min-w-56 text-xs text-muted">A review file that {SITE_NAME} exported, from this browser or another. You can
-        also drop it on this page. The review opens at once when its engine is this site's; with another, it is reviewed again.</span>
+      <span class="flex-1 min-w-56 text-xs text-muted">A review or an analysis file that {SITE_NAME} exported, from this browser or
+        another. You can also drop it on this page. It opens at once, with the engine's results it holds.</span>
     </div>
     {#if fileProblem}<p class="mt-1.5 text-blunder" role="alert">{fileProblem}</p>{/if}
   </section>

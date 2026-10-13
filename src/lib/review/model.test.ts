@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { Edge } from "#lib/engine/notation.ts";
-import { complexity, distinctCandidates, equalDepth, likelyEdges, judgeBranchEdge, onlyEdge, otherCandidate, review, roundTogether,
+import { complexity, distinctCandidates, onlyJudged, equalDepth, likelyEdges, judgeBranchEdge, onlyEdge, otherCandidate, review, roundTogether,
          rankOf, sameMove, secondChoice, shortNote, shownCandidates, trustedLine, twinsOf, turnCost, valuesAfter, type Analysis, type Candidate, type Move, type Position,
          type ReviewData } from "./model.ts";
 import { accuracyWeight } from "./labels.ts";
@@ -214,4 +214,26 @@ test("ranks count distinct moves: a twin shares its move's rank, and comes with 
   const shown = shownCandidates(mirrored, 0);
   assert.deepEqual(shown.map(s => s.rank), [1]); // D10-G10 is 0.15 worse: not on the board
   assert.deepEqual(shown[0].twins.map(c => c.edge), [A10D11]);
+});
+
+test("a line that stops before the game's end (an unfinished game, the Analysis board): its end is searched, not scored", () => {
+  const open = { scores: [0, 0], over: false } as unknown as Position;
+  const values = [at(0.5, 0), at(0.5, 0), at(0.5, 0), at(0.5, 0), at(0.5, 0), at(0.2, -40)];
+  const R = review(game([B, C], values, { positions: Array(6).fill(open) }));
+  assert.equal(R.blueWin[5], 0.2); // the search, not the result's 1
+  assert.equal(R.edges[4].label, "blunder"); // Blue's last edge, from 0.5 to 0.2
+  const over = review(game([B, C], values));
+  assert.equal(over.blueWin[5], 1); // a finished game: the result
+});
+
+test("the Analysis board labels only the moves the player asked to evaluate (design 21)", () => {
+  const R = review(game([B, C], [0, 1, 2, 3, 4].map(i => (i === 3 ? at(0.8, 5) : at(0.5, 0)))));
+  assert.equal(R.turns[1].label, "blunder");
+  const board = onlyJudged(R, i => i === 2); // Red's second edge only
+  assert.equal(board.edges[2].label, R.edges[2].label);
+  assert.equal(board.edges[1].label, null);
+  assert.equal(board.edges[1].pointsLost, undefined);
+  assert.equal(board.turns[1].label, null); // its first edge was not asked for
+  assert.equal(onlyJudged(R, i => i === 1 || i === 2).turns[1].label, "blunder");
+  assert.equal(board.turnOf[2], board.turns[1]);
 });

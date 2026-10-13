@@ -10,15 +10,16 @@
   import { track } from "#lib/analytics.svelte.ts";
   import { DISCORD_LIMIT } from "#lib/game/share.ts";
   import { LINK_RANGES, range } from "#lib/measure.ts";
-  let { run, side = "top", small = false, ready = true, why = "", partner = null }:
+  let { run, side = "top", small = false, ready = true, why = "", partner = null, items }:
     { run: (kind: ExportKind) => Promise<ExportResult | void>; side?: "top" | "bottom"; small?: boolean; ready?: boolean; why?: string;
-      partner?: string | null } = $props();
+      partner?: string | null; items?: [ExportKind, string, string, string][] } = $props();
 
   // Each kind: its entry, a line on what the other end gets (the link and the file differ most there: the link holds
   // no results, design 13), and the note after it.
   // A game that came from a partner site by its link (design 18) can go back to it: the review file, to the player's
   // account there, first in the menu.
-  const ITEMS = $derived<[ExportKind, string, string, string][]>([
+  // `items` replaces them for another page's export (the Analysis board's, design 21).
+  const ITEMS = $derived<[ExportKind, string, string, string][]>(items ?? [
     ...(partner ? [["partner", `Save to ${partner}`, `The review file, to your account there.`, `Saved to ${partner}`] as [ExportKind, string, string, string]] : []),
     ["link", "Copy a link to share the review", "Short. The recipient's browser reviews the game again.", "Link copied"],
     ["file", "Review file, to import elsewhere", "With the engine's results: the review opens at once.", "Review file saved"],

@@ -51,7 +51,7 @@ export function gpuStatusText(s: GpuStatus): string {
   switch (s.state) {
     case "off": return "";
     case "unsupported": return `This browser cannot use the GPU: it has ${s.reason}.`;
-    case "waiting": return "Waiting: it starts when the review has more work than the workers can take.";
+    case "waiting": return "Waiting: it starts when there is more work than the workers can take.";
     case "loading": return "Loading the GPU's files…";
     case "testing": return "In use. Testing its speed against a worker…";
     case "on": return s.test ? `In use, ${s.adapter}: ${gpuRatio(s.test)} times a worker's speed.` : `In use, ${s.adapter}.`;
