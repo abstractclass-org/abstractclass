@@ -55,7 +55,7 @@
     } catch (e) {
       phase = "failed";
       problem = `the share link cannot be read: ${errorText(e)}`;
-      track("import_failed", { import_source: "share_link", reason: "link" });
+      track("import_failed", { import_source: "share_link", import_failure: "link" });
     }
   }
 
@@ -70,7 +70,7 @@
     } catch (e) {
       phase = "failed";
       problem = errorText(e);
-      track("import_failed", { import_source: "share_link", reason: "rejected" });
+      track("import_failed", { import_source: "share_link", import_failure: "rejected" });
     }
   }
 
@@ -94,7 +94,7 @@
     } catch (e) {
       phase = "failed";
       problem = errorText(e);
-      track("import_failed", { import_source: "site_review", reason: "rejected" });
+      track("import_failed", { import_source: "site_review", import_failure: "rejected" });
     }
   }
 
@@ -116,13 +116,13 @@
       stale = staleTool(sent, { bookmarklet: String(BOOKMARK_VERSION), userscript: __USERSCRIPT_CODE__ });
       // The import by its tool and the game's length, and an out-of-date tool by its kind (design 17).
       track("import_game", { import_source: source, edges: range(record.moves.length, EDGE_RANGES) });
-      if (stale) track("tool_out_of_date", { tool: stale });
+      if (stale) track("tool_out_of_date", { stale_tool: stale });
       if (stale) { imported = id; phase = "stale"; return; }
       await goto(`/review#game=${id}`, { replaceState: true });
     } catch (e) {
       phase = "failed";
       problem = errorText(e);
-      track("import_failed", { import_source: source, reason: "rejected" });
+      track("import_failed", { import_source: source, import_failure: "rejected" });
     }
   }
 </script>

@@ -146,7 +146,7 @@ export class GpuControl {
       await gpu.start(this.manifest, testFor.network, GPU_SEARCHES);
     } catch (e) {
       gpu.terminate();
-      if (!this.ended) { this.status = { state: "failed", message: errorText(e) }; track("engine_error", { kind: "gpu" }); }
+      if (!this.ended) { this.status = { state: "failed", message: errorText(e) }; track("engine_error", { error_kind: "gpu" }); }
       return;
     } finally {
       this.starting = false;
@@ -160,7 +160,7 @@ export class GpuControl {
     const test = { gpu: Math.round(speed.gpu), cpu: Math.round(speed.cpu), at: new Date().toISOString() };
     saveGpuTest(testFor, test);
     // The GPU against a worker, by the GPU's maker and kind (design 17): whether the GPU pays off on visitors' machines.
-    track("gpu_test", { outcome: gpuFaster(test) ? "faster" : "slower", ratio: Math.round((10 * test.gpu) / Math.max(1, test.cpu)) / 10,
+    track("gpu_test", { gpu_outcome: gpuFaster(test) ? "faster" : "slower", gpu_ratio: Math.round((10 * test.gpu) / Math.max(1, test.cpu)) / 10,
                         gpu: adapter, network: testFor.network.split("-")[0] });
     if (this.ended) return;
     if (this.mode === "on" || gpuFaster(test)) this.status = { state: "on", adapter, test };

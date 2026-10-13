@@ -77,7 +77,7 @@
       record = parseRecord(recordText);
     } catch (e) {
       problem = e instanceof RecordError && recordText === text ? `${e.message} (${where(e.offset)}).` : errorText(e);
-      track("import_failed", { import_source: source, reason: "record" });
+      track("import_failed", { import_source: source, import_failure: "record" });
       return;
     }
     checking = true;
@@ -86,7 +86,7 @@
       id = await importRecord(recordText, record);
     } catch (e) {
       problem = errorText(e);
-      track("import_failed", { import_source: source, reason: "rejected" });
+      track("import_failed", { import_source: source, import_failure: "rejected" });
       return;
     } finally {
       checking = false;
@@ -120,7 +120,7 @@
       await goto(`/review#game=${id}`);
     } catch (e) {
       fileProblem = `The file could not be imported: ${errorText(e)}`;
-      track("import_failed", { import_source: "review_file", reason: "file" });
+      track("import_failed", { import_source: "review_file", import_failure: "file" });
     } finally {
       importing = false;
     }

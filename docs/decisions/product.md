@@ -2299,3 +2299,41 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   the light theme the chart's score line, in the accent, looked like the magenta area line, so it keeps the teal as
   its own colour (`--score`). The accent marks controls, never a move, and Great's purple is more saturated than the
   lavender.
+
+### The explorations in Google Analytics (2026-10-13)
+
+- **Made in the property:** the three calculated metrics (the averages of review seconds, worker speed and GPU speed
+  ratio, each a total over the event count) and six explorations: "Funnel: where do players drop off?" (tabs "From the
+  visit" and "By way in"), "Engine defaults: are they right?" (four tabs), "GPU: does it pay off?", "Features: which
+  earn their place?" (two tabs), "Settings: do the defaults fit?" and "Imports and shares: do they work?" (five tabs).
+  Each tab was read back after it was set: its rows, columns, values and filter match design 17.
+- **The funnel's breakdown by import source starts at the import:** Google counts a player under the first value of
+  a breakdown, and the first step, a page view, has no import source.
+- **The filters are per tab.** Two tabs had none at first ("Machines", and an empty fourth tab of the engine
+  defaults), so they counted every event. Both now filter as design 17 says.
+- **Empty at first:** the parameters were registered on 2026-10-13, and **Last 28 days** ends the day before. The
+  tables fill from the next day on.
+- **Design 17's steps now follow what Google Analytics shows:** **Confirm** in the dimension and metric lists, a tab
+  renamed by its name's text box, **+** with a list of techniques, and boxes to click for rows, values and filters.
+
+### Analytics parameters named by their subject, and the data collection settings (2026-10-14)
+
+- **The risk:** a custom dimension takes its parameter from every event that sends it. `kind` already held an export's
+  kind and an engine failure's kind in one dimension, and `name`, `reason`, `scope`, `outcome`, `tool`, `too_long`
+  and the metric `ratio` would mix any later event's values of the same name.
+- **Renamed** while the property held one day of data under the old names: `export_kind`, `error_kind`,
+  `feature_name`, `import_failure`, `setting_scope`, `gpu_outcome`, `stale_tool`, `link_too_long`, and the metric
+  `gpu_ratio`. The event names stay: none is one of Google's reserved names, and a renamed event would need its key
+  event marked again and every exploration's filter changed.
+- **In the property:** the seven dimensions and the metric on the old names archived, nine definitions created with
+  the same display names (an archived name can be used again), the calculated metric "Average GPU speed ratio" pointed
+  at the new metric, and the explorations that used archived dimensions (GPU, Features, Imports and shares) given the
+  new ones. Each was read back after a reload. An exploration keeps a new variable only once a tab setting changes
+  after it: a reload right after **Confirm** lost it twice.
+- **The features documented by name** in design 17, as the code sends them: twelve actions, the two chart tabs, and
+  `display` with each of fifteen display settings.
+- **The data collection settings** (design 17, step 7): Google signals and user-provided data collection off, granular
+  location and device data on, ads personalization off. If the site ever serves ads, Google signals goes on with a
+  change of the privacy page in the same release.
+- **"(not set)" for the import source** in the first day's imports: those events came before the release that sent
+  `import_source`, and before its dimension was registered. The live site's code sends `import_source` only.

@@ -35,18 +35,35 @@ visitors' machines, and the GPU on other machines.
 | Event | When | Parameters | The decision it serves |
 |---|---|---|---|
 | `import_game` | a game kept, from any way in | `import_source` (record, constellation, review_file, bookmarklet, userscript, older_tool, share_link, site_link, site_review), `edges`, `with_results` (a file), `with_branches` (a link) | which ways in to keep and improve, and the funnel's first step |
-| `import_failed` | an import refused | `import_source`, `reason` (record: not read, rejected: the rules or the storage refused it, file, link) | what breaks imports |
-| `tool_out_of_date` | the import page asks to update a tool | `tool` (bookmarklet, userscript, older) | how many players still need the new tools |
+| `import_failed` | an import refused | `import_source`, `import_failure` (record: not read, rejected: the rules or the storage refused it, file, link) | what breaks imports |
+| `tool_out_of_date` | the import page asks to update a tool | `stale_tool` (bookmarklet, userscript, older) | how many players still need the new tools |
 | `share_open` | a share link's page | `network_found`, `same_engine` | whether shared reviews arrive whole |
 | `game_missing` | a review's address in a browser without the game | none | whether players send review addresses, which do not work in another browser |
 | `review_open` | the review starts, with the engine loaded | `network`, `depth`, `depth_on_screen`, `time_limit`, `workers`, `gpu_mode`, `cores`, `edges`, `own_settings`, `done_before` | the funnel's second step, and the settings in use |
 | `review_done` | the review ends, in this visit | as `review_open`, and `review_seconds` (a number), `minutes`, `worker_speed` (a CPU worker's visits a second, by 5), `gpu_used` | the engine's defaults: how long a review takes on real machines, by settings and cores |
-| `gpu_test` | Auto's first test of a GPU | `outcome` (faster, slower), `ratio` (the GPU's speed over a worker's), `gpu` (maker and kind, as WebGPU gives them), `network` | the GPU's default, and whether it pays off on laptops and phones |
-| `engine_error` | the engine fails | `kind` (load, rules, gpu) | reliability |
-| `setting_change` | an engine setting changes | `setting`, `setting_value`, `scope` (browser, game) | whether the defaults fit |
-| `feature` | a feature's first use in a review | `name` (candidate played, listed line played, engine line played, own edge played, note drawn, quality evaluated, branch promoted, branch deleted, keys list, chart difficulty, chart advantage, chart jump, display and a setting's name) | what to keep, to improve, or to explain |
-| `export` | an export | `kind` (link, file, copy, text, partner: the review file saved to a partner site, design 18), `link_length`, `too_long` | whether players share, and whether links fit a Discord message |
+| `gpu_test` | Auto's first test of a GPU | `gpu_outcome` (faster, slower), `gpu_ratio` (the GPU's speed over a worker's), `gpu` (maker and kind, as WebGPU gives them), `network` | the GPU's default, and whether it pays off on laptops and phones |
+| `engine_error` | the engine fails | `error_kind` (load, rules, gpu) | reliability |
+| `setting_change` | an engine setting changes | `setting`, `setting_value`, `setting_scope` (browser, game) | whether the defaults fit |
+| `feature` | a feature's first use in a review | `feature_name` (the feature, below) | what to keep, to improve, or to explain |
+| `export` | an export | `export_kind` (link, file, copy, text, partner: the review file saved to a partner site, design 18), `link_length`, `link_too_long` | whether players share, and whether links fit a Discord message |
 | `game_delete`, `game_restore` | a game deleted, its Undo | none | whether Undo saves slips |
+
+The features, by their `feature_name` (`ReviewView.svelte`, `used`). Each counts once in a review, at its first use:
+
+| `feature_name` | The use |
+|---|---|
+| `candidate played` | a candidate of the engine played, from the Analysis table or by a double click on the board |
+| `listed line played` | an edge of the listed line under the Analysis table played |
+| `engine line played` | an edge of the engine's line played |
+| `own edge played` | an edge drawn on the board by the player |
+| `note drawn` | a note drawn on the board |
+| `quality evaluated` | "Evaluate quality" chosen in a branch's menu |
+| `branch promoted` | a branch promoted in its menu |
+| `branch deleted` | a branch deleted |
+| `keys list` | the list of keys opened (`?`) |
+| `chart jump` | a click on the Advantage or the Difficulty chart, to go to a position |
+| `chart advantage`, `chart difficulty` | the chart's tab chosen |
+| `display` and a setting | a display setting changed, by its name in `src/lib/review/display.ts`: `display judge`, `display reviewFor`, `display win`, `display layers`, `display scoreLine`, `display areaLine`, `display lineSteps`, `display branchForm`, `display marks`, `display notes`, `display previewMoves`, `display previewBranches`, `display sound`, `display moveSound`, `display volume` |
 
 A property of the visitor, `games_stored`, comes with every event after the home page sets it: how many games the
 browser keeps, as a range.
@@ -62,7 +79,7 @@ setup needs the Editor role on the site's property.
 **Before you start:** go to [analytics.google.com](https://analytics.google.com). Select the site's property in the
 selector at the top left. Click **Admin**, the gear at the bottom left.
 
-#### 1. The custom dimensions (29 rows of the table below)
+#### 1. The custom dimensions (30 rows of the table below)
 
 1. In Admin, under **Data display**, click **Custom definitions**.
 2. On the **Custom dimensions** tab, click **Create custom dimension**.
@@ -79,11 +96,11 @@ selector at the top left. Click **Admin**, the gear at the bottom left.
 | Event parameter | Dimension name | Scope | What it holds |
 |---|---|---|---|
 | `import_source` | Import source | Event | how a game came in: record, constellation, review_file, bookmarklet, userscript, older_tool, share_link, site_link, site_review |
-| `reason` | Import failure | Event | why an import failed: record, rejected, file, link |
+| `import_failure` | Import failure | Event | why an import failed: record, rejected, file, link |
 | `edges` | Game edges | Event | the game's edges, as a range |
 | `with_results` | File with results | Event | a review file that has the engine's results |
 | `with_branches` | Link with branches | Event | a share link that has branches |
-| `tool` | Tool out of date | Event | bookmarklet, userscript, older |
+| `stale_tool` | Tool out of date | Event | bookmarklet, userscript, older |
 | `network_found` | Share network found | Event | the share link's network is on this site |
 | `same_engine` | Share same engine | Event | the share link's engine is this site's engine |
 | `network` | Engine network | Event | the network's name |
@@ -97,24 +114,31 @@ selector at the top left. Click **Admin**, the gear at the bottom left.
 | `done_before` | Done before | Event | the review opened with its results stored |
 | `minutes` | Review minutes | Event | the review's time, as a range |
 | `gpu_used` | GPU used | Event | the GPU searched in the review |
-| `outcome` | GPU test outcome | Event | faster or slower |
+| `gpu_outcome` | GPU test outcome | Event | faster or slower |
 | `gpu` | GPU | Event | the GPU's maker and kind |
 | `setting` | Setting | Event | the setting that changed |
 | `setting_value` | Setting value | Event | the setting's new value |
-| `scope` | Setting scope | Event | browser (this browser's settings) or game (one game's settings) |
-| `name` | Feature | Event | the feature used |
-| `kind` | Kind | Event | an export's kind (link, file, copy, text, partner), or an engine failure's kind (load, rules, gpu) |
+| `setting_scope` | Setting scope | Event | browser (this browser's settings) or game (one game's settings) |
+| `feature_name` | Feature | Event | the feature used |
+| `export_kind` | Export kind | Event | an export's kind: link, file, copy, text, partner |
+| `error_kind` | Error kind | Event | an engine failure's kind: load, rules, gpu |
 | `link_length` | Link length | Event | a share link's characters, as a range |
-| `too_long` | Link too long | Event | the link is longer than a Discord message takes |
+| `link_too_long` | Link too long | Event | the link is longer than a Discord message takes |
 | `games_stored` | Games stored | **User** | the games that the browser keeps, as a range |
 
-The property can have 50 event-scoped and 25 user-scoped custom dimensions. These take 28 and 1.
+The property can have 50 event-scoped and 25 user-scoped custom dimensions. These take 29 and 1.
 
 **No parameter is named `source`, `medium` or `campaign`.** Google Analytics keeps a visit's traffic source in event
 parameters of those names, so it reads the site's own parameter as the session's source. With the import's way in
 named `source`, the Traffic acquisition report gave sessions the source "userscript" in place of the site that the
-visitor came from. The parameter is therefore `import_source`. If the property still has the dimension Import source
-on `source`, archive it (its row's **⋮** menu, then **Archive**), and create the row above.
+visitor came from. The parameter is therefore `import_source`.
+
+**A parameter's name names its subject** (`export_kind`, not `kind`). A custom dimension takes its parameter from every
+event that sends it, so a generic name, reused by a later event, would gather values of different meanings in one
+report. The earlier names were `kind` (for an export and for an engine failure both), `name`, `reason`, `scope`,
+`outcome`, `tool`, `too_long`, the metric `ratio`, and `source`. If the property still has a definition on one of them,
+archive it (its row's **⋮** menu, then **Archive**), and create its row above. An archived name can be used again, and
+an exploration that used an archived dimension needs the new one in its **Variables** and its tab.
 
 #### 2. The custom metrics (3)
 
@@ -125,7 +149,7 @@ on `source`, archive it (its row's **⋮** menu, then **Archive**), and create t
 |---|---|---|---|
 | `review_seconds` | Review seconds | Event | Time, then Seconds |
 | `worker_speed` | Worker speed | Event | Standard |
-| `ratio` | GPU speed ratio | Event | Standard |
+| `gpu_ratio` | GPU speed ratio | Event | Standard |
 
 #### 3. The key events (3)
 
@@ -147,25 +171,190 @@ on `source`, archive it (its row's **⋮** menu, then **Archive**), and create t
 2. Set **Event data retention** to **14 months**, and click **Save**. The default, 2 months, is too short to compare a
    release with the months before it.
 
+#### 5. The calculated metrics (3)
+
+Three questions need an average of a number that an event carries, and Explore gives only totals. A calculated metric
+divides a total by the count of events.
+
+1. In **Custom definitions**, click the **Calculated metrics** tab, then **Create calculated metric**.
+2. Fill in the form, click **Save**, and do it again for each row:
+   - **Name** and **API name:** as in the table. The API name field starts with `calcMetric:`. Type after it.
+   - **Formula:** type `{` and the start of a metric's name, then click the metric in the list. Type ` / ` between
+     the two metrics.
+   - **Unit of measurement:** as in the table.
+
+| Name | API name | Formula | Unit of measurement |
+|---|---|---|---|
+| Average review seconds | `average_review_seconds` | `{Review seconds} / {Event count}` | Time, then Seconds |
+| Average worker speed | `average_worker_speed` | `{Worker speed} / {Event count}` | Standard |
+| Average GPU speed ratio | `average_gpu_ratio` | `{GPU speed ratio} / {Event count}` | Standard |
+
+An average is right only in an exploration whose filter keeps the one event that carries its number (`review_done`, or
+`gpu_test` for the ratio). Otherwise the count of events includes other events. The property can have 5 calculated
+metrics. These take 3.
+
+#### 6. The explorations (6)
+
+An exploration is a report that Google keeps under **Explore**. An exploration has one or more tabs. Each tab has its
+own settings: its technique, its rows or steps, its columns, its values and its filter. A filter set on one tab does
+not apply to the other tabs. The property has the six explorations below: this section says how they are made, to
+check them or to make them again.
+
+Below, each exploration gives the dimensions and metrics to add to its **Variables** column, then a table with
+one row for each tab. A row gives all the settings of its tab. "None" means: leave that setting empty.
+
+**To make an exploration:**
+
+1. In the left menu, click **Explore**, then **Blank**. The exploration opens with one tab, **Free form 1**, and the
+   date range **Last 28 days** (to yesterday).
+2. In the **Variables** column, click the name **Untitled exploration**, select its text, type the exploration's
+   name, and press Enter.
+3. Click **+** beside **Dimensions**. In the search box, type a dimension's name, and select its box. Do this for
+   each dimension in the exploration's **Variables** line, then click **Confirm**. Click **+** beside **Metrics**,
+   and do the same for its metrics.
+4. Set the tabs, from the first row of the table to the last.
+
+**To set a tab of the technique Free form:**
+
+1. For the first tab, use **Free form 1**. For each next tab, click **+** to the right of the tab names, and click
+   **Free form** in the list.
+2. Click the tab's name, select its text, type the name in the table, and press Enter.
+3. Under **Rows**, click **Drop or select dimension**, and click the first dimension in the row's **Rows** cell. Do
+   the same for the next dimension in the cell: it goes under the first. Do the same under **Columns** for the
+   **Columns** cell. Under **Values**, click **Drop or select metric** for each metric in the **Values** cell.
+4. Under **Filters**, click **Drop or select dimension or metric**, and click **Event name**. Under **Conditions**,
+   select the match type in the row's **Filter** cell (**exactly matches** or **begins with**). Type its value in
+   **Enter expression**, and click **Apply**.
+
+**Total users** counts only the visitors who accepted cookies. **Event count** counts every visitor (design 11).
+
+##### 1. Funnel: where do players drop off?
+
+The funnel shows where players stop, from the first page to the export.
+
+**Variables:** the dimension **Import source**. No metrics.
+
+| Tab | Technique | Steps | Breakdown | Filter |
+|---|---|---|---|---|
+| From the visit | Funnel exploration | Steps 1 to 5 | None | None |
+| By way in | Funnel exploration | Steps 2 to 5 | Import source | None |
+
+The steps:
+
+| Step | Name | Condition |
+|---|---|---|
+| 1 | Home or import page | **Page path and screen class** exactly matches `/`, **Or** **Page path and screen class** exactly matches `/import` |
+| 2 | Import | **Event name** exactly matches `import_game` |
+| 3 | Review open | **Event name** exactly matches `review_open` |
+| 4 | Review done | **Event name** exactly matches `review_done` |
+| 5 | Export | **Event name** exactly matches `export` |
+
+To set a tab of the technique Funnel exploration:
+
+1. For the first tab, set **Technique** to **Funnel exploration**. For the next tab, click **+** to the right of
+   the tab names, and click **Funnel exploration** in the list. Name the tab, as for a tab of Free form.
+2. Click the pencil beside **Steps**. The panel **Edit funnel steps** opens. For each step in the tab's row, type the
+   step's name beside **Step**. Set its condition: the dimension (**Event name**, or **Page path and screen class**),
+   **exactly matches**, and the value. For step 1, set the first condition, click **Or**, and set the second. Click
+   **Add step** for the next step.
+3. Click **Apply**. Leave **Make open funnel** off.
+4. For the tab "By way in", click **Drop or select dimension** under **Breakdown**, and click **Import source**.
+
+The tab "By way in" starts at the import. A breakdown counts each player under the first value that the player has,
+and a page view has no import source. A player who opens a game kept from an earlier visit has no import, so the
+funnel shows players' first reviews best.
+
+##### 2. Engine defaults: are they right?
+
+The exploration shows how long reviews take, by their settings and by the visitors' machines.
+
+**Variables:** the dimensions **Event name**, **Review depth**, **Engine network**, **CPU cores** and **Review
+minutes**. The metrics **Event count**, **Average review seconds** and **Average worker speed**.
+
+| Tab | Technique | Rows | Columns | Values | Filter: Event name |
+|---|---|---|---|---|---|
+| Time by settings | Free form | Review depth, Engine network | CPU cores | Event count, Average review seconds | exactly matches `review_done` |
+| Minutes | Free form | Review minutes | Review depth | Event count | exactly matches `review_done` |
+| Machines | Free form | CPU cores | None | Event count, Average worker speed | exactly matches `review_done` |
+| Started and ended | Free form | Review depth | Event name | Event count | begins with `review_` |
+
+What each tab shows:
+
+- **Time by settings:** the average time of a review, by depth and network, for each range of cores.
+- **Minutes:** how many reviews took each range of minutes, at each depth.
+- **Machines:** a worker's average speed, in visits a second, for each range of cores. It sizes the pool of workers.
+- **Started and ended:** at each depth, the reviews that started (`review_open`) and the reviews that ended
+  (`review_done`). At a depth with many starts and few ends, players do not wait for the review. That depth is too
+  deep for a default.
+
+##### 3. GPU: does it pay off?
+
+The exploration shows whether the GPU is faster than a worker, for each kind of GPU.
+
+**Variables:** the dimensions **Event name**, **GPU** and **GPU test outcome**. The metrics **Event count** and
+**Average GPU speed ratio**.
+
+| Tab | Technique | Rows | Columns | Values | Filter: Event name |
+|---|---|---|---|---|---|
+| GPU tests | Free form | GPU | GPU test outcome | Event count, Average GPU speed ratio | exactly matches `gpu_test` |
+
+##### 4. Features: which earn their place?
+
+The exploration shows how many players use each feature, against how many players open a review.
+
+**Variables:** the dimensions **Event name** and **Feature**. The metric **Total users**.
+
+| Tab | Technique | Rows | Columns | Values | Filter: Event name |
+|---|---|---|---|---|---|
+| Feature users | Free form | Feature | None | Total users | exactly matches `feature` |
+| Review users | Free form | None | None | Total users | exactly matches `review_open` |
+
+##### 5. Settings: do the defaults fit?
+
+The exploration shows which engine settings players change, and to what. A setting that most players change away
+from its default asks for another default.
+
+**Variables:** the dimensions **Event name**, **Setting** and **Setting value**. The metrics **Event count** and **Total
+users**.
+
+| Tab | Technique | Rows | Columns | Values | Filter: Event name |
+|---|---|---|---|---|---|
+| Changes | Free form | Setting, Setting value | None | Event count, Total users | exactly matches `setting_change` |
+
+##### 6. Imports and shares: do they work?
+
+The exploration shows how games come in, and what fails.
+
+**Variables:** the dimensions **Event name**, **Import source**, **Import failure**, **Share network found**, **Share
+same engine** and **Tool out of date**. The metrics **Event count** and **Total users**.
+
+| Tab | Technique | Rows | Columns | Values | Filter: Event name |
+|---|---|---|---|---|---|
+| Ways in | Free form | Import source | None | Event count, Total users | exactly matches `import_game` |
+| Failed imports | Free form | Import source, Import failure | None | Event count | exactly matches `import_failed` |
+| Share links | Free form | Share network found, Share same engine | None | Event count | exactly matches `share_open` |
+| Old tools | Free form | Tool out of date | None | Event count | exactly matches `tool_out_of_date` |
+| Missing games | Free form | None | None | Event count | exactly matches `game_missing` |
+
+#### 7. The data collection settings
+
+In Admin, under **Data collection and modification**, click **Data collection**, and set:
+
+| Setting | State | Why |
+|---|---|---|
+| Google signals data collection | Off | It ties visits to the Google accounts of signed-in visitors (their location, search and YouTube history). The privacy page does not say so, and the site's consent mode denies Google's advertising signals, so little would come. |
+| User-provided data collection, and its automatic detection | Off | It sends hashed contact data, such as email addresses, for Google Ads. The site has no accounts and no such data. The automatic detection reads the pages' text. |
+| Granular location and device data collection | On | Google's default: the city and the device's model, from the IP address and the browser that the privacy page names. |
+| Advanced settings to allow for ads personalization | Off | The site has no ads. |
+
+If the site ever serves ads, turn on Google signals (and user-provided data, if the site collects contact data), and
+change the privacy page in the same release.
+
 #### After the setup
 
 Google shows the events in **Reports → Realtime** at once. The custom dimensions fill the reports within a day or two,
-from the time of their registration on.
-
-### The questions, and the reports that answer them
-
-- **Where do players drop off?** Explore → Funnel exploration, with the steps: a page view of the home or import page,
-  `import_game`, `review_open`, `review_done`, `export`. Break it down by `import_source`.
-- **Are the engine's defaults right?** Explore → Free form: `review_done`, rows `depth` and `network`, columns `cores`,
-  values the average of `review_seconds` and the event count, and the distribution of `minutes`. A default is too deep
-  when most reviews at it take longer than players wait (see whether `review_open` without a `review_done` grows with
-  `minutes`). `worker_speed` by `cores` gives the visitors' machines in visits a second, for the pool's size.
-- **Does the GPU pay off?** `gpu_test`, rows `gpu`, columns `outcome`, values the average `ratio`.
-- **Which features earn their place?** `feature`, rows `name`, value the count of users, against `review_open`'s users.
-- **Do the defaults fit?** `setting_change`, rows `setting` and `setting_value`: a setting that most players change away from
-  its default asks for another default.
-- **Do shares and imports work?** `share_open` by `network_found`, `import_failed` by `import_source` and `reason`,
-  `tool_out_of_date` by `tool`, `game_missing`.
+from the time of their registration on, and the explorations show them from then. An exploration with few players
+shows few rows. Read it as section "Reading it" says.
 
 ### Reading it
 
@@ -216,3 +405,6 @@ from the time of their registration on.
 - [decisions/product.md](../decisions/product.md): "Events for the decisions that wait on data" (2026-10-13).
 - [decisions/product.md](../decisions/product.md): "Links from another site, and reviews saved back" (2026-10-13): the
   import's parameter renamed `import_source`.
+- [decisions/product.md](../decisions/product.md): "The explorations in Google Analytics" (2026-10-13).
+- [decisions/product.md](../decisions/product.md): "Analytics parameters named by their subject, and the data collection
+  settings" (2026-10-14).

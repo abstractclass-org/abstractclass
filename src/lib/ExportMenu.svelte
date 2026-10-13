@@ -38,7 +38,8 @@
       const r = await run(kind);
       note = r?.note || done;
       // Each export by its kind, and a link by its length (design 17).
-      track("export", r?.linkLength ? { kind, link_length: range(r.linkLength, LINK_RANGES), too_long: r.linkLength > DISCORD_LIMIT } : { kind });
+      track("export", r?.linkLength ? { export_kind: kind, link_length: range(r.linkLength, LINK_RANGES), link_too_long: r.linkLength > DISCORD_LIMIT }
+                                    : { export_kind: kind });
     } catch (e) {
       note = `Export failed: ${errorText(e)}`;
       failed = true;

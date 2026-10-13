@@ -67,7 +67,7 @@
       names.add(setting);
       const value = setting === "depth_per_move" ? String(reviewVisits(next)) : setting === "network" ? next.network.split("-")[0]
         : String(next[k as keyof EngineSettings] ?? "none");
-      track("setting_change", { setting, setting_value: value, scope: own && (setting === "network" || setting === "depth_per_move") ? "game" : "browser" });
+      track("setting_change", { setting, setting_value: value, setting_scope: own && (setting === "network" || setting === "depth_per_move") ? "game" : "browser" });
     }
   }
   function changeEngine(change: Partial<EngineSettings>) {
@@ -252,7 +252,7 @@
       await next.start(manifest, id);
     } catch (e) {
       next.terminate();
-      if (network === id) { error = errorText(e); track("engine_error", { kind: "load" }); }
+      if (network === id) { error = errorText(e); track("engine_error", { error_kind: "load" }); }
       return;
     }
     if (network !== id) { next.terminate(); return; } // another network was chosen meanwhile
@@ -355,7 +355,7 @@
         if (pool === first) throw e; // else another network took over while this one loaded
         return;
       }
-      if (!g.rulesReady) { track("engine_error", { kind: "rules" }); return; } // the rules refused the game: the page shows why
+      if (!g.rulesReady) { track("engine_error", { error_kind: "rules" }); return; } // the rules refused the game: the page shows why
       if (pool !== first) return; // another pool took over
       first.releaseWhenIdle(); // an idle tab keeps no engine but the rules' (pool.ts, IDLE_RELEASE_MS)
       controlGpu(first, network);
@@ -368,7 +368,7 @@
       await g.sweep();
     } catch (e) {
       // A review stopped for another tab fails its searches: no error to show.
-      if (!elsewhere) { error = errorText(e); if (kept) track("engine_error", { kind: "load" }); }
+      if (!elsewhere) { error = errorText(e); if (kept) track("engine_error", { error_kind: "load" }); }
     }
   });
   onDestroy(() => { gpu?.end(); pool?.terminate(); freeLock?.(); }); // a GPU worker that starts later then ends (GpuControl)
@@ -408,7 +408,7 @@
               turnKeys={path => game?.turnKeys(path) ?? []} pendingAt={path => game?.pending(path) ?? false} reviewVisits={budget}
               ondelete={path => game!.deleteFrom(path)} onpromote={path => game!.promote(path)}
               onjudge={path => game!.judge(path)} labelVisits={LABEL_VISITS} engine={settings} onengine={changeEngine}
-              ownSettings={!!own} onfeature={name => kept && trackOnce(`${kept.id} ${name}`, "feature", { name })}
+              ownSettings={!!own} onfeature={name => kept && trackOnce(`${kept.id} ${name}`, "feature", { feature_name: name })}
               gpu={{ status: gpu?.status ?? { state: "off" }, downloadMB: manifest ? gpuDownloadMB(manifest, settings.network) : "?" }}
               timedOut={!!game?.stoppedByTime(current)}
               searching={!!game && game.focusing === pathKey(current)}
