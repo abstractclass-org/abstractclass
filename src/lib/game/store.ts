@@ -7,6 +7,7 @@ import { parseRecord, type GameRecord } from "./record.ts";
 import { sha256Hex } from "#lib/engine/artifacts.ts";
 import { modelOf, moduleOf, type Manifest } from "#lib/engine/client.ts";
 import { pathKey } from "#lib/review/tree.ts";
+import type { GamePartner } from "./partners.ts";
 
 /** A game's branches as kept in the browser (analysis/game.svelte.ts): each node's path key (its moves, as the review's
  *  tree names them), its order, and 1 when its move was evaluated. Version 1 kept the lines. */
@@ -24,12 +25,19 @@ export interface StoredGame {
   added: string; // ISO date and time
   reviewed?: ReviewMark; // the deepest review that ran to its end with the engine named in it
   settings?: GameSettings; // the review settings it came with, when it keeps them
+  partner?: GamePartner; // the partner site it came from by a link, which takes its review back (design 18)
 }
 
 /** The review settings that a game keeps (design 13): the network and the review's visits that an imported review file
  *  or a shared link came with, so that its review is the one it came with. The browser's own settings serve every
  *  other game. */
 export interface GameSettings { network: string; visits: number }
+
+/** Keeps the partner site that a game came from, and its save page (partners.ts). */
+export async function setGamePartner(id: string, partner: GamePartner) {
+  const game = await dbGet<StoredGame>(STORES.games, id);
+  if (game) await dbPut(STORES.games, id, { ...game, partner });
+}
 
 /** Keeps a game's own review settings. */
 export async function setGameSettings(id: string, settings: GameSettings) {

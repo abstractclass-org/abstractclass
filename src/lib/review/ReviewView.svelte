@@ -55,6 +55,8 @@
     deepVisits?: number; // the budget of the position on screen: its search bar is full at this many visits
     deeperPositions?: number; // the game's positions searched deeper than the review asked, where the player looked
     again?: ReviewAgain | null; // why a game reviewed before is reviewed again, when the site's engine changed
+    partner?: string | null; // the partner site the game came from by its link, which takes its review back (design 18)
+    siteLink?: { href: string; host: string } | null; // the game's own page, from its record's Site tag
     ownSettings?: boolean; // the game keeps the network and depth it came with (store.ts, `settings`)
     onfeature?: (name: string) => void; // a feature used (design 17): the page counts its first use in each review
     onposition?: (path: string[]) => void; // the position on screen changed: its path in the game's tree
@@ -81,7 +83,7 @@
     exportReady?: boolean; // the review is done: export only then (design 13)
   }
   let { R, progress = null, problem = "", deepVisits = 0, onposition, lineSteps, branches = {}, onplay, rulesAt, ondelete,
-        onpromote, onjudge, labelVisits = 0, searching = false, timedOut = false, engine, onengine, gpu, secondAt, otherAt, turnKeys, pendingAt, reviewVisits = 0, onexport, exportReady = true, deeperPositions = 0, again = null, ownSettings = false, onfeature }: Props = $props();
+        onpromote, onjudge, labelVisits = 0, searching = false, timedOut = false, engine, onengine, gpu, secondAt, otherAt, turnKeys, pendingAt, reviewVisits = 0, onexport, exportReady = true, deeperPositions = 0, again = null, partner = null, siteLink = null, ownSettings = false, onfeature }: Props = $props();
   const used = (name: string) => onfeature?.(name);
   const last = $derived(R.data.positions.length - 1);
   const TABLE_ROWS = 5; // the Analysis table shows this many rows and scrolls, so the move list under it does not move
@@ -927,6 +929,10 @@
     ({fmtScore(R.data.result.blue)} to {fmtScore(R.data.result.red)}).
     {#if progress}The review is still running: the counts below are partial.{/if}
   </p>
+  <!-- The game's own page, when its record's Site tag is an address (Lichess's way): back to the site it was played on. -->
+  {#if siteLink}
+    <p class="-mt-2 mb-3 text-sm"><a href={siteLink.href} target="_blank" rel="noopener noreferrer">View this game on {siteLink.host}</a></p>
+  {/if}
   <!-- The positions searched deeper than the review by the position on screen's Depth (design 16), here or in the
        browser that a review file came from: their results replace the review's, so this report follows them. -->
   {#if deeperPositions}
@@ -1640,7 +1646,7 @@
         </div>
         <div class="flex items-center gap-1">
           <!-- Export (design 13): the review file, with the engine's results, or the annotated record. -->
-          {#if onexport}<ExportMenu run={kind => onexport(kind, display.judge)} ready={exportReady} why="Export once the review is done." />{/if}
+          {#if onexport}<ExportMenu run={kind => onexport(kind, display.judge)} ready={exportReady} why="Export once the review is done." {partner} />{/if}
           <!-- The menu button (Lichess's ☰ in the same place) opens the display settings in the analysis's place, and
                closes them. The gear is the engine's, in the engine header. -->
           <button class="aria-expanded:border-accent aria-expanded:text-accent" aria-label="Display settings" title="Display settings"

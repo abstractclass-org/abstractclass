@@ -34,6 +34,16 @@
     the address. Browsers never send that part of an address to a server, so {SITE_NAME}'s host does not see the game,
     and the page removes it from the address before the analytics start. Anyone who has the link can open the game.</p>
 
+  <h2>Games from another site</h2>
+  <p>A site where you play can open {SITE_NAME} with your game, after the <code>#</code> in the address, as a shared
+    review's link does: browsers never send that part to a server, and the page removes it at once. The game is then
+    kept in your browser, as any game you import.</p>
+  <p>When that site is one of {SITE_NAME}'s partners, the review's Export menu offers "Save to" it. Only when you choose
+    it, {SITE_NAME} opens that site's page and hands it the review file, from your browser to that site: the game, its
+    branches and the engine's results. That site keeps it under its own terms. Nothing goes to it before you choose,
+    and nothing else ever does. To open a review that it kept, that site's page sends the file back to {SITE_NAME} in
+    your browser, and it is kept here as any review file you import.</p>
+
   <h2>The meaf.us bookmarklet and userscript</h2>
   <p>The bookmarklet runs in the meaf.us page that you have open. It reads the game on the board, with nothing from your
     meaf.us login and no request to meaf.us, and opens {SITE_NAME} with the game after the <code>#</code> in the
@@ -61,13 +71,14 @@
     names its game after the <code>#</code>, which neither records.</p>
   <p>Google Analytics also receives what you do here, as counts, so that we can tell what to improve:</p>
   <ul>
-    <li>that you imported a game, and how (pasted, from Constellation, a review file, the bookmarklet, the userscript or
-      a share link), its length as a range (for example 90 to 119 edges), or why an import failed;</li>
+    <li>that you imported a game, and how (pasted, from Constellation, a review file, the bookmarklet, the userscript, a
+      share link, another site's link or a review that another site kept), its length as a range (for example 90 to
+      119 edges), or why an import failed;</li>
     <li>that a review opened and ended: the engine settings it ran with, your computer's number of cores as a range,
       how long the review took, and how fast the engine searched;</li>
     <li>the GPU's first test: faster or slower than the CPU, and the GPU's maker and kind;</li>
-    <li>the engine settings you change, the review's features you use (each once in a review), and your exports, with a
-      share link's length as a range;</li>
+    <li>the engine settings you change, the review's features you use (each once in a review), and your exports (a
+      review saved to a partner site among them), with a share link's length as a range;</li>
     <li>how many games this browser keeps, as a range.</li>
   </ul>
   <p>None of these holds a game, a move, a player's name or a game's code. Until you accept the cookies, Google receives

@@ -10,17 +10,21 @@
   import { track } from "#lib/analytics.svelte.ts";
   import { DISCORD_LIMIT } from "#lib/game/share.ts";
   import { LINK_RANGES, range } from "#lib/measure.ts";
-  let { run, side = "top", small = false, ready = true, why = "" }:
-    { run: (kind: ExportKind) => Promise<ExportResult | void>; side?: "top" | "bottom"; small?: boolean; ready?: boolean; why?: string } = $props();
+  let { run, side = "top", small = false, ready = true, why = "", partner = null }:
+    { run: (kind: ExportKind) => Promise<ExportResult | void>; side?: "top" | "bottom"; small?: boolean; ready?: boolean; why?: string;
+      partner?: string | null } = $props();
 
   // Each kind: its entry, a line on what the other end gets (the link and the file differ most there: the link holds
   // no results, design 13), and the note after it.
-  const ITEMS: [ExportKind, string, string, string][] = [
+  // A game that came from a partner site by its link (design 18) can go back to it: the review file, to the player's
+  // account there, first in the menu.
+  const ITEMS = $derived<[ExportKind, string, string, string][]>([
+    ...(partner ? [["partner", `Save to ${partner}`, `The review file, to your account there.`, `Saved to ${partner}`] as [ExportKind, string, string, string]] : []),
     ["link", "Copy a link to share the review", "Short. The recipient's browser reviews the game again.", "Link copied"],
     ["file", "Review file, to import elsewhere", "With the engine's results: the review opens at once.", "Review file saved"],
     ["copy", "Copy the annotated record", "", "Annotated record copied"],
     ["text", "Annotated record as a file", "", "Annotated record saved"],
-  ];
+  ]);
   const ITEM = "px-2.5 py-1.5 rounded cursor-pointer outline-none data-highlighted:bg-panel";
   let note = $state(""), failed = $state(false), busy = $state(false);
   let timer: ReturnType<typeof setTimeout> | undefined;

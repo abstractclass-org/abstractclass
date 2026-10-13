@@ -2227,3 +2227,49 @@ The interface, the review, puzzles, lessons, labels and thresholds.
 - **Checked in Edge,** with the sample game's mark set back to build 632f2a0: the home page's Export said the update,
   the review page showed the dialog and the line, and the review marked the game with build fdfe5ad again. A second
   opening in the same visit showed no dialog.
+
+### Links from another site, and reviews saved back (2026-10-13)
+
+- **The request:** enclosuregame.com, a site where Enclosure is played with accounts, asked for a button on its
+  finished games that opens their review here, and proposed `/review#pgn=…`.
+- **Decided** (design 18): the link is `/import#record=…`, with an optional save page for a partner site. The name
+  `pgn` is not read: the name PGN means chess. A web address in the record's `Site` gives the review a link back. A
+  record with a `Rules` or `Position` tag is refused. For the partner's stored reviews, the review file goes back, not
+  the annotated record: the player chooses "Save to enclosuregame.com" in the Export menu, and the file goes by window
+  messages to the partner's save page, which the site opens at the click. A saved review opens again by the same
+  messages the other way: the partner's page opens `/import#from=` and its origin, and sends the file when the import
+  page asks. Then the partner builds both buttons in one release. A new page, /developers ("For developers", Lichess's
+  name), describes the link and both handshakes, with what can change: lenient reading, additions only, a versioned
+  handshake (`protocol: 1`, since the review file has a `version` of its own), the review file stored as it is, and a
+  list of changes. The notation page describes the record only, as the engine repository decides it.
+- **Why so little is shared:** each change that both sites must make costs both a release. The link and the record
+  are this site's reading, and the labels, the engine and the review stay this site's alone.
+- **Checked in Edge,** with a local test site on another port and a test build that counts it as a partner: its game
+  page's button (a link of 801 characters, 60 edges with tags) imported the game and opened its review with no notice,
+  and the report showed "View this game on 127.0.0.1". With the review done, the Export menu listed "Save to the local
+  test site" first. Its save page opened, received the review file (`protocol: 1`, its name, the record with its tags,
+  254 analyses), stored it and answered, and the review showed "Saved to the local test site." A link with `Rules
+  "Race to 2000"` gave "This game is played by other rules (Race to 2000). Hedge School reviews games of the online
+  rules only." A link with `pgn=` gave "the link has no record=, which carries the game". The same button, clicked
+  again in the same browser, opened the finished review within 4 seconds. The /developers page has no sideways scroll
+  at 360 pixels, and its footer wraps to two lines. The test site's "Open in Hedge School" opened this site on another
+  port, a browser with no game: the review opened finished, with no search, and the browser's results grew from 126 to
+  380, the file's 254. The game kept its save page and the link back. The import page opened with no tie to a page
+  said "the local test site's page is gone, or did not let this page answer it", and a link from a site that is not a
+  partner said "the link names a site that is not one of Hedge School's partners". `npm test` passes 73 checks, 7 new.
+- **The sending site in Google Analytics:** the property's 10 sessions so far are all direct, so its data could not
+  tell. A test visit from a page on another origin to the live import page sent a page view that named that page as
+  its referrer (`dr`), as a session's start, and Realtime counted the view. Realtime shows a visitor's first source
+  only. The session's source shows in the standard reports once Google has processed the day.
+- **The import's parameter renamed `import_source`:** the day's Traffic acquisition report, by session source and
+  medium, had 6 sessions "(direct) / (none)", 9 "(not set)", and 4 with the source "userscript", the value of the
+  import events' `source` parameter. Google Analytics read that parameter as the session's traffic source, as it keeps
+  a visit's source in parameters of that name. A partner's link would have shown as "site_link", not as the partner's
+  site. The events now send `import_source`, and design 17's setup registers the dimension Import source on it.
+- **A partner tests against the preview:** a build of a branch other than `main` also counts a partner's pages on
+  the developer's own computer (`localhost`, `127.0.0.1`, over http) as a partner's, so that a partner can test
+  before its own site is live. Checked by building as Cloudflare builds each branch: the `dev` build has the test
+  partner, the `main` build and a plain local build do not. The /developers page names the live address in its
+  examples and tells a partner to ask for the test address, so that the preview stays unlisted.
+- **Not checked:** enclosuregame.com's own pages, which are not built yet, and the handshake in browsers other than
+  Edge.

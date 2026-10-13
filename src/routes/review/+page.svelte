@@ -17,7 +17,8 @@
   import { GpuControl, gpuDownloadMB } from "#lib/analysis/gpu.svelte.ts";
   import { loadManifest, modelOf, type Manifest } from "#lib/engine/client.ts";
   import { errorText } from "#lib/errors.ts";
-  import { playerNames } from "#lib/game/record.ts";
+  import { gamePage, playerNames } from "#lib/game/record.ts";
+  import type { GamePartner } from "#lib/game/partners.ts";
   import { lastReview, loadGame, markReviewed, rememberReview, reviewAgainWhy, reviewCovers, reviewMark, setGameSettings, type GameSettings,
            type ReviewMark } from "#lib/game/store.ts";
   import { holdReview } from "#lib/game/reviewLock.ts";
@@ -38,7 +39,11 @@
   let network = ""; // the network of the pool in use, or of the pool that loads to replace it
   let game = $state<GameAnalysis | null>(null);
   let players = $state<ReviewData["players"]>({ blue: "Blue", red: "Red" });
-  let kept: { id: string; text: string; record: GameRecord } | null = null; // the stored game, for its export
+  let kept: { id: string; text: string; record: GameRecord; partner?: GamePartner } | null = null; // the stored game, for its export
+  // The partner site the game came from by its link (design 18), for the Export menu's "Save to …", and the game's own
+  // page from its record's Site tag, for the report's link back.
+  let partnerName = $state<string | null>(null);
+  let siteLink = $state.raw<{ href: string; host: string } | null>(null);
   let moveCount = $state(0);
   let error = $state("");
   let current = $state<string[]>([]); // the position on screen: its path in the game's tree (review/tree.ts)
@@ -303,7 +308,9 @@
     }
     if (!named) replaceState(`#game=${id}`, {}); // the address names the game, so a reload keeps it
     rememberReview(id);
-    kept = { id, text: stored.game.record, record: stored.record };
+    kept = { id, text: stored.game.record, record: stored.record, partner: stored.game.partner };
+    partnerName = stored.game.partner?.name ?? null;
+    siteLink = gamePage(stored.record.tags);
     markBefore = stored.game.reviewed;
     const s = stored.game.settings;
     own = s && NETWORKS.some(n => n.id === s.network) ? s : null; // a network the site no longer ships: the browser's
@@ -374,7 +381,7 @@
     return deliverExport(kind, k.id, k.text, manifest, SITE_VERSION, () => {
       if (!R) throw new Error("the review is not ready");
       return annotatedText(R, unit, k.record, game?.branches ?? {}, network);
-    });
+    }, k.partner);
   }
 </script>
 
@@ -395,7 +402,7 @@
 {:else if game?.error && !game.rulesReady}
   <p class="{MESSAGE} text-blunder">The engine could not read this game: {game.error}</p>
 {:else if R}
-  <ReviewView {R} {progress} {deeperPositions} {again} onexport={exportAs} exportReady={reviewDone} problem={game?.error ?? ""} deepVisits={engine.visits} onposition={path => (current = path)}
+  <ReviewView {R} {progress} {deeperPositions} {again} partner={partnerName} {siteLink} onexport={exportAs} exportReady={reviewDone} problem={game?.error ?? ""} deepVisits={engine.visits} onposition={path => (current = path)}
               branches={game?.branches ?? {}} onplay={path => game!.addLine(path)} rulesAt={path => game!.rulesAt(path)}
               secondAt={path => game?.secondAt(path)} otherAt={(path, turn) => game?.otherAt(path, turn)}
               turnKeys={path => game?.turnKeys(path) ?? []} pendingAt={path => game?.pending(path) ?? false} reviewVisits={budget}

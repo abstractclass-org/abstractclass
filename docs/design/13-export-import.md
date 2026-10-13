@@ -83,7 +83,7 @@ searching it again, and to share it as text that others can read.
    So the file's deeper results, from the position on screen where the sender looked (design 09), count everywhere in
    the importer's review. Design 16 has every depth, and what a file and a link carry, with examples.
    So a file searched to 1,024 visits opens at once in a browser whose review depth is 512.
-8. **A link that shares a review** (the Export menu's first entry, "Copy a link to share the review",
+8. **A link that shares a review** (the Export menu's first entry but for item 9's, "Copy a link to share the review",
    `src/lib/game/share.ts`): the game's record, the player's branches, and what the review ran with (the engine
    module's and the network's SHA-256, their first 4 bytes, and the review's visits), after the import page's `#`
    (`/import#s=…`). The browser never sends that part of an address to a server.
@@ -104,6 +104,9 @@ searching it again, and to share it as text that others can read.
    - **Its length:** a whole game of 120 edges with meaf.us's tags is a link of 653 characters (the tags 227 of them).
      A branch's edge adds 3.36 characters, and each new line of branches from another position about 22. The note
      after the copy gives the link's length, and warns past 2,000 characters, a Discord message's limit.
+9. **The review file saved to a partner site** ([design 18](18-partner-links.md)): a game that came by a partner
+   site's link offers "Save to" that site first in the Export menu. The review file goes to the site's save page, in
+   the player's browser, when the player chooses it.
 
 ## Why
 

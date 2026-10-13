@@ -77,7 +77,7 @@
       record = parseRecord(recordText);
     } catch (e) {
       problem = e instanceof RecordError && recordText === text ? `${e.message} (${where(e.offset)}).` : errorText(e);
-      track("import_failed", { source, reason: "record" });
+      track("import_failed", { import_source: source, reason: "record" });
       return;
     }
     checking = true;
@@ -86,12 +86,12 @@
       id = await importRecord(recordText, record);
     } catch (e) {
       problem = errorText(e);
-      track("import_failed", { source, reason: "rejected" });
+      track("import_failed", { import_source: source, reason: "rejected" });
       return;
     } finally {
       checking = false;
     }
-    track("import_game", { source, edges: range(record.moves.length, EDGE_RANGES) });
+    track("import_game", { import_source: source, edges: range(record.moves.length, EDGE_RANGES) });
     await goto(`/review#game=${id}`);
   }
 
@@ -115,12 +115,12 @@
       // Only the networks this site ships: a result of another network is never asked for here.
       const manifest = await loadManifest();
       const { id } = await importReview(review, shippedModels(manifest), shippedModule(manifest));
-      track("import_game", { source: "review_file", edges: range(parseRecord(review.record).moves.length, EDGE_RANGES),
+      track("import_game", { import_source: "review_file", edges: range(parseRecord(review.record).moves.length, EDGE_RANGES),
                              with_results: review.analyses.length > 0 });
       await goto(`/review#game=${id}`);
     } catch (e) {
       fileProblem = `The file could not be imported: ${errorText(e)}`;
-      track("import_failed", { source: "review_file", reason: "file" });
+      track("import_failed", { import_source: "review_file", reason: "file" });
     } finally {
       importing = false;
     }

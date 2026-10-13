@@ -4,7 +4,9 @@
   // review. Without one, the page shows the bookmarklet and the userscript, and how to install them. A record from an
   // out-of-date tool (importHash.ts) is kept too, and the page then says how to update the tool, with the review a
   // click away. A shared review's link (`#s=`, share.ts) shows what it holds and that this browser reviews it again,
-  // and imports it on a click, with the sender's network and depth.
+  // and imports it on a click, with the sender's network and depth. Another site's link (`#record=…`, design 18) imports
+  // its game and opens the review, and keeps the partner's save page with the game when the link names one. A partner's
+  // page that kept a review opens this page with `#from=` and its origin, and sends the review file once this page asks.
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
   import { parseRecord } from "#lib/game/record.ts";
@@ -12,15 +14,18 @@
   import { errorText } from "#lib/errors.ts";
   import { BOOKMARK_VERSION, bookmarkletHref } from "#lib/game/bookmarklet.ts";
   import { readImportHash, staleTool, type Tool } from "#lib/game/importHash.ts";
+  import { gamePartner, partnerOf, receiveFromPartner } from "#lib/game/partners.ts";
+  import { setGamePartner } from "#lib/game/store.ts";
   import { decodeShare, type SharedReview } from "#lib/game/share.ts";
-  import { importShare } from "#lib/game/reviewFile.ts";
+  import { importReview, importShare, readReviewFile, shippedModels, shippedModule } from "#lib/game/reviewFile.ts";
   import { playerNames } from "#lib/game/record.ts";
   import { loadManifest, moduleOf, modelOf } from "#lib/engine/client.ts";
   import { NETWORKS, networkName, reviewDepthText } from "#lib/analysis/engineSettings.ts";
   import { startAnalytics, track } from "#lib/analytics.svelte.ts";
   import { EDGE_RANGES, range } from "#lib/measure.ts";
 
-  let phase = $state<"install" | "importing" | "failed" | "stale" | "share">("install");
+  let phase = $state<"install" | "importing" | "receiving" | "failed" | "stale" | "share">("install");
+  let sender = $state(""); // the partner whose page sends a review that it kept
   let problem = $state("");
   let href = $state("");
   let stale = $state<Tool | "older" | null>(null);
@@ -50,7 +55,7 @@
     } catch (e) {
       phase = "failed";
       problem = `the share link cannot be read: ${errorText(e)}`;
-      track("import_failed", { source: "share_link", reason: "link" });
+      track("import_failed", { import_source: "share_link", reason: "link" });
     }
   }
 
@@ -60,12 +65,36 @@
     phase = "importing";
     try {
       const id = await importShare(shared, sharedHere.network);
-      track("import_game", { source: "share_link", edges: range(shared.moves.length, EDGE_RANGES), with_branches: shared.branches.length > 0 });
+      track("import_game", { import_source: "share_link", edges: range(shared.moves.length, EDGE_RANGES), with_branches: shared.branches.length > 0 });
       await goto(`/review#game=${id}`, { replaceState: true });
     } catch (e) {
       phase = "failed";
       problem = errorText(e);
-      track("import_failed", { source: "share_link", reason: "rejected" });
+      track("import_failed", { import_source: "share_link", reason: "rejected" });
+    }
+  }
+
+  /** A review that a partner site kept (design 18): its page opened this one, and sends the review file when this page
+   *  asks. The file imports as on the home page, and the review opens at once. */
+  async function receiveReview(from: string, save: string | null) {
+    const partner = partnerOf(from);
+    try {
+      if (!partner) throw new Error("the link names a site that is not one of Hedge School's partners");
+      sender = partner.name;
+      phase = "receiving";
+      const sent = await receiveFromPartner(partner, from);
+      const review = readReviewFile(typeof sent === "string" ? sent : JSON.stringify(sent));
+      const manifest = await loadManifest();
+      const { id } = await importReview(review, shippedModels(manifest), shippedModule(manifest));
+      const kept = gamePartner(save);
+      if (kept) await setGamePartner(id, kept);
+      track("import_game", { import_source: "site_review", edges: range(parseRecord(review.record).moves.length, EDGE_RANGES),
+                             with_results: review.analyses.length > 0 });
+      await goto(`/review#game=${id}`, { replaceState: true });
+    } catch (e) {
+      phase = "failed";
+      problem = errorText(e);
+      track("import_failed", { import_source: "site_review", reason: "rejected" });
     }
   }
 
@@ -78,18 +107,22 @@
     let source = "older_tool";
     try {
       const sent = readImportHash(hash), text = sent.record;
-      source = sent.tool ?? source;
+      if (sent.from) { await receiveReview(sent.from, sent.save); return; }
+      source = sent.link ? "site_link" : sent.tool ?? source;
+      if (sent.link && !text) throw new Error("the link has no record=, which carries the game");
       const record = parseRecord(text), id = await importRecord(text, record);
+      const partner = sent.link ? gamePartner(sent.save) : null;
+      if (partner) await setGamePartner(id, partner);
       stale = staleTool(sent, { bookmarklet: String(BOOKMARK_VERSION), userscript: __USERSCRIPT_CODE__ });
       // The import by its tool and the game's length, and an out-of-date tool by its kind (design 17).
-      track("import_game", { source, edges: range(record.moves.length, EDGE_RANGES) });
+      track("import_game", { import_source: source, edges: range(record.moves.length, EDGE_RANGES) });
       if (stale) track("tool_out_of_date", { tool: stale });
       if (stale) { imported = id; phase = "stale"; return; }
       await goto(`/review#game=${id}`, { replaceState: true });
     } catch (e) {
       phase = "failed";
       problem = errorText(e);
-      track("import_failed", { source, reason: "rejected" });
+      track("import_failed", { import_source: source, reason: "rejected" });
     }
   }
 </script>
@@ -99,6 +132,8 @@
 <main class="box-content max-w-184 mx-auto my-6 px-4 grid gap-4">
   {#if phase === "importing"}
     <p class="text-muted">Importing the game…</p>
+  {:else if phase === "receiving"}
+    <p class="text-muted">Waiting for {sender} to send the review…</p>
   {:else if phase === "share" && shared && sharedHere}
     {@const names = playerNames(shared.tags)}
     <h1 class="text-2xl font-bold">A shared review</h1>

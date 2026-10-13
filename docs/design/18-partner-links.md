@@ -1,0 +1,128 @@
+# Links from other sites, and reviews saved back
+
+**Status:** in force, and built. **Decided:** 2026-10-13.
+
+## Context
+
+Another site where Enclosure is played, enclosuregame.com, asked to work with Hedge School. It has accounts, matchmaking
+and its own storage, and wants a button on its finished games that opens their review here. Hedge School has no
+accounts and no server: a game and its review stay in the player's browser. Each site keeps its own work. The two meet
+only where a game crosses from one to the other, so that place must stay small and stable: each change that both sides
+must make costs both of them a release.
+
+## Decision
+
+1. **One link brings a game in:** `/import#record=…`, the game's record URL-encoded after the `#`. The import page
+   keeps the game and opens its review, as the meaf.us tools do, with no notice to update a tool (`readImportHash` in
+   `src/lib/game/importHash.ts`). A link without `record` is refused by name ("the link has no record=").
+2. **The record is this site's notation** (the /notation page), or a plain list of edges. Tags are optional. A web
+   address in `Site` (Lichess writes its game's address there) gives the review a link back: "View this game on
+   enclosuregame.com" under the result (`gamePage` in `src/lib/game/record.ts`).
+3. **Other variants are refused, never reviewed wrongly.** A record with a `Rules` or `Position` tag gets a message
+   that says why (`variantProblem` in `src/lib/game/import.ts`), from a link, a paste or a review file. The engine
+   plays the online rules from the standard start only. enclosuregame.com has a "Race to 2000" mode.
+4. **A partner site can take the review back:** the link may name a save page (`save`), on the partner's own host,
+   over https. The site keeps a list of partners by host (`PARTNERS` in `src/lib/game/partners.ts`), and a save page on
+   another host is ignored. The game keeps its partner's save page (`partner` in its stored record). Its review's
+   Export menu then offers "Save to enclosuregame.com" first.
+5. **The review file is what goes back,** not the annotated record. On Hedge School it reopens at once, and this
+   site's label rules apply to it as they are then. An annotated record would keep the labels of its day.
+6. **It goes by window messages, in the player's browser, when the player asks.** The site opens the save page in a
+   new tab at the click (a browser opens a tab only within the click), and the two pages exchange messages
+   (`postMessage`): the save page posts `hedge-school:ready` to its opener, this site answers `hedge-school:review`
+   with `protocol: 1`, the file and its name, and the save page posts `hedge-school:saved` or `hedge-school:failed`.
+   The field is `protocol`, not `version`: the review file has a `version` of its own. Each side checks the other's
+   origin. This site waits a minute for each answer. The partner's page stores the file with its own sign-in.
+7. **A saved review opens again from the partner's page,** by the same messages the other way. At the player's click,
+   the partner's page opens `/import#from=` and its origin, with `window.open`. The import page posts
+   `hedge-school:ready` (`protocol: 1`) to it, and the partner's page answers `hedge-school:review` with the file, or
+   `hedge-school:failed`. The import page takes the file only from the page that opened it, on that origin, and only
+   from a partner. It imports the file as the home page does, and the review opens at once, with the engine's results
+   (`receiveFromPartner` in `src/lib/game/partners.ts`). The link can name the save page too, so that the game can be
+   saved again. In the browser that ran the review, the partner's first link also opens it again at once: the game's
+   id comes from its moves, and the browser keeps the engine's results. The player can always import the file on the
+   home page.
+   - **The tie between the two pages:** a link with a `target` cuts it (browsers then give the new page no opener),
+     and so does a `Cross-Origin-Opener-Policy` of `same-origin`. The save page must send no such header, and the page
+     that opens Hedge School sends none or `same-origin-allow-popups`. Hedge School sends none. A later header for the
+     engine's threads (cross-origin isolation) would cut the tie, and this design would have to change with it.
+8. **One public description,** the page /developers ("For developers", as Lichess names its page for other sites,
+   linked from the footer): the link, its parameters, both handshakes with examples, the tie between the pages, and
+   what can change. The notation
+   page describes the record only: the engine repository decides the notation, and this repository decides the link.
+   The page promises:
+   - **Lenient reading:** unknown tags, an edge's points in either order, lower case.
+   - **Additions only:** new optional tags or parameters. A change that old links could not meet would come with a
+     version in the link, and the old form would still be read. A link made once keeps working.
+   - **A versioned handshake** (`protocol: 1`). A later protocol would be one that the save page asks for in its
+     `ready` message, so a page that asks for none keeps protocol 1.
+   - **The review file is this site's:** the partner stores it as it is, and its contents can change.
+   - **A list of changes,** with dates.
+9. **Measured as a way in:** `import_game` counts `site_link` and `site_review` (a kept review opened again), and
+   `export` counts `partner` (design 17).
+
+## Why
+
+- **The link sits after the `#`,** so the game never reaches a server, as the bookmarklet's and a share link's do.
+- **The import page, not the review's address:** the review opens games kept in the browser, and the import page
+  keeps them.
+- **A list of partners:** "Save to …" sends the player's review, so it goes only to the site that the game came from,
+  and only to a site this site agreed with.
+- **Window messages, not a request from this site:** this site has no server, and a request from the page to the
+  partner's server would need the partner's sign-in in a third-party cookie, which browsers block more and more. On
+  its own page, the partner's sign-in works as always.
+- **The player's click:** the privacy page promises that reviews stay on the player's computer. A review leaves only
+  when the player asks, to the site the player chose.
+- **Little to keep in step:** the link and the record are this site's reading, which is lenient. The labels, the
+  engine and the review are this site's alone, and change freely. A change of the game's rules is the one change that
+  needs both sites, and the `Rules` tag keeps it from giving wrong reviews.
+
+## Alternatives
+
+- **The game in the review's address, `/review#pgn=…`** (the partner's first idea): the review opens only games kept
+  in the browser. The name `pgn`, read as another name for `record`, is not taken either: the name PGN means chess, and
+  a second name is one more thing to keep. A partner that needs it can ask.
+- **The description on the notation page:** that page follows the engine repository's decisions, and a link is this
+  site's.
+- **The annotated record sent back:** readable on the partner's site, but its labels go out of date when this site's
+  rules change, and it does not reopen a review at once.
+- **A request from this page to the partner's server,** or a form posted to it: the partner's sign-in would not come
+  with it from another site.
+- **A save page on any address the link names:** any site could then ask a player to send it a review.
+- **A saved review opened only from its file:** a download and an import on another device. The same messages the
+  other way save those steps, and the partner builds both buttons in one release.
+- **A saved review fetched from an address on the partner's site:** the file would have to be readable without the
+  player's sign-in, by anyone with its address, and the partner's server would have to allow this site's requests.
+
+## Consequences
+
+- **A new partner** is a line in `PARTNERS`, and a release.
+- **The partner's work:** the button on finished games of the online rules, with the link; and, to keep reviews, a
+  save page that answers the handshake and checks this site's origin, and an "Open in Hedge School" button that sends
+  a kept review.
+- **A partner's test:** the preview (a build of a branch other than `main`) and a local build with
+  `VITE_PARTNER_TEST=1` count `127.0.0.1` and `localhost` as a partner, "the local test site", over http too. The
+  live site never does. A partner then tests its own pages, on its own computer, against the preview's branch address
+  (`dev.hedgeschool.pages.dev`), before its site is live. The /developers page names the live address in its examples,
+  and tells a partner to ask for the test address: the preview stays unlisted, and its deployment address
+  (`CF_PAGES_URL`) changes with each push.
+- **The first test:** a local build, with a local test site, checked the whole way: its game page's button, the
+  review, the link back, "Save to the local test site", the file received and saved, and the kept review opened again
+  in a browser that had no game.
+- **What can change** is listed on the /developers page, and a change there follows this design.
+
+## Where it is
+
+- `src/lib/game/importHash.ts` (the link), `src/lib/game/partners.ts` (the partners, the handshake),
+  `src/lib/game/import.ts` (`variantProblem`), `src/lib/game/record.ts` (`gamePage`), `src/lib/game/store.ts`
+  (`partner`, `setGamePartner`).
+- `src/routes/import/+page.svelte` (the link's import, and a kept review's), `src/lib/game/reviewFile.ts`
+  (`deliverExport`, kind `partner`), `src/lib/ExportMenu.svelte` ("Save to …"), `src/lib/review/ReviewView.svelte` (the
+  link back), `src/routes/review/+page.svelte`.
+- The public description: `src/routes/developers/+page.svelte`, linked from `src/lib/SiteFooter.svelte`. The privacy
+  page: "Games from another site".
+- Tests: `src/lib/game/importHash.test.ts`, `src/lib/game/partners.test.ts`.
+
+## Log entries
+
+- [decisions/product.md](../decisions/product.md): "Links from another site, and reviews saved back" (2026-10-13).

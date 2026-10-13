@@ -47,8 +47,8 @@ test("the code that the userscript and the bookmarklet carry parses, with the si
 test("the import page reads the tool, its version and the record, and an older tool's bare record", () => {
   const record = '[Blue "a b"]\n\n1. D10-G12 2. N9-Q10 O9-Q10 r+R\n';
   const sent = readImportHash(String(new URLSearchParams({ tool: "userscript", v: "abc", record })));
-  assert.deepEqual(sent, { record, tool: "userscript", version: "abc" }); // spaces and "+" come back as they were
-  assert.deepEqual(readImportHash(encodeURIComponent(record)), { record, tool: null, version: "" });
+  assert.deepEqual(sent, { record, tool: "userscript", version: "abc", link: false, save: null, from: null }); // spaces and "+" come back as they were
+  assert.deepEqual(readImportHash(encodeURIComponent(record)), { record, tool: null, version: "", link: false, save: null, from: null });
   const current = { bookmarklet: "1", userscript: "abc" };
   assert.equal(staleTool(sent, current), null);
   assert.equal(staleTool({ tool: "userscript", version: "old" }, current), "userscript");

@@ -27,7 +27,7 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
      so that it fits in 360 pixels. Review opens
      the last game reviewed in this browser, and the address then names it, so a reload keeps it. With no game
      reviewed yet, it asks for one. **The footer,** on the pages that scroll (the home page and the pages about the
-     site): About, The notation, Privacy, Notices, the site's version (its commit), the site's copyright line, and
+     site): About, The notation, For developers, Privacy, Notices, the site's version (its commit), the site's copyright line, and
      "Enclosure by webgoatguy", so that the copyright does not read as the game's. The review has no footer: it fills
      the window. The About page credits webgoatguy as the game's designer, and says that the site is not an official
      site of the game: it is made independently of webgoatguy, meaf.us and Constellation.
@@ -213,7 +213,7 @@ one item for each turn, separated by spaces.
 - Deleting a game: `deleteGame` and `restoreGame` in `src/lib/game/store.ts`, the rows in `src/routes/+page.svelte`.
 - One tab for each game's review: `src/lib/game/reviewLock.ts`, used in `src/routes/review/+page.svelte`. The check
   for a deleted game: `keepBranches` in `src/lib/analysis/game.svelte.ts`.
-- The pages: `src/routes/{about,notation,privacy,notices}/+page.svelte`, `src/lib/SiteFooter.svelte`,
+- The pages: `src/routes/{about,notation,developers,privacy,notices}/+page.svelte`, `src/lib/SiteFooter.svelte`,
   `src/lib/prose.ts` (their text style).
 - Analytics: `src/lib/analytics.svelte.ts`, `src/lib/ConsentBanner.svelte`, started in `src/routes/+layout.svelte` and
   `src/routes/import/+page.svelte`.

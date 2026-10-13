@@ -34,8 +34,8 @@ visitors' machines, and the GPU on other machines.
 
 | Event | When | Parameters | The decision it serves |
 |---|---|---|---|
-| `import_game` | a game kept, from any way in | `source` (record, constellation, review_file, bookmarklet, userscript, older_tool, share_link), `edges`, `with_results` (a file), `with_branches` (a link) | which ways in to keep and improve, and the funnel's first step |
-| `import_failed` | an import refused | `source`, `reason` (record: not read, rejected: the rules or the storage refused it, file, link) | what breaks imports |
+| `import_game` | a game kept, from any way in | `import_source` (record, constellation, review_file, bookmarklet, userscript, older_tool, share_link, site_link, site_review), `edges`, `with_results` (a file), `with_branches` (a link) | which ways in to keep and improve, and the funnel's first step |
+| `import_failed` | an import refused | `import_source`, `reason` (record: not read, rejected: the rules or the storage refused it, file, link) | what breaks imports |
 | `tool_out_of_date` | the import page asks to update a tool | `tool` (bookmarklet, userscript, older) | how many players still need the new tools |
 | `share_open` | a share link's page | `network_found`, `same_engine` | whether shared reviews arrive whole |
 | `game_missing` | a review's address in a browser without the game | none | whether players send review addresses, which do not work in another browser |
@@ -45,7 +45,7 @@ visitors' machines, and the GPU on other machines.
 | `engine_error` | the engine fails | `kind` (load, rules, gpu) | reliability |
 | `setting_change` | an engine setting changes | `setting`, `setting_value`, `scope` (browser, game) | whether the defaults fit |
 | `feature` | a feature's first use in a review | `name` (candidate played, listed line played, engine line played, own edge played, note drawn, quality evaluated, branch promoted, branch deleted, keys list, chart difficulty, chart advantage, chart jump, display and a setting's name) | what to keep, to improve, or to explain |
-| `export` | an export | `kind` (link, file, copy, text), `link_length`, `too_long` | whether players share, and whether links fit a Discord message |
+| `export` | an export | `kind` (link, file, copy, text, partner: the review file saved to a partner site, design 18), `link_length`, `too_long` | whether players share, and whether links fit a Discord message |
 | `game_delete`, `game_restore` | a game deleted, its Undo | none | whether Undo saves slips |
 
 A property of the visitor, `games_stored`, comes with every event after the home page sets it: how many games the
@@ -78,7 +78,7 @@ selector at the top left. Click **Admin**, the gear at the bottom left.
 
 | Event parameter | Dimension name | Scope | What it holds |
 |---|---|---|---|
-| `source` | Import source | Event | how a game came in: record, constellation, review_file, bookmarklet, userscript, older_tool, share_link |
+| `import_source` | Import source | Event | how a game came in: record, constellation, review_file, bookmarklet, userscript, older_tool, share_link, site_link, site_review |
 | `reason` | Import failure | Event | why an import failed: record, rejected, file, link |
 | `edges` | Game edges | Event | the game's edges, as a range |
 | `with_results` | File with results | Event | a review file that has the engine's results |
@@ -103,12 +103,18 @@ selector at the top left. Click **Admin**, the gear at the bottom left.
 | `setting_value` | Setting value | Event | the setting's new value |
 | `scope` | Setting scope | Event | browser (this browser's settings) or game (one game's settings) |
 | `name` | Feature | Event | the feature used |
-| `kind` | Kind | Event | an export's kind (link, file, copy, text), or an engine failure's kind (load, rules, gpu) |
+| `kind` | Kind | Event | an export's kind (link, file, copy, text, partner), or an engine failure's kind (load, rules, gpu) |
 | `link_length` | Link length | Event | a share link's characters, as a range |
 | `too_long` | Link too long | Event | the link is longer than a Discord message takes |
 | `games_stored` | Games stored | **User** | the games that the browser keeps, as a range |
 
 The property can have 50 event-scoped and 25 user-scoped custom dimensions. These take 28 and 1.
+
+**No parameter is named `source`, `medium` or `campaign`.** Google Analytics keeps a visit's traffic source in event
+parameters of those names, so it reads the site's own parameter as the session's source. With the import's way in
+named `source`, the Traffic acquisition report gave sessions the source "userscript" in place of the site that the
+visitor came from. The parameter is therefore `import_source`. If the property still has the dimension Import source
+on `source`, archive it (its row's **⋮** menu, then **Archive**), and create the row above.
 
 #### 2. The custom metrics (3)
 
@@ -149,7 +155,7 @@ from the time of their registration on.
 ### The questions, and the reports that answer them
 
 - **Where do players drop off?** Explore → Funnel exploration, with the steps: a page view of the home or import page,
-  `import_game`, `review_open`, `review_done`, `export`. Break it down by `source`.
+  `import_game`, `review_open`, `review_done`, `export`. Break it down by `import_source`.
 - **Are the engine's defaults right?** Explore → Free form: `review_done`, rows `depth` and `network`, columns `cores`,
   values the average of `review_seconds` and the event count, and the distribution of `minutes`. A default is too deep
   when most reviews at it take longer than players wait (see whether `review_open` without a `review_done` grows with
@@ -158,7 +164,7 @@ from the time of their registration on.
 - **Which features earn their place?** `feature`, rows `name`, value the count of users, against `review_open`'s users.
 - **Do the defaults fit?** `setting_change`, rows `setting` and `setting_value`: a setting that most players change away from
   its default asks for another default.
-- **Do shares and imports work?** `share_open` by `network_found`, `import_failed` by `source` and `reason`,
+- **Do shares and imports work?** `share_open` by `network_found`, `import_failed` by `import_source` and `reason`,
   `tool_out_of_date` by `tool`, `game_missing`.
 
 ### Reading it
@@ -208,3 +214,5 @@ from the time of their registration on.
 ## Log entries
 
 - [decisions/product.md](../decisions/product.md): "Events for the decisions that wait on data" (2026-10-13).
+- [decisions/product.md](../decisions/product.md): "Links from another site, and reviews saved back" (2026-10-13): the
+  import's parameter renamed `import_source`.

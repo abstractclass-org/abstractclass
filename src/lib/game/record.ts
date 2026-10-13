@@ -44,6 +44,17 @@ export function canonicalEdge(text: string): string {
   return edgeName(parseEdge(upper));
 }
 
+/** The game's own page, when the record's Site tag is a web address (Lichess writes its game's address there): its
+ *  address and host. Null for a site's name, such as "meaf.us", or any other kind of address. */
+export function gamePage(tags: Record<string, string>): { href: string; host: string } | null {
+  try {
+    const url = new URL(tags.Site ?? "");
+    return url.protocol === "https:" || url.protocol === "http:" ? { href: url.href, host: url.hostname.replace(/^www\./, "") } : null;
+  } catch {
+    return null;
+  }
+}
+
 /** The players' names from the record's tags, or the side's name where a tag is missing or "?". */
 export function playerNames(tags: Record<string, string>): { blue: string; red: string } {
   const name = (tag: string | undefined, side: string) => (tag && tag !== "?" ? tag : side);

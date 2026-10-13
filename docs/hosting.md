@@ -85,6 +85,10 @@ What the repository holds for Pages:
   review there. A build of `main` (`CF_PAGES_BRANCH`) names `https://hedgeschool.abstractclass.org`, a build of
   another branch its preview's address (`CF_PAGES_URL`), and a local build the local preview server. The variable
   `SITE_ORIGIN` sets another, for a test on another address.
+- **A partner's test pages** (design 18): a build of another branch than `main` also takes a partner's save page and
+  `from` on the developer's own computer (`localhost`, `127.0.0.1`), so that a partner can test against the preview
+  before its own site is live (`vite.config.ts` sets `VITE_PARTNER_TEST`). The live site takes only the partners' own
+  https hosts.
 
 To try the build as Pages runs it: `VITE_EDITION=early npm run build:cloudflare`. From a clean clone, run `npm ci`
 first.

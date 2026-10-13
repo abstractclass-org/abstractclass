@@ -11,7 +11,8 @@ import { branchNodes, loadGame, markReviewed, saveGame, setGameSettings, type Br
 import { moduleOf, type Manifest } from "#lib/engine/client.ts";
 import { networkName } from "#lib/analysis/engineSettings.ts";
 import { DISCORD_LIMIT, encodeShare, sharedRecord, type SharedReview } from "./share.ts";
-import { importRecord } from "./import.ts";
+import { importRecord, variantProblem } from "./import.ts";
+import { saveToPartner, type GamePartner } from "./partners.ts";
 
 export const REVIEW_FORMAT = "hedge-school-review";
 export const REVIEW_FILE_VERSION = 1;
@@ -130,7 +131,7 @@ export const shippedModels = (manifest: { artifacts: { kind: string; sha256: str
 export const shippedModule = (manifest: Manifest | null) => (manifest && moduleOf(manifest)?.sha256) ?? null;
 
 /** The three exports of a game (design 13): the review file, or the annotated record copied or as a text file. */
-export type ExportKind = "link" | "file" | "copy" | "text";
+export type ExportKind = "link" | "file" | "copy" | "text" | "partner";
 
 /** What an export tells the player beyond the menu's own note, and a share link's length (design 17 counts it). */
 export interface ExportResult { note?: string; linkLength?: number }
@@ -163,7 +164,15 @@ export async function importShare(shared: SharedReview, network: string | null):
  *  `annotated` writes when it is asked for, copied or as a download. `site` is the site's version, which the review
  *  file names. Answers what to tell the player, when that is more than the menu's own note. */
 export async function deliverExport(kind: ExportKind, id: string, record: string, manifest: Manifest | null, site: string,
-                                    annotated: () => string | Promise<string>): Promise<ExportResult | void> {
+                                    annotated: () => string | Promise<string>, partner?: GamePartner): Promise<ExportResult | void> {
+  // The review file to the partner site the game came from (design 18): its save page opens first, within the click,
+  // and the file goes to it once the page is ready.
+  if (kind === "partner") {
+    if (!partner) throw new Error("this game came from no partner site");
+    const file = exportReview(id, site, shippedModels(manifest)).then(review => ({ name: reviewFileName(record, id), review }));
+    await saveToPartner(partner, file);
+    return { note: `Saved to ${partner.name}.` };
+  }
   if (kind === "link") {
     const link = await shareLink(id, location.origin);
     await navigator.clipboard.writeText(link);
@@ -190,6 +199,8 @@ export async function deliverExport(kind: ExportKind, id: string, record: string
  *  this site's engine module (its SHA-256): the file's review counts as done here when it ran with it and with a
  *  network kept. */
 export async function importReview(file: ReviewFile, models: Set<string> | null, module: string | null = null) {
+  const variant = variantProblem(parseRecord(file.record));
+  if (variant) throw new Error(variant);
   const { id } = await saveGame(file.record, parseRecord(file.record));
   if (file.branches) await dbPut(STORES.branches, id, mergeBranches((await dbGet<KeptBranches>(STORES.branches, id)) ?? null, file.branches));
   const wanted = file.analyses.filter(([key]) => !models || models.has(readAnalysisKey(key).model));

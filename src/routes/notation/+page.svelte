@@ -198,6 +198,8 @@ A10-D10,D10-E11,D10-F13+ Q10-T10,Q10-T13*,T10-T13* b1 0/4.5 4`;
       (<code>P10</code> is <code>Q10</code>):</li>
   </ul>
   <pre>{CONSTELLATION}</pre>
+
+  <p>Another site can send a game to {SITE_NAME} with a link: see <a href="/developers">For developers</a>.</p>
 </main>
 
 <SiteFooter />
