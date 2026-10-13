@@ -261,7 +261,7 @@ The steps:
 | Step | Name | Condition |
 |---|---|---|
 | 1 | Review tab | **Page path and screen class** exactly matches `/review` |
-| 2 | Import | **Event name** exactly matches `import_game`, **And** the parameter **import_to** exactly matches `review` |
+| 2 | Import | **Event name** exactly matches `import_game`, **And** **Import destination** exactly matches `review` |
 | 3 | Review open | **Event name** exactly matches `review_open` |
 | 4 | Review done | **Event name** exactly matches `review_done` |
 | 5 | Export | **Event name** exactly matches `export`, **And** **Page path and screen class** exactly matches `/review` |
@@ -272,9 +272,10 @@ To set a tab of the technique Funnel exploration:
    the tab names, and click **Funnel exploration** in the list. Name the tab, as for a tab of Free form.
 2. Click the pencil beside **Steps**. The panel **Edit funnel steps** opens. For each step in the tab's row, type the
    step's name beside **Step**. Set its condition: the dimension (**Event name**, or **Page path and screen class**),
-   **exactly matches**, and the value. For step 2, click **Add parameter** under the event's condition, type
-   `import_to`, and set **exactly matches** `review`. For step 5, click **And**, and set the page's condition. Click
-   **Add step** for the next step.
+   **exactly matches**, and the value. For steps 2 and 5, click **And** under the event's condition, and set the
+   second condition: **Import destination** for step 2, **Page path and screen class** for step 5. A new condition
+   starts at **contains**: change it to **exactly matches**. When a list of values drops down under the value, click
+   the value in it before **Apply**. Click **Add step** for the next step.
 3. Click **Apply**. Leave **Make open funnel** off.
 4. For the tab "By way in", click **Drop or select dimension** under **Breakdown**, and click **Import source**.
 
@@ -380,8 +381,8 @@ change the privacy page in the same release.
 
 - **Step 1:** the custom dimension **Import destination**. Archive **Analysis source** (its row's **⋮** menu, then
   **Archive**).
-- **Exploration 1:** the steps as above, in both tabs: step 1 is the Review tab, step 2 takes `import_to` = review,
-  and step 5 takes the review's page. To change a step, open its tab, click the pencil beside **Steps**, edit the
+- **Exploration 1:** the steps as above, in both tabs: step 1 is the Review tab, step 2 takes Import destination =
+  review, and step 5 takes the review's page. To change a step, open its tab, click the pencil beside **Steps**, edit the
   step's condition, and click **Apply**.
 - **Exploration 4:** the dimension **Page path and screen class** and its column in **Feature users**, and the tab
   **Board users**.
