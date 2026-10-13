@@ -2203,3 +2203,13 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   toward a fixed grey would look the same on both. The difference was seen and accepted.
 - **Checked in Edge:** the seven badges at 120, 48, 24 and 16 pixels on both themes, and the move list, the report and
   the board's badges on both themes.
+
+### The engine's terms on the notices page (2026-10-13)
+
+- **Before:** the notices page said that the engine was built "from a fork of KataGo, under KataGo's licence", which
+  reads as if the whole module, and the networks too, were under MIT.
+- **Decided** (request 14, the engine repository's v2 design 21, and design 11, item 10): the engine and its networks
+  are "© 2026 Yshan, all rights reserved", with Hedge School and its visitors permitted to serve and run them. The
+  notices page gives the engine repository's wording, links the release's `LICENSE.txt` and `NOTICES.txt`, which the
+  site ships beside the modules, and keeps KataGo's copyright notice with the MIT licence's text. The page's line on
+  the other works now says that their licences cover neither the site nor its engine. Eigen is in the CPU module only.

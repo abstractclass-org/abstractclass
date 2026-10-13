@@ -82,6 +82,11 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
     site sends those libraries to each visitor. An open licence such as MIT would let anyone serve the site for profit.
     If the repository becomes public, a licence for non-commercial use (PolyForm Noncommercial 1.0.0) is the nearest
     to these terms, with the sounds left out: the Pixabay Content License does not permit their passing on alone.
+    **The engine and its networks** have the same holder and the same terms, set in the engine repository (its v2
+    design 21, request 14): all rights reserved, with Hedge School and its visitors permitted to serve and run them.
+    Each release carries them as `LICENSE.txt`, which the site ships beside the modules (`engine.lock.json`, kind
+    `terms`). The notices page gives them in the engine repository's words, before KataGo's MIT licence and the other
+    works in `NOTICES.txt`.
 
 ### Constellation's export
 

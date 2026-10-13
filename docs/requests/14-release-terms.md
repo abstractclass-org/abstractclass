@@ -1,6 +1,6 @@
 # The terms of the released engine and networks
 
-**Status:** open. **Asked:** 2026-10-13.
+**Status:** done, checked here. **Asked:** 2026-10-13. **Delivered:** 2026-10-13.
 
 ## What
 
@@ -46,3 +46,28 @@ for the project's own work. Please decide those terms, and state them where the 
   engine's paragraph names the project's terms for the module and the networks, and KataGo's licence for KataGo's
   code. If the terms change a file of the pinned release, such as `NOTICES.txt`, the site pins the file's new
   SHA-256 in `engine.lock.json`.
+
+## Delivered
+
+The engine repository's commit `b76146a` and its design `v2/docs/design/21-release-terms.md`:
+
+- **The terms:** the project's own work is "© 2026 Yshan, all rights reserved": the engine's own code in both
+  modules, `gpu_engine.mjs`, the networks and their graphs, the manifests and the other text of the repository and
+  its releases. The networks have the same terms as the code.
+- **Two permissions:** Hedge School serves and runs the files, and its visitors run them in the browser as the site
+  serves them. Any other use needs written permission, asked through an issue in `enclosure-engine`.
+- **The works of others keep their licences:** KataGo's code under MIT, and each work in `NOTICES.txt` under its own.
+- **Where:** `LICENSE` at the root of `enclosure-engine`, and `LICENSE.txt` (kind `terms`) in each release. The three
+  earlier releases (`85c2adb`, `06534ee`, `632f2a0`) got `LICENSE.txt` as an added file. From the release `fdfe5ad`
+  on, `NOTICES.txt` names both modules and points to `LICENSE.txt`.
+- **The wording for the notices page** (design 21): "The engine, HedgeFund, and its networks: © 2026 Yshan, all rights
+  reserved. The engine is built from a fork of KataGo. KataGo's code is under the MIT licence, and the other works
+  that the engine compiles in are under their own licences. Each engine release carries its terms (`LICENSE.txt`) and
+  these licences (`NOTICES.txt`)."
+
+**Checked here:** `LICENSE.txt` in `wasm-v2-engine-632f2a0` and in `wasm-v2-engine-fdfe5ad` has the SHA-256 that the
+engine repository gave (`78e54748...`, 1,487 bytes), and `NOTICES.txt` of `632f2a0` is unchanged. The site moved to the
+release `fdfe5ad` at once (decisions/engine.md, "The release fdfe5ad"), so it pins `LICENSE.txt` from that release
+(`engine.lock.json`, kind `terms`) and ships it beside the modules. The notices page gives the wording above, with
+links to the two files, and KataGo's copyright notice with the MIT licence's text. Both links answered in the local
+build.

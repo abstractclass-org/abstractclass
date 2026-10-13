@@ -1,19 +1,23 @@
 <script lang="ts">
-  // The site's own terms, then the licences of what it ships of others' work (design 11): the engine, the libraries in
-  // the pages, an icon, the sounds.
+  // The site's own terms, the engine's terms, then the licences of what the site ships of others' work (design 11): in
+  // the engine, the libraries in the pages, an icon, the sounds.
   import { PROSE } from "#lib/prose.ts";
   import { SITE_COPYRIGHT, SITE_NAME } from "#lib/edition.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
   import lock from "../../../engine.lock.json";
 
-  // The engine release's own notices (its NOTICES.txt), shipped beside the module: the works compiled into it, with
-  // their licences' full texts.
-  const notices = lock.artifacts.find(a => a.kind === "notices");
-  const NOTICES_URL = notices ? `/engine/${notices.id}/${notices.file}` : null;
+  // The engine release's terms (its LICENSE.txt: the engine's own code and the networks) and its notices (its
+  // NOTICES.txt: the works compiled into the modules, with their licences' full texts), shipped beside the modules. The
+  // engine's paragraph is the engine repository's wording (its v2/docs/design/21-release-terms.md).
+  const shipped = (kind: string) => {
+    const a = lock.artifacts.find(x => x.kind === kind);
+    return a ? `/engine/${a.id}/${a.file}` : null;
+  };
+  const TERMS_URL = shipped("terms"), NOTICES_URL = shipped("notices");
   const IN_MODULE = [
     "KataGo (MIT), with its sha2.cpp from Aaron D. Gifford's SHA-2 (BSD-3-Clause)",
     "JSON for Modern C++ 3.8.0, by Niels Lohmann (MIT)",
-    "Eigen 3.4.0 (MPL-2.0), unmodified",
+    "Eigen 3.4.0 (MPL-2.0), unmodified, in the CPU module only",
     "the LLVM 19.1.5 runtime libraries: libc++, libc++abi and compiler-rt (Apache-2.0 WITH LLVM-exception)",
     "wasi-libc (Apache-2.0 WITH LLVM-exception, Apache-2.0 or MIT), with parts from musl (MIT) and cloudlibc (BSD-2-Clause)",
   ];
@@ -39,18 +43,21 @@
 
   <h2>{SITE_NAME}</h2>
   <p>{SITE_NAME}'s own code, text and design are {SITE_COPYRIGHT}. All rights reserved.</p>
-  <p>The works below are by others. Their licences cover those works only, not {SITE_NAME}.</p>
+  <p>The other works below are by others. Their licences cover those works only, not {SITE_NAME} or its engine.</p>
 
   <h2>The engine</h2>
-  <p>The engine is built by the enclosure-ai project from a fork of <a href="https://github.com/lightvector/KataGo">KataGo</a>,
-    under KataGo's licence:</p>
+  <p>The engine, HedgeFund, and its networks: {SITE_COPYRIGHT}, all rights reserved. The engine is built from a fork of
+    <a href="https://github.com/lightvector/KataGo">KataGo</a>. KataGo's code is under the MIT licence, and the other
+    works that the engine compiles in are under their own licences. Each engine release carries its terms
+    ({#if TERMS_URL}<a href={TERMS_URL}>LICENSE.txt</a>{:else}LICENSE.txt{/if}) and these licences
+    ({#if NOTICES_URL}<a href={NOTICES_URL}>NOTICES.txt</a>{:else}NOTICES.txt{/if}).</p>
+  <p>KataGo's copyright notice, with the MIT licence's terms below:</p>
   <pre>Copyright 2025 David J Wu ("lightvector") and/or other authors of the content in this repository.
 (See 'CONTRIBUTORS' file for a list of authors as well as other indirect contributors).</pre>
-  <p>with the MIT licence's terms below. The engine's module contains code from:</p>
+  <p>The engine's modules contain code from:</p>
   <ul>
     {#each IN_MODULE as work (work)}<li>{work}</li>{/each}
   </ul>
-  {#if NOTICES_URL}<p>Their copyright notices and licences are in full in <a href={NOTICES_URL}>the engine's notices</a>.</p>{/if}
 
   <h2>The pages</h2>
   <p>These libraries are under the MIT licence, with their own copyright lines:</p>

@@ -25,10 +25,6 @@ Rules:
 
 - **Ask meaf.us for an export:** a button or a public record link for finished games would replace the bookmarklet,
   which breaks when meaf.us changes its page. Its owner's choice: the owner of this site asks.
-- **The engine's terms on the notices page:** the page says that the engine is "under KataGo's licence", which reads
-  as if the whole module, and the networks too, were under MIT. When the engine repository answers
-  [requests/14-release-terms.md](../requests/14-release-terms.md), state its terms for the module and the networks
-  there, and KataGo's licence for KataGo's code.
 - **The noise floor:** search the same positions twice and measure how often the labels agree, before any label
   ships. The CPU module gives the same reply each time, so today this measures nothing. It applies to a GPU module
   (requests/06-webgpu.md: the site does not need reproducible searches), and between the CPU and GPU modules.
