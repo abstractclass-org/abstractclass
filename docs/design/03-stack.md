@@ -19,10 +19,19 @@ new builds arrive often.
 - **Styles:** Tailwind CSS 4 (`@tailwindcss/vite`), as utility classes in the markup. The colour tokens in `src/app.css`
   are Tailwind's only colours (`bg-panel`, `text-muted`, `border-line`), and dark mode follows the tokens. The page's
   `data-theme` (`light` or `dark`) chooses the tokens, and Tailwind's `dark:` follows it: the theme menu sets it
-  (`src/lib/theme.svelte.ts`), and with no choice it follows the system's theme. Plain CSS stays where utilities read
-  worse: the board's SVG styles (`Board.svelte`), the review page's layout grid with its `calc()` board size (design
-  06), and the tokens and base element styles in `app.css`. Links are underlined unless they are not in running text
-  (`no-underline`). A page's `main` uses `box-content`, so its `max-w-*` limit is the width of its content.
+  (`src/lib/theme.svelte.ts`), and with no choice it follows the system's theme. Each theme has its own value of a
+  colour, tuned for its backgrounds, as Lichess and chess.com tune theirs: in the light theme a colour on a light
+  surface is darker, in the same hue. A move label has two colours, as on both sites: its fill (`--best-fill`), the
+  badges' disc under a white glyph and the meter's part, the same in both themes (but Great's and Blunder's, a little
+  brighter in the dark theme, for 3:1 against the dark board), and its ink (`--best`), its glyph in the move list and
+  its marks on the charts, 3:1 against the light theme's panels. The bad labels' marks read as text on white: Mistake
+  4.5:1, Blunder 5.5:1, and Inaccuracy 3.0:1, as dark as a yellow goes before it turns ochre. A label badge on the board
+  has a drop shadow, as Lichess's glyph badges on its board have: each sits on the last turn's yellow halo, which is
+  near the colour of several fills. The board follows the theme (unlike both sites' boards, which have their own
+  setting), so the player's notes have a value for each board. Plain CSS stays where utilities read worse: the board's
+  SVG styles (`Board.svelte`), the review page's layout grid with its `calc()` board size (design 06), and the tokens
+  and base element styles in `app.css`. Links are underlined unless they are not in running text (`no-underline`). A
+  page's `main` uses `box-content`, so its `max-w-*` limit is the width of its content.
 - **Components with keyboard and focus behaviour:** Bits UI 2 (`bits-ui`), a headless library for Svelte 5. It gives
   the roles, the keys and the focus handling, and leaves the styles to Tailwind. The review's tabs and its display
   menu use it (`Tabs`, `Popover`).

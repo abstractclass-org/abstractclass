@@ -59,6 +59,8 @@
   }: Props = $props();
 
   const layers = $derived({ ...DEFAULT_LAYERS, ...layersSet });
+  const uid = $props.id();
+  const shadowId = `${uid}-badge-shadow`; // one board's filter: a page can show several boards
   const N = 19;
   const sy = (y: number) => N - 1 - y;
   /** An edge's line, in the SVG's coordinates. */
@@ -212,7 +214,7 @@
 {#snippet badge(m: BoardMark)}
   {@const [bx, by] = mid(m.edge)}
   <g class="mark">
-    <circle cx={bx} cy={by} r="0.36" style:fill="var(--{m.label})" />
+    <circle cx={bx} cy={by} r="0.36" style:fill="var(--{m.label}-fill)" filter="url(#{shadowId})" />
     {#if typeof m.glyph === "string"}
       <text x={bx} y={by + 0.14}>{m.glyph}</text>
     {:else}
@@ -227,6 +229,14 @@
      onpointerdown={down} onpointermove={move} onpointerup={up} onpointercancel={cancel}
      oncontextmenu={ev => { if (onnotes) ev.preventDefault(); }}>
   <rect x="-1.3" y="-1.3" width="20.6" height="20.6" class="bg" />
+  <!-- The label badges' shadow, as Lichess's board draws under its glyph badges (chessground's glyph.ts:
+       feDropShadow dx 4, dy 7, deviation 5, opacity 0.5 on a disc of radius 50), scaled to the badge's radius of
+       0.36. Every badge sits on the last turn's yellow halo: the shadow sets it apart, on both themes. -->
+  <defs>
+    <filter id={shadowId} x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0.029" dy="0.05" stdDeviation="0.036" flood-opacity="0.5" />
+    </filter>
+  </defs>
 
   {#if layers.coordinates}
     {#each Array.from({ length: view[2] - view[0] + 1 }, (_, i) => view[0] + i) as i (i)}

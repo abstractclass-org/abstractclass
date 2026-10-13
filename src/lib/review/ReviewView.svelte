@@ -938,7 +938,7 @@
       </tr>
       {#each LABELS as l (l)}
         <tr>
-          <td><span class={BADGE} style:background="var(--{l})"><Glyph glyph={LABEL_GLYPH[l]} /></span> {LABEL_TEXT[l]}</td>
+          <td><span class={BADGE} style:background="var(--{l}-fill)"><Glyph glyph={LABEL_GLYPH[l]} /></span> {LABEL_TEXT[l]}</td>
           {#each R.summary[unit] as s, p (p)}<td>{s.counts[l]}</td>{/each}
         </tr>
       {/each}
@@ -1581,7 +1581,7 @@
              grey, is the prior of the edges the search did not visit. The engine settings cover it: it says nothing
              about them. -->
         <div class="flex h-1.5 mt-1 rounded-full overflow-hidden bg-panel-2" role="img" aria-label={meterText(meter)} title={meterText(meter)}>
-          {#each METER_GROUPS as g (g)}<span class="h-full" style:width="{100 * meter[g]}%" style:background="var(--{g})"></span>{/each}
+          {#each METER_GROUPS as g (g)}<span class="h-full" style:width="{100 * meter[g]}%" style:background="var(--{g}-fill)"></span>{/each}
         </div>
       {/if}
     </div>

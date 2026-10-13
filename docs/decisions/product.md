@@ -2125,3 +2125,46 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   the header overflowed by 16 pixels with the menu: its gaps are now 12 pixels on a phone (24 from 640 up), and it
   fits. At 320 pixels it overflows by 4 pixels, as it did before the menu. Not checked: a change of the system's
   theme while a page is open.
+
+### The colours of the light theme: labels and notes (2026-10-13)
+
+- **The problem:** the seven labels' colours and the four notes' colours had one value for both themes, chosen on the
+  dark theme. On the light theme, measured by WCAG's contrast ratio: Good, Excellent and Inaccuracy as glyphs in the
+  move list, on white, 2.2 to 2.8. The notes on the light board, 1.6 to 2.6. The muted text on the page, 4.2 (4.5 is
+  the minimum for text).
+- **How Lichess and chess.com do it** (read from Lichess's source, `ui/lib/css/theme/_theme.default.scss` and
+  `_theme.light.scss`, and from chess.com's stylesheet, its `.light-mode` and `.dark-mode` blocks): each label has a
+  value for each theme, in the same hue, darker in the light theme. Lichess lowers the HSL lightness by 10 to 22
+  points (Inaccuracy 62% to 40%, Mistake 45% to 35%), to 3.3 to 5.0 against white. Chess.com takes its palette's next
+  darker step, and leaves Good (#95B776, 2.3) and Inaccuracy (#E3AA24, 2.1) faint on white. Both keep the badges (a
+  bright disc under a white glyph) the same in both themes, and both boards have their own setting, apart from the
+  site's theme: Lichess's glyph badges on the board and its arrows have one colour each.
+- **Decided** (design 03): as both sites, a fill and an ink for each label. The fill (`--best-fill`) is the badges'
+  disc, in the report and on the board, and the meter's part: unchanged, the same in both themes. The ink (`--best`)
+  is the glyph in the move list and the marks on the charts: the fill in the dark theme, and in the light theme the
+  same hue darker, to 3:1 against panel-2, as Lichess reaches. The greens keep the dark theme's steps of lightness
+  (OKLab distances 0.061 and 0.069, against 0.063 and 0.069): Best #147c2a, Excellent #4f8830, Good #6f935a,
+  Mistake #d36e1e. Great and Blunder pass as they are. Inaccuracy at 3:1 was #ae8207, an ochre (as Lichess's Mistake
+  in its light theme), and it did not read as yellow beside its badge. Of five golds between the badge's #d9a521
+  (2.2:1 on white, chess.com's level) and #ae8207, #cf9b0a (2.5:1) was taken: still yellow, a little firmer than
+  chess.com's #E3AA24 (2.1:1). The board stays with the theme, so the notes have a light board's value, in the same hues: 3:1 against it
+  (#a66fd3, #a78202, #359a3b, #86868c). The muted text is #6a6c73 (4.5 on the page and on panel-2). The dark theme's
+  values are unchanged.
+- **Checked in Edge:** the dark theme's computed colours are the same as before. On the light theme the move list's
+  `?!` and `?` read clearly, the report's badges and the board's badges keep their fills.
+- **Seen on the way:**
+  - **Great and Blunder against the dark board** were 2.6. The dark theme now brightens their fills a little, in the
+    same hues, to 3:1 against it: Great #8a5cd1 to #9467dd, Blunder #d43a3a to #e24845 (OKLCH lightness +0.034 and
+    +0.038). The white glyph on them stays at 4.0. Their ink follows the fill in the dark theme. The light theme keeps
+    the old values, so that Blunder's red stays 4.7 against white for the error messages.
+  - **Accepted:** the white glyph on the light badges (Good, Inaccuracy, Excellent) is 2.2 to 2.8 on both themes, as
+    on Lichess and chess.com, whose badges are as faint.
+  - **The badges on the last turn's halo:** every label badge on the board sits on the last turn's halo, which is
+    yellow. Against the halo the badges are 1.0 to 1.7 on the dark board and 1.3 to 2.6 on the light board:
+    Inaccuracy is almost the halo's colour on both, and Excellent on the dark board is 1.0. Only the badge's thin
+    ring, in the board's colour, set it apart. Lichess puts its glyph badges on its last move's highlight too, and
+    sets them apart with a drop shadow (chessground's `glyph.ts`: `feDropShadow` dx 4, dy 7, deviation 5, opacity
+    0.5, on a disc of radius 50). Chess.com's icons have a darker lower edge drawn in. **Decided:** Lichess's shadow,
+    scaled to the badge's radius of 0.36 (dx 0.029, dy 0.05, deviation 0.036), on both themes. The other ways seen: a
+    dark ring (the hover's ring would need another sign), the halo in the label's colour (chess.com's tint, which
+    still needs the shadow), another colour for the halo (yellow is both sites' last move).
