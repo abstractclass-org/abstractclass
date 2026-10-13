@@ -17,11 +17,11 @@ const origin = process.env.SITE_ORIGIN
 	?? (process.env.CF_PAGES_BRANCH === 'main' ? 'https://hedgeschool.abstractclass.org'
 		: process.env.CF_PAGES_URL ?? 'http://127.0.0.1:4173');
 
-// The partner sites' test (src/lib/game/partners.ts, design 18): a preview, Cloudflare's build of a branch other than
-// main, also takes a partner's pages on the developer's own computer (localhost), so that a partner can test before its
-// own site is live. The live site never does. For a local build, VITE_PARTNER_TEST=1 sets it. Vite reads the VITE_
-// variables after it loads this file.
-if (process.env.CF_PAGES_BRANCH && process.env.CF_PAGES_BRANCH !== 'main') process.env.VITE_PARTNER_TEST ??= '1';
+// The partner sites' test (src/lib/game/partners.ts, design 18): Cloudflare's build of the branch partner_test also
+// takes a partner's pages on the developer's own computer (localhost), so that a partner can test before its own site
+// is live. The live site and the dev preview never do. For a local build, VITE_PARTNER_TEST=1 sets it. Vite reads the
+// VITE_ variables after it loads this file.
+if (process.env.CF_PAGES_BRANCH === 'partner_test') process.env.VITE_PARTNER_TEST ??= '1';
 
 // The userscript's versions (src/lib/game/userscript.ts). For Tampermonkey: the build's time (UTC), which grows with
 // each build, so that Tampermonkey takes each new build as an update. For the import page: a hash of the files that

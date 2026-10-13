@@ -100,12 +100,13 @@ must make costs both of them a release.
 - **The partner's work:** the button on finished games of the online rules, with the link; and, to keep reviews, a
   save page that answers the handshake and checks this site's origin, and an "Open in Hedge School" button that sends
   a kept review.
-- **A partner's test:** the preview (a build of a branch other than `main`) and a local build with
-  `VITE_PARTNER_TEST=1` count `127.0.0.1` and `localhost` as a partner, "the local test site", over http too. The
-  live site never does. A partner then tests its own pages, on its own computer, against the preview's branch address
-  (`dev.hedgeschool.pages.dev`), before its site is live. The /developers page names the live address in its examples,
-  and tells a partner to ask for the test address: the preview stays unlisted, and its deployment address
-  (`CF_PAGES_URL`) changes with each push.
+- **A partner's test:** the build of the branch `partner_test`, and a local build with `VITE_PARTNER_TEST=1`, count
+  `127.0.0.1` and `localhost` as a partner, "the local test site", over http too. The live site and the `dev` preview
+  never do. A partner then tests its own pages, on its own computer, before its site is live. It gets the address of
+  one `partner_test` deployment (`https://<hash>.hedgeschool.pages.dev`), never a branch's address: a deployment's
+  address shows that deployment only, and deleting the deployment withdraws it. The `dev` preview's address stays
+  private. The /developers page names the live address in its examples, and tells a partner to ask for the test
+  address. The steps are in [hosting.md](../hosting.md).
 - **The first test:** a local build, with a local test site, checked the whole way: its game page's button, the
   review, the link back, "Save to the local test site", the file received and saved, and the kept review opened again
   in a browser that had no game.

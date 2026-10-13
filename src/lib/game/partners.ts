@@ -9,8 +9,8 @@ export interface Partner { name: string; hosts: string[] }
 /** The partner sites, by name and hosts. */
 export const PARTNERS: Partner[] = [{ name: "enclosuregame.com", hosts: ["enclosuregame.com", "www.enclosuregame.com"] }];
 
-// A partner's pages on the developer's own computer, for a partner's test: in the preview and in a local build made
-// with VITE_PARTNER_TEST=1, never on the live site (vite.config.ts, design 18).
+// A partner's pages on the developer's own computer, for a partner's test: in the build of the branch partner_test and
+// in a local build made with VITE_PARTNER_TEST=1, never on the live site or the dev preview (vite.config.ts, design 18).
 const TEST: Partner | null = import.meta.env?.VITE_PARTNER_TEST === "1" ? { name: "the local test site", hosts: ["127.0.0.1", "localhost"] } : null;
 
 /** The partner whose site `address` is on, or null: an https address on a partner's host (http too for the test site). */

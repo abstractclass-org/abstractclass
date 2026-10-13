@@ -2,7 +2,7 @@
   // The page for other sites (design 18), as Lichess's page for developers: the link that sends a game here, the
   // messages that save its review back to a partner site and open it again from there, and what can change. The game
   // record's notation has its own page. The examples name the live site's address, which a partner's code names. A
-  // partner tests against the preview (design 18), whose address the page does not give: it is unlisted.
+  // partner tests against a deployment of the branch partner_test (design 18), whose address the page does not give.
   import { PROSE } from "#lib/prose.ts";
   import { DISCORD, SITE_NAME } from "#lib/edition.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";

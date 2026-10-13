@@ -85,10 +85,15 @@ What the repository holds for Pages:
   review there. A build of `main` (`CF_PAGES_BRANCH`) names `https://hedgeschool.abstractclass.org`, a build of
   another branch its preview's address (`CF_PAGES_URL`), and a local build the local preview server. The variable
   `SITE_ORIGIN` sets another, for a test on another address.
-- **A partner's test pages** (design 18): a build of another branch than `main` also takes a partner's save page and
-  `from` on the developer's own computer (`localhost`, `127.0.0.1`), so that a partner can test against the preview
-  before its own site is live (`vite.config.ts` sets `VITE_PARTNER_TEST`). The live site takes only the partners' own
-  https hosts.
+- **A partner's test pages** (design 18): the build of the branch `partner_test` also takes a partner's save page
+  and `from` on the developer's own computer (`localhost`, `127.0.0.1`), so that a partner can test before its own
+  site is live (`vite.config.ts` sets `VITE_PARTNER_TEST`). The live site and the `dev` preview take only the
+  partners' own https hosts. To give a partner a test site:
+  1. Push the commit to test to `partner_test`: `git push origin dev:partner_test`. Pages builds it as a preview.
+  2. In the Pages project's **Deployments**, open the `partner_test` deployment, and copy its own address
+     (`https://<hash>.hedgeschool.pages.dev`), not the branch's address.
+  3. Give the partner that address. It shows that deployment only, and a later push gives a new address.
+  4. To withdraw it, delete the deployment (its **⋯** menu, **Delete deployment**).
 
 To try the build as Pages runs it: `VITE_EDITION=early npm run build:cloudflare`. From a clean clone, run `npm ci`
 first.

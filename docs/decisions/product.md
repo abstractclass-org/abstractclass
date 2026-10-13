@@ -2271,5 +2271,9 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   before its own site is live. Checked by building as Cloudflare builds each branch: the `dev` build has the test
   partner, the `main` build and a plain local build do not. The /developers page names the live address in its
   examples and tells a partner to ask for the test address, so that the preview stays unlisted.
+- **Then a branch of its own for the test:** the `dev` preview's address, once given to a partner, could not be taken
+  back, and it would keep showing every later change. Only the branch `partner_test` now takes a partner's localhost
+  pages. A partner gets the address of one of its deployments, which shows that deployment only, and which deleting
+  the deployment withdraws. The `dev` preview takes the partners' own https hosts only, as the live site does.
 - **Not checked:** enclosuregame.com's own pages, which are not built yet, and the handshake in browsers other than
   Edge.
