@@ -212,8 +212,8 @@ each applies at once, without a reload.
   limit in `search`.
 - `src/lib/analysis/pool.ts`: `resize` and `halt`. `src/lib/engine/client.ts`: `Stopped`, for the requests of an ended
   worker.
-- `src/routes/review/+page.svelte`: the settings applied as they change, another network's pool, and the GPU
-  (`GpuControl`, design 15).
+- `src/lib/analysis/session.svelte.ts` (`EngineSession`, for the review and the Analysis board): the settings applied
+  as they change, another network's pool, and the GPU (`GpuControl`, design 15).
 - `src/lib/review/ReviewView.svelte`: the engine header's switch and gear, the e and l keys, the `engineSettingsPanel`,
   `steps` and `visitsSteps` snippets, and "time limit" in the header.
 - `src/routes/lab/engine/+page.svelte`: a single search's memory, for the measurement above.

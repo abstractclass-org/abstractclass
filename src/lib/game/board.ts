@@ -4,6 +4,7 @@
 // start goes in the link's tags as `Position`, as a record carries it.
 import { edgeName, parseEdge, setUpStart } from "#lib/engine/notation.ts";
 import { keyMoves } from "#lib/analysis/cache.ts";
+import { prefixKeys } from "#lib/review/tree.ts";
 import { decodeShare, encodeShare } from "./share.ts";
 import type { GameRecord } from "./record.ts";
 import type { KeptBoard } from "./store.ts";
@@ -18,7 +19,7 @@ const treeName = (m: string) => (m === "pass" ? m : edgeName(parseEdge(m)));
  *  start (design 21). */
 export function boardOfRecord(record: GameRecord): KeptBoard {
   const main = record.moves.map(treeName), start = setUpStart(record.tags.Position);
-  return { version: 2, main, nodes: main.map((_, i) => [main.slice(0, i + 1).join(" "), 0]), ...(start ? { start } : {}) };
+  return { version: 2, main, nodes: prefixKeys(main).slice(1).map(k => [k, 0]), ...(start ? { start } : {}) };
 }
 
 /** The keys of a board's positions in the browser's store (cache.ts): the start, then every node's line. */

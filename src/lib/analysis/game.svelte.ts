@@ -25,12 +25,12 @@ import { describeGame } from "#lib/engine/describe.ts";
 import { edgeName, parseEdge, parsePoint, type Edge } from "#lib/engine/notation.ts";
 import type { AnalysisReply, DescribeReply, MoveInfo } from "#lib/engine/protocol.ts";
 import { errorText } from "#lib/errors.ts";
-import { BOARD_ID, branchNodes, gameId, type BranchNode as KeptNode, type KeptBoard, type KeptBranches } from "#lib/game/store.ts";
+import { BOARD_ID, branchNodes, keptNode, type BranchNode as KeptNode, type KeptBoard, type KeptBranches } from "#lib/game/store.ts";
 import { equalDepth, moverWin, onlyEdge, otherCandidate, sameMove, secondChoice, type Analysis, type Candidate, type LineStep,
          type GameEnding, type Move, type Player, type Position, type ReviewData } from "#lib/review/model.ts";
 import { ONLY_EDGE_GAP } from "#lib/review/labels.ts";
 import type { EdgeRules } from "#lib/board/edgeInput.svelte.ts";
-import { mainIndex, pathKey } from "#lib/review/tree.ts";
+import { lastMove, mainIndex, parentKey, pathKey, prefixKeys } from "#lib/review/tree.ts";
 import { STORES, dbGet, dbPut } from "#lib/storage/db.ts";
 import { keepStorage } from "#lib/storage/persist.ts";
 import { analysisKey, keyMoves, cacheGetAtLeast, cachePut } from "./cache.ts";
@@ -83,9 +83,6 @@ function withLine(c: MoveInfo): { line: Edge[]; lineVisits?: number[] } {
   return { line, ...(c.pvEdgeVisits ? { lineVisits: c.pvEdgeVisits.slice(0, line.length) } : {}) };
 }
 
-/** The key of a path's parent, from the path's key. */
-const parentKey = (key: string) => (key.includes(" ") ? key.slice(0, key.lastIndexOf(" ")) : "");
-
 /** A position in a branch: the board, the move that led to it, its analysis once searched, its place among the
  *  branches from its parent (the lower first), and whether the player asked for the move's quality. */
 export interface BranchNode { position: Position; move: Move; analysis?: Analysis; order: number; judged?: boolean }
@@ -94,7 +91,7 @@ export interface BranchNode { position: Position; move: Move; analysis?: Analysi
 export class GameAnalysis {
   moves: string[];
   mainNames: string[] = []; // the game's moves as the tree names them (notation.ts's spelling), once the rules ran
-  private mainKeys: string[] = [""]; // the path key of each position of the game: the first i moves
+  mainKeys: string[] = [""]; // the path key of each position of the game: the first i moves
   // Raw state: these arrays are replaced, never changed in place, so the page reads plain objects, not proxies.
   positions = $state.raw<Position[]>([]);
   played = $state.raw<Move[]>([]);
@@ -126,7 +123,7 @@ export class GameAnalysis {
   private running = $state.raw<Record<string, number>>({});
   private era = 0; // another network starts a new era: results from an earlier one are dropped
   private pool: EnginePool;
-  private id: string | null = null; // the game's id (game/store.ts), under which its branches are kept
+  private readonly id: string; // the game's id (game/store.ts), under which its branches are kept, or the board's
   private nextOrder = 0;
   readonly board: boolean; // the Analysis board's form (design 21)
   readonly startPosition: string | null; // the board's set-up start, in the notation: the standard start when null
@@ -136,10 +133,13 @@ export class GameAnalysis {
   private partials = new Map<string, { path: string[]; reply: AnalysisReply; era: number }>(); // keepPartial
   private partialTimer: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(pool: EnginePool, moves: string[], board = false, startPosition: string | null = null) {
+  /** The analysis of the moves `moves`, from `startPosition` (the board's set-up start), whose tree is kept under `id`:
+   *  the game's id (game/store.ts), or BOARD_ID for the Analysis board, which takes the board's form. */
+  constructor(pool: EnginePool, moves: string[], id: string, startPosition: string | null = null) {
     this.pool = pool;
     this.moves = moves;
-    this.board = board;
+    this.id = id;
+    this.board = id === BOARD_ID;
     this.startPosition = startPosition;
     this.analysis = Array(moves.length + 1).fill(undefined);
     this.reached = Array(moves.length + 1).fill(0); // the end too, where the game is not over (passCount)
@@ -209,13 +209,13 @@ export class GameAnalysis {
       });
       this.positions = positions;
       this.mainNames = this.played.map(m => (m.edge ? edgeName(m.edge) : "pass"));
-      this.mainKeys = this.mainNames.reduce((keys, name) => [...keys, keys.length > 1 ? `${keys.at(-1)} ${name}` : name], [""]);
+      this.mainKeys = prefixKeys(this.mainNames);
       this.rulesReady = true;
     } catch (e) {
       this.error = errorText(e);
       return;
     }
-    if (!this.board) await this.loadBranches(); // the board's come from its page (loadBoard)
+    if (!this.board) await this.addNodes(branchNodes((await dbGet<KeptBranches>(STORES.branches, this.id)) ?? null)); // the board's: loadBoard
   }
 
   /** The analysis of the position after the move `name` from the game's position `i`, with no path built: the review
@@ -319,9 +319,9 @@ export class GameAnalysis {
         ?? (await cacheGetAtLeast<Analysis>(search, model, moves, SWEEP_VISITS));
       if (a) this.keep(path, a);
     };
-    await Promise.all(Array.from({ length: this.moves.length }, (_, i) => take(this.mainNames.slice(0, i))));
-    await Promise.all(Object.keys(this.branches).map(k => take(k.split(" "))));
-    await Promise.all(this.greatTargets.map(t => take([...t.path, edgeName(t.candidate.edge)])));
+    await Promise.all([...Array.from({ length: this.moves.length }, (_, i) => this.mainNames.slice(0, i)),
+                       ...Object.keys(this.branches).map(k => k.split(" "))].map(take));
+    await Promise.all(this.greatTargets.map(t => take([...t.path, edgeName(t.candidate.edge)]))); // after: they follow the results
   }
 
   /** Searches the position after `candidate` at `path` to the label budget, to confirm a Great. */
@@ -445,27 +445,17 @@ export class GameAnalysis {
    *  Review tab, in another tab): its branches would come back with a later import of the game. */
   private async keepBranches() {
     if (this.board) {
-      await dbPut(STORES.branches, BOARD_ID, this.keptBoard());
+      await dbPut(STORES.branches, this.id, this.keptBoard());
       void keepStorage(); // the board's analysis is the player's too
       return;
     }
-    if (!this.id || !(await dbGet(STORES.games, this.id))) return;
-    const nodes = Object.entries(this.branches).map(([k, n]): [string, number] | [string, number, 1] =>
-      (n.judged ? [k, n.order, 1] : [k, n.order]));
+    if (!(await dbGet(STORES.games, this.id))) return;
+    const nodes = Object.entries(this.branches).map(([k, n]) => keptNode(k, n.order, n.judged));
     await dbPut(STORES.branches, this.id, { version: 2, nodes } satisfies KeptBranches);
   }
 
-  /** The game's branches kept from an earlier visit. A node that the rules refuse is dropped. */
-  private async loadBranches() {
-    try {
-      this.id = await gameId(this.moves);
-    } catch {
-      return; // no hashing here (an insecure page): the branches last for this visit only
-    }
-    await this.addNodes(branchNodes((await dbGet<KeptBranches>(STORES.branches, this.id)) ?? null));
-  }
-
-  /** Adds kept nodes to the tree. */
+  /** Adds kept nodes to the tree: the game's from an earlier visit, or the board's. A node that the rules refuse is
+   *  dropped. */
   private async addNodes(nodes: KeptNode[]) {
     // Each leaf's line adds the nodes before it too, with one call of the rules. Where the rules refuse a move of a line,
     // the nodes before it are added one at a time, and the rest of the line is dropped. Then each node takes its order.
@@ -500,7 +490,7 @@ export class GameAnalysis {
 
   /** Board: the tree as the browser keeps it: every node, the main line's too, and the main line. */
   keptBoard(): KeptBoard {
-    const nodes = Object.entries(this.treeNodes()).map(([k, n]): KeptNode => (n.judged ? [k, n.order, 1] : [k, n.order]));
+    const nodes = Object.entries(this.treeNodes()).map(([k, n]) => keptNode(k, n.order, n.judged));
     return { version: 2, nodes, main: [...this.mainNames], ...(this.startPosition ? { start: this.startPosition } : {}) };
   }
 
@@ -531,9 +521,10 @@ export class GameAnalysis {
   /** Board: every node of the tree by path key, the main line's moves as nodes too, each before its siblings. */
   private treeNodes(): Record<string, BranchNode> {
     const nodes: Record<string, BranchNode> = { ...this.branches };
+    const least = new Map<string, number>(); // the least order of the branches from each position, 0 or lower
+    for (const [k, n] of Object.entries(this.branches)) least.set(parentKey(k), Math.min(least.get(parentKey(k)) ?? 0, n.order));
     for (let i = 1; i < this.positions.length; i++) {
-      const key = this.mainKeys[i], parent = parentKey(key);
-      const first = Math.min(0, ...Object.entries(this.branches).filter(([k]) => parentKey(k) === parent).map(([, n]) => n.order));
+      const key = this.mainKeys[i], first = least.get(parentKey(key)) ?? 0;
       nodes[key] = { position: this.positions[i], move: this.played[i - 1], order: first - 1,
                      ...(this.analysis[i] ? { analysis: this.analysis[i] } : {}), ...(this.judgedMain[key] ? { judged: true } : {}) };
     }
@@ -543,15 +534,15 @@ export class GameAnalysis {
   /** Board: makes `main`, a line of `nodes`, the main line, carried on along each position's first node to its end, and
    *  the other nodes the variations. Every position is a node already: nothing is asked of the rules or searched. */
   private reindex(nodes: Record<string, BranchNode>, main: string[]) {
-    const line = [...main];
-    for (;;) {
-      const at = line.join(" ");
-      const next = Object.entries(nodes).filter(([k]) => parentKey(k) === at).sort((a, b) => a[1].order - b[1].order)[0];
-      if (!next) break;
-      line.push(next[0].slice(next[0].lastIndexOf(" ") + 1));
+    const first = new Map<string, string>(); // each position's first node, by the position's key
+    for (const [k, n] of Object.entries(nodes)) {
+      const at = parentKey(k), had = first.get(at);
+      if (had === undefined || n.order < nodes[had].order) first.set(at, k);
     }
+    const line = [...main];
+    for (let next = first.get(pathKey(line)); next !== undefined; next = first.get(next)) line.push(lastMove(next));
     const rest = { ...nodes }, positions = [this.positions[0]], played: Move[] = [], analysis = [this.analysis[0]];
-    const judged: Record<string, true> = {}, keys = line.map((_, i) => line.slice(0, i + 1).join(" "));
+    const judged: Record<string, true> = {}, keys = prefixKeys(line).slice(1);
     for (const key of keys) {
       const node = rest[key];
       positions.push(node.position);
@@ -740,7 +731,7 @@ export class GameAnalysis {
   } = {}): Promise<boolean> {
     const { sliced = false, wanted = () => true, seconds = null, ontime, early } = options;
     const slice = sliced ? SLICE_VISITS : early && early < visits ? early : null;
-    const era = this.era, pool = this.pool, moves = this.engineMoves(path), keyed = this.keyMovesOf(path);
+    const era = this.era, pool = this.pool, query = this.query(path), keyed = this.keyMovesOf(path);
     const key = analysisKey(pool.search!, pool.model!.sha256, keyed, visits);
     const held = () => this.analysisOf(path)?.visits ?? 0;
     const keep = (a: Analysis) => { if (era === this.era) this.keep(path, a); };
@@ -753,8 +744,7 @@ export class GameAnalysis {
     return pool.run(priority, tag, (engine, onStop) => this.marked(pathKey(path), async () => {
       if (held() >= visits) return true;
       if (this.paused || !wanted() || era !== this.era) return false;
-      const run = engine.analyse({ ...(this.startPosition ? { position: this.startPosition } : {}), moves, maxVisits: visits,
-                                   includePVVisits: true, ...(slice ? { slice: { visits: slice } } : {}) },
+      const run = engine.analyse({ ...query, maxVisits: visits, includePVVisits: true, ...(slice ? { slice: { visits: slice } } : {}) },
                                  r => this.keepPartial(path, r, era));
       if (sliced) onStop(run.stop); // the pool may stop it to give way, and runs it again later
       if (tag === "focus") this.stopFocus = run.stop;

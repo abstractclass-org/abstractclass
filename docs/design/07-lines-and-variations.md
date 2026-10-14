@@ -297,8 +297,8 @@ cut edges that are on the board, so a line drawn over the board can show edges t
 - `src/lib/review/tree.ts`: paths, the game's line, a branch's rows, and the forks for the keys (`prevFork`,
   `nextFork`, `siblingLine`), with tests in `tree.test.ts`.
 - `src/lib/analysis/game.svelte.ts`: `lineSteps` (the line's positions from the rules), `toAnalysis` (the line),
-  `branches`, `addLine`, `deleteFrom`, `promote`, `judge`, `loadBranches` (the branches and their keeping),
-  `rulesAt` (the rules for the player's moves), and the searches on any path.
+  `branches`, `addLine`, `deleteFrom`, `promote`, `judge`, `addNodes` and `keepBranches` (the branches and their
+  keeping), `rulesAt` (the rules for the player's moves), and the searches on any path.
 - `src/lib/review/model.ts`: `judgeEdge` (an edge's loss and label, for the game's edges and a branch's),
   `judgeBranchEdge`, `valuesAfter` (tests in `model.test.ts`).
 - `src/lib/board/Board.svelte`: `onlyActive` (the points that take the pointer), `oncandidatedblclick`, the pointer's

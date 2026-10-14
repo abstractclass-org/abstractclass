@@ -4,7 +4,7 @@
 import { GameAnalysis, LABEL_VISITS, type BranchNode } from "#lib/analysis/game.svelte.ts";
 import { loadEngine, networkName, reviewVisits } from "#lib/analysis/engineSettings.ts";
 import { EnginePool } from "#lib/analysis/pool.ts";
-import { loadManifest, modelOf } from "#lib/engine/client.ts";
+import { modelOf, type Manifest } from "#lib/engine/client.ts";
 import { SITE_NAME } from "#lib/edition.ts";
 import { playerNames, type GameRecord } from "#lib/game/record.ts";
 import { loadGame } from "#lib/game/store.ts";
@@ -25,10 +25,9 @@ export function annotatedText(R: Review, unit: Unit, record: GameRecord, branche
 
 /** The annotated record of a stored game, from the stored results of the network and the review depth set in this
  *  browser, with the labels by turn or by edge as the review shows them. Loads the engine's rules, not its network. */
-export async function annotatedFromStore(id: string): Promise<string> {
+export async function annotatedFromStore(id: string, manifest: Manifest | null): Promise<string> {
   const stored = await loadGame(id);
   if (!stored) throw new Error(`This browser has no game ${id}.`);
-  const manifest = await loadManifest();
   if (!manifest) throw new Error("this site has no engine");
   const engine = loadEngine(), visits = reviewVisits(engine);
   const model = modelOf(manifest, engine.network);
@@ -36,7 +35,7 @@ export async function annotatedFromStore(id: string): Promise<string> {
   const pool = new EnginePool(0); // the rules alone: no search
   try {
     await pool.start(manifest, engine.network);
-    const game = new GameAnalysis(pool, stored.record.moves);
+    const game = new GameAnalysis(pool, stored.record.moves, id);
     game.setReview(visits);
     await game.start();
     if (game.error) throw new Error(game.error);

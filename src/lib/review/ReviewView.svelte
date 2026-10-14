@@ -1,6 +1,8 @@
 <script lang="ts" module>
   import Swatch from "#lib/ui/Swatch.svelte";
-  import { PLAYER_NAME, type Player } from "./model.ts";
+  import { PLAYER_NAME, type Analysis, type Edge, type LineStep, type Player } from "./model.ts";
+  import type { BranchNode } from "#lib/analysis/game.svelte.ts";
+  import type { EdgeRules } from "#lib/board/edgeInput.svelte.ts";
 
   /** The review in progress: what the engine does now, and the passes as parts of one bar, each with its share of the
    *  work (by visits) and how much of it is done (0 to 1). `waiting`: no work runs (the engine is off). */
@@ -14,6 +16,23 @@
   /** The Analysis board's form of the view (design 21): its main line's moves evaluated on request, by path key, and
    *  "Make main line". No report, no chart, no progress: the review's columns give way to the board and its moves. */
   export interface BoardForm { judged: Record<string, true>; onmain: (path: string[]) => void }
+  /** The analysis behind the view (GameAnalysis): its branches, an engine error, the position searched for the player,
+   *  the rules and the results the view asks for, and the changes of the tree. */
+  export interface ReviewGame {
+    error: string;
+    branches: Record<string, BranchNode>; // the branches' positions, by path key (tree.ts), in the order added
+    focusing: string | null; // the path key of the position searched for the player, while it runs
+    rulesAt(path: string[]): Promise<EdgeRules>; // a position's legal edges and mover's nodes, for the player's moves
+    secondAt(path: string[]): Analysis | undefined; // the position after the engine's second choice, which confirms a Great
+    otherAt(path: string[], turn: (Edge | null)[]): Analysis | undefined; // the same for a turn
+    turnKeys(path: string[]): string[]; // the branch moves that evaluating this move's quality judges
+    pending(path: string[]): boolean; // the review's own searches can still change this position's analysis
+    stoppedByTime(path: string[]): boolean; // the position's search stopped at its time limit
+    lineSteps(path: string[], line: Edge[]): Promise<LineStep[]>; // a line's edges played: cuts, regions (the rules)
+    deleteFrom(path: string[]): Promise<void>; // deletes a branch node and what follows it
+    promote(path: string[]): Promise<void>; // promotes a branch one step among the branches from its fork
+    judge(path: string[]): Promise<void>; // evaluates a branch move's quality: searches its two positions
+  }
 
   // The numbers' formats, made once: a formatter is costly to make, and the move list and the tables format many numbers
   // at each result.
@@ -62,14 +81,13 @@
   import { untrack, type Snippet } from "svelte";
   import { MediaQuery } from "svelte/reactivity";
   import { innerHeight, innerWidth } from "svelte/reactivity/window";
-  import type { BranchNode } from "#lib/analysis/game.svelte.ts";
   import { CUSTOM_REVIEW, DEPTHS, NETWORKS, REVIEW_PRESETS, networkMB, networkName, TIME_LIMITS, maxWorkers, nearestStep, type EngineSettings,
            type GpuMode, type ReviewDepth }
     from "#lib/analysis/engineSettings.ts";
   import { gpuStatusText, type GpuStatus } from "#lib/analysis/gpu.svelte.ts";
   import Board, { type BoardCandidate, type BoardLineEdge, type BoardMark } from "#lib/board/Board.svelte";
   import { BRUSH_KEYS, type BoardNote } from "#lib/board/notes.ts";
-  import { EdgeInput, type EdgeRules } from "#lib/board/edgeInput.svelte.ts";
+  import { EdgeInput } from "#lib/board/edgeInput.svelte.ts";
   import { parseEdge } from "#lib/engine/notation.ts";
   import { SIDE_BG, SIDE_BORDER, SIDE_TEXT } from "#lib/ui/side.ts";
   import AdvantageChart from "./AdvantageChart.svelte";
@@ -77,47 +95,35 @@
   import { loadDisplay, saveDisplay, type Display } from "./display.ts";
   import { MOVE_SOUND_NAMES, playMove, preload } from "#lib/sound.ts";
   import ExportMenu from "#lib/ExportMenu.svelte";
-  import type { ExportKind, ExportResult } from "#lib/game/reviewFile.ts";
+  import type { ExportItem, ExportKind, ExportResult } from "#lib/game/reviewFile.ts";
   import Glyph from "./Glyph.svelte";
   import LabelBadge from "./LabelBadge.svelte";
   import { LineDrawing } from "./lineDrawing.svelte.ts";
   import {
-    edgeName, endingText, moveName, moveNotation, opensTurn, turnFromCount, sameEdge, shortNote, turnShortNote, HARD_NOTE, complexity, likelyEdges, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchEdge, valuesAfter, resultWin, moverWin, costText, pct, shownCandidates, distinctCandidates, rankOf, twinsOf, lineMovers, enoughVisits, trustedLine, type Analysis, type Candidate, type EdgeReview, type LineStep, LABELS, LABEL_TEXT, LABEL_GLYPH, type Edge, type Label, type Position, type Review, type Unit, type Move, type TurnJudgment, type TurnReview,
+    edgeName, endingText, moveName, moveNotation, opensTurn, turnFromCount, sameEdge, shortNote, turnShortNote, HARD_NOTE, complexity, likelyEdges, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchEdge, valuesAfter, resultWin, moverWin, costText, pct, shownCandidates, distinctCandidates, rankOf, twinsOf, lineMovers, enoughVisits, trustedLine, type Candidate, type EdgeReview, LABELS, LABEL_TEXT, LABEL_GLYPH, type Label, type Position, type Review, type Unit, type Move, type TurnJudgment, type TurnReview,
   } from "./model.ts";
-  import { branchChildren, branchRows, mainIndex, nextFork, pathKey, prevFork, sharedLength, siblingLine, treeLines, withLine, type BranchRow } from "./tree.ts";
+  import { branchChildren, branchRows, mainIndex, nextFork, pathKey, prefixKeys, prevFork, sharedLength, siblingLine, treeLines, withLine,
+           type BranchRow } from "./tree.ts";
 
   interface Props {
     R: Review;
     progress?: ReviewProgress | null; // the review in progress, or null when it is complete
-    problem?: string; // an engine error
+    game?: ReviewGame; // the analysis behind the view
     deepVisits?: number; // the budget of the position on screen: its search bar is full at this many visits
     deeperPositions?: number; // the game's positions searched deeper than the review asked, where the player looked
     again?: ReviewAgain | null; // why a game reviewed before is reviewed again, when the site's engine changed
     snapshot?: ReviewSnapshot | null; // a review by an earlier engine, shown as it was (design 20)
     board?: BoardForm | null; // the Analysis board (design 21)
     start?: string[]; // the position to open at: its path (the start when none)
-    exportItems?: [ExportKind, string, string, string][]; // the Export menu's entries, when not the review's
+    exportItems?: ExportItem[]; // the Export menu's entries (reviewFile.ts, reviewExports)
     tools?: Snippet; // the Analysis board's New menu, beside Export (design 21)
-    partner?: string | null; // the partner site the game came from by its link, which takes its review back (design 18)
     siteLink?: { href: string; host: string } | null; // the game's own page, from its record's Site tag
     ownSettings?: boolean; // the game keeps the network and depth it came with (store.ts, `settings`)
     onfeature?: (name: string) => void; // a feature used (design 17): the page counts its first use in each review
     onposition?: (path: string[]) => void; // the position on screen changed: its path in the game's tree
-    lineSteps?: (path: string[], line: Edge[]) => Promise<LineStep[]>; // a line's edges played: cuts, regions (the rules)
-    branches?: Record<string, BranchNode>; // the branches' positions, by path key (tree.ts), in the order added
     onplay?: (path: string[]) => Promise<void>; // adds a line from the start to the tree
-    rulesAt?: (path: string[]) => Promise<EdgeRules>; // a position's legal edges and mover's nodes, for the player's moves
-    secondAt?: (path: string[]) => Analysis | undefined; // the position after the engine's second choice, which confirms a Great
-    otherAt?: (path: string[], turn: (Edge | null)[]) => Analysis | undefined; // the same for a turn (GameAnalysis.otherAt)
-    turnKeys?: (path: string[]) => string[]; // the branch moves that evaluating this move's quality judges
-    pendingAt?: (path: string[]) => boolean; // the review's own searches can still change this position's analysis
     reviewVisits?: number; // the review's depth: a position searched less is a first estimate on the chart
-    ondelete?: (path: string[]) => Promise<void>; // deletes a branch node and what follows it
-    onpromote?: (path: string[]) => Promise<void>; // promotes a branch one step among the branches from its fork
-    onjudge?: (path: string[]) => Promise<void>; // evaluates a branch move's quality: searches its two positions
     labelVisits?: number; // the label budget: a move is judged once both its positions have this many visits
-    searching?: boolean; // the position on screen is being searched now
-    timedOut?: boolean; // the position on screen's search stopped at its time limit
     engine?: EngineSettings; // the engine's settings (design 09), shown in the settings panel
     onengine?: (change: Partial<EngineSettings>) => void; // a setting changed in the panel
     gpu?: { status: GpuStatus; downloadMB: string }; // what the GPU does in this review, and its first download (design 15)
@@ -125,8 +131,10 @@
     onexport?: (kind: ExportKind, unit: Unit) => Promise<ExportResult | void>;
     exportReady?: boolean; // the review is done: export only then (design 13)
   }
-  let { R, progress = null, problem = "", deepVisits = 0, onposition, lineSteps, branches = {}, onplay, rulesAt, ondelete,
-        onpromote, onjudge, labelVisits = 0, searching = false, timedOut = false, engine, onengine, gpu, secondAt, otherAt, turnKeys, pendingAt, reviewVisits = 0, onexport, exportReady = true, deeperPositions = 0, again = null, snapshot = null, board = null, start, exportItems, tools, partner = null, siteLink = null, ownSettings = false, onfeature }: Props = $props();
+  let { R, progress = null, game, deepVisits = 0, onposition, onplay, labelVisits = 0, engine, onengine, gpu, reviewVisits = 0, onexport,
+        exportReady = true, deeperPositions = 0, again = null, snapshot = null, board = null, start, exportItems, tools, siteLink = null,
+        ownSettings = false, onfeature }: Props = $props();
+  const branches = $derived(game?.branches ?? {});
   const used = (name: string) => onfeature?.(name);
   const last = $derived(R.data.positions.length - 1);
   const TABLE_ROWS = 5; // the Analysis table shows this many rows and scrolls, so the move list under it does not move
@@ -136,7 +144,7 @@
   // A label's badge in the text. Its mark is 56% of the circle, as on the board (0.4 in 0.72), and bold, not extra bold,
   // because small text in heavy weights runs together.
   const GAUGE_TEXT = "absolute left-1/2 -translate-x-1/2 rotate-180 [writing-mode:vertical-rl] text-[0.6rem] leading-none font-semibold tracking-[0.1em] text-white tabular-nums";
-  const MENU_ITEM = "px-2.5 py-1.5 rounded cursor-pointer outline-none data-highlighted:bg-panel data-disabled:opacity-50 data-disabled:cursor-default";
+  const MENU_ITEM = "menu-item data-disabled:opacity-50 data-disabled:cursor-default";
   const KBD = "inline-block min-w-[1.6em] px-1 py-px rounded border border-line bg-panel font-mono text-[0.85em] text-center leading-tight";
   const SETTINGS_HEAD = "mt-2 first:mt-0 pb-0.5 text-xs font-semibold uppercase tracking-wide text-muted border-b border-line";
   const TAB = "flex-1 bg-transparent border-transparent border-b-2 border-b-line rounded-none data-[state=active]:border-b-accent data-[state=active]:font-semibold";
@@ -177,6 +185,8 @@
   let engineOpen = $state(false);
   let gaugeHeight = $state(0);
   // The row above the board is one line high, or two in a narrow row: the board and the side columns take its height.
+  // A bound value, not the skeleton's attachment (measureStrip): the style directives on the view's <main> write its
+  // whole style attribute, which would drop a property that the attachment set.
   let stripHeight = $state(0);
   // The side columns end where the window ends, less the page's margin, but never above the board's bottom edge, so that
   // the step controls stay in view and the page fits the window. They are measured again whenever the board's column or
@@ -204,7 +214,7 @@
   const gamePositions = $derived(R.data.positions);
   const mainNames = $derived(moves.map(m => moveName(m.edge)));
   // The path key of each position of the game: the first i moves.
-  const mainKeys = $derived(mainNames.reduce((keys, name) => [...keys, keys.length > 1 ? `${keys.at(-1)} ${name}` : name], [""]));
+  const mainKeys = $derived(prefixKeys(mainNames));
   const here = $derived(pathKey(path));
   const mainAt = $derived(mainIndex(path, mainNames)); // the place on the game's line, or null in a branch
   const pos = $derived(mainAt ?? sharedLength(path, mainNames)); // on the game's line: here, or where the branch leaves it
@@ -228,8 +238,7 @@
   // Derived from the branches' keys in their order: a branch's search result changes neither.
   const branchOrder = $derived(Object.entries(branches).sort((a, b) => a[1].order - b[1].order).map(([k]) => k).join("\n"));
   const kids = $derived(branchChildren(branchOrder ? branchOrder.split("\n").map(k => k.split(" ")) : []));
-  const kidsAt = (key: string) => kids.get(key) ?? [];
-  const branchKids = (p: string[]) => kidsAt(pathKey(p));
+  const branchKids = (p: string[]) => kids.get(pathKey(p)) ?? [];
   function childrenOf(p: string[]): string[][] {
     const i = mainIndex(p, mainNames);
     return [...(i !== null && i < mainNames.length ? [[...p, mainNames[i]]] : []), ...branchKids(p)];
@@ -315,8 +324,7 @@
   // drawing, when the pointer leaves. A second click unpins it.
   let selectedRank = $state(1);
   let pinned = $state(false);
-  let listHover = $state<number | null>(null);
-  $effect(() => { void here; selectedRank = 1; pinned = false; listHover = null; forkPick = null; });
+  let listHover = $state<number | null>(null); // a new position starts with none of these (setPath)
   function pick(rank: number) {
     if (pinned && selectedRank === rank) pinned = false;
     else { selectedRank = rank; pinned = true; }
@@ -377,11 +385,11 @@
     const key = here, end = over;
     input.reset();
     input.rules = null;
-    if (end || !rulesAt) return;
+    if (end || !game) return;
     const known = knownRules.get(key);
     if (known) { input.rules = known; return; }
     let current = true;
-    rulesAt(key ? key.split(" ") : [])
+    game.rulesAt(key ? key.split(" ") : [])
       .then(r => { knownRules.set(key, r); if (current) input.rules = r; })
       .catch(() => {}); // without the rules, no own moves here
     return () => { current = false; };
@@ -407,9 +415,9 @@
   const lineKey = (start: string[], edges: Edge[]) => `${pathKey(start)}|${edges.map(edgeName).join(" ")}`;
   function askSteps(start: string[], edges: Edge[]) {
     const key = lineKey(start, edges);
-    if (!lineSteps || key in stepsByLine || askedSteps.has(key)) return;
+    if (!game || key in stepsByLine || askedSteps.has(key)) return;
     askedSteps.add(key);
-    lineSteps(start, edges).then(steps => (stepsByLine = { ...stepsByLine, [key]: steps })).catch(() => {});
+    game.lineSteps(start, edges).then(steps => (stepsByLine = { ...stepsByLine, [key]: steps })).catch(() => {});
   }
   let lineStepsHad = $state<{ at: string; edges: Edge[]; steps: LineStep[] } | null>(null);
   const listKey = $derived(listLine ? lineKey(path, listLine) : null);
@@ -571,7 +579,7 @@
     if (!node?.judged) return null;
     const parent = p.slice(0, -1);
     return judgeBranchEdge(analysisAt(parent), valuesAfter(node.position, node.analysis, "lead", labelVisits), node.move.player,
-                           node.move.edge, "lead", labelVisits, secondAt?.(parent));
+                           node.move.edge, "lead", labelVisits, game?.secondAt(parent));
   }
   /** The move that leads to `p` (none at the start), and the analysis at `p`: the game's or a branch's. */
   function moveInto(p: string[]): Move | undefined {
@@ -600,7 +608,7 @@
     const start = p.slice(0, twice ? -2 : -1), turn = paths.map(q => moveInto(q)?.edge ?? null);
     return { paths, judgment: judgeTurn(node.move.player, turn, analysisAt(start), twice ? analysisAt(parent) : undefined,
                                         valuesAfter(node.position, node.analysis, "lead", labelVisits), !!node.position.over,
-                                        otherAt?.(start, turn), twice ? secondAt?.(parent) : undefined, "lead", labelVisits) };
+                                        game?.otherAt(start, turn), twice ? game?.secondAt(parent) : undefined, "lead", labelVisits) };
   }
   // By turn, on the game's line, the turn that ends here: the turn just played, whole. In its middle, none.
   const endedTurn = $derived(unit === "turn" && mainAt !== null && mainAt > 0 && R.turnOf[mainAt - 1].end === mainAt
@@ -614,20 +622,20 @@
       const t = endedTurn, label = t?.label;
       if (!t || !label) return [];
       const note = `${LABEL_TEXT[label]}: ${turnCost(t)}`;
-      return t.edges.flatMap(e => (e.edge ? [{ edge: e.edge, label, glyph: LABEL_GLYPH[label], note, group: t.number, player: t.player }] : []));
+      return t.edges.flatMap(e => (e.edge ? [{ edge: e.edge, label, note, group: t.number, player: t.player }] : []));
     }
     if (unit === "turn") { // in a branch: the branch's turn that ends here, when it was asked for
       const bt = branchTurnAt(path), j = bt?.judgment;
       if (!bt || !j) return [];
       const note = `${LABEL_TEXT[j.label]}: ${costText(j.rawLoss, j.rawPoints)}`;
-      return bt.paths.flatMap(q => { const m = moveInto(q); return m?.edge ? [{ edge: m.edge, label: j.label, glyph: LABEL_GLYPH[j.label], note, group: 0, player: m.player }] : []; });
+      return bt.paths.flatMap(q => { const m = moveInto(q); return m?.edge ? [{ edge: m.edge, label: j.label, note, group: 0, player: m.player }] : []; });
     }
     const out: (BoardMark & { player: Player })[] = [];
     let p = path;
     for (let k = 0; k < 2 && p.length; k++) { // a turn has at most two edges
       const i = mainIndex(p, mainNames), e = i !== null ? R.edges[i - 1] : null, move = e ?? moveInto(p);
       const edge = move?.edge ?? null, label = e ? e.label : branchLabel(p), player = move?.player ?? 0;
-      if (edge && label) out.push({ edge, label, glyph: LABEL_GLYPH[label], player,
+      if (edge && label) out.push({ edge, label, player,
                                     note: e ? `${LABEL_TEXT[label]}: ${costText(e.rawLoss, e.rawPoints)}` : LABEL_TEXT[label] });
       if (moveFrom(p.slice(0, -1)).first) break; // the turn began with this edge
       p = p.slice(0, -1);
@@ -642,6 +650,7 @@
   function setPath(p: string[], sound = false) {
     const step = p.length === path.length + 1 && sharedLength(p, path) === path.length;
     if (pathKey(p) === here) sound = false;
+    else { selectedRank = 1; pinned = false; forkPick = null; }
     path = p;
     hover = null;
     listHover = null;
@@ -677,7 +686,7 @@
     used("branch deleted");
     const p = key.split(" ");
     if (here === key || here.startsWith(`${key} `)) setPath(p.slice(0, -1)); // the place on screen goes too
-    await ondelete?.(p);
+    await game?.deleteFrom(p);
   }
 
   // At a fork, ↑ and ↓ pick the line that → follows (Lichess's fork.select): the board shows the picked edge.
@@ -726,8 +735,7 @@
   // Shift + m (the next and the previous mistake, KaTrain's n), and Delete. The controls' notes name no keys: the list
   // does.
   let keysOpen = $state(false);
-  let againOpen = $state(false);
-  $effect(() => { if (again?.dialog) untrack(() => (againOpen = true)); });
+  let againOpen = $derived(!!again?.dialog); // closed by the player
   function onkeydown(ev: KeyboardEvent) {
     if (ev.defaultPrevented || ev.target instanceof HTMLInputElement || ev.ctrlKey || ev.metaKey || ev.altKey) return;
     if (ev.key === "Escape") {
@@ -811,16 +819,15 @@
   const ending = $derived(endingText(R.data)); // the game's outcome, by the rules or by the record (model.ts)
   const endedByRules = $derived(!!R.data.positions[last]?.over);
   const status = $derived.by(() => {
-    if (mainAt === null) {
-      // In a branch: where it leaves the game, and the turn as in the game.
-      if (over) return `A branch from edge ${pos + 1} · Game over`;
+    // The position's own turn, in a branch and on the board: the turn as in the game.
+    const turnHere = () => {
       const t = moveFrom(path), k = t.first ? 1 : 2;
-      return `A branch from edge ${pos + 1} · Turn ${t.turn} · ${PLAYER_NAME[mover]} to play, edge ${k} of ${k - 1 + position.movesLeft}`;
-    }
-    if (board) { // the board: the position's own turn, as in a branch
+      return `Turn ${t.turn} · ${PLAYER_NAME[mover]} to play, edge ${k} of ${k - 1 + position.movesLeft}`;
+    };
+    if (mainAt === null) return `A branch from edge ${pos + 1} · ${over ? "Game over" : turnHere()}`; // where it leaves the game
+    if (board) {
       if (over) return `Game over · ${PLAYER_NAME[position.scores[0] > position.scores[1] ? 0 : 1]} won by ${Math.abs(position.scores[0] - position.scores[1]).toFixed(1)} points`;
-      const t = moveFrom(path), k = t.first ? 1 : 2;
-      return `Edge ${(position.count ?? path.length) + 1} · Turn ${t.turn} · ${PLAYER_NAME[mover]} to play, edge ${k} of ${k - 1 + position.movesLeft}`;
+      return `Edge ${(position.count ?? path.length) + 1} · ${turnHere()}`;
     }
     if (pos === last) return endedByRules ? `Game over · ${ending}` : `The record ends here · ${ending}`;
     const t = R.turnOf[pos];
@@ -876,6 +883,8 @@
   const chartRough = $derived(R.blueWin.some((v, i) => !Number.isNaN(v) && !chartSettled[i]));
   // The position's search, as Lichess shows its depth: the bar fills to the budget and stays full when the search ends.
   // A search stopped at its time limit has ended too: its bar is full (Lichess fills its bar by time).
+  const timedOut = $derived(!!game?.stoppedByTime(path)); // the search stopped at its time limit
+  const searching = $derived(!!game && game.focusing === here); // the position is searched for the player now
   const searched = $derived(analysis && deepVisits ? (timedOut ? 1 : Math.min(1, analysis.visits / deepVisits)) : null);
   // A slider's place while it moves, by its id: the setting changes when it is let go, so that a drag does not restart
   // the workers or the search at each step.
@@ -893,8 +902,8 @@
 
 <!-- The top of the side panel: the review's progress or an engine error. -->
 {#snippet panelHead()}
-  {#if problem}
-    <p class="mb-2.5 text-sm text-blunder select-text" role="alert">Engine error: {problem}</p>
+  {#if game?.error}
+    <p class="mb-2.5 text-sm text-blunder select-text" role="alert">Engine error: {game.error}</p>
   {:else if progress}
     <!-- One height for the review's slot, while it runs and once it is done, each line on one line: the report and the
          moves under it never move as the review goes (Cloudflare measured the page's layout shift). -->
@@ -1127,13 +1136,11 @@
                           : pickedKey === mainKeys[e.index + 1] ? PICKED : "hover:bg-panel-2 hover:outline hover:outline-line hover:-outline-offset-1"]}
                   onclick={() => go(e.index + 1, true)} onmouseenter={() => startPreview({ kind: "move", index: e.index })} onmouseleave={endPreview} tabindex="-1"
                   title={[judged, after !== undefined ? `Lead: ${sideText(after, 1)}` : ""].filter(Boolean).join(" · ")}>
+            <span class="w-[8ch]">{moveNotation(e)}</span>
             {#if unit === "edge"}
-              <span class="w-[8ch]">{moveNotation(e)}</span>
               <span class="w-[2.2ch] ml-auto">{#if listed(shown)}{@render mark(shown)}{/if}</span>
               <span class="w-[1.2ch] text-[0.8em] text-muted text-center" title={e.hard && forSide(e.player) ? HARD_NOTE : undefined}>{e.hard && forSide(e.player) ? "◆" : ""}</span>
               <span class="w-[5ch] text-[0.78em] text-right text-muted tabular-nums">{forSide(e.player) ? lossShort(e) : ""}</span>
-            {:else}
-              <span class="w-[8ch]">{moveNotation(e)}</span>
             {/if}
           </button>
         {/each}
@@ -1170,16 +1177,16 @@
   {/snippet}
   </ContextMenu.Trigger>
   <ContextMenu.Portal>
-    <ContextMenu.Content class="z-10 min-w-48 p-1 bg-panel-2 border border-muted/50 rounded-md shadow-[0_6px_20px_rgb(0_0_0/0.4)] text-sm">
+    <ContextMenu.Content class="z-10 min-w-48 menu-box">
       {#if board}
         {@const form = board}
         <ContextMenu.Item disabled={!menuPath || !(menuPath in branches)} onSelect={() => { if (menuPath) { used("main line made"); form.onmain(menuPath.split(" ")); } }}
                           class={MENU_ITEM}>Make main line</ContextMenu.Item>
       {/if}
-      <ContextMenu.Item disabled={!!snapshot || !canPromote(menuPath)} onSelect={() => { if (menuPath) { used("branch promoted"); onpromote?.(menuPath.split(" ")); } }}
+      <ContextMenu.Item disabled={!!snapshot || !canPromote(menuPath)} onSelect={() => { if (menuPath) { used("branch promoted"); game?.promote(menuPath.split(" ")); } }}
                         class={MENU_ITEM}>Promote variation</ContextMenu.Item>
-      <ContextMenu.Item disabled={!!snapshot || !menuPath || (turnKeys?.(menuPath.split(" ")) ?? [menuPath]).every(k => !!branches[k]?.judged || !!board?.judged[k])}
-                        onSelect={() => { if (menuPath) { used("quality evaluated"); onjudge?.(menuPath.split(" ")); } }} class={MENU_ITEM}>Evaluate quality</ContextMenu.Item>
+      <ContextMenu.Item disabled={!!snapshot || !menuPath || (game?.turnKeys(menuPath.split(" ")) ?? [menuPath]).every(k => !!branches[k]?.judged || !!board?.judged[k])}
+                        onSelect={() => { if (menuPath) { used("quality evaluated"); game?.judge(menuPath.split(" ")); } }} class={MENU_ITEM}>Evaluate quality</ContextMenu.Item>
       <ContextMenu.Separator class="my-1 h-px bg-line" />
       <ContextMenu.Item disabled={!!snapshot || !menuPath} onSelect={() => menuPath && deleteFrom(menuPath)} class={MENU_ITEM}>Delete from here</ContextMenu.Item>
     </ContextMenu.Content>
@@ -1251,7 +1258,7 @@
     <!-- A row of the engine's line gleams as the progress bars do while its position's search can still change it (the
          review's passes, the key moments searched deeper, or the position on screen): its first choice can change,
          and its line grows. -->
-    {@const gleams = !!engine && row.paths.some(p => engine.steps.has(pathKey(p))) && !!pendingAt?.(engine.search)}
+    {@const gleams = !!engine && row.paths.some(p => engine.steps.has(pathKey(p))) && !!game?.pending(engine.search)}
     <div class={["relative flex flex-wrap items-center gap-y-0.5 py-0.5 font-mono text-[0.95em]",
                  display.branchForm === "text" ? "gap-x-1" : "gap-x-0.5", gleams && "bar-glider"]}
          style:padding-left="calc({rule(row.depth)} + 0.65rem)">
@@ -1272,7 +1279,7 @@
         {@const label = node && !forSide(node.move.player) ? null : unit === "edge" ? branchLabel(p) : bt?.judgment?.label ?? null}
         {@const waiting = unit === "edge" ? !!node?.judged && !label : !!bt && !bt.judgment}
         {#if node}
-          {#if k === 0 || t.first}<span class={["text-muted text-[0.9em]", k > 0 && "ml-1"]}>{turnText(t)}</span>{/if}
+          {@render turnMark(t, k)}
           {#if display.branchForm === "text"}
             <button class={["mv px-[0.2rem] py-px bg-transparent border-0 whitespace-nowrap", SIDE_TEXT[node.move.player],
                             at ? "here bg-panel-2 outline outline-accent -outline-offset-1" : pickedKey === pathKey(p) ? PICKED
@@ -1284,8 +1291,7 @@
                             at ? "here outline-2 outline-accent" : pickedKey === pathKey(p) ? PICKED : "hover:outline hover:outline-ink"]}
                     onclick={() => setPath(p, true)} onmouseenter={() => startPreview({ kind: "branch", row: row.paths, k })} onmouseleave={endPreview} tabindex="-1"
                     data-path={pathKey(p)} title="{turnText(t)} {moveNotation(node.move)}{label ? ` · ${LABEL_TEXT[label]}` : waiting ? ' · evaluating…' : ''}">
-              {#if display.branchForm === "pills"}{@render edgePill(node.move.edge, node.move.player, false, null, "")}
-              {:else}<span class={["block w-[0.85em] h-[0.85em] rounded-full", SIDE_BG[node.move.player]]}></span>{/if}
+              {@render edgeShape(node.move.edge, node.move.player)}
             </button>
           {/if}
           {#if listed(label)}<span class="-ml-0.5 text-[0.9em]">{@render mark(label)}</span>
@@ -1298,6 +1304,18 @@
   {/each}
 {/snippet}
 
+<!-- A branch edge's turn number, before the row's first edge and each turn's first: every turn has its number. -->
+{#snippet turnMark(t: { turn: number; first: boolean }, k: number)}
+  {#if k === 0 || t.first}<span class={["text-muted text-[0.9em]", k > 0 && "ml-1"]}>{turnText(t)}</span>{/if}
+{/snippet}
+
+<!-- A branch edge without its notation: a pill along its direction, or a dot, in its mover's colour (the display
+     setting). -->
+{#snippet edgeShape(edge: Edge | null, player: Player)}
+  {#if display.branchForm === "pills"}{@render edgePill(edge, player, false, null, "")}
+  {:else}<span class={["block w-[0.85em] h-[0.85em] rounded-full", SIDE_BG[player]]}></span>{/if}
+{/snippet}
+
 <!-- An edge of the engine's best line that the player has not played (engineBranch): after candidate 1's badge, as a
      branch's edge, a little faded, so that it reads as the engine's and the player's own edges as theirs. It is not
      kept, and follows the search. Pointing at it previews the line up to it on the board, and a click plays the line up
@@ -1305,7 +1323,7 @@
 {#snippet engineEdge(engine: EngineBranch, p: string[], step: EngineStep, k: number)}
   {@const e = engine.line[step.k]}
   {@const note = `${turnText(step.turn)} ${edgeName(e)} · the engine's line · play it to here`}
-  {#if k === 0 || step.turn.first}<span class={["text-muted text-[0.9em]", k > 0 && "ml-1"]}>{turnText(step.turn)}</span>{/if}
+  {@render turnMark(step.turn, k)}
   {#if display.branchForm === "text"}
     <button class={["mv px-[0.2rem] py-px bg-transparent border-0 whitespace-nowrap opacity-75 hover:opacity-100 hover:bg-panel-2", SIDE_TEXT[step.mover]]}
             onclick={() => playPath(p, "engine line played")} onmouseenter={() => startPreview({ kind: "engine", start: engine.start, line: engine.line, k: step.k })}
@@ -1314,8 +1332,7 @@
     <button class="mv flex p-[0.08em] bg-transparent border-0 rounded-full opacity-75 hover:opacity-100 hover:outline hover:outline-ink"
             onclick={() => playPath(p, "engine line played")} onmouseenter={() => startPreview({ kind: "engine", start: engine.start, line: engine.line, k: step.k })}
             onmouseleave={endPreview} tabindex="-1" title={note}>
-      {#if display.branchForm === "pills"}{@render edgePill(e, step.mover, false, null, "")}
-      {:else}<span class={["block w-[0.85em] h-[0.85em] rounded-full", SIDE_BG[step.mover]]}></span>{/if}
+      {@render edgeShape(e, step.mover)}
     </button>
   {/if}
 {/snippet}
@@ -1821,7 +1838,7 @@
           {@render tools?.()}
           <!-- Export (design 13): the review file, with the engine's results, or the annotated record. -->
           {#if onexport}<ExportMenu run={kind => onexport(kind, display.judge)} ready={exportReady} items={exportItems}
-                                    why={snapshot ? "Review again to export: this review used an earlier engine." : "Export once the review is done."} {partner} />{/if}
+                                    why={snapshot ? "Review again to export: this review used an earlier engine." : "Export once the review is done."} />{/if}
           <!-- The menu button (Lichess's ☰ in the same place) opens the display settings in the analysis's place, and
                closes them. The gear is the engine's, in the engine header. -->
           <button class="aria-expanded:border-accent aria-expanded:text-accent" aria-label="Display settings" title="Display settings"
@@ -1836,9 +1853,8 @@
        progress says it while the review runs. -->
   <Dialog.Root bind:open={againOpen}>
     <Dialog.Portal>
-      <Dialog.Overlay class="fixed inset-0 z-20 bg-[rgb(0_0_0/0.45)]" />
-      <Dialog.Content class="fixed z-30 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(94vw,28rem)]
-                             px-5 py-4 bg-panel-2 border border-muted/50 rounded-md shadow-[0_6px_20px_rgb(0_0_0/0.4)]">
+      <Dialog.Overlay class="dialog-overlay" />
+      <Dialog.Content class="dialog-box w-[min(94vw,28rem)]">
         <Dialog.Title class="mb-2 font-semibold">{again?.title}</Dialog.Title>
         <Dialog.Description class="text-sm">
           <p>{again?.body}</p>
@@ -1853,9 +1869,8 @@
   <!-- The list of keys and clicks: a Bits UI dialog (its focus, Escape and outside click). -->
   <Dialog.Root bind:open={keysOpen}>
     <Dialog.Portal>
-      <Dialog.Overlay class="fixed inset-0 z-20 bg-[rgb(0_0_0/0.45)]" />
-      <Dialog.Content class="fixed z-30 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(94vw,34rem)] max-h-[90vh] overflow-y-auto
-                             px-5 py-4 bg-panel-2 border border-muted/50 rounded-md shadow-[0_6px_20px_rgb(0_0_0/0.4)]">
+      <Dialog.Overlay class="dialog-overlay" />
+      <Dialog.Content class="dialog-box w-[min(94vw,34rem)] max-h-[90vh] overflow-y-auto">
         <div class="flex items-center justify-between mb-2">
           <Dialog.Title class="font-semibold">Keys and clicks</Dialog.Title>
           <Dialog.Close class="px-2 py-0.5 text-sm">Close</Dialog.Close>

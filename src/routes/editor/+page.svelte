@@ -10,13 +10,14 @@
   import Board from "#lib/board/Board.svelte";
   import { EngineWorker, loadManifest, moduleOf } from "#lib/engine/client.ts";
   import type { CheckReason } from "#lib/engine/protocol.ts";
-  import { parseEdge } from "#lib/engine/notation.ts";
+  import { parseEdge, STANDARD_START } from "#lib/engine/notation.ts";
   import { boardPosition } from "#lib/analysis/game.svelte.ts";
   import { PLAYER_NAME, type Edge, type Position } from "#lib/review/model.ts";
-  import { drawEdge, LAST_COUNT, moverOf, placeable, readPosition, STANDARD_START, toggleMark, writePosition,
+  import { drawEdge, LAST_COUNT, moverOf, placeable, readPosition, toggleMark, writePosition,
            type EditorPosition } from "#lib/editor/position.ts";
   import { errorText } from "#lib/errors.ts";
   import { startAnalytics, track } from "#lib/analytics.svelte.ts";
+  import { readLocal, writeLocal } from "#lib/storage/local.ts";
   import PageMeta from "#lib/PageMeta.svelte";
 
   const KEPT = "hedge-school:editor"; // the position being made (a convenience: the editor opens at the start without it)
@@ -42,9 +43,7 @@
     const brought = new URLSearchParams(location.hash.slice(1)).get("position");
     history.replaceState(null, "", location.pathname);
     startAnalytics();
-    let kept: string | null = null;
-    try { kept = localStorage.getItem(KEPT); } catch { /* storage blocked */ }
-    for (const text of [brought, kept]) {
+    for (const text of [brought, readLocal(KEPT)]) {
       if (!text) continue;
       try { pos = readPosition(text); break; } catch { /* the next, or the start */ }
     }
@@ -70,7 +69,7 @@
     const n = notation;
     field = n;
     fieldError = "";
-    try { localStorage.setItem(KEPT, n); } catch { /* storage blocked */ }
+    writeLocal(KEPT, n);
     if (engine) void describe(engine, n);
   });
   async function describe(e: EngineWorker, n: string) {

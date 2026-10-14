@@ -165,6 +165,25 @@
   color: var(--on-accent);
 }
 
+/* A surface raised over the page: the menus', the dialogs' and the notes'. Each sets its own corners and layer. */
+@utility raised {
+  @apply bg-panel-2 border border-muted/50 shadow-[0_6px_20px_rgb(0_0_0/0.4)];
+}
+/* A menu (Bits UI's): its box, and its entries. */
+@utility menu-box {
+  @apply p-1 raised rounded-md text-sm;
+}
+@utility menu-item {
+  @apply px-2.5 py-1.5 rounded cursor-pointer outline-none data-highlighted:bg-panel;
+}
+/* A dialog (Bits UI's): the page darkened behind it, and its box in the window's middle. Each sets its own width. */
+@utility dialog-overlay {
+  @apply fixed inset-0 z-20 bg-[rgb(0_0_0/0.45)];
+}
+@utility dialog-box {
+  @apply fixed z-30 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 px-5 py-4 raised rounded-md;
+}
+
 /* Lichess's bar-glider (ui/lib/css/component/_bar-glider.scss): a light gleam sweeps a progress bar while its work
    runs, so that a slow step does not look stopped. Lichess's gleam moves 3,400 pixels in 3 seconds, so it flashes
    across a bar of 400 pixels in about a third of a second. This gleam crosses the bar in 2 seconds at any width, then

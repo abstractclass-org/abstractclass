@@ -24,7 +24,7 @@ export interface GpuTest { gpu: number; cpu: number; at: string }
 
 /** The GPU that WebGPU gives this page, by its vendor and architecture ("nvidia blackwell"), or null where it gives
  *  none. Browsers give no finer name, for privacy. */
-export async function gpuAdapterName(): Promise<string | null> {
+async function gpuAdapterName(): Promise<string | null> {
   const gpu = (navigator as { gpu?: { requestAdapter(): Promise<{ info?: { vendor?: string; architecture?: string } } | null> } }).gpu;
   const adapter = await gpu?.requestAdapter().catch(() => null);
   if (!adapter) return null;
@@ -45,7 +45,7 @@ export type GpuStatus =
   | { state: "failed"; message: string };
 
 /** The GPU's speed as a multiple of a worker's, to two figures: "9.6", "0.94". */
-export const gpuRatio = (t: GpuTest) => String(Number((t.gpu / t.cpu).toPrecision(2)));
+const gpuRatio = (t: GpuTest) => String(Number((t.gpu / t.cpu).toPrecision(2)));
 
 export function gpuStatusText(s: GpuStatus): string {
   switch (s.state) {

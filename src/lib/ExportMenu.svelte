@@ -6,27 +6,14 @@
   // the game's review is done (`ready`): before, `why` says what to do.
   import { DropdownMenu } from "bits-ui";
   import { errorText } from "#lib/errors.ts";
-  import type { ExportKind, ExportResult } from "#lib/game/reviewFile.ts";
+  import { reviewExports, type ExportItem, type ExportKind, type ExportResult } from "#lib/game/reviewFile.ts";
   import { track } from "#lib/analytics.svelte.ts";
   import { DISCORD_LIMIT } from "#lib/game/share.ts";
   import { LINK_RANGES, range } from "#lib/measure.ts";
-  let { run, side = "top", small = false, ready = true, why = "", partner = null, items }:
+  // The entries: the review's (reviewFile.ts, reviewExports), or another page's (the Analysis board's, design 21).
+  let { run, side = "top", small = false, ready = true, why = "", items = reviewExports() }:
     { run: (kind: ExportKind) => Promise<ExportResult | void>; side?: "top" | "bottom"; small?: boolean; ready?: boolean; why?: string;
-      partner?: string | null; items?: [ExportKind, string, string, string][] } = $props();
-
-  // Each kind: its entry, a line on what the other end gets (the link and the file differ most there: the link holds
-  // no results, design 13), and the note after it.
-  // A game that came from a partner site by its link (design 18) can go back to it: the review file, to the player's
-  // account there, first in the menu.
-  // `items` replaces them for another page's export (the Analysis board's, design 21).
-  const ITEMS = $derived<[ExportKind, string, string, string][]>(items ?? [
-    ...(partner ? [["partner_save", `Save to ${partner}`, `The review file, to your account there.`, `Saved to ${partner}`] as [ExportKind, string, string, string]] : []),
-    ["share_link", "Copy a link to share the review", "Short. The recipient's browser reviews the game again.", "Link copied"],
-    ["review_file", "Review file, to load later or elsewhere", "With the engine's results: the review opens at once.", "Review file saved"],
-    ["record_copy", "Copy the annotated record", "", "Annotated record copied"],
-    ["record_file", "Annotated record as a file", "", "Annotated record saved"],
-  ]);
-  const ITEM = "px-2.5 py-1.5 rounded cursor-pointer outline-none data-highlighted:bg-panel";
+      items?: ExportItem[] } = $props();
   let note = $state(""), failed = $state(false), busy = $state(false);
   let timer: ReturnType<typeof setTimeout> | undefined;
 
@@ -58,9 +45,9 @@
                           class={["data-[state=open]:border-accent data-[state=open]:text-accent", small ? "px-2 py-0 text-xs" : "text-sm"]}>Export</DropdownMenu.Trigger>
     <DropdownMenu.Portal>
       <DropdownMenu.Content {side} align="end" sideOffset={4}
-                            class="z-10 min-w-72 max-w-[90vw] p-1 bg-panel-2 border border-muted/50 rounded-md shadow-[0_6px_20px_rgb(0_0_0/0.4)] text-sm">
-        {#each ITEMS as [kind, label, hint, done] (kind)}
-          <DropdownMenu.Item class={ITEM} onSelect={() => choose(kind, done)}>
+                            class="z-10 min-w-72 max-w-[90vw] menu-box">
+        {#each items as [kind, label, hint, done] (kind)}
+          <DropdownMenu.Item class="menu-item" onSelect={() => choose(kind, done)}>
             {label}{#if hint}<span class="block text-xs text-muted">{hint}</span>{/if}
           </DropdownMenu.Item>
         {/each}
@@ -70,7 +57,7 @@
 </span>
 {#if busy || note}
   <div class="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 flex items-start gap-3 w-max max-w-[min(32rem,calc(100vw-2rem))]
-              px-4 py-2.5 bg-panel-2 border border-muted/50 rounded-lg shadow-[0_6px_20px_rgb(0_0_0/0.4)] text-sm"
+              px-4 py-2.5 raised rounded-lg text-sm"
        role="status" aria-live="polite">
     <p class={failed ? "text-blunder" : "text-ink"}>{busy ? "Exporting…" : note}</p>
     {#if !busy}<button type="button" class="-mr-1 px-1.5 py-0 text-muted bg-transparent border-0" aria-label="Close"

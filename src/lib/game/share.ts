@@ -14,9 +14,10 @@
 // So a branch costs 20 bits for each edge where it goes on in one line, and a game's move 18 bits.
 import { edgeName, parseEdge } from "#lib/engine/notation.ts";
 import { writeRecord } from "./record.ts";
-import type { BranchNode } from "./store.ts";
+import { keptNode, type BranchNode } from "./store.ts";
+import { lastMove } from "#lib/review/tree.ts";
 
-export const SHARE_VERSION = 1;
+const SHARE_VERSION = 1;
 /** A message's length in Discord, where the game's players meet: a link longer than this does not fit in one. */
 export const DISCORD_LIMIT = 2000;
 
@@ -100,7 +101,7 @@ interface Node { key: string; move: string; order: number; judged: boolean; kids
  *  nodes, each with its children, in the order the player added them. A node whose parent is gone is left out. */
 function branchTree(moves: string[], branches: BranchNode[]): [number, Node[]][] {
   const nodes = new Map<string, Node>(branches.map(([key, order, judged]) =>
-    [key, { key, move: key.slice(key.lastIndexOf(" ") + 1), order, judged: !!judged, kids: [] }]));
+    [key, { key, move: lastMove(key), order, judged: !!judged, kids: [] }]));
   const roots = new Map<number, Node[]>();
   for (const node of [...nodes.values()].sort((a, b) => a.order - b.order)) {
     const path = node.key.split(" "), parent = path.slice(0, -1);
@@ -156,7 +157,7 @@ export function decodeShare(text: string): SharedReview {
   const branches: BranchNode[] = [];
   const node = (parent: string[]) => {
     const path = [...parent, getMove(r)], judged = r.bit(), kids = getKids(r);
-    branches.push(judged ? [path.join(" "), branches.length, 1] : [path.join(" "), branches.length]);
+    branches.push(keptNode(path.join(" "), branches.length, judged));
     for (let k = 0; k < kids; k++) node(path);
   };
   let at = 0;

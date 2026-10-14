@@ -10,12 +10,11 @@
   import { loadEngine, reviewVisits } from "#lib/analysis/engineSettings.ts";
   import { importRecord } from "#lib/game/import.ts";
   import { pastedSource, readPasted } from "#lib/game/paste.ts";
-  import { boardLink } from "#lib/game/board.ts";
-  import { fileKind, keepAnalysisResults, readAnalysisFile } from "#lib/game/analysisFile.ts";
+  import { fileKind, openAnalysisFile } from "#lib/game/analysisFile.ts";
   import { keepStorage, storageKept } from "#lib/storage/persist.ts";
   import { errorText } from "#lib/errors.ts";
   import { SITE_NAME, SITE_VERSION } from "#lib/edition.ts";
-  import { deliverExport, importReview, readReviewFile, shippedModels, shippedModules, type ExportKind } from "#lib/game/reviewFile.ts";
+  import { deliverExport, loadReviewFile, type ExportKind } from "#lib/game/reviewFile.ts";
   import { loadManifest, type Manifest } from "#lib/engine/client.ts";
   import { annotatedFromStore } from "#lib/review/exportText.ts";
   import ExportMenu from "#lib/ExportMenu.svelte";
@@ -32,6 +31,7 @@
   // The review a game's export needs (design 13): with this site's engine, and the network and review depth set now,
   // the game's own when it keeps them (store.ts, `settings`).
   let manifest = $state.raw<Manifest | null>(null);
+  let manifestLoad: Promise<Manifest | null> = Promise.resolve(null); // asked for as the tab opens, for the exports too
   const engine = loadEngine();
   const wanted = (g: StoredGame) => manifest && reviewMark(manifest, g.settings?.network ?? engine.network, g.settings?.visits ?? reviewVisits(engine));
   // Whether the browser keeps the games for good (storage/persist.ts): it asked when a game was kept.
@@ -41,6 +41,7 @@
   // persistent storage comes after: Firefox asks the visitor, and the tab does not wait for the answer.
   let ready = $state(false);
   onMount(async () => {
+    manifestLoad = loadManifest();
     games = await listGames();
     kept = !!(await storageKept());
     const lastId = lastReview();
@@ -48,7 +49,7 @@
     ready = true;
     setVisitor({ games_stored: range(games.length, GAME_RANGES) }); // how many games a visitor keeps (design 17)
     if (games.length && !kept) void keepStorage().then(k => (kept = k));
-    manifest = await loadManifest();
+    manifest = await manifestLoad;
   });
 
   // The games deleted on this visit, by id. The delete is done at once, so it stands if the page closes. A deleted
@@ -101,7 +102,8 @@
 
   /** A game's export, as on the review page: the annotated record is written from the stored results, with no search. */
   async function exportGame(id: string, record: string, kind: ExportKind) {
-    return deliverExport(kind, id, record, await loadManifest(), SITE_VERSION, () => annotatedFromStore(id));
+    const m = await manifestLoad;
+    return deliverExport(kind, id, record, m, SITE_VERSION, () => annotatedFromStore(id, m));
   }
 
   async function loadFile(file: File | undefined) {
@@ -111,9 +113,7 @@
     const content = await file.text();
     if (fileKind(content) === "analysis") {
       try {
-        const analysis = readAnalysisFile(content);
-        await keepAnalysisResults(analysis, shippedModels(await loadManifest()));
-        await goto(boardLink("", analysis.board, 0, "analysis_file")); // the board counts the load
+        await goto(await openAnalysisFile(content, await manifestLoad)); // the board counts the load
       } catch (e) {
         fileProblem = `The file could not be loaded: ${errorText(e)}`;
         trackLoadFailed("analysis_file", "file");
@@ -123,11 +123,8 @@
       return;
     }
     try {
-      const review = readReviewFile(content);
-      // Only the networks this site ships: a result of another network is never asked for here.
-      const manifest = await loadManifest();
-      const { id } = await importReview(review, shippedModels(manifest), shippedModules(manifest));
-      trackLoad("review_file", parseRecord(review.record).moves.length, { with_results: review.analyses.length > 0 });
+      const { id, file } = await loadReviewFile(content, await manifestLoad);
+      trackLoad("review_file", parseRecord(file.record).moves.length, { with_results: file.analyses.length > 0 });
       location.assign(`/review#game=${id}`); // the review loads it (hashchange)
     } catch (e) {
       fileProblem = `The file could not be loaded: ${errorText(e)}`;

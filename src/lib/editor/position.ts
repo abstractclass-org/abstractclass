@@ -2,25 +2,23 @@
 // the scores, written as the notation's position (the /notation page, the engine repository's design 04). The editor
 // writes the five fields. The engine checks that the position could occur in a game (protocol 0.5), so nothing here
 // knows the rules: only the notation's form and its turn structure.
-import { edgeName, parseEdge, STANDARD_START } from "#lib/engine/notation.ts";
-import type { Edge, Player } from "#lib/review/model.ts";
+import { edgeName, parseEdge, sameEdge } from "#lib/engine/notation.ts";
+import { turnFromCount, type Edge, type Player } from "#lib/review/model.ts";
 
 /** An edge on the editor's board. `marked`: an edge of the turn, written `*` (protected: the last turn's, of the player
  *  not to move) or `+` (placed: the turn being played, of the mover), as the edge's player and the mover decide. */
 export interface EditorEdge { edge: Edge; player: Player; marked: boolean }
 export interface EditorPosition { edges: EditorEdge[]; count: number; scores: [number, number] }
 
-export { STANDARD_START };
 export const LAST_COUNT = 120; // a game's edges
 
-/** The player to move and the edges left in the turn, from the edge count: Blue's first turn has one edge, then turns
- *  of two, and Blue's last turn one. A finished game (120 edges) has Red with none left (`r0`). */
+/** The player to move and the edges left in the turn, from the edge count (model.ts, turnFromCount): Blue's first turn
+ *  has one edge, then turns of two, and Blue's last turn one. A finished game (120 edges) has Red with none left
+ *  (`r0`). */
 export function moverOf(count: number): { player: Player; left: number } {
   if (count >= LAST_COUNT) return { player: 1, left: 0 };
-  const turn = count === 0 ? 0 : Math.floor((count - 1) / 2) + 1; // from 0
-  const size = turn === 0 || turn === 60 ? 1 : 2;
-  const played = turn === 0 || turn === 60 ? 0 : (count - 1) % 2;
-  return { player: (turn % 2) as Player, left: size - played };
+  const { turn, first } = turnFromCount(count), single = turn === 1 || turn === 61;
+  return { player: ((turn - 1) % 2) as Player, left: first && !single ? 2 : 1 };
 }
 
 /** Whether the editor can place an edge between two points: different points at most 3 apart in each direction (the
@@ -83,5 +81,3 @@ export function toggleMark(p: EditorPosition, edge: Edge): EditorPosition | null
   if (at < 0) return null;
   return { ...p, edges: p.edges.map((e, i) => (i === at ? { ...e, marked: !e.marked } : e)) };
 }
-
-const sameEdge = (a: Edge, b: Edge) => byPoints(canonical(a), canonical(b)) === 0;

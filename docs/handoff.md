@@ -29,7 +29,9 @@ It holds no backlog: everything still to do that is not in flight is in
 - **The next engine release** (request 15, Practice) brings protocol 0.6, with `search` in the engine tag and in
   `query_version`. The site accepts protocol 0.5 only (`PROTOCOL_REPORTED` in `src/lib/engine/protocol.ts`). To move to
   it: accept 0.6, take the search from the module (`searchOf` reads `version.search` first), and add 27a7414's CPU
-  module to the lock's `sameSearchAs` if the search stays `fdfe5ad`.
+  module to the lock's `sameSearchAs` if the search stays `fdfe5ad`. The review's warm-up (`startReview` in
+  `src/routes/review/+page.svelte`) takes the search from the manifest's module before the rules worker answers: a
+  manifest without `search` turns the warm-up off with no error.
 - **The layout shift on the live site:** Cloudflare's Web Analytics gave `/review` a CLS of 0.151 before `f55e0f6`.
   On the local build it is now 0 to 0.0023 at the window sizes measured, and 0 on the Review tab. Read Cloudflare's
   Core Web Vitals for `/review` after a few days of visits (hosting.md, "What Cloudflare shows").

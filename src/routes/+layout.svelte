@@ -14,8 +14,8 @@
 
 	let { children }: LayoutProps = $props();
 
-	// The site map (docs/research/01-ux-survey.md, section 8). Sections not built yet show as text. The early access has
-	// the review and the Analysis board. Review opens the Review tab (design 22).
+	// The site map (docs/research/01-ux-survey.md, section 8). The early access has the review and the Analysis board.
+	// Review opens the Review tab (design 22).
 	const NAV = EARLY_ACCESS ? [{ href: '/review', label: 'Review' }, { href: '/analysis', label: 'Analysis' }] : [
 		{ href: '/review', label: 'Review' },
 		{ href: '/analysis', label: 'Analysis' },
@@ -66,13 +66,7 @@
 		{#if EARLY_ACCESS}<a class="text-xs font-semibold text-accent no-underline hover:underline" href="/about#early-access">Early Access</a>{/if}
 	</span>
 	<nav class="flex flex-wrap gap-4.5">
-		{#each NAV as item (item.label)}
-			{#if item.href}
-				<a href={item.href} class={linkClass(item.href)}>{item.label}</a>
-			{:else}
-				<span class="text-muted opacity-50 cursor-default" title="Not built yet">{item.label}</span>
-			{/if}
-		{/each}
+		{#each NAV as item (item.label)}<a href={item.href} class={linkClass(item.href)}>{item.label}</a>{/each}
 	</nav>
 	<nav class="flex flex-wrap gap-4.5 ml-auto text-sm">
 		{#each ABOUT as item (item.href)}<a href={item.href} class={[linkClass(item.href), item.wide && "max-sm:hidden"]}>{item.label}</a>{/each}

@@ -58,7 +58,7 @@ export const REVIEW_PRESETS = { lite: 2 * LABEL_VISITS, standard: 4 * LABEL_VISI
 export const CUSTOM_REVIEW = [256, 512, 1024, 2048, 4096];
 
 /** A number of visits that a setting with these steps (doublings) can take: a whole number in their range. */
-export const inSteps = (steps: number[], visits: unknown): visits is number =>
+const inSteps = (steps: number[], visits: unknown): visits is number =>
   Number.isInteger(visits) && (visits as number) >= steps[0] && (visits as number) <= steps.at(-1)!;
 /** The step nearest a number of visits, by their ratio. */
 export const nearestStep = (steps: number[], visits: number) =>

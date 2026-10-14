@@ -10,7 +10,7 @@ const NAME = "learn-enclosure", VERSION = 3;
 export const STORES = { analysis: "analysis", games: "games", branches: "branches" } as const;
 let db: Promise<IDBDatabase | null> | null = null;
 
-export function openDb(): Promise<IDBDatabase | null> {
+function openDb(): Promise<IDBDatabase | null> {
   db ??= new Promise(resolve => {
     try {
       const req = indexedDB.open(NAME, VERSION);
@@ -28,86 +28,67 @@ export function openDb(): Promise<IDBDatabase | null> {
   return db;
 }
 
-/** Runs one request in its own transaction, and answers its result once the transaction completes, or `fallback` when
- *  storage fails. */
-async function run<T>(store: string, mode: IDBTransactionMode, request: (s: IDBObjectStore) => IDBRequest, fallback: T): Promise<T> {
+/** Runs requests in one transaction: `body` sends them, and the getter it gives reads their results once the
+ *  transaction completes. Answers `fallback` when storage fails. */
+async function run<T>(store: string, mode: IDBTransactionMode, body: (s: IDBObjectStore) => () => T, fallback: T): Promise<T> {
   const d = await openDb();
   if (!d) return fallback;
   return new Promise(resolve => {
     try {
       const tx = d.transaction(store, mode);
-      const req = request(tx.objectStore(store));
-      tx.oncomplete = () => resolve(req.result as T);
+      const result = body(tx.objectStore(store));
+      tx.oncomplete = () => resolve(result());
       tx.onerror = tx.onabort = () => resolve(fallback);
     } catch {
       resolve(fallback);
     }
   });
 }
+/** A body of one request, whose result is the answer. */
+const one = <T>(request: (s: IDBObjectStore) => IDBRequest) => (s: IDBObjectStore) => {
+  const req = request(s);
+  return () => req.result as T;
+};
 
-export const dbGet = <T>(store: string, key: string) => run<T | undefined>(store, "readonly", s => s.get(key), undefined);
-export const dbAll = <T>(store: string) => run<T[]>(store, "readonly", s => s.getAll(), []);
+export const dbGet = <T>(store: string, key: string) => run<T | undefined>(store, "readonly", one(s => s.get(key)), undefined);
+export const dbAll = <T>(store: string) => run<T[]>(store, "readonly", one(s => s.getAll()), []);
 /** A store's keys, without its values. None when storage fails. */
-export const dbKeys = (store: string) => run<IDBValidKey[]>(store, "readonly", s => s.getAllKeys(), []);
+export const dbKeys = (store: string) => run<IDBValidKey[]>(store, "readonly", one(s => s.getAllKeys()), []);
 /** The keys and values of a store whose key `wanted` takes, in key order: the other values are not read. None when
  *  storage fails. */
-export async function dbEntriesWhere<T>(store: string, wanted: (key: string) => boolean): Promise<[string, T][]> {
-  const d = await openDb();
-  if (!d) return [];
-  return new Promise(resolve => {
+export const dbEntriesWhere = <T>(store: string, wanted: (key: string) => boolean) =>
+  run<[string, T][]>(store, "readonly", s => {
     const out: [string, T][] = [];
-    try {
-      const tx = d.transaction(store, "readonly"), s = tx.objectStore(store);
-      const req = s.openKeyCursor();
-      req.onsuccess = () => {
-        const c = req.result;
-        if (!c) return;
-        const key = String(c.key);
-        if (wanted(key)) { const get = s.get(c.key); get.onsuccess = () => out.push([key, get.result as T]); }
-        c.continue();
-      };
-      tx.oncomplete = () => resolve(out.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0)));
-      tx.onerror = tx.onabort = () => resolve([]);
-    } catch {
-      resolve([]);
-    }
-  });
-}
+    const req = s.openKeyCursor();
+    req.onsuccess = () => {
+      const c = req.result;
+      if (!c) return;
+      const key = String(c.key);
+      if (wanted(key)) { const get = s.get(c.key); get.onsuccess = () => out.push([key, get.result as T]); }
+      c.continue();
+    };
+    return () => out.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+  }, []);
 /** Several values of a store, read in one transaction: undefined where a key has none, and for every key when storage
  *  fails. */
 export async function dbGetMany<T>(store: string, keys: string[]): Promise<(T | undefined)[]> {
-  const none = () => keys.map(() => undefined);
-  const d = keys.length ? await openDb() : null;
-  if (!d) return none();
-  return new Promise(resolve => {
-    try {
-      const tx = d.transaction(store, "readonly"), s = tx.objectStore(store);
-      const reqs = keys.map(k => s.get(k));
-      tx.oncomplete = () => resolve(reqs.map(r => r.result as T | undefined));
-      tx.onerror = tx.onabort = () => resolve(none());
-    } catch {
-      resolve(none());
-    }
-  });
+  if (!keys.length) return [];
+  return run(store, "readonly", s => {
+    const reqs = keys.map(k => s.get(k));
+    return () => reqs.map(r => r.result as T | undefined);
+  }, keys.map(() => undefined));
 }
 /** Answers whether the browser kept the value. */
 export const dbPut = async (store: string, key: string, value: unknown) =>
-  (await run<IDBValidKey | false>(store, "readwrite", s => s.put(value, key), false)) !== false;
+  (await run<IDBValidKey | false>(store, "readwrite", one(s => s.put(value, key)), false)) !== false;
 /** Removes a key's value. Answers whether the browser removed it. */
 export const dbDelete = async (store: string, key: string) =>
-  (await run<undefined | false>(store, "readwrite", s => s.delete(key), false)) !== false;
+  (await run<undefined | false>(store, "readwrite", one(s => s.delete(key)), false)) !== false;
 /** Puts several values in one transaction. Answers how many the browser kept: all, or none when storage fails. */
 export async function dbPutMany(store: string, entries: [string, unknown][]): Promise<number> {
-  const d = entries.length ? await openDb() : null;
-  if (!d) return 0;
-  return new Promise(resolve => {
-    try {
-      const tx = d.transaction(store, "readwrite"), s = tx.objectStore(store);
-      for (const [key, value] of entries) s.put(value, key);
-      tx.oncomplete = () => resolve(entries.length);
-      tx.onerror = tx.onabort = () => resolve(0);
-    } catch {
-      resolve(0);
-    }
-  });
+  if (!entries.length) return 0;
+  return run(store, "readwrite", s => {
+    for (const [key, value] of entries) s.put(value, key);
+    return () => entries.length;
+  }, 0);
 }

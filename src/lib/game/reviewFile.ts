@@ -4,10 +4,11 @@
 // network keeps the game and its branches, and its review searches again with its own engine. KaTrain keeps its
 // analysis in its SGF files in the same spirit. The game's record alone, with evaluations and labels, is the annotated
 // record (review/annotate.ts).
-import { SHAPE, readAnalysisKey } from "#lib/analysis/cache.ts";
+import { SHAPE, isAnalysisKey, ofModels, readAnalysisKey } from "#lib/analysis/cache.ts";
 import { STORES, dbEntriesWhere, dbGet, dbPut, dbPutMany } from "#lib/storage/db.ts";
 import { parseRecord, playerNames } from "./record.ts";
-import { branchNodes, loadGame, markReviewed, saveGame, setGameSettings, type BranchNode, type KeptBranches, type ReviewMark } from "./store.ts";
+import { branchNodes, keptNode, loadGame, markReviewed, saveGame, setGameSettings, type KeptBranches, type ReviewMark } from "./store.ts";
+import { parentKey } from "#lib/review/tree.ts";
 import { searchModules, type Manifest } from "#lib/engine/client.ts";
 import { networkName } from "#lib/analysis/engineSettings.ts";
 import { DISCORD_LIMIT, encodeShare, sharedRecord, type SharedReview } from "./share.ts";
@@ -49,7 +50,7 @@ export function gameAnalyses(entries: [string, unknown][], positions: Set<string
 }
 export const belongs = (key: string, positions: Set<string>, models: Set<string> | null) => {
   const k = readAnalysisKey(key);
-  const parent = k.moves.includes(" ") ? k.moves.slice(0, k.moves.lastIndexOf(" ")) : k.moves ? "" : null;
+  const parent = k.moves ? parentKey(k.moves) : null;
   return k.shape === SHAPE && (positions.has(k.moves) || (parent !== null && positions.has(parent))) && (!models || models.has(k.model));
 };
 
@@ -63,21 +64,30 @@ export function buildReviewFile(record: string, branches: KeptBranches | null, e
   };
 }
 
-/** Reads a review file. Throws an Error that tells the player what is wrong. */
-export function readReviewFile(text: string): ReviewFile {
+/** Reads a Hedge School file of `format` (a review file or an analysis file: `noun`), its fields not yet checked but
+ *  its results. Throws an Error that tells the player what is wrong. The version changes only when a field changes its
+ *  meaning or goes: a new field keeps it, and a reader ignores the fields it does not know (design 13). The results
+ *  carry their own shape in their keys (analysis/cache.ts). */
+export function readSchoolFile(text: string, format: string, version: number, noun: string): Record<string, unknown> & { analyses: [string, unknown][] } {
   let data: unknown;
   try {
     data = JSON.parse(text);
   } catch {
-    throw new Error("This is not a Hedge School review file: it is not JSON.");
+    throw new Error(`This is not a Hedge School ${noun}: it is not JSON.`);
   }
-  const f = data as Partial<ReviewFile>;
-  if (!f || typeof f !== "object" || f.format !== REVIEW_FORMAT) throw new Error("This is not a Hedge School review file.");
-  // The version changes only when a field changes its meaning or goes: a new field keeps it, and a reader ignores the
-  // fields it does not know (design 13). The results carry their own shape in their keys (analysis/cache.ts).
-  if (typeof f.version !== "number" || f.version > REVIEW_FILE_VERSION)
-    throw new Error(`This review file has version ${f.version}: a newer Hedge School wrote it. Reload the site and try again.`);
-  if (f.version < REVIEW_FILE_VERSION) throw new Error(`This review file has version ${f.version}, which this site no longer reads.`);
+  const f = data as Record<string, unknown> | null;
+  if (!f || typeof f !== "object" || f.format !== format) throw new Error(`This is not a Hedge School ${noun}.`);
+  if (typeof f.version !== "number" || f.version > version)
+    throw new Error(`This ${noun} has version ${f.version}: a newer Hedge School wrote it. Reload the site and try again.`);
+  if (f.version < version) throw new Error(`This ${noun} has version ${f.version}, which this site no longer reads.`);
+  const analyses = (Array.isArray(f.analyses) ? f.analyses : []).filter((e): e is [string, unknown] =>
+    Array.isArray(e) && typeof e[0] === "string" && isAnalysisKey(e[0]) && !!e[1] && typeof e[1] === "object");
+  return { ...f, analyses };
+}
+
+/** Reads a review file. Throws an Error that tells the player what is wrong. */
+export function readReviewFile(text: string): ReviewFile {
+  const f = readSchoolFile(text, REVIEW_FORMAT, REVIEW_FILE_VERSION, "review file") as Partial<ReviewFile> & { analyses: [string, unknown][] };
   if (typeof f.record !== "string") throw new Error("The review file has no game record.");
   parseRecord(f.record); // throws with the record's own problem
   const b = f.branches;
@@ -85,13 +95,19 @@ export function readReviewFile(text: string): ReviewFile {
     (b.version === 2 && Array.isArray(b.nodes) && b.nodes.every(n => Array.isArray(n) && typeof n[0] === "string" && typeof n[1] === "number")) ||
     (b.version === 1 && Array.isArray(b.lines) && b.lines.every(l => Array.isArray(l) && l.every(m => typeof m === "string")));
   if (!branchesOk) throw new Error("The review file's branches cannot be read.");
-  const analyses = Array.isArray(f.analyses) ? f.analyses : [];
-  const results = analyses.filter((e): e is [string, unknown] =>
-    Array.isArray(e) && typeof e[0] === "string" && /^\d+\|[^|]*\|[0-9a-f]+\|\d+\|/.test(e[0]) && !!e[1] && typeof e[1] === "object");
   const r = f.review;
   const review = r && typeof r === "object" && typeof r.module === "string" && typeof r.model === "string" &&
     typeof r.network === "string" && typeof r.visits === "number" ? r : null;
-  return { ...f, review, branches: b ?? null, analyses: results } as ReviewFile;
+  return { ...f, review, branches: b ?? null } as ReviewFile;
+}
+
+/** Reads a review file and keeps it in this browser (importReview), with the networks and the engine modules that the
+ *  manifest ships. Answers the game's id, and the file for the load's count. Throws an Error that tells the player what
+ *  is wrong. */
+export async function loadReviewFile(text: string, manifest: Manifest | null): Promise<{ id: string; file: ReviewFile }> {
+  const file = readReviewFile(text);
+  const { id } = await importReview(file, shippedModels(manifest), shippedModules(manifest));
+  return { id, file };
 }
 
 /** The branches kept for a game after an import: the kept ones first, in their order, then the file's that are new, after
@@ -102,7 +118,7 @@ export function mergeBranches(kept: KeptBranches | null, added: KeptBranches | n
   const have = new Set(mine.map(n => n[0]));
   const next = Math.max(-1, ...mine.map(n => n[1])) + 1;
   const fresh = theirs.filter(n => !have.has(n[0])).sort((a, b) => a[1] - b[1])
-    .map((n, i): BranchNode => (n[2] ? [n[0], next + i, 1] : [n[0], next + i]));
+    .map((n, i) => keptNode(n[0], next + i, n[2]));
   return { version: 2, nodes: [...mine, ...fresh] };
 }
 
@@ -114,7 +130,7 @@ export function reviewFileName(record: string, id: string): string {
 }
 
 /** The review file of a stored game, with the results of `models`, the networks this site ships. */
-export async function exportReview(id: string, site: string, models: Set<string> | null): Promise<ReviewFile> {
+async function exportReview(id: string, site: string, models: Set<string> | null): Promise<ReviewFile> {
   const stored = await loadGame(id);
   if (!stored) throw new Error(`This browser has no game ${id}.`);
   const branches = (await dbGet<KeptBranches>(STORES.branches, id)) ?? null;
@@ -135,12 +151,27 @@ export const shippedModules = (manifest: Manifest | null) => (manifest ? searchM
  *  copied or as a file, or the review file saved to a partner site. */
 export type ExportKind = "share_link" | "review_file" | "analysis_file" | "record_copy" | "record_file" | "partner_save";
 
+/** An entry of the Export menu: what it makes, its label, a line on what the other end gets, and the note after it. */
+export type ExportItem = [ExportKind, string, string, string];
+
+/** The review's Export menu (design 13): a link that shares the review, the review file, with the engine's results, or
+ *  the annotated record, copied or as a file. The link and the file differ most in what the other end gets: the link
+ *  holds no results. A game that came from a partner site by its link (design 18) can go back to it: the review file,
+ *  to the player's account there, first in the menu. */
+export const reviewExports = (partner: string | null = null): ExportItem[] => [
+  ...(partner ? [["partner_save", `Save to ${partner}`, "The review file, to your account there.", `Saved to ${partner}`] as ExportItem] : []),
+  ["share_link", "Copy a link to share the review", "Short. The recipient's browser reviews the game again.", "Link copied"],
+  ["review_file", "Review file, to load later or elsewhere", "With the engine's results: the review opens at once.", "Review file saved"],
+  ["record_copy", "Copy the annotated record", "", "Annotated record copied"],
+  ["record_file", "Annotated record as a file", "", "Annotated record saved"],
+];
+
 /** What an export tells the player beyond the menu's own note, and a share link's length (design 17 counts it). */
 export interface ExportResult { note?: string; linkLength?: number }
 
 /** The link that shares a game's review (share.ts): its record, its branches, and the engine, network and visits of its
  *  review (the game's mark: the deepest review that ran to its end). */
-export async function shareLink(id: string, origin: string): Promise<string> {
+async function shareLink(id: string, origin: string): Promise<string> {
   const stored = await loadGame(id), mark = stored?.game.reviewed;
   if (!stored || !mark) throw new Error("the game's review is not done");
   const branches = branchNodes((await dbGet<KeptBranches>(STORES.branches, id)) ?? null);
@@ -206,7 +237,7 @@ export async function importReview(file: ReviewFile, models: Set<string> | null,
   if (variant) throw new Error(variant);
   const { id } = await saveGame(file.record, parseRecord(file.record));
   if (file.branches) await dbPut(STORES.branches, id, mergeBranches((await dbGet<KeptBranches>(STORES.branches, id)) ?? null, file.branches));
-  const wanted = file.analyses.filter(([key]) => !models || models.has(readAnalysisKey(key).model));
+  const wanted = ofModels(file.analyses, models);
   const kept = await dbPutMany(STORES.analysis, wanted), other = file.analyses.length - wanted.length;
   const r = file.review, before = (await loadGame(id))?.game.reviewed;
   const ours = (module?: string) => !!module && !!modules?.includes(module);

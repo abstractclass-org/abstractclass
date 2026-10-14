@@ -13,35 +13,37 @@
   import { importRecord } from "#lib/game/import.ts";
   import { errorText } from "#lib/errors.ts";
   import { BOOKMARK_VERSION } from "#lib/game/bookmarklet.ts";
-  import { FORWARDED, readImportHash, staleTool, type Tool } from "#lib/game/importHash.ts";
+  import { FORWARDED, hashParams, readImportHash, staleTool, type Tool } from "#lib/game/importHash.ts";
   import { gamePartner, partnerOf, receiveFromPartner } from "#lib/game/partners.ts";
   import { setGamePartner } from "#lib/game/store.ts";
   import { decodeShare, type SharedReview } from "#lib/game/share.ts";
-  import { importReview, importShare, readReviewFile, shippedModels, shippedModules } from "#lib/game/reviewFile.ts";
+  import { importShare, loadReviewFile } from "#lib/game/reviewFile.ts";
   import { loadManifest, modelOf, sameSearch } from "#lib/engine/client.ts";
   import { NETWORKS, networkName, reviewDepthText } from "#lib/analysis/engineSettings.ts";
   import { startAnalytics, track } from "#lib/analytics.svelte.ts";
   import { trackImport, trackImportFailed, trackLoad, trackLoadFailed, type ImportSource } from "#lib/game/importEvents.ts";
+  import { readSession, writeSession } from "#lib/storage/local.ts";
 
   const MESSAGE = "box-content max-w-184 mx-auto my-6 px-4 grid gap-4";
 
-  let phase = $state<"importing" | "loading" | "receiving" | "failed" | "stale" | "share">("importing");
-  let loading = $state(false); // the way in is a load (design 22): a shared review, or a review that a partner kept
-  let sender = $state(""); // the partner whose page sends a review that it kept
-  let problem = $state("");
-  let stale = $state<Tool | "older" | null>(null);
-  let imported = $state(""); // the game's id, for the review's link while the page asks to update a tool
-  // A shared review, and what this site makes of it: its network here (null when the site no longer has it), and
-  // whether the site's engine is the sender's.
-  let shared = $state.raw<SharedReview | null>(null);
-  let sharedHere = $state.raw<{ network: string | null; sameEngine: boolean } | null>(null);
+  // What the page does, and what each step shows.
+  type Phase = { at: "importing" } | { at: "loading" }
+    | { at: "receiving"; sender: string } // the partner whose page sends a review that it kept
+    // A shared review, and what this site makes of it: its network here (null when the site no longer has it), and
+    // whether the site's engine is the sender's.
+    | { at: "share"; shared: SharedReview; here: SharedHere }
+    | { at: "stale"; tool: Tool | "older"; id: string } // the game's id, for the review's link while the page asks to update a tool
+    // `load`: the way in was a load (design 22), a shared review or a review that a partner kept, not an import.
+    | { at: "failed"; load: boolean; problem: string };
+  type SharedHere = { network: string | null; sameEngine: boolean };
+  let phase = $state.raw<Phase>({ at: "importing" });
 
   onMount(() => {
     const hash = location.hash.slice(1);
     history.replaceState(null, "", location.pathname); // the game is kept below, not in the address
     startAnalytics(); // after the game has left the address (design 22)
-    let forwarded = false; // the link used the old address, /import, which forwarded it here
-    try { forwarded = sessionStorage.getItem(FORWARDED) === "1"; sessionStorage.removeItem(FORWARDED); } catch { /* storage blocked */ }
+    const forwarded = readSession(FORWARDED) === "1"; // the link used the old address, /import, which forwarded it here
+    writeSession(FORWARDED, null);
     void arrive(hash, forwarded);
   });
 
@@ -52,7 +54,7 @@
   }
 
   async function arrive(hash: string, forwarded: boolean) {
-    const p = /^[A-Za-z_]+=/.test(hash) ? new URLSearchParams(hash) : null, packed = p?.get("packed");
+    const packed = hashParams(hash)?.get("packed");
     if (packed) { await readShared(packed); return; }
     let source: ImportSource = "older_tool";
     try {
@@ -69,15 +71,13 @@
       const record = parseRecord(text), id = await importRecord(text, record);
       const partner = sent.link ? gamePartner(sent.save) : null;
       if (partner) await setGamePartner(id, partner);
-      stale = staleTool(sent, { bookmarklet: String(BOOKMARK_VERSION), userscript: __USERSCRIPT_CODE__ });
+      const stale = staleTool(sent, { bookmarklet: String(BOOKMARK_VERSION), userscript: __USERSCRIPT_CODE__ });
       // The import by its tool and the game's length, and an out-of-date tool by its kind (design 17).
       trackImport("review", source, record.moves.length);
-      if (stale) track("tool_out_of_date", { stale_tool: stale });
-      if (stale) { imported = id; phase = "stale"; return; }
+      if (stale) { track("tool_out_of_date", { stale_tool: stale }); phase = { at: "stale", tool: stale, id }; return; }
       review(id);
     } catch (e) {
-      phase = "failed";
-      problem = errorText(e);
+      phase = { at: "failed", load: false, problem: errorText(e) };
       trackImportFailed("review", source, "rejected");
     }
   }
@@ -86,30 +86,24 @@
     try {
       const s = decodeShare(text), manifest = await loadManifest();
       const network = manifest ? NETWORKS.map(n => n.id).find(id => modelOf(manifest, id)?.sha256.startsWith(s.model)) ?? null : null;
-      shared = s;
-      sharedHere = { network, sameEngine: !!manifest && sameSearch(manifest, s.module) };
-      phase = "share";
-      track("review_share_open", { network_found: !!network, same_engine: sharedHere.sameEngine });
+      const here = { network, sameEngine: !!manifest && sameSearch(manifest, s.module) };
+      phase = { at: "share", shared: s, here };
+      track("review_share_open", { network_found: !!network, same_engine: here.sameEngine });
     } catch (e) {
-      phase = "failed";
-      loading = true;
-      problem = `the share link cannot be read: ${errorText(e)}`;
+      phase = { at: "failed", load: true, problem: `the share link cannot be read: ${errorText(e)}` };
       trackLoadFailed("review_share_link", "link");
     }
   }
 
   /** Keeps the shared game, its branches and the sender's network and depth for it, and opens the review. */
-  async function reviewShared() {
-    if (!shared || !sharedHere) return;
-    phase = "loading";
-    loading = true;
+  async function reviewShared(shared: SharedReview, here: SharedHere) {
+    phase = { at: "loading" };
     try {
-      const id = await importShare(shared, sharedHere.network);
+      const id = await importShare(shared, here.network);
       trackLoad("review_share_link", shared.moves.length, { with_branches: shared.branches.length > 0 });
       review(id);
     } catch (e) {
-      phase = "failed";
-      problem = errorText(e);
+      phase = { at: "failed", load: true, problem: errorText(e) };
       trackLoadFailed("review_share_link", "rejected");
     }
   }
@@ -118,35 +112,31 @@
    *  asks. The file loads as in the Review tab, and the review opens at once. */
   async function receiveReview(from: string, save: string | null) {
     const partner = partnerOf(from);
-    loading = true;
     try {
       if (!partner) throw new Error("the link names a site that is not one of Hedge School's partners");
-      sender = partner.name;
-      phase = "receiving";
+      phase = { at: "receiving", sender: partner.name };
       const sent = await receiveFromPartner(partner, from);
-      const file = readReviewFile(typeof sent === "string" ? sent : JSON.stringify(sent));
-      const manifest = await loadManifest();
-      const { id } = await importReview(file, shippedModels(manifest), shippedModules(manifest));
+      const { id, file } = await loadReviewFile(typeof sent === "string" ? sent : JSON.stringify(sent), await loadManifest());
       const kept = gamePartner(save);
       if (kept) await setGamePartner(id, kept);
       trackLoad("partner_review", parseRecord(file.record).moves.length, { with_results: file.analyses.length > 0 });
       review(id);
     } catch (e) {
-      phase = "failed";
-      problem = errorText(e);
+      phase = { at: "failed", load: true, problem: errorText(e) };
       trackLoadFailed("partner_review", "rejected");
     }
   }
 </script>
 
 <main class={MESSAGE}>
-  {#if phase === "importing"}
+  {#if phase.at === "importing"}
     <p class="text-muted">Importing the game…</p>
-  {:else if phase === "loading"}
+  {:else if phase.at === "loading"}
     <p class="text-muted">Loading the review…</p>
-  {:else if phase === "receiving"}
-    <p class="text-muted">Waiting for {sender} to send the review…</p>
-  {:else if phase === "share" && shared && sharedHere}
+  {:else if phase.at === "receiving"}
+    <p class="text-muted">Waiting for {phase.sender} to send the review…</p>
+  {:else if phase.at === "share"}
+    {@const { shared, here } = phase}
     {@const names = playerNames(shared.tags)}
     <h1 class="text-2xl font-bold">A shared review</h1>
     <p><strong>{names.blue} against {names.red}</strong>, {shared.moves.length} edges{shared.branches.length
@@ -155,13 +145,14 @@
       game you import, and the review fills in as the engine goes. With the sender's engine, network and depth, it comes
       out as the sender's review: the same labels, lines and accuracy. A GPU computes the network a little differently, so
       on one a close call can rarely come out otherwise.</p>
-    <p>The sender's review: {sharedHere.network ? networkName(sharedHere.network) : "a network this site no longer has"}, at
+    <p>The sender's review: {here.network ? networkName(here.network) : "a network this site no longer has"}, at
       {reviewDepthText(shared.visits)}.
-      {#if !sharedHere.network}The review uses your network, so its labels can differ.
+      {#if !here.network}The review uses your network, so its labels can differ.
       {:else}The game keeps them for its review. Other games review as before.{/if}
-      {#if !sharedHere.sameEngine}This site's engine has changed since the link was made, so some labels can differ.{/if}</p>
-    <div><button class="btn-primary" type="button" onclick={reviewShared}>Review it</button></div>
-  {:else if phase === "stale"}
+      {#if !here.sameEngine}This site's engine has changed since the link was made, so some labels can differ.{/if}</p>
+    <div><button class="btn-primary" type="button" onclick={() => reviewShared(shared, here)}>Review it</button></div>
+  {:else if phase.at === "stale"}
+    {@const stale = phase.tool}
     <div class="grid gap-2 px-4 py-3 bg-panel border border-accent rounded-lg" role="status">
       <p>
         {#if stale === "bookmarklet"}Your bookmarklet is an older one. On the <a href="/tools">tools page</a>, drag the
@@ -175,10 +166,10 @@
           Tampermonkey offers the update.{/if}
       </p>
       <p>The game is imported. <a class="inline-block ml-1.5 px-3 py-1 rounded-full bg-accent text-on-accent font-semibold no-underline"
-                                  href="/review#game={imported}" data-sveltekit-reload>Open the review</a></p>
+                                  href="/review#game={phase.id}" data-sveltekit-reload>Open the review</a></p>
     </div>
   {:else}
-    <p class="text-blunder" role="alert">{loading ? "The review could not be loaded" : "The game could not be imported"}: {problem}</p>
+    <p class="text-blunder" role="alert">{phase.load ? "The review could not be loaded" : "The game could not be imported"}: {phase.problem}</p>
     <p>You can paste a game record in the <a href="/review" data-sveltekit-reload>Review tab</a>, or bring games from other sites with the
       <a href="/tools">tools</a>.</p>
   {/if}

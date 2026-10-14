@@ -14,6 +14,8 @@ import type { GamePartner } from "./partners.ts";
  *  tree names them), its order, and 1 when its move was evaluated. Version 1 kept the lines. */
 export type KeptBranches = { version: 1; lines: string[][] } | { version: 2; nodes: BranchNode[] };
 export type BranchNode = [string, number] | [string, number, 1];
+/** A kept node: its path key, its order among its parent's branches, and the mark of a move evaluated on request. */
+export const keptNode = (key: string, order: number, judged?: unknown): BranchNode => (judged ? [key, order, 1] : [key, order]);
 /** The Analysis board as kept in the browser (design 21): every node of its tree, the main line's too, and the main
  *  line. One board in each browser, under BOARD_ID in the branches' store. */
 export interface KeptBoard { version: 2; nodes: BranchNode[]; main: string[]; start?: string } // start: a set-up position (design 21)

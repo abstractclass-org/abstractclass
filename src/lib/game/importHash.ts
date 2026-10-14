@@ -19,16 +19,20 @@ export const FORWARDED = "hedge-school:forwarded-from-import";
  *  from another site with its save page, or the partner's page that sends a kept review. */
 export interface ImportHash { record: string; tool: Tool | null; version: string; link: boolean; save: string | null; from: string | null }
 
+/** The parameters after the `#`, or null for a bare record (an older tool's): a record's text starts with a tag, a turn
+ *  or an edge, never with a name and "=". */
+export const hashParams = (hash: string) => (/^[A-Za-z_]+=/.test(hash) ? new URLSearchParams(hash) : null);
+
 export function readImportHash(hash: string): ImportHash {
   if (hash.startsWith("tool=")) {
     const p = new URLSearchParams(hash), tool = p.get("tool");
     return { record: p.get("record") ?? "", tool: tool === "bookmarklet" || tool === "userscript" ? tool : null, version: p.get("v") ?? "",
              link: false, save: null, from: null };
   }
-  // Parameters: a record's text starts with a tag, a turn or an edge, never with a name and "=". A link without
-  // `record` (one that names it `pgn`, for example) gives an empty record, which the import page refuses by name.
-  if (/^[A-Za-z_]+=/.test(hash)) {
-    const p = new URLSearchParams(hash);
+  // A link without `record` (one that names it `pgn`, for example) gives an empty record, which the import page refuses
+  // by name.
+  const p = hashParams(hash);
+  if (p) {
     return { record: p.get("record") ?? "", tool: null, version: "", link: true, save: p.get("save"), from: p.get("from") };
   }
   return { record: decodeURIComponent(hash), tool: null, version: "", link: false, save: null, from: null };
@@ -49,6 +53,6 @@ export function staleTool(sent: Pick<ImportHash, "tool" | "version"> & { link?: 
 export function holdsGame(hash: string): boolean {
   const h = hash.replace(/^#/, "");
   if (!h) return false;
-  if (!/^[A-Za-z_]+=/.test(h)) return true; // an older tool's bare record
-  return [...new URLSearchParams(h).keys()].some(k => k !== "game" && k !== "at");
+  const p = hashParams(h);
+  return !p || [...p.keys()].some(k => k !== "game" && k !== "at"); // none: an older tool's bare record
 }

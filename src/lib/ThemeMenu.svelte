@@ -9,7 +9,6 @@
     const a = (k * Math.PI) / 4, c = Math.cos(a), s = Math.sin(a);
     return [12 + 6.5 * c, 12 + 6.5 * s, 12 + 9 * c, 12 + 9 * s];
   });
-  const ITEM = "flex items-center gap-2 px-2.5 py-1.5 rounded cursor-pointer outline-none data-highlighted:bg-panel";
   const label = $derived(THEME_CHOICES.find(([c]) => c === theme.choice)?.[1] ?? "System");
 </script>
 
@@ -34,10 +33,10 @@
                         aria-label="Theme: {label}" title="Theme: {label}">{@render icon(theme.choice)}</DropdownMenu.Trigger>
   <DropdownMenu.Portal>
     <DropdownMenu.Content align="end" sideOffset={4}
-                          class="z-20 min-w-36 p-1 bg-panel-2 border border-muted/50 rounded-md shadow-[0_6px_20px_rgb(0_0_0/0.4)] text-sm">
+                          class="z-20 min-w-36 menu-box">
       <DropdownMenu.RadioGroup value={theme.choice} onValueChange={v => setTheme(v as ThemeChoice)}>
         {#each THEME_CHOICES as [choice, name] (choice)}
-          <DropdownMenu.RadioItem class={ITEM} value={choice}>
+          <DropdownMenu.RadioItem class="flex items-center gap-2 menu-item" value={choice}>
             {#snippet children({ checked })}
               {@render icon(choice)}<span class="flex-1">{name}</span><span class={checked ? "text-accent" : "invisible"}>✓</span>
             {/snippet}

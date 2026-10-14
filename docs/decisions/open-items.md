@@ -87,6 +87,27 @@ Rules:
 - **The review's first frame:** the page draws the review in one task of 109 to 144 ms (the same measurement). A
   click during it waits, which counts against the page's responsiveness (INP). Draw a part, such as the move list, in
   the next frame, to split the task.
+- **The GPU's start after an idle release:** `backlogged` in `analysis/pool.ts` counts the free engines only. After an
+  idle release, the next search starts the CPU workers again, and while they load, the pool reports a backlog. So the
+  GPU worker starts for one search, with the memory that the release freed. Count the loading workers as engines that
+  take work (design 15: "more work than the workers can take"). Found by reading the code: check it in a real browser
+  first.
+- **The settings of an export from the Review tab:** the review page reviews a game with the game's own settings when
+  the site still ships their network. The Review tab's Export uses the game's settings without that check, and
+  `annotatedFromStore` (`review/exportText.ts`) uses the browser's. For a game imported from a review file, Export can
+  then open, and the annotated record fails ("open the game to review it first"). Give the three one rule.
+- **A search's final results in the batch:** only the partial results wait for the batch of 100 ms (`PARTIAL_MS` in
+  `analysis/game.svelte.ts`). Each final result applies at once, and runs the review again. The sweep sends about 100
+  of them in its first seconds. Put them in the batch too: keep the deeper result of a position, and update the
+  passes' progress there. Count the long tasks of a sweep of a long game before and after.
+- **The network checked once for a page:** each CPU worker fetches the network and checks its SHA-256, and the GPU
+  worker again, at each start, each change of network and each start after an idle release. Check it once in the
+  page, as `compile` in `engine/client.ts` does for the module, and measure the start before and after.
+- **A search waits for its result's write:** `search` in `analysis/game.svelte.ts` waits for `cachePut`, so an engine
+  takes its next search only after the write commits. Measure the gaps between a sweep's searches, then decide.
+- **The snapshot's scan of the stored keys:** a snapshot opens after `snapshotSearch` reads every key of the analysis
+  store, and the store grows with each result. Keep the review's search in its mark (`game/store.ts`), and read the
+  exact keys.
 ## Offline work (on the engine repository's GPU)
 
 - **The archive's analysis stays offline:** it is other players' games. It stays in the engine repository's `runs/`,

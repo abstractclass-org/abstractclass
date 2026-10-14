@@ -6,10 +6,11 @@
   // links that still use this address (Arrival.svelte).
   import { onMount } from "svelte";
   import { FORWARDED } from "#lib/game/importHash.ts";
+  import { writeSession } from "#lib/storage/local.ts";
   import PageMeta from "#lib/PageMeta.svelte";
 
   onMount(() => {
-    if (location.hash.length > 1) try { sessionStorage.setItem(FORWARDED, "1"); } catch { /* storage blocked: no warning */ }
+    if (location.hash.length > 1) writeSession(FORWARDED, "1"); // storage blocked: no warning
     location.replace(location.hash.length > 1 ? `/review${location.hash}` : "/tools");
   });
 </script>

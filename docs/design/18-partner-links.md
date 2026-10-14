@@ -142,7 +142,7 @@ must make costs both of them a release.
   `src/lib/game/import.ts` (`variantProblem`), `src/lib/game/record.ts` (`gamePage`), `src/lib/game/store.ts`
   (`partner`, `setGamePartner`).
 - `src/lib/review/Arrival.svelte` (the link's import, and a kept review's), `src/lib/game/reviewFile.ts`
-  (`deliverExport`, kind `partner`), `src/lib/ExportMenu.svelte` ("Save to …"), `src/lib/review/ReviewView.svelte`
+  (`deliverExport`, kind `partner`, and "Save to …" in `reviewExports`), `src/lib/review/ReviewView.svelte`
   (the link back), `src/routes/review/+page.svelte`.
 - The public description: `src/routes/developers/+page.svelte`, linked from `src/lib/SiteFooter.svelte`. The head for
   the buttons: `static/brand/hedge-school.svg`, which `src/lib/collie.test.ts` keeps the same as the site's head. The

@@ -2,10 +2,11 @@
 // position of them, so that the analysis opens at once in another browser. It is the review file's kind for the board
 // (reviewFile.ts): the same results, chosen the same way (of the lines' positions and of the positions one move from
 // them, which confirm the Greats), and read the same way.
-import { readAnalysisKey } from "#lib/analysis/cache.ts";
+import { ofModels } from "#lib/analysis/cache.ts";
 import { STORES, dbEntriesWhere, dbPutMany } from "#lib/storage/db.ts";
-import { belongs } from "./reviewFile.ts";
-import { boardPositionKeys } from "./board.ts";
+import type { Manifest } from "#lib/engine/client.ts";
+import { REVIEW_FORMAT, belongs, readSchoolFile, shippedModels } from "./reviewFile.ts";
+import { boardLink, boardPositionKeys } from "./board.ts";
 import type { KeptBoard } from "./store.ts";
 
 export const ANALYSIS_FORMAT = "hedge-school-analysis";
@@ -24,7 +25,7 @@ export interface AnalysisFile {
 export function fileKind(text: string): "review" | "analysis" | null {
   try {
     const f = JSON.parse(text) as { format?: unknown };
-    return f?.format === ANALYSIS_FORMAT ? "analysis" : f?.format === "hedge-school-review" ? "review" : null;
+    return f?.format === ANALYSIS_FORMAT ? "analysis" : f?.format === REVIEW_FORMAT ? "review" : null;
   } catch {
     return null;
   }
@@ -43,32 +44,23 @@ export function analysisFileName(now = new Date()): string {
   return `hedge-school-analysis-${now.getFullYear()}${two(now.getMonth() + 1)}${two(now.getDate())}-${two(now.getHours())}${two(now.getMinutes())}.json`;
 }
 
-/** Reads an analysis file. Throws an Error that tells the player what is wrong. */
+/** Reads an analysis file. Throws an Error that tells the player what is wrong. Its version rule is the review file's
+ *  (design 13). */
 export function readAnalysisFile(text: string): AnalysisFile {
-  let data: unknown;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    throw new Error("This is not a Hedge School analysis file: it is not JSON.");
-  }
-  const f = data as Partial<AnalysisFile>;
-  if (!f || typeof f !== "object" || f.format !== ANALYSIS_FORMAT) throw new Error("This is not a Hedge School analysis file.");
-  // The version rule is the review file's (design 13): a new field keeps it, and a reader ignores what it does not know.
-  if (typeof f.version !== "number" || f.version > ANALYSIS_FILE_VERSION)
-    throw new Error(`This analysis file has version ${f.version}: a newer Hedge School wrote it. Reload the site and try again.`);
-  if (f.version < ANALYSIS_FILE_VERSION) throw new Error(`This analysis file has version ${f.version}, which this site no longer reads.`);
+  const f = readSchoolFile(text, ANALYSIS_FORMAT, ANALYSIS_FILE_VERSION, "analysis file") as Partial<AnalysisFile> & { analyses: [string, unknown][] };
   const b = f.board;
   const boardOk = !!b && b.version === 2 && Array.isArray(b.main) && b.main.every(m => typeof m === "string") && Array.isArray(b.nodes) &&
     b.nodes.every(n => Array.isArray(n) && typeof n[0] === "string" && typeof n[1] === "number") &&
     (b.start === undefined || typeof b.start === "string");
   if (!boardOk) throw new Error("The analysis file's lines cannot be read.");
-  const analyses = (Array.isArray(f.analyses) ? f.analyses : []).filter((e): e is [string, unknown] =>
-    Array.isArray(e) && typeof e[0] === "string" && /^\d+\|[^|]*\|[0-9a-f]+\|\d+\|/.test(e[0]) && !!e[1] && typeof e[1] === "object");
-  return { ...f, board: b, analyses } as AnalysisFile;
+  return { ...f, board: b } as AnalysisFile;
 }
 
-/** Keeps an analysis file's results in this browser: of the networks this site ships (`models`), since its engine never
- *  asks for another's. The board itself opens by its link (board.ts), as a shared analysis does. */
-export async function keepAnalysisResults(file: AnalysisFile, models: Set<string> | null): Promise<number> {
-  return dbPutMany(STORES.analysis, file.analyses.filter(([key]) => !models || models.has(readAnalysisKey(key).model)));
+/** Reads an analysis file and keeps its results in this browser, of the networks that the manifest ships. Answers the
+ *  board's address with the file's lines (board.ts), as a shared analysis opens: the board counts the load. Throws an
+ *  Error that tells the player what is wrong. */
+export async function openAnalysisFile(text: string, manifest: Manifest | null): Promise<string> {
+  const file = readAnalysisFile(text);
+  await dbPutMany(STORES.analysis, ofModels(file.analyses, shippedModels(manifest)));
+  return boardLink("", file.board, 0, "analysis_file");
 }

@@ -2,7 +2,8 @@
 // position written and read back. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { drawEdge, moverOf, placeable, readPosition, STANDARD_START, toggleMark, writePosition } from "./position.ts";
+import { STANDARD_START } from "#lib/engine/notation.ts";
+import { drawEdge, moverOf, placeable, readPosition, toggleMark, writePosition } from "./position.ts";
 
 test("the edge count fixes the mover and the edges left", () => {
   // The notation page's examples: the start, then after Blue's first turn, Red's first edge, and Blue's first edge of

@@ -2,7 +2,7 @@
 // line (its anim_pv_time): its first edge, then one more every LINE_STEP_MS, staying drawn at its end. The same line
 // lengthened, as a search lengthens it while it shows, goes on from the edges drawn; another line starts again. All at
 // once when asked, or when reduced motion is asked for.
-export const LINE_STEP_MS = 500;
+const LINE_STEP_MS = 500;
 
 export class LineDrawing {
   shown = $state(0); // the edges drawn so far

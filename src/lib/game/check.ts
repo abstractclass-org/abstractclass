@@ -47,7 +47,7 @@ export async function checkMoves(record: GameRecord): Promise<Checked> {
 }
 
 /** Why a position could not occur in a game, in the engine's words (protocol 0.5's check), or null when it could. */
-export function positionProblem(d: DescribeReply): string | null {
+function positionProblem(d: DescribeReply): string | null {
   if (!d.check || d.check.possible) return null;
   return `This position cannot occur in a game: ${d.check.reasons.map(r => r.text.replace(/\.$/, "")).join("; ")}.`;
 }

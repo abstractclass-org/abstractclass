@@ -5,6 +5,16 @@
 
 /** A path as one string, for maps and keys. The start is "". */
 export const pathKey = (path: string[]) => path.join(" ");
+/** The key of a path's parent, from the path's key: "" for a move from the start. */
+export const parentKey = (key: string) => (key.includes(" ") ? key.slice(0, key.lastIndexOf(" ")) : "");
+/** The last move of a path, from the path's key. */
+export const lastMove = (key: string) => key.slice(key.lastIndexOf(" ") + 1);
+/** The path key of each position along a line of moves: the start's (""), then each one's after a move. */
+export function prefixKeys(names: string[]): string[] {
+  const keys = [""];
+  for (const name of names) keys.push(keys.length > 1 ? `${keys.at(-1)} ${name}` : name);
+  return keys;
+}
 
 /** How many moves the path shares with the game's from the start. */
 export function sharedLength(path: string[], main: string[]): number {

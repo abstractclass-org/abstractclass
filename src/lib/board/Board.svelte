@@ -1,12 +1,12 @@
 <script lang="ts" module>
-  import type { Edge, Glyph, Label, Position } from "#lib/review/model.ts";
+  import type { Edge, Label, Position } from "#lib/review/model.ts";
 
   /** An engine candidate: its rank (1 is the engine's first choice) and a note shown on hover. */
   export interface BoardCandidate { edge: Edge; rank: number; note: string }
   /** A label badge on a played edge, at its midpoint: an end point is a node that several edges share. Its note shows
    *  under the pointer. Badges with the same `group` are one label, a turn's on both its edges: pointing at either
    *  lights both badges and both edges (design 10). */
-  export interface BoardMark { edge: Edge; label: Label; glyph: Glyph; note?: string; group?: number }
+  export interface BoardMark { edge: Edge; label: Label; note?: string; group?: number }
   /** An edge of the engine's line from the position, with its mover, and, once the engine's rules have played it, the
    *  edge it cuts and the regions after it. */
   export interface BoardLineEdge { edge: Edge; player: 0 | 1; cut?: Edge | null; regions?: Position["regions"] }

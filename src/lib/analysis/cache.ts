@@ -31,6 +31,12 @@ export function readAnalysisKey(key: string) {
   const [shape, search, model, visits, ...rest] = key.split("|");
   return { shape: Number(shape), search, model, visits: Number(visits), moves: rest.join("|") };
 }
+/** Whether a text has a stored analysis's key's form: a file's results are checked by it. */
+export const isAnalysisKey = (key: string) => /^\d+\|[^|]*\|[0-9a-f]+\|\d+\|/.test(key);
+/** The results of `models` (the networks' SHA-256), or every result when null: the site keeps only the results of the
+ *  networks it ships, since its engine never asks for another's. */
+export const ofModels = (entries: [string, unknown][], models: Set<string> | null) =>
+  entries.filter(([key]) => !models || models.has(readAnalysisKey(key).model));
 
 // The budgets the site's searches ask for (engineSettings.ts: the depths, the review's depths and the label pass), from
 // shallow to deep.
@@ -41,22 +47,31 @@ const BUDGETS = [256, 512, 768, 1024, 1536, 2048, 3072, 4096, 8192, 16384];
  *  looked (the position on screen, design 09), as it had it before the page closed, and a review imported from another
  *  browser, searched to another depth, opens without searching again (game/reviewFile.ts). */
 export async function cacheGetAtLeast<T>(search: string, model: string, moves: string[], visits: number): Promise<T | undefined> {
-  const keys = [visits, ...BUDGETS.filter(v => v > visits)].map(v => analysisKey(search, model, moves, v));
+  const keys = depthKeys(search, model, moves, visits);
+  await readStored(keys);
+  const key = [...keys].reverse().find(k => memory.has(k));
+  return key === undefined ? undefined : (memory.get(key) as T);
+}
+/** The keys of a position's results at `visits` and every budget deeper. */
+const depthKeys = (search: string, model: string, moves: string[], visits: number) =>
+  [visits, ...BUDGETS.filter(v => v > visits)].map(v => analysisKey(search, model, moves, v));
+/** Reads the keys not read yet in this visit into memory, in one transaction, and notes the ones not stored. */
+async function readStored(keys: string[]) {
   const unread = keys.filter(k => !memory.has(k) && !absent.has(k));
   (await dbGetMany(STORES.analysis, unread)).forEach((value, i) => {
     if (value !== undefined) memory.set(unread[i], value);
     else absent.add(unread[i]);
   });
-  const key = [...keys].reverse().find(k => memory.has(k));
-  return key === undefined ? undefined : (memory.get(key) as T);
 }
 
 /** The engine search of an earlier review, for its snapshot (design 20): a search whose results with the network
  *  `model` hold each of `positions` (their moves) at `visits` or deeper. `except` is a search not to take: the site's
- *  own, when the snapshot is of an earlier engine. Undefined when no search holds them all. Reads the stored keys
- *  alone. */
-export async function snapshotSearch(model: string, positions: string[][], visits: number, except?: string): Promise<string | undefined> {
-  return searchHolding((await dbKeys(STORES.analysis)).map(String), model, positions, visits, except);
+ *  own, when the snapshot is of an earlier engine. The stored keys are read while it comes (the rules worker's start).
+ *  Undefined when no search holds them all. Reads the stored keys alone. */
+export async function snapshotSearch(model: string, positions: string[][], visits: number,
+                                     except?: Promise<string | undefined>): Promise<string | undefined> {
+  const [keys, not] = await Promise.all([dbKeys(STORES.analysis), except]);
+  return searchHolding(keys.map(String), model, positions, visits, not);
 }
 
 /** snapshotSearch's choice among `keys`. */
@@ -75,6 +90,6 @@ export function searchHolding(keys: string[], model: string, positions: string[]
  *  ones not stored. The review starts it with the engine, so that its reads after the rules find everything in memory,
  *  and its first frame waits for neither more than for the other. */
 export async function warmCache(search: string, model: string, positions: string[][], least: number): Promise<void> {
-  await Promise.all(positions.map(moves => cacheGetAtLeast(search, model, moves, least)));
+  await readStored(positions.flatMap(moves => depthKeys(search, model, moves, least)));
 }
 
