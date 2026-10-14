@@ -6,55 +6,50 @@ It holds no backlog: everything still to do that is not in flight is in
 
 ## State
 
-- **Live:** `8b60dd0` on `main` and `dev`, released on 2026-10-15: Practice (design 24), with the parts that it shares
-  with the review (design 06: the players' row with the bar centred on the board, the cards on two lines, the move
-  list's look, the win bar and gauge, the step bar, the drawn icons, the settings' rows), the skeletons of the
-  Analysis board and Practice, the page's own scrolling area under a fixed header on a screen with a mouse and the
-  site's menu below 768 pixels (design 22), Practice's Google Analytics events (design 17), and design 25 decided.
-- **The engine:** protocol 0.6.1, the release `wasm-v2-engine-54486cd` (both analysis modules and the practice bot's
-  files: the two bot modules, the CPU evaluator's module and three scripts, in `engine-54486cd-lib`), its library
-  and graphs from `wasm-v2-engine-632f2a0`, the networks HedgeFund 0.1 Lite (`b10c128-s66625408`) and HedgeFund 0.1
+- **Live:** `01b29d8` on `main` and `dev`, released on 2026-10-15, with `762e92b` before it:
+  - **Practice first** (design 22): first in the header, and the home page's first call to action, beside a board
+    that plays three reviewed scenes by edge, with the engine's candidates (`scripts/home-replay.mjs`,
+    `HomeReplay.svelte`). Log: product.md, "Practice first" and "The home board plays reviewed scenes".
+  - **"Support Us" through Ko-fi** (design 22): the header's button opens Ko-fi's tip panel in the site's dialog,
+    with the collie. The site's menu shows below 1,024 pixels, and the button goes into it below 640. The privacy page
+    says what goes to Ko-fi. Log: product.md, "Support Us through Ko-fi".
+  - **Requests 19 and 20, done:** the reader takes only the start's own turn number after a `Position` tag, the lock
+    is on `wasm-v2-engine-85f1792` (practice interface 0.1.1), and Practice takes set-up starts (design 24, item 4).
+    requests/19 and requests/20 say what was checked.
+  - **The board without bands** (design 03): protected and placed edges on the edge, with a white line. The label
+    badge at radius 0.33, sidestepping on a length-1 edge. Log: product.md, "The board without bands".
+  - **The review's move list** no longer runs under its scroll bar near 1,280 pixels: the page area is a container,
+    and the board pages take their width from it (`100cqw`). Log: product.md, "The review's move list under its
+    scroll bar".
+  - **Two Google Analytics additions** (design 17): `support_open`, and `practice_from` set_up_start, with no new
+    custom dimension.
+  - **The site's text by what it does** (CLAUDE.md, "Writing the site's text"). A pass over the pages under this rule
+    is not done.
+- **The engine:** protocol 0.6.1, the release `wasm-v2-engine-85f1792` (both analysis modules and the practice bot's
+  files, in `engine-85f1792-lib`), with `NOTICES.txt` from `54486cd`, the terms from `27a7414`, and the networks
+  and graphs from `wasm-v2-engine-632f2a0`: HedgeFund 0.1 Lite (`b10c128-s66625408`) and HedgeFund 0.1
   (`b15c192-s66999040`). The search is still `fdfe5ad`.
-- **Checks on `8b60dd0`:** `npm test` passes (108), `npm run check` has no errors or warnings, `npm run build`
-  succeeds. In Edge on the local build: decisions/product.md, "Practice built", says what was checked and what not.
-  The live site and the preview serve `8b60dd0`, `/practice` answers, and the manifest lists the practice bot's
-  files (checked by HTTP). Not checked in a browser on the live site. Practice's events not checked in Google
-  Analytics.
+- **Checks on `01b29d8`:** `npm test` passes (111), `npm run check` has no errors or warnings, `npm run build`
+  succeeds. In Edge on the local build: each log entry says what was checked and what not. The live site and the
+  preview serve `01b29d8`, the live manifest lists the 9 files of `85f1792` with `54486cd`'s notices, and the home,
+  Practice, Review, Analysis and Privacy pages answer, with Support Us and the privacy page's Ko-fi section (checked
+  by HTTP). Not checked in a browser on the live site.
 
 ## In flight
 
-- **On `dev`, not released to `main`.** `npm test` passes (111), `npm run check` has no errors or warnings, `npm run
-  build` succeeds. Each part says in decisions/ what was checked:
-  - **Practice first** (design 22): first in the header, and the home page's first call to action. The position's
-    converter moved to `src/lib/engine/position.ts`. Log: product.md, "Practice first".
-  - **"Support Us" through Ko-fi** (design 22): the header's button opens Ko-fi's tip panel in the site's dialog
-    (`src/lib/SupportDialog.svelte`). The site's menu now shows below 1,024 pixels (it was 768), and the button goes
-    into it below 640. The privacy page says what goes to Ko-fi. Not checked: a tip, and the frame on the live site's
-    address. Ko-fi's panel stays light in the dark theme, at Ko-fi's height (712 pixels). Log: product.md, "Support
-    Us through Ko-fi".
-  - **Two Google Analytics additions** (design 17): `support_open`, and `practice_from` set_up_start. Neither needs a
-    new custom dimension. Local builds and the previews send no events (hosting.md): check them in GA's Realtime view
-    on the live site, after the release.
-  - **The site's text by what it does** (CLAUDE.md, "Writing the site's text"): strict STE for what a player follows,
-    STE's sentence rules for what explains, plain web writing (the GOV.UK style guides) for what invites. A pass over
-    the pages under this rule is not done.
-  - **Requests 19 and 20, done:** the reader takes only the start's own turn number after a `Position` tag, the lock
-    is on `wasm-v2-engine-85f1792` (practice interface 0.1.1), and Practice takes set-up starts (design 24, item 4):
-    the Analysis board's Play from any start, takebacks that stop at the record's edges, and "Analyze the game" for a
-    set-up game. requests/19 and requests/20 say what was checked.
-- **Not committed yet** (after `762e92b`): the collie in the Support Us dialog; the board without bands (protected and
-  placed edges marked on the edge, with a white line; design 03); the label badge at radius 0.33, sidestepping on a
-  length-1 edge; the home board playing three reviewed scenes with the review's row of points and area
-  (`scripts/home-replay.mjs`, `HomeReplay.svelte`; design 22); the review's move list no longer under its scroll bar
-  near 1,280 pixels (the page area is a container, `100cqw`). To check in a shown tab: the home board's timing, reduced motion, and a phone. Logs: product.md, "The home board
-  plays reviewed scenes" and "The board without bands".
+- **To check on the live site:**
+  - In Google Analytics' Realtime view (a browser that accepted the cookies, with no ad blocker): `support_open`,
+    `practice_from` set_up_start, and Practice's events.
+  - The home board in a shown tab: its timing (an edge every 1 to 2 seconds), the pause under the pointer, and
+    reduced motion. A tab behind another slows its timers, so this was not measurable in the tests.
+  - A tip through Ko-fi's panel, by the owner.
+  - The site on a phone: the site's menu with Support Us, the header scrolling away, Practice in one column, and
+    the home board.
 - **Practice games stored** (design 25): decided, not built. A set-up game is stored with its start and the record's
   edges (decided, design 25, item 2): `KeptPractice` keeps both already. The build: the Pages Function and its D1
   schema, the sending and its queue, the takebacks and the times kept with the game, the consent banner (its text is
   in design 25), and the privacy page with a switch for each purpose. The owner sets up the databases (production and
   previews) and their bindings first.
-- **To check on the live site:** Practice in Edge, Practice's events in Google Analytics (the nine custom dimensions
-  are registered), and the site on a phone (the site's menu, the header scrolling away, Practice in one column).
 - **The layout shift on the live site:** Cloudflare's Web Analytics gave `/review` a CLS of 0.151 before `f55e0f6`.
   On the local build it was 0 to 0.0023 at the window sizes measured, and 0.0025 at 1,282 pixels after `8b60dd0`'s
   changes (the summary column). Read Cloudflare's Core Web Vitals for `/review` after a few days of visits
