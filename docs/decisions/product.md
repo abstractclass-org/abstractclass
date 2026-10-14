@@ -2647,6 +2647,62 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   HedgeFund from here" on the Analysis board (Lichess's "Continue from here").
 - **The site's own:** the temperatures of Medium and High, to check once games by setting exist.
 
+### Practice from a set-up start (2026-10-15)
+
+- **What:** Practice takes a set-up start (design 24, item 4), on the practice bot's `enclosure-set-position`
+  (request 20, release `wasm-v2-engine-85f1792`). The Analysis board's Play gives the board's set-up start and the
+  moves to the position on screen (`/practice#position=…&record=…`), and is on for any start.
+- **The record's edges are the game's start:** a takeback stops at them. Before, a takeback could undo an edge of the
+  record of the player's colour, which the player had not played against the bot.
+- **Its count:** `practice_start` gives `practice_from` set_up_start (design 17).
+- **Its review:** "Analyze the game" opens it on the Analysis board, from Practice and from Your games, as the Review
+  tab reviews games from the standard start only. Its id in Your games covers its start, so that the same moves from
+  two starts are two games. A game from the standard start keeps its id.
+- **Fixed in the check:** the rules' requests after the first went from the standard start, and the game stopped
+  ("illegal move"). Every request now gives the game's start.
+- **Checked:** requests/20, "Checked here".
+
+### A record's first turn after a set-up start: one number (2026-10-15)
+
+- **What:** the record reader takes only the start's own turn number after a `Position` tag, as the engine
+  repository's design 04 now gives it (request 19, its commit `85f1792`): `3.` after a start with 3 edges played, and
+  `2...` at the second edge of turn 2. Before, it also took `1.`. A start given apart from the record (the Analysis
+  board's Import, the board's address) is read as the record's own tag.
+- **Why:** the number gives the player. A record numbered from 1 after a later start can give the first turn to the
+  wrong player, and two records of one game would differ.
+
+### Support Us through Ko-fi (2026-10-15)
+
+- **What:** "Support Us" in the header, in the accent's colour of each theme, opens Ko-fi's tip panel in the site's
+  own dialog (design 22). Below 1,024 pixels the header's links go into the site's menu (it was 768): the links and
+  the button need 860 pixels for one row. Below 640 pixels the button goes into the menu too.
+- **Its label** is "Support Us", as Ko-fi's own widget writes it. Opening the dialog sends `support_open` (design 17),
+  with nothing else: the tips are counted on Ko-fi, as its panel is Ko-fi's page.
+- **Ko-fi's panel stays light in the dark theme:** it is Ko-fi's page from another site, so the site cannot style it.
+  The frame's `background` paints only its 4-pixel edge (checked: a dark red edge, and Ko-fi's white card inside). It
+  does not follow the dark preference either: the frame takes the site's `color-scheme: dark`, and the panel stayed
+  light. An inverting filter darkens it, but shows Ko-fi's profile picture as a negative, and would invert the
+  payment step's logos and colours.
+- **Why not Ko-fi's floating widget:** it is a script from Ko-fi on every page, and its button has a place of its own
+  and only its text and colours to set. Moving it into the header, or styling it more, would rest on Ko-fi's own
+  class names, which Ko-fi can change. The panel in a frame, made only when the dialog opens, does the same for a
+  tip: no new tab, and nothing goes to Ko-fi before a visitor opens it.
+- **Checked** on the local build in Edge: the panel loads in the dialog, in both themes, and its Monthly tab is as tall
+  as One time; at 1,294 pixels (the button in the header), and in frames of 900 pixels (the menu and the button) and
+  390 (the menu's item opens the dialog, and the focus goes to Close). Not checked: a tip, and the frame on the live
+  site's address.
+
+### Practice first (2026-10-15)
+
+- **What:** Practice leads: first in the header, and the home page's first call to action, with the review, the
+  Analysis board and the board editor after it (design 22). The home page leads with play, as Lichess's does, and
+  shows a board from a game of HedgeFund against itself, made by `scripts/home-board.mjs` (seed 7, 64 visits, 100
+  edges): the site's own game, as the meaf.us archive's games need their owner's permission for public use.
+- **The design pass** (the impeccable skill): no small-caps labels above headings (its quality floor bans them), the
+  other ways in as a quieter list under a rule in the place of three equal cards, and the board as the page's one
+  picture. Checked on the local build at 1,301 pixels and at 390 (no sideways scroll). The board's converter moved to
+  its own module (`src/lib/engine/position.ts`), so that the home page draws the stored position without the analysis.
+
 ### Practice games stored (2026-10-15)
 
 - **What:** every practice game is to be stored when it ends, on the site's first backend (a Pages Function and D1),
@@ -2668,6 +2724,8 @@ The interface, the review, puzzles, lessons, labels and thresholds.
 - **Read before the decision:** Lichess's privacy policy and database page, and chess.com's privacy policy and legal
   FAQ. Lichess keeps anonymous players' games, publishes its rated games under CC0, and sets only a session cookie,
   which play needs. Chess.com's cookie banner and its rules for games could not be read from its pages.
+- **Games from a set-up start** (decided after): stored as the others, with their start position, and a game from the
+  Analysis board's Play with the edges that came with its record. The calibration can then take or leave them.
 
 ### Practice built (2026-10-14)
 

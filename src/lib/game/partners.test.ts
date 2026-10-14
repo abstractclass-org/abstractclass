@@ -20,10 +20,10 @@ test("a save page counts only on a partner's own host, over https", () => {
 });
 
 test("a game of other rules, or from another start, is refused; the online rules' game is not", () => {
-  const game = (tags: string) => parseRecord(`${tags}\n\n1. D10-E13 *`);
+  const game = (tags: string, moves = "1. D10-E13") => parseRecord(`${tags}\n\n${moves} *`);
   assert.equal(variantProblem(game('[Event "?"]')), null);
   assert.match(variantProblem(game('[Rules "Race to 2000"]')) ?? "", /other rules \(Race to 2000\)/);
-  const setUp = game('[Position "A10-D10,D10-G10* Q10-T10 r2 0/0 1"]');
+  const setUp = game('[Position "A10-D10,D10-G10* Q10-T10 r2 0/0 1"]', "2. N9-Q10"); // the start's own turn, Red's
   assert.match(variantProblem(setUp) ?? "", /another position/);
   assert.equal(variantProblem(setUp, true), null); // the Analysis board takes it
   assert.equal(variantProblem(game('[Position "A10-D10 Q10-T10 b1 0/0 0"]')), null); // the standard start, written out

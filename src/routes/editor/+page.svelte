@@ -11,7 +11,7 @@
   import { EngineWorker, loadManifest, moduleOf } from "#lib/engine/client.ts";
   import type { CheckReason } from "#lib/engine/protocol.ts";
   import { parseEdge, STANDARD_START } from "#lib/engine/notation.ts";
-  import { boardPosition } from "#lib/analysis/game.svelte.ts";
+  import { boardPosition } from "#lib/engine/position.ts";
   import { PLAYER_NAME, type Edge, type Position } from "#lib/review/model.ts";
   import { drawEdge, LAST_COUNT, moverOf, placeable, readPosition, toggleMark, writePosition,
            type EditorPosition } from "#lib/editor/position.ts";

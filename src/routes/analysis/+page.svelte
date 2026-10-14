@@ -25,7 +25,7 @@
   import { download, shippedModels, type ExportItem, type ExportKind, type ExportResult } from "#lib/game/reviewFile.ts";
   import { analysisFileName, exportAnalysis, fileKind, openAnalysisFile } from "#lib/game/analysisFile.ts";
   import { holdsGame } from "#lib/game/importHash.ts";
-  import { parseRecord } from "#lib/game/record.ts";
+  import { parseRecord, withStart } from "#lib/game/record.ts";
   import { variantProblem } from "#lib/game/import.ts";
   import { checkMoves, checkPosition } from "#lib/game/check.ts";
   import { STORES, dbGet, dbPut } from "#lib/storage/db.ts";
@@ -93,7 +93,7 @@
   // (neither: the site's own, design 17). Without one, `record=` and `position=` are another site's link, and `packed=`
   // a shared analysis.
   const PASTED: string[] = ["pasted_record", "pasted_constellation", "pasted_position"];
-  const OWN: string[] = ["editor", "new"];
+  const OWN: string[] = ["editor", "new", "practice", "your_games"];
   /** The analysis to open: one imported after the `#`, else the one kept in this browser. An imported one replaces the
    *  kept one, after the player agrees when the kept one has moves. It leaves the address at once, then the analytics
    *  start (design 22), and a reload keeps the analysis's own state. */
@@ -139,7 +139,7 @@
    *  its reader. */
   async function recordBoard(text: string, at: string | null, position: string | null = null): Promise<{ board: KeptBoard; at: number }> {
     let record: ReturnType<typeof parseRecord>;
-    try { record = parseRecord(text); } catch (e) { throw new RecordProblem(errorText(e), "record"); }
+    try { record = parseRecord(withStart(text, position)); } catch (e) { throw new RecordProblem(errorText(e), "record"); }
     const tagged = record.tags.Position?.trim();
     const given = setUpStart(position) ?? (position ? STANDARD_START : undefined);
     if (given && tagged && (setUpStart(tagged) ?? STANDARD_START) !== given)
@@ -204,10 +204,13 @@
     return (i !== null ? g.positions[i] : g.branches[pathKey(current)]?.position)?.notation ?? null;
   });
   const editorHref = $derived(onScreen ? `/editor#${new URLSearchParams({ position: onScreen })}` : "/editor");
-  // Practice from the position on screen (design 24): its moves from the standard start, as a record. The bot takes no
-  // set-up start yet (request 20).
-  const practiceHref = $derived(!game || game.startPosition ? null
-                               : current.length ? `/practice#${new URLSearchParams({ record: current.join(" ") })}` : "/practice");
+  // Practice from the position on screen (design 24): the board's set-up start when it has one, and the moves from the
+  // start to the position on screen, as a record.
+  const practiceHref = $derived.by(() => {
+    if (!game) return null;
+    const p = new URLSearchParams({ ...(game.startPosition ? { position: game.startPosition } : {}), ...(current.length ? { record: current.join(" ") } : {}) });
+    return p.size ? `/practice#${p}` : "/practice";
+  });
   /** The New menu's standard start: a new analysis, after the board asks when it has moves. */
   function newBoard() {
     importAddress(String(new URLSearchParams({ position: STANDARD_START, via: "new" })));
@@ -227,7 +230,7 @@
         importAddress(String(new URLSearchParams({ position, via: "pasted_position" })));
         return;
       }
-      const read = readPasted(pasted);
+      const read = readPasted(pasted, position || null);
       await recordBoard(read.recordText, null, position || null);
       importAddress(String(new URLSearchParams({ record: read.recordText, ...(position ? { position } : {}), via: position ? "pasted_position" : read.source })));
     } catch (e) {
@@ -290,7 +293,7 @@
         <!-- Practice from the position on screen (design 24), as Lichess's "Continue from here": not a new board, so
              beside New, not in it. Off on a set-up start, which the bot cannot take yet (request 20). -->
         <button disabled={!practiceHref} onclick={() => practiceHref && location.assign(practiceHref)}
-                title={practiceHref ? "Practice against the bot from the position on screen" : "Practice against the bot: not from a set-up position yet"}>Play</button>
+                title="Practice against the bot from the position on screen">Play</button>
       {/snippet}
     </ReviewView>
 {:else}

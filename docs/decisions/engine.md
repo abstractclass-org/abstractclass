@@ -1009,3 +1009,17 @@ Blunder's loss.
   6,246 games, and the start is faster in Edge (30 to 46 ms against 112 to 127 ms for a game of 120 edges). `npm run
   engine` fetched the three new files, their SHA-256 equal to the release's. `npm test` passes (99), `npm run check`
   has no errors. In Edge on the local build: a stored review opened as done, and the Analysis board played two moves.
+
+### The release 85f1792: the practice bot from a set-up start (2026-10-15)
+
+- **What:** the engine repository's release `wasm-v2-engine-85f1792`, for requests 19 and 20: the practice bot's
+  interface 0.1.1 (`enclosure-set-position`, and only its design's commands), in both practice modules, and the
+  engine's simplify pass. Both analysis modules keep protocol 0.6.1 and the search `fdfe5ad`, with new bytes. The
+  networks, the graphs, `NOTICES.txt` and `LICENSE.txt` are the same bytes, and the lock keeps their entries.
+- **The search is still `fdfe5ad`:** the lock lists 54486cd's CPU module in `sameSearchAs`, so the stored reviews stay
+  the site's engine's. `npm run engine` fetched every changed file with the lock's size and SHA-256, and the CPU module
+  answered protocol 0.6.1 and search `fdfe5ad`, as the lock gives.
+- **The practice bot's interface** in the lock is `practice-0.1.1`. Practice sends only the commands of the bot's
+  design, which the module now enforces.
+- **Checked:** requests/20, "Checked here". `npm test` passes (111), `npm run check` has no errors or warnings, and
+  `npm run build` succeeds.

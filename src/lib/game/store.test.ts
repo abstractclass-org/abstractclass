@@ -2,7 +2,7 @@
 // Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { reviewAgainWhy, type ReviewMark } from "./store.ts";
+import { gameId, reviewAgainWhy, type ReviewMark } from "./store.ts";
 
 const mark: ReviewMark = { module: "m1", model: "n1", network: "lite", visits: 512, at: "2026-10-12" };
 const want = (change: Partial<ReviewMark>) => {
@@ -22,4 +22,11 @@ test("the player's own changes, and a game never reviewed, give no reason to tel
   assert.equal(reviewAgainWhy(mark, want({ visits: 1024 })), null); // a deeper review chosen
   assert.equal(reviewAgainWhy(undefined, want({})), null);
   assert.equal(reviewAgainWhy(mark, null), null);
+});
+
+test("a game's id: its moves alone from the standard start, as before, and its set-up start with them", async () => {
+  const moves = ["D10-G10", "N9-Q10"];
+  assert.equal(await gameId(moves), await gameId(moves, undefined));
+  assert.notEqual(await gameId(moves, "A10-D10 Q10-T10 b2 0/0 3"), await gameId(moves));
+  assert.match(await gameId(moves), /^[0-9a-f]{12}$/);
 });

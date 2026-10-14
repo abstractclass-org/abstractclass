@@ -24,7 +24,8 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
    - **The header:** the name, which leads home, with "Early Access" beside it in the accent colour, which leads to the
      About page's section on the early access. That section says first that everything can change (the pages and their
      addresses, the labels, the engine, the files and links, what the browser keeps), then what the site does now. Then
-     Review and Analysis, and on its right Tools (from a tablet's width, design 22), The notation, About and the theme
+     Practice, Review and Analysis, and on its right Tools (from a tablet's width, design 22), The notation, About,
+     "Support Us" (Ko-fi's tip panel, design 22) and the theme
      menu: System (the default: the computer's light or dark), Light or Dark. Its button shows the choice: a half-filled
      circle, a sun or a moon. The choice is kept in this browser, and a script in the page's head applies it before the
      page draws, so that a page never shows the other theme first. On a phone the header's gaps narrow, so that it fits

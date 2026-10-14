@@ -68,8 +68,9 @@ The events use the site's words (design 22), each for one thing:
 | `feature` | a feature's first use in a review, or on the Analysis board in a visit | `feature_name` (the feature, below) | what to keep, to improve, or to explain |
 | `export` | an export, from the review or the Analysis board (the page's address tells which) | `export_kind` (share_link, review_file, analysis_file, record_copy, record_file, partner_save: the review file saved to a partner site, design 18), `link_length`, `link_too_long` | whether players share, and whether links fit a Discord message |
 | `game_delete`, `game_restore` | a game deleted, its Undo | none | whether Undo saves slips |
-| `practice_start` | a practice game starts (design 24), once the bot has the game: a new one, one from the Analysis board's Play, or one kept from an earlier visit | `practice_from` (new, analysis_board, resumed), `network`, `bot_visits`, `bot_variety` (low, medium, high), `practice_side` (blue, red), `bot_form` (gpu, cpu, single), `cores` | which settings players choose: the defaults, then the levels; and whether the bot starts on their machines, in which form |
+| `practice_start` | a practice game starts (design 24), once the bot has the game: a new one, one from the Analysis board's Play, or one kept from an earlier visit | `practice_from` (new, analysis_board, set_up_start: the Analysis board's Play from a set-up start, resumed), `network`, `bot_visits`, `bot_variety` (low, medium, high), `practice_side` (blue, red), `bot_form` (gpu, cpu, single), `cores` | which settings players choose: the defaults, then the levels; and whether the bot starts on their machines, in which form |
 | `practice_end` | a practice game ends: by the rules, by Resign, or by Abort | as `practice_start` but `practice_from`, and `practice_outcome` (won, lost, draw, resigned, aborted: the player's), `edges`, `practice_takebacks`, `bot_seconds` (the bot's average seconds a turn, as a range; none before its first turn) | the levels: which settings players beat, lose to, or give up on (design 24's games by setting); and whether a number of visits is bearable on a machine |
+| `support_open` | the Support Us dialog opens: Ko-fi's tip panel (design 22) | none | whether visitors open it. The tips are counted on Ko-fi: its panel is Ko-fi's page, which the site cannot see into |
 
 The features, by their `feature_name` (`ReviewView.svelte`, `used`). Each counts once in a review, at its first use:
 
@@ -158,7 +159,7 @@ selector at the top left. Click **Admin**, the gear at the bottom left.
 | `error_kind` | Error kind | Event | an engine failure's kind: load, rules, gpu, practice |
 | `link_length` | Link length | Event | a share link's characters, as a range |
 | `link_too_long` | Link too long | Event | the link is longer than a Discord message takes |
-| `practice_from` | Practice from | Event | how a practice game started: new, analysis_board, resumed |
+| `practice_from` | Practice from | Event | how a practice game started: new, analysis_board, set_up_start, resumed |
 | `bot_visits` | Bot visits | Event | the practice bot's visits a move |
 | `bot_variety` | Bot variety | Event | the practice bot's variety: low, medium, high |
 | `practice_side` | Practice side | Event | the player's side in a practice game: blue, red |

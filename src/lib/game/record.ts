@@ -113,6 +113,14 @@ function startTurn(position: string | undefined): { turn: number; first: boolean
   return Number.isInteger(count) && count >= 0 ? turnFromCount(count) : { turn: 1, first: true };
 }
 
+/** A record's text with its start given apart (the Analysis board's Import, its address's `position`): the start as
+ *  the record's own `Position` tag, unless the record has one, so that its turns are read from the start's own
+ *  number. The standard start adds nothing. */
+export function withStart(text: string, position: string | null): string {
+  const start = setUpStart(position);
+  return start && !/\[Position\s/.test(text) ? `[Position "${start}"]\n${text}` : text;
+}
+
 /** Reads a game record. Throws a RecordError with the offset of the first problem. */
 export function parseRecord(text: string): GameRecord {
   const record: GameRecord = { tags: {}, moves: [], marked: [], ends: [], result: null, evals: [], clocks: [] };
@@ -138,12 +146,11 @@ export function parseRecord(text: string): GameRecord {
         const number = Number(turn[1]);
         if (expectedTurn === null) {
           // The first turn: 1, or after a set-up start its own turn, from its edge count, as PGN numbers its moves from a
-          // FEN's. A start at a turn's second edge then opens with `N...`. The notation does not say which (request 19).
+          // FEN's. A start at a turn's second edge opens with `N...`. Only this number (the engine repository's design
+          // 04, "The turns after a set-up start"): a record numbered from 1 after a later start gives the wrong player.
           const start = startTurn(record.tags.Position);
-          const own = number === start.turn && (turn[2] === "...") === !start.first;
-          if (!own && !(number === 1 && turn[2] === ".")) {
-            const expected = start.turn === 1 ? "1." : `1. or ${start.turn}${start.first ? "." : "..."}`;
-            throw new RecordError(`turn ${w} where turn ${expected} was expected`, t.at);
+          if (number !== start.turn || (turn[2] === "...") === start.first) {
+            throw new RecordError(`turn ${w} where turn ${start.turn}${start.first ? "." : "..."} was expected`, t.at);
           }
           expectedTurn = number + 1;
           continue;
@@ -192,9 +199,11 @@ export function writeTags(tags: Record<string, string>): string {
 }
 
 /** Writes a game record: the required tags, then the turns. `turns` gives each turn's number and how many moves it has. */
-export function writeRecord(tags: Record<string, string>, moves: string[], turns: { number: number; moves: number }[], result = "*"): string {
+export function writeRecord(tags: Record<string, string>, moves: string[], turns: { number: number; moves: number; second?: boolean }[],
+                            result = "*"): string {
   const head = writeTags({ ...tags, Result: result });
   let i = 0;
-  const body = turns.map(t => `${t.number}. ${moves.slice(i, (i += t.moves)).join(" ")}`).join(" ");
+  // `N...` for a first turn that starts at its second edge (a set-up start's, the engine repository's design 04).
+  const body = turns.map(t => `${t.number}${t.second ? "..." : "."} ${moves.slice(i, (i += t.moves)).join(" ")}`).join(" ");
   return `${head}\n\n${body} ${result}\n`;
 }

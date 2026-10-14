@@ -1,5 +1,5 @@
 <script lang="ts" module>
-  export type IconName = "first" | "back" | "forward" | "last" | "menu" | "takeback" | "abort" | "resign";
+  export type IconName = "first" | "back" | "forward" | "last" | "menu" | "takeback" | "abort" | "resign" | "heart";
 </script>
 
 <script lang="ts">
@@ -28,5 +28,8 @@
     <path d="M6 6l12 12M18 6L6 18" />
   {:else if name === "resign"}
     <path d="M5 21V4" /><path d="M5 4h12l-2.5 4.5L17 13H5" fill="currentColor" fill-opacity="0.25" />
+  {:else if name === "heart"}
+    <!-- Two circles of radius 4 (centres 8.5,9 and 15.5,9), and the lines from the point below that touch them. -->
+    <path d="M12 20L5.35 11.46A4 4 0 1 1 12 7.06A4 4 0 1 1 18.65 11.46Z" fill="currentColor" />
   {/if}
 </svg>

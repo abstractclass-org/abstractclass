@@ -5,23 +5,25 @@
 	import { page } from '$app/state';
 	import { afterNavigate, beforeNavigate } from '$app/navigation';
 	import { EARLY_ACCESS, SITE_NAME, SITE_ORIGIN } from '#lib/edition.ts';
-	import { ASKS_CONSENT, consent, startAnalytics } from '#lib/analytics.svelte.ts';
+	import { ASKS_CONSENT, consent, startAnalytics, track } from '#lib/analytics.svelte.ts';
 	import { holdsGame } from '#lib/game/importHash.ts';
 	import ConsentBanner from '#lib/ConsentBanner.svelte';
 	import ThemeMenu from '#lib/ThemeMenu.svelte';
 	import SiteMenu from '#lib/SiteMenu.svelte';
+	import SupportDialog from '#lib/SupportDialog.svelte';
+	import Icon from '#lib/ui/Icon.svelte';
 	import { startTheme } from '#lib/theme.svelte.ts';
 	import Collie from '#lib/Collie.svelte';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();
 
-	// The site map (docs/research/01-ux-survey.md, section 8). The early access has the review, the Analysis board and
-	// Practice. Review opens the Review tab (design 22).
-	const NAV = EARLY_ACCESS ? [{ href: '/review', label: 'Review' }, { href: '/analysis', label: 'Analysis' }, { href: '/practice', label: 'Practice' }] : [
+	// The site map (docs/research/01-ux-survey.md, section 8). The early access has Practice, the review and the Analysis
+	// board. Practice first, as Lichess's play comes first (design 22). Review opens the Review tab.
+	const NAV = EARLY_ACCESS ? [{ href: '/practice', label: 'Practice' }, { href: '/review', label: 'Review' }, { href: '/analysis', label: 'Analysis' }] : [
+		{ href: '/practice', label: 'Practice' },
 		{ href: '/review', label: 'Review' },
 		{ href: '/analysis', label: 'Analysis' },
-		{ href: '/practice', label: 'Practice' },
 		{ href: '/puzzles', label: 'Puzzles' },
 		{ href: '/learn', label: 'Learn' },
 		{ href: '/lab/engine', label: 'Engine lab' },
@@ -31,6 +33,12 @@
 	// third row would make the header taller (design 22).
 	const ABOUT = [{ href: '/tools', label: 'Tools', wide: true }, { href: '/notation', label: 'Notation' }, { href: '/about', label: 'About' }];
 	const linkClass = (href: string) => ["no-underline hover:text-ink", page.url.pathname.startsWith(href) ? "text-ink" : "text-muted"];
+	// Ko-fi's tip panel, in the site's own dialog (SupportDialog). Opening it counts (design 17): the tips are Ko-fi's.
+	let supporting = $state(false);
+	function support() {
+		supporting = true;
+		track('support_open');
+	}
 
 	// The visit counts start here, unless the address holds a game after its `#` (holdsGame): the page that takes it out
 	// of the address starts them then (design 22). The old import page only forwards, and counts nothing. The banner
@@ -84,10 +92,12 @@
 
 <!-- On a screen with a mouse, the header over the page's own scrolling area, which fills the rest of the window. -->
 <div class="desktop:flex desktop:flex-col desktop:h-full print:block print:h-auto">
-<!-- The gaps narrow on a phone, so that the theme menu fits in 360 pixels. Below 768 pixels, where the links no longer
-     fit in one row (718 pixels), they go into the site's menu at the left (SiteMenu), as on Lichess's phone pages. -->
+<!-- The gaps narrow on a phone, so that the theme menu fits in 360 pixels. Below 1,024 pixels, where the links and
+     "Support Us" no longer fit in one row (they need 860 pixels), the links go into the site's menu at the left
+     (SiteMenu), as on Lichess's phone pages. "Support Us" stays in the header down to 640 pixels, then goes into the
+     menu too. -->
 <header class="flex-none flex items-center gap-3 sm:gap-6 px-4 py-2 min-h-(--site-header) bg-panel border-b border-line">
-	<span class="md:hidden"><SiteMenu tabs={NAV} about={ABOUT} /></span>
+	<span class="lg:hidden"><SiteMenu tabs={NAV} about={ABOUT} {support} /></span>
 	<span class="flex items-center gap-2">
 		<a class="flex items-center gap-2 text-xl font-bold text-ink no-underline" href="/">
 			<Collie size={28} />{SITE_NAME}
@@ -95,14 +105,20 @@
 		<!-- The early access, in the accent colour beside the name: what it means is on the About page. -->
 		{#if EARLY_ACCESS}<a class="text-xs font-semibold text-accent no-underline hover:underline" href="/about#early-access">Early Access</a>{/if}
 	</span>
-	<nav class="flex flex-wrap gap-4.5 max-md:hidden">
+	<nav class="flex flex-wrap gap-4.5 max-lg:hidden">
 		{#each NAV as item (item.label)}<a href={item.href} class={linkClass(item.href)}>{item.label}</a>{/each}
 	</nav>
-	<nav class="flex flex-wrap gap-4.5 ml-auto text-sm max-md:hidden">
+	<nav class="flex flex-wrap gap-4.5 ml-auto text-sm max-lg:hidden">
 		{#each ABOUT as item (item.href)}<a href={item.href} class={[linkClass(item.href), item.wide && "max-sm:hidden"]}>{item.label}</a>{/each}
 	</nav>
-	<span class="ml-auto md:ml-0"><ThemeMenu /></span>
+	<!-- The accent's colour in each theme, as the site's other main buttons. -->
+	<span class="flex items-center gap-3 sm:gap-6 ml-auto lg:ml-0">
+		<button type="button" class="btn-primary max-sm:hidden inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-sm font-semibold
+		                             hover:brightness-110" onclick={support}><Icon name="heart" />Support Us</button>
+		<ThemeMenu />
+	</span>
 </header>
+<SupportDialog bind:open={supporting} />
 
 <!-- The area is not in the Tab order and shows no outline (tabindex -1). It takes the focus after each navigation, so
      that the keys scroll it. -->

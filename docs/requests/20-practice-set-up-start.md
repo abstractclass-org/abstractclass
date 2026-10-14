@@ -1,6 +1,7 @@
 # The practice bot from a set-up start
 
-**Status:** open. **Asked:** 2026-10-14.
+**Status:** done: `enclosure-set-position`, practice bot interface 0.1.1, release `wasm-v2-engine-85f1792`, checked
+here, and Practice takes set-up starts. **Asked:** 2026-10-14.
 
 ## What
 
@@ -36,3 +37,37 @@ Hedge School also asks:
 - Hedge School then checks, from set-up starts of the board editor and of the archive's positions, that each of the
   bot's moves is legal by the analysis module's `describe`, and that `undo` returns to the start. Practice then takes
   `#position=` and set-up records, and the Analysis board's link works from any start.
+
+## Delivered
+
+The engine repository's commit `85f1792` (its v2 design 22, interface 0.1.1), in release `wasm-v2-engine-85f1792`, in
+both practice modules:
+
+- **`enclosure-set-position POSITION`:** a new game from a position in the position notation, as `clear_board`
+  starts one from the standard start. Then `play`, `genmove` and `undo` work from it.
+- **`undo` stops at the start.** The early phase of the move temperature counts the start's edges. The start has no
+  history: the network sees no earlier turns until the game has moves from the start.
+- **A position that no game reaches** is refused with the position check's first reason (`? ...`). A finished game is
+  taken, and `genmove` then refuses.
+- **Only design 22's commands:** the module refuses every other command with `? unknown command`, and `kata-set-param`
+  takes only `maxVisits` and the chosen move's settings, in range. Release 54486cd stopped on a command whose
+  handler throws (`loadsgf` among them).
+- **The same search as 54486cd:** the analysis modules keep protocol 0.6.1 and the search `fdfe5ad`, with new bytes
+  from the engine's simplify pass. The networks, the graphs, `NOTICES.txt` and `LICENSE.txt` are the same bytes.
+
+**Checked here** (`scripts/measure/practice-start-check.mjs`, the one-thread bot in Node, 16 visits, 8 moves from
+each start), on 40 of the meaf.us archive's games:
+
+- 128 starts: 88 from the archive's positions (40 of them at a turn's second edge, 3 at a finished game's end), and
+  40 of the board editor's kind (a game's edges at edge count 0, which no game reaches). The bot took a start exactly
+  when the analysis module's position check found it reachable (0 differences), and refused the others with `?`.
+- Each of the bot's 673 moves from a start was legal by the analysis module's `describe`. `undo` went back to the
+  start after each game, and one more `undo` was refused every time. A move after the undos was legal from the start.
+  At the 3 finished games' ends, `genmove` was refused.
+- The home page's game (`scripts/home-board.mjs`, seed 7, 64 visits) came out the same in 85f1792 as in 54486cd: 100
+  moves of 100, from the standard start.
+- In Edge on the local build: the Analysis board's Play from a set-up start with 2 edges on screen, a game against the
+  bot from there, a takeback that stopped at the record's edges, a resumed game, a resignation, and the game opened
+  on the Analysis board from Practice and from Your games.
+- Not checked: the early temperature from a start (the move's spread is not visible in one game), and the threaded
+  module from a set-up start in Node (the engine repository's `test_practice_module` ran both).

@@ -26,7 +26,10 @@ Lichess and chess.com keep every game played on them:
 2. **What a stored game holds:** its moves, with their cuts; the bot (the network, the visits, the variety, the form:
    GPU, CPU or one thread, and the engine's build); the player's side; how it ended, and its result; each takeback
    (where it was, and the edges that it undid); each move's time (the player's thinking time, the bot's search time);
-   the day it ended; and the site's version. Never the name typed for the record, and never the visitor's IP address.
+   the day it ended; and the site's version. A game from a set-up start holds its start position too, and a game
+   from the Analysis board's Play holds the edges that came with its record, apart from the edges played against the
+   bot: the calibration can then take such games, or leave them out. Never the name typed for the record, and never
+   the visitor's IP address.
 3. **A random number in each browser that links its games, with the visitor's consent.** It lets the calibration tell
    a player's strength from a setting's. Without consent, a game goes with no number, and nothing links it to another
    game. Lichess's session cookie needs no consent because play needs it. The number serves the data only, so it
@@ -97,7 +100,8 @@ Lichess and chess.com keep every game played on them:
 ## Where it is
 
 To be built: the Pages Function and its database's schema, the sending and its queue in `src/lib/practice/`, the
-takebacks and the times kept with the game (`KeptPractice`), the consent banner (`src/lib/ConsentBanner.svelte`) and
+takebacks and the times kept with the game (`KeptPractice`, which keeps the set-up start and the record's edges
+already), the consent banner (`src/lib/ConsentBanner.svelte`) and
 the consent's two purposes (`src/lib/analytics.svelte.ts`), and the privacy page with its switches.
 
 ## Log entries

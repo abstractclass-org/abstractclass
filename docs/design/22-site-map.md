@@ -29,8 +29,10 @@ will add more. A page whose name says "import" cannot say where the game goes.
    | `…&at=<n>` | the position the board opens at: n edges from the start |
    | `/editor` | the board editor, at the position it was left at |
    | `/editor#position=<position>` | the board editor at a position: the Analysis board's position on screen |
+   | `/practice#record=<record>` | a game against the bot after the record's moves: the Analysis board's Play (design 24) |
+   | `/practice#position=<position>` | a game from a set-up start; with `record=`, the record's start |
 
-   Later pages take theirs the same way: Practice (`/practice`), with a record or a position.
+   Later pages take theirs the same way.
 2. **A parameter is named by its payload's format,** not by how the link was made. Excalidraw's `#json=` and
    Lichess's `/analysis/pgn/` name theirs so.
    - `record`: the notation's text, readable, which anyone can write.
@@ -43,13 +45,24 @@ will add more. A page whose name says "import" cannot say where the game goes.
 4. **`/import` is deprecated.** During the early access it forwards to `/review` with the same `#` part, and to
    `/tools` without one. It counts nothing. The page for developers says so, and says a month before when it stops.
 5. **The pages:**
-   - **The header:** Review, Analysis, Practice (later Puzzles, Learn), then Tools, The notation and About. Tools is
+   - **The header:** Practice, Review, Analysis (later Puzzles, Learn), then Tools, The notation, About and "Support
+     us". Practice
+     comes first, as play comes first on Lichess: a game against the bot is the quickest way to begin. Tools is
      in the header because a meaf.us player comes back to it for the bookmarklet or the userscript. It shows from a
      tablet's width: the tools are for a computer's browser. On a phone, the footer and the Review tab lead to it.
-   - **The site's menu below 768 pixels,** as on Lichess's phone pages: a ☰ at the header's left holds its links (the
-     tabs, then the pages about the site, Tools again from a tablet's width), and the header keeps the site's name and
-     the theme menu, in one row. The links need 718 pixels for one row: narrower, they took a second row, and Tools a
-     third (`src/lib/SiteMenu.svelte`).
+   - **The site's menu below 1,024 pixels,** as on Lichess's phone pages: a ☰ at the header's left holds its links
+     (the tabs, then the pages about the site, Tools again from a tablet's width), and the header keeps the site's
+     name, "Support Us" and the theme menu, in one row. The links and "Support Us" need 860 pixels for one row:
+     narrower, they took a second row, and Tools a third (`src/lib/SiteMenu.svelte`). Below 640 pixels, "Support Us"
+     goes into the menu too, after the pages about the site: the name and the theme menu fill a phone's header.
+   - **"Support Us," for tips through Ko-fi,** in the accent's colour of each theme, as the site's other main buttons,
+     with a heart. It opens Ko-fi's tip panel (Ko-fi's donation panel widget, a frame of its page) in the site's own
+     dialog, so that a tip needs no other tab (`src/lib/SupportDialog.svelte`). The frame is made only when the dialog
+     opens: until then, nothing goes to Ko-fi, and no script of Ko-fi's runs in the site's pages. The privacy page says
+     what goes to Ko-fi, and when. Ko-fi's floating widget was the other way: a script on every page, which draws its
+     own button at a fixed place, with its text and its two colours to set, and Ko-fi's colours inside. The frame's
+     inside is Ko-fi's in this way too: it keeps Ko-fi's colours in both themes. The dialog also links Ko-fi's page in
+     a new tab, for a browser that blocks the frame.
    - **The header stays in view on a screen with a mouse,** and the page scrolls in its own area under it
      (`src/routes/+layout.svelte`). That area keeps the scroll bar's room (`scrollbar-gutter: stable`), so that a page
      whose height changes while it loads does not move sideways, and the header, outside it, reaches the window's
@@ -59,7 +72,10 @@ will add more. A page whose name says "import" cannot say where the game goes.
      opened anew. The area takes the focus after each navigation, in the body's place, so that Page Down and Space
      scroll it. A touch screen keeps the usual page: its scroll bars take no room, and the header scrolls away, so that
      its browser's bars hide as the page scrolls.
-   - **Home:** what Hedge School is, the way into each tab, and the board editor.
+   - **Home:** what Hedge School is, and Practice as its first call to action ("Practice against bot"), beside a
+     board from a game of HedgeFund against itself (`scripts/home-board.mjs`: the site's own game, as the meaf.us
+     archive's games need their owner's permission for public use). Then the ways in for a game played elsewhere:
+     the Review tab, the Analysis board and the board editor.
    - **The Review tab** (`/review` without a game): import a game to review it (paste its record), load a review
      file, continue the last review, and the player's games, with their Export and Delete. A review is
      `/review#game=…`.

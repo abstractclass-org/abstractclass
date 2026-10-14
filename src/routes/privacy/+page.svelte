@@ -87,11 +87,13 @@
     <li>that the Analysis board opened, with its main line's length as a range;</li>
     <li>that the board editor opened, and that you sent its position to the Analysis board;</li>
     <li>the GPU's first test: faster or slower than the CPU, and the GPU's maker and kind;</li>
-    <li>that a practice game started and ended: the bot's settings, your side, where the bot ran (the GPU or the CPU),
+    <li>that a practice game started and ended: how it started (new, from the Analysis board, from a set-up position
+      there, or resumed), the bot's settings, your side, where the bot ran (the GPU or the CPU),
       your computer's number of cores as a range, how the game ended (won, lost, drawn, resigned or aborted), its
       length and your takebacks as ranges, and the bot's average time a turn as a range;</li>
     <li>the engine settings you change, the features you use (each once in a review, in a visit to the Analysis board,
       or in a practice game), and your exports (a review saved to a partner site among them), with a share link's length as a range;</li>
+    <li>that you opened Support Us, but not whether you gave a tip;</li>
     <li>how many games this browser keeps, as a range.</li>
   </ul>
   <p>None of these holds a game, a move, a player's name or a game's code. Until you accept the cookies, Google receives
@@ -103,6 +105,13 @@
       <button type="button" disabled={consent.choice === "denied"} onclick={() => choose("denied")}>Decline</button>
     </p>
   {/if}
+
+  <h2>Tips through Ko-fi</h2>
+  <p>"Support Us" opens Ko-fi's tip panel in this page. The panel is Ko-fi's own page, from ko-fi.com. Only when you
+    open it, your browser asks Ko-fi for it: Ko-fi then receives your IP address and your browser's name, as any site
+    does, and can set its own cookies. Until then, nothing goes to Ko-fi. What you enter in the panel goes to Ko-fi and
+    its payment providers, under <a href="https://more.ko-fi.com/privacy">Ko-fi's privacy policy</a>, which says what
+    Ko-fi shares with {SITE_NAME}.</p>
 
   <h2>Questions</h2>
   <p>Ask in <a href={DISCORD}>the players' Discord</a>.</p>

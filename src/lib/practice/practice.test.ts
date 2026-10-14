@@ -4,8 +4,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { NETWORKS } from "#lib/analysis/engineSettings.ts";
 import { parseRecord } from "#lib/game/record.ts";
-import { botCommands, gtpAnswer, practiceEndParams, practiceOutcome, practiceParams, practiceRecord, resignResult, scoreResult, takebackCount,
-         type KeptPractice } from "./practice.ts";
+import { botCommands, gtpAnswer, practiceEndParams, practiceOutcome, practiceParams, practiceRecord, practiceTurn, resignResult, scoreResult,
+         takebackCount, type KeptPractice } from "./practice.ts";
 
 test("a takeback undoes the bot's turn after the player's last turn, then that turn", () => {
   // Blue (0) is the player. Blue 1 edge, Red 2, Blue 2, Red 2.
@@ -58,6 +58,20 @@ test("the record names both sides and the bot, and reads back with its moves and
   assert.match(r.tags.Bot, /^HedgeFund 0\.1 Lite \(b10c128-s66625408-d13350730\), 64 visits a move, Low variety, engine 54486cd$/);
   assert.equal(r.result, "*");
   assert.match(text, /\n1\. D10-G10 2\. N9-Q10 O9-Q10x 3\. G10-K9 \*\n$/);
+});
+
+test("a game from a set-up start has its Position tag, and numbers its turns from the start's own (design 04)", () => {
+  // Edge count 2: Red to play the second edge of turn 2, written `2...`.
+  const second = game({ start: "A10-D10 Q10-T10 r1 0/0 2", moves: ["N9-Q10", "D10-G10", "G10-K9", "O9-Q10"] });
+  assert.deepEqual(practiceTurn(second), { turn: 2, first: false });
+  const text = practiceRecord(second, [1, 0, 0, 1], [false, false, false, false], "*");
+  assert.match(text, /\[Position "A10-D10 Q10-T10 r1 0\/0 2"\]/);
+  assert.match(text, /\n2\.\.\. N9-Q10 3\. D10-G10 G10-K9 4\. O9-Q10 \*\n$/);
+  assert.deepEqual(parseRecord(text).moves, second.moves); // the reader takes only the start's own number
+  // Edge count 3: Blue to play the first edge of turn 3.
+  const first = game({ start: "A10-D10 Q10-T10 b2 0/0 3" });
+  assert.match(practiceRecord(first, [0, 0, 1, 1], [false, false, false, false], "*"), /\n3\. D10-G10 N9-Q10 4\. O9-Q10 G10-K9 \*\n$/);
+  assert.deepEqual(practiceTurn(game()), { turn: 1, first: true });
 });
 
 test("the player's side is \"You\" without a name, and a finished game has its result and termination", () => {

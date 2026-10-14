@@ -23,21 +23,30 @@ It holds no backlog: everything still to do that is not in flight is in
 
 ## In flight
 
-- **Requests 19 and 20, answered** (the engine repository's `85f1792` and its release `wasm-v2-engine-85f1792`):
-  - **19:** after a `Position` tag, the first number is the start's own turn, `N...` at a turn's second edge, and a
-    reader takes only that number (the engine repository's design 04, "The turns after a set-up start"). To do: make
-    `parseRecord` as strict (`src/lib/game/record.ts`), fix the tests whose records number from 1 after a set-up
-    start (`partners.test.ts` builds `1. D10-E13` after any tag), and record the reply in the request.
-  - **20:** practice bot interface 0.1.1, `enclosure-set-position POSITION` (a position no game reaches is refused,
-    `undo` stops at the start, the early temperature counts the start's edges), the same search as 54486cd, and the
-    module now refuses unknown commands. To do: the lock to `85f1792`, the request's checks, and a short design pass
-    for Practice from a set-up start (`#position=`, the Analysis board's Play on a set-up board, its review on the
-    Analysis board, as the Review tab refuses set-up starts), then the build. Its design 22 also says that
-    `maxVisits` counts the kept tree's visits: record that in design 24 for the levels.
-- **Practice games stored** (design 25): decided, not built, after the requests (its stored game then holds a set-up
-  start from the first day). The build: the Pages Function and its D1 schema, the sending and its queue, the
-  takebacks and the times kept with the game, the consent banner (its text is in design 25), and the privacy page
-  with a switch for each purpose. The owner sets up the databases (production and previews) and their bindings first.
+- **On `dev`, not released to `main`.** `npm test` passes (111), `npm run check` has no errors or warnings, `npm run
+  build` succeeds. Each part says in decisions/ what was checked:
+  - **Practice first** (design 22): first in the header, and the home page's first call to action, beside a board
+    from a game of HedgeFund against itself (`scripts/home-board.mjs`, `src/lib/home/board.json`). The position's
+    converter moved to `src/lib/engine/position.ts`. Log: product.md, "Practice first".
+  - **"Support Us" through Ko-fi** (design 22): the header's button opens Ko-fi's tip panel in the site's dialog
+    (`src/lib/SupportDialog.svelte`). The site's menu now shows below 1,024 pixels (it was 768), and the button goes
+    into it below 640. The privacy page says what goes to Ko-fi. Not checked: a tip, and the frame on the live site's
+    address. Ko-fi's panel stays light in the dark theme, at Ko-fi's height (712 pixels). Log: product.md, "Support
+    Us through Ko-fi".
+  - **Two Google Analytics additions** (design 17): `support_open`, and `practice_from` set_up_start. Neither needs a
+    new custom dimension. Local builds send no events: check them in GA's Realtime view on the preview.
+  - **The site's text by what it does** (CLAUDE.md, "Writing the site's text"): strict STE for what a player follows,
+    STE's sentence rules for what explains, plain web writing (the GOV.UK style guides) for what invites. A pass over
+    the pages under this rule is not done.
+  - **Requests 19 and 20, done:** the reader takes only the start's own turn number after a `Position` tag, the lock
+    is on `wasm-v2-engine-85f1792` (practice interface 0.1.1), and Practice takes set-up starts (design 24, item 4):
+    the Analysis board's Play from any start, takebacks that stop at the record's edges, and "Analyze the game" for a
+    set-up game. requests/19 and requests/20 say what was checked.
+- **Practice games stored** (design 25): decided, not built. A set-up game is stored with its start and the record's
+  edges (decided, design 25, item 2): `KeptPractice` keeps both already. The build: the Pages Function and its D1
+  schema, the sending and its queue, the takebacks and the times kept with the game, the consent banner (its text is
+  in design 25), and the privacy page with a switch for each purpose. The owner sets up the databases (production and
+  previews) and their bindings first.
 - **To check on the live site:** Practice in Edge, Practice's events in Google Analytics (the nine custom dimensions
   are registered), and the site on a phone (the site's menu, the header scrolling away, Practice in one column).
 - **The layout shift on the live site:** Cloudflare's Web Analytics gave `/review` a CLS of 0.151 before `f55e0f6`.

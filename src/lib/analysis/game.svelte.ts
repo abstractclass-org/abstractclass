@@ -23,6 +23,7 @@
 // (setMain), its moves have labels only where the player asks (judge), and no pass runs: the engine searches the
 // position on screen and the moves evaluated.
 import { edgeName, parseEdge, parsePoint, type Edge } from "#lib/engine/notation.ts";
+import { boardPosition } from "#lib/engine/position.ts";
 import { positionQuery, type AnalysisReply, type MoveInfo, type PositionFields } from "#lib/engine/protocol.ts";
 import { errorText } from "#lib/errors.ts";
 import { BOARD_ID, branchNodes, keptNode, type BranchNode as KeptNode, type KeptBoard, type KeptBranches } from "#lib/game/store.ts";
@@ -50,16 +51,6 @@ const PARTIAL_MS = 100;
 // A branch edge's evaluation, asked for in its menu, comes after the position on screen and before the rest.
 const PRIORITY = { focus: 10, judge: 7, moment: 5, label: 2, sweep: 1 };
 
-/** The engine's description of a position, as the board draws it. */
-export function boardPosition(d: PositionFields): Position {
-  const ring = (poly: [number, number][]) => ({ area: 0, rings: [poly] });
-  return {
-    edges: [d.edges.b.map(parseEdge), d.edges.r.map(parseEdge)],
-    protected: d.protected.map(parseEdge), placed: d.placed.map(parseEdge),
-    scores: d.scores, areas: d.areas, player: d.mover === "b" ? 0 : 1, movesLeft: d.movesLeft,
-    regions: [d.regions.b.map(ring), d.regions.r.map(ring)], over: d.outcome !== null, count: d.moveCount, notation: d.position,
-  };
-}
 
 /** An analysis reply as the review reads it: values from Blue's side, the candidates in the engine's order. */
 export function toAnalysis(r: AnalysisReply): Analysis {

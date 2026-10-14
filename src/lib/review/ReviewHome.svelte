@@ -5,6 +5,7 @@
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
   import { playerNames, parseRecord, type GameRecord } from "#lib/game/record.ts";
+  import { setUpStart } from "#lib/engine/notation.ts";
   import { deleteGame, lastReview, listGames, restoreGame, reviewAgainWhy, reviewCovers, reviewMark, type DeletedGame,
            type StoredGame } from "#lib/game/store.ts";
   import { loadEngine, settingsFor } from "#lib/analysis/engineSettings.ts";
@@ -201,12 +202,19 @@
               <span class="text-sm text-muted" role="status">Deleted {title(record)}.</span>
               <span class="ml-auto"><button type="button" class="px-2 py-0 text-xs" onclick={() => undo(game.id)}>Undo</button></span>
             {:else}
-              <a href="/review#game={game.id}" data-sveltekit-reload>{title(record)}</a>
+              <!-- A game from a set-up start (a practice game from the Analysis board's Play) opens on the Analysis board:
+                   the Review tab reviews games from the standard start. -->
+              {#if setUpStart(record.tags.Position)}
+                <a href="/analysis#{new URLSearchParams({ record: game.record, via: 'your_games' })}" data-sveltekit-reload>{title(record)}</a>
+              {:else}
+                <a href="/review#game={game.id}" data-sveltekit-reload>{title(record)}</a>
+              {/if}
               <span class="text-sm text-muted">{record.moves.length} edges{record.result && record.result !== "*" ? ` · ${record.result}` : ""} ·
                 added {new Date(game.added).toLocaleDateString()}</span>
               <span class="ml-auto flex items-center gap-1.5"><ExportMenu small side="bottom" run={kind => exportGame(game.id, game.record, kind)}
                 ready={reviewCovers(game.reviewed, wanted(game))}
-                why={!game.reviewed ? "Open the game to review it, then export."
+                why={setUpStart(record.tags.Position) ? "A game from a set-up start opens on the Analysis board: export it there."
+                  : !game.reviewed ? "Open the game to review it, then export."
                   : reviewAgainWhy(game.reviewed, wanted(game)) ? "The engine was updated: open the game, choose Review again, then export."
                   : "Open the game to finish its review with the engine settings now, then export."} />
                 <button type="button" class="px-2 py-0 text-xs" aria-label="Delete {title(record)}"

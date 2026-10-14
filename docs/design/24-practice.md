@@ -27,11 +27,13 @@ How strong each setting plays against people is not measured yet.
 1. **A page, `/practice`, for a game against HedgeFund in the player's browser,** on the practice bot. No server and
    no clock: each bot move searches to its visits, so a setting plays at the same strength on every machine, and a
    slow machine only waits longer. This departs from Lichess, whose games against the computer run on its servers
-   (request 15). The header names it after Analysis (design 22).
+   (request 15). The header names it first, and it is the home page's first call to action (design 22).
 2. **The bot's settings,** chosen before the game and fixed for it, as Lichess fixes the computer's level. Levels come
    later, from the engine repository's visit ladder and from games by setting.
    - **The network:** HedgeFund 0.1 Lite (the default) or HedgeFund 0.1.
-   - **The visits for each move:** by doublings from 1 to 1,024. The default is 64.
+   - **The visits for each move:** by doublings from 1 to 1,024. The default is 64. As in KataGo, the visits count
+     the tree that the bot keeps from its last search (the engine repository's v2 design 22): every move ends with a
+     tree of the same size, and the second edge of the bot's turn needs fewer new visits. The levels count them so.
    - **Variety,** the move temperature: how often the bot plays a move other than its best. KataGo's temperatures, by
      the move: a temperature at the game's start, halved every 19 edges, down to a floor.
 
@@ -46,11 +48,17 @@ How strong each setting plays against people is not measured yet.
    the player's name, then the side, which starts the game. The heading does not name the bot: the network's choice
    does. The sides are Blue, Random and Red, each with its dot (Random half Blue, half
    Red), as Lichess offers black, random and white, with Random in the middle and larger. Blue plays first.
-4. **The start:** the standard start, or a record's moves from it, brought in as other pages take them
-   (`/practice#record=…`, design 22). The Analysis board's Play button, beside New, opens Practice at the position on
-   screen, as Lichess's "Continue from here" plays the computer from a position. It is not in the New menu: New makes
-   a new board. A set-up start waits for the bot: it has no command for one (request 20). Until then the button is off
-   on a board with a set-up start, and Practice refuses a record with a `Position` tag.
+4. **The start:** the standard start or a set-up start, and a record's moves from it, brought in as other pages
+   take them (`/practice#position=…&record=…`, design 22). The Analysis board's Play button, beside New, opens
+   Practice at the position on screen, as Lichess's "Continue from here" plays the computer from a position: the
+   board's set-up start when it has one, and the moves from the start to the position on screen. It is not in the New
+   menu: New makes a new board.
+   - **The bot from a set-up start:** `enclosure-set-position` (the bot's interface 0.1.1, request 20), before the
+     record's moves. The bot refuses a position that no game reaches, as the position check does.
+   - **The record's edges are the game's start:** a takeback stops at them, as they were not played against the bot.
+     The kept game counts them, and the stored game will too (design 25).
+   - **The record and the move list number the turns from the start's own** (the engine repository's design 04,
+     "The turns after a set-up start"): `51...` when the start is at a turn's second edge.
 5. **During the game, the review's layout and parts** (design 06): the review's row above the board, with the
    players' names, points and areas and the bar centred on the board, the board as large as the window lets it be,
    with the player's notes on it (design 07, kept for each position while the page is open, as in the review), and a
@@ -86,7 +94,9 @@ How strong each setting plays against people is not measured yet.
    the game in progress then goes into Your games as unfinished. The page shows nothing until it knows whether a game
    is in progress, so that the card does not show for a moment before the game.
 10. **A game that ends goes into Your games** in the Review tab, kept at once, and its review is one click away.
-    Lichess keeps every game against the computer in the player's history.
+    Lichess keeps every game against the computer in the player's history. A game from a set-up start opens on the
+    Analysis board ("Analyze the game"), from Practice and from Your games, as the Review tab reviews games from the
+    standard start only. Its id in Your games covers its start with its moves.
 11. **The record names both sides.** The player's side has the name that the player sets on the card, kept in this
     browser, and "You" without one. The bot's side is "HedgeFund 0.1 Lite, 64 visits, Low variety", for example. The
     record also gives the event (Practice), and the bot in full: the network's id, the visits, the variety, and the
@@ -139,7 +149,6 @@ How strong each setting plays against people is not measured yet.
   The networks and the GPU's graph are the review's own files, which the browser keeps.
 - **The levels need data:** the engine repository's visit ladder on the module, then games by setting.
 - **The site's own temperatures** (Medium and High) are a guess until games show what they do.
-- **A game from a set-up start** waits for the bot's command for one (request 20).
 
 ## Where it is
 

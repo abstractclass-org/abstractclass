@@ -5,8 +5,9 @@
   // the game, the review's layout and parts (design 06): the players' row above the board with the points' bar, the
   // board as large as the window lets it be, with the player's notes, and a side column with the review's move list,
   // the steps through the game's positions, Take back, Abort and Resign. One game in progress, kept in this browser and
-  // resumed. A game that ends goes into Your games. Its way in: `#record=`, a record's moves from the standard start
-  // (design 22), which the Analysis board's Play gives. The record leaves the address at once, then the analytics start.
+  // resumed. A game that ends goes into Your games. Its way in, which the Analysis board's Play gives (design 22):
+  // `#position=`, a set-up start, and `#record=`, the moves from the start. They leave the address at once, then the
+  // analytics start.
   import { onDestroy, onMount, untrack } from "svelte";
   import { Dialog } from "bits-ui";
   import Board from "#lib/board/Board.svelte";
@@ -25,9 +26,9 @@
   import StepBar from "#lib/ui/StepBar.svelte";
   import { MOVE_HERE, MOVE_LIST, MOVE_TEXT, TURN_NUMBER, keepInView, moveButton, turnRow } from "#lib/review/moveList.ts";
   import { EngineWorker, loadManifest, type Manifest } from "#lib/engine/client.ts";
-  import { edgeName } from "#lib/engine/notation.ts";
+  import { edgeName, setUpStart } from "#lib/engine/notation.ts";
   import { NETWORKS, loadEngine, networkMB, networkName } from "#lib/analysis/engineSettings.ts";
-  import { parseRecord } from "#lib/game/record.ts";
+  import { parseRecord, withStart } from "#lib/game/record.ts";
   import { variantProblem } from "#lib/game/import.ts";
   import { PLAYER_NAME, moveNotation, type Edge, type Player } from "#lib/review/model.ts";
   import { loadDisplay, saveDisplay } from "#lib/review/display.ts";
@@ -38,7 +39,7 @@
   import { startBot } from "#lib/practice/bot.ts";
   import type { BotMode } from "#lib/practice/botMessages.ts";
   import { PracticeGame, saveUnfinished } from "#lib/practice/game.svelte.ts";
-  import { VARIETY_NAME, VISITS, botName, keep, loadChoices, loadKept, practiceEndParams, practiceOutcome, practiceParams, saveChoices,
+  import { VARIETY_NAME, VISITS, botName, keep, loadChoices, loadKept, practiceEndParams, practiceOutcome, practiceParams, practiceTurn, saveChoices,
            type KeptPractice, type PracticeOutcome, type Variety } from "#lib/practice/practice.ts";
   import PageMeta from "#lib/PageMeta.svelte";
 
@@ -80,7 +81,15 @@
   let failed = $state(""); // the engine could not start
   let notice = $state(""); // a record brought that cannot be played
   let aborted = $state(false); // the last game was aborted, and is in Your games
-  let brought = $state.raw<string[] | null>(null); // a record's moves, for the next game's start
+  // The next game's start, from the Analysis board's Play: a set-up start (null: the standard start), and a record's
+  // moves from it.
+  let brought = $state.raw<{ start: string | null; moves: string[] } | null>(null);
+  const broughtText = $derived.by(() => {
+    if (!brought) return "";
+    const n = brought.moves.length, edges = `${n} ${n === 1 ? "edge" : "edges"}`;
+    return brought.start ? `The game starts from the Analysis board's set-up position${n ? `, after the record's ${edges}` : ""}.`
+      : `The game starts after the record's ${edges}.`;
+  });
   let ready = $state(false); // the rules are loaded: a game can start
   let replacing = $state(false); // the dialog that asks before a record brought sets the game in progress aside
   let confirming = $state<"abort" | "resign" | null>(null); // Abort or Resign, waiting for its confirmation
@@ -88,14 +97,15 @@
   let notesAt = $state<Record<number, BoardNote[]>>({}); // the player's notes on the board, by position (design 07)
 
   onMount(() => {
-    const record = new URLSearchParams(location.hash.slice(1)).get("record");
-    history.replaceState(null, "", location.pathname); // the record is kept below, not in the address
+    const hash = new URLSearchParams(location.hash.slice(1)), record = hash.get("record"), position = setUpStart(hash.get("position")) ?? null;
+    history.replaceState(null, "", location.pathname); // the start is kept below, not in the address
     startAnalytics();
-    if (record !== null) {
+    if (record !== null || position !== null) {
       try {
-        const r = parseRecord(record), problem = variantProblem(r);
+        // A record's own Position tag, or the start given beside it (withStart), with its turns numbered from there.
+        const r = record ? parseRecord(withStart(record, position)) : null, problem = r && variantProblem(r, true);
         if (problem) throw new Error(problem);
-        brought = r.moves;
+        brought = { start: setUpStart(r?.tags.Position) ?? position, moves: r?.moves ?? [] };
       } catch (e) {
         notice = `This record cannot be played from: ${errorText(e)}`;
       }
@@ -122,7 +132,7 @@
 
   /** Starts the bot for a game, and the game: a new one, one from the Analysis board's Play (a record brought), or one
    *  kept from an earlier visit (`from`, for design 17's `practice_start`). */
-  async function play(kept: KeptPractice, from: "new" | "analysis_board" | "resumed") {
+  async function play(kept: KeptPractice, from: "new" | "analysis_board" | "set_up_start" | "resumed") {
     if (!manifest || !rules) return;
     phase = "game";
     starting = kept;
@@ -148,9 +158,10 @@
     const human: Player = side === "blue" ? 0 : side === "red" ? 1 : Math.random() < 0.5 ? 0 : 1;
     const kept: KeptPractice = {
       version: 1, bot: { ...choices.bot }, human, name: choices.name.trim(), seed: Math.floor(Math.random() * 2 ** 31),
-      moves: brought ? [...brought] : [], builds: [], started: new Date().toISOString(),
+      moves: brought ? [...brought.moves] : [], builds: [], started: new Date().toISOString(),
+      ...(brought?.start ? { start: brought.start } : {}), ...(brought?.moves.length ? { brought: brought.moves.length } : {}),
     };
-    const from = brought ? "analysis_board" : "new";
+    const from = brought?.start ? "set_up_start" : brought ? "analysis_board" : "new";
     brought = null;
     keep(kept);
     void play(kept, from);
@@ -296,7 +307,9 @@
     if (game) trackOnce(`${game.kept.started} ${name}`, "feature", { feature_name: name });
   }
 
-  // The move list: each turn's number and its edges, as the review lists them, each edge with its position's index.
+  // The move list: each turn's number and its edges, as the review lists them, each edge with its position's index. Its
+  // numbers start at the start's own turn.
+  const firstTurn = $derived(practiceTurn(game?.kept ?? {}));
   const turns = $derived.by(() => {
     const out: { player: Player; moves: { text: string; at: number }[] }[] = [];
     (game?.played ?? []).forEach((m, i) => {
@@ -347,7 +360,7 @@
         move to the visits you set. The game then goes into <a href="/review">Your games</a>, for its review.</p>
       {#if notice}<p class="mb-1 text-sm text-blunder" role="alert">{notice}</p>{/if}
       {#if aborted}<p class="mb-1 text-sm" role="status">The game you aborted is in <a href="/review">Your games</a>, unfinished.</p>{/if}
-      {#if brought}<p class="mb-1 text-sm">The game starts after the record's {brought.length} {brought.length === 1 ? "edge" : "edges"}.</p>{/if}
+      {#if brought}<p class="mb-1 text-sm">{broughtText}</p>{/if}
       <SettingChoice label="Network" help="The larger network plays stronger, and takes longer."
                      options={NETWORKS.map(n => [n.id, `${networkName(n.id)} (${networkMB(n.id)} MB)`])}
                      get={() => choices.bot.network} set={v => (choices.bot.network = v)} />
@@ -455,7 +468,9 @@
           {/if}
           {#each turns as t, k (k)}
             <div class={turnRow()}>
-              <span class={TURN_NUMBER}>{k + 1}.</span>
+              <span class={TURN_NUMBER}>{firstTurn.turn + k}.</span>
+              <!-- A set-up start at a turn's second edge: its first edge was played before the start. -->
+              {#if k === 0 && !firstTurn.first}<span class="px-[0.2rem] text-muted">…</span>{/if}
               {#each t.moves as m (m.at)}
                 <button type="button" class={moveButton(t.player, shown === m.at ? MOVE_HERE : undefined)} tabindex="-1"
                         aria-current={shown === m.at ? "step" : undefined} onclick={() => step(m.at)}><span class={MOVE_TEXT}>{m.text}</span></button>
@@ -465,7 +480,10 @@
         </div>
         {#if g?.status === "over"}
           <div class="flex flex-wrap gap-2 mt-3">
-            {#if g.savedId}<a class="btn-primary px-3 py-1 rounded text-sm no-underline" href="/review#game={g.savedId}" data-sveltekit-reload>Review the game</a>{/if}
+            <!-- The Review tab reviews games from the standard start: a set-up start's game opens on the Analysis board. -->
+            {#if g.savedId && g.kept.start}<a class="btn-primary px-3 py-1 rounded text-sm no-underline"
+                href="/analysis#{new URLSearchParams({ record: g.record(), via: 'practice' })}" data-sveltekit-reload>Analyze the game</a>
+            {:else if g.savedId}<a class="btn-primary px-3 py-1 rounded text-sm no-underline" href="/review#game={g.savedId}" data-sveltekit-reload>Review the game</a>{/if}
             <button type="button" class="text-sm" onclick={toSettings}>New game</button>
           </div>
         {/if}

@@ -6,6 +6,7 @@ import { keepStorage } from "#lib/storage/persist.ts";
 import { readLocal, writeLocal } from "#lib/storage/local.ts";
 import { parseRecord, type GameRecord } from "./record.ts";
 import { sha256Hex } from "#lib/engine/artifacts.ts";
+import { setUpStart } from "#lib/engine/notation.ts";
 import { modelOf, moduleOf, searchModules, type Manifest } from "#lib/engine/client.ts";
 import { pathKey } from "#lib/review/tree.ts";
 import type { GamePartner } from "./partners.ts";
@@ -86,13 +87,15 @@ export async function markReviewed(id: string, { modules, ...mark }: WantedRevie
   await dbPut(STORES.games, id, { ...game, reviewed: { ...mark, at: new Date().toISOString() } });
 }
 
-export async function gameId(moves: string[]): Promise<string> {
-  return (await sha256Hex(new TextEncoder().encode(moves.join(" ")))).slice(0, 12);
+export async function gameId(moves: string[], start?: string): Promise<string> {
+  // A set-up start comes before the moves, so that the same moves from two starts are two games. A game from the
+  // standard start keeps the id of its moves alone, as before.
+  return (await sha256Hex(new TextEncoder().encode((start ? `${start} | ` : "") + moves.join(" ")))).slice(0, 12);
 }
 
 /** Saves a game. Returns its id, and whether the browser kept it (storage can be blocked). */
 export async function saveGame(text: string, record: GameRecord): Promise<{ id: string; kept: boolean }> {
-  const id = await gameId(record.moves);
+  const id = await gameId(record.moves, setUpStart(record.tags.Position));
   const existing = await dbGet<StoredGame>(STORES.games, id);
   if (existing) return { id, kept: true };
   const game: StoredGame = { version: 1, id, record: text, added: new Date().toISOString() };

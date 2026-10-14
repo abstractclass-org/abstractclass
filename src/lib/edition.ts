@@ -8,4 +8,6 @@ export const SITE_ORIGIN = "https://hedgeschool.abstractclass.org";
 export const SITE_COPYRIGHT = "© 2026 Yshan";
 /** The players' Discord: webgoatguy's, the game's designer. */
 export const DISCORD = "https://discord.gg/DxfvEgmQD";
+/** The site's Ko-fi page, for tips (design 22): its tip panel opens in the site's own dialog (SupportDialog). */
+export const KOFI = "https://ko-fi.com/yshandev";
 export const SITE_VERSION: string = __SITE_VERSION__;

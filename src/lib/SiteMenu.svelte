@@ -1,13 +1,14 @@
 <script lang="ts">
   // The site's menu on a narrow screen (design 22), at the left of the header, as Lichess's on a phone: the header's
   // links, which a narrow header cannot hold in one row. The tabs, then the pages about the site. Each entry is a link,
-  // so that the router opens it and a middle click opens a new tab. The page shown is marked, as in the header.
+  // so that the router opens it and a middle click opens a new tab. The page shown is marked, as in the header. On a
+  // phone, "Support Us" too, which the header has no room for: it opens Ko-fi's tip panel (SupportDialog).
   import { DropdownMenu } from "bits-ui";
   import { page } from "$app/state";
   import Icon from "#lib/ui/Icon.svelte";
 
   type Link = { href: string; label: string; wide?: boolean };
-  let { tabs, about }: { tabs: Link[]; about: Link[] } = $props();
+  let { tabs, about, support }: { tabs: Link[]; about: Link[]; support: () => void } = $props();
   const here = (href: string) => page.url.pathname.startsWith(href);
 </script>
 
@@ -29,6 +30,8 @@
       {#each tabs as link (link.href)}{@render entry(link)}{/each}
       <DropdownMenu.Separator class="my-1 h-px bg-line" />
       {#each about as link (link.href)}{@render entry(link)}{/each}
+      <DropdownMenu.Separator class="my-1 h-px bg-line sm:hidden" />
+      <DropdownMenu.Item class="menu-item sm:hidden flex items-center gap-1.5 text-accent" onSelect={support}><Icon name="heart" />Support Us</DropdownMenu.Item>
     </DropdownMenu.Content>
   </DropdownMenu.Portal>
 </DropdownMenu.Root>

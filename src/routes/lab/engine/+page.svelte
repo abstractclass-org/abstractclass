@@ -7,7 +7,8 @@
   import { EngineWorker, loadManifest, megabytes, modelOf, type Manifest } from "#lib/engine/client.ts";
   import { parseEdge, type Edge } from "#lib/engine/notation.ts";
   import type { AnalysisReply, DescribeReply, VersionReply, ModelInfo } from "#lib/engine/protocol.ts";
-  import { SWEEP_VISITS, boardPosition } from "#lib/analysis/game.svelte.ts";
+  import { SWEEP_VISITS } from "#lib/analysis/game.svelte.ts";
+  import { boardPosition } from "#lib/engine/position.ts";
   import { NETWORKS, REVIEW_PRESETS } from "#lib/analysis/engineSettings.ts";
   import { defaultPoolSize } from "#lib/analysis/pool.ts";
   import { errorText } from "#lib/errors.ts";

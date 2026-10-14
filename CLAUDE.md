@@ -56,3 +56,16 @@ Write the documents as standalone documentation, not as a record of our sessions
 - Do not tag text with who decided it ("(owner)", "owner:", "the owner's choice"). Write the decision and its
   reason.
 - Do not name the owner's accounts in general prose.
+
+## Writing the site's text
+
+Write each piece of the site's text by what it does:
+
+- **Text that a player follows,** such as error messages, notices and the steps to install the bookmarklet: strict
+  Simplified Technical English (the `/asd-ste100` skill, its strict mode). A wrong reading there costs the player.
+- **Text that explains,** such as the Privacy, Notation and About pages and How reviews work: the sentence rules of
+  Simplified Technical English (the skill's STE-flavored mode). Short sentences, active voice and no semicolons, with
+  a freer choice of words.
+- **Text that invites or persuades,** such as the home page, the consent banner and the Support Us dialog: plain web
+  writing, as the [GOV.UK style guides](https://guidance.publishing.service.gov.uk/writing-to-gov-uk-standards/style-guides/)
+  give it. Its tone matters, and the flat style of Simplified Technical English does not fit it.

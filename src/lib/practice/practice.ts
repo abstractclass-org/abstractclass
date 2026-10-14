@@ -5,7 +5,7 @@ import { NETWORKS, networkName } from "#lib/analysis/engineSettings.ts";
 import { readLocalJson, writeLocal } from "#lib/storage/local.ts";
 import { writeRecord } from "#lib/game/record.ts";
 import { BOT_SECOND_RANGES, CORE_RANGES, EDGE_RANGES, TAKEBACK_RANGES, range } from "#lib/measure.ts";
-import type { Player } from "#lib/review/model.ts";
+import { turnFromCount, type Player } from "#lib/review/model.ts";
 
 /** The visits for each bot move: by doublings from 1 to 1,024 (design 24). */
 export const VISITS = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024];
@@ -61,6 +61,8 @@ export interface KeptPractice {
   moves: string[];
   builds: string[];
   started: string; // ISO date and time
+  start?: string; // a set-up start, in the position notation: the Analysis board's Play from a set-up board
+  brought?: number; // the edges that came with the Analysis board's record: the game's start, not played against the bot
   takebacks?: number;
   botTurns?: number;
   botMs?: number;
@@ -92,6 +94,10 @@ export function gtpAnswer(response: string): string {
 /** The bot's name in the record and on the board: "HedgeFund 0.1 Lite, 64 visits, Low variety". */
 export const botName = (bot: BotSettings) =>
   `${networkName(bot.network)}, ${bot.visits} ${bot.visits === 1 ? "visit" : "visits"}, ${VARIETY_NAME[bot.variety]} variety`;
+
+/** The turn of a game's first move: 1 from the standard start, else the set-up start's, from its edge count, and
+ *  whether that move opens its turn (the engine repository's design 04, "The turns after a set-up start"). */
+export const practiceTurn = (k: Pick<KeptPractice, "start">) => turnFromCount(k.start ? Number(k.start.split(" ")[4]) : 0);
 
 /** How many edges a takeback undoes (design 24): the bot's turn after the player's last turn, then that turn, whole,
  *  as Lichess undoes the player's move and the reply. `movers` is the player of each move. None before the player's
@@ -158,12 +164,14 @@ export function practiceRecord(k: KeptPractice, movers: Player[], cuts: boolean[
     Bot: `${networkName(k.bot.network)} (${k.bot.network}), ${k.bot.visits} ${k.bot.visits === 1 ? "visit" : "visits"} a move, ` +
          `${VARIETY_NAME[k.bot.variety]} variety, ` +
          `engine ${k.builds.join(", then ")}`,
+    ...(k.start ? { Position: k.start } : {}),
     ...(termination ? { Termination: termination } : {}),
   };
-  const turns: { number: number; moves: number }[] = [];
+  // The turns from the start's own number, and `N...` when it is at a turn's second edge (practiceTurn).
+  const first = practiceTurn(k), turns: { number: number; moves: number; second?: boolean }[] = [];
   movers.forEach((p, i) => {
     if (i > 0 && p === movers[i - 1]) turns[turns.length - 1].moves++;
-    else turns.push({ number: turns.length + 1, moves: 1 });
+    else turns.push({ number: first.turn + turns.length, moves: 1, ...(i === 0 && !first.first ? { second: true } : {}) });
   });
   return writeRecord(tags, k.moves.map((m, i) => (cuts[i] ? `${m}x` : m)), turns, result);
 }
