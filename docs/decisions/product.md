@@ -2485,3 +2485,39 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   - **Checked** in Edge on the local build: the menu at 1,400 and 360 pixels, Standard start from a set-up board (its
     stored result at once), Copy, and the home page's three cards.
 
+### What Cloudflare shows, and its alerts (2026-10-14)
+
+- **A correction:** the entry "Events for the decisions that wait on data" says that Cloudflare's "Observability" is
+  for Workers. That is the Observability under **Compute**. The account's own **Observability** (Logs, Analytics,
+  Alerts, Dashboards) covers the Pages site too. It takes no events, so the events stay with Google Analytics (design
+  17). [hosting.md](../hosting.md), "What Cloudflare shows", tells what it gives.
+- **What the data showed,** from the zone's setup on 2026-10-12 to 2026-10-14:
+  - 228 answers of 5xx, all on 2026-10-12, during the setup. The 525s came from the bare domain's old parking records,
+    and the 522s from the custom domain's certificate check. None since.
+  - About 24% of the requests got a 404, most of them from scanners (`/.env`, `/wp-config.php`, `/.git/HEAD`). Also
+    `/sitemap.xml` (58) and `/favicon.ico` (51): the site has neither.
+  - A crawler asked for `LICENSE.txt` and `NOTICES.txt` under `/_app/immutable/nodes/`. These are names in the notices
+    page's code, read as links.
+  - Cloudflare blocked 26 requests: 25 by the free managed rules (POSTs to `/` and the scanners' paths), and 1 by the
+    browser integrity check.
+  - Verified bots made requests although each page has `noindex`: 88 by AI search, 21 by AI crawlers and 11 by search
+    engines and SEO tools.
+  - One address asked for `/hedge-school.user.js` every 15 seconds on 2026-10-13 (28 requests), on the live site and
+    on the `partner_test` preview. The 404s of `/developers` in the error dashboard (14) came from the same kind of
+    polling on that preview. These were scripts that waited for a deploy, not visitors.
+  - Web Analytics: one visit came from `www.enclosuregame.com`. The worst Core Web Vital was a CLS of 0.151 on
+    `/review` ("needs improvement" is above 0.1), from the board's column (`section.board-col`).
+- **Set:**
+  - **Alerts by email** to the account's address (hosting.md, section 6). A failed deployment, of production or of a
+    preview. A success sends none, because each push to `dev` builds a preview. The zone's Universal SSL certificate.
+    And a custom alert on Pages' own 5xx, 3 or more in 5 minutes on the live site.
+  - **The 5xx alert counts the origin's status,** not the edge's. The table that it queries (`events.httpRequests`)
+    has rows with the edge status 504 that Logs and the dashboards do not show. For those requests Logs shows 404.
+    Over 3 hours they reached 7 in one interval of 5 minutes, while Pages gave no 5xx.
+  - **The dashboard "Error monitoring",** from Cloudflare's template.
+  - **The Pages build cache** (beta): Pages keeps npm's cache between builds (hosting.md, section 3).
+  - **The cache rule for the meaf.us tools' files** (hosting.md, section 2). The three files now reach the browser with
+    `no-cache`, as `_headers` asks.
+- **Not set:** the weekly Web Analytics email ([open-items.md](open-items.md), "Foundations").
+- **To do:** the layout shift on `/review` ([open-items.md](open-items.md), Milestone 1).
+

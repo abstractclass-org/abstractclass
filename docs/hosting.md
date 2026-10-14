@@ -74,9 +74,15 @@ What the repository holds for Pages:
   `/hedge-school.user.js`, `/hedge-school.meta.js`) have `no-cache`, so the browser checks them at each use: without
   it, Cloudflare lets a browser keep a `.js` file for 4 hours (`max-age=14400`), and a bookmark or Tampermonkey would
   take a deploy's change up to 4 hours late. The zone's Browser Cache TTL (4 hours by default) replaces `no-cache` in
-  the reply to the browser, so the zone needs a cache rule: for the hostname `hedgeschool.abstractclass.org`, Browser
-  TTL "Respect origin TTL" (Caching, then Cache Rules). Checked on `5a4be2d`: without the rule, the three files
-  reached the browser with `max-age=14400`, and Cloudflare's edge checked them at Pages each time (`REVALIDATED`).
+  the reply to the browser. So the zone has a cache rule, "Hedge School: the tools' files follow the site's
+  Cache-Control" (the zone's **Caching → Cache Rules**):
+  - **When:** the hostname equals `hedgeschool.abstractclass.org`, and the URI path is one of the three files.
+  - **Then:** "Eligible for cache", and Browser TTL "Respect origin TTL".
+
+  A cache rule must set the cache eligibility. "Eligible" changes nothing for these files, because Cloudflare caches a
+  `.js` file by its extension anyway. The rule names only the three files, so the other files keep the zone's
+  defaults. Before the rule, the three files reached the browser with `max-age=14400`. With it, they reach the browser
+  with `no-cache`, and Cloudflare's edge checks them at Pages each time (`REVALIDATED`).
 - **A 404 page** (`404.html`, adapter-static's fallback, in `vite.config.ts`). Without a `404.html`, Pages serves the
   home page for any address (its rule for single-page applications).
 - **The site's version** in the footer: the commit, which Pages gives the build as `CF_PAGES_COMMIT_SHA`
@@ -140,6 +146,10 @@ top right):
 | `VITE_GA_ID` | the measurement ID | none, so that previews are not counted |
 | `VITE_CF_ANALYTICS_TOKEN` | the token | none |
 
+**The build cache** (beta, **Settings → Build → Build cache**): on. Pages keeps npm's global cache (`.npm`) between
+the project's builds, so `npm ci` downloads less. Pages deletes the cache 7 days after its last read, and **Clear
+Cache** beside the setting empties it ([Cloudflare's page](https://developers.cloudflare.com/pages/configuration/build-caching/)).
+
 **Preview deployments** (**Settings → Branch control**, preview branch: all branches other than `main`): free, as
 production builds are. Each counts toward the free plan's 500 builds a month, and the free plan builds one at a time,
 so a preview that is building delays a release by a minute or so. Preview addresses are public, and unlisted like the
@@ -191,6 +201,38 @@ site (`noindex`). **Preview access** in the project's settings can put them behi
 4. Do not turn on the Pages project's own Web Analytics (**Metrics → Web Analytics**): it also adds the beacon to every
    page, so visits would count twice.
 
+## 6. Alerts
+
+Cloudflare sends these alerts by email to the account's address (**Observability → Alerts**):
+
+| Alert | Type and settings | What it tells |
+|---|---|---|
+| Hedge School: deployment failed | Pages, "Project updates": the project `hedgeschool`, Production and Preview, the event "Deployment failed" | A build failed. A failed build of `main` leaves the previous deployment live, so the site itself shows no sign. |
+| abstractclass.org: Universal SSL certificate | SSL/TLS, "Universal SSL Alert" | The zone's certificate failed its validation, issuance or renewal, or it expired. Without it, browsers refuse the site. |
+| Hedge School: 5xx from Pages | Custom alert (beta), detection method Threshold: the query below, 3 or more in an evaluation window of 5 minutes. It runs each minute. While the condition holds, it sends the email again each hour. | Pages answered requests to the live site with a server error. The site is static, so Pages should give none. |
+
+The 5xx alert's query, in the alert's **Custom SQL**:
+
+```sql
+SELECT count() AS "value"
+FROM "events"."httpRequests"
+WHERE "accountTag" = '<the account ID>' AND "originResponseStatus" >= 500
+  AND "clientRequestHttpHost" = 'hedgeschool.abstractclass.org'
+```
+
+The query counts the status that Pages gave (`originResponseStatus`), not the status at the edge. The table
+`events.httpRequests` has rows with the edge status 504 for the custom domain, and Logs and the dashboards do not show
+them. Logs shows 404 for the same requests, for example `/favicon.ico`, and no visitor got a 504. Over 3 hours, these
+rows reached 7 in one interval of 5 minutes, so an alert on the edge status would send false alarms. None of them has
+an origin status of 500 or more.
+
+A deployment that succeeds sends no email: each push to `dev` builds a preview, and those emails would be noise. The
+weekly Web Analytics summary is not set ([decisions/open-items.md](decisions/open-items.md)).
+
+**The dashboard "Error monitoring"** (**Observability → Dashboards**, from Cloudflare's template): the 4xx and 5xx
+answers over time, the origin's errors, the status codes, and the top paths of 4xx and 5xx answers. It reads
+Cloudflare's analytics of the whole account, so its counts include the previews and the `pages.dev` addresses.
+
 ## Deploy, check and roll back
 
 - **Deploy:** release `dev` to `main` (`git push origin dev:main`). Pages builds and publishes in a minute or two. A
@@ -208,6 +250,54 @@ site (`noindex`). **Preview access** in the project's settings can put them behi
 - **A new engine:** change `engine.lock.json` to the new release (its tag, each asset's name, SHA-256 and size), and
   push. The paths under `/engine/` name the build and the network, so browsers download the new files and keep no stale
   ones.
+
+## What Cloudflare shows
+
+No code of the site runs at Cloudflare, but Cloudflare sees each request to it. On the free plan, the dashboard shows
+the requests and the visits. The menu is **Observability** at the account's level, not the Observability of Workers
+under **Compute**.
+
+- **Logs, the dataset "HTTP requests":** a row for each request to a hostname of the zone or of the Pages project.
+  These include `hedgeschool.pages.dev` and the previews, such as `partner-test.hedgeschool.pages.dev`.
+  - **The fields:** the time, the host, the path without its query, the method, the status at the edge and at the
+    origin, and the cache status. Also the country, the IP address, the browser, the operating system, the device type,
+    the user agent and the verified bot category. Also the security action and its source, the data center and the
+    origin's response time. Logs shows no referrer and no response size. The SQL table that custom alerts query,
+    `events.httpRequests`, also has the referrer's host, the query and the bytes sent.
+  - **The search:** a query language filters the rows, for example `edgeResponseStatus = 404 AND
+    startsWith(clientRequestHTTPHost, "hedgeschool")`. The field list shows each field's top values with their counts.
+    The data goes back 30 days.
+  - **Two rows for each request to the custom domain,** with the same Ray ID. The zone's row has a cache status
+    (Dynamic, Miss, Hit, Revalidated, Bypass) and the origin's status. The row of Pages has the cache status None and no
+    origin status. So each total of requests counts the custom domain twice: on the account's home page, in Account
+    analytics and in the chart of Logs. To count each request once, filter on the host and on `cacheStatus != "none"`.
+    A request to a `pages.dev` address has one row.
+- **Analytics, then Web analytics:** the beacon's data. It leaves out bots by default.
+  - Visits and page views by referrer, path, host, country, browser and operating system.
+  - The Core Web Vitals (LCP, INP, CLS) from the 50th to the 99th percentile, split into their parts. A debug view names
+    the element that gave each score.
+  - The page's load time, split into DNS, TLS, request and processing.
+  - The production build also answers at `hedgeschool.pages.dev`, and Web Analytics counts its visits too. The Host
+    breakdown separates them.
+- **Analytics, then Account analytics:** totals over 7 days. These are the requests, the bandwidth, the cache's share,
+  the rates of 4xx and 5xx answers, the HTTP versions and the content types. It counts the custom domain's requests
+  twice, as Logs does.
+- **Alerts:** section 6 lists the alerts of this site.
+- **Dashboards:** charts from the same data, made from templates (Traffic overview, Security overview, Cache
+  performance, Error monitoring) or from nothing.
+- **Of no use to this site:** Traces, and the datasets Workers, Containers, R2 and Issues in Logs, are for code that
+  runs at Cloudflare. Logpush needs a paid subscription. OpenTelemetry exports the traces of Workers.
+
+How to read the numbers:
+
+- **A low cache hit rate (about 5% of requests) is normal.** Pages keeps the site's files in its own storage, so the
+  zone's cache seldom holds them. "Served by Origin" means served by Pages, and it costs nothing.
+- **Scanners get most of the 404 answers.** They ask for `/.env`, `/wp-config.php`, `/.git/HEAD` and similar paths.
+  Cloudflare's free managed rules block some of them with a 403, and also POST requests to `/`.
+- **Crawlers read text as links.** The notices page's code holds the names `LICENSE.txt` and `NOTICES.txt`. A crawler
+  asked for them under `/_app/immutable/nodes/`, the folder of that code, and got 404.
+- **Crawlers come although each page has `noindex`:** AI search, AI crawlers and search engines. `noindex` keeps a page
+  out of an index. It does not stop the crawl.
 
 ## Not part of the site
 

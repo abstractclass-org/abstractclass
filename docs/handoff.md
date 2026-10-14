@@ -72,7 +72,8 @@ It holds no backlog: everything still to do that is not in flight is in
     entry).
   - The board's line ends by visits only, with no cut at 6 edges (design 07, decisions/product.md, "The board's line
     ends by visits only").
-  - hosting.md: the zone's cache rule for the tools' files. To do, by the owner: set it in Cloudflare's dashboard.
+  - hosting.md: the zone's cache rule for the tools' files. Set on 2026-10-14: the three files now reach the browser
+    with `no-cache`.
 - **Released to `main` on 2026-10-13, after `1af74e9`:** the deepest stored result for each position, the Depth's help line and the report's note
   (decisions/product.md, "A deeper search where the player looks: kept, and said"), the Export menu's lines, the
   chart's first estimate faint and solid, a Great's confirmation as deep as the position it is compared with, a game
@@ -104,7 +105,7 @@ It holds no backlog: everything still to do that is not in flight is in
   the review only, as Hedge School"). Built and checked in Edge: the build switch, the name, no sample game, the
   pages About, The notation, Privacy and Notices, the Constellation import, unlisted. To do:
   - **Branches:** work on `dev`, pushed after each commit. Release with `git push origin dev:main` when the owner says
-    (hosting.md, section 2). To do, by the owner: remove `VITE_GA_ID` from the Pages project's preview variables.
+    (hosting.md, section 2).
   - **The engine's name, HedgeFund: done** (request 12, design 09): "HedgeFund 0.1 Lite (6.5 MB)" and "HedgeFund 0.1
     (20.6 MB)" in the engine settings, from the lock's `displayName`.
   - **Hosting: live** at `hedgeschool.abstractclass.org`, set up as [hosting.md](hosting.md) tells

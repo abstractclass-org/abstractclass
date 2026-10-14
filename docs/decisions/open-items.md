@@ -72,6 +72,10 @@ Rules:
   that the position on screen, searched deeper than the review, updates the review where the player looks (design
   09). Later,
   not for the early access.
+- **A layout shift on `/review`:** Cloudflare's Web Analytics measured a CLS of 0.151 there, from the board's column
+  (`section.board-col`). Google rates a CLS above 0.1 as "needs improvement". Find what moves the column while the
+  page loads, for example a size that is known only after the engine or the game loads, and reserve its space
+  (decisions/product.md, "What Cloudflare shows, and its alerts").
 
 ## Offline work (on the engine repository's GPU)
 
