@@ -61,18 +61,20 @@ test("the file's name: the players, made safe, and the game's id", () => {
   assert.equal(reviewFileName(RECORD, "6657b93234c7"), "hedge-school-Ann-vs-Ben-O-Hara-6657b93234c7.json");
 });
 
-test("a finished review covers the same engine and network at its depth or less", () => {
+test("a finished review covers the same search and network at its depth or less", () => {
   const manifest = { artifacts: [
-    { id: "engine-1", kind: "module" as const, interface: null, url: "", sha256: "m1", bytes: 0, download: 0, released: true },
+    { id: "engine-1", kind: "module" as const, interface: null, url: "", sha256: "m1", bytes: 0, download: 0, released: true,
+      sameSearchAs: ["m0"] },
     { id: "net-a", kind: "model" as const, interface: null, url: "", sha256: "ab12", bytes: 0, download: 0, released: true },
   ] };
   const want = reviewMark(manifest, "net-a", 512);
-  assert.deepEqual(want, { module: "m1", model: "ab12", network: "net-a", visits: 512 });
+  assert.deepEqual(want, { module: "m1", model: "ab12", network: "net-a", visits: 512, modules: ["m1", "m0"] });
   assert.equal(reviewMark(manifest, "net-b", 512), null);
   const mark: ReviewMark = { ...want!, visits: 1024, at: "" };
   assert.equal(reviewCovers(mark, want), true); // deeper covers shallower
   assert.equal(reviewCovers({ ...mark, visits: 256 }, want), false);
-  assert.equal(reviewCovers({ ...mark, module: "m2" }, want), false); // another engine build
+  assert.equal(reviewCovers({ ...mark, module: "m0" }, want), true); // an earlier module of the same search
+  assert.equal(reviewCovers({ ...mark, module: "m2" }, want), false); // another search
   assert.equal(reviewCovers({ ...mark, model: "cd34" }, want), false); // another network
   assert.equal(reviewCovers(undefined, want), false);
 });

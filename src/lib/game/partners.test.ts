@@ -23,7 +23,10 @@ test("a game of other rules, or from another start, is refused; the online rules
   const game = (tags: string) => parseRecord(`${tags}\n\n1. D10-E13 *`);
   assert.equal(variantProblem(game('[Event "?"]')), null);
   assert.match(variantProblem(game('[Rules "Race to 2000"]')) ?? "", /other rules \(Race to 2000\)/);
-  assert.match(variantProblem(game('[Position "A10-D10 Q10-T10 b1 0/0 0"]')) ?? "", /another position/);
+  const setUp = game('[Position "A10-D10,D10-G10* Q10-T10 r2 0/0 1"]');
+  assert.match(variantProblem(setUp) ?? "", /another position/);
+  assert.equal(variantProblem(setUp, true), null); // the Analysis board takes it
+  assert.equal(variantProblem(game('[Position "A10-D10 Q10-T10 b1 0/0 0"]')), null); // the standard start, written out
   assert.equal(variantProblem(game('[Rules "?"]')), null);
 });
 

@@ -1,7 +1,7 @@
 <script lang="ts">
-  // The Review tab without a game (design 22): import a game to review it, by pasting its record or opening a review
-  // file, continue the last review, and the player's games, kept in this browser. A review opens on a game the player
-  // brought: there is no sample game (design 11). An analysis file opened here goes to the Analysis board.
+  // The Review tab without a game (design 22): import a game to review it by pasting its record, or load a review file,
+  // continue the last review, and the player's games, kept in this browser. A review opens on a game the player
+  // brought: there is no sample game (design 11). An analysis file loaded here goes to the Analysis board.
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
   import { playerNames, parseRecord, type GameRecord } from "#lib/game/record.ts";
@@ -14,12 +14,12 @@
   import { fileKind, keepAnalysisResults, readAnalysisFile } from "#lib/game/analysisFile.ts";
   import { errorText } from "#lib/errors.ts";
   import { SITE_NAME, SITE_VERSION } from "#lib/edition.ts";
-  import { deliverExport, importReview, readReviewFile, shippedModels, shippedModule, type ExportKind } from "#lib/game/reviewFile.ts";
+  import { deliverExport, importReview, readReviewFile, shippedModels, shippedModules, type ExportKind } from "#lib/game/reviewFile.ts";
   import { loadManifest, type Manifest } from "#lib/engine/client.ts";
   import { annotatedFromStore } from "#lib/review/exportText.ts";
   import ExportMenu from "#lib/ExportMenu.svelte";
   import { setVisitor, track } from "#lib/analytics.svelte.ts";
-  import { trackImport, trackImportFailed } from "#lib/game/importEvents.ts";
+  import { trackImport, trackImportFailed, trackLoad, trackLoadFailed } from "#lib/game/importEvents.ts";
   import { GAME_RANGES, range } from "#lib/measure.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
 
@@ -86,7 +86,7 @@
   // Files (designs 13 and 21), chosen or dropped on the page: a review file is kept and reviewed, and an analysis file
   // goes to the Analysis board, its results kept here.
   let fileProblem = $state("");
-  let importing = $state(false);
+  let loadingFile = $state(false);
   let dragging = $state(false);
 
   /** A game's export, as on the review page: the annotated record is written from the stored results, with no search. */
@@ -94,21 +94,21 @@
     return deliverExport(kind, id, record, await loadManifest(), SITE_VERSION, () => annotatedFromStore(id));
   }
 
-  async function importFile(file: File | undefined) {
+  async function loadFile(file: File | undefined) {
     if (!file) return;
     fileProblem = "";
-    importing = true;
+    loadingFile = true;
     const content = await file.text();
     if (fileKind(content) === "analysis") {
       try {
         const analysis = readAnalysisFile(content);
         await keepAnalysisResults(analysis, shippedModels(await loadManifest()));
-        await goto(boardLink("", analysis.board, 0, "analysis_file")); // the board counts the import
+        await goto(boardLink("", analysis.board, 0, "analysis_file")); // the board counts the load
       } catch (e) {
-        fileProblem = `The file could not be imported: ${errorText(e)}`;
-        trackImportFailed("analysis", "analysis_file", "file");
+        fileProblem = `The file could not be loaded: ${errorText(e)}`;
+        trackLoadFailed("analysis_file", "file");
       } finally {
-        importing = false;
+        loadingFile = false;
       }
       return;
     }
@@ -116,21 +116,21 @@
       const review = readReviewFile(content);
       // Only the networks this site ships: a result of another network is never asked for here.
       const manifest = await loadManifest();
-      const { id } = await importReview(review, shippedModels(manifest), shippedModule(manifest));
-      trackImport("review", "review_file", parseRecord(review.record).moves.length, { with_results: review.analyses.length > 0 });
+      const { id } = await importReview(review, shippedModels(manifest), shippedModules(manifest));
+      trackLoad("review_file", parseRecord(review.record).moves.length, { with_results: review.analyses.length > 0 });
       location.assign(`/review#game=${id}`); // the review loads it (hashchange)
     } catch (e) {
-      fileProblem = `The file could not be imported: ${errorText(e)}`;
-      trackImportFailed("review", "review_file", "file");
+      fileProblem = `The file could not be loaded: ${errorText(e)}`;
+      trackLoadFailed("review_file", "file");
     } finally {
-      importing = false;
+      loadingFile = false;
     }
   }
 
   function dropped(event: DragEvent) {
     event.preventDefault();
     dragging = false;
-    void importFile(event.dataTransfer?.files[0]);
+    void loadFile(event.dataTransfer?.files[0]);
   }
 
   // A game's link loads the page again (data-sveltekit-reload): a change of the `#` alone would leave this page as it is.
@@ -163,17 +163,17 @@
       {#if problem}<p class="mt-1.5 text-blunder" role="alert">{problem}</p>{/if}
       <div class="flex flex-wrap items-center gap-3 mt-2">
         <button class="btn-primary" type="submit" disabled={!text.trim() || checking}>{checking ? "Checking…" : "Review"}</button>
-        <span class="flex-1 min-w-56 text-xs text-muted">In the engine's notation: turns as <code>1.</code> and <code>2.</code>, edges as
+        <span class="flex-1 min-w-56 text-xs text-muted">In the engine's <a href="/notation">notation</a>: turns as <code>1.</code> and <code>2.</code>, edges as
           <code>D10-G10</code>, a cut as <code>D10-G10x</code>, a timeout as <code>pass</code>. A plain list of edges works too.</span>
       </div>
-      <p class="mt-2.5 text-xs text-muted">From meaf.us: use the <a href="/tools">bookmarklet or the userscript</a>, one click on a meaf.us game page.
-        From Constellation: paste what the analysis board's <strong>Export</strong> gives.</p>
+      <p class="mt-2.5 text-xs text-muted">From <a href="https://meaf.us/sst1/" target="_blank" rel="noopener noreferrer">meaf.us</a>: use the <a href="/tools">bookmarklet or the userscript</a>,
+        one click on a meaf.us game page.</p>
     </form>
     <div class="flex flex-wrap items-center gap-3 mt-4 pt-3 border-t border-line">
-      <label class={["px-3 py-1 text-sm rounded border border-line bg-panel-2 cursor-pointer hover:border-accent", importing && "opacity-50"]}>
-        {importing ? "Importing…" : "Import a review file"}
-        <input type="file" accept=".json,application/json" class="sr-only" disabled={importing}
-               onchange={e => { void importFile(e.currentTarget.files?.[0]); e.currentTarget.value = ""; }} />
+      <label class={["px-3 py-1 text-sm rounded border border-line bg-panel-2 cursor-pointer hover:border-accent", loadingFile && "opacity-50"]}>
+        {loadingFile ? "Loading…" : "Load a review file"}
+        <input type="file" accept=".json,application/json" class="sr-only" disabled={loadingFile}
+               onchange={e => { void loadFile(e.currentTarget.files?.[0]); e.currentTarget.value = ""; }} />
       </label>
       <span class="flex-1 min-w-56 text-xs text-muted">A review file that {SITE_NAME} exported, from this browser or another. You can
         also drop it on this page. It opens at once, with the engine's results it holds.</span>
@@ -193,7 +193,7 @@
             {:else}
               <a href="/review#game={game.id}" data-sveltekit-reload>{title(record)}</a>
               <span class="text-sm text-muted">{record.moves.length} edges{record.result && record.result !== "*" ? ` · ${record.result}` : ""} ·
-                imported {new Date(game.added).toLocaleDateString()}</span>
+                added {new Date(game.added).toLocaleDateString()}</span>
               <span class="ml-auto flex items-center gap-1.5"><ExportMenu small side="bottom" run={kind => exportGame(game.id, game.record, kind)}
                 ready={reviewCovers(game.reviewed, wanted(game))}
                 why={!game.reviewed ? "Open the game to review it, then export."

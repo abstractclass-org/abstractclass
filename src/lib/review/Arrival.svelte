@@ -17,15 +17,16 @@
   import { gamePartner, partnerOf, receiveFromPartner } from "#lib/game/partners.ts";
   import { setGamePartner } from "#lib/game/store.ts";
   import { decodeShare, type SharedReview } from "#lib/game/share.ts";
-  import { importReview, importShare, readReviewFile, shippedModels, shippedModule } from "#lib/game/reviewFile.ts";
-  import { loadManifest, moduleOf, modelOf } from "#lib/engine/client.ts";
+  import { importReview, importShare, readReviewFile, shippedModels, shippedModules } from "#lib/game/reviewFile.ts";
+  import { loadManifest, modelOf, sameSearch } from "#lib/engine/client.ts";
   import { NETWORKS, networkName, reviewDepthText } from "#lib/analysis/engineSettings.ts";
   import { startAnalytics, track } from "#lib/analytics.svelte.ts";
-  import { trackImport, trackImportFailed, type ImportSource } from "#lib/game/importEvents.ts";
+  import { trackImport, trackImportFailed, trackLoad, trackLoadFailed, type ImportSource } from "#lib/game/importEvents.ts";
 
   const MESSAGE = "box-content max-w-184 mx-auto my-6 px-4 grid gap-4";
 
-  let phase = $state<"importing" | "receiving" | "failed" | "stale" | "share">("importing");
+  let phase = $state<"importing" | "loading" | "receiving" | "failed" | "stale" | "share">("importing");
+  let loading = $state(false); // the way in is a load (design 22): a shared review, or a review that a partner kept
   let sender = $state(""); // the partner whose page sends a review that it kept
   let problem = $state("");
   let stale = $state<Tool | "older" | null>(null);
@@ -56,12 +57,12 @@
     let source: ImportSource = "older_tool";
     try {
       const sent = readImportHash(hash), text = sent.record;
-      source = sent.from ? "partner_review" : sent.link ? "site_link" : sent.tool ?? source;
+      if (!sent.from) source = sent.link ? "site_link" : sent.tool ?? source;
       if (forwarded) {
         // The old address still in use (design 22): a warning for the developer whose link it is, and a count by
         // the link's source, to tell when the forwarding can stop (design 17).
         console.warn("Hedge School: /import is deprecated, and forwards here only during the early access. Link to /review#… instead: see https://hedgeschool.abstractclass.org/developers#changes");
-        track("import_forwarded", { import_source: source });
+        track("import_forwarded", sent.from ? { load_source: "partner_review" } : { import_source: source });
       }
       if (sent.from) { await receiveReview(sent.from, sent.save); return; }
       if (sent.link && !text) throw new Error("the link has no record=, which carries the game");
@@ -86,35 +87,38 @@
       const s = decodeShare(text), manifest = await loadManifest();
       const network = manifest ? NETWORKS.map(n => n.id).find(id => modelOf(manifest, id)?.sha256.startsWith(s.model)) ?? null : null;
       shared = s;
-      sharedHere = { network, sameEngine: !!manifest && !!moduleOf(manifest)?.sha256.startsWith(s.module) };
+      sharedHere = { network, sameEngine: !!manifest && sameSearch(manifest, s.module) };
       phase = "share";
       track("review_share_open", { network_found: !!network, same_engine: sharedHere.sameEngine });
     } catch (e) {
       phase = "failed";
+      loading = true;
       problem = `the share link cannot be read: ${errorText(e)}`;
-      trackImportFailed("review", "review_share_link", "link");
+      trackLoadFailed("review_share_link", "link");
     }
   }
 
   /** Keeps the shared game, its branches and the sender's network and depth for it, and opens the review. */
   async function reviewShared() {
     if (!shared || !sharedHere) return;
-    phase = "importing";
+    phase = "loading";
+    loading = true;
     try {
       const id = await importShare(shared, sharedHere.network);
-      trackImport("review", "review_share_link", shared.moves.length, { with_branches: shared.branches.length > 0 });
+      trackLoad("review_share_link", shared.moves.length, { with_branches: shared.branches.length > 0 });
       review(id);
     } catch (e) {
       phase = "failed";
       problem = errorText(e);
-      trackImportFailed("review", "review_share_link", "rejected");
+      trackLoadFailed("review_share_link", "rejected");
     }
   }
 
   /** A review that a partner site kept (design 18): its page opened this one, and sends the review file when this page
-   *  asks. The file imports as on the home page, and the review opens at once. */
+   *  asks. The file loads as in the Review tab, and the review opens at once. */
   async function receiveReview(from: string, save: string | null) {
     const partner = partnerOf(from);
+    loading = true;
     try {
       if (!partner) throw new Error("the link names a site that is not one of Hedge School's partners");
       sender = partner.name;
@@ -122,15 +126,15 @@
       const sent = await receiveFromPartner(partner, from);
       const file = readReviewFile(typeof sent === "string" ? sent : JSON.stringify(sent));
       const manifest = await loadManifest();
-      const { id } = await importReview(file, shippedModels(manifest), shippedModule(manifest));
+      const { id } = await importReview(file, shippedModels(manifest), shippedModules(manifest));
       const kept = gamePartner(save);
       if (kept) await setGamePartner(id, kept);
-      trackImport("review", "partner_review", parseRecord(file.record).moves.length, { with_results: file.analyses.length > 0 });
+      trackLoad("partner_review", parseRecord(file.record).moves.length, { with_results: file.analyses.length > 0 });
       review(id);
     } catch (e) {
       phase = "failed";
       problem = errorText(e);
-      trackImportFailed("review", "partner_review", "rejected");
+      trackLoadFailed("partner_review", "rejected");
     }
   }
 </script>
@@ -138,6 +142,8 @@
 <main class={MESSAGE}>
   {#if phase === "importing"}
     <p class="text-muted">Importing the game…</p>
+  {:else if phase === "loading"}
+    <p class="text-muted">Loading the review…</p>
   {:else if phase === "receiving"}
     <p class="text-muted">Waiting for {sender} to send the review…</p>
   {:else if phase === "share" && shared && sharedHere}
@@ -172,8 +178,8 @@
                                   href="/review#game={imported}" data-sveltekit-reload>Open the review</a></p>
     </div>
   {:else}
-    <p class="text-blunder" role="alert">The game could not be imported: {problem}</p>
-    <p>You can paste a game record on the <a href="/">home page</a>, or bring games from other sites with the
+    <p class="text-blunder" role="alert">{loading ? "The review could not be loaded" : "The game could not be imported"}: {problem}</p>
+    <p>You can paste a game record in the <a href="/review" data-sveltekit-reload>Review tab</a>, or bring games from other sites with the
       <a href="/tools">tools</a>.</p>
   {/if}
 </main>

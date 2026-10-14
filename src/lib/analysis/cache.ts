@@ -1,6 +1,7 @@
 // Analyses kept in the browser (storage/db.ts), so that a review opened again needs no search. The engine is
-// reproducible (the same request and build give the same reply), so a stored result equals a fresh one. The key names
-// the engine build, the network's SHA-256, the position (its moves) and the visits. Results stay in memory too, so the
+// reproducible (the same request and search give the same reply), so a stored result equals a fresh one. The key names
+// the engine's search (request 17: the first build that searched as this one does, so that a release that keeps the
+// search keeps the results), the network's SHA-256, the position (its moves) and the visits. Results stay in memory too, so the
 // cache works when storage does not.
 import { STORES, dbGetMany, dbKeys, dbPut } from "#lib/storage/db.ts";
 
@@ -17,12 +18,16 @@ export async function cachePut(key: string, value: unknown): Promise<void> {
 // network's prior for it, for the position's complexity.
 export const SHAPE = 5;
 
-export const analysisKey = (build: string, model: string, moves: string[], visits: number) =>
-  `${SHAPE}|${build}|${model}|${visits}|${moves.join(" ")}`;
-/** A stored analysis's key read back: the shape, the build, the network's SHA-256, the visits and the position's moves. */
+/** The moves part of a key for moves from `start`, a set-up position (design 21): the start first, as one word with `_`
+ *  for its spaces after `@`, so that a key's position and its parent read as they do from the standard start. */
+export const keyMoves = (start: string | null, moves: string[]) => (start ? [`@${start.replaceAll(" ", "_")}`, ...moves] : moves);
+export const analysisKey = (search: string, model: string, moves: string[], visits: number) =>
+  `${SHAPE}|${search}|${model}|${visits}|${moves.join(" ")}`;
+/** A stored analysis's key read back: the shape, the search, the network's SHA-256, the visits and the position's
+ *  moves. A result kept before request 17 names its build there: the first build of a search is the search's name. */
 export function readAnalysisKey(key: string) {
-  const [shape, build, model, visits, ...rest] = key.split("|");
-  return { shape: Number(shape), build, model, visits: Number(visits), moves: rest.join("|") };
+  const [shape, search, model, visits, ...rest] = key.split("|");
+  return { shape: Number(shape), search, model, visits: Number(visits), moves: rest.join("|") };
 }
 
 // The budgets the site's searches ask for (engineSettings.ts: the depths, the review's depths and the label pass), from
@@ -33,29 +38,30 @@ const BUDGETS = [256, 512, 768, 1024, 1536, 2048, 3072, 4096, 8192, 16384];
  *  review takes a deeper result it holds. So a review opened again keeps what the player searched deeper where they
  *  looked (the position on screen, design 09), as it had it before the page closed, and a review imported from another
  *  browser, searched to another depth, opens without searching again (game/reviewFile.ts). */
-export async function cacheGetAtLeast<T>(build: string, model: string, moves: string[], visits: number): Promise<T | undefined> {
-  const keys = [visits, ...BUDGETS.filter(v => v > visits)].map(v => analysisKey(build, model, moves, v));
+export async function cacheGetAtLeast<T>(search: string, model: string, moves: string[], visits: number): Promise<T | undefined> {
+  const keys = [visits, ...BUDGETS.filter(v => v > visits)].map(v => analysisKey(search, model, moves, v));
   const unread = keys.filter(k => !memory.has(k));
   (await dbGetMany(STORES.analysis, unread)).forEach((value, i) => { if (value !== undefined) memory.set(unread[i], value); });
   const key = [...keys].reverse().find(k => memory.has(k));
   return key === undefined ? undefined : (memory.get(key) as T);
 }
 
-/** The engine build of an earlier review, for its snapshot (design 20): a build whose results with the network `model`
- *  hold each of `positions` (their moves) at `visits` or deeper. `except` is a build not to take: the site's own, when
- *  the snapshot is of an earlier engine. Undefined when no build holds them all. Reads the stored keys alone. */
-export async function snapshotBuild(model: string, positions: string[][], visits: number, except?: string): Promise<string | undefined> {
-  return buildHolding((await dbKeys(STORES.analysis)).map(String), model, positions, visits, except);
+/** The engine search of an earlier review, for its snapshot (design 20): a search whose results with the network
+ *  `model` hold each of `positions` (their moves) at `visits` or deeper. `except` is a search not to take: the site's
+ *  own, when the snapshot is of an earlier engine. Undefined when no search holds them all. Reads the stored keys
+ *  alone. */
+export async function snapshotSearch(model: string, positions: string[][], visits: number, except?: string): Promise<string | undefined> {
+  return searchHolding((await dbKeys(STORES.analysis)).map(String), model, positions, visits, except);
 }
 
-/** snapshotBuild's choice among `keys`. */
-export function buildHolding(keys: string[], model: string, positions: string[][], visits: number, except?: string): string | undefined {
+/** snapshotSearch's choice among `keys`. */
+export function searchHolding(keys: string[], model: string, positions: string[][], visits: number, except?: string): string | undefined {
   const wanted = new Set(positions.map(m => m.join(" ")));
   const found = new Map<string, Set<string>>();
   for (const key of keys) {
     const k = readAnalysisKey(key);
-    if (k.shape !== SHAPE || k.model !== model || k.build === except || k.visits < visits || !wanted.has(k.moves)) continue;
-    found.set(k.build, (found.get(k.build) ?? new Set()).add(k.moves));
+    if (k.shape !== SHAPE || k.model !== model || k.search === except || k.visits < visits || !wanted.has(k.moves)) continue;
+    found.set(k.search, (found.get(k.search) ?? new Set()).add(k.moves));
   }
   return wanted.size ? [...found].find(([, held]) => held.size === wanted.size)?.[0] : undefined;
 }

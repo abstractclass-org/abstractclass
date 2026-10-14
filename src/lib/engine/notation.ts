@@ -7,6 +7,15 @@ export type Edge = [number, number, number, number];
 
 const COLUMNS = "ABCDEFGHJKLMNOPQRST"; // GTP: no I
 
+/** The standard start in the position notation (the /notation page). */
+export const STANDARD_START = "A10-D10 Q10-T10 b1 0/0 0";
+/** A set-up start as the site keeps it: its fields one space apart, or undefined for none or for the standard start,
+ *  which is no set-up start (a board from it keeps the standard start's stored results). */
+export function setUpStart(position: string | null | undefined): string | undefined {
+  const p = position?.trim().replace(/\s+/g, " ");
+  return p && p !== "?" && p !== "-" && p !== STANDARD_START ? p : undefined;
+}
+
 export const pointName = (x: number, y: number) => `${COLUMNS[x]}${y + 1}`;
 
 export function parsePoint(s: string): [number, number] {

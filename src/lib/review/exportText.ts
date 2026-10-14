@@ -40,7 +40,7 @@ export async function annotatedFromStore(id: string): Promise<string> {
     game.setReview(visits);
     await game.start();
     if (game.error) throw new Error(game.error);
-    await game.fromStore(pool.version!.build, model.sha256);
+    await game.fromStore(pool.search!, model.sha256);
     const data = game.data(playerNames(stored.record.tags));
     if (!data) throw new Error("the engine could not read this game");
     // A game this browser has not reviewed with the current engine and network, or only in part: a record without the

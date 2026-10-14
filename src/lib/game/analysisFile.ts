@@ -4,7 +4,8 @@
 // them, which confirm the Greats), and read the same way.
 import { readAnalysisKey } from "#lib/analysis/cache.ts";
 import { STORES, dbEntriesWhere, dbPutMany } from "#lib/storage/db.ts";
-import { belongs, positionKeys } from "./reviewFile.ts";
+import { belongs } from "./reviewFile.ts";
+import { boardPositionKeys } from "./board.ts";
 import type { KeptBoard } from "./store.ts";
 
 export const ANALYSIS_FORMAT = "hedge-school-analysis";
@@ -31,7 +32,7 @@ export function fileKind(text: string): "review" | "analysis" | null {
 
 /** The analysis file of a board, with the results of `models`, the networks this site ships. */
 export async function exportAnalysis(board: KeptBoard, site: string, models: Set<string> | null, now = new Date()): Promise<AnalysisFile> {
-  const positions = positionKeys([], { version: 2, nodes: board.nodes });
+  const positions = boardPositionKeys(board);
   const analyses = await dbEntriesWhere(STORES.analysis, key => belongs(key, positions, models));
   return { format: ANALYSIS_FORMAT, version: ANALYSIS_FILE_VERSION, exported: now.toISOString(), site, board, analyses };
 }
@@ -58,7 +59,8 @@ export function readAnalysisFile(text: string): AnalysisFile {
   if (f.version < ANALYSIS_FILE_VERSION) throw new Error(`This analysis file has version ${f.version}, which this site no longer reads.`);
   const b = f.board;
   const boardOk = !!b && b.version === 2 && Array.isArray(b.main) && b.main.every(m => typeof m === "string") && Array.isArray(b.nodes) &&
-    b.nodes.every(n => Array.isArray(n) && typeof n[0] === "string" && typeof n[1] === "number");
+    b.nodes.every(n => Array.isArray(n) && typeof n[0] === "string" && typeof n[1] === "number") &&
+    (b.start === undefined || typeof b.start === "string");
   if (!boardOk) throw new Error("The analysis file's lines cannot be read.");
   const analyses = (Array.isArray(f.analyses) ? f.analyses : []).filter((e): e is [string, unknown] =>
     Array.isArray(e) && typeof e[0] === "string" && /^\d+\|[^|]*\|[0-9a-f]+\|\d+\|/.test(e[0]) && !!e[1] && typeof e[1] === "object");

@@ -26,7 +26,7 @@
   // review may be partial while the engine works: an edge with no label yet shows none. The layout is design 06 (docs/design/06-review-layout.md): the board fills the window's height,
   // with the summary on its left from 1,260 pixels (Lichess's three columns), and the analysis on its right.
   import { ContextMenu, Dialog, RadioGroup, Switch, Tabs } from "bits-ui";
-  import { untrack } from "svelte";
+  import { untrack, type Snippet } from "svelte";
   import { MediaQuery } from "svelte/reactivity";
   import { innerHeight, innerWidth } from "svelte/reactivity/window";
   import type { BranchNode } from "#lib/analysis/game.svelte.ts";
@@ -50,7 +50,7 @@
   import LabelBadge from "./LabelBadge.svelte";
   import { LineDrawing } from "./lineDrawing.svelte.ts";
   import {
-    edgeName, moveName, moveNotation, sameEdge, shortNote, turnShortNote, HARD_NOTE, complexity, likelyEdges, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchEdge, valuesAfter, resultWin, moverWin, costText, pct, shownCandidates, distinctCandidates, rankOf, twinsOf, lineMovers, enoughVisits, trustedLine, type Analysis, type Candidate, type EdgeReview, type LineStep, LABELS, LABEL_TEXT, LABEL_GLYPH, PLAYER_NAME, type Edge, type Label, type Player, type Position, type Review, type Unit, type Move, type TurnJudgment, type TurnReview,
+    edgeName, moveName, moveNotation, opensTurn, turnFromCount, sameEdge, shortNote, turnShortNote, HARD_NOTE, complexity, likelyEdges, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchEdge, valuesAfter, resultWin, moverWin, costText, pct, shownCandidates, distinctCandidates, rankOf, twinsOf, lineMovers, enoughVisits, trustedLine, type Analysis, type Candidate, type EdgeReview, type LineStep, LABELS, LABEL_TEXT, LABEL_GLYPH, PLAYER_NAME, type Edge, type Label, type Player, type Position, type Review, type Unit, type Move, type TurnJudgment, type TurnReview,
   } from "./model.ts";
   import { branchChildren, branchRows, mainIndex, nextFork, pathKey, prevFork, sharedLength, siblingLine, treeLines, withLine, type BranchRow } from "./tree.ts";
 
@@ -65,7 +65,7 @@
     board?: BoardForm | null; // the Analysis board (design 21)
     start?: string[]; // the position to open at: its path (the start when none)
     exportItems?: [ExportKind, string, string, string][]; // the Export menu's entries, when not the review's
-    onimport?: () => void; // the Analysis board's Import, beside Export: its page opens its own dialog (design 21)
+    tools?: Snippet; // the Analysis board's New menu, beside Export (design 21)
     partner?: string | null; // the partner site the game came from by its link, which takes its review back (design 18)
     siteLink?: { href: string; host: string } | null; // the game's own page, from its record's Site tag
     ownSettings?: boolean; // the game keeps the network and depth it came with (store.ts, `settings`)
@@ -94,7 +94,7 @@
     exportReady?: boolean; // the review is done: export only then (design 13)
   }
   let { R, progress = null, problem = "", deepVisits = 0, onposition, lineSteps, branches = {}, onplay, rulesAt, ondelete,
-        onpromote, onjudge, labelVisits = 0, searching = false, timedOut = false, engine, onengine, gpu, secondAt, otherAt, turnKeys, pendingAt, reviewVisits = 0, onexport, exportReady = true, deeperPositions = 0, again = null, snapshot = null, board = null, start, exportItems, onimport, partner = null, siteLink = null, ownSettings = false, onfeature }: Props = $props();
+        onpromote, onjudge, labelVisits = 0, searching = false, timedOut = false, engine, onengine, gpu, secondAt, otherAt, turnKeys, pendingAt, reviewVisits = 0, onexport, exportReady = true, deeperPositions = 0, again = null, snapshot = null, board = null, start, exportItems, tools, partner = null, siteLink = null, ownSettings = false, onfeature }: Props = $props();
   const used = (name: string) => onfeature?.(name);
   const last = $derived(R.data.positions.length - 1);
   const TABLE_ROWS = 5; // the Analysis table shows this many rows and scrolls, so the move list under it does not move
@@ -213,8 +213,8 @@
   const turnCache = $derived.by(() => { void gamePositions; void branches; return new Map<string, { turn: number; first: boolean }>(); });
   function moveFrom(p: string[]): { turn: number; first: boolean } {
     const i = mainIndex(p, mainNames);
-    if (i !== null && i < R.edges.length) return { turn: R.turnOf[i].number, first: R.turnOf[i].edges[0].index === i };
-    if (!p.length) return { turn: 1, first: true };
+    if (i !== null && i < R.edges.length) return { turn: R.turnOf[i].number, first: opensTurn(R.turnOf[i], i) };
+    if (!p.length) return turnFromCount(positionOf([])?.count ?? 0);
     const key = pathKey(p), known = turnCache.get(key);
     if (known) return known;
     const parent = p.slice(0, -1), up = moveFrom(parent);
@@ -237,7 +237,7 @@
   /** A move in the record's notation with its turn: "12. L10-N11", and "12... N11-Q10" for a turn's second edge. */
   const moveText = (index: number) => {
     const t = R.turnOf[index];
-    return `${t.number}${t.edges[0].index === index ? "." : "..."} ${moveNotation(R.edges[index])}`;
+    return `${t.number}${opensTurn(t, index) ? "." : "..."} ${moveNotation(R.edges[index])}`;
   };
   // The move list and the chart show only these labels, to stay quiet. The board shows every label.
   const LISTED: Label[] = ["great", "inaccuracy", "mistake", "blunder"];
@@ -790,7 +790,7 @@
     if (board) { // the board: the position's own turn, as in a branch
       if (over) return `Game over · ${PLAYER_NAME[position.scores[0] > position.scores[1] ? 0 : 1]} won by ${Math.abs(position.scores[0] - position.scores[1]).toFixed(1)} points`;
       const t = moveFrom(path), k = t.first ? 1 : 2;
-      return `Edge ${path.length + 1} · Turn ${t.turn} · ${PLAYER_NAME[mover]} to play, edge ${k} of ${k - 1 + position.movesLeft}`;
+      return `Edge ${(position.count ?? path.length) + 1} · Turn ${t.turn} · ${PLAYER_NAME[mover]} to play, edge ${k} of ${k - 1 + position.movesLeft}`;
     }
     if (pos === last) return `Game over · ${PLAYER_NAME[winner]} won by ${margin.toFixed(1)} points`;
     const t = R.turnOf[pos];
@@ -1074,6 +1074,7 @@
       <div class={["grid items-baseline gap-x-1", unit === "turn" ? "grid-cols-[2.2rem_repeat(2,minmax(max-content,1fr))_auto]"
                    : "grid-cols-[2.2rem_repeat(2,minmax(max-content,1fr))]"]}>
         <span class="text-muted tabular-nums">{t.number}.</span>
+        {#if t.continued}<span class="px-[0.2rem] text-muted">…</span>{/if} <!-- its first edge was played before the start -->
         {#each t.edges as e (e.index)}
           {@const after = R.blueScore[e.index + 1]}
           {@const asked = !board || !!board.judged[mainKeys[e.index + 1]]} <!-- the board's moves: evaluated on request -->
@@ -1709,7 +1710,7 @@
           <button onclick={toEnd} aria-label="Last">⏭</button>
         </div>
         <div class="flex items-center gap-1">
-          {#if onimport}<button type="button" class="text-sm" onclick={onimport}>Import</button>{/if}
+          {@render tools?.()}
           <!-- Export (design 13): the review file, with the engine's results, or the annotated record. -->
           {#if onexport}<ExportMenu run={kind => onexport(kind, display.judge)} ready={exportReady} items={exportItems}
                                     why={snapshot ? "Review again to export: this review used an earlier engine." : "Export once the review is done."} {partner} />{/if}

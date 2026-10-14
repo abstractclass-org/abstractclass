@@ -4,8 +4,8 @@
 
 ## Context
 
-The browser keeps each result of a review with the engine build and the network file that found it (design 11, the
-engine). When a release brings a new engine, or a new file of the same network, a game reviewed before is reviewed
+The browser keeps each result of a review with the engine's search and the network file that found it (design 11,
+the engine). When a release brings a new engine, or a new file of the same network, a game reviewed before is reviewed
 again when the player opens it. That costs as long as the first review, on a phone too. A player who wants a quick
 look at a past review pays it each time, and the earlier results are still in the browser.
 
@@ -34,9 +34,12 @@ look at a past review pays it each time, and the earlier results are still in th
 6. **Imports:** a review file keeps its mark when the site ships its network file (the same SHA-256), whatever its
    engine. A file from an earlier engine therefore opens as a snapshot (design 13), and so does a review that a partner
    site kept and sends back (design 18). A mark of the site's engine stays over an earlier engine's.
-7. **The snapshot's engine:** a stored result names the engine by the build that the engine reports, and the mark
-   names the module by its SHA-256. The page takes the build whose results of the mark's network cover the game's
-   line, so it needs no record of earlier releases.
+7. **The snapshot's engine:** a stored result names the engine by its search (request 17: the first build that
+   searched as this one does), and the mark names the module by its SHA-256. A new engine is a new search: a release
+   that keeps the search keeps every review as it is, with no snapshot. The manifest lists the earlier modules of the
+   site's search (`sameSearchAs` in `engine.lock.json`), so a mark, a review file or a share link of one of them is
+   the site's engine's. The page takes the search whose results of the mark's network cover the game's line, so it
+   needs no record of the other searches.
 
 ## Why
 
@@ -73,7 +76,7 @@ look at a past review pays it each time, and the earlier results are still in th
 ## Where it is
 
 - `src/routes/review/+page.svelte` (the choice of a snapshot, its rules-only engine, Review again),
-  `src/lib/review/ReviewView.svelte` (the bar, the controls off), `src/lib/analysis/cache.ts` (`snapshotBuild`),
+  `src/lib/review/ReviewView.svelte` (the bar, the controls off), `src/lib/analysis/cache.ts` (`snapshotSearch`),
   `src/lib/analysis/game.svelte.ts` (`fromStore`), `src/lib/game/reviewFile.ts` (`importReview`, the mark kept),
   `src/lib/game/store.ts` (`reviewAgainWhy`).
 

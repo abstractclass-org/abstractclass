@@ -39,11 +39,11 @@ must make costs both of them a release.
    the partner's page opens `/review#from=` and its origin, with `window.open`. The review posts
    `hedge-school:ready` (`protocol: 1`) to it, and the partner's page answers `hedge-school:review` with the file, or
    `hedge-school:failed`. The review takes the file only from the page that opened it, on that origin, and only
-   from a partner. It imports the file as the Review tab does, and the review opens at once, with the engine's results
+   from a partner. It loads the file as the Review tab does, and the review opens at once, with the engine's results
    (`receiveFromPartner` in `src/lib/game/partners.ts`). The link can name the save page too, so that the game can be
    saved again: the partner passes `save` on this link too. In the browser that ran the review, the partner's first
    link also opens it again at once: the game's
-   id comes from its moves, and the browser keeps the engine's results. The player can always import the file in the
+   id comes from its moves, and the browser keeps the engine's results. The player can always load the file in the
    Review tab.
    - **The tie between the two pages:** a link with a `target` cuts it (browsers then give the new page no opener),
      and so does a `Cross-Origin-Opener-Policy` of `same-origin`. The save page must send no such header, and the page

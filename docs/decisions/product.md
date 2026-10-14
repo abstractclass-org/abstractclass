@@ -2427,3 +2427,61 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   the forwarding stops when no link uses it.
 - **Fixed:** the review reloaded itself without end on its own address after the first change of its reload check.
   It now checks only once the page has chosen its game. A game's link in the Review tab loads the page.
+
+### Import and Load, Tools in the header, and Constellation on the notation page (2026-10-14)
+
+- **The question:** "import" named two acts. A game from outside Hedge School brings moves, and the engine does the
+  work. A review file or an analysis file brings Hedge School's own saved work, with its lines and results.
+- **Decided** (designs 22 and 17): **Import** for a game from outside (a pasted record, Constellation's export,
+  another site's record link, the meaf.us tools), and **Load** for saved work (a review or an analysis file, a share
+  link, a partner's kept review). Desktop programs make the same cut, as Open and Import. "Open" already names other
+  acts here, so the site says Load. The Review tab has "Load a review file". The board has Import (moves pasted) and
+  Load (an analysis file) beside Export. The events follow: `import_game` and `import_failed` for imports,
+  `load_saved` and `load_failed` with `load_source` for loads. A load's source says where it went, so it needs no
+  destination. The funnel's second step takes both on the review's page.
+- **The board's Import box** asks for "Moves from the start": a game record, finished or not, or a plain list of
+  edges. "A game record" alone read as a finished game.
+- **Tools in the header,** beside The notation and About, from a tablet's width: on a phone it would add a row to
+  the header, and the tools are for a computer's browser. The footer has it on every width.
+- **Constellation's export** is no longer named in the import boxes, the About page or the Tools page. The notation
+  page describes it in "Columns with I": a notation whose columns have `I`, read in the forms that the site knows.
+  meaf.us and Constellation are links where a page first names them.
+- **The About page's early access** says first that everything can change: the pages and their addresses, the labels,
+  the engine, the files and links, and what the browser keeps.
+- **Checked** in Edge on the local build: the header at 360, 412, 768 and 1280 pixels, the links, the board's Import
+  box and the notation page.
+
+### The board editor, and the board from a set-up position (2026-10-14)
+
+- **What:** Lichess's board editor for the Analysis board (design 21), on the engine's release `27a7414` (request 16:
+  the position check, protocol 0.5).
+- **Decided:**
+  - **Its own page,** `/editor`, as Lichess's (design 22 had reserved the address). The board's Import links to it
+    with the position on screen, and its Analyze opens the board from the position it made.
+  - **Three tools,** Blue's edges, Red's edges and the marks, each by two clicks on an edge's points. The same edge
+    again removes it. A mark is an edge of the turn, written `*` or `+` from its player and the mover, so the page
+    asks one thing of the player: which edges belong to the turn. The edge count fixes the mover and its edges left,
+    so the page has no mover field to contradict it.
+  - **The engine is the judge:** it draws each change and checks it. A position that no game reaches shows the
+    engine's reasons, with their edges lit, and cannot be analyzed. The page computes only the notation's turn
+    structure.
+  - **The board's start** is sent with every query and named in the stored results' keys. The record's `Position`
+    tag, the share link's tags and the analysis file carry it. The turns number from the start's turn.
+  - **The Import has a position field** beside the moves, as Lichess's board has its FEN beside its PGN.
+- **Analytics:** `editor_open`, `editor_analyze`, and the import source `pasted_position`.
+- **Checked** in Edge on the local build: the editor's tools, the check's reasons with their edges lit, the notation
+  page's example position pasted, Analyze into the board, a move played from it ("3. … D10-G12", turn 4 next), the
+  annotated record with its `Position` tag and "3... D10-G12", the share link opened again with its start and its
+  stored search, the Import's link to the editor at the position on screen, the editor at 360 pixels, a position
+  imported through the Import's position field, and an analysis file of a set-up board loaded with its start and its
+  stored result.
+- **Then, from the first look:**
+  - **The board's New menu,** beside Export: Standard start, Board editor, Import a position or moves, Load an
+    analysis file. The board keeps its analysis, so it needs a way back to an empty board, which before went through
+    the editor. The editor's entries: this menu, the Import's link, and a home page card.
+  - **The editor's Copy,** beside its position field.
+  - **The Import's moves field** says only what it takes: a line on leaving it empty read as Cancel's job.
+  - **The standard start written out** is no set-up start, so a board from it keeps the standard start's results.
+  - **Checked** in Edge on the local build: the menu at 1,400 and 360 pixels, Standard start from a set-up board (its
+    stored result at once), Copy, and the home page's three cards.
+

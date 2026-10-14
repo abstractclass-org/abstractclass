@@ -11,6 +11,9 @@ Rules:
 
 ## Foundations
 
+- **Cloudflare's weekly Web Analytics summary:** an email each week with the visits, the pages and the speed
+  (**Observability → Alerts**, the type "Web Analytics Metrics Update"). Not set yet. It saves a visit to the
+  dashboard, at the cost of one more email each week (hosting.md, section 6).
 
 ## Milestone 1: a game report (design/01-analysis-tool.md, section 4)
 
@@ -121,8 +124,6 @@ or a design first:
   repository's notes"). When the rise settles, decide whether to request one.
 - **Play settings:** `chooseMove` searches with the analysis settings, not the GTP bot's. If the site shows the
   engine's move or lets visitors play the engine, request play settings (root noise off, the history on).
-- **An Analysis page:** a free analysis board (a position, or a game not reviewed), with the review's lines and
-  branches (design 07) and Lichess's "Make main line", which the review leaves out because its line is the game's.
 - **Export a review:** the game's record with each position's evaluation (the record's `[%eval]` comments), the
   labels, and the branches as variations, so that a review can be kept and shared. The sample game needs none: the
   engine is reproducible, so the same build and network give the same review.

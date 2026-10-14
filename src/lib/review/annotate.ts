@@ -14,7 +14,7 @@
 // a turn follow it one after another: those from its start first, then those from its second edge, each in the order
 // the player made them.
 import { BAD_LABELS, type Label } from "./labels.ts";
-import { LABEL_TEXT, moveName, moveNotation, type Analysis, type Move, type Player, type Review, type Unit } from "./model.ts";
+import { LABEL_TEXT, moveName, moveNotation, turnFromCount, type Analysis, type Move, type Player, type Review, type Unit } from "./model.ts";
 import { mainIndex, pathKey as key } from "./tree.ts";
 import { edgeName } from "#lib/engine/notation.ts";
 import { writeTags } from "#lib/game/record.ts";
@@ -83,14 +83,16 @@ export function annotatedRecord({ R, unit, tags, result, clocks = [], branches =
     const others = (byParent.get(key(path)) ?? []).filter(b => !first || b.path.at(-1) !== first.path.at(-1));
     return first ? [first, ...others] : others;
   };
-  // A turn starts where the mover changes. Its number counts the turns before it on its own line.
+  // A turn starts where the mover changes. Its number counts the turns before it on its own line, from the start's turn:
+  // a line from a set-up position (design 21) numbers from its turn, and its first edge can be a turn's second.
+  const from = turnFromCount(R.data.positions[0]?.count ?? 0);
   const turnNo = new Map<string, number>();
-  const startsTurn = (node: Node) => node.path.length === 1 || nodeAt.get(key(node.path.slice(0, -1)))?.player !== node.player;
+  const startsTurn = (node: Node) => node.path.length === 1 ? from.first : nodeAt.get(key(node.path.slice(0, -1)))?.player !== node.player;
   const numberOf = (node: Node): number => {
     const k = key(node.path);
     if (!turnNo.has(k)) {
       const parent = nodeAt.get(key(node.path.slice(0, -1)));
-      turnNo.set(k, (parent ? numberOf(parent) : 0) + (startsTurn(node) ? 1 : 0));
+      turnNo.set(k, (parent ? numberOf(parent) : from.turn - (from.first ? 1 : 0)) + (startsTurn(node) ? 1 : 0));
     }
     return turnNo.get(k)!;
   };

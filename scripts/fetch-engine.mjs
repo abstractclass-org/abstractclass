@@ -94,6 +94,8 @@ for (const artifact of lock.artifacts) {
     sha256: artifact.sha256, bytes: artifact.bytes, released: Boolean(artifact.source.release),
     ...(artifact.displayName ? { displayName: artifact.displayName } : {}),
     ...(artifact.graphOf ? { graphOf: artifact.graphOf } : {}),
+    ...(artifact.search ? { search: artifact.search } : {}),
+    ...(artifact.sameSearchAs ? { sameSearchAs: artifact.sameSearchAs } : {}),
   });
 }
 

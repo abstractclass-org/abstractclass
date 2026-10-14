@@ -1,7 +1,6 @@
 <script lang="ts">
   // The tools that bring games from other sites (design 22): the meaf.us bookmarklet and userscript, which open the
-  // review with a game after the `#` (bookmarklet.ts, userscript.ts), and Constellation's export, pasted on the home
-  // page. The review keeps a tool's game and says when the tool is out of date (Arrival.svelte).
+  // review with a game after the `#` (bookmarklet.ts, userscript.ts). The review keeps a tool's game and says when the tool is out of date (Arrival.svelte).
   import { onMount } from "svelte";
   import { bookmarkletHref } from "#lib/game/bookmarklet.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
@@ -15,7 +14,7 @@
 <main class="box-content max-w-184 mx-auto my-6 px-4 grid gap-4">
   <h1 class="text-2xl font-bold">Bring your meaf.us games</h1>
   <p>
-    meaf.us does not let other sites read its games, so this site cannot fetch them. A bookmarklet can: you keep it
+    <a href="https://meaf.us/sst1/">meaf.us</a> does not let other sites read its games, so this site cannot fetch them. A bookmarklet can: you keep it
     in your browser's bookmarks bar, and click it on a meaf.us game. It reads the game from that page, and opens it
     here for review. It sends nothing to meaf.us and reads nothing from your login. At each click it loads its code
     from this site, so it stays up to date.
@@ -49,10 +48,7 @@
   </ol>
   <p class="text-sm text-muted">
     Both depend on how meaf.us builds its page. If meaf.us changes, they may find no game until they are updated
-    here, and both then update themselves. You can always paste a game record on the <a href="/">home page</a>.
+    here, and both then update themselves. You can always paste a game record in the <a href="/review">Review tab</a>.
   </p>
-  <h2 class="mt-2 text-lg font-bold">From Constellation</h2>
-  <p>On Constellation's analysis board, click <strong>Export</strong>, and paste what it gives on the
-    <a href="/">home page</a>. Then choose Review or Analyze.</p>
 </main>
 <SiteFooter />

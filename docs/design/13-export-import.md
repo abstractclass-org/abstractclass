@@ -13,7 +13,7 @@ searching it again, and to share it as text that others can read.
 1. **Two exports** (Lichess offers both a study's PGN and its own analysis. KaTrain can keep its analysis in its SGF
    files):
    - **The review file** (`.json`): the game's record, the player's branches, and the engine's results for every
-     position of the game and its branches (`src/lib/game/reviewFile.ts`). Importing it opens the review at once.
+     position of the game and its branches (`src/lib/game/reviewFile.ts`). Loading it opens the review at once.
    - **The annotated record** (text, copied or as a `.txt` file): the game in the site's notation, with the engine's
      view after each edge (`[%eval W L S]`), each Inaccuracy, Mistake, Blunder and Great as a comment ("Mistake. D10-G9
      G9-H10 was best.", Lichess's words), "A hard position." where the review marks one (design 14), the record's
@@ -25,8 +25,9 @@ searching it again, and to share it as text that others can read.
 2. **Where:**
    - **The review page:** an Export menu beside the display settings' ☰: the review file, the annotated record copied,
      or the annotated record as a file. A short note beside it says what it did, or why it failed.
-   - **The Review tab** (design 22): the same menu beside each game, and "Import a review file", which takes a file
-     chosen or dropped anywhere on the page. The tab builds its annotated record from the stored results, with no
+   - **The Review tab** (design 22): the same menu beside each game, and "Load a review file", which takes a file
+     chosen or dropped anywhere on the page. A file is loaded, not imported: it is Hedge School's own saved work
+     (design 22, the words). The tab builds its annotated record from the stored results, with no
      search: the engine reads the rules only.
 3. **Only a finished review exports,** every kind of export. A review is finished when every step of its bar is done:
    the sweep, the label pass, the key moments searched deeper, and the Greats' confirmations. Until then the Export
@@ -58,7 +59,7 @@ searching it again, and to share it as text that others can read.
      so a change of the results' shape needs no new version of the file: a reader keeps the results of its own shape
      and searches the rest again. One number suffices, unlike the engine protocol's `MAJOR.MINOR`: one program writes
      and reads the file, and a visitor always has the newest copy of it, so only older files reach a reader.
-5. **An import:** the site reads and checks the file: its format, version, record and branches. It drops an entry that
+5. **A load:** the site reads and checks the file: its format, version, record and branches. It drops an entry that
    is not a result. It keeps the game as it keeps a pasted record. The file's branches join the browser's own for that
    game: the browser's first, in their order, then the file's new ones. It keeps the results of the networks that this
    site ships, and leaves out the others. When the file's review ran with this site's engine module and a network it

@@ -99,6 +99,10 @@ window.addEventListener("message", event => {
   <ul>
     <li><strong><code>record</code>:</strong> as for a review. A record that has not ended is welcome: its result is
       <code>*</code>.</li>
+    <li><strong><code>position</code>:</strong> a start other than the standard one, in the
+      <a href="/notation">position notation</a>, for a line from a set-up position. Alone, it opens the board at that
+      position. With <code>record</code>, the record's moves start there (or put it in the record's
+      <code>Position</code> tag). The engine checks that a game can reach it.</li>
     <li><strong><code>at</code>:</strong> the position that the board opens at, as a number of edges from the start.
       Without it, the board opens at the start.</li>
   </ul>
@@ -139,7 +143,7 @@ window.addEventListener("message", event => {
       with the review file as it was saved, or <code>{"{ type: \"hedge-school:failed\", message }"}</code>.</li>
   </ol>
   <pre>{OPEN}</pre>
-  <p>{SITE_NAME} waits a minute for the review. The player can always import the file on {SITE_NAME}'s home page
+  <p>{SITE_NAME} waits a minute for the review. The player can always load the file in {SITE_NAME}'s Review tab
     too.</p>
   <p><strong>The pages in these exchanges</strong> must keep their tie: the save page sends no
     <code>Cross-Origin-Opener-Policy</code> header, and the page that opens {SITE_NAME} sends none or
@@ -194,7 +198,7 @@ window.addEventListener("message", event => {
       <ul>
         <li>2026-10-13: the link, and the messages to save and open a review, protocol 1.</li>
         <li>2026-10-14: the links go to <code>/review</code>, and to <code>/analysis</code> for the Analysis board. The
-          old <code>/import</code> forwards to <code>/review</code>.</li>
+          old <code>/import</code> forwards to <code>/review</code>. The Analysis board takes <code>position</code>.</li>
       </ul>
     </li>
   </ul>

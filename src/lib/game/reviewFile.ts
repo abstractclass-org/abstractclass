@@ -8,7 +8,7 @@ import { SHAPE, readAnalysisKey } from "#lib/analysis/cache.ts";
 import { STORES, dbEntriesWhere, dbGet, dbPut, dbPutMany } from "#lib/storage/db.ts";
 import { parseRecord, playerNames } from "./record.ts";
 import { branchNodes, loadGame, markReviewed, saveGame, setGameSettings, type BranchNode, type KeptBranches, type ReviewMark } from "./store.ts";
-import { moduleOf, type Manifest } from "#lib/engine/client.ts";
+import { searchModules, type Manifest } from "#lib/engine/client.ts";
 import { networkName } from "#lib/analysis/engineSettings.ts";
 import { DISCORD_LIMIT, encodeShare, sharedRecord, type SharedReview } from "./share.ts";
 import { importRecord, variantProblem } from "./import.ts";
@@ -127,8 +127,8 @@ export async function exportReview(id: string, site: string, models: Set<string>
 export const shippedModels = (manifest: { artifacts: { kind: string; sha256: string }[] } | null) =>
   manifest ? new Set(manifest.artifacts.filter(a => a.kind === "model").map(a => a.sha256)) : null;
 
-/** The engine module a manifest ships, by its SHA-256: a file's review counts as done where it ran with it. */
-export const shippedModule = (manifest: Manifest | null) => (manifest && moduleOf(manifest)?.sha256) ?? null;
+/** The engine modules of a manifest's search, by SHA-256: a file's review counts as done where it ran with one. */
+export const shippedModules = (manifest: Manifest | null) => (manifest ? searchModules(manifest) : null);
 
 /** The three exports of a game (design 13): the review file, or the annotated record copied or as a text file. */
 /** What an export makes, by name (design 17): a share link, a review file or an analysis file, the annotated record
@@ -197,11 +197,11 @@ export async function deliverExport(kind: ExportKind, id: string, record: string
 }
 
 /** Keeps a review file's game, branches and results in this browser. `models` are the networks that this site ships
- *  (their SHA-256): results of another network are left out, since this site's engine never asks for them. `module` is
- *  this site's engine module (its SHA-256). The file's review is the game's mark when it ran with a network kept: done
- *  here when it ran with this module, else a review by an earlier engine, which opens as it was (design 20). A mark of
- *  this module stays over an earlier engine's. */
-export async function importReview(file: ReviewFile, models: Set<string> | null, module: string | null = null) {
+ *  (their SHA-256): results of another network are left out, since this site's engine never asks for them. `modules` are
+ *  the engine modules of this site's search (their SHA-256). The file's review is the game's mark when it ran with a
+ *  network kept: done here when it ran with one of these modules, else a review by an earlier engine, which opens as
+ *  it was (design 20). A mark of this site's search stays over an earlier engine's. */
+export async function importReview(file: ReviewFile, models: Set<string> | null, modules: string[] | null = null) {
   const variant = variantProblem(parseRecord(file.record));
   if (variant) throw new Error(variant);
   const { id } = await saveGame(file.record, parseRecord(file.record));
@@ -209,8 +209,10 @@ export async function importReview(file: ReviewFile, models: Set<string> | null,
   const wanted = file.analyses.filter(([key]) => !models || models.has(readAnalysisKey(key).model));
   const kept = await dbPutMany(STORES.analysis, wanted), other = file.analyses.length - wanted.length;
   const r = file.review, before = (await loadGame(id))?.game.reviewed;
-  if (r && (!models || models.has(r.model)) && (r.module === module || before?.module !== module))
-    await markReviewed(id, { module: r.module, model: r.model, network: r.network, visits: r.visits });
+  const ours = (module?: string) => !!module && !!modules?.includes(module);
+  if (r && (!models || models.has(r.model)) && (ours(r.module) || !ours(before?.module)))
+    await markReviewed(id, { module: r.module, model: r.model, network: r.network, visits: r.visits,
+                             modules: ours(r.module) ? modules! : [r.module] });
   // The game keeps the file's network and depth, when the site ships that network, so that its review opens as it was
   // made. The browser's settings stay for the other games.
   if (r && (!models || models.has(r.model))) await setGameSettings(id, { network: r.network, visits: r.visits });

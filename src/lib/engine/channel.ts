@@ -1,7 +1,7 @@
 // The messages of an engine worker, both sides: the CPU worker (worker.ts, client.ts) and the GPU worker (gpuWorker.ts,
 // gpuClient.ts) speak the same way. The page sends a request with an id and gets a promise for its reply; a search in
 // slices posts its results after each slice; a worker that ends or fails rejects every request still waiting.
-import { isError, type ErrorReply } from "./protocol.ts";
+import { isError, type CheckReason, type ErrorReply } from "./protocol.ts";
 
 export interface Timed<T> { reply: T; ms: number; memory: number }
 
@@ -12,14 +12,17 @@ export type ChannelReply =
   | { type: "partial"; id: number; reply: unknown; ms: number }
   | { type: "error"; id: number; message: string };
 
-/** An error reply from the engine. `field` names the request's field at fault, as the protocol gives it. */
+/** An error reply from the engine. `field` names the request's field at fault, as the protocol gives it, and
+ *  `reasons` why a position could not occur. */
 export class EngineError extends Error {
   readonly error: string;
   readonly field?: string;
-  constructor({ error, field }: ErrorReply) {
+  readonly reasons?: CheckReason[];
+  constructor({ error, field, reasons }: ErrorReply) {
     super(`${error}${field ? ` (${field})` : ""}`);
     this.error = error;
     this.field = field;
+    this.reasons = reasons;
   }
 }
 

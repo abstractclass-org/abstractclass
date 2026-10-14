@@ -5,7 +5,7 @@ import { STORES, dbAll, dbDelete, dbGet, dbPut } from "#lib/storage/db.ts";
 import { readLocal, writeLocal } from "#lib/storage/local.ts";
 import { parseRecord, type GameRecord } from "./record.ts";
 import { sha256Hex } from "#lib/engine/artifacts.ts";
-import { modelOf, moduleOf, type Manifest } from "#lib/engine/client.ts";
+import { modelOf, moduleOf, searchModules, type Manifest } from "#lib/engine/client.ts";
 import { pathKey } from "#lib/review/tree.ts";
 import type { GamePartner } from "./partners.ts";
 
@@ -15,7 +15,7 @@ export type KeptBranches = { version: 1; lines: string[][] } | { version: 2; nod
 export type BranchNode = [string, number] | [string, number, 1];
 /** The Analysis board as kept in the browser (design 21): every node of its tree, the main line's too, and the main
  *  line. One board in each browser, under BOARD_ID in the branches' store. */
-export interface KeptBoard { version: 2; nodes: BranchNode[]; main: string[] }
+export interface KeptBoard { version: 2; nodes: BranchNode[]; main: string[]; start?: string } // start: a set-up position (design 21)
 export const BOARD_ID = "board";
 
 /** The kept branches as version 2's nodes: a version 1 line is the node at its end, in the lines' order. */
@@ -50,34 +50,36 @@ export async function setGameSettings(id: string, settings: GameSettings) {
 }
 
 /** A review that ran to its end (design 13): the engine module's and the network's SHA-256 (the manifest's), the
- *  network's id, and the review's depth. A game exports only when its mark names the site's engine and the network set
- *  now, at the review depth set now or deeper. */
+ *  network's id, and the review's depth. A game exports only when its mark names a module of the site's search, the
+ *  network set now, and the review depth set now or deeper. */
 export interface ReviewMark { module: string; model: string; network: string; visits: number; at: string }
+/** A review to compare a mark with: its mark, and the modules whose search is its module's (client.ts, searchModules). */
+export interface WantedReview extends Omit<ReviewMark, "at"> { modules: string[] }
 
 /** The mark of a review run with `manifest`'s engine and `network` at `visits`, or null when the manifest lacks them. */
-export function reviewMark(manifest: Manifest, network: string, visits: number): Omit<ReviewMark, "at"> | null {
+export function reviewMark(manifest: Manifest, network: string, visits: number): WantedReview | null {
   const module = moduleOf(manifest)?.sha256, model = modelOf(manifest, network)?.sha256;
-  return module && model ? { module, model, network, visits } : null;
+  return module && model ? { module, model, network, visits, modules: searchModules(manifest) } : null;
 }
 
-/** Whether `mark` covers a review with these: the same engine and network, at least as deep. */
-export const reviewCovers = (mark: ReviewMark | undefined, want: Omit<ReviewMark, "at"> | null) =>
-  !!mark && !!want && mark.module === want.module && mark.model === want.model && mark.visits >= want.visits;
+/** Whether `mark` covers a review with these: the same search and network, at least as deep. */
+export const reviewCovers = (mark: ReviewMark | undefined, want: WantedReview | null) =>
+  !!mark && !!want && want.modules.includes(mark.module) && mark.model === want.model && mark.visits >= want.visits;
 
 /** Why a game reviewed before is reviewed again, when the site changed and the player did not: "engine" when the
- *  engine's build changed, "network" when the same network has another file, null otherwise (no review before, or the
+ *  engine's search changed, "network" when the same network has another file, null otherwise (no review before, or the
  *  player chose another network or a deeper review). The stored results are keyed by both, so the review runs again.
  *  The page tells the player why (design 11). */
-export function reviewAgainWhy(mark: ReviewMark | undefined, want: Omit<ReviewMark, "at"> | null): "engine" | "network" | null {
+export function reviewAgainWhy(mark: ReviewMark | undefined, want: WantedReview | null): "engine" | "network" | null {
   if (!mark || !want || mark.network !== want.network) return null;
-  if (mark.module !== want.module) return "engine";
+  if (!want.modules.includes(mark.module)) return "engine";
   return mark.model !== want.model ? "network" : null;
 }
 
-/** Marks a game's review as done. A deeper mark for the same engine and network stays. */
-export async function markReviewed(id: string, mark: Omit<ReviewMark, "at">) {
+/** Marks a game's review as done. A deeper mark of the same search and network stays. */
+export async function markReviewed(id: string, { modules, ...mark }: WantedReview) {
   const game = await dbGet<StoredGame>(STORES.games, id);
-  if (!game || reviewCovers(game.reviewed, mark)) return;
+  if (!game || reviewCovers(game.reviewed, { ...mark, modules })) return;
   await dbPut(STORES.games, id, { ...game, reviewed: { ...mark, at: new Date().toISOString() } });
 }
 

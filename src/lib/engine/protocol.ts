@@ -1,4 +1,4 @@
-// The engine protocol, version 0.4 (the engine repository's docs/design/04-notation-and-protocol.md): KataGo's analysis
+// The engine protocol, version 0.5 (the engine repository's docs/design/04-notation-and-protocol.md): KataGo's analysis
 // protocol as JSON lines, with the rules as actions. Only the fields the site uses are typed. Before 1.0 the protocol
 // is in development (Semantic Versioning's 0.x): any new version may break a client, so a client accepts only the
 // exact version it was written for.
@@ -12,23 +12,35 @@
 // pair and lists the other right after it, with its values, its line mirrored, and `isSymmetryOf` naming the searched
 // edge. A twin is the same move: a second choice or a count of visits skips it (review/model.ts, distinctCandidates).
 //
+// 0.5 checks that a position could occur in a game (request 16): `describe` gives `check` for its `position`, and an
+// analysis of a position that no game reaches gets an error with the reasons. Its search is 0.4's (request 17).
+//
+// 0.6 adds `search` to the engine tag and to `query_version`: the first build that searched as this one does. The
+// site keys stored results by it (analysis/cache.ts). Earlier modules do not report it: the manifest gives it
+// (engine.lock.json).
+//
 // Every win chance and score is from Blue's side. Win chance 0-1. Scores in game points.
 
-export const PROTOCOL = "0.4";
+export const PROTOCOL = "0.5";
 /** The versions a build may report for PROTOCOL. */
-export const PROTOCOL_REPORTED = ["0.4"];
+export const PROTOCOL_REPORTED = ["0.5"];
 
 export type Side = "b" | "r";
 
 /** The engine tag on every analysis reply: which build and which network made it (the network's SHA-256). */
-export interface EngineTag { protocol: string; build: string; model: string }
+export interface EngineTag { protocol: string; build: string; search?: string; model: string }
 
-export interface ErrorReply { id: string; error: string; field?: string }
+/** A reason why a position could not occur in a game (protocol 0.5): its code, words for the player, and the edges
+ *  that it names. */
+export interface CheckReason { code: string; text: string; edges: string[] }
+
+export interface ErrorReply { id: string; error: string; field?: string; reasons?: CheckReason[] }
 
 export interface VersionReply {
   id: string;
   protocol: string;
   build: string;
+  search?: string; // from protocol 0.6
   rules: string;
   model: ModelInfo | null;
   trained: string[];
@@ -54,6 +66,7 @@ export interface DescribeReply {
   moveCount: number;
   legal: string[];
   outcome: { result: string } | null;
+  check?: { possible: boolean; reasons: CheckReason[] }; // the position's, before its moves (protocol 0.5)
 }
 
 export interface PlayReply {

@@ -1,7 +1,7 @@
 # The Analysis board
 
-**Status:** in force. The board editor and starts from another position wait for request 16. **Decided:**
-2026-10-14.
+**Status:** in force. The board editor and starts from another position are built, on the engine's release `27a7414`
+(requests 16 and 17). **Decided:** 2026-10-14.
 
 ## Context
 
@@ -50,10 +50,18 @@ engine does by itself.
    - **Analysis** in the header: the board as the player left it.
    - **A link** that carries a line: `/analysis#record=…` (a record), or `/analysis#packed=…` (a shared analysis),
      with `&at=` for the position (design 22).
-   - **The board's Import,** beside its Export: a record pasted (or Constellation's export), or an analysis file. A
-     record is checked as an import is (the rules, the variant), and its line becomes the main line. It is not kept
-     in the list of games. Its variations stay behind: the record's reader keeps the line only. An analysis file
-     dropped in the Review tab comes here too.
+   - **The board's New menu,** beside its Export: every way to start the board again. Each replaces the analysis kept
+     here, after the board asks (item 6).
+     - **Standard start:** a new analysis from the game's start. Lichess's board needs none, since it keeps no
+       analysis. This board keeps one, so the player needs a way back to an empty one.
+     - **Board editor** (item 10), from the position on screen.
+     - **Import a position or moves:** the position field and the moves field (item 9). The moves field asks for the
+       moves "from the position": a game record, finished or not, or a plain list of edges. "A game" alone would read
+       as a finished game. A position alone opens the board at it. A record is checked as an import is (the
+       rules, the variant), and its line becomes the main line. It is not kept in the list of games. Its variations
+       stay behind: the record's reader keeps the line only.
+     - **Load an analysis file,** with the file chooser. An analysis file dropped in the Review tab comes here too. A
+       file that cannot be read leaves the board as it was, with a line that says why.
 6. **One board in each browser:** its main line, its variations and the moves evaluated, in the browser's store (the
    branches' store, under `board`), and the position on screen, in the browser's local storage. It stays when the
    player leaves, as the review's branches stay. A link or a record brought in replaces it. The page asks first when
@@ -64,22 +72,48 @@ engine does by itself.
      shows.
    - **The analysis file,** to open elsewhere: the lines and the engine's results for every position of them, and of
      the positions one move from them, as a review file chooses them (`src/lib/game/analysisFile.ts`). It opens at
-     once, from the board's Import.
+     once, from the board's Load.
    - **The record,** copied or as a file: the main line, the variations, the result `*` (unfinished, engine design
      04), the marks of the moves evaluated, and the evaluations of the positions searched (design 13's marks and
      `[%eval]` comments).
 8. **Unfinished games:** the notation's result `*` marks a game not finished or not known. A record with `*` can be
    reviewed as any game, or opened on the board.
-9. **A start from another position, and the board editor** (a second step):
+9. **A start from another position:**
+   - **The board's start** is the standard start, or a set-up position in the notation. The standard start written out
+     is no set-up start (`setUpStart` in `src/lib/engine/notation.ts`), so its stored results stay its own. Every query
+     of the board sends it (`position`, with the moves after it), and the stored results' keys name it (`keyMoves` in
+     `src/lib/analysis/cache.ts`), so that a line from one start never takes another start's results.
    - **The record carries the start:** the notation's `[Position "…"]` tag (engine design 04, as PGN's `FEN` tag),
-     with the moves after it. So a link and a file can carry a set-up position. Until this step, such a record is
-     refused with its reason, as now (`variantProblem` in `src/lib/game/import.ts`).
-   - **The editor sets the five fields of a position:** each player's edges, the protected and placed edges, the
-     mover and the edges left in its turn, both scores, and the edge count. It starts from the position on screen, as
-     Lichess's board editor starts from its analysis board.
-   - **The engine checks that a position could occur** (request 16): the rules are the engine repository's. A
-     position that could not occur is not searched, and the editor says why, as Lichess's editor refuses an invalid
-     position.
+     with the moves after it. The board reads it, and its record export writes it. A review refuses such a record,
+     and says to open it on the board (`variantProblem` in `src/lib/game/import.ts`): a review is of a game played
+     from the standard start.
+   - **A link and a file carry it:** the board's link packs it in its tags as `Position`, as a record carries it, and
+     the analysis file keeps it in its board (`start`).
+   - **The turns number from the start's:** the edge count fixes the turn, so a line from edge 4 starts at turn 3,
+     and its first edge can be a turn's second, written `3... D10-G12` in the record and "3. …" in the move list.
+   - **The Import takes a position and moves apart,** as Lichess's board takes a FEN and a PGN: a position field
+     (empty for the standard start) and the moves from it. With both, the record's own `Position` tag must be the same
+     or absent.
+10. **The board editor** (`/editor`, Lichess's board editor):
+    - **Its entries:** the board's New menu and the Import's link, which start it from the position on screen, as
+      Lichess's editor starts from its analysis board, and a card on the home page. Its address is `/editor#position=…`.
+      The position leaves the address at once, and the browser keeps the one being made, so that a reload keeps it.
+    - **Three tools:** Blue's edges, Red's edges, and the marks. An edge is two clicks: its two points, at most 3 apart
+      in each direction (the engine's 48 directions). The same edge again removes it, and the other player's tool
+      gives it to that player. A mark is an edge of the turn: the waiting player's edges of the last turn (protected,
+      `*`) and the mover's edges of this turn so far (placed, `+`). The page writes `*` or `+` from the edge's player
+      and the mover, so a mark follows a change of the edge count. A player has at most two marked edges.
+    - **The edge count and the scores** are fields. The edge count fixes the mover and the edges left in its turn,
+      which the page shows (a pass forfeits the rest of its turn, and the forfeited edges count). The page computes
+      only the notation's turn structure (`moverOf` in `src/lib/editor/position.ts`). The engine checks the rest.
+    - **The position in the notation** is a field too, with a Copy button: it shows the position, and a position
+      pasted there replaces it.
+    - **The engine draws and checks it** at each change (request 16, protocol 0.5's `describe`): the board with its
+      regions, and whether a game could reach it. A position that no game reaches shows the engine's reasons, its
+      named edges glow on the board, and Analyze is off. A finished game (120 edges) cannot be analyzed either.
+    - **Analyze** opens the Analysis board from the position (`/analysis#position=…`), after the board asks before it
+      replaces its analysis.
+    - **Standard start** and **Remove all edges** reset it.
 
 ## Why
 
@@ -109,8 +143,10 @@ engine does by itself.
 ## Consequences
 
 - **Practice** (request 15) can end on the board too: a practice game is a played game, so it opens in the review.
-- **Analytics** (design 17): `analysis_open` when the board opens. A game brought to it is an import, as one brought
-  to the review: `import_game` with `import_to` = analysis. The board's features, settings' changes and exports are
+- **Analytics** (design 17): `editor_open` when the editor opens, and `editor_analyze` for its Analyze.
+  `analysis_open` when the board opens. A game brought to it is an import, as one brought
+  to the review: `import_game` with `import_to` = analysis. A shared analysis or an analysis file is a load:
+  `load_saved` with `load_source`. The board's features, settings' changes and exports are
   the review's events: the page's address tells them apart in the reports.
 - **An unfinished line's end is searched,** on the board and in a review of an unfinished game: the review reads a
   line's last position as the result only when the game is over there (`review` in `src/lib/review/model.ts`).

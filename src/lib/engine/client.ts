@@ -17,6 +17,8 @@ export interface Artifact extends StoredArtifact {
   displayName?: string; // a network's name (the release's manifest): "HedgeFund 0.1 Lite"
   graphOf?: string; // a graph's network (its model's id)
   download: number; // the bytes a browser downloads for it: `bytes`, or the compressed parts'
+  search?: string; // a module's search (request 17), for the modules that do not report it
+  sameSearchAs?: string[]; // the CPU module: the earlier CPU modules of its search, by SHA-256
 }
 /** The CPU module, the GPU module and its JavaScript half, a network, a network's ONNX graph, the notices (the licences
  *  of the works of others), the terms (the engine's own: LICENSE.txt), and ONNX Runtime Web's glue script and
@@ -33,6 +35,18 @@ export async function loadManifest(): Promise<Manifest | null> {
 }
 
 export const moduleOf = (manifest: Manifest) => manifest.artifacts.find(a => a.kind === "module");
+/** The site's search (request 17): the first build that searched as the site's engine does. The module reports it from
+ *  protocol 0.6, the manifest gives it for an earlier module, and a module with neither is its own search. */
+export const searchOf = (manifest: Manifest, version: VersionReply) => version.search ?? moduleOf(manifest)?.search ?? version.build;
+/** The CPU modules whose search is the site's, by SHA-256: its own, and the earlier ones of the same search. A review's
+ *  mark, a review file and a share link name the module that made the review, so a review made with one of these is
+ *  the site's engine's. */
+export const searchModules = (manifest: Manifest) => {
+  const m = moduleOf(manifest);
+  return m ? [m.sha256, ...(m.sameSearchAs ?? [])] : [];
+};
+/** Whether a module, by its SHA-256 or the first hex digits of it (a share link's), searches as the site's. */
+export const sameSearch = (manifest: Manifest, module: string) => !!module && searchModules(manifest).some(m => m.startsWith(module));
 /** The engine's JavaScript library, which drives both modules (library.ts). */
 export const libraryOf = (manifest: Manifest) => manifest.artifacts.find(a => a.kind === "gpu-library");
 /** A network by its id. */

@@ -22,7 +22,7 @@
   const ITEMS = $derived<[ExportKind, string, string, string][]>(items ?? [
     ...(partner ? [["partner_save", `Save to ${partner}`, `The review file, to your account there.`, `Saved to ${partner}`] as [ExportKind, string, string, string]] : []),
     ["share_link", "Copy a link to share the review", "Short. The recipient's browser reviews the game again.", "Link copied"],
-    ["review_file", "Review file, to import elsewhere", "With the engine's results: the review opens at once.", "Review file saved"],
+    ["review_file", "Review file, to load later or elsewhere", "With the engine's results: the review opens at once.", "Review file saved"],
     ["record_copy", "Copy the annotated record", "", "Annotated record copied"],
     ["record_file", "Annotated record as a file", "", "Annotated record saved"],
   ]);

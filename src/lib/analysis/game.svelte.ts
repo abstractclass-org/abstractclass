@@ -32,7 +32,7 @@ import { ONLY_EDGE_GAP } from "#lib/review/labels.ts";
 import type { EdgeRules } from "#lib/board/edgeInput.svelte.ts";
 import { mainIndex, pathKey } from "#lib/review/tree.ts";
 import { STORES, dbGet, dbPut } from "#lib/storage/db.ts";
-import { analysisKey, cacheGetAtLeast, cachePut } from "./cache.ts";
+import { analysisKey, keyMoves, cacheGetAtLeast, cachePut } from "./cache.ts";
 import { Stopped } from "#lib/engine/client.ts";
 import { Cancelled, type EnginePool } from "./pool.ts";
 
@@ -56,7 +56,7 @@ export function boardPosition(d: DescribeReply): Position {
     edges: [d.edges.b.map(parseEdge), d.edges.r.map(parseEdge)],
     protected: d.protected.map(parseEdge), placed: d.placed.map(parseEdge),
     scores: d.scores, areas: d.areas, player: d.mover === "b" ? 0 : 1, movesLeft: d.movesLeft,
-    regions: [d.regions.b.map(ring), d.regions.r.map(ring)], over: d.outcome !== null,
+    regions: [d.regions.b.map(ring), d.regions.r.map(ring)], over: d.outcome !== null, count: d.moveCount, notation: d.position,
   };
 }
 
@@ -128,16 +128,18 @@ export class GameAnalysis {
   private id: string | null = null; // the game's id (game/store.ts), under which its branches are kept
   private nextOrder = 0;
   readonly board: boolean; // the Analysis board's form (design 21)
+  readonly startPosition: string | null; // the board's set-up start, in the notation: the standard start when null
   // The board's main-line moves that the player asked to evaluate, by path key: only these have labels. A branch node
   // keeps its own flag (judged).
   judgedMain = $state.raw<Record<string, true>>({});
   private partials = new Map<string, { path: string[]; reply: AnalysisReply; era: number }>(); // keepPartial
   private partialTimer: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(pool: EnginePool, moves: string[], board = false) {
+  constructor(pool: EnginePool, moves: string[], board = false, startPosition: string | null = null) {
     this.pool = pool;
     this.moves = moves;
     this.board = board;
+    this.startPosition = startPosition;
     this.analysis = Array(moves.length + 1).fill(undefined);
     this.reached = Array(moves.length + 1).fill(0); // the end too, where the game is not over (passCount)
   }
@@ -198,7 +200,7 @@ export class GameAnalysis {
   /** Describes every position (the rules, no network), then sweeps the game. */
   async start() {
     try {
-      const game = await describeGame(this.pool.rules, this.moves);
+      const game = await describeGame(this.pool.rules, this.moves, 0, this.startPosition);
       const positions = game.positions.map(boardPosition);
       this.played = this.moves.map((m, i) => {
         const cut = game.cuts[i];
@@ -307,13 +309,13 @@ export class GameAnalysis {
 
   /** The review from the browser's store alone, with no search (an export away from the review page, design 13): each
    *  position of the game and of its branches at the label budget or deeper, or the sweep's where that is all there is,
-   *  then the positions that confirm the Greats. Call after start(). `build` and `model` name the engine whose results
+   *  then the positions that confirm the Greats. Call after start(). `search` and `model` name the engine whose results
    *  to read. */
-  async fromStore(build: string, model: string) {
+  async fromStore(search: string, model: string) {
     const take = async (path: string[]) => {
-      const moves = this.engineMoves(path);
-      const a = (await cacheGetAtLeast<Analysis>(build, model, moves, this.labelVisits))
-        ?? (await cacheGetAtLeast<Analysis>(build, model, moves, SWEEP_VISITS));
+      const moves = this.keyMovesOf(path);
+      const a = (await cacheGetAtLeast<Analysis>(search, model, moves, this.labelVisits))
+        ?? (await cacheGetAtLeast<Analysis>(search, model, moves, SWEEP_VISITS));
       if (a) this.keep(path, a);
     };
     await Promise.all(Array.from({ length: this.moves.length }, (_, i) => take(this.mainNames.slice(0, i))));
@@ -339,7 +341,7 @@ export class GameAnalysis {
     let k = path.length;
     while (k > 0 && !this.known(path.slice(0, k))) k--;
     if (k === path.length) return;
-    const { positions, cuts } = await describeGame(this.pool.rules, [...this.engineMoves(path.slice(0, k)), ...path.slice(k)], k);
+    const { positions, cuts } = await describeGame(this.pool.rules, [...this.engineMoves(path.slice(0, k)), ...path.slice(k)], k, this.startPosition);
     const next = { ...this.branches };
     for (let j = 1; j < positions.length; j++) {
       const m = path[k + j - 1], cut = cuts[j - 1], p = path.slice(0, k + j);
@@ -434,12 +436,12 @@ export class GameAnalysis {
 
   /** The rules of a position anywhere in the tree, for the player's own moves: the legal edges and the mover's nodes. */
   async rulesAt(path: string[]): Promise<EdgeRules> {
-    const { reply } = await this.pool.rules.describe({ moves: this.engineMoves(path) });
+    const { reply } = await this.pool.rules.describe(this.query(path));
     return { legal: reply.legal.filter(m => m.includes("-")).map(parseEdge), nodes: reply.nodes[reply.mover].map(parsePoint) };
   }
 
-  /** Keeps the game's branches in the browser: each node's key and order. Not for a game deleted meanwhile (on the
-   *  home page, in another tab): its branches would come back with a later import of the game. */
+  /** Keeps the game's branches in the browser: each node's key and order. Not for a game deleted meanwhile (in the
+   *  Review tab, in another tab): its branches would come back with a later import of the game. */
   private async keepBranches() {
     if (this.board) {
       await dbPut(STORES.branches, BOARD_ID, this.keptBoard());
@@ -497,7 +499,7 @@ export class GameAnalysis {
   /** Board: the tree as the browser keeps it: every node, the main line's too, and the main line. */
   keptBoard(): KeptBoard {
     const nodes = Object.entries(this.treeNodes()).map(([k, n]): KeptNode => (n.judged ? [k, n.order, 1] : [k, n.order]));
-    return { version: 2, nodes, main: [...this.mainNames] };
+    return { version: 2, nodes, main: [...this.mainNames], ...(this.startPosition ? { start: this.startPosition } : {}) };
   }
 
   /** Board: the engine is ready once the pool has a network. No pass runs: the engine searches the position on screen
@@ -576,6 +578,14 @@ export class GameAnalysis {
   private engineMoves(path: string[]): string[] {
     const i = mainIndex(path, this.mainNames);
     return i !== null ? this.moves.slice(0, i) : [...path];
+  }
+  /** A query's position: the moves for a path, from the board's set-up start when it has one. */
+  private query(path: string[]) {
+    return { ...(this.startPosition ? { position: this.startPosition } : {}), moves: this.engineMoves(path) };
+  }
+  /** The moves part of a path's stored results' key, which names the set-up start too (cache.ts, keyMoves). */
+  private keyMovesOf(path: string[]): string[] {
+    return keyMoves(this.startPosition, this.engineMoves(path));
   }
 
   /** A position the engine can search: on the game's line before its end, or a branch node where the game goes on. */
@@ -691,7 +701,7 @@ export class GameAnalysis {
   /** Each edge of a line from the position at `path`, played: the edge it cuts (or null), and the regions and areas
    *  after it. The rules, no network. */
   async lineSteps(path: string[], line: Edge[]): Promise<LineStep[]> {
-    const { positions, cuts } = await describeGame(this.pool.rules, [...this.engineMoves(path), ...line.map(edgeName)], path.length);
+    const { positions, cuts } = await describeGame(this.pool.rules, [...this.engineMoves(path), ...line.map(edgeName)], path.length, this.startPosition);
     return cuts.map((c, k) => ({
       cut: c === null ? null : parseEdge(c), regions: boardPosition(positions[k + 1]).regions, areas: positions[k + 1].areas,
     }));
@@ -728,12 +738,12 @@ export class GameAnalysis {
   } = {}): Promise<boolean> {
     const { sliced = false, wanted = () => true, seconds = null, ontime, early } = options;
     const slice = sliced ? SLICE_VISITS : early && early < visits ? early : null;
-    const era = this.era, pool = this.pool, moves = this.engineMoves(path);
-    const key = analysisKey(pool.version!.build, pool.model!.sha256, moves, visits);
+    const era = this.era, pool = this.pool, moves = this.engineMoves(path), keyed = this.keyMovesOf(path);
+    const key = analysisKey(pool.search!, pool.model!.sha256, keyed, visits);
     const held = () => this.analysisOf(path)?.visits ?? 0;
     const keep = (a: Analysis) => { if (era === this.era) this.keep(path, a); };
     if (held() >= visits) return true;
-    const cached = await cacheGetAtLeast<Analysis>(pool.version!.build, pool.model!.sha256, moves, visits);
+    const cached = await cacheGetAtLeast<Analysis>(pool.search!, pool.model!.sha256, keyed, visits);
     if (era !== this.era) return false;
     if (cached) { keep(cached); return true; }
     if (held() >= visits) return true;
@@ -741,7 +751,8 @@ export class GameAnalysis {
     return pool.run(priority, tag, (engine, onStop) => this.marked(pathKey(path), async () => {
       if (held() >= visits) return true;
       if (this.paused || !wanted() || era !== this.era) return false;
-      const run = engine.analyse({ moves, maxVisits: visits, includePVVisits: true, ...(slice ? { slice: { visits: slice } } : {}) },
+      const run = engine.analyse({ ...(this.startPosition ? { position: this.startPosition } : {}), moves, maxVisits: visits,
+                                   includePVVisits: true, ...(slice ? { slice: { visits: slice } } : {}) },
                                  r => this.keepPartial(path, r, era));
       if (sliced) onStop(run.stop); // the pool may stop it to give way, and runs it again later
       if (tag === "focus") this.stopFocus = run.stop;

@@ -66,7 +66,7 @@ than D, the confirmation searches as deep: the largest doubling of D within that
   D. An import with the file's settings searches nothing.
 - **A share link** (design 13) carries the record, the branches, and the network and D. It carries no results: the
   recipient's browser runs the review's own searches (section 1), and gets the same results for them with the same
-  engine build (on a GPU, the network's arithmetic differs a little: design 15). It does not carry the sender's deeper
+  engine search (on a GPU, the network's arithmetic differs a little: design 15). It does not carry the sender's deeper
   looks (example 9).
 
 ### 6. What the page says
@@ -112,7 +112,7 @@ Lite (D = 512), P = 1,024, and a time limit of 30 s.
    its labels and the report go back. The position is not searched again for the same P and time limit while the page
    is open.
 7. **A review file, at the same settings.** Alice exports her finished review (Lite, 512). Bob, on Lite at 512 and on
-   the same site, so with the same engine build, imports it. The game opens with every result, the Greats'
+   the same site, so with the same engine search, imports it. The game opens with every result, the Greats'
    confirmations among them, and the engine searches nothing. The game keeps Lite and 512, which are Bob's settings
    too.
 8. **A review file with other settings, and deeper looks.** Alice reviewed with HedgeFund 0.1 at Custom 4,096, and

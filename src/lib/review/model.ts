@@ -28,6 +28,15 @@ export interface Position {
   movesLeft: number;
   regions: [Region[], Region[]];
   over?: boolean; // the game has ended here (the engine's outcome)
+  count?: number; // the edges played so far, forfeited ones too (the notation's edge count)
+  notation?: string; // the position in the notation (the engine's describe)
+}
+
+/** The turn of the next edge from a position with `count` edges played, and whether that edge opens its turn. The
+ *  notation's turn structure (the /notation page): Blue's first turn has one edge, then turns of two, and Blue's last
+ *  turn one. A pass counts the edges it forfeits, so the count alone fixes the turn. */
+export function turnFromCount(count: number): { turn: number; first: boolean } {
+  return count === 0 ? { turn: 1, first: true } : { turn: Math.floor((count - 1) / 2) + 2, first: (count - 1) % 2 === 0 };
 }
 /** A move: an edge, or null for a timeout pass (the rest of the turn forfeited). */
 export interface Move { player: Player; edge: Edge | null; cut: Edge | null }
@@ -110,6 +119,7 @@ export interface EdgeReview {
 }
 export interface TurnReview {
   number: number;
+  continued?: boolean; // the line starts in this turn's middle: its first edge was played before the start
   player: Player;
   edges: EdgeReview[];
   start: number; // the turn leads from position start to position end
@@ -318,10 +328,12 @@ export function review(data: ReviewData, kind: ScoreKind = "lead", minVisits = 0
              label: j?.label ?? null, best, ...hardness(complexity(a, m.player)) };
   });
   const turns: TurnReview[] = [], turnOf: TurnReview[] = [];
+  const from = turnFromCount(data.positions[0]?.count ?? 0); // a line from a set-up position numbers from its turn
   for (const e of edges) {
     const last = turns.at(-1);
     if (last && last.player === e.player) { last.edges.push(e); last.end = e.index + 1; }
-    else turns.push({ number: turns.length + 1, player: e.player, edges: [e], start: e.index, end: e.index + 1, loss: 0,
+    else turns.push({ number: from.turn + turns.length, ...(!turns.length && !from.first ? { continued: true } : {}),
+                      player: e.player, edges: [e], start: e.index, end: e.index + 1, loss: 0,
                       pointsLost: undefined, rawLoss: 0, rawPoints: undefined, label: null, best: undefined, complexity: undefined, hard: false });
     turnOf.push(turns.at(-1)!);
   }
@@ -552,3 +564,6 @@ export function onlyJudged(R: Review, judged: (edge: number) => boolean): Review
   });
   return { ...R, edges, turns, turnOf: R.edges.map(e => turns[R.turns.indexOf(R.turnOf[e.index])]) };
 }
+
+/** Whether edge `i` opens its turn, as the move list writes it: "12." for the first edge, "12..." for the second. */
+export const opensTurn = (t: TurnReview, i: number) => t.edges[0].index === i && !t.continued;

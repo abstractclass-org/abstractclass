@@ -24,13 +24,16 @@
   </div>
 
   <h2 id="early-access">Early access</h2>
-  <p>For now the site does one thing: it reviews your games. Puzzles and lessons come later. Tell us what works and what
-    does not in <a href={DISCORD}>the Discord</a>.</p>
+  <p><strong>Everything here can change:</strong> the pages and their addresses, the labels and how they judge a move,
+    the engine and its networks, the files and links that the site makes, and what it keeps in your browser. After a
+    change, an old link or file can stop working, and a review can read differently.</p>
+  <p>For now the site reviews your games and has an Analysis board. Puzzles and lessons come later. Tell us what works
+    and what does not in <a href={DISCORD}>the Discord</a>.</p>
 
   <h2>How a review works</h2>
   <ul>
-    <li><strong>Your game:</strong> paste its record on the home page, paste the export of Constellation's analysis
-      board, or bring a meaf.us game with the <a href="/tools">bookmarklet</a>. The records are described on
+    <li><strong>Your game:</strong> paste its record in the <a href="/review">Review tab</a>, or bring a meaf.us game
+      with the <a href="/tools">bookmarklet</a>. The records are described on
       <a href="/notation">the notation page</a>.</li>
     <li><strong>The engine</strong> runs in your browser, on your computer: nothing is sent to a server. A review takes
       a few minutes, first a quick look at every position, then a deeper search where it matters.</li>

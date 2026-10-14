@@ -15,7 +15,7 @@
 	let { children }: LayoutProps = $props();
 
 	// The site map (docs/research/01-ux-survey.md, section 8). Sections not built yet show as text. The early access has
-	// the review and the Analysis board. Review opens the last game reviewed in this browser (design 11).
+	// the review and the Analysis board. Review opens the Review tab (design 22).
 	const NAV = EARLY_ACCESS ? [{ href: '/review', label: 'Review' }, { href: '/analysis', label: 'Analysis' }] : [
 		{ href: '/review', label: 'Review' },
 		{ href: '/analysis', label: 'Analysis' },
@@ -23,8 +23,10 @@
 		{ href: '/learn', label: 'Learn' },
 		{ href: '/lab/engine', label: 'Engine lab' },
 	];
-	// The pages about the site, on the header's right. The rest are in the footer of the pages that have one.
-	const ABOUT = [{ href: '/notation', label: 'Notation' }, { href: '/about', label: 'About' }];
+	// The pages about the site, on the header's right. The rest are in the footer of the pages that have one. Tools
+	// shows from the width of a tablet: its bookmarklet and userscript are for a computer's browser, and on a phone a
+	// third row would make the header taller (design 22).
+	const ABOUT = [{ href: '/tools', label: 'Tools', wide: true }, { href: '/notation', label: 'Notation' }, { href: '/about', label: 'About' }];
 	const linkClass = (href: string) => ["no-underline hover:text-ink", page.url.pathname.startsWith(href) ? "text-ink" : "text-muted"];
 
 	// The visit counts start here, unless the address holds a game after its `#` (holdsGame): the page that takes it out
@@ -66,7 +68,7 @@
 		{/each}
 	</nav>
 	<nav class="flex flex-wrap gap-4.5 ml-auto text-sm">
-		{#each ABOUT as item (item.href)}<a href={item.href} class={linkClass(item.href)}>{item.label}</a>{/each}
+		{#each ABOUT as item (item.href)}<a href={item.href} class={[linkClass(item.href), item.wide && "max-sm:hidden"]}>{item.label}</a>{/each}
 	</nav>
 	<ThemeMenu />
 </header>

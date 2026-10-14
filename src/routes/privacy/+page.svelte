@@ -45,10 +45,10 @@
     it, {SITE_NAME} opens that site's page and hands it the review file, from your browser to that site: the game, its
     branches and the engine's results. That site keeps it under its own terms. Nothing goes to it before you choose,
     and nothing else ever does. To open a review that it kept, that site's page sends the file back to {SITE_NAME} in
-    your browser, and it is kept here as any review file you import.</p>
+    your browser, and it is kept here as any review file you load.</p>
 
   <h2>The meaf.us bookmarklet and userscript</h2>
-  <p>The bookmarklet runs in the meaf.us page that you have open. It reads the game on the board, with nothing from your
+  <p>The bookmarklet runs in the <a href="https://meaf.us/sst1/">meaf.us</a> page that you have open. It reads the game on the board, with nothing from your
     meaf.us login and no request to meaf.us, and opens {SITE_NAME} with the game after the <code>#</code> in the
     address. Browsers never send that part of an address to a server, and the page removes it at once. On your own
     finished game, which meaf.us shows without its moves, it opens the same meaf.us page again as a watcher's view
@@ -74,12 +74,15 @@
     review's address names its game after the <code>#</code>, which neither records.</p>
   <p>Google Analytics also receives what you do here, as counts, so that we can tell what to improve:</p>
   <ul>
-    <li>that you imported a game, to a review or to the Analysis board, and how (pasted, from Constellation, a review
-      or an analysis file, the bookmarklet, the userscript, a share link, another site's link or a review that another
-      site kept), its length as a range (for example 90 to 119 edges), or why an import failed;</li>
+    <li>that you imported a game, to a review or to the Analysis board, and how (pasted, from <a href="https://constellation.blueshrimp.uk">Constellation</a>, the
+      bookmarklet, the userscript or another site's link), its length as a range (for example 90 to 119 edges), or why
+      an import failed;</li>
+    <li>that you loaded a review or an analysis, and how (a review or an analysis file, a share link, or a review that
+      another site kept), its game's length as a range, or why a load failed;</li>
     <li>that a review opened and ended: the engine settings it ran with, your computer's number of cores as a range,
       how long the review took, and how fast the engine searched;</li>
     <li>that the Analysis board opened, with its main line's length as a range;</li>
+    <li>that the board editor opened, and that you sent its position to the Analysis board;</li>
     <li>the GPU's first test: faster or slower than the CPU, and the GPU's maker and kind;</li>
     <li>the engine settings you change, the features you use (each once in a review, or in a visit to the Analysis
       board), and your exports (a review saved to a partner site among them), with a share link's length as a range;</li>

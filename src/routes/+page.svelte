@@ -1,6 +1,6 @@
 <script lang="ts">
   // Home (design 22): what Hedge School is, and the way into each tab: the Review tab, to import a game and review it,
-  // and the Analysis board. In the full site, the daily puzzle and the next lesson too. Lichess's front page leads with
+  // the Analysis board, and its board editor. In the full site, the daily puzzle and the next lesson too. Lichess's front page leads with
   // play. This site leads with review, its main job (design 01).
   import Board from "#lib/board/Board.svelte";
   import { review, PLAYER_NAME } from "#lib/review/model.ts";
@@ -31,14 +31,20 @@
     <a class={CARD} href="/review">
       <span class={EYEBROW}>Review</span>
       <strong>Review a game</strong>
-      <span class="text-sm text-muted">Import a game you played, by its record or a review file, and the engine judges each
-        move. Your games and your last review are there too.</span>
+      <span class="text-sm text-muted">Import a game you played by its record, or load a review file, and the engine judges
+        each move. Your games and your last review are there too.</span>
     </a>
     <a class={CARD} href="/analysis">
       <span class={EYEBROW}>Analysis</span>
       <strong>The Analysis board</strong>
-      <span class="text-sm text-muted">Play any line from the start, or import one, and the engine searches the position on
-        screen. Ask for a move's quality when you want it.</span>
+      <span class="text-sm text-muted">Play any line from the start, import one, or load an analysis file, and the engine
+        searches the position on screen. Ask for a move's quality when you want it.</span>
+    </a>
+    <a class={CARD} href="/editor">
+      <span class={EYEBROW}>Board editor</span>
+      <strong>Set up a position</strong>
+      <span class="text-sm text-muted">Place each player's edges, and the engine checks that a game can reach the position.
+        Then analyze it on the board.</span>
     </a>
   </div>
 

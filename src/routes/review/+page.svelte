@@ -16,14 +16,14 @@
   import Arrival from "#lib/review/Arrival.svelte";
   import ReviewHome from "#lib/review/ReviewHome.svelte";
   import { holdsGame } from "#lib/game/importHash.ts";
-  import { snapshotBuild } from "#lib/analysis/cache.ts";
+  import { snapshotSearch } from "#lib/analysis/cache.ts";
   import { review, type ReviewData } from "#lib/review/model.ts";
   import { EnginePool } from "#lib/analysis/pool.ts";
   import { GameAnalysis, LABEL_VISITS, SWEEP_VISITS, momentVisits } from "#lib/analysis/game.svelte.ts";
   import { NETWORKS, loadEngine, reviewVisits, saveEngine, withReview, type EngineSettings } from "#lib/analysis/engineSettings.ts";
   import { trackSettingChange } from "#lib/analysis/settingChanges.ts";
   import { GpuControl, gpuDownloadMB } from "#lib/analysis/gpu.svelte.ts";
-  import { loadManifest, moduleOf, modelOf, type Manifest } from "#lib/engine/client.ts";
+  import { loadManifest, modelOf, sameSearch, type Manifest } from "#lib/engine/client.ts";
   import { errorText } from "#lib/errors.ts";
   import { gamePage, playerNames } from "#lib/game/record.ts";
   import type { GamePartner } from "#lib/game/partners.ts";
@@ -399,15 +399,15 @@
     network = settings.network;
     try {
       await rules.start(manifest!, network);
-      const sameEngine = mark.module === moduleOf(manifest!)?.sha256; // a new file of the network alone
+      const sameEngine = sameSearch(manifest!, mark.module); // a new file of the network alone
       const lines = Array.from({ length: Math.max(0, moves.length - 1) }, (_, i) => moves.slice(0, i + 1));
-      const build = await snapshotBuild(mark.model, lines, mark.visits, sameEngine ? undefined : rules.version!.build);
-      if (!build) { rules.terminate(); return false; }
+      const search = await snapshotSearch(mark.model, lines, mark.visits, sameEngine ? undefined : rules.search!);
+      if (!search) { rules.terminate(); return false; }
       const g = new GameAnalysis(rules, moves);
       g.setReview(mark.visits);
       await g.start();
       if (!g.rulesReady) { rules.terminate(); return false; } // the review shows why
-      await g.fromStore(build, mark.model);
+      await g.fromStore(search, mark.model);
       const date = new Date(mark.at).toLocaleDateString("en", { year: "numeric", month: "long", day: "numeric" });
       const what = why === "engine" ? "the engine" : (modelOf(manifest!, network)?.displayName ?? "the network");
       snapshot = { visits: mark.visits, text: `Reviewed on ${date} with an earlier version of ${what}.` };

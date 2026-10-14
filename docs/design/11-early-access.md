@@ -16,18 +16,21 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
    settings a browser holds stay. The local folder keeps its name too.
 2. **The scope: the review and the Analysis board** (design 21).
    - **The home page:** what Hedge School is, and the way into each tab (design 22).
-   - **The Review tab:** import a game, continue the last review, and the player's games. No sample game: a review
-     opens on a game the player brought. Each game has a Delete ([below](#deleting-a-game)).
+   - **The Review tab:** import a game, load a review file, continue the last review, and the player's games. No
+     sample game: a review opens on a game the player brought. Each game has a Delete ([below](#deleting-a-game)).
    - **The ways to bring a game:** a pasted record in this site's notation, a pasted export of Constellation's
-     analysis board, and the meaf.us bookmarklet ([import](#constellations-export) below).
+     analysis board, and the meaf.us bookmarklet ([import](#constellations-export) below). The pages name the record
+     and the meaf.us tools. Constellation's export is on the notation page only, as a notation whose columns have `I`.
    - **The header:** the name, which leads home, with "Early Access" beside it in the accent colour, which leads to the
-     About page's section on the early access. Then Review and Analysis, and on its right The notation, About and the
-     theme menu: System (the default: the computer's light or dark), Light or Dark. Its button shows the choice: a
-     half-filled circle, a sun or a moon. The choice is kept in this browser, and a script in the page's head applies it
-     before the page draws, so that a page never shows the other theme first. On a phone the header's gaps narrow, so
-     that it fits in 360 pixels. Review opens the Review tab, where the last game reviewed in this browser is a click
-     away. A review's address names its game, so a reload keeps it. **The footer,** on the pages that scroll (the home
-     page and the pages about the site): About, The notation, For developers, Privacy, Notices, the site's version (its
+     About page's section on the early access. That section says first that everything can change (the pages and their
+     addresses, the labels, the engine, the files and links, what the browser keeps), then what the site does now. Then
+     Review and Analysis, and on its right Tools (from a tablet's width, design 22), The notation, About and the theme
+     menu: System (the default: the computer's light or dark), Light or Dark. Its button shows the choice: a half-filled
+     circle, a sun or a moon. The choice is kept in this browser, and a script in the page's head applies it before the
+     page draws, so that a page never shows the other theme first. On a phone the header's gaps narrow, so that it fits
+     in 360 pixels. Review opens the Review tab, where the last game reviewed in this browser is a click away. A
+     review's address names its game, so a reload keeps it. **The footer,** on the pages that scroll (the home page and
+     the pages about the site): About, Tools, The notation, For developers, Privacy, Notices, the site's version (its
      commit), the site's copyright line, and "Enclosure by webgoatguy", so that the copyright does not read as the
      game's. The review has no footer: it fills the window. The About page credits webgoatguy as the game's designer,
      and says that the site is not an official site of the game: it is made independently of webgoatguy, meaf.us and
@@ -112,6 +115,9 @@ one item for each turn, separated by spaces.
   from the bottom on both sites (checked on Constellation's board).
 - The import turns the export into this site's record (`[Site "Constellation"]`, then the turns), which the engine
   checks and the site keeps like any other record.
+- **Where the site describes it:** the notation page, in "Columns with I": a notation with `I` among its columns,
+  read only in a form that the site knows, since a list of edges looks the same in both letterings. The import
+  boxes and the tools page do not name it: it is one more notation that a pasted record can be in.
 
 ### Deleting a game
 

@@ -35,7 +35,8 @@ A10-D10,D10-E11,D10-F13+ Q10-T10,Q10-T13*,T10-T13* b1 0/4.5 4`;
   <p>Two notations describe Enclosure: a <strong>position</strong> on one line, as FEN describes a chess position, and a
     <strong>game record</strong>, as PGN records a chess game. They come from the design of the enclosure-ai project,
     whose engine reviews games here. This page describes them for anyone who writes a program that reads or writes
-    them. {SITE_NAME} reads game records in this notation.</p>
+    them. {SITE_NAME} reads game records in this notation, and positions on the Analysis board and in its board
+    editor.</p>
 
   <h2>Points</h2>
   <p>The board has 19 × 19 points. A point is a column letter and a row number, as in Go's GTP:</p>
@@ -190,12 +191,16 @@ A10-D10,D10-E11,D10-F13+ Q10-T10,Q10-T13*,T10-T13* b1 0/4.5 4`;
   <p>Nothing follows the result.</p>
 
   <h2>What else {SITE_NAME} reads</h2>
+  <p><strong>A plain list of edges,</strong> without turn numbers: the turns follow from the rules.</p>
+
+  <h3>Columns with I</h3>
+  <p>This notation's columns skip <code>I</code>, as Go's do. Some sites letter their columns <code>A</code> to
+    <code>S</code> with <code>I</code>. {SITE_NAME} also reads such a notation, and moves each column to its place in
+    the alphabet without <code>I</code>: <code>P10</code> is <code>Q10</code>. A list of edges looks the same in both
+    letterings, so {SITE_NAME} reads the other lettering only in a form that it knows:</p>
   <ul>
-    <li><strong>A plain list of edges,</strong> without turn numbers: the turns follow from the rules.</li>
-    <li><strong>Constellation's export</strong> (its analysis board's Export): the start in brackets, then one item for
-      each turn, two edges written as a path or apart with a comma. Its columns are <code>A</code> to <code>S</code>
-      with <code>I</code>, so {SITE_NAME} moves each column to its place in the alphabet without <code>I</code>
-      (<code>P10</code> is <code>Q10</code>):</li>
+    <li><strong><a href="https://constellation.blueshrimp.uk">Constellation</a>'s export</strong> (its analysis board's Export): the start in
+      brackets, then one item for each turn, two edges written as a path or apart with a comma.</li>
   </ul>
   <pre>{CONSTELLATION}</pre>
 

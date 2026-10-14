@@ -950,3 +950,23 @@ Blunder's loss.
   the graphics card, its driver and the system (on a laptop's integrated GPU, the graphics memory is the system's). The
   workers' line gave "about 100 MB" (Lite) and "about 255 MB" (HedgeFund 0.1). Both lines now say that more memory is
   used, and ask the player to mind it.
+
+### The release 27a7414: protocol 0.5, the position check, results kept by search (2026-10-14)
+
+- **What:** the engine repository's release `wasm-v2-engine-27a7414`: both modules at build 27a7414, protocol 0.5
+  (request 16). The networks, their graphs, `gpu_engine.mjs`, `NOTICES.txt` and `LICENSE.txt` are the same bytes as in
+  `wasm-v2-engine-fdfe5ad`.
+- **The change:** `describe` gives `check` for its position, and an analysis of a position that no game reaches gets
+  an error with the reasons. The board editor uses them (design 21).
+- **The same search** (request 17): `27a7414` searches as `fdfe5ad`. The site now keys stored results by the search,
+  not by the build (`searchOf` in `src/lib/engine/client.ts`): the module reports it from protocol 0.6, and
+  `engine.lock.json` gives it for the modules that do not (`search`). A review's mark, a review file and a share link
+  name the CPU module by its SHA-256, so the lock also lists the earlier CPU modules of the same search
+  (`sameSearchAs`). A review made with one of them counts as the site's engine's (`searchModules`, `sameSearch`).
+- **What a player sees:** nothing. The results kept under `fdfe5ad` already have the search's name in their key, so a
+  game reviewed before opens as a review done, not as a snapshot (design 20). Before request 17, every build searched
+  the stored reviews again once.
+- **Checks:** `npm run engine` fetched both modules, and their SHA-256 match the release's. `npm test` passes (87),
+  `npm run check` has no errors. In Edge, on the local build: a game reviewed with `fdfe5ad` opened with
+  `engine-27a7414`, with its labels and report from the stored results, and the position on screen searched. The GPU's
+  first-use test runs again once: it is kept for each GPU module (design 15).

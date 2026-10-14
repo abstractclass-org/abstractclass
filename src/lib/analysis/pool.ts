@@ -7,7 +7,7 @@
 // The GPU module's engines (engine/gpuClient.ts) join the pool as more search engines, a slot each (design 15). The GPU
 // gains by many searches at once, whose evaluations go to it together, and each of its searches runs slower than a CPU
 // worker's. So a task takes a free CPU worker first, and a free GPU slot when no CPU worker is free.
-import { EngineError, EngineWorker, modelOf, moduleOf, type Manifest, type Timed } from "#lib/engine/client.ts";
+import { EngineError, EngineWorker, modelOf, moduleOf, searchOf, type Manifest, type Timed } from "#lib/engine/client.ts";
 import type { GpuEngines } from "#lib/engine/gpuClient.ts";
 import type { AnalysisQuery, AnalysisReply, ModelInfo, VersionReply } from "#lib/engine/protocol.ts";
 
@@ -50,6 +50,7 @@ interface Task {
 export class EnginePool {
   readonly engines: EngineWorker[];
   version: VersionReply | null = null;
+  search: string | null = null; // the engine's search, which keys the stored results (client.ts, searchOf)
   model: ModelInfo | null = null;
   private free: SearchEngine[] = [];
   private queue: Task[] = [];
@@ -102,7 +103,11 @@ export class EnginePool {
       this.dispatch();
     };
     await Promise.all([
-      (async () => { this.version = (await this.rulesWorker.init(manifest)).reply; await onRules?.(); })(),
+      (async () => {
+        this.version = (await this.rulesWorker.init(manifest)).reply;
+        this.search = searchOf(manifest, this.version);
+        await onRules?.();
+      })(),
       ...this.engines.map(load),
     ]);
   }
