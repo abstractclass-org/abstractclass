@@ -6,43 +6,50 @@ It holds no backlog: everything still to do that is not in flight is in
 
 ## State
 
-- **Live:** `543d5df` on `main` and `dev`, released on 2026-10-14. The site has the Review tab, the Analysis board with
-  its New menu, the board editor (`/editor`), Tools in the header, and Import and Load as two acts (designs 21 and 22,
-  decisions/product.md, the entries of 2026-10-14).
+- **Live:** `f55e0f6` on `main` and `dev`, released on 2026-10-14. Since `543d5df`, two releases:
+  - `ab857d7`: search engines (design 23). `robots.txt` allows every page and names the sitemap. Each page has its
+    title, description, canonical address and Open Graph tags.
+  - `f55e0f6`: the review without layout shift, with a skeleton of its layout while it starts (design 06, item 10).
+    Also persistent storage, games that end early, the page How a review works (`/how-reviews-work`), a shorter
+    footer, and `/favicon.ico` (design 12). See decisions/product.md, the entries of 2026-10-14.
 - **The engine:** protocol 0.5, the release `wasm-v2-engine-27a7414` (both modules), its library and graphs from
   `wasm-v2-engine-632f2a0`, the networks HedgeFund 0.1 Lite (`b10c128-s66625408`) and HedgeFund 0.1
   (`b15c192-s66999040`). The stored results are keyed by the engine's search, `fdfe5ad` (request 17,
   decisions/engine.md, "The release 27a7414").
-- **Checks on `543d5df`:** `npm test` passes (94), `npm run check` has no errors or warnings, `npm run build`
-  succeeds. The live site serves `engine-27a7414`, `/editor` and the home page's editor card (checked by HTTP).
+- **Checks on `f55e0f6`:** `npm test` passes (95), `npm run check` has no errors or warnings, `npm run build`
+  succeeds. The layout shift and the skeleton were checked in Edge on the local build. The live site serves
+  `/favicon.ico` (3 images), `/how-reviews-work`, the sitemap with it, and `/review` with the new icon link (checked
+  by HTTP). Not checked in Edge on the live site.
 
 ## In flight
 
-- **Google Analytics, the changes for loads and the board editor** (design 17, "After the setup"): done on
-  2026-10-14, except one step. To do: star `load_saved` as a key event (Admin, **Events**). Google lists an event
-  only some hours after it first receives one, from a load on the live site. Done: the dimensions **Load source** and
-  **Load failure**, the new descriptions, the funnel's step "Game in" in both tabs and its tab **By load**, the tab
-  **Editor users**, and the tabs **Loads** and **Failed loads** with **Load source** in **Old address**.
+- **Request 18** (every position of a game in one request) is with the engine repository's session. When a release
+  brings it, use it in the review's start (`describeGame` in `src/lib/analysis/game.svelte.ts`), then do the checks
+  in the request's "Done when".
 - **The next engine release** (request 15, Practice) brings protocol 0.6, with `search` in the engine tag and in
   `query_version`. The site accepts protocol 0.5 only (`PROTOCOL_REPORTED` in `src/lib/engine/protocol.ts`). To move to
   it: accept 0.6, take the search from the module (`searchOf` reads `version.search` first), and add 27a7414's CPU
   module to the lock's `sameSearchAs` if the search stays `fdfe5ad`.
-- **Another session's commit went live with this one:** `94d2861` (Cloudflare's alerts and what it shows, in
-  hosting.md, decisions/product.md and the backlog) was on `dev` when `b764038` was pushed to `main`. It changes
-  documents only. Its two tasks for the owner are done: the cache rule for the tools' files, and no `VITE_GA_ID` in the
-  previews.
-- **Not checked on the live site:** the board editor and the New menu in Edge (checked on the local build only).
+- **The layout shift on the live site:** Cloudflare's Web Analytics gave `/review` a CLS of 0.151 before `f55e0f6`.
+  On the local build it is now 0 to 0.0023 at the window sizes measured, and 0 on the Review tab. Read Cloudflare's
+  Core Web Vitals for `/review` after a few days of visits (hosting.md, "What Cloudflare shows").
+- **Google Search Console** (design 23, item 10): the owner registers the site and submits the sitemap. Not done
+  yet.
 
 ## Working notes
 
+- **Timing the review's start:** `src/routes/review/+page.svelte` sets the performance marks `review:rules` (the rules
+  answered) and `review:shown` (the review shows). Read them with `performance.getEntriesByType("mark")`, beside the
+  page's paint entries.
 - **Testing in Edge:** put the real pointer on an element with the browser tool's hover for checks that last. A hover
   made with synthetic events is lost when the board redraws. Convert page coordinates to the screenshot's own size
   before a real click.
 - **A script the browser tool runs** waits for its promise. A promise that never settles, such as an IndexedDB request
   on a store that does not exist, holds the tool for 45 seconds and reads as a frozen page. The site's database is
-  `hedge-school`. Check its store names before reading them.
+  `learn-enclosure` (`src/lib/storage/db.ts`). Check its store names before reading them. A stored game's `record` is
+  text, not an object.
 - **Timers in a page behind other windows** run about once a second. Keep the Edge window in front for checks of
-  focus and animation.
+  focus, animation and layout shift.
 - **Claude in Chrome runs in Edge only.** With the extension on in Chrome too, the two browsers took turns as one
   device and every action failed.
 - **Google Analytics in the browser tool:** after a save, find the table's filter field again before typing: the old
@@ -54,8 +61,13 @@ It holds no backlog: everything still to do that is not in flight is in
 - **The local server:** `__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS=<machine>.<tailnet>.ts.net exec node
   node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 4173 --strictPort`, again after each build. It stops
   with the session.
+- **The icon at `/favicon.ico`** is drawn from `src/lib/assets/favicon.svg` by `node scripts/favicon.mjs`, with
+  headless Edge. Run it again when the logo changes.
 
 ## Check first
 
-1. Whether `load_saved` shows in GA's events, then star it.
-2. Ask the owner what is next: Practice when request 15 is answered, or an item of the backlog.
+1. Whether the engine repository answered request 18 (`docs/requests/README.md`, and the engine repository's design
+   04).
+2. Ask the owner what is next. The backlog's newest items come from this session's measurements: the Review tab
+   before the page's code runs, the rules worker started with the page, and the review's first frame. Practice waits
+   for request 15.

@@ -14,6 +14,14 @@ Rules:
 - **Cloudflare's weekly Web Analytics summary:** an email each week with the visits, the pages and the speed
   (**Observability → Alerts**, the type "Web Analytics Metrics Update"). Not set yet. It saves a visit to the
   dashboard, at the cost of one more email each week (hosting.md, section 6).
+- **Broken links among the scanners' 404 answers:** scanners get most of the 404 answers (hosting.md, "How to read
+  the numbers"), so a broken link of the site hides among them. A 404 answer whose referrer is the site's own address
+  is a broken link. Find whether a Cloudflare alert or a saved query can select these answers. Optional: a custom
+  firewall rule that blocks the scanners' paths (`.php`, `/.env`, `/wp-`). It only makes the error charts quieter.
+- **Cloudflare's managed `robots.txt`:** the live `robots.txt` starts with Cloudflare's managed lines, before the
+  site's own. They give `Content-Signal: search=yes,ai-train=no,use=reference` and disallow the AI training crawlers
+  (GPTBot, ClaudeBot, Google-Extended and others). They also disallow GoogleOther, Baiduspider and PetalBot. Decide
+  whether to keep them (design 23).
 
 ## Milestone 1: a game report (design/01-analysis-tool.md, section 4)
 
@@ -59,6 +67,26 @@ Rules:
 - **A share link with the sender's deeper looks** (design 16, example 9): at the positions the sender searched deeper,
   the recipient's labels are the review's own until the recipient looks there as deep. The link holds no results, and
   a review file carries them. A small gain, if any.
+- **The Review tab before the page's code runs:** the prerendered `/review` has the Review tab's title and
+  description (design 23), but its body shows only "Reading the game with the engine's rules…". At build time, the
+  page cannot know whether the address names a game. When the code runs, the Review tab shows only after its games
+  are read (`ready` in `ReviewHome.svelte`). The usual fix, as the theme's script in `src/app.html` does:
+  1. Prerender the Review tab's fixed parts: the heading, the text, the import form and the footer.
+  2. A short script in the page's head marks an address whose `#` part names a game (`#game=`, `#record=` and the
+     other forms in `src/lib/game/importHash.ts`) before the first paint. CSS then hides the Review tab for it.
+  3. The same script reads whether a last review is kept (`learn-enclosure:last-review:1`), and CSS keeps the room
+     of "Continue your last review".
+  4. Remove `ready`.
+
+  The game cannot go in the address's path: the game's id stays after `#`, so that no server gets it (designs 17
+  and 22).
+- **Start the rules worker with the page:** the review reads the game, then the lock, then the engine's manifest (60
+  to 100 ms in all), and starts the rules worker only after them. The worker needs only the manifest, and no document
+  gives a reason for the order. Read the three at the same time, and start the worker when the manifest is read.
+  Measured in Edge on the local build, on a loaded desktop.
+- **The review's first frame:** the page draws the review in one task of 109 to 144 ms (the same measurement). A
+  click during it waits, which counts against the page's responsiveness (INP). Draw a part, such as the move list, in
+  the next frame, to split the task.
 ## Offline work (on the engine repository's GPU)
 
 - **The archive's analysis stays offline:** it is other players' games. It stays in the engine repository's `runs/`,
