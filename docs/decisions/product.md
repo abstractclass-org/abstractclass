@@ -2617,3 +2617,16 @@ The interface, the review, puzzles, lessons, labels and thresholds.
 - **Checked** on the local build: `/favicon.ico` answers with `image/x-icon`, three images, 4,431 bytes. Each image
   has a clear background.
 
+### The settings of an export from the Review tab (2026-10-14)
+
+- **The problem,** found by a code review: a game that keeps its own settings (from a review file or a shared link)
+  reviews with them on the review page, while the site still ships their network. The Review tab's Export took the
+  game's settings without that check, and the annotated record from the store (`annotatedFromStore`) took the
+  browser's. With the browser on another network than the game's, Export opened, and the annotated record read the
+  other network's results and failed ("open the game to review it first").
+- **The change:** one rule, `settingsFor` in `analysis/engineSettings.ts`: the game's own settings while the site ships
+  their network, else the browser's. The review page, the Review tab's Export and the annotated record take them from
+  there. Its tests are in `engineSettings.test.ts`.
+- **Checked in Edge** on the local build, with the browser on HedgeFund 0.1 and a game that keeps HedgeFund 0.1 Lite at
+  512 visits: the Review tab's Export copied the annotated record, "Reviewed by Hedge School with HedgeFund 0.1 Lite".
+  The failure before the change came from reading the code, and was not reproduced.

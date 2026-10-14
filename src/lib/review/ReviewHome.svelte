@@ -7,7 +7,7 @@
   import { playerNames, parseRecord, type GameRecord } from "#lib/game/record.ts";
   import { deleteGame, lastReview, listGames, restoreGame, reviewAgainWhy, reviewCovers, reviewMark, type DeletedGame,
            type StoredGame } from "#lib/game/store.ts";
-  import { loadEngine, reviewVisits } from "#lib/analysis/engineSettings.ts";
+  import { loadEngine, settingsFor } from "#lib/analysis/engineSettings.ts";
   import { importRecord } from "#lib/game/import.ts";
   import { pastedSource, readPasted } from "#lib/game/paste.ts";
   import { fileKind, openAnalysisFile } from "#lib/game/analysisFile.ts";
@@ -28,12 +28,15 @@
   let checking = $state(false);
   let games = $state<{ game: StoredGame; record: GameRecord }[]>([]);
   let last = $state<{ game: StoredGame; record: GameRecord } | null>(null); // the game reviewed last, when it is still kept
-  // The review a game's export needs (design 13): with this site's engine, and the network and review depth set now,
-  // the game's own when it keeps them (store.ts, `settings`).
+  // The review a game's export needs (design 13): with this site's engine, and the network and review depth that the
+  // game reviews with (engineSettings.ts, settingsFor).
   let manifest = $state.raw<Manifest | null>(null);
   let manifestLoad: Promise<Manifest | null> = Promise.resolve(null); // asked for as the tab opens, for the exports too
   const engine = loadEngine();
-  const wanted = (g: StoredGame) => manifest && reviewMark(manifest, g.settings?.network ?? engine.network, g.settings?.visits ?? reviewVisits(engine));
+  const wanted = (g: StoredGame) => {
+    const s = settingsFor(g.settings, engine);
+    return manifest && reviewMark(manifest, s.network, s.visits);
+  };
   // Whether the browser keeps the games for good (storage/persist.ts): it asked when a game was kept.
   let kept = $state(false);
   // The tab shows once the browser's games are read, so that "Continue your last review" and the list come with the

@@ -16,7 +16,8 @@ which Chrome and Edge have from version 137.
 
 1. **The GPU worker is one more worker.** It joins the CPU workers in the review's pool and does not replace them. It
    runs 16 searches at once, and each counts as one engine in the pool. The engine repository measured 16. It starts
-   when tasks wait and no CPU worker is free, so a finished review loads no GPU.
+   when more tasks wait than the CPU workers can take: none is free, and each worker that still loads takes one. So a
+   finished review loads no GPU, and neither does one search after the workers' idle release.
 2. **A task takes a free CPU worker first,** and a free GPU engine when no CPU worker is free.
 3. **A setting: Auto, On or Off.** It is in the engine settings, under the workers. Auto is the default.
 4. **Auto tests the GPU on its first use, on the review's own work.** The GPU joins the review at once. When the GPU

@@ -7,6 +7,7 @@ import { DEEP_VISITS, LABEL_VISITS } from "./game.svelte.ts";
 import { defaultPoolSize } from "./pool.ts";
 import { megabytes } from "#lib/engine/client.ts";
 import { readLocalJson, writeLocal } from "#lib/storage/local.ts";
+import type { GameSettings } from "#lib/game/store.ts";
 
 export type ReviewDepth = "lite" | "standard" | "custom";
 
@@ -73,6 +74,15 @@ export function withReview(s: EngineSettings, network: string, visits: number): 
   const preset = (Object.keys(REVIEW_PRESETS) as (keyof typeof REVIEW_PRESETS)[]).find(k => REVIEW_PRESETS[k] === visits);
   return preset ? { ...s, network, review: preset } : { ...s, network, review: "custom", customReview: visits };
 }
+
+/** A game's own settings (game/store.ts, `settings`) while the site still ships their network, else null. */
+export const ownSettings = (s: GameSettings | null | undefined): GameSettings | null =>
+  (s && NETWORKS.some(n => n.id === s.network) ? s : null);
+/** The network and the review's visits that a game reviews with: its own (ownSettings), else the browser's. The review
+ *  page, the Review tab's Export and the annotated record from the store take them from here, so that each reads the
+ *  results of the same review. */
+export const settingsFor = (s: GameSettings | null | undefined, engine: EngineSettings): GameSettings =>
+  ownSettings(s) ?? { network: engine.network, visits: reviewVisits(engine) };
 
 /** The review's depth in words: "Lite (512 visits a position)". */
 export function reviewDepthText(visits: number): string {

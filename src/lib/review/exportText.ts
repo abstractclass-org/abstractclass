@@ -2,7 +2,7 @@
 // alone where no review runs (the home page): the engine's rules give the positions, the stored results give the
 // values, and nothing is searched. Both write the same record.
 import { GameAnalysis, LABEL_VISITS, type BranchNode } from "#lib/analysis/game.svelte.ts";
-import { loadEngine, networkName, reviewVisits } from "#lib/analysis/engineSettings.ts";
+import { loadEngine, networkName, settingsFor } from "#lib/analysis/engineSettings.ts";
 import { EnginePool } from "#lib/analysis/pool.ts";
 import { modelOf, type Manifest } from "#lib/engine/client.ts";
 import { SITE_NAME } from "#lib/edition.ts";
@@ -23,18 +23,19 @@ export function annotatedText(R: Review, unit: Unit, record: GameRecord, branche
   });
 }
 
-/** The annotated record of a stored game, from the stored results of the network and the review depth set in this
- *  browser, with the labels by turn or by edge as the review shows them. Loads the engine's rules, not its network. */
+/** The annotated record of a stored game, from the stored results of the network and the review depth that the game
+ *  reviews with (settingsFor), with the labels by turn or by edge as the review shows them. Loads the engine's rules,
+ *  not its network. */
 export async function annotatedFromStore(id: string, manifest: Manifest | null): Promise<string> {
   const stored = await loadGame(id);
   if (!stored) throw new Error(`This browser has no game ${id}.`);
   if (!manifest) throw new Error("this site has no engine");
-  const engine = loadEngine(), visits = reviewVisits(engine);
-  const model = modelOf(manifest, engine.network);
-  if (!model) throw new Error(`this site has no network ${engine.network}`);
+  const { network, visits } = settingsFor(stored.game.settings, loadEngine());
+  const model = modelOf(manifest, network);
+  if (!model) throw new Error(`this site has no network ${network}`);
   const pool = new EnginePool(0); // the rules alone: no search
   try {
-    await pool.start(manifest, engine.network);
+    await pool.start(manifest, network);
     const game = new GameAnalysis(pool, stored.record.moves, id);
     game.setReview(visits);
     await game.start();
@@ -48,7 +49,7 @@ export async function annotatedFromStore(id: string, manifest: Manifest | null):
     const own = data.analysis.slice(1, data.moves.length), found = own.filter(a => a).length;
     if (found === 0) throw new Error("open the game to review it first");
     if (found < own.length) throw new Error("open the game to finish its review first");
-    return annotatedText(review(data, "lead", LABEL_VISITS), loadDisplay().judge, stored.record, game.branches, engine.network);
+    return annotatedText(review(data, "lead", LABEL_VISITS), loadDisplay().judge, stored.record, game.branches, network);
   } finally {
     pool.terminate();
   }

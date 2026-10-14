@@ -970,3 +970,16 @@ Blunder's loss.
   `npm run check` has no errors. In Edge, on the local build: a game reviewed with `fdfe5ad` opened with
   `engine-27a7414`, with its labels and report from the stored results, and the position on screen searched. The GPU's
   first-use test runs again once: it is kept for each GPU module (design 15).
+
+### The GPU after an idle release (2026-10-14)
+
+- **The problem,** found by a code review, then checked in Edge on the local build: after the idle release, the next
+  search starts the search workers again. While they load, no engine is free, so the pool reported a backlog, and the
+  GPU worker started for that one search, with the memory that the release frees. The steps: a stored review,
+  released in a hidden tab, then a position that needed a deeper search. The 4 workers and the GPU worker started
+  again ("Loading the GPU's files…", then "In use").
+- **The change** (design 15, decision 1): a backlog is more waiting tasks than the engines can take. None is free, and
+  each search worker that still loads takes one (`backlogged` in `analysis/pool.ts`).
+- **Checked in Edge** on the local build: the same steps started the 4 workers alone. The GPU stayed "Waiting", and
+  the search reached 1,024 visits on the CPU workers. A change of network, with a label pass of 120 positions, still
+  started the GPU ("Loading the GPU's files…", then "In use").

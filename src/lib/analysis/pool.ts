@@ -66,6 +66,7 @@ export class EnginePool {
   /** Called when tasks wait and no engine is free: the GPU starts then (design 15). */
   onBacklog: (() => void) | null = null;
   private load: ((e: EngineWorker) => Promise<void>) | null = null; // starts a search worker: the module, then the network
+  private loading = 0; // the search workers that load now: each takes a task once it has loaded
   // The release of idle engines (releaseWhenIdle): the search workers wanted, whether they are released now, and the
   // timer that releases them.
   private size: number;
@@ -92,8 +93,13 @@ export class EnginePool {
     const model = modelOf(manifest, modelId);
     if (!module || !model) throw new Error(`the manifest lacks the module or the network ${modelId}`);
     const load = this.load = async (e: EngineWorker) => {
-      await e.init(manifest);
-      this.model = (await e.loadModel(model)).reply.model;
+      this.loading++;
+      try {
+        await e.init(manifest);
+        this.model = (await e.loadModel(model)).reply.model;
+      } finally {
+        this.loading--;
+      }
       if (!this.engines.includes(e)) { // removed while it loaded
         this.retiring.delete(e);
         e.terminate();
@@ -201,8 +207,9 @@ export class EnginePool {
     return this.speed.measured(seconds).finally(() => clearInterval(this.sampler));
   }
 
-  /** Tasks wait, and no engine is free. */
-  get backlogged(): boolean { return this.queue.length > 0 && this.free.length === 0; }
+  /** More tasks wait than the engines can take: none is free, and the workers that load now take one each. After an
+   *  idle release, the workers that start again take the next search, so one search starts no GPU. */
+  get backlogged(): boolean { return this.free.length === 0 && this.queue.length > this.loading; }
 
   /** Ends the search workers and the GPU worker when no task has run for a while (IDLE_RELEASE_MS, shorter in a hidden
    *  tab), and starts them again with the next task: an open tab then holds their memory only while it searches. The

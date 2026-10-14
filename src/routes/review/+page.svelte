@@ -23,7 +23,7 @@
   import { EnginePool } from "#lib/analysis/pool.ts";
   import { GameAnalysis, LABEL_VISITS, SWEEP_VISITS, momentVisits } from "#lib/analysis/game.svelte.ts";
   import { EngineSession } from "#lib/analysis/session.svelte.ts";
-  import { NETWORKS, loadEngine, reviewVisits, saveEngine, withReview, type EngineSettings } from "#lib/analysis/engineSettings.ts";
+  import { loadEngine, ownSettings, reviewVisits, saveEngine, withReview, type EngineSettings } from "#lib/analysis/engineSettings.ts";
   import { trackSettingChange } from "#lib/analysis/settingChanges.ts";
   import { modelOf, moduleOf, sameSearch } from "#lib/engine/client.ts";
   import { errorText } from "#lib/errors.ts";
@@ -259,8 +259,7 @@
     rememberReview(id);
     kept = { id, text: stored.game.record, record: stored.record, partner: stored.game.partner };
     markBefore = stored.game.reviewed;
-    const s = stored.game.settings;
-    own = s && NETWORKS.some(n => n.id === s.network) ? s : null; // a network the site no longer ships: the browser's
+    own = ownSettings(stored.game.settings); // a network the site no longer ships: the browser's
     return stored.record.moves;
   }
 
