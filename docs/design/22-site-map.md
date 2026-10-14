@@ -66,16 +66,29 @@ will add more. A page whose name says "import" cannot say where the game goes.
    - **The header stays in view on a screen with a mouse,** and the page scrolls in its own area under it
      (`src/routes/+layout.svelte`). That area keeps the scroll bar's room (`scrollbar-gutter: stable`), so that a page
      whose height changes while it loads does not move sideways, and the header, outside it, reaches the window's
-     edge. The browser draws nothing of a page in the room that the document itself keeps (the CSS working group's
+     edge. A page sized to the window (the review, the Analysis board, Practice) takes its width from the area, a CSS
+     container (`100cqw`), which leaves out the scroll bar's room: `100vw` counts that room in, and the review's move
+     list then lost 7 pixels and ran under its scroll bar near 1,280 pixels. The browser draws nothing of a page in the
+     room that the document itself keeps (the CSS working group's
      issue 5232), so the header stopped short there on every page that did not scroll. The layout keeps the area's
      scroll as the browser keeps a page's: each address's place for Back, Forward and a reload, and the top of a page
      opened anew. The area takes the focus after each navigation, in the body's place, so that Page Down and Space
      scroll it. A touch screen keeps the usual page: its scroll bars take no room, and the header scrolls away, so that
      its browser's bars hide as the page scrolls.
    - **Home:** what Hedge School is, and Practice as its first call to action ("Practice against bot"), beside a
-     board from a game of HedgeFund against itself (`scripts/home-board.mjs`: the site's own game, as the meaf.us
-     archive's games need their owner's permission for public use). Then the ways in for a game played elsewhere:
-     the Review tab, the Analysis board and the board editor.
+     board that plays scenes from reviewed games as the review shows them judged by edge: the engine's first three
+     candidates before each edge, and each edge's label on it (`src/lib/home/HomeReplay.svelte`). The board alone: no caption,
+     and no row of players, points or win chance above it, which were more than the home page needs. An edge every 1
+     to 2 seconds, at random, as players take their time. Each scene is the 9 turns
+     before a game's latest edge with a bad label, and that edge. It holds before that edge and on its label. The
+     games are the owner's bot's against another bot on meaf.us, with no names shown (`scripts/home-replay.mjs`, from
+     the games' review files). Then the ways in for a game played elsewhere: the Review tab, the Analysis board and
+     the board editor.
+     - **Not like enclosuregame.com's board,** which plays a game out with its scores: this one shows the review's
+       judgement, which is what Hedge School does.
+     - **It stops** while the pointer is on it, so that a visitor can look, and while the page is hidden. With reduced
+       motion, it shows a scene's labelled edge, still. The first frame is in the page, and the scenes (about 4 KB
+       compressed) load after it shows.
    - **The Review tab** (`/review` without a game): import a game to review it (paste its record), load a review
      file, continue the last review, and the player's games, with their Export and Delete. A review is
      `/review#game=…`.

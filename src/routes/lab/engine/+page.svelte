@@ -5,7 +5,6 @@
   import { onMount } from "svelte";
   import Board from "#lib/board/Board.svelte";
   import { EngineWorker, loadManifest, megabytes, modelOf, type Manifest } from "#lib/engine/client.ts";
-  import { parseEdge, type Edge } from "#lib/engine/notation.ts";
   import type { AnalysisReply, DescribeReply, VersionReply, ModelInfo } from "#lib/engine/protocol.ts";
   import { SWEEP_VISITS } from "#lib/analysis/game.svelte.ts";
   import { boardPosition } from "#lib/engine/position.ts";
@@ -194,7 +193,6 @@
   ].join("\n"));
 
   const board = $derived(described ? boardPosition(described.reply) : null);
-  const lastEdge = $derived<Edge | null>(edge > 0 ? parseEdge(MOVES[edge - 1]) : null);
 </script>
 
 <PageMeta title="Engine lab · Hedge School" noindex /> <!-- not in the early access (design 11) -->
@@ -259,7 +257,7 @@
   <div class="grid items-start gap-6 min-[901px]:grid-cols-[minmax(0,480px)_minmax(0,1fr)]">
     <section class="rounded overflow-hidden">
       {#if board}
-        <Board position={board} {lastEdge} layers={{ candidates: false, marks: false }} />
+        <Board position={board} layers={{ candidates: false, marks: false }} />
         <p class={SMALL}>
           From the engine's rules, without a network: {described!.reply.position.length} characters of position,
           {described!.reply.legal.length} legal edges, described in {fmt(described!.ms)}.

@@ -2647,6 +2647,60 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   HedgeFund from here" on the Analysis board (Lichess's "Continue from here").
 - **The site's own:** the temperatures of Medium and High, to check once games by setting exist.
 
+### The review's move list under its scroll bar (2026-10-15)
+
+- **What:** from `8b60dd0` on, the review's move list ran 6 pixels under its own scroll bar between 1,260 and 1,310
+  pixels wide: its right edge (the lead numbers, the notes) was cut. Found on the previews `cb2b9188` (before) and
+  `a11f9d4d` (after), measured in frames of each width on both.
+- **Why:** the review sizes its board from the window's width (`100vw`), less the other columns and 20 pixels for a
+  scroll bar. Before, no scroll bar took that room on the review, so the side columns shared the 20 pixels, and the
+  move list had 316 pixels. Since `8b60dd0`, the page's own scrolling area keeps its scroll bar's room (15 pixels on
+  Windows) on every page, and `100vw` still counts it in: the move list had 309, and needs 315 with its scroll bar.
+- **The fix:** the page area is a CSS container, and the review and Practice take their width from it (`100cqw`),
+  which leaves out the scroll bar's room on any system (design 22). The move list has 316 pixels again (checked on
+  the local build from 1,260 to 1,440 pixels). The board is 15 pixels smaller than before `8b60dd0` at those widths:
+  the room is the scroll bar's now.
+
+### The home board plays reviewed scenes (2026-10-15)
+
+- **What:** the home page's board plays three scenes from reviewed games: the engine's first three candidates before
+  each edge, and each turn's label on its edges, by turn (design 22). The scenes come from review files of the owner's
+  bot's games against another bot on meaf.us (`scripts/home-replay.mjs`), with no names shown. The labels are the
+  review's own: the stored results at the files' review depth (4,096 visits, every position), with the positions after
+  the second choice and the turn's other candidate that confirm a Great, as the Review tab reads them.
+- **Why:** the still board said nothing about what the site does, and enclosuregame.com's home page has the same
+  layout with a board that plays a game. A replay of a review shows the judgement.
+- **The scenes end on each game's latest bad turn,** not its worst: the bots' bad turns come before turn 24, and later
+  boards are fuller. Turns 23 (a Mistake), 20 (an Inaccuracy) and 16 (a Mistake).
+- **Changed after a first look:** no caption. The review's row above the board instead: each side's points and area,
+  and the review's win chance bar, as the board shows a review (a points' bar, as Practice's, was tried first). An
+  edge every 1 to 2 seconds, at random (it was 0.8). The holds: 2.6 seconds before the labelled turn, 4 on its label.
+- **The board alone** (changed after): no row of players, points, area or win chance above it. Tried, and too much
+  for the home page.
+- **By edge** (changed after): each edge's own label on it, as the review shows a game judged by edge, the badges of
+  the turn so far together. Each scene ends on its game's latest edge with a bad label: edge 44 (turn 23), 23 (turn
+  12) and 31 (turn 16), each a Mistake.
+- **Checked** on the local build in Edge, in a tab behind another (the page reported itself visible for the test): the
+  scenes play and loop, and three candidates at most. The steps' timing
+  was not measurable there, as Chrome slows the timers of a tab that is not shown. Not checked: the timing in a shown
+  tab, reduced motion, and a phone.
+
+### The board without bands (2026-10-15)
+
+- **What:** no band behind any edge. A protected edge is drawn on the edge itself: wider (0.2 units) in its side's
+  colour, with a white line (0.055) along it. The mover's edges of this turn (the position's `placed` edges, `+` in
+  the notation) are drawn the same way, as no one can cut them before the turn ends, when they become protected. The
+  gold band of the last turn, and the cream band of the protected edges, are gone (design 03). The board no longer
+  takes the last edge or the last turn, and the board editor no longer adds its placed edges to the protected ones.
+- **Why:** the two bands often fell on the same edges, one over the other. The marked edges are the turns just played,
+  so they show the last moves without a band. A mark on the edge itself does not rest on colour alone.
+- **Compared before the choice:** the band, a hollow edge, the white line, and the white line with no bands, in two
+  moments of one game, in both themes. The white line is the form that enclosuregame.com uses.
+- **The label badge on the board:** radius 0.33 (it was 0.36), and on a length-1 edge it sidesteps by 80% of its
+  radius (up from a horizontal edge, right from a vertical one), over the line still: 0.28 of the line's 0.68 shows,
+  against none before. Compared before the choice: the badge on the middle at 0.36 and 0.3, beside the edge, and
+  sidesteps of 50% to 85%.
+
 ### Practice from a set-up start (2026-10-15)
 
 - **What:** Practice takes a set-up start (design 24, item 4), on the practice bot's `enclosure-set-position`

@@ -88,7 +88,7 @@
   }
 
   // The board shows the turn's edges as it shows protected ones: in the editor, a mark is a mark.
-  const shown = $derived(drawn && { ...drawn, protected: [...drawn.protected, ...drawn.placed] });
+  const shown = $derived(drawn); // the board marks the placed edges as it marks the protected ones
   const reasonEdges = $derived((check?.reasons ?? []).flatMap(r => r.edges.map(parseEdge)));
   /** The points that finish an edge from the first point: any point near enough for a player's edge, the other ends
    *  of the edges there for a mark. */

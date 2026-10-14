@@ -121,9 +121,10 @@
 <SupportDialog bind:open={supporting} />
 
 <!-- The area is not in the Tab order and shows no outline (tabindex -1). It takes the focus after each navigation, so
-     that the keys scroll it. -->
+     that the keys scroll it. It is a container (`page`): a page sized to the window takes its width from the area
+     (`100cqw`), which leaves out its scroll bar's room, where `100vw` would count that room in. -->
 <div id="page" bind:this={area} tabindex="-1"
-     class="outline-none desktop:flex-1 desktop:min-h-0 desktop:overflow-y-auto desktop:[scrollbar-gutter:stable] print:overflow-visible">
+     class="@container/page outline-none desktop:flex-1 desktop:min-h-0 desktop:overflow-y-auto desktop:[scrollbar-gutter:stable] print:overflow-visible">
 	{@render children()}
 </div>
 </div>

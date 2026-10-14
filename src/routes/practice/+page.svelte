@@ -15,7 +15,7 @@
   import type { BoardNote } from "#lib/board/notes.ts";
   import Swatch from "#lib/ui/Swatch.svelte";
   import Icon from "#lib/ui/Icon.svelte";
-  import ShareBar from "#lib/ui/ShareBar.svelte";
+  import ShareBar, { ownShare } from "#lib/ui/ShareBar.svelte";
   import SettingChoice from "#lib/ui/SettingChoice.svelte";
   import SettingToggle from "#lib/ui/SettingToggle.svelte";
   import SoundSettings from "#lib/ui/SoundSettings.svelte";
@@ -30,7 +30,7 @@
   import { NETWORKS, loadEngine, networkMB, networkName } from "#lib/analysis/engineSettings.ts";
   import { parseRecord, withStart } from "#lib/game/record.ts";
   import { variantProblem } from "#lib/game/import.ts";
-  import { PLAYER_NAME, moveNotation, type Edge, type Player } from "#lib/review/model.ts";
+  import { PLAYER_NAME, moveNotation, type Player } from "#lib/review/model.ts";
   import { loadDisplay, saveDisplay } from "#lib/review/display.ts";
   import { playMove, preload } from "#lib/sound.ts";
   import { errorText } from "#lib/errors.ts";
@@ -319,15 +319,6 @@
     });
     return out;
   });
-  // The turn just played, up to the position shown: its edges are marked on the board, as the review marks them.
-  const shownTurn = $derived.by(() => {
-    const played = game?.played ?? [], edges: Edge[] = [];
-    for (let i = shown - 1; i >= 0 && played[i].player === played[shown - 1].player; i--) if (played[i].edge) edges.unshift(played[i].edge!);
-    return edges;
-  });
-  // The points' share for the bar, and each player's area against their own points (a player with no points yet and
-  // some area: the whole lane).
-  const ofPoints = (area: number, points: number) => (points > 0 ? area / points : area > 0 ? 1 : 0);
   const gaugeW = $derived(!score.bar || score.form !== "gauge" ? "0px" : score.area ? "1.875rem" : "1.375rem");
   const visitsAt = $derived(Math.max(0, VISITS.indexOf(choices.bot.visits)));
   let stripHeight = $state(0);
@@ -411,9 +402,9 @@
   {@const into = g && shown > 0 ? g.played[shown - 1] : null}
   {@const gauge = score.form === "gauge" && score.bar}
   <main class="grid items-start justify-center gap-x-5 gap-y-3 my-4 px-4 select-none
-               [--tall:calc(100vh-var(--site-header)-var(--strip)-2rem)] [--broad:calc(100vw-250px-1.25rem-var(--gauge-w)-2rem-20px)]
+               [--tall:calc(100vh-var(--site-header)-var(--strip)-2rem)] [--broad:calc(100cqw-250px-1.25rem-var(--gauge-w)-2rem-20px)]
                [--board:min(var(--tall),var(--broad))] grid-cols-[calc(var(--board)+var(--gauge-w))_minmax(250px,350px)]
-               max-[799px]:[--board:calc(100vw-2rem-var(--gauge-w))] max-[799px]:grid-cols-1"
+               max-[799px]:[--board:calc(100cqw-2rem-var(--gauge-w))] max-[799px]:grid-cols-1"
         style:--strip={stripHeight ? `calc(${stripHeight}px + 0.5rem)` : "3.3125rem"} style:--gauge-w={gaugeW}>
     <section class="min-w-0">
       <div class={["mb-2 ml-(--gauge-w)", stripBox(gauge)]} bind:offsetHeight={stripHeight}>
@@ -439,7 +430,7 @@
         <div class="relative w-(--board) max-[799px]:flex-1 aspect-square rounded overflow-hidden bg-board">
           {#if !(g && pos)}<div class="board-points"></div>{/if} <!-- the empty board, until the game's position -->
           {#if g && pos}
-            <Board position={pos} lastEdge={into?.edge ?? null} lastTurn={shownTurn} cut={into?.cut ?? null}
+            <Board position={pos} cut={into?.cut ?? null}
                    layers={{ candidates: false, marks: false, regions: display.layers.regions, protected: display.layers.protected }}
                    pending={input.pending} ends={input.ends} active={input.active} onpoint={input.rules ? input.click : undefined} onlyActive
                    notes={notesAt[shown] ?? []} onnotes={n => { if (n.length > (notesAt[shown]?.length ?? 0)) used("note drawn"); notesAt[shown] = n; }} />
@@ -534,7 +525,7 @@
   {@const total = scores[0] + scores[1]}
   {#if score.bar}
     <ShareBar {upright} share={total > 0 ? scores[0] / total : NaN}
-              sub={score.area ? [ofPoints(areas[0], scores[0]), ofPoints(areas[1], scores[1])] : null}
+              sub={score.area ? [ownShare(areas[0], scores[0]), ownShare(areas[1], scores[1])] : null}
               title={`Points: Blue ${Math.round(scores[0])}, Red ${Math.round(scores[1])}` +
                      (score.area ? `. Area: Blue ${Math.round(areas[0])}, Red ${Math.round(areas[1])}` : "")} />
   {:else}

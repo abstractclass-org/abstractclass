@@ -2,24 +2,21 @@
   // Home (design 22): what Hedge School is, and the way into each tab. Practice first, as Lichess's front page leads
   // with play: a game against the bot is the quickest way to begin, and its review is one click from its end. Then the
   // ways in for a game played elsewhere: the Review tab, the Analysis board and its board editor. In the full site,
-  // the daily puzzle and the next lesson too. The board is a position from a game of HedgeFund against itself
-  // (scripts/home-board.mjs), the site's own game, drawn with no engine.
+  // the daily puzzle and the next lesson too. The board plays scenes from reviewed games, with the review's candidates
+  // and labels (HomeReplay), drawn with no engine.
   import Board from "#lib/board/Board.svelte";
   import { review, PLAYER_NAME } from "#lib/review/model.ts";
-  import { parseEdge } from "#lib/engine/notation.ts";
   import { puzzlesFrom } from "#lib/puzzles/model.ts";
   import { COURSE } from "#lib/learn/lessons.ts";
   import { EARLY_ACCESS, SITE_NAME, SITE_ORIGIN } from "#lib/edition.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
   import { SAMPLE } from "#lib/mock/sample.ts";
   import PageMeta from "#lib/PageMeta.svelte";
-  import HOME from "#lib/home/board.json";
-  import type { Position } from "#lib/review/model.ts";
+  import HomeReplay from "#lib/home/HomeReplay.svelte";
 
   const R = review(SAMPLE);
   const daily = puzzlesFrom(R)[0];
   const firstLesson = COURSE[0].lessons[0];
-  const shown = HOME.position as unknown as Position, lastEdge = parseEdge(HOME.moves.at(-1)!);
 
   // What the site is, for search engines (schema.org, design 23): a website, and a web application that is free.
   const STRUCTURED = [
@@ -58,12 +55,7 @@
       </div>
       <p class="text-sm text-muted">No clock and nothing to install: the engine runs in your browser.</p>
     </div>
-    <figure class="grid gap-2 w-full max-w-[26rem] max-md:max-w-[30rem] max-md:justify-self-center">
-      <div class="rounded-lg overflow-hidden shadow-[0_12px_32px_-12px_rgb(0_0_0/0.45)]">
-        <Board position={shown} {lastEdge} layers={{ candidates: false, marks: false, coordinates: false }} />
-      </div>
-      <figcaption class="text-xs text-muted">HedgeFund against itself, {HOME.moves.length} edges in.</figcaption>
-    </figure>
+    <HomeReplay />
   </section>
 
   <!-- A game played elsewhere, any line, any position: a quieter list, under a rule. -->

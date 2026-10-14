@@ -7,6 +7,7 @@
   import { Dialog } from "bits-ui";
   import { KOFI, SITE_NAME } from "#lib/edition.ts";
   import Icon from "#lib/ui/Icon.svelte";
+  import Collie from "#lib/Collie.svelte";
 
   let { open = $bindable(false) }: { open?: boolean } = $props();
   // Ko-fi's own address for the panel, from its widget page.
@@ -18,12 +19,16 @@
   <Dialog.Portal>
     <Dialog.Overlay class="dialog-overlay" />
     <Dialog.Content class="dialog-box w-[min(94vw,26rem)] max-h-[calc(100dvh-1.5rem)] overflow-y-auto">
-      <div class="flex items-start justify-between gap-3">
-        <Dialog.Title class="font-semibold">Support {SITE_NAME}</Dialog.Title>
+      <!-- The schoolmaster asks (design 12's collie, its full drawing from 48 pixels). -->
+      <div class="flex items-start gap-3 mb-3">
+        <Collie size={56} />
+        <div class="flex-1 min-w-0 pt-1">
+          <Dialog.Title class="font-semibold">Support {SITE_NAME}</Dialog.Title>
+          <Dialog.Description class="mt-0.5 text-sm text-muted">{SITE_NAME} is free. If it helps you, a tip through Ko-fi
+            helps it grow.</Dialog.Description>
+        </div>
         <Dialog.Close class="btn-icon -mt-1 -mr-2" aria-label="Close" title="Close"><Icon name="abort" /></Dialog.Close>
       </div>
-      <Dialog.Description class="mb-3 text-sm text-muted">{SITE_NAME} is free. If it helps you, a tip through Ko-fi helps
-        it grow.</Dialog.Description>
       <!-- Ko-fi's background (#f9f9f9) under the frame, so that the frame's edge does not show while it loads. The
            frame's height is Ko-fi's own. -->
       <div class="relative rounded-md overflow-hidden bg-[#f9f9f9]">

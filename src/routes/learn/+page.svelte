@@ -70,7 +70,6 @@
         {#if step}
           <Board
             position={shown?.position ?? step.position}
-            lastEdge={shown?.edge ?? null}
             cut={shown?.cut ?? null}
             preview={null}
             view={step.view}

@@ -1599,9 +1599,6 @@
              moves. -->
         <Board
           position={branchPreview?.from ?? movePreview?.position ?? position}
-          lastEdge={branchPreview ? null : movePreview ? movePreview.move.edge : lastPlayed?.edge ?? null}
-          lastTurn={branchPreview || movePreview ? [] : endedTurn ? endedTurn.edges.flatMap(e => (e.edge ? [e.edge] : []))
-            : unit === "turn" && mainAt === null ? (branchTurnPaths(path) ?? []).flatMap(q => { const e = moveInto(q)?.edge; return e ? [e] : []; }) : []}
           cut={branchPreview ? null : movePreview ? movePreview.move.cut : lastPlayed?.cut ?? null}
           candidates={previewing ? [] : candidates}
           highlight={previewing ? null : hover ?? pinnedCandidate?.edge ?? null}
@@ -1814,7 +1811,9 @@
     /* The height and the width the board could have, then the charts' area under it: at least --chart-min, and what
        the width leaves of the height, up to --chart-max. The board then takes the rest of the height, or its width. */
     --tall: calc(100vh - var(--site-header) - var(--strip) - 2rem);
-    --broad: calc(100vw - var(--others) - var(--gauge-w) - 2rem - 20px); /* the page's padding and a scroll bar */
+    /* The page area's width (its container, which leaves out its scroll bar's room), less the page's padding, and 20
+       pixels that the side columns share: the room a scroll bar took before the area kept its own. */
+    --broad: calc(100cqw - var(--others) - var(--gauge-w) - 2rem - 20px);
     --chart-min: 6rem;
     --chart-max: 12rem;
     --chart-gap: 0.5rem;
@@ -1851,7 +1850,7 @@
   /* One column below 800 pixels (Lichess's $small): the board as wide as the window, then the analysis. */
   @media (max-width: 799px) {
     .review, .review.wide {
-      --board: calc(100vw - 2rem - var(--gauge-w));
+      --board: calc(100cqw - 2rem - var(--gauge-w));
       --chart: 8rem;
       grid-template-columns: minmax(0, 1fr);
       grid-template-areas: "board" "side";

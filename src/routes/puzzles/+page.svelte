@@ -162,7 +162,6 @@
     <section class="rounded overflow-hidden">
       <Board
         {position}
-        lastEdge={lastMove?.edge ?? null}
         cut={lastMove?.cut ?? null}
         {candidates}
         preview={tried}

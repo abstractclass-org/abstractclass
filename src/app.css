@@ -20,8 +20,6 @@
   --board-dot: #b9ab8d;
   /* A protected edge's halo: a neutral that is neither player's colour, a warm grey on the light board and a warm
      off-white on the dark one, each the board's contrast. */
-  --protected: #8b7f68;
-  --protected-opacity: 0.45;
   /* The player's notes on the board (board/notes.ts), in colours apart from the players' blue and red. The light
      board's are darker than the dark board's, in the same hues: 3:1 against the board. */
   --note-purple: #a66fd3;
@@ -74,8 +72,6 @@
   --red: #e8635c;
   --board-bg: #3a362e;
   --board-dot: #6d6555;
-  --protected: #ece6d6;
-  --protected-opacity: 0.55;
   --last: #d6a614;
   --area: #d27fbb;
   --score: #4fb3a2;

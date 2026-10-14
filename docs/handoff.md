@@ -25,8 +25,7 @@ It holds no backlog: everything still to do that is not in flight is in
 
 - **On `dev`, not released to `main`.** `npm test` passes (111), `npm run check` has no errors or warnings, `npm run
   build` succeeds. Each part says in decisions/ what was checked:
-  - **Practice first** (design 22): first in the header, and the home page's first call to action, beside a board
-    from a game of HedgeFund against itself (`scripts/home-board.mjs`, `src/lib/home/board.json`). The position's
+  - **Practice first** (design 22): first in the header, and the home page's first call to action. The position's
     converter moved to `src/lib/engine/position.ts`. Log: product.md, "Practice first".
   - **"Support Us" through Ko-fi** (design 22): the header's button opens Ko-fi's tip panel in the site's dialog
     (`src/lib/SupportDialog.svelte`). The site's menu now shows below 1,024 pixels (it was 768), and the button goes
@@ -34,7 +33,8 @@ It holds no backlog: everything still to do that is not in flight is in
     address. Ko-fi's panel stays light in the dark theme, at Ko-fi's height (712 pixels). Log: product.md, "Support
     Us through Ko-fi".
   - **Two Google Analytics additions** (design 17): `support_open`, and `practice_from` set_up_start. Neither needs a
-    new custom dimension. Local builds send no events: check them in GA's Realtime view on the preview.
+    new custom dimension. Local builds and the previews send no events (hosting.md): check them in GA's Realtime view
+    on the live site, after the release.
   - **The site's text by what it does** (CLAUDE.md, "Writing the site's text"): strict STE for what a player follows,
     STE's sentence rules for what explains, plain web writing (the GOV.UK style guides) for what invites. A pass over
     the pages under this rule is not done.
@@ -42,6 +42,12 @@ It holds no backlog: everything still to do that is not in flight is in
     is on `wasm-v2-engine-85f1792` (practice interface 0.1.1), and Practice takes set-up starts (design 24, item 4):
     the Analysis board's Play from any start, takebacks that stop at the record's edges, and "Analyze the game" for a
     set-up game. requests/19 and requests/20 say what was checked.
+- **Not committed yet** (after `762e92b`): the collie in the Support Us dialog; the board without bands (protected and
+  placed edges marked on the edge, with a white line; design 03); the label badge at radius 0.33, sidestepping on a
+  length-1 edge; the home board playing three reviewed scenes with the review's row of points and area
+  (`scripts/home-replay.mjs`, `HomeReplay.svelte`; design 22); the review's move list no longer under its scroll bar
+  near 1,280 pixels (the page area is a container, `100cqw`). To check in a shown tab: the home board's timing, reduced motion, and a phone. Logs: product.md, "The home board
+  plays reviewed scenes" and "The board without bands".
 - **Practice games stored** (design 25): decided, not built. A set-up game is stored with its start and the record's
   edges (decided, design 25, item 2): `KeptPractice` keeps both already. The build: the Pages Function and its D1
   schema, the sending and its queue, the takebacks and the times kept with the game, the consent banner (its text is

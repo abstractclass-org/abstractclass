@@ -1,3 +1,9 @@
+<script lang="ts" module>
+  /** A side's area against its own points, for the bar's second lane: a side with no points yet and some area has the
+   *  whole lane. */
+  export const ownShare = (area: number, points: number) => (points > 0 ? area / points : area > 0 ? 1 : 0);
+</script>
+
 <script lang="ts">
   // A share between Blue and Red as a bar: Blue's part from the left, or, upright as a gauge beside the board, from the
   // bottom (Lichess's and chess.com's gauge), and Red's the rest. The review's win chance, and Practice's points. Each

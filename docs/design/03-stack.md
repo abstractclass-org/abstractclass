@@ -30,7 +30,12 @@ new builds arrive often.
   goes before it turns ochre. A label's badge is a disc of its fill with its mark in white, drawn as shapes
   (`src/lib/review/labelShapes.ts`): in the report, on the board, and in the move list unless the display settings
   choose "Text" for its labels. A label badge on the board has a drop shadow, as Lichess's glyph badges on its board
-  have: each sits on the last turn's yellow halo, which is near the colour of several fills. The board follows the theme
+  have, which sets it apart from the edges and regions under it. Its radius is 0.33 board units. On a length-1 edge,
+  whose line is 0.68 units between its nodes, the badge sidesteps by 80% of its radius, up from a horizontal edge and
+  right from a vertical one, and stays over the line: 0.28 units of the line show. No band is drawn behind any
+  edge: a protected edge is drawn on the edge itself, wider in its side's colour with a white line along it, and so
+  are the mover's edges of this turn (placed), which no one can cut before the turn ends. These are the turns just
+  played, so they show the last moves too. The board follows the theme
   (unlike both sites' boards, which have their own setting), so the player's notes have a value for each board. Plain
   CSS stays where utilities read worse: the board's SVG styles (`Board.svelte`), the review page's layout grid with its
   `calc()` board size (design 06), and the tokens and base element styles in `app.css`. Links are underlined unless they

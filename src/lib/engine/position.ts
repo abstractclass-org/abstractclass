@@ -1,6 +1,6 @@
 // The engine's description of a position (protocol.ts, PositionFields), as the board draws it (review/model.ts,
-// Position). A module of its own, with nothing of the engine's workers, so that a page can draw a stored position
-// (the home page's board) without loading the analysis.
+// Position). A module of its own, with nothing of the engine's workers, so that a script in Node can store positions
+// for a page (scripts/home-replay.mjs, the home page's scenes) without loading the analysis.
 import { parseEdge } from "./notation.ts";
 import type { PositionFields } from "./protocol.ts";
 import type { Position } from "#lib/review/model.ts";

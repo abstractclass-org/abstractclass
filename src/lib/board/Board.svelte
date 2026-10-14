@@ -16,8 +16,8 @@
 </script>
 
 <script lang="ts">
-  // The Enclosure board as SVG: the lattice, each player's regions and edges, the protected edges, the last edge and
-  // the edge it cut, the engine's candidates numbered by rank, a preview edge, label badges on the edges of the turn
+  // The Enclosure board as SVG: the lattice, each player's regions and edges, the protected edges (the turn just
+  // played and the mover's edges of this turn, on the edge itself, with no band behind any edge), the edge just cut, the engine's candidates numbered by rank, a preview edge, label badges on the edges of the turn
   // just played, and a ghost edge (the game's edge in a retry). During edge input: the first point, the points that
   // complete a legal edge from it (dots), and the edge to the marked point under the pointer. Points are 0-18 with y
   // up, as in the engine.
@@ -27,8 +27,6 @@
 
   interface Props {
     position: Position;
-    lastEdge?: Edge | null;
-    lastTurn?: Edge[]; // the edges of the turn just played, all marked as the move, when the labels judge turns
     cut?: Edge | null;
     candidates?: BoardCandidate[];
     highlight?: Edge | null; // a candidate pointed at from outside the board (a row of the candidates table)
@@ -52,7 +50,7 @@
     onnotes?: (notes: BoardNote[]) => void; // a note drawn, changed or removed, or all cleared: right-drawing works only with it
   }
   let {
-    position, lastEdge = null, lastTurn = [], cut = null, candidates = [], highlight = null, line = null,
+    position, cut = null, candidates = [], highlight = null, line = null,
     preview = null, previewPlayer = 0, marks = [], ghost = null,
     layers: layersSet = {},
     pending = null, ends = null, active = null, view = [0, 0, 18, 18], targets = [], onpoint, onlyActive = false, oncandidate, oncandidateclick,
@@ -63,6 +61,14 @@
   const uid = $props.id();
   const shadowId = `${uid}-badge-shadow`; // one board's filter: a page can show several boards
   const N = 19;
+  // A label badge's radius. On a length-1 edge, whose line is 0.68 between its nodes, the badge sidesteps by 80% of its
+  // radius (up from a horizontal edge, right from a vertical one), and stays over the line: 0.28 of the line shows.
+  const MARK_R = 0.33;
+  const markAt = (e: Edge) => {
+    const [x, y] = mid(e), d = 0.8 * MARK_R;
+    if (Math.abs(e[0] - e[2]) + Math.abs(e[1] - e[3]) !== 1) return [x, y] as const;
+    return e[1] === e[3] ? ([x, y - d] as const) : ([x + d, y] as const);
+  };
   const sy = (y: number) => N - 1 - y;
   /** An edge's line, in the SVG's coordinates. */
   const seg = (e: Edge) => ({ x1: e[0], y1: sy(e[1]), x2: e[2], y2: sy(e[3]) });
@@ -213,11 +219,11 @@
 {/snippet}
 
 {#snippet badge(m: BoardMark)}
-  {@const [bx, by] = mid(m.edge)}
+  {@const [bx, by] = markAt(m.edge)}
   <g class="mark">
-    <circle cx={bx} cy={by} r="0.36" style:fill="var(--{m.label}-fill)" filter="url(#{shadowId})" />
+    <circle cx={bx} cy={by} r={MARK_R} style:fill="var(--{m.label}-fill)" filter="url(#{shadowId})" />
     <!-- The mark's 24-unit square (labelShapes.ts) over the disc, as the move list's badges draw it. -->
-    <LabelMark label={m.label} transform="translate({bx - 0.36} {by - 0.36}) scale({0.72 / 24})" />
+    <LabelMark label={m.label} transform="translate({bx - MARK_R} {by - MARK_R}) scale({(2 * MARK_R) / 24})" />
   </g>
 {/snippet}
 
@@ -228,10 +234,10 @@
   <rect x="-1.3" y="-1.3" width="20.6" height="20.6" class="bg" />
   <!-- The label badges' shadow, as Lichess's board draws under its glyph badges (chessground's glyph.ts:
        feDropShadow dx 4, dy 7, deviation 5, opacity 0.5 on a disc of radius 50), scaled to the badge's radius of
-       0.36. Every badge sits on the last turn's yellow halo: the shadow sets it apart, on both themes. -->
+       0.33. The shadow sets a badge apart from the edges and regions under it, on both themes. -->
   <defs>
     <filter id={shadowId} x="-50%" y="-50%" width="200%" height="200%">
-      <feDropShadow dx="0.029" dy="0.05" stdDeviation="0.036" flood-opacity="0.5" />
+      <feDropShadow dx="0.027" dy="0.046" stdDeviation="0.033" flood-opacity="0.5" />
     </filter>
   </defs>
 
@@ -261,23 +267,22 @@
     <text x={mid(cut)[0]} y={mid(cut)[1] + 0.17} class="cut-mark">×</text>
   {/if}
 
-  {#if layers.protected}
-    {#each position.protected as e, i (i)}
-      <line {...seg(e)} class="protected" />
-    {/each}
-  {/if}
   {#each targets as t, i (i)}
     <line {...seg(t)} class="target" />
-  {/each}
-
-  {#each lastTurn.length ? lastTurn : lastEdge ? [lastEdge] : [] as e, i (i)}
-    <line {...seg(e)} class="last" />
   {/each}
 
   {#each [0, 1] as p (p)}
     {#each shownEdges[p] as e, i (i)}
       <line {...seg(e)} class="edge p{p}" />
     {/each}
+    <!-- A protected edge, on the edge itself: wider in its side's colour, with a white line along it. The mover's
+         edges of this turn (placed) too: no one can cut them before the turn ends, and then they are protected. So the
+         marked edges are the turns just played, and no band marks the last edge. -->
+    {#if layers.protected}
+      {#each shownEdges[p].filter(e => [...position.protected, ...position.placed].some(q => sameEdge(q, e))) as e, i (i)}
+        <line {...seg(e)} class="protected p{p}" /><line {...seg(e)} class="protected-core" />
+      {/each}
+    {/if}
     {#each nodes(shownEdges[p]) as [x, y] (`${x},${y}`)}
       <circle cx={x} cy={sy(y)} r="0.16" class="node p{p}" />
     {/each}
@@ -425,8 +430,10 @@
   .edge.p1 { stroke: var(--red); }
   .node.p0 { fill: var(--blue); }
   .node.p1 { fill: var(--red); }
-  .protected { stroke: var(--protected); stroke-width: 0.42; stroke-linecap: round; stroke-opacity: var(--protected-opacity); }
-  .last { stroke: var(--last); stroke-width: 0.5; stroke-linecap: round; stroke-opacity: 0.85; }
+  .protected { stroke-width: 0.2; stroke-linecap: round; }
+  .protected.p0 { stroke: var(--blue); }
+  .protected.p1 { stroke: var(--red); }
+  .protected-core { stroke: #fff; stroke-width: 0.055; stroke-linecap: round; }
   .cut { stroke: var(--muted); stroke-width: 0.1; stroke-dasharray: 0.2 0.15; }
   .cut-mark { font-size: 0.7px; fill: var(--muted); text-anchor: middle; font-weight: 700; }
   .target { stroke: var(--accent); stroke-width: 0.55; stroke-linecap: round; stroke-opacity: 0.35; }
