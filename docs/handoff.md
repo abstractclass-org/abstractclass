@@ -27,8 +27,10 @@ It holds no backlog: everything still to do that is not in flight is in
   `query_version`. The site accepts protocol 0.5 only (`PROTOCOL_REPORTED` in `src/lib/engine/protocol.ts`). To move to
   it: accept 0.6, take the search from the module (`searchOf` reads `version.search` first), and add 27a7414's CPU
   module to the lock's `sameSearchAs` if the search stays `fdfe5ad`.
-- **Not mine to commit:** `docs/hosting.md` has a new section, "What Cloudflare shows", from another session. It is
-  left out of the commits. The owner decides.
+- **Another session's commit went live with this one:** `94d2861` (Cloudflare's alerts and what it shows, in
+  hosting.md, decisions/product.md and the backlog) was on `dev` when `b764038` was pushed to `main`. It changes
+  documents only. Its two tasks for the owner are done: the cache rule for the tools' files, and no `VITE_GA_ID` in the
+  previews.
 - **Not checked on the live site:** the board editor and the New menu in Edge (checked on the local build only).
 
 ## Working notes
