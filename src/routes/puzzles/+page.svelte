@@ -10,6 +10,7 @@
   import { puzzlesFrom, nextRating, THEME_TEXT, type Puzzle, type Theme } from "#lib/puzzles/model.ts";
   import { SAMPLE, SAMPLE_MOVES } from "#lib/mock/sample.ts";
   import Swatch from "#lib/ui/Swatch.svelte";
+  import PageMeta from "#lib/PageMeta.svelte";
 
   const R = review(SAMPLE);
   const ALL = puzzlesFrom(R);
@@ -118,7 +119,7 @@
   const menuItem = (on: boolean) => ["text-left", on ? "bg-panel border-line font-semibold" : "bg-transparent border-transparent"];
 </script>
 
-<svelte:head><title>Puzzles</title></svelte:head>
+<PageMeta title="Puzzles · Hedge School" noindex /> <!-- not in the early access (design 11) -->
 
 <!-- What the edge input waits for, or why the last click did nothing. -->
 {#snippet inputHint()}

@@ -2521,3 +2521,18 @@ The interface, the review, puzzles, lessons, labels and thresholds.
 - **Not set:** the weekly Web Analytics email ([open-items.md](open-items.md), "Foundations").
 - **To do:** the layout shift on `/review` ([open-items.md](open-items.md), Milestone 1).
 
+### Search engines in, and link previews (2026-10-14)
+
+- **Decided** (design 23): the live address is indexed from now, in the early access. Cloudflare's own addresses stay
+  out (`X-Robots-Tag: noindex` by host in `static/_headers`), and each page names its live address as canonical.
+- **Each page** has a title that names the site, a description that names Enclosure, the canonical address and Open
+  Graph's tags (`PageMeta.svelte`). One preview image for every page, 1,200 × 630 pixels, drawn by Edge from
+  `scripts/social-card.html`. A sitemap, and structured data on the home page.
+- **Found on the way:** `robots.txt`'s `Disallow` hid the pages' `noindex` from search engines, so a linked page could
+  show in results as a bare address. And `/review` prerendered with a game's title and no description: it now
+  prerenders as the Review tab.
+- **Checked** on the local build: the built pages' tags (home, the editor, the Review tab, `/import` with `noindex`),
+  the sitemap, the structured data, and in Edge one title and one description on `/review`, with "Game review" once
+  a game opens. Not checked: a preview in Discord, and the headers on Cloudflare (after the release).
+- **For the owner:** register the site in Google Search Console and submit the sitemap (design 23, item 10).
+

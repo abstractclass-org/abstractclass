@@ -38,6 +38,7 @@
   import { fileKind, keepAnalysisResults, readAnalysisFile } from "#lib/game/analysisFile.ts";
   import { SITE_NAME, SITE_VERSION } from "#lib/edition.ts";
   import { EDGE_RANGES, range } from "#lib/measure.ts";
+  import PageMeta from "#lib/PageMeta.svelte";
 
   const MESSAGE = "box-content max-w-[1100px] mx-auto my-8 px-4";
   const PLAYERS: ReviewData["players"] = { blue: "Blue", red: "Red" };
@@ -345,7 +346,8 @@
   }
 </script>
 
-<svelte:head><title>Analysis board</title></svelte:head>
+<PageMeta title="Analysis board · Hedge School"
+          description="A free Enclosure analysis board: play any line or a set-up position, and the engine in your browser searches the position on screen." />
 
 {#if error}
   <p class="{MESSAGE} text-blunder">{error}</p>

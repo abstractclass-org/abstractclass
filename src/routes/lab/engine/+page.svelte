@@ -13,6 +13,7 @@
   import { errorText } from "#lib/errors.ts";
   import { pct, PLAYER_NAME } from "#lib/review/model.ts";
   import { SAMPLE, SAMPLE_MOVES as MOVES } from "#lib/mock/sample.ts";
+  import PageMeta from "#lib/PageMeta.svelte";
 
   let manifest = $state<Manifest | null>(null);
   let modelId = $state("");
@@ -195,7 +196,7 @@
   const lastEdge = $derived<Edge | null>(edge > 0 ? parseEdge(MOVES[edge - 1]) : null);
 </script>
 
-<svelte:head><title>Engine lab</title></svelte:head>
+<PageMeta title="Engine lab · Hedge School" noindex /> <!-- not in the early access (design 11) -->
 
 <main class="box-content max-w-288 mx-auto p-4">
   <h1 class="mb-1 text-3xl font-bold">Engine lab</h1>

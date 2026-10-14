@@ -5,6 +5,7 @@
   import { EdgeInput } from "#lib/board/edgeInput.svelte.ts";
   import { COURSE, type Lesson, type Step } from "#lib/learn/lessons.ts";
   import type { Edge, Position } from "#lib/review/model.ts";
+  import PageMeta from "#lib/PageMeta.svelte";
 
   let lesson = $state<Lesson | null>(null);
   let k = $state(0);
@@ -35,7 +36,7 @@
   const nextLesson = $derived(lesson ? lessonsInOrder[lessonsInOrder.indexOf(lesson) + 1] : undefined);
 </script>
 
-<svelte:head><title>Learn</title></svelte:head>
+<PageMeta title="Learn · Hedge School" noindex /> <!-- not in the early access (design 11) -->
 
 <main class="box-content max-w-[1000px] mx-auto my-4 px-4">
   {#if !lesson}

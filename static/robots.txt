@@ -1,3 +1,6 @@
-# Unlisted while in early access (docs/design/11-early-access.md): the address is shared by hand.
+# Search engines may index the live site (docs/design/23-search.md). Cloudflare's preview addresses (*.pages.dev)
+# answer with noindex (static/_headers), so that no copy of a page competes with the live one.
 User-agent: *
-Disallow: /
+Allow: /
+
+Sitemap: https://hedgeschool.abstractclass.org/sitemap.xml

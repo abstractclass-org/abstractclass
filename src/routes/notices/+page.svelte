@@ -5,6 +5,7 @@
   import { SITE_COPYRIGHT, SITE_NAME } from "#lib/edition.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
   import lock from "../../../engine.lock.json";
+  import PageMeta from "#lib/PageMeta.svelte";
 
   // The engine release's terms (its LICENSE.txt: the engine's own code and the networks) and its notices (its
   // NOTICES.txt: the works compiled into the modules, with their licences' full texts), shipped beside the modules. The
@@ -36,7 +37,7 @@
   ];
 </script>
 
-<svelte:head><title>Notices · {SITE_NAME}</title></svelte:head>
+<PageMeta title="Notices · {SITE_NAME}" description="The licences of the works that Hedge School uses, and the terms of its engine." />
 
 <main class={PROSE}>
   <h1>Notices</h1>

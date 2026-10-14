@@ -1,7 +1,12 @@
 # Cloudflare Pages' response headers (docs/design/11-early-access.md). Pages reads this file and does not serve it.
 
-# Unlisted while in early access: no page or file is indexed (robots.txt and each page's noindex say the same).
-/*
+# Search engines index the live address only (docs/design/23-search.md). Cloudflare's own addresses for the project
+# (hedgeschool.pages.dev) and for each preview (dev.hedgeschool.pages.dev, a commit's hash) answer with noindex, so
+# that no copy of a page competes with the live one. Each page also names its live address as canonical.
+https://:project.pages.dev/*
+  X-Robots-Tag: noindex
+
+https://:version.:project.pages.dev/*
   X-Robots-Tag: noindex
 
 # Files whose paths change when their content does: the build's hashed code, and the engine's artifacts, whose

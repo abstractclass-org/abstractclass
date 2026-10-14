@@ -4,12 +4,14 @@
   import { onMount } from "svelte";
   import { bookmarkletHref } from "#lib/game/bookmarklet.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
+  import PageMeta from "#lib/PageMeta.svelte";
 
   let href = $state("");
   onMount(() => { href = bookmarkletHref(location.origin); });
 </script>
 
-<svelte:head><title>Tools for other sites</title></svelte:head>
+<PageMeta title="Bring your meaf.us games · Hedge School"
+          description="Bring your meaf.us Enclosure games to Hedge School in one click, with a bookmarklet or a Tampermonkey userscript, and review them." />
 
 <main class="box-content max-w-184 mx-auto my-6 px-4 grid gap-4">
   <h1 class="text-2xl font-bold">Bring your meaf.us games</h1>

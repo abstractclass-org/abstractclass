@@ -5,10 +5,11 @@
   // record's notation has its own page. The examples name the live site's address, which a partner's code names. A
   // partner tests against a deployment of the branch partner_test (design 18), whose address the page does not give.
   import { PROSE } from "#lib/prose.ts";
-  import { DISCORD, SITE_NAME } from "#lib/edition.ts";
+  import { DISCORD, SITE_NAME, SITE_ORIGIN } from "#lib/edition.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
+  import PageMeta from "#lib/PageMeta.svelte";
 
-  const LIVE = "https://hedgeschool.abstractclass.org";
+  const LIVE = SITE_ORIGIN;
   const LINK = `const link = "${LIVE}/review#" + new URLSearchParams({ record });
 // with a save page, for a partner site:
 const link = "${LIVE}/review#" + new URLSearchParams({ record, save: "https://example.com/hedge-school/save?game=123" });`;
@@ -63,10 +64,9 @@ window.addEventListener("message", event => {
 });`;
 </script>
 
-<svelte:head>
-  <title>For developers · {SITE_NAME}</title>
-  {@html `<style>${BUTTON_CSS}</style>`}
-</svelte:head>
+<PageMeta title="For developers · {SITE_NAME}"
+          description="Link Enclosure games to Hedge School from your site: review and analysis links, buttons, and reviews saved back to your site." />
+<svelte:head>{@html `<style>${BUTTON_CSS}</style>`}</svelte:head>
 
 <main class={PROSE}>
   <h1>For developers</h1>

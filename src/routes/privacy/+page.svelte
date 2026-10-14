@@ -6,13 +6,14 @@
   import { DISCORD, SITE_NAME } from "#lib/edition.ts";
   import { ASKS_CONSENT, choose, consent } from "#lib/analytics.svelte.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
+  import PageMeta from "#lib/PageMeta.svelte";
 
   let mounted = $state(false);
   onMount(() => (mounted = true));
   const CHOICE = { granted: "you accepted its cookies", denied: "you declined its cookies" };
 </script>
 
-<svelte:head><title>Privacy · {SITE_NAME}</title></svelte:head>
+<PageMeta title="Privacy · {SITE_NAME}" description="What Hedge School keeps, where it keeps it, and what it measures." />
 
 <main class={PROSE}>
   <h1>Privacy</h1>

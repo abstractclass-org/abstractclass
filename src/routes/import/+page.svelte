@@ -6,6 +6,7 @@
   // links that still use this address (Arrival.svelte).
   import { onMount } from "svelte";
   import { FORWARDED } from "#lib/game/importHash.ts";
+  import PageMeta from "#lib/PageMeta.svelte";
 
   onMount(() => {
     if (location.hash.length > 1) try { sessionStorage.setItem(FORWARDED, "1"); } catch { /* storage blocked: no warning */ }
@@ -13,6 +14,6 @@
   });
 </script>
 
-<svelte:head><title>Hedge School</title></svelte:head>
+<PageMeta title="Hedge School" noindex /> <!-- a deprecated address that forwards (design 22) -->
 
 <p class="box-content max-w-184 mx-auto my-6 px-4 text-muted">Opening Hedge School…</p>

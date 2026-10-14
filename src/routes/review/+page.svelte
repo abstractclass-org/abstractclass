@@ -39,6 +39,7 @@
   import type { GameRecord } from "#lib/game/record.ts";
   import { SITE_VERSION } from "#lib/edition.ts";
   import { pathKey } from "#lib/review/tree.ts";
+  import PageMeta from "#lib/PageMeta.svelte";
 
   const MESSAGE = "box-content max-w-[1100px] mx-auto my-8 px-4";
 
@@ -282,6 +283,7 @@
   });
 
   let noGame = $state(false); // the Review tab without a game: ReviewHome
+  let gameOpen = $state(false); // a game's review is open: the page's title names it, else the Review tab's (design 23)
   // Another game named after the `#` than the one the page shows, or a game named where it shows none (the Review tab's
   // list, an address typed, back and forward): the page reviews that one from the start. A change of the `#` alone is
   // the browser's own navigation, with no router's: it fires `hashchange`.
@@ -316,6 +318,7 @@
     }
     rememberReview(id);
     kept = { id, text: stored.game.record, record: stored.record, partner: stored.game.partner };
+    gameOpen = true;
     partnerName = stored.game.partner?.name ?? null;
     siteLink = gamePage(stored.record.tags);
     markBefore = stored.game.reviewed;
@@ -446,7 +449,10 @@
   }
 </script>
 
-<svelte:head>{#if !noGame}<title>Game review</title>{/if}</svelte:head> <!-- ReviewHome names its own page -->
+<!-- The prerendered page, which search engines read, is the Review tab: its address holds no game. -->
+{#if gameOpen}<PageMeta title="Game review · Hedge School" />
+{:else}<PageMeta title="Review a game · Hedge School"
+                 description="Review your Enclosure game: the engine in your browser judges each move, and shows where the game turned and what was better. Import it from meaf.us or a record." />{/if}
 
 {#if arriving}
   <Arrival />

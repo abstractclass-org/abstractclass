@@ -6,19 +6,31 @@
   import { review, PLAYER_NAME } from "#lib/review/model.ts";
   import { puzzlesFrom } from "#lib/puzzles/model.ts";
   import { COURSE } from "#lib/learn/lessons.ts";
-  import { EARLY_ACCESS, SITE_NAME } from "#lib/edition.ts";
+  import { EARLY_ACCESS, SITE_NAME, SITE_ORIGIN } from "#lib/edition.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
   import { SAMPLE } from "#lib/mock/sample.ts";
+  import PageMeta from "#lib/PageMeta.svelte";
 
   const R = review(SAMPLE);
   const daily = puzzlesFrom(R)[0];
   const firstLesson = COURSE[0].lessons[0];
 
+  // What the site is, for search engines (schema.org, design 23): a website, and a web application that is free.
+  const STRUCTURED = [
+    { "@context": "https://schema.org", "@type": "WebSite", name: SITE_NAME, url: `${SITE_ORIGIN}/` },
+    { "@context": "https://schema.org", "@type": "WebApplication", name: SITE_NAME, url: `${SITE_ORIGIN}/`,
+      applicationCategory: "GameApplication", operatingSystem: "Any", browserRequirements: "Requires JavaScript and WebAssembly",
+      offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+      description: "Reviews of Enclosure games, an analysis board and a board editor, with an engine that runs in the browser." },
+  ];
+
   const CARD = "grid gap-1.5 px-4 py-3.5 bg-panel border border-line rounded-lg text-ink no-underline hover:border-accent";
   const EYEBROW = "text-xs font-semibold uppercase tracking-[0.08em] text-muted";
 </script>
 
-<svelte:head><title>{SITE_NAME}</title></svelte:head>
+<PageMeta title="{SITE_NAME}: learn Enclosure"
+          description="Learn Enclosure, the game of edges and enclosed regions. Review your games and analyze any position, with an engine that runs in your browser." />
+<svelte:head>{@html `<script type="application/ld+json">${JSON.stringify(STRUCTURED)}</script>`}</svelte:head>
 
 <main class="box-content max-w-[1000px] mx-auto my-6 px-4 grid gap-5">
   <section class="px-1">

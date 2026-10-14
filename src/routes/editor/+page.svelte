@@ -17,6 +17,7 @@
            type EditorPosition } from "#lib/editor/position.ts";
   import { errorText } from "#lib/errors.ts";
   import { startAnalytics, track } from "#lib/analytics.svelte.ts";
+  import PageMeta from "#lib/PageMeta.svelte";
 
   const KEPT = "hedge-school:editor"; // the position being made (a convenience: the editor opens at the start without it)
   type Tool = 0 | 1 | "mark"; // a player's edges, or the marks of the turn
@@ -165,7 +166,8 @@
   const FIELD = "px-2 py-1 bg-page text-ink border border-line rounded focus:outline-2 focus:outline-accent";
 </script>
 
-<svelte:head><title>Board editor</title></svelte:head>
+<PageMeta title="Board editor · Hedge School"
+          description="Set up any Enclosure position: place each player's edges, and the engine checks that a game can reach it. Then analyze it on the board." />
 
 <main class="box-content grid items-start gap-5 max-w-[1100px] mx-auto my-4 px-4 min-[961px]:grid-cols-[minmax(0,600px)_minmax(280px,1fr)]">
   {#if failed}

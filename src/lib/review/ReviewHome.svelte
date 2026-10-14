@@ -137,7 +137,6 @@
   const title = (r: GameRecord) => { const p = playerNames(r.tags); return `${p.blue} against ${p.red}`; };
 </script>
 
-<svelte:head><title>Review a game</title></svelte:head>
 
 <main class={["box-content max-w-[1000px] mx-auto my-6 px-4 grid gap-5 rounded-lg", dragging && "outline-2 outline-dashed outline-accent"]}
       role="region" aria-label="Review a game"

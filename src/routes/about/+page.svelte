@@ -4,9 +4,11 @@
   import { DISCORD, SITE_NAME, SITE_VERSION } from "#lib/edition.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
   import Collie from "#lib/Collie.svelte";
+  import PageMeta from "#lib/PageMeta.svelte";
 </script>
 
-<svelte:head><title>About {SITE_NAME}</title></svelte:head>
+<PageMeta title="About · {SITE_NAME}"
+          description="What Hedge School is: a site that helps you learn Enclosure, with reviews of your games by an engine that runs in your browser." />
 
 <main class={PROSE}>
   <h1>About {SITE_NAME}</h1>

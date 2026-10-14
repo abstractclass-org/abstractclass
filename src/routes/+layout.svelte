@@ -3,7 +3,7 @@
 	import favicon from '#lib/assets/favicon.svg';
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
-	import { EARLY_ACCESS, SITE_NAME } from '#lib/edition.ts';
+	import { EARLY_ACCESS, SITE_NAME, SITE_ORIGIN } from '#lib/edition.ts';
 	import { ASKS_CONSENT, consent, startAnalytics } from '#lib/analytics.svelte.ts';
 	import { holdsGame } from '#lib/game/importHash.ts';
 	import ConsentBanner from '#lib/ConsentBanner.svelte';
@@ -45,8 +45,15 @@
 	<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
 	<link rel="icon" href={favicon} type="image/svg+xml" />
 	<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-	<!-- Unlisted while in early access (design 11): the address is shared by hand. -->
-	<meta name="robots" content="noindex" />
+	<!-- Link previews (design 23): the tags that every page shares. Each page gives its title, description and address
+	     (PageMeta.svelte). The image is drawn from scripts/social-card.html. -->
+	<meta property="og:site_name" content={SITE_NAME} />
+	<meta property="og:type" content="website" />
+	<meta property="og:image" content="{SITE_ORIGIN}/brand/card.png" />
+	<meta property="og:image:width" content="1200" />
+	<meta property="og:image:height" content="630" />
+	<meta property="og:image:alt" content="Hedge School: learn Enclosure. A board with Blue's and Red's edges." />
+	<meta name="twitter:card" content="summary_large_image" />
 </svelte:head>
 
 <!-- The gaps narrow on a phone, so that the theme menu fits in 360 pixels. -->

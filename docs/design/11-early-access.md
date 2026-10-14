@@ -39,8 +39,8 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
      code stays, for the full site.
 3. **One build switch:** `VITE_EDITION=early` builds the early access. Without it, the build is the full site, for
    development.
-4. **Unlisted:** `robots.txt` disallows every page, and every page carries `noindex`. The address is shared by hand,
-   in the Discord, which is also where players report problems.
+4. **Listed** (design 23, which replaced the first rule, unlisted): search engines index the live address, and
+   Cloudflare's preview addresses answer with `noindex`. The Discord is where players report problems.
 5. **Hosting: Cloudflare Pages,** built from the private GitHub repository on every push to `main`:
    - **The build command,** `npm run build:cloudflare`: it downloads the engine from its GitHub Release (`npm run engine
      -- --deploy`, which refuses local engine files), runs the tests and the type check, then builds into `build/`.
@@ -49,7 +49,7 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
      without a flag.
    - **The build's variables:** `VITE_EDITION=early`, `VITE_GA_ID` and `VITE_CF_ANALYTICS_TOKEN` (item 7). Pages names
      the commit (`CF_PAGES_COMMIT_SHA`), which the footer shows.
-   - **The headers** (`static/_headers`): `noindex` on every file, and a year's cache, never checked again, for the
+   - **The headers** (`static/_headers`): `noindex` on Cloudflare's preview addresses (design 23), and a year's cache, never checked again, for the
      build's hashed code (`/_app/immutable/`) and the engine's files (`/engine/<id>/<file>`): their paths name their
      content, so a file there never changes. `/engine/manifest.json` keeps the default check on each load. The meaf.us
      tools' files are checked at each use (`no-cache`), so that a deploy reaches the bookmark and Tampermonkey at
@@ -216,7 +216,7 @@ one item for each turn, separated by spaces.
 
 - The switch, the name and the version: `src/lib/edition.ts`, `vite.config.ts` (the commit). The last game reviewed:
   `src/lib/game/store.ts`, read by `src/lib/review/ReviewHome.svelte`. The hidden pages:
-  `src/routes/{puzzles,learn,lab/engine}/+page.ts`. Unlisted: `static/robots.txt`, `src/routes/+layout.svelte`.
+  `src/routes/{puzzles,learn,lab/engine}/+page.ts`. Search engines: design 23.
 - The import of Constellation's export: `src/lib/game/constellation.ts`, with its tests.
 - Deleting a game: `deleteGame` and `restoreGame` in `src/lib/game/store.ts`, the rows in `src/routes/+page.svelte`.
 - One tab for each game's review: `src/lib/game/reviewLock.ts`, used in `src/routes/review/+page.svelte`. The check

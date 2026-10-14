@@ -67,7 +67,8 @@ What the repository holds for Pages:
   decompresses them ([design 15](design/15-gpu.md)).
 - **Node 24** (`.node-version`). Pages' build image has Node 22.16 by default, which cannot run the tests' TypeScript
   without a flag.
-- **The response headers** (`static/_headers`, copied into `build/`): `X-Robots-Tag: noindex` on every file, and a
+- **The response headers** (`static/_headers`, copied into `build/`): `X-Robots-Tag: noindex` on Cloudflare's own
+  addresses (`hedgeschool.pages.dev` and the previews, design 23), and a
   year's cache, never checked again, for the build's hashed code (`/_app/immutable/*`) and the engine's files
   (`/engine/:id/:file`). Their paths name their content, so a file there never changes. `/engine/manifest.json` keeps
   the default: the browser checks it on each load. The meaf.us tools' files (`/bookmarklet.js`,
@@ -152,8 +153,8 @@ Cache** beside the setting empties it ([Cloudflare's page](https://developers.cl
 
 **Preview deployments** (**Settings → Branch control**, preview branch: all branches other than `main`): free, as
 production builds are. Each counts toward the free plan's 500 builds a month, and the free plan builds one at a time,
-so a preview that is building delays a release by a minute or so. Preview addresses are public, and unlisted like the
-site (`noindex`). **Preview access** in the project's settings can put them behind a sign-in (Cloudflare Access).
+so a preview that is building delays a release by a minute or so. Preview addresses are public, and unlisted
+(`noindex`, design 23), while the live address is indexed. **Preview access** in the project's settings can put them behind a sign-in (Cloudflare Access).
 
 ## 4. Google Analytics
 
@@ -239,7 +240,8 @@ Cloudflare's analytics of the whole account, so its counts include the previews 
   failed build leaves the live site as it was. Try a change first on `dev`'s preview.
 - **Check:** the footer's version is the commit that Pages built. On the live site, these hold (all true on
   2026-10-12, at commit `3580146`):
-  - every page and file answers with `X-Robots-Tag: noindex`, and an unknown address answers 404.
+  - the live address answers with no `X-Robots-Tag`, `hedgeschool.pages.dev` and the previews with `noindex`
+    (design 23), and an unknown address answers 404.
   - `/_app/immutable/…` and `/engine/<id>/<file>` carry `Cache-Control: public, max-age=31536000, immutable`, and
     `/engine/manifest.json` does not.
   - the module is served as `application/wasm`, and the larger network (20.6 MB) downloads whole.
@@ -296,8 +298,8 @@ How to read the numbers:
   Cloudflare's free managed rules block some of them with a 403, and also POST requests to `/`.
 - **Crawlers read text as links.** The notices page's code holds the names `LICENSE.txt` and `NOTICES.txt`. A crawler
   asked for them under `/_app/immutable/nodes/`, the folder of that code, and got 404.
-- **Crawlers come although each page has `noindex`:** AI search, AI crawlers and search engines. `noindex` keeps a page
-  out of an index. It does not stop the crawl.
+- **Crawlers come to every address:** AI search, AI crawlers and search engines. `noindex`, on the preview addresses,
+  keeps a page out of an index. It does not stop the crawl.
 
 ## Not part of the site
 

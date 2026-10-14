@@ -6,6 +6,7 @@
   import { PROSE } from "#lib/prose.ts";
   import { SITE_NAME } from "#lib/edition.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
+  import PageMeta from "#lib/PageMeta.svelte";
 
   const POSITIONS = `A10-D10 Q10-T10 b1 0/0 0
 A10-D10,D10-E11* Q10-T10 r2 0/0 1
@@ -28,7 +29,8 @@ A10-D10,D10-E11,D10-F13+ Q10-T10,Q10-T13*,T10-T13* b1 0/4.5 4`;
   const CONSTELLATION = "[B:A10-D10 R:P10-S10] D10-A7 P10-M10-J7 A7-A10,A7-D4 …";
 </script>
 
-<svelte:head><title>The notation · {SITE_NAME}</title></svelte:head>
+<PageMeta title="The notation of Enclosure · {SITE_NAME}"
+          description="The notation of Enclosure: points, edges, turns, positions and game records, for anyone who reads or writes Enclosure games." />
 
 <main class={PROSE}>
   <h1>The notation of Enclosure</h1>
