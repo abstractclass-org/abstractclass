@@ -35,7 +35,7 @@ The early access stays: the About page says that everything can change (design 1
 6. **Pages kept out:** `/import`, an address that forwards (design 22), and the pages of the full site that the early
    access does not build (`/puzzles`, `/learn`, `/lab/engine`) carry `noindex`.
 7. **The sitemap** (`/sitemap.xml`, prerendered): the pages that a visitor opens. Home, the Review tab, the Analysis
-   board, the board editor, Tools, the notation, About, For developers, Privacy and Notices.
+   board, the board editor, How a review works, Tools, the notation, About, For developers, Privacy and Notices.
 8. **Structured data** on the home page (schema.org, as JSON-LD): a website, and a web application that is free.
 9. **`/review` prerenders as the Review tab:** its address holds no game, so search engines read the Review tab's
    title and description. Once a game opens, the title is "Game review".

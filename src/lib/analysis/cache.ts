@@ -6,9 +6,11 @@
 import { STORES, dbGetMany, dbKeys, dbPut } from "#lib/storage/db.ts";
 
 const memory = new Map<string, unknown>(); // every result put or read in this visit
+const absent = new Set<string>(); // the keys read and not found in this visit: read again only after a put
 
 export async function cachePut(key: string, value: unknown): Promise<void> {
   memory.set(key, value);
+  absent.delete(key);
   await dbPut(STORES.analysis, key, value);
 }
 
@@ -40,8 +42,11 @@ const BUDGETS = [256, 512, 768, 1024, 1536, 2048, 3072, 4096, 8192, 16384];
  *  browser, searched to another depth, opens without searching again (game/reviewFile.ts). */
 export async function cacheGetAtLeast<T>(search: string, model: string, moves: string[], visits: number): Promise<T | undefined> {
   const keys = [visits, ...BUDGETS.filter(v => v > visits)].map(v => analysisKey(search, model, moves, v));
-  const unread = keys.filter(k => !memory.has(k));
-  (await dbGetMany(STORES.analysis, unread)).forEach((value, i) => { if (value !== undefined) memory.set(unread[i], value); });
+  const unread = keys.filter(k => !memory.has(k) && !absent.has(k));
+  (await dbGetMany(STORES.analysis, unread)).forEach((value, i) => {
+    if (value !== undefined) memory.set(unread[i], value);
+    else absent.add(unread[i]);
+  });
   const key = [...keys].reverse().find(k => memory.has(k));
   return key === undefined ? undefined : (memory.get(key) as T);
 }
@@ -65,3 +70,11 @@ export function searchHolding(keys: string[], model: string, positions: string[]
   }
   return wanted.size ? [...found].find(([, held]) => held.size === wanted.size)?.[0] : undefined;
 }
+
+/** Reads the stored results of these positions into memory, at `least` visits and every depth above, and notes the
+ *  ones not stored. The review starts it with the engine, so that its reads after the rules find everything in memory,
+ *  and its first frame waits for neither more than for the other. */
+export async function warmCache(search: string, model: string, positions: string[][], least: number): Promise<void> {
+  await Promise.all(positions.map(moves => cacheGetAtLeast(search, model, moves, least)));
+}
+

@@ -79,6 +79,11 @@ reason. Design 05 gives the searches that the labels read: their schedule, their
    - **A turn of one edge** (Blue's first turn, the game's last turn, or a turn cut by a timeout) is judged as one
      edge.
    - **A timeout pass** is a move without an edge: its loss counts, and it is never Best.
+   - **A game that ends early** (a resignation, a forfeit, or a record with no end yet): only the rules end a game, so
+     its last position is searched as any position, and its last move has a label from that search. The report names
+     the end as the record's result gives it ("Blue won: Red resigned after edge 74", "Unfinished after edge 40"), with
+     the scores on the board then. A game that the rules end takes its result from the scores, as before
+     (`endingText` in `src/lib/review/model.ts`).
    - **A branch's moves** have no labels until the player asks ("Evaluate quality" in the move menu). Then every branch
      move of that turn is searched and judged as the game's moves are (`judgeTurn`, `judgeEdge`). A branch that stops
      in a turn's middle has no turn label until the turn ends.

@@ -126,6 +126,9 @@
 }
 
 @layer base {
+  /* The scroll bar's room, kept whether the page scrolls or not: a page whose height changes while it loads (the
+     review's columns) does not move sideways when the bar comes and goes. */
+  html { scrollbar-gutter: stable; }
   body {
     background: var(--bg);
     color: var(--text);

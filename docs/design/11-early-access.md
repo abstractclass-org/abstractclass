@@ -30,11 +30,11 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
      page draws, so that a page never shows the other theme first. On a phone the header's gaps narrow, so that it fits
      in 360 pixels. Review opens the Review tab, where the last game reviewed in this browser is a click away. A
      review's address names its game, so a reload keeps it. **The footer,** on the pages that scroll (the home page and
-     the pages about the site): About, Tools, The notation, For developers, Privacy, Notices, the site's version (its
-     commit), the site's copyright line, and "Enclosure by webgoatguy", so that the copyright does not read as the
-     game's. The review has no footer: it fills the window. The About page credits webgoatguy as the game's designer,
-     and says that the site is not an official site of the game: it is made independently of webgoatguy, meaf.us and
-     Constellation.
+     the pages about the site): the pages that the header lacks (How reviews work, For developers, Privacy, Notices, and
+     Tools on a phone), the site's version (its commit), the site's copyright line, and "Enclosure by webgoatguy", so
+     that the copyright does not read as the game's. The review has no footer: it fills the window. The About page
+     credits webgoatguy as the game's designer, and says that the site is not an official site of the game: it is made
+     independently of webgoatguy, meaf.us and Constellation.
    - **Not in the early access:** puzzles, lessons, free analysis and the engine lab. Their addresses lead home. Their
      code stays, for the full site.
 3. **One build switch:** `VITE_EDITION=early` builds the early access. Without it, the build is the full site, for
@@ -129,6 +129,17 @@ one item for each turn, separated by spaces.
 - **The row stays until the page loads again,** with the Undo where the Delete was. So the list does not move under
   the pointer: a double click undoes its own delete, and never deletes the next game. Each deleted game keeps its own
   Undo, with no time limit.
+
+### Storage that the browser keeps
+
+- **The problem:** the games and their analyses are best-effort storage. A browser may delete them when its disk is
+  almost full, and Safari deletes them after seven days of use without a visit.
+- **The site asks for persistent storage** (`navigator.storage.persist()`, `src/lib/storage/persist.ts`), once a page:
+  when a game is kept (an import or a load), when the board keeps its analysis, and in the Review tab when the browser
+  holds games. Chrome and Edge answer without a question, from how the visitor uses the site. Firefox asks the
+  visitor.
+- **The Review tab says what the browser answered,** under the games: "Kept in this browser until you delete them", or,
+  without persistent storage, that the browser may clear them, with the advice to export the games to keep.
 
 ### One tab for each game's review
 

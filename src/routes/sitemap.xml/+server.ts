@@ -4,7 +4,8 @@ import { SITE_ORIGIN } from "#lib/edition.ts";
 
 export const prerender = true;
 
-const PAGES = ["/", "/review", "/analysis", "/editor", "/tools", "/notation", "/about", "/developers", "/privacy", "/notices"];
+const PAGES = ["/", "/review", "/analysis", "/editor", "/how-reviews-work", "/tools", "/notation", "/about", "/developers", "/privacy",
+               "/notices"];
 
 export function GET() {
   const urls = PAGES.map(p => `  <url><loc>${SITE_ORIGIN}${p}</loc></url>`).join("\n");

@@ -42,6 +42,7 @@
     <li><strong>The labels</strong> judge each turn by how much it lowered your chance of winning. You can judge each
       edge instead, in the review's settings.</li>
   </ul>
+  <p>The rules and their numbers are on <a href="/how-reviews-work">How a review works</a>.</p>
 
   <h2>The engine</h2>
   <p>The engine, HedgeFund, is a neural network trained for Enclosure, with a search derived from KataGo, made in the

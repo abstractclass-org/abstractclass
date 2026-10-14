@@ -65,7 +65,11 @@ will add more. A page whose name says "import" cannot say where the game goes.
 
      The events follow the words (design 17): `import_game` and `load_saved`.
    - **Tools (`/tools`):** the meaf.us bookmarklet and userscript.
-   - **The footer** of the pages that scroll: About, Tools, The notation, For developers, Privacy, Notices.
+   - **How a review works (`/how-reviews-work`):** the review's rules and their numbers, for a player who wants to know
+     where a label comes from (designs 10, 14 and 16), with the sources they follow. The review's report, the About page
+     and the footer link it.
+   - **The footer** of the pages that scroll: the pages that the header lacks, How reviews work, For developers,
+     Privacy and Notices, and Tools on a phone, where the header leaves it out.
 
 ## Why
 

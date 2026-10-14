@@ -1,4 +1,7 @@
 <script lang="ts" module>
+  import Swatch from "#lib/ui/Swatch.svelte";
+  import { PLAYER_NAME, type Player } from "./model.ts";
+
   /** The review in progress: what the engine does now, and the passes as parts of one bar, each with its share of the
    *  work (by visits) and how much of it is done (0 to 1). `waiting`: no work runs (the engine is off). */
   export interface ReviewProgress { text: string; parts: { share: number; done: number }[]; waiting?: boolean }
@@ -18,6 +21,36 @@
   const ONE_DIGIT = new Intl.NumberFormat("en", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   /** Points in at most 5 characters: "105", or "1.2k" from 1,000 on. */
   const shortPoints = (a: number) => (a >= 999.5 ? `${(a / 1000).toFixed(1)}k` : `${Math.round(a)}`);
+
+  /** Three columns from Lichess's width for them (its $x-large, 1,260 pixels): the summary gets its own column, and the
+   *  Report is no longer a tab. */
+  export const WIDE = "min-width: 1260px";
+  const PANEL = "min-w-0 px-4 py-3 bg-panel border border-line rounded-md";
+  const BONE = "rounded bg-panel-2 motion-safe:animate-pulse"; // a part of the skeleton
+  export { reviewSkeleton };
+
+  // The row above the board: the classes that set its height, the same in the review (player) and in its skeleton, so
+  // that the skeleton's board has the review's size. A narrower row takes two lines, then three (design 06).
+  const stripBox = (gauge: boolean) => (gauge ? "@container/gauge" : "@container/bar");
+  const stripRow = (gauge: boolean) => ["grid items-center gap-2 h-[1.6rem] @max-[38rem]/bar:h-auto @max-[32rem]/gauge:h-auto",
+    gauge ? "grid-cols-[auto_1fr_auto]" : "grid-cols-[auto_minmax(6rem,1fr)_auto]"];
+  const playerBox = (p: Player) => ["flex items-baseline gap-x-1.5 px-1.5 py-0.5 rounded min-w-0 max-w-64",
+    "@max-[38rem]/bar:flex-col @max-[38rem]/bar:leading-tight @max-[32rem]/gauge:flex-col @max-[32rem]/gauge:leading-tight",
+    p === 0 ? "@max-[38rem]/bar:items-start @max-[32rem]/gauge:items-start"
+            : "flex-row-reverse @max-[38rem]/bar:items-end @max-[32rem]/gauge:items-end"];
+  const playerName = (p: Player) => ["flex items-baseline gap-1.5 min-w-0 max-w-full", p === 1 && "flex-row-reverse"];
+  const playerNumbers = (p: Player) => ["flex items-baseline gap-x-1 text-sm text-muted tabular-nums whitespace-nowrap",
+    "@max-[27.5rem]/bar:flex-col @max-[21.25rem]/gauge:flex-col", p === 1 && "@max-[27.5rem]/bar:items-end @max-[21.25rem]/gauge:items-end"];
+  const AREA_DOT = "@max-[27.5rem]/bar:hidden @max-[21.25rem]/gauge:hidden";
+  /** The skeleton's row above the board sets --strip, as the review's row does (stripHeight): the board's size takes
+   *  the row's height from the window's. */
+  function measureStrip(main: HTMLElement) {
+    const row = main.querySelector<HTMLElement>("[data-strip]");
+    if (!row) return;
+    const watch = new ResizeObserver(() => main.style.setProperty("--strip", `calc(${row.offsetHeight}px + 0.5rem)`));
+    watch.observe(row);
+    return () => watch.disconnect();
+  }
 </script>
 
 <script lang="ts">
@@ -38,7 +71,6 @@
   import { BRUSH_KEYS, type BoardNote } from "#lib/board/notes.ts";
   import { EdgeInput, type EdgeRules } from "#lib/board/edgeInput.svelte.ts";
   import { parseEdge } from "#lib/engine/notation.ts";
-  import Swatch from "#lib/ui/Swatch.svelte";
   import { SIDE_BG, SIDE_BORDER, SIDE_TEXT } from "#lib/ui/side.ts";
   import AdvantageChart from "./AdvantageChart.svelte";
   import DifficultyChart from "./DifficultyChart.svelte";
@@ -50,7 +82,7 @@
   import LabelBadge from "./LabelBadge.svelte";
   import { LineDrawing } from "./lineDrawing.svelte.ts";
   import {
-    edgeName, moveName, moveNotation, opensTurn, turnFromCount, sameEdge, shortNote, turnShortNote, HARD_NOTE, complexity, likelyEdges, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchEdge, valuesAfter, resultWin, moverWin, costText, pct, shownCandidates, distinctCandidates, rankOf, twinsOf, lineMovers, enoughVisits, trustedLine, type Analysis, type Candidate, type EdgeReview, type LineStep, LABELS, LABEL_TEXT, LABEL_GLYPH, PLAYER_NAME, type Edge, type Label, type Player, type Position, type Review, type Unit, type Move, type TurnJudgment, type TurnReview,
+    edgeName, endingText, moveName, moveNotation, opensTurn, turnFromCount, sameEdge, shortNote, turnShortNote, HARD_NOTE, complexity, likelyEdges, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchEdge, valuesAfter, resultWin, moverWin, costText, pct, shownCandidates, distinctCandidates, rankOf, twinsOf, lineMovers, enoughVisits, trustedLine, type Analysis, type Candidate, type EdgeReview, type LineStep, LABELS, LABEL_TEXT, LABEL_GLYPH, type Edge, type Label, type Position, type Review, type Unit, type Move, type TurnJudgment, type TurnReview,
   } from "./model.ts";
   import { branchChildren, branchRows, mainIndex, nextFork, pathKey, prevFork, sharedLength, siblingLine, treeLines, withLine, type BranchRow } from "./tree.ts";
 
@@ -101,7 +133,6 @@
   const ROW_EM = 1.9; // a table row's height, in em
   const GAUGE_TEXT_PX = 40; // the length of a side's part of the gauge that has room for its percentage, written up
   // Class lists used in several places.
-  const PANEL = "min-w-0 px-4 py-3 bg-panel border border-line rounded-md";
   // A label's badge in the text. Its mark is 56% of the circle, as on the board (0.4 in 0.72), and bold, not extra bold,
   // because small text in heavy weights runs together.
   const GAUGE_TEXT = "absolute left-1/2 -translate-x-1/2 rotate-180 [writing-mode:vertical-rl] text-[0.6rem] leading-none font-semibold tracking-[0.1em] text-white tabular-nums";
@@ -118,9 +149,7 @@
   // The place on screen: a path in the game's tree (tree.ts), the game's own moves or a branch (design 07).
   let path = $state<string[]>(untrack(() => start ?? []));
   let hover = $state<Edge | null>(null);
-  // Three columns from Lichess's width for them (its $x-large, 1,260 pixels): the summary gets its own column, and
-  // the Report is no longer a tab.
-  const wide = new MediaQuery("min-width: 1260px");
+  const wide = new MediaQuery(WIDE);
   const threeCols = $derived(wide.current && !board); // the summary column: the review's
   // The display settings, kept in this browser (display.ts). They open in the analysis column, in the place of the
   // analysis (Lichess's analysis menu takes the move list's place), so that the board shows each change.
@@ -181,8 +210,9 @@
   const pos = $derived(mainAt ?? sharedLength(path, mainNames)); // on the game's line: here, or where the branch leaves it
   const branchNode = $derived(mainAt === null ? branches[here] : undefined);
   const position = $derived(branchNode?.position ?? R.data.positions[pos]);
-  // The game has ended here. The board's line ends where the player stopped: only the rules end it.
-  const over = $derived(mainAt !== null && !board ? mainAt === last : !!position.over);
+  // The game has ended here: only the rules end it. A game that ended early (a resignation, a forfeit) or a line that
+  // stops (the Analysis board's, an unfinished game) has a search at its last position, as any position.
+  const over = $derived(!!position.over);
   const analysis = $derived(over ? undefined : mainAt !== null ? R.data.analysis[mainAt] : branchNode?.analysis);
   // The position's complexity (model.ts) when it is hard, and its likely edges for the meter
   const hardHere = $derived.by(() => { const c = complexity(analysis, position.player); return c !== undefined && c >= HARD ? c : undefined; });
@@ -778,8 +808,8 @@
   // The chart shown above the counts, as Lichess's tabs choose among its charts: the advantage, or the difficulty
   let chart = $state<"advantage" | "difficulty">("advantage");
   let showArea = $derived(display.areaLine);
-  const winner = $derived<Player>(R.data.result.blue > R.data.result.red ? 0 : 1);
-  const margin = $derived(Math.abs(R.data.result.blue - R.data.result.red));
+  const ending = $derived(endingText(R.data)); // the game's outcome, by the rules or by the record (model.ts)
+  const endedByRules = $derived(!!R.data.positions[last]?.over);
   const status = $derived.by(() => {
     if (mainAt === null) {
       // In a branch: where it leaves the game, and the turn as in the game.
@@ -792,7 +822,7 @@
       const t = moveFrom(path), k = t.first ? 1 : 2;
       return `Edge ${(position.count ?? path.length) + 1} · Turn ${t.turn} · ${PLAYER_NAME[mover]} to play, edge ${k} of ${k - 1 + position.movesLeft}`;
     }
-    if (pos === last) return `Game over · ${PLAYER_NAME[winner]} won by ${margin.toFixed(1)} points`;
+    if (pos === last) return endedByRules ? `Game over · ${ending}` : `The record ends here · ${ending}`;
     const t = R.turnOf[pos];
     const k = t.edges.findIndex(e => e.index === pos) + 1;
     return `Edge ${pos + 1} of ${last} · Turn ${t.number} · ${PLAYER_NAME[mover]} to play, edge ${k} of ${t.edges.length}`;
@@ -834,7 +864,7 @@
     const move = !e ? "" : unit === "edge" ? moveText(e.index) : `${t!.number}. ${t!.edges.map(moveNotation).join(" ")}`;
     const title = e ? `${move}${listed(label) ? ` [${LABEL_TEXT[label]}]` : ""}` : "The start";
     const s = R.blueScore[i];
-    const value = i === last ? `Result: ${sideText(s!, 1)}` : s === undefined ? "Not analysed yet"
+    const value = i === last && endedByRules ? `Result: ${sideText(s!, 1)}` : s === undefined ? "Not analysed yet"
       : `Lead: ${sideText(s, 1)}${chartSettled[i] ? "" : " · first estimate"}`;
     const details = [showScore && i !== last && `Score: ${sideText(scoreDiff[i], 1)}`,
                      showArea && `Area: ${sideText(areaDiff[i], 1)}`].filter(d => d !== false);
@@ -866,7 +896,9 @@
   {#if problem}
     <p class="mb-2.5 text-sm text-blunder select-text" role="alert">Engine error: {problem}</p>
   {:else if progress}
-    <div class="mb-2.5">
+    <!-- One height for the review's slot, while it runs and once it is done, each line on one line: the report and the
+         moves under it never move as the review goes (Cloudflare measured the page's layout shift). -->
+    <div class="mb-2.5 h-[2.75rem]">
       <div class={["flex gap-0.5 h-1.5 rounded-[3px]", !progress.waiting && "bar-glider"]} role="progressbar" aria-label="The review" aria-valuemin="0" aria-valuemax="100"
            aria-valuenow={Math.round(100 * progress.parts.reduce((s, p) => s + p.share * p.done, 0))}>
         {#each progress.parts as part, k (k)}
@@ -875,8 +907,14 @@
           </div>
         {/each}
       </div>
-      <p class="mt-1 text-xs text-muted">{progress.text}</p>
-      {#if again}<p class="mt-1 text-xs text-ink">{again.text}</p>{/if}
+      <p class="mt-1 text-xs text-muted truncate" title={progress.text}>{progress.text}</p>
+      {#if again}<p class="mt-0.5 text-xs text-ink truncate" title={again.text}>{again.text}</p>{/if}
+    </div>
+  {:else if !board && !snapshot}
+    <div class="mb-2.5 h-[2.75rem]">
+      <div class="h-1.5 rounded-[3px] bg-accent" role="progressbar" aria-label="The review" aria-valuemin="0"
+           aria-valuemax="100" aria-valuenow="100"></div>
+      <p class="mt-1 text-xs text-muted truncate">Review done: {reviewVisits.toLocaleString("en")} visits a move.</p>
     </div>
   {:else if snapshot}
     <!-- A snapshot (design 20): when and with what, and Review again. A move it cannot add brings out its second line. -->
@@ -896,24 +934,18 @@
        narrowest, three: the points, then the area. The widths are the row's own (container queries), set by the widest
        numbers of a game (points in thousands): with the bar, where it keeps its 6rem; with the gauge, where the two tags
        meet. -->
-  <div class={["flex items-baseline gap-x-1.5 px-1.5 py-0.5 rounded min-w-0 max-w-64",
-               "@max-[38rem]/bar:flex-col @max-[38rem]/bar:leading-tight @max-[32rem]/gauge:flex-col @max-[32rem]/gauge:leading-tight",
-               p === 0 ? "@max-[38rem]/bar:items-start @max-[32rem]/gauge:items-start"
-                       : "flex-row-reverse @max-[38rem]/bar:items-end @max-[32rem]/gauge:items-end",
-               !over && mover === p && "bg-panel-2 shadow-[inset_0_-2px_0_var(--last)]"]}>
-    <span class={["flex items-baseline gap-1.5 min-w-0 max-w-full", p === 1 && "flex-row-reverse"]}>
+  <div class={[playerBox(p), !over && mover === p && "bg-panel-2 shadow-[inset_0_-2px_0_var(--last)]"]}>
+    <span class={playerName(p)}>
       <Swatch player={p} />
       <span class="font-semibold truncate">{p === 0 ? R.data.players.blue : R.data.players.red}</span>
       {#if !board}<span class="text-xs text-muted">{PLAYER_NAME[p]}</span>{/if} <!-- the board's names are the sides -->
     </span>
     <!-- The points so far, and the area enclosed now, which each turn's end adds to the points. While the engine's line
          shows, the area after its last drawn edge, in the accent colour. -->
-    <span class={["flex items-baseline gap-x-1 text-sm text-muted tabular-nums whitespace-nowrap",
-                  "@max-[27.5rem]/bar:flex-col @max-[21.25rem]/gauge:flex-col",
-                  p === 1 && "@max-[27.5rem]/bar:items-end @max-[21.25rem]/gauge:items-end"]}>
+    <span class={playerNumbers(p)}>
       <span><strong class="text-[1.1em] text-ink">{fmtScore(position.scores[p])}</strong> points</span>
       {#if areas}
-        <span class="@max-[27.5rem]/bar:hidden @max-[21.25rem]/gauge:hidden" aria-hidden="true">·</span>
+        <span class={AREA_DOT} aria-hidden="true">·</span>
         <span><strong class={["text-[1.1em]", lineAreas ? "text-accent" : "text-ink"]}
                       title={lineAreas ? "The area after the engine's line" : "The area enclosed now, added at the turn's end"}>{fmtScore(areas[p])}</strong> area</span>
       {/if}
@@ -963,10 +995,10 @@
 
 {#snippet highlights()}
   <p class="mb-3 text-xs text-muted">Analyzed in your browser. Labels judge each move by the engine's win chance. ◆ marks a
-    hard position.</p>
+    hard position. <a href="/how-reviews-work" target="_blank" rel="noopener noreferrer">How it works</a></p>
   <p class="mb-3.75">
-    <strong>{PLAYER_NAME[winner]} won by {margin.toFixed(1)} points</strong>
-    ({fmtScore(R.data.result.blue)} to {fmtScore(R.data.result.red)}).
+    <strong>{ending}</strong>
+    ({fmtScore(R.data.result.blue)} to {fmtScore(R.data.result.red)}{endedByRules ? "" : " on the board"}).
     {#if progress}The review is still running: the counts below are partial.{/if}
   </p>
   <!-- The game's own page, when its record's Site tag is an address (Lichess's way): back to the site it was played on. -->
@@ -1531,6 +1563,80 @@
   </div>
 {/snippet}
 
+<!-- The review's skeleton (Nielsen Norman Group's skeleton screen), while the engine's rules read the game: the layout
+     of the review below, with its columns, the board and the charts at their sizes, and grey bars for the text. The
+     review then takes its place, part for part. `three`: the summary's own column (WIDE). `gauge`: the win chance as a
+     gauge (display.ts). `players`: their names, once the game is read. -->
+{#snippet reviewSkeleton(three: boolean, gauge: boolean, players: { blue: string; red: string } | null)}
+  <main class={["review select-none", three && "wide", gauge && "gauge-mode"]} aria-busy="true" {@attach measureStrip}
+        style:--side-h="max(var(--column), calc(100vh - var(--site-header) - 2rem))">
+    {#if three}
+      <aside class="summary-col {PANEL} flex flex-col overflow-hidden">
+        {@render skeletonHead()}
+        {#each [90, 70, 80] as w (w)}<div class="h-3 mb-2.5 {BONE}" style:width="{w}%"></div>{/each}
+        <div class="h-5 mt-3 mb-4 w-3/4 {BONE}"></div>
+        {#each Array(8) as _, k (k)}<div class="h-4 mb-2.5 {BONE}"></div>{/each}
+      </aside>
+    {/if}
+    <section class="board-col">
+      <div class={["mb-2 ml-(--gauge-w)", stripBox(gauge)]} data-strip>
+        <div class={stripRow(gauge)}>
+          {@render skeletonPlayer(0, players?.blue)}
+          {#if gauge}<div></div>{:else}<div class="h-[1.15rem] {BONE}"></div>{/if}
+          {@render skeletonPlayer(1, players?.red)}
+        </div>
+      </div>
+      <div class="flex">
+        {#if gauge}<div class="flex-none self-stretch w-4 mr-1.5 {BONE}"></div>{/if}
+        <!-- The empty board: its colour and its points, where the board draws them. -->
+        <div class="board-wrap relative aspect-square rounded overflow-hidden bg-board"><div class="board-points"></div></div>
+      </div>
+      <div class="chart-area flex flex-col ml-(--gauge-w)">
+        <div class="h-3 w-48 mb-1.5 {BONE}"></div>
+        <div class="flex-1 {BONE}"></div>
+      </div>
+    </section>
+    <section class="side {PANEL} flex flex-col overflow-hidden">
+      {#if !three}{@render skeletonHead()}{/if}
+      <div class="h-5 mb-2 {BONE}"></div>
+      <div class="h-3 mb-3 w-2/3 {BONE}"></div>
+      {#each Array(5) as _, k (k)}<div class="h-5 mb-1.5 {BONE}"></div>{/each}
+      <div class="movelist flex-1 min-h-0 mt-2 pt-3 border-t border-line overflow-hidden">
+        {#each Array(24) as _, k (k)}<div class="h-4 mb-3 {BONE}" style:width="{k % 3 === 2 ? 55 : 85}%"></div>{/each}
+      </div>
+      <div class="mt-1.5 pt-1.5 border-t border-line">
+        <div class="h-3 mb-2 w-1/2 {BONE}"></div>
+        <div class="h-7 {BONE}"></div>
+      </div>
+    </section>
+  </main>
+{/snippet}
+
+<!-- A player in the skeleton's row: the review's (player), with bars as high as its text where the text is not known yet. -->
+{#snippet skeletonPlayer(p: Player, name: string | undefined)}
+  <div class={playerBox(p)}>
+    <span class={playerName(p)}>
+      <Swatch player={p} />
+      {#if name}<span class="font-semibold truncate">{name}</span>
+      {:else}<span class="font-semibold {BONE}"><span class="invisible">A player</span></span>{/if}
+      <span class="text-xs text-muted">{PLAYER_NAME[p]}</span>
+    </span>
+    <span class={playerNumbers(p)}>
+      <span class={BONE}><span class="invisible"><strong class="text-[1.1em]">0</strong> points</span></span>
+      <span class={[AREA_DOT, "invisible"]} aria-hidden="true">·</span>
+      <span class={BONE}><span class="invisible"><strong class="text-[1.1em]">0</strong> area</span></span>
+    </span>
+  </div>
+{/snippet}
+
+<!-- The skeleton's head: the review's progress slot, empty, and what the page does. -->
+{#snippet skeletonHead()}
+  <div class="mb-2.5 h-[2.75rem]">
+    <div class="h-1.5 rounded-[3px] bg-panel-2"></div>
+    <p class="mt-1 text-xs text-muted truncate" role="status">Reading the game with the engine's rules…</p>
+  </div>
+{/snippet}
+
 <!-- The page's text is a tool's, not a document's: it takes no selection, so the pointer stays an arrow over it. An
      engine error can be selected, to be copied. -->
 <main class={["review select-none", threeCols && "wide", board && "board-form", display.win === "gauge" && "gauge-mode"]} style:--side-h={sideHeight ? `${sideHeight}px` : undefined}
@@ -1545,9 +1651,8 @@
   <section class="board-col" bind:this={boardCol}>
     <!-- The players face each other left and right, as they start: Blue at A10-D10, Red at Q10-T10. The win-chance bar
          is between them. With the gauge, the row keeps the players, and starts after the gauge, at the board's edge. -->
-    <div class={["mb-2 ml-(--gauge-w)", display.win === "bar" ? "@container/bar" : "@container/gauge"]} bind:offsetHeight={stripHeight}>
-    <div class={["grid items-center gap-2 h-[1.6rem] @max-[38rem]/bar:h-auto @max-[32rem]/gauge:h-auto",
-                 display.win === "bar" ? "grid-cols-[auto_minmax(6rem,1fr)_auto]" : "grid-cols-[auto_1fr_auto]"]}
+    <div class={["mb-2 ml-(--gauge-w)", stripBox(display.win === "gauge")]} bind:offsetHeight={stripHeight}>
+    <div class={stripRow(display.win === "gauge")}
          aria-label={display.win === "bar" ? "Players, scores and win chance" : "Players and scores"}>
       {@render player(0)}
       {#if display.win === "bar"}
@@ -1679,6 +1784,9 @@
         <div class="flex h-1.5 mt-1 rounded-full overflow-hidden bg-panel-2" role="img" aria-label={meterText(meter)} title={meterText(meter)}>
           {#each METER_GROUPS as g (g)}<span class="h-full" style:width="{100 * meter[g]}%" style:background="var(--{g}-fill)"></span>{/each}
         </div>
+      {:else if !engineOpen}
+        <!-- The meter's place, empty until the search gives the position's edges: the table under it does not move. -->
+        <div class="h-1.5 mt-1 rounded-full bg-panel-2" aria-hidden="true"></div>
       {/if}
     </div>
     {#if engineOpen && engine && onengine}
@@ -1855,6 +1963,13 @@
     .side { height: auto; }
     .movelist { max-height: 22rem; }
     .board-wrap { width: auto; flex: 1; min-width: 0; } /* the column's width, whatever the scroll bar takes */
+  }
+  /* The skeleton's board points (reviewSkeleton), as the board draws them: 19 by 19, one unit apart, 1.3 units in from
+     the edges of a board 20.6 units wide (Board.svelte), each 0.07 units in radius. */
+  .board-points {
+    position: absolute;
+    inset: calc(100% * 0.8 / 20.6);
+    background: radial-gradient(circle closest-side, var(--board-dot) 12%, transparent 15%) 0 0 / calc(100% / 19) calc(100% / 19);
   }
   /* The Analysis board has no chart: the board takes its height (design 21). */
   .review.board-form { --chart: 0px; --chart-gap: 0px; }

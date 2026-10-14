@@ -27,11 +27,12 @@ import type { AnalysisReply, DescribeReply, MoveInfo } from "#lib/engine/protoco
 import { errorText } from "#lib/errors.ts";
 import { BOARD_ID, branchNodes, gameId, type BranchNode as KeptNode, type KeptBoard, type KeptBranches } from "#lib/game/store.ts";
 import { equalDepth, moverWin, onlyEdge, otherCandidate, sameMove, secondChoice, type Analysis, type Candidate, type LineStep,
-         type Move, type Player, type Position, type ReviewData } from "#lib/review/model.ts";
+         type GameEnding, type Move, type Player, type Position, type ReviewData } from "#lib/review/model.ts";
 import { ONLY_EDGE_GAP } from "#lib/review/labels.ts";
 import type { EdgeRules } from "#lib/board/edgeInput.svelte.ts";
 import { mainIndex, pathKey } from "#lib/review/tree.ts";
 import { STORES, dbGet, dbPut } from "#lib/storage/db.ts";
+import { keepStorage } from "#lib/storage/persist.ts";
 import { analysisKey, keyMoves, cacheGetAtLeast, cachePut } from "./cache.ts";
 import { Stopped } from "#lib/engine/client.ts";
 import { Cancelled, type EnginePool } from "./pool.ts";
@@ -167,7 +168,7 @@ export class GameAnalysis {
   }
 
   /** The game as the review reads it. */
-  data(players: ReviewData["players"]): ReviewData | null {
+  data(players: ReviewData["players"], ending?: GameEnding): ReviewData | null {
     if (!this.rulesReady) return null;
     const end = this.positions.at(-1)!.scores;
     // For each edge but the last, the position after the engine's second choice, which confirms a Great. For each turn
@@ -179,7 +180,7 @@ export class GameAnalysis {
       return turn && i + turn.length < this.played.length ? after(i, otherCandidate(this.analysis[i], turn)) : undefined;
     });
     return { players, result: { blue: end[0], red: end[1] }, moves: this.played, positions: this.positions, analysis: this.analysis,
-             seconds, others };
+             seconds, others, ...(ending ? { ending } : {}) };
   }
 
   /** The game's edges of the turn that starts with edge `i`, or undefined when no turn starts there. */
@@ -445,6 +446,7 @@ export class GameAnalysis {
   private async keepBranches() {
     if (this.board) {
       await dbPut(STORES.branches, BOARD_ID, this.keptBoard());
+      void keepStorage(); // the board's analysis is the player's too
       return;
     }
     if (!this.id || !(await dbGet(STORES.games, this.id))) return;

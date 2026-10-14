@@ -12,6 +12,7 @@
   import { pastedSource, readPasted } from "#lib/game/paste.ts";
   import { boardLink } from "#lib/game/board.ts";
   import { fileKind, keepAnalysisResults, readAnalysisFile } from "#lib/game/analysisFile.ts";
+  import { keepStorage, storageKept } from "#lib/storage/persist.ts";
   import { errorText } from "#lib/errors.ts";
   import { SITE_NAME, SITE_VERSION } from "#lib/edition.ts";
   import { deliverExport, importReview, readReviewFile, shippedModels, shippedModules, type ExportKind } from "#lib/game/reviewFile.ts";
@@ -33,11 +34,20 @@
   let manifest = $state.raw<Manifest | null>(null);
   const engine = loadEngine();
   const wanted = (g: StoredGame) => manifest && reviewMark(manifest, g.settings?.network ?? engine.network, g.settings?.visits ?? reviewVisits(engine));
+  // Whether the browser keeps the games for good (storage/persist.ts): it asked when a game was kept.
+  let kept = $state(false);
+  // The tab shows once the browser's games are read, so that "Continue your last review" and the list come with the
+  // rest of the page and push nothing down (a layout shift). The reads take a few milliseconds. The request for
+  // persistent storage comes after: Firefox asks the visitor, and the tab does not wait for the answer.
+  let ready = $state(false);
   onMount(async () => {
     games = await listGames();
+    kept = !!(await storageKept());
     const lastId = lastReview();
     last = games.find(g => g.game.id === lastId) ?? null;
+    ready = true;
     setVisitor({ games_stored: range(games.length, GAME_RANGES) }); // how many games a visitor keeps (design 17)
+    if (games.length && !kept) void keepStorage().then(k => (kept = k));
     manifest = await loadManifest();
   });
 
@@ -138,6 +148,7 @@
 </script>
 
 
+{#if ready}
 <main class={["box-content max-w-[1000px] mx-auto my-6 px-4 grid gap-5 rounded-lg", dragging && "outline-2 outline-dashed outline-accent"]}
       role="region" aria-label="Review a game"
       ondragover={e => { if (e.dataTransfer?.types.includes("Files")) { e.preventDefault(); dragging = true; } }}
@@ -204,9 +215,14 @@
           </li>
         {/each}
       </ul>
-      <p class="text-sm text-muted">Kept in this browser only.</p>
+      <p class="text-sm text-muted">
+        {#if kept}Kept in this browser until you delete them.
+        {:else}Kept in this browser only, which may clear them when its disk is almost full, or Safari after seven days
+          without a visit. Export the games you want to keep.{/if}
+      </p>
     </section>
   {/if}
 </main>
 
 <SiteFooter />
+{/if}

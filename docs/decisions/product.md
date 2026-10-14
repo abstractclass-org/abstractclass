@@ -2536,3 +2536,84 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   a game opens. Not checked: a preview in Discord, and the headers on Cloudflare (after the release).
 - **For the owner:** register the site in Google Search Console and submit the sitemap (design 23, item 10).
 
+### Persistent storage, games that end early, and a page that explains the review (2026-10-14)
+
+- **Persistent storage** (design 11, "Storage that the browser keeps"): the site asks the browser to keep its data
+  when the player keeps something, and the Review tab says what the browser answered. Without it, a browser may clear
+  the games when its disk is almost full, and Safari after seven days without a visit.
+- **A game that ends early** (design 10, special cases): the review names the end from the record's result ("Blue won:
+  Red resigned after edge 6"), and the last position, which the rules did not end, shows its search and its status
+  ("The record ends here"). Before, the report said "won by 0.0 points" from the board's scores, and the last position
+  read "Game over". Its last move already had a label from a search of the last position, since unfinished games are
+  reviewed.
+- **How a review works** (`/how-reviews-work`, design 22): the searches, the labels and their bands, Best and Great,
+  the accuracy with Lichess's formula and KaTrain's weights, hard positions, the meter and the key moments, with the
+  sources they follow. Linked from the review's report, the About page and the footer, and in the sitemap.
+- **Checked** in Edge on the local build: the Review tab's storage line (persistent in this Edge), a record ending
+  `b+R` ("Blue won: Red resigned after edge 6", and "The record ends here" with the last position's search), and the
+  new page. Not checked: a browser that refuses persistent storage, and Firefox's question.
+
+### The review's layout shift, and a shorter footer (2026-10-14)
+
+- **Measured** in Edge with the browser's layout-shift entries, which name each element that moved. Cloudflare's Web
+  Analytics had a CLS of 0.151 on `/review`, from the board's column. A stored review in a window of 1,366 × 657
+  pixels, a common laptop's, gave 0.114:
+  - every column moved 8 pixels sideways when a scroll bar came and went while the page loaded;
+  - the report's table moved 60 pixels down when the review's progress and the note on deeper searches came, and back
+    up when the review ended;
+  - the side panel moved 10 pixels when the likely edges' meter came with the first search;
+  - the move list's rows moved as the stored labels' notes came, one by one.
+  The Review tab gave 0.038: "Continue your last review" came after the page, and pushed it down 72 pixels.
+- **Fixed:**
+  - the page keeps the scroll bar's room (`scrollbar-gutter: stable` in `src/app.css`);
+  - the review's progress has one slot of one height, while it runs and after ("Review done: 512 visits a move.");
+  - the meter has its place before the first search, as an empty bar;
+  - the review shows once its stored results are read (`fromStore` before the first frame, `preloaded` in
+    `src/routes/review/+page.svelte`), so a review opened again shows its labels, notes and report at once;
+  - the Review tab shows once its games are read.
+- **After:** 0.0023 at 1,366 × 657, 0 at 1,427 × 849, 0.0001 at 390 × 760, 0 for the Review tab and the Analysis
+  board. A review still running moves its move list as its notes come: they are its news.
+- **Load time kept:** the stored results are read while the engine starts (`warmCache` in
+  `src/lib/analysis/cache.ts`), not after the rules, and the cache now remembers the keys that it did not find. The
+  review shows 14 to 24 milliseconds after its rules are ready (0.6 to 1.2 seconds after the page opens), where a read
+  after the rules took about 50 milliseconds for 120 positions among 5,291 stored results. The page marks both times
+  in the browser's performance timeline (`review:rules`, `review:shown`). The Review tab waits a few milliseconds for
+  its games.
+- **The other costs:** the progress slot keeps its height after the review ends, its bar full. With a scroll bar that
+  takes room (Windows), a page that does not scroll keeps an empty strip at its right edge.
+- **The footer** holds only the pages that the header lacks: How reviews work, For developers, Privacy and Notices,
+  and Tools on a phone. About and The notation are in the header.
+
+### A skeleton while the review starts, and the time before it shows (2026-10-14)
+
+- **The skeleton** (design 06, item 10): the review's layout, with the empty board and grey bars, from the moment the
+  page's code runs until the review shows. Before, the page showed one line of text, "Reading the game with the
+  engine's rules…", then the whole review.
+- **Checked** in Edge on the local build, in frames of 1,366 × 657, 1,000 × 700 and 390 × 760 pixels: the board, the
+  row above it, the charts' area and the columns have the same place and size in the skeleton and in the review. On
+  the phone's width, the analysis panel under the board is 683 pixels high in the skeleton and 658 in the review.
+  Layout shift on a full load of a stored review: 0.0001.
+- **Where the time goes** before a stored review shows, measured with marks in the page on the same desktop (16
+  cores). The marks were taken out after:
+  - The page's code starts 90 to 550 milliseconds after the address is opened. On full loads, the 35 script files
+    (482 KB) came out of the browser's cache until about 340 milliseconds, and the first paint was at 264 to 392
+    milliseconds.
+  - Reading the game, the tab's lock and the engine's manifest: 60 to 100 milliseconds, one after another.
+  - The rules worker's start: 55 to 240 milliseconds.
+  - The rules' description of every position: 160 to 285 milliseconds. A worker alone did it in 118 milliseconds.
+  - The stored results and the first frame: 10 to 56 milliseconds. The review's first frame is one task of 109 to 144
+    milliseconds.
+  - With one search worker or four, the rules took the same time.
+- **Request 18** asks the engine repository for every position of a game in one request, without the legal moves.
+
+### An icon at /favicon.ico (2026-10-14)
+
+- **The problem:** Cloudflare's logs showed about six answers of 404 a day for `/favicon.ico`. The HTML standard lets
+  a browser ask for that address when a page names no icon, and bots ask for it without reading the page. The
+  site's fallback page for an unknown address (`404.html`) names no icon before its code runs.
+- **The change** (design 12): `static/favicon.ico`, the head at 16, 32 and 48 pixels, drawn by `scripts/favicon.mjs`.
+  The pages name it in the place of the 32-pixel PNG (`favicon-32.png`, removed), as Evil Martians' "How to Favicon"
+  advises. The SVG icon stays for the browsers that read it.
+- **Checked** on the local build: `/favicon.ico` answers with `image/x-icon`, three images, 4,431 bytes. Each image
+  has a clear background.
+

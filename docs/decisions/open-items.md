@@ -49,34 +49,16 @@ Rules:
 - **A worker's memory with the build 632f2a0:** its CPU module frees the network's bytes after it loads them. The
   Workers setting's help line gives 100 MB a worker with Lite and 255 MB with the larger network (design 09), measured
   on earlier builds. Measure again in the engine lab, and correct `NETWORKS` in `engineSettings.ts`.
-- **A game that ends early** (a resignation, a forfeit, a timeout): the review values the position after the last
-  edge as the game's end, by the board's scores (model.ts, `review`), and its summary says "won by 0.0 points". The
-  record's Result and Termination say how the game ended. Then the last position needs its own search, as any other,
-  and the summary should name the resignation or the forfeit. It touches the labels of the last turn (design 10).
 - **Stored analyses that no review reads:** a change of the stored shape (`SHAPE` in `analysis/cache.ts`) or of the
   engine's build leaves the older analyses in the browser, and nothing reads them again. In the owner's Edge, 2,796
   of 4,607 analyses were of older shapes (decisions/product.md, "Deleting a game, and the browser's storage"). Remove
   them, for example when the site starts with a new shape or build.
-- **Storage that the browser may clear:** the games and their analyses are best-effort storage. A browser may delete
-  them when its disk is almost full, and Safari deletes them after seven days of use without a visit. Decide whether
-  to ask for persistent storage (`navigator.storage.persist()`), and whether the home page should tell the player to
-  export the games they want to keep.
 - **A search stopped at its time limit, kept** (design 16, example 6): the store keeps finished searches only, so a
   deeper look that stops at its time limit changes the review while the page is open, and not after it opens again.
   The store could keep it under the largest budget its visits reach (2,600 visits as 2,048). A small gain, if any.
 - **A share link with the sender's deeper looks** (design 16, example 9): at the positions the sender searched deeper,
   the recipient's labels are the review's own until the recipient looks there as deep. The link holds no results, and
   a review file carries them. A small gain, if any.
-- **A page that explains the review:** how the labels, the accuracy, the complexity and its marks, and the meter are
-  computed, with their formulas and the reasons for them (designs 10 and 14), for a player who wants to know. Also
-  that the position on screen, searched deeper than the review, updates the review where the player looks (design
-  09). Later,
-  not for the early access.
-- **A layout shift on `/review`:** Cloudflare's Web Analytics measured a CLS of 0.151 there, from the board's column
-  (`section.board-col`). Google rates a CLS above 0.1 as "needs improvement". Find what moves the column while the
-  page loads, for example a size that is known only after the engine or the game loads, and reserve its space
-  (decisions/product.md, "What Cloudflare shows, and its alerts").
-
 ## Offline work (on the engine repository's GPU)
 
 - **The archive's analysis stays offline:** it is other players' games. It stays in the engine repository's `runs/`,

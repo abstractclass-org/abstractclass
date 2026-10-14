@@ -29,9 +29,10 @@ school's colour seen beyond the site.
    3 rem.
 4. **The mascot** on the About page ("The schoolmaster": "The school is kept by a Border Collie.") is the full drawing
    at 96 pixels. The earlier mortarboard is not redrawn for this drawing.
-5. **The favicon:** the head as a file (`src/lib/assets/favicon.svg`), the same in both colour schemes. A 32-pixel PNG
-   for browsers without SVG icons (`static/favicon-32.png`) and a 180-pixel PNG for iOS's home screen
-   (`static/apple-touch-icon.png`): the head on white. iOS rounds the corners itself and fills transparent ones with
+5. **The favicon:** the head as a file (`src/lib/assets/favicon.svg`), the same in both colour schemes. An ICO file
+   at the site's root for browsers without SVG icons and for the clients that ask for `/favicon.ico` without reading
+   the page (`static/favicon.ico`: 16, 32 and 48 pixels, drawn by `scripts/favicon.mjs`), as Evil Martians' "How to
+   Favicon" advises. A 180-pixel PNG for iOS's home screen (`static/apple-touch-icon.png`): the head on white. iOS rounds the corners itself and fills transparent ones with
    black, so its PNG is a full square.
 6. **The head for partner sites' buttons** ([design 18](18-partner-links.md)): the favicon's drawing at a fixed
    address, `/brand/hedge-school.svg` (`static/brand/`), with a comment that gives its terms: unchanged but for its
@@ -82,7 +83,8 @@ school's colour seen beyond the site.
 ## Where it is
 
 - `src/lib/Collie.svelte` (the drawing, with `size` and `label`), `src/lib/collie.ts` (its traced paths),
-  `src/lib/assets/favicon.svg`, `static/favicon-32.png`, `static/apple-touch-icon.png`, `static/brand/hedge-school.svg`.
+  `src/lib/assets/favicon.svg`, `static/favicon.ico` (`scripts/favicon.mjs`), `static/apple-touch-icon.png`,
+  `static/brand/hedge-school.svg`.
 - `src/routes/+layout.svelte` (the icons, the header), `src/routes/about/+page.svelte` (the mascot), `src/app.css`
   (`--site-header`, `--accent`, `--on-accent`, `--score`). The partners' button style:
   `src/routes/developers/+page.svelte`.

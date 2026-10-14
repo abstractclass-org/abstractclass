@@ -55,7 +55,8 @@ export interface Candidate {
 export interface Analysis { blueWin: number; visits: number; lead?: number; margin?: number; spread?: number; candidates: Candidate[] }
 export interface ReviewData {
   players: { blue: string; red: string };
-  result: { blue: number; red: number }; // the final scores
+  result: { blue: number; red: number }; // the scores after the last edge
+  ending?: GameEnding; // how the record says the game ended, for a game that the rules did not end
   moves: Move[];
   positions: Position[];
   analysis: (Analysis | undefined)[]; // by position; undefined until analysed
@@ -567,3 +568,23 @@ export function onlyJudged(R: Review, judged: (edge: number) => boolean): Review
 
 /** Whether edge `i` opens its turn, as the move list writes it: "12." for the first edge, "12..." for the second. */
 export const opensTurn = (t: TurnReview, i: number) => t.edges[0].index === i && !t.continued;
+
+/** How a record says its game ended (the notation's result and Termination tag): `b+28.5`, `r+R` (resigned), `b+F`
+ *  (forfeited: left the game), `0` (a draw), `*` (not over, or not known). */
+export interface GameEnding { result: string | null; termination?: string }
+
+/** The game's outcome in words: by the scores when the rules ended the game, else as the record says it ended (a
+ *  resignation, a forfeit, a result the record gives, or no end yet). */
+export function endingText(data: ReviewData): string {
+  const n = data.moves.length, overByRules = data.positions[n]?.over ?? true;
+  const { blue, red } = data.result;
+  if (overByRules)
+    return blue === red ? "A draw" : `${PLAYER_NAME[blue > red ? 0 : 1]} won by ${Math.abs(blue - red).toFixed(1)} points`;
+  const m = /^([br])\+(R|F|\d+(?:\.\d+)?)$/.exec(data.ending?.result ?? "");
+  if (!m) return data.ending?.result === "0" ? "A draw" : `Unfinished after edge ${n}`;
+  const winner: Player = m[1] === "b" ? 0 : 1, loser = PLAYER_NAME[winner === 0 ? 1 : 0];
+  if (m[2] === "R") return `${PLAYER_NAME[winner]} won: ${loser} resigned after edge ${n}`;
+  if (m[2] === "F") return `${PLAYER_NAME[winner]} won: ${loser} left the game after edge ${n}`;
+  return `${PLAYER_NAME[winner]} won by ${Number(m[2]).toFixed(1)} points`;
+}
+

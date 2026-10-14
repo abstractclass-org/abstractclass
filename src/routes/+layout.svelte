@@ -42,7 +42,7 @@
 
 <svelte:head>
 	<!-- The collie (design 12): a PNG for browsers without SVG icons, the SVG for the rest, and a square tile for iOS. -->
-	<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
+	<link rel="icon" href="/favicon.ico" sizes="32x32" />
 	<link rel="icon" href={favicon} type="image/svg+xml" />
 	<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 	<!-- Link previews (design 23): the tags that every page shares. Each page gives its title, description and address

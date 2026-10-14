@@ -12,18 +12,20 @@
   // earlier engine opens as that review, from the stored results with the engine's rules alone, until the player
   // chooses Review again (docs/design/20-snapshot.md).
   import { onDestroy, onMount, untrack } from "svelte";
-  import ReviewView, { type ReviewAgain, type ReviewProgress } from "#lib/review/ReviewView.svelte";
+  import ReviewView, { WIDE, reviewSkeleton, type ReviewAgain, type ReviewProgress } from "#lib/review/ReviewView.svelte";
+  import { loadDisplay } from "#lib/review/display.ts";
+  import { MediaQuery } from "svelte/reactivity";
   import Arrival from "#lib/review/Arrival.svelte";
   import ReviewHome from "#lib/review/ReviewHome.svelte";
   import { holdsGame } from "#lib/game/importHash.ts";
-  import { snapshotSearch } from "#lib/analysis/cache.ts";
-  import { review, type ReviewData } from "#lib/review/model.ts";
+  import { snapshotSearch, warmCache } from "#lib/analysis/cache.ts";
+  import { review, type GameEnding, type ReviewData } from "#lib/review/model.ts";
   import { EnginePool } from "#lib/analysis/pool.ts";
   import { GameAnalysis, LABEL_VISITS, SWEEP_VISITS, momentVisits } from "#lib/analysis/game.svelte.ts";
   import { NETWORKS, loadEngine, reviewVisits, saveEngine, withReview, type EngineSettings } from "#lib/analysis/engineSettings.ts";
   import { trackSettingChange } from "#lib/analysis/settingChanges.ts";
   import { GpuControl, gpuDownloadMB } from "#lib/analysis/gpu.svelte.ts";
-  import { loadManifest, modelOf, sameSearch, type Manifest } from "#lib/engine/client.ts";
+  import { loadManifest, modelOf, moduleOf, sameSearch, type Manifest } from "#lib/engine/client.ts";
   import { errorText } from "#lib/errors.ts";
   import { gamePage, playerNames } from "#lib/game/record.ts";
   import type { GamePartner } from "#lib/game/partners.ts";
@@ -51,6 +53,7 @@
   // the player chooses Review again.
   let snapshot = $state<{ visits: number; text: string } | null>(null);
   let players = $state<ReviewData["players"]>({ blue: "Blue", red: "Red" });
+  let ending = $state<GameEnding | undefined>(undefined); // how the record says the game ended (model.ts, endingText)
   let kept: { id: string; text: string; record: GameRecord; partner?: GamePartner } | null = null; // the stored game, for its export
   // The partner site the game came from by its link (design 18), for the Export menu's "Save to …", and the game's own
   // page from its record's Site tag, for the report's link back.
@@ -87,8 +90,11 @@
   // (design 05).
   const budget = $derived(reviewVisits(settings));
   const depth = $derived(snapshot?.visits ?? budget); // the depth of the review on screen
-  const data = $derived(game?.data(players) ?? null);
-  const R = $derived(data ? review(data, "lead", LABEL_VISITS) : null);
+  const data = $derived(game?.data(players, ending) ?? null);
+  // The review shows once the stored results are read (`preloaded`): a review opened again then shows its labels, notes
+  // and report in its first frame, and nothing moves as they come (Cloudflare measured the page's layout shift).
+  let preloaded = $state(false);
+  const R = $derived(data && preloaded ? review(data, "lead", LABEL_VISITS) : null);
   // The key moments' positions, searched deeper after the label pass: every position of each, from its start to its end
   // (its loss needs both ends, and a turn's note gives its edges' losses too). The key moments by turn and by edge,
   // whichever the page shows: they are mostly the same positions. Before the label pass ends, the labels found so far
@@ -284,6 +290,10 @@
 
   let noGame = $state(false); // the Review tab without a game: ReviewHome
   let gameOpen = $state(false); // a game's review is open: the page's title names it, else the Review tab's (design 23)
+  // The address names a game: the review's skeleton shows until the review does (ReviewView.svelte, reviewSkeleton).
+  // Before the page's code runs, the prerendered page shows its line of text.
+  let opening = $state(false);
+  const wide = new MediaQuery(WIDE);
   // Another game named after the `#` than the one the page shows, or a game named where it shows none (the Review tab's
   // list, an address typed, back and forward): the page reviews that one from the start. A change of the `#` alone is
   // the browser's own navigation, with no router's: it fires `hashchange`.
@@ -310,6 +320,7 @@
     const id = gameInAddress();
     shown = id;
     if (!id) return null;
+    opening = true;
     const stored = await loadGame(id);
     if (!stored) {
       // A review's address opened in a browser that lacks its game (a review's address sent to someone): counted.
@@ -325,6 +336,7 @@
     const s = stored.game.settings;
     own = s && NETWORKS.some(n => n.id === s.network) ? s : null; // a network the site no longer ships: the browser's
     players = playerNames(stored.record.tags);
+    ending = { result: stored.record.result ?? stored.record.tags.Result ?? null, termination: stored.record.tags.Termination };
     return stored.record.moves;
   }
 
@@ -374,8 +386,22 @@
     g.setDepth(engine.visits, engine.seconds);
     g.setReview(budget);
     if (!chosen) game = g;
+    // The stored results, read while the engine starts: the review shows them in its first frame, and does not wait for
+    // them after the rules (cache.ts, warmCache). The search is the manifest's (client.ts, searchOf).
+    const model = modelOf(manifest!, network)?.sha256, search = moduleOf(manifest!)?.search;
+    const warm = search && model ? warmCache(search, model, Array.from({ length: moves.length + 1 }, (_, i) => moves.slice(0, i)), SWEEP_VISITS).catch(() => {})
+      : Promise.resolve();
     try {
-      await first.start(manifest!, network, async () => { await g.start(); game = g; before?.terminate(); });
+      await first.start(manifest!, network, async () => {
+        await g.start();
+        performance.mark("review:rules"); // the start's steps, for measuring it (the browser's performance timeline)
+        await warm;
+        if (g.rulesReady && first.search && model) await g.fromStore(first.search, model).catch(() => {});
+        preloaded = true;
+        performance.mark("review:shown");
+        game = g;
+        before?.terminate();
+      });
     } catch (e) {
       before?.terminate();
       if (pool === first) throw e; // else another network took over while this one loaded
@@ -415,6 +441,7 @@
       const what = why === "engine" ? "the engine" : (modelOf(manifest!, network)?.displayName ?? "the network");
       snapshot = { visits: mark.visits, text: `Reviewed on ${date} with an earlier version of ${what}.` };
       pool = rules;
+      preloaded = true;
       game = g;
       track("review_open", { ...reviewParams(), done_before: true });
       trackOnce(`${kept!.id} snapshot opened`, "feature", { feature_name: "snapshot opened" });
@@ -481,6 +508,8 @@
               timedOut={!!game?.stoppedByTime(current)}
               searching={!!game && game.focusing === pathKey(current)}
               lineSteps={game ? (path, line) => game!.lineSteps(path, line) : undefined} />
+{:else if opening}
+  {@render reviewSkeleton(wide.current, loadDisplay().win === "gauge", gameOpen ? players : null)}
 {:else}
   <p class="{MESSAGE} text-muted">Reading the game with the engine's rules…</p>
 {/if}

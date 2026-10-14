@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { Edge } from "#lib/engine/notation.ts";
-import { complexity, distinctCandidates, onlyJudged, equalDepth, likelyEdges, judgeBranchEdge, onlyEdge, otherCandidate, review, roundTogether,
+import { complexity, distinctCandidates, endingText, onlyJudged, equalDepth, likelyEdges, judgeBranchEdge, onlyEdge, otherCandidate, review, roundTogether,
          rankOf, sameMove, secondChoice, shortNote, shownCandidates, trustedLine, twinsOf, turnCost, valuesAfter, type Analysis, type Candidate, type Move, type Position,
          type ReviewData } from "./model.ts";
 import { accuracyWeight } from "./labels.ts";
@@ -237,3 +237,18 @@ test("the Analysis board labels only the moves the player asked to evaluate (des
   assert.equal(onlyJudged(R, i => i === 1 || i === 2).turns[1].label, "blunder");
   assert.equal(board.turnOf[2], board.turns[1]);
 });
+
+test("a game's outcome: by the scores when the rules ended it, else as its record says", () => {
+  const pos = (over: boolean) => ({ over } as Position);
+  const game = (over: boolean, blue: number, red: number, result: string | null): ReviewData => ({
+    players: { blue: "Blue", red: "Red" }, result: { blue, red }, moves: [{} as Move, {} as Move],
+    positions: [pos(false), pos(false), pos(over)], analysis: [], ending: { result },
+  });
+  assert.equal(endingText(game(true, 40, 12.5, "b+27.5")), "Blue won by 27.5 points");
+  assert.equal(endingText(game(true, 20, 20, "0")), "A draw");
+  assert.equal(endingText(game(false, 3, 9, "b+R")), "Blue won: Red resigned after edge 2");
+  assert.equal(endingText(game(false, 3, 9, "r+F")), "Red won: Blue left the game after edge 2");
+  assert.equal(endingText(game(false, 3, 9, "*")), "Unfinished after edge 2");
+  assert.equal(endingText(game(false, 3, 9, null)), "Unfinished after edge 2");
+});
+

@@ -2,6 +2,7 @@
 // game is stored as its record's text, so an export is the record itself, and a later server can import it as it is.
 // The id is the first 12 hex digits of the SHA-256 of its moves: the same game imported twice is one game.
 import { STORES, dbAll, dbDelete, dbGet, dbPut } from "#lib/storage/db.ts";
+import { keepStorage } from "#lib/storage/persist.ts";
 import { readLocal, writeLocal } from "#lib/storage/local.ts";
 import { parseRecord, type GameRecord } from "./record.ts";
 import { sha256Hex } from "#lib/engine/artifacts.ts";
@@ -93,7 +94,9 @@ export async function saveGame(text: string, record: GameRecord): Promise<{ id: 
   const existing = await dbGet<StoredGame>(STORES.games, id);
   if (existing) return { id, kept: true };
   const game: StoredGame = { version: 1, id, record: text, added: new Date().toISOString() };
-  return { id, kept: await dbPut(STORES.games, id, game) };
+  const kept = await dbPut(STORES.games, id, game);
+  if (kept) void keepStorage(); // the player now has something to lose
+  return { id, kept };
 }
 
 export async function loadGame(id: string): Promise<{ game: StoredGame; record: GameRecord } | undefined> {

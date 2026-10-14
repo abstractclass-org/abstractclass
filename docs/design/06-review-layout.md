@@ -145,6 +145,20 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
    tool's, not a document's, so it takes no selection (`select-none`), and the pointer stays an arrow over the move
    list's labels and marks instead of a text cursor. An engine error can be selected, to be copied. The board never
    took a selection.
+10. **A skeleton while the rules read the game** (Nielsen Norman Group's skeleton screen): until the engine's rules
+    have described every position, the page shows the review's layout without its content. The columns, the board and
+    the charts' area have their sizes, the empty board shows its points, and grey bars stand for the text. The
+    progress slot says "Reading the game with the engine's rules…", and the players' names show once the game is read.
+    The review then takes the skeleton's place, part for part.
+    - **One layout for both:** the skeleton is a snippet of `ReviewView.svelte` (`reviewSkeleton`), so it takes the
+      review's styles. The row above the board uses the review's classes (`stripRow`, `playerBox`), with bars as high
+      as the text, and the skeleton measures it as the review does. A narrow row takes two or three lines, and the
+      board's size follows its height.
+    - **The board's points are drawn with CSS** (`.board-points`), where `Board.svelte` draws them: 19 by 19, one
+      unit apart, in a board 20.6 units wide.
+    - **Only where the address names a game:** the skeleton shows once the page's code runs. Before that, and on the
+      Review tab, the prerendered line of text shows.
+    - With reduced motion asked for, the bars do not pulse.
 
 ## Why
 
@@ -184,6 +198,7 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
 - `src/lib/review/ReviewView.svelte`: the columns, the board's size, the engine header, the controls' bar, the
   display settings' panel (`settingsPanel`, `toggle`, `choice`).
 - `src/lib/review/display.ts`: the display settings and their storage in the browser.
+- `src/routes/review/+page.svelte`: the skeleton until the review shows (`opening`, `preloaded`).
 
 ## Log entries
 

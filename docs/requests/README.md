@@ -27,3 +27,4 @@ accepted, done (with the engine repository's commit, tag or document), or declin
 | 15 | [Practice games against HedgeFund: the GTP bot in the browser](15-practice-bot.md) | open |
 | 16 | [A position's check: whether it could occur in a game](16-position-check.md) | done (protocol 0.5, release `wasm-v2-engine-27a7414`), the release checked here |
 | 17 | [A release that searches as an earlier one: say so](17-same-search.md) | done (the engine repository's design 04, "The same search"; `search` in protocol 0.6), checked here |
+| 18 | [Every position of a game in one request](18-describe-game.md) | open |
