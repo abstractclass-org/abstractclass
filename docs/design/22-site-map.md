@@ -43,10 +43,22 @@ will add more. A page whose name says "import" cannot say where the game goes.
 4. **`/import` is deprecated.** During the early access it forwards to `/review` with the same `#` part, and to
    `/tools` without one. It counts nothing. The page for developers says so, and says a month before when it stops.
 5. **The pages:**
-   - **The header:** Review, Analysis (later Practice, Puzzles, Learn), then Tools, The notation and About. Tools is
+   - **The header:** Review, Analysis, Practice (later Puzzles, Learn), then Tools, The notation and About. Tools is
      in the header because a meaf.us player comes back to it for the bookmarklet or the userscript. It shows from a
-     tablet's width: the tools are for a computer's browser, and on a phone a third row would make the header 35
-     pixels taller. On a phone, the footer and the Review tab lead to it.
+     tablet's width: the tools are for a computer's browser. On a phone, the footer and the Review tab lead to it.
+   - **The site's menu below 768 pixels,** as on Lichess's phone pages: a ☰ at the header's left holds its links (the
+     tabs, then the pages about the site, Tools again from a tablet's width), and the header keeps the site's name and
+     the theme menu, in one row. The links need 718 pixels for one row: narrower, they took a second row, and Tools a
+     third (`src/lib/SiteMenu.svelte`).
+   - **The header stays in view on a screen with a mouse,** and the page scrolls in its own area under it
+     (`src/routes/+layout.svelte`). That area keeps the scroll bar's room (`scrollbar-gutter: stable`), so that a page
+     whose height changes while it loads does not move sideways, and the header, outside it, reaches the window's
+     edge. The browser draws nothing of a page in the room that the document itself keeps (the CSS working group's
+     issue 5232), so the header stopped short there on every page that did not scroll. The layout keeps the area's
+     scroll as the browser keeps a page's: each address's place for Back, Forward and a reload, and the top of a page
+     opened anew. The area takes the focus after each navigation, in the body's place, so that Page Down and Space
+     scroll it. A touch screen keeps the usual page: its scroll bars take no room, and the header scrolls away, so that
+     its browser's bars hide as the page scrolls.
    - **Home:** what Hedge School is, the way into each tab, and the board editor.
    - **The Review tab** (`/review` without a game): import a game to review it (paste its record), load a review
      file, continue the last review, and the player's games, with their Export and Delete. A review is

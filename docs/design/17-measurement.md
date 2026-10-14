@@ -17,8 +17,9 @@ visitors' machines, and the GPU on other machines.
 2. **Counts and ranges only** (`src/lib/measure.ts`): never a game, a move, a player's name, or a game's id. A count
    that could set a visitor apart, or would scatter a report, goes as a range: a game's edges (1-29, 30-59, 60-89,
    90-119, 120+), the machine's cores (1-2, 3-4, 5-8, 9-16, 17+), a review's minutes (0, 1-2, 3-9, 10-29, 30-59, 60+),
-   a share link's characters (0-499, 500-999, 1000-1999, 2000-3999, 4000+), and the games kept (0, 1, 2-4, 5-9, 10-24,
-   25+).
+   a share link's characters (0-499, 500-999, 1000-1999, 2000-3999, 4000+), the games kept (0, 1, 2-4, 5-9, 10-24,
+   25+), a practice game's takebacks (0, 1, 2-4, 5+), and the practice bot's average seconds a turn (0, 1-2, 3-9,
+   10-29, 30+: 0 is under a second).
 3. **The game's id leaves the review's address for the `#`:** `/review#game=ID`. Google Analytics records a page's
    query (`?game=`) and not what follows the `#`
    ([Google's page path article](https://support.google.com/analytics/answer/13844737)), and Cloudflare's service
@@ -26,7 +27,7 @@ visitors' machines, and the GPU on other machines.
    after the `#` before the analytics start. Another game named after the `#` while the page shows one reloads the
    page.
 4. **A feature counts once in each review** (`trackOnce`): its first use, not each use, so that a player who draws 40
-   notes counts as one player who drew notes.
+   notes counts as one player who drew notes. In Practice, once in each game.
 5. **The privacy page lists every event** in plain words. A visitor who has not accepted the cookies sends the events
    as cookieless pings, which Google counts with nothing that links one to another.
 
@@ -56,17 +57,19 @@ The events use the site's words (design 22), each for one thing:
 | `tool_out_of_date` | the review asks to update a tool (Arrival) | `stale_tool` (bookmarklet, userscript, older) | how many players still need the new tools |
 | `review_share_open` | a review's share link opened, before its load | `network_found`, `same_engine` | whether shared reviews arrive whole |
 | `game_missing` | a review's address in a browser without the game | none | whether players send review addresses, which do not work in another browser |
-| `review_open` | the review starts, with the engine loaded, or a snapshot opens (design 20) | `network`, `depth`, `depth_on_screen`, `time_limit`, `workers`, `gpu_mode`, `cores`, `edges`, `own_settings`, `done_before` | the funnel's second step, and the settings in use |
+| `review_open` | the review starts, with the engine loaded, or a snapshot opens (design 20) | `network`, `depth`, `depth_on_screen`, `time_limit`, `workers`, `gpu_mode`, `cores`, `edges`, `own_settings`, `done_before`, `practice_game` (a game against the practice bot) | the funnel's second step, and the settings in use |
 | `analysis_open` | the Analysis board opens, with the engine's rules (design 21). A line brought with it is an `import_game` or a `load_saved` too | `edges` (the main line's) | how many players use the board |
 | `editor_open` | the board editor opens (design 21) | none | whether players set up positions |
 | `editor_analyze` | the board editor's Analyze: a position that a game can reach goes to the Analysis board | none | whether an editor's position reaches the board |
 | `review_done` | the review ends, in this visit | as `review_open`, and `review_seconds` (a number), `minutes`, `worker_speed` (a CPU worker's visits a second, by 5), `gpu_used` | the engine's defaults: how long a review takes on real machines, by settings and cores |
 | `gpu_test` | Auto's first test of a GPU | `gpu_outcome` (faster, slower), `gpu_ratio` (the GPU's speed over a worker's), `gpu` (maker and kind, as WebGPU gives them), `network` | the GPU's default, and whether it pays off on laptops and phones |
-| `engine_error` | the engine fails | `error_kind` (load, rules, gpu) | reliability |
+| `engine_error` | the engine fails | `error_kind` (load, rules, gpu, practice: the bot failed to start, or stopped) | reliability |
 | `setting_change` | an engine setting changes | `setting`, `setting_value`, `setting_scope` (browser, game) | whether the defaults fit |
 | `feature` | a feature's first use in a review, or on the Analysis board in a visit | `feature_name` (the feature, below) | what to keep, to improve, or to explain |
 | `export` | an export, from the review or the Analysis board (the page's address tells which) | `export_kind` (share_link, review_file, analysis_file, record_copy, record_file, partner_save: the review file saved to a partner site, design 18), `link_length`, `link_too_long` | whether players share, and whether links fit a Discord message |
 | `game_delete`, `game_restore` | a game deleted, its Undo | none | whether Undo saves slips |
+| `practice_start` | a practice game starts (design 24), once the bot has the game: a new one, one from the Analysis board's Play, or one kept from an earlier visit | `practice_from` (new, analysis_board, resumed), `network`, `bot_visits`, `bot_variety` (low, medium, high), `practice_side` (blue, red), `bot_form` (gpu, cpu, single), `cores` | which settings players choose: the defaults, then the levels; and whether the bot starts on their machines, in which form |
+| `practice_end` | a practice game ends: by the rules, by Resign, or by Abort | as `practice_start` but `practice_from`, and `practice_outcome` (won, lost, draw, resigned, aborted: the player's), `edges`, `practice_takebacks`, `bot_seconds` (the bot's average seconds a turn, as a range; none before its first turn) | the levels: which settings players beat, lose to, or give up on (design 24's games by setting); and whether a number of visits is bearable on a machine |
 
 The features, by their `feature_name` (`ReviewView.svelte`, `used`). Each counts once in a review, at its first use:
 
@@ -88,6 +91,11 @@ The features, by their `feature_name` (`ReviewView.svelte`, `used`). Each counts
 | `review again` | Review again chosen on a snapshot |
 | `display` and a setting | a display setting changed, by its name in `src/lib/review/display.ts`: `display judge`, `display reviewFor`, `display win`, `display layers`, `display scoreLine`, `display areaLine`, `display lineSteps`, `display branchForm`, `display marks`, `display notes`, `display previewMoves`, `display previewBranches`, `display sound`, `display moveSound`, `display volume` |
 
+In Practice (design 24), each once in a game: `practice takeback` (a takeback), `practice look back` (a step back to an
+earlier position), `note drawn`, `practice bar`, `practice area` and `practice direction` (the points bar's display
+settings), and `display` and a setting for the review's display settings that Practice shares (`display layers`,
+`display sound`, `display moveSound`, `display volume`). The page's address tells Practice's from the review's.
+
 A property of the visitor, `games_stored`, comes with every event after the home page sets it: how many games the
 browser keeps, as a range.
 
@@ -102,7 +110,7 @@ setup needs the Editor role on the site's property.
 **Before you start:** go to [analytics.google.com](https://analytics.google.com). Select the site's property in the
 selector at the top left. Click **Admin**, the gear at the bottom left.
 
-#### 1. The custom dimensions (33 rows of the table below)
+#### 1. The custom dimensions (41 rows of the table below)
 
 1. In Admin, under **Data display**, click **Custom definitions**.
 2. On the **Custom dimensions** tab, click **Create custom dimension**.
@@ -147,12 +155,21 @@ selector at the top left. Click **Admin**, the gear at the bottom left.
 | `setting_scope` | Setting scope | Event | browser (this browser's settings) or game (one game's settings) |
 | `feature_name` | Feature | Event | the feature used |
 | `export_kind` | Export kind | Event | what an export made: share_link, review_file, analysis_file, record_copy, record_file, partner_save |
-| `error_kind` | Error kind | Event | an engine failure's kind: load, rules, gpu |
+| `error_kind` | Error kind | Event | an engine failure's kind: load, rules, gpu, practice |
 | `link_length` | Link length | Event | a share link's characters, as a range |
 | `link_too_long` | Link too long | Event | the link is longer than a Discord message takes |
+| `practice_from` | Practice from | Event | how a practice game started: new, analysis_board, resumed |
+| `bot_visits` | Bot visits | Event | the practice bot's visits a move |
+| `bot_variety` | Bot variety | Event | the practice bot's variety: low, medium, high |
+| `practice_side` | Practice side | Event | the player's side in a practice game: blue, red |
+| `bot_form` | Bot form | Event | where the practice bot ran: gpu, cpu, single |
+| `practice_outcome` | Practice outcome | Event | how a practice game ended, for the player: won, lost, draw, resigned, aborted |
+| `practice_takebacks` | Practice takebacks | Event | a practice game's takebacks, as a range |
+| `bot_seconds` | Bot seconds | Event | the practice bot's average seconds a turn in a game, as a range |
+| `practice_game` | Practice game | Event | the review is of a game against the practice bot |
 | `games_stored` | Games stored | **User** | the games that the browser keeps, as a range |
 
-The property can have 50 event-scoped and 25 user-scoped custom dimensions. These take 32 and 1.
+The property can have 50 event-scoped and 25 user-scoped custom dimensions. These take 41 and 1.
 
 **No parameter is named `source`, `medium` or `campaign`.** Google Analytics keeps a visit's traffic source in event
 parameters of those names, so it reads the site's own parameter as the session's source. With the import's way in
@@ -467,7 +484,9 @@ shows few rows. Read it as section "Reading it" says.
   links' and partners' loads), `src/routes/analysis/+page.svelte` (the board's imports and loads, `analysis_open`),
   `src/routes/review/+page.svelte` (the review's events, settings, features, `game_missing`, the address),
   `src/lib/review/ReviewView.svelte` (`onfeature`), `src/lib/ExportMenu.svelte` (`export`),
-  `src/lib/analysis/gpu.svelte.ts` (`gpu_test`, the GPU's failure), `workerSpeed` in `src/lib/analysis/pool.ts`.
+  `src/lib/analysis/gpu.svelte.ts` (`gpu_test`, the GPU's failure), `workerSpeed` in `src/lib/analysis/pool.ts`,
+  `src/routes/practice/+page.svelte` (Practice's events and features), with their parameters in
+  `src/lib/practice/practice.ts` (`practiceParams`, `practiceEndParams`, tested in `practice.test.ts`).
 - The privacy page: `src/routes/privacy/+page.svelte`.
 
 ## Log entries

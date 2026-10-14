@@ -6,10 +6,7 @@ It holds no backlog: everything still to do that is not in flight is in
 
 ## State
 
-- **Live:** `f55e0f6` on `main`, released on 2026-10-14: search engines (design 23), and the review without layout
-  shift (design 06, item 10). See decisions/product.md, the entries of 2026-10-14.
-- **On `dev`, not released:** three commits since `f55e0f6`. The preview at `dev.hedgeschool.pages.dev` serves
-  `5da9832`.
+- **Live:** `314ca24` on `main` and `dev`, released on 2026-10-14. Since `f55e0f6`, three commits:
   - `2d88f8a`: the third code cleanup. The engine behind the review and the Analysis board is one class
     (`src/lib/analysis/session.svelte.ts`), and the board starts it while it chooses its board. Also: one reader for
     review and analysis files, the storage helpers everywhere, Arrival's phase as one value, the menus' and dialogs'
@@ -20,18 +17,44 @@ It holds no backlog: everything still to do that is not in flight is in
 - **The engine:** protocol 0.6.1, the release `wasm-v2-engine-54486cd` (both analysis modules), its library and graphs
   from `wasm-v2-engine-632f2a0`, the networks HedgeFund 0.1 Lite (`b10c128-s66625408`) and HedgeFund 0.1
   (`b15c192-s66999040`). The search is still `fdfe5ad`, and the CPU modules of `fdfe5ad` and `27a7414` are in
-  `sameSearchAs`. The release's practice modules (request 15) are not in the lock.
-- **Checks on `5da9832`:** `npm test` passes (99), `npm run check` has no errors or warnings, `npm run build`
+  `sameSearchAs`. The release's practice files (request 15) are in the lock on `dev`, not committed yet: the two bot
+  modules, the CPU evaluator's module, and the three scripts, in `engine-54486cd-lib` (an artifact's `dir`).
+- **Checks on `314ca24`:** `npm test` passes (99), `npm run check` has no errors or warnings, `npm run build`
   succeeds. `npm run engine` runs the CPU module in Node and checks the lock's protocol and search against it, on
   Cloudflare's build too. Request 18's checks are in requests/18-describe-game.md. In Edge on the local build: a
   stored review opened as done, the GPU started on the new GPU module, and the Analysis board played moves. On the
-  preview, only `2d88f8a`'s Cancel was checked in Edge.
+  preview, only `2d88f8a`'s Cancel was checked in Edge. The live site serves `314ca24`, with the modules of
+  `54486cd`, and its pages answer (checked by HTTP). Not checked in Edge on the live site. The GPU's first-use test
+  runs again once on each machine, because the GPU module is a new build (design 15).
 
 ## In flight
 
-- **The release of `dev`:** `git push origin dev:main` when the owner says. Before it, look at the preview in Edge with
-  the window in front: a review, the Analysis board, and the GPU's line in the engine settings. The GPU's first-use
-  test runs again once on each machine, because the GPU module is a new build (design 15).
+- **Practice, built and revised after a first look, not committed** (design 24, decisions/product.md "Practice
+  built"): the page `/practice`, `src/lib/practice/`, `src/lib/engine/ort.ts`, the lock's practice files, the header
+  and sitemap entries, the Analysis board's Play button, and the parts it now shares with the review
+  (`src/lib/review/PlayerRow.svelte`, `PlayerCard.svelte`, `moveList.ts`, `src/lib/ui/ShareBar.svelte`,
+  `Setting*.svelte`, `SoundSettings.svelte`, `settings.ts`, and the Advantage chart's `span`).
+  `npm test` passes (106), `npm run check` has no errors or warnings, `npm run build` succeeds. Checked in Edge on the
+  local build (the log entry says what, and what not). Commit it when asked, then check it on the preview. The checks
+  still to run are in the backlog.
+- **Practice's points bar** (design 24, item 12): its area lane and its direction, as switches. No chart. The bar is
+  centred on the board in the review too, and the cards have two lines on every page (design 06). The settings are
+  kept under `hedge-school:practice-display:2`. The `:1` key and `hedge-school:practice-score-picture:1` are left
+  over in this browser from earlier builds, unread.
+- **The page's own scrolling area under the header** (design 22), on a screen with a mouse: check on the preview
+  on a phone (the usual page, with the header scrolling away), printing, and the review and the Analysis board at
+  more window sizes.
+- **The owner's practice game in this browser** (Edge, the local build): a game in progress at 1,024 visits. Tests
+  here saved it and put it back. Do the same, or test in another browser profile.
+- **Practice games stored** (design 25): decided, not built. The build: the Pages Function and its D1 schema, the
+  sending and its queue, the takebacks and the times kept with the game, the consent banner's text, and the privacy
+  page. The owner sets up the databases (production and previews) and their bindings first.
+- **Google Analytics for Practice** (design 17): the nine custom dimensions (the rows from `practice_from` to
+  `practice_game` in design 17's table) are registered. The events are not checked in a browser yet: a local build
+  has no Google Analytics. Their parameters are tested (`practice.test.ts`). Check them in GA's DebugView or
+  Realtime on the live site.
+- **Requests 19 and 20:** the engine repository has answered both. Read the replies and record them in the
+  requests (the first turn's number after a `Position` tag, and the practice bot from a set-up start).
 - **The layout shift on the live site:** Cloudflare's Web Analytics gave `/review` a CLS of 0.151 before `f55e0f6`.
   On the local build it is now 0 to 0.0023 at the window sizes measured, and 0 on the Review tab. Read Cloudflare's
   Core Web Vitals for `/review` after a few days of visits (hosting.md, "What Cloudflare shows").
@@ -74,7 +97,7 @@ It holds no backlog: everything still to do that is not in flight is in
 
 ## Check first
 
-1. Ask the owner whether to release `dev` (three commits, above), after a look at the preview.
-2. Ask the owner what is next. Practice is ready to design: request 15 is delivered (requests/15-practice-bot.md,
-   "Delivered"). The backlog's newest items: four speed items from the cleanup, the Review tab before the page's code
-   runs, the rules worker started with the page, and the review's first frame.
+1. Practice on `dev` (In flight): whether it is committed, and the preview's check of it in Edge.
+2. Requests 19 and 20: whether the engine repository answered.
+3. What the owner thinks of the score display.
+4. The backlog's newest items: Practice's levels, its set-up start and its checks still to run.

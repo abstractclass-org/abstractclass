@@ -24,7 +24,7 @@ export interface GpuTest { gpu: number; cpu: number; at: string }
 
 /** The GPU that WebGPU gives this page, by its vendor and architecture ("nvidia blackwell"), or null where it gives
  *  none. Browsers give no finer name, for privacy. */
-async function gpuAdapterName(): Promise<string | null> {
+export async function gpuAdapterName(): Promise<string | null> {
   const gpu = (navigator as { gpu?: { requestAdapter(): Promise<{ info?: { vendor?: string; architecture?: string } } | null> } }).gpu;
   const adapter = await gpu?.requestAdapter().catch(() => null);
   if (!adapter) return null;

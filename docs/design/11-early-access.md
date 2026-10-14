@@ -73,7 +73,8 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
 7. **Analytics: Cloudflare's and Google's.** Cloudflare's sets no cookies. Google Analytics runs in Google's consent
    mode, advanced form: the Google tag loads on every page with its cookies denied, and sends cookieless pings until
    the visitor accepts. A banner asks once, with Accept and Decline alike. The privacy page shows the choice, can
-   change it, and names what the pings hold. Neither service sees a game: the bookmarklet hands a game to the import
+   change it, and names what the pings hold. With the practice games' storage, the banner asks for that purpose too,
+   and its words change (design 25). Neither service sees a game: the bookmarklet hands a game to the import
    page in the address's fragment (after `#`), and that page removes it before it starts them. Every other page
    starts them from the layout, and the review page names its game after the `#` too (`/review#game=ID`). Google
    Analytics also takes events, in counts and ranges, for the decisions that wait on data (design 17). The build

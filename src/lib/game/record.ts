@@ -9,7 +9,8 @@
 // This reader keeps the main line and its tags. It skips comments and branches, but reads `[%clk]` and `[%eval]` from the
 // comments after the main line's edges. It checks the notation, not the rules: the engine checks that every move is
 // legal (describe names the first illegal move). It also accepts a bare list of edges, without turn labels.
-import { edgeName, parseEdge } from "#lib/engine/notation.ts";
+import { edgeName, parseEdge, setUpStart } from "#lib/engine/notation.ts";
+import { turnFromCount } from "#lib/review/model.ts";
 
 export interface GameRecord {
   tags: Record<string, string>;
@@ -105,10 +106,17 @@ function readCommands(comment: string, record: GameRecord, move: number) {
   if (clk) record.clocks[move] = clk[1];
 }
 
+/** The turn that a record's first move belongs to: 1 from the standard start, else the set-up start's (its `Position`
+ *  tag's edge count, model.ts turnFromCount), and whether that move opens its turn. */
+function startTurn(position: string | undefined): { turn: number; first: boolean } {
+  const count = Number(setUpStart(position)?.split(" ")[4]);
+  return Number.isInteger(count) && count >= 0 ? turnFromCount(count) : { turn: 1, first: true };
+}
+
 /** Reads a game record. Throws a RecordError with the offset of the first problem. */
 export function parseRecord(text: string): GameRecord {
   const record: GameRecord = { tags: {}, moves: [], marked: [], ends: [], result: null, evals: [], clocks: [] };
-  let depth = 0, expectedTurn = 1;
+  let depth = 0, expectedTurn: number | null = null; // the next turn's number, once the first turn sets it
   for (const t of tokenize(text)) {
     if (t.kind === "open") { depth++; continue; }
     if (t.kind === "close") {
@@ -127,8 +135,20 @@ export function parseRecord(text: string): GameRecord {
       if (record.result !== null) throw new RecordError(`nothing may follow the result (${record.result})`, t.at);
       const turn = TURN.exec(w);
       if (turn) {
-        if (turn[2] === "...") continue; // only a branch starts at a turn's second edge
         const number = Number(turn[1]);
+        if (expectedTurn === null) {
+          // The first turn: 1, or after a set-up start its own turn, from its edge count, as PGN numbers its moves from a
+          // FEN's. A start at a turn's second edge then opens with `N...`. The notation does not say which (request 19).
+          const start = startTurn(record.tags.Position);
+          const own = number === start.turn && (turn[2] === "...") === !start.first;
+          if (!own && !(number === 1 && turn[2] === ".")) {
+            const expected = start.turn === 1 ? "1." : `1. or ${start.turn}${start.first ? "." : "..."}`;
+            throw new RecordError(`turn ${w} where turn ${expected} was expected`, t.at);
+          }
+          expectedTurn = number + 1;
+          continue;
+        }
+        if (turn[2] === "...") continue; // only a branch starts at a turn's second edge
         if (number !== expectedTurn) throw new RecordError(`turn ${number} where turn ${expectedTurn} was expected`, t.at);
         expectedTurn++;
       } else if (RESULT.test(w)) {

@@ -78,3 +78,16 @@ test("the sample game, written and read back", () => {
   assert.equal(r.tags.Blue, sample.players.blue);
   assert.equal(r.result, "r+60.5");
 });
+
+test("a record from a set-up start numbers its turns from the start's, as PGN numbers moves from a FEN", () => {
+  // Edge count 3: Blue to play the first edge of turn 3.
+  const opens = parseRecord('[Position "A10-D10 Q10-T10 b2 0/0 3"]\n\n3. D10-G10 G10-K9 4. N9-Q10 *');
+  assert.deepEqual(opens.moves, ["D10-G10", "G10-K9", "N9-Q10"]);
+  // Edge count 2: Red to play the second edge of turn 2, which annotate.ts writes as `2...`.
+  const continues = parseRecord('[Position "A10-D10 Q10-T10 r1 0/0 2"]\n\n2... N9-Q10 3. D10-G10 *');
+  assert.deepEqual(continues.moves, ["N9-Q10", "D10-G10"]);
+  // Numbered from 1, as the notation does not rule out (request 19): the same moves.
+  assert.deepEqual(parseRecord('[Position "A10-D10 Q10-T10 b2 0/0 3"]\n\n1. D10-G10 G10-K9 2. N9-Q10 *').moves, opens.moves);
+  assert.throws(() => parseRecord('[Position "A10-D10 Q10-T10 r1 0/0 2"]\n\n2. N9-Q10 *'), /turn 2\. where turn 1\. or 2\.\.\. was expected/);
+  assert.throws(() => parseRecord("1... N9-Q10 *"), /turn 1\.\.\. where turn 1\. was expected/);
+});

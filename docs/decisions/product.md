@@ -2630,3 +2630,179 @@ The interface, the review, puzzles, lessons, labels and thresholds.
 - **Checked in Edge** on the local build, with the browser on HedgeFund 0.1 and a game that keeps HedgeFund 0.1 Lite at
   512 visits: the Review tab's Export copied the annotated record, "Reviewed by Hedge School with HedgeFund 0.1 Lite".
   The failure before the change came from reading the code, and was not reproduced.
+
+### Practice designed (2026-10-14)
+
+- **What:** Practice, a game against HedgeFund in the player's browser, on the engine repository's practice bot
+  (request 15, release `wasm-v2-engine-54486cd`). Design 24 gives the decision.
+- **Decided:**
+  - One game in progress, kept in the browser and resumed, as the Analysis board keeps its board. A new game asks
+    first, and keeps the unfinished one in Your games, with the result `*`.
+  - A finished game goes into Your games at once, as Lichess keeps every game against the computer.
+  - The bot's settings, named for what they are, until levels rest on data: the network, the visits by doublings from
+    1 to 1,024 (64 by default), and a variety (the move temperature: Low is KataGo's default, then Medium and High).
+  - The settings are fixed for a game, as Lichess fixes the computer's level.
+  - The player's side has a name that the player sets, "You" without one.
+- **Taken from Lichess:** the side (Blue, Red or Random), takebacks, no evaluation during the game, and "Play
+  HedgeFund from here" on the Analysis board (Lichess's "Continue from here").
+- **The site's own:** the temperatures of Medium and High, to check once games by setting exist.
+
+### Practice games stored (2026-10-15)
+
+- **What:** every practice game is to be stored when it ends, on the site's first backend (a Pages Function and D1),
+  for the bot's levels, for what players find hard, and for an open dataset. Design 25 gives the decision.
+- **Decided:**
+  - Every game, as Lichess and chess.com keep the games played on them. This replaces design 19's rule that a game
+    stays in the browser until the player gives one, for the games played here.
+  - A random code per browser, with the consent banner's Accept, as a code for research alone needs consent in the EU.
+    Without it, the game goes with no code.
+  - No switch to keep games out: a game with no code and no name identifies no one. Decline stops the code, and the
+    privacy page deletes the coded games.
+  - The games may be published, without names, as Lichess publishes its games (CC0).
+  - Not now: the player's meaf.us rating as a range.
+  - The consent banner, open about both purposes, with the collie: what each does for the site, Accept and Decline
+    alike, and a switch for each purpose on the privacy page. Its words say what the number does ("links your games
+    against HedgeFund"), not a name of ours, and promise nothing that a later feature could break: "free" and "never
+    sells your data" stay, "no ads, no accounts" does not. It ships with the games' storage, so that visitors are
+    asked once.
+- **Read before the decision:** Lichess's privacy policy and database page, and chess.com's privacy policy and legal
+  FAQ. Lichess keeps anonymous players' games, publishes its rated games under CC0, and sets only a session cookie,
+  which play needs. Chess.com's cookie banner and its rules for games could not be read from its pages.
+
+### Practice built (2026-10-14)
+
+- **What:** the page `/practice` as design 24 gives it, on the practice bot of release `wasm-v2-engine-54486cd`. The
+  header names it after Analysis, and the sitemap lists it.
+- **Where the bot runs:** in the first form that starts, in this order: the threaded bot on the GPU (where the engine
+  settings allow it, and with Auto not where the GPU's first-use test found it slower, design 15), the threaded bot on
+  the CPU workers (two search threads for each worker), and the one-thread bot. A browser without JSPI starts the
+  one-thread bot. The line under the page's title says which form runs.
+- **Changed from the design while built:**
+  - **No set-up start:** the bot has no command for one (request 20). Practice takes a record's moves from the
+    standard start, and the Analysis board's Play button is off on a board with a set-up start.
+  - **No visits during the search:** GTP's `genmove` answers only with the move (checked: `kata-genmove_analyze`
+    gives its lines only with the move too). The page shows the bot's seconds instead. No request for the visits.
+- **Changed after the first look at the page:**
+  - **No takebacks:** the player steps back through the positions instead, and moves only at the latest one. This
+    departs from Lichess, which offers takebacks against the computer.
+  - **Abort and Resign in the place of New game:** Abort at any time keeps the game in Your games as unfinished
+    (`*`). Resign at any time gives HedgeFund the win (`r+R` or `b+R`).
+  - **The card as Lichess's "Play with the computer":** the side starts the game, each side with its dot.
+  - **The review's layout and parts:** the players' row with the points and the areas, the board as large as the
+    window lets it be, the side column at Lichess's width, and the review's display settings where they apply. The
+    players' row and the settings' rows are now components that the review and Practice share.
+  - **The bot's name gives the variety:** "HedgeFund 0.1 Lite, 64 visits, Low variety".
+  - **Play on the Analysis board** moved out of the New menu, beside it: New makes a new board.
+- **Changed after the second look:**
+  - **Take back again,** by turn, as Lichess's, beside Abort at any time. Lichess offers Abort only before the first
+    move. Here Abort at any time stays: a game has no clock and no opponent who waits, and the aborted game is kept
+    for its review. Abort and Resign turn red under the pointer.
+  - **The review's move list, chart and bar, shared:** the move list's look (`moveList.ts`), the win bar and gauge
+    (`ShareBar.svelte`) for Practice's points, and the Advantage chart for the points lead (filled in the colour of
+    the side ahead) and the area difference, over the game's 120 edges.
+  - **The bar centred on the board,** in the review and on the Analysis board too (design 06).
+  - **The areas against each player's own points,** in a second lane under the points bar. The areas against the
+    whole board barely showed: 7 and 57 of 324 at edge 60 of the sample game.
+  - **The card's heading is "Practice against bot":** the network's choice names the bot.
+  - **Notes on the board,** as in the review: the board takes them when the page passes them, and the first page did
+    not.
+- **Changed after the third look:**
+  - **The display settings as switches:** the points bar on or off, and while it is on, its area and its direction
+    (horizontal or vertical). The choice of three ("Points", "With the area", "None") wrapped to two lines.
+  - **The chart under the board,** with the review's sizing, not in the side column, where 120 edges had about 300
+    pixels.
+  - **The game's actions in their own row** under the moves, as on Lichess's game page: eight buttons in one row
+    overflowed the side column at its narrowest (250 pixels).
+  - **Abort's and Resign's confirmations in red** (`btn-danger` in `src/app.css`), and short tooltips.
+  - **The bot's card folds sooner:** both cards take the wider one's width (the centred bar), so the bot's longer name
+    needs 48rem for one line. The row's height follows it.
+- **Changed after the fourth look:**
+  - **No chart:** the bar is enough, and the chart under the board changed the board's size, and with it the side
+    column and the display settings' switch, each time it was turned on or off.
+  - **One bar under the moves, as the review's,** on Practice and on the Analysis board: the steps on the left, the
+    tools or the game's actions with ☰ on the right, which go under the steps as a group when the column is too
+    narrow. In place of Practice's two rows. Icon buttons have narrower sides (`btn-icon` in `src/app.css`), so
+    Practice's eight fit in one row in its widest column (350 pixels) and wrap below it.
+  - **Two lines in each player's card,** on every page: the name over the numbers. The cards are narrow, so the bar is
+    longer (376 pixels in Practice, at a window 1,347 pixels wide), and the row has one height. The row's height until it is
+    measured (`--strip`) is the two lines' now, so that the review's board keeps its size as the review shows.
+  - **One drawn icon set** for the steps, ☰ and the game's actions (`src/lib/ui/Icon.svelte`), in place of text
+    glyphs.
+  - **The steps span the column when the bar wraps,** as Lichess's (`StepBar`, shared by the review, the Analysis
+    board and Practice).
+  - **Skeletons for the Analysis board and Practice,** as the review has: the Analysis board shows the review's
+    skeleton in its board form from the prerendered page on (it showed a line of text), and Practice shows a skeleton
+    of its game while the bot starts (it showed a one-line row and an empty board). The skeleton's card is the
+    review's (`PlayerCardSkeleton.svelte`), and the empty board's points a utility (`board-points` in `src/app.css`).
+  - **The header stays in view, on a screen with a mouse:** the page scrolls in its own area under the header, which
+    keeps the scroll bar's room on every page (design 22). In the place of no room on the boards' pages, which left
+    the room beside the header on Home, the editor and the other pages that did not scroll. A screen with a mouse is
+    `(hover: hover) and (pointer: fine)` (the `desktop` variant in `src/app.css`), at any width. A touch screen keeps
+    the usual page, whose header scrolls away, as the mobile layouts of most sites do.
+  - **Practice's events** (design 17): `practice_start` and `practice_end`, with the bot's settings, the player's side,
+    the bot's form, the cores, the outcome, the edges, the takebacks and the bot's average seconds a turn, as ranges;
+    `engine_error` with `practice`; its features, once in a game; and `practice_game` on the review's events. For the
+    levels (design 24's games by setting) and for whether the visits suit the players' machines. The parameters name
+    their subject (`practice_outcome`, not `outcome`), as design 17 asks. The privacy page lists them, and what
+    Practice keeps in the browser, which it did not list. Nine custom dimensions to register in Google Analytics.
+  - **The site's menu on a narrow screen** (below 768 pixels): a ☰ at the header's left, with the header's links, as
+    Lichess's phone pages have it (design 22). The header wrapped its links to two rows there.
+  - **The scroll bar's room, checked in the page's area:** on a page that does not scroll, the area keeps 15 pixels
+    (`offsetWidth − clientWidth`), and a page grown to scroll did not move sideways (0 pixels). With the room off, it
+    moved 7.5 pixels. The room no longer shows as a dark band: it is beside the content, in the page's colour, not
+    beside the header.
+  - **Earlier: the header reaches the window's edge on the boards' pages:** the scroll bar's room that `scrollbar-gutter:
+    stable` keeps cannot be drawn in. The browser paints only the root's background colour there, clips an element
+    drawn into it, and leaves it out of `100vw` (checked in Edge). The CSS working group's issue 5232 is open on it,
+    and the common answers are an always-visible scroll bar, a header outside the scrolling element, or no room where
+    nothing scrolls. The pages sized to the window (the review, the Analysis board, Practice) do not scroll at a
+    desktop size, so they keep no room (`data-fits-window`, from the line that each shows while it loads). The other
+    pages keep it, as their height can change while they load, and most of them scroll.
+- **The record reader** takes a record from a set-up start that numbers its turns from the start's turn, as the
+  Analysis board's annotated record writes them, or from 1. The notation does not say which (request 19).
+- **Checked in Edge** on the local build, on a desktop with 16 cores:
+  - **The first version:** a game started on the GPU in about two seconds, and its first move at 64 visits came within
+    1.5 seconds (the check read the page every 1.5 seconds). A reload resumed the game. With the GPU off, the bot
+    started on the CPU workers and played Blue's first edge in about a second. A record of 120 edges that ends the
+    game ended it at once, with the result `r+60.500125` (the rules' exact score), into Your games.
+  - **The revised page:** a game in progress opened with no flash of the card. The steps, and a click on a move,
+    showed earlier positions. The four score pictures drew, on a game from 60 edges of a record. Abort kept the game
+    in Your games as `*`, and Resign as `b+R` with `Termination "resignation"`. The review's row and display settings
+    still showed as before.
+  - **After the second look:** the bar's middle was at the board's middle in Practice and in the review (412 and 357
+    pixels from the window's left, each to the pixel). The area lane drew as each player's area against their points.
+    The gauge, with its area lane, and the chart over 120 edges drew. Take back undid four edges (the player's turn
+    and the bot's before it), and the bot then answered a new turn with legal edges. A note drew on a right-click and
+    went on a second. Abort turned red under the pointer. At 1,024 visits on the GPU, the bot's turn took 10 seconds,
+    on a machine that may have been loaded by training.
+  - **After the third look:** the switches, the chart under the board (its bottom at the side column's), the actions'
+    row, the red confirmation, and the bot's card on two lines with the row's height (45 pixels, above the board) at a
+    board 631 pixels wide. The header's change did not work: the browser paints only the root's background colour
+    into the scroll bar's room, and clips anything drawn there.
+  - **After the fourth look:** Practice's bar in one row at 350 pixels, and in two at 250 (forced), with no overflow.
+    The Analysis board's bar in one row at 458 pixels, and in two at 340 (forced). The buttons 33 pixels high, icons
+    and words alike. The review's layout shift on a reload: 0.0012, with the board's size unchanged as the review
+    shows. Before the two lines' `--strip`, the board changed size twice as the review showed. With no room on the
+    boards' pages, at a window 1,290 pixels wide: the header's right edge at the window's edge on the Analysis board,
+    Practice and a game's review; the Analysis board's layout shift on a reload 0, and the review's 0.0026, all of it
+    the summary column's (not checked against the build before these changes at this size). The Review tab's home
+    keeps the room and scrolls. Not checked: a first visit to `/review` with no game, which shows the home after the
+    loading line, so that the header's links move by the room's width once.
+  - **The skeletons and the bar, at a window 1,286 pixels wide:** the Analysis board's prerendered skeleton, loaded
+    with no script, had the board's, the row's and the side column's rectangles of the live page, to the pixel (757,
+    45 and 460 by 810), and its reload no layout shift. Practice's reload with a kept game: 0.0012, of which 0.0004
+    the actions that came after the start (now shown off while the bot starts) and 0.0008 the bar, which the cards'
+    real numbers narrow. The bar forced to 250 pixels: the steps 51 pixels each across the column, the actions under
+    them, and back to one row when widened.
+  - **The page's own area, at a window 1,282 pixels wide:** the header 1,282 pixels wide on About, Notation, the
+    review, the Analysis board and Practice, with the scroll bar under it. Page Down: with the body focused (as the
+    router leaves it), it does not scroll the area; with the area focused (as the layout now does), it scrolls it. A
+    first try sent a key name that the browser tool did not know, and no key at all, so its result counted for
+    nothing. A new page at the top. Back and Forward between Notation (900) and How reviews work (500) back at each
+    page's place, after a fix: on Back and Forward the address has changed before the router reports the navigation,
+    so the place is kept under the navigation's `from`. A reload keeps the place. A link to `/about#early-access`
+    scrolls to it. The boards' pages fit the window with no scroll: the review's layout shift 0.0025 (the summary
+    column), the Analysis board's 0. Not checked: a touch screen (its usual page), printing, and a page that gives
+    the focus to a control of its own as it opens.
+  - **Not checked:** the one-thread bot in a browser, a whole game played on the board, the Analysis board's Play
+    with moves on screen, a phone, and the narrow layout.

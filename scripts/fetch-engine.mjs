@@ -89,7 +89,8 @@ for (const artifact of lock.artifacts) {
   } else {
     console.log(`${artifact.id}: up to date`);
   }
-  const stored = store(artifact.id, artifact.file, bytes, artifact.kind === "graph");
+  // A file that imports another by a relative path (the engine's JavaScript libraries) shares its folder (`dir`).
+  const stored = store(artifact.dir ?? artifact.id, artifact.file, bytes, artifact.kind === "graph");
   if (stored.parts) console.log(`  stored as ${stored.parts.length} gzip part(s) of ${bytes.length} bytes`);
   manifest.artifacts.push({
     id: artifact.id, kind: artifact.kind, interface: artifact.interface ?? null, ...stored,

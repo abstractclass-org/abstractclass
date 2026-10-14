@@ -153,9 +153,15 @@ or a design first:
   repository's notes"). When the rise settles, decide whether to request one.
 - **Play settings:** `chooseMove` searches with the analysis settings, not the GTP bot's. The practice bot (request 15)
   plays with the GTP bot's settings: where the site shows the engine's move, it can use the bot.
-- **Practice games against HedgeFund** (request 15): the practice bot is in release `wasm-v2-engine-54486cd`. Design
-  the Practice page, then build it on the bot. Its commands, files and speeds are in requests/15-practice-bot.md,
-  "Delivered". Its levels wait for the visit ladder on the module, which the engine repository gives later.
+- **Practice's levels** (design 24): named levels from the engine repository's visit ladder on the practice module,
+  which it gives later, then from games by setting. Check the Medium and High variety against those games.
+- **Practice from a set-up start** (design 24, item 4): to think about later. When the bot takes one (request 20),
+  take `#position=` and records with a `Position` tag, turn the Analysis board's Play on for any start, and run the
+  request's checks.
+- **The record's first turn after a `Position` tag** (request 19): when the notation gives the rule, make
+  `parseRecord` as strict as it.
+- **Practice's checks still to run:** the one-thread bot in a browser without JSPI, a whole game played on the
+  board, the Analysis board's Play with moves on screen, a phone, and the layout below 800 pixels.
 - **Export a review:** the game's record with each position's evaluation (the record's `[%eval]` comments), the
   labels, and the branches as variations, so that a review can be kept and shared. The sample game needs none: the
   engine is reproducible, so the same build and network give the same review.

@@ -40,6 +40,8 @@ does not take away, and a plan for what it will need later: a backend, accounts,
    - **From a play site's archive,** with its owner's permission before any public use.
    - **From players** who choose to give a reviewed game. Games stay in the player's browser until the player gives
      one.
+   - **Practice games,** played on the site, are stored when they end, as Lichess keeps every game played on it
+     (design 25, which replaces this item's rule for them).
    - **Games between weaker versions of the engine** can fill the gap at first, marked as such: their positions are
      less like a human's.
 

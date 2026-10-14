@@ -4,7 +4,7 @@ import { SITE_ORIGIN } from "#lib/edition.ts";
 
 export const prerender = true;
 
-const PAGES = ["/", "/review", "/analysis", "/editor", "/how-reviews-work", "/tools", "/notation", "/about", "/developers", "/privacy",
+const PAGES = ["/", "/review", "/analysis", "/practice", "/editor", "/how-reviews-work", "/tools", "/notation", "/about", "/developers", "/privacy",
                "/notices"];
 
 export function GET() {

@@ -3,22 +3,25 @@
 	import favicon from '#lib/assets/favicon.svg';
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
+	import { afterNavigate, beforeNavigate } from '$app/navigation';
 	import { EARLY_ACCESS, SITE_NAME, SITE_ORIGIN } from '#lib/edition.ts';
 	import { ASKS_CONSENT, consent, startAnalytics } from '#lib/analytics.svelte.ts';
 	import { holdsGame } from '#lib/game/importHash.ts';
 	import ConsentBanner from '#lib/ConsentBanner.svelte';
 	import ThemeMenu from '#lib/ThemeMenu.svelte';
+	import SiteMenu from '#lib/SiteMenu.svelte';
 	import { startTheme } from '#lib/theme.svelte.ts';
 	import Collie from '#lib/Collie.svelte';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();
 
-	// The site map (docs/research/01-ux-survey.md, section 8). The early access has the review and the Analysis board.
-	// Review opens the Review tab (design 22).
-	const NAV = EARLY_ACCESS ? [{ href: '/review', label: 'Review' }, { href: '/analysis', label: 'Analysis' }] : [
+	// The site map (docs/research/01-ux-survey.md, section 8). The early access has the review, the Analysis board and
+	// Practice. Review opens the Review tab (design 22).
+	const NAV = EARLY_ACCESS ? [{ href: '/review', label: 'Review' }, { href: '/analysis', label: 'Analysis' }, { href: '/practice', label: 'Practice' }] : [
 		{ href: '/review', label: 'Review' },
 		{ href: '/analysis', label: 'Analysis' },
+		{ href: '/practice', label: 'Practice' },
 		{ href: '/puzzles', label: 'Puzzles' },
 		{ href: '/learn', label: 'Learn' },
 		{ href: '/lab/engine', label: 'Engine lab' },
@@ -38,6 +41,27 @@
 		startTheme();
 		if (page.route.id !== '/import' && !holdsGame(location.hash)) startAnalytics();
 	});
+
+	// The page's own scrolling area (src/app.css, pageScroll.ts), on a screen with a mouse. The router keeps the window's
+	// scroll only, so the area's is kept here, as the browser keeps a page's: each address's place, for Back, Forward
+	// and a reload, and the top of a page opened anew. A link to a place in a page (`#`) scrolls to it on its own.
+	// The page left is the navigation's own `from`: on Back and Forward, the address has changed already.
+	let area: HTMLElement;
+	const PLACES = 'hedge-school:scroll-places:1';
+	const where = (url: URL | Location) => url.pathname + url.search + url.hash;
+	const places = (): Record<string, number> => { try { return JSON.parse(sessionStorage.getItem(PLACES) ?? '{}'); } catch { return {}; } };
+	function keepPlace(url: URL | Location) {
+		try { sessionStorage.setItem(PLACES, JSON.stringify({ ...places(), [where(url)]: area.scrollTop })); } catch { /* storage blocked */ }
+	}
+	beforeNavigate(({ from }) => { if (from) keepPlace(from.url); });
+	afterNavigate(({ type, to }) => {
+		if (type === 'popstate' || type === 'enter') area.scrollTop = to ? places()[where(to.url)] ?? 0 : 0;
+		else if (!to?.url.hash) area.scrollTop = 0;
+		// The keys that scroll (Page Down, Space, the arrows) scroll what has the focus. The router gives it to the page
+		// (the body) after a navigation. The area takes it in the body's place, so that the keys scroll it, unless the
+		// page has given the focus to one of its own controls.
+		if (document.activeElement === document.body || !document.activeElement) area.focus({ preventScroll: true });
+	});
 </script>
 
 <svelte:head>
@@ -56,8 +80,14 @@
 	<meta name="twitter:card" content="summary_large_image" />
 </svelte:head>
 
-<!-- The gaps narrow on a phone, so that the theme menu fits in 360 pixels. -->
-<header class="flex items-center gap-3 sm:gap-6 px-4 py-2 min-h-(--site-header) bg-panel border-b border-line">
+<svelte:window onpagehide={() => keepPlace(location)} />
+
+<!-- On a screen with a mouse, the header over the page's own scrolling area, which fills the rest of the window. -->
+<div class="desktop:flex desktop:flex-col desktop:h-full print:block print:h-auto">
+<!-- The gaps narrow on a phone, so that the theme menu fits in 360 pixels. Below 768 pixels, where the links no longer
+     fit in one row (718 pixels), they go into the site's menu at the left (SiteMenu), as on Lichess's phone pages. -->
+<header class="flex-none flex items-center gap-3 sm:gap-6 px-4 py-2 min-h-(--site-header) bg-panel border-b border-line">
+	<span class="md:hidden"><SiteMenu tabs={NAV} about={ABOUT} /></span>
 	<span class="flex items-center gap-2">
 		<a class="flex items-center gap-2 text-xl font-bold text-ink no-underline" href="/">
 			<Collie size={28} />{SITE_NAME}
@@ -65,15 +95,21 @@
 		<!-- The early access, in the accent colour beside the name: what it means is on the About page. -->
 		{#if EARLY_ACCESS}<a class="text-xs font-semibold text-accent no-underline hover:underline" href="/about#early-access">Early Access</a>{/if}
 	</span>
-	<nav class="flex flex-wrap gap-4.5">
+	<nav class="flex flex-wrap gap-4.5 max-md:hidden">
 		{#each NAV as item (item.label)}<a href={item.href} class={linkClass(item.href)}>{item.label}</a>{/each}
 	</nav>
-	<nav class="flex flex-wrap gap-4.5 ml-auto text-sm">
+	<nav class="flex flex-wrap gap-4.5 ml-auto text-sm max-md:hidden">
 		{#each ABOUT as item (item.href)}<a href={item.href} class={[linkClass(item.href), item.wide && "max-sm:hidden"]}>{item.label}</a>{/each}
 	</nav>
-	<ThemeMenu />
+	<span class="ml-auto md:ml-0"><ThemeMenu /></span>
 </header>
 
-{@render children()}
+<!-- The area is not in the Tab order and shows no outline (tabindex -1). It takes the focus after each navigation, so
+     that the keys scroll it. -->
+<div id="page" bind:this={area} tabindex="-1"
+     class="outline-none desktop:flex-1 desktop:min-h-0 desktop:overflow-y-auto desktop:[scrollbar-gutter:stable] print:overflow-visible">
+	{@render children()}
+</div>
+</div>
 
 {#if mounted && ASKS_CONSENT && consent.choice === null}<ConsentBanner />{/if}

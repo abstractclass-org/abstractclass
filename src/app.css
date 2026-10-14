@@ -125,10 +125,25 @@
   --font-mono: ui-monospace, monospace;
 }
 
+/* A screen with a mouse, whose scroll bars take room (the page's area, +layout.svelte). */
+@custom-variant desktop (@media (hover: hover) and (pointer: fine));
+
 @layer base {
   /* The scroll bar's room, kept whether the page scrolls or not: a page whose height changes while it loads (the
-     review's columns) does not move sideways when the bar comes and goes. */
+     Review tab's list of games) does not move sideways when the bar comes and goes. The browser draws nothing of the
+     page in that room (the CSS working group's issue 5232), so on a screen with a mouse the page scrolls in its own
+     area under the site's header (#page in +layout.svelte), which keeps the room, and the header, outside it, reaches
+     the window's edge and stays in view. The document itself then does not scroll. A touch screen's scroll bars keep
+     no room, and its document scrolls as usual, so that its browser's bars still hide as the page scrolls. */
   html { scrollbar-gutter: stable; }
+  @variant desktop {
+    html, body { height: 100%; overflow: hidden; }
+    html { scrollbar-gutter: auto; } /* a box that does not scroll keeps the room too: only the page's area keeps it */
+  }
+  /* A printed page is the whole page, not the area's view. */
+  @media print {
+    html, body { height: auto; overflow: visible; }
+  }
   body {
     background: var(--bg);
     color: var(--text);
@@ -163,6 +178,27 @@
   background: var(--accent);
   border-color: var(--accent);
   color: var(--on-accent);
+}
+
+/* An empty board's points, in a skeleton (the review's, the Analysis board's, Practice's), as the board draws them: 19 by
+   19, one unit apart, 1.3 units in from the edges of a board 20.6 units wide (Board.svelte), each 0.07 units in radius.
+   Inside a box of the board's size, positioned. */
+@utility board-points {
+  position: absolute;
+  inset: calc(100% * 0.8 / 20.6);
+  background: radial-gradient(circle closest-side, var(--board-dot) 12%, transparent 15%) 0 0 / calc(100% / 19) calc(100% / 19);
+}
+
+/* A button whose label is an icon (Icon.svelte): as high as a word's button, and narrower at its sides. */
+@utility btn-icon {
+  padding-inline: 0.5rem;
+}
+
+/* A button that ends something for good (Practice's Abort and Resign, once confirmed): in the blunder's red. */
+@utility btn-danger {
+  background: var(--blunder-fill);
+  border-color: var(--blunder-fill);
+  color: #fff;
 }
 
 /* A surface raised over the page: the menus', the dialogs' and the notes'. Each sets its own corners and layer. */

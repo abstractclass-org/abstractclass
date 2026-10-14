@@ -9,7 +9,8 @@
   import { onDestroy, onMount, untrack } from "svelte";
   import { Dialog } from "bits-ui";
   import { replaceState } from "$app/navigation";
-  import ReviewView from "#lib/review/ReviewView.svelte";
+  import ReviewView, { reviewSkeleton } from "#lib/review/ReviewView.svelte";
+  import { loadDisplay } from "#lib/review/display.ts";
   import NewMenu from "#lib/analysis/NewMenu.svelte";
   import { STANDARD_START, setUpStart } from "#lib/engine/notation.ts";
   import { onlyJudged, review, type ReviewData, type Unit } from "#lib/review/model.ts";
@@ -203,6 +204,10 @@
     return (i !== null ? g.positions[i] : g.branches[pathKey(current)]?.position)?.notation ?? null;
   });
   const editorHref = $derived(onScreen ? `/editor#${new URLSearchParams({ position: onScreen })}` : "/editor");
+  // Practice from the position on screen (design 24): its moves from the standard start, as a record. The bot takes no
+  // set-up start yet (request 20).
+  const practiceHref = $derived(!game || game.startPosition ? null
+                               : current.length ? `/practice#${new URLSearchParams({ record: current.join(" ") })}` : "/practice");
   /** The New menu's standard start: a new analysis, after the board asks when it has moves. */
   function newBoard() {
     importAddress(String(new URLSearchParams({ position: STANDARD_START, via: "new" })));
@@ -280,10 +285,17 @@
               onfeature={name => trackOnce(`board ${name}`, "feature", { feature_name: name })} gpu={session.gpuView}
               board={{ judged: g.judgedMain, onmain: path => g.setMain(path) }}
               onexport={exportAs} exportItems={EXPORT_ITEMS}>
-      {#snippet tools()}<NewMenu editor={editorHref} onstart={newBoard} onimport={() => (importing = true)} onload={loadFile} />{/snippet}
+      {#snippet tools()}
+        <NewMenu editor={editorHref} onstart={newBoard} onimport={() => (importing = true)} onload={loadFile} />
+        <!-- Practice from the position on screen (design 24), as Lichess's "Continue from here": not a new board, so
+             beside New, not in it. Off on a set-up start, which the bot cannot take yet (request 20). -->
+        <button disabled={!practiceHref} onclick={() => practiceHref && location.assign(practiceHref)}
+                title={practiceHref ? "Practice against the bot from the position on screen" : "Practice against the bot: not from a set-up position yet"}>Play</button>
+      {/snippet}
     </ReviewView>
-{:else if !ask}
-  <p class="{MESSAGE} text-muted">Setting up the board with the engine's rules…</p>
+{:else}
+  <!-- The board's skeleton until the board shows, from the prerendered page on (the review's, in its board form). -->
+  {@render reviewSkeleton(false, loadDisplay().win === "gauge", PLAYERS, true)}
 {/if}
 
 <!-- A line brought, over the analysis kept here: the player chooses. -->

@@ -20,3 +20,7 @@ export const MINUTE_RANGES = [0, 1, 3, 10, 30, 60];
 export const LINK_RANGES = [0, 500, 1000, 2000, 4000];
 /** The games kept in the browser. */
 export const GAME_RANGES = [0, 1, 2, 5, 10, 25];
+/** A practice game's takebacks (design 24). */
+export const TAKEBACK_RANGES = [0, 1, 2, 5];
+/** The practice bot's seconds for a turn, on average over a game: under 1, then 1-2, 3-9, 10-29 and 30 or more. */
+export const BOT_SECOND_RANGES = [0, 1, 3, 10, 30];

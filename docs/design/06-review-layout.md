@@ -72,18 +72,26 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
      only: a turn is one step, and its note names the whole turn. A note gives the label in brackets, as Lichess's chart
      does: "2. Q10-R8 O11-Q10 [Blunder]".
 4. **The step controls** (first, back, forward, last), the status line and the display settings' button are a bar at
-   the bottom of the analysis column, as on Lichess, next to the move list that they step through.
+   the bottom of the analysis column, as on Lichess, next to the move list that they step through. The steps are on
+   the left, and the tools on the right (the Analysis board's New, Play and Export, the review's Export, and ☰). When
+   the column is too narrow for one row, the tools go under the steps as a group, at the right, and the steps span the
+   column's width, as Lichess's do. The bar measures whether the tools fit beside the steps at the steps' own width
+   (`src/lib/ui/StepBar.svelte`, which Practice shares). The buttons' icons are drawn, one set at one stroke
+   (`src/lib/ui/Icon.svelte`), not text glyphs, whose shapes vary with the font.
 5. **The win chance is a display setting:**
    - **A bar above the board** ("Top horizontal bar", the default): Blue on the left, Red on the right, as the players
-     start. The players' tags flank it in one row: each player's name, points, and the area the player encloses now,
-     which each turn's end adds to the points. While the engine's line shows (design 07), the area is the one after
+     start. The players' tags flank it in one row: each player's name, then under it the points and the area the
+     player encloses now, which each turn's end adds to the points. While the engine's line shows (design 07), the area is the one after
      the line's last drawn edge, in the accent colour.
-   - **The tags fold in a narrow row,** and the bar stays between them: one line from 38rem, two lines (the numbers
-     under the name) from 27.5rem, three below that (the points, then the area). The widths are the row's own
-     (container queries), set by a game's widest numbers (points in the thousands) so that the bar keeps its 6rem.
-     With the gauge, the tags fold at 32rem and 21.25rem, where they would meet. A game keeps one form throughout, so
-     the board does not change size as the scores grow. The row's height is measured, and the board and the side
-     columns take it. At a 1,280×720 window the tags take two lines. At 800×900 and on phones, three.
+   - **The bar is centred on the board:** each tag's column is as wide as the wider tag, so that the bar's 50% mark is
+     at the board's middle. The bar's length is what the two tags leave. Practice's row is the same (design 24).
+   - **Each tag has two lines,** its name over its numbers, at every width: the tags are narrow, so the bar between
+     them is long, and the row has one height. The narrowest row takes three lines (the points, then the area): below
+     27.5rem with the bar, and 21.25rem with the gauge, where the tags would meet. These widths are the row's own
+     (container queries), set by a game's widest numbers (points in the thousands) so that the bar keeps its 6rem. A
+     game keeps one form throughout, so the board does not change size as the scores grow. The row's height is
+     measured, and the board and the side columns take it. Until it is measured, the page takes the two lines'
+     height (`--strip`), so that the board keeps its size when the review shows.
    - **A vertical gauge beside the board** ("Side vertical gauge", as Lichess and chess.com draw it): Blue's share from
      the bottom, each side's percentage inside the gauge at its own end (Red's at the top, Blue's at the bottom), as the
      bar shows them at its ends. The percentages are small and written up the gauge, so the gauge is 1rem wide. A
@@ -196,7 +204,11 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
 ## Where it is
 
 - `src/lib/review/ReviewView.svelte`: the columns, the board's size, the engine header, the controls' bar, the
-  display settings' panel (`settingsPanel`, `toggle`, `choice`).
+  display settings' panel (`settingsPanel`).
+- The parts that Practice shares (design 24): the row above the board (`src/lib/review/PlayerRow.svelte`,
+  `PlayerCard.svelte`), the win bar and gauge (`src/lib/ui/ShareBar.svelte`), the move list's look
+  (`src/lib/review/moveList.ts`), and the settings' rows (`src/lib/ui/SettingChoice.svelte`, `SettingToggle.svelte`,
+  `SoundSettings.svelte`).
 - `src/lib/review/display.ts`: the display settings and their storage in the browser.
 - `src/routes/review/+page.svelte`: the skeleton until the review shows (`opening`, `preloaded`).
 

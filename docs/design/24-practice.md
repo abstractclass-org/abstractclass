@@ -1,0 +1,169 @@
+# Practice: a game against HedgeFund in the browser
+
+**Status:** in force, built. **Decided:** 2026-10-14.
+
+## Context
+
+A player learns from games, not only from the review of one. Lichess and chess.com let a player play their engine at
+a chosen level, then review the game. Hedge School runs no play between people (design 19), but a game against the
+engine is practice: it needs no other player, no matchmaking and no server.
+
+The engine repository built the practice bot for this (request 15, its v2 design 22), in release
+`wasm-v2-engine-54486cd`. It is KataGo's GTP engine with the bot's play settings (`gtp_enclosure.cfg`: resignation off,
+the tree kept from move to move), not the analysis module's settings. It takes GTP commands in the site's notation,
+searches each move to a number of visits, and runs in the browser in two forms:
+
+- **One search thread** (`enclosure-bot.wasm`): the network in the instance, in any browser.
+- **Several search threads** (`enclosure-bot-batched.wasm`): KataGo's threads as coroutines in one instance, their
+  positions evaluated together by the GPU (ONNX Runtime Web on WebGPU) or by CPU workers (`enclosure-eval.wasm`). It
+  needs JSPI, as the GPU module does (design 15).
+
+Its speed on the engine repository's desktop, seconds a move, at 64, 256 and 1,024 visits, with HedgeFund 0.1 Lite: one
+thread 0.83, 2.8 and 9.8; 4 CPU workers 0.26, 1.0 and 3.5; WebGPU 0.18, 0.40 and 1.3 (requests/15-practice-bot.md).
+How strong each setting plays against people is not measured yet.
+
+## Decision
+
+1. **A page, `/practice`, for a game against HedgeFund in the player's browser,** on the practice bot. No server and
+   no clock: each bot move searches to its visits, so a setting plays at the same strength on every machine, and a
+   slow machine only waits longer. This departs from Lichess, whose games against the computer run on its servers
+   (request 15). The header names it after Analysis (design 22).
+2. **The bot's settings,** chosen before the game and fixed for it, as Lichess fixes the computer's level. Levels come
+   later, from the engine repository's visit ladder and from games by setting.
+   - **The network:** HedgeFund 0.1 Lite (the default) or HedgeFund 0.1.
+   - **The visits for each move:** by doublings from 1 to 1,024. The default is 64.
+   - **Variety,** the move temperature: how often the bot plays a move other than its best. KataGo's temperatures, by
+     the move: a temperature at the game's start, halved every 19 edges, down to a floor.
+
+     | Variety | At the start | The floor |
+     |---|---|---|
+     | Low (the default) | 0.5 | 0.10 |
+     | Medium | 0.8 | 0.3 |
+     | High | 1.0 | 0.6 |
+
+     Low is KataGo's own default. Medium and High are the site's, to check against games once levels are measured.
+3. **Before the game, one card,** "Practice against bot", as Lichess's "Play with the computer": the bot's settings,
+   the player's name, then the side, which starts the game. The heading does not name the bot: the network's choice
+   does. The sides are Blue, Random and Red, each with its dot (Random half Blue, half
+   Red), as Lichess offers black, random and white, with Random in the middle and larger. Blue plays first.
+4. **The start:** the standard start, or a record's moves from it, brought in as other pages take them
+   (`/practice#record=…`, design 22). The Analysis board's Play button, beside New, opens Practice at the position on
+   screen, as Lichess's "Continue from here" plays the computer from a position. It is not in the New menu: New makes
+   a new board. A set-up start waits for the bot: it has no command for one (request 20). Until then the button is off
+   on a board with a set-up start, and Practice refuses a record with a `Position` tag.
+5. **During the game, the review's layout and parts** (design 06): the review's row above the board, with the
+   players' names, points and areas and the bar centred on the board, the board as large as the window lets it be,
+   with the player's notes on it (design 07, kept for each position while the page is open, as in the review), and a
+   side column of Lichess's width (250 to 350 pixels). The side column has the bot's settings and where it runs, whose
+   turn it is, the review's move list (its spacing, its columns of edges and its outlines), and the review's bar
+   under it (`StepBar`): the steps through the positions on the left, and the game's actions (Take back, Abort, Resign)
+   and the display settings' button on the right, which go under the steps as a group when the column is too narrow
+   for one row, the steps then spanning the column (design 06). While the bot starts, a skeleton of the same layout:
+   the cards with the players' names (the review's `PlayerCardSkeleton`), the empty board's points, bars for the
+   moves of a kept game, and the bar with its actions off. Before the page's code runs, the page shows nothing: it
+   cannot know whether the card or a game comes. The game's own state only: no evaluation, no engine lines and no labels, as on Lichess. The
+   display settings are the review's where they apply: the regions, the protected edges and the move sounds. The
+   cards are the review's, two lines each. The bot's settings are in the side column's first line.
+6. **The bot's time, not its visits:** while the bot searches, the line says so, with the seconds so far, and then how
+   long its last turn took. GTP's `genmove` answers only with the move, so the page cannot show the visits so far. The
+   time tells the player whether the machine copes with the visits set.
+7. **Take back, and looking back:**
+   - **Take back,** on the player's turn, by turn: the bot's turn after the player's last turn, then that turn whole,
+     as Lichess undoes the player's move and the reply. Halfway through the player's turn, the one edge played.
+   - **Looking back:** the steps, the move list and the arrow keys show any earlier position, and the board takes
+     moves only at the latest one.
+8. **Take back, Abort and Resign,** with icons, each named in its tooltip ("Takeback", "Abort", "Resign"). Abort and
+   Resign are red under the pointer and confirmed first, with a red button. No New game button during the game:
+   - **Abort,** at any time: the game ends with no result, and goes into Your games as unfinished (`*`) when it has
+     moves, so that it can still be reviewed. This departs from Lichess, which offers Abort only before the first
+     move: a game here has no clock and no opponent who waits, and an aborted game can still teach in its review.
+   - **Resign,** at any time, also while the bot searches: HedgeFund wins (`r+R` or `b+R`, as the meaf.us reader writes
+     a resignation, with the tag `Termination "resignation"`).
+   - **At the end** (the rules', or a resignation): the result, Review the game, and New game, which returns to the
+     card.
+9. **The game in progress:** one in each browser, kept as the player leaves it, and resumed on the next visit, as the
+   Analysis board keeps its one board. A game has no clock, so it can last days. A record brought in asks first, and
+   the game in progress then goes into Your games as unfinished. The page shows nothing until it knows whether a game
+   is in progress, so that the card does not show for a moment before the game.
+10. **A game that ends goes into Your games** in the Review tab, kept at once, and its review is one click away.
+    Lichess keeps every game against the computer in the player's history.
+11. **The record names both sides.** The player's side has the name that the player sets on the card, kept in this
+    browser, and "You" without one. The bot's side is "HedgeFund 0.1 Lite, 64 visits, Low variety", for example. The
+    record also gives the event (Practice), and the bot in full: the network's id, the visits, the variety, and the
+    engine's build, from the bot's own report (`enclosure-bot-info`).
+12. **The points bar,** in Practice's display settings, as switches. The scores and the areas show as numbers in any
+    case, as in the review. No chart: the bar is enough, and a chart under the board would change the board's size,
+    and with it the side column's, each time it is turned on or off.
+    - **The points bar** (on by default): each player's share of the points so far, drawn as the review's win chance.
+      While it is on, two more settings: its direction, horizontal above the board (the default) or vertical beside
+      it, and the area.
+    - **The area** (off by default): a second, thinner lane, each player's area against their own points, under their
+      own part of the bar. With 300 points and an area of 50, Blue's lane is a sixth of Blue's part. A player with an
+      area and no points yet has a full lane. The share falls as the points grow, so the lane is long early and short
+      late.
+13. **A game across a release:** the kept game holds its moves and its settings, not the bot's state. A new build
+    continues it from its moves alone (`clear_board`, then `play` for each edge), as the engine repository checked.
+    Only the bot's tree is lost. The record notes the build that continued it.
+14. **Where the bot runs:** in the page's own workers, with the engine settings' workers and GPU (design 09): on the
+    GPU when the GPU setting allows it, else on the CPU workers, both through the threaded bot. A browser without JSPI
+    plays the one-thread bot. The board's rules (the legal edges, the positions) come from the analysis module's
+    rules worker, as on the Analysis board.
+
+## Why
+
+- **The bot plays as HedgeFund plays:** the GTP engine with its play settings, not the analysis module's `chooseMove`,
+  whose root noise and new tree for each query are not the bot's play (request 15).
+- **Settings named for what they are,** until levels rest on results. A level guessed now could be far off, and a
+  player could not tell.
+- **Fixed settings make a record that one line describes,** and games by setting that the levels can later count.
+- **Kept games lose no work:** a game without a clock is easy to lose to a closed tab, and an unfinished game can
+  still teach in its review.
+- **Lichess's choices** for the card, the side, the takeback, the lack of evaluation and the game's place in the
+  history, where nothing in Enclosure argues for another way. Abort at any time is the one departure (item 8).
+- **The review's layout and parts** (the players' row, the display settings): one look across the site, and less to
+  keep.
+
+## Alternatives
+
+- **Named levels now** (Beginner to Strong): easier for a newcomer, but guessed. They wait for the visit ladder.
+- **One strength slider** (visits alone): simpler, with the network and the variety fixed. The three settings cost
+  little more, and a player who knows the engine wants them.
+- **Settings that change during the game:** more freedom, but a record that needs a note at each change, and games
+  that the levels' data cannot use.
+- **Several games in progress,** as Lichess's correspondence games: more to build, for a use nobody asked for.
+- **The analysis module's `chooseMove`:** no new download, but not HedgeFund's play.
+
+## Consequences
+
+- **The download:** the practice bot's module, about 1.4 MB, and for the CPU workers the evaluator, about 0.6 MB.
+  The networks and the GPU's graph are the review's own files, which the browser keeps.
+- **The levels need data:** the engine repository's visit ladder on the module, then games by setting.
+- **The site's own temperatures** (Medium and High) are a guess until games show what they do.
+- **A game from a set-up start** waits for the bot's command for one (request 20).
+
+## Where it is
+
+- **The page:** `src/routes/practice/+page.svelte`: the card, then the game: the players' row, the board, the move
+  list, the steps, Abort, Resign and the display settings.
+- **The review's parts it shares:** the players' row (`src/lib/review/PlayerRow.svelte`, `PlayerCard.svelte`), the
+  win bar and gauge (`src/lib/ui/ShareBar.svelte`), the move list's look (`src/lib/review/moveList.ts`), the controls'
+  icons (`src/lib/ui/Icon.svelte`), and the settings' rows and the sound settings (`src/lib/ui/SettingChoice.svelte`,
+  `SettingToggle.svelte`, `SoundSettings.svelte`).
+- **The game:** `src/lib/practice/game.svelte.ts`: the moves to the bot and to the rules worker, the bot's time,
+  Abort, Resign, the end and the save into Your games.
+- **The bot:** `src/lib/practice/bot.ts` (the form to start, with a fall back to the next) and `botWorker.ts` (the
+  bot in its worker, with ONNX Runtime set up as the GPU worker sets it up, `src/lib/engine/ort.ts`).
+- **The pure parts:** `src/lib/practice/practice.ts`: the settings, the kept game (`hedge-school:practice-game:1`) and
+  the choices (`hedge-school:practice-choices:1`) in the browser's local storage, the GTP commands, the results and
+  the record. Tests: `practice.test.ts`. The score's display settings are kept under
+  `hedge-school:practice-display:2`.
+- **The files:** the release's practice files in `engine.lock.json`, which `scripts/fetch-engine.mjs` puts in
+  `static/engine/engine-54486cd-lib/` and the bot's module folders.
+- **The ways in:** the header, the sitemap, and the Analysis board's Play button (`src/routes/analysis/+page.svelte`).
+
+## Log entries
+
+- [decisions/product.md](../decisions/product.md): "Practice designed" (2026-10-14).
+- [decisions/product.md](../decisions/product.md): "Practice built" (2026-10-14).
+- [requests/15-practice-bot.md](../requests/15-practice-bot.md): the bot, as the engine repository delivered it.
+- [requests/20-practice-set-up-start.md](../requests/20-practice-set-up-start.md): the bot from a set-up start.

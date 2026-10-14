@@ -1,5 +1,13 @@
 <script lang="ts" module>
   import Swatch from "#lib/ui/Swatch.svelte";
+  import PlayerCard, { AREA_DOT, fmtScore, playerBox, playerName, playerNumbers, stripBox, stripRow } from "./PlayerCard.svelte";
+  import PlayerRow from "./PlayerRow.svelte";
+  import PlayerCardSkeleton, { BONE } from "./PlayerCardSkeleton.svelte";
+  import ShareBar from "#lib/ui/ShareBar.svelte";
+  import Icon from "#lib/ui/Icon.svelte";
+  import StepBar from "#lib/ui/StepBar.svelte";
+  import { pageScrollTop } from "#lib/pageScroll.ts";
+  import { MOVE_HERE, MOVE_HOVER, MOVE_LIST, MOVE_TEXT, TURN_NUMBER, keepInView, moveButton, turnRow } from "./moveList.ts";
   import { PLAYER_NAME, type Analysis, type Edge, type LineStep, type Player } from "./model.ts";
   import type { BranchNode } from "#lib/analysis/game.svelte.ts";
   import type { EdgeRules } from "#lib/board/edgeInput.svelte.ts";
@@ -45,22 +53,8 @@
    *  Report is no longer a tab. */
   export const WIDE = "min-width: 1260px";
   const PANEL = "min-w-0 px-4 py-3 bg-panel border border-line rounded-md";
-  const BONE = "rounded bg-panel-2 motion-safe:animate-pulse"; // a part of the skeleton
   export { reviewSkeleton };
 
-  // The row above the board: the classes that set its height, the same in the review (player) and in its skeleton, so
-  // that the skeleton's board has the review's size. A narrower row takes two lines, then three (design 06).
-  const stripBox = (gauge: boolean) => (gauge ? "@container/gauge" : "@container/bar");
-  const stripRow = (gauge: boolean) => ["grid items-center gap-2 h-[1.6rem] @max-[38rem]/bar:h-auto @max-[32rem]/gauge:h-auto",
-    gauge ? "grid-cols-[auto_1fr_auto]" : "grid-cols-[auto_minmax(6rem,1fr)_auto]"];
-  const playerBox = (p: Player) => ["flex items-baseline gap-x-1.5 px-1.5 py-0.5 rounded min-w-0 max-w-64",
-    "@max-[38rem]/bar:flex-col @max-[38rem]/bar:leading-tight @max-[32rem]/gauge:flex-col @max-[32rem]/gauge:leading-tight",
-    p === 0 ? "@max-[38rem]/bar:items-start @max-[32rem]/gauge:items-start"
-            : "flex-row-reverse @max-[38rem]/bar:items-end @max-[32rem]/gauge:items-end"];
-  const playerName = (p: Player) => ["flex items-baseline gap-1.5 min-w-0 max-w-full", p === 1 && "flex-row-reverse"];
-  const playerNumbers = (p: Player) => ["flex items-baseline gap-x-1 text-sm text-muted tabular-nums whitespace-nowrap",
-    "@max-[27.5rem]/bar:flex-col @max-[21.25rem]/gauge:flex-col", p === 1 && "@max-[27.5rem]/bar:items-end @max-[21.25rem]/gauge:items-end"];
-  const AREA_DOT = "@max-[27.5rem]/bar:hidden @max-[21.25rem]/gauge:hidden";
   /** The skeleton's row above the board sets --strip, as the review's row does (stripHeight): the board's size takes
    *  the row's height from the window's. */
   function measureStrip(main: HTMLElement) {
@@ -77,7 +71,7 @@
   // (Lichess). Learning from the mistakes is to come back as a mode of the analysis (decisions/open-items.md). The
   // review may be partial while the engine works: an edge with no label yet shows none. The layout is design 06 (docs/design/06-review-layout.md): the board fills the window's height,
   // with the summary on its left from 1,260 pixels (Lichess's three columns), and the analysis on its right.
-  import { ContextMenu, Dialog, RadioGroup, Switch, Tabs } from "bits-ui";
+  import { ContextMenu, Dialog, Switch, Tabs } from "bits-ui";
   import { untrack, type Snippet } from "svelte";
   import { MediaQuery } from "svelte/reactivity";
   import { innerHeight, innerWidth } from "svelte/reactivity/window";
@@ -93,7 +87,11 @@
   import AdvantageChart from "./AdvantageChart.svelte";
   import DifficultyChart from "./DifficultyChart.svelte";
   import { loadDisplay, saveDisplay, type Display } from "./display.ts";
-  import { MOVE_SOUND_NAMES, playMove, preload } from "#lib/sound.ts";
+  import { playMove, preload } from "#lib/sound.ts";
+  import SettingChoice from "#lib/ui/SettingChoice.svelte";
+  import SettingToggle from "#lib/ui/SettingToggle.svelte";
+  import SoundSettings from "#lib/ui/SoundSettings.svelte";
+  import { SETTINGS_HEAD, SWITCH, SWITCH_THUMB, settingId } from "#lib/ui/settings.ts";
   import ExportMenu from "#lib/ExportMenu.svelte";
   import type { ExportItem, ExportKind, ExportResult } from "#lib/game/reviewFile.ts";
   import Glyph from "./Glyph.svelte";
@@ -132,24 +130,19 @@
     exportReady?: boolean; // the review is done: export only then (design 13)
   }
   let { R, progress = null, game, deepVisits = 0, onposition, onplay, labelVisits = 0, engine, onengine, gpu, reviewVisits = 0, onexport,
-        exportReady = true, deeperPositions = 0, again = null, snapshot = null, board = null, start, exportItems, tools, siteLink = null,
+        exportReady = true, deeperPositions = 0, again = null, snapshot = null, board = null, start, exportItems, tools: pageTools, siteLink = null,
         ownSettings = false, onfeature }: Props = $props();
   const branches = $derived(game?.branches ?? {});
   const used = (name: string) => onfeature?.(name);
   const last = $derived(R.data.positions.length - 1);
   const TABLE_ROWS = 5; // the Analysis table shows this many rows and scrolls, so the move list under it does not move
   const ROW_EM = 1.9; // a table row's height, in em
-  const GAUGE_TEXT_PX = 40; // the length of a side's part of the gauge that has room for its percentage, written up
   // Class lists used in several places.
   // A label's badge in the text. Its mark is 56% of the circle, as on the board (0.4 in 0.72), and bold, not extra bold,
   // because small text in heavy weights runs together.
-  const GAUGE_TEXT = "absolute left-1/2 -translate-x-1/2 rotate-180 [writing-mode:vertical-rl] text-[0.6rem] leading-none font-semibold tracking-[0.1em] text-white tabular-nums";
   const MENU_ITEM = "menu-item data-disabled:opacity-50 data-disabled:cursor-default";
   const KBD = "inline-block min-w-[1.6em] px-1 py-px rounded border border-line bg-panel font-mono text-[0.85em] text-center leading-tight";
-  const SETTINGS_HEAD = "mt-2 first:mt-0 pb-0.5 text-xs font-semibold uppercase tracking-wide text-muted border-b border-line";
   const TAB = "flex-1 bg-transparent border-transparent border-b-2 border-b-line rounded-none data-[state=active]:border-b-accent data-[state=active]:font-semibold";
-  const SWITCH = "flex-none inline-flex items-center w-9 h-5 p-0 rounded-full border border-line bg-panel-2 transition-colors data-[state=checked]:bg-accent data-[state=checked]:border-accent";
-  const SWITCH_THUMB = "block size-3.5 rounded-full bg-ink transition-transform translate-x-0.5 data-[state=checked]:translate-x-[1.1rem] data-[state=checked]:bg-on-badge";
   const HELP_TABLE = "w-full text-sm [&_td]:py-1 [&_td]:align-top [&_tr+tr_td]:border-t [&_tr+tr_td]:border-line";
 
   type Stage = "highlights" | "analysis";
@@ -183,7 +176,6 @@
   // its engine box: the header's values and its search bar stay in view while they change. The display settings take the
   // header's place, so one panel shows at a time.
   let engineOpen = $state(false);
-  let gaugeHeight = $state(0);
   // The row above the board is one line high, or two in a narrow row: the board and the side columns take its height.
   // A bound value, not the skeleton's attachment (measureStrip): the style directives on the view's <main> write its
   // whole style attribute, which would drop a property that the attachment set.
@@ -198,7 +190,7 @@
     if (!boardCol) return;
     const col = boardCol.getBoundingClientRect();
     const margin = parseFloat(getComputedStyle(document.documentElement).fontSize); // the page's 1rem
-    sideHeight = Math.max(col.bottom, window.innerHeight - window.scrollY - margin) - col.top;
+    sideHeight = Math.max(col.bottom, window.innerHeight - pageScrollTop() - margin) - col.top;
   }
   $effect(() => {
     if (!boardCol) return;
@@ -284,7 +276,6 @@
   // The move list explains these labels under their turn.
   const COMMENTED: Label[] = ["great", "mistake", "blunder"];
 
-  const fmtScore = (s: number) => WHOLE.format(Math.round(s));
   // A candidate's row, tinted by Blue's win chance after it: blue when it favours Blue, red when it favours Red. The
   // tint is a diverging scale in equal steps per side, not a continuous one: steps are easier to tell apart than shades.
   // The steps start at chess.com's win-chance bands (labels.ts: 2%, 5%, 10%, 20%), here as the distance from 50%, so
@@ -661,7 +652,6 @@
    *  before its sound plays: playPath waits for it). */
   const cutsAt = (p: string[]) => !!moveInto(p)?.cut;
   $effect(() => { if (display.sound) preload(display.moveSound); });
-  const SOUND_CHOICES = Object.entries(MOVE_SOUND_NAMES) as [string, string][];
 
   /** A network's name in the settings: "HedgeFund 0.1 Lite (6.5 MB)". Its parts hold no-break spaces, so that a narrow
    *  panel breaks the name only before the parenthesis. */
@@ -713,15 +703,7 @@
 
   // The move list keeps the current move a fixed distance from its top (four rows), as the position changes.
   let movelist = $state<HTMLElement | null>(null);
-  const SCROLL_ROWS = 4;
-  $effect(() => {
-    void here;
-    if (!movelist) return;
-    const move = movelist.querySelector<HTMLElement>(".mv.here");
-    if (!move) { movelist.scrollTop = 0; return; }
-    const top = move.getBoundingClientRect().top - movelist.getBoundingClientRect().top + movelist.scrollTop;
-    movelist.scrollTop = top - SCROLL_ROWS * move.offsetHeight;
-  });
+  $effect(() => { void here; keepInView(movelist); });
 
   // The arrow keys step through the game, except in the controls that use them: fields, the tabs, the display menu.
   // So the move list's moves are not in the Tab order (tabindex -1), as on Lichess: a click still goes to a move.
@@ -807,8 +789,6 @@
       }))
     .flatMap(({ player, c, played, ...b }) => (c !== undefined && forSide(player)
       ? [{ ...b, c, details: [`Played ${played}`, ...(b.hard ? [HARD_NOTE] : [])] }] : [])));
-  /** A setting's id, from its label. */
-  const settingId = (label: string) => `setting-${label.replace(/\W+/g, "-").toLowerCase()}`;
   // The chart's score and area lines: the display settings say whether they show when the review opens, and the boxes in
   // the chart's legend show or hide them for the moment, without changing the settings. A change of a setting applies
   // again.
@@ -937,29 +917,11 @@
   {/if}
 {/snippet}
 
-<!-- A player's name, side and score, in the row above the board, facing the other player. -->
+<!-- A player's name, side and score, in the row above the board (PlayerCard). While the engine's line shows, the area
+     after its last drawn edge, in the accent colour. -->
 {#snippet player(p: Player)}
-  <!-- One line where the row has room. In a narrower row (design 06), two lines: the numbers under the name. In the
-       narrowest, three: the points, then the area. The widths are the row's own (container queries), set by the widest
-       numbers of a game (points in thousands): with the bar, where it keeps its 6rem; with the gauge, where the two tags
-       meet. -->
-  <div class={[playerBox(p), !over && mover === p && "bg-panel-2 shadow-[inset_0_-2px_0_var(--last)]"]}>
-    <span class={playerName(p)}>
-      <Swatch player={p} />
-      <span class="font-semibold truncate">{p === 0 ? R.data.players.blue : R.data.players.red}</span>
-      {#if !board}<span class="text-xs text-muted">{PLAYER_NAME[p]}</span>{/if} <!-- the board's names are the sides -->
-    </span>
-    <!-- The points so far, and the area enclosed now, which each turn's end adds to the points. While the engine's line
-         shows, the area after its last drawn edge, in the accent colour. -->
-    <span class={playerNumbers(p)}>
-      <span><strong class="text-[1.1em] text-ink">{fmtScore(position.scores[p])}</strong> points</span>
-      {#if areas}
-        <span class={AREA_DOT} aria-hidden="true">·</span>
-        <span><strong class={["text-[1.1em]", lineAreas ? "text-accent" : "text-ink"]}
-                      title={lineAreas ? "The area after the engine's line" : "The area enclosed now, added at the turn's end"}>{fmtScore(areas[p])}</strong> area</span>
-      {/if}
-    </span>
-  </div>
+  <PlayerCard player={p} name={p === 0 ? R.data.players.blue : R.data.players.red} tag={board ? null : PLAYER_NAME[p]} points={position.scores[p]}
+              area={areas ? areas[p] : null} areaNote={lineAreas ? "The area after the engine's line" : null} toMove={!over && mover === p} />
 {/snippet}
 
 <!-- The charts under the board (design 06), as Lichess has its chart: always in view, the board a little smaller for it.
@@ -1106,15 +1068,14 @@
   {#snippet child({ props })}
   <!-- A click on a move does not focus it (Lichess's moves take no focus): the keys move through the game from the page,
        and a move kept in focus would show the browser's focus ring once a key is pressed, and take Space for itself. -->
-  <div {...props} class="movelist flex-1 min-h-0 overflow-y-auto pt-1.5 text-sm border-t border-line" bind:this={movelist}
+  <div {...props} class={MOVE_LIST} bind:this={movelist}
        onpointerdowncapture={e => (menuPath = (e.target as Element).closest<HTMLElement>("[data-path]")?.dataset.path ?? null)}
        onmousedown={e => { if ((e.target as Element).closest("button")) e.preventDefault(); }}>
     {#each R.turns as t (t.number)}
       <!-- A turn's number, then its edges in two equal columns (Lichess's move list), each at least a move wide:
            with room to spare, the second edge starts halfway across. By turn, a last column judges the whole turn. -->
-      <div class={["grid items-baseline gap-x-1", unit === "turn" ? "grid-cols-[2.2rem_repeat(2,minmax(max-content,1fr))_auto]"
-                   : "grid-cols-[2.2rem_repeat(2,minmax(max-content,1fr))]"]}>
-        <span class="text-muted tabular-nums">{t.number}.</span>
+      <div class={turnRow(unit === "turn")}>
+        <span class={TURN_NUMBER}>{t.number}.</span>
         {#if t.continued}<span class="px-[0.2rem] text-muted">…</span>{/if} <!-- its first edge was played before the start -->
         {#each t.edges as e (e.index)}
           {@const after = R.blueScore[e.index + 1]}
@@ -1131,12 +1092,10 @@
                and by turn, a slot for a hard position's ◆ (design 14) on every row, marked or not: a mark never moves
                the label or widens the column. -->
           <button data-path={board ? mainKeys[e.index + 1] : undefined}
-                  class={["mv flex items-baseline gap-1 px-[0.2rem] py-px font-mono text-[0.95em] text-left whitespace-nowrap bg-transparent border-0",
-                          SIDE_TEXT[e.player], mainAt === e.index + 1 ? "here bg-panel-2 outline outline-accent -outline-offset-1"
-                          : pickedKey === mainKeys[e.index + 1] ? PICKED : "hover:bg-panel-2 hover:outline hover:outline-line hover:-outline-offset-1"]}
+                  class={moveButton(e.player, mainAt === e.index + 1 ? MOVE_HERE : pickedKey === mainKeys[e.index + 1] ? PICKED : MOVE_HOVER)}
                   onclick={() => go(e.index + 1, true)} onmouseenter={() => startPreview({ kind: "move", index: e.index })} onmouseleave={endPreview} tabindex="-1"
                   title={[judged, after !== undefined ? `Lead: ${sideText(after, 1)}` : ""].filter(Boolean).join(" · ")}>
-            <span class="w-[8ch]">{moveNotation(e)}</span>
+            <span class={MOVE_TEXT}>{moveNotation(e)}</span>
             {#if unit === "edge"}
               <span class="w-[2.2ch] ml-auto">{#if listed(shown)}{@render mark(shown)}{/if}</span>
               <span class="w-[1.2ch] text-[0.8em] text-muted text-center" title={e.hard && forSide(e.player) ? HARD_NOTE : undefined}>{e.hard && forSide(e.player) ? "◆" : ""}</span>
@@ -1420,19 +1379,7 @@
       {@render choice("Branches and lines", "Each edge as a pill along its direction, a dot, or its notation. In the engine's line, the pills and dots carry the board's numbers.",
         [["pills", "Pills"], ["dots", "Dots"], ["text", "Notation"]], () => display.branchForm,
         v => (display.branchForm = v as Display["branchForm"]))}
-      <h3 class={SETTINGS_HEAD}>Sound</h3>
-      {@render toggle("Move sounds", "A sound for each edge played or stepped through.",
-        () => display.sound, v => (display.sound = v))}
-      {#if SOUND_CHOICES.length > 1}
-        {@render choice("Sound", "The sound of a move.", SOUND_CHOICES, () => display.moveSound,
-          v => { display.moveSound = v as Display["moveSound"]; if (display.sound) void playMove(display.volume, display.moveSound); })}
-      {/if}
-      <div class="flex items-center justify-between gap-3 py-1.5">
-        <label for="setting-volume" class={["text-sm font-medium", !display.sound && "text-muted"]}>Volume</label>
-        <input id="setting-volume" type="range" min="0" max="1" step="0.05" bind:value={display.volume} disabled={!display.sound}
-               onchange={() => playMove(display.volume, display.moveSound)}
-               class="w-36 accent-(--accent) disabled:opacity-50" />
-      </div>
+      <SoundSettings sound={display.sound} moveSound={display.moveSound} volume={display.volume} set={v => Object.assign(display, v)} />
       <h3 class={SETTINGS_HEAD}>Keyboard</h3>
       <div class="flex items-start justify-between gap-3 py-1.5">
         <div class="min-w-0">
@@ -1551,41 +1498,19 @@
   </label>
 {/snippet}
 
-{#snippet toggle(label: string, help: string, get: () => boolean, set: (v: boolean) => void)}
-  {@const id = settingId(label)}
-  <div class="flex items-start justify-between gap-3 py-1.5">
-    <div class="min-w-0">
-      <label for={id} class="text-sm font-medium cursor-pointer">{label}</label>
-      <p class="text-xs text-muted">{help}</p>
-    </div>
-    <Switch.Root {id} checked={get()} onCheckedChange={set} class="{SWITCH} mt-0.5">
-      <Switch.Thumb class={SWITCH_THUMB} />
-    </Switch.Root>
-  </div>
-{/snippet}
+{#snippet toggle(label: string, help: string, get: () => boolean, set: (v: boolean) => void)}<SettingToggle {label} {help} {get} {set} />{/snippet}
 
 <!-- A choice of a few: its name and what it does, then the options side by side. -->
-{#snippet choice(label: string, help: string, options: [string, string][], get: () => string, set: (v: string) => void)}
-  <div class="py-1.5">
-    <p class="text-sm font-medium">{label}</p>
-    <p class="mb-1 text-xs text-muted">{help}</p>
-    <RadioGroup.Root value={get()} onValueChange={set} orientation="horizontal" aria-label={label}
-                     style="grid-template-columns: repeat({options.length}, minmax(0, 1fr))"
-                     class="grid gap-0.5 p-0.5 rounded-md border border-line bg-panel-2">
-      {#each options as [value, text] (value)}
-        <RadioGroup.Item {value} class="px-2 py-1 text-sm rounded border-0 bg-transparent hover:bg-panel
-                                        data-[state=checked]:bg-accent data-[state=checked]:text-on-accent data-[state=checked]:font-medium">{text}</RadioGroup.Item>
-      {/each}
-    </RadioGroup.Root>
-  </div>
-{/snippet}
+{#snippet choice(label: string, help: string, options: [string, string][], get: () => string, set: (v: string) => void)}<SettingChoice {label} {help} {options} {get} {set} />{/snippet}
 
 <!-- The review's skeleton (Nielsen Norman Group's skeleton screen), while the engine's rules read the game: the layout
      of the review below, with its columns, the board and the charts at their sizes, and grey bars for the text. The
      review then takes its place, part for part. `three`: the summary's own column (WIDE). `gauge`: the win chance as a
-     gauge (display.ts). `players`: their names, once the game is read. -->
-{#snippet reviewSkeleton(three: boolean, gauge: boolean, players: { blue: string; red: string } | null)}
-  <main class={["review select-none", three && "wide", gauge && "gauge-mode"]} aria-busy="true" {@attach measureStrip}
+     gauge (display.ts). `players`: their names, once the game is read. `board`: the Analysis board's form, with no
+     chart, its sides for names, and its own line while the engine's rules set the board up (design 21). -->
+{#snippet reviewSkeleton(three: boolean, gauge: boolean, players: { blue: string; red: string } | null, board: boolean)}
+  <main class={["review select-none", three && "wide", board && "board-form", gauge && "gauge-mode"]} aria-busy="true"
+        {@attach measureStrip}
         style:--side-h="max(var(--column), calc(100vh - var(--site-header) - 2rem))">
     {#if three}
       <aside class="summary-col {PANEL} flex flex-col overflow-hidden">
@@ -1598,9 +1523,9 @@
     <section class="board-col">
       <div class={["mb-2 ml-(--gauge-w)", stripBox(gauge)]} data-strip>
         <div class={stripRow(gauge)}>
-          {@render skeletonPlayer(0, players?.blue)}
+          <PlayerCardSkeleton player={0} name={players?.blue} tag={board ? null : PLAYER_NAME[0]} />
           {#if gauge}<div></div>{:else}<div class="h-[1.15rem] {BONE}"></div>{/if}
-          {@render skeletonPlayer(1, players?.red)}
+          <PlayerCardSkeleton player={1} name={players?.red} tag={board ? null : PLAYER_NAME[1]} />
         </div>
       </div>
       <div class="flex">
@@ -1608,13 +1533,16 @@
         <!-- The empty board: its colour and its points, where the board draws them. -->
         <div class="board-wrap relative aspect-square rounded overflow-hidden bg-board"><div class="board-points"></div></div>
       </div>
-      <div class="chart-area flex flex-col ml-(--gauge-w)">
-        <div class="h-3 w-48 mb-1.5 {BONE}"></div>
-        <div class="flex-1 {BONE}"></div>
-      </div>
+      {#if !board}
+        <div class="chart-area flex flex-col ml-(--gauge-w)">
+          <div class="h-3 w-48 mb-1.5 {BONE}"></div>
+          <div class="flex-1 {BONE}"></div>
+        </div>
+      {/if}
     </section>
     <section class="side {PANEL} flex flex-col overflow-hidden">
-      {#if !three}{@render skeletonHead()}{/if}
+      {#if board}<p class="mb-2 text-xs text-muted truncate" role="status">Setting up the board with the engine's rules…</p>
+      {:else if !three}{@render skeletonHead()}{/if}
       <div class="h-5 mb-2 {BONE}"></div>
       <div class="h-3 mb-3 w-2/3 {BONE}"></div>
       {#each Array(5) as _, k (k)}<div class="h-5 mb-1.5 {BONE}"></div>{/each}
@@ -1627,23 +1555,6 @@
       </div>
     </section>
   </main>
-{/snippet}
-
-<!-- A player in the skeleton's row: the review's (player), with bars as high as its text where the text is not known yet. -->
-{#snippet skeletonPlayer(p: Player, name: string | undefined)}
-  <div class={playerBox(p)}>
-    <span class={playerName(p)}>
-      <Swatch player={p} />
-      {#if name}<span class="font-semibold truncate">{name}</span>
-      {:else}<span class="font-semibold {BONE}"><span class="invisible">A player</span></span>{/if}
-      <span class="text-xs text-muted">{PLAYER_NAME[p]}</span>
-    </span>
-    <span class={playerNumbers(p)}>
-      <span class={BONE}><span class="invisible"><strong class="text-[1.1em]">0</strong> points</span></span>
-      <span class={[AREA_DOT, "invisible"]} aria-hidden="true">·</span>
-      <span class={BONE}><span class="invisible"><strong class="text-[1.1em]">0</strong> area</span></span>
-    </span>
-  </div>
 {/snippet}
 
 <!-- The skeleton's head: the review's progress slot, empty, and what the page does. -->
@@ -1669,43 +1580,18 @@
     <!-- The players face each other left and right, as they start: Blue at A10-D10, Red at Q10-T10. The win-chance bar
          is between them. With the gauge, the row keeps the players, and starts after the gauge, at the board's edge. -->
     <div class={["mb-2 ml-(--gauge-w)", stripBox(display.win === "gauge")]} bind:offsetHeight={stripHeight}>
-    <div class={stripRow(display.win === "gauge")}
-         aria-label={display.win === "bar" ? "Players, scores and win chance" : "Players and scores"}>
-      {@render player(0)}
-      {#if display.win === "bar"}
-        <div class={["flex h-[1.15rem] rounded-[3px] overflow-hidden", Number.isNaN(blueWin) ? "items-center justify-center bg-panel-2" : "bg-red"]}
-             title="Win chance from the engine's search">
-          {#if !Number.isNaN(blueWin)}
-            <div class="flex items-center pl-1.5 text-xs font-bold text-white bg-blue transition-[width] duration-200" style="width: {100 * blueWin}%">
-              {#if blueWin >= 0.12}<span>{pct(blueWin)}</span>{/if}
-            </div>
-            <div class="flex flex-1 items-center justify-end pr-1.5 text-xs font-bold text-white bg-red">
-              {#if blueWin <= 0.88}<span>{pct(1 - blueWin)}</span>{/if}
-            </div>
-          {:else}
-            <span class="text-xs text-muted">not analysed yet</span>
-          {/if}
-        </div>
-      {:else}
-        <div></div>
-      {/if}
-      {@render player(1)}
-    </div>
+    <PlayerRow gauge={display.win === "gauge"} label={display.win === "bar" ? "Players, scores and win chance" : "Players and scores"}>
+      {#snippet blue()}{@render player(0)}{/snippet}
+      {#snippet red()}{@render player(1)}{/snippet}
+      {#snippet bar()}
+        <ShareBar share={blueWin} labels={[pct(blueWin), pct(1 - blueWin)]} empty="not analysed yet" title="Win chance from the engine's search" />
+      {/snippet}
+    </PlayerRow>
     </div>
     <div class="flex">
       {#if display.win === "gauge"}
-        <!-- Lichess's and chess.com's gauge: Blue's share from the bottom. -->
-        <div class={["relative flex flex-col-reverse flex-none self-stretch w-4 mr-1.5 rounded-[3px] overflow-hidden", Number.isNaN(blueWin) ? "bg-panel-2" : "bg-red"]}
-             role="img" aria-label={Number.isNaN(blueWin) ? "Win chance: not analysed yet" : `Blue's win chance ${pct(blueWin)}`}
-             bind:clientHeight={gaugeHeight}>
-          {#if !Number.isNaN(blueWin)}
-            <div class="bg-blue transition-[height] duration-200" style="height: {100 * blueWin}%"></div>
-            <!-- Each side's share at its own end, inside the gauge, as the bar shows them at its ends. Small and written
-                 up the gauge, so that the gauge can be narrow. -->
-            {#if (1 - blueWin) * gaugeHeight >= GAUGE_TEXT_PX}<span class="{GAUGE_TEXT} top-1.25">{pct(1 - blueWin)}</span>{/if}
-            {#if blueWin * gaugeHeight >= GAUGE_TEXT_PX}<span class="{GAUGE_TEXT} bottom-1.25">{pct(blueWin)}</span>{/if}
-          {/if}
-        </div>
+        <ShareBar upright share={blueWin} labels={[pct(blueWin), pct(1 - blueWin)]}
+                  title={Number.isNaN(blueWin) ? "Win chance: not analysed yet" : `Blue's win chance ${pct(blueWin)}`} />
       {/if}
       <div class="board-wrap rounded overflow-hidden">
         <!-- While a branch's preview shows, the board is at the row's start, with the row as its line; while a played
@@ -1824,28 +1710,23 @@
     {/if}
     {/if}
 
-    <!-- The step controls and the display settings' button, at the bottom of the analysis column (Lichess's place). -->
+    <!-- The step controls and the display settings' button, at the bottom of the analysis column (Lichess's place), in
+         the bar that Practice shares (StepBar). -->
     <div class="mt-1.5 pt-1.5 border-t border-line">
       <p class="mb-1.5 text-xs text-muted truncate" title={statusLine}>{statusLine}</p>
-      <div class="flex items-center justify-between">
-        <div class="flex gap-1">
-          <button onclick={() => setPath([])} aria-label="First">⏮</button>
-          <button onclick={back} aria-label="Back">◀</button>
-          <button onclick={forward} aria-label="Forward">▶</button>
-          <button onclick={toEnd} aria-label="Last">⏭</button>
-        </div>
-        <div class="flex items-center gap-1">
-          {@render tools?.()}
+      <StepBar onfirst={() => setPath([])} onback={back} onforward={forward} onlast={toEnd}>
+        {#snippet tools()}
+          {@render pageTools?.()}
           <!-- Export (design 13): the review file, with the engine's results, or the annotated record. -->
           {#if onexport}<ExportMenu run={kind => onexport(kind, display.judge)} ready={exportReady} items={exportItems}
                                     why={snapshot ? "Review again to export: this review used an earlier engine." : "Export once the review is done."} />{/if}
           <!-- The menu button (Lichess's ☰ in the same place) opens the display settings in the analysis's place, and
                closes them. The gear is the engine's, in the engine header. -->
-          <button class="aria-expanded:border-accent aria-expanded:text-accent" aria-label="Display settings" title="Display settings"
+          <button class="btn-icon aria-expanded:border-accent aria-expanded:text-accent" aria-label="Display settings" title="Display settings"
                   aria-expanded={settingsOpen} aria-controls="display-settings"
-                  onclick={() => { settingsOpen = !settingsOpen; engineOpen = false; }}>☰</button>
-        </div>
-      </div>
+                  onclick={() => { settingsOpen = !settingsOpen; engineOpen = false; }}><Icon name="menu" /></button>
+        {/snippet}
+      </StepBar>
     </div>
   </section>
 
@@ -1923,7 +1804,7 @@
   .review {
     --gap: 1.25rem;
     --row-gap: 0.8rem;
-    --strip: 2.1rem; /* the row above the board, with its margin: its one-line height until the page measures it */
+    --strip: 3.3125rem; /* the row above the board, with its margin: its two lines' height (2.8125rem) until the page measures it */
     --gauge-w: 0px;
     --summary-min: 250px;
     --summary-max: 350px;
@@ -1978,13 +1859,6 @@
     .side { height: auto; }
     .movelist { max-height: 22rem; }
     .board-wrap { width: auto; flex: 1; min-width: 0; } /* the column's width, whatever the scroll bar takes */
-  }
-  /* The skeleton's board points (reviewSkeleton), as the board draws them: 19 by 19, one unit apart, 1.3 units in from
-     the edges of a board 20.6 units wide (Board.svelte), each 0.07 units in radius. */
-  .board-points {
-    position: absolute;
-    inset: calc(100% * 0.8 / 20.6);
-    background: radial-gradient(circle closest-side, var(--board-dot) 12%, transparent 15%) 0 0 / calc(100% / 19) calc(100% / 19);
   }
   /* The Analysis board has no chart: the board takes its height (design 21). */
   .review.board-form { --chart: 0px; --chart-gap: 0px; }

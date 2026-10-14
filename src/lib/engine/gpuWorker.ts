@@ -4,6 +4,7 @@
 // engines search at once, so their evaluations reach the GPU together.
 import * as ort from "onnxruntime-web/webgpu";
 import { fetchArtifact } from "./artifacts.ts";
+import { setUpOrt } from "./ort.ts";
 import { searchInSlices } from "./channel.ts";
 import { loadLibrary, type GpuEngine, type GpuEngines } from "./library.ts";
 import type { GpuInit, GpuReply, GpuRequest } from "./gpuMessages.ts";
@@ -21,12 +22,8 @@ async function init(m: GpuInit) {
   const lib = await loadLibrary(m.library);
   const support = lib.gpuEngineSupport();
   if (!support.ok) throw new Error(`the GPU module cannot run here: ${support.reason}`);
-  // ONNX Runtime's WebAssembly is given as bytes: it is stored compressed (artifacts.ts). One thread: the page is not
-  // cross-origin isolated, and the GPU does the network's work.
   const [wasm, graph, model] = await Promise.all([fetchArtifact(m.ortWasm), fetchArtifact(m.graph), fetchArtifact(m.model)]);
-  ort.env.wasm.wasmPaths = { mjs: m.ortGlue };
-  ort.env.wasm.wasmBinary = wasm;
-  ort.env.wasm.numThreads = 1;
+  setUpOrt(ort, m.ortGlue, wasm);
   const evaluator = await lib.createOrtEvaluator(ort, graph);
   const made = await lib.createGpuEngines(m.module, evaluator, { searches: m.searches, log: line => console.debug(line) });
   const refused = (await made.loadModel(model, { name: m.model.name })).find(isError);

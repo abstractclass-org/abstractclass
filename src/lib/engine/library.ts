@@ -39,3 +39,18 @@ export interface EngineLibrary {
 
 /** The library, from its URL in the manifest. */
 export const loadLibrary = (url: string) => import(/* @vite-ignore */ url) as Promise<EngineLibrary>;
+
+/** The practice bot (practice_bot.mjs, kind "practice-library", docs/design/24-practice.md): GTP commands, one at a
+ *  time, on the bot with one search thread or on the bot whose threads' positions an evaluator batches (JSPI). */
+export interface PracticeLibrary {
+  createPracticeBot(module: WebAssembly.Module, options?: { log?: (line: string) => void }):
+    Promise<{ command(line: string): string; setModel(bytes: Uint8Array): void }>;
+  createBatchedPracticeBot(module: WebAssembly.Module, evaluator: unknown, options: { maxBatch: number; log?: (line: string) => void }):
+    Promise<{ command(line: string): Promise<string>; setModel(bytes: Uint8Array): Promise<void> }>;
+}
+
+/** The CPU evaluator's pool (cpu_evaluator.mjs): workers that run the network for the threaded practice bot. */
+export interface CpuEvaluatorLibrary {
+  createCpuEvaluator(module: WebAssembly.Module, model: Uint8Array, options: { workers: number; maxRows: number; makeWorker: () => Worker }):
+    Promise<{ release(): void }>;
+}

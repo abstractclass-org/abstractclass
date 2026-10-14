@@ -1,7 +1,7 @@
 # Practice games against HedgeFund: the GTP bot in the browser
 
 **Status:** done: the practice bot in release `wasm-v2-engine-51fbe9d`, and in `wasm-v2-engine-54486cd` with
-request 18 (the engine repository's v2 design 22). Not built here yet.
+request 18 (the engine repository's v2 design 22). Built here as Practice (design 24).
 
 ## What Hedge School builds
 

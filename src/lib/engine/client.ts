@@ -24,9 +24,12 @@ export interface Artifact extends StoredArtifact {
 }
 /** The CPU module, the GPU module and its JavaScript half, a network, a network's ONNX graph, the notices (the licences
  *  of the works of others), the terms (the engine's own: LICENSE.txt), and ONNX Runtime Web's glue script and
- *  WebAssembly. */
+ *  WebAssembly. The practice bot's (design 24): its module with one search thread, its module with several, the
+ *  network alone for the CPU workers that evaluate for it, and their JavaScript (the bot's loader, and the CPU
+ *  evaluator's pool and worker). */
 export type ArtifactKind = "module" | "gpu-module" | "gpu-library" | "model" | "graph" | "notices" | "terms" | "ort-glue"
-  | "ort-wasm";
+  | "ort-wasm" | "practice-module" | "practice-threaded-module" | "practice-evaluator" | "practice-library"
+  | "cpu-evaluator-library";
 
 /** The manifest, or null when the site has no engine (`npm run engine` was not run). The browser asks the server for
  *  it each time (`no-cache`): a kept copy would name an earlier build after an update. The artifacts themselves are in

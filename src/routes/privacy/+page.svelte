@@ -25,7 +25,9 @@
     <li><strong>Your games:</strong> the records you import, with the players' names that the records hold.</li>
     <li><strong>Their analyses:</strong> the engine's results, so that a review opens at once the next time.</li>
     <li><strong>Your analysis:</strong> the Analysis board's lines, the moves you evaluated, and the position you left it at.</li>
-    <li><strong>Your settings:</strong> the review's, the engine's, and the theme.</li>
+    <li><strong>Your practice game:</strong> the game in progress against the bot, with its settings and the name you
+      gave for its record, and the settings you chose for the next game.</li>
+    <li><strong>Your settings:</strong> the review's, the engine's, Practice's, and the theme.</li>
     <li><strong>Your choice about Google Analytics' cookies,</strong> and those cookies if you accept them.</li>
   </ul>
   <p>They stay in this browser on this computer: another browser or another computer does not see them. To remove
@@ -85,8 +87,11 @@
     <li>that the Analysis board opened, with its main line's length as a range;</li>
     <li>that the board editor opened, and that you sent its position to the Analysis board;</li>
     <li>the GPU's first test: faster or slower than the CPU, and the GPU's maker and kind;</li>
-    <li>the engine settings you change, the features you use (each once in a review, or in a visit to the Analysis
-      board), and your exports (a review saved to a partner site among them), with a share link's length as a range;</li>
+    <li>that a practice game started and ended: the bot's settings, your side, where the bot ran (the GPU or the CPU),
+      your computer's number of cores as a range, how the game ended (won, lost, drawn, resigned or aborted), its
+      length and your takebacks as ranges, and the bot's average time a turn as a range;</li>
+    <li>the engine settings you change, the features you use (each once in a review, in a visit to the Analysis board,
+      or in a practice game), and your exports (a review saved to a partner site among them), with a share link's length as a range;</li>
     <li>how many games this browser keeps, as a range.</li>
   </ul>
   <p>None of these holds a game, a move, a player's name or a game's code. Until you accept the cookies, Google receives

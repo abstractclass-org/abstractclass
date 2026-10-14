@@ -12,6 +12,7 @@
   // earlier engine opens as that review, from the stored results with the engine's rules alone, until the player
   // chooses Review again (docs/design/20-snapshot.md).
   import { onDestroy, onMount, untrack } from "svelte";
+  import { PRACTICE_EVENT } from "#lib/practice/practice.ts";
   import ReviewView, { WIDE, reviewSkeleton, type ReviewAgain, type ReviewProgress } from "#lib/review/ReviewView.svelte";
   import { loadDisplay } from "#lib/review/display.ts";
   import { MediaQuery } from "svelte/reactivity";
@@ -179,6 +180,7 @@
       network: settings.network.split("-")[0], depth, depth_on_screen: engine.visits, time_limit: engine.seconds ?? 0,
       workers: engine.workers, gpu_mode: engine.gpu, cores: range(navigator.hardwareConcurrency || 1, CORE_RANGES),
       edges: range(moveCount, EDGE_RANGES), own_settings: !!own,
+      practice_game: kept?.record.tags.Event === PRACTICE_EVENT, // a game against the bot (design 24)
     };
   }
   $effect(() => {
@@ -410,7 +412,7 @@
               reviewVisits={depth} labelVisits={LABEL_VISITS} engine={settings} onengine={changeEngine} ownSettings={!!own}
               onfeature={name => kept && trackOnce(`${kept.id} ${name}`, "feature", { feature_name: name })} gpu={session.gpuView} />
 {:else if opening}
-  {@render reviewSkeleton(wide.current, loadDisplay().win === "gauge", gameOpen ? players : null)}
+  {@render reviewSkeleton(wide.current, loadDisplay().win === "gauge", gameOpen ? players : null, false)}
 {:else}
   <p class="{MESSAGE} text-muted">Reading the game with the engine's rules…</p>
 {/if}
