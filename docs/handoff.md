@@ -1,4 +1,4 @@
-# Handoff (2026-10-14)
+# Handoff (2026-10-15)
 
 **In flight only:** what is half done, and what the next session must check first. Each session rewrites this file.
 It holds no backlog: everything still to do that is not in flight is in
@@ -6,62 +6,56 @@ It holds no backlog: everything still to do that is not in flight is in
 
 ## State
 
-- **Live:** `314ca24` on `main` and `dev`, released on 2026-10-14. Since `f55e0f6`, three commits:
-  - `2d88f8a`: the third code cleanup. The engine behind the review and the Analysis board is one class
-    (`src/lib/analysis/session.svelte.ts`), and the board starts it while it chooses its board. Also: one reader for
-    review and analysis files, the storage helpers everywhere, Arrival's phase as one value, the menus' and dialogs'
-    Tailwind utilities (`src/app.css`). The Import dialog's Cancel no longer imports.
-  - `ce6753d`: one search after an idle release starts no GPU (design 15, decisions/engine.md). The Review tab's
-    Export reads the review that the game shows (`settingsFor`, decisions/product.md).
-  - `5da9832`: engine release `wasm-v2-engine-54486cd`, protocol 0.6.1 (decisions/engine.md, "The release 54486cd").
-- **The engine:** protocol 0.6.1, the release `wasm-v2-engine-54486cd` (both analysis modules), its library and graphs
-  from `wasm-v2-engine-632f2a0`, the networks HedgeFund 0.1 Lite (`b10c128-s66625408`) and HedgeFund 0.1
-  (`b15c192-s66999040`). The search is still `fdfe5ad`, and the CPU modules of `fdfe5ad` and `27a7414` are in
-  `sameSearchAs`. The release's practice files (request 15) are in the lock on `dev`, not committed yet: the two bot
-  modules, the CPU evaluator's module, and the three scripts, in `engine-54486cd-lib` (an artifact's `dir`).
-- **Checks on `314ca24`:** `npm test` passes (99), `npm run check` has no errors or warnings, `npm run build`
-  succeeds. `npm run engine` runs the CPU module in Node and checks the lock's protocol and search against it, on
-  Cloudflare's build too. Request 18's checks are in requests/18-describe-game.md. In Edge on the local build: a
-  stored review opened as done, the GPU started on the new GPU module, and the Analysis board played moves. On the
-  preview, only `2d88f8a`'s Cancel was checked in Edge. The live site serves `314ca24`, with the modules of
-  `54486cd`, and its pages answer (checked by HTTP). Not checked in Edge on the live site. The GPU's first-use test
-  runs again once on each machine, because the GPU module is a new build (design 15).
+- **Live:** `8b60dd0` on `main` and `dev`, released on 2026-10-15: Practice (design 24), with the parts that it shares
+  with the review (design 06: the players' row with the bar centred on the board, the cards on two lines, the move
+  list's look, the win bar and gauge, the step bar, the drawn icons, the settings' rows), the skeletons of the
+  Analysis board and Practice, the page's own scrolling area under a fixed header on a screen with a mouse and the
+  site's menu below 768 pixels (design 22), Practice's Google Analytics events (design 17), and design 25 decided.
+- **The engine:** protocol 0.6.1, the release `wasm-v2-engine-54486cd` (both analysis modules and the practice bot's
+  files: the two bot modules, the CPU evaluator's module and three scripts, in `engine-54486cd-lib`), its library
+  and graphs from `wasm-v2-engine-632f2a0`, the networks HedgeFund 0.1 Lite (`b10c128-s66625408`) and HedgeFund 0.1
+  (`b15c192-s66999040`). The search is still `fdfe5ad`.
+- **Checks on `8b60dd0`:** `npm test` passes (108), `npm run check` has no errors or warnings, `npm run build`
+  succeeds. In Edge on the local build: decisions/product.md, "Practice built", says what was checked and what not.
+  The live site and the preview serve `8b60dd0`, `/practice` answers, and the manifest lists the practice bot's
+  files (checked by HTTP). Not checked in a browser on the live site. Practice's events not checked in Google
+  Analytics.
 
 ## In flight
 
-- **Practice, built and revised after a first look, not committed** (design 24, decisions/product.md "Practice
-  built"): the page `/practice`, `src/lib/practice/`, `src/lib/engine/ort.ts`, the lock's practice files, the header
-  and sitemap entries, the Analysis board's Play button, and the parts it now shares with the review
-  (`src/lib/review/PlayerRow.svelte`, `PlayerCard.svelte`, `moveList.ts`, `src/lib/ui/ShareBar.svelte`,
-  `Setting*.svelte`, `SoundSettings.svelte`, `settings.ts`, and the Advantage chart's `span`).
-  `npm test` passes (106), `npm run check` has no errors or warnings, `npm run build` succeeds. Checked in Edge on the
-  local build (the log entry says what, and what not). Commit it when asked, then check it on the preview. The checks
-  still to run are in the backlog.
-- **Practice's points bar** (design 24, item 12): its area lane and its direction, as switches. No chart. The bar is
-  centred on the board in the review too, and the cards have two lines on every page (design 06). The settings are
-  kept under `hedge-school:practice-display:2`. The `:1` key and `hedge-school:practice-score-picture:1` are left
-  over in this browser from earlier builds, unread.
-- **The page's own scrolling area under the header** (design 22), on a screen with a mouse: check on the preview
-  on a phone (the usual page, with the header scrolling away), printing, and the review and the Analysis board at
-  more window sizes.
-- **The owner's practice game in this browser** (Edge, the local build): a game in progress at 1,024 visits. Tests
-  here saved it and put it back. Do the same, or test in another browser profile.
-- **Practice games stored** (design 25): decided, not built. The build: the Pages Function and its D1 schema, the
-  sending and its queue, the takebacks and the times kept with the game, the consent banner's text, and the privacy
-  page. The owner sets up the databases (production and previews) and their bindings first.
-- **Google Analytics for Practice** (design 17): the nine custom dimensions (the rows from `practice_from` to
-  `practice_game` in design 17's table) are registered. The events are not checked in a browser yet: a local build
-  has no Google Analytics. Their parameters are tested (`practice.test.ts`). Check them in GA's DebugView or
-  Realtime on the live site.
-- **Requests 19 and 20:** the engine repository has answered both. Read the replies and record them in the
-  requests (the first turn's number after a `Position` tag, and the practice bot from a set-up start).
+- **Requests 19 and 20, answered** (the engine repository's `85f1792` and its release `wasm-v2-engine-85f1792`):
+  - **19:** after a `Position` tag, the first number is the start's own turn, `N...` at a turn's second edge, and a
+    reader takes only that number (the engine repository's design 04, "The turns after a set-up start"). To do: make
+    `parseRecord` as strict (`src/lib/game/record.ts`), fix the tests whose records number from 1 after a set-up
+    start (`partners.test.ts` builds `1. D10-E13` after any tag), and record the reply in the request.
+  - **20:** practice bot interface 0.1.1, `enclosure-set-position POSITION` (a position no game reaches is refused,
+    `undo` stops at the start, the early temperature counts the start's edges), the same search as 54486cd, and the
+    module now refuses unknown commands. To do: the lock to `85f1792`, the request's checks, and a short design pass
+    for Practice from a set-up start (`#position=`, the Analysis board's Play on a set-up board, its review on the
+    Analysis board, as the Review tab refuses set-up starts), then the build. Its design 22 also says that
+    `maxVisits` counts the kept tree's visits: record that in design 24 for the levels.
+- **Practice games stored** (design 25): decided, not built, after the requests (its stored game then holds a set-up
+  start from the first day). The build: the Pages Function and its D1 schema, the sending and its queue, the
+  takebacks and the times kept with the game, the consent banner (its text is in design 25), and the privacy page
+  with a switch for each purpose. The owner sets up the databases (production and previews) and their bindings first.
+- **To check on the live site:** Practice in Edge, Practice's events in Google Analytics (the nine custom dimensions
+  are registered), and the site on a phone (the site's menu, the header scrolling away, Practice in one column).
 - **The layout shift on the live site:** Cloudflare's Web Analytics gave `/review` a CLS of 0.151 before `f55e0f6`.
-  On the local build it is now 0 to 0.0023 at the window sizes measured, and 0 on the Review tab. Read Cloudflare's
-  Core Web Vitals for `/review` after a few days of visits (hosting.md, "What Cloudflare shows").
+  On the local build it was 0 to 0.0023 at the window sizes measured, and 0.0025 at 1,282 pixels after `8b60dd0`'s
+  changes (the summary column). Read Cloudflare's Core Web Vitals for `/review` after a few days of visits
+  (hosting.md, "What Cloudflare shows").
 - **Google Search Console** (design 23, item 10): the owner registers the site and submits the sitemap. Not done
   yet.
 
 ## Working notes
+
+- **The owner plays in this browser** (Edge, the local build): practice games and reviews of their own. Before a
+  test that plays, save the keys that it changes (`hedge-school:practice-*`, the review's display settings) and the
+  games' ids, and put them back after. Read the state again before each test: the owner plays between them.
+- **The local server and a build:** stop the server before `npm run build`, then start it again. A build under a
+  running server can stop it (a page asks for `_app/version.json` while the build replaces it).
+- **The browser tool's keys:** "PageDown", not "Page_Down": a key name that the tool does not know sends nothing, and
+  the test then means nothing. Check that the key arrived (a `keydown` listener) before reading its effect.
 
 - **Timing the review's start:** `src/routes/review/+page.svelte` sets the performance marks `review:rules` (the rules
   answered) and `review:shown` (the review shows). Read them with `performance.getEntriesByType("mark")`, beside the
