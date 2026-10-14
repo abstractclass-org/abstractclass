@@ -1,6 +1,7 @@
 # Practice games against HedgeFund: the GTP bot in the browser
 
-**Status:** open.
+**Status:** done: the practice bot in release `wasm-v2-engine-51fbe9d`, and in `wasm-v2-engine-54486cd` with
+request 18 (the engine repository's v2 design 22). Not built here yet.
 
 ## What Hedge School builds
 
@@ -91,3 +92,50 @@ moves.
 - **Speed in a real browser:** a move at 64, 256 and 1,024 visits, with each network, on CPU workers and on the GPU
   module, on a desktop and on a phone.
 - **A game continues from its moves** on another build.
+
+## Delivered
+
+The engine repository's v2 design 22, in release `wasm-v2-engine-51fbe9d` with engine protocol 0.6, and in
+`wasm-v2-engine-54486cd` (protocol 0.6.1) with request 18. Take `54486cd` for both. The analysis modules' search is
+still `fdfe5ad`, so stored reviews stay valid.
+
+- **The interface: GTP commands, one at a time.** Moves are in the site's notation, the colours `b` (Blue) and `w`
+  (Red). A takeback of a turn is two `undo`s.
+  - `enclosure-start SEED [THREADS]` after the network is written: the seed of the search and of the symmetries, and
+    the search threads (the threaded module only).
+  - `play`, `genmove`, `undo`, `clear_board`. `kata-set-param maxVisits N` (256 until set), `kata-set-param
+    chosenMoveTemperature T` (and `chosenMoveTemperatureEarly`, `chosenMoveTemperatureHalflife`), and `komi K` for
+    later. Other KataGo commands pass through, and their replies keep KataGo's move strings.
+  - `enclosure-bot-info`: one JSON line with the interface's version (`0.1`, versioned as the protocol is), the
+    build, the network (name, SHA-256, bytes) and the settings in force. It goes in the game's record.
+  - The play settings are `gtp_enclosure.cfg`: no clock (each `genmove` searches to `maxVisits`), resignation off,
+    and the tree kept from move to move.
+- **The files** (the same manifest): `enclosure-bot.wasm` (one search thread, the network in the module, no JSPI),
+  `enclosure-bot-batched.wasm` (several search threads in one instance through JSPI, their positions evaluated as one
+  batch outside the module), `enclosure-eval.wasm` (the network alone, one in each CPU worker), and `practice_bot.mjs`,
+  `cpu_evaluator.mjs` and `cpu_eval_worker.mjs` (they import `gpu_engine.mjs`).
+  - One thread: `createPracticeBot(module)`, `setModel(bytes)`, then `command(line)`.
+  - CPU workers: `createCpuEvaluator(evalModule, modelBytes, {workers, maxRows: threads, makeWorker})`, then
+    `createBatchedPracticeBot(module, evaluator, {maxBatch: threads})` and `enclosure-start SEED THREADS`.
+  - The GPU: `createOrtEvaluator(ort, graphBytes, {executionProviders: ["webgpu"]})` of `gpu_engine.mjs`, with the
+    network's `.onnx` graph, in the place of the CPU evaluator.
+  - No cross-origin isolation, and no shared memory.
+- **Checked there:**
+  - Matches against the native GTP bot at equal settings, in pairs from random openings: 23 of 40 (one thread, 64
+    visits), and 21 of 40 (4 threads on 2 CPU workers, 128 visits).
+  - On 197 positions of the archive at 128 visits with 4 threads, the module and the native bot play the same move as
+    often as two runs of either one (about 62%), with the same visits a search.
+  - A game continues from its moves alone on another build (`clear_board`, then `play` for each edge), also after a
+    takeback. Only the tree is lost.
+  - `enclosure-bot-info` names the build, the network and the settings.
+- **Speed in Chrome** (a desktop with an RTX 5080 and 8 cores), seconds a move from a new tree, at 64, 256 and 1,024
+  visits. In a game the bot's own moves reuse part of the tree, so a move can be faster.
+
+  | Network | One thread | 4 CPU workers, 8 threads | WebGPU, 16 threads |
+  |---|---|---|---|
+  | HedgeFund 0.1 | 1.9, 6.9, 23 | 1.0, 2.8, 8.4 | 0.24, 0.51, 1.5 |
+  | HedgeFund 0.1 Lite | 0.83, 2.8, 9.8 | 0.26, 1.0, 3.5 | 0.18, 0.40, 1.3 |
+
+  Phones are not measured. `v2/webgpu/run_practice.mjs` and `practice_worker.mjs` in the engine repository show the
+  measurement.
+- **Later:** the visit ladder on the module, for the help text and the levels.

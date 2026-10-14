@@ -32,7 +32,7 @@ async function init(m: GpuInit) {
   const refused = (await made.loadModel(model, { name: m.model.name })).find(isError);
   if (refused) throw new Error(`the GPU module did not load the network: ${refused.error}`);
   gpu = made;
-  reply(m.id, null, performance.now() - t0);
+  reply(m.id, JSON.parse(await made.engines[0].call({ id: "v", action: "query_version" })), performance.now() - t0); // its version
 }
 
 async function search(id: number, engine: GpuEngine, request: object) {

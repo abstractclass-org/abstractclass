@@ -19,6 +19,8 @@ import { mkdirSync, readFileSync, writeFileSync, existsSync, rmSync } from "node
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
+import { speaksProtocol } from "../src/lib/engine/protocol.ts";
+import { nodeEngine } from "./node-engine.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const lock = JSON.parse(readFileSync(join(root, "engine.lock.json"), "utf8"));
@@ -110,6 +112,20 @@ for (const [kind, file] of [["ort-glue", "ort-wasm-simd-threaded.asyncify.mjs"],
   console.log(`ort-${ortVersion} ${file}: ${bytes.length} bytes${stored.parts ? `, stored as ${stored.parts.length} gzip part(s)` : ""}`);
 }
 writeFileSync(join(outDir, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
+
+// The CPU module, run once in Node: its protocol must be one the site speaks, and the lock must give its own protocol
+// and search, for the CPU and the GPU module of the release. The page reads the lock's search before the module answers
+// (src/lib/analysis/cache.ts, warmCache), so a wrong one would read no stored result, and say nothing.
+const { module, call } = await nodeEngine(root);
+const version = call({ id: "v", action: "query_version" });
+if (!speaksProtocol(version.protocol))
+  throw new Error(`${module.id}: protocol ${version.protocol}, which the site does not speak (src/lib/engine/protocol.ts)`);
+for (const a of lock.artifacts.filter(a => a.kind === "module" || a.kind === "gpu-module")) {
+  if (a.interface !== `engine-protocol-${version.protocol}` || a.search !== version.search)
+    throw new Error(`${a.id}: engine.lock.json gives ${a.interface} and the search ${a.search}, but the module reports ` +
+                    `protocol ${version.protocol} and the search ${version.search}`);
+}
+console.log(`${module.id}: protocol ${version.protocol}, search ${version.search}, as engine.lock.json gives`);
 
 function source(artifact) {
   return artifact.source.local ?? `release ${artifact.source.release.tag}`;

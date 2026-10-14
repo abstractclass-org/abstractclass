@@ -1,5 +1,6 @@
 // The analysis of one game in the browser, on KaTrain's schedule (core/game.py, analyze_all_nodes and analyze_extra):
-// 1. the rules first: every position from the engine's describe, so the board works before the network loads;
+// 1. the rules first: every position from the engine's rules in one request (describe_game), so the board works
+//    before the network loads;
 // 2. a sweep: every position at a small budget (KaTrain: fast_visits, 25), for the game's shape;
 // 3. a label pass: every position at the label budget, since labels from the sweep are mostly wrong;
 // 4. deeper where the player looks: the position on screen, searched in slices with its results shown as they come
@@ -21,9 +22,8 @@
 // The Analysis board (design 21) is the same analysis in its board form: its main line is the player's and changes
 // (setMain), its moves have labels only where the player asks (judge), and no pass runs: the engine searches the
 // position on screen and the moves evaluated.
-import { describeGame } from "#lib/engine/describe.ts";
 import { edgeName, parseEdge, parsePoint, type Edge } from "#lib/engine/notation.ts";
-import type { AnalysisReply, DescribeReply, MoveInfo } from "#lib/engine/protocol.ts";
+import { positionQuery, type AnalysisReply, type MoveInfo, type PositionFields } from "#lib/engine/protocol.ts";
 import { errorText } from "#lib/errors.ts";
 import { BOARD_ID, branchNodes, keptNode, type BranchNode as KeptNode, type KeptBoard, type KeptBranches } from "#lib/game/store.ts";
 import { equalDepth, moverWin, onlyEdge, otherCandidate, sameMove, secondChoice, type Analysis, type Candidate, type LineStep,
@@ -51,7 +51,7 @@ const PARTIAL_MS = 100;
 const PRIORITY = { focus: 10, judge: 7, moment: 5, label: 2, sweep: 1 };
 
 /** The engine's description of a position, as the board draws it. */
-export function boardPosition(d: DescribeReply): Position {
+export function boardPosition(d: PositionFields): Position {
   const ring = (poly: [number, number][]) => ({ area: 0, rings: [poly] });
   return {
     edges: [d.edges.b.map(parseEdge), d.edges.r.map(parseEdge)],
@@ -82,6 +82,9 @@ function withLine(c: MoveInfo): { line: Edge[]; lineVisits?: number[] } {
   }
   return { line, ...(c.pvEdgeVisits ? { lineVisits: c.pvEdgeVisits.slice(0, line.length) } : {}) };
 }
+
+/** A move's cut edge, from describe_game's `cuts`. */
+const cutOf = (cuts: string | null) => (cuts === null ? null : parseEdge(cuts));
 
 /** A position in a branch: the board, the move that led to it, its analysis once searched, its place among the
  *  branches from its parent (the lower first), and whether the player asked for the move's quality. */
@@ -198,15 +201,13 @@ export class GameAnalysis {
     return other ? this.analysisOf([...path, edgeName(other.edge)]) : undefined;
   }
 
-  /** Describes every position (the rules, no network), then sweeps the game. */
+  /** Describes every position (the rules, no network), and adds the game's branches kept from an earlier visit. */
   async start() {
+    const kept = this.board ? null : dbGet<KeptBranches>(STORES.branches, this.id); // read while the rules answer
     try {
-      const game = await describeGame(this.pool.rules, this.moves, 0, this.startPosition);
-      const positions = game.positions.map(boardPosition);
-      this.played = this.moves.map((m, i) => {
-        const cut = game.cuts[i];
-        return { player: positions[i].player, edge: m === "pass" ? null : parseEdge(m), cut: cut === null ? null : parseEdge(cut) };
-      });
+      const described = (await this.pool.rules.describeGame(this.query([], this.moves))).reply.positions;
+      const positions = described.map(boardPosition);
+      this.played = this.moves.map((m, i) => ({ player: positions[i].player, edge: m === "pass" ? null : parseEdge(m), cut: cutOf(described[i + 1].cuts) }));
       this.positions = positions;
       this.mainNames = this.played.map(m => (m.edge ? edgeName(m.edge) : "pass"));
       this.mainKeys = prefixKeys(this.mainNames);
@@ -215,7 +216,7 @@ export class GameAnalysis {
       this.error = errorText(e);
       return;
     }
-    if (!this.board) await this.addNodes(branchNodes((await dbGet<KeptBranches>(STORES.branches, this.id)) ?? null)); // the board's: loadBoard
+    if (kept) await this.addNodes(branchNodes((await kept) ?? null)); // the board's come from its page (loadBoard)
   }
 
   /** The analysis of the position after the move `name` from the game's position `i`, with no path built: the review
@@ -342,14 +343,14 @@ export class GameAnalysis {
     let k = path.length;
     while (k > 0 && !this.known(path.slice(0, k))) k--;
     if (k === path.length) return;
-    const { positions, cuts } = await describeGame(this.pool.rules, [...this.engineMoves(path.slice(0, k)), ...path.slice(k)], k, this.startPosition);
+    const { positions } = (await this.pool.rules.describeGame(this.query(path.slice(0, k), path.slice(k)), k)).reply;
     const next = { ...this.branches };
     for (let j = 1; j < positions.length; j++) {
-      const m = path[k + j - 1], cut = cuts[j - 1], p = path.slice(0, k + j);
+      const m = path[k + j - 1], p = path.slice(0, k + j);
       if (pathKey(p) in next) continue; // added meanwhile
       next[pathKey(p)] = {
         position: boardPosition(positions[j]), order: this.nextOrder++,
-        move: { player: positions[j - 1].mover === "b" ? 0 : 1, edge: m === "pass" ? null : parseEdge(m), cut: cut === null ? null : parseEdge(cut) },
+        move: { player: positions[j - 1].mover === "b" ? 0 : 1, edge: m === "pass" ? null : parseEdge(m), cut: cutOf(positions[j].cuts) },
       };
     }
     this.branches = next;
@@ -572,9 +573,9 @@ export class GameAnalysis {
     const i = mainIndex(path, this.mainNames);
     return i !== null ? this.moves.slice(0, i) : [...path];
   }
-  /** A query's position: the moves for a path, from the board's set-up start when it has one. */
-  private query(path: string[]) {
-    return { ...(this.startPosition ? { position: this.startPosition } : {}), moves: this.engineMoves(path) };
+  /** A query's position: the moves for a path, then `more`, from the board's set-up start when it has one. */
+  private query(path: string[], more: string[] = []) {
+    return positionQuery(this.startPosition, [...this.engineMoves(path), ...more]);
   }
   /** The moves part of a path's stored results' key, which names the set-up start too (cache.ts, keyMoves). */
   private keyMovesOf(path: string[]): string[] {
@@ -694,10 +695,8 @@ export class GameAnalysis {
   /** Each edge of a line from the position at `path`, played: the edge it cuts (or null), and the regions and areas
    *  after it. The rules, no network. */
   async lineSteps(path: string[], line: Edge[]): Promise<LineStep[]> {
-    const { positions, cuts } = await describeGame(this.pool.rules, [...this.engineMoves(path), ...line.map(edgeName)], path.length, this.startPosition);
-    return cuts.map((c, k) => ({
-      cut: c === null ? null : parseEdge(c), regions: boardPosition(positions[k + 1]).regions, areas: positions[k + 1].areas,
-    }));
+    const { positions } = (await this.pool.rules.describeGame(this.query(path, line.map(edgeName)), path.length)).reply;
+    return positions.slice(1).map(p => ({ cut: cutOf(p.cuts), regions: boardPosition(p).regions, areas: p.areas }));
   }
 
   /** Searches these positions deeper, after the focus and before the sweep. The page calls it again when the key

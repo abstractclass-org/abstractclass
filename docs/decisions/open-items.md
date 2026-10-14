@@ -148,8 +148,11 @@ or a design first:
 - **A newer model:** the models since data row 12.44M rate higher in the engine's gauntlet (the newest b10c128 3,286
   to 3,374 against the site's 3,134, and b15c192 3,694), and need a new module ([engine.md](engine.md), "The engine
   repository's notes"). When the rise settles, decide whether to request one.
-- **Play settings:** `chooseMove` searches with the analysis settings, not the GTP bot's. If the site shows the
-  engine's move or lets visitors play the engine, request play settings (root noise off, the history on).
+- **Play settings:** `chooseMove` searches with the analysis settings, not the GTP bot's. The practice bot (request 15)
+  plays with the GTP bot's settings: where the site shows the engine's move, it can use the bot.
+- **Practice games against HedgeFund** (request 15): the practice bot is in release `wasm-v2-engine-54486cd`. Design
+  the Practice page, then build it on the bot. Its commands, files and speeds are in requests/15-practice-bot.md,
+  "Delivered". Its levels wait for the visit ladder on the module, which the engine repository gives later.
 - **Export a review:** the game's record with each position's evaluation (the record's `[%eval]` comments), the
   labels, and the branches as variations, so that a review can be kept and shared. The sample game needs none: the
   engine is reproducible, so the same build and network give the same review.

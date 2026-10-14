@@ -4,8 +4,8 @@ import type { StoredArtifact } from "./artifacts.ts";
 import { WorkerChannel, type Timed } from "./channel.ts";
 import type { WorkerRequest } from "./messages.ts";
 import {
-  PROTOCOL, PROTOCOL_REPORTED, type AnalysisQuery, type AnalysisReply, type DescribeReply, type LoadModelReply,
-  type PlayReply, type PositionQuery, type VersionReply,
+  PROTOCOL, speaksProtocol, type AnalysisQuery, type AnalysisReply, type DescribeGameReply, type DescribeReply,
+  type LoadModelReply, type PlayReply, type PositionQuery, type VersionReply,
 } from "./protocol.ts";
 
 export { EngineError, Stopped, type Timed } from "./channel.ts";
@@ -17,7 +17,9 @@ export interface Artifact extends StoredArtifact {
   displayName?: string; // a network's name (the release's manifest): "HedgeFund 0.1 Lite"
   graphOf?: string; // a graph's network (its model's id)
   download: number; // the bytes a browser downloads for it: `bytes`, or the compressed parts'
-  search?: string; // a module's search (request 17), for the modules that do not report it
+  // A module's search (request 17). From protocol 0.6 the module reports it too: the page reads this one before the
+  // module answers (cache.ts, warmCache).
+  search?: string;
   sameSearchAs?: string[]; // the CPU module: the earlier CPU modules of its search, by SHA-256
 }
 /** The CPU module, the GPU module and its JavaScript half, a network, a network's ONNX graph, the notices (the licences
@@ -35,9 +37,12 @@ export async function loadManifest(): Promise<Manifest | null> {
 }
 
 export const moduleOf = (manifest: Manifest) => manifest.artifacts.find(a => a.kind === "module");
-/** The site's search (request 17): the first build that searched as the site's engine does. The module reports it from
- *  protocol 0.6, the manifest gives it for an earlier module, and a module with neither is its own search. */
-export const searchOf = (manifest: Manifest, version: VersionReply) => version.search ?? moduleOf(manifest)?.search ?? version.build;
+/** Refuses a module whose protocol the site does not speak (protocol.ts, speaksProtocol): the CPU module and the GPU
+ *  module. */
+export function checkVersion(version: VersionReply): VersionReply {
+  if (!speaksProtocol(version.protocol)) throw new Error(`engine protocol ${version.protocol}: this site speaks ${PROTOCOL}`);
+  return version;
+}
 /** The CPU modules whose search is the site's, by SHA-256: its own, and the earlier ones of the same search. A review's
  *  mark, a review file and a share link name the module that made the review, so a review made with one of these is
  *  the site's engine's. */
@@ -79,14 +84,13 @@ export class EngineWorker {
   readonly kind = "cpu" as const;
   private channel = new WorkerChannel<WorkerRequest>(new Worker(new URL("./worker.ts", import.meta.url), { type: "module" }));
 
-  /** Starts the manifest's module in the worker, through the engine's library (library.ts). Refuses any protocol
-   *  version but the one this site was written for. */
+  /** Starts the manifest's module in the worker, through the engine's library (library.ts). Refuses a protocol that
+   *  the site does not speak (checkVersion). */
   async init(manifest: Manifest): Promise<Timed<VersionReply>> {
     const module = moduleOf(manifest), library = libraryOf(manifest);
     if (!module || !library) throw new Error("the manifest lacks the engine module or its library");
     const t = await this.channel.send<VersionReply>({ type: "init", module: await compile(module.url), library: library.url }).done;
-    if (!PROTOCOL_REPORTED.includes(t.reply.protocol))
-      throw new Error(`engine protocol ${t.reply.protocol}: this site speaks ${PROTOCOL}`);
+    checkVersion(t.reply);
     return t;
   }
   /** Loads a network from the manifest: the worker fetches it and checks its SHA-256 (artifacts.ts). */
@@ -95,6 +99,10 @@ export class EngineWorker {
   }
   describe(q: PositionQuery) {
     return this.channel.send<DescribeReply>({ type: "call", request: { id: "d", action: "describe", ...q } }).done;
+  }
+  /** Every position of a game from the position after `from` moves, in one request (describe_game). */
+  describeGame(q: PositionQuery, from = 0) {
+    return this.channel.send<DescribeGameReply>({ type: "call", request: { id: "g", action: "describe_game", ...q, from } }).done;
   }
   play(q: PositionQuery, move: string) {
     return this.channel.send<PlayReply>({ type: "call", request: { id: "p", action: "play", ...q, move } }).done;

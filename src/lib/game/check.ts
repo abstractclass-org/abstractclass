@@ -2,10 +2,9 @@
 // network (describe works before one loads). Finds which moves cut an opponent's edge, so that the record carries the
 // cut mark (record.ts), and refuses a mark on a move that cuts nothing. Problems count edges from 1 as the record does.
 import { EngineError, EngineWorker, loadManifest, moduleOf } from "#lib/engine/client.ts";
-import { describeGame } from "#lib/engine/describe.ts";
 import { setUpStart } from "#lib/engine/notation.ts";
 import { errorText } from "#lib/errors.ts";
-import type { DescribeReply } from "#lib/engine/protocol.ts";
+import { positionQuery, type DescribeReply, type GamePosition } from "#lib/engine/protocol.ts";
 import type { GameRecord } from "./record.ts";
 
 export interface Checked {
@@ -20,30 +19,28 @@ export async function checkMoves(record: GameRecord): Promise<Checked> {
   const module = manifest && moduleOf(manifest);
   if (!module) return { problem: null, cuts: null }; // no engine on this site: the review will check
   const engine = new EngineWorker();
+  let positions: GamePosition[];
   try {
     await engine.init(manifest);
     if (start) {
       const problem = positionProblem((await engine.describe({ position: start, moves: [] })).reply);
-      if (problem) { engine.terminate(); return { problem, cuts: null }; }
+      if (problem) return { problem, cuts: null };
     }
-    await engine.describe({ ...(start ? { position: start } : {}), moves });
+    positions = (await engine.describeGame(positionQuery(start, moves))).reply.positions;
   } catch (e) {
-    engine.terminate();
     // The engine names an illegal move in the moves field: "move 12: why".
     const m = e instanceof EngineError && e.field === "moves" ? /^move (\d+)/.exec(e.error) : null;
     if (!m) return { problem: `The engine refused the game: ${errorText(e)}`, cuts: null };
     const i = Number(m[1]);
     return { problem: `Edge ${i + 1} (${moves[i]}) is not legal in its position. Check the record from there.`, cuts: null };
-  }
-  try {
-    const cuts = (await describeGame(engine, moves, 0, start)).cuts.map(c => c !== null);
-    const wrong = marked.findIndex((m, i) => m && !cuts[i]);
-    if (wrong >= 0)
-      return { problem: `Edge ${wrong + 1} (${moves[wrong]}x) is marked as a cut, but it cuts nothing.`, cuts };
-    return { problem: null, cuts };
   } finally {
     engine.terminate();
   }
+  const cuts = positions.slice(1).map(p => p.cuts !== null);
+  const wrong = marked.findIndex((m, i) => m && !cuts[i]);
+  if (wrong >= 0)
+    return { problem: `Edge ${wrong + 1} (${moves[wrong]}x) is marked as a cut, but it cuts nothing.`, cuts };
+  return { problem: null, cuts };
 }
 
 /** Why a position could not occur in a game, in the engine's words (protocol 0.5's check), or null when it could. */

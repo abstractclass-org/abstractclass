@@ -1,9 +1,9 @@
 // The page's side of the GPU worker (gpuWorker.ts): the GPU module's engines, each a search at a time, all batched
 // on the GPU. Each engine is a slot that the pool gives work to as it gives work to a CPU worker (analysis/pool.ts).
 import { WorkerChannel } from "./channel.ts";
-import { compile, gpuFilesOf, libraryOf, type Manifest } from "./client.ts";
+import { checkVersion, compile, gpuFilesOf, libraryOf, type Manifest } from "./client.ts";
 import type { GpuRequest } from "./gpuMessages.ts";
-import type { AnalysisQuery, AnalysisReply } from "./protocol.ts";
+import type { AnalysisQuery, AnalysisReply, VersionReply } from "./protocol.ts";
 
 /** Whether this browser can run the GPU module: JSPI (WebAssembly.Suspending and WebAssembly.promising) and WebGPU.
  *  The GPU library checks the same in the worker (gpuEngineSupport). */
@@ -17,16 +17,18 @@ export function gpuSupport(): { ok: boolean; reason: string | null } {
 export class GpuEngines {
   private channel = new WorkerChannel<GpuRequest>(new Worker(new URL("./gpuWorker.ts", import.meta.url), { type: "module" }));
   readonly slots: GpuSlot[] = [];
+  version: VersionReply | null = null; // the GPU module's, once it has started
 
   /** Starts `searches` engines with the network `modelId`: the module, ONNX Runtime and the network's graph download
-   *  once, and the browser keeps them. Rejects where the GPU cannot run them. */
+   *  once, and the browser keeps them. Rejects where the GPU cannot run them, and a protocol the site does not speak. */
   async start(manifest: Manifest, modelId: string, searches: number): Promise<void> {
     const files = gpuFilesOf(manifest, modelId), library = libraryOf(manifest);
     if (!files || !library) throw new Error(`the manifest lacks the GPU module's files for ${modelId}`);
-    await this.channel.send({
+    const { reply } = await this.channel.send<VersionReply>({
       type: "init", module: await compile(files.module.url), library: library.url, ortGlue: files.glue.url,
       ortWasm: files.wasm, graph: files.graph, model: { ...files.model, name: files.model.id }, searches,
     }).done;
+    this.version = checkVersion(reply);
     for (let k = 0; k < searches; k++) this.slots.push(new GpuSlot(this, k));
   }
 

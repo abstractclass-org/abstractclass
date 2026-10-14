@@ -301,7 +301,8 @@
   async function startReview(moves: string[], chosen: boolean) {
     const manifest = session.manifest!;
     // The stored results, read while the engine starts: the review shows them in its first frame, and does not wait for
-    // them after the rules (cache.ts, warmCache). The search is the manifest's (client.ts, searchOf).
+    // them after the rules (cache.ts, warmCache). The search is the manifest's, which scripts/fetch-engine.mjs checks
+    // against the module's.
     const model = modelOf(manifest, settings.network)?.sha256, search = moduleOf(manifest)?.search;
     const warm = search && model ? warmCache(search, model, Array.from({ length: moves.length + 1 }, (_, i) => moves.slice(0, i)), SWEEP_VISITS).catch(() => {})
       : Promise.resolve();

@@ -983,3 +983,29 @@ Blunder's loss.
 - **Checked in Edge** on the local build: the same steps started the 4 workers alone. The GPU stayed "Waiting", and
   the search reached 1,024 visits on the CPU workers. A change of network, with a label pass of 120 positions, still
   started the GPU ("Loading the GPU's files…", then "In use").
+
+### The release 54486cd: protocol 0.6.1, a game's positions in one request (2026-10-14)
+
+- **What:** the engine repository's release `wasm-v2-engine-54486cd`: both analysis modules at build 54486cd, protocol
+  0.6.1. It brings `search` in the engine tag and in `query_version` (protocol 0.6, request 17), `describe_game`
+  (0.6.1, request 18), and the practice bot's modules (request 15), which the site does not use yet. The networks,
+  their graphs, `gpu_engine.mjs` and `LICENSE.txt` are the same bytes as before. `NOTICES.txt` is new.
+- **The search is still `fdfe5ad`:** the stored results stay valid. `engine.lock.json` lists 27a7414's CPU module in
+  `sameSearchAs`, so a review made with it counts as the site's engine's. The lock keeps `search` too, though the
+  module now reports it: the review reads its stored results before the module answers (`warmCache`). So
+  `scripts/fetch-engine.mjs` runs the CPU module in Node (`scripts/node-engine.mjs`) and refuses a lock whose
+  `interface` or `search` is not the module's, for the CPU and the GPU module. A deploy then fails on a wrong lock.
+  The GPU worker reports its module's version too: the site refuses a protocol it does not speak, and a GPU module of
+  another search than the workers', whose results would mix two searches in the store.
+- **The protocol's versions** (the engine repository's design 04, "Versioning"): before 1.0, a breaking change takes the
+  next minor version, and a compatible one the next patch. The site takes 0.6.1 and every later 0.6.x
+  (`speaksProtocol` in `src/lib/engine/protocol.ts`), not 0.6.0, which has no `describe_game`.
+- **The change:** `EngineWorker.describeGame` (`src/lib/engine/client.ts`) asks for a game's positions in one
+  `describe_game`, and each position carries the cut of the move into it. Before, `describeGame` asked one `describe`
+  for each position, and found each cut by comparing the edges. The review's start, a branch's new moves, a line's
+  steps and an import's check all use it. An import's check played the moves twice before: once for an illegal move's
+  error, once for the cuts. `describe_game` gives the same error.
+- **Checked:** request 18's checks (requests/18-describe-game.md): the fields equal `describe`'s on the archive's
+  6,246 games, and the start is faster in Edge (30 to 46 ms against 112 to 127 ms for a game of 120 edges). `npm run
+  engine` fetched the three new files, their SHA-256 equal to the release's. `npm test` passes (99), `npm run check`
+  has no errors. In Edge on the local build: a stored review opened as done, and the Analysis board played two moves.

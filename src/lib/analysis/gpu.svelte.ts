@@ -152,6 +152,12 @@ export class GpuControl {
       this.starting = false;
     }
     if (this.ended || this.mode === "off") { gpu.terminate(); return; } // another pool, or the GPU turned off meanwhile
+    // Its results go in the store under the workers' search: a GPU module of another search would mix two.
+    if (gpu.version?.search !== this.pool.search) {
+      gpu.terminate();
+      this.status = { state: "failed", message: `the GPU module searches as ${gpu.version?.search}, the workers as ${this.pool.search}` };
+      return;
+    }
     this.pool.addGpu(gpu);
     const adapter = testFor.adapter;
     if (!testing) { this.status = { state: "on", adapter, test: loadGpuTest(testFor) }; return; }
