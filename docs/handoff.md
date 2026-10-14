@@ -6,32 +6,32 @@ It holds no backlog: everything still to do that is not in flight is in
 
 ## State
 
-- **Live:** `f55e0f6` on `main` and `dev`, released on 2026-10-14. Since `543d5df`, two releases:
-  - `ab857d7`: search engines (design 23). `robots.txt` allows every page and names the sitemap. Each page has its
-    title, description, canonical address and Open Graph tags.
-  - `f55e0f6`: the review without layout shift, with a skeleton of its layout while it starts (design 06, item 10).
-    Also persistent storage, games that end early, the page How a review works (`/how-reviews-work`), a shorter
-    footer, and `/favicon.ico` (design 12). See decisions/product.md, the entries of 2026-10-14.
-- **The engine:** protocol 0.5, the release `wasm-v2-engine-27a7414` (both modules), its library and graphs from
-  `wasm-v2-engine-632f2a0`, the networks HedgeFund 0.1 Lite (`b10c128-s66625408`) and HedgeFund 0.1
-  (`b15c192-s66999040`). The stored results are keyed by the engine's search, `fdfe5ad` (request 17,
-  decisions/engine.md, "The release 27a7414").
-- **Checks on `f55e0f6`:** `npm test` passes (95), `npm run check` has no errors or warnings, `npm run build`
-  succeeds. The layout shift and the skeleton were checked in Edge on the local build. The live site serves
-  `/favicon.ico` (3 images), `/how-reviews-work`, the sitemap with it, and `/review` with the new icon link (checked
-  by HTTP). Not checked in Edge on the live site.
+- **Live:** `f55e0f6` on `main`, released on 2026-10-14: search engines (design 23), and the review without layout
+  shift (design 06, item 10). See decisions/product.md, the entries of 2026-10-14.
+- **On `dev`, not released:** three commits since `f55e0f6`. The preview at `dev.hedgeschool.pages.dev` serves
+  `5da9832`.
+  - `2d88f8a`: the third code cleanup. The engine behind the review and the Analysis board is one class
+    (`src/lib/analysis/session.svelte.ts`), and the board starts it while it chooses its board. Also: one reader for
+    review and analysis files, the storage helpers everywhere, Arrival's phase as one value, the menus' and dialogs'
+    Tailwind utilities (`src/app.css`). The Import dialog's Cancel no longer imports.
+  - `ce6753d`: one search after an idle release starts no GPU (design 15, decisions/engine.md). The Review tab's
+    Export reads the review that the game shows (`settingsFor`, decisions/product.md).
+  - `5da9832`: engine release `wasm-v2-engine-54486cd`, protocol 0.6.1 (decisions/engine.md, "The release 54486cd").
+- **The engine:** protocol 0.6.1, the release `wasm-v2-engine-54486cd` (both analysis modules), its library and graphs
+  from `wasm-v2-engine-632f2a0`, the networks HedgeFund 0.1 Lite (`b10c128-s66625408`) and HedgeFund 0.1
+  (`b15c192-s66999040`). The search is still `fdfe5ad`, and the CPU modules of `fdfe5ad` and `27a7414` are in
+  `sameSearchAs`. The release's practice modules (request 15) are not in the lock.
+- **Checks on `5da9832`:** `npm test` passes (99), `npm run check` has no errors or warnings, `npm run build`
+  succeeds. `npm run engine` runs the CPU module in Node and checks the lock's protocol and search against it, on
+  Cloudflare's build too. Request 18's checks are in requests/18-describe-game.md. In Edge on the local build: a
+  stored review opened as done, the GPU started on the new GPU module, and the Analysis board played moves. On the
+  preview, only `2d88f8a`'s Cancel was checked in Edge.
 
 ## In flight
 
-- **Request 18** (every position of a game in one request) is with the engine repository's session. When a release
-  brings it, use it in the review's start (`describeGame` in `src/lib/analysis/game.svelte.ts`), then do the checks
-  in the request's "Done when".
-- **The next engine release** (request 15, Practice) brings protocol 0.6, with `search` in the engine tag and in
-  `query_version`. The site accepts protocol 0.5 only (`PROTOCOL_REPORTED` in `src/lib/engine/protocol.ts`). To move to
-  it: accept 0.6, take the search from the module (`searchOf` reads `version.search` first), and add 27a7414's CPU
-  module to the lock's `sameSearchAs` if the search stays `fdfe5ad`. The review's warm-up (`startReview` in
-  `src/routes/review/+page.svelte`) takes the search from the manifest's module before the rules worker answers: a
-  manifest without `search` turns the warm-up off with no error.
+- **The release of `dev`:** `git push origin dev:main` when the owner says. Before it, look at the preview in Edge with
+  the window in front: a review, the Analysis board, and the GPU's line in the engine settings. The GPU's first-use
+  test runs again once on each machine, because the GPU module is a new build (design 15).
 - **The layout shift on the live site:** Cloudflare's Web Analytics gave `/review` a CLS of 0.151 before `f55e0f6`.
   On the local build it is now 0 to 0.0023 at the window sizes measured, and 0 on the Review tab. Read Cloudflare's
   Core Web Vitals for `/review` after a few days of visits (hosting.md, "What Cloudflare shows").
@@ -43,15 +43,21 @@ It holds no backlog: everything still to do that is not in flight is in
 - **Timing the review's start:** `src/routes/review/+page.svelte` sets the performance marks `review:rules` (the rules
   answered) and `review:shown` (the review shows). Read them with `performance.getEntriesByType("mark")`, beside the
   page's paint entries.
+- **Request 18's check, again** (on a new release): `node scripts/measure/describe-game-check.mjs
+  ../enclosure/runs/archive/games.jsonl [games]`, after `npm run engine`. All 6,246 games take about 6 minutes. It
+  prints counts only.
 - **Testing in Edge:** put the real pointer on an element with the browser tool's hover for checks that last. A hover
   made with synthetic events is lost when the board redraws. Convert page coordinates to the screenshot's own size
-  before a real click.
+  before a real click: the screenshot's frame changes with the window's size.
+- **A tab behind other windows** reports `document.visibilityState` "hidden". It runs no animation frame, so a Bits UI
+  menu does not open on a click there, and a closed dialog stays in the page. Open a menu from the keyboard: focus its
+  trigger, then send Enter, also on its entries. Its timers run about once a second, so keep a script's waits under
+  the tool's 45 seconds. Keep the Edge window in front for checks of focus, animation and layout shift.
 - **A script the browser tool runs** waits for its promise. A promise that never settles, such as an IndexedDB request
   on a store that does not exist, holds the tool for 45 seconds and reads as a frozen page. The site's database is
   `learn-enclosure` (`src/lib/storage/db.ts`). Check its store names before reading them. A stored game's `record` is
-  text, not an object.
-- **Timers in a page behind other windows** run about once a second. Keep the Edge window in front for checks of
-  focus, animation and layout shift.
+  text, not an object. Save what a test changes (a game's branches, the board under the key `board`, the engine
+  settings) and put it back after.
 - **Claude in Chrome runs in Edge only.** With the extension on in Chrome too, the two browsers took turns as one
   device and every action failed.
 - **Google Analytics in the browser tool:** after a save, find the table's filter field again before typing: the old
@@ -68,8 +74,7 @@ It holds no backlog: everything still to do that is not in flight is in
 
 ## Check first
 
-1. Whether the engine repository answered request 18 (`docs/requests/README.md`, and the engine repository's design
-   04).
-2. Ask the owner what is next. The backlog's newest items come from this session's measurements: the Review tab
-   before the page's code runs, the rules worker started with the page, and the review's first frame. Practice waits
-   for request 15.
+1. Ask the owner whether to release `dev` (three commits, above), after a look at the preview.
+2. Ask the owner what is next. Practice is ready to design: request 15 is delivered (requests/15-practice-bot.md,
+   "Delivered"). The backlog's newest items: four speed items from the cleanup, the Review tab before the page's code
+   runs, the rules worker started with the page, and the review's first frame.

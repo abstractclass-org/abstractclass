@@ -22,6 +22,9 @@ Rules:
   site's own. They give `Content-Signal: search=yes,ai-train=no,use=reference` and disallow the AI training crawlers
   (GPTBot, ClaudeBot, Google-Extended and others). They also disallow GoogleOther, Baiduspider and PetalBot. Decide
   whether to keep them (design 23).
+- **`scripts/measure/budget-collect.mjs` does not run:** it imports `src/lib/engine/module.ts`, which no longer
+  exists. Move it to `scripts/node-engine.mjs`, which runs the CPU module in Node, or remove it if its measurement is
+  done.
 
 ## Milestone 1: a game report (design/01-analysis-tool.md, section 4)
 
