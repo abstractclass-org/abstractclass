@@ -30,7 +30,7 @@ export function constellationRecord(text: string): string {
   if (!start) throw new Error("A Constellation export starts with its start position in brackets.");
   const fields = Object.fromEntries(start[1].trim().split(/\s+/).map(f => f.split(":")));
   if (fields.B !== STANDARD.B || fields.R !== STANDARD.R)
-    throw new Error(`Only games from the standard start can be imported (Constellation's [B:${STANDARD.B} R:${STANDARD.R}]).`);
+    throw new Error(`Hedge School imports games from the standard start only (Constellation's [B:${STANDARD.B} R:${STANDARD.R}]).`);
   const items = text.slice(start[0].length).trim().split(/\s+/).filter(Boolean);
   if (!items.length) throw new Error("The export has no moves.");
   const turns = items.map((item, k) => {

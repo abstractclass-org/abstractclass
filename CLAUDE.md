@@ -35,6 +35,9 @@ The engine, the rules and the bots live in the engine repository,
   each constant came from before relying on it.
 - Measure speed on the real workload, in a real browser. Decide questions of learning quality by reasoning, not by
   short tests.
+- Before you change a site-wide layout mechanism (the page area that scrolls and its scroll bar's room, the header's
+  height, a breakpoint), search for what depends on it: viewport units (`vw`, `vh`), `--site-header`, and fixed pixel
+  allowances. After the change, run the layout sweep (`npm run test:layout`).
 - Ask design questions a few at a time, each with its background and each option's merits. Stop only at real
   decisions.
 - Ask before any public use of other people's games (the meaf.us archive).

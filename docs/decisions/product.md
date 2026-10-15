@@ -2647,140 +2647,6 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   HedgeFund from here" on the Analysis board (Lichess's "Continue from here").
 - **The site's own:** the temperatures of Medium and High, to check once games by setting exist.
 
-### The review's move list under its scroll bar (2026-10-15)
-
-- **What:** from `8b60dd0` on, the review's move list ran 6 pixels under its own scroll bar between 1,260 and 1,310
-  pixels wide: its right edge (the lead numbers, the notes) was cut. Found on the previews `cb2b9188` (before) and
-  `a11f9d4d` (after), measured in frames of each width on both.
-- **Why:** the review sizes its board from the window's width (`100vw`), less the other columns and 20 pixels for a
-  scroll bar. Before, no scroll bar took that room on the review, so the side columns shared the 20 pixels, and the
-  move list had 316 pixels. Since `8b60dd0`, the page's own scrolling area keeps its scroll bar's room (15 pixels on
-  Windows) on every page, and `100vw` still counts it in: the move list had 309, and needs 315 with its scroll bar.
-- **The fix:** the page area is a CSS container, and the review and Practice take their width from it (`100cqw`),
-  which leaves out the scroll bar's room on any system (design 22). The move list has 316 pixels again (checked on
-  the local build from 1,260 to 1,440 pixels). The board is 15 pixels smaller than before `8b60dd0` at those widths:
-  the room is the scroll bar's now.
-
-### The home board plays reviewed scenes (2026-10-15)
-
-- **What:** the home page's board plays three scenes from reviewed games: the engine's first three candidates before
-  each edge, and each turn's label on its edges, by turn (design 22). The scenes come from review files of the owner's
-  bot's games against another bot on meaf.us (`scripts/home-replay.mjs`), with no names shown. The labels are the
-  review's own: the stored results at the files' review depth (4,096 visits, every position), with the positions after
-  the second choice and the turn's other candidate that confirm a Great, as the Review tab reads them.
-- **Why:** the still board said nothing about what the site does, and enclosuregame.com's home page has the same
-  layout with a board that plays a game. A replay of a review shows the judgement.
-- **The scenes end on each game's latest bad turn,** not its worst: the bots' bad turns come before turn 24, and later
-  boards are fuller. Turns 23 (a Mistake), 20 (an Inaccuracy) and 16 (a Mistake).
-- **Changed after a first look:** no caption. The review's row above the board instead: each side's points and area,
-  and the review's win chance bar, as the board shows a review (a points' bar, as Practice's, was tried first). An
-  edge every 1 to 2 seconds, at random (it was 0.8). The holds: 2.6 seconds before the labelled turn, 4 on its label.
-- **The board alone** (changed after): no row of players, points, area or win chance above it. Tried, and too much
-  for the home page.
-- **By edge** (changed after): each edge's own label on it, as the review shows a game judged by edge, the badges of
-  the turn so far together. Each scene ends on its game's latest edge with a bad label: edge 44 (turn 23), 23 (turn
-  12) and 31 (turn 16), each a Mistake.
-- **Checked** on the local build in Edge, in a tab behind another (the page reported itself visible for the test): the
-  scenes play and loop, and three candidates at most. The steps' timing
-  was not measurable there, as Chrome slows the timers of a tab that is not shown. Not checked: the timing in a shown
-  tab, reduced motion, and a phone.
-
-### The board without bands (2026-10-15)
-
-- **What:** no band behind any edge. A protected edge is drawn on the edge itself: wider (0.2 units) in its side's
-  colour, with a white line (0.055) along it. The mover's edges of this turn (the position's `placed` edges, `+` in
-  the notation) are drawn the same way, as no one can cut them before the turn ends, when they become protected. The
-  gold band of the last turn, and the cream band of the protected edges, are gone (design 03). The board no longer
-  takes the last edge or the last turn, and the board editor no longer adds its placed edges to the protected ones.
-- **Why:** the two bands often fell on the same edges, one over the other. The marked edges are the turns just played,
-  so they show the last moves without a band. A mark on the edge itself does not rest on colour alone.
-- **Compared before the choice:** the band, a hollow edge, the white line, and the white line with no bands, in two
-  moments of one game, in both themes. The white line is the form that enclosuregame.com uses.
-- **The label badge on the board:** radius 0.33 (it was 0.36), and on a length-1 edge it sidesteps by 80% of its
-  radius (up from a horizontal edge, right from a vertical one), over the line still: 0.28 of the line's 0.68 shows,
-  against none before. Compared before the choice: the badge on the middle at 0.36 and 0.3, beside the edge, and
-  sidesteps of 50% to 85%.
-
-### Practice from a set-up start (2026-10-15)
-
-- **What:** Practice takes a set-up start (design 24, item 4), on the practice bot's `enclosure-set-position`
-  (request 20, release `wasm-v2-engine-85f1792`). The Analysis board's Play gives the board's set-up start and the
-  moves to the position on screen (`/practice#position=…&record=…`), and is on for any start.
-- **The record's edges are the game's start:** a takeback stops at them. Before, a takeback could undo an edge of the
-  record of the player's colour, which the player had not played against the bot.
-- **Its count:** `practice_start` gives `practice_from` set_up_start (design 17).
-- **Its review:** "Analyze the game" opens it on the Analysis board, from Practice and from Your games, as the Review
-  tab reviews games from the standard start only. Its id in Your games covers its start, so that the same moves from
-  two starts are two games. A game from the standard start keeps its id.
-- **Fixed in the check:** the rules' requests after the first went from the standard start, and the game stopped
-  ("illegal move"). Every request now gives the game's start.
-- **Checked:** requests/20, "Checked here".
-
-### A record's first turn after a set-up start: one number (2026-10-15)
-
-- **What:** the record reader takes only the start's own turn number after a `Position` tag, as the engine
-  repository's design 04 now gives it (request 19, its commit `85f1792`): `3.` after a start with 3 edges played, and
-  `2...` at the second edge of turn 2. Before, it also took `1.`. A start given apart from the record (the Analysis
-  board's Import, the board's address) is read as the record's own tag.
-- **Why:** the number gives the player. A record numbered from 1 after a later start can give the first turn to the
-  wrong player, and two records of one game would differ.
-
-### Support Us through Ko-fi (2026-10-15)
-
-- **What:** "Support Us" in the header, in the accent's colour of each theme, opens Ko-fi's tip panel in the site's
-  own dialog (design 22). Below 1,024 pixels the header's links go into the site's menu (it was 768): the links and
-  the button need 860 pixels for one row. Below 640 pixels the button goes into the menu too.
-- **Its label** is "Support Us", as Ko-fi's own widget writes it. Opening the dialog sends `support_open` (design 17),
-  with nothing else: the tips are counted on Ko-fi, as its panel is Ko-fi's page.
-- **Ko-fi's panel stays light in the dark theme:** it is Ko-fi's page from another site, so the site cannot style it.
-  The frame's `background` paints only its 4-pixel edge (checked: a dark red edge, and Ko-fi's white card inside). It
-  does not follow the dark preference either: the frame takes the site's `color-scheme: dark`, and the panel stayed
-  light. An inverting filter darkens it, but shows Ko-fi's profile picture as a negative, and would invert the
-  payment step's logos and colours.
-- **Why not Ko-fi's floating widget:** it is a script from Ko-fi on every page, and its button has a place of its own
-  and only its text and colours to set. Moving it into the header, or styling it more, would rest on Ko-fi's own
-  class names, which Ko-fi can change. The panel in a frame, made only when the dialog opens, does the same for a
-  tip: no new tab, and nothing goes to Ko-fi before a visitor opens it.
-- **Checked** on the local build in Edge: the panel loads in the dialog, in both themes, and its Monthly tab is as tall
-  as One time; at 1,294 pixels (the button in the header), and in frames of 900 pixels (the menu and the button) and
-  390 (the menu's item opens the dialog, and the focus goes to Close). Not checked: a tip, and the frame on the live
-  site's address.
-
-### Practice first (2026-10-15)
-
-- **What:** Practice leads: first in the header, and the home page's first call to action, with the review, the
-  Analysis board and the board editor after it (design 22). The home page leads with play, as Lichess's does, and
-  shows a board from a game of HedgeFund against itself, made by `scripts/home-board.mjs` (seed 7, 64 visits, 100
-  edges): the site's own game, as the meaf.us archive's games need their owner's permission for public use.
-- **The design pass** (the impeccable skill): no small-caps labels above headings (its quality floor bans them), the
-  other ways in as a quieter list under a rule in the place of three equal cards, and the board as the page's one
-  picture. Checked on the local build at 1,301 pixels and at 390 (no sideways scroll). The board's converter moved to
-  its own module (`src/lib/engine/position.ts`), so that the home page draws the stored position without the analysis.
-
-### Practice games stored (2026-10-15)
-
-- **What:** every practice game is to be stored when it ends, on the site's first backend (a Pages Function and D1),
-  for the bot's levels, for what players find hard, and for an open dataset. Design 25 gives the decision.
-- **Decided:**
-  - Every game, as Lichess and chess.com keep the games played on them. This replaces design 19's rule that a game
-    stays in the browser until the player gives one, for the games played here.
-  - A random code per browser, with the consent banner's Accept, as a code for research alone needs consent in the EU.
-    Without it, the game goes with no code.
-  - No switch to keep games out: a game with no code and no name identifies no one. Decline stops the code, and the
-    privacy page deletes the coded games.
-  - The games may be published, without names, as Lichess publishes its games (CC0).
-  - Not now: the player's meaf.us rating as a range.
-  - The consent banner, open about both purposes, with the collie: what each does for the site, Accept and Decline
-    alike, and a switch for each purpose on the privacy page. Its words say what the number does ("links your games
-    against HedgeFund"), not a name of ours, and promise nothing that a later feature could break: "free" and "never
-    sells your data" stay, "no ads, no accounts" does not. It ships with the games' storage, so that visitors are
-    asked once.
-- **Read before the decision:** Lichess's privacy policy and database page, and chess.com's privacy policy and legal
-  FAQ. Lichess keeps anonymous players' games, publishes its rated games under CC0, and sets only a session cookie,
-  which play needs. Chess.com's cookie banner and its rules for games could not be read from its pages.
-- **Games from a set-up start** (decided after): stored as the others, with their start position, and a game from the
-  Analysis board's Play with the edges that came with its record. The calibration can then take or leave them.
-
 ### Practice built (2026-10-14)
 
 - **What:** the page `/practice` as design 24 gives it, on the practice bot of release `wasm-v2-engine-54486cd`. The
@@ -2918,3 +2784,229 @@ The interface, the review, puzzles, lessons, labels and thresholds.
     the focus to a control of its own as it opens.
   - **Not checked:** the one-thread bot in a browser, a whole game played on the board, the Analysis board's Play
     with moves on screen, a phone, and the narrow layout.
+
+### Practice games stored (2026-10-15)
+
+- **What:** every practice game is to be stored when it ends, on the site's first backend (a Pages Function and D1),
+  for the bot's levels, for what players find hard, and for an open dataset. Design 25 gives the decision.
+- **Decided:**
+  - Every game, as Lichess and chess.com keep the games played on them. This replaces design 19's rule that a game
+    stays in the browser until the player gives one, for the games played here.
+  - A random code per browser, with the consent banner's Accept, as a code for research alone needs consent in the EU.
+    Without it, the game goes with no code.
+  - No switch to keep games out: a game with no code and no name identifies no one. Decline stops the code, and the
+    privacy page deletes the coded games.
+  - The games may be published, without names, as Lichess publishes its games (CC0).
+  - Not now: the player's meaf.us rating as a range.
+  - The consent banner, open about both purposes, with the collie: what each does for the site, Accept and Decline
+    alike, and a switch for each purpose on the privacy page. Its words say what the number does ("links your games
+    against HedgeFund"), not a name of ours, and promise nothing that a later feature could break: "free" and "never
+    sells your data" stay, "no ads, no accounts" does not. It ships with the games' storage, so that visitors are
+    asked once.
+- **Read before the decision:** Lichess's privacy policy and database page, and chess.com's privacy policy and legal
+  FAQ. Lichess keeps anonymous players' games, publishes its rated games under CC0, and sets only a session cookie,
+  which play needs. Chess.com's cookie banner and its rules for games could not be read from its pages.
+- **Games from a set-up start** (decided after): stored as the others, with their start position, and a game from the
+  Analysis board's Play with the edges that came with its record. The calibration can then take or leave them.
+
+### Practice first (2026-10-15)
+
+- **What:** Practice leads: first in the header, and the home page's first call to action, with the review, the
+  Analysis board and the board editor after it (design 22). The home page leads with play, as Lichess's does, and
+  shows a board from a game of HedgeFund against itself, made by `scripts/home-board.mjs` (seed 7, 64 visits, 100
+  edges): the site's own game, as the meaf.us archive's games need their owner's permission for public use.
+- **The design pass** (the impeccable skill): no small-caps labels above headings (its quality floor bans them), the
+  other ways in as a quieter list under a rule in the place of three equal cards, and the board as the page's one
+  picture. Checked on the local build at 1,301 pixels and at 390 (no sideways scroll). The board's converter moved to
+  its own module (`src/lib/engine/position.ts`), so that the home page draws the stored position without the analysis.
+
+### Support Us through Ko-fi (2026-10-15)
+
+- **What:** "Support Us" in the header, in the accent's colour of each theme, opens Ko-fi's tip panel in the site's
+  own dialog (design 22). Below 1,024 pixels the header's links go into the site's menu (it was 768): the links and
+  the button need 860 pixels for one row. Below 640 pixels the button goes into the menu too.
+- **Its label** is "Support Us", as Ko-fi's own widget writes it. Opening the dialog sends `support_open` (design 17),
+  with nothing else: the tips are counted on Ko-fi, as its panel is Ko-fi's page.
+- **Ko-fi's panel stays light in the dark theme:** it is Ko-fi's page from another site, so the site cannot style it.
+  The frame's `background` paints only its 4-pixel edge (checked: a dark red edge, and Ko-fi's white card inside). It
+  does not follow the dark preference either: the frame takes the site's `color-scheme: dark`, and the panel stayed
+  light. An inverting filter darkens it, but shows Ko-fi's profile picture as a negative, and would invert the
+  payment step's logos and colours.
+- **Why not Ko-fi's floating widget:** it is a script from Ko-fi on every page, and its button has a place of its own
+  and only its text and colours to set. Moving it into the header, or styling it more, would rest on Ko-fi's own
+  class names, which Ko-fi can change. The panel in a frame, made only when the dialog opens, does the same for a
+  tip: no new tab, and nothing goes to Ko-fi before a visitor opens it.
+- **Checked** on the local build in Edge: the panel loads in the dialog, in both themes, and its Monthly tab is as tall
+  as One time; at 1,294 pixels (the button in the header), and in frames of 900 pixels (the menu and the button) and
+  390 (the menu's item opens the dialog, and the focus goes to Close). Not checked: a tip, and the frame on the live
+  site's address.
+
+### A record's first turn after a set-up start: one number (2026-10-15)
+
+- **What:** the record reader takes only the start's own turn number after a `Position` tag, as the engine
+  repository's design 04 now gives it (request 19, its commit `85f1792`): `3.` after a start with 3 edges played, and
+  `2...` at the second edge of turn 2. Before, it also took `1.`. A start given apart from the record (the Analysis
+  board's Import, the board's address) is read as the record's own tag.
+- **Why:** the number gives the player. A record numbered from 1 after a later start can give the first turn to the
+  wrong player, and two records of one game would differ.
+
+### Practice from a set-up start (2026-10-15)
+
+- **What:** Practice takes a set-up start (design 24, item 4), on the practice bot's `enclosure-set-position`
+  (request 20, release `wasm-v2-engine-85f1792`). The Analysis board's Play gives the board's set-up start and the
+  moves to the position on screen (`/practice#position=…&record=…`), and is on for any start.
+- **The record's edges are the game's start:** a takeback stops at them. Before, a takeback could undo an edge of the
+  record of the player's colour, which the player had not played against the bot.
+- **Its count:** `practice_start` gives `practice_from` set_up_start (design 17).
+- **Its review:** "Analyze the game" opens it on the Analysis board, from Practice and from Your games, as the Review
+  tab reviews games from the standard start only. Its id in Your games covers its start, so that the same moves from
+  two starts are two games. A game from the standard start keeps its id.
+- **Fixed in the check:** the rules' requests after the first went from the standard start, and the game stopped
+  ("illegal move"). Every request now gives the game's start.
+- **Checked:** requests/20, "Checked here".
+
+### The board without bands (2026-10-15)
+
+- **What:** no band behind any edge. A protected edge is drawn on the edge itself: wider (0.2 units) in its side's
+  colour, with a white line (0.055) along it. The mover's edges of this turn (the position's `placed` edges, `+` in
+  the notation) are drawn the same way, as no one can cut them before the turn ends, when they become protected. The
+  gold band of the last turn, and the cream band of the protected edges, are gone (design 03). The board no longer
+  takes the last edge or the last turn, and the board editor no longer adds its placed edges to the protected ones.
+- **Why:** the two bands often fell on the same edges, one over the other. The marked edges are the turns just played,
+  so they show the last moves without a band. A mark on the edge itself does not rest on colour alone.
+- **Compared before the choice:** the band, a hollow edge, the white line, and the white line with no bands, in two
+  moments of one game, in both themes. The white line is the form that enclosuregame.com uses.
+- **The label badge on the board:** radius 0.33 (it was 0.36), and on a length-1 edge it sidesteps by 80% of its
+  radius (up from a horizontal edge, right from a vertical one), over the line still: 0.28 of the line's 0.68 shows,
+  against none before. Compared before the choice: the badge on the middle at 0.36 and 0.3, beside the edge, and
+  sidesteps of 50% to 85%.
+
+### The home board plays reviewed scenes (2026-10-15)
+
+- **What:** the home page's board plays three scenes from reviewed games: the engine's first three candidates before
+  each edge, and each turn's label on its edges, by turn (design 22). The scenes come from review files of the owner's
+  bot's games against another bot on meaf.us (`scripts/home-replay.mjs`), with no names shown. The labels are the
+  review's own: the stored results at the files' review depth (4,096 visits, every position), with the positions after
+  the second choice and the turn's other candidate that confirm a Great, as the Review tab reads them.
+- **Why:** the still board said nothing about what the site does, and enclosuregame.com's home page has the same
+  layout with a board that plays a game. A replay of a review shows the judgement.
+- **The scenes end on each game's latest bad turn,** not its worst: the bots' bad turns come before turn 24, and later
+  boards are fuller. Turns 23 (a Mistake), 20 (an Inaccuracy) and 16 (a Mistake).
+- **Changed after a first look:** no caption. The review's row above the board instead: each side's points and area,
+  and the review's win chance bar, as the board shows a review (a points' bar, as Practice's, was tried first). An
+  edge every 1 to 2 seconds, at random (it was 0.8). The holds: 2.6 seconds before the labelled turn, 4 on its label.
+- **The board alone** (changed after): no row of players, points, area or win chance above it. Tried, and too much
+  for the home page.
+- **By edge** (changed after): each edge's own label on it, as the review shows a game judged by edge, the badges of
+  the turn so far together. Each scene ends on its game's latest edge with a bad label: edge 44 (turn 23), 23 (turn
+  12) and 31 (turn 16), each a Mistake.
+- **Checked** on the local build in Edge, in a tab behind another (the page reported itself visible for the test): the
+  scenes play and loop, and three candidates at most. The steps' timing
+  was not measurable there, as Chrome slows the timers of a tab that is not shown. Not checked: the timing in a shown
+  tab, reduced motion, and a phone.
+
+### The review's move list under its scroll bar (2026-10-15)
+
+- **What:** from `8b60dd0` on, the review's move list ran 6 pixels under its own scroll bar between 1,260 and 1,310
+  pixels wide: its right edge (the lead numbers, the notes) was cut. Found on the previews `cb2b9188` (before) and
+  `a11f9d4d` (after), measured in frames of each width on both.
+- **Why:** the review sizes its board from the window's width (`100vw`), less the other columns and 20 pixels for a
+  scroll bar. Before, no scroll bar took that room on the review, so the side columns shared the 20 pixels, and the
+  move list had 316 pixels. Since `8b60dd0`, the page's own scrolling area keeps its scroll bar's room (15 pixels on
+  Windows) on every page, and `100vw` still counts it in: the move list had 309, and needs 315 with its scroll bar.
+- **The fix:** the page area is a CSS container, and the review and Practice take their width from it (`100cqw`),
+  which leaves out the scroll bar's room on any system (design 22). The move list has 316 pixels again (checked on
+  the local build from 1,260 to 1,440 pixels). The board is 15 pixels smaller than before `8b60dd0` at those widths:
+  the room is the scroll bar's now.
+
+### Practice games stored: built (2026-10-15)
+
+- **What:** design 25 built, as its section "How it is built" gives it: the stored game (`src/lib/practice/stored.ts`),
+  the Pages Function (`functions/api/practice-games.ts`, on `/api/practice-games` only), the D1 schema
+  (`migrations/0001_practice_games.sql`), the sending and its queue (`src/lib/practice/send.ts`), the kept game's id,
+  takebacks and times, the consent's two purposes under a new key, the new banner, and the privacy page's section and
+  switches. It stores games once the databases and their bindings are set up (hosting.md, section 7). Until then the
+  Function answers 503, and the games wait in the browsers.
+- **Decided in the build:** a game set aside for a new start from the Analysis board's Play is stored with an outcome of
+  its own, `set_aside` (decided after a first version that counted it as aborted), so that the calibration can tell it
+  from an Abort. A game with no move against the bot sends nothing. A game whose bot form is not known (set aside from
+  an earlier visit) has none. The browser's number stays in the browser after a Decline, unsent, so that the privacy
+  page can still delete its games. Only a build with `VITE_STORE_PRACTICE_GAMES=on` sends, so that no game leaves a
+  developer's machine. The Function declares the part of D1's binding that it uses, and needs no package. The
+  Cloudflare skill advises the `cf` CLI, not Wrangler, in a project with no Wrangler file: the Function is tested in
+  Node, not under Wrangler.
+- **Fixed after two reviews** (Codex's review of the working tree, then its adversarial review):
+  - **A Decline did not reach the games that waited, or another tab:** a waiting game went with the number after a
+    Decline, and a practice tab open before a Decline in another tab still took and sent the number. Now a game takes
+    the number, and goes with it, only as the browser keeps the choice at that moment, and only while the number is
+    still the browser's. Each tab follows a choice made in another tab (the browser's `storage` event).
+  - **A game could come back after "Delete my practice games":** a game already on its way, from this tab or another,
+    could reach the site after the delete, under a number that the browser then forgot. The site now keeps each
+    deleted number alone (`deleted_browsers`, `migrations/0002_deleted_browsers.sql`), and keeps no game that arrives
+    with one. The check is in the insert's own statement. A first fix in the browser (stop the sending, wait for the
+    game on its way) covered one tab only, and the site's check replaced it.
+  - **The privacy page's switches:** a visitor who had not chosen could not decline one purpose without granting it
+    first. A change to one switch now keeps each purpose not chosen yet as declined, as its switch shows.
+  - **Checked:** a test of the Function (a game that arrives after its number's delete is not kept) failed before
+    its fix and passes after it. A browser test with two tabs (`tests/practice-games.spec.ts`: a Decline in one, a
+    practice game ended in the other) failed before its fix, with the game sent with the number, and passes after it.
+    It runs in CI, and skips on a build that stores no games. Checked once in Chromium, with tests not kept: a delete
+    during a send, a game kept under a forgotten number, and the switches with two purposes (no grant sent to the
+    Google tag). Not checked: the Function on Cloudflare's D1.
+- **Checked:** `src/lib/practice/stored.test.ts` (5 tests, with the one added after the reviews): the stored game's
+  checks, and the Function on the real schema in Node's own SQLite: a game kept once, a browser's games deleted, and
+  the refusals (not JSON, an invalid field, more than 64 KB, no database). `npm test` passes (116 after the reviews), `npm run check` has no errors or warnings. The banner
+  and the privacy page pass the layout sweep at every width (a build with `VITE_STORE_PRACTICE_GAMES=on`). Not checked:
+  a game sent in a browser, the banner's and the switches' behaviour in a browser, and the Function on Cloudflare.
+
+### The site's text, a first pass (2026-10-15)
+
+- **What:** the text by what it does (CLAUDE.md, "Writing the site's text"), with the `/asd-ste100` skill and its
+  linter (`ste-lint.py`) on the site's messages and on each page's text.
+- **Strict, for what a player follows:** the messages say who acts, in the active voice: "Hedge School cannot read
+  the review file's branches", "The Analysis board cannot load this file", "Practice cannot start from this record",
+  "the record gives turn 1. where the notation gives turn 3.". One wording for the brackets of a record ("a ( has no
+  closing )"), and "the link is not complete" for "cut short". The Tools page's steps: one instruction a sentence,
+  "set Allow User Scripts to on" for the phrasal verb, and the active voice.
+- **STE's sentence rules, for what explains:** the privacy page's lists without semicolons, the developers page's three
+  long sentences split, and the notation page's first sentence split. The linter finds no other semicolon or long
+  sentence in the pages' prose (the developers page's semicolons are its JavaScript).
+- **Left for a later pass:** the passive verbs that the linter notes on the explaining pages (About 6, How reviews
+  work 5, Notation 6, Notices 3), which its rules leave to judgment. The pages that invite (the home page, the banner,
+  the Support Us dialog) read as plain web writing already.
+
+### The layout sweep (2026-10-15)
+
+- **Why:** the review's move list ran under its scroll bar from `8b60dd0` until `01b29d8` ("The review's move list
+  under its scroll bar"). It reached the live site because the checks after `8b60dd0` looked at the scroll bar's room
+  and the header at a few widths, not at what the room took from the review. The failure showed in a band of 50
+  pixels, with scroll bars that take room (Windows with a mouse), and with the labels by edge. Nothing tested the
+  layout: the unit tests check logic only.
+- **What:** `npm run test:layout` (Playwright Test 1.63.0, `tests/layout.spec.ts`), in Chromium and in Edge, with
+  their scroll bars shown (headless Chromium hides them by default). Each page at every width from 360 to 1,920
+  pixels, by steps of 10, at the heights 700, 860 and 1,000. At each size: the page does not scroll sideways, no area
+  that clips or scrolls hides its content sideways, and the header is one row. The review in three displays (the
+  default, labels by edge, labels by edge as text), after its review is done, and Practice with a game in progress.
+  The report gives each kind of problem once, with the widths where it shows. About 13 minutes.
+- **Its game** (`tests/fixtures/hedgefund-review.json`, `scripts/test-fixture.mjs`): HedgeFund at 1 visit against
+  HedgeFund at 128, reviewed as the Lite review, with the results that confirm the Greats. The site's own game, so that
+  the repository holds no one else's games. A game of HedgeFund against itself at one strength had losses of 0 or 1
+  point, and its move cells were too narrow to show the cut.
+- **Checked:** on the preview `a11f9d4d` (after `8b60dd0`) the sweep finds the move list cut by 6 pixels (300 in 294) at
+  1,260 to 1,310 pixels (labels by edge, height 860), as reported. It also finds the players' row running out of the
+  page at 360 to 490 pixels. On the preview `cb2b9188` (before `8b60dd0`) it passes. On the current code, built with
+  `VITE_STORE_PRACTICE_GAMES=on` (the new consent banner on every page), all 20 tests pass, in Chromium and in Edge.
+- **Fixed from it:** the players' row's unseen twin card now shrinks as the seen one does (`PlayerRow.svelte`), so a
+  narrow row shortens the names. It was live from `8b60dd0`, with the test game's scores in thousands. A phone of
+  that width probably scrolled the review sideways too: not checked on a touch screen.
+- **The rule** (CLAUDE.md, "How to work"): before a change to a site-wide layout mechanism, search for what depends
+  on it (viewport units, `--site-header`, fixed pixel allowances), and run the sweep after it. A release runs it
+  first (hosting.md, "Deploy, check and roll back").
+- **In CI** (decided after): GitHub Actions runs the check, the unit tests and the sweep in Chromium on each push to
+  `dev` (`.github/workflows/tests.yml`), and a release takes only a commit whose run passed. The sweep in Edge stays a
+  local step before a release: Edge on Linux needs an install, and a Windows runner counts twice the minutes of a
+  private repository's allowance. Cloudflare's build runs the check and the unit tests before each deploy, as before.
+  Not run yet: the first run tells whether Chromium on Linux shows scroll bars that take room (the sweep fails at
+  once if not).
+- **Not covered:** a touch screen's layout (the sweep's browser has a mouse), menus and dialogs opened, the Analysis
+  board with lines, and visual changes that cause no overflow.

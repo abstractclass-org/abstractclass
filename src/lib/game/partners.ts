@@ -65,7 +65,7 @@ export function saveToPartner(partner: GamePartner, file: Promise<{ name: string
         } catch (e) { end(e instanceof Error ? e : new Error(String(e))); return; }
         timer = setTimeout(() => end(new Error(`${partner.name} did not say whether it saved the review`)), SAVED_MS);
       } else if (m?.type === "hedge-school:saved") end();
-      else if (m?.type === "hedge-school:failed") end(new Error(`${partner.name}: ${m.message || "the review was not saved"}`));
+      else if (m?.type === "hedge-school:failed") end(new Error(`${partner.name}: ${m.message || "it did not save the review"}`));
     };
     window.addEventListener("message", onMessage);
   });

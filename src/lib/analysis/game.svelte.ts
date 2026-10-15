@@ -24,7 +24,8 @@
 // position on screen and the moves evaluated.
 import { edgeName, parseEdge, parsePoint, type Edge } from "#lib/engine/notation.ts";
 import { boardPosition } from "#lib/engine/position.ts";
-import { positionQuery, type AnalysisReply, type MoveInfo, type PositionFields } from "#lib/engine/protocol.ts";
+import { toAnalysis } from "#lib/engine/analysis.ts";
+import { positionQuery, type AnalysisReply } from "#lib/engine/protocol.ts";
 import { errorText } from "#lib/errors.ts";
 import { BOARD_ID, branchNodes, keptNode, type BranchNode as KeptNode, type KeptBoard, type KeptBranches } from "#lib/game/store.ts";
 import { equalDepth, moverWin, onlyEdge, otherCandidate, sameMove, secondChoice, type Analysis, type Candidate, type LineStep,
@@ -51,28 +52,6 @@ const PARTIAL_MS = 100;
 // A branch edge's evaluation, asked for in its menu, comes after the position on screen and before the rest.
 const PRIORITY = { focus: 10, judge: 7, moment: 5, label: 2, sweep: 1 };
 
-
-/** An analysis reply as the review reads it: values from Blue's side, the candidates in the engine's order. */
-export function toAnalysis(r: AnalysisReply): Analysis {
-  return {
-    blueWin: r.rootInfo.winrate, visits: r.rootInfo.visits, lead: r.rootInfo.scoreLead, margin: r.rootInfo.scoreSelfplay,
-    spread: r.rootInfo.scoreStdev,
-    candidates: [...r.moveInfos].sort((a, b) => a.order - b.order).map(c => ({
-      edge: parseEdge(c.move), visits: c.edgeVisits, blueWin: c.winrate, lead: c.scoreLead, margin: c.scoreSelfplay, prior: c.prior,
-      ...withLine(c), ...(c.isSymmetryOf ? { twinOf: parseEdge(c.isSymmetryOf) } : {}),
-    })),
-  };
-}
-
-/** A candidate's line (KataGo's pv, the move first), up to its first pass, with the visits through each of its edges. */
-function withLine(c: MoveInfo): { line: Edge[]; lineVisits?: number[] } {
-  const line: Edge[] = [];
-  for (const m of c.pv) {
-    if (!m.includes("-")) break; // a pass ends the turn: the line stops there
-    line.push(parseEdge(m));
-  }
-  return { line, ...(c.pvEdgeVisits ? { lineVisits: c.pvEdgeVisits.slice(0, line.length) } : {}) };
-}
 
 /** A move's cut edge, from describe_game's `cuts`. */
 const cutOf = (cuts: string | null) => (cuts === null ? null : parseEdge(cuts));

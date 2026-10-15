@@ -52,7 +52,7 @@ export function readAnalysisFile(text: string): AnalysisFile {
   const boardOk = !!b && b.version === 2 && Array.isArray(b.main) && b.main.every(m => typeof m === "string") && Array.isArray(b.nodes) &&
     b.nodes.every(n => Array.isArray(n) && typeof n[0] === "string" && typeof n[1] === "number") &&
     (b.start === undefined || typeof b.start === "string");
-  if (!boardOk) throw new Error("The analysis file's lines cannot be read.");
+  if (!boardOk) throw new Error("Hedge School cannot read the analysis file's lines.");
   return { ...f, board: b } as AnalysisFile;
 }
 

@@ -89,9 +89,9 @@ test("a record from a set-up start numbers its turns from the start's, as PGN nu
   assert.deepEqual(continues.moves, ["N9-Q10", "D10-G10"]);
   // Only the start's own number (the engine repository's design 04, request 19): numbered from 1, the first turn
   // would be Blue's turn 1, and at a turn's second edge the number needs its `...`.
-  assert.throws(() => parseRecord('[Position "A10-D10 Q10-T10 b2 0/0 3"]\n\n1. D10-G10 G10-K9 2. N9-Q10 *'), /turn 1\. where turn 3\. was expected/);
-  assert.throws(() => parseRecord('[Position "A10-D10 Q10-T10 r1 0/0 2"]\n\n2. N9-Q10 *'), /turn 2\. where turn 2\.\.\. was expected/);
-  assert.throws(() => parseRecord("1... N9-Q10 *"), /turn 1\.\.\. where turn 1\. was expected/);
+  assert.throws(() => parseRecord('[Position "A10-D10 Q10-T10 b2 0/0 3"]\n\n1. D10-G10 G10-K9 2. N9-Q10 *'), /turn 1\. where the notation gives turn 3\./);
+  assert.throws(() => parseRecord('[Position "A10-D10 Q10-T10 r1 0/0 2"]\n\n2. N9-Q10 *'), /turn 2\. where the notation gives turn 2\.\.\./);
+  assert.throws(() => parseRecord("1... N9-Q10 *"), /turn 1\.\.\. where the notation gives turn 1\./);
 });
 
 test("a start given apart is read as the record's own Position tag, so its turns count from the start's", () => {
@@ -102,5 +102,5 @@ test("a start given apart is read as the record's own Position tag, so its turns
   assert.equal(withStart("1. D10-G10 *", null), "1. D10-G10 *");
   assert.deepEqual(readPasted("3. D10-G10 G10-K9 *", start).record.moves, ["D10-G10", "G10-K9"]);
   // The problem's place is in the pasted text, not in the tag put before it.
-  assert.throws(() => readPasted("1. D10-G10 *", start), /turn 1\. where turn 3\. was expected \(line 1, column 1\)/);
+  assert.throws(() => readPasted("1. D10-G10 *", start), /turn 1\. where the notation gives turn 3\. \(line 1, column 1\)/);
 });

@@ -41,16 +41,16 @@
     click. It sends nothing to meaf.us and reads nothing from your login.
   </p>
   <ol class="grid gap-2.5 pl-5 list-decimal">
-    <li>Install <a href="https://www.tampermonkey.net/">Tampermonkey</a>. In Chrome and Edge from version 138, also turn on
-      <strong>Allow User Scripts</strong> in Tampermonkey's details on the browser's extensions page.</li>
+    <li>Install <a href="https://www.tampermonkey.net/">Tampermonkey</a>. In Chrome and Edge from version 138, also set
+      <strong>Allow User Scripts</strong> to on, in Tampermonkey's details on the browser's extensions page.</li>
     <li>Open <a href="/hedge-school.user.js" data-sveltekit-reload>the Hedge School userscript</a>. Tampermonkey shows it
       with an <strong>Install</strong> button.</li>
-    <li>On meaf.us, open a game, then click the collie in the page's lower right corner, or <strong>Review this game in
+    <li>On meaf.us, open a game. Then click the collie in the page's lower right corner, or <strong>Review this game in
       Hedge School</strong> in Tampermonkey's menu. The review opens in a new tab.</li>
   </ol>
   <p class="text-sm text-muted">
-    Both depend on how meaf.us builds its page. If meaf.us changes, they may find no game until they are updated
-    here, and both then update themselves. You can always paste a game record in the <a href="/review">Review tab</a>.
+    Both depend on how meaf.us builds its page. If meaf.us changes its page, they may find no game until this site
+    updates them. Both then update themselves. You can always paste a game record in the <a href="/review">Review tab</a>.
   </p>
 </main>
 <SiteFooter />

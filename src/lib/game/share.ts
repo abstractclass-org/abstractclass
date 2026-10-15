@@ -53,7 +53,7 @@ class BitReader {
   constructor(bytes: Uint8Array) { this.bytes = bytes; }
   bit(): number {
     const byte = this.bytes[this.n >> 3];
-    if (byte === undefined) throw new Error("the link is cut short");
+    if (byte === undefined) throw new Error("the link is not complete");
     return (byte >> (7 - (this.n++ % 8))) & 1;
   }
   get(width: number): number { let v = 0; for (let i = 0; i < width; i++) v = (v << 1) | this.bit(); return v; }
@@ -145,7 +145,7 @@ export function decodeShare(text: string): SharedReview {
   let bytes: Uint8Array;
   try { bytes = unbase64url(text); } catch { throw new Error("the link is broken"); }
   if (bytes[0] !== SHARE_VERSION) throw new Error("the link is from another version of this site");
-  if (bytes.length < 9) throw new Error("the link is cut short");
+  if (bytes.length < 9) throw new Error("the link is not complete");
   const r = new BitReader(bytes.subarray(9));
   const visits = r.gamma();
   const tagBytes = Uint8Array.from({ length: r.gamma() - 1 }, () => r.get(8));

@@ -116,11 +116,11 @@ window.addEventListener("message", event => {
   <ol>
     <li>The save page posts <code>{"{ type: \"hedge-school:ready\" }"}</code> to <code>window.opener</code>, to the
       origin <code>{LIVE}</code>.</li>
-    <li>{SITE_NAME} answers <code>{"{ type: \"hedge-school:review\", protocol: 1, name, review }"}</code>:
-      <code>protocol</code> is the version of these messages, <code>review</code> the review file (the Export menu's
-      "Review file"), and <code>name</code> a file name for it.</li>
-    <li>The save page checks that the message comes from <code>window.opener</code> and that its origin is
-      <code>{LIVE}</code>, stores the review for the signed-in player, and posts
+    <li>{SITE_NAME} answers <code>{"{ type: \"hedge-school:review\", protocol: 1, name, review }"}</code>.
+      <code>protocol</code> is the version of these messages. <code>review</code> is the review file (the Export menu's
+      "Review file"), and <code>name</code> is a file name for it.</li>
+    <li>The save page checks that the message comes from <code>window.opener</code>, and that its origin is
+      <code>{LIVE}</code>. It stores the review for the signed-in player. Then it posts
       <code>{"{ type: \"hedge-school:saved\" }"}</code>, or <code>{"{ type: \"hedge-school:failed\", message }"}</code>.</li>
   </ol>
   <pre>{SAVE}</pre>
@@ -139,8 +139,8 @@ window.addEventListener("message", event => {
       work on it.</li>
     <li>{SITE_NAME} posts <code>{"{ type: \"hedge-school:ready\", protocol: 1 }"}</code> to the partner's page.</li>
     <li>The partner's page checks that the message comes from the tab it opened, on the origin
-      <code>{LIVE}</code>, and answers <code>{"{ type: \"hedge-school:review\", protocol: 1, review }"}</code>
-      with the review file as it was saved, or <code>{"{ type: \"hedge-school:failed\", message }"}</code>.</li>
+      <code>{LIVE}</code>. It answers <code>{"{ type: \"hedge-school:review\", protocol: 1, review }"}</code>,
+      with the review file that it saved, or <code>{"{ type: \"hedge-school:failed\", message }"}</code>.</li>
   </ol>
   <pre>{OPEN}</pre>
   <p>{SITE_NAME} waits a minute for the review. The player can always load the file in {SITE_NAME}'s Review tab

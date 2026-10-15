@@ -1,0 +1,67 @@
+# The site's tests on each push to dev (docs/hosting.md, "Deploy, check and roll back"): the type check, the unit tests,
+# and the browser tests in Chromium (tests/): the layout sweep, and the practice games' consent across tabs. On a
+# production build with the practice games' storage on, so that the consent banner shows on every page, and the
+# practice games' test runs. A release takes only a commit whose run passed. Cloudflare's build
+# runs the check and the unit tests again before each deploy. The sweep in Edge stays a local step before a release.
+# A newer push cancels a run still going for an older one. Runs on a private repository count against the account's
+# monthly minutes.
+name: Tests
+
+on:
+  push:
+    branches: [dev]
+  workflow_dispatch:
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci
+
+      # The engine's release files, as the deploy fetches them (engine.lock.json), kept between runs.
+      - name: Cache the engine's files
+        uses: actions/cache@v6
+        with:
+          path: static/engine
+          key: engine-${{ hashFiles('engine.lock.json', 'package-lock.json') }}
+      - run: npm run engine -- --deploy
+
+      - run: npm run check
+      - run: npm test
+      - run: npm run build
+        env:
+          VITE_EDITION: early
+          VITE_STORE_PRACTICE_GAMES: "on"
+
+      - name: Cache Playwright's browsers
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ hashFiles('package-lock.json') }}
+      - run: npx playwright install --with-deps chromium
+      - name: The browser tests, in Chromium
+        run: |
+          node node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 4173 --strictPort &
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:4173/ > /dev/null && break; sleep 1; done
+          npx playwright test --project=chromium
+
+      # The failures' screenshots and the page's state, for a week.
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: layout-sweep
+          path: test-results/
+          retention-days: 7

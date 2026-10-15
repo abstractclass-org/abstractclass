@@ -39,7 +39,7 @@ test("a shared review comes back as it was: the settings, the tags, the moves an
 
 test("a broken or cut link says so", () => {
   const link = encodeShare(base());
-  assert.throws(() => decodeShare(link.slice(0, 40)), /cut short/);
+  assert.throws(() => decodeShare(link.slice(0, 40)), /not complete/);
   assert.throws(() => decodeShare("_" + link.slice(1)), /another version/);
 });
 

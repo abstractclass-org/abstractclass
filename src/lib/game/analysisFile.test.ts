@@ -24,5 +24,5 @@ test("an analysis file keeps its lines and its readable results", () => {
 test("an analysis file that cannot be used says why", () => {
   assert.throws(() => readAnalysisFile("{"), /not JSON/);
   assert.throws(() => readAnalysisFile(file({ version: 2 })), /newer Hedge School/);
-  assert.throws(() => readAnalysisFile(file({ board: { version: 2, main: "x", nodes: [] } })), /lines cannot be read/);
+  assert.throws(() => readAnalysisFile(file({ board: { version: 2, main: "x", nodes: [] } })), /cannot read the analysis file's lines/);
 });

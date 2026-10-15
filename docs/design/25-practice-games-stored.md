@@ -1,6 +1,7 @@
 # Practice games, stored for the bot's levels
 
-**Status:** in force, not built. **Decided:** 2026-10-15.
+**Status:** in force, built. It stores games once the databases are set up (docs/hosting.md, section 7).
+**Decided:** 2026-10-15.
 
 ## Context
 
@@ -97,12 +98,44 @@ Lichess and chess.com keep every game played on them:
 - **The stored data has no time limit:** an open dataset keeps its games.
 - **The analysis of the games** (the levels) is a later piece of work, here or in the engine repository.
 
-## Where it is
+## How it is built
 
-To be built: the Pages Function and its database's schema, the sending and its queue in `src/lib/practice/`, the
-takebacks and the times kept with the game (`KeptPractice`, which keeps the set-up start and the record's edges
-already), the consent banner (`src/lib/ConsentBanner.svelte`) and
-the consent's two purposes (`src/lib/analytics.svelte.ts`), and the privacy page with its switches.
+- **The stored game** (`src/lib/practice/stored.ts`, `StoredPractice`): the fields of item 2, with the game's own
+  random id, so that a game sent twice is kept once. The record has no name: the player's side reads "You". The
+  server checks every field (`storedProblem`), and takes 64 KB at most.
+- **The server:** a Pages Function, `functions/api/practice-games.ts`, on `/api/practice-games` only
+  (`static/_routes.json`, so that the static pages stay free of the Function's requests). POST keeps a game, DELETE
+  deletes a browser's games. It reads no game back: the games are read in Cloudflare's dashboard. A deployment with
+  no database (its binding, `GAMES`) answers 503.
+- **The database:** D1, `hedgeschool-games` for production and `hedgeschool-games-preview` for the previews. The
+  table `practice_games` (`migrations/0001_practice_games.sql`): the columns that the calibration reads most (the
+  setting, the side, the outcome, the edges), and the game as sent. The table `deleted_browsers`
+  (`migrations/0002_deleted_browsers.sql`): the numbers whose games were deleted, each alone.
+- **The sending** (`src/lib/practice/send.ts`): when a game ends, by the rules, by Resign, by Abort, or set aside: a
+  game in progress that the player leaves for a new start that the Analysis board's Play brings (the page asks first).
+  A set-aside game has an outcome of its own, `set_aside`, so that the calibration can tell it from an Abort. A game with no move played against the bot sends
+  nothing. A send that fails waits in the browser (50 games at most) and goes on the next visit to any page. A game that
+  the server refuses leaves the queue. A waiting game goes with the number only if the visitor still accepts the link
+  when it goes, and the number is still the browser's. Only a build with `VITE_STORE_PRACTICE_GAMES=on` sends: production and the
+  previews, so that a build on a developer's machine sends nothing.
+- **The kept game** (`KeptPractice`) gains its id, where the bot ran, each takeback (the edges played before it, and
+  the edges it undid) and each move's time: the player's from the moment the move was theirs, the bot's for its
+  search of that edge. A move from before a visit's resumption has no time (null).
+- **The consent** (`src/lib/analytics.svelte.ts`): a choice for each purpose, `analytics` and `games`, under a new key
+  (`hedge-school:consent:2`). The banner's Accept and Decline set both. The privacy page has a switch for each. A
+  change to one switch also keeps each purpose not chosen yet as declined, as its switch shows it off: a visitor can
+  accept one purpose and decline the other without granting it first. The
+  random number (`hedge-school:browser-number:1`) is made on the first game sent with consent. After a Decline it
+  is no longer sent, and stays in the browser only so that the privacy page can still delete its games. "Delete my
+  practice games" deletes them, and the number with them. The waiting games with the number leave the queue unsent.
+  The site keeps the deleted number alone, and keeps no game that arrives with it later: a game on its way from another
+  tab, or sent again after a failed send, does not come back after the delete. The check is in the insert's own
+  statement, so that a delete cannot come between them. Each tab follows a choice made in another tab (the browser's
+  `storage` event), and a game takes the number, and goes with it, only as the browser keeps the choice at that moment.
+- **The banner** (`src/lib/ConsentBanner.svelte`): item 5's text, with the collie, for the purposes that the build
+  has: a build without Google Analytics, as the previews, does not name its cookies.
+- **Tests:** `src/lib/practice/stored.test.ts` checks the stored game, and the Function on the real schema in Node's
+  own SQLite, behind the part of D1's binding that the Function uses.
 
 ## Log entries
 

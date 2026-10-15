@@ -35,7 +35,8 @@
   import { playMove, preload } from "#lib/sound.ts";
   import { errorText } from "#lib/errors.ts";
   import { readLocalJson, writeLocal } from "#lib/storage/local.ts";
-  import { startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
+  import { browserNumber, startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
+  import { sendPractice } from "#lib/practice/send.ts";
   import { startBot } from "#lib/practice/bot.ts";
   import type { BotMode } from "#lib/practice/botMessages.ts";
   import { PracticeGame, saveUnfinished } from "#lib/practice/game.svelte.ts";
@@ -107,7 +108,7 @@
         if (problem) throw new Error(problem);
         brought = { start: setUpStart(r?.tags.Position) ?? position, moves: r?.moves ?? [] };
       } catch (e) {
-        notice = `This record cannot be played from: ${errorText(e)}`;
+        notice = `Practice cannot start from this record: ${errorText(e)}`;
       }
     }
     const kept = loadKept();
@@ -290,10 +291,12 @@
   // settings, with each event about it. Its end, once, by the rules, Resign or Abort. A feature's first use in a game.
   const gameParams = (g: PracticeGame) => practiceParams(g.kept, g.mode, navigator.hardwareConcurrency);
   let endSent: PracticeGame | null = null;
+  // A game's end, once: its event (design 17), and the game itself to the site (design 25).
   function trackEnd(g: PracticeGame, outcome: PracticeOutcome) {
     if (endSent === g) return;
     endSent = g;
     track("practice_end", practiceEndParams(g.kept, g.mode, navigator.hardwareConcurrency, outcome, g.played.length));
+    sendPractice(g.stored(outcome, browserNumber()));
   }
   $effect(() => {
     const g = game, status = g?.status;

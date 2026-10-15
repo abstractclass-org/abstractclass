@@ -81,7 +81,7 @@ function tokenize(text: string): Token[] {
       i += m[0].length;
     } else if (c === "{") {
       const end = text.indexOf("}", i);
-      if (end < 0) throw new RecordError("a comment is not closed with }", i);
+      if (end < 0) throw new RecordError("a { has no closing }", i);
       tokens.push({ kind: "comment", text: text.slice(i + 1, end), at: i });
       i = end + 1;
     } else if (c === "(" || c === ")") {
@@ -128,7 +128,7 @@ export function parseRecord(text: string): GameRecord {
   for (const t of tokenize(text)) {
     if (t.kind === "open") { depth++; continue; }
     if (t.kind === "close") {
-      if (depth === 0) throw new RecordError("a ) without its (", t.at);
+      if (depth === 0) throw new RecordError("a ) has no opening (", t.at);
       depth--;
       continue;
     }
@@ -150,13 +150,13 @@ export function parseRecord(text: string): GameRecord {
           // 04, "The turns after a set-up start"): a record numbered from 1 after a later start gives the wrong player.
           const start = startTurn(record.tags.Position);
           if (number !== start.turn || (turn[2] === "...") === start.first) {
-            throw new RecordError(`turn ${w} where turn ${start.turn}${start.first ? "." : "..."} was expected`, t.at);
+            throw new RecordError(`the record gives turn ${w} where the notation gives turn ${start.turn}${start.first ? "." : "..."}`, t.at);
           }
           expectedTurn = number + 1;
           continue;
         }
         if (turn[2] === "...") continue; // only a branch starts at a turn's second edge
-        if (number !== expectedTurn) throw new RecordError(`turn ${number} where turn ${expectedTurn} was expected`, t.at);
+        if (number !== expectedTurn) throw new RecordError(`the record gives turn ${number} where the notation gives turn ${expectedTurn}`, t.at);
         expectedTurn++;
       } else if (RESULT.test(w)) {
         record.result = w;
@@ -175,7 +175,7 @@ export function parseRecord(text: string): GameRecord {
       }
     }
   }
-  if (depth > 0) throw new RecordError("a ( is not closed", text.length);
+  if (depth > 0) throw new RecordError("a ( has no closing )", text.length);
   if (!record.moves.length) throw new RecordError("the record has no moves", 0);
   record.evals.length = record.clocks.length = record.moves.length;
   return { ...record, evals: Array.from(record.evals, e => e ?? null), clocks: Array.from(record.clocks, c => c ?? null) };

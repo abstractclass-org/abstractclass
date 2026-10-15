@@ -90,7 +90,7 @@
       phase = { at: "share", shared: s, here };
       track("review_share_open", { network_found: !!network, same_engine: here.sameEngine });
     } catch (e) {
-      phase = { at: "failed", load: true, problem: `the share link cannot be read: ${errorText(e)}` };
+      phase = { at: "failed", load: true, problem: `Hedge School cannot read the share link: ${errorText(e)}` };
       trackLoadFailed("review_share_link", "link");
     }
   }

@@ -15,9 +15,11 @@ entries before it).
 | The host | Cloudflare Pages, the project `hedgeschool` | Builds the site from the repository and serves the files. Also at `hedgeschool.pages.dev`. |
 | The engine | GitHub Releases of the public repository `seankao31/enclosure-engine` | The module and the networks, pinned by SHA-256 in `engine.lock.json`. The build downloads them. |
 | Visit counts | Google Analytics (the property's measurement ID `G-C5RY6DWGWN`) and Cloudflare Web Analytics | Counted in the browser (`src/lib/analytics.svelte.ts`). |
+| Tests | GitHub Actions (`.github/workflows/tests.yml`) | On each push to `dev`: the check, the unit tests and the browser tests in Chromium (the layout sweep, and the practice games' consent). |
+| Practice games | Cloudflare D1: `hedgeschool-games` for production, `hedgeschool-games-preview` for the previews | A Pages Function (`functions/api/practice-games.ts`) keeps each game against HedgeFund when it ends (design 25). |
 
-The site is static files: every page is prerendered, and the engine runs in the visitor's browser. No server code runs
-at Cloudflare.
+The site is static files: every page is prerendered, and the engine runs in the visitor's browser. One Pages Function
+runs at Cloudflare, on `/api/practice-games` only (`static/_routes.json`): it keeps the practice games (section 7).
 
 ## 1. The domain on Cloudflare
 
@@ -146,6 +148,7 @@ top right):
 | `VITE_EDITION` | `early` | `early` |
 | `VITE_GA_ID` | the measurement ID | none, so that previews are not counted |
 | `VITE_CF_ANALYTICS_TOKEN` | the token | none |
+| `VITE_STORE_PRACTICE_GAMES` | `on` | `on`, so that the previews store games too, in their own database (section 7) |
 
 **The build cache** (beta, **Settings → Build → Build cache**): on. Pages keeps npm's global cache (`.npm`) between
 the project's builds, so `npm ci` downloads less. Pages deletes the cache 7 days after its last read, and **Clear
@@ -234,8 +237,51 @@ weekly Web Analytics summary is not set ([decisions/open-items.md](decisions/ope
 answers over time, the origin's errors, the status codes, and the top paths of 4xx and 5xx answers. It reads
 Cloudflare's analytics of the whole account, so its counts include the previews and the `pages.dev` addresses.
 
+## 7. Practice games (D1)
+
+The games against HedgeFund go to a D1 database when they end (design 25). Production and the previews each have
+their own, so that test games never mix with the players' games. The schema is the files in `migrations/`. The
+databases and their bindings are set up once, in the Cloudflare dashboard:
+
+1. **Create the two databases.** Go to **D1 SQL database** ([the page](https://dash.cloudflare.com/?to=/:account/workers/d1)),
+   select **Create Database**, and give the name `hedgeschool-games`. Leave the location as Cloudflare chooses it.
+   Then create a second one, `hedgeschool-games-preview`.
+2. **Make the tables in each.** Open `hedgeschool-games` and select **Console**. Paste the whole of
+   `migrations/0001_practice_games.sql`, and run it. Then paste the whole of `migrations/0002_deleted_browsers.sql`,
+   and run it. Do the same in `hedgeschool-games-preview`. Each database then lists the tables `practice_games` and
+   `deleted_browsers`. If a database has `practice_games` already, run only the second file.
+3. **Bind them to the project.** Go to **Workers & Pages**, select `hedgeschool`, then **Settings → Bindings**. With
+   the environment selector at the top right on **Production**: **Add → D1 database**, the variable name `GAMES`, the
+   database `hedgeschool-games`, and **Save**. Then with the selector on **Preview**: **Add → D1 database**, the
+   variable name `GAMES`, the database `hedgeschool-games-preview`, and **Save**. The name `GAMES` is the one that the
+   Function reads, in both environments.
+4. **Turn the sending on.** In **Settings → Variables and Secrets**, add `VITE_STORE_PRACTICE_GAMES` with the value
+   `on`, as text, in **Production** and again in **Preview** (the table of variables above).
+5. **Deploy again:** push to `dev` (or **Deployments → Retry deployment**). A binding and a variable take effect from
+   the next deployment.
+6. **Check on the preview:** play a game against HedgeFund on `dev.hedgeschool.pages.dev` to its end, or abort it
+   after a move. Then, in `hedgeschool-games-preview`'s **Console**, run
+   `SELECT id, browser, outcome, edges, received FROM practice_games;`. The game is there.
+
+A later change to the schema is a new file in `migrations/`, run the same way in both databases, preview first. Its
+comments are block comments (`/* … */`) only: the Console joins a pasted file into one line, where a line comment
+(`--`) hides the rest of the file.
+Without its binding, the Function answers 503, and the games wait in the players' browsers (the site sends them on
+the next visit).
+
 ## Deploy, check and roll back
 
+- **Check the tests first:** release only a commit whose run of the workflow **Tests** passed (GitHub, the
+  repository's **Actions** tab, or the mark beside the commit). On each push to `dev` it runs the check, the unit tests
+  and the browser tests in Chromium on Linux, about 10 minutes (`.github/workflows/tests.yml`): the layout sweep, and
+  a Decline in one tab while a practice game is open in another (tests/practice-games.spec.ts, on a build that stores
+  practice games only). The sweep loads each
+  page at every width from 360 to 1,920 pixels, with real scroll bars (tests/layout.spec.ts). A failed run keeps the
+  failures' screenshots for a week (the run's **Artifacts**).
+- **Then the sweep in Edge,** on this computer: build as production does (`VITE_EDITION=early npm run build`), start
+  the preview (`npm run preview -- --host 127.0.0.1 --port 4173`), and run `npx playwright test --project=edge` (about
+  7 minutes). `npm run test:layout` runs both browsers. Either can run against a preview:
+  `BASE_URL=https://dev.hedgeschool.pages.dev npm run test:layout`.
 - **Deploy:** release `dev` to `main` (`git push origin dev:main`). Pages builds and publishes in a minute or two. A
   failed build leaves the live site as it was. Try a change first on `dev`'s preview.
 - **Check:** the footer's version is the commit that Pages built. On the live site, these hold (all true on

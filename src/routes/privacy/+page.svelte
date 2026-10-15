@@ -1,37 +1,91 @@
 <script lang="ts">
-  // What the site keeps, and where (design 11). The consent's state shows in the browser only: the prerendered page
-  // cannot know the visitor's choice.
+  // What the site keeps, and where (design 11), with the practice games that it stores (design 25), and a switch for
+  // each purpose of the consent. The switches show in the browser only: the prerendered page cannot know the choices.
   import { onMount } from "svelte";
+  import { Switch } from "bits-ui";
   import { PROSE } from "#lib/prose.ts";
-  import { DISCORD, SITE_NAME } from "#lib/edition.ts";
-  import { ASKS_CONSENT, choose, consent } from "#lib/analytics.svelte.ts";
+  import { DISCORD, SITE_NAME, STORES_PRACTICE_GAMES } from "#lib/edition.ts";
+  import { ASKS_CONSENT, PURPOSES, chooseShown, consent, keptNumber, type Purpose } from "#lib/analytics.svelte.ts";
+  import { deletePractice } from "#lib/practice/send.ts";
+  import { errorText } from "#lib/errors.ts";
+  import { SWITCH, SWITCH_THUMB } from "#lib/ui/settings.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
   import PageMeta from "#lib/PageMeta.svelte";
 
-  let mounted = $state(false);
-  onMount(() => (mounted = true));
-  const CHOICE = { granted: "you accepted its cookies", denied: "you declined its cookies" };
+  let mounted = $state(false), number = $state<string | null>(null), deleting = $state(false), deleted = $state("");
+  onMount(() => { mounted = true; number = keptNumber(); });
+  const LABEL: Record<Purpose, string> = {
+    games: "Link my games against HedgeFund with a random number in this browser",
+    analytics: "Let Google Analytics set cookies that tell my visits apart",
+  };
+  async function deleteGames() {
+    if (!number) return;
+    deleting = true;
+    try {
+      const n = await deletePractice(number);
+      number = null;
+      deleted = `Deleted ${n} ${n === 1 ? "game" : "games"}.`;
+    } catch (e) {
+      deleted = `The site deleted no games: ${errorText(e)}. Try again later.`;
+    } finally {
+      deleting = false;
+    }
+  }
 </script>
 
 <PageMeta title="Privacy · {SITE_NAME}" description="What Hedge School keeps, where it keeps it, and what it measures." />
 
 <main class={PROSE}>
   <h1>Privacy</h1>
-  <p>{SITE_NAME} has no accounts and no server of its own. The engine runs in your browser, so your games and their
-    reviews stay on your computer.</p>
+  {#if STORES_PRACTICE_GAMES}
+    <p>{SITE_NAME} has no accounts. The engine runs in your browser, so the games that you review, and their reviews,
+      stay on your computer. Your games against HedgeFund go to the site's own database when they end
+      (<a href="#practice-games">below</a>).</p>
+  {:else}
+    <p>{SITE_NAME} has no accounts and no server of its own. The engine runs in your browser, so your games and their
+      reviews stay on your computer.</p>
+  {/if}
 
   <h2>What your browser keeps</h2>
   <ul>
-    <li><strong>Your games:</strong> the records you import, with the players' names that the records hold.</li>
-    <li><strong>Their analyses:</strong> the engine's results, so that a review opens at once the next time.</li>
-    <li><strong>Your analysis:</strong> the Analysis board's lines, the moves you evaluated, and the position you left it at.</li>
+    <li><strong>Your games:</strong> the records you import, with the players' names that the records hold</li>
+    <li><strong>Their analyses:</strong> the engine's results, so that a review opens at once the next time</li>
+    <li><strong>Your analysis:</strong> the Analysis board's lines, the moves you evaluated, and the position you left it at</li>
     <li><strong>Your practice game:</strong> the game in progress against the bot, with its settings and the name you
-      gave for its record, and the settings you chose for the next game.</li>
-    <li><strong>Your settings:</strong> the review's, the engine's, Practice's, and the theme.</li>
-    <li><strong>Your choice about Google Analytics' cookies,</strong> and those cookies if you accept them.</li>
+      gave for its record, and the settings you chose for the next game</li>
+    <li><strong>Your settings:</strong> the review's, the engine's, Practice's, and the theme</li>
+    <li><strong>Your choices</strong> about Google Analytics' cookies and about the link between your games, those
+      cookies if you accept them, and the random number that links your games if you accept it</li>
+    {#if STORES_PRACTICE_GAMES}<li><strong>Your games against HedgeFund that could not be sent yet:</strong> they go
+      on your next visit</li>{/if}
   </ul>
   <p>They stay in this browser on this computer: another browser or another computer does not see them. To remove
     them, clear this site's data in your browser's settings.</p>
+
+  {#if STORES_PRACTICE_GAMES}
+    <h2 id="practice-games">Your games against HedgeFund</h2>
+    <p>When a game against HedgeFund ends, the site keeps it in its own database at Cloudflare. A game ends by the
+      rules, by Resign, by Abort, or when you leave it for a new start from the Analysis board. A game that ends before
+      your first move is not kept. The site keeps:</p>
+    <ul>
+      <li>the game's moves and the edges that they cut, and its start</li>
+      <li>the bot's settings, and where it ran (the GPU or the CPU)</li>
+      <li>your side, how the game ended, and its result</li>
+      <li>each takeback, and the time that each move took</li>
+      <li>the day the game ended, and the site's version</li>
+    </ul>
+    <p>It never keeps the name that you type for the game's record, and it never keeps your IP address.</p>
+    <p>The games show the site how players play against each setting of the bot, so that its levels fit real players,
+      and what players find hard. The site can publish them as an open dataset, under CC0, as Lichess publishes its
+      games. They hold no name. The site keeps them with no time limit.</p>
+    <p>If you accept, a random number in this browser goes with each of your games, so that your games can be told
+      apart from other players' games. The number says nothing about you. If you do not accept, a game goes with no
+      number, and nothing links it to another game. You can change this choice, and delete the games that went with
+      the number, <a href="#consent">below</a>. After a delete, the site keeps the number alone, with no game, so that
+      it does not keep a game that arrives with it later.</p>
+    <p>A game that cannot be sent when it ends waits in this browser, and goes on your next visit. It goes with the
+      number only if you still accept then.</p>
+  {/if}
 
   <h2>Shared reviews and analyses</h2>
   <p>A link that shares a review carries the game, its branches and the engine's settings after the <code>#</code> in
@@ -79,31 +133,46 @@
   <ul>
     <li>that you imported a game, to a review or to the Analysis board, and how (pasted, from <a href="https://constellation.blueshrimp.uk">Constellation</a>, the
       bookmarklet, the userscript or another site's link), its length as a range (for example 90 to 119 edges), or why
-      an import failed;</li>
+      an import failed</li>
     <li>that you loaded a review or an analysis, and how (a review or an analysis file, a share link, or a review that
-      another site kept), its game's length as a range, or why a load failed;</li>
+      another site kept), its game's length as a range, or why a load failed</li>
     <li>that a review opened and ended: the engine settings it ran with, your computer's number of cores as a range,
-      how long the review took, and how fast the engine searched;</li>
-    <li>that the Analysis board opened, with its main line's length as a range;</li>
-    <li>that the board editor opened, and that you sent its position to the Analysis board;</li>
-    <li>the GPU's first test: faster or slower than the CPU, and the GPU's maker and kind;</li>
+      how long the review took, and how fast the engine searched</li>
+    <li>that the Analysis board opened, with its main line's length as a range</li>
+    <li>that the board editor opened, and that you sent its position to the Analysis board</li>
+    <li>the GPU's first test: faster or slower than the CPU, and the GPU's maker and kind</li>
     <li>that a practice game started and ended: how it started (new, from the Analysis board, from a set-up position
       there, or resumed), the bot's settings, your side, where the bot ran (the GPU or the CPU),
       your computer's number of cores as a range, how the game ended (won, lost, drawn, resigned or aborted), its
-      length and your takebacks as ranges, and the bot's average time a turn as a range;</li>
+      length and your takebacks as ranges, and the bot's average time a turn as a range</li>
     <li>the engine settings you change, the features you use (each once in a review, in a visit to the Analysis board,
-      or in a practice game), and your exports (a review saved to a partner site among them), with a share link's length as a range;</li>
-    <li>that you opened Support Us, but not whether you gave a tip;</li>
-    <li>how many games this browser keeps, as a range.</li>
+      or in a practice game), and your exports (a review saved to a partner site among them), with a share link's length as a range</li>
+    <li>that you opened Support Us, but not whether you gave a tip</li>
+    <li>how many games this browser keeps, as a range</li>
   </ul>
   <p>None of these holds a game, a move, a player's name or a game's code. Until you accept the cookies, Google receives
     them with nothing that links one to another.</p>
-  {#if ASKS_CONSENT && mounted}
-    <p>Google Analytics' cookies: {consent.choice ? CHOICE[consent.choice] : "you have not chosen yet"}.</p>
-    <p class="flex gap-2">
-      <button type="button" disabled={consent.choice === "granted"} onclick={() => choose("granted")}>Accept</button>
-      <button type="button" disabled={consent.choice === "denied"} onclick={() => choose("denied")}>Decline</button>
-    </p>
+  {#if ASKS_CONSENT}
+    <h2 id="consent">Your choices</h2>
+    <p>Each choice is separate. The banner's Accept and Decline set them all. When you change one switch here, the site
+      also keeps each switch that you have not set yet as off.</p>
+    {#if mounted}
+      <div class="grid gap-3">
+        {#each PURPOSES as p (p)}
+          <label class="flex items-center gap-3 text-sm">
+            <Switch.Root class={SWITCH} checked={consent[p] === "granted"} onCheckedChange={on => chooseShown(p, on ? "granted" : "denied")}>
+              <Switch.Thumb class={SWITCH_THUMB} />
+            </Switch.Root>
+            <span>{LABEL[p]}{consent[p] === null ? " (not chosen yet)" : ""}</span>
+          </label>
+        {/each}
+      </div>
+      {#if STORES_PRACTICE_GAMES && number}
+        <p>Your games against HedgeFund went with this browser's random number.
+          <button type="button" class="ml-1" disabled={deleting} onclick={deleteGames}>Delete my practice games</button></p>
+      {/if}
+      {#if deleted}<p role="status">{deleted}</p>{/if}
+    {/if}
   {/if}
 
   <h2>Tips through Ko-fi</h2>

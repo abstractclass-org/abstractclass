@@ -11,7 +11,9 @@ import { errorText } from "#lib/errors.ts";
 import { parseRecord } from "#lib/game/record.ts";
 import { saveGame } from "#lib/game/store.ts";
 import type { Move, Player, Position } from "#lib/review/model.ts";
-import { botCommands, gtpColor, keep, practiceRecord, resignResult, scoreResult, takebackCount, type KeptPractice } from "./practice.ts";
+import { botCommands, gtpColor, keep, practiceRecord, resignResult, scoreResult, takebackCount, type KeptPractice, type PracticeOutcome } from "./practice.ts";
+import { sendPractice, storedGame, type StoredPractice } from "./send.ts";
+import { browserNumber } from "#lib/analytics.svelte.ts";
 import type { PracticeBot } from "./bot.ts";
 import type { BotMode } from "./botMessages.ts";
 
@@ -34,6 +36,7 @@ export class PracticeGame {
   lastTurnMs = $state<number | null>(null); // how long the bot's last turn took
   readonly kept: KeptPractice;
   private closed = false; // the bot is ended: no move is kept after it
+  private humanSince: number | null = null; // when the player's move began (performance.now), on the player's turn
 
   constructor(kept: KeptPractice, private rulesWorker: EngineWorker, private bot: PracticeBot) {
     this.kept = { ...kept, moves: [...kept.moves], builds: [...kept.builds] };
@@ -49,6 +52,11 @@ export class PracticeGame {
     try {
       const info = JSON.parse(await this.bot.command("enclosure-bot-info")) as { build: string };
       if (this.kept.builds.at(-1) !== info.build) this.kept.builds.push(info.build); // a new build continues the game
+      // A game kept before the stored game's fields, or resumed: its own id, where the bot runs now, and a time for each
+      // move (unknown for the moves before this visit's).
+      this.kept.id ??= crypto.randomUUID();
+      this.kept.form = this.mode;
+      this.kept.ms = Array.from(this.kept.moves, (_, i) => this.kept.ms?.[i] ?? null);
       for (const line of botCommands(this.kept.bot)) await this.bot.command(line);
       if (this.kept.start) await this.bot.command(`enclosure-set-position ${this.kept.start}`);
       const described = (await this.rulesWorker.describeGame(positionQuery(this.kept.start ?? null, this.kept.moves))).reply.positions;
@@ -67,9 +75,10 @@ export class PracticeGame {
   async play(name: string) {
     if (this.status !== "human") return;
     this.status = "playing"; // nothing else moves until the bot has the edge
+    const ms = this.humanSince === null ? null : Math.round(performance.now() - this.humanSince);
     try {
       await this.bot.command(`play ${gtpColor(this.human)} ${name}`);
-      await this.add(name);
+      await this.add(name, ms);
       await this.next();
     } catch (e) {
       this.fail(e);
@@ -87,8 +96,10 @@ export class PracticeGame {
     this.status = "playing"; // nothing else moves until the bot has undone the edges
     try {
       for (let k = 0; k < n; k++) await this.bot.command("undo");
-      this.kept.moves.splice(-n);
+      const undone = this.kept.moves.splice(-n);
+      this.kept.ms?.splice(-n);
       this.kept.takebacks = (this.kept.takebacks ?? 0) + 1;
+      this.kept.undone = [...(this.kept.undone ?? []), { at: this.kept.moves.length + n, undone: undone.reverse() }];
       this.positions = this.positions.slice(0, -n);
       this.played = this.played.slice(0, -n);
       keep(this.kept);
@@ -120,13 +131,21 @@ export class PracticeGame {
     return id;
   }
 
-  /** The game's record, with the result: the bot's win when the player resigned, the scores' once the rules have ended
-   *  it, else `*`. */
-  record(): string {
-    const movers = this.played.map(m => m.player), cuts = this.played.map(m => !!m.cut), end = this.position;
-    if (this.resigned) return practiceRecord(this.kept, movers, cuts, resignResult(this.human), "resignation");
-    if (end?.over) return practiceRecord(this.kept, movers, cuts, scoreResult(end.scores), "normal");
-    return practiceRecord(this.kept, movers, cuts, "*");
+  /** The game's result: the bot's win when the player resigned, the scores' once the rules have ended it, else `*`. */
+  result(): string {
+    return this.resigned ? resignResult(this.human) : this.position?.over ? scoreResult(this.position.scores) : "*";
+  }
+
+  /** The game's record, with the result. `kept` gives the settings and the name: the stored game's has no name. */
+  record(kept: KeptPractice = this.kept): string {
+    const movers = this.played.map(m => m.player), cuts = this.played.map(m => !!m.cut);
+    return practiceRecord(kept, movers, cuts, this.result(), this.resigned ? "resignation" : this.position?.over ? "normal" : undefined);
+  }
+
+  /** The game as the site stores it (design 25), with the player's outcome and the browser's number (null without the
+   *  visitor's consent). Null for a game with no move played against the bot. */
+  stored(outcome: PracticeOutcome, browser: string | null): StoredPractice | null {
+    return storedGame(this.kept, this.record({ ...this.kept, name: "" }), this.result(), outcome, browser);
   }
 
   /** Ends the bot's worker. */
@@ -151,11 +170,12 @@ export class PracticeGame {
     keep(null);
   }
 
-  /** A move played, by either side: its position from the rules, kept with the game. */
-  private async add(name: string) {
+  /** A move played, by either side, with its time: its position from the rules, kept with the game. */
+  private async add(name: string, ms: number | null) {
     if (this.closed) throw new Error("the game has ended");
     const from = this.kept.moves.length;
     this.kept.moves.push(name);
+    (this.kept.ms ??= []).push(ms);
     keep(this.kept);
     const [, after] = (await this.rulesWorker.describeGame(positionQuery(this.kept.start ?? null, this.kept.moves), from)).reply.positions;
     this.played = [...this.played, moveOf(this.positions[from], name, after)];
@@ -170,7 +190,8 @@ export class PracticeGame {
       this.rules = null;
       const since = (this.thinkingSince = performance.now());
       for (let p = this.position; p && !p.over && p.player !== this.human; p = this.position) {
-        await this.add(await this.bot.command(`genmove ${gtpColor(p.player as Player)}`));
+        const t0 = performance.now(), move = await this.bot.command(`genmove ${gtpColor(p.player as Player)}`);
+        await this.add(move, Math.round(performance.now() - t0));
       }
       this.lastTurnMs = performance.now() - since;
       this.thinkingSince = null;
@@ -182,6 +203,7 @@ export class PracticeGame {
     const { reply } = await this.rulesWorker.describe(positionQuery(this.kept.start ?? null, this.kept.moves));
     this.rules = { legal: reply.legal.filter(m => m.includes("-")).map(parseEdge), nodes: reply.nodes[reply.mover].map(parsePoint) };
     this.status = "human";
+    this.humanSince = performance.now();
   }
 
   /** The game stops on an error. Not once it has ended: then the bot's worker ended on purpose, and its search with it. */
@@ -194,11 +216,12 @@ export class PracticeGame {
 }
 
 /** Keeps a game in Your games from its moves alone, unfinished: a record brought to the page replaces it before its bot
- *  has started. Nothing for a game with no moves. */
+ *  has started. Nothing for a game with no moves. The game set aside goes to the site as set aside (design 25). */
 export async function saveUnfinished(kept: KeptPractice, rulesWorker: EngineWorker): Promise<string | null> {
   if (!kept.moves.length) return null;
   const described = (await rulesWorker.describeGame(positionQuery(kept.start ?? null, kept.moves))).reply.positions;
-  const text = practiceRecord(kept, kept.moves.map((_, i) => (described[i].mover === "b" ? 0 : 1)),
-                              described.slice(1).map(p => p.cuts !== null), "*");
+  const movers: Player[] = kept.moves.map((_, i) => (described[i].mover === "b" ? 0 : 1)), cuts = described.slice(1).map(p => p.cuts !== null);
+  const text = practiceRecord(kept, movers, cuts, "*");
+  sendPractice(storedGame(kept, practiceRecord({ ...kept, name: "" }, movers, cuts, "*"), "*", "set_aside", browserNumber()));
   return (await saveGame(text, parseRecord(text))).id;
 }

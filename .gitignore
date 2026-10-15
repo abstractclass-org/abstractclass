@@ -24,3 +24,7 @@ vite.config.ts.timestamp-*
 
 # Measurement outputs (scripts/measure/), summarised in docs/decisions/.
 /runs/
+
+# Playwright Test (npm run test:layout)
+/test-results/
+/playwright-report/

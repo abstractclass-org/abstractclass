@@ -59,7 +59,7 @@ export async function checkPosition(position: string): Promise<string | null> {
     await engine.init(manifest);
     return positionProblem((await engine.describe({ position, moves: [] })).reply);
   } catch (e) {
-    return `The position cannot be read: ${errorText(e)}`;
+    return `Hedge School cannot read the position: ${errorText(e)}`;
   } finally {
     engine.terminate();
   }

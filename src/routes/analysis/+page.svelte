@@ -116,11 +116,11 @@
         : readBoardLink(p.get("packed") ?? "", p.get("at"));
     } catch (e) {
       if (brings) {
-        notice = `This ${record !== null ? "record" : "position"} cannot be ${OWN.includes(via ?? "") ? "analyzed" : "imported"}: ${sentence(errorText(e))} Your own analysis is here instead.`;
+        notice = `The Analysis board cannot ${OWN.includes(via ?? "") ? "analyze" : "import"} this ${record !== null ? "record" : "position"}: ${sentence(errorText(e))} Your own analysis is here instead.`;
         if (imported)
           trackImportFailed("analysis", imported, e instanceof RecordProblem ? e.failure : "link");
       } else {
-        notice = `This ${loaded === "analysis_file" ? "file" : "link"} cannot be loaded: ${sentence(errorText(e))} Your own analysis is here instead.`;
+        notice = `The Analysis board cannot load this ${loaded === "analysis_file" ? "file" : "link"}: ${sentence(errorText(e))} Your own analysis is here instead.`;
         trackLoadFailed(loaded!, loaded === "analysis_file" ? "file" : "link");
       }
       return { board: kept, at: keptAt };
@@ -143,7 +143,7 @@
     const tagged = record.tags.Position?.trim();
     const given = setUpStart(position) ?? (position ? STANDARD_START : undefined);
     if (given && tagged && (setUpStart(tagged) ?? STANDARD_START) !== given)
-      throw new RecordProblem("the record starts from another position than the one given (its Position tag)", "rejected");
+      throw new RecordProblem("the record's Position tag is not the position that you gave", "rejected");
     if (position) record = { ...record, tags: { ...record.tags, Position: position } };
     const variant = variantProblem(record, true);
     if (variant) throw new RecordProblem(variant, "rejected");
@@ -246,7 +246,7 @@
       if (fileKind(content) === "review") throw new Error("this is a review file: load it in the Review tab");
       importAddress((await openAnalysisFile(content, session.manifest)).split("#")[1]);
     } catch (e) {
-      notice = `This file cannot be loaded: ${sentence(errorText(e))}`;
+      notice = `The Analysis board cannot load this file: ${sentence(errorText(e))}`;
       trackLoadFailed("analysis_file", "file");
     }
   }

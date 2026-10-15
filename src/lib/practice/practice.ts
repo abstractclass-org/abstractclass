@@ -6,6 +6,8 @@ import { readLocalJson, writeLocal } from "#lib/storage/local.ts";
 import { writeRecord } from "#lib/game/record.ts";
 import { BOT_SECOND_RANGES, CORE_RANGES, EDGE_RANGES, TAKEBACK_RANGES, range } from "#lib/measure.ts";
 import { turnFromCount, type Player } from "#lib/review/model.ts";
+import type { BotMode } from "./botMessages.ts";
+import type { StoredTakeback } from "./stored.ts";
 
 /** The visits for each bot move: by doublings from 1 to 1,024 (design 24). */
 export const VISITS = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024];
@@ -66,6 +68,12 @@ export interface KeptPractice {
   takebacks?: number;
   botTurns?: number;
   botMs?: number;
+  // What the stored game holds (design 25, stored.ts): the game's own random id, where the bot ran, each takeback, and
+  // each move's time (the player's thinking time, or the bot's search), null where it is not known.
+  id?: string;
+  form?: BotMode;
+  undone?: StoredTakeback[];
+  ms?: (number | null)[];
 }
 
 const GAME = "hedge-school:practice-game:1";
