@@ -3006,7 +3006,41 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   `dev` (`.github/workflows/tests.yml`), and a release takes only a commit whose run passed. The sweep in Edge stays a
   local step before a release: Edge on Linux needs an install, and a Windows runner counts twice the minutes of a
   private repository's allowance. Cloudflare's build runs the check and the unit tests before each deploy, as before.
-  Not run yet: the first run tells whether Chromium on Linux shows scroll bars that take room (the sweep fails at
-  once if not).
+  The first run (on `ee5c12a`): Chromium on Linux shows scroll bars that take room, the sweep took 8.6 minutes, and
+  the two-tab test of the practice games passed. Two pages failed, both from Linux's monospaced font, wider than
+  Windows': the review's move list by edge (321 pixels of rows in 301, at 1,260 to 1,490 pixels wide), and the board
+  editor's position field (218 in 211). See "One monospaced font".
 - **Not covered:** a touch screen's layout (the sweep's browser has a mouse), menus and dialogs opened, the Analysis
   board with lines, and visual changes that cause no overflow.
+
+### One monospaced font (2026-10-15)
+
+- **Found by CI's first run of the layout sweep,** on Linux: the move list by edge needed 321 pixels for its rows and
+  had 301, at windows 1,260 to 1,490 pixels wide (the analysis column at its least, 340 pixels). The board editor's
+  position field showed 218 pixels of text in 211.
+- **Why:** the site used each system's own monospaced font (`ui-monospace, monospace`). Chrome on Windows takes
+  Consolas, 0.55 em a character. Linux's DejaVu Sans Mono, and the Mac's Menlo and SF Mono, are 0.6 em. The move
+  list's columns are sized in characters (a move is 8 characters, then the label's, the mark's and the loss's slots),
+  so a row was 300 pixels with Consolas, a pixel less than the room, and 321 with the others. A Mac had the overflow
+  too, probably, with no check that could see it.
+- **Asked:** a wider analysis column (364 pixels: every common monospaced font fits, but the board is up to 24 pixels
+  smaller between 1,260 and about 1,490 pixels wide), one font shipped with the site, or smaller move text.
+- **Decided:** one font, shipped with the site, as Lichess ships its own (design 06, "One monospaced font").
+  - **First, Inconsolata** (SIL Open Font License, drawn after Consolas, 0.5 em): the only common open font narrow
+    enough for the column as it was. A row was 281 pixels, 20 inside the room. Most open monospaced fonts are 0.6 em.
+  - **Then a comparison page:** the review's move list copied from the site, in six fonts (Inconsolata, the device's
+    own, JetBrains Mono, Fira Code, Source Code Pro, Hack), in 301 or 325 pixels of room, each with its fit measured.
+    The 0.6 em fonts needed 321 pixels: 20 hidden in 301, 4 spare in 325.
+  - **Fira Code, with the wider column:** the font read best. The analysis column's least width is 364 pixels, not
+    340, so that the move list has 325. The board is up to 24 pixels smaller where the column's least width sets it.
+    The package `@fontsource-variable/fira-code`, version 5.3.0, pinned: a change of the font's files would change
+    the layout. Its Latin file is 36 KB, and a page loads it only when it shows monospaced text. Its ligatures for
+    code are on, as the comparison showed it.
+- **The sweep's text fields:** with a 0.6 em font on every system, the board editor's position field shows 218
+  pixels of text in 211 at windows 360 and 970 to 980 pixels wide. A text field scrolls its own text by design, so
+  the sweep no longer counts a text field's hidden text, as it does not count text cut with an ellipsis.
+- **Checked:** the layout sweep passes in Chromium and Edge with Fira Code and the column at 364 pixels (20 tests,
+  12.3 minutes, on Windows; CI checks Linux on the next push). The board at 1,376 × 952 is 655 pixels. The font's
+  arrival on a first visit adds 0.002 to the review's layout shift (0.0101 with the font, 0.0081 with its file
+  blocked, in Edge at 1,376 × 952). The move list with its labels as text shows ?! and ?? clearly in Fira Code.
+  Not checked: a Mac, and a phone.

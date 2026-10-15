@@ -27,7 +27,8 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
    above the board when it shows, and a margin) and the width left after the side columns at their least width. No
    fixed limit. A zoom setting can come later.
 2. **The columns follow Lichess's widths,** and its fixed switch to three columns at 1,260 pixels, although the third
-   column makes the board smaller on a window just above that width (694 pixels against 846 at 1,376 × 952):
+   column makes the board smaller on a window just above that width (655 pixels at 1,376 × 952, with the analysis
+   column at its least):
    - **Three columns from 1,260 pixels:** the summary on the left, the board in the middle, the analysis on the
      right. The summary is the review's progress and the Report (the result and the counts). The
      analysis is the position's engine header, the candidates, the move list and the step controls. The Report is no
@@ -35,8 +36,9 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
    - **Two columns from 800 to 1,260 pixels:** the board, and one right column with the tabs (Report, Analysis), as
      before. "Report" was "Highlights": a report is the more common name for a game's summary.
    - **One column below 800 pixels:** the board, then the right column's content.
-   - **Widths:** the summary column 250 to 350 pixels (Lichess's side column). The analysis column 340 to 460 pixels:
-     wider than Lichess's 240 to 400, because its candidates table has five columns and a scroll bar.
+   - **Widths:** the summary column 250 to 350 pixels (Lichess's side column). The analysis column 364 to 460 pixels:
+     wider than Lichess's 240 to 400, because its candidates table has five columns and a scroll bar, and its move
+     list by edge needs 321 pixels in the site's monospaced font (item 11).
    - **Height:** the side columns (the summary and the analysis) end where the window ends, less the page's margin
      (1rem), but never above the board's bottom edge. So the page fits the window, and when the board fills the
      height, they end with the board, so that the step controls stay in view. The move list takes the height that is
@@ -167,6 +169,13 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
     - **Only where the address names a game:** the skeleton shows once the page's code runs. Before that, and on the
       Review tab, the prerendered line of text shows.
     - With reduced motion asked for, the bars do not pulse.
+11. **One monospaced font** (Lichess ships its own fonts): Fira Code, shipped with the site
+    (`@fontsource-variable/fira-code`, its weight axis), 0.6 em a character. The move list's columns are sized in
+    characters, so a system's own font would set their width: Consolas, on Windows, is 0.55 em, and the Mac's and
+    Linux's are 0.6 em, which ran the move list by edge 20 pixels past the analysis column at 340 pixels, its least
+    width then. With one font the rows measure the same everywhere: 321 pixels. The analysis column's least width is
+    364 pixels, so that the move list has 325. Fira Code was chosen by its look, from six fonts side by side in the
+    move list.
 
 ## Why
 
@@ -189,6 +198,11 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
 - **The players at the top of the summary column with the gauge,** to give the board the row's height (2.1rem): the
   list put Blue above Red, against the gauge's Blue below Red.
 - **A settings page for the site:** one place for every choice, but a page away while reviewing.
+- **The systems' own monospaced fonts, with the wider analysis column:** no download, but a layout that still
+  changes with the system.
+- **Inconsolata** (0.5 em, drawn after Consolas): it fits the analysis column at 340 pixels, with 20 to spare, so the
+  board keeps its size. Fira Code read better in the move list.
+- **Smaller move text:** the room as it was, but smaller moves for everyone.
 
 ## Consequences
 
@@ -211,6 +225,7 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
   `SoundSettings.svelte`).
 - `src/lib/review/display.ts`: the display settings and their storage in the browser.
 - `src/routes/review/+page.svelte`: the skeleton until the review shows (`opening`, `preloaded`).
+- `src/app.css`: the monospaced font (`--font-mono`, and the font's import).
 
 ## Log entries
 

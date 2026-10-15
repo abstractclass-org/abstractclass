@@ -107,6 +107,24 @@ Rules:
 - **The archive's analysis stays offline:** it is other players' games. It stays in the engine repository's `runs/`,
   out of Git, and this repository commits only statistics over many games and the thresholds fitted from them
   ([requests/07-archive-analysis.md](../requests/07-archive-analysis.md), done).
+- **Review files for many meaf.us games at once:** give meaf.us games (as the archive's lines), and get one review
+  file for each, which the Review tab opens with nothing left to search (design 16: "An import with the file's
+  settings searches nothing"). The depth is a setting, 4,096 visits on HedgeFund 0.1 by default. The files stay on
+  the owner's machine: the games are other players'.
+  - **The plan:** move the review's searches (the label pass at D, the key moments at 2 × D, the Greats'
+    confirmations) out of `GameAnalysis` (`src/lib/analysis/game.svelte.ts`) into a module that the site and a script
+    share, so that a file holds every result that the site asks for. Then `scripts/review-games.mjs`, from
+    `scripts/test-fixture.mjs`: it reads meaf.us games with `meafRecord` (`src/lib/game/meaf.ts`), searches on worker
+    threads, keeps each finished position so that a stop loses little, and writes the files.
+  - **Measured on the CPU** (Node, the engine's WebAssembly module, HedgeFund 0.1, a position after 60 edges, while
+    the engine repository's training used the GPU): 23.8 visits a second for one search, 158 for 12 at once on 16
+    logical cores. The archive's 7,388 games have 89 edges at the median and 120 at most. A 120-edge game at D = 4,096
+    asks about 650,000 visits: about 70 minutes, and about 50 for a median game (estimated, not run).
+  - **A native release of the engine** (the engine repository's `katago enclosure-engine`, the same protocol, with
+    CUDA or TensorRT) would be much faster, not measured. A request to the engine repository, when the CPU is too
+    slow.
+  - **First check:** what took about 40 seconds when the sweep's test game opened from its review file: the engine's
+    load and the rules, or searches that the file lacked.
 
 ## The owner's feedback on the review, puzzles and import (2026-10-10)
 

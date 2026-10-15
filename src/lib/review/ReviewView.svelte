@@ -1805,7 +1805,7 @@
     --gauge-w: 0px;
     --summary-min: 250px;
     --summary-max: 350px;
-    --side-min: 340px;
+    --side-min: 364px; /* the move list by edge in Fira Code: 321 pixels of rows in 325 (design 06) */
     --side-max: 460px;
     --others: calc(var(--side-min) + var(--gap));
     /* The height and the width the board could have, then the charts' area under it: at least --chart-min, and what

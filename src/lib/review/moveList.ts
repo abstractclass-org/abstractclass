@@ -1,7 +1,8 @@
 // The move list's look, in the review, on the Analysis board and in Practice: one row a turn, its number, then its edges
 // in two equal columns (Lichess's move list), each at least a move wide, so that the edges line up down the list. A
-// move's text has one width: the widest in the notation is 8 characters (D10-G10x), in a monospaced font. The move on
-// the board is outlined in the accent colour, and a move under the pointer in the line colour.
+// move's text has one width: the widest in the notation is 8 characters (D10-G10x), in a monospaced font, the same on
+// every system (app.css). The move on the board is outlined in the accent colour, and a move under the pointer in the
+// line colour.
 import type { Player } from "./model.ts";
 import { SIDE_TEXT } from "#lib/ui/side.ts";
 

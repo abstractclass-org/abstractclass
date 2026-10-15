@@ -4,8 +4,8 @@
 //   - the page does not scroll sideways;
 //   - no area that clips or scrolls hides its content sideways (its content is no wider than its inside), but text cut
 //     with an ellipsis, which shows that it is cut, what no one sees (hidden for screen readers alone, or unseen, as the
-//     players' row's twin cards), a code block, which scrolls sideways on purpose, and a moving gleam that its bar
-//     clips (Lichess's bar-glider);
+//     players' row's twin cards), a code block, which scrolls sideways on purpose, a text field, which scrolls its
+//     text by design (the board editor's position), and a moving gleam that its bar clips (Lichess's bar-glider);
 //   - the header is one row.
 // The review shows a game of HedgeFund against itself, reviewed (tests/fixtures/hedgefund-review.json, made by
 // scripts/test-fixture.mjs), and Practice a game in progress from it. Run: npm run test:layout (the site running first).
@@ -28,7 +28,8 @@ function problems(page: Page) {
       if (!(e instanceof HTMLElement) || !e.offsetParent && getComputedStyle(e).position !== "fixed") continue;
       const s = getComputedStyle(e);
       if (!/auto|scroll|hidden|clip/.test(s.overflowX) || e.clientWidth <= 1) continue;
-      if (s.textOverflow === "ellipsis" || e.classList.contains("sr-only") || e.tagName === "PRE" || s.visibility === "hidden") continue;
+      if (s.textOverflow === "ellipsis" || e.classList.contains("sr-only") || s.visibility === "hidden") continue;
+      if (["PRE", "INPUT", "TEXTAREA"].includes(e.tagName)) continue;
       if (["::before", "::after"].some(p => getComputedStyle(e, p).animationName !== "none")) continue;
       if (e.scrollWidth > e.clientWidth + 1) out.push(`${name(e)} hides ${e.scrollWidth - e.clientWidth} pixels sideways (${e.scrollWidth} in ${e.clientWidth})`);
     }

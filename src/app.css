@@ -1,4 +1,10 @@
 @import "tailwindcss";
+/* The site's monospaced font (design 06): Fira Code (SIL Open Font License), from @fontsource-variable/fira-code, its
+   weight axis. One font on every system, so that the move list's columns, sized in characters, measure the same
+   everywhere: the systems' own differ by a tenth (Consolas 0.55 em, Menlo, SF Mono and DejaVu Sans Mono 0.6 em). Fira
+   Code is 0.6 em, and the review's analysis column is wide enough for it (ReviewView.svelte, --side-min). The browser
+   loads it only for a page that shows monospaced text, and only the subsets of the characters that the page shows. */
+@import "@fontsource-variable/fira-code/wght.css";
 
 /* Tailwind's dark: follows the site's theme (src/lib/theme.svelte.ts), not the system's alone. */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
@@ -118,7 +124,7 @@
   --color-best: var(--best);
   --color-mistake: var(--mistake);
   --color-blunder: var(--blunder);
-  --font-mono: ui-monospace, monospace;
+  --font-mono: "Fira Code Variable", ui-monospace, monospace;
 }
 
 /* A screen with a mouse, whose scroll bars take room (the page's area, +layout.svelte). */
