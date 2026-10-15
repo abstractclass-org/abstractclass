@@ -98,3 +98,13 @@ The repository, the stack, hosting, and how the engine's artifacts arrive.
   the domain), so the repository has no Wrangler file. The build's variables are repository variables, and the
   workflow gives the previews no Google Analytics and no Web Analytics, as Pages did. The Cloudflare token is a
   repository secret, with the one permission to edit Pages.
+- **Checked:**
+  - A test branch first (`deploy-test`): its run passed. Cloudflare took the upload into the existing project, with
+    the Function. Its preview had the commit's version, `noindex`, no Google Analytics, the engine's files with their
+    SHA-256, the Function's answer 400 to a request that is not JSON (503 would mean no database), and the userscript
+    with the preview's own address. In Edge, the analysis board's engine searched (160 of 1,024 visits, five
+    candidates).
+  - Then `dev`: its preview deployed, and the workflow **Tests** passed.
+  - Then `main`: the live site serves `1cd3180`, with no `noindex`, the Google Analytics ID and the Web Analytics
+    token in its code, the engine's module as `application/wasm` with its SHA-256, the Function's 400, the userscript
+    with the live address, and 404 for an unknown address.

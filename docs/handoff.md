@@ -6,8 +6,11 @@ It holds no backlog: everything still to do that is not in flight is in
 
 ## State
 
-- **Live:** `048374e` on `main` and `dev`, released on 2026-10-15. Each part's log entry in decisions/product.md says
-  what was checked:
+- **Live:** `1cd3180` on `main` and `dev`, deployed on 2026-10-15 by the workflow **Deploy** (GitHub Actions). It
+  has the move to the organization `abstractclass-org` and the deploy itself, with no change to the site's code since
+  `048374e`. decisions/architecture.md, "The repositories move to the organization abstractclass-org", says what was
+  checked. The test branch `deploy-test` and its preview are still on GitHub and Pages.
+- **Released before it:** `048374e`. Each part's log entry in decisions/product.md says what was checked:
   - **Practice games stored** (design 25): a game against the bot goes to D1 when it ends (`hedgeschool-games`, and
     `hedgeschool-games-preview` for the previews), with a random ID in the browser when the visitor accepts. The new
     consent banner asks every visitor once (a new key, two purposes). The privacy page has a switch for each purpose
@@ -21,7 +24,7 @@ It holds no backlog: everything still to do that is not in flight is in
     monospaced font".
   - **The site's text, a first pass.** Log: "The site's text, a first pass". Left: the passive verbs that the linter
     notes.
-- **Released before it:** `01b29d8`, with `762e92b`:
+- **Released before `048374e`:** `01b29d8`, with `762e92b`:
   - **Practice first** (design 22): first in the header, and the home page's first call to action, beside a board
     that plays three reviewed scenes by edge, with the engine's candidates (`scripts/home-replay.mjs`,
     `HomeReplay.svelte`). Log: product.md, "Practice first" and "The home board plays reviewed scenes".
@@ -56,16 +59,6 @@ It holds no backlog: everything still to do that is not in flight is in
 
 ## In flight
 
-- **The move to the organization `abstractclass-org`, and the deploy by GitHub Actions** (decisions/architecture.md,
-  "The repositories move to the organization abstractclass-org"; hosting.md, section 3): committed on `dev`, not
-  pushed. The live site serves `048374e`, Pages' last build before the move. The order:
-  1. The repository's variables (hosting.md, section 3, "What the deploy needs"). The secret `CLOUDFLARE_API_TOKEN` is
-     set.
-  2. Push a test branch. Check that the run of **Deploy** passes, and that its preview loads with the engine.
-  3. Push `dev` (a preview, and **Tests**), then `main` (production). Check the live site (hosting.md, "Deploy, check
-     and roll back").
-  4. If Cloudflare refuses the upload into this project: stop, and tell the owner. The other way is a new Pages project
-     with a Git connection, and a move of the domain.
 - **To check on the live site:**
   - In Google Analytics' Realtime view (a browser that accepted the cookies, with no ad blocker): `support_open`,
     `practice_from` set_up_start, and Practice's events.
@@ -128,8 +121,7 @@ It holds no backlog: everything still to do that is not in flight is in
 
 ## Check first
 
-1. The move to `abstractclass-org` and the deploy (In flight): the variables, a test branch, then `dev` and `main`.
-2. The live site's practice games (In flight): that games arrive in `hedgeschool-games`, and the Function's errors.
-3. The checks on the live site (In flight): Google Analytics' events, the home board in a shown tab, a phone.
-4. What the owner thinks of the score display.
-5. The backlog's newest items: Practice's levels, its set-up start and its checks still to run.
+1. The live site's practice games (In flight): that games arrive in `hedgeschool-games`, and the Function's errors.
+2. The checks on the live site (In flight): Google Analytics' events, the home board in a shown tab, a phone.
+3. What the owner thinks of the score display.
+4. The backlog's newest items: Practice's levels, its set-up start and its checks still to run.
