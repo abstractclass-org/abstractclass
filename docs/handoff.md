@@ -56,11 +56,16 @@ It holds no backlog: everything still to do that is not in flight is in
 
 ## In flight
 
-- **The move to the organization `abstractclass-org`** (decisions/architecture.md, "The repositories move to the
-  organization abstractclass-org"): the remote, `engine.lock.json` and the documents are changed and committed on
-  `dev`, not pushed. Pages builds nothing from the organization until the owner installs Cloudflare's GitHub app on
-  `abstractclass-org` and the Pages project names the moved repository (hosting.md, section 3). Then push `dev`, and
-  check that Pages builds the preview and that the workflow **Tests** runs and passes.
+- **The move to the organization `abstractclass-org`, and the deploy by GitHub Actions** (decisions/architecture.md,
+  "The repositories move to the organization abstractclass-org"; hosting.md, section 3): committed on `dev`, not
+  pushed. The live site serves `048374e`, Pages' last build before the move. The order:
+  1. The repository's variables (hosting.md, section 3, "What the deploy needs"). The secret `CLOUDFLARE_API_TOKEN` is
+     set.
+  2. Push a test branch. Check that the run of **Deploy** passes, and that its preview loads with the engine.
+  3. Push `dev` (a preview, and **Tests**), then `main` (production). Check the live site (hosting.md, "Deploy, check
+     and roll back").
+  4. If Cloudflare refuses the upload into this project: stop, and tell the owner. The other way is a new Pages project
+     with a Git connection, and a move of the domain.
 - **To check on the live site:**
   - In Google Analytics' Realtime view (a browser that accepted the cookies, with no ad blocker): `support_open`,
     `practice_from` set_up_start, and Practice's events.
@@ -123,8 +128,7 @@ It holds no backlog: everything still to do that is not in flight is in
 
 ## Check first
 
-1. The move to `abstractclass-org` (In flight): after the owner reconnects Pages, push `dev`, then check the preview's
-   build and CI.
+1. The move to `abstractclass-org` and the deploy (In flight): the variables, a test branch, then `dev` and `main`.
 2. The live site's practice games (In flight): that games arrive in `hedgeschool-games`, and the Function's errors.
 3. The checks on the live site (In flight): Google Analytics' events, the home board in a shown tab, a phone.
 4. What the owner thinks of the score display.

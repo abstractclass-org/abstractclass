@@ -90,6 +90,11 @@ The repository, the stack, hosting, and how the engine's artifacts arrive.
   but nothing here relies on that. The dated entries of the decision logs keep the old addresses as history.
 - **Checked:** `npm run engine` with an empty download cache took all 15 files from the new repository's releases, and
   each SHA-256 matched the lock. The module reports protocol 0.6.1 and the search `fdfe5ad`, as the lock gives.
-- **Before the next push:** Cloudflare's GitHub app was installed for the old owner, so Pages builds nothing from the
-  organization until the app is installed there and the project's repository names the organization (hosting.md,
-  section 3).
+- **The deploy moves to GitHub Actions** (`.github/workflows/deploy.yml`, hosting.md section 3). The Pages project lost
+  its Git connection with the move, and Cloudflare cannot add one to an existing Pages project. A new project would
+  need a move of the domain. So a workflow builds each push as Cloudflare's build did (`npm run build:cloudflare`) and
+  uploads it into the same project with Wrangler (`wrangler pages deploy`, pinned to 4.144.0): `main` to production,
+  another branch to a preview. The project keeps its settings in Cloudflare (the D1 binding, the compatibility date,
+  the domain), so the repository has no Wrangler file. The build's variables are repository variables, and the
+  workflow gives the previews no Google Analytics and no Web Analytics, as Pages did. The Cloudflare token is a
+  repository secret, with the one permission to edit Pages.

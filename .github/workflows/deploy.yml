@@ -1,0 +1,66 @@
+# The site's deploy (docs/hosting.md, section 3): each push builds the site and uploads it to the Cloudflare Pages
+# project hedgeschool with Wrangler. A push to main deploys the live site. A push to another branch deploys a preview,
+# at <branch>.hedgeschool.pages.dev. The project has no Git connection: Cloudflare cannot connect a Git repository to an
+# existing Pages project. The project's own settings stay in Cloudflare: the D1 binding GAMES, the compatibility date
+# and the domain. So the repository has no Wrangler file: with one, Pages would take the bindings from that file.
+# The build is the one that Cloudflare's own build ran (npm run build:cloudflare): the engine's release with its SHA-256
+# checks, the unit tests, the type check, then the build. A failed step deploys nothing, and the site stays as it was.
+name: Deploy
+
+on:
+  push:
+  workflow_dispatch:
+
+# One deploy at a time for each branch, in the order of the pushes.
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      BRANCH: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci
+
+      # The two variables of Cloudflare's own build that vite.config.ts reads: the branch (main names the live site's
+      # address, partner_test turns on the partners' test) and the preview's address, for the userscript. Pages names a
+      # branch's preview by the branch, lowercased, with a hyphen for each character that is not a letter or a digit.
+      - name: The branch and its address
+        run: |
+          alias=$(printf '%s' "$BRANCH" | tr 'A-Z' 'a-z' | sed 's/[^a-z0-9]/-/g')
+          echo "CF_PAGES_BRANCH=$BRANCH" >> "$GITHUB_ENV"
+          echo "CF_PAGES_URL=https://$alias.hedgeschool.pages.dev" >> "$GITHUB_ENV"
+
+      # The build's variables (repository variables). Previews have no Google Analytics and no Web Analytics, so that
+      # their visits are not counted.
+      - run: npm run build:cloudflare
+        env:
+          VITE_EDITION: ${{ vars.VITE_EDITION }}
+          VITE_STORE_PRACTICE_GAMES: ${{ vars.VITE_STORE_PRACTICE_GAMES }}
+          VITE_GA_ID: ${{ github.ref_name == 'main' && vars.VITE_GA_ID || '' }}
+          VITE_CF_ANALYTICS_TOKEN: ${{ github.ref_name == 'main' && vars.VITE_CF_ANALYTICS_TOKEN || '' }}
+
+      # Wrangler, pinned. It uploads build/ and the Pages Function in functions/. The branch decides production or
+      # preview: the project's production branch is main. The deployment's message is the commit's first line, cut to
+      # 300 characters (the runner's locale is UTF-8, so the cut keeps whole characters).
+      - name: Upload to Cloudflare Pages
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          args=(--project-name=hedgeschool --branch="$BRANCH" --commit-hash="$GITHUB_SHA")
+          first=${MESSAGE%%$'\n'*}
+          if [ -n "$first" ]; then args+=(--commit-message="${first:0:300}"); fi
+          npx --yes wrangler@4.144.0 pages deploy build "${args[@]}"

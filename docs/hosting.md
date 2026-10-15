@@ -11,8 +11,9 @@ entries before it).
 |---|---|---|
 | The domain | `abstractclass.org`, registered at Porkbun | The site's address is `hedgeschool.abstractclass.org`. |
 | DNS | Cloudflare (the zone `abstractclass.org`, free plan), with DNSSEC | Answers for the domain. Porkbun keeps only the registration. |
-| The code | The private GitHub repository `abstractclass-org/hedgeschool`: `dev` for the work, `main` for the live site | A push to `main` deploys. A push to `dev` builds a preview. |
-| The host | Cloudflare Pages, the project `hedgeschool` | Builds the site from the repository and serves the files. Also at `hedgeschool.pages.dev`. |
+| The code | The private GitHub repository `abstractclass-org/hedgeschool`: `dev` for the work, `main` for the live site | A push to `main` deploys the live site. A push to another branch deploys a preview. |
+| The deploy | GitHub Actions (`.github/workflows/deploy.yml`) | On each push: builds the site and uploads it to Pages with Wrangler. `main` goes to production, another branch to a preview (section 3). |
+| The host | Cloudflare Pages, the project `hedgeschool`, with no Git connection | Serves the files that the deploy uploads, and runs the one Function. Also at `hedgeschool.pages.dev`. |
 | The engine | GitHub Releases of the public repository `abstractclass-org/enclosure-engine` | The module and the networks, pinned by SHA-256 in `engine.lock.json`. The build downloads them. |
 | Visit counts | Google Analytics (the property's measurement ID `G-C5RY6DWGWN`) and Cloudflare Web Analytics | Counted in the browser (`src/lib/analytics.svelte.ts`). |
 | Tests | GitHub Actions (`.github/workflows/tests.yml`) | On each push to `dev`: the check, the unit tests and the browser tests in Chromium (the layout sweep, and the practice games' consent). |
@@ -53,13 +54,13 @@ Cloudflare's onboarding also suggests:
 The site's repository is private on GitHub: `abstractclass-org/hedgeschool`. Its remote in the local checkout is
 `origin` (SSH). Two branches:
 
-- **`dev`:** the work. Each commit is pushed to it, so that GitHub holds the local work. Pages builds each push to
-  `dev` as a preview deployment, at `dev.hedgeschool.pages.dev` (and at an address for each deployment), with the
-  preview environment's variables.
+- **`dev`:** the work. Each commit is pushed to it, so that GitHub holds the local work. The deploy (section 3) puts
+  each push to `dev` on Pages as a preview deployment, at `dev.hedgeschool.pages.dev` (and at an address for each
+  deployment), with the previews' variables.
 - **`main`:** the live site. A release brings `main` to `dev`'s commit: `git push origin dev:main` (a fast-forward).
-  Pages then builds and publishes it at `hedgeschool.abstractclass.org`.
+  The deploy then builds it and publishes it at `hedgeschool.abstractclass.org`.
 
-What the repository holds for Pages:
+What the repository holds for the deploy and for Pages:
 
 - **The build command,** `npm run build:cloudflare` (`package.json`): it downloads the engine's release and checks each
   file's SHA-256 (`npm run engine -- --deploy`, which refuses a local engine file), runs the tests and the type check,
@@ -67,8 +68,8 @@ What the repository holds for Pages:
 - **No file over 25 MiB:** Pages refuses a larger file. The engine's step stores each network's graph and ONNX
   Runtime's WebAssembly compressed with gzip, and splits a compressed file over 24 MiB into parts. The page joins and
   decompresses them ([design 15](design/15-gpu.md)).
-- **Node 24** (`.node-version`). Pages' build image has Node 22.16 by default, which cannot run the tests' TypeScript
-  without a flag.
+- **Node 24** (`.node-version`): the deploy and the tests take their Node from this file. Node 22 cannot run the tests'
+  TypeScript without a flag.
 - **The response headers** (`static/_headers`, copied into `build/`): `X-Robots-Tag: noindex` on Cloudflare's own
   addresses (`hedgeschool.pages.dev` and the previews, design 23), and a
   year's cache, never checked again, for the build's hashed code (`/_app/immutable/*`) and the engine's files
@@ -88,85 +89,99 @@ What the repository holds for Pages:
   with `no-cache`, and Cloudflare's edge checks them at Pages each time (`REVALIDATED`).
 - **A 404 page** (`404.html`, adapter-static's fallback, in `vite.config.ts`). Without a `404.html`, Pages serves the
   home page for any address (its rule for single-page applications).
-- **The site's version** in the footer: the commit, which Pages gives the build as `CF_PAGES_COMMIT_SHA`
-  (`vite.config.ts`).
+- **The site's version** in the footer: the commit that the build runs from, by Git (`vite.config.ts`).
 - **The site's address in the userscript** (`/hedge-school.user.js`, design 11): it updates from there and opens the
   review there. A build of `main` (`CF_PAGES_BRANCH`) names `https://hedgeschool.abstractclass.org`, a build of
-  another branch its preview's address (`CF_PAGES_URL`), and a local build the local preview server. The variable
-  `SITE_ORIGIN` sets another, for a test on another address.
+  another branch its preview's address (`CF_PAGES_URL`), and a local build the local preview server. The deploy sets
+  these two variables, with the names that Cloudflare's own build gave them. Its `CF_PAGES_URL` is the branch's
+  preview address, `https://<branch>.hedgeschool.pages.dev`. The variable `SITE_ORIGIN` sets another address, for a
+  test.
 - **A partner's test pages** (design 18): the build of the branch `partner_test` also takes a partner's save page
   and `from` on the developer's own computer (`localhost`, `127.0.0.1`), so that a partner can test before its own
   site is live (`vite.config.ts` sets `VITE_PARTNER_TEST`). The live site and the `dev` preview take only the
   partners' own https hosts. To give a partner a test site:
-  1. Push the commit to test to `partner_test`: `git push origin dev:partner_test`. Pages builds it as a preview.
+  1. Push the commit to test to `partner_test`: `git push origin dev:partner_test`. The deploy puts it on Pages as a
+     preview.
   2. In the Pages project's **Deployments**, open the `partner_test` deployment, and copy its own address
      (`https://<hash>.hedgeschool.pages.dev`), not the branch's address.
   3. Give the partner that address. It shows that deployment only, and a later push gives a new address.
   4. To withdraw it, delete the deployment (its **⋯** menu, **Delete deployment**).
 
-To try the build as Pages runs it: `VITE_EDITION=early npm run build:cloudflare`. From a clean clone, run `npm ci`
+To try the build as the deploy runs it: `VITE_EDITION=early npm run build:cloudflare`. From a clean clone, run `npm ci`
 first.
 
-## 3. The Pages project
+## 3. The Pages project and the deploy
 
-1. In the Cloudflare dashboard, **Workers & Pages → Create**. The page offers Workers first: choose **Pages**, then
-   **Import an existing Git repository**.
-2. **Connect GitHub:** install Cloudflare's GitHub app ("Cloudflare Workers and Pages") on the GitHub organization
-   `abstractclass-org`, which owns the repository. Under **Repository access**, choose **Only select repositories**
-   and select the one repository, `hedgeschool`. Only an owner of the organization (or a member with GitHub's role
-   "GitHub App manager") can install the app there.
-3. **Set up the build:**
+The Pages project `hedgeschool` has no Git connection. A GitHub Actions workflow, **Deploy**
+(`.github/workflows/deploy.yml`), builds each push and uploads it to the project with Wrangler, Cloudflare's command
+line tool.
 
-   | Setting | Value |
-   |---|---|
-   | Project name | `hedgeschool` (its address: `hedgeschool.pages.dev`) |
-   | Production branch | `main` |
-   | Framework preset | None |
-   | Build command | `npm run build:cloudflare` |
-   | Build output directory | `build` |
-   | Root directory | empty |
-   | Variable `VITE_EDITION` | `early` |
-   | Variable `VITE_GA_ID` | `G-C5RY6DWGWN` |
-   | Variable `VITE_CF_ANALYTICS_TOKEN` | Cloudflare Web Analytics' token (step 5 below), when there is one |
+**Why GitHub Actions, not Cloudflare's own build:** the project first built the repository itself, through Cloudflare's
+GitHub app. When the repository moved to the organization `abstractclass-org`, that connection was removed. Cloudflare
+cannot add a Git connection to an existing Pages project: only a new project can have one. A new project would need a
+move of the domain. So the deploy uploads into the same project, which keeps its domain, its bindings and its
+deployments.
 
-   Pages installs the dependencies (`npm ci`) before the build command.
-4. **Save and Deploy.** The first build takes a few minutes. Its log is under the project's deployments.
-5. **The custom domain:** in the project, **Custom domains → Set up a custom domain →**
-   `hedgeschool.abstractclass.org`. The zone is on Cloudflare, so Pages adds the DNS record (a CNAME to
-   `hedgeschool.pages.dev`) by itself. The certificate follows in a few minutes.
+**The project's settings stay in Cloudflare:**
 
-**When the repository moves to another GitHub owner,** the app's installation does not move with it: an installation
-belongs to one GitHub account or organization. Pages builds no push until the app is installed on the new owner, as in
-step 2. Then open the project's **Settings → Build**. Its **Git repository** must name the new owner's repository, and
-**Manage** there opens the app's installation on GitHub. Before the next release, push to `dev` and check that
-**Deployments** shows the preview's build.
+- the production branch, `main`;
+- the D1 binding `GAMES`, in Production and in Preview (section 7);
+- the compatibility date, 2026-10-12, for the Function;
+- the custom domain, `hedgeschool.abstractclass.org` (**Custom domains → Set up a custom domain**). The zone is on
+  Cloudflare, so Pages adds the DNS record (a CNAME to `hedgeschool.pages.dev`) by itself.
 
-**Why the framework preset is None, not SvelteKit.** A preset only fills in the build command and the output
-directory. Cloudflare's SvelteKit preset gives `npm run build` and `.svelte-kit/cloudflare`: the output of Cloudflare's
-own SvelteKit adapter, which renders pages on a server in a Worker. This site uses adapter-static, which writes plain
-files to `build/`, because the site is static by design ([design/02-static-site.md](design/02-static-site.md)). The
-Cloudflare adapter would also put each request through a Worker: the free plan's daily request limit would apply, and
-`_headers` does not apply to a Worker's responses.
+The repository has no Wrangler file. With a Wrangler file that names `pages_build_output_dir`, Pages takes the bindings
+from that file, not from the project's settings.
 
-**The variables** are read when the site is built, so a change needs a new deploy (**Deployments → Retry deployment**,
-or a push). Production and preview deployments have their own (**Settings**, then the environment's selector at the
-top right):
+**What the deploy does on each push:**
 
-| Variable | Production | Preview |
+1. It installs the dependencies (`npm ci`), with the Node of `.node-version`.
+2. It sets `CF_PAGES_BRANCH` and `CF_PAGES_URL` for the build (section 2, the site's address in the userscript).
+3. It runs `npm run build:cloudflare`, with the variables of the branch (below). A failed test or type error stops the
+   deploy, and the site stays as it was.
+4. It uploads `build/` and the Function in `functions/` with Wrangler, pinned to one version: `wrangler pages deploy
+   build --project-name=hedgeschool --branch=<the branch>`. The branch `main` goes to production. Another branch goes
+   to a preview at `<branch>.hedgeschool.pages.dev`: Pages lowercases the branch's name, and puts a hyphen for each
+   character that is not a letter or a digit.
+
+**What the deploy needs,** in the repository's **Settings → Secrets and variables → Actions**:
+
+| Name | Kind | Value |
+|---|---|---|
+| `CLOUDFLARE_API_TOKEN` | secret | A Cloudflare API token with one permission: Account, Cloudflare Pages, Edit |
+| `CLOUDFLARE_ACCOUNT_ID` | variable | The Cloudflare account's ID |
+| `VITE_EDITION` | variable | `early` |
+| `VITE_STORE_PRACTICE_GAMES` | variable | `on` |
+| `VITE_GA_ID` | variable | The Google Analytics measurement ID (section 4) |
+| `VITE_CF_ANALYTICS_TOKEN` | variable | Cloudflare Web Analytics' token (section 5) |
+
+To make the token: in the Cloudflare dashboard, **Account API tokens → Create Token → Custom token**. Give it a name,
+the permission **Account → Cloudflare Pages → Edit**, then **Continue to summary → Create Token**
+([Cloudflare's guide](https://developers.cloudflare.com/pages/how-to/use-direct-upload-with-continuous-integration/)).
+Paste its value into the repository's secret only. A token that was shown anywhere else (a terminal, a chat) is rolled
+(**Roll** on the token), and the new value goes into the secret.
+
+**The build's variables** are read when the site is built, so a change needs a new deploy: a push, or **Actions →
+Deploy → Run workflow** on the branch. The workflow gives production and the previews their own:
+
+| Variable | Production (`main`) | Preview (another branch) |
 |---|---|---|
 | `VITE_EDITION` | `early` | `early` |
 | `VITE_GA_ID` | the measurement ID | none, so that previews are not counted |
 | `VITE_CF_ANALYTICS_TOKEN` | the token | none |
 | `VITE_STORE_PRACTICE_GAMES` | `on` | `on`, so that the previews store games too, in their own database (section 7) |
 
-**The build cache** (beta, **Settings → Build → Build cache**): on. Pages keeps npm's global cache (`.npm`) between
-the project's builds, so `npm ci` downloads less. Pages deletes the cache 7 days after its last read, and **Clear
-Cache** beside the setting empties it ([Cloudflare's page](https://developers.cloudflare.com/pages/configuration/build-caching/)).
+**Why adapter-static, not Cloudflare's SvelteKit adapter:** Cloudflare's adapter renders pages on a server in a Worker.
+This site uses adapter-static, which writes plain files to `build/`, because the site is static by design
+([design/02-static-site.md](design/02-static-site.md)). The Cloudflare adapter would also put each request through a
+Worker: the free plan's daily request limit would apply, and `_headers` does not apply to a Worker's responses.
 
-**Preview deployments** (**Settings → Branch control**, preview branch: all branches other than `main`): free, as
-production builds are. Each counts toward the free plan's 500 builds a month, and the free plan builds one at a time,
-so a preview that is building delays a release by a minute or so. Preview addresses are public, and unlisted
-(`noindex`, design 23), while the live address is indexed. **Preview access** in the project's settings can put them behind a sign-in (Cloudflare Access).
+**The npm cache:** `actions/setup-node` keeps npm's cache between runs, so `npm ci` downloads less.
+
+**Preview deployments:** each push to a branch other than `main` deploys a preview. Each run of the workflow uses
+GitHub Actions minutes, which count against the organization's monthly allowance for private repositories. Preview
+addresses are public, and unlisted (`noindex`, design 23), while the live address is indexed. **Preview access** in the
+project's settings can put them behind a sign-in (Cloudflare Access).
 
 ## 4. Google Analytics
 
@@ -220,7 +235,7 @@ Cloudflare sends these alerts by email to the account's address (**Observability
 
 | Alert | Type and settings | What it tells |
 |---|---|---|
-| Hedge School: deployment failed | Pages, "Project updates": the project `hedgeschool`, Production and Preview, the event "Deployment failed" | A build failed. A failed build of `main` leaves the previous deployment live, so the site itself shows no sign. |
+| Hedge School: deployment failed | Pages, "Project updates": the project `hedgeschool`, Production and Preview, the event "Deployment failed" | A deployment failed at Pages. A failed build fails earlier, in GitHub Actions, before any upload: GitHub's notifications tell of a failed run of **Deploy**. Either way the previous deployment stays live, so the site itself shows no sign. |
 | abstractclass.org: Universal SSL certificate | SSL/TLS, "Universal SSL Alert" | The zone's certificate failed its validation, issuance or renewal, or it expired. Without it, browsers refuse the site. |
 | Hedge School: 5xx from Pages | Custom alert (beta), detection method Threshold: the query below, 3 or more in an evaluation window of 5 minutes. It runs each minute. While the condition holds, it sends the email again each hour. | Pages answered requests to the live site with a server error. The site is static, so Pages should give none. |
 
@@ -239,7 +254,7 @@ them. Logs shows 404 for the same requests, for example `/favicon.ico`, and no v
 rows reached 7 in one interval of 5 minutes, so an alert on the edge status would send false alarms. None of them has
 an origin status of 500 or more.
 
-A deployment that succeeds sends no email: each push to `dev` builds a preview, and those emails would be noise. The
+A deployment that succeeds sends no email: each push to `dev` deploys a preview, and those emails would be noise. The
 weekly Web Analytics summary is not set ([decisions/open-items.md](decisions/open-items.md)).
 
 **The dashboard "Error monitoring"** (**Observability → Dashboards**, from Cloudflare's template): the 4xx and 5xx
@@ -264,10 +279,10 @@ databases and their bindings are set up once, in the Cloudflare dashboard:
    database `hedgeschool-games`, and **Save**. Then with the selector on **Preview**: **Add → D1 database**, the
    variable name `GAMES`, the database `hedgeschool-games-preview`, and **Save**. The name `GAMES` is the one that the
    Function reads, in both environments.
-4. **Turn the sending on.** In **Settings → Variables and Secrets**, add `VITE_STORE_PRACTICE_GAMES` with the value
-   `on`, as text, in **Production** and again in **Preview** (the table of variables above).
-5. **Deploy again:** push to `dev` (or **Deployments → Retry deployment**). A binding and a variable take effect from
-   the next deployment.
+4. **Turn the sending on:** the repository's variable `VITE_STORE_PRACTICE_GAMES` is `on`, for production and the
+   previews (section 3).
+5. **Deploy again:** push to `dev`, or run the workflow **Deploy** on `dev` (**Actions → Deploy → Run workflow**). A
+   binding and a variable take effect from the next deployment.
 6. **Check on the preview:** play a game against HedgeFund on `dev.hedgeschool.pages.dev` to its end, or abort it
    after a move. Then, in `hedgeschool-games-preview`'s **Console**, run
    `SELECT id, browser, outcome, edges, received FROM practice_games;`. The game is there.
@@ -291,9 +306,10 @@ the next visit).
   the preview (`npm run preview -- --host 127.0.0.1 --port 4173`), and run `npx playwright test --project=edge` (about
   7 minutes). `npm run test:layout` runs both browsers. Either can run against a preview:
   `BASE_URL=https://dev.hedgeschool.pages.dev npm run test:layout`.
-- **Deploy:** release `dev` to `main` (`git push origin dev:main`). Pages builds and publishes in a minute or two. A
-  failed build leaves the live site as it was. Try a change first on `dev`'s preview.
-- **Check:** the footer's version is the commit that Pages built. On the live site, these hold (all true on
+- **Deploy:** release `dev` to `main` (`git push origin dev:main`). The workflow **Deploy** builds and uploads it in a
+  few minutes (its build runs the unit tests and the type check again). A failed build leaves the live site as it was.
+  Try a change first on `dev`'s preview.
+- **Check:** the footer's version is the commit that the deploy built. On the live site, these hold (all true on
   2026-10-12, at commit `3580146`):
   - the live address answers with no `X-Robots-Tag`, `hedgeschool.pages.dev` and the previews with `noindex`
     (design 23), and an unknown address answers 404.

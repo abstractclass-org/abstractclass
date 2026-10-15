@@ -11,13 +11,14 @@ const commit = process.env.CF_PAGES_COMMIT_SHA ?? process.env.WORKERS_CI_COMMIT_
 	?? (() => { try { return execSync('git rev-parse HEAD').toString().trim(); } catch { return 'unknown'; } })();
 
 // The site's address, for what leaves the site and comes back to it: the userscript, which updates from it and opens
-// the review there (src/lib/game/userscript.ts). Cloudflare's build of main is the live site, a build of another branch
-// its preview, and a local build the local preview server. SITE_ORIGIN sets another.
+// the review there (src/lib/game/userscript.ts). The deploy's build of main (.github/workflows/deploy.yml, which sets
+// Cloudflare's build variables) is the live site, a build of another branch its preview, and a local build the local
+// preview server. SITE_ORIGIN sets another.
 const origin = process.env.SITE_ORIGIN
 	?? (process.env.CF_PAGES_BRANCH === 'main' ? 'https://hedgeschool.abstractclass.org'
 		: process.env.CF_PAGES_URL ?? 'http://127.0.0.1:4173');
 
-// The partner sites' test (src/lib/game/partners.ts, design 18): Cloudflare's build of the branch partner_test also
+// The partner sites' test (src/lib/game/partners.ts, design 18): the deploy's build of the branch partner_test also
 // takes a partner's pages on the developer's own computer (localhost), so that a partner can test before its own site
 // is live. The live site and the dev preview never do. For a local build, VITE_PARTNER_TEST=1 sets it. Vite reads the
 // VITE_ variables after it loads this file.

@@ -42,14 +42,14 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
    development.
 4. **Listed** (design 23, which replaced the first rule, unlisted): search engines index the live address, and
    Cloudflare's preview addresses answer with `noindex`. The Discord is where players report problems.
-5. **Hosting: Cloudflare Pages,** built from the private GitHub repository on every push to `main`:
+5. **Hosting: Cloudflare Pages.** A GitHub Actions workflow builds the private GitHub repository on every push, and
+   uploads `main` to production (hosting.md, section 3, says why Pages does not build it itself):
    - **The build command,** `npm run build:cloudflare`: it downloads the engine from its GitHub Release (`npm run engine
      -- --deploy`, which refuses local engine files), runs the tests and the type check, then builds into `build/`.
-     Pages installs the dependencies first (`npm ci`).
-   - **Node 24** (`.node-version`): Pages' build image has Node 22.16 by default, which cannot run the tests' TypeScript
-     without a flag.
-   - **The build's variables:** `VITE_EDITION=early`, `VITE_GA_ID` and `VITE_CF_ANALYTICS_TOKEN` (item 7). Pages names
-     the commit (`CF_PAGES_COMMIT_SHA`), which the footer shows.
+     The workflow installs the dependencies first (`npm ci`).
+   - **Node 24** (`.node-version`): Node 22 cannot run the tests' TypeScript without a flag.
+   - **The build's variables:** `VITE_EDITION=early`, `VITE_GA_ID` and `VITE_CF_ANALYTICS_TOKEN` (item 7). The footer
+     shows the commit that the build runs from.
    - **The headers** (`static/_headers`): `noindex` on Cloudflare's preview addresses (design 23), and a year's cache, never checked again, for the
      build's hashed code (`/_app/immutable/`) and the engine's files (`/engine/<id>/<file>`): their paths name their
      content, so a file there never changes. `/engine/manifest.json` keeps the default check on each load. The meaf.us

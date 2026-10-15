@@ -43,9 +43,9 @@ The engine, the rules and the bots live in the engine repository,
   decisions.
 - Ask before any public use of other people's games (the meaf.us archive).
 - Commits: stage named files only, never `git add -A`. Commit only when asked. No attribution lines.
-- Branches: work on `dev`, and push it after each commit, so that GitHub holds the work. Cloudflare Pages builds a
-  preview of each push to `dev`. `main` is the live site: push to it only when the owner says to release (`git push
-  origin dev:main`). See [docs/hosting.md](docs/hosting.md).
+- Branches: work on `dev`, and push it after each commit, so that GitHub holds the work. The workflow **Deploy** puts
+  a preview of each push to `dev` on Cloudflare Pages. `main` is the live site: push to it only when the owner says to
+  release (`git push origin dev:main`). See [docs/hosting.md](docs/hosting.md).
 
 ## Writing documents
 
