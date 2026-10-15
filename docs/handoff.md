@@ -6,7 +6,22 @@ It holds no backlog: everything still to do that is not in flight is in
 
 ## State
 
-- **Live:** `01b29d8` on `main` and `dev`, released on 2026-10-15, with `762e92b` before it:
+- **Live:** `048374e` on `main` and `dev`, released on 2026-10-15. Each part's log entry in decisions/product.md says
+  what was checked:
+  - **Practice games stored** (design 25): a game against the bot goes to D1 when it ends (`hedgeschool-games`, and
+    `hedgeschool-games-preview` for the previews), with a random ID in the browser when the visitor accepts. The new
+    consent banner asks every visitor once (a new key, two purposes). The privacy page has a switch for each purpose
+    and "Delete my practice games". The fixes from two Codex reviews: a Decline across tabs, a game that arrives
+    after a delete, the switches. Log: "Practice games stored: built".
+  - **The layout sweep and CI** (`npm run test:layout`, `tests/layout.spec.ts`, `tests/practice-games.spec.ts`,
+    `.github/workflows/tests.yml`): each page at every width from 360 to 1,920 pixels with real scroll bars, the
+    review in three displays, and a Decline across two tabs. CI runs the check, the unit tests and the browser tests
+    in Chromium on Linux on each push to `dev`, about 10 minutes. Log: "The layout sweep".
+  - **One monospaced font:** Fira Code on every system, with the analysis column at 364 pixels (design 06). Log: "One
+    monospaced font".
+  - **The site's text, a first pass.** Log: "The site's text, a first pass". Left: the passive verbs that the linter
+    notes.
+- **Released before it:** `01b29d8`, with `762e92b`:
   - **Practice first** (design 22): first in the header, and the home page's first call to action, beside a board
     that plays three reviewed scenes by edge, with the engine's candidates (`scripts/home-replay.mjs`,
     `HomeReplay.svelte`). Log: product.md, "Practice first" and "The home board plays reviewed scenes".
@@ -25,6 +40,10 @@ It holds no backlog: everything still to do that is not in flight is in
     custom dimension.
   - **The site's text by what it does** (CLAUDE.md, "Writing the site's text"). A pass over the pages under this rule
     is not done.
+- **Checks on `048374e`:** CI passes (the check, 116 unit tests, 11 browser tests on Linux). The sweep passes in
+  Chromium and Edge on Windows. The live site serves it: its pages answer, its stylesheet names Fira Code, and the
+  Function on `/api/practice-games` answers 400 to a request that is not JSON (it would answer 503 with no database).
+  On the dev preview, a game was sent and then deleted (read through Cloudflare's API).
 - **The engine:** protocol 0.6.1, the release `wasm-v2-engine-85f1792` (both analysis modules and the practice bot's
   files, in `engine-85f1792-lib`), with `NOTICES.txt` from `54486cd`, the terms from `27a7414`, and the networks
   and graphs from `wasm-v2-engine-632f2a0`: HedgeFund 0.1 Lite (`b10c128-s66625408`) and HedgeFund 0.1
@@ -45,33 +64,9 @@ It holds no backlog: everything still to do that is not in flight is in
   - A tip through Ko-fi's panel, by the owner.
   - The site on a phone: the site's menu with Support Us, the header scrolling away, Practice in one column, and
     the home board.
-- **On `dev`, not released** (the commit after `f9e2aac`). `npm test` passes (116), `npm run check` has no errors or
-  warnings. Each part's log entry in decisions/product.md says what was checked:
-  - **The layout sweep** (`npm run test:layout`, `tests/layout.spec.ts`, `playwright.config.ts`, Playwright Test
-    1.63.0): each page at every width from 360 to 1,920 pixels, in Chromium and in Edge, with real scroll bars, and
-    the review in three displays. Its game: `tests/fixtures/hedgefund-review.json` (`scripts/test-fixture.mjs`). The
-    rule in CLAUDE.md ("How to work"), and the release step in hosting.md. It found the players' row running out of
-    the page at 360 to 490 pixels (fixed: `PlayerRow.svelte`). In CI: `.github/workflows/tests.yml`, on each push to
-    `dev`, with `tests/practice-games.spec.ts`. The push of this commit is its first run: it tells whether Chromium on
-    Linux shows scroll bars that take room, and how long the engine takes to load there. Log: "The layout sweep".
-  - **Practice games stored, built** (design 25), with the fixes from two Codex reviews (a Decline across tabs, a
-    game that arrives after a delete, the privacy page's switches). Log: "Practice games stored: built".
-    `toAnalysis` moved to `src/lib/engine/analysis.ts`, and `scripts/node-engine.mjs` can load a network, for the
-    fixture. The databases are set up (hosting.md, section 7), checked through Cloudflare's API: both databases have
-    both tables and no rows, `GAMES` is bound to `hedgeschool-games` in production and to
-    `hedgeschool-games-preview` in the previews, and `VITE_STORE_PRACTICE_GAMES` is `on` in both.
-  - **The site's text, a first pass:** the messages, the Tools page's steps, and the explaining pages' semicolons and
-    long sentences. Log: "The site's text, a first pass". Left: the passive verbs that the linter notes.
-  - **One monospaced font** (the commit after `ee5c12a`): CI's first run failed on Linux, whose monospaced font is
-    wider than Windows', and the review's move list by edge hid 20 pixels at 1,260 to 1,490 pixels wide. Now Fira
-    Code on every system, chosen from six fonts on a comparison page, with the analysis column at 364 pixels, not 340
-    (design 06). The sweep passes in Chromium and Edge on Windows. Log: "One monospaced font".
-- **Checked on the dev preview** (`191ecb0`): a game sent with the browser's ID, its times and no name, and "Delete my
-  practice games", which deleted it and kept the ID in `deleted_browsers` (read through Cloudflare's API). The
-  banner's words changed after (a random ID, games against bots), in the next commit. Ready to release once its CI
-  run passes.
-- **The release of this work asks every visitor again** (the consent's new key, with both purposes). Intended: a
-  consent covers the purposes that it named (design 25, item 5).
+- **The live site's practice games:** read `hedgeschool-games` after a day of visits (`SELECT outcome, side, network,
+  visits, COUNT(*) FROM practice_games GROUP BY 1, 2, 3, 4`), and the Function's errors in Cloudflare's dashboard
+  (**Workers & Pages → hedgeschool → Functions**).
 - **The layout shift on the live site:** Cloudflare's Web Analytics gave `/review` a CLS of 0.151 before `f55e0f6`.
   On the local build it was 0 to 0.0023 at the window sizes measured, and 0.0025 at 1,282 pixels after `8b60dd0`'s
   changes (the summary column). Read Cloudflare's Core Web Vitals for `/review` after a few days of visits
@@ -123,7 +118,7 @@ It holds no backlog: everything still to do that is not in flight is in
 
 ## Check first
 
-1. The workflow **Tests** on `dev`, on the font's commit: whether the sweep passes on Linux now.
-2. The release (`git push origin dev:main`), when the owner says, after the wording commit's CI run.
+1. The live site's practice games (In flight): that games arrive in `hedgeschool-games`, and the Function's errors.
+2. The checks on the live site (In flight): Google Analytics' events, the home board in a shown tab, a phone.
 3. What the owner thinks of the score display.
 4. The backlog's newest items: Practice's levels, its set-up start and its checks still to run.
