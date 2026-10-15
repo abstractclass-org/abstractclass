@@ -34,8 +34,8 @@ Lichess and chess.com keep every game played on them:
 3. **A random number in each browser that links its games, with the visitor's consent.** It lets the calibration tell
    a player's strength from a setting's. Without consent, a game goes with no number, and nothing links it to another
    game. Lichess's session cookie needs no consent because play needs it. The number serves the data only, so it
-   needs consent (the EU's ePrivacy rules). Its name on the page is what it does ("links your games against
-   HedgeFund"), not a name of ours.
+   needs consent (the EU's ePrivacy rules). The page calls it a random ID, and says what it does ("groups your games
+   against bots"), not a name of ours. "Bots", not "HedgeFund": the consent then holds for a bot added later.
 4. **No switch to keep games out:** a game with no number and no name identifies no one, as Lichess's anonymous
    games. For the linked games, the consent is the way out: Decline stops the link, and the privacy page deletes the
    games that went with this browser's number.
@@ -48,11 +48,11 @@ Lichess and chess.com keep every game played on them:
 
    > **Help the school get better**
    > Hedge School is free. If you accept, two things help us improve it:
-   > - A random number in this browser links your games against HedgeFund, so that its levels fit how real players
-   >   play.
+   > - A random ID in this browser groups your games against bots, so we can tell how hard each setting is for real
+   >   players.
    > - Google Analytics' cookies show which pages and tools you come back to, so that we work on those.
    >
-   > Your games against HedgeFund are kept either way, never with your name. We never sell your data.
+   > Your games against bots are kept either way, never with your name. We never sell your data.
    > [Accept] [Decline] Choose each · Privacy
 
    The banner ships with the games' storage: a consent covers the purposes that it named, so a banner for Google

@@ -66,9 +66,10 @@ It holds no backlog: everything still to do that is not in flight is in
     wider than Windows', and the review's move list by edge hid 20 pixels at 1,260 to 1,490 pixels wide. Now Fira
     Code on every system, chosen from six fonts on a comparison page, with the analysis column at 364 pixels, not 340
     (design 06). The sweep passes in Chromium and Edge on Windows. Log: "One monospaced font".
-- **To check on the dev preview, before the release:** accept the banner, play a game against HedgeFund and abort it
-  after a move, and see its row in `hedgeschool-games-preview` with the browser's number. Then "Delete my practice
-  games" on the privacy page: the row goes, and the number is in `deleted_browsers`.
+- **Checked on the dev preview** (`191ecb0`): a game sent with the browser's ID, its times and no name, and "Delete my
+  practice games", which deleted it and kept the ID in `deleted_browsers` (read through Cloudflare's API). The
+  banner's words changed after (a random ID, games against bots), in the next commit. Ready to release once its CI
+  run passes.
 - **The release of this work asks every visitor again** (the consent's new key, with both purposes). Intended: a
   consent covers the purposes that it named (design 25, item 5).
 - **The layout shift on the live site:** Cloudflare's Web Analytics gave `/review` a CLS of 0.151 before `f55e0f6`.
@@ -123,6 +124,6 @@ It holds no backlog: everything still to do that is not in flight is in
 ## Check first
 
 1. The workflow **Tests** on `dev`, on the font's commit: whether the sweep passes on Linux now.
-2. The dev preview's check of the game storage (In flight), then the release.
+2. The release (`git push origin dev:main`), when the owner says, after the wording commit's CI run.
 3. What the owner thinks of the score display.
 4. The backlog's newest items: Practice's levels, its set-up start and its checks still to run.

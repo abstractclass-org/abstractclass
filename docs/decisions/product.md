@@ -2953,6 +2953,10 @@ The interface, the review, puzzles, lessons, labels and thresholds.
     It runs in CI, and skips on a build that stores no games. Checked once in Chromium, with tests not kept: a delete
     during a send, a game kept under a forgotten number, and the switches with two purposes (no grant sent to the
     Google tag). Not checked: the Function on Cloudflare's D1.
+- **The banner's words, read again:** "a random ID", not "a random number", and the bullet says what grouping the
+  games lets the site learn: "A random ID in this browser groups your games against bots, so we can tell how hard
+  each setting is for real players." The banner and the privacy page's switch say "bots", not "HedgeFund", so that
+  the consent holds for a bot added later. The privacy page's account of what is kept still names HedgeFund.
 - **Checked:** `src/lib/practice/stored.test.ts` (5 tests, with the one added after the reviews): the stored game's
   checks, and the Function on the real schema in Node's own SQLite: a game kept once, a browser's games deleted, and
   the refusals (not JSON, an invalid field, more than 64 KB, no database). `npm test` passes (116 after the reviews), `npm run check` has no errors or warnings. The banner

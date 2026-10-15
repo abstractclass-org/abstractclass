@@ -34,7 +34,7 @@ test("a Decline in another tab: the practice tab's game goes with no number, and
   // The Decline, in another tab.
   const privacy = await context.newPage();
   await privacy.goto("/privacy");
-  const link = privacy.getByRole("switch", { name: /Link my games/ });
+  const link = privacy.getByRole("switch", { name: /Group my games/ });
   await expect(link).toBeChecked();
   await link.click();
   await expect(link).not.toBeChecked();
@@ -51,5 +51,5 @@ test("a Decline in another tab: the practice tab's game goes with no number, and
   await practice.locator("#to-privacy").click({ timeout: 10_000 });
   await practice.waitForURL("**/privacy", { timeout: 10_000 });
   expect(await practice.evaluate(() => performance.getEntriesByType("navigation").length)).toBe(1);
-  await expect(practice.getByRole("switch", { name: /Link my games/ })).not.toBeChecked();
+  await expect(practice.getByRole("switch", { name: /Group my games/ })).not.toBeChecked();
 });

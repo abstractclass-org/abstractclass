@@ -8,7 +8,7 @@
   import Collie from "#lib/Collie.svelte";
 
   const TEXT = {
-    games: "A random number in this browser links your games against HedgeFund, so that its levels fit how real players play.",
+    games: "A random ID in this browser groups your games against bots, so we can tell how hard each setting is for real players.",
     analytics: "Google Analytics' cookies show which pages and tools you come back to, so that we work on those.",
   };
   const items = (["games", "analytics"] as const).filter(p => PURPOSES.includes(p));
@@ -24,7 +24,7 @@
       <ul class="grid gap-1.5 pl-4 list-disc">
         {#each items as p (p)}<li>{TEXT[p]}</li>{/each}
       </ul>
-      <p>{#if STORES_PRACTICE_GAMES}Your games against HedgeFund are kept either way, never with your name.{/if}
+      <p>{#if STORES_PRACTICE_GAMES}Your games against bots are kept either way, never with your name.{/if}
         We never sell your data.</p>
     </div>
   </div>

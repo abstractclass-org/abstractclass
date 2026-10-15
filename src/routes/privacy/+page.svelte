@@ -15,7 +15,7 @@
   let mounted = $state(false), number = $state<string | null>(null), deleting = $state(false), deleted = $state("");
   onMount(() => { mounted = true; number = keptNumber(); });
   const LABEL: Record<Purpose, string> = {
-    games: "Link my games against HedgeFund with a random number in this browser",
+    games: "Group my games against bots with a random ID in this browser",
     analytics: "Let Google Analytics set cookies that tell my visits apart",
   };
   async function deleteGames() {
@@ -55,7 +55,7 @@
       gave for its record, and the settings you chose for the next game</li>
     <li><strong>Your settings:</strong> the review's, the engine's, Practice's, and the theme</li>
     <li><strong>Your choices</strong> about Google Analytics' cookies and about the link between your games, those
-      cookies if you accept them, and the random number that links your games if you accept it</li>
+      cookies if you accept them, and the random ID that groups your games if you accept it</li>
     {#if STORES_PRACTICE_GAMES}<li><strong>Your games against HedgeFund that could not be sent yet:</strong> they go
       on your next visit</li>{/if}
   </ul>
@@ -78,13 +78,13 @@
     <p>The games show the site how players play against each setting of the bot, so that its levels fit real players,
       and what players find hard. The site can publish them as an open dataset, under CC0, as Lichess publishes its
       games. They hold no name. The site keeps them with no time limit.</p>
-    <p>If you accept, a random number in this browser goes with each of your games, so that your games can be told
-      apart from other players' games. The number says nothing about you. If you do not accept, a game goes with no
-      number, and nothing links it to another game. You can change this choice, and delete the games that went with
-      the number, <a href="#consent">below</a>. After a delete, the site keeps the number alone, with no game, so that
-      it does not keep a game that arrives with it later.</p>
-    <p>A game that cannot be sent when it ends waits in this browser, and goes on your next visit. It goes with the
-      number only if you still accept then.</p>
+    <p>If you accept, a random ID in this browser goes with each of your games, so that your games can be told apart
+      from other players' games. The ID says nothing about you. If you do not accept, a game goes with no ID, and
+      nothing links it to another game. You can change this choice, and delete the games that went with the ID,
+      <a href="#consent">below</a>. After a delete, the site keeps the ID alone, with no game, so that it does not keep
+      a game that arrives with it later.</p>
+    <p>A game that cannot be sent when it ends waits in this browser, and goes on your next visit. It goes with the ID
+      only if you still accept then.</p>
   {/if}
 
   <h2>Shared reviews and analyses</h2>
@@ -168,7 +168,7 @@
         {/each}
       </div>
       {#if STORES_PRACTICE_GAMES && number}
-        <p>Your games against HedgeFund went with this browser's random number.
+        <p>Your games against HedgeFund went with this browser's random ID.
           <button type="button" class="ml-1" disabled={deleting} onclick={deleteGames}>Delete my practice games</button></p>
       {/if}
       {#if deleted}<p role="status">{deleted}</p>{/if}
