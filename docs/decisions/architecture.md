@@ -108,3 +108,15 @@ The repository, the stack, hosting, and how the engine's artifacts arrive.
   - Then `main`: the live site serves `1cd3180`, with no `noindex`, the Google Analytics ID and the Web Analytics
     token in its code, the engine's module as `application/wasm` with its SHA-256, the Function's 400, the userscript
     with the live address, and 404 for an unknown address.
+
+### One repository for the learning sites (2026-10-16)
+
+- **What:** one repository for all the learning sites: `apps/hub`, `apps/hedgeschool`, `apps/<the next game>`, and
+  shared code in `packages/`.
+- **Decided** ([design/26-one-repository.md](../design/26-one-repository.md)): Hedge School moves whole into
+  `apps/hedgeschool`, and nothing goes into `packages/` until two sites need it. The hub is a page of links with no
+  analytics. The addresses stay, and this repository becomes the shared one.
+- **How:** a map of `src/lib` by its imports, then a second model's review of the map against the code (Codex). The
+  review corrected the map: splitting `review/model.ts`'s types would not make the review general, because the review
+  builds in Enclosure's turns, sides and scoring.
+- **Next:** the move. Feature work waits until it is done.

@@ -59,6 +59,10 @@ It holds no backlog: everything still to do that is not in flight is in
 
 ## In flight
 
+- **One repository for the learning sites** (design 26): planned, not started. Hedge School moves whole into
+  `apps/hedgeschool`, beside a hub at `abstractclass.org`. Feature work waits until the move is done. Design 26,
+  "Consequences", lists what the move must keep: the deploy from the app's folder, the engine script's path to
+  `onnxruntime-web`, the storage keys and the IndexedDB name.
 - **To check on the live site:**
   - In Google Analytics' Realtime view (a browser that accepted the cookies, with no ad blocker): `support_open`,
     `practice_from` set_up_start, and Practice's events.
@@ -121,7 +125,8 @@ It holds no backlog: everything still to do that is not in flight is in
 
 ## Check first
 
-1. The live site's practice games (In flight): that games arrive in `hedgeschool-games`, and the Function's errors.
-2. The checks on the live site (In flight): Google Analytics' events, the home board in a shown tab, a phone.
-3. What the owner thinks of the score display.
-4. The backlog's newest items: Practice's levels, its set-up start and its checks still to run.
+1. The move to one repository (In flight, design 26): no feature work until it is done.
+2. The live site's practice games (In flight): that games arrive in `hedgeschool-games`, and the Function's errors.
+3. The checks on the live site (In flight): Google Analytics' events, the home board in a shown tab, a phone.
+4. What the owner thinks of the score display.
+5. After the move, the backlog's newest items: Practice's levels, its set-up start and its checks still to run.
