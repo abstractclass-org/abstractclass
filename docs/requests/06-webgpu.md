@@ -17,7 +17,7 @@
 
 ## Step 2 delivered: the GPU module (2026-10-12)
 
-The release `wasm-v2-engine-06534ee` of `seankao31/enclosure-engine` holds:
+The release `wasm-v2-engine-06534ee` of `abstractclass-org/enclosure-engine` holds:
 
 - `enclosure-engine-gpu.wasm`: the GPU module, protocol 0.3, build `06534ee`.
 - `gpu_engine.mjs`: its JavaScript half, for the site's GPU worker.
@@ -145,7 +145,7 @@ shows a gain:
 1. **A measurement.** The time of one evaluation of b10c128 and of b15c192 through WebGPU in a browser worker, at a
    batch of 1 and at larger batches (8, 16, 32), against the WebAssembly build's time on the same machine (16.5 ms
    a position for b10c128 in V8, the engine repository's
-   [`v2/docs/decisions/build.md`](https://github.com/seankao31/enclosure-ai/blob/main/v2/docs/decisions/build.md),
+   [`v2/docs/decisions/build.md`](https://github.com/abstractclass-org/enclosure-ai/blob/main/v2/docs/decisions/build.md),
    "The network in WebAssembly, faster"). The time must include the round trip: the inputs written to the GPU, the
    work, and the outputs read back. On a discrete GPU and on an integrated one, if possible, since many visitors have
    only the second.
@@ -155,9 +155,9 @@ shows a gain:
    - **The search is synchronous and the GPU is not.** The module runs on one thread with a synchronous evaluator
      (`NNEVAL_SYNCHRONOUS`), and WebGPU gives its results through promises. A search in slices already returns to the
      page between slices (the engine repository's
-     [design 04](https://github.com/seankao31/enclosure-ai/blob/main/docs/design/04-notation-and-protocol.md), "Search
-     in slices"). An evaluation on the GPU needs a way to wait too: for
-     example the search returns to the page at each evaluation or batch, or JSPI (JavaScript Promise Integration).
+     [design 04](https://github.com/abstractclass-org/enclosure-ai/blob/main/docs/design/04-notation-and-protocol.md),
+     "Search in slices"). An evaluation on the GPU needs a way to wait too: for example the search returns to the page
+     at each evaluation or batch, or JSPI (JavaScript Promise Integration).
    - **One search thread asks for one evaluation at a time.** A GPU gains most from batches. The review searches many
      positions at once, in several workers, each with its own module. A batch can come from one search (more than one
      leaf a step) or from several searches in one module. Either changes the search, so the step-1 numbers at batch

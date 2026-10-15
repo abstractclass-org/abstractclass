@@ -123,7 +123,7 @@ each applies at once, without a reload.
   so 8 seconds would cut the default depth on most machines. With 30 seconds, a fast machine reaches 1,024 visits,
   and the limit bounds a slow machine or b15c192 (704 visits in 30 seconds, measured in Edge).
 - **The page stops a timed search.** The protocol's `maxTime` does not apply to a search in slices (the engine
-  repository's [design 04](https://github.com/seankao31/enclosure-ai/blob/main/docs/design/04-notation-and-protocol.md),
+  repository's [design 04](https://github.com/abstractclass-org/enclosure-ai/blob/main/docs/design/04-notation-and-protocol.md),
   "Fields for bots"). The page sends `terminate` at the limit, counted from the search's start, not from its wait in
   the queue.
 - **Lite is 512 and Standard 1,024:** under protocol 0.3, after the opening, 256 visits finds only 42% of the

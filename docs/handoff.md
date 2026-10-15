@@ -56,6 +56,11 @@ It holds no backlog: everything still to do that is not in flight is in
 
 ## In flight
 
+- **The move to the organization `abstractclass-org`** (decisions/architecture.md, "The repositories move to the
+  organization abstractclass-org"): the remote, `engine.lock.json` and the documents are changed and committed on
+  `dev`, not pushed. Pages builds nothing from the organization until the owner installs Cloudflare's GitHub app on
+  `abstractclass-org` and the Pages project names the moved repository (hosting.md, section 3). Then push `dev`, and
+  check that Pages builds the preview and that the workflow **Tests** runs and passes.
 - **To check on the live site:**
   - In Google Analytics' Realtime view (a browser that accepted the cookies, with no ad blocker): `support_open`,
     `practice_from` set_up_start, and Practice's events.
@@ -118,7 +123,9 @@ It holds no backlog: everything still to do that is not in flight is in
 
 ## Check first
 
-1. The live site's practice games (In flight): that games arrive in `hedgeschool-games`, and the Function's errors.
-2. The checks on the live site (In flight): Google Analytics' events, the home board in a shown tab, a phone.
-3. What the owner thinks of the score display.
-4. The backlog's newest items: Practice's levels, its set-up start and its checks still to run.
+1. The move to `abstractclass-org` (In flight): after the owner reconnects Pages, push `dev`, then check the preview's
+   build and CI.
+2. The live site's practice games (In flight): that games arrive in `hedgeschool-games`, and the Function's errors.
+3. The checks on the live site (In flight): Google Analytics' events, the home board in a shown tab, a phone.
+4. What the owner thinks of the score display.
+5. The backlog's newest items: Practice's levels, its set-up start and its checks still to run.

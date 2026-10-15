@@ -4,8 +4,8 @@ A website that helps people learn the board game [Enclosure](https://meaf.us/sst
 their games, labels their moves, and later offers puzzles and training.
 
 The site is static files (SvelteKit). The engine (the KataGo fork from
-[enclosure-ai](https://github.com/seankao31/enclosure-ai), compiled to WebAssembly) runs in the visitor's browser, in
-Web Workers. Deep analyses run offline on a GPU and ship as JSON. See [docs/design/](docs/design/README.md).
+[enclosure-ai](https://github.com/abstractclass-org/enclosure-ai), compiled to WebAssembly) runs in the visitor's
+browser, in Web Workers. Deep analyses run offline on a GPU and ship as JSON. See [docs/design/](docs/design/README.md).
 
 ## Status
 
@@ -33,8 +33,8 @@ npm run build:cloudflare              # what Cloudflare Pages runs: the engine's
 ```
 
 `npm run engine` downloads the module and the networks from a GitHub Release of
-[enclosure-engine](https://github.com/seankao31/enclosure-engine), which holds only the engine's releases, and checks
-each file's SHA-256 ([docs/design/03-stack.md](docs/design/03-stack.md)). `--deploy` refuses a local build.
+[enclosure-engine](https://github.com/abstractclass-org/enclosure-engine), which holds only the engine's releases, and
+checks each file's SHA-256 ([docs/design/03-stack.md](docs/design/03-stack.md)). `--deploy` refuses a local build.
 
 The deployed build also names its analytics: `VITE_GA_ID` (Google Analytics) and `VITE_CF_ANALYTICS_TOKEN` (Cloudflare
 Web Analytics). Without them, as in development, the build has neither.

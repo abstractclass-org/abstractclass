@@ -11,9 +11,9 @@ entries before it).
 |---|---|---|
 | The domain | `abstractclass.org`, registered at Porkbun | The site's address is `hedgeschool.abstractclass.org`. |
 | DNS | Cloudflare (the zone `abstractclass.org`, free plan), with DNSSEC | Answers for the domain. Porkbun keeps only the registration. |
-| The code | The private GitHub repository `seankao31/hedgeschool`: `dev` for the work, `main` for the live site | A push to `main` deploys. A push to `dev` builds a preview. |
+| The code | The private GitHub repository `abstractclass-org/hedgeschool`: `dev` for the work, `main` for the live site | A push to `main` deploys. A push to `dev` builds a preview. |
 | The host | Cloudflare Pages, the project `hedgeschool` | Builds the site from the repository and serves the files. Also at `hedgeschool.pages.dev`. |
-| The engine | GitHub Releases of the public repository `seankao31/enclosure-engine` | The module and the networks, pinned by SHA-256 in `engine.lock.json`. The build downloads them. |
+| The engine | GitHub Releases of the public repository `abstractclass-org/enclosure-engine` | The module and the networks, pinned by SHA-256 in `engine.lock.json`. The build downloads them. |
 | Visit counts | Google Analytics (the property's measurement ID `G-C5RY6DWGWN`) and Cloudflare Web Analytics | Counted in the browser (`src/lib/analytics.svelte.ts`). |
 | Tests | GitHub Actions (`.github/workflows/tests.yml`) | On each push to `dev`: the check, the unit tests and the browser tests in Chromium (the layout sweep, and the practice games' consent). |
 | Practice games | Cloudflare D1: `hedgeschool-games` for production, `hedgeschool-games-preview` for the previews | A Pages Function (`functions/api/practice-games.ts`) keeps each game against HedgeFund when it ends (design 25). |
@@ -50,8 +50,8 @@ Cloudflare's onboarding also suggests:
 
 ## 2. The repository
 
-The site's repository is private on GitHub: `seankao31/hedgeschool`. Its remote in the local checkout is `origin`
-(SSH). Two branches:
+The site's repository is private on GitHub: `abstractclass-org/hedgeschool`. Its remote in the local checkout is
+`origin` (SSH). Two branches:
 
 - **`dev`:** the work. Each commit is pushed to it, so that GitHub holds the local work. Pages builds each push to
   `dev` as a preview deployment, at `dev.hedgeschool.pages.dev` (and at an address for each deployment), with the
@@ -111,7 +111,10 @@ first.
 
 1. In the Cloudflare dashboard, **Workers & Pages → Create**. The page offers Workers first: choose **Pages**, then
    **Import an existing Git repository**.
-2. **Connect GitHub:** install Cloudflare's GitHub app, and give it access to the one repository, `hedgeschool`.
+2. **Connect GitHub:** install Cloudflare's GitHub app ("Cloudflare Workers and Pages") on the GitHub organization
+   `abstractclass-org`, which owns the repository. Under **Repository access**, choose **Only select repositories**
+   and select the one repository, `hedgeschool`. Only an owner of the organization (or a member with GitHub's role
+   "GitHub App manager") can install the app there.
 3. **Set up the build:**
 
    | Setting | Value |
@@ -131,6 +134,12 @@ first.
 5. **The custom domain:** in the project, **Custom domains → Set up a custom domain →**
    `hedgeschool.abstractclass.org`. The zone is on Cloudflare, so Pages adds the DNS record (a CNAME to
    `hedgeschool.pages.dev`) by itself. The certificate follows in a few minutes.
+
+**When the repository moves to another GitHub owner,** the app's installation does not move with it: an installation
+belongs to one GitHub account or organization. Pages builds no push until the app is installed on the new owner, as in
+step 2. Then open the project's **Settings → Build**. Its **Git repository** must name the new owner's repository, and
+**Manage** there opens the app's installation on GitHub. Before the next release, push to `dev` and check that
+**Deployments** shows the preview's build.
 
 **Why the framework preset is None, not SvelteKit.** A preset only fills in the build command and the output
 directory. Cloudflare's SvelteKit preset gives `npm run build` and `.svelte-kit/cloudflare`: the output of Cloudflare's

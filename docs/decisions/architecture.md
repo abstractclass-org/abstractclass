@@ -79,3 +79,17 @@ The repository, the stack, hosting, and how the engine's artifacts arrive.
   closes it with the focus back on the gear. In a hidden window (behind another) the focus does not move and an
   outside click acts seconds late: a hidden page runs no animation frames and slows its timers, and Bits UI moves the
   focus in an animation frame and handles an outside click after a timer.
+
+### The repositories move to the organization abstractclass-org (2026-10-15)
+
+- **What:** the GitHub organization `abstractclass-org` owns the three repositories now, with their names unchanged:
+  `hedgeschool` (this site, private), `enclosure-ai` (the engine's source, private) and `enclosure-engine` (the
+  engine's releases, public). Future engine releases go to `abstractclass-org/enclosure-engine`.
+- **Changed here:** the local checkout's remote (`git@github.com:abstractclass-org/hedgeschool.git`), the repository
+  in `engine.lock.json`, and the links and names in the documents still in force. GitHub redirects the old addresses,
+  but nothing here relies on that. The dated entries of the decision logs keep the old addresses as history.
+- **Checked:** `npm run engine` with an empty download cache took all 15 files from the new repository's releases, and
+  each SHA-256 matched the lock. The module reports protocol 0.6.1 and the search `fdfe5ad`, as the lock gives.
+- **Before the next push:** Cloudflare's GitHub app was installed for the old owner, so Pages builds nothing from the
+  organization until the app is installed there and the project's repository names the organization (hosting.md,
+  section 3).

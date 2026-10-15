@@ -29,7 +29,7 @@ manifest matches the file.
 ## Delivered
 
 The engine's builds are published as GitHub Releases of a public repository that holds only the releases,
-`seankao31/enclosure-engine`. The engine repository itself stays private. The first release is
+`abstractclass-org/enclosure-engine`. The engine repository itself stays private. The first release is
 `wasm-v2-engine-85c2adb`: its tag names the commit that built the module.
 
 | Asset | Bytes | What |

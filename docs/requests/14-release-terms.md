@@ -4,8 +4,8 @@
 
 ## What
 
-The public releases repository, `seankao31/enclosure-engine`, has no licence file, and its releases state no terms
-for the project's own work. Please decide those terms, and state them where the files are. In detail:
+The public releases repository, `abstractclass-org/enclosure-engine`, has no licence file, and its releases state no
+terms for the project's own work. Please decide those terms, and state them where the files are. In detail:
 
 1. **Decide the terms of the project's own work in each release:**
    - the module's changes to KataGo (`enclosure-engine.wasm`), the GPU module (`enclosure-engine-gpu.wasm`) and its

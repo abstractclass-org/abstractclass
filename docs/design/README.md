@@ -5,9 +5,9 @@ consequences, where it is in the code, and links to the log entries. The decisio
 ([../decisions/](../decisions/README.md)) are the archive.
 
 Engine, rules, fork and protocol decisions are in the engine repository's design documents
-([`docs/design/`](https://github.com/seankao31/enclosure-ai/blob/main/docs/design/README.md) and
-[`v2/docs/design/`](https://github.com/seankao31/enclosure-ai/blob/main/v2/docs/design/README.md)). This folder holds
-product decisions.
+([`docs/design/`](https://github.com/abstractclass-org/enclosure-ai/blob/main/docs/design/README.md) and
+[`v2/docs/design/`](https://github.com/abstractclass-org/enclosure-ai/blob/main/v2/docs/design/README.md)). This folder
+holds product decisions.
 
 | # | Document | In short |
 |---|---|---|

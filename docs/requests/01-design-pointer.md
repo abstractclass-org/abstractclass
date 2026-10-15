@@ -7,7 +7,7 @@ this repository. The pointer gives the path only, and gets this repository's web
 
 The design of the analysis tool moved from the engine repository to this repository:
 
-- From: [`docs/analysis-tool-design.md`](https://github.com/seankao31/enclosure-ai/blob/main/docs/analysis-tool-design.md)
+- From: [`docs/analysis-tool-design.md`](https://github.com/abstractclass-org/enclosure-ai/blob/main/docs/analysis-tool-design.md)
   in the engine repository.
 - To: [`docs/design/01-analysis-tool.md`](../design/01-analysis-tool.md) in this repository.
 

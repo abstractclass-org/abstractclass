@@ -20,7 +20,8 @@ moves, and later offers puzzles and training. Before you change anything, read t
 ## The engine repository
 
 The engine, the rules and the bots live in the engine repository,
-[github.com/seankao31/enclosure-ai](https://github.com/seankao31/enclosure-ai), checked out at `../enclosure`.
+[github.com/abstractclass-org/enclosure-ai](https://github.com/abstractclass-org/enclosure-ai), checked out at
+`../enclosure`.
 
 - **Read it. Never change it from a session of this repository.** Changes there go through its own sessions. When
   this repository needs something from it, write a request in `docs/requests/` and tell the owner.

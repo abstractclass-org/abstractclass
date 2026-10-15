@@ -2,10 +2,10 @@
 
 **Status:** in force. It is the product's first design. **Written:** in the engine repository, before this repository
 existed, as
-[`docs/analysis-tool-design.md`](https://github.com/seankao31/enclosure-ai/blob/main/docs/analysis-tool-design.md).
+[`docs/analysis-tool-design.md`](https://github.com/abstractclass-org/enclosure-ai/blob/main/docs/analysis-tool-design.md).
 **Moved here:** 2026-10-09. Where the tool runs and how it gets the engine is in [02-static-site.md](02-static-site.md).
 
-Paths in this document are in the engine repository ([enclosure-ai](https://github.com/seankao31/enclosure-ai)),
+Paths in this document are in the engine repository ([enclosure-ai](https://github.com/abstractclass-org/enclosure-ai)),
 unless a link says otherwise. Paths under `runs/` are not in Git there.
 
 The aim: help people learn Enclosure. The tool reviews games, labels moves, finds puzzles, and distills rules of
@@ -24,7 +24,7 @@ constant says where it came from, so that we fit our own instead of copying.
 | **Lichess puzzle generator** | [lichess-puzzler `generator/generator.py`](https://github.com/ornicar/lichess-puzzler) | A puzzle starts right after an opponent's blunder. The winner's eval is ≥200 cp, and the winning chances are more than 0.6 above those of the previous position. **Every solution move must be the only good one:** best ≥ second-best + 0.7 winning chances (found with a two-line search). Positions already up material, or repeating, are skipped. |
 | **Lichess theme tagger** | lichess-puzzler `tagger/cook.py` (~1,000 lines) | About 40 themes: fork, pin, skewer, deflection, sacrifice, quiet move, mate patterns, endgame types. Each is a **hand-written rule on board geometry**, tested on the puzzle's solution line, not on the blunder. One puzzle can have many tags. Size tags (crushing, advantage, equality) come from the eval. |
 | **KaTrain (Go review)** | [katrain `core/game_node.py`, `core/ai.py`, `config.json`](https://github.com/sanderland/katrain) | **Points lost** = the change in KataGo's score lead across the move, from the mover's side. Labels at 12 / 6 / 3 / 1.5 / 0.5 points. **Complexity** = the prior-weighted mean points lost over KataGo's candidate moves, capped at 1 (how easy it is to go wrong here). Game accuracy = 100 × 0.75^(weighted mean points lost), with each move weighted max(0.05, min(1, max(complexity, loss/4))). Also reported: how often the player's move was the AI's top move, or in its top 5 with under 0.5 points lost. |
-| **KataGo human model** (already in the fork) | [`katago/cpp/neuralnet/sgfmetadata.h`](https://github.com/seankao31/enclosure-ai/blob/main/katago/cpp/neuralnet/sgfmetadata.h), [`katago/docs/Analysis_Engine.md`](https://github.com/seankao31/enclosure-ai/blob/main/katago/docs/Analysis_Engine.md) (`humanSLProfile`, `humanPolicy`) | A network trained on human games with **the game's metadata as input**: both players' ranks, time control, source. The analysis engine reports a `humanPolicy` next to the engine's own for a chosen rank. |
+| **KataGo human model** (already in the fork) | [`katago/cpp/neuralnet/sgfmetadata.h`](https://github.com/abstractclass-org/enclosure-ai/blob/main/katago/cpp/neuralnet/sgfmetadata.h), [`katago/docs/Analysis_Engine.md`](https://github.com/abstractclass-org/enclosure-ai/blob/main/katago/docs/Analysis_Engine.md) (`humanSLProfile`, `humanPolicy`) | A network trained on human games with **the game's metadata as input**: both players' ranks, time control, source. The analysis engine reports a `humanPolicy` next to the engine's own for a chosen rank. |
 | **Maia** | [CSSLab/maia-chess](https://github.com/CSSLab/maia-chess). [Maia-2](https://github.com/CSSLab/maia2) | Human-like move prediction. Maia: nine networks for ratings 1100–1900, played **without search** (lc0 `go nodes 1`), since search makes it less human. Maia-2: one network that takes both players' ratings as input. |
 
 Not source-available, so not used as a model: chess.com's Game Review and "Expected Points", AI Sensei,
@@ -85,7 +85,7 @@ DecodeChess.
    chess.com's and Lichess's do (design 10). A label then tells what a move cost the result. Points lost alone flagged
    the moves of decided games, so they show in the notes and do not label.
    - **Win chance saturates:** our own review of two lost games found every candidate at a value of −0.97
-     ([`v1/docs/decisions/analysis.md`](https://github.com/seankao31/enclosure-ai/blob/main/v1/docs/decisions/analysis.md),
+     ([`v1/docs/decisions/analysis.md`](https://github.com/abstractclass-org/enclosure-ai/blob/main/v1/docs/decisions/analysis.md),
      "Two lost games reviewed"). KaTrain uses points lost for exactly this reason, and Regan & Haworth rescale errors
      and skip lopsided positions.
    - **Our points measure:** net1's projected final margin (current margin plus ownership × turn ends left). Its
@@ -95,7 +95,7 @@ DecodeChess.
      uncertainty.
    - **V2:** KataGo's score outputs are the proper basis once V2 plays. What each output means is in the engine
      repository's
-     [`docs/design/04-notation-and-protocol.md`](https://github.com/seankao31/enclosure-ai/blob/main/docs/design/04-notation-and-protocol.md).
+     [`docs/design/04-notation-and-protocol.md`](https://github.com/abstractclass-org/enclosure-ai/blob/main/docs/design/04-notation-and-protocol.md).
 2. **Convert value to a human win chance, fitted on our archive.** This follows Lichess PR #11148 (logistic fit of
    result on eval), whose author measured the constant falling from −0.0038 for strong players to −0.002 for weak
    ones.
@@ -246,7 +246,7 @@ thread's time, or less at a smaller budget. The archive-wide statistics run offl
 
   | Feature | On net1 / net1b | On V2 (the KataGo fork) |
   |---|---|---|
-  | Every candidate's statistics (section 3) | needs a native addition to `PlaySearch` | the analysis engine's `moveInfos` (visits, win rate, score, prior, line, per-move ownership), already handling Enclosure ([`katago/ENCLOSURE.md`](https://github.com/seankao31/enclosure-ai/blob/main/katago/ENCLOSURE.md)). The WebAssembly module does not expose it yet. |
+  | Every candidate's statistics (section 3) | needs a native addition to `PlaySearch` | the analysis engine's `moveInfos` (visits, win rate, score, prior, line, per-move ownership), already handling Enclosure ([`katago/ENCLOSURE.md`](https://github.com/abstractclass-org/enclosure-ai/blob/main/katago/ENCLOSURE.md)). The WebAssembly module does not expose it yet. |
   | Points lost (principle 1) | the ownership projection. Weak in the opening (correlation 0.58) | the score outputs (`scoreSelfplay`, `scoreLead`) |
   | A human model by rating (principle 5) | a human-policy head without rating input. Retraining needed | KataGo's human-model machinery with rating inputs (`SGFMetadata`, `humanPolicy`) |
   | Concepts (principle 10) | possible on any network | best on the strongest network, which should be V2. Its analysis lines give the chosen and worse lines Schut contrasts |

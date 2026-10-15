@@ -13,7 +13,7 @@ so (decisions/product.md, "The engine's line: where it stops").
 ## What
 
 In the engine protocol (the engine repository's design
-[`docs/design/04-notation-and-protocol.md`](https://github.com/seankao31/enclosure-ai/blob/main/docs/design/04-notation-and-protocol.md)),
+[`docs/design/04-notation-and-protocol.md`](https://github.com/abstractclass-org/enclosure-ai/blob/main/docs/design/04-notation-and-protocol.md)),
 take KataGo's analysis query option `includePVVisits` (its `docs/Analysis_Engine.md`):
 
 - **The query field** `includePVVisits: true`, as KataGo's analysis engine takes it.

@@ -47,8 +47,9 @@ Hedge School does not check them itself.
 ## Delivered
 
 Engine protocol 0.5, in the release `wasm-v2-engine-27a7414`
-([enclosure-engine](https://github.com/seankao31/enclosure-engine/releases/tag/wasm-v2-engine-27a7414)). Both modules
-are new. The other files, the networks and their graphs among them, are the same bytes as in `wasm-v2-engine-fdfe5ad`.
+([enclosure-engine](https://github.com/abstractclass-org/enclosure-engine/releases/tag/wasm-v2-engine-27a7414)). Both
+modules are new. The other files, the networks and their graphs among them, are the same bytes as in
+`wasm-v2-engine-fdfe5ad`.
 
 - **The check:** `describe` gives `"check": {"possible", "reasons": [{"code", "text", "edges"}]}` for its `position`.
   The check reads the position before its moves, and the moves are checked as legal moves. `text` is for a player to
