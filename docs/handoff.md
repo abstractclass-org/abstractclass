@@ -9,7 +9,7 @@ It holds no backlog: everything still to do that is not in flight is in
 - **Live:** `1cd3180` on `main` and `dev`, deployed on 2026-10-15 by the workflow **Deploy** (GitHub Actions). It
   has the move to the organization `abstractclass-org` and the deploy itself, with no change to the site's code since
   `048374e`. decisions/architecture.md, "The repositories move to the organization abstractclass-org", says what was
-  checked. The test branch `deploy-test` and its preview are still on GitHub and Pages.
+  checked. The test branch `deploy-test` is deleted. Its preview deployment is still in Pages (**Deployments**).
 - **Released before it:** `048374e`. Each part's log entry in decisions/product.md says what was checked:
   - **Practice games stored** (design 25): a game against the bot goes to D1 when it ends (`hedgeschool-games`, and
     `hedgeschool-games-preview` for the previews), with a random ID in the browser when the visitor accepts. The new
