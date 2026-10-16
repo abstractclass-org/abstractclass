@@ -3171,14 +3171,21 @@ The interface, the review, puzzles, lessons, labels and thresholds.
     with this browser's random ID. In this browser, the games with the ID that wait to go to the database. After the
     site deletes the games, the ID in this browser. The games in the Review tab stay. A failed delete says so in the
     page's line after the button.
-  - **A click outside a question closes it,** as Cancel does, in both questions (design 11). Before, a click outside
-    did nothing, so that the second click of a double click on Delete left the question open. Now a click outside,
-    or on the question's own Delete, within 500 ms of the question's opening does nothing: it is that second click,
-    not an answer. On a phone, the question's Delete can be under the row's, so a double tap could delete without
-    this. The time is the press's own (the event's `timeStamp`). 500 ms is Windows' default double-click time
-    (`GetDoubleClickTime`).
+  - **A click outside a question closes it, at any time,** as Cancel does, in both questions (design 11). Before, a
+    click outside did nothing, so that the second click of a double click on Delete left the question open.
+  - **The question's own Delete waits 500 ms** after the opening. Until then it is disabled, with the look of the
+    site's disabled buttons, then it turns red. So the second click of a double click on a row's Delete cannot
+    confirm. On a phone, the question's Delete can be under the row's, so a double tap could delete without this. A
+    click on it uses its own time too, so a click that the page handles late, after the button turns red, still does
+    not confirm. 500 ms is Windows' default double-click time (`GetDoubleClickTime`).
   - **The event `game_delete_cancel`** (design 17): the player answers Cancel, Escape or a click outside to a game's
     delete question. Beside `game_delete`, it shows how often the question stops a delete, a slip or a change of mind.
+    A click outside, or on Cancel, within 500 ms of the opening is the second click of a double click, not a
+    decision. It closes the question with no event. The dialog tells it by the click's own time (the event's
+    `timeStamp`: on a touch screen, the tap's click), and gives it as its own answer, "undecided", beside "yes" and
+    "no".
+  - **Before this rule,** a click outside within the 500 ms did nothing, and the question stayed open. Now it closes
+    the question, and the count of cancels does not include it.
   - **The Privacy page** names both events in its list of what Google Analytics receives. It did not name
     `game_delete` before.
 - **The game delete's text** does not change: "You cannot undo this action."

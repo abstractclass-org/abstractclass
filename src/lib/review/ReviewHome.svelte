@@ -23,7 +23,7 @@
   import { trackImport, trackImportFailed, trackLoad, trackLoadFailed } from "#lib/game/importEvents.ts";
   import { GAME_RANGES, range } from "#lib/measure.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
-  import ConfirmDialog from "#lib/ui/ConfirmDialog.svelte";
+  import ConfirmDialog, { type Answer } from "#lib/ui/ConfirmDialog.svelte";
 
   let text = $state("");
   let problem = $state("");
@@ -59,14 +59,15 @@
 
   // The game whose Delete was clicked, while its question shows (ConfirmDialog, design 11). A confirmed delete deletes
   // the game, and its row goes at once: the dialog takes a double click's second click, so no other row moves under it.
-  // Each answer counts (design 17): a Cancel, an Escape or a click outside is a delete that the question stopped, a
-  // slip or a change of mind.
+  // Each decision counts (design 17): a "no" is a delete that the question stopped, a slip or a change of mind. An
+  // "undecided", the second click of a double click, is no decision.
   let deleting = $state<{ id: string; name: string } | null>(null);
-  async function answerDelete(yes: boolean) {
+  async function answerDelete(answer: Answer) {
     const id = deleting?.id;
     deleting = null;
     if (!id) return;
-    if (!yes) { track("game_delete_cancel"); return; }
+    if (answer === "no") track("game_delete_cancel");
+    if (answer !== "yes") return;
     await deleteGame(id);
     games = games.filter(g => g.game.id !== id);
     track("game_delete");

@@ -11,7 +11,7 @@
   import { SWITCH, SWITCH_THUMB } from "#lib/ui/settings.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
   import PageMeta from "#lib/PageMeta.svelte";
-  import ConfirmDialog from "#lib/ui/ConfirmDialog.svelte";
+  import ConfirmDialog, { type Answer } from "#lib/ui/ConfirmDialog.svelte";
 
   let mounted = $state(false), number = $state<string | null>(null), deleting = $state(false), deleted = $state("");
   onMount(() => { mounted = true; number = keptNumber(); });
@@ -21,9 +21,9 @@
   };
   // The delete asks first (ConfirmDialog, design 25): the player cannot undo it.
   let asking = $state(false);
-  async function answerDelete(yes: boolean) {
+  async function answerDelete(answer: Answer) {
     asking = false;
-    if (!yes || !number) return;
+    if (answer !== "yes" || !number) return;
     deleting = true;
     try {
       const n = await deletePractice(number);

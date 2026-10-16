@@ -131,10 +131,11 @@ one item for each turn, separated by spaces.
   the player cannot undo the delete. Its buttons are Cancel and Delete. Cancel has the focus when the dialog opens, so
   that Enter does not delete. Escape and a click outside the dialog cancel, as Cancel does. The privacy page's "Delete
   my practice games" asks in the same dialog (design 25).
-- **A double click on Delete opens the question once.** Within 500 ms of the question's opening, a click outside it or
-  on its Delete does nothing: it is the second click of a double click, not an answer. So a double click deletes no
-  game, on a phone too, where the question's Delete can be under the row's. 500 ms is Windows' default double-click
-  time.
+- **A double click on Delete deletes no game.** For 500 ms after the question opens, its Delete is disabled, with the
+  look of the site's disabled buttons, then it turns red. So the second click of a double click cannot confirm, on a
+  phone too, where the question's Delete can be under the row's. A click outside, or on Cancel, within those 500 ms
+  closes the question. It is that second click, not a decision, so the count of cancels does not include it (design
+  17). 500 ms is Windows' default double-click time.
 - **A confirmed delete deletes the game, and its row goes at once.**
 
 ### Storage that the browser keeps
