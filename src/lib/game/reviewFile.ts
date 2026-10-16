@@ -34,12 +34,12 @@ export interface ReviewFile {
 export interface FileReview extends ReviewMark { networkName: string }
 
 /** The moves of every position of a game and its branches, as the results' keys spell them: the record's own moves on
- *  the game's line, and a branch node's path key off it (analysis/game.svelte.ts, engineMoves), with each node before
- *  it: version 1 kept a branch as its last node. */
+ *  the game's line, and a branch node's path key off it (analysis/game.svelte.ts, engineMoves). Version 1 kept a branch
+ *  as its line: each node of it. */
 export function positionKeys(moves: string[], branches: KeptBranches | null): Set<string> {
-  const out = new Set<string>();
-  for (let i = 0; i <= moves.length; i++) out.add(moves.slice(0, i).join(" "));
-  for (const [key] of branchNodes(branches)) for (const k of prefixKeys(key.split(" "))) out.add(k);
+  const out = new Set(prefixKeys(moves));
+  if (branches?.version === 1) for (const line of branches.lines) for (const k of prefixKeys(line)) out.add(k);
+  else for (const [key] of branchNodes(branches)) out.add(key);
   return out;
 }
 

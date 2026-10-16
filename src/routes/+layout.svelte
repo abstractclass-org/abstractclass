@@ -53,9 +53,13 @@
 		void flushPractice(); // the practice games that could not be sent before (design 25)
 		void removeOlderShapes(); // the stored analyses that no reader reads, once after a change of their shape
 		// An earlier engine's results that no stored game needs, once after a change of the engine or of what the games
-		// need. Its code loads only then. A load or a removal that fails leaves it due, for a later start.
-		if (earlierRemovalDue(ENGINE_FILES))
-			import('#lib/game/earlierResults.ts').then(m => m.removeEarlierResults(ENGINE_FILES)).catch(() => {});
+		// need. Its code loads only then, when the page is idle: its transaction would hold the page's own reads of the
+		// store. A load or a removal that fails leaves it due, for a later start.
+		if (earlierRemovalDue(ENGINE_FILES)) {
+			const remove = () => void import('#lib/game/earlierResults.ts').then(m => m.removeEarlierResults(ENGINE_FILES)).catch(() => {});
+			if ('requestIdleCallback' in window) requestIdleCallback(remove, { timeout: 10_000 });
+			else setTimeout(remove, 2_000); // Safari
+		}
 	});
 
 	// The page's own scrolling area (src/app.css, pageScroll.ts), on a screen with a mouse. The router keeps the window's

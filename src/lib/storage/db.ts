@@ -88,11 +88,7 @@ export const dbDelete = async (store: string, key: string) =>
 /** Removes the values of a store whose key `wanted` takes, in one transaction that reads the keys and removes them.
  *  Answers whether the browser removed them: false when storage fails, and when the read of the keys fails. */
 export const dbDeleteWhere = (store: string, wanted: (key: string) => boolean) =>
-  run<boolean>(store, "readwrite", s => {
-    const req = s.getAllKeys();
-    req.onsuccess = () => { for (const key of req.result) if (wanted(String(key))) s.delete(key); };
-    return () => true;
-  }, false);
+  dbReadThenDelete(store, [], keys => keys.filter(wanted));
 /** Reads every entry of the stores `read` (by store, in key order) and the keys of `store`, then removes the keys of
  *  `store` that `choose` takes from them. One transaction reads and removes, so that no write comes between. Answers
  *  whether the browser removed them: false when storage fails, and when `choose` throws. */

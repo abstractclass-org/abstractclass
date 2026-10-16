@@ -2,9 +2,9 @@
 // position of them, so that the analysis opens at once in another browser. It is the review file's kind for the board
 // (reviewFile.ts): the same results, chosen the same way (of the lines' positions and of the positions one move from
 // them, which confirm the Greats), and read the same way.
-import { makeEarlierRemovalDue, ofModels } from "#lib/analysis/cache.ts";
+import { ofModels, readAnalysisKey } from "#lib/analysis/cache.ts";
 import { STORES, dbEntriesWhere, dbPutMany } from "#lib/storage/db.ts";
-import type { Manifest } from "#lib/engine/client.ts";
+import { moduleOf, type Manifest } from "#lib/engine/client.ts";
 import { REVIEW_FORMAT, belongs, readSchoolFile, shippedModels } from "./reviewFile.ts";
 import { boardLink, boardPositionKeys } from "./board.ts";
 import type { KeptBoard } from "./store.ts";
@@ -56,12 +56,12 @@ export function readAnalysisFile(text: string): AnalysisFile {
   return { ...f, board: b } as AnalysisFile;
 }
 
-/** Reads an analysis file and keeps its results in this browser, of the networks that the manifest ships. Answers the
- *  board's address with the file's lines (board.ts), as a shared analysis opens: the board counts the load. Throws an
- *  Error that tells the player what is wrong. */
+/** Reads an analysis file and keeps its results in this browser, of the manifest's search and the networks it ships:
+ *  the board reads no other (design 20, item 8). Answers the board's address with the file's lines (board.ts), as a
+ *  shared analysis opens: the board counts the load. Throws an Error that tells the player what is wrong. */
 export async function openAnalysisFile(text: string, manifest: Manifest | null): Promise<string> {
-  const file = readAnalysisFile(text);
-  await dbPutMany(STORES.analysis, ofModels(file.analyses, shippedModels(manifest)));
-  makeEarlierRemovalDue(); // the board reads its engine's own results only: an earlier engine's go at a later start
+  const file = readAnalysisFile(text), search = manifest && moduleOf(manifest)?.search;
+  await dbPutMany(STORES.analysis, ofModels(file.analyses, shippedModels(manifest))
+    .filter(([key]) => !search || readAnalysisKey(key).search === search));
   return boardLink("", file.board, 0, "analysis_file");
 }

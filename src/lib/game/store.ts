@@ -3,6 +3,7 @@
 // The id is the first 12 hex digits of the SHA-256 of its moves: the same game imported twice is one game.
 import { STORES, dbAll, dbDelete, dbGet, dbPut } from "#lib/storage/db.ts";
 import { makeEarlierRemovalDue } from "#lib/analysis/cache.ts";
+import { holdLock, whenFree } from "./reviewLock.ts";
 import { keepStorage } from "#lib/storage/persist.ts";
 import { readLocal, writeLocal } from "#lib/storage/local.ts";
 import { parseRecord, type GameRecord } from "./record.ts";
@@ -118,57 +119,45 @@ export async function loadGame(id: string): Promise<{ game: StoredGame; record: 
 
 /** The stored games, newest first. */
 export async function listGames(): Promise<{ game: StoredGame; record: GameRecord }[]> {
-  const all = await dbAll<StoredGame>(STORES.games);
-  return all.sort((a, b) => b.added.localeCompare(a.added)).flatMap(game => {
-    try { return [{ game, record: parseRecord(game.record) }]; } catch { return []; }
-  });
+  return readGames((await dbAll<StoredGame>(STORES.games)).sort((a, b) => b.added.localeCompare(a.added)));
 }
 
-/** A deleted game as it was, for its undo: the stored game, its branches, and whether the Review link opened it. */
-export interface DeletedGame { game: StoredGame; branches?: KeptBranches; last: boolean }
+/** Stored games with their records read. A game whose record does not read is left out: it cannot open. */
+export const readGames = (games: StoredGame[]) => games.flatMap(game => {
+  try { return [{ game, record: parseRecord(game.record) }]; } catch { return []; }
+});
+
+/** A deleted game as it was, for its undo: the stored game, its branches, whether the Review link opened it, and the
+ *  function that frees its hold on the Undo's lock. */
+export interface DeletedGame { game: StoredGame; branches?: KeptBranches; last: boolean; free: () => void }
+
+// A deleted game holds this lock, shared (the Web Locks API, across the site's tabs), until its Undo or the end of the
+// page that shows it. The removal of earlier results (earlierResults.ts) runs only when it can take the lock alone: the
+// Undo puts the game back with its mark, and its snapshot reads them.
+const UNDO_LOCK = "learn-enclosure:undo:1";
 
 /** Deletes a game, its branches, and the Review link's pointer to it. Null when the browser has no such game. The site's
  *  engine's analyses stay: they belong to positions, which other games can share, and an import of the same game then
  *  opens its review from them at once. An earlier engine's, which only the game's snapshot read, go at a later start,
- *  once no page shows the game's Undo (holdUndo). */
+ *  once the deleted game frees the Undo's lock. The delete waits for a removal that runs. */
 export async function deleteGame(id: string): Promise<DeletedGame | null> {
+  const free = (await holdLock(UNDO_LOCK, { mode: "shared" })) ?? (() => {});
   const [game, branches] = await Promise.all([dbGet<StoredGame>(STORES.games, id), dbGet<KeptBranches>(STORES.branches, id)]);
-  if (!game) return null;
+  if (!game) { free(); return null; }
   const last = lastReview() === id;
   await Promise.all([dbDelete(STORES.games, id), dbDelete(STORES.branches, id)]);
   if (last) rememberReview(null);
   if (game.reviewed) makeEarlierRemovalDue();
-  return { game, branches, last };
+  return { game, branches, last, free };
 }
 
-// A page that shows the Undo of a deleted game holds this lock, shared (the Web Locks API, across the site's tabs).
-// The removal of earlier results (earlierResults.ts) runs only when it can take the lock alone: the Undo puts the game
-// back with its mark, and its snapshot reads them.
-const UNDO_LOCK = "learn-enclosure:undo:1";
-const locks = () => (typeof navigator !== "undefined" ? navigator.locks : undefined);
+/** Runs `work` with the Undo's lock alone, when no deleted game holds it. False, with nothing done, when one does. */
+export const unlessUndo = <T>(work: () => Promise<T>) => whenFree(UNDO_LOCK, work);
 
-/** Takes the Undo's lock, shared, and answers once it is held (at once without the Web Locks API) with the function
- *  that frees it. It waits for a removal that runs now: the delete then comes after it. */
-export function holdUndo(): Promise<() => void> {
-  const l = locks();
-  if (!l) return Promise.resolve(() => {});
-  return new Promise(resolve => {
-    let free!: () => void;
-    const held = new Promise<void>(r => (free = r));
-    l.request(UNDO_LOCK, { mode: "shared" }, () => { resolve(free); return held; }).catch(() => resolve(() => {}));
-  });
-}
-
-/** Runs `work` with the Undo's lock alone, when no page holds it. False, with nothing done, when one does. */
-export async function unlessUndo(work: () => Promise<boolean>): Promise<boolean> {
-  const l = locks();
-  if (!l) return work();
-  return l.request(UNDO_LOCK, { ifAvailable: true }, lock => (lock ? work() : false));
-}
-
-/** Puts a deleted game back as it was. */
-export async function restoreGame({ game, branches, last }: DeletedGame) {
+/** Puts a deleted game back as it was, and frees its hold on the Undo's lock. */
+export async function restoreGame({ game, branches, last, free }: DeletedGame) {
   await Promise.all([dbPut(STORES.games, game.id, game), branches && dbPut(STORES.branches, game.id, branches)]);
+  free();
   if (last) rememberReview(game.id);
 }
 

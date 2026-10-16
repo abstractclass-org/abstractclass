@@ -62,11 +62,12 @@ const EARLIER = "learn-enclosure:earlier-results:1";
 const removing = (files: string) => `removing ${files}`;
 /** Whether the removal of earlier results is due for `files`, the site's engine files. */
 export const earlierRemovalDue = (files: string) => readLocal(EARLIER) !== files;
-/** A removal for `files` begins. The mark says so until it ends, so that a removal that a closed page stops stays due. */
-export const beginEarlierRemoval = (files: string) => writeLocal(EARLIER, removing(files));
-/** A removal for `files` ended: the mark keeps it, unless what the games need changed while it ran. */
-export function endEarlierRemoval(files: string) {
-  if (readLocal(EARLIER) === removing(files)) writeLocal(EARLIER, files);
+/** Runs a removal for `files`: `work` answers whether it removed them. The mark says that a removal runs until it ends,
+ *  so a removal that a closed page stops stays due. Then it keeps the removal's mark, unless the removal failed or
+ *  what the games need changed while it ran. */
+export async function earlierRemoval(files: string, work: () => Promise<boolean>) {
+  writeLocal(EARLIER, removing(files));
+  if ((await work()) && readLocal(EARLIER) === removing(files)) writeLocal(EARLIER, files);
 }
 /** What the stored games need changed (a game's mark, a game deleted, a file loaded): the next start removes the
  *  results that they no longer need. */
@@ -112,6 +113,11 @@ export async function snapshotSearch(model: string, positions: string[][], visit
   const [keys, not] = await Promise.all([dbKeys(STORES.analysis), except]);
   return searchHolding(keys.map(String), model, positions, visits, not);
 }
+
+/** The search that a snapshot leaves out: the site's own (`site`) for an earlier engine's review ("engine"), and none
+ *  for an earlier file of the network ("network"), whose search can be the site's. */
+export const snapshotExcept = (why: "engine" | "network", site: string | null | undefined) =>
+  (why === "engine" ? site ?? undefined : undefined);
 
 /** The positions whose results a snapshot needs, by their moves: each one of the game's line after the start, which
  *  every game shares, up to the last before its last move. */

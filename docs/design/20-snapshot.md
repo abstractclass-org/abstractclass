@@ -50,8 +50,9 @@ look at a past review pays it each time, and the earlier results are still in th
    - **After Review again,** the game's mark names the site's engine when the new review ends. Its snapshot then reads
      nothing. A position that another game's snapshot reads keeps its result.
    - **After a delete,** the results go once no page shows the game's Undo, because the Undo puts the game back with
-     its mark. A page that shows an Undo holds a lock (the Web Locks API) for all of the site's tabs. The removal runs
-     only when it can take the lock alone. A delete waits for a removal that runs.
+     its mark. A deleted game holds a lock (the Web Locks API) for all of the site's tabs, until its Undo or the end of
+     the page that shows its row. The removal runs only when it can take the lock alone. A delete waits for a removal
+     that runs.
    - **A review file of an earlier engine** keeps its results while its mark is the game's. When the game keeps a
      mark of the site's engine (item 6), nothing reads them, and they go.
    - **After a release,** the previous engine's results go where no snapshot reads them. Examples are a game never
@@ -60,8 +61,9 @@ look at a past review pays it each time, and the earlier results are still in th
    - **When:** at the site's start, when the removal is due. A mark in the browser's local storage keeps the engine
      files that the last removal ran for: the CPU module and the networks, by SHA-256. A release that changes one
      makes the removal due. A change of what the games need also makes it due. These changes are a mark that replaces
-     a mark of another module or network file, the delete of a game with a mark, and the load of a review file or an
-     analysis file. A start with nothing changed reads the mark alone.
+     a mark of another module or network file, the delete of a game with a mark, and the load of a review file. A
+     start with nothing changed reads the mark alone. An analysis file keeps the results of the site's search only:
+     the board reads no other.
 
 ## Why
 
@@ -104,9 +106,9 @@ look at a past review pays it each time, and the earlier results are still in th
 - **Cost:** the page reads the store's keys (5,097 keys in about 55 ms in a desktop browser) and the engine's rules.
   On that browser, a snapshot was on screen 2.2 s after the page's navigation started, or sooner.
 - **The removal's cost:** a start with nothing changed reads one value of local storage. A start when the removal is
-  due loads its code. Then one transaction reads the games, their branches and the store's keys, and removes the
-  results. The removal reads each key once. Until the transaction ends, the review's reads of the store wait. Not
-  measured.
+  due loads its code once the page is idle. Then one transaction reads the games, their branches and the store's
+  keys, and removes the results. The removal reads each key once. Until the transaction ends, the review's reads of
+  the store wait. Not measured in a browser.
 - **Two tabs:** one transaction reads and removes, so no write comes between. The load of a review file keeps the
   game's mark before its results, so a removal in another tab between the two takes none of them. A change of what
   the games need while a removal runs keeps the removal due. A tab of an earlier release that starts after a later
@@ -124,8 +126,9 @@ look at a past review pays it each time, and the earlier results are still in th
   `src/lib/game/store.ts` (`reviewAgainWhy`).
 - The removal: `src/lib/game/earlierResults.ts` (`unneededResults`, `removeEarlierResults`, which
   `src/routes/+layout.svelte` starts), `src/lib/analysis/cache.ts` (the mark: `earlierRemovalDue`,
-  `makeEarlierRemovalDue`), `src/lib/game/store.ts` (`markReviewed`, `deleteGame`, the Undo's lock: `holdUndo`,
-  `unlessUndo`), `src/lib/review/ReviewHome.svelte` (the Undo), `src/lib/storage/db.ts` (`dbReadThenDelete`),
+  `makeEarlierRemovalDue`), `src/lib/game/store.ts` (`markReviewed`, the Undo's lock: `deleteGame`, `restoreGame`,
+  `unlessUndo`), `src/lib/game/reviewLock.ts` (`holdLock`, `whenFree`), `src/lib/review/ReviewHome.svelte` (the
+  Undo), `src/lib/game/analysisFile.ts` (`openAnalysisFile`), `src/lib/storage/db.ts` (`dbReadThenDelete`),
   `vite.config.ts` (`__ENGINE_FILES__`).
 
 ## Log entries

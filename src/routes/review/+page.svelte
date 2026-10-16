@@ -19,14 +19,14 @@
   import Arrival from "#lib/review/Arrival.svelte";
   import ReviewHome from "#lib/review/ReviewHome.svelte";
   import { holdsGame } from "#lib/game/importHash.ts";
-  import { snapshotPositions, snapshotSearch, warmCache } from "#lib/analysis/cache.ts";
+  import { snapshotExcept, snapshotPositions, snapshotSearch, warmCache } from "#lib/analysis/cache.ts";
   import { review, type GameEnding, type ReviewData } from "#lib/review/model.ts";
   import { EnginePool } from "#lib/analysis/pool.ts";
   import { GameAnalysis, LABEL_VISITS, SWEEP_VISITS, momentVisits } from "#lib/analysis/game.svelte.ts";
   import { EngineSession } from "#lib/analysis/session.svelte.ts";
   import { loadEngine, ownSettings, reviewVisits, saveEngine, withReview, type EngineSettings } from "#lib/analysis/engineSettings.ts";
   import { trackSettingChange } from "#lib/analysis/settingChanges.ts";
-  import { modelOf, moduleOf, sameSearch } from "#lib/engine/client.ts";
+  import { modelOf, moduleOf } from "#lib/engine/client.ts";
   import { errorText } from "#lib/errors.ts";
   import { gamePage, playerNames } from "#lib/game/record.ts";
   import type { GamePartner } from "#lib/game/partners.ts";
@@ -334,9 +334,8 @@
   async function openSnapshot(moves: string[], why: "engine" | "network"): Promise<boolean> {
     const mark = markBefore!, manifest = session.manifest!, network = settings.network, rules = new EnginePool(0);
     try {
-      const sameEngine = sameSearch(manifest, mark.module); // a new file of the network alone
       // The stored keys are read while the rules worker starts: an earlier engine's search is not the site's.
-      const started = rules.start(manifest, network).then(() => (sameEngine ? undefined : rules.search!));
+      const started = rules.start(manifest, network).then(() => snapshotExcept(why, rules.search));
       const search = await snapshotSearch(mark.model, snapshotPositions(moves), mark.visits, started);
       if (!search) { rules.terminate(); return false; }
       const g = new GameAnalysis(rules, moves, kept!.id);

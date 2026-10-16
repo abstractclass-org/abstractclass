@@ -3093,17 +3093,19 @@ The interface, the review, puzzles, lessons, labels and thresholds.
 - **Decided** (design 20, item 8): the removal keeps what a snapshot reads. It takes the other earlier results of
   the store's shape.
   - **A position that several games share** keeps its result while one game's snapshot reads it.
-  - **A deleted game** needs nothing once no page shows its Undo. A page that shows an Undo or runs a delete holds a
-    shared lock (the Web Locks API). The removal takes the lock alone, or it waits for a later start. A delete waits
-    for a removal that runs, so the removal cannot read the games between a delete and its lock.
+  - **A deleted game** needs nothing once no page shows its Undo. A deleted game holds a shared lock (the Web Locks
+    API) until its Undo, or until the page that shows its row ends. The removal takes the lock alone, or it waits for
+    a later start. A delete waits for a removal that runs, so the removal cannot read the games between a delete and
+    its lock.
   - **A review file of an earlier engine** keeps its results while its mark is the game's. When the game keeps a mark
     of the site's engine, nothing reads them, and they go.
   - **When:** at the site's start, when the removal is due. A mark in local storage
     (`learn-enclosure:earlier-results:1`) keeps the engine files that the last removal ran for. These are the CPU
     module and the networks, by SHA-256, from `engine.lock.json` at the build (`__ENGINE_FILES__`). A release that
     changes one makes the removal due. Some changes of what the games need clear the mark: a mark that replaces a
-    mark of another module or network file, the delete of a game with a mark, and the load of a review file or an
-    analysis file. A start with nothing changed reads the mark alone. The removal's code loads only when it is due.
+    mark of another module or network file, the delete of a game with a mark, and the load of a review file. A start
+    with nothing changed reads the mark alone. The removal's code loads only when it is due, once the page is idle.
+  - **An analysis file** keeps the results of the site's search only. The board reads no other.
   - **One transaction** reads the games, their branches and the store's keys, and removes the results. The mark says
     that a removal runs until it ends. A removal that fails, or that a closed page stops, then runs again at the next
     start. A change of what the games need while it runs keeps it due.
