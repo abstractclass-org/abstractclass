@@ -8,9 +8,10 @@ learn one, and remove a note when it stops being true. The work itself is in bea
   games' ids, and put them back after. Read the state again before each test: the owner plays between them.
 - **The local server and a build:** stop the server before `npm run build`, then start it again. A build under a
   running server can stop it (a page asks for `_app/version.json` while the build replaces it).
-- **The local server:** `__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS=<machine>.<tailnet>.ts.net exec node
-  node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 4173 --strictPort`, again after each build. It stops
-  with the session.
+- **The local server:** `node node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 4173 --strictPort`, again
+  after each build. It stops with the session. The owner opens it from other devices through Tailscale: Vite then
+  takes the machine's Tailscale name from the user environment variable `__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS`. The
+  name stays out of the repository.
 - **Local builds leave `VITE_GA_ID` unset** (`VITE_EDITION=early npm run build`), so that test visits do not reach
   Google Analytics.
 - **This machine is often loaded** by the engine repository's training: its speed numbers are no baseline then.
