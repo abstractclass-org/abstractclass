@@ -81,7 +81,7 @@ does not take away, and a plan for what it will need later: a backend, accounts,
 - The method of the puzzles and the lessons: design 01. The labels and their explanations: design 10. The early
   access: design 11. The review file: design 13. The partner sites: design 18.
 - The engine: the engine repository,
-  [github.com/abstractclass-org/enclosure-ai](https://github.com/abstractclass-org/enclosure-ai).
+  [github.com/abstractclass-org/engines](https://github.com/abstractclass-org/engines).
 
 ## Log entries
 

@@ -120,3 +120,21 @@ The repository, the stack, hosting, and how the engine's artifacts arrive.
   review corrected the map: splitting `review/model.ts`'s types would not make the review general, because the review
   builds in Enclosure's turns, sides and scoring.
 - **Next:** the move. Feature work waits until it is done.
+
+### The repositories get new names (2026-10-16)
+
+- **What:** this repository, `abstractclass-org/hedgeschool`, is now `abstractclass-org/abstractclass`, the
+  repository of the learning sites (design 26). Its local checkout is the folder `abstractclass-org\abstractclass`. The
+  engine's source, `abstractclass-org/enclosure-ai`, is now `abstractclass-org/engines`, checked out beside it at
+  `../engines`. The release repository `enclosure-engine` keeps its name, because each game gets a release repository
+  of its own.
+- **Not changed:** the Pages project `hedgeschool`, the address hedgeschool.abstractclass.org, the D1 databases, and
+  the browser's storage keys and IndexedDB name (`learn-enclosure`), which hold the players' data. The deploy names the
+  Pages project, not the repository, and the secret and the variables moved with the repository. `engine.lock.json`
+  does not change.
+- **Changed here:** the links and names in the documents still in force, and the engine checkout's path in the
+  documents and in the scripts' usage notes. The dated entries of the decision logs keep the old names as history.
+  GitHub redirects the old names while no other repository takes them, so no new repository gets the name
+  `hedgeschool`.
+- **Left:** the About and Notation pages call the engine "the enclosure-ai project". Their text waits for a choice of
+  the public name ([open-items.md](open-items.md)).

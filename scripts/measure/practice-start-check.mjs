@@ -9,7 +9,7 @@
 // It reads the engine from static/engine (`npm run engine` first), runs the one-thread bot, and prints counts only:
 // the archive holds other players' games.
 //
-//   node scripts/measure/practice-start-check.mjs ../enclosure/runs/archive/games.jsonl [games] [edges]
+//   node scripts/measure/practice-start-check.mjs ../engines/runs/archive/games.jsonl [games] [edges]
 import { createReadStream, readFileSync } from "node:fs";
 import { createInterface } from "node:readline";
 import { join } from "node:path";

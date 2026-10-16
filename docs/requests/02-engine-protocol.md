@@ -1,7 +1,7 @@
 # What the product needs from the engine protocol
 
 **Status:** done. The engine repository's answer is its design
-[`docs/design/04-notation-and-protocol.md`](https://github.com/abstractclass-org/enclosure-ai/blob/main/docs/design/04-notation-and-protocol.md)
+[`docs/design/04-notation-and-protocol.md`](https://github.com/abstractclass-org/engines/blob/main/docs/design/04-notation-and-protocol.md)
 (protocol 0.1, which builds before the 0.x numbering report as 1.0. KataGo's analysis protocol as JSON lines) and the
 WebAssembly module `enclosure-engine.wasm` (build `8195171`), which the site now uses
 ([decisions/engine.md](../decisions/engine.md), "The engine protocol in the browser"). Still to come there: a `seed`

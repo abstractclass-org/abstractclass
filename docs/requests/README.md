@@ -1,7 +1,7 @@
 # Requests to the engine repository
 
 This repository does not change the engine repository
-([enclosure-ai](https://github.com/abstractclass-org/enclosure-ai)). When it needs a change there, it writes a request
+([engines](https://github.com/abstractclass-org/engines)). When it needs a change there, it writes a request
 here. The engine repository's session reads the request, decides, and records its decision in its own documents. A
 request stays here as the record of what this repository asked for and why.
 

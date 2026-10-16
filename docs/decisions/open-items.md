@@ -25,6 +25,9 @@ Rules:
 - **`scripts/measure/budget-collect.mjs` does not run:** it imports `src/lib/engine/module.ts`, which no longer
   exists. Move it to `scripts/node-engine.mjs`, which runs the CPU module in Node, or remove it if its measurement is
   done.
+- **The engine project's name on the site:** the About and Notation pages say "the enclosure-ai project", but the
+  engine's repository is `engines` now (architecture.md, "The repositories get new names"). Choose the public name,
+  then change both pages. The change goes live with a release.
 
 ## Milestone 1: a game report (design/01-analysis-tool.md, section 4)
 

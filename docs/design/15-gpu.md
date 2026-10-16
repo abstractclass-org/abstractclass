@@ -8,7 +8,7 @@ The review searches every position of a game in the visitor's browser, one posit
 ([design 02](02-static-site.md)). The network takes about 97% of a search's time. The engine repository's release
 `wasm-v2-engine-06534ee` added a GPU module, and `wasm-v2-engine-632f2a0` made its graphs half as large: many searches in one worker, whose network evaluations go to the GPU in
 batches through ONNX Runtime Web on WebGPU (the engine repository's
-[v2/docs/design/19-webgpu-module.md](https://github.com/abstractclass-org/enclosure-ai/blob/main/v2/docs/design/19-webgpu-module.md)).
+[v2/docs/design/19-webgpu-module.md](https://github.com/abstractclass-org/engines/blob/main/v2/docs/design/19-webgpu-module.md)).
 The GPU is fast only in batches: one search alone runs no faster there than on a CPU worker. It needs JSPI and WebGPU,
 which Chrome and Edge have from version 137.
 

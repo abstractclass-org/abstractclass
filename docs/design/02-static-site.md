@@ -6,11 +6,11 @@
 
 The tool reviews games, labels moves, and later offers puzzles and training ([01-analysis-tool.md](01-analysis-tool.md)).
 Each of these needs the engine: the rules, the search and the network. The engine lives in the engine repository
-([enclosure-ai](https://github.com/abstractclass-org/enclosure-ai)). Its rules must match the site where people play
+([engines](https://github.com/abstractclass-org/engines)). Its rules must match the site where people play
 (meaf.us), and that repository's tests guard the match.
 
 The engine already runs in a browser. V2, the KataGo fork, builds as one WebAssembly module
-([`v2/wasm/README.md`](https://github.com/abstractclass-org/enclosure-ai/blob/main/v2/wasm/README.md)) for
+([`v2/wasm/README.md`](https://github.com/abstractclass-org/engines/blob/main/v2/wasm/README.md)) for
 Constellation, which runs it in a Web Worker of the player's browser.
 
 A server that searches for every visitor costs money for every visitor. A static site costs almost nothing to host.

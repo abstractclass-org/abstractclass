@@ -95,7 +95,7 @@ It holds no backlog: everything still to do that is not in flight is in
   answered) and `review:shown` (the review shows). Read them with `performance.getEntriesByType("mark")`, beside the
   page's paint entries.
 - **Request 18's check, again** (on a new release): `node scripts/measure/describe-game-check.mjs
-  ../enclosure/runs/archive/games.jsonl [games]`, after `npm run engine`. All 6,246 games take about 6 minutes. It
+  ../engines/runs/archive/games.jsonl [games]`, after `npm run engine`. All 6,246 games take about 6 minutes. It
   prints counts only.
 - **Testing in Edge:** put the real pointer on an element with the browser tool's hover for checks that last. A hover
   made with synthetic events is lost when the board redraws. Convert page coordinates to the screenshot's own size

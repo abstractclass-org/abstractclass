@@ -50,7 +50,7 @@ new builds arrive often.
     its size.
   - A source is a **release** (a tag and an asset of a GitHub Release of `enclosure-engine`, the public repository
     that holds only the engine's releases, since the engine repository is private) or a **local** path (a file in
-    `../enclosure`).
+    `../engines`).
   - `npm run engine` gets each artifact, checks its SHA-256, and puts it in `static/engine/<ID>/`. It writes
     `static/engine/manifest.json`, which the site reads to find the files and to name them in its results.
   - **Development may use local sources,** to try a build in the engine repository's `runs/` before it is released.

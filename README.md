@@ -4,7 +4,7 @@ A website that helps people learn the board game [Enclosure](https://meaf.us/sst
 their games, labels their moves, and later offers puzzles and training.
 
 The site is static files (SvelteKit). The engine (the KataGo fork from
-[enclosure-ai](https://github.com/abstractclass-org/enclosure-ai), compiled to WebAssembly) runs in the visitor's
+[engines](https://github.com/abstractclass-org/engines), compiled to WebAssembly) runs in the visitor's
 browser, in Web Workers. Deep analyses run offline on a GPU and ship as JSON. See [docs/design/](docs/design/README.md).
 
 ## Status

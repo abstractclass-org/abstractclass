@@ -9,7 +9,7 @@ share of the search is its `edgeVisits`.
 ## What
 
 In the engine repository's design
-[`docs/design/04-notation-and-protocol.md`](https://github.com/abstractclass-org/enclosure-ai/blob/main/docs/design/04-notation-and-protocol.md),
+[`docs/design/04-notation-and-protocol.md`](https://github.com/abstractclass-org/engines/blob/main/docs/design/04-notation-and-protocol.md),
 "The fields":
 
 - **List `edgeVisits`** among the kept fields of a move (`moveInfos`). The replies already carry it: the protocol

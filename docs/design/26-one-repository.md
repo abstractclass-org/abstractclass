@@ -34,7 +34,7 @@ A map of `src/lib` by its imports, reviewed against the code by a second model (
    first: the theme's tokens, the fonts, a few components. The review, the engine, the storage, the consent and the
    practice games' storage stay in Hedge School until another game shows what it needs.
 5. **The addresses stay:** the hub at `abstractclass.org`, Hedge School at `hedgeschool.abstractclass.org`.
-6. **This repository becomes the shared one:** `abstractclass-org/hedgeschool`, with a new name later if one is wanted.
+6. **This repository becomes the shared one:** `abstractclass-org/abstractclass`, named `hedgeschool` before.
 
 ## Why
 
@@ -79,4 +79,5 @@ Not built yet.
 
 ## Log
 
-[decisions/architecture.md](../decisions/architecture.md), "One repository for the learning sites".
+[decisions/architecture.md](../decisions/architecture.md), "One repository for the learning sites" and "The
+repositories get new names".
