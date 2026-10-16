@@ -129,7 +129,8 @@ one item for each turn, separated by spaces.
   needs them (design 20, item 8).
 - **A question first.** Delete opens a dialog: "Delete this game?", with the game's name, and a line that says that
   the player cannot undo the delete. Its buttons are Cancel and Delete. Cancel has the focus when the dialog opens, so
-  that Enter does not delete, and Escape cancels. A click outside the dialog does nothing.
+  that Enter does not delete, and Escape cancels. A click outside the dialog does nothing. The privacy page's "Delete
+  my practice games" asks in the same dialog (design 25).
 - **A confirmed delete deletes the game, and its row goes at once.** The dialog takes the second click of a double
   click on Delete, so a double click never deletes the next game.
 

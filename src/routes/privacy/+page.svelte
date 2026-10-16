@@ -11,6 +11,7 @@
   import { SWITCH, SWITCH_THUMB } from "#lib/ui/settings.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
   import PageMeta from "#lib/PageMeta.svelte";
+  import ConfirmDialog from "#lib/ui/ConfirmDialog.svelte";
 
   let mounted = $state(false), number = $state<string | null>(null), deleting = $state(false), deleted = $state("");
   onMount(() => { mounted = true; number = keptNumber(); });
@@ -18,8 +19,11 @@
     games: "Group my games against bots with a random ID in this browser",
     analytics: "Let Google Analytics set cookies that tell my visits apart",
   };
-  async function deleteGames() {
-    if (!number) return;
+  // The delete asks first (ConfirmDialog, design 25): the player cannot undo it.
+  let asking = $state(false);
+  async function answerDelete(yes: boolean) {
+    asking = false;
+    if (!yes || !number) return;
     deleting = true;
     try {
       const n = await deletePractice(number);
@@ -148,6 +152,7 @@
     <li>the engine settings you change, the features you use (each once in a review, in a visit to the Analysis board,
       or in a practice game), and your exports (a review saved to a partner site among them), with a share link's length as a range</li>
     <li>that you opened Support Us, but not whether you gave a tip</li>
+    <li>that you deleted a game in the Review tab, or that you cancelled the delete when the site asked</li>
     <li>how many games this browser keeps, as a range</li>
   </ul>
   <p>None of these holds a game, a move, a player's name or a game's code. Until you accept the cookies, Google receives
@@ -169,7 +174,8 @@
       </div>
       {#if STORES_PRACTICE_GAMES && number}
         <p>Your games against HedgeFund went with this browser's random ID.
-          <button type="button" class="ml-1" disabled={deleting} onclick={deleteGames}>Delete my practice games</button></p>
+          <button type="button" class="ml-1" disabled={deleting}
+                  onclick={() => (asking = true)}>Delete my practice games</button></p>
       {/if}
       {#if deleted}<p role="status">{deleted}</p>{/if}
     {/if}
@@ -187,3 +193,16 @@
 </main>
 
 <SiteFooter />
+{#if STORES_PRACTICE_GAMES && number}
+  <ConfirmDialog open={asking} title="Delete your practice games?" action="Delete" onanswer={answerDelete}>
+    <div class="grid gap-2">
+      <p>{SITE_NAME} will delete these items:</p>
+      <ul class="grid gap-1.5 pl-4 list-disc">
+        <li>In the site's database: the games against HedgeFund that went with this browser's random ID.</li>
+        <li>In this browser: the games with this random ID that wait to go to the database.</li>
+        <li>In this browser, after the site deletes the games: the random ID.</li>
+      </ul>
+      <p>Your games in the Review tab stay in this browser. You cannot undo this action.</p>
+    </div>
+  </ConfirmDialog>
+{/if}

@@ -3154,3 +3154,24 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   delete the game … from this browser. You cannot undo this action."
 - **Checked:** the type check and the unit tests. Not checked: the dialog in a browser (its focus, Escape, a double
   click, and the list after a delete).
+
+### A question before the practice games' delete, and the cancelled deletes counted (2026-10-17)
+
+- **The problem:** a game's delete in the Review tab asks first ("A question before a delete replaces the Undo",
+  2026-10-16). The Privacy page's "Delete my practice games" deleted at once, and the player cannot undo it either.
+  No event counted how often the question stops a delete, since the Undo and its count went.
+- **Decided:**
+  - **The practice games' delete asks first** (design 25), in the same dialog as a game's delete
+    (`src/lib/ui/ConfirmDialog.svelte`, design 11): Cancel has the focus, and Escape cancels. Its text says what goes
+    and where, in strict Simplified Technical English. In the site's database, the games against HedgeFund that went
+    with this browser's random ID. In this browser, the games with the ID that wait to go to the database. After the
+    site deletes the games, the ID in this browser. The games in the Review tab stay. A failed delete says so in the
+    page's line after the button.
+  - **The event `game_delete_cancel`** (design 17): the player answers Cancel or Escape to a game's delete question.
+    Beside `game_delete`, it shows how often the question stops a delete, a slip or a change of mind.
+  - **The Privacy page** names both events in its list of what Google Analytics receives. It did not name
+    `game_delete` before.
+- **The game delete's text** does not change: "You cannot undo this action."
+- **The practice games' delete** sends no event, so it gets no cancel event either.
+- **Checked:** the type check, the unit tests, and the dialog's text with the STE skill's linter (no violation). Not
+  checked: the dialog in a browser.

@@ -127,7 +127,9 @@ Lichess and chess.com keep every game played on them:
   accept one purpose and decline the other without granting it first. The
   random number (`hedge-school:browser-number:1`) is made on the first game sent with consent. After a Decline it
   is no longer sent, and stays in the browser only so that the privacy page can still delete its games. "Delete my
-  practice games" deletes them, and the number with them. The waiting games with the number leave the queue unsent.
+  practice games" deletes them, and the number with them. It asks first, in the same dialog as a game's delete
+  (`src/lib/ui/ConfirmDialog.svelte`, design 11). The dialog's text on the privacy page says what goes and where,
+  and that the games in the Review tab stay. The waiting games with the number leave the queue unsent.
   The site keeps the deleted number alone, and keeps no game that arrives with it later: a game on its way from another
   tab, or sent again after a failed send, does not come back after the delete. The check is in the insert's own
   statement, so that a delete cannot come between them. Each tab follows a choice made in another tab (the browser's
@@ -139,4 +141,5 @@ Lichess and chess.com keep every game played on them:
 
 ## Log entries
 
-- [decisions/product.md](../decisions/product.md): "Practice games stored" (2026-10-15).
+- [decisions/product.md](../decisions/product.md): "Practice games stored" (2026-10-15), "A question before the
+  practice games' delete, and the cancelled deletes counted" (2026-10-17).
