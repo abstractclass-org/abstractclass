@@ -11,7 +11,7 @@ entries before it).
 |---|---|---|
 | The domain | `abstractclass.org`, registered at Porkbun | The site's address is `hedgeschool.abstractclass.org`. |
 | DNS | Cloudflare (the zone `abstractclass.org`, free plan), with DNSSEC | Answers for the domain. Porkbun keeps only the registration. |
-| The code | The private GitHub repository `abstractclass-org/abstractclass`: `dev` for the work, `main` for the live site | A push to `main` deploys the live site. A push to another branch deploys a preview. |
+| The code | The public GitHub repository `abstractclass-org/abstractclass`: `dev` for the work, `main` for the live site | A push to `main` deploys the live site. A push to another branch deploys a preview. |
 | The deploy | GitHub Actions (`.github/workflows/deploy.yml`) | On each push: builds the site and uploads it to Pages with Wrangler. `main` goes to production, another branch to a preview (section 3). |
 | The host | Cloudflare Pages, the project `hedgeschool`, with no Git connection | Serves the files that the deploy uploads, and runs the one Function. Also at `hedgeschool.pages.dev`. |
 | The engine | GitHub Releases of the public repository `abstractclass-org/enclosure-engine` | The module and the networks, pinned by SHA-256 in `engine.lock.json`. The build downloads them. |
@@ -51,8 +51,9 @@ Cloudflare's onboarding also suggests:
 
 ## 2. The repository
 
-The site's repository is private on GitHub: `abstractclass-org/abstractclass`. Its remote in the local checkout is
-`origin` (SSH). Two branches:
+The site's repository is public on GitHub: `abstractclass-org/abstractclass`. So its workflows' runs on GitHub's
+standard runners cost no Actions minutes. [Design 11](design/11-early-access.md), item 10, gives its terms. Its
+remote in the local checkout is `origin` (SSH). Two branches:
 
 - **`dev`:** the work. Each commit is pushed to it, so that GitHub holds the local work. The deploy (section 3) puts
   each push to `dev` on Pages as a preview deployment, at `dev.hedgeschool.pages.dev` (and at an address for each
@@ -178,10 +179,9 @@ Worker: the free plan's daily request limit would apply, and `_headers` does not
 
 **The npm cache:** `actions/setup-node` keeps npm's cache between runs, so `npm ci` downloads less.
 
-**Preview deployments:** each push to a branch other than `main` deploys a preview. Each run of the workflow uses
-GitHub Actions minutes, which count against the organization's monthly allowance for private repositories. Preview
-addresses are public, and unlisted (`noindex`, design 23), while the live address is indexed. **Preview access** in the
-project's settings can put them behind a sign-in (Cloudflare Access).
+**Preview deployments:** each push to a branch other than `main` deploys a preview. Preview addresses are public, and
+unlisted (`noindex`, design 23), while the live address is indexed. **Preview access** in the project's settings can
+put them behind a sign-in (Cloudflare Access).
 
 ## 4. Google Analytics
 

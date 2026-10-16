@@ -138,3 +138,17 @@ The repository, the stack, hosting, and how the engine's artifacts arrive.
   `hedgeschool`.
 - **Left:** the About and Notation pages call the engine "the enclosure-ai project". Their text waits for a choice of
   the public name ([open-items.md](open-items.md)).
+
+### The site's repository is public (2026-10-17)
+
+- **What:** `abstractclass-org/abstractclass` is public on GitHub. Before that, its history was rewritten to take out
+  the machine's Tailscale name (`docs/decisions/commit-map.txt` maps the old hashes to the new ones). The repository
+  has no licence file, so the site's terms apply to it: all rights reserved (design 11, item 10). The engine
+  repository, `abstractclass-org/engines`, stays private.
+- **What it changes:** the workflows' runs on GitHub's standard runners cost no Actions minutes. So the workflow
+  **Tests** has a job on Windows too ("The layout sweep on Windows, in CI", in product.md).
+- **Changed here:** hosting.md (the code's row, section 2, and the Actions minutes) and design 11 (item 5, the site's
+  terms in item 10, and the alternatives). The dated entries of the decision logs keep "private" as history.
+- **Left:** design 18 says that the `dev` preview's address stays private, and the /developers page tells a partner to
+  ask for the test address. The public documents and workflows now give the previews' addresses, and each run of the
+  workflow **Deploy** shows its deployment's address in its public log.

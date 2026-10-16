@@ -42,7 +42,7 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
    development.
 4. **Listed** (design 23, which replaced the first rule, unlisted): search engines index the live address, and
    Cloudflare's preview addresses answer with `noindex`. The Discord is where players report problems.
-5. **Hosting: Cloudflare Pages.** A GitHub Actions workflow builds the private GitHub repository on every push, and
+5. **Hosting: Cloudflare Pages.** A GitHub Actions workflow builds the GitHub repository on every push, and
    uploads `main` to production (hosting.md, section 3, says why Pages does not build it itself):
    - **The build command,** `npm run build:cloudflare`: it downloads the engine from its GitHub Release (`npm run engine
      -- --deploy`, which refuses local engine files), runs the tests and the type check, then builds into `build/`.
@@ -88,12 +88,14 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
 9. **The labels:** as built (design 10), with no note that they may change. They are computed again from the stored
    analyses whenever the page opens, so a later change reaches every stored game without a new search.
 10. **The site's own terms:** its code, text and design are under copyright, all rights reserved (`SITE_COPYRIGHT` in
-    `src/lib/edition.ts`: "© 2026 Yshan"). The repository is private and has no licence file. The notices page states
-    these terms first, and then the licences of the works of others that the site ships: the MIT licence there covers
-    those works only. These licences cannot be removed: MIT, for example, requires its notice in every copy, and the
-    site sends those libraries to each visitor. An open licence such as MIT would let anyone serve the site for profit.
-    If the repository becomes public, a licence for non-commercial use (PolyForm Noncommercial 1.0.0) is the nearest
-    to these terms, with the sounds left out: the Pixabay Content License does not permit their passing on alone.
+    `src/lib/edition.ts`: "© 2026 Yshan"). The repository is public and has no licence file, so these terms are its
+    terms too. GitHub's own terms still let each of its users view the repository and fork it on GitHub. The
+    notices page states these terms first, and then the licences of the works of others that the site ships: the MIT
+    licence there covers those works only. These licences cannot be removed: MIT, for example, requires its notice in
+    every copy, and the site sends those libraries to each visitor. An open licence such as MIT would let anyone serve
+    the site for profit. For the repository, a licence for non-commercial use (PolyForm Noncommercial 1.0.0) is the
+    nearest to these terms. It would not cover the sounds: the Pixabay Content License does not permit their passing
+    on alone.
     **The engine and its networks** have the same holder and the same terms, set in the engine repository (its v2
     design 21, request 14): all rights reserved, with Hedge School and its visitors permitted to serve and run them.
     Each release carries them as `LICENSE.txt`, which the site ships beside the modules (`engine.lock.json`, kind
@@ -219,7 +221,7 @@ one item for each turn, separated by spaces.
   showed "Deleted …" with an Undo until the page loaded again. A delete and a slip cost one click each. But an Undo
   could restore a game without the results that its snapshot reads, once the site removes an earlier engine's
   results (design 20, item 8). The question costs a second click on each delete.
-- **A public repository:** later. **The free `pages.dev` address:** the owner's domain is the lasting one.
+- **The free `pages.dev` address:** the owner's domain is the lasting one.
 - **Listed in search engines:** after the first players' reports.
 - **A note that the labels may change:** not needed, since a change reaches stored games by itself.
 - **No Review link:** a bare link led to a review with no game. The Review tab gives the link a use: it imports a
@@ -258,3 +260,4 @@ one item for each turn, separated by spaces.
   the second round", "Google Analytics in Google's consent mode, advanced", "Early access: the third round"
   (2026-10-12), "Deleting a game, and the browser's storage" (2026-10-12), "A question before a delete replaces the
   Undo" (2026-10-16).
+- [decisions/architecture.md](../decisions/architecture.md): "The site's repository is public" (2026-10-17).
