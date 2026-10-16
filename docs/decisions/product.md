@@ -3122,14 +3122,18 @@ The interface, the review, puzzles, lessons, labels and thresholds.
     its next open would review it again.
   - Keeping every depth of each position that a snapshot reads. The snapshot shows each position at its deepest, so a
     shallower result has no reader.
-- **Checked:** the unit tests, the type check and a client build.
+- **Checked:** the unit tests, the type check, a client build, and the removal in a browser.
   - `earlierResults.test.ts` checks what the removal takes: for shared positions, after Review again, for an earlier
     network file, for games with no snapshot, and for other shapes. It also checks that each snapshot chooses the
     same search after the removal.
   - `store.test.ts` checks which marks make the removal due. `reviewFile.test.ts` checks the positions of a branch of
     version 1.
   - In the client build, the removal is a chunk of its own, which the layout loads only when the removal is due.
-  - Not checked: the removal in a browser, and its time on the owner's store.
+  - In the owner's Edge, on the local preview's address (a build of 94f6cff). Before the first start, the store held
+    results of shape 5 from four searches: 06534ee 1,043, 632f2a0 423, 85c2adb 363, and fdfe5ad (the site's) 923.
+    After it, the store held 632f2a0 6 and fdfe5ad 923. The start removed 1,823 earlier results and kept every result
+    of the site's. A second start removed nothing. The question before a delete worked.
+  - Not checked: a snapshot of 632f2a0 that opens after the removal, and the removal's time.
 
 ### A question before a delete replaces the Undo (2026-10-16)
 
