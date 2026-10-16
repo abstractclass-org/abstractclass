@@ -19,3 +19,5 @@ In beads these are ordinary labels (`bd label add`, `bd label remove`, `bd list 
 - `ready-for-agent` is a different thing from `bd ready`. `bd ready` lists open issues with no open blocker. An agent
   that works alone takes `bd ready -l site,ready-for-agent`.
 - `wontfix`: apply the label, then `bd close <id> --reason "wontfix: <why>"`.
+- The two category roles are the beads issue type: `bug` for a bug, and `task` or `feature` for an enhancement
+  (`bd update <id> --type bug`). No `bug` or `enhancement` label.
