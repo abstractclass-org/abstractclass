@@ -1023,3 +1023,18 @@ Blunder's loss.
   design, which the module now enforces.
 - **Checked:** requests/20, "Checked here". `npm test` passes (111), `npm run check` has no errors or warnings, and
   `npm run build` succeeds.
+
+### The budget measurement's collector on the CPU module in Node (2026-10-16)
+
+- **The problem:** `scripts/measure/budget-collect.mjs` did not run. It loaded the module through
+  `src/lib/engine/module.ts`, which no longer exists. It also read a b10c128 network that the lock no longer pins
+  (`b10c128-s46923648-d9407005`).
+- **Kept, not removed:** the measurement is made again when the engine's search changes. Protocol 0.3 changed every
+  value, and the collector ran again ("Label agreement against search budget, under protocol 0.3"). Design 05 names
+  the script as its measurement, and request 07's lines have the shape of its output.
+- **The change:** each worker gets its engine from `scripts/node-engine.mjs`, as the other scripts that run the
+  engine in Node do. The network is the manifest's b10c128 (`b10c128-s66625408-d13350730` now), or the one that
+  `--network` names. A new run measures that network, so its values can differ from the entries above.
+- **Checked** (engine 85f1792): one ladder game, 120 positions, one search of 256 visits a position, read at 32, 64
+  and 128 visits, 4 workers. Every position has a result and no error. `scripts/measure/budget-summary.mjs` read the
+  output by edge and by turn. One game is too few for a result: the check shows only that the collector runs.

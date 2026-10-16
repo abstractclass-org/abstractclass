@@ -2,11 +2,14 @@
 // of how labels at a small budget differ from labels at a deep search (docs/decisions/engine.md).
 //
 //   node scripts/measure/budget-collect.mjs LADDER.jsonl OUT.jsonl [--games 4] [--workers 4] [--deep 1024]
-//            [--budgets 32,64,128,256] [--min-visits 512]
+//            [--budgets 32,64,128,256] [--min-visits 512] [--network ID]
 //
 // LADDER.jsonl is the engine repository's visit ladder (runs/wasm/v2/visits/ladder.jsonl): bot games with their site
 // move IDs. Only bot games are used. The games: the first --games whose two bots both searched at least --min-visits,
 // each from a different opening and colour.
+//
+// The engine is the CPU module the site is built with, in Node (scripts/node-engine.mjs): it reads static/engine
+// (`npm run engine` first). The network is the manifest's b10c128, or the one that --network names.
 //
 // One search per position: the engine runs in slices, and the result after a slice equals a fresh search of that many
 // visits (the engine repository's check), so one search of --deep visits gives every budget. Each output line is one
@@ -16,6 +19,7 @@ import { Worker, isMainThread, parentPort, workerData } from "node:worker_thread
 import { appendFileSync, existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { nodeEngine } from "../node-engine.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const { edgeName } = await import(new URL("../../src/lib/engine/notation.ts", import.meta.url).href);
@@ -44,18 +48,19 @@ if (isMainThread) {
     for (const line of readFileSync(outPath, "utf8").split("\n")) if (line.trim()) { const r = JSON.parse(line); done.add(`${r.game}:${r.index}`); }
   const tasks = games.flatMap(g => g.moves.map((_, i) => ({ game: g.id, index: i, moves: g.moves.slice(0, i), played: g.moves[i] })))
     .filter(t => !done.has(`${t.game}:${t.index}`));
-  console.log(`${games.length} games (${games.map(g => g.id).join(", ")}), ${tasks.length} positions to search, ` +
-              `budgets ${budgets.join("/")}, ${nWorkers} workers`);
-
-  // The module the site is built with (static/engine/manifest.json, `npm run engine`), and the b10c128 network.
   const manifest = JSON.parse(readFileSync(join(root, "static", "engine", "manifest.json"), "utf8"));
-  const pinned = manifest.artifacts.find(a => a.kind === "module");
-  const module = join(root, "static", pinned.url);
-  const model = join(root, "static", "engine", "b10c128-s46923648-d9407005", "model-float16.bin");
+  const networks = manifest.artifacts.filter(a => a.kind === "model").map(a => a.id);
+  const network = arg("network", networks.find(id => id.startsWith("b10c128")));
+  if (!networks.includes(network)) {
+    console.error(`static/engine/manifest.json has no network ${network} (it has ${networks.join(", ")})`); process.exit(2);
+  }
+  console.log(`${games.length} games (${games.map(g => g.id).join(", ")}), ${tasks.length} positions to search, ` +
+              `budgets ${budgets.join("/")}, ${network}, ${nWorkers} workers`);
+
   let next = 0, finished = 0;
   const t0 = performance.now();
   await Promise.all(Array.from({ length: nWorkers }, () => new Promise(resolveWorker => {
-    const w = new Worker(fileURLToPath(import.meta.url), { workerData: { module, model, budgets } });
+    const w = new Worker(fileURLToPath(import.meta.url), { workerData: { network, budgets } });
     const give = () => next < tasks.length ? w.postMessage(tasks[next++]) : (w.terminate(), resolveWorker());
     w.on("message", m => {
       if (m.result) {
@@ -69,11 +74,7 @@ if (isMainThread) {
   })));
   console.log(`done: ${finished} positions in ${((performance.now() - t0) / 1000).toFixed(0)} s`);
 } else {
-  const { loadEngine } = await import(new URL("../../src/lib/engine/module.ts", import.meta.url).href);
-  const engine = await loadEngine(await WebAssembly.compile(readFileSync(workerData.module)));
-  engine.setModel(new Uint8Array(readFileSync(workerData.model)));
-  const loaded = JSON.parse(engine.call({ id: "load", action: "load_model", name: "b10c128" }));
-  if (loaded.error) throw new Error(loaded.error);
+  const { call } = await nodeEngine(root, { network: workerData.network });
   const { budgets } = workerData;
   const pick = (r, played) => {
     const first = r.moveInfos[0], p = r.moveInfos.find(c => c.move === played);
@@ -85,13 +86,13 @@ if (isMainThread) {
   parentPort.on("message", task => {
     const out = {};
     const step = budgets[0];
-    let reply = JSON.parse(engine.call({ id: "q", moves: task.moves, maxVisits: budgets.at(-1), slice: { visits: step } }));
+    let reply = call({ id: "q", moves: task.moves, maxVisits: budgets.at(-1), slice: { visits: step } });
     for (;;) {
       if (reply.error) { out.error = reply.error; break; }
       const v = reply.rootInfo.visits;
       for (const b of budgets) if (!out[b] && v >= b) out[b] = pick(reply, task.played);
       if (!reply.isDuringSearch) break;
-      reply = JSON.parse(engine.call({ id: "q", action: "continue" }));
+      reply = call({ id: "q", action: "continue" });
     }
     parentPort.postMessage({ result: { game: task.game, index: task.index, played: task.played, engine: reply.engine, budgets: out } });
   });
