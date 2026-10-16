@@ -94,6 +94,13 @@ test("a game whose review opens no snapshot needs none: no mark, a network the s
                    earlier.slice(0, -2));
 });
 
+test("without the site's CPU module, the removal takes nothing: it cannot tell the site's own results", () => {
+  const stored = [...results("s2", "b2", 512, line(MOVES)), ...results("s1", "b2", 512, line(MOVES))];
+  const networks = { artifacts: ENGINE.artifacts.filter(a => a.kind !== "module") };
+  assert.deepEqual(unneededResults(stored, [], networks), []);
+  assert.deepEqual(unneededResults(stored, [{ moves: MOVES, branches: null, mark: mark("m0") }], networks), []);
+});
+
 test("the results of another shape are not this removal's", () => {
   const older = results("s1", "b2", 512, line(MOVES)).map(k => k.replace(/^\d+\|/, `${SHAPE - 1}|`));
   const newer = older.map(k => k.replace(/^\d+\|/, `${SHAPE + 1}|`));

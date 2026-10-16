@@ -31,9 +31,12 @@ export interface KeptGame { moves: string[]; branches: KeptBranches | null; mark
 /** The stored results that nothing reads, among `keys` (in the store's order): of the store's shape, neither of the
  *  site's search with a network file it ships nor read by a stored game's snapshot. A snapshot reads the results of
  *  one search and network file, for the game's positions and those one move from them (the review file's, design
- *  13), each at its deepest. `engine` is the site's (engine.lock.json). */
+ *  13), each at its deepest. `engine` is the site's (engine.lock.json). None without its CPU module's search: every
+ *  result of the site's own engine would then count as an earlier engine's. */
 export function unneededResults(keys: string[], games: KeptGame[], engine: Manifest): string[] {
-  const site = moduleOf(engine)?.search, own = [...shippedModels(engine)!].map(model => `${SHAPE}|${site}|${model}|`);
+  const site = moduleOf(engine)?.search;
+  if (!site) return [];
+  const own = [...shippedModels(engine)!].map(model => `${SHAPE}|${site}|${model}|`);
   // The earlier results, each key read back here once (the site's own are known by their start), and by their
   // position's moves: each game's choice of a search reads the keys of its own positions alone.
   const earlier = keys.map(key => {
