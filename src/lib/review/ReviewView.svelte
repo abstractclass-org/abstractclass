@@ -1492,7 +1492,7 @@
 <!-- A setting that is on or off: its name and what it does, and a switch at the right. -->
 <!-- A line of the Advantage chart that the reader can show or hide, in the chart's legend: its box, its colour, its name. -->
 {#snippet lineBox(name: string, swatch: string, tint: string, get: () => boolean, set: (v: boolean) => void)}
-  <label class="inline-flex items-center gap-1 cursor-pointer select-none">
+  <label class="inline-flex items-center gap-1 select-none">
     <input type="checkbox" class="size-3 m-0 flex-none cursor-pointer {tint}" checked={get()} onchange={e => set(e.currentTarget.checked)} />
     <span class="inline-block w-[1.2em] h-0.5 {swatch}"></span> {name}
   </label>
