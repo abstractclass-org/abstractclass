@@ -221,7 +221,7 @@ one item for each turn, separated by spaces.
 
 ## Consequences
 
-- The steps are in the handoff while they run, and in decisions/open-items.md when they wait.
+- The steps are issues in beads (label `site`): in progress while they run, open when they wait.
 - The site's name changes in the pages. The bookmarklet's link text says Hedge School.
 - A game that Constellation exports from another start cannot be imported yet.
 

@@ -43,7 +43,7 @@ Web Analytics). Without them, as in development, the build has neither.
 
 | Path | What |
 |---|---|
-| `docs/` | The documents: context, handoff, design, decision log, requests to the engine repository ([docs/README.md](docs/README.md)). |
+| `docs/` | The documents: context, working notes, design, decision log, requests to the engine repository ([docs/README.md](docs/README.md)). |
 | `src/lib/engine/` | The engine module (protocol 0.4) in a Web Worker, the page's side of it, the protocol's types and the notation. |
 | `src/routes/` | The pages. `review/` is the game review, on the engine. `import/` takes a game from the meaf.us bookmarklet. `about/`, `notation/`, `privacy/` and `notices/` are about the site. `lab/engine/` is the engine lab. |
 | `src/lib/analysis/` | The review's analysis in the browser: the pool of engine workers, the schedule, the cache, the engine's settings. |

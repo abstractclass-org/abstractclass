@@ -1,14 +1,13 @@
 # Hedge School
 
 This project builds Hedge School, a website that helps people learn the board game Enclosure. It reviews their games, labels their
-moves, and later offers puzzles and training. Before you change anything, read these documents:
+moves, and later offers puzzles and training. Before you change anything, read these:
 
-- [docs/handoff.md](docs/handoff.md): the latest session's handoff. It tells what is in flight and what to check
-  first. Read it first. It holds only work in flight. Rewrite it at the end of each session.
-- [docs/decisions/open-items.md](docs/decisions/open-items.md): the one backlog. It holds all work still to do that
-  is not in flight. When work on an item starts, move the item to the handoff. If the work stops unfinished, move the
-  item back. When the item is done, remove it and write its result in its topic file. Never keep one item in both
-  places.
+- **The work, in beads** (label `site`): what is live, what is in flight, and the backlog. The rules are in
+  [../CLAUDE.md](../CLAUDE.md), "Tracking work in beads". Read the pinned issue "What is live" and the work in
+  progress first.
+- [docs/working-notes.md](docs/working-notes.md): how to test on this machine (the owner's browser, the local server,
+  the browser tool). Read it before a test in a browser. Add a note when you learn a lasting one.
 - [docs/context.md](docs/context.md): the goal, the game and the sites, the engine repository and what its outputs
   mean, and the working agreements.
 - [docs/design/](docs/design/README.md): the design documents, one per decision that is still in force. When a
@@ -24,7 +23,8 @@ The engine, the rules and the bots live in the engine repository,
 `../engines`.
 
 - **Read it. Never change it from a session of this repository.** Changes there go through its own sessions. When
-  this repository needs something from it, write a request in `docs/requests/` and tell the owner.
+  this repository needs something from it, write a request in `docs/requests/`, file an issue with the label
+  `engines` that links the request, and tell the owner. Work here that waits for the request depends on that issue.
 - **Never copy engine or rules code here.** The rules engine must match the site, and the engine repository's tests
   guard that. This repository uses the engine as versioned artifacts: a tagged WebAssembly build and a model.
 - **Decisions live where the thing decided lives.** Engine, rules, fork and protocol decisions stay there. Product
@@ -73,3 +73,17 @@ Write each piece of the site's text by what it does:
 - **Text that invites or persuades,** such as the home page, the consent banner and the Support Us dialog: plain web
   writing, as the [GOV.UK style guides](https://guidance.publishing.service.gov.uk/writing-to-gov-uk-standards/style-guides/)
   give it. Its tone matters, and the flat style of Simplified Technical English does not fit it.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in beads, with the label `site`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five default triage roles, as beads labels. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `GLOSSARY.md` at the root, decision records in `docs/design/`. See `docs/agents/domain.md`.

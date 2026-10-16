@@ -4,8 +4,8 @@ This log holds the key actions, findings and decisions, by topic. Each file is o
 (UTC+8).
 
 This log is the archive. For the design as it is now, read the design documents ([../design/](../design/README.md)).
-What is still to do is in [open-items.md](open-items.md) (the one backlog). What is in flight is in
-[../handoff.md](../handoff.md).
+What is still to do and what is in flight are in beads (label `site`). When an issue is done, write its
+result here, in the file whose topic fits.
 
 Add a new entry at the end of the file whose topic fits. Give it a `###` heading with the date. Add its title to the
 list below.
@@ -18,4 +18,4 @@ list below.
   - The current module in a Web Worker, and the time a position. The engine repository answers the requests. The engine protocol in the browser. The review on the engine. Label agreement against search budget.
 - [product.md](product.md): the interface, the review, puzzles, lessons, labels and thresholds.
   - A survey of chess and Go tools. The product's shape. The review wireframe. The review wireframe, first feedback. The review wireframe, second feedback. The review wireframe, third feedback. Prototypes of the other parts. Game import, first part. Game import, second part: the meaf.us bookmarklet.
-- [open-items.md](open-items.md): the one backlog.
+- [open-items.md](open-items.md): a pointer. The backlog moved to beads on 2026-10-16.
