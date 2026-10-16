@@ -3130,3 +3130,27 @@ The interface, the review, puzzles, lessons, labels and thresholds.
     version 1.
   - In the client build, the removal is a chunk of its own, which the layout loads only when the removal is due.
   - Not checked: the removal in a browser, and its time on the owner's store.
+
+### A question before a delete replaces the Undo (2026-10-16)
+
+- **The problem:** the Review tab deleted a game at once, with an Undo in its row ("Deleting a game, and the
+  browser's storage", 2026-10-12). The site now removes an earlier engine's results when no game needs them ("An
+  earlier engine's results go when no game needs them", design 20, item 8). An Undo could then restore a game without
+  the results that its snapshot reads. A lock across the tabs stopped the removal while an Undo showed. That lock
+  cost code in the store's delete, in the removal and in the Review tab.
+- **Decided** (design 11, "Deleting a game"): a question replaces the Undo. Delete opens the site's own dialog:
+  "Delete this game?", with the game's name and a line that says that the player cannot undo the delete. Its buttons
+  are Cancel and Delete. Cancel has the focus when the dialog opens, and Escape cancels. A confirmed delete deletes
+  the game, and its row goes at once. The dialog takes the second click of a double click, so no other row moves
+  under the pointer.
+- **The cost:** a second click on each delete.
+- **Also:** the Undo's lock goes, and the removal of earlier results runs without it. The event `game_restore` goes
+  with the Undo. `game_delete` counts a confirmed delete (design 17). A delete now makes the removal due whether or
+  not the game had a mark, so the delete reads nothing first.
+- **The dialog** is the site's question before an action that the player cannot undo
+  (`src/lib/ui/ConfirmDialog.svelte`). The Analysis board's "Replace your analysis?" and Practice's "Play from this
+  record?" keep their own dialogs for now. A move to this one would change their focus and their buttons.
+- **The dialog's text** is text that a player follows, in strict Simplified Technical English: "Hedge School will
+  delete the game … from this browser. You cannot undo this action."
+- **Checked:** the type check and the unit tests. Not checked: the dialog in a browser (its focus, Escape, a double
+  click, and the list after a delete).

@@ -8,15 +8,15 @@ import { SHAPE, earlierRemoval, isAnalysisKey, readAnalysisKey, searchHolding, s
 import { STORES, dbReadThenDelete } from "#lib/storage/db.ts";
 import { moduleOf, type Manifest } from "#lib/engine/client.ts";
 import { atPositions, positionKeys, shippedModels } from "./reviewFile.ts";
-import { readGames, reviewAgainWhy, reviewMark, unlessUndo, type KeptBranches, type ReviewMark, type StoredGame } from "./store.ts";
+import { readGames, reviewAgainWhy, reviewMark, type KeptBranches, type ReviewMark, type StoredGame } from "./store.ts";
 
 /** Removes the stored results that no game needs (unneededResults), in one transaction with the read of the games, their
  *  branches and the results' keys. The layout calls it at the site's start when the removal is due (cache.ts,
  *  earlierRemovalDue). `files` are the site's engine files (the build's ENGINE_FILES), which the browser's mark keeps
- *  after the removal. While a deleted game can be undone, nothing is removed: a later start removes them. */
-export const removeEarlierResults = (files: string) => unlessUndo(() => earlierRemoval(files, () =>
+ *  after the removal. */
+export const removeEarlierResults = (files: string) => earlierRemoval(files, () =>
   dbReadThenDelete(STORES.analysis, [STORES.games, STORES.branches], (keys, read) =>
-    unneededResults(keys, keptGames(read[STORES.games], read[STORES.branches]), lock as unknown as Manifest))));
+    unneededResults(keys, keptGames(read[STORES.games], read[STORES.branches]), lock as unknown as Manifest)));
 
 /** The stored games as the removal reads them. */
 function keptGames(games: [string, unknown][], branches: [string, unknown][]): KeptGame[] {

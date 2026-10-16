@@ -196,7 +196,8 @@
   padding-inline: 0.5rem;
 }
 
-/* A button that ends something for good (Practice's Abort and Resign, once confirmed): in the blunder's red. */
+/* A button that ends something for good (Practice's Abort and Resign, a game's Delete, once confirmed): in the
+   blunder's red. */
 @utility btn-danger {
   background: var(--blunder-fill);
   border-color: var(--blunder-fill);

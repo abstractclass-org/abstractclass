@@ -49,10 +49,7 @@ look at a past review pays it each time, and the earlier results are still in th
    deepest (item 2), so a shallower result of the same position goes. The other results of the store's shape go too:
    - **After Review again,** the game's mark names the site's engine when the new review ends. Its snapshot then reads
      nothing. A position that another game's snapshot reads keeps its result.
-   - **After a delete,** the results go once no page shows the game's Undo, because the Undo puts the game back with
-     its mark. A deleted game holds a lock (the Web Locks API) for all of the site's tabs, until its Undo or the end of
-     the page that shows its row. The removal runs only when it can take the lock alone. A delete waits for a removal
-     that runs.
+   - **After a delete,** the game needs nothing: the player confirms a delete and cannot undo it (design 11).
    - **A review file of an earlier engine** keeps its results while its mark is the game's. When the game keeps a
      mark of the site's engine (item 6), nothing reads them, and they go.
    - **After a release,** the previous engine's results go where no snapshot reads them. Examples are a game never
@@ -61,9 +58,9 @@ look at a past review pays it each time, and the earlier results are still in th
    - **When:** at the site's start, when the removal is due. A mark in the browser's local storage keeps the engine
      files that the last removal ran for: the CPU module and the networks, by SHA-256. A release that changes one
      makes the removal due. A change of what the games need also makes it due. These changes are a mark that replaces
-     a mark of another module or network file, the delete of a game with a mark, and the load of a review file. A
-     start with nothing changed reads the mark alone. An analysis file keeps the results of the site's search only:
-     the board reads no other.
+     a mark of another module or network file, the delete of a game, and the load of a review file. A start with
+     nothing changed reads the mark alone. An analysis file keeps the results of the site's search only: the board
+     reads no other.
 
 ## Why
 
@@ -89,11 +86,11 @@ look at a past review pays it each time, and the earlier results are still in th
 - **A snapshot's export:** to keep it, or to take it to another browser. A snapshot cannot change, so an export adds
   nothing new. Review again, then export.
 - **Keep every earlier result** (before item 8): each release adds one more set, which nothing reads.
-- **A removal at once when Review again ends:** a delete waits for its Undo in any case, so one rule, a later start,
-  serves both.
+- **A removal at once after each change** (the end of Review again, a delete): the start is the one place that
+  removes, and one removal serves every change since the last one.
 - **A removal at each start:** it reads every key of the store on each load.
-- **A removal without the Undo's lock:** an Undo in another open tab would put a game back without its results, and
-  its next open would review it again.
+- **An Undo of a delete:** design 11 gives why a question replaced it. It needed a lock across the tabs, which stopped
+  the removal while an Undo showed.
 
 ## Consequences
 
@@ -113,8 +110,6 @@ look at a past review pays it each time, and the earlier results are still in th
   game's mark before its results, so a removal in another tab between the two takes none of them. A change of what
   the games need while a removal runs keeps the removal due. A tab of an earlier release that starts after a later
   release's can take the later engine's results of a review not yet done. That review then searches them again.
-- **Without the Web Locks API** (a page served without HTTPS), the removal does not wait for an Undo. An Undo then
-  puts a game back without its earlier results, and the game is reviewed again (item 5).
 - **Results that stay longer:** a branch deleted after Review again, before the new review ends, keeps its earlier
   results until the next removal.
 
@@ -126,10 +121,8 @@ look at a past review pays it each time, and the earlier results are still in th
   `src/lib/game/store.ts` (`reviewAgainWhy`).
 - The removal: `src/lib/game/earlierResults.ts` (`unneededResults`, `removeEarlierResults`, which
   `src/routes/+layout.svelte` starts), `src/lib/analysis/cache.ts` (the mark: `earlierRemovalDue`,
-  `makeEarlierRemovalDue`), `src/lib/game/store.ts` (`markReviewed`, the Undo's lock: `deleteGame`, `restoreGame`,
-  `unlessUndo`), `src/lib/game/reviewLock.ts` (`holdLock`, `whenFree`), `src/lib/review/ReviewHome.svelte` (the
-  Undo), `src/lib/game/analysisFile.ts` (`openAnalysisFile`), `src/lib/storage/db.ts` (`dbReadThenDelete`),
-  `vite.config.ts` (`__ENGINE_FILES__`).
+  `makeEarlierRemovalDue`), `src/lib/game/store.ts` (`markReviewed`, `deleteGame`), `src/lib/game/analysisFile.ts`
+  (`openAnalysisFile`), `src/lib/storage/db.ts` (`dbReadThenDelete`), `vite.config.ts` (`__ENGINE_FILES__`).
 
 ## Log entries
 

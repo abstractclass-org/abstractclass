@@ -123,16 +123,15 @@ one item for each turn, separated by spaces.
 
 ### Deleting a game
 
-- **Delete removes the game, its branches, and the Review link's pointer to it.** The site's engine's analyses stay:
-  they belong to positions, which other games can share, and an import of the same game then opens its review at
-  once. An earlier engine's, which only the game's snapshot read, go at a later start, once no page shows the game's
-  Undo, unless another game needs them (design 20, item 8).
-- **An Undo, not a question.** The site deletes the game at once, as Gmail does, and the game's row then says
-  "Deleted …" with an Undo. A slip costs one click, and a delete the player wants costs one click too. The delete
-  stands if the page closes.
-- **The row stays until the page loads again,** with the Undo where the Delete was. So the list does not move under
-  the pointer: a double click undoes its own delete, and never deletes the next game. Each deleted game keeps its own
-  Undo, with no time limit.
+- **Delete removes the game, its branches, and the Review link's pointer to it,** for good. The site's engine's
+  analyses stay: they belong to positions, which other games can share, and an import of the same game then opens its
+  review at once. An earlier engine's, which only the game's snapshot read, go at a later start, unless another game
+  needs them (design 20, item 8).
+- **A question first.** Delete opens a dialog: "Delete this game?", with the game's name, and a line that says that
+  the player cannot undo the delete. Its buttons are Cancel and Delete. Cancel has the focus when the dialog opens, so
+  that Enter does not delete, and Escape cancels. A click outside the dialog does nothing.
+- **A confirmed delete deletes the game, and its row goes at once.** The dialog takes the second click of a double
+  click on Delete, so a double click never deletes the next game.
 
 ### Storage that the browser keeps
 
@@ -211,6 +210,10 @@ one item for each turn, separated by spaces.
 
 - **A sample game,** to show the review before a player imports one: a bot game is not the player's own, and the
   early access is for players who bring their games.
+- **An Undo, not a question** (before the question), as Gmail does: the site deleted the game at once, and its row
+  showed "Deleted …" with an Undo until the page loaded again. A delete and a slip cost one click each. But an Undo
+  could restore a game without the results that its snapshot reads, once the site removes an earlier engine's
+  results (design 20, item 8). The question costs a second click on each delete.
 - **A public repository:** later. **The free `pages.dev` address:** the owner's domain is the lasting one.
 - **Listed in search engines:** after the first players' reports.
 - **A note that the labels may change:** not needed, since a change reaches stored games by itself.
@@ -233,7 +236,8 @@ one item for each turn, separated by spaces.
   `src/lib/game/store.ts`, read by `src/lib/review/ReviewHome.svelte`. The hidden pages:
   `src/routes/{puzzles,learn,lab/engine}/+page.ts`. Search engines: design 23.
 - The import of Constellation's export: `src/lib/game/constellation.ts`, with its tests.
-- Deleting a game: `deleteGame` and `restoreGame` in `src/lib/game/store.ts`, the rows in `src/routes/+page.svelte`.
+- Deleting a game: `deleteGame` in `src/lib/game/store.ts`, the rows in `src/lib/review/ReviewHome.svelte`, the
+  question in `src/lib/ui/ConfirmDialog.svelte`.
 - One tab for each game's review: `src/lib/game/reviewLock.ts`, used in `src/routes/review/+page.svelte`. The check
   for a deleted game: `keepBranches` in `src/lib/analysis/game.svelte.ts`.
 - The pages: `src/routes/{about,notation,developers,privacy,notices}/+page.svelte`, `src/lib/SiteFooter.svelte`,
@@ -247,4 +251,5 @@ one item for each turn, separated by spaces.
 
 - [decisions/product.md](../decisions/product.md): "Early access: the review only, as Hedge School", "Early access:
   the second round", "Google Analytics in Google's consent mode, advanced", "Early access: the third round"
-  (2026-10-12).
+  (2026-10-12), "Deleting a game, and the browser's storage" (2026-10-12), "A question before a delete replaces the
+  Undo" (2026-10-16).

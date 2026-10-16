@@ -2,11 +2,11 @@
   // The Review tab without a game (design 22): import a game to review it by pasting its record, or load a review file,
   // continue the last review, and the player's games, kept in this browser. A review opens on a game the player
   // brought: there is no sample game (design 11). An analysis file loaded here goes to the Analysis board.
-  import { onDestroy, onMount } from "svelte";
+  import { onMount } from "svelte";
   import { goto } from "$app/navigation";
   import { playerNames, parseRecord, type GameRecord } from "#lib/game/record.ts";
   import { setUpStart } from "#lib/engine/notation.ts";
-  import { deleteGame, lastReview, listGames, restoreGame, reviewAgainWhy, reviewCovers, reviewMark, type DeletedGame,
+  import { deleteGame, lastReview, listGames, reviewAgainWhy, reviewCovers, reviewMark,
            type StoredGame } from "#lib/game/store.ts";
   import { loadEngine, settingsFor } from "#lib/analysis/engineSettings.ts";
   import { importRecord } from "#lib/game/import.ts";
@@ -23,12 +23,14 @@
   import { trackImport, trackImportFailed, trackLoad, trackLoadFailed } from "#lib/game/importEvents.ts";
   import { GAME_RANGES, range } from "#lib/measure.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
+  import ConfirmDialog from "#lib/ui/ConfirmDialog.svelte";
 
   let text = $state("");
   let problem = $state("");
   let checking = $state(false);
-  let games = $state<{ game: StoredGame; record: GameRecord }[]>([]);
-  let last = $state<{ game: StoredGame; record: GameRecord } | null>(null); // the game reviewed last, when it is still kept
+  let games = $state.raw<{ game: StoredGame; record: GameRecord }[]>([]); // raw: replaced, never changed in place
+  let lastId = $state<string | null>(null);
+  const last = $derived(games.find(g => g.game.id === lastId) ?? null); // the game reviewed last, when it is still kept
   // The review a game's export needs (design 13): with this site's engine, and the network and review depth that the
   // game reviews with (engineSettings.ts, settingsFor).
   let manifest = $state.raw<Manifest | null>(null);
@@ -48,29 +50,23 @@
     manifestLoad = loadManifest();
     games = await listGames();
     kept = !!(await storageKept());
-    const lastId = lastReview();
-    last = games.find(g => g.game.id === lastId) ?? null;
+    lastId = lastReview();
     ready = true;
     setVisitor({ games_stored: range(games.length, GAME_RANGES) }); // how many games a visitor keeps (design 17)
     if (games.length && !kept) void keepStorage().then(k => (kept = k));
     manifest = await manifestLoad;
   });
 
-  // The games deleted on this visit, by id. The delete is done at once, so it stands if the page closes. A deleted
-  // game's row stays until the page loads again, with an Undo where its Delete was: the list does not move under the
-  // pointer, and the player has no time limit to undo. Raw: IndexedDB cannot store a state proxy.
-  let deleted = $state.raw<Record<string, DeletedGame>>({});
-  // A deleted game holds the Undo's lock until its Undo (store.ts, deleteGame), or until its row goes: no tab removes
-  // an earlier engine's results that the game's snapshot reads (design 20).
-  onDestroy(() => Object.values(deleted).forEach(d => d.free()));
-  async function remove(id: string) {
-    const was = await deleteGame(id);
-    if (was) { deleted = { ...deleted, [id]: was }; track("game_delete"); }
-  }
-  async function undo(id: string) {
-    const { [id]: was, ...rest } = deleted;
-    deleted = rest;
-    if (was) { await restoreGame(was); track("game_restore"); }
+  // The game whose Delete was clicked, while its question shows (ConfirmDialog, design 11). A confirmed delete deletes
+  // the game, and its row goes at once: the dialog takes a double click's second click, so no other row moves under it.
+  let deleting = $state<{ id: string; name: string } | null>(null);
+  async function answerDelete(yes: boolean) {
+    const id = deleting?.id;
+    deleting = null;
+    if (!yes || !id) return;
+    await deleteGame(id);
+    games = games.filter(g => g.game.id !== id);
+    track("game_delete");
   }
 
   /** The pasted game, kept and reviewed. The import counted by its source and the game's length, and a failure by why
@@ -201,28 +197,23 @@
       <ul class="grid gap-1.25 mb-1.5">
         {#each games as { game, record } (game.id)}
           <li class="flex flex-wrap items-baseline gap-2.5">
-            {#if deleted[game.id]}
-              <span class="text-sm text-muted" role="status">Deleted {title(record)}.</span>
-              <span class="ml-auto"><button type="button" class="px-2 py-0 text-xs" onclick={() => undo(game.id)}>Undo</button></span>
+            <!-- A game from a set-up start (a practice game from the Analysis board's Play) opens on the Analysis board:
+                 the Review tab reviews games from the standard start. -->
+            {#if setUpStart(record.tags.Position)}
+              <a href="/analysis#{new URLSearchParams({ record: game.record, via: 'your_games' })}" data-sveltekit-reload>{title(record)}</a>
             {:else}
-              <!-- A game from a set-up start (a practice game from the Analysis board's Play) opens on the Analysis board:
-                   the Review tab reviews games from the standard start. -->
-              {#if setUpStart(record.tags.Position)}
-                <a href="/analysis#{new URLSearchParams({ record: game.record, via: 'your_games' })}" data-sveltekit-reload>{title(record)}</a>
-              {:else}
-                <a href="/review#game={game.id}" data-sveltekit-reload>{title(record)}</a>
-              {/if}
-              <span class="text-sm text-muted">{record.moves.length} edges{record.result && record.result !== "*" ? ` · ${record.result}` : ""} ·
-                added {new Date(game.added).toLocaleDateString()}</span>
-              <span class="ml-auto flex items-center gap-1.5"><ExportMenu small side="bottom" run={kind => exportGame(game.id, game.record, kind)}
-                ready={reviewCovers(game.reviewed, wanted(game))}
-                why={setUpStart(record.tags.Position) ? "A game from a set-up start opens on the Analysis board: export it there."
-                  : !game.reviewed ? "Open the game to review it, then export."
-                  : reviewAgainWhy(game.reviewed, wanted(game)) ? "The engine was updated: open the game, choose Review again, then export."
-                  : "Open the game to finish its review with the engine settings now, then export."} />
-                <button type="button" class="px-2 py-0 text-xs" aria-label="Delete {title(record)}"
-                        onclick={() => remove(game.id)}>Delete</button></span>
+              <a href="/review#game={game.id}" data-sveltekit-reload>{title(record)}</a>
             {/if}
+            <span class="text-sm text-muted">{record.moves.length} edges{record.result && record.result !== "*" ? ` · ${record.result}` : ""} ·
+              added {new Date(game.added).toLocaleDateString()}</span>
+            <span class="ml-auto flex items-center gap-1.5"><ExportMenu small side="bottom" run={kind => exportGame(game.id, game.record, kind)}
+              ready={reviewCovers(game.reviewed, wanted(game))}
+              why={setUpStart(record.tags.Position) ? "A game from a set-up start opens on the Analysis board: export it there."
+                : !game.reviewed ? "Open the game to review it, then export."
+                : reviewAgainWhy(game.reviewed, wanted(game)) ? "The engine was updated: open the game, choose Review again, then export."
+                : "Open the game to finish its review with the engine settings now, then export."} />
+              <button type="button" class="px-2 py-0 text-xs" aria-label="Delete {title(record)}"
+                      onclick={() => (deleting = { id: game.id, name: title(record) })}>Delete</button></span>
           </li>
         {/each}
       </ul>
@@ -236,4 +227,7 @@
 </main>
 
 <SiteFooter />
+<ConfirmDialog open={!!deleting} title="Delete this game?" action="Delete" onanswer={answerDelete}>
+  {SITE_NAME} will delete the game <strong>{deleting?.name}</strong> from this browser. You cannot undo this action.
+</ConfirmDialog>
 {/if}

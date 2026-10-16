@@ -3,7 +3,6 @@
 // The id is the first 12 hex digits of the SHA-256 of its moves: the same game imported twice is one game.
 import { STORES, dbAll, dbDelete, dbGet, dbPut } from "#lib/storage/db.ts";
 import { makeEarlierRemovalDue } from "#lib/analysis/cache.ts";
-import { holdLock, whenFree } from "./reviewLock.ts";
 import { keepStorage } from "#lib/storage/persist.ts";
 import { readLocal, writeLocal } from "#lib/storage/local.ts";
 import { parseRecord, type GameRecord } from "./record.ts";
@@ -127,38 +126,14 @@ export const readGames = (games: StoredGame[]) => games.flatMap(game => {
   try { return [{ game, record: parseRecord(game.record) }]; } catch { return []; }
 });
 
-/** A deleted game as it was, for its undo: the stored game, its branches, whether the Review link opened it, and the
- *  function that frees its hold on the Undo's lock. */
-export interface DeletedGame { game: StoredGame; branches?: KeptBranches; last: boolean; free: () => void }
-
-// A deleted game holds this lock, shared (the Web Locks API, across the site's tabs), until its Undo or the end of the
-// page that shows it. The removal of earlier results (earlierResults.ts) runs only when it can take the lock alone: the
-// Undo puts the game back with its mark, and its snapshot reads them.
-const UNDO_LOCK = "learn-enclosure:undo:1";
-
-/** Deletes a game, its branches, and the Review link's pointer to it. Null when the browser has no such game. The site's
- *  engine's analyses stay: they belong to positions, which other games can share, and an import of the same game then
- *  opens its review from them at once. An earlier engine's, which only the game's snapshot read, go at a later start,
- *  once the deleted game frees the Undo's lock. The delete waits for a removal that runs. */
-export async function deleteGame(id: string): Promise<DeletedGame | null> {
-  const free = (await holdLock(UNDO_LOCK, { mode: "shared" })) ?? (() => {});
-  const [game, branches] = await Promise.all([dbGet<StoredGame>(STORES.games, id), dbGet<KeptBranches>(STORES.branches, id)]);
-  if (!game) { free(); return null; }
-  const last = lastReview() === id;
+/** Deletes a game, its branches, and the Review link's pointer to it, for good: the player confirmed it (design 11).
+ *  The site's engine's analyses stay: they belong to positions, which other games can share, and an import of the same
+ *  game then opens its review from them at once. An earlier engine's, which only the game's snapshot read, go at a
+ *  later start, unless another game needs them (design 20). */
+export async function deleteGame(id: string) {
   await Promise.all([dbDelete(STORES.games, id), dbDelete(STORES.branches, id)]);
-  if (last) rememberReview(null);
-  if (game.reviewed) makeEarlierRemovalDue();
-  return { game, branches, last, free };
-}
-
-/** Runs `work` with the Undo's lock alone, when no deleted game holds it. False, with nothing done, when one does. */
-export const unlessUndo = <T>(work: () => Promise<T>) => whenFree(UNDO_LOCK, work);
-
-/** Puts a deleted game back as it was, and frees its hold on the Undo's lock. */
-export async function restoreGame({ game, branches, last, free }: DeletedGame) {
-  await Promise.all([dbPut(STORES.games, game.id, game), branches && dbPut(STORES.branches, game.id, branches)]);
-  free();
-  if (last) rememberReview(game.id);
+  if (lastReview() === id) rememberReview(null);
+  makeEarlierRemovalDue();
 }
 
 // The game the Review link opens: the last one reviewed in this browser. Storage can be blocked, so a read or a write
