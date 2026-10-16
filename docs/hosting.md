@@ -16,7 +16,7 @@ entries before it).
 | The host | Cloudflare Pages, the project `hedgeschool`, with no Git connection | Serves the files that the deploy uploads, and runs the one Function. Also at `hedgeschool.pages.dev`. |
 | The engine | GitHub Releases of the public repository `abstractclass-org/enclosure-engine` | The module and the networks, pinned by SHA-256 in `engine.lock.json`. The build downloads them. |
 | Visit counts | Google Analytics (the property's measurement ID `G-C5RY6DWGWN`) and Cloudflare Web Analytics | Counted in the browser (`src/lib/analytics.svelte.ts`). |
-| Tests | GitHub Actions (`.github/workflows/tests.yml`) | On each push to `dev`: the check, the unit tests and the browser tests in Chromium (the layout sweep, and the practice games' consent). |
+| Tests | GitHub Actions (`.github/workflows/tests.yml`) | On each push to `dev`: the check, the unit tests and the browser tests on Linux, and the layout sweep on Windows ("Deploy, check and roll back"). |
 | Practice games | Cloudflare D1: `hedgeschool-games` for production, `hedgeschool-games-preview` for the previews | A Pages Function (`functions/api/practice-games.ts`) keeps each game against HedgeFund when it ends (design 25). |
 
 The site is static files: every page is prerendered, and the engine runs in the visitor's browser. One Pages Function
@@ -296,15 +296,21 @@ the next visit).
 ## Deploy, check and roll back
 
 - **Check the tests first:** release only a commit whose run of the workflow **Tests** passed (GitHub, the
-  repository's **Actions** tab, or the mark beside the commit). On each push to `dev` it runs the check, the unit tests
-  and the browser tests in Chromium on Linux, about 10 minutes (`.github/workflows/tests.yml`): the layout sweep, and
-  a Decline in one tab while a practice game is open in another (tests/practice-games.spec.ts, on a build that stores
-  practice games only). The sweep loads each
-  page at every width from 360 to 1,920 pixels, with real scroll bars (tests/layout.spec.ts). A failed run keeps the
-  failures' screenshots for a week (the run's **Artifacts**).
-- **Then the sweep in Edge,** on this computer: build as production does (`VITE_EDITION=early npm run build`), start
-  the preview (`npm run preview -- --host 127.0.0.1 --port 4173`), and run `npx playwright test --project=edge` (about
-  7 minutes). `npm run test:layout` runs both browsers. Either can run against a preview:
+  repository's **Actions** tab, or the mark beside the commit). On each push to `dev` it runs two jobs at the same time
+  (`.github/workflows/tests.yml`). Each one builds the site as production does, with the practice games' storage on:
+  - **`test`, on Linux,** about 10 minutes: the check, the unit tests, the layout sweep in Chromium, and a Decline in
+    one tab while a practice game is open in another (tests/practice-games.spec.ts).
+  - **`test-windows`, on Windows:** the layout sweep in Playwright's own Chromium, with Windows' scroll bars, Windows'
+    fonts (`system-ui` is Segoe UI there) and Windows' drawing of text. Linux does not show these. They change where
+    text wraps or overflows.
+
+  The sweep loads each page at every width from 360 to 1,920 pixels, with real scroll bars (tests/layout.spec.ts). A
+  failed run keeps the failures' screenshots for a week (the run's **Artifacts**: `layout-sweep` for Linux,
+  `layout-sweep-windows` for Windows).
+- **The sweep in Edge, as an option,** on this computer: it shows Edge's own drawing, with this computer's settings.
+  Build as production does (`VITE_EDITION=early npm run build`), start the preview
+  (`npm run preview -- --host 127.0.0.1 --port 4173`), and run `npx playwright test --project=edge` (about 7 minutes).
+  `npm run test:layout` runs both browsers. Either can run against a preview:
   `BASE_URL=https://dev.hedgeschool.pages.dev npm run test:layout`.
 - **Deploy:** release `dev` to `main` (`git push origin dev:main`). The workflow **Deploy** builds and uploads it in a
   few minutes (its build runs the unit tests and the type check again). A failed build leaves the live site as it was.

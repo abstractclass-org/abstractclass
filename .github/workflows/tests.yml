@@ -1,10 +1,10 @@
 # The site's tests on each push to dev (docs/hosting.md, "Deploy, check and roll back"): the type check, the unit tests,
-# and the browser tests in Chromium (tests/): the layout sweep, and the practice games' consent across tabs. On a
-# production build with the practice games' storage on, so that the consent banner shows on every page, and the
-# practice games' test runs. A release takes only a commit whose run passed. The deploy (deploy.yml)
-# runs the check and the unit tests again before each upload. The sweep in Edge stays a local step before a release.
-# A newer push cancels a run still going for an older one. Runs on a private repository count against the account's
-# monthly minutes.
+# and the browser tests in Chromium on Linux (tests/): the layout sweep, and the practice games' consent across tabs.
+# Beside them, the layout sweep in Chromium on Windows. On a production build with the practice games' storage on, so
+# that the consent banner shows on every page, and the practice games' test runs. A release takes only a commit whose
+# run passed. The deploy (deploy.yml) runs the check and the unit tests again before each upload. The sweep in Edge
+# stays an option before a release. A newer push cancels a run still going for an older one. The repository is public,
+# so the standard runners cost no minutes.
 name: Tests
 
 on:
@@ -65,5 +65,54 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: layout-sweep
+          path: test-results/
+          retention-days: 7
+
+  # The layout sweep on Windows, for what Windows changes: the fonts (system-ui is Segoe UI there), their rendering, and
+  # the scroll bars. In Playwright's own Chromium, as on Linux, not in the runner's Edge, whose version changes with the
+  # runner's image.
+  test-windows:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci
+
+      - name: Cache the engine's files
+        uses: actions/cache@v6
+        with:
+          path: node_modules/.cache/engine
+          key: engine-windows-${{ hashFiles('engine.lock.json') }}
+      - run: npm run engine -- --deploy
+
+      - run: npm run build
+        env:
+          VITE_EDITION: early
+          VITE_STORE_PRACTICE_GAMES: "on"
+
+      # Playwright keeps its browsers in the user's AppData on Windows.
+      - name: Cache Playwright's browsers
+        uses: actions/cache@v6
+        with:
+          path: ~/AppData/Local/ms-playwright
+          key: playwright-windows-${{ hashFiles('package-lock.json') }}
+      # The headless shell only: the project chromium runs headless, with no channel.
+      - run: npx playwright install --only-shell chromium
+      # Bash, not the default PowerShell, for the commands of the Linux job: the preview in the background, the wait.
+      - name: The layout sweep, in Chromium on Windows
+        shell: bash
+        run: |
+          node node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 4173 --strictPort &
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:4173/ > /dev/null && break; sleep 1; done
+          npx playwright test tests/layout.spec.ts --project=chromium
+
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: layout-sweep-windows
           path: test-results/
           retention-days: 7

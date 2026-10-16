@@ -1,0 +1,3 @@
+# LF line ends in every checkout, on Windows too, where Git writes CRLF by default: a build on Windows (the Tests
+# workflow's job on Windows) then reads the same files as on Linux.
+* text=auto eol=lf

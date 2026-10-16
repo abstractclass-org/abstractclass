@@ -3192,3 +3192,21 @@ The interface, the review, puzzles, lessons, labels and thresholds.
 - **The practice games' delete** sends no event, so it gets no cancel event either.
 - **Checked:** the type check, the unit tests, and the dialog's text with the STE skill's linter (no violation). Not
   checked: the dialog in a browser.
+
+### The layout sweep on Windows, in CI (2026-10-17)
+
+- **Why:** the workflow **Tests** ran the sweep in Chromium on Linux only. Three things on Windows do not show on
+  Linux: the fonts (`system-ui` is Segoe UI on Windows), how Windows draws them, and the scroll bars. So each release
+  also needed the sweep in Edge on this computer. The repository is now public, so a Windows runner costs no minutes.
+- **What:** the job `test-windows` in `.github/workflows/tests.yml`, on `windows-latest`, at the same time as the
+  Linux job `test`. It builds as the Linux job does, starts the preview, and runs `tests/layout.spec.ts` in
+  Playwright's own Chromium (the project `chromium`, in its headless shell). Playwright 1.63.0 gives that Chromium's
+  version. The runner's Edge is not used, because its version changes with the runner's image. The repository's
+  `.gitattributes` keeps LF line ends in each checkout: Git on Windows writes CRLF by default. The release procedure
+  (hosting.md, "Deploy, check and roll back") takes this job in place of the sweep in Edge. The sweep in Edge stays an
+  option.
+- **Checked on this computer** (Windows 11), not on a runner: the job's commands in Git Bash, on a production build,
+  with the preview on another port. All 10 tests of the sweep pass, in 7.5 minutes. Playwright's Chromium 153 has
+  scroll bars of 15 pixels there, in its headless shell and in its new headless mode. Edge on Windows has 15 pixels
+  too ("The review's move list under its scroll bar"). Not checked: a run of the job on GitHub, its time, and its
+  caches.
