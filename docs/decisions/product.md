@@ -3075,4 +3075,6 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   A version of the browser's database for each shape: an upgrade waits for the site's other tabs to close, and the
   site gives a page no storage while it waits.
 - **Checked:** the unit tests (`cache.test.ts`, `reviewFile.test.ts`) check which keys the removal takes, when it
-  runs, and the files' results. Not checked: the removal in a browser, and its time on the owner's store.
+  runs, and the files' results. In the owner's Edge, on the local preview's address: before the first start of this
+  build, the store had 5,548 analyses. After it, 2,752 stayed, all of the current shape. The start removed 2,796, the
+  same number of older shapes as on 2026-10-12. A second start removed nothing. Not measured: the time of the removal.
