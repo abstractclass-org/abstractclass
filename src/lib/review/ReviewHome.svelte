@@ -59,7 +59,8 @@
 
   // The game whose Delete was clicked, while its question shows (ConfirmDialog, design 11). A confirmed delete deletes
   // the game, and its row goes at once: the dialog takes a double click's second click, so no other row moves under it.
-  // Each answer counts (design 17): a Cancel is a delete that the question stopped, a slip or a change of mind.
+  // Each answer counts (design 17): a Cancel, an Escape or a click outside is a delete that the question stopped, a
+  // slip or a change of mind.
   let deleting = $state<{ id: string; name: string } | null>(null);
   async function answerDelete(yes: boolean) {
     const id = deleting?.id;

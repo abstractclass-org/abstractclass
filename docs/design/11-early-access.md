@@ -129,10 +129,13 @@ one item for each turn, separated by spaces.
   needs them (design 20, item 8).
 - **A question first.** Delete opens a dialog: "Delete this game?", with the game's name, and a line that says that
   the player cannot undo the delete. Its buttons are Cancel and Delete. Cancel has the focus when the dialog opens, so
-  that Enter does not delete, and Escape cancels. A click outside the dialog does nothing. The privacy page's "Delete
+  that Enter does not delete. Escape and a click outside the dialog cancel, as Cancel does. The privacy page's "Delete
   my practice games" asks in the same dialog (design 25).
-- **A confirmed delete deletes the game, and its row goes at once.** The dialog takes the second click of a double
-  click on Delete, so a double click never deletes the next game.
+- **A double click on Delete opens the question once.** Within 500 ms of the question's opening, a click outside it or
+  on its Delete does nothing: it is the second click of a double click, not an answer. So a double click deletes no
+  game, on a phone too, where the question's Delete can be under the row's. 500 ms is Windows' default double-click
+  time.
+- **A confirmed delete deletes the game, and its row goes at once.**
 
 ### Storage that the browser keeps
 
