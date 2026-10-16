@@ -53,6 +53,25 @@ export async function removeOlderShapes(): Promise<void> {
   if (!removalDue(readLocal(REMOVED))) return;
   if (await dbDeleteWhere(STORES.analysis, isOlderShape)) writeLocal(REMOVED, String(SHAPE));
 }
+
+// The removal of an earlier engine's results, and of an earlier network file's, that no stored game needs any more
+// (game/earlierResults.ts, design 20). The browser's mark keeps the site's engine files (the build's ENGINE_FILES)
+// that the last removal ran for. A release that changes them, and a change of what the games need, make it due: a
+// start with nothing changed reads the mark alone.
+const EARLIER = "learn-enclosure:earlier-results:1";
+const removing = (files: string) => `removing ${files}`;
+/** Whether the removal of earlier results is due for `files`, the site's engine files. */
+export const earlierRemovalDue = (files: string) => readLocal(EARLIER) !== files;
+/** A removal for `files` begins. The mark says so until it ends, so that a removal that a closed page stops stays due. */
+export const beginEarlierRemoval = (files: string) => writeLocal(EARLIER, removing(files));
+/** A removal for `files` ended: the mark keeps it, unless what the games need changed while it ran. */
+export function endEarlierRemoval(files: string) {
+  if (readLocal(EARLIER) === removing(files)) writeLocal(EARLIER, files);
+}
+/** What the stored games need changed (a game's mark, a game deleted, a file loaded): the next start removes the
+ *  results that they no longer need. */
+export const makeEarlierRemovalDue = () => writeLocal(EARLIER, null);
+
 /** The results of `models` (the networks' SHA-256), or every result when null: the site keeps only the results of the
  *  networks it ships, since its engine never asks for another's. */
 export const ofModels = (entries: [string, unknown][], models: Set<string> | null) =>
@@ -93,6 +112,10 @@ export async function snapshotSearch(model: string, positions: string[][], visit
   const [keys, not] = await Promise.all([dbKeys(STORES.analysis), except]);
   return searchHolding(keys.map(String), model, positions, visits, not);
 }
+
+/** The positions whose results a snapshot needs, by their moves: each one of the game's line after the start, which
+ *  every game shares, up to the last before its last move. */
+export const snapshotPositions = (moves: string[]) => Array.from({ length: Math.max(0, moves.length - 1) }, (_, i) => moves.slice(0, i + 1));
 
 /** snapshotSearch's choice among `keys`. */
 export function searchHolding(keys: string[], model: string, positions: string[][], visits: number, except?: string): string | undefined {

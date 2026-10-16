@@ -9,6 +9,8 @@ declare global {
 	const __USERSCRIPT_VERSION__: string;
 	/** The userscript's code's version: a hash of the files it is made from (vite.config.ts). */
 	const __USERSCRIPT_CODE__: string;
+	/** The engine's CPU module and networks, by SHA-256, from engine.lock.json (vite.config.ts). */
+	const __ENGINE_FILES__: string;
 	namespace App {
 		// interface Error {}
 		// interface Locals {}

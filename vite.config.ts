@@ -33,10 +33,16 @@ const userscriptCode = createHash('sha256')
 	.update(['userscript.ts', 'meafPage.ts', 'meaf.ts'].map(f => readFileSync(`src/lib/game/${f}`, 'utf8')).join('\0'))
 	.digest('hex').slice(0, 12);
 
+// The engine files that the stored results name (src/lib/game/earlierResults.ts): the CPU module and the networks, by
+// SHA-256. The site's first start after a release that changes one removes the results that no stored game needs.
+const engineFiles = (JSON.parse(readFileSync('engine.lock.json', 'utf8')).artifacts as { kind: string; sha256: string }[])
+	.filter(a => a.kind === 'module' || a.kind === 'model').map(a => a.sha256).join(' ');
+
 export default defineConfig({
 	define: {
 		__SITE_VERSION__: JSON.stringify(commit.slice(0, 7)), __SITE_ORIGIN__: JSON.stringify(origin),
 		__USERSCRIPT_VERSION__: JSON.stringify(userscriptVersion), __USERSCRIPT_CODE__: JSON.stringify(userscriptCode),
+		__ENGINE_FILES__: JSON.stringify(engineFiles),
 	},
 	// ONNX Runtime Web (the GPU worker, src/lib/engine/gpuWorker.ts) in its form that takes its WebAssembly from the page:
 	// its usual form makes the build copy that file (26.8 MB) into the site, over Cloudflare Pages' 25 MiB for a file.

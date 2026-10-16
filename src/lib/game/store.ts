@@ -2,6 +2,7 @@
 // game is stored as its record's text, so an export is the record itself, and a later server can import it as it is.
 // The id is the first 12 hex digits of the SHA-256 of its moves: the same game imported twice is one game.
 import { STORES, dbAll, dbDelete, dbGet, dbPut } from "#lib/storage/db.ts";
+import { makeEarlierRemovalDue } from "#lib/analysis/cache.ts";
 import { keepStorage } from "#lib/storage/persist.ts";
 import { readLocal, writeLocal } from "#lib/storage/local.ts";
 import { parseRecord, type GameRecord } from "./record.ts";
@@ -80,11 +81,17 @@ export function reviewAgainWhy(mark: ReviewMark | undefined, want: WantedReview 
   return mark.model !== want.model ? "network" : null;
 }
 
+/** Whether a new mark replaces a mark of another engine module or network file: the earlier one's results, which its
+ *  snapshot read, may then be of no use (design 20). */
+export const replacesAnother = (before: ReviewMark | undefined, mark: Omit<ReviewMark, "at">) =>
+  !!before && (before.module !== mark.module || before.model !== mark.model);
+
 /** Marks a game's review as done. A deeper mark of the same search and network stays. */
 export async function markReviewed(id: string, { modules, ...mark }: WantedReview) {
   const game = await dbGet<StoredGame>(STORES.games, id);
   if (!game || reviewCovers(game.reviewed, { ...mark, modules })) return;
   await dbPut(STORES.games, id, { ...game, reviewed: { ...mark, at: new Date().toISOString() } });
+  if (replacesAnother(game.reviewed, mark)) makeEarlierRemovalDue();
 }
 
 export async function gameId(moves: string[], start?: string): Promise<string> {
@@ -120,16 +127,43 @@ export async function listGames(): Promise<{ game: StoredGame; record: GameRecor
 /** A deleted game as it was, for its undo: the stored game, its branches, and whether the Review link opened it. */
 export interface DeletedGame { game: StoredGame; branches?: KeptBranches; last: boolean }
 
-/** Deletes a game, its branches, and the Review link's pointer to it. Null when the browser has no such game. The
+/** Deletes a game, its branches, and the Review link's pointer to it. Null when the browser has no such game. The site's
  *  engine's analyses stay: they belong to positions, which other games can share, and an import of the same game then
- *  opens its review from them at once. */
+ *  opens its review from them at once. An earlier engine's, which only the game's snapshot read, go at a later start,
+ *  once no page shows the game's Undo (holdUndo). */
 export async function deleteGame(id: string): Promise<DeletedGame | null> {
   const [game, branches] = await Promise.all([dbGet<StoredGame>(STORES.games, id), dbGet<KeptBranches>(STORES.branches, id)]);
   if (!game) return null;
   const last = lastReview() === id;
   await Promise.all([dbDelete(STORES.games, id), dbDelete(STORES.branches, id)]);
   if (last) rememberReview(null);
+  if (game.reviewed) makeEarlierRemovalDue();
   return { game, branches, last };
+}
+
+// A page that shows the Undo of a deleted game holds this lock, shared (the Web Locks API, across the site's tabs).
+// The removal of earlier results (earlierResults.ts) runs only when it can take the lock alone: the Undo puts the game
+// back with its mark, and its snapshot reads them.
+const UNDO_LOCK = "learn-enclosure:undo:1";
+const locks = () => (typeof navigator !== "undefined" ? navigator.locks : undefined);
+
+/** Takes the Undo's lock, shared, and answers once it is held (at once without the Web Locks API) with the function
+ *  that frees it. It waits for a removal that runs now: the delete then comes after it. */
+export function holdUndo(): Promise<() => void> {
+  const l = locks();
+  if (!l) return Promise.resolve(() => {});
+  return new Promise(resolve => {
+    let free!: () => void;
+    const held = new Promise<void>(r => (free = r));
+    l.request(UNDO_LOCK, { mode: "shared" }, () => { resolve(free); return held; }).catch(() => resolve(() => {}));
+  });
+}
+
+/** Runs `work` with the Undo's lock alone, when no page holds it. False, with nothing done, when one does. */
+export async function unlessUndo(work: () => Promise<boolean>): Promise<boolean> {
+  const l = locks();
+  if (!l) return work();
+  return l.request(UNDO_LOCK, { ifAvailable: true }, lock => (lock ? work() : false));
 }
 
 /** Puts a deleted game back as it was. */

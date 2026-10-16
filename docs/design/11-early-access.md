@@ -123,8 +123,10 @@ one item for each turn, separated by spaces.
 
 ### Deleting a game
 
-- **Delete removes the game, its branches, and the Review link's pointer to it.** The engine's analyses stay: they
-  belong to positions, which other games can share, and an import of the same game then opens its review at once.
+- **Delete removes the game, its branches, and the Review link's pointer to it.** The site's engine's analyses stay:
+  they belong to positions, which other games can share, and an import of the same game then opens its review at
+  once. An earlier engine's, which only the game's snapshot read, go at a later start, once no page shows the game's
+  Undo, unless another game needs them (design 20, item 8).
 - **An Undo, not a question.** The site deletes the game at once, as Gmail does, and the game's row then says
   "Deleted …" with an Undo. A slip costs one click, and a delete the player wants costs one click too. The delete
   stands if the page closes.

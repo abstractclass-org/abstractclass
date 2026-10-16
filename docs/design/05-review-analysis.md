@@ -44,8 +44,8 @@ noise.
    equals a fresh one, because the engine is reproducible, and a release that keeps the search keeps the results.
    A new shape makes the results of the older shapes useless: no reader reads them. The site removes them when it
    starts for the first time after the change, and a mark in the browser's local storage keeps the shape that it
-   removed them for. The results of an earlier search or of an earlier network file stay: a snapshot of an earlier
-   review reads them (design 20).
+   removed them for. The results of an earlier search or of an earlier network file stay while the snapshot of a
+   stored game reads them, and go at a later start when no game needs them (design 20, item 8).
 
 ## Why
 

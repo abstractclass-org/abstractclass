@@ -2,12 +2,12 @@
   // The Review tab without a game (design 22): import a game to review it by pasting its record, or load a review file,
   // continue the last review, and the player's games, kept in this browser. A review opens on a game the player
   // brought: there is no sample game (design 11). An analysis file loaded here goes to the Analysis board.
-  import { onMount } from "svelte";
+  import { onDestroy, onMount } from "svelte";
   import { goto } from "$app/navigation";
   import { playerNames, parseRecord, type GameRecord } from "#lib/game/record.ts";
   import { setUpStart } from "#lib/engine/notation.ts";
-  import { deleteGame, lastReview, listGames, restoreGame, reviewAgainWhy, reviewCovers, reviewMark, type DeletedGame,
-           type StoredGame } from "#lib/game/store.ts";
+  import { deleteGame, holdUndo, lastReview, listGames, restoreGame, reviewAgainWhy, reviewCovers, reviewMark,
+           type DeletedGame, type StoredGame } from "#lib/game/store.ts";
   import { loadEngine, settingsFor } from "#lib/analysis/engineSettings.ts";
   import { importRecord } from "#lib/game/import.ts";
   import { pastedSource, readPasted } from "#lib/game/paste.ts";
@@ -60,14 +60,31 @@
   // game's row stays until the page loads again, with an Undo where its Delete was: the list does not move under the
   // pointer, and the player has no time limit to undo. Raw: IndexedDB cannot store a state proxy.
   let deleted = $state.raw<Record<string, DeletedGame>>({});
+  // While an Undo shows or a delete runs, the tab holds the Undo's lock (store.ts, holdUndo): no tab removes an earlier
+  // engine's results that the game's snapshot reads (design 20).
+  let undoLock: Promise<() => void> | null = null, removing = 0;
+  function freeUndo(always = false) {
+    if (!undoLock || (!always && (removing || Object.keys(deleted).length))) return;
+    void undoLock.then(free => free());
+    undoLock = null;
+  }
+  onDestroy(() => freeUndo(true));
   async function remove(id: string) {
-    const was = await deleteGame(id);
-    if (was) { deleted = { ...deleted, [id]: was }; track("game_delete"); }
+    removing++;
+    try {
+      await (undoLock ??= holdUndo());
+      const was = await deleteGame(id);
+      if (was) { deleted = { ...deleted, [id]: was }; track("game_delete"); }
+    } finally {
+      removing--;
+      freeUndo();
+    }
   }
   async function undo(id: string) {
     const { [id]: was, ...rest } = deleted;
     deleted = rest;
     if (was) { await restoreGame(was); track("game_restore"); }
+    freeUndo();
   }
 
   /** The pasted game, kept and reviewed. The import counted by its source and the game's length, and a failure by why

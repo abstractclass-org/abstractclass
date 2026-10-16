@@ -2,7 +2,7 @@
 // position of them, so that the analysis opens at once in another browser. It is the review file's kind for the board
 // (reviewFile.ts): the same results, chosen the same way (of the lines' positions and of the positions one move from
 // them, which confirm the Greats), and read the same way.
-import { ofModels } from "#lib/analysis/cache.ts";
+import { makeEarlierRemovalDue, ofModels } from "#lib/analysis/cache.ts";
 import { STORES, dbEntriesWhere, dbPutMany } from "#lib/storage/db.ts";
 import type { Manifest } from "#lib/engine/client.ts";
 import { REVIEW_FORMAT, belongs, readSchoolFile, shippedModels } from "./reviewFile.ts";
@@ -62,5 +62,6 @@ export function readAnalysisFile(text: string): AnalysisFile {
 export async function openAnalysisFile(text: string, manifest: Manifest | null): Promise<string> {
   const file = readAnalysisFile(text);
   await dbPutMany(STORES.analysis, ofModels(file.analyses, shippedModels(manifest)));
+  makeEarlierRemovalDue(); // the board reads its engine's own results only: an earlier engine's go at a later start
   return boardLink("", file.board, 0, "analysis_file");
 }

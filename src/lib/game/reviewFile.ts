@@ -4,11 +4,11 @@
 // network keeps the game and its branches, and its review searches again with its own engine. KaTrain keeps its
 // analysis in its SGF files in the same spirit. The game's record alone, with evaluations and labels, is the annotated
 // record (review/annotate.ts).
-import { SHAPE, isAnalysisKey, ofModels, readAnalysisKey } from "#lib/analysis/cache.ts";
+import { SHAPE, makeEarlierRemovalDue, isAnalysisKey, ofModels, readAnalysisKey } from "#lib/analysis/cache.ts";
 import { STORES, dbEntriesWhere, dbGet, dbPut, dbPutMany } from "#lib/storage/db.ts";
 import { parseRecord, playerNames } from "./record.ts";
 import { branchNodes, keptNode, loadGame, markReviewed, saveGame, setGameSettings, type KeptBranches, type ReviewMark } from "./store.ts";
-import { parentKey } from "#lib/review/tree.ts";
+import { parentKey, prefixKeys } from "#lib/review/tree.ts";
 import { searchModules, type Manifest } from "#lib/engine/client.ts";
 import { networkName } from "#lib/analysis/engineSettings.ts";
 import { DISCORD_LIMIT, encodeShare, sharedRecord, type SharedReview } from "./share.ts";
@@ -34,11 +34,12 @@ export interface ReviewFile {
 export interface FileReview extends ReviewMark { networkName: string }
 
 /** The moves of every position of a game and its branches, as the results' keys spell them: the record's own moves on
- *  the game's line, and a branch node's path key off it (analysis/game.svelte.ts, engineMoves). */
+ *  the game's line, and a branch node's path key off it (analysis/game.svelte.ts, engineMoves), with each node before
+ *  it: version 1 kept a branch as its last node. */
 export function positionKeys(moves: string[], branches: KeptBranches | null): Set<string> {
   const out = new Set<string>();
   for (let i = 0; i <= moves.length; i++) out.add(moves.slice(0, i).join(" "));
-  for (const [key] of branchNodes(branches)) out.add(key);
+  for (const [key] of branchNodes(branches)) for (const k of prefixKeys(key.split(" "))) out.add(k);
   return out;
 }
 
@@ -50,9 +51,11 @@ export function gameAnalyses(entries: [string, unknown][], positions: Set<string
 }
 export const belongs = (key: string, positions: Set<string>, models: Set<string> | null) => {
   const k = readAnalysisKey(key);
-  const parent = k.moves ? parentKey(k.moves) : null;
-  return k.shape === SHAPE && (positions.has(k.moves) || (parent !== null && positions.has(parent))) && (!models || models.has(k.model));
+  return k.shape === SHAPE && atPositions(k.moves, positions) && (!models || models.has(k.model));
 };
+/** Whether a result's position (its moves) is one of `positions`, or one move from one. */
+export const atPositions = (moves: string, positions: Set<string>) =>
+  positions.has(moves) || (!!moves && positions.has(parentKey(moves)));
 
 export function buildReviewFile(record: string, branches: KeptBranches | null, entries: [string, unknown][], site: string,
                                 models: Set<string> | null = null, reviewed: ReviewMark | null = null, now = new Date()): ReviewFile {
@@ -233,14 +236,14 @@ export async function deliverExport(kind: ExportKind, id: string, record: string
  *  (their SHA-256): results of another network are left out, since this site's engine never asks for them. `modules` are
  *  the engine modules of this site's search (their SHA-256). The file's review is the game's mark when it ran with a
  *  network kept: done here when it ran with one of these modules, else a review by an earlier engine, which opens as
- *  it was (design 20). A mark of this site's search stays over an earlier engine's. */
+ *  it was (design 20). A mark of this site's search stays over an earlier engine's. The mark comes before the results:
+ *  a removal of earlier results in another tab (earlierResults.ts) that runs between them then finds none of them,
+ *  rather than results that no mark needs yet. */
 export async function importReview(file: ReviewFile, models: Set<string> | null, modules: string[] | null = null) {
   const variant = variantProblem(parseRecord(file.record));
   if (variant) throw new Error(variant);
   const { id } = await saveGame(file.record, parseRecord(file.record));
   if (file.branches) await dbPut(STORES.branches, id, mergeBranches((await dbGet<KeptBranches>(STORES.branches, id)) ?? null, file.branches));
-  const wanted = ofModels(file.analyses, models);
-  const kept = await dbPutMany(STORES.analysis, wanted), other = file.analyses.length - wanted.length;
   const r = file.review, before = (await loadGame(id))?.game.reviewed;
   const ours = (module?: string) => !!module && !!modules?.includes(module);
   if (r && (!models || models.has(r.model)) && (ours(r.module) || !ours(before?.module)))
@@ -249,6 +252,9 @@ export async function importReview(file: ReviewFile, models: Set<string> | null,
   // The game keeps the file's network and depth, when the site ships that network, so that its review opens as it was
   // made. The browser's settings stay for the other games.
   if (r && (!models || models.has(r.model))) await setGameSettings(id, { network: r.network, visits: r.visits });
+  const wanted = ofModels(file.analyses, models);
+  const kept = await dbPutMany(STORES.analysis, wanted), other = file.analyses.length - wanted.length;
+  makeEarlierRemovalDue(); // results of an earlier engine that the game's mark may not need: a mark of this site's stays
   return { id, kept, other };
 }
 

@@ -28,15 +28,16 @@ function openDb(): Promise<IDBDatabase | null> {
   return db;
 }
 
-/** Runs requests in one transaction: `body` sends them, and the getter it gives reads their results once the
- *  transaction completes. Answers `fallback` when storage fails. */
-async function run<T>(store: string, mode: IDBTransactionMode, body: (s: IDBObjectStore) => () => T, fallback: T): Promise<T> {
+/** Runs requests in one transaction, on `store` and the stores `also`: `body` sends them, and the getter it gives reads
+ *  their results once the transaction completes. Answers `fallback` when storage fails. */
+async function run<T>(store: string, mode: IDBTransactionMode, body: (s: IDBObjectStore, tx: IDBTransaction) => () => T, fallback: T,
+                      also: string[] = []): Promise<T> {
   const d = await openDb();
   if (!d) return fallback;
   return new Promise(resolve => {
     try {
-      const tx = d.transaction(store, mode);
-      const result = body(tx.objectStore(store));
+      const tx = d.transaction([store, ...also], mode);
+      const result = body(tx.objectStore(store), tx);
       tx.oncomplete = () => resolve(result());
       tx.onerror = tx.onabort = () => resolve(fallback);
     } catch {
@@ -92,6 +93,22 @@ export const dbDeleteWhere = (store: string, wanted: (key: string) => boolean) =
     req.onsuccess = () => { for (const key of req.result) if (wanted(String(key))) s.delete(key); };
     return () => true;
   }, false);
+/** Reads every entry of the stores `read` (by store, in key order) and the keys of `store`, then removes the keys of
+ *  `store` that `choose` takes from them. One transaction reads and removes, so that no write comes between. Answers
+ *  whether the browser removed them: false when storage fails, and when `choose` throws. */
+export const dbReadThenDelete = (store: string, read: string[],
+                                 choose: (keys: string[], entries: Record<string, [string, unknown][]>) => Iterable<string>) =>
+  run<boolean>(store, "readwrite", (s, tx) => {
+    const entries: Record<string, [string, unknown][]> = {};
+    for (const name of read) {
+      const r = tx.objectStore(name), keys = r.getAllKeys(), values = r.getAll();
+      values.onsuccess = () => { entries[name] = keys.result.map((k, i) => [String(k), values.result[i]]); };
+    }
+    // The requests of a transaction end in the order they were made: the keys come after the entries.
+    const req = s.getAllKeys();
+    req.onsuccess = () => { for (const key of choose(req.result.map(String), entries)) s.delete(key); };
+    return () => true;
+  }, false, read);
 /** Puts several values in one transaction. Answers how many the browser kept: all, or none when storage fails. */
 export async function dbPutMany(store: string, entries: [string, unknown][]): Promise<number> {
   if (!entries.length) return 0;

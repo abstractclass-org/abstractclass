@@ -19,7 +19,7 @@
   import Arrival from "#lib/review/Arrival.svelte";
   import ReviewHome from "#lib/review/ReviewHome.svelte";
   import { holdsGame } from "#lib/game/importHash.ts";
-  import { snapshotSearch, warmCache } from "#lib/analysis/cache.ts";
+  import { snapshotPositions, snapshotSearch, warmCache } from "#lib/analysis/cache.ts";
   import { review, type GameEnding, type ReviewData } from "#lib/review/model.ts";
   import { EnginePool } from "#lib/analysis/pool.ts";
   import { GameAnalysis, LABEL_VISITS, SWEEP_VISITS, momentVisits } from "#lib/analysis/game.svelte.ts";
@@ -335,10 +335,9 @@
     const mark = markBefore!, manifest = session.manifest!, network = settings.network, rules = new EnginePool(0);
     try {
       const sameEngine = sameSearch(manifest, mark.module); // a new file of the network alone
-      const lines = Array.from({ length: Math.max(0, moves.length - 1) }, (_, i) => moves.slice(0, i + 1));
       // The stored keys are read while the rules worker starts: an earlier engine's search is not the site's.
       const started = rules.start(manifest, network).then(() => (sameEngine ? undefined : rules.search!));
-      const search = await snapshotSearch(mark.model, lines, mark.visits, started);
+      const search = await snapshotSearch(mark.model, snapshotPositions(moves), mark.visits, started);
       if (!search) { rules.terminate(); return false; }
       const g = new GameAnalysis(rules, moves, kept!.id);
       g.setReview(mark.visits);

@@ -1,8 +1,8 @@
-// Checks why a stored review runs again (reviewAgainWhy): only for the site's own change of engine or network file.
-// Run: npm test.
+// Checks why a stored review runs again (reviewAgainWhy): only for the site's own change of engine or network file. And
+// when a new mark frees the results of an earlier one (replacesAnother). Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { gameId, reviewAgainWhy, type ReviewMark } from "./store.ts";
+import { gameId, replacesAnother, reviewAgainWhy, type ReviewMark } from "./store.ts";
 
 const mark: ReviewMark = { module: "m1", model: "n1", network: "lite", visits: 512, at: "2026-10-12" };
 const want = (change: Partial<ReviewMark>) => {
@@ -29,4 +29,11 @@ test("a game's id: its moves alone from the standard start, as before, and its s
   assert.equal(await gameId(moves), await gameId(moves, undefined));
   assert.notEqual(await gameId(moves, "A10-D10 Q10-T10 b2 0/0 3"), await gameId(moves));
   assert.match(await gameId(moves), /^[0-9a-f]{12}$/);
+});
+
+test("a new mark frees an earlier review's results when it replaces a mark of another module or network file", () => {
+  assert.equal(replacesAnother(undefined, mark), false); // a first review frees nothing
+  assert.equal(replacesAnother(mark, { ...mark, visits: 1024 }), false); // deeper, with the same files
+  assert.equal(replacesAnother(mark, { ...mark, module: "m2" }), true);
+  assert.equal(replacesAnother(mark, { ...mark, model: "n2" }), true);
 });

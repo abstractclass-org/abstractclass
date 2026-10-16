@@ -28,7 +28,8 @@ look at a past review pays it each time, and the earlier results are still in th
 4. **A bar says what the snapshot is:** "Reviewed on October 12, 2026 with an earlier version of the engine" (or of the
    network), with **Review again**, and under it "A snapshot: no searches and no new moves." The engine's switch shows
    off and does not move. A move that the snapshot cannot add, and a click on the switch, light the bar's border. Review again reviews the game with the site's engine, as a new review does,
-   and the board stays where it is. The earlier results stay in the browser.
+   and the board stays where it is. When the new review ends, the game's mark names the site's engine. A later start
+   then removes the earlier results that no other game needs (item 8).
 5. **Without the earlier results** (another browser, data cleared, or results of an older shape), the game is reviewed
    again, as before, and the dialog and the line under the progress say why (design 11).
 6. **Imports:** a review file keeps its mark when the site ships its network file (the same SHA-256), whatever its
@@ -40,6 +41,27 @@ look at a past review pays it each time, and the earlier results are still in th
    site's search (`sameSearchAs` in `engine.lock.json`), so a mark, a review file or a share link of one of them is
    the site's engine's. The page takes the search whose results of the mark's network cover the game's line, so it
    needs no record of the other searches.
+8. **An earlier engine's results go when no game needs them.** A result belongs to a position, not to a game. The
+   site keeps every result of its own search with a network file that it ships. An earlier engine's result, or an
+   earlier network file's, stays while the snapshot of a stored game reads it. A snapshot reads the results of one
+   search: the search that holds the game's line at its depth (item 7). It reads the game's positions and the
+   positions one move from them, as the game's review file holds them (design 13). It shows each position at its
+   deepest (item 2), so a shallower result of the same position goes. The other results of the store's shape go too:
+   - **After Review again,** the game's mark names the site's engine when the new review ends. Its snapshot then reads
+     nothing. A position that another game's snapshot reads keeps its result.
+   - **After a delete,** the results go once no page shows the game's Undo, because the Undo puts the game back with
+     its mark. A page that shows an Undo holds a lock (the Web Locks API) for all of the site's tabs. The removal runs
+     only when it can take the lock alone. A delete waits for a removal that runs.
+   - **A review file of an earlier engine** keeps its results while its mark is the game's. When the game keeps a
+     mark of the site's engine (item 6), nothing reads them, and they go.
+   - **After a release,** the previous engine's results go where no snapshot reads them. Examples are a game never
+     reviewed to its end, and a game whose snapshot lacks a position (item 5). The Analysis board reads its own
+     engine's results only.
+   - **When:** at the site's start, when the removal is due. A mark in the browser's local storage keeps the engine
+     files that the last removal ran for: the CPU module and the networks, by SHA-256. A release that changes one
+     makes the removal due. A change of what the games need also makes it due. These changes are a mark that replaces
+     a mark of another module or network file, the delete of a game with a mark, and the load of a review file or an
+     analysis file. A start with nothing changed reads the mark alone.
 
 ## Why
 
@@ -50,6 +72,9 @@ look at a past review pays it each time, and the earlier results are still in th
   does not make it again when Stockfish changes. Its live engine is apart from it. KaTrain opens an analysis saved with
   a game as it was, and analyses again on request.
 - **A quick look costs nothing,** and the player chooses when a review is made again.
+- **The browser keeps only what a page reads:** a result that no game's snapshot reads takes space and gives
+  nothing, and each release would add one more set. The removal follows the reader: the rule that opens a snapshot
+  chooses the results that it keeps.
 
 ## Alternatives
 
@@ -61,6 +86,12 @@ look at a past review pays it each time, and the earlier results are still in th
 - **Review again asked at the first exploration:** it stops the player at the start of the work.
 - **A snapshot's export:** to keep it, or to take it to another browser. A snapshot cannot change, so an export adds
   nothing new. Review again, then export.
+- **Keep every earlier result** (before item 8): each release adds one more set, which nothing reads.
+- **A removal at once when Review again ends:** a delete waits for its Undo in any case, so one rule, a later start,
+  serves both.
+- **A removal at each start:** it reads every key of the store on each load.
+- **A removal without the Undo's lock:** an Undo in another open tab would put a game back without its results, and
+  its next open would review it again.
 
 ## Consequences
 
@@ -72,6 +103,18 @@ look at a past review pays it each time, and the earlier results are still in th
   and its `review_done` counts the new review's time. The features `snapshot opened` and `review again` (design 17).
 - **Cost:** the page reads the store's keys (5,097 keys in about 55 ms in a desktop browser) and the engine's rules.
   On that browser, a snapshot was on screen 2.2 s after the page's navigation started, or sooner.
+- **The removal's cost:** a start with nothing changed reads one value of local storage. A start when the removal is
+  due loads its code. Then one transaction reads the games, their branches and the store's keys, and removes the
+  results. The removal reads each key once. Until the transaction ends, the review's reads of the store wait. Not
+  measured.
+- **Two tabs:** one transaction reads and removes, so no write comes between. The load of a review file keeps the
+  game's mark before its results, so a removal in another tab between the two takes none of them. A change of what
+  the games need while a removal runs keeps the removal due. A tab of an earlier release that starts after a later
+  release's can take the later engine's results of a review not yet done. That review then searches them again.
+- **Without the Web Locks API** (a page served without HTTPS), the removal does not wait for an Undo. An Undo then
+  puts a game back without its earlier results, and the game is reviewed again (item 5).
+- **Results that stay longer:** a branch deleted after Review again, before the new review ends, keeps its earlier
+  results until the next removal.
 
 ## Where it is
 
@@ -79,7 +122,13 @@ look at a past review pays it each time, and the earlier results are still in th
   `src/lib/review/ReviewView.svelte` (the bar, the controls off), `src/lib/analysis/cache.ts` (`snapshotSearch`),
   `src/lib/analysis/game.svelte.ts` (`fromStore`), `src/lib/game/reviewFile.ts` (`importReview`, the mark kept),
   `src/lib/game/store.ts` (`reviewAgainWhy`).
+- The removal: `src/lib/game/earlierResults.ts` (`unneededResults`, `removeEarlierResults`, which
+  `src/routes/+layout.svelte` starts), `src/lib/analysis/cache.ts` (the mark: `earlierRemovalDue`,
+  `makeEarlierRemovalDue`), `src/lib/game/store.ts` (`markReviewed`, `deleteGame`, the Undo's lock: `holdUndo`,
+  `unlessUndo`), `src/lib/review/ReviewHome.svelte` (the Undo), `src/lib/storage/db.ts` (`dbReadThenDelete`),
+  `vite.config.ts` (`__ENGINE_FILES__`).
 
 ## Log entries
 
-- [decisions/product.md](../decisions/product.md): "A review by an earlier engine opens as it was" (2026-10-14).
+- [decisions/product.md](../decisions/product.md): "A review by an earlier engine opens as it was" (2026-10-14), "An
+  earlier engine's results go when no game needs them" (2026-10-16).

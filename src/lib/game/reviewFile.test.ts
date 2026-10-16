@@ -13,6 +13,9 @@ const key = (moves: string, shape = SHAPE, model = "ab12") => `${shape}|85c2adb|
 test("a game's positions: each step of its line, and each branch node", () => {
   const p = positionKeys(MOVES, BRANCHES);
   assert.deepEqual([...p], ["", "D10-G10", "D10-G10 N11-Q10", "D10-G10 N11-Q10 L10-N11", "D10-G10 N11-Q11", "D10-G10 N11-Q11 L10-N11"]);
+  // Version 1 kept a branch as its line: each node of it
+  const v1 = positionKeys(MOVES, { version: 1, lines: [["D10-G10", "N11-Q11", "L10-N11", "Q11-T11"]] });
+  assert.deepEqual([...v1].slice(4), ["D10-G10 N11-Q11", "D10-G10 N11-Q11 L10-N11", "D10-G10 N11-Q11 L10-N11 Q11-T11"]);
 });
 
 test("a game's results: its positions' and the ones a move from them (the Greats' confirmations), in the store's current shape", () => {

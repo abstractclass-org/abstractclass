@@ -3078,3 +3078,53 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   runs, and the files' results. In the owner's Edge, on the local preview's address: before the first start of this
   build, the store had 5,548 analyses. After it, 2,752 stayed, all of the current shape. The start removed 2,796, the
   same number of older shapes as on 2026-10-12. A second start removed nothing. Not measured: the time of the removal.
+
+### An earlier engine's results go when no game needs them (2026-10-16)
+
+- **The problem:** the browser kept the results of each engine and network file (design 20). After Review again, or
+  after a delete, nothing read the earlier ones. Each release added one more set.
+- **The rule:** an earlier engine's result goes when no stored game needs it any more. An example is Review again,
+  which reviews the game with the site's engine.
+- **What reads them:** the site's engine reads the results of its own search with the network files that it ships.
+  An earlier engine's results, and an earlier network file's, have one reader: the snapshot of a game whose mark
+  names that engine or file. The snapshot opens when the site ships the mark's network and the store holds the
+  game's line at the mark's depth. It reads the results of one search, the one that holds the line. It reads the
+  game's positions and the positions one move from them (the Greats' confirmations), each at its deepest.
+- **Decided** (design 20, item 8): the removal keeps what a snapshot reads. It takes the other earlier results of
+  the store's shape.
+  - **A position that several games share** keeps its result while one game's snapshot reads it.
+  - **A deleted game** needs nothing once no page shows its Undo. A page that shows an Undo or runs a delete holds a
+    shared lock (the Web Locks API). The removal takes the lock alone, or it waits for a later start. A delete waits
+    for a removal that runs, so the removal cannot read the games between a delete and its lock.
+  - **A review file of an earlier engine** keeps its results while its mark is the game's. When the game keeps a mark
+    of the site's engine, nothing reads them, and they go.
+  - **When:** at the site's start, when the removal is due. A mark in local storage
+    (`learn-enclosure:earlier-results:1`) keeps the engine files that the last removal ran for. These are the CPU
+    module and the networks, by SHA-256, from `engine.lock.json` at the build (`__ENGINE_FILES__`). A release that
+    changes one makes the removal due. Some changes of what the games need clear the mark: a mark that replaces a
+    mark of another module or network file, the delete of a game with a mark, and the load of a review file or an
+    analysis file. A start with nothing changed reads the mark alone. The removal's code loads only when it is due.
+  - **One transaction** reads the games, their branches and the store's keys, and removes the results. The mark says
+    that a removal runs until it ends. A removal that fails, or that a closed page stops, then runs again at the next
+    start. A change of what the games need while it runs keeps it due.
+- **Also:** a branch of version 1 (a kept line) counts each of its nodes as a position of the game. Before, the
+  review file and the removal took its last node alone. The load of a review file keeps the game's mark before its
+  results. A removal in another tab between the two then takes none of them.
+- **Results that stay longer:** a branch deleted after Review again, before the new review ends, keeps its earlier
+  results until the next removal. A delete of a branch does not make the removal due, since it is frequent.
+- **Rejected:**
+  - Keeping every earlier result.
+  - A removal at once when Review again ends. A delete waits for its Undo in any case, so one rule serves both.
+  - A removal at each start, which reads every key on each load.
+  - A removal without the Undo's lock. An Undo in another open tab would put a game back without its results, and
+    its next open would review it again.
+  - Keeping every depth of each position that a snapshot reads. The snapshot shows each position at its deepest, so a
+    shallower result has no reader.
+- **Checked:** the unit tests, the type check and a client build.
+  - `earlierResults.test.ts` checks what the removal takes: for shared positions, after Review again, for an earlier
+    network file, for games with no snapshot, and for other shapes. It also checks that each snapshot chooses the
+    same search after the removal.
+  - `store.test.ts` checks which marks make the removal due. `reviewFile.test.ts` checks the positions of a branch of
+    version 1.
+  - In the client build, the removal is a chunk of its own, which the layout loads only when the removal is due.
+  - Not checked: the removal in a browser, and its time on the owner's store.
