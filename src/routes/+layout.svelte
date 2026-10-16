@@ -7,6 +7,7 @@
 	import { EARLY_ACCESS, SITE_NAME, SITE_ORIGIN } from '#lib/edition.ts';
 	import { ASKS_CONSENT, consentChosen, startAnalytics, track } from '#lib/analytics.svelte.ts';
 	import { flushPractice } from '#lib/practice/send.ts';
+	import { removeOlderShapes } from '#lib/analysis/cache.ts';
 	import { holdsGame } from '#lib/game/importHash.ts';
 	import ConsentBanner from '#lib/ConsentBanner.svelte';
 	import ThemeMenu from '#lib/ThemeMenu.svelte';
@@ -50,6 +51,7 @@
 		startTheme();
 		if (page.route.id !== '/import' && !holdsGame(location.hash)) startAnalytics();
 		void flushPractice(); // the practice games that could not be sent before (design 25)
+		void removeOlderShapes(); // the stored analyses that no reader reads, once after a change of their shape
 	});
 
 	// The page's own scrolling area (src/app.css, pageScroll.ts), on a screen with a mouse. The router keeps the window's

@@ -3,7 +3,8 @@
 // the engine's search (request 17: the first build that searched as this one does, so that a release that keeps the
 // search keeps the results), the network's SHA-256, the position (its moves) and the visits. Results stay in memory too, so the
 // cache works when storage does not.
-import { STORES, dbGetMany, dbKeys, dbPut } from "#lib/storage/db.ts";
+import { STORES, dbDeleteWhere, dbGetMany, dbKeys, dbPut } from "#lib/storage/db.ts";
+import { readLocal, writeLocal } from "#lib/storage/local.ts";
 
 const memory = new Map<string, unknown>(); // every result put or read in this visit
 const absent = new Set<string>(); // the keys read and not found in this visit: read again only after a put
@@ -15,9 +16,9 @@ export async function cachePut(key: string, value: unknown): Promise<void> {
 }
 
 // The stored shape's version. A change of what an analysis holds takes the next one, so that older results are not
-// read as the new shape. 2: a candidate's visits are KataGo's edgeVisits, no longer its child node's visits. 3: a
-// candidate has its line (KataGo's pv). 4: and the visits through each edge of its line (pvEdgeVisits). 5: and the
-// network's prior for it, for the position's complexity.
+// read as the new shape, and the site's next start removes them (removeOlderShapes). 2: a candidate's visits are
+// KataGo's edgeVisits, no longer its child node's visits. 3: a candidate has its line (KataGo's pv). 4: and the visits
+// through each edge of its line (pvEdgeVisits). 5: and the network's prior for it, for the position's complexity.
 export const SHAPE = 5;
 
 /** The moves part of a key for moves from `start`, a set-up position (design 21): the start first, as one word with `_`
@@ -33,6 +34,25 @@ export function readAnalysisKey(key: string) {
 }
 /** Whether a text has a stored analysis's key's form: a file's results are checked by it. */
 export const isAnalysisKey = (key: string) => /^\d+\|[^|]*\|[0-9a-f]+\|\d+\|/.test(key);
+/** Whether a stored key is a result that no reader reads: of an older shape, or of the form before the shape (the build,
+ *  the network, the visits and the moves). A newer shape's result is not: a tab of a later release wrote it. */
+export const isOlderShape = (key: string) => !isAnalysisKey(key) || readAnalysisKey(key).shape < SHAPE;
+/** Whether the removal of older shapes is due: the browser's mark (the shape it last removed the older ones for) is
+ *  older than SHAPE, absent, or not a number. */
+export function removalDue(mark: string | null): boolean {
+  const shape = Number(mark);
+  return Number.isNaN(shape) || shape < SHAPE;
+}
+const REMOVED = "learn-enclosure:analysis-shape:1"; // the browser's mark
+
+/** Removes the stored results of older shapes (isOlderShape), at the site's first start after a change of SHAPE: a
+ *  start with the same shape reads the mark alone. The results of this shape stay, of every engine and network: a
+ *  snapshot reads an earlier engine's (design 20). The mark follows the removal, so a removal that fails runs again at
+ *  the next start. */
+export async function removeOlderShapes(): Promise<void> {
+  if (!removalDue(readLocal(REMOVED))) return;
+  if (await dbDeleteWhere(STORES.analysis, isOlderShape)) writeLocal(REMOVED, String(SHAPE));
+}
 /** The results of `models` (the networks' SHA-256), or every result when null: the site keeps only the results of the
  *  networks it ships, since its engine never asks for another's. */
 export const ofModels = (entries: [string, unknown][], models: Set<string> | null) =>

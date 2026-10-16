@@ -42,6 +42,10 @@ noise.
 3. **Results stay in the browser** (IndexedDB), keyed by the stored shape's version, the engine's search (request 17:
    the first build that searched as this one does), the network's SHA-256, the moves and the visits. A stored result
    equals a fresh one, because the engine is reproducible, and a release that keeps the search keeps the results.
+   A new shape makes the results of the older shapes useless: no reader reads them. The site removes them when it
+   starts for the first time after the change, and a mark in the browser's local storage keeps the shape that it
+   removed them for. The results of an earlier search or of an earlier network file stay: a snapshot of an earlier
+   review reads them (design 20).
 
 ## Why
 
@@ -60,11 +64,15 @@ noise.
   when a deeper search replaces a shallow one.
 - The budgets are measured against a 1,024-visit reference, which is not the truth either: a deeper reference may move
   them.
+- The removal of older shapes costs one read of local storage at a start with the same shape. The first start after
+  a change reads the store's keys and removes the older ones, in one transaction. Until it ends, the review's reads of
+  the store wait.
 
 ## Where it is
 
 - `src/lib/analysis/pool.ts` (the pool and its priorities), `src/lib/analysis/game.svelte.ts` (the schedule, and the
-  searches that confirm Great by edge and by turn), `src/lib/analysis/cache.ts` (the browser's store),
+  searches that confirm Great by edge and by turn), `src/lib/analysis/cache.ts` (the browser's store, and the
+  removal of older shapes, which `src/routes/+layout.svelte` starts),
   `src/lib/review/labels.ts` and `src/lib/review/model.ts` (losses and labels, by edge and by turn),
   `src/lib/review/display.ts` (the "Review by" setting), `src/lib/review/ReviewView.svelte`,
   `src/lib/board/Board.svelte` (a turn's badges) and `src/routes/review/+page.svelte` (the page).
@@ -79,3 +87,4 @@ noise.
   "Label agreement by turn" (2026-10-11).
 - [decisions/product.md](../decisions/product.md), "The candidates: which ones the board shows, and the engine's
   order" (2026-10-10): a candidate's visits are KataGo's `edgeVisits`.
+- [decisions/product.md](../decisions/product.md), "The site removes the analyses of older shapes" (2026-10-16).

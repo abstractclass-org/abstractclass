@@ -67,7 +67,8 @@ export function buildReviewFile(record: string, branches: KeptBranches | null, e
 /** Reads a Hedge School file of `format` (a review file or an analysis file: `noun`), its fields not yet checked but
  *  its results. Throws an Error that tells the player what is wrong. The version changes only when a field changes its
  *  meaning or goes: a new field keeps it, and a reader ignores the fields it does not know (design 13). The results
- *  carry their own shape in their keys (analysis/cache.ts). */
+ *  carry their own shape in their keys (analysis/cache.ts): it keeps the store's current shape's, since no reader reads
+ *  another's. */
 export function readSchoolFile(text: string, format: string, version: number, noun: string): Record<string, unknown> & { analyses: [string, unknown][] } {
   let data: unknown;
   try {
@@ -81,7 +82,8 @@ export function readSchoolFile(text: string, format: string, version: number, no
     throw new Error(`This ${noun} has version ${f.version}: a newer Hedge School wrote it. Reload the site and try again.`);
   if (f.version < version) throw new Error(`This ${noun} has version ${f.version}, which this site no longer reads.`);
   const analyses = (Array.isArray(f.analyses) ? f.analyses : []).filter((e): e is [string, unknown] =>
-    Array.isArray(e) && typeof e[0] === "string" && isAnalysisKey(e[0]) && !!e[1] && typeof e[1] === "object");
+    Array.isArray(e) && typeof e[0] === "string" && isAnalysisKey(e[0]) && readAnalysisKey(e[0]).shape === SHAPE &&
+    !!e[1] && typeof e[1] === "object");
   return { ...f, analyses };
 }
 

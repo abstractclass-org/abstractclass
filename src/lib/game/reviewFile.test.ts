@@ -47,6 +47,9 @@ test("a review file reads back, and a wrong file says why", () => {
   assert.throws(() => readReviewFile(JSON.stringify({ ...file, record: "1. Z99-Z98" })));
   // Entries that are not results are dropped, not fatal.
   assert.equal(readReviewFile(JSON.stringify({ ...file, analyses: [["junk", {}], 5] })).analyses.length, 0);
+  // A file of an earlier site keeps the results of this shape only: the others no reader reads (design 13).
+  const older = { ...file, analyses: [[key("D10-G10", SHAPE - 1), { blueWin: 0.4 }], [key(""), { blueWin: 0.5 }]] };
+  assert.deepEqual(readReviewFile(JSON.stringify(older)).analyses, [[key(""), { blueWin: 0.5 }]]);
 });
 
 test("branches merge: the kept ones keep their order, the file's new ones follow", () => {

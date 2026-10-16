@@ -3048,3 +3048,31 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   arrival on a first visit adds 0.002 to the review's layout shift (0.0101 with the font, 0.0081 with its file
   blocked, in Edge at 1,376 × 952). The move list with its labels as text shows ?! and ?? clearly in Fira Code.
   Not checked: a Mac, and a phone.
+
+### The site removes the analyses of older shapes (2026-10-16)
+
+- **The problem:** a change of the stored shape (`SHAPE` in `src/lib/analysis/cache.ts`) left the older analyses in
+  the browser. In the owner's Edge, 2,796 of 4,607 analyses had an older shape ("Deleting a game, and the browser's
+  storage").
+- **What reads them:** no reader reads a result of an older shape. The review and the board make their keys with the
+  current shape, the snapshot's choice of a search skips another shape, and an export keeps the current shape only.
+  The results of an earlier search are different: a snapshot of an earlier review reads them (design 20), so they
+  stay. So do the results of an earlier file of the same network.
+- **Decided** (design 05): the site removes the results of older shapes when it starts for the first time after a
+  change of the shape. It removes the keys of the form before the shape too (`build|model|visits|moves`). A mark in
+  local storage (`learn-enclosure:analysis-shape:1`) keeps the shape that it removed them for. A start with the same
+  shape reads the mark and nothing more. One transaction reads the keys and removes the older ones. The site writes
+  the mark only after that transaction ends, so a removal that fails runs again at the next start.
+- **Two tabs of two releases:** a result of a newer shape stays, and a newer mark stops the removal, so a tab of the
+  earlier release removes nothing of the later one's. The other way, the later release's first start removes the
+  stored results of a tab of the earlier release that is still open. That tab keeps the results in its memory, and
+  searches again for the others. The results that it stores after the removal stay until the next change of the
+  shape.
+- **Also:** a review file or an analysis file keeps the results of the current shape only, as design 13 says. Before,
+  a file of an earlier site put its results of older shapes in the store. A file whose results all have an older
+  shape now counts as a file without results (`with_results`, design 17): its review searches again.
+- **Rejected:** a removal at each start, which reads every key on each load (5,097 keys took about 55 ms, design 20).
+  A version of the browser's database for each shape: an upgrade waits for the site's other tabs to close, and the
+  site gives a page no storage while it waits.
+- **Checked:** the unit tests (`cache.test.ts`, `reviewFile.test.ts`) check which keys the removal takes, when it
+  runs, and the files' results. Not checked: the removal in a browser, and its time on the owner's store.

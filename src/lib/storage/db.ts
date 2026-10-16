@@ -84,6 +84,14 @@ export const dbPut = async (store: string, key: string, value: unknown) =>
 /** Removes a key's value. Answers whether the browser removed it. */
 export const dbDelete = async (store: string, key: string) =>
   (await run<undefined | false>(store, "readwrite", one(s => s.delete(key)), false)) !== false;
+/** Removes the values of a store whose key `wanted` takes, in one transaction that reads the keys and removes them.
+ *  Answers whether the browser removed them: false when storage fails, and when the read of the keys fails. */
+export const dbDeleteWhere = (store: string, wanted: (key: string) => boolean) =>
+  run<boolean>(store, "readwrite", s => {
+    const req = s.getAllKeys();
+    req.onsuccess = () => { for (const key of req.result) if (wanted(String(key))) s.delete(key); };
+    return () => true;
+  }, false);
 /** Puts several values in one transaction. Answers how many the browser kept: all, or none when storage fails. */
 export async function dbPutMany(store: string, entries: [string, unknown][]): Promise<number> {
   if (!entries.length) return 0;
