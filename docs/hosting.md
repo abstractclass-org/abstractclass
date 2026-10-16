@@ -310,7 +310,7 @@ the next visit).
   few minutes (its build runs the unit tests and the type check again). A failed build leaves the live site as it was.
   Try a change first on `dev`'s preview.
 - **Check:** the footer's version is the commit that the deploy built. On the live site, these hold (all true on
-  2026-10-12, at commit `3580146`):
+  2026-10-12, at commit `f7e179d`):
   - the live address answers with no `X-Robots-Tag`, `hedgeschool.pages.dev` and the previews with `noindex`
     (design 23), and an unknown address answers 404.
   - `/_app/immutable/…` and `/engine/<id>/<file>` carry `Cache-Control: public, max-age=31536000, immutable`, and

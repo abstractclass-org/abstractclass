@@ -105,7 +105,7 @@ The repository, the stack, hosting, and how the engine's artifacts arrive.
     with the preview's own address. In Edge, the analysis board's engine searched (160 of 1,024 visits, five
     candidates).
   - Then `dev`: its preview deployed, and the workflow **Tests** passed.
-  - Then `main`: the live site serves `1cd3180`, with no `noindex`, the Google Analytics ID and the Web Analytics
+  - Then `main`: the live site serves `2ac3b8a`, with no `noindex`, the Google Analytics ID and the Web Analytics
     token in its code, the engine's module as `application/wasm` with its SHA-256, the Function's 400, the userscript
     with the live address, and 404 for an unknown address.
 
