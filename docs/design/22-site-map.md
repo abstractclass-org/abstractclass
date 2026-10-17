@@ -18,7 +18,7 @@ will add more. A page whose name says "import" cannot say where the game goes.
    |---|---|
    | `/review#game=<id>` | a game kept in this browser |
    | `/review#record=<record>` | the game kept, then reviewed: from another site's link (design 18) |
-   | `/review#tool=…&v=…&record=<record>` | the same, from the meaf.us bookmarklet or userscript (design 11) |
+   | `/review#tool=…&v=…&site=…&record=<record>` | the same, from the bookmarklet or the userscript on meaf.us or strategyjam.org (design 11) |
    | `/review#packed=<code>` | a shared review: its game, branches and engine settings (design 13) |
    | `/review#from=<origin>` | a review that a partner's page kept, sent back by window messages (design 18) |
    | `…&save=<url>` | with `record=` or `from=`: the partner's page that "Save to" opens (design 18) |
@@ -48,8 +48,9 @@ will add more. A page whose name says "import" cannot say where the game goes.
    - **The header:** Practice, Review, Analysis (later Puzzles, Learn), then Tools, The notation, About and "Support
      us". Practice
      comes first, as play comes first on Lichess: a game against the bot is the quickest way to begin. Tools is
-     in the header because a meaf.us player comes back to it for the bookmarklet or the userscript. It shows from a
-     tablet's width: the tools are for a computer's browser. On a phone, the footer and the Review tab lead to it.
+     in the header because a player of meaf.us or strategyjam.org comes back to it for the bookmarklet or the
+     userscript. It shows from a tablet's width: the tools are for a computer's browser. On a phone, the footer and
+     the Review tab lead to it.
    - **The site's menu below 1,024 pixels,** as on Lichess's phone pages: a ☰ at the header's left holds its links
      (the tabs, then the pages about the site, Tools again from a tablet's width), and the header keeps the site's
      name, "Support Us" and the theme menu, in one row. The links and "Support Us" need 860 pixels for one row:
@@ -97,15 +98,15 @@ will add more. A page whose name says "import" cannot say where the game goes.
    - **The board editor** (`/editor`): sets up a position for the board (design 21).
    - **Two words for bringing a game in, one for each act, on every page:**
      - **Import:** a game from outside Hedge School, its moves alone: a pasted record, Constellation's export, another
-       site's record link, the meaf.us tools. Hedge School then does the work. An import goes to the review (the game
-       is kept, then reviewed) or to the Analysis board.
+       site's record link, the tools for meaf.us and strategyjam.org. Hedge School then does the work. An import goes
+       to the review (the game is kept, then reviewed) or to the Analysis board.
      - **Load:** Hedge School's own saved work, a review or an analysis: from a file, a share link, or a partner site
        that kept it. It brings the lines, and the engine's results when it has them. Desktop programs make the same
        cut: Open for their own documents, Import for other formats. "Open" already names other acts here (a game opens
        from the list, a link opens a page), so the site says Load.
 
      The events follow the words (design 17): `import_game` and `load_saved`.
-   - **Tools (`/tools`):** the meaf.us bookmarklet and userscript.
+   - **Tools (`/tools`):** the bookmarklet and the userscript, for meaf.us and strategyjam.org.
    - **How a review works (`/how-reviews-work`):** the review's rules and their numbers, for a player who wants to know
      where a label comes from (designs 10, 14 and 16), with the sources they follow. The review's report, the About page
      and the footer link it.

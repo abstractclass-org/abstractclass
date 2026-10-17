@@ -19,8 +19,9 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
    - **The Review tab:** import a game, load a review file, continue the last review, and the player's games. No
      sample game: a review opens on a game the player brought. Each game has a Delete ([below](#deleting-a-game)).
    - **The ways to bring a game:** a pasted record in this site's notation, a pasted export of Constellation's
-     analysis board, and the meaf.us bookmarklet ([import](#constellations-export) below). The pages name the record
-     and the meaf.us tools. Constellation's export is on the notation page only, as a notation whose columns have `I`.
+     analysis board, and the bookmarklet for meaf.us and strategyjam.org ([import](#constellations-export) below).
+     The pages name the record and the two sites' tools. Constellation's export is on the notation page only, as a
+     notation whose columns have `I`.
    - **The header:** the name, which leads home, with "Early Access" beside it in the accent colour, which leads to the
      About page's section on the early access. That section says first that everything can change (the pages and their
      addresses, the labels, the engine, the files and links, what the browser keeps), then what the site does now. Then
@@ -35,7 +36,7 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
      Tools on a phone), the site's version (its commit), the site's copyright line, and "Enclosure by webgoatguy", so
      that the copyright does not read as the game's. The review has no footer: it fills the window. The About page
      credits webgoatguy as the game's designer, and says that the site is not an official site of the game: it is made
-     independently of webgoatguy, meaf.us and Constellation.
+     independently of webgoatguy, strategyjam.org, meaf.us and Constellation.
    - **Not in the early access:** puzzles, lessons, free analysis and the engine lab. Their addresses lead home. Their
      code stays, for the full site.
 3. **One build switch:** `VITE_EDITION=early` builds the early access. Without it, the build is the full site, for
@@ -169,49 +170,90 @@ one item for each turn, separated by spaces.
 - **A game deleted while its review is open** (in the Review tab, in another tab): the review stores no more branches
   for it, so a later import of the same game does not bring them back.
 
-### The meaf.us bookmarklet and userscript
+### The bookmarklet and the userscript (meaf.us, strategyjam.org)
 
-- **It reads the game that the board holds,** in the player's own meaf.us page: React's `game` property of the board.
-  It sends no request to meaf.us and uses nothing from the player's login. It opens the review with the record after
-  the `#` (design 22).
+The two tools work on the game pages of meaf.us and of strategyjam.org. strategyjam.org replaces meaf.us as the site
+of the Enclosure strategy jam, the tournament (the engine repository's `docs/context.md`). On each site the tools
+read the game from the player's own page.
+
+- **On meaf.us, it reads the game that the board holds:** React's `game` property of the board. It sends no request
+  to meaf.us and uses nothing from the player's login. It opens the review with the record after the `#` (design 22).
 - **The bookmark is a loader** (`bookmarklet.ts`): a short `javascript:` that adds this site's `/bookmarklet.js` to the
-  meaf.us page at each click. So the bookmark stays as it is when the code changes, and the player drags it to the
+  game's page at each click. So the bookmark stays as it is when the code changes, and the player drags it to the
   bar once. The script takes the site's address from its own address, so a game goes back to the site that the
-  bookmark came from. A click can open a tab only for a few seconds after it: after a slower load, the meaf.us tab
+  bookmark came from. A click can open a tab only for a few seconds after it: after a slower load, the game's tab
   goes to the review instead. When the script cannot load, the bookmark says so.
-  - **It depends on meaf.us's headers:** a content security policy that blocks other sites' scripts would stop it.
-    meaf.us sends none. If one comes, the bookmark needs the code in itself again, as before the loader.
-  - **The request** carries no game. By default the browser names only meaf.us's origin as the page that made it. The
-    privacy page says so.
-- **Each tool says what it is,** with each game (`importHash.ts`): `#tool=…&v=…&record=…` after the review's
+  - **It depends on the sites' headers:** a content security policy that blocks other sites' scripts would stop it.
+    Neither meaf.us nor strategyjam.org sends one. A check of strategyjam.org on 2026-10-17 found none. If one comes,
+    the bookmark needs the code in itself again, as before the loader.
+  - **The request** carries no game. By default the browser names only the game site's origin as the page that made
+    it. The privacy page says so.
+- **Each tool says what it is,** with each game (`importHash.ts`): `#tool=…&v=…&site=…&record=…` after the review's
   address. The bookmarklet sends its loader's version (`BOOKMARK_VERSION`), and the userscript a hash of the files
   that make its code (the build's `__USERSCRIPT_CODE__`, `vite.config.ts`), so that a build that changes neither
-  flags no one. A tool from before this sends the record alone.
+  flags no one. `site` is the page's host: the import's source tells the two sites apart (design 17). A tool from
+  before this sends the record alone, and one from before strategyjam.org sends no site.
 - **An out-of-date tool:** the review keeps the game, says how to update the tool (drag the bookmarklet to the bar
   again, or open the userscript, both on the tools page), and opens the review on a click. A
   tool that sent no version counts as out of date.
-- **No game on a page that shows one:** the tools' message says that meaf.us may have changed its page, and names the
-  tools page (`/tools`), which has the newest tools.
-- **A player's own game, just after it ends, has no moves in the page.** meaf.us asks its server for a game's moves
-  only for a viewer who watches the game (`spectate=1` in the address, or a game of other players), or who opens it
-  from the History page. The game's `historyLength` still counts the moves. On such a page, when the game is over, the
-  bookmarklet opens the same game as a watcher's view, which loads the moves, and asks for a second click. During a
-  game it only says to click again when the game is over: a watcher's view would take the board from the player.
-- **The winner is a name.** meaf.us gives the winner as the winning player's name, as the engine repository's archive
-  tools read it (`tools/analyze_archive.py`). The record's result compares it with the two players' names.
-- **A userscript, a second way, for Tampermonkey.** It runs the bookmarklet's code (`meafPage.ts`, `meaf.ts`) on
-  meaf.us game pages, in the page's own context (`@sandbox raw`: meaf.us sends no content security policy). It shows
-  a round button with the school's collie in the page's lower right corner while a game shows, and adds "Review this
-  game in Hedge School" to Tampermonkey's menu.
+- **No game on a page that shows one:** the tools' message says that the game's site may have changed its page, and
+  names the tools page (`/tools`), which has the newest tools.
+- **On meaf.us, a player's own game, just after it ends, has no moves in the page.** meaf.us asks its server for a
+  game's moves only for a viewer who watches the game (`spectate=1` in the address, or a game of other players), or
+  who opens it from the History page. The game's `historyLength` still counts the moves. On such a page, when the game
+  is over, the bookmarklet opens the same game as a watcher's view, which loads the moves, and asks for a second click.
+  During a game it only says to click again when the game is over: a watcher's view would take the board from the
+  player.
+- **On meaf.us, the winner is a name.** meaf.us gives the winner as the winning player's name, as the engine
+  repository's archive tools read it (`tools/analyze_archive.py`). The record's result compares it with the two
+  players' names.
+- **On strategyjam.org, it reads the game that the game's page holds** (`/enclosure/game/ID`, `strategyjamPage.ts`):
+  the props of the React component that draws the stage (`.stage`, the board and the panel). `game.rules` is the
+  site's rules module, and `state` the game as the site sends it: the seats, the first position, the moves
+  (`history`) and the result. The engine repository's `docs/context.md`, "strategyjam.org internals", describes them.
+  - **The scores come from the page's own rules module,** which plays the moves again from the first position. The
+    site gives no scores with a finished game, and the record's margin needs them.
+  - **A finished game needs the player's login.** Its page reads the game from `/api/games/ID/record`, which answers
+    only a player who is logged in. For a visitor, the page holds no game (`status` "login"), and the tools say to
+    log in. The tools send no request of their own, so they never use the login. A game in play shows to any
+    visitor, with every move.
+  - **The record** (`strategyjam.ts`): First is Blue, since First starts with a10-d10, Blue's A10-D10. The columns a
+    to s become the notation's A to T, with no I. The site gives the moves one by one: the first turn has one edge,
+    each later turn two, and a pass (a timeout) ends its turn, as on meaf.us. The Site tag is the game's page, as
+    Lichess writes it, so the review links back to it. The record has no TimeControl: the site adds its increment
+    for each edge, and the notation's TimeControl adds it for each turn.
+  - **The result:** the site gives the winner by seat, and its reason in words. A game that the rules ended (120
+    edges, the forfeited ones included) takes its margin from the scores. A game that ended before, with a winner,
+    ended by a resignation (a reason with "resign"), else by a forfeit: a timeout is a pass, and the game goes on. An
+    aborted game, and a game in play, give `*`.
+  - **Checked** with synthetic games that the site's own rules module played (`scripts/strategyjam-games.mjs`), on
+    the site's own page code in Chromium, with the API answered by a test (no request to the site). The reader took
+    the game from the page, and the review found every move legal and the same scores as the site, in a game with
+    timeout passes too. The check did not load a real finished game, because such a game needs a player's login.
+- **A userscript, a second way, for Tampermonkey.** It runs the bookmarklet's code (`meafPage.ts`, `meaf.ts`,
+  `strategyjamPage.ts`, `strategyjam.ts`) on the game pages of meaf.us (`https://meaf.us/sst1/*`) and
+  strategyjam.org (`https://strategyjam.org/enclosure/game/*`), in the page's own context (`@sandbox raw`: neither
+  site sends a content security policy). It shows a round button with the school's collie near the page's lower
+  right corner while a game shows, and adds "Review this game in Hedge School" to Tampermonkey's menu. Its note
+  shows above the button.
+  - **The button's place** (`BUTTON_PLACES` in `userscript.ts`, one entry for each site). On meaf.us: fixed in the
+    window's lower right corner. strategyjam.org's page fills the window, and its move list holds the lower right
+    corner. In a narrow window the panel under the board scrolls, and in a wide one the board can fill the height
+    between the menu and the panel. So no fixed spot there stays free. The button goes at the end of the move list's
+    legend ("can be cut", "can't be cut yet", `.enc-legend`), in the page's own layout. It sits to the right, in a
+    row of its own when the legend fills its row, and it scrolls with the panel. It is 36 pixels wide, as the page's
+    icon buttons. A sweep at the layout sweep's sizes (widths 360 to 1,920 by 10, heights 700, 860 and 1,000) found it
+    over nothing: no text, control, board or scroll bar. The same sweep with the button fixed in the corner found it
+    over the move list's scroll bar, the gains and the legend.
   - **It updates itself.** The site serves it at `/hedge-school.user.js`, and its header alone at
     `/hedge-school.meta.js`, which Tampermonkey checks for a newer version (`@updateURL`, as Greasy Fork serves a
-    `.meta.js`). Each build gives it a later version (the build's time). A change of meaf.us's page then needs no new
+    `.meta.js`). Each build gives it a later version (the build's time). A change of a site's page then needs no new
     install.
-  - **One click for a finished game.** It opens the review through Tampermonkey (`GM_openInTab`), which no popup
-    blocker stops. So after the reload as a watcher's view, the script runs again, waits for the moves, and opens the
-    review itself.
-  - **No request for its look.** The script draws the button and its collie itself and fetches no image, so neither
-    site learns of a visit from the button.
+  - **One click for a finished game on meaf.us.** It opens the review through Tampermonkey (`GM_openInTab`), which no
+    popup blocker stops. So after the reload as a watcher's view, the script runs again, waits for the moves, and opens
+    the review itself.
+  - **No request for its look.** The script draws the button and its collie itself and fetches no image, so no site
+    learns of a visit from the button.
   - **The site's address is part of the file** (the build's `SITE_ORIGIN`, `vite.config.ts`): the live site for a build
     of `main`, the preview for another branch, the local preview server for a local build.
   - Chrome and Edge from version 138 run a userscript only after the player turns on "Allow User Scripts" for

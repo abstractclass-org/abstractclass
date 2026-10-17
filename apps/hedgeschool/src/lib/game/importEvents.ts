@@ -16,8 +16,10 @@ export type ImportSource =
   | "pasted_constellation" // Constellation's export pasted in a page's box (constellation.ts)
   | "pasted_position" // a position pasted in the Analysis board's Import, with or without moves (design 21)
   | "site_link" // another site's link with a record or a position (`#record=`, `#position=`, design 18)
-  | "bookmarklet" // the meaf.us bookmarklet (bookmarklet.ts)
-  | "userscript" // the meaf.us userscript (userscript.ts)
+  | "bookmarklet" // the bookmarklet (bookmarklet.ts) on meaf.us
+  | "userscript" // the userscript (userscript.ts) on meaf.us
+  | "strategyjam_bookmarklet" // the bookmarklet on strategyjam.org
+  | "strategyjam_userscript" // the userscript on strategyjam.org
   | "older_tool"; // a meaf.us tool from before the tools named themselves (importHash.ts)
 
 /** Why an import failed: the record cannot be read, the engine's rules (or the storage) refuse it, or the link is

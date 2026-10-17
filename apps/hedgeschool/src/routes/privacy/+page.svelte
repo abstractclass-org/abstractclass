@@ -108,19 +108,20 @@
     and nothing else ever does. To open a review that it kept, that site's page sends the file back to {SITE_NAME} in
     your browser, and it is kept here as any review file you load.</p>
 
-  <h2>The meaf.us bookmarklet and userscript</h2>
-  <p>The bookmarklet runs in the <a href="https://meaf.us/sst1/">meaf.us</a> page that you have open. It reads the game on the board, with nothing from your
-    meaf.us login and no request to meaf.us, and opens {SITE_NAME} with the game after the <code>#</code> in the
-    address. Browsers never send that part of an address to a server, and the page removes it at once. On your own
-    finished game, which meaf.us shows without its moves, it opens the same meaf.us page again as a watcher's view
-    (<code>spectate=1</code> in the address), and meaf.us loads the moves itself. At each click, the bookmarklet loads
-    its code from this site, so that it stays up to date: that request carries no game, and by default your browser
-    names only meaf.us as the page that made it.</p>
-  <p>The userscript, for the Tampermonkey extension, does the same on meaf.us's game pages, from a button or
-    Tampermonkey's menu. Its button and its collie are drawn by the script itself, with no request. Tampermonkey asks
-    this site for the script now and then, to update it: that request carries no game. With a game, both tools tell
-    this site which one sent it, and their version, after the same <code>#</code>, so that this site can say when one
-    needs an update.</p>
+  <h2>The bookmarklet and userscript for meaf.us and strategyjam.org</h2>
+  <p>The bookmarklet runs in the game page that you have open on <a href="https://meaf.us/sst1/">meaf.us</a> or
+    <a href="https://strategyjam.org/">strategyjam.org</a>. It reads the game from that page, with nothing from your
+    login and no request to the game's site, and opens {SITE_NAME} with the game after the <code>#</code> in the
+    address. Browsers never send that part of an address to a server, and the page removes it at once. On meaf.us, for
+    your own finished game, which meaf.us shows without its moves, it opens the same meaf.us page again as a watcher's
+    view (<code>spectate=1</code> in the address), and meaf.us loads the moves itself. At each click, the bookmarklet
+    loads its code from this site, so that it stays up to date: that request carries no game, and by default your
+    browser names only the game's site as the page that made it.</p>
+  <p>The userscript, for the Tampermonkey extension, does the same on the game pages of the two sites, from a button
+    or Tampermonkey's menu. Its button and its collie are drawn by the script itself, with no request. Tampermonkey
+    asks this site for the script now and then, to update it: that request carries no game. With a game, both tools
+    tell this site which one sent it, their version and the game's site, after the same <code>#</code>, so that this
+    site can say when one needs an update.</p>
 
   <h2>Visits</h2>
   <ul>
@@ -136,7 +137,7 @@
   <p>Google Analytics also receives what you do here, as counts, so that we can tell what to improve:</p>
   <ul>
     <li>that you imported a game, to a review or to the Analysis board, and how (pasted, from <a href="https://constellation.blueshrimp.uk">Constellation</a>, the
-      bookmarklet, the userscript or another site's link), its length as a range (for example 90 to 119 edges), or why
+      bookmarklet or the userscript, and on which site, or another site's link), its length as a range (for example 90 to 119 edges), or why
       an import failed</li>
     <li>that you loaded a review or an analysis, and how (a review or an analysis file, a share link, or a review that
       another site kept), its game's length as a range, or why a load failed</li>

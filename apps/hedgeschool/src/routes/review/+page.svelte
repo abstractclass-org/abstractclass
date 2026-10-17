@@ -386,7 +386,7 @@
 <!-- The prerendered page, which search engines read, is the Review tab: its address holds no game. -->
 {#if gameOpen}<PageMeta title="Game review · Hedge School" />
 {:else}<PageMeta title="Review a game · Hedge School"
-                 description="Review your Enclosure game: the engine in your browser judges each move, and shows where the game turned and what was better. Import it from meaf.us or a record." />{/if}
+                 description="Review your Enclosure game: the engine in your browser judges each move, and shows where the game turned and what was better. Import it from strategyjam.org, meaf.us or a record." />{/if}
 
 {#if arriving}
   <Arrival />

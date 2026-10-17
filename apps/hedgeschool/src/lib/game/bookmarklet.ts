@@ -1,20 +1,22 @@
-// The bookmarklet that brings a meaf.us game to the review. The player keeps it in the browser's bookmarks bar and
-// clicks it on a meaf.us game page. The bookmark holds only a loader (load): it adds this site's /bookmarklet.js to the
-// meaf.us page, so that the bookmark stays as it is when the code changes, as the userscript updates itself. The code
-// (grab) runs there, in the player's own page:
-// 1. it finds the game the board holds (meafPage.ts), with no request to meaf.us and nothing from the player's login;
-// 2. it writes the game's record (meaf.ts, carried in the script as it is);
+// The bookmarklet that brings a meaf.us or strategyjam.org game to the review. The player keeps it in the browser's
+// bookmarks bar and clicks it on a game page. The bookmark holds only a loader (load): it adds this site's
+// /bookmarklet.js to the game's page, so that the bookmark stays as it is when the code changes, as the userscript
+// updates itself. The code (grab) runs there, in the player's own page:
+// 1. it finds the game that the page holds (meafPage.ts, strategyjamPage.ts), with no request to the game's site and
+//    nothing from the player's login;
+// 2. it writes the game's record (meaf.ts, strategyjam.ts, carried in the script as they are);
 // 3. it opens this site's review with the record after the `#`, which the browser never sends to a server, and says
-//    which tool sent it (importHash.ts), so that the review can tell a player whose bookmark is an old one.
-// It depends on meaf.us's page: a change there can break it, and then it says that it found no game. The loader also
-// depends on meaf.us sending no content security policy that blocks other sites' scripts (it sends none).
+//    which tool sent it and from which site (importHash.ts), so that the review can tell a player whose bookmark is an
+//    old one.
+// It depends on the two sites' pages: a change there can break it, and then it says that it found no game. The loader
+// also depends on each site sending no content security policy that blocks other sites' scripts (neither sends one).
 //
-// A player's own finished game has no moves in the page (meafPage.ts, missingMoves). The bookmarklet then opens the same
-// game as a watcher's view, which loads them, and asks for a second click: it cannot go on after the page reloads. The
-// userscript can (userscript.ts). During a game it only says to click again when the game is over: a watcher's view
-// would take the board from the player.
-import { meafRecord, type MeafGame } from "./meaf.ts";
-import { explain, findGame, missingMoves, watcherUrl } from "./meafPage.ts";
+// A player's own finished game on meaf.us has no moves in the page (meafPage.ts, missingMoves). The bookmarklet then
+// opens the same game as a watcher's view, which loads them, and asks for a second click: it cannot go on after the
+// page reloads. The userscript can (userscript.ts). During a game it only says to click again when the game is over: a
+// watcher's view would take the board from the player. A strategyjam.org page holds every move, while the game goes on
+// too.
+import { pageCodeText, type PageCode } from "./pageCode.ts";
 
 /** The loader's version, sent with each game: a new loader takes the next number, and the import page then asks the
  *  players with an older one to drag the bookmarklet to the bar again. */
@@ -32,26 +34,34 @@ function load(origin: string, version: number) {
   document.head.append(s);
 }
 
-/** Runs on the meaf.us page, from the script that the bookmark loads. Self-contained: the script carries its source,
- *  and that of the functions it gets. The site's address and the bookmark's version come from the script's own
- *  address, so that the game goes back to the site that the bookmark came from. */
-function grab(find: typeof findGame, missing: typeof missingMoves, say: typeof explain, watcher: typeof watcherUrl,
-              toRecord: (game: MeafGame) => string) {
+/** Runs on the game's page, from the script that the bookmark loads. Self-contained: the script carries its source,
+ *  and that of the functions it gets (`page`, pageCode.ts). The site's address and the bookmark's version come from the
+ *  script's own address, so that the game goes back to the site that the bookmark came from. */
+function grab(page: PageCode) {
   const src = new URL((document.currentScript as HTMLScriptElement).src);
   const origin = src.origin, version = src.searchParams.get("bookmark") ?? "";
   const click = "the Review in Hedge School bookmark"; // the bookmark's name, as the import page's link gives it
-  const game = find();
-  if (!game) { alert(say("none", click, origin)); return; }
-  const why = missing(game);
-  if (why === "reload") {
-    alert(`Hedge School: meaf.us shows your finished game without its moves. After you close this message, the page reloads as a watcher's view, which has them. When the game shows again, click ${click} once more.`);
-    location.assign(watcher());
-    return;
+  const site = location.hostname;
+  let record: () => string;
+  if (site === "strategyjam.org") {
+    const game = page.findJamGame();
+    if (typeof game === "string") { alert(page.explain(game, click, origin, site)); return; }
+    record = () => page.jamRecord(game);
+  } else {
+    const game = page.findGame();
+    if (!game) { alert(page.explain("none", click, origin, site)); return; }
+    const why = page.missingMoves(game);
+    if (why === "reload") {
+      alert(`Hedge School: meaf.us shows your finished game without its moves. After you close this message, the page reloads as a watcher's view, which has them. When the game shows again, click ${click} once more.`);
+      location.assign(page.watcherUrl());
+      return;
+    }
+    if (why) { alert(page.explain(why, click, origin, site)); return; }
+    record = () => page.meafRecord(game);
   }
-  if (why) { alert(say(why, click, origin)); return; }
   let text: string;
-  try { text = toRecord(game); } catch (e) { alert("Hedge School: " + (e as Error).message); return; }
-  const url = origin + "/review#" + new URLSearchParams({ tool: "bookmarklet", v: version, record: text });
+  try { text = record(); } catch (e) { alert("Hedge School: " + (e as Error).message); return; }
+  const url = origin + "/review#" + new URLSearchParams({ tool: "bookmarklet", v: version, site, record: text });
   // A slow load can end the click's right to open a tab: then this tab goes to the review.
   if (!window.open(url, "_blank")) location.assign(url);
 }
@@ -61,7 +71,7 @@ export function bookmarkletHref(origin: string): string {
   return "javascript:" + encodeURIComponent(`(${load})(${JSON.stringify(origin)}, ${BOOKMARK_VERSION})`);
 }
 
-/** The script that the loader adds to the meaf.us page, served at /bookmarklet.js. */
+/** The script that the loader adds to the game's page, served at /bookmarklet.js. */
 export function bookmarkletScript(): string {
-  return `(${grab})(${findGame}, ${missingMoves}, ${explain}, ${watcherUrl}, ${meafRecord});\n`;
+  return `(${grab})(${pageCodeText()});\n`;
 }

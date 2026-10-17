@@ -30,7 +30,8 @@ if (process.env.CF_PAGES_BRANCH === 'partner_test') process.env.VITE_PARTNER_TES
 const now = new Date(), pad = (n: number) => String(n).padStart(2, '0');
 const userscriptVersion = `${now.getUTCFullYear()}.${now.getUTCMonth() + 1}.${now.getUTCDate()}.${pad(now.getUTCHours())}${pad(now.getUTCMinutes())}`;
 const userscriptCode = createHash('sha256')
-	.update(['userscript.ts', 'meafPage.ts', 'meaf.ts'].map(f => readFileSync(`src/lib/game/${f}`, 'utf8')).join('\0'))
+	.update(['userscript.ts', 'pageCode.ts', 'meafPage.ts', 'meaf.ts', 'strategyjamPage.ts', 'strategyjam.ts']
+		.map(f => readFileSync(`src/lib/game/${f}`, 'utf8')).join('\0'))
 	.digest('hex').slice(0, 12);
 
 // The engine files that the stored results name (src/lib/game/earlierResults.ts): the CPU module and the networks, by

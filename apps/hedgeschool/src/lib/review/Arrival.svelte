@@ -1,7 +1,8 @@
 <script lang="ts">
   // The review's ways in (design 22), when the review's address holds a game after its `#` (importHash.ts):
-  // - a record from the meaf.us bookmarklet or userscript (bookmarklet.ts, userscript.ts), or from another site's link
-  //   (`record=`, design 18): checked with the engine's rules, given its cut marks, kept in this browser, and reviewed.
+  // - a record from the bookmarklet or the userscript on meaf.us or strategyjam.org (bookmarklet.ts, userscript.ts), or
+  //   from another site's link (`record=`, design 18): checked with the engine's rules, given its cut marks, kept in
+  //   this browser, and reviewed.
   //   A record from an out-of-date tool is kept too, and the page then says how to update the tool, with the review a
   //   click away. Another site's link keeps the partner's save page with the game when it names one;
   // - a shared review (`packed=`, share.ts): what it holds, and that this browser reviews it again, then kept on a
@@ -13,7 +14,7 @@
   import { importRecord } from "#lib/game/import.ts";
   import { errorText } from "#lib/errors.ts";
   import { BOOKMARK_VERSION } from "#lib/game/bookmarklet.ts";
-  import { FORWARDED, hashParams, readImportHash, staleTool, type Tool } from "#lib/game/importHash.ts";
+  import { FORWARDED, hashParams, readImportHash, staleTool, toolSource, type Tool } from "#lib/game/importHash.ts";
   import { gamePartner, partnerOf, receiveFromPartner } from "#lib/game/partners.ts";
   import { setGamePartner } from "#lib/game/store.ts";
   import { decodeShare, type SharedReview } from "#lib/game/share.ts";
@@ -59,7 +60,7 @@
     let source: ImportSource = "older_tool";
     try {
       const sent = readImportHash(hash), text = sent.record;
-      if (!sent.from) source = sent.link ? "site_link" : sent.tool ?? source;
+      if (!sent.from) source = sent.link ? "site_link" : sent.tool ? toolSource(sent.tool, sent.site) : source;
       if (forwarded) {
         // The old address still in use (design 22): a warning for the developer whose link it is, and a count by
         // the link's source, to tell when the forwarding can stop (design 17).
