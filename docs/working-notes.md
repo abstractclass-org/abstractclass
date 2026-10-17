@@ -18,10 +18,33 @@ learn one, and remove a note when it stops being true. The work itself is in bea
 - **Local builds leave `VITE_GA_ID` unset** (`VITE_EDITION=early npm run build`), so that test visits do not reach
   Google Analytics.
 - **This machine is often loaded** by the engine repository's training: its speed numbers are no baseline then.
-  Compare two builds in pairs: each pair is one build's set of runs, then the other's, back to back. Before each set,
-  read the machine's state (`scripts/machine status` in the planning folder, `..` from the repository's root). A
-  change counts only where every pair agrees, and where the gain is at least the spread between sets of one build.
-  Chrome's trace gives each task's thread time, which the wait for a processor does not change.
+  Compare two builds in pairs: each pair is one build's set of runs, then the other's, back to back, and the build
+  that runs first takes turns. Before each set, read the machine's state (`scripts/machine status` in the planning
+  folder, `..` from the repository's root). A change counts only where every pair agrees, and where the gain is at
+  least the spread between sets of one build. Chrome's trace gives each task's thread time, which the wait for a
+  processor does not change.
+- **Measuring speed in a browser:** a measuring script takes its tools from `scripts/measure/speed.mjs`. Do not
+  write them again. Its tests are in `speed.test.mjs`, and `review-first-frame.mjs` uses it.
+  - `preview(dir, port)` serves a build folder on a port of its own, as Cloudflare Pages serves it. To compare two
+    builds, copy `build` to a folder in `runs/` (Git ignores it) after each build, and serve each copy on its own
+    port.
+  - `launch()` starts Playwright's Chromium with its scroll bars. `trace(browser, page, act)` records Chrome's trace
+    while `act` runs.
+  - `tasksBetween(trace, from, to, { paint })` gives the main thread's tasks between two marks, each with its wall
+    time and its thread time. `eventTime(trace, name)` gives a named event's count and times on every thread.
+  - `layoutShift(page, since)` gives the page's Cumulative Layout Shift and each element that moved. It reads a
+    buffered `PerformanceObserver`: `performance.getEntriesByType("layout-shift")` gives no entries.
+  - `inPairs(builds, count, run)` runs two builds in alternating pairs, and reads the machine's load
+    (`machineLoad()`) before each run. `verdict(pairs)` gives each pair's difference, each build's median and spread,
+    and whether the pairs show a change, by the rule above.
+
+  ```js
+  import { inPairs, launch, preview, verdict } from "./speed.mjs";
+  const builds = [await preview("runs/before", 4191), await preview("runs/after", 4192)];
+  const browser = await launch();
+  const pairs = await inPairs(builds, 5, async ({ url }) => { /* one set of runs at url: give its median */ });
+  console.log(verdict(pairs.map(pair => pair.map(run => run.result))), pairs.map(pair => pair.map(run => run.load)));
+  ```
 - **The browser tool's keys:** "PageDown", not "Page_Down": a key name that the tool does not know sends nothing, and
   the test then means nothing. Check that the key arrived (a `keydown` listener) before reading its effect.
 - **Timing the review's start:** `src/routes/review/+page.svelte` sets the performance marks `review:rules` (the rules
@@ -33,8 +56,8 @@ learn one, and remove a note when it stops being true. The work itself is in bea
   fresh browser context gives a review with no stored results.
 - **The CPU time of a SHA-256 check:** Chrome's trace event `DoDigest` (category
   `disabled-by-default-devtools.timeline`) gives the thread time (`tdur`) of each `crypto.subtle.digest` call. It
-  shows on the thread that calls it: the page's main thread or a worker's. Playwright records a trace with
-  `browser.startTracing` and `browser.stopTracing`. A worker's console messages and requests reach Playwright's
+  shows on the thread that calls it: the page's main thread or a worker's. `eventTime(trace, "DoDigest")` in
+  `scripts/measure/speed.mjs` adds them up. A worker's console messages and requests reach Playwright's
   `page.on("console")` and `page.on("request")`.
 - **The GPU in Playwright's Chromium:** headless Chromium gets WebGPU on the real GPU with `--enable-unsafe-webgpu
   --use-angle=d3d11 --enable-features=Vulkan`. With `--use-webgpu-adapter=swiftshader --enable-unsafe-swiftshader`
