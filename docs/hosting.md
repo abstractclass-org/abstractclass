@@ -342,7 +342,8 @@ under **Compute**.
     origin, and the cache status. Also the country, the IP address, the browser, the operating system, the device type,
     the user agent and the verified bot category. Also the security action and its source, the data center and the
     origin's response time. Logs shows no referrer and no response size. The SQL table that custom alerts query,
-    `events.httpRequests`, also has the referrer's host, the query and the bytes sent.
+    `events.httpRequests`, also has the bytes sent. It lists the referrer's host and the query too, but the free plan
+    refuses them.
   - **The search:** a query language filters the rows, for example `edgeResponseStatus = 404 AND
     startsWith(clientRequestHTTPHost, "hedgeschool")`. The field list shows each field's top values with their counts.
     The data goes back 30 days.
@@ -373,6 +374,29 @@ How to read the numbers:
   zone's cache seldom holds them. "Served by Origin" means served by Pages, and it costs nothing.
 - **Scanners get most of the 404 answers.** They ask for `/.env`, `/wp-config.php`, `/.git/HEAD` and similar paths.
   Cloudflare's free managed rules block some of them with a 403, and also POST requests to `/`.
+- **A broken link of the site shows in Web Analytics, not among the 404 answers.** On the free plan, no record of a
+  request gives its referrer. Logs has no such field. The SQL API and the GraphQL API refuse the referrer's host
+  (`clientRefererHost`) and the query (`clientRequestQuery`) of `events.httpRequests`, although the table lists them.
+  The beacon records the referrer of each page view, also on the 404 page, because the layout starts it on every page.
+  A view at a path that is not a page of the site is a view of the 404 page. If its referrer has the same host, a link
+  of the site led there. This query selects these views, as far back as Web Analytics keeps them (6 months):
+
+  ```sql
+  SELECT "requestHost", "requestPath", "refererPath", count() AS "views"
+  FROM "events"."rumPageloadEvents"
+  WHERE "accountTag" = '<the account ID>' AND "refererHost" = "requestHost"
+    AND "requestPath" NOT IN ('/', '/review', '/analysis', '/practice', '/editor', '/how-reviews-work', '/tools',
+      '/notation', '/about', '/developers', '/privacy', '/notices', '/import', '/learn', '/puzzles', '/lab/engine')
+  GROUP BY "requestHost", "requestPath", "refererPath"
+  ```
+
+  The list holds every page of the site: the sitemap's pages and four more. Add each new page to it. The query sees
+  only pages that a browser opens with the beacon. It does not see a missing file, a bot, or a browser that blocks the
+  beacon. In the dashboard, the Path breakdown of Web analytics shows the same views, and its Referer breakdown shows
+  the referrer's host.
+- **Each deploy leaves old code behind.** A page that loaded before a deploy, or a crawler that read that page, asks
+  for that build's files under `/_app/immutable/`. Pages serves only the new build's files, so these requests get 404.
+  In a navigation, SvelteKit then loads the page again in full.
 - **Crawlers read text as links.** The notices page's code holds the names `LICENSE.txt` and `NOTICES.txt`. A crawler
   asked for them under `/_app/immutable/nodes/`, the folder of that code, and got 404.
 - **Crawlers come to every address:** AI search, AI crawlers and search engines. `noindex`, on the preview addresses,
