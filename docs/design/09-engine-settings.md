@@ -121,10 +121,10 @@ each applies at once, without a reload.
   about 4 KB a visit. Any worker can take the position on screen, so in time each worker reaches that size. A step
   more (32,768 visits) would take about 7 minutes on this machine.
 - **The custom depth goes as deep as the Depth,** 16,384 visits. Each doubling doubles the review's time: reviews at
-  4,096 visits took about 54 minutes on 9 to 16 cores, so a review at 16,384 takes about 3.5 hours there. Its key
+  4,096 visits took about 54 minutes on 9 to 16 cores, so a review at 16,384 takes about 3.6 hours there. Its key
   moments go one doubling deeper, to 32,768 visits, the site's deepest search. At about 4 KB a visit, a worker that
   searches one grows to about 230 MiB with b10c128, against 162 MiB at 16,384. That is an estimate from the
-  measurement above: no review at 16,384 visits was measured.
+  measurement above, not a measurement of a review at 16,384 visits.
 - **A time limit of 30 seconds** departs from the 8 seconds of KaTrain and Lichess. KaTrain's 8 seconds go with 500
   visits on a native engine. In the browser, 1,024 visits of b10c128 take about 11 to 21 seconds on a fast desktop,
   so 8 seconds would cut the default depth on most machines. With 30 seconds, a fast machine reaches 1,024 visits,

@@ -3407,14 +3407,15 @@ sweep.
 ### The review's custom depth up to 16,384 visits (2026-10-18)
 
 - **What:** the review's custom depth per move takes any whole number from 256 to 16,384 visits, the range of the
-  Depth for the position on screen, in place of 256 to 4,096 (`CUSTOM_REVIEW` in
-  `src/lib/analysis/engineSettings.ts`, design 09). The slider keeps its doublings, now 7 stops. The settings kept in
-  the browser take any whole number in the range (`inSteps`).
+  Depth for the position on screen, in place of 256 to 4,096. `CUSTOM_REVIEW` in `src/lib/analysis/engineSettings.ts`
+  is the Depth's steps (`DEPTHS`, design 09). The slider keeps its doublings, now 7 stops. The settings kept in the
+  browser take any whole number in the range (`inSteps`).
 - **The key moments** stay at twice the review's depth (`momentVisits` in `src/lib/analysis/game.svelte.ts`), so a
   custom 16,384 searches them to 32,768 visits. The cache's budgets (`BUDGETS` in `src/lib/analysis/cache.ts`) gain
-  32,768, so that a shallower question takes such a result, as it took a key moment's 8,192 before.
+  32,768, so that a shallower question takes such a result, as it took a key moment's 8,192 before. A test checks that
+  the budgets hold each depth of the settings and twice each depth of the review.
 - **The time:** reviews at 4,096 visits took about 54 minutes on 9 to 16 cores. Each doubling doubles the time, so a
-  review at 16,384 visits takes about 3.5 hours on those machines. Google Analytics' ranges of a review's minutes
+  review at 16,384 visits takes about 3.6 hours on those machines. Google Analytics' ranges of a review's minutes
   (`MINUTE_RANGES` in `src/lib/measure.ts`, design 17) end in 60-119, 120-239 and 240+, in place of 60+. Events sent
   before the change keep "60+".
 - **No other change:** a review file, a shared link and a review's mark already take any number of visits (design

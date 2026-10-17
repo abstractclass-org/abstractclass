@@ -14,8 +14,7 @@ export function range(n: number, starts: number[]): string {
 export const EDGE_RANGES = [1, 30, 60, 90, 120];
 /** The machine's cores (navigator.hardwareConcurrency). */
 export const CORE_RANGES = [1, 3, 5, 9, 17];
-/** A review's minutes, from its start to its end. A review at the deepest custom depth (16,384 visits) takes about four
- *  times one at 4,096: about 3.5 hours where 4,096 took 54 minutes, on 9 to 16 cores. */
+/** A review's minutes, from its start to its end: hours at the deepest custom depth (design 09). */
 export const MINUTE_RANGES = [0, 1, 3, 10, 30, 60, 120, 240];
 /** A share link's characters: Discord takes 2,000 in a message. */
 export const LINK_RANGES = [0, 500, 1000, 2000, 4000];

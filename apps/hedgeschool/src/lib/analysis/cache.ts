@@ -79,8 +79,8 @@ export const ofModels = (entries: [string, unknown][], models: Set<string> | nul
   entries.filter(([key]) => !models || models.has(readAnalysisKey(key).model));
 
 // The budgets the site's searches ask for (engineSettings.ts: the depths, the review's depths and the label pass, and
-// the key moments at twice the review's depth), from shallow to deep.
-const BUDGETS = [256, 512, 768, 1024, 1536, 2048, 3072, 4096, 8192, 16384, 32768];
+// game.svelte.ts: the key moments at twice the review's depth), from shallow to deep.
+export const BUDGETS = [256, 512, 768, 1024, 1536, 2048, 3072, 4096, 8192, 16384, 32768];
 
 /** The deepest stored result for a position at `visits` or deeper: a deeper search answers a shallower question, as the
  *  review takes a deeper result it holds. So a review opened again keeps what the player searched deeper where they
