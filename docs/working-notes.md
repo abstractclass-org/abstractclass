@@ -20,8 +20,8 @@ learn one, and remove a note when it stops being true. The work itself is in bea
 - **This machine is often loaded** by the engine repository's training: its speed numbers are no baseline then.
   Compare two builds in pairs: each pair is one build's set of runs, then the other's, back to back. Before each set,
   read the machine's state (`scripts/machine status` in the planning folder, `..` from the repository's root). A
-  change counts only where every pair agrees, and where the gain is larger than the spread between sets of one
-  build. Chrome's trace gives each task's thread time, which the wait for a processor does not change.
+  change counts only where every pair agrees, and where the gain is at least the spread between sets of one build.
+  Chrome's trace gives each task's thread time, which the wait for a processor does not change.
 - **The browser tool's keys:** "PageDown", not "Page_Down": a key name that the tool does not know sends nothing, and
   the test then means nothing. Check that the key arrived (a `keydown` listener) before reading its effect.
 - **Timing the review's start:** `src/routes/review/+page.svelte` sets the performance marks `review:rules` (the rules

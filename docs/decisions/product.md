@@ -3277,8 +3277,8 @@ sweep.
 - **The problem:** the review drew its first frame in one task of 109 to 144 ms, measured in Edge ("A skeleton while
   the review starts, and the time before it shows", 2026-10-14). A click during the task waits for it, and that counts
   against the page's responsiveness (Interaction to Next Paint, INP).
-- **Where the time goes,** in Chrome's trace of a stored review's reload (Playwright's Chromium, 1,366 × 657 pixels,
-  the test fixture's game of 120 edges in 61 turns), by thread time, the time that the main thread ran:
+- **Where the time goes,** in Chrome's trace of a stored review's reload (Playwright's Chromium, headless, 1,366 × 657
+  pixels, the test fixture's game of 120 edges in 61 turns), by thread time, the time that the main thread ran:
   - the first task, 44 to 53 ms (the sets' medians below): the move list 12 to 17 ms, and a forced layout of the
     whole review about 21 ms (`StepBar` reads a width as it mounts), then the board, the charts and the rest.
   - the frame's render task, 20 to 25 ms: most of it is two recalculations of the style of every element of the
@@ -3286,16 +3286,20 @@ sweep.
     elements inherit these custom properties.
 - **The change** (design 06, item 10): the move list's rows come in the frame after the rest, in a task of their own
   (`rowsDrawn` in `ReviewView.svelte`). Until then one element draws grey bars in the list, one for each turn, a
-  turn's row (22 pixels) apart. A hidden page draws the rows at once. The rows' task has the mark `review:moves`.
+  turn's row (22 pixels) apart. A hidden page draws the rows at once. The rows' task has the mark `review:moves`. The
+  Analysis board in one column also draws the rows at once: there the list's height follows its rows, and the rows
+  moved the step bar under the list (the layout shift, below).
 - **The measurement** (`scripts/measure/review-first-frame.mjs`): the first draw runs from the task that holds
   `review:shown` to the end of the frame that paints the move list's rows. Chrome's trace gives each task's wall time
-  and its thread time. The request asked for the Long Tasks API (a `PerformanceObserver`), and the first series used
-  it. It gives wall time only, and on a loaded machine a task's wall time also counts the time that the main thread
-  waits for a processor. The trace gives both, so the series below report both.
+  and its thread time. The issue (abscls-3nr) asked to count the long tasks, and the first series used the Long Tasks
+  API (a `PerformanceObserver`). It gives wall time only, and on a loaded machine a task's wall time also counts the
+  time that the main thread waits for a processor. The trace gives both, so the series below report both. The
+  browser is Playwright's Chromium, headless: Edge, where the problem was measured, was not used.
 - **The machine was loaded:** the engine repository's replay held 8 of the 12 job threads, and other workers came and
   went. So the builds before and after ran in pairs: one build's set of 5 reloads, then the other's, back to back.
-  The pairs took turns at which build ran first. Before each set, the script read the machine's state. Windows'
-  processor use and the load in WSL (one minute) at each set, at 1,366 × 657:
+  The pairs took turns at which build ran first. Before each set, the machine's state was read
+  (`scripts/machine status` in the planning folder). Windows' processor use and the load in WSL (one minute) at each
+  set, at 1,366 × 657:
 
   | Pair | Before | After |
   | --- | --- | --- |
@@ -3316,7 +3320,6 @@ sweep.
   | Their time beyond 50 ms each, by thread time | 0 ms (15) | 0 ms (0) |
   | The longest task, by thread time | 49 ms (65) | 33 ms (44) |
   | The first draw's total thread time | 77 ms | 75 ms |
-  | Layout shift (CLS) | 0 (0) | 0 (0) |
 
   - **The longest task by thread time:** each pair's difference of the sets' medians is −12, −14, −18, −20 and −9 ms.
     All pairs agree, and the median is −14 ms. The sets' medians are 44 to 53 ms before and 26 to 40 ms after, so
@@ -3326,14 +3329,33 @@ sweep.
   - **The first draw's total thread time:** the pairs disagree (+6, −11, 0, −12 and +11 ms): no change.
   - **By wall time,** what a player waits: the pairs disagree (the longest task's differences +73, −39, −30, −149
     and −6 ms), so this measurement shows no gain there. Each extra task also waits for a processor. Two earlier
-    series of 5 pairs, of a first form of the change, also disagreed by wall time. One used the Long Tasks API alone
-    (−47, −24, −52, +26 and −6 ms).
+    series of 5 pairs also disagreed by wall time. One used the Long Tasks API alone (−47, −24, −52, +26 and
+    −6 ms).
   - **One pair each at other sizes,** the longest task by thread time: −4 ms at 390 × 760 (the move list is in the
     hidden Analysis tab there), −9 ms at 1,427 × 849, and −21 ms by edge at 1,366 × 657.
-  - **Layout shift:** 0 in each of the 80 reloads above, at every size and setting, before and after. On the
-    Analysis board, 0 before and after: the fixture's game open at edge 60, at 390 × 760 and 1,366 × 657, with the
-    move on screen in the list's view once the rows come, and a game of 8 turns at 390 × 760, 390 × 1,100 and
-    768 × 1,024, where the list's height follows its rows and the step bar is in view.
+  - **Layout shift:** these series do not measure it. The script read the shifts with
+    `performance.getEntriesByType("layout-shift")`, which gives none: the browser keeps layout shifts out of the
+    performance timeline. So it gave 0 for every reload. The script now reads them from a buffered
+    `PerformanceObserver`.
+- **The layout shift, measured again** in the change's review: the page's CLS, from a buffered `PerformanceObserver`,
+  in Playwright's Chromium, headless, 2 or 3 reloads at each size. "The rows in the first frame" is the build with
+  the change, with a Playwright init script that makes `document.hidden` true, so the view draws the rows at once, as
+  before the change.
+  - **The review page,** the fixture with a branch of the player's own: the same with the rows a frame later and in
+    the first frame. 0.0138 to 0.0142 at 1,366 × 657, by turn and by edge, and 0 to 0.0008 at 1,427 × 849. In one
+    column (390 × 760, 390 × 1,100, 700 × 1,300 and 768 × 1,024), 0.0002 to 0.0024: the list is in the hidden
+    Analysis tab there. Nothing moves when the rows come. The shifts come from other parts: at 1,366 × 657, elements
+    near the window's bottom move 16 pixels up before the review shows (0.0131), and the step bar moves 21 pixels up
+    after it (0.0006).
+  - **The Analysis board in one column:** the fixture's first 15 edges (8 turns), every move evaluated, with a branch
+    at the second move, opened from an analysis file. With the rows a frame later, the rows moved the step bar under
+    the list 40 pixels down when they came: 0.0029 of the CLS of 0.0107 at 390 × 1,100, and 0.0005 of 0.0015 at
+    700 × 1,300. At 390 × 760 and 768 × 1,024 the list starts below the window's bottom, so nothing in view moved
+    (0 to 0.0002). So the board in one column now draws the rows at once: 0.0073 to 0.0076 at 390 × 1,100, and
+    0.0007 to 0.0010 at 700 × 1,300. The rest comes from other parts: the step bar's buttons move as it mounts
+    (0.0026), and the labels and their notes come when the board reads the engine's results, which moves the step
+    bar 61 pixels down (0.005).
+  - The shifts that do not come from the rows are the issue abscls-73h.
 - **What it gives:** by thread time, the first draw's longest task is about a third shorter, and on this computer
   (16 cores) no task of the first draw passed 50 ms after the change. The total work does not change: it moves to
   the second frame. By wall time, on this loaded machine, the measurement shows no gain. On a computer three times

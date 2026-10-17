@@ -1,6 +1,6 @@
 // The review's first draw (decisions/product.md, "The review's first frame"): its tasks and the page's layout shift, on
-// reloads of the review of tests/fixtures/hedgefund-review.json in Playwright's Chromium, with its scroll bars shown
-// (playwright.config.ts). The first draw runs from the task that holds the mark `review:shown` (the review shows,
+// reloads of the review of tests/fixtures/hedgefund-review.json in Playwright's Chromium, headless, with its scroll bars
+// shown (playwright.config.ts). The first draw runs from the task that holds the mark `review:shown` (the review shows,
 // src/routes/review/+page.svelte) to the end of the frame that paints the move list's rows: the first paint after the
 // task that holds `review:moves` (the rows, a frame later, src/lib/review/ReviewView.svelte), or after the first task
 // where the rows come with it. Each reload is traced (Chrome's trace of the page's main thread), and reads:
@@ -35,18 +35,19 @@ if (judge) await page.evaluate(d => localStorage.setItem("learn-enclosure:review
 /** The first draw's tasks in a trace, each with its wall time and thread time in milliseconds, or null when the trace
  *  lacks a mark or the paint after it. */
 function firstDraw(trace) {
-  const events = trace.traceEvents.sort((a, b) => a.ts - b.ts), end = e => e.ts + e.dur;
+  const events = trace.traceEvents, end = e => e.ts + e.dur;
   const mark = name => events.find(e => e.name === name && e.cat?.includes("blink.user_timing"));
   const shown = mark("review:shown"), moves = mark("review:moves") ?? shown;
   if (!shown) return null;
-  const main = events.filter(e => e.ph === "X" && e.pid === shown.pid && e.tid === shown.tid);
+  const main = events.filter(e => e.ph === "X" && e.pid === shown.pid && e.tid === shown.tid).sort((a, b) => a.ts - b.ts);
   // The main thread's tasks, the outermost only: a task can run another inside it.
-  let outer = -Infinity;
-  const tasks = main.filter(e => e.name === "ThreadControllerImpl::RunTask" && end(e) > outer && ((outer = end(e)), true));
+  const tasks = [];
+  for (const e of main) if (e.name === "ThreadControllerImpl::RunTask" && !(tasks.length && end(e) <= end(tasks.at(-1)))) tasks.push(e);
   const holding = m => tasks.find(t => t.ts <= m.ts && m.ts <= end(t));
   const first = holding(shown), last = holding(moves), paint = last && main.find(e => e.name === "Paint" && e.ts > end(last));
-  if (!first || !paint) return null;
-  const from = first.ts, to = end(holding(paint));
+  const painting = paint && holding(paint);
+  if (!first || !painting) return null;
+  const from = first.ts, to = end(painting);
   return tasks.filter(t => t.ts >= from && end(t) <= to)
     .map(t => ({ at: (t.ts - from) / 1000, wall: t.dur / 1000, thread: (t.tdur ?? t.dur) / 1000 }));
 }
@@ -54,38 +55,44 @@ const overLong = xs => { const l = xs.filter(x => x > LONG); return { count: l.l
 
 const ms = x => `${Math.round(x)} ms`;
 const results = [];
-for (let k = 0, missed = 0; k < reloads; k++) {
+for (let k = 1; results.length < reloads; k++) { // a trace without the marks or the paint: the reload again, a few times
+  if (k > reloads + 3) throw new Error("the traces lack the review's marks");
   await browser.startTracing(page, { categories: ["toplevel", "blink.user_timing", "devtools.timeline"] });
   await page.reload();
   await page.waitForFunction(() => performance.getEntriesByName("review:shown").length, null, { timeout: 120_000 });
   await page.waitForTimeout(3000); // the frames after the first, and what moves in them
   const tasks = firstDraw(JSON.parse((await browser.stopTracing()).toString()));
-  if (!tasks) { // a trace without the marks or the paint: the reload again, a few times
-    if (++missed > 3) throw new Error("the traces lack the review's marks");
-    console.log(`reload ${k + 1}: the trace lacks a mark or the paint after it, again`);
-    k--;
-    continue;
-  }
+  if (!tasks) { console.log(`reload ${k}: the trace lacks a mark or the paint after it, again`); continue; }
   const shift = await page.evaluate(() => {
+    // The layout shifts come from a buffered PerformanceObserver (its takeRecords gives them at once): the browser keeps
+    // them out of the performance timeline, so performance.getEntriesByType("layout-shift") gives none.
+    const observer = new PerformanceObserver(() => {});
+    observer.observe({ type: "layout-shift", buffered: true });
+    const entries = observer.takeRecords();
+    observer.disconnect();
     const shown = performance.getEntriesByName("review:shown")[0].startTime;
     // The largest session window: shifts less than a second apart, in at most five seconds (web.dev's CLS).
     let cls = 0, sum = 0, start = 0, prev = 0;
-    const moved = [];
+    const moved = new Map(); // each element that moved: when it first moved, and how many times
     const label = node => `${node?.nodeName?.toLowerCase() ?? "?"}.${[...(node?.classList ?? [])].slice(0, 3).join(".")}`;
-    for (const e of performance.getEntriesByType("layout-shift")) {
+    for (const e of entries) {
       if (e.hadRecentInput) continue;
       if (sum && (e.startTime - prev > 1000 || e.startTime - start > 5000)) sum = 0;
       if (!sum) start = e.startTime;
       sum += e.value; prev = e.startTime; cls = Math.max(cls, sum);
-      for (const s of e.sources) moved.push(`${label(s.node)} at ${Math.round(e.startTime - shown)} ms`);
+      for (const s of e.sources) {
+        const name = label(s.node), m = moved.get(name) ?? { at: Math.round(e.startTime - shown), times: 0 };
+        m.times++;
+        moved.set(name, m);
+      }
     }
-    return { cls, moved };
+    return { cls, moved: [...moved].map(([name, m]) => `${name} at ${m.at} ms${m.times > 1 ? `, ${m.times} times` : ""}`) };
   });
   const r = { tasks, wall: overLong(tasks.map(t => t.wall)), thread: overLong(tasks.map(t => t.thread)), span: tasks.at(-1).at + tasks.at(-1).wall,
               work: tasks.reduce((s, t) => s + t.thread, 0), ...shift };
   results.push(r);
   const big = tasks.filter(t => t.wall >= 10 || t.thread >= 10);
-  console.log(`reload ${k + 1}: ${tasks.length} tasks in ${ms(r.span)}, ${ms(r.work)} of thread time; those of 10 ms or more ` +
+  console.log(`reload ${k}: ${tasks.length} tasks in ${ms(r.span)}, ${ms(r.work)} of thread time; those of 10 ms or more ` +
               `${big.map(t => `${ms(t.wall)} (thread ${ms(t.thread)}) at ${ms(t.at)}`).join(", ")}; CLS ${r.cls.toFixed(4)}${r.moved.length ? ` (${r.moved.join("; ")})` : ""}`);
 }
 const median = xs => { const s = [...xs].sort((a, b) => a - b); return s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2; };

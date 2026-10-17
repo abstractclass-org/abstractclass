@@ -10,6 +10,9 @@ export const MOVE_LIST = "movelist flex-1 min-h-0 overflow-y-auto pt-1.5 text-sm
 /** A turn's row. `judged`: a last column for the turn's own label (the review by turn). */
 export const turnRow = (judged = false) => ["grid items-baseline gap-x-1",
   judged ? "grid-cols-[2.2rem_repeat(2,minmax(max-content,1fr))_auto]" : "grid-cols-[2.2rem_repeat(2,minmax(max-content,1fr))]"];
+/** A turn's row, in rem: 22 pixels, as Chromium lays out the turn's number and its moves on one baseline. The review's
+ *  grey bars before its rows are this far apart (ReviewView.svelte, rowsDrawn). */
+export const TURN_REM = 1.375;
 export const TURN_NUMBER = "text-muted tabular-nums";
 export const MOVE_TEXT = "w-[8ch]";
 const MOVE = "mv flex items-baseline gap-1 px-[0.2rem] py-px font-mono text-[0.95em] text-left whitespace-nowrap bg-transparent border-0";

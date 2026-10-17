@@ -7,7 +7,7 @@
   import Icon from "#lib/ui/Icon.svelte";
   import StepBar from "#lib/ui/StepBar.svelte";
   import { pageScrollTop } from "#lib/pageScroll.ts";
-  import { MOVE_HERE, MOVE_HOVER, MOVE_LIST, MOVE_TEXT, TURN_NUMBER, keepInView, moveButton, turnRow } from "./moveList.ts";
+  import { MOVE_HERE, MOVE_HOVER, MOVE_LIST, MOVE_TEXT, TURN_NUMBER, TURN_REM, keepInView, moveButton, turnRow } from "./moveList.ts";
   import { PLAYER_NAME, type Analysis, type Edge, type LineStep, type Player } from "./model.ts";
   import type { BranchNode } from "#lib/analysis/game.svelte.ts";
   import type { EdgeRules } from "#lib/board/edgeInput.svelte.ts";
@@ -52,6 +52,8 @@
   /** Three columns from Lichess's width for them (its $x-large, 1,260 pixels): the summary gets its own column, and the
    *  Report is no longer a tab. */
   export const WIDE = "min-width: 1260px";
+  /** One column below 800 pixels (Lichess's $small), as the style below has it: the analysis under the board. */
+  const ONE_COLUMN = "(max-width: 799px)";
   const PANEL = "min-w-0 px-4 py-3 bg-panel border border-line rounded-md";
   export { reviewSkeleton };
 
@@ -152,6 +154,7 @@
   let hover = $state<Edge | null>(null);
   const wide = new MediaQuery(WIDE);
   const threeCols = $derived(wide.current && !board); // the summary column: the review's
+  const tabbed = $derived(!wide.current && !board); // the review's Report and Analysis as tabs, below 1,260 pixels
   // The display settings, kept in this browser (display.ts). They open in the analysis column, in the place of the
   // analysis (Lichess's analysis menu takes the move list's place), so that the board shows each change.
   const display = $state(loadDisplay());
@@ -703,18 +706,20 @@
 
   // The move list's rows come in the frame after the rest of the view, in a task of their own: with the rows in it, the
   // review's first frame was one long task, and a click during it waited (decisions/product.md, "The review's first
-  // frame"). Until then the list shows grey bars. A hidden page draws no frame, so it draws the rows at once.
-  // The rows' task has a mark in the browser's performance timeline (`review:moves`), for measuring it.
+  // frame"). Until then the list shows grey bars. The rows wait only where the list's box keeps its size without them:
+  // in two and three columns, where the box has a set height, and in the Analysis tab while it is hidden. Elsewhere
+  // (the Analysis board in one column, ONE_COLUMN) the list's height follows its rows, and notes and branches make the
+  // rows taller than the bars, so the step bar under the list would move: the rows come at once. A hidden page draws
+  // no frame, so it draws the rows at once too. The rows' task has a mark in the browser's performance timeline
+  // (`review:moves`), for measuring it.
   let rowsDrawn = $state(false);
   $effect(() => {
-    if (document.hidden) { rowsDrawn = true; return; }
+    const wait = untrack(() => !matchMedia(ONE_COLUMN).matches || (tabbed && stage !== "analysis"));
+    if (document.hidden || !wait) { rowsDrawn = true; return; }
     let timer: ReturnType<typeof setTimeout> | undefined;
     const frame = requestAnimationFrame(() => (timer = setTimeout(() => { rowsDrawn = true; performance.mark("review:moves"); })));
     return () => { cancelAnimationFrame(frame); clearTimeout(timer); };
   });
-  // A turn's row in the move list, in rem: 22 pixels, as Chromium lays out the turn's number and its moves on one
-  // baseline (moveList.ts, turnRow). The bars before the rows are this far apart.
-  const TURN_REM = 1.375;
   // The move list keeps the current move a fixed distance from its top (four rows), as the position changes, once its
   // rows are there.
   let movelist = $state<HTMLElement | null>(null);
@@ -1088,8 +1093,7 @@
        onmousedown={e => { if ((e.target as Element).closest("button")) e.preventDefault(); }}>
     {#if !rowsDrawn}
       <!-- Grey bars until the rows come (rowsDrawn), in one element for the frame they show: a bar for each turn, a
-           turn's row apart (TURN_REM), so that in the narrow layout, where the list's height follows its rows, the list
-           has about their height. Notes and branches under the turns make the rows taller. -->
+           turn's row apart (TURN_REM). -->
       <div class="w-[85%]" aria-hidden="true" style:height="{TURN_REM * R.turns.length}rem"
            style:background="repeating-linear-gradient(var(--panel-2) 0 0.75rem, transparent 0.75rem {TURN_REM}rem)"></div>
     {:else}
@@ -1714,7 +1718,7 @@
     </div>
     {#if engineOpen && engine && onengine}
       {@render engineSettingsPanel(engine, onengine)}
-    {:else if wide.current || board}
+    {:else if !tabbed}
       <div class="flex flex-col flex-1 min-h-0 overflow-hidden">{@render analysisView()}</div>
     {:else}
       <!-- Below 1,260 pixels the Report and the Analysis share this column, as tabs. Bits UI gives them the tab
