@@ -2,15 +2,16 @@
   "repository": "abstractclass-org/enclosure-engine",
   "artifacts": [
     {
-      "id": "engine-85f1792",
+      "id": "engine-d6786eba",
       "kind": "module",
       "interface": "engine-protocol-0.6.1",
       "file": "enclosure-engine.wasm",
-      "source": { "release": { "tag": "wasm-v2-engine-85f1792", "asset": "enclosure-engine.wasm" } },
-      "sha256": "800f0bbfc3d3bfd39872961dccea9c8fe2600ad6dea20fca6d7b8b76682638fd",
-      "bytes": 1360311,
+      "source": { "release": { "tag": "engine-d6786eba", "asset": "enclosure-engine.wasm" } },
+      "sha256": "29c7c0afb3984d88bb5f1bb21b0a056fb0fd5a5e1fc454c5c8e5232d9cd0b766",
+      "bytes": 1360907,
       "search": "fdfe5ad",
-      "sameSearchAs": ["f57432b1e8e43800d0bf67f60080431ac5b62235504886656d2e48634ea235e6",
+      "sameSearchAs": ["800f0bbfc3d3bfd39872961dccea9c8fe2600ad6dea20fca6d7b8b76682638fd",
+                       "f57432b1e8e43800d0bf67f60080431ac5b62235504886656d2e48634ea235e6",
                        "b4ab6ed8b93f8ea5edd61a8c8d8778baad32917281d9d80614c7b022da7fae5f",
                        "caf6b09b6d1ede5b8ba7135e3fc0b40c6d1976f7cfb5c3960089659c24f611cc"]
     },
@@ -31,76 +32,114 @@
       "bytes": 2032
     },
     {
-      "id": "engine-85f1792-gpu",
+      "id": "engine-d6786eba-gpu",
       "kind": "gpu-module",
       "interface": "engine-protocol-0.6.1",
       "file": "enclosure-engine-gpu.wasm",
-      "source": { "release": { "tag": "wasm-v2-engine-85f1792", "asset": "enclosure-engine-gpu.wasm" } },
-      "sha256": "94a4b04d5083be173ce9abd12c0725ee5e66b6f5b97daecd6d1ef30f16e221c9",
-      "bytes": 1154196,
+      "source": { "release": { "tag": "engine-d6786eba", "asset": "enclosure-engine-gpu.wasm" } },
+      "sha256": "2eb12e955757e58398d4a19d996a58ed182e49b163cbb19e4e85fc5df4065d24",
+      "bytes": 1154808,
       "search": "fdfe5ad"
     },
     {
-      "id": "engine-85f1792-gpulib",
+      "id": "engine-d6786eba-gpulib",
       "kind": "gpu-library",
-      "dir": "engine-85f1792-lib",
+      "dir": "engine-d6786eba-lib",
       "file": "gpu_engine.mjs",
-      "source": { "release": { "tag": "wasm-v2-engine-85f1792", "asset": "gpu_engine.mjs" } },
-      "sha256": "9b21f0876f66f7f620f4096aa8b0ca5cbbd2a6665179ab94eae67589e7add4a2",
-      "bytes": 16748
+      "source": { "release": { "tag": "engine-d6786eba", "asset": "gpu_engine.mjs" } },
+      "sha256": "7976a5f48fe868b969a4964adcb9bf87d22be78b29595c4e2bcc8458fbd01227",
+      "bytes": 16816
     },
     {
-      "id": "engine-85f1792-practice",
+      "id": "engine-d6786eba-practice",
       "kind": "practice-library",
-      "dir": "engine-85f1792-lib",
+      "dir": "engine-d6786eba-lib",
       "file": "practice_bot.mjs",
-      "source": { "release": { "tag": "wasm-v2-engine-85f1792", "asset": "practice_bot.mjs" } },
-      "sha256": "21dfedfdfd5af53f4bbc982f57f204a13a4cbfe580c9b8631464ce0d3250398c",
-      "bytes": 7275
+      "source": { "release": { "tag": "engine-d6786eba", "asset": "practice_bot.mjs" } },
+      "sha256": "cfd579ae53a597139ec1bde823bc604d5a4eb08e588d7308e3808d304161e254",
+      "bytes": 7314
     },
     {
-      "id": "engine-85f1792-cpu-evaluator",
+      "id": "engine-d6786eba-cpu-evaluator",
       "kind": "cpu-evaluator-library",
-      "dir": "engine-85f1792-lib",
+      "dir": "engine-d6786eba-lib",
       "file": "cpu_evaluator.mjs",
-      "source": { "release": { "tag": "wasm-v2-engine-85f1792", "asset": "cpu_evaluator.mjs" } },
-      "sha256": "ec36d991b4a3a70dc5217ed2682561632c4c6f6d5b41b19088cad2a138ed831e",
-      "bytes": 3172
+      "source": { "release": { "tag": "engine-d6786eba", "asset": "cpu_evaluator.mjs" } },
+      "sha256": "0292515b75eb6090f677ca6644967b273dc200c216f079d2d08a5bd2544248be",
+      "bytes": 3185
     },
     {
-      "id": "engine-85f1792-cpu-eval-worker",
+      "id": "engine-d6786eba-cpu-eval-worker",
       "kind": "cpu-evaluator-library",
-      "dir": "engine-85f1792-lib",
+      "dir": "engine-d6786eba-lib",
       "file": "cpu_eval_worker.mjs",
-      "source": { "release": { "tag": "wasm-v2-engine-85f1792", "asset": "cpu_eval_worker.mjs" } },
-      "sha256": "1c8d8df3d8507dce58c4efca95816ba291f0c4d60da56035d222313417423564",
-      "bytes": 2511
+      "source": { "release": { "tag": "engine-d6786eba", "asset": "cpu_eval_worker.mjs" } },
+      "sha256": "5ae1e918b10b3b3bef9e3ba78ccb2748f0ba61f8a1449e37e0c494d2f98b52ff",
+      "bytes": 2524
     },
     {
-      "id": "engine-85f1792-bot",
+      "id": "engine-d6786eba-bot",
       "kind": "practice-module",
       "interface": "practice-0.1.1",
       "file": "enclosure-bot.wasm",
-      "source": { "release": { "tag": "wasm-v2-engine-85f1792", "asset": "enclosure-bot.wasm" } },
-      "sha256": "69bd293af4baad4a77ce24bc2cd238c3e1ffb34fb460d852d33f92cfc1ee1d3c",
-      "bytes": 1599485
+      "source": { "release": { "tag": "engine-d6786eba", "asset": "enclosure-bot.wasm" } },
+      "sha256": "66ef27068a5db185026e6b2e9ccba930f601c3b434a167483f917b47a5d29d1d",
+      "bytes": 1600206
     },
     {
-      "id": "engine-85f1792-bot-batched",
+      "id": "engine-d6786eba-bot-batched",
       "kind": "practice-threaded-module",
       "interface": "practice-0.1.1",
       "file": "enclosure-bot-batched.wasm",
-      "source": { "release": { "tag": "wasm-v2-engine-85f1792", "asset": "enclosure-bot-batched.wasm" } },
-      "sha256": "ba46d584aaaf3df86ee998154ad9751926224bbd5d8cc6e99efcfeaff32779df",
-      "bytes": 1409956
+      "source": { "release": { "tag": "engine-d6786eba", "asset": "enclosure-bot-batched.wasm" } },
+      "sha256": "4af2ad75fadb8452f3884722ed60e1f6c92e45de29d47721826a2ab1424af10c",
+      "bytes": 1410708
     },
     {
-      "id": "engine-85f1792-eval",
+      "id": "engine-d6786eba-eval",
       "kind": "practice-evaluator",
       "file": "enclosure-eval.wasm",
-      "source": { "release": { "tag": "wasm-v2-engine-85f1792", "asset": "enclosure-eval.wasm" } },
-      "sha256": "b80fd3d2eb2b5b995677e296d90eaaff7bf62176e6bb1688d6585d8d04a641c2",
-      "bytes": 587301
+      "source": { "release": { "tag": "engine-d6786eba", "asset": "enclosure-eval.wasm" } },
+      "sha256": "96dd02936b90f36219afe89c583eaebea34beb4f683733ecbefdc72cd4c7758f",
+      "bytes": 587365
+    },
+    {
+      "id": "b10c128-s89066368-d17827487",
+      "kind": "model",
+      "displayName": "HedgeFund 0.2 Lite",
+      "file": "model-float16.bin",
+      "source": { "release": { "tag": "engine-d6786eba", "asset": "b10c128-s89066368-d17827487.model-float16.bin" } },
+      "sha256": "000126bf7f28eeb05280e16aafa7055c6b9e9f4dc38739b67406ce0da3d2e950",
+      "bytes": 6499877
+    },
+    {
+      "id": "b15c192-s90436608-d18027147",
+      "kind": "model",
+      "displayName": "HedgeFund 0.2",
+      "file": "model-float16.bin",
+      "source": { "release": { "tag": "engine-d6786eba", "asset": "b15c192-s90436608-d18027147.model-float16.bin" } },
+      "sha256": "6406751ba943a361e53ea442641bd744fc23143ad3134f7d545d259491fd7f96",
+      "bytes": 20598013
+    },
+    {
+      "id": "b10c128-s89066368-d17827487-graph-d6786eba",
+      "kind": "graph",
+      "graphOf": "b10c128-s89066368-d17827487",
+      "displayName": "HedgeFund 0.2 Lite",
+      "file": "model.onnx",
+      "source": { "release": { "tag": "engine-d6786eba", "asset": "b10c128-s89066368-d17827487.onnx" } },
+      "sha256": "9c2e213dc64e05ffe3154800c3fd3b8c053814d3f4c22f8a454d6bea20df0e4f",
+      "bytes": 6410459
+    },
+    {
+      "id": "b15c192-s90436608-d18027147-graph-d6786eba",
+      "kind": "graph",
+      "graphOf": "b15c192-s90436608-d18027147",
+      "displayName": "HedgeFund 0.2",
+      "file": "model.onnx",
+      "source": { "release": { "tag": "engine-d6786eba", "asset": "b15c192-s90436608-d18027147.onnx" } },
+      "sha256": "d07993d4a3040064b93c88b8c53baa5a08858551d3e4fe1ca2c49f5326daf529",
+      "bytes": 20478684
     },
     {
       "id": "b10c128-s66625408-d13350730",

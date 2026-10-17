@@ -69,17 +69,24 @@ each applies at once, without a reload.
      searched to the review's depth.
    - **A game that keeps its own settings** (an imported review file's or a shared link's game, design 13) reviews with
      its own network and depth per move. The panel says so, shows the game's two, and changes the game's when they
-     change. The settings kept in the browser serve every other game.
-   - **Engine:** "Network", named by the engine's release and by its download: "HedgeFund 0.1 Lite (6.5 MB)"
-     (b10c128, the default) or "HedgeFund 0.1 (20.6 MB)" (b15c192). The names come from the release's manifest
+     change. The settings kept in the browser serve every other game. A game's network can be an earlier one, off the
+     Network list (below): the panel's note then names it, and a network from the list reviews the game again.
+   - **Engine:** "Network", named by the engine's release and by its download: "HedgeFund 0.2 Lite (6.5 MB)"
+     (b10c128, the default) or "HedgeFund 0.2 (20.6 MB)" (b15c192). The names come from the release's manifest
      (`displayName`, copied into `engine.lock.json`), as the sizes do. A name belongs to one network file for life (the
      engine repository's `v2/docs/design/20-network-names.md`). The help line gives the parameters (3.2M and 10.3M) and
-     adds that a network downloads once. In a narrow panel the label breaks only before the parenthesis ("HedgeFund 0.1
-     Lite" over "(6.5 MB)"): no-break spaces hold each part together. The board keeps
-     the old pool's rules while a new pool loads the other network. Then the analysis starts again, since every result
-     came from the old network. The browser's store keys results by network, so a network's results come back at once
-     when the player returns to it. "Workers": from 1 to the machine's logical cores, half the cores (1 to 8) by
-     default. On a laptop of 12 cores each worker kept 86% of one worker's speed up to 8 workers, so a cap of 4 left
+     adds that a network downloads once. In a narrow panel the label breaks only before the parenthesis ("HedgeFund 0.2
+     Lite" over "(6.5 MB)"): no-break spaces hold each part together.
+     - **The earlier networks,** HedgeFund 0.1 Lite and HedgeFund 0.1, are off the list, and the site still ships them
+       (`engine.lock.json` keeps their files): a game, a review file, a shared link or a Practice game that names one
+       still loads it (`shipsNetwork` in `src/lib/analysis/engineSettings.ts`). Settings kept in the browser with an
+       earlier network take the default. So a review file exported before, and a review that a partner site kept, open
+       with their results (design 13, design 20).
+
+     The board keeps the old pool's rules while a new pool loads the other network. Then the analysis starts again,
+     since every result came from the old network. The browser's store keys results by network, so a network's
+     results come back at once when the player returns to it. "Workers": from 1 to the machine's logical cores, half
+     the cores (1 to 8) by default. On a laptop of 12 cores each worker kept 86% of one worker's speed up to 8 workers, so a cap of 4 left
      about a third of the speed unused (decisions/engine.md, "Speed on a laptop: the engine lab's sweep"). Half the
      cores leaves room for the page and the visitor's other work, and 8 workers of b10c128 take about 0.75 GB. The
      help line says that each worker uses more of the computer's memory, and asks the player to mind it: it gives no
@@ -204,8 +211,8 @@ each applies at once, without a reload.
 - Workers cost memory: 95 MiB each with b10c128 and 244 MiB with b15c192 after loading, and about 4 KB more for each
   visit of their deepest search. Sixteen workers of b15c192 use about 3.8 GiB before any search. A tab holds them only
   while it searches: an idle review tab holds about 150 MB (decisions/engine.md, "A review's memory"). The page
-  also keeps the checked file of each network that it loaded, for as long as it is open: 6.5 MB for HedgeFund 0.1
-  Lite and 20.6 MB for HedgeFund 0.1 (decisions/engine.md, "The network checked once for a page").
+  also keeps the checked file of each network that it loaded, for as long as it is open: 6.5 MB for HedgeFund 0.2
+  Lite and 20.6 MB for HedgeFund 0.2 (decisions/engine.md, "The network checked once for a page").
 - More workers than free cores do not fail: they share the cores, so each runs slower and the review gains little
   (decisions/engine.md: 8 workers on 8 busy cores ran at 39 visits a second each, against 72 for one). The page
   competes with them too. The limit is memory: on a machine short of it the browser can end the tab.
@@ -234,3 +241,4 @@ each applies at once, without a reload.
   header" and "The engine header in two lines, boxes for visits, a slower gleam".
 - [decisions/product.md](../decisions/product.md), "The networks' downloads in the engine settings".
 - [decisions/product.md](../decisions/product.md), "The review's custom depth up to 16,384 visits".
+- [decisions/engine.md](../decisions/engine.md), "The release d6786eba: HedgeFund 0.2".

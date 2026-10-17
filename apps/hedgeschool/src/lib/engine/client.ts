@@ -14,7 +14,7 @@ export { EngineError, Stopped, type Timed } from "./channel.ts";
 export interface Manifest { artifacts: Artifact[] }
 export interface Artifact extends StoredArtifact {
   id: string; kind: ArtifactKind; interface: string | null; released: boolean;
-  displayName?: string; // a network's name (the release's manifest): "HedgeFund 0.1 Lite"
+  displayName?: string; // a network's name (the release's manifest): "HedgeFund 0.2 Lite"
   graphOf?: string; // a graph's network (its model's id)
   download: number; // the bytes a browser downloads for it: `bytes`, or the compressed parts'
   // A module's search (request 17). From protocol 0.6 the module reports it too: the page reads this one before the

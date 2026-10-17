@@ -27,21 +27,25 @@ export interface EngineSettings {
 export type GpuMode = "auto" | "on" | "off";
 
 /** A network's name, as the engine's release names it (its manifest's `displayName`, copied into engine.lock.json):
- *  "HedgeFund 0.1 Lite". A name belongs to one network file for life (the engine repository's
+ *  "HedgeFund 0.2 Lite". A name belongs to one network file for life (the engine repository's
  *  v2/docs/design/20-network-names.md). The id when the lock gives no name. */
 export const networkName = (id: string): string => locked(id)?.displayName ?? id;
 /** A network's download in MB, from engine.lock.json, which the deploy fetches by: what a change of network costs, as
  *  Lichess's engine menu gives each engine's size. */
 export const networkMB = (id: string): string => megabytes(locked(id)?.bytes ?? 0);
-const locked = (id: string) => (lock.artifacts as { id: string; displayName?: string; bytes: number }[]).find(a => a.id === id);
+/** Whether the site ships the network `id` (engine.lock.json pins it): the networks of the menus (NETWORKS), and the
+ *  earlier ones that the lock keeps off them, so that a game, a review file or a Practice game that names one still
+ *  loads it. */
+export const shipsNetwork = (id: string): boolean => locked(id)?.kind === "model";
+const locked = (id: string) => (lock.artifacts as { id: string; kind: string; displayName?: string; bytes: number }[]).find(a => a.id === id);
 
-/** The networks, as the manifest names them (engine.lock.json pins both). Their parameters are the trainer's counts
- *  (the engine repository's v2/docs/design/15-network-sizes.md). Their memory in a worker and on the GPU, measured on
- *  one machine: decisions/engine.md, "A review's memory". The settings give no number for it: it depends on the
- *  browser and the graphics card. */
+/** The networks that the settings and Practice offer, as the manifest names them, the default first. Their parameters
+ *  are the trainer's counts (the engine repository's v2/docs/design/15-network-sizes.md). Their memory in a worker and
+ *  on the GPU, measured on one machine: decisions/engine.md, "A review's memory". The settings give no number for it:
+ *  it depends on the browser and the graphics card. */
 export const NETWORKS = [
-  { id: "b10c128-s66625408-d13350730", params: "3.2M" },
-  { id: "b15c192-s66999040-d13350730", params: "10.3M" },
+  { id: "b10c128-s89066368-d17827487", params: "3.2M" },
+  { id: "b15c192-s90436608-d18027147", params: "10.3M" },
 ];
 /** The position on screen's visits: any whole number from 256 to 16,384. Its slider steps by doublings, and each step
  *  doubles the time. The search tree grows with its visits in the worker's memory, and a worker's memory does not
@@ -75,9 +79,10 @@ export function withReview(s: EngineSettings, network: string, visits: number): 
   return preset ? { ...s, network, review: preset } : { ...s, network, review: "custom", customReview: visits };
 }
 
-/** A game's own settings (game/store.ts, `settings`) while the site still ships their network, else null. */
+/** A game's own settings (game/store.ts, `settings`) while the site still ships their network, on the menu or off it,
+ *  else null. */
 export const ownSettings = (s: GameSettings | null | undefined): GameSettings | null =>
-  (s && NETWORKS.some(n => n.id === s.network) ? s : null);
+  (s && shipsNetwork(s.network) ? s : null);
 /** The network and the review's visits that a game reviews with: its own (ownSettings), else the browser's. The review
  *  page, the Review tab's Export and the annotated record from the store take them from here, so that each reads the
  *  results of the same review. */

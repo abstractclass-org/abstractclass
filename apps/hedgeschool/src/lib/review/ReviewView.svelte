@@ -656,7 +656,7 @@
   const cutsAt = (p: string[]) => !!moveInto(p)?.cut;
   $effect(() => { if (display.sound) preload(display.moveSound); });
 
-  /** A network's name in the settings: "HedgeFund 0.1 Lite (6.5 MB)". Its parts hold no-break spaces, so that a narrow
+  /** A network's name in the settings: "HedgeFund 0.2 Lite (6.5 MB)". Its parts hold no-break spaces, so that a narrow
    *  panel breaks the name only before the parenthesis. */
   const networkLabel = (id: string) => `${networkName(id).replaceAll(" ", "\u00a0")} (${networkMB(id)}\u00a0MB)`;
   // Lichess's move menu on a branch's move (ui/analyse/src/treeView/contextMenu.ts): "Promote variation" and "Delete
@@ -1433,8 +1433,12 @@
     <h2 class="font-semibold mb-1">Engine settings</h2>
     <div class="flex-1 min-h-0 overflow-y-auto pr-1">
       {#if ownSettings}
+        <!-- A game's network off the menu (an earlier one, which the site still ships): the list has none chosen, so
+             the note names it. -->
         <p class="mb-1.5 text-xs text-muted">This game keeps the network and depth per move it came with, from a review file or
-          a shared link, so that its review is the one it came with. A change of them here changes this game's only.</p>
+          a shared link, so that its review is the one it came with. A change of them here changes this game's only.
+          {#if !NETWORKS.some(n => n.id === e.network)}Its network, {networkName(e.network)}, is an earlier one and is not
+            in the list. A network from the list reviews the game again.{/if}</p>
       {/if}
       <h3 class={SETTINGS_HEAD}>Position on screen</h3>
       {@render visitsSteps("Depth", board ? "How far to search it." : "How far to search it. Deeper than the review, it also updates the review there: the labels and the report.",

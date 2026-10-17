@@ -147,7 +147,7 @@ selector at the top left. Click **Admin**, the gear at the bottom left.
 | `stale_tool` | Tool out of date | Event | bookmarklet, userscript, older |
 | `network_found` | Share network found | Event | a review's share link: its network is on this site |
 | `same_engine` | Share same engine | Event | a review's share link: its engine searches as this site's (request 17) |
-| `network` | Engine network | Event | the network's name |
+| `network` | Engine network | Event | the network's name, as the engine's release names it: HedgeFund 0.2 Lite. Before HedgeFund 0.2, the events gave the network's size alone: b10c128 for HedgeFund 0.1 Lite, b15c192 for HedgeFund 0.1 |
 | `depth` | Review depth | Event | the review's visits a move |
 | `depth_on_screen` | Depth on screen | Event | the visits for the position on screen |
 | `time_limit` | Time limit | Event | the seconds for the position on screen, 0 for none |
@@ -161,7 +161,7 @@ selector at the top left. Click **Admin**, the gear at the bottom left.
 | `gpu_outcome` | GPU test outcome | Event | faster or slower |
 | `gpu` | GPU | Event | the GPU's maker and kind |
 | `setting` | Setting | Event | the setting that changed |
-| `setting_value` | Setting value | Event | the setting's new value |
+| `setting_value` | Setting value | Event | the setting's new value: the network by its name, as `network` gives it |
 | `setting_scope` | Setting scope | Event | browser (this browser's settings) or game (one game's settings) |
 | `feature_name` | Feature | Event | the feature used |
 | `export_kind` | Export kind | Event | what an export made: share_link, review_file, analysis_file, record_copy, record_file, partner_save |

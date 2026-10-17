@@ -19,8 +19,8 @@
   import { setGamePartner } from "#lib/game/store.ts";
   import { decodeShare, type SharedReview } from "#lib/game/share.ts";
   import { importShare, loadReviewFile } from "#lib/game/reviewFile.ts";
-  import { loadManifest, modelOf, sameSearch } from "#lib/engine/client.ts";
-  import { NETWORKS, networkName, reviewDepthText } from "#lib/analysis/engineSettings.ts";
+  import { loadManifest, sameSearch } from "#lib/engine/client.ts";
+  import { networkName, reviewDepthText } from "#lib/analysis/engineSettings.ts";
   import { startAnalytics, track } from "#lib/analytics.svelte.ts";
   import { trackImport, trackImportFailed, trackLoad, trackLoadFailed, type ImportSource } from "#lib/game/importEvents.ts";
   import { readSession, writeSession } from "#lib/storage/local.ts";
@@ -86,7 +86,8 @@
   async function readShared(text: string) {
     try {
       const s = decodeShare(text), manifest = await loadManifest();
-      const network = manifest ? NETWORKS.map(n => n.id).find(id => modelOf(manifest, id)?.sha256.startsWith(s.model)) ?? null : null;
+      // Any network the site ships, also one off the menus (engineSettings.ts, shipsNetwork).
+      const network = manifest?.artifacts.find(a => a.kind === "model" && a.sha256.startsWith(s.model))?.id ?? null;
       const here = { network, sameEngine: !!manifest && sameSearch(manifest, s.module) };
       phase = { at: "share", shared: s, here };
       track("review_share_open", { network_found: !!network, same_engine: here.sameEngine });

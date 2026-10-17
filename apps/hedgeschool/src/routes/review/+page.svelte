@@ -24,7 +24,7 @@
   import { EnginePool } from "#lib/analysis/pool.ts";
   import { GameAnalysis, LABEL_VISITS, SWEEP_VISITS, momentVisits } from "#lib/analysis/game.svelte.ts";
   import { EngineSession } from "#lib/analysis/session.svelte.ts";
-  import { loadEngine, ownSettings, reviewVisits, saveEngine, withReview, type EngineSettings } from "#lib/analysis/engineSettings.ts";
+  import { loadEngine, networkName, ownSettings, reviewVisits, saveEngine, withReview, type EngineSettings } from "#lib/analysis/engineSettings.ts";
   import { trackSettingChange } from "#lib/analysis/settingChanges.ts";
   import { modelOf, moduleOf } from "#lib/engine/client.ts";
   import { errorText } from "#lib/errors.ts";
@@ -177,7 +177,7 @@
   }
   function reviewParams(): Record<string, string | number | boolean> {
     return {
-      network: settings.network.split("-")[0], depth, depth_on_screen: engine.visits, time_limit: engine.seconds ?? 0,
+      network: networkName(settings.network), depth, depth_on_screen: engine.visits, time_limit: engine.seconds ?? 0,
       workers: engine.workers, gpu_mode: engine.gpu, cores: range(navigator.hardwareConcurrency || 1, CORE_RANGES),
       edges: range(moveCount, EDGE_RANGES), own_settings: !!own,
       practice_game: kept?.record.tags.Event === PRACTICE_EVENT, // a game against the bot (design 24)

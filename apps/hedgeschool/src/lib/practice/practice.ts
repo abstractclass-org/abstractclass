@@ -104,7 +104,7 @@ export function gtpAnswer(response: string): string {
   throw new Error(response.startsWith("?") ? response.slice(1).trim() : `not a GTP response: ${response}`);
 }
 
-/** The bot's name in the record and on the board: "HedgeFund 0.1 Lite, 64 visits, Low variety". */
+/** The bot's name in the record and on the board: "HedgeFund 0.2 Lite, 64 visits, Low variety". */
 export const botName = (bot: BotSettings) =>
   `${networkName(bot.network)}, ${bot.visits} ${bot.visits === 1 ? "visit" : "visits"}, ${VARIETY_NAME[bot.variety]} variety`;
 
@@ -133,11 +133,12 @@ export function scoreResult(scores: [number, number]): string {
   return d > 0 ? `b+${points}` : d < 0 ? `r+${points}` : "0";
 }
 
-/** What Google Analytics receives about a practice game (design 17): its settings, with `cores` and the bot's form
- *  (gpu, cpu, single), as `practice_start` and `practice_end` both carry them. Never a move or the player's name. */
+/** What Google Analytics receives about a practice game (design 17): its settings, the network by its name, with
+ *  `cores` and the bot's form (gpu, cpu, single), as `practice_start` and `practice_end` both carry them. Never a move
+ *  or the player's name. */
 export function practiceParams(k: KeptPractice, form: string, cores: number): Record<string, string | number> {
   return {
-    network: k.bot.network.split("-")[0], bot_visits: k.bot.visits, bot_variety: k.bot.variety,
+    network: networkName(k.bot.network), bot_visits: k.bot.visits, bot_variety: k.bot.variety,
     practice_side: k.human === 0 ? "blue" : "red", bot_form: form, cores: range(cores || 1, CORE_RANGES),
   };
 }

@@ -84,12 +84,27 @@ test("the record names both sides and the bot, and reads back with its moves and
   assert.deepEqual(r.moves, ["D10-G10", "N9-Q10", "O9-Q10", "G10-K9"]);
   assert.deepEqual(r.marked, [false, false, true, false]);
   assert.equal(r.tags.Blue, "Ann");
-  assert.equal(r.tags.Red, "HedgeFund 0.1 Lite, 64 visits, Low variety");
+  assert.equal(r.tags.Red, "HedgeFund 0.2 Lite, 64 visits, Low variety");
   assert.equal(r.tags.Event, "Hedge School practice");
   assert.equal(r.tags.Termination, undefined);
-  assert.match(r.tags.Bot, /^HedgeFund 0\.1 Lite \(b10c128-s66625408-d13350730\), 64 visits a move, Low variety, engine 54486cd$/);
+  assert.match(r.tags.Bot, /^HedgeFund 0\.2 Lite \(b10c128-s89066368-d17827487\), 64 visits a move, Low variety, engine 54486cd$/);
   assert.equal(r.result, "*");
   assert.match(text, /\n1\. D10-G10 2\. N9-Q10 O9-Q10x 3\. G10-K9 \*\n$/);
+});
+
+test("a game kept with a network off the menu goes on with it, and names it: HedgeFund 0.1 Lite", () => {
+  keep(game({ bot: { network: "b10c128-s66625408-d13350730", visits: 64, variety: "low" } }));
+  const k = loadKept()!;
+  keep(null);
+  assert.equal(k.bot.network, "b10c128-s66625408-d13350730");
+  const r = parseRecord(practiceRecord(k, [0, 1, 1, 0], [false, false, false, false], "*"));
+  assert.equal(r.tags.Red, "HedgeFund 0.1 Lite, 64 visits, Low variety");
+  assert.equal(practiceParams(k, "cpu", 4).network, "HedgeFund 0.1 Lite");
+});
+
+test("the saved choices of a network off the menu take the default", () => {
+  saveChoices({ bot: { network: "b10c128-s66625408-d13350730", visits: 64, variety: "low" }, side: "random", name: "" });
+  assert.equal(loadChoices().bot.network, "b10c128-s89066368-d17827487"); // HedgeFund 0.2 Lite
 });
 
 test("a game from a set-up start has its Position tag, and numbers its turns from the start's own (design 04)", () => {
@@ -110,7 +125,7 @@ test("the player's side is \"You\" without a name, and a finished game has its r
   const text = practiceRecord(game({ human: 1, name: " " }), [0, 1, 1, 0], [false, false, false, false], "b+R", "resignation");
   const r = parseRecord(text);
   assert.equal(r.tags.Red, "You");
-  assert.equal(r.tags.Blue, "HedgeFund 0.1 Lite, 64 visits, Low variety");
+  assert.equal(r.tags.Blue, "HedgeFund 0.2 Lite, 64 visits, Low variety");
   assert.equal(r.result, "b+R");
   assert.equal(r.tags.Termination, "resignation");
 });
@@ -118,7 +133,7 @@ test("the player's side is \"You\" without a name, and a finished game has its r
 test("the events about a game carry its settings and counts as ranges, never a move or a name (design 17)", () => {
   const k = game({ human: 1, bot: { network: NETWORKS[1].id, visits: 256, variety: "medium" }, takebacks: 3, botTurns: 4, botMs: 9_000 });
   assert.deepEqual(practiceParams(k, "gpu", 16), {
-    network: "b15c192", bot_visits: 256, bot_variety: "medium", practice_side: "red", bot_form: "gpu", cores: "9-16",
+    network: "HedgeFund 0.2", bot_visits: 256, bot_variety: "medium", practice_side: "red", bot_form: "gpu", cores: "9-16",
   });
   const end = practiceEndParams(k, "gpu", 16, "won", 61);
   assert.equal(end.practice_outcome, "won");

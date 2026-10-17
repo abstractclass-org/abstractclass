@@ -30,7 +30,9 @@ How strong each setting plays against people is not measured yet.
    (request 15). The header names it first, and it is the home page's first call to action (design 22).
 2. **The bot's settings,** chosen before the game and fixed for it, as Lichess fixes the computer's level. Levels come
    later, from the engine repository's visit ladder and from games by setting.
-   - **The network:** HedgeFund 0.1 Lite (the default) or HedgeFund 0.1.
+   - **The network:** HedgeFund 0.2 Lite (the default) or HedgeFund 0.2. A game kept from an earlier visit goes on
+     with its own network, also an earlier one that the list no longer offers (HedgeFund 0.1 Lite, HedgeFund 0.1): the
+     site still ships them (design 09). A saved choice of an earlier network takes the default.
    - **The visits for each move:** any whole number from 1 to 8,192 (2^13). The default is 64. As in KataGo, the
      visits count the tree that the bot keeps from its last search (the engine repository's v2 design 22): every move
      ends with a tree of the same size, and the second edge of the bot's turn needs fewer new visits. The levels count
@@ -108,7 +110,7 @@ How strong each setting plays against people is not measured yet.
     Analysis board ("Analyze the game"), from Practice and from Your games, as the Review tab reviews games from the
     standard start only. Its id in Your games covers its start with its moves.
 11. **The record names both sides.** The player's side has the name that the player sets on the card, kept in this
-    browser, and "You" without one. The bot's side is "HedgeFund 0.1 Lite, 64 visits, Low variety", for example. The
+    browser, and "You" without one. The bot's side is "HedgeFund 0.2 Lite, 64 visits, Low variety", for example. The
     record also gives the event (Practice), and the bot in full: the network's id, the visits, the variety, and the
     engine's build, from the bot's own report (`enclosure-bot-info`).
 12. **The points bar,** in Practice's display settings, as switches. The scores and the areas show as numbers in any
