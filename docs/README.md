@@ -1,5 +1,8 @@
 # Documentation
 
+Hedge School's code is in `apps/hedgeschool` ([design 26](design/26-one-repository.md)). A path in these documents to
+the site's files starts there, and the site's commands run there. `npm ci` runs at the repository's root.
+
 | Document | What |
 |---|---|
 | [context.md](context.md) | The goal, the game and the sites, the engine repository and what its outputs mean, and the working agreements. |

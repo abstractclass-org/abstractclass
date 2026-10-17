@@ -1,7 +1,7 @@
 // Gets the engine's artifacts that engine.lock.json pins, checks each SHA-256, and puts them in static/engine/<id>/.
-// Also puts there the two files of ONNX Runtime Web that the GPU worker loads by URL (its version from
-// node_modules: package-lock.json pins it). Writes static/engine/manifest.json, which the site reads to find the files
-// and to name them in its results.
+// Also puts there the two files of ONNX Runtime Web that the GPU worker loads by URL. Their version is the installed
+// package's, which package-lock.json pins. Node finds the package as it finds an import of this script. Writes
+// static/engine/manifest.json, which the site reads to find the files and to name them in its results.
 //
 //   node scripts/fetch-engine.mjs [--deploy]
 //
@@ -16,6 +16,7 @@
 // (src/lib/engine/artifacts.ts). The downloads are kept in node_modules/.cache/engine/, by SHA-256.
 import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync, existsSync, rmSync } from "node:fs";
+import { findPackageJSON } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
@@ -104,8 +105,8 @@ for (const artifact of lock.artifacts) {
 
 // ONNX Runtime Web's WebGPU build, in its form that loads the WebAssembly given to it (the package's
 // `onnxruntime-web-use-extern-wasm` condition, vite.config.ts): the glue script by URL, and the WebAssembly as bytes.
-const ort = join(root, "node_modules", "onnxruntime-web");
-const ortVersion = JSON.parse(readFileSync(join(ort, "package.json"), "utf8")).version;
+const ortPackageJson = findPackageJSON("onnxruntime-web", import.meta.url), ort = dirname(ortPackageJson);
+const ortVersion = JSON.parse(readFileSync(ortPackageJson, "utf8")).version;
 for (const [kind, file] of [["ort-glue", "ort-wasm-simd-threaded.asyncify.mjs"], ["ort-wasm", "ort-wasm-simd-threaded.asyncify.wasm"]]) {
   const bytes = readFileSync(join(ort, "dist", file));
   const stored = store(`ort-${ortVersion}`, file, bytes);

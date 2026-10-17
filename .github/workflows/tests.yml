@@ -19,6 +19,12 @@ concurrency:
 permissions:
   contents: read
 
+# The site's folder (design 26). npm ci runs at the root, with the workspace's one lockfile. The actions' paths (the
+# caches, the failures' screenshots) start at the root.
+defaults:
+  run:
+    working-directory: apps/hedgeschool
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -30,6 +36,7 @@ jobs:
           node-version-file: .node-version
           cache: npm
       - run: npm ci
+        working-directory: .
 
       # The engine's release files (engine.lock.json), kept between runs in the download cache that `npm run engine`
       # reads by SHA-256 (scripts/fetch-engine.mjs). Not static/engine: the script empties that folder on each run. After
@@ -37,8 +44,8 @@ jobs:
       - name: Cache the engine's files
         uses: actions/cache@v6
         with:
-          path: node_modules/.cache/engine
-          key: engine-${{ hashFiles('engine.lock.json') }}
+          path: apps/hedgeschool/node_modules/.cache/engine
+          key: engine-${{ hashFiles('apps/hedgeschool/engine.lock.json') }}
       - run: npm run engine -- --deploy
 
       - run: npm run check
@@ -56,7 +63,7 @@ jobs:
       - run: npx playwright install --with-deps --only-shell chromium
       - name: The browser tests, in Chromium
         run: |
-          node node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 4173 --strictPort &
+          npm run preview -- --host 127.0.0.1 --port 4173 --strictPort &
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:4173/ > /dev/null && break; sleep 1; done
           npx playwright test --project=chromium
 
@@ -65,7 +72,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: layout-sweep
-          path: test-results/
+          path: apps/hedgeschool/test-results/
           retention-days: 7
 
   # The layout sweep on Windows, for what Windows changes: the fonts (system-ui is Segoe UI there), their rendering, and
@@ -81,12 +88,13 @@ jobs:
           node-version-file: .node-version
           cache: npm
       - run: npm ci
+        working-directory: .
 
       - name: Cache the engine's files
         uses: actions/cache@v6
         with:
-          path: node_modules/.cache/engine
-          key: engine-windows-${{ hashFiles('engine.lock.json') }}
+          path: apps/hedgeschool/node_modules/.cache/engine
+          key: engine-windows-${{ hashFiles('apps/hedgeschool/engine.lock.json') }}
       - run: npm run engine -- --deploy
 
       - run: npm run build
@@ -106,7 +114,7 @@ jobs:
       - name: The layout sweep, in Chromium on Windows
         shell: bash
         run: |
-          node node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 4173 --strictPort &
+          npm run preview -- --host 127.0.0.1 --port 4173 --strictPort &
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:4173/ > /dev/null && break; sleep 1; done
           npx playwright test tests/layout.spec.ts --project=chromium
 
@@ -114,5 +122,5 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: layout-sweep-windows
-          path: test-results/
+          path: apps/hedgeschool/test-results/
           retention-days: 7

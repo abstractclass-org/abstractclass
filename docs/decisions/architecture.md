@@ -181,3 +181,55 @@ public repository and the history rewrites.
   partner still gets the address of one `partner_test` deployment, because only that build takes a partner's local
   pages. The /developers page and design 23 stay as they are: neither calls the previews private.
 - **It closes** the "Left" note of the entry "The site's repository is public".
+
+### Hedge School moves into apps/hedgeschool (2026-10-17)
+
+- **What:** design 26, items 1 and 2 (abscls-zng). Hedge School's files moved into `apps/hedgeschool` with `git mv`,
+  in a commit of renames only (10325ec), so that Git follows each file's history: `src/`, `functions/`, `migrations/`,
+  `scripts/`, `static/`, `tests/`, `engine.lock.json` and the site's configuration (`package.json`, `vite.config.ts`,
+  `playwright.config.ts`, `tsconfig.json`). The documents, `.github/`, `.gitattributes` and `.gitignore` stay at the
+  root.
+- **One npm workspace:** the root's `package.json` (the package `abstractclass`, private) names the workspaces
+  `apps/*`. npm made the root's `package-lock.json` from the earlier one (`npm install --package-lock-only`). Its 149
+  entries of packages are the same as before, each with its version, address and integrity. Only the root's entry
+  changed, and npm added the workspace's two entries (`apps/hedgeschool` and its link in `node_modules`).
+- **The choices:**
+  - `.npmrc` (`engine-strict`) and `.node-version` stay at the root. npm reads `.npmrc` at the workspace's root, also
+    for a command in `apps/hedgeschool`. `actions/setup-node` reads `.node-version` by its path from the root.
+  - The workflows **Deploy** and **Tests** run in `apps/hedgeschool` (each workflow's default working directory).
+    Only `npm ci` runs at the root. The paths of the actions (the caches, the failures' screenshots, `hashFiles`)
+    start at the root, so they name `apps/hedgeschool/`.
+  - `scripts/fetch-engine.mjs` finds `onnxruntime-web` with `findPackageJSON` (from `node:module`), from the script's
+    own address, as an import would find it. npm puts the package in the root's `node_modules`. The script's download
+    cache stays beside the site, in `apps/hedgeschool/node_modules/.cache/engine/`, and the workflows' cache of the
+    engine's files names that path.
+  - The workflows start the preview with the site's own script (`npm run preview -- …`), which finds Vite wherever
+    npm puts it. The working notes keep `node` for the local server, so that a stop reaches the server itself, with
+    Vite's path from the site's folder (`../../node_modules/vite/bin/vite.js`). Vite exports no path to its command.
+  - `.gitignore` stays at the root. Its patterns name the site's generated folders under `apps/hedgeschool/`, not
+    `apps/*/`: a second app shows what the apps share.
+  - A `local` source in `engine.lock.json` and a measurement script's input start at `apps/hedgeschool`. So the
+    engine repository's checkout is `../../../engines` from there.
+  - The documents: a path to the site's files starts at `apps/hedgeschool`. docs/README.md gives the rule. CLAUDE.md
+    and hosting.md give it in one sentence, with a link to it. So the documents keep their short paths, such as
+    `src/lib/review/model.ts`. The commands and paths that changed are in CLAUDE.md, README.md, hosting.md,
+    working-notes.md, docs/agents/domain.md, designs 02, 03, 11 and 26, and request 02's link. The dated entries of
+    the decision logs stay as they are, with their links.
+- **Checked** on this machine (Windows), from a clean install, against dev at 2d54125 and its run of the workflow
+  **Tests**:
+  - `npm ci` at the root: npm added 104 packages and audited 106. Dev: 103 and 104. The difference is the workspace's
+    link in `node_modules`, and the root and the site as two packages.
+  - In `apps/hedgeschool`: `npm run engine -- --deploy` checked each file's SHA-256, the protocol (0.6.1) and the
+    search (fdfe5ad), and took ONNX Runtime 1.30.0 from the root's `node_modules`, with the same files and sizes as
+    dev's run. `npm run check`: 0 errors and 0 warnings, as on dev. `npm test`: 128 of 128 pass, as on dev. The build
+    as CI builds it (`VITE_EDITION=early`, the practice games' storage on): its footer names its commit.
+  - The browser tests in Chromium, against a preview of that build: 11 of 11 pass (the layout sweep's 10, and the
+    practice games' consent across tabs). Dev's run: 11 on Linux, and the layout sweep's 10 on Windows.
+  - Wrangler (4.144.0, the deploy's version), run in `apps/hedgeschool`, finds the Function in `functions/` and
+    compiles it (`wrangler pages functions build`, with no upload).
+  - Every storage key and the IndexedDB name: the 86 lines of code that hold `hedge-school` or `learn-enclosure` are
+    the same before and after the move (36 strings, such as `hedge-school:consent:2` and `learn-enclosure`).
+  - These checks ran twice, before and after a cleanup of the change, with the same results.
+- **Left:** the preview deploy of design 26, item 2. After the push, the workflow **Deploy** puts the branch on
+  `abscls-zng.hedgeschool.pages.dev`, with its Function. There, a practice game is sent and then deleted. A run of the
+  workflow **Tests** on the branch, started by hand, passes.

@@ -71,8 +71,8 @@ A server that searches for every visitor costs money for every visitor. A static
 
 ## Where it is
 
-- The engine in a Web Worker: [`src/lib/engine/`](../../src/lib/engine/worker.ts). The engine lab, which measures
-  it: [`src/routes/lab/engine/`](../../src/routes/lab/engine/+page.svelte).
+- The engine in a Web Worker: [`src/lib/engine/`](../../apps/hedgeschool/src/lib/engine/worker.ts). The engine lab,
+  which measures it: [`src/routes/lab/engine/`](../../apps/hedgeschool/src/routes/lab/engine/+page.svelte).
 - The request for the engine interface: [requests/02-engine-protocol.md](../requests/02-engine-protocol.md).
 
 ## Log entries

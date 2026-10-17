@@ -30,7 +30,8 @@ If a file does not exist, proceed silently. Do not flag its absence, and do not 
 ├── GLOSSARY.md            (created when the first term is settled)
 ├── docs/design/           ← decision records, one for each decision in force
 ├── docs/decisions/        ← the archive, by topic
-└── src/
+└── apps/hedgeschool/      ← the site (design 26)
+    └── src/
 ```
 
 ## Use the glossary's vocabulary

@@ -53,7 +53,9 @@ Cloudflare's onboarding also suggests:
 
 The site's repository is public on GitHub: `abstractclass-org/abstractclass`. So its workflows' runs on GitHub's
 standard runners cost no Actions minutes. [Design 11](design/11-early-access.md), item 10, gives its terms. Its
-remote in the local checkout is `origin` (SSH). Two branches:
+remote in the local checkout is `origin` (SSH). The repository is one npm workspace, with the site in
+`apps/hedgeschool` ([design 26](design/26-one-repository.md)): `npm ci` runs at the root, and the site's commands run
+in `apps/hedgeschool`. A path here to the site's files starts there ([README.md](README.md)). Two branches:
 
 - **`dev`:** the work. Each commit is pushed to it, so that GitHub holds the local work. The deploy (section 3) puts
   each push to `dev` on Pages as a preview deployment, at `dev.hedgeschool.pages.dev` (and at an address for each
@@ -69,8 +71,8 @@ What the repository holds for the deploy and for Pages:
 - **No file over 25 MiB:** Pages refuses a larger file. The engine's step stores each network's graph and ONNX
   Runtime's WebAssembly compressed with gzip, and splits a compressed file over 24 MiB into parts. The page joins and
   decompresses them ([design 15](design/15-gpu.md)).
-- **Node 24** (`.node-version`): the deploy and the tests take their Node from this file. Node 22 cannot run the tests'
-  TypeScript without a flag.
+- **Node 24** (`.node-version`, at the root): the deploy and the tests take their Node from this file. Node 22 cannot
+  run the tests' TypeScript without a flag.
 - **The response headers** (`static/_headers`, copied into `build/`): `X-Robots-Tag: noindex` on Cloudflare's own
   addresses (`hedgeschool.pages.dev` and the previews, design 23), and a
   year's cache, never checked again, for the build's hashed code (`/_app/immutable/*`) and the engine's files
@@ -108,8 +110,8 @@ What the repository holds for the deploy and for Pages:
   3. Give the partner that address. It shows that deployment only, and a later push gives a new address.
   4. To withdraw it, delete the deployment (its **⋯** menu, **Delete deployment**).
 
-To try the build as the deploy runs it: `VITE_EDITION=early npm run build:cloudflare`. From a clean clone, run `npm ci`
-first.
+To try the build as the deploy runs it: `VITE_EDITION=early npm run build:cloudflare`, in `apps/hedgeschool`. From a
+clean clone, run `npm ci` at the root first.
 
 ## 3. The Pages project and the deploy
 
@@ -136,14 +138,15 @@ from that file, not from the project's settings.
 
 **What the deploy does on each push:**
 
-1. It installs the dependencies (`npm ci`), with the Node of `.node-version`.
+1. It installs the dependencies (`npm ci`, at the root), with the Node of `.node-version`.
 2. It sets `CF_PAGES_BRANCH` and `CF_PAGES_URL` for the build (section 2, the site's address in the userscript).
-3. It runs `npm run build:cloudflare`, with the variables of the branch (below). A failed test or type error stops the
-   deploy, and the site stays as it was.
+3. It runs `npm run build:cloudflare` in `apps/hedgeschool`, with the variables of the branch (below). A failed test or
+   type error stops the deploy, and the site stays as it was.
 4. It uploads `build/` and the Function in `functions/` with Wrangler, pinned to one version: `wrangler pages deploy
-   build --project-name=hedgeschool --branch=<the branch>`. The branch `main` goes to production. Another branch goes
-   to a preview at `<branch>.hedgeschool.pages.dev`: Pages lowercases the branch's name, and puts a hyphen for each
-   character that is not a letter or a digit.
+   build --project-name=hedgeschool --branch=<the branch>`. Wrangler runs in `apps/hedgeschool`, because it takes
+   the Function from the `functions/` folder where it runs: from another folder, the deployment has no Function. The
+   branch `main` goes to production. Another branch goes to a preview at `<branch>.hedgeschool.pages.dev`: Pages
+   lowercases the branch's name, and puts a hyphen for each character that is not a letter or a digit.
 
 **What the deploy needs,** in the repository's **Settings → Secrets and variables → Actions**:
 
@@ -308,7 +311,7 @@ the next visit).
   failed run keeps the failures' screenshots for a week (the run's **Artifacts**: `layout-sweep` for Linux,
   `layout-sweep-windows` for Windows).
 - **The sweep in Edge, as an option,** on this computer: it shows Edge's own drawing, with this computer's settings.
-  Build as production does (`VITE_EDITION=early npm run build`), start the preview
+  In `apps/hedgeschool`, build as production does (`VITE_EDITION=early npm run build`), start the preview
   (`npm run preview -- --host 127.0.0.1 --port 4173`), and run `npx playwright test --project=edge` (about 7 minutes).
   `npm run test:layout` runs both browsers. Either can run against a preview:
   `BASE_URL=https://dev.hedgeschool.pages.dev npm run test:layout`.

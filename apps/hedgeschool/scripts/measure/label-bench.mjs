@@ -3,7 +3,7 @@
 // tells the stronger player. The rules judge a turn as the site does (design 10): the mover's chance at the turn's
 // start against the chance after its last edge, both from the root of a search of 512 visits.
 //
-//   node scripts/measure/label-bench.mjs ../engines/runs/archive_analysis/ladder-384.jsonl [more files]
+//   node scripts/measure/label-bench.mjs ../../../engines/runs/archive_analysis/ladder-384.jsonl [more files]
 //
 // The rules:
 // - engine: the engine's own win chance, chess.com's bands (Excellent to 0.02, Good to 0.05, Inaccuracy to 0.10,

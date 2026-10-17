@@ -5,7 +5,7 @@
 // ways too, in Node. It reads the engine from static/engine (`npm run engine` first), and prints counts only: the
 // archive holds other players' games.
 //
-//   node scripts/measure/describe-game-check.mjs ../engines/runs/archive/games.jsonl [games]
+//   node scripts/measure/describe-game-check.mjs ../../../engines/runs/archive/games.jsonl [games]
 import { createReadStream } from "node:fs";
 import { createInterface } from "node:readline";
 import { isDeepStrictEqual } from "node:util";

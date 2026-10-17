@@ -49,8 +49,8 @@ new builds arrive often.
   - Each artifact has an ID (the build's name, such as `b10c128-s66625408-d13350730`), a source, its SHA-256 and
     its size.
   - A source is a **release** (a tag and an asset of a GitHub Release of `enclosure-engine`, the public repository
-    that holds only the engine's releases, since the engine repository is private) or a **local** path (a file in
-    `../engines`).
+    that holds only the engine's releases, since the engine repository is private) or a **local** path, from the
+    site's folder `apps/hedgeschool` (a file in the engine repository's checkout, `../../../engines`).
   - `npm run engine` gets each artifact, checks its SHA-256, and puts it in `static/engine/<ID>/`. It writes
     `static/engine/manifest.json`, which the site reads to find the files and to name them in its results.
   - **Development may use local sources,** to try a build in the engine repository's `runs/` before it is released.
@@ -98,7 +98,8 @@ new builds arrive often.
 
 ## Where it is
 
-- `package.json`, `vite.config.ts`: the project.
+- `package.json`, `vite.config.ts`: the site's project. The root's `package.json` makes the repository one npm
+  workspace ([design 26](26-one-repository.md)).
 - `src/app.css`: the colour tokens, Tailwind's theme from them, and the base element styles.
 - `engine.lock.json` and `scripts/fetch-engine.mjs`: the engine's artifacts.
 

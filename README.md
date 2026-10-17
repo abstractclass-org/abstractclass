@@ -20,8 +20,12 @@ data. Analysis is not built yet.
 
 ## Commands
 
+The repository is one npm workspace ([docs/design/26-one-repository.md](docs/design/26-one-repository.md)). Install at
+the root. Run the site's commands in its folder, `apps/hedgeschool`:
+
 ```sh
-npm install
+npm install                           # at the root: the workspace's dependencies, in the one package-lock.json
+cd apps/hedgeschool
 npm run engine                        # get the engine's release that engine.lock.json pins, into static/engine/
 npm run dev                           # the dev server
 npm run check                         # type checks
@@ -30,7 +34,10 @@ npm run build                         # the full site, into build/
 VITE_EDITION=early npm run build      # the early access
 npm run preview                       # serve build/
 npm run build:cloudflare              # what the deploy runs: the engine's release, tests, type check, build
+npm run test:layout                   # the layout sweep, against the preview (tests/layout.spec.ts)
 ```
+
+To add a dependency to the site, run `npm install <package> -w apps/hedgeschool` at the root.
 
 `npm run engine` downloads the module and the networks from a GitHub Release of
 [enclosure-engine](https://github.com/abstractclass-org/enclosure-engine), which holds only the engine's releases, and
@@ -44,6 +51,8 @@ Web Analytics). Without them, as in development, the build has neither.
 | Path | What |
 |---|---|
 | `docs/` | The documents: context, working notes, design, decision log, requests to the engine repository ([docs/README.md](docs/README.md)). |
+| `.github/workflows/` | The deploy and the tests ([docs/hosting.md](docs/hosting.md)). |
+| `apps/hedgeschool/` | Hedge School, the site. The paths below start there. |
 | `src/lib/engine/` | The engine module (protocol 0.4) in a Web Worker, the page's side of it, the protocol's types and the notation. |
 | `src/routes/` | The pages. `review/` is the game review, on the engine. `import/` takes a game from the meaf.us bookmarklet. `about/`, `notation/`, `privacy/` and `notices/` are about the site. `lab/engine/` is the engine lab. |
 | `src/lib/analysis/` | The review's analysis in the browser: the pool of engine workers, the schedule, the cache, the engine's settings. |

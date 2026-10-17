@@ -1,6 +1,7 @@
 # One repository for the learning sites
 
-**Status:** in force, not built. Hedge School is still at the repository's root.
+**Status:** in force. Items 1 and 6 are built: Hedge School is in `apps/hedgeschool`, in one npm workspace. Item 2's
+check on a preview deploy, and the hub (item 3), are still to do.
 **Decided:** 2026-10-16.
 
 ## Context
@@ -62,12 +63,17 @@ The move must keep these:
 - **The deploy:** each app has its own deploy job and Pages project. Wrangler runs from `apps/hedgeschool`, or the
   Function in `functions/` is not uploaded. The Pages project `hedgeschool` keeps its `GAMES` bindings and its D1
   databases.
-- **The engine's files:** `scripts/fetch-engine.mjs` reads `node_modules/onnxruntime-web` beside the app. npm
-  workspaces can put that package at the root instead, so the script must find it there. Its checks of each file's
-  SHA-256, the protocol and the search stay.
+- **The engine's files:** npm puts `onnxruntime-web` in the workspace's `node_modules` at the root, not beside the app.
+  So `scripts/fetch-engine.mjs` finds the package by Node's own resolution (`findPackageJSON`, from `node:module`),
+  wherever npm puts it. Its checks of each file's SHA-256, the protocol and the search stay. Its download cache stays
+  beside the app, in `apps/hedgeschool/node_modules/.cache/engine/`.
+- **Local engine sources:** a `local` path in `engine.lock.json` starts at `apps/hedgeschool`. The engine
+  repository's checkout is `../../../engines` from there.
+- **The commands and the documents:** `npm ci` runs at the root, and the site's commands run in `apps/hedgeschool`.
+  A path in the documents to the site's files starts there ([docs/README.md](../README.md)).
 - **The players' data:** every storage key (`hedge-school:…`) and the IndexedDB name `learn-enclosure` stay as they are.
-- **The imports:** the alias `#lib/*` (`package.json`, `imports`) belongs to the app's package. A shared package gets
-  a name of its own.
+- **The imports:** the alias `#lib/*` (`apps/hedgeschool/package.json`, `imports`) belongs to the app's package. A
+  shared package gets a name of its own.
 - **The tests:** the layout sweep (`tests/layout.spec.ts`) uses the app's fixtures, pages, storage keys and engine
   versions.
 - **Consent:** a site at another address asks for consent again, because a browser keeps the choice by address.
@@ -75,9 +81,17 @@ The move must keep these:
 
 ## Where it is
 
-Not built yet.
+- `package.json` at the root: the workspace (`apps/*`), private. `package-lock.json` at the root: its one lockfile.
+  `.node-version` and `.npmrc` stay at the root, where `actions/setup-node` and npm read them.
+- `apps/hedgeschool/`: the site. Its `package.json` (the package `hedgeschool`) has its scripts, its dependencies and
+  the alias `#lib/*`.
+- `.github/workflows/deploy.yml` and `tests.yml`: the default working directory is `apps/hedgeschool`, and only
+  `npm ci` runs at the root. The caches, the failures' screenshots and the hash of `engine.lock.json` name their paths
+  from the root.
+- `apps/hedgeschool/scripts/fetch-engine.mjs`: finds `onnxruntime-web` by Node's resolution.
+- `.gitignore`: the site's generated folders, under `apps/hedgeschool/`.
 
 ## Log
 
-[decisions/architecture.md](../decisions/architecture.md), "One repository for the learning sites" and "The
-repositories get new names".
+[decisions/architecture.md](../decisions/architecture.md), "One repository for the learning sites", "The
+repositories get new names" and "Hedge School moves into apps/hedgeschool".

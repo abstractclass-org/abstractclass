@@ -46,7 +46,8 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
    uploads `main` to production (hosting.md, section 3, says why Pages does not build it itself):
    - **The build command,** `npm run build:cloudflare`: it downloads the engine from its GitHub Release (`npm run engine
      -- --deploy`, which refuses local engine files), runs the tests and the type check, then builds into `build/`.
-     The workflow installs the dependencies first (`npm ci`).
+     The workflow installs the dependencies first (`npm ci`, at the repository's root), and builds in the site's
+     folder, `apps/hedgeschool` (design 26).
    - **Node 24** (`.node-version`): Node 22 cannot run the tests' TypeScript without a flag.
    - **The build's variables:** `VITE_EDITION=early`, `VITE_GA_ID` and `VITE_CF_ANALYTICS_TOKEN` (item 7). The footer
      shows the commit that the build runs from.
@@ -251,8 +252,8 @@ one item for each turn, separated by spaces.
   `src/lib/prose.ts` (their text style).
 - Analytics: `src/lib/analytics.svelte.ts`, `src/lib/ConsentBanner.svelte`, started in `src/routes/+layout.svelte`, or,
   when the address holds a game, by the page that removes it (design 22).
-- Hosting: `package.json` (`build:cloudflare`), `.node-version`, `static/_headers`, `vite.config.ts` (the 404 page and
-  the version). The setup, step by step, and how to deploy: [hosting.md](../hosting.md).
+- Hosting: `package.json` (`build:cloudflare`), `.node-version` (at the root), `static/_headers`, `vite.config.ts`
+  (the 404 page and the version). The setup, step by step, and how to deploy: [hosting.md](../hosting.md).
 
 ## Log entries
 

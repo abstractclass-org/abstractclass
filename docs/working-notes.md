@@ -3,15 +3,18 @@
 How to work and test on this machine. Each note is a lesson that holds from session to session. Add a note when you
 learn one, and remove a note when it stops being true. The work itself is in beads (label `site`).
 
+- **Where the commands run:** `npm ci` at the repository's root, and the site's commands (the npm scripts, the
+  scripts in `scripts/`, Playwright) in `apps/hedgeschool`.
 - **The owner plays in this browser** (Edge, the local build): practice games and reviews of their own. Before a
   test that plays, save the keys that it changes (`hedge-school:practice-*`, the review's display settings) and the
   games' ids, and put them back after. Read the state again before each test: the owner plays between them.
 - **The local server and a build:** stop the server before `npm run build`, then start it again. A build under a
   running server can stop it (a page asks for `_app/version.json` while the build replaces it).
-- **The local server:** `node node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 4173 --strictPort`, again
-  after each build. It stops with the session. The owner opens it from other devices through Tailscale: Vite then
-  takes the machine's Tailscale name from the user environment variable `__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS`. The
-  name stays out of the repository.
+- **The local server:** `node ../../node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 4173 --strictPort`
+  in `apps/hedgeschool` (npm puts Vite in the workspace's `node_modules` at the root), again after each build. It
+  stops with the session. The owner opens it from other devices through Tailscale: Vite then takes the machine's
+  Tailscale name from the user environment variable `__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS`. The name stays out of
+  the repository.
 - **Local builds leave `VITE_GA_ID` unset** (`VITE_EDITION=early npm run build`), so that test visits do not reach
   Google Analytics.
 - **This machine is often loaded** by the engine repository's training: its speed numbers are no baseline then.
@@ -21,7 +24,7 @@ learn one, and remove a note when it stops being true. The work itself is in bea
   answered) and `review:shown` (the review shows). Read them with `performance.getEntriesByType("mark")`, beside the
   page's paint entries.
 - **Request 18's check, again** (on a new release): `node scripts/measure/describe-game-check.mjs
-  ../engines/runs/archive/games.jsonl [games]`, after `npm run engine`. All 6,246 games take about 6 minutes. It
+  ../../../engines/runs/archive/games.jsonl [games]`, after `npm run engine`. All 6,246 games take about 6 minutes. It
   prints counts only.
 - **Testing in Edge:** put the real pointer on an element with the browser tool's hover for checks that last. A hover
   made with synthetic events is lost when the board redraws. Convert page coordinates to the screenshot's own size

@@ -1,13 +1,13 @@
 # The engine's artifacts: fetched by `npm run engine` (engine.lock.json), never committed.
-/static/engine/
+/apps/hedgeschool/static/engine/
 
 node_modules
 
 # Output
 .output
 .wrangler
-/.svelte-kit
-/build
+/apps/hedgeschool/.svelte-kit
+/apps/hedgeschool/build
 
 # OS
 .DS_Store
@@ -22,9 +22,9 @@ Thumbs.db
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
-# Measurement outputs (scripts/measure/), summarised in docs/decisions/.
-/runs/
+# Measurement outputs (apps/hedgeschool/scripts/measure/), summarised in docs/decisions/.
+/apps/hedgeschool/runs/
 
 # Playwright Test (npm run test:layout)
-/test-results/
-/playwright-report/
+/apps/hedgeschool/test-results/
+/apps/hedgeschool/playwright-report/

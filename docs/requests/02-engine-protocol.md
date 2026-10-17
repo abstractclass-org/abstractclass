@@ -74,4 +74,5 @@ native engine on the GPU, for puzzle mining and deep searches.
 ## Done when
 
 The site's engine worker drops the Meridian interface (`src/lib/engine/meridian.ts`) and gets each item above from the
-new protocol. The engine lab ([`src/routes/lab/engine/`](../../src/routes/lab/engine/+page.svelte)) shows them.
+new protocol. The engine lab
+([`src/routes/lab/engine/`](../../apps/hedgeschool/src/routes/lab/engine/+page.svelte)) shows them.

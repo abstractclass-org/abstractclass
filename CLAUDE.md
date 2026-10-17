@@ -16,6 +16,13 @@ moves, and later offers puzzles and training. Before you change anything, read t
 - [docs/requests/](docs/requests/README.md): what this repository asked of the engine repository, and the status of
   each request.
 
+## The code
+
+Hedge School's code is in `apps/hedgeschool` ([design 26](docs/design/26-one-repository.md)). The repository's root
+holds one npm workspace and its one lockfile, the documents and the workflows. Run `npm ci` at the root, and the
+site's commands ([README.md](README.md)) in `apps/hedgeschool`. A path in the documents to the site's files starts
+there ([docs/README.md](docs/README.md)).
+
 ## The engine repository
 
 The engine, the rules and the bots live in the engine repository,
