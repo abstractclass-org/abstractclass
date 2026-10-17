@@ -168,6 +168,11 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
       unit apart, in a board 20.6 units wide.
     - **Only where the address names a game:** the skeleton shows once the page's code runs. Before that, and on the
       Review tab, the prerendered line of text shows.
+    - **The move list's rows come one frame after the rest** (`rowsDrawn`), in a task of their own. Until then the
+      list's box shows grey bars: one element draws a bar for each turn, a turn's row apart. When the rows came
+      with the rest, the review's first frame was one long task, so a click during it waited (Interaction to Next
+      Paint, INP). The list's box is there from the first frame, so the rows move nothing when they come. A hidden
+      page draws them at once: it draws no frame.
     - With reduced motion asked for, the bars do not pulse.
 11. **One monospaced font** (Lichess ships its own fonts): Fira Code, shipped with the site
     (`@fontsource-variable/fira-code`, its weight axis), 0.6 em a character. The move list's columns are sized in
@@ -230,3 +235,4 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
 ## Log entries
 
 - [decisions/product.md](../decisions/product.md), "The review page's layout".
+- [decisions/product.md](../decisions/product.md), "The review's first frame".

@@ -3271,3 +3271,73 @@ sweep.
 - **Open:** Google Analytics' `bot_visits` (design 17) receives the exact number of visits, now one of 8,192 values,
   not 11. The other numbers that the site sends are ranges (`src/lib/measure.ts`). The issue abscls-es4 holds the
   decision: the exact number, or the doubling at or below it.
+
+### The review's first frame (2026-10-17)
+
+- **The problem:** the review drew its first frame in one task of 109 to 144 ms, measured in Edge ("A skeleton while
+  the review starts, and the time before it shows", 2026-10-14). A click during the task waits for it, and that counts
+  against the page's responsiveness (Interaction to Next Paint, INP).
+- **Where the time goes,** in Chrome's trace of a stored review's reload (Playwright's Chromium, 1,366 × 657 pixels,
+  the test fixture's game of 120 edges in 61 turns), by thread time, the time that the main thread ran:
+  - the first task, 44 to 53 ms (the sets' medians below): the move list 12 to 17 ms, and a forced layout of the
+    whole review about 21 ms (`StepBar` reads a width as it mounts), then the board, the charts and the rest.
+  - the frame's render task, 20 to 25 ms: most of it is two recalculations of the style of every element of the
+    review (about 1,040). The view sets `--side-h` and `--strip` on its `<main>` after the first layout, and other
+    elements inherit these custom properties.
+- **The change** (design 06, item 10): the move list's rows come in the frame after the rest, in a task of their own
+  (`rowsDrawn` in `ReviewView.svelte`). Until then one element draws grey bars in the list, one for each turn, a
+  turn's row (22 pixels) apart. A hidden page draws the rows at once. The rows' task has the mark `review:moves`.
+- **The measurement** (`scripts/measure/review-first-frame.mjs`): the first draw runs from the task that holds
+  `review:shown` to the end of the frame that paints the move list's rows. Chrome's trace gives each task's wall time
+  and its thread time. The request asked for the Long Tasks API (a `PerformanceObserver`), and the first series used
+  it. It gives wall time only, and on a loaded machine a task's wall time also counts the time that the main thread
+  waits for a processor. The trace gives both, so the series below report both.
+- **The machine was loaded:** the engine repository's replay held 8 of the 12 job threads, and other workers came and
+  went. So the builds before and after ran in pairs: one build's set of 5 reloads, then the other's, back to back.
+  The pairs took turns at which build ran first. Before each set, the script read the machine's state. Windows'
+  processor use and the load in WSL (one minute) at each set, at 1,366 × 657:
+
+  | Pair | Before | After |
+  | --- | --- | --- |
+  | 1 | 57%, 2.5 | 84%, 5.7 |
+  | 2 | 86%, 6.7 | 76%, 7.1 |
+  | 3 | 93%, 6.1 | 88%, 6.1 |
+  | 4 | 92%, 4.2 | 37%, 3.6 |
+  | 5 | 79%, 5.9 | 95%, 6.0 |
+
+- **Measured** at 1,366 × 657, by turn, 25 reloads of each build in 5 pairs:
+
+  | Per reload, median (largest) | Before | After |
+  | --- | --- | --- |
+  | Tasks over 50 ms, by wall time | 1 (2) | 1 (2) |
+  | Their time beyond 50 ms each, by wall time | 60 ms (825) | 57 ms (2,709) |
+  | The longest task, by wall time | 106 ms (844) | 102 ms (2,759) |
+  | Tasks over 50 ms, by thread time | 0 (1) | 0 (0) |
+  | Their time beyond 50 ms each, by thread time | 0 ms (15) | 0 ms (0) |
+  | The longest task, by thread time | 49 ms (65) | 33 ms (44) |
+  | The first draw's total thread time | 77 ms | 75 ms |
+  | Layout shift (CLS) | 0 (0) | 0 (0) |
+
+  - **The longest task by thread time:** each pair's difference of the sets' medians is −12, −14, −18, −20 and −9 ms.
+    All pairs agree, and the median is −14 ms. The sets' medians are 44 to 53 ms before and 26 to 40 ms after, so
+    the spread between the sets of one build is 9 ms before and 14 ms after. The gain is larger than the spread of
+    the build before, and equal to that of the build after. The two builds' sets do not overlap. Before, 9 of the
+    25 reloads had a task over 50 ms of thread time. After, none had.
+  - **The first draw's total thread time:** the pairs disagree (+6, −11, 0, −12 and +11 ms): no change.
+  - **By wall time,** what a player waits: the pairs disagree (the longest task's differences +73, −39, −30, −149
+    and −6 ms), so this measurement shows no gain there. Each extra task also waits for a processor. Two earlier
+    series of 5 pairs, of a first form of the change, also disagreed by wall time. One used the Long Tasks API alone
+    (−47, −24, −52, +26 and −6 ms).
+  - **One pair each at other sizes,** the longest task by thread time: −4 ms at 390 × 760 (the move list is in the
+    hidden Analysis tab there), −9 ms at 1,427 × 849, and −21 ms by edge at 1,366 × 657.
+  - **Layout shift:** 0 in each of the 80 reloads above, at every size and setting, before and after. On the
+    Analysis board, 0 before and after: the fixture's game open at edge 60, at 390 × 760 and 1,366 × 657, with the
+    move on screen in the list's view once the rows come, and a game of 8 turns at 390 × 760, 390 × 1,100 and
+    768 × 1,024, where the list's height follows its rows and the step bar is in view.
+- **What it gives:** by thread time, the first draw's longest task is about a third shorter, and on this computer
+  (16 cores) no task of the first draw passed 50 ms after the change. The total work does not change: it moves to
+  the second frame. By wall time, on this loaded machine, the measurement shows no gain. On a computer three times
+  slower, the first task would still take about 100 ms, and the render task about 70 ms. To reach 50 ms there, the
+  two style recalculations and the forced layouts must go too: the issue "The review's first frame computes its
+  styles three times" (abscls-de1).
+- **Not measured:** an unloaded machine, Edge, a slower device, and INP itself.

@@ -701,9 +701,24 @@
   }
   $effect(() => onposition?.(path));
 
-  // The move list keeps the current move a fixed distance from its top (four rows), as the position changes.
+  // The move list's rows come in the frame after the rest of the view, in a task of their own: with the rows in it, the
+  // review's first frame was one long task, and a click during it waited (decisions/product.md, "The review's first
+  // frame"). Until then the list shows grey bars. A hidden page draws no frame, so it draws the rows at once.
+  // The rows' task has a mark in the browser's performance timeline (`review:moves`), for measuring it.
+  let rowsDrawn = $state(false);
+  $effect(() => {
+    if (document.hidden) { rowsDrawn = true; return; }
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const frame = requestAnimationFrame(() => (timer = setTimeout(() => { rowsDrawn = true; performance.mark("review:moves"); })));
+    return () => { cancelAnimationFrame(frame); clearTimeout(timer); };
+  });
+  // A turn's row in the move list, in rem: 22 pixels, as Chromium lays out the turn's number and its moves on one
+  // baseline (moveList.ts, turnRow). The bars before the rows are this far apart.
+  const TURN_REM = 1.375;
+  // The move list keeps the current move a fixed distance from its top (four rows), as the position changes, once its
+  // rows are there.
   let movelist = $state<HTMLElement | null>(null);
-  $effect(() => { void here; keepInView(movelist); });
+  $effect(() => { void here; if (rowsDrawn) keepInView(movelist); });
 
   // The arrow keys step through the game, except in the controls that use them: fields, the tabs, the display menu.
   // So the move list's moves are not in the Tab order (tabindex -1), as on Lichess: a click still goes to a move.
@@ -1071,6 +1086,13 @@
   <div {...props} class={MOVE_LIST} bind:this={movelist}
        onpointerdowncapture={e => (menuPath = (e.target as Element).closest<HTMLElement>("[data-path]")?.dataset.path ?? null)}
        onmousedown={e => { if ((e.target as Element).closest("button")) e.preventDefault(); }}>
+    {#if !rowsDrawn}
+      <!-- Grey bars until the rows come (rowsDrawn), in one element for the frame they show: a bar for each turn, a
+           turn's row apart (TURN_REM), so that in the narrow layout, where the list's height follows its rows, the list
+           has about their height. Notes and branches under the turns make the rows taller. -->
+      <div class="w-[85%]" aria-hidden="true" style:height="{TURN_REM * R.turns.length}rem"
+           style:background="repeating-linear-gradient(var(--panel-2) 0 0.75rem, transparent 0.75rem {TURN_REM}rem)"></div>
+    {:else}
     {#each R.turns as t (t.number)}
       <!-- A turn's number, then its edges in two equal columns (Lichess's move list), each at least a move wide:
            with room to spare, the second edge starts halfway across. By turn, a last column judges the whole turn. -->
@@ -1132,6 +1154,7 @@
         </div>
       {/if}
     {/each}
+    {/if}
   </div>
   {/snippet}
   </ContextMenu.Trigger>

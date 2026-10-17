@@ -18,13 +18,19 @@ learn one, and remove a note when it stops being true. The work itself is in bea
 - **Local builds leave `VITE_GA_ID` unset** (`VITE_EDITION=early npm run build`), so that test visits do not reach
   Google Analytics.
 - **This machine is often loaded** by the engine repository's training: its speed numbers are no baseline then.
+  Compare two builds in pairs: each pair is one build's set of runs, then the other's, back to back. Before each set,
+  read the machine's state (`scripts/machine status` in the planning folder, `..` from the repository's root). A
+  change counts only where every pair agrees, and where the gain is larger than the spread between sets of one
+  build. Chrome's trace gives each task's thread time, which the wait for a processor does not change.
 - **The browser tool's keys:** "PageDown", not "Page_Down": a key name that the tool does not know sends nothing, and
   the test then means nothing. Check that the key arrived (a `keydown` listener) before reading its effect.
 - **Timing the review's start:** `src/routes/review/+page.svelte` sets the performance marks `review:rules` (the rules
-  answered) and `review:shown` (the review shows). Read them with `performance.getEntriesByType("mark")`, beside the
-  page's paint entries. The first engine result has no mark. To time it, wrap `Worker` in a Playwright init script
-  (`addInitScript`), and note the first message whose reply has `rootInfo`. A fresh browser context gives a review
-  with no stored results.
+  answered) and `review:shown` (the review shows), and `src/lib/review/ReviewView.svelte` sets `review:moves` (the
+  move list's rows, a frame later). Read them with `performance.getEntriesByType("mark")`, beside the page's paint
+  entries. `node scripts/measure/review-first-frame.mjs` reloads a stored review and reads the first draw's tasks, by
+  wall time and thread time, and the page's layout shift. The first engine result has no mark. To time it, wrap
+  `Worker` in a Playwright init script (`addInitScript`), and note the first message whose reply has `rootInfo`. A
+  fresh browser context gives a review with no stored results.
 - **The CPU time of a SHA-256 check:** Chrome's trace event `DoDigest` (category
   `disabled-by-default-devtools.timeline`) gives the thread time (`tdur`) of each `crypto.subtle.digest` call. It
   shows on the thread that calls it: the page's main thread or a worker's. Playwright records a trace with
