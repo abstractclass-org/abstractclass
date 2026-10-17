@@ -16,10 +16,11 @@ visitors' machines, and the GPU on other machines.
    service stays as it is: it takes no events.
 2. **Counts and ranges only** (`src/lib/measure.ts`): never a game, a move, a player's name, or a game's id. A count
    that could set a visitor apart, or would scatter a report, goes as a range: a game's edges (1-29, 30-59, 60-89,
-   90-119, 120+), the machine's cores (1-2, 3-4, 5-8, 9-16, 17+), a review's minutes (0, 1-2, 3-9, 10-29, 30-59, 60+),
-   a share link's characters (0-499, 500-999, 1000-1999, 2000-3999, 4000+), the games kept (0, 1, 2-4, 5-9, 10-24,
-   25+), a practice game's takebacks (0, 1, 2-4, 5+), and the practice bot's average seconds a turn (0, 1-2, 3-9,
-   10-29, 30+: 0 is under a second).
+   90-119, 120+), the machine's cores (1-2, 3-4, 5-8, 9-16, 17+), a review's minutes (0, 1-2, 3-9, 10-29, 30-59,
+   60-119, 120-239, 240+: a review at the deepest custom depth, 16,384 visits, takes hours), a share link's
+   characters (0-499, 500-999, 1000-1999, 2000-3999, 4000+), the games kept (0, 1, 2-4, 5-9, 10-24, 25+), a practice
+   game's takebacks (0, 1, 2-4, 5+), and the practice bot's average seconds a turn (0, 1-2, 3-9, 10-29, 30+: 0 is
+   under a second).
 3. **The game's id leaves the review's address for the `#`:** `/review#game=ID`. Google Analytics records a page's
    query (`?game=`) and not what follows the `#`
    ([Google's page path article](https://support.google.com/analytics/answer/13844737)), and Cloudflare's service
@@ -520,3 +521,5 @@ shows few rows. Read it as section "Reading it" says.
 - [decisions/product.md](../decisions/product.md): "A question before the practice games' delete, and the cancelled
   deletes counted" (2026-10-17).
 - [decisions/product.md](../decisions/product.md): "The owner's visits marked as internal traffic" (2026-10-17).
+- [decisions/product.md](../decisions/product.md): "The review's custom depth up to 16,384 visits" (2026-10-18): the
+  review's minutes past 60 in three ranges.

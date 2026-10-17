@@ -59,11 +59,11 @@ each applies at once, without a reload.
        moment). With the depth at most the review's, nothing changes: the review's own result is the deepest. Design 16
        has every depth together, with examples.
    - **Game review:** "Depth per move", the label pass's visits for each position: Lite (512), Standard (1,024), or
-     Custom, which shows its visits from 256 to 4,096. Lite by default. An edge gets its label from 256 visits on at
-     every depth. A label search shows its result at 256 visits, and again after each further 256, so a label shows as
-     early at every depth and changes as the deeper search goes on. The
-     key moments go one doubling deeper, to twice the review's depth (`momentVisits` in
-     `src/lib/analysis/game.svelte.ts`): Lite's 512 gives 1,024, Standard's 2,048, a custom 4,096 gives 8,192. So the
+     Custom, which shows its visits from 256 to 16,384, the Depth's range. Lite by default. An edge gets its label
+     from 256 visits on at every depth. A label search shows its result at 256 visits, and again after each further
+     256, so a label shows as early at every depth and changes as the deeper search goes on. The key moments go one
+     doubling deeper, to twice the review's depth (`momentVisits` in
+     `src/lib/analysis/game.svelte.ts`): Lite's 512 gives 1,024, Standard's 2,048, a custom 16,384 gives 32,768. So the
      moments that matter most get a surer search at every review depth. They stayed at 1,024 when the depths became
      settings, so a review at 1,024 or deeper gave them no more than any position. A branch move evaluated on request is
      searched to the review's depth.
@@ -120,6 +120,11 @@ each applies at once, without a reload.
   seconds (79 a second), and the worker's memory then at 162 MiB, against 95 MiB after the network loaded. That is
   about 4 KB a visit. Any worker can take the position on screen, so in time each worker reaches that size. A step
   more (32,768 visits) would take about 7 minutes on this machine.
+- **The custom depth goes as deep as the Depth,** 16,384 visits. Each doubling doubles the review's time: reviews at
+  4,096 visits took about 54 minutes on 9 to 16 cores, so a review at 16,384 takes about 3.5 hours there. Its key
+  moments go one doubling deeper, to 32,768 visits, the site's deepest search. At about 4 KB a visit, a worker that
+  searches one grows to about 230 MiB with b10c128, against 162 MiB at 16,384. That is an estimate from the
+  measurement above: no review at 16,384 visits was measured.
 - **A time limit of 30 seconds** departs from the 8 seconds of KaTrain and Lichess. KaTrain's 8 seconds go with 500
   visits on a native engine. In the browser, 1,024 visits of b10c128 take about 11 to 21 seconds on a fast desktop,
   so 8 seconds would cut the default depth on most machines. With 30 seconds, a fast machine reaches 1,024 visits,
@@ -206,7 +211,8 @@ each applies at once, without a reload.
   competes with them too. The limit is memory: on a machine short of it the browser can end the tab.
 - Another network searches the whole game again, which takes minutes. Returning to a network is quick.
 - A Standard review takes about twice as long as a Lite one. A Lite review takes about twice as long as it did at 256
-  visits, but a position's first label comes at 256 visits, as before.
+  visits, but a position's first label comes at 256 visits, as before. A custom review at 16,384 visits takes 32 times
+  as long as a Lite one.
 - A review in a hidden tab still runs slowly (decisions/open-items.md).
 
 ## Where it is
@@ -227,3 +233,4 @@ each applies at once, without a reload.
 - [decisions/product.md](../decisions/product.md), "The engine's settings", "The engine's switch and gear in its
   header" and "The engine header in two lines, boxes for visits, a slower gleam".
 - [decisions/product.md](../decisions/product.md), "The networks' downloads in the engine settings".
+- [decisions/product.md](../decisions/product.md), "The review's custom depth up to 16,384 visits".

@@ -20,8 +20,8 @@ settings are always the ones kept in the browser.
 | Search | Which positions | Visits |
 |---|---|---|
 | The sweep | every position of the game | 32, for the chart's first estimate |
-| The label pass | every position of the game | D: Lite 512, Standard 1,024, Custom 256 to 4,096 |
-| The key moments | both ends of each key moment's turns | 2 × D: Lite 1,024, Standard 2,048, Custom 4,096 gives 8,192 |
+| The label pass | every position of the game | D: Lite 512, Standard 1,024, Custom 256 to 16,384 |
+| The key moments | both ends of each key moment's turns | 2 × D: Lite 1,024, Standard 2,048, Custom 16,384 gives 32,768 |
 | A Great's confirmation | the position after the engine's second choice (or the turn's other candidate) | D, or deeper: as deep as the position after the played move (section 3) |
 | The position on screen | the one the player looks at | the Depth setting, P: 256 to 16,384, 1,024 by default, with a time limit (30 s by default) |
 | A branch move evaluated on request | the branch's positions | D |
@@ -181,5 +181,6 @@ Lite (D = 512), P = 1,024, and a time limit of 30 s.
 - [decisions/product.md](../decisions/product.md): "A review shared by link, and the Greats in the review file", "A
   deeper search where the player looks: kept, and said", "A game keeps the settings it came with, and the key moments
   go one doubling deeper" (2026-10-13).
+- [decisions/product.md](../decisions/product.md): "The review's custom depth up to 16,384 visits" (2026-10-18).
 - Designs [05](05-review-analysis.md), [09](09-engine-settings.md), [10](10-labels.md) and
   [13](13-export-import.md) hold each rule in its place.

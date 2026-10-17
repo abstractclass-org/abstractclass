@@ -16,3 +16,10 @@ test("a count goes as its range, and the last range is open", () => {
   assert.equal(range(0, GAME_RANGES), "0");
   assert.equal(range(-1, EDGE_RANGES), "1-29"); // below the first start: the first range
 });
+
+test("a review's minutes have ranges up to a review at 16,384 visits", () => {
+  assert.equal(range(54, MINUTE_RANGES), "30-59"); // 4,096 visits on 9 to 16 cores
+  assert.equal(range(90, MINUTE_RANGES), "60-119");
+  assert.equal(range(216, MINUTE_RANGES), "120-239"); // 16,384 visits on 9 to 16 cores: four times as long
+  assert.equal(range(600, MINUTE_RANGES), "240+");
+});
