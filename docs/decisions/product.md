@@ -1,6 +1,8 @@
 # The product
 
-The interface, the review, puzzles, lessons, labels and thresholds.
+The interface and the review, labels and thresholds, game import and export, the Analysis board, practice, puzzles and
+lessons, the site's pages and text, the logo and colours, analytics, the launch on Cloudflare Pages, and the layout
+sweep.
 
 ### A survey of chess and Go tools (2026-10-09)
 

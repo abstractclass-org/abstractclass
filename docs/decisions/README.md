@@ -7,15 +7,17 @@ This log is the archive. For the design as it is now, read the design documents 
 What is still to do and what is in flight are in beads (label `site`). When an issue is done, write its
 result here, in the file whose topic fits.
 
-Add a new entry at the end of the file whose topic fits. Give it a `###` heading with the date. Add its title to the
-list below.
+Add a new entry at the end of the file whose topic fits. Give it a `###` heading with the date. Each file's `###`
+headings list its entries, oldest first, and GitHub shows them as the file's outline.
 
 ## Topics
 
-- [architecture.md](architecture.md): the repository, the stack, hosting, how the engine's artifacts arrive.
-  - The repository starts. The stack.
-- [engine.md](engine.md): the engine in the browser: loading, speed, the engine interface and the requests for it.
-  - The current module in a Web Worker, and the time a position. The engine repository answers the requests. The engine protocol in the browser. The review on the engine. Label agreement against search budget.
-- [product.md](product.md): the interface, the review, puzzles, lessons, labels and thresholds.
-  - A survey of chess and Go tools. The product's shape. The review wireframe. The review wireframe, first feedback. The review wireframe, second feedback. The review wireframe, third feedback. Prototypes of the other parts. Game import, first part. Game import, second part: the meaf.us bookmarklet.
+- [architecture.md](architecture.md): the repositories and their organization, the stack, hosting and the deploy, how
+  the engine's artifacts arrive, the public repository and the history rewrites.
+- [engine.md](engine.md): the engine in the browser: loading, speed, memory and the GPU, the engine interface and the
+  requests for it, the engine's releases, and the measurements that the labels rest on (label agreement, the human
+  win curve, a turn's loss, complexity).
+- [product.md](product.md): the interface and the review, labels and thresholds, game import and export, the Analysis
+  board, practice, puzzles and lessons, the site's pages and text, the logo and colours, analytics, the launch on
+  Cloudflare Pages, and the layout sweep.
 - [open-items.md](open-items.md): a pointer. The backlog moved to beads on 2026-10-16.

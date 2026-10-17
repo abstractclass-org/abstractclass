@@ -1,6 +1,7 @@
 # The engine in the browser
 
-Loading the engine, its speed, the engine interface, and the requests for it.
+Loading the engine, its speed, memory and the GPU, the engine interface and the requests for it, the engine's releases,
+and the measurements that the labels rest on (label agreement, the human win curve, a turn's loss, complexity).
 
 ### The current module in a Web Worker, and the time a position (2026-10-09)
 

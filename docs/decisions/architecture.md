@@ -1,6 +1,7 @@
 # Architecture
 
-The repository, the stack, hosting, and how the engine's artifacts arrive.
+The repositories and their organization, the stack, hosting and the deploy, how the engine's artifacts arrive, the
+public repository and the history rewrites.
 
 ### The repository starts (2026-10-09)
 
