@@ -11,7 +11,8 @@ export interface GpuInit {
   ortGlue: string; // ONNX Runtime Web's glue script (its WebGPU build)
   ortWasm: StoredArtifact; // and its WebAssembly
   graph: StoredArtifact; // the network as an ONNX graph
-  model: StoredArtifact & { name: string }; // the network's file, which the engines read its shapes from
+  model: Blob; // the network's file, checked by the page (client.ts, checked), which the engines read its shapes from
+  name: string; // the network's id
   searches: number; // the engines
 }
 

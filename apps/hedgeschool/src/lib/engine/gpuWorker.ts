@@ -3,7 +3,7 @@
 // engine takes one request at a time. A search runs in slices, as in the CPU worker (channel.ts, searchInSlices). The
 // engines search at once, so their evaluations reach the GPU together.
 import * as ort from "onnxruntime-web/webgpu";
-import { fetchArtifact } from "./artifacts.ts";
+import { bytesOf, fetchArtifact } from "./artifacts.ts";
 import { setUpOrt } from "./ort.ts";
 import { searchInSlices } from "./channel.ts";
 import { loadLibrary, type GpuEngine, type GpuEngines } from "./library.ts";
@@ -22,11 +22,11 @@ async function init(m: GpuInit) {
   const lib = await loadLibrary(m.library);
   const support = lib.gpuEngineSupport();
   if (!support.ok) throw new Error(`the GPU module cannot run here: ${support.reason}`);
-  const [wasm, graph, model] = await Promise.all([fetchArtifact(m.ortWasm), fetchArtifact(m.graph), fetchArtifact(m.model)]);
+  const [wasm, graph, model] = await Promise.all([fetchArtifact(m.ortWasm), fetchArtifact(m.graph), bytesOf(m.model)]);
   setUpOrt(ort, m.ortGlue, wasm);
   const evaluator = await lib.createOrtEvaluator(ort, graph);
   const made = await lib.createGpuEngines(m.module, evaluator, { searches: m.searches, log: line => console.debug(line) });
-  const refused = (await made.loadModel(model, { name: m.model.name })).find(isError);
+  const refused = (await made.loadModel(model, { name: m.name })).find(isError);
   if (refused) throw new Error(`the GPU module did not load the network: ${refused.error}`);
   gpu = made;
   reply(m.id, JSON.parse(await made.engines[0].call({ id: "v", action: "query_version" })), performance.now() - t0); // its version

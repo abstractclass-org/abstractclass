@@ -22,6 +22,11 @@ export async function fetchArtifact(a: StoredArtifact): Promise<Uint8Array> {
   return bytes;
 }
 
+/** The bytes of an artifact that the page checked (client.ts, checked): what a worker reads them with. */
+export async function bytesOf(blob: Blob): Promise<Uint8Array> {
+  return new Uint8Array(await blob.arrayBuffer());
+}
+
 function join(pieces: Uint8Array[]): Uint8Array {
   if (pieces.length === 1) return pieces[0];
   const out = new Uint8Array(pieces.reduce((n, p) => n + p.length, 0));

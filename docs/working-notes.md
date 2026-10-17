@@ -22,7 +22,19 @@ learn one, and remove a note when it stops being true. The work itself is in bea
   the test then means nothing. Check that the key arrived (a `keydown` listener) before reading its effect.
 - **Timing the review's start:** `src/routes/review/+page.svelte` sets the performance marks `review:rules` (the rules
   answered) and `review:shown` (the review shows). Read them with `performance.getEntriesByType("mark")`, beside the
-  page's paint entries.
+  page's paint entries. The first engine result has no mark. To time it, wrap `Worker` in a Playwright init script
+  (`addInitScript`), and note the first message whose reply has `rootInfo`. A fresh browser context gives a review
+  with no stored results.
+- **The CPU time of a SHA-256 check:** Chrome's trace event `DoDigest` (category
+  `disabled-by-default-devtools.timeline`) gives the thread time (`tdur`) of each `crypto.subtle.digest` call. It
+  shows on the thread that calls it: the page's main thread or a worker's. Playwright records a trace with
+  `browser.startTracing` and `browser.stopTracing`. A worker's console messages and requests reach Playwright's
+  `page.on("console")` and `page.on("request")`.
+- **The GPU in Playwright's Chromium:** headless Chromium gets WebGPU on the real GPU with `--enable-unsafe-webgpu
+  --use-angle=d3d11 --enable-features=Vulkan`. With `--use-webgpu-adapter=swiftshader --enable-unsafe-swiftshader`
+  added, it gets Chrome's software adapter, which uses no GPU. The software adapter runs the GPU worker and the
+  practice bot's GPU form, slowly: it checks that a path works, not its speed. Use it when another job holds the GPU
+  (`scripts/machine status` in the planning folder, `abstractclass-org`).
 - **Request 18's check, again** (on a new release): `node scripts/measure/describe-game-check.mjs
   ../../../engines/runs/archive/games.jsonl [games]`, after `npm run engine`. All 6,246 games take about 6 minutes. It
   prints counts only.

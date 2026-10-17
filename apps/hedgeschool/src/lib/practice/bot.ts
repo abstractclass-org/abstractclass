@@ -1,7 +1,7 @@
 // The page's side of the practice bot (botWorker.ts, docs/design/24-practice.md): it starts the bot in the first form that
 // this browser runs, and sends it GTP commands, one at a time.
 import { WorkerChannel } from "#lib/engine/channel.ts";
-import { compile, gpuFilesOf, libraryOf, modelOf, type ArtifactKind, type Manifest } from "#lib/engine/client.ts";
+import { checked, compile, gpuFilesOf, libraryOf, modelOf, type ArtifactKind, type Manifest } from "#lib/engine/client.ts";
 import { gpuSupport } from "#lib/engine/gpuClient.ts";
 import { GPU_SEARCHES, gpuAdapterName, gpuFaster, loadGpuTest } from "#lib/analysis/gpu.svelte.ts";
 import type { EngineSettings } from "#lib/analysis/engineSettings.ts";
@@ -58,8 +58,9 @@ export class PracticeBot {
       cpu = { library: pool.url, worker: worker.url, module: await compile(evaluator.url), workers };
     }
     const threads = this.mode === "gpu" ? GPU_SEARCHES : 2 * workers;
+    const [compiled, checkedModel] = await Promise.all([compile(module.url), checked(model)]);
     gtpAnswer((await this.channel.send<string>({ type: "init", mode: this.mode, seed, threads, library: library.url,
-                                                 module: await compile(module.url), model, gpu, cpu }).done).reply);
+                                                 module: compiled, model: checkedModel, gpu, cpu }).done).reply);
   }
 
   /** A GTP command's answer. Throws with the bot's message when it refuses the command. */

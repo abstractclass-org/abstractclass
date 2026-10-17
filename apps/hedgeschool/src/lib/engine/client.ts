@@ -1,6 +1,6 @@
 // The page's side of one engine worker: a promise for each request, and partial results while a search runs
 // (channel.ts). Also the manifest of the engine's artifacts, and what the site looks up in it.
-import type { StoredArtifact } from "./artifacts.ts";
+import { fetchArtifact, type StoredArtifact } from "./artifacts.ts";
 import { WorkerChannel, type Timed } from "./channel.ts";
 import type { WorkerRequest } from "./messages.ts";
 import {
@@ -70,18 +70,30 @@ export function gpuFilesOf(manifest: Manifest, id: string) {
 /** A size in MB (10^6 bytes), one decimal: what a download costs. */
 export const megabytes = (bytes: number) => (bytes / 1e6).toFixed(1);
 
+/** What `make` gives for `url`, made once for the page: a failed fetch, compile or check is tried again on the next
+ *  start. */
+function once<T>(cache: Map<string, Promise<T>>, url: string, make: () => Promise<T>): Promise<T> {
+  let value = cache.get(url);
+  if (!value) {
+    value = make();
+    value.catch(() => cache.delete(url));
+    cache.set(url, value);
+  }
+  return value;
+}
+
 // A module, compiled once for the page and each of its workers. A compiled module can be posted to a worker, which
 // then only instantiates it, and the browser keeps one copy of its code. Before, each worker fetched and compiled it.
 const compiled = new Map<string, Promise<WebAssembly.Module>>();
-export function compile(url: string): Promise<WebAssembly.Module> {
-  let module = compiled.get(url);
-  if (!module) {
-    module = WebAssembly.compileStreaming(fetch(url));
-    module.catch(() => compiled.delete(url)); // a failed fetch or compile is tried again on the next start
-    compiled.set(url, module);
-  }
-  return module;
-}
+export const compile = (url: string) => once(compiled, url, () => WebAssembly.compileStreaming(fetch(url)));
+
+// A network, fetched and checked once for the page (artifacts.ts, fetchArtifact), as a Blob of its checked bytes. Each
+// worker reads the bytes from the Blob, and a Blob posts to a worker without a copy. The page keeps it, so a start
+// after an idle release (analysis/pool.ts) or a change back to an earlier network fetches and checks nothing. Before,
+// each worker fetched the network and checked its SHA-256 itself, at each start.
+const checkedFiles = new Map<string, Promise<Blob>>();
+export const checked = (a: StoredArtifact) =>
+  once(checkedFiles, a.url, () => fetchArtifact(a).then(bytes => new Blob([bytes as BlobPart])));
 
 export class EngineWorker {
   readonly kind = "cpu" as const;
@@ -96,9 +108,10 @@ export class EngineWorker {
     checkVersion(t.reply);
     return t;
   }
-  /** Loads a network from the manifest: the worker fetches it and checks its SHA-256 (artifacts.ts). */
-  loadModel(model: Artifact, settings?: Record<string, unknown>) {
-    return this.channel.send<LoadModelReply>({ type: "model", model, name: model.id, settings }).done;
+  /** Loads a network from the manifest: the page fetches it and checks its SHA-256 once for all its workers
+   *  (checked). */
+  async loadModel(model: Artifact, settings?: Record<string, unknown>) {
+    return this.channel.send<LoadModelReply>({ type: "model", model: await checked(model), name: model.id, settings }).done;
   }
   describe(q: PositionQuery) {
     return this.channel.send<DescribeReply>({ type: "call", request: { id: "d", action: "describe", ...q } }).done;

@@ -2,7 +2,7 @@
 // command at a time, in order. In one of three forms (bot.ts, botModes): the threaded bot with its network on the GPU
 // (ONNX Runtime Web on WebGPU, as the GPU worker runs it), the threaded bot with its network on CPU workers (the
 // engine's evaluator workers, which this worker starts), or the bot with one search thread, which needs no JSPI.
-import { fetchArtifact } from "#lib/engine/artifacts.ts";
+import { bytesOf, fetchArtifact } from "#lib/engine/artifacts.ts";
 import type { CpuEvaluatorLibrary, EngineLibrary, PracticeLibrary } from "#lib/engine/library.ts";
 import { setUpOrt } from "#lib/engine/ort.ts";
 import { errorText } from "#lib/errors.ts";
@@ -15,7 +15,7 @@ const load = <T>(url: string) => import(/* @vite-ignore */ url) as Promise<T>;
 
 async function init(m: BotInit): Promise<string> {
   const library = await load<PracticeLibrary>(m.library);
-  const model = await fetchArtifact(m.model);
+  const model = await bytesOf(m.model); // checked by the page (client.ts, checked)
   if (m.mode === "single") {
     const one = await library.createPracticeBot(m.module);
     one.setModel(model);

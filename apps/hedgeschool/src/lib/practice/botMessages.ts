@@ -15,7 +15,7 @@ export interface BotInit {
   threads: number; // the threaded bot's search threads, and its largest batch
   library: string; // practice_bot.mjs
   module: WebAssembly.Module; // the bot's module for the mode, compiled by the page
-  model: StoredArtifact; // the network's file, which the bot (and each CPU evaluator) reads
+  model: Blob; // the network's file, checked by the page (client.ts, checked), which the bot (and each CPU evaluator) reads
   gpu?: { library: string; ortGlue: string; ortWasm: StoredArtifact; graph: StoredArtifact }; // gpu_engine.mjs, ONNX Runtime, the graph
   cpu?: { library: string; worker: string; module: WebAssembly.Module; workers: number }; // cpu_evaluator.mjs, its worker, enclosure-eval.wasm
 }

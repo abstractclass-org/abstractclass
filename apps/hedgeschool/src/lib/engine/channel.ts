@@ -39,6 +39,7 @@ export class WorkerChannel<Request extends { id: number }> {
   private pending = new Map<number, Pending>();
   private nextId = 0;
   private worker: Worker;
+  private ended = false;
 
   constructor(worker: Worker) {
     this.worker = worker;
@@ -59,10 +60,12 @@ export class WorkerChannel<Request extends { id: number }> {
     };
   }
 
-  /** Sends a request. `partial` gets a search's results after each slice. */
+  /** Sends a request. `partial` gets a search's results after each slice. After terminate, the request rejects with
+   *  Stopped: a network load sends only once the page has checked the network (client.ts, checked). */
   send<T>(m: DistributiveOmit<Request, "id">, partial?: (r: unknown, ms: number) => void): { id: number; done: Promise<Timed<T>> } {
     const id = this.nextId++;
     const done = new Promise<Timed<T>>((resolve, reject) => {
+      if (this.ended) { reject(new Stopped()); return; }
       this.pending.set(id, { resolve: resolve as (t: Timed<unknown>) => void, reject, partial });
       this.worker.postMessage({ ...m, id });
     });
@@ -74,6 +77,7 @@ export class WorkerChannel<Request extends { id: number }> {
 
   /** Ends the worker. The requests still waiting for a reply reject with Stopped. */
   terminate() {
+    this.ended = true;
     this.worker.terminate();
     this.rejectAll(new Stopped());
   }

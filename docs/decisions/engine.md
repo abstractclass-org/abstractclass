@@ -1052,3 +1052,69 @@ Blunder's loss.
   lock changes. The notices page states the outputs section word for word, after the engine's paragraph.
 - **Checked:** requests/21, "Checked here". `npm test` passes (128), `npm run check` has no errors or warnings, and
   `npm run build` succeeds.
+
+### The network checked once for a page (2026-10-17)
+
+- **Now:** the page fetches a network and checks its SHA-256 once (`checked` in `src/lib/engine/client.ts`, one
+  promise for each URL, as `compile` keeps one for the module). It keeps the checked bytes as a Blob and posts the
+  Blob to each worker that loads the network: the CPU workers, the GPU worker and the practice bot's worker. A worker
+  only reads the bytes. A file whose SHA-256 is not the manifest's reaches no worker: the start fails, and the next
+  start fetches the file again (`client.test.ts`). Before, each CPU worker and the GPU worker fetched the network and
+  checked it, at each start, each change of network and each start after an idle release.
+- **The paths, counted** in Playwright's Chromium 153 (headless), on two builds with a temporary log line in
+  `fetchArtifact`: a review of the test fixture's game with 4 workers and the GPU on, through Chrome's software
+  adapter (another job held the GPU), then the practice bot in each of its three forms. The network's fetches and
+  checks:
+
+  | Step | Before | After |
+  |---|---|---|
+  | The review's start (HedgeFund 0.1 Lite) | 5: the 4 CPU workers and the GPU worker | 1: the page |
+  | A change to HedgeFund 0.1 | 5 | 1 |
+  | The start after the idle release, the GPU off | 4: the 4 new CPU workers | 0 |
+  | The practice bot's start, in each form | 1: the bot's worker | 1: the page |
+
+  The GPU worker started and searched in both builds ("In use"). The bot's three forms each started and answered in
+  both builds, and played their move. The start after the idle release was counted with the GPU off. With the GPU on,
+  the software adapter searched too slowly for the release to come within 2 minutes. The GPU worker's start takes the
+  same kept Blob (`checked`). After a change of network with the GPU on, a scripted start after the release started
+  no worker, in both builds (beads `abscls-36u`).
+- **The start, measured in pairs** on the same machine and browser: one fresh browser context a run, so a review
+  with no stored results, 4 workers, the GPU off. Five pairs for each network, with the HTTP cache empty (cold) and
+  with the engine's files fetched first (warm). The two runs of a pair follow each other, and their order alternates
+  from pair to pair. The machine was loaded and its load changed: before each run, WSL's load average was 3.6 to 7.2
+  and Windows' CPU 40% to 93%. Other sessions' jobs ran beside these runs, at 2 to 4 threads each. The mean load was
+  the same for both builds (4.7, and 65% against 69%).
+- **What load does not change** (every pair agrees, and each gain is larger than the spread inside a build):
+
+  | Network, cache | Bytes checked a start | Fetches | Hashing's CPU time a start | Gain in each pair |
+  |---|---|---|---|---|
+  | Lite, cold | 26.0 MB, then 6.5 MB | 4, then 1 | 10.6 to 11.6 ms, then 2.6 ms | 8.0 to 9.0 ms |
+  | Lite, warm | 26.0 MB, then 6.5 MB | 4, then 1 | 10.6 to 11.2 ms, then 2.6 to 2.7 ms | 8.0 to 8.6 ms |
+  | HedgeFund 0.1, cold | 82.4 MB, then 20.6 MB | 4, then 1 | 33.9 to 35.3 ms, then 8.1 to 8.9 ms | 25.7 to 26.8 ms |
+  | HedgeFund 0.1, warm | 82.4 MB, then 20.6 MB | 4, then 1 | 33.5 to 35.0 ms, then 8.1 to 8.3 ms | 25.3 to 26.8 ms |
+
+  The CPU time is the thread time of Chrome's `DoDigest` trace events. With n workers the start checks the network n
+  times before, and once after.
+- **The start's time: no gain shown.** The time to the rules' answer (`review:rules`), to the network loaded in every
+  worker, and to the first engine result changed in both directions from pair to pair, in all four cases. The first
+  result's differences (after less before): Lite cold -460 to +303 ms, Lite warm -492 to +292 ms, HedgeFund 0.1
+  cold -697 to +191 ms, warm -667 to +315 ms. Inside one build, the first result's range was 0.34 to 1.6 s. Before,
+  the 4 workers checked the network at the same time, each for 2.6 to 3.0 ms (Lite) or 8.1 to 9.1 ms (HedgeFund
+  0.1). So the start waited for about one check before as it does now, and its time can gain little where cores are
+  free.
+- **The HTTP cache:** the server counted the network's requests. HedgeFund 0.1 Lite came from the server once a cold
+  start and not at all a warm one, in both builds. HedgeFund 0.1 (20.6 MB) came from the server for each fetch, warm
+  too: 4 requests a start before, 1 after. These fresh browser contexts did not keep it in their cache.
+- **What it costs:** the check now runs on the page's main thread, because Chrome runs a digest on the thread that
+  asks for it: 2.6 ms for HedgeFund 0.1 Lite and 8.1 to 8.9 ms for HedgeFund 0.1, once for each network a page loads.
+  Before, the main thread hashed nothing. The page keeps the checked file of each network that it loaded for as long
+  as it is open: 6.5 MB and 20.6 MB (design 09).
+- **Not changed:** the GPU worker still fetches, decompresses and checks ONNX Runtime's WebAssembly and the network's
+  graph at each start, and so does the practice bot's GPU form. In the page, their decompression (about 47 MB) would
+  run on the main thread. That is a separate decision (beads `abscls-6ab`). The network's download still starts
+  after the first worker's module start, as before: an earlier start would share a first visit's bandwidth with the
+  module, which the rules need first.
+- **Not measured:** the GPU's start on a real GPU (another job held it), the GPU's start after an idle release, a
+  typical laptop, and a browser with a normal profile and its disk cache.
+- **Checked:** `npm test` passes (132), `npm run check` has no errors or warnings, `npm run build` succeeds, and the
+  layout sweep passes in Chromium.

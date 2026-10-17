@@ -25,7 +25,8 @@
   let error = $state("");
 
   let version = $state<VersionReply | null>(null);
-  let loaded = $state<{ model: ModelInfo; ms: number; memory: number } | null>(null);
+  // The network: the slowest worker's load, and the whole load, the page's download and check too (client.ts, checked)
+  let loaded = $state<{ model: ModelInfo; ms: number; total: number; memory: number } | null>(null);
   let initMs = $state(0); // the slowest worker's start, measured in the worker
   let start = $state({ ms: 0, workers: 0 }); // from creating the workers until every one has started, on the page
   let described = $state<{ reply: DescribeReply; ms: number } | null>(null);
@@ -73,9 +74,9 @@
     }
     if (withModel && loaded?.model.name !== modelId) {
       busy = `loading the network ${modelId}`;
-      const model = modelOf(manifest!, modelId)!;
+      const model = modelOf(manifest!, modelId)!, t0 = performance.now();
       const t = await Promise.all(pool!.engines.map(e => e.loadModel(model)));
-      loaded = { model: t[0].reply.model, ms: Math.max(...t.map(x => x.ms)), memory: Math.max(...t.map(x => x.memory)) };
+      loaded = { model: t[0].reply.model, ms: Math.max(...t.map(x => x.ms)), total: performance.now() - t0, memory: Math.max(...t.map(x => x.memory)) };
     }
     return pool!.engines;
   }
@@ -277,7 +278,7 @@
             <tr><td>Trained outputs</td><td>{version.trained.join(", ")}</td></tr>
             <tr><td>Module start</td><td>{fmt(initMs)} in a worker, {fmt(start.ms)} until all {start.workers} workers started</td></tr>
             {#if loaded}
-              <tr><td>Network</td><td>{loaded.model.name}, {megabytes(loaded.model.bytes)} MB, loaded in {fmt(loaded.ms)}</td></tr>
+              <tr><td>Network</td><td>{loaded.model.name}, {megabytes(loaded.model.bytes)} MB, loaded in {fmt(loaded.ms)} in a worker, {fmt(loaded.total)} with the page's download and check</td></tr>
               <tr><td>SHA-256</td><td class="font-mono">{loaded.model.sha256.slice(0, 16)}…</td></tr>
               <tr><td>Memory</td><td>{mib(loaded.memory)} an instance</td></tr>
             {/if}

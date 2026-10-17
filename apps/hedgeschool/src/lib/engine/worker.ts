@@ -1,8 +1,9 @@
 // One engine module in a Web Worker (docs/design/02-static-site.md). Requests run one at a time, in order. A search
 // runs in slices (channel.ts, searchInSlices): after each slice the worker posts the results so far and yields, so that
 // a stop message can arrive. The engine continues the same tree, so slices change no result. The module runs through
-// the engine's own library (library.ts, createCpuEngine), and the network comes checked (artifacts.ts).
-import { fetchArtifact } from "./artifacts.ts";
+// the engine's own library (library.ts, createCpuEngine), and the network comes checked by the page (client.ts,
+// checked).
+import { bytesOf } from "./artifacts.ts";
 import { searchInSlices } from "./channel.ts";
 import { loadLibrary, type CpuEngine } from "./library.ts";
 import type { WorkerReply, WorkerRequest } from "./messages.ts";
@@ -26,7 +27,7 @@ async function handle(m: WorkerRequest) {
     engine = await library.createCpuEngine(m.module, { log: text => console.debug(text) }); // compiled by the page (client.ts)
     done(call({ id: "v", action: "query_version" }));
   } else if (m.type === "model") {
-    engine!.setModel(await fetchArtifact(m.model));
+    engine!.setModel(await bytesOf(m.model));
     done(call({ id: "load", action: "load_model", name: m.name, ...(m.settings ? { settings: m.settings } : {}) }));
   } else if (m.type === "call") {
     done(call(m.request));

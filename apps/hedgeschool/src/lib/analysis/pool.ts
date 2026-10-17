@@ -213,7 +213,8 @@ export class EnginePool {
 
   /** Ends the search workers and the GPU worker when no task has run for a while (IDLE_RELEASE_MS, shorter in a hidden
    *  tab), and starts them again with the next task: an open tab then holds their memory only while it searches. The
-   *  rules worker stays, so the board answers at once. Call after start(). */
+   *  rules worker stays, so the board answers at once. The page keeps the network's checked file (client.ts,
+   *  checked), so the workers start again with no new fetch or check. Call after start(). */
   releaseWhenIdle(ms = IDLE_RELEASE_MS) {
     this.idleRelease = ms;
     document.addEventListener("visibilitychange", this.onVisibility);
