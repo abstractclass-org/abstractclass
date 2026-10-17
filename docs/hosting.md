@@ -226,6 +226,13 @@ put them behind a sign-in (Cloudflare Access).
   4. **Delete the two IP rules:** in **Admin → Data collection and modification → Data streams**, click the web
      stream, then **Configure tag settings → Show more → Define internal traffic**, and delete both rules. They miss
      the owner's visits when WARP's address changes, and they catch other WARP users' visits.
+
+  Done on 2026-10-17: the filter is Active, and the stream has no IP rules.
+- **Tag diagnostics says "Urgent": "Verify consent mode set up as 0% consent rate detected".** This is expected. The
+  site sends the three signals for ads (`ad_storage`, `ad_user_data`, `ad_personalization`) as denied for every
+  visitor, because it shows no ads and asks for no consent to them. `analytics_storage` follows the visitor's choice:
+  a visitor who accepts sends `gcs=G101` (ads denied, analytics granted). The diagnostic counts the signals for ads,
+  so it finds all of them denied. It is for sites that use Google Ads. Dismiss it.
 - **One property for Hedge School.** Other sites on the domain, from other repositories, can have their own properties:
   each site's reports stay apart, with their own settings, and a site can be handed over or closed alone. Or they can
   share Hedge School's ID, for one report of the whole domain, split by hostname: a visitor who moves between the
