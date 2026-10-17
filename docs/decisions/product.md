@@ -3236,3 +3236,38 @@ sweep.
   (`gcs=G100`), with the flag and without it. The address lost the parameter each time. Not checked: the router's
   own page views (a made-up ID's tag has no stream settings, so it sends none), and the live property's Realtime
   report, which waits for the release.
+
+### Practice: up to 8,192 visits, and any number (2026-10-17)
+
+- **What:** the practice bot's visits go to 8,192 (2^13), and a box beside the slider takes any whole number from 1
+  to 8,192 (design 24, item 2). The slider keeps its doublings, now 14 stops. It shows a typed number at the doubling
+  at or below it. The box sets the visits when the player leaves it or presses Enter. A number outside the range or
+  not whole stays in the box with "Type a whole number from 1 to 8,192.", and the sides do not start a game until it
+  changes. The saved choices and the kept game take any whole number in the range (`visitsTaken` in
+  `src/lib/practice/practice.ts`). The stored games already took visits up to 2^20 (`src/lib/practice/stored.ts`),
+  so the Function and the database did not change.
+- **Why 8,192, not 131,072 (2^17):** the estimates use design 24's speeds with HedgeFund 0.1 Lite. Beyond 1,024
+  visits, they take the time to grow in line with the visits. A move at 131,072 visits then takes about 2.6 minutes
+  on the GPU, 7.1 minutes on 4 CPU workers and 20 minutes on one thread. At 8,192 visits, it takes about 10 s, 27 s
+  and 1.3 minutes. The estimates count 48 bot moves a game: the archive's median game has 95 edges.
+- **Measured in a browser:** Playwright's Chromium 153 in its new headless mode, against a production build. The
+  page resumed a kept game with one edge of the player, so the bot played its turn of two edges at 8,192
+  visits, Low variety, in the CPU form with 4 workers. The memory is the renderer process's, which holds the page,
+  the bot's worker and its 4 evaluation workers, from Windows.
+
+  | Network | First edge | Second edge | Peak working set | Peak private bytes |
+  |---|---|---|---|---|
+  | HedgeFund 0.1 Lite | 39.0 s | 0.07 s | 866 MB | 962 MB |
+  | HedgeFund 0.1 | 137.4 s | 0.18 s | 1,464 MB | 1,924 MB |
+
+  Both turns finished, with no error and no lack of memory. The first edge searched from no tree. The second edge
+  took almost no time: the bot keeps its tree, so its second search probably needed few new visits. This check did
+  not read the tree's visits. The full network took 3.5 times the Lite's time.
+- **The machine's load:** Windows' CPU was 99% busy (the engine repository's replay on 8 threads), and the job
+  ran under a CPU cap of 4 threads of 16. The times are not a baseline. A trial at 64 visits on the same set-up took
+  0.94 s and 1.10 s an edge, against design 24's 0.26 s.
+- **Not measured:** the GPU form and the one-thread form. The test's Chromium gets a WebGPU adapter (NVIDIA,
+  Blackwell) and has JSPI, so the GPU form can run there, but the replay held the GPU (15.3 of 15.9 GB).
+- **Open:** Google Analytics' `bot_visits` (design 17) receives the exact number of visits, now one of 8,192 values,
+  not 11. The other numbers that the site sends are ranges (`src/lib/measure.ts`). The issue abscls-es4 holds the
+  decision: the exact number, or the doubling at or below it.

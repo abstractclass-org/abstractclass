@@ -5,7 +5,7 @@
 
 ## Context
 
-Practice (design 24) lets a player play HedgeFund at many settings: two networks, visits from 1 to 1,024, and three
+Practice (design 24) lets a player play HedgeFund at many settings: two networks, visits from 1 to 8,192, and three
 varieties. Its levels must rest on games by setting, not on guesses, and the games also show what players find hard.
 Until now, a game stays in the player's browser (design 19, item 7: "Games stay in the player's browser until the
 player gives one"), so no one can count them.

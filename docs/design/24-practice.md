@@ -1,6 +1,6 @@
 # Practice: a game against HedgeFund in the browser
 
-**Status:** in force, built. **Decided:** 2026-10-14.
+**Status:** in force, built. **Decided:** 2026-10-14. The visits to 8,192, and any number of them: 2026-10-17.
 
 ## Context
 
@@ -31,9 +31,19 @@ How strong each setting plays against people is not measured yet.
 2. **The bot's settings,** chosen before the game and fixed for it, as Lichess fixes the computer's level. Levels come
    later, from the engine repository's visit ladder and from games by setting.
    - **The network:** HedgeFund 0.1 Lite (the default) or HedgeFund 0.1.
-   - **The visits for each move:** by doublings from 1 to 1,024. The default is 64. As in KataGo, the visits count
-     the tree that the bot keeps from its last search (the engine repository's v2 design 22): every move ends with a
-     tree of the same size, and the second edge of the bot's turn needs fewer new visits. The levels count them so.
+   - **The visits for each move:** any whole number from 1 to 8,192 (2^13). The default is 64. As in KataGo, the
+     visits count the tree that the bot keeps from its last search (the engine repository's v2 design 22): every move
+     ends with a tree of the same size, and the second edge of the bot's turn needs fewer new visits. The levels count
+     them so.
+     - **A slider and a box:** the slider steps by doublings, 14 stops from 1 to 8,192, as the engine settings' depth
+       does (design 09). The box beside it shows the visits and takes any whole number in the range. The slider sets a
+       doubling. A typed number sets the visits when the player leaves the box or presses Enter, as in the engine
+       settings. The slider then shows the doubling at or below it: 3,000 visits show at 2,048. The engine settings
+       show the doubling nearest by ratio (4,096).
+     - **A number that the bot does not take:** outside the range, or not whole. The box keeps it and says the range,
+       and the visits stay as they were. No side starts a game until the number changes.
+     - **The top, 8,192:** a move takes about 8 times as long as at 1,024 visits. The page shows the bot's time
+       (item 6), so a player sees when the machine is too slow for the visits set.
    - **Variety,** the move temperature: how often the bot plays a move other than its best. KataGo's temperatures, by
      the move: a temperature at the game's start, halved every 19 edges, down to a floor.
 
@@ -123,6 +133,14 @@ How strong each setting plays against people is not measured yet.
 
 - **The bot plays as HedgeFund plays:** the GTP engine with its play settings, not the analysis module's `chooseMove`,
   whose root noise and new tree for each query are not the bot's play (request 15).
+- **8,192 visits at the most:** a search's time grows about in line with its visits. From the speeds above, a move at
+  8,192 visits takes about 10 s on the GPU, 27 s on 4 CPU workers and 1.3 minutes on one thread. A game of 48 bot
+  moves then takes about 8 minutes, 21 minutes and an hour. In a browser on a loaded machine, on 4 CPU workers, a move
+  searched from no tree took 39 s with HedgeFund 0.1 Lite and 2.3 minutes with HedgeFund 0.1. The second edge of the
+  bot's turn took less than a second (decisions/product.md, "Practice: up to 8,192 visits, and any number").
+- **Any number of visits, and the doubling at or below it on the slider:** a player can set a number between two
+  doublings. The slider never shows more visits than the bot searches. It shows the doubling by which the levels can
+  group the game.
 - **Settings named for what they are,** until levels rest on results. A level guessed now could be far off, and a
   player could not tell.
 - **Fixed settings make a record that one line describes,** and games by setting that the levels can later count.
@@ -138,6 +156,12 @@ How strong each setting plays against people is not measured yet.
 - **Named levels now** (Beginner to Strong): easier for a newcomer, but guessed. They wait for the visit ladder.
 - **One strength slider** (visits alone): simpler, with the network and the variety fixed. The three settings cost
   little more, and a player who knows the engine wants them.
+- **Visits by doublings only** (1 to 1,024 at first): each game at one of a few settings, which the levels count with
+  no grouping. But a player cannot set a number between two doublings, and the levels can group the typed numbers.
+- **A higher top,** such as 131,072 (2^17): about 7 minutes a move on 4 CPU workers and 6 hours a game, from the
+  speeds above. Too slow for a game in one sitting, and not measured in a browser.
+- **The engine settings' box** (design 09): a number outside the range becomes the range's nearest end, with no
+  message. But the bot then plays a whole game at visits that the player did not type.
 - **Settings that change during the game:** more freedom, but a record that needs a note at each change, and games
   that the levels' data cannot use.
 - **Several games in progress,** as Lichess's correspondence games: more to build, for a use nobody asked for.
@@ -148,6 +172,8 @@ How strong each setting plays against people is not measured yet.
 - **The download:** the practice bot's module, about 1.4 MB, and for the CPU workers the evaluator, about 0.6 MB.
   The networks and the GPU's graph are the review's own files, which the browser keeps.
 - **The levels need data:** the engine repository's visit ladder on the module, then games by setting.
+- **The levels group typed numbers:** a game can have any number of visits from 1 to 8,192. The visit ladder and the
+  games by setting must group them, by the doubling at or below them for example.
 - **The site's own temperatures** (Medium and High) are a guess until games show what they do.
 
 ## Where it is
@@ -174,5 +200,6 @@ How strong each setting plays against people is not measured yet.
 
 - [decisions/product.md](../decisions/product.md): "Practice designed" (2026-10-14).
 - [decisions/product.md](../decisions/product.md): "Practice built" (2026-10-14).
+- [decisions/product.md](../decisions/product.md): "Practice: up to 8,192 visits, and any number" (2026-10-17).
 - [requests/15-practice-bot.md](../requests/15-practice-bot.md): the bot, as the engine repository delivered it.
 - [requests/20-practice-set-up-start.md](../requests/20-practice-set-up-start.md): the bot from a set-up start.

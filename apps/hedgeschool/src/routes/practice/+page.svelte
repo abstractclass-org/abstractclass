@@ -40,8 +40,8 @@
   import { startBot } from "#lib/practice/bot.ts";
   import type { BotMode } from "#lib/practice/botMessages.ts";
   import { PracticeGame, saveUnfinished } from "#lib/practice/game.svelte.ts";
-  import { VARIETY_NAME, VISITS, botName, keep, loadChoices, loadKept, practiceEndParams, practiceOutcome, practiceParams, practiceTurn, saveChoices,
-           type KeptPractice, type PracticeOutcome, type Variety } from "#lib/practice/practice.ts";
+  import { MAX_VISITS, VARIETY_NAME, VISIT_STOPS, botName, keep, loadChoices, loadKept, practiceEndParams, practiceOutcome, practiceParams,
+           practiceTurn, saveChoices, visitsStop, visitsTaken, type KeptPractice, type PracticeOutcome, type Variety } from "#lib/practice/practice.ts";
   import PageMeta from "#lib/PageMeta.svelte";
 
   const WHERE: Record<BotMode, string> = { gpu: "on the GPU", cpu: "on the CPU workers", single: "on one thread" };
@@ -323,7 +323,11 @@
     return out;
   });
   const gaugeW = $derived(!score.bar || score.form !== "gauge" ? "0px" : score.area ? "1.875rem" : "1.375rem");
-  const visitsAt = $derived(Math.max(0, VISITS.indexOf(choices.bot.visits)));
+  // The visits box's text while the player types in it (null: it shows the setting). The visits change when the box is
+  // left or Enter is pressed, as in the engine settings. A number that the bot does not take stays in the box with the
+  // range, and no game starts until it changes.
+  let visitsTyped = $state<string | null>(null);
+  const visitsWrong = $derived(visitsTyped !== null && !visitsTaken(Number(visitsTyped)));
   let stripHeight = $state(0);
   let moveList = $state<HTMLElement | null>(null);
   $effect(() => { void shown; void turns; keepInView(moveList); });
@@ -358,17 +362,30 @@
       <SettingChoice label="Network" help="The larger network plays stronger, and takes longer."
                      options={NETWORKS.map(n => [n.id, `${networkName(n.id)} (${networkMB(n.id)} MB)`])}
                      get={() => choices.bot.network} set={v => (choices.bot.network = v)} />
+      <!-- The visits: a slider over the doublings, and a box that takes any whole number in their range (design 24). The
+           slider shows the doubling at or below a typed number. -->
       <div class="py-1.5">
-        <div class="flex items-baseline justify-between gap-3">
-          <label for="visits" class="text-sm font-medium">Visits a move</label>
-          <span class="text-sm font-semibold tabular-nums">{choices.bot.visits.toLocaleString("en")}</span>
+        <div class="flex items-center justify-between gap-3">
+          <label for="visits" class="text-sm font-medium">Visits for each move</label>
+          <input id="visits" type="number" min="1" max={MAX_VISITS} step="1" value={visitsTyped ?? choices.bot.visits}
+                 aria-invalid={visitsWrong} aria-describedby={visitsWrong ? "visits-message" : undefined}
+                 class="w-[4.5rem] text-right tabular-nums"
+                 oninput={e => (visitsTyped = e.currentTarget.value)}
+                 onchange={e => {
+                   const v = e.currentTarget.valueAsNumber;
+                   if (visitsTaken(v)) { choices.bot.visits = v; visitsTyped = null; }
+                 }} />
         </div>
+        {#if visitsWrong}
+          <p id="visits-message" class="text-xs text-blunder" role="alert">Type a whole number from 1 to {MAX_VISITS.toLocaleString("en")}.</p>
+        {/if}
         <p class="text-xs text-muted">More visits play stronger, and take longer. How strong each setting plays is not
           measured yet.</p>
-        <input id="visits" type="range" min="0" max={VISITS.length - 1} step="1" value={visitsAt}
-               aria-valuetext="{choices.bot.visits} visits" class="w-full mt-1 accent-(--accent)"
-               oninput={e => (choices.bot.visits = VISITS[e.currentTarget.valueAsNumber])} />
-        <div class="flex justify-between text-xs text-muted tabular-nums"><span>{VISITS[0]}</span><span>{VISITS.at(-1)!.toLocaleString("en")}</span></div>
+        <input type="range" min="0" max={VISIT_STOPS.length - 1} step="1" value={visitsStop(choices.bot.visits)}
+               aria-label="Visits for each move" aria-valuetext="{choices.bot.visits.toLocaleString("en")} visits"
+               class="w-full mt-1 accent-(--accent)"
+               oninput={e => { visitsTyped = null; choices.bot.visits = VISIT_STOPS[e.currentTarget.valueAsNumber]; }} />
+        <div class="flex justify-between text-xs text-muted tabular-nums"><span>1</span><span>{MAX_VISITS.toLocaleString("en")}</span></div>
       </div>
       <SettingChoice label="Variety" help={VARIETY_HELP[choices.bot.variety]}
                      options={Object.entries(VARIETY_NAME)} get={() => choices.bot.variety} set={v => (choices.bot.variety = v as Variety)} />
@@ -382,7 +399,7 @@
         <p class="mb-3 text-sm font-medium text-center">{ready ? "Choose your side to start" : "Loading the rules…"}</p>
         <div class="flex justify-center items-end gap-4">
           {#each [["blue", 0, "Blue"], ["random", "either", "Random"], ["red", 1, "Red"]] as const as [side, dot, label] (side)}
-            <button type="button" disabled={!ready} onclick={() => newGame(side)}
+            <button type="button" disabled={!ready || visitsWrong} onclick={() => newGame(side)}
                     class={["grid justify-items-center gap-1.5 rounded-lg", side === "random" ? "px-5 py-4" : "px-4 py-3",
                             choices.side === side && "border-accent"]}
                     aria-label="Play as {label}">

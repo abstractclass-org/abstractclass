@@ -4,8 +4,24 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { NETWORKS } from "#lib/analysis/engineSettings.ts";
 import { parseRecord } from "#lib/game/record.ts";
-import { botCommands, gtpAnswer, practiceEndParams, practiceOutcome, practiceParams, practiceRecord, practiceTurn, resignResult, scoreResult,
-         takebackCount, type KeptPractice } from "./practice.ts";
+import { botCommands, gtpAnswer, keep, loadChoices, loadKept, practiceEndParams, practiceOutcome, practiceParams, practiceRecord, practiceTurn,
+         resignResult, saveChoices, scoreResult, takebackCount, VISIT_STOPS, visitsStop, type KeptPractice } from "./practice.ts";
+
+// The browser's local storage, in memory: Node has none.
+const stored = new Map<string, string>();
+globalThis.localStorage = {
+  getItem: (k: string) => stored.get(k) ?? null, setItem: (k: string, v: string) => void stored.set(k, v),
+  removeItem: (k: string) => void stored.delete(k),
+} as Storage;
+
+test("the saved choices keep any whole number of visits from 1 to 8,192, and else the default", () => {
+  const visits = (v: unknown) => {
+    saveChoices({ bot: { network: NETWORKS[0].id, visits: v as number, variety: "low" }, side: "random", name: "" });
+    return loadChoices().bot.visits;
+  };
+  for (const v of [1, 3, 100, 1000, 1024, 5000, 8191, 8192]) assert.equal(visits(v), v);
+  for (const v of [0, -4, 8193, 16384, 1.5, "64", null]) assert.equal(visits(v), 64);
+});
 
 test("a takeback undoes the bot's turn after the player's last turn, then that turn", () => {
   // Blue (0) is the player. Blue 1 edge, Red 2, Blue 2, Red 2.
@@ -44,6 +60,22 @@ test("the bot's commands set the visits and the variety", () => {
 const game = (over: Partial<KeptPractice> = {}): KeptPractice => ({
   version: 1, bot: { network: NETWORKS[0].id, visits: 64, variety: "low" }, human: 0, name: "Ann", seed: 1,
   moves: ["D10-G10", "N9-Q10", "O9-Q10", "G10-K9"], builds: ["54486cd"], started: "2026-10-14T12:00:00Z", ...over,
+});
+
+test("the slider's stops are the doublings from 1 to 8,192, and a typed number shows at the doubling at or below it", () => {
+  assert.deepEqual(VISIT_STOPS, [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]);
+  assert.deepEqual([1, 2, 3, 4, 7, 64, 100, 1000, 1023, 1024, 5000, 8191, 8192].map(v => VISIT_STOPS[visitsStop(v)]),
+                   [1, 2, 2, 4, 4, 64, 64, 512, 512, 1024, 4096, 4096, 8192]);
+});
+
+test("the kept game comes back with any whole number of visits from 1 to 8,192, and not with others", () => {
+  const visits = (v: unknown) => {
+    keep(game({ bot: { network: NETWORKS[0].id, visits: v as number, variety: "low" } }));
+    return loadKept()?.bot.visits ?? null;
+  };
+  for (const v of [1, 3, 1000, 8192]) assert.equal(visits(v), v);
+  for (const v of [0, 8193, 2.5, undefined]) assert.equal(visits(v), null);
+  keep(null);
 });
 
 test("the record names both sides and the bot, and reads back with its moves and cut marks", () => {

@@ -1,7 +1,7 @@
 // Practice (docs/design/24-practice.md): a game against HedgeFund, the engine's practice bot, in the player's browser.
 // What the page and the bot share: the bot's settings, the game kept in this browser, the GTP commands that set the
 // bot, the takeback's reach, the result, and the game's record.
-import { NETWORKS, networkName } from "#lib/analysis/engineSettings.ts";
+import { NETWORKS, inSteps, networkName } from "#lib/analysis/engineSettings.ts";
 import { readLocalJson, writeLocal } from "#lib/storage/local.ts";
 import { writeRecord } from "#lib/game/record.ts";
 import { BOT_SECOND_RANGES, CORE_RANGES, EDGE_RANGES, TAKEBACK_RANGES, range } from "#lib/measure.ts";
@@ -9,9 +9,14 @@ import { turnFromCount, type Player } from "#lib/review/model.ts";
 import type { BotMode } from "./botMessages.ts";
 import type { StoredTakeback } from "./stored.ts";
 
-/** The visits for each bot move: by doublings from 1 to 1,024 (design 24). */
-export const VISITS = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024];
+/** The visits for each bot move: any whole number from 1 to 8,192 (design 24). The slider's stops are the doublings. */
+export const MAX_VISITS = 8192;
+export const VISIT_STOPS = Array.from({ length: Math.log2(MAX_VISITS) + 1 }, (_, k) => 2 ** k);
 export const DEFAULT_VISITS = 64;
+/** Whether the bot takes this number of visits. */
+export const visitsTaken = (visits: unknown): visits is number => inSteps(VISIT_STOPS, visits);
+/** The slider's stop for a number of visits that the bot takes: the doubling at or below it. */
+export const visitsStop = (visits: number) => 31 - Math.clz32(visits);
 
 /** Variety, the move temperature (KataGo's chosen-move temperature): at the game's start, halved every HALFLIFE edges,
  *  down to the floor. Low is KataGo's default. Medium and High are the site's own (design 24). */
@@ -41,7 +46,7 @@ export function loadChoices(): PracticeChoices {
   return {
     bot: {
       network: NETWORKS.some(n => n.id === bot?.network) ? bot!.network : d.bot.network,
-      visits: VISITS.includes(bot?.visits as number) ? bot!.visits : d.bot.visits,
+      visits: visitsTaken(bot?.visits) ? bot.visits : d.bot.visits,
       variety: bot?.variety && bot.variety in VARIETY ? bot.variety : d.bot.variety,
     },
     side: kept?.side === "blue" || kept?.side === "red" ? kept.side : d.side,
@@ -79,7 +84,7 @@ export interface KeptPractice {
 const GAME = "hedge-school:practice-game:1";
 export function loadKept(): KeptPractice | null {
   const k = readLocalJson<KeptPractice>(GAME);
-  return k && k.version === 1 && Array.isArray(k.moves) && (k.human === 0 || k.human === 1) && VISITS.includes(k.bot?.visits) ? k : null;
+  return k && k.version === 1 && Array.isArray(k.moves) && (k.human === 0 || k.human === 1) && visitsTaken(k.bot?.visits) ? k : null;
 }
 export const keep = (k: KeptPractice | null) => writeLocal(GAME, k && JSON.stringify(k));
 
