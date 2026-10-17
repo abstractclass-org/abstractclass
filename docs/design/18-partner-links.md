@@ -128,9 +128,13 @@ must make costs both of them a release.
   `127.0.0.1` and `localhost` as a partner, "the local test site", over http too. The live site and the `dev` preview
   never do. A partner then tests its own pages, on its own computer, before its site is live. It gets the address of
   one `partner_test` deployment (`https://<hash>.hedgeschool.pages.dev`), never a branch's address: a deployment's
-  address shows that deployment only, and deleting the deployment withdraws it. The `dev` preview's address stays
-  private. The /developers page names the live address in its examples, and tells a partner to ask for the test
-  address. The steps are in [hosting.md](../hosting.md).
+  address shows that deployment only, and deleting the deployment withdraws it. The previews' addresses are public:
+  hosting.md gives them, and the public log of each run of the workflow **Deploy** gives its deployment's address.
+  They can be public. A preview carries `noindex` (design 23, item 2). It holds no secret: its build gets none, and
+  the deploy's one secret, its Cloudflare API token, serves only the upload (hosting.md, section 3). It keeps its
+  practice games in a database of its own (design 25, item 7, and hosting.md, section 7). The /developers page names
+  the live address in its examples, and tells a partner to ask for the test address: only a `partner_test` build
+  takes a partner's local pages. The steps are in [hosting.md](../hosting.md).
 - **The first test:** a local build, with a local test site, checked the whole way: its game page's button, the
   review, the link back, "Save to the local test site", the file received and saved, and the kept review opened again
   in a browser that had no game.
@@ -153,3 +157,4 @@ must make costs both of them a release.
 
 - [decisions/product.md](../decisions/product.md): "Links from another site, and reviews saved back" (2026-10-13).
 - [decisions/product.md](../decisions/product.md): "One save to a partner site, which updates" (2026-10-14).
+- [decisions/architecture.md](../decisions/architecture.md): "The previews' addresses are public" (2026-10-17).

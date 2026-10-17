@@ -168,3 +168,15 @@ The repository, the stack, hosting, and how the engine's artifacts arrive.
   names (fdfe5ad, 06534ee, 632f2a0 and 85c2adb), and the module builds 8195171 and 319a5c4. A visitor's browser
   keeps each analysis under its search's name. A new name would make the site delete those analyses as an earlier
   engine's.
+
+### The previews' addresses are public (2026-10-17)
+
+- **What:** the previews stay public, with no sign-in. Their addresses are public too: hosting.md gives them, and the
+  public log of each run of the workflow **Deploy** gives its deployment's address.
+- **Why:** a preview carries `noindex` (design 23, item 2), its build gets no secret (hosting.md, section 3), and it
+  keeps its practice games in a database of its own (design 25, item 7). The other choice was Pages' Preview access
+  (Cloudflare Access): a partner, and each device that opens a preview, would then sign in first.
+- **Changed here:** design 18, "A partner's test", no longer says that the `dev` preview's address stays private. A
+  partner still gets the address of one `partner_test` deployment, because only that build takes a partner's local
+  pages. The /developers page and design 23 stay as they are: neither calls the previews private.
+- **It closes** the "Left" note of the entry "The site's repository is public".
