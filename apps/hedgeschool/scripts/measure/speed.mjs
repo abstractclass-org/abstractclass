@@ -4,7 +4,7 @@
 // verdict on them. Its tests: speed.test.mjs.
 import { chromium } from "@playwright/test";
 import { execFileSync } from "node:child_process";
-import { createReadStream, existsSync, statSync } from "node:fs";
+import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
 import { createServer } from "node:http";
 import { dirname, extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -17,19 +17,34 @@ const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", "
                 ".xml": "application/xml" };
 
 /**
+ * The rules of a build folder's _headers (Cloudflare Pages' format, from static/_headers): each path's pattern, where
+ * `*` matches any text and `:name` one segment of the path, and the headers that it sets. A rule for a host
+ * (`https://…`) matches no path.
+ */
+export function headerRules(dir) {
+  const rules = [], path = join(dir, "_headers");
+  for (const line of existsSync(path) ? readFileSync(path, "utf8").split(/\r?\n/) : []) {
+    if (!line.trim() || line.trim().startsWith("#")) continue;
+    if (/^\s/.test(line)) { const at = line.indexOf(":"); rules.at(-1).set[line.slice(0, at).trim()] = line.slice(at + 1).trim(); }
+    else rules.push({ pattern: new RegExp("^" + line.trim().replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*").replace(/:\w+/g, "[^/]+") + "$"), set: {} });
+  }
+  return rules;
+}
+
+/**
  * A build's preview on a port of its own, at 127.0.0.1. It serves a build folder (`build` after `npm run build`, or a
  * copy of it, so that two builds can run side by side) as Cloudflare Pages does: a page at its path without `.html`,
- * the folder's 404.html for a path that it lacks, and the cache rules of static/_headers. Resolves with the preview's
- * address and a function that stops it.
+ * the folder's 404.html for a path that it lacks, and the headers of the folder's own _headers, "no-cache" where they
+ * set no Cache-Control. Resolves with the preview's address and a function that stops it.
  */
 export async function preview(dir, port) {
-  const file = p => existsSync(p) && statSync(p).isFile() ? p : undefined;
+  const file = p => existsSync(p) && statSync(p).isFile() ? p : undefined, rules = headerRules(dir);
   const server = createServer((req, res) => {
     const path = decodeURIComponent(new URL(req.url, "http://x").pathname), base = join(dir, path);
     const found = file(base) ?? file(`${base}.html`) ?? file(join(base, "index.html")), sent = found ?? join(dir, "404.html");
-    const immutable = found && /^\/_app\/immutable\/|^\/engine\/[^/]+\/[^/]+$/.test(path);
-    res.writeHead(found ? 200 : 404, { "Content-Type": TYPES[extname(sent)] ?? "application/octet-stream", "Content-Length": statSync(sent).size,
-                                       "Cache-Control": immutable ? "public, max-age=31536000, immutable" : "no-cache" });
+    const headers = { "Content-Type": TYPES[extname(sent)] ?? "application/octet-stream", "Content-Length": statSync(sent).size, "Cache-Control": "no-cache" };
+    if (found) for (const { pattern, set } of rules) if (pattern.test(path)) Object.assign(headers, set);
+    res.writeHead(found ? 200 : 404, headers);
     createReadStream(sent).pipe(res);
   });
   await new Promise((resolve, reject) => server.once("error", reject).listen(port, "127.0.0.1", resolve));
@@ -87,8 +102,8 @@ export function eventTime(trace, name) {
 
 /**
  * The page's layout shift so far, as the browser's Cumulative Layout Shift counts it (`cls`), and each element that
- * moved (`moved`): when it first moved, in milliseconds from the mark `since` (from the page's start without one), and
- * how many times.
+ * moved (`moved`): when it first moved, in milliseconds from the mark `since` (from the page's start when no `since` is
+ * given), and how many times. The page must have the mark `since` already.
  */
 export function layoutShift(page, since) {
   return page.evaluate(since => {
@@ -119,9 +134,9 @@ export function layoutShift(page, since) {
 }
 
 /**
- * The machine's load now, from `scripts/machine status` in the planning folder (docs/machine.md, in the folder above
- * the repository): Windows' processor use in percent, WSL's load average over one minute, the GPU's use in percent, and
- * the heavy jobs that run. Null away from the machine.
+ * The machine's load now, from `scripts/machine status` in the planning folder (`abstractclass-org`, docs/machine.md):
+ * Windows' processor use in percent, WSL's load average over one minute, the GPU's use in percent, and the heavy jobs
+ * that run. Null away from the machine. When the status fails, its error (`error`), so that a long measurement goes on.
  */
 export function machineLoad() {
   let dir = dirname(fileURLToPath(import.meta.url));
@@ -129,8 +144,11 @@ export function machineLoad() {
     if (dirname(dir) === dir) return null; // the disk's root
     dir = dirname(dir);
   }
-  const s = JSON.parse(execFileSync("python", [join(dir, "scripts", "machine.py"), "status", "--json"], { encoding: "utf8" }));
-  return { time: new Date().toISOString(), cpu: s.windows.cpu_pct, load: s.wsl.load?.[0], gpu: s.gpu.util_pct,
+  const time = new Date().toISOString();
+  let s;
+  try { s = JSON.parse(execFileSync("python", [join(dir, "scripts", "machine.py"), "status", "--json"], { encoding: "utf8" })); }
+  catch (e) { return { time, error: (e.stderr?.trim() || e.message).split("\n").at(-1) }; }
+  return { time, cpu: s.windows.cpu_pct, load: s.wsl.load?.[0], gpu: s.gpu.util_pct,
            jobs: s.jobs.filter(j => (j.state ?? "running") === "running").map(j => `${j.name} (${j.threads} threads${j.gpu ? ", the GPU" : ""})`) };
 }
 
@@ -150,6 +168,7 @@ export async function inPairs(builds, count, run) {
   return pairs;
 }
 
+/** The median of numbers: the mean of the middle two for an even count. */
 export const median = xs => { const s = [...xs].sort((a, b) => a - b); return s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2; };
 
 /**

@@ -34,7 +34,7 @@ if (judge) await page.evaluate(d => localStorage.setItem("learn-enclosure:review
 
 /** The first draw's tasks in a trace, each with its wall time and thread time in milliseconds, or null when the trace
  *  lacks a mark or the paint after it. The move list's rows come a frame after the review, in the task with the mark
- *  `review:moves`, or with the review when that mark lacks. */
+ *  `review:moves`, or with the review when the trace lacks that mark. */
 const firstDraw = traced =>
   tasksBetween(traced, "review:shown", mark(traced, "review:moves") ? "review:moves" : "review:shown", { paint: true });
 const overLong = xs => { const l = xs.filter(x => x > LONG); return { count: l.length, beyond: l.reduce((s, x) => s + x - LONG, 0), longest: Math.max(0, ...xs) }; };

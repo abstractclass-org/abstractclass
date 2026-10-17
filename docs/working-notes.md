@@ -20,14 +20,14 @@ learn one, and remove a note when it stops being true. The work itself is in bea
 - **This machine is often loaded** by the engine repository's training: its speed numbers are no baseline then.
   Compare two builds in pairs: each pair is one build's set of runs, then the other's, back to back, and the build
   that runs first takes turns. Before each set, read the machine's state (`scripts/machine status` in the planning
-  folder, `..` from the repository's root). A change counts only where every pair agrees, and where the gain is at
-  least the spread between sets of one build. Chrome's trace gives each task's thread time, which the wait for a
-  processor does not change.
+  folder, `abstractclass-org`). A change counts only where every pair agrees, and where the gain is at least the
+  spread between sets of one build. Chrome's trace gives each task's thread time, which the wait for a processor does
+  not change.
 - **Measuring speed in a browser:** a measuring script takes its tools from `scripts/measure/speed.mjs`. Do not
   write them again. Its tests are in `speed.test.mjs`, and `review-first-frame.mjs` uses it.
-  - `preview(dir, port)` serves a build folder on a port of its own, as Cloudflare Pages serves it. To compare two
-    builds, copy `build` to a folder in `runs/` (Git ignores it) after each build, and serve each copy on its own
-    port.
+  - `preview(dir, port)` serves a build folder on a port of its own, as Cloudflare Pages serves it, with the headers
+    of the folder's own `_headers`. To compare two builds, copy `build` to a folder in `runs/` (Git ignores it) after
+    each build, and serve each copy on its own port.
   - `launch()` starts Playwright's Chromium with its scroll bars. `trace(browser, page, act)` records Chrome's trace
     while `act` runs.
   - `tasksBetween(trace, from, to, { paint })` gives the main thread's tasks between two marks, each with its wall
@@ -36,7 +36,8 @@ learn one, and remove a note when it stops being true. The work itself is in bea
     buffered `PerformanceObserver`: `performance.getEntriesByType("layout-shift")` gives no entries.
   - `inPairs(builds, count, run)` runs two builds in alternating pairs, and reads the machine's load
     (`machineLoad()`) before each run. `verdict(pairs)` gives each pair's difference, each build's median and spread,
-    and whether the pairs show a change, by the rule above.
+    and whether the pairs show a change: every pair agrees, and the median difference is at least the larger of the
+    two builds' spreads. The sign of the difference tells a gain from a loss.
 
   ```js
   import { inPairs, launch, preview, verdict } from "./speed.mjs";

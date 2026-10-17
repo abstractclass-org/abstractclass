@@ -1,4 +1,5 @@
-// Checks the parsing of Chrome's trace and the verdict on pairs (speed.mjs), on recorded inputs. Run: npm test.
+// Checks the parsing of Chrome's trace, the verdict on pairs and the preview's header rules (speed.mjs), on recorded
+// inputs and static/_headers. Run: npm test.
 //   - tests/fixtures/review-reload-trace.json: Chrome's trace of a reload of the stored review, in Playwright's Chromium
 //     (the build of abscls-3nr), cut to the events that the parsing reads: the marks, the main thread's tasks and
 //     paints of the first draw and three on each side of it, eight tasks of other threads inside it, and the eight
@@ -9,7 +10,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { eventTime, median, tasksBetween, verdict } from "./speed.mjs";
+import { eventTime, headerRules, median, tasksBetween, verdict } from "./speed.mjs";
 
 const trace = JSON.parse(readFileSync("tests/fixtures/review-reload-trace.json", "utf8"));
 // The first draw's tasks: each task's start, wall time and thread time, in milliseconds.
@@ -55,12 +56,10 @@ test("a named event's time adds its events on every thread", () => {
 // by wall time.
 const LONGEST_THREAD = [[46.094, 34.199], [49.899, 35.489], [44.253, 26.322], [53.352, 32.957], [49.185, 40.41]];
 const LONGEST_WALL = [[83.702, 156.861], [139.832, 101.285], [89.691, 59.4], [233.312, 84.247], [110.381, 104.156]];
-// The SHA-256 checks' processor time a start, in milliseconds: the network Lite, with the HTTP cache empty.
+// The SHA-256 checks' processor time at each start, in milliseconds: the network Lite, with the HTTP cache empty.
 const HASHING = [[10.6, 2.6], [11.4, 2.6], [11.1, 2.6], [11.6, 2.6], [11.3, 2.6]];
 const round = (x, places = 0) => Math.round(x * 10 ** places) / 10 ** places;
-const rounded = (v, places) => ({ ...v, diffs: v.diffs.map(d => round(d, places)), diff: round(v.diff, places),
-                                  a: { median: round(v.a.median, places), spread: round(v.a.spread, places) },
-                                  b: { median: round(v.b.median, places), spread: round(v.b.spread, places) } });
+const rounded = (v, places) => JSON.parse(JSON.stringify(v), (_, x) => typeof x === "number" ? round(x, places) : x);
 
 test("the pairs show a change when they all agree, by at least the larger spread", () => {
   assert.deepEqual(rounded(verdict(LONGEST_THREAD), 3), {
@@ -86,4 +85,15 @@ test("pairs that agree by less than a build's spread show no change", () => {
 test("the median of an even count is the mean of the middle two", () => {
   assert.equal(median([4, 1, 3, 2]), 2.5);
   assert.equal(median([3, 1, 2]), 2);
+});
+
+test("the preview's headers of a path come from the rules of _headers that match it", () => {
+  const rules = headerRules("static");
+  const headers = path => Object.assign({}, ...rules.filter(r => r.pattern.test(path)).map(r => r.set));
+  const immutable = { "Cache-Control": "public, max-age=31536000, immutable" };
+  assert.deepEqual(headers("/_app/immutable/chunks/a.js"), immutable);
+  assert.deepEqual(headers("/engine/b10c128-s66625408-d13350730/model-float16.bin"), immutable);
+  assert.deepEqual(headers("/engine/manifest.json"), {});
+  assert.deepEqual(headers("/bookmarklet.js"), { "Cache-Control": "no-cache" });
+  assert.deepEqual(headers("/review"), {}); // the rules for Cloudflare's own hosts match no path
 });
