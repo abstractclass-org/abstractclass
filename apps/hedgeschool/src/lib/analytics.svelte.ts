@@ -8,12 +8,14 @@
 // them from the layout, and the review names its game's id after the `#`, which neither records.
 //
 // Google Analytics also takes events (design 17): what a visitor did, in counts and ranges (measure.ts), for the
-// decisions in that design. A visitor who has not accepted sends them as cookieless pings, counted with no visitor.
+// decisions in that design. A visitor who has not accepted sends them as cookieless pings, counted with no visitor. A
+// browser with the flag of internal traffic (internalTraffic.ts) marks its events, so that the owner's visits stay out.
 //
 // The visitor's consent has a choice for each purpose (design 25): Google Analytics' cookies, and the random number
 // that links this browser's practice games. The banner's Accept and Decline set both, and the privacy page each. The
 // key is new with the second purpose: a consent covers the purposes that it named, so every visitor is asked again.
 import { STORES_PRACTICE_GAMES } from "#lib/edition.ts";
+import { isInternal } from "#lib/internalTraffic.ts";
 import { readLocal, readLocalJson, writeLocal } from "#lib/storage/local.ts";
 
 const GA_ID: string | undefined = import.meta.env.VITE_GA_ID;
@@ -84,7 +86,10 @@ export function startAnalytics() {
       analytics_storage: consent.analytics ?? "denied",
     });
     gtag("js", new Date());
-    gtag("config", GA_ID);
+    // A browser with the flag of internal traffic (internalTraffic.ts): the tag gives every event of the page the
+    // parameter that Google's "Internal Traffic" filter drops, the first page view too.
+    if (isInternal()) gtag("config", GA_ID, { traffic_type: "internal" });
+    else gtag("config", GA_ID);
     addScript(`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`);
   }
 }

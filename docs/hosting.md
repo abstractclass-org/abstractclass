@@ -206,6 +206,24 @@ put them behind a sign-in (Cloudflare Access).
   (`G-TEST000000`), so none of its events are in the property.
 - The site loads the Google tag itself, in Google's consent mode, advanced form: Google's own snippet is not pasted
   anywhere. A build without `VITE_GA_ID` has no Google code.
+- **The owner's own visits** (design 17): the property's data filter **Internal Traffic** drops the events whose
+  `traffic_type` is `internal`, but only in the state **Active**. In the state **Testing**, Google's default, it drops
+  nothing. A browser with the site's flag of internal traffic gives every event that value. Do these steps once, after
+  a release that has the flag:
+  1. **Set the flag in each browser** that visits the site: each browser and each browser profile, on each device.
+     Open `https://hedgeschool.abstractclass.org/?internal=on`. The address loses `?internal=on` at once. The flag holds
+     for all pages of the live site in that browser, and not for a preview's address. It stays until someone clears
+     the browser's data for the site. A private window forgets it when it closes. To remove the flag, open a page of
+     the site with `?internal=off`.
+  2. **Check the flag:** keep the site open in that browser. In Google Analytics, open **Reports → Realtime**, click
+     **Add comparison**, choose the dimension **Test data filter name** with the value **Internal Traffic**, and click
+     **Apply**. The browser's visit shows in that comparison. A visit without the flag does not.
+  3. **Set the filter to Active:** in **Admin → Data collection and modification → Data filters**, click **Internal
+     Traffic**, set its state to **Active**, and click **Save**. From then on, Google Analytics drops these events, and
+     nothing can get them back.
+  4. **Delete the two IP rules:** in **Admin → Data collection and modification → Data streams**, click the web
+     stream, then **Configure tag settings → Show more → Define internal traffic**, and delete both rules. They miss
+     the owner's visits when WARP's address changes, and they catch other WARP users' visits.
 - **One property for Hedge School.** Other sites on the domain, from other repositories, can have their own properties:
   each site's reports stay apart, with their own settings, and a site can be handed over or closed alone. Or they can
   share Hedge School's ID, for one report of the whole domain, split by hostname: a visitor who moves between the

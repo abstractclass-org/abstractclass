@@ -30,6 +30,11 @@ visitors' machines, and the GPU on other machines.
    notes counts as one player who drew notes. In Practice, once in each game.
 5. **The privacy page lists every event** in plain words. A visitor who has not accepted the cookies sends the events
    as cookieless pings, which Google counts with nothing that links one to another.
+6. **The owner's own visits are internal traffic** (`src/lib/internalTraffic.ts`). Any page opened with `?internal=on`
+   keeps a flag in the browser, and `?internal=off` removes it. The page then takes the parameter out of its address.
+   While the flag is set, every event of that browser carries `traffic_type` = `internal`, from the first page view on.
+   The property's **Internal Traffic** filter drops these events. The steps in Google Analytics are in
+   [hosting.md](../hosting.md), section 4.
 
 ### The words
 
@@ -460,6 +465,10 @@ shows few rows. Read it as section "Reading it" says.
 - **The game's id after the `#`:** the site's promise is that neither service sees a game. An id made from the moves
   does not show the game, but it ties each page view to one game, and the reports gain nothing from it.
 - **A feature once in each review:** the question is how many players use it, not how often.
+- **A flag in the browser for internal traffic:** Google's
+  [internal traffic article](https://support.google.com/analytics/answer/10104470) lets a site add `traffic_type` to
+  its events itself, and Plausible (`plausible_ignore`) and Matomo (a cookie that ignores the visits) use a flag in the
+  browser too. The flag changes only its own browser's events, so it needs no secret.
 
 ## Alternatives
 
@@ -469,17 +478,24 @@ shows few rows. Read it as section "Reading it" says.
   page views off): it depends on a setting in Google's console that a later change could turn on again, and Cloudflare's
   service and the server's logs would still see it.
 - **Exact numbers for every count:** a scatter of values that groups badly and could set a visitor apart.
+- **An IP rule for internal traffic,** Google Analytics' own way: the owner's machine goes through Cloudflare WARP.
+  WARP changes its addresses and shares them among its users. So a rule misses the owner's visits, and it can catch
+  other people's visits.
 
 ## Consequences
 
 - A review's address is `/review#game=ID`. Older addresses keep working.
 - The owner registers the parameters in Google Analytics once (above). Until then the events show in Realtime only.
 - A new event or parameter goes into this document, the privacy page and Google's custom definitions together.
+- The owner sets the flag of internal traffic once in each browser, and sets the Internal Traffic filter to Active
+  once ([hosting.md](../hosting.md), section 4). A browser without the flag counts as before.
 
 ## Where it is
 
 - `src/lib/analytics.svelte.ts` (`track`, `trackOnce`, `setVisitor`), `src/lib/measure.ts` (the ranges, tested in
   `src/lib/measure.test.ts`).
+- The flag of internal traffic: `src/lib/internalTraffic.ts`, tested in `src/lib/internalTraffic.test.ts`. The site
+  reads the address's parameter as it starts, in `src/hooks.client.ts`.
 - The events: `src/lib/game/importEvents.ts` (the imports and loads), `src/lib/review/ReviewHome.svelte` (the Review
   tab's imports and loads, deletes, `games_stored`), `src/lib/review/Arrival.svelte` (the tools' imports, the share
   links' and partners' loads), `src/routes/analysis/+page.svelte` (the board's imports and loads, `analysis_open`),
@@ -500,3 +516,4 @@ shows few rows. Read it as section "Reading it" says.
   settings" (2026-10-14).
 - [decisions/product.md](../decisions/product.md): "A question before the practice games' delete, and the cancelled
   deletes counted" (2026-10-17).
+- [decisions/product.md](../decisions/product.md): "The owner's visits marked as internal traffic" (2026-10-17).

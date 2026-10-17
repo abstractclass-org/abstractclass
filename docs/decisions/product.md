@@ -3212,3 +3212,27 @@ sweep.
   scroll bars of 15 pixels there, in its headless shell and in its new headless mode. Edge on Windows has 15 pixels
   too ("The review's move list under its scroll bar"). Not checked: a run of the job on GitHub, its time, and its
   caches.
+
+### The owner's visits marked as internal traffic (2026-10-17)
+
+- **The problem:** Google Analytics' **Internal Traffic** filter stayed in Testing, so it dropped nothing, and the
+  owner's own visits counted. In 10-16 October, 6 of the 8 finished reviews ran at 4,096 visits on 9 to 16 cores,
+  almost certainly with the owner's settings. They swamp design 17's data on the engine's defaults. The two IP rules
+  that define internal traffic do not fit: the owner's machine goes through Cloudflare WARP (`cdn-cgi/trace` gives
+  `warp=on`, AS13335). A minute after the rules were made, its IPv4 address was outside their range. WARP changes its
+  addresses and shares them among its users.
+- **Decided:** a flag in the browser (design 17), as Plausible (`plausible_ignore`) and Matomo (a cookie that ignores
+  the visits) do. `?internal=on` on any page keeps it in localStorage (`hedge-school:internal-traffic:1`), and
+  `?internal=off` removes it. Any other value changes nothing. SvelteKit's `init` hook (`src/hooks.client.ts`) reads
+  the parameter before the router reads the address, and takes it out of the address. While the flag is set, the
+  tag's `config` carries `traffic_type: "internal"`. A browser without the flag sends the same `config` as before.
+- **The owner's steps** in Google Analytics are in hosting.md, section 4: set the flag in each browser, check it in
+  Realtime, set the filter to Active, and delete the two IP rules.
+- **Checked:** the type check, the unit tests, and a production build with a made-up measurement ID
+  (`G-TEST000000`) in Playwright's Chromium. The browser stopped every request to Google Analytics before it left the
+  machine. With the flag, every hit carried `tt=internal`, the tag's field for `traffic_type`: the first page view, a
+  later page without the parameter, the site's event after a page change by the router, and a page whose address
+  holds a game after the `#`. Without the flag, no hit carried it. A visitor who declined kept the consent denied
+  (`gcs=G100`), with the flag and without it. The address lost the parameter each time. Not checked: the router's
+  own page views (a made-up ID's tag has no stream settings, so it sends none), and the live property's Realtime
+  report, which waits for the release.
