@@ -30,4 +30,4 @@ accepted, done (with the engine repository's commit, tag or document), or declin
 | 18 | [Every position of a game in one request](18-describe-game.md) | done (`describe_game` in protocol 0.6.1, release `wasm-v2-engine-54486cd`), checked here |
 | 19 | [A record from a set-up start: the number of its first turn](19-turn-numbers-after-position.md) | done (the engine repository's design 04, commit `85f1792`), the reader here as strict |
 | 20 | [The practice bot from a set-up start](20-practice-set-up-start.md) | done (`enclosure-set-position`, interface 0.1.1, release `wasm-v2-engine-85f1792`), checked here |
-| 21 | [No training on the engine's outputs, in the engine's terms](21-no-training-on-outputs.md) | open |
+| 21 | [No training on the engine's outputs, in the engine's terms](21-no-training-on-outputs.md) | done (the engine repository's commit `ef6e24e`, its design 21, release `wasm-v2-engine-85f1792-terms2`), checked here, pinned and on the notices page |

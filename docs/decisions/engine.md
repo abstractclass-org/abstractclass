@@ -1039,3 +1039,16 @@ Blunder's loss.
 - **Checked** (engine 85f1792): one ladder game, 120 positions, one search of 256 visits a position, read at 32, 64
   and 128 visits, 4 workers. Every position has a result and no error. `scripts/measure/budget-summary.mjs` read the
   output by edge and by turn. One game is too few for a result: the check shows only that the collector runs.
+
+### The release 85f1792-terms2: the engine's outputs are not training data (2026-10-17)
+
+- **What:** the engine repository's release `wasm-v2-engine-85f1792-terms2`, for request 21: the files of
+  `wasm-v2-engine-85f1792` byte for byte, with a new `LICENSE.txt` (2,032 bytes) and a new manifest. The terms gain
+  the section "The engine's outputs" and name the repository at its current address (the engine repository's commit
+  `ef6e24e`, its design 21).
+- **The change:** the lock's terms entry takes the new tag, and the new file's SHA-256 and size. Its id is now
+  `engine-85f1792-terms2`, so the terms have a new path. The site serves `/engine/<id>/<file>` with a year's
+  immutable cache (`static/_headers`), so under the old path a browser could keep the old terms. Nothing else in the
+  lock changes. The notices page states the outputs section word for word, after the engine's paragraph.
+- **Checked:** requests/21, "Checked here". `npm test` passes (128), `npm run check` has no errors or warnings, and
+  `npm run build` succeeds.

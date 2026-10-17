@@ -97,11 +97,14 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
     the site for profit. For the repository, a licence for non-commercial use (PolyForm Noncommercial 1.0.0) is the
     nearest to these terms. It would not cover the sounds: the Pixabay Content License does not permit their passing
     on alone.
-    **The engine and its networks** have the same holder and the same terms, set in the engine repository (its v2
-    design 21, request 14): all rights reserved, with Hedge School and its visitors permitted to serve and run them.
-    Each release carries them as `LICENSE.txt`, which the site ships beside the modules (`engine.lock.json`, kind
-    `terms`). The notices page gives them in the engine repository's words, before KataGo's MIT licence and the other
-    works in `NOTICES.txt`.
+    **The engine and its networks** have the same holder and the same terms, set in the engine repository (its
+    `games/enclosure/docs/design/21-release-terms.md`, requests 14 and 21): all rights reserved, with Hedge School and
+    its visitors permitted to serve and run them. The terms also cover the engine's outputs: its analyses, and the
+    review files that hold them. Anyone may keep, share and publish the outputs as analysis, such as a player's reviews
+    and the review files that a partner site keeps (design 18). No one may use the outputs to train, distil or tune
+    another model, network or engine without the holder's written permission. Each release carries the terms as
+    `LICENSE.txt`, which the site ships beside the modules (`engine.lock.json`, kind `terms`). The notices page gives
+    the terms in the engine repository's words, before KataGo's MIT licence and the other works in `NOTICES.txt`.
 
 ### Constellation's export
 
