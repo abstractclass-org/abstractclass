@@ -47,7 +47,7 @@ Loading the engine, its speed, the engine interface, and the requests for it.
 
 ### The engine repository answers the requests (2026-10-09)
 
-- **The design pointer:** done in its commit `fb5b28e`. Its `docs/analysis-tool-design.md` now points here.
+- **The design pointer:** done in its commit `169fcdd`. Its `docs/analysis-tool-design.md` now points here.
 - **The protocol's needs:** accepted. Its draft design,
   [`docs/design/04-notation-and-protocol.md`](https://github.com/seankao31/enclosure-ai/blob/main/docs/design/04-notation-and-protocol.md),
   covers the notation (points as GTP, edges sorted, a one-line position, a game record) and the protocol.
@@ -234,7 +234,7 @@ Loading the engine, its speed, the engine interface, and the requests for it.
   wants from GTP.
 - **Tree reuse is not built.** The engine's design 04 said it was a query option. Every query clears the tree
   (`Search::setPosition`), as research/02-search-tree-reuse.md says. Design 04 now says so (engine repository commit
-  `bf61bdb`). Measured on the engine's GTP bot (b15c192, one thread, about 30 visits a second): the second edge of a
+  `444aae6`). Measured on the engine's GTP bot (b15c192, one thread, about 30 visits a second): the second edge of a
   turn, searched from the first edge's subtree, reaches 1.7 to 2 times the first edge's root visits. Across the
   opponent's turn, with pondering, 5 of 31 first edges kept 400 to 1,100 visits. A request would be a query that
   continues the worker's tree by playing moves, off by default, for the position on screen only, so that the labels

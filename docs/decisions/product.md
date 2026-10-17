@@ -222,7 +222,7 @@ The interface, the review, puzzles, lessons, labels and thresholds.
 
 ### The review on the engine, third feedback, and the cut mark (2026-10-10)
 
-- **The cut mark** (the engine repository's notation, its commit `c168502`): a move that cuts an opponent's edge is
+- **The cut mark** (the engine repository's notation, its commit `d5c5611`): a move that cuts an opponent's edge is
   written with `x` after it, `D10-G10x`. The reader takes a move with or without the mark and keeps the moves bare,
   because the pinned engine (protocol 0.1) does not read the mark. At import, Home and `/import` find with the
   engine's rules which moves cut, refuse a mark on a move that cuts nothing, and keep the record with a mark on every
@@ -285,7 +285,7 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   visits) the visits are spread, and 53 of 119 positions show more than number 1 (edge 30: eight, edge 92, a lost
   position where many moves are equal: ten). After the deep search (1,024 visits) at edge 30, number 1 has 767 visits
   and the board shows number 1 alone. The table's box stayed 157 pixels high at every position.
-- **Refined by the engine repository** (its design 04, commit `1a377d3`, answering request 04): the best-LCB move is
+- **Refined by the engine repository** (its design 04, commit `bcdb229`, answering request 04): the best-LCB move is
   not put on top outright. Its value is raised as far as its lower bound justifies against each other move, at most
   fivefold, which usually but not always puts it first. The protocol leaves out KataGo's symmetric twins, so the
   `order` numbers in a reply can have gaps. The review numbers the candidates by their place in the sorted list, so
@@ -488,7 +488,7 @@ The interface, the review, puzzles, lessons, labels and thresholds.
 
 ### The engine's line: where it stops (2026-10-10)
 
-- **The engine gives the visits of each edge of a line** (request 05, engine repository commit `0886496`, no protocol
+- **The engine gives the visits of each edge of a line** (request 05, engine repository commit `83a0e53`, no protocol
   change): with `includePVVisits: true`, each candidate has `pvVisits` and `pvEdgeVisits`, one number for each move
   of its `pv`. Every search of the review asks for them, and the analyses keep `pvEdgeVisits` with the line (the
   cache's shape version 4).
@@ -1515,7 +1515,7 @@ The interface, the review, puzzles, lessons, labels and thresholds.
 ### The site live on Cloudflare Pages (2026-10-12)
 
 - **Live** at `hedgeschool.abstractclass.org` (and `hedgeschool.pages.dev`), built by Pages from `main` at commit
-  `f7e179d`, with the settings in docs/hosting.md. The framework preset is None: Cloudflare's SvelteKit preset fills
+  `0dd4083`, with the settings in docs/hosting.md. The framework preset is None: Cloudflare's SvelteKit preset fills
   in the output of Cloudflare's own adapter (`.svelte-kit/cloudflare`), which renders on a server in a Worker, and the
   site uses adapter-static.
 - **Checked on the live site:** `noindex` on every file, a real 404, the year's cache on the hashed code and the
@@ -1955,7 +1955,7 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   not KaTrain's or Lizzie's. The listed line, the engine's best line in the move list and the branch previews already
   ended by visits only.
 - **Found with it:** pointing at the listed line past its 6th edge drew the later edges with no mover, so in no colour
-  and with black badges: the movers came for 6 edges only. Fixed in `7542f46`.
+  and with black badges: the movers came for 6 edges only. Fixed in `e916ee1`.
 
 ### A review shared by link, and the Greats in the review file (2026-10-13)
 
@@ -2907,16 +2907,16 @@ The interface, the review, puzzles, lessons, labels and thresholds.
 
 ### The review's move list under its scroll bar (2026-10-15)
 
-- **What:** from `51d51c3` on, the review's move list ran 6 pixels under its own scroll bar between 1,260 and 1,310
+- **What:** from `bd6df7c` on, the review's move list ran 6 pixels under its own scroll bar between 1,260 and 1,310
   pixels wide: its right edge (the lead numbers, the notes) was cut. Found on the previews `cb2b9188` (before) and
   `a11f9d4d` (after), measured in frames of each width on both.
 - **Why:** the review sizes its board from the window's width (`100vw`), less the other columns and 20 pixels for a
   scroll bar. Before, no scroll bar took that room on the review, so the side columns shared the 20 pixels, and the
-  move list had 316 pixels. Since `51d51c3`, the page's own scrolling area keeps its scroll bar's room (15 pixels on
+  move list had 316 pixels. Since `bd6df7c`, the page's own scrolling area keeps its scroll bar's room (15 pixels on
   Windows) on every page, and `100vw` still counts it in: the move list had 309, and needs 315 with its scroll bar.
 - **The fix:** the page area is a CSS container, and the review and Practice take their width from it (`100cqw`),
   which leaves out the scroll bar's room on any system (design 22). The move list has 316 pixels again (checked on
-  the local build from 1,260 to 1,440 pixels). The board is 15 pixels smaller than before `51d51c3` at those widths:
+  the local build from 1,260 to 1,440 pixels). The board is 15 pixels smaller than before `bd6df7c` at those widths:
   the room is the scroll bar's now.
 
 ### Practice games stored: built (2026-10-15)
@@ -2981,8 +2981,8 @@ The interface, the review, puzzles, lessons, labels and thresholds.
 
 ### The layout sweep (2026-10-15)
 
-- **Why:** the review's move list ran under its scroll bar from `51d51c3` until `547dc8e` ("The review's move list
-  under its scroll bar"). It reached the live site because the checks after `51d51c3` looked at the scroll bar's room
+- **Why:** the review's move list ran under its scroll bar from `bd6df7c` until `ff24d27` ("The review's move list
+  under its scroll bar"). It reached the live site because the checks after `bd6df7c` looked at the scroll bar's room
   and the header at a few widths, not at what the room took from the review. The failure showed in a band of 50
   pixels, with scroll bars that take room (Windows with a mouse), and with the labels by edge. Nothing tested the
   layout: the unit tests check logic only.
@@ -2996,12 +2996,12 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   HedgeFund at 128, reviewed as the Lite review, with the results that confirm the Greats. The site's own game, so that
   the repository holds no one else's games. A game of HedgeFund against itself at one strength had losses of 0 or 1
   point, and its move cells were too narrow to show the cut.
-- **Checked:** on the preview `a11f9d4d` (after `51d51c3`) the sweep finds the move list cut by 6 pixels (300 in 294) at
+- **Checked:** on the preview `a11f9d4d` (after `bd6df7c`) the sweep finds the move list cut by 6 pixels (300 in 294) at
   1,260 to 1,310 pixels (labels by edge, height 860), as reported. It also finds the players' row running out of the
-  page at 360 to 490 pixels. On the preview `cb2b9188` (before `51d51c3`) it passes. On the current code, built with
+  page at 360 to 490 pixels. On the preview `cb2b9188` (before `bd6df7c`) it passes. On the current code, built with
   `VITE_STORE_PRACTICE_GAMES=on` (the new consent banner on every page), all 20 tests pass, in Chromium and in Edge.
 - **Fixed from it:** the players' row's unseen twin card now shrinks as the seen one does (`PlayerRow.svelte`), so a
-  narrow row shortens the names. It was live from `51d51c3`, with the test game's scores in thousands. A phone of
+  narrow row shortens the names. It was live from `bd6df7c`, with the test game's scores in thousands. A phone of
   that width probably scrolled the review sideways too: not checked on a touch screen.
 - **The rule** (CLAUDE.md, "How to work"): before a change to a site-wide layout mechanism, search for what depends
   on it (viewport units, `--site-header`, fixed pixel allowances), and run the sweep after it. A release runs it
@@ -3010,7 +3010,7 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   `dev` (`.github/workflows/tests.yml`), and a release takes only a commit whose run passed. The sweep in Edge stays a
   local step before a release: Edge on Linux needs an install, and a Windows runner counts twice the minutes of a
   private repository's allowance. Cloudflare's build runs the check and the unit tests before each deploy, as before.
-  The first run (on `98937a0`): Chromium on Linux shows scroll bars that take room, the sweep took 8.6 minutes, and
+  The first run (on `e80edef`): Chromium on Linux shows scroll bars that take room, the sweep took 8.6 minutes, and
   the two-tab test of the practice games passed. Two pages failed, both from Linux's monospaced font, wider than
   Windows': the review's move list by edge (321 pixels of rows in 301, at 1,260 to 1,490 pixels wide), and the board
   editor's position field (218 in 211). See "One monospaced font".
@@ -3129,7 +3129,7 @@ The interface, the review, puzzles, lessons, labels and thresholds.
   - `store.test.ts` checks which marks make the removal due. `reviewFile.test.ts` checks the positions of a branch of
     version 1.
   - In the client build, the removal is a chunk of its own, which the layout loads only when the removal is due.
-  - In the owner's Edge, on the local preview's address (a build of 7ab50f3). Before the first start, the store held
+  - In the owner's Edge, on the local preview's address (a build of a3c0546). Before the first start, the store held
     results of shape 5 from four searches: 06534ee 1,043, 632f2a0 423, 85c2adb 363, and fdfe5ad (the site's) 923.
     After it, the store held 632f2a0 6 and fdfe5ad 923. The start removed 1,823 earlier results and kept every result
     of the site's. A second start removed nothing. The question before a delete worked.

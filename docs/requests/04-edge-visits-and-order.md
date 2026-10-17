@@ -1,6 +1,6 @@
 # Document `edgeVisits` and `order` in the engine protocol
 
-**Status:** done. The engine repository's design 04 lists both fields with their meanings (its commit `1a377d3`). The
+**Status:** done. The engine repository's design 04 lists both fields with their meanings (its commit `bcdb229`). The
 readings below were right, with one refinement: the best-LCB move is not put on top outright. Its value is raised as
 far as its lower bound justifies against each other move, at most fivefold, which usually but not always puts it
 first. Also: the protocol leaves out KataGo's symmetric twins, so `order` numbers in a reply can have gaps. A move's

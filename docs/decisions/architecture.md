@@ -105,7 +105,7 @@ The repository, the stack, hosting, and how the engine's artifacts arrive.
     with the preview's own address. In Edge, the analysis board's engine searched (160 of 1,024 visits, five
     candidates).
   - Then `dev`: its preview deployed, and the workflow **Tests** passed.
-  - Then `main`: the live site serves `2ac3b8a`, with no `noindex`, the Google Analytics ID and the Web Analytics
+  - Then `main`: the live site serves `07689da`, with no `noindex`, the Google Analytics ID and the Web Analytics
     token in its code, the engine's module as `application/wasm` with its SHA-256, the Function's 400, the userscript
     with the live address, and 404 for an unknown address.
 
@@ -152,3 +152,19 @@ The repository, the stack, hosting, and how the engine's artifacts arrive.
 - **Left:** design 18 says that the `dev` preview's address stays private, and the /developers page tells a partner to
   ask for the test address. The public documents and workflows now give the previews' addresses, and each run of the
   workflow **Deploy** shows its deployment's address in its public log.
+
+### The commit messages in Git's usual form (2026-10-17)
+
+- **What:** the history was rewritten again with git filter-repo (abscls-igm). Each commit message now has a subject
+  of at most 72 characters, a blank line and a body wrapped at 72 characters, as the rule "Commit messages" in the
+  organization folder's CLAUDE.md says. Before, most messages were one line of up to 1,106 characters. The trees did
+  not change, but every commit has a new hash.
+- **Checked:** on a fresh clone, each of the 121 commits kept its tree, its author, its committer and their dates.
+  Each new message keeps the ids, hashes, numbers and paths of the old one.
+- **The maps:** `docs/decisions/commit-map.txt` gives the current hash for each hash of both rewrites. The engine
+  repository, KataGame and the planning repository were rewritten in the same way (abscls-q97), and the commit map
+  names their maps. The documents here cite the new hashes of all four repositories.
+- **Names keep their old hashes:** the engine builds that the release tags `wasm-v2-engine-*` name, the search's
+  names (fdfe5ad, 06534ee, 632f2a0 and 85c2adb), and the module builds 8195171 and 319a5c4. A visitor's browser
+  keeps each analysis under its search's name. A new name would make the site delete those analyses as an earlier
+  engine's.

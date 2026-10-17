@@ -49,7 +49,7 @@ terms for the project's own work. Please decide those terms, and state them wher
 
 ## Delivered
 
-The engine repository's commit `b76146a` and its design `v2/docs/design/21-release-terms.md`:
+The engine repository's commit `336d654` and its design `v2/docs/design/21-release-terms.md`:
 
 - **The terms:** the project's own work is "© 2026 Yshan, all rights reserved": the engine's own code in both
   modules, `gpu_engine.mjs`, the networks and their graphs, the manifests and the other text of the repository and

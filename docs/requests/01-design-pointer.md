@@ -1,6 +1,6 @@
 # A pointer to the moved design document
 
-**Status:** done, in the engine repository's commit `fb5b28e`. Its `docs/analysis-tool-design.md` is now a pointer to
+**Status:** done, in the engine repository's commit `169fcdd`. Its `docs/analysis-tool-design.md` is now a pointer to
 this repository. The pointer gives the path only, and gets this repository's web address when it is published.
 
 ## What

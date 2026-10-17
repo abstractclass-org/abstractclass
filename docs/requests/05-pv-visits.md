@@ -1,6 +1,6 @@
 # The visits behind each move of a line: KataGo's `includePVVisits`
 
-**Status:** done, with no protocol change (engine repository commit `0886496`). The module the site has (build
+**Status:** done, with no protocol change (engine repository commit `83a0e53`). The module the site has (build
 `319a5c4`, protocol 0.3) takes `includePVVisits: true` and adds `pvVisits` and `pvEdgeVisits` to each move in
 `moveInfos`. Design 04 lists both under "The fields", with their meanings, and the query field under "What a reply
 holds". The engine repository checked that `pvVisits[0]` equals `visits` and `pvEdgeVisits[0]` equals `edgeVisits` (all
