@@ -216,8 +216,10 @@ put them behind a sign-in (Cloudflare Access).
      the browser's data for the site. A private window forgets it when it closes. To remove the flag, open a page of
      the site with `?internal=off`.
   2. **Check the flag:** keep the site open in that browser. In Google Analytics, open **Reports → Realtime**, click
-     **Add comparison**, choose the dimension **Test data filter name** with the value **Internal Traffic**, and click
-     **Apply**. The browser's visit shows in that comparison. A visit without the flag does not.
+     **Add comparison**, then **Create new**. Choose the dimension **Test data filter name** and the match type
+     **contains**, type **Internal Traffic**, and click **Apply**. The match type **exactly matches** offers only the
+     values in its list, and the list can stay empty while the data has the value. The browser's visit shows in that
+     comparison. A visit without the flag does not.
   3. **Set the filter to Active:** in **Admin → Data collection and modification → Data filters**, click **Internal
      Traffic**, set its state to **Active**, and click **Save**. From then on, Google Analytics drops these events, and
      nothing can get them back.
