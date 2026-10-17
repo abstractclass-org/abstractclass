@@ -1,17 +1,16 @@
-// The userscript: the bookmarklet's second form, for Tampermonkey (design 11). It runs on meaf.us game pages, in the
-// page's own context (`@sandbox raw`, which meaf.us allows: it sends no content security policy), so that it reads the
-// board's game as the bookmarklet does (meafPage.ts). It shows a button with the school's collie in the page's corner
-// while a game shows, and adds an entry to Tampermonkey's menu. Either opens the game in this site's import page, in a
-// new tab, with the record after the `#`. Tampermonkey opens the tab (GM_openInTab), so no popup blocker stops it: a
-// finished game of the player's own reloads as a watcher's view, and its review then opens by itself once the moves
-// come. Tampermonkey checks this site for updates (`@updateURL`, a file with the header only, as Greasy Fork serves
-// one), and fetches the script again when its version is newer, so a change of meaf.us's page needs no new install.
-// The script says its code's version with each game (importHash.ts), so that the import page can tell a player whose
-// Tampermonkey has not yet taken a change. The site serves the files at /hedge-school.user.js and
-// /hedge-school.meta.js (src/routes).
+// The userscript: the bookmarklet's second form, for Tampermonkey (design 11). It runs on the game pages of meaf.us and
+// strategyjam.org, in the page's own context (`@sandbox raw`, which both allow: they send no content security policy),
+// so that it reads the page's game as the bookmarklet does (meafPage.ts, strategyjamPage.ts). It shows a button with the
+// school's collie near the page's lower right corner while a game shows (BUTTON_PLACES), and adds an entry to
+// Tampermonkey's menu. Either opens the game in this site's import page, in a new tab, with the record after the `#`.
+// Tampermonkey opens the tab (GM_openInTab), so no popup blocker stops it: a finished game of the player's own on
+// meaf.us reloads as a watcher's view, and its review then opens by itself once the moves come. Tampermonkey checks this
+// site for updates (`@updateURL`, a file with the header only, as Greasy Fork serves one), and fetches the script again
+// when its version is newer, so a change of a site's page needs no new install. The script says its code's version with
+// each game (importHash.ts), so that the import page can tell a player whose Tampermonkey has not yet taken a change.
+// The site serves the files at /hedge-school.user.js and /hedge-school.meta.js (src/routes).
 import { HEAD_COAT, HEAD_SILHOUETTE, HEAD_VIEWBOX } from "#lib/collie.ts";
-import { meafRecord, type MeafGame } from "./meaf.ts";
-import { explain, findGame, missingMoves, watcherUrl } from "./meafPage.ts";
+import { pageCodeText, type PageCode } from "./pageCode.ts";
 
 declare function GM_openInTab(url: string, options?: { active?: boolean }): void;
 declare function GM_registerMenuCommand(name: string, run: () => void): void;
@@ -19,30 +18,69 @@ declare function GM_registerMenuCommand(name: string, run: () => void): void;
 /** The script's own name, in Tampermonkey's lists and on the button. */
 export const USERSCRIPT_NAME = "Review in Hedge School";
 
-/** Runs on the meaf.us page. Self-contained: the script carries its source, and that of the functions it gets. */
-function main(origin: string, icon: string, code: string, find: typeof findGame, missing: typeof missingMoves,
-              say: typeof explain, watcher: typeof watcherUrl, toRecord: (game: MeafGame) => string) {
+/** A place for the button: the CSS of its box, `into`, the page's element at whose end it sits in the page's own
+ *  layout, and `shows`, the page's element that shows a game: the button hides while the page lacks it. A place with
+ *  no `into` is fixed in the window, and so is the button when the page lacks that element (FIXED_PLACE). */
+interface ButtonPlace { css: string; into?: string; shows?: string }
+
+/** The button fixed in the window's lower right corner. */
+const FIXED_PLACE = "position: fixed; right: 16px; bottom: 16px; z-index: 2147483647; --size: 60px";
+
+/** Where the button sits on each site: near the page's lower right corner, where it covers nothing. strategyjam.org's
+ *  page fills the window, and its move list holds the lower right corner: in a narrow window the panel under the board
+ *  scrolls, and in a wide one the board can fill the height between the menu and the panel. So there the button ends
+ *  the move list's legend ("can be cut", "can't be cut yet"), to the right, in a row of its own if the legend fills
+ *  its row, and it scrolls with the panel. meaf.us changes its views without loading a page, so there the button
+ *  shows while the page shows a board. */
+const BUTTON_PLACES: Record<string, ButtonPlace> = {
+  "meaf.us": { css: FIXED_PLACE, shows: "svg.board" },
+  "strategyjam.org": { css: "display: block; margin-left: auto; order: 99; align-self: center; --size: 36px", into: ".enc-legend" },
+};
+
+/** Runs on the game's page. Self-contained: the script carries its source, and that of the functions it gets (`page`,
+ *  pageCode.ts). */
+function main(origin: string, icon: string, code: string, places: Record<string, ButtonPlace>, fixed: string, page: PageCode) {
   const click = "the Hedge School button";
+  const site = location.hostname, place = places[site] ?? { css: fixed };
   const PENDING = "hedge-school:review-after-load"; // this tab's finished game whose review opens once its moves come
   const WAIT_MS = 30000; // how long the watcher's view may take to load them
 
-  // The button and its notes, in a shadow root: the page's styles do not reach them.
-  const host = document.createElement("div");
-  const root = host.attachShadow({ mode: "open" });
-  root.innerHTML = `<style>
-    :host { all: initial; position: fixed; right: 16px; bottom: 16px; z-index: 2147483647; font: 13px/1.4 system-ui, sans-serif; }
-    button { display: grid; place-items: center; width: 60px; height: 60px; padding: 0; border: 2px solid #ffffff33;
+  // The button, and its notes above it, fixed in the window: each in a shadow root, which the page's styles do not
+  // reach, of an element whose name the page's styles do not know.
+  const shadow = (html: string) => {
+    const host = document.createElement("hedge-school");
+    host.attachShadow({ mode: "open" }).innerHTML = html;
+    return host;
+  };
+  const buttonHost = shadow(`<style>
+    button { display: grid; place-items: center; width: var(--size); height: var(--size); padding: 0; border: 2px solid #ffffff33;
              border-radius: 50%; background: #0b0c0e; cursor: pointer; box-shadow: 0 2px 8px #0008; }
+    button svg { width: 73%; height: 73%; }
     button:hover, button:focus-visible { border-color: #fff; outline: none; }
-    p { position: absolute; right: 0; bottom: 70px; width: max-content; max-width: min(340px, 80vw); margin: 0;
-        padding: 8px 10px; border: 1px solid #ffffff33; border-radius: 6px; background: #16181c; color: #eee;
-        box-shadow: 0 2px 8px #0008; cursor: pointer; }
+  </style><button type="button" title="Review this game in Hedge School" aria-label="Review this game in Hedge School">${icon}</button>`);
+  const noteHost = shadow(`<style>
+    p { position: fixed; z-index: 2147483647; width: max-content; max-width: min(340px, 80vw); margin: 0; padding: 8px 10px;
+        border: 1px solid #ffffff33; border-radius: 6px; background: #16181c; color: #eee; box-shadow: 0 2px 8px #0008;
+        font: 13px/1.4 system-ui, sans-serif; cursor: pointer; }
     p[hidden] { display: none; }
-  </style><p role="status" hidden></p><button type="button" title="Review this game in Hedge School"
-     aria-label="Review this game in Hedge School">${icon}</button>`;
-  const note = root.querySelector("p")!, button = root.querySelector("button")!;
+  </style><p role="status" hidden></p>`);
+  noteHost.style.cssText = "all: initial";
+  const button = buttonHost.shadowRoot!.querySelector("button")!, note = noteHost.shadowRoot!.querySelector("p")!;
+  // The button at the end of its place's element, or fixed in the window when the page has none. A hidden button keeps
+  // its box, so that a note can show above it.
+  const keepPlace = () => {
+    const into = (place.into && document.querySelector(place.into)) || null, parent = into ?? document.body;
+    if (buttonHost.parentElement !== parent) {
+      buttonHost.style.cssText = `all: initial; ${into ? place.css : fixed}`;
+      parent.append(buttonHost);
+    }
+    buttonHost.style.visibility = !place.shows || document.querySelector(place.shows) ? "" : "hidden";
+  };
   let hide: ReturnType<typeof setTimeout> | undefined;
   const show = (text: string) => {
+    const r = button.getBoundingClientRect(), view = document.documentElement; // above the button, to its right edge
+    note.style.right = `${Math.max(8, view.clientWidth - r.right)}px`;
+    note.style.bottom = `${Math.max(8, view.clientHeight - r.top + 10)}px`;
     note.textContent = text;
     note.hidden = false;
     clearTimeout(hide);
@@ -50,42 +88,50 @@ function main(origin: string, icon: string, code: string, find: typeof findGame,
   };
   note.addEventListener("click", () => (note.hidden = true));
 
-  const open = (game: MeafGame) => {
+  const open = (record: () => string) => {
     let text: string;
-    try { text = toRecord(game); } catch (e) { show("Hedge School: " + (e as Error).message); return; }
-    GM_openInTab(origin + "/review#" + new URLSearchParams({ tool: "userscript", v: code, record: text }), { active: true });
+    try { text = record(); } catch (e) { show("Hedge School: " + (e as Error).message); return; }
+    GM_openInTab(origin + "/review#" + new URLSearchParams({ tool: "userscript", v: code, site, record: text }), { active: true });
   };
   function review() {
-    const game = find();
-    if (!game) { show(say("none", click, origin)); return; }
-    const why = missing(game);
+    if (site === "strategyjam.org") {
+      const game = page.findJamGame();
+      if (typeof game === "string") show(page.explain(game, click, origin, site));
+      else open(() => page.jamRecord(game));
+      return;
+    }
+    const game = page.findGame();
+    if (!game) { show(page.explain("none", click, origin, site)); return; }
+    const why = page.missingMoves(game);
     if (why === "reload") {
       sessionStorage.setItem(PENDING, `${game.gameID} ${Date.now()}`);
       show("Hedge School: meaf.us shows your finished game without its moves. The page reloads as a watcher's view, which has them, and the review then opens.");
-      setTimeout(() => location.assign(watcher()), 1500);
+      setTimeout(() => location.assign(page.watcherUrl()), 1500);
       return;
     }
-    if (why) { show(say(why, click, origin)); return; }
-    open(game);
+    if (why) { show(page.explain(why, click, origin, site)); return; }
+    open(() => page.meafRecord(game));
   }
   button.addEventListener("click", review);
   GM_registerMenuCommand("Review this game in Hedge School", review);
-  document.body.append(host);
+  document.body.append(noteHost);
+  keepPlace();
 
-  // meaf.us changes its views without loading a page: the button shows while the page shows a game. After the reload
-  // as a watcher's view, the review opens once the game's moves come.
+  // The button keeps to its place: meaf.us changes its views without loading a page, and on strategyjam.org React
+  // draws the legend once the game comes, and can draw it again. On meaf.us, after the reload as a watcher's view, the
+  // review opens once the game's moves come (PENDING, which only meaf.us's pages set).
   if (sessionStorage.getItem(PENDING)) show("Hedge School: waiting for the game's moves. The review then opens.");
   setInterval(() => {
-    host.style.display = document.querySelector("svg.board") ? "" : "none";
+    keepPlace();
     const pending = sessionStorage.getItem(PENDING);
     if (!pending) return;
-    const [id, at] = pending.split(" "), game = find();
+    const [id, at] = pending.split(" "), game = page.findGame();
     if (Date.now() - Number(at) > WAIT_MS) {
       sessionStorage.removeItem(PENDING);
       show(`Hedge School: the page did not get the game's moves. Click ${click} to try again.`);
-    } else if (game && String(game.gameID) === id && !missing(game)) {
+    } else if (game && String(game.gameID) === id && !page.missingMoves(game)) {
       sessionStorage.removeItem(PENDING);
-      open(game);
+      open(() => page.meafRecord(game));
     }
   }, 500);
 }
@@ -101,11 +147,12 @@ export function userscriptHeader(origin: string, version: string): string {
     ["name", USERSCRIPT_NAME],
     ["namespace", `${origin}/`],
     ["version", version],
-    ["description", "Opens the meaf.us game on screen in Hedge School's review. Reads the game from the page: no request to meaf.us, nothing from your login."],
+    ["description", "Opens the meaf.us or strategyjam.org game on screen in Hedge School's review. Reads the game from the page: no request to the game's site, nothing from your login."],
     ["author", "Yshan"],
     ["homepage", "https://yhkao.com"],
     ["icon", `data:image/svg+xml;base64,${btoa(svg(64))}`],
     ["match", "https://meaf.us/sst1/*"],
+    ["match", "https://strategyjam.org/enclosure/game/*"],
     ["sandbox", "raw"],
     ["grant", "GM_openInTab"],
     ["grant", "GM_registerMenuCommand"],
@@ -120,6 +167,6 @@ export function userscriptHeader(origin: string, version: string): string {
 /** The userscript's file: its header, then its code. `code` is the version of its code (the build's hash of the files
  *  it is made from), which it sends with each game. */
 export function userscriptSource(origin: string, version: string, code: string): string {
-  return userscriptHeader(origin, version) + "\n"
-    + `(${main})(${JSON.stringify(origin)}, ${JSON.stringify(svg(44))}, ${JSON.stringify(code)}, ${findGame}, ${missingMoves}, ${explain}, ${watcherUrl}, ${meafRecord});\n`;
+  const data = [origin, svg(44), code, BUTTON_PLACES, FIXED_PLACE].map(v => JSON.stringify(v)).join(", ");
+  return userscriptHeader(origin, version) + "\n" + `(${main})(${data}, ${pageCodeText()});\n`;
 }

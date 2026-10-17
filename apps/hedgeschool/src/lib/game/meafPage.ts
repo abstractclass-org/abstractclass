@@ -1,5 +1,6 @@
-// What the bookmarklet (bookmarklet.ts) and the userscript (userscript.ts) run in the player's own meaf.us page. Each
-// function is self-contained (no imports, nothing from outside its own body): the two carry their source as text.
+// What the bookmarklet (bookmarklet.ts) and the userscript (userscript.ts) run in the player's own meaf.us page, and
+// their messages, which serve on strategyjam.org too (strategyjamPage.ts). Each function is self-contained (no imports,
+// nothing from outside its own body): the two carry their source as text.
 import type { MeafGame } from "./meaf.ts";
 
 /** The meaf.us game that the page's board holds, or null: React keeps it as the board component's `game` prop, the way
@@ -34,11 +35,13 @@ export function watcherUrl(): string {
 }
 
 /** What to tell the player when the page gives no game to review. `click` names what they click again: "the Review in
- *  Hedge School bookmark", or "the Hedge School button". `site` is the site's address: with no game on a page that
- *  shows one, meaf.us may have changed its page, and the site's import page has the tools as they are now. */
-export function explain(why: "none" | "playing" | "loading", click: string, site: string): string {
+ *  Hedge School bookmark", or "the Hedge School button". `origin` is this site's address: with no game on a page that
+ *  shows one, the game's site (`host`: meaf.us, or strategyjam.org, strategyjamPage.ts) may have changed its page,
+ *  and this site's tools page has the tools as they are now. */
+export function explain(why: "none" | "playing" | "loading" | "login", click: string, origin: string, host: string): string {
   return "Hedge School: " + (why === "none"
-    ? `no game found on this page. Open a game on meaf.us (one you play or watch, or a finished one), then click ${click} again. If a game shows and this message comes back, meaf.us may have changed its page: ${site}/tools has the newest bookmarklet and userscript.`
+    ? `no game found on this page. Open a game on ${host} (one you play or watch, or a finished one), then click ${click} again. If a game shows and this message comes back, ${host} may have changed its page: ${origin}/tools has the newest bookmarklet and userscript.`
     : why === "playing" ? `meaf.us gives your own game without its moves while you play. When the game is over, click ${click} again.`
+    : why === "login" ? `${host} shows a finished game only to a player who is logged in. Log in, then click ${click} again.`
     : `this page does not have the game's moves yet. Wait a moment, then click ${click} again.`);
 }

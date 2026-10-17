@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { USERSCRIPT_NAME, userscriptHeader, userscriptSource } from "./userscript.ts";
 import { bookmarkletHref, bookmarkletScript } from "./bookmarklet.ts";
 import { explain, missingMoves } from "./meafPage.ts";
-import { readImportHash, staleTool } from "./importHash.ts";
+import { readImportHash, staleTool, toolSource } from "./importHash.ts";
 import type { MeafGame } from "./meaf.ts";
 
 const ORIGIN = "https://hedge.example";
@@ -20,7 +20,7 @@ test("the userscript's header names the script, its author, its pages, its right
   assert.deepEqual(meta("author"), ["Yshan"]);
   assert.deepEqual(meta("homepage"), ["https://yhkao.com"]);
   assert.deepEqual(meta("homepageURL"), []);
-  assert.deepEqual(meta("match"), ["https://meaf.us/sst1/*"]);
+  assert.deepEqual(meta("match"), ["https://meaf.us/sst1/*", "https://strategyjam.org/enclosure/game/*"]);
   assert.deepEqual(meta("sandbox"), ["raw"]);
   assert.deepEqual(meta("grant").sort(), ["GM_openInTab", "GM_registerMenuCommand"]);
   assert.deepEqual(meta("updateURL"), [`${ORIGIN}/hedge-school.meta.js`]); // the header alone, for a small check
@@ -44,11 +44,16 @@ test("the code that the userscript and the bookmarklet carry parses, with the si
   assert.doesNotThrow(() => new Function(bookmarkletScript()));
 });
 
-test("the import page reads the tool, its version and the record, and an older tool's bare record", () => {
+test("the import page reads the tool, its version, its site and the record, and an older tool's bare record", () => {
   const record = '[Blue "a b"]\n\n1. D10-G12 2. N9-Q10 O9-Q10 r+R\n';
-  const sent = readImportHash(String(new URLSearchParams({ tool: "userscript", v: "abc", record })));
-  assert.deepEqual(sent, { record, tool: "userscript", version: "abc", link: false, save: null, from: null }); // spaces and "+" come back as they were
-  assert.deepEqual(readImportHash(encodeURIComponent(record)), { record, tool: null, version: "", link: false, save: null, from: null });
+  const sent = readImportHash(String(new URLSearchParams({ tool: "userscript", v: "abc", site: "strategyjam.org", record })));
+  // Spaces and "+" come back as they were.
+  assert.deepEqual(sent, { record, tool: "userscript", version: "abc", site: "strategyjam.org", link: false, save: null, from: null });
+  assert.equal(toolSource(sent.tool!, sent.site), "strategyjam_userscript");
+  // A tool from before the site's name ran on meaf.us.
+  const older = readImportHash(String(new URLSearchParams({ tool: "bookmarklet", v: "1", record })));
+  assert.equal(toolSource(older.tool!, older.site), "bookmarklet");
+  assert.deepEqual(readImportHash(encodeURIComponent(record)), { record, tool: null, version: "", site: null, link: false, save: null, from: null });
   const current = { bookmarklet: "1", userscript: "abc" };
   assert.equal(staleTool(sent, current), null);
   assert.equal(staleTool({ tool: "userscript", version: "old" }, current), "userscript");
@@ -67,6 +72,7 @@ test("a game lacks its moves while it is played, until a watcher's view loads th
   assert.equal(missingMoves(game(true, 0, 3)), "reload");
   at("?game=abc&spectate=1");
   assert.equal(missingMoves(game(true, 0, 3)), "loading");
-  assert.match(explain("playing", "the Hedge School button", ORIGIN), /When the game is over, click the Hedge School button again\.$/);
-  assert.ok(explain("none", "the Hedge School button", ORIGIN).includes(`${ORIGIN}/tools`)); // where a new tool is
+  assert.match(explain("playing", "the Hedge School button", ORIGIN, "meaf.us"), /When the game is over, click the Hedge School button again\.$/);
+  assert.ok(explain("none", "the Hedge School button", ORIGIN, "meaf.us").includes(`${ORIGIN}/tools`)); // where a new tool is
+  assert.match(explain("none", "the Hedge School button", ORIGIN, "strategyjam.org"), /Open a game on strategyjam.org/);
 });

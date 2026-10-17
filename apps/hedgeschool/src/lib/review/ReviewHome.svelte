@@ -180,8 +180,9 @@
         <span class="flex-1 min-w-56 text-xs text-muted">In the engine's <a href="/notation">notation</a>: turns as <code>1.</code> and <code>2.</code>, edges as
           <code>D10-G10</code>, a cut as <code>D10-G10x</code>, a timeout as <code>pass</code>. A plain list of edges works too.</span>
       </div>
-      <p class="mt-2.5 text-xs text-muted">From <a href="https://meaf.us/sst1/" target="_blank" rel="noopener noreferrer">meaf.us</a>: use the <a href="/tools">bookmarklet or the userscript</a>,
-        one click on a meaf.us game page.</p>
+      <p class="mt-2.5 text-xs text-muted">From <a href="https://strategyjam.org/enclosure/" target="_blank" rel="noopener noreferrer">strategyjam.org</a>
+        or <a href="https://meaf.us/sst1/" target="_blank" rel="noopener noreferrer">meaf.us</a>: use the <a href="/tools">bookmarklet or the
+        userscript</a>, one click on the game's page.</p>
     </form>
     <div class="flex flex-wrap items-center gap-3 mt-4 pt-3 border-t border-line">
       <label class={["px-3 py-1 text-sm rounded border border-line bg-panel-2 cursor-pointer hover:border-accent", loadingFile && "opacity-50"]}>

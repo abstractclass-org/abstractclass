@@ -3271,3 +3271,43 @@ sweep.
 - **Open:** Google Analytics' `bot_visits` (design 17) receives the exact number of visits, now one of 8,192 values,
   not 11. The other numbers that the site sends are ranges (`src/lib/measure.ts`). The issue abscls-es4 holds the
   decision: the exact number, or the doubling at or below it.
+
+### strategyjam.org games through the bookmarklet and the userscript (2026-10-18)
+
+- **What:** the bookmarklet and the userscript take a game from strategyjam.org's game page
+  (`/enclosure/game/ID`), the strategy jam's site from 2026-10-17, as they take one from meaf.us (design 11, abscls-b60). The
+  reader (`src/lib/game/strategyjamPage.ts`) takes the game from the props of the React component that draws the
+  stage: `game.rules`, the site's rules module, and `state`, the game as the site sends it. The page's own rules
+  module plays the moves again for the scores. The conversion (`src/lib/game/strategyjam.ts`) writes First as Blue.
+  The Site tag is the game's page, so the review links back. The record has no TimeControl, because the site adds
+  its increment for each edge.
+- **The import's source** tells the sites apart (design 17): `strategyjam_bookmarklet` and `strategyjam_userscript`
+  on strategyjam.org. `bookmarklet` and `userscript` stay meaf.us's, so the reports before this keep their
+  meaning. Each tool names the page's host with each game (`site=` after the `#`).
+- **The button's place:** at the end of the move list's legend (`.enc-legend`), in the page's own layout. A fixed
+  spot does not work there: the page fills the window, and the move list holds the lower right corner. In a narrow
+  window the panel under the board scrolls.
+- **Checked on strategyjam.org's own page code,** in Playwright's Chromium 153: the game page's HTML, its entry
+  script (`/assets/game-HJVUlX9U.js`), the Enclosure bundle (`/g/enclosure/index-BS_PtdAz.js`, rules module
+  `model-rwnod0dx.js`) and its styles and fonts, served from disk by the browser's routes. Routes answered the API:
+  a logged-in player (`/api/me`), and a synthetic finished game at `/api/games/ID/record`. A stand-in for the
+  WebSocket failed before it opened, so the page read the record, as it does with no connection. No request went to
+  strategyjam.org. The games are synthetic: the site's rules module played both seats, with the engine
+  repository's `platforms/strategyjam/synthetic_games.mjs` (`scripts/strategyjam-games.mjs`).
+  - The reader took all 120 moves from the page, and the same scores as the rules module in Node.
+  - The bookmarklet, loaded from a build on the local preview server, opened the review. The engine found every
+    move legal and gave the site's scores: Blue won by 586.4 points (1,577 to 991). For the game with two timeout
+    passes (119 moves: one pass at Second's second edge, one at the start of First's turn), it gave 1,403 to 775, as
+    the site did.
+  - For a visitor who is not logged in, the page holds no game, and the bookmarklet says to log in. On a page with
+    no game, it says that it found none.
+  - The button, at the layout sweep's sizes (widths 360 to 1,920 by 10, heights 700, 860 and 1,000, with the scroll
+    bars shown): over no text, control, board or scroll bar at any of the 471 sizes. The same sweep also ran
+    with the button fixed in the lower right corner, as on meaf.us. There it covered the move list's scroll bar at 348
+    sizes, and the gains, the legend and the replay slider at others.
+  - The test browser loads the bookmarklet's code from the local preview server only with Chromium's local network
+    access check turned off. Without that, Chromium blocks a script from 127.0.0.1 on a public page. The live site
+    is a public address, so the check does not apply to it.
+- **Not checked:** a real finished game, which needs a player's login. The reader rests on the props as the entry
+  script gives them. The site's words for a resignation or a forfeit are not known: the record takes a reason with
+  "resign" as a resignation, and any other win before the rules end the game as a forfeit.

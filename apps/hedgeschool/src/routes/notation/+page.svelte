@@ -105,8 +105,8 @@ A10-D10,D10-E11,D10-F13+ Q10-T10,Q10-T13*,T10-T13* b1 0/4.5 4`;
     <thead><tr><th>Tag</th><th>Value</th></tr></thead>
     <tbody>
       <tr><td><code>Event</code></td><td>The event, or <code>?</code> when it is not known.</td></tr>
-      <tr><td><code>Site</code></td><td>Where the game was played: <code>meaf.us</code>, <code>Constellation</code>, or
-        <code>?</code>.</td></tr>
+      <tr><td><code>Site</code></td><td>Where the game was played: <code>meaf.us</code>, <code>Constellation</code>, the
+        game's own page (a strategyjam.org game gives its address, and the review links to it), or <code>?</code>.</td></tr>
       <tr><td><code>Date</code></td><td><code>YYYY.MM.DD</code>, with <code>?</code> for unknown digits.</td></tr>
       <tr><td><code>Round</code></td><td>The round, or <code>-</code>.</td></tr>
       <tr><td><code>Blue</code>, <code>Red</code></td><td>The players' names, or <code>?</code> when a name is not

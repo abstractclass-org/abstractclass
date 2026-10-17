@@ -40,21 +40,24 @@ visitors' machines, and the GPU on other machines.
 
 The events use the site's words (design 22), each for one thing:
 
-- **Import:** a game from outside Hedge School, its moves alone, by a paste, another site's link or a meaf.us tool, to
-  the review or to the Analysis board. One event, `import_game`, counts every import, with where it went
-  (`import_to`) and how it came (`import_source`).
+- **Import:** a game from outside Hedge School, its moves alone, by a paste, another site's link or a tool on meaf.us
+  or strategyjam.org (the bookmarklet, the userscript), to the review or to the Analysis board. One event,
+  `import_game`, counts every import, with where it went (`import_to`) and how it came (`import_source`).
 - **Load:** Hedge School's own saved work, a review or an analysis, from a file, a share link or a partner site. One
   event, `load_saved`, counts every load, with how it came (`load_source`). The source also says where it went: a
   review file, a review's share link and a partner's review go to the review, the others to the Analysis board.
 - **Source:** one way in, named whole: `pasted_record`, not `record` (a pasted record and another site's record link
-  both carry a record).
+  both carry a record). A tool on each site is a way in of its own: `bookmarklet` and `userscript` on meaf.us, as
+  before strategyjam.org, and `strategyjam_bookmarklet` and `strategyjam_userscript` on strategyjam.org. The tool
+  names its site with each game (design 11), and one that names none ran on meaf.us. So the reports tell when the
+  players leave meaf.us.
 - **Export kind:** what an export made, named by its product: `review_file` and `analysis_file`, not `file`.
 
 ### The events
 
 | Event | When | Parameters | The decision it serves |
 |---|---|---|---|
-| `import_game` | a game imported from outside Hedge School, to the review (kept, then reviewed) or to the Analysis board | `import_to` (review, analysis), `import_source` (pasted_record, pasted_constellation, pasted_position, site_link, bookmarklet, userscript, older_tool), `edges` | which ways in to keep and improve, and the funnel's second step |
+| `import_game` | a game imported from outside Hedge School, to the review (kept, then reviewed) or to the Analysis board | `import_to` (review, analysis), `import_source` (pasted_record, pasted_constellation, pasted_position, site_link, bookmarklet, userscript, strategyjam_bookmarklet, strategyjam_userscript, older_tool), `edges` | which ways in to keep and improve, and the funnel's second step |
 | `import_failed` | an import refused | `import_to`, `import_source`, `import_failure` (record: not read, rejected: the rules or the storage refused it, link: broken) | what breaks imports |
 | `load_saved` | saved work loaded: a review or an analysis, from a file, a share link or a partner site | `load_source` (review_file, analysis_file, review_share_link, analysis_share_link, partner_review), `edges` (its game's), `with_results` (a review file, a partner's review), `with_branches` (a review's share link) | which saved work comes back, and the funnel's second step |
 | `load_failed` | a load refused | `load_source`, `load_failure` (file, link: not read, rejected: the rules or the storage refused its game) | what breaks loads |
@@ -133,7 +136,7 @@ selector at the top left. Click **Admin**, the gear at the bottom left.
 | Event parameter | Dimension name | Scope | What it holds |
 |---|---|---|---|
 | `import_to` | Import destination | Event | where an imported game went: review, analysis |
-| `import_source` | Import source | Event | how a game came in from outside: pasted_record, pasted_constellation, pasted_position, site_link, bookmarklet, userscript, older_tool |
+| `import_source` | Import source | Event | how a game came in from outside: pasted_record, pasted_constellation, pasted_position, site_link, bookmarklet, userscript, strategyjam_bookmarklet, strategyjam_userscript, older_tool |
 | `import_failure` | Import failure | Event | why an import failed: record, rejected, link |
 | `load_source` | Load source | Event | how saved work came in, and so where it went: review_file, analysis_file, review_share_link, analysis_share_link, partner_review |
 | `load_failure` | Load failure | Event | why a load failed: file, link, rejected |
