@@ -71,7 +71,10 @@ each applies at once, without a reload.
      its own network and depth per move. The panel says so, shows the game's two, and changes the game's when they
      change. The settings kept in the browser serve every other game. A game's network can be an earlier one, which the
      Network setting does not offer (below): the panel's note then names it, and a network chosen there reviews the
-     game again.
+     game again. The game keeps only the visits of its depth per move. While the page is open, the panel shows the
+     depth per move as the player chose it, so Custom at Lite's 512 visits stays Custom with its row. When the page
+     opens, the visits give it: 512 shows Lite, and the review is the same (`withOwn` and `changeOwn` in
+     `src/lib/analysis/engineSettings.ts`).
    - **A game whose last review used an earlier network** with the browser's settings keeps that review's network and
      depth per move as its own, as a game from a review file does (`ownSettings` in
      `src/lib/analysis/engineSettings.ts`). So it opens at once with that review's results, its branches and Evaluate

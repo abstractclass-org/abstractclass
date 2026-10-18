@@ -29,7 +29,9 @@ function openDb(): Promise<IDBDatabase | null> {
 }
 
 /** Runs requests in one transaction, on `store` and the stores `also`: `body` sends them, and the getter it gives reads
- *  their results once the transaction completes. Answers `fallback` when storage fails. */
+ *  their results once the transaction completes. Answers `fallback` when storage fails. A value that the browser cannot
+ *  copy (a Svelte state proxy: give $state.raw or $state.snapshot) also answers `fallback`, and the console shows the
+ *  error: the fault is in the code, not in the storage. */
 async function run<T>(store: string, mode: IDBTransactionMode, body: (s: IDBObjectStore, tx: IDBTransaction) => () => T, fallback: T,
                       also: string[] = []): Promise<T> {
   const d = await openDb();
@@ -40,7 +42,9 @@ async function run<T>(store: string, mode: IDBTransactionMode, body: (s: IDBObje
       const result = body(tx.objectStore(store), tx);
       tx.oncomplete = () => resolve(result());
       tx.onerror = tx.onabort = () => resolve(fallback);
-    } catch {
+    } catch (e) {
+      if (e instanceof DOMException && e.name === "DataCloneError")
+        console.error("storage: a value the browser cannot copy", e);
       resolve(fallback);
     }
   });
