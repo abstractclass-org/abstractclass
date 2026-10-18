@@ -9,7 +9,7 @@ The review searches every position of a game three times (design
 [05-review-analysis.md](../design/05-review-analysis.md)): a sweep at 32 visits, a label pass at 256, and a deep
 search at 1,024 where the player looks and at the key moments. Each search starts from nothing. In the engine's
 protocol, each analysis query calls KataGo's `Search::setPosition`, which clears the tree
-(`katago/cpp/command/enclosureprotocol.cpp` in the engine repository), and an engine instance runs one search at a
+(`katagame/cpp/command/enclosureprotocol.cpp` in the engine repository), and an engine instance runs one search at a
 time. So the work has two kinds of waste:
 
 1. **Within a position:** a result at 1,024 visits costs 32 + 256 + 1,024 = 1,312 visits.

@@ -46,7 +46,7 @@ guidelines.
   | The driver for both modules (WASI imports, loading, the GPU's batches), which the site loads from the release (`src/lib/engine/library.ts`) | [`games/enclosure/wasm/gpu_engine.mjs`](https://github.com/abstractclass-org/engines/blob/main/games/enclosure/wasm/gpu_engine.mjs) |
   | The WebAssembly builds: how they are built, their speed | [`games/enclosure/wasm/README.md`](https://github.com/abstractclass-org/engines/blob/main/games/enclosure/wasm/README.md) |
   | Strength against search budget | [`games/enclosure/docs/decisions/strength.md`](https://github.com/abstractclass-org/engines/blob/main/games/enclosure/docs/decisions/strength.md) |
-  | The spatial outputs (ownership and the others) | [`katago/ENCLOSURE.md`](https://github.com/abstractclass-org/engines/blob/main/katago/ENCLOSURE.md), "Spatial targets" |
+  | The spatial outputs (ownership and the others) | [`katagame/ENCLOSURE.md`](https://github.com/abstractclass-org/KataGame/blob/main/ENCLOSURE.md), "Spatial targets (step 6)" |
 
   This repository records only what it measured itself (for example, speed in the browser:
   [decisions/engine.md](decisions/engine.md)) and which builds it uses (`engine.lock.json`).
