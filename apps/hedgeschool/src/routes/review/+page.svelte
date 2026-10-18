@@ -52,7 +52,11 @@
   // the player chooses Review again.
   let snapshot = $state<{ visits: number; text: string } | null>(null);
   let kept = $state.raw<{ id: string; text: string; record: GameRecord; partner?: GamePartner } | null>(null); // the stored game
-  const gameOpen = $derived(!!kept); // a game's review is open: the page's title names it, else the Review tab's (design 23)
+  // A game's review is open: the page's title names it, else the Review tab's (design 23). The review's skeleton shows
+  // from the game's read until the review does (ReviewView.svelte, reviewSkeleton). Before, the prerendered page shows
+  // its line of text. The skeleton waits for the game, so that the players' names are in its first frame: names that
+  // came later changed the cards' widths, and moved the row's parts (a layout shift).
+  const gameOpen = $derived(!!kept);
   const players = $derived<ReviewData["players"]>(kept ? playerNames(kept.record.tags) : { blue: "Blue", red: "Red" });
   // How the record says the game ended (model.ts, endingText).
   const ending = $derived<GameEnding | undefined>(kept ? { result: kept.record.result ?? kept.record.tags.Result ?? null,
@@ -227,11 +231,6 @@
   });
 
   let noGame = $state(false); // the Review tab without a game: ReviewHome
-  // The address names a game: the review's skeleton shows from the game's read until the review does
-  // (ReviewView.svelte, reviewSkeleton). Before, the prerendered page shows its line of text. The skeleton waits for the
-  // game, so that the players' names are in its first frame: names that came later changed the cards' widths, and moved
-  // the row's parts (a layout shift).
-  let opening = $state(false);
   const wide = new MediaQuery(WIDE);
   // Another game named after the `#` than the one the page shows, or a game named where it shows none (the Review tab's
   // list, an address typed, back and forward): the page reviews that one from the start. A change of the `#` alone is
@@ -269,7 +268,6 @@
     kept = { id, text: stored.game.record, record: stored.record, partner: stored.game.partner };
     markBefore = stored.game.reviewed;
     own = ownSettings(stored.game); // a network the site no longer ships: the browser's
-    opening = true;
     return stored.record.moves;
   }
 
@@ -417,8 +415,8 @@
               deepVisits={snapshot ? 0 : engine.visits} onposition={path => (current = path)} onplay={path => game!.addLine(path)}
               reviewVisits={depth} labelVisits={LABEL_VISITS} engine={settings} onengine={changeEngine} ownSettings={own?.from}
               onfeature={name => kept && trackOnce(`${kept.id} ${name}`, "feature", { feature_name: name })} gpu={session.gpuView} />
-{:else if opening}
-  {@render reviewSkeleton(wide.current, loadDisplay().win === "gauge", gameOpen ? players : null, false)}
+{:else if gameOpen}
+  {@render reviewSkeleton(wide.current, loadDisplay().win === "gauge", players, false)}
 {:else}
   <p class="{MESSAGE} text-muted">Reading the game with the engine's rules…</p>
 {/if}

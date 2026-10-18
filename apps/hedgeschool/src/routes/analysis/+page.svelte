@@ -173,9 +173,9 @@
         if (chosen.board) await g.loadBoard(chosen.board);
         // The stored results of the moves evaluated, read before the board shows, as the review reads its own: their
         // labels and notes come in the first frame, and do not move the bar under the moves when they come (the layout
-        // shift). The search is the manifest's, the network the session's.
+        // shift). The search is the one that the rules worker names, the network the session's.
         const model = modelOf(session.manifest!, session.network)?.sha256;
-        if (g.rulesReady && pool.search && model) await g.fromStore(pool.search, model, g.judgedPositions()).catch(() => {});
+        if (g.rulesReady && pool.search && model) await g.fromStore(pool.search, model).catch(() => {});
         if (chosen.atMain !== undefined) await dbPut(STORES.branches, BOARD_ID, g.keptBoard()); // a link's board is now this browser's
         // The place to open: the link's on the main line, or the one kept here when it is still in the tree.
         const at = chosen.atMain !== undefined ? g.mainNames.slice(0, chosen.atMain)

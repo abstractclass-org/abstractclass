@@ -1541,9 +1541,9 @@
 <!-- The review's skeleton (Nielsen Norman Group's skeleton screen), while the engine's rules read the game: the layout
      of the review below, with its columns, the board and the charts at their sizes, and grey bars for the text. The
      review then takes its place, part for part. `three`: the summary's own column (WIDE). `gauge`: the win chance as a
-     gauge (display.ts). `players`: their names, once the game is read. `board`: the Analysis board's form, with no
-     chart, its sides for names, and its own line while the engine's rules set the board up (design 21). -->
-{#snippet reviewSkeleton(three: boolean, gauge: boolean, players: { blue: string; red: string } | null, board: boolean)}
+     gauge (display.ts). `players`: their names. `board`: the Analysis board's form, with no chart, its sides for
+     names, and its own line while the engine's rules set the board up (design 21). -->
+{#snippet reviewSkeleton(three: boolean, gauge: boolean, players: { blue: string; red: string }, board: boolean)}
   <main class={["review select-none", three && "wide", board && "board-form", gauge && "gauge-mode"]} aria-busy="true"
         {@attach measureStrip}
         style:--side-h="max(var(--column), calc(100vh - var(--site-header) - 2rem))">
@@ -1558,9 +1558,9 @@
     <section class="board-col">
       <div class={["mb-2 ml-(--gauge-w)", stripBox(gauge)]} data-strip>
         <div class={stripRow(gauge)}>
-          <PlayerCardSkeleton player={0} name={players?.blue} tag={board ? null : PLAYER_NAME[0]} />
+          <PlayerCardSkeleton player={0} name={players.blue} tag={board ? null : PLAYER_NAME[0]} />
           {#if gauge}<div></div>{:else}<div class="h-[1.15rem] {BONE}"></div>{/if}
-          <PlayerCardSkeleton player={1} name={players?.red} tag={board ? null : PLAYER_NAME[1]} />
+          <PlayerCardSkeleton player={1} name={players.red} tag={board ? null : PLAYER_NAME[1]} />
         </div>
       </div>
       <div class="flex">
@@ -1836,18 +1836,21 @@
   .review {
     --gap: 1.25rem;
     --row-gap: 0.8rem;
-    /* The row above the board, with its margin (0.5rem), until the page measures it: two lines (2.8125rem, a name over
-       its numbers), or three in a narrow row (PlayerCard: the area under the points), where the board is at most
-       --wrap-at wide (PlayerCard's container queries). The board's width that decides it is the one with two lines
-       (--board-2): with three, the board is smaller still, so the row stays narrow. A measured row of other lines'
-       heights (another font) changes the board's size after its first frame (a layout shift). The clamp is a step:
-       the third line's height (1.375rem) where the board is --wrap-at wide or less (0.005 pixels, less than a layout
-       unit, keeps the width of --wrap-at itself on that side), else none. */
+    /* The row above the board, with its margin (0.5rem), until the page measures it: two lines (--strip-2: 2.8125rem, a
+       name over its numbers, and the margin), or three in a narrow row (PlayerCard: the area under the points), where
+       the board is at most --wrap-at wide (PlayerCard's container queries). The board's width that decides it is the
+       one with two lines (--board-2, from --tall-2): with three, the board is smaller still, so the row stays narrow.
+       The chart takes more than its least only where the width limits the board, so that width is the smaller of the
+       width left and the height less the chart's least. An override of --tall or --board needs its own of --tall-2 or
+       --board-2. A measured row of other lines' heights (another font) changes the board's size after its first frame
+       (a layout shift). The clamp is a step: the third line's height (1.375rem) where the board is --wrap-at wide or
+       less (0.005 pixels, less than a layout unit, keeps the width of --wrap-at itself on that side), else none. The
+       difference times 10,000 reaches one end of the clamp or the other, except within 0.0022 pixels of the step. */
     --wrap-at: 27.5rem;
-    --tall-2: calc(100vh - var(--site-header) - 3.3125rem - 2rem);
-    --chart-2: clamp(var(--chart-min), calc(var(--tall-2) - var(--chart-gap) - var(--broad)), var(--chart-max));
-    --board-2: min(calc(var(--tall-2) - var(--chart-gap) - var(--chart-2)), var(--broad));
-    --strip: calc(3.3125rem + clamp(0px, calc((var(--wrap-at) + 0.005px - var(--board-2)) * 10000), 1.375rem));
+    --strip-2: 3.3125rem;
+    --tall-2: calc(100vh - var(--site-header) - var(--strip-2) - 2rem);
+    --board-2: min(calc(var(--tall-2) - var(--chart-gap) - var(--chart-min)), var(--broad));
+    --strip: calc(var(--strip-2) + clamp(0px, calc((var(--wrap-at) + 0.005px - var(--board-2)) * 10000), 1.375rem));
     --gauge-w: 0px;
     --summary-min: 250px;
     --summary-max: 350px;
@@ -1907,5 +1910,5 @@
     .board-wrap { width: auto; flex: 1; min-width: 0; } /* the column's width, whatever the scroll bar takes */
   }
   /* The Analysis board has no chart: the board takes its height (design 21). */
-  .review.board-form { --chart: 0px; --chart-2: 0px; --chart-gap: 0px; }
+  .review.board-form { --chart: 0px; --chart-min: 0px; --chart-gap: 0px; }
 </style>

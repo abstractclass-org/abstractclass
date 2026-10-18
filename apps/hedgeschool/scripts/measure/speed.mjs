@@ -1,7 +1,7 @@
 // The tools of the scripts that measure the site's speed (docs/working-notes.md, "Measuring speed in a browser"): a
-// build's preview, Playwright's Chromium with Chrome's trace, the main thread's tasks and a named event's thread time
-// from the trace, the page's layout shift, the machine's load, and two builds measured in alternating pairs, with the
-// verdict on them. Its tests: speed.test.mjs.
+// build's preview, Playwright's Chromium with Chrome's trace, the test fixture's review kept in a page, the main
+// thread's tasks and a named event's thread time from the trace, the page's layout shift, the machine's load, and two
+// builds measured in alternating pairs, with the verdict on them. Its tests: speed.test.mjs.
 import { chromium } from "@playwright/test";
 import { execFileSync } from "node:child_process";
 import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
@@ -53,6 +53,23 @@ export async function preview(dir, port) {
 
 /** Playwright's Chromium, headless, with its scroll bars shown, as the layout sweep runs it (playwright.config.ts). */
 export const launch = (options = {}) => chromium.launch({ ignoreDefaultArgs: ["--hide-scrollbars"], ...options });
+
+/** The test fixture: the review file of a whole game, with the engine's results (from apps/hedgeschool). */
+export const FIXTURE = "tests/fixtures/hedgefund-review.json";
+
+/** Imports a Hedge School file (a review file or an analysis file) on the Review tab of the site at `url`. */
+export async function importFile(page, url, file) {
+  await page.goto(`${url}/review`);
+  await page.locator('input[type="file"][accept*="json"]').first().setInputFiles(file);
+}
+
+/** Keeps the fixture's review in the page's browser: imports it, and waits until the review is done, as the engine
+ *  searches what the file lacks. */
+export async function storeReview(page, url) {
+  await importFile(page, url, FIXTURE);
+  await page.waitForURL(/#game=/);
+  await page.getByText(/^Review done/).waitFor({ timeout: 300_000 });
+}
 
 /** The categories of Chrome's trace that the tasks and the marks need. A named event can need another: `DoDigest` is
  *  in "disabled-by-default-devtools.timeline". */

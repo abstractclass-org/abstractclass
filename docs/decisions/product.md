@@ -3477,7 +3477,7 @@ sweep.
   in one column at 390 × 1,100. On 2026-10-14 the same review measured 0.0001 ("A skeleton while the review starts,
   and the time before it shows"), in Edge.
 - **What brought it back: nothing, in this browser.** A build of b650aab, the commit that recorded 0.0001, and a
-  build of the dev branch at 47bed2f, measured with the same probe (Playwright's Chromium, headless, a buffered
+  build of the dev branch at 47bed2f, measured in the same way (Playwright's Chromium, headless, a buffered
   `PerformanceObserver`, 2 reloads of the stored review at 1,366 × 657): 0.0268 and 0.0271 for b650aab, 0.0139 and
   0.0142 for 47bed2f. In a same-origin iframe of 1,366 × 657, as the check of 2026-10-14 measured: 0.0274 to 0.0277,
   and 0.0142. With the gauge in place of the bar, b650aab gave 0.0126 to 0.0133. So the shifts at 1,366 × 657 came
@@ -3503,8 +3503,8 @@ sweep.
     the steps not counted: the sweep and the label pass counted only the positions that the passes searched after the
     network loaded, also when every result came from the store. So the report said that its counts were partial,
     then dropped the sentence when the network came, and the report's table moved 43 pixels up (0.0033 at
-    1,366 × 657, 0.0011 at 1,427 × 849). It shows whenever the review shows before the network loads: the probe's
-    first reloads, right after the import, did not have it. The sentence came with 9709ae1 (2026-10-11).
+    1,366 × 657, 0.0011 at 1,427 × 849). It shows whenever the review shows before the network loads: the first
+    reloads of a measurement, right after the import, did not have it. The sentence came with 9709ae1 (2026-10-11).
   - **The gleam on the progress bars** (`bar-glider`) moved by `left`, a layout in each frame: about 120 entries a
     load in one column while a bar's work runs, each below 0.0001 (0.0004 to 0.0008 a load). It came with 7375d51
     (2026-10-11).
@@ -3520,7 +3520,7 @@ sweep.
     three lines the board is smaller still, so the row stays narrow: the same lines that the measurement finds. A
     `clamp` is the step between the two heights. The measurement stays, for a row whose lines have other heights
     (another font).
-  - **The skeleton shows once the game is read** (`opening` in `src/routes/review/+page.svelte`, design 06, item
+  - **The skeleton shows once the game is read** (`gameOpen` in `src/routes/review/+page.svelte`, design 06, item
     10), so that the players' names are in its first frame. Until then the prerendered line of text shows.
   - **A review opened again counts its stored results as searched** (`fromStore` in
     `src/lib/analysis/game.svelte.ts`): its bar is full while the network loads, and the report does not call its
@@ -3537,7 +3537,7 @@ sweep.
 - **Measured** with `scripts/measure/layout-shift.mjs`: the build before (47bed2f) and the build after, in 5
   alternating pairs (`inPairs`, `verdict` in `scripts/measure/speed.mjs`), each set 3 reloads of one build, in
   Playwright's Chromium, headless. A set gives its median layout shift. The review is the stored review of the test
-  fixture; the board is the fixture's first 15 edges, every move evaluated, with a branch at the second move, opened
+  fixture. The board is the fixture's first 15 edges, every move evaluated, with a branch at the second move, opened
   from an analysis file. Windows' processor use was 12 to 93% and WSL's load 1.6 to 7.1 (one minute). The layout
   shift did not follow the load: each build gave the same values at each load.
 
@@ -3553,21 +3553,32 @@ sweep.
   | Board, 390 × 1,100 | 0.0076 | 0 | a change: every pair −0.0076 |
 
   - **What moved before,** in the 15 reloads of each size: on the review, the skeleton's columns and its row (gone
-    when the review shows, so the probe names them "?"), the report's table and the note above it
+    when the review shows, so `layoutShift` names them "?"), the report's table and the note above it
     (`p.mb-3.text-xs.text-muted`), the step bar's box (`div.mt-1.5.pt-1.5.border-t`) at 1,366 × 657, and the gleam in
     2 reloads. At 390 × 1,100 the report's table, its note and a swatch. On the board, the values' cells
     (`span.col-start-4`), the move list's rows, and in one column the step bar's buttons and box.
   - **After:** nothing moved, in every reload of every size: every reload's layout shift was 0.
   - **The cost,** in pairs of 5 reloads at 1,366 × 657 (the review) and 390 × 1,100 (the board): the time from the
     navigation to the skeleton's first frame, and to the review's or the board's, did not change in a way that the
-    pairs agree on (the skeleton's medians 88 ms before and 161 ms after, with spreads of 465 and 467 ms; the board's
-    679 and 653 ms). The skeleton now waits for the game's read, which is part of the 60 to 100 milliseconds of the
+    pairs agree on (the skeleton's medians 88 ms before and 161 ms after, with spreads of 465 and 467 ms, and the
+    board's 679 and 653 ms). The skeleton now waits for the game's read, which is part of the 60 to 100 milliseconds of the
     game, the tab's lock and the engine's manifest (2026-10-14). The review's first draw (`review-first-frame.mjs`,
     2 pairs of 5 reloads): the longest task by thread time 33 and 22 ms before, 23 and 22 ms after, and the draw's
     total thread time 80 and 62 ms before, 57 and 52 ms after: no loss. By wall time the sets before had a task of
     about 450 ms in the draw and the sets after did not, but a trace finds the same task in both builds near
     `review:shown`: a message's handler that waits 374 to 474 ms on 5 to 43 ms of thread time, on this loaded
     machine. So that is no gain of the change.
+- **The skeleton's wait for the game's read,** in 3 pairs of 5 reloads of the stored review at 1,366 × 657, the
+  build before against the build after: until the skeleton shows, the prerendered line "Reading the game with the
+  engine's rules…" shows, so the page is not blank. From the first paint to the skeleton's first frame, the medians
+  were 17 ms before and 19 ms after (at most 33 and 92 ms). With the processor slowed 4 times (Chrome's CPU
+  throttling), they were 350 and 376 ms (at most 626 and 744 ms). The skeleton's first frame came at 63 and 60 ms
+  from the navigation, and at 595 and 599 ms slowed. A slow store (a large one, or a slow disk) was not measured.
+- **A store that lacks results:** with 3 positions of the game removed from the store, the review said "Loading the
+  engine's network…" and that its counts are partial. Once the network loaded, it searched them ("the game's shape,
+  117 of 120 positions") and stored them again. With the key moments' deeper results removed, it searched the 6
+  positions again. Right after the import's "Review done", the store lacked the start's deeper result, in the build
+  before too: the first reload searched it again (abscls-byld).
 - **What stays:** a meter's part of 7 × 6 pixels moves by less than 0.000005 when a search's result comes, about 7
   seconds after the load, on the board at 1,427 × 849: the engine's news. A row whose lines have other heights than
   here (45 and 67 pixels, in Playwright's Chromium on Windows) still changes the board's size once it is measured.

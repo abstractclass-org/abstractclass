@@ -35,7 +35,7 @@ import type { EdgeRules } from "#lib/board/edgeInput.svelte.ts";
 import { lastMove, mainIndex, parentKey, pathKey, prefixKeys } from "#lib/review/tree.ts";
 import { STORES, dbGet, dbPut } from "#lib/storage/db.ts";
 import { keepStorage } from "#lib/storage/persist.ts";
-import { analysisKey, keyMoves, cacheGetAtLeast, cachePut } from "./cache.ts";
+import { analysisKey, keyMoves, cacheGetAtLeast, cachePut, warmCache } from "./cache.ts";
 import { Stopped } from "#lib/engine/client.ts";
 import { Cancelled, type EnginePool } from "./pool.ts";
 
@@ -84,7 +84,8 @@ export class GameAnalysis {
   timed = $state.raw<Record<string, string>>({});
   error = $state("");
   focusing = $state<string | null>(null); // the path key of the position searched for the player, while it runs
-  // For each position of the game, the largest pass budget it has met: searched, from the cache, or deeper already.
+  // For each position of the game, the most visits it has met: a pass's budget searched, from the cache, or deeper
+  // already, or a stored result's visits (fromStore).
   private reached = $state.raw<number[]>([]);
   private stopFocus: (() => void) | null = null;
   private focusGeneration = 0; // a new focus makes every earlier focus search stale
@@ -280,12 +281,13 @@ export class GameAnalysis {
   }
 
   /** The review from the browser's store alone, with no search (an export away from the review page, design 13): each
-   *  position of the game and of its branches at the label budget or deeper, or the sweep's where that is all there is,
-   *  then the positions that confirm the Greats. Call after start(). `search` and `model` name the engine whose results
-   *  to read, and `paths` the positions to read before the Greats': by default each that the passes search, and each of
-   *  the branches. A position of the game's line counts as searched that far (swept, labelled), as the passes count it
-   *  when they find the result in the store: a review opened again is complete before the engine's network loads. */
-  async fromStore(search: string, model: string, paths?: string[][]) {
+   *  position that the passes search and each of the branches, at the label budget or deeper, or the sweep's where that
+   *  is all there is, then the positions that confirm the Greats. The board reads the positions that judge its moves
+   *  evaluated (judgedPositions). Call after start(), and loadBoard() for the board. `search` and `model` name the
+   *  engine whose results to read. A position of the game's line counts as searched that far (swept, labelled), as the
+   *  passes count it when they find the result in the store: a review opened again is complete before the engine's
+   *  network loads. */
+  async fromStore(search: string, model: string) {
     const take = async (path: string[]) => {
       const moves = this.keyMovesOf(path);
       const a = (await cacheGetAtLeast<Analysis>(search, model, moves, this.labelVisits))
@@ -293,11 +295,18 @@ export class GameAnalysis {
       if (!a) return;
       this.keep(path, a);
       const i = mainIndex(path, this.mainNames);
-      if (i !== null && a.visits > this.reached[i]) this.reached = this.reached.with(i, a.visits);
+      if (i !== null) this.reach(i, a.visits);
     };
-    await Promise.all((paths ?? [...Array.from({ length: this.passCount }, (_, i) => this.mainNames.slice(0, i)),
-                                 ...Object.keys(this.branches).map(k => k.split(" "))]).map(take));
+    const paths = this.board ? this.judgedPositions()
+      : [...Array.from({ length: this.passCount }, (_, i) => this.mainNames.slice(0, i)), ...Object.keys(this.branches).map(k => k.split(" "))];
+    await warmCache(search, model, paths.map(p => this.keyMovesOf(p)), SWEEP_VISITS); // one read of the store for them all
+    await Promise.all(paths.map(take));
     await Promise.all(this.greatTargets.map(t => take([...t.path, edgeName(t.candidate.edge)]))); // after: they follow the results
+  }
+
+  /** Notes that the game's position `i` has met `visits`, when that is more than it had. */
+  private reach(i: number, visits: number) {
+    if (visits > this.reached[i]) this.reached = this.reached.with(i, visits);
   }
 
   /** Searches the position after `candidate` at `path` to the label budget, to confirm a Great. */
@@ -370,9 +379,14 @@ export class GameAnalysis {
     return i !== null ? this.played[i - 1] : this.branches[pathKey(path)]?.move;
   }
 
+  /** The positions that judge the move into `path`: before it and after it. */
+  private judging(path: string[]) {
+    return [path.slice(0, -1), path];
+  }
+
   private judgeSearches(path: string[]) {
     if (!this.engineReady) return; // the sweep starts them
-    for (const p of [path.slice(0, -1), path])
+    for (const p of this.judging(path))
       if (this.searchable(p)) this.search(p, this.labelVisits, PRIORITY.judge, "judge", { early: LABEL_VISITS }).catch(this.fail);
   }
 
@@ -482,14 +496,11 @@ export class GameAnalysis {
     return [...Object.keys(this.judgedMain), ...Object.entries(this.branches).filter(([, n]) => n.judged).map(([k]) => k)];
   }
 
-  /** Board: the positions that judge the moves evaluated, before and after each (judgeSearches), each once: what the
-   *  board reads from the store before it shows (fromStore). */
-  judgedPositions(): string[][] {
+  /** Board: the positions that judge the moves evaluated (judging), each once: what the board reads from the store
+   *  before it shows (fromStore). */
+  private judgedPositions(): string[][] {
     const out = new Map<string, string[]>();
-    for (const k of this.judgedKeys()) {
-      const path = k.split(" ");
-      for (const p of [path.slice(0, -1), path]) out.set(pathKey(p), p);
-    }
+    for (const k of this.judgedKeys()) for (const p of this.judging(k.split(" "))) out.set(pathKey(p), p);
     return [...out.values()];
   }
 
@@ -592,7 +603,7 @@ export class GameAnalysis {
     const pass = (visits: number, priority: number, tag: string) =>
       Promise.all(Array.from({ length: n }, (_, i) =>
         this.search(this.mainNames.slice(0, i), visits, priority, tag, { early: LABEL_VISITS }).then(met => {
-          if (met && visits > this.reached[i]) this.reached = this.reached.with(i, visits);
+          if (met) this.reach(i, visits);
         }).catch(this.fail)));
     await pass(SWEEP_VISITS, PRIORITY.sweep, "sweep");
     if (run !== this.passes) return; // a later run took over

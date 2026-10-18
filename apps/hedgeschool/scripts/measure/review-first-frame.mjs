@@ -15,10 +15,9 @@
 //
 //   node scripts/measure/review-first-frame.mjs [reloads] [width]x[height] [turn|edge]
 import { writeFileSync } from "node:fs";
-import { launch, layoutShift, mark, median, tasksBetween, trace } from "./speed.mjs";
+import { launch, layoutShift, mark, median, storeReview, tasksBetween, trace } from "./speed.mjs";
 
 const BASE = process.env.BASE_URL ?? "http://127.0.0.1:4173";
-const FIXTURE = "tests/fixtures/hedgefund-review.json";
 const reloads = Number(process.argv[2] ?? 5);
 const [width, height] = (process.argv[3] ?? "1366x657").split("x").map(Number);
 const judge = process.argv[4]; // the review's unit (src/lib/review/display.ts): by turn, the default, or by edge
@@ -26,10 +25,7 @@ const LONG = 50;
 
 const browser = await launch();
 const page = await browser.newPage({ viewport: { width, height } });
-await page.goto(`${BASE}/review`);
-await page.locator('input[type="file"][accept*="json"]').first().setInputFiles(FIXTURE);
-await page.waitForURL(/#game=/);
-await page.getByText(/^Review done/).waitFor({ timeout: 300_000 });
+await storeReview(page, BASE);
 if (judge) await page.evaluate(d => localStorage.setItem("learn-enclosure:review-display:1", JSON.stringify(d)), { judge });
 
 /** The first draw's tasks in a trace, each with its wall time and thread time in milliseconds, or null when the trace

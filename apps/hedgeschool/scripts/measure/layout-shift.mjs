@@ -12,15 +12,19 @@
 //
 //   node scripts/measure/layout-shift.mjs <review|board> <before> <after> [pairs] [reloads] [WxH...]
 //
-// <before> and <after> are build folders, copies of `build` (docs/working-notes.md). With OUT, the sets go to that file
-// as JSON.
+// <before> and <after> are build folders, copies of `build` (docs/working-notes.md). They are served on the port PORT
+// and the next (4193 by default). With OUT, the sets go to that file as JSON.
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { inPairs, launch, layoutShift, median, preview, verdict } from "./speed.mjs";
+import { FIXTURE, importFile, inPairs, launch, layoutShift, median, preview, storeReview, verdict } from "./speed.mjs";
 import { parseRecord } from "../../src/lib/game/record.ts";
+import { readAnalysisKey } from "../../src/lib/analysis/cache.ts";
+import { ANALYSIS_FILE_VERSION, ANALYSIS_FORMAT } from "../../src/lib/game/analysisFile.ts";
+import { boardPositionKeys } from "../../src/lib/game/board.ts";
+import { belongs } from "../../src/lib/game/reviewFile.ts";
+import { prefixKeys } from "../../src/lib/review/tree.ts";
 
-const FIXTURE = "tests/fixtures/hedgefund-review.json";
 const [kind, before, after, pairCount = "5", reloadCount = "3", ...sizeArgs] = process.argv.slice(2);
 if (!["review", "board"].includes(kind) || !before || !after) throw new Error("usage: layout-shift.mjs <review|board> <before> <after> [pairs] [reloads] [WxH...]");
 const sizes = (sizeArgs.length ? sizeArgs : ["1366x657", "1427x849", "390x760", "390x1100"]).map(s => s.split("x").map(Number));
@@ -31,30 +35,24 @@ const sizes = (sizeArgs.length ? sizeArgs : ["1366x657", "1427x849", "390x760", 
 function boardFile(edges = 15) {
   const fixture = JSON.parse(readFileSync(FIXTURE, "utf8"));
   const moves = parseRecord(fixture.record).moves.slice(0, edges);
-  const movesOf = entry => entry[0].split("|").slice(4).join("|"); // a result's key: its position's moves last
-  const branch = fixture.analyses.map(movesOf)
+  const branch = fixture.analyses.map(([key]) => readAnalysisKey(key).moves)
     .find(m => m.split(" ").length === 2 && m.startsWith(`${moves[0]} `) && m !== `${moves[0]} ${moves[1]}`);
-  const nodes = [...moves.map((_, i) => [moves.slice(0, i + 1).join(" "), 0, 1]), [branch, 1, 1]];
-  const positions = new Set(["", ...nodes.map(n => n[0])]), parent = m => m.slice(0, Math.max(0, m.lastIndexOf(" ")));
-  return { format: "hedge-school-analysis", version: 1, exported: new Date().toISOString(), site: "layout-shift.mjs",
-           board: { version: 2, nodes, main: moves },
-           analyses: fixture.analyses.filter(a => positions.has(movesOf(a)) || (movesOf(a) && positions.has(parent(movesOf(a))))) };
+  const board = { version: 2, nodes: [...prefixKeys(moves).slice(1).map(k => [k, 0, 1]), [branch, 1, 1]], main: moves };
+  const positions = boardPositionKeys(board);
+  return { format: ANALYSIS_FORMAT, version: ANALYSIS_FILE_VERSION, exported: new Date().toISOString(), site: "layout-shift.mjs",
+           board, analyses: fixture.analyses.filter(([key]) => belongs(key, positions, null)) };
 }
 
 const browser = await launch();
 const builds = [];
-for (const [dir, port] of [[before, 4193], [after, 4194]]) {
-  const served = await preview(dir, port), page = await browser.newPage({ viewport: { width: sizes[0][0], height: sizes[0][1] } });
-  await page.goto(`${served.url}/review`);
-  const input = page.locator('input[type="file"][accept*="json"]').first();
-  if (kind === "review") {
-    await input.setInputFiles(FIXTURE);
-    await page.waitForURL(/#game=/);
-    await page.getByText(/^Review done/).waitFor({ timeout: 300_000 });
-  } else {
+const port = Number(process.env.PORT ?? 4193);
+for (const [dir, k] of [[before, 0], [after, 1]]) {
+  const served = await preview(dir, port + k), page = await browser.newPage({ viewport: { width: sizes[0][0], height: sizes[0][1] } });
+  if (kind === "review") await storeReview(page, served.url);
+  else {
     const file = join(tmpdir(), "layout-shift-board.json");
     writeFileSync(file, JSON.stringify(boardFile()));
-    await input.setInputFiles(file);
+    await importFile(page, served.url, file);
     await page.waitForURL(/\/analysis/);
     await page.waitForTimeout(8000); // the board keeps its lines in the browser once its rules have read them
   }
@@ -73,9 +71,12 @@ async function set({ page }) {
     } else await page.waitForTimeout(5000);
     const { cls, moved: these } = await layoutShift(page);
     shifts.push(cls);
-    for (const name of new Set(these.map(m => m.replace(/ at -?\d+ ms(, \d+ times)?$/, "")))) moved.set(name, (moved.get(name) ?? 0) + 1);
+    for (const m of these) {
+      const name = m.replace(/ at -?\d+ ms(, \d+ times)?$/, ""); // layoutShift names each element once
+      moved.set(name, (moved.get(name) ?? 0) + 1);
+    }
   }
-  return { cls: median(shifts), shifts, moved: [...moved].map(([name, n]) => `${name} (${n} of ${shifts.length})`) };
+  return { cls: median(shifts), shifts, moved: Object.fromEntries(moved) };
 }
 
 const out = [];
@@ -91,10 +92,7 @@ for (const [width, height] of sizes) {
               `after median ${f(v.b.median)} (spread ${f(v.b.spread)}); the pairs agree: ${v.agree}, a change: ${v.change}`);
   for (const [k, label] of [[0, "before"], [1, "after"]]) {
     const moved = new Map();
-    for (const pair of pairs) for (const m of pair[k].result.moved) {
-      const [, name, n] = m.match(/^(.*) \((\d+) of \d+\)$/);
-      moved.set(name, (moved.get(name) ?? 0) + Number(n));
-    }
+    for (const pair of pairs) for (const [name, n] of Object.entries(pair[k].result.moved)) moved.set(name, (moved.get(name) ?? 0) + n);
     console.log(`  moved, ${label}: ${moved.size ? [...moved].map(([name, n]) => `${name} in ${n} reloads`).join("; ") : "nothing"}`);
   }
   out.push({ kind, width, height, pairs, verdict: v });

@@ -30,6 +30,8 @@ learn one, and remove a note when it stops being true. The work itself is in bea
     each build, and serve each copy on its own port.
   - `launch()` starts Playwright's Chromium with its scroll bars. `trace(browser, page, act)` records Chrome's trace
     while `act` runs.
+  - `storeReview(page, url)` keeps the review of the test fixture (`FIXTURE`) in the page's browser, and waits until
+    the review is done. `importFile(page, url, file)` imports a review file or an analysis file.
   - `tasksBetween(trace, from, to, { paint })` gives the main thread's tasks between two marks, each with its wall
     time and its thread time. `eventTime(trace, name)` gives a named event's count and times on every thread.
   - `layoutShift(page, since)` gives the page's Cumulative Layout Shift and each element that moved. It reads a

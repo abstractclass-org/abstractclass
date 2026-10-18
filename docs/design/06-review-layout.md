@@ -241,7 +241,7 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
   (`src/lib/review/moveList.ts`), and the settings' rows (`src/lib/ui/SettingChoice.svelte`, `SettingToggle.svelte`,
   `SoundSettings.svelte`).
 - `src/lib/review/display.ts`: the display settings and their storage in the browser.
-- `src/routes/review/+page.svelte`: the skeleton until the review shows (`opening`, `preloaded`).
+- `src/routes/review/+page.svelte`: the skeleton until the review shows (`gameOpen`, `preloaded`).
 - `src/app.css`: the monospaced font (`--font-mono`, and the font's import).
 
 ## Log entries
