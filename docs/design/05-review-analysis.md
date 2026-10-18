@@ -42,7 +42,9 @@ noise.
      (`BATCH_MS`): their results so far and their final results, the deepest result of each position. A search's end
      shows in the same batch as its result: the progress bar, the "time limit" note, and the end of the marks of a
      search that runs (the gleam on a line, the moving bar of the position on screen). A result from the browser's
-     store shows at once.
+     store shows at once. A search writes its final result to the browser's store first, and the result shows in the
+     first batch after the write. So the game's mark of a review done (design 20) comes after every result that it
+     covers is stored. The engine does not wait for the write: it takes its next search when its search ends.
 2. **The labels** read these searches: [10-labels.md](10-labels.md) gives every rule, by turn and by edge.
 3. **Results stay in the browser** (IndexedDB), keyed by the stored shape's version, the engine's search (request 17:
    the first build that searched as this one does), the network's SHA-256, the moves and the visits. A stored result
@@ -94,3 +96,5 @@ noise.
   order" (2026-10-10): a candidate's visits are KataGo's `edgeVisits`.
 - [decisions/product.md](../decisions/product.md), "The site removes the analyses of older shapes" (2026-10-16).
 - [decisions/product.md](../decisions/product.md), "A search's final results in the batch" (2026-10-18).
+- [decisions/product.md](../decisions/product.md), "The engine's next search does not wait for a result's write"
+  (2026-10-19).

@@ -3780,3 +3780,84 @@ sweep.
   The progress line named each step in turn: the game's shape, the move quality from 38 s, the key moments from
   475 s, and the Greats' confirmations from 501 s. "Review done" showed at 516 s, and the page threw no error.
 - **Not measured:** the GPU, Edge, an unloaded machine, a slower device, and the label pass.
+
+### The engine's next search does not wait for a result's write (2026-10-19)
+
+- **The problem:** a search wrote its final result to the browser's store (`cachePut`) before its task in the pool
+  ended (`search` in `src/lib/analysis/game.svelte.ts`). So its engine took the next search only after the write had
+  committed (abscls-im3).
+- **The change** (design 05, "The results show in batches"): the pool's task ends when the engine's search ends. The
+  write and the batch then follow without the engine.
+  - The search writes its final result first. The result goes into the batch when the write has committed, with the
+    passes' progress, the mark of a time limit, the end of the search's mark (`pending`) and the end of the focus. So
+    all of them show in one batch, as before.
+  - The analysis and the progress show a final result only once it is stored. So the game's mark of a review done
+    (`markReviewed`, design 20) comes after every result that it covers is stored, as before.
+  - These stay as they were: a search writes its final result once, and only when it ran to its budget and did not
+    stop. A write that fails does not stop the result from showing. A search that ends after another network took
+    over writes nothing and shows nothing.
+  - A search that the pool stopped to give way shows its result by itself. The pool runs it again, and the search
+    ends with the result of that later run.
+- **The test** (`src/lib/analysis/game.test.ts`): a store in IndexedDB's place, whose writes the test can hold, and a
+  pool with a number of engines. Three new tests and one new check:
+  - With one engine, the engine takes its next search while the write is held. The result and the sweep's progress
+    show in the batch after the write. This test failed before the change.
+  - The end of a search's marks (`pending`, the focus) comes in the batch of its result, after the write.
+  - A result whose write fails shows, with its progress.
+  - A search of the previous network writes nothing: a check added to that network's test.
+- **The measurement** (`scripts/measure/review-sweep.mjs`, which now also reads the gaps): the sweep of the fixture's
+  game (120 positions at 32 visits) from no stored result, in Playwright's Chromium, headless, at 1,366 × 657 pixels.
+  2 search workers on the CPU, the GPU off, under `scripts/machine run --threads 2`. The GPU does not start in
+  Playwright's Chromium (abscls-3cjw), so the series measured the CPU workers only. An init script wraps `Worker`,
+  and notes when the page sends each search and when its final reply comes. A gap is the time from a search's final
+  reply to the next search that the page sends to the same worker, where both searches are the sweep's. Each sweep
+  had 117 gaps. Each build ran 5 sweeps, in 5 pairs, and the build that ran first took turns.
+- **The machine:** very loaded. The engine repository's training `v2a` held 8 threads and the GPU, and another
+  worker's job of 2 threads ran during every sweep. Windows' processor use and the load in WSL (one minute) before
+  each sweep:
+
+  | Pair | Before | After |
+  | --- | --- | --- |
+  | 1 | 94%, 22.7 | 93%, 15.9 |
+  | 2 | 98%, 23.2 | 100%, 30.1 |
+  | 3 | 98%, 32.9 | 95%, 32.9 |
+  | 4 | 97%, 30.0 | 93%, 27.3 |
+  | 5 | 99%, 30.2 | 85%, 27.6 |
+
+- **Measured,** each sweep, before → after. The share is the gaps in all over the two engines' time (twice the
+  sweep's time).
+
+  | Pair | Median gap | 90th percentile | Gaps in all | Their share | The sweep's time |
+  | --- | --- | --- | --- | --- | --- |
+  | 1 | 1.2 → 0.3 ms | 7.6 → 0.9 ms | 1,256 → 117 ms | 1.14% → 0.07% | 55.1 → 84.4 s |
+  | 2 | 6.5 → 0.3 ms | 137.9 → 1.9 ms | 8,150 → 149 ms | 4.40% → 0.08% | 92.6 → 89.7 s |
+  | 3 | 2.2 → 0.3 ms | 23.0 → 0.6 ms | 1,609 → 67 ms | 1.17% → 0.06% | 69.0 → 57.4 s |
+  | 4 | 3.0 → 0.3 ms | 48.8 → 0.5 ms | 1,868 → 39 ms | 1.31% → 0.04% | 71.5 → 54.3 s |
+  | 5 | 3.4 → 0.2 ms | 51.6 → 0.9 ms | 2,734 → 1,189 ms | 1.83% → 0.94% | 74.6 → 62.9 s |
+
+  - **The gaps:** every pair agrees on the median gap, the 90th percentile and the gaps in all. The two builds' sweeps
+    do not overlap on any of the three: the largest value after the change is below the smallest before it (0.3
+    against 1.2 ms, 1.9 against 7.6 ms, 1,189 against 1,256 ms). By `verdict` (`scripts/measure/speed.mjs`), they show
+    no change all the same: under this load, the spread of the sweeps before the change (5.3 ms, 130 ms and
+    6,894 ms) is wider than the median difference (−2.7 ms, −48 ms and −1,546 ms).
+  - With the wait, single gaps took up to 1.6 s. Without it, the median gap stayed at 0.2 to 0.3 ms. One gap of the
+    fifth pair's sweep after the change took 1,112 ms, and the other 116 gaps of that sweep came to 77 ms. Its cause
+    was not found. A gap also holds any wait for the next search to reach the queue.
+  - **The sweep's time:** the pairs disagree (+29.3, −2.9, −11.6, −17.2 and −11.7 s), and each build's spread (37 s
+    before, 35 s after) is wider than all the gaps of a sweep. No change measured.
+  - **The main thread's thread time:** the pairs disagree (+806, −942, +533, −63 and −1,539 ms): no change. No task of
+    any sweep passed 50 ms of thread time, in either build (the longest took 16 ms).
+  - A pair run first, as a check of the script, at 88% and 76% of the processor: 467 ms of gaps in all before the
+    change, 34 ms after it.
+- **The decision:** the engine goes on while the write commits. On this loaded machine, the wait held the engines for
+  1.1% to 4.4% of a sweep's time, and the change takes that below 0.1%, but for the one gap above. It costs no
+  main-thread time, and it keeps every order that the page relies on. The gain in the sweep's time is smaller than
+  this machine's noise, so it is not measured.
+  - Not measured, by reasoning: the wait is longer where a write is slower. Examples are a slow disk, a phone, and a
+    write that waits for another transaction on the store, such as the removal of earlier results (design 20), which
+    holds the store while it runs. The GPU's 16 searches end more often than 2 CPU workers' searches, so there the
+    write's wait comes more often.
+- **abscls-byld** (Review done before the start's deep result is stored): the change does not touch the possible
+  causes that its issue names. A search writes on the same condition as before (it ran to its budget and did not
+  stop), and the result of a slice goes into the batch as before.
+- **Not measured:** the GPU, an unloaded machine, Edge, a phone, and the label pass.
