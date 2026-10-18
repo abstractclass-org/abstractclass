@@ -78,7 +78,8 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
    the left, and the tools on the right (the Analysis board's New, Play and Export, the review's Export, and ☰). When
    the column is too narrow for one row, the tools go under the steps as a group, at the right, and the steps span the
    column's width, as Lichess's do. The bar measures whether the tools fit beside the steps at the steps' own width
-   (`src/lib/ui/StepBar.svelte`, which Practice shares). The buttons' icons are drawn, one set at one stroke
+   (`src/lib/ui/StepBar.svelte`, which Practice shares). It measures as it mounts, before its first frame: a change
+   after the first frame moves the buttons (a layout shift). The buttons' icons are drawn, one set at one stroke
    (`src/lib/ui/Icon.svelte`), not text glyphs, whose shapes vary with the font.
 5. **The win chance is a display setting:**
    - **A bar above the board** ("Top horizontal bar", the default): Blue on the left, Red on the right, as the players
@@ -92,8 +93,11 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
      27.5rem with the bar, and 21.25rem with the gauge, where the tags would meet. These widths are the row's own
      (container queries), set by a game's widest numbers (points in the thousands) so that the bar keeps its 6rem. A
      game keeps one form throughout, so the board does not change size as the scores grow. The row's height is
-     measured, and the board and the side columns take it. Until it is measured, the page takes the two lines'
-     height (`--strip`), so that the board keeps its size when the review shows.
+     measured, and the board and the side columns take it. Until it is measured, the page takes the height of the
+     lines that the row will have (`--strip`): three where the board, with a row of two lines, is 27.5rem wide or less
+     (21.25rem with the gauge), else two. So the board has its size in the first frame of the skeleton and of the
+     review. A row whose lines have other heights (another font) changes the board's size once it is measured, after
+     the first frame (a layout shift).
    - **A vertical gauge beside the board** ("Side vertical gauge", as Lichess and chess.com draw it): Blue's share from
      the bottom, each side's percentage inside the gauge at its own end (Red's at the top, Blue's at the bottom), as the
      bar shows them at its ends. The percentages are small and written up the gauge, so the gauge is 1rem wide. A
@@ -127,12 +131,16 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
    the labels found so far, so they grow as labels come. The bar shows the step that its line names: the steps before
    are full, the later ones empty, though some of their work ends early, alongside (it shows when their step comes).
    The step's part never shows less than it showed before: when its count grows, it waits. Another review depth, network
-   or game starts it again. **While a bar's work runs,
+   or game starts it again. A review opened again reads its results from the browser's store before it shows, and they
+   count as searched (the sweep and the label pass): its bar is full while the engine's network loads, and the report
+   does not say that its counts are partial. That sentence came and went as the network loaded, and moved the report's
+   table (a layout shift). **While a bar's work runs,
    a light gleam sweeps it** (Lichess's `bar-glider`, `ui/lib/css/component/_bar-glider.scss`: 70 pixels wide, every
    3 seconds), so that a slow step does not look stopped: the review's bar while its passes run, and the search bar
    while the position on screen is searched. With reduced motion asked for, there is no gleam. **The gleam is slower
    than Lichess's:** it crosses the bar in 2 seconds at any width, then waits 1 second. Lichess's gleam moves 3,400
-   pixels in 3 seconds, so it flashes across a bar of 400 pixels in about a third of a second.
+   pixels in 3 seconds, so it flashes across a bar of 400 pixels in about a third of a second. The gleam moves by a
+   transform, not by its place (`left`): it asks for no layout in each frame, and moves nothing (a layout shift).
 8. **Two kinds of number, one form each:**
    - **Who is ahead:** the side ahead is named, and the number is never below 0: "Red +105", whoever is to move, as Go
      writes "B+3.5". Even reads "0" among numbers and "even" in a sentence. So: the engine header ("Expected final
@@ -158,7 +166,7 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
 10. **A skeleton while the rules read the game** (Nielsen Norman Group's skeleton screen): until the engine's rules
     have described every position, the page shows the review's layout without its content. The columns, the board and
     the charts' area have their sizes, the empty board shows its points, and grey bars stand for the text. The
-    progress slot says "Reading the game with the engine's rules…", and the players' names show once the game is read.
+    progress slot says "Reading the game with the engine's rules…", and the players' names show in its first frame.
     The review then takes the skeleton's place, part for part.
     - **One layout for both:** the skeleton is a snippet of `ReviewView.svelte` (`reviewSkeleton`), so it takes the
       review's styles. The row above the board uses the review's classes (`stripRow`, `playerBox`), with bars as high
@@ -166,8 +174,9 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
       board's size follows its height.
     - **The board's points are drawn with CSS** (`.board-points`), where `Board.svelte` draws them: 19 by 19, one
       unit apart, in a board 20.6 units wide.
-    - **Only where the address names a game:** the skeleton shows once the page's code runs. Before that, and on the
-      Review tab, the prerendered line of text shows.
+    - **Only where the address names a game:** the skeleton shows once the page has read the game, so that the
+      players' names are in its first frame. Names that came after it changed the cards' widths, and moved the row's
+      parts (a layout shift). Before that, and on the Review tab, the prerendered line of text shows.
     - With reduced motion asked for, the skeleton's bars do not pulse.
     - **The move list's rows come one frame after the rest** (`rowsDrawn`), in a task of their own. Until then the
       list's box shows grey bars that do not pulse: one element draws a bar for each turn, a turn's row apart (22

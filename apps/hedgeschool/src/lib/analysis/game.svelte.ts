@@ -282,16 +282,21 @@ export class GameAnalysis {
   /** The review from the browser's store alone, with no search (an export away from the review page, design 13): each
    *  position of the game and of its branches at the label budget or deeper, or the sweep's where that is all there is,
    *  then the positions that confirm the Greats. Call after start(). `search` and `model` name the engine whose results
-   *  to read. */
-  async fromStore(search: string, model: string) {
+   *  to read, and `paths` the positions to read before the Greats': by default each that the passes search, and each of
+   *  the branches. A position of the game's line counts as searched that far (swept, labelled), as the passes count it
+   *  when they find the result in the store: a review opened again is complete before the engine's network loads. */
+  async fromStore(search: string, model: string, paths?: string[][]) {
     const take = async (path: string[]) => {
       const moves = this.keyMovesOf(path);
       const a = (await cacheGetAtLeast<Analysis>(search, model, moves, this.labelVisits))
         ?? (await cacheGetAtLeast<Analysis>(search, model, moves, SWEEP_VISITS));
-      if (a) this.keep(path, a);
+      if (!a) return;
+      this.keep(path, a);
+      const i = mainIndex(path, this.mainNames);
+      if (i !== null && a.visits > this.reached[i]) this.reached = this.reached.with(i, a.visits);
     };
-    await Promise.all([...Array.from({ length: this.moves.length }, (_, i) => this.mainNames.slice(0, i)),
-                       ...Object.keys(this.branches).map(k => k.split(" "))].map(take));
+    await Promise.all((paths ?? [...Array.from({ length: this.passCount }, (_, i) => this.mainNames.slice(0, i)),
+                                 ...Object.keys(this.branches).map(k => k.split(" "))]).map(take));
     await Promise.all(this.greatTargets.map(t => take([...t.path, edgeName(t.candidate.edge)]))); // after: they follow the results
   }
 
@@ -469,8 +474,23 @@ export class GameAnalysis {
    *  (focus) and the moves evaluated, whose searches start again here (after another network, or the engine on). */
   ready() {
     this.engineReady = true;
-    const judged = [...Object.keys(this.judgedMain), ...Object.entries(this.branches).filter(([, n]) => n.judged).map(([k]) => k)];
-    for (const k of judged) this.judgeSearches(k.split(" "));
+    for (const k of this.judgedKeys()) this.judgeSearches(k.split(" "));
+  }
+
+  /** Board: the moves evaluated, by their path keys: the main line's and the branches'. */
+  private judgedKeys(): string[] {
+    return [...Object.keys(this.judgedMain), ...Object.entries(this.branches).filter(([, n]) => n.judged).map(([k]) => k)];
+  }
+
+  /** Board: the positions that judge the moves evaluated, before and after each (judgeSearches), each once: what the
+   *  board reads from the store before it shows (fromStore). */
+  judgedPositions(): string[][] {
+    const out = new Map<string, string[]>();
+    for (const k of this.judgedKeys()) {
+      const path = k.split(" ");
+      for (const p of [path.slice(0, -1), path]) out.set(pathKey(p), p);
+    }
+    return [...out.values()];
   }
 
   /** Board: plays a line from the start. A line that goes on from the main line's end makes it longer, as on Lichess's

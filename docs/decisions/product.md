@@ -3469,3 +3469,108 @@ sweep.
   - Checked again on a build with `G-TEST000000`: the 5 tests, each 3 times, 15 of 15 passed. A throwaway check found
     the card in the page as soon as the wait ended, 20 times of 20. On a build without the ID: the layout sweep
     passed in Chromium, and the card's tests skipped.
+
+### The layout shift of the review and the Analysis board, again (2026-10-18)
+
+- **The problem:** the review of the change "The review's first frame" measured a layout shift of 0.0138 to 0.0142
+  on a stored review at 1,366 × 657, most of it before the review shows, and 0.0073 to 0.0076 on the Analysis board
+  in one column at 390 × 1,100. On 2026-10-14 the same review measured 0.0001 ("A skeleton while the review starts,
+  and the time before it shows"), in Edge.
+- **What brought it back: nothing, in this browser.** A build of b650aab, the commit that recorded 0.0001, and a
+  build of the dev branch at 47bed2f, measured with the same probe (Playwright's Chromium, headless, a buffered
+  `PerformanceObserver`, 2 reloads of the stored review at 1,366 × 657): 0.0268 and 0.0271 for b650aab, 0.0139 and
+  0.0142 for 47bed2f. In a same-origin iframe of 1,366 × 657, as the check of 2026-10-14 measured: 0.0274 to 0.0277,
+  and 0.0142. With the gauge in place of the bar, b650aab gave 0.0126 to 0.0133. So the shifts at 1,366 × 657 came
+  with b650aab itself, which brought the skeleton and the measured row above the board, and they became smaller
+  after it. A bisect needs a commit without them, and this browser gives none. The reading of 0.0001 was Edge's:
+  these runs did not use Edge, and this browser does not reproduce it. One shift is new since 2026-10-14: the step
+  bar's buttons on the Analysis board in one column, from bd6df7c (2026-10-15, below).
+- **The causes,** found by logging each frame's layout and each shift's elements and rectangles:
+  - **The row above the board,** at 1,366 × 657 (0.0131, before the review shows): the board is 398 pixels wide
+    there, so the row takes three lines (66.75 pixels: the area under the points, below 27.5rem). Until the page
+    measured the row, `--strip` gave two lines (45 pixels). The skeleton measured it with a `ResizeObserver`, whose
+    first call comes after the frame's layout, and Chromium counts the change as a layout shift: the board became
+    22 pixels narrower, and the three columns moved 11 pixels towards it. The review's first frame did the same again
+    (`bind:offsetHeight` uses an observer too): the side column first took the height of the taller board column
+    (598.75 pixels), then 577, so the step bar under the move list moved 21 pixels up (0.0006). b650aab brought both:
+    the skeleton, and the measured row.
+  - **The players' names in the skeleton:** when the game's read ended after the skeleton's first frame, the names
+    took the place of their grey bars, and the cards' widths changed. The red card and the bar between the cards
+    moved: 0.0003 at 1,366 × 657, 0.0008 at 1,427 × 849, 0.0001 at 390 wide, in about half of the reloads. b650aab
+    brought it ("the players' names show once the game is read").
+  - **The report's sentence "The review is still running: the counts below are partial."** A review opened again
+    shows before the engine's network loads, and until then its progress said "Loading the engine's network…" with
+    the steps not counted: the sweep and the label pass counted only the positions that the passes searched after the
+    network loaded, also when every result came from the store. So the report said that its counts were partial,
+    then dropped the sentence when the network came, and the report's table moved 43 pixels up (0.0033 at
+    1,366 × 657, 0.0011 at 1,427 × 849). It shows whenever the review shows before the network loads: the probe's
+    first reloads, right after the import, did not have it. The sentence came with 9709ae1 (2026-10-11).
+  - **The gleam on the progress bars** (`bar-glider`) moved by `left`, a layout in each frame: about 120 entries a
+    load in one column while a bar's work runs, each below 0.0001 (0.0004 to 0.0008 a load). It came with 7375d51
+    (2026-10-11).
+  - **The step bar on the Analysis board in one column** (0.0026 at 390 × 1,100): `StepBar` decided whether the
+    tools go under the steps in its observer's first call, after the first frame, so the four buttons widened from
+    35 to 74 pixels. It came with bd6df7c (2026-10-15), which made the bar that Practice shares.
+  - **The labels and notes on the Analysis board** came when its searches read the stored results, after the board
+    showed. At 390 × 1,100 the notes moved the step bar under the list 61 pixels down (0.005). At 1,427 × 849 they
+    moved the rows under them (0.0010), and at 1,366 × 657 the values' cells (0.0001).
+- **The changes:**
+  - **The row's height in CSS from the first frame** (`--strip` in `ReviewView.svelte`, design 06, item 5): three
+    lines where the board, with a row of two lines, is 27.5rem wide or less (21.25rem with the gauge), else two. With
+    three lines the board is smaller still, so the row stays narrow: the same lines that the measurement finds. A
+    `clamp` is the step between the two heights. The measurement stays, for a row whose lines have other heights
+    (another font).
+  - **The skeleton shows once the game is read** (`opening` in `src/routes/review/+page.svelte`, design 06, item
+    10), so that the players' names are in its first frame. Until then the prerendered line of text shows.
+  - **A review opened again counts its stored results as searched** (`fromStore` in
+    `src/lib/analysis/game.svelte.ts`): its bar is full while the network loads, and the report does not call its
+    counts partial (`counted` in `ReviewProgress`). `fromStore` also reads the end of a game that is not over, as
+    the passes search it.
+  - **The gleam moves by a transform** (`src/app.css`): a layer as wide as the bar, with the gleam in its last 70
+    pixels, from one bar's width left of the bar to 70 pixels right of it. The gleam's path and speed are the same.
+    The layer takes no clicks (`pointer-events: none`).
+  - **`StepBar` decides as it mounts** (`src/lib/ui/StepBar.svelte`, design 06, item 4). The width that it reads is
+    laid out already: its read of the steps' width forced the layout before (the issue "The review's first frame
+    computes its styles three times", abscls-de1).
+  - **The Analysis board reads the stored results of the moves evaluated before it shows** (`judgedPositions` and
+    `fromStore`, design 21, item 4), as the review reads its own.
+- **Measured** with `scripts/measure/layout-shift.mjs`: the build before (47bed2f) and the build after, in 5
+  alternating pairs (`inPairs`, `verdict` in `scripts/measure/speed.mjs`), each set 3 reloads of one build, in
+  Playwright's Chromium, headless. A set gives its median layout shift. The review is the stored review of the test
+  fixture; the board is the fixture's first 15 edges, every move evaluated, with a branch at the second move, opened
+  from an analysis file. Windows' processor use was 12 to 93% and WSL's load 1.6 to 7.1 (one minute). The layout
+  shift did not follow the load: each build gave the same values at each load.
+
+  | Page, window | Before: the sets' medians | After | The verdict |
+  | --- | --- | --- | --- |
+  | Review, 1,366 × 657 | 0.0174 to 0.0181 | 0 | a change: every pair −0.0174 to −0.0181 |
+  | Review, 1,427 × 849 | 0.0011 to 0.0020 | 0 | a change: every pair −0.0011 to −0.0020 |
+  | Review, 390 × 760 | 0 to 0.0002 | 0 | the pairs agree, but the median difference (−0.0001) is less than the spread before (0.0002) |
+  | Review, 390 × 1,100 | 0.0059 | 0 | a change: every pair −0.0059 |
+  | Board, 1,366 × 657 | 0.0001 | 0 | a change: every pair −0.0001 |
+  | Board, 1,427 × 849 | 0.0010 | 0 | a change: every pair −0.0010 |
+  | Board, 390 × 760 | 0 | 0 | none to make: the list starts below the window's bottom |
+  | Board, 390 × 1,100 | 0.0076 | 0 | a change: every pair −0.0076 |
+
+  - **What moved before,** in the 15 reloads of each size: on the review, the skeleton's columns and its row (gone
+    when the review shows, so the probe names them "?"), the report's table and the note above it
+    (`p.mb-3.text-xs.text-muted`), the step bar's box (`div.mt-1.5.pt-1.5.border-t`) at 1,366 × 657, and the gleam in
+    2 reloads. At 390 × 1,100 the report's table, its note and a swatch. On the board, the values' cells
+    (`span.col-start-4`), the move list's rows, and in one column the step bar's buttons and box.
+  - **After:** nothing moved, in every reload of every size: every reload's layout shift was 0.
+  - **The cost,** in pairs of 5 reloads at 1,366 × 657 (the review) and 390 × 1,100 (the board): the time from the
+    navigation to the skeleton's first frame, and to the review's or the board's, did not change in a way that the
+    pairs agree on (the skeleton's medians 88 ms before and 161 ms after, with spreads of 465 and 467 ms; the board's
+    679 and 653 ms). The skeleton now waits for the game's read, which is part of the 60 to 100 milliseconds of the
+    game, the tab's lock and the engine's manifest (2026-10-14). The review's first draw (`review-first-frame.mjs`,
+    2 pairs of 5 reloads): the longest task by thread time 33 and 22 ms before, 23 and 22 ms after, and the draw's
+    total thread time 80 and 62 ms before, 57 and 52 ms after: no loss. By wall time the sets before had a task of
+    about 450 ms in the draw and the sets after did not, but a trace finds the same task in both builds near
+    `review:shown`: a message's handler that waits 374 to 474 ms on 5 to 43 ms of thread time, on this loaded
+    machine. So that is no gain of the change.
+- **What stays:** a meter's part of 7 × 6 pixels moves by less than 0.000005 when a search's result comes, about 7
+  seconds after the load, on the board at 1,427 × 849: the engine's news. A row whose lines have other heights than
+  here (45 and 67 pixels, in Playwright's Chromium on Windows) still changes the board's size once it is measured.
+  Practice keeps its own row height, two lines, until it measures the row (`src/routes/practice/+page.svelte`): it
+  was not measured.
+- **Not measured:** Edge, the owner's devices, a slower device, and a review that the engine searches as it shows.

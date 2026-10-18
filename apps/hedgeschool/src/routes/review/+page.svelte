@@ -144,8 +144,11 @@
     ];
     const labelled = game?.labelled !== undefined && game.labelled >= passCount, deep = deepDone >= m;
     const step = !game || game.swept < passCount ? 0 : !labelled ? 1 : !deep && deeper * m ? 2 : parts.length - 1;
-    if (!game?.engineReady) return { text: "Loading the engine's network…", parts, step };
-    if (labelled && deep && greats.done >= greats.total) return null;
+    const counted = labelled && deep && greats.done >= greats.total;
+    // A review opened again has every step from the store before the network loads: its report's counts are final, and
+    // do not change their lines when the network comes (a layout shift).
+    if (!game?.engineReady) return { text: "Loading the engine's network…", parts, step, counted };
+    if (counted) return null;
     if (game.paused) return { text: "Engine off. The review is paused.", parts, waiting: true, step };
     if (step === 0) return { text: `Reviewing: the game's shape, ${game.swept} of ${passCount} positions`, parts, step };
     if (step === 1) return { text: `Reviewing: move quality, ${game.labelled} of ${passCount} positions`, parts, step };
@@ -224,8 +227,10 @@
   });
 
   let noGame = $state(false); // the Review tab without a game: ReviewHome
-  // The address names a game: the review's skeleton shows until the review does (ReviewView.svelte, reviewSkeleton).
-  // Before the page's code runs, the prerendered page shows its line of text.
+  // The address names a game: the review's skeleton shows from the game's read until the review does
+  // (ReviewView.svelte, reviewSkeleton). Before, the prerendered page shows its line of text. The skeleton waits for the
+  // game, so that the players' names are in its first frame: names that came later changed the cards' widths, and moved
+  // the row's parts (a layout shift).
   let opening = $state(false);
   const wide = new MediaQuery(WIDE);
   // Another game named after the `#` than the one the page shows, or a game named where it shows none (the Review tab's
@@ -254,7 +259,6 @@
     const id = gameInAddress();
     shown = id;
     if (!id) return null;
-    opening = true;
     const stored = await loadGame(id);
     if (!stored) {
       // A review's address opened in a browser that lacks its game (a review's address sent to someone): counted.
@@ -265,6 +269,7 @@
     kept = { id, text: stored.game.record, record: stored.record, partner: stored.game.partner };
     markBefore = stored.game.reviewed;
     own = ownSettings(stored.game); // a network the site no longer ships: the browser's
+    opening = true;
     return stored.record.moves;
   }
 

@@ -45,7 +45,9 @@ engine does by itself.
      moves asked for, on both sides, and ignores it), and the Advantage chart's lines (the board has no chart). The
      help of the depth on screen and of the network leaves out the review.
    The results go to the browser's store, keyed by the position, as the review's (design 05). A position searched in
-   a review opens with its result here, and the other way.
+   a review opens with its result here, and the other way. The board reads the stored results of the moves evaluated
+   (the positions before and after each) before it shows, as the review reads its own: their labels and notes are in
+   its first frame, and do not move the bar under the moves when they come (a layout shift).
 5. **The ways in:**
    - **Analysis** in the header: the board as the player left it.
    - **A link** that carries a line: `/analysis#record=…` (a record), or `/analysis#packed=…` (a shared analysis),

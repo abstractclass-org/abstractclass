@@ -34,6 +34,7 @@ learn one, and remove a note when it stops being true. The work itself is in bea
     time and its thread time. `eventTime(trace, name)` gives a named event's count and times on every thread.
   - `layoutShift(page, since)` gives the page's Cumulative Layout Shift and each element that moved. It reads a
     buffered `PerformanceObserver`: `performance.getEntriesByType("layout-shift")` gives no entries.
+    `layout-shift.mjs` compares two builds' layout shift with it, on the review and on the Analysis board, in pairs.
   - `inPairs(builds, count, run)` runs two builds in alternating pairs, and reads the machine's load
     (`machineLoad()`) before each run. `verdict(pairs)` gives each pair's difference, each build's median and spread,
     and whether the pairs show a change: every pair agrees, and the median difference is at least the larger of the
@@ -46,6 +47,10 @@ learn one, and remove a note when it stops being true. The work itself is in bea
   const pairs = await inPairs(builds, 5, async ({ url }) => { /* one set of runs at url: give its median */ });
   console.log(verdict(pairs.map(pair => pair.map(run => run.result))), pairs.map(pair => pair.map(run => run.load)));
   ```
+- **A size that the first frame needs** comes from CSS or from a read as the element mounts, not from a
+  `ResizeObserver` (or Svelte's `bind:offsetHeight`, which uses one). The observer's first call comes after the
+  frame's layout, and Chromium counts a change that it makes as a layout shift. A read at mount forces a layout, which
+  costs time in the first frame: prefer CSS.
 - **The browser tool's keys:** "PageDown", not "Page_Down": a key name that the tool does not know sends nothing, and
   the test then means nothing. Check that the key arrived (a `keydown` listener) before reading its effect.
 - **Timing the review's start:** `src/routes/review/+page.svelte` sets the performance marks `review:rules` (the rules

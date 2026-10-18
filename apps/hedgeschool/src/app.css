@@ -230,20 +230,22 @@
 /* Lichess's bar-glider (ui/lib/css/component/_bar-glider.scss): a light gleam sweeps a progress bar while its work
    runs, so that a slow step does not look stopped. Lichess's gleam moves 3,400 pixels in 3 seconds, so it flashes
    across a bar of 400 pixels in about a third of a second. This gleam crosses the bar in 2 seconds at any width, then
-   waits 1 second. None with reduced motion. */
+   waits 1 second. None with reduced motion. The gleam moves by a transform, not by its place (`left`), so that it
+   asks for no layout and is no layout shift: it is the last 70 pixels of a layer as wide as the bar, which moves
+   from one bar's width left of the bar (the gleam's right edge at the bar's left edge) to 70 pixels right of it (its
+   left edge at the bar's right edge). */
 @keyframes bar-glider {
-  0% { left: -70px; }
-  67%, 100% { left: 100%; }
+  0% { transform: translateX(-100%); }
+  67%, 100% { transform: translateX(70px); }
 }
 @layer components {
   .bar-glider { position: relative; overflow: hidden; }
   .bar-glider::after {
     content: "";
     position: absolute;
-    inset-block: 0;
-    left: 0;
-    width: 70px;
-    background: linear-gradient(to right, rgb(255 255 255 / 0), rgb(255 255 255 / 0.3));
+    inset: 0;
+    background: linear-gradient(to right, rgb(255 255 255 / 0) calc(100% - 70px), rgb(255 255 255 / 0.3));
+    pointer-events: none; /* as wide as the bar: a move list's row under it takes its clicks */
     animation: bar-glider 3s linear infinite;
   }
   @media (prefers-reduced-motion: reduce) {

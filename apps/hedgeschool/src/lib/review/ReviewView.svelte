@@ -13,8 +13,10 @@
   import type { EdgeRules } from "#lib/board/edgeInput.svelte.ts";
 
   /** The review in progress: what the engine does now, and the passes as parts of one bar, each with its share of the
-   *  work (by visits) and how much of it is done (0 to 1). `waiting`: no work runs (the engine is off). */
-  export interface ReviewProgress { text: string; parts: { share: number; done: number }[]; waiting?: boolean }
+   *  work (by visits) and how much of it is done (0 to 1). `waiting`: no work runs (the engine is off). `counted`: every
+   *  step's work came from the browser's store, and only the engine's network still loads: the report's counts are
+   *  final, and it does not call them partial. */
+  export interface ReviewProgress { text: string; parts: { share: number; done: number }[]; waiting?: boolean; counted?: boolean }
   /** Why a game reviewed before is reviewed again: the engine or its network was updated (store.ts, reviewAgainWhy).
    *  `text` shows under the progress. The dialog, with `title` and `body`, says it once when `dialog` is set. */
   export interface ReviewAgain { title: string; text: string; body: string; dialog: boolean }
@@ -990,7 +992,7 @@
   <p class="mb-3.75">
     <strong>{ending}</strong>
     ({fmtScore(R.data.result.blue)} to {fmtScore(R.data.result.red)}{endedByRules ? "" : " on the board"}).
-    {#if progress}The review is still running: the counts below are partial.{/if}
+    {#if progress && !progress.counted}The review is still running: the counts below are partial.{/if}
   </p>
   <!-- The game's own page, when its record's Site tag is an address (Lichess's way): back to the site it was played on. -->
   {#if siteLink}
@@ -1013,7 +1015,7 @@
       </tr>
     </thead>
     <tbody class={["[&_td]:py-0.5 [&_td]:border-t [&_td]:border-line [&_td+td]:w-px [&_td+td]:pl-3 [&_td+td]:text-right",
-                   "[&_td+td]:whitespace-nowrap [&_td+td]:tabular-nums", progress && "[&_td+td]:italic [&_td+td]:text-muted"]}>
+                   "[&_td+td]:whitespace-nowrap [&_td+td]:tabular-nums", progress && !progress.counted && "[&_td+td]:italic [&_td+td]:text-muted"]}>
       <tr class="text-[1.1em] font-bold">
         <td>Accuracy</td>
         {#each R.summary[unit] as s, p (p)}<td>{Number.isNaN(s.accuracy) ? "–" : s.accuracy.toFixed(1)}</td>{/each}
@@ -1834,7 +1836,18 @@
   .review {
     --gap: 1.25rem;
     --row-gap: 0.8rem;
-    --strip: 3.3125rem; /* the row above the board, with its margin: its two lines' height (2.8125rem) until the page measures it */
+    /* The row above the board, with its margin (0.5rem), until the page measures it: two lines (2.8125rem, a name over
+       its numbers), or three in a narrow row (PlayerCard: the area under the points), where the board is at most
+       --wrap-at wide (PlayerCard's container queries). The board's width that decides it is the one with two lines
+       (--board-2): with three, the board is smaller still, so the row stays narrow. A measured row of other lines'
+       heights (another font) changes the board's size after its first frame (a layout shift). The clamp is a step:
+       the third line's height (1.375rem) where the board is --wrap-at wide or less (0.005 pixels, less than a layout
+       unit, keeps the width of --wrap-at itself on that side), else none. */
+    --wrap-at: 27.5rem;
+    --tall-2: calc(100vh - var(--site-header) - 3.3125rem - 2rem);
+    --chart-2: clamp(var(--chart-min), calc(var(--tall-2) - var(--chart-gap) - var(--broad)), var(--chart-max));
+    --board-2: min(calc(var(--tall-2) - var(--chart-gap) - var(--chart-2)), var(--broad));
+    --strip: calc(3.3125rem + clamp(0px, calc((var(--wrap-at) + 0.005px - var(--board-2)) * 10000), 1.375rem));
     --gauge-w: 0px;
     --summary-min: 250px;
     --summary-max: 350px;
@@ -1862,7 +1875,7 @@
     margin: 1rem auto;
     padding: 0 1rem;
   }
-  .review.gauge-mode { --gauge-w: 1.375rem; } /* the gauge (w-4) and its margin (mr-1.5) */
+  .review.gauge-mode { --gauge-w: 1.375rem; --wrap-at: 21.25rem; } /* the gauge (w-4) and its margin (mr-1.5) */
   .review.wide {
     --others: calc(var(--summary-min) + var(--side-min) + 2 * var(--gap));
     grid-template-columns: minmax(var(--summary-min), var(--summary-max)) calc(var(--board) + var(--gauge-w))
@@ -1884,6 +1897,7 @@
   @media (max-width: 799px) {
     .review, .review.wide {
       --board: calc(100cqw - 2rem - var(--gauge-w));
+      --board-2: var(--board);
       --chart: 8rem;
       grid-template-columns: minmax(0, 1fr);
       grid-template-areas: "board" "side";
@@ -1893,5 +1907,5 @@
     .board-wrap { width: auto; flex: 1; min-width: 0; } /* the column's width, whatever the scroll bar takes */
   }
   /* The Analysis board has no chart: the board takes its height (design 21). */
-  .review.board-form { --chart: 0px; --chart-gap: 0px; }
+  .review.board-form { --chart: 0px; --chart-2: 0px; --chart-gap: 0px; }
 </style>

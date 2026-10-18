@@ -3,7 +3,7 @@
   // positions on the left, and the page's tools on the right. When the column is too narrow for one row, the tools go
   // under the steps as a group, and the steps then span the bar's width, as Lichess's do. The bar measures whether the
   // tools fit beside the steps at their own width, and so it does not stay wrapped once the steps are wide.
-  import type { Snippet } from "svelte";
+  import { untrack, type Snippet } from "svelte";
   import Icon from "./Icon.svelte";
 
   interface Props {
@@ -21,7 +21,9 @@
   let wrapped = $state(false);
 
   /** Watches the bar and its tools. The steps' own width is measured while they are not stretched (the first layout),
-   *  and the tools' whenever they change (a tool that comes or goes). */
+   *  and the tools' whenever they change (a tool that comes or goes). The bar decides at once, before its first frame,
+   *  where it is drawn: the observer's first call comes after the frame's layout, and a change then moves the buttons
+   *  (a layout shift). */
   function watch(bar: HTMLElement) {
     const steps = bar.firstElementChild as HTMLElement, toolbox = bar.lastElementChild as HTMLElement;
     let own = steps.offsetWidth;
@@ -29,6 +31,9 @@
       if (!wrapped) own = steps.offsetWidth;
       wrapped = bar.clientWidth < own + GAP + toolbox.offsetWidth;
     };
+    // Untracked, so that the attachment does not run again when `wrapped` changes. A hidden bar has no width: the
+    // observer decides once it shows.
+    if (own) untrack(check);
     const observer = new ResizeObserver(check);
     observer.observe(bar);
     observer.observe(toolbox);

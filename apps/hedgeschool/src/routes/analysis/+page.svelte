@@ -17,6 +17,7 @@
   import { annotatedRecord } from "#lib/review/annotate.ts";
   import { GameAnalysis, LABEL_VISITS } from "#lib/analysis/game.svelte.ts";
   import { EngineSession } from "#lib/analysis/session.svelte.ts";
+  import { modelOf } from "#lib/engine/client.ts";
   import { loadEngine, networkName, reviewVisits, saveEngine, type EngineSettings } from "#lib/analysis/engineSettings.ts";
   import { trackSettingChange } from "#lib/analysis/settingChanges.ts";
   import { errorText } from "#lib/errors.ts";
@@ -166,10 +167,15 @@
       // The engine starts while the page chooses the board (an import may ask the player first): the analysis takes
       // the board's start once it is chosen.
       const opening = chooseBoard();
-      const g = await session.start(async pool => new GameAnalysis(pool, [], BOARD_ID, (await opening).board?.start ?? null), async g => {
+      const g = await session.start(async pool => new GameAnalysis(pool, [], BOARD_ID, (await opening).board?.start ?? null), async (g, pool) => {
         const chosen = await opening;
         await g.start();
         if (chosen.board) await g.loadBoard(chosen.board);
+        // The stored results of the moves evaluated, read before the board shows, as the review reads its own: their
+        // labels and notes come in the first frame, and do not move the bar under the moves when they come (the layout
+        // shift). The search is the manifest's, the network the session's.
+        const model = modelOf(session.manifest!, session.network)?.sha256;
+        if (g.rulesReady && pool.search && model) await g.fromStore(pool.search, model, g.judgedPositions()).catch(() => {});
         if (chosen.atMain !== undefined) await dbPut(STORES.branches, BOARD_ID, g.keptBoard()); // a link's board is now this browser's
         // The place to open: the link's on the main line, or the one kept here when it is still in the tree.
         const at = chosen.atMain !== undefined ? g.mainNames.slice(0, chosen.atMain)

@@ -5,6 +5,8 @@
   // height, the same in each, so that a skeleton's board has the page's size. Each card has two lines, its name over its
   // numbers, so that the cards are narrow and the bar between them long. The narrowest row takes three (the points, then
   // the area). The row's container is `bar` with the win bar or the points' bar between the players, `gauge` without.
+  // The review's layout sets the row's height before it measures it, from these widths and lines (ReviewView.svelte,
+  // --strip): change them together.
   export const stripBox = (gauge: boolean) => (gauge ? "@container/gauge" : "@container/bar");
   export const stripRow = (gauge: boolean) => ["grid items-center gap-2",
     gauge ? "grid-cols-[auto_1fr_auto]" : "grid-cols-[auto_minmax(6rem,1fr)_auto]"];
