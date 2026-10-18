@@ -70,8 +70,8 @@
   $effect(() => saveEngine($state.snapshot(engine)));
   // A game that keeps the settings it came with (an imported review file or a shared link, store.ts) reviews with its
   // own network and depth. So does a game whose last review used a network that has left the menus (engineSettings.ts,
-  // ownSettings, "earlier"): its mark holds them, so a change of its depth lasts for the page alone, and a network of
-  // the list gives it the browser's settings. The settings kept in the browser serve the other games, and the rest of
+  // ownSettings, "mark"): its mark holds them, so a change of its depth lasts for the page alone, and a network of the
+  // menu gives it the browser's settings. The settings kept in the browser serve the other games, and the rest of
   // them (the engine on or off, the position on screen, the workers, the GPU) serve this one too. The engine settings
   // show and change the game's two.
   let own = $state<OwnSettings | null>(null);
@@ -82,12 +82,12 @@
   const failure = $derived(error || session.error);
   function changeEngine(change: Partial<EngineSettings>) {
     const { network, review, customReview, ...rest } = change;
-    if (own?.from === "earlier" && network !== undefined && offersNetwork(network)) own = null;
+    if (own?.from === "mark" && network !== undefined && offersNetwork(network)) own = null;
     trackSettingChange(change, settings, !!own); // design 17
     if (own && kept && (network !== undefined || review !== undefined || customReview !== undefined)) {
       const next = { ...settings, ...change };
       own = { ...own, settings: { network: next.network, visits: reviewVisits(next) } };
-      if (own.from === "came") void setGameSettings(kept.id, own.settings);
+      if (own.from === "stored") void setGameSettings(kept.id, own.settings);
       Object.assign(engine, rest);
       return;
     }

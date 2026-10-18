@@ -1124,9 +1124,9 @@ Blunder's loss.
 - **What:** the engine repository's release `engine-d6786eba` (its tags now have the form `engine-COMMIT`): two new
   networks, HedgeFund 0.2 Lite (`b10c128-s89066368-d17827487`, data row 17.83M) and HedgeFund 0.2
   (`b15c192-s90436608-d18027147`, data row 18.03M), the highest gauntlet ratings of each size (the engine
-  repository's `strength.md`, d6786eba). No release match was played for 0.x. The CPU module, the GPU module and
-  `gpu_engine.mjs`, the practice modules, the evaluator and their JavaScript are at build d6786eba, protocol 0.6.1,
-  with new bytes.
+  repository's `strength.md`, d6786eba). The engine repository played no release match for 0.x. The CPU module, the
+  GPU module and `gpu_engine.mjs`, the practice modules, the evaluator and their JavaScript are at build d6786eba,
+  protocol 0.6.1, with new bytes.
 - **The search is still `fdfe5ad`:** the engine repository found the new modules' replies equal to 85f1792's on both
   0.1 networks (66 of 66 on the CPU, 20 of 20 on the GPU), and the new modules load 0.1 and 0.1 Lite and pass the
   graph check on their released graphs. The lock lists 85f1792's CPU module in `sameSearchAs`, so a mark, a review
@@ -1137,10 +1137,10 @@ Blunder's loss.
   `NOTICES.txt` and `LICENSE.txt` have the lock's SHA-256, so their entries stay as they are.
 - **The menus:** the engine settings and Practice offer HedgeFund 0.2 Lite, the default, and HedgeFund 0.2
   (`NETWORKS`). The site still ships the 0.1 networks, off the menus (`shipsNetwork`), so that a review file exported
-  before and a review that a partner site kept open with their results. A game that keeps its own settings, a share
+  before, and a review that a partner site kept, open with their results. A game that keeps its own settings, a share
   link and a Practice game kept from an earlier visit load the network that they name. The settings kept in the
   browser and Practice's saved choice take the default in place of a 0.1 network. The review's settings panel names
-  a game's own network when the list does not have it.
+  a game's own network when the Network setting does not offer it.
 - **Google Analytics:** the events' `network` (`review_open`, `review_done`, `gpu_test`, `practice_start`,
   `practice_end`) and `setting_change`'s `setting_value` give the network's name ("HedgeFund 0.2 Lite"), as design
   17 says. Before, they gave the network's size alone (b10c128, b15c192), which cannot tell 0.1 Lite from 0.2 Lite.
@@ -1150,31 +1150,41 @@ Blunder's loss.
     it opens as it was left, with its own results and the site's engine. It is no snapshot, because the search did
     not change. The workers load its network, HedgeFund 0.1 Lite or 0.1, for the position on screen, and the game
     exports.
-  - **A game reviewed with the browser's settings,** most games: the browser's settings take HedgeFund 0.2 Lite, but
-    the game keeps the network and depth per move of its last review as its own, as a game from a review file does,
-    because that review's network left the menus (`ownSettings`, design 09). It opens at once with its results, its
-    branches and Evaluate quality, and it exports. Its review mark holds the two, so the game stores no settings. The
-    panel's note names the earlier network. A network from the list gives the game the browser's settings and
-    reviews it again. A first build reviewed such a game again with HedgeFund 0.2 Lite, from the start, and left the
-    0.1 results unread in the store: designs 09 and 20 did not cover a network that left the menus. The store keeps
-    those results, because they are of the site's search and a network that it ships (design 20, item 8).
+  - **A game reviewed with the browser's settings,** most games: the browser's settings take HedgeFund 0.2 Lite, but the
+    game keeps the network and depth per move of its last review as its own, as a game from a review file does, because
+    that review's network left the menus (`ownSettings`, design 09). It opens at once with its results, its branches and
+    Evaluate quality, and it exports. Its review mark holds the two, so the game stores no settings. The panel's note
+    names the earlier network. A network chosen in the Network setting gives the game the browser's settings and reviews
+    it again. A first build reviewed such a game again with HedgeFund 0.2 Lite, from the start, and left the 0.1 results
+    unread in the store: designs 09 and 20 did not cover a network that left the menus. The store keeps those results,
+    because they are of the site's search and a network that it ships (design 20, item 8).
 - **beads `abscls-36u`** (no start after an idle release that followed a change of network, the GPU on) stays open:
   this release does not change how the page changes the network, releases its idle engines or starts the GPU
   (`src/lib/analysis/session.svelte.ts`, `pool.ts`, `gpu.svelte.ts`). A browser whose settings named a 0.1 network
-  starts on HedgeFund 0.2 Lite at the page's start, with no change of network in the page.
+  starts on HedgeFund 0.2 Lite at the page's start, with no change of network in the page. But a game reviewed with
+  0.1 now opens on it, and the player leaves it by a change of network in the page. That change becomes common, so
+  the issue's check by hand (Edge, a real GPU) matters more.
 - **Checked:** `npm run engine -- --deploy` fetched every file with the lock's size and SHA-256, and the CPU module
-  answered protocol 0.6.1 and the search `fdfe5ad`. `npm test` passes (150), `npm run check` has no errors or
+  answered protocol 0.6.1 and the search `fdfe5ad`. `npm test` passes (156), `npm run check` has no errors or
   warnings, `npm run build` succeeds, and the layout sweep passes in Chromium. In Playwright's Chromium (headless, no
   GPU, 2 workers) on that build:
   - a new game's review, with the defaults, loaded HedgeFund 0.2 Lite alone and showed its first results 1.5 s
-    after the page opened;
+    after the page opened.
   - Practice offered HedgeFund 0.2 Lite, chosen, and HedgeFund 0.2, and the bot played its first move with 0.2 Lite,
-    build d6786eba;
+    build d6786eba.
   - the test fixture's review file (HedgeFund 0.1 Lite, 85f1792's module) opened with its results, 0.7 s after the
     page, at the step of the key moments: no snapshot and no dialog, the game kept its network and depth, and the
     workers loaded HedgeFund 0.1 Lite. The file holds results at 512 visits only, so the page then searched the key
     moments' 6 positions at 1,024 visits, in 38 s. Export was on. The panel's note named HedgeFund 0.1 Lite, with no
-    network of the list chosen;
-  - the same game with its own settings removed, and the browser's settings on HedgeFund 0.1 Lite, as a review made
-    with the browser's settings: the settings took HedgeFund 0.2 Lite, and the game was reviewed again from its first
-    position with it, with no snapshot and no dialog. The store kept its 249 results of HedgeFund 0.1 Lite.
+    network chosen in the Network setting.
+  - the same game with its own settings removed, and the browser's settings on HedgeFund 0.1 Lite, as a game reviewed
+    with the browser's settings: the browser's settings took HedgeFund 0.2 Lite, and the game kept HedgeFund 0.1 Lite
+    and 512 visits from its mark. Its review showed 0.6 s after the page opened, with no progress line and no search
+    of the review, as the same game showed with its file's settings. There was no snapshot, and the workers loaded
+    HedgeFund 0.1 Lite. The panel's note named HedgeFund 0.1 Lite, with no network chosen in the Network setting. A
+    branch from the engine's first candidate got its label from Evaluate quality ("Excellent") in 3 s.
+  - HedgeFund 0.2 Lite chosen for that game: its review started again with HedgeFund 0.2 Lite, the browser's settings
+    kept 0.2 Lite, and the game stored no settings. Opened again before that review ended, the game opened on
+    HedgeFund 0.1 Lite with its results and the note, and searched no review.
+  - a new game of 15 turns: its review loaded HedgeFund 0.2 Lite alone, and its mark named HedgeFund 0.2 Lite at 512
+    visits when the review ended, 130 s after it started.

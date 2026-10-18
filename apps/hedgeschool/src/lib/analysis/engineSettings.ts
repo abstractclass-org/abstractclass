@@ -84,17 +84,17 @@ export const offersNetwork = (id: string | undefined): boolean => NETWORKS.some(
 
 /** A stored game as its settings read it (game/store.ts): the settings it came with, and the mark of its last review. */
 type GameWithSettings = Pick<StoredGame, "settings" | "reviewed">;
-/** A game's own settings, and where they come from: "came", the settings it came with (game/store.ts, `settings`), or
- *  "earlier", those of its last review, whose network has left the menus. The game keeps the second kind in its mark
- *  alone, and stores no settings for them (design 09). */
-export interface OwnSettings { settings: GameSettings; from: "came" | "earlier" }
+/** A game's own settings, and where they come from: "stored", the settings it came with (game/store.ts, `settings`), or
+ *  "mark", those of its last review (its mark), whose network has left the menus. The game stores no settings for the
+ *  second kind (design 09). */
+export interface OwnSettings { settings: GameSettings; from: "stored" | "mark" }
 /** A game's own settings while the site still ships their network, on the menu or off it, else null: the settings it
  *  came with, else those of its last review when that review's network has left the menus, so that the game opens
  *  with that review's results, as a game from a review file does. */
 export function ownSettings(game: GameWithSettings | undefined): OwnSettings | null {
   const mark = game?.reviewed;
-  const own: OwnSettings | null = game?.settings ? { settings: game.settings, from: "came" }
-    : mark && !offersNetwork(mark.network) ? { settings: { network: mark.network, visits: mark.visits }, from: "earlier" }
+  const own: OwnSettings | null = game?.settings ? { settings: game.settings, from: "stored" }
+    : mark && !offersNetwork(mark.network) ? { settings: { network: mark.network, visits: mark.visits }, from: "mark" }
     : null;
   return own && shipsNetwork(own.settings.network) ? own : null;
 }

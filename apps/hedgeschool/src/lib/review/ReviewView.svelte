@@ -1433,14 +1433,14 @@
     <h2 class="font-semibold mb-1">Engine settings</h2>
     <div class="flex-1 min-h-0 overflow-y-auto pr-1">
       {#if ownSettings}
-        <!-- A game's network off the menu (an earlier one, which the site still ships): the list has none chosen, so
-             the note names it. -->
-        <p class="mb-1.5 text-xs text-muted">{#if ownSettings === "earlier"}This game keeps the network and depth per move of
-          its last review, so that the review opens as it was made. A change of the depth here changes this game's only.
+        <!-- A game's network off the menu (an earlier one, which the site still ships): the Network setting has none
+             chosen, so the note names it. -->
+        <p class="mb-1.5 text-xs text-muted">{#if ownSettings === "mark"}This game keeps the network and depth per move of
+          its last review, so that the review opens as it was made. A change of the depth here applies to this game only.
           {:else}This game keeps the network and depth per move it came with, from a review file or a shared link, so that
           its review is the one it came with. A change of them here changes this game's only.{/if}
-          {#if !offersNetwork(e.network)}Its network, {networkName(e.network)}, is an earlier one and is not in the list. A
-            network from the list reviews the game again.{/if}</p>
+          {#if !offersNetwork(e.network)}Its network, {networkName(e.network)}, is an earlier one, and the Network setting
+            does not offer it. Choose a network there to review the game again with it.{/if}</p>
       {/if}
       <h3 class={SETTINGS_HEAD}>Position on screen</h3>
       {@render visitsSteps("Depth", board ? "How far to search it." : "How far to search it. Deeper than the review, it also updates the review there: the labels and the report.",

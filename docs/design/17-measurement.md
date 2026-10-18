@@ -154,7 +154,7 @@ selector at the top left. Click **Admin**, the gear at the bottom left.
 | `workers` | Workers | Event | the CPU workers |
 | `gpu_mode` | GPU mode | Event | auto, on or off |
 | `cores` | CPU cores | Event | the machine's cores, as a range |
-| `own_settings` | Game own settings | Event | the game has its own settings, from a loaded review |
+| `own_settings` | Game own settings | Event | the game has its own settings: from a loaded review, or from its last review when that review's network has left the menus (design 09) |
 | `done_before` | Done before | Event | the review opened with its results stored, or as a snapshot |
 | `minutes` | Review minutes | Event | the review's time, as a range |
 | `gpu_used` | GPU used | Event | the GPU searched in the review |

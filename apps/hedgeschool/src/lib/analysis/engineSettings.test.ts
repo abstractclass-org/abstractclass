@@ -54,7 +54,7 @@ const mark = (network: string, visits: number) => ({ module: "m", model: "n", ne
 
 test("a game reviewed with the browser's settings on a network off the menus keeps that review's network and depth", () => {
   const settings = { network: EARLIER, visits: REVIEW_PRESETS.standard };
-  assert.deepEqual(ownSettings({ reviewed: mark(EARLIER, REVIEW_PRESETS.standard) }), { settings, from: "earlier" });
+  assert.deepEqual(ownSettings({ reviewed: mark(EARLIER, REVIEW_PRESETS.standard) }), { settings, from: "mark" });
 });
 
 test("a game's last review on a network of the menus, or on one the site no longer ships, gives it no own settings", () => {
@@ -64,7 +64,7 @@ test("a game's last review on a network of the menus, or on one the site no long
 
 test("the settings a game came with count before its last review's", () => {
   const settings = { network: NETWORKS[1].id, visits: REVIEW_PRESETS.lite };
-  assert.deepEqual(ownSettings({ settings, reviewed: mark(EARLIER, REVIEW_PRESETS.standard) }), { settings, from: "came" });
+  assert.deepEqual(ownSettings({ settings, reviewed: mark(EARLIER, REVIEW_PRESETS.standard) }), { settings, from: "stored" });
 });
 
 test("a custom depth per move is any whole number from 256 to 16,384 visits, as the Depth's", () => {

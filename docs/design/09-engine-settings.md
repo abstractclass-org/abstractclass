@@ -69,37 +69,38 @@ each applies at once, without a reload.
      searched to the review's depth.
    - **A game that keeps its own settings** (an imported review file's or a shared link's game, design 13) reviews with
      its own network and depth per move. The panel says so, shows the game's two, and changes the game's when they
-     change. The settings kept in the browser serve every other game. A game's network can be an earlier one, off the
-     Network list (below): the panel's note then names it, and a network from the list reviews the game again.
+     change. The settings kept in the browser serve every other game. A game's network can be an earlier one, which the
+     Network setting does not offer (below): the panel's note then names it, and a network chosen there reviews the
+     game again.
    - **A game whose last review used an earlier network** with the browser's settings keeps that review's network and
      depth per move as its own, as a game from a review file does (`ownSettings` in
      `src/lib/analysis/engineSettings.ts`). So it opens at once with that review's results, its branches and Evaluate
      quality, and it exports. The game's review mark (design 13) holds the two, and the game stores no settings. A
      change of its depth lasts while the page is open, and a deeper review that runs to its end moves the mark. The
-     panel's note names the earlier network. A network from the list gives the game the browser's settings and
-     reviews it again with that network. Until that review runs to its end, the mark names the earlier network, so
-     the game opens with the earlier review on the next visit.
+     panel's note names the earlier network. A network chosen in the Network setting gives the game the browser's
+     settings and reviews it again with that network. Until that review runs to its end, the mark names the earlier
+     network, so the game opens with the earlier review on the next visit.
    - **Engine:** "Network", named by the engine's release and by its download: "HedgeFund 0.2 Lite (6.5 MB)"
      (b10c128, the default) or "HedgeFund 0.2 (20.6 MB)" (b15c192). The names come from the release's manifest
      (`displayName`, copied into `engine.lock.json`), as the sizes do. A name belongs to one network file for life (the
      engine repository's `v2/docs/design/20-network-names.md`). The help line gives the parameters (3.2M and 10.3M) and
      adds that a network downloads once. In a narrow panel the label breaks only before the parenthesis ("HedgeFund 0.2
      Lite" over "(6.5 MB)"): no-break spaces hold each part together.
-     - **The earlier networks,** HedgeFund 0.1 Lite and HedgeFund 0.1, are off the list, and the site still ships them
+     - **The earlier networks,** HedgeFund 0.1 Lite and HedgeFund 0.1, are off the menus, and the site still ships them
        (`engine.lock.json` keeps their files): a game, a review file, a shared link or a Practice game that names one
        still loads it (`shipsNetwork` in `src/lib/analysis/engineSettings.ts`). Settings kept in the browser with an
        earlier network take the default. So a review file exported before, and a review that a partner site kept, open
        with their results (design 13, design 20).
 
      The board keeps the old pool's rules while a new pool loads the other network. Then the analysis starts again,
-     since every result came from the old network. The browser's store keys results by network, so a network's
-     results come back at once when the player returns to it. "Workers": from 1 to the machine's logical cores, half
-     the cores (1 to 8) by default. On a laptop of 12 cores each worker kept 86% of one worker's speed up to 8 workers, so a cap of 4 left
-     about a third of the speed unused (decisions/engine.md, "Speed on a laptop: the engine lab's sweep"). Half the
-     cores leaves room for the page and the visitor's other work, and 8 workers of b10c128 take about 0.75 GB. The
-     help line says that each worker uses more of the computer's memory, and asks the player to mind it: it gives no
-     number, because a worker's memory depends on the browser and the network. A change adds workers, which
-     load the network and then take work, or removes them: a free worker ends at once, a busy one when its task ends.
+     since every result came from the old network. The browser's store keys results by network, so a network's results
+     come back at once when the player returns to it. "Workers": from 1 to the machine's logical cores, half the cores
+     (1 to 8) by default. On a laptop of 12 cores each worker kept 86% of one worker's speed up to 8 workers, so a cap
+     of 4 left about a third of the speed unused (decisions/engine.md, "Speed on a laptop: the engine lab's sweep").
+     Half the cores leaves room for the page and the visitor's other work, and 8 workers of b10c128 take about 0.75 GB.
+     The help line says that each worker uses more of the computer's memory, and asks the player to mind it: it gives no
+     number, because a worker's memory depends on the browser and the network. A change adds workers, which load the
+     network and then take work, or removes them: a free worker ends at once, a busy one when its task ends.
      **An idle review keeps no search engine:** after a minute with no search (15 seconds in a hidden tab), the
      review ends its workers and the GPU worker, and keeps the rules worker, so that the board still answers at once.
      The next search starts them again, in about a second (`releaseWhenIdle` in `src/lib/analysis/pool.ts`). The
