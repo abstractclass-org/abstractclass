@@ -37,7 +37,7 @@
   let manifestLoad: Promise<Manifest | null> = Promise.resolve(null); // asked for as the tab opens, for the exports too
   const engine = loadEngine();
   const wanted = (g: StoredGame) => {
-    const s = settingsFor(g.settings, engine);
+    const s = settingsFor(g, engine);
     return manifest && reviewMark(manifest, s.network, s.visits);
   };
   // Whether the browser keeps the games for good (storage/persist.ts): it asked when a game was kept.

@@ -7,7 +7,7 @@ import { DEEP_VISITS, LABEL_VISITS } from "./game.svelte.ts";
 import { defaultPoolSize } from "./pool.ts";
 import { megabytes } from "#lib/engine/client.ts";
 import { readLocalJson, writeLocal } from "#lib/storage/local.ts";
-import type { GameSettings } from "#lib/game/store.ts";
+import type { GameSettings, StoredGame } from "#lib/game/store.ts";
 
 export type ReviewDepth = "lite" | "standard" | "custom";
 
@@ -79,15 +79,30 @@ export function withReview(s: EngineSettings, network: string, visits: number): 
   return preset ? { ...s, network, review: preset } : { ...s, network, review: "custom", customReview: visits };
 }
 
-/** A game's own settings (game/store.ts, `settings`) while the site still ships their network, on the menu or off it,
- *  else null. */
-export const ownSettings = (s: GameSettings | null | undefined): GameSettings | null =>
-  (s && shipsNetwork(s.network) ? s : null);
+/** Whether the settings and Practice offer the network `id` (NETWORKS). */
+export const offersNetwork = (id: string | undefined): boolean => NETWORKS.some(n => n.id === id);
+
+/** A stored game as its settings read it (game/store.ts): the settings it came with, and the mark of its last review. */
+type GameWithSettings = Pick<StoredGame, "settings" | "reviewed">;
+/** A game's own settings, and where they come from: "came", the settings it came with (game/store.ts, `settings`), or
+ *  "earlier", those of its last review, whose network has left the menus. The game keeps the second kind in its mark
+ *  alone, and stores no settings for them (design 09). */
+export interface OwnSettings { settings: GameSettings; from: "came" | "earlier" }
+/** A game's own settings while the site still ships their network, on the menu or off it, else null: the settings it
+ *  came with, else those of its last review when that review's network has left the menus, so that the game opens
+ *  with that review's results, as a game from a review file does. */
+export function ownSettings(game: GameWithSettings | undefined): OwnSettings | null {
+  const mark = game?.reviewed;
+  const own: OwnSettings | null = game?.settings ? { settings: game.settings, from: "came" }
+    : mark && !offersNetwork(mark.network) ? { settings: { network: mark.network, visits: mark.visits }, from: "earlier" }
+    : null;
+  return own && shipsNetwork(own.settings.network) ? own : null;
+}
 /** The network and the review's visits that a game reviews with: its own (ownSettings), else the browser's. The review
  *  page, the Review tab's Export and the annotated record from the store take them from here, so that each reads the
  *  results of the same review. */
-export const settingsFor = (s: GameSettings | null | undefined, engine: EngineSettings): GameSettings =>
-  ownSettings(s) ?? { network: engine.network, visits: reviewVisits(engine) };
+export const settingsFor = (game: GameWithSettings | undefined, engine: EngineSettings): GameSettings =>
+  ownSettings(game)?.settings ?? { network: engine.network, visits: reviewVisits(engine) };
 
 /** The review's depth in words: "Lite (512 visits a position)". */
 export function reviewDepthText(visits: number): string {
@@ -116,7 +131,7 @@ export function loadEngine(): EngineSettings {
     seconds: kept.seconds !== undefined && TIME_LIMITS.includes(kept.seconds) ? kept.seconds : d.seconds,
     review: kept.review === "standard" || kept.review === "custom" ? kept.review : "lite",
     customReview: inSteps(CUSTOM_REVIEW, kept.customReview) ? kept.customReview : d.customReview,
-    network: NETWORKS.some(n => n.id === kept.network) ? kept.network! : d.network,
+    network: offersNetwork(kept.network) ? kept.network! : d.network,
     workers: Number.isInteger(kept.workers) ? Math.min(maxWorkers(), Math.max(1, kept.workers!)) : d.workers,
     gpu: kept.gpu === "on" || kept.gpu === "off" ? kept.gpu : d.gpu,
   };

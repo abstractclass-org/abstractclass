@@ -1,7 +1,7 @@
 // Practice (docs/design/24-practice.md): a game against HedgeFund, the engine's practice bot, in the player's browser.
 // What the page and the bot share: the bot's settings, the game kept in this browser, the GTP commands that set the
 // bot, the takeback's reach, the result, and the game's record.
-import { NETWORKS, inSteps, networkName } from "#lib/analysis/engineSettings.ts";
+import { NETWORKS, inSteps, networkName, offersNetwork } from "#lib/analysis/engineSettings.ts";
 import { readLocalJson, writeLocal } from "#lib/storage/local.ts";
 import { writeRecord } from "#lib/game/record.ts";
 import { BOT_SECOND_RANGES, CORE_RANGES, EDGE_RANGES, TAKEBACK_RANGES, range } from "#lib/measure.ts";
@@ -45,7 +45,7 @@ export function loadChoices(): PracticeChoices {
   const bot = kept?.bot;
   return {
     bot: {
-      network: NETWORKS.some(n => n.id === bot?.network) ? bot!.network : d.bot.network,
+      network: offersNetwork(bot?.network) ? bot!.network : d.bot.network,
       visits: visitsTaken(bot?.visits) ? bot.visits : d.bot.visits,
       variety: bot?.variety && bot.variety in VARIETY ? bot.variety : d.bot.variety,
     },

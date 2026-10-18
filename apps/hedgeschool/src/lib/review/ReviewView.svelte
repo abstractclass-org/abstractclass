@@ -77,8 +77,8 @@
   import { untrack, type Snippet } from "svelte";
   import { MediaQuery } from "svelte/reactivity";
   import { innerHeight, innerWidth } from "svelte/reactivity/window";
-  import { CUSTOM_REVIEW, DEPTHS, NETWORKS, REVIEW_PRESETS, networkMB, networkName, TIME_LIMITS, maxWorkers, nearestStep, type EngineSettings,
-           type GpuMode, type ReviewDepth }
+  import { CUSTOM_REVIEW, DEPTHS, NETWORKS, REVIEW_PRESETS, networkMB, networkName, offersNetwork, TIME_LIMITS, maxWorkers,
+           nearestStep, type EngineSettings, type GpuMode, type OwnSettings, type ReviewDepth }
     from "#lib/analysis/engineSettings.ts";
   import { gpuStatusText, type GpuStatus } from "#lib/analysis/gpu.svelte.ts";
   import Board, { type BoardCandidate, type BoardLineEdge, type BoardMark } from "#lib/board/Board.svelte";
@@ -118,7 +118,7 @@
     exportItems?: ExportItem[]; // the Export menu's entries (reviewFile.ts, reviewExports)
     tools?: Snippet; // the Analysis board's New menu, beside Export (design 21)
     siteLink?: { href: string; host: string } | null; // the game's own page, from its record's Site tag
-    ownSettings?: boolean; // the game keeps the network and depth it came with (store.ts, `settings`)
+    ownSettings?: OwnSettings["from"]; // the game keeps its own network and depth, and where from (engineSettings.ts)
     onfeature?: (name: string) => void; // a feature used (design 17): the page counts its first use in each review
     onposition?: (path: string[]) => void; // the position on screen changed: its path in the game's tree
     onplay?: (path: string[]) => Promise<void>; // adds a line from the start to the tree
@@ -133,7 +133,7 @@
   }
   let { R, progress = null, game, deepVisits = 0, onposition, onplay, labelVisits = 0, engine, onengine, gpu, reviewVisits = 0, onexport,
         exportReady = true, deeperPositions = 0, again = null, snapshot = null, board = null, start, exportItems, tools: pageTools, siteLink = null,
-        ownSettings = false, onfeature }: Props = $props();
+        ownSettings, onfeature }: Props = $props();
   const branches = $derived(game?.branches ?? {});
   const used = (name: string) => onfeature?.(name);
   const last = $derived(R.data.positions.length - 1);
@@ -1435,10 +1435,12 @@
       {#if ownSettings}
         <!-- A game's network off the menu (an earlier one, which the site still ships): the list has none chosen, so
              the note names it. -->
-        <p class="mb-1.5 text-xs text-muted">This game keeps the network and depth per move it came with, from a review file or
-          a shared link, so that its review is the one it came with. A change of them here changes this game's only.
-          {#if !NETWORKS.some(n => n.id === e.network)}Its network, {networkName(e.network)}, is an earlier one and is not
-            in the list. A network from the list reviews the game again.{/if}</p>
+        <p class="mb-1.5 text-xs text-muted">{#if ownSettings === "earlier"}This game keeps the network and depth per move of
+          its last review, so that the review opens as it was made. A change of the depth here changes this game's only.
+          {:else}This game keeps the network and depth per move it came with, from a review file or a shared link, so that
+          its review is the one it came with. A change of them here changes this game's only.{/if}
+          {#if !offersNetwork(e.network)}Its network, {networkName(e.network)}, is an earlier one and is not in the list. A
+            network from the list reviews the game again.{/if}</p>
       {/if}
       <h3 class={SETTINGS_HEAD}>Position on screen</h3>
       {@render visitsSteps("Depth", board ? "How far to search it." : "How far to search it. Deeper than the review, it also updates the review there: the labels and the report.",

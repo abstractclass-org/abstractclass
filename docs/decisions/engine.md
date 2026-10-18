@@ -1150,12 +1150,14 @@ Blunder's loss.
     it opens as it was left, with its own results and the site's engine. It is no snapshot, because the search did
     not change. The workers load its network, HedgeFund 0.1 Lite or 0.1, for the position on screen, and the game
     exports.
-  - **A game reviewed with the browser's settings,** most games: those settings take HedgeFund 0.2 Lite, so the game
-    is reviewed again with it, from the start, as after a change of network (design 09). There is no snapshot:
-    design 20 opens one for an earlier engine or an earlier file of the same network, and HedgeFund 0.2 Lite is
-    another network. No dialog says why: the reason is shown only for those two cases (design 11). The 0.1 results
-    stay in the store, of the site's search and a network that it ships (design 20, item 8), but the page does not
-    read them.
+  - **A game reviewed with the browser's settings,** most games: the browser's settings take HedgeFund 0.2 Lite, but
+    the game keeps the network and depth per move of its last review as its own, as a game from a review file does,
+    because that review's network left the menus (`ownSettings`, design 09). It opens at once with its results, its
+    branches and Evaluate quality, and it exports. Its review mark holds the two, so the game stores no settings. The
+    panel's note names the earlier network. A network from the list gives the game the browser's settings and
+    reviews it again. A first build reviewed such a game again with HedgeFund 0.2 Lite, from the start, and left the
+    0.1 results unread in the store: designs 09 and 20 did not cover a network that left the menus. The store keeps
+    those results, because they are of the site's search and a network that it ships (design 20, item 8).
 - **beads `abscls-36u`** (no start after an idle release that followed a change of network, the GPU on) stays open:
   this release does not change how the page changes the network, releases its idle engines or starts the GPU
   (`src/lib/analysis/session.svelte.ts`, `pool.ts`, `gpu.svelte.ts`). A browser whose settings named a 0.1 network

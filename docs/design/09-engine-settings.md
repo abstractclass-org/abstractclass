@@ -71,6 +71,14 @@ each applies at once, without a reload.
      its own network and depth per move. The panel says so, shows the game's two, and changes the game's when they
      change. The settings kept in the browser serve every other game. A game's network can be an earlier one, off the
      Network list (below): the panel's note then names it, and a network from the list reviews the game again.
+   - **A game whose last review used an earlier network** with the browser's settings keeps that review's network and
+     depth per move as its own, as a game from a review file does (`ownSettings` in
+     `src/lib/analysis/engineSettings.ts`). So it opens at once with that review's results, its branches and Evaluate
+     quality, and it exports. The game's review mark (design 13) holds the two, and the game stores no settings. A
+     change of its depth lasts while the page is open, and a deeper review that runs to its end moves the mark. The
+     panel's note names the earlier network. A network from the list gives the game the browser's settings and
+     reviews it again with that network. Until that review runs to its end, the mark names the earlier network, so
+     the game opens with the earlier review on the next visit.
    - **Engine:** "Network", named by the engine's release and by its download: "HedgeFund 0.2 Lite (6.5 MB)"
      (b10c128, the default) or "HedgeFund 0.2 (20.6 MB)" (b15c192). The names come from the release's manifest
      (`displayName`, copied into `engine.lock.json`), as the sizes do. A name belongs to one network file for life (the

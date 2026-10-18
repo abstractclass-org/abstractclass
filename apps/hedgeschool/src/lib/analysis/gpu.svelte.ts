@@ -6,8 +6,8 @@
 // network, each GPU and each build of the GPU module: the networks differ in size, so they differ in speed, a browser can
 // change GPU (a laptop docked, another graphics setting in the system), and a new build can be faster.
 import type { EnginePool } from "./pool.ts";
-import type { GpuMode } from "./engineSettings.ts";
-import { gpuFilesOf, megabytes, modelOf, type Manifest } from "#lib/engine/client.ts";
+import { networkName, type GpuMode } from "./engineSettings.ts";
+import { gpuFilesOf, megabytes, type Manifest } from "#lib/engine/client.ts";
 import { GpuEngines, gpuSupport } from "#lib/engine/gpuClient.ts";
 import { errorText } from "#lib/errors.ts";
 import { track } from "#lib/analytics.svelte.ts";
@@ -167,7 +167,7 @@ export class GpuControl {
     saveGpuTest(testFor, test);
     // The GPU against a worker, by the GPU's maker and kind (design 17): whether the GPU pays off on visitors' machines.
     track("gpu_test", { gpu_outcome: gpuFaster(test) ? "faster" : "slower", gpu_ratio: Math.round((10 * test.gpu) / Math.max(1, test.cpu)) / 10,
-                        gpu: adapter, network: modelOf(this.manifest, testFor.network)?.displayName ?? testFor.network });
+                        gpu: adapter, network: networkName(testFor.network) });
     if (this.ended) return;
     if (this.mode === "on" || gpuFaster(test)) this.status = { state: "on", adapter, test };
     else { this.pool.dropGpu(); this.status = { state: "slower", adapter, test }; }

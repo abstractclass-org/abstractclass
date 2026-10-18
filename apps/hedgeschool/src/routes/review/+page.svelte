@@ -24,13 +24,14 @@
   import { EnginePool } from "#lib/analysis/pool.ts";
   import { GameAnalysis, LABEL_VISITS, SWEEP_VISITS, momentVisits } from "#lib/analysis/game.svelte.ts";
   import { EngineSession } from "#lib/analysis/session.svelte.ts";
-  import { loadEngine, networkName, ownSettings, reviewVisits, saveEngine, withReview, type EngineSettings } from "#lib/analysis/engineSettings.ts";
+  import { loadEngine, networkName, offersNetwork, ownSettings, reviewVisits, saveEngine, withReview, type EngineSettings,
+           type OwnSettings } from "#lib/analysis/engineSettings.ts";
   import { trackSettingChange } from "#lib/analysis/settingChanges.ts";
   import { modelOf, moduleOf } from "#lib/engine/client.ts";
   import { errorText } from "#lib/errors.ts";
   import { gamePage, playerNames } from "#lib/game/record.ts";
   import type { GamePartner } from "#lib/game/partners.ts";
-  import { loadGame, markReviewed, rememberReview, reviewAgainWhy, reviewCovers, reviewMark, setGameSettings, type GameSettings,
+  import { loadGame, markReviewed, rememberReview, reviewAgainWhy, reviewCovers, reviewMark, setGameSettings,
            type ReviewMark } from "#lib/game/store.ts";
   import { holdReview } from "#lib/game/reviewLock.ts";
   import { afterNavigate, replaceState } from "$app/navigation";
@@ -68,22 +69,25 @@
   const engine = $state(loadEngine());
   $effect(() => saveEngine($state.snapshot(engine)));
   // A game that keeps the settings it came with (an imported review file or a shared link, store.ts) reviews with its
-  // own network and depth. The settings kept in the browser serve the other games, and the rest of them (the engine on
-  // or off, the position on screen, the workers, the GPU) serve this one too. The engine settings show and change the
-  // game's two.
-  let own = $state<GameSettings | null>(null);
-  const settings = $derived(own ? withReview(engine, own.network, own.visits) : engine);
+  // own network and depth. So does a game whose last review used a network that has left the menus (engineSettings.ts,
+  // ownSettings, "earlier"): its mark holds them, so a change of its depth lasts for the page alone, and a network of
+  // the list gives it the browser's settings. The settings kept in the browser serve the other games, and the rest of
+  // them (the engine on or off, the position on screen, the workers, the GPU) serve this one too. The engine settings
+  // show and change the game's two.
+  let own = $state<OwnSettings | null>(null);
+  const settings = $derived(own ? withReview(engine, own.settings.network, own.settings.visits) : engine);
   // The engine and the GPU worker (session.svelte.ts). A snapshot searches nothing: the settings wait for Review again.
   const session = new EngineSession({ settings: () => settings, game: () => game, position: () => current, frozen: () => !!snapshot,
                                       dropped: () => (held = { step: -1, done: 0 }) });
   const failure = $derived(error || session.error);
   function changeEngine(change: Partial<EngineSettings>) {
-    trackSettingChange(change, settings, !!own); // design 17
     const { network, review, customReview, ...rest } = change;
+    if (own?.from === "earlier" && network !== undefined && offersNetwork(network)) own = null;
+    trackSettingChange(change, settings, !!own); // design 17
     if (own && kept && (network !== undefined || review !== undefined || customReview !== undefined)) {
       const next = { ...settings, ...change };
-      own = { network: next.network, visits: reviewVisits(next) };
-      void setGameSettings(kept.id, own);
+      own = { ...own, settings: { network: next.network, visits: reviewVisits(next) } };
+      if (own.from === "came") void setGameSettings(kept.id, own.settings);
       Object.assign(engine, rest);
       return;
     }
@@ -261,7 +265,7 @@
     rememberReview(id);
     kept = { id, text: stored.game.record, record: stored.record, partner: stored.game.partner };
     markBefore = stored.game.reviewed;
-    own = ownSettings(stored.game.settings); // a network the site no longer ships: the browser's
+    own = ownSettings(stored.game); // a network the site no longer ships: the browser's
     return stored.record.moves;
   }
 
@@ -407,7 +411,7 @@
   <ReviewView {R} {progress} {deeperPositions} {again} snapshot={snapshot && { text: snapshot.text, onagain: reviewAgain }} {siteLink}
               onexport={exportAs} exportItems={reviewExports(partnerName)} exportReady={reviewDone} game={game ?? undefined}
               deepVisits={snapshot ? 0 : engine.visits} onposition={path => (current = path)} onplay={path => game!.addLine(path)}
-              reviewVisits={depth} labelVisits={LABEL_VISITS} engine={settings} onengine={changeEngine} ownSettings={!!own}
+              reviewVisits={depth} labelVisits={LABEL_VISITS} engine={settings} onengine={changeEngine} ownSettings={own?.from}
               onfeature={name => kept && trackOnce(`${kept.id} ${name}`, "feature", { feature_name: name })} gpu={session.gpuView} />
 {:else if opening}
   {@render reviewSkeleton(wide.current, loadDisplay().win === "gauge", gameOpen ? players : null, false)}
