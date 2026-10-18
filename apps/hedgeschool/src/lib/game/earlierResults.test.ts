@@ -67,6 +67,16 @@ test("after the removal, each snapshot still opens, on the same search and the s
   assert.deepEqual(left([...results("s0", "b2", 1024, line(MOVES)), ...s1]), results("s0", "b2", 1024, line(MOVES)));
 });
 
+test("a mark that names its search keeps that search's results, which its snapshot reads, before another's", () => {
+  const s0 = results("s0", "b2", 512, line(MOVES)), s1 = results("s1", "b2", 512, line(MOVES));
+  const game = { moves: MOVES, branches: null, mark: { ...mark("m0"), search: "s1" } };
+  assert.deepEqual(unneededResults([...s0, ...s1], [game], ENGINE), s0);
+  // Without its results, the snapshot opens none, and they all go.
+  assert.deepEqual(unneededResults(s0, [game], ENGINE), s0);
+  // An earlier engine's mark that names the site's search reads none of the site's results.
+  assert.deepEqual(unneededResults(s0, [{ ...game, mark: { ...game.mark, search: "s2" } }], ENGINE), s0);
+});
+
 test("an earlier network file's results stay while a game's snapshot reads them", () => {
   const file1 = results("s2", "b1", 512, line(MOVES)); // the site's search, with an earlier file of "lite"
   const game = { moves: MOVES, branches: null, mark: mark("m1", "b1") }; // an earlier build of the site's search

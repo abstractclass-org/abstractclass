@@ -1,12 +1,48 @@
 // Checks the choice of a snapshot's engine search (searchHolding, design 20): the search whose stored results hold the
-// game's line at the review's depth. And the removal of older shapes: which keys it takes, and when it runs.
-// Run: npm test.
+// game's line at the review's depth. And the snapshot's read of the store (snapshotSearch): the keys of the mark's
+// search, or every key for a mark that names no search. And the removal of older shapes: which keys it takes, and when
+// it runs. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { SHAPE, analysisKey, isOlderShape, removalDue, searchHolding } from "./cache.ts";
+import { SHAPE, analysisKey, isOlderShape, removalDue, searchHolding, snapshotSearch } from "./cache.ts";
+import { STORES } from "#lib/storage/db.ts";
+import { memoryDb } from "#lib/storage/memoryDb.ts";
 
 const line = [["a1"], ["a1", "b2"], ["a1", "b2", "c3"]];
 const keys = (search: string, model: string, visits: number, positions = line) => positions.map(m => analysisKey(search, model, m, visits));
+
+const db = memoryDb();
+const store = (stored: string[]) => stored.forEach(k => db.rows(STORES.analysis).set(k, { visits: 1 }));
+const scans = () => db.counts.getAllKeys ?? 0; // the reads of every key of a store
+
+test("a mark that names its search finds its results by their keys, and reads no other key", async () => {
+  store([...keys("s1", "n1", 1024), ...keys("s0", "n1", 512)]);
+  const before = scans();
+  assert.equal(await snapshotSearch("s1", "n1", line, 512), "s1"); // a deeper result answers a shallower depth
+  assert.equal(await snapshotSearch("s0", "n1", line, 512, Promise.resolve("s2")), "s0");
+  assert.equal(scans(), before);
+});
+
+test("a mark kept before the mark named its search reads every key, and takes the search that holds the line", async () => {
+  store([...keys("s1", "n2", 512), ...keys("s0", "n2", 512, line.slice(1))]);
+  const before = scans();
+  assert.equal(await snapshotSearch(undefined, "n2", line, 512), "s1");
+  assert.equal(scans(), before + 1);
+});
+
+test("no snapshot when a result of the mark's search is missing, too shallow, or of another network", async () => {
+  store([...keys("s1", "n3", 512, line.slice(0, 2)), ...keys("s2", "n3", 256), ...keys("s3", "n4", 512)]);
+  assert.equal(await snapshotSearch("s1", "n3", line, 512), undefined); // deleted, or removed (design 20, item 8)
+  assert.equal(await snapshotSearch("s2", "n3", line, 512), undefined);
+  assert.equal(await snapshotSearch("s3", "n3", line, 512), undefined);
+  assert.equal(await snapshotSearch("s1", "n3", [], 512), undefined); // no line to hold
+});
+
+test("an earlier engine's mark that names the site's search opens no snapshot: the site's engine reads those results", async () => {
+  store(keys("s2", "n5", 512));
+  assert.equal(await snapshotSearch("s2", "n5", line, 512, Promise.resolve("s2")), undefined);
+  assert.equal(await snapshotSearch(undefined, "n5", line, 512, Promise.resolve("s2")), undefined);
+});
 
 test("the search that holds every position of the line at the depth", () => {
   const stored = [...keys("old", "n1", 512), ...keys("new", "n1", 32)];

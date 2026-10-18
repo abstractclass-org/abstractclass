@@ -1,9 +1,13 @@
-// The review file (reviewFile.ts): which results belong to a game, the file read back, and branches merged. Run: npm test.
+// The review file (reviewFile.ts): which results belong to a game, the file read back, branches merged, and the mark
+// that a load keeps. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { SHAPE } from "#lib/analysis/cache.ts";
-import { buildReviewFile, gameAnalyses, mergeBranches, positionKeys, readReviewFile, reviewFileName } from "./reviewFile.ts";
-import { reviewCovers, reviewMark, type KeptBranches, type ReviewMark } from "./store.ts";
+import { buildReviewFile, gameAnalyses, importReview, mergeBranches, positionKeys, readReviewFile, reviewFileName } from "./reviewFile.ts";
+import { loadGame, reviewCovers, reviewMark, type KeptBranches, type ReviewMark } from "./store.ts";
+import { memoryDb } from "#lib/storage/memoryDb.ts";
+
+memoryDb(); // the import's store
 
 const RECORD = '[Blue "Ann"]\n[Red "Ben O\'Hara"]\n\n1. D10-G10 2. N11-Q10 L10-N11 *';
 const MOVES = ["D10-G10", "N11-Q10", "L10-N11"];
@@ -70,11 +74,12 @@ test("the file's name: the players, made safe, and the game's id", () => {
 test("a finished review covers the same search and network at its depth or less", () => {
   const manifest = { artifacts: [
     { id: "engine-1", kind: "module" as const, interface: null, url: "", sha256: "m1", bytes: 0, download: 0, released: true,
-      sameSearchAs: ["m0"] },
+      search: "s1", sameSearchAs: ["m0"] },
     { id: "net-a", kind: "model" as const, interface: null, url: "", sha256: "ab12", bytes: 0, download: 0, released: true },
   ] };
   const want = reviewMark(manifest, "net-a", 512);
-  assert.deepEqual(want, { module: "m1", model: "ab12", network: "net-a", visits: 512, modules: ["m1", "m0"] });
+  // The mark names the module's search, whose keys a snapshot reads (design 20).
+  assert.deepEqual(want, { module: "m1", model: "ab12", network: "net-a", visits: 512, search: "s1", modules: ["m1", "m0"] });
   assert.equal(reviewMark(manifest, "net-b", 512), null);
   const mark: ReviewMark = { ...want!, visits: 1024, at: "" };
   assert.equal(reviewCovers(mark, want), true); // deeper covers shallower
@@ -83,4 +88,19 @@ test("a finished review covers the same search and network at its depth or less"
   assert.equal(reviewCovers({ ...mark, module: "m2" }, want), false); // another search
   assert.equal(reviewCovers({ ...mark, model: "cd34" }, want), false); // another network
   assert.equal(reviewCovers(undefined, want), false);
+});
+
+test("a review file's mark names its search, and the load keeps it: a file written before names none", async () => {
+  const done: ReviewMark = { module: "m0", model: "ab12", network: "lite", visits: 512, at: "2026-10-12T00:00:00Z" };
+  const load = async (record: string, review: ReviewMark) => {
+    const text = JSON.stringify(buildReviewFile(record, null, [], "abc1234", null, review));
+    return (await loadGame((await importReview(readReviewFile(text), null, ["m1"])).id))?.game.reviewed;
+  };
+  assert.equal((await load(RECORD, { ...done, search: "s0" }))?.search, "s0"); // an earlier engine's: a snapshot
+  const before = await load("1. D10-G10 2. N11-Q10 *", done);
+  assert.equal(before?.model, "ab12");
+  assert.equal(before?.search, undefined);
+  const wrong = await load("1. D10-G10 2. N11-Q11 *", { ...done, search: 5 } as unknown as ReviewMark);
+  assert.equal(wrong?.model, "ab12");
+  assert.equal(wrong?.search, undefined); // not a search's name
 });

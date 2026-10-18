@@ -56,15 +56,18 @@ export async function setGameSettings(id: string, settings: GameSettings) {
 
 /** A review that ran to its end (design 13): the engine module's and the network's SHA-256 (the manifest's), the
  *  network's id, and the review's depth. A game exports only when its mark names a module of the site's search, the
- *  network set now, and the review depth set now or deeper. */
-export interface ReviewMark { module: string; model: string; network: string; visits: number; at: string }
+ *  network set now, and the review depth set now or deeper. `search` is the module's search, which keys the review's
+ *  results (analysis/cache.ts): a snapshot reads them by their keys (design 20). A mark kept before it has none. */
+export interface ReviewMark { module: string; model: string; network: string; visits: number; at: string; search?: string }
 /** A review to compare a mark with: its mark, and the modules whose search is its module's (client.ts, searchModules). */
 export interface WantedReview extends Omit<ReviewMark, "at"> { modules: string[] }
 
 /** The mark of a review run with `manifest`'s engine and `network` at `visits`, or null when the manifest lacks them. */
 export function reviewMark(manifest: Manifest, network: string, visits: number): WantedReview | null {
-  const module = moduleOf(manifest)?.sha256, model = modelOf(manifest, network)?.sha256;
-  return module && model ? { module, model, network, visits, modules: searchModules(manifest) } : null;
+  const m = moduleOf(manifest), module = m?.sha256, model = modelOf(manifest, network)?.sha256;
+  return module && model
+    ? { module, model, network, visits, ...(m?.search ? { search: m.search } : {}), modules: searchModules(manifest) }
+    : null;
 }
 
 /** Whether `mark` covers a review with these: the same search and network, at least as deep. */
@@ -86,12 +89,17 @@ export function reviewAgainWhy(mark: ReviewMark | undefined, want: WantedReview 
 export const replacesAnother = (before: ReviewMark | undefined, mark: Omit<ReviewMark, "at">) =>
   !!before && (before.module !== mark.module || before.model !== mark.model);
 
-/** Marks a game's review as done. A deeper mark of the same search and network stays. */
+/** Marks a game's review as done. A deeper mark of the same search and network stays: it takes the search's name when
+ *  it has none (a mark kept before marks named it), so that its snapshot after a later release reads its keys. */
 export async function markReviewed(id: string, { modules, ...mark }: WantedReview) {
-  const game = await dbGet<StoredGame>(STORES.games, id);
-  if (!game || reviewCovers(game.reviewed, { ...mark, modules })) return;
+  const game = await dbGet<StoredGame>(STORES.games, id), before = game?.reviewed;
+  if (!game) return;
+  if (before && reviewCovers(before, { ...mark, modules })) {
+    if (!before.search && mark.search) await dbPut(STORES.games, id, { ...game, reviewed: { ...before, search: mark.search } });
+    return;
+  }
   await dbPut(STORES.games, id, { ...game, reviewed: { ...mark, at: new Date().toISOString() } });
-  if (replacesAnother(game.reviewed, mark)) makeEarlierRemovalDue();
+  if (replacesAnother(before, mark)) makeEarlierRemovalDue();
 }
 
 export async function gameId(moves: string[], start?: string): Promise<string> {

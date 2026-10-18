@@ -55,7 +55,7 @@ export function unneededResults(keys: string[], games: KeptGame[], engine: Manif
     if (!why) continue;
     const line = snapshotPositions(moves);
     const ofLine = line.flatMap(m => atMoves.get(m.join(" ")) ?? []).sort((a, b) => a - b).map(i => keys[i]);
-    const held = searchHolding(ofLine, mark.model, line, mark.visits, snapshotExcept(why, site));
+    const held = searchHolding(ofLine, mark.model, line, mark.visits, snapshotExcept(why, site), mark.search);
     if (held === undefined) continue;
     const at = `${held}|${mark.model}`, positions = snapshotReads.get(at) ?? new Set();
     for (const p of positionKeys(moves, branches)) positions.add(p);

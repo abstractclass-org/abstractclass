@@ -236,7 +236,8 @@ export async function deliverExport(kind: ExportKind, id: string, record: string
  *  (their SHA-256): results of another network are left out, since this site's engine never asks for them. `modules` are
  *  the engine modules of this site's search (their SHA-256). The file's review is the game's mark when it ran with a
  *  network kept: done here when it ran with one of these modules, else a review by an earlier engine, which opens as
- *  it was (design 20). A mark of this site's search stays over an earlier engine's. The mark comes before the results:
+ *  it was (design 20). A mark of this site's search stays over an earlier engine's. The mark keeps the search that the
+ *  file's review names: a file written before marks named it names none. The mark comes before the results:
  *  a removal of earlier results in another tab (earlierResults.ts) that runs between them then finds none of them,
  *  rather than results that no mark needs yet. */
 export async function importReview(file: ReviewFile, models: Set<string> | null, modules: string[] | null = null) {
@@ -248,6 +249,7 @@ export async function importReview(file: ReviewFile, models: Set<string> | null,
   const ours = (module?: string) => !!module && !!modules?.includes(module);
   if (r && (!models || models.has(r.model)) && (ours(r.module) || !ours(before?.module)))
     await markReviewed(id, { module: r.module, model: r.model, network: r.network, visits: r.visits,
+                             ...(typeof r.search === "string" ? { search: r.search } : {}),
                              modules: ours(r.module) ? modules! : [r.module] });
   // The game keeps the file's network and depth, when the site ships that network, so that its review opens as it was
   // made. The browser's settings stay for the other games.

@@ -105,14 +105,20 @@ async function readStored(keys: string[]) {
 }
 
 /** The engine search of an earlier review, for its snapshot (design 20): a search whose results with the network
- *  `model` hold each of `positions` (their moves) at `visits` or deeper. `except` is a search not to take: the site's
- *  own, when the snapshot is of an earlier engine. The stored keys are read while it comes (the rules worker's start).
- *  Undefined when no search holds them all. Reads the stored keys alone. */
-export async function snapshotSearch(model: string, positions: string[][], visits: number,
+ *  `model` hold each of `positions` (their moves) at `visits` or deeper. `search` is the one that the review's mark
+ *  names: the snapshot reads its results' keys alone, at `visits` and every budget deeper, into memory, where the
+ *  review then finds them. A mark kept before marks named their search names none: the snapshot then reads every
+ *  stored key, and takes a search that holds them all. `except` is a search not to take: the site's own, when the
+ *  snapshot is of an earlier engine. The store is read while it comes (the rules worker's start). Undefined when no
+ *  search holds them all. */
+export async function snapshotSearch(search: string | undefined, model: string, positions: string[][], visits: number,
                                      except?: Promise<string | undefined>): Promise<string | undefined> {
-  const [keys, not] = await Promise.all([dbKeys(STORES.analysis), except]);
-  return searchHolding(keys.map(String), model, positions, visits, not);
+  const [keys, not] = await Promise.all([search === undefined ? dbKeys(STORES.analysis).then(k => k.map(String))
+                                           : storedOf(positions.flatMap(m => depthKeys(search, model, m, visits))), except]);
+  return searchHolding(keys, model, positions, visits, not);
 }
+/** The keys among these whose results are stored (or in memory), read into memory in one transaction. */
+const storedOf = async (keys: string[]) => (await readStored(keys), keys.filter(k => memory.has(k)));
 
 /** The search that a snapshot leaves out: the site's own (`site`) for an earlier engine's review ("engine"), and none
  *  for an earlier file of the network ("network"), whose search can be the site's. */
@@ -123,13 +129,15 @@ export const snapshotExcept = (why: "engine" | "network", site: string | null | 
  *  every game shares, up to the last before its last move. */
 export const snapshotPositions = (moves: string[]) => Array.from({ length: Math.max(0, moves.length - 1) }, (_, i) => moves.slice(0, i + 1));
 
-/** snapshotSearch's choice among `keys`. */
-export function searchHolding(keys: string[], model: string, positions: string[][], visits: number, except?: string): string | undefined {
+/** snapshotSearch's choice among `keys`. `search`, when given, is the only search to take: the mark's. */
+export function searchHolding(keys: string[], model: string, positions: string[][], visits: number, except?: string,
+                              search?: string): string | undefined {
   const wanted = new Set(positions.map(m => m.join(" ")));
   const found = new Map<string, Set<string>>();
   for (const key of keys) {
     const k = readAnalysisKey(key);
-    if (k.shape !== SHAPE || k.model !== model || k.search === except || k.visits < visits || !wanted.has(k.moves)) continue;
+    if (k.shape !== SHAPE || k.model !== model || k.search === except || (search !== undefined && k.search !== search) ||
+        k.visits < visits || !wanted.has(k.moves)) continue;
     found.set(k.search, (found.get(k.search) ?? new Set()).add(k.moves));
   }
   return wanted.size ? [...found].find(([, held]) => held.size === wanted.size)?.[0] : undefined;

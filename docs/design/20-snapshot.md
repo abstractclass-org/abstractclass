@@ -33,18 +33,28 @@ look at a past review pays it each time, and the earlier results are still in th
 5. **Without the earlier results** (another browser, data cleared, or results of an older shape), the game is reviewed
    again, as before, and the dialog and the line under the progress say why (design 11).
 6. **Imports:** a review file keeps its mark when the site ships its network file (the same SHA-256), whatever its
-   engine. A file from an earlier engine therefore opens as a snapshot (design 13), and so does a review that a partner
-   site kept and sends back (design 18). A mark of the site's engine stays over an earlier engine's.
+   engine. The mark keeps the search that the file's review names (item 7). A file from an earlier engine therefore
+   opens as a snapshot (design 13), and so does a review that a partner site kept and sends back (design 18). A mark
+   of the site's engine stays over an earlier engine's.
 7. **The snapshot's engine:** a stored result names the engine by its search (request 17: the first build that
-   searched as this one does), and the mark names the module by its SHA-256. A new engine is a new search: a release
-   that keeps the search keeps every review as it is, with no snapshot. The manifest lists the earlier modules of the
-   site's search (`sameSearchAs` in `engine.lock.json`), so a mark, a review file or a share link of one of them is
-   the site's engine's. The page takes the search whose results of the mark's network cover the game's line, so it
-   needs no record of the other searches.
+   searched as this one does). The mark names the module by its SHA-256, and the module's search by the name that
+   keys its results (the manifest's `search`). A new engine is a new search: a release that keeps the search keeps
+   every review as it is, with no snapshot. The manifest lists the earlier modules of the site's search
+   (`sameSearchAs` in `engine.lock.json`), so a mark, a review file or a share link of one of them is the site's
+   engine's.
+   - **The page reads the results by their keys:** the mark's search and network, each position of the game's line,
+     at the review's depth and at each deeper budget. The time of that read does not grow with the store.
+   - **A mark that names no search:** a mark kept before marks named their search, or the mark of a review file
+     written before then. The page reads every key of the store, and takes the search whose results of the mark's
+     network cover the game's line. A mark of the site's search takes the name when a review of that search ends on
+     the page, so these marks become fewer.
+   - **The site's own search:** the snapshot of an earlier engine's review never takes it. The site's engine reads
+     those results itself, so the game opens as a review.
 8. **An earlier engine's results go when no game needs them.** A result belongs to a position, not to a game. The
    site keeps every result of its own search with a network file that it ships. An earlier engine's result, or an
    earlier network file's, stays while the snapshot of a stored game reads it. A snapshot reads the results of one
-   search: the search that holds the game's line at its depth (item 7). It reads the game's positions and the
+   search: the mark's search, or the search that holds the game's line at its depth for a mark that names none
+   (item 7). The removal takes the same search for each game. It reads the game's positions and the
    positions one move from them, as the game's review file holds them (design 13). It shows each position at its
    deepest (item 2), so a shallower result of the same position goes. The other results of the store's shape go too:
    - **After Review again,** the game's mark names the site's engine when the new review ends. Its snapshot then reads
@@ -85,6 +95,11 @@ look at a past review pays it each time, and the earlier results are still in th
 - **Review again asked at the first exploration:** it stops the player at the start of the work.
 - **A snapshot's export:** to keep it, or to take it to another browser. A snapshot cannot change, so an export adds
   nothing new. Review again, then export.
+- **A read of every key of the store for each snapshot** (before item 7 named the search in the mark): its time grows
+  with the store, and the store grows with each result. It stays for a mark that names no search.
+- **The search of an earlier file, from the file's results at its load:** each result names its search, but a file
+  can hold the results of two searches for its line, and the mark must not take the wrong one. The read of every key
+  serves such a file.
 - **Keep every earlier result** (before item 8): each release adds one more set, which nothing reads.
 - **A removal at once after each change** (the end of Review again, a delete): the start is the one place that
   removes, and one removal serves every change since the last one.
@@ -100,8 +115,11 @@ look at a past review pays it each time, and the earlier results are still in th
   under the progress says why.
 - Analytics: a snapshot counts as `review_open`, with `done_before` set. Review again sends no second `review_open`,
   and its `review_done` counts the new review's time. The features `snapshot opened` and `review again` (design 17).
-- **Cost:** the page reads the store's keys (5,097 keys in about 55 ms in a desktop browser) and the engine's rules.
-  On that browser, a snapshot was on screen 2.2 s after the page's navigation started, or sooner.
+- **Cost:** while the engine's rules load, the page reads the results of the game's line by their keys, in one
+  transaction. The review then finds them in memory. In headless Chromium, for a line of 59 positions, that read took
+  about 8 ms with 5,000 stored results and with 20,000. A read of every key took 11 ms and 40 ms. A mark that names
+  no search reads every key, as before: 5,097 keys took about 55 ms in a desktop browser. On that browser, a snapshot
+  was on screen 2.2 s after the page's navigation started, or sooner.
 - **The removal's cost:** a start with nothing changed reads one value of local storage. A start when the removal is
   due loads its code once the page is idle. Then one transaction reads the games, their branches and the store's
   keys, and removes the results. The removal reads each key once. Until the transaction ends, the review's reads of
@@ -118,7 +136,7 @@ look at a past review pays it each time, and the earlier results are still in th
 - `src/routes/review/+page.svelte` (the choice of a snapshot, its rules-only engine, Review again),
   `src/lib/review/ReviewView.svelte` (the bar, the controls off), `src/lib/analysis/cache.ts` (`snapshotSearch`),
   `src/lib/analysis/game.svelte.ts` (`fromStore`), `src/lib/game/reviewFile.ts` (`importReview`, the mark kept),
-  `src/lib/game/store.ts` (`reviewAgainWhy`).
+  `src/lib/game/store.ts` (`reviewAgainWhy`, the mark's `search`: `reviewMark`, `markReviewed`).
 - The removal: `src/lib/game/earlierResults.ts` (`unneededResults`, `removeEarlierResults`, which
   `src/routes/+layout.svelte` starts), `src/lib/analysis/cache.ts` (the mark: `earlierRemovalDue`,
   `makeEarlierRemovalDue`), `src/lib/game/store.ts` (`markReviewed`, `deleteGame`), `src/lib/game/analysisFile.ts`
@@ -127,4 +145,5 @@ look at a past review pays it each time, and the earlier results are still in th
 ## Log entries
 
 - [decisions/product.md](../decisions/product.md): "A review by an earlier engine opens as it was" (2026-10-14), "An
-  earlier engine's results go when no game needs them" (2026-10-16).
+  earlier engine's results go when no game needs them" (2026-10-16), "The snapshot reads its results by their keys"
+  (2026-10-18).

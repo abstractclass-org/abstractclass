@@ -3585,3 +3585,42 @@ sweep.
   Practice keeps its own row height, two lines, until it measures the row (`src/routes/practice/+page.svelte`): it
   was not measured.
 - **Not measured:** Edge, the owner's devices, a slower device, and a review that the engine searches as it shows.
+
+### The snapshot reads its results by their keys (2026-10-18)
+
+- **The problem:** a snapshot (design 20) chose its search after a read of every key of the analysis store. The
+  store grows with each result, so each review made the open of a snapshot slower.
+- **Decided** (design 20, item 7): the review's mark names the module's search (`ReviewMark.search`), from the
+  manifest's `search`, which also keys the review's results. A snapshot reads the results of that search and the
+  mark's network by their keys, in one transaction: each position of the game's line, at the review's depth and at
+  each deeper budget. The review then finds them in memory.
+  - **A mark that names no search:** a mark kept before, or the mark of a review file written before. A review file
+    carries the game's mark (`review`), and the load keeps it when the site ships its network. For such a mark the
+    snapshot reads every key, as before. A mark of the site's search takes the name when a review of that search
+    ends on the page (`markReviewed`), also when a deeper mark stays.
+  - **A mark whose results are not all in the store** (deleted, or taken by the removal of earlier results): no
+    snapshot, and the review says why, as before.
+  - **The site's own search:** an earlier engine's snapshot still never takes it, with a search in the mark or
+    without.
+  - **The removal of earlier results** keeps the results of the mark's search for each game, so that it keeps what
+    the snapshot reads. Before, the removal and the snapshot both took the first search in the store's order that
+    held the line.
+- **Rejected:** the search of an earlier file, from the file's results at its load. A file can hold the results of
+  two searches for its line (an earlier engine's, kept until a removal, beside the site's), and the mark must not take
+  the wrong one.
+- **Measured** in Playwright's headless Chromium, with a throwaway script, not the site's page. The store held 5,000
+  or 20,000 results with the real key shape, of about 3.6 KB each, and the line had 59 positions. A fresh page load
+  came before each read. Medians of 7 runs:
+  - the read of every key, with the parse of each key: 11.1 ms and 39.7 ms;
+  - the read of the line's keys (10 depths for each position, 590 keys): 8.0 ms and 8.6 ms.
+
+  Not measured: the snapshot's time to the screen, during which the rules worker also starts, and a desktop browser.
+- **Checked:** the type check, and the unit tests (175 of 175 passed).
+  - `cache.test.ts` checks the snapshot's read on a store in memory in IndexedDB's place
+    (`src/lib/storage/memoryDb.ts`). A mark with its search does not read every key. A mark with none reads every
+    key and takes the search that holds the line. A result missing, too shallow or of another network opens no
+    snapshot. An earlier engine's mark that names the site's search opens none.
+  - `earlierResults.test.ts` checks that the removal keeps the results of the mark's search.
+  - `store.test.ts` checks the mark's search after a review, also on a deeper mark that stays. `reviewFile.test.ts`
+    checks it after the load of a file with a search, of a file without one, and of a file whose search is not text.
+  - Not checked: the review page in a browser.
