@@ -35,13 +35,10 @@ import type { EdgeRules } from "#lib/board/edgeInput.svelte.ts";
 import { lastMove, mainIndex, parentKey, pathKey, prefixKeys } from "#lib/review/tree.ts";
 import { STORES, dbGet, dbPut } from "#lib/storage/db.ts";
 import { keepStorage } from "#lib/storage/persist.ts";
-import { analysisKey, keyMoves, cacheGetAtLeast, cachePut, warmCache } from "./cache.ts";
+import { DEEP_VISITS, LABEL_VISITS, SWEEP_VISITS, analysisKey, keyMoves, cacheGetAtLeast, cachePut, warmCache } from "./cache.ts";
 import { Stopped } from "#lib/engine/client.ts";
 import { Cancelled, type EnginePool } from "./pool.ts";
 
-export const SWEEP_VISITS = 32;
-export const LABEL_VISITS = 256; // the least visits that give an edge a label (the review's depths: engineSettings.ts)
-export const DEEP_VISITS = 1024; // the position on screen by default
 /** The key moments' depth: twice the review's depth, one step of its doublings deeper, so that the moments that matter
  *  most get a surer search at every review depth (Lite's 512 gives 1,024, the reference of the labels' measurement). */
 export const momentVisits = (reviewVisits: number) => 2 * reviewVisits;

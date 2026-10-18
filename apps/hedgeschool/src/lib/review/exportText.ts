@@ -1,7 +1,8 @@
 // The annotated record of a reviewed game (design 13), from the review page's own review, or from the browser's store
 // alone where no review runs (the home page): the engine's rules give the positions, the stored results give the
 // values, and nothing is searched. Both write the same record.
-import { GameAnalysis, LABEL_VISITS, type BranchNode } from "#lib/analysis/game.svelte.ts";
+import { GameAnalysis, type BranchNode } from "#lib/analysis/game.svelte.ts";
+import { LABEL_VISITS } from "#lib/analysis/cache.ts";
 import { loadEngine, networkName, settingsFor } from "#lib/analysis/engineSettings.ts";
 import { EnginePool } from "#lib/analysis/pool.ts";
 import { modelOf, type Manifest } from "#lib/engine/client.ts";

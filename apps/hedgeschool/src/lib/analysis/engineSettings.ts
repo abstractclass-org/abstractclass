@@ -3,7 +3,7 @@
 // budget for each position, which network it uses (Lichess's choice of engine), and how many workers search at once
 // (Lichess's threads), and whether the visitor's GPU searches too (analysis/gpu.svelte.ts). Storage can be blocked (a private window, blocked site data): then the defaults hold.
 import lock from "../../../engine.lock.json" with { type: "json" };
-import { DEEP_VISITS, LABEL_VISITS } from "./game.svelte.ts";
+import { DEEP_VISITS, LABEL_VISITS } from "./cache.ts";
 import { defaultPoolSize } from "./pool.ts";
 import { megabytes } from "#lib/engine/client.ts";
 import { readLocalJson, writeLocal } from "#lib/storage/local.ts";

@@ -78,6 +78,10 @@ export const makeEarlierRemovalDue = () => writeLocal(EARLIER, null);
 export const ofModels = (entries: [string, unknown][], models: Set<string> | null) =>
   entries.filter(([key]) => !models || models.has(readAnalysisKey(key).model));
 
+/** The sweep's budget: the review's first pass over every position, for the game's shape (game.svelte.ts). */
+export const SWEEP_VISITS = 32;
+export const LABEL_VISITS = 256; // the least visits that give an edge a label (the review's depths: engineSettings.ts)
+export const DEEP_VISITS = 1024; // the position on screen by default
 // The budgets the site's searches ask for (engineSettings.ts: the depths, the review's depths and the label pass, and
 // game.svelte.ts: the key moments at twice the review's depth), from shallow to deep.
 export const BUDGETS = [256, 512, 768, 1024, 1536, 2048, 3072, 4096, 8192, 16384, 32768];

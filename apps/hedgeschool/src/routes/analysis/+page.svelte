@@ -15,7 +15,8 @@
   import { STANDARD_START, setUpStart } from "#lib/engine/notation.ts";
   import { onlyJudged, review, type ReviewData, type Unit } from "#lib/review/model.ts";
   import { annotatedRecord } from "#lib/review/annotate.ts";
-  import { GameAnalysis, LABEL_VISITS } from "#lib/analysis/game.svelte.ts";
+  import { GameAnalysis } from "#lib/analysis/game.svelte.ts";
+  import { LABEL_VISITS } from "#lib/analysis/cache.ts";
   import { EngineSession } from "#lib/analysis/session.svelte.ts";
   import { modelOf } from "#lib/engine/client.ts";
   import { loadEngine, networkName, reviewVisits, saveEngine, type EngineSettings } from "#lib/analysis/engineSettings.ts";

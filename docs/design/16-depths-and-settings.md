@@ -166,8 +166,9 @@ Lite (D = 512), P = 1,024, and a time limit of 30 s.
 
 ## Where it is
 
-- The depths: `src/lib/analysis/game.svelte.ts` (`SWEEP_VISITS`, `momentVisits`, `deepen`, `focus`, `confirmGreat`,
-  `greatTargets`), `src/lib/analysis/engineSettings.ts` (`REVIEW_PRESETS`, `CUSTOM_REVIEW`, `DEPTHS`, `TIME_LIMITS`).
+- The depths: `src/lib/analysis/cache.ts` (`SWEEP_VISITS`, `LABEL_VISITS`, `DEEP_VISITS`, `BUDGETS`),
+  `src/lib/analysis/game.svelte.ts` (`momentVisits`, `deepen`, `focus`, `confirmGreat`, `greatTargets`),
+  `src/lib/analysis/engineSettings.ts` (`REVIEW_PRESETS`, `CUSTOM_REVIEW`, `DEPTHS`, `TIME_LIMITS`).
 - The deepest result: `keep` in `src/lib/analysis/game.svelte.ts`, `cacheGetAtLeast` in `src/lib/analysis/cache.ts`.
 - The Greats' depth: `equalDepth` and `confirmedOnly` in `src/lib/review/model.ts`.
 - The game's settings: `GameSettings`, `setGameSettings` in `src/lib/game/store.ts`, `settings` and `changeEngine` in

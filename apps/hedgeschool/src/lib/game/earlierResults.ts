@@ -3,9 +3,8 @@
 // site's engine reads its own results only. An earlier engine's are read by the snapshot of a game whose last review
 // used it, and by nothing else.
 import lock from "../../../engine.lock.json" with { type: "json" };
-import { BUDGETS, SHAPE, earlierRemoval, isAnalysisKey, readAnalysisKey, searchHolding, snapshotExcept,
+import { BUDGETS, SHAPE, SWEEP_VISITS, earlierRemoval, isAnalysisKey, readAnalysisKey, searchHolding, snapshotExcept,
          snapshotPositions } from "#lib/analysis/cache.ts";
-import { SWEEP_VISITS } from "#lib/analysis/game.svelte.ts";
 import { STORES, dbReadThenDelete } from "#lib/storage/db.ts";
 import { moduleOf, type Manifest } from "#lib/engine/client.ts";
 import { positionKeys, shippedModels } from "./reviewFile.ts";

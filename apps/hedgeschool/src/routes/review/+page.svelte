@@ -19,10 +19,10 @@
   import Arrival from "#lib/review/Arrival.svelte";
   import ReviewHome from "#lib/review/ReviewHome.svelte";
   import { holdsGame } from "#lib/game/importHash.ts";
-  import { snapshotExcept, snapshotPositions, snapshotSearch, warmCache } from "#lib/analysis/cache.ts";
+  import { LABEL_VISITS, SWEEP_VISITS, snapshotExcept, snapshotPositions, snapshotSearch, warmCache } from "#lib/analysis/cache.ts";
   import { review, type GameEnding, type ReviewData } from "#lib/review/model.ts";
   import { EnginePool } from "#lib/analysis/pool.ts";
-  import { GameAnalysis, LABEL_VISITS, SWEEP_VISITS, momentVisits } from "#lib/analysis/game.svelte.ts";
+  import { GameAnalysis, momentVisits } from "#lib/analysis/game.svelte.ts";
   import { EngineSession } from "#lib/analysis/session.svelte.ts";
   import { changeOwn, loadEngine, networkName, offersNetwork, ownSettings, reviewVisits, saveEngine, withOwn,
            type EngineSettings, type OwnSettings } from "#lib/analysis/engineSettings.ts";
