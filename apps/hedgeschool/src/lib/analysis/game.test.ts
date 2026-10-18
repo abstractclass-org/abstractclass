@@ -6,8 +6,9 @@ import assert from "node:assert/strict";
 import "#lib/testing/svelteModules.ts";
 import type { AnalysisReply, GamePosition, PositionQuery } from "#lib/engine/protocol.ts";
 import type { EnginePool, Work } from "./pool.ts";
+import { SWEEP_VISITS } from "./cache.ts";
 
-const { BATCH_MS, GameAnalysis, SWEEP_VISITS } = await import("./game.svelte.ts");
+const { BATCH_MS, GameAnalysis } = await import("./game.svelte.ts");
 const { BOARD_ID } = await import("#lib/game/store.ts");
 
 const MOVES = ["A10-D9", "D10-G9", "G10-J9"];
