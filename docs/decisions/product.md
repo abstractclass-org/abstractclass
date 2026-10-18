@@ -3594,8 +3594,9 @@ sweep.
   manifest's `search`, which also keys the review's results. A snapshot reads the results of that search and the
   mark's network by their keys, in one transaction: each position of the game's line, at the review's depth and at
   each deeper budget. The review then finds them in memory.
-  - **A mark that names no search:** a mark kept before, or the mark of a review file written before. A review file
-    carries the game's mark (`review`), and the load keeps it when the site ships its network. For such a mark the
+  - **A mark that names no search:** an older mark, kept before marks held their search, or the mark of an older
+    review file. A review file carries the game's mark (`review`), and the load keeps it when the site ships its
+    network. For such a mark the
     snapshot reads every key, as before. A mark of the site's search takes the name when a review of that search
     ends on the page (`markReviewed`), also when a deeper mark stays.
   - **A mark whose results are not all in the store** (deleted, or taken by the removal of earlier results): no
@@ -3605,22 +3606,40 @@ sweep.
   - **The removal of earlier results** keeps the results of the mark's search for each game, so that it keeps what
     the snapshot reads. Before, the removal and the snapshot both took the first search in the store's order that
     held the line.
+  - **The removal at a custom depth:** for each game's review depth, the removal keeps the result of each position
+    that the snapshot shows (`readsAt`): the deepest at the review's depth or a budget, else at the sweep's depth or
+    a budget. Before, it kept the deepest at any depth. A custom depth is any whole number from 256 to 16,384
+    visits, and the key moments go to twice it, so the deepest result could be at a depth that the snapshot does not
+    read. A Depth that the player typed did the same. The removal then took the result that the snapshot reads, and
+    the game opened no snapshot. Before the read by keys, it opened a snapshot without those positions.
 - **Rejected:** the search of an earlier file, from the file's results at its load. A file can hold the results of
   two searches for its line (an earlier engine's, kept until a removal, beside the site's), and the mark must not take
   the wrong one.
 - **Measured** in Playwright's headless Chromium, with a throwaway script, not the site's page. The store held 5,000
   or 20,000 results with the real key shape, of about 3.6 KB each, and the line had 59 positions. A fresh page load
   came before each read. Medians of 7 runs:
-  - the read of every key, with the parse of each key: 11.1 ms and 39.7 ms;
+  - the read of every key, with the parse of each key: 11.1 ms and 39.7 ms.
   - the read of the line's keys (10 depths for each position, 590 keys): 8.0 ms and 8.6 ms.
 
   Not measured: the snapshot's time to the screen, during which the rules worker also starts, and a desktop browser.
-- **Checked:** the type check, and the unit tests (175 of 175 passed).
+- **Checked:** the type check, and the unit tests (176 of 176 passed).
   - `cache.test.ts` checks the snapshot's read on a store in memory in IndexedDB's place
     (`src/lib/storage/memoryDb.ts`). A mark with its search does not read every key. A mark with none reads every
     key and takes the search that holds the line. A result missing, too shallow or of another network opens no
     snapshot. An earlier engine's mark that names the site's search opens none.
-  - `earlierResults.test.ts` checks that the removal keeps the results of the mark's search.
+  - `earlierResults.test.ts` checks that the removal keeps the results of the mark's search. At a custom depth, it
+    checks that the removal keeps the results that the snapshot reads, under deeper ones that it does not read.
   - `store.test.ts` checks the mark's search after a review, also on a deeper mark that stays. `reviewFile.test.ts`
     checks it after the load of a file with a search, of a file without one, and of a file whose search is not text.
-  - Not checked: the review page in a browser.
+  - The review page, in Playwright's headless Chromium on a build of the site, with a throwaway script. Each case
+    loaded a review file through the Review tab, in a fresh browser context. The file was
+    `tests/fixtures/hedgefund-review.json`, with its mark and its 244 results moved to an earlier engine's search.
+    - A mark with its search opened the snapshot with no read of every key. Its label badges and its board matched
+      the review of the unchanged file. The removal at the next start took the 244 results of another earlier
+      search, which no game needed, and kept the 244 that the snapshot reads. The snapshot opened again after it.
+    - A mark with no search opened the snapshot after one read of every key, with the same labels and board.
+    - A review at 3,000 visits, with 49 results at 6,000 visits: the removal took the 49 and kept the 244 at 3,000.
+      The snapshot opened before the removal and after it.
+    - A file that lacked one result of the game's line opened no snapshot. The page reviewed the game again, and
+      said "The engine was updated since this game's last review, so the game is reviewed again." The removal took
+      the earlier search's results, which no game needed.

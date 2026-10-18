@@ -13,21 +13,20 @@ const keys = (search: string, model: string, visits: number, positions = line) =
 
 const db = memoryDb();
 const store = (stored: string[]) => stored.forEach(k => db.rows(STORES.analysis).set(k, { visits: 1 }));
-const scans = () => db.counts.getAllKeys ?? 0; // the reads of every key of a store
 
 test("a mark that names its search finds its results by their keys, and reads no other key", async () => {
   store([...keys("s1", "n1", 1024), ...keys("s0", "n1", 512)]);
-  const before = scans();
+  const before = db.scans();
   assert.equal(await snapshotSearch("s1", "n1", line, 512), "s1"); // a deeper result answers a shallower depth
   assert.equal(await snapshotSearch("s0", "n1", line, 512, Promise.resolve("s2")), "s0");
-  assert.equal(scans(), before);
+  assert.equal(db.scans(), before);
 });
 
-test("a mark kept before the mark named its search reads every key, and takes the search that holds the line", async () => {
+test("an older mark, which names no search, reads every key, and takes the search that holds the line", async () => {
   store([...keys("s1", "n2", 512), ...keys("s0", "n2", 512, line.slice(1))]);
-  const before = scans();
+  const before = db.scans();
   assert.equal(await snapshotSearch(undefined, "n2", line, 512), "s1");
-  assert.equal(scans(), before + 1);
+  assert.equal(db.scans(), before + 1);
 });
 
 test("no snapshot when a result of the mark's search is missing, too shallow, or of another network", async () => {

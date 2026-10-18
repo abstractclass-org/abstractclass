@@ -77,6 +77,18 @@ test("a mark that names its search keeps that search's results, which its snapsh
   assert.deepEqual(unneededResults(s0, [{ ...game, mark: { ...game.mark, search: "s2" } }], ENGINE), s0);
 });
 
+test("a custom depth's results stay under a deeper result at a depth that the snapshot does not read", () => {
+  // Reviewed at 3,000 visits, its key moment at 6,000 and the player's Depth at 5,000: the snapshot reads 3,000 and
+  // each budget deeper (4,096), not 5,000 or 6,000. Another game's snapshot, at Lite's 512 visits, reads 4,096.
+  const at = (visits: number, i: number) => results("s1", "b2", visits, [line(MOVES)[i]]);
+  const review = results("s1", "b2", 3000, line(MOVES)), unread = [...at(6000, 1), ...at(5000, 2)];
+  const game = { moves: MOVES, branches: null, mark: { ...mark("m0", "b2", "lite", 3000), search: "s1" } };
+  assert.deepEqual(unneededResults([...review, ...unread], [game], ENGINE), unread);
+  const deeper = at(4096, 2), lite = { ...game, mark: { ...game.mark, visits: 512 } };
+  assert.deepEqual(unneededResults([...review, ...unread, ...deeper], [game, lite], ENGINE),
+                   [...review.slice(2, 3), ...unread]);
+});
+
 test("an earlier network file's results stay while a game's snapshot reads them", () => {
   const file1 = results("s2", "b1", 512, line(MOVES)); // the site's search, with an earlier file of "lite"
   const game = { moves: MOVES, branches: null, mark: mark("m1", "b1") }; // an earlier build of the site's search

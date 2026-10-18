@@ -43,7 +43,7 @@ test("a new mark frees an earlier review's results when it replaces a mark of an
   assert.equal(replacesAnother(mark, { ...mark, model: "n2" }), true);
 });
 
-test("a finished review's mark names its search, and so does a mark kept before that covers the review", async () => {
+test("a finished review's mark names its search, and so does an older mark that covers the review", async () => {
   const game = (id: string, reviewed?: ReviewMark): StoredGame => ({ version: 1, id, record: "", added: "", reviewed });
   const markOf = async (id: string) => (await dbGet<StoredGame>(STORES.games, id))?.reviewed;
   const done = { module: "m1", model: "n1", network: "lite", visits: 512, search: "s1", modules: ["m1", "m0"] };

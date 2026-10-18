@@ -57,7 +57,8 @@ export async function setGameSettings(id: string, settings: GameSettings) {
 /** A review that ran to its end (design 13): the engine module's and the network's SHA-256 (the manifest's), the
  *  network's id, and the review's depth. A game exports only when its mark names a module of the site's search, the
  *  network set now, and the review depth set now or deeper. `search` is the module's search, which keys the review's
- *  results (analysis/cache.ts): a snapshot reads them by their keys (design 20). A mark kept before it has none. */
+ *  results (analysis/cache.ts): a snapshot reads them by their keys (design 20). An older mark, which the site kept
+ *  before marks held their search, has none. */
 export interface ReviewMark { module: string; model: string; network: string; visits: number; at: string; search?: string }
 /** A review to compare a mark with: its mark, and the modules whose search is its module's (client.ts, searchModules). */
 export interface WantedReview extends Omit<ReviewMark, "at"> { modules: string[] }
@@ -90,7 +91,7 @@ export const replacesAnother = (before: ReviewMark | undefined, mark: Omit<Revie
   !!before && (before.module !== mark.module || before.model !== mark.model);
 
 /** Marks a game's review as done. A deeper mark of the same search and network stays: it takes the search's name when
- *  it has none (a mark kept before marks named it), so that its snapshot after a later release reads its keys. */
+ *  it has none (an older mark), so that its snapshot after a later release reads its keys. */
 export async function markReviewed(id: string, { modules, ...mark }: WantedReview) {
   const game = await dbGet<StoredGame>(STORES.games, id), before = game?.reviewed;
   if (!game) return;

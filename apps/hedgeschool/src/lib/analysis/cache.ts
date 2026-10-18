@@ -107,18 +107,17 @@ async function readStored(keys: string[]) {
 /** The engine search of an earlier review, for its snapshot (design 20): a search whose results with the network
  *  `model` hold each of `positions` (their moves) at `visits` or deeper. `search` is the one that the review's mark
  *  names: the snapshot reads its results' keys alone, at `visits` and every budget deeper, into memory, where the
- *  review then finds them. A mark kept before marks named their search names none: the snapshot then reads every
+ *  review then finds them. An older mark names none (game/store.ts, ReviewMark): the snapshot then reads every
  *  stored key, and takes a search that holds them all. `except` is a search not to take: the site's own, when the
  *  snapshot is of an earlier engine. The store is read while it comes (the rules worker's start). Undefined when no
  *  search holds them all. */
 export async function snapshotSearch(search: string | undefined, model: string, positions: string[][], visits: number,
                                      except?: Promise<string | undefined>): Promise<string | undefined> {
-  const [keys, not] = await Promise.all([search === undefined ? dbKeys(STORES.analysis).then(k => k.map(String))
-                                           : storedOf(positions.flatMap(m => depthKeys(search, model, m, visits))), except]);
-  return searchHolding(keys, model, positions, visits, not);
+  const stored = search === undefined ? dbKeys(STORES.analysis).then(k => k.map(String))
+    : warmCache(search, model, positions, visits);
+  const [keys, not] = await Promise.all([stored, except]);
+  return searchHolding(keys, model, positions, visits, not, search);
 }
-/** The keys among these whose results are stored (or in memory), read into memory in one transaction. */
-const storedOf = async (keys: string[]) => (await readStored(keys), keys.filter(k => memory.has(k)));
 
 /** The search that a snapshot leaves out: the site's own (`site`) for an earlier engine's review ("engine"), and none
  *  for an earlier file of the network ("network"), whose search can be the site's. */
@@ -144,9 +143,11 @@ export function searchHolding(keys: string[], model: string, positions: string[]
 }
 
 /** Reads the stored results of these positions into memory, at `least` visits and every depth above, and notes the
- *  ones not stored. The review starts it with the engine, so that its reads after the rules find everything in memory,
- *  and its first frame waits for neither more than for the other. */
-export async function warmCache(search: string, model: string, positions: string[][], least: number): Promise<void> {
-  await readStored(positions.flatMap(moves => depthKeys(search, model, moves, least)));
+ *  ones not stored. Answers the keys of the results found. The review starts it with the engine, so that its reads
+ *  after the rules find everything in memory, and its first frame waits for neither more than for the other. */
+export async function warmCache(search: string, model: string, positions: string[][], least: number): Promise<string[]> {
+  const keys = positions.flatMap(moves => depthKeys(search, model, moves, least));
+  await readStored(keys);
+  return keys.filter(k => memory.has(k));
 }
 

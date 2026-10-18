@@ -3,11 +3,13 @@
 // site's engine reads its own results only. An earlier engine's are read by the snapshot of a game whose last review
 // used it, and by nothing else.
 import lock from "../../../engine.lock.json" with { type: "json" };
-import { SHAPE, earlierRemoval, isAnalysisKey, readAnalysisKey, searchHolding, snapshotExcept,
+import { BUDGETS, SHAPE, earlierRemoval, isAnalysisKey, readAnalysisKey, searchHolding, snapshotExcept,
          snapshotPositions } from "#lib/analysis/cache.ts";
+import { SWEEP_VISITS } from "#lib/analysis/game.svelte.ts";
 import { STORES, dbReadThenDelete } from "#lib/storage/db.ts";
 import { moduleOf, type Manifest } from "#lib/engine/client.ts";
-import { atPositions, positionKeys, shippedModels } from "./reviewFile.ts";
+import { positionKeys, shippedModels } from "./reviewFile.ts";
+import { parentKey } from "#lib/review/tree.ts";
 import { readGames, reviewAgainWhy, reviewMark, type KeptBranches, type ReviewMark, type StoredGame } from "./store.ts";
 
 /** Removes the stored results that no game needs (unneededResults), in one transaction with the read of the games, their
@@ -31,8 +33,8 @@ export interface KeptGame { moves: string[]; branches: KeptBranches | null; mark
 /** The stored results that nothing reads, among `keys` (in the store's order): of the store's shape, neither of the
  *  site's search with a network file it ships nor read by a stored game's snapshot. A snapshot reads the results of
  *  one search and network file, for the game's positions and those one move from them (the review file's, design
- *  13), each at its deepest. `engine` is the site's (engine.lock.json). None without its CPU module's search: every
- *  result of the site's own engine would then count as an earlier engine's. */
+ *  13), each at the deepest that it reads (readsAt). `engine` is the site's (engine.lock.json). None without its CPU
+ *  module's search: every result of the site's own engine would then count as an earlier engine's. */
 export function unneededResults(keys: string[], games: KeptGame[], engine: Manifest): string[] {
   const site = moduleOf(engine)?.search;
   if (!site) return [];
@@ -46,8 +48,9 @@ export function unneededResults(keys: string[], games: KeptGame[], engine: Manif
   });
   const atMoves = new Map<string, number[]>();
   earlier.forEach((k, i) => { if (k) (atMoves.get(k.moves) ?? atMoves.set(k.moves, []).get(k.moves)!).push(i); });
-  // The positions that the snapshots read, by the search and the network file of their results.
-  const snapshotReads = new Map<string, Set<string>>();
+  // The positions that the snapshots read, by the search and the network file of their results, each with the review
+  // depths of the games that read it.
+  const snapshotReads = new Map<string, Map<string, Set<number>>>();
   for (const { moves, branches, mark } of games) {
     if (!mark) continue;
     // A snapshot opens where the site would review the game again (review/+page.svelte, openSnapshot).
@@ -57,17 +60,25 @@ export function unneededResults(keys: string[], games: KeptGame[], engine: Manif
     const ofLine = line.flatMap(m => atMoves.get(m.join(" ")) ?? []).sort((a, b) => a - b).map(i => keys[i]);
     const held = searchHolding(ofLine, mark.model, line, mark.visits, snapshotExcept(why, site), mark.search);
     if (held === undefined) continue;
-    const at = `${held}|${mark.model}`, positions = snapshotReads.get(at) ?? new Set();
-    for (const p of positionKeys(moves, branches)) positions.add(p);
+    const at = `${held}|${mark.model}`, positions = snapshotReads.get(at) ?? new Map<string, Set<number>>();
+    for (const p of positionKeys(moves, branches)) positions.set(p, (positions.get(p) ?? new Set()).add(mark.visits));
     snapshotReads.set(at, positions);
   }
-  // The results that a snapshot reads, by their position (search, network file and moves), and the deepest visits
-  // stored for each position.
+  // The results that a snapshot reads, by their position (search, network file and moves) and the review depths that
+  // read them, and the deepest visits that each depth reads at each position.
   const read = earlier.map(k => {
     const positions = k && snapshotReads.get(`${k.search}|${k.model}`);
-    return positions && atPositions(k.moves, positions) ? `${k.search}|${k.model}|${k.moves}` : null;
+    if (!positions) return [];
+    const depths = [...(positions.get(k.moves) ?? []), ...((k.moves && positions.get(parentKey(k.moves))) || [])];
+    return depths.filter(d => readsAt(d, k.visits)).map(d => `${k.search}|${k.model}|${k.moves}|${d}`);
   });
   const deepest = new Map<string, number>();
-  read.forEach((p, i) => { if (p) deepest.set(p, Math.max(earlier[i]!.visits, deepest.get(p) ?? 0)); });
-  return keys.filter((_, i) => !!earlier[i] && !(read[i] && earlier[i]!.visits === deepest.get(read[i]!)));
+  read.forEach((at, i) => at.forEach(p => deepest.set(p, Math.max(earlier[i]!.visits, deepest.get(p) ?? 0))));
+  return keys.filter((_, i) => !!earlier[i] && !read[i].some(p => deepest.get(p) === earlier[i]!.visits));
 }
+
+/** Whether a snapshot of a review at `depth` visits reads a result of `visits` (analysis/game.svelte.ts, fromStore):
+ *  at the review's depth or a budget, as cacheGetAtLeast reads the review's depth and each budget deeper, and the
+ *  sweep's or a budget where those lack it. Of these, it shows the deepest: a result at another depth is never read. */
+const readsAt = (depth: number, visits: number) =>
+  visits === depth || visits === SWEEP_VISITS || BUDGETS.includes(visits);

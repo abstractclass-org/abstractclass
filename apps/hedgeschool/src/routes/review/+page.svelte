@@ -336,7 +336,7 @@
 
   /** Opens the game's last review, by an earlier engine or network file, as it was (design 20): the engine's rules
    *  alone, no network, and the stored results of the mark's search, which hold the game's line at the review's depth
-   *  (a mark kept before marks named their search: the search that holds it). The start is left out of that test:
+   *  (for an older mark, which names no search: the search that holds it). The start is left out of that test:
    *  every game shares it. False, with nothing kept, when the store lacks them. */
   async function openSnapshot(moves: string[], why: "engine" | "network"): Promise<boolean> {
     const mark = markBefore!, manifest = session.manifest!, network = settings.network, rules = new EnginePool(0);

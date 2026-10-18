@@ -36,7 +36,8 @@ searching it again, and to share it as text that others can read.
    - **The mark of a finished review:** when a review ends, the browser keeps it with the game
      (`StoredGame.reviewed` in `src/lib/game/store.ts`): the engine module's and the network's SHA-256 (from the
      site's manifest), the module's search, the network's id, the review's depth, and the time. A snapshot reads the
-     results of the mark's search by their keys (design 20). A mark kept before marks named their search has none.
+     results of the mark's search by their keys (design 20). An older mark, kept before marks held their search, has
+     none.
      The home page reads the marks, so it needs no engine to know which games can export. A game exports when its
      mark names the site's engine module and the network set now, at the review depth set now or deeper. A deeper
      mark for the same engine and network stays.
@@ -79,10 +80,10 @@ searching it again, and to share it as text that others can read.
    - The Review tab's Export of the game asks for a review with the game's own settings.
 6. **Another engine:** the browser's store keys the results by the engine's build and network. An import keeps the
    file's mark when the site ships its network file, whatever the engine, and a mark of the site's engine stays over
-   an earlier engine's. The mark keeps the search that the file's review names. A file written before marks named
-   their search names none: its snapshot reads every key of the store (design 20). A file from an earlier engine
-   therefore opens as a snapshot of its review (design 20), and Review again searches with the site's engine. An
-   import into a site that ships another network keeps the game and the branches, and the review searches again.
+   an earlier engine's. A file from an earlier engine therefore opens as a snapshot of its review (design 20), and
+   Review again searches with the site's engine. The mark keeps the search that the file's review names. An older
+   file's review names none: its snapshot reads every key of the store (design 20). An import into a site that ships
+   another network keeps the game and the branches, and the review searches again.
 7. **A deeper result answers a shallower question:** a review asks for each position at its own budget (32 visits, the
    label pass, the review's depth), and takes the deepest result the store has at that budget or deeper
    (`cacheGetAtLeast` in `src/lib/analysis/cache.ts`), as the review already takes a deeper result it holds in memory.

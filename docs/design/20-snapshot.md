@@ -13,9 +13,10 @@ look at a past review pays it each time, and the earlier results are still in th
 
 1. **A snapshot:** a game whose last review used an earlier engine, or an earlier file of the same network, opens as
    that review, when the browser has its results for every position of the game's line. Nothing is searched.
-2. **What a snapshot shows:** the stored results, each position at its deepest. The labels, the notes in the move
-   list, the branches kept, the engine's candidates and lines, the charts and the report all come from them. The engine
-   gives the positions with its rules alone: it loads no network.
+2. **What a snapshot shows:** the stored results, each position at its deepest that the review reads: at the review's
+   depth or a deeper budget (`BUDGETS` in `src/lib/analysis/cache.ts`), else at the sweep's depth or a budget. The
+   labels, the notes in the move list, the branches kept, the engine's candidates and lines, the charts and the report
+   all come from them. The engine gives the positions with its rules alone: it loads no network.
 3. **What a snapshot does not do:**
    - no search of the position on screen, and no change of its depth;
    - no new move: not on the board, not from a candidate, not from a line;
@@ -33,9 +34,9 @@ look at a past review pays it each time, and the earlier results are still in th
 5. **Without the earlier results** (another browser, data cleared, or results of an older shape), the game is reviewed
    again, as before, and the dialog and the line under the progress say why (design 11).
 6. **Imports:** a review file keeps its mark when the site ships its network file (the same SHA-256), whatever its
-   engine. The mark keeps the search that the file's review names (item 7). A file from an earlier engine therefore
-   opens as a snapshot (design 13), and so does a review that a partner site kept and sends back (design 18). A mark
-   of the site's engine stays over an earlier engine's.
+   engine. A file from an earlier engine therefore opens as a snapshot (design 13), and so does a review that a partner
+   site kept and sends back (design 18). A mark of the site's engine stays over an earlier engine's. The mark keeps the
+   search that the file's review names (item 7).
 7. **The snapshot's engine:** a stored result names the engine by its search (request 17: the first build that
    searched as this one does). The mark names the module by its SHA-256, and the module's search by the name that
    keys its results (the manifest's `search`). A new engine is a new search: a release that keeps the search keeps
@@ -43,9 +44,9 @@ look at a past review pays it each time, and the earlier results are still in th
    (`sameSearchAs` in `engine.lock.json`), so a mark, a review file or a share link of one of them is the site's
    engine's.
    - **The page reads the results by their keys:** the mark's search and network, each position of the game's line,
-     at the review's depth and at each deeper budget. The time of that read does not grow with the store.
-   - **A mark that names no search:** a mark kept before marks named their search, or the mark of a review file
-     written before then. The page reads every key of the store, and takes the search whose results of the mark's
+     at the review's depth and at each deeper budget. Its time grows little with the store (Cost).
+   - **A mark that names no search:** an older mark, which the site kept before marks held their search, or the mark
+     of an older review file. The page reads every key of the store, and takes the search whose results of the mark's
      network cover the game's line. A mark of the site's search takes the name when a review of that search ends on
      the page, so these marks become fewer.
    - **The site's own search:** the snapshot of an earlier engine's review never takes it. The site's engine reads
@@ -55,8 +56,10 @@ look at a past review pays it each time, and the earlier results are still in th
    earlier network file's, stays while the snapshot of a stored game reads it. A snapshot reads the results of one
    search: the mark's search, or the search that holds the game's line at its depth for a mark that names none
    (item 7). The removal takes the same search for each game. It reads the game's positions and the
-   positions one move from them, as the game's review file holds them (design 13). It shows each position at its
-   deepest (item 2), so a shallower result of the same position goes. The other results of the store's shape go too:
+   positions one move from them, as the game's review file holds them (design 13). For each game's review depth, it
+   keeps the result of each position that the snapshot shows (item 2). The other results of the position go: a
+   shallower one, and a deeper one at a depth that the snapshot does not read. Examples are the key moments of a custom
+   depth, at twice its visits, and a Depth that the player typed. The other results of the store's shape go too:
    - **After Review again,** the game's mark names the site's engine when the new review ends. Its snapshot then reads
      nothing. A position that another game's snapshot reads keeps its result.
    - **After a delete,** the game needs nothing: the player confirms a delete and cannot undo it (design 11).
@@ -134,10 +137,11 @@ look at a past review pays it each time, and the earlier results are still in th
 ## Where it is
 
 - `src/routes/review/+page.svelte` (the choice of a snapshot, its rules-only engine, Review again),
-  `src/lib/review/ReviewView.svelte` (the bar, the controls off), `src/lib/analysis/cache.ts` (`snapshotSearch`),
-  `src/lib/analysis/game.svelte.ts` (`fromStore`), `src/lib/game/reviewFile.ts` (`importReview`, the mark kept),
+  `src/lib/review/ReviewView.svelte` (the bar, the controls off), `src/lib/analysis/cache.ts` (`snapshotSearch`, the
+  read by keys: `warmCache`), `src/lib/analysis/game.svelte.ts` (`fromStore`), `src/lib/game/reviewFile.ts`
+  (`readReviewFile`, the file's search, and `importReview`, the mark kept),
   `src/lib/game/store.ts` (`reviewAgainWhy`, the mark's `search`: `reviewMark`, `markReviewed`).
-- The removal: `src/lib/game/earlierResults.ts` (`unneededResults`, `removeEarlierResults`, which
+- The removal: `src/lib/game/earlierResults.ts` (`unneededResults`, `readsAt`, `removeEarlierResults`, which
   `src/routes/+layout.svelte` starts), `src/lib/analysis/cache.ts` (the mark: `earlierRemovalDue`,
   `makeEarlierRemovalDue`), `src/lib/game/store.ts` (`markReviewed`, `deleteGame`), `src/lib/game/analysisFile.ts`
   (`openAnalysisFile`), `src/lib/storage/db.ts` (`dbReadThenDelete`), `vite.config.ts` (`__ENGINE_FILES__`).

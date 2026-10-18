@@ -29,8 +29,8 @@ export interface ReviewFile {
   analyses: [string, unknown][]; // the engine's results, by their keys in the browser's store
 }
 
-/** The finished review in a file: the engine module's and the network's SHA-256, the network's id and name, the
- *  review's depth, and when it ended. */
+/** The finished review in a file: the engine module's and the network's SHA-256, the module's search (none in an older
+ *  file), the network's id and name, the review's depth, and when it ended. */
 export interface FileReview extends ReviewMark { networkName: string }
 
 /** The moves of every position of a game and its branches, as the results' keys spell them: the record's own moves on
@@ -103,6 +103,7 @@ export function readReviewFile(text: string): ReviewFile {
   const r = f.review;
   const review = r && typeof r === "object" && typeof r.module === "string" && typeof r.model === "string" &&
     typeof r.network === "string" && typeof r.visits === "number" ? r : null;
+  if (review && typeof review.search !== "string") delete review.search; // an older file's review names no search
   return { ...f, review, branches: b ?? null } as ReviewFile;
 }
 
@@ -237,7 +238,7 @@ export async function deliverExport(kind: ExportKind, id: string, record: string
  *  the engine modules of this site's search (their SHA-256). The file's review is the game's mark when it ran with a
  *  network kept: done here when it ran with one of these modules, else a review by an earlier engine, which opens as
  *  it was (design 20). A mark of this site's search stays over an earlier engine's. The mark keeps the search that the
- *  file's review names: a file written before marks named it names none. The mark comes before the results:
+ *  file's review names: an older file's review names none. The mark comes before the results:
  *  a removal of earlier results in another tab (earlierResults.ts) that runs between them then finds none of them,
  *  rather than results that no mark needs yet. */
 export async function importReview(file: ReviewFile, models: Set<string> | null, modules: string[] | null = null) {
@@ -249,7 +250,7 @@ export async function importReview(file: ReviewFile, models: Set<string> | null,
   const ours = (module?: string) => !!module && !!modules?.includes(module);
   if (r && (!models || models.has(r.model)) && (ours(r.module) || !ours(before?.module)))
     await markReviewed(id, { module: r.module, model: r.model, network: r.network, visits: r.visits,
-                             ...(typeof r.search === "string" ? { search: r.search } : {}),
+                             ...(r.search ? { search: r.search } : {}),
                              modules: ours(r.module) ? modules! : [r.module] });
   // The game keeps the file's network and depth, when the site ships that network, so that its review opens as it was
   // made. The browser's settings stay for the other games.
