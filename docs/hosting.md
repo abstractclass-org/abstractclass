@@ -346,13 +346,15 @@ the next visit).
   few minutes (its build runs the unit tests and the type check again). A failed build leaves the live site as it was.
   Try a change first on `dev`'s preview.
 - **Check:** the footer's version is the commit that the deploy built. On the live site, these hold (all true on
-  2026-10-12, at commit `0dd4083`):
+  2026-10-18, at commit `b4f0472`):
   - the live address answers with no `X-Robots-Tag`, `hedgeschool.pages.dev` and the previews with `noindex`
     (design 23), and an unknown address answers 404.
   - `/_app/immutable/…` and `/engine/<id>/<file>` carry `Cache-Control: public, max-age=31536000, immutable`, and
     `/engine/manifest.json` does not.
   - the module is served as `application/wasm`, and the larger network (20.6 MB) downloads whole.
-  - the header shows Review, The notation and About only, and `/puzzles` leads home.
+  - the header shows Practice, Review, Analysis, Tools, Notation and About, and `/puzzles`, `/learn` and `/lab/engine`
+    lead home.
+  - the Function on `/api/practice-games` answers 400 to a request that is not JSON.
   - the domain's answers are signed (DNSSEC validated).
 - **Roll back:** in the project's deployments, choose an earlier production deployment and **Rollback**. The next push
   deploys again.
