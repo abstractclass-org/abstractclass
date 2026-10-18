@@ -1,13 +1,13 @@
 // Checks the networks that the settings offer, and the settings that a game reviews with (settingsFor): its own while
 // the site ships their network, on the menu or off it (those it came with, else its last review's when that review's
 // network left the menus), else the browser's. The review page, the Review tab's Export and the annotated record from
-// the store take them from there. And the custom depth per move's range (inSteps), and the cache's budgets for the
-// settings' depths (cache.ts). Run: npm test.
+// the store take them from there. How the settings show and change a game's own (withOwn, changeOwn). And the custom
+// depth per move's range (inSteps), and the cache's budgets for the settings' depths (cache.ts). Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { BUDGETS } from "./cache.ts";
-import { CUSTOM_REVIEW, DEPTHS, NETWORKS, REVIEW_PRESETS, defaultEngine, inSteps, loadEngine, networkName, ownSettings,
-         saveEngine, settingsFor } from "./engineSettings.ts";
+import { CUSTOM_REVIEW, DEPTHS, NETWORKS, REVIEW_PRESETS, changeOwn, defaultEngine, inSteps, loadEngine, networkName,
+         ownSettings, saveEngine, settingsFor, withOwn, type EngineSettings } from "./engineSettings.ts";
 import { LABEL_VISITS, momentVisits } from "./game.svelte.ts";
 
 // The browser's local storage, in memory: Node has none.
@@ -20,6 +20,8 @@ globalThis.localStorage = {
 const browser = { ...defaultEngine(), network: NETWORKS[0].id, review: "lite" as const };
 const browserSettings = { network: NETWORKS[0].id, visits: REVIEW_PRESETS.lite };
 const EARLIER = "b10c128-s66625408-d13350730"; // HedgeFund 0.1 Lite, which the site ships off the menus
+// The settings that a game's own settings set, as the engine settings show them.
+const pick = ({ network, review, customReview }: EngineSettings) => ({ network, review, customReview });
 
 test("the settings offer HedgeFund 0.2 Lite and HedgeFund 0.2, with 0.2 Lite the default", () => {
   assert.deepEqual(NETWORKS.map(n => networkName(n.id)), ["HedgeFund 0.2 Lite", "HedgeFund 0.2"]);
@@ -65,6 +67,22 @@ test("a game's last review on a network of the menus, or on one the site no long
 test("the settings a game came with count before its last review's", () => {
   const settings = { network: NETWORKS[1].id, visits: REVIEW_PRESETS.lite };
   assert.deepEqual(ownSettings({ settings, reviewed: mark(EARLIER, REVIEW_PRESETS.standard) }), { settings, from: "stored" });
+});
+
+test("on a game that keeps its last review's 0.1 Lite, Custom stays chosen at Lite's visits, with its box", () => {
+  const own = ownSettings({ reviewed: mark(EARLIER, REVIEW_PRESETS.lite) })!;
+  assert.equal(withOwn(browser, own).review, "lite");
+  const custom = changeOwn(own, browser, { review: "custom" });
+  assert.deepEqual(custom.settings, { network: EARLIER, visits: 512 });
+  assert.deepEqual(pick(withOwn(browser, custom)), { network: EARLIER, review: "custom", customReview: 512 });
+});
+
+test("on a game from a review file, a custom depth at Standard's visits stays Custom, and the game keeps it", () => {
+  const own = ownSettings({ settings: { network: EARLIER, visits: REVIEW_PRESETS.lite } })!;
+  const custom = changeOwn(own, { ...browser, customReview: 2048 }, { review: "custom" });
+  const standard = changeOwn(custom, browser, { customReview: REVIEW_PRESETS.standard });
+  assert.deepEqual(standard.settings, { network: EARLIER, visits: 1024 });
+  assert.deepEqual(pick(withOwn(browser, standard)), { network: EARLIER, review: "custom", customReview: 1024 });
 });
 
 test("a custom depth per move is any whole number from 256 to 16,384 visits, as the Depth's", () => {

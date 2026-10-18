@@ -24,8 +24,8 @@
   import { EnginePool } from "#lib/analysis/pool.ts";
   import { GameAnalysis, LABEL_VISITS, SWEEP_VISITS, momentVisits } from "#lib/analysis/game.svelte.ts";
   import { EngineSession } from "#lib/analysis/session.svelte.ts";
-  import { loadEngine, networkName, offersNetwork, ownSettings, reviewVisits, saveEngine, withReview, type EngineSettings,
-           type OwnSettings } from "#lib/analysis/engineSettings.ts";
+  import { changeOwn, loadEngine, networkName, offersNetwork, ownSettings, reviewVisits, saveEngine, withOwn,
+           type EngineSettings, type OwnSettings } from "#lib/analysis/engineSettings.ts";
   import { trackSettingChange } from "#lib/analysis/settingChanges.ts";
   import { modelOf, moduleOf } from "#lib/engine/client.ts";
   import { errorText } from "#lib/errors.ts";
@@ -73,9 +73,9 @@
   // ownSettings, "mark"): its mark holds them, so a change of its depth lasts for the page alone, and a network of the
   // menu gives it the browser's settings. The settings kept in the browser serve the other games, and the rest of
   // them (the engine on or off, the position on screen, the workers, the GPU) serve this one too. The engine settings
-  // show and change the game's two.
-  let own = $state<OwnSettings | null>(null);
-  const settings = $derived(own ? withReview(engine, own.settings.network, own.settings.visits) : engine);
+  // show and change the game's two (engineSettings.ts, withOwn and changeOwn). Raw: the store cannot copy a proxy.
+  let own = $state.raw<OwnSettings | null>(null);
+  const settings = $derived(own ? withOwn(engine, own) : engine);
   // The engine and the GPU worker (session.svelte.ts). A snapshot searches nothing: the settings wait for Review again.
   const session = new EngineSession({ settings: () => settings, game: () => game, position: () => current, frozen: () => !!snapshot,
                                       dropped: () => (held = { step: -1, done: 0 }) });
@@ -85,8 +85,7 @@
     if (own?.from === "mark" && network !== undefined && offersNetwork(network)) own = null;
     trackSettingChange(change, settings, !!own); // design 17
     if (own && kept && (network !== undefined || review !== undefined || customReview !== undefined)) {
-      const next = { ...settings, ...change };
-      own = { ...own, settings: { network: next.network, visits: reviewVisits(next) } };
+      own = changeOwn(own, engine, change);
       if (own.from === "stored") void setGameSettings(kept.id, own.settings);
       Object.assign(engine, rest);
       return;
