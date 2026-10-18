@@ -46,8 +46,10 @@
   <p>The rules and their numbers are on <a href="/how-reviews-work">How a review works</a>.</p>
 
   <h2>The engine</h2>
-  <p>The engine, HedgeFund, is a neural network trained for Enclosure, with a search derived from KataGo, made in the
-    enclosure-ai project. Its networks are named by version: HedgeFund 0.2 Lite, the default, and HedgeFund 0.2. The licences of what the site uses are on <a href="/notices">the notices page</a>.</p>
+  <p>The engine, HedgeFund, is a neural network trained for Enclosure, with a search derived from KataGo. Its networks
+    are named by version: HedgeFund 0.2 Lite, the default, and HedgeFund 0.2. Its releases, with their files and terms,
+    are in <a href="https://github.com/abstractclass-org/enclosure-engine">its public repository</a>. The licences of
+    what the site uses are on <a href="/notices">the notices page</a>.</p>
 
   <h2>This site</h2>
   <p>{SITE_NAME} is not an official site of the game: it is made independently of webgoatguy, strategyjam.org,

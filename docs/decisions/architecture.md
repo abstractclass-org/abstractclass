@@ -233,3 +233,14 @@ public repository and the history rewrites.
 - **Left:** the preview deploy of design 26, item 2. After the push, the workflow **Deploy** puts the branch on
   `abscls-zng.hedgeschool.pages.dev`, with its Function. There, a practice game is sent and then deleted. A run of the
   workflow **Tests** on the branch, started by hand, passes.
+
+### The site names the engine HedgeFund (2026-10-18)
+
+- **What:** the site's text names the Enclosure engine HedgeFund (abscls-f5p). The About page links the engine's
+  public release repository,
+  [abstractclass-org/enclosure-engine](https://github.com/abstractclass-org/enclosure-engine), where its files and
+  terms are. The Notation page says that the notations come from the design of HedgeFund, the Enclosure engine that
+  reviews games here.
+- **Why:** `engines` is the organization's repository for every game, not the name of the Enclosure engine. So the
+  site names what a visitor meets: the engine and its release repository.
+- **It closes** the "Left" note of the entry "The repositories get new names".

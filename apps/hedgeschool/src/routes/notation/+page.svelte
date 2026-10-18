@@ -35,9 +35,9 @@ A10-D10,D10-E11,D10-F13+ Q10-T10,Q10-T13*,T10-T13* b1 0/4.5 4`;
 <main class={PROSE}>
   <h1>The notation of Enclosure</h1>
   <p>Two notations describe Enclosure. A <strong>position</strong> takes one line, as FEN describes a chess position. A
-    <strong>game record</strong> holds a whole game, as PGN records a chess game. They come from the design of the enclosure-ai project,
-    whose engine reviews games here. This page describes them for anyone who writes a program that reads or writes
-    them. {SITE_NAME} reads game records in this notation, and positions on the Analysis board and in its board
+    <strong>game record</strong> holds a whole game, as PGN records a chess game. They come from the design of
+    HedgeFund, the Enclosure engine that reviews games here. This page describes them for anyone who writes a program
+    that reads or writes them. {SITE_NAME} reads game records in this notation, and positions on the Analysis board and in its board
     editor.</p>
 
   <h2>Points</h2>
