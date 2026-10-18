@@ -59,7 +59,8 @@
       gave for its record, and the settings you chose for the next game</li>
     <li><strong>Your settings:</strong> the review's, the engine's, Practice's, and the theme</li>
     <li><strong>Your choices</strong> about Google Analytics' cookies and about the link between your games, those
-      cookies if you accept them, and the random ID that groups your games if you accept it</li>
+      cookies if you accept them, the random ID that groups your games if you accept it, and that you closed the
+      request to allow the site in your blocker</li>
     {#if STORES_PRACTICE_GAMES}<li><strong>Your games against HedgeFund that could not be sent yet:</strong> they go
       on your next visit</li>{/if}
   </ul>
@@ -134,6 +135,9 @@
   </ul>
   <p>Neither sees your games. A game or a line after the <code>#</code> leaves the address before either starts, and a
     review's address names its game after the <code>#</code>, which neither records.</p>
+  <p>If you accept Google Analytics' cookies, and an ad blocker or your browser's tracking protection stops Google
+    Analytics, the site asks you once to allow it. The site sees only that its own Google Analytics did not load. It
+    does not look for blockers, and it does not send Google Analytics through its own address to get past one.</p>
   <p>Google Analytics also receives what you do here, as counts, so that we can tell what to improve:</p>
   <ul>
     <li>that you imported a game, to a review or to the Analysis board, and how (pasted, from <a href="https://constellation.blueshrimp.uk">Constellation</a>, the

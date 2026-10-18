@@ -5,11 +5,12 @@
 	import { page } from '$app/state';
 	import { afterNavigate, beforeNavigate } from '$app/navigation';
 	import { EARLY_ACCESS, ENGINE_FILES, SITE_NAME, SITE_ORIGIN } from '#lib/edition.ts';
-	import { ASKS_CONSENT, consentChosen, startAnalytics, track } from '#lib/analytics.svelte.ts';
+	import { ASKS_CONSENT, asksToAllow, consentChosen, startAnalytics, track } from '#lib/analytics.svelte.ts';
 	import { flushPractice } from '#lib/practice/send.ts';
 	import { earlierRemovalDue, removeOlderShapes } from '#lib/analysis/cache.ts';
 	import { holdsGame } from '#lib/game/importHash.ts';
 	import ConsentBanner from '#lib/ConsentBanner.svelte';
+	import AnalyticsAsk from '#lib/AnalyticsAsk.svelte';
 	import ThemeMenu from '#lib/ThemeMenu.svelte';
 	import SiteMenu from '#lib/SiteMenu.svelte';
 	import SupportDialog from '#lib/SupportDialog.svelte';
@@ -44,7 +45,8 @@
 
 	// The visit counts start here, unless the address holds a game after its `#` (holdsGame): the page that takes it out
 	// of the address starts them then (design 22). The old import page only forwards, and counts nothing. The banner
-	// shows in the browser only, never in the prerendered page.
+	// shows in the browser only, never in the prerendered page. After it, in its place, the ask to allow Google
+	// Analytics in a blocker, when the visitor accepted it and its tag did not run (design 27).
 	let mounted = $state(false);
 	onMount(() => {
 		mounted = true;
@@ -141,4 +143,4 @@
 </div>
 </div>
 
-{#if mounted && ASKS_CONSENT && !consentChosen()}<ConsentBanner />{/if}
+{#if mounted && ASKS_CONSENT && !consentChosen()}<ConsentBanner />{:else if mounted && asksToAllow()}<AnalyticsAsk />{/if}

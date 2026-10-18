@@ -3424,3 +3424,33 @@ sweep.
   in a worker's memory. From that, a worker that searches a key moment at 32,768 visits grows to about 230 MiB with
   HedgeFund 0.1 Lite, against 162 MiB at 16,384 visits. A worker's memory does not shrink, and any worker can take a
   key moment.
+
+### An ask to the visitors whose blocker stops Google Analytics (2026-10-18)
+
+- **The problem:** an ad blocker or the browser's tracking protection stops the Google tag, also for a visitor who
+  accepted Google Analytics' cookies. Those visits are missing from the data that design 17's decisions wait on. The
+  site shows no ads, so the blocker removes only the counts here.
+- **Decided** ([design/27-analytics-ask.md](../design/27-analytics-ask.md)): a card in the consent banner's card and
+  place, after the banner, for a visitor who accepted Google Analytics and whose tag did not run. It shows on each
+  page until Close, and Close keeps it closed in the browser (`hedge-school:analytics-ask:1`). Never a visitor who
+  declined or has not chosen, never over the banner, never a wall, and no proxy past blockers. Its words are plain web
+  writing: no ads here, the counts show what to build, and how to allow the site. The consent banner and the card
+  share one component (`src/lib/ui/CornerCard.svelte`).
+- **The check:** the tag did not run when its script fails to load (its `error` event), or loads and leaves
+  `google_tag_manager` undefined. gtag.js defines it as it runs. uBlock Origin's stand-in for the script
+  ([`googletagmanager_gtm.js`](https://github.com/gorhill/uBlock/blob/master/src/web_accessible_resources/googletagmanager_gtm.js))
+  replaces the queue's `push` and defines `ga`, but no `google_tag_manager`. A check of `push` would take the stand-in
+  for the tag.
+- **No event for the card:** it shows only where the tag did not run, so an event of its showing or of its Close
+  cannot reach Google Analytics. An event on a later page, where the tag runs in a browser that showed the card, could
+  count the visitors who followed the ask. It is not built: a failed network load would count too, and the count
+  would have nothing to compare with.
+- **Checked:** the type check, the unit tests, and `tests/analytics-ask.spec.ts` on a production build with a made-up
+  measurement ID (`G-TEST000000`), in Playwright's Chromium, each test 3 times. Every request to Google but the tag's
+  script stopped in the browser, and none reached the network. With the script stopped: the banner showed and the
+  card did not; after Accept the card showed at once, in the banner's place (the same left edge and bottom), and
+  stayed on the next page; after Close it was gone, the key held `closed`, and a reload showed neither. With the
+  script stopped and a Decline kept: neither showed. With the stand-in in the script's place: the card showed, inside
+  a window 360 pixels wide, with no sideways scroll. With the real gtag.js from Google: `google_tag_manager` was
+  defined at its load, and no card showed. Not checked: a real blocker (uBlock Origin, Brave, Firefox's strict
+  tracking protection) in a real browser, and Safari.

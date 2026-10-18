@@ -458,6 +458,8 @@ shows few rows. Read it as section "Reading it" says.
 - **Releases in order:** the footer names each release's commit. Compare a report's weeks before and after a release.
 - **Consent:** the counts include every visitor, but users, sessions and returns count only those who accepted
   (design 11).
+- **Blockers:** a browser whose blocker stops the Google tag is in no count, also when its visitor accepted. The site
+  asks those visitors once to allow it (design 27), and cannot count how many it asks.
 - **Most worth having:** `review_done`'s minutes and speed by machine, which no feedback gives.
 
 ## Why
