@@ -1,16 +1,18 @@
-// The layout shift of the review and of the Analysis board as they load (decisions/product.md, "The layout shift of the
-// review and the Analysis board, again"): two builds in alternating pairs (speed.mjs, inPairs), at each window size, in
+// The layout shift of the review, the Analysis board and the Review tab as they load (decisions/product.md, "The layout
+// shift of the review and the Analysis board, again"): two builds in alternating pairs (speed.mjs, inPairs), at each window size, in
 // Playwright's Chromium, headless, with its scroll bars shown (playwright.config.ts). Each build is served from its own
 // folder on its own port (speed.mjs, preview), and opens in a page of its own, so each keeps its own stored games.
 //   - review: the review of tests/fixtures/hedgefund-review.json, stored, reloaded. Each reload waits for the mark
 //     `review:shown` (src/routes/review/+page.svelte), then 3 seconds for the frames after it.
 //   - board: the Analysis board from an analysis file of the fixture's first 15 edges, every move evaluated, with a
 //     branch at the second move (boardFile), reloaded. Each reload waits 5 seconds: the board has no mark.
+//   - tab: the Review tab (`/review`), with the fixture's review stored, so that "Continue your last review" and the
+//     list of games come once the tab has read them, reloaded. Each reload waits for the link, then 2 seconds.
 // A set is a few reloads of one build. It gives its median layout shift, as the browser's Cumulative Layout Shift counts
 // it (its largest session window, speed.mjs, layoutShift), and each element that moved, with how many reloads moved it.
 // The verdict (speed.mjs, verdict) compares the sets' medians, pair by pair.
 //
-//   node scripts/measure/layout-shift.mjs <review|board> <before> <after> [pairs] [reloads] [WxH...]
+//   node scripts/measure/layout-shift.mjs <review|board|tab> <before> <after> [pairs] [reloads] [WxH...]
 //
 // <before> and <after> are build folders, copies of `build` (docs/working-notes.md). They are served on the port PORT
 // and the next (4193 by default). With OUT, the sets go to that file as JSON.
@@ -26,7 +28,7 @@ import { belongs } from "../../src/lib/game/reviewFile.ts";
 import { prefixKeys } from "../../src/lib/review/tree.ts";
 
 const [kind, before, after, pairCount = "5", reloadCount = "3", ...sizeArgs] = process.argv.slice(2);
-if (!["review", "board"].includes(kind) || !before || !after) throw new Error("usage: layout-shift.mjs <review|board> <before> <after> [pairs] [reloads] [WxH...]");
+if (!["review", "board", "tab"].includes(kind) || !before || !after) throw new Error("usage: layout-shift.mjs <review|board|tab> <before> <after> [pairs] [reloads] [WxH...]");
 const sizes = (sizeArgs.length ? sizeArgs : ["1366x657", "1427x849", "390x760", "390x1100"]).map(s => s.split("x").map(Number));
 
 /** An analysis file of the fixture's first `edges` edges, every move evaluated, with a branch at the second move: the
@@ -49,7 +51,10 @@ const port = Number(process.env.PORT ?? 4193);
 for (const [dir, k] of [[before, 0], [after, 1]]) {
   const served = await preview(dir, port + k), page = await browser.newPage({ viewport: { width: sizes[0][0], height: sizes[0][1] } });
   if (kind === "review") await storeReview(page, served.url);
-  else {
+  else if (kind === "tab") {
+    await storeReview(page, served.url);
+    await page.goto(`${served.url}/review`);
+  } else {
     const file = join(tmpdir(), "layout-shift-board.json");
     writeFileSync(file, JSON.stringify(boardFile()));
     await importFile(page, served.url, file);
@@ -68,6 +73,9 @@ async function set({ page }) {
     if (kind === "review") {
       await page.waitForFunction(() => performance.getEntriesByName("review:shown").length, null, { timeout: 120_000 });
       await page.waitForTimeout(3000);
+    } else if (kind === "tab") {
+      await page.getByText("Continue your last review").waitFor();
+      await page.waitForTimeout(2000);
     } else await page.waitForTimeout(5000);
     const { cls, moved: these } = await layoutShift(page);
     shifts.push(cls);

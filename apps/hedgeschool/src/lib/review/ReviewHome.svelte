@@ -2,7 +2,7 @@
   // The Review tab without a game (design 22): import a game to review it by pasting its record, or load a review file,
   // continue the last review, and the player's games, kept in this browser. A review opens on a game the player
   // brought: there is no sample game (design 11). An analysis file loaded here goes to the Analysis board.
-  import { onMount } from "svelte";
+  import { untrack } from "svelte";
   import { goto } from "$app/navigation";
   import { playerNames, parseRecord, type GameRecord } from "#lib/game/record.ts";
   import { setUpStart } from "#lib/engine/notation.ts";
@@ -25,6 +25,10 @@
   import SiteFooter from "#lib/SiteFooter.svelte";
   import ConfirmDialog, { type Answer } from "#lib/ui/ConfirmDialog.svelte";
 
+  // The page has chosen the Review tab (src/routes/review/+page.svelte). Before, its address may name a game, and the
+  // tab only shows, as prerendered, where the address names none.
+  let { chosen }: { chosen: boolean } = $props();
+
   let text = $state("");
   let problem = $state("");
   let checking = $state(false);
@@ -42,20 +46,25 @@
   };
   // Whether the browser keeps the games for good (storage/persist.ts): it asked when a game was kept.
   let kept = $state(false);
-  // The tab shows once the browser's games are read, so that "Continue your last review" and the list come with the
-  // rest of the page and push nothing down (a layout shift). The reads take a few milliseconds. The request for
-  // persistent storage comes after: Firefox asks the visitor, and the tab does not wait for the answer.
-  let ready = $state(false);
-  onMount(async () => {
+  // The tab's fixed parts are in the prerendered page: the heading, the text, the import and the footer. "Continue your
+  // last review", the list and the storage line come together once the browser's games are read (`read`). Until then
+  // the link's room is kept where the head's script found a last review (pageMarks.ts, `review-last`), and the footer
+  // under the list waits, so that nothing moves when they come (a layout shift). The reads start once the page has
+  // chosen the tab, and take a few milliseconds. The request for persistent storage comes after: Firefox asks the
+  // visitor, and the tab does not wait for the answer.
+  let read = $state(false);
+  $effect(() => { if (chosen) untrack(() => void open()); });
+  async function open() {
     manifestLoad = loadManifest();
-    games = await listGames();
-    kept = !!(await storageKept());
+    const list = await listGames(), persisted = !!(await storageKept());
+    games = list;
+    kept = persisted;
     lastId = lastReview();
-    ready = true;
+    read = true;
     setVisitor({ games_stored: range(games.length, GAME_RANGES) }); // how many games a visitor keeps (design 17)
     if (games.length && !kept) void keepStorage().then(k => (kept = k));
     manifest = await manifestLoad;
-  });
+  }
 
   // The game whose Delete was clicked, while its question shows (ConfirmDialog, design 11). A confirmed delete deletes
   // the game, and its row goes at once: the dialog takes a double click's second click, so no other row moves under it.
@@ -149,21 +158,25 @@
 
   // A game's link loads the page again (data-sveltekit-reload): a change of the `#` alone would leave this page as it is.
   const title = (r: GameRecord) => { const p = playerNames(r.tags); return `${p.blue} against ${p.red}`; };
+  // "Continue your last review" and its room: two lines on a phone, one from 640 pixels with the game cut to fit, so
+  // that the link's height is known before the games are read.
+  const CONTINUE = "flex-col sm:flex-row sm:items-baseline gap-x-3 gap-y-1 px-5 py-3.5 bg-panel border border-line rounded-lg";
 </script>
 
 
-{#if ready}
 <main class={["box-content max-w-[1000px] mx-auto my-6 px-4 grid gap-5 rounded-lg", dragging && "outline-2 outline-dashed outline-accent"]}
       role="region" aria-label="Review a game"
       ondragover={e => { if (e.dataTransfer?.types.includes("Files")) { e.preventDefault(); dragging = true; } }}
       ondragleave={e => { if (e.target === e.currentTarget) dragging = false; }}
       ondrop={dropped}>
   {#if last}
-    <a class="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-5 py-3.5 bg-panel border border-line rounded-lg text-ink no-underline hover:border-accent"
-       href="/review#game={last.game.id}" data-sveltekit-reload>
-      <strong>Continue your last review</strong>
-      <span class="text-muted">{title(last.record)}, {last.record.moves.length} edges</span>
+    <!-- min-w-0: the game's text, on one line, does not widen the page's column. -->
+    <a class="{CONTINUE} flex min-w-0 text-ink no-underline hover:border-accent" href="/review#game={last.game.id}" data-sveltekit-reload>
+      <strong class="shrink-0">Continue your last review</strong>
+      <span class="truncate text-muted">{title(last.record)}, {last.record.moves.length} edges</span>
     </a>
+  {:else if !read}
+    <div class="{CONTINUE} hidden review-last:flex invisible" aria-hidden="true"><strong>Continue your last review</strong><span>&nbsp;</span></div>
   {/if}
 
   <section class="bg-panel border border-line rounded-lg px-5 py-5">
@@ -231,8 +244,8 @@
   {/if}
 </main>
 
-<SiteFooter />
+<!-- The footer waits for the list of games, which comes above it, while the page's code runs: with no script, it shows. -->
+<div class={[!read && "invisible noscript:visible"]}><SiteFooter /></div>
 <ConfirmDialog open={!!deleting} title="Delete this game?" action="Delete" onanswer={answerDelete}>
   {SITE_NAME} will delete the game <strong>{deleting?.name}</strong> from this browser. You cannot undo this action.
 </ConfirmDialog>
-{/if}

@@ -38,7 +38,7 @@ The early access stays: the About page says that everything can change (design 1
    board, the board editor, How a review works, Tools, the notation, About, For developers, Privacy and Notices.
 8. **Structured data** on the home page (schema.org, as JSON-LD): a website, and a web application that is free.
 9. **`/review` prerenders as the Review tab:** its address holds no game, so search engines read the Review tab's
-   title and description. Once a game opens, the title is "Game review".
+   title, description and text (design 22, "The Review tab"). Once a game opens, the title is "Game review".
 10. **The owner registers the site** in Google Search Console, as a Domain property, verified by a DNS record at
     Cloudflare, and submits `https://hedgeschool.abstractclass.org/sitemap.xml`. Bing Webmaster Tools can import the
     site from Search Console.

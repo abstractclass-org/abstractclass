@@ -3871,3 +3871,56 @@ sweep.
   causes that its issue names. A search writes on the same condition as before (it ran to its budget and did not
   stop), and the result of a slice goes into the batch as before.
 - **Not measured:** the GPU, an unloaded machine, Edge, a phone, and the label pass.
+
+### The Review tab before the page's code runs (2026-10-19)
+
+- **The problem:** the prerendered `/review` had the Review tab's title and description (design 23), but its body
+  showed only "Reading the game with the engine's rules…" until the page's code ran, 90 to 550 milliseconds after
+  the address opened on this machine ("A skeleton while the review starts, and the time before it shows"). Then the
+  tab waited for the browser's games (`ready` in `ReviewHome.svelte`), so that "Continue your last review" did not
+  push the page down. The prerendered page cannot know whether the address names a game: the game stays after the
+  `#`, which no server gets (designs 17 and 22).
+- **The change** (design 22, "The Review tab", and design 06, item 10), on the model of the theme's script in
+  `src/app.html`:
+  - `/review` prerenders the Review tab's fixed parts (the heading, the text, the import, "Load a review file" and the
+    footer) beside the line of text, which is hidden.
+  - A script in the page's head (`src/lib/review/pageMarks.ts`) marks the root element before the first paint:
+    `data-review-game` for an address that names a game (`holdsGame`, or a kept game's id after the `#` or in an older
+    address's query), and `data-review-last` for a last review kept (`learn-enclosure:last-review:1`). The CSS
+    variants `review-game` and `review-last` (`src/app.css`) then hide the tab and show the line, and keep the room
+    of "Continue your last review". The head holds the function's own text, so its test checks what the page runs.
+    The page runs it again as its code starts, for an address that a navigation in the page opened.
+  - The page holds both until it has read its address (`shown` in `src/routes/review/+page.svelte`, which replaces
+    `noGame`). The tab reads the browser's games only once the page has chosen it (`chosen`), so that a review's
+    address does not ask for persistent storage or count the visitor's games.
+  - `ready` is gone. The link, the list of games and the line on storage come together once the games are read
+    (`read`).
+  - "Continue your last review" takes two lines below 640 pixels and one from 640, its game cut with an ellipsis, so
+    that its height is known before the read. Before, its line wrapped where the game's name needed it.
+  - The footer waits for the read while the page's code runs. With no script, CSS's `scripting` media feature
+    (Tailwind's `noscript` variant) shows it.
+- **Two shifts in the first build of the change,** found by the measurement below and fixed:
+  - the list of games came above the footer and moved it down: 0.0015 to 0.0035 at the desktop's sizes. Hence the
+    footer's wait.
+  - at 390 pixels, the link's game on one line was wider than the column, and the tab's grid column grew to it, so
+    the section's text moved when the link came: 0.27 at 390 × 760 and 0.18 at 390 × 1,100. The link has `min-w-0`.
+- **Checked** in Playwright's Chromium, headless, on the local build, at 1,366 × 657, with a script that read each
+  frame's state in `requestAnimationFrame`:
+  - with JavaScript off, `/review` shows the heading, the import and the footer, with the title "Review a game ·
+    Hedge School" and its description. The line is hidden. `/review#game=…` then shows the Review tab too: without
+    its code, the page cannot open a game.
+  - with the review of the test fixture stored, `#game=`, `?game=` and `#record=` showed the Review tab in none of
+    59 to 102 frames, and the line in the first 11 to 16. `/review` showed the tab from its first frame, the heading
+    at the same place in each of about 150 frames, and the link from the first to the third.
+- **Measured** with `scripts/measure/layout-shift.mjs tab` (new: the Review tab with the fixture's review stored,
+  reloaded), the build before (d4f0f21) and the build after, in 5 alternating pairs of 3 reloads, at 1,366 × 657,
+  1,427 × 849, 390 × 760, 390 × 1,100 and 1,920 × 1,080. Every reload of both builds gave 0, and nothing moved. The
+  build before waited for the games: it showed nothing until then, so it had no shift either. The stored review
+  (`layout-shift.mjs review`, 3 pairs of 3 reloads at 1,366 × 657 and 390 × 1,100) also gave 0 in every reload of
+  both builds: the line that the mark shows before the skeleton moves nothing.
+- **The layout sweep** (`tests/layout.spec.ts`) now covers the Review tab too, with the fixture's game kept: "Continue
+  your last review" and the list of games. It passed in Playwright's Chromium, every page at every size. Its Edge
+  project did not run.
+- **What stays:** a last review whose game is no longer kept closes the link's room when the games are read, and the
+  page moves up. A deleted game's review is forgotten with it (`deleteGame` in `src/lib/game/store.ts`).
+- **Not measured:** Edge, the owner's devices, a slower device, and a store that reads slowly.

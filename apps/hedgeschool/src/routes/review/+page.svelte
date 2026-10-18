@@ -18,6 +18,7 @@
   import { MediaQuery } from "svelte/reactivity";
   import Arrival from "#lib/review/Arrival.svelte";
   import ReviewHome from "#lib/review/ReviewHome.svelte";
+  import { REVIEW_PAGE_SCRIPT, markReviewPage } from "#lib/review/pageMarks.ts";
   import { holdsGame } from "#lib/game/importHash.ts";
   import { LABEL_VISITS, SWEEP_VISITS, snapshotExcept, snapshotPositions, snapshotSearch, warmCache } from "#lib/analysis/cache.ts";
   import { review, type GameEnding, type ReviewData } from "#lib/review/model.ts";
@@ -53,9 +54,9 @@
   let snapshot = $state<{ visits: number; text: string } | null>(null);
   let kept = $state.raw<{ id: string; text: string; record: GameRecord; partner?: GamePartner } | null>(null); // the stored game
   // A game's review is open: the page's title names it, else the Review tab's (design 23). The review's skeleton shows
-  // from the game's read until the review does (ReviewView.svelte, reviewSkeleton). Before, the prerendered page shows
-  // its line of text. The skeleton waits for the game, so that the players' names are in its first frame: names that
-  // came later changed the cards' widths, and moved the row's parts (a layout shift).
+  // from the game's read until the review does (ReviewView.svelte, reviewSkeleton). Before, the page shows its line of
+  // text. The skeleton waits for the game, so that the players' names are in its first frame: names that came later
+  // changed the cards' widths, and moved the row's parts (a layout shift).
   const gameOpen = $derived(!!kept);
   const players = $derived<ReviewData["players"]>(kept ? playerNames(kept.record.tags) : { blue: "Blue", red: "Red" });
   // How the record says the game ended (model.ts, endingText).
@@ -230,13 +231,17 @@
     untrack(() => game!.deepen(momentPositions));
   });
 
-  let noGame = $state(false); // the Review tab without a game: ReviewHome
   const wide = new MediaQuery(WIDE);
+  // The game shown, or none (null or "") for the Review tab's page (ReviewHome). Undefined until the page has read its
+  // address, as in the prerendered page: the page then holds both the Review tab and the line of text, and the marks
+  // of the script in its head show one of them (pageMarks.ts). The script runs again here, for an address that a
+  // navigation in the page opened.
+  let shown = $state<string | null | undefined>(undefined);
+  if (typeof document !== "undefined") markReviewPage();
   // Another game named after the `#` than the one the page shows, or a game named where it shows none (the Review tab's
   // list, an address typed, back and forward): the page reviews that one from the start. A change of the `#` alone is
   // the browser's own navigation, with no router's: it fires `hashchange`.
   // Only once the page has chosen what it shows (`shown`): before, the address's game is the one it loads.
-  let shown: string | null | undefined; // the game shown, or null for the Review tab's page
   const otherGame = () => { if (!arriving && shown !== undefined && gameInAddress() !== shown) location.reload(); };
   afterNavigate(otherGame);
   onMount(() => {
@@ -287,7 +292,7 @@
     if (holdsGame(location.hash)) { arriving = true; return; }
     try {
       const moves = await chooseGame();
-      if (!moves) { noGame = true; return; }
+      if (!moves) return; // the Review tab
       freeLock = await holdReview(kept!.id, false, () => {
         elsewhere = "taken";
         session.end();
@@ -391,14 +396,18 @@
 </script>
 
 <!-- The prerendered page, which search engines read, is the Review tab: its address holds no game. -->
+<svelte:head>{@html `<script>${REVIEW_PAGE_SCRIPT}</script>`}</svelte:head>
 {#if gameOpen}<PageMeta title="Game review · Hedge School" />
 {:else}<PageMeta title="Review a game · Hedge School"
                  description="Review your Enclosure game: the engine in your browser judges each move, and shows where the game turned and what was better. Import it from strategyjam.org, meaf.us or a record." />{/if}
 
 {#if arriving}
   <Arrival />
-{:else if noGame}
-  <ReviewHome />
+{:else if !shown}
+  <!-- The Review tab. Until the page has read its address, the line of text takes its place where the head's script
+       marked an address that names a game. -->
+  {#if shown === undefined}<p class="{MESSAGE} text-muted hidden review-game:block">Reading the game with the engine's rules…</p>{/if}
+  <div class={["contents", shown === undefined && "review-game:hidden"]}><ReviewHome chosen={shown !== undefined} /></div>
 {:else if elsewhere}
   <div class={MESSAGE}>
     <p class="mb-3">{elsewhere === "taken" ? "This game is now open in another tab, so its review here stopped."

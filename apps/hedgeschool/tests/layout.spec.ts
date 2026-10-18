@@ -8,7 +8,7 @@
 //     text by design (the board editor's position), and a moving gleam that its bar clips (Lichess's bar-glider);
 //   - the header is one row.
 // The review shows a game of HedgeFund against itself, reviewed (tests/fixtures/hedgefund-review.json, made by
-// scripts/test-fixture.mjs), and Practice a game in progress from it. Run: npm run test:layout (the site running first).
+// scripts/test-fixture.mjs), the Review tab that game kept, and Practice a game in progress from it. Run: npm run test:layout (the site running first).
 import { expect, test, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 
@@ -119,6 +119,10 @@ test("layout of a review", async ({ page }) => {
     await expect(page.getByText(/^Review done/)).toBeVisible({ timeout: 300_000 });
     reports.push(await sweep(page, `/review, ${name}`));
   }
+  // The Review tab with the game kept: "Continue your last review", its game cut to fit, and the list of games.
+  await page.goto("/review");
+  await expect(page.getByText("Continue your last review")).toBeVisible();
+  reports.push(await sweep(page, "/review, the Review tab"));
   expect(reports.filter(Boolean).join("\n")).toBe("");
 });
 

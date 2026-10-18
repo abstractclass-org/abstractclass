@@ -93,6 +93,18 @@ will add more. A page whose name says "import" cannot say where the game goes.
    - **The Review tab** (`/review` without a game): import a game to review it (paste its record), load a review
      file, continue the last review, and the player's games, with their Export and Delete. A review is
      `/review#game=…`.
+     - **Its first paint:** `/review` prerenders as the Review tab (design 23), with its fixed parts: the heading,
+       the text, the import, "Load a review file" and the footer. They show before the page's code runs, and with no
+       script at all. The prerendered page cannot know whether the address names a game, since the game stays after
+       the `#`. So a script in the page's head marks the address before the first paint, on the model of the theme's
+       script (`src/app.html`): an address that names a game (`holdsGame`, or a kept game's id), and a last review
+       kept in this browser. CSS then hides the Review tab for an address that names a game, and shows the line
+       "Reading the game with the engine's rules…" in its place (design 06, item 10). It keeps the room of "Continue
+       your last review" where a last review is kept.
+     - **Its games come together** once the page's code has read them: "Continue your last review", the list and the
+       line on storage. The link takes two lines on a phone and one from 640 pixels, its game cut to fit, so that its
+       height is known before the read. The footer, under the list, waits for the read while the page's code runs.
+       So nothing moves when the games come (a layout shift).
    - **The Analysis tab** (`/analysis`): the board, with its New menu (the standard start, the board editor, Import:
      a position or moves pasted, Load: an analysis file) and its Export.
    - **The board editor** (`/editor`): sets up a position for the board (design 21).
@@ -142,6 +154,8 @@ will add more. A page whose name says "import" cannot say where the game goes.
 ## Where it is
 
 - `src/routes/review/+page.svelte` and `src/lib/review/Arrival.svelte` (the review's ways in),
+  `src/lib/review/ReviewHome.svelte` (the Review tab), `src/lib/review/pageMarks.ts` (the script in the review page's
+  head, and the variants `review-game` and `review-last` in `src/app.css`),
   `src/routes/analysis/+page.svelte` (the board's), `src/routes/import/+page.svelte` (the forwarding),
   `src/routes/tools/+page.svelte`, `src/routes/+layout.svelte` (the header, the analytics' start),
   `src/lib/game/importHash.ts` (the review's parameters, `holdsGame`), `src/lib/game/board.ts` and
@@ -150,3 +164,4 @@ will add more. A page whose name says "import" cannot say where the game goes.
 ## Log entries
 
 - [decisions/product.md](../decisions/product.md): "The site's pages and their addresses" (2026-10-14).
+- [decisions/product.md](../decisions/product.md): "The Review tab before the page's code runs" (2026-10-19).
