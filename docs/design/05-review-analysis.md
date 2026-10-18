@@ -17,6 +17,10 @@ noise.
 
 1. **The schedule is KaTrain's** (`core/game.py`: `analyze_all_nodes`, `analyze_extra`):
    - **The rules first:** every position from the engine's `describe`, before any network, so the board works at once.
+     The page reads the game, the tab's lock on it (design 11) and the engine's manifest at the same time. The rules
+     worker needs only the manifest: it starts when the manifest is read and the lock is held, so a game open in
+     another tab starts no engine. When the game is read, the page chooses the pool that takes the worker: the
+     review's, or a snapshot's (design 20). A game that this browser lacks ends the worker and frees the lock.
    - **A sweep:** every position at 32 visits (KaTrain's `fast_visits`, 25), for the game's shape: the Advantage chart
      and the win bar. Its labels are mostly wrong, so it shows none. "Every position" is each position before a move,
      and the last one when the game is not over (an unfinished game, `*`): there the end has a search, not a result,
@@ -77,13 +81,15 @@ noise.
 
 ## Where it is
 
-- `src/lib/analysis/pool.ts` (the pool and its priorities), `src/lib/analysis/game.svelte.ts` (the schedule, and the
+- `src/lib/analysis/pool.ts` (the pool and its priorities), `src/lib/analysis/session.svelte.ts` (the rules worker
+  started before its pool: `startRules`, `takeRules`), `src/lib/analysis/game.svelte.ts` (the schedule, and the
   searches that confirm Great by edge and by turn), `src/lib/analysis/cache.ts` (the browser's store, and the
   removal of older shapes, which `src/routes/+layout.svelte` starts),
   `src/lib/review/labels.ts` and `src/lib/review/model.ts` (losses and labels, by edge and by turn),
   `src/lib/review/display.ts` (the "Review by" setting), `src/lib/review/ReviewView.svelte`,
   `src/lib/board/Board.svelte` (a turn's badges) and `src/routes/review/+page.svelte` (the page).
-- The measurement: `scripts/measure/budget-collect.mjs` and `scripts/measure/budget-summary.mjs`.
+- The measurement: `scripts/measure/budget-collect.mjs` and `scripts/measure/budget-summary.mjs`. The review's start:
+  `scripts/measure/review-start.mjs`.
 
 ## Log entries
 
@@ -98,3 +104,4 @@ noise.
 - [decisions/product.md](../decisions/product.md), "A search's final results in the batch" (2026-10-18).
 - [decisions/product.md](../decisions/product.md), "The engine's next search does not wait for a result's write"
   (2026-10-19).
+- [decisions/product.md](../decisions/product.md), "The rules worker starts with the manifest" (2026-10-19).

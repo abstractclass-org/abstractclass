@@ -3945,3 +3945,70 @@ sweep.
   page moves up. A delete forgets the game's review too (`deleteGame` in `src/lib/game/store.ts`). Where the page's
   code does not load, the footer stays invisible. Before the change, the page then showed only its line of text.
 - **Not measured:** Edge, the owner's devices, a slower device, and a store that reads slowly.
+
+### The rules worker starts with the manifest (2026-10-19)
+
+- **The problem:** the review page read the game, then the tab's lock on it, then the engine's manifest, one after
+  another. It started the rules worker only after the three ("A skeleton while the review starts, and the time
+  before it shows", 2026-10-14: 60 to 100 ms in Edge). The worker needs only the manifest, and no document gave a
+  reason for the order.
+- **The order before the change,** in the code: `onMount` read the game (`loadGame`), then took the lock
+  (`holdReview`), then read the manifest (`EngineSession.load`). Then it chose between a snapshot (design 20) and the
+  review. The snapshot's pool of the rules alone (`EnginePool(0)`) started its rules worker, and the review's pool
+  (`EngineSession.start`) started its rules worker with the search workers. The changes since the issue kept this
+  order: the review's first frame (the rows a frame later), the network checked once for a page (in the search
+  workers' load), the snapshot's read by keys (while the snapshot's rules worker starts), and the layout-shift fix
+  (the skeleton waits for the game's read).
+- **The change** (design 05, item 1): the page reads the three at the same time. When the manifest is read and the
+  lock is held, the session starts the rules worker (`EngineSession.startRules`). The pool that the page then chooses
+  takes it (`takeRules`): the review's or the snapshot's. `EngineWorker.init` starts a worker once: the pool's own
+  call gets the first call's start.
+  - **A game open in another tab** starts no engine: the worker waits for the lock. When another tab takes the lock
+    before the pool starts, the session's end stops the worker, and the page starts no pool.
+  - **A game that this browser lacks** gives its message, as before. The page stops the rules worker if it started,
+    and frees the lock, so that a tab that imports the game later can review it.
+  - **A snapshot that the store cannot give** stops the worker with its pool. The review then starts its own, as
+    before.
+- **Checked:** the type check, and the unit tests (189 of 189 passed). `pool.test.ts` checks that a pool takes a
+  rules worker started before it, with a fake worker: the pool makes no rules worker of its own and sends the module
+  once. On builds before and after the change, in Playwright's headless Chromium, with a throwaway script, in one
+  browser context with the fixture's review stored:
+  - **A game this browser lacks** (`#game=nosuchgame`): the message showed, and no lock was held for that id. With
+    the change, the rules worker started in one run (the manifest and the lock came before the game's read failed),
+    and the page stopped it. In another run it did not start.
+  - **The game open in another tab:** the message showed, and that tab made no worker. Review here moved the review
+    there. The first tab said that its review stopped, and stopped its 3 workers.
+  - **A snapshot:** the fixture's results copied to an earlier search, and the game's mark set to an earlier
+    module. The snapshot opened with one worker, the rules worker.
+- **Measured** with `scripts/measure/review-start.mjs`: reloads of the fixture's stored review at 1,366 × 657 pixels,
+  in Playwright's headless Chromium, 5 pairs of 5 reloads for each run. The job ran under `scripts/machine run` with
+  2 threads, and the page saw 4 cores (`CORES=4`), so the review ran 2 search workers. The engine repository's
+  training (v2a) held 8 threads and the GPU through most of the runs. The medians of the sets' medians, before and
+  after, with each pair's difference:
+
+  | Run | Machine | Rules worker made | Rules worker ready | The review shows |
+  | --- | --- | --- | --- | --- |
+  | 1: the local preview | 60 to 89% CPU, WSL load 10 to 24 | 62 → 60 ms (−21, −6, −13, −3, +6) | 122 → 123 ms (−22, +8, −9, +7, +8) | 162 → 163 ms (−42, +3, −10, +4, +15) |
+  | 2: the local preview | 87 to 100% CPU, WSL load 29 to 38 | 36 → 13 ms (−49, −16, −14, −28, +1) | 151 → 131 ms (−65, −19, −10, +123, +69) | 298 → 264 ms (−93, −77, +55, +116, +82) |
+  | 3: 50 ms more for each request | 33 to 100% CPU, WSL load 12 to 33 | 100 → 81 ms (−73, −28, −22, −19, −15) | 161 → 168 ms (−41, +32, −13, +15, −9) | 214 → 225 ms (−21, +190, −16, +30, −9) |
+
+  - Run 1 counts from the navigation. Runs 2 and 3 count from the page's start (its `onMount`): the page's own
+    scripts load first, and on this machine that time varied by up to 400 ms. Run 1's script did not note the open
+    of IndexedDB, so its start came later in the build before the change, and the run gives no times from the start.
+  - Run 3 adds 50 ms to each request that reaches the server (Chrome's network emulation), as on the deployed site,
+    where the manifest's check is a round trip. The files in the browser's cache take none.
+  - **The three reads:** on the local preview, the game took 9 ms from the page's start, the lock 22 ms and the
+    manifest 28 ms, one after another (run 2). At the same time, they took 13, 13 and 16 ms. With 50 ms more for each
+    request, the manifest came at 83 ms before, and at 66 ms after. That is less than the 60 to 100 ms that the issue
+    measured in Edge.
+  - **Layout shift:** 0 in every reload of the three runs. `scripts/measure/layout-shift.mjs`, the review at
+    1,366 × 657, 5 pairs of 3 reloads: 0 before and after, and nothing moved.
+- **What it gives:** the rules worker is made sooner, by about the time of the game's read and the lock. In run 3
+  every pair agrees, by 15 to 73 ms. The median gain of 22 ms is less than the spread between the sets of one build
+  (82 and 58 ms), so by the rule of pairs it is no change. The worker's own start, from its creation to its reply,
+  took 7 to 15 ms longer after the change, in the medians of each run's reloads. So the rules were ready, and the
+  review showed, at about the same time: the pairs disagree in every run. The cause was not traced. A likely one: the
+  job had 2 threads on a busy machine, so the start was short of processor time more than of waits, and a worker
+  that starts sooner competes with the page's other work at its start.
+- **Not measured:** Edge, the deployed site, an unloaded machine, a slower device, and the snapshot's time to the
+  screen.

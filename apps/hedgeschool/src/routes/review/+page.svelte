@@ -257,12 +257,9 @@
     if (old) replaceState(`/review#game=${old}`, {});
     return old;
   }
-  /** The game to review: the one named in the address. Null when there is none: the Review tab then shows its own page,
-   *  with the last review a click away (design 22). */
-  async function chooseGame(): Promise<string[] | null> {
-    const id = gameInAddress();
-    shown = id;
-    if (!id) return null;
+  /** Reads the game to review, `id`, the one named in the address, and answers its moves. Throws when this browser
+   *  lacks it. */
+  async function readGame(id: string): Promise<string[]> {
     const stored = await loadGame(id);
     if (!stored) {
       // A review's address opened in a browser that lacks its game (a review's address sent to someone): counted.
@@ -290,20 +287,35 @@
   let arriving = $state(false); // the address holds a game to keep first (Arrival)
   onMount(async () => {
     if (holdsGame(location.hash)) { arriving = true; return; }
+    // The game to review: the one named in the address. Without one, the Review tab shows its own page, with the last
+    // review a click away (design 22).
+    const id = gameInAddress();
+    shown = id;
+    if (!id) return; // the Review tab
+    // The game, its lock and the engine's manifest are read at the same time. The rules worker needs only the
+    // manifest: it starts once the manifest is read and the lock held, so a game open in another tab starts no
+    // engine. The pool that takes it, the review's or a snapshot's, waits for the game.
+    const lock = holdReview(id, false, () => {
+      elsewhere = "taken";
+      session.end();
+    }).then(free => (freeLock = free));
+    const engine = Promise.all([session.load(), lock]).then(([manifest, free]) => {
+      if (free) session.startRules();
+      return manifest;
+    });
+    engine.catch(() => {}); // a missing game is said first
     try {
-      const moves = await chooseGame();
-      if (!moves) return; // the Review tab
-      freeLock = await holdReview(kept!.id, false, () => {
-        elsewhere = "taken";
-        session.end();
-      });
-      if (!freeLock) { elsewhere = "open"; return; }
-      const manifest = await session.load();
+      const moves = await readGame(id);
+      if (!(await lock)) { elsewhere = "open"; return; }
+      const manifest = await engine;
+      if (elsewhere) return; // another tab took the game meanwhile
       const want = reviewMark(manifest, settings.network, budget);
       const why = reviewCovers(markBefore, want) ? null : reviewAgainWhy(markBefore, want);
       if (why && (await openSnapshot(moves, why))) return;
       await startReview(moves, false);
     } catch (e) {
+      // A game this browser lacks: no engine, and its lock free for the tab that imports it.
+      if (!kept) { session.end(); void lock.then(free => free?.()); }
       // A review stopped for another tab fails its searches: no error to show.
       if (!elsewhere) { error = errorText(e); if (kept) track("engine_error", { error_kind: "load" }); }
     }
@@ -344,7 +356,7 @@
    *  (for an older mark, which names no search: the search that holds it). The start is left out of that test:
    *  every game shares it. False, with nothing kept, when the store lacks them. */
   async function openSnapshot(moves: string[], why: "engine" | "network"): Promise<boolean> {
-    const mark = markBefore!, manifest = session.manifest!, network = settings.network, rules = new EnginePool(0);
+    const mark = markBefore!, manifest = session.manifest!, network = settings.network, rules = new EnginePool(0, session.takeRules());
     try {
       // The store is read while the rules worker starts: an earlier engine's search is not the site's.
       const started = rules.start(manifest, network).then(() => snapshotExcept(why, rules.search));

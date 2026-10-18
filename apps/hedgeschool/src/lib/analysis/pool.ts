@@ -78,11 +78,13 @@ export class EnginePool {
   onRelease: (() => void) | null = null;
   // A worker for the rules alone (describe, play): it loads no network and runs no search, so a rules call never
   // waits behind a search (a worker takes one request at a time). The board's rules, an engine line's cuts and a
-  // player's own moves need answers at once.
-  private rulesWorker = new EngineWorker();
+  // player's own moves need answers at once. A page can start it before the pool (EngineSession.startRules): the pool
+  // then takes it, and its start runs once (EngineWorker.init).
+  private rulesWorker: EngineWorker;
 
-  constructor(size: number) {
+  constructor(size: number, rules = new EngineWorker()) {
     this.size = size;
+    this.rulesWorker = rules;
     this.engines = Array.from({ length: size }, () => new EngineWorker());
   }
 

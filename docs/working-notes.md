@@ -62,7 +62,9 @@ learn one, and remove a note when it stops being true. The work itself is in bea
   answered) and `review:shown` (the review shows), and `src/lib/review/ReviewView.svelte` sets `review:moves` (the
   move list's rows, a frame later). Read them with `performance.getEntriesByType("mark")`, beside the page's paint
   entries. `node scripts/measure/review-first-frame.mjs` reloads a stored review and reads the first draw's tasks, by
-  wall time and thread time, and the page's layout shift. The first engine result has no mark. To time it, wrap
+  wall time and thread time, and the page's layout shift. `node scripts/measure/review-start.mjs <before> <after>`
+  times the steps before the review shows (the game's read, the lock, the manifest, the rules worker's start, the
+  marks) in two builds, in pairs. The first engine result has no mark. To time it, wrap
   `Worker` in a Playwright init script (`addInitScript`), and note the first message whose reply has `rootInfo`. A
   fresh browser context gives a review with no stored results.
 - **The CPU time of a SHA-256 check:** Chrome's trace event `DoDigest` (category

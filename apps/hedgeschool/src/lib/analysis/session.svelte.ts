@@ -10,7 +10,7 @@ import { EnginePool } from "./pool.ts";
 import type { GameAnalysis } from "./game.svelte.ts";
 import { reviewVisits, type EngineSettings } from "./engineSettings.ts";
 import { GpuControl, gpuDownloadMB, type GpuStatus } from "./gpu.svelte.ts";
-import { loadManifest, type Manifest } from "#lib/engine/client.ts";
+import { EngineWorker, loadManifest, type Manifest } from "#lib/engine/client.ts";
 import { errorText } from "#lib/errors.ts";
 import { track } from "#lib/analytics.svelte.ts";
 
@@ -33,6 +33,8 @@ export class EngineSession {
   error = $state(""); // why another network could not load
   pool: EnginePool | null = null;
   network = ""; // the network of the pool in use, or of the pool that loads to replace it
+  #rules: EngineWorker | null = null; // the next pool's rules worker, started before the pool (startRules)
+  #ended = false;
   readonly #o: Required<SessionOptions>;
   // The settings that start work when they change, each a value of its own: a change of another setting starts none.
   #budget = $derived.by(() => reviewVisits(this.#o.settings()));
@@ -90,6 +92,22 @@ export class EngineSession {
     return (this.manifest = manifest);
   }
 
+  /** Starts the next pool's rules worker with the manifest, before the page chooses that pool: the review's (start) or
+   *  a snapshot's (design 20), which takes it (takeRules). The worker needs only the manifest, so the rules answer
+   *  sooner. Call after load(). Once the session has ended, it starts none. */
+  startRules() {
+    if (this.#ended || this.#rules || !this.manifest) return;
+    this.#rules = new EngineWorker();
+    this.#rules.init(this.manifest).catch(() => {}); // the pool that takes it gets the failure
+  }
+
+  /** The rules worker that startRules started, for a new pool, once. Without one, the pool starts its own. */
+  takeRules(): EngineWorker | undefined {
+    const rules = this.#rules ?? undefined;
+    this.#rules = null;
+    return rules;
+  }
+
   /** What the GPU does in this analysis, and its first download (ReviewView's `gpu`). */
   get gpuView(): { status: GpuStatus; downloadMB: string } {
     return { status: this.gpu?.status ?? { state: "off" }, downloadMB: this.manifest ? gpuDownloadMB(this.manifest, this.#network) : "?" };
@@ -99,10 +117,11 @@ export class EngineSession {
    *  `onRules` runs with it and the new pool, before the network loads, and the pool in use before (a snapshot's)
    *  ends. Answers the analysis
    *  once the network is loaded, or null when another network took over meanwhile. The pool then releases its engines
-   *  when idle, and the GPU joins it, unless the rules refused the analysis. Call after load(). */
+   *  when idle, and the GPU joins it, unless the rules refused the analysis. The pool takes the rules worker that
+   *  startRules started, if no pool took it before. Call after load(). */
   async start(make: (pool: EnginePool) => GameAnalysis | Promise<GameAnalysis>,
               onRules: (g: GameAnalysis, pool: EnginePool) => Promise<void>): Promise<GameAnalysis | null> {
-    const before = this.pool, first = this.pool = new EnginePool(this.#workers);
+    const before = this.pool, first = this.pool = new EnginePool(this.#workers, this.takeRules());
     this.network = this.#network;
     let g = null as GameAnalysis | null;
     try {
@@ -160,9 +179,11 @@ export class EngineSession {
     void this.gpu?.apply(this.#gpuMode);
   }
 
-  /** Ends the engine: the page closed, or another tab took the game. A GPU worker that starts later then ends
-   *  (GpuControl). */
+  /** Ends the engine: the page closed, another tab took the game, or the browser lacks the game. A GPU worker that
+   *  starts later then ends (GpuControl), and no rules worker starts (startRules). */
   end() {
+    this.#ended = true;
+    this.#rules?.terminate();
     this.gpu?.end();
     this.pool?.terminate();
   }

@@ -98,15 +98,19 @@ export const checked = (a: StoredArtifact) =>
 export class EngineWorker {
   readonly kind = "cpu" as const;
   private channel = new WorkerChannel<WorkerRequest>(new Worker(new URL("./worker.ts", import.meta.url), { type: "module" }));
+  private started: Promise<Timed<VersionReply>> | null = null;
 
   /** Starts the manifest's module in the worker, through the engine's library (library.ts). Refuses a protocol that
-   *  the site does not speak (checkVersion). */
-  async init(manifest: Manifest): Promise<Timed<VersionReply>> {
-    const module = moduleOf(manifest), library = libraryOf(manifest);
-    if (!module || !library) throw new Error("the manifest lacks the engine module or its library");
-    const t = await this.channel.send<VersionReply>({ type: "init", module: await compile(module.url), library: library.url }).done;
-    checkVersion(t.reply);
-    return t;
+   *  the site does not speak (checkVersion). The worker starts once: a later call answers the first call's start, so
+   *  that a pool can take a rules worker that the page started before it (analysis/pool.ts). */
+  init(manifest: Manifest): Promise<Timed<VersionReply>> {
+    return this.started ??= (async () => {
+      const module = moduleOf(manifest), library = libraryOf(manifest);
+      if (!module || !library) throw new Error("the manifest lacks the engine module or its library");
+      const t = await this.channel.send<VersionReply>({ type: "init", module: await compile(module.url), library: library.url }).done;
+      checkVersion(t.reply);
+      return t;
+    })();
   }
   /** Loads a network from the manifest: the page fetches it and checks its SHA-256 once for all its workers
    *  (checked). */
