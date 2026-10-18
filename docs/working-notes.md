@@ -24,7 +24,8 @@ learn one, and remove a note when it stops being true. The work itself is in bea
   spread between sets of one build. Chrome's trace gives each task's thread time, which the wait for a processor does
   not change.
 - **Measuring speed in a browser:** a measuring script takes its tools from `scripts/measure/speed.mjs`. Do not
-  write them again. Its tests are in `speed.test.mjs`, and `review-first-frame.mjs` uses it.
+  write them again. Its tests are in `speed.test.mjs`. `review-first-frame.mjs` and `review-sweep.mjs` (a sweep's
+  tasks, two builds in pairs) use it.
   - `preview(dir, port)` serves a build folder on a port of its own, as Cloudflare Pages serves it, with the headers
     of the folder's own `_headers`. To compare two builds, copy `build` to a folder in `runs/` (Git ignores it) after
     each build, and serve each copy on its own port.
@@ -71,7 +72,13 @@ learn one, and remove a note when it stops being true. The work itself is in bea
   --use-angle=d3d11 --enable-features=Vulkan`. With `--use-webgpu-adapter=swiftshader --enable-unsafe-swiftshader`
   added, it gets Chrome's software adapter, which uses no GPU. The software adapter runs the GPU worker and the
   practice bot's GPU form, slowly: it checks that a path works, not its speed. Use it when another job holds the GPU
-  (`scripts/machine status` in the planning folder, `abstractclass-org`).
+  (`scripts/machine status` in the planning folder, `abstractclass-org`). Check that the GPU worker started before a
+  measurement relies on it: in one review with the real GPU's flags, WebGPU gave an adapter, but the engine settings
+  said "The GPU did not start: 9943656". The cause is not known.
+- **A unit test of a module with runes** (`*.svelte.ts`): import `#lib/testing/svelteModules.ts` first, then the
+  module by a dynamic import, as `src/lib/analysis/game.test.ts` does. In Node the browser's store finds no IndexedDB,
+  and every read of it answers as if the store were empty. The cache's memory (`cache.ts`) still keeps each result put
+  in it, for the rest of the test file.
 - **Request 18's check, again** (on a new release): `node scripts/measure/describe-game-check.mjs
   ../../../engines/runs/archive/games.jsonl [games]`, after `npm run engine`. All 6,246 games take about 6 minutes. It
   prints counts only.

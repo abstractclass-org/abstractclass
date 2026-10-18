@@ -38,6 +38,11 @@ noise.
    - A pool of workers runs the most urgent work first: the position on screen, then the key moments, then the sweep.
      A search in slices gives way: when the position on screen finds no free worker, the pool stops a key moment's
      search, which runs again later. When the player leaves a focus, its search does not start.
+   - **The results show in batches:** the page applies the searches' results together, at most every 100 ms
+     (`BATCH_MS`): their results so far and their final results, the deepest result of each position. A search's end
+     shows in the same batch as its result: the progress bar, the "time limit" note, and the end of the marks of a
+     search that runs (the gleam on a line, the moving bar of the position on screen). A result from the browser's
+     store shows at once.
 2. **The labels** read these searches: [10-labels.md](10-labels.md) gives every rule, by turn and by edge.
 3. **Results stay in the browser** (IndexedDB), keyed by the stored shape's version, the engine's search (request 17:
    the first build that searched as this one does), the network's SHA-256, the moves and the visits. A stored result
@@ -88,3 +93,4 @@ noise.
 - [decisions/product.md](../decisions/product.md), "The candidates: which ones the board shows, and the engine's
   order" (2026-10-10): a candidate's visits are KataGo's `edgeVisits`.
 - [decisions/product.md](../decisions/product.md), "The site removes the analyses of older shapes" (2026-10-16).
+- [decisions/product.md](../decisions/product.md), "A search's final results in the batch" (2026-10-18).

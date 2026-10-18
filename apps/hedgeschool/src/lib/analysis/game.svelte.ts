@@ -43,9 +43,11 @@ import { Cancelled, type EnginePool } from "./pool.ts";
  *  most get a surer search at every review depth (Lite's 512 gives 1,024, the reference of the labels' measurement). */
 export const momentVisits = (reviewVisits: number) => 2 * reviewVisits;
 const SLICE_VISITS = 32;
-// A search's results so far are applied together, at most this often: with every worker and the GPU's 16 searches
-// posting a slice, they come tens of times a second, and each change of the analysis runs the review again.
-const PARTIAL_MS = 100;
+// The searches' results are applied together, at most this often: their results so far and their final results, with
+// what a search's end changes (the passes' progress, its mark). With every worker and the GPU's 16 searches posting a
+// slice, results come tens of times a second, the sweep's searches end one after another, and each change of the
+// analysis runs the review again.
+export const BATCH_MS = 100;
 // A branch edge's evaluation, asked for in its menu, comes after the position on screen and before the rest.
 const PRIORITY = { focus: 10, judge: 7, moment: 5, label: 2, sweep: 1 };
 
@@ -101,8 +103,11 @@ export class GameAnalysis {
   // The board's main-line moves that the player asked to evaluate, by path key: only these have labels. A branch node
   // keeps its own flag (judged).
   judgedMain = $state.raw<Record<string, true>>({});
-  private partials = new Map<string, { path: string[]; reply: AnalysisReply; era: number }>(); // keepPartial
-  private partialTimer: ReturnType<typeof setTimeout> | null = null;
+  // The batch (BATCH_MS): the results that wait for it, the deepest for each position by path key, and what runs once
+  // it has applied them.
+  private batch = new Map<string, { path: string[]; visits: number; analysis: () => Analysis }>();
+  private batchThen: (() => void)[] = [];
+  private batchTimer: ReturnType<typeof setTimeout> | null = null;
 
   /** The analysis of the moves `moves`, from `startPosition` (the board's set-up start), whose tree is kept under `id`:
    *  the game's id (game/store.ts), or BOARD_ID for the Analysis board, which takes the board's form. */
@@ -599,9 +604,8 @@ export class GameAnalysis {
     const n = this.passCount;
     const pass = (visits: number, priority: number, tag: string) =>
       Promise.all(Array.from({ length: n }, (_, i) =>
-        this.search(this.mainNames.slice(0, i), visits, priority, tag, { early: LABEL_VISITS }).then(met => {
-          if (met) this.reach(i, visits);
-        }).catch(this.fail)));
+        this.search(this.mainNames.slice(0, i), visits, priority, tag, { early: LABEL_VISITS, met: () => this.reach(i, visits) })
+          .catch(this.fail)));
     await pass(SWEEP_VISITS, PRIORITY.sweep, "sweep");
     if (run !== this.passes) return; // a later run took over
     await pass(this.labelVisits, PRIORITY.label, "label");
@@ -646,6 +650,7 @@ export class GameAnalysis {
     this.dropFocus();
     this.pool.halt();
     this.engineReady = false;
+    this.batch.clear(); // what runs after it stays: a search's mark ends, and the passes' progress checks the era
     this.analysis = Array(this.moves.length + 1).fill(undefined);
     this.branches = Object.fromEntries(Object.entries(this.branches).map(([k, n]) => [k, { ...n, analysis: undefined }]));
     this.outside = {};
@@ -676,7 +681,7 @@ export class GameAnalysis {
       ontime: () => { this.timed = { ...this.timed, [key]: settings }; },
     })
       .catch(this.fail)
-      .finally(() => { if (generation === this.focusGeneration) this.focusing = null; });
+      .finally(() => this.afterBatch(() => { if (generation === this.focusGeneration) this.focusing = null; }));
   }
 
   /** Ends the focus: an earlier focus is stale. Stops its search if it runs, and drops it if it waits. A search still
@@ -717,30 +722,32 @@ export class GameAnalysis {
     if (!(e instanceof Cancelled) && !(e instanceof Stopped)) this.error = errorText(e);
   };
 
-  /** Searches the position at `path` to `visits`, or takes the result from the cache. True when the position has met
-   *  the budget: searched, cached, or held deeper already. False when no search ran to its end: the engine is off, the
-   *  search stopped (at its time limit, for the engine off, or to give way), or it is no longer wanted (a stale focus).
+  /** Searches the position at `path` to `visits`, or takes the result from the cache. `met` runs when the position has
+   *  met the budget: at once when it is cached or held deeper already, and in the batch that shows the search's final
+   *  result when it is searched. It does not run when no search ran to its end: the engine is off, the search stopped
+   *  (at its time limit, for the engine off, or to give way), or it is no longer wanted (a stale focus).
    *  Options: `sliced` searches in slices, which show their results as they come and can stop; `seconds` is a sliced
    *  search's time limit, and `ontime` runs when it stops there. `early` shows the result at that many visits too
    *  (slices of that size, which do not stop), so that a deep label search shows a label from 256 visits on. */
   private async search(path: string[], visits: number, priority: number, tag: string, options: {
-    sliced?: boolean; wanted?: () => boolean; seconds?: number | null; ontime?: () => void; early?: number;
-  } = {}): Promise<boolean> {
-    const { sliced = false, wanted = () => true, seconds = null, ontime, early } = options;
+    sliced?: boolean; wanted?: () => boolean; seconds?: number | null; ontime?: () => void; early?: number; met?: () => void;
+  } = {}): Promise<void> {
+    const { sliced = false, wanted = () => true, seconds = null, ontime, early, met = () => {} } = options;
     const slice = sliced ? SLICE_VISITS : early && early < visits ? early : null;
     const era = this.era, pool = this.pool, query = this.query(path), keyed = this.keyMovesOf(path);
     const key = analysisKey(pool.search!, pool.model!.sha256, keyed, visits);
     const held = () => this.analysisOf(path)?.visits ?? 0;
-    const keep = (a: Analysis) => { if (era === this.era) this.keep(path, a); };
-    if (held() >= visits) return true;
+    // After the batch, for a result of this era only: another network drops the analysis and its progress.
+    const inBatch = (then: () => void) => this.afterBatch(() => { if (era === this.era) then(); });
+    if (held() >= visits) return met();
     const cached = await cacheGetAtLeast<Analysis>(pool.search!, pool.model!.sha256, keyed, visits);
-    if (era !== this.era) return false;
-    if (cached) { keep(cached); return true; }
-    if (held() >= visits) return true;
-    if (this.paused || !wanted()) return false;
+    if (era !== this.era) return;
+    if (cached) { this.keep(path, cached); return met(); }
+    if (held() >= visits) return met();
+    if (this.paused || !wanted()) return;
     return pool.run(priority, tag, (engine, onStop) => this.marked(pathKey(path), async () => {
-      if (held() >= visits) return true;
-      if (this.paused || !wanted() || era !== this.era) return false;
+      if (held() >= visits) return met();
+      if (this.paused || !wanted() || era !== this.era) return;
       const run = engine.analyse({ ...query, maxVisits: visits, includePVVisits: true, ...(slice ? { slice: { visits: slice } } : {}) },
                                  r => this.keepPartial(path, r, era));
       if (sliced) onStop(run.stop); // the pool may stop it to give way, and runs it again later
@@ -751,38 +758,60 @@ export class GameAnalysis {
       const timer = sliced && seconds !== null ? setTimeout(() => { late = true; run.stop(); }, seconds * 1000) : undefined;
       const t = await run.done.finally(() => clearTimeout(timer));
       const a = toAnalysis(t.reply);
-      keep(a);
-      if (late && era === this.era) ontime?.();
-      if (t.reply.terminated) return false;
-      if (a.visits >= visits && era === this.era) await cachePut(key, a);
-      return true;
+      if (era !== this.era) return;
+      this.toBatch(path, a.visits, () => a);
+      if (late && ontime) inBatch(ontime);
+      if (t.reply.terminated) return;
+      inBatch(met);
+      if (a.visits >= visits) await cachePut(key, a);
     }));
   }
 
-  /** Runs a search of the position `key`, marked as running while it runs (pending). */
+  /** Runs a search of the position `key`, marked as running while it runs and until the batch shows its result
+   *  (pending). */
   private async marked<T>(key: string, work: () => Promise<T>): Promise<T> {
     this.running = { ...this.running, [key]: (this.running[key] ?? 0) + 1 };
     try {
       return await work();
     } finally {
-      const left = (this.running[key] ?? 1) - 1, { [key]: _, ...rest } = this.running;
-      this.running = left > 0 ? { ...rest, [key]: left } : rest;
+      this.afterBatch(() => {
+        const left = (this.running[key] ?? 1) - 1, { [key]: _, ...rest } = this.running;
+        this.running = left > 0 ? { ...rest, [key]: left } : rest;
+      });
     }
   }
 
-  /** Keeps the deeper of the analysis held and the new one. */
-  /** Keeps a search's results so far, the latest for each position, until they are applied together (PARTIAL_MS). The
-   *  analysis is read only then, so results that a later slice replaced cost nothing. */
+  /** Keeps a search's results so far for the batch. The analysis is read only when the batch applies it, so results
+   *  that a later slice replaced cost nothing. */
   private keepPartial(path: string[], reply: AnalysisReply, era: number) {
-    this.partials.set(pathKey(path), { path, reply, era });
-    this.partialTimer ??= setTimeout(() => {
-      this.partialTimer = null;
-      const batch = [...this.partials.values()];
-      this.partials.clear();
-      for (const p of batch) if (p.era === this.era) this.keep(p.path, toAnalysis(p.reply));
-    }, PARTIAL_MS);
+    if (era === this.era) this.toBatch(path, reply.rootInfo.visits, () => toAnalysis(reply));
   }
 
+  /** Keeps a result for the batch: the deepest for each position, so that a search's final result is not replaced by a
+   *  shallower result of another search of the position, and the latest of equal depth. */
+  private toBatch(path: string[], visits: number, analysis: () => Analysis) {
+    const key = pathKey(path);
+    if (visits >= (this.batch.get(key)?.visits ?? 0)) this.batch.set(key, { path, visits, analysis });
+    this.batchTimer ??= setTimeout(() => this.applyBatch(), BATCH_MS);
+  }
+
+  /** Runs `then` in the next batch, after its results are applied: what a search's end changes shows with its result. */
+  private afterBatch(then: () => void) {
+    this.batchThen.push(then);
+    this.batchTimer ??= setTimeout(() => this.applyBatch(), BATCH_MS);
+  }
+
+  /** Applies the batch's results, then runs what waits for them, in one task: the review runs once for all of them. */
+  private applyBatch() {
+    this.batchTimer = null;
+    const results = [...this.batch.values()], then = this.batchThen;
+    this.batch.clear();
+    this.batchThen = [];
+    for (const r of results) this.keep(r.path, r.analysis());
+    for (const f of then) f();
+  }
+
+  /** Keeps the deeper of the analysis held and the new one. */
   private keep(path: string[], a: Analysis) {
     if ((this.analysisOf(path)?.visits ?? 0) > a.visits) return;
     const i = mainIndex(path, this.mainNames);

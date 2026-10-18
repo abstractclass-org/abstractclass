@@ -3702,3 +3702,75 @@ sweep.
     Cuts, and no next lesson after Turns. Without the manifest: the notice, and no edge placed. The puzzles: the
     rules arrive, and A1 is refused as a first point. The console had no errors.
   - Not checked: Edge, Firefox and Safari, and a phone's width.
+
+### A search's final results in the batch (2026-10-18)
+
+- **The problem:** only a search's results so far waited for the batch of 100 ms (`PARTIAL_MS` in
+  `src/lib/analysis/game.svelte.ts`). Each final result applied at once, and each change of the analysis runs the
+  review again. The sweep's searches end one after another: 120 in 14 s here with 8 workers, and more with the GPU's
+  16 searches (abscls-s9u).
+- **The change** (design 05, `BATCH_MS`, in place of `PARTIAL_MS`):
+  - The batch holds every result of a search: its results so far and its final result. It keeps the deepest result
+    of each position, so a final result is not replaced by a shallower result of another search of the same
+    position. Of two results of equal depth, the later one stays.
+  - What a search's end changes runs in the same batch, after its results: the passes' progress (`swept`,
+    `labelled`), the end of the search's mark (`pending`, the gleam on a line), the mark of a time limit, and the end
+    of the focus (the bar of the search of the position on screen). So the page shows a search's end with its result,
+    at most one batch (100 ms) after the search ends.
+  - A result from the browser's store applies at once, as before: a review opened again shows its results in its
+    first frame (`fromStore`). A search still writes its result to the store when it ends (`cachePut`).
+  - A search that ends after another network took over adds nothing to the passes' progress now. Before, a sweep's
+    search that finished its visits then counted in the new network's progress.
+- **The test:** `src/lib/analysis/game.test.ts` drives the analysis with a pool whose searches the test ends, and with
+  Node's mock timers. It runs the module's runes in Node: `src/lib/testing/svelteModules.ts` removes the types with
+  TypeScript and compiles the runes with Svelte's `compileModule`. Before the change, two of its three tests failed:
+  the final result and the progress came before the batch, and the position stopped being pending before its result
+  showed. The third test guards the deepest result: it fails when the batch keeps the latest result instead.
+- **The measurement** (`scripts/measure/review-sweep.mjs`): the main thread's tasks from the sweep's start to its end,
+  as the review's progress line names them. Each sweep reviews the fixture's game (`tests/fixtures/hedgefund-review.json`,
+  120 edges, so 120 positions) from its record, in a fresh browser context, so that no stored result exists.
+  Playwright's Chromium 153, headless, 1,366 × 657 pixels. Chrome's trace gives each task's wall time and thread time.
+  Each build ran 5 sweeps, in 5 pairs, and the build that ran first took turns.
+  - **2 search workers,** the GPU off, under `scripts/machine run --threads 2`.
+  - **8 search workers** (the default on 16 cores), under `--threads 8`, with the GPU set to On. The GPU did not start
+    in Playwright's Chromium: the engine settings said "The GPU did not start: 9943656", though WebGPU gave an
+    adapter. So this series ran on the 8 CPU workers alone.
+- **The machine:** the engine repository's match held 4 of the 12 job threads during both series, and another
+  worker's job of 2 threads ran during part of the first. Windows' processor use and the load in WSL (one minute)
+  before each sweep:
+
+  | Pair | 2 workers, before | 2 workers, after | 8 workers, before | 8 workers, after |
+  | --- | --- | --- | --- | --- |
+  | 1 | 62%, 2.20 | 36%, 2.49 | 43%, 2.25 | 49%, 2.31 |
+  | 2 | 44%, 2.29 | 34%, 2.49 | 49%, 2.21 | 46%, 2.22 |
+  | 3 | 55%, 2.35 | 46%, 2.17 | 45%, 2.04 | 65%, 2.34 |
+  | 4 | 53%, 1.97 | 44%, 2.04 | 71%, 2.24 | 47%, 2.27 |
+  | 5 | 72%, 2.19 | 71%, 2.22 | 43%, 2.44 | 40%, 2.31 |
+
+- **Measured,** the median of each build's 5 sweeps:
+
+  | Per sweep | 2 workers, before | 2 workers, after | 8 workers, before | 8 workers, after |
+  | --- | --- | --- | --- | --- |
+  | The sweep's time | 35.8 s | 34.9 s | 14.2 s | 14.0 s |
+  | Tasks over 50 ms, by wall time | 4 | 5 | 5 | 5 |
+  | Their time beyond 50 ms each, by wall time | 151 ms | 397 ms | 303 ms | 356 ms |
+  | Tasks over 50 ms, by thread time | 0 | 0 | 0 | 0 |
+  | The longest task, by thread time | 7 ms | 7 ms | 11 ms | 11 ms |
+  | Tasks of 10 ms or more, by thread time | 0 | 0 | 1 | 1 |
+  | The main thread's thread time | 4,507 ms | 4,280 ms | 2,648 ms | 2,409 ms |
+
+  - **The main thread's thread time, 8 workers:** each pair's difference (after less before) is −361, −231, −198,
+    −233 and −197 ms. All pairs agree, and the median is −233 ms (9%). The spread between the sweeps of one build is
+    138 ms before and 150 ms after, so the gain is larger than both.
+  - **The same, 2 workers:** the pairs disagree (−562, −266, −29, −113 and +70 ms): no change.
+  - **Long tasks:** no task of any sweep passed 50 ms of thread time, in either build. The longest took 13 ms. The
+    tasks over 50 ms by wall time are waits for a processor under the job's quota, and the pairs disagree on them in
+    both series (8 workers: −3, +4, −3, −6 and +2 tasks).
+- **What it gives:** on this computer, a sweep has no long task in either build. With 8 workers, the batch takes about
+  a tenth of the main thread's work out of the sweep. The results came about 3.4 a second with 2 workers and 8.5 a
+  second with 8, fewer than one a batch, so a batch held few of them. With the GPU's 16 searches the results come
+  faster, and a batch holds more.
+- **Checked:** a whole review of the game on the new build, 2 workers under `--threads 2`, in a fresh browser context.
+  The progress line named each step in turn: the game's shape, the move quality from 38 s, the key moments from
+  475 s, and the Greats' confirmations from 501 s. "Review done" showed at 516 s, and the page threw no error.
+- **Not measured:** the GPU, Edge, an unloaded machine, a slower device, and the label pass.
