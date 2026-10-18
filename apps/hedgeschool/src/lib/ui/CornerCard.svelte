@@ -5,7 +5,8 @@
   import type { Snippet } from "svelte";
   import Collie from "#lib/Collie.svelte";
 
-  let { id, title, children, actions }: { id: string; title: string; children: Snippet; actions: Snippet } = $props();
+  let { title, children, actions }: { title: string; children: Snippet; actions: Snippet } = $props();
+  const id = $props.id();
 </script>
 
 <div class="fixed bottom-4 left-4 right-4 sm:right-auto sm:max-w-md z-50 p-4 grid gap-3 bg-panel border border-line rounded-lg shadow-lg text-sm"

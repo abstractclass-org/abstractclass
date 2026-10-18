@@ -2,10 +2,12 @@
 // (VITE_GA_ID=G-TEST000000): a build without the Google tag skips it. The tag's script is stopped, as a blocker stops
 // it, or replaced by a blocker's stand-in, or loaded from Google. Every other request to Google stops here, so that no
 // hit leaves the machine.
-import { test, expect, type BrowserContext, type Page, type Request } from "@playwright/test";
+import { test, expect, type BrowserContext, type Page } from "@playwright/test";
 
+const BANNER = "Help the school get better";
 const ASK = "Could you allow this site in your blocker?";
-const CONSENT = "hedge-school:consent:2";
+const CONSENT_KEY = "hedge-school:consent:2";
+const ASK_KEY = "hedge-school:analytics-ask:1";
 // uBlock Origin's stand-in for the tag (its resource googletagmanager_gtm.js), shortened: it replaces the queue's
 // push, and defines ga but no google_tag_manager.
 const STAND_IN = `(() => {
@@ -17,44 +19,49 @@ const STAND_IN = `(() => {
 const GOOGLE = /(^|\.)(google-analytics|googletagmanager|doubleclick|google)\.(com|net)$/;
 const isScript = (url: URL) => url.hostname === "www.googletagmanager.com" && url.pathname === "/gtag/js";
 
-/** A page whose tag's script is blocked, replaced or loaded. `left` gathers the requests to Google, other than the
- *  script, that reached the network: none should. */
+// The requests to Google, other than the tag's script, that reached the network in a test: none should.
+let leaked: string[] = [];
+test.afterEach(() => expect(leaked).toEqual([]));
+
+/** A page whose tag's script is blocked, replaced or loaded, at the privacy page. Its switch for Google Analytics'
+ *  cookies shows once the page has mounted, in a build with the Google tag only: a build without it skips the test. */
 async function open(context: BrowserContext, script: "blocked" | "stand-in" | "loads") {
-  const left: string[] = [];
-  await context.route(url => GOOGLE.test(url.hostname), async (route, request) => {
-    const url = new URL(request.url());
-    if (!isScript(url)) return route.abort("blockedbyclient");
-    if (script === "blocked") return route.abort("blockedbyclient");
+  leaked = [];
+  await context.route(url => GOOGLE.test(url.hostname), (route, request) => {
+    if (!isScript(new URL(request.url())) || script === "blocked") return route.abort("blockedbyclient");
     if (script === "stand-in") return route.fulfill({ contentType: "text/javascript", body: STAND_IN });
     return route.continue();
   });
-  context.on("requestfinished", r => { const url = new URL(r.url()); if (GOOGLE.test(url.hostname) && !isScript(url)) left.push(r.url()); });
+  context.on("requestfinished", r => { const url = new URL(r.url()); if (GOOGLE.test(url.hostname) && !isScript(url)) leaked.push(r.url()); });
+  // Each page marks the script's load or error event before the site's own handler takes it: a listener on the
+  // document's capture phase runs first.
+  await context.addInitScript(() => {
+    const mark = (e: Event) => { if (e.target instanceof HTMLScriptElement && e.target.src.includes("/gtag/js")) Object.assign(window, { tagAnswered: true }); };
+    document.addEventListener("load", mark, true);
+    document.addEventListener("error", mark, true);
+  });
   const page = await context.newPage();
-  const tagged = page.waitForRequest(r => isScript(new URL(r.url())), { timeout: 10_000 }).then(() => true, () => false);
   await page.goto("/privacy");
-  test.skip(!(await tagged), "this build has no Google tag");
-  return { page, left };
+  if (await page.getByRole("heading", { name: "Your choices" }).count()) await expect(page.getByRole("switch").first()).toBeVisible();
+  test.skip(!(await page.getByRole("switch", { name: /Google Analytics/ }).count()), "this build has no Google tag");
+  return page;
 }
 
-/** Opens `path`, and waits until the tag's script has loaded or failed, and the page has taken the answer. */
+/** Opens `path`, and waits until the tag's script has loaded or failed, and the page has taken the answer: the check
+ *  runs in a later task than the event, after the site's handler and its render. */
 async function load(page: Page, path: string) {
-  let on!: (r: Request) => void;
-  const answered = new Promise<void>(done => (on = r => { if (isScript(new URL(r.url()))) done(); }));
-  page.on("requestfinished", on).on("requestfailed", on);
   await page.goto(path);
-  await answered;
-  page.off("requestfinished", on).off("requestfailed", on);
-  await page.waitForTimeout(500);
+  await page.waitForFunction(() => "tagAnswered" in window, null, { polling: 50, timeout: 10_000 });
 }
 
 /** The visitor's choice for every purpose, as the banner's Accept or Decline keeps it. */
 const choose = (page: Page, choice: "granted" | "denied") =>
-  page.evaluate(([key, c]) => localStorage.setItem(key, JSON.stringify({ analytics: c, games: c })), [CONSENT, choice]);
+  page.evaluate(([key, c]) => localStorage.setItem(key, JSON.stringify({ analytics: c, games: c })), [CONSENT_KEY, choice]);
 
 test("a blocked tag: after Accept, the ask shows in the banner's place, and Close keeps it closed", async ({ context }) => {
-  const { page, left } = await open(context, "blocked");
+  const page = await open(context, "blocked");
   await load(page, "/");
-  const banner = page.getByRole("region", { name: "Help the school get better" });
+  const banner = page.getByRole("region", { name: BANNER });
   const ask = page.getByRole("region", { name: ASK });
   await expect(banner).toBeVisible();
   await expect(ask).toHaveCount(0); // never over the banner
@@ -75,15 +82,33 @@ test("a blocked tag: after Accept, the ask shows in the banner's place, and Clos
 
   await ask.getByRole("button", { name: "Close" }).click();
   await expect(ask).toHaveCount(0);
-  expect(await page.evaluate(() => localStorage.getItem("hedge-school:analytics-ask:1"))).toBe("closed");
+  expect(await page.evaluate(key => localStorage.getItem(key), ASK_KEY)).toBe("closed");
   await load(page, "/");
   await expect(ask).toHaveCount(0);
   await expect(banner).toHaveCount(0);
-  expect(left).toEqual([]);
+});
+
+test("a blocked tag: a Decline on the privacy page takes the ask away, and a Close in another tab closes it here", async ({ context }) => {
+  const page = await open(context, "blocked");
+  await choose(page, "granted");
+  await load(page, "/privacy");
+  const ask = page.getByRole("region", { name: ASK });
+  await expect(ask).toBeVisible();
+  const cookies = page.getByRole("switch", { name: /Google Analytics/ });
+  await cookies.click();
+  await expect(cookies).not.toBeChecked();
+  await expect(ask).toHaveCount(0);
+  await cookies.click(); // an Accept again: the tag still did not run in this page
+  await expect(ask).toBeVisible();
+
+  const other = await context.newPage();
+  await load(other, "/");
+  await other.getByRole("region", { name: ASK }).getByRole("button", { name: "Close" }).click();
+  await expect(ask).toHaveCount(0);
 });
 
 test("a blocker's stand-in script: the ask shows, and fits a phone's width", async ({ context }) => {
-  const { page, left } = await open(context, "stand-in");
+  const page = await open(context, "stand-in");
   await page.setViewportSize({ width: 360, height: 700 });
   await choose(page, "granted");
   await load(page, "/review");
@@ -94,23 +119,20 @@ test("a blocker's stand-in script: the ask shows, and fits a phone's width", asy
   expect(box.x + box.width).toBeLessThanOrEqual(360);
   expect(box.y).toBeGreaterThanOrEqual(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
-  expect(left).toEqual([]);
 });
 
 test("a tag that loads: no ask", async ({ context }) => {
-  const { page, left } = await open(context, "loads");
+  const page = await open(context, "loads");
   await choose(page, "granted");
   await load(page, "/");
   expect(await page.evaluate(() => "google_tag_manager" in window)).toBe(true);
   await expect(page.getByRole("region", { name: ASK })).toHaveCount(0);
-  expect(left).toEqual([]);
 });
 
 test("a blocked tag after a Decline: no ask", async ({ context }) => {
-  const { page, left } = await open(context, "blocked");
+  const page = await open(context, "blocked");
   await choose(page, "denied");
   await load(page, "/");
   await expect(page.getByRole("region", { name: ASK })).toHaveCount(0);
-  await expect(page.getByRole("region", { name: "Help the school get better" })).toHaveCount(0);
-  expect(left).toEqual([]);
+  await expect(page.getByRole("region", { name: BANNER })).toHaveCount(0);
 });

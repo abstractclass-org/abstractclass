@@ -45,8 +45,8 @@
 
 	// The visit counts start here, unless the address holds a game after its `#` (holdsGame): the page that takes it out
 	// of the address starts them then (design 22). The old import page only forwards, and counts nothing. The banner
-	// shows in the browser only, never in the prerendered page. After it, in its place, the ask to allow Google
-	// Analytics in a blocker, when the visitor accepted it and its tag did not run (design 27).
+	// shows in the browser only, never in the prerendered page. After the banner, in its place, the ask to allow Google
+	// Analytics in a blocker shows when the visitor accepted Google Analytics and its tag did not run (design 27).
 	let mounted = $state(false);
 	onMount(() => {
 		mounted = true;
@@ -143,4 +143,4 @@
 </div>
 </div>
 
-{#if mounted && ASKS_CONSENT && !consentChosen()}<ConsentBanner />{:else if mounted && asksToAllow()}<AnalyticsAsk />{/if}
+{#if mounted && ASKS_CONSENT && !consentChosen()}<ConsentBanner />{:else if asksToAllow()}<AnalyticsAsk />{/if}

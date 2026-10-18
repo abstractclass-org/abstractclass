@@ -14,7 +14,7 @@
   const items = (["games", "analytics"] as const).filter(p => PURPOSES.includes(p));
 </script>
 
-<CornerCard id="consent-title" title="Help the school get better">
+<CornerCard title="Help the school get better">
   <p>{SITE_NAME} is free. If you accept, {items.length > 1 ? "two things help" : "this helps"} us improve it:</p>
   <ul class="grid gap-1.5 pl-4 list-disc">
     {#each items as p (p)}<li>{TEXT[p]}</li>{/each}

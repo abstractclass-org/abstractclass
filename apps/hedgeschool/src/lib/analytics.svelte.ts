@@ -17,8 +17,8 @@
 //
 // A blocker (an ad blocker, or the browser's tracking protection) can stop the Google tag (design 27). The page does
 // not look for blockers: it knows only whether its own tag ran. A visitor who accepted Google Analytics' cookies, and
-// whose tag did not run, is asked once to allow the site in the blocker (AnalyticsAsk.svelte). The site never sends
-// the tag through its own address to get past a blocker: that would override the visitor's own choice.
+// whose tag did not run, is asked to allow the site in the blocker until they close the ask (AnalyticsAsk.svelte). The
+// site never sends the tag through its own address to get past a blocker: that would override the visitor's own choice.
 import { STORES_PRACTICE_GAMES } from "#lib/edition.ts";
 import { isInternal } from "#lib/internalTraffic.ts";
 import { readLocal, readLocalJson, writeLocal } from "#lib/storage/local.ts";
@@ -55,20 +55,21 @@ export const consentChosen = () => PURPOSES.every(p => consent[p] !== null);
  *  have changed it since. Read before a game takes or sends the number. */
 export const linksGames = () => readChoices().games === "granted";
 
-/** Whether the Google tag ran in this page: null until its script answers, and in a build without it. False when the
- *  script failed to load (a blocker, the browser's tracking protection, or a failed network load), or loaded and did
- *  not run as the tag (a blocker's stand-in script). */
-const tag = $state<{ ran: boolean | null }>({ ran: null });
+/** Whether the Google tag's script answered in this page and the tag did not run: the script failed to load (a blocker,
+ *  the browser's tracking protection, or a failed network load), or loaded and did not run as the tag (a blocker's
+ *  stand-in script). False until the script answers, and in a build without it. */
+let tagFailed = $state(false);
 
-const ask = $state({ closed: readLocal(ASK) === "closed" });
+const askKeptClosed = () => readLocal(ASK) === "closed";
+let askClosed = $state(askKeptClosed());
 
 /** Whether to ask the visitor to allow Google Analytics in their blocker (design 27): they accepted its cookies, the
  *  banner is gone, and the tag did not run in this page. Once closed, never again in this browser. */
-export const asksToAllow = () => consentChosen() && consent.analytics === "granted" && tag.ran === false && !ask.closed;
+export const asksToAllow = () => consentChosen() && consent.analytics === "granted" && tagFailed && !askClosed;
 
 /** Closes the ask for good in this browser. */
 export function closeAsk() {
-  ask.closed = true;
+  askClosed = true;
   writeLocal(ASK, "closed");
 }
 
@@ -88,7 +89,7 @@ let started = false;
 // ask closed in another tab closes here too.
 if (typeof window !== "undefined") {
   window.addEventListener("storage", e => {
-    if (e.key === ASK || e.key === null) ask.closed = readLocal(ASK) === "closed";
+    if (e.key === ASK || e.key === null) askClosed = askKeptClosed();
     if (e.key !== KEY && e.key !== null) return; // null: the site's storage cleared
     const now = readChoices();
     if (now.analytics !== consent.analytics && started && GA_ID) gtag("consent", "update", { analytics_storage: now.analytics ?? "denied" });
@@ -117,9 +118,9 @@ export function startAnalytics() {
     else gtag("config", GA_ID);
     const script = addScript(`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`);
     // gtag.js defines google_tag_manager as it runs, before its load event. A blocker's stand-in for it (uBlock
-    // Origin's googletagmanager_gtm.js) loads, and defines none.
-    script.onload = () => (tag.ran = "google_tag_manager" in window);
-    script.onerror = () => (tag.ran = false);
+    // Origin's googletagmanager_gtm.js, or Firefox's SmartBlock shim) loads, and defines none.
+    script.onload = () => (tagFailed = !("google_tag_manager" in window));
+    script.onerror = () => (tagFailed = true);
   }
 }
 

@@ -3425,7 +3425,7 @@ sweep.
   HedgeFund 0.1 Lite, against 162 MiB at 16,384 visits. A worker's memory does not shrink, and any worker can take a
   key moment.
 
-### An ask to the visitors whose blocker stops Google Analytics (2026-10-18)
+### A request to the visitors whose blocker stops Google Analytics (2026-10-18)
 
 - **The problem:** an ad blocker or the browser's tracking protection stops the Google tag, also for a visitor who
   accepted Google Analytics' cookies. Those visits are missing from the data that design 17's decisions wait on. The
@@ -3434,8 +3434,8 @@ sweep.
   place, after the banner, for a visitor who accepted Google Analytics and whose tag did not run. It shows on each
   page until Close, and Close keeps it closed in the browser (`hedge-school:analytics-ask:1`). Never a visitor who
   declined or has not chosen, never over the banner, never a wall, and no proxy past blockers. Its words are plain web
-  writing: no ads here, the counts show what to build, and how to allow the site. The consent banner and the card
-  share one component (`src/lib/ui/CornerCard.svelte`).
+  writing: no ads here, what Google Analytics does for the site, and how to allow the site. The consent banner and the
+  card share one component (`src/lib/ui/CornerCard.svelte`).
 - **The check:** the tag did not run when its script fails to load (its `error` event), or loads and leaves
   `google_tag_manager` undefined. gtag.js defines it as it runs. uBlock Origin's stand-in for the script
   ([`googletagmanager_gtm.js`](https://github.com/gorhill/uBlock/blob/master/src/web_accessible_resources/googletagmanager_gtm.js))
@@ -3443,14 +3443,29 @@ sweep.
   for the tag.
 - **No event for the card:** it shows only where the tag did not run, so an event of its showing or of its Close
   cannot reach Google Analytics. An event on a later page, where the tag runs in a browser that showed the card, could
-  count the visitors who followed the ask. It is not built: a failed network load would count too, and the count
+  count the visitors who followed the request. It is not built: a failed network load would count too, and the count
   would have nothing to compare with.
 - **Checked:** the type check, the unit tests, and `tests/analytics-ask.spec.ts` on a production build with a made-up
   measurement ID (`G-TEST000000`), in Playwright's Chromium, each test 3 times. Every request to Google but the tag's
-  script stopped in the browser, and none reached the network. With the script stopped: the banner showed and the
-  card did not; after Accept the card showed at once, in the banner's place (the same left edge and bottom), and
-  stayed on the next page; after Close it was gone, the key held `closed`, and a reload showed neither. With the
+  script stopped in the browser, and none reached the network. With the script stopped, the banner showed and the
+  card did not. After Accept the card showed at once, in the banner's place (the same left edge and bottom), and
+  stayed on the next page. After Close it was gone, the key held `closed`, and a reload showed neither. With the
   script stopped and a Decline kept: neither showed. With the stand-in in the script's place: the card showed, inside
   a window 360 pixels wide, with no sideways scroll. With the real gtag.js from Google: `google_tag_manager` was
   defined at its load, and no card showed. Not checked: a real blocker (uBlock Origin, Brave, Firefox's strict
   tracking protection) in a real browser, and Safari.
+- **Reviewed:**
+  - The card's words say "It looks like" a blocker stops the tag, because a failed network load also shows the card.
+    They name Google Analytics, not "the counts", and the step names tracking protection too.
+  - The privacy page says that the request shows on each page until Close, not "once". It no longer states how the
+    site treats blockers in the future: the privacy page promises only what holds whatever the site adds later.
+  - Firefox's stand-in for Google Analytics and the tag (its SmartBlock shim,
+    `browser/extensions/webcompat/shims/google-analytics-and-tag-manager.js`) defines no `google_tag_manager`. This
+    comes from its source. It was not run in Firefox.
+  - The test skips a build without the tag at once: the privacy page has no switch for Google Analytics' cookies
+    there. Before, each test waited 10 s for the tag's script. The wait for the script's answer now ends at its own
+    `load` or `error` event, not after a fixed 500 ms. A new test: a Decline on the privacy page takes the card away,
+    an Accept brings it back in the same page, and a Close in another tab closes it.
+  - Checked again on a build with `G-TEST000000`: the 5 tests, each 3 times, 15 of 15 passed. A throwaway check found
+    the card in the page as soon as the wait ended, 20 times of 20. On a build without the ID: the layout sweep
+    passed in Chromium, and the card's tests skipped.
