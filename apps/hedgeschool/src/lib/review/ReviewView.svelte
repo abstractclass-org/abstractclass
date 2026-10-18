@@ -1522,7 +1522,6 @@
   </div>
 {/snippet}
 
-<!-- A setting that is on or off: its name and what it does, and a switch at the right. -->
 <!-- A line of the Advantage chart that the reader can show or hide, in the chart's legend: its box, its colour, its name. -->
 {#snippet lineBox(name: string, swatch: string, tint: string, get: () => boolean, set: (v: boolean) => void)}
   <label class="inline-flex items-center gap-1 select-none">
@@ -1531,6 +1530,7 @@
   </label>
 {/snippet}
 
+<!-- A setting that is on or off: its name and what it does, and a switch at the right. -->
 {#snippet toggle(label: string, help: string, get: () => boolean, set: (v: boolean) => void)}<SettingToggle {label} {help} {get} {set} />{/snippet}
 
 <!-- A choice of a few: its name and what it does, then the options side by side. -->
