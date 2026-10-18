@@ -2,9 +2,9 @@
 // edges come from the analysis module's rules worker, as on the Analysis board: the board draws what the site's rules
 // say. Each move goes to the bot too, so that the two play the same game. The game's moves and settings are kept in
 // this browser after each move (practice.ts, keep), so that a reload, or a new build, continues it from its moves.
-import { boardPosition } from "#lib/engine/position.ts";
+import { boardPosition, rulesOf } from "#lib/engine/position.ts";
 import type { EngineWorker } from "#lib/engine/client.ts";
-import { parseEdge, parsePoint } from "#lib/engine/notation.ts";
+import { parseEdge } from "#lib/engine/notation.ts";
 import { positionQuery, type GamePosition } from "#lib/engine/protocol.ts";
 import type { EdgeRules } from "#lib/board/edgeInput.svelte.ts";
 import { errorText } from "#lib/errors.ts";
@@ -201,7 +201,7 @@ export class PracticeGame {
     }
     if (!this.position || this.position.over) return this.finish();
     const { reply } = await this.rulesWorker.describe(positionQuery(this.kept.start ?? null, this.kept.moves));
-    this.rules = { legal: reply.legal.filter(m => m.includes("-")).map(parseEdge), nodes: reply.nodes[reply.mover].map(parsePoint) };
+    this.rules = rulesOf(reply);
     this.status = "human";
     this.humanSince = performance.now();
   }

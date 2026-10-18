@@ -3,8 +3,10 @@
   // and a puzzle in three states. Play is rated. After a wrong edge it becomes try: unrated, try again or view the
   // solution. View comes after the end, with the rating change, a vote and "Continue training".
   import Board, { type BoardCandidate } from "#lib/board/Board.svelte";
-  import { EdgeInput, rulesOf } from "#lib/board/edgeInput.svelte.ts";
+  import { EdgeInput } from "#lib/board/edgeInput.svelte.ts";
+  import EdgeInputHint from "#lib/board/EdgeInputHint.svelte";
   import { EngineWorker, loadManifest, moduleOf } from "#lib/engine/client.ts";
+  import { rulesOf } from "#lib/engine/position.ts";
   import { review, edgeName, sameEdge, PLAYER_NAME, type Edge } from "#lib/review/model.ts";
   import { puzzlesFrom, nextRating, THEME_TEXT, type Puzzle, type Theme } from "#lib/puzzles/model.ts";
   import { SAMPLE, SAMPLE_MOVES } from "#lib/mock/sample.ts";
@@ -117,18 +119,6 @@
 
 <PageMeta title="Puzzles · Hedge School" noindex /> <!-- not in the early access (design 11) -->
 
-<!-- What the edge input waits for, or why the last click did nothing. -->
-{#snippet inputHint()}
-  {@const side = PLAYER_NAME[puzzle.player]}
-  <p class="text-sm text-muted">
-    {#if input.refused === "start"}Start the edge at one of {side}'s nodes.
-    {:else if input.refused === "end"}Finish the edge at a marked point, or click another of {side}'s nodes.
-    {:else if input.pending}Now its second point{input.ends ? ": a marked point" : ", at most 3 apart"}.
-    {:else if input.rules}Click one of {side}'s nodes to start the edge.
-    {:else}Click the edge's first point.{/if}
-  </p>
-{/snippet}
-
 <main class="box-content grid items-start gap-5 max-w-[1180px] mx-auto my-4 px-4 min-[961px]:grid-cols-[10rem_minmax(0,600px)_minmax(280px,360px)]">
   <nav class="flex flex-wrap gap-0.5 min-[961px]:flex-col" aria-label="Puzzle modes">
     <button class={menuItem(view === "puzzles" && !theme)} onclick={() => open("puzzles")}>Puzzles</button>
@@ -185,11 +175,11 @@
         {#if feedback === "init"}
           <div class="flex items-center gap-1.5 text-lg font-bold"><Swatch player={puzzle.player} /> Your turn</div>
           <p class="font-semibold">Find the best edge for {PLAYER_NAME[puzzle.player]}.</p>
-          {@render inputHint()}
+          <EdgeInputHint {input} side={PLAYER_NAME[puzzle.player]} />
         {:else if feedback === "fail" && mode === "try"}
           <p class="font-bold text-mistake">That's not the edge. Try something else.</p>
           <p class="text-sm text-muted">This attempt no longer counts for your rating.</p>
-          {@render inputHint()}
+          <EdgeInputHint {input} side={PLAYER_NAME[puzzle.player]} />
         {:else if feedback === "fail"}
           <p class="font-bold text-mistake">Streak over: {streak} solved.</p>
         {:else if feedback === "win"}

@@ -64,8 +64,8 @@ test("each step's task takes the edges that do it, and gives its hint for the ot
   const tasks = STEPS.filter(s => s.task);
   assert.deepEqual(tasks.map(s => s.title).sort(), Object.keys(CASES).sort());
   for (const s of tasks) {
-    const { does, fails } = CASES[s.title];
-    for (const m of [...does, ...fails]) assert.ok(legal(s).includes(m), `${s.title}: ${m} is legal`);
+    const { does, fails } = CASES[s.title], ok = legal(s);
+    for (const m of [...does, ...fails]) assert.ok(ok.includes(m), `${s.title}: ${m} is legal`);
     for (const m of does) assert.equal(s.task!(play(s, m)), null, `${s.title}: ${m}`);
     for (const m of fails) assert.match(s.task!(play(s, m)) ?? "", /\w/, `${s.title}: ${m}`);
   }

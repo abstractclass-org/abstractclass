@@ -65,13 +65,16 @@ in the early access (design 11).
 - A step's text must agree with the engine's board. The unit tests check the texts' facts: the square's area of 9,
   Red's nodes gone after the cut, and the protection kept for the rest of the turn.
 - The board after an edge shows the new edge as the site shows a placed edge: wide, with a white line along it.
-- Learn loads the engine's CPU module (1.4 MB) and its library, with no network, as the puzzles page does.
+- Learn loads the engine's CPU module (1.4 MB) and its library, with no network, as the puzzles page does. It loads
+  them when the visitor opens the first lesson, so a visit to the map alone loads no engine.
 
 ## Where it is
 
 - The course: `src/lib/learn/lessons.ts` (the steps, their lines and task tests, and `lineBoard`). The page:
   `src/routes/learn/+page.svelte`.
-- The edge input: `src/lib/board/edgeInput.svelte.ts` (`EdgeInput`, and `rulesOf`, which the puzzles page uses too).
+- The edge input: `src/lib/board/edgeInput.svelte.ts`. Its words: `src/lib/board/EdgeInputHint.svelte`, which the
+  puzzles page shows too. Its rules from a `describe` reply: `rulesOf` in `src/lib/engine/position.ts`, which the
+  puzzles, Practice and the Analysis board use too.
 - The tests: `src/lib/learn/lessons.test.ts`. Each step's line, and each step's task on the engine in Node
   (`scripts/node-engine.mjs`). The engine's tests are skipped without the engine's files.
 

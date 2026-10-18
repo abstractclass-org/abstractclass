@@ -3667,7 +3667,9 @@ sweep.
   rules" is gone: the page checks no rule by hand. The lesson complete page offered "Next: Edges" after every lesson,
   because the page kept the lesson in a deep `$state` proxy and `indexOf` did not find it in the course. It keeps
   the course's own object now (`$state.raw`), and offers the next lesson. The puzzles page and the lessons share
-  `rulesOf` (the input's rules from a `describe` reply).
+  `rulesOf` (`engine/position.ts`: the input's rules from a `describe` reply), which Practice and the Analysis board
+  use too, and the input's words (`EdgeInputHint.svelte`, with the puzzles' words). Learn starts the engine when the
+  visitor opens the first lesson, not on the map.
 - **Checked:**
   - The unit tests (`src/lib/learn/lessons.test.ts`), on the engine's CPU module in Node: the engine reads each line
     as it is written, with Blue to move. For each step, legal edges that do its task and legal edges that do not.

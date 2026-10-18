@@ -1,18 +1,20 @@
 <script lang="ts">
   // Learn, a prototype (src/lib/learn/lessons.ts). After Lichess Learn: a map of stages, each with short lessons, and
   // a lesson as a few tasks on a small board, with progress. Plain, with small rewards (design 04).
+  import { onDestroy } from "svelte";
   import Board from "#lib/board/Board.svelte";
-  import { EdgeInput, rulesOf } from "#lib/board/edgeInput.svelte.ts";
+  import { EdgeInput } from "#lib/board/edgeInput.svelte.ts";
+  import EdgeInputHint from "#lib/board/EdgeInputHint.svelte";
   import { EngineError, EngineWorker, loadManifest, moduleOf } from "#lib/engine/client.ts";
   import { edgeName, parseEdge } from "#lib/engine/notation.ts";
-  import { boardPosition } from "#lib/engine/position.ts";
+  import { boardPosition, rulesOf } from "#lib/engine/position.ts";
   import { COURSE, lineBoard, type Lesson, type Step } from "#lib/learn/lessons.ts";
   import { PLAYER_NAME, type Edge, type Position } from "#lib/review/model.ts";
   import PageMeta from "#lib/PageMeta.svelte";
 
   let lesson = $state.raw<Lesson | null>(null); // raw: the course's own object, so that indexOf finds it
   let k = $state(0);
-  let shown = $state.raw<{ position: Position; cut: Edge | null; text: string } | null>(null);
+  let shown = $state.raw<{ position: Position; cut: Edge | null } | null>(null); // the board after the step's edge
   let wrong = $state<string | null>(null);
   const done = $state<Record<string, number>>({}); // steps done, by lesson
   const input = new EdgeInput(edge => void attempt(edge));
@@ -20,23 +22,21 @@
   const step = $derived<Step | null>(lesson ? lesson.steps[k] : null);
   const lessonsInOrder = COURSE.flatMap(s => (s.ready ? s.lessons : []));
 
-  // The engine's rules, without a network, as on the puzzles page: one worker for the page, or null on a site without
-  // the engine (`npm run engine` not run), where the input keeps the rules' box and no edge can be checked.
-  let started!: (engine: EngineWorker | null) => void;
-  const engine = new Promise<EngineWorker | null>(resolve => (started = resolve));
+  // The engine's rules, without a network, as on the puzzles page: one worker for the page, started at the first step,
+  // so that a visit to the map alone loads no engine. Null on a site without the engine (`npm run engine` not run),
+  // where the input keeps the rules' box and no edge can be checked.
+  let engine: Promise<EngineWorker | null> | null = null;
+  let worker: EngineWorker | null = null, closed = false;
   let noEngine = $state(false);
-  $effect(() => {
-    let worker: EngineWorker | null = null;
-    (async () => {
-      const manifest = await loadManifest();
-      if (!manifest || !moduleOf(manifest)) return null;
-      worker = new EngineWorker();
-      await worker.init(manifest);
-      return worker;
-    })().catch(e => { console.warn("learn: no engine rules", e); return null; })
-      .then(w => { noEngine = !w; started(w); });
-    return () => worker?.terminate();
-  });
+  const startEngine = () => (engine ??= (async () => {
+    const manifest = await loadManifest();
+    if (!manifest || !moduleOf(manifest) || closed) return null;
+    worker = new EngineWorker();
+    await worker.init(manifest);
+    return worker;
+  })().catch(e => { console.warn("learn: no engine rules", e); return null; })
+    .then(w => { noEngine = !w; return w; }));
+  onDestroy(() => { closed = true; worker?.terminate(); });
 
   // The step's board as the engine draws it, and its legal edges and the mover's nodes for the input. Until the engine
   // answers, the board as the step's line gives it.
@@ -49,7 +49,7 @@
     input.rules = null;
     if (!s) return;
     let current = true;
-    engine.then(e => e?.describe({ position: s.position, moves: [] }))
+    startEngine().then(e => e?.describe({ position: s.position, moves: [] }))
       .then(r => {
         if (!r || !current) return;
         drawn = boardPosition(r.reply);
@@ -69,7 +69,7 @@
     if (!s?.task || shown) return;
     const mine = ++asked, current = () => mine === asked && s === step;
     wrong = null;
-    const e = await engine;
+    const e = await startEngine();
     if (!e || !current()) return;
     try {
       const { reply } = await e.describeGame({ position: s.position, moves: [edgeName(edge)] });
@@ -77,12 +77,14 @@
       const [before, after] = reply.positions;
       wrong = s.task({ before, after });
       if (wrong) return;
-      shown = { position: boardPosition(after), cut: after.cuts ? parseEdge(after.cuts) : null, text: s.done ?? "" };
+      shown = { position: boardPosition(after), cut: after.cuts ? parseEdge(after.cuts) : null };
       done[lesson!.id] = Math.max(done[lesson!.id] ?? 0, k + 1);
     } catch (err) {
       if (!current()) return;
-      if (!(err instanceof EngineError)) console.warn("learn: the edge was not played", err);
-      wrong = "The rules do not allow this edge."; // an edge entered before the engine gave the legal edges
+      // The engine names an illegal edge in the moves field (game/check.ts): an edge entered before it gave the legal
+      // edges. Any other error is the engine's or the step's.
+      if (!(err instanceof EngineError && err.field === "moves")) console.warn("learn: the edge was not played", err);
+      wrong = "The rules do not allow this edge.";
     }
   }
   function nextStep() {
@@ -153,20 +155,13 @@
           <h2 class="mt-3 mb-1 text-lg font-bold">{step.title}</h2>
           <p>{step.text}</p>
           {#if shown}
-            <p class="text-best">Well done. {shown.text}</p>
+            <p class="text-best">Well done. {step.done}</p>
             <button class="btn-primary" onclick={nextStep}>{k + 1 < lesson.steps.length ? "Next" : "Finish the lesson"}</button>
           {:else}
             <p class="font-bold">{step.goal}</p>
             {#if step.task}
-              <!-- What the edge input waits for, or why the last click did nothing (the puzzles page's words). -->
-              <p class="text-sm text-muted">
-                {#if noEngine}The engine did not start. This page cannot check your edge.
-                {:else if input.refused === "start"}Start the edge at one of {side}'s nodes.
-                {:else if input.refused === "end"}Finish the edge at a marked point, or click another of {side}'s nodes.
-                {:else if input.pending}Now click its second point{input.ends ? ": a marked point" : ", at most 3 apart"}.
-                {:else if input.rules}Click one of {side}'s nodes to start the edge.
-                {:else}Click the edge's first point.{/if}
-              </p>
+              {#if noEngine}<p class="text-sm text-muted">The engine did not start. This page cannot check your edge.</p>
+              {:else}<EdgeInputHint {input} {side} />{/if}
               {#if wrong}<p class="text-mistake">Not quite. {wrong}</p><button onclick={resetStep}>Try again</button>{/if}
             {:else}
               <button class="btn-primary" onclick={nextStep}>Continue</button>

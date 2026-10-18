@@ -22,8 +22,8 @@
 // The Analysis board (design 21) is the same analysis in its board form: its main line is the player's and changes
 // (setMain), its moves have labels only where the player asks (judge), and no pass runs: the engine searches the
 // position on screen and the moves evaluated.
-import { edgeName, parseEdge, parsePoint, type Edge } from "#lib/engine/notation.ts";
-import { boardPosition } from "#lib/engine/position.ts";
+import { edgeName, parseEdge, type Edge } from "#lib/engine/notation.ts";
+import { boardPosition, rulesOf } from "#lib/engine/position.ts";
 import { toAnalysis } from "#lib/engine/analysis.ts";
 import { positionQuery, type AnalysisReply } from "#lib/engine/protocol.ts";
 import { errorText } from "#lib/errors.ts";
@@ -425,7 +425,7 @@ export class GameAnalysis {
   /** The rules of a position anywhere in the tree, for the player's own moves: the legal edges and the mover's nodes. */
   async rulesAt(path: string[]): Promise<EdgeRules> {
     const { reply } = await this.pool.rules.describe(this.query(path));
-    return { legal: reply.legal.filter(m => m.includes("-")).map(parseEdge), nodes: reply.nodes[reply.mover].map(parsePoint) };
+    return rulesOf(reply);
   }
 
   /** Keeps the game's branches in the browser: each node's key and order. Not for a game deleted meanwhile (in the

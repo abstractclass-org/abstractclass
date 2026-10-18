@@ -6,17 +6,11 @@
 // first point. Any other click does nothing, and `refused` says why. Without the rules (a site with no engine, or before
 // the engine answers), the second point is any point within 3 units (the rules' box), and a point farther away starts
 // over from it.
-import { parseEdge, parsePoint } from "#lib/engine/notation.ts";
-import type { DescribeReply } from "#lib/engine/protocol.ts";
 import type { Edge } from "#lib/review/model.ts";
 
 export type Point = [number, number];
+/** The position's rules: from the engine's describe reply, engine/position.ts's rulesOf. */
 export interface EdgeRules { legal: Edge[]; nodes: Point[] }
-/** The rules of describe's position: its legal edges (not "pass") and the mover's nodes. */
-export const rulesOf = (reply: DescribeReply): EdgeRules => ({
-  legal: reply.legal.filter(m => m.includes("-")).map(parseEdge),
-  nodes: reply.nodes[reply.mover].map(parsePoint),
-});
 const key = (x: number, y: number) => `${x},${y}`;
 
 export class EdgeInput {
