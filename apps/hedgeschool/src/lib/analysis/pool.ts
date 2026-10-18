@@ -122,7 +122,8 @@ export class EnginePool {
   get rules(): EngineWorker { return this.rulesWorker; }
 
   /** Runs `work` on the next free worker, by priority (higher first, then first come). Engines released when idle start
-   *  again first. */
+   *  again first. A work that the pool stops to give way (onStop) runs again later, as does a work whose GPU was lost:
+   *  the promise settles with its last run, and the earlier runs' results are dropped. */
   run<T>(priority: number, tag: string, work: Work<T>): Promise<T> {
     clearTimeout(this.idleTimer);
     if (this.released) { this.released = false; this.resize(this.size); }

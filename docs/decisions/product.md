@@ -3798,11 +3798,13 @@ sweep.
     over writes nothing and shows nothing.
   - A search that the pool stopped to give way shows its result by itself. The pool runs it again, and the search
     ends with the result of that later run.
-- **The test** (`src/lib/analysis/game.test.ts`): a store in IndexedDB's place, whose writes the test can hold, and a
-  pool with a number of engines. Three new tests and one new check:
+- **The test** (`src/lib/analysis/game.test.ts`): the tests' store in IndexedDB's place (`src/lib/storage/memoryDb.ts`),
+  whose writes a test can now hold, and a pool with a number of engines. Two new tests, a stricter test and a new
+  check:
   - With one engine, the engine takes its next search while the write is held. The result and the sweep's progress
     show in the batch after the write. This test failed before the change.
-  - The end of a search's marks (`pending`, the focus) comes in the batch of its result, after the write.
+  - The end of a search's marks (`pending`, the focus) comes in the batch of its result, after the write: the test of
+    a pending position now holds the write.
   - A result whose write fails shows, with its progress.
   - A search of the previous network writes nothing: a check added to that network's test.
 - **The measurement** (`scripts/measure/review-sweep.mjs`, which now also reads the gaps): the sweep of the fixture's

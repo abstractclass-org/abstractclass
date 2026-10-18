@@ -19,8 +19,7 @@
 //   node scripts/measure/review-sweep.mjs <before> <after> [pairs] [workers] [off|on] [port]
 import { readFileSync, writeFileSync } from "node:fs";
 import { LONG_TASK, inPairs, launch, longTasks, median, preview, tasksBetween, trace, verdict } from "./speed.mjs";
-
-const SWEEP_VISITS = 32; // the sweep's visits (src/lib/analysis/cache.ts)
+import { SWEEP_VISITS } from "../../src/lib/analysis/cache.ts";
 
 const [before, after] = process.argv.slice(2, 4);
 const pairs = Number(process.argv[4] ?? 5), workers = Number(process.argv[5] ?? 2), gpu = process.argv[6] ?? "off";
@@ -47,15 +46,15 @@ async function sweep(url) {
     // Each search that the page sends to a worker (a request with maxVisits): the worker, the visits, when it was sent
     // and when its final reply came (a partial reply is a slice's result).
     const searches = (window.__searches = []), Base = window.Worker;
-    let workers = 0;
+    let made = 0;
     window.Worker = class extends Base {
-      #index = workers++;
+      #index = made++;
       #open = new Map();
       constructor(...args) {
         super(...args);
         this.addEventListener("message", e => {
-          const s = this.#open.get(e.data?.id);
-          if (!s || e.data.type === "partial") return;
+          const s = e.data?.type !== "partial" && this.#open.get(e.data?.id);
+          if (!s) return;
           s.ended = performance.now();
           this.#open.delete(e.data.id);
         });

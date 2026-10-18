@@ -7,36 +7,11 @@ import assert from "node:assert/strict";
 import "#lib/testing/svelteModules.ts";
 import type { AnalysisReply, GamePosition, PositionQuery } from "#lib/engine/protocol.ts";
 import type { EnginePool, Work } from "./pool.ts";
-import { SWEEP_VISITS } from "./cache.ts";
+import { SWEEP_VISITS, readAnalysisKey } from "./cache.ts";
+import { STORES } from "#lib/storage/db.ts";
+import { memoryDb } from "#lib/storage/memoryDb.ts";
 
-/** The browser's store in IndexedDB's place (Node has none): its reads find nothing, and its writes commit at once,
- *  unless the test holds them. A held write commits, or fails, when the test releases it. Installed before the
- *  first read: db.ts opens the store once. */
-const store = (() => {
-  const puts: string[] = [], held: { done: (ok: boolean) => void }[] = [];
-  let holding = false;
-  const transaction = (_stores: string[], mode: IDBTransactionMode) => {
-    const tx: { objectStore: () => object; oncomplete?: () => void; onerror?: () => void } = {
-      objectStore: () => ({ get: () => ({ result: undefined }), put: (_value: unknown, key: string) => (puts.push(key), { result: key }) }),
-    };
-    const done = (ok: boolean) => queueMicrotask(() => (ok ? tx.oncomplete : tx.onerror)?.());
-    if (mode === "readwrite" && holding) held.push({ done }); else done(true);
-    return tx;
-  };
-  globalThis.indexedDB = {
-    open: () => {
-      const req: { result: object; onsuccess?: () => void } = { result: { transaction } };
-      queueMicrotask(() => req.onsuccess?.());
-      return req;
-    },
-  } as unknown as IDBFactory;
-  return {
-    puts, // the keys written, in order
-    hold() { holding = true; },
-    /** Commits the held writes, or fails them, and commits the later ones at once. */
-    release(ok = true) { holding = false; for (const w of held.splice(0)) w.done(ok); },
-  };
-})();
+const store = memoryDb(queueMicrotask); // its transactions complete in microtasks: the tests mock setTimeout
 
 const { BATCH_MS, GameAnalysis } = await import("./game.svelte.ts");
 const { BOARD_ID } = await import("#lib/game/store.ts");
@@ -91,7 +66,7 @@ async function sweeping(engines?: number) {
   await game.start();
   void game.sweep();
   await settle();
-  return { game, searches, written: () => store.puts.filter(k => k.includes(`|${pool.model!.sha256}|`)) };
+  return { game, searches, written: () => store.puts(STORES.analysis).filter(k => readAnalysisKey(String(k)).model === pool.model!.sha256) };
 }
 
 beforeEach(() => mock.timers.enable({ apis: ["setTimeout"] }));
@@ -165,26 +140,9 @@ test("a result whose write fails shows, with its progress", async () => {
   assert.equal(game.swept, 1);
 });
 
-test("a position stays pending until the batch shows its search's final result", async () => {
+test("a position stays pending, and its focus runs, until the batch after its result's write", async () => {
   const { pool, searches } = fakePool();
   const game = new GameAnalysis(pool, MOVES, BOARD_ID); // the board: only its searches make a position pending
-  await game.start();
-  await game.sweep();
-  game.focus([]);
-  await settle();
-  searches[0].end(game.focusVisits);
-  await settle();
-  const visits = () => game.analysis[0]?.visits;
-  assert.equal(game.pending([]), true);
-  assert.equal(visits(), undefined);
-  mock.timers.tick(BATCH_MS);
-  assert.equal(game.pending([]), false);
-  assert.equal(visits(), game.focusVisits);
-});
-
-test("the end of a search's marks comes in the batch of its result, after the result's write", async () => {
-  const { pool, searches } = fakePool();
-  const game = new GameAnalysis(pool, MOVES, BOARD_ID);
   await game.start();
   await game.sweep();
   game.focus([]);

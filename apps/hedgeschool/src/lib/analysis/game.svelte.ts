@@ -746,6 +746,7 @@ export class GameAnalysis {
     if (held() >= visits) return met();
     if (this.paused || !wanted()) return;
     // The engine takes its next search when this one ends: the result's write and its batch (shown) follow without it.
+    // So the task gives `shown` back in an object: a task that gave the promise itself would wait for it.
     const ended = await pool.run(priority, tag, async (engine, onStop) => {
       if (held() >= visits) { met(); return; }
       if (this.paused || !wanted() || era !== this.era) return;
@@ -758,7 +759,7 @@ export class GameAnalysis {
       let late = false;
       const timer = sliced && seconds !== null ? setTimeout(() => { late = true; run.stop(); }, seconds * 1000) : undefined;
       const done = run.done.finally(() => clearTimeout(timer));
-      const shown = this.marked(pathKey(path), done.then(async t => {
+      const shown = done.then(async t => {
         const a = toAnalysis(t.reply);
         if (era !== this.era) return;
         // The write first: the result and the passes' progress show only once it is stored, so that the game's mark
@@ -768,23 +769,23 @@ export class GameAnalysis {
         if (era !== this.era) return;
         this.toBatch(path, a.visits, () => a);
         this.afterBatch(() => { if (late) ontime?.(); if (!t.reply.terminated) met(); });
-      }));
+      });
+      this.marked(pathKey(path), shown);
       await done;
       return { shown };
     });
-    await ended?.shown; // the last run's: a run that the pool stopped to give way shows its own result alone
+    await ended?.shown; // the last run's (pool.run): a run that the pool stopped to give way shows its own result alone
   }
 
   /** Marks the position `key` as running until the batch after `search` ends (pending): its search runs, its result's
-   *  write follows, and the batch shows the result. Returns `search`. */
-  private marked<T>(key: string, search: Promise<T>): Promise<T> {
+   *  write follows, and the batch shows the result. */
+  private marked(key: string, search: Promise<unknown>) {
     this.running = { ...this.running, [key]: (this.running[key] ?? 0) + 1 };
     const end = () => this.afterBatch(() => {
       const left = (this.running[key] ?? 1) - 1, { [key]: _, ...rest } = this.running;
       this.running = left > 0 ? { ...rest, [key]: left } : rest;
     });
     search.then(end, end);
-    return search;
   }
 
   /** Keeps a result for the batch: the deepest for each position, so that a search's final result is not replaced by a
