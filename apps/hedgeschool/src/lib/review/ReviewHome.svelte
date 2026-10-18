@@ -185,7 +185,7 @@
         userscript</a>, one click on the game's page.</p>
     </form>
     <div class="flex flex-wrap items-center gap-3 mt-4 pt-3 border-t border-line">
-      <label class={["px-3 py-1 text-sm rounded border border-line bg-panel-2 cursor-pointer hover:border-accent", loadingFile && "opacity-50"]}>
+      <label class={["px-3 py-1 text-sm rounded border border-line bg-panel-2", loadingFile ? "opacity-50" : "hover:border-accent"]}>
         {loadingFile ? "Loading…" : "Load a review file"}
         <input type="file" accept=".json,application/json" class="sr-only" disabled={loadingFile}
                onchange={e => { void loadFile(e.currentTarget.files?.[0]); e.currentTarget.value = ""; }} />

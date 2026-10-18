@@ -166,10 +166,10 @@
   }
   button:hover:not(:disabled) { border-color: var(--accent); }
   button:disabled { opacity: 0.5; cursor: default; }
-  /* A label that holds a switch or a checkbox toggles it on a click, so it takes the button's pointer, while the
-     control is not disabled. A label that names its control by `for` gives itself the pointer (SettingToggle): CSS
-     cannot follow `for`. */
-  label:has(:is([role="switch"], input[type="checkbox"]):not(:disabled)) { cursor: pointer; }
+  /* A label that holds a switch or a checkbox toggles it on a click, and one that holds a file input opens the file
+     chooser, so it takes the button's pointer, while the control is not disabled. A label that names its control by
+     `for` gives itself the pointer (SettingToggle): CSS cannot follow `for`. */
+  label:has(:is([role="switch"], input[type="checkbox"], input[type="file"]):not(:disabled)) { cursor: pointer; }
   /* The reset leaves fields without a border. */
   input:where(:not([type="range"], [type="radio"], [type="checkbox"])), select {
     border: 1px solid var(--border);
