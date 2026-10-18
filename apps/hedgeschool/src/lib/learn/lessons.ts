@@ -1,49 +1,49 @@
 // The Learn section's course, a prototype. After Lichess Learn (ui/learn): short stages, each a few small tasks on the
-// board, with progress. The rules come from the engine repository's enclosure/README.md.
+// board, with progress. The rules come from the engine repository's games/enclosure/README.md.
 //
-// Placeholder: each task checks the visitor's edge with a small hand-written test for its one position, and shows a
-// hand-made result. Real lessons will play the edge in the engine's rules (docs/requests/02-engine-protocol.md).
-import type { Edge, Position, Region } from "#lib/review/model.ts";
+// Each step's board is a line of the position notation (the /notation page), and the engine's rules play on it, as on
+// the puzzles page: the engine reads the line (the query's `position`), gives the edge input the legal edges and the
+// mover's nodes, plays the visitor's edge and gives the board after it (describe_game). The boards are teaching
+// boards that no game reaches: only the edges that a step needs. So the page ignores describe's check. A step's task
+// test reads the engine's boards before and after the edge, not the edge's points.
+import { moverOf, readPosition } from "#lib/editor/position.ts";
+import { parseEdge } from "#lib/engine/notation.ts";
+import type { GamePosition } from "#lib/engine/protocol.ts";
+import type { Edge, Player, Position } from "#lib/review/model.ts";
+
+/** A legal edge as the engine played it: the step's board before it and the board after it (describe_game). */
+export interface Played { before: GamePosition; after: GamePosition }
 
 export interface Step {
   title: string;
   text: string; // what the rule is
   goal: string; // what to do
   view: [number, number, number, number];
-  position: Position;
+  position: string; // the board, a line of the position notation
   targets?: Edge[]; // a hint drawn on the board
-  check?: (e: Edge) => string | null; // null when the edge does the task, else what is wrong
-  result?: (e: Edge) => { position: Position; cut?: Edge; text: string };
+  /** Whether a legal edge does the step's task: null when it does, else the hint. A step without a task takes no
+   *  edge. */
+  task?: (p: Played) => string | null;
+  done?: string; // what the board after the edge shows
 }
 export interface Lesson { id: string; title: string; steps: Step[] }
 export interface Stage { title: string; about: string; lessons: Lesson[]; ready: boolean }
 
-const pos = (blue: Edge[], red: Edge[] = [], extra: Partial<Position> = {}): Position => ({
-  edges: [blue, red], protected: [], placed: [], scores: [0, 0], player: 0, movesLeft: 2,
-  regions: [[], []], ...extra,
-});
-const square = (x0: number, y0: number, x1: number, y1: number): Region =>
-  ({ area: (x1 - x0) * (y1 - y0), rings: [[[x0, y0], [x1, y0], [x1, y1], [x0, y1]]] });
-const cheb = (e: Edge) => Math.max(Math.abs(e[2] - e[0]), Math.abs(e[3] - e[1]));
-const startsAt = (e: Edge, x: number, y: number) => (e[0] === x && e[1] === y) || (e[2] === x && e[3] === y);
-const from = (e: Edge, x: number, y: number): Edge => (e[0] === x && e[1] === y ? e : [e[2], e[3], e[0], e[1]]);
-// Do two segments cross or touch? (The rules: an edge that crosses or touches an enemy edge cuts it.)
-function meets(a: Edge, b: Edge): boolean {
-  const o = (p: number[], q: number[], r: number[]) => Math.sign((q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0]));
-  const on = (p: number[], q: number[], r: number[]) =>
-    Math.min(p[0], r[0]) <= q[0] && q[0] <= Math.max(p[0], r[0]) && Math.min(p[1], r[1]) <= q[1] && q[1] <= Math.max(p[1], r[1]);
-  const [p1, p2, p3, p4] = [[a[0], a[1]], [a[2], a[3]], [b[0], b[1]], [b[2], b[3]]];
-  const [d1, d2, d3, d4] = [o(p3, p4, p1), o(p3, p4, p2), o(p1, p2, p3), o(p1, p2, p4)];
-  if (d1 !== d2 && d3 !== d4) return true;
-  return (d1 === 0 && on(p3, p1, p4)) || (d2 === 0 && on(p3, p2, p4)) || (d3 === 0 && on(p1, p3, p2)) || (d4 === 0 && on(p1, p4, p2));
+/** A step's board as its line gives it, for the page before the engine draws it, or without the engine: the edges and
+ *  their marks, with no regions. The edge count fixes the mover (editor/position.ts, readPosition). */
+export function lineBoard(line: string): Position {
+  const { edges, count, scores } = readPosition(line), { player, left } = moverOf(count);
+  const of = (p: Player) => edges.filter(e => e.player === p);
+  const marked = (p: Player) => of(p).filter(e => e.marked).map(e => e.edge);
+  return {
+    edges: [of(0).map(e => e.edge), of(1).map(e => e.edge)], protected: marked((1 - player) as Player),
+    placed: marked(player), scores, player, movesLeft: left, regions: [[], []], count, notation: line,
+  };
 }
 
-const START: Edge = [0, 9, 3, 9];
-const U3: Edge[] = [[2, 6, 5, 6], [5, 6, 5, 9], [5, 9, 2, 9]];
-const RED_WALL: Edge = [4, 5, 4, 8];
-const PROTECTED: Edge = [5, 4, 5, 7];
-const OPEN: Edge = [0, 8, 3, 8];
-
+// The boards: Blue to move at the start of a turn of two edges (`b2`, with 3 edges played, as at a game's third turn).
+// So the board after a step's edge is still in Blue's turn: the scores have not changed, and Red's protected edge is
+// still protected.
 export const COURSE: Stage[] = [
   {
     title: "The rules",
@@ -60,14 +60,9 @@ export const COURSE: Stage[] = [
                   "points away, in any direction.",
             goal: "Draw a new edge from one of Blue's nodes.",
             view: [0, 5, 8, 13],
-            position: pos([START]),
-            check: e => {
-              if (!startsAt(e, 0, 9) && !startsAt(e, 3, 9)) return "Start at one of Blue's nodes: A10 or D10.";
-              if (e[1] === 9 && e[3] === 9 && Math.min(e[0], e[2]) < 3 && Math.max(e[0], e[2]) > 0)
-                return "A new edge must not run along your own edge.";
-              return null;
-            },
-            result: e => ({ position: pos([START, e]), text: "Every new edge adds a node at its far end, so you reach further each turn." }),
+            position: "A10-D10 - b2 0/0 3",
+            task: () => null, // every legal edge is a new edge from one of Blue's nodes
+            done: "Every new edge adds a node at its far end, so you reach further each turn.",
           },
           {
             title: "Close a region",
@@ -75,14 +70,12 @@ export const COURSE: Stage[] = [
                   "area is added to their score.",
             goal: "Close the square with one edge.",
             view: [0, 4, 8, 11],
-            position: pos(U3),
-            targets: [[2, 6, 2, 9]],
-            check: e => (cheb(e) === 3 && ((startsAt(e, 2, 6) && startsAt(e, 2, 9))) ? null : "Join the square's two open ends."),
-            result: e => ({
-              position: pos([...U3, e], [], { regions: [[square(2, 6, 5, 9)], []] }),
-              text: "The square encloses 9 points of area. Blue gains 9 points after this turn, and again after every " +
-                    "turn while it stays closed.",
-            }),
+            position: "C7-F7,C10-F10,F7-F10 - b2 0/0 3",
+            targets: [parseEdge("C7-C10")],
+            // Blue's area (`areas[0]`) grows by the square's 9. A diagonal closes a triangle of 4.5.
+            task: ({ before, after }) => (after.areas[0] - before.areas[0] >= 9 ? null : "Join the square's two open ends."),
+            done: "The square encloses 9 points of area. Blue gains 9 points after this turn, and again after every " +
+                  "turn while it stays closed.",
           },
         ],
       },
@@ -96,16 +89,9 @@ export const COURSE: Stage[] = [
                   "cut at most one enemy edge.",
             goal: "Cut the red edge with an edge from C7.",
             view: [0, 3, 8, 10],
-            position: pos([[0, 6, 2, 6]], [RED_WALL], { player: 0 }),
-            check: e => {
-              if (!startsAt(e, 2, 6)) return "Start at Blue's node C7.";
-              return meets(e, RED_WALL) ? null : "Your edge must cross or touch the red edge.";
-            },
-            result: e => ({
-              position: pos([[0, 6, 2, 6], from(e, 2, 6)], []),
-              cut: RED_WALL,
-              text: "The red edge is gone. Red's nodes with no edges left disappear too.",
-            }),
+            position: "A7-C7 E6-E9 b2 0/0 3",
+            task: ({ after }) => (after.cuts ? null : "Your edge must cross or touch the red edge."),
+            done: "The red edge is gone. Red's nodes with no edges left disappear too.",
           },
           {
             title: "Protected edges",
@@ -113,17 +99,11 @@ export const COURSE: Stage[] = [
                   "cannot be cut.",
             goal: "Cut the red edge that is not protected.",
             view: [0, 3, 8, 10],
-            position: pos([[0, 6, 2, 6]], [PROTECTED, OPEN], { protected: [PROTECTED] }),
-            check: e => {
-              if (!startsAt(e, 2, 6)) return "Start at Blue's node C7.";
-              if (meets(e, PROTECTED)) return "That edge crosses the protected one, so it is not allowed.";
-              return meets(e, OPEN) ? null : "Cross the red edge without the glow: A9-D9.";
-            },
-            result: e => ({
-              position: pos([[0, 6, 2, 6], from(e, 2, 6)], [PROTECTED]),
-              cut: OPEN,
-              text: "The protection lasts one turn. Next turn, Red's other edge can be cut too.",
-            }),
+            position: "A7-C7 A9-D9,F5-F8* b2 0/0 3",
+            // The engine takes no edge that cuts a protected one.
+            task: ({ before, after }) => (after.cuts && !before.protected.includes(after.cuts) ? null
+              : "Cross the red edge without the glow: A9-D9."),
+            done: "The protection lasts one turn. Next turn, Red's other edge can be cut too.",
           },
         ],
       },
@@ -137,8 +117,8 @@ export const COURSE: Stage[] = [
                   "edges. The two edges of a turn work together: set up with the first, close with the second.",
             goal: "Read, then continue.",
             view: [0, 4, 8, 11],
-            position: pos(U3.slice(0, 2), [], { regions: [[], []] }),
-            targets: [[5, 9, 2, 9], [2, 9, 2, 6]],
+            position: "C7-F7,F7-F10 - b2 0/0 3",
+            targets: [parseEdge("C10-F10"), parseEdge("C7-C10")],
           },
         ],
       },

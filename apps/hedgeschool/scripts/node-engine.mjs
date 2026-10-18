@@ -7,7 +7,10 @@ import { libraryOf, modelOf, moduleOf } from "../src/lib/engine/client.ts";
 import { loadLibrary } from "../src/lib/engine/library.ts";
 
 /** The manifest of static/engine under `root`, and `call`, which sends a request to the CPU module and parses its reply.
- *  With `network` (a network's id in the manifest), the module has that network, for analyses. */
+ *  With `network` (a network's id in the manifest), the module has that network, for analyses. The types are for the
+ *  site's tests, which import this module (TypeScript checks it there).
+ *  @param {string} root
+ *  @param {{ network?: string }} [options] */
 export async function nodeEngine(root, { network } = {}) {
   const manifest = JSON.parse(readFileSync(join(root, "static", "engine", "manifest.json"), "utf8"));
   const module = moduleOf(manifest), library = libraryOf(manifest);
@@ -21,5 +24,5 @@ export async function nodeEngine(root, { network } = {}) {
     const loaded = JSON.parse(engine.call({ id: "load", action: "load_model", name: network })); // as the worker loads it
     if (loaded.error) throw new Error(`load_model ${network}: ${loaded.error}`);
   }
-  return { manifest, module, call: request => JSON.parse(engine.call(request)) };
+  return { manifest, module, call: (/** @type {object} */ request) => JSON.parse(engine.call(request)) };
 }

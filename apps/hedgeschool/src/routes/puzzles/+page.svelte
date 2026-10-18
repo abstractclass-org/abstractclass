@@ -3,9 +3,8 @@
   // and a puzzle in three states. Play is rated. After a wrong edge it becomes try: unrated, try again or view the
   // solution. View comes after the end, with the rating change, a vote and "Continue training".
   import Board, { type BoardCandidate } from "#lib/board/Board.svelte";
-  import { EdgeInput } from "#lib/board/edgeInput.svelte.ts";
+  import { EdgeInput, rulesOf } from "#lib/board/edgeInput.svelte.ts";
   import { EngineWorker, loadManifest, moduleOf } from "#lib/engine/client.ts";
-  import { parseEdge, parsePoint } from "#lib/engine/notation.ts";
   import { review, edgeName, sameEdge, PLAYER_NAME, type Edge } from "#lib/review/model.ts";
   import { puzzlesFrom, nextRating, THEME_TEXT, type Puzzle, type Theme } from "#lib/puzzles/model.ts";
   import { SAMPLE, SAMPLE_MOVES } from "#lib/mock/sample.ts";
@@ -62,10 +61,7 @@
     engine.describe({ moves: SAMPLE_MOVES.slice(0, index) })
       .then(({ reply }) => {
         if (!current) return;
-        input.rules = {
-          legal: reply.legal.filter(m => m.includes("-")).map(parseEdge), // not "pass"
-          nodes: reply.nodes[reply.mover].map(parsePoint),
-        };
+        input.rules = rulesOf(reply);
       })
       .catch(e => console.warn("puzzles: describe failed", e));
     return () => { current = false; };

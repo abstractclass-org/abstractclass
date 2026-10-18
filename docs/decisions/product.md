@@ -3643,3 +3643,50 @@ sweep.
     - A file that lacked one result of the game's line opened no snapshot. The page reviewed the game again, and
       said "The engine was updated since this game's last review, so the game is reviewed again." The removal took
       the earlier search's results, which no game needed.
+
+### The lessons on the engine's rules (2026-10-18)
+
+- **The problem:** the lessons checked each edge with a small test written for its one position, and drew a board
+  made by hand after it: a second copy of the rules. The puzzles already took their edges from the engine's rules.
+- **Decided** ([design/28-lessons.md](../design/28-lessons.md)): the lessons keep their teaching boards, with only
+  the edges that a step needs. Each board is a line of the notation that the engine reads (the query's `position`),
+  and the page ignores `describe`'s check. `describe` gives the edge input the legal edges and Blue's nodes, and
+  `describe_game` plays the visitor's edge and gives the board after it, with the cut, the regions and the areas.
+  Each step keeps a test of its task only, on the engine's boards: any legal edge (Draw an edge), Blue's area grows
+  by 9 (Close a region), a cut (Cut an enemy edge), a cut of an edge that was not protected (Protected edges). A legal
+  edge that fails the task is not placed: the step shows its hint, and the board stays.
+- **The boards:** each one is the hand-made board as it was, written as a line, with Blue to move at the start of a
+  turn of two edges (`b2`, 3 edges played), as the hand-made boards had two edges left. The notation writes every
+  board as it is: a player with no edges has `-`. The engine reads each line and writes it back the same. Its check
+  finds what no game reaches (Close a region: `edge-count`; Protected edges: `protected-joined`), and the page
+  ignores it. No step's text needed a change: the engine's boards show what each text says.
+- **Without the engine,** the input keeps the rules' box, as the puzzles' does. The page draws each step's line as
+  the board editor reads it (no regions), and the step says that it cannot check the edge. An edge entered before the
+  engine answers waits for it, and an edge that it refuses gets "The rules do not allow this edge."
+- **Also:** the line "Prototype: the lessons check edges with small hand-written tests until the engine gives the
+  rules" is gone: the page checks no rule by hand. The lesson complete page offered "Next: Edges" after every lesson,
+  because the page kept the lesson in a deep `$state` proxy and `indexOf` did not find it in the course. It keeps
+  the course's own object now (`$state.raw`), and offers the next lesson. The puzzles page and the lessons share
+  `rulesOf` (the input's rules from a `describe` reply).
+- **Checked:**
+  - The unit tests (`src/lib/learn/lessons.test.ts`), on the engine's CPU module in Node: the engine reads each line
+    as it is written, with Blue to move. For each step, legal edges that do its task and legal edges that do not.
+    In Close a region, C7-C10 is the only legal edge that does the task. In Protected edges, no legal edge cuts
+    F5-F8, and every edge that cuts A9-D9 does the task. The facts of the texts: the square's area of 9 with the
+    scores unchanged, Red with no edges after the cut, and F5-F8 still protected after Blue's edge.
+  - Every step in Playwright's Chromium, on a production build without the early-access switch:
+    - Draw an edge: E12 refused as a first point ("Start the edge at one of Blue's nodes."), A10 marks 24 ends, B10 on
+      Blue's own edge refused as an end, A10-A13 does the task, and the board after it has the new edge, placed. No
+      legal edge fails this task.
+    - Close a region: E9 refused, C10-C9 gets "Join the square's two open ends." with the board as it was, C7-C10 does
+      the task, and the board after it has Blue's region.
+    - Cut an enemy edge: Red's node E6 refused, A7-A8 gets "Your edge must cross or touch the red edge.", C7-E8 does
+      the task, and the board after it has no red edge and the cut drawn.
+    - Protected edges: C7-F7 refused as an end (it would cut the protected edge), C7-D6 gets "Cross the red edge
+      without the glow: A9-D9.", C7-C9 does the task, and the board after it has A9-D9 cut and F5-F8 still protected.
+    - Two edges a turn: the two hint edges, no input, and Continue completes the lesson. The map then shows the three
+      lessons done.
+    - With the engine's manifest missing: the board from the line, the rules' box, and the notice. With the manifest
+      4 s late: A7-B7 entered in the rules' box got "The rules do not allow this edge.", and the board stayed.
+    - The console had no errors. Its one 404 was the manifest that the check stopped.
+  - Not checked: Edge, Firefox and Safari, and a phone's width.
