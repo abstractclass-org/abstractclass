@@ -9,7 +9,7 @@
   import { edgeName, parseEdge } from "#lib/engine/notation.ts";
   import { boardPosition, rulesOf } from "#lib/engine/position.ts";
   import { COURSE, lineBoard, type Lesson, type Step } from "#lib/learn/lessons.ts";
-  import { PLAYER_NAME, type Edge, type Position } from "#lib/review/model.ts";
+  import type { Edge, Position } from "#lib/review/model.ts";
   import PageMeta from "#lib/PageMeta.svelte";
 
   let lesson = $state.raw<Lesson | null>(null); // raw: the course's own object, so that indexOf finds it
@@ -42,7 +42,6 @@
   // answers, the board as the step's line gives it.
   let drawn = $state.raw<Position | null>(null);
   const board = $derived(step ? drawn ?? lineBoard(step.position) : null);
-  const side = $derived(PLAYER_NAME[board?.player ?? 0]); // the mover
   $effect(() => {
     const s = step;
     drawn = null;
@@ -151,7 +150,7 @@
             <span class={["size-3 rounded-full", i < (done[lesson.id] ?? 0) ? "bg-best" : "bg-line", i === k && "outline-2 outline-offset-1 outline-accent"]}></span>
           {/each}
         </div>
-        {#if step}
+        {#if step && board}
           <h2 class="mt-3 mb-1 text-lg font-bold">{step.title}</h2>
           <p>{step.text}</p>
           {#if shown}
@@ -161,7 +160,7 @@
             <p class="font-bold">{step.goal}</p>
             {#if step.task}
               {#if noEngine}<p class="text-sm text-muted">The engine did not start. This page cannot check your edge.</p>
-              {:else}<EdgeInputHint {input} {side} />{/if}
+              {:else}<EdgeInputHint {input} player={board.player} />{/if}
               {#if wrong}<p class="text-mistake">Not quite. {wrong}</p><button onclick={resetStep}>Try again</button>{/if}
             {:else}
               <button class="btn-primary" onclick={nextStep}>Continue</button>

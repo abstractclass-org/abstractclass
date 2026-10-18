@@ -3652,14 +3652,18 @@ sweep.
   the edges that a step needs. Each board is a line of the notation that the engine reads (the query's `position`),
   and the page ignores `describe`'s check. `describe` gives the edge input the legal edges and Blue's nodes, and
   `describe_game` plays the visitor's edge and gives the board after it, with the cut, the regions and the areas.
-  Each step keeps a test of its task only, on the engine's boards: any legal edge (Draw an edge), Blue's area grows
-  by 9 (Close a region), a cut (Cut an enemy edge), a cut of an edge that was not protected (Protected edges). A legal
-  edge that fails the task is not placed: the step shows its hint, and the board stays.
-- **The boards:** each one is the hand-made board as it was, written as a line, with Blue to move at the start of a
-  turn of two edges (`b2`, 3 edges played), as the hand-made boards had two edges left. The notation writes every
-  board as it is: a player with no edges has `-`. The engine reads each line and writes it back the same. Its check
-  finds what no game reaches (Close a region: `edge-count`; Protected edges: `protected-joined`), and the page
-  ignores it. No step's text needed a change: the engine's boards show what each text says.
+  Each step keeps a test of its task only, on the engine's boards:
+  - Draw an edge: any legal edge.
+  - Close a region: Blue's area grows by 9.
+  - Cut an enemy edge: a cut.
+  - Protected edges: a cut of an edge that was not protected.
+
+  A legal edge that fails the task is not placed: the step shows its hint, and the board stays.
+- **The boards:** each one is the hand-made board as it was, written as a line. Blue moves at the start of a turn of
+  two edges (`b2`, 3 edges played), as the hand-made boards had two edges left. The notation writes every board as it
+  is: a player with no edges has `-`. The engine reads each line and writes it back the same. Its check finds what no
+  game reaches: `edge-count` in Close a region, and `protected-joined` in Protected edges. The page ignores it. No
+  step's text needed a change: the engine's boards show what each text says.
 - **Without the engine,** the input keeps the rules' box, as the puzzles' does. The page draws each step's line as
   the board editor reads it (no regions), and the step says that it cannot check the edge. An edge entered before the
   engine answers waits for it, and an edge that it refuses gets "The rules do not allow this edge."
@@ -3668,14 +3672,16 @@ sweep.
   because the page kept the lesson in a deep `$state` proxy and `indexOf` did not find it in the course. It keeps
   the course's own object now (`$state.raw`), and offers the next lesson. The puzzles page and the lessons share
   `rulesOf` (`engine/position.ts`: the input's rules from a `describe` reply), which Practice and the Analysis board
-  use too, and the input's words (`EdgeInputHint.svelte`, with the puzzles' words). Learn starts the engine when the
-  visitor opens the first lesson, not on the map.
+  use too, and the input's words (`EdgeInputHint.svelte`). The words are the puzzles' words, with a verb in the
+  instruction for the second point: "Now click its second point". Learn starts the engine when the visitor opens the
+  first lesson, not on the map.
 - **Checked:**
   - The unit tests (`src/lib/learn/lessons.test.ts`), on the engine's CPU module in Node: the engine reads each line
     as it is written, with Blue to move. For each step, legal edges that do its task and legal edges that do not.
-    In Close a region, C7-C10 is the only legal edge that does the task. In Protected edges, no legal edge cuts
-    F5-F8, and every edge that cuts A9-D9 does the task. The facts of the texts: the square's area of 9 with the
-    scores unchanged, Red with no edges after the cut, and F5-F8 still protected after Blue's edge.
+    In Close a region, C7-C10 is the only legal edge that does the task. In the two cut steps, a legal edge does the
+    task when it cuts the red edge of the goal, and only then. No legal edge cuts F5-F8, and in Cut an enemy edge
+    each edge that cuts starts at C7. The facts of the texts: the square's area of 9 with the scores unchanged, Red
+    with no edges after the cut, and F5-F8 still protected after Blue's edge.
   - Every step in Playwright's Chromium, on a production build without the early-access switch:
     - Draw an edge: E12 refused as a first point ("Start the edge at one of Blue's nodes."), A10 marks 24 ends, B10 on
       Blue's own edge refused as an end, A10-A13 does the task, and the board after it has the new edge, placed. No
@@ -3691,4 +3697,8 @@ sweep.
     - With the engine's manifest missing: the board from the line, the rules' box, and the notice. With the manifest
       4 s late: A7-B7 entered in the rules' box got "The rules do not allow this edge.", and the board stayed.
     - The console had no errors. Its one 404 was the manifest that the check stopped.
+  - After the review, in Playwright's Chromium on a new build: the map loads nothing of the engine, and the first
+    lesson loads it. Every step again, with the same edges. "Lesson complete" offers Cuts after Edges, Turns after
+    Cuts, and no next lesson after Turns. Without the manifest: the notice, and no edge placed. The puzzles: the
+    rules arrive, and A1 is refused as a first point. The console had no errors.
   - Not checked: Edge, Firefox and Safari, and a phone's width.

@@ -22,9 +22,9 @@ in the early access (design 11).
 2. **The engine's rules for the input,** as on the puzzles page: `describe` gives the edge input the legal edges and
    the mover's nodes. The first point must be one of Blue's nodes, and the board marks the legal ends from it. A
    click on another point does nothing, and the step says why, as the puzzles page does.
-3. **The engine plays the edge:** `describe_game`, with the edge as its one move, gives the board before it and the
-   board after it, with the edge cut, the regions and the areas. The page draws the board after it. No result board
-   is made by hand.
+3. **The engine plays the edge:** the page sends `describe_game` with the edge as its one move. The reply gives the
+   board before the edge and the board after it, with the edge cut, the regions and the areas. The page draws the
+   board after it. No result board is made by hand.
 4. **Each step keeps a test of its task only.** The test reads the engine's two boards, not the edge's points:
    - "Draw an edge": every legal edge does the task.
    - "Close a region": Blue's area grows by the square's 9. A diagonal closes a triangle of 4.5.
@@ -36,9 +36,9 @@ in the early access (design 11).
 6. **Before the engine answers,** the page draws the step's line as the board editor reads it: the edges and their
    marks, with no regions. The input keeps the rules' box (any point within 3). An edge entered then waits for the
    engine, and an edge that the engine refuses gets "The rules do not allow this edge."
-7. **Without the engine** (a site where `npm run engine` was not run, or a browser where the engine does not start),
-   the input keeps the rules' box, as the puzzles' input does. The step says that the page cannot check the edge, and
-   no edge is placed.
+7. **Without the engine,** the input keeps the rules' box, as the puzzles' input does. The step says that the page
+   cannot check the edge, and no edge is placed. This is a site where `npm run engine` was not run, or a browser
+   where the engine does not start.
 
 ## Why
 

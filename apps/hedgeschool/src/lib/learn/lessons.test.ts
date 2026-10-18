@@ -76,13 +76,18 @@ test("only the edge that joins the square's open ends closes it", { skip }, () =
   assert.deepEqual(legal(s).filter(m => s.task!(play(s, m)) === null), ["C7-C10"]);
 });
 
-test("no legal edge cuts the protected edge, and every edge that cuts the other one does the task", { skip }, () => {
-  const s = step("Protected edges");
-  const cuts = legal(s).map(m => ({ m, p: play(s, m) })).filter(({ p }) => p.after.cuts);
-  assert.ok(cuts.length);
-  for (const { m, p } of cuts) {
-    assert.equal(p.after.cuts, "A9-D9", m);
-    assert.equal(s.task!(p), null, m);
+test("a legal edge does a cut step's task when it cuts the red edge of the goal, and only then", { skip }, () => {
+  // The red edge that each goal names. No legal edge cuts F5-F8, the protected one.
+  const named: Record<string, string> = { "Cut an enemy edge": "E6-E9", "Protected edges": "A9-D9" };
+  for (const [title, edge] of Object.entries(named)) {
+    const s = step(title), played = legal(s).map(m => ({ m, p: play(s, m) }));
+    assert.ok(played.some(({ p }) => p.after.cuts === edge), title);
+    for (const { m, p } of played) {
+      assert.ok(p.after.cuts === null || p.after.cuts === edge, `${title}: ${m} cuts ${p.after.cuts}`);
+      assert.equal(s.task!(p) === null, p.after.cuts === edge, `${title}: ${m}`);
+      // "Cut the red edge with an edge from C7": Blue's other node, A7, is too far from it.
+      if (title === "Cut an enemy edge" && p.after.cuts) assert.ok(m.split("-").includes("C7"), m);
+    }
   }
 });
 

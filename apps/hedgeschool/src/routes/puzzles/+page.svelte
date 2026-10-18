@@ -175,11 +175,11 @@
         {#if feedback === "init"}
           <div class="flex items-center gap-1.5 text-lg font-bold"><Swatch player={puzzle.player} /> Your turn</div>
           <p class="font-semibold">Find the best edge for {PLAYER_NAME[puzzle.player]}.</p>
-          <EdgeInputHint {input} side={PLAYER_NAME[puzzle.player]} />
+          <EdgeInputHint {input} player={puzzle.player} />
         {:else if feedback === "fail" && mode === "try"}
           <p class="font-bold text-mistake">That's not the edge. Try something else.</p>
           <p class="text-sm text-muted">This attempt no longer counts for your rating.</p>
-          <EdgeInputHint {input} side={PLAYER_NAME[puzzle.player]} />
+          <EdgeInputHint {input} player={puzzle.player} />
         {:else if feedback === "fail"}
           <p class="font-bold text-mistake">Streak over: {streak} solved.</p>
         {:else if feedback === "win"}
