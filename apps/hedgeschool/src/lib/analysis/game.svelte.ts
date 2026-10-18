@@ -25,7 +25,7 @@
 import { edgeName, parseEdge, type Edge } from "#lib/engine/notation.ts";
 import { boardPosition, rulesOf } from "#lib/engine/position.ts";
 import { toAnalysis } from "#lib/engine/analysis.ts";
-import { positionQuery, type AnalysisReply } from "#lib/engine/protocol.ts";
+import { positionQuery } from "#lib/engine/protocol.ts";
 import { errorText } from "#lib/errors.ts";
 import { BOARD_ID, branchNodes, keptNode, type BranchNode as KeptNode, type KeptBoard, type KeptBranches } from "#lib/game/store.ts";
 import { equalDepth, moverWin, onlyEdge, otherCandidate, sameMove, secondChoice, type Analysis, type Candidate, type LineStep,
@@ -106,8 +106,8 @@ export class GameAnalysis {
   // The batch (BATCH_MS): the results that wait for it, the deepest for each position by path key, and what runs once
   // it has applied them.
   private batch = new Map<string, { path: string[]; visits: number; analysis: () => Analysis }>();
-  private batchThen: (() => void)[] = [];
-  private batchTimer: ReturnType<typeof setTimeout> | null = null;
+  private batchSteps: (() => void)[] = [];
+  private batchTimer?: ReturnType<typeof setTimeout>;
 
   /** The analysis of the moves `moves`, from `startPosition` (the board's set-up start), whose tree is kept under `id`:
    *  the game's id (game/store.ts), or BOARD_ID for the Analysis board, which takes the board's form. */
@@ -650,7 +650,9 @@ export class GameAnalysis {
     this.dropFocus();
     this.pool.halt();
     this.engineReady = false;
-    this.batch.clear(); // what runs after it stays: a search's mark ends, and the passes' progress checks the era
+    // The batch ends with the era: its results are dropped, and what waits for them runs now, before the reset below.
+    this.batch.clear();
+    this.applyBatch();
     this.analysis = Array(this.moves.length + 1).fill(undefined);
     this.branches = Object.fromEntries(Object.entries(this.branches).map(([k, n]) => [k, { ...n, analysis: undefined }]));
     this.outside = {};
@@ -737,8 +739,6 @@ export class GameAnalysis {
     const era = this.era, pool = this.pool, query = this.query(path), keyed = this.keyMovesOf(path);
     const key = analysisKey(pool.search!, pool.model!.sha256, keyed, visits);
     const held = () => this.analysisOf(path)?.visits ?? 0;
-    // After the batch, for a result of this era only: another network drops the analysis and its progress.
-    const inBatch = (then: () => void) => this.afterBatch(() => { if (era === this.era) then(); });
     if (held() >= visits) return met();
     const cached = await cacheGetAtLeast<Analysis>(pool.search!, pool.model!.sha256, keyed, visits);
     if (era !== this.era) return;
@@ -749,7 +749,7 @@ export class GameAnalysis {
       if (held() >= visits) return met();
       if (this.paused || !wanted() || era !== this.era) return;
       const run = engine.analyse({ ...query, maxVisits: visits, includePVVisits: true, ...(slice ? { slice: { visits: slice } } : {}) },
-                                 r => this.keepPartial(path, r, era));
+                                 r => { if (era === this.era) this.toBatch(path, r.rootInfo.visits, () => toAnalysis(r)); });
       if (sliced) onStop(run.stop); // the pool may stop it to give way, and runs it again later
       if (tag === "focus") this.stopFocus = run.stop;
       // The time limit counts from the search's start, not from its wait in the queue. A search in slices takes no
@@ -759,11 +759,11 @@ export class GameAnalysis {
       const t = await run.done.finally(() => clearTimeout(timer));
       const a = toAnalysis(t.reply);
       if (era !== this.era) return;
+      // The write first: the end of the search's marks (marked, focus) then follows in microtasks, before the batch.
+      if (!t.reply.terminated && a.visits >= visits) await cachePut(key, a);
+      if (era !== this.era) return;
       this.toBatch(path, a.visits, () => a);
-      if (late && ontime) inBatch(ontime);
-      if (t.reply.terminated) return;
-      inBatch(met);
-      if (a.visits >= visits) await cachePut(key, a);
+      this.afterBatch(() => { if (late) ontime?.(); if (!t.reply.terminated) met(); });
     }));
   }
 
@@ -781,34 +781,34 @@ export class GameAnalysis {
     }
   }
 
-  /** Keeps a search's results so far for the batch. The analysis is read only when the batch applies it, so results
-   *  that a later slice replaced cost nothing. */
-  private keepPartial(path: string[], reply: AnalysisReply, era: number) {
-    if (era === this.era) this.toBatch(path, reply.rootInfo.visits, () => toAnalysis(reply));
-  }
-
   /** Keeps a result for the batch: the deepest for each position, so that a search's final result is not replaced by a
-   *  shallower result of another search of the position, and the latest of equal depth. */
+   *  shallower result of another search of the position, and the latest of equal depth. `analysis` runs only when the
+   *  batch applies it, so that a search's results so far that a later slice replaced cost nothing. */
   private toBatch(path: string[], visits: number, analysis: () => Analysis) {
     const key = pathKey(path);
     if (visits >= (this.batch.get(key)?.visits ?? 0)) this.batch.set(key, { path, visits, analysis });
-    this.batchTimer ??= setTimeout(() => this.applyBatch(), BATCH_MS);
+    this.scheduleBatch();
   }
 
-  /** Runs `then` in the next batch, after its results are applied: what a search's end changes shows with its result. */
-  private afterBatch(then: () => void) {
-    this.batchThen.push(then);
+  /** Runs `step` in the next batch, after its results are applied: what a search's end changes shows with its result. */
+  private afterBatch(step: () => void) {
+    this.batchSteps.push(step);
+    this.scheduleBatch();
+  }
+
+  private scheduleBatch() {
     this.batchTimer ??= setTimeout(() => this.applyBatch(), BATCH_MS);
   }
 
   /** Applies the batch's results, then runs what waits for them, in one task: the review runs once for all of them. */
   private applyBatch() {
-    this.batchTimer = null;
-    const results = [...this.batch.values()], then = this.batchThen;
-    this.batch.clear();
-    this.batchThen = [];
-    for (const r of results) this.keep(r.path, r.analysis());
-    for (const f of then) f();
+    clearTimeout(this.batchTimer);
+    this.batchTimer = undefined;
+    const results = this.batch, steps = this.batchSteps;
+    this.batch = new Map();
+    this.batchSteps = [];
+    for (const r of results.values()) this.keep(r.path, r.analysis());
+    for (const step of steps) step();
   }
 
   /** Keeps the deeper of the analysis held and the new one. */

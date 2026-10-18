@@ -1,5 +1,5 @@
-// Checks the parsing of Chrome's trace, the verdict on pairs and the preview's header rules (speed.mjs), on recorded
-// inputs and static/_headers. Run: npm test.
+// Checks the parsing of Chrome's trace, the long tasks, the verdict on pairs and the preview's header rules (speed.mjs),
+// on recorded inputs and static/_headers. Run: npm test.
 //   - tests/fixtures/review-reload-trace.json: Chrome's trace of a reload of the stored review, in Playwright's Chromium
 //     (the build of abscls-3nr), cut to the events that the parsing reads: the marks, the main thread's tasks and
 //     paints of the first draw and three on each side of it, eight tasks of other threads inside it, and the eight
@@ -10,7 +10,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { eventTime, headerRules, median, tasksBetween, verdict } from "./speed.mjs";
+import { eventTime, headerRules, longTasks, median, tasksBetween, verdict } from "./speed.mjs";
 
 const trace = JSON.parse(readFileSync("tests/fixtures/review-reload-trace.json", "utf8"));
 // The first draw's tasks: each task's start, wall time and thread time, in milliseconds.
@@ -45,6 +45,11 @@ test("a trace without a mark, or without the paint after it, gives null", () => 
   assert.equal(tasksBetween(trace, "review:shown", "review:lost"), null);
   const unpainted = { traceEvents: trace.traceEvents.filter(e => e.name !== "Paint") };
   assert.equal(tasksBetween(unpainted, "review:shown", "review:moves", { paint: true }), null);
+});
+
+test("the long tasks pass 50 ms: how many, their time beyond it, and the longest task", () => {
+  assert.deepEqual(longTasks([20, 60, 50, 75]), { count: 2, beyond: 35, longest: 75 });
+  assert.deepEqual(longTasks([]), { count: 0, beyond: 0, longest: 0 });
 });
 
 test("a named event's time adds its events on every thread", () => {

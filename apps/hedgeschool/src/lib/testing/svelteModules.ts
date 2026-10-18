@@ -14,6 +14,6 @@ registerHooks({
     const js = ts.transpileModule(readFileSync(file, "utf8"), {
       fileName: file, compilerOptions: { target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext, verbatimModuleSyntax: true },
     }).outputText;
-    return { format: "module", source: compileModule(js, { filename: file, generate: "client" }).js.code, shortCircuit: true };
+    return { format: "module", source: compileModule(js, { filename: file }).js.code, shortCircuit: true };
   },
 });

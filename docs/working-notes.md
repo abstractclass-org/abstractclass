@@ -35,6 +35,7 @@ learn one, and remove a note when it stops being true. The work itself is in bea
     the review is done. `importFile(page, url, file)` imports a review file or an analysis file.
   - `tasksBetween(trace, from, to, { paint })` gives the main thread's tasks between two marks, each with its wall
     time and its thread time. `eventTime(trace, name)` gives a named event's count and times on every thread.
+    `longTasks(times)` gives the tasks over 50 ms (`LONG_TASK`): how many, their time beyond 50 ms, and the longest.
   - `layoutShift(page, since)` gives the page's Cumulative Layout Shift and each element that moved. It reads a
     buffered `PerformanceObserver`: `performance.getEntriesByType("layout-shift")` gives no entries.
     `layout-shift.mjs` compares two builds' layout shift with it, on the review and on the Analysis board, in pairs.

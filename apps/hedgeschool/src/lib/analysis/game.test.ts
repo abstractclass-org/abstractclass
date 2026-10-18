@@ -4,7 +4,7 @@
 import { afterEach, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
 import "#lib/testing/svelteModules.ts";
-import type { AnalysisQuery, AnalysisReply, GamePosition, PositionQuery } from "#lib/engine/protocol.ts";
+import type { AnalysisReply, GamePosition, PositionQuery } from "#lib/engine/protocol.ts";
 import type { EnginePool, Work } from "./pool.ts";
 
 const { BATCH_MS, GameAnalysis, SWEEP_VISITS } = await import("./game.svelte.ts");
@@ -24,13 +24,12 @@ let models = 0;
 /** A pool that runs each task at once, on an engine whose searches end when the test says: `partial` posts a result so
  *  far, `end` the final result. */
 function fakePool() {
-  const searches: { moves: string[]; partial(visits: number): void; end(visits: number): void }[] = [];
+  const searches: { partial(visits: number): void; end(visits: number): void }[] = [];
   const engine = {
-    kind: "cpu",
-    analyse(q: AnalysisQuery, onPartial: (r: AnalysisReply) => void) {
+    analyse(_query: unknown, onPartial: (r: AnalysisReply) => void) {
       let end!: (t: { reply: AnalysisReply }) => void;
       const done = new Promise(resolve => (end = resolve));
-      searches.push({ moves: q.moves, partial: v => onPartial(reply(v)), end: v => end({ reply: reply(v) }) });
+      searches.push({ partial: v => onPartial(reply(v)), end: v => end({ reply: reply(v) }) });
       return { done, stop() {} };
     },
   };
@@ -46,15 +45,21 @@ function fakePool() {
 /** Lets the promises in flight settle: the reads of the cache, which finds no store in Node. */
 const settle = () => new Promise(resolve => setImmediate(resolve));
 
-beforeEach(() => mock.timers.enable({ apis: ["setTimeout"] }));
-afterEach(() => mock.timers.reset());
-
-test("a search's final results wait for the batch, and the sweep's progress comes with them", async () => {
+/** A game whose sweep has started: a search of each position, which waits for the test. */
+async function sweeping() {
   const { pool, searches } = fakePool();
   const game = new GameAnalysis(pool, MOVES, "g");
   await game.start();
   void game.sweep();
   await settle();
+  return { game, searches };
+}
+
+beforeEach(() => mock.timers.enable({ apis: ["setTimeout"] }));
+afterEach(() => mock.timers.reset());
+
+test("a search's final results wait for the batch, and the sweep's progress comes with them", async () => {
+  const { game, searches } = await sweeping();
   assert.equal(searches.length, game.passCount);
   searches[0].end(SWEEP_VISITS);
   searches[1].end(SWEEP_VISITS);
@@ -67,11 +72,7 @@ test("a search's final results wait for the batch, and the sweep's progress come
 });
 
 test("a final result is not replaced by a shallower result of the same batch", async () => {
-  const { pool, searches } = fakePool();
-  const game = new GameAnalysis(pool, MOVES, "g");
-  await game.start();
-  void game.sweep();
-  await settle();
+  const { game, searches } = await sweeping();
   game.focus([]); // the start, on screen: searched in slices, beside the sweep's search of it
   await settle();
   const focus = searches.at(-1)!;
@@ -80,6 +81,18 @@ test("a final result is not replaced by a shallower result of the same batch", a
   focus.partial(SWEEP_VISITS / 2); // the focus's first slice, after the sweep's final result
   mock.timers.tick(BATCH_MS);
   assert.equal(game.analysis[0]?.visits, SWEEP_VISITS);
+});
+
+test("a search of the previous network adds nothing to the analysis or the progress", async () => {
+  const { game, searches } = await sweeping();
+  searches[0].end(SWEEP_VISITS); // before the change: its result waits for the batch
+  await settle();
+  game.dropAnalysis();
+  searches[1].end(SWEEP_VISITS); // after it
+  await settle();
+  mock.timers.tick(BATCH_MS);
+  assert.deepEqual(game.analysis.slice(0, 2), [undefined, undefined]);
+  assert.equal(game.swept, 0);
 });
 
 test("a position stays pending until the batch shows its search's final result", async () => {

@@ -109,6 +109,15 @@ export function tasksBetween(trace, from, to, { paint = false } = {}) {
     .map(t => ({ at: (t.ts - first.ts) / 1000, wall: t.dur / 1000, thread: (t.tdur ?? t.dur) / 1000 }));
 }
 
+/** A long task takes more than this many milliseconds. */
+export const LONG_TASK = 50;
+/** The long tasks among tasks' times in milliseconds: how many, their time beyond LONG_TASK each together (as Total
+ *  Blocking Time counts it), and the longest task of all. */
+export const longTasks = xs => {
+  const long = xs.filter(x => x > LONG_TASK);
+  return { count: long.length, beyond: long.reduce((s, x) => s + x - LONG_TASK, 0), longest: Math.max(0, ...xs) };
+};
+
 /** The trace's events named `name`, on every thread: how many, and their wall time and thread time together, in
  *  milliseconds. `DoDigest` gives the processor time of the page's SHA-256 checks (`crypto.subtle.digest`). */
 export function eventTime(trace, name) {

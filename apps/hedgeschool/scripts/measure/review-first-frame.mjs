@@ -15,13 +15,12 @@
 //
 //   node scripts/measure/review-first-frame.mjs [reloads] [width]x[height] [turn|edge]
 import { writeFileSync } from "node:fs";
-import { launch, layoutShift, mark, median, storeReview, tasksBetween, trace } from "./speed.mjs";
+import { LONG_TASK, launch, layoutShift, longTasks, mark, median, storeReview, tasksBetween, trace } from "./speed.mjs";
 
 const BASE = process.env.BASE_URL ?? "http://127.0.0.1:4173";
 const reloads = Number(process.argv[2] ?? 5);
 const [width, height] = (process.argv[3] ?? "1366x657").split("x").map(Number);
 const judge = process.argv[4]; // the review's unit (src/lib/review/display.ts): by turn, the default, or by edge
-const LONG = 50;
 
 const browser = await launch();
 const page = await browser.newPage({ viewport: { width, height } });
@@ -33,7 +32,6 @@ if (judge) await page.evaluate(d => localStorage.setItem("learn-enclosure:review
  *  `review:moves`, or with the review when the trace lacks that mark. */
 const firstDraw = traced =>
   tasksBetween(traced, "review:shown", mark(traced, "review:moves") ? "review:moves" : "review:shown", { paint: true });
-const overLong = xs => { const l = xs.filter(x => x > LONG); return { count: l.length, beyond: l.reduce((s, x) => s + x - LONG, 0), longest: Math.max(0, ...xs) }; };
 
 const ms = x => `${Math.round(x)} ms`;
 const results = [];
@@ -46,7 +44,7 @@ for (let k = 1; results.length < reloads; k++) { // a trace without the marks or
   }));
   if (!tasks) { console.log(`reload ${k}: the trace lacks a mark or the paint after it, again`); continue; }
   const shift = await layoutShift(page, "review:shown");
-  const r = { tasks, wall: overLong(tasks.map(t => t.wall)), thread: overLong(tasks.map(t => t.thread)), span: tasks.at(-1).at + tasks.at(-1).wall,
+  const r = { tasks, wall: longTasks(tasks.map(t => t.wall)), thread: longTasks(tasks.map(t => t.thread)), span: tasks.at(-1).at + tasks.at(-1).wall,
               work: tasks.reduce((s, t) => s + t.thread, 0), ...shift };
   results.push(r);
   const big = tasks.filter(t => t.wall >= 10 || t.thread >= 10);
@@ -57,8 +55,8 @@ const head = `${width}×${height}, by ${judge ?? "turn"}, ${reloads} reloads`;
 console.log(`${head}: the first draw's thread time median ${ms(median(results.map(r => r.work)))}`);
 for (const key of ["wall", "thread"]) {
   const longest = results.map(r => r[key].longest);
-  console.log(`${head}, ${key} time: tasks over ${LONG} ms median ${median(results.map(r => r[key].count))}; ` +
-              `time beyond ${LONG} ms median ${ms(median(results.map(r => r[key].beyond)))}; the longest task median ${ms(median(longest))}, longest ${ms(Math.max(...longest))}`);
+  console.log(`${head}, ${key} time: tasks over ${LONG_TASK} ms median ${median(results.map(r => r[key].count))}; ` +
+              `time beyond ${LONG_TASK} ms median ${ms(median(results.map(r => r[key].beyond)))}; the longest task median ${ms(median(longest))}, longest ${ms(Math.max(...longest))}`);
 }
 console.log(`CLS median ${median(results.map(r => r.cls)).toFixed(4)}, largest ${Math.max(...results.map(r => r.cls)).toFixed(4)}`);
 if (process.env.OUT) writeFileSync(process.env.OUT, JSON.stringify(results));

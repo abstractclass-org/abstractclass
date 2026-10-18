@@ -3707,29 +3707,35 @@ sweep.
 
 - **The problem:** only a search's results so far waited for the batch of 100 ms (`PARTIAL_MS` in
   `src/lib/analysis/game.svelte.ts`). Each final result applied at once, and each change of the analysis runs the
-  review again. The sweep's searches end one after another: 120 in 14 s here with 8 workers, and more with the GPU's
-  16 searches (abscls-s9u).
+  review again. The sweep's searches end one after another: 120 in 14 s on this computer with 8 workers, and more with
+  the GPU's 16 searches (abscls-s9u).
 - **The change** (design 05, `BATCH_MS`, in place of `PARTIAL_MS`):
   - The batch holds every result of a search: its results so far and its final result. It keeps the deepest result
-    of each position, so a final result is not replaced by a shallower result of another search of the same
-    position. Of two results of equal depth, the later one stays.
+    of each position, so a shallower result of another search of the same position does not replace a final result.
+    Of two results of equal depth, the later one stays.
   - What a search's end changes runs in the same batch, after its results: the passes' progress (`swept`,
     `labelled`), the end of the search's mark (`pending`, the gleam on a line), the mark of a time limit, and the end
     of the focus (the bar of the search of the position on screen). So the page shows a search's end with its result,
     at most one batch (100 ms) after the search ends.
   - A result from the browser's store applies at once, as before: a review opened again shows its results in its
-    first frame (`fromStore`). A search still writes its result to the store when it ends (`cachePut`).
+    first frame (`fromStore`). A search still writes its result to the store when it ends (`cachePut`). It writes
+    before its result goes into the batch, so that the end of its marks comes in the same batch, not after the write.
   - A search that ends after another network took over adds nothing to the passes' progress now. Before, a sweep's
-    search that finished its visits then counted in the new network's progress.
+    search that finished its visits then counted in the new network's progress. When another network takes over,
+    the batch drops its results, and runs what waits for them before the analysis starts again.
 - **The test:** `src/lib/analysis/game.test.ts` drives the analysis with a pool whose searches the test ends, and with
   Node's mock timers. It runs the module's runes in Node: `src/lib/testing/svelteModules.ts` removes the types with
-  TypeScript and compiles the runes with Svelte's `compileModule`. Before the change, two of its three tests failed:
-  the final result and the progress came before the batch, and the position stopped being pending before its result
-  showed. The third test guards the deepest result: it fails when the batch keeps the latest result instead.
+  TypeScript and compiles the runes with Svelte's `compileModule`. It has four tests:
+  - The final results and the sweep's progress wait for the batch. This test failed before the change.
+  - A position stays pending until the batch shows its search's final result. This test failed before the change.
+  - A shallower result in the same batch does not replace a final result. This test fails when the batch keeps the
+    latest result instead of the deepest.
+  - A search of the previous network adds nothing to the analysis or the progress. This test fails when a search's
+    end does not check the network, and when the batch outlives the network.
 - **The measurement** (`scripts/measure/review-sweep.mjs`): the main thread's tasks from the sweep's start to its end,
-  as the review's progress line names them. Each sweep reviews the fixture's game (`tests/fixtures/hedgefund-review.json`,
-  120 edges, so 120 positions) from its record, in a fresh browser context, so that no stored result exists.
-  Playwright's Chromium 153, headless, 1,366 × 657 pixels. Chrome's trace gives each task's wall time and thread time.
+  as the review's progress line names them. Each sweep reviews the fixture's game
+  (`tests/fixtures/hedgefund-review.json`, 120 edges, so 120 positions) from its record, in a fresh browser context, so
+  that no stored result exists. Playwright's Chromium 153, headless, 1,366 × 657 pixels. Chrome's trace gives each task's wall time and thread time.
   Each build ran 5 sweeps, in 5 pairs, and the build that ran first took turns.
   - **2 search workers,** the GPU off, under `scripts/machine run --threads 2`.
   - **8 search workers** (the default on 16 cores), under `--threads 8`, with the GPU set to On. The GPU did not start

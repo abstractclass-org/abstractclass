@@ -14,18 +14,15 @@
 //
 //   node scripts/measure/review-sweep.mjs <before> <after> [pairs] [workers] [off|on] [port]
 import { readFileSync, writeFileSync } from "node:fs";
-import { inPairs, launch, preview, tasksBetween, trace, verdict } from "./speed.mjs";
+import { LONG_TASK, inPairs, launch, longTasks, preview, tasksBetween, trace, verdict } from "./speed.mjs";
 
 const [before, after] = process.argv.slice(2, 4);
 const pairs = Number(process.argv[4] ?? 5), workers = Number(process.argv[5] ?? 2), gpu = process.argv[6] ?? "off";
 const port = Number(process.argv[7] ?? 4291);
 const record = JSON.parse(readFileSync("tests/fixtures/hedgefund-review.json", "utf8")).record;
-const LONG = 50;
 
 const builds = [await preview(before, port), await preview(after, port + 1)];
 const browser = await launch(gpu === "on" ? { args: ["--enable-unsafe-webgpu", "--use-angle=d3d11", "--enable-features=Vulkan"] } : {});
-
-const overLong = xs => { const l = xs.filter(x => x > LONG); return { count: l.length, beyond: l.reduce((s, x) => s + x - LONG, 0), longest: Math.max(0, ...xs) }; };
 
 /** One sweep of the game at the build's address. */
 async function sweep(url) {
@@ -33,12 +30,12 @@ async function sweep(url) {
   await context.addInitScript(settings => {
     localStorage.setItem("learn-enclosure:engine:2", settings);
     // The marks of the sweep's start and end, from the review's progress line (ReviewView.svelte).
-    const seen = new Set();
-    const once = (name, selector) => { if (!seen.has(name) && document.querySelector(selector)) { seen.add(name); performance.mark(name); } };
+    const marked = name => performance.getEntriesByName(name).length > 0;
+    const once = (name, selector) => { if (!marked(name) && document.querySelector(selector)) performance.mark(name); };
     const observer = new MutationObserver(() => {
       once("sweep:start", `p[title^="Reviewing: the game's shape"]`);
-      if (seen.has("sweep:start")) once("sweep:end", `p[title^="Reviewing: move quality"]`);
-      if (seen.has("sweep:end")) observer.disconnect();
+      if (marked("sweep:start")) once("sweep:end", `p[title^="Reviewing: move quality"]`);
+      if (marked("sweep:end")) observer.disconnect();
     });
     observer.observe(document, { subtree: true, childList: true, attributes: true, attributeFilter: ["title"] });
   }, JSON.stringify({ workers, gpu }));
@@ -50,7 +47,7 @@ async function sweep(url) {
   await context.close();
   const tasks = tasksBetween(traced, "sweep:start", "sweep:end");
   if (!tasks) throw new Error("the trace lacks the sweep's marks");
-  return { wall: overLong(tasks.map(t => t.wall)), thread: overLong(tasks.map(t => t.thread)), tasks: tasks.length,
+  return { wall: longTasks(tasks.map(t => t.wall)), thread: longTasks(tasks.map(t => t.thread)), tasks: tasks.length,
            tens: tasks.filter(t => t.thread >= 10).length, work: tasks.reduce((s, t) => s + t.thread, 0),
            span: tasks.at(-1).at + tasks.at(-1).wall };
 }
@@ -59,13 +56,13 @@ const ms = x => `${Math.round(x)} ms`;
 const runs = await inPairs(builds, pairs, async ({ url }) => {
   const r = await sweep(url);
   console.log(`${url}: ${r.tasks} tasks in ${(r.span / 1000).toFixed(1)} s, ${ms(r.work)} of thread time, ${r.tens} of 10 ms or more; ` +
-              `over ${LONG} ms by wall ${r.wall.count} (${ms(r.wall.beyond)} beyond, longest ${ms(r.wall.longest)}), ` +
+              `over ${LONG_TASK} ms by wall ${r.wall.count} (${ms(r.wall.beyond)} beyond, longest ${ms(r.wall.longest)}), ` +
               `by thread ${r.thread.count} (${ms(r.thread.beyond)} beyond, longest ${ms(r.thread.longest)})`);
   return r;
 });
 const measures = {
-  "tasks over 50 ms, by wall time": r => r.wall.count, "their time beyond 50 ms, by wall time": r => r.wall.beyond,
-  "tasks over 50 ms, by thread time": r => r.thread.count, "their time beyond 50 ms, by thread time": r => r.thread.beyond,
+  [`tasks over ${LONG_TASK} ms, by wall time`]: r => r.wall.count, [`their time beyond ${LONG_TASK} ms, by wall time`]: r => r.wall.beyond,
+  [`tasks over ${LONG_TASK} ms, by thread time`]: r => r.thread.count, [`their time beyond ${LONG_TASK} ms, by thread time`]: r => r.thread.beyond,
   "the longest task, by thread time": r => r.thread.longest, "tasks of 10 ms or more, by thread time": r => r.tens,
   "the main thread's thread time": r => r.work, "the sweep's time": r => r.span,
 };
