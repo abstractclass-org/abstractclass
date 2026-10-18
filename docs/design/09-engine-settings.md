@@ -83,9 +83,9 @@ each applies at once, without a reload.
    - **Engine:** "Network", named by the engine's release and by its download: "HedgeFund 0.2 Lite (6.5 MB)"
      (b10c128, the default) or "HedgeFund 0.2 (20.6 MB)" (b15c192). The names come from the release's manifest
      (`displayName`, copied into `engine.lock.json`), as the sizes do. A name belongs to one network file for life (the
-     engine repository's `v2/docs/design/20-network-names.md`). The help line gives the parameters (3.2M and 10.3M) and
-     adds that a network downloads once. In a narrow panel the label breaks only before the parenthesis ("HedgeFund 0.2
-     Lite" over "(6.5 MB)"): no-break spaces hold each part together.
+     engine repository's `games/enclosure/docs/design/20-network-names.md`). The help line gives the parameters (3.2M
+     and 10.3M) and adds that a network downloads once. In a narrow panel the label breaks only before the parenthesis
+     ("HedgeFund 0.2 Lite" over "(6.5 MB)"): no-break spaces hold each part together.
      - **The earlier networks,** HedgeFund 0.1 Lite and HedgeFund 0.1, are off the menus, and the site still ships them
        (`engine.lock.json` keeps their files): a game, a review file, a shared link or a Practice game that names one
        still loads it (`shipsNetwork` in `src/lib/analysis/engineSettings.ts`). Settings kept in the browser with an
@@ -164,10 +164,10 @@ each applies at once, without a reload.
 - **Networks by the engine's names** (as Lichess's menu names "Stockfish 17"): the engine repository names each network
   file, so a name is the same on the site, for the bots and in the players' talk, and changes only with the file
   (requests/12-network-names.md). The parameters (the trainer's counts, 3.22M and 10.25M, in the engine repository's
-  `v2/docs/design/15-network-sizes.md`) stay in the help line: a size says what differs. The help line does not call
-  the larger network stronger: it is stronger for each visit, but the smaller gets about three times the visits in the
-  same time, and only a match at the site's clock tells which is stronger (the engine repository's
-  `v2/docs/decisions/build.md`).
+  `games/enclosure/docs/design/15-network-sizes.md`) stay in the help line: a size says what differs. The help line
+  does not call the larger network stronger: it is stronger for each visit, but the smaller gets about three times the
+  visits in the same time, and only a match at the site's clock tells which is stronger (the engine repository's
+  `games/enclosure/docs/decisions/build.md`).
 - **The download in the network's name:** what a change of network costs, which matters on a metered connection.
   Lichess's engine menu gives each engine's size: its default Stockfish network is a small one made for the download
   (7 MB), and the official one (40 MB) is a choice. Nothing asks before the default network downloads: a review is

@@ -14,7 +14,7 @@ import { track } from "#lib/analytics.svelte.ts";
 import { readLocalJson, writeLocal } from "#lib/storage/local.ts";
 
 /** The searches that the GPU worker runs at once: one for each WebAssembly instance, their evaluations batched. The
- *  engine repository measured 16 (its v2/docs/decisions/build.md, "The GPU module"). */
+ *  engine repository measured 16 (its games/enclosure/docs/decisions/build.md, "The GPU module"). */
 export const GPU_SEARCHES = 16;
 /** How long each kind searches before the test compares them. */
 export const TEST_SECONDS = 20;

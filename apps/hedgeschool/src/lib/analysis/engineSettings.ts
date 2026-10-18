@@ -28,7 +28,7 @@ export type GpuMode = "auto" | "on" | "off";
 
 /** A network's name, as the engine's release names it (its manifest's `displayName`, copied into engine.lock.json):
  *  "HedgeFund 0.2 Lite". A name belongs to one network file for life (the engine repository's
- *  v2/docs/design/20-network-names.md). The id when the lock gives no name. */
+ *  games/enclosure/docs/design/20-network-names.md). The id when the lock gives no name. */
 export const networkName = (id: string): string => locked(id)?.displayName ?? id;
 /** A network's download in MB, from engine.lock.json, which the deploy fetches by: what a change of network costs, as
  *  Lichess's engine menu gives each engine's size. */
@@ -40,9 +40,9 @@ export const shipsNetwork = (id: string): boolean => locked(id)?.kind === "model
 const locked = (id: string) => (lock.artifacts as { id: string; kind: string; displayName?: string; bytes: number }[]).find(a => a.id === id);
 
 /** The networks that the settings and Practice offer, as the manifest names them, the default first. Their parameters
- *  are the trainer's counts (the engine repository's v2/docs/design/15-network-sizes.md). Their memory in a worker and
- *  on the GPU, measured on one machine: decisions/engine.md, "A review's memory". The settings give no number for it:
- *  it depends on the browser and the graphics card. */
+ *  are the trainer's counts (the engine repository's games/enclosure/docs/design/15-network-sizes.md). Their memory in
+ *  a worker and on the GPU, measured on one machine: decisions/engine.md, "A review's memory". The settings give no
+ *  number for it: it depends on the browser and the graphics card. */
 export const NETWORKS = [
   { id: "b10c128-s89066368-d17827487", params: "3.2M" },
   { id: "b15c192-s90436608-d18027147", params: "10.3M" },
