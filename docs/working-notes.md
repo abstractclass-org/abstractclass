@@ -4,7 +4,9 @@ How to work and test on this machine. Each note is a lesson that holds from sess
 learn one, and remove a note when it stops being true. The work itself is in beads (label `site`).
 
 - **Where the commands run:** `npm ci` at the repository's root, and the site's commands (the npm scripts, the
-  scripts in `scripts/`, Playwright) in `apps/hedgeschool`.
+  scripts in `scripts/`, Playwright) in `apps/hedgeschool`. The shared packages' type checks and tests run in each
+  package's folder, or all from the root: `npm run check --workspace=packages` and `npm test --workspace=packages`
+  (design 29).
 - **The owner plays in this browser** (Edge, the local build): practice games and reviews of their own. Before a
   test that plays, save the keys that it changes (`hedge-school:practice-*`, the review's display settings) and the
   games' ids, and put them back after. Read the state again before each test: the owner plays between them.
@@ -81,10 +83,10 @@ learn one, and remove a note when it stops being true. The work itself is in bea
   (`scripts/machine status` in the planning folder, `abstractclass-org`). Check that the GPU worker started before a
   measurement relies on it: in one review with the real GPU's flags, WebGPU gave an adapter, but the engine settings
   said "The GPU did not start: 9943656". The cause is not known.
-- **A unit test of a module with runes** (`*.svelte.ts`): import `#lib/testing/svelteModules.ts` first, then the
-  module by a dynamic import, as `src/lib/analysis/game.test.ts` does. In Node the browser's store finds no IndexedDB,
-  and every read of it answers as if the store were empty. The cache's memory (`cache.ts`) still keeps each result put
-  in it, for the rest of the test file.
+- **A unit test of a module with runes** (`*.svelte.ts`): import `@abstractclass/analysis/testing/svelteModules.ts`
+  first, then the module by a dynamic import, as `packages/analysis/src/analysis.test.ts` does. In Node the browser's
+  store finds no IndexedDB, and every read of it answers as if the store were empty. The cache's memory (`cache.ts`)
+  still keeps each result put in it, for the rest of the test file.
 - **Request 18's check, again** (on a new release): `node scripts/measure/describe-game-check.mjs
   ../../../engines/runs/archive/games.jsonl [games]`, after `npm run engine`. All 6,246 games take about 6 minutes. It
   prints counts only.
@@ -97,8 +99,8 @@ learn one, and remove a note when it stops being true. The work itself is in bea
   the tool's 45 seconds. Keep the Edge window in front for checks of focus, animation and layout shift.
 - **A script the browser tool runs** waits for its promise. A promise that never settles, such as an IndexedDB request
   on a store that does not exist, holds the tool for 45 seconds and reads as a frozen page. The site's database is
-  `learn-enclosure` (`src/lib/storage/db.ts`). Check its store names before reading them. A stored game's `record` is
-  text, not an object. Save what a test changes (a game's branches, the board under the key `board`, the engine
+  `learn-enclosure` (`packages/storage/src/db.ts`). Check its store names before reading them. A stored game's `record`
+  is text, not an object. Save what a test changes (a game's branches, the board under the key `board`, the engine
   settings) and put it back after.
 - **Claude in Chrome runs in Edge only.** With the extension on in Chrome too, the two browsers took turns as one
   device and every action failed.

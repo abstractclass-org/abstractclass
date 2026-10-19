@@ -11,12 +11,12 @@ also wants to know where the game was hard, apart from where they lost.
 
 ## Decision
 
-1. **The complexity** (KaTrain's, `complexity` in `src/lib/review/model.ts`): the mean loss of the searched candidates,
-   each weighed by the network's prior, from the root's value, for the mover. It is in the engine's win chance, the
-   labels' unit (design 10), not in points as KaTrain's. The stored analysis keeps each candidate's prior (the store's
-   shape 5).
-2. **A hard position:** a complexity of 0.10 or more (`HARD` in `src/lib/review/labels.ts`). The network's likely edges
-   lose a Mistake's worth there on average. A turn is as hard as its harder position.
+1. **The complexity** (KaTrain's, `complexity` in `packages/analysis/src/model.ts`): the mean loss of the searched
+   candidates, each weighed by the network's prior, from the root's value, for the mover. It is in the engine's win
+   chance, the labels' unit (design 10), not in points as KaTrain's. The stored analysis keeps each candidate's prior
+   (the store's shape 5).
+2. **A hard position:** a complexity of 0.10 or more (`HARD` in `packages/analysis/src/labels.ts`). The network's likely
+   edges lose a Mistake's worth there on average. A turn is as hard as its harder position.
 3. **What shows:** a mark where a position is hard, and two pictures of how hard. Words stay out: the tooltips say
    "Hard position", and the numbers stay in the tooltips of the pictures.
    - ◆ in the move list, beside the loss of a turn (or of an edge, by edge). Every row keeps a slot for it, so that a
@@ -135,14 +135,14 @@ The departures from the published methods:
 
 ## Where it is
 
-- `src/lib/review/labels.ts` (`HARD`, `accuracyWeight`), `src/lib/review/model.ts` (`complexity`, a move's
-  `complexity` and `hard`, the weighted accuracy in `summarize`, `hardNote`), `src/lib/analysis/game.svelte.ts`
-  (`toAnalysis` keeps the prior), `src/lib/analysis/cache.ts` (`SHAPE`), `src/lib/review/ReviewView.svelte` (the marks,
-  the engine header's line, the meter, the Report's line, the charts' tabs), `src/lib/review/DifficultyChart.svelte`,
-  `src/lib/review/annotate.ts` (the record's comment), `src/lib/review/labels.ts` (`meterGroup`),
-  `src/lib/review/model.ts` (`likelyEdges`).
+- `packages/analysis/src/labels.ts` (`HARD`, `accuracyWeight`), `packages/analysis/src/model.ts` (`complexity`, a move's
+  `complexity` and `hard`, the weighted accuracy in `summarize`, `hardNote`), `packages/analysis/src/reply.ts`
+  (`toAnalysis` keeps the prior), `packages/analysis/src/cache.ts` (`SHAPE`), `src/lib/review/ReviewView.svelte` (the
+  marks, the engine header's line, the meter, the Report's line, the charts' tabs),
+  `src/lib/review/DifficultyChart.svelte`, `src/lib/review/annotate.ts` (the record's comment),
+  `packages/analysis/src/labels.ts` (`meterGroup`), `packages/analysis/src/model.ts` (`likelyEdges`).
 - The measurement: `scripts/measure/complexity-check.mjs`.
-- The tests: `src/lib/review/model.test.ts`.
+- The tests: `src/lib/review/enclosure.test.ts`.
 
 ## Log entries
 

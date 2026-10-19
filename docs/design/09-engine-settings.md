@@ -53,8 +53,8 @@ each applies at once, without a reload.
      - **Deeper than the review, it updates the review there.** Each position keeps the deepest result it has, so the
        position's labels, the report's counts and accuracy, and the chart follow the deeper search as it runs. A review
        opened again, or imported, takes the deepest stored result of each position too (`cacheGetAtLeast` in
-       `src/lib/analysis/cache.ts`), so it opens as the player left it. The Depth's help line says so ("Deeper than the
-       review, it also updates the review there: the labels and the report."), and the report says how many of the
+       `packages/analysis/src/cache.ts`), so it opens as the player left it. The Depth's help line says so ("Deeper than
+       the review, it also updates the review there: the labels and the report."), and the report says how many of the
        game's positions have a result deeper than the review asked for (the review's depth, or 1,024 visits for a key
        moment). With the depth at most the review's, nothing changes: the review's own result is the deepest. Design 16
        has every depth together, with examples.
@@ -63,10 +63,10 @@ each applies at once, without a reload.
      from 256 visits on at every depth. A label search shows its result at 256 visits, and again after each further
      256, so a label shows as early at every depth and changes as the deeper search goes on. The key moments go one
      doubling deeper, to twice the review's depth (`momentVisits` in
-     `src/lib/analysis/game.svelte.ts`): Lite's 512 gives 1,024, Standard's 2,048, a custom 16,384 gives 32,768. So the
-     moments that matter most get a surer search at every review depth. They stayed at 1,024 when the depths became
-     settings, so a review at 1,024 or deeper gave them no more than any position. A branch move evaluated on request is
-     searched to the review's depth.
+     `packages/analysis/src/analysis.svelte.ts`): Lite's 512 gives 1,024, Standard's 2,048, a custom 16,384 gives
+     32,768. So the moments that matter most get a surer search at every review depth. They stayed at 1,024 when the
+     depths became settings, so a review at 1,024 or deeper gave them no more than any position. A branch move evaluated
+     on request is searched to the review's depth.
    - **A game that keeps its own settings** (an imported review file's or a shared link's game, design 13) reviews with
      its own network and depth per move. The panel says so, shows the game's two, and changes the game's when they
      change. The settings kept in the browser serve every other game. A game's network can be an earlier one, which the
@@ -106,9 +106,9 @@ each applies at once, without a reload.
      network and then take work, or removes them: a free worker ends at once, a busy one when its task ends.
      **An idle review keeps no search engine:** after a minute with no search (15 seconds in a hidden tab), the
      review ends its workers and the GPU worker, and keeps the rules worker, so that the board still answers at once.
-     The next search starts them again, in about a second (`releaseWhenIdle` in `src/lib/analysis/pool.ts`). The
+     The next search starts them again, in about a second (`releaseWhenIdle` in `packages/engine/src/pool.ts`). The
      page keeps the network's checked file, so the new workers do not download or check it again (`checked` in
-     `src/lib/engine/client.ts`).
+     `packages/engine/src/client.ts`).
      The work in progress goes on. "GPU": Auto, On or Off, Auto by default. The GPU searches many positions at once
      beside the workers, and Auto keeps it where its first-use test finds it faster than a worker
      ([design 15](15-gpu.md)). The help line gives its first download for the chosen network, and says that it uses
@@ -237,12 +237,12 @@ each applies at once, without a reload.
 ## Where it is
 
 - `src/lib/analysis/engineSettings.ts`: the settings, their steps and defaults, and their storage.
-- `src/lib/analysis/game.svelte.ts`: `setPaused`, `setReview`, `setDepth`, `dropAnalysis`, `usePool`, and the time
-  limit in `search`.
-- `src/lib/analysis/pool.ts`: `resize` and `halt`. `src/lib/engine/client.ts`: `Stopped`, for the requests of an ended
-  worker.
-- `src/lib/analysis/session.svelte.ts` (`EngineSession`, for the review and the Analysis board): the settings applied
-  as they change, another network's pool, and the GPU (`GpuControl`, design 15).
+- `packages/analysis/src/analysis.svelte.ts`: `setPaused`, `setReview`, `setDepth`, `dropAnalysis`, `usePool`, and the
+  time limit in `search`.
+- `packages/engine/src/pool.ts`: `resize` and `halt`. `packages/engine/src/client.ts`: `Stopped`, for the requests of an
+  ended worker.
+- `packages/analysis/src/session.svelte.ts` (`EngineSession`, for the review and the Analysis board): the settings
+  applied as they change, another network's pool, and the GPU (`GpuControl`, design 15).
 - `src/lib/review/ReviewView.svelte`: the engine header's switch and gear, the e and l keys, the `engineSettingsPanel`,
   `steps` and `visitsSteps` snippets, and "time limit" in the header.
 - `src/routes/lab/engine/+page.svelte`: a single search's memory, for the measurement above.

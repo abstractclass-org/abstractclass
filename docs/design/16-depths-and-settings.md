@@ -36,8 +36,8 @@ The engine searches the position on screen only when it holds less than P. A lab
 - **Everything follows the held results:** the labels of the moves into and out of the position, the report's counts,
   accuracy and points lost, the chart, the key moments, and the Greats.
 - **From the store, the deepest too.** When a review opens, each position takes the deepest result stored for it at the
-  visits asked or more (`cacheGetAtLeast` in `src/lib/analysis/cache.ts`). So a review opened again looks as the player
-  left it, and a review file's deeper results count everywhere.
+  visits asked or more (`cacheGetAtLeast` in `packages/analysis/src/cache.ts`). So a review opened again looks as the
+  player left it, and a review file's deeper results count everywhere.
 - **The store keeps finished searches only.** It keeps a search's result once the search reaches its visits, under
   them. The page shows and uses a search stopped at its time limit while it is open, but the store does not keep that
   result (example 6).
@@ -48,7 +48,7 @@ A move is Great when it is the engine's first choice, its second choice looks at
 search, and a search of the position after the second choice confirms the gap against the position after the played
 move (design 10). The two must be equal searches. So when the position after the played move holds a result deeper
 than D, the confirmation searches as deep: the largest doubling of D within that result's visits (`equalDepth` in
-`src/lib/review/model.ts`). Until it does, the move is Best.
+`packages/analysis/src/model.ts`). Until it does, the move is Best.
 
 ### 4. Whose settings apply
 
@@ -166,11 +166,12 @@ Lite (D = 512), P = 1,024, and a time limit of 30 s.
 
 ## Where it is
 
-- The depths: `src/lib/analysis/cache.ts` (`SWEEP_VISITS`, `LABEL_VISITS`, `DEEP_VISITS`, `BUDGETS`),
-  `src/lib/analysis/game.svelte.ts` (`momentVisits`, `deepen`, `focus`, `confirmGreat`, `greatTargets`),
+- The depths: `packages/analysis/src/cache.ts` (`SWEEP_VISITS`, `LABEL_VISITS`, `DEEP_VISITS`, `BUDGETS`),
+  `packages/analysis/src/analysis.svelte.ts` (`momentVisits`, `deepen`, `focus`, `confirmGreat`, `greatTargets`),
   `src/lib/analysis/engineSettings.ts` (`REVIEW_PRESETS`, `CUSTOM_REVIEW`, `DEPTHS`, `TIME_LIMITS`).
-- The deepest result: `keep` in `src/lib/analysis/game.svelte.ts`, `cacheGetAtLeast` in `src/lib/analysis/cache.ts`.
-- The Greats' depth: `equalDepth` and `confirmedOnly` in `src/lib/review/model.ts`.
+- The deepest result: `keep` in `packages/analysis/src/analysis.svelte.ts`, `cacheGetAtLeast` in
+  `packages/analysis/src/cache.ts`.
+- The Greats' depth: `equalDepth` and `confirmedOnly` in `packages/analysis/src/model.ts`.
 - The game's settings: `GameSettings`, `setGameSettings` in `src/lib/game/store.ts`, `settings` and `changeEngine` in
   `src/routes/review/+page.svelte`.
 - What leaves: `gameAnalyses` and `importReview` in `src/lib/game/reviewFile.ts`, `src/lib/game/share.ts`.

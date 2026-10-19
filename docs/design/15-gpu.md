@@ -99,17 +99,18 @@ which Chrome and Edge have from version 137.
 
 ## In the code
 
-- `src/lib/engine/gpuWorker.ts`: the GPU worker: ONNX Runtime, the engine's library `gpu_engine.mjs`, and a search in
-  slices for each engine.
-- `src/lib/engine/gpuClient.ts`: the page's side: `GpuEngines` and its slots, and `gpuSupport()`.
-- `src/lib/engine/channel.ts`: both workers' messages, on both sides: a promise for each request, and a search in
+- `packages/engine/src/gpuWorker.ts`: the GPU worker: ONNX Runtime, the engine's library `gpu_engine.mjs`, and a search
+  in slices for each engine.
+- `packages/engine/src/gpuClient.ts`: the page's side: `GpuEngines` and its slots, and `gpuSupport()`.
+- `packages/engine/src/channel.ts`: both workers' messages, on both sides: a promise for each request, and a search in
   slices.
-- `src/lib/engine/library.ts`: the engine's library, which the CPU workers use too (`createCpuEngine`).
-- `src/lib/engine/artifacts.ts`: a stored file's bytes: its parts joined, decompressed and checked.
-- `src/lib/analysis/pool.ts`: `SearchEngine`, `addGpu`, `dropGpu`, `measureGpu`, a CPU worker first, and `SpeedMeter`.
-- `src/lib/analysis/gpu.svelte.ts`: `GpuControl`, one for each pool (the setting applied, the start on a backlog, the
-  test), the setting's states, the test's length and the stored results.
-- `src/lib/analysis/session.svelte.ts`: a `GpuControl` for each pool (`EngineSession`).
+- `packages/engine/src/library.ts`: the engine's library, which the CPU workers use too (`createCpuEngine`).
+- `packages/engine/src/artifacts.ts`: a stored file's bytes: its parts joined, decompressed and checked.
+- `packages/engine/src/pool.ts`: `SearchEngine`, `addGpu`, `dropGpu`, `measureGpu`, a CPU worker first, and
+  `SpeedMeter`.
+- `packages/analysis/src/gpu.svelte.ts`: `GpuControl`, one for each pool (the setting applied, the start on a backlog,
+  the test), the setting's states, the test's length and the stored results.
+- `packages/analysis/src/session.svelte.ts`: a `GpuControl` for each pool (`EngineSession`).
 - `scripts/fetch-engine.mjs`: the GPU's files, ONNX Runtime's two files, and the compressed storage.
 - `vite.config.ts`: ONNX Runtime's build that takes its WebAssembly from the page, and module workers.
 

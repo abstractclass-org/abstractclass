@@ -25,7 +25,7 @@ noise.
    - **A sweep:** every position at 32 visits (KaTrain's `fast_visits`, 25), for the game's shape: the Advantage chart
      and the win bar. Its labels are mostly wrong, so it shows none. "Every position" is each position before a move,
      and the last one when the game is not over (an unfinished game, `*`): there the end has a search, not a result,
-     so that the last move gets its label (`passCount` in `src/lib/analysis/game.svelte.ts`).
+     so that the last move gets its label (`passCount` in `packages/analysis/src/analysis.svelte.ts`).
    - **A label pass:** every position at 512 visits, the Lite review. Standard runs the pass at 1,024 visits, and
      Custom at another depth (design 09). Under protocol 0.3, after the opening, 512 visits finds 64% of the bad turns
      of a 1,024-visit search, with 82% of its flags right, and 256 visits finds 54%, with 88% right (by edge: 67% and
@@ -82,11 +82,11 @@ noise.
 
 ## Where it is
 
-- `src/lib/analysis/pool.ts` (the pool and its priorities), `src/lib/analysis/session.svelte.ts` (the rules worker
-  started before its pool: `startRules`, `takeRules`), `src/lib/analysis/game.svelte.ts` (the schedule, and the
-  searches that confirm Great by edge and by turn), `src/lib/analysis/cache.ts` (the browser's store, and the
-  removal of older shapes, which `src/routes/+layout.svelte` starts),
-  `src/lib/review/labels.ts` and `src/lib/review/model.ts` (losses and labels, by edge and by turn),
+- `packages/engine/src/pool.ts` (the pool and its priorities), `packages/analysis/src/session.svelte.ts` (the rules
+  worker started before its pool: `startRules`, `takeRules`), `packages/analysis/src/analysis.svelte.ts` (the schedule,
+  and the searches that confirm Great by edge and by turn), `packages/analysis/src/cache.ts` (the browser's store, and
+  the removal of older shapes, which `src/routes/+layout.svelte` starts),
+  `packages/analysis/src/labels.ts` and `packages/analysis/src/model.ts` (losses and labels, by edge and by turn),
   `src/lib/review/display.ts` (the "Review by" setting), `src/lib/review/ReviewView.svelte`,
   `src/lib/board/Board.svelte` (a turn's badges) and `src/routes/review/+page.svelte` (the page).
 - The measurement: `scripts/measure/budget-collect.mjs` and `scripts/measure/budget-summary.mjs`. The review's start:

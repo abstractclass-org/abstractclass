@@ -294,20 +294,20 @@ cut edges that are on the board, so a line drawn over the board can show edges t
 - `src/lib/review/ReviewView.svelte`: the place in the tree (`path`), the line of the candidate pointed at, its
   animation, the click that shows it whole, the players' areas, the listed line (`lineList`), the branches in the
   move list (`branch`), and the keys.
-- `src/lib/review/tree.ts`: paths, the game's line, a branch's rows, and the forks for the keys (`prevFork`,
+- `packages/analysis/src/tree.ts`: paths, the game's line, a branch's rows, and the forks for the keys (`prevFork`,
   `nextFork`, `siblingLine`), with tests in `tree.test.ts`.
-- `src/lib/analysis/game.svelte.ts`: `lineSteps` (the line's positions from the rules), `toAnalysis` (the line),
-  `branches`, `addLine`, `deleteFrom`, `promote`, `judge`, `addNodes` and `keepBranches` (the branches and their
+- `packages/analysis/src/analysis.svelte.ts`: `lineSteps` (the line's positions from the rules), `toAnalysis` (the
+  line), `branches`, `addLine`, `deleteFrom`, `promote`, `judge`, `addNodes` and `keepBranches` (the branches and their
   keeping), `rulesAt` (the rules for the player's moves), and the searches on any path.
-- `src/lib/review/model.ts`: `judgeEdge` (an edge's loss and label, for the game's edges and a branch's),
+- `packages/analysis/src/model.ts`: `judgeEdge` (an edge's loss and label, for the game's edges and a branch's),
   `judgeBranchEdge`, `valuesAfter` (tests in `model.test.ts`).
 - `src/lib/board/Board.svelte`: `onlyActive` (the points that take the pointer), `oncandidatedblclick`, the pointer's
   press, drag and release (a click, a dragged edge, a note), and the notes drawn.
 - `src/lib/board/notes.ts`: the notes, `toggleNote` and `brushFor` (tests in `notes.test.ts`).
-- `src/lib/review/model.ts`: `lineMovers`, `enoughVisits`, `trustedLine` (the 25-visit cut, with its tests in
-  `model.test.ts`), `LineStep`.
+- `packages/analysis/src/model.ts`: `enoughVisits`, `trustedLine` (the 25-visit cut, with its tests in
+  `src/lib/review/enclosure.test.ts`). `src/lib/review/enclosure.ts`: `lineMovers`, `LineStep`.
 - `src/lib/review/display.ts`: the "one edge at a time" setting, and `branchText` (circles or notation).
-- `src/lib/storage/db.ts`: the `branches` store.
+- `packages/storage/src/db.ts`: the `branches` store.
 
 ## Log entries
 

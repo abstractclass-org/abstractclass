@@ -34,7 +34,7 @@ reason. Design 05 gives the searches that the labels read: their schedule, their
      losses: the value between them cancels, and so does the error of that search.
    - **The label reads the loss at 0 or more:** a gain is no loss. The notes give the loss before that clamp: a gain
      has a plus.
-4. **The engine's win chance, and the bands** (`src/lib/review/labels.ts`).
+4. **The engine's win chance, and the bands** (`packages/analysis/src/labels.ts`).
    - **The engine's own win chance** (its `winrate`), as chess.com and Lichess judge a move by the win chance their
      engine gives. It saturates once a game is decided, so a move there loses little: a label tells what a move cost
      the result, and 30 points thrown away at a lead of 120 cost less than 30 at a lead of 20.
@@ -64,9 +64,9 @@ reason. Design 05 gives the searches that the labels read: their schedule, their
    move's visits for the same reason). Until that search confirms the gap, the move is Best.
    - **As deep as the position after the played move, when the player searched it deeper** (the position on screen,
      design 09): the confirmation then searches to the same depth, the largest doubling of the label budget within
-     that position's visits (`equalDepth` in `src/lib/review/model.ts`: the depths step by doublings, and a search
-     still running or stopped at its time limit asks for no more than it has). Until a search that deep confirms the
-     gap, the move is Best, so a Great never rests on unequal searches (design 16, example 5).
+     that position's visits (`equalDepth` in `packages/analysis/src/model.ts`: the depths step by doublings, and a
+     search still running or stopped at its time limit asks for no more than it has). Until a search that deep confirms
+     the gap, the move is Best, so a Great never rests on unequal searches (design 16, example 5).
    - **An edge** is Great when it is Best, the second choice looks 0.10 worse in the search before it, and the
      position after the second choice is 0.10 below the position after the edge.
    - **A turn** is Great when it is Best and two checks confirm it. From the turn's start: the other candidate (the
@@ -83,7 +83,7 @@ reason. Design 05 gives the searches that the labels read: their schedule, their
      its last position is searched as any position, and its last move has a label from that search. The report names
      the end as the record's result gives it ("Blue won: Red resigned after edge 74", "Unfinished after edge 40"), with
      the scores on the board then. A game that the rules end takes its result from the scores, as before
-     (`endingText` in `src/lib/review/model.ts`).
+     (`endingText` in `src/lib/review/enclosure.ts`).
    - **A branch's moves** have no labels until the player asks ("Evaluate quality" in the move menu). Then every branch
      move of that turn is searched and judged as the game's moves are (`judgeTurn`, `judgeEdge`). A branch that stops
      in a turn's middle has no turn label until the turn ends.
@@ -149,12 +149,12 @@ reason. Design 05 gives the searches that the labels read: their schedule, their
 
 ## Where it is
 
-- `src/lib/review/labels.ts` (the bands, `classify`), `src/lib/review/model.ts` (`judgeEdge`, `judgeTurn`,
+- `packages/analysis/src/labels.ts` (the bands, `classify`), `packages/analysis/src/model.ts` (`judgeEdge`, `judgeTurn`,
   `otherCandidate`, `review`, `costText`, `turnCost`, `roundTogether`), `scripts/measure/label-bench.mjs` (the test on
-  games of known strength), `src/lib/analysis/game.svelte.ts`
+  games of known strength), `packages/analysis/src/analysis.svelte.ts`
   (`confirmGreats`: the searches that confirm Great, `judge`: a branch's turn on request),
   `src/lib/review/ReviewView.svelte` (what shows).
-- The tests: `src/lib/review/model.test.ts`.
+- The tests: `src/lib/review/enclosure.test.ts`.
 
 ## Log entries
 

@@ -102,7 +102,7 @@ engine does by itself.
    - **The board's start** is the standard start, or a set-up position in the notation. The standard start written out
      is no set-up start (`setUpStart` in `src/lib/engine/notation.ts`), so its stored results stay its own. Every query
      of the board sends it (`position`, with the moves after it), and the stored results' keys name it (`keyMoves` in
-     `src/lib/analysis/cache.ts`), so that a line from one start never takes another start's results.
+     `packages/analysis/src/cache.ts`), so that a line from one start never takes another start's results.
    - **The record carries the start:** the notation's `[Position "…"]` tag (engine design 04, as PGN's `FEN` tag),
      with the moves after it. The board reads it, and its record export writes it. A review refuses such a record,
      and says to open it on the board (`variantProblem` in `src/lib/game/import.ts`): a review is of a game played
@@ -170,17 +170,17 @@ engine does by itself.
   `load_saved` with `load_source`. The board's features, settings' changes and exports are
   the review's events: the page's address tells them apart in the reports.
 - **An unfinished line's end is searched,** on the board and in a review of an unfinished game: the review reads a
-  line's last position as the result only when the game is over there (`review` in `src/lib/review/model.ts`).
+  line's last position as the result only when the game is over there (`review` in `packages/analysis/src/model.ts`).
 - **The early access shows the board** (design 11).
 
 ## Where it is
 
-- `src/routes/analysis/+page.svelte`: the board, its store and its ways in. `src/lib/analysis/session.svelte.ts`: its
-  engine, the review's (`EngineSession`). `src/lib/review/ReviewView.svelte`: the
-  view, in its board form (`BoardForm`). `src/lib/analysis/game.svelte.ts`: the board form of the analysis (`setMain`,
-  `playLine`, `judgedMain`, `keptBoard`). `src/lib/game/board.ts`: the link and a record's line.
-  `src/lib/game/analysisFile.ts`: the analysis file. `src/lib/review/model.ts`: `onlyJudged`. `src/lib/game/paste.ts`: a
-  pasted record. `src/lib/game/importEvents.ts`: the imports' events.
+- `src/routes/analysis/+page.svelte`: the board, its store and its ways in. `packages/analysis/src/session.svelte.ts`:
+  its engine, the review's (`EngineSession`). `src/lib/review/ReviewView.svelte`: the
+  view, in its board form (`BoardForm`). `packages/analysis/src/analysis.svelte.ts`: the board form of the analysis
+  (`setMain`, `playLine`, `judgedMain`, `keptBoard`). `src/lib/game/board.ts`: the link and a record's line.
+  `src/lib/game/analysisFile.ts`: the analysis file. `packages/analysis/src/model.ts`: `onlyJudged`.
+  `src/lib/game/paste.ts`: a pasted record. `src/lib/game/importEvents.ts`: the imports' events.
 
 ## Log entries
 

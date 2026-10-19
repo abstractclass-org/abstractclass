@@ -149,9 +149,9 @@ one item for each turn, separated by spaces.
 
 - **The problem:** the games and their analyses are best-effort storage. A browser may delete them when its disk is
   almost full, and Safari deletes them after seven days of use without a visit.
-- **The site asks for persistent storage** (`navigator.storage.persist()`, `src/lib/storage/persist.ts`), once a page:
-  when a game is kept (an import or a load), when the board keeps its analysis, and in the Review tab when the browser
-  holds games. Chrome and Edge answer without a question, from how the visitor uses the site. Firefox asks the
+- **The site asks for persistent storage** (`navigator.storage.persist()`, `packages/storage/src/persist.ts`), once a
+  page: when a game is kept (an import or a load), when the board keeps its analysis, and in the Review tab when the
+  browser holds games. Chrome and Edge answer without a question, from how the visitor uses the site. Firefox asks the
   visitor.
 - **The Review tab says what the browser answered,** under the games: "Kept in this browser until you delete them", or,
   without persistent storage, that the browser may clear them, with the advice to export the games to keep.
@@ -304,7 +304,7 @@ read the game from the player's own page.
 - Deleting a game: `deleteGame` in `src/lib/game/store.ts`, the rows in `src/lib/review/ReviewHome.svelte`, the
   question in `src/lib/ui/ConfirmDialog.svelte`.
 - One tab for each game's review: `src/lib/game/reviewLock.ts`, used in `src/routes/review/+page.svelte`. The check
-  for a deleted game: `keepBranches` in `src/lib/analysis/game.svelte.ts`.
+  for a deleted game: `keepBranches` in `packages/analysis/src/analysis.svelte.ts`.
 - The pages: `src/routes/{about,notation,developers,privacy,notices}/+page.svelte`, `src/lib/SiteFooter.svelte`,
   `src/lib/prose.ts` (their text style).
 - Analytics: `src/lib/analytics.svelte.ts`, `src/lib/ConsentBanner.svelte`, started in `src/routes/+layout.svelte`, or,

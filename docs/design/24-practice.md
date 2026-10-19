@@ -189,7 +189,7 @@ How strong each setting plays against people is not measured yet.
 - **The game:** `src/lib/practice/game.svelte.ts`: the moves to the bot and to the rules worker, the bot's time,
   Abort, Resign, the end and the save into Your games.
 - **The bot:** `src/lib/practice/bot.ts` (the form to start, with a fall back to the next) and `botWorker.ts` (the
-  bot in its worker, with ONNX Runtime set up as the GPU worker sets it up, `src/lib/engine/ort.ts`).
+  bot in its worker, with ONNX Runtime set up as the GPU worker sets it up, `packages/engine/src/ort.ts`).
 - **The pure parts:** `src/lib/practice/practice.ts`: the settings, the kept game (`hedge-school:practice-game:1`) and
   the choices (`hedge-school:practice-choices:1`) in the browser's local storage, the GTP commands, the results and
   the record. Tests: `practice.test.ts`. The score's display settings are kept under

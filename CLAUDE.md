@@ -21,7 +21,9 @@ moves, and later offers puzzles and training. Before you change anything, read t
 Hedge School's code is in `apps/hedgeschool` ([design 26](docs/design/26-one-repository.md)). The repository's root
 holds one npm workspace and its one lockfile, the documents and the workflows. Run `npm ci` at the root, and the
 site's commands ([README.md](README.md)) in `apps/hedgeschool`. A path in the documents to the site's files starts
-there ([docs/README.md](docs/README.md)).
+there ([docs/README.md](docs/README.md)). The parts that a jam game's site shares with Hedge School (the engine, the
+storage and the analysis) are packages in `packages/` ([design 29](docs/design/29-shared-packages.md)): a path that
+starts with `packages/` starts at the root.
 
 ## The engine repository
 

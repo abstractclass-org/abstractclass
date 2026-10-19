@@ -10,7 +10,9 @@ board and a review (abscls-8tl1). The jam's rules come out at its start, on 2026
 ready before anyone knows the game. Design 26 kept `packages/` empty until a second site needs a part (its item 4).
 The jam game's site is that second site.
 
-Hedge School's code was read again for this move. Its parts fall into three groups:
+Hedge School's code was read again for this move. Design 26's map put the review's model among Enclosure's parts,
+since it builds in Enclosure's two-edge turns, Blue's side and the enclosed area. Read again, the model's rules hold
+for any game, and Enclosure is in its types and a few calls. The parts fall into three groups:
 
 - **General as they are:** the engine's client and its workers (they send the protocol's requests and pass the replies
   on), the pool, the storage, the move tree (moves as words), the labels (the engine's win chance and chess.com's
@@ -48,7 +50,7 @@ edit in the same commit), so their changes still apply.
    interface GameTypes {
      move: unknown;           // a move, not a pass. Enclosure: an edge, [x1, y1, x2, y2]
      position: GamePosition;  // a position, as the board draws it
-     played: Played<unknown>; // a move played, with what the board draws of it. Enclosure: with its cut
+     played: Played<this["move"]>; // a move played, with what the board draws of it. Enclosure: with its cut
      fields: unknown;         // a position, as describe_game gives it
      described: unknown;      // describe's reply: a position with its legal moves
      rules: unknown;          // a position's rules, for the player's own moves. Enclosure: the legal edges and nodes
@@ -59,8 +61,9 @@ edit in the same commit), so their changes still apply.
    interface Played<M> { player: Player; edge: M | null } // `edge`: the move, null for a pass
 
    interface Game<G extends GameTypes> {
-     moveName(move: G["move"] | null): string;   // the engine's name for it, "pass" for null
-     parseMove(name: string): G["move"] | null;  // null for "pass"
+     equal(a: G["move"], b: G["move"]): boolean; // whether two values are one move
+     moveName(move: G["move"] | null): string;   // the engine's name for it, its one spelling: "pass" for null
+     parseMove(name: string): G["move"];         // the move of a name that is not "pass"
      position(fields: G["fields"]): G["position"];
      played(name: string, before: G["fields"], after: G["fields"]): G["played"];
      rules(described: G["described"]): G["rules"];
@@ -72,9 +75,9 @@ edit in the same commit), so their changes still apply.
 
    - **The board's drawing, the notation's texts and the import stay in the site.** The interface carries only what
      the shared code must compute with.
-   - **A move's name is its one spelling.** The shared code compares two moves by their names, and keys the tree, the
-     queries and the stored results by them. Enclosure's name (`edgeName`) puts the lower point first, so two edges
-     have one name exactly when `sameEdge` holds.
+   - **The game compares and names its moves.** The shared code compares two moves with `equal` (Enclosure's
+     `sameEdge`), and keys the tree, the queries and the stored results by the moves' names. Enclosure's name
+     (`edgeName`) puts the lower point first: it is the edge's one spelling.
    - **The turn structure comes from the positions:** each position says who moves next (`player`), and a turn is a
      run of one player's moves. `turn` gives only the notation's numbers. Enclosure's first turn has one edge, then
      two a turn. A game of one move a turn numbers each move.
@@ -83,10 +86,12 @@ edit in the same commit), so their changes still apply.
      `edge`, `players.blue`): the browser's store and the review files hold them.
 3. **Generic types.** The shared types take the game's types as a parameter: `Analysis<M>` and `Candidate<M>` the
    move's, `Review<G>`, `ReviewData<G>` and `GameAnalysis<G>` the whole `GameTypes`. A function that compares moves
-   takes the game (`rankOf(game, analysis, move)`). `src/lib/review/enclosure.ts` in Hedge School gives Enclosure's
-   types (`Enclosure`), names the shared types for them (`Review`, `Analysis`, `Move`), keeps Enclosure's part of the
-   review (its positions, its turn numbers, the line's movers, the players' names, the texts), and exports the game
-   (`enclosure`).
+   takes the game (`rankOf(game, analysis, move)`), and so does `GameAnalysis`'s constructor.
+   `src/lib/review/enclosure.ts` in Hedge School gives Enclosure's types (`Enclosure`) and its game (`enclosure`). It
+   also gives the site's code the review's model as the site read it before: the shared names, the shared types named
+   for Enclosure's (`Review`, `Analysis`), the functions that compare moves with Enclosure's game given (`review`,
+   `rankOf`), and Enclosure's own part (its positions, a move with its cut, the turn numbers, the line's movers, the
+   players' names and the texts). So the site's calls stay as they were.
 4. **The other ties to the site, beside the game:**
    - The engine session takes the site's analytics (`track`) and a network's name (`networkName`) as options. The
      engine settings' list of networks, the lock file and the settings' key stay in the site.
@@ -95,10 +100,11 @@ edit in the same commit), so their changes still apply.
 5. **How a site imports a package:** `@abstractclass/<package>/<file>.ts`. Each package's `exports` maps `./*` to
    `./src/*`, and the site lists the package among its dependencies. Hedge School keeps `#lib/*` for its own files. A
    package imports its own files by relative paths, and another package by its name.
-6. **The tests and the checks run in each package:** `npm run check` (svelte-check) and `npm test` (Node's test
-   runner, as Hedge School's). The workflows run them for every package beside Hedge School's (`--workspace=packages`).
-   A package's tests use a test game unlike Enclosure: one move a turn, its moves as words. Hedge School's tests check
-   Enclosure through the packages: they show that its behaviour did not change.
+6. **The tests and the checks run in each package:** `npm run check` (TypeScript's `tsc`, which checks the runes'
+   modules too) and `npm test` (Node's test runner, as Hedge School's). The workflows run them for every package beside
+   Hedge School's (`--workspace=packages`). A package's tests use a test game unlike Enclosure: one move a turn, its
+   moves as words. Hedge School's tests check Enclosure through the packages: they show that its behaviour did not
+   change.
 7. **The move goes in stages,** each a commit of pure renames (`git mv`), then the commits of the edits. Each stage
    ends with the checks of design 26 item 2: `npm run engine`, the unit tests, the type check, the build and the
    layout sweep.
@@ -134,8 +140,9 @@ edit in the same commit), so their changes still apply.
   alone. The storage serves the site's own data too (its theme, its games), not only the analysis.
 - **Generic types, not one site-wide declaration** (as SvelteKit's `App` namespace types a site): a declaration
   types one game in each type check. The package's own tests could then not check a game unlike Enclosure.
-- **Moves compared by name:** a move's value is the site's (Enclosure's are tuples), and its name is the engine's.
-  The name gives one comparison for every game.
+- **The game's own comparison:** a move's value is the site's (Enclosure's are tuples). A comparison of names would
+  give the same answers, at the cost of a name for each comparison: the review compares moves for each edge at each
+  batch of results.
 - **The field names stay:** a new name for a stored field makes every stored result and every review file
   unreadable. The cache's shape would change (design 05), and each player's stored analyses would go.
 - **The views wait:** the view's seams with the game are many, and only a second board shows their right shape (the

@@ -39,6 +39,15 @@ npm run test:layout                   # the layout sweep, against the preview (t
 
 To add a dependency to the site, run `npm install <package> -w apps/hedgeschool` at the root.
 
+The shared packages in `packages/` ([docs/design/29-shared-packages.md](docs/design/29-shared-packages.md)) have their
+own type checks and tests. Run them at the root for every package, or with `npm run check` and `npm test` in a
+package's folder:
+
+```sh
+npm run check --workspace=packages    # the packages' type checks
+npm test --workspace=packages         # the packages' unit tests
+```
+
 `npm run engine` downloads the module and the networks from a GitHub Release of
 [enclosure-engine](https://github.com/abstractclass-org/enclosure-engine), which holds only the engine's releases, and
 checks each file's SHA-256 ([docs/design/03-stack.md](docs/design/03-stack.md)). `--deploy` refuses a local build.
@@ -52,13 +61,15 @@ Web Analytics). Without them, as in development, the build has neither.
 |---|---|
 | `docs/` | The documents: context, working notes, design, decision log, requests to the engine repository ([docs/README.md](docs/README.md)). |
 | `.github/workflows/` | The deploy and the tests ([docs/hosting.md](docs/hosting.md)). |
+| `packages/engine/` | `@abstractclass/engine`: the engine in the browser. Its client and its CPU and GPU workers, the protocol's general types, the pool of workers. |
+| `packages/storage/` | `@abstractclass/storage`: the browser's database (IndexedDB), local storage and persistent storage. |
+| `packages/analysis/` | `@abstractclass/analysis`: the game interface, the review's model and labels, the move tree, the cache, the analysis of a game (its schedule), the engine session and the GPU control. |
 | `apps/hedgeschool/` | Hedge School, the site. The paths below start there. |
-| `src/lib/engine/` | The engine module (protocol 0.4) in a Web Worker, the page's side of it, the protocol's types and the notation. |
+| `src/lib/engine/` | Enclosure's notation, and its engine's description of a position as the board draws it. |
 | `src/routes/` | The pages. `review/` is the game review, on the engine. `import/` takes a game from the meaf.us bookmarklet. `about/`, `notation/`, `privacy/` and `notices/` are about the site. `lab/engine/` is the engine lab. |
-| `src/lib/analysis/` | The review's analysis in the browser: the pool of engine workers, the schedule, the cache, the engine's settings. |
-| `src/lib/storage/` | The browser's database (IndexedDB): analyses and the player's games. |
+| `src/lib/analysis/` | The engine's settings: the networks, the defaults, a game's own settings. |
 | `src/lib/game/` | Game records (reading, the cut mark), the player's games, the meaf.us conversion and bookmarklet, Constellation's export. |
-| `src/lib/board/`, `src/lib/review/` | The board (SVG), the review's model and labels, its page (layout: design 06), the Advantage chart, the display settings. |
+| `src/lib/board/`, `src/lib/review/` | The board (SVG), Enclosure's game and its part of the review (`review/enclosure.ts`), the review's page (layout: design 06), the Advantage chart, the display settings. |
 | `src/lib/edition.ts`, `src/lib/analytics.svelte.ts` | The early-access switch and the site's name; the analytics and the consent banner. |
 | `src/lib/sound.ts`, `static/sounds/` | The move sounds (design 08). |
 | `src/lib/mock/`, `scripts/mock/` | Mock data for the wireframes, and how it was made. |

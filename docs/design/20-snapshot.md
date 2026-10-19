@@ -14,7 +14,7 @@ look at a past review pays it each time, and the earlier results are still in th
 1. **A snapshot:** a game whose last review used an earlier engine, or an earlier file of the same network, opens as
    that review, when the browser has its results for every position of the game's line. Nothing is searched.
 2. **What a snapshot shows:** the stored results, each position at its deepest that the review reads: at the review's
-   depth or a deeper budget (`BUDGETS` in `src/lib/analysis/cache.ts`), else at the sweep's depth or a budget. The
+   depth or a deeper budget (`BUDGETS` in `packages/analysis/src/cache.ts`), else at the sweep's depth or a budget. The
    labels, the notes in the move list, the branches kept, the engine's candidates and lines, the charts and the report
    all come from them. The engine gives the positions with its rules alone: it loads no network.
 3. **What a snapshot does not do:**
@@ -137,14 +137,14 @@ look at a past review pays it each time, and the earlier results are still in th
 ## Where it is
 
 - `src/routes/review/+page.svelte` (the choice of a snapshot, its rules-only engine, Review again),
-  `src/lib/review/ReviewView.svelte` (the bar, the controls off), `src/lib/analysis/cache.ts` (`snapshotSearch`, the
-  read by keys: `warmCache`), `src/lib/analysis/game.svelte.ts` (`fromStore`), `src/lib/game/reviewFile.ts`
+  `src/lib/review/ReviewView.svelte` (the bar, the controls off), `packages/analysis/src/cache.ts` (`snapshotSearch`,
+  the read by keys: `warmCache`), `packages/analysis/src/analysis.svelte.ts` (`fromStore`), `src/lib/game/reviewFile.ts`
   (`readReviewFile`, the file's search, and `importReview`, the mark kept),
   `src/lib/game/store.ts` (`reviewAgainWhy`, the mark's `search`: `reviewMark`, `markReviewed`).
 - The removal: `src/lib/game/earlierResults.ts` (`unneededResults`, `readsAt`, `removeEarlierResults`, which
-  `src/routes/+layout.svelte` starts), `src/lib/analysis/cache.ts` (the mark: `earlierRemovalDue`,
+  `src/routes/+layout.svelte` starts), `packages/analysis/src/cache.ts` (the mark: `earlierRemovalDue`,
   `makeEarlierRemovalDue`), `src/lib/game/store.ts` (`markReviewed`, `deleteGame`), `src/lib/game/analysisFile.ts`
-  (`openAnalysisFile`), `src/lib/storage/db.ts` (`dbReadThenDelete`), `vite.config.ts` (`__ENGINE_FILES__`).
+  (`openAnalysisFile`), `packages/storage/src/db.ts` (`dbReadThenDelete`), `vite.config.ts` (`__ENGINE_FILES__`).
 
 ## Log entries
 

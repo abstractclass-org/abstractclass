@@ -53,7 +53,7 @@ searching it again, and to share it as text that others can read.
      build, the network's SHA-256, the visits, and the position's moves).
    - The game's results only: the positions of its line (the record's own moves) and of its branches (their path keys),
      and the positions one move from them, which confirm the Greats (`confirmGreats` in
-     `src/lib/analysis/game.svelte.ts`: the position after the engine's second choice, searched to the review's
+     `packages/analysis/src/analysis.svelte.ts`: the position after the engine's second choice, searched to the review's
      depth). Without them, an import with the same settings searched the Greats' confirmations again: on the owner's
      game at 4,096 visits with the larger network, 5 such searches ran after the import.
    - Only the networks the site ships: a result of an older network is of no use to any copy of the site. A reviewed
@@ -88,9 +88,9 @@ searching it again, and to share it as text that others can read.
    another network keeps the game and the branches, and the review searches again.
 7. **A deeper result answers a shallower question:** a review asks for each position at its own budget (32 visits, the
    label pass, the review's depth), and takes the deepest result the store has at that budget or deeper
-   (`cacheGetAtLeast` in `src/lib/analysis/cache.ts`), as the review already takes a deeper result it holds in memory.
-   So the file's deeper results, from the position on screen where the sender looked (design 09), count everywhere in
-   the importer's review. Design 16 has every depth, and what a file and a link carry, with examples.
+   (`cacheGetAtLeast` in `packages/analysis/src/cache.ts`), as the review already takes a deeper result it holds in
+   memory. So the file's deeper results, from the position on screen where the sender looked (design 09), count
+   everywhere in the importer's review. Design 16 has every depth, and what a file and a link carry, with examples.
    So a file searched to 1,024 visits opens at once in a browser whose review depth is 512.
 8. **A link that shares a review** (the Export menu's first entry but for item 9's, "Copy a link to share the review",
    `src/lib/game/share.ts`): the game's record, the player's branches, and what the review ran with (the engine
@@ -158,10 +158,11 @@ searching it again, and to share it as text that others can read.
 
 - `src/lib/game/reviewFile.ts` (the file: build, read, merge, export, import, `deliverExport`, the menu's entries
   `reviewExports`),
-  `src/lib/review/annotate.ts` (the annotated record), `src/lib/analysis/cache.ts` (`cacheGetAtLeast`,
-  `readAnalysisKey`), `src/lib/storage/db.ts` (`dbEntriesWhere`, `dbPutMany`), `src/lib/game/record.ts` (`writeTags`).
+  `src/lib/review/annotate.ts` (the annotated record), `packages/analysis/src/cache.ts` (`cacheGetAtLeast`,
+  `readAnalysisKey`), `packages/storage/src/db.ts` (`dbEntriesWhere`, `dbPutMany`), `src/lib/game/record.ts`
+  (`writeTags`).
 - `src/lib/ExportMenu.svelte` (the menu), `src/lib/review/exportText.ts` (`annotatedText`, `annotatedFromStore`),
-  `src/lib/analysis/game.svelte.ts` (`fromStore`: a review from the stored results only).
+  `packages/analysis/src/analysis.svelte.ts` (`fromStore`: a review from the stored results only).
 - `src/routes/review/+page.svelte` (`exportAs`), `src/lib/review/ReviewView.svelte` (the menu's place),
   `src/lib/review/ReviewHome.svelte` (the menu beside each game, Load a review file, the drop).
 - The share link: `src/lib/game/share.ts` (the format), `shareLink` and `importShare` in `src/lib/game/reviewFile.ts`,

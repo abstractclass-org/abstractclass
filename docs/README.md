@@ -1,7 +1,9 @@
 # Documentation
 
 Hedge School's code is in `apps/hedgeschool` ([design 26](design/26-one-repository.md)). A path in these documents to
-the site's files starts there, and the site's commands run there. `npm ci` runs at the repository's root.
+the site's files starts there, and the site's commands run there. `npm ci` runs at the repository's root. The shared
+packages are in `packages/` ([design 29](design/29-shared-packages.md)): a path that starts with `packages/` starts at
+the root.
 
 | Document | What |
 |---|---|

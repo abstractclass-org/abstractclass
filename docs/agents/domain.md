@@ -30,6 +30,7 @@ If a file does not exist, proceed silently. Do not flag its absence, and do not 
 ├── GLOSSARY.md            (created when the first term is settled)
 ├── docs/design/           ← decision records, one for each decision in force
 ├── docs/decisions/        ← the archive, by topic
+├── packages/              ← the shared packages: the engine, the storage, the analysis (design 29)
 └── apps/hedgeschool/      ← the site (design 26)
     └── src/
 ```
