@@ -70,7 +70,7 @@ The events use the site's words (design 22), each for one thing:
 | `analysis_open` | the Analysis board opens, with the engine's rules (design 21). A line brought with it is an `import_game` or a `load_saved` too | `edges` (the main line's) | how many players use the board |
 | `editor_open` | the board editor opens (design 21) | none | whether players set up positions |
 | `editor_analyze` | the board editor's Analyze: a position that a game can reach goes to the Analysis board | none | whether an editor's position reaches the board |
-| `review_done` | the review ends, in this visit | as `review_open`, and `review_seconds` (a number), `minutes`, `worker_speed` (a CPU worker's visits a second, by 5), `gpu_used` | the engine's defaults: how long a review takes on real machines, by settings and cores |
+| `review_done` | the review ends, in this visit (a review that opened done, `done_before`, sends none) | as `review_open`, and `review_seconds` (a number), `minutes`, `worker_speed` (a CPU worker's visits a second, by 5), `gpu_used` | the engine's defaults: how long a review takes on real machines, by settings and cores |
 | `gpu_test` | Auto's first test of a GPU | `gpu_outcome` (faster, slower), `gpu_ratio` (the GPU's speed over a worker's), `gpu` (maker and kind, as WebGPU gives them), `network` | the GPU's default, and whether it pays off on laptops and phones |
 | `engine_error` | the engine fails | `error_kind` (load, rules, gpu, practice: the bot failed to start, or stopped) | reliability |
 | `setting_change` | an engine setting changes | `setting`, `setting_value`, `setting_scope` (browser, game) | whether the defaults fit |

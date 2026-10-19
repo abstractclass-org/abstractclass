@@ -30,9 +30,11 @@ searching it again, and to share it as text that others can read.
      (design 22, the words). The tab builds its annotated record from the stored results, with no
      search: the engine reads the rules only.
 3. **Only a finished review exports,** every kind of export. A review is finished when every step of its bar is done:
-   the sweep, the label pass, the key moments searched deeper, and the Greats' confirmations. Until then the Export
-   button is off, and its tooltip says why: "Export once the review is done." on the review page, and "Open the game
-   to review it, then export." (or "to finish its review") in the Review tab.
+   the sweep, the label pass, the key moments searched deeper, and the Greats' confirmations. When the browser's
+   store holds the results of every step, the review is finished, and exports, before the engine's network loads
+   (design 06). Until the review is finished, the Export button is off, and its tooltip says why: "Export once the
+   review is done." on the review page, and "Open the game to review it, then export." (or "to finish its review") in
+   the Review tab.
    - **The mark of a finished review:** when a review ends, the browser keeps it with the game
      (`StoredGame.reviewed` in `src/lib/game/store.ts`): the engine module's and the network's SHA-256 (from the
      site's manifest), the module's search, the network's id, the review's depth, and the time. A snapshot reads the

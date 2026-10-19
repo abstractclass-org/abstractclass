@@ -13,10 +13,8 @@
   import type { EdgeRules } from "#lib/board/edgeInput.svelte.ts";
 
   /** The review in progress: what the engine does now, and the passes as parts of one bar, each with its share of the
-   *  work (by visits) and how much of it is done (0 to 1). `waiting`: no work runs (the engine is off). `counted`: every
-   *  step's work came from the browser's store, and only the engine's network still loads: the report's counts are
-   *  final, and it does not call them partial. */
-  export interface ReviewProgress { text: string; parts: { share: number; done: number }[]; waiting?: boolean; counted?: boolean }
+   *  work (by visits) and how much of it is done (0 to 1). `waiting`: no work runs (the engine is off). */
+  export interface ReviewProgress { text: string; parts: { share: number; done: number }[]; waiting?: boolean }
   /** Why a game reviewed before is reviewed again: the engine or its network was updated (store.ts, reviewAgainWhy).
    *  `text` shows under the progress. The dialog, with `title` and `body`, says it once when `dialog` is set. */
   export interface ReviewAgain { title: string; text: string; body: string; dialog: boolean }
@@ -992,7 +990,7 @@
   <p class="mb-3.75">
     <strong>{ending}</strong>
     ({fmtScore(R.data.result.blue)} to {fmtScore(R.data.result.red)}{endedByRules ? "" : " on the board"}).
-    {#if progress && !progress.counted}The review is still running: the counts below are partial.{/if}
+    {#if progress}The review is still running: the counts below are partial.{/if}
   </p>
   <!-- The game's own page, when its record's Site tag is an address (Lichess's way): back to the site it was played on. -->
   {#if siteLink}
@@ -1015,7 +1013,7 @@
       </tr>
     </thead>
     <tbody class={["[&_td]:py-0.5 [&_td]:border-t [&_td]:border-line [&_td+td]:w-px [&_td+td]:pl-3 [&_td+td]:text-right",
-                   "[&_td+td]:whitespace-nowrap [&_td+td]:tabular-nums", progress && !progress.counted && "[&_td+td]:italic [&_td+td]:text-muted"]}>
+                   "[&_td+td]:whitespace-nowrap [&_td+td]:tabular-nums", progress && "[&_td+td]:italic [&_td+td]:text-muted"]}>
       <tr class="text-[1.1em] font-bold">
         <td>Accuracy</td>
         {#each R.summary[unit] as s, p (p)}<td>{Number.isNaN(s.accuracy) ? "–" : s.accuracy.toFixed(1)}</td>{/each}

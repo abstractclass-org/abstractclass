@@ -4024,15 +4024,29 @@ sweep.
 
 - **Decided:** a review opened again whose every step comes from the browser's store is complete before the engine's
   network loads. Its progress line says "Review done: N visits a move." in the first frame, in place of "Loading the
-  engine's network…". The network still loads for new searches (the position on screen, a line), and the engine's own
-  panel shows that load.
+  engine's network…". The network still loads for the searches that the player asks for (the position on screen, a
+  line).
 - **Before:** abscls-73h added the flag `counted` (every step has its results), which only dropped the report's
   "partial" sentence. The progress line still said "Loading the engine's network…" until the network came, then
-  changed to "Review done". The export and the review's end event still wait for the network: the export needs the
-  engine's search to read the stored results (`reviewDone` keeps `engineReady`).
-- **The change** (`src/routes/review/+page.svelte`, `rawProgress`): the test of `counted` comes before the test of
-  `engineReady`. A review with a result missing is not `counted`: it says "Loading the engine's network…" while the
-  network loads, then what runs. The snapshot of an earlier review (design 20) has no progress, as before.
+  changed to "Review done".
+- **The change** (`src/routes/review/+page.svelte`, `rawProgress` and `reviewDone`): the test of completeness comes
+  before the test of `engineReady`, and a complete review has no progress. The flag `counted` is gone. A review with a
+  result missing says "Loading the engine's network…" while the network loads, then what runs. The snapshot of an
+  earlier review (design 20) has no progress, as before. After Review again, the snapshot's analysis stays on screen
+  until the new review's analysis replaces it: its results are an earlier engine's, so they never make the review
+  complete.
+- **What follows from "Review done":** the Export menu and the game's mark of the finished review (`reviewDone`)
+  follow the same test, with no test of `engineReady`. Design 13 calls a review finished when every step of its bar
+  is done, and the export reads the store with no search, as the Review tab's does. With the line alone, "Review
+  done" stood beside an Export button that was off ("Export once the review is done.") until the network loaded.
+- **The review's events** (design 17): a review that is complete from the store opened done (`done_before`), as its
+  definition says ("the review opened with its results stored"), and sends no `review_done`. Before, such a review
+  whose mark did not cover it had `done_before` false and sent a `review_done` of about 0 seconds as the network
+  loaded. It also showed why the game is reviewed again (design 11) when its mark named an earlier engine, though
+  nothing ran (by reading the code, not measured).
+- **The engine's panel** shows no sign of the network's load. The issue said that it does. Until the network loads,
+  the panel shows the position's stored result, and its search bar gleams once a search starts. A sign of the load is
+  a question for a later change.
 - **Checked** in Playwright's Chromium at 1,366 × 657, on the builds before and after, with the fixture's review
   (`tests/fixtures/hedgefund-review.json`) stored and reloaded, on a loaded machine:
   - **A complete stored review** (settled by reloads until a reload ran no search): before, the line was "Loading the
@@ -4046,7 +4060,28 @@ sweep.
   - **The review's first frame** (`scripts/measure/review-first-frame.mjs`, 3 pairs of 5 reloads): the first draw's
     median thread time was 47, 50 and 61 ms before, and 45, 59 and 49 ms after. The pairs disagree, so it is no
     change. Wall times varied with the machine's load.
-- **A review stored one key moment short** (a first "Review done" can leave it so, when a deeper label adds a key
-  moment) shows "Reviewing: the key moments, deeper…" after the network loads, as before. The page does not call it
-  complete.
+- **A review stored one key moment short** shows "Reviewing: the key moments, deeper…" after the network loads, as
+  before. The page does not call it complete. This is abscls-byld: the store lacks a key moment's deeper result after
+  "Review done".
+- **Checked again with the Export menu's change**, in Playwright's Chromium at 1,366 × 657, on a loaded machine, with
+  the build of 490ae2e (the line's change alone) before and the build with the Export menu's change after:
+  - **A complete stored review** (the fixture imported, then 3 reloads, each with a wait of 3 seconds after "Review
+    done"), 3 reloads each. Before: the first frame said "Review done: 512 visits a move." beside an Export button
+    that was off ("Export once the review is done."). The button came on with the network, 109 to 561 ms later.
+    After: the button was on from the first frame. In both, the engine's panel said "512 of 1,024 visits" with no
+    gleam until the network loaded, then searched the position on screen.
+  - **Review again** on a snapshot (the stored results and the mark moved to a made-up network file with the same
+    id). Before: the line said "Review done: 512 visits a move." for about 90 ms after the click, from the snapshot's
+    results, then "Loading the engine's network…". After: "Loading the engine's network…" from the click on.
+  - **Layout shift** (`scripts/measure/layout-shift.mjs review`, 5 pairs of 3 reloads): 0.0000 in every reload, before
+    and after. Nothing moved. The script reloads at once after the import's "Review done", so its store can lack a
+    key moment's deeper result (abscls-byld below): these reloads may not all have been complete reviews. On a
+    complete review, the change only turns the Export button on sooner, which changes no element's size (by
+    reasoning, not measured).
+  - **abscls-byld:** right after the import's "Review done", the store lacked the start's deeper result (0 at 1,024
+    visits), on both builds, and the first reload searched it again. When each reload came at once after "Review
+    done", the store stayed one key moment short: the 3 later reloads each said "5 of 6 positions". With a wait of 2
+    or 3 seconds after each "Review done", it was complete after at most 3 reloads. The stored deeper results
+    differed between runs: the start and positions 23, 24, 25, 40 and 41 in one, and 39 in place of the start in the
+    other. These runs did not show which key moment stayed short in the first run.
 - **Not measured:** Edge, the deployed site, a slower device.

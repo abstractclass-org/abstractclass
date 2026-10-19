@@ -52,6 +52,9 @@
   // A review by an earlier engine shown as it was (design 20): its depth and its bar's text. Nothing is searched until
   // the player chooses Review again.
   let snapshot = $state<{ visits: number; text: string } | null>(null);
+  // The snapshot's analysis, an earlier engine's results. It stays after Review again, which ends the snapshot, until
+  // the new review's analysis replaces it (rawProgress).
+  let snapshotGame = $state.raw<GameAnalysis | null>(null);
   let kept = $state.raw<{ id: string; text: string; record: GameRecord; partner?: GamePartner } | null>(null); // the stored game
   // A game's review is open: the page's title names it, else the Review tab's (design 23). The review's skeleton shows
   // from the game's read until the review does (ReviewView.svelte, reviewSkeleton). Before, the page shows its line of
@@ -140,6 +143,13 @@
     const n = Math.max(1, passCount), momentDepth = momentVisits(budget), deeper = momentDepth - budget;
     const m = momentPositions.length, deepDone = momentPositions.filter(i => (game?.analysis[i]?.visits ?? 0) >= momentDepth).length;
     const greats = game?.greatChecks ?? { total: 0, done: 0 };
+    const labelled = game?.labelled !== undefined && game.labelled >= passCount, deep = deepDone >= m;
+    // Every step has its results, from the searches or from the browser's store: the review is complete. A review opened
+    // again is complete before the engine's network loads: its line says "Review done" at once, and its report's counts
+    // are final, so they do not change their lines when the network comes (a layout shift). The snapshot's analysis
+    // holds an earlier engine's results: after Review again it stays on screen until the new review's analysis
+    // replaces it.
+    if (labelled && deep && greats.done >= greats.total && game !== snapshotGame) return null;
     const total = (SWEEP_VISITS + budget) * n + deeper * m + budget * greats.total;
     const parts = [
       { share: (SWEEP_VISITS * n) / total, done: (game?.swept ?? 0) / n },
@@ -147,13 +157,7 @@
       ...(deeper * m ? [{ share: (deeper * m) / total, done: deepDone / m }] : []),
       ...(greats.total ? [{ share: (budget * greats.total) / total, done: greats.done / greats.total }] : []),
     ];
-    const labelled = game?.labelled !== undefined && game.labelled >= passCount, deep = deepDone >= m;
     const step = !game || game.swept < passCount ? 0 : !labelled ? 1 : !deep && deeper * m ? 2 : parts.length - 1;
-    const counted = labelled && deep && greats.done >= greats.total;
-    // A review opened again has every step from the store before the network loads: it is complete, so its line says
-    // "Review done" at once, and its report's counts are final: they do not change their lines when the network comes
-    // (a layout shift). The network still loads for new searches, and the engine's panel shows that.
-    if (counted) return null;
     if (!game?.engineReady) return { text: "Loading the engine's network…", parts, step };
     if (game.paused) return { text: "Engine off. The review is paused.", parts, waiting: true, step };
     if (step === 0) return { text: `Reviewing: the game's shape, ${game.swept} of ${passCount} positions`, parts, step };
@@ -162,12 +166,12 @@
     return { text: `Reviewing: confirming Great moves, ${greats.done} of ${greats.total}`, parts, step };
   });
   const rawStepDone = $derived(rawProgress ? rawProgress.parts[rawProgress.step]?.done ?? 1 : 0);
-  // The review is done: every step of the bar, with the network loaded. The game keeps the mark of it (store.ts), so
-  // that the home page can offer its export, and the Export menu opens (design 13).
-  const reviewDone = $derived(!!game?.engineReady && !rawProgress);
+  // The review is done: every step of the bar. The game keeps the mark of it (store.ts), so that the home page can offer
+  // its export, and the Export menu opens (design 13). Neither waits for the network: the export reads the store.
+  const reviewDone = $derived(!snapshot && !rawProgress);
   // The review's events (design 17): when it opens and when it ends, with what it ran with and how long it took. The
   // time counts from the review's start, or from a change of its network or depth, which starts it again. A review that
-  // opened already done (its results in the store) sends no end.
+  // opened already done (doneBefore: its mark covers it, or the store held every step's results) sends no end.
   let markBefore: ReviewMark | undefined; // the game's mark when the page opened it
   let startedAt = 0, doneBefore = false;
   // A game reviewed before that is reviewed again because the site's engine or network changed (reviewAgainWhy): the
@@ -343,7 +347,7 @@
     if (!g) return; // another pool took over
     if (!g.rulesReady) { track("engine_error", { error_kind: "rules" }); return; } // the rules refused the game: the page shows why
     const want = reviewMark(manifest, session.network, budget);
-    doneBefore = reviewCovers(markBefore, want);
+    doneBefore = reviewCovers(markBefore, want) || reviewDone; // done from the store: nothing has searched yet
     const why = doneBefore ? null : reviewAgainWhy(markBefore, want);
     again = why && want ? againFor(why, want, chosen) : null;
     startedAt = performance.now();
@@ -375,7 +379,7 @@
       session.pool = rules; // the rules alone, until Review again starts the engine (EngineSession.start)
       session.network = network;
       preloaded = true;
-      game = g;
+      game = snapshotGame = g;
       track("review_open", { ...reviewParams(), done_before: true });
       trackOnce(`${kept!.id} snapshot opened`, "feature", { feature_name: "snapshot opened" });
       return true;

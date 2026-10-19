@@ -133,12 +133,14 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
    The step's part never shows less than it showed before: when its count grows, it waits. Another review depth, network
    or game starts it again. A review opened again reads its results from the browser's store before it shows, and they
    count as searched (the sweep and the label pass). When every step has its results from the store, the review is
-   complete before the engine's network loads: its line says "Review done" in the first frame, in place of "Loading
-   the engine's network…", and the report does not say that its counts are partial. That sentence came and went as the
-   network loaded, and moved the report's table (a layout shift). The network still loads for new searches (the
-   position on screen, a line), and the engine's own panel shows that load. A review with a result missing says what
-   loads, and then what runs. **While a bar's work runs,
-   a light gleam sweeps it** (Lichess's `bar-glider`, `ui/lib/css/component/_bar-glider.scss`: 70 pixels wide, every
+   complete before the engine's network loads. Its line then says "Review done" in the first frame, in place of
+   "Loading the engine's network…", and its Export menu opens (design 13). The report does not say that its counts
+   are partial: that sentence came and went as the network loaded, and moved the report's table (a layout shift). The
+   network still loads for the searches that the player asks for (the position on screen, a line). Until then, the
+   engine's panel shows the position's stored result, and its search bar gleams once a search starts. A review with a
+   result missing says what loads, and then what runs. After Review again on a snapshot (design 20), the snapshot's
+   analysis stays on screen until the new review's analysis replaces it, and the line says what loads.
+   **While a bar's work runs, a light gleam sweeps it** (Lichess's `bar-glider`, `ui/lib/css/component/_bar-glider.scss`: 70 pixels wide, every
    3 seconds), so that a slow step does not look stopped: the review's bar while its passes run, and the search bar
    while the position on screen is searched. With reduced motion asked for, there is no gleam. **The gleam is slower
    than Lichess's:** it crosses the bar in 2 seconds at any width, then waits 1 second. Lichess's gleam moves 3,400
