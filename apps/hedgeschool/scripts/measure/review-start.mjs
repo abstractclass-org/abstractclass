@@ -7,7 +7,7 @@
 // navigation's start (performance.now()):
 //   - start: the review page's code asks for the first of the game, the lock and the manifest (its onMount): the
 //     open of IndexedDB, the lock's request or the manifest's fetch;
-//   - open: IndexedDB is open (the site's store, src/lib/storage/db.ts, opens at the game's read);
+//   - open: IndexedDB is open (the site's store, @abstractclass/storage/db.ts, opens at the game's read);
 //   - game: the stored game is read (the first read of the store `games` in IndexedDB succeeds);
 //   - lock: the tab holds the game's lock (navigator.locks.request calls back);
 //   - manifest: the engine's manifest answers (the fetch of /engine/manifest.json);

@@ -1,10 +1,11 @@
-// The engine's CPU module in Node, through the engine's own library, as a worker runs it (src/lib/engine/worker.ts):
-// for the checks that run outside a browser. It reads what scripts/fetch-engine.mjs wrote to static/engine.
+// The engine's CPU module in Node, through the engine's own library, as a worker runs it
+// (@abstractclass/engine/worker.ts): for the checks that run outside a browser. It reads what scripts/fetch-engine.mjs
+// wrote to static/engine.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { libraryOf, modelOf, moduleOf } from "../src/lib/engine/client.ts";
-import { loadLibrary } from "../src/lib/engine/library.ts";
+import { libraryOf, modelOf, moduleOf } from "@abstractclass/engine/client.ts";
+import { loadLibrary } from "@abstractclass/engine/library.ts";
 
 /** The manifest of static/engine under `root`, and `call`, which sends a request to the CPU module and parses its reply.
  *  With `network` (a network's id in the manifest), the module has that network, for analyses. The types are for the

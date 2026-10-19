@@ -5,8 +5,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { SHAPE, analysisKey, isOlderShape, removalDue, searchHolding, snapshotSearch } from "./cache.ts";
-import { STORES } from "#lib/storage/db.ts";
-import { memoryDb } from "#lib/storage/memoryDb.ts";
+import { STORES } from "@abstractclass/storage/db.ts";
+import { memoryDb } from "@abstractclass/storage/memoryDb.ts";
 
 const line = [["a1"], ["a1", "b2"], ["a1", "b2", "c3"]];
 const keys = (search: string, model: string, visits: number, positions = line) => positions.map(m => analysisKey(search, model, m, visits));

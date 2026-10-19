@@ -5,8 +5,8 @@
 import lock from "../../../engine.lock.json" with { type: "json" };
 import { BUDGETS, SHAPE, SWEEP_VISITS, earlierRemoval, isAnalysisKey, readAnalysisKey, searchHolding, snapshotExcept,
          snapshotPositions } from "#lib/analysis/cache.ts";
-import { STORES, dbReadThenDelete } from "#lib/storage/db.ts";
-import { moduleOf, type Manifest } from "#lib/engine/client.ts";
+import { STORES, dbReadThenDelete } from "@abstractclass/storage/db.ts";
+import { moduleOf, type Manifest } from "@abstractclass/engine/client.ts";
 import { positionKeys, shippedModels } from "./reviewFile.ts";
 import { parentKey } from "#lib/review/tree.ts";
 import { readGames, reviewAgainWhy, reviewMark, type KeptBranches, type ReviewMark, type StoredGame } from "./store.ts";

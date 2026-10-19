@@ -8,7 +8,7 @@
 // test reads the engine's boards before and after the edge, not the edge's points.
 import { moverOf, readPosition } from "#lib/editor/position.ts";
 import { parseEdge } from "#lib/engine/notation.ts";
-import type { GamePosition } from "#lib/engine/protocol.ts";
+import type { GamePosition } from "#lib/engine/position.ts";
 import type { Edge, Player, Position } from "#lib/review/model.ts";
 
 /** A legal edge as the engine played it: the step's board before it and the board after it (describe_game). */

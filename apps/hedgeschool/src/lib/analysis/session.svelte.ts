@@ -6,12 +6,12 @@
 // position on screen, and looks for the Greats' confirmations as results come. A page makes one as its component
 // starts: the session's effects are the page's.
 import { untrack } from "svelte";
-import { EnginePool } from "./pool.ts";
+import { EnginePool } from "@abstractclass/engine/pool.ts";
 import type { GameAnalysis } from "./game.svelte.ts";
 import { reviewVisits, type EngineSettings } from "./engineSettings.ts";
 import { GpuControl, gpuDownloadMB, type GpuStatus } from "./gpu.svelte.ts";
-import { EngineWorker, loadManifest, type Manifest } from "#lib/engine/client.ts";
-import { errorText } from "#lib/errors.ts";
+import { EngineWorker, loadManifest, type Manifest } from "@abstractclass/engine/client.ts";
+import { errorText } from "@abstractclass/engine/errors.ts";
 import { track } from "#lib/analytics.svelte.ts";
 
 export interface SessionOptions {

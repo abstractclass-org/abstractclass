@@ -4,9 +4,9 @@
 // (Lichess's threads), and whether the visitor's GPU searches too (analysis/gpu.svelte.ts). Storage can be blocked (a private window, blocked site data): then the defaults hold.
 import lock from "../../../engine.lock.json" with { type: "json" };
 import { DEEP_VISITS, LABEL_VISITS } from "./cache.ts";
-import { defaultPoolSize } from "./pool.ts";
-import { megabytes } from "#lib/engine/client.ts";
-import { readLocalJson, writeLocal } from "#lib/storage/local.ts";
+import { defaultPoolSize } from "@abstractclass/engine/pool.ts";
+import { megabytes } from "@abstractclass/engine/client.ts";
+import { readLocalJson, writeLocal } from "@abstractclass/storage/local.ts";
 import type { GameSettings, StoredGame } from "#lib/game/store.ts";
 
 export type ReviewDepth = "lite" | "standard" | "custom";

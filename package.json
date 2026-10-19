@@ -2,6 +2,7 @@
 	"name": "abstractclass",
 	"private": true,
 	"workspaces": [
-		"apps/*"
+		"apps/*",
+		"packages/*"
 	]
 }

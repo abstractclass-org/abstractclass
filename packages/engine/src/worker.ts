@@ -7,7 +7,7 @@ import { bytesOf } from "./artifacts.ts";
 import { searchInSlices } from "./channel.ts";
 import { loadLibrary, type CpuEngine } from "./library.ts";
 import type { WorkerReply, WorkerRequest } from "./messages.ts";
-import { errorText } from "#lib/errors.ts";
+import { errorText } from "./errors.ts";
 
 let engine: CpuEngine | null = null;
 let queue: Promise<void> = Promise.resolve();

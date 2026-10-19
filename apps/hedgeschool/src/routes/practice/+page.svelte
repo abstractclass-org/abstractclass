@@ -25,7 +25,7 @@
   import PlayerCardSkeleton, { BONE } from "#lib/review/PlayerCardSkeleton.svelte";
   import StepBar from "#lib/ui/StepBar.svelte";
   import { MOVE_HERE, MOVE_LIST, MOVE_TEXT, TURN_NUMBER, keepInView, moveButton, turnRow } from "#lib/review/moveList.ts";
-  import { EngineWorker, loadManifest, type Manifest } from "#lib/engine/client.ts";
+  import { EngineWorker, loadManifest, type Manifest } from "@abstractclass/engine/client.ts";
   import { edgeName, setUpStart } from "#lib/engine/notation.ts";
   import { NETWORKS, loadEngine, networkMB, networkName } from "#lib/analysis/engineSettings.ts";
   import { parseRecord, withStart } from "#lib/game/record.ts";
@@ -33,8 +33,8 @@
   import { PLAYER_NAME, moveNotation, type Player } from "#lib/review/model.ts";
   import { loadDisplay, saveDisplay } from "#lib/review/display.ts";
   import { playMove, preload } from "#lib/sound.ts";
-  import { errorText } from "#lib/errors.ts";
-  import { readLocalJson, writeLocal } from "#lib/storage/local.ts";
+  import { errorText } from "@abstractclass/engine/errors.ts";
+  import { readLocalJson, writeLocal } from "@abstractclass/storage/local.ts";
   import { browserNumber, startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
   import { sendPractice } from "#lib/practice/send.ts";
   import { startBot } from "#lib/practice/bot.ts";

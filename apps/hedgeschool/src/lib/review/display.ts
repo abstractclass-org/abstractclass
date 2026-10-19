@@ -4,7 +4,7 @@
 // read and write may fail, and the defaults then hold.
 import { DEFAULT_LAYERS, type BoardLayers } from "#lib/board/Board.svelte";
 import { MOVE_SOUNDS, type MoveSound } from "#lib/sound.ts";
-import { readLocalJson, writeLocal } from "#lib/storage/local.ts";
+import { readLocalJson, writeLocal } from "@abstractclass/storage/local.ts";
 
 export interface Display {
   judge: "turn" | "edge"; // what the labels judge: each turn as a whole (the default), or each edge (design 10)

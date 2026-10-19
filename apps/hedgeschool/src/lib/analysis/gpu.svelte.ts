@@ -1,17 +1,17 @@
 // The GPU worker in the review (docs/design/15-gpu.md): whether it searches on this machine, and its first-use test.
 // The site turns the GPU on for each machine after a short test (requests/06-webgpu.md). The test is the review's own
 // work: the GPU joins the workers, and once both have searched for TEST_SECONDS, the GPU worker's network evaluations a
-// second are compared with one CPU worker's visits a second (analysis/pool.ts, SpeedMeter). Where the GPU is slower, a
-// CPU worker would do its work better, and Auto leaves it off from then on. This browser keeps the result for each
-// network, each GPU and each build of the GPU module: the networks differ in size, so they differ in speed, a browser can
-// change GPU (a laptop docked, another graphics setting in the system), and a new build can be faster.
-import type { EnginePool } from "./pool.ts";
+// second are compared with one CPU worker's visits a second (@abstractclass/engine/pool.ts, SpeedMeter). Where the GPU
+// is slower, a CPU worker would do its work better, and Auto leaves it off from then on. This browser keeps the result
+// for each network, each GPU and each build of the GPU module: the networks differ in size, so they differ in speed, a
+// browser can change GPU (a laptop docked, another graphics setting in the system), and a new build can be faster.
+import type { EnginePool } from "@abstractclass/engine/pool.ts";
 import { networkName, type GpuMode } from "./engineSettings.ts";
-import { gpuFilesOf, megabytes, type Manifest } from "#lib/engine/client.ts";
-import { GpuEngines, gpuSupport } from "#lib/engine/gpuClient.ts";
-import { errorText } from "#lib/errors.ts";
+import { gpuFilesOf, megabytes, type Manifest } from "@abstractclass/engine/client.ts";
+import { GpuEngines, gpuSupport } from "@abstractclass/engine/gpuClient.ts";
+import { errorText } from "@abstractclass/engine/errors.ts";
 import { track } from "#lib/analytics.svelte.ts";
-import { readLocalJson, writeLocal } from "#lib/storage/local.ts";
+import { readLocalJson, writeLocal } from "@abstractclass/storage/local.ts";
 
 /** The searches that the GPU worker runs at once: one for each WebAssembly instance, their evaluations batched. The
  *  engine repository measured 16 (its games/enclosure/docs/decisions/build.md, "The GPU module"). */
@@ -165,7 +165,8 @@ export class GpuControl {
     const speed = await this.pool.measureGpu(TEST_SECONDS);
     const test = { gpu: Math.round(speed.gpu), cpu: Math.round(speed.cpu), at: new Date().toISOString() };
     saveGpuTest(testFor, test);
-    // The GPU against a worker, by the GPU's maker and kind (design 17): whether the GPU pays off on visitors' machines.
+    // The GPU against a worker, by the GPU's maker and kind (design 17): whether the GPU pays off on visitors'
+    // machines.
     track("gpu_test", { gpu_outcome: gpuFaster(test) ? "faster" : "slower", gpu_ratio: Math.round((10 * test.gpu) / Math.max(1, test.cpu)) / 10,
                         gpu: adapter, network: networkName(testFor.network) });
     if (this.ended) return;

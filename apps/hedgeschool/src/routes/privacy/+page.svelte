@@ -7,7 +7,7 @@
   import { DISCORD, SITE_NAME, STORES_PRACTICE_GAMES } from "#lib/edition.ts";
   import { ASKS_CONSENT, PURPOSES, chooseShown, consent, keptNumber, type Purpose } from "#lib/analytics.svelte.ts";
   import { deletePractice } from "#lib/practice/send.ts";
-  import { errorText } from "#lib/errors.ts";
+  import { errorText } from "@abstractclass/engine/errors.ts";
   import { SWITCH, SWITCH_THUMB } from "#lib/ui/settings.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
   import PageMeta from "#lib/PageMeta.svelte";

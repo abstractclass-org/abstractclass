@@ -5,7 +5,7 @@
   // button, in a game's row or the review's bar, it had no room for the link's length or a warning. It opens only once
   // the game's review is done (`ready`): before, `why` says what to do.
   import { DropdownMenu } from "bits-ui";
-  import { errorText } from "#lib/errors.ts";
+  import { errorText } from "@abstractclass/engine/errors.ts";
   import { reviewExports, type ExportItem, type ExportKind, type ExportResult } from "#lib/game/reviewFile.ts";
   import { track } from "#lib/analytics.svelte.ts";
   import { DISCORD_LIMIT } from "#lib/game/share.ts";

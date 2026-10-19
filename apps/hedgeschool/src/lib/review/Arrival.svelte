@@ -15,7 +15,7 @@
   import { onMount } from "svelte";
   import { parseRecord, playerNames, type GameRecord } from "#lib/game/record.ts";
   import { importRecord } from "#lib/game/import.ts";
-  import { errorText } from "#lib/errors.ts";
+  import { errorText } from "@abstractclass/engine/errors.ts";
   import { BOOKMARK_VERSION } from "#lib/game/bookmarklet.ts";
   import { analysisAddress, hashParams, readImportHash, staleTool, toolSource, type ImportHash,
            type Tool } from "#lib/game/importHash.ts";
@@ -23,7 +23,7 @@
   import { setGamePartner } from "#lib/game/store.ts";
   import { decodeShare, type SharedReview } from "#lib/game/share.ts";
   import { importShare, loadReviewFile } from "#lib/game/reviewFile.ts";
-  import { loadManifest, sameSearch } from "#lib/engine/client.ts";
+  import { loadManifest, sameSearch } from "@abstractclass/engine/client.ts";
   import { networkName, reviewDepthText } from "#lib/analysis/engineSettings.ts";
   import { startAnalytics, track } from "#lib/analytics.svelte.ts";
   import { trackImport, trackImportFailed, trackLoad, trackLoadFailed, type ImportFailure,

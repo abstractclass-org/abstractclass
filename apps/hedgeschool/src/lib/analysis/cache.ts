@@ -1,10 +1,10 @@
-// Analyses kept in the browser (storage/db.ts), so that a review opened again needs no search. The engine is
-// reproducible (the same request and search give the same reply), so a stored result equals a fresh one. The key names
-// the engine's search (request 17: the first build that searched as this one does, so that a release that keeps the
-// search keeps the results), the network's SHA-256, the position (its moves) and the visits. Results stay in memory too, so the
-// cache works when storage does not.
-import { STORES, dbDeleteWhere, dbGetMany, dbKeys, dbPut } from "#lib/storage/db.ts";
-import { readLocal, writeLocal } from "#lib/storage/local.ts";
+// Analyses kept in the browser (@abstractclass/storage/db.ts), so that a review opened again needs no search. The
+// engine is reproducible (the same request and search give the same reply), so a stored result equals a fresh one. The
+// key names the engine's search (request 17: the first build that searched as this one does, so that a release that
+// keeps the search keeps the results), the network's SHA-256, the position (its moves) and the visits. Results stay in
+// memory too, so the cache works when storage does not.
+import { STORES, dbDeleteWhere, dbGetMany, dbKeys, dbPut } from "@abstractclass/storage/db.ts";
+import { readLocal, writeLocal } from "@abstractclass/storage/local.ts";
 
 const memory = new Map<string, unknown>(); // every result put or read in this visit
 const absent = new Set<string>(); // the keys read and not found in this visit: read again only after a put

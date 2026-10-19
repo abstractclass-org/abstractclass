@@ -45,9 +45,9 @@ export default defineConfig({
 		__USERSCRIPT_VERSION__: JSON.stringify(userscriptVersion), __USERSCRIPT_CODE__: JSON.stringify(userscriptCode),
 		__ENGINE_FILES__: JSON.stringify(engineFiles),
 	},
-	// ONNX Runtime Web (the GPU worker, src/lib/engine/gpuWorker.ts) in its form that takes its WebAssembly from the page:
-	// its usual form makes the build copy that file (26.8 MB) into the site, over Cloudflare Pages' 25 MiB for a file.
-	// scripts/fetch-engine.mjs stores it compressed beside the engine instead.
+	// ONNX Runtime Web (the GPU worker, @abstractclass/engine/gpuWorker.ts) in its form that takes its WebAssembly from
+	// the page: its usual form makes the build copy that file (26.8 MB) into the site, over Cloudflare Pages' 25 MiB for a
+	// file. scripts/fetch-engine.mjs stores it compressed beside the engine instead.
 	resolve: { conditions: ['onnxruntime-web-use-extern-wasm', ...defaultClientConditions] },
 	// The workers as modules: the GPU worker imports the engine's GPU library by URL.
 	worker: { format: 'es' },

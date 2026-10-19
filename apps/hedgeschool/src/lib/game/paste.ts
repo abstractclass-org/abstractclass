@@ -1,6 +1,6 @@
 // A game pasted in a page's box (the Review tab's, the Analysis board's): this site's record, or Constellation's export,
 // which becomes this site's record (constellation.ts). A record that cannot be read says where, by line and column.
-import { errorText } from "#lib/errors.ts";
+import { errorText } from "@abstractclass/engine/errors.ts";
 import { constellationRecord, isConstellation } from "./constellation.ts";
 import { parseRecord, RecordError, withStart, type GameRecord } from "./record.ts";
 

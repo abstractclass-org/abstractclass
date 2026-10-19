@@ -3,8 +3,8 @@
 // worker a second time, and its rules work. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { PROTOCOL } from "#lib/engine/protocol.ts";
-import type { Manifest } from "#lib/engine/client.ts";
+import { PROTOCOL } from "./protocol.ts";
+import type { Manifest } from "./client.ts";
 
 /** A worker that keeps the messages that it gets, and answers each with a version of the site's protocol. */
 class FakeWorker {
@@ -24,7 +24,7 @@ globalThis.Worker = FakeWorker as unknown as typeof Worker;
 globalThis.fetch = (async () => new Response("")) as typeof fetch;
 WebAssembly.compileStreaming = (async () => ({})) as unknown as typeof WebAssembly.compileStreaming;
 
-const { EngineWorker } = await import("#lib/engine/client.ts");
+const { EngineWorker } = await import("./client.ts");
 const { EnginePool } = await import("./pool.ts");
 
 const MANIFEST = { artifacts: [

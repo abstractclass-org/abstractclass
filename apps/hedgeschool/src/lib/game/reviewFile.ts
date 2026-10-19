@@ -5,11 +5,11 @@
 // analysis in its SGF files in the same spirit. The game's record alone, with evaluations and labels, is the annotated
 // record (review/annotate.ts).
 import { SHAPE, makeEarlierRemovalDue, isAnalysisKey, ofModels, readAnalysisKey } from "#lib/analysis/cache.ts";
-import { STORES, dbEntriesWhere, dbGet, dbPut, dbPutMany } from "#lib/storage/db.ts";
+import { STORES, dbEntriesWhere, dbGet, dbPut, dbPutMany } from "@abstractclass/storage/db.ts";
 import { parseRecord, playerNames } from "./record.ts";
 import { branchNodes, keptNode, loadGame, markReviewed, saveGame, setGameSettings, type KeptBranches, type ReviewMark } from "./store.ts";
 import { parentKey, prefixKeys } from "#lib/review/tree.ts";
-import { searchModules, type Manifest } from "#lib/engine/client.ts";
+import { searchModules, type Manifest } from "@abstractclass/engine/client.ts";
 import { networkName } from "#lib/analysis/engineSettings.ts";
 import { DISCORD_LIMIT, encodeShare, sharedRecord, type SharedReview } from "./share.ts";
 import { importRecord, variantProblem } from "./import.ts";

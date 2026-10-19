@@ -50,6 +50,10 @@ jobs:
 
       - run: npm run check
       - run: npm test
+      # The shared packages' type checks and unit tests (design 29): every workspace in packages/.
+      - name: The packages' checks and tests
+        run: npm run check --workspace=packages && npm test --workspace=packages
+        working-directory: .
       - run: npm run build
         env:
           VITE_EDITION: early

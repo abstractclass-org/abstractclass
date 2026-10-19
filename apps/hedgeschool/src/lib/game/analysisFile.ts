@@ -3,8 +3,8 @@
 // (reviewFile.ts): the same results, chosen the same way (of the lines' positions and of the positions one move from
 // them, which confirm the Greats), and read the same way.
 import { ofModels, readAnalysisKey } from "#lib/analysis/cache.ts";
-import { STORES, dbEntriesWhere, dbPutMany } from "#lib/storage/db.ts";
-import { moduleOf, type Manifest } from "#lib/engine/client.ts";
+import { STORES, dbEntriesWhere, dbPutMany } from "@abstractclass/storage/db.ts";
+import { moduleOf, type Manifest } from "@abstractclass/engine/client.ts";
 import { REVIEW_FORMAT, belongs, readSchoolFile, shippedModels } from "./reviewFile.ts";
 import { boardLink, boardPositionKeys } from "./board.ts";
 import type { KeptBoard } from "./store.ts";

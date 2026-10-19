@@ -5,8 +5,8 @@
   import Board, { type BoardCandidate } from "#lib/board/Board.svelte";
   import { EdgeInput } from "#lib/board/edgeInput.svelte.ts";
   import EdgeInputHint from "#lib/board/EdgeInputHint.svelte";
-  import { EngineWorker, loadManifest, moduleOf } from "#lib/engine/client.ts";
-  import { rulesOf } from "#lib/engine/position.ts";
+  import { EngineWorker, loadManifest, moduleOf } from "@abstractclass/engine/client.ts";
+  import { rulesOf, type DescribeReply } from "#lib/engine/position.ts";
   import { review, edgeName, sameEdge, PLAYER_NAME, type Edge } from "#lib/review/model.ts";
   import { puzzlesFrom, nextRating, THEME_TEXT, type Puzzle, type Theme } from "#lib/puzzles/model.ts";
   import { SAMPLE, SAMPLE_MOVES } from "#lib/mock/sample.ts";
@@ -60,7 +60,7 @@
     input.rules = null;
     if (!engine) return;
     let current = true;
-    engine.describe({ moves: SAMPLE_MOVES.slice(0, index) })
+    engine.describe<DescribeReply>({ moves: SAMPLE_MOVES.slice(0, index) })
       .then(({ reply }) => {
         if (!current) return;
         input.rules = rulesOf(reply);

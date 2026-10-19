@@ -23,21 +23,21 @@
 // (setMain), its moves have labels only where the player asks (judge), and no pass runs: the engine searches the
 // position on screen and the moves evaluated.
 import { edgeName, parseEdge, type Edge } from "#lib/engine/notation.ts";
-import { boardPosition, rulesOf } from "#lib/engine/position.ts";
+import { boardPosition, rulesOf, type DescribeReply, type GamePosition } from "#lib/engine/position.ts";
 import { toAnalysis } from "#lib/engine/analysis.ts";
-import { positionQuery } from "#lib/engine/protocol.ts";
-import { errorText } from "#lib/errors.ts";
+import { positionQuery } from "@abstractclass/engine/protocol.ts";
+import { errorText } from "@abstractclass/engine/errors.ts";
 import { BOARD_ID, branchNodes, keptNode, type BranchNode as KeptNode, type KeptBoard, type KeptBranches } from "#lib/game/store.ts";
 import { equalDepth, moverWin, onlyEdge, otherCandidate, sameMove, secondChoice, type Analysis, type Candidate, type LineStep,
          type GameEnding, type Move, type Player, type Position, type ReviewData } from "#lib/review/model.ts";
 import { ONLY_EDGE_GAP } from "#lib/review/labels.ts";
 import type { EdgeRules } from "#lib/board/edgeInput.svelte.ts";
 import { lastMove, mainIndex, parentKey, pathKey, prefixKeys } from "#lib/review/tree.ts";
-import { STORES, dbGet, dbPut } from "#lib/storage/db.ts";
-import { keepStorage } from "#lib/storage/persist.ts";
+import { STORES, dbGet, dbPut } from "@abstractclass/storage/db.ts";
+import { keepStorage } from "@abstractclass/storage/persist.ts";
 import { DEEP_VISITS, LABEL_VISITS, SWEEP_VISITS, analysisKey, keyMoves, cacheGetAtLeast, cachePut, warmCache } from "./cache.ts";
-import { Stopped } from "#lib/engine/client.ts";
-import { Cancelled, type EnginePool } from "./pool.ts";
+import { Stopped } from "@abstractclass/engine/client.ts";
+import { Cancelled, type EnginePool } from "@abstractclass/engine/pool.ts";
 
 /** The key moments' depth: twice the review's depth, one step of its doublings deeper, so that the moments that matter
  *  most get a surer search at every review depth (Lite's 512 gives 1,024, the reference of the labels' measurement). */
@@ -178,7 +178,7 @@ export class GameAnalysis {
   async start() {
     const kept = this.board ? null : dbGet<KeptBranches>(STORES.branches, this.id); // read while the rules answer
     try {
-      const described = (await this.pool.rules.describeGame(this.query([], this.moves))).reply.positions;
+      const described = (await this.pool.rules.describeGame<GamePosition>(this.query([], this.moves))).reply.positions;
       const positions = described.map(boardPosition);
       this.played = this.moves.map((m, i) => ({ player: positions[i].player, edge: m === "pass" ? null : parseEdge(m), cut: cutOf(described[i + 1].cuts) }));
       this.positions = positions;
@@ -329,7 +329,7 @@ export class GameAnalysis {
     let k = path.length;
     while (k > 0 && !this.known(path.slice(0, k))) k--;
     if (k === path.length) return;
-    const { positions } = (await this.pool.rules.describeGame(this.query(path.slice(0, k), path.slice(k)), k)).reply;
+    const { positions } = (await this.pool.rules.describeGame<GamePosition>(this.query(path.slice(0, k), path.slice(k)), k)).reply;
     const next = { ...this.branches };
     for (let j = 1; j < positions.length; j++) {
       const m = path[k + j - 1], p = path.slice(0, k + j);
@@ -429,7 +429,7 @@ export class GameAnalysis {
 
   /** The rules of a position anywhere in the tree, for the player's own moves: the legal edges and the mover's nodes. */
   async rulesAt(path: string[]): Promise<EdgeRules> {
-    const { reply } = await this.pool.rules.describe(this.query(path));
+    const { reply } = await this.pool.rules.describe<DescribeReply>(this.query(path));
     return rulesOf(reply);
   }
 
@@ -700,7 +700,7 @@ export class GameAnalysis {
   /** Each edge of a line from the position at `path`, played: the edge it cuts (or null), and the regions and areas
    *  after it. The rules, no network. */
   async lineSteps(path: string[], line: Edge[]): Promise<LineStep[]> {
-    const { positions } = (await this.pool.rules.describeGame(this.query(path, line.map(edgeName)), path.length)).reply;
+    const { positions } = (await this.pool.rules.describeGame<GamePosition>(this.query(path, line.map(edgeName)), path.length)).reply;
     return positions.slice(1).map(p => ({ cut: cutOf(p.cuts), regions: boardPosition(p).regions, areas: p.areas }));
   }
 

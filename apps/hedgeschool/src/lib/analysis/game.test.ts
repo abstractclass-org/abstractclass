@@ -5,11 +5,12 @@
 import { afterEach, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
 import "#lib/testing/svelteModules.ts";
-import type { AnalysisReply, GamePosition, PositionQuery } from "#lib/engine/protocol.ts";
-import type { EnginePool, Work } from "./pool.ts";
+import type { AnalysisReply, PositionQuery } from "@abstractclass/engine/protocol.ts";
+import type { GamePosition } from "#lib/engine/position.ts";
+import type { EnginePool, Work } from "@abstractclass/engine/pool.ts";
 import { SWEEP_VISITS, readAnalysisKey } from "./cache.ts";
-import { STORES } from "#lib/storage/db.ts";
-import { memoryDb } from "#lib/storage/memoryDb.ts";
+import { STORES } from "@abstractclass/storage/db.ts";
+import { memoryDb } from "@abstractclass/storage/memoryDb.ts";
 
 const store = memoryDb(queueMicrotask); // its transactions complete in microtasks: the tests mock setTimeout
 

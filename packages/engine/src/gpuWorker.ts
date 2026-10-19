@@ -9,7 +9,7 @@ import { searchInSlices } from "./channel.ts";
 import { loadLibrary, type GpuEngine, type GpuEngines } from "./library.ts";
 import type { GpuInit, GpuReply, GpuRequest } from "./gpuMessages.ts";
 import { isError } from "./protocol.ts";
-import { errorText } from "#lib/errors.ts";
+import { errorText } from "./errors.ts";
 
 let gpu: GpuEngines | null = null;
 const queues: Promise<void>[] = [];

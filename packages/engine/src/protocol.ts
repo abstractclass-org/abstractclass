@@ -24,7 +24,10 @@
 // 0.6.1 adds `describe_game` (request 18): every position of a game from a move on, in one request, with describe's
 // fields but the legal moves, the nodes and the check, and each move's cut edge.
 //
-// Every win chance and score is from Blue's side. Win chance 0-1. Scores in game points.
+// The fields of describe, describe_game and play are each game's own: the engine package types only the analysis and
+// the messages that every game's engine shares (design 29). Enclosure's are in Hedge School's
+// src/lib/engine/position.ts. Every win chance and score is from the first player's side (KataGo's convention:
+// Enclosure's Blue). Win chance 0-1. Scores in game points.
 
 /** The protocol the site is written for: 0.6.1 brings describe_game. */
 export const PROTOCOL = "0.6.1";
@@ -35,8 +38,6 @@ export function speaksProtocol(version: string): boolean {
   const m = /^(\d+)\.(\d+)\.(\d+)$/.exec(version);
   return !!m && Number(m[1]) === major && Number(m[2]) === minor && Number(m[3]) >= patch;
 }
-
-export type Side = "b" | "r";
 
 /** The engine tag on every analysis reply: which build and which network made it (the network's SHA-256). */
 export interface EngineTag { protocol: string; build: string; search: string; model: string }
@@ -65,45 +66,9 @@ export interface PositionQuery { position?: string; moves: string[] }
 export const positionQuery = (start: string | null | undefined, moves: string[]): PositionQuery =>
   ({ ...(start ? { position: start } : {}), moves });
 
-/** A position as describe and describe_game give it. */
-export interface PositionFields {
-  position: string;
-  edges: Record<Side, string[]>;
-  protected: string[];
-  placed: string[];
-  regions: Record<Side, [number, number][][]>; // polygons; their union is the enclosed region
-  areas: [number, number];
-  scores: [number, number];
-  mover: Side;
-  movesLeft: number;
-  moveCount: number;
-  outcome: { result: string } | null;
-}
-
-export interface DescribeReply extends PositionFields {
-  id: string;
-  nodes: Record<Side, string[]>;
-  legal: string[];
-  check?: { possible: boolean; reasons: CheckReason[] }; // the position's, before its moves (protocol 0.5)
-}
-
-/** A position in describe_game's reply (protocol 0.6.1), and `cuts`: the opponent's edge that the move to it cut, as
- *  `play` gives it. Null before the moves, and after a move that cuts nothing. */
-export interface GamePosition extends PositionFields { cuts: string | null }
-/** describe_game's reply: each position from the query's `from` to the end, so the cut of `moves[k]` is
- *  `positions[k - from + 1].cuts`. */
-export interface DescribeGameReply { id: string; positions: GamePosition[] }
-
-export interface PlayReply {
-  id: string;
-  legal: boolean;
-  why?: string;
-  move?: string;
-  cuts?: string | null;
-  removedNodes?: string[];
-  position?: string;
-  outcome?: { result: string } | null;
-}
+/** describe_game's reply: each position from the query's `from` to the end, in the game's own fields (Enclosure's:
+ *  Hedge School's src/lib/engine/position.ts). */
+export interface DescribeGameReply<F> { id: string; positions: F[] }
 
 export interface AnalysisQuery extends PositionQuery {
   maxVisits: number;
@@ -139,7 +104,7 @@ export interface MoveInfo {
 }
 
 export interface RootInfo {
-  currentPlayer: Side;
+  currentPlayer: string; // the player to move, as the game's engine names it (Enclosure's: "b", "r")
   visits: number;
   winrate: number;
   scoreSelfplay: number;
@@ -158,7 +123,7 @@ export interface AnalysisReply {
   rootInfo: RootInfo;
   moveInfos: MoveInfo[];
   policy?: [string, number][]; // every legal edge with its prior, highest first
-  ownership?: number[]; // 361 values, index y * 19 + x, row 1 first, from Blue's side
+  ownership?: number[]; // a value for each point, from the first player's side (Enclosure: 361, index y * 19 + x)
 }
 
 export const isError = (r: unknown): r is ErrorReply => typeof r === "object" && r !== null && "error" in r;

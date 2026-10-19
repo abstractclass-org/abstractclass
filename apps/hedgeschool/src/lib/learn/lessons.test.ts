@@ -7,7 +7,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseEdge } from "#lib/engine/notation.ts";
-import type { DescribeGameReply, DescribeReply } from "#lib/engine/protocol.ts";
+import type { DescribeGameReply, DescribeReply } from "#lib/engine/position.ts";
 import { nodeEngine } from "../../../scripts/node-engine.mjs";
 import { COURSE, lineBoard, type Played, type Step } from "./lessons.ts";
 

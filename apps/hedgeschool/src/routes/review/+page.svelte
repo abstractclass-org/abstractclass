@@ -23,14 +23,14 @@
   import { reviewArrives } from "#lib/game/importHash.ts";
   import { LABEL_VISITS, SWEEP_VISITS, snapshotExcept, snapshotPositions, snapshotSearch, warmCache } from "#lib/analysis/cache.ts";
   import { review, type GameEnding, type ReviewData } from "#lib/review/model.ts";
-  import { EnginePool } from "#lib/analysis/pool.ts";
+  import { EnginePool } from "@abstractclass/engine/pool.ts";
   import { GameAnalysis, momentVisits } from "#lib/analysis/game.svelte.ts";
   import { EngineSession } from "#lib/analysis/session.svelte.ts";
   import { changeOwn, loadEngine, networkName, offersNetwork, ownSettings, reviewVisits, saveEngine, withOwn,
            type EngineSettings, type OwnSettings } from "#lib/analysis/engineSettings.ts";
   import { trackSettingChange } from "#lib/analysis/settingChanges.ts";
-  import { modelOf, moduleOf } from "#lib/engine/client.ts";
-  import { errorText } from "#lib/errors.ts";
+  import { modelOf, moduleOf } from "@abstractclass/engine/client.ts";
+  import { errorText } from "@abstractclass/engine/errors.ts";
   import { gamePage, playerNames } from "#lib/game/record.ts";
   import type { GamePartner } from "#lib/game/partners.ts";
   import { loadGame, markReviewed, rememberReview, reviewAgainWhy, reviewCovers, reviewMark, setGameSettings,
@@ -44,7 +44,7 @@
   import type { Unit } from "#lib/review/model.ts";
   import type { GameRecord } from "#lib/game/record.ts";
   import { SITE_VERSION } from "#lib/edition.ts";
-  import { readSession, writeSession } from "#lib/storage/local.ts";
+  import { readSession, writeSession } from "@abstractclass/storage/local.ts";
   import PageMeta from "#lib/PageMeta.svelte";
 
   const MESSAGE = "box-content max-w-[1100px] mx-auto my-8 px-4";

@@ -13,14 +13,14 @@
 // and the compressed bytes are split into parts of 24 MiB or less when they are larger still: `model.onnx.gz.0`,
 // `model.onnx.gz.1`. A network's graph is stored compressed at any size: gzip makes it 9% smaller (20.5 MB to 18.7 MB
 // for b15c192). The manifest entry names the parts and the encoding, and the page joins and decompresses them
-// (src/lib/engine/artifacts.ts). The downloads are kept in node_modules/.cache/engine/, by SHA-256.
+// (@abstractclass/engine/artifacts.ts). The downloads are kept in node_modules/.cache/engine/, by SHA-256.
 import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync, existsSync, rmSync } from "node:fs";
 import { findPackageJSON } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
-import { speaksProtocol } from "../src/lib/engine/protocol.ts";
+import { speaksProtocol } from "@abstractclass/engine/protocol.ts";
 import { nodeEngine } from "./node-engine.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -121,7 +121,7 @@ writeFileSync(join(outDir, "manifest.json"), JSON.stringify(manifest, null, 2) +
 const { module, call } = await nodeEngine(root);
 const version = call({ id: "v", action: "query_version" });
 if (!speaksProtocol(version.protocol))
-  throw new Error(`${module.id}: protocol ${version.protocol}, which the site does not speak (src/lib/engine/protocol.ts)`);
+  throw new Error(`${module.id}: protocol ${version.protocol}, which the site does not speak (@abstractclass/engine/protocol.ts)`);
 for (const a of lock.artifacts.filter(a => a.kind === "module" || a.kind === "gpu-module")) {
   if (a.interface !== `engine-protocol-${version.protocol}` || a.search !== version.search)
     throw new Error(`${a.id}: engine.lock.json gives ${a.interface} and the search ${a.search}, but the module reports ` +

@@ -5,9 +5,9 @@
   import Board from "#lib/board/Board.svelte";
   import { EdgeInput } from "#lib/board/edgeInput.svelte.ts";
   import EdgeInputHint from "#lib/board/EdgeInputHint.svelte";
-  import { EngineError, EngineWorker, loadManifest, moduleOf } from "#lib/engine/client.ts";
+  import { EngineError, EngineWorker, loadManifest, moduleOf } from "@abstractclass/engine/client.ts";
   import { edgeName, parseEdge } from "#lib/engine/notation.ts";
-  import { boardPosition, rulesOf } from "#lib/engine/position.ts";
+  import { boardPosition, rulesOf, type DescribeReply, type GamePosition } from "#lib/engine/position.ts";
   import { COURSE, lineBoard, type Lesson, type Step } from "#lib/learn/lessons.ts";
   import type { Edge, Position } from "#lib/review/model.ts";
   import PageMeta from "#lib/PageMeta.svelte";
@@ -48,7 +48,7 @@
     input.rules = null;
     if (!s) return;
     let current = true;
-    startEngine().then(e => e?.describe({ position: s.position, moves: [] }))
+    startEngine().then(e => e?.describe<DescribeReply>({ position: s.position, moves: [] }))
       .then(r => {
         if (!r || !current) return;
         drawn = boardPosition(r.reply);
@@ -71,7 +71,7 @@
     const e = await startEngine();
     if (!e || !current()) return;
     try {
-      const { reply } = await e.describeGame({ position: s.position, moves: [edgeName(edge)] });
+      const { reply } = await e.describeGame<GamePosition>({ position: s.position, moves: [edgeName(edge)] });
       if (!current()) return;
       const [before, after] = reply.positions;
       wrong = s.task({ before, after });

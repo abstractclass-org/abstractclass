@@ -2,7 +2,7 @@
 // events whose `traffic_type` is "internal". A browser keeps a flag, and the Google tag marks its events while the flag
 // is set (analytics.svelte.ts). Any page sets it with `?internal=on` and removes it with `?internal=off`, as the site
 // starts (hooks.client.ts). The flag changes only this browser's own events, as a Decline does, so it needs no secret.
-import { readLocal, writeLocal } from "#lib/storage/local.ts";
+import { readLocal, writeLocal } from "@abstractclass/storage/local.ts";
 
 const FLAG = "hedge-school:internal-traffic:1";
 

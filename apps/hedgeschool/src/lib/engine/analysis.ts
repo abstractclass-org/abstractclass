@@ -2,7 +2,7 @@
 // its own, with nothing of the engine's workers, so that a script in Node can store results as the site stores them
 // (scripts/test-fixture.mjs).
 import { parseEdge, type Edge } from "./notation.ts";
-import type { AnalysisReply, MoveInfo } from "./protocol.ts";
+import type { AnalysisReply, MoveInfo } from "@abstractclass/engine/protocol.ts";
 import type { Analysis } from "#lib/review/model.ts";
 
 /** An analysis reply as the review reads it: values from Blue's side, the candidates in the engine's order. */

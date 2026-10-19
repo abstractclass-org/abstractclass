@@ -2,7 +2,7 @@
 // `data-theme` is always "light" or "dark", and the colour tokens in app.css follow it. A small script in app.html
 // sets it before the page draws, with the same key, so that a page never shows the other theme first. Here the menu
 // changes it, and the system's theme is followed while the choice is "system".
-import { readLocal, writeLocal } from "#lib/storage/local.ts";
+import { readLocal, writeLocal } from "@abstractclass/storage/local.ts";
 
 export type ThemeChoice = "system" | "light" | "dark";
 export const THEME_CHOICES: [ThemeChoice, string][] = [["system", "System"], ["light", "Light"], ["dark", "Dark"]];

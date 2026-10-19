@@ -1,5 +1,5 @@
 // The page's side of the GPU worker (gpuWorker.ts): the GPU module's engines, each a search at a time, all batched
-// on the GPU. Each engine is a slot that the pool gives work to as it gives work to a CPU worker (analysis/pool.ts).
+// on the GPU. Each engine is a slot that the pool gives work to as it gives work to a CPU worker (pool.ts).
 import { WorkerChannel } from "./channel.ts";
 import { checked, checkVersion, compile, gpuFilesOf, libraryOf, type Manifest } from "./client.ts";
 import type { GpuRequest } from "./gpuMessages.ts";

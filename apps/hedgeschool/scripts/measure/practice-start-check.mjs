@@ -17,7 +17,7 @@ import { pathToFileURL } from "node:url";
 import { meafRecord } from "../../src/lib/game/meaf.ts";
 import { parseRecord } from "../../src/lib/game/record.ts";
 import { variantProblem } from "../../src/lib/game/import.ts";
-import { positionQuery } from "../../src/lib/engine/protocol.ts";
+import { positionQuery } from "@abstractclass/engine/protocol.ts";
 import { nodeEngine } from "../node-engine.mjs";
 
 const [file, limitArg, edgesArg] = process.argv.slice(2);

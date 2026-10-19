@@ -8,16 +8,16 @@
   // browser, so that a reload keeps it.
   import { onDestroy, onMount } from "svelte";
   import Board from "#lib/board/Board.svelte";
-  import { EngineWorker, loadManifest, moduleOf } from "#lib/engine/client.ts";
-  import type { CheckReason } from "#lib/engine/protocol.ts";
+  import { EngineWorker, loadManifest, moduleOf } from "@abstractclass/engine/client.ts";
+  import type { CheckReason } from "@abstractclass/engine/protocol.ts";
   import { parseEdge, STANDARD_START } from "#lib/engine/notation.ts";
-  import { boardPosition } from "#lib/engine/position.ts";
+  import { boardPosition, type DescribeReply } from "#lib/engine/position.ts";
   import { PLAYER_NAME, type Edge, type Position } from "#lib/review/model.ts";
   import { drawEdge, LAST_COUNT, moverOf, placeable, readPosition, toggleMark, writePosition,
            type EditorPosition } from "#lib/editor/position.ts";
-  import { errorText } from "#lib/errors.ts";
+  import { errorText } from "@abstractclass/engine/errors.ts";
   import { startAnalytics, track } from "#lib/analytics.svelte.ts";
-  import { readLocal, writeLocal } from "#lib/storage/local.ts";
+  import { readLocal, writeLocal } from "@abstractclass/storage/local.ts";
   import PageMeta from "#lib/PageMeta.svelte";
 
   const KEPT = "hedge-school:editor"; // the position being made (a convenience: the editor opens at the start without it)
@@ -75,7 +75,7 @@
   async function describe(e: EngineWorker, n: string) {
     const mine = ++asked;
     try {
-      const { reply } = await e.describe({ position: n, moves: [] });
+      const { reply } = await e.describe<DescribeReply>({ position: n, moves: [] });
       if (mine !== asked) return;
       drawn = boardPosition(reply);
       check = reply.check ?? { possible: true, reasons: [] };

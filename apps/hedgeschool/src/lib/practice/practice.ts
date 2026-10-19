@@ -2,7 +2,7 @@
 // What the page and the bot share: the bot's settings, the game kept in this browser, the GTP commands that set the
 // bot, the takeback's reach, the result, and the game's record.
 import { NETWORKS, inSteps, networkName, offersNetwork } from "#lib/analysis/engineSettings.ts";
-import { readLocalJson, writeLocal } from "#lib/storage/local.ts";
+import { readLocalJson, writeLocal } from "@abstractclass/storage/local.ts";
 import { writeRecord } from "#lib/game/record.ts";
 import { BOT_SECOND_RANGES, CORE_RANGES, EDGE_RANGES, TAKEBACK_RANGES, range } from "#lib/measure.ts";
 import { turnFromCount, type Player } from "#lib/review/model.ts";

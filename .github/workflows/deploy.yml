@@ -48,6 +48,11 @@ jobs:
           echo "CF_PAGES_BRANCH=$BRANCH" >> "$GITHUB_ENV"
           echo "CF_PAGES_URL=https://$alias.hedgeschool.pages.dev" >> "$GITHUB_ENV"
 
+      # The shared packages' type checks and unit tests (design 29), before the site's own in build:cloudflare.
+      - name: The packages' checks and tests
+        run: npm run check --workspace=packages && npm test --workspace=packages
+        working-directory: .
+
       # The build's variables (repository variables). Previews have no Google Analytics and no Web Analytics, so that
       # their visits are not counted.
       - run: npm run build:cloudflare

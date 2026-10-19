@@ -1,7 +1,7 @@
 // The messages between the page and the practice bot's worker (botWorker.ts, bot.ts). The worker's replies are every
 // engine worker's (channel.ts): a command's reply is the bot's GTP response.
-import type { StoredArtifact } from "#lib/engine/artifacts.ts";
-export type { ChannelReply as BotReply } from "#lib/engine/channel.ts";
+import type { StoredArtifact } from "@abstractclass/engine/artifacts.ts";
+export type { ChannelReply as BotReply } from "@abstractclass/engine/channel.ts";
 
 /** Where the bot's network runs (design 24): on the GPU or on CPU workers, through the threaded bot (JSPI), or in the
  *  bot's one search thread. */

@@ -1,8 +1,8 @@
 // The page's side of the practice bot (botWorker.ts, docs/design/24-practice.md): it starts the bot in the first form that
 // this browser runs, and sends it GTP commands, one at a time.
-import { WorkerChannel } from "#lib/engine/channel.ts";
-import { checked, compile, gpuFilesOf, libraryOf, modelOf, type ArtifactKind, type Manifest } from "#lib/engine/client.ts";
-import { gpuSupport } from "#lib/engine/gpuClient.ts";
+import { WorkerChannel } from "@abstractclass/engine/channel.ts";
+import { checked, compile, gpuFilesOf, libraryOf, modelOf, type ArtifactKind, type Manifest } from "@abstractclass/engine/client.ts";
+import { gpuSupport } from "@abstractclass/engine/gpuClient.ts";
 import { GPU_SEARCHES, gpuAdapterName, gpuFaster, loadGpuTest } from "#lib/analysis/gpu.svelte.ts";
 import type { EngineSettings } from "#lib/analysis/engineSettings.ts";
 import { gtpAnswer } from "./practice.ts";

@@ -4,12 +4,12 @@
 // (a search in slices) gives way: when a more urgent task finds no free worker, the least urgent such task is stopped
 // and waits in the queue again. The pool can grow or shrink while it works (the engine settings, design 09).
 //
-// The GPU module's engines (engine/gpuClient.ts) join the pool as more search engines, a slot each (design 15). The GPU
+// The GPU module's engines (gpuClient.ts) join the pool as more search engines, a slot each (design 15). The GPU
 // gains by many searches at once, whose evaluations go to it together, and each of its searches runs slower than a CPU
 // worker's. So a task takes a free CPU worker first, and a free GPU slot when no CPU worker is free.
-import { EngineError, EngineWorker, modelOf, moduleOf, type Manifest, type Timed } from "#lib/engine/client.ts";
-import type { GpuEngines } from "#lib/engine/gpuClient.ts";
-import type { AnalysisQuery, AnalysisReply, ModelInfo, VersionReply } from "#lib/engine/protocol.ts";
+import { EngineError, EngineWorker, modelOf, moduleOf, type Manifest, type Timed } from "./client.ts";
+import type { GpuEngines } from "./gpuClient.ts";
+import type { AnalysisQuery, AnalysisReply, ModelInfo, VersionReply } from "./protocol.ts";
 
 /** What searches: a CPU worker, or an engine of the GPU worker. */
 export interface SearchEngine {

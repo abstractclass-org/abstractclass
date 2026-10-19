@@ -4,8 +4,8 @@
 import { GameAnalysis, type BranchNode } from "#lib/analysis/game.svelte.ts";
 import { LABEL_VISITS } from "#lib/analysis/cache.ts";
 import { loadEngine, networkName, settingsFor } from "#lib/analysis/engineSettings.ts";
-import { EnginePool } from "#lib/analysis/pool.ts";
-import { modelOf, type Manifest } from "#lib/engine/client.ts";
+import { EnginePool } from "@abstractclass/engine/pool.ts";
+import { modelOf, type Manifest } from "@abstractclass/engine/client.ts";
 import { SITE_NAME } from "#lib/edition.ts";
 import { playerNames, type GameRecord } from "#lib/game/record.ts";
 import { loadGame } from "#lib/game/store.ts";

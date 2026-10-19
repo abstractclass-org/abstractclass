@@ -2,12 +2,12 @@
 // edges come from the analysis module's rules worker, as on the Analysis board: the board draws what the site's rules
 // say. Each move goes to the bot too, so that the two play the same game. The game's moves and settings are kept in
 // this browser after each move (practice.ts, keep), so that a reload, or a new build, continues it from its moves.
-import { boardPosition, rulesOf } from "#lib/engine/position.ts";
-import type { EngineWorker } from "#lib/engine/client.ts";
+import { boardPosition, rulesOf, type DescribeReply, type GamePosition } from "#lib/engine/position.ts";
+import type { EngineWorker } from "@abstractclass/engine/client.ts";
 import { parseEdge } from "#lib/engine/notation.ts";
-import { positionQuery, type GamePosition } from "#lib/engine/protocol.ts";
+import { positionQuery } from "@abstractclass/engine/protocol.ts";
 import type { EdgeRules } from "#lib/board/edgeInput.svelte.ts";
-import { errorText } from "#lib/errors.ts";
+import { errorText } from "@abstractclass/engine/errors.ts";
 import { parseRecord } from "#lib/game/record.ts";
 import { saveGame } from "#lib/game/store.ts";
 import type { Move, Player, Position } from "#lib/review/model.ts";
@@ -59,7 +59,7 @@ export class PracticeGame {
       this.kept.ms = Array.from(this.kept.moves, (_, i) => this.kept.ms?.[i] ?? null);
       for (const line of botCommands(this.kept.bot)) await this.bot.command(line);
       if (this.kept.start) await this.bot.command(`enclosure-set-position ${this.kept.start}`);
-      const described = (await this.rulesWorker.describeGame(positionQuery(this.kept.start ?? null, this.kept.moves))).reply.positions;
+      const described = (await this.rulesWorker.describeGame<GamePosition>(positionQuery(this.kept.start ?? null, this.kept.moves))).reply.positions;
       const positions = described.map(boardPosition);
       for (let i = 0; i < this.kept.moves.length; i++) await this.bot.command(`play ${gtpColor(positions[i].player as Player)} ${this.kept.moves[i]}`);
       this.positions = positions;
@@ -177,7 +177,7 @@ export class PracticeGame {
     this.kept.moves.push(name);
     (this.kept.ms ??= []).push(ms);
     keep(this.kept);
-    const [, after] = (await this.rulesWorker.describeGame(positionQuery(this.kept.start ?? null, this.kept.moves), from)).reply.positions;
+    const [, after] = (await this.rulesWorker.describeGame<GamePosition>(positionQuery(this.kept.start ?? null, this.kept.moves), from)).reply.positions;
     this.played = [...this.played, moveOf(this.positions[from], name, after)];
     this.positions = [...this.positions, boardPosition(after)];
   }
@@ -200,7 +200,7 @@ export class PracticeGame {
       keep(this.kept);
     }
     if (!this.position || this.position.over) return this.finish();
-    const { reply } = await this.rulesWorker.describe(positionQuery(this.kept.start ?? null, this.kept.moves));
+    const { reply } = await this.rulesWorker.describe<DescribeReply>(positionQuery(this.kept.start ?? null, this.kept.moves));
     this.rules = rulesOf(reply);
     this.status = "human";
     this.humanSince = performance.now();
@@ -219,7 +219,7 @@ export class PracticeGame {
  *  has started. Nothing for a game with no moves. The game set aside goes to the site as set aside (design 25). */
 export async function saveUnfinished(kept: KeptPractice, rulesWorker: EngineWorker): Promise<string | null> {
   if (!kept.moves.length) return null;
-  const described = (await rulesWorker.describeGame(positionQuery(kept.start ?? null, kept.moves))).reply.positions;
+  const described = (await rulesWorker.describeGame<GamePosition>(positionQuery(kept.start ?? null, kept.moves))).reply.positions;
   const movers: Player[] = kept.moves.map((_, i) => (described[i].mover === "b" ? 0 : 1)), cuts = described.slice(1).map(p => p.cuts !== null);
   const text = practiceRecord(kept, movers, cuts, "*");
   sendPractice(storedGame(kept, practiceRecord({ ...kept, name: "" }, movers, cuts, "*"), "*", "set_aside", browserNumber()));

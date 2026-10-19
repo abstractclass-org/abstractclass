@@ -4,13 +4,13 @@
   // of workers to measure the time a position on this machine.
   import { onMount } from "svelte";
   import Board from "#lib/board/Board.svelte";
-  import { EngineWorker, loadManifest, megabytes, modelOf, type Manifest } from "#lib/engine/client.ts";
-  import type { AnalysisReply, DescribeReply, VersionReply, ModelInfo } from "#lib/engine/protocol.ts";
+  import { EngineWorker, loadManifest, megabytes, modelOf, type Manifest } from "@abstractclass/engine/client.ts";
+  import type { AnalysisReply, VersionReply, ModelInfo } from "@abstractclass/engine/protocol.ts";
   import { SWEEP_VISITS } from "#lib/analysis/cache.ts";
-  import { boardPosition } from "#lib/engine/position.ts";
+  import { boardPosition, type DescribeReply } from "#lib/engine/position.ts";
   import { NETWORKS, REVIEW_PRESETS } from "#lib/analysis/engineSettings.ts";
-  import { defaultPoolSize } from "#lib/analysis/pool.ts";
-  import { errorText } from "#lib/errors.ts";
+  import { defaultPoolSize } from "@abstractclass/engine/pool.ts";
+  import { errorText } from "@abstractclass/engine/errors.ts";
   import { pct, PLAYER_NAME } from "#lib/review/model.ts";
   import { SAMPLE, SAMPLE_MOVES as MOVES } from "#lib/mock/sample.ts";
   import PageMeta from "#lib/PageMeta.svelte";
@@ -84,7 +84,7 @@
   async function showRules() {
     const [engine] = await getPool(workers, false);
     busy = "describing the position";
-    const t = await engine.describe(query(edge));
+    const t = await engine.describe<DescribeReply>(query(edge));
     described = { reply: t.reply, ms: t.ms };
   }
 

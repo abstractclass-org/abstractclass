@@ -4,8 +4,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { gameId, markReviewed, replacesAnother, reviewAgainWhy, type ReviewMark, type StoredGame } from "./store.ts";
-import { STORES, dbGet } from "#lib/storage/db.ts";
-import { memoryDb } from "#lib/storage/memoryDb.ts";
+import { STORES, dbGet } from "@abstractclass/storage/db.ts";
+import { memoryDb } from "@abstractclass/storage/memoryDb.ts";
 
 const db = memoryDb();
 

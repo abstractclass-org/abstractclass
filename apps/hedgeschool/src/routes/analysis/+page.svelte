@@ -18,10 +18,10 @@
   import { GameAnalysis } from "#lib/analysis/game.svelte.ts";
   import { LABEL_VISITS } from "#lib/analysis/cache.ts";
   import { EngineSession } from "#lib/analysis/session.svelte.ts";
-  import { modelOf } from "#lib/engine/client.ts";
+  import { modelOf } from "@abstractclass/engine/client.ts";
   import { loadEngine, networkName, reviewVisits, saveEngine, type EngineSettings } from "#lib/analysis/engineSettings.ts";
   import { trackSettingChange } from "#lib/analysis/settingChanges.ts";
-  import { errorText } from "#lib/errors.ts";
+  import { errorText } from "@abstractclass/engine/errors.ts";
   import { BOARD_ID, type KeptBoard } from "#lib/game/store.ts";
   import { boardLink, boardOfRecord, readBoardLink } from "#lib/game/board.ts";
   import { download, shippedModels, type ExportItem, type ExportKind, type ExportResult } from "#lib/game/reviewFile.ts";
@@ -30,13 +30,13 @@
   import { parseRecord, withStart } from "#lib/game/record.ts";
   import { variantProblem } from "#lib/game/import.ts";
   import { checkMoves, checkPosition } from "#lib/game/check.ts";
-  import { STORES, dbGet, dbPut } from "#lib/storage/db.ts";
+  import { STORES, dbGet, dbPut } from "@abstractclass/storage/db.ts";
   import { mainIndex, pathKey } from "#lib/review/tree.ts";
   import { startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
   import { isImportSource, trackImport, trackImportFailed, trackLoad, trackLoadFailed, type ImportSource,
            type LoadSource } from "#lib/game/importEvents.ts";
   import { readPasted } from "#lib/game/paste.ts";
-  import { readLocal, writeLocal } from "#lib/storage/local.ts";
+  import { readLocal, writeLocal } from "@abstractclass/storage/local.ts";
   import { SITE_NAME, SITE_VERSION } from "#lib/edition.ts";
   import { EDGE_RANGES, range } from "#lib/measure.ts";
   import PageMeta from "#lib/PageMeta.svelte";

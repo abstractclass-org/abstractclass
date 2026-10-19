@@ -2,10 +2,10 @@
 // command at a time, in order. In one of three forms (bot.ts, botModes): the threaded bot with its network on the GPU
 // (ONNX Runtime Web on WebGPU, as the GPU worker runs it), the threaded bot with its network on CPU workers (the
 // engine's evaluator workers, which this worker starts), or the bot with one search thread, which needs no JSPI.
-import { bytesOf, fetchArtifact } from "#lib/engine/artifacts.ts";
-import type { CpuEvaluatorLibrary, EngineLibrary, PracticeLibrary } from "#lib/engine/library.ts";
-import { setUpOrt } from "#lib/engine/ort.ts";
-import { errorText } from "#lib/errors.ts";
+import { bytesOf, fetchArtifact } from "@abstractclass/engine/artifacts.ts";
+import type { CpuEvaluatorLibrary, EngineLibrary, PracticeLibrary } from "@abstractclass/engine/library.ts";
+import { setUpOrt } from "@abstractclass/engine/ort.ts";
+import { errorText } from "@abstractclass/engine/errors.ts";
 import type { BotInit, BotReply, BotRequest } from "./botMessages.ts";
 
 let bot: { command(line: string): string | Promise<string> } | null = null;

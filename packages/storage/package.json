@@ -1,0 +1,17 @@
+{
+	"name": "@abstractclass/storage",
+	"private": true,
+	"version": "0.0.0",
+	"type": "module",
+	"exports": {
+		"./*": "./src/*"
+	},
+	"scripts": {
+		"check": "tsc -p tsconfig.json",
+		"test": "node --test \"src/**/*.test.ts\""
+	},
+	"devDependencies": {
+		"@types/node": "^26.6.4",
+		"typescript": "^6.0.3"
+	}
+}

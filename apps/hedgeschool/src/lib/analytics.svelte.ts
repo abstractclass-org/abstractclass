@@ -21,7 +21,7 @@
 // site never sends the tag through its own address to get past a blocker: that would override the visitor's own choice.
 import { STORES_PRACTICE_GAMES } from "#lib/edition.ts";
 import { isInternal } from "#lib/internalTraffic.ts";
-import { readLocal, readLocalJson, writeLocal } from "#lib/storage/local.ts";
+import { readLocal, readLocalJson, writeLocal } from "@abstractclass/storage/local.ts";
 
 const GA_ID: string | undefined = import.meta.env.VITE_GA_ID;
 const CF_TOKEN: string | undefined = import.meta.env.VITE_CF_ANALYTICS_TOKEN;

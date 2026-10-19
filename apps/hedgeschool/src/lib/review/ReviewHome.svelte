@@ -12,11 +12,11 @@
   import { importRecord } from "#lib/game/import.ts";
   import { pastedSource, readPasted } from "#lib/game/paste.ts";
   import { fileKind, openAnalysisFile } from "#lib/game/analysisFile.ts";
-  import { keepStorage, storageKept } from "#lib/storage/persist.ts";
-  import { errorText } from "#lib/errors.ts";
+  import { keepStorage, storageKept } from "@abstractclass/storage/persist.ts";
+  import { errorText } from "@abstractclass/engine/errors.ts";
   import { SITE_NAME, SITE_VERSION } from "#lib/edition.ts";
   import { deliverExport, loadReviewFile, type ExportKind } from "#lib/game/reviewFile.ts";
-  import { loadManifest, type Manifest } from "#lib/engine/client.ts";
+  import { loadManifest, type Manifest } from "@abstractclass/engine/client.ts";
   import { annotatedFromStore } from "#lib/review/exportText.ts";
   import ExportMenu from "#lib/ExportMenu.svelte";
   import { setVisitor, track } from "#lib/analytics.svelte.ts";
@@ -44,7 +44,7 @@
     const s = settingsFor(g, engine);
     return manifest && reviewMark(manifest, s.network, s.visits);
   };
-  // Whether the browser keeps the games for good (storage/persist.ts): it asked when a game was kept.
+  // Whether the browser keeps the games for good (@abstractclass/storage/persist.ts): it asked when a game was kept.
   let kept = $state(false);
   // The tab's fixed parts are in the prerendered page: the heading, the text, the import and the footer. "Continue your
   // last review", the list and the storage line come together once the browser's games are read (`read`). Until then

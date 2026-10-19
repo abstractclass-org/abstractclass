@@ -1,14 +1,15 @@
-// The player's games, kept in the browser (storage/db.ts) until a server exists (docs/design/04-product-shape.md). A
-// game is stored as its record's text, so an export is the record itself, and a later server can import it as it is.
-// The id is the first 12 hex digits of the SHA-256 of its moves: the same game imported twice is one game.
-import { STORES, dbAll, dbDelete, dbGet, dbPut } from "#lib/storage/db.ts";
+// The player's games, kept in the browser (@abstractclass/storage/db.ts) until a server exists
+// (docs/design/04-product-shape.md). A game is stored as its record's text, so an export is the record itself, and a
+// later server can import it as it is. The id is the first 12 hex digits of the SHA-256 of its moves: the same game
+// imported twice is one game.
+import { STORES, dbAll, dbDelete, dbGet, dbPut } from "@abstractclass/storage/db.ts";
 import { makeEarlierRemovalDue } from "#lib/analysis/cache.ts";
-import { keepStorage } from "#lib/storage/persist.ts";
-import { readLocal, writeLocal } from "#lib/storage/local.ts";
+import { keepStorage } from "@abstractclass/storage/persist.ts";
+import { readLocal, writeLocal } from "@abstractclass/storage/local.ts";
 import { parseRecord, type GameRecord } from "./record.ts";
-import { sha256Hex } from "#lib/engine/artifacts.ts";
+import { sha256Hex } from "@abstractclass/engine/artifacts.ts";
 import { setUpStart } from "#lib/engine/notation.ts";
-import { modelOf, moduleOf, searchModules, type Manifest } from "#lib/engine/client.ts";
+import { modelOf, moduleOf, searchModules, type Manifest } from "@abstractclass/engine/client.ts";
 import { pathKey } from "#lib/review/tree.ts";
 import type { GamePartner } from "./partners.ts";
 
