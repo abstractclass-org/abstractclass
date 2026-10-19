@@ -1,10 +1,10 @@
 // The review's start (decisions/product.md, "The rules worker starts with the manifest"): the time from the navigation
 // to the rules worker's start and to the review's first frame, on reloads of the stored review of
 // tests/fixtures/hedgefund-review.json. Two builds in alternating pairs (speed.mjs, inPairs), in Playwright's
-// Chromium, headless, with its scroll bars shown, at 1,366 × 657 pixels. Each build is served from its own folder on its
-// own port (speed.mjs, preview), and opens in a page of its own, so each keeps its own stored games. A script that runs
-// before the page's own (Playwright's addInitScript) notes when each step ends, in milliseconds from the navigation's
-// start (performance.now()):
+// Chromium, headless, with its scroll bars shown, at 1,366 × 657 pixels. Each build is served from its own folder on
+// its own port (speed.mjs, preview), and opens in a page of its own, so each keeps its own stored games. A script that
+// runs before the page's own (Playwright's addInitScript) notes when each step ends, in milliseconds from the
+// navigation's start (performance.now()):
 //   - start: the review page's code asks for the first of the game, the lock and the manifest (its onMount): the
 //     open of IndexedDB, the lock's request or the manifest's fetch;
 //   - open: IndexedDB is open (the site's store, src/lib/storage/db.ts, opens at the game's read);
@@ -32,12 +32,13 @@
 // manifest's check is a round trip: the files kept in the browser's cache take none. It starts after the review is
 // stored. With OUT, the sets go to that file as JSON.
 import { writeFileSync } from "node:fs";
-import { inPairs, launch, layoutShift, median, preview, storeReview, verdict } from "./speed.mjs";
+import { inPairs, launch, layoutShift, median, preview, reloadReview, storeReview, verdict, verdictText } from "./speed.mjs";
 
 const [before, after, pairCount = "5", reloadCount = "5"] = process.argv.slice(2);
 if (!before || !after) throw new Error("usage: review-start.mjs <before> <after> [pairs] [reloads]");
 const STEPS = ["start", "open", "game", "lock", "manifest", "worker", "init", "ready", "rules", "shown", "moves"];
 const FROM_START = ["worker", "ready", "shown", "moves"]; // also counted from the page's start
+const SINCE_START = FROM_START.map(s => `${s}-start`);
 
 /** Runs in the page before its own scripts: notes the first time that each step ends, in `window.__start`. */
 function noteSteps() {
@@ -57,19 +58,18 @@ function noteSteps() {
   };
   const request = LockManager.prototype.request;
   LockManager.prototype.request = function (name, options, callback) {
-    const call = typeof options === "function" ? options : callback;
+    if (typeof options === "function") [options, callback] = [{}, options];
     note("start");
-    const held = lock => { note("lock"); return call(lock); };
-    return typeof options === "function" ? request.call(this, name, held) : request.call(this, name, options, held);
+    return request.call(this, name, options, lock => { note("lock"); return callback(lock); });
   };
-  const fetched = window.fetch;
+  const fetch = window.fetch;
   window.fetch = function (input, init) {
-    const answer = fetched.call(this, input, init);
+    const answer = fetch.call(this, input, init);
     if (String(input?.url ?? input).includes("/engine/manifest.json")) { note("start"); answer.then(() => note("manifest"), () => {}); }
     return answer;
   };
-  const Made = window.Worker;
-  window.Worker = class extends Made {
+  const Worker = window.Worker;
+  window.Worker = class extends Worker {
     constructor(url, options) {
       super(url, options);
       if (t.worker !== undefined) return;
@@ -106,9 +106,7 @@ for (const [dir, k] of [[before, 0], [after, 1]]) {
 async function set({ page }) {
   const reloads = [];
   for (let k = 0; k < Number(reloadCount); k++) {
-    await page.reload();
-    await page.waitForFunction(() => performance.getEntriesByName("review:shown").length, null, { timeout: 120_000 });
-    await page.waitForTimeout(3000); // the frames after the first, and what moves in them
+    await reloadReview(page);
     const times = await page.evaluate(() => {
       const t = { ...window.__start };
       for (const step of ["rules", "shown", "moves"]) t[step] = performance.getEntriesByName(`review:${step}`)[0]?.startTime;
@@ -118,24 +116,22 @@ async function set({ page }) {
     for (const step of FROM_START) times[`${step}-start`] = times[step] - times.start;
     reloads.push({ ...times, cls: (await layoutShift(page)).cls });
   }
-  const keys = [...STEPS, ...FROM_START.map(s => `${s}-start`), "cls"];
+  const keys = [...STEPS, ...SINCE_START, "cls"];
   return { ...Object.fromEntries(keys.map(s => [s, median(reloads.map(r => r[s]))])), reloads };
 }
 
 const pairs = await inPairs(builds, Number(pairCount), set);
-const ms = x => `${Math.round(x)}`;
+const whole = x => `${Math.round(x)}`;
 console.log(`1366×657${process.env.LATENCY ? `, ${process.env.LATENCY} ms more for each request` : ""}, ${pairCount} pairs of ${reloadCount} reloads, the medians of each set in ms from the navigation's start:`);
 pairs.forEach((pair, i) => {
   console.log(`  pair ${i + 1}:`);
-  pair.forEach((run, k) => console.log(`    ${k ? "after " : "before"} ${STEPS.map(s => `${s} ${ms(run.result[s])}`).join(", ")}; ` +
+  pair.forEach((run, k) => console.log(`    ${k ? "after " : "before"} ${STEPS.map(s => `${s} ${whole(run.result[s])}`).join(", ")}; ` +
     `CLS ${run.result.cls.toFixed(4)} (${run.load?.cpu ?? "?"}%, load ${run.load?.load ?? "?"}${run.load?.jobs ? `, jobs ${run.load.jobs.join(", ")}` : ""})`));
 });
 const verdicts = {};
-for (const step of ["worker", "init", "ready", "rules", "shown", "moves", ...FROM_START.map(s => `${s}-start`), "cls"]) {
+for (const step of [...STEPS.slice(STEPS.indexOf("worker")), ...SINCE_START, "cls"]) {
   const v = verdicts[step] = verdict(pairs.map(pair => pair.map(run => run.result[step])));
-  const f = step === "cls" ? x => x.toFixed(4) : ms;
-  console.log(`  ${step}: differences ${v.diffs.map(f).join(", ")}, median ${f(v.diff)}; before median ${f(v.a.median)} (spread ${f(v.a.spread)}), ` +
-              `after median ${f(v.b.median)} (spread ${f(v.b.spread)}); the pairs agree: ${v.agree}, a change: ${v.change}`);
+  console.log(`  ${step}: ${verdictText(v, step === "cls" ? x => x.toFixed(4) : whole)}`);
 }
 if (process.env.OUT) writeFileSync(process.env.OUT, JSON.stringify({ pairs, verdicts }));
 await browser.close();

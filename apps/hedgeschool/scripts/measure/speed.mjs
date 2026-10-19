@@ -1,7 +1,7 @@
 // The tools of the scripts that measure the site's speed (docs/working-notes.md, "Measuring speed in a browser"): a
-// build's preview, Playwright's Chromium with Chrome's trace, the test fixture's review kept in a page, the main
-// thread's tasks and a named event's thread time from the trace, the page's layout shift, the machine's load, and two
-// builds measured in alternating pairs, with the verdict on them. Its tests: speed.test.mjs.
+// build's preview, Playwright's Chromium with Chrome's trace, the test fixture's review kept in a page and reloaded,
+// the main thread's tasks and a named event's thread time from the trace, the page's layout shift, the machine's load,
+// and two builds measured in alternating pairs, with the verdict on them. Its tests: speed.test.mjs.
 import { chromium } from "@playwright/test";
 import { execFileSync } from "node:child_process";
 import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
@@ -69,6 +69,14 @@ export async function storeReview(page, url) {
   await importFile(page, url, FIXTURE);
   await page.waitForURL(/#game=/);
   await page.getByText(/^Review done/).waitFor({ timeout: 300_000 });
+}
+
+/** Reloads the review kept in the page (storeReview), and waits for its first frame (the mark `review:shown`,
+ *  src/routes/review/+page.svelte), then 3 seconds for the frames after it and what moves in them. */
+export async function reloadReview(page) {
+  await page.reload();
+  await page.waitForFunction(() => performance.getEntriesByName("review:shown").length, null, { timeout: 120_000 });
+  await page.waitForTimeout(3000);
 }
 
 /** The categories of Chrome's trace that the tasks and the marks need. A named event can need another: `DoDigest` is
@@ -210,3 +218,8 @@ export function verdict(pairs) {
   const a = build(0), b = build(1), agree = diffs.every(d => d < 0) || diffs.every(d => d > 0);
   return { diffs, diff, a, b, agree, change: agree && Math.abs(diff) >= Math.max(a.spread, b.spread) };
 }
+
+/** A verdict (verdict) as one line of text, each number written by `f`. */
+export const verdictText = (v, f) =>
+  `differences ${v.diffs.map(f).join(", ")}, median ${f(v.diff)}; before median ${f(v.a.median)} (spread ${f(v.a.spread)}), ` +
+  `after median ${f(v.b.median)} (spread ${f(v.b.spread)}); the pairs agree: ${v.agree}, a change: ${v.change}`;

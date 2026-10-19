@@ -104,13 +104,14 @@ export class EngineWorker {
    *  the site does not speak (checkVersion). The worker starts once: a later call answers the first call's start, so
    *  that a pool can take a rules worker that the page started before it (analysis/pool.ts). */
   init(manifest: Manifest): Promise<Timed<VersionReply>> {
-    return this.started ??= (async () => {
-      const module = moduleOf(manifest), library = libraryOf(manifest);
-      if (!module || !library) throw new Error("the manifest lacks the engine module or its library");
-      const t = await this.channel.send<VersionReply>({ type: "init", module: await compile(module.url), library: library.url }).done;
-      checkVersion(t.reply);
-      return t;
-    })();
+    return this.started ??= this.start(manifest);
+  }
+  private async start(manifest: Manifest): Promise<Timed<VersionReply>> {
+    const module = moduleOf(manifest), library = libraryOf(manifest);
+    if (!module || !library) throw new Error("the manifest lacks the engine module or its library");
+    const t = await this.channel.send<VersionReply>({ type: "init", module: await compile(module.url), library: library.url }).done;
+    checkVersion(t.reply);
+    return t;
   }
   /** Loads a network from the manifest: the page fetches it and checks its SHA-256 once for all its workers
    *  (checked). */

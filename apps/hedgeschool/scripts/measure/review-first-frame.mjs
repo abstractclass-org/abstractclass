@@ -15,7 +15,7 @@
 //
 //   node scripts/measure/review-first-frame.mjs [reloads] [width]x[height] [turn|edge]
 import { writeFileSync } from "node:fs";
-import { LONG_TASK, launch, layoutShift, longTasks, mark, median, storeReview, tasksBetween, trace } from "./speed.mjs";
+import { LONG_TASK, launch, layoutShift, longTasks, mark, median, reloadReview, storeReview, tasksBetween, trace } from "./speed.mjs";
 
 const BASE = process.env.BASE_URL ?? "http://127.0.0.1:4173";
 const reloads = Number(process.argv[2] ?? 5);
@@ -37,11 +37,7 @@ const ms = x => `${Math.round(x)} ms`;
 const results = [];
 for (let k = 1; results.length < reloads; k++) { // a trace without the marks or the paint: the reload again, a few times
   if (k > reloads + 3) throw new Error("the traces lack the review's marks");
-  const tasks = firstDraw(await trace(browser, page, async () => {
-    await page.reload();
-    await page.waitForFunction(() => performance.getEntriesByName("review:shown").length, null, { timeout: 120_000 });
-    await page.waitForTimeout(3000); // the frames after the first, and what moves in them
-  }));
+  const tasks = firstDraw(await trace(browser, page, () => reloadReview(page)));
   if (!tasks) { console.log(`reload ${k}: the trace lacks a mark or the paint after it, again`); continue; }
   const shift = await layoutShift(page, "review:shown");
   const r = { tasks, wall: longTasks(tasks.map(t => t.wall)), thread: longTasks(tasks.map(t => t.thread)), span: tasks.at(-1).at + tasks.at(-1).wall,

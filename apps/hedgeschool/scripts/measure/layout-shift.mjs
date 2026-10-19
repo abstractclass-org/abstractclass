@@ -20,7 +20,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { FIXTURE, importFile, inPairs, launch, layoutShift, median, preview, storeReview, verdict } from "./speed.mjs";
+import { FIXTURE, importFile, inPairs, launch, layoutShift, median, preview, reloadReview, storeReview, verdict, verdictText } from "./speed.mjs";
 import { parseRecord } from "../../src/lib/game/record.ts";
 import { readAnalysisKey } from "../../src/lib/analysis/cache.ts";
 import { ANALYSIS_FILE_VERSION, ANALYSIS_FORMAT } from "../../src/lib/game/analysisFile.ts";
@@ -69,14 +69,12 @@ for (const [dir, k] of [[before, 0], [after, 1]]) {
 async function set({ page }) {
   const shifts = [], moved = new Map();
   for (let k = 0; k < Number(reloadCount); k++) {
-    await page.reload();
-    if (kind === "review") {
-      await page.waitForFunction(() => performance.getEntriesByName("review:shown").length, null, { timeout: 120_000 });
-      await page.waitForTimeout(3000);
-    } else if (kind === "tab") {
+    if (kind === "review") await reloadReview(page);
+    else if (kind === "tab") {
+      await page.reload();
       await page.getByText("Continue your last review").waitFor();
       await page.waitForTimeout(2000);
-    } else await page.waitForTimeout(5000);
+    } else { await page.reload(); await page.waitForTimeout(5000); }
     const { cls, moved: these } = await layoutShift(page);
     shifts.push(cls);
     for (const m of these) {
@@ -96,8 +94,7 @@ for (const [width, height] of sizes) {
   console.log(`\n${kind} at ${width}×${height}, ${pairCount} pairs of ${reloadCount} reloads:`);
   pairs.forEach((pair, i) => console.log(`  pair ${i + 1}: ` + pair.map((run, k) => `${k ? "after" : "before"} ${f(run.result.cls)} ` +
     `(${run.result.shifts.map(f).join(", ")}; ${run.load?.cpu ?? "?"}%, load ${run.load?.load ?? "?"})`).join(", ")));
-  console.log(`  verdict: differences ${v.diffs.map(f).join(", ")}, median ${f(v.diff)}; before median ${f(v.a.median)} (spread ${f(v.a.spread)}), ` +
-              `after median ${f(v.b.median)} (spread ${f(v.b.spread)}); the pairs agree: ${v.agree}, a change: ${v.change}`);
+  console.log(`  verdict: ${verdictText(v, f)}`);
   for (const [k, label] of [[0, "before"], [1, "after"]]) {
     const moved = new Map();
     for (const pair of pairs) for (const [name, n] of Object.entries(pair[k].result.moved)) moved.set(name, (moved.get(name) ?? 0) + n);

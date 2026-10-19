@@ -33,7 +33,7 @@ export class EngineSession {
   error = $state(""); // why another network could not load
   pool: EnginePool | null = null;
   network = ""; // the network of the pool in use, or of the pool that loads to replace it
-  #rules: EngineWorker | null = null; // the next pool's rules worker, started before the pool (startRules)
+  #rules?: EngineWorker; // the next pool's rules worker, started before the pool (startRules)
   #ended = false;
   readonly #o: Required<SessionOptions>;
   // The settings that start work when they change, each a value of its own: a change of another setting starts none.
@@ -94,19 +94,22 @@ export class EngineSession {
 
   /** Starts the next pool's rules worker with the manifest, before the page chooses that pool: the review's (start) or
    *  a snapshot's (design 20), which takes it (takeRules). The worker needs only the manifest, so the rules answer
-   *  sooner. Call after load(). Once the session has ended, it starts none. */
-  startRules() {
-    if (this.#ended || this.#rules || !this.manifest) return;
+   *  sooner. Once the session has ended, it starts none. */
+  startRules(manifest: Manifest) {
+    if (this.#ended || this.#rules) return;
     this.#rules = new EngineWorker();
-    this.#rules.init(this.manifest).catch(() => {}); // the pool that takes it gets the failure
+    this.#rules.init(manifest).catch(() => {}); // the pool that takes it gets the failure
   }
 
   /** The rules worker that startRules started, for a new pool, once. Without one, the pool starts its own. */
   takeRules(): EngineWorker | undefined {
-    const rules = this.#rules ?? undefined;
-    this.#rules = null;
+    const rules = this.#rules;
+    this.#rules = undefined;
     return rules;
   }
+
+  /** Whether the session has ended (end): it then starts no worker and no pool. */
+  get ended(): boolean { return this.#ended; }
 
   /** What the GPU does in this analysis, and its first download (ReviewView's `gpu`). */
   get gpuView(): { status: GpuStatus; downloadMB: string } {
@@ -118,9 +121,11 @@ export class EngineSession {
    *  ends. Answers the analysis
    *  once the network is loaded, or null when another network took over meanwhile. The pool then releases its engines
    *  when idle, and the GPU joins it, unless the rules refused the analysis. The pool takes the rules worker that
-   *  startRules started, if no pool took it before. Call after load(). */
+   *  startRules started, if no pool took it before. Once the session has ended, it starts none and answers null. Call
+   *  after load(). */
   async start(make: (pool: EnginePool) => GameAnalysis | Promise<GameAnalysis>,
               onRules: (g: GameAnalysis, pool: EnginePool) => Promise<void>): Promise<GameAnalysis | null> {
+    if (this.#ended) return null;
     const before = this.pool, first = this.pool = new EnginePool(this.#workers, this.takeRules());
     this.network = this.#network;
     let g = null as GameAnalysis | null;
@@ -180,10 +185,10 @@ export class EngineSession {
   }
 
   /** Ends the engine: the page closed, another tab took the game, or the browser lacks the game. A GPU worker that
-   *  starts later then ends (GpuControl), and no rules worker starts (startRules). */
+   *  starts later then ends (GpuControl), and no rules worker or pool starts (startRules, start). */
   end() {
     this.#ended = true;
-    this.#rules?.terminate();
+    this.takeRules()?.terminate();
     this.gpu?.end();
     this.pool?.terminate();
   }

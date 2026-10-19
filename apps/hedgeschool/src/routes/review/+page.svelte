@@ -277,7 +277,7 @@
   // which stops the review here. "Review here" takes the game's lock, then loads the page again, which starts the
   // review with the lock held.
   let elsewhere = $state<"open" | "taken" | null>(null);
-  let freeLock: (() => void) | null = null;
+  let lock: Promise<(() => void) | null> = Promise.resolve(null); // the game's lock (holdReview), once asked for
   async function reviewHere() {
     if (!kept) return;
     (await holdReview(kept.id, true, () => {}))?.();
@@ -295,12 +295,12 @@
     // The game, its lock and the engine's manifest are read at the same time. The rules worker needs only the
     // manifest: it starts once the manifest is read and the lock held, so a game open in another tab starts no
     // engine. The pool that takes it, the review's or a snapshot's, waits for the game.
-    const lock = holdReview(id, false, () => {
+    lock = holdReview(id, false, () => {
       elsewhere = "taken";
       session.end();
-    }).then(free => (freeLock = free));
+    });
     const engine = Promise.all([session.load(), lock]).then(([manifest, free]) => {
-      if (free) session.startRules();
+      if (free) session.startRules(manifest);
       return manifest;
     });
     engine.catch(() => {}); // a missing game is said first
@@ -308,16 +308,15 @@
       const moves = await readGame(id);
       if (!(await lock)) { elsewhere = "open"; return; }
       const manifest = await engine;
-      if (elsewhere) return; // another tab took the game meanwhile
+      if (session.ended) return; // another tab took the game meanwhile, or the page closed
       const want = reviewMark(manifest, settings.network, budget);
       const why = reviewCovers(markBefore, want) ? null : reviewAgainWhy(markBefore, want);
       if (why && (await openSnapshot(moves, why))) return;
       await startReview(moves, false);
     } catch (e) {
-      // A game this browser lacks: no engine, and its lock free for the tab that imports it.
-      if (!kept) { session.end(); void lock.then(free => free?.()); }
-      // A review stopped for another tab fails its searches: no error to show.
-      if (!elsewhere) { error = errorText(e); if (kept) track("engine_error", { error_kind: "load" }); }
+      // A review stopped for another tab, or by the page's close, fails its searches: no error to show.
+      if (!session.ended) { error = errorText(e); if (kept) track("engine_error", { error_kind: "load" }); }
+      if (!kept) stop(); // a game this browser lacks: its lock free for the tab that imports it
     }
   });
 
@@ -354,7 +353,8 @@
   /** Opens the game's last review, by an earlier engine or network file, as it was (design 20): the engine's rules
    *  alone, no network, and the stored results of the mark's search, which hold the game's line at the review's depth
    *  (for an older mark, which names no search: the search that holds it). The start is left out of that test:
-   *  every game shares it. False, with nothing kept, when the store lacks them. */
+   *  every game shares it. False, with nothing kept, when the store lacks them. True, with nothing kept, when the
+   *  session ended meanwhile (another tab took the game, or the page closed). */
   async function openSnapshot(moves: string[], why: "engine" | "network"): Promise<boolean> {
     const mark = markBefore!, manifest = session.manifest!, network = settings.network, rules = new EnginePool(0, session.takeRules());
     try {
@@ -367,6 +367,7 @@
       await g.start();
       if (!g.rulesReady) { rules.terminate(); return false; } // the review shows why
       await g.fromStore(search, mark.model);
+      if (session.ended) { rules.terminate(); return true; }
       const date = new Date(mark.at).toLocaleDateString("en", { year: "numeric", month: "long", day: "numeric" });
       const what = why === "engine" ? "the engine" : (modelOf(manifest, network)?.displayName ?? "the network");
       snapshot = { visits: mark.visits, text: `Reviewed on ${date} with an earlier version of ${what}.` };
@@ -390,10 +391,16 @@
     try {
       await startReview(kept.record.moves, true);
     } catch (e) {
-      if (!elsewhere) { error = errorText(e); track("engine_error", { error_kind: "load" }); }
+      if (!session.ended) { error = errorText(e); track("engine_error", { error_kind: "load" }); }
     }
   }
-  onDestroy(() => { session.end(); freeLock?.(); });
+  /** Ends the engine and frees the game's lock, now or once it is held: the page closed, or this browser lacks the
+   *  game. */
+  function stop() {
+    session.end();
+    void lock.then(free => free?.());
+  }
+  onDestroy(stop);
 
   /** The review exported (design 13): the review file, with the engine's results, or the annotated record, copied or as
    *  a file. The record's labels are the page's (by turn or by edge). */

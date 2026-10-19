@@ -24,15 +24,16 @@ learn one, and remove a note when it stops being true. The work itself is in bea
   spread between sets of one build. Chrome's trace gives each task's thread time, which the wait for a processor does
   not change.
 - **Measuring speed in a browser:** a measuring script takes its tools from `scripts/measure/speed.mjs`. Do not
-  write them again. Its tests are in `speed.test.mjs`. `review-first-frame.mjs` and `review-sweep.mjs` (a sweep's
-  tasks, two builds in pairs) use it.
+  write them again. Its tests are in `speed.test.mjs`. `review-first-frame.mjs`, `review-start.mjs`,
+  `review-sweep.mjs` (a sweep's tasks, two builds in pairs) and `layout-shift.mjs` use it.
   - `preview(dir, port)` serves a build folder on a port of its own, as Cloudflare Pages serves it, with the headers
     of the folder's own `_headers`. To compare two builds, copy `build` to a folder in `runs/` (Git ignores it) after
     each build, and serve each copy on its own port.
   - `launch()` starts Playwright's Chromium with its scroll bars. `trace(browser, page, act)` records Chrome's trace
     while `act` runs.
   - `storeReview(page, url)` keeps the review of the test fixture (`FIXTURE`) in the page's browser, and waits until
-    the review is done. `importFile(page, url, file)` imports a review file or an analysis file.
+    the review is done. `reloadReview(page)` reloads it, and waits for the review's first frame (`review:shown`) and
+    3 seconds more. `importFile(page, url, file)` imports a review file or an analysis file.
   - `tasksBetween(trace, from, to, { paint })` gives the main thread's tasks between two marks, each with its wall
     time and its thread time. `eventTime(trace, name)` gives a named event's count and times on every thread.
     `longTasks(times)` gives the tasks over 50 ms (`LONG_TASK`): how many, their time beyond 50 ms, and the longest.
@@ -43,7 +44,8 @@ learn one, and remove a note when it stops being true. The work itself is in bea
   - `inPairs(builds, count, run)` runs two builds in alternating pairs, and reads the machine's load
     (`machineLoad()`) before each run. `verdict(pairs)` gives each pair's difference, each build's median and spread,
     and whether the pairs show a change: every pair agrees, and the median difference is at least the larger of the
-    two builds' spreads. The sign of the difference tells a gain from a loss.
+    two builds' spreads. The sign of the difference tells a gain from a loss. `verdictText(v, f)` writes a verdict
+    as one line.
 
   ```js
   import { inPairs, launch, preview, verdict } from "./speed.mjs";
@@ -64,9 +66,9 @@ learn one, and remove a note when it stops being true. The work itself is in bea
   entries. `node scripts/measure/review-first-frame.mjs` reloads a stored review and reads the first draw's tasks, by
   wall time and thread time, and the page's layout shift. `node scripts/measure/review-start.mjs <before> <after>`
   times the steps before the review shows (the game's read, the lock, the manifest, the rules worker's start, the
-  marks) in two builds, in pairs. The first engine result has no mark. To time it, wrap
-  `Worker` in a Playwright init script (`addInitScript`), and note the first message whose reply has `rootInfo`. A
-  fresh browser context gives a review with no stored results.
+  marks) in two builds, in pairs. The first engine result has no mark. To time it, wrap `Worker` in a Playwright init
+  script (`addInitScript`), and note the first message whose reply has `rootInfo`. A fresh browser context gives a
+  review with no stored results.
 - **The CPU time of a SHA-256 check:** Chrome's trace event `DoDigest` (category
   `disabled-by-default-devtools.timeline`) gives the thread time (`tdur`) of each `crypto.subtle.digest` call. It
   shows on the thread that calls it: the page's main thread or a worker's. `eventTime(trace, "DoDigest")` in

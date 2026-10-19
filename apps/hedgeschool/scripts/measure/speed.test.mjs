@@ -10,7 +10,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { eventTime, headerRules, longTasks, median, tasksBetween, verdict } from "./speed.mjs";
+import { eventTime, headerRules, longTasks, median, tasksBetween, verdict, verdictText } from "./speed.mjs";
 
 const trace = JSON.parse(readFileSync("tests/fixtures/review-reload-trace.json", "utf8"));
 // The first draw's tasks: each task's start, wall time and thread time, in milliseconds.
@@ -85,6 +85,12 @@ test("pairs that agree by less than a build's spread show no change", () => {
   const v = verdict([[10, 9], [14, 13], [12, 11]]);
   assert.equal(v.agree, true);
   assert.equal(v.change, false);
+});
+
+test("a verdict as text writes each number with the function given", () => {
+  assert.equal(verdictText(verdict([[10, 9], [14, 13], [12, 11]]), x => `${Math.round(x)}`),
+               "differences -1, -1, -1, median -1; before median 12 (spread 4), after median 11 (spread 4); " +
+               "the pairs agree: true, a change: false");
 });
 
 test("the median of an even count is the mean of the middle two", () => {

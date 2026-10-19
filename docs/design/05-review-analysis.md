@@ -20,7 +20,8 @@ noise.
      The page reads the game, the tab's lock on it (design 11) and the engine's manifest at the same time. The rules
      worker needs only the manifest: it starts when the manifest is read and the lock is held, so a game open in
      another tab starts no engine. When the game is read, the page chooses the pool that takes the worker: the
-     review's, or a snapshot's (design 20). A game that this browser lacks ends the worker and frees the lock.
+     review's, or a snapshot's (design 20). A game that this browser lacks ends the worker and frees the lock, and so
+     does a page that closes meanwhile. Once the session has ended, it starts no pool.
    - **A sweep:** every position at 32 visits (KaTrain's `fast_visits`, 25), for the game's shape: the Advantage chart
      and the win bar. Its labels are mostly wrong, so it shows none. "Every position" is each position before a move,
      and the last one when the game is not over (an unfinished game, `*`): there the end has a search, not a result,
