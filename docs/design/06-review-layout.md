@@ -132,9 +132,12 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
    are full, the later ones empty, though some of their work ends early, alongside (it shows when their step comes).
    The step's part never shows less than it showed before: when its count grows, it waits. Another review depth, network
    or game starts it again. A review opened again reads its results from the browser's store before it shows, and they
-   count as searched (the sweep and the label pass): its bar is full while the engine's network loads, and the report
-   does not say that its counts are partial. That sentence came and went as the network loaded, and moved the report's
-   table (a layout shift). **While a bar's work runs,
+   count as searched (the sweep and the label pass). When every step has its results from the store, the review is
+   complete before the engine's network loads: its line says "Review done" in the first frame, in place of "Loading
+   the engine's network…", and the report does not say that its counts are partial. That sentence came and went as the
+   network loaded, and moved the report's table (a layout shift). The network still loads for new searches (the
+   position on screen, a line), and the engine's own panel shows that load. A review with a result missing says what
+   loads, and then what runs. **While a bar's work runs,
    a light gleam sweeps it** (Lichess's `bar-glider`, `ui/lib/css/component/_bar-glider.scss`: 70 pixels wide, every
    3 seconds), so that a slow step does not look stopped: the review's bar while its passes run, and the search bar
    while the position on screen is searched. With reduced motion asked for, there is no gleam. **The gleam is slower

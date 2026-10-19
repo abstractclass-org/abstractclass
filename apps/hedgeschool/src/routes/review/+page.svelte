@@ -150,10 +150,11 @@
     const labelled = game?.labelled !== undefined && game.labelled >= passCount, deep = deepDone >= m;
     const step = !game || game.swept < passCount ? 0 : !labelled ? 1 : !deep && deeper * m ? 2 : parts.length - 1;
     const counted = labelled && deep && greats.done >= greats.total;
-    // A review opened again has every step from the store before the network loads: its report's counts are final, and
-    // do not change their lines when the network comes (a layout shift).
-    if (!game?.engineReady) return { text: "Loading the engine's network…", parts, step, counted };
+    // A review opened again has every step from the store before the network loads: it is complete, so its line says
+    // "Review done" at once, and its report's counts are final: they do not change their lines when the network comes
+    // (a layout shift). The network still loads for new searches, and the engine's panel shows that.
     if (counted) return null;
+    if (!game?.engineReady) return { text: "Loading the engine's network…", parts, step };
     if (game.paused) return { text: "Engine off. The review is paused.", parts, waiting: true, step };
     if (step === 0) return { text: `Reviewing: the game's shape, ${game.swept} of ${passCount} positions`, parts, step };
     if (step === 1) return { text: `Reviewing: move quality, ${game.labelled} of ${passCount} positions`, parts, step };

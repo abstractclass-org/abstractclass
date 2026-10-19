@@ -4019,3 +4019,34 @@ sweep.
   earlier rules was not traced.
 - **Not measured:** Edge, the deployed site, an unloaded machine, a slower device, and the snapshot's time to the
   screen.
+
+### A stored review says "Review done" before the network loads (2026-10-19)
+
+- **Decided:** a review opened again whose every step comes from the browser's store is complete before the engine's
+  network loads. Its progress line says "Review done: N visits a move." in the first frame, in place of "Loading the
+  engine's network…". The network still loads for new searches (the position on screen, a line), and the engine's own
+  panel shows that load.
+- **Before:** abscls-73h added the flag `counted` (every step has its results), which only dropped the report's
+  "partial" sentence. The progress line still said "Loading the engine's network…" until the network came, then
+  changed to "Review done". The export and the review's end event still wait for the network: the export needs the
+  engine's search to read the stored results (`reviewDone` keeps `engineReady`).
+- **The change** (`src/routes/review/+page.svelte`, `rawProgress`): the test of `counted` comes before the test of
+  `engineReady`. A review with a result missing is not `counted`: it says "Loading the engine's network…" while the
+  network loads, then what runs. The snapshot of an earlier review (design 20) has no progress, as before.
+- **Checked** in Playwright's Chromium at 1,366 × 657, on the builds before and after, with the fixture's review
+  (`tests/fixtures/hedgefund-review.json`) stored and reloaded, on a loaded machine:
+  - **A complete stored review** (settled by reloads until a reload ran no search): before, the line was "Loading the
+    engine's network…" in the first frame (the mark `review:shown`) and "Review done: 512 visits a move." 52 ms later.
+    After, the line was "Review done: 512 visits a move." in the first frame and never changed.
+  - **A review with every second stored result deleted:** before and after, the line was "Loading the engine's
+    network…" in the first frame, then "Reviewing: the game's shape, 69 of 120 positions" and its counts, and the
+    report said that its counts were partial.
+  - **Layout shift** (`scripts/measure/layout-shift.mjs review`, 5 pairs of 3 reloads): 0.0000 in every reload, before
+    and after. Nothing moved.
+  - **The review's first frame** (`scripts/measure/review-first-frame.mjs`, 3 pairs of 5 reloads): the first draw's
+    median thread time was 47, 50 and 61 ms before, and 45, 59 and 49 ms after. The pairs disagree, so it is no
+    change. Wall times varied with the machine's load.
+- **A review stored one key moment short** (a first "Review done" can leave it so, when a deeper label adds a key
+  moment) shows "Reviewing: the key moments, deeper…" after the network loads, as before. The page does not call it
+  complete.
+- **Not measured:** Edge, the deployed site, a slower device.
