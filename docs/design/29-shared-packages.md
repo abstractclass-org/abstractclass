@@ -1,6 +1,7 @@
 # The shared packages: the engine, the storage and the analysis, behind a game interface
 
-**Status:** in force. Being built (abscls-8tl1.1). The views wait for the jam site's template (item 9).
+**Status:** in force. Built: the engine, the storage and the analysis are in `packages/`. The views wait for the jam
+site's template (item 9).
 **Decided:** 2026-10-19.
 
 ## Context
@@ -10,10 +11,10 @@ board and a review (abscls-8tl1). The jam's rules come out at its start, on 2026
 ready before anyone knows the game. Design 26 kept `packages/` empty until a second site needs a part (its item 4).
 The jam game's site is that second site.
 
-Hedge School's code was read again for this move. Design 26's map put the review's model among Enclosure's parts,
-since it builds in Enclosure's two-edge turns, Blue's side and the enclosed area. Read again, the model's rules hold
-for any game whose turns have one move or two, and Enclosure is in its types and a few calls. The parts fall into
-three groups:
+Design 26's map put the review's model among Enclosure's parts, since it builds in Enclosure's two-edge turns, Blue's
+side and the enclosed area. A second reading of Hedge School's code, for this move, finds that the model's rules hold
+for any game whose turns have one move or two, and that Enclosure is in its types and a few calls. The parts fall
+into three groups:
 
 - **General as they are:** the engine's client and its workers (they send the protocol's requests and pass the replies
   on), the pool, the storage, the move tree (moves as words), the labels (the engine's win chance and chess.com's
@@ -105,8 +106,9 @@ edit in the same commit), so their changes still apply.
    `rankOf`), and Enclosure's own part (its positions, a move with its cut, the turn numbers, the line's movers, the
    players' names and the texts). So the site's calls stay as they were.
 4. **The other ties to the site, beside the game:**
-   - The engine session takes the site's analytics (`track`) and a network's name (`networkName`) as options. The
-     engine settings' list of networks, the lock file and the settings' key stay in the site.
+   - The engine session takes the site's analytics as an option (`tracker`): its events (`track`), and a network's
+     name for them (`networkName`). Without it, the session sends no event. The engine settings' list of networks,
+     the lock file and the settings' key stay in the site.
    - The storage keys and the database's name stay as they are. A browser keeps them by the site's address, so each
      site has its own. The database's stores are Hedge School's (`analysis`, `games`, `branches`). A site that needs a
      store of its own makes the stores the site's choice first.
@@ -129,7 +131,7 @@ edit in the same commit), so their changes still apply.
    export the general part that moved out of them, so that their importers do not change: `analysis/engineSettings.ts`
    (the settings' general part) and `game/store.ts` (the kept tree's shape).
 9. **The views wait for the jam site's template** (abscls-8tl1.2). `ReviewView.svelte` and its components stay in
-   Hedge School. The template splits the view on Connect-4's board, the first second board there is, and moves its
+   Hedge School. The template splits the view on Connect-4's board, the first board of a second game, and moves its
    general part into a package. The view's game interface then needs these, each Enclosure's now:
    - **The board:** a component of the site's, with the position, the last move, the candidates (move, rank, note),
      the labels' marks, the line (each move with its player and step), the move pointed at, and the notes drawn on it.

@@ -197,9 +197,9 @@ export class EnginePool {
    *  which the review reports when it ends (design 17). */
   get workerSpeed(): number | null { return this.speed.cpuRate; }
 
-  /** The GPU's first-use test (analysis/gpu.svelte.ts): a CPU worker's visits a second and the GPU worker's evaluations a
-   *  second, once each has searched for `seconds`. The GPU's count is sampled once a second, only while the test runs.
-   *  It never resolves when the GPU leaves the pool first. */
+  /** The GPU's first-use test (@abstractclass/analysis/gpu.svelte.ts): a CPU worker's visits a second and the GPU
+   *  worker's evaluations a second, once each has searched for `seconds`. The GPU's count is sampled once a second,
+   *  only while the test runs. It never resolves when the GPU leaves the pool first. */
   measureGpu(seconds: number): Promise<{ cpu: number; gpu: number }> {
     const gpu = this.gpu;
     if (!gpu) return new Promise(() => {});
@@ -320,12 +320,13 @@ export class EnginePool {
   }
 }
 
-/** The searches' speed, for the GPU's first-use test (analysis/gpu.svelte.ts): a CPU worker's visits a second (its searches'
- *  visits over their time in the worker), and the GPU worker's network evaluations a second, all its searches together.
- *  The GPU's count comes from samples of its library's own count, about once a second, so that it counts the work of
- *  searches still running: a search on a slow GPU can take minutes. An interval counts while the GPU's searches run, and
- *  the first starts after its first batch, which compiled the GPU's kernels. A visit needs at most one evaluation (none
- *  where the search's cache or another order of edges gives the position), so the comparison leans to the CPU a little. */
+/** The searches' speed, for the GPU's first-use test (@abstractclass/analysis/gpu.svelte.ts): a CPU worker's visits a
+ *  second (its searches' visits over their time in the worker), and the GPU worker's network evaluations a second, all
+ *  its searches together. The GPU's count comes from samples of its library's own count, about once a second, so that
+ *  it counts the work of searches still running: a search on a slow GPU can take minutes. An interval counts while the
+ *  GPU's searches run, and the first starts after its first batch, which compiled the GPU's kernels. A visit needs at
+ *  most one evaluation (none where the search's cache or another order of edges gives the position), so the comparison
+ *  leans to the CPU a little. */
 export class SpeedMeter {
   private cpu = { visits: 0, ms: 0 };
   private gpu = { evaluations: 0, ms: 0 };

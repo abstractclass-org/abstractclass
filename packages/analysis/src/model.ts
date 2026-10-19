@@ -64,8 +64,8 @@ export const LABEL_GLYPH: Record<Label, Glyph> = {
 const OPENING_TURNS = 8;
 
 // --- Derived review -------------------------------------------------------------------------------------------------
-/** An edge's judgment, beside the move played (the game's, with its player and its edge). */
-export interface EdgeJudgment<M> {
+/** A move's judgment, beside the move played (the game's, with its player and its edge). */
+export interface MoveJudgment<M> {
   index: number; // the move's index: it leads from position index to position index + 1
   winBefore: number; // the mover's win chance before and after the edge, the engine's (NaN until analysed)
   winAfter: number;
@@ -80,7 +80,7 @@ export interface EdgeJudgment<M> {
   hard: boolean; // a hard position: complexity HARD or more
 }
 /** An edge of the review: the move played (`player`, `edge`, and what the game keeps of it), and its judgment. */
-export type EdgeReview<G extends GameTypes> = G["played"] & EdgeJudgment<G["move"]>;
+export type EdgeReview<G extends GameTypes> = G["played"] & MoveJudgment<G["move"]>;
 export interface TurnReview<G extends GameTypes> {
   number: number;
   continued?: boolean; // the line starts in this turn's middle: its first edge was played before the start

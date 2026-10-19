@@ -1,5 +1,5 @@
-// The engine behind a page's analysis: the review's (src/routes/review) and the Analysis board's (src/routes/analysis),
-// which runs with the review's engine settings (design 21). It holds the pool of workers (pool.ts) and the GPU worker's
+// The engine behind a page's analysis: in Hedge School, the review's (src/routes/review) and the Analysis board's
+// (src/routes/analysis), which runs with the review's engine settings (design 21). It holds the pool of workers (pool.ts) and the GPU worker's
 // control for that pool (gpu.svelte.ts, design 15), and gives the engine's settings (design 09) to the page's analysis as
 // they change: the engine on or off, the position on screen's depth and time limit, the review's depth, the workers,
 // the GPU, and the network, which a new pool loads while the old one still answers the board's rules. It searches the
@@ -25,10 +25,9 @@ export interface SessionOptions<G extends GameTypes> {
   frozen?: () => boolean;
   /** Runs when the analysis drops its results for another network: the page's own state of them starts again. */
   dropped?: () => void;
-  /** The site's analytics (design 17): a network that did not load, the GPU's test. None by default. */
-  track?: Tracker["track"];
-  /** A network's name, as the site's engine settings name it, for the events. Its id by default. */
-  networkName?: Tracker["networkName"];
+  /** The site's analytics (design 17), for a network that did not load and the GPU's test. None by default: no event,
+   *  and a network named by its id. */
+  tracker?: Tracker;
 }
 
 export class EngineSession<G extends GameTypes> {
@@ -47,7 +46,7 @@ export class EngineSession<G extends GameTypes> {
   #gpuMode = $derived.by(() => this.#o.settings().gpu);
 
   constructor(options: SessionOptions<G>) {
-    this.#o = { frozen: () => false, dropped: () => {}, track: () => {}, networkName: id => id, ...options };
+    this.#o = { frozen: () => false, dropped: () => {}, tracker: { track: () => {}, networkName: id => id }, ...options };
     const { game, settings, position, frozen } = this.#o;
     // The engine's settings, given to the analysis as they change. The analysis ignores a value it already has.
     $effect(() => {
@@ -169,7 +168,7 @@ export class EngineSession<G extends GameTypes> {
       await next.start(this.manifest, id);
     } catch (e) {
       next.terminate();
-      if (this.network === id) { this.error = errorText(e); this.#o.track("engine_error", { error_kind: "load" }); }
+      if (this.network === id) { this.error = errorText(e); this.#o.tracker.track("engine_error", { error_kind: "load" }); }
       return;
     }
     if (this.network !== id) { next.terminate(); return; } // another network was chosen meanwhile
@@ -184,7 +183,7 @@ export class EngineSession<G extends GameTypes> {
    *  test found it faster than a worker. */
   #controlGpu(p: EnginePool) {
     this.gpu?.end();
-    this.gpu = this.manifest ? new GpuControl(p, this.manifest, this.network, this.#o) : null;
+    this.gpu = this.manifest ? new GpuControl(p, this.manifest, this.network, this.#o.tracker) : null;
     void this.gpu?.apply(this.#gpuMode);
   }
 

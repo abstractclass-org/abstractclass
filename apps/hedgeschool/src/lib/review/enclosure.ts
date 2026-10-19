@@ -8,7 +8,7 @@ import * as shared from "@abstractclass/analysis/model.ts";
 import type { Game, GameTypes, Player } from "@abstractclass/analysis/game.ts";
 import type { BranchNode as SharedNode } from "@abstractclass/analysis/analysis.svelte.ts";
 import { edgeName, parseEdge, sameEdge, type Edge } from "#lib/engine/notation.ts";
-import { boardPosition, rulesOf, type DescribeReply, type GamePosition } from "#lib/engine/position.ts";
+import { boardPosition, playerOf, rulesOf, type DescribeReply, type GamePosition } from "#lib/engine/position.ts";
 import type { EdgeRules } from "#lib/board/edgeInput.svelte.ts";
 export * from "@abstractclass/analysis/model.ts";
 export { edgeName, pointName, sameEdge, type Edge } from "#lib/engine/notation.ts";
@@ -84,7 +84,7 @@ export const enclosure: Game<Enclosure> = {
   parseMove: parseEdge,
   position: boardPosition,
   played: (name, before, after) =>
-    ({ player: before.mover === "b" ? 0 : 1, edge: name === "pass" ? null : parseEdge(name), cut: cutOf(after.cuts) }),
+    ({ player: playerOf(before.mover), edge: name === "pass" ? null : parseEdge(name), cut: cutOf(after.cuts) }),
   rules: rulesOf,
   step: after => ({ cut: cutOf(after.cuts), regions: boardPosition(after).regions, areas: after.areas }),
   turn: turnFromCount,

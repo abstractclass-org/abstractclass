@@ -61,7 +61,7 @@ export interface BranchNode<G extends GameTypes> {
 
 export class GameAnalysis<G extends GameTypes> {
   moves: string[];
-  mainNames: string[] = []; // the game's moves as the tree names them (notation.ts's spelling), once the rules ran
+  mainNames: string[] = []; // the game's moves as the tree names them (the game's moveName), once the rules ran
   mainKeys: string[] = [""]; // the path key of each position of the game: the first i moves
   // Raw state: these arrays are replaced, never changed in place, so the page reads plain objects, not proxies.
   positions = $state.raw<G["position"][]>([]);

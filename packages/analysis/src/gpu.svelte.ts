@@ -104,7 +104,7 @@ export class GpuControl {
   private starting = false;
   private ended = false;
 
-  constructor(private pool: EnginePool, private manifest: Manifest, private network: string, private site: Tracker) {
+  constructor(private pool: EnginePool, private manifest: Manifest, private network: string, private tracker: Tracker) {
     pool.onGpuLost = e => { if (!this.ended) this.status = { state: "failed", message: errorText(e) }; };
     // The pool released its idle engines, the GPU's among them: the GPU starts again at the next backlog, with its
     // stored test (apply).
@@ -152,7 +152,7 @@ export class GpuControl {
       await gpu.start(this.manifest, testFor.network, GPU_SEARCHES);
     } catch (e) {
       gpu.terminate();
-      if (!this.ended) { this.status = { state: "failed", message: errorText(e) }; this.site.track("engine_error", { error_kind: "gpu" }); }
+      if (!this.ended) { this.status = { state: "failed", message: errorText(e) }; this.tracker.track("engine_error", { error_kind: "gpu" }); }
       return;
     } finally {
       this.starting = false;
@@ -173,8 +173,8 @@ export class GpuControl {
     saveGpuTest(testFor, test);
     // The GPU against a worker, by the GPU's maker and kind (design 17): whether the GPU pays off on visitors'
     // machines.
-    this.site.track("gpu_test", { gpu_outcome: gpuFaster(test) ? "faster" : "slower", gpu_ratio: Math.round((10 * test.gpu) / Math.max(1, test.cpu)) / 10,
-                        gpu: adapter, network: this.site.networkName(testFor.network) });
+    this.tracker.track("gpu_test", { gpu_outcome: gpuFaster(test) ? "faster" : "slower", gpu_ratio: Math.round((10 * test.gpu) / Math.max(1, test.cpu)) / 10,
+                        gpu: adapter, network: this.tracker.networkName(testFor.network) });
     if (this.ended) return;
     if (this.mode === "on" || gpuFaster(test)) this.status = { state: "on", adapter, test };
     else { this.pool.dropGpu(); this.status = { state: "slower", adapter, test }; }

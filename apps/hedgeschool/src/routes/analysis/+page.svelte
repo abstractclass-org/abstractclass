@@ -65,7 +65,8 @@
   $effect(() => saveEngine($state.snapshot(engine)));
   const budget = $derived(reviewVisits(engine)); // "Evaluate quality" searches to the review's depth
   // The engine, with the review's settings, and the GPU worker as the review has it (session.svelte.ts).
-  const session = new EngineSession({ settings: () => engine, game: () => game, position: () => current, track, networkName });
+  const session = new EngineSession({ settings: () => engine, game: () => game, position: () => current,
+                                      tracker: { track, networkName } });
   const failure = $derived(error || session.error);
 
   const data = $derived(game?.data(PLAYERS) ?? null);

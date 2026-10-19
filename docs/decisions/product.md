@@ -4291,4 +4291,4 @@ sweep.
   - **The analysis:** 0 type errors. The site's 167 unit tests and the packages' 38 pass: the 23 tests that moved with
     their modules, and 6 new tests of the game interface on the test game. The sweep: 12 passed, 5 skipped.
   - `npm ci --dry-run` accepts the lockfile.
-- **Not checked:** the preview deploy (the coordinator's, after the merge), Edge, and the deployed site.
+- **Not checked:** the preview deploy, which runs after the merge, Edge, and the deployed site.

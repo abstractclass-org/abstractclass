@@ -7,10 +7,12 @@
 import { parseEdge, parsePoint } from "./notation.ts";
 import type { CheckReason, DescribeGameReply as GameReply } from "@abstractclass/engine/protocol.ts";
 import type { EdgeRules } from "#lib/board/edgeInput.svelte.ts";
-import type { Position } from "#lib/review/enclosure.ts";
+import type { Player, Position } from "#lib/review/enclosure.ts";
 
 /** A player as the engine names it: Blue ("b") or Red ("r"). */
 export type Side = "b" | "r";
+/** The player of a side: 0 Blue, 1 Red. */
+export const playerOf = (side: Side): Player => (side === "b" ? 0 : 1);
 
 /** A position as describe and describe_game give it. */
 export interface PositionFields {
@@ -65,7 +67,7 @@ export function boardPosition(d: PositionFields): Position {
   return {
     edges: [d.edges.b.map(parseEdge), d.edges.r.map(parseEdge)],
     protected: d.protected.map(parseEdge), placed: d.placed.map(parseEdge),
-    scores: d.scores, areas: d.areas, player: d.mover === "b" ? 0 : 1, movesLeft: d.movesLeft,
+    scores: d.scores, areas: d.areas, player: playerOf(d.mover), movesLeft: d.movesLeft,
     regions: [d.regions.b.map(ring), d.regions.r.map(ring)], over: d.outcome !== null, count: d.moveCount, notation: d.position,
   };
 }

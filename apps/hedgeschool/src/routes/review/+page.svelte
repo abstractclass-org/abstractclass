@@ -87,7 +87,7 @@
   const settings = $derived(own ? withOwn(engine, own) : engine);
   // The engine and the GPU worker (session.svelte.ts). A snapshot searches nothing: the settings wait for Review again.
   const session = new EngineSession({ settings: () => settings, game: () => game, position: () => current, frozen: () => !!snapshot,
-                                      track, networkName,
+                                      tracker: { track, networkName },
                                       dropped: () => (held = { step: -1, done: 0 }) });
   const failure = $derived(error || session.error);
   function changeEngine(change: Partial<EngineSettings>) {
