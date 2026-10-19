@@ -96,8 +96,23 @@ export async function searchInSlices(request: object, qid: string, call: (reques
   let reply = (await call({ ...request, id: qid })) as { isDuringSearch?: boolean };
   while (reply.isDuringSearch) {
     partial(reply);
-    await new Promise(resolve => setTimeout(resolve, 0));
+    await nextTask();
     reply = (await call(stopped() ? { id: qid, action: "terminate", terminateId: qid } : { id: qid, action: "continue" })) as typeof reply;
   }
   return reply;
+}
+
+/** Resolves in a task of its own: a message sent on a channel of its own. A message that came before it, such as a
+ *  stop from the page, runs first: both are tasks of the posted message task source, which run in their order. A timer
+ *  would wait longer: from the fifth chained timer on, 4 ms at least. A hidden tab of Edge runs a worker's timers every
+ *  15.6 ms, and a hidden page's timers run about once a second (decisions/product.md, "A review in a hidden tab"). */
+export function nextTask(): Promise<void> {
+  return new Promise(resolve => {
+    const { port1, port2 } = new MessageChannel();
+    port1.onmessage = () => {
+      port1.close();
+      resolve();
+    };
+    port2.postMessage(null);
+  });
 }

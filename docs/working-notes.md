@@ -27,7 +27,12 @@ learn one, and remove a note when it stops being true. The work itself is in bea
   not change.
 - **Measuring speed in a browser:** a measuring script takes its tools from `scripts/measure/speed.mjs`. Do not
   write them again. Its tests are in `speed.test.mjs`. `review-first-frame.mjs`, `review-start.mjs`,
-  `review-sweep.mjs` (a sweep's tasks, two builds in pairs) and `layout-shift.mjs` use it.
+  `review-sweep.mjs` (a sweep's tasks, two builds in pairs), `review-hidden.mjs` (a review in a tab in front and in a
+  hidden tab, in Chromium and Edge) and `layout-shift.mjs` use it.
+  - `watchSweep(settings)` is an init script that marks a review's sweep (`sweep:start`, `sweep:end`) and notes each
+    search that the page sends to a worker, and each worker made and ended. `sweepGaps` gives the gaps between one
+    engine's searches from those notes. `launchHideable` gives a browser whose tab can be hidden (see "A hidden tab in
+    Playwright").
   - `preview(dir, port)` serves a build folder on a port of its own, as Cloudflare Pages serves it, with the headers
     of the folder's own `_headers`. To compare two builds, copy `build` to a folder in `runs/` (Git ignores it) after
     each build, and serve each copy on its own port.
@@ -56,6 +61,27 @@ learn one, and remove a note when it stops being true. The work itself is in bea
   const pairs = await inPairs(builds, 5, async ({ url }) => { /* one set of runs at url: give its median */ });
   console.log(verdict(pairs.map(pair => pair.map(run => run.result))), pairs.map(pair => pair.map(run => run.load)));
   ```
+- **A hidden tab in Playwright:** a browser that Playwright launches never hides a page. Its switches
+  (`--disable-background-timer-throttling`, `--disable-renderer-backgrounding`,
+  `--disable-backgrounding-occluded-windows`) stop the throttling, and its focus emulation
+  (`Emulation.setFocusEmulationEnabled`) keeps `document.visibilityState` "visible", also behind another tab and in a
+  minimized window. `launchHideable` in `scripts/measure/speed.mjs` starts Chromium or Edge itself, headless, with a
+  temporary profile, and connects with `connectOverCDP` and `noDefaults`. A new tab in front then hides the page, as
+  a visitor's browser does:
+  - **A browser started by hand needs Playwright's switches that keep its profile apart** (`APART` in `speed.mjs`).
+    Without them, Edge signs a new profile in to the Windows account and syncs that account's extensions into it.
+    They then install and open pages of their own, which hide the page and take the processor. Playwright's own
+    contexts are off the record, but Playwright turns on its focus emulation in them, so the page stays in the
+    profile's own context. `close()` throws when the profile signed in all the same.
+  - The page's timers run once a second. After 5 minutes hidden and 30 seconds of silence, its chained timers (a
+    timer set by a timer, 5 deep or more) run once a minute. A worker's timers are not throttled in Chromium. In
+    Edge they run about 64 times a second (the system's timer resolution, 15.6 ms).
+  - The hidden tab's renderer process gets the Idle priority class and Windows' power throttling (EcoQoS). Under
+    `scripts/machine run`, the job object holds every process at BelowNormal, so the Idle class does not apply there.
+  - Playwright's waits (`waitForFunction`, the checks before a click) use the page's animation frames or its timers,
+    which a hidden page runs late or not at all. Ask from Node instead, with `page.evaluate` in a loop.
+  - Each run reads `document.visibilityState` and the interval of a chained timer, to check the set-up
+    (`scripts/measure/review-hidden.mjs`).
 - **A size that the first frame needs** comes from CSS or from a read as the element mounts, not from a
   `ResizeObserver` (or Svelte's `bind:offsetHeight`, which uses one). The observer's first call comes after the
   frame's layout, and Chromium counts a change that it makes as a layout shift. A read at mount forces a layout, which

@@ -214,6 +214,9 @@ export class EnginePool {
    *  idle release, the workers that start again take the next search, so one search starts no GPU. */
   get backlogged(): boolean { return this.free.length === 0 && this.queue.length > this.loading; }
 
+  /** No task waits or runs. */
+  get idle(): boolean { return !this.queue.length && !this.running.size; }
+
   /** Ends the search workers and the GPU worker when no task has run for a while (IDLE_RELEASE_MS, shorter in a hidden
    *  tab), and starts them again with the next task: an open tab then holds their memory only while it searches. The
    *  rules worker stays, so the board answers at once. The page keeps the network's checked file (client.ts,
@@ -227,7 +230,7 @@ export class EnginePool {
   /** Starts the idle timer when no task waits or runs, with the delay for the tab's state now. */
   private scheduleRelease() {
     clearTimeout(this.idleTimer);
-    if (!this.idleRelease || this.released || this.queue.length || this.running.size) return;
+    if (!this.idleRelease || this.released || !this.idle) return;
     const ms = document.visibilityState === "hidden" ? this.idleRelease.hidden : this.idleRelease.shown;
     this.idleTimer = setTimeout(() => this.release(), ms);
   }

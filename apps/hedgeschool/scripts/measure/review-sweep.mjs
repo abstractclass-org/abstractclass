@@ -3,23 +3,23 @@
 // in Playwright's Chromium, headless, at 1,366 × 657 pixels. Two builds, each served from a folder of its own, run in
 // alternating pairs (speed.mjs, inPairs). Each sweep opens the game's record (`/import#record=`, which an older build
 // forwards to `/review#record=`) in a fresh browser context, so that the browser's store holds no result. An init
-// script marks the sweep's start (`sweep:start`, when the progress line first names the game's shape) and its end
-// (`sweep:end`, when it names the move quality), and Chrome's trace gives each task between them, by wall time and by
-// thread time. Each sweep reads:
+// script (speed.mjs, watchSweep) marks the sweep's start (`sweep:start`, when the progress line first names the game's
+// shape) and its end (`sweep:end`, when it names the move quality), and Chrome's trace gives each task between them, by
+// wall time and by thread time. Each sweep reads:
 //   - the tasks over 50 milliseconds (a long task): how many, their time beyond 50 milliseconds each (as Total
 //     Blocking Time counts it), and the longest, by wall time and by thread time;
 //   - the tasks of 10 milliseconds of thread time or more, the main thread's thread time in all, and the sweep's time;
 //   - the gaps between one engine's searches (decisions/product.md, "The engine's next search does not wait for a
-//     result's write"): from a search's final result to the engine's next search, where both are the sweep's. The
-//     init script wraps `Worker`, and notes when the page sends each search to a worker and when the worker's final
-//     reply comes.
+//     result's write"): from a search's final result to the engine's next search, where both are the sweep's
+//     (speed.mjs, sweepGaps). The init script wraps `Worker`, and notes when the page sends each search to a worker
+//     and when the worker's final reply comes.
 // The engine settings: `workers` search workers (by default 2), the GPU off or on (on: the real GPU, with the flags of
 // docs/working-notes.md, "The GPU in Playwright's Chromium"), the rest the site's defaults. With OUT, every sweep's
 // numbers and the machine's load go to that file as JSON.
 //
 //   node scripts/measure/review-sweep.mjs <before> <after> [pairs] [workers] [off|on] [port]
 import { readFileSync, writeFileSync } from "node:fs";
-import { LONG_TASK, inPairs, launch, longTasks, median, preview, tasksBetween, trace, verdict } from "./speed.mjs";
+import { LONG_TASK, inPairs, launch, longTasks, preview, sweepGaps, tasksBetween, trace, verdict, watchSweep } from "./speed.mjs";
 import { SWEEP_VISITS } from "@abstractclass/analysis/cache.ts";
 
 const [before, after] = process.argv.slice(2, 4);
@@ -33,43 +33,7 @@ const browser = await launch(gpu === "on" ? { args: ["--enable-unsafe-webgpu", "
 /** One sweep of the game at the build's address. */
 async function sweep(url) {
   const context = await browser.newContext({ viewport: { width: 1366, height: 657 } });
-  await context.addInitScript(settings => {
-    localStorage.setItem("learn-enclosure:engine:2", settings);
-    // The marks of the sweep's start and end, from the review's progress line (ReviewView.svelte).
-    const marked = name => performance.getEntriesByName(name).length > 0;
-    const once = (name, selector) => { if (!marked(name) && document.querySelector(selector)) performance.mark(name); };
-    const observer = new MutationObserver(() => {
-      once("sweep:start", `p[title^="Reviewing: the game's shape"]`);
-      if (marked("sweep:start")) once("sweep:end", `p[title^="Reviewing: move quality"]`);
-      if (marked("sweep:end")) observer.disconnect();
-    });
-    observer.observe(document, { subtree: true, childList: true, attributes: true, attributeFilter: ["title"] });
-    // Each search that the page sends to a worker (a request with maxVisits): the worker, the visits, when it was sent
-    // and when its final reply came (a partial reply is a slice's result).
-    const searches = (window.__searches = []), Base = window.Worker;
-    let made = 0;
-    window.Worker = class extends Base {
-      #index = made++;
-      #open = new Map();
-      constructor(...args) {
-        super(...args);
-        this.addEventListener("message", e => {
-          const s = e.data?.type !== "partial" && this.#open.get(e.data?.id);
-          if (!s) return;
-          s.ended = performance.now();
-          this.#open.delete(e.data.id);
-        });
-      }
-      postMessage(m, ...rest) {
-        if ((m?.type === "call" || m?.type === "search") && m.request?.maxVisits !== undefined) {
-          const s = { worker: this.#index, visits: m.request.maxVisits, sent: performance.now() };
-          searches.push(s);
-          this.#open.set(m.id, s);
-        }
-        return super.postMessage(m, ...rest);
-      }
-    };
-  }, JSON.stringify({ workers, gpu }));
+  await context.addInitScript(watchSweep, JSON.stringify({ workers, gpu }));
   const page = await context.newPage();
   let searches;
   const traced = await trace(browser, page, async () => {
@@ -82,25 +46,7 @@ async function sweep(url) {
   if (!tasks) throw new Error("the trace lacks the sweep's marks");
   return { wall: longTasks(tasks.map(t => t.wall)), thread: longTasks(tasks.map(t => t.thread)), tasks: tasks.length,
            tens: tasks.filter(t => t.thread >= 10).length, work: tasks.reduce((s, t) => s + t.thread, 0),
-           span: tasks.at(-1).at + tasks.at(-1).wall, gaps: sweepGaps(searches.list, searches.end) };
-}
-
-/** The gaps between one engine's searches of the sweep, in milliseconds: from a search's final reply to the next search
- *  that the page sends to the same worker, where both are the sweep's and the next one starts before the sweep's end.
- *  The sweep's searches wait in the queue until its end, so a gap is mostly the page's time between two searches. It
- *  also holds any wait for the next search to reach the queue (its read of the store). */
-function sweepGaps(searches, end) {
-  const gaps = [];
-  for (const worker of new Set(searches.map(s => s.worker))) {
-    const own = searches.filter(s => s.worker === worker).sort((a, b) => a.sent - b.sent);
-    for (let k = 1; k < own.length; k++) {
-      const [a, b] = [own[k - 1], own[k]];
-      if (a.visits === SWEEP_VISITS && b.visits === SWEEP_VISITS && a.ended !== undefined && b.sent <= end) gaps.push(b.sent - a.ended);
-    }
-  }
-  const sorted = gaps.sort((a, b) => a - b);
-  return { count: gaps.length, median: median(sorted), p90: sorted[Math.floor(0.9 * (sorted.length - 1))],
-           longest: sorted.at(-1), total: gaps.reduce((s, g) => s + g, 0) };
+           span: tasks.at(-1).at + tasks.at(-1).wall, gaps: sweepGaps(searches.list, searches.end, SWEEP_VISITS) };
 }
 
 const ms = x => `${Math.round(x)} ms`;

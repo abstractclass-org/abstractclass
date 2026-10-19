@@ -139,7 +139,12 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
    network still loads for the searches that the player asks for (the position on screen, a line). Until then, the
    engine's panel shows the position's stored result, and its search bar gleams once a search starts. A review with a
    result missing says what loads, and then what runs. After Review again on a snapshot (design 20), the snapshot's
-   analysis stays on screen until the new review's analysis replaces it, and the line says what loads.
+   analysis stays on screen until the new review's analysis replaces it, and the line says what loads. **While the
+   review has work to run, the slot's second line says "A review in a hidden tab can be slower."** Its title says why:
+   "When you cannot see this tab, the browser can give the review less processor time." The browser gives a hidden
+   tab's processes the lowest priority, so other programs that keep the processor busy come first (design 05). The
+   line is in the slot's own height, so it moves nothing. It goes when the engine is off and when the review is done.
+   A review that runs again because the site's engine changed gives that line to its reason.
    **While a bar's work runs, a light gleam sweeps it** (Lichess's `bar-glider`, `ui/lib/css/component/_bar-glider.scss`: 70 pixels wide, every
    3 seconds), so that a slow step does not look stopped: the review's bar while its passes run, and the search bar
    while the position on screen is searched. With reduced motion asked for, there is no gleam. **The gleam is slower

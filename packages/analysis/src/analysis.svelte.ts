@@ -38,6 +38,7 @@ import { STORES, dbGet, dbPut } from "@abstractclass/storage/db.ts";
 import { keepStorage } from "@abstractclass/storage/persist.ts";
 import { DEEP_VISITS, LABEL_VISITS, SWEEP_VISITS, analysisKey, keyMoves, cacheGetAtLeast, cachePut, warmCache } from "./cache.ts";
 import { Stopped } from "@abstractclass/engine/client.ts";
+import { nextTask } from "@abstractclass/engine/channel.ts";
 import { Cancelled, type EnginePool } from "@abstractclass/engine/pool.ts";
 
 /** The key moments' depth: twice the review's depth, one step of its doublings deeper, so that the moments that matter
@@ -753,14 +754,20 @@ export class GameAnalysis<G extends GameTypes> {
     const ended = await pool.run(priority, tag, async (engine, onStop) => {
       if (held() >= visits) { met(); return; }
       if (this.paused || !wanted() || era !== this.era) return;
+      // The time limit counts from the search's start, not from its wait in the queue. A search in slices takes no
+      // maxTime (the protocol), so the page stops it: by a timer, or at the first result past the limit. A hidden tab
+      // runs the timer late, but a worker's message on time (decisions/product.md, "A review in a hidden tab").
+      let late = false;
+      const limit = sliced && seconds !== null ? Date.now() + seconds * 1000 : null;
+      const atLimit = () => { if (!late) { late = true; run.stop(); } };
       const run = engine.analyse({ ...query, maxVisits: visits, includePVVisits: true, ...(slice ? { slice: { visits: slice } } : {}) },
-                                 r => { if (era === this.era) this.toBatch(path, r.rootInfo.visits, () => toAnalysis(this.game, r)); });
+                                 r => {
+                                   if (era === this.era) this.toBatch(path, r.rootInfo.visits, () => toAnalysis(this.game, r));
+                                   if (limit !== null && Date.now() >= limit) atLimit();
+                                 });
       if (sliced) onStop(run.stop); // the pool may stop it to give way, and runs it again later
       if (tag === "focus") this.stopFocus = run.stop;
-      // The time limit counts from the search's start, not from its wait in the queue. A search in slices takes no
-      // maxTime (the protocol), so the page stops it.
-      let late = false;
-      const timer = sliced && seconds !== null ? setTimeout(() => { late = true; run.stop(); }, seconds * 1000) : undefined;
+      const timer = limit !== null ? setTimeout(atLimit, limit - Date.now()) : undefined;
       const done = run.done.finally(() => clearTimeout(timer));
       const shown = done.then(async t => {
         const a = toAnalysis(this.game, t.reply);
@@ -772,6 +779,12 @@ export class GameAnalysis<G extends GameTypes> {
         if (era !== this.era) return;
         this.toBatch(path, a.visits, () => a);
         this.afterBatch(() => { if (late) ontime?.(); if (!t.reply.terminated) met(); });
+        // With no search left to run or waiting, the next step waits for this batch: the key moments wait for the label
+        // pass's last result, and Review done for the last of all. So the batch comes in a task of its own, once the
+        // pool has taken its next search, if any. Its timer runs late in a hidden tab: about once a second, and later
+        // once the page's timers have used up their share of the processor (decisions/product.md, "A review in a
+        // hidden tab").
+        void nextTask().then(() => { if (pool.idle && this.batchTimer !== undefined) this.applyBatch(); });
       });
       this.markRunning(pathKey(path), shown);
       await done;

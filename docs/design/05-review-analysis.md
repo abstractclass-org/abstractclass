@@ -35,6 +35,8 @@ noise.
      and can change when the search ends.
    - **Deeper where the player looks:** the position on screen to 1,024 visits, in slices, with the results shown as
      they come (KaTrain's `max_visits`). The engine settings change its visits and give it a time limit (design 09).
+     A timer stops the search at the limit. The search also stops at its first result past the limit, because a
+     hidden tab runs the page's timers late.
      Then the key moments, one doubling past the review's depth (twice its visits: 1,024 with Lite), both ends of each
      turn, since a loss needs both (design 09). Every depth together, and which result a position uses, with examples:
      design 16.
@@ -49,7 +51,18 @@ noise.
      search that runs (the gleam on a line, the moving bar of the position on screen). A result from the browser's
      store shows at once. A search writes its final result to the browser's store first, and the result shows in the
      first batch after the write. So the game's mark of a review done (design 20) comes after every result that it
-     covers is stored. The engine does not wait for the write: it takes its next search when its search ends.
+     covers is stored. The engine does not wait for the write: it takes its next search when its search ends. When no
+     search runs or waits, the next step waits for the batch: the key moments wait for the label pass's last result,
+     and Review done for the last of all. Then the batch comes once the results are stored, without its timer. A
+     hidden tab runs that timer about once a second, and later still when the page's timers have used up their share
+     of the processor (Chromium gives a hidden page's timers 1% of it). No search waits for a timer of the page.
+   - **A search in slices yields by a message:** between two slices, the worker sends itself a message, so that a stop
+     can arrive first. A timer would wait longer: from the sixth yield on, 4 ms at least, and 15.6 ms in a hidden tab
+     of Edge.
+   - **In a hidden tab,** the browser gives the tab's renderer process, and with it the search workers, the lowest
+     priority (on Windows, the Idle class and power throttling). Where every process had the same priority, the
+     review ran as fast as in front. Where other programs keep the processor busy, the lowest priority can give the
+     review less processor time. The review's progress says so (design 06).
 2. **The labels** read these searches: [10-labels.md](10-labels.md) gives every rule, by turn and by edge.
 3. **Results stay in the browser** (IndexedDB), keyed by the stored shape's version, the engine's search (request 17:
    the first build that searched as this one does), the network's SHA-256, the moves and the visits. A stored result
@@ -82,15 +95,17 @@ noise.
 
 ## Where it is
 
-- `packages/engine/src/pool.ts` (the pool and its priorities), `packages/analysis/src/session.svelte.ts` (the rules
-  worker started before its pool: `startRules`, `takeRules`), `packages/analysis/src/analysis.svelte.ts` (the schedule,
-  and the searches that confirm Great by edge and by turn), `packages/analysis/src/cache.ts` (the browser's store, and
-  the removal of older shapes, which `src/routes/+layout.svelte` starts),
+- `packages/engine/src/pool.ts` (the pool and its priorities), `packages/engine/src/channel.ts` (a search in slices),
+  `packages/analysis/src/session.svelte.ts` (the rules worker started before its pool: `startRules`, `takeRules`),
+  `packages/analysis/src/analysis.svelte.ts` (the schedule, and the searches that confirm Great by edge and by turn),
+  `packages/analysis/src/cache.ts` (the browser's store, and the removal of older shapes, which
+  `src/routes/+layout.svelte` starts),
   `packages/analysis/src/labels.ts` and `packages/analysis/src/model.ts` (losses and labels, by edge and by turn),
   `src/lib/review/display.ts` (the "Review by" setting), `src/lib/review/ReviewView.svelte`,
   `src/lib/board/Board.svelte` (a turn's badges) and `src/routes/review/+page.svelte` (the page).
 - The measurement: `scripts/measure/budget-collect.mjs` and `scripts/measure/budget-summary.mjs`. The review's start:
-  `scripts/measure/review-start.mjs`.
+  `scripts/measure/review-start.mjs`. A review in a hidden tab: `scripts/measure/review-hidden.mjs` and
+  `scripts/measure/worker-yield.mjs`.
 
 ## Log entries
 
@@ -106,3 +121,4 @@ noise.
 - [decisions/product.md](../decisions/product.md), "The engine's next search does not wait for a result's write"
   (2026-10-19).
 - [decisions/product.md](../decisions/product.md), "The rules worker starts with the manifest" (2026-10-19).
+- [decisions/product.md](../decisions/product.md), "A review in a hidden tab" (2026-10-19).

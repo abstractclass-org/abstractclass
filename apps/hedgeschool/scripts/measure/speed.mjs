@@ -1,11 +1,13 @@
 // The tools of the scripts that measure the site's speed (docs/working-notes.md, "Measuring speed in a browser"): a
-// build's preview, Playwright's Chromium with Chrome's trace, the test fixture's review kept in a page and reloaded,
-// the main thread's tasks and a named event's thread time from the trace, the page's layout shift, the machine's load,
-// and two builds measured in alternating pairs, with the verdict on them. Its tests: speed.test.mjs.
+// build's preview, Playwright's Chromium with Chrome's trace, a browser whose tab can be hidden, the test fixture's
+// review kept in a page and reloaded, the watch of a review's sweep, the main thread's tasks and a named event's thread
+// time from the trace, the page's layout shift, the machine's load, and two builds measured in alternating pairs, with
+// the verdict on them. Its tests: speed.test.mjs.
 import { chromium } from "@playwright/test";
-import { execFileSync } from "node:child_process";
-import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
+import { execFileSync, spawn } from "node:child_process";
+import { createReadStream, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
+import { tmpdir } from "node:os";
 import { dirname, extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -54,6 +56,73 @@ export async function preview(dir, port) {
 /** Playwright's Chromium, headless, with its scroll bars shown, as the layout sweep runs it (playwright.config.ts). */
 export const launch = (options = {}) => chromium.launch({ ignoreDefaultArgs: ["--hide-scrollbars"], ...options });
 
+/** Edge's program on Windows, which Playwright's channel "msedge" starts. */
+const EDGE = "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe";
+
+/** The switches of a browser that Playwright launches (playwright-core, chromiumSwitches) that keep a new profile apart
+ *  from the machine's: no sign-in, sync or extensions, and no network traffic of the browser's own. Without them, Edge
+ *  signs a new profile in to the Windows account and syncs that account's extensions into it, which open pages of
+ *  their own. Playwright's switches that keep pages visible and their timers unthrottled are left out. Added:
+ *  `--disable-sync`, and Edge's implicit sign-in to the Windows account off (`msImplicitSignin`, a name from Edge's
+ *  own library), which Playwright's own contexts need not turn off: they are off the record. */
+const APART = ["--no-first-run", "--no-default-browser-check", "--disable-sync", "--disable-extensions",
+               "--disable-component-extensions-with-background-pages", "--disable-background-networking",
+               "--disable-component-update", "--disable-default-apps", "--disable-client-side-phishing-detection",
+               "--no-service-autorun", "--password-store=basic", "--disable-search-engine-choice-screen",
+               "--edge-skip-compat-layer-relaunch", "--disable-features=msForceBrowserSignIn,msImplicitSignin"];
+
+/** The accounts that a profile signed in to (its preference `account_info`), once its browser has ended. */
+function accountsOf(profile) {
+  try { return JSON.parse(readFileSync(join(profile, "Default", "Preferences"), "utf8")).account_info?.length ?? 0; }
+  catch { return 0; }
+}
+
+/**
+ * A browser whose tab can be hidden as a visitor hides one (docs/working-notes.md, "A hidden tab in Playwright"):
+ * Playwright's Chromium (`channel` "chromium") or Edge ("msedge"), headless, with a new profile of its own in the
+ * system's temporary folder, reached over CDP on `port`, its window `size` pixels. A browser that Playwright launches
+ * keeps every page visible and its timers unthrottled: its switches turn off the background throttling and the
+ * hidden renderers' lower priority, and its focus emulation keeps each page visible. This browser has neither
+ * (`connectOverCDP` with `noDefaults`). Its profile stays apart from the machine's (APART), and its preferences allow
+ * no sign-in, Edge's implicit sign-in too (in Local State). The page is in the profile's own context, not in one that
+ * Playwright makes: Playwright turns on its focus emulation in those. Resolves with the browser, its one context, its
+ * first page, `hide()`, which brings a new tab to front and so hides the others, `close()`, which ends the browser and
+ * removes its profile, and the browser's process id (`pid`). `close()` throws when the profile signed in to an account
+ * all the same.
+ */
+export async function launchHideable({ channel = "chromium", port, size = [1366, 657], args = [] }) {
+  const profile = mkdtempSync(join(tmpdir(), "hideable-"));
+  mkdirSync(join(profile, "Default"));
+  writeFileSync(join(profile, "Default", "Preferences"), JSON.stringify({ signin: { allowed: false } }));
+  writeFileSync(join(profile, "Local State"), JSON.stringify({ profiles: { edge_implicit_sign_in_enabled: false } }));
+  const child = spawn(channel === "msedge" ? EDGE : chromium.executablePath(),
+                      [`--remote-debugging-port=${port}`, `--user-data-dir=${profile}`, "--headless=new", ...APART,
+                       `--window-size=${size.join(",")}`, ...args, "about:blank"], { stdio: "ignore" });
+  const exited = new Promise(resolve => child.once("exit", resolve));
+  let browser;
+  const close = async () => {
+    // Browser.close ends the browser as the close of its last window does: it writes the profile's preferences first.
+    await browser?.newBrowserCDPSession().then(cdp => cdp.send("Browser.close")).catch(() => {});
+    await Promise.race([exited, new Promise(resolve => setTimeout(resolve, 10_000).unref())]);
+    child.kill();
+    await exited;
+    const accounts = accountsOf(profile);
+    rmSync(profile, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
+    if (accounts) throw new Error(`the browser's profile signed in to ${accounts} account(s)`);
+  };
+  for (let tries = 0; !browser; tries++) {
+    try { browser = await chromium.connectOverCDP(`http://127.0.0.1:${port}`, { noDefaults: true }); }
+    catch (e) {
+      if (tries >= 100) { await close(); throw e; }
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+  }
+  const context = browser.contexts()[0];
+  const page = context.pages()[0] ?? await context.newPage();
+  const hide = async () => { const other = await context.newPage(); await other.bringToFront(); return other; };
+  return { browser, context, page, hide, close, pid: child.pid };
+}
+
 /** The test fixture: the review file of a whole game, with the engine's results (from apps/hedgeschool). */
 export const FIXTURE = "tests/fixtures/hedgefund-review.json";
 
@@ -77,6 +146,73 @@ export async function reloadReview(page) {
   await page.reload();
   await page.waitForFunction(() => performance.getEntriesByName("review:shown").length, null, { timeout: 120_000 });
   await page.waitForTimeout(3000);
+}
+
+/**
+ * An init script (Playwright's `addInitScript`) that watches a review's sweep, with `settings`, the engine settings
+ * that it keeps in the page's browser, as JSON. It marks the sweep's start (`sweep:start`, when the review's progress
+ * line, ReviewView.svelte, first names the game's shape) and its end (`sweep:end`, when it names the move quality).
+ * It wraps `Worker`. In `window.__searches` it notes each search that the page sends to a worker (a request with
+ * maxVisits): the worker, the visits, the visits of its slices (`slice`, for a search in slices), when it was sent and
+ * when its final reply came (a partial reply is a slice's result), with the worker's own time for it (`ms`) and the
+ * visits that it searched (`searched`). In
+ * `window.__workers` it notes when each worker was made, and when it ended (terminate).
+ */
+export function watchSweep(settings) {
+  localStorage.setItem("learn-enclosure:engine:2", settings);
+  const marked = name => performance.getEntriesByName(name).length > 0;
+  const once = (name, selector) => { if (!marked(name) && document.querySelector(selector)) performance.mark(name); };
+  const observer = new MutationObserver(() => {
+    once("sweep:start", `p[title^="Reviewing: the game's shape"]`);
+    if (marked("sweep:start")) once("sweep:end", `p[title^="Reviewing: move quality"]`);
+    if (marked("sweep:end")) observer.disconnect();
+  });
+  observer.observe(document, { subtree: true, childList: true, attributes: true, attributeFilter: ["title"] });
+  const searches = (window.__searches = []), workers = (window.__workers = []), Base = window.Worker;
+  window.Worker = class extends Base {
+    #index = workers.push({ made: performance.now() }) - 1;
+    #open = new Map();
+    constructor(...args) {
+      super(...args);
+      this.addEventListener("message", e => {
+        const s = e.data?.type !== "partial" && this.#open.get(e.data?.id);
+        if (!s) return;
+        Object.assign(s, { ended: performance.now(), ms: e.data.ms, searched: e.data.reply?.rootInfo?.visits });
+        this.#open.delete(e.data.id);
+      });
+    }
+    postMessage(m, ...rest) {
+      if ((m?.type === "call" || m?.type === "search") && m.request?.maxVisits !== undefined) {
+        const s = { worker: this.#index, visits: m.request.maxVisits, slice: m.request.slice?.visits, sent: performance.now() };
+        searches.push(s);
+        this.#open.set(m.id, s);
+      }
+      return super.postMessage(m, ...rest);
+    }
+    terminate() {
+      workers[this.#index].ended = performance.now();
+      return super.terminate();
+    }
+  };
+}
+
+/** The gaps between one engine's searches of the sweep, in milliseconds (`searches` as watchSweep notes them, `end`
+ *  the sweep's end mark, `visits` the sweep's budget, SWEEP_VISITS): from a search's final reply to the next search
+ *  that the page sends to the same worker, where both are the sweep's and the next one starts before the sweep's end.
+ *  The sweep's searches wait in the queue until its end, so a gap is mostly the page's time between two searches. It
+ *  also holds any wait for the next search to reach the queue (its read of the store). */
+export function sweepGaps(searches, end, visits) {
+  const gaps = [];
+  for (const worker of new Set(searches.map(s => s.worker))) {
+    const own = searches.filter(s => s.worker === worker).sort((a, b) => a.sent - b.sent);
+    for (let k = 1; k < own.length; k++) {
+      const [a, b] = [own[k - 1], own[k]];
+      if (a.visits === visits && b.visits === visits && a.ended !== undefined && b.sent <= end) gaps.push(b.sent - a.ended);
+    }
+  }
+  const sorted = gaps.sort((a, b) => a - b);
+  return { count: gaps.length, median: median(sorted), p90: sorted[Math.floor(0.9 * (sorted.length - 1))],
+           longest: sorted.at(-1), total: gaps.reduce((s, g) => s + g, 0) };
 }
 
 /** The categories of Chrome's trace that the tasks and the marks need. A named event can need another: `DoDigest` is

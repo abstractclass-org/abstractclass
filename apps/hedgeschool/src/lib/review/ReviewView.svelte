@@ -54,6 +54,12 @@
   /** One column below 800 pixels (Lichess's $small), as the style below has it: the analysis under the board. */
   const ONE_COLUMN = "(max-width: 799px)";
   const PANEL = "min-w-0 px-4 py-3 bg-panel border border-line rounded-md";
+  /** The note under the progress while the review has work to run (design 06, item 7): a browser gives a hidden tab's
+   *  processes the lowest priority (Chromium on Windows: the Idle class and power throttling), so a review there can be
+   *  slower when other programs use the processor (decisions/product.md, "A review in a hidden tab"). Text that a
+   *  player follows: strict Simplified Technical English. */
+  const HIDDEN_TAB = { text: "A review in a hidden tab can be slower.",
+                       title: "When you cannot see this tab, the browser can give the review less processor time." };
   export { reviewSkeleton };
 
   /** The skeleton's row above the board sets --strip, as the review's row does (stripHeight): the board's size takes
@@ -907,7 +913,8 @@
     <p class="mb-2.5 text-sm text-blunder select-text" role="alert">Engine error: {game.error}</p>
   {:else if progress}
     <!-- One height for the review's slot, while it runs and once it is done, each line on one line: the report and the
-         moves under it never move as the review goes (Cloudflare measured the page's layout shift). -->
+         moves under it never move as the review goes (Cloudflare measured the page's layout shift). The second line
+         says why the review runs again, or else, while it has work to run, that a hidden tab can make it slower. -->
     <div class="mb-2.5 h-[2.75rem]">
       <div class={["flex gap-0.5 h-1.5 rounded-[3px]", !progress.waiting && "bar-glider"]} role="progressbar" aria-label="The review" aria-valuemin="0" aria-valuemax="100"
            aria-valuenow={Math.round(100 * progress.parts.reduce((s, p) => s + p.share * p.done, 0))}>
@@ -918,7 +925,8 @@
         {/each}
       </div>
       <p class="mt-1 text-xs text-muted truncate" title={progress.text}>{progress.text}</p>
-      {#if again}<p class="mt-0.5 text-xs text-ink truncate" title={again.text}>{again.text}</p>{/if}
+      {#if again}<p class="mt-0.5 text-xs text-ink truncate" title={again.text}>{again.text}</p>
+      {:else if !progress.waiting && !progress.counted}<p class="mt-0.5 text-xs text-muted truncate" title={HIDDEN_TAB.title}>{HIDDEN_TAB.text}</p>{/if}
     </div>
   {:else if !board && !snapshot}
     <div class="mb-2.5 h-[2.75rem]">
