@@ -3798,14 +3798,22 @@ sweep.
     over writes nothing and shows nothing.
   - A search that the pool stopped to give way shows its result by itself. The pool runs it again, and the search
     ends with the result of that later run.
+  - A task that ends with no search (its position already held to the budget, the engine off, a stale focus, or
+    another network) no longer marks its position as pending for one batch. Only a search on an engine marks it.
+  - A cost, by reasoning: a pass's last task now ends before its write commits, and the next pass starts only after
+    the write. In that time no task runs, so the pool's idle release (`IDLE_RELEASE_MS`: 60 s, 15 s in a hidden tab)
+    can start. A write that waits longer than that ends the search workers, and the next pass loads them again. A
+    write waits that long only behind a long transaction on the store, such as the removal of older results.
 - **The test** (`src/lib/analysis/game.test.ts`): the tests' store in IndexedDB's place (`src/lib/storage/memoryDb.ts`),
-  whose writes a test can now hold, and a pool with a number of engines. Two new tests, a stricter test and a new
+  whose writes a test can now hold, and a pool with a number of engines. Three new tests, a stricter test and a new
   check:
   - With one engine, the engine takes its next search while the write is held. The result and the sweep's progress
     show in the batch after the write. This test failed before the change.
   - The end of a search's marks (`pending`, the focus) comes in the batch of its result, after the write: the test of
     a pending position now holds the write.
   - A result whose write fails shows, with its progress.
+  - A search that fails ends its marks in the next batch, and the page gets the error. The test fails when the mark
+    ends with `finally`, which leaves the failure unhandled.
   - A search of the previous network writes nothing: a check added to that network's test.
 - **The measurement** (`scripts/measure/review-sweep.mjs`, which now also reads the gaps): the sweep of the fixture's
   game (120 positions at 32 visits) from no stored result, in Playwright's Chromium, headless, at 1,366 × 657 pixels.
@@ -3839,12 +3847,12 @@ sweep.
 
   - **The gaps:** every pair agrees on the median gap, the 90th percentile and the gaps in all. The two builds' sweeps
     do not overlap on any of the three: the largest value after the change is below the smallest before it (0.3
-    against 1.2 ms, 1.9 against 7.6 ms, 1,189 against 1,256 ms). By `verdict` (`scripts/measure/speed.mjs`), they show
-    no change all the same: under this load, the spread of the sweeps before the change (5.3 ms, 130 ms and
-    6,894 ms) is wider than the median difference (−2.7 ms, −48 ms and −1,546 ms).
+    against 1.2 ms, 1.9 against 7.6 ms, 1,189 against 1,256 ms). But `verdict` (`scripts/measure/speed.mjs`) gives
+    no change for them. Under this load, the spread of the sweeps before the change (5.3 ms, 130 ms and 6,894 ms) is
+    wider than the median difference (−2.7 ms, −48 ms and −1,546 ms).
   - With the wait, single gaps took up to 1.6 s. Without it, the median gap stayed at 0.2 to 0.3 ms. One gap of the
-    fifth pair's sweep after the change took 1,112 ms, and the other 116 gaps of that sweep came to 77 ms. Its cause
-    was not found. A gap also holds any wait for the next search to reach the queue.
+    fifth pair's sweep after the change took 1,112 ms, and the other 116 gaps of that sweep came to 77 ms. The
+    measurement did not find its cause. A gap also holds any wait for the next search to reach the queue.
   - **The sweep's time:** the pairs disagree (+29.3, −2.9, −11.6, −17.2 and −11.7 s), and each build's spread (37 s
     before, 35 s after) is wider than all the gaps of a sweep. No change measured.
   - **The main thread's thread time:** the pairs disagree (+806, −942, +533, −63 and −1,539 ms): no change. No task of
@@ -3852,9 +3860,9 @@ sweep.
   - A pair run first, as a check of the script, at 88% and 76% of the processor: 467 ms of gaps in all before the
     change, 34 ms after it.
 - **The decision:** the engine goes on while the write commits. On this loaded machine, the wait held the engines for
-  1.1% to 4.4% of a sweep's time, and the change takes that below 0.1%, but for the one gap above. It costs no
+  1.1% to 4.4% of a sweep's time. The change takes that below 0.1%, except for the one long gap above. It costs no
   main-thread time, and it keeps every order that the page relies on. The gain in the sweep's time is smaller than
-  this machine's noise, so it is not measured.
+  this machine's noise, so this measurement cannot show it.
   - Not measured, by reasoning: the wait is longer where a write is slower. Examples are a slow disk, a phone, and a
     write that waits for another transaction on the store, such as the removal of earlier results (design 20), which
     holds the store while it runs. The GPU's 16 searches end more often than 2 CPU workers' searches, so there the

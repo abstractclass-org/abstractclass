@@ -28,14 +28,15 @@ const reply = (visits: number) => ({
 
 let models = 0;
 /** A pool of `engines` engines (by default, as many as the tasks), whose searches end when the test says: `partial`
- *  posts a result so far, `end` the final result. A task runs when an engine is free, first come first served. */
+ *  posts a result so far, `end` the final result, `fail` an engine error. A task runs when an engine is free, first
+ *  come first served. */
 function fakePool(engines = Infinity) {
-  const searches: { partial(visits: number): void; end(visits: number): void }[] = [];
+  const searches: { partial(visits: number): void; end(visits: number): void; fail(e: Error): void }[] = [];
   const engine = {
     analyse(_query: unknown, onPartial: (r: AnalysisReply) => void) {
-      let end!: (t: { reply: AnalysisReply }) => void;
-      const done = new Promise(resolve => (end = resolve));
-      searches.push({ partial: v => onPartial(reply(v)), end: v => end({ reply: reply(v) }) });
+      let end!: (t: { reply: AnalysisReply }) => void, fail!: (e: Error) => void;
+      const done = new Promise((resolve, reject) => { end = resolve; fail = reject; });
+      searches.push({ partial: v => onPartial(reply(v)), end: v => end({ reply: reply(v) }), fail: e => fail(e) });
       return { done, stop() {} };
     },
   };
@@ -158,4 +159,21 @@ test("a position stays pending, and its focus runs, until the batch after its re
   assert.deepEqual(shown(), [undefined, true, ""]);
   mock.timers.tick(BATCH_MS);
   assert.deepEqual(shown(), [game.focusVisits, false, null]);
+});
+
+test("a search that fails ends its marks in the next batch, and the page gets the error", async () => {
+  const { pool, searches } = fakePool();
+  const game = new GameAnalysis(pool, MOVES, BOARD_ID);
+  await game.start();
+  await game.sweep();
+  game.focus([]);
+  await settle();
+  searches[0].fail(new Error("the engine failed"));
+  await settle();
+  const shown = () => [game.pending([]), game.focusing];
+  assert.deepEqual(shown(), [true, ""]);
+  mock.timers.tick(BATCH_MS);
+  assert.deepEqual(shown(), [false, null]);
+  assert.equal(game.analysis[0], undefined);
+  assert.match(game.error, /the engine failed/);
 });

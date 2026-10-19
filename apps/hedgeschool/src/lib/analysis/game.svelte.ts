@@ -763,23 +763,24 @@ export class GameAnalysis {
         const a = toAnalysis(t.reply);
         if (era !== this.era) return;
         // The write first: the result and the passes' progress show only once it is stored, so that the game's mark
-        // (markReviewed) comes after every result it covers. The end of the search's marks (marked, focus) then
+        // (markReviewed) comes after every result it covers. The end of the search's marks (markRunning, focus) then
         // follows in microtasks, before the batch.
         if (!t.reply.terminated && a.visits >= visits) await cachePut(key, a);
         if (era !== this.era) return;
         this.toBatch(path, a.visits, () => a);
         this.afterBatch(() => { if (late) ontime?.(); if (!t.reply.terminated) met(); });
       });
-      this.marked(pathKey(path), shown);
+      this.markRunning(pathKey(path), shown);
       await done;
       return { shown };
     });
-    await ended?.shown; // the last run's (pool.run): a run that the pool stopped to give way shows its own result alone
+    // The batch of the last run (pool.run). A run that the pool stopped to give way shows its own result alone.
+    await ended?.shown;
   }
 
   /** Marks the position `key` as running until the batch after `search` ends (pending): its search runs, its result's
    *  write follows, and the batch shows the result. */
-  private marked(key: string, search: Promise<unknown>) {
+  private markRunning(key: string, search: Promise<unknown>) {
     this.running = { ...this.running, [key]: (this.running[key] ?? 0) + 1 };
     const end = () => this.afterBatch(() => {
       const left = (this.running[key] ?? 1) - 1, { [key]: _, ...rest } = this.running;
