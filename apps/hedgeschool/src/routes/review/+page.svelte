@@ -1,5 +1,5 @@
 <script lang="ts">
-  // The review page: one game analysed in the browser (src/lib/analysis/game.svelte.ts). `#game=ID` opens a game the
+  // The review page: one game analysed in the browser (@abstractclass/analysis). `#game=ID` opens a game the
   // player imported (src/lib/game/store.ts): after the `#`, which neither analytics service records (design 17). An
   // older address's `?game=ID` moves there. Without it, the page opens the last game reviewed in this browser, and
   // with none, asks for one: there is no sample game (design 11).
@@ -21,11 +21,12 @@
   import ReviewHome from "#lib/review/ReviewHome.svelte";
   import { REVIEW_PAGE_SCRIPT, markReviewPage } from "#lib/review/pageMarks.ts";
   import { reviewArrives } from "#lib/game/importHash.ts";
-  import { LABEL_VISITS, SWEEP_VISITS, snapshotExcept, snapshotPositions, snapshotSearch, warmCache } from "#lib/analysis/cache.ts";
-  import { review, type GameEnding, type ReviewData } from "#lib/review/model.ts";
+  import { LABEL_VISITS, SWEEP_VISITS, snapshotExcept, snapshotPositions, snapshotSearch, warmCache } from "@abstractclass/analysis/cache.ts";
+  import { review, type GameEnding, type ReviewData } from "#lib/review/enclosure.ts";
   import { EnginePool } from "@abstractclass/engine/pool.ts";
-  import { GameAnalysis, momentVisits } from "#lib/analysis/game.svelte.ts";
-  import { EngineSession } from "#lib/analysis/session.svelte.ts";
+  import { GameAnalysis, momentVisits } from "@abstractclass/analysis/analysis.svelte.ts";
+  import { enclosure, type Enclosure } from "#lib/review/enclosure.ts";
+  import { EngineSession } from "@abstractclass/analysis/session.svelte.ts";
   import { changeOwn, loadEngine, networkName, offersNetwork, ownSettings, reviewVisits, saveEngine, withOwn,
            type EngineSettings, type OwnSettings } from "#lib/analysis/engineSettings.ts";
   import { trackSettingChange } from "#lib/analysis/settingChanges.ts";
@@ -41,7 +42,7 @@
   import { CORE_RANGES, EDGE_RANGES, MINUTE_RANGES, range } from "#lib/measure.ts";
   import { deliverExport, reviewExports, type ExportKind, type ExportResult } from "#lib/game/reviewFile.ts";
   import { annotatedText } from "#lib/review/exportText.ts";
-  import type { Unit } from "#lib/review/model.ts";
+  import type { Unit } from "#lib/review/enclosure.ts";
   import type { GameRecord } from "#lib/game/record.ts";
   import { SITE_VERSION } from "#lib/edition.ts";
   import { readSession, writeSession } from "@abstractclass/storage/local.ts";
@@ -49,13 +50,13 @@
 
   const MESSAGE = "box-content max-w-[1100px] mx-auto my-8 px-4";
 
-  let game = $state<GameAnalysis | null>(null);
+  let game = $state<GameAnalysis<Enclosure> | null>(null);
   // A review by an earlier engine shown as it was (design 20): its depth and its bar's text. Nothing is searched until
   // the player chooses Review again.
   let snapshot = $state<{ visits: number; text: string } | null>(null);
   // The snapshot's analysis, an earlier engine's results. It stays after Review again, which ends the snapshot, until
   // the new review's analysis replaces it (rawProgress).
-  let snapshotGame = $state.raw<GameAnalysis | null>(null);
+  let snapshotGame = $state.raw<GameAnalysis<Enclosure> | null>(null);
   let kept = $state.raw<{ id: string; text: string; record: GameRecord; partner?: GamePartner } | null>(null); // the stored game
   // A game's review is open: the page's title names it, else the Review tab's (design 23). The review's skeleton shows
   // from the game's read until the review does (ReviewView.svelte, reviewSkeleton). Before, the page shows its line of
@@ -74,7 +75,7 @@
   // The positions the passes search: one before each move, and the end of an unfinished game (GameAnalysis.passCount).
   const passCount = $derived(game?.passCount ?? moveCount);
   let error = $state("");
-  let current = $state<string[]>([]); // the position on screen: its path in the game's tree (review/tree.ts)
+  let current = $state<string[]>([]); // the position on screen: its path in the game's tree (the analysis's tree.ts)
   const engine = $state(loadEngine());
   $effect(() => saveEngine($state.snapshot(engine)));
   // A game that keeps the settings it came with (an imported review file or a shared link, store.ts) reviews with its
@@ -87,6 +88,7 @@
   const settings = $derived(own ? withOwn(engine, own) : engine);
   // The engine and the GPU worker (session.svelte.ts). A snapshot searches nothing: the settings wait for Review again.
   const session = new EngineSession({ settings: () => settings, game: () => game, position: () => current, frozen: () => !!snapshot,
+                                      track, networkName,
                                       dropped: () => (held = { step: -1, done: 0 }) });
   const failure = $derived(error || session.error);
   function changeEngine(change: Partial<EngineSettings>) {
@@ -333,7 +335,7 @@
     const model = modelOf(manifest, settings.network)?.sha256, search = moduleOf(manifest)?.search;
     const warm = search && model ? warmCache(search, model, Array.from({ length: moves.length + 1 }, (_, i) => moves.slice(0, i)), SWEEP_VISITS).catch(() => {})
       : Promise.resolve();
-    const g = await session.start(pool => new GameAnalysis(pool, moves, kept!.id), async (g, pool) => {
+    const g = await session.start(pool => new GameAnalysis(enclosure, pool, moves, kept!.id), async (g, pool) => {
       await g.start();
       performance.mark("review:rules"); // the start's steps, for measuring it (the browser's performance timeline)
       await warm;
@@ -365,7 +367,7 @@
       const started = rules.start(manifest, network).then(() => snapshotExcept(why, rules.search));
       const search = await snapshotSearch(mark.search, mark.model, snapshotPositions(moves), mark.visits, started);
       if (!search) { rules.terminate(); return false; }
-      const g = new GameAnalysis(rules, moves, kept!.id);
+      const g = new GameAnalysis(enclosure, rules, moves, kept!.id);
       g.setReview(mark.visits);
       await g.start();
       if (!g.rulesReady) { rules.terminate(); return false; } // the review shows why

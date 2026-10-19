@@ -117,7 +117,7 @@ writeFileSync(join(outDir, "manifest.json"), JSON.stringify(manifest, null, 2) +
 
 // The CPU module, run once in Node: its protocol must be one the site speaks, and the lock must give its own protocol
 // and search, for the CPU and the GPU module of the release. The page reads the lock's search before the module answers
-// (src/lib/analysis/cache.ts, warmCache), so a wrong one would read no stored result, and say nothing.
+// (@abstractclass/analysis/cache.ts, warmCache), so a wrong one would read no stored result, and say nothing.
 const { module, call } = await nodeEngine(root);
 const version = call({ id: "v", action: "query_version" });
 if (!speaksProtocol(version.protocol))

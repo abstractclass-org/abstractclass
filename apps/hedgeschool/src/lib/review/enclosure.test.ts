@@ -5,8 +5,8 @@ import assert from "node:assert/strict";
 import type { Edge } from "#lib/engine/notation.ts";
 import { complexity, distinctCandidates, endingText, onlyJudged, equalDepth, likelyEdges, judgeBranchEdge, onlyEdge, otherCandidate, review, roundTogether,
          rankOf, sameMove, secondChoice, shortNote, shownCandidates, trustedLine, twinsOf, turnCost, valuesAfter, type Analysis, type Candidate, type Move, type Position,
-         type ReviewData } from "./model.ts";
-import { accuracyWeight } from "./labels.ts";
+         type ReviewData } from "./enclosure.ts";
+import { accuracyWeight } from "@abstractclass/analysis/labels.ts";
 
 const edges = (n: number): Edge[] => Array.from({ length: n }, (_, k): Edge => [k, 0, k, 1]);
 const candidate = (lineVisits?: number[], n = lineVisits?.length ?? 6): Candidate =>

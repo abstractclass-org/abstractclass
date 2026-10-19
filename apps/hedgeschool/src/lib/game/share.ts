@@ -15,7 +15,7 @@
 import { edgeName, parseEdge } from "#lib/engine/notation.ts";
 import { writeRecord } from "./record.ts";
 import { keptNode, type BranchNode } from "./store.ts";
-import { lastMove } from "#lib/review/tree.ts";
+import { lastMove } from "@abstractclass/analysis/tree.ts";
 
 const SHARE_VERSION = 1;
 /** A message's length in Discord, where the game's players meet: a link longer than this does not fit in one. */

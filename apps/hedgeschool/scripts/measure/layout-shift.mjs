@@ -22,11 +22,11 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { FIXTURE, importFile, inPairs, launch, layoutShift, median, preview, reloadReview, storeReview, verdict, verdictText } from "./speed.mjs";
 import { parseRecord } from "../../src/lib/game/record.ts";
-import { readAnalysisKey } from "../../src/lib/analysis/cache.ts";
+import { readAnalysisKey } from "@abstractclass/analysis/cache.ts";
 import { ANALYSIS_FILE_VERSION, ANALYSIS_FORMAT } from "../../src/lib/game/analysisFile.ts";
 import { boardPositionKeys } from "../../src/lib/game/board.ts";
 import { belongs } from "../../src/lib/game/reviewFile.ts";
-import { prefixKeys } from "../../src/lib/review/tree.ts";
+import { prefixKeys } from "@abstractclass/analysis/tree.ts";
 
 const [kind, before, after, pairCount = "5", reloadCount = "3", ...sizeArgs] = process.argv.slice(2);
 if (!["review", "board", "tab"].includes(kind) || !before || !after) throw new Error("usage: layout-shift.mjs <review|board|tab> <before> <after> [pairs] [reloads] [WxH...]");

@@ -7,7 +7,7 @@
   import EdgeInputHint from "#lib/board/EdgeInputHint.svelte";
   import { EngineWorker, loadManifest, moduleOf } from "@abstractclass/engine/client.ts";
   import { rulesOf, type DescribeReply } from "#lib/engine/position.ts";
-  import { review, edgeName, sameEdge, PLAYER_NAME, type Edge } from "#lib/review/model.ts";
+  import { review, edgeName, sameEdge, PLAYER_NAME, type Edge } from "#lib/review/enclosure.ts";
   import { puzzlesFrom, nextRating, THEME_TEXT, type Puzzle, type Theme } from "#lib/puzzles/model.ts";
   import { SAMPLE, SAMPLE_MOVES } from "#lib/mock/sample.ts";
   import Swatch from "#lib/ui/Swatch.svelte";

@@ -13,11 +13,12 @@
   import { loadDisplay } from "#lib/review/display.ts";
   import NewMenu from "#lib/analysis/NewMenu.svelte";
   import { STANDARD_START, setUpStart } from "#lib/engine/notation.ts";
-  import { onlyJudged, review, type ReviewData, type Unit } from "#lib/review/model.ts";
+  import { onlyJudged, review, type ReviewData, type Unit } from "#lib/review/enclosure.ts";
   import { annotatedRecord } from "#lib/review/annotate.ts";
-  import { GameAnalysis } from "#lib/analysis/game.svelte.ts";
-  import { LABEL_VISITS } from "#lib/analysis/cache.ts";
-  import { EngineSession } from "#lib/analysis/session.svelte.ts";
+  import { GameAnalysis } from "@abstractclass/analysis/analysis.svelte.ts";
+  import { enclosure, type Enclosure } from "#lib/review/enclosure.ts";
+  import { LABEL_VISITS } from "@abstractclass/analysis/cache.ts";
+  import { EngineSession } from "@abstractclass/analysis/session.svelte.ts";
   import { modelOf } from "@abstractclass/engine/client.ts";
   import { loadEngine, networkName, reviewVisits, saveEngine, type EngineSettings } from "#lib/analysis/engineSettings.ts";
   import { trackSettingChange } from "#lib/analysis/settingChanges.ts";
@@ -31,7 +32,7 @@
   import { variantProblem } from "#lib/game/import.ts";
   import { checkMoves, checkPosition } from "#lib/game/check.ts";
   import { STORES, dbGet, dbPut } from "@abstractclass/storage/db.ts";
-  import { mainIndex, pathKey } from "#lib/review/tree.ts";
+  import { mainIndex, pathKey } from "@abstractclass/analysis/tree.ts";
   import { startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
   import { isImportSource, trackImport, trackImportFailed, trackLoad, trackLoadFailed, type ImportSource,
            type LoadSource } from "#lib/game/importEvents.ts";
@@ -55,7 +56,7 @@
     ["record_file", "Annotated record as a file", "", "Annotated record saved"],
   ];
 
-  let game = $state<GameAnalysis | null>(null);
+  let game = $state<GameAnalysis<Enclosure> | null>(null);
   let error = $state("");
   let notice = $state(""); // a line brought that could not open: the board kept here opens
   const sentence = (text: string) => text.replace(/\.?$/, "."); // an error's text, ended by one period
@@ -65,7 +66,7 @@
   $effect(() => saveEngine($state.snapshot(engine)));
   const budget = $derived(reviewVisits(engine)); // "Evaluate quality" searches to the review's depth
   // The engine, with the review's settings, and the GPU worker as the review has it (session.svelte.ts).
-  const session = new EngineSession({ settings: () => engine, game: () => game, position: () => current });
+  const session = new EngineSession({ settings: () => engine, game: () => game, position: () => current, track, networkName });
   const failure = $derived(error || session.error);
 
   const data = $derived(game?.data(PLAYERS) ?? null);
@@ -168,7 +169,7 @@
       // The engine starts while the page chooses the board (an import may ask the player first): the analysis takes
       // the board's start once it is chosen.
       const opening = chooseBoard();
-      const g = await session.start(async pool => new GameAnalysis(pool, [], BOARD_ID, (await opening).board?.start ?? null), async (g, pool) => {
+      const g = await session.start(async pool => new GameAnalysis(enclosure, pool, [], BOARD_ID, (await opening).board?.start ?? null), async (g, pool) => {
         const chosen = await opening;
         await g.start();
         if (chosen.board) await g.loadBoard(chosen.board);

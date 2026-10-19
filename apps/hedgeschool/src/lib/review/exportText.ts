@@ -1,8 +1,9 @@
 // The annotated record of a reviewed game (design 13), from the review page's own review, or from the browser's store
 // alone where no review runs (the home page): the engine's rules give the positions, the stored results give the
 // values, and nothing is searched. Both write the same record.
-import { GameAnalysis, type BranchNode } from "#lib/analysis/game.svelte.ts";
-import { LABEL_VISITS } from "#lib/analysis/cache.ts";
+import { GameAnalysis } from "@abstractclass/analysis/analysis.svelte.ts";
+import { enclosure, type BranchNode } from "./enclosure.ts";
+import { LABEL_VISITS } from "@abstractclass/analysis/cache.ts";
 import { loadEngine, networkName, settingsFor } from "#lib/analysis/engineSettings.ts";
 import { EnginePool } from "@abstractclass/engine/pool.ts";
 import { modelOf, type Manifest } from "@abstractclass/engine/client.ts";
@@ -11,7 +12,7 @@ import { playerNames, type GameRecord } from "#lib/game/record.ts";
 import { loadGame } from "#lib/game/store.ts";
 import { annotatedRecord } from "./annotate.ts";
 import { loadDisplay } from "./display.ts";
-import { review, type Review, type Unit } from "./model.ts";
+import { review, type Review, type Unit } from "./enclosure.ts";
 
 /** The annotated record of a review. Its note names the network and the least visits of the game's searches: the
  *  results' own, not the review depth set now, which may differ from the depth the results were searched to. */
@@ -37,7 +38,7 @@ export async function annotatedFromStore(id: string, manifest: Manifest | null):
   const pool = new EnginePool(0); // the rules alone: no search
   try {
     await pool.start(manifest, network);
-    const game = new GameAnalysis(pool, stored.record.moves, id);
+    const game = new GameAnalysis(enclosure, pool, stored.record.moves, id);
     game.setReview(visits);
     await game.start();
     if (game.error) throw new Error(game.error);

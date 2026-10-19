@@ -9,7 +9,7 @@
 import { moverOf, readPosition } from "#lib/editor/position.ts";
 import { parseEdge } from "#lib/engine/notation.ts";
 import type { GamePosition } from "#lib/engine/position.ts";
-import type { Edge, Player, Position } from "#lib/review/model.ts";
+import type { Edge, Player, Position } from "#lib/review/enclosure.ts";
 
 /** A legal edge as the engine played it: the step's board before it and the board after it (describe_game). */
 export interface Played { before: GamePosition; after: GamePosition }

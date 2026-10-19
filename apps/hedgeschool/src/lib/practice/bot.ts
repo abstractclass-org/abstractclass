@@ -3,7 +3,7 @@
 import { WorkerChannel } from "@abstractclass/engine/channel.ts";
 import { checked, compile, gpuFilesOf, libraryOf, modelOf, type ArtifactKind, type Manifest } from "@abstractclass/engine/client.ts";
 import { gpuSupport } from "@abstractclass/engine/gpuClient.ts";
-import { GPU_SEARCHES, gpuAdapterName, gpuFaster, loadGpuTest } from "#lib/analysis/gpu.svelte.ts";
+import { GPU_SEARCHES, gpuAdapterName, gpuFaster, loadGpuTest } from "@abstractclass/analysis/gpu.svelte.ts";
 import type { EngineSettings } from "#lib/analysis/engineSettings.ts";
 import { gtpAnswer } from "./practice.ts";
 import type { BotMode, BotRequest } from "./botMessages.ts";

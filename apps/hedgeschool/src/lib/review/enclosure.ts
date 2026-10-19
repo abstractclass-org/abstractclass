@@ -1,0 +1,151 @@
+// Enclosure as the shared packages read it (docs/design/29-shared-packages.md), and its own part of the review. The
+// packages' model and analysis compute with a game (@abstractclass/analysis/game.ts): `enclosure` is Enclosure's, from
+// its notation (engine/notation.ts) and its engine's fields (engine/position.ts). The site imports the review's model
+// from here: the shared model's names, its types named for Enclosure's, its functions that compare moves with
+// Enclosure's game given, and Enclosure's own part: the board's position, a move with the edge it cuts, the turns of the
+// notation, who plays each edge of a line, the players' names and the texts that say "edge".
+import * as shared from "@abstractclass/analysis/model.ts";
+import type { Game, GameTypes, Player } from "@abstractclass/analysis/game.ts";
+import type { BranchNode as SharedNode } from "@abstractclass/analysis/analysis.svelte.ts";
+import type { Label, ScoreKind, TurnJudgment } from "@abstractclass/analysis/model.ts";
+import { edgeName, parseEdge, sameEdge, type Edge } from "#lib/engine/notation.ts";
+import { boardPosition, rulesOf, type DescribeReply, type GamePosition } from "#lib/engine/position.ts";
+import type { EdgeRules } from "#lib/board/edgeInput.svelte.ts";
+export * from "@abstractclass/analysis/model.ts";
+export { edgeName, pointName, sameEdge, type Edge } from "#lib/engine/notation.ts";
+
+export interface Region { area: number; rings: [number, number][][] }
+export interface Position {
+  edges: [Edge[], Edge[]];
+  protected: Edge[];
+  placed: Edge[];
+  scores: [number, number];
+  areas?: [number, number]; // the area each player encloses now, added to the score at each turn's end (the engine's)
+  player: Player;
+  movesLeft: number;
+  regions: [Region[], Region[]];
+  over?: boolean; // the game has ended here (the engine's outcome)
+  count?: number; // the edges played so far, forfeited ones too (the notation's edge count)
+  notation?: string; // the position in the notation (the engine's describe)
+}
+
+/** The turn of the next edge from a position with `count` edges played, and whether that edge opens its turn. The
+ *  notation's turn structure (the /notation page): Blue's first turn has one edge, then turns of two, and Blue's last
+ *  turn one. A pass counts the edges it forfeits, so the count alone fixes the turn. */
+export function turnFromCount(count: number): { turn: number; first: boolean } {
+  return count === 0 ? { turn: 1, first: true } : { turn: Math.floor((count - 1) / 2) + 2, first: (count - 1) % 2 === 0 };
+}
+/** A move: an edge, or null for a timeout pass (the rest of the turn forfeited), and the opponent's edge that it cut. */
+export interface Move { player: Player; edge: Edge | null; cut: Edge | null }
+
+export const PLAYER_NAME = ["Blue", "Red"] as const;
+
+/** An edge of a line, played: the edge it cuts (or null), and the regions and areas after it. */
+export interface LineStep { cut: Edge | null; regions: Position["regions"]; areas: [number, number] }
+
+/** Who plays each of the next `n` edges from a position: the mover for the edges left in this turn, then each player
+ *  for a turn of two edges. */
+export function lineMovers(p: Position, n: number): Player[] {
+  const movers: Player[] = [];
+  let player = p.player, left = p.movesLeft;
+  for (let i = 0; i < n; i++) {
+    movers.push(player);
+    if (--left === 0) { player = (1 - player) as Player; left = 2; }
+  }
+  return movers;
+}
+
+/** The move as text: its edge, or "pass". */
+export const moveName = (edge: Edge | null) => (edge ? edgeName(edge) : "pass");
+
+/** The move in the record's notation: its edge with the cut mark when it cuts (`D10-G10x`), or "pass". */
+export const moveNotation = (m: { edge: Edge | null; cut: Edge | null }) => `${moveName(m.edge)}${m.cut ? "x" : ""}`;
+
+// --- Enclosure's game, as the packages take it ----------------------------------------------------------------------
+/** Enclosure's types (GameTypes): a move is an edge, a position the board's, a move played has its cut, the engine's
+ *  fields are describe_game's, the rules are the edge input's, and a line's step is its cut, regions and areas. */
+export interface Enclosure extends GameTypes {
+  move: Edge;
+  position: Position;
+  played: Move;
+  fields: GamePosition;
+  described: DescribeReply;
+  rules: EdgeRules;
+  step: LineStep;
+}
+
+/** A move's cut edge, from describe_game's `cuts`. */
+const cutOf = (cuts: string | null) => (cuts === null ? null : parseEdge(cuts));
+
+/** Enclosure's game. An edge's name puts its lower point first (edgeName), so two edges have one name exactly when
+ *  sameEdge holds. Its engine's score is in its own points, 12 to one of Go's (KataGame's SCORE_SCALE). */
+export const enclosure: Game<Enclosure> = {
+  equal: sameEdge,
+  moveName,
+  parseMove: parseEdge,
+  position: boardPosition,
+  played: (name, before, after) =>
+    ({ player: before.mover === "b" ? 0 : 1, edge: name === "pass" ? null : parseEdge(name), cut: cutOf(after.cuts) }),
+  rules: rulesOf,
+  step: after => ({ cut: cutOf(after.cuts), regions: boardPosition(after).regions, areas: after.areas }),
+  turn: turnFromCount,
+  scoreScale: 12,
+};
+
+// --- The shared types and functions, for Enclosure --------------------------------------------------------------------
+export type Candidate = shared.Candidate<Edge>;
+export type Analysis = shared.Analysis<Edge>;
+export type ReviewData = shared.ReviewData<Enclosure>;
+export type EdgeReview = shared.EdgeReview<Enclosure>;
+export type TurnReview = shared.TurnReview<Enclosure>;
+export type Review = shared.Review<Enclosure>;
+export type RankedCandidate = shared.RankedCandidate<Edge>;
+/** A position of a branch, as the analysis keeps it (@abstractclass/analysis/analysis.svelte.ts). */
+export type BranchNode = SharedNode<Enclosure>;
+
+type After = { blueWin: number; blueScore: number | undefined; visits?: number } | undefined;
+
+export const review = (data: ReviewData, kind?: ScoreKind, minVisits?: number): Review => shared.review(enclosure, data, kind, minVisits);
+export const sameMove = (a: Analysis | undefined, x: Edge, y: Edge) => shared.sameMove(enclosure, a, x, y);
+export const twinsOf = (a: Analysis, c: Candidate) => shared.twinsOf(enclosure, a, c);
+export const rankOf = (a: Analysis | undefined, edge: Edge) => shared.rankOf(enclosure, a, edge);
+export const otherCandidate = (a: Analysis | undefined, played: (Edge | null)[]) => shared.otherCandidate(enclosure, a, played);
+export const shownCandidates = (a: Analysis | undefined, p: Player) => shared.shownCandidates(enclosure, a, p);
+export const judgeBranchEdge = (before: Analysis | undefined, after: After, mover: Player, edge: Edge | null, kind?: ScoreKind,
+                                minVisits?: number, second?: Analysis): Label | null =>
+  shared.judgeBranchEdge(enclosure, before, after, mover, edge, kind, minVisits, second);
+export const judgeTurn = (mover: Player, played: (Edge | null)[], start: Analysis | undefined, middle: Analysis | undefined,
+                          after: After, ends: boolean, other: Analysis | undefined, second: Analysis | undefined,
+                          kind?: ScoreKind, minVisits?: number): TurnJudgment | null =>
+  shared.judgeTurn(enclosure, mover, played, start, middle, after, ends, other, second, kind, minVisits);
+
+// --- Enclosure's texts ----------------------------------------------------------------------------------------------
+/** A turn's note for the move list, in one line: its label, and the engine's best turn when the turn was not it. */
+export function turnShortNote(t: TurnReview): string {
+  if (t.label === "great") return `Great. The only good ${t.edges.length > 1 ? "edges" : "edge"}.`;
+  const better = t.best && t.label !== "best" ? ` ${t.best.map(edgeName).join(" ")} was best.` : "";
+  return `${t.label ? shared.LABEL_TEXT[t.label] : "Not analysed yet"}.${better}`;
+}
+
+/** A note for the move list, in one line: the label, and the engine's choice when the edge was not it. */
+export function shortNote(e: EdgeReview): string {
+  if (e.label === "great") return "Great. The only good edge.";
+  // Not when the edge is Best: it may be the best edge's symmetric twin (sameMove), another edge with the same move.
+  const better = e.best && e.edge && e.label !== "best" && !sameEdge(e.best.edge, e.edge) ? ` ${edgeName(e.best.edge)} was best.` : "";
+  return `${e.label ? shared.LABEL_TEXT[e.label] : "Not analysed yet"}.${better}`;
+}
+
+/** The game's outcome in words: by the scores when the rules ended the game, else as the record says it ended (a
+ *  resignation, a forfeit, a result the record gives, or no end yet). */
+export function endingText(data: ReviewData): string {
+  const n = data.moves.length, overByRules = data.positions[n]?.over ?? true;
+  const { blue, red } = data.result;
+  if (overByRules)
+    return blue === red ? "A draw" : `${PLAYER_NAME[blue > red ? 0 : 1]} won by ${Math.abs(blue - red).toFixed(1)} points`;
+  const m = /^([br])\+(R|F|\d+(?:\.\d+)?)$/.exec(data.ending?.result ?? "");
+  if (!m) return data.ending?.result === "0" ? "A draw" : `Unfinished after edge ${n}`;
+  const winner: Player = m[1] === "b" ? 0 : 1, loser = PLAYER_NAME[winner === 0 ? 1 : 0];
+  if (m[2] === "R") return `${PLAYER_NAME[winner]} won: ${loser} resigned after edge ${n}`;
+  if (m[2] === "F") return `${PLAYER_NAME[winner]} won: ${loser} left the game after edge ${n}`;
+  return `${PLAYER_NAME[winner]} won by ${Number(m[2]).toFixed(1)} points`;
+}

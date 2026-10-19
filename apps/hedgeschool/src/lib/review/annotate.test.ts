@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { edgeName, type Edge } from "#lib/engine/notation.ts";
 import { parseRecord } from "#lib/game/record.ts";
 import { annotatedRecord, evalCommand } from "./annotate.ts";
-import { review, type Analysis, type Candidate, type Move, type Position, type ReviewData } from "./model.ts";
+import { review, type Analysis, type Candidate, type Move, type Position, type ReviewData } from "./enclosure.ts";
 
 // Blue's first turn (A), Red's turn of two (B, C), Blue's turn of two (D, E): five edges, six positions.
 const E = (k: number): Edge => [k, 0, k, 1];

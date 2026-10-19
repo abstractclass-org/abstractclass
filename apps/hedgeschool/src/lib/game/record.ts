@@ -10,7 +10,7 @@
 // comments after the main line's edges. It checks the notation, not the rules: the engine checks that every move is
 // legal (describe names the first illegal move). It also accepts a bare list of edges, without turn labels.
 import { edgeName, parseEdge, setUpStart } from "#lib/engine/notation.ts";
-import { turnFromCount } from "#lib/review/model.ts";
+import { turnFromCount } from "#lib/review/enclosure.ts";
 
 export interface GameRecord {
   tags: Record<string, string>;

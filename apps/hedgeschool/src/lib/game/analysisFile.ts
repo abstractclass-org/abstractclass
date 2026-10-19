@@ -2,7 +2,7 @@
 // position of them, so that the analysis opens at once in another browser. It is the review file's kind for the board
 // (reviewFile.ts): the same results, chosen the same way (of the lines' positions and of the positions one move from
 // them, which confirm the Greats), and read the same way.
-import { ofModels, readAnalysisKey } from "#lib/analysis/cache.ts";
+import { ofModels, readAnalysisKey } from "@abstractclass/analysis/cache.ts";
 import { STORES, dbEntriesWhere, dbPutMany } from "@abstractclass/storage/db.ts";
 import { moduleOf, type Manifest } from "@abstractclass/engine/client.ts";
 import { REVIEW_FORMAT, belongs, readSchoolFile, shippedModels } from "./reviewFile.ts";

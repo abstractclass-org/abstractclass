@@ -1,7 +1,7 @@
 <script lang="ts">
   // What the edge input (edgeInput.svelte.ts) waits for, or why its last click did nothing: the puzzles' and the
   // lessons' words. `player`: the mover.
-  import { PLAYER_NAME, type Player } from "#lib/review/model.ts";
+  import { PLAYER_NAME, type Player } from "#lib/review/enclosure.ts";
   import type { EdgeInput } from "./edgeInput.svelte.ts";
 
   let { input, player }: { input: EdgeInput; player: Player } = $props();

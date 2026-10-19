@@ -3,30 +3,19 @@
 // later server can import it as it is. The id is the first 12 hex digits of the SHA-256 of its moves: the same game
 // imported twice is one game.
 import { STORES, dbAll, dbDelete, dbGet, dbPut } from "@abstractclass/storage/db.ts";
-import { makeEarlierRemovalDue } from "#lib/analysis/cache.ts";
+import { makeEarlierRemovalDue } from "@abstractclass/analysis/cache.ts";
 import { keepStorage } from "@abstractclass/storage/persist.ts";
 import { readLocal, writeLocal } from "@abstractclass/storage/local.ts";
 import { parseRecord, type GameRecord } from "./record.ts";
 import { sha256Hex } from "@abstractclass/engine/artifacts.ts";
 import { setUpStart } from "#lib/engine/notation.ts";
 import { modelOf, moduleOf, searchModules, type Manifest } from "@abstractclass/engine/client.ts";
-import { pathKey } from "#lib/review/tree.ts";
 import type { GamePartner } from "./partners.ts";
 
-/** A game's branches as kept in the browser (analysis/game.svelte.ts): each node's path key (its moves, as the review's
- *  tree names them), its order, and 1 when its move was evaluated. Version 1 kept the lines. */
-export type KeptBranches = { version: 1; lines: string[][] } | { version: 2; nodes: BranchNode[] };
-export type BranchNode = [string, number] | [string, number, 1];
-/** A kept node: its path key, its order among its parent's branches, and the mark of a move evaluated on request. */
-export const keptNode = (key: string, order: number, judged?: unknown): BranchNode => (judged ? [key, order, 1] : [key, order]);
-/** The Analysis board as kept in the browser (design 21): every node of its tree, the main line's too, and the main
- *  line. One board in each browser, under BOARD_ID in the branches' store. */
-export interface KeptBoard { version: 2; nodes: BranchNode[]; main: string[]; start?: string } // start: a set-up position (design 21)
-export const BOARD_ID = "board";
-
-/** The kept branches as version 2's nodes: a version 1 line is the node at its end, in the lines' order. */
-export const branchNodes = (b: KeptBranches | null): BranchNode[] =>
-  !b ? [] : b.version === 2 ? b.nodes : b.lines.map((l, i): BranchNode => [pathKey(l), i]);
+// The tree of a game's analysis as the browser keeps it, in the branches' store: the shared analysis's
+// (@abstractclass/analysis/kept.ts). A kept node is a BranchNode here.
+export { BOARD_ID, branchNodes, keptNode, type KeptBoard, type KeptBranches, type KeptNode as BranchNode }
+  from "@abstractclass/analysis/kept.ts";
 
 export interface StoredGame {
   version: 1;
@@ -58,8 +47,8 @@ export async function setGameSettings(id: string, settings: GameSettings) {
 /** A review that ran to its end (design 13): the engine module's and the network's SHA-256 (the manifest's), the
  *  network's id, and the review's depth. A game exports only when its mark names a module of the site's search, the
  *  network set now, and the review depth set now or deeper. `search` is the module's search, which keys the review's
- *  results (analysis/cache.ts): a snapshot reads them by their keys (design 20). An older mark, which the site kept
- *  before marks held their search, has none. */
+ *  results (@abstractclass/analysis/cache.ts): a snapshot reads them by their keys (design 20). An older mark, which
+ *  the site kept before marks held their search, has none. */
 export interface ReviewMark { module: string; model: string; network: string; visits: number; at: string; search?: string }
 /** A review to compare a mark with: its mark, and the modules whose search is its module's (client.ts, searchModules). */
 export interface WantedReview extends Omit<ReviewMark, "at"> { modules: string[] }

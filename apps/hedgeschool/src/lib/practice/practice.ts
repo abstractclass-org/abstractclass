@@ -5,7 +5,7 @@ import { NETWORKS, inSteps, networkName, offersNetwork } from "#lib/analysis/eng
 import { readLocalJson, writeLocal } from "@abstractclass/storage/local.ts";
 import { writeRecord } from "#lib/game/record.ts";
 import { BOT_SECOND_RANGES, CORE_RANGES, EDGE_RANGES, TAKEBACK_RANGES, range } from "#lib/measure.ts";
-import { turnFromCount, type Player } from "#lib/review/model.ts";
+import { turnFromCount, type Player } from "#lib/review/enclosure.ts";
 import type { BotMode } from "./botMessages.ts";
 import type { StoredTakeback } from "./stored.ts";
 

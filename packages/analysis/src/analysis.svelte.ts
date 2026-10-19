@@ -15,24 +15,25 @@
 // what was found stays), the label budget can be deeper, the position on screen has its own visits and time limit,
 // and another network starts the analysis again in a new pool.
 //
-// The game is a tree (src/lib/review/tree.ts): the player can add branches, and a branch's positions are searched as
-// the game's are, when the player looks at them. A game's branches are kept in the browser, as Lichess keeps its
+// The game is a tree (tree.ts): the player can add branches, and a branch's positions are searched as the game's
+// are, when the player looks at them. A game's branches are kept in the browser (kept.ts), as Lichess keeps its
 // analysis tree (ui/analyse/src/idbTree.ts).
 //
 // The Analysis board (design 21) is the same analysis in its board form: its main line is the player's and changes
 // (setMain), its moves have labels only where the player asks (judge), and no pass runs: the engine searches the
 // position on screen and the moves evaluated.
-import { edgeName, parseEdge, type Edge } from "#lib/engine/notation.ts";
-import { boardPosition, rulesOf, type DescribeReply, type GamePosition } from "#lib/engine/position.ts";
-import { toAnalysis } from "#lib/engine/analysis.ts";
+//
+// The analysis is every game's (design 29): the game (game.ts) gives the positions from the engine's fields, the moves
+// played, a move's name, the rules for the player's moves and a line's steps. `G` is the game's types.
+import { toAnalysis } from "./reply.ts";
 import { positionQuery } from "@abstractclass/engine/protocol.ts";
 import { errorText } from "@abstractclass/engine/errors.ts";
-import { BOARD_ID, branchNodes, keptNode, type BranchNode as KeptNode, type KeptBoard, type KeptBranches } from "#lib/game/store.ts";
-import { equalDepth, moverWin, onlyEdge, otherCandidate, sameMove, secondChoice, type Analysis, type Candidate, type LineStep,
-         type GameEnding, type Move, type Player, type Position, type ReviewData } from "#lib/review/model.ts";
-import { ONLY_EDGE_GAP } from "#lib/review/labels.ts";
-import type { EdgeRules } from "#lib/board/edgeInput.svelte.ts";
-import { lastMove, mainIndex, parentKey, pathKey, prefixKeys } from "#lib/review/tree.ts";
+import { BOARD_ID, branchNodes, keptNode, type KeptNode, type KeptBoard, type KeptBranches } from "./kept.ts";
+import type { Game, GameTypes, Player } from "./game.ts";
+import { equalDepth, moverWin, onlyEdge, otherCandidate, sameMove, secondChoice, type Analysis, type Candidate, type GameEnding,
+         type ReviewData } from "./model.ts";
+import { ONLY_EDGE_GAP } from "./labels.ts";
+import { lastMove, mainIndex, parentKey, pathKey, prefixKeys } from "./tree.ts";
 import { STORES, dbGet, dbPut } from "@abstractclass/storage/db.ts";
 import { keepStorage } from "@abstractclass/storage/persist.ts";
 import { DEEP_VISITS, LABEL_VISITS, SWEEP_VISITS, analysisKey, keyMoves, cacheGetAtLeast, cachePut, warmCache } from "./cache.ts";
@@ -51,27 +52,25 @@ export const BATCH_MS = 100;
 // A branch edge's evaluation, asked for in its menu, comes after the position on screen and before the rest.
 const PRIORITY = { focus: 10, judge: 7, moment: 5, label: 2, sweep: 1 };
 
-
-/** A move's cut edge, from describe_game's `cuts`. */
-const cutOf = (cuts: string | null) => (cuts === null ? null : parseEdge(cuts));
-
 /** A position in a branch: the board, the move that led to it, its analysis once searched, its place among the
  *  branches from its parent (the lower first), and whether the player asked for the move's quality. */
-export interface BranchNode { position: Position; move: Move; analysis?: Analysis; order: number; judged?: boolean }
+export interface BranchNode<G extends GameTypes> {
+  position: G["position"]; move: G["played"]; analysis?: Analysis<G["move"]>; order: number; judged?: boolean;
+}
 
 
-export class GameAnalysis {
+export class GameAnalysis<G extends GameTypes> {
   moves: string[];
   mainNames: string[] = []; // the game's moves as the tree names them (notation.ts's spelling), once the rules ran
   mainKeys: string[] = [""]; // the path key of each position of the game: the first i moves
   // Raw state: these arrays are replaced, never changed in place, so the page reads plain objects, not proxies.
-  positions = $state.raw<Position[]>([]);
-  played = $state.raw<Move[]>([]);
-  analysis = $state.raw<(Analysis | undefined)[]>([]);
-  branches = $state.raw<Record<string, BranchNode>>({}); // by path key
+  positions = $state.raw<G["position"][]>([]);
+  played = $state.raw<G["played"][]>([]);
+  analysis = $state.raw<(Analysis<G["move"]> | undefined)[]>([]);
+  branches = $state.raw<Record<string, BranchNode<G>>>({}); // by path key
   // Positions outside the tree, by path key: the positions after the engine's second choice, searched to confirm a
   // Great (confirmGreat).
-  outside = $state.raw<Record<string, Analysis>>({});
+  outside = $state.raw<Record<string, Analysis<G["move"]>>>({});
   rulesReady = $state(false);
   engineReady = $state(false);
   paused = $state(false); // the engine is off: no search starts
@@ -96,7 +95,8 @@ export class GameAnalysis {
   private running = $state.raw<Record<string, number>>({});
   private era = 0; // another network starts a new era: results from an earlier one are dropped
   private pool: EnginePool;
-  private readonly id: string; // the game's id (game/store.ts), under which its branches are kept, or the board's
+  private readonly game: Game<G>;
+  private readonly id: string; // the game's id in the site's store, under which its branches are kept, or the board's
   private nextOrder = 0;
   readonly board: boolean; // the Analysis board's form (design 21)
   readonly startPosition: string | null; // the board's set-up start, in the notation: the standard start when null
@@ -105,13 +105,14 @@ export class GameAnalysis {
   judgedMain = $state.raw<Record<string, true>>({});
   // The batch (BATCH_MS): the results that wait for it, the deepest for each position by path key, and what runs once
   // it has applied them.
-  private batch = new Map<string, { path: string[]; visits: number; analysis: () => Analysis }>();
+  private batch = new Map<string, { path: string[]; visits: number; analysis: () => Analysis<G["move"]> }>();
   private batchSteps: (() => void)[] = [];
   private batchTimer?: ReturnType<typeof setTimeout>;
 
-  /** The analysis of the moves `moves`, from `startPosition` (the board's set-up start), whose tree is kept under `id`:
-   *  the game's id (game/store.ts), or BOARD_ID for the Analysis board, which takes the board's form. */
-  constructor(pool: EnginePool, moves: string[], id: string, startPosition: string | null = null) {
+  /** The analysis of the moves `moves` of `game`, from `startPosition` (the board's set-up start), whose tree is kept
+   *  under `id`: the game's id (the site's store), or BOARD_ID for the Analysis board, which takes the board's form. */
+  constructor(game: Game<G>, pool: EnginePool, moves: string[], id: string, startPosition: string | null = null) {
+    this.game = game;
     this.pool = pool;
     this.moves = moves;
     this.id = id;
@@ -144,23 +145,23 @@ export class GameAnalysis {
   }
 
   /** The game as the review reads it. */
-  data(players: ReviewData["players"], ending?: GameEnding): ReviewData | null {
+  data(players: ReviewData<G>["players"], ending?: GameEnding): ReviewData<G> | null {
     if (!this.rulesReady) return null;
     const end = this.positions.at(-1)!.scores;
     // For each edge but the last, the position after the engine's second choice, which confirms a Great. For each turn
     // but the last, the position after its other candidate, which confirms a Great by turn.
-    const after = (i: number, c: Candidate | undefined) => (c ? this.analysisAfter(i, edgeName(c.edge)) : undefined);
+    const after = (i: number, c: Candidate<G["move"]> | undefined) => (c ? this.analysisAfter(i, this.game.moveName(c.edge)) : undefined);
     const seconds = this.played.map((_, i) => (i + 1 < this.played.length ? after(i, secondChoice(this.analysis[i])) : undefined));
     const others = this.played.map((_, i) => {
       const turn = this.turnAt(i);
-      return turn && i + turn.length < this.played.length ? after(i, otherCandidate(this.analysis[i], turn)) : undefined;
+      return turn && i + turn.length < this.played.length ? after(i, otherCandidate(this.game, this.analysis[i], turn)) : undefined;
     });
     return { players, result: { blue: end[0], red: end[1] }, moves: this.played, positions: this.positions, analysis: this.analysis,
              seconds, others, ...(ending ? { ending } : {}) };
   }
 
   /** The game's edges of the turn that starts with edge `i`, or undefined when no turn starts there. */
-  private turnAt(i: number): (Edge | null)[] | undefined {
+  private turnAt(i: number): (G["move"] | null)[] | undefined {
     const m = this.played[i];
     if (!m || (i > 0 && this.played[i - 1].player === m.player)) return undefined;
     const next = this.played[i + 1];
@@ -169,20 +170,20 @@ export class GameAnalysis {
 
   /** The analysis of the position after the turn's other candidate at `path` (otherCandidate), which confirms a Great by
    *  turn. */
-  otherAt(path: string[], turn: (Edge | null)[]): Analysis | undefined {
-    const other = otherCandidate(this.analysisOf(path), turn);
-    return other ? this.analysisOf([...path, edgeName(other.edge)]) : undefined;
+  otherAt(path: string[], turn: (G["move"] | null)[]): Analysis<G["move"]> | undefined {
+    const other = otherCandidate(this.game, this.analysisOf(path), turn);
+    return other ? this.analysisOf([...path, this.game.moveName(other.edge)]) : undefined;
   }
 
   /** Describes every position (the rules, no network), and adds the game's branches kept from an earlier visit. */
   async start() {
     const kept = this.board ? null : dbGet<KeptBranches>(STORES.branches, this.id); // read while the rules answer
     try {
-      const described = (await this.pool.rules.describeGame<GamePosition>(this.query([], this.moves))).reply.positions;
-      const positions = described.map(boardPosition);
-      this.played = this.moves.map((m, i) => ({ player: positions[i].player, edge: m === "pass" ? null : parseEdge(m), cut: cutOf(described[i + 1].cuts) }));
+      const described = (await this.pool.rules.describeGame<G["fields"]>(this.query([], this.moves))).reply.positions;
+      const positions = described.map(d => this.game.position(d));
+      this.played = this.moves.map((m, i) => this.game.played(m, described[i], described[i + 1]));
       this.positions = positions;
-      this.mainNames = this.played.map(m => (m.edge ? edgeName(m.edge) : "pass"));
+      this.mainNames = this.played.map(m => this.game.moveName(m.edge));
       this.mainKeys = prefixKeys(this.mainNames);
       this.rulesReady = true;
     } catch (e) {
@@ -194,14 +195,14 @@ export class GameAnalysis {
 
   /** The analysis of the position after the move `name` from the game's position `i`, with no path built: the review
    *  asks it for every position at each result. */
-  private analysisAfter(i: number, name: string): Analysis | undefined {
+  private analysisAfter(i: number, name: string): Analysis<G["move"]> | undefined {
     if (name === this.mainNames[i]) return this.analysis[i + 1];
     const key = i ? `${this.mainKeys[i]} ${name}` : name;
     return this.branches[key]?.analysis ?? this.outside[key];
   }
 
   /** The analysis of a position anywhere in the tree, or outside it (a Great's confirmation). */
-  analysisOf(path: string[]): Analysis | undefined {
+  analysisOf(path: string[]): Analysis<G["move"]> | undefined {
     const i = mainIndex(path, this.mainNames);
     if (i !== null) return this.analysis[i];
     const key = pathKey(path), node = this.branches[key];
@@ -209,9 +210,9 @@ export class GameAnalysis {
   }
 
   /** The analysis of the position after the engine's second choice at `path`, which confirms a Great (confirmGreats). */
-  secondAt(path: string[]): Analysis | undefined {
+  secondAt(path: string[]): Analysis<G["move"]> | undefined {
     const second = secondChoice(this.analysisOf(path));
-    return second ? this.analysisOf([...path, edgeName(second.edge)]) : undefined;
+    return second ? this.analysisOf([...path, this.game.moveName(second.edge)]) : undefined;
   }
 
   /** Confirms the Greats: where the played edge was the engine's first choice in a search to the label budget, and its
@@ -233,12 +234,12 @@ export class GameAnalysis {
   // Each target has its depth: as deep as the position after the played move or turn, which the confirmation's
   // position is compared with (equalDepth: the player may have searched that position deeper).
   private greatTargets = $derived.by(() => {
-    const out: { path: string[]; candidate: Candidate; depth: number }[] = [];
+    const out: { path: string[]; candidate: Candidate<G["move"]>; depth: number }[] = [];
     const depth = (after: () => string[]) => equalDepth(this.labelVisits, this.analysisOf(after())?.visits);
-    const check = (a: Analysis | undefined, before: () => string[], edge: Edge | null, mover: Player, over: boolean) => {
+    const check = (a: Analysis<G["move"]> | undefined, before: () => string[], edge: G["move"] | null, mover: Player, over: boolean) => {
       const first = a?.candidates[0];
-      if (!over && a && a.visits >= this.labelVisits && first && edge && sameMove(a, first.edge, edge) && onlyEdge(a, mover))
-        out.push({ path: before(), candidate: secondChoice(a)!, depth: depth(() => [...before(), edgeName(edge)]) });
+      if (!over && a && a.visits >= this.labelVisits && first && edge != null && sameMove(this.game, a, first.edge, edge) && onlyEdge(a, mover))
+        out.push({ path: before(), candidate: secondChoice(a)!, depth: depth(() => [...before(), this.game.moveName(edge)]) });
     };
     const asked = (i: number) => !this.board || !!this.judgedMain[this.mainKeys[i + 1]]; // the board's: judged only
     for (let i = 0; i + 1 < this.played.length; i++)
@@ -248,12 +249,12 @@ export class GameAnalysis {
       const before = key.split(" ").slice(0, -1);
       check(this.analysisOf(before), () => before, node.move.edge, node.move.player, !!node.position.over);
     }
-    const checkTurn = (a: Analysis | undefined, path: () => string[], turn: (Edge | null)[], mover: Player) => {
+    const checkTurn = (a: Analysis<G["move"]> | undefined, path: () => string[], turn: (G["move"] | null)[], mover: Player) => {
       const first = a?.candidates[0];
-      if (!a || a.visits < this.labelVisits || !first || !turn.some(e => !!e && sameMove(a, e, first.edge))) return;
-      const other = otherCandidate(a, turn);
+      if (!a || a.visits < this.labelVisits || !first || !turn.some(e => e != null && sameMove(this.game, a, e, first.edge))) return;
+      const other = otherCandidate(this.game, a, turn);
       if (other && moverWin(first.blueWin, mover) - moverWin(other.blueWin, mover) >= ONLY_EDGE_GAP)
-        out.push({ path: path(), candidate: other, depth: depth(() => [...path(), ...turn.map(e => (e ? edgeName(e) : "pass"))]) });
+        out.push({ path: path(), candidate: other, depth: depth(() => [...path(), ...turn.map(e => this.game.moveName(e))]) });
     };
     for (let i = 0; i < this.played.length; i++) {
       const turn = this.turnAt(i);
@@ -275,7 +276,7 @@ export class GameAnalysis {
   get greatChecks(): { total: number; done: number } {
     const after = new Map<string, { path: string[]; depth: number }>();
     for (const t of this.greatTargets) {
-      const path = [...t.path, edgeName(t.candidate.edge)], key = pathKey(path);
+      const path = [...t.path, this.game.moveName(t.candidate.edge)], key = pathKey(path);
       after.set(key, { path, depth: Math.max(t.depth, after.get(key)?.depth ?? 0) });
     }
     const done = [...after.values()].filter(t => (this.analysisOf(t.path)?.visits ?? 0) >= t.depth).length;
@@ -292,8 +293,8 @@ export class GameAnalysis {
   async fromStore(search: string, model: string) {
     const take = async (path: string[]) => {
       const moves = this.keyMovesOf(path);
-      const a = (await cacheGetAtLeast<Analysis>(search, model, moves, this.labelVisits))
-        ?? (await cacheGetAtLeast<Analysis>(search, model, moves, SWEEP_VISITS));
+      const a = (await cacheGetAtLeast<Analysis<G["move"]>>(search, model, moves, this.labelVisits))
+        ?? (await cacheGetAtLeast<Analysis<G["move"]>>(search, model, moves, SWEEP_VISITS));
       if (!a) return;
       this.keep(path, a);
       const i = mainIndex(path, this.mainNames);
@@ -303,7 +304,8 @@ export class GameAnalysis {
       : [...Array.from({ length: this.passCount }, (_, i) => this.mainNames.slice(0, i)), ...Object.keys(this.branches).map(k => k.split(" "))];
     await warmCache(search, model, paths.map(p => this.keyMovesOf(p)), SWEEP_VISITS); // one read of the store for them all
     await Promise.all(paths.map(take));
-    await Promise.all(this.greatTargets.map(t => take([...t.path, edgeName(t.candidate.edge)]))); // after: they follow the results
+    // After the rest: they follow the results.
+    await Promise.all(this.greatTargets.map(t => take([...t.path, this.game.moveName(t.candidate.edge)])));
   }
 
   /** Notes that the game's position `i` has met `visits`, when that is more than it had. */
@@ -312,9 +314,9 @@ export class GameAnalysis {
   }
 
   /** Searches the position after `candidate` at `path` to the label budget, to confirm a Great. */
-  private confirmGreat(path: string[], candidate: Candidate | undefined, depth: number) {
+  private confirmGreat(path: string[], candidate: Candidate<G["move"]> | undefined, depth: number) {
     if (!candidate || !this.engineReady || this.paused) return;
-    const after = [...path, edgeName(candidate.edge)], key = `${pathKey(after)}|${depth}`;
+    const after = [...path, this.game.moveName(candidate.edge)], key = `${pathKey(after)}|${depth}`;
     if (this.confirming.has(key) || (this.analysisOf(after)?.visits ?? 0) >= depth) return;
     this.confirming.add(key);
     this.search(after, depth, PRIORITY.label, "confirm", { early: LABEL_VISITS })
@@ -329,14 +331,13 @@ export class GameAnalysis {
     let k = path.length;
     while (k > 0 && !this.known(path.slice(0, k))) k--;
     if (k === path.length) return;
-    const { positions } = (await this.pool.rules.describeGame<GamePosition>(this.query(path.slice(0, k), path.slice(k)), k)).reply;
+    const { positions } = (await this.pool.rules.describeGame<G["fields"]>(this.query(path.slice(0, k), path.slice(k)), k)).reply;
     const next = { ...this.branches };
     for (let j = 1; j < positions.length; j++) {
       const m = path[k + j - 1], p = path.slice(0, k + j);
       if (pathKey(p) in next) continue; // added meanwhile
       next[pathKey(p)] = {
-        position: boardPosition(positions[j]), order: this.nextOrder++,
-        move: { player: positions[j - 1].mover === "b" ? 0 : 1, edge: m === "pass" ? null : parseEdge(m), cut: cutOf(positions[j].cuts) },
+        position: this.game.position(positions[j]), order: this.nextOrder++, move: this.game.played(m, positions[j - 1], positions[j]),
       };
     }
     this.branches = next;
@@ -375,7 +376,7 @@ export class GameAnalysis {
   }
 
   /** The move that leads to `path`: the game's or a branch's (none at the start). */
-  private moveInto(path: string[]): Move | undefined {
+  private moveInto(path: string[]): G["played"] | undefined {
     if (!path.length) return undefined;
     const i = mainIndex(path, this.mainNames);
     return i !== null ? this.played[i - 1] : this.branches[pathKey(path)]?.move;
@@ -427,10 +428,11 @@ export class GameAnalysis {
     }
   }
 
-  /** The rules of a position anywhere in the tree, for the player's own moves: the legal edges and the mover's nodes. */
-  async rulesAt(path: string[]): Promise<EdgeRules> {
-    const { reply } = await this.pool.rules.describe<DescribeReply>(this.query(path));
-    return rulesOf(reply);
+  /** The rules of a position anywhere in the tree, for the player's own moves (Enclosure's: the legal edges and the
+   *  mover's nodes). */
+  async rulesAt(path: string[]): Promise<G["rules"]> {
+    const { reply } = await this.pool.rules.describe<G["described"]>(this.query(path));
+    return this.game.rules(reply);
   }
 
   /** Keeps the game's branches in the browser: each node's key and order. Not for a game deleted meanwhile (in the
@@ -523,8 +525,8 @@ export class GameAnalysis {
   }
 
   /** Board: every node of the tree by path key, the main line's moves as nodes too, each before its siblings. */
-  private treeNodes(): Record<string, BranchNode> {
-    const nodes: Record<string, BranchNode> = { ...this.branches };
+  private treeNodes(): Record<string, BranchNode<G>> {
+    const nodes: Record<string, BranchNode<G>> = { ...this.branches };
     const least = new Map<string, number>(); // the least order of the branches from each position, 0 or lower
     for (const [k, n] of Object.entries(this.branches)) least.set(parentKey(k), Math.min(least.get(parentKey(k)) ?? 0, n.order));
     for (let i = 1; i < this.positions.length; i++) {
@@ -537,7 +539,7 @@ export class GameAnalysis {
 
   /** Board: makes `main`, a line of `nodes`, the main line, carried on along each position's first node to its end, and
    *  the other nodes the variations. Every position is a node already: nothing is asked of the rules or searched. */
-  private reindex(nodes: Record<string, BranchNode>, main: string[]) {
+  private reindex(nodes: Record<string, BranchNode<G>>, main: string[]) {
     const first = new Map<string, string>(); // each position's first node, by the position's key
     for (const [k, n] of Object.entries(nodes)) {
       const at = parentKey(k), had = first.get(at);
@@ -545,7 +547,7 @@ export class GameAnalysis {
     }
     const line = [...main];
     for (let next = first.get(pathKey(line)); next !== undefined; next = first.get(next)) line.push(lastMove(next));
-    const rest = { ...nodes }, positions = [this.positions[0]], played: Move[] = [], analysis = [this.analysis[0]];
+    const rest = { ...nodes }, positions = [this.positions[0]], played: G["played"][] = [], analysis = [this.analysis[0]];
     const judged: Record<string, true> = {}, keys = prefixKeys(line).slice(1);
     for (const key of keys) {
       const node = rest[key];
@@ -697,11 +699,12 @@ export class GameAnalysis {
     return generation;
   }
 
-  /** Each edge of a line from the position at `path`, played: the edge it cuts (or null), and the regions and areas
-   *  after it. The rules, no network. */
-  async lineSteps(path: string[], line: Edge[]): Promise<LineStep[]> {
-    const { positions } = (await this.pool.rules.describeGame<GamePosition>(this.query(path, line.map(edgeName)), path.length)).reply;
-    return positions.slice(1).map(p => ({ cut: cutOf(p.cuts), regions: boardPosition(p).regions, areas: p.areas }));
+  /** Each edge of a line from the position at `path`, played: what the board draws after it (the game's step:
+   *  Enclosure's is the edge it cuts, and the regions and areas after it). The rules, no network. */
+  async lineSteps(path: string[], line: G["move"][]): Promise<G["step"][]> {
+    const query = this.query(path, line.map(m => this.game.moveName(m)));
+    const { positions } = (await this.pool.rules.describeGame<G["fields"]>(query, path.length)).reply;
+    return positions.slice(1).map(p => this.game.step(p));
   }
 
   /** Searches these positions deeper, after the focus and before the sweep. The page calls it again when the key
@@ -740,7 +743,7 @@ export class GameAnalysis {
     const key = analysisKey(pool.search!, pool.model!.sha256, keyed, visits);
     const held = () => this.analysisOf(path)?.visits ?? 0;
     if (held() >= visits) return met();
-    const cached = await cacheGetAtLeast<Analysis>(pool.search!, pool.model!.sha256, keyed, visits);
+    const cached = await cacheGetAtLeast<Analysis<G["move"]>>(pool.search!, pool.model!.sha256, keyed, visits);
     if (era !== this.era) return;
     if (cached) { this.keep(path, cached); return met(); }
     if (held() >= visits) return met();
@@ -751,7 +754,7 @@ export class GameAnalysis {
       if (held() >= visits) { met(); return; }
       if (this.paused || !wanted() || era !== this.era) return;
       const run = engine.analyse({ ...query, maxVisits: visits, includePVVisits: true, ...(slice ? { slice: { visits: slice } } : {}) },
-                                 r => { if (era === this.era) this.toBatch(path, r.rootInfo.visits, () => toAnalysis(r)); });
+                                 r => { if (era === this.era) this.toBatch(path, r.rootInfo.visits, () => toAnalysis(this.game, r)); });
       if (sliced) onStop(run.stop); // the pool may stop it to give way, and runs it again later
       if (tag === "focus") this.stopFocus = run.stop;
       // The time limit counts from the search's start, not from its wait in the queue. A search in slices takes no
@@ -760,7 +763,7 @@ export class GameAnalysis {
       const timer = sliced && seconds !== null ? setTimeout(() => { late = true; run.stop(); }, seconds * 1000) : undefined;
       const done = run.done.finally(() => clearTimeout(timer));
       const shown = done.then(async t => {
-        const a = toAnalysis(t.reply);
+        const a = toAnalysis(this.game, t.reply);
         if (era !== this.era) return;
         // The write first: the result and the passes' progress show only once it is stored, so that the game's mark
         // (markReviewed) comes after every result it covers. The end of the search's marks (markRunning, focus) then
@@ -792,7 +795,7 @@ export class GameAnalysis {
   /** Keeps a result for the batch: the deepest for each position, so that a search's final result is not replaced by a
    *  shallower result of another search of the position, and the latest of equal depth. `analysis` runs only when the
    *  batch applies it, so that a search's results so far that a later slice replaced cost nothing. */
-  private toBatch(path: string[], visits: number, analysis: () => Analysis) {
+  private toBatch(path: string[], visits: number, analysis: () => Analysis<G["move"]>) {
     const key = pathKey(path);
     if (visits >= (this.batch.get(key)?.visits ?? 0)) this.batch.set(key, { path, visits, analysis });
     this.scheduleBatch();
@@ -820,7 +823,7 @@ export class GameAnalysis {
   }
 
   /** Keeps the deeper of the analysis held and the new one. */
-  private keep(path: string[], a: Analysis) {
+  private keep(path: string[], a: Analysis<G["move"]>) {
     if ((this.analysisOf(path)?.visits ?? 0) > a.visits) return;
     const i = mainIndex(path, this.mainNames);
     if (i !== null) {

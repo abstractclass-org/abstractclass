@@ -20,7 +20,7 @@
 //   node scripts/measure/review-sweep.mjs <before> <after> [pairs] [workers] [off|on] [port]
 import { readFileSync, writeFileSync } from "node:fs";
 import { LONG_TASK, inPairs, launch, longTasks, median, preview, tasksBetween, trace, verdict } from "./speed.mjs";
-import { SWEEP_VISITS } from "../../src/lib/analysis/cache.ts";
+import { SWEEP_VISITS } from "@abstractclass/analysis/cache.ts";
 
 const [before, after] = process.argv.slice(2, 4);
 const pairs = Number(process.argv[4] ?? 5), workers = Number(process.argv[5] ?? 2), gpu = process.argv[6] ?? "off";

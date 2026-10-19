@@ -2,7 +2,7 @@
 // and an earlier network file's, unless a stored game's snapshot reads them. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { SHAPE, analysisKey, searchHolding, snapshotPositions } from "#lib/analysis/cache.ts";
+import { SHAPE, analysisKey, searchHolding, snapshotPositions } from "@abstractclass/analysis/cache.ts";
 import { unneededResults } from "./earlierResults.ts";
 import type { KeptBranches, ReviewMark } from "./store.ts";
 

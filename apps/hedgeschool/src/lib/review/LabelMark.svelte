@@ -4,7 +4,7 @@
      board's badges (Board.svelte). -->
 <script lang="ts">
   import { LABEL_SHAPES } from "./labelShapes.ts";
-  import type { Label } from "./labels.ts";
+  import type { Label } from "@abstractclass/analysis/labels.ts";
 
   let { label, transform = undefined }: { label: Label; transform?: string } = $props();
 </script>

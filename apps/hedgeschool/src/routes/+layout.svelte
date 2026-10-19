@@ -7,7 +7,7 @@
 	import { EARLY_ACCESS, ENGINE_FILES, SITE_NAME, SITE_ORIGIN } from '#lib/edition.ts';
 	import { ASKS_CONSENT, asksToAllow, consentChosen, startAnalytics, track } from '#lib/analytics.svelte.ts';
 	import { flushPractice } from '#lib/practice/send.ts';
-	import { earlierRemovalDue, removeOlderShapes } from '#lib/analysis/cache.ts';
+	import { earlierRemovalDue, removeOlderShapes } from '@abstractclass/analysis/cache.ts';
 	import { holdsGame } from '#lib/game/importHash.ts';
 	import ConsentBanner from '#lib/ConsentBanner.svelte';
 	import AnalyticsAsk from '#lib/AnalyticsAsk.svelte';

@@ -9,7 +9,7 @@
   import { edgeName, parseEdge } from "#lib/engine/notation.ts";
   import { boardPosition, rulesOf, type DescribeReply, type GamePosition } from "#lib/engine/position.ts";
   import { COURSE, lineBoard, type Lesson, type Step } from "#lib/learn/lessons.ts";
-  import type { Edge, Position } from "#lib/review/model.ts";
+  import type { Edge, Position } from "#lib/review/enclosure.ts";
   import PageMeta from "#lib/PageMeta.svelte";
 
   let lesson = $state.raw<Lesson | null>(null); // raw: the course's own object, so that indexOf finds it

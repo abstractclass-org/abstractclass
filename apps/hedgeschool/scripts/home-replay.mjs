@@ -13,13 +13,10 @@ import { nodeEngine } from "./node-engine.mjs";
 import { boardPosition } from "../src/lib/engine/position.ts";
 import { edgeName, parseEdge } from "../src/lib/engine/notation.ts";
 import { parseRecord } from "../src/lib/game/record.ts";
-import { readAnalysisKey } from "../src/lib/analysis/cache.ts";
-import { BAD_LABELS } from "../src/lib/review/labels.ts";
-import { LABEL_TEXT, otherCandidate, review, secondChoice, shownCandidates } from "../src/lib/review/model.ts";
+import { LABEL_VISITS, readAnalysisKey } from "@abstractclass/analysis/cache.ts";
+import { BAD_LABELS } from "@abstractclass/analysis/labels.ts";
+import { LABEL_TEXT, otherCandidate, review, secondChoice, shownCandidates } from "../src/lib/review/enclosure.ts";
 
-// The least visits that give a label: game.svelte.ts's LABEL_VISITS, read from its source (a module with runes, which
-// Node does not run).
-const LABEL_VISITS = Number(/LABEL_VISITS = (\d+)/.exec(readFileSync("src/lib/analysis/game.svelte.ts", "utf8"))[1]);
 const BEFORE = 9; // the turns before the scene's labelled turn
 const CANDIDATES = 3; // the candidates' ranks shown
 const files = process.argv.slice(2);

@@ -8,7 +8,7 @@
   // (PlayerCard), with bars as high as its text where the text is not known yet, so that the row has the card's height.
   import Swatch from "#lib/ui/Swatch.svelte";
   import { AREA_DOT, playerBox, playerName, playerNumbers } from "./PlayerCard.svelte";
-  import type { Player } from "./model.ts";
+  import type { Player } from "./enclosure.ts";
 
   let { player: p, name, tag = null }: { player: Player; name?: string; tag?: string | null } = $props();
 </script>

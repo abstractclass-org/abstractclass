@@ -8,8 +8,7 @@
   import StepBar from "#lib/ui/StepBar.svelte";
   import { pageScrollTop } from "#lib/pageScroll.ts";
   import { MOVE_HERE, MOVE_HOVER, MOVE_LIST, MOVE_TEXT, TURN_NUMBER, TURN_REM, keepInView, moveButton, turnRow } from "./moveList.ts";
-  import { PLAYER_NAME, type Analysis, type Edge, type LineStep, type Player } from "./model.ts";
-  import type { BranchNode } from "#lib/analysis/game.svelte.ts";
+  import { PLAYER_NAME, type Analysis, type BranchNode, type Edge, type LineStep, type Player } from "./enclosure.ts";
   import type { EdgeRules } from "#lib/board/edgeInput.svelte.ts";
 
   /** The review in progress: what the engine does now, and the passes as parts of one bar, each with its share of the
@@ -80,7 +79,7 @@
   import { CUSTOM_REVIEW, DEPTHS, NETWORKS, REVIEW_PRESETS, networkMB, networkName, offersNetwork, TIME_LIMITS, maxWorkers,
            nearestStep, type EngineSettings, type GpuMode, type OwnSettings, type ReviewDepth }
     from "#lib/analysis/engineSettings.ts";
-  import { gpuStatusText, type GpuStatus } from "#lib/analysis/gpu.svelte.ts";
+  import { gpuStatusText, type GpuStatus } from "@abstractclass/analysis/gpu.svelte.ts";
   import Board, { type BoardCandidate, type BoardLineEdge, type BoardMark } from "#lib/board/Board.svelte";
   import { BRUSH_KEYS, type BoardNote } from "#lib/board/notes.ts";
   import { EdgeInput } from "#lib/board/edgeInput.svelte.ts";
@@ -101,9 +100,9 @@
   import { LineDrawing } from "./lineDrawing.svelte.ts";
   import {
     edgeName, endingText, moveName, moveNotation, opensTurn, turnFromCount, sameEdge, shortNote, turnShortNote, HARD_NOTE, complexity, likelyEdges, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchEdge, valuesAfter, resultWin, moverWin, costText, pct, shownCandidates, distinctCandidates, rankOf, twinsOf, lineMovers, enoughVisits, trustedLine, type Candidate, type EdgeReview, LABELS, LABEL_TEXT, LABEL_GLYPH, type Label, type Position, type Review, type Unit, type Move, type TurnJudgment, type TurnReview,
-  } from "./model.ts";
+  } from "./enclosure.ts";
   import { branchChildren, branchRows, mainIndex, nextFork, pathKey, prefixKeys, prevFork, sharedLength, siblingLine, treeLines, withLine,
-           type BranchRow } from "./tree.ts";
+           type BranchRow } from "@abstractclass/analysis/tree.ts";
 
   interface Props {
     R: Review;

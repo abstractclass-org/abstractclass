@@ -1,5 +1,5 @@
 <script lang="ts" module>
-  import type { Player } from "./model.ts";
+  import type { Player } from "./enclosure.ts";
 
   // The row above the board (design 06), in the review, in its skeleton and in Practice: the classes that set its
   // height, the same in each, so that a skeleton's board has the page's size. Each card has two lines, its name over its

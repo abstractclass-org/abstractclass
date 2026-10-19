@@ -12,7 +12,7 @@
   import type { CheckReason } from "@abstractclass/engine/protocol.ts";
   import { parseEdge, STANDARD_START } from "#lib/engine/notation.ts";
   import { boardPosition, type DescribeReply } from "#lib/engine/position.ts";
-  import { PLAYER_NAME, type Edge, type Position } from "#lib/review/model.ts";
+  import { PLAYER_NAME, type Edge, type Position } from "#lib/review/enclosure.ts";
   import { drawEdge, LAST_COUNT, moverOf, placeable, readPosition, toggleMark, writePosition,
            type EditorPosition } from "#lib/editor/position.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";

@@ -3,7 +3,7 @@
 // move's text has one width: the widest in the notation is 8 characters (D10-G10x), in a monospaced font, the same on
 // every system (app.css). The move on the board is outlined in the accent colour, and a move under the pointer in the
 // line colour.
-import type { Player } from "./model.ts";
+import type { Player } from "./enclosure.ts";
 import { SIDE_TEXT } from "#lib/ui/side.ts";
 
 export const MOVE_LIST = "movelist flex-1 min-h-0 overflow-y-auto pt-1.5 text-sm border-t border-line";

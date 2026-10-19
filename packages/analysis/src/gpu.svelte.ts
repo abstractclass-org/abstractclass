@@ -6,11 +6,10 @@
 // for each network, each GPU and each build of the GPU module: the networks differ in size, so they differ in speed, a
 // browser can change GPU (a laptop docked, another graphics setting in the system), and a new build can be faster.
 import type { EnginePool } from "@abstractclass/engine/pool.ts";
-import { networkName, type GpuMode } from "./engineSettings.ts";
+import type { GpuMode } from "./settings.ts";
 import { gpuFilesOf, megabytes, type Manifest } from "@abstractclass/engine/client.ts";
 import { GpuEngines, gpuSupport } from "@abstractclass/engine/gpuClient.ts";
 import { errorText } from "@abstractclass/engine/errors.ts";
-import { track } from "#lib/analytics.svelte.ts";
 import { readLocalJson, writeLocal } from "@abstractclass/storage/local.ts";
 
 /** The searches that the GPU worker runs at once: one for each WebAssembly instance, their evaluations batched. The
@@ -18,6 +17,13 @@ import { readLocalJson, writeLocal } from "@abstractclass/storage/local.ts";
 export const GPU_SEARCHES = 16;
 /** How long each kind searches before the test compares them. */
 export const TEST_SECONDS = 20;
+
+/** How the analysis reports to the site's analytics (design 17): an event with its parameters, and a network's name
+ *  for an event that names it. */
+export interface Tracker {
+  track(name: string, params?: Record<string, string | number | boolean>): void;
+  networkName(id: string): string;
+}
 
 /** A test's result: the GPU worker's evaluations a second, and one CPU worker's visits a second. */
 export interface GpuTest { gpu: number; cpu: number; at: string }
@@ -98,7 +104,7 @@ export class GpuControl {
   private starting = false;
   private ended = false;
 
-  constructor(private pool: EnginePool, private manifest: Manifest, private network: string) {
+  constructor(private pool: EnginePool, private manifest: Manifest, private network: string, private site: Tracker) {
     pool.onGpuLost = e => { if (!this.ended) this.status = { state: "failed", message: errorText(e) }; };
     // The pool released its idle engines, the GPU's among them: the GPU starts again at the next backlog, with its
     // stored test (apply).
@@ -146,7 +152,7 @@ export class GpuControl {
       await gpu.start(this.manifest, testFor.network, GPU_SEARCHES);
     } catch (e) {
       gpu.terminate();
-      if (!this.ended) { this.status = { state: "failed", message: errorText(e) }; track("engine_error", { error_kind: "gpu" }); }
+      if (!this.ended) { this.status = { state: "failed", message: errorText(e) }; this.site.track("engine_error", { error_kind: "gpu" }); }
       return;
     } finally {
       this.starting = false;
@@ -167,8 +173,8 @@ export class GpuControl {
     saveGpuTest(testFor, test);
     // The GPU against a worker, by the GPU's maker and kind (design 17): whether the GPU pays off on visitors'
     // machines.
-    track("gpu_test", { gpu_outcome: gpuFaster(test) ? "faster" : "slower", gpu_ratio: Math.round((10 * test.gpu) / Math.max(1, test.cpu)) / 10,
-                        gpu: adapter, network: networkName(testFor.network) });
+    this.site.track("gpu_test", { gpu_outcome: gpuFaster(test) ? "faster" : "slower", gpu_ratio: Math.round((10 * test.gpu) / Math.max(1, test.cpu)) / 10,
+                        gpu: adapter, network: this.site.networkName(testFor.network) });
     if (this.ended) return;
     if (this.mode === "on" || gpuFaster(test)) this.status = { state: "on", adapter, test };
     else { this.pool.dropGpu(); this.status = { state: "slower", adapter, test }; }

@@ -4,7 +4,7 @@
      a badge that falls on half a pixel would lose its edge's last row. -->
 <script lang="ts">
   import LabelMark from "./LabelMark.svelte";
-  import type { Label } from "./labels.ts";
+  import type { Label } from "@abstractclass/analysis/labels.ts";
 
   let { label }: { label: Label } = $props();
 </script>

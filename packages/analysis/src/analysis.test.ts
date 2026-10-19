@@ -1,28 +1,24 @@
-// Checks the analysis's batch (BATCH_MS in game.svelte.ts): a search's results so far and its final result are applied
-// together, at most once a batch, the deepest for each position, with what follows a search's end (the passes'
+// Checks the analysis's batch (BATCH_MS in analysis.svelte.ts): a search's results so far and its final result are
+// applied together, at most once a batch, the deepest for each position, with what follows a search's end (the passes'
 // progress, its mark). And the order of a search's end: the engine takes its next search at once, and the result shows
 // in the batch after its write to the store. Run: npm test.
 import { afterEach, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
-import "#lib/testing/svelteModules.ts";
+import "./testing/svelteModules.ts";
 import type { AnalysisReply, PositionQuery } from "@abstractclass/engine/protocol.ts";
-import type { GamePosition } from "#lib/engine/position.ts";
 import type { EnginePool, Work } from "@abstractclass/engine/pool.ts";
+import { BOARD_ID } from "./kept.ts";
+import { wordFields, words } from "./testing/game.ts";
 import { SWEEP_VISITS, readAnalysisKey } from "./cache.ts";
 import { STORES } from "@abstractclass/storage/db.ts";
 import { memoryDb } from "@abstractclass/storage/memoryDb.ts";
 
 const store = memoryDb(queueMicrotask); // its transactions complete in microtasks: the tests mock setTimeout
 
-const { BATCH_MS, GameAnalysis } = await import("./game.svelte.ts");
-const { BOARD_ID } = await import("#lib/game/store.ts");
+const { BATCH_MS, GameAnalysis } = await import("./analysis.svelte.ts");
 
-const MOVES = ["A10-D9", "D10-G9", "G10-J9"];
+const MOVES = ["a", "b", "c"]; // a game of the test game (testing/game.ts)
 
-const position = (k: number): GamePosition => ({
-  position: `p${k}`, edges: { b: [], r: [] }, protected: [], placed: [], regions: { b: [], r: [] }, areas: [0, 0],
-  scores: [0, 0], mover: k % 2 ? "r" : "b", movesLeft: 1, moveCount: k, outcome: null, cuts: null,
-});
 const reply = (visits: number) => ({
   rootInfo: { visits, winrate: 0.5, scoreLead: 0, scoreSelfplay: 0, scoreStdev: 0 }, moveInfos: [],
 }) as unknown as AnalysisReply;
@@ -45,7 +41,7 @@ function fakePool(engines = Infinity) {
   const waiting: (() => void)[] = [];
   const pool = {
     search: "test", model: { sha256: `m${++models}` }, // a network of its own: the cache's memory outlives a test
-    rules: { describeGame: async (q: PositionQuery) => ({ reply: { positions: Array.from({ length: q.moves.length + 1 }, (_, k) => position(k)) } }) },
+    rules: { describeGame: async (q: PositionQuery) => ({ reply: { positions: Array.from({ length: q.moves.length + 1 }, (_, k) => wordFields(k)) } }) },
     run: (_priority: number, _tag: string, work: Work<unknown>) => new Promise((resolve, reject) => {
       const start = () => {
         free--;
@@ -64,7 +60,7 @@ const settle = () => new Promise(resolve => setImmediate(resolve));
 /** A game whose sweep has started on `engines` engines: a search of each position, which waits for the test. */
 async function sweeping(engines?: number) {
   const { pool, searches } = fakePool(engines);
-  const game = new GameAnalysis(pool, MOVES, "g");
+  const game = new GameAnalysis(words, pool, MOVES, "g");
   await game.start();
   void game.sweep();
   await settle();
@@ -144,7 +140,7 @@ test("a result whose write fails shows, with its progress", async () => {
 
 test("a position stays pending, and its focus runs, until the batch after its result's write", async () => {
   const { pool, searches } = fakePool();
-  const game = new GameAnalysis(pool, MOVES, BOARD_ID); // the board: only its searches make a position pending
+  const game = new GameAnalysis(words, pool, MOVES, BOARD_ID); // the board: only its searches make a position pending
   await game.start();
   await game.sweep();
   game.focus([]);
@@ -164,7 +160,7 @@ test("a position stays pending, and its focus runs, until the batch after its re
 
 test("a search that fails ends its marks in the next batch, and the page gets the error", async () => {
   const { pool, searches } = fakePool();
-  const game = new GameAnalysis(pool, MOVES, BOARD_ID);
+  const game = new GameAnalysis(words, pool, MOVES, BOARD_ID);
   await game.start();
   await game.sweep();
   game.focus([]);

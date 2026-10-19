@@ -1,6 +1,6 @@
 <!-- A label's mark (model.ts, LABEL_GLYPH): its character, or its icon in the text's colour. -->
 <script lang="ts">
-  import type { Glyph } from "./model.ts";
+  import type { Glyph } from "./enclosure.ts";
 
   let { glyph }: { glyph: Glyph } = $props();
 </script>

@@ -5,8 +5,8 @@
 // little wider than its stroke. The check's elbow is round. Two marks ("?!", "??") are the single ones, smaller, side
 // by side. These are drawn here: Lichess's glyph shapes are GPL-3.0 (chessground's glyph.ts), and chess.com's icons
 // are its own. The thumbs-up is Material Design Icons' thumb_up (Google, Apache License 2.0), as in model.ts.
-import { THUMB_UP } from "./model.ts";
-import type { Label } from "./labels.ts";
+import { THUMB_UP } from "./enclosure.ts";
+import type { Label } from "@abstractclass/analysis/labels.ts";
 
 /** A stroke (flat ends, and its joins mitred or `round`), a filled path (its corners rounded by a stroke of `round`), or
  *  a box with rounded corners. */

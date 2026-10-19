@@ -8,7 +8,7 @@
   // it shows the first scene's labelled edge, still.
   import { onDestroy, onMount } from "svelte";
   import Board, { type BoardCandidate, type BoardMark } from "#lib/board/Board.svelte";
-  import type { Position } from "#lib/review/model.ts";
+  import type { Position } from "#lib/review/enclosure.ts";
   import STILL from "./still.json";
 
   interface Frame { p: Position; c: BoardCandidate[]; m: BoardMark[]; hold?: "before" | "moment" }

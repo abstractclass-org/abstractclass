@@ -8,7 +8,7 @@
   // While the review runs, the line is faint where a position has only its first, quick search, and full where its
   // search has the review's depth: the sweep draws the whole line first, and the label pass then refines it (design
   // 06). Faint, not dashed: the 50% line is dashed.
-  import type { Label } from "./model.ts";
+  import type { Label } from "./enclosure.ts";
   import ChartTip, { pointerAt } from "./ChartTip.svelte";
 
   interface Props {

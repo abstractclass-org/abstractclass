@@ -1,8 +1,8 @@
 <script lang="ts">
   // How a review works (designs 05, 10, 14 and 16), for a player who wants to know where the labels, the accuracy, the
   // hard positions and the meter come from: the rules and their numbers, in words, with the sources they follow. The
-  // numbers are the code's (src/lib/review/labels.ts, model.ts, src/lib/analysis/engineSettings.ts): a change there
-  // changes this page.
+  // numbers are the code's (@abstractclass/analysis/labels.ts, model.ts, src/lib/analysis/engineSettings.ts): a change
+  // there changes this page.
   import { PROSE } from "#lib/prose.ts";
   import { SITE_NAME } from "#lib/edition.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";

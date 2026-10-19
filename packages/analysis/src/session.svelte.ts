@@ -7,27 +7,31 @@
 // starts: the session's effects are the page's.
 import { untrack } from "svelte";
 import { EnginePool } from "@abstractclass/engine/pool.ts";
-import type { GameAnalysis } from "./game.svelte.ts";
-import { reviewVisits, type EngineSettings } from "./engineSettings.ts";
-import { GpuControl, gpuDownloadMB, type GpuStatus } from "./gpu.svelte.ts";
+import type { GameAnalysis } from "./analysis.svelte.ts";
+import type { GameTypes } from "./game.ts";
+import { reviewVisits, type EngineSettings } from "./settings.ts";
+import { GpuControl, gpuDownloadMB, type GpuStatus, type Tracker } from "./gpu.svelte.ts";
 import { EngineWorker, loadManifest, type Manifest } from "@abstractclass/engine/client.ts";
 import { errorText } from "@abstractclass/engine/errors.ts";
-import { track } from "#lib/analytics.svelte.ts";
 
-export interface SessionOptions {
+export interface SessionOptions<G extends GameTypes> {
   /** The settings that the analysis runs with. */
   settings: () => EngineSettings;
   /** The page's analysis, once it has one. */
-  game: () => GameAnalysis | null;
-  /** The position on screen: its path in the tree (review/tree.ts). */
+  game: () => GameAnalysis<G> | null;
+  /** The position on screen: its path in the tree (tree.ts). */
   position: () => string[];
   /** The analysis searches nothing, and the settings wait: a review by an earlier engine shown as it was (design 20). */
   frozen?: () => boolean;
   /** Runs when the analysis drops its results for another network: the page's own state of them starts again. */
   dropped?: () => void;
+  /** The site's analytics (design 17): a network that did not load, the GPU's test. None by default. */
+  track?: Tracker["track"];
+  /** A network's name, as the site's engine settings name it, for the events. Its id by default. */
+  networkName?: Tracker["networkName"];
 }
 
-export class EngineSession {
+export class EngineSession<G extends GameTypes> {
   manifest = $state.raw<Manifest | null>(null);
   gpu = $state<GpuControl | null>(null); // the GPU worker's control for the pool in use
   error = $state(""); // why another network could not load
@@ -35,15 +39,15 @@ export class EngineSession {
   network = ""; // the network of the pool in use, or of the pool that loads to replace it
   #rules?: EngineWorker; // the next pool's rules worker, started before the pool (startRules)
   #ended = false;
-  readonly #o: Required<SessionOptions>;
+  readonly #o: Required<SessionOptions<G>>;
   // The settings that start work when they change, each a value of its own: a change of another setting starts none.
   #budget = $derived.by(() => reviewVisits(this.#o.settings()));
   #workers = $derived.by(() => this.#o.settings().workers);
   #network = $derived.by(() => this.#o.settings().network);
   #gpuMode = $derived.by(() => this.#o.settings().gpu);
 
-  constructor(options: SessionOptions) {
-    this.#o = { frozen: () => false, dropped: () => {}, ...options };
+  constructor(options: SessionOptions<G>) {
+    this.#o = { frozen: () => false, dropped: () => {}, track: () => {}, networkName: id => id, ...options };
     const { game, settings, position, frozen } = this.#o;
     // The engine's settings, given to the analysis as they change. The analysis ignores a value it already has.
     $effect(() => {
@@ -123,12 +127,12 @@ export class EngineSession {
    *  when idle, and the GPU joins it, unless the rules refused the analysis. The pool takes the rules worker that
    *  startRules started, if no pool took it before. Once the session has ended, it starts none and answers null. Call
    *  after load(). */
-  async start(make: (pool: EnginePool) => GameAnalysis | Promise<GameAnalysis>,
-              onRules: (g: GameAnalysis, pool: EnginePool) => Promise<void>): Promise<GameAnalysis | null> {
+  async start(make: (pool: EnginePool) => GameAnalysis<G> | Promise<GameAnalysis<G>>,
+              onRules: (g: GameAnalysis<G>, pool: EnginePool) => Promise<void>): Promise<GameAnalysis<G> | null> {
     if (this.#ended) return null;
     const before = this.pool, first = this.pool = new EnginePool(this.#workers, this.takeRules());
     this.network = this.#network;
-    let g = null as GameAnalysis | null;
+    let g = null as GameAnalysis<G> | null;
     try {
       await first.start(this.manifest!, this.network, async () => {
         const s = this.#o.settings(), made = g = await make(first);
@@ -165,7 +169,7 @@ export class EngineSession {
       await next.start(this.manifest, id);
     } catch (e) {
       next.terminate();
-      if (this.network === id) { this.error = errorText(e); track("engine_error", { error_kind: "load" }); }
+      if (this.network === id) { this.error = errorText(e); this.#o.track("engine_error", { error_kind: "load" }); }
       return;
     }
     if (this.network !== id) { next.terminate(); return; } // another network was chosen meanwhile
@@ -180,7 +184,8 @@ export class EngineSession {
    *  test found it faster than a worker. */
   #controlGpu(p: EnginePool) {
     this.gpu?.end();
-    this.gpu = this.manifest ? new GpuControl(p, this.manifest, this.network) : null;
+    const { track, networkName } = this.#o;
+    this.gpu = this.manifest ? new GpuControl(p, this.manifest, this.network, { track, networkName }) : null;
     void this.gpu?.apply(this.#gpuMode);
   }
 

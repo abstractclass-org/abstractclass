@@ -3,8 +3,8 @@
 // keep theirs. The main line is the first line from the start, as the board keeps it (GameAnalysis.reindex). A set-up
 // start goes in the link's tags as `Position`, as a record carries it.
 import { edgeName, parseEdge, setUpStart } from "#lib/engine/notation.ts";
-import { keyMoves } from "#lib/analysis/cache.ts";
-import { prefixKeys } from "#lib/review/tree.ts";
+import { keyMoves } from "@abstractclass/analysis/cache.ts";
+import { prefixKeys } from "@abstractclass/analysis/tree.ts";
 import { decodeShare, encodeShare } from "./share.ts";
 import type { GameRecord } from "./record.ts";
 import type { KeptBoard } from "./store.ts";

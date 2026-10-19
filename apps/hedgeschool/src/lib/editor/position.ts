@@ -3,7 +3,7 @@
 // writes the five fields. The engine checks that the position could occur in a game (protocol 0.5), so nothing here
 // knows the rules: only the notation's form and its turn structure.
 import { edgeName, parseEdge, sameEdge } from "#lib/engine/notation.ts";
-import { turnFromCount, type Edge, type Player } from "#lib/review/model.ts";
+import { turnFromCount, type Edge, type Player } from "#lib/review/enclosure.ts";
 
 /** An edge on the editor's board. `marked`: an edge of the turn, written `*` (protected: the last turn's, of the player
  *  not to move) or `+` (placed: the turn being played, of the mover), as the edge's player and the mover decide. */

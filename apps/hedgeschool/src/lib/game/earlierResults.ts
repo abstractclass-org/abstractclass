@@ -1,14 +1,14 @@
 // An earlier engine's results, and an earlier network file's, removed when no stored game needs them (design 20). The
-// browser keeps each result with the engine's search and the network file that found it (analysis/cache.ts). The
-// site's engine reads its own results only. An earlier engine's are read by the snapshot of a game whose last review
-// used it, and by nothing else.
+// browser keeps each result with the engine's search and the network file that found it
+// (@abstractclass/analysis/cache.ts). The site's engine reads its own results only. An earlier engine's are read by the
+// snapshot of a game whose last review used it, and by nothing else.
 import lock from "../../../engine.lock.json" with { type: "json" };
 import { BUDGETS, SHAPE, SWEEP_VISITS, earlierRemoval, isAnalysisKey, readAnalysisKey, searchHolding, snapshotExcept,
-         snapshotPositions } from "#lib/analysis/cache.ts";
+         snapshotPositions } from "@abstractclass/analysis/cache.ts";
 import { STORES, dbReadThenDelete } from "@abstractclass/storage/db.ts";
 import { moduleOf, type Manifest } from "@abstractclass/engine/client.ts";
 import { positionKeys, shippedModels } from "./reviewFile.ts";
-import { parentKey } from "#lib/review/tree.ts";
+import { parentKey } from "@abstractclass/analysis/tree.ts";
 import { readGames, reviewAgainWhy, reviewMark, type KeptBranches, type ReviewMark, type StoredGame } from "./store.ts";
 
 /** Removes the stored results that no game needs (unneededResults), in one transaction with the read of the games, their
@@ -76,8 +76,9 @@ export function unneededResults(keys: string[], games: KeptGame[], engine: Manif
   return keys.filter((_, i) => !!earlier[i] && !read[i].some(p => deepest.get(p) === earlier[i]!.visits));
 }
 
-/** Whether a snapshot of a review at `depth` visits reads a result of `visits` (analysis/game.svelte.ts, fromStore):
- *  at the review's depth or a budget, as cacheGetAtLeast reads the review's depth and each budget deeper, and the
- *  sweep's or a budget where those lack it. Of these, it shows the deepest: a result at another depth is never read. */
+/** Whether a snapshot of a review at `depth` visits reads a result of `visits`
+ *  (@abstractclass/analysis/analysis.svelte.ts, fromStore): at the review's depth or a budget, as cacheGetAtLeast reads
+ *  the review's depth and each budget deeper, and the sweep's or a budget where those lack it. Of these, it shows the
+ *  deepest: a result at another depth is never read. */
 const readsAt = (depth: number, visits: number) =>
   visits === depth || visits === SWEEP_VISITS || BUDGETS.includes(visits);

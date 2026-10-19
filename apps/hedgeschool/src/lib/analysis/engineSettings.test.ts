@@ -5,10 +5,10 @@
 // custom depth per move's range (inSteps), and the cache's budgets for the settings' depths (cache.ts). Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { BUDGETS, LABEL_VISITS } from "./cache.ts";
+import { BUDGETS, LABEL_VISITS } from "@abstractclass/analysis/cache.ts";
 import { CUSTOM_REVIEW, DEPTHS, NETWORKS, REVIEW_PRESETS, changeOwn, defaultEngine, inSteps, loadEngine, networkName,
          ownSettings, saveEngine, settingsFor, withOwn } from "./engineSettings.ts";
-import { momentVisits } from "./game.svelte.ts";
+import { momentVisits } from "@abstractclass/analysis/analysis.svelte.ts";
 
 // The browser's local storage, in memory: Node has none.
 const stored = new Map<string, string>();

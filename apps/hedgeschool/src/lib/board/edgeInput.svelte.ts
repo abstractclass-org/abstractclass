@@ -6,7 +6,7 @@
 // first point. Any other click does nothing, and `refused` says why. Without the rules (a site with no engine, or before
 // the engine answers), the second point is any point within 3 units (the rules' box), and a point farther away starts
 // over from it.
-import type { Edge } from "#lib/review/model.ts";
+import type { Edge } from "#lib/review/enclosure.ts";
 
 export type Point = [number, number];
 /** The position's rules: from the engine's describe reply, engine/position.ts's rulesOf. */

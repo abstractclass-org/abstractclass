@@ -1,10 +1,11 @@
 // Summarises budget-collect.mjs's output: how the labels and losses at each small budget differ from those at the deep
-// reference, with the site's own label rules (src/lib/review/labels.ts).
+// reference, with the site's own label rules (@abstractclass/analysis/labels.ts).
 //
 //   node scripts/measure/budget-summary.mjs IN.jsonl [--skip-opening 16] [--unit edge|turn]
 //
-// An edge's loss is measured as the review measures it (src/lib/review/model.ts): the mover's value before it less the
-// mover's value after it, each from that position's root, in win chance and in points (the lead, and the margin).
+// An edge's loss is measured as the review measures it (@abstractclass/analysis/model.ts): the mover's value before it
+// less the mover's value after it, each from that position's root, in win chance and in points (the lead, and the
+// margin).
 // Great is counted as Best: the collector keeps no second candidate. The last edge of a game is left out (its next
 // position is the end, which the collector does not analyse).
 //
@@ -14,7 +15,7 @@
 // turns have both edges, one edge or no edge bad alone.
 import { readFileSync } from "node:fs";
 
-const { classify, BAD_LABELS } = await import(new URL("../../src/lib/review/labels.ts", import.meta.url).href);
+const { classify, BAD_LABELS } = await import("@abstractclass/analysis/labels.ts");
 
 const [inPath] = process.argv.slice(2);
 const arg = (name, def) => { const i = process.argv.indexOf(`--${name}`); return i >= 0 ? process.argv[i + 1] : def; };

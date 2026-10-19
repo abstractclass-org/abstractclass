@@ -5,8 +5,8 @@
   // moments' labels as dots, each under its turn: the bars' heights stay a picture of difficulty alone, and the row reads
   // as a line of time, so the chart shows whether the mistakes fell where the game was hard. The pointer snaps to the
   // bar under it and names its position: the decision, before its move. A click shows that position.
-  import type { Label } from "./model.ts";
-  import { HARD } from "./labels.ts";
+  import type { Label } from "./enclosure.ts";
+  import { HARD } from "@abstractclass/analysis/labels.ts";
   import ChartTip, { pointerAt } from "./ChartTip.svelte";
 
   interface Bar { from: number; to: number; c: number; hard: boolean; title: string; details: string[] }

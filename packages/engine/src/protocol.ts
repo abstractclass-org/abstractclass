@@ -11,15 +11,16 @@
 // 0.4 keeps KataGo's symmetric twins in `moveInfos` (the engine's design 04, "Symmetric twins"): in a position that is
 // its own image, as the start is under the mirror of row r to row 20 - r, the engine searches one edge of each mirror
 // pair and lists the other right after it, with its values, its line mirrored, and `isSymmetryOf` naming the searched
-// edge. A twin is the same move: a second choice or a count of visits skips it (review/model.ts, distinctCandidates).
+// edge. A twin is the same move: a second choice or a count of visits skips it (@abstractclass/analysis/model.ts,
+// distinctCandidates).
 //
 // 0.5 checks that a position could occur in a game (request 16): `describe` gives `check` for its `position`, and an
 // analysis of a position that no game reaches gets an error with the reasons. Its search is 0.4's (request 17).
 //
 // 0.6 adds `search` to the engine tag and to `query_version`: the first build that searched as this one does. The
-// site keys stored results by it (analysis/cache.ts). Earlier modules do not report it: the manifest gives it
-// (engine.lock.json). The manifest keeps it for later modules too: the review reads its stored results before the
-// module answers (cache.ts, warmCache).
+// site keys stored results by it (@abstractclass/analysis/cache.ts). Earlier modules do not report it: the manifest
+// gives it (engine.lock.json). The manifest keeps it for later modules too: the review reads its stored results before
+// the module answers (cache.ts, warmCache).
 //
 // 0.6.1 adds `describe_game` (request 18): every position of a game from a move on, in one request, with describe's
 // fields but the legal moves, the nodes and the check, and each move's cut edge.

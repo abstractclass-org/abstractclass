@@ -5,7 +5,7 @@
 // Placeholders: the difficulty is predicted from the gap and the game phase, not rated from solvers' attempts
 // (design 01, principle 7). Themes are only what needs no rules: the phase by edge number (design 01, principle 8)
 // and "Only edge". Motif tags (enclose, cut, double threat) need the engine's rules.
-import { BAD_LABELS, moverWin, onlyEdge, type Edge, type Player, type Review } from "#lib/review/model.ts";
+import { BAD_LABELS, moverWin, onlyEdge, type Edge, type Player, type Review } from "#lib/review/enclosure.ts";
 
 export type Theme = "opening" | "middlegame" | "endgame" | "onlyEdge" | "afterMistake";
 export const THEME_TEXT: Record<Theme, { name: string; about: string }> = {

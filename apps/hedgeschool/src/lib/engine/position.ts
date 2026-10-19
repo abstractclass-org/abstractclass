@@ -1,13 +1,13 @@
 // Enclosure's description of a position, as its engine's describe and describe_game give it (protocol 0.6.1: the
-// engine repository's docs/design/04-notation-and-protocol.md), as the board draws it (review/model.ts, Position), and
-// its rules as the edge input takes them. The engine package types only what every game's engine shares (its
+// engine repository's docs/design/04-notation-and-protocol.md), as the board draws it (review/enclosure.ts, Position),
+// and its rules as the edge input takes them. The engine package types only what every game's engine shares (its
 // protocol.ts, design 29): these fields are Enclosure's. A module of its own, with nothing of the engine's workers, so
 // that a script in Node can store positions for a page (scripts/home-replay.mjs, the home page's scenes) without
 // loading the analysis.
 import { parseEdge, parsePoint } from "./notation.ts";
 import type { CheckReason, DescribeGameReply as GameReply } from "@abstractclass/engine/protocol.ts";
 import type { EdgeRules } from "#lib/board/edgeInput.svelte.ts";
-import type { Position } from "#lib/review/model.ts";
+import type { Position } from "#lib/review/enclosure.ts";
 
 /** A player as the engine names it: Blue ("b") or Red ("r"). */
 export type Side = "b" | "r";

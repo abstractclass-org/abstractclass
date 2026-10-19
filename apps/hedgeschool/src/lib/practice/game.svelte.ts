@@ -10,7 +10,7 @@ import type { EdgeRules } from "#lib/board/edgeInput.svelte.ts";
 import { errorText } from "@abstractclass/engine/errors.ts";
 import { parseRecord } from "#lib/game/record.ts";
 import { saveGame } from "#lib/game/store.ts";
-import type { Move, Player, Position } from "#lib/review/model.ts";
+import type { Move, Player, Position } from "#lib/review/enclosure.ts";
 import { botCommands, gtpColor, keep, practiceRecord, resignResult, scoreResult, takebackCount, type KeptPractice, type PracticeOutcome } from "./practice.ts";
 import { sendPractice, storedGame, type StoredPractice } from "./send.ts";
 import { browserNumber } from "#lib/analytics.svelte.ts";

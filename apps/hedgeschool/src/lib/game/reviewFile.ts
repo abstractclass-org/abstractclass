@@ -1,14 +1,14 @@
 // A reviewed game as a file (design 13): the game's record, the player's branches, and the engine's results for every
 // position of the game and its branches, so that another browser opens the review without searching again. The
-// results are keyed by the engine's build and network (analysis/cache.ts), so a browser whose site ships another
-// network keeps the game and its branches, and its review searches again with its own engine. KaTrain keeps its
+// results are keyed by the engine's build and network (@abstractclass/analysis/cache.ts), so a browser whose site ships
+// another network keeps the game and its branches, and its review searches again with its own engine. KaTrain keeps its
 // analysis in its SGF files in the same spirit. The game's record alone, with evaluations and labels, is the annotated
 // record (review/annotate.ts).
-import { SHAPE, makeEarlierRemovalDue, isAnalysisKey, ofModels, readAnalysisKey } from "#lib/analysis/cache.ts";
+import { SHAPE, makeEarlierRemovalDue, isAnalysisKey, ofModels, readAnalysisKey } from "@abstractclass/analysis/cache.ts";
 import { STORES, dbEntriesWhere, dbGet, dbPut, dbPutMany } from "@abstractclass/storage/db.ts";
 import { parseRecord, playerNames } from "./record.ts";
 import { branchNodes, keptNode, loadGame, markReviewed, saveGame, setGameSettings, type KeptBranches, type ReviewMark } from "./store.ts";
-import { parentKey, prefixKeys } from "#lib/review/tree.ts";
+import { parentKey, prefixKeys } from "@abstractclass/analysis/tree.ts";
 import { searchModules, type Manifest } from "@abstractclass/engine/client.ts";
 import { networkName } from "#lib/analysis/engineSettings.ts";
 import { DISCORD_LIMIT, encodeShare, sharedRecord, type SharedReview } from "./share.ts";
@@ -34,8 +34,8 @@ export interface ReviewFile {
 export interface FileReview extends ReviewMark { networkName: string }
 
 /** The moves of every position of a game and its branches, as the results' keys spell them: the record's own moves on
- *  the game's line, and a branch node's path key off it (analysis/game.svelte.ts, engineMoves). Version 1 kept a branch
- *  as its line: each node of it. */
+ *  the game's line, and a branch node's path key off it (@abstractclass/analysis/analysis.svelte.ts, engineMoves).
+ *  Version 1 kept a branch as its line: each node of it. */
 export function positionKeys(moves: string[], branches: KeptBranches | null): Set<string> {
   const out = new Set(prefixKeys(moves));
   if (branches?.version === 1) for (const line of branches.lines) for (const k of prefixKeys(line)) out.add(k);
@@ -44,8 +44,9 @@ export function positionKeys(moves: string[], branches: KeptBranches | null): Se
 }
 
 /** The results that belong to a game: of its positions, and of the positions one move from them, which confirm the
- *  Greats (analysis/game.svelte.ts, confirmGreats), in the store's current shape, and of `models` (the networks'
- *  SHA-256) when given: a result of a network that the site no longer ships is of no use to any copy of it. */
+ *  Greats (@abstractclass/analysis/analysis.svelte.ts, confirmGreats), in the store's current shape, and of `models`
+ *  (the networks' SHA-256) when given: a result of a network that the site no longer ships is of no use to any copy of
+ *  it. */
 export function gameAnalyses(entries: [string, unknown][], positions: Set<string>, models: Set<string> | null = null): [string, unknown][] {
   return entries.filter(([key]) => belongs(key, positions, models));
 }
@@ -70,8 +71,8 @@ export function buildReviewFile(record: string, branches: KeptBranches | null, e
 /** Reads a Hedge School file of `format` (a review file or an analysis file: `noun`), its fields not yet checked but
  *  its results. Throws an Error that tells the player what is wrong. The version changes only when a field changes its
  *  meaning or goes: a new field keeps it, and a reader ignores the fields it does not know (design 13). The results
- *  carry their own shape in their keys (analysis/cache.ts): it keeps the store's current shape's, since no reader reads
- *  another's. */
+ *  carry their own shape in their keys (@abstractclass/analysis/cache.ts): it keeps the store's current shape's, since
+ *  no reader reads another's. */
 export function readSchoolFile(text: string, format: string, version: number, noun: string): Record<string, unknown> & { analyses: [string, unknown][] } {
   let data: unknown;
   try {

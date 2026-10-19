@@ -30,7 +30,7 @@
   import { NETWORKS, loadEngine, networkMB, networkName } from "#lib/analysis/engineSettings.ts";
   import { parseRecord, withStart } from "#lib/game/record.ts";
   import { variantProblem } from "#lib/game/import.ts";
-  import { PLAYER_NAME, moveNotation, type Player } from "#lib/review/model.ts";
+  import { PLAYER_NAME, moveNotation, type Player } from "#lib/review/enclosure.ts";
   import { loadDisplay, saveDisplay } from "#lib/review/display.ts";
   import { playMove, preload } from "#lib/sound.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";

@@ -33,6 +33,7 @@
 		"#lib/*": "./src/lib/*"
 	},
 	"dependencies": {
+		"@abstractclass/analysis": "*",
 		"@abstractclass/engine": "*",
 		"@abstractclass/storage": "*",
 		"@fontsource-variable/fira-code": "5.3.0",

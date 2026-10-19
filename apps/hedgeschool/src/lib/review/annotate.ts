@@ -13,9 +13,9 @@
 // `N...` starts at the turn's second edge and shares its first: `4. N9-Q10 L10-N9 (4... M12-N9)`. Several branches of
 // a turn follow it one after another: those from its start first, then those from its second edge, each in the order
 // the player made them.
-import { BAD_LABELS, type Label } from "./labels.ts";
-import { LABEL_TEXT, moveName, moveNotation, turnFromCount, type Analysis, type Move, type Player, type Review, type Unit } from "./model.ts";
-import { mainIndex, pathKey as key } from "./tree.ts";
+import { BAD_LABELS, type Label } from "@abstractclass/analysis/labels.ts";
+import { LABEL_TEXT, moveName, moveNotation, turnFromCount, type Analysis, type Move, type Player, type Review, type Unit } from "./enclosure.ts";
+import { mainIndex, pathKey as key } from "@abstractclass/analysis/tree.ts";
 import { edgeName } from "#lib/engine/notation.ts";
 import { writeTags } from "#lib/game/record.ts";
 

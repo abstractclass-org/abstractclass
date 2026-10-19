@@ -2,7 +2,7 @@
 // that a load keeps. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { SHAPE } from "#lib/analysis/cache.ts";
+import { SHAPE } from "@abstractclass/analysis/cache.ts";
 import { buildReviewFile, gameAnalyses, importReview, mergeBranches, positionKeys, readReviewFile, reviewFileName } from "./reviewFile.ts";
 import { loadGame, reviewCovers, reviewMark, type KeptBranches, type ReviewMark } from "./store.ts";
 import { memoryDb } from "@abstractclass/storage/memoryDb.ts";

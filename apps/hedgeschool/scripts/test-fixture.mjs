@@ -30,10 +30,11 @@ if (!isMainThread) {
 } else {
   const { nodeEngine } = await import("./node-engine.mjs");
   const { edgeName } = await import("../src/lib/engine/notation.ts");
-  const { toAnalysis } = await import("../src/lib/engine/analysis.ts");
-  const { analysisKey } = await import("../src/lib/analysis/cache.ts");
+  const { toAnalysis: analysisOf } = await import("@abstractclass/analysis/reply.ts");
+  const { analysisKey } = await import("@abstractclass/analysis/cache.ts");
   const { writeRecord } = await import("../src/lib/game/record.ts");
-  const { otherCandidate, secondChoice } = await import("../src/lib/review/model.ts");
+  const { enclosure, otherCandidate, secondChoice } = await import("../src/lib/review/enclosure.ts");
+  const toAnalysis = reply => analysisOf(enclosure, reply);
   const { parseEdge } = await import("../src/lib/engine/notation.ts");
   const threads = Number(process.argv[2] ?? Math.max(1, Math.min(12, availableParallelism() - 2)));
   const { manifest, module, call } = await nodeEngine(root);

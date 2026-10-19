@@ -1,0 +1,25 @@
+{
+	"name": "@abstractclass/analysis",
+	"private": true,
+	"version": "0.0.0",
+	"type": "module",
+	"exports": {
+		"./*": "./src/*"
+	},
+	"scripts": {
+		"check": "tsc -p tsconfig.json",
+		"test": "node --test \"src/**/*.test.ts\""
+	},
+	"dependencies": {
+		"@abstractclass/engine": "*",
+		"@abstractclass/storage": "*"
+	},
+	"peerDependencies": {
+		"svelte": "^5.57.1"
+	},
+	"devDependencies": {
+		"@types/node": "^26.6.4",
+		"svelte": "^5.57.1",
+		"typescript": "^6.0.3"
+	}
+}

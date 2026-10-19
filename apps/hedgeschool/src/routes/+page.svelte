@@ -5,7 +5,7 @@
   // the daily puzzle and the next lesson too. The board plays scenes from reviewed games, with the review's candidates
   // and labels (HomeReplay), drawn with no engine.
   import Board from "#lib/board/Board.svelte";
-  import { review, PLAYER_NAME } from "#lib/review/model.ts";
+  import { review, PLAYER_NAME } from "#lib/review/enclosure.ts";
   import { puzzlesFrom } from "#lib/puzzles/model.ts";
   import { COURSE } from "#lib/learn/lessons.ts";
   import { EARLY_ACCESS, SITE_NAME, SITE_ORIGIN } from "#lib/edition.ts";

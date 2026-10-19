@@ -55,9 +55,9 @@ export async function removeOlderShapes(): Promise<void> {
 }
 
 // The removal of an earlier engine's results, and of an earlier network file's, that no stored game needs any more
-// (game/earlierResults.ts, design 20). The browser's mark keeps the site's engine files (the build's ENGINE_FILES)
-// that the last removal ran for. A release that changes them, and a change of what the games need, make it due: a
-// start with nothing changed reads the mark alone.
+// (Hedge School's src/lib/game/earlierResults.ts, design 20). The browser's mark keeps the site's engine files (the
+// build's ENGINE_FILES) that the last removal ran for. A release that changes them, and a change of what the games
+// need, make it due: a start with nothing changed reads the mark alone.
 const EARLIER = "learn-enclosure:earlier-results:1";
 const removing = (files: string) => `removing ${files}`;
 /** Whether the removal of earlier results is due for `files`, the site's engine files. */
@@ -78,18 +78,18 @@ export const makeEarlierRemovalDue = () => writeLocal(EARLIER, null);
 export const ofModels = (entries: [string, unknown][], models: Set<string> | null) =>
   entries.filter(([key]) => !models || models.has(readAnalysisKey(key).model));
 
-/** The sweep's budget: the review's first pass over every position, for the game's shape (game.svelte.ts). */
+/** The sweep's budget: the review's first pass over every position, for the game's shape (analysis.svelte.ts). */
 export const SWEEP_VISITS = 32;
-export const LABEL_VISITS = 256; // the least visits that give an edge a label (the review's depths: engineSettings.ts)
+export const LABEL_VISITS = 256; // the least visits that give an edge a label (the review's depths: settings.ts)
 export const DEEP_VISITS = 1024; // the position on screen by default
-// The budgets the site's searches ask for (engineSettings.ts: the depths, the review's depths and the label pass, and
-// game.svelte.ts: the key moments at twice the review's depth), from shallow to deep.
+// The budgets the site's searches ask for (settings.ts: the depths, the review's depths and the label pass, and
+// analysis.svelte.ts: the key moments at twice the review's depth), from shallow to deep.
 export const BUDGETS = [256, 512, 768, 1024, 1536, 2048, 3072, 4096, 8192, 16384, 32768];
 
 /** The deepest stored result for a position at `visits` or deeper: a deeper search answers a shallower question, as the
  *  review takes a deeper result it holds. So a review opened again keeps what the player searched deeper where they
  *  looked (the position on screen, design 09), as it had it before the page closed, and a review imported from another
- *  browser, searched to another depth, opens without searching again (game/reviewFile.ts). */
+ *  browser, searched to another depth, opens without searching again (Hedge School's src/lib/game/reviewFile.ts). */
 export async function cacheGetAtLeast<T>(search: string, model: string, moves: string[], visits: number): Promise<T | undefined> {
   const keys = depthKeys(search, model, moves, visits);
   await readStored(keys);
@@ -111,10 +111,10 @@ async function readStored(keys: string[]) {
 /** The engine search of an earlier review, for its snapshot (design 20): a search whose results with the network
  *  `model` hold each of `positions` (their moves) at `visits` or deeper. `search` is the one that the review's mark
  *  names: the snapshot reads its results' keys alone, at `visits` and every budget deeper, into memory, where the
- *  review then finds them. An older mark names none (game/store.ts, ReviewMark): the snapshot then reads every
- *  stored key, and takes a search that holds them all. `except` is a search not to take: the site's own, when the
- *  snapshot is of an earlier engine. The store is read while it comes (the rules worker's start). Undefined when no
- *  search holds them all. */
+ *  review then finds them. An older mark names none (Hedge School's src/lib/game/store.ts, ReviewMark): the snapshot
+ *  then reads every stored key, and takes a search that holds them all. `except` is a search not to take: the site's
+ *  own, when the snapshot is of an earlier engine. The store is read while it comes (the rules worker's start).
+ *  Undefined when no search holds them all. */
 export async function snapshotSearch(search: string | undefined, model: string, positions: string[][], visits: number,
                                      except?: Promise<string | undefined>): Promise<string | undefined> {
   const stored = search === undefined ? dbKeys(STORES.analysis).then(k => k.map(String))

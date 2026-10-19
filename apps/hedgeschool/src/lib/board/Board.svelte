@@ -1,5 +1,5 @@
 <script lang="ts" module>
-  import type { Edge, Label, Position } from "#lib/review/model.ts";
+  import type { Edge, Label, Position } from "#lib/review/enclosure.ts";
 
   /** An engine candidate: its rank (1 is the engine's first choice) and a note shown on hover. */
   export interface BoardCandidate { edge: Edge; rank: number; note: string }
@@ -21,7 +21,7 @@
   // just played, and a ghost edge (the game's edge in a retry). During edge input: the first point, the points that
   // complete a legal edge from it (dots), and the edge to the marked point under the pointer. Points are 0-18 with y
   // up, as in the engine.
-  import { pointName, sameEdge } from "#lib/review/model.ts";
+  import { pointName, sameEdge } from "#lib/review/enclosure.ts";
   import LabelMark from "#lib/review/LabelMark.svelte";
   import { brushFor, samePoint, toggleNote, type BoardNote, type NoteBrush } from "./notes.ts";
 
