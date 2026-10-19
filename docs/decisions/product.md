@@ -4085,3 +4085,61 @@ sweep.
     differed between runs: the start and positions 23, 24, 25, 40 and 41 in one, and 39 in place of the start in the
     other. These runs did not show which key moment stayed short in the first run.
 - **Not measured:** Edge, the deployed site, a slower device.
+
+### Review or Analyze for a game from the tools (2026-10-19)
+
+- **What:** a game that the bookmarklet or the userscript brings from meaf.us or strategyjam.org no longer opens the
+  review at once. The review's page asks first: "Review the game" or "Analyze on the board" (design 21, item 5). A
+  player who watches a game often wants to show how a move could have gone, not to wait for the review of the whole
+  game. A partner's link (`/review#record=…`, design 18) still goes straight to the review: its button says "Review",
+  and its contract stays the same.
+- **What the two sites' pages hold about the position on screen** (read from the engine repository's copy of
+  meaf.us's code, `games/enclosure/tools/.site_cache`, and its saved copy of strategyjam.org's game page,
+  `runs/strategyjam/game-page`):
+  - **Both have a replay slider,** an `<input type="range">`, whose value is the count of the game's moves before the
+    position on screen: 0 at the start, a pass one move. The record counts its moves the same way, so the value is
+    the board's `at` as it is.
+  - **meaf.us:** `input[aria-label="Replay position"]`, under the board, with "Position 12 of 40", "Live position" or
+    "Final position" beside it. Its component keeps the index in its state, and follows new moves while it is at the
+    last one. The slider exists only in a watcher's view and in a finished game's view from the History page. A game
+    that the player plays shows its last position, with no slider.
+  - **strategyjam.org:** `input.replay-slider` ("Move"), in the panel's replay row, live or in a replay. The arrow keys
+    and the move list (`aria-current="step"`) move it too. The index is a hook's state in the component that draws
+    `.stage`, not one of its props, so the slider is the simpler and steadier way to read it.
+- **The tools send it:** `at` in their link (`shownMove` in `meafPage.ts`, `jamShownMove` in `strategyjamPage.ts`).
+  With no slider, they send none, and the board opens at the game's last move: the position that a page without a
+  replay shows.
+- **Where the choice shows:** in the review's arrival step (`Arrival.svelte`), which already reads the tools' links
+  and asks to update an out-of-date tool. The tools keep their one link, so the bookmark's loader does not change
+  (`BOOKMARK_VERSION` stays 1). The record is read before the choice, so a record that cannot be read fails at once.
+  The engine's rules check it on the page chosen.
+  - **Review the game** keeps the game in the list of games, then reviews it, as before.
+  - **Analyze on the board** keeps no game in the list. The page goes to `/analysis#record=…&at=…&via=<source>`, and
+    the board asks before it replaces the player's board ("Replace your analysis?").
+  - **An out-of-date tool:** the page says how to update it above the choice. Before, the review kept the game first,
+    then said so, with the review a click away.
+- **The choice's words,** text that a player follows, in strict Simplified Technical English:
+  - "Review the game": "The engine examines all the moves of the game. It gives a label to each move. Hedge School
+    keeps the game in your list of games."
+  - "Analyze on the board": "The Analysis board opens at the position that you saw on meaf.us." (or "at the last move
+    of the game" when the tool sent no position) "Make your own moves to examine other lines. Hedge School does not
+    keep the game in your list of games."
+  - The tools page's steps say to click one of the two. The userscript's button and menu entry say "Open this game in
+    Hedge School". Its name stays "Review in Hedge School": Tampermonkey knows a script by its name and namespace, so
+    a new name would be a second script.
+- **The events** (design 17): `import_game` counts the import when the player chooses, with `import_to` review or
+  analysis and the tool as `import_source`. The board takes the tool's source from `via`. A player who closes the
+  page imports nothing. `tool_out_of_date` counts as the page shows the choice.
+- **A player with today's tools:** the bookmark loads `/bookmarklet.js` at each click, so it sends the position at
+  once. A userscript that Tampermonkey has not yet updated sends no position: it gets the choice, the board opens at
+  the game's end, and the page says that the userscript is older than the site's, until Tampermonkey takes the new
+  one.
+- **Checked** in Playwright's Chromium, on a local build (`tests/tool-choice.spec.ts`, each test twice, all passed): a
+  bookmarklet's link with `at=1` shows the choice, and Analyze opens the board with the game's three moves as its main
+  line, at the first move, with no game in the list. A second game asks "Replace your analysis?", and "Replace it"
+  opens it at its `at`. A link with no `at` opens the board at the last move. Review keeps the game and opens its
+  review. A partner's link opens the review with no choice. The choice was looked at in a window 1,280 and 390 pixels
+  wide.
+- **Not checked:** the sliders on the live sites. meaf.us shows a guest only its sign-in page, and strategyjam.org's
+  list of games stayed "Loading…" for a guest, so the readers rest on the two copies of the sites' code. The import
+  events: a local build sends none.

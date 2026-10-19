@@ -1,20 +1,22 @@
 <script lang="ts">
   // The review's ways in (design 22), when the review's address holds a game after its `#` (importHash.ts):
-  // - a record from the bookmarklet or the userscript on meaf.us or strategyjam.org (bookmarklet.ts, userscript.ts), or
-  //   from another site's link (`record=`, design 18): checked with the engine's rules, given its cut marks, kept in
-  //   this browser, and reviewed.
-  //   A record from an out-of-date tool is kept too, and the page then says how to update the tool, with the review a
-  //   click away. Another site's link keeps the partner's save page with the game when it names one;
+  // - a record from the bookmarklet or the userscript on meaf.us or strategyjam.org (bookmarklet.ts, userscript.ts): the
+  //   player chooses to review it or to analyze it on the board (design 21). A review keeps it in this browser first.
+  //   The board keeps no game in the list: the record goes to the board's address, at the position that the game's page
+  //   showed (analysisAddress). For an out-of-date tool, the page also says how to update it;
+  // - a record from another site's link (`record=`, design 18): checked with the engine's rules, given its cut marks,
+  //   kept in this browser, and reviewed, with the partner's save page when the link names one;
   // - a shared review (`packed=`, share.ts): what it holds, and that this browser reviews it again, then kept on a
   //   click, with the sender's network and depth;
   // - a partner's page that kept a review (`from=`): it sends the review file once this page asks.
   // The game leaves the address at once, then the analytics start. Once the game is kept, the review opens it.
   import { onMount } from "svelte";
-  import { parseRecord, playerNames } from "#lib/game/record.ts";
+  import { parseRecord, playerNames, type GameRecord } from "#lib/game/record.ts";
   import { importRecord } from "#lib/game/import.ts";
   import { errorText } from "#lib/errors.ts";
   import { BOOKMARK_VERSION } from "#lib/game/bookmarklet.ts";
-  import { FORWARDED, hashParams, readImportHash, staleTool, toolSource, type Tool } from "#lib/game/importHash.ts";
+  import { FORWARDED, analysisAddress, hashParams, offersChoice, readImportHash, staleTool, toolSource, type ImportHash,
+           type Tool } from "#lib/game/importHash.ts";
   import { gamePartner, partnerOf, receiveFromPartner } from "#lib/game/partners.ts";
   import { setGamePartner } from "#lib/game/store.ts";
   import { decodeShare, type SharedReview } from "#lib/game/share.ts";
@@ -33,7 +35,8 @@
     // A shared review, and what this site makes of it: its network here (null when the site no longer has it), and
     // whether the site's engine is the sender's.
     | { at: "share"; shared: SharedReview; here: SharedHere }
-    | { at: "stale"; tool: Tool | "older"; id: string } // the game's id, for the review's link while the page asks to update a tool
+    // A tool's game: the review or the board, and the tool when it is out of date.
+    | { at: "choose"; sent: ImportHash; record: GameRecord; source: ImportSource; stale: Tool | "older" | null }
     // `load`: the way in was a load (design 22), a shared review or a review that a partner kept, not an import.
     | { at: "failed"; load: boolean; problem: string };
   type SharedHere = { network: string | null; sameEngine: boolean };
@@ -69,18 +72,46 @@
       }
       if (sent.from) { await receiveReview(sent.from, sent.save); return; }
       if (sent.link && !text) throw new Error("the link has no record=, which carries the game");
-      const record = parseRecord(text), id = await importRecord(text, record);
-      const partner = sent.link ? gamePartner(sent.save) : null;
-      if (partner) await setGamePartner(id, partner);
-      const stale = staleTool(sent, { bookmarklet: String(BOOKMARK_VERSION), userscript: __USERSCRIPT_CODE__ });
-      // The import by its tool and the game's length, and an out-of-date tool by its kind (design 17).
-      trackImport("review", source, record.moves.length);
-      if (stale) { track("tool_out_of_date", { stale_tool: stale }); phase = { at: "stale", tool: stale, id }; return; }
-      review(id);
+      const record = parseRecord(text);
+      if (offersChoice(sent)) {
+        // An out-of-date tool by its kind (design 17), as the page asks to update it.
+        const stale = staleTool(sent, { bookmarklet: String(BOOKMARK_VERSION), userscript: __USERSCRIPT_CODE__ });
+        if (stale) track("tool_out_of_date", { stale_tool: stale });
+        phase = { at: "choose", sent, record, source, stale };
+        return;
+      }
+      await reviewImport(text, record, source, sent.save);
     } catch (e) {
       phase = { at: "failed", load: false, problem: errorText(e) };
       trackImportFailed("review", source, "rejected");
     }
+  }
+
+  /** Keeps an imported game, with its partner's save page when a link names one, and reviews it. The import counts by
+   *  its source and the game's length (design 17). */
+  async function reviewImport(text: string, record: GameRecord, source: ImportSource, save: string | null) {
+    const id = await importRecord(text, record);
+    const partner = gamePartner(save);
+    if (partner) await setGamePartner(id, partner);
+    trackImport("review", source, record.moves.length);
+    review(id);
+  }
+
+  /** A tool's game, reviewed: kept first, as a link's is. */
+  async function reviewChosen(sent: ImportHash, record: GameRecord, source: ImportSource) {
+    phase = { at: "importing" };
+    try {
+      await reviewImport(sent.record, record, source, null);
+    } catch (e) {
+      phase = { at: "failed", load: false, problem: errorText(e) };
+      trackImportFailed("review", source, "rejected");
+    }
+  }
+
+  /** A tool's game, on the Analysis board: its address takes the record, checks it, asks before it replaces the
+   *  player's board, and counts the import (design 21). Back then leads to the page before this one. */
+  function analyzeChosen(sent: ImportHash, record: GameRecord, source: ImportSource) {
+    location.replace(analysisAddress(sent, record.moves.length, source));
   }
 
   async function readShared(text: string) {
@@ -153,10 +184,12 @@
       {:else}The game keeps them for its review. Other games review as before.{/if}
       {#if !here.sameEngine}This site's engine has changed since the link was made, so some labels can differ.{/if}</p>
     <div><button class="btn-primary" type="button" onclick={() => reviewShared(shared, here)}>Review it</button></div>
-  {:else if phase.at === "stale"}
-    {@const stale = phase.tool}
-    <div class="grid gap-2 px-4 py-3 bg-panel border border-accent rounded-lg" role="status">
-      <p>
+  {:else if phase.at === "choose"}
+    {@const { sent, record, source, stale } = phase}
+    {@const names = playerNames(record.tags)}
+    {@const site = sent.site ?? "meaf.us"}
+    {#if stale}
+      <p class="px-4 py-3 bg-panel border border-accent rounded-lg" role="status">
         {#if stale === "bookmarklet"}Your bookmarklet is an older one. On the <a href="/tools">tools page</a>, drag the
           button to the bookmarks bar again, in place of the old one.
         {:else if stale === "userscript"}Your userscript is older than this site's. Tampermonkey updates it when it next
@@ -167,8 +200,25 @@
           it now loads its code from this site, so it stays up to date. For the userscript, open it there, and
           Tampermonkey offers the update.{/if}
       </p>
-      <p>The game is imported. <a class="inline-block ml-1.5 px-3 py-1 rounded-full bg-accent text-on-accent font-semibold no-underline"
-                                  href="/review#game={phase.id}" data-sveltekit-reload>Open the review</a></p>
+    {/if}
+    <h1 class="text-2xl font-bold">A game from {site}</h1>
+    <p><strong>{names.blue} against {names.red}</strong>, {record.moves.length} {record.moves.length === 1 ? "edge" : "edges"}.</p>
+    <!-- Two ways for the game (design 21): the text that a player follows, in strict Simplified Technical English. -->
+    <div class="grid gap-3 sm:grid-cols-2">
+      <section class="grid content-start gap-2 p-4 bg-panel border border-line rounded-lg">
+        <!-- svelte-ignore a11y_autofocus: the page holds only this choice, and Enter then reviews, as the tools did -->
+        <button class="btn-primary justify-self-start" type="button" autofocus
+                onclick={() => reviewChosen(sent, record, source)}>Review the game</button>
+        <p class="text-sm">The engine examines all the moves of the game. It gives a label to each move. Hedge School
+          keeps the game in your list of games.</p>
+      </section>
+      <section class="grid content-start gap-2 p-4 bg-panel border border-line rounded-lg">
+        <button class="btn-primary justify-self-start" type="button"
+                onclick={() => analyzeChosen(sent, record, source)}>Analyze on the board</button>
+        <p class="text-sm">The Analysis board opens at {sent.at === null ? "the last move of the game"
+          : `the position that you saw on ${site}`}. Make your own moves to examine other lines. Hedge School does not
+          keep the game in your list of games.</p>
+      </section>
     </div>
   {:else}
     <p class="text-blunder" role="alert">{phase.load ? "The review could not be loaded" : "The game could not be imported"}: {phase.problem}</p>

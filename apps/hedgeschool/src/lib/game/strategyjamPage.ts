@@ -7,6 +7,15 @@ import type { JamGame } from "./strategyjam.ts";
  *  who is logged in; "loading", it waits for the game. */
 export type JamMissing = "none" | "login" | "loading";
 
+/** The position that the page shows, as the game's moves before it (0 at the start, a pass one move, as in `history`),
+ *  or null when the page does not say. The panel's replay row has a slider (`.replay-slider`, "Move") whose value is
+ *  that count, live or in a replay: the arrow keys and the move list move it too. The engine repository's saved copy of
+ *  the page (runs/strategyjam/game-page) shows it. */
+export function jamShownMove(): number | null {
+  const slider = document.querySelector("input.replay-slider") as HTMLInputElement | null;
+  return slider && /^\d+$/.test(slider.value) ? Number(slider.value) : null;
+}
+
 /** The game that the page shows, or why it shows none. React keeps the game in the props of the component that draws
  *  the stage (`.stage`, the board and the panel): `game`, the game's module, with its rules module in `rules`, and
  *  `state`, the game as the site sends it: the seats, the first position (`initial`), the moves (`history`) and the

@@ -2,9 +2,10 @@
 // strategyjam.org, in the page's own context (`@sandbox raw`, which both allow: they send no content security policy),
 // so that it reads the page's game as the bookmarklet does (meafPage.ts, strategyjamPage.ts). It shows a button with the
 // school's collie near the page's lower right corner while a game shows (BUTTON_PLACES), and adds an entry to
-// Tampermonkey's menu. Either opens the game in this site's import page, in a new tab, with the record after the `#`.
+// Tampermonkey's menu. Either opens the game in this site's review, in a new tab, with the record and the position that
+// the page shows after the `#`. The review then asks the player to review the game or to analyze it on the board.
 // Tampermonkey opens the tab (GM_openInTab), so no popup blocker stops it: a finished game of the player's own on
-// meaf.us reloads as a watcher's view, and its review then opens by itself once the moves come. Tampermonkey checks this
+// meaf.us reloads as a watcher's view, and Hedge School then opens by itself once the moves come. Tampermonkey checks this
 // site for updates (`@updateURL`, a file with the header only, as Greasy Fork serves one), and fetches the script again
 // when its version is newer, so a change of a site's page needs no new install. The script says its code's version with
 // each game (importHash.ts), so that the import page can tell a player whose Tampermonkey has not yet taken a change.
@@ -57,7 +58,7 @@ function main(origin: string, icon: string, code: string, places: Record<string,
              border-radius: 50%; background: #0b0c0e; cursor: pointer; box-shadow: 0 2px 8px #0008; }
     button svg { width: 73%; height: 73%; }
     button:hover, button:focus-visible { border-color: #fff; outline: none; }
-  </style><button type="button" title="Review this game in Hedge School" aria-label="Review this game in Hedge School">${icon}</button>`);
+  </style><button type="button" title="Open this game in Hedge School" aria-label="Open this game in Hedge School">${icon}</button>`);
   const noteHost = shadow(`<style>
     p { position: fixed; z-index: 2147483647; width: max-content; max-width: min(340px, 80vw); margin: 0; padding: 8px 10px;
         border: 1px solid #ffffff33; border-radius: 6px; background: #16181c; color: #eee; box-shadow: 0 2px 8px #0008;
@@ -88,16 +89,17 @@ function main(origin: string, icon: string, code: string, places: Record<string,
   };
   note.addEventListener("click", () => (note.hidden = true));
 
-  const open = (record: () => string) => {
+  const open = (record: () => string, at: number | null) => {
     let text: string;
     try { text = record(); } catch (e) { show("Hedge School: " + (e as Error).message); return; }
-    GM_openInTab(origin + "/review#" + new URLSearchParams({ tool: "userscript", v: code, site, record: text }), { active: true });
+    GM_openInTab(origin + "/review#" + new URLSearchParams({ tool: "userscript", v: code, site, ...(at === null ? {} : { at: String(at) }), record: text }),
+                 { active: true });
   };
   function review() {
     if (site === "strategyjam.org") {
       const game = page.findJamGame();
       if (typeof game === "string") show(page.explain(game, click, origin, site));
-      else open(() => page.jamRecord(game));
+      else open(() => page.jamRecord(game), page.jamShownMove());
       return;
     }
     const game = page.findGame();
@@ -105,22 +107,22 @@ function main(origin: string, icon: string, code: string, places: Record<string,
     const why = page.missingMoves(game);
     if (why === "reload") {
       sessionStorage.setItem(PENDING, `${game.gameID} ${Date.now()}`);
-      show("Hedge School: meaf.us shows your finished game without its moves. The page reloads as a watcher's view, which has them, and the review then opens.");
+      show("Hedge School: meaf.us shows your finished game without its moves. The page reloads as a watcher's view, which has them. Then the game opens in Hedge School.");
       setTimeout(() => location.assign(page.watcherUrl()), 1500);
       return;
     }
     if (why) { show(page.explain(why, click, origin, site)); return; }
-    open(() => page.meafRecord(game));
+    open(() => page.meafRecord(game), page.shownMove());
   }
   button.addEventListener("click", review);
-  GM_registerMenuCommand("Review this game in Hedge School", review);
+  GM_registerMenuCommand("Open this game in Hedge School", review);
   document.body.append(noteHost);
   keepPlace();
 
   // The button keeps to its place: meaf.us changes its views without loading a page, and on strategyjam.org React
   // draws the legend once the game comes, and can draw it again. On meaf.us, after the reload as a watcher's view, the
   // review opens once the game's moves come (PENDING, which only meaf.us's pages set).
-  if (sessionStorage.getItem(PENDING)) show("Hedge School: waiting for the game's moves. The review then opens.");
+  if (sessionStorage.getItem(PENDING)) show("Hedge School: waiting for the game's moves. Then the game opens in Hedge School.");
   setInterval(() => {
     keepPlace();
     const pending = sessionStorage.getItem(PENDING);
@@ -131,7 +133,7 @@ function main(origin: string, icon: string, code: string, places: Record<string,
       show(`Hedge School: the page did not get the game's moves. Click ${click} to try again.`);
     } else if (game && String(game.gameID) === id && !page.missingMoves(game)) {
       sessionStorage.removeItem(PENDING);
-      open(() => page.meafRecord(game));
+      open(() => page.meafRecord(game), page.shownMove());
     }
   }, 500);
 }
@@ -147,7 +149,7 @@ export function userscriptHeader(origin: string, version: string): string {
     ["name", USERSCRIPT_NAME],
     ["namespace", `${origin}/`],
     ["version", version],
-    ["description", "Opens the meaf.us or strategyjam.org game on screen in Hedge School's review. Reads the game from the page: no request to the game's site, nothing from your login."],
+    ["description", "Opens the meaf.us or strategyjam.org game on screen in Hedge School, to review it or to analyze it on the board. Reads the game from the page: no request to the game's site, nothing from your login."],
     ["author", "Yshan"],
     ["homepage", "https://yhkao.com"],
     ["icon", `data:image/svg+xml;base64,${btoa(svg(64))}`],

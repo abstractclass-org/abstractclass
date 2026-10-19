@@ -111,9 +111,9 @@
 
   <h2>The bookmarklet and userscript for meaf.us and strategyjam.org</h2>
   <p>The bookmarklet runs in the game page that you have open on <a href="https://meaf.us/sst1/">meaf.us</a> or
-    <a href="https://strategyjam.org/">strategyjam.org</a>. It reads the game from that page, with nothing from your
-    login and no request to the game's site, and opens {SITE_NAME} with the game after the <code>#</code> in the
-    address. Browsers never send that part of an address to a server, and the page removes it at once. On meaf.us, for
+    <a href="https://strategyjam.org/">strategyjam.org</a>. It reads the game from that page, and the position that the
+    page shows, with nothing from your login and no request to the game's site, and opens {SITE_NAME} with them after
+    the <code>#</code> in the address. Browsers never send that part of an address to a server, and the page removes it at once. On meaf.us, for
     your own finished game, which meaf.us shows without its moves, it opens the same meaf.us page again as a watcher's
     view (<code>spectate=1</code> in the address), and meaf.us loads the moves itself. At each click, the bookmarklet
     loads its code from this site, so that it stays up to date: that request carries no game, and by default your

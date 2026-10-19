@@ -18,10 +18,12 @@ export type Tool = "bookmarklet" | "userscript";
 /** The tab's session key that the old import page sets before it forwards to the review (design 22). */
 export const FORWARDED = "hedge-school:forwarded-from-import";
 
-/** The record after the `#`, and what sent it: a tool, its version and the site it ran on, none for an older tool's
- *  bare record, or a link from another site with its save page, or the partner's page that sends a kept review. */
+/** The record after the `#`, and what sent it: a tool, its version, the site it ran on and the position that its page
+ *  showed, none for an older tool's bare record, or a link from another site with its save page, or the partner's page
+ *  that sends a kept review. */
 export interface ImportHash {
-  record: string; tool: Tool | null; version: string; site: string | null; link: boolean; save: string | null; from: string | null;
+  record: string; tool: Tool | null; version: string; site: string | null; at: number | null; link: boolean; save: string | null;
+  from: string | null;
 }
 
 /** The parameters after the `#`, or null for a bare record (an older tool's): a record's text starts with a tag, a turn
@@ -29,19 +31,29 @@ export interface ImportHash {
 export const hashParams = (hash: string) => (/^[A-Za-z_]+=/.test(hash) ? new URLSearchParams(hash) : null);
 
 /** What sent a record, for a way in that does not say. */
-const NO_SENDER = { tool: null, version: "", site: null, link: false, save: null, from: null } as const;
+const NO_SENDER = { tool: null, version: "", site: null, at: null, link: false, save: null, from: null } as const;
 
 export function readImportHash(hash: string): ImportHash {
   if (hash.startsWith("tool=")) {
-    const p = new URLSearchParams(hash), tool = p.get("tool");
+    const p = new URLSearchParams(hash), tool = p.get("tool"), at = p.get("at") ?? "";
     return { ...NO_SENDER, record: p.get("record") ?? "", tool: tool === "bookmarklet" || tool === "userscript" ? tool : null,
-             version: p.get("v") ?? "", site: p.get("site") };
+             version: p.get("v") ?? "", site: p.get("site"), at: /^\d+$/.test(at) ? Number(at) : null };
   }
   // A link without `record` (one that names it `pgn`, for example) gives an empty record, which the import page refuses
   // by name.
   const p = hashParams(hash);
   if (p) return { ...NO_SENDER, record: p.get("record") ?? "", link: true, save: p.get("save"), from: p.get("from") };
   return { ...NO_SENDER, record: decodeURIComponent(hash) };
+}
+
+/** Whether the player chooses where the game goes: a game that a tool sent, also an older tool's bare record. Another
+ *  site's link goes straight to the review (design 18). */
+export const offersChoice = (sent: Pick<ImportHash, "link">) => !sent.link;
+
+/** The Analysis board's address for a tool's game (design 21): its record, the position that its page showed, else the
+ *  game's end (`edges`, its moves), and the import's source for the board's events (design 17). */
+export function analysisAddress(sent: Pick<ImportHash, "record" | "at">, edges: number, source: ImportSource): string {
+  return "/analysis#" + new URLSearchParams({ record: sent.record, at: String(Math.min(sent.at ?? edges, edges)), via: source });
 }
 
 /** A tool's way in, for the import events (design 17): the tool, on the site that it ran on. A tool that names no

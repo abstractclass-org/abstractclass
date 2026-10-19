@@ -18,7 +18,7 @@ will add more. A page whose name says "import" cannot say where the game goes.
    |---|---|
    | `/review#game=<id>` | a game kept in this browser |
    | `/review#record=<record>` | the game kept, then reviewed: from another site's link (design 18) |
-   | `/review#tool=…&v=…&site=…&record=<record>` | the same, from the bookmarklet or the userscript on meaf.us or strategyjam.org (design 11) |
+   | `/review#tool=…&v=…&site=…&at=…&record=<record>` | a game from the bookmarklet or the userscript on meaf.us or strategyjam.org (design 11): the player chooses the review (the game kept, then reviewed) or the Analysis board at `at` (design 21) |
    | `/review#packed=<code>` | a shared review: its game, branches and engine settings (design 13) |
    | `/review#from=<origin>` | a review that a partner's page kept, sent back by window messages (design 18) |
    | `…&save=<url>` | with `record=` or `from=`: the partner's page that "Save to" opens (design 18) |
@@ -27,6 +27,7 @@ will add more. A page whose name says "import" cannot say where the game goes.
    | `/analysis#position=<position>` | a set-up start, from the board editor or another site; with `record=`, the record's start |
    | `/analysis#packed=<code>` | a shared analysis, or an analysis file loaded |
    | `…&at=<n>` | the position the board opens at: n edges from the start |
+   | `…&via=<source>` | the way in that this site's own page names, for the analytics only: a pasted record, a tool's game, an analysis file, the board editor (design 17) |
    | `/editor` | the board editor, at the position it was left at |
    | `/editor#position=<position>` | the board editor at a position: the Analysis board's position on screen |
    | `/practice#record=<record>` | a game against the bot after the record's moves: the Analysis board's Play (design 24) |
@@ -147,7 +148,7 @@ will add more. A page whose name says "import" cannot say where the game goes.
 - **Analytics** (design 17): every import, to either page, is `import_game` with `import_to` and `import_source`.
   Every load is `load_saved` with `load_source`, which also says where it went. The funnel starts at the Review tab,
   and follows the imports and loads to the review. `/analysis` and `/tools` are new pages.
-- **The meaf.us tools** open `/review`. A userscript installed before this change is out of date, and the review says
+- **The meaf.us tools** open `/review`, which asks where the game goes (design 21). A userscript installed before this change is out of date, and the review says
   how to update it. The bookmarklet loads its code from the site at each click, so it changes with it.
 - **Partners** (design 18) move their links to `/review#…`. enclosuregame.com's links keep working while `/import`
   forwards.

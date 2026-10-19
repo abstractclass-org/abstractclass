@@ -13,8 +13,10 @@ must make costs both of them a release.
 ## Decision
 
 1. **One link brings a game in:** `/review#record=…`, the game's record URL-encoded after the `#` (design 22: the
-   first address, `/import#record=…`, is deprecated and forwards there). The review keeps the game and opens it, as
-   the meaf.us tools do, with no notice to update a tool (`readImportHash` in `src/lib/game/importHash.ts`). A link
+   first address, `/import#record=…`, is deprecated and forwards there). The review keeps the game and opens it at
+   once, with no notice to update a tool (`readImportHash` in `src/lib/game/importHash.ts`). The partner's button says
+   "Review", so the link goes straight to the review: only a game from the meaf.us and strategyjam.org tools asks the
+   player to review it or to analyze it on the board (design 21, `offersChoice`). A link
    without `record` is refused by name ("the link has no record=").
 2. **The record is this site's notation** (the /notation page), or a plain list of edges. Tags are optional. A web
    address in `Site` (Lichess writes its game's address there) gives the review a link back: "View this game on

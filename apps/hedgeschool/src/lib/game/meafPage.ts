@@ -17,6 +17,17 @@ export function findGame(): MeafGame | null {
   return null;
 }
 
+/** The position that the page shows, as the game's moves before it (0 at the start, a pass one move, as in
+ *  `moveHistory`), or null when the page does not say. A watcher's view, and a finished game's view from the History
+ *  page, have a replay slider under the board ("Replay position": "Position 12 of 40", "Live position", "Final
+ *  position"), whose value is that count. The engine repository's copy of meaf.us's code
+ *  (games/enclosure/tools/.site_cache) shows it. A player's own game has no slider: the page then shows its last
+ *  position, but the page does not say so, and the board then opens at the game's end anyway. */
+export function shownMove(): number | null {
+  const slider = document.querySelector('input[aria-label="Replay position"]') as HTMLInputElement | null;
+  return slider && /^\d+$/.test(slider.value) ? Number(slider.value) : null;
+}
+
 /** Why the page's game lacks moves, or null when it has them all. meaf.us gives a player's own game without its moves:
  *  the page asks for them only for a viewer who watches the game (`spectate=1`) or opens it from the History page
  *  (design 11). "playing": the game goes on. "loading": a watcher's view that has not received them yet. "reload": a

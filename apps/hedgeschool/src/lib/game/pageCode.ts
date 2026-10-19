@@ -2,11 +2,11 @@
 // meaf.us (meafPage.ts, meaf.ts) and on strategyjam.org (strategyjamPage.ts, strategyjam.ts). Each is self-contained, so
 // the tools carry them as text: one object of them, by name, which the tool's own code takes as its argument.
 import { meafRecord } from "./meaf.ts";
-import { explain, findGame, missingMoves, watcherUrl } from "./meafPage.ts";
+import { explain, findGame, missingMoves, shownMove, watcherUrl } from "./meafPage.ts";
 import { jamRecord } from "./strategyjam.ts";
-import { findJamGame } from "./strategyjamPage.ts";
+import { findJamGame, jamShownMove } from "./strategyjamPage.ts";
 
-export const PAGE_CODE = { findGame, missingMoves, explain, watcherUrl, meafRecord, findJamGame, jamRecord };
+export const PAGE_CODE = { findGame, missingMoves, explain, watcherUrl, shownMove, meafRecord, findJamGame, jamShownMove, jamRecord };
 export type PageCode = typeof PAGE_CODE;
 
 /** PAGE_CODE as the text of an object, for a tool's script. */

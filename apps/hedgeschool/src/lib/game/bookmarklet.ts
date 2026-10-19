@@ -5,9 +5,10 @@
 // 1. it finds the game that the page holds (meafPage.ts, strategyjamPage.ts), with no request to the game's site and
 //    nothing from the player's login;
 // 2. it writes the game's record (meaf.ts, strategyjam.ts, carried in the script as they are);
-// 3. it opens this site's review with the record after the `#`, which the browser never sends to a server, and says
-//    which tool sent it and from which site (importHash.ts), so that the review can tell a player whose bookmark is an
-//    old one.
+// 3. it reads the position that the page shows, when the page says (shownMove, jamShownMove);
+// 4. it opens this site's review with the record and the position after the `#`, which the browser never sends to a
+//    server, and says which tool sent it and from which site (importHash.ts), so that the review can tell a player
+//    whose bookmark is an old one. The review then asks the player to review the game or to analyze it on the board.
 // It depends on the two sites' pages: a change there can break it, and then it says that it found no game. The loader
 // also depends on each site sending no content security policy that blocks other sites' scripts (neither sends one).
 //
@@ -42,11 +43,12 @@ function grab(page: PageCode) {
   const origin = src.origin, version = src.searchParams.get("bookmark") ?? "";
   const click = "the Review in Hedge School bookmark"; // the bookmark's name, as the import page's link gives it
   const site = location.hostname;
-  let record: () => string;
+  let record: () => string, at: number | null;
   if (site === "strategyjam.org") {
     const game = page.findJamGame();
     if (typeof game === "string") { alert(page.explain(game, click, origin, site)); return; }
     record = () => page.jamRecord(game);
+    at = page.jamShownMove();
   } else {
     const game = page.findGame();
     if (!game) { alert(page.explain("none", click, origin, site)); return; }
@@ -58,10 +60,11 @@ function grab(page: PageCode) {
     }
     if (why) { alert(page.explain(why, click, origin, site)); return; }
     record = () => page.meafRecord(game);
+    at = page.shownMove();
   }
   let text: string;
   try { text = record(); } catch (e) { alert("Hedge School: " + (e as Error).message); return; }
-  const url = origin + "/review#" + new URLSearchParams({ tool: "bookmarklet", v: version, site, record: text });
+  const url = origin + "/review#" + new URLSearchParams({ tool: "bookmarklet", v: version, site, ...(at === null ? {} : { at: String(at) }), record: text });
   // A slow load can end the click's right to open a tab: then this tab goes to the review.
   if (!window.open(url, "_blank")) location.assign(url);
 }

@@ -52,6 +52,22 @@ engine does by itself.
    - **Analysis** in the header: the board as the player left it.
    - **A link** that carries a line: `/analysis#record=…` (a record), or `/analysis#packed=…` (a shared analysis),
      with `&at=` for the position (design 22).
+   - **A game from the bookmarklet or the userscript** (design 11): the review's page asks first, "Review the game" or
+     "Analyze on the board" (`src/lib/review/Arrival.svelte`). A player who watches a game on meaf.us or
+     strategyjam.org often wants to show how a move could have gone, not to wait for the review of the whole game.
+     - **Review the game** keeps the game in the list of games, and reviews it, as before.
+     - **Analyze on the board** keeps no game in the list. The page goes to `/analysis#record=…&at=…&via=…`
+       (`analysisAddress` in `src/lib/game/importHash.ts`): the game's moves are the main line, so each line that the
+       player draws is a variation of the game. The board opens at the position that the game's page showed (`at`,
+       design 11), else at the game's last move, the position that a page without a replay shows. `via` names the
+       tool, for the import's source. The board checks the record and asks before it replaces the player's board, as
+       for any record brought.
+     - **The choice is the site's,** not the tools': the bookmark's loader stays as it is (`BOOKMARK_VERSION`), and
+       the userscript updates itself, so no player installs a tool again. A bookmark or a userscript from before the
+       change gets the choice too. Its game carries no `at`, so the board opens at the game's end.
+     - **The page asks before it does anything:** the record is read, so a record that cannot be read fails at once,
+       but the engine's rules check it only on the page chosen. A player who closes the page imports nothing.
+     - **A partner's link** (design 18) goes straight to the review. Its button says "Review".
    - **The board's New menu,** beside its Export: every way to start the board again. Each replaces the analysis kept
      here, after the board asks (item 6).
      - **Standard start:** a new analysis from the game's start. Lichess's board needs none, since it keeps no
@@ -147,7 +163,8 @@ engine does by itself.
 - **Practice** (request 15) can end on the board too: a practice game is a played game, so it opens in the review.
 - **Analytics** (design 17): `editor_open` when the editor opens, and `editor_analyze` for its Analyze.
   `analysis_open` when the board opens. A game brought to it is an import, as one brought
-  to the review: `import_game` with `import_to` = analysis. A shared analysis or an analysis file is a load:
+  to the review: `import_game` with `import_to` = analysis, and a tool's game chosen for the board keeps its tool as
+  its `import_source`. A shared analysis or an analysis file is a load:
   `load_saved` with `load_source`. The board's features, settings' changes and exports are
   the review's events: the page's address tells them apart in the reports.
 - **An unfinished line's end is searched,** on the board and in a review of an unfinished game: the review reads a
