@@ -177,8 +177,8 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
     - **Only where the address names a game:** the skeleton shows once the page has read the game, so that the
       players' names are in its first frame. Names that came after it changed the cards' widths, and moved the row's
       parts (a layout shift). Before that, the prerendered line of text shows. The page prerenders as the Review tab
-      (design 23), with the line hidden: a script in the page's head marks an address that names a game before the
-      first paint, and CSS then shows the line in the Review tab's place (design 22, "The Review tab").
+      (design 23), and CSS hides the line. Before the first paint, a script in the page's head marks an address that
+      names a game. CSS then shows the line in the Review tab's place (design 22, "The Review tab").
     - With reduced motion asked for, the skeleton's bars do not pulse.
     - **The move list's rows come one frame after the rest** (`rowsDrawn`), in a task of their own. Until then the
       list's box shows grey bars that do not pulse: one element draws a bar for each turn, a turn's row apart (22

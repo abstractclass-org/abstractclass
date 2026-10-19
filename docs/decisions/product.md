@@ -3874,32 +3874,35 @@ sweep.
 
 ### The Review tab before the page's code runs (2026-10-19)
 
-- **The problem:** the prerendered `/review` had the Review tab's title and description (design 23), but its body
-  showed only "Reading the game with the engine's rules…" until the page's code ran, 90 to 550 milliseconds after
-  the address opened on this machine ("A skeleton while the review starts, and the time before it shows"). Then the
-  tab waited for the browser's games (`ready` in `ReviewHome.svelte`), so that "Continue your last review" did not
-  push the page down. The prerendered page cannot know whether the address names a game: the game stays after the
-  `#`, which no server gets (designs 17 and 22).
+- **The problem:** the prerendered `/review` had the Review tab's title and description (design 23). But its body
+  showed only "Reading the game with the engine's rules…" until the page's code ran. On this machine, the code ran 90
+  to 550 milliseconds after the address opened ("A skeleton while the review starts, and the time before it shows").
+  Then the tab waited for the browser's games (`ready` in `ReviewHome.svelte`), so that "Continue your last review"
+  did not push the page down. The prerendered page cannot know whether the address names a game: the game stays
+  after the `#`, which no server gets (designs 17 and 22).
 - **The change** (design 22, "The Review tab", and design 06, item 10), on the model of the theme's script in
   `src/app.html`:
   - `/review` prerenders the Review tab's fixed parts (the heading, the text, the import, "Load a review file" and the
-    footer) beside the line of text, which is hidden.
-  - A script in the page's head (`src/lib/review/pageMarks.ts`) marks the root element before the first paint:
-    `data-review-game` for an address that names a game (`holdsGame`, or a kept game's id after the `#` or in an older
-    address's query), and `data-review-last` for a last review kept (`learn-enclosure:last-review:1`). The CSS
-    variants `review-game` and `review-last` (`src/app.css`) then hide the tab and show the line, and keep the room
-    of "Continue your last review". The head holds the function's own text, so its test checks what the page runs.
-    The page runs it again as its code starts, for an address that a navigation in the page opened.
+    footer) beside the line of text. CSS hides the line.
+  - A script in the page's head (`src/lib/review/pageMarks.ts`) marks the root element before the first paint. It
+    puts `data-review-game` on an address that names a game: `holdsGame`, or a kept game's id after the `#` or in an
+    older address's query. It puts `data-review-last` where this browser keeps a last review
+    (`learn-enclosure:last-review:1`, `LAST_REVIEW` in `src/lib/game/store.ts`). The CSS variants `review-game` and
+    `review-last` (`src/app.css`) then hide the tab and show the line, and keep the room of "Continue your last
+    review". The head holds the function's own text, so its test checks what the page runs. The test also compares
+    the script with `holdsGame`. The page runs the function again as its code starts, for an address that a
+    navigation in the page opened.
   - The page holds both until it has read its address (`shown` in `src/routes/review/+page.svelte`, which replaces
     `noGame`). The tab reads the browser's games only once the page has chosen it (`chosen`), so that a review's
     address does not ask for persistent storage or count the visitor's games.
-  - `ready` is gone. The link, the list of games and the line on storage come together once the games are read
-    (`read`).
-  - "Continue your last review" takes two lines below 640 pixels and one from 640, its game cut with an ellipsis, so
-    that its height is known before the read. Before, its line wrapped where the game's name needed it.
-  - The footer waits for the read while the page's code runs. With no script, CSS's `scripting` media feature
-    (Tailwind's `noscript` variant) shows it.
-- **Two shifts in the first build of the change,** found by the measurement below and fixed:
+  - `ready` is gone. The link, the list of games and the line on storage come together once the tab has read the
+    games and the storage's state (`read`). It reads the two at the same time.
+  - "Continue your last review" takes two lines below 640 pixels and one from 640, and an ellipsis cuts its game to
+    fit. So the page knows the link's height before the read. Before, its line wrapped where the game's name needed
+    it.
+  - With a script, the footer stays invisible from the first paint until the read. With no script, CSS's
+    `scripting` media feature (Tailwind's `noscript` variant) shows it.
+- **Two shifts in the first build of the change.** The measurement below found them, and the change fixes them:
   - the list of games came above the footer and moved it down: 0.0015 to 0.0035 at the desktop's sizes. Hence the
     footer's wait.
   - at 390 pixels, the link's game on one line was wider than the column, and the tab's grid column grew to it, so
@@ -3921,6 +3924,24 @@ sweep.
 - **The layout sweep** (`tests/layout.spec.ts`) now covers the Review tab too, with the fixture's game kept: "Continue
   your last review" and the list of games. It passed in Playwright's Chromium, every page at every size. Its Edge
   project did not run.
+- **Reviewed:**
+  - The script takes the key of the last review from `store.ts` (`LAST_REVIEW`), as an argument in the head's text,
+    so the two cannot differ. The tab reads its games and the storage's state at the same time.
+  - The script read every `game` after the `#`, and the page reads the first. So `#game=&game=g1` showed the line,
+    then the Review tab. The script now reads the first `game` too, and its test compares it with `holdsGame`.
+  - Checked in Playwright's Chromium, headless, on the local build, with the fixture's review stored. On the Review
+    tab at 320, 360, 390, 639, 640 and 1,366 pixels wide: the tab showed in every frame and the line in none. The
+    heading and the footer stayed at one place, and no layout shift occurred. The link's room had the link's height:
+    78 pixels below 640 and 52 from 640. No page scrolled sideways. The link's accessible name held its whole text,
+    also where the ellipsis cut the game.
+  - The Review tab asked for persistent storage and read the list of games. `#game=`, `?game=` and `#record=` did
+    neither, and showed the tab in no frame.
+  - Odd addresses (`#%ZZ%`, `#=x`, `#game=%E0%A4%A`, `#game=x&game=`, `?game=%`, `#%`, `#at=3&x=1`) threw no error.
+    Each ended on the page's message for it, and the script's mark agreed with what the page then did.
+  - After a review, a navigation in the page to Tools and back to the Review tab took off the stale mark, and the
+    tab showed. With JavaScript off at 390 pixels, `/review` and `/review#game=…` showed the heading, the import and
+    the footer.
 - **What stays:** a last review whose game is no longer kept closes the link's room when the games are read, and the
-  page moves up. A deleted game's review is forgotten with it (`deleteGame` in `src/lib/game/store.ts`).
+  page moves up. A delete forgets the game's review too (`deleteGame` in `src/lib/game/store.ts`). Where the page's
+  code does not load, the footer stays invisible. Before the change, the page then showed only its line of text.
 - **Not measured:** Edge, the owner's devices, a slower device, and a store that reads slowly.

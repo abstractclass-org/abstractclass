@@ -38,7 +38,8 @@ learn one, and remove a note when it stops being true. The work itself is in bea
     `longTasks(times)` gives the tasks over 50 ms (`LONG_TASK`): how many, their time beyond 50 ms, and the longest.
   - `layoutShift(page, since)` gives the page's Cumulative Layout Shift and each element that moved. It reads a
     buffered `PerformanceObserver`: `performance.getEntriesByType("layout-shift")` gives no entries.
-    `layout-shift.mjs` compares two builds' layout shift with it, on the review and on the Analysis board, in pairs.
+    `layout-shift.mjs` compares two builds' layout shift with it, on the review, on the Analysis board and on the
+    Review tab, in pairs.
   - `inPairs(builds, count, run)` runs two builds in alternating pairs, and reads the machine's load
     (`machineLoad()`) before each run. `verdict(pairs)` gives each pair's difference, each build's median and spread,
     and whether the pairs show a change: every pair agrees, and the median difference is at least the larger of the

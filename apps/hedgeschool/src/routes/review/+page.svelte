@@ -395,8 +395,8 @@
   }
 </script>
 
-<!-- The prerendered page, which search engines read, is the Review tab: its address holds no game. -->
 <svelte:head>{@html `<script>${REVIEW_PAGE_SCRIPT}</script>`}</svelte:head>
+<!-- The prerendered page, which search engines read, is the Review tab: its address holds no game. -->
 {#if gameOpen}<PageMeta title="Game review · Hedge School" />
 {:else}<PageMeta title="Review a game · Hedge School"
                  description="Review your Enclosure game: the engine in your browser judges each move, and shows where the game turned and what was better. Import it from strategyjam.org, meaf.us or a record." />{/if}
@@ -404,8 +404,6 @@
 {#if arriving}
   <Arrival />
 {:else if !shown}
-  <!-- The Review tab. Until the page has read its address, the line of text takes its place where the head's script
-       marked an address that names a game. -->
   {#if shown === undefined}<p class="{MESSAGE} text-muted hidden review-game:block">Reading the game with the engine's rules…</p>{/if}
   <div class={["contents", shown === undefined && "review-game:hidden"]}><ReviewHome chosen={shown !== undefined} /></div>
 {:else if elsewhere}

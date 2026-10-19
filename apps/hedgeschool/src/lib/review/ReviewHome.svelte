@@ -56,9 +56,7 @@
   $effect(() => { if (chosen) untrack(() => void open()); });
   async function open() {
     manifestLoad = loadManifest();
-    const list = await listGames(), persisted = !!(await storageKept());
-    games = list;
-    kept = persisted;
+    [games, kept] = await Promise.all([listGames(), storageKept().then(Boolean)]); // the list with its line on storage
     lastId = lastReview();
     read = true;
     setVisitor({ games_stored: range(games.length, GAME_RANGES) }); // how many games a visitor keeps (design 17)
@@ -87,9 +85,9 @@
   async function importGame(event: SubmitEvent) {
     event.preventDefault();
     problem = "";
-    let read: ReturnType<typeof readPasted>;
+    let pasted: ReturnType<typeof readPasted>;
     try {
-      read = readPasted(text);
+      pasted = readPasted(text);
     } catch (e) {
       problem = (e as Error).message;
       trackImportFailed("review", pastedSource(text), "record");
@@ -98,15 +96,15 @@
     checking = true;
     let id: string;
     try {
-      id = await importRecord(read.recordText, read.record);
+      id = await importRecord(pasted.recordText, pasted.record);
     } catch (e) {
       problem = errorText(e);
-      trackImportFailed("review", read.source, "rejected");
+      trackImportFailed("review", pasted.source, "rejected");
       return;
     } finally {
       checking = false;
     }
-    trackImport("review", read.source, read.record.moves.length);
+    trackImport("review", pasted.source, pasted.record.moves.length);
     location.assign(`/review#game=${id}`); // the review loads it (hashchange)
   }
 
@@ -158,8 +156,8 @@
 
   // A game's link loads the page again (data-sveltekit-reload): a change of the `#` alone would leave this page as it is.
   const title = (r: GameRecord) => { const p = playerNames(r.tags); return `${p.blue} against ${p.red}`; };
-  // "Continue your last review" and its room: two lines on a phone, one from 640 pixels with the game cut to fit, so
-  // that the link's height is known before the games are read.
+  // "Continue your last review" and its room: two lines on a phone and one from 640 pixels, and the link cuts its game
+  // to fit. So the page knows the link's height before it reads the games.
   const CONTINUE = "flex-col sm:flex-row sm:items-baseline gap-x-3 gap-y-1 px-5 py-3.5 bg-panel border border-line rounded-lg";
 </script>
 
@@ -176,7 +174,7 @@
       <span class="truncate text-muted">{title(last.record)}, {last.record.moves.length} edges</span>
     </a>
   {:else if !read}
-    <div class="{CONTINUE} hidden review-last:flex invisible" aria-hidden="true"><strong>Continue your last review</strong><span>&nbsp;</span></div>
+    <div class="{CONTINUE} hidden review-last:flex invisible"><strong>Continue your last review</strong><span>&nbsp;</span></div>
   {/if}
 
   <section class="bg-panel border border-line rounded-lg px-5 py-5">
@@ -244,7 +242,7 @@
   {/if}
 </main>
 
-<!-- The footer waits for the list of games, which comes above it, while the page's code runs: with no script, it shows. -->
+<!-- With a script, the footer waits for the list of games, which comes above it. With no script, it shows. -->
 <div class={[!read && "invisible noscript:visible"]}><SiteFooter /></div>
 <ConfirmDialog open={!!deleting} title="Delete this game?" action="Delete" onanswer={answerDelete}>
   {SITE_NAME} will delete the game <strong>{deleting?.name}</strong> from this browser. You cannot undo this action.

@@ -1,7 +1,8 @@
 // The layout shift of the review, the Analysis board and the Review tab as they load (decisions/product.md, "The layout
-// shift of the review and the Analysis board, again"): two builds in alternating pairs (speed.mjs, inPairs), at each window size, in
-// Playwright's Chromium, headless, with its scroll bars shown (playwright.config.ts). Each build is served from its own
-// folder on its own port (speed.mjs, preview), and opens in a page of its own, so each keeps its own stored games.
+// shift of the review and the Analysis board, again" and "The Review tab before the page's code runs"): two builds in
+// alternating pairs (speed.mjs, inPairs), at each window size, in Playwright's Chromium, headless, with its scroll bars
+// shown (playwright.config.ts). Each build is served from its own folder on its own port (speed.mjs, preview), and
+// opens in a page of its own, so each keeps its own stored games.
 //   - review: the review of tests/fixtures/hedgefund-review.json, stored, reloaded. Each reload waits for the mark
 //     `review:shown` (src/routes/review/+page.svelte), then 3 seconds for the frames after it.
 //   - board: the Analysis board from an analysis file of the fixture's first 15 edges, every move evaluated, with a
@@ -50,10 +51,9 @@ const builds = [];
 const port = Number(process.env.PORT ?? 4193);
 for (const [dir, k] of [[before, 0], [after, 1]]) {
   const served = await preview(dir, port + k), page = await browser.newPage({ viewport: { width: sizes[0][0], height: sizes[0][1] } });
-  if (kind === "review") await storeReview(page, served.url);
-  else if (kind === "tab") {
+  if (kind !== "board") {
     await storeReview(page, served.url);
-    await page.goto(`${served.url}/review`);
+    if (kind === "tab") await page.goto(`${served.url}/review`);
   } else {
     const file = join(tmpdir(), "layout-shift-board.json");
     writeFileSync(file, JSON.stringify(boardFile()));

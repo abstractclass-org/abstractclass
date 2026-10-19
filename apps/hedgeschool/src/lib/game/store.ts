@@ -146,8 +146,8 @@ export async function deleteGame(id: string) {
 }
 
 // The game the Review link opens: the last one reviewed in this browser. Storage can be blocked, so a read or a write
-// may fail, and the link then asks for a game.
-const LAST_REVIEW = "learn-enclosure:last-review:1";
+// may fail, and the link then asks for a game. The review page's head reads it too (review/pageMarks.ts).
+export const LAST_REVIEW = "learn-enclosure:last-review:1";
 
 /** The id of the last game reviewed in this browser, or null. */
 export const lastReview = (): string | null => readLocal(LAST_REVIEW);

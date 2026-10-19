@@ -95,16 +95,17 @@ will add more. A page whose name says "import" cannot say where the game goes.
      `/review#game=…`.
      - **Its first paint:** `/review` prerenders as the Review tab (design 23), with its fixed parts: the heading,
        the text, the import, "Load a review file" and the footer. They show before the page's code runs, and with no
-       script at all. The prerendered page cannot know whether the address names a game, since the game stays after
-       the `#`. So a script in the page's head marks the address before the first paint, on the model of the theme's
-       script (`src/app.html`): an address that names a game (`holdsGame`, or a kept game's id), and a last review
-       kept in this browser. CSS then hides the Review tab for an address that names a game, and shows the line
-       "Reading the game with the engine's rules…" in its place (design 06, item 10). It keeps the room of "Continue
-       your last review" where a last review is kept.
+       script at all. With a script, the footer waits for the games (below). The prerendered page cannot know whether
+       the address names a game, since the game stays after the `#`. So a script in the page's head marks the address
+       before the first paint, on the model of the theme's script (`src/app.html`). It marks an address that names a
+       game (`holdsGame`, or a kept game's id), and a last review that this browser keeps. CSS then hides the Review
+       tab for an address that names a game, and shows the line "Reading the game with the engine's rules…" in its
+       place (design 06, item 10). Where the browser keeps a last review, CSS keeps the room of "Continue your last
+       review".
      - **Its games come together** once the page's code has read them: "Continue your last review", the list and the
-       line on storage. The link takes two lines on a phone and one from 640 pixels, its game cut to fit, so that its
-       height is known before the read. The footer, under the list, waits for the read while the page's code runs.
-       So nothing moves when the games come (a layout shift).
+       line on storage. The link takes two lines on a phone and one from 640 pixels, and an ellipsis cuts its game to
+       fit. So the page knows the link's height before the read. With a script, the footer under the list stays
+       invisible from the first paint until the read. So nothing moves when the games come (a layout shift).
    - **The Analysis tab** (`/analysis`): the board, with its New menu (the standard start, the board editor, Import:
      a position or moves pasted, Load: an analysis file) and its Export.
    - **The board editor** (`/editor`): sets up a position for the board (design 21).

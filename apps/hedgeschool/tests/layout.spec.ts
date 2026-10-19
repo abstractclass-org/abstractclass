@@ -8,7 +8,8 @@
 //     text by design (the board editor's position), and a moving gleam that its bar clips (Lichess's bar-glider);
 //   - the header is one row.
 // The review shows a game of HedgeFund against itself, reviewed (tests/fixtures/hedgefund-review.json, made by
-// scripts/test-fixture.mjs), the Review tab that game kept, and Practice a game in progress from it. Run: npm run test:layout (the site running first).
+// scripts/test-fixture.mjs), the Review tab with that game kept, and Practice a game in progress from it. Run: npm run
+// test:layout (the site running first).
 import { expect, test, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 
