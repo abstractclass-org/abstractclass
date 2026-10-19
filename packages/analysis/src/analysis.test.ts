@@ -198,7 +198,7 @@ test("a focus with a time limit stops at its first result past the limit, though
   mock.timers.reset();
   mock.timers.enable({ apis: ["setTimeout", "Date"] }); // the clock moves, the timers wait: a hidden tab runs them late
   const { pool, searches } = fakePool();
-  const game = new GameAnalysis(pool, MOVES, BOARD_ID);
+  const game = new GameAnalysis(words, pool, MOVES, BOARD_ID);
   await game.start();
   await game.sweep();
   game.setDepth(4096, 2);
