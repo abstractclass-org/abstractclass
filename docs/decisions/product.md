@@ -4621,3 +4621,60 @@ sweep.
     Playwright tests in Chromium on a preview of the build (21 passed, 6 skipped). A script drove `/editor` in
     headless Chromium, with a mouse and with Playwright's touch emulation (390 by 844 pixels), and all 58 of its
     checks passed: the checks above, and a typed count that stayed typed after a reload.
+
+### The passes end with the old network (2026-10-20)
+
+- **The problem** (abscls-z0l6, found in the review of abscls-s9u): after the player chose another network, a search
+  could start on the old network's pool for the new network's analysis. Its result then showed under the new network.
+  The new sweep skips a position that holds a result at its budget, so the new network did not search that position,
+  and its label stayed the old network's. Two ways led there, in `packages/analysis/src/analysis.svelte.ts`:
+  - **Another network during the sweep.** `dropAnalysis()` halts the old pool and starts a new era, so the results
+    that still arrive from the old pool are dropped. It did not end the run of the passes. The halt cancels the
+    sweep's waiting searches, and its running searches finish their few visits, so the run's sweep pass ended at once.
+    The next pool loads its network for some seconds, and the next run starts only after that (`sweep()`). Meanwhile
+    the old run started its label pass. Each label search took the new era and the old pool. It read the browser's
+    store with the old network's SHA-256 and kept a stored result, or it searched on the old pool, which a halt does
+    not end, and kept that result.
+  - **Another network while the first one loads.** The review's analysis exists once the rules work, and the engine
+    settings show from then. The first pool then loads its network. When the player chooses another network in that
+    time, `dropAnalysis()` comes before the first sweep. The session's start (`EngineSession.start`) still gives the
+    analysis to the page when the first network has loaded, because the next pool has not taken over yet. The page
+    then calls `sweep()`, which made the engine ready on the old pool. So the whole review searched there in the new
+    era: the sweep, the label pass, and the searches that start when the engine is ready.
+- **The change** (design 05, "Another network"):
+  - `dropAnalysis()` ends the run of the passes (`passes`), as it ends the era and the focus. The old run stops after
+    its sweep pass.
+  - From `dropAnalysis()` to `usePool()`, the pool has the old network, and `sweep()` does nothing: no pass runs, and
+    the engine is not ready. The review says "Loading the engine's network…" until the next pool's sweep. The board's
+    `sweep()` follows the same rule.
+- **Why not the other fix:** the issue named a second fix: `sweep()` stops after its sweep pass while the engine is
+  not ready (`engineReady`). That stops the first way, but not the second, where the page's `sweep()` makes the engine
+  ready on the old pool. The run's counter is what stops an old run. `engineReady` is what the other searches read.
+  So the change keeps one meaning for each: the counter ends the run, and the engine stays not ready until a pass can
+  run on the next pool.
+- **The other searches, checked** for the same race (a search that takes the new era and the old pool):
+  - The position on screen (`focus`), the Greats' confirmations (`confirmGreat`) and a branch move evaluated on
+    request (`judge`) start no search while the engine is not ready. The key moments (`deepen`) start only when the
+    page asks, and the page asks only when the engine is ready and the label pass is done. The engine turned on again
+    (`setPaused`) and another review depth (`setReview`) start work again only when the engine is ready.
+  - The key moments' and the Greats' searches that run or wait at the change have the old era, so their results are
+    dropped. The halt cancels the waiting ones and stops the ones in slices. The old pool ends at `usePool()`, and
+    its searches that still run then reject. So no search of the old era stays in the lists of searches queued or
+    running (`deepening`, `confirming`), where it would keep the same search from starting in the new era.
+  - A snapshot (design 20) is not affected. Its analysis has the rules alone and never sweeps, and a change of the
+    network waits while it shows.
+- **The test** (`packages/analysis/src/analysis.test.ts`), with the pool whose searches the test ends. Both tests
+  failed before the change. The first fails without the end of the run, and the second without the wait for the next
+  pool:
+  - Another network during the sweep, then the end of the sweep's searches: no label search starts on the old pool,
+    and a stored label result of the old network does not show. Then the next pool's sweep searches every position.
+    Before the change, 3 label searches started on the old pool, the stored result showed for the start, and the
+    next sweep searched 3 of the 4 positions.
+  - Another network before the first sweep, for the review and for the board: `sweep()` and the focus start no
+    search, and the engine is not ready. After `usePool()`, `sweep()` makes the engine ready, and the searches start
+    on the next pool. Before the change, the review's sweep and its focus started 5 searches on the old pool.
+- **Not seen in a browser.** The tests are the evidence.
+- **Left:** a network chosen after Review again on a snapshot, before the new review's analysis shows, goes to the
+  snapshot's analysis, and the new review runs on the earlier network (abscls-ysbn). In the second way above, the
+  session's start also gives the GPU's control for the new network to the first pool until the next pool replaces it.
+  No search of the analysis runs there now.

@@ -1,7 +1,8 @@
 // Checks the analysis's batch (BATCH_MS in analysis.svelte.ts): a search's results so far and its final result are
 // applied together, at most once a batch, the deepest for each position, with what follows a search's end (the passes'
 // progress, its mark). And the order of a search's end: the engine takes its next search at once, and the result shows
-// in the batch after its write to the store, or once it is stored when no search runs or waits. Run: npm test.
+// in the batch after its write to the store, or once it is stored when no search runs or waits. And another network:
+// no pass searches on the old network's pool for the new network's analysis. Run: npm test.
 import { afterEach, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
 import "./testing/svelteModules.ts";
@@ -9,7 +10,8 @@ import type { AnalysisReply, PositionQuery } from "@abstractclass/engine/protoco
 import type { EnginePool, Work } from "@abstractclass/engine/pool.ts";
 import { BOARD_ID } from "./kept.ts";
 import { wordFields, words } from "./testing/game.ts";
-import { SWEEP_VISITS, readAnalysisKey } from "./cache.ts";
+import { SWEEP_VISITS, analysisKey, cachePut, readAnalysisKey } from "./cache.ts";
+import { toAnalysis } from "./reply.ts";
 import { STORES } from "@abstractclass/storage/db.ts";
 import { memoryDb } from "@abstractclass/storage/memoryDb.ts";
 
@@ -50,7 +52,7 @@ function fakePool(engines = Infinity) {
       };
       if (busy < engines) start(); else waiting.push(start);
     }),
-    cancel() {}, halt() {},
+    cancel() {}, halt() {}, terminate() {},
     get idle() { return busy === 0 && waiting.length === 0; },
   };
   return { pool: pool as unknown as EnginePool, searches };
@@ -68,7 +70,7 @@ async function sweeping(engines?: number) {
   await game.start();
   void game.sweep();
   await settle();
-  return { game, searches, written: () => store.puts(STORES.analysis).filter(k => readAnalysisKey(String(k)).model === pool.model!.sha256) };
+  return { game, pool, searches, written: () => store.puts(STORES.analysis).filter(k => readAnalysisKey(String(k)).model === pool.model!.sha256) };
 }
 
 beforeEach(() => mock.timers.enable({ apis: ["setTimeout"] }));
@@ -110,6 +112,43 @@ test("a search of the previous network adds nothing to the analysis or the progr
   assert.deepEqual(game.analysis.slice(0, 2), [undefined, undefined]);
   assert.equal(game.swept, 0);
   assert.equal(written().length, 1); // the first search's alone
+});
+
+test("the passes end with the previous network: no label search starts on its pool or reads its results", async () => {
+  const { game, pool, searches } = await sweeping();
+  const n = game.passCount, visits = game.labelVisits;
+  // The start's label result by the previous network, in the store.
+  await cachePut(analysisKey(pool.search!, pool.model!.sha256, [], visits), toAnalysis(words, reply(visits)));
+  game.dropAnalysis();
+  for (const s of searches) s.end(SWEEP_VISITS); // the sweep's searches finish their few visits, as a halt lets them
+  await turns();
+  mock.timers.tick(BATCH_MS);
+  assert.equal(searches.length, n);
+  assert.deepEqual([game.analysis.filter(a => a).length, game.labelled], [0, 0]);
+  const next = fakePool(); // the next network's pool, loaded
+  game.usePool(next.pool);
+  void game.sweep();
+  await settle();
+  assert.equal(next.searches.length, n); // every position, the start too
+});
+
+test("a sweep after another network was chosen waits for that network's pool", async () => {
+  for (const id of ["g", BOARD_ID]) { // the review's passes, and the board's searches
+    const { pool, searches } = fakePool();
+    const game = new GameAnalysis(words, pool, MOVES, id);
+    await game.start();
+    game.dropAnalysis(); // another network, chosen while the pool loads its first
+    void game.sweep(); // the first network loaded
+    game.focus([]);
+    await settle();
+    assert.deepEqual([searches.length, game.engineReady], [0, false], id);
+    const next = fakePool();
+    game.usePool(next.pool);
+    void game.sweep();
+    game.focus([]);
+    await settle();
+    assert.deepEqual([next.searches.length, game.engineReady], [game.board ? 1 : game.passCount + 1, true], id);
+  }
 });
 
 test("the engine takes its next search while a result's write commits, and the result shows once it is stored", async () => {
