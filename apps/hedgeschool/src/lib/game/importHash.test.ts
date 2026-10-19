@@ -1,8 +1,8 @@
-// Checks what the import page reads after its `#`: a link from another site (design 18), beside the meaf.us tools'
-// (userscript.test.ts). Run: npm test.
+// Checks what the import page and the review read after their `#`: a link from another site (design 18), beside the
+// meaf.us tools' (userscript.test.ts). Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { analysisAddress, holdsGame, readImportHash, staleTool } from "./importHash.ts";
+import { analysisAddress, holdsGame, readImportHash, reviewArrives, staleTool } from "./importHash.ts";
 
 const record = '[Site "https://www.enclosuregame.com/game/abc123"]\n\n1. D10-E13 2. Q10-R8 O11-Q10 *';
 const current = { bookmarklet: "1", userscript: "abc" };
@@ -29,6 +29,19 @@ test("a bare record is still an older tool's, even when it holds an equals sign"
 test("a partner's page that sends a kept review names its origin, and may name its save page", () => {
   const sent = readImportHash(String(new URLSearchParams({ from: "https://www.enclosuregame.com", save: "https://www.enclosuregame.com/s" })));
   assert.deepEqual(sent, { record: "", tool: null, version: "", site: null, at: null, link: true, save: "https://www.enclosuregame.com/s", from: "https://www.enclosuregame.com" });
+});
+
+test("the review's arrival step takes its own ways in, and leaves a record to the import page (design 22)", () => {
+  // A shared review, a partner's page that sends a kept review back, a tool's game from a tool older than the import
+  // page.
+  for (const hash of ["#packed=AQx", `#${new URLSearchParams({ from: "https://www.enclosuregame.com", save: "https://www.enclosuregame.com/s" })}`,
+                      `#${new URLSearchParams({ tool: "userscript", v: "old", site: "meaf.us", record })}`])
+    assert.equal(reviewArrives(hash), true, hash);
+  // A link's record, with its save page or not, an older tool's bare record, a `tool` after the record (a link's), a
+  // kept game, and none.
+  for (const hash of [`#${new URLSearchParams({ record })}`, `#${new URLSearchParams({ record, save: "https://www.enclosuregame.com/s" })}`,
+                      `#${encodeURIComponent(record)}`, `#${new URLSearchParams({ record, tool: "bookmarklet" })}`, "#game=abc", ""])
+    assert.equal(reviewArrives(hash), false, hash);
 });
 
 test("the analytics wait while the address holds a game after its `#` (design 22)", () => {

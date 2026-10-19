@@ -8,8 +8,9 @@
 //     text by design (the board editor's position), and a moving gleam that its bar clips (Lichess's bar-glider);
 //   - the header is one row.
 // The review shows a game of HedgeFund against itself, reviewed (tests/fixtures/hedgefund-review.json, made by
-// scripts/test-fixture.mjs), the Review tab with that game kept, and Practice a game in progress from it. Run: npm run
-// test:layout (the site running first).
+// scripts/test-fixture.mjs), the Review tab with that game kept, and Practice a game in progress from it. The import
+// page shows the choice for a userscript's game, with the notice to update the userscript. Run: npm run test:layout
+// (the site running first).
 import { expect, test, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 
@@ -97,6 +98,14 @@ for (const path of ["/", "/about", "/privacy", "/notation", "/tools", "/editor",
     expect(await sweep(page, path)).toBe("");
   });
 }
+
+// The import page's choice for a tool's game (design 21), below the notice that an out-of-date userscript gets.
+test("layout of the choice for a tool's game", async ({ page }) => {
+  const record = '[Blue "Ann"]\n[Red "Bo"]\n\n1. D10-E13 2. Q10-R8 O11-Q10 *\n';
+  await page.goto("/import#" + new URLSearchParams({ tool: "userscript", v: "old", site: "strategyjam.org", at: "1", record }));
+  await expect(page.getByRole("button", { name: "Analyze on the board" })).toBeVisible();
+  expect(await sweep(page, "/import, a tool's game")).toBe("");
+});
 
 // The review's display settings that change its move list's width (review/display.ts): by turn, the turn's label and
 // loss in a fourth column; by edge, each edge's in its own cell, wider (the move list cut at 1,280 pixels showed by

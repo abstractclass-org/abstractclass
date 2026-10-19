@@ -32,8 +32,8 @@ The early access stays: the About page says that everything can change (design 1
 5. **The preview image:** 1,200 × 630 pixels, Open Graph's size (`static/brand/card.png`). It shows a corner of a
    board, the collie, "Hedge School", "Learn Enclosure" and the address, in the site's dark theme. Edge draws it from
    `scripts/social-card.html`, whose comment gives the command.
-6. **Pages kept out:** `/import`, an address that forwards (design 22), and the pages of the full site that the early
-   access does not build (`/puzzles`, `/learn`, `/lab/engine`) carry `noindex`.
+6. **Pages kept out:** `/import`, which only takes a game that a link carries (design 22), and the pages of the full
+   site that the early access does not build (`/puzzles`, `/learn`, `/lab/engine`) carry `noindex`.
 7. **The sitemap** (`/sitemap.xml`, prerendered): the pages that a visitor opens. Home, the Review tab, the Analysis
    board, the board editor, How a review works, Tools, the notation, About, For developers, Privacy and Notices.
 8. **Structured data** on the home page (schema.org, as JSON-LD): a website, and a web application that is free.

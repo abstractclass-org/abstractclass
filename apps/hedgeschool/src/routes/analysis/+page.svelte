@@ -105,7 +105,7 @@
     const hash = location.hash.slice(1);
     if (!holdsGame(hash)) { startAnalytics(); return { board: kept, at: keptAt }; }
     const p = new URLSearchParams(hash), record = p.get("record"), position = p.get("position"), via = p.get("via");
-    replaceState("/analysis", {});
+    await replaceState("/analysis", {}); // async: the address changes only once it resolves
     startAnalytics();
     const brings = record !== null || position !== null; // moves or a start, not saved work
     const imported: ImportSource | undefined = !brings || OWN.includes(via ?? "") ? undefined

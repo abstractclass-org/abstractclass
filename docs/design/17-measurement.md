@@ -62,8 +62,7 @@ The events use the site's words (design 22), each for one thing:
 | `import_failed` | an import refused | `import_to`, `import_source`, `import_failure` (record: not read, rejected: the rules or the storage refused it, link: broken) | what breaks imports |
 | `load_saved` | saved work loaded: a review or an analysis, from a file, a share link or a partner site | `load_source` (review_file, analysis_file, review_share_link, analysis_share_link, partner_review), `edges` (its game's), `with_results` (a review file, a partner's review), `with_branches` (a review's share link) | which saved work comes back, and the funnel's second step |
 | `load_failed` | a load refused | `load_source`, `load_failure` (file, link: not read, rejected: the rules or the storage refused its game) | what breaks loads |
-| `import_forwarded` | a link that used the old address, `/import`, forwarded to the review (design 22) | `import_source`, or `load_source` for a partner's review | when the forwarding can stop |
-| `tool_out_of_date` | the review asks to update a tool (Arrival) | `stale_tool` (bookmarklet, userscript, older) | how many players still need the new tools |
+| `tool_out_of_date` | the import page or the review asks to update a tool (Arrival) | `stale_tool` (bookmarklet, userscript, older) | how many players still need the new tools, and, on the review, when `/review#tool=` can go (design 22) |
 | `review_share_open` | a review's share link opened, before its load | `network_found`, `same_engine` | whether shared reviews arrive whole |
 | `game_missing` | a review's address in a browser without the game | none | whether players send review addresses, which do not work in another browser |
 | `review_open` | the review starts, with the engine loaded, or a snapshot opens (design 20) | `network`, `depth`, `depth_on_screen`, `time_limit`, `workers`, `gpu_mode`, `cores`, `edges`, `own_settings`, `done_before`, `practice_game` (a game against the practice bot) | the funnel's second step, and the settings in use |
@@ -284,8 +283,9 @@ one row for each tab. A row gives all the settings of its tab. "None" means: lea
 ##### 1. Funnel: where do players drop off?
 
 The funnel shows where players stop, from the Review tab to the review's export. It follows the review only: its
-second step takes the imports and the loads on the review's page, and its export step the exports there. A game
-imported or loaded to the review counts on the review's page (`/review`), and one to the board on the board's.
+second step takes the imports and the loads to the review, and its export step the exports there. A game imported or
+loaded to the review counts on the review's page (`/review`), and one to the board on the board's. A game from
+outside, a tool's or another site's link, counts on the import page (`/import`), where it arrives.
 
 **Variables:** the dimensions **Import source** and **Load source**. No metrics.
 
@@ -300,7 +300,7 @@ The steps:
 | Step | Name | Condition |
 |---|---|---|
 | 1 | Review tab | **Page path and screen class** exactly matches `/review` |
-| 2 | Game in | **Event name** matches regex `import_game\|load_saved` (type it without the backslash), **And** **Page path and screen class** exactly matches `/review` |
+| 2 | Game in | **Event name** matches regex `import_game\|load_saved`, **And** **Page path and screen class** matches regex `/review\|/import` (type both without the backslash) |
 | 3 | Review open | **Event name** exactly matches `review_open` |
 | 4 | Review done | **Event name** exactly matches `review_done` |
 | 5 | Export | **Event name** exactly matches `export`, **And** **Page path and screen class** exactly matches `/review` |
@@ -313,8 +313,8 @@ To set a tab of the technique Funnel exploration:
    step's name beside **Step**. Set its condition: the dimension (**Event name**, or **Page path and screen class**),
    **exactly matches** (for step 2, **matches regex**), and the value. For steps 2 and 5, click **And** under the
    event's condition, and set the second condition: **Page path and screen class**. A new condition starts at
-   **contains**: change it to **exactly matches**. When a list of values drops down under the value, click
-   the value in it before **Apply**. Click **Add step** for the next step.
+   **contains**: change it to **exactly matches** (for step 2, **matches regex**). When a list of values drops down
+   under the value, click the value in it before **Apply**. Click **Add step** for the next step.
 3. Click **Apply**. Leave **Make open funnel** off.
 4. For the tab "By way in", click **Drop or select dimension** under **Breakdown**, and click **Import source**. For
    the tab "By load", click **Load source**.
@@ -400,8 +400,7 @@ source**, **Load failure**, **Share network found**, **Share same engine**, **To
 | Loads | Free form | Load source | None | Event count, Total users | exactly matches `load_saved` |
 | Failed loads | Free form | Load source, Load failure | None | Event count | exactly matches `load_failed` |
 | Share links | Free form | Share network found, Share same engine | None | Event count | exactly matches `review_share_open` |
-| Old tools | Free form | Tool out of date | None | Event count | exactly matches `tool_out_of_date` |
-| Old address | Free form | Import source, Load source | None | Event count | exactly matches `import_forwarded` |
+| Old tools | Free form | Tool out of date | Page path and screen class | Event count | exactly matches `tool_out_of_date` |
 | Missing games | Free form | None | None | Event count | exactly matches `game_missing` |
 | Exports | Free form | Export kind | Page path and screen class | Event count, Total users | exactly matches `export` |
 
@@ -446,6 +445,13 @@ change the privacy page in the same release.
 - **Exploration 1:** step 2 in both tabs, as above, and the tab **By load**.
 - **Exploration 6:** the dimensions **Load source** and **Load failure**, the tabs **Loads** and **Failed loads**, and
   **Load source** in the rows of **Old address**.
+
+**The changes for the import page** (design 22: every game from outside on `/import`):
+
+- **Exploration 1:** step 2's second condition, in the three tabs: **Page path and screen class** matches regex
+  `/review|/import`.
+- **Exploration 6:** the column **Page path and screen class** in the tab **Old tools**. Delete the tab **Old
+  address**: the event `import_forwarded` is gone, as no address forwards to the review.
 
 Google shows the events in **Reports → Realtime** at once. The custom dimensions fill the reports within a day or two,
 from the time of their registration on, and the explorations show them from then. An exploration with few players

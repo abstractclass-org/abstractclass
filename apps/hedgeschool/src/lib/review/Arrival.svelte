@@ -1,11 +1,13 @@
 <script lang="ts">
-  // The review's ways in (design 22), when the review's address holds a game after its `#` (importHash.ts):
-  // - a record from the bookmarklet or the userscript on meaf.us or strategyjam.org (bookmarklet.ts, userscript.ts): the
-  //   player chooses to review it or to analyze it on the board (design 21). A review keeps it in this browser first.
-  //   The board keeps no game in the list: the record goes to the board's address, at the position that the game's page
-  //   showed (analysisAddress). For an out-of-date tool, the page also says how to update it;
-  // - a record from another site's link (`record=`, design 18): checked with the engine's rules, given its cut marks,
-  //   kept in this browser, and reviewed, with the partner's save page when the link names one;
+  // The arrival step, when the address holds a game after its `#` (importHash.ts, design 22): on the import page, every
+  // game that comes in from outside, and on the review, its own ways in (reviewArrives).
+  // - a record from the bookmarklet or the userscript on meaf.us or strategyjam.org (bookmarklet.ts, userscript.ts), on
+  //   the import page, or on the review for a tool from before the import page: the player chooses to review it or to
+  //   analyze it on the board (design 21). A review keeps it in this browser first. The board keeps no game in the
+  //   list: the record goes to the board's address, at the position that the game's page showed (analysisAddress). For
+  //   an out-of-date tool, the page also says how to update it;
+  // - a record from another site's link (`record=`, design 18), on the import page: checked with the engine's rules,
+  //   given its cut marks, kept in this browser, and reviewed, with the partner's save page when the link names one;
   // - a shared review (`packed=`, share.ts): what it holds, and that this browser reviews it again, then kept on a
   //   click, with the sender's network and depth;
   // - a partner's page that kept a review (`from=`): it sends the review file once this page asks.
@@ -15,7 +17,7 @@
   import { importRecord } from "#lib/game/import.ts";
   import { errorText } from "#lib/errors.ts";
   import { BOOKMARK_VERSION } from "#lib/game/bookmarklet.ts";
-  import { FORWARDED, analysisAddress, hashParams, readImportHash, staleTool, toolSource, type ImportHash,
+  import { analysisAddress, hashParams, readImportHash, staleTool, toolSource, type ImportHash,
            type Tool } from "#lib/game/importHash.ts";
   import { gamePartner, partnerOf, receiveFromPartner } from "#lib/game/partners.ts";
   import { setGamePartner } from "#lib/game/store.ts";
@@ -26,7 +28,6 @@
   import { startAnalytics, track } from "#lib/analytics.svelte.ts";
   import { trackImport, trackImportFailed, trackLoad, trackLoadFailed, type ImportFailure,
            type ImportSource } from "#lib/game/importEvents.ts";
-  import { readSession, writeSession } from "#lib/storage/local.ts";
 
   const MESSAGE = "box-content max-w-184 mx-auto my-6 px-4 grid gap-4";
 
@@ -47,18 +48,16 @@
     const hash = location.hash.slice(1);
     history.replaceState(null, "", location.pathname); // the game is kept below, not in the address
     startAnalytics(); // after the game has left the address (design 22)
-    const forwarded = readSession(FORWARDED) === "1"; // the link used the old address, /import, which forwarded it here
-    writeSession(FORWARDED, null);
-    void arrive(hash, forwarded);
+    void arrive(hash);
   });
 
-  /** Opens the review of a game now kept in this browser: the review's own address, loaded again. */
+  /** Opens the review of a game now kept in this browser: the review's address, loaded, in place of this one. */
   function review(id: string) {
     history.replaceState(null, "", `/review#game=${id}`);
     location.reload();
   }
 
-  async function arrive(hash: string, forwarded: boolean) {
+  async function arrive(hash: string) {
     const packed = hashParams(hash)?.get("packed");
     if (packed) { await readShared(packed); return; }
     // A failure by the step that fails (design 17): the address, then the record, then the rules or the storage.
@@ -66,12 +65,6 @@
     try {
       const sent = readImportHash(hash), text = sent.record;
       if (!sent.from) source = sent.link ? "site_link" : sent.tool ? toolSource(sent.tool, sent.site) : source;
-      if (forwarded) {
-        // The old address still in use (design 22): a warning for the developer whose link it is, and a count by
-        // the link's source, to tell when the forwarding can stop (design 17).
-        console.warn("Hedge School: /import is deprecated, and forwards here only during the early access. Link to /review#… instead: see https://hedgeschool.abstractclass.org/developers#changes");
-        track("import_forwarded", sent.from ? { load_source: "partner_review" } : { import_source: source });
-      }
       if (sent.from) { await receiveReview(sent.from, sent.save); return; }
       if (sent.link && !text) throw new Error("the link has no record=, which carries the game");
       failure = "record";

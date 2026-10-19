@@ -1,10 +1,11 @@
 // The review's sweep (decisions/product.md, "A search's final results in the batch"): the main thread's tasks while
 // the sweep searches every position of tests/fixtures/hedgefund-review.json's game (120 edges), from no stored result,
 // in Playwright's Chromium, headless, at 1,366 × 657 pixels. Two builds, each served from a folder of its own, run in
-// alternating pairs (speed.mjs, inPairs). Each sweep opens the game's record (`/review#record=`) in a fresh browser
-// context, so that the browser's store holds no result. An init script marks the sweep's start (`sweep:start`, when the
-// progress line first names the game's shape) and its end (`sweep:end`, when it names the move quality), and Chrome's
-// trace gives each task between them, by wall time and by thread time. Each sweep reads:
+// alternating pairs (speed.mjs, inPairs). Each sweep opens the game's record (`/import#record=`, which an older build
+// forwards to `/review#record=`) in a fresh browser context, so that the browser's store holds no result. An init
+// script marks the sweep's start (`sweep:start`, when the progress line first names the game's shape) and its end
+// (`sweep:end`, when it names the move quality), and Chrome's trace gives each task between them, by wall time and by
+// thread time. Each sweep reads:
 //   - the tasks over 50 milliseconds (a long task): how many, their time beyond 50 milliseconds each (as Total
 //     Blocking Time counts it), and the longest, by wall time and by thread time;
 //   - the tasks of 10 milliseconds of thread time or more, the main thread's thread time in all, and the sweep's time;
@@ -72,7 +73,7 @@ async function sweep(url) {
   const page = await context.newPage();
   let searches;
   const traced = await trace(browser, page, async () => {
-    await page.goto(`${url}/review#record=${encodeURIComponent(record)}`);
+    await page.goto(`${url}/import#record=${encodeURIComponent(record)}`);
     await page.waitForFunction(() => performance.getEntriesByName("sweep:end").length, null, { timeout: 900_000 });
     searches = await page.evaluate(() => ({ list: window.__searches, end: performance.getEntriesByName("sweep:end")[0].startTime }));
   }, ["toplevel", "blink.user_timing"]);

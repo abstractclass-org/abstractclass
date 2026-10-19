@@ -1,9 +1,10 @@
 // The marks that the review page's head puts on the root element before the first paint, on the model of the theme's
 // script in src/app.html. `/review` prerenders as the Review tab (design 23), and the page's code runs after the first
 // paint. Until it runs, CSS reads the marks (the variants `review-game` and `review-last` in src/app.css):
-// - `data-review-game`: the address names a game: a way in that holds one (holdsGame in src/lib/game/importHash.ts), or
-//   a kept game's id, after the `#` or in an older address's query (+page.svelte, gameInAddress). The Review tab hides,
-//   and the line "Reading the game with the engine's rules…" shows in its place (design 06, item 10).
+// - `data-review-game`: the address names a game: a way in that the review takes (reviewArrives in
+//   src/lib/game/importHash.ts), or a kept game's id, after the `#` or in an older address's query (+page.svelte,
+//   gameInAddress). The Review tab hides, and the line "Reading the game with the engine's rules…" shows in its place
+//   (design 06, item 10). A record, which only the import page takes, gets the Review tab.
 // - `data-review-last`: this browser keeps a last review (src/lib/game/store.ts, lastReview). The Review tab keeps the
 //   room of "Continue your last review", which comes once the tab has read the browser's games.
 import { LAST_REVIEW } from "#lib/game/store.ts";
@@ -14,14 +15,11 @@ import { LAST_REVIEW } from "#lib/game/store.ts";
 function markPage(lastKey: string) {
   var root = document.documentElement, hash = location.hash.slice(1);
   var game = !!new URLSearchParams(location.search).get("game");
-  if (hash) {
-    // A record's text starts with a tag, a turn or an edge, never with a name and "=" (importHash.ts, hashParams).
-    if (!/^[A-Za-z_]+=/.test(hash)) game = true;
-    else {
-      var params = new URLSearchParams(hash);
-      if (params.get("game")) game = true;
-      params.forEach(function (value, key) { if (key !== "game" && key !== "at") game = true; });
-    }
+  // Parameters, not an older tool's bare record: a record's text starts with a tag, a turn or an edge, never with a
+  // name and "=" (importHash.ts, hashParams).
+  if (/^[A-Za-z_]+=/.test(hash)) {
+    var params = new URLSearchParams(hash);
+    if (/^tool=/.test(hash) || params.get("game") || params.has("packed") || params.has("from")) game = true;
   }
   var last = false;
   try { last = localStorage.getItem(lastKey) !== null; } catch (e) {}

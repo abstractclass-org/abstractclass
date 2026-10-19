@@ -177,34 +177,35 @@ of the Enclosure strategy jam, the tournament (the engine repository's `docs/con
 read the game from the player's own page.
 
 - **On meaf.us, it reads the game that the board holds:** React's `game` property of the board. It sends no request
-  to meaf.us and uses nothing from the player's login. It opens the review with the record after the `#` (design 22),
-  and the review asks the player to review the game or to analyze it on the board (design 21).
+  to meaf.us and uses nothing from the player's login. It opens the import page (`/import`) with the record after the
+  `#` (design 22), and the page asks the player to review the game or to analyze it on the board (design 21).
 - **The bookmark is a loader** (`bookmarklet.ts`): a short `javascript:` that adds this site's `/bookmarklet.js` to the
   game's page at each click. So the bookmark stays as it is when the code changes, and the player drags it to the
   bar once. The script takes the site's address from its own address, so a game goes back to the site that the
   bookmark came from. A click can open a tab only for a few seconds after it: after a slower load, the game's tab
-  goes to the review instead. When the script cannot load, the bookmark says so.
+  goes to the import page instead. When the script cannot load, the bookmark says so.
   - **It depends on the sites' headers:** a content security policy that blocks other sites' scripts would stop it.
     Neither meaf.us nor strategyjam.org sends one. A check of strategyjam.org on 2026-10-17 found none. If one comes,
     the bookmark needs the code in itself again, as before the loader.
   - **The request** carries no game. By default the browser names only the game site's origin as the page that made
     it. The privacy page says so.
-- **Each tool says what it is,** with each game (`importHash.ts`): `#tool=…&v=…&site=…&at=…&record=…` after the
-  review's address. The bookmarklet sends its loader's version (`BOOKMARK_VERSION`), and the userscript a hash of the
-  files that make its code (the build's `__USERSCRIPT_CODE__`, `vite.config.ts`), so that a build that changes
-  neither flags no one. `site` is the page's host: the import's source tells the two sites apart (design 17). A tool from
-  before this sends the record alone, and one from before strategyjam.org sends no site.
-- **The position on the page** (`at`): the game's moves before the position that the page shows, a pass one move, as
-  the record counts them. Both sites have a replay slider whose value is that count. On meaf.us, it is
+- **Each tool says what it is,** with each game (`importHash.ts`): `#tool=…&v=…&site=…&at=…&record=…` after the import
+  page's address. The bookmarklet sends its loader's version (`BOOKMARK_VERSION`), and the userscript a hash of the
+  files that make its code (the build's `__USERSCRIPT_CODE__`, `vite.config.ts`), so that a build that changes neither
+  flags no one. `site` is the page's host: the import's source tells the two sites apart (design 17). A tool from before
+  this sends the record alone, and one from before strategyjam.org sends no site.
+- **The position on the page** (`at`): the game's moves before the position that the page shows, a pass one move, as the
+  record counts them. Both sites have a replay slider whose value is that count. On meaf.us, it is
   `input[aria-label="Replay position"]`, in a watcher's view and in a finished game's view from the History page
-  (`shownMove` in `meafPage.ts`). On strategyjam.org, it is `input.replay-slider` in the panel, live or in a replay,
-  and the arrow keys and the move list move it too (`jamShownMove` in `strategyjamPage.ts`). The tools send the slider's
-  value as it is, and the review reads only a whole number (`readImportHash`). A page without a slider (a meaf.us game
-  that the player plays) sends an empty `at`: it shows the game's last position. The Analysis board opens at `at`
+  (`shownMove` in `meafPage.ts`). On strategyjam.org, it is `input.replay-slider` in the panel, live or in a replay, and
+  the arrow keys and the move list move it too (`jamShownMove` in `strategyjamPage.ts`). The tools send the slider's
+  value as it is, and the import page reads only a whole number (`readImportHash`). A page without a slider (a meaf.us
+  game that the player plays) sends an empty `at`: it shows the game's last position. The Analysis board opens at `at`
   (design 21), and at the game's end without one. A tool from before this sends none.
-- **An out-of-date tool:** the review says how to update the tool (drag the bookmarklet to the bar again, or open the
+- **An out-of-date tool:** the page says how to update the tool (drag the bookmarklet to the bar again, or open the
   userscript, both on the tools page), above the choice between the review and the board. A tool that sent no version
-  counts as out of date.
+  counts as out of date. A tool from before the import page opens the review, which shows the same choice and notice
+  (design 22, item 4).
 - **No game on a page that shows one:** the tools' message says that the game's site may have changed its page, and
   names the tools page (`/tools`), which has the newest tools.
 - **On meaf.us, a player's own game, just after it ends, has no moves in the page.** meaf.us asks its server for a
@@ -258,11 +259,11 @@ read the game from the player's own page.
     `/hedge-school.meta.js`, which Tampermonkey checks for a newer version (`@updateURL`, as Greasy Fork serves a
     `.meta.js`). Each build gives it a later version (the build's time). A change of a site's page then needs no new
     install.
-  - **One click for a finished game on meaf.us.** It opens the review through Tampermonkey (`GM_openInTab`), which no
-    popup blocker stops. So after the reload as a watcher's view, the script runs again, waits for the moves, and opens
-    the game in Hedge School itself. It sends no position then. The player did not move the slider. Also, meaf.us's
-    slider goes to the game's end only just after the page draws the moves, so a read before that gives an earlier
-    position.
+  - **One click for a finished game on meaf.us.** It opens the import page through Tampermonkey (`GM_openInTab`),
+    which no popup blocker stops. So after the reload as a watcher's view, the script runs again, waits for the moves,
+    and opens the game in Hedge School itself. It sends no position then. The player did not move the slider. Also,
+    meaf.us's slider goes to the game's end only just after the page draws the moves, so a read before that gives an
+    earlier position.
   - **No request for its look.** The script draws the button and its collie itself and fetches no image, so no site
     learns of a visit from the button.
   - **The site's address is part of the file** (the build's `SITE_ORIGIN`, `vite.config.ts`): the live site for a build

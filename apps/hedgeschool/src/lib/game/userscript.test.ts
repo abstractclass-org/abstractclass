@@ -43,6 +43,8 @@ test("the code that the userscript and the bookmarklet carry parses, with the si
   assert.doesNotThrow(() => new Function(loader));
   assert.ok(loader.includes(JSON.stringify(ORIGIN)) && loader.includes("/bookmarklet.js?bookmark="));
   assert.doesNotThrow(() => new Function(bookmarkletScript()));
+  // Both open the import page, which asks where the game goes (design 22).
+  for (const code of [script, bookmarkletScript()]) assert.ok(code.includes('"/import#"') && !code.includes('"/review#"'));
 });
 
 test("the import page reads the tool, its version, its site and the record, and an older tool's bare record", () => {

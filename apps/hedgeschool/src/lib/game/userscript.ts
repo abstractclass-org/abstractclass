@@ -2,8 +2,9 @@
 // strategyjam.org, in the page's own context (`@sandbox raw`, which both allow: they send no content security policy),
 // so that it reads the page's game as the bookmarklet does (meafPage.ts, strategyjamPage.ts). It shows a button with the
 // school's collie near the page's lower right corner while a game shows (BUTTON_PLACES), and adds an entry to
-// Tampermonkey's menu. Either opens the game in this site's review, in a new tab, with the record and the position that
-// the page shows after the `#`. The review then asks the player to review the game or to analyze it on the board.
+// Tampermonkey's menu. Either opens the game in this site's import page, in a new tab, with the record and the position
+// that the page shows after the `#`. The import page then asks the player to review the game or to analyze it on the
+// board.
 // Tampermonkey opens the tab (GM_openInTab), so no popup blocker stops it: a finished game of the player's own on
 // meaf.us reloads as a watcher's view, and Hedge School then opens by itself once the moves come. Tampermonkey checks this
 // site for updates (`@updateURL`, a file with the header only, as Greasy Fork serves one), and fetches the script again
@@ -92,7 +93,7 @@ function main(origin: string, icon: string, code: string, places: Record<string,
   const open = (record: () => string, at: string) => {
     let text: string;
     try { text = record(); } catch (e) { show("Hedge School: " + (e as Error).message); return; }
-    GM_openInTab(origin + "/review#" + new URLSearchParams({ tool: "userscript", v: code, site, at, record: text }), { active: true });
+    GM_openInTab(origin + "/import#" + new URLSearchParams({ tool: "userscript", v: code, site, at, record: text }), { active: true });
   };
   function review() {
     if (site === "strategyjam.org") {
@@ -143,7 +144,7 @@ const svg = (size: number) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="
   + `fill-rule="evenodd" aria-hidden="true"><path fill="#fff" d="${HEAD_SILHOUETTE}"/><path fill="#0b0c0e" d="${HEAD_COAT}"/></svg>`;
 
 /** The userscript's header for Tampermonkey, alone: the file that Tampermonkey checks for updates. `origin` is this
- *  site's address, from which the script updates and opens the review. `version` grows with each build, so that
+ *  site's address, from which the script updates and opens the import page. `version` grows with each build, so that
  *  Tampermonkey takes it as an update. */
 export function userscriptHeader(origin: string, version: string): string {
   const header = [

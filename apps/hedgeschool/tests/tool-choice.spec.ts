@@ -1,12 +1,14 @@
-// A game from the bookmarklet or the userscript asks where it goes (design 21, item 5): the review, which keeps the game,
-// or the Analysis board at the position that the game's page showed, which keeps none. A partner's link goes straight
-// to the review (design 18). Each test opens a fresh browser context, so its store starts empty.
+// The import page takes every game from outside (design 22). A game from the bookmarklet or the userscript asks where
+// it goes (design 21, item 5): the review, which keeps the game, or the Analysis board at the position that the game's
+// page showed, which keeps none. A tool from before the import page opens the review, which asks too. A partner's link
+// goes straight to the review (design 18). On the review, a link's record gets the Review tab. Each test opens a
+// fresh browser context, so its store starts empty.
 import { test, expect, type Page } from "@playwright/test";
 
 const record = '[Event "meaf.us game"]\n[Site "meaf.us"]\n[Blue "Ann"]\n[Red "Bo"]\n[Result "*"]\n\n1. D10-E13 2. Q10-R8 O11-Q10 *\n';
 /** The link that the bookmarklet opens on meaf.us: `at` is the position that the page showed, when it said. */
 const toolLink = (at?: number) =>
-  "/review#" + new URLSearchParams({ tool: "bookmarklet", v: "1", site: "meaf.us", ...(at === undefined ? {} : { at: String(at) }), record });
+  "/import#" + new URLSearchParams({ tool: "bookmarklet", v: "1", site: "meaf.us", ...(at === undefined ? {} : { at: String(at) }), record });
 
 /** The browser's store: one store's keys, or one value (src/lib/storage/db.ts). */
 const stored = (page: Page, store: string, key?: string) => page.evaluate(([store, key]) => new Promise(resolve => {
@@ -56,12 +58,44 @@ test("Review the game: the game kept, then reviewed", async ({ page }) => {
   await page.goto(toolLink(1));
   await page.getByRole("button", { name: "Review the game" }).click();
   await page.waitForURL(url => url.pathname === "/review" && url.hash.startsWith("#game="), { timeout: 60_000 });
-  // The review loads its own address again once the game is kept: read the store after that.
+  // The review loads its own address once the game is kept: read the store after that.
   await expect.poll(() => stored(page, "games").catch(() => null), { timeout: 60_000 }).toHaveLength(1);
 });
 
-test("a partner's link goes straight to the review", async ({ page }) => {
+test("a userscript that Tampermonkey has not updated: the review asks too, and says to update it", async ({ page }) => {
+  await page.goto("/review#" + new URLSearchParams({ tool: "userscript", v: "old", site: "strategyjam.org", record }));
+  await expect(page.getByText("Your userscript is older than this site's.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "A game from strategyjam.org" })).toBeVisible();
+  await page.getByRole("button", { name: "Review the game" }).click();
+  await page.waitForURL(url => url.pathname === "/review" && url.hash.startsWith("#game="), { timeout: 60_000 });
+});
+
+test("a partner's link: the game kept, and its review at once, with no choice", async ({ page }) => {
+  await page.goto("/import#" + new URLSearchParams({ record }));
+  // The review opens with no click, so the page asked nothing.
+  await page.waitForURL(url => url.pathname === "/review" && url.hash.startsWith("#game="), { timeout: 60_000 });
+  await expect.poll(() => stored(page, "games").catch(() => null), { timeout: 60_000 }).toHaveLength(1);
+});
+
+test("a partner's link with its save page: the review, with Save to the partner, and no choice", async ({ page }) => {
+  const save = "https://www.enclosuregame.com/hedge-school/save?game=abc123";
+  await page.goto("/import#" + new URLSearchParams({ record, save }));
+  await page.waitForURL(url => url.pathname === "/review" && url.hash.startsWith("#game="), { timeout: 60_000 });
+  await expect(page.getByText(/^Review done/)).toBeVisible({ timeout: 300_000 }); // Export waits for the review
+  await page.getByRole("button", { name: "Export" }).click();
+  await expect(page.getByRole("menuitem", { name: /^Save to enclosuregame\.com/ })).toBeVisible();
+});
+
+test("a link's record on the review: the Review tab, and no game kept", async ({ page }) => {
+  // Only the import page takes a record (design 22).
   await page.goto("/review#" + new URLSearchParams({ record }));
-  await page.waitForURL(url => url.hash.startsWith("#game="), { timeout: 60_000 });
-  await expect(page.getByRole("button", { name: "Analyze on the board" })).toHaveCount(0);
+  await page.waitForLoadState("networkidle"); // the page's code has run
+  await expect(page.getByRole("heading", { name: "Review your Enclosure game" })).toBeVisible();
+  expect(new URL(page.url()).hash).not.toContain("game=");
+  expect(await stored(page, "games")).toEqual([]);
+});
+
+test("the import page alone goes to the tools", async ({ page }) => {
+  await page.goto("/import");
+  await page.waitForURL(url => url.pathname === "/tools");
 });

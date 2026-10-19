@@ -1,22 +1,20 @@
 // What arrives after a page's `#`, as URL parameters: the site's ways in (design 22). The browser never sends that
 // part of an address to a server, and the analytics start only once it holds no game (holdsGame).
-// - The review's (`/review`, and `/import` while it forwards there):
-//   - the tools for meaf.us and strategyjam.org (bookmarklet.ts, userscript.ts): the tool, its version, the site that
-//     it ran on, and the game's record. A tool made before it said so sends the record alone, and one made before it
-//     named the site sends no site (meaf.us). The review uses the version to tell a player whose tool is out of date
-//     (design 11);
-//   - a link from another site (design 18): `record`, the game's record, and `save`, the page where a partner site
-//     takes the review back (partners.ts). Or, from a partner's page that kept a review, `from`, that page's origin:
-//     the review file then comes by a window message;
-//   - `packed`, a shared review (share.ts), and `game`, a game kept in this browser.
+// - The import page's (`/import`): every game that comes in from outside.
+//   - The tools for meaf.us and strategyjam.org (bookmarklet.ts, userscript.ts) send the tool, its version, the site
+//     that it ran on, the position that its page showed, and the game's record. A tool made before it said so sends
+//     the record alone, and one made before it named the site sends no site (meaf.us). The page uses the version to
+//     tell a player whose tool is out of date (design 11).
+//   - A link from another site (design 18): `record`, the game's record, and `save`, the page where a partner site
+//     takes the review back (partners.ts).
+// - The review's (`/review`): `game`, a game kept in this browser. Its arrival step takes the others (reviewArrives):
+//   `packed`, a shared review (share.ts), `from`, the origin of a partner's page that kept a review, which then sends
+//   the review file by a window message, and a tool's game from a tool older than the import page.
 // - The Analysis board's (`/analysis`): `record`, `packed` (a shared analysis), and `at`, the position on screen.
 
 import type { ImportSource } from "./importEvents.ts";
 
 export type Tool = "bookmarklet" | "userscript";
-
-/** The tab's session key that the old import page sets before it forwards to the review (design 22). */
-export const FORWARDED = "hedge-school:forwarded-from-import";
 
 /** The record after the `#`, and what sent it: a tool, its version, the site it ran on and the position that its page
  *  showed, none for an older tool's bare record, or a link from another site with its save page, or the partner's page
@@ -33,8 +31,11 @@ export const hashParams = (hash: string) => (/^[A-Za-z_]+=/.test(hash) ? new URL
 /** What sent a record, for a way in that does not say. */
 const NO_SENDER = { tool: null, version: "", site: null, at: null, link: false, save: null, from: null } as const;
 
+/** Whether the part after the `#` is a tool's game (bookmarklet.ts, userscript.ts). */
+const fromTool = (hash: string) => hash.startsWith("tool=");
+
 export function readImportHash(hash: string): ImportHash {
-  if (hash.startsWith("tool=")) {
+  if (fromTool(hash)) {
     const p = new URLSearchParams(hash), tool = p.get("tool"), at = p.get("at") ?? "";
     return { ...NO_SENDER, record: p.get("record") ?? "", tool: tool === "bookmarklet" || tool === "userscript" ? tool : null,
              version: p.get("v") ?? "", site: p.get("site"), at: /^\d+$/.test(at) ? Number(at) : null };
@@ -73,4 +74,13 @@ export function holdsGame(hash: string): boolean {
   if (!h) return false;
   const p = hashParams(h);
   return !p || [...p.keys()].some(k => k !== "game" && k !== "at"); // none: an older tool's bare record
+}
+
+/** Whether the review's arrival step takes the part after its `#` (design 22): a shared review, a partner's page that
+ *  sends a kept review back, or a tool's game from a tool older than the import page. The import page takes the other
+ *  games from outside. For a link's record or an older tool's bare record, the review shows the Review tab, and the
+ *  analytics wait while the record stays in the address (holdsGame). */
+export function reviewArrives(hash: string): boolean {
+  const h = hash.replace(/^#/, ""), p = hashParams(h);
+  return fromTool(h) || !!p && (p.has("packed") || p.has("from"));
 }

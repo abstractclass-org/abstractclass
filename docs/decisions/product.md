@@ -4089,10 +4089,10 @@ sweep.
 ### Review or Analyze for a game from the tools (2026-10-19)
 
 - **What:** a game that the bookmarklet or the userscript brings from meaf.us or strategyjam.org no longer opens the
-  review at once. The review's page asks first: "Review the game" or "Analyze on the board" (design 21, item 5). A
-  player who watches a game often wants to show how a move could have gone, not to wait for the review of the whole
-  game. A partner's link (`/review#record=…`, design 18) still goes straight to the review: its button says "Review",
-  and its contract stays the same.
+  review at once. The import page (`/import`) asks first: "Review the game" or "Analyze on the board" (design 21, item
+  5). A player who watches a game often wants to show how a move could have gone, not to wait for the review of the
+  whole game. A partner's link (`/import#record=…`, design 18) still goes straight to the review: its button says
+  "Review".
 - **What the two sites' pages hold about the position on screen** (read from the engine repository's copy of
   meaf.us's code, `games/enclosure/tools/.site_cache`, and its saved copy of strategyjam.org's game page,
   `runs/strategyjam/game-page`):
@@ -4108,21 +4108,41 @@ sweep.
     `.stage`, not one of its props, so the slider is the simpler and steadier way to read it.
 - **The tools send it:** `at` in their link (`shownMove` in `meafPage.ts`, `jamShownMove` in `strategyjamPage.ts`).
   With no slider, `at` is empty, and the board opens at the game's last move: the position that a page without a
-  replay shows. The review's page reads only a whole number (`readImportHash`), and the board opens a position past
+  replay shows. The import page reads only a whole number (`readImportHash`), and the board opens a position past
   the game's end at its end. The userscript's own open after the reload as a watcher's view on meaf.us sends no
   position. meaf.us draws the moves with its slider at the old end, and moves it to the new end only after that, so
   a read in between gives an earlier position. The player moved no slider there, so the game's end is right.
 - **The page names only the two sites** ("A game from meaf.us", "the position that you saw on strategyjam.org"), as
   the import's source does (`toolSource`): a link's own `site` text never shows.
-- **Where the choice shows:** in the review's arrival step (`Arrival.svelte`), which already reads the tools' links
-  and asks to update an out-of-date tool. The tools keep their one link, so the bookmark's loader does not change
-  (`BOOKMARK_VERSION` stays 1). The page reads the record before the choice, so a record that it cannot read fails at
-  once, as an import to the review. The engine's rules check it on the page chosen.
+- **Where the choice shows:** on `/import`, by the review's arrival step (`Arrival.svelte`), which already reads the
+  tools' links and asks to update an out-of-date tool. The tools open `/import#tool=…` in place of `/review#tool=…`.
+  The bookmark's loader does not change (`BOOKMARK_VERSION` stays 1): the code that it loads opens the new address.
+  The page reads the record before the choice, so a record that it cannot read fails at once, as an import to the
+  review. The engine's rules check it on the page chosen.
   - **Review the game** keeps the game in the list of games, then reviews it, as before.
   - **Analyze on the board** keeps no game in the list. The page goes to `/analysis#record=…&at=…&via=<source>`, and
     the board asks before it replaces the player's board ("Replace your analysis?").
   - **An out-of-date tool:** the page says how to update it above the choice. Before, the review kept the game first,
     then said so, with the review a click away.
+- **Why `/import`** (changed the same day: the first build showed the choice on `/review`): design 22 had
+  deprecated `/import`, since a page named "import" cannot say where the game goes. With the choice, the player says
+  where, so the name says what the page does. A page named "review" that offers the Analysis board says the wrong
+  thing.
+- **Every game from outside comes to `/import`,** a partner's link too. `/import#record=…`, with `save=` or not, keeps
+  the game and opens its review at once, with "Save to" the partner, as `/review#record=…` did. Partners were never
+  told that `/import#record=…` moved to `/review`, so enclosuregame.com's links may still use
+  `/import#record=…&save=…`. The page for developers names `/import#record=…` again, and its changes say so.
+  - **`/review` keeps only its own ways in:** `game=`, `packed=`, `from=` (a partner's kept review sent back), and
+    `tool=` (below). `/review#record=…` no longer opens a game: it gets the Review tab, and the analytics wait while
+    the record stays in the address.
+  - **Nothing forwards to the review now,** so the event `import_forwarded`, its tab in design 17, and the review's
+    console warning for a forwarded link go. The arrival step also takes `from=` and `packed=` on `/import`, so a
+    partner's older link to `/import#from=…` still opens its review.
+  - **The other uses of `/review#record=…` move:** the review's speed sweep (`scripts/measure/review-sweep.mjs`) opens
+    `/import#record=…`, which an older build forwards to the review.
+- **A tool from before `/import`** (a userscript that Tampermonkey has not yet updated) opens `/review#tool=…`, which
+  still shows the choice and the notice to update the tool. It counts `tool_out_of_date` on `/review`, where every
+  tool's game is from such a tool. That choice can go when that count stops (design 22, item 4).
 - **The choice's words,** text that a player follows, in strict Simplified Technical English:
   - "Review the game": "The engine examines all the moves of the game. It gives a label to each move. Hedge School
     keeps the game in your list of games."
@@ -4132,24 +4152,42 @@ sweep.
   - The tools page's steps say to click one of the two. The userscript's button and menu entry say "Open this game in
     Hedge School". Its name stays "Review in Hedge School": Tampermonkey knows a script by its name and namespace, so
     a new name would be a second script.
-- **The events** (design 17): `import_game` counts the import when the player chooses, with `import_to` review or
-  analysis and the tool as `import_source`. The board takes the tool's source from `via`. A player who closes the
-  page imports nothing. `tool_out_of_date` counts as the page shows the choice. An import that fails on the review's
-  page names its step in `import_failure`, as design 17 gives them: `link` for a broken address, `record` for a record
-  that the page cannot read, `rejected` when the rules or the storage refuse it. Before, every one was `rejected`.
-  A crafted link can name a tool in `via`, as it can in `tool=` on the review's page: the source is the address's
-  word, for the analytics only.
+- **The events** (design 17): `import_game` counts the import on `/import`: a tool's game when the player chooses,
+  with `import_to` review or analysis and the tool as `import_source`, and a partner's link at once, as `site_link`.
+  The funnel's second step takes `/import` beside `/review`, and the tab **Old tools** shows the page (design 17, "The
+  changes for the import page"). The board takes the tool's
+  source from `via`. A player who closes the page imports nothing. `tool_out_of_date` counts as the page shows the
+  choice. An import that fails on the import page or the review names its step in `import_failure`, as design 17 gives
+  them: `link` for a broken address, `record` for a record that the page cannot read, `rejected` when the rules or the
+  storage refuse it. Before, every one was `rejected`. A crafted link can name a tool in `via`, as it can in `tool=` on
+  the import page: the source is the address's word, for the analytics only.
 - **A player with today's tools:** the bookmark loads `/bookmarklet.js` at each click, so it sends the position at
-  once. A userscript that Tampermonkey has not yet updated sends no position: it gets the choice, the board opens at
-  the game's end, and the page says that the userscript is older than the site's, until Tampermonkey takes the new
-  one.
-- **Checked** in Playwright's Chromium, on a local build (`tests/tool-choice.spec.ts`, each test twice, all passed): a
-  bookmarklet's link with `at=1` shows the choice, and Analyze opens the board with the game's three moves as its main
-  line, at the first move, with no game in the list. A second game asks "Replace your analysis?", and "Replace it"
-  opens it at its `at`. A link with no `at` opens the board at the last move, and so does a link with an `at` past
-  the game's end (that test ran once, at the review). Review keeps the game and opens its review. A partner's link
-  opens the review with no choice. A look at the choice in a window 1,280 pixels wide and in one 390 pixels wide found
-  no problem.
+  once. A userscript that Tampermonkey has not yet updated opens the review and sends no position: it gets the
+  choice there, the board opens at the game's end, and the page says that the userscript is older than the site's,
+  until Tampermonkey takes the new one.
+- **The Analysis board started its analytics before its address changed.** SvelteKit's `replaceState` (version
+  3.0.1) is async, and the board called it without waiting, then started the analytics. So the analytics started
+  while the record was still in the address, for every link to the board with a game. The board now waits for it. A
+  check on a build with a made-up Google tag found it (below).
+- **Checked** in Playwright's Chromium, on a local build. The first build showed the choice on the review
+  (`tests/tool-choice.spec.ts`, each test twice, all passed): a bookmarklet's link with `at=1` shows the choice, and
+  Analyze opens the board with the game's three moves as its main line, at the first move, with no game in the list.
+  A second game asks "Replace your analysis?", and "Replace it" opens it at its `at`. A link with no `at` opens the
+  board at the last move. Review keeps the game and opens its review. A partner's link opens the review with no
+  choice. A look at the choice in a window 1,280 pixels wide and in one 390 pixels wide found no problem.
+  - **On `/import`** (the same spec, one run, all passed): the tests above on `/import`, and a link with an `at` past
+    the game's end opens the board at the last move. A userscript's game from before `/import` on `/review#tool=…`
+    gets the choice and the notice to update it. `/import#record=…` keeps the game and opens its review with no
+    click. With `save=`, the review's Export menu offers "Save to enclosuregame.com" once the review is done.
+    `/review#record=…` shows the Review tab and keeps no game. `/import` alone goes to `/tools`. The layout sweep
+    passed on every page, with the choice on `/import` (a userscript's game, below the notice to update it).
+    `npm run check` and `npm test` (201 tests) passed, and the built `/import` carries `noindex`.
+  - **The analytics,** on a build with a made-up Google tag (`VITE_GA_ID=G-TEST000000`), with every request to Google
+    stopped, and each command to the tag recorded with the address at that time: on `/import`, the analytics start
+    once the game has left the address. Review counts one `import_game` there (review, bookmarklet), and Analyze one on
+    the board (analysis, bookmarklet). A partner's link counts one on `/import` (review, `site_link`), and no
+    `import_forwarded`. No command carries the game's moves, after the board's fix. `/review#record=…` and `/import`
+    alone send no command. The 5 tests of the ask to allow Google Analytics (design 27) passed on that build.
 - **Not checked:** the sliders on the live sites. meaf.us shows a guest only its sign-in page, and strategyjam.org's
   list of games stayed "Loading…" for a guest, so the readers rest on the two copies of the sites' code. The import
-  events: a local build sends none.
+  events in Google Analytics itself: the check above stops them before they leave the browser.

@@ -44,9 +44,10 @@
 	}
 
 	// The visit counts start here, unless the address holds a game after its `#` (holdsGame): the page that takes it out
-	// of the address starts them then (design 22). The old import page only forwards, and counts nothing. The banner
-	// shows in the browser only, never in the prerendered page. After the banner, in its place, the ask to allow Google
-	// Analytics in a blocker shows when the visitor accepted Google Analytics and its tag did not run (design 27).
+	// of the address starts them then (design 22). The import page alone goes to the tools, and counts nothing: with a
+	// game, its arrival step starts them, as the review's does (Arrival.svelte). The banner shows in the browser only,
+	// never in the prerendered page. After the banner, in its place, the ask to allow Google Analytics in a blocker shows
+	// when the visitor accepted Google Analytics and its tag did not run (design 27).
 	let mounted = $state(false);
 	onMount(() => {
 		mounted = true;

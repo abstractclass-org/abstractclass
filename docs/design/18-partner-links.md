@@ -12,12 +12,13 @@ must make costs both of them a release.
 
 ## Decision
 
-1. **One link brings a game in:** `/review#record=…`, the game's record URL-encoded after the `#` (design 22: the
-   first address, `/import#record=…`, is deprecated and forwards there). The review keeps the game and opens it at
-   once, with no notice to update a tool (`readImportHash` in `src/lib/game/importHash.ts`). The partner's button says
-   "Review", so the link goes straight to the review. Only a game from the meaf.us and strategyjam.org tools asks the
-   player to choose the review or the Analysis board (design 21, `src/lib/review/Arrival.svelte`). A link without
-   `record` is refused by name ("the link has no record=").
+1. **One link brings a game in:** `/import#record=…`, the game's record URL-encoded after the `#` (design 22). The
+   import page keeps the game and opens its review at once, with no notice to update a tool (`readImportHash` in
+   `src/lib/game/importHash.ts`). The partner's button says "Review", so the link goes straight to the review. Only a
+   game from the meaf.us and strategyjam.org tools asks the player to choose the review or the Analysis board, on the
+   same page (design 21, `src/lib/review/Arrival.svelte`). A link without `record` is refused by name ("the link has
+   no record="). `/review#record=…`, which the page for developers named from 2026-10-14 to 2026-10-19, no longer
+   opens a game: the review shows its Review tab.
 2. **The record is this site's notation** (the /notation page), or a plain list of edges. Tags are optional. A web
    address in `Site` (Lichess writes its game's address there) gives the review a link back: "View this game on
    enclosuregame.com" under the result (`gamePage` in `src/lib/game/record.ts`).
@@ -82,9 +83,9 @@ must make costs both of them a release.
 ## Why
 
 - **The link sits after the `#`,** so the game never reaches a server, as the bookmarklet's and a share link's do.
-- **The import page, not the review's address** (the first choice, 2026-10-13): the review opened games kept in the
-  browser, and the import page kept them. Replaced by design 22: each page takes its own way in, and the review keeps
-  a game before it opens it.
+- **The import page, not the review's address** (the first choice, 2026-10-13, and the choice again on 2026-10-19):
+  the review opens the games kept in the browser, and the import page keeps every game that comes in from outside
+  (design 22). From 2026-10-14, design 22 had moved the link to `/review#record=…`, but partners were not told.
 - **A list of partners:** "Save to …" sends the player's review, so it goes only to the site that the game came from,
   and only to a site this site agreed with.
 - **Window messages, not a request from this site:** this site has no server, and a request from the page to the
@@ -147,7 +148,8 @@ must make costs both of them a release.
 - `src/lib/game/importHash.ts` (the link), `src/lib/game/partners.ts` (the partners, the handshake),
   `src/lib/game/import.ts` (`variantProblem`), `src/lib/game/record.ts` (`gamePage`), `src/lib/game/store.ts`
   (`partner`, `setGamePartner`).
-- `src/lib/review/Arrival.svelte` (the link's import, and a kept review's), `src/lib/game/reviewFile.ts`
+- `src/routes/import/+page.svelte` and `src/lib/review/Arrival.svelte` (the link's import, and a kept review's),
+  `src/lib/game/reviewFile.ts`
   (`deliverExport`, kind `partner`, and "Save to …" in `reviewExports`), `src/lib/review/ReviewView.svelte`
   (the link back), `src/routes/review/+page.svelte`.
 - The public description: `src/routes/developers/+page.svelte`, linked from `src/lib/SiteFooter.svelte`. The head for

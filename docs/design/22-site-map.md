@@ -1,27 +1,32 @@
 # The site's pages and their addresses
 
-**Status:** in force. **Decided:** 2026-10-14.
+**Status:** in force. **Decided:** 2026-10-14. `/import` for every game from outside: 2026-10-19.
 
 ## Context
 
 The review was first the site's only tool, so one page took every game that came in: `/import`, from the meaf.us
 tools, from other sites' links, from shared reviews and from partners' pages. It also showed how to install the meaf.us
 tools. The Analysis board (design 21) is a second place for a game to go, and Practice, the puzzles and the lessons
-will add more. A page whose name says "import" cannot say where the game goes.
+will add more. A page whose name says "import" cannot say where the game goes. Later, a game from the tools came to
+ask where it goes (design 21): with that choice, "import" again names what the page does.
 
 ## Decision
 
 1. **Each page takes its own way in,** after the `#` of its address, as Lichess's pages take theirs in the path
-   (`/analysis/pgn/…`, `/analysis/<FEN>`, `/editor/<FEN>`, its routes file):
+   (`/analysis/pgn/…`, `/analysis/<FEN>`, `/editor/<FEN>`, its routes file). The import page takes the games that
+   come in from outside for the review (item 4):
 
    | Address | Opens |
    |---|---|
+   | `/import#tool=…&v=…&site=…&at=…&record=<record>` | a game from the bookmarklet or the userscript on meaf.us or strategyjam.org (design 11): the player chooses the review (the game kept, then reviewed) or the Analysis board at `at` (design 21) |
+   | `/import#record=<record>` | the game kept, then reviewed: from another site's link (design 18) |
+   | `/import#<record>` | an older tool's bare record: the same choice as for a tool |
+   | `/import` | the tools page |
    | `/review#game=<id>` | a game kept in this browser |
-   | `/review#record=<record>` | the game kept, then reviewed: from another site's link (design 18) |
-   | `/review#tool=…&v=…&site=…&at=…&record=<record>` | a game from the bookmarklet or the userscript on meaf.us or strategyjam.org (design 11): the player chooses the review (the game kept, then reviewed) or the Analysis board at `at` (design 21) |
    | `/review#packed=<code>` | a shared review: its game, branches and engine settings (design 13) |
    | `/review#from=<origin>` | a review that a partner's page kept, sent back by window messages (design 18) |
    | `…&save=<url>` | with `record=` or `from=`: the partner's page that "Save to" opens (design 18) |
+   | `/review#tool=…` | the import page's choice, for a tool from before the import page (item 4) |
    | `/analysis` | the Analysis board kept in this browser |
    | `/analysis#record=<record>` | the record's line on the board, not kept as a game |
    | `/analysis#position=<position>` | a set-up start, from the board editor or another site; with `record=`, the record's start |
@@ -43,8 +48,23 @@ will add more. A page whose name says "import" cannot say where the game goes.
    in `src/lib/game/importHash.ts`): a kept game's id and a place on the board name no moves, and may stay. This departs
    from Lichess, whose paths carry the game: Hedge School keeps players' games out of its host and its analytics
    (designs 11 and 17).
-4. **`/import` is deprecated.** During the early access it forwards to `/review` with the same `#` part, and to
-   `/tools` without one. It counts nothing. The page for developers says so, and says a month before when it stops.
+4. **`/import` takes every game that comes in from outside for the review,** in the review's arrival step
+   (`src/lib/review/Arrival.svelte`):
+   - **A tool's game** (`tool=`, from the bookmarklet or the userscript, or an older tool's bare record): the page asks
+     the player where the game goes, the review or the Analysis board (design 21).
+   - **Another site's link** (`record=`, with a partner's `save=` or not, design 18): the page keeps the game and
+     opens its review at once, with no choice. Partners' links were `/import#record=…` first, and partners were not
+     told of a move to `/review`, so the link stays here.
+   - **A partner's older link to `/import#from=…`** still opens its review: the arrival step takes the review's own
+     ways in here too. `/import` with no game goes to `/tools`.
+   - **The analytics:** the layout starts none on `/import`. The arrival step starts them once the game has left the
+     address, and counts the import there (`import_game`, design 17). The page carries `noindex` (design 23).
+   - **`/review` takes only its own ways in** (`reviewArrives` in `src/lib/game/importHash.ts`): `game=`, `packed=`,
+     `from=`, and `tool=` for a tool from before the import page, a userscript that Tampermonkey has not yet updated.
+     That game shows the choice and the notice to update the tool, and counts `tool_out_of_date` (design 17) on
+     `/review`: there, every tool's game is from a tool older than the import page. The review's choice can go when
+     that count on `/review` stops (exploration 6, the tab **Old tools**, by page). A record on `/review` (`record=`,
+     or a bare one) gets the Review tab, and the analytics wait while it stays in the address.
 5. **The pages:**
    - **The header:** Practice, Review, Analysis (later Puzzles, Learn), then Tools, The notation, About and "Support
      us". Practice
@@ -130,6 +150,8 @@ will add more. A page whose name says "import" cannot say where the game goes.
 ## Why
 
 - **The address says where the game goes,** so a link reads as what it does, and a new page needs no new import page.
+  A game from outside is the exception: it comes to the import page, where the player chooses, or where the link that
+  partners know brings it.
 - **One way to write a link** for each page: a site that links a review learns to link the board at once.
 - **Format names keep links stable:** a page that one day takes the same payload from another source keeps its name.
 
@@ -140,31 +162,37 @@ will add more. A page whose name says "import" cannot say where the game goes.
 - **The payload in the path,** as Lichess's: the host and the analytics would record every game.
 - **`s` for a shared review** (the first name): it names how the link was made, and a shared analysis would read the
   same and mean another thing. The early access's few `s=` links are not read.
-- **`/import` forwarded for good:** an old address kept forever is a second way to write every link. The early access
-  is the time to change it.
+- **Partners' links on `/review#record=…`,** as first decided, with `/import#record=…` forwarded there: two addresses
+  for one link. Partners were not told of the move, so the first address stays the only one.
+- **`/review#record=…` forwarded to `/import`:** its links would keep working, at the cost of a third form of the
+  link to keep. It gets the Review tab instead.
+- **The tools' games on `/review`,** as before: a page named "review" that asks whether to review the game or to
+  analyze it on the board says the wrong thing, and the import page was free for them.
 
 ## Consequences
 
 - **Analytics** (design 17): every import, to either page, is `import_game` with `import_to` and `import_source`.
   Every load is `load_saved` with `load_source`, which also says where it went. The funnel starts at the Review tab,
-  and follows the imports and loads to the review. `/analysis` and `/tools` are new pages.
-- **The meaf.us tools** open `/review`, which asks where the game goes (design 21). A userscript installed before this
-  change is out of date, and the review says how to update it. The bookmarklet loads its code from the site at each
-  click, so it changes with it.
-- **Partners** (design 18) move their links to `/review#…`. enclosuregame.com's links keep working while `/import`
-  forwards.
+  and follows the imports and loads to the review. A game from outside counts on `/import`, where it arrives, so the
+  funnel's second step takes that page too. `/analysis` and `/tools` are new pages.
+- **The meaf.us tools** open `/import`, which asks where the game goes (design 21). A userscript installed before this
+  change is out of date: it opens `/review`, which asks too, and says how to update it. The bookmarklet loads its code
+  from the site at each click, so it changes with it.
+- **Partners** (design 18) link to `/import#record=…`, as at first. `/review#record=…` no longer opens a game: the
+  page for developers says so in its changes.
 
 ## Where it is
 
 - `src/routes/review/+page.svelte` and `src/lib/review/Arrival.svelte` (the review's ways in),
   `src/lib/review/ReviewHome.svelte` (the Review tab), `src/lib/review/pageMarks.ts` (the script in the review page's
   head, and the variants `review-game` and `review-last` in `src/app.css`),
-  `src/routes/analysis/+page.svelte` (the board's), `src/routes/import/+page.svelte` (the forwarding),
+  `src/routes/analysis/+page.svelte` (the board's), `src/routes/import/+page.svelte` (the games from outside),
   `src/routes/tools/+page.svelte`, `src/routes/+layout.svelte` (the header, the analytics' start),
-  `src/lib/game/importHash.ts` (the review's parameters, `holdsGame`), `src/lib/game/board.ts` and
+  `src/lib/game/importHash.ts` (the parameters, `holdsGame`, `reviewArrives`), `src/lib/game/board.ts` and
   `src/lib/game/share.ts` (`packed`), `src/routes/developers/+page.svelte`.
 
 ## Log entries
 
 - [decisions/product.md](../decisions/product.md): "The site's pages and their addresses" (2026-10-14).
 - [decisions/product.md](../decisions/product.md): "The Review tab before the page's code runs" (2026-10-19).
+- [decisions/product.md](../decisions/product.md): "Review or Analyze for a game from the tools" (2026-10-19).

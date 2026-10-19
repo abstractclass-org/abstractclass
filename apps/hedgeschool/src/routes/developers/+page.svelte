@@ -10,9 +10,9 @@
   import PageMeta from "#lib/PageMeta.svelte";
 
   const LIVE = SITE_ORIGIN;
-  const LINK = `const link = "${LIVE}/review#" + new URLSearchParams({ record });
+  const LINK = `const link = "${LIVE}/import#" + new URLSearchParams({ record });
 // with a save page, for a partner site:
-const link = "${LIVE}/review#" + new URLSearchParams({ record, save: "https://example.com/hedge-school/save?game=123" });`;
+const link = "${LIVE}/import#" + new URLSearchParams({ record, save: "https://example.com/hedge-school/save?game=123" });`;
   const ANALYSIS = `const link = "${LIVE}/analysis#" + new URLSearchParams({ record });
 // opened at the position after the first 12 edges:
 const link = "${LIVE}/analysis#" + new URLSearchParams({ record, at: "12" });`;
@@ -35,11 +35,11 @@ window.opener?.postMessage({ type: "hedge-school:ready" }, HEDGE_SCHOOL);`;
 .hedge-school-button:hover { background: #c6b8ee; }
 .hedge-school-button img { width: 1.5em; height: 1.5em; margin: 0; flex: none; }`;
   const BUTTONS = `<!-- On a finished game: a link, made as "A link to a review" shows. -->
-<a class="hedge-school-button" href="${LIVE}/review#record=…" target="_blank">
+<a class="hedge-school-button" href="${LIVE}/import#record=…" target="_blank">
   <img src="hedge-school.svg" alt=""> Review in Hedge School
 </a>
 <!-- Where space is short: the collie names the site, and the full label is the name that screen readers say. -->
-<a class="hedge-school-button" href="${LIVE}/review#record=…" target="_blank"
+<a class="hedge-school-button" href="${LIVE}/import#record=…" target="_blank"
    aria-label="Review in Hedge School" title="Review in Hedge School">
   <img src="hedge-school.svg" alt=""> Review
 </a>
@@ -186,9 +186,6 @@ window.addEventListener("message", event => {
       that old links could not meet would come with a version in the link, and the old form would still be read.</li>
     <li><strong>During the early access, an address can move.</strong> The old address then forwards to the new one for
       a while, and this page says, a month before, when it stops.</li>
-    <li><strong>Deprecated: <code>/import#…</code>,</strong> the first address of a review's link. It forwards to
-      <code>/review#…</code> with the same parameters during the early access. Move your links to
-      <code>/review</code>.</li>
     <li><strong>The messages have a version,</strong> <code>protocol: 1</code>. A later version would be one that the
       save page asks for in its <code>ready</code> message. A page that asks for none keeps getting version 1.
       {SITE_NAME}'s own <code>ready</code> names the version that it asks for.</li>
@@ -199,6 +196,9 @@ window.addEventListener("message", event => {
         <li>2026-10-13: the link, and the messages to save and open a review, protocol 1.</li>
         <li>2026-10-14: the links go to <code>/review</code>, and to <code>/analysis</code> for the Analysis board. The
           old <code>/import</code> forwards to <code>/review</code>. The Analysis board takes <code>position</code>.</li>
+        <li>2026-10-19: the link to a review is <code>/import#record=…</code> again, with or without
+          <code>save</code>. <code>/review#record=…</code> no longer opens a game. The link that opens a kept review
+          again stays <code>/review#from=…</code>.</li>
       </ul>
     </li>
   </ul>

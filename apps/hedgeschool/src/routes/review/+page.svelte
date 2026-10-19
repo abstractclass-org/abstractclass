@@ -7,10 +7,11 @@
   // player looks, and the key moments deepened after the label pass (docs/design/05-review-analysis.md). The engine's
   // settings (docs/design/09-engine-settings.md) apply as they change: the workers, the GPU and the network without a
   // reload. The GPU worker joins the pool once the network is loaded (docs/design/15-gpu.md). One tab reviews a game at
-  // a time (src/lib/game/reviewLock.ts). A game that arrives after the `#` (a record, a shared review, a partner's:
-  // the review's ways in, docs/design/22-site-map.md) is kept first, by Arrival, then reviewed. A game reviewed with an
-  // earlier engine opens as that review, from the stored results with the engine's rules alone, until the player
-  // chooses Review again (docs/design/20-snapshot.md).
+  // a time (src/lib/game/reviewLock.ts). A game that arrives after the `#` (a shared review, a partner's, a tool's from
+  // before the import page: the review's ways in, docs/design/22-site-map.md) is kept first, by Arrival, then reviewed.
+  // A record there, which only the import page takes, gets the Review tab. A game reviewed with an earlier engine opens
+  // as that review, from the stored results with the engine's rules alone, until the player chooses Review again
+  // (docs/design/20-snapshot.md).
   import { onDestroy, onMount, untrack } from "svelte";
   import { PRACTICE_EVENT } from "#lib/practice/practice.ts";
   import ReviewView, { WIDE, reviewSkeleton, type ReviewAgain, type ReviewProgress } from "#lib/review/ReviewView.svelte";
@@ -19,7 +20,7 @@
   import Arrival from "#lib/review/Arrival.svelte";
   import ReviewHome from "#lib/review/ReviewHome.svelte";
   import { REVIEW_PAGE_SCRIPT, markReviewPage } from "#lib/review/pageMarks.ts";
-  import { holdsGame } from "#lib/game/importHash.ts";
+  import { reviewArrives } from "#lib/game/importHash.ts";
   import { LABEL_VISITS, SWEEP_VISITS, snapshotExcept, snapshotPositions, snapshotSearch, warmCache } from "#lib/analysis/cache.ts";
   import { review, type GameEnding, type ReviewData } from "#lib/review/model.ts";
   import { EnginePool } from "#lib/analysis/pool.ts";
@@ -289,9 +290,9 @@
     location.reload();
   }
 
-  let arriving = $state(false); // the address holds a game to keep first (Arrival)
+  let arriving = $state(false); // the address holds a way in that the review takes first (Arrival)
   onMount(async () => {
-    if (holdsGame(location.hash)) { arriving = true; return; }
+    if (reviewArrives(location.hash)) { arriving = true; return; }
     // The game to review: the one named in the address. Without one, the Review tab shows its own page, with the last
     // review a click away (design 22).
     const id = gameInAddress();
