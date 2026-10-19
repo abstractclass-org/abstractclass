@@ -189,18 +189,19 @@ read the game from the player's own page.
     the bookmark needs the code in itself again, as before the loader.
   - **The request** carries no game. By default the browser names only the game site's origin as the page that made
     it. The privacy page says so.
-- **Each tool says what it is,** with each game (`importHash.ts`): `#tool=…&v=…&site=…&at=…&record=…` after the review's
-  address. The bookmarklet sends its loader's version (`BOOKMARK_VERSION`), and the userscript a hash of the files
-  that make its code (the build's `__USERSCRIPT_CODE__`, `vite.config.ts`), so that a build that changes neither
-  flags no one. `site` is the page's host: the import's source tells the two sites apart (design 17). A tool from
+- **Each tool says what it is,** with each game (`importHash.ts`): `#tool=…&v=…&site=…&at=…&record=…` after the
+  review's address. The bookmarklet sends its loader's version (`BOOKMARK_VERSION`), and the userscript a hash of the
+  files that make its code (the build's `__USERSCRIPT_CODE__`, `vite.config.ts`), so that a build that changes
+  neither flags no one. `site` is the page's host: the import's source tells the two sites apart (design 17). A tool from
   before this sends the record alone, and one from before strategyjam.org sends no site.
 - **The position on the page** (`at`): the game's moves before the position that the page shows, a pass one move, as
-  the record counts them. Both sites have a replay slider whose value is that count: meaf.us's
-  `input[aria-label="Replay position"]` in a watcher's view and in a finished game's view from the History page
-  (`shownMove` in `meafPage.ts`), and strategyjam.org's `input.replay-slider` in the panel, live or in a replay, which
-  the arrow keys and the move list move too (`jamShownMove` in `strategyjamPage.ts`). A page without a slider (a
-  meaf.us game that the player plays) sends no `at`: it shows the game's last position. The Analysis board opens at
-  `at` (design 21). A tool from before this sends none.
+  the record counts them. Both sites have a replay slider whose value is that count. On meaf.us, it is
+  `input[aria-label="Replay position"]`, in a watcher's view and in a finished game's view from the History page
+  (`shownMove` in `meafPage.ts`). On strategyjam.org, it is `input.replay-slider` in the panel, live or in a replay,
+  and the arrow keys and the move list move it too (`jamShownMove` in `strategyjamPage.ts`). The tools send the slider's
+  value as it is, and the review reads only a whole number (`readImportHash`). A page without a slider (a meaf.us game
+  that the player plays) sends an empty `at`: it shows the game's last position. The Analysis board opens at `at`
+  (design 21), and at the game's end without one. A tool from before this sends none.
 - **An out-of-date tool:** the review says how to update the tool (drag the bookmarklet to the bar again, or open the
   userscript, both on the tools page), above the choice between the review and the board. A tool that sent no version
   counts as out of date.
@@ -259,7 +260,9 @@ read the game from the player's own page.
     install.
   - **One click for a finished game on meaf.us.** It opens the review through Tampermonkey (`GM_openInTab`), which no
     popup blocker stops. So after the reload as a watcher's view, the script runs again, waits for the moves, and opens
-    the review itself.
+    the game in Hedge School itself. It sends no position then. The player did not move the slider. Also, meaf.us's
+    slider goes to the game's end only just after the page draws the moves, so a read before that gives an earlier
+    position.
   - **No request for its look.** The script draws the button and its collie itself and fetches no image, so no site
     learns of a visit from the button.
   - **The site's address is part of the file** (the build's `SITE_ORIGIN`, `vite.config.ts`): the live site for a build

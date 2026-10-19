@@ -15,7 +15,7 @@
   import { importRecord } from "#lib/game/import.ts";
   import { errorText } from "#lib/errors.ts";
   import { BOOKMARK_VERSION } from "#lib/game/bookmarklet.ts";
-  import { FORWARDED, analysisAddress, hashParams, offersChoice, readImportHash, staleTool, toolSource, type ImportHash,
+  import { FORWARDED, analysisAddress, hashParams, readImportHash, staleTool, toolSource, type ImportHash,
            type Tool } from "#lib/game/importHash.ts";
   import { gamePartner, partnerOf, receiveFromPartner } from "#lib/game/partners.ts";
   import { setGamePartner } from "#lib/game/store.ts";
@@ -24,7 +24,8 @@
   import { loadManifest, sameSearch } from "#lib/engine/client.ts";
   import { networkName, reviewDepthText } from "#lib/analysis/engineSettings.ts";
   import { startAnalytics, track } from "#lib/analytics.svelte.ts";
-  import { trackImport, trackImportFailed, trackLoad, trackLoadFailed, type ImportSource } from "#lib/game/importEvents.ts";
+  import { trackImport, trackImportFailed, trackLoad, trackLoadFailed, type ImportFailure,
+           type ImportSource } from "#lib/game/importEvents.ts";
   import { readSession, writeSession } from "#lib/storage/local.ts";
 
   const MESSAGE = "box-content max-w-184 mx-auto my-6 px-4 grid gap-4";
@@ -60,7 +61,8 @@
   async function arrive(hash: string, forwarded: boolean) {
     const packed = hashParams(hash)?.get("packed");
     if (packed) { await readShared(packed); return; }
-    let source: ImportSource = "older_tool";
+    // A failure by the step that fails (design 17): the address, then the record, then the rules or the storage.
+    let source: ImportSource = "older_tool", failure: ImportFailure = "link";
     try {
       const sent = readImportHash(hash), text = sent.record;
       if (!sent.from) source = sent.link ? "site_link" : sent.tool ? toolSource(sent.tool, sent.site) : source;
@@ -72,44 +74,45 @@
       }
       if (sent.from) { await receiveReview(sent.from, sent.save); return; }
       if (sent.link && !text) throw new Error("the link has no record=, which carries the game");
+      failure = "record";
       const record = parseRecord(text);
-      if (offersChoice(sent)) {
-        // An out-of-date tool by its kind (design 17), as the page asks to update it.
-        const stale = staleTool(sent, { bookmarklet: String(BOOKMARK_VERSION), userscript: __USERSCRIPT_CODE__ });
-        if (stale) track("tool_out_of_date", { stale_tool: stale });
-        phase = { at: "choose", sent, record, source, stale };
-        return;
-      }
-      await reviewImport(text, record, source, sent.save);
+      failure = "rejected";
+      // Another site's link goes straight to the review (design 18). A tool's game, also an older tool's bare record,
+      // asks first (design 21).
+      if (sent.link) { await reviewImport(sent, record, source); return; }
+      // An out-of-date tool by its kind (design 17), as the page asks to update it.
+      const stale = staleTool(sent, { bookmarklet: String(BOOKMARK_VERSION), userscript: __USERSCRIPT_CODE__ });
+      if (stale) track("tool_out_of_date", { stale_tool: stale });
+      phase = { at: "choose", sent, record, source, stale };
     } catch (e) {
-      phase = { at: "failed", load: false, problem: errorText(e) };
-      trackImportFailed("review", source, "rejected");
+      importFailed(source, e, failure);
     }
   }
 
   /** Keeps an imported game, with its partner's save page when a link names one, and reviews it. The import counts by
    *  its source and the game's length (design 17). */
-  async function reviewImport(text: string, record: GameRecord, source: ImportSource, save: string | null) {
-    const id = await importRecord(text, record);
-    const partner = gamePartner(save);
+  async function reviewImport(sent: ImportHash, record: GameRecord, source: ImportSource) {
+    const id = await importRecord(sent.record, record);
+    const partner = gamePartner(sent.save);
     if (partner) await setGamePartner(id, partner);
     trackImport("review", source, record.moves.length);
     review(id);
   }
 
-  /** A tool's game, reviewed: kept first, as a link's is. */
-  async function reviewChosen(sent: ImportHash, record: GameRecord, source: ImportSource) {
-    phase = { at: "importing" };
-    try {
-      await reviewImport(sent.record, record, source, null);
-    } catch (e) {
-      phase = { at: "failed", load: false, problem: errorText(e) };
-      trackImportFailed("review", source, "rejected");
-    }
+  /** An import that failed: the page says why, and the event names its source and why (design 17). */
+  function importFailed(source: ImportSource, e: unknown, failure: ImportFailure = "rejected") {
+    phase = { at: "failed", load: false, problem: errorText(e) };
+    trackImportFailed("review", source, failure);
   }
 
-  /** A tool's game, on the Analysis board: its address takes the record, checks it, asks before it replaces the
-   *  player's board, and counts the import (design 21). Back then leads to the page before this one. */
+  /** A tool's game, reviewed: kept first, as a link's is. */
+  function reviewChosen(sent: ImportHash, record: GameRecord, source: ImportSource) {
+    phase = { at: "importing" };
+    reviewImport(sent, record, source).catch(e => importFailed(source, e));
+  }
+
+  /** A tool's game, on the Analysis board, by the board's own address: the board checks the record, asks before it
+   *  replaces the player's board, and counts the import (design 21). Back then leads to the page before this one. */
   function analyzeChosen(sent: ImportHash, record: GameRecord, source: ImportSource) {
     location.replace(analysisAddress(sent, record.moves.length, source));
   }
@@ -187,7 +190,8 @@
   {:else if phase.at === "choose"}
     {@const { sent, record, source, stale } = phase}
     {@const names = playerNames(record.tags)}
-    {@const site = sent.site ?? "meaf.us"}
+    {@const site = sent.site === "strategyjam.org" ? "strategyjam.org" : "meaf.us"}
+    <!-- `site`: one of the two sites, as the import's source names them (toolSource), never the link's own text. -->
     {#if stale}
       <p class="px-4 py-3 bg-panel border border-accent rounded-lg" role="status">
         {#if stale === "bookmarklet"}Your bookmarklet is an older one. On the <a href="/tools">tools page</a>, drag the
@@ -215,7 +219,7 @@
       <section class="grid content-start gap-2 p-4 bg-panel border border-line rounded-lg">
         <button class="btn-primary justify-self-start" type="button"
                 onclick={() => analyzeChosen(sent, record, source)}>Analyze on the board</button>
-        <p class="text-sm">The Analysis board opens at {sent.at === null ? "the last move of the game"
+        <p class="text-sm">The Analysis board shows {sent.at === null ? "the position after the last move of the game"
           : `the position that you saw on ${site}`}. Make your own moves to examine other lines. Hedge School does not
           keep the game in your list of games.</p>
       </section>

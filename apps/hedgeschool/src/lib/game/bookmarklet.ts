@@ -43,7 +43,7 @@ function grab(page: PageCode) {
   const origin = src.origin, version = src.searchParams.get("bookmark") ?? "";
   const click = "the Review in Hedge School bookmark"; // the bookmark's name, as the import page's link gives it
   const site = location.hostname;
-  let record: () => string, at: number | null;
+  let record: () => string, at: string;
   if (site === "strategyjam.org") {
     const game = page.findJamGame();
     if (typeof game === "string") { alert(page.explain(game, click, origin, site)); return; }
@@ -64,7 +64,7 @@ function grab(page: PageCode) {
   }
   let text: string;
   try { text = record(); } catch (e) { alert("Hedge School: " + (e as Error).message); return; }
-  const url = origin + "/review#" + new URLSearchParams({ tool: "bookmarklet", v: version, site, ...(at === null ? {} : { at: String(at) }), record: text });
+  const url = origin + "/review#" + new URLSearchParams({ tool: "bookmarklet", v: version, site, at, record: text });
   // A slow load can end the click's right to open a tab: then this tab goes to the review.
   if (!window.open(url, "_blank")) location.assign(url);
 }

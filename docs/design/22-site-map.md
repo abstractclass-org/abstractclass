@@ -148,8 +148,9 @@ will add more. A page whose name says "import" cannot say where the game goes.
 - **Analytics** (design 17): every import, to either page, is `import_game` with `import_to` and `import_source`.
   Every load is `load_saved` with `load_source`, which also says where it went. The funnel starts at the Review tab,
   and follows the imports and loads to the review. `/analysis` and `/tools` are new pages.
-- **The meaf.us tools** open `/review`, which asks where the game goes (design 21). A userscript installed before this change is out of date, and the review says
-  how to update it. The bookmarklet loads its code from the site at each click, so it changes with it.
+- **The meaf.us tools** open `/review`, which asks where the game goes (design 21). A userscript installed before this
+  change is out of date, and the review says how to update it. The bookmarklet loads its code from the site at each
+  click, so it changes with it.
 - **Partners** (design 18) move their links to `/review#…`. enclosuregame.com's links keep working while `/import`
   forwards.
 

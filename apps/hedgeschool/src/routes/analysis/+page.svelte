@@ -33,7 +33,8 @@
   import { STORES, dbGet, dbPut } from "#lib/storage/db.ts";
   import { mainIndex, pathKey } from "#lib/review/tree.ts";
   import { startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
-  import { trackImport, trackImportFailed, trackLoad, trackLoadFailed, type ImportSource, type LoadSource } from "#lib/game/importEvents.ts";
+  import { isImportSource, trackImport, trackImportFailed, trackLoad, trackLoadFailed, type ImportSource,
+           type LoadSource } from "#lib/game/importEvents.ts";
   import { readPasted } from "#lib/game/paste.ts";
   import { readLocal, writeLocal } from "#lib/storage/local.ts";
   import { SITE_NAME, SITE_VERSION } from "#lib/edition.ts";
@@ -91,11 +92,9 @@
    *  for the analysis kept here. */
   interface Opening { board: KeptBoard | null; at?: string[]; atMain?: number; imported?: ImportSource; loaded?: LoadSource }
   // The ways in that this site's own pages name in the address (`via`): a pasted record, Constellation export or
-  // position, and a tool's game that the player chose to analyze (Arrival), which are imports, an analysis file (a
-  // load), and the board editor's position and the New menu's standard start (neither: the site's own, design 17).
-  // Without one, `record=` and `position=` are another site's link, and `packed=` a shared analysis.
-  const IMPORTS: string[] = ["pasted_record", "pasted_constellation", "pasted_position",
-                             "bookmarklet", "userscript", "strategyjam_bookmarklet", "strategyjam_userscript", "older_tool"];
+  // position, and a tool's game that the player chose to analyze (Arrival), which are imports (importEvents.ts), an
+  // analysis file (a load), and the board editor's position and the New menu's standard start (neither: the site's own,
+  // design 17). Without one, `record=` and `position=` are another site's link, and `packed=` a shared analysis.
   const OWN: string[] = ["editor", "new", "practice", "your_games"];
   /** The analysis to open: one imported after the `#`, else the one kept in this browser. An imported one replaces the
    *  kept one, after the player agrees when the kept one has moves. It leaves the address at once, then the analytics
@@ -110,7 +109,7 @@
     startAnalytics();
     const brings = record !== null || position !== null; // moves or a start, not saved work
     const imported: ImportSource | undefined = !brings || OWN.includes(via ?? "") ? undefined
-      : IMPORTS.includes(via ?? "") ? (via as ImportSource) : "site_link";
+      : isImportSource(via) ? via : "site_link";
     const loaded: LoadSource | undefined = brings ? undefined : via === "analysis_file" ? via : "analysis_share_link";
     let brought: { board: KeptBoard; at: number };
     try {

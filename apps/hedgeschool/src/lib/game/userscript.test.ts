@@ -78,19 +78,20 @@ test("a game lacks its moves while it is played, until a watcher's view loads th
   assert.match(explain("none", "the Hedge School button", ORIGIN, "strategyjam.org"), /Open a game on strategyjam.org/);
 });
 
-test("the position that each site's page shows: its replay slider's value, or none", () => {
+test("the position that each site's page shows: its replay slider's value, or none, which the review checks", () => {
   // A page with one element for each selector, as the two sites draw their sliders.
   const page = (elements: Record<string, { value: string }>) => {
     (globalThis as { document?: unknown }).document = { querySelector: (selector: string) => elements[selector] ?? null };
   };
+  const sent = (at: string) => readImportHash(String(new URLSearchParams({ tool: "userscript", v: "abc", site: "meaf.us", at, record: "1. D10-E13 *" }))).at;
   page({ 'input[aria-label="Replay position"]': { value: "12" } });
-  assert.equal(shownMove(), 12);
-  assert.equal(jamShownMove(), null);
+  assert.equal(sent(shownMove()), 12);
+  assert.equal(sent(jamShownMove()), null);
   page({ "input.replay-slider": { value: "0" } });
-  assert.equal(jamShownMove(), 0);
-  assert.equal(shownMove(), null);
+  assert.equal(sent(jamShownMove()), 0);
+  assert.equal(sent(shownMove()), null);
   page({ 'input[aria-label="Replay position"]': { value: "" }, "input.replay-slider": { value: "x" } });
-  assert.equal(shownMove(), null);
-  assert.equal(jamShownMove(), null);
+  assert.equal(sent(shownMove()), null);
+  assert.equal(sent(jamShownMove()), null);
   delete (globalThis as { document?: unknown }).document;
 });

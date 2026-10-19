@@ -11,16 +11,22 @@ import { EDGE_RANGES, range } from "#lib/measure.ts";
 export type ImportTo = "review" | "analysis";
 
 /** How a game came in from outside. */
-export type ImportSource =
-  | "pasted_record" // a record pasted in a page's box
-  | "pasted_constellation" // Constellation's export pasted in a page's box (constellation.ts)
-  | "pasted_position" // a position pasted in the Analysis board's Import, with or without moves (design 21)
-  | "site_link" // another site's link with a record or a position (`#record=`, `#position=`, design 18)
-  | "bookmarklet" // the bookmarklet (bookmarklet.ts) on meaf.us
-  | "userscript" // the userscript (userscript.ts) on meaf.us
-  | "strategyjam_bookmarklet" // the bookmarklet on strategyjam.org
-  | "strategyjam_userscript" // the userscript on strategyjam.org
-  | "older_tool"; // a meaf.us tool from before the tools named themselves (importHash.ts)
+export const IMPORT_SOURCES = [
+  "pasted_record", // a record pasted in a page's box
+  "pasted_constellation", // Constellation's export pasted in a page's box (constellation.ts)
+  "pasted_position", // a position pasted in the Analysis board's Import, with or without moves (design 21)
+  "site_link", // another site's link with a record or a position (`#record=`, `#position=`, design 18)
+  "bookmarklet", // the bookmarklet (bookmarklet.ts) on meaf.us
+  "userscript", // the userscript (userscript.ts) on meaf.us
+  "strategyjam_bookmarklet", // the bookmarklet on strategyjam.org
+  "strategyjam_userscript", // the userscript on strategyjam.org
+  "older_tool", // a meaf.us tool from before the tools named themselves (importHash.ts)
+] as const;
+export type ImportSource = (typeof IMPORT_SOURCES)[number];
+
+/** Whether a page's text names an import's source. */
+export const isImportSource = (s: string | null): s is ImportSource =>
+  (IMPORT_SOURCES as readonly (string | null)[]).includes(s);
 
 /** Why an import failed: the record cannot be read, the engine's rules (or the storage) refuse it, or the link is
  *  broken. */

@@ -89,11 +89,10 @@ function main(origin: string, icon: string, code: string, places: Record<string,
   };
   note.addEventListener("click", () => (note.hidden = true));
 
-  const open = (record: () => string, at: number | null) => {
+  const open = (record: () => string, at: string) => {
     let text: string;
     try { text = record(); } catch (e) { show("Hedge School: " + (e as Error).message); return; }
-    GM_openInTab(origin + "/review#" + new URLSearchParams({ tool: "userscript", v: code, site, ...(at === null ? {} : { at: String(at) }), record: text }),
-                 { active: true });
+    GM_openInTab(origin + "/review#" + new URLSearchParams({ tool: "userscript", v: code, site, at, record: text }), { active: true });
   };
   function review() {
     if (site === "strategyjam.org") {
@@ -107,7 +106,7 @@ function main(origin: string, icon: string, code: string, places: Record<string,
     const why = page.missingMoves(game);
     if (why === "reload") {
       sessionStorage.setItem(PENDING, `${game.gameID} ${Date.now()}`);
-      show("Hedge School: meaf.us shows your finished game without its moves. The page reloads as a watcher's view, which has them. Then the game opens in Hedge School.");
+      show("Hedge School: meaf.us shows your finished game without its moves. The page reloads as a watcher's view, which has them. Then Hedge School opens the game.");
       setTimeout(() => location.assign(page.watcherUrl()), 1500);
       return;
     }
@@ -121,8 +120,10 @@ function main(origin: string, icon: string, code: string, places: Record<string,
 
   // The button keeps to its place: meaf.us changes its views without loading a page, and on strategyjam.org React
   // draws the legend once the game comes, and can draw it again. On meaf.us, after the reload as a watcher's view, the
-  // review opens once the game's moves come (PENDING, which only meaf.us's pages set).
-  if (sessionStorage.getItem(PENDING)) show("Hedge School: waiting for the game's moves. Then the game opens in Hedge School.");
+  // game opens once its moves come (PENDING, which only meaf.us's pages set), with no position: the player has moved
+  // no slider yet, and the page's slider takes the game's end only after it draws the moves, so a read can come
+  // between and give the moves before them. Without a position, the board opens at the game's end.
+  if (sessionStorage.getItem(PENDING)) show("Hedge School: waiting for the game's moves. Then Hedge School opens the game.");
   setInterval(() => {
     keepPlace();
     const pending = sessionStorage.getItem(PENDING);
@@ -133,7 +134,7 @@ function main(origin: string, icon: string, code: string, places: Record<string,
       show(`Hedge School: the page did not get the game's moves. Click ${click} to try again.`);
     } else if (game && String(game.gameID) === id && !page.missingMoves(game)) {
       sessionStorage.removeItem(PENDING);
-      open(() => page.meafRecord(game), page.shownMove());
+      open(() => page.meafRecord(game), "");
     }
   }, 500);
 }

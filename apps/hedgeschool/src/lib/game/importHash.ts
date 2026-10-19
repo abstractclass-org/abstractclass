@@ -46,14 +46,11 @@ export function readImportHash(hash: string): ImportHash {
   return { ...NO_SENDER, record: decodeURIComponent(hash) };
 }
 
-/** Whether the player chooses where the game goes: a game that a tool sent, also an older tool's bare record. Another
- *  site's link goes straight to the review (design 18). */
-export const offersChoice = (sent: Pick<ImportHash, "link">) => !sent.link;
-
 /** The Analysis board's address for a tool's game (design 21): its record, the position that its page showed, else the
- *  game's end (`edges`, its moves), and the import's source for the board's events (design 17). */
+ *  game's end (`edges`, its moves), and the import's source for the board's events (design 17). The board opens a
+ *  position past the end at the end. */
 export function analysisAddress(sent: Pick<ImportHash, "record" | "at">, edges: number, source: ImportSource): string {
-  return "/analysis#" + new URLSearchParams({ record: sent.record, at: String(Math.min(sent.at ?? edges, edges)), via: source });
+  return "/analysis#" + new URLSearchParams({ record: sent.record, at: String(sent.at ?? edges), via: source });
 }
 
 /** A tool's way in, for the import events (design 17): the tool, on the site that it ran on. A tool that names no
@@ -62,10 +59,8 @@ export const toolSource = (tool: Tool, site: string | null): ImportSource =>
   site === "strategyjam.org" ? `strategyjam_${tool}` : tool;
 
 /** The tool that is out of date, or "older" for a tool that sent no version, or null when it is the site's own
- *  version, or the game came by another site's link. `current` gives the site's versions: the bookmark's (its loader)
- *  and the userscript's code. */
-export function staleTool(sent: Pick<ImportHash, "tool" | "version"> & { link?: boolean }, current: Record<Tool, string>): Tool | "older" | null {
-  if (sent.link) return null;
+ *  version. `current` gives the site's versions: the bookmark's (its loader) and the userscript's code. */
+export function staleTool(sent: Pick<ImportHash, "tool" | "version">, current: Record<Tool, string>): Tool | "older" | null {
   if (!sent.tool) return "older";
   return sent.version === current[sent.tool] ? null : sent.tool;
 }

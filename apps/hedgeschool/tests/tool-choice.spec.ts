@@ -19,15 +19,19 @@ const stored = (page: Page, store: string, key?: string) => page.evaluate(([stor
   };
 }), [store, key] as const);
 
+/** The board's position on screen, which it keeps for the next visit, once it has one: its edges from the start. */
+const boardAt = (page: Page) =>
+  expect.poll(() => page.evaluate(() => localStorage.getItem("hedge-school:board-at")), { timeout: 60_000 });
+
 test("Analyze on the board: the game's moves as the main line, at the page's position, and no game kept", async ({ page }) => {
   await page.goto(toolLink(1));
   await expect(page.getByRole("heading", { name: "A game from meaf.us" })).toBeVisible();
   await expect(page.getByText("Ann against Bo")).toBeVisible();
-  await expect(page.getByText("The Analysis board opens at the position that you saw on meaf.us.")).toBeVisible();
+  await expect(page.getByText("The Analysis board shows the position that you saw on meaf.us.")).toBeVisible();
   await page.getByRole("button", { name: "Analyze on the board" }).click();
   await page.waitForURL(url => url.pathname === "/analysis" && !url.hash);
   // The position on screen, which the board keeps for the next visit, is the page's: one move from the start.
-  await expect.poll(() => page.evaluate(() => localStorage.getItem("hedge-school:board-at")), { timeout: 60_000 }).toBe("D10-E13");
+  await boardAt(page).toBe("D10-E13");
   expect(((await stored(page, "branches", "board")) as { main: string[] }).main).toEqual(["D10-E13", "Q10-R8", "O11-Q10"]);
   expect(await stored(page, "games")).toEqual([]);
   // A second game, over the board that now has moves: the board asks before it replaces them.
@@ -35,17 +39,18 @@ test("Analyze on the board: the game's moves as the main line, at the page's pos
   await page.getByRole("button", { name: "Analyze on the board" }).click();
   await expect(page.getByRole("dialog", { name: "Replace your analysis?" })).toBeVisible({ timeout: 60_000 });
   await page.getByRole("button", { name: "Replace it" }).click();
-  await expect.poll(() => page.evaluate(() => localStorage.getItem("hedge-school:board-at")), { timeout: 60_000 }).toBe("D10-E13 Q10-R8");
+  await boardAt(page).toBe("D10-E13 Q10-R8");
 });
 
-test("a tool that sends no position: the board opens at the game's last move", async ({ page }) => {
-  await page.goto(toolLink());
-  await expect(page.getByText("The Analysis board opens at the last move of the game.")).toBeVisible();
-  await page.getByRole("button", { name: "Analyze on the board" }).click();
-  await page.waitForURL(url => url.pathname === "/analysis" && !url.hash);
-  await expect.poll(() => page.evaluate(() => localStorage.getItem("hedge-school:board-at")), { timeout: 60_000 })
-    .toBe("D10-E13 Q10-R8 O11-Q10");
-});
+for (const [name, at] of [["sends no position", undefined], ["sends a position past the game's end", 9]] as const)
+  test(`a tool that ${name}: the board opens at the game's last move`, async ({ page }) => {
+    await page.goto(toolLink(at));
+    if (at === undefined)
+      await expect(page.getByText("The Analysis board shows the position after the last move of the game.")).toBeVisible();
+    await page.getByRole("button", { name: "Analyze on the board" }).click();
+    await page.waitForURL(url => url.pathname === "/analysis" && !url.hash);
+    await boardAt(page).toBe("D10-E13 Q10-R8 O11-Q10");
+  });
 
 test("Review the game: the game kept, then reviewed", async ({ page }) => {
   await page.goto(toolLink(1));
