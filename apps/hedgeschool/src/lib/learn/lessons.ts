@@ -67,7 +67,7 @@ export const COURSE: Stage[] = [
           {
             title: "Close a region",
             text: "When your edges close a region, its area counts for you. After every turn, each player's enclosed " +
-                  "area is added to their score.",
+                  "area adds to their score.",
             goal: "Close the square with one edge.",
             view: [0, 4, 8, 11],
             position: "C7-F7,C10-F10,F7-F10 - b2 0/0 3",
@@ -95,15 +95,15 @@ export const COURSE: Stage[] = [
           },
           {
             title: "Protected edges",
-            text: "The edges a player places in a turn are protected during the opponent's next turn. A protected edge " +
-                  "cannot be cut.",
+            text: "The edges a player places in a turn stay protected during the opponent's next turn. No edge can cut " +
+                  "a protected edge.",
             goal: "Cut the red edge that is not protected.",
             view: [0, 3, 8, 10],
             position: "A7-C7 A9-D9,F5-F8* b2 0/0 3",
             // The engine takes no edge that cuts a protected one.
             task: ({ before, after }) => (after.cuts && !before.protected.includes(after.cuts) ? null
               : "Cross the red edge without the glow: A9-D9."),
-            done: "The protection lasts one turn. Next turn, Red's other edge can be cut too.",
+            done: "The protection lasts one turn. Next turn, you can cut Red's other edge too.",
           },
         ],
       },
@@ -114,7 +114,7 @@ export const COURSE: Stage[] = [
           {
             title: "Two edges a turn",
             text: "Blue's first turn is a single edge. Every later turn has two edges, and the game ends after 120 " +
-                  "edges. The two edges of a turn work together: set up with the first, close with the second.",
+                  "edges. The two edges of a turn work together: prepare with the first, close with the second.",
             goal: "Read, then continue.",
             view: [0, 4, 8, 11],
             position: "C7-F7,F7-F10 - b2 0/0 3",

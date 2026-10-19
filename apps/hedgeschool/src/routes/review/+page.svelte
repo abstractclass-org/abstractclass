@@ -180,17 +180,17 @@
   let again = $state<ReviewAgain | null>(null);
   // After Review again on a snapshot (`chosen`), the line alone: the player knows why.
   function againFor(why: "engine" | "network", want: { module: string }, chosen: boolean): ReviewAgain {
-    const name = modelOf(session.manifest!, session.network)?.displayName ?? "The network";
+    const name = modelOf(session.manifest!, session.network)?.displayName ?? "the network";
     const key = `hedge-school:review-again:${kept!.id}:${want.module}`;
     let dialog = !chosen;
     if (dialog) { dialog = !readSession(key); writeSession(key, "1"); } // blocked storage: each time
     return why === "engine"
-      ? { title: "The engine was updated", dialog,
-          text: "The engine was updated since this game's last review, so the game is reviewed again.",
-          body: "This game's last review used an earlier version of the engine, so the game is reviewed again." }
-      : { title: `${name} was updated`, dialog,
-          text: `${name} was updated since this game's last review, so the game is reviewed again.`,
-          body: `This game's last review used an earlier version of ${name}, so the game is reviewed again.` };
+      ? { title: "A new version of the engine", dialog,
+          text: "We updated the engine after this game's last review, so the engine reviews the game again.",
+          body: "This game's last review used an earlier version of the engine, so the engine reviews the game again." }
+      : { title: `A new version of ${name}`, dialog,
+          text: `We updated ${name} after this game's last review, so the engine reviews the game again.`,
+          body: `This game's last review used an earlier version of ${name}, so the engine reviews the game again.` };
   }
   function reviewParams(): Record<string, string | number | boolean> {
     return {
@@ -434,8 +434,8 @@
 {:else if elsewhere}
   <div class={MESSAGE}>
     <p class="mb-3">{elsewhere === "taken" ? "This game is now open in another tab, so its review here stopped."
-      : "This game is open in another tab."} A game is reviewed in one tab at a time, so that two tabs do not store over
-      each other's branches.</p>
+      : "This game is open in another tab."} Hedge School reviews a game in one tab at a time, so that two tabs do not
+      store over each other's branches.</p>
     <button class="btn-primary" type="button" onclick={reviewHere}>Review here</button>
   </div>
 {:else if failure}

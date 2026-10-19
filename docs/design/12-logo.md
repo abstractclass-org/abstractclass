@@ -27,7 +27,7 @@ school's colour seen beyond the site.
    dark edit of the same drawing. The header shows the head at 28 pixels beside the site's name, which is larger than
    the other links (`text-xl`). The header's reserved height (`--site-header`, which the review sizes its board from) is
    3 rem.
-4. **The mascot** on the About page ("The schoolmaster": "The school is kept by a Border Collie.") is the full drawing
+4. **The mascot** on the About page ("The schoolmaster": "A Border Collie keeps the school.") is the full drawing
    at 96 pixels. The earlier mortarboard is not redrawn for this drawing.
 5. **The favicon:** the head as a file (`src/lib/assets/favicon.svg`), the same in both colour schemes. An ICO file
    at the site's root for browsers without SVG icons and for the clients that ask for `/favicon.ico` without reading

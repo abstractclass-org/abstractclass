@@ -379,8 +379,8 @@
         {#if visitsWrong}
           <p id="visits-message" class="text-xs text-blunder" role="alert">Type a whole number from 1 to {MAX_VISITS.toLocaleString("en")}.</p>
         {/if}
-        <p class="text-xs text-muted">More visits play stronger, and take longer. How strong each setting plays is not
-          measured yet.</p>
+        <p class="text-xs text-muted">More visits play stronger, and take longer. We have not measured yet how strong
+          each setting plays.</p>
         <input type="range" min="0" max={VISIT_STOPS.length - 1} step="1" value={visitsStop(choices.bot.visits)}
                aria-label="Visits for each move" aria-valuetext="{choices.bot.visits.toLocaleString("en")} visits"
                class="w-full mt-1 accent-(--accent)"

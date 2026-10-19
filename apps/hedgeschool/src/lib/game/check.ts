@@ -39,7 +39,7 @@ export async function checkMoves(record: GameRecord): Promise<Checked> {
   const cuts = positions.slice(1).map(p => p.cuts !== null);
   const wrong = marked.findIndex((m, i) => m && !cuts[i]);
   if (wrong >= 0)
-    return { problem: `Edge ${wrong + 1} (${moves[wrong]}x) is marked as a cut, but it cuts nothing.`, cuts };
+    return { problem: `Edge ${wrong + 1} (${moves[wrong]}x) has the cut mark, but it cuts nothing.`, cuts };
   return { problem: null, cuts };
 }
 

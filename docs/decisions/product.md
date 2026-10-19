@@ -4191,3 +4191,56 @@ sweep.
 - **Not checked:** the sliders on the live sites. meaf.us shows a guest only its sign-in page, and strategyjam.org's
   list of games stayed "Loading…" for a guest, so the readers rest on the two copies of the sites' code. The import
   events in Google Analytics itself: the check above stops them before they leave the browser.
+
+### The site's text, a second pass (2026-10-19)
+
+- **What:** the text by what it does (CLAUDE.md, "Writing the site's text"), with the `/asd-ste100` skill and its
+  linter (`ste-lint.py`). The linter read each page's prose without its code and its `<pre>` blocks, and the string
+  literals of `src/lib`. Its check of the passive voice finds only some forms, so the pass also read each page in full.
+  The counts below are the linter's notes before and after.
+- **STE's sentence rules, for what explains:** the passive verbs that the first pass left, in the active voice.
+  - About (6 notes, then 0): "The game's designer is webgoatguy", "A Border Collie keeps the school", "The notation
+    page describes the records", "it sends nothing to a server", "Each network's name gives its version", "we make it
+    independently of webgoatguy, …".
+  - How a review works (6, then 2): the key moments and the position on screen "get a search", a label shows "once the
+    searches of both positions of the move reach 256 visits", "The notation page describes the game records".
+  - Notation (9, then 0): "as the players see it", "the turn has no edges left", "a player's enclosed areas at each
+    turn's end", "A writer sorts each list", "The player to move cannot cut it", "the turn in progress", "Red's
+    triangle scored 4.5", "A writer escapes `"` and `\`", "Where the game took place", "does not follow the online
+    rules". "begins" became "starts", the page's word for it, and "analyse" became "analyze", the interface's spelling.
+  - Notices (2, then 1): "We build the engine from a fork of KataGo".
+  - For developers (5, then 1): "A site where people play Enclosure", "the link needs none", "Hedge School refuses a
+    record with a `Rules` or a `Position` tag", "The board reviews nothing, and the game does not go into the player's
+    list of games", "to join the list", "Hedge School would still read the old form".
+  - Learn's lessons (2, then 0): "area adds to their score", "stay protected", "No edge can cut a protected edge",
+    "you can cut Red's other edge too". "set up with the first" became "prepare with the first": no phrasal verb.
+  - Practice: "We have not measured yet how strong each setting plays." The present perfect stays: the sentence gives
+    the state now.
+- **Strict, for what a player follows:** the messages say who acts. "Hedge School reviews a game in one tab at a
+  time", "Hedge School cannot load this file", "This game uses other rules", "Edge …
+  has the cut mark, but it cuts nothing", "the game is over". The notice of a new engine: "A new version of the engine", "We updated the
+  engine after this game's last review, so the engine reviews the game again", and the home page's Export: "The engine
+  has a new version". The Analytics ask says "disable your ad blocker", not the phrasal verb "turn off". Design 12 and
+  design 27 quote the new words.
+- **Left, where the rules leave it to judgment:**
+  - How a review works, "once a game is decided": "decided" gives the state of the game, and no one decides it.
+    "display" next to "show": "display settings" is the settings' name.
+  - For developers, "Once the review is done": "Review done" is the name of that state on the review.
+  - Notices, "unless you have written permission": not a compound tense. "written" describes the permission.
+  - The review, "Engine off. The review is paused.": "paused" gives the state that the progress line shows.
+  - Practice's one note is a semicolon in the page's script, not in its text.
+  - "Not analysed yet" in `src/lib/review/model.ts` stays with the same words in `ReviewView.svelte`, so that the site
+    shows one spelling until both change.
+  - The pages that invite (the home page and its cards, the consent banner, the Support Us dialog, the Analytics
+    ask's request) read clearly as plain web writing. They did not change.
+- **Left for a later pass, in files that other work changed at the time:**
+  - `ReviewView.svelte`: "Pin its line on the board; click again to unpin it" (a semicolon), "Close the settings, or
+    drop an edge begun" (hard to read), "Not analysed yet" (the spelling, also in `model.ts`), "mind how much it has"
+    in the workers' help.
+  - `Arrival.svelte`: "The review could not be loaded" and "The game could not be imported" (passive, in an error),
+    "/import is deprecated", and the share link's note: sentences of 30 words and more, with the phrasal verbs "fills
+    in" and "comes out".
+  - `bookmarklet.ts`: "Check the connection, then click it again." (two instructions). `meafPage.ts`: the message
+    "no game found on this page…" has four sentences, one long, and the phrasal verb "comes back".
+  - The privacy page: "it is kept here" (twice), and "delete" next to "remove". The board editor: its help "Click an
+    edge's two points to mark it: …" has 28 words. The Tools and Analysis pages: no notes.

@@ -49,7 +49,7 @@
   <p>The other works below are by others. Their licences cover those works only, not {SITE_NAME} or its engine.</p>
 
   <h2>The engine</h2>
-  <p>The engine, HedgeFund, and its networks: {SITE_COPYRIGHT}, all rights reserved. The engine is built from a fork of
+  <p>The engine, HedgeFund, and its networks: {SITE_COPYRIGHT}, all rights reserved. We build the engine from a fork of
     <a href="https://github.com/lightvector/KataGo">KataGo</a>. KataGo's code is under the MIT licence, and the other
     works that the engine compiles in are under their own licences. Each engine release carries its terms
     ({#if TERMS_URL}<a href={TERMS_URL}>LICENSE.txt</a>{:else}LICENSE.txt{/if}) and these licences

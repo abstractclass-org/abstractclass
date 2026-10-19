@@ -129,7 +129,7 @@
       try {
         await goto(await openAnalysisFile(content, await manifestLoad)); // the board counts the load
       } catch (e) {
-        fileProblem = `The file could not be loaded: ${errorText(e)}`;
+        fileProblem = `Hedge School cannot load this file: ${errorText(e)}`;
         trackLoadFailed("analysis_file", "file");
       } finally {
         loadingFile = false;
@@ -141,7 +141,7 @@
       trackLoad("review_file", parseRecord(file.record).moves.length, { with_results: file.analyses.length > 0 });
       location.assign(`/review#game=${id}`); // the review loads it (hashchange)
     } catch (e) {
-      fileProblem = `The file could not be loaded: ${errorText(e)}`;
+      fileProblem = `Hedge School cannot load this file: ${errorText(e)}`;
       trackLoadFailed("review_file", "file");
     } finally {
       loadingFile = false;
@@ -226,7 +226,7 @@
               ready={reviewCovers(game.reviewed, wanted(game))}
               why={setUpStart(record.tags.Position) ? "A game from a set-up start opens on the Analysis board: export it there."
                 : !game.reviewed ? "Open the game to review it, then export."
-                : reviewAgainWhy(game.reviewed, wanted(game)) ? "The engine was updated: open the game, choose Review again, then export."
+                : reviewAgainWhy(game.reviewed, wanted(game)) ? "The engine has a new version: open the game, choose Review again, then export."
                 : "Open the game to finish its review with the engine settings now, then export."} />
               <button type="button" class="px-2 py-0 text-xs" aria-label="Delete {title(record)}"
                       onclick={() => (deleting = { id: game.id, name: title(record) })}>Delete</button></span>

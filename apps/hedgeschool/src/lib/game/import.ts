@@ -13,7 +13,7 @@ import { saveGame } from "./store.ts";
 export function variantProblem(record: GameRecord, board = false): string | null {
   const set = (tag: string) => { const v = record.tags[tag]?.trim(); return v && v !== "?" && v !== "-" ? v : null; };
   const rules = set("Rules"), position = setUpStart(record.tags.Position);
-  if (rules) return `This game is played by other rules (${rules}). Hedge School reviews games of the online rules only.`;
+  if (rules) return `This game uses other rules (${rules}). Hedge School reviews games of the online rules only.`;
   if (position && !board)
     return "This game starts from another position. Hedge School reviews games from the standard start only: open it on the Analysis board.";
   return null;

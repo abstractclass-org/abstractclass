@@ -70,7 +70,7 @@ window.addEventListener("message", event => {
 
 <main class={PROSE}>
   <h1>For developers</h1>
-  <p>A site where Enclosure is played can send its games to {SITE_NAME} for review, or to its Analysis board, and a
+  <p>A site where people play Enclosure can send its games to {SITE_NAME} for review, or to its Analysis board, and a
     partner site can keep the reviews and open them again. This page describes how. The game goes as a game record, in
     <a href="/notation">the notation</a>.</p>
 
@@ -80,12 +80,12 @@ window.addEventListener("message", event => {
   <ul>
     <li><strong><code>record</code>:</strong> the game, as a game record in the notation, or a plain list of edges.
       URL-encode it, as <code>URLSearchParams</code> does.</li>
-    <li><strong>Tags are welcome,</strong> none is needed: <code>Blue</code> and <code>Red</code> name the players,
+    <li><strong>Tags are welcome,</strong> but the link needs none: <code>Blue</code> and <code>Red</code> name the players,
       and <code>Date</code>, <code>Result</code> and <code>TimeControl</code> describe the game. Put the game's own
       page in <code>Site</code> (as Lichess does), and the review links back to it.</li>
-    <li><strong>The online rules from the standard start only.</strong> A record with a <code>Rules</code> or a
-      <code>Position</code> tag is refused, with a message that says why. Show the link for such games only once
-      {SITE_NAME} reviews them.</li>
+    <li><strong>The online rules from the standard start only.</strong> {SITE_NAME} refuses a record with a
+      <code>Rules</code> or a <code>Position</code> tag, with a message that says why. Show the link for such games
+      only once {SITE_NAME} reviews them.</li>
     <li><strong>A finished game only.</strong> A link to a game in play would give a player the engine's help.</li>
     <li>The record goes after the <code>#</code>, which a browser never sends to a server, and the page removes it
       from the address at once.</li>
@@ -93,8 +93,8 @@ window.addEventListener("message", event => {
 
   <h2 id="analysis">A link to the Analysis board</h2>
   <p>A link to the Analysis board opens a game, or any line from the start, on a free board: the player explores it with
-    the engine, which searches only the position on screen. Nothing is reviewed, and the game is not kept in the
-    player's list of games.</p>
+    the engine, which searches only the position on screen. The board reviews nothing, and the game does not go into
+    the player's list of games.</p>
   <pre>{ANALYSIS}</pre>
   <ul>
     <li><strong><code>record</code>:</strong> as for a review. A record that has not ended is welcome: its result is
@@ -109,7 +109,7 @@ window.addEventListener("message", event => {
 
   <h2 id="save">The review saved back to a partner site</h2>
   <p>A partner site can keep its players' reviews. Its link then names a save page, <code>save</code>, on its own site
-    and over https. {SITE_NAME} lists its partner sites: <a href={DISCORD}>ask in the Discord</a> to be listed. Once
+    and over https. {SITE_NAME} lists its partner sites: <a href={DISCORD}>ask in the Discord</a> to join the list. Once
     the review is done, the player can choose "Save to" the site in the review's Export menu. {SITE_NAME} opens the
     save page in a new tab, and the two pages exchange window messages (<code>postMessage</code>), in the player's
     browser:</p>
@@ -183,7 +183,7 @@ window.addEventListener("message", event => {
     <li><strong>{SITE_NAME} reads more than it asks for:</strong> unknown tags, an edge's points in either order, lower
       case. A site that writes the notation as its page describes it keeps working.</li>
     <li><strong>Changes are additions:</strong> new optional tags or parameters, which old links do not have. A change
-      that old links could not meet would come with a version in the link, and the old form would still be read.</li>
+      that old links could not meet would come with a version in the link, and {SITE_NAME} would still read the old form.</li>
     <li><strong>During the early access, an address can move.</strong> The old address then forwards to the new one for
       a while, and this page says, a month before, when it stops.</li>
     <li><strong>The messages have a version,</strong> <code>protocol: 1</code>. A later version would be one that the

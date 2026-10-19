@@ -45,8 +45,8 @@ A10-D10,D10-E11,D10-F13+ Q10-T10,Q10-T13*,T10-T13* b1 0/4.5 4`;
   <ul>
     <li><strong>Columns</strong> <code>A</code> to <code>T</code> without <code>I</code>, from left to right: <code>A</code>
       is the first column, <code>J</code> the ninth, <code>T</code> the nineteenth.</li>
-    <li><strong>Rows</strong> <code>1</code> to <code>19</code>, from the bottom of the board as it is shown to the
-      players.</li>
+    <li><strong>Rows</strong> <code>1</code> to <code>19</code>, from the bottom of the board as the players see
+      it.</li>
   </ul>
   <p>Letters are upper case. A reader may accept lower case.</p>
 
@@ -74,22 +74,22 @@ A10-D10,D10-E11,D10-F13+ Q10-T10,Q10-T13*,T10-T13* b1 0/4.5 4`;
     <li><strong>Red's edges</strong>, the same.</li>
     <li><strong>The player to move, and the edges left in the turn:</strong> <code>b1</code>, <code>b2</code>,
       <code>r1</code> or <code>r2</code>. <code>b</code> is Blue, the first player, and <code>r</code> Red. A finished
-      game (120 edges) has <code>r0</code>: no edges are left, and the engine refuses to analyse it.</li>
-    <li><strong>The scores,</strong> Blue's, <code>/</code>, then Red's: <code>0/4.5</code>. A score is the sum of the
-      areas a player has enclosed at each turn's end, so it can have a fraction. It is exact to the rules' rounding
+      game (120 edges) has <code>r0</code>: the turn has no edges left, and the engine refuses to analyze it.</li>
+    <li><strong>The scores,</strong> Blue's, <code>/</code>, then Red's: <code>0/4.5</code>. A score is the sum of a
+      player's enclosed areas at each turn's end, so it can have a fraction. It is exact to the rules' rounding
       (10<sup>−9</sup>), with no trailing zeros.</li>
     <li><strong>The edge count:</strong> the edges played so far, from 0 to 120. A pass counts the edges it forfeits.</li>
   </ol>
-  <p>Each list is sorted by the edges' first points, then by their second points, a point by its column, then by its
+  <p>A writer sorts each list by the edges' first points, then by their second points, a point by its column, then by its
     row. Two marks on an edge carry the turn:</p>
   <ul>
-    <li><code>*</code>: <strong>protected</strong>, an edge of the last turn of the player who is not to move. It cannot be
-      cut during this turn.</li>
-    <li><code>+</code>: <strong>placed</strong>, an edge of the turn being played. It becomes protected when the turn
+    <li><code>*</code>: <strong>protected</strong>, an edge of the last turn of the player who is not to move. The player to
+      move cannot cut it during this turn.</li>
+    <li><code>+</code>: <strong>placed</strong>, an edge of the turn in progress. It becomes protected when the turn
       ends.</li>
   </ul>
   <p>The start, then the positions after Blue's first turn, after Red's first edge, and after Blue's first edge of turn
-    3, where Red's triangle has scored 4.5:</p>
+    3, where Red's triangle scored 4.5:</p>
   <pre>{POSITIONS}</pre>
   <p>A position leaves out the earlier turns' edges, as FEN leaves out what only an engine needs. A program that needs
     them sends the moves played since a known position.</p>
@@ -99,13 +99,13 @@ A10-D10,D10-E11,D10-F13+ Q10-T10,Q10-T13*,T10-T13* b1 0/4.5 4`;
   <pre>{RECORD}</pre>
 
   <h3>Tags</h3>
-  <p>A tag is <code>[Name "value"]</code>, one to a line. In a value, <code>"</code> and <code>\</code> are written
-    <code>\"</code> and <code>\\</code>. The first seven come in this order, as PGN's Seven Tag Roster:</p>
+  <p>A tag is <code>[Name "value"]</code>, one to a line. A writer escapes <code>"</code> and <code>\</code> in a value
+    as <code>\"</code> and <code>\\</code>. The first seven come in this order, as PGN's Seven Tag Roster:</p>
   <table>
     <thead><tr><th>Tag</th><th>Value</th></tr></thead>
     <tbody>
       <tr><td><code>Event</code></td><td>The event, or <code>?</code> when it is not known.</td></tr>
-      <tr><td><code>Site</code></td><td>Where the game was played: <code>meaf.us</code>, <code>Constellation</code>, the
+      <tr><td><code>Site</code></td><td>Where the game took place: <code>meaf.us</code>, <code>Constellation</code>, the
         game's own page (a strategyjam.org game gives its address, and the review links to it), or <code>?</code>.</td></tr>
       <tr><td><code>Date</code></td><td><code>YYYY.MM.DD</code>, with <code>?</code> for unknown digits.</td></tr>
       <tr><td><code>Round</code></td><td>The round, or <code>-</code>.</td></tr>
@@ -125,9 +125,9 @@ A10-D10,D10-E11,D10-F13+ Q10-T10,Q10-T13*,T10-T13* b1 0/4.5 4`;
       <tr><td><code>Termination</code></td><td>How the game ended: <code>normal</code>, <code>resignation</code> or
         <code>forfeit</code>.</td></tr>
       <tr><td><code>GameId</code></td><td>The game's identifier on its site.</td></tr>
-      <tr><td><code>Position</code></td><td>The start, in the position notation, when the game does not begin at the
-        standard start (PGN's <code>FEN</code> tag).</td></tr>
-      <tr><td><code>Rules</code></td><td>The variant, when the game is not played by the online rules (PGN's
+      <tr><td><code>Position</code></td><td>The start, in the position notation, when it is not the standard
+        start (PGN's <code>FEN</code> tag).</td></tr>
+      <tr><td><code>Rules</code></td><td>The variant, when the game does not follow the online rules (PGN's
         <code>Variant</code>).</td></tr>
       <tr><td><code>Annotator</code></td><td>Who annotated the game (PGN's tag): a person, or a program such as
         {SITE_NAME}.</td></tr>
@@ -168,7 +168,7 @@ A10-D10,D10-E11,D10-F13+ Q10-T10,Q10-T13*,T10-T13* b1 0/4.5 4`;
   <ul>
     <li><code>[%clk H:MM:SS]</code>: once a turn, after the turn's last edge, or after the pass that ends it. It gives
       the mover's time left as the turn ends, increment included: what the clock shows when the mover's next turn
-      begins.</li>
+      starts.</li>
     <li><code>[%eval W L S]</code>: the engine's view after the move, in three numbers:
       <ul>
         <li><code>W</code>: Blue's chance of winning, from 0 to 1.</li>

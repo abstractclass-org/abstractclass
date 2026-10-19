@@ -172,7 +172,7 @@ export class PracticeGame {
 
   /** A move played, by either side, with its time: its position from the rules, kept with the game. */
   private async add(name: string, ms: number | null) {
-    if (this.closed) throw new Error("the game has ended");
+    if (this.closed) throw new Error("the game is over");
     const from = this.kept.moves.length;
     this.kept.moves.push(name);
     (this.kept.ms ??= []).push(ms);
