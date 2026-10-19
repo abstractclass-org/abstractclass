@@ -157,22 +157,21 @@ cut edges that are on the board, so a line drawn over the board can show edges t
     action off, not the browser's menu: the review is of the game, so its line stays first, and its moves are
     evaluated already.
     "Make main line" belongs to an analysis board, later (decisions/open-items.md).
-13. **A branch's preview:** pointing at a move of a branch's row in the move list shows the branch's line on the
-    board, from the position where the line leaves the game, up to that move (`branchLine` in `tree.ts`). A row that
-    forks from another branch starts at the fork, but its line starts at the game: the edges the row shares with the
-    other branch are drawn and numbered too. With the game A1 A2 A3 A4 and the branches A1 B1 B2 B3 and A1 B1 C1 C2,
-    pointing at B3 numbers B1, B2 and B3 as 1, 2 and 3 from the position after A1, and pointing at C2 numbers B1, C1
-    and C2 as 1, 2 and 3. It is drawn as the engine's line is (item 3): the edges numbered,
-    one at a time or all at once (the same display setting, "Lines on the board"), with the edges they cut and the
-    regions they close, from the branch's own positions. Meanwhile the board shows nothing of the position on screen
-    (no candidates, labels or own moves), and the status line says "Branch preview" and the position where the
-    numbering starts. The engine's best line (item 15) starts where it leaves the game already. The image of a line
-    draws the same line. It ends
-    a moment (120 ms) after the pointer leaves the move, unless the pointer comes onto another move first, so that it
-    can cross the gap between two moves without the board going back. A click goes to the move. A display setting
-    turns it off ("Preview branches"). Rows of dots or pills look alike, and the board tells
-    them apart. A small board that pops up beside the move (Lichess's board on its engine lines) was the other choice:
-    the main board is larger, and it draws as the engine's line does.
+13. **A branch's preview:** pointing at a move of a branch's row in the move list shows the branch's line on the board,
+    from the position where the line leaves the game, up to that move (`branchLine` in `tree.ts`). A row that forks from
+    another branch starts at the fork, but its line starts at the game: the preview draws and numbers the edges that the
+    row shares with the other branch too. With the game A1 A2 A3 A4 and the branches A1 B1 B2 B3 and A1 B1 C1 C2,
+    pointing at B3 numbers B1, B2 and B3 as 1, 2 and 3 from the position after A1, and pointing at C2 numbers B1, C1 and
+    C2 as 1, 2 and 3. It is drawn as the engine's line is (item 3): the edges numbered, one at a time or all at once
+    (the same display setting, "Lines on the board"), with the edges they cut and the regions they close, from the
+    branch's own positions. Meanwhile the board shows nothing of the position on screen (no candidates, labels or own
+    moves), and the status line says "Branch preview" and the position where the numbering starts. The engine's best
+    line under a bad turn (item 15) shows in the same way, from where it leaves the game. The preview ends a moment (120
+    ms) after the pointer leaves the move, unless the pointer comes onto another move first, so that it can cross the
+    gap between two moves without the board going back. A click goes to the move. A display setting turns it off
+    ("Preview branches"). Rows of dots or pills look alike, and the board tells them apart. A small board that pops up
+    beside the move (Lichess's board on its engine lines) was the other choice: the main board is larger, and it draws
+    as the engine's line does.
 14. **A played move's preview:** pointing at one of the game's moves in the move list shows the position after it,
     with the move as the last edge, and nothing of the position on screen. The status line says "Preview" and the
     move. It ends as the branch's preview does, a moment after the pointer leaves the move. A display setting turns
@@ -191,7 +190,7 @@ cut edges that are on the board, so a line drawn over the board can show edges t
       Where they part, the row forks: the line's way first, then the branch's.
     - **A click on a faded edge** plays the line up to there as a branch (as the listed line's click does). The played
       edges then show solid in the same row, with no second row. Pointing at a faded edge previews the line up to it
-      on the board, as a branch's row.
+      on the board, as a branch's line (item 13): from where it leaves the game.
     - **The line follows the search, and the player's branches stay.** The faded edges are not kept. When the line
       changes, a branch the player played along the old line shows as a branch of its own, and a branch on the new
       line merges into it. While its position's search can still change it (a search of it runs, or the label pass or

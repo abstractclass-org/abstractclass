@@ -26,7 +26,7 @@ export interface Display {
   marks: "badges" | "text";
   notes: boolean; // the move list's one-line notes on Great edges, mistakes and blunders
   previewMoves: boolean; // the position after a played move on the board, while the pointer is on the move (design 07)
-  previewBranches: boolean; // a branch's row on the board, while the pointer is on one of its moves (design 07)
+  previewBranches: boolean; // a branch's line on the board, while the pointer is on one of its moves (design 07)
   sound: boolean; // move sounds (design 08), on by default as on Lichess
   moveSound: MoveSound; // which set of sounds (src/lib/sound.ts): a button by default, or a pencil stroke
   volume: number; // the move sounds' volume, 0 to 1

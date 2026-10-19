@@ -101,7 +101,7 @@
   import {
     edgeName, endingText, moveName, moveNotation, opensTurn, turnFromCount, sameEdge, shortNote, turnShortNote, HARD_NOTE, complexity, likelyEdges, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchEdge, valuesAfter, resultWin, moverWin, costText, pct, shownCandidates, distinctCandidates, rankOf, twinsOf, lineMovers, enoughVisits, trustedLine, type Candidate, type EdgeReview, LABELS, LABEL_TEXT, LABEL_GLYPH, type Label, type Position, type Review, type Unit, type Move, type TurnJudgment, type TurnReview,
   } from "./enclosure.ts";
-  import { branchChildren, branchRows, mainIndex, nextFork, pathKey, prefixKeys, prevFork, branchLine, sharedLength, siblingLine, treeLines, withLine,
+  import { branchChildren, branchLine, branchRows, mainIndex, nextFork, pathKey, prefixKeys, prevFork, sharedLength, siblingLine, treeLines, withLine,
            type BranchRow } from "@abstractclass/analysis/tree.ts";
 
   interface Props {
@@ -444,14 +444,15 @@
                                  !display.lineSteps || listHover !== null));
   const drawnLine = $derived(line && line.slice(0, Math.max(1, lineDrawing.shown)));
 
-  // A branch's preview (design 07): pointing at a move of a branch's row in the move list shows the branch's line on the
-  // board, from the position where the line leaves the game (branchLine, tree.ts), up to the move, so that a row that
-  // forks from another branch shows the edges it shares too. It shows as the engine's line shows: its edges numbered, one at a time or all at
-  // once (the same display setting), with the edges they cut and the regions they close, from the branch's own
+  // A branch's preview (design 07): pointing at a branch's move in the move list shows the branch's line on the board,
+  // from the position where it leaves the game, up to the move (branchLine, tree.ts). A row that forks from another
+  // branch shows the edges the two share too. It shows as the engine's line shows: its edges numbered, one at a time or
+  // all at once (the same display setting), with the edges they cut and the regions they close, from the branch's own
   // positions. The rows of dots or pills look alike, and the board tells them apart. It ends when the pointer leaves.
   // The engine's line shown as a branch under a bad turn's note (bestLine): pointing at one of its edges previews it as a
-  // branch's row, from the line's steps once the rules have played it. A played move's preview: below.
-  type Preview = { kind: "move"; index: number } | { kind: "branch"; row: string[][]; k: number }
+  // branch's line, from where it leaves the game. Its cuts and regions come from the line's steps once the rules have
+  // played it. A played move's preview: below.
+  type Preview = { kind: "move"; index: number } | { kind: "branch"; path: string[] }
     | { kind: "engine"; start: string[]; line: Edge[]; k: number };
   let preview = $state<Preview | null>(null);
   $effect(() => { const p = preview; if (p?.kind === "engine") untrack(() => askSteps(p.start, p.line)); });
@@ -465,17 +466,17 @@
       const edges = line.slice(0, k + 1).map((edge, i): BoardLineEdge => ({ edge, player: movers[i], ...steps?.[i] }));
       return { start, from, edges };
     }
-    const { start, paths } = branchLine(p.row[p.k], mainNames), from = positionOf(start);
+    const { start, keys } = branchLine(p.path, mainNames), from = positionOf(start);
     if (!from) return null;
     const edges: BoardLineEdge[] = [];
-    for (const q of paths) {
-      const node = branches[pathKey(q)];
+    for (const key of keys) {
+      const node = branches[key];
       if (!node?.move.edge) break;
       edges.push({ edge: node.move.edge, player: node.move.player, cut: node.move.cut, regions: node.position.regions });
     }
-    return { start, from, edges };
+    return edges.length ? { start, from, edges } : null;
   });
-  // Pointing at a later move of the same row goes on from the edges drawn.
+  // Pointing at a later move of the same line goes on from the edges drawn.
   const previewStart = $derived(branchPreview ? pathKey(branchPreview.start) : null);
   const previewText = $derived(branchPreview ? branchPreview.edges.map(e => edgeName(e.edge)).join(" ") : "");
   const previewDrawing = new LineDrawing();
@@ -1235,7 +1236,8 @@
      shallower fork passing the lines nested in it. Every turn has its number, as in the record. Without notation, an
      edge is a dot in its mover's colour (Go tools show a variation without names): the turn numbers place it, so the
      dots carry no numbers of their own. Where a branch forks again, its continuations follow, one step further in
-     (Lichess's way inside a variation). Pointing at a move shows its row on the board up to that move (branchPreview). -->
+     (Lichess's way inside a variation). Pointing at a move shows its line on the board, from where it leaves the game, up
+     to that move (branchPreview). -->
 {#snippet branchGroup(rows: BranchRow[], engine: EngineBranch | null)}
   {@const lines = treeLines(rows)}
   {@const engineStart = engine ? pathKey(engine.paths[0]) : null}
@@ -1270,12 +1272,12 @@
             <button class={["mv px-[0.2rem] py-px bg-transparent border-0 whitespace-nowrap", SIDE_TEXT[node.move.player],
                             at ? "here bg-panel-2 outline outline-accent -outline-offset-1" : pickedKey === pathKey(p) ? PICKED
                             : "hover:bg-panel-2 hover:outline hover:outline-line hover:-outline-offset-1"]}
-                    onclick={() => setPath(p, true)} onmouseenter={() => startPreview({ kind: "branch", row: row.paths, k })} onmouseleave={endPreview} tabindex="-1"
+                    onclick={() => setPath(p, true)} onmouseenter={() => startPreview({ kind: "branch", path: p })} onmouseleave={endPreview} tabindex="-1"
                     data-path={pathKey(p)} title={label ? LABEL_TEXT[label] : waiting ? "Evaluating…" : undefined}>{moveNotation(node.move)}</button>
           {:else}
             <button class={["mv flex p-[0.08em] bg-transparent border-0 rounded-full",
                             at ? "here outline-2 outline-accent" : pickedKey === pathKey(p) ? PICKED : "hover:outline hover:outline-ink"]}
-                    onclick={() => setPath(p, true)} onmouseenter={() => startPreview({ kind: "branch", row: row.paths, k })} onmouseleave={endPreview} tabindex="-1"
+                    onclick={() => setPath(p, true)} onmouseenter={() => startPreview({ kind: "branch", path: p })} onmouseleave={endPreview} tabindex="-1"
                     data-path={pathKey(p)} title="{turnText(t)} {moveNotation(node.move)}{label ? ` · ${LABEL_TEXT[label]}` : waiting ? ' · evaluating…' : ''}">
               {@render edgeShape(node.move.edge, node.move.player)}
             </button>
@@ -1401,7 +1403,7 @@
         () => display.notes, v => (display.notes = v))}
       {@render toggle("Preview played moves", "Pointing at a move of the game shows the position after it on the board.",
         () => display.previewMoves, v => (display.previewMoves = v))}
-      {@render toggle("Preview branches", "Pointing at a branch's move draws its row on the board, as the engine's line.",
+      {@render toggle("Preview branches", "Pointing at a branch's move draws its line on the board, from where it leaves the main line, as the engine's line.",
         () => display.previewBranches, v => (display.previewBranches = v))}
       {@render choice("Branches and lines", "Each edge as a pill along its direction, a dot, or its notation. In the engine's line, the pills and dots carry the board's numbers.",
         [["pills", "Pills"], ["dots", "Dots"], ["text", "Notation"]], () => display.branchForm,
