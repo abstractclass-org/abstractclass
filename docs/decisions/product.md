@@ -4253,3 +4253,42 @@ sweep.
     apart", "cannot be sent", "is then kept", "are drawn by the script itself"), and "delete" next to "remove". The
     board editor: its help "Click an edge's two points to mark it: …" has 28 words. The Tools and Analysis pages: no
     notes.
+
+### The analysis and the review in packages/ (2026-10-19)
+
+- **Decided:** a strategy-jam game gets a site of its own in this repository, with an Analysis board and a review
+  (abscls-8tl1). The parts that it shares with Hedge School move into `packages/` before the jam's game is known
+  (design 26 item 4, design 29): `@abstractclass/engine` (the engine's client and workers, the pool, the error text),
+  `@abstractclass/storage` (the browser's stores) and `@abstractclass/analysis` (the game interface, the review's model
+  and labels, the move tree, the cache, the analysis of a game, the engine session, the GPU control, the engine
+  settings' general part and the kept tree's shape).
+- **The game interface** (`packages/analysis/src/game.ts`): a site gives its game's types and a few functions. Equality
+  and a name for a move, the move of a name, a position from the engine's fields, a move played, the rules for the
+  player's moves, a line's step, the notation's turn numbers, and the engine's points for one of Go's. Enclosure's game
+  is in Hedge School's `src/lib/review/enclosure.ts`, with Enclosure's own part of the review.
+- **Read again:** design 26's map put the review's model among Enclosure's parts. Its turn is a run of one player's
+  moves, so its rules hold for any game. Enclosure's part was its move type (an edge as four numbers), its position, the
+  cut, the notation's turn numbers, the players' names and the texts that say "edge".
+- **What stays in Hedge School:** the board, the edge input, the notation and the records, the imports, the engine
+  settings' networks and key, the practice bot, and every page. The views (`ReviewView.svelte` and its components)
+  stay too: they draw Enclosure throughout, two branches change them now (abscls-6xg, abscls-91ca), and only a second
+  board shows their seams. The jam site's template splits them (abscls-8tl1.2). Design 29 lists the seams.
+- **Hedge School's behaviour does not change:** the shared types keep the stored fields' names (`blueWin`, `edge`), so
+  the cache's shape stays 5 and every stored result and file stays readable. The shared functions that compare moves
+  take the game, and the site's `enclosure.ts` gives them Enclosure's game, so the site's calls and its tests stay as
+  they were. Equality is Enclosure's `sameEdge`, as before. A candidate's band in points is 3 times the game's score
+  scale: 36, as before.
+- **How it moved:** commits of pure renames (`git mv`), then the edits, so that Git follows each file across the move
+  for the branches in flight. No file comes back at a moved path.
+- **A fix on the way:** `scripts/home-replay.mjs` read `LABEL_VISITS` with a regular expression from a file that no
+  longer held the number, so it threw before it began. It now imports the number from the cache.
+- **Checked** after each stage, on this machine, as design 26 item 2 checks a move: `npm install` (the lockfile),
+  `npm run engine`, the type checks (the site's svelte-check, the packages' tsc), the unit tests, the build
+  (`VITE_EDITION=early`, `VITE_STORE_PRACTICE_GAMES=on`), and the layout sweep in Playwright's Chromium on a preview of
+  the build.
+  - **The engine and the storage:** 0 type errors. The site's 190 unit tests and the packages' 9 pass. The sweep: 12
+    passed, 5 skipped (the analytics-ask tests, which a build without Google Analytics skips).
+  - **The analysis:** 0 type errors. The site's 167 unit tests and the packages' 38 pass: the 23 tests that moved with
+    their modules, and 6 new tests of the game interface on the test game. The sweep: 12 passed, 5 skipped.
+  - `npm ci --dry-run` accepts the lockfile.
+- **Not checked:** the preview deploy (the coordinator's, after the merge), Edge, and the deployed site.
