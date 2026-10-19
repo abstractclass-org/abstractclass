@@ -4335,3 +4335,16 @@ sweep.
 - **Done:** `branchLine` in `tree.ts` chooses the line from the path and the game's moves. The preview uses it, and
   so can the image of a line (abscls-yeqg). Design 07, item 13, describes it, and the help of "Preview branches" says
   that the line starts where it leaves the main line.
+- **Checked:** `npm run check`, `npm test` (198 checks, the engine's among them), the build and the layout sweep. A
+  script built the issue's tree on the stored review in `tests/fixtures/hedgefund-review.json` and pointed at its
+  moves in Chromium, on the production build. A review and the Analysis board gave the same results, with one edge at a
+  time and with all at once:
+  - B3 and C2 each numbered 1, 2 and 3 from the position after edge 1.
+  - A branch of a branch numbered its 4 edges from the same position.
+  - A branch from the start numbered from the start.
+  - A branch in place of the game's last move numbered from the position after edge 119.
+  - The numbers went away when the pointer left.
+  - A played move showed the position after it, with no numbers.
+
+  In the review, the engine's best line under the Blunder of turn 7 numbered from the position after edge 11, where it
+  leaves the game.
