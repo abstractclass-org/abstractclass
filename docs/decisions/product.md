@@ -4292,3 +4292,28 @@ sweep.
     their modules, and 6 new tests of the game interface on the test game. The sweep: 12 passed, 5 skipped.
   - `npm ci --dry-run` accepts the lockfile.
 - **Not checked:** the preview deploy, which runs after the merge, Edge, and the deployed site.
+- **The review** (2026-10-20) changed these, with no change of a stored shape:
+  - `enclosure.ts` gives Enclosure's game to the shared functions in one place (`withGame`), so that their parameter
+    lists are not copied by hand. `playerOf` turns the engine's side into a player.
+  - The game interface: `parseMove` joins `Moves`. The shared position type is `PositionInfo`, apart from Hedge
+    School's `GamePosition` (a position of describe_game). The new type `MoveJudgment` has no Enclosure word in its
+    name. The session takes the site's analytics as one option, `tracker`.
+  - The engine package names `onnxruntime-web` as a peer dependency: before, only the site named it.
+  - Design 29 now states the limit of the turns (one move or two), the rules for a move's name, the names that keep
+    Enclosure's words, the tuning that every site shares, the database's stores, and what the engine package takes
+    from the site's build.
+- **The review's checks**, at the review's last commit, through `scripts/machine run` with 2 threads:
+  - `npm ci`, `npm run engine`, svelte-check (948 files, 0 errors), the site's 171 unit tests, each package's `tsc`
+    and tests (7, 2 and 29), and the build: all pass.
+  - The sweep in Playwright's Chromium: 21 passed and 5 skipped. The layout of `/editor` went past the test's 10
+    minutes once, in a run of 22 minutes on a loaded machine. It passed alone in 32 s. An earlier run of the sweep,
+    before the review's last commit, passed all 22 tests, `/editor` in 33 s.
+  - A real game in Chromium, through `/import#record=…`: `1. D10-G10 2. N11-Q10 L10-N11 3. D10-G9 G9-H10 4. N9-Q10
+    L10-N9 5. G9-H8`. The settings: Lite (512 visits a position), the position on screen to 1,024 visits with no time
+    limit, two workers, the GPU off. The labels are the same as dev's build gives for the same game and settings,
+    by turn and by edge (55 and 50 titles in the move list). A reload keeps the review (done from the store in under
+    half a second, with the same labels) and the Analysis board (its line of 8 moves and its position).
+  - The branch's build opens what dev's build stored in the same browser: the review is done from the store in
+    0.4 s, with dev's labels and no new result stored (20 results before and after), and the Analysis board shows
+    dev's line.
+  - The GPU worker's module loads from the build. WebGPU was not tested: a training job held the GPU.
