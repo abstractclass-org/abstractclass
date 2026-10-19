@@ -129,7 +129,7 @@
       try {
         await goto(await openAnalysisFile(content, await manifestLoad)); // the board counts the load
       } catch (e) {
-        fileProblem = `Hedge School cannot load this file: ${errorText(e)}`;
+        fileProblem = `${SITE_NAME} could not load this file: ${errorText(e)}`;
         trackLoadFailed("analysis_file", "file");
       } finally {
         loadingFile = false;
@@ -141,7 +141,7 @@
       trackLoad("review_file", parseRecord(file.record).moves.length, { with_results: file.analyses.length > 0 });
       location.assign(`/review#game=${id}`); // the review loads it (hashchange)
     } catch (e) {
-      fileProblem = `Hedge School cannot load this file: ${errorText(e)}`;
+      fileProblem = `${SITE_NAME} could not load this file: ${errorText(e)}`;
       trackLoadFailed("review_file", "file");
     } finally {
       loadingFile = false;

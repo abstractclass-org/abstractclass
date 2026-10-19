@@ -180,17 +180,14 @@
   let again = $state<ReviewAgain | null>(null);
   // After Review again on a snapshot (`chosen`), the line alone: the player knows why.
   function againFor(why: "engine" | "network", want: { module: string }, chosen: boolean): ReviewAgain {
-    const name = modelOf(session.manifest!, session.network)?.displayName ?? "the network";
+    const what = why === "engine" ? "the engine"
+      : modelOf(session.manifest!, session.network)?.displayName ?? "the network";
     const key = `hedge-school:review-again:${kept!.id}:${want.module}`;
     let dialog = !chosen;
     if (dialog) { dialog = !readSession(key); writeSession(key, "1"); } // blocked storage: each time
-    return why === "engine"
-      ? { title: "A new version of the engine", dialog,
-          text: "We updated the engine after this game's last review, so the engine reviews the game again.",
-          body: "This game's last review used an earlier version of the engine, so the engine reviews the game again." }
-      : { title: `A new version of ${name}`, dialog,
-          text: `We updated ${name} after this game's last review, so the engine reviews the game again.`,
-          body: `This game's last review used an earlier version of ${name}, so the engine reviews the game again.` };
+    return { title: `A new version of ${what}`, dialog,
+      text: `We updated ${what} after this game's last review, so the engine reviews the game again.`,
+      body: `This game's last review used an earlier version of ${what}, so the engine reviews the game again.` };
   }
   function reviewParams(): Record<string, string | number | boolean> {
     return {

@@ -13,7 +13,7 @@
     it on this site.</p>
   <p>{SITE_NAME} shows no ads. Google Analytics tells us which pages and tools people use, so we know what to build
     next.</p>
-  <p>To allow it, disable your ad blocker or tracking protection for this site, then reload the page.</p>
+  <p>To allow it, turn off your ad blocker or tracking protection for this site, then reload the page.</p>
   {#snippet actions()}
     <button type="button" onclick={closeAsk}>Close</button>
     <span class="ml-auto text-muted"><a href="/privacy">Privacy</a></span>

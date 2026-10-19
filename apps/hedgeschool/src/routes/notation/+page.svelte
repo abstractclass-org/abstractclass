@@ -80,11 +80,11 @@ A10-D10,D10-E11,D10-F13+ Q10-T10,Q10-T13*,T10-T13* b1 0/4.5 4`;
       (10<sup>−9</sup>), with no trailing zeros.</li>
     <li><strong>The edge count:</strong> the edges played so far, from 0 to 120. A pass counts the edges it forfeits.</li>
   </ol>
-  <p>A writer sorts each list by the edges' first points, then by their second points, a point by its column, then by its
-    row. Two marks on an edge carry the turn:</p>
+  <p>A writer sorts each list by the edges' first points, then by their second points, a point by its column, then by
+    its row. Two marks on an edge carry the turn:</p>
   <ul>
-    <li><code>*</code>: <strong>protected</strong>, an edge of the last turn of the player who is not to move. The player to
-      move cannot cut it during this turn.</li>
+    <li><code>*</code>: <strong>protected</strong>, an edge of the last turn of the player who is not to move. The
+      player to move cannot cut it during this turn.</li>
     <li><code>+</code>: <strong>placed</strong>, an edge of the turn in progress. It becomes protected when the turn
       ends.</li>
   </ul>

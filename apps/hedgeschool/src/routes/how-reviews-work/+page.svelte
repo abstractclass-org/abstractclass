@@ -25,10 +25,10 @@
     <li><strong>A first look</strong> at every position, at 32 visits, draws the chart's first estimate.</li>
     <li><strong>The label pass</strong> searches every position at the review's depth: 512 visits with Lite, the default,
       and 1,024 with Standard (the engine's settings).</li>
-    <li><strong>The key moments</strong>, the game's worst turns, get a second search at twice that depth.</li>
-    <li><strong>The position on screen</strong> gets a search to the Depth setting, 1,024 visits by default. Each position
-      keeps its deepest result, and everything follows it: the labels of the moves into and out of it, the report and
-      the chart. So a position you look at closely can change its labels.</li>
+    <li><strong>The key moments</strong>, the game's worst turns, get another search at twice that depth.</li>
+    <li><strong>The position on screen</strong> gets a search to the Depth setting, 1,024 visits by default. Each
+      position keeps its deepest result, and everything follows it: the labels of the moves into and out of it, the
+      report and the chart. So a position you look at closely can change its labels.</li>
   </ul>
   <p>Your browser keeps the results, so a game reviewed before opens at once.</p>
 
@@ -59,7 +59,7 @@
     <li><strong>Why win chance, not points:</strong> once a game is decided, a move changes the result little, whatever
       it does to the score. Thirty points thrown away at a lead of 120 cost less than thirty at a lead of 20. The notes
       give the points lost too, from the engine's estimate of the lead.</li>
-    <li><strong>When a label shows:</strong> once the searches of both positions of the move reach 256 visits. A
+    <li><strong>When a label shows:</strong> once the search of each position of the move reaches 256 visits. A
       deeper search can change it.</li>
   </ul>
   <p>The move list and the chart show Great, Inaccuracy, Mistake and Blunder, to stay quiet. The board shows every label.

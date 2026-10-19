@@ -39,7 +39,7 @@ counts.
    > Hedge School shows no ads. Google Analytics tells us which pages and tools people use, so we know what to build
    > next.
    >
-   > To allow it, disable your ad blocker or tracking protection for this site, then reload the page.
+   > To allow it, turn off your ad blocker or tracking protection for this site, then reload the page.
    >
    > [Close] Privacy
 

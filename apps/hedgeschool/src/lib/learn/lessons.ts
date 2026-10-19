@@ -66,8 +66,8 @@ export const COURSE: Stage[] = [
           },
           {
             title: "Close a region",
-            text: "When your edges close a region, its area counts for you. After every turn, each player's enclosed " +
-                  "area adds to their score.",
+            text: "When your edges close a region, its area counts for you. After every turn, the game adds each " +
+                  "player's enclosed area to their score.",
             goal: "Close the square with one edge.",
             view: [0, 4, 8, 11],
             position: "C7-F7,C10-F10,F7-F10 - b2 0/0 3",
@@ -95,8 +95,8 @@ export const COURSE: Stage[] = [
           },
           {
             title: "Protected edges",
-            text: "The edges a player places in a turn stay protected during the opponent's next turn. No edge can cut " +
-                  "a protected edge.",
+            text: "The edges a player places in a turn are protected during the opponent's next turn. You cannot " +
+                  "cut a protected edge.",
             goal: "Cut the red edge that is not protected.",
             view: [0, 3, 8, 10],
             position: "A7-C7 A9-D9,F5-F8* b2 0/0 3",

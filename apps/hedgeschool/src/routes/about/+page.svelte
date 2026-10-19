@@ -17,7 +17,7 @@
     <a href="https://constellation.blueshrimp.uk">Constellation</a>.
     Bring a game you played, and an engine reviews it: where the game turned, which turns cost you, and what was
     better.</p>
-  <p>The game's designer is webgoatguy, who <a href="https://youtu.be/BiVaY09xgZ4">introduces it in a video</a>. Its
+  <p>Enclosure's designer is webgoatguy, who <a href="https://youtu.be/BiVaY09xgZ4">introduces it in a video</a>. Its
     players meet in <a href={DISCORD}>webgoatguy's Discord</a>.</p>
 
   <h2>The schoolmaster</h2>
@@ -46,10 +46,10 @@
   <p>The rules and their numbers are on <a href="/how-reviews-work">How a review works</a>.</p>
 
   <h2>The engine</h2>
-  <p>The engine, HedgeFund, is a neural network trained for Enclosure, with a search derived from KataGo. Each network's
-    name gives its version: HedgeFund 0.2 Lite, the default, and HedgeFund 0.2. The engine's releases, with their files
-    and terms, are in <a href="https://github.com/abstractclass-org/enclosure-engine">its public repository</a>. The
-    licences of what the site uses are on <a href="/notices">the notices page</a>.</p>
+  <p>The engine, HedgeFund, is a neural network trained for Enclosure, with a search derived from KataGo. Its networks
+    have the version in their names: HedgeFund 0.2 Lite, the default, and HedgeFund 0.2. The engine's releases, with
+    their files and terms, are in <a href="https://github.com/abstractclass-org/enclosure-engine">its public
+    repository</a>. The licences of what the site uses are on <a href="/notices">the notices page</a>.</p>
 
   <h2>This site</h2>
   <p>{SITE_NAME} is not an official site of the game: we make it independently of webgoatguy, strategyjam.org,
