@@ -12,7 +12,8 @@ The jam game's site is that second site.
 
 Hedge School's code was read again for this move. Design 26's map put the review's model among Enclosure's parts,
 since it builds in Enclosure's two-edge turns, Blue's side and the enclosed area. Read again, the model's rules hold
-for any game, and Enclosure is in its types and a few calls. The parts fall into three groups:
+for any game whose turns have one move or two, and Enclosure is in its types and a few calls. The parts fall into
+three groups:
 
 - **General as they are:** the engine's client and its workers (they send the protocol's requests and pass the replies
   on), the pool, the storage, the move tree (moves as words), the labels (the engine's win chance and chess.com's
@@ -49,7 +50,7 @@ edit in the same commit), so their changes still apply.
    /** A game's types, as its site keeps them. */
    interface GameTypes {
      move: unknown;           // a move, not a pass. Enclosure: an edge, [x1, y1, x2, y2]
-     position: GamePosition;  // a position, as the board draws it
+     position: PositionInfo;  // a position, as the board draws it
      played: Played<this["move"]>; // a move played, with what the board draws of it. Enclosure: with its cut
      fields: unknown;         // a position, as describe_game gives it
      described: unknown;      // describe's reply: a position with its legal moves
@@ -57,7 +58,7 @@ edit in the same commit), so their changes still apply.
      step: unknown;           // a move of a line, played: what the board draws after it. Enclosure: the cut, the regions
    }
    /** What the analysis reads of a position. */
-   interface GamePosition { player: Player; over?: boolean; scores: [number, number]; count?: number }
+   interface PositionInfo { player: Player; over?: boolean; scores: [number, number]; count?: number }
    interface Played<M> { player: Player; edge: M | null } // `edge`: the move, null for a pass
 
    interface Game<G extends GameTypes> {
@@ -77,13 +78,24 @@ edit in the same commit), so their changes still apply.
      the shared code must compute with.
    - **The game compares and names its moves.** The shared code compares two moves with `equal` (Enclosure's
      `sameEdge`), and keys the tree, the queries and the stored results by the moves' names. Enclosure's name
-     (`edgeName`) puts the lower point first: it is the edge's one spelling.
+     (`edgeName`) puts the lower point first: it is the edge's one spelling. A move's name has no space (a path in the
+     tree joins the names with spaces), is not "pass", and does not start with "@" (the cache's mark of a set-up
+     start).
    - **The turn structure comes from the positions:** each position says who moves next (`player`), and a turn is a
      run of one player's moves. `turn` gives only the notation's numbers. Enclosure's first turn has one edge, then
      two a turn. A game of one move a turn numbers each move.
+   - **A turn has one move or two.** The review judges a turn of two moves by Enclosure's rules: the same two moves in
+     either order are one turn, and the engine's best turn is its first choice and the next move of that choice's
+     line (`judgeTurn`, and `GameAnalysis`'s turns). A game of longer turns, or one where the order within a turn
+     matters, needs these rules changed first.
    - **The values are the first player's:** the engine gives every win chance and score from the first player's side
      (KataGo's convention, in Enclosure from Blue's). The shared types keep Hedge School's field names (`blueWin`,
-     `edge`, `players.blue`): the browser's store and the review files hold them.
+     `edge`, `players.blue`): the browser's store and the review files hold them. So in the shared code, "edge" means a
+     move and "blue" the first player.
+   - **Other names keep Enclosure's words too,** so that Hedge School's calls do not change: `EdgeReview`, `onlyEdge`,
+     `ONLY_EDGE_GAP`, `judgeEdge`, `judgeBranchEdge`, `likelyEdges`, `blueScore`, and the unit `"edge"`, which Hedge
+     School's display settings store. The storage keys (`learn-enclosure:…`) and the database's name keep theirs
+     (item 4). The names that nothing stores can change with the view's split (item 9).
 3. **Generic types.** The shared types take the game's types as a parameter: `Analysis<M>` and `Candidate<M>` the
    move's, `Review<G>`, `ReviewData<G>` and `GameAnalysis<G>` the whole `GameTypes`. A function that compares moves
    takes the game (`rankOf(game, analysis, move)`), and so does `GameAnalysis`'s constructor.
@@ -96,7 +108,8 @@ edit in the same commit), so their changes still apply.
    - The engine session takes the site's analytics (`track`) and a network's name (`networkName`) as options. The
      engine settings' list of networks, the lock file and the settings' key stay in the site.
    - The storage keys and the database's name stay as they are. A browser keeps them by the site's address, so each
-     site has its own.
+     site has its own. The database's stores are Hedge School's (`analysis`, `games`, `branches`). A site that needs a
+     store of its own makes the stores the site's choice first.
 5. **How a site imports a package:** `@abstractclass/<package>/<file>.ts`. Each package's `exports` maps `./*` to
    `./src/*`, and the site lists the package among its dependencies. Hedge School keeps `#lib/*` for its own files. A
    package imports its own files by relative paths, and another package by its name.
@@ -161,11 +174,18 @@ edit in the same commit), so their changes still apply.
 
 ## Consequences
 
-- **What a new game may need to change** (the template says it to the game's site): the search budgets
-  (`SWEEP_VISITS` 32, `LABEL_VISITS` 256, `DEEP_VISITS` 1,024, measured on Enclosure: design 05), a hard position's
-  complexity (`HARD` 0.10, from Enclosure's archive: design 14), the turns that key moments skip (`OPENING_TURNS` 8),
-  and how far below the first choice a candidate shows in points (3 times the game's `scoreScale`, KaTrain's 3 Go
-  points). The labels' bands are chess.com's, the same for every game (design 10).
+- **The tuning is the packages', the same for every site:** the search budgets (`SWEEP_VISITS` 32, `LABEL_VISITS`
+  256, `DEEP_VISITS` 1,024, measured on Enclosure: design 05), a hard position's complexity (`HARD` 0.10, from
+  Enclosure's archive: design 14), the turns that key moments skip (`OPENING_TURNS` 8), and how far below the first
+  choice a candidate shows in points (3 times the game's `scoreScale`, KaTrain's 3 Go points). A new game may need
+  other values. A change of one of these constants changes Hedge School's review too, so a game that needs another
+  value first makes it the game's, as `scoreScale` is, with Enclosure's value as the default (the template,
+  abscls-8tl1.2). The labels' bands are chess.com's, the same for every game (design 10).
+- **What the engine package takes from the site's build:** the engine's files under `/engine/` with their manifest
+  (Hedge School's `scripts/fetch-engine.mjs`), ONNX Runtime Web in its form that takes its WebAssembly from the page
+  (the Vite condition `onnxruntime-web-use-extern-wasm`), and the workers as modules. Hedge School's `vite.config.ts`
+  sets the last two. The engine package names `onnxruntime-web` as a peer dependency: the site's copy, whose
+  WebAssembly the fetch script stores. A second site copies these until the template moves them into the package.
 - **Paths in the documents:** a path that starts with `packages/` starts at the repository's root. A path to Hedge
   School's files starts at `apps/hedgeschool`, as before ([docs/README.md](../README.md)).
 - **A change to a package is a change to every site that uses it.** Its tests and each site's checks run for it.

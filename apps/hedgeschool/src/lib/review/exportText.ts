@@ -2,7 +2,6 @@
 // alone where no review runs (the home page): the engine's rules give the positions, the stored results give the
 // values, and nothing is searched. Both write the same record.
 import { GameAnalysis } from "@abstractclass/analysis/analysis.svelte.ts";
-import { enclosure, type BranchNode } from "./enclosure.ts";
 import { LABEL_VISITS } from "@abstractclass/analysis/cache.ts";
 import { loadEngine, networkName, settingsFor } from "#lib/analysis/engineSettings.ts";
 import { EnginePool } from "@abstractclass/engine/pool.ts";
@@ -12,7 +11,7 @@ import { playerNames, type GameRecord } from "#lib/game/record.ts";
 import { loadGame } from "#lib/game/store.ts";
 import { annotatedRecord } from "./annotate.ts";
 import { loadDisplay } from "./display.ts";
-import { review, type Review, type Unit } from "./enclosure.ts";
+import { enclosure, review, type BranchNode, type Review, type Unit } from "./enclosure.ts";
 
 /** The annotated record of a review. Its note names the network and the least visits of the game's searches: the
  *  results' own, not the review depth set now, which may differ from the depth the results were searched to. */

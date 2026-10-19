@@ -14,7 +14,7 @@
 // game (game.ts, Moves). Enclosure's own part (its positions, its turn numbers, its texts) is in Hedge School's
 // src/lib/review/enclosure.ts.
 
-import type { Game, GamePosition, GameTypes, Moves, Player } from "./game.ts";
+import type { Game, GameTypes, Moves, Player, PositionInfo } from "./game.ts";
 import { BAD_LABELS, GOOD_WIN, HARD, LABELS, METER_GROUPS, ONLY_EDGE_GAP, accuracyWeight, classify, meterGroup, type Label,
          type MeterGroup } from "./labels.ts";
 export { BAD_LABELS, HARD, LABELS, METER_GROUPS, type Label, type MeterGroup } from "./labels.ts";
@@ -234,7 +234,7 @@ const bestTurn = <M>(first: Candidate<M> | undefined, twoEdges: boolean): M[] | 
 
 /** The values after a position, for judging the edge into it: the result where the game ends, else its analysis once
  *  it has `minVisits`. */
-export function valuesAfter<M>(p: GamePosition, a: Analysis<M> | undefined, kind: ScoreKind = "lead", minVisits = 0) {
+export function valuesAfter<M>(p: PositionInfo, a: Analysis<M> | undefined, kind: ScoreKind = "lead", minVisits = 0) {
   if (p.over) {
     const d = p.scores[0] - p.scores[1];
     return { blueWin: resultWin(d), blueScore: d };

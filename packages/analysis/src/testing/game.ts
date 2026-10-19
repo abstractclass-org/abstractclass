@@ -1,13 +1,13 @@
 // A game for the packages' tests, unlike Enclosure (design 29): each move is a word ("a", "b", …), each turn one move,
 // and the players take turns. Its engine's fields are the test's own: who moves, the scores, whether the game is over,
 // the moves played so far, and the legal moves.
-import type { Game, GamePosition, GameTypes, Played, Player } from "../game.ts";
+import type { Game, GameTypes, Played, Player, PositionInfo } from "../game.ts";
 
 export interface WordFields { mover: Player; scores: [number, number]; over: boolean; count: number; legal?: string[] }
 
 export interface Words extends GameTypes {
   move: string;
-  position: GamePosition;
+  position: PositionInfo;
   played: Played<string>;
   fields: WordFields;
   described: WordFields;

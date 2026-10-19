@@ -10,7 +10,7 @@ const record = '[Event "meaf.us game"]\n[Site "meaf.us"]\n[Blue "Ann"]\n[Red "Bo
 const toolLink = (at?: number) =>
   "/import#" + new URLSearchParams({ tool: "bookmarklet", v: "1", site: "meaf.us", ...(at === undefined ? {} : { at: String(at) }), record });
 
-/** The browser's store: one store's keys, or one value (src/lib/storage/db.ts). */
+/** The browser's store: one store's keys, or one value (@abstractclass/storage/db.ts). */
 const stored = (page: Page, store: string, key?: string) => page.evaluate(([store, key]) => new Promise(resolve => {
   const open = indexedDB.open("learn-enclosure");
   open.onsuccess = () => {

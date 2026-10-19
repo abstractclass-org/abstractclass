@@ -10,8 +10,12 @@
 		"check": "tsc -p tsconfig.json",
 		"test": "node --test \"src/**/*.test.ts\""
 	},
+	"peerDependencies": {
+		"onnxruntime-web": "1.30.0"
+	},
 	"devDependencies": {
 		"@types/node": "^26.6.4",
+		"onnxruntime-web": "1.30.0",
 		"typescript": "^6.0.3"
 	}
 }

@@ -184,8 +184,7 @@ export class EngineSession<G extends GameTypes> {
    *  test found it faster than a worker. */
   #controlGpu(p: EnginePool) {
     this.gpu?.end();
-    const { track, networkName } = this.#o;
-    this.gpu = this.manifest ? new GpuControl(p, this.manifest, this.network, { track, networkName }) : null;
+    this.gpu = this.manifest ? new GpuControl(p, this.manifest, this.network, this.#o) : null;
     void this.gpu?.apply(this.#gpuMode);
   }
 

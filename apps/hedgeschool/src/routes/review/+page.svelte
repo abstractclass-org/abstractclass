@@ -22,10 +22,9 @@
   import { REVIEW_PAGE_SCRIPT, markReviewPage } from "#lib/review/pageMarks.ts";
   import { reviewArrives } from "#lib/game/importHash.ts";
   import { LABEL_VISITS, SWEEP_VISITS, snapshotExcept, snapshotPositions, snapshotSearch, warmCache } from "@abstractclass/analysis/cache.ts";
-  import { review, type GameEnding, type ReviewData } from "#lib/review/enclosure.ts";
+  import { enclosure, review, type Enclosure, type GameEnding, type ReviewData } from "#lib/review/enclosure.ts";
   import { EnginePool } from "@abstractclass/engine/pool.ts";
   import { GameAnalysis, momentVisits } from "@abstractclass/analysis/analysis.svelte.ts";
-  import { enclosure, type Enclosure } from "#lib/review/enclosure.ts";
   import { EngineSession } from "@abstractclass/analysis/session.svelte.ts";
   import { changeOwn, loadEngine, networkName, offersNetwork, ownSettings, reviewVisits, saveEngine, withOwn,
            type EngineSettings, type OwnSettings } from "#lib/analysis/engineSettings.ts";

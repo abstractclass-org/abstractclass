@@ -2,11 +2,11 @@
 // Analysis), with the moves as the game keeps them (game.ts). A module of its own, with nothing of the engine's
 // workers, so that a script in Node can store results as the site stores them (scripts/test-fixture.mjs).
 import type { AnalysisReply, MoveInfo } from "@abstractclass/engine/protocol.ts";
-import type { Game, GameTypes } from "./game.ts";
+import type { Moves } from "./game.ts";
 import type { Analysis } from "./model.ts";
 
 /** An analysis reply as the review reads it: values from Blue's side, the candidates in the engine's order. */
-export function toAnalysis<G extends GameTypes>(game: Pick<Game<G>, "parseMove">, r: AnalysisReply): Analysis<G["move"]> {
+export function toAnalysis<M>(game: Moves<M>, r: AnalysisReply): Analysis<M> {
   return {
     blueWin: r.rootInfo.winrate, visits: r.rootInfo.visits, lead: r.rootInfo.scoreLead, margin: r.rootInfo.scoreSelfplay,
     spread: r.rootInfo.scoreStdev,
@@ -18,8 +18,8 @@ export function toAnalysis<G extends GameTypes>(game: Pick<Game<G>, "parseMove">
 }
 
 /** A candidate's line (KataGo's pv, the move first), up to its first pass, with the visits through each of its edges. */
-function withLine<G extends GameTypes>(game: Pick<Game<G>, "parseMove">, c: MoveInfo): { line: G["move"][]; lineVisits?: number[] } {
-  const line: G["move"][] = [];
+function withLine<M>(game: Moves<M>, c: MoveInfo): { line: M[]; lineVisits?: number[] } {
+  const line: M[] = [];
   for (const m of c.pv) {
     if (m === "pass") break; // a pass ends the turn: the line stops there
     line.push(game.parseMove(m));

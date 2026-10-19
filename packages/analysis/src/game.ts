@@ -6,13 +6,18 @@
 //
 // The engine gives every value from the first player's side (KataGo's convention: Enclosure's Blue), and so do the
 // shared types. They keep Hedge School's field names (`blueWin`, `edge`, `players.blue`): the browser's store and the
-// review files hold them.
+// review files hold them. So in the shared code, "edge" means a move and "blue" the first player.
+//
+// A turn is a run of one player's moves, of one move or two. The review judges a turn of two as Enclosure's rules
+// make it: the same two moves in either order are the same turn, and the engine's best turn is its first choice and
+// the next move of that choice's line (model.ts, judgeTurn). A game of longer turns, or one where the order within a
+// turn matters, needs those rules changed first.
 
 /** A player: 0 moves first (Enclosure's Blue), 1 second (Red). */
 export type Player = 0 | 1;
 
 /** What the analysis reads of a position. */
-export interface GamePosition {
+export interface PositionInfo {
   player: Player; // who moves next
   over?: boolean; // the game has ended here (the engine's outcome)
   scores: [number, number]; // each player's score: the result, where the game ends
@@ -25,7 +30,7 @@ export interface Played<M> { player: Player; edge: M | null }
 /** A game's types, as its site keeps them. */
 export interface GameTypes {
   move: unknown; // a move, not a pass (Enclosure: an edge, [x1, y1, x2, y2])
-  position: GamePosition; // a position, as the board draws it
+  position: PositionInfo; // a position, as the board draws it
   played: Played<this["move"]>; // a move played, with what the board draws of it (Enclosure: with the edge it cuts)
   fields: unknown; // a position, as the engine's describe_game gives it
   described: unknown; // describe's reply: a position with its legal moves
@@ -38,14 +43,15 @@ export interface Moves<M> {
   /** Whether two values are one move. */
   equal(a: M, b: M): boolean;
   /** The move's name in the engine's notation, its one spelling: "pass" for null. The tree's paths, the engine's
-   *  queries and the stored results' keys hold the names. */
+   *  queries and the stored results' keys hold the names. So a move's name has no space (a path joins the names with
+   *  spaces: tree.ts), is not "pass", and does not start with "@" (a key's mark of a set-up start: cache.ts, keyMoves). */
   moveName(move: M | null): string;
+  /** The move of a name that is not "pass". */
+  parseMove(name: string): M;
 }
 
 /** A game, as the analysis and the review compute with it. */
 export interface Game<G extends GameTypes> extends Moves<G["move"]> {
-  /** The move of a name that is not "pass". */
-  parseMove(name: string): G["move"];
   /** A position from the engine's fields. */
   position(fields: G["fields"]): G["position"];
   /** The move `name` played, from the position `before` to the position `after`. */

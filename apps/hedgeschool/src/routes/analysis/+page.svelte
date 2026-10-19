@@ -13,10 +13,9 @@
   import { loadDisplay } from "#lib/review/display.ts";
   import NewMenu from "#lib/analysis/NewMenu.svelte";
   import { STANDARD_START, setUpStart } from "#lib/engine/notation.ts";
-  import { onlyJudged, review, type ReviewData, type Unit } from "#lib/review/enclosure.ts";
+  import { enclosure, onlyJudged, review, type Enclosure, type ReviewData, type Unit } from "#lib/review/enclosure.ts";
   import { annotatedRecord } from "#lib/review/annotate.ts";
   import { GameAnalysis } from "@abstractclass/analysis/analysis.svelte.ts";
-  import { enclosure, type Enclosure } from "#lib/review/enclosure.ts";
   import { LABEL_VISITS } from "@abstractclass/analysis/cache.ts";
   import { EngineSession } from "@abstractclass/analysis/session.svelte.ts";
   import { modelOf } from "@abstractclass/engine/client.ts";

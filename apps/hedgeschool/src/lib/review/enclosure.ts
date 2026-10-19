@@ -7,7 +7,6 @@
 import * as shared from "@abstractclass/analysis/model.ts";
 import type { Game, GameTypes, Player } from "@abstractclass/analysis/game.ts";
 import type { BranchNode as SharedNode } from "@abstractclass/analysis/analysis.svelte.ts";
-import type { Label, ScoreKind, TurnJudgment } from "@abstractclass/analysis/model.ts";
 import { edgeName, parseEdge, sameEdge, type Edge } from "#lib/engine/notation.ts";
 import { boardPosition, rulesOf, type DescribeReply, type GamePosition } from "#lib/engine/position.ts";
 import type { EdgeRules } from "#lib/board/edgeInput.svelte.ts";
@@ -103,21 +102,17 @@ export type RankedCandidate = shared.RankedCandidate<Edge>;
 /** A position of a branch, as the analysis keeps it (@abstractclass/analysis/analysis.svelte.ts). */
 export type BranchNode = SharedNode<Enclosure>;
 
-type After = { blueWin: number; blueScore: number | undefined; visits?: number } | undefined;
+/** A shared function with Enclosure's game given: the site calls it as it called the review's model before. */
+const withGame = <A extends unknown[], R>(f: (game: Game<Enclosure>, ...rest: A) => R) => (...rest: A): R => f(enclosure, ...rest);
 
-export const review = (data: ReviewData, kind?: ScoreKind, minVisits?: number): Review => shared.review(enclosure, data, kind, minVisits);
-export const sameMove = (a: Analysis | undefined, x: Edge, y: Edge) => shared.sameMove(enclosure, a, x, y);
-export const twinsOf = (a: Analysis, c: Candidate) => shared.twinsOf(enclosure, a, c);
-export const rankOf = (a: Analysis | undefined, edge: Edge) => shared.rankOf(enclosure, a, edge);
-export const otherCandidate = (a: Analysis | undefined, played: (Edge | null)[]) => shared.otherCandidate(enclosure, a, played);
-export const shownCandidates = (a: Analysis | undefined, p: Player) => shared.shownCandidates(enclosure, a, p);
-export const judgeBranchEdge = (before: Analysis | undefined, after: After, mover: Player, edge: Edge | null, kind?: ScoreKind,
-                                minVisits?: number, second?: Analysis): Label | null =>
-  shared.judgeBranchEdge(enclosure, before, after, mover, edge, kind, minVisits, second);
-export const judgeTurn = (mover: Player, played: (Edge | null)[], start: Analysis | undefined, middle: Analysis | undefined,
-                          after: After, ends: boolean, other: Analysis | undefined, second: Analysis | undefined,
-                          kind?: ScoreKind, minVisits?: number): TurnJudgment | null =>
-  shared.judgeTurn(enclosure, mover, played, start, middle, after, ends, other, second, kind, minVisits);
+export const review = withGame(shared.review<Enclosure>);
+export const sameMove = withGame(shared.sameMove<Edge>);
+export const twinsOf = withGame(shared.twinsOf<Edge>);
+export const rankOf = withGame(shared.rankOf<Edge>);
+export const otherCandidate = withGame(shared.otherCandidate<Edge>);
+export const shownCandidates = withGame(shared.shownCandidates<Edge>);
+export const judgeBranchEdge = withGame(shared.judgeBranchEdge<Edge>);
+export const judgeTurn = withGame(shared.judgeTurn<Edge>);
 
 // --- Enclosure's texts ----------------------------------------------------------------------------------------------
 /** A turn's note for the move list, in one line: its label, and the engine's best turn when the turn was not it. */
