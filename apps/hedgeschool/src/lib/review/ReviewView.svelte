@@ -926,7 +926,7 @@
       </div>
       <p class="mt-1 text-xs text-muted truncate" title={progress.text}>{progress.text}</p>
       {#if again}<p class="mt-0.5 text-xs text-ink truncate" title={again.text}>{again.text}</p>
-      {:else if !progress.waiting && !progress.counted}<p class="mt-0.5 text-xs text-muted truncate" title={HIDDEN_TAB.title}>{HIDDEN_TAB.text}</p>{/if}
+      {:else if !progress.waiting}<p class="mt-0.5 text-xs text-muted truncate" title={HIDDEN_TAB.title}>{HIDDEN_TAB.text}</p>{/if}
     </div>
   {:else if !board && !snapshot}
     <div class="mb-2.5 h-[2.75rem]">

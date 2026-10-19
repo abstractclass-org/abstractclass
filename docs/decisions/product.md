@@ -4355,8 +4355,8 @@ sweep.
   the time go: in the search workers, or on the page's main thread (the batch's timer, the animation frames, a timer
   that the next search waits for)? A delay that the page makes is fixed, and the visitor is not told about it. What
   is left, the page tells the visitor.
-- **What a browser does to a hidden tab,** in Chromium and Edge on Windows. Each point was checked in this
-  measurement's set-up, or read in Chromium's source where the entry says so:
+- **What a browser does to a hidden tab,** in Chromium and Edge on Windows. This measurement checked each point
+  in its set-up, or read it in Chromium's source where the entry says so:
   - The page draws no frames, and its timers run at most once a second. After 5 minutes hidden, a chained timer (a
     timer set by a timer, 5 deep or more) runs once a minute (developer.chrome.com, "Heavy throttling of chained JS
     timers beginning in Chrome 88"). The review's own timers are not chained: the batch's timer and the pool's idle
@@ -4367,7 +4367,8 @@ sweep.
     each of its timer tasks to a budget. The budget starts at 1 s, grows by 0.01 s a second (1% of the processor),
     and holds 3 s at most. A timer waits while the budget is below zero, with no limit on the wait. The charge is the
     task's wall time, so a busy processor makes it larger. Messages, from a worker or posted by the page, are not
-    charged. When the page shows again, the budget stops. Edge is built on Chromium. Its own source was not read.
+    charged. When the page shows again, the budget stops. Edge is built on Chromium. This measurement did not read
+    Edge's own source.
   - A worker's timers: Chromium does not slow them. Edge runs a hidden tab's worker timers on the system's timer
     tick, 15.6 ms.
   - The tab's renderer process gets the Idle priority class and Windows' power throttling (EcoQoS): Chromium sets
@@ -4381,8 +4382,9 @@ sweep.
   (`scripts/measure/speed.mjs`, `launchHideable`), under `scripts/machine run --threads 2`. A browser that
   Playwright launches never hides a page (docs/working-notes.md, "A hidden tab in Playwright"), so the script starts
   the browser itself and connects over CDP. A new tab in front hides the review's tab, as a visitor's other tab does.
-  No window was shown. The set-ups:
-  - **front:** the tab opens the game's record (`/review#record=`) and stays in front.
+  No window showed on the screen. The set-ups:
+  - **front:** the tab opens the game's record (`/review#record=` in the builds measured, `/import#record=` in the
+    script now) and stays in front.
   - **hidden:** the same, and a new tab comes to front once the review shows (`review:shown`), before the sweep starts.
     The sweep then runs hidden for under 5 minutes.
   - **late:** the tab opens the About page and is hidden. 5 minutes 40 seconds later, it opens the record by a link in
@@ -4455,27 +4457,29 @@ sweep.
   page yields 200 times in a chain, by a timer of 0 ms and by a message to itself. The table gives the median from the
   sixth yield on, after the browser's clamp of chained timers.
 
-  | Browser | Set-up | By a timer | By a message | Slices after the stop's arrival |
+  | Browser | Set-up | By a timer | By a message | From the stop to the search's end |
   | --- | --- | --- | --- | --- |
-  | Chromium | front | 4.6 ms | 0.0 ms | 0 |
-  | Chromium | hidden | 4.2 ms | 0.0 ms | 0 |
-  | Edge | front | 4.5 ms | 0.0 ms | 0 |
-  | Edge | hidden | 15.2 ms | 0.0 ms | 0 |
+  | Chromium | front | 4.6 ms | 0.0 ms | 48.0 ms (51.5 ms) |
+  | Chromium | hidden | 4.2 ms | 0.0 ms | 50.3 ms (59.8 ms) |
+  | Edge | front | 4.5 ms | 0.0 ms | 0.1 ms (50.3 ms) |
+  | Edge | hidden | 15.2 ms | 0.0 ms | 50.4 ms (51.8 ms) |
 
   The longest yield by a message was 0.1 ms in each set-up, and by a timer 6.5 to 90.4 ms. The stop: in each set-up,
-  the page posted a stop 20 times, during a search's fourth slice of 50 ms. No slice started after the stop came to
-  the worker. The search ended a median of 48 to 50 ms after the stop's post, at the end of the slice that ran. In
-  Edge in front, the median was 0.1 ms: the stop most often came during the yield, before the worker's own message,
-  and the search ended there. The machine's load was not recorded for these runs.
+  the page posted a stop 20 times, as a search's fourth slice of 50 ms started. The last column gives the median time
+  from the stop's post to the search's end, and the longest in brackets. Each search ended at the end of the slice
+  that ran when the stop came. A stop that came after the worker's own message would wait for one more slice: about
+  100 ms. In Edge in front, the median was 0.1 ms: the stop most often came during the yield, before the worker's own
+  message, and the search ended there. These runs did not record the machine's load.
 
   A search in slices of 32 visits (the position on screen and the key moments, 1,024 visits each) yields about 31
   times, 26 of them after the clamp. With a timer, that adds about 0.8% to a slice of 530 ms, and 2.9% in a hidden
   tab of Edge. A label search (slices of 256) yields once, before the clamp.
 - **The changes,** each with a test that failed before it:
   - **A search in slices yields by a message** (`src/lib/engine/channel.ts`, `searchInSlices`), not by a timer. A
-    stop that comes during a slice still runs first: both are tasks of the posted message task source, which run in
-    the order that they come. The tests (`src/lib/engine/channel.test.ts`): the search waits for no timer between
-    its slices, and a stop between two slices ends the search at the next slice.
+    stop that comes during a slice still runs first, in Chromium and Edge (the yield's measurement above). The HTML
+    standard gives each message port a task source of its own, so it does not set that order. The tests
+    (`src/lib/engine/channel.test.ts`): the search waits for no timer between its slices, and a stop between two
+    slices ends the search at the next slice.
   - **The batch comes without its timer when no search runs or waits** (`src/lib/analysis/game.svelte.ts`, with the
     pool's `idle` in `src/lib/analysis/pool.ts`). The key moments wait for the label pass's last result, and Review
     done waits for the last result of all. Each waited for the batch's timer: in a hidden tab, up to a second, and
@@ -4521,13 +4525,14 @@ sweep.
   measured the power throttling only. A visitor's browser runs in no such job. There, the hidden tab's renderer
   process is in the Idle class. Windows runs its threads only when no thread of a higher class is ready to run. On a
   processor that other programs keep busy, a hidden review can then get much less time than a review in front. This
-  is by reasoning: this machine runs every heavy job in a job object of the queue, so the effect was not measured.
+  is by reasoning: this machine runs every heavy job in a job object of the queue, so these runs could not measure the
+  effect.
 - **The notice** (design 06, item 7): while the review has work to run, the second line of the progress slot says
   "A review in a hidden tab can be slower." Its title (the tooltip) says "When you cannot see this tab, the browser
   can give the review less processor time." The line goes when the engine is off and when the review is done. A
   review that runs again because the site's engine changed gives that line to its reason. The words follow strict
   Simplified Technical English by its sentence rules (the `/asd-ste100` skill). ASD's dictionary was not available,
-  so the words were not checked against it.
+  so no one checked the words against it.
 - **Not measured:** the GPU worker (abscls-3cjw), the Idle class's effect, phones (whose browsers can freeze a hidden
   tab), macOS, a processor with efficiency cores (where Windows can move a throttled process's threads to them),
   Firefox and Safari, a window behind other windows or minimized, and a review of a game with custom settings.

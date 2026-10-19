@@ -5,15 +5,15 @@
 // more) once a minute (developer.chrome.com, "Heavy throttling of chained JS timers beginning in Chrome 88"). Each run
 // starts a browser of its own, headless, with a new profile, whose tab can be hidden (speed.mjs, launchHideable), at
 // 1,366 × 657 pixels. The set-ups:
-//   - front: the tab opens the game's record (`/review#record=`) and stays in front;
+//   - front: the tab opens the game's record (`/import#record=`) and stays in front;
 //   - hidden: the same, and a new tab comes to front once the review shows (`review:shown`), before the sweep starts;
 //   - late: the tab opens the About page, a new tab comes to front, and 5 minutes 40 seconds later (5 minutes, the 30
 //     seconds of silence that the browser also waits for, and a margin) the tab opens the record by a link in the page.
-// The page keeps a record's game, then loads itself again (Arrival.svelte), so the review runs in a new document in
-// all three. An init script watches the sweep (speed.mjs, watchSweep), and another probes the tab: a chained timer of
-// 250 ms notes each time it runs, the batch's timer (BATCH_MS in packages/analysis/src/analysis.svelte.ts, set from a worker's
-// message or a write, not chained) notes how long each one waited, and each change of document.visibilityState and of
-// the progress line's step is noted. Each run reads:
+// The import page keeps a record's game, then loads the game's review in its place (Arrival.svelte), so the review runs
+// in a new document in all three. An init script watches the sweep (speed.mjs, watchSweep), and another probes the tab:
+// a chained timer of 250 ms notes each time it runs, the batch's timer (BATCH_MS in
+// packages/analysis/src/analysis.svelte.ts, set from a worker's message or a write, not chained) notes how long each
+// one waited, and each change of document.visibilityState and of the progress line's step is noted. Each run reads:
 //   - the sweep's time on the page (sweep:start to sweep:end), and the engine's: from the sweep's first search sent to
 //     its last search's final reply. The display's lag: from that reply to sweep:end;
 //   - the search workers' speed: the sweep searches' visits over the workers' own time for them (the reply's `ms`),
@@ -37,17 +37,18 @@
 // set-ups: a list from front, hidden and late (by default all three); browsers: a list from chromium and msedge (by
 // default both); end: sweep or review (by default sweep). Each browser runs `runs` rounds (by default 3), and each round
 // runs every set-up, in an order that turns by one each round. The engine settings: 2 search workers (WORKERS sets
-// another number), the GPU off, the rest the site's defaults. With OUT, every run's numbers and the machine's load go to that file as JSON.
+// another number), the GPU off, the rest the site's defaults. With OUT, every run's numbers and the machine's load go
+// to that file as JSON.
 import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
-import { launchHideable, longTasks, machineLoad, median, preview, sweepGaps, tasksBetween, trace, watchSweep } from "./speed.mjs";
+import { FIXTURE, launchHideable, longTasks, machineLoad, median, preview, sweepGaps, tasksBetween, trace, watchSweep } from "./speed.mjs";
 import { SWEEP_VISITS } from "@abstractclass/analysis/cache.ts";
 
 const [build] = process.argv.slice(2, 3);
 const runs = Number(process.argv[3] ?? 3), setups = (process.argv[4] ?? "front,hidden,late").split(",");
 const browsers = (process.argv[5] ?? "chromium,msedge").split(","), end = process.argv[6] ?? "sweep";
 const port = Number(process.argv[7] ?? 4391);
-const record = JSON.parse(readFileSync("tests/fixtures/hedgefund-review.json", "utf8")).record;
+const record = JSON.parse(readFileSync(FIXTURE, "utf8")).record;
 // The batch's delay, from its source: game.svelte.ts holds runes, which Node cannot import.
 const BATCH_MS = Number(readFileSync("../../packages/analysis/src/analysis.svelte.ts", "utf8").match(/export const BATCH_MS = (\d+);/)[1]);
 const LATE_MS = 340_000, WORKERS = Number(process.env.WORKERS ?? 2);
@@ -119,7 +120,7 @@ async function run(url, channel, setup) {
   try {
     await b.context.addInitScript(watchSweep, JSON.stringify({ workers: WORKERS, gpu: "off" }));
     await b.context.addInitScript(probeTab, BATCH_MS);
-    const address = `/review#record=${encodeURIComponent(record)}`;
+    const address = `/import#record=${encodeURIComponent(record)}`;
     let waited = null;
     if (setup === "late") {
       await b.page.goto(`${url}/about`);
@@ -157,11 +158,12 @@ async function run(url, channel, setup) {
 function measure(d, traced) {
   const { marks, searches, probe } = d, start = marks["sweep:start"], stop = marks["sweep:end"];
   const sweep = searches.filter(s => s.visits === SWEEP_VISITS), lastReply = Math.max(...sweep.map(s => s.ended));
+  const first = Math.min(...sweep.map(s => s.sent));
   const within = (t, a = start, b = stop) => t >= a && t <= b;
   const delays = probe.batches.filter(([at]) => within(at)).map(([at, fired]) => fired - at);
   const ticks = probe.ticks.filter(t => within(t)), intervals = ticks.slice(1).map((t, k) => t - ticks[k]);
   // The pool's times with no search running, from the sweep's first search to the run's end.
-  const spans = searches.filter(s => s.sent >= Math.min(...sweep.map(s => s.sent))).map(s => [s.sent, s.ended ?? d.now]).sort((a, b) => a[0] - b[0]);
+  const spans = searches.filter(s => s.sent >= first).map(s => [s.sent, s.ended ?? d.now]).sort((a, b) => a[0] - b[0]);
   let idle = { ms: 0, at: null }, reach = spans[0][1];
   const idles = [];
   for (const [a, b] of spans.slice(1)) {
@@ -176,10 +178,10 @@ function measure(d, traced) {
   const next = searches.filter(s => s.sent > lastReply).sort((a, b) => a.sent - b.sent)[0];
   const speedOf = xs => (xs.length ? (1000 * xs.reduce((n, x) => n + x.searched, 0)) / xs.reduce((n, x) => n + x.ms, 0) : null);
   const replied = searches.filter(x => x.ended !== undefined && x.ms > 0);
+  const bySlice = n => { const xs = replied.filter(x => x.slice === n); return { count: xs.length, speed: speedOf(xs) }; };
   return {
-    shown: stop - start, engine: lastReply - Math.min(...sweep.map(s => s.sent)), lag: stop - lastReply,
-    speed: speedOf(sweep), sliced: { count: replied.filter(x => x.slice === 32).length, speed: speedOf(replied.filter(x => x.slice === 32)) },
-    label: { count: replied.filter(x => x.slice === 256).length, speed: speedOf(replied.filter(x => x.slice === 256)) },
+    shown: stop - start, engine: lastReply - first, lag: stop - lastReply,
+    speed: speedOf(sweep), sliced: bySlice(32), label: bySlice(256),
     // Each search from a minute before the sweep's start: [sent, ended or null, visits, slice or null, worker], in ms
     // from the sweep's start.
     searches: searches.filter(s => s.sent >= start - 60_000).map(s => [Math.round(s.sent - start), s.ended === undefined ? null : Math.round(s.ended - start), s.visits, s.slice ?? null, s.worker]),

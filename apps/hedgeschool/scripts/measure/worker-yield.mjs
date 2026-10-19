@@ -1,12 +1,14 @@
 // The time of a worker's yield between two slices of a search (packages/engine/src/channel.ts, searchInSlices), in a tab in
 // front and in a hidden tab, in Chromium and Edge (decisions/product.md, "A review in a hidden tab"). A worker in an
 // empty page yields `COUNT` times in a chain, as a search does between its slices, in two ways: by a timer of 0 ms (a
-// timer set in the task of the timer before it: from the fifth on, the browser waits 4 ms at least), and by a message
+// timer set in the task of the timer before it: after the fifth, the browser waits 4 ms at least), and by a message
 // that the worker sends itself on a channel of its own. Each yield is timed from its start to the task that it waits
 // for. Then the stop: the worker runs slices of 50 ms with a yield by a message between them, and the page posts a stop
 // during a slice, `STOPS` times. The worker should end at the first yield after the stop arrives: no slice starts after
-// the stop's arrival. Each browser starts headless, with a new profile, whose tab can be hidden (speed.mjs,
-// launchHideable). The tab is hidden by a new tab in front, and each set-up checks document.visibilityState.
+// the page posts the stop. The worker reads the stop only between slices, so a slice that starts after the post shows a
+// stop that came after the worker's own message. Each browser starts headless, with a new profile, whose tab can be
+// hidden (speed.mjs, launchHideable). The tab is hidden by a new tab in front, and each set-up checks
+// document.visibilityState.
 //
 //   node scripts/measure/worker-yield.mjs [browsers] [port]
 //
@@ -40,11 +42,11 @@ function yields({ kind, count }) {
   });
 }
 
-/** In the page: for each stop, the slices that started after it arrived in the worker (0 when the stop ends the search
- *  at the next yield), and the time from its post to the search's end, in milliseconds. */
-function stops({ count }) {
+/** In the page: for each stop, the slices that started after the page posted it (0 when the stop ends the search at the
+ *  next yield), and the time from its post to the search's end, in milliseconds. */
+async function stops({ count }) {
   const source = `onmessage = ({ data }) => {
-    if (data === "stop") { self.stopped = performance.timeOrigin + performance.now(); return; }
+    if (data === "stop") { self.stopped = true; return; }
     self.stopped = false;
     const message = () => new Promise(resolve => {
       const { port1, port2 } = new MessageChannel();
@@ -60,7 +62,7 @@ function stops({ count }) {
         await message();
         if (self.stopped) break;
       }
-      postMessage({ after: starts.filter(t => t > self.stopped).length, ended: performance.timeOrigin + performance.now() });
+      postMessage({ starts, ended: performance.timeOrigin + performance.now() });
     })();
   };`;
   const url = URL.createObjectURL(new Blob([source], { type: "text/javascript" }));
@@ -71,16 +73,14 @@ function stops({ count }) {
       if (data.slice === 3) { posted = performance.timeOrigin + performance.now(); worker.postMessage("stop"); } // in the fourth slice
       if (data.ended) {
         worker.terminate();
-        resolve({ after: data.after, ms: data.ended - posted });
+        resolve({ after: data.starts.filter(t => t > posted).length, ms: data.ended - posted });
       }
     };
     worker.postMessage("start");
   });
-  return (async () => {
-    const out = [];
-    for (let k = 0; k < count; k++) out.push(await one());
-    return { out, visibility: document.visibilityState };
-  })();
+  const out = [];
+  for (let k = 0; k < count; k++) out.push(await one());
+  return { out, visibility: document.visibilityState };
 }
 
 for (const channel of browsers) {
@@ -96,7 +96,7 @@ for (const channel of browsers) {
                     `the rest median ${median(late).toFixed(2)} ms, longest ${Math.max(...late).toFixed(2)} ms`);
       }
       const { out, visibility } = await b.page.evaluate(stops, { count: STOPS });
-      console.log(`${channel} ${setup} (${visibility}), the stop: slices started after its arrival ${Math.max(...out.map(o => o.after))} at most; ` +
+      console.log(`${channel} ${setup} (${visibility}), the stop: slices started after its post ${Math.max(...out.map(o => o.after))} at most; ` +
                   `from the stop to the search's end median ${median(out.map(o => o.ms)).toFixed(1)} ms, longest ${Math.max(...out.map(o => o.ms)).toFixed(1)} ms`);
     }
   } finally {

@@ -784,7 +784,7 @@ export class GameAnalysis<G extends GameTypes> {
         // pool has taken its next search, if any. Its timer runs late in a hidden tab: about once a second, and later
         // once the page's timers have used up their share of the processor (decisions/product.md, "A review in a
         // hidden tab").
-        void nextTask().then(() => { if (pool.idle && this.batchTimer !== undefined) this.applyBatch(); });
+        void nextTask().then(() => { if (pool.idle) this.applyBatch(); });
       });
       this.markRunning(pathKey(path), shown);
       await done;

@@ -4,7 +4,6 @@
 // (searchInSlices): it yields between slices without a timer, and a stop ends it at the next slice. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { setImmediate } from "node:timers";
 import { Stopped, WorkerChannel, searchInSlices } from "./channel.ts";
 
 /** A worker that takes every message and never replies. */
@@ -34,13 +33,10 @@ function slices() {
   return { got, call };
 }
 /** Resolves after `n` turns of the event loop. */
-const turns = (n: number) => new Promise<void>(resolve => {
-  const next = (k: number) => (k ? setImmediate(() => next(k - 1)) : resolve());
-  next(n);
-});
+const turns = async (n: number) => { for (let k = 0; k < n; k++) await new Promise(resolve => setImmediate(resolve)); };
 
 test("a search in slices waits for no timer between its slices", async t => {
-  // A hidden tab's timers run late: Chrome's from the fifth chained one at 4 ms, Edge's in a hidden tab at 15.6 ms.
+  // A worker's chained timers run late: after the first five, 4 ms at least, and 15.6 ms in a hidden tab of Edge.
   // Timers that never run stand for them.
   t.mock.timers.enable({ apis: ["setTimeout"] });
   const { got, call } = slices();

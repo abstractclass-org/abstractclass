@@ -238,7 +238,7 @@ export class EnginePool {
   /** Ends the search engines while nothing runs: a worker still loading ends when it has loaded (load), the GPU's worker
    *  at once (dropGpu). */
   private release() {
-    if (this.queue.length || this.running.size) return;
+    if (!this.idle) return;
     this.released = true;
     for (const e of this.engines) if (this.free.includes(e)) e.terminate(); else this.retiring.add(e);
     this.engines.length = 0;

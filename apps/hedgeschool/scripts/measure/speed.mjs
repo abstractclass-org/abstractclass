@@ -155,8 +155,8 @@ export async function reloadReview(page) {
  * It wraps `Worker`. In `window.__searches` it notes each search that the page sends to a worker (a request with
  * maxVisits): the worker, the visits, the visits of its slices (`slice`, for a search in slices), when it was sent and
  * when its final reply came (a partial reply is a slice's result), with the worker's own time for it (`ms`) and the
- * visits that it searched (`searched`). In
- * `window.__workers` it notes when each worker was made, and when it ended (terminate).
+ * visits that it searched (`searched`). In `window.__workers` it notes when each worker was made, and when it ended
+ * (terminate).
  */
 export function watchSweep(settings) {
   localStorage.setItem("learn-enclosure:engine:2", settings);

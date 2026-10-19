@@ -38,18 +38,17 @@ function fakePool(engines = Infinity) {
       return { done, stop() { search.stopped = true; } };
     },
   };
-  let free = engines, busy = 0;
+  let busy = 0;
   const waiting: (() => void)[] = [];
   const pool = {
     search: "test", model: { sha256: `m${++models}` }, // a network of its own: the cache's memory outlives a test
     rules: { describeGame: async (q: PositionQuery) => ({ reply: { positions: Array.from({ length: q.moves.length + 1 }, (_, k) => wordFields(k)) } }) },
     run: (_priority: number, _tag: string, work: Work<unknown>) => new Promise((resolve, reject) => {
       const start = () => {
-        free--;
         busy++;
-        work(engine as never, () => {}).then(resolve, reject).finally(() => { free++; busy--; waiting.shift()?.(); });
+        work(engine as never, () => {}).then(resolve, reject).finally(() => { busy--; waiting.shift()?.(); });
       };
-      if (free > 0) start(); else waiting.push(start);
+      if (busy < engines) start(); else waiting.push(start);
     }),
     cancel() {}, halt() {},
     get idle() { return busy === 0 && waiting.length === 0; },
