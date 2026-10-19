@@ -28,6 +28,14 @@ export function mainIndex(path: string[], main: string[]): number | null {
   return sharedLength(path, main) === path.length ? path.length : null;
 }
 
+/** The line that a branch's preview draws up to `path` (design 07, item 13): from the position where the path leaves
+ *  the game's line, with the path's moves after it, each as the path to that move. A path on the game's line leaves it
+ *  nowhere: its line is empty and starts at the path itself. The image of a line draws the same line. */
+export function branchLine(path: string[], main: string[]): { start: string[]; paths: string[][] } {
+  const k = sharedLength(path, main);
+  return { start: path.slice(0, k), paths: path.slice(k).map((_, i) => path.slice(0, k + i + 1)) };
+}
+
 /** The branch nodes' children, by their parent's key, in the order the nodes were added. */
 export function branchChildren(paths: string[][]): Map<string, string[][]> {
   const kids = new Map<string, string[][]>();

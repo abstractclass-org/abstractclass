@@ -2,7 +2,7 @@
 // a game. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { branchChildren, branchRows, mainIndex, nextFork, pathKey, prevFork, sharedLength, siblingLine, treeLines, withLine } from "./tree.ts";
+import { branchChildren, branchRows, mainIndex, nextFork, pathKey, prevFork, branchLine, sharedLength, siblingLine, treeLines, withLine } from "./tree.ts";
 
 const main = ["a", "b", "c", "d"];
 
@@ -12,6 +12,29 @@ test("a path on the game's line has its index, a path off it has none", () => {
   assert.equal(mainIndex(["a", "x"], main), null);
   assert.equal(mainIndex([...main, "e"], main), null);
   assert.equal(sharedLength(["a", "x", "y"], main), 1);
+});
+
+test("a branch's preview line starts where the path leaves the game's line, whatever row the move is in", () => {
+  const names = (paths: string[][]) => paths.map(p => p.at(-1));
+  // The game A1 A2 A3 A4, with the branches A1 B1 B2 B3 and A1 B1 C1 C2 (B1 shared).
+  const game = ["A1", "A2", "A3", "A4"];
+  const b3 = branchLine(["A1", "B1", "B2", "B3"], game);
+  assert.deepEqual(b3.start, ["A1"]);
+  assert.deepEqual(names(b3.paths), ["B1", "B2", "B3"]);
+  assert.deepEqual(b3.paths[2], ["A1", "B1", "B2", "B3"]);
+  const c2 = branchLine(["A1", "B1", "C1", "C2"], game);
+  assert.deepEqual(c2.start, ["A1"]);
+  assert.deepEqual(names(c2.paths), ["B1", "C1", "C2"]);
+  // A branch of a branch: the line still starts at the game, with every edge of the branch before it.
+  assert.deepEqual(names(branchLine(["A1", "B1", "B2", "D1", "D2"], game).paths), ["B1", "B2", "D1", "D2"]);
+  // A branch from the start.
+  const x = branchLine(["X1", "X2"], game);
+  assert.deepEqual(x.start, []);
+  assert.deepEqual(names(x.paths), ["X1", "X2"]);
+  // A branch that leaves at the game's last move.
+  assert.deepEqual(branchLine([...game, "E1"], game).start, game);
+  // A move of the game: no line, at the move itself (item 14 previews it).
+  assert.deepEqual(branchLine(["A1", "A2"], game), { start: ["A1", "A2"], paths: [] });
 });
 
 test("a branch's rows: one row to a fork, then each line from the fork one step further in", () => {

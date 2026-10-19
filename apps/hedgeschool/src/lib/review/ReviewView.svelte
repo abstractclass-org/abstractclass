@@ -101,7 +101,7 @@
   import {
     edgeName, endingText, moveName, moveNotation, opensTurn, turnFromCount, sameEdge, shortNote, turnShortNote, HARD_NOTE, complexity, likelyEdges, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchEdge, valuesAfter, resultWin, moverWin, costText, pct, shownCandidates, distinctCandidates, rankOf, twinsOf, lineMovers, enoughVisits, trustedLine, type Candidate, type EdgeReview, LABELS, LABEL_TEXT, LABEL_GLYPH, type Label, type Position, type Review, type Unit, type Move, type TurnJudgment, type TurnReview,
   } from "./enclosure.ts";
-  import { branchChildren, branchRows, mainIndex, nextFork, pathKey, prefixKeys, prevFork, sharedLength, siblingLine, treeLines, withLine,
+  import { branchChildren, branchRows, mainIndex, nextFork, pathKey, prefixKeys, prevFork, branchLine, sharedLength, siblingLine, treeLines, withLine,
            type BranchRow } from "@abstractclass/analysis/tree.ts";
 
   interface Props {
@@ -444,8 +444,9 @@
                                  !display.lineSteps || listHover !== null));
   const drawnLine = $derived(line && line.slice(0, Math.max(1, lineDrawing.shown)));
 
-  // A branch's preview (design 07): pointing at a move of a branch's row in the move list shows the row on the board,
-  // from the position where the row starts, as the engine's line shows: its edges numbered, one at a time or all at
+  // A branch's preview (design 07): pointing at a move of a branch's row in the move list shows the branch's line on the
+  // board, from the position where the line leaves the game (branchLine, tree.ts), up to the move, so that a row that
+  // forks from another branch shows the edges it shares too. It shows as the engine's line shows: its edges numbered, one at a time or all at
   // once (the same display setting), with the edges they cut and the regions they close, from the branch's own
   // positions. The rows of dots or pills look alike, and the board tells them apart. It ends when the pointer leaves.
   // The engine's line shown as a branch under a bad turn's note (bestLine): pointing at one of its edges previews it as a
@@ -464,10 +465,10 @@
       const edges = line.slice(0, k + 1).map((edge, i): BoardLineEdge => ({ edge, player: movers[i], ...steps?.[i] }));
       return { start, from, edges };
     }
-    const { row, k } = p, start = row[0].slice(0, -1), from = positionOf(start);
+    const { start, paths } = branchLine(p.row[p.k], mainNames), from = positionOf(start);
     if (!from) return null;
     const edges: BoardLineEdge[] = [];
-    for (const q of row.slice(0, k + 1)) {
+    for (const q of paths) {
       const node = branches[pathKey(q)];
       if (!node?.move.edge) break;
       edges.push({ edge: node.move.edge, player: node.move.player, cut: node.move.cut, regions: node.position.regions });
@@ -834,7 +835,7 @@
     return `Edge ${pos + 1} of ${last} · Turn ${t.number} · ${PLAYER_NAME[mover]} to play, edge ${k} of ${t.edges.length}`;
   });
   const statusLine = $derived(
-    branchPreview ? `Branch preview: ${branchPreview.edges.length} edge${branchPreview.edges.length > 1 ? "s" : ""} from ${
+    branchPreview ? `Branch preview: ${branchPreview.edges.length} edge${branchPreview.edges.length > 1 ? "s" : ""}, numbered from ${
       branchPreview.start.length ? `the position after edge ${branchPreview.start.length}` : "the start"}. Click to go there.`
     : movePreview ? `Preview: the position after edge ${movePreview.index + 1}, ${moveText(movePreview.index)}. Click to go there.`
     : input.refused === "start" ? `Start an edge at one of ${PLAYER_NAME[mover]}'s nodes.`

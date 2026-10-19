@@ -4317,3 +4317,19 @@ sweep.
     0.4 s, with dev's labels and no new result stored (20 results before and after), and the Analysis board shows
     dev's line.
   - The GPU worker's module loads from the build. WebGPU was not tested: a training job held the GPU.
+
+### A branch's preview numbers its edges from where it leaves the game (2026-10-19)
+
+- **Asked for:** a player who wants to show a line from the game, for example in a screenshot, should get all of it
+  numbered. The preview of a branch's move started at the row's first move. A row that forks from another branch
+  starts at the fork, so the edges that the two branches share showed drawn but unnumbered.
+- **Decided:** pointing at a branch's move shows the board at the position where its line leaves the game's line, and
+  numbers every edge from there up to that move. With the game A1 A2 A3 A4 and the branches A1 B1 B2 B3 and A1 B1
+  C1 C2, pointing at B3 numbers B1, B2 and B3 as 1, 2 and 3, and pointing at C2 numbers B1, C1 and C2 as 1, 2 and 3.
+  The same in a review and on the Analysis board, because both use one move list. The engine's best line under a
+  Mistake or a Blunder (design 07, item 15) already starts where it leaves the game.
+- **Kept:** a played move's preview (item 14) shows the position after the move, as before. One edge at a time or all
+  at once, the cuts and regions from the branch's own positions, and the 120 ms end stay. The status line now says
+  where the numbering starts: "Branch preview: 3 edges, numbered from the position after edge 1."
+- **Done:** `branchLine` in `tree.ts` chooses the line from the path and the game's moves. The preview uses it, and
+  so can the image of a line (abscls-yeqg). Design 07, item 13, describes it.

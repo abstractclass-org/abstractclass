@@ -157,11 +157,17 @@ cut edges that are on the board, so a line drawn over the board can show edges t
     action off, not the browser's menu: the review is of the game, so its line stays first, and its moves are
     evaluated already.
     "Make main line" belongs to an analysis board, later (decisions/open-items.md).
-13. **A branch's preview:** pointing at a move of a branch's row in the move list shows the row on the board, from the
-    position where the row starts, up to that move. It is drawn as the engine's line is (item 3): the edges numbered,
+13. **A branch's preview:** pointing at a move of a branch's row in the move list shows the branch's line on the
+    board, from the position where the line leaves the game, up to that move (`branchLine` in `tree.ts`). A row that
+    forks from another branch starts at the fork, but its line starts at the game: the edges the row shares with the
+    other branch are drawn and numbered too. With the game A1 A2 A3 A4 and the branches A1 B1 B2 B3 and A1 B1 C1 C2,
+    pointing at B3 numbers B1, B2 and B3 as 1, 2 and 3 from the position after A1, and pointing at C2 numbers B1, C1
+    and C2 as 1, 2 and 3. It is drawn as the engine's line is (item 3): the edges numbered,
     one at a time or all at once (the same display setting, "Lines on the board"), with the edges they cut and the
     regions they close, from the branch's own positions. Meanwhile the board shows nothing of the position on screen
-    (no candidates, labels or own moves), and the status line says "Branch preview" and where the row starts. It ends
+    (no candidates, labels or own moves), and the status line says "Branch preview" and the position where the
+    numbering starts. The engine's best line (item 15) starts where it leaves the game already. The image of a line
+    draws the same line. It ends
     a moment (120 ms) after the pointer leaves the move, unless the pointer comes onto another move first, so that it
     can cross the gap between two moves without the board going back. A click goes to the move. A display setting
     turns it off ("Preview branches"). Rows of dots or pills look alike, and the board tells
