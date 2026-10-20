@@ -4,5 +4,8 @@
 	"workspaces": [
 		"apps/*",
 		"packages/*"
-	]
+	],
+	"scripts": {
+		"check:all": "node scripts/check-all.mjs"
+	}
 }

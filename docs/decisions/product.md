@@ -5112,3 +5112,50 @@ sweep.
   `launchHideable` refuse Edge with no variable. Each script, run with Edge in its browser list (`favicon.mjs` with no
   list) and no variable, stops at the gate with the message. The tests set `EDGE` to a program that does not exist,
   so that a broken gate fails before Edge starts.
+
+### Guardrails: one check command, the release checks, the logs' union, the hook, the widths (2026-10-20)
+
+- **Asked for** (abscls-v26k): a check or a tool in place of each hand step that went wrong on 2026-10-19 and
+  2026-10-20. Every one of 8 rebases conflicted on this file, where two branches each added an entry. Three commit
+  subjects ran over 72 characters (80, 76 and 79).
+- **One check command:** `npm run check:all` at the root (`scripts/check-all.mjs`) runs the Tests workflow's checks
+  before its browser tests: the engine's release files with `--deploy`, the site's type check and unit tests, the
+  packages' type checks and unit tests, and the production build with the practice games' storage on. The workflow's
+  Linux job now runs this command, so the list is in one place. A failed step does not stop the next steps, except
+  the engine's. The last line gives each step's result. The Windows job and the deploy keep their own steps.
+  - **Checked:** after `npm ci`, `check:all` and the workflow's former steps, one by one, gave the same results: the
+    engine's files up to date with the lock, 952 files with 0 errors and 0 warnings in the type check, 181 of the
+    site's tests and 34, 9 and 2 of the packages' tests passed, and the build passed. `check:all` took about a
+    minute.
+- **The release checks:** `apps/hedgeschool/scripts/release-check.mjs <base URL> [<commit>]` does the checks of
+  docs/hosting.md, "Deploy, check and roll back". It came from a coordinator's script. The header's links and the
+  three pages that lead home are now checks, not notes, and the commit comes from `origin/main` or `origin/dev`.
+  Against `https://dev.hedgeschool.pages.dev`, at `77d27b1`, 15 of 15 checks passed. With a wrong commit, the
+  footer's check failed and the script exited 1.
+- **The decision logs merge by union** (`.gitattributes`). The README of the log does not.
+  - **A trial rebase** in a scratch clone: two branches each added an entry at the end of this file, and one rebased
+    on the other. Both entries stayed, with no conflict. But with Git's default conflict style, the second entry
+    lost the blank line before its heading. Git takes the blank line that both new entries start with as common
+    to both sides, and the union then writes it once. With `merge.conflictStyle diff3`, Git keeps the two sides
+    whole, and both entries kept their blank lines and headings, by `git rebase` and by `git merge`. No form of the
+    entries avoids this: any blank line at the start or at the end of both new entries is common.
+  - **So** the main checkout needs `git config merge.conflictStyle diff3`. A conflict in another file then also
+    shows the base's lines. A rebase in the same trial that changed an earlier heading on one branch kept that
+    change and the other branch's new entry.
+- **The commit-msg hook:** `.githooks/commit-msg`, in POSIX sh with LF line ends. It refuses a subject or a body
+  line over 72 characters. It counts characters, not bytes. It skips comment lines and the diff below the
+  scissors line of `git commit -v`. A body line of one word after its list mark (a URL, a path) and a subject that
+  starts with `fixup! `, `squash! ` or `amend! ` may be longer. It works when the main checkout has
+  `git config core.hooksPath .githooks`.
+  - **Checked:** `sh scripts/commit-msg.test.sh` passed its 20 cases in Git for Windows' sh, among them 72 and 73
+    characters of 3 bytes each and a line with CRLF. In a scratch clone, Git for Windows ran the hook. It refused a
+    subject of 74 characters and a body line of 92, and it kept a commit with a URL as a long body line and a commit
+    with long comment lines from the editor.
+- **The documents wrap at 120:** the workflow Documents (`.github/workflows/docs.yml`) runs
+  `scripts/doc-widths.mjs` on each push to `dev`. It refuses an added line over 120 characters in a Markdown file
+  of the pushed range. A table row, a line in a code block and the length of a URL do not count. The check has its
+  own workflow because the Tests workflow cancels a run when a newer push comes, and the range of the older push
+  would then go unchecked.
+  - **Checked:** its 6 unit tests passed. Over every line of every Markdown file in the repository, the rule found
+    26 lines over 120 characters: each was prose that can wrap. The last 5 commits added none.
+- **Not checked:** the workflows on GitHub, before the push.

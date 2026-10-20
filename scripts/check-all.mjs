@@ -1,0 +1,47 @@
+// The checks that the Tests workflow runs before its browser tests (.github/workflows/tests.yml), as one command that
+// the workflow and people both run: `npm run check:all` at the root, after `npm ci`. One list of steps, here.
+// Each step runs with the environment that the workflow gave it. The engine's step takes --deploy: it refuses a
+// local engine file, as the deploy does. The build is the production build of the browser tests, with the practice
+// games' storage on. A failed step does not stop the steps after it, except the engine's: the others need its files.
+// The output ends with one line: `check:all: PASS` or `check:all: FAIL`, then each step with PASS, FAIL or SKIP.
+import { spawnSync } from "node:child_process";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+const site = join(root, "apps/hedgeschool");
+
+const steps = [
+	{ name: "engine", cwd: site, command: "npm run engine -- --deploy", needed: true },
+	{ name: "site-check", cwd: site, command: "npm run check" },
+	{ name: "site-test", cwd: site, command: "npm test" },
+	// The shared packages' type checks and unit tests (design 29): every workspace in packages/.
+	{ name: "packages-check", cwd: root, command: "npm run check --workspace=packages" },
+	{ name: "packages-test", cwd: root, command: "npm test --workspace=packages" },
+	{
+		name: "build", cwd: site, command: "npm run build",
+		env: { VITE_EDITION: "early", VITE_STORE_PRACTICE_GAMES: "on" },
+	},
+];
+
+const results = [];
+let stopped = false;
+for (const step of steps) {
+	if (stopped) {
+		results.push(`SKIP ${step.name}`);
+		continue;
+	}
+	console.log(`\n=== check:all: ${step.name}: ${step.command}`);
+	const start = Date.now();
+	const run = spawnSync(step.command, {
+		cwd: step.cwd, stdio: "inherit", shell: true, env: { ...process.env, ...step.env },
+	});
+	const pass = run.status === 0;
+	console.log(`=== check:all: ${step.name}: ${pass ? "PASS" : "FAIL"} (${Math.round((Date.now() - start) / 1000)} s)`);
+	results.push(`${pass ? "PASS" : "FAIL"} ${step.name}`);
+	if (!pass && step.needed) stopped = true;
+}
+
+const pass = results.every(r => r.startsWith("PASS"));
+console.log(`\ncheck:all: ${pass ? "PASS" : "FAIL"}: ${results.join(", ")}`);
+process.exit(pass ? 0 : 1);

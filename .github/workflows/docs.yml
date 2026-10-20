@@ -1,0 +1,39 @@
+# The documents wrap at 120 characters (docs/working-notes.md): on each push to dev, an added line over 120 in a
+# Markdown file of the pushed range fails the run (scripts/doc-widths.mjs). Table rows, code blocks and the length of
+# URLs do not count. Code keeps its own lengths. Its own workflow, with no cancel: the Tests workflow cancels a run for
+# an older push, and the range of that push would then go unchecked. Beside it, the tests of the check and of the
+# commit-msg hook (.githooks/commit-msg).
+name: Documents
+
+on:
+  push:
+    branches: [dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  widths:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # The whole history, so that the commit before the push is there.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+
+      - name: The tests of the width check and of the commit-msg hook
+        run: node --test "scripts/*.test.mjs" && sh scripts/commit-msg.test.sh
+
+      # The pushed range: from the branch's commit before the push. A new branch, a run by hand, or a force push whose
+      # earlier commit is gone gives no such commit: the run then checks the last commit alone.
+      - name: The documents' widths in the pushed range
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if [ -z "$BEFORE" ] || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then BEFORE=HEAD~1; fi
+          node scripts/doc-widths.mjs "$BEFORE" HEAD

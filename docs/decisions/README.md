@@ -10,6 +10,12 @@ result here, in the file whose topic fits.
 Add a new entry at the end of the file whose topic fits. Give it a `###` heading with the date. Each file's `###`
 headings list its entries, oldest first, and GitHub shows them as the file's outline.
 
+The topic files merge by union (`.gitattributes`): when two branches each add an entry at a file's end, a merge or a
+rebase keeps both entries, with no conflict. Union fits only a file that grows by new entries at its end. It also
+joins two edits of one paragraph with no conflict, and keeps the lines of both edits. So add to the end, and after a
+merge, read an entry that both branches changed. The union keeps each entry's blank line only with Git's setting
+`merge.conflictStyle diff3` ([../working-notes.md](../working-notes.md)). This README does not merge by union.
+
 ## Topics
 
 - [architecture.md](architecture.md): the repositories and their organization, the stack, hosting and the deploy, how

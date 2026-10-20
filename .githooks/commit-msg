@@ -1,0 +1,43 @@
+#!/bin/sh
+# The commit message's form (CLAUDE.md in the planning folder, "Commit messages"): a subject of at most 72
+# characters, and body lines of at most 72. Git runs this hook when core.hooksPath names this folder
+# (docs/working-notes.md). POSIX sh, with LF line ends: Git for Windows runs it in its own sh.
+#
+# The hook reads the message as Git hands it, before Git takes out its comments. So it skips comment lines, and stops
+# at the scissors line of `git commit -v`. It counts characters, not bytes. A body line with no space after its
+# indentation and its list mark (a URL, a path) cannot wrap, so it may be longer. A subject that starts with
+# "fixup! ", "squash! " or "amend! " goes away in a rebase, so it may be longer too.
+# Test: sh scripts/commit-msg.test.sh
+
+LC_ALL=C awk '
+	{ sub(/\r$/, "") }
+	/^# -+ >8 -+$/ { exit }
+	/^#/ { next }
+	{
+		# The characters: every byte that does not continue a UTF-8 character.
+		chars = $0
+		gsub(/[\200-\277]/, "", chars)
+		n = length(chars)
+	}
+	!seen && n == 0 { next }
+	!seen {
+		seen = 1
+		if (n > 72 && $0 !~ /^(fixup|squash|amend)! /) {
+			printf "commit-msg: the subject has %d characters (at most 72):\n  %s\n", n, $0
+			bad = 1
+		}
+		next
+	}
+	n > 72 {
+		rest = $0
+		sub(/^[ \t]*([-*+>] |[0-9]+\. )?[ \t]*/, "", rest)
+		if (rest ~ /[ \t]/) {
+			printf "commit-msg: a body line has %d characters (at most 72):\n  %s\n", n, $0
+			bad = 1
+		}
+	}
+	END { exit bad }
+' "$1" >&2 || {
+	echo "commit-msg: no commit. Wrap the message at 72 characters, then commit again." >&2
+	exit 1
+}

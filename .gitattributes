@@ -1,3 +1,12 @@
 # LF line ends in every checkout, on Windows too, where Git writes CRLF by default: a build on Windows (the Tests
 # workflow's job on Windows) then reads the same files as on Linux.
 * text=auto eol=lf
+
+# The decision logs (docs/decisions/) merge by union: Git keeps the lines of both sides, with no conflict. Two
+# branches that each add an entry at a log's end then both keep their entry. Union also joins two edits of one
+# paragraph with no conflict, and keeps both versions' lines. So it fits only files that grow by new entries at their
+# end. The log's README is no such file. After a merge, read an earlier entry that both sides changed. Git's default
+# conflict style takes the blank line that both new entries start with as common, and the second entry loses it:
+# `git config merge.conflictStyle diff3` keeps it (docs/working-notes.md).
+docs/decisions/*.md merge=union
+docs/decisions/README.md !merge

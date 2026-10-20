@@ -46,18 +46,12 @@ jobs:
         with:
           path: apps/hedgeschool/node_modules/.cache/engine
           key: engine-${{ hashFiles('apps/hedgeschool/engine.lock.json') }}
-      - run: npm run engine -- --deploy
 
-      - run: npm run check
-      - run: npm test
-      # The shared packages' type checks and unit tests (design 29): every workspace in packages/.
-      - name: The packages' checks and tests
-        run: npm run check --workspace=packages && npm test --workspace=packages
+      # The checks before the browser tests, in the one command that people run too (scripts/check-all.mjs): the
+      # engine's release files (`npm run engine -- --deploy`), the site's type check and unit tests, the shared
+      # packages' type checks and unit tests (design 29), and the production build with the practice games' storage on.
+      - run: npm run check:all
         working-directory: .
-      - run: npm run build
-        env:
-          VITE_EDITION: early
-          VITE_STORE_PRACTICE_GAMES: "on"
 
       - name: Cache Playwright's browsers
         uses: actions/cache@v6

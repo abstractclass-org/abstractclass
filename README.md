@@ -25,6 +25,7 @@ the root. Run the site's commands in its folder, `apps/hedgeschool`:
 
 ```sh
 npm install                           # at the root: the workspace's dependencies, in the one package-lock.json
+npm run check:all                     # at the root: the Tests workflow's checks before its browser tests
 cd apps/hedgeschool
 npm run engine                        # get the engine's release that engine.lock.json pins, into static/engine/
 npm run dev                           # the dev server
@@ -36,6 +37,20 @@ npm run preview                       # serve build/
 npm run build:cloudflare              # what the deploy runs: the engine's release, tests, type check, build
 npm run test:layout                   # the layout sweep in Chromium, against the preview (tests/layout.spec.ts)
 HS_EDGE=1 npm run test:layout         # the same, with Edge too (the owner only; see docs/hosting.md)
+node scripts/release-check.mjs <URL>  # the checks of a deployed site (docs/hosting.md)
+```
+
+`npm run check:all` (`scripts/check-all.mjs`) runs the engine's release (`npm run engine -- --deploy`), the site's type
+check and unit tests, the shared packages' type checks and unit tests, and the build. The Tests workflow runs the same
+command, so the list of checks is in one place. Its last line says `check:all: PASS` or `check:all: FAIL`, with each
+step's result.
+
+The repository's own checks run at the root:
+
+```sh
+node scripts/doc-widths.mjs origin/dev    # added Markdown lines over 120 characters since origin/dev
+node --test "scripts/*.test.mjs"          # the width check's tests
+sh scripts/commit-msg.test.sh             # the commit-msg hook's tests (.githooks/commit-msg)
 ```
 
 To add a dependency to the site, run `npm install <package> -w apps/hedgeschool` at the root.

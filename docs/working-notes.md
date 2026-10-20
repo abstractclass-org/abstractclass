@@ -7,6 +7,26 @@ learn one, and remove a note when it stops being true. The work itself is in bea
   scripts in `scripts/`, Playwright) in `apps/hedgeschool`. The shared packages' type checks and tests run in each
   package's folder, or all from the root: `npm run check --workspace=packages` and `npm test --workspace=packages`
   (design 29).
+- **Before a commit, run `npm run check:all` at the root.** It runs the Tests workflow's checks before its browser
+  tests, with the workflow's settings (`scripts/check-all.mjs`), and its last line gives each step's result. It takes
+  minutes and builds the site: start it through `scripts/machine run` in the planning folder. Its engine step refuses
+  a local engine file, as the deploy does.
+- **The Git settings of this repository's checkouts.** The worktrees share the main checkout's settings, so these run
+  once, in the main checkout, and a worker does not run them:
+  - `git config core.hooksPath .githooks` turns on the commit-msg hook. It refuses a subject or a body line over 72
+    characters (CLAUDE.md in the planning folder, "Commit messages"). A body line of one word, such as a URL, may be
+    longer. The hook keeps no commit: wrap the message, and commit again.
+  - `git config merge.conflictStyle diff3` keeps the blank line before each entry that a union merge of a decision
+    log joins. With Git's default style, the second of two new entries loses its blank line. A conflict in another
+    file then also shows the base's lines, between `|||||||` and `=======`.
+- **The decision logs merge by union** (`.gitattributes`): a rebase over another branch's new entry keeps both
+  entries, with no conflict. So add each entry at the end of its file. A union does not see two edits of one
+  paragraph as a conflict: after a rebase, read an earlier entry that both branches changed.
+- **The documents wrap at 120 characters.** The workflow Documents refuses an added Markdown line over 120 characters
+  in a push to `dev`. A table row, a line in a code block and the length of a URL do not count. Check before a push:
+  `node scripts/doc-widths.mjs origin/dev` at the root.
+- **After a deploy, check the site:** `node scripts/release-check.mjs <base URL>` in `apps/hedgeschool`
+  (docs/hosting.md, "Deploy, check and roll back").
 - **The owner plays in this browser** (Edge, the local build): practice games and reviews of their own. Before a
   test that plays, save the keys that it changes (`hedge-school:practice-*`, the review's display settings) and the
   games' ids, and put them back after. Read the state again before each test: the owner plays between them.
