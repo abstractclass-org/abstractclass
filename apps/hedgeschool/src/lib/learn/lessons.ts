@@ -9,7 +9,7 @@
 import { moverOf, readPosition } from "#lib/editor/position.ts";
 import { parseEdge } from "#lib/engine/notation.ts";
 import type { GamePosition } from "#lib/engine/position.ts";
-import type { Edge, Player, Position } from "#lib/review/enclosure.ts";
+import { otherPlayer, type Edge, type Player, type Position } from "#lib/review/enclosure.ts";
 
 /** A legal edge as the engine played it: the step's board before it and the board after it (describe_game). */
 export interface Played { before: GamePosition; after: GamePosition }
@@ -36,7 +36,7 @@ export function lineBoard(line: string): Position {
   const of = (p: Player) => edges.filter(e => e.player === p);
   const marked = (p: Player) => of(p).filter(e => e.marked).map(e => e.edge);
   return {
-    edges: [of(0).map(e => e.edge), of(1).map(e => e.edge)], protected: marked((1 - player) as Player),
+    edges: [of(0).map(e => e.edge), of(1).map(e => e.edge)], protected: marked(otherPlayer(player)),
     placed: marked(player), scores, player, movesLeft: left, regions: [[], []],
   };
 }

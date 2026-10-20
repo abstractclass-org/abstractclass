@@ -4565,36 +4565,38 @@ sweep.
     one click for each edge. Escape ends the chain, and so does a click on that point again, which is the way on a
     touch screen. A removed edge ends the chain, and the marks take no chain.
   - **The edge count follows the board:** the edges drawn, all but the two start edges, until the player types a
-    count, which then stays. "Blue to play" and "Red to play" move the count on to the next count with that mover,
-    and with a count from the board the choice stays as edges are drawn. The scores stay as they are until the player
-    types them. The page says that the engine uses this edge count and these scores. The notation stays a complete
-    position: a cut removes an edge, a timeout's forfeited edges count, and a score adds the areas at each turn's end
-    (the engine repository's design 04), so neither the count nor the scores follow from the board. An exact
-    position comes from a real game.
+    count, which then stays. "Blue to play" and "Red to play" change the count to the next count with that mover.
+    With a count from the board, the choice stays as the player draws edges. The scores stay as they are until the
+    player types them. The page says that the engine uses this edge count and these scores. The notation stays a
+    complete position: a cut removes an edge, a timeout's forfeited edges count, and a score adds the areas at each
+    turn's end (the engine repository's design 04), so neither the count nor the scores follow from the board. An
+    exact position comes from a real game.
 - **Choices made in the building:**
   - **The start edges are not in the count.** The standard start has two edges at the count 0, so a count of all the
     edges on the board would make the standard start count 2. The edges drawn, less A10-D10 and Q10-T10, are the
     edges played when no edge was cut and no turn forfeited. They are a lower bound on the count in any game.
-  - **A position read from the notation** (pasted, brought from the board, or kept by the browser for a reload)
-    follows the board when its count is the one that the board gives, with or without a mover chosen, and else keeps
-    its count as typed. So a reload keeps the rule without a second stored value.
+  - **A position pasted or brought from another page** follows the board when its count is the one that the board
+    gives, with or without a mover chosen, and else keeps its count as typed. The browser keeps the rule beside the
+    position being made (`hedge-school:editor-count`), so that a reload keeps it: the notation alone cannot tell a
+    typed count from a count of the board that has the same value.
   - **A drag always begins its edge at the pressed point.** With chains, a point is nearly always waiting, and a drag
     from another point would else draw an edge from the chain's end to the pressed point. The board tells the page
     that a drag's press begins an edge.
-  - **Remove all edges** keeps a typed count. Standard start sets the count back to the board's.
+  - **Remove all edges** keeps a typed count. Standard start makes the count follow the board again.
 - **Where the chains and the two-click edge meet:** a new edge that starts near the last edge's end needs the chain
   ended first (Escape, or a click on the end again). Else its first click draws an edge from the chain's end. A point
   too far for an edge begins a new edge, as before. This is the one way that the two can confuse. The help says how
-  to stop a chain, and the dashed edge from the waiting point shows what the next click draws.
+  to cancel the selected point, and the dashed edge from the waiting point shows what the next click draws.
 - **Done:** `followBoard`, `chooseMover` and `ruleOf` in `src/lib/editor/position.ts` give the count, with checks in
   `position.test.ts`. The board takes the right button on a point when the page asks for it (`rightClicks`) and has
   no notes, and tells the page each click's button and whether it begins an edge (`PointClick`). The editor has a
-  "Keys and clicks" list under its tools. The sentence about the count and the scores follows strict Simplified
-  Technical English by its sentence rules (the `/asd-ste100` skill). ASD's dictionary was not available, so no one
-  checked the words against it.
+  "Keys and clicks" list under its tools. The paragraph about the count and the scores follows the sentence rules of
+  Simplified Technical English, and the help list follows its strict mode (the `/asd-ste100` skill and its linter).
+  ASD's dictionary was not available, so no one checked the words against it.
 - **Checked:** `npm run check`, `npm test` (175 checks), the packages' check and tests (43 checks), the build, and
-  the layout sweep in Playwright's Chromium (11 passed, `/editor` among them). A script drove `/editor` on the production build in headless Chromium, with a mouse and
-  with a touch screen (390 by 844 pixels), and all 45 of its checks passed:
+  the layout sweep in Playwright's Chromium (11 passed, `/editor` among them). A script drove `/editor` on the
+  production build in headless Chromium, with a mouse and with Playwright's touch emulation (390 by 844 pixels), and
+  all 45 of its checks passed:
   - Left and right clicks with each tool, and X in both directions. X in the position field left the tool as it was.
   - A chain of four edges that closed a square, then Escape. A click on the chain's last point ended the chain, and
     so did a removal.
@@ -4604,3 +4606,18 @@ sweep.
   - The marks with the left and the right button, with no chain.
   - No context menu showed on a right click in the editor. On the Analysis board, a right click drew a note's ring.
   - Taps drew a chain, and the Red tool button worked by touch.
+- **The review changed:**
+  - **The browser keeps the count's rule** beside the position. Read back from the notation alone, a typed count with
+    the value of a count from the board followed the board after a reload: with 3 edges drawn, a typed 5 came back as
+    Red's next count, and 3 more edges made it 6.
+  - **The help's words** follow strict Simplified Technical English, and they no longer name the chain or the tool's
+    player. The key is "Escape", as in the review's list. The paragraph about the count says that a mover chosen can
+    make the count 1 or 2 more than the edges drawn.
+  - **The code:** the page derives the count from the position and its rule (`followBoard`) in one place, so that no
+    change of the edges can leave the count behind. The key and the help table are utilities that the review shares
+    (`kbd` and `help-table` in `app.css`). The start edges come from `STANDARD_START`. `otherPlayer` in
+    `enclosure.ts` gives the other player.
+  - **Checked:** `npm run check`, `npm test` (175 checks), the packages' check and tests, the build, and the
+    Playwright tests in Chromium on a preview of the build (21 passed, 6 skipped). A script drove `/editor` in
+    headless Chromium, with a mouse and with Playwright's touch emulation (390 by 844 pixels), and all 58 of its
+    checks passed: the checks above, and a typed count that stayed typed after a reload.

@@ -5,16 +5,17 @@
   // program's two colours, and X swaps the two tools. After an edge, the next click continues from its end (a chain),
   // until Escape. The edge count follows the board until the player types one (CountRule). The page writes the
   // notation's position (#lib/editor/position.ts), and the engine draws it and checks that it could occur in a game
-  // (protocol 0.5's check), with the edges each reason names. Analyze opens the board from it. Its way in: `#position=`, from the board's Import (the position on screen) or another page. The
-  // position leaves the address at once, then the analytics start (design 22). The position being made is kept in this
-  // browser, so that a reload keeps it.
+  // (protocol 0.5's check), with the edges each reason names. Analyze opens the board from it. Its way in:
+  // `#position=`, from the board's Import (the position on screen) or another page. The position leaves the address at
+  // once, then the analytics start (design 22). The position being made is kept in this browser, so that a reload keeps
+  // it.
   import { onDestroy, onMount } from "svelte";
   import Board, { type PointClick } from "#lib/board/Board.svelte";
   import { EngineWorker, loadManifest, moduleOf } from "@abstractclass/engine/client.ts";
   import type { CheckReason } from "@abstractclass/engine/protocol.ts";
-  import { parseEdge, STANDARD_START } from "#lib/engine/notation.ts";
+  import { parseEdge, sameEdge, STANDARD_START } from "#lib/engine/notation.ts";
   import { boardPosition, type DescribeReply } from "#lib/engine/position.ts";
-  import { PLAYER_NAME, type Edge, type Player, type Position } from "#lib/review/enclosure.ts";
+  import { otherPlayer, PLAYER_NAME, type Edge, type Player, type Position } from "#lib/review/enclosure.ts";
   import { chooseMover, drawEdge, followBoard, LAST_COUNT, moverOf, placeable, readPosition, ruleOf, toggleMark,
            writePosition, type CountRule, type EditorPosition } from "#lib/editor/position.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
@@ -23,11 +24,14 @@
   import PageMeta from "#lib/PageMeta.svelte";
 
   const KEPT = "hedge-school:editor"; // the position being made (a convenience: the editor opens at the start without it)
+  const KEPT_RULE = "hedge-school:editor-count"; // how its edge count is set (CountRule), which its notation cannot say
+  const RULES: CountRule[] = [null, 0, 1, "typed"];
   type Tool = 0 | 1 | "mark"; // a player's edges, or the marks of the turn
 
-  let pos = $state<EditorPosition>(readPosition(STANDARD_START));
+  let made = $state<EditorPosition>(readPosition(STANDARD_START)); // the position as the player made it
   let tool = $state<Tool>(0);
   let rule = $state<CountRule>(null); // how the edge count is set
+  const pos = $derived(followBoard(made, rule)); // the position, with the edge count that the rule gives
   let pending = $state<[number, number] | null>(null); // an edge's first point, or the end of the chain's last edge
   let right = $state(false); // the last click was the right button's: the dashed edge shows the other player
   let hint = $state(""); // why the last click did nothing
@@ -47,9 +51,10 @@
     const brought = new URLSearchParams(location.hash.slice(1)).get("position");
     history.replaceState(null, "", location.pathname);
     startAnalytics();
-    for (const text of [brought, readLocal(KEPT)]) {
+    const keptRule = RULES.find(r => String(r) === readLocal(KEPT_RULE)); // undefined: none kept
+    for (const [text, r] of [[brought, undefined], [readLocal(KEPT), keptRule]] as const) {
       if (!text) continue;
-      try { load(readPosition(text)); break; } catch { /* the next, or the start */ }
+      try { load(readPosition(text), r); break; } catch { /* the next, or the start */ }
     }
     track("editor_open");
     void (async () => {
@@ -76,6 +81,7 @@
     writeLocal(KEPT, n);
     if (engine) void describe(engine, n);
   });
+  $effect(() => writeLocal(KEPT_RULE, String(rule)));
   async function describe(e: EngineWorker, n: string) {
     const mine = ++asked;
     try {
@@ -110,9 +116,11 @@
     return out;
   });
 
-  /** A position read from the notation, with the count's rule that fits it. */
-  function load(p: EditorPosition) { pos = p; rule = ruleOf(p); pending = null; }
+  /** A position read from the notation, with the count's rule kept with it, or else the rule that fits it. */
+  function load(p: EditorPosition, r: CountRule = ruleOf(p)) { made = p; rule = r; pending = null; }
 
+  /** The player whose edge a click draws: the tool's, or the other player's with the right button. */
+  const drawer = (rightButton: boolean): Player => (tool === "mark" ? 0 : rightButton ? otherPlayer(tool) : tool);
   const MARKS_PER_PLAYER = 2; // a turn has at most two edges: the notation's limit on each mark
   /** A click on a point: the first point of an edge, or its second, which draws it (or marks it). The right button draws
    *  the other player's edge, and with the marks does what the left does. A drawn edge's end begins the next edge (a
@@ -125,42 +133,37 @@
     if (ax === x && ay === y) { pending = null; return; }
     const edge: Edge = [ax, ay, x, y];
     if (tool === "mark") {
-      const next = toggleMark(pos, edge);
+      const next = toggleMark(made, edge);
       if (!next) { pending = [x, y]; return; } // no edge there: this point starts the next one
-      if ([0, 1].some(p => next.edges.filter(e => e.player === p && e.marked).length > MARKS_PER_PLAYER)) {
+      if ([0, 1].some(p => next.edges.filter(e => e.player === p && e.marked).length > MARKS_PER_PLAYER))
         hint = "A player has at most two marked edges: a turn has at most two.";
-        pending = null;
-        return;
-      }
-      pos = next;
-    } else {
-      if (!placeable(ax, ay, x, y)) { pending = [x, y]; return; } // too far: this point starts the next edge
-      const next = drawEdge(pos, edge, how.right ? ((1 - tool) as Player) : tool);
-      // A removal ends the chain: the edge is gone, and its end is no edge's.
-      pending = next.edges.length < pos.edges.length ? null : [x, y];
-      pos = followBoard(next, rule);
+      else made = next;
+      pending = null;
       return;
     }
-    pending = null;
+    if (!placeable(ax, ay, x, y)) { pending = [x, y]; return; } // too far: this point starts the next edge
+    made = drawEdge(made, edge, drawer(how.right));
+    // The edge's end begins the next edge, unless the click removed the edge.
+    pending = made.edges.some(e => sameEdge(e.edge, edge)) ? [x, y] : null;
   }
   /** X swaps the two players' tools, and Escape ends the chain, as long as no field has the keyboard. */
   function key(ev: KeyboardEvent) {
     if (ev.ctrlKey || ev.metaKey || ev.altKey || (ev.target as HTMLElement).closest?.("input, textarea, select")) return;
     if (ev.key === "Escape" && pending) { pending = null; hint = ""; }
-    else if (ev.key.toLowerCase() === "x" && tool !== "mark") tool = (1 - tool) as Player;
+    else if (ev.key.toLowerCase() === "x" && tool !== "mark") tool = otherPlayer(tool);
   }
 
   function setCount(value: number) {
-    pos = { ...pos, count: Math.max(0, Math.min(LAST_COUNT, Math.round(value) || 0)) };
+    made = { ...made, count: Math.max(0, Math.min(LAST_COUNT, Math.round(value) || 0)) };
     rule = "typed";
   }
   function setMover(player: Player) {
-    ({ pos, rule } = chooseMover(pos, rule, player));
+    ({ pos: made, rule } = chooseMover(pos, rule, player));
   }
   function setScore(player: 0 | 1, value: number) {
-    const scores: [number, number] = [...pos.scores];
+    const scores: [number, number] = [...made.scores];
     scores[player] = Math.max(0, value || 0);
-    pos = { ...pos, scores };
+    made = { ...made, scores };
   }
   function readField() {
     try {
@@ -182,23 +185,22 @@
   }
 
   const TOOLS: [Tool, string][] = [[0, "Blue edges"], [1, "Red edges"], ["mark", "Marks"]];
-  const TOOL_HELP: Record<string, string> = {
-    0: "Click an edge's two points, at most 3 apart. Right-click to draw a Red edge. Draw an edge again to remove it, or a Red edge to make it Blue.",
-    1: "Click an edge's two points, at most 3 apart. Right-click to draw a Blue edge. Draw an edge again to remove it, or a Blue edge to make it Red.",
-    mark: "Click an edge's two points to mark it: the waiting player's edges of the last turn (protected), and the mover's edges of this turn so far (placed).",
-  };
-  // The page's keys and clicks, as the review lists its own (ReviewView's KEYS and MOUSE).
+  const toolHelp = (t: Tool) => t === "mark"
+    ? "Click an edge's two points to mark it: the waiting player's edges of the last turn (protected), and the mover's edges of this turn so far (placed)."
+    : `Click an edge's two points, at most 3 apart. Right-click to draw a ${PLAYER_NAME[otherPlayer(t)]} edge. To remove a ${PLAYER_NAME[t]} edge, draw it again. To change a ${PLAYER_NAME[otherPlayer(t)]} edge to ${PLAYER_NAME[t]}, draw it again.`;
+  // The page's keys and clicks, as the review lists its own (ReviewView's KEYS and MOUSE). The end of the last edge stays
+  // selected: the next click draws the next edge from it (a chain).
+  const CANCEL = "Cancel the selected point, so that the next click starts a new edge";
   const CLICKS: [string, string][] = [
-    ["Click a point, then a second point", "Draw an edge of the tool's player"],
-    ["Right-click", "Draw an edge of the other player"],
+    ["Click a point, then a second point", "Draw an edge with the selected tool"],
+    ["Right-click a point, then a second point", "Draw an edge of the other player"],
     ["Drag from a point to a second point", "Draw an edge"],
-    ["Click a point after an edge", "Draw the next edge from the end of the last edge (a chain)"],
-    ["Click the last point again", "Stop the chain"],
-    ["With Marks, click an edge's two points", "Mark the edge, or remove its mark. Right-click does the same"],
+    ["Click a point after you draw an edge", "Draw an edge from the end of the last edge"],
+    ["Click the selected point again", CANCEL],
+    ["With Marks, click or right-click an edge's two points", "Mark the edge, or remove its mark"],
   ];
-  const KEYS: [string, string][] = [["X", "Change between the Blue tool and the Red tool"], ["Esc", "Stop the chain"]];
-  const KBD = "inline-block min-w-[1.6em] px-1 py-px rounded border border-line bg-panel font-mono text-[0.85em] text-center leading-tight";
-  const HELP_TABLE = "w-full text-xs [&_td]:py-1 [&_td]:align-top [&_tr+tr_td]:border-t [&_tr+tr_td]:border-line";
+  const KEYS: [string, string][] = [["X", "Change the tool from Blue edges to Red edges, or from Red edges to Blue edges"],
+                                    ["Escape", CANCEL]];
   const FIELD = "px-2 py-1 bg-page text-ink border border-line rounded focus:outline-2 focus:outline-accent";
 </script>
 
@@ -215,7 +217,7 @@
   {:else}
     <section class="rounded overflow-hidden">
       <Board position={shown} layers={{ candidates: false, marks: false }} {pending} ends={ends}
-             previewPlayer={tool === "mark" ? 0 : right ? (1 - tool) as Player : tool} targets={reasonEdges} onpoint={click} rightClicks />
+             previewPlayer={drawer(right)} targets={reasonEdges} onpoint={click} rightClicks />
     </section>
 
     <section class="grid gap-4 bg-panel border border-line rounded-lg px-4 py-4">
@@ -229,14 +231,14 @@
                     onclick={() => { tool = t; pending = null; hint = ""; }}>{name}</button>
           {/each}
         </div>
-        <p class="text-xs text-muted">{TOOL_HELP[tool]}</p>
+        <p class="text-xs text-muted">{toolHelp(tool)}</p>
         {#if hint}<p class="text-xs text-blunder" role="status">{hint}</p>{/if}
         <details class="text-xs">
           <summary class="cursor-pointer text-muted">Keys and clicks</summary>
-          <table class={[HELP_TABLE, "mt-1"]}>
+          <table class="help-table text-xs mt-1">
             <tbody>
               {#each KEYS as [k, what] (k)}
-                <tr><td class="pr-3 w-[45%]"><kbd class={KBD}>{k}</kbd></td><td>{what}</td></tr>
+                <tr><td class="pr-3 w-[45%]"><kbd class="kbd">{k}</kbd></td><td>{what}</td></tr>
               {/each}
               {#each CLICKS as [how, what] (how)}
                 <tr><td class="pr-3 w-[45%] text-muted">{how}</td><td>{what}</td></tr>
@@ -271,10 +273,10 @@
       </div>
       <p class="-mt-2 text-xs text-muted">The edge count includes the edges a timeout forfeited, and it sets who plays. A
         score adds the area its player encloses at each turn's end.</p>
-      <p class="-mt-2 text-xs text-muted">The edge count is the number of edges that you draw. The two start edges are not
-        in the count. If you type a count, the count stays the same when you draw edges. The scores change only when you
-        type them. The engine uses this edge count and these scores. If they are not correct, the numbers from the engine
-        are not correct.</p>
+      <p class="-mt-2 text-xs text-muted">The edge count is the number of edges that you draw, but not the two start
+        edges. When you select Blue to play or Red to play, the count can be 1 or 2 more than the edges drawn. If you type
+        a count, the count stays the same when you draw edges. The scores change only when you type them. The engine uses
+        this edge count and these scores. If they are not correct, the numbers from the engine are not correct.</p>
 
       <div class="grid gap-1">
         <label for="position-text" class="text-sm">Position, in the <a href="/notation" target="_blank" rel="noopener noreferrer">notation</a></label>
@@ -305,7 +307,7 @@
         <button type="button" class="btn-primary" disabled={!analyzable} onclick={analyze}
                 title={analyzable ? "Open the Analysis board from this position" : mover.left ? "Analyze a position that a game can reach" : "The game is over at this position"}>Analyze</button>
         <button type="button" class="text-sm" onclick={() => load(readPosition(STANDARD_START))}>Standard start</button>
-        <button type="button" class="text-sm" onclick={() => { pos = followBoard({ ...pos, edges: [] }, rule); pending = null; }}>Remove all edges</button>
+        <button type="button" class="text-sm" onclick={() => { made = { ...made, edges: [] }; pending = null; }}>Remove all edges</button>
       </div>
     </section>
   {/if}

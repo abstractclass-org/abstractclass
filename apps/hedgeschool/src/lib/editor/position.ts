@@ -2,7 +2,7 @@
 // the scores, written as the notation's position (the /notation page, the engine repository's design 04). The editor
 // writes the five fields. The engine checks that the position could occur in a game (protocol 0.5), so nothing here
 // knows the rules: only the notation's form and its turn structure.
-import { edgeName, parseEdge, sameEdge } from "#lib/engine/notation.ts";
+import { edgeName, parseEdge, sameEdge, STANDARD_START } from "#lib/engine/notation.ts";
 import { turnFromCount, type Edge, type Player } from "#lib/review/enclosure.ts";
 
 /** An edge on the editor's board. `marked`: an edge of the turn, written `*` (protected: the last turn's, of the player
@@ -81,10 +81,10 @@ export function drawEdge(p: EditorPosition, edge: Edge, player: Player): EditorP
  *  04), so a count typed stays. */
 export type CountRule = Player | null | "typed";
 
-const START_EDGES: Edge[] = [[0, 9, 3, 9], [15, 9, 18, 9]]; // A10-D10 and Q10-T10, each player's edge before the first
+const START_EDGES = readPosition(STANDARD_START).edges; // A10-D10 and Q10-T10, each player's edge before the first
 /** The edges on the board that a game played: all but the start edges. */
 const drawnCount = (p: EditorPosition) =>
-  p.edges.filter(e => !sameEdge(e.edge, START_EDGES[e.player])).length;
+  p.edges.filter(e => !START_EDGES.some(s => s.player === e.player && sameEdge(s.edge, e.edge))).length;
 
 /** The first count from `count` on with `player` to move, or the last before it near the game's end. */
 function nextCount(count: number, player: Player): number {
@@ -110,9 +110,8 @@ export function chooseMover(p: EditorPosition, rule: CountRule, player: Player):
 /** The rule of a position read from the notation: from the board when its count is the one the board gives, else
  *  typed. */
 export function ruleOf(p: EditorPosition): CountRule {
-  if (followBoard(p, null).count === p.count) return null;
-  const mover = moverOf(p.count).player;
-  return followBoard(p, mover).count === p.count ? mover : "typed";
+  for (const rule of [null, 0, 1] as const) if (followBoard(p, rule).count === p.count) return rule;
+  return "typed";
 }
 
 /** The position with an edge's mark changed, or null when no edge is there. */

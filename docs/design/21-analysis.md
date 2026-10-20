@@ -138,12 +138,13 @@ engine does by itself.
       starts near the last edge's end needs the chain ended first, or else the first click draws an edge from that end.
     - **The edge count follows the board:** it is the edges drawn, all but the two start edges (A10-D10 and Q10-T10,
       each player's edge before the first), until the player types a count, which then stays. A choice "Blue to play"
-      or "Red to play" moves the count on to the next count with that mover. With a count from the board, the choice
-      stays as edges are drawn. A typed count moves on from itself and stays typed. The scores stay as they are until
-      the player types them: 0/0 from the start. A position read from the notation (pasted, brought, or kept by the
-      browser) follows the board when its count is the one that the board gives, with or without a mover chosen, and
-      else keeps its count as typed (`CountRule` in `src/lib/editor/position.ts`). The page says that the engine's
-      numbers assume this count and these scores.
+      or "Red to play" changes the count to the next count with that mover. With a count from the board, the choice
+      stays as the player draws edges. A typed count changes to the next count from itself with that mover, and stays
+      typed. The scores stay as they are until the player types them: 0/0 from the start. A position pasted or brought
+      from another page follows the board when its count is the one that the board gives, with or without a mover
+      chosen, and else keeps its count as typed (`CountRule` in `src/lib/editor/position.ts`). The browser keeps the
+      rule with the position being made, so that a reload keeps it. The page says that the engine's numbers assume
+      this count and these scores.
     - **The edge count and the scores are not the board's:** the notation stays a complete position. Neither follows
       from the edges on the board (the engine repository's design 04): a score adds each player's enclosed area at
       each turn's end, a cut removes an edge, and a timeout's forfeited edges count. The edges drawn are the edges

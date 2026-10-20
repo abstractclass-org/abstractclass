@@ -231,6 +231,14 @@
 @utility dialog-box {
   @apply fixed z-30 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 px-5 py-4 raised rounded-md;
 }
+/* A list of keys and clicks (the review's, the board editor's): a key, and a table of one row a key or a click. Each
+   table sets its own text size. */
+@utility kbd {
+  @apply inline-block min-w-[1.6em] px-1 py-px rounded border border-line bg-panel font-mono text-[0.85em] text-center leading-tight;
+}
+@utility help-table {
+  @apply w-full [&_td]:py-1 [&_td]:align-top [&_tr+tr_td]:border-t [&_tr+tr_td]:border-line;
+}
 
 /* Lichess's bar-glider (ui/lib/css/component/_bar-glider.scss): a light gleam sweeps a progress bar while its work
    runs, so that a slow step does not look stopped. Lichess's gleam moves 3,400 pixels in 3 seconds, so it flashes

@@ -148,9 +148,7 @@
   // A label's badge in the text. Its mark is 56% of the circle, as on the board (0.4 in 0.72), and bold, not extra bold,
   // because small text in heavy weights runs together.
   const MENU_ITEM = "menu-item data-disabled:opacity-50 data-disabled:cursor-default";
-  const KBD = "inline-block min-w-[1.6em] px-1 py-px rounded border border-line bg-panel font-mono text-[0.85em] text-center leading-tight";
   const TAB = "flex-1 bg-transparent border-transparent border-b-2 border-b-line rounded-none data-[state=active]:border-b-accent data-[state=active]:font-semibold";
-  const HELP_TABLE = "w-full text-sm [&_td]:py-1 [&_td]:align-top [&_tr+tr_td]:border-t [&_tr+tr_td]:border-line";
 
   type Stage = "highlights" | "analysis";
   let stage = $state<Stage>("highlights");
@@ -1423,7 +1421,7 @@
           <p class="text-sm font-medium">Keys and clicks</p>
           <p class="text-xs text-muted">The keys for moving through the game and its branches, and what the clicks do.</p>
         </div>
-        <button class="flex-none px-2 py-0.5 text-sm" onclick={() => (keysOpen = true)}>Show <kbd class={KBD}>?</kbd></button>
+        <button class="flex-none px-2 py-0.5 text-sm" onclick={() => (keysOpen = true)}>Show <kbd class="kbd">?</kbd></button>
       </div>
       {#if !board}<!-- the board has no chart -->
         <h3 class={SETTINGS_HEAD}>Advantage chart</h3>
@@ -1796,17 +1794,17 @@
           <Dialog.Title class="font-semibold">Keys and clicks</Dialog.Title>
           <Dialog.Close class="px-2 py-0.5 text-sm">Close</Dialog.Close>
         </div>
-        <table class={HELP_TABLE}>
+        <table class="help-table text-sm">
           <tbody>
             {#each KEYS as [keys, what] (what)}
               <tr>
-                <td class="pr-3 w-[45%]"><span class="flex flex-wrap gap-1">{#each keys as k (k)}<kbd class={KBD}>{k}</kbd>{/each}</span></td>
+                <td class="pr-3 w-[45%]"><span class="flex flex-wrap gap-1">{#each keys as k (k)}<kbd class="kbd">{k}</kbd>{/each}</span></td>
                 <td>{what}</td>
               </tr>
             {/each}
           </tbody>
         </table>
-        <table class="{HELP_TABLE} mt-3">
+        <table class="help-table text-sm mt-3">
           <tbody>
             {#each MOUSE as [how, what] (how)}
               <tr><td class="pr-3 w-[45%] text-muted">{how}</td><td>{what}</td></tr>
@@ -1815,7 +1813,7 @@
         </table>
         <!-- The notes' colours and the keys held while drawing, each with its colour's stroke -->
         <h3 class="mt-3 mb-1 text-sm font-semibold">Note colours</h3>
-        <table class={HELP_TABLE}>
+        <table class="help-table text-sm">
           <tbody>
             {#each BRUSH_KEYS as [brush, keys] (brush)}
               <tr>
@@ -1825,7 +1823,7 @@
                   <!-- Keys held together joined by +, a group's other keys by "or", in brackets beside another group -->
                   {#each keys as group, g (g)}{#if g}<span class="text-muted">+</span>{/if}{#if keys.length > 1 && group.length > 1}<span
                     class="text-muted">(</span>{/if}{#each group as k, i (k)}{#if i}<span class="text-muted">or</span>{/if}<kbd
-                    class={KBD}>{k}</kbd>{/each}{#if keys.length > 1 && group.length > 1}<span class="text-muted">)</span>{/if}{/each}</span>{/if}</td>
+                    class="kbd">{k}</kbd>{/each}{#if keys.length > 1 && group.length > 1}<span class="text-muted">)</span>{/if}{/each}</span>{/if}</td>
               </tr>
             {/each}
           </tbody>

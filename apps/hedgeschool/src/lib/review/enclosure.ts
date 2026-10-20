@@ -38,6 +38,7 @@ export function turnFromCount(count: number): { turn: number; first: boolean } {
 export interface Move { player: Player; edge: Edge | null; cut: Edge | null }
 
 export const PLAYER_NAME = ["Blue", "Red"] as const;
+export const otherPlayer = (p: Player): Player => (1 - p) as Player;
 
 /** An edge of a line, played: the edge it cuts (or null), and the regions and areas after it. */
 export interface LineStep { cut: Edge | null; regions: Position["regions"]; areas: [number, number] }
@@ -49,7 +50,7 @@ export function lineMovers(p: Position, n: number): Player[] {
   let player = p.player, left = p.movesLeft;
   for (let i = 0; i < n; i++) {
     movers.push(player);
-    if (--left === 0) { player = (1 - player) as Player; left = 2; }
+    if (--left === 0) { player = otherPlayer(player); left = 2; }
   }
   return movers;
 }
