@@ -134,8 +134,10 @@ learn one, and remove a note when it stops being true. The work itself is in bea
 - **The GPU in Playwright's Chromium:** headless Chromium gets WebGPU on the real GPU with `--enable-unsafe-webgpu
   --use-angle=d3d11 --enable-features=Vulkan`. With `--use-webgpu-adapter=swiftshader --enable-unsafe-swiftshader`
   added, it gets Chrome's software adapter, which uses no GPU. The software adapter runs the GPU worker and the
-  practice bot's GPU form, slowly: it checks that a path works, not its speed. Use it when another job holds the GPU
-  (`scripts/machine status` in the planning folder, `abstractclass-org`). Check that the GPU worker started before a
+  practice bot's GPU form, slowly: it checks that a path works, not its speed. Use it by default. A run on the real
+  GPU goes through `scripts/machine run --gpu` in the planning folder (`abstractclass-org`): that job pauses the
+  engines' training on the GPU and guards it. A GPU timeout of Windows (a TDR) on 2026-10-20 came from a client of
+  the GPU on Windows while no training ran. Check that the GPU worker started before a
   measurement relies on it: in one review with the real GPU's flags, WebGPU gave an adapter, but the engine settings
   said "The GPU did not start: 9943656". The cause is not known.
 - **A unit test of a module with runes** (`*.svelte.ts`): import `@abstractclass/analysis/testing/svelteModules.ts`
