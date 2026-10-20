@@ -195,9 +195,10 @@ cut edges that are on the board, so a line drawn over the board can show edges t
       on the board, as a branch's line (item 13): from where it leaves the game.
     - **The line follows the search, and the player's branches stay.** The faded edges are not kept. When the line
       changes, a branch the player played along the old line shows as a branch of its own, and a branch on the new
-      line merges into it. While its position's search can still change it (a search of it runs, or the label pass or
-      the key moments' deeper search has yet to reach it), the line's rows gleam as the progress bars do: the line
-      updates after each slice of the search.
+      line merges into it. While its position's search can still change it, the line's rows gleam as the progress
+      bars do: the line updates after each slice of the search. That is while a search of the position runs to the
+      visits that the line shows or more (a shallower result does not replace the line), or while the label pass or
+      the key moments' deeper search has yet to reach those visits.
 16. **The player's notes on the board** (Lichess's circles and arrows, from its chessground board's drawable shapes):
     a right-click on a point rings it, and a right drag from a point to another draws a line between them. A note is
     only a drawing: it is not an edge, and it cuts and encloses nothing. Drawing a note again removes it, and in

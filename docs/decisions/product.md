@@ -5377,10 +5377,10 @@ sweep.
   above it. When that search then stopped before its end (the player moves on, its time limit, the engine off), it
   wrote nothing. The analysis kept its result, and the review counted the position as searched, but the store had no
   result at the review's budget. The next visit searched the position again: "Reviewing: move quality" or "Reviewing:
-  the key moments" after a review that said "Review done", and a layout shift. A key moment's search that the engine
-  off or an engine error stopped did the same. When its results so far had taken its position out of the key moments,
-  the step stopped counting it. The line then said "Review done", with the engine off too, the page wrote the game's
-  mark, and the engine on did not search the position again.
+  the key moments" after a review that said "Review done", and a layout shift. A key moment's search that stopped
+  when the engine went off or failed did the same. When its results so far had taken its position out of the key
+  moments, the step stopped counting it. The line then said "Review done", with the engine off too, the page wrote
+  the game's mark, and the engine on did not search the position again.
 - **The change** (`packages/analysis/src/analysis.svelte.ts`): the analysis notes, for each position, the visits of
   the deepest result that the store has (`stored`). That is a result read from the store, or a search's final result,
   which the batch after its write notes. Only that record meets a search's budget, and the review's counts read it:
@@ -5390,20 +5390,21 @@ sweep.
   (design 16).
 - **The key moments' step** counts each position that a key moment's search was asked for at the review's depth,
   until the store has its result. Before, it counted such a position only once the analysis held the depth. A search
-  that the engine off or an engine error ends now leaves its position in the step. So the line does not say "Review
+  that ends when the engine goes off or fails now leaves its position in the step. So the line does not say "Review
   done", and the engine on asks for the position again (`deepen`, which `setPaused` calls). After an engine error, the
   line keeps "Reviewing: the key moments" under the error until the engine goes off and on, or the key moments change.
 - **The gleam on a line** (`pending`) compares the review's budgets with the analysis on screen, not with the record.
-  A review search below the visits on screen does not change the line.
+  A search that runs makes the line gleam only while its budget reaches the visits on screen: a review search below
+  them does not change the line.
 - **The cost, accepted:** once the search of the position on screen has passed the review's budget, a review search
   of that position runs at the same time. Before, it did not run.
 - **The tests** (`packages/analysis/src/analysis.test.ts`), four new ones, which all fail before the change:
   - The label pass searches the start, though the search on screen passed the label budget, and counts the start
     only once its result is stored. The analysis keeps the deeper result.
   - A key moment counts as done only with its result in the store, not with the search on screen's results so far.
-  - A key moment's search that the engine off stops, and one that an engine error ends, keep the position in the
-    step as not done, though it is no key moment. The engine on searches it again, and the step then counts it as
-    done.
+  - A key moment's search that stops when the engine goes off, and one that ends with an engine error, keep the
+    position in the step as not done, though it is no key moment. The engine on searches it again, and the step then
+    counts it as done.
 
   The fake pool's `halt` now stops the searches in slices and drops the waiting tasks, as the pool does. The new test
   of the engine error replaces the test that the step stops counting a search that ends with an error.
@@ -5437,3 +5438,51 @@ sweep.
     did the same. The unit tests check that case.
 - **Not measured:** Edge, the GPU, a search on screen that its time limit stops, an engine error in a browser, and
   other numbers of workers.
+- **The review changed these:**
+  - **A position whose result the page no longer holds:** a search's budget is met when the store has a result that
+    deep and the analysis holds it (`searched`). With the record alone, a branch that the player deleted and played
+    again showed no analysis, and no search ran: the record kept its result, but the analysis did not. A Great's
+    confirmation position that the player then played as a branch did the same. Its search now reads the store.
+  - **The gleam:** each search that runs notes its budget (`running`), and makes the line gleam only while that
+    budget reaches the visits on screen. A shallower result does not replace the line (`keep`). Before, a review
+    search below the visits on screen made the line gleam for its whole run, once the search on screen had stopped
+    (its time limit, a lower depth on screen).
+  - **The engine off and on during a key moment's search:** the engine on asks for the key moments again. But the
+    search that the engine off stopped can still run then, so `deepen` skipped its position, and nothing asked for it
+    again when that search ended. The line then stayed on the key moments. When the engine went off and on during a
+    key moment's search, its end now asks for the key moments again (`pauses`).
+  - **The key moments' step** no longer adds the searches that run (`deepSearches`). Every position that the step
+    asked for at the review's depth is in it already (`deepAsked`). A search at an earlier review depth no longer
+    holds the step.
+  - **The tests,** three new ones, each of which fails before its change: a branch deleted and played again, a label
+    search below the visits on screen, and the engine off and on before the stopped search ends. The tests' set-up of
+    a game whose passes ended is one helper (`reviewed`).
+- **The review's check in a browser:** Playwright's Chromium, headless, at 1,366 × 657, in jobs of 2 threads
+  (`scripts/machine run`), with 2 search workers, the GPU off and Lite. A script not kept opened the fixture's game
+  cut after 30 turns by its record, in a new browser context each run. It sampled the page every 100 ms: the review's
+  line, the visits on screen, and the rows of the engine's line that gleam.
+  - **Both searches of the start at once** (the position on screen to 2,048 visits): the search on screen ran from
+    0.7 s to 22.4 s, and the start's label search from 13.0 s to 18.7 s. While both ran, the visits on screen went
+    from 1,024 to 1,568, and they never went down. The store then held the start at 32, 512 and 2,048 visits.
+  - **The gleam, both searches at once:** after the Lite review, the start of the Blunder's turn (position 11, the
+    only Mistake or Blunder of the cut game, in its opening) was on screen to 16,384 visits, and the review depth
+    went to Standard. The label search of position 11 to 1,024 visits ran from 308.3 s, with the search on screen.
+    For 2 s, all 20 samples gleamed, and the visits went from 8,864 to 9,056. Then the depth on screen went down to
+    256, and the search on screen stopped at 9,120 visits. While the label search ran alone, 1 of 41 samples gleamed
+    (the stop's own batch), and the visits stayed at 9,088 to 9,120. After its end, no sample gleamed, and the
+    visits stayed at 9,120. The store held position 11 at 32, 512 and 1,024 visits.
+  - **The engine off during a key moment's search whose position leaves the key moments:** the page did not meet
+    this case by itself. So the script changed the replies of one search on their way from the worker to the page:
+    the key moments' search of position 25, the last of 3 and the start of a turn. Its values became a win for the
+    mover of the turn before it, so that its results so far took position 25 out of the key moments. The engine went
+    off at 672 visits (before) and 704 (after), once the other two key moments were stored. In both builds, the line
+    then said "Engine off. The review is paused." for 9 s: 3 of the 6 Greats' confirmations had yet to run.
+    - **Before** (`dev`'s `analysis.svelte.ts`): with the engine on, the page did not search position 25 again. The
+      line went on to the Greats' confirmations, then "Review done", and the store held position 25 at 32 and 512
+      visits only. A reload then said "Loading the engine's network…", "Reviewing: the key moments, deeper, 2 of 3
+      positions", then "Review done".
+    - **After:** the page sent the search of position 25 again as the engine came on. The line said "Reviewing: the
+      key moments, deeper, 2 of 3 positions", then the Greats' confirmations, then "Review done", and the store held
+      position 25 at 1,024 visits. A reload said "Review done" from its first sample, and no other line.
+- **Not reached in a browser:** "Review done" with the engine off before the change (the Greats' confirmations still
+  ran then), and the engine off and on before the stopped search ends (the unit test checks it).

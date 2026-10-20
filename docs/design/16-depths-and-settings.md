@@ -190,5 +190,7 @@ Lite (D = 512), P = 1,024, and a time limit of 30 s.
   deeper search where the player looks: kept, and said", "A game keeps the settings it came with, and the key moments
   go one doubling deeper" (2026-10-13).
 - [decisions/product.md](../decisions/product.md): "The review's custom depth up to 16,384 visits" (2026-10-18).
+- [decisions/product.md](../decisions/product.md): "A search's budget is met only by a result in the store"
+  (2026-10-20).
 - Designs [05](05-review-analysis.md), [09](09-engine-settings.md), [10](10-labels.md) and
   [13](13-export-import.md) hold each rule in its place.

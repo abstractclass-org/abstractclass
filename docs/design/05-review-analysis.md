@@ -68,17 +68,18 @@ noise.
      so they are in the queue when the next engine is free. A hidden tab runs the batch's timer about once a second,
      and later still when the page's timers have used up their share of the processor (Chromium gives a hidden page's
      timers 1% of it). No search waits for a timer of the page.
-   - **A search's budget is met only by a result in the store:** a result that the page read from the browser's
-     store, or a search's final result, which the page writes before it shows it. Then no search of the position to
-     that budget starts, and each step of the review's progress counts the position: the sweep, the label pass, the
-     key moments and the Greats' confirmations. Another search's results so far do not meet a budget, though the page
-     shows them and the labels follow them (design 16). The position on screen can pass the label budget, or the key
-     moments' depth, and then stop before its end: the player moves on, its time limit passes, or the engine goes
-     off. The store never gets such a result. So the review's own search of that position runs, at the same time as
-     the search of the position on screen while that one runs. A key moment's search that ends with no result (the
-     engine off, an engine error) keeps its position in the key moments' step, also when its results so far took the
-     position out of the key moments. The engine on searches it again. So "Review done" and the game's mark (design
-     20) come only when the store holds every result that the steps count, and the next visit opens done.
+   - **A search's budget is met only by a result in the store:** a result that the page read from the browser's store,
+     or a search's final result, which the page writes before it shows it. Then no search of the position to that budget
+     starts, and each step of the review's progress counts the position: the sweep, the label pass, the key moments and
+     the Greats' confirmations. A position whose result the page no longer holds, such as a branch that the player
+     deleted and played again, reads it from the store. Another search's results so far do not meet a budget, though the
+     page shows them and the labels follow them (design 16). The position on screen can pass the label budget, or the
+     key moments' depth, and then stop before its end: the player moves on, its time limit passes, or the engine goes
+     off. The store never gets such a result. So the review's own search of that position runs, at the same time as the
+     search of the position on screen while that one runs. A key moment's search can end with no result, when the engine
+     goes off or fails. Its position then stays in the key moments' step, also when its results so far took the position
+     out of the key moments. The engine on searches it again. So "Review done" and the game's mark (design 20) come only
+     when the store holds every result that the steps count, and the next visit opens done.
    - **A search in slices yields by a message:** between two slices, the worker sends itself a message, so that a stop
      can arrive first. A timer would wait longer: from the sixth yield on, 4 ms at least, and 15.6 ms in a hidden tab
      of Edge.

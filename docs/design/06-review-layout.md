@@ -128,45 +128,43 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
    the summary (three columns), or at the top of the right column (fewer), over the tabs. It covers all of the
    review's own work, each part as wide as its share of the visits: the sweep, the label pass, the key moments
    searched deeper, and the Great's confirmations ("confirming Great moves, 18 of 22"). The last two are counted from
-   the labels found so far, so they grow as labels come. The key moments' step also counts each position whose search
-   for earlier key moments still runs or waits. A search's results so far change the labels, so its position can leave
-   the key moments before the search ends. The store gets its result only at the end. So the step waits for the search's
-   end and for the write of its result. Each position that a key moment's search was asked for at the review's depth
-   counts too, until the store has its result, so the step's count does not go back when the key moments change.
-   Without this, "5 of 6" could become "3 of 4". A search that the engine off or an engine error ends leaves its
-   position in the step, and the engine on searches it again. Every step counts a position only with a result in the
-   store, not with another search's results so far (design 05). The bar
-   shows the step that its line names: the steps before are full, the later ones empty, though some of their work ends
-   early, alongside (it shows when their step comes). The step's part never shows less than it showed before: when its
-   count grows, it waits. Another review depth, network or game starts it again. A review opened again reads its results
-   from the browser's store before it shows, and they count as searched (the sweep and the label pass). When every step
-   has its results from the store, the review is complete before the engine's network loads. Its line then says "Review
-   done" in the first frame, in place of "Loading the engine's network…", and its Export menu opens (design 13). The
-   report does not say that its counts are partial: that sentence came and went as the network loaded, and moved the
-   report's table (a layout shift). The network still loads for the searches that the player asks for (the position on
-   screen, a line). Until then, the engine's panel shows the values of the position's stored result, and its search bar
-   gleams once a search starts. **While the network loads, the engine header's line says "Loading the engine's
-   network…"** in the place of the visits, on the review and on the Analysis board. So the panel says that a deeper
-   search waits for the network, also when the review's line says "Review done". The header reads the same state as the
-   review's line (the analysis's `engineReady`), and says the same words. So they show at the first load, and again
-   while another network loads. A snapshot (design 20) searches nothing, so its header does not show them. The words and
-   the visits are two elements, and the search bar takes the line's free width. So the visits that replace the words are
-   new on the page, and the switch and the gear stay in place: no layout shift. A review with a result missing says what
-   loads, and then what runs. After Review again on a snapshot (design 20), the snapshot's analysis stays on screen
-   until the new review's analysis replaces it, and the line says what loads. **While the review has work to run, the
-   slot's second line says "A review in a hidden tab can be slower."** Its title says why: "When you cannot see this
+   the labels found so far, so they grow as labels come. The key moments' step also counts each position that the review
+   asked a key moment's search for, at the review's depth, until the store has the position's result. A search's results
+   so far change the labels, so its position can leave the key moments before the search ends. The store gets its result
+   only at the end. So the step waits for the search's end and for the write of its result, and its count does not go
+   back when the key moments change. Without this, "5 of 6" could become "3 of 4". When the engine goes off or fails
+   during such a search, the position stays in the step, and the engine on searches it again. Every step counts a
+   position only when the store has its result, not when another search's results so far reach the budget (design 05).
+   The bar shows the step that its line names: the steps before are full, the later ones empty, though some of their
+   work ends early, alongside (it shows when their step comes). The step's part never shows less than it showed before:
+   when its count grows, it waits. Another review depth, network or game starts it again. A review opened again reads
+   its results from the browser's store before it shows, and they count as searched (the sweep and the label pass). When
+   every step has its results from the store, the review is complete before the engine's network loads. Its line then
+   says "Review done" in the first frame, in place of "Loading the engine's network…", and its Export menu opens (design
+   13). The report does not say that its counts are partial: that sentence came and went as the network loaded, and
+   moved the report's table (a layout shift). The network still loads for the searches that the player asks for (the
+   position on screen, a line). Until then, the engine's panel shows the values of the position's stored result, and its
+   search bar gleams once a search starts. **While the network loads, the engine header's line says "Loading the
+   engine's network…"** in the place of the visits, on the review and on the Analysis board. So the panel says that a
+   deeper search waits for the network, also when the review's line says "Review done". The header reads the same state
+   as the review's line (the analysis's `engineReady`), and says the same words. So they show at the first load, and
+   again while another network loads. A snapshot (design 20) searches nothing, so its header does not show them. The
+   words and the visits are two elements, and the search bar takes the line's free width. So the visits that replace the
+   words are new on the page, and the switch and the gear stay in place: no layout shift. A review with a result missing
+   says what loads, and then what runs. After Review again on a snapshot (design 20), the snapshot's analysis stays on
+   screen until the new review's analysis replaces it, and the line says what loads. **While the review has work to run,
+   the slot's second line says "A review in a hidden tab can be slower."** Its title says why: "When you cannot see this
    tab, the browser can give the review less processor time." Where the line is cut, as with a larger text size, its
-   title gives the line in full before the reason, as the slot's other lines give their text.
-   The browser gives a hidden tab's processes the lowest priority, so other programs that keep the processor busy come
-   first (design 05). The line is in the slot's own height, so it moves nothing. It goes when the engine is off and when
-   the review is done. A review that runs again because the site's engine changed gives that line to its reason.
-   **While a bar's work runs, a light gleam sweeps it** (Lichess's `bar-glider`,
-   `ui/lib/css/component/_bar-glider.scss`: 70 pixels wide, every 3 seconds), so that a slow step does not look stopped:
-   the review's bar while its passes run, and the search bar while the position on screen is searched. With reduced
-   motion asked for, there is no gleam. **The gleam is slower than Lichess's:** it crosses the bar in 2 seconds at any
-   width, then waits 1 second. Lichess's gleam moves 3,400 pixels in 3 seconds, so it flashes across a bar of 400 pixels
-   in about a third of a second. The gleam moves by a transform, not by its place (`left`): it asks for no layout in
-   each frame, and moves nothing (a layout shift).
+   title gives the line in full before the reason, as the slot's other lines give their text. The browser gives a hidden
+   tab's processes the lowest priority, so other programs that keep the processor busy come first (design 05). The line
+   is in the slot's own height, so it moves nothing. It goes when the engine is off and when the review is done. A
+   review that runs again because the site's engine changed gives that line to its reason. **While a bar's work runs, a
+   light gleam sweeps it** (Lichess's `bar-glider`, `ui/lib/css/component/_bar-glider.scss`: 70 pixels wide, every 3
+   seconds), so that a slow step does not look stopped: the review's bar while its passes run, and the search bar while
+   the position on screen is searched. With reduced motion asked for, there is no gleam. **The gleam is slower than
+   Lichess's:** it crosses the bar in 2 seconds at any width, then waits 1 second. Lichess's gleam moves 3,400 pixels in
+   3 seconds, so it flashes across a bar of 400 pixels in about a third of a second. The gleam moves by a transform, not
+   by its place (`left`): it asks for no layout in each frame, and moves nothing (a layout shift).
 8. **Two kinds of number, one form each:**
    - **Who is ahead:** the side ahead is named, and the number is never below 0: "Red +105", whoever is to move, as Go
      writes "B+3.5". Even reads "0" among numbers and "even" in a sentence. So: the engine header ("Expected final
@@ -277,3 +275,5 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
 - [decisions/product.md](../decisions/product.md), "The review page's layout".
 - [decisions/product.md](../decisions/product.md), "The review's first frame".
 - [decisions/product.md](../decisions/product.md), "The Review tab before the page's code runs".
+- [decisions/product.md](../decisions/product.md), "A search's budget is met only by a result in the store"
+  (2026-10-20).

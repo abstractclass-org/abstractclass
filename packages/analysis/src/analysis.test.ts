@@ -303,6 +303,41 @@ test("a label search is met only by a result that the store has, not by the resu
   assert.ok(written().includes(analysisKey(pool.search!, pool.model!.sha256, [], visits)));
 });
 
+test("a position whose result the store has, and the analysis lost, takes it from the store: a branch deleted and played again", async () => {
+  const { game, searches } = await sweeping();
+  const branch = ["b"], visits = game.focusVisits;
+  await game.addLine(branch);
+  game.focus(branch);
+  await settle();
+  searches.at(-1)!.end(visits);
+  await turns();
+  mock.timers.tick(BATCH_MS);
+  await game.deleteFrom(branch);
+  await game.addLine(branch);
+  const before = searches.length;
+  game.focus(branch);
+  await turns();
+  assert.deepEqual([game.analysisOf(branch)?.visits, searches.length], [visits, before]);
+});
+
+test("a line gleams while a search of its position can change it: not for a label search below the visits on screen", async () => {
+  const { game, searches } = await sweeping();
+  const n = game.passCount, visits = game.labelVisits;
+  game.setDepth(4096, null);
+  game.focus([]);
+  await settle();
+  const focus = searches[n];
+  focus.partial(visits + 64);
+  mock.timers.tick(BATCH_MS);
+  await endEach(searches, 0, n, SWEEP_VISITS); // the label pass starts: the start's label search runs with the focus
+  assert.equal(game.pending([]), true);
+  game.focus(game.mainNames.slice(0, 1)); // the player moves on: the start's search stops
+  focus.end(visits + 96);
+  await turns();
+  mock.timers.tick(BATCH_MS);
+  assert.deepEqual([game.analysis[0]?.visits, game.pending([])], [visits + 96, false]); // the label search runs on
+});
+
 test("the key moments' step waits for a search whose position left them, until its result is stored", async () => {
   const { game, searches } = await sweeping(1); // the sweep's searches wait: the results wait for the batch
   const depth = momentVisits(game.labelVisits);
@@ -330,11 +365,18 @@ test("the key moments' step waits for a search whose position left them, until i
   assert.deepEqual(game.momentChecks([]), { total: 0, done: 0 });
 });
 
-test("a key moment counts as done only with a result that the store has, not by the results so far of the position on screen", async () => {
-  const { game, searches } = await sweeping();
+/** A game whose passes have ended: the sweep's searches and the label pass's. */
+async function reviewed() {
+  const swept = await sweeping();
+  const n = swept.game.passCount;
+  await endEach(swept.searches, 0, n, SWEEP_VISITS);
+  await endEach(swept.searches, n, 2 * n, swept.game.labelVisits);
+  return swept;
+}
+
+test("a key moment counts as done only with a result that the store has, not with the results so far of the position on screen", async () => {
+  const { game, searches } = await reviewed();
   const n = game.passCount, depth = momentVisits(game.labelVisits);
-  await endEach(searches, 0, n, SWEEP_VISITS);
-  await endEach(searches, n, 2 * n, game.labelVisits);
   game.setDepth(4096, null);
   game.focus(game.mainNames.slice(0, 1)); // the key moment on screen, searched deeper than the key moments' depth
   await settle();
@@ -352,17 +394,16 @@ test("a key moment counts as done only with a result that the store has, not by 
 /** A review after its passes, whose key moment 1 is searched deeper: its results so far took it out of the key moments,
  *  and the search still runs. */
 async function deepening() {
-  const { game, pool, searches, written } = await sweeping();
+  const { game, pool, searches, written } = await reviewed();
   const n = game.passCount, depth = momentVisits(game.labelVisits);
-  await endEach(searches, 0, n, SWEEP_VISITS);
-  await endEach(searches, n, 2 * n, game.labelVisits);
   game.deepen([1]);
   await settle();
-  const deep = searches[2 * n];
-  deep.partial(depth - 32);
+  const search = searches[2 * n];
+  search.partial(depth - 32);
   mock.timers.tick(BATCH_MS);
   game.deepen([]); // the page's key moments, which its results so far changed
-  return { game, searches, deep, depth, stored: () => written().includes(analysisKey(pool.search!, pool.model!.sha256, ["a"], depth)) };
+  const stored = () => written().includes(analysisKey(pool.search!, pool.model!.sha256, MOVES.slice(0, 1), depth));
+  return { game, searches, search, depth, stored };
 }
 
 /** Turns the engine on, and ends the search that it starts at `depth`: the key moments' step then counts it as done. */
@@ -378,25 +419,41 @@ async function searchedAgain({ game, searches, depth, stored }: Awaited<ReturnTy
 }
 
 test("a key moment's search that the engine off stops counts until its result is stored, and runs again", async () => {
-  const deep = await deepening();
-  deep.game.setPaused(true);
-  assert.equal(deep.deep.stopped, true);
-  deep.deep.end(deep.depth - 16);
+  const review = await deepening();
+  review.game.setPaused(true);
+  assert.equal(review.search.stopped, true);
+  review.search.end(review.depth - 16);
   await turns();
   mock.timers.tick(BATCH_MS);
   // The line does not say "Review done", and the step waits for the position though it is no key moment now.
-  assert.deepEqual([deep.game.momentChecks([]), deep.stored()], [{ total: 1, done: 0 }, false]);
-  await searchedAgain(deep);
+  assert.deepEqual([review.game.momentChecks([]), review.stored()], [{ total: 1, done: 0 }, false]);
+  await searchedAgain(review);
+});
+
+test("a key moment's search that the engine off stops runs again when the engine comes on before that search ends", async () => {
+  const { game, searches, search, depth, stored } = await deepening();
+  game.setPaused(true);
+  game.setPaused(false);
+  await settle();
+  const before = searches.length;
+  search.end(depth - 16);
+  await turns();
+  mock.timers.tick(BATCH_MS);
+  assert.equal(searches.length, before + 1);
+  searches.at(-1)!.end(depth);
+  await turns();
+  mock.timers.tick(BATCH_MS);
+  assert.deepEqual([game.momentChecks([]), stored()], [{ total: 1, done: 1 }, true]);
 });
 
 test("a key moment's search that an engine error ends counts until its result is stored, and runs again", async () => {
-  const deep = await deepening();
-  deep.deep.fail(new Error("engine error"));
+  const review = await deepening();
+  review.search.fail(new Error("engine error"));
   await turns();
   mock.timers.tick(BATCH_MS);
-  assert.deepEqual([deep.game.momentChecks([]), deep.game.error], [{ total: 1, done: 0 }, "engine error"]);
-  deep.game.setPaused(true); // the player turns the engine off and on
-  await searchedAgain(deep);
+  assert.deepEqual([review.game.momentChecks([]), review.game.error], [{ total: 1, done: 0 }, "engine error"]);
+  review.game.setPaused(true); // the player turns the engine off and on
+  await searchedAgain(review);
 });
 
 /** The board, its start on screen with a time limit of 2 seconds: the focus's search waits for the test. */

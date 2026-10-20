@@ -135,9 +135,9 @@
   // the sweep, the label pass, the key moments searched deeper, and the Great's confirmations. The last two are counted
   // from what the analysis asks for so far: they grow as labels come, and each is done when its positions have the
   // searches' results in the store, whoever ran them (after a change of the review's depth too). The key moments' part
-  // also counts a search for earlier key moments that still waits or runs, and each position that one was asked for at
-  // the depth until the store has its result (momentChecks), so that its count does not go back when the key moments
-  // change, and a search that the engine off ended waits for the engine on. The bar shows the step that its line names:
+  // also counts each position that a search for earlier key moments was asked for at the depth, until the store has its
+  // result (momentChecks), so that its count does not go back when the key moments change, and a search that the engine
+  // off ended waits for the engine on. The bar shows the step that its line names:
   // the steps before are full, the later ones empty, though some of their work can end early, alongside (it shows when
   // their step comes). The step's own part never shows less than it has shown (held): a count that grows makes it wait
   // instead of going back. Another review depth, network or game starts it again.
