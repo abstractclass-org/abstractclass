@@ -28,6 +28,9 @@ export interface SessionOptions<G extends GameTypes> {
   /** The site's analytics (design 17), for a network that did not load and the GPU's test. None by default: no event,
    *  and a network named by its id. */
   tracker?: Tracker;
+  /** Makes a pool of `size` search workers, which takes the rules worker `rules` if given: an EnginePool by default, a
+   *  test's own pool in a test. */
+  pool?: (size: number, rules?: EngineWorker) => EnginePool;
 }
 
 export class EngineSession<G extends GameTypes> {
@@ -37,6 +40,7 @@ export class EngineSession<G extends GameTypes> {
   pool: EnginePool | null = null;
   network = ""; // the network of the pool in use, or of the pool that loads to replace it
   #rules?: EngineWorker; // the next pool's rules worker, started before the pool (startRules)
+  #making = false; // start() makes the analysis, which the page does not show yet
   #ended = false;
   readonly #o: Required<SessionOptions<G>>;
   // The settings that start work when they change, each a value of its own: a change of another setting starts none.
@@ -46,7 +50,8 @@ export class EngineSession<G extends GameTypes> {
   #gpuMode = $derived.by(() => this.#o.settings().gpu);
 
   constructor(options: SessionOptions<G>) {
-    this.#o = { frozen: () => false, dropped: () => {}, tracker: { track: () => {}, networkName: id => id }, ...options };
+    this.#o = { frozen: () => false, dropped: () => {}, tracker: { track: () => {}, networkName: id => id },
+                pool: (size, rules) => new EnginePool(size, rules), ...options };
     const { game, settings, position, frozen } = this.#o;
     // The engine's settings, given to the analysis as they change. The analysis ignores a value it already has.
     $effect(() => {
@@ -121,32 +126,38 @@ export class EngineSession<G extends GameTypes> {
 
   /** Starts a pool with the settings' network, for the analysis that `make` builds on it once the rules work. Then
    *  `onRules` runs with it and the new pool, before the network loads, and the pool in use before (a snapshot's)
-   *  ends. Answers the analysis
-   *  once the network is loaded, or null when another network took over meanwhile. The pool then releases its engines
-   *  when idle, and the GPU joins it, unless the rules refused the analysis. The pool takes the rules worker that
-   *  startRules started, if no pool took it before. Once the session has ended, it starts none and answers null. Call
-   *  after load(). */
+   *  ends. A network chosen before that waits for the analysis, and then applies to it (#useNetwork). Answers the
+   *  analysis once the network is loaded. The pool then releases its engines when idle, and the GPU joins it, unless
+   *  the rules refused the analysis. When another network was chosen meanwhile, the next pool takes over once it
+   *  loads: the start answers the analysis with no GPU, and with no error when the first network failed, or null when
+   *  the next pool took over already (its sweep runs). The pool takes the rules worker that startRules started, if no
+   *  pool took it before. Once the session has ended, it starts none and answers null. Call after load(). */
   async start(make: (pool: EnginePool) => GameAnalysis<G> | Promise<GameAnalysis<G>>,
               onRules: (g: GameAnalysis<G>, pool: EnginePool) => Promise<void>): Promise<GameAnalysis<G> | null> {
     if (this.#ended) return null;
-    const before = this.pool, first = this.pool = new EnginePool(this.#workers, this.takeRules());
-    this.network = this.#network;
+    const before = this.pool, first = this.pool = this.#o.pool(this.#workers, this.takeRules());
+    const network = this.network = this.#network;
     let g = null as GameAnalysis<G> | null;
+    this.#making = true;
     try {
-      await first.start(this.manifest!, this.network, async () => {
+      await first.start(this.manifest!, network, async () => {
         const s = this.#o.settings(), made = g = await make(first);
         made.setPaused(!s.on);
         made.setDepth(s.visits, s.seconds);
         made.setReview(this.#budget);
         await onRules(made, first);
         before?.terminate();
+        this.#making = false;
+        if (made.rulesReady) void this.#useNetwork(this.#network, made); // a network chosen meanwhile, if any
       });
     } catch (e) {
       before?.terminate();
-      if (this.pool === first) throw e; // else another network took over while this one loaded
-      return null;
+      if (this.pool === first && this.network === network) throw e; // else another network took over, or takes over
+    } finally {
+      this.#making = false;
     }
     if (this.pool !== first || !g) return null;
+    if (this.network !== network) return g; // the next pool gets the GPU (#useNetwork)
     if (g.rulesReady) {
       first.releaseWhenIdle(); // an idle tab keeps no engine but the rules' (pool.ts, IDLE_RELEASE_MS)
       this.#controlGpu(first);
@@ -154,16 +165,17 @@ export class EngineSession<G extends GameTypes> {
     return g;
   }
 
-  /** Another network: a new pool loads it while the old pool still answers the board's rules. The analysis starts
-   *  again, since every result came from the old network. The new network's results kept from earlier come from the
-   *  cache, which keys them by network. */
-  async #useNetwork(id: string) {
-    const g = this.#o.game();
-    if (this.#o.frozen() || !this.pool || !this.manifest || !g || id === this.network) return; // frozen: until start()
+  /** Another network: a new pool loads it for the analysis `g`, the page's, while the old pool still answers the
+   *  board's rules. The analysis starts again, since every result came from the old network. The new network's results
+   *  kept from earlier come from the cache, which keys them by network. Nothing changes while the analysis is frozen,
+   *  or while start() makes the next one: the page's analysis is then a snapshot's or none, and start() gives the
+   *  network to its own analysis. */
+  async #useNetwork(id: string, g = this.#o.game()) {
+    if (this.#making || this.#o.frozen() || !this.pool || !this.manifest || !g || id === this.network) return;
     this.network = id;
     g.dropAnalysis();
     this.#o.dropped();
-    const next = new EnginePool(this.#workers);
+    const next = this.#o.pool(this.#workers);
     try {
       await next.start(this.manifest, id);
     } catch (e) {

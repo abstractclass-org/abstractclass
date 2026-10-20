@@ -51,10 +51,16 @@ export class GpuEngines {
   terminate() { this.channel.terminate(); }
 }
 
-/** One engine of the GPU worker, as the pool sees a search engine. */
+/** One engine of the GPU worker, as the pool sees a search engine. Its fields are written out, not parameter properties,
+ *  so that Node can strip its types in the packages' tests. */
 export class GpuSlot {
   readonly kind = "gpu" as const;
-  constructor(private gpu: GpuEngines, readonly index: number) {}
+  private gpu: GpuEngines;
+  readonly index: number;
+  constructor(gpu: GpuEngines, index: number) {
+    this.gpu = gpu;
+    this.index = index;
+  }
   analyse(q: AnalysisQuery, onPartial?: (r: AnalysisReply, ms: number) => void) { return this.gpu.analyse(this.index, q, onPartial); }
   /** The pool ends the GPU worker itself (pool.ts, dropGpu). */
   terminate() {}

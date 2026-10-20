@@ -45,7 +45,10 @@ noise.
    - **Another network** (design 09): the run of the passes ends with the old network, and the old pool's results
      that still arrive are dropped. No search starts until the next pool has loaded its network: the passes then run
      again from the sweep. A search on the old pool would keep the old network's result under the new one, and the
-     new sweep would skip that position.
+     new sweep would skip that position. A network chosen before the review's analysis shows (on a snapshot's Review
+     again, design 20, or while the rules load) waits for that analysis, and then applies to it at once. Until then,
+     the session names the network of the results that the analysis holds, so the game's mark names it too. The GPU
+     joins only the pool of the network chosen.
    - A pool of workers runs the most urgent work first: the position on screen, then the key moments, then the sweep.
      A search in slices gives way: when the position on screen finds no free worker, the pool stops a key moment's
      search, which runs again later. When the player leaves a focus, its search does not start.
@@ -127,3 +130,4 @@ noise.
 - [decisions/product.md](../decisions/product.md), "The rules worker starts with the manifest" (2026-10-19).
 - [decisions/product.md](../decisions/product.md), "A review in a hidden tab" (2026-10-19).
 - [decisions/product.md](../decisions/product.md), "The passes end with the old network" (2026-10-20).
+- [decisions/product.md](../decisions/product.md), "A network chosen while the review starts its pool" (2026-10-20).

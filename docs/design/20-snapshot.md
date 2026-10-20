@@ -29,8 +29,9 @@ look at a past review pays it each time, and the earlier results are still in th
 4. **A bar says what the snapshot is:** "Reviewed on October 12, 2026 with an earlier version of the engine" (or of the
    network), with **Review again**, and under it "A snapshot: no searches and no new moves." The engine's switch shows
    off and does not move. A move that the snapshot cannot add, and a click on the switch, light the bar's border. Review again reviews the game with the site's engine, as a new review does,
-   and the board stays where it is. When the new review ends, the game's mark names the site's engine. A later start
-   then removes the earlier results that no other game needs (item 8).
+   and the board stays where it is. A network chosen as the new review starts applies to the new review, and the
+   snapshot's analysis searches nothing (design 05, "Another network"). When the new review ends, the game's mark names
+   the site's engine. A later start then removes the earlier results that no other game needs (item 8).
 5. **Without the earlier results** (another browser, data cleared, or results of an older shape), the game is reviewed
    again, as before, and the dialog and the line under the progress say why (design 11).
 6. **Imports:** a review file keeps its mark when the site ships its network file (the same SHA-256), whatever its
@@ -150,4 +151,4 @@ look at a past review pays it each time, and the earlier results are still in th
 
 - [decisions/product.md](../decisions/product.md): "A review by an earlier engine opens as it was" (2026-10-14), "An
   earlier engine's results go when no game needs them" (2026-10-16), "The snapshot reads its results by their keys"
-  (2026-10-18).
+  (2026-10-18), "A network chosen while the review starts its pool" (2026-10-20).
