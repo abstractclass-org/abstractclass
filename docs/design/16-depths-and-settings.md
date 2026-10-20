@@ -38,6 +38,9 @@ The engine searches the position on screen only when it holds less than P. A lab
 - **A key moment's own search too.** Its results so far change the labels, and with them the key moments, so its
   position can leave them while it runs. The review is not done until that search ends: the store gets its result
   only then (design 06, the review's progress bar).
+- **The review's own work counts the store's results only.** A search of a position to a budget is done when the
+  store has a result with that budget. The results so far that the page shows do not count: the store never gets them
+  when their search stops before its end (design 05).
 - **From the store, the deepest too.** When a review opens, each position takes the deepest result stored for it at the
   visits asked or more (`cacheGetAtLeast` in `packages/analysis/src/cache.ts`). So a review opened again looks as the
   player left it, and a review file's deeper results count everywhere.

@@ -3,12 +3,14 @@
 // progress, its mark). And the order of a search's end: the engine takes its next search at once, and the result shows
 // in the batch after its write to the store, or once it is stored when no search waits in the pool's queue or when it
 // is the label pass's last. And another network: no pass searches on the old network's pool for the new network's
-// analysis. And a focus's time limit, which the engine's worker keeps. Run: npm test.
+// analysis. And a focus's time limit, which the engine's worker keeps. And a search's budget and the review's steps, met
+// only by a result that the store has: not by another search's results so far, and not by a search that ends with no
+// result, which the engine on runs again. Run: npm test.
 import { afterEach, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
 import "./testing/svelteModules.ts";
 import type { AnalysisReply } from "@abstractclass/engine/protocol.ts";
-import type { EnginePool, Work } from "@abstractclass/engine/pool.ts";
+import { Cancelled, type EnginePool, type Work } from "@abstractclass/engine/pool.ts";
 import { BOARD_ID } from "./kept.ts";
 import { reply, wordRules, words } from "./testing/game.ts";
 import { SWEEP_VISITS, analysisKey, cachePut, readAnalysisKey } from "./cache.ts";
@@ -26,7 +28,8 @@ let models = 0;
 /** A pool of `engines` engines (by default, as many as the tasks), whose searches end when the test says: `partial`
  *  posts a result so far, `end` the final result (`late`: its time limit ended it), `fail` an engine error. `stopped`
  *  once the page stops the search, `maxMs` its time limit. A task runs when an engine is free, the most urgent first,
- *  then first come first served, as the pool runs them (pool.ts). `waiting`: the tasks that wait for an engine. */
+ *  then first come first served, as the pool runs them (pool.ts). `waiting`: the tasks that wait for an engine. `halt`
+ *  drops the waiting tasks and stops the running searches in slices, as the pool does. */
 function fakePool(engines = Infinity) {
   const searches: { partial(visits: number): void; end(visits: number, late?: boolean): void; fail(e: Error): void; stopped: boolean;
                     maxMs?: number }[] = [];
@@ -44,22 +47,29 @@ function fakePool(engines = Infinity) {
     },
   };
   let busy = 0;
-  const queue: { priority: number; start: () => void }[] = [];
+  const queue: { priority: number; start: () => void; reject: (e: Error) => void }[] = [];
+  const stops = new Set<() => void>(); // the running searches in slices
   const pool = {
     search: "test", model: { sha256: `m${++models}` }, // a network of its own: the cache's memory outlives a test
     rules: wordRules,
     run: (priority: number, _tag: string, work: Work<unknown>) => new Promise((resolve, reject) => {
       const start = () => {
         busy++;
-        work(engine as never, () => {}).then(resolve, reject).finally(() => { busy--; queue.shift()?.start(); });
+        let stop = () => {};
+        work(engine as never, s => { stop = s; stops.add(s); }).then(resolve, reject)
+          .finally(() => { stops.delete(stop); busy--; queue.shift()?.start(); });
       };
       if (busy < engines) start();
       else {
-        queue.push({ priority, start });
+        queue.push({ priority, start, reject });
         queue.sort((a, b) => b.priority - a.priority);
       }
     }),
-    cancel() {}, halt() {}, terminate() {},
+    halt() {
+      for (const t of queue.splice(0)) t.reject(new Cancelled());
+      for (const stop of stops) stop();
+    },
+    cancel() {}, terminate() {},
     get waiting() { return queue.length; },
   };
   return { pool: pool as unknown as EnginePool, searches };
@@ -272,6 +282,27 @@ test("the label pass's last result shows without the batch's timer, though searc
   assert.equal(game.labelled, n); // the key moments, which wait for it, do not wait for the timer
 });
 
+test("a label search is met only by a result that the store has, not by the results so far of the position on screen", async () => {
+  const { game, pool, searches, written } = await sweeping();
+  const n = game.passCount, visits = game.labelVisits;
+  game.setDepth(4096, null);
+  game.focus([]); // the start on screen, searched deeper than the label budget
+  await settle();
+  const focus = searches[n];
+  focus.partial(visits + 64);
+  mock.timers.tick(BATCH_MS);
+  await endEach(searches, 0, n, SWEEP_VISITS); // the label pass starts
+  game.focus(game.mainNames.slice(0, 1)); // the player moves on: the start's search stops, and the store never gets it
+  focus.end(visits + 96);
+  await turns();
+  mock.timers.tick(BATCH_MS);
+  assert.deepEqual([game.analysis[0]?.visits, game.labelled], [visits + 96, 0]);
+  await endEach(searches, n + 1, 2 * n + 1, visits); // the label pass, the start's search too
+  mock.timers.tick(BATCH_MS);
+  assert.deepEqual([game.analysis[0]?.visits, game.labelled], [visits + 96, n]); // the deeper result stays on screen
+  assert.ok(written().includes(analysisKey(pool.search!, pool.model!.sha256, [], visits)));
+});
+
 test("the key moments' step waits for a search whose position left them, until its result is stored", async () => {
   const { game, searches } = await sweeping(1); // the sweep's searches wait: the results wait for the batch
   const depth = momentVisits(game.labelVisits);
@@ -299,16 +330,73 @@ test("the key moments' step waits for a search whose position left them, until i
   assert.deepEqual(game.momentChecks([]), { total: 0, done: 0 });
 });
 
-test("the key moments' step does not wait for a search that ends with no result", async () => {
+test("a key moment counts as done only with a result that the store has, not by the results so far of the position on screen", async () => {
   const { game, searches } = await sweeping();
+  const n = game.passCount, depth = momentVisits(game.labelVisits);
+  await endEach(searches, 0, n, SWEEP_VISITS);
+  await endEach(searches, n, 2 * n, game.labelVisits);
+  game.setDepth(4096, null);
+  game.focus(game.mainNames.slice(0, 1)); // the key moment on screen, searched deeper than the key moments' depth
+  await settle();
+  searches[2 * n].partial(depth + 64);
+  mock.timers.tick(BATCH_MS);
   game.deepen([1]);
   await settle();
-  searches.at(-1)!.fail(new Error("engine error"));
-  await settle();
-  assert.deepEqual(game.momentChecks([]), { total: 1, done: 0 }); // until the batch after its end
+  assert.deepEqual([searches.length, game.momentChecks([1])], [2 * n + 2, { total: 1, done: 0 }]); // its own search runs
+  searches[2 * n + 1].end(depth);
+  await turns();
   mock.timers.tick(BATCH_MS);
-  assert.deepEqual(game.momentChecks([]), { total: 0, done: 0 });
-  assert.equal(game.error, "engine error");
+  assert.deepEqual([game.analysis[1]?.visits, game.momentChecks([1])], [depth + 64, { total: 1, done: 1 }]);
+});
+
+/** A review after its passes, whose key moment 1 is searched deeper: its results so far took it out of the key moments,
+ *  and the search still runs. */
+async function deepening() {
+  const { game, pool, searches, written } = await sweeping();
+  const n = game.passCount, depth = momentVisits(game.labelVisits);
+  await endEach(searches, 0, n, SWEEP_VISITS);
+  await endEach(searches, n, 2 * n, game.labelVisits);
+  game.deepen([1]);
+  await settle();
+  const deep = searches[2 * n];
+  deep.partial(depth - 32);
+  mock.timers.tick(BATCH_MS);
+  game.deepen([]); // the page's key moments, which its results so far changed
+  return { game, searches, deep, depth, stored: () => written().includes(analysisKey(pool.search!, pool.model!.sha256, ["a"], depth)) };
+}
+
+/** Turns the engine on, and ends the search that it starts at `depth`: the key moments' step then counts it as done. */
+async function searchedAgain({ game, searches, depth, stored }: Awaited<ReturnType<typeof deepening>>) {
+  const before = searches.length;
+  game.setPaused(false);
+  await settle();
+  assert.equal(searches.length, before + 1); // the engine on searches the position again
+  searches.at(-1)!.end(depth);
+  await turns();
+  mock.timers.tick(BATCH_MS);
+  assert.deepEqual([game.momentChecks([]), stored()], [{ total: 1, done: 1 }, true]);
+}
+
+test("a key moment's search that the engine off stops counts until its result is stored, and runs again", async () => {
+  const deep = await deepening();
+  deep.game.setPaused(true);
+  assert.equal(deep.deep.stopped, true);
+  deep.deep.end(deep.depth - 16);
+  await turns();
+  mock.timers.tick(BATCH_MS);
+  // The line does not say "Review done", and the step waits for the position though it is no key moment now.
+  assert.deepEqual([deep.game.momentChecks([]), deep.stored()], [{ total: 1, done: 0 }, false]);
+  await searchedAgain(deep);
+});
+
+test("a key moment's search that an engine error ends counts until its result is stored, and runs again", async () => {
+  const deep = await deepening();
+  deep.deep.fail(new Error("engine error"));
+  await turns();
+  mock.timers.tick(BATCH_MS);
+  assert.deepEqual([deep.game.momentChecks([]), deep.game.error], [{ total: 1, done: 0 }, "engine error"]);
+  deep.game.setPaused(true); // the player turns the engine off and on
+  await searchedAgain(deep);
 });
 
 /** The board, its start on screen with a time limit of 2 seconds: the focus's search waits for the test. */

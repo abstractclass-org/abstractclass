@@ -131,8 +131,11 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
    the labels found so far, so they grow as labels come. The key moments' step also counts each position whose search
    for earlier key moments still runs or waits. A search's results so far change the labels, so its position can leave
    the key moments before the search ends. The store gets its result only at the end. So the step waits for the search's
-   end and for the write of its result. A position that such a search took to the key moments' depth counts too, so the
-   step's count does not go back when the key moments change. Without this, "5 of 6" could become "3 of 4". The bar
+   end and for the write of its result. Each position that a key moment's search was asked for at the review's depth
+   counts too, until the store has its result, so the step's count does not go back when the key moments change.
+   Without this, "5 of 6" could become "3 of 4". A search that the engine off or an engine error ends leaves its
+   position in the step, and the engine on searches it again. Every step counts a position only with a result in the
+   store, not with another search's results so far (design 05). The bar
    shows the step that its line names: the steps before are full, the later ones empty, though some of their work ends
    early, alongside (it shows when their step comes). The step's part never shows less than it showed before: when its
    count grows, it waits. Another review depth, network or game starts it again. A review opened again reads its results

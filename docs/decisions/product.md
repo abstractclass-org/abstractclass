@@ -5368,3 +5368,72 @@ sweep.
   timer's wait.
 - **Not measured:** Edge, the GPU worker, the case of the batch with an engine free in a real browser, and a review
   in a tab hidden for over 5 minutes.
+
+### A search's budget is met only by a result in the store (2026-10-20)
+
+- **The problem** (abscls-4woe, found in abscls-byld): a search returned at once, with no write, when the position held
+  a result with its visits. That result could be another search's results so far. The usual one came from the
+  position on screen: its results so far pass the label budget, or the key moments' depth when the depth on screen is
+  above it. When that search then stopped before its end (the player moves on, its time limit, the engine off), it
+  wrote nothing. The analysis kept its result, and the review counted the position as searched, but the store had no
+  result at the review's budget. The next visit searched the position again: "Reviewing: move quality" or "Reviewing:
+  the key moments" after a review that said "Review done", and a layout shift. A key moment's search that the engine
+  off or an engine error stopped did the same. When its results so far had taken its position out of the key moments,
+  the step stopped counting it. The line then said "Review done", with the engine off too, the page wrote the game's
+  mark, and the engine on did not search the position again.
+- **The change** (`packages/analysis/src/analysis.svelte.ts`): the analysis notes, for each position, the visits of
+  the deepest result that the store has (`stored`). That is a result read from the store, or a search's final result,
+  which the batch after its write notes. Only that record meets a search's budget, and the review's counts read it:
+  the sweep and the label pass (`swept`, `labelled`), the key moments' step (`momentChecks`) and the Greats'
+  confirmations (`greatChecks`). The record of the budgets met (`reached`) and the passes' `met` call are gone. The
+  analysis on screen does not change: it keeps the deepest result, results so far too, and the labels follow it
+  (design 16).
+- **The key moments' step** counts each position that a key moment's search was asked for at the review's depth,
+  until the store has its result. Before, it counted such a position only once the analysis held the depth. A search
+  that the engine off or an engine error ends now leaves its position in the step. So the line does not say "Review
+  done", and the engine on asks for the position again (`deepen`, which `setPaused` calls). After an engine error, the
+  line keeps "Reviewing: the key moments" under the error until the engine goes off and on, or the key moments change.
+- **The gleam on a line** (`pending`) compares the review's budgets with the analysis on screen, not with the record.
+  A review search below the visits on screen does not change the line.
+- **The cost, accepted:** once the search of the position on screen has passed the review's budget, a review search
+  of that position runs at the same time. Before, it did not run.
+- **The tests** (`packages/analysis/src/analysis.test.ts`), four new ones, which all fail before the change:
+  - The label pass searches the start, though the search on screen passed the label budget, and counts the start
+    only once its result is stored. The analysis keeps the deeper result.
+  - A key moment counts as done only with its result in the store, not with the search on screen's results so far.
+  - A key moment's search that the engine off stops, and one that an engine error ends, keep the position in the
+    step as not done, though it is no key moment. The engine on searches it again, and the step then counts it as
+    done.
+
+  The fake pool's `halt` now stops the searches in slices and drops the waiting tasks, as the pool does. The new test
+  of the engine error replaces the test that the step stops counting a search that ends with an error.
+- **In a browser:** Playwright's Chromium, headless, at 1,366 × 657, in a job of 2 threads (`scripts/machine run`).
+  Two builds, each served from its own folder (`preview` in `scripts/measure/speed.mjs`): before (`analysis.svelte.ts`
+  as at `c552a03`) and after, one run each, before first. Each run opened the fixture's game
+  (`tests/fixtures/hedgefund-review.json`) cut after 30 turns, an unfinished game of 60 positions, by its record
+  (`/import#record=`), in a new browser context, so the store held none of its results. The engine settings: 2 search
+  workers, the GPU off, Lite, and the position on screen to 4,096 visits with no time limit. `watchSweep` noted each
+  search that the page sent. The script moved on (ArrowRight) 2 s after the label pass started, turned the engine off
+  (key E) for 8 s during the key moments' step, read the store at "Review done", then reloaded 3 times. It watched
+  each reload's progress line for 12 s, and read its layout shift (`layoutShift`). The script set the engine settings
+  at each load, so each reload also searched the start on screen to 4,096 visits.
+  - **Before:** when the label pass started (16.7 s), the start's search on screen had 33 slices of 32 visits (1,056
+    visits). The page sent no label search of the start. The start's search stopped at 1,312 visits when the script
+    moved on, and wrote nothing. "Review done" came at 223 s, and the store held the start at 32 visits only. The
+    first reload said "Loading the engine's network…", then "Reviewing: move quality, 59 of 60 positions", then
+    "Review done". It sent 2 searches, one more than each reload after the change (below). Its layout shift was
+    0.0165: the report's table, a note and the chart moved 8.4 s after the reload's start. The next 2 reloads said
+    "Review done" in their first frame, with no layout shift (0.0000).
+  - **After:** when the label pass started (17.6 s), the start's search on screen had 33 slices, and the page sent the
+    start's label search at once, on the other worker. The start's search on screen stopped at 1,280 visits when the
+    script moved on. The label search ended at 512 visits. "Review done" came at 232 s, and the store held the start
+    at 512 visits. All 3 reloads said "Review done" in their first frame and no other line, with no layout shift
+    (0.0000). Each sent one search, the start's on screen.
+  - **The engine off:** in both builds, the key moments' searches of positions 23 and 24 ran when the engine went off,
+    and the store lacked their 1,024-visit results. For 8 s the line said "Engine off. The review is paused." With
+    the engine on, the line named the key moments, then the Greats' confirmations, and "Review done" came when the
+    store held the 3 key moments (23, 24 and 25) at 1,024 visits. In these runs, the key moments did not change while
+    their searches ran. So the runs did not meet the case of a position that left the key moments, and the two builds
+    did the same. The unit tests check that case.
+- **Not measured:** Edge, the GPU, a search on screen that its time limit stops, an engine error in a browser, and
+  other numbers of workers.
