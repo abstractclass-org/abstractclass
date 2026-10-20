@@ -1,23 +1,23 @@
-// The area maps on real games (design 30): from which edge the area that a Mistake or a Blunder lost is clear enough to
-// show, and whether it agrees in side and rough size with the points lost. The meaf.us archive's human games, as the
-// engine repository analysed them for the labels (its runs/archive_analysis/part1-1000.jsonl, request 07): the first
-// `perBand` games of each rating band from 1 to 5 that the rules ended, with 120 edges. Each position before a move is
-// searched again here as the Lite review searches it (HedgeFund 0.2 Lite, 512 visits), with the ownership of the root
-// and of each candidate, on `threads` engines (scripts/node-engine.mjs: `npm run engine` first). For internal
-// measurement only: the games are their players' (CLAUDE.md, "How to work").
+// The area map and the mistakes' explanations on real games (design 30). Two questions:
+//   - How much of the board the area map marks at a position (ownership.ts, changeMap), at the threshold that it uses
+//     and at two others: whether the map points at something or is noise.
+//   - For the Mistakes and the Blunders, how many get a caption with a close or a cut from the opponent's next turn in
+//     the engine's line (explain.ts), how many from a later turn of the line, how many the sentence that the loss is
+//     spread over the board, and how many no caption (the line holds no whole turn of the opponent's).
+// The games: the test fixture's (its stored review, tests/fixtures/hedgefund-review.json), or the meaf.us archive's human
+// games as the engine repository analysed them (its runs/archive_analysis/part1-1000.jsonl, request 07): the first
+// `perBand` games of each rating band from 1 to 5 that the rules ended, with 120 edges, as the first build of the maps
+// measured them. An archive game's positions at its turns' starts are searched here as the Lite review searches them
+// (HedgeFund 0.2 Lite, 512 visits, with the root's ownership and its lines' visits), on `threads` engines
+// (scripts/node-engine.mjs: `npm run engine` first). For internal measurement only: the archive's games are their
+// players' (CLAUDE.md, "How to work"), so the script prints counts, and captions only for the fixture's game.
 //
 // By turn, the labels' default unit (design 10): a turn is flagged when the mover's win chance fell by 0.10 or more (a
-// Mistake or a Blunder, labels.ts) and it was not the engine's best turn. For each flagged turn: its first edge, its
-// loss, its points lost (the lead), and its area lost (ownership.ts, lostArea) from the root's ownership at the turn's
-// start to the root's ownership after it. The map is read by:
-//   - side: the mover's ownership in all fell (the sum of the change over the points is below 0);
-//   - size: the points lost against the fall in all times the turn ends left (ownership is a mean over them);
-//   - focus: the share of the fall in the points that fall by 0.30 or more, the points that the map shades clearly
-//     (ownership.ts, focusOf), and how many turns show their area lost (shownLost: a focus of 0.2 or more).
-// Also, at each flagged turn's start: how far the root's ownership is from the ownership of the engine's first choice
-// (the mean of the difference over the points), the choice of the root's map as "the ownership after the best move".
+// Mistake or a Blunder, labels.ts) and it was not the engine's best turn. Its explanation reads the engine's first
+// choice's line from the position after it, as far as the search trusts it (trustedLine), played by the rules
+// (describe_game), as the review does.
 //
-//   node scripts/measure/ownership-maps.mjs <part1-1000.jsonl> [perBand] [threads]
+//   node scripts/measure/ownership-maps.mjs <part1-1000.jsonl | hedgefund-review.json> [perBand] [threads]
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { Worker, isMainThread, parentPort, workerData } from "node:worker_threads";
@@ -27,91 +27,144 @@ const root = fileURLToPath(new URL("../..", import.meta.url));
 
 if (!isMainThread) {
   const { nodeEngine } = await import("../node-engine.mjs");
-  const { hundredths } = await import("@abstractclass/analysis/reply.ts");
   const { call } = await nodeEngine(root, { network: NETWORK });
   for (const moves of workerData.jobs) {
-    const r = call({ id: "a", moves, maxVisits: VISITS, includeOwnership: true, includeMovesOwnership: true });
-    if (r.error) throw new Error(`${moves.join(" ")}: ${r.error}`);
-    const best = [...r.moveInfos].sort((a, b) => a.order - b.order)[0];
-    parentPort.postMessage({ key: moves.join(" "), a: {
-      blueWin: r.rootInfo.winrate, lead: r.rootInfo.scoreLead, mover: r.rootInfo.currentPlayer,
-      ownership: r.ownership.map(hundredths), best: best.move, line: best.pv, bestOwnership: best.ownership.map(hundredths),
-    } });
+    const reply = call({ id: "a", moves, maxVisits: VISITS, includeOwnership: true, includePVVisits: true });
+    if (reply.error) throw new Error(`${moves.join(" ")}: ${reply.error}`);
+    parentPort.postMessage({ key: moves.join(" "), reply });
   }
 } else {
-  const { focusOf, lostArea, shownLost } = await import("../../src/lib/review/ownership.ts");
-  const { moverScore, moverWin } = await import("@abstractclass/analysis/model.ts");
-  const { corr, median } = await import("./speed.mjs");
+  const { nodeEngine } = await import("../node-engine.mjs");
+  const { toAnalysis } = await import("@abstractclass/analysis/reply.ts");
+  const { moverWin, trustedLine } = await import("@abstractclass/analysis/model.ts");
+  const { enclosure, edgeName, turnFromCount } = await import("../../src/lib/review/enclosure.ts");
+  const { boardPosition } = await import("../../src/lib/engine/position.ts");
+  const { occupancy } = await import("../../src/lib/review/ownership.ts");
+  const { explainMistake, explanationCaption } = await import("../../src/lib/review/explain.ts");
+  const { median } = await import("./speed.mjs");
   const [file, perBand = "2", threadsArg = "2"] = process.argv.slice(2);
-  const threads = Number(threadsArg);
-  const games = new Map();
-  for (const line of readFileSync(file, "utf8").split("\n")) {
-    if (!line) continue;
-    const p = JSON.parse(line);
-    if (!games.has(p.game)) games.set(p.game, { facts: p.facts, played: [] });
-    games.get(p.game).played[p.index] = p.played;
-  }
-  const meta = new Map(JSON.parse(readFileSync(`${file}.games.json`, "utf8")).map(g => [g.game, g]));
-  const chosen = [];
-  for (let band = 1; band <= 5; band++)
-    chosen.push(...[...games].filter(([id, g]) => meta.get(id).band === band && meta.get(id).end === "score" && g.played.length === 120)
-      .slice(0, Number(perBand)));
-  const jobs = chosen.flatMap(([, g]) => g.played.map((_, i) => g.played.slice(0, i)));
-  const t0 = Date.now(), results = new Map(), per = Math.ceil(jobs.length / threads);
-  await Promise.all(Array.from({ length: threads }, (_, k) => new Promise((resolve, reject) => {
-    const w = new Worker(fileURLToPath(import.meta.url), { workerData: { jobs: jobs.slice(k * per, (k + 1) * per) } });
-    w.on("message", m => results.set(m.key, m.a));
-    w.on("error", reject);
-    w.on("exit", code => (code === 0 ? resolve() : reject(new Error(`worker exit ${code}`))));
-  })));
-  console.log(`${chosen.length} games, ${jobs.length} positions at ${VISITS} visits in ${Math.round((Date.now() - t0) / 1000)} s on ${threads} threads\n`);
+  const threads = Number(threadsArg), fixture = file.endsWith(".json");
+  const { call } = await nodeEngine(root);
 
+  /** @type {{ id: string, moves: string[], results: Map<string, any> }[]} */
+  const games = [];
+  if (fixture) {
+    // The stored review: each position's deepest result, by its moves
+    const data = JSON.parse(readFileSync(file, "utf8")), results = new Map();
+    for (const [key, a] of data.analyses) {
+      const moves = key.split("|").slice(4).join("|"), had = results.get(moves);
+      if (!had || a.visits > had.visits) results.set(moves, a);
+    }
+    const longest = [...results.keys()].reduce((a, b) => (b.split(" ").length > a.split(" ").length ? b : a));
+    games.push({ id: "fixture", moves: longest.split(" "), results });
+  } else {
+    const all = new Map();
+    for (const line of readFileSync(file, "utf8").split("\n")) {
+      if (!line) continue;
+      const p = JSON.parse(line);
+      if (!all.has(p.game)) all.set(p.game, []);
+      all.get(p.game)[p.index] = p.played;
+    }
+    const meta = new Map(JSON.parse(readFileSync(`${file}.games.json`, "utf8")).map(g => [g.game, g]));
+    for (let band = 1; band <= 5; band++)
+      for (const [id, moves] of [...all].filter(([id, m]) => meta.get(id).band === band && meta.get(id).end === "score" && m.length === 120)
+        .slice(0, Number(perBand))) games.push({ id, moves, results: new Map() });
+    // The positions at the turns' starts: the flagged turns read them, and the map is measured on them
+    const jobs = games.flatMap(g => g.moves.map((_, i) => g.moves.slice(0, i)).filter(m => turnFromCount(m.length).first));
+    const t0 = Date.now(), per = Math.ceil(jobs.length / threads), replies = new Map();
+    await Promise.all(Array.from({ length: threads }, (_, k) => new Promise((resolve, reject) => {
+      const w = new Worker(fileURLToPath(import.meta.url), { workerData: { jobs: jobs.slice(k * per, (k + 1) * per) } });
+      w.on("message", m => replies.set(m.key, m.reply));
+      w.on("error", reject);
+      w.on("exit", code => (code === 0 ? resolve() : reject(new Error(`worker exit ${code}`))));
+    })));
+    console.log(`${games.length} games, ${jobs.length} positions at ${VISITS} visits in ${Math.round((Date.now() - t0) / 1000)} s on ${threads} threads\n`);
+    for (const g of games)
+      for (const [key, reply] of replies) if (g.moves.slice(0, key ? key.split(" ").length : 0).join(" ") === key) g.results.set(key, toAnalysis(enclosure, reply));
+  }
+
+  /** Every position of these moves from `from` on, as the rules play them (describe_game). */
+  const play = (moves, from = 0) => {
+    const r = call({ id: "g", action: "describe_game", moves, from });
+    if (r.error) throw new Error(`describe_game: ${r.error}`);
+    return r.positions;
+  };
+
+  // The map: the share of the board marked at each position searched, by stage, at three thresholds
+  const THRESHOLDS = [30, 50, 70], shares = [];
+  // The explanations of the flagged turns
   const rows = [];
-  for (const [id, g] of chosen) {
-    const at = i => results.get(g.played.slice(0, i).join(" "));
-    // The turns: runs of one mover, from the positions' movers. The last turn has no search after it: left out.
-    for (let s = 0; s < g.played.length;) {
-      const mover = at(s).mover;
+  for (const g of games) {
+    const fields = play(g.moves), board = fields.map(boardPosition), at = i => g.results.get(g.moves.slice(0, i).join(" "));
+    for (let i = 0; i < board.length; i++) {
+      const a = at(i);
+      if (!a?.ownership) continue;
+      const now = occupancy(board[i]);
+      const marked = t => {
+        let close = 0, lose = 0;
+        a.ownership.forEach((o, k) => {
+          const change = o - 100 * now[k];
+          if (Math.abs(change) < t) return;
+          if (now[k] === 0) close++;
+          else if ((now[k] > 0) === (change < 0)) lose++;
+        });
+        return { close, lose };
+      };
+      shares.push({ edge: i, by: THRESHOLDS.map(marked) });
+    }
+    // The turns: runs of one mover. The last turn has no search after it: left out.
+    for (let s = 0; s < g.moves.length;) {
+      const mover = board[s].player;
       let e = s + 1;
-      while (e < g.played.length && at(e).mover === mover) e++;
-      if (e >= g.played.length) break;
-      const before = at(s), after = at(e), p = mover === "b" ? 0 : 1;
-      const loss = moverWin(before.blueWin, p) - moverWin(after.blueWin, p), points = moverScore(before.lead - after.lead, p);
-      const played = g.played.slice(s, e), best = [before.best, before.line[1]].slice(0, played.length);
-      const isBest = played.every(m => best.includes(m)) && played.length === best.length;
-      if (loss >= 0.10 && !isBest) {
-        const lost = lostArea(before.ownership, after.ownership, p);
-        const net = moverScore(before.ownership.reduce((sum, b, i) => sum + after.ownership[i] - b, 0), p) / 100;
-        const turnEnds = Math.ceil((120 - e) / 2); // the turn ends left after the turn: each turn of two edges ends once
-        const clear = focusOf(lost), shown = shownLost(lost);
-        const gap = before.ownership.reduce((sum, v, i) => sum + Math.abs(v - before.bestOwnership[i]), 0) / 361 / 100;
-        rows.push({ id, edge: s + 1, loss, points, size: lost.size, net, turnEnds, clear, shown, gap, held: [lost.before, lost.after] });
+      while (e < g.moves.length && board[e].player === mover) e++;
+      if (e >= g.moves.length) break;
+      const before = at(s), after = at(e);
+      if (before && after) {
+        const loss = moverWin(before.blueWin, mover) - moverWin(after.blueWin, mover);
+        const best = (before.candidates[0]?.line ?? []).slice(0, e - s).map(edgeName), played = g.moves.slice(s, e);
+        if (loss >= 0.10 && best.join(" ") !== played.join(" ")) {
+          const line = after.candidates[0] ? trustedLine(after.candidates[0]) : [];
+          const steps = line.length ? play([...g.moves.slice(0, e), ...line.map(edgeName)], e).slice(1).map(enclosure.step) : [];
+          const x = explainMistake(board[e], line, steps, mover);
+          rows.push({ id: g.id, edge: s + 1, line: line.length, x, caption: x && explanationCaption(x, mover, "turn") });
+        }
       }
       s = e;
     }
   }
 
-  const f = (x, d = 2) => x.toFixed(d);
-  const inEdges = (from, to) => rows.filter(x => x.edge >= from && x.edge <= to);
-  console.log(`${rows.length} flagged turns (a loss of 0.10 or more, not the engine's best turn)\n`);
-  console.log("| Edges | Turns | Side right | Focus (median) | Area lost, points of the board (median) | Points lost ÷ (net fall × turn ends left), median | Root against best choice, mean per point |");
-  console.log("|---|---|---|---|---|---|---|");
-  for (let from = 1; from <= 120; from += 20) {
-    const r = inEdges(from, from + 19);
+  const pc = x => `${(100 * x).toFixed(1)}%`;
+  console.log("The area map: the share of the board's 361 points marked (median over the positions; close + lose)\n");
+  console.log(`| Edges | Positions | ${THRESHOLDS.map(t => `At ${t / 100}`).join(" | ")} |`);
+  console.log(`|---|---|${THRESHOLDS.map(() => "---").join("|")}|`);
+  for (const [name, from, to] of [["0-20", 0, 20], ["21-40", 21, 40], ["41-60", 41, 60], ["61-80", 61, 80], ["81-120", 81, 120], ["All", 0, 999]]) {
+    const r = shares.filter(x => x.edge >= from && x.edge <= to);
     if (!r.length) continue;
-    const right = r.filter(x => x.net < 0), ratio = right.map(x => x.points / (-x.net * x.turnEnds));
-    console.log(`| ${from}-${from + 19} | ${r.length} | ${right.length} | ${f(median(r.map(x => x.clear)))} | ` +
-                `${f(median(r.map(x => x.size)), 1)} | ${f(median(ratio))} | ${f(r.reduce((s, x) => s + x.gap, 0) / r.length, 3)} |`);
+    const cells = THRESHOLDS.map((_, k) => {
+      const all = median(r.map(x => (x.by[k].close + x.by[k].lose) / 361));
+      return `${pc(all)} (${pc(median(r.map(x => x.by[k].close / 361)))} + ${pc(median(r.map(x => x.by[k].lose / 361)))})`;
+    });
+    console.log(`| ${name} | ${r.length} | ${cells.join(" | ")} |`);
   }
-  // The turns that show their area lost (shownLost), by stage: the first 8 turns, the middle game, and after
-  console.log("\n| Edges | Turns | Shown | Of those, side right |\n|---|---|---|---|");
-  for (const [name, r] of [["1-16", inEdges(1, 16)], ["17-40", inEdges(17, 40)], ["41-60", inEdges(41, 60)], ["61-120", inEdges(61, 120)], ["All", rows]]) {
-    const shown = r.filter(x => x.shown);
-    console.log(`| ${name} | ${r.length} | ${shown.length} | ${shown.filter(x => x.net < 0).length} |`);
+
+  const kinds = r => ({
+    next: r.filter(x => x.x?.turn === 1).length, later: r.filter(x => x.x && x.x.turn > 1).length,
+    spread: r.filter(x => x.x && x.x.turn === 0).length, none: r.filter(x => !x.x).length,
+  });
+  console.log(`\n${rows.length} flagged turns (a loss of 0.10 or more, not the engine's best turn)\n`);
+  console.log("| Edges | Turns | Next turn closes or cuts | A later turn | Spread | No caption (line too short) | Line, edges (median) |");
+  console.log("|---|---|---|---|---|---|---|");
+  for (const [name, from, to] of [["1-16", 1, 16], ["17-40", 17, 40], ["41-60", 41, 60], ["61-120", 61, 120], ["All", 1, 999]]) {
+    const r = rows.filter(x => x.edge >= from && x.edge <= to), k = kinds(r);
+    if (r.length) console.log(`| ${name} | ${r.length} | ${k.next} | ${k.later} | ${k.spread} | ${k.none} | ${median(r.map(x => x.line))} |`);
   }
-  // The points lost against the fall times the turn ends, over every flagged turn whose side is right.
-  const ok = rows.filter(x => x.net < 0), c = corr(ok.map(x => -x.net * x.turnEnds), ok.map(x => x.points));
-  console.log(`\nPoints lost against the net fall × turn ends left: correlation ${f(c)} over ${ok.length} turns`);
-  console.log("\nEach flagged turn: game, first edge, loss, points lost, area lost, net fall, focus, held before and after");
-  for (const x of rows) console.log(`${x.id} ${x.edge} ${f(x.loss)} ${f(x.points, 0)} ${f(x.size, 1)} ${f(x.net, 1)} ${f(x.clear)} ${x.held.map(Math.round).join(" ")}`);
+  const shown = rows.filter(x => x.x?.turn);
+  console.log(`\nOf the ${shown.length} with a close or a cut: ${shown.filter(x => x.x.cuts.length).length} cut, ` +
+              `${shown.filter(x => x.x.closed > 0).length} close, ${shown.filter(x => x.x.opened > 0).length} open the mover's area; ` +
+              `by the opponent's turn: ${[1, 2, 3, 4].map(t => `${t}: ${shown.filter(x => x.x.turn === t).length}`).join(", ")}, ` +
+              `later: ${shown.filter(x => x.x.turn > 4).length}`);
+  if (fixture) {
+    console.log("\nThe fixture's flagged turns: first edge, line's edges, caption");
+    for (const x of rows) console.log(`${x.edge} ${x.line} ${x.caption ?? "(none)"}`);
+  }
 }

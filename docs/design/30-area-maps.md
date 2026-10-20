@@ -1,170 +1,187 @@
-# The area maps: the ownership of each point, and the area that a mistake lost
+# The area map and the mistakes' explanations
 
-**Status:** in force, built. **Decided:** 2026-10-20.
+**Status:** in force, built. **Decided:** 2026-10-20. **Changed:** 2026-10-21: the map shows change, not ownership,
+and a mistake is explained by the opponent's next turn in the engine's line, not by the area that it lost.
 
-## Context
+## The players and their questions
 
-An engine tells a player what to play, not why. The review shows a mistake's label, its points lost and the better
-move (design 10). In Enclosure the why is nearly always area: which side will hold which part of the board, and for
-how long. Design 01 asks that explanations come from engine facts (principle 11).
+The site is for players who want to improve, top players included ([docs/context.md](../context.md)). Three of them
+ask different questions of the engine's ownership:
 
-The engine gives this fact. Its ownership of a point is the mean, over the turn ends left in the game, of +1 inside the
-mover's regions and −1 inside the opponent's (the engine repository's
+1. **The improving player** knows the rules and does not yet see the tactics coming. This player imports a lost game
+   and steps through it, about 60 turns, to find a few mistakes. At a mistake, the question is: "What did my turn
+   give away, and how?" This player comes first.
+2. **The strong player** reads the whole board and wants dense, exact information, on the Analysis board. At any
+   position, the question is: "Which areas are safe, which are at risk, which are open, and where is the fight?"
+3. **Later, the learner** in lessons and in the retry of a mistake ("Learning from mistakes", beads abscls-7e9), for
+   whom the map is a hint.
+
+Both of the first two also ask, when they try a move: "What does this move change?"
+
+## The engine's fact
+
+The engine's ownership of a point is the mean, over the turn ends left in the game, of +1 inside the mover's regions
+and −1 inside the opponent's (the engine repository's
 [games/enclosure/docs/design/06-ownership-and-spatial-targets.md](https://github.com/abstractclass-org/engines/blob/main/games/enclosure/docs/design/06-ownership-and-spatial-targets.md)).
-So the map spreads the rest of the game's score over the points. It counts lattice points, while the score counts
-exact area: the map shows where, and the points lost give how much.
+It counts the lattice points strictly inside the regions, not the points on their walls. So it spreads the rest of
+the game's score over the points. It is not who holds a point at the end, as in Go: regions form and break all game
+long, and each turn end scores. The protocol gives the root's ownership (`includeOwnership`) and each candidate's
+(`includeMovesOwnership`), and the WebAssembly module of release `engine-d6786eba` returns both.
 
-The protocol has KataGo's two fields (the engine repository's `docs/design/04-notation-and-protocol.md`): the root's
-ownership (`includeOwnership`) and each candidate's (`includeMovesOwnership`). The WebAssembly module of release
-`engine-d6786eba` returns both, and the GPU module computes the ownership head too. So the site needs nothing more from
-the engine.
+## What the first build showed, and why it changed
 
-KaTrain, the Go review tool that the site follows (design 05), has both displays:
+The first build followed KaTrain, the Go review tool that the site follows (design 05): its Territory, which shades
+each point in the colour of the side that owns it, as strong as it owns it, on by default in its analysis mode, and
+its loss grid, which shades where a move's ownership fell. Looked at on real reviewed games, it failed the players:
 
-- **Territory** (`katrain/gui/badukpan.py`, `draw_territory`): a switch in the analysis controls, on by default in its
-  analysis mode and off in its play mode, with the key T. Each point is shaded in the colour of the side that owns it,
-  with an alpha of |ownership| ^ (1 / 1.33) (`OWNERSHIP_GAMMA`) times 0.75 for black and 0.8 for white. Its default
-  style, "blended", paints a texture of one pixel a point over the board, so the shading is smooth between points.
-- **The loss grid** (`draw_board_contents`): in its teaching mode, after a move that it took back, the ownership after
-  that move less the ownership of the position before it, where it fell for the mover, in the colour of the move's
-  class. It takes the territory's place.
+- **The forecast and the fact looked the same.** The board fills each player's regions in the player's colour, at
+  0.16. The map shaded the same colour, up to 0.45. So the forecast hid the regions and looked like regions.
+- **A faint shade read as "unsure" or as "late".** The ownership is the share of the turn ends left at which a point
+  scores, not a chance that a side holds it at the end. A region that a side closes late has low ownership, though it
+  is sure.
+- **On by default at every position,** the map was noise for the improving player, who steps through the whole game
+  to find a few mistakes.
+- **The area lost showed on a third of the mistakes** (42 of 128 on real games,
+  [decisions/product.md](../decisions/product.md), "The area maps on real games"), in the accent, with an abstract
+  caption. It said where, not how. In Enclosure the how is nearly always concrete: the opponent closes a region, or
+  cuts a wall.
 
 ## Decision
 
 1. **The ownership at every position is stored with the review.** Every search of the review asks for the root's
-   ownership (`includeOwnership`), whatever the display settings, so that a review opened again or imported has its
-   maps. The review keeps it in whole hundredths, from Blue's side (`ownership` of an analysis). The stored shape
-   becomes 6 (`SHAPE` in `packages/analysis/src/cache.ts`). Shape 6 only adds this field, so the site still reads shape
-   5 (`READ_FROM`, design 05): a review stored or exported before opens at once with its results, with no ownership
-   (item 7). The candidates' ownership is not asked for: it is about
-   3 kB of JSON for each candidate (262 kB for one reply of 100 visits at the start, against 24 kB without it), and the
-   root's serves (item 4).
-2. **The area map** (the display setting "Area map", Board): at the position on screen, each point shaded by its
-   ownership, blue where Blue holds it and red where Red does, as strong as |ownership| ^ (1 / 1.33) (KaTrain's
-   gamma). The shading is under everything else on the board, as KaTrain draws it first. **On by default,** as
-   KaTrain's Territory in its analysis mode. **The key t** shows or hides it, as KaTrain's T. The map shows on the
-   review and on the Analysis board, from the search of the position on screen, as it comes.
-3. **The area lost by a mistake** (the display setting "Area lost by a mistake", Board, on by default): after a Mistake
-   or a Blunder on the game's line, for a player whom the review explains (design 10's "Review for"), the board at the
-   position after the move shades the area that the move lost, in the site's accent (lavender), in the map's place. It
-   shows whether the map is on or off. By turn (the default), the move is the turn, and the maps are compared at the
-   turn's ends. By edge, it is the edge.
-4. **What "lost" means.** KaTrain's loss grid: at each point, the mover's ownership before the move less the mover's
-   ownership after it, where it fell (`lostArea` in `src/lib/review/ownership.ts`). Before the move is the root's
-   ownership at the position before it: the mean over that search's tree, which follows the engine's best line. After
-   it is the root's ownership at the position after it. These are the two searches that the move's loss reads (design
-   10: the value before less the value after, each from its own search), so the map shows where the points lost went,
-   with the same searches.
-5. **The caption** under the move in the move list, from a template on the same numbers alone (design 01, principle
-   11): who holds the lost area with the best move, and who holds it after the move played. Each is the mover's
-   ownership over the area, weighted by how far each point fell, in three bands for each side: half the turns left or
-   more (a mean of 0.5 or more, which needs the side's regions over the point at half the turn ends at least), some of
-   them (0.15 or more), and open (between −0.15 and 0.15). Where both fall in one band, the second sentence says which
-   way it went. For example: "The area lost, shaded after the turn: with the best turn, Blue holds it for half the
-   turns left or more. After the turn played, Red holds it for some of the turns left." The size in points is not
-   repeated: the turn's note gives the points lost. The caption shows with the notes on the key moves (the display
-   setting "Notes on the key moves").
-6. **When the area lost shows: when it is clear, at any edge.** A point that falls by 0.30 or more shows clearly
-   (`CLEAR_FALL`). The area lost shows when a fifth of its fall or more is in such points (`CLEAR_SHARE`, `shownLost`).
-   Else the fall is spread thin over the board, and the map would be a haze with nothing to point at: the board then
-   shows the map, and the move list no caption. On 10 real games, this showed 42 of 128 Mistakes and Blunders by
-   turn: 13 of 61 in the first 8 turns, 20 of 41 in edges 17 to 40, and 9 of 26 after. The mover's ownership fell in
-   all on 41 of the 42.
-7. **A result with no ownership** (shape 5) gets it from a short search of the position alone, at the sweep's budget
-   (32 visits), when the board shows it: the position on screen for the map, and the move's two positions for the
-   area lost (`askOwnership` in `packages/analysis/src/analysis.svelte.ts`). The search runs just after the position
-   on screen's, and the page keeps its ownership apart (`ownership` of the analysis). It never replaces the
-   position's result, and the store does not keep it. A move's caption shows once both of its positions have their
-   ownership. The game is never reviewed again for the maps.
+   ownership (`includeOwnership`), whatever the display settings, in whole hundredths from Blue's side (`ownership` of
+   an analysis). The stored shape is 6 (`SHAPE` in `packages/analysis/src/cache.ts`). Shape 6 only adds this field,
+   so the site also reads shape 5 (`READ_FROM`, design 05): a review stored or exported before opens at once with its
+   results. The candidates' ownership is not asked for: it is about 3 kB of JSON for each candidate (262 kB for one
+   reply of 100 visits at the start, against 24 kB without it), and nothing here uses it.
+2. **The area map shows change, not state** (the display setting "Area map", Board). At each point, the change is the
+   engine's ownership less the board now, from Blue's side: the board now is +1 strictly inside Blue's regions, −1
+   strictly inside Red's, and 0 at the open points (`occupancy` and `changeMap` in `src/lib/review/ownership.ts`).
+   The map marks only a change of 0.5 or more (`CHANGE`), and only two things, each in the colour of the side that
+   gains:
+   - **dots** on open area that a side will probably close;
+   - **hatching** on closed area that its owner will probably lose.
+
+   A region that stays its owner's gets nothing more, and the regions keep their fill. Every mark has one strength:
+   the map points at places, and the threshold says which. A short legend shows in the board's margin above its top
+   row while the map shows. The map hides while the board draws a line: the line's regions are not the board's now.
+3. **A mistake is explained by what happens next** (the display setting "Explain mistakes", Board). After a Mistake
+   or a Blunder on the game's line, for a player whom the review explains (design 10's "Review for"), the position
+   after the move has its stored search and the engine's line from it: its first choice's line, as far as the search
+   trusts it (`trustedLine`, design 07). The rules play that line (`describe_game`), and each edge then has the edge
+   that it cuts and the regions and areas after it (`explainMistake` in `src/lib/review/explain.ts`):
+   - **On the board:** the line up to the end of the opponent's turn that explains the mistake, drawn as design 07
+     draws a line (numbered, with the edges that it cuts and the regions as they become), and each region that the
+     turn closes outlined by a wide soft band in the opponent's colour. The other candidates hide, as they do while
+     a line shows.
+   - **The caption,** under the move in the move list with the notes on the key moves, from a template on these facts
+     alone (design 01, principle 11): the mover's edges that the turn cuts, the area that it closes and a point of its
+     largest new region, and the area that the mover loses. For example: "After this turn, Red cuts B2-E2 and closes
+     4 points of area at M12. Blue loses 9 points of area."
+   - **Where that turn closes and cuts nothing,** the opponent's later turns in the same line are read, as far as the
+     line goes: "In the engine's line, Red's second turn from here cuts B2-E2." A turn that the line ends before its
+     end is not read: its facts are not whole.
+   - **Where no turn of the line closes or cuts,** a plain sentence says so: "Red's next turn in the engine's line
+     closes and cuts nothing. The points lost are spread over the board." The board then draws nothing more.
+   - By turn (the default), the move is the turn. By edge, it is the edge, and the line starts with the mover's edge
+     left in the turn, if any: "After this edge, Red's next turn closes …".
+4. **Defaults by player.** The review starts with the map off and the mistakes' explanations on: the improving player
+   gets a clean board and the how of each mistake. The Analysis board starts with the map on: its player reads the
+   whole board. Each page keeps its own switch of the map (`areaMap` in `src/lib/review/display.ts`). **The key t**
+   shows or hides the map on both, as KaTrain's T shows its Territory.
+5. **A result with no ownership** (shape 5) gets it from a short search of the position alone, at the sweep's budget
+   (32 visits), when the map shows it (`askOwnership` in `packages/analysis/src/analysis.svelte.ts`). The search runs
+   just after the position on screen's, and the page keeps its ownership apart (`ownership` of the analysis). It never
+   replaces the position's result, and the store does not keep it. The explanations need no ownership: they read the
+   stored lines.
 
 ## Why
 
-- **A rule on each move, not an edge:** whether a map is clear can be measured for each move. An edge would hide the
-  clear maps of the opening and show the hazy ones after it.
-- **KaTrain's displays, because the site follows KaTrain's review** (design 05), and because they answer the player's
-  question with the engine's own numbers, with no words to get wrong.
-- **The root's ownership for "after the best move", not the best candidate's.** The root's map is the mean over the
-  whole tree, and the engine's first choice holds most of the tree's visits. On the real games measured
-  ([decisions/product.md](../decisions/product.md), "The area maps on real games"), the two differ by 0.006 per point
-  on average, against values from −1 to 1. Over the whole board, that is about 2 points of the board, against a median
-  area lost of 9 to 16 points of the board. The candidates' maps would make each reply about ten times larger, and the
-  review would store or send them for no visible gain. The before and after maps are also the two searches that the
-  loss reads, so the map and the points lost come from the same searches.
-- **Stored with every search:** in a whole review, the ownership took no time that the measurement could show, and
-  36% more space in the browser's store, about 1.1 kB for each result ([decisions/engine.md](../decisions/engine.md),
-  "The cost of the ownership in a whole review"). A display setting then changes nothing in the store.
+- **Change, not state, because the board already shows the state.** The regions are on the board, filled in their
+  players' colours. A map of ownership repeats them, and looks like them. The change is what the board does not show:
+  where the engine expects a region that is not there yet, and where it expects a region to break.
+- **Marks, not a shade,** because the strength of the ownership mixes how sure and how soon. A threshold turns it into
+  a yes or a no that the player can read: a change of 0.5 or more is, for an open point, a side's region over it at
+  half the turn ends left at least, and for a closed point, its owner's hold falling by half or more. On real games
+  the map then marks a median of 3.7% of the board at a position (about 13 points), at most 7% in the middle game
+  ([decisions/product.md](../decisions/product.md), "The area map and the explanations on real games").
+- **The opponent's next turn, because in Enclosure the how is concrete.** A mistake lets the opponent close a region
+  or cut a wall. The engine's line holds that turn, and the rules give its facts exactly: the caption states what
+  the board shows, with no number that a player must interpret. On real games, 112 of 128 Mistakes and Blunders get a
+  caption with a close or a cut (96 from the opponent's next turn), and 13 the sentence that the loss is spread. The
+  first build's area lost showed on 42 of them.
+- **The line as far as the search trusts it,** because the engine's line is its guess of the best play, and its far
+  end is a guess from few visits. The facts of a turn are exact when the line is.
+- **Off on the review, on on the Analysis board,** because the two players ask different questions (the players
+  above). One setting for both would fit neither.
 
 ## Departures from KaTrain
 
-- **The blend.** KaTrain paints a texture of one pixel a point and lets the graphics card blend it. The board is SVG:
-  a square on each point, blurred by a Gaussian filter of 0.3 of a point. The look is the same.
-- **The strength.** KaTrain's alpha is 0.75 for black and 0.8 for white, on a wooden board in two colours that are not
-  its players' stones' only. Here the players' colours are the board's own, for edges, nodes and regions, so the map's
-  strongest shading is 0.45, which leaves the edges and the regions readable. The area lost, shown alone, takes 0.6
-  (KaTrain's hints take 0.8).
-- **The area lost has its own switch, and shows in a review.** KaTrain shows its loss grid only in its teaching mode,
-  after a move taken back, and only with the Territory on. A review shows a mistake after the fact, so the area lost
-  shows at the position after the move, and the player can keep it without the map at every position.
-- **The colour of the area lost.** KaTrain draws its loss grid in the colour of the move's class. Here a Blunder's
-  colour is a red near Red's own, so a Red Blunder's lost area would read as Red's. The area lost takes the accent,
-  which is neither player's.
-- **The caption** is the site's own: KaTrain draws the grid with no words.
+The site follows KaTrain's review (design 05). The display departs from it on purpose, for the reasons above:
+
+- **The map shows the change, not the ownership.** KaTrain's Territory shades each point by its ownership. In Go the
+  stones are the state, and the territory is not on the board, so the forecast adds what the board lacks. In
+  Enclosure the regions are on the board, so the forecast less the board is what it lacks.
+- **Marks at a threshold, not a shade by strength.** KaTrain shades each point as strong as |ownership| ^ (1 / 1.33).
+  Here the strength mixes how sure and how soon, so a faint shade misleads.
+- **Off by default on the review.** KaTrain's Territory is on in its analysis mode. The review's first player steps
+  through a whole game for a few mistakes, and the map is noise to that player. The Analysis board keeps KaTrain's
+  default, and the key t is KaTrain's T.
+- **A mistake is explained by the opponent's reply, not by a loss grid.** KaTrain's teaching mode shades where the
+  ownership fell after a move. It says where, not how, and on real games it was clear on a third of the mistakes.
+- **The caption** is the site's own: KaTrain draws its grid with no words.
 
 ## Alternatives
 
-- **The best candidate's ownership** (`includeMovesOwnership`) for "after the best move": the literal reading. Its
-  replies are about ten times larger, and it differs little from the root's (Why).
-- **The ownership only when the map is on:** a review made with the map off would have no maps, and a change of the
+- **The ownership as KaTrain shades it** (the first build): it looked like the regions, and its faint shades misled
+  (what the first build showed).
+- **The area that a mistake lost** (KaTrain's loss grid, the first build): where, not how, and clear on a third of the
+  mistakes only.
+- **A caption from the ownership's numbers** (the first build's bands: "holds it for half the turns left or more"):
+  abstract. The line's facts are the ones that the player can see on the board.
+- **A map graded by strength in two styles:** it keeps the problem of the faint shade.
+- **The best candidate's ownership** (`includeMovesOwnership`): its replies are about ten times larger, and neither
+  display uses it.
+- **The ownership only when the map is on:** a review made with the map off would have no map, and a change of the
   setting would need the review again.
 - **Shape 6 alone, with the results of shape 5 removed:** each stored game would be reviewed again once, and a review
-  file of shape 5 would open with no results. A review at 16,384 visits would be searched again from the start, for a
-  field that a short search gives. The first build of the maps did this
-  ([decisions/product.md](../decisions/product.md), "The results of shape 5 stay readable").
-- **A point count in the caption** (the lost area's size in points of the board): the map counts lattice points and
-  turn ends, not the score, and the review's points lost already give the size in the score's own points.
+  file of shape 5 would open with no results ([decisions/product.md](../decisions/product.md), "The results of shape 5
+  stay readable").
 
 ## Consequences
 
 - The stored shape changed, and the results stored before stay: a stored game and a review file of shape 5 open at
-  once with their labels, lines and points lost (design 05, item 3, and design 13). Their maps come from the short
-  searches of item 7, one position at a time, as the player looks.
-- A review of shape 5 has no captions in its move list until the player has looked at the moves: the short search
-  runs only for the positions that the board shows. Its area lost compares two short searches, not the two searches
-  that the move's loss reads.
-- **The two maps count different turn ends.** The ownership at a turn's start counts that turn's end, and the
-  ownership after the turn does not. So the area lost also holds how each point at that turn's end differs from the
-  rest of the game, divided by the turn ends left: a point that the opponent encloses only later falls by one part in
-  the turn ends left. In the middle game this is a faint haze. In the last turns it grows
-  ([decisions/product.md](../decisions/product.md), "The window of the area lost"). An exact correction needs each
-  point's regions at the turn's end, from the rules.
-- The last turn of a game shows no area lost: the position after it ends the game, and has no search.
-- The caption gives the mean over the area lost. Where the area mixes points of both players, the mean can come out
-  open.
-- The area lost is also the hint that "Learning from mistakes" (beads abscls-7e9) asks for: the area at stake,
-  shown before the retry, from the same function (`lostArea`).
-- In the opening, few mistakes show their area lost: the engine holds the board open, and a mistake there moves a
-  little of every point. The map at every position shows from the start, faint where nothing is held.
-- **The map agrees with the points lost** on real games: the mover's ownership fell on 121 of 128 Mistakes and
-  Blunders, and the points lost were close to the net fall times the turn ends left (a median ratio of 0.96 to 0.99 up
-  to edge 60, a correlation of 0.83).
+  once with their labels, lines and points lost (design 05, item 3, and design 13). Their map comes from the short
+  searches of item 5, one position at a time, as the player looks.
+- The explanation needs the rules' play of each explained move's line: one `describe_game` request for each, asked
+  when the review has the line, and again when a deeper search changes it.
+- The explanation follows the engine's first choice. Where the opponent has two good replies, it shows one.
+- The caption's area is the area that the opponent's regions gain over the turn: a region that grows from an older
+  one counts its new part. Its point is in the largest region that the turn closes.
+- The last turn of a game has no explanation: the position after it ends the game, and has no search.
+- The map is empty in the opening (a median of 0% of the board up to edge 20): the engine holds the board open, and
+  no point changes by 0.5. In a game that one side leads by far, it marks much of the board: the engine expects that
+  side to close it (51.5% of the board in edges 21 to 40 of the test fixture's game).
+- "Learning from mistakes" (beads abscls-7e9) can take either as its hint: the map of the position before the
+  mistake, or the opponent's reply that the explanation shows.
+- The weak-wall map (beads abscls-udwl) can later show which wall breaks, beside the hatching.
 
 ## Where it is
 
-- `src/lib/review/ownership.ts`: `lostArea`, `areaCaption`, `shownLost` (`focusOf`, `CLEAR_FALL`, `CLEAR_SHARE`) and
-  `shade` (KaTrain's gamma). Tests: `ownership.test.ts`.
-- `src/lib/board/Board.svelte`: the map and the area lost on the board (`ownership`, `lost`), and the map's board
-  layer `areaMap`.
-- `src/lib/review/ReviewView.svelte`: `lostHere`, `lostIn`, `ownershipAt` and `lostCaptions`, the positions that it
-  asks ownership for, the settings and the key t.
-  `src/lib/review/display.ts`: `areaLost`.
+- `src/lib/review/ownership.ts`: `occupancy`, `changeMap` (`CHANGE`). Tests: `ownership.test.ts`.
+- `src/lib/review/explain.ts`: `explainMistake`, `explanationCaption`. Tests: `explain.test.ts`.
+- `src/lib/board/Board.svelte`: the map's marks (`change`, the layer `areaMap`) and the outline (`outline`).
+- `src/lib/review/ReviewView.svelte`: `mapOn`, `toggleMap`, `change`, `explainIn`, `explainLine`,
+  `explanationCaptions`, the legend, the settings and the key t. `src/lib/review/display.ts`: `areaMap`, `explain`.
 - `packages/analysis/src/reply.ts` (the ownership in hundredths), `packages/analysis/src/analysis.svelte.ts` (every
   search asks for it, and `askOwnership`), `packages/analysis/src/cache.ts` (`SHAPE` 6, `READ_FROM` 5),
   `packages/engine/src/protocol.ts` (the fields).
-- The measurements: `scripts/measure/ownership-maps.mjs` (the maps on real games) and
-  `scripts/measure/review-ownership.mjs` (the cost in a whole review).
+- The measurements: `scripts/measure/ownership-maps.mjs` (the map and the explanations on real games) and
+  `scripts/measure/review-ownership.mjs` (the ownership's cost in a whole review).
 
 ## Log entries
 
 - [decisions/product.md](../decisions/product.md): "The area maps on real games", "The window of the area lost" and
-  "The results of shape 5 stay readable" (2026-10-21).
+  "The results of shape 5 stay readable" (2026-10-21), for the first build. "The area map and the explanations on real
+  games" (2026-10-21), for this one.
 - [decisions/engine.md](../decisions/engine.md): "The cost of the ownership in a whole review" (2026-10-21).

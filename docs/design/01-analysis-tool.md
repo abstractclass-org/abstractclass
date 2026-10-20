@@ -4,7 +4,8 @@
 existed, as
 [`docs/analysis-tool-design.md`](https://github.com/abstractclass-org/engines/blob/main/docs/analysis-tool-design.md).
 **Moved here:** 2026-10-09. **Changed:** 2026-10-20: the tags and the names of concepts rest on engine facts, not on
-the community's terms (principles 8 and 10), and the area maps explain from engine facts (principle 11, design 30).
+the community's terms (principles 8 and 10), and the area map and the mistakes' explanations explain from engine
+facts (principle 11, design 30).
 Where the tool runs and how it gets the engine is in [02-static-site.md](02-static-site.md).
 
 Paths in this document are in the engine repository ([engines](https://github.com/abstractclass-org/engines)),
@@ -185,10 +186,11 @@ DecodeChess.
 11. **Any text explanation is built from engine facts.** Given the 22% error rate without tools (Hebbar et al.),
     words come from checked facts: tags, points, lines, and the engine's ownership. Free-form language model
     commentary, if ever, calls the engine as a tool.
-    - **The area maps** (design 30) are such an explanation. A move's label says what it cost, and its line says what
-      was better. The maps say where: the ownership of each point at every position, and for a Mistake or a Blunder
-      the area that it lost, from the ownership before it and after it (KaTrain's loss grid). The caption is a template
-      on the same numbers, with no language model.
+    - **The area map and the mistakes' explanations** (design 30) are such explanations. A move's label says what it
+      cost, and its line says what was better. The map says where the engine expects the board to change: open area
+      that a side will close, and closed area that its owner will lose. A Mistake or a Blunder is explained by the
+      opponent's next turn in the engine's line: the edges that it cuts and the regions that it closes, from the
+      rules. The caption is a template on those facts, with no language model.
 
 ## 3. What Enclosure changes
 

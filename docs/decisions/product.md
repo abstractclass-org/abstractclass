@@ -5879,3 +5879,58 @@ a result of shape 5 is still right, with no ownership.
 - **Tests:** a review file and an analysis file of shape 5 keep their results. A stored result of shape 5 is found,
   and of two as deep, the one of shape 6. A game whose results are all of shape 5 opens with no search, and the
   board's ownership comes from one short search that the store does not keep.
+
+### The area map and the explanations on real games (2026-10-21)
+
+The display of design 30 changed after a look at the first build on real games: the map shows the change from the
+board now to the engine's forecast, not the ownership, and a Mistake or a Blunder is explained by the opponent's next
+turn in the engine's line, not by the area that it lost. `scripts/measure/ownership-maps.mjs` measured both on the
+test fixture's game (its stored review) and on the 10 meaf.us archive games that the first build used (the first 2 of
+each rating band from 1 to 5 in the engine repository's `runs/archive_analysis/part1-1000.jsonl`, each ended by the
+rules after 120 edges), for internal use only. The archive games' positions at their turns' starts were searched as
+the Lite review searches them (HedgeFund 0.2 Lite, 512 visits, with the root's ownership and the lines' visits): 610
+positions in 33 minutes on 2 threads of a busy machine. The flagged turns are the first build's: by turn, a fall of
+the mover's win chance of 0.10 or more on a turn that was not the engine's best (a Mistake or a Blunder, near enough).
+
+**How much of the board the map marks** (`changeMap`): the share of the board's 361 points with a change of at least
+the threshold, median over the positions. In brackets, the medians of the two marks alone (dots on open area that a
+side will close, hatching on closed area that its owner will lose). A median of each part does not add up to the
+median of the whole.
+
+| Edges | Positions | At 0.3 | At 0.5 | At 0.7 |
+|---|---|---|---|---|
+| 0-20 | 110 | 0.3% (0.0% + 0.0%) | 0.0% (0.0% + 0.0%) | 0.0% (0.0% + 0.0%) |
+| 21-40 | 100 | 6.4% (5.3% + 0.0%) | 3.6% (0.0% + 0.0%) | 1.7% (0.0% + 0.0%) |
+| 41-60 | 100 | 11.6% (6.4% + 0.8%) | 7.1% (1.1% + 0.6%) | 5.3% (0.0% + 0.3%) |
+| 61-80 | 100 | 9.1% (1.8% + 2.2%) | 6.1% (0.0% + 2.2%) | 3.3% (0.0% + 1.4%) |
+| 81-120 | 200 | 5.5% (1.7% + 2.5%) | 4.4% (0.3% + 2.2%) | 3.0% (0.0% + 1.4%) |
+| All | 610 | 6.1% (1.7% + 0.8%) | 3.7% (0.0% + 0.6%) | 2.5% (0.0% + 0.3%) |
+
+- **The threshold: 0.5** (`CHANGE` in `src/lib/review/ownership.ts`). At a typical position the map then marks about
+  13 points of 361 (3.7%), at most 7% in the middle game, and nothing in the opening, where the engine holds the board
+  open. That is a few places to look at, not a haze. At 0.3 it marks nearly twice as much, at 0.7 it loses a third of
+  that. A change of 0.5 also reads simply: for an open point, a side's region over it at half the turn ends left at
+  least; for a closed point, its owner's hold falling by half or more.
+- **The fixture's game** is one-sided (HedgeFund at 1 visit against HedgeFund at 128). At 0.5, the map marks 0% up to
+  edge 20, 51.5% in edges 21 to 40, where Red is about to enclose most of the board, then 12.6%, 2.5% and 0.3%, a
+  median of 2.5% over its 120 positions. In a game that one side leads by far, the map marks what that side will
+  close.
+
+**The explanations of the flagged turns** (`explainMistake`): the opponent's turn in the engine's first choice's line
+from the position after the turn, as far as the search trusts it, played by the rules (`describe_game`).
+
+| Edges | Turns | The next turn closes or cuts | A later turn does | Spread | No caption (the line holds no whole turn) | The line's edges, median |
+|---|---|---|---|---|---|---|
+| 1-16 | 61 | 42 | 13 | 6 | 0 | 7 |
+| 17-40 | 41 | 31 | 3 | 6 | 1 | 4 |
+| 41-60 | 16 | 15 | 0 | 0 | 1 | 5 |
+| 61-120 | 10 | 8 | 0 | 1 | 1 | 4 |
+| All | 128 | 96 | 16 | 13 | 3 | 6 |
+
+- **112 of 128 get a caption with a close or a cut** (88%): 96 from the opponent's next turn, 16 from its second turn
+  in the line, none later. 64 of them cut, 68 close, and 30 open some of the mover's area. The first build's area lost
+  showed on 42 of the same 128.
+- **13 get the sentence that the loss is spread over the board,** and 3 no caption: the trusted line ends before the
+  opponent's turn does.
+- **The fixture's game** has one flagged turn, its Blunder (turn 7, Blue). Its caption: "After this turn, Red closes 2
+  points of area at O11." A true fact, and a small one.

@@ -10,7 +10,7 @@
   /** An edge of the engine's line from the position, with its mover, and, once the engine's rules have played it, the
    *  edge it cuts and the regions after it. */
   export interface BoardLineEdge { edge: Edge; player: 0 | 1; cut?: Edge | null; regions?: Position["regions"] }
-  /** `areaMap`: the `ownership` given, as the area map (design 30). */
+  /** `areaMap`: the `change` given, as the area map (design 30). */
   export interface BoardLayers { regions: boolean; protected: boolean; candidates: boolean; marks: boolean; coordinates: boolean; areaMap: boolean }
   export const DEFAULT_LAYERS: BoardLayers = { regions: true, protected: true, candidates: true, marks: true, coordinates: true, areaMap: true };
   export type { BoardNote, NoteBrush } from "./notes.ts";
@@ -20,14 +20,14 @@
 </script>
 
 <script lang="ts">
-  // The Enclosure board as SVG: the lattice, the area map or a mistake's area lost (design 30), each player's regions and edges, the protected edges (the turn just
+  // The Enclosure board as SVG: the lattice, each player's regions, the area map (design 30), a region to point at, the edges, the protected edges (the turn just
   // played and the mover's edges of this turn, on the edge itself, with no band behind any edge), the edge just cut, the engine's candidates numbered by rank, a preview edge, label badges on the edges of the turn
   // just played, and a ghost edge (the game's edge in a retry). During edge input: the first point, the points that
   // complete a legal edge from it (dots), and the edge to the marked point under the pointer. Points are 0-18 with y
   // up, as in the engine.
   import { pointName, sameEdge } from "#lib/review/enclosure.ts";
   import LabelMark from "#lib/review/LabelMark.svelte";
-  import { shade } from "#lib/review/ownership.ts";
+  import type { ChangeMark } from "#lib/review/ownership.ts";
   import { brushFor, samePoint, toggleNote, type BoardNote, type NoteBrush } from "./notes.ts";
 
   interface Props {
@@ -54,11 +54,11 @@
     oncandidatedblclick?: (edge: Edge) => void;
     notes?: BoardNote[]; // the player's notes on this position
     onnotes?: (notes: BoardNote[]) => void; // a note drawn, changed or removed, or all cleared: right-drawing works only with it
-    // The area map (design 30, the layer areaMap): the engine's ownership of each point, from Blue's side in hundredths
-    // (index y * 19 + x)
-    ownership?: number[] | null;
-    // The area a mistake lost, by point (ownership.ts, lostArea): in the accent, in the map's place, whatever its layer
-    lost?: number[] | null;
+    // The area map (design 30, the layer areaMap): by point (index y * 19 + x), the change that the engine expects
+    // (ownership.ts, changeMap). It hides while a line shows: the line's regions are not the board's now.
+    change?: (ChangeMark | null)[] | null;
+    // Regions to point at, as rings, in a player's colour: the regions that a mistake's punishment closes (design 30)
+    outline?: { rings: [number, number][][]; player: 0 | 1 } | null;
   }
   let {
     position, cut = null, candidates = [], highlight = null, line = null,
@@ -66,24 +66,17 @@
     layers: layersSet = {},
     pending = null, ends = null, active = null, view = [0, 0, 18, 18], targets = [], onpoint, rightClicks = false, onlyActive = false,
     oncandidate, oncandidateclick, oncandidatedblclick, notes = [], onnotes,
-    ownership = null, lost = null,
+    change = null, outline = null,
   }: Props = $props();
 
   const layers = $derived({ ...DEFAULT_LAYERS, ...layersSet });
   const uid = $props.id();
   const shadowId = `${uid}-badge-shadow`; // one board's filter: a page can show several boards
-  const blendId = `${uid}-area-blend`;
+  const patternId = (m: ChangeMark) => `${uid}-${m.kind}-${m.side}`;
   const N = 19;
   // A label badge's radius. On a length-1 edge, whose line is 0.68 between its nodes, the badge sidesteps by 80% of its
   // radius (up from a horizontal edge, right from a vertical one), and stays over the line: 0.28 of the line shows.
   const MARK_R = 0.33;
-  // The area map's strongest shading: KaTrain's 0.75 is for black and white on a wooden board. On this board the players'
-  // colours at 0.45 leave the edges and the regions' shading readable. The area lost takes KaTrain's 0.8 for its hints
-  // less as much: it is shown alone.
-  const AREA_ALPHA = 0.45, LOST_ALPHA = 0.6;
-  // The values that the board shades, in whole hundredths (0: no shading): the area lost, or else the map
-  const area = $derived(lost ? { values: lost, accent: true, alpha: LOST_ALPHA }
-    : layers.areaMap && ownership ? { values: ownership, accent: false, alpha: AREA_ALPHA } : null);
   const markAt = (e: Edge) => {
     const [x, y] = mid(e), d = 0.8 * MARK_R;
     if (Math.abs(e[0] - e[2]) + Math.abs(e[1] - e[3]) !== 1) return [x, y] as const;
@@ -139,6 +132,7 @@
   const lineCuts = $derived(drawnLine.flatMap(l => (l.cut ? [l.cut] : [])));
   const shownEdges = $derived(([0, 1] as const).map(p => position.edges[p].filter(e => !lineCuts.some(c => sameEdge(c, e)))));
   const shownRegions = $derived(drawnLine.at(-1)?.regions ?? position.regions);
+  const shownChange = $derived(layers.areaMap && !drawnLine.length ? change : null);
   // Edge input: the point under the pointer, for the ghost edge from `pending` to a legal end.
   const pointKey = (x: number, y: number) => x * N + y;
   const activeKeys = $derived(active ? new Set(active.map(([x, y]) => pointKey(x, y))) : null);
@@ -261,7 +255,18 @@
     <filter id={shadowId} x="-50%" y="-50%" width="200%" height="200%">
       <feDropShadow dx="0.027" dy="0.046" stdDeviation="0.033" flood-opacity="0.5" />
     </filter>
-    <filter id={blendId}><feGaussianBlur stdDeviation="0.3" /></filter>
+    <!-- The area map's two marks, in each player's colour (design 30): dots on open area that a side will close, and
+         hatching on closed area that its owner will lose. Unlike the regions' solid fill, they read as a forecast. The
+         tiles are in the board's units, so that the marks of next points join, and no dot falls on a lattice point. -->
+    {#each ([0, 1] as const) as side (side)}
+      <pattern id={patternId({ kind: "close", side })} class="change p{side}" patternUnits="userSpaceOnUse" width="0.5" height="0.5">
+        <circle cx="0.25" cy="0.25" r="0.075" />
+      </pattern>
+      <pattern id={patternId({ kind: "lose", side })} class="change p{side}" patternUnits="userSpaceOnUse" width="0.4" height="0.4"
+               patternTransform="rotate(45)">
+        <line x1="0" y1="0.2" x2="0.4" y2="0.2" />
+      </pattern>
+    {/each}
   </defs>
 
   {#if layers.coordinates}
@@ -273,29 +278,28 @@
     {/each}
   {/if}
 
-  <!-- The area map (design 30), under everything else, as KaTrain draws its territory first: a square on each point, in
-       the colour of the side that holds it and as strong as it holds it (KaTrain's OWNERSHIP_GAMMA), blended by a blur
-       as KaTrain blends its texture. The area a mistake lost takes the map's place, as KaTrain's loss grid does, in the
-       accent: KaTrain's colour of the move's class would be a player's colour here (a Blunder's red is near Red's). -->
-  {#if area}
-    <g filter="url(#{blendId})">
-      {#each points as [x, y] (pointKey(x, y))}
-        {@const v = area.values[y * N + x]}
-        {#if v}
-          <rect x={x - 0.5} y={sy(y) - 0.5} width="1" height="1"
-                style:fill={area.accent ? "var(--accent)" : v > 0 ? "var(--blue)" : "var(--red)"}
-                fill-opacity={area.alpha * shade(v)} />
-        {/if}
-      {/each}
-    </g>
-  {/if}
-
   {#if layers.regions}
     {#each [0, 1] as p (p)}
       {#each shownRegions[p] as r, i (i)}
         <path d={r.rings.map(ringPath).join(" ")} class="region p{p}" fill-rule="evenodd" />
       {/each}
     {/each}
+  {/if}
+
+  <!-- The area map (design 30), over the regions' fill and under the edges: a square on each point marked, filled with
+       its mark's pattern. -->
+  {#if shownChange}
+    {#each points as [x, y] (pointKey(x, y))}
+      {@const m = shownChange[y * N + x]}
+      {#if m}
+        <rect x={x - 0.5} y={sy(y) - 0.5} width="1" height="1" fill="url(#{patternId(m)})" />
+      {/if}
+    {/each}
+  {/if}
+
+  <!-- The regions to point at: a wide soft band along each, in its player's colour, under the edges that close it. -->
+  {#if outline}
+    <path d={outline.rings.map(ringPath).join(" ")} class="closed-band p{outline.player}" />
   {/if}
 
   {#each points as [x, y] (x * N + y)}
@@ -465,6 +469,15 @@
   .region { stroke: none; }
   .region.p0 { fill: var(--blue); fill-opacity: 0.16; }
   .region.p1 { fill: var(--red); fill-opacity: 0.16; }
+  .change circle { stroke: none; }
+  .change.p0 circle { fill: var(--blue); }
+  .change.p1 circle { fill: var(--red); }
+  .change line { stroke-width: 0.07; }
+  .change.p0 line { stroke: var(--blue); }
+  .change.p1 line { stroke: var(--red); }
+  .closed-band { fill: none; stroke-width: 0.5; stroke-linejoin: round; stroke-opacity: 0.4; }
+  .closed-band.p0 { stroke: var(--blue); }
+  .closed-band.p1 { stroke: var(--red); }
   .edge { stroke-width: 0.13; stroke-linecap: round; }
   .edge.p0 { stroke: var(--blue); }
   .edge.p1 { stroke: var(--red); }

@@ -1,65 +1,47 @@
-// The area maps (ownership.ts, design 30): the area that a move lost, and its caption. Run: npm test.
+// The area map (ownership.ts, design 30): the change from the board now to the engine's forecast. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { areaCaption, lostArea, shade, shownLost } from "./ownership.ts";
+import { changeMap } from "./ownership.ts";
+import type { Edge, Position } from "./enclosure.ts";
 
-/** A board of 361 points with these values, by index (y * 19 + x), and 0 elsewhere. */
-const board = (values: Record<number, number>) => Array.from({ length: 361 }, (_, i) => values[i] ?? 0);
+const N = 19;
+/** A board of 361 points with these values, by point, and 0 elsewhere. */
+const values = (at: [number, number, number][]) => {
+  const out = new Array<number>(N * N).fill(0);
+  for (const [x, y, v] of at) out[y * N + x] = v;
+  return out;
+};
+/** A square's four edges and its region, from (x, y) with side `s`. */
+function square(x: number, y: number, s: number): { edges: Edge[]; ring: [number, number][] } {
+  return {
+    edges: [[x, y, x + s, y], [x + s, y, x + s, y + s], [x, y + s, x + s, y + s], [x, y, x, y + s]],
+    ring: [[x, y], [x + s, y], [x + s, y + s], [x, y + s]],
+  };
+}
+/** A position with Blue's square from (1, 1) of side 3 and Red's from (10, 10) of side 2. */
+const blue = square(1, 1, 3), red = square(10, 10, 2);
+const board = { edges: [blue.edges, red.edges], regions: [[{ area: 9, rings: [blue.ring] }], [{ area: 4, rings: [red.ring] }]] } as
+  Pick<Position, "edges" | "regions">;
 
-test("the area lost is where the mover's ownership fell, from the mover's side: KaTrain's loss grid", () => {
-  const before = board({ 0: 80, 1: 10, 2: -30, 3: 50 }), after = board({ 0: -60, 1: 40, 2: -70, 3: 50 });
-  // Blue moved: point 0 fell by 140, point 2 by 40. Point 1 rose, and point 3 kept its value.
-  const blue = lostArea(before, after, 0);
-  assert.deepEqual(blue.drop.slice(0, 4), [140, 0, 40, 0]);
-  assert.equal(blue.drop.slice(4).every(v => v === 0), true);
-  // Red moved: the same change is Red's gain at points 0 and 2, and its loss at point 1.
-  assert.deepEqual(lostArea(before, after, 1).drop.slice(0, 4), [0, 30, 0, 0]);
+test("open area that a side will probably close: marked in that side's colour", () => {
+  const map = changeMap(values([[7, 7, 80], [8, 7, -75], [9, 7, 30]]), board);
+  assert.deepEqual(map[7 * N + 7], { kind: "close", side: 0 });
+  assert.deepEqual(map[7 * N + 8], { kind: "close", side: 1 });
+  assert.equal(map[7 * N + 9], null); // a change too small to point at
 });
 
-test("the area lost says who held it, from the mover's side, before and after, weighted by the fall", () => {
-  const lost = lostArea(board({ 0: 80, 2: -30 }), board({ 0: -60, 2: -70 }), 0);
-  // Weights 140 and 40: before (80 · 140 − 30 · 40) / 180, after (−60 · 140 − 70 · 40) / 180.
-  assert.equal(Math.round(lost.before), 56);
-  assert.equal(Math.round(lost.after), -62);
-  assert.equal(lost.size, 1.8); // the falls in points of the board: 1.4 + 0.4
-  // Red's side: the same numbers with the signs turned.
-  const red = lostArea(board({ 5: -90 }), board({ 5: 20 }), 1);
-  assert.deepEqual([red.before, red.after, red.size], [90, -20, 1.1]);
+test("closed area that its owner will probably lose: marked in the colour of the side that gains", () => {
+  // (2, 2) is inside Blue's square: Blue holds it now, and the forecast is Red's
+  const map = changeMap(values([[2, 2, -40], [3, 3, 90], [11, 11, 60], [2, 3, 70]]), board);
+  assert.deepEqual(map[2 * N + 2], { kind: "lose", side: 1 });
+  assert.equal(map[3 * N + 3], null); // a region that stays its owner's gets nothing
+  assert.deepEqual(map[11 * N + 11], { kind: "lose", side: 0 }); // Red's point, with Blue's forecast
+  assert.equal(map[3 * N + 2], null); // 0.7 in Blue's own region: the change is −0.3, too small
 });
 
-test("nothing lost: no area, and both sides at 0", () => {
-  const lost = lostArea(board({ 0: 50 }), board({ 0: 60 }), 0);
-  assert.deepEqual([lost.size, lost.before, lost.after], [0, 0, 0]);
-});
-
-test("the area lost shows when a fifth of the fall or more is in points that fall by 0.30 or more", () => {
-  // A fall of 0.40 at one point and 0.05 at 32 others: 40 of 200 is in a clear point, a fifth.
-  const spread = Object.fromEntries(Array.from({ length: 32 }, (_, k) => [k + 1, 5]));
-  const before = board({ 0: 40, ...spread });
-  assert.equal(shownLost(lostArea(before, board({}), 0)), true);
-  // The same fall spread thin over every point: no point falls by 0.30, so the map is a haze.
-  assert.equal(shownLost(lostArea(board(spread), board({}), 0)), false);
-  assert.equal(shownLost(lostArea(board({ 0: 29 }), board({}), 0)), false);
-  assert.equal(shownLost(lostArea(board({}), board({}), 0)), false); // nothing lost
-});
-
-test("a point's shading follows KaTrain's gamma, whatever its side, and stops at a full point", () => {
-  assert.deepEqual([shade(0), shade(100), shade(-100), shade(180)], [0, 1, 1, 1]);
-  assert.equal(shade(-50).toFixed(3), "0.594"); // 0.5 ^ (1 / 1.33): a point held half the time shows at 59%
-});
-
-test("the caption says who holds the area with the best move and after the move played", () => {
-  const caption = (before: number, after: number, mover: 0 | 1 = 0, unit: "turn" | "edge" = "turn") =>
-    areaCaption({ drop: [], size: 1, before, after }, mover, unit);
-  assert.equal(caption(80, -60),
-               "The area lost, shaded after the turn: with the best turn, Blue holds it for half the turns left or more. " +
-               "After the turn played, Red holds it for half the turns left or more.");
-  assert.equal(caption(30, -5, 1, "edge"),
-               "The area lost, shaded after the edge: with the best edge, Red holds it for some of the turns left. " +
-               "After the edge played, it stays open.");
-  assert.equal(caption(-20, -49), "The area lost, shaded after the turn: with the best turn, Red holds it for some of the " +
-               "turns left. After the turn played, Red holds it for more of the turns left.");
-  // Both in the same band: the second sentence says which way it went, also where it stays open.
-  assert.equal(caption(90, 55).split(". ")[1], "After the turn played, Blue holds it for fewer of the turns left.");
-  assert.equal(caption(10, -10).split(". ")[1], "After the turn played, it stays open, but moves toward Red.");
+test("a point on a wall is not inside its region: the engine counts the points strictly inside", () => {
+  // (1, 2) is on Blue's left edge, so it is open now, and the forecast's 0.9 is a close
+  const map = changeMap(values([[1, 2, 90], [4, 4, 90]]), board);
+  assert.deepEqual(map[2 * N + 1], { kind: "close", side: 0 });
+  assert.deepEqual(map[4 * N + 4], { kind: "close", side: 0 });
 });

@@ -12,12 +12,14 @@ export interface Display {
   // lines show, the other's do not
   reviewFor: "both" | "blue" | "red";
   win: "bar" | "gauge"; // a bar above the board (Blue left, Red right), or a vertical gauge beside it
-  // The board's layers. `areaMap` (design 30): each point shaded by the engine's ownership, as KaTrain's Territory
-  // switch, on by default in its analysis mode
-  layers: BoardLayers;
-  // After a Mistake or a Blunder, the area that it lost, on the board in the map's place, and its caption in the move
-  // list (design 30)
-  areaLost: boolean;
+  // The board's layers, but the area map, which each page keeps on its own
+  layers: Omit<BoardLayers, "areaMap">;
+  // The area map (design 30), on each page: off on the review, which explains the mistakes, and on on the Analysis
+  // board, whose player reads the whole board. The key t shows or hides it on the page.
+  areaMap: { review: boolean; board: boolean };
+  // After a Mistake or a Blunder, the opponent's next turn in the engine's line on the board, and its caption in the
+  // move list (design 30)
+  explain: boolean;
   scoreLine: boolean; // the Advantage chart's score line (Blue − Red)
   areaLine: boolean; // the Advantage chart's area line: the area each player encloses now (Blue − Red)
   // "Lines on the board": the engine's line and a branch's preview drawn one edge at a time (KaTrain's way, the
@@ -39,12 +41,20 @@ export interface Display {
 
 const KEY = "learn-enclosure:review-display:1";
 
+/** The layers that the display keeps: all but the area map. */
+function withoutMap<T extends Partial<BoardLayers>>(layers: T): Omit<T, "areaMap"> {
+  const kept = { ...layers };
+  delete kept.areaMap;
+  return kept;
+}
+
 export const DEFAULT_DISPLAY: Display = {
   judge: "turn",
   reviewFor: "both",
   win: "bar",
-  layers: DEFAULT_LAYERS,
-  areaLost: true,
+  layers: withoutMap(DEFAULT_LAYERS),
+  areaMap: { review: false, board: true },
+  explain: true,
   scoreLine: true,
   areaLine: true,
   lineSteps: true,
@@ -65,8 +75,9 @@ export function loadDisplay(): Display {
     judge: kept.judge === "edge" ? "edge" : "turn",
     reviewFor: kept.reviewFor === "blue" || kept.reviewFor === "red" ? kept.reviewFor : "both",
     win: kept.win === "gauge" ? "gauge" : "bar",
-    layers: { ...DEFAULT_DISPLAY.layers, ...kept.layers },
-    areaLost: kept.areaLost ?? DEFAULT_DISPLAY.areaLost,
+    layers: { ...DEFAULT_DISPLAY.layers, ...withoutMap(kept.layers ?? {}) },
+    areaMap: { ...DEFAULT_DISPLAY.areaMap, ...kept.areaMap },
+    explain: kept.explain ?? DEFAULT_DISPLAY.explain,
     scoreLine: kept.scoreLine ?? DEFAULT_DISPLAY.scoreLine,
     areaLine: kept.areaLine ?? DEFAULT_DISPLAY.areaLine,
     lineSteps: kept.lineSteps ?? DEFAULT_DISPLAY.lineSteps,
