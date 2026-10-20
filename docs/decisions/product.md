@@ -4692,3 +4692,13 @@ sweep.
   snapshot's analysis, and the new review runs on the earlier network (abscls-ysbn). In the second way above, the
   session's start also gives the GPU's control for the new network to the first pool until the next pool replaces it.
   No search of the analysis runs there now.
+
+### Milestone 1 is the game report: no archive statistics, no label checks (2026-10-20)
+
+- **Decided:** the first milestone (design 01, section 4) is the review of a player's own game, which is live. The
+  archive statistics leave it: points lost by rating band and game phase, and a fitted rating-conditioned win curve.
+  So do the checks planned with them: the noise floor (abscls-gzm), the label budget against a deeper reference with
+  fitted bands (abscls-hfp), and which score measures points lost (abscls-5r9).
+- **Why:** few people play Enclosure, so statistics of their games are not worth the work. The checks add little to
+  the review of a player's own game. The labels already fit nothing to people (design 10).
+- **meaf.us:** the site asks meaf.us for nothing. The request for an export (abscls-c4u) is closed.

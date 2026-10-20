@@ -204,32 +204,26 @@ DecodeChess.
   (net1-370) won 77 of its first 84 games on meaf.us (`runs/online-ACCOUNT.log`), but its mid-game judgment was the
   weak point in the reviewed losses.
   - Use the strongest model at a large budget.
-  - Show a label only when its margin clears the search's noise, estimated by searching the same position twice
-    (section 4).
+  - The labels do not measure the search's noise (the same position searched twice): section 4 drops that check.
 - **The search must report every candidate.** KaTrain and Regan use per-candidate values (multi-line analysis). The
   engine's analysis entry point must give each root child's visits, value, score and prior. The request for it is
   [requests/02-engine-protocol.md](../requests/02-engine-protocol.md).
 
-## 4. A first milestone, and how to know it works
+## 4. The first milestone
 
-**Milestone 1, a game report and archive statistics:**
-- **Analysis:** every move of a set of archived games, at a fixed budget, with per-candidate statistics (section 3).
-- **Per move:** points lost (win chance in the opening), complexity, top-1 and top-5 agreement with the engine.
-- **Per game:** accuracy.
-- **Archive-wide:** points lost by rating band and game phase, and the fitted rating-conditioned win curve
-  (principle 2).
+**Milestone 1, the game report:** the review of a player's own game, in the player's browser: per-candidate
+statistics (section 3), points lost and labels by turn or by edge ([design 10](10-labels.md)), complexity and hard
+positions ([design 14](14-complexity.md)), accuracy, the report, and export and import. It is live. Its cost in the
+browser is measured in [decisions/engine.md](../decisions/engine.md).
 
-**Checks:**
-- Points lost falls with rating (as Maia's and Regan's measures do). If it doesn't, the measure is wrong.
-- The same position searched twice gives labels that agree, which sets the noise floor.
-- The two reviewed games (`oyyjxn`, `3wes2o`) come out as the review found them: moves 64–65 flagged, and the real
-  turn in edges 25–40.
-
-**Cost:** the online regret search already analyses whole games at 600 simulations a position: about 30 s a game on
-the GPU beside net1b (`online_done` 99 → 126 in one step). So a few thousand archived games take about a day of that
-thread's time, or less at a smaller budget. The archive-wide statistics run offline on the GPU
-([02-static-site.md](02-static-site.md)). The player's own review runs in the browser. Its cost is measured in
-[decisions/engine.md](../decisions/engine.md).
+**Not part of it (2026-10-20):**
+- **Archive statistics:** points lost by rating band and game phase, and a fitted rating-conditioned win curve
+  (principle 2). Few people play Enclosure, so statistics of their games are not worth the work. The labels fit
+  nothing to people ([design 10](10-labels.md)).
+- **The checks planned with them:** points lost against rating, the noise floor (the same position searched twice),
+  the label budget against a deeper reference, and which score measures points lost. They add little to the review
+  of a player's own game.
+- **An export from meaf.us:** the site asks meaf.us for nothing.
 
 **Later milestones, each on its own:** tags (principle 8). Puzzles (principle 7). A rating-conditioned human policy
 (principle 5). Distilled rules (principle 9). Concepts (principle 10).
