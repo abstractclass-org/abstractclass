@@ -357,7 +357,8 @@ job is skipped while the repository variable `HUB_PAGES_PROJECT` is empty, so th
       account, select the account that holds the project `hedgeschool`.
 
    The project's name is `abstractclass`. Its address is `abstractclass.pages.dev`. If that address is taken, Pages
-   adds a few characters to the address, not to the name, and Wrangler shows the address.
+   adds a few characters to the address, not to the name, and Wrangler shows the address. The steps below write the
+   address as `abstractclass.pages.dev`. If Wrangler shows another address, use that address in its place.
 2. **Deploy its first files.** In the same folder:
    `npx wrangler@4.144.0 pages deploy apps/hub/public --project-name=abstractclass --branch=main`. The branch `main`
    is the production branch, so this deployment is the live hub. It stays live until a release puts the hub on
