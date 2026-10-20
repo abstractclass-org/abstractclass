@@ -1,7 +1,8 @@
 // The documents wrap at 120 characters (docs/working-notes.md). This check refuses an added line over 120 in the
 // repository's Markdown files between two commits. The Documents workflow (.github/workflows/docs.yml) runs it on the
-// pushed range.
+// pushed range, and the hook .githooks/pre-commit on the commit that the index holds, before Git makes it.
 //   node scripts/doc-widths.mjs <from> [<to>]     (<to>: HEAD by default)
+//   node scripts/doc-widths.mjs --staged          (the index against HEAD; it prints nothing when it passes)
 // A line may be longer where it cannot wrap: a table row, a line in a code block, or a line whose length comes from
 // URLs (a link's target, `<https://…>`, a bare URL). The text around a URL still counts. A moved file's lines are not
 // added. Code keeps its own lengths.
@@ -68,28 +69,32 @@ export function addedLines(diff) {
 }
 
 if (import.meta.main) {
-  const [from, to = "HEAD"] = process.argv.slice(2);
-  if (!from) {
-    console.error("usage: node scripts/doc-widths.mjs <from> [<to>]");
+  const args = process.argv.slice(2);
+  const staged = args[0] === "--staged";
+  const [from, to = "HEAD"] = staged ? [] : args;
+  if (!staged && !from) {
+    console.error("usage: node scripts/doc-widths.mjs <from> [<to>] | --staged");
     process.exit(2);
   }
   const git = (...args) =>
     execFileSync("git", ["-c", "core.quotePath=false", ...args], { encoding: "utf8", maxBuffer: 1 << 28 });
+  // The index's files: `git show :<path>`. A commit with -a has its own index, which GIT_INDEX_FILE names for git.
   const diff = git("diff", "--unified=0", "--no-prefix", "--no-color", "--no-ext-diff", "--no-textconv",
-    "--find-renames", from, to, "--", "*.md");
+    "--find-renames", ...(staged ? ["--cached"] : [from, to]), "--", "*.md");
   const files = addedLines(diff);
   let count = 0;
   let refused = 0;
   for (const [path, added] of files) {
     count += added.size;
-    for (const { line, chars: n } of overlong(git("show", `${to}:${path}`), added)) {
+    for (const { line, chars: n } of overlong(git("show", staged ? `:${path}` : `${to}:${path}`), added)) {
       console.log(`${path}:${line}: ${n} characters (at most ${WIDTH})`);
       refused++;
     }
   }
-  const range = `${from}..${to}`;
-  console.log(refused
-    ? `doc-widths: FAIL ${refused} added lines over ${WIDTH} characters in ${range}`
-    : `doc-widths: PASS ${count} added lines in ${files.size} Markdown files in ${range}`);
+  const range = staged ? "the staged changes" : `${from}..${to}`;
+  if (refused) {
+    console.log(`doc-widths: FAIL ${refused} added lines over ${WIDTH} characters in ${range}`);
+    if (staged) console.log(`doc-widths: no commit. Wrap the lines at ${WIDTH} characters, stage them, then commit again.`);
+  } else if (!staged) console.log(`doc-widths: PASS ${count} added lines in ${files.size} Markdown files in ${range}`);
   process.exit(refused ? 1 : 0);
 }

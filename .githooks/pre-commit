@@ -1,0 +1,8 @@
+#!/bin/sh
+# The documents' widths (docs/working-notes.md): an added line over 120 characters in a staged Markdown file stops the
+# commit, as the workflow Documents would refuse its push. What counts is in scripts/doc-widths.mjs. Git runs this hook
+# at the root of the working tree when core.hooksPath names this folder. POSIX sh, with LF line ends: Git for Windows
+# runs it in its own sh. A shell with no node skips the check, and the workflow still runs it.
+# Test: node --test scripts/doc-widths.test.mjs
+command -v node >/dev/null 2>&1 || exit 0
+exec node scripts/doc-widths.mjs --staged

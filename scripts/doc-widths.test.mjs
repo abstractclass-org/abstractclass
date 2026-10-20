@@ -1,5 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { spawnSync, execFileSync } from "node:child_process";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { addedLines, chars, overlong, WIDTH } from "./doc-widths.mjs";
 
 const long = (n, word = "a") => Array.from({ length: n }, () => word).join(" ");
@@ -92,4 +97,28 @@ test("an added line that starts with ++ is no file's header, and a path with a s
     "--- three",
   ].join("\n");
   assert.deepEqual(addedLines(diff), new Map([["docs/a b.md", new Set([2, 3, 4])]]));
+});
+
+test("--staged checks the index, not the working tree, and says nothing when it passes", () => {
+  const dir = mkdtempSync(join(tmpdir(), "doc-widths-"));
+  const run = () => spawnSync(process.execPath, [fileURLToPath(new URL("./doc-widths.mjs", import.meta.url)), "--staged"],
+    { cwd: dir, encoding: "utf8" });
+  try {
+    execFileSync("git", ["init", "-q"], { cwd: dir });
+    writeFileSync(join(dir, "a.md"), long(70) + "\n");
+    execFileSync("git", ["add", "a.md"], { cwd: dir });
+    const refused = run();
+    assert.equal(refused.status, 1);
+    assert.match(refused.stdout, /^a\.md:1: 139 characters/m);
+    assert.match(refused.stdout, /no commit/);
+
+    writeFileSync(join(dir, "a.md"), long(10) + "\n");
+    execFileSync("git", ["add", "a.md"], { cwd: dir });
+    writeFileSync(join(dir, "a.md"), long(70) + "\n"); // not staged: the commit does not take it
+    const passed = run();
+    assert.equal(passed.status, 0);
+    assert.equal(passed.stdout, "");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

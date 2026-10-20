@@ -14,16 +14,17 @@ learn one, and remove a note when it stops being true. The work itself is in bea
   engine step refuses a local engine file, as the deploy does.
 - **The Git settings of this repository's checkouts.** The worktrees share the main checkout's settings, so these run
   once, in the main checkout, and a worker does not run them:
-  - `git config core.hooksPath .githooks` turns on the commit-msg hook. It refuses a subject or a body line over 72
-    characters (CLAUDE.md in the planning folder, "Commit messages"). A body line of one word, such as a URL, may be
-    longer. The hook keeps no commit: wrap the message, and commit again.
+  - `git config core.hooksPath .githooks` turns on the two hooks. The commit-msg hook refuses a subject or a body
+    line over 72 characters (CLAUDE.md in the planning folder, "Commit messages"). A body line of one word, such as a
+    URL, may be longer. The pre-commit hook refuses a staged Markdown line over 120 characters, by the rules of the
+    workflow Documents (below). A refused commit is not made: wrap the message or the lines, and commit again.
   - `git config merge.decision-log.driver "git merge-file --union --diff3 %A %O %B"` turns on the union merge of
     the decision logs (`.gitattributes`, docs/decisions/README.md). A rebase over another branch's new entry then
     keeps both entries, with no conflict. So add each entry at the end of its file. Two edits of the same lines give
     no conflict either: after a rebase, read each earlier entry that both branches changed.
 - **The documents wrap at 120 characters.** The workflow Documents refuses an added Markdown line over 120 characters
-  in a push to `dev`. A table row, a line in a code block and the length of a URL do not count. Check before a push:
-  `node scripts/doc-widths.mjs origin/dev` at the root.
+  in a push to `dev`. A table row, a line in a code block and the length of a URL do not count. The pre-commit hook
+  runs the same check on each commit. To check a branch: `node scripts/doc-widths.mjs origin/dev` at the root.
 - **After a deploy, check the site:** `node scripts/release-check.mjs <base URL>` in `apps/hedgeschool`
   (docs/hosting.md, "Deploy, check and roll back").
 - **The owner plays in this browser** (Edge, the local build): practice games and reviews of their own. Before a
