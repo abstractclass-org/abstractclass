@@ -5518,10 +5518,13 @@ sweep.
   drawn one by one, the regions as they close, then the engine's first choice and Blue's edge marked Mistake. The
   badges are 1.4 times Hedge School's, because the board is 320 pixels wide. The board stops under the pointer. With
   reduced motion it shows the last moment, still. `apps/hub/scripts/enclosure-board.mjs` writes it from Hedge School's
-  files.
+  files. With `--check` (the step `hub-board` of `npm run check:all`), it fails when the board is not what it writes,
+  or when a colour token of the hub is not Hedge School's.
 - **The code:** plain HTML and CSS, with no build and no framework (`apps/hub/public`). The job `hub` of the workflow
   **Deploy** uploads the folder to the Pages project that `HUB_PAGES_PROJECT` names, and is skipped while the
-  variable is empty. The owner's steps are in [hosting.md](../hosting.md), section 8.
+  variable is empty. The owner's steps are in [hosting.md](../hosting.md), section 8. Wrangler makes the project
+  (`pages project create --production-branch=main`), not the dashboard: a project made by drag and drop has no
+  setting for its production branch (Cloudflare's Direct Upload guide).
 - **Checked** in Playwright's Chromium, headless, on a local server that applies the folder's `_headers`, in a job of
   2 threads (`scripts/machine run`): at 1,366 × 657 and 390 × 760, light and dark, at 683 × 328 (200% zoom), and at
   1,440 × 900 and 390 × 844. No horizontal scroll. No request to another host. No violation of the Content Security

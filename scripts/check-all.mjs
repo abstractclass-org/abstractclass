@@ -18,6 +18,9 @@ const steps = [
   // The shared packages' type checks and unit tests (design 29): every workspace in packages/.
   { name: "packages-check", cwd: root, command: "npm run check --workspace=packages" },
   { name: "packages-test", cwd: root, command: "npm test --workspace=packages" },
+  // The hub's board is the one that its script writes from Hedge School's home board, and its colours are Hedge
+  // School's (apps/hub/scripts/enclosure-board.mjs).
+  { name: "hub-board", cwd: root, command: "node apps/hub/scripts/enclosure-board.mjs --check" },
   {
     name: "build", cwd: site, command: "npm run build",
     env: { VITE_EDITION: "early", VITE_STORE_PRACTICE_GAMES: "on" },

@@ -7,16 +7,41 @@
 //
 //   node apps/hub/scripts/enclosure-board.mjs
 // writes the board into apps/hub/public/index.html, between the two enclosure-board comments, and its animation into
-// apps/hub/public/enclosure-board.css. Run it again after Hedge School's replay changes.
+// apps/hub/public/enclosure-board.css. Run it again after Hedge School's replay changes. With --check it writes
+// nothing, and fails when the two files are not what it would write (npm run check:all). Either way it fails when a
+// colour token of style.css is not Hedge School's (DESIGN.md: Hedge School's tokens, in the same names).
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { PLAYER_NAME } from "../../hedgeschool/src/lib/review/enclosure.ts";
 import { LABEL_SHAPES } from "../../hedgeschool/src/lib/review/labelShapes.ts";
 
 const hub = join(dirname(fileURLToPath(import.meta.url)), "..");
+const fail = message => { throw new Error(`enclosure-board: ${message}`); };
 const { scenes } = JSON.parse(readFileSync(join(hub, "../hedgeschool/src/lib/home/replay.json"), "utf8"));
-const frames = scenes[0].frames;
-const last = frames.length - 1;
+// The scene up to its moment, the frame after the labelled edge (hold "moment"), as HomeReplay.svelte finds it. The
+// frame before it is the hold before that edge (hold "before").
+const last = scenes[0].frames.findIndex(f => f.hold === "moment");
+if (last < 1 || scenes[0].frames[last - 1].hold !== "before") fail("replay.json's first scene has no moment");
+const frames = scenes[0].frames.slice(0, last + 1);
+// The moment's label, and the player whose edge it marks.
+const mark = frames[last].m[0];
+const owner = frames[last].p.edges.findIndex(es => es.some(e => String(e) === String(mark.edge)));
+
+const style = readFileSync(join(hub, "public/style.css"), "utf8");
+if (!style.includes(`.board .mark.${mark.label} {`)) fail(`style.css gives the label ${mark.label} no colour`);
+// The colour tokens, in each theme: a token that a theme does not set keeps the light theme's value.
+const app = readFileSync(join(hub, "../hedgeschool/src/app.css"), "utf8");
+const block = (css, open) => css.includes(open) ? css.slice(css.indexOf(open), css.indexOf("\n}", css.indexOf(open)))
+  : fail(`no "${open}" block`);
+const tokens = css => Object.fromEntries([...css.matchAll(/--([\w-]+):\s*([^;]+);/g)].map(m => [m[1], m[2].trim()]));
+const themes = (light, dark) => ({ light: tokens(light), dark: { ...tokens(light), ...tokens(dark) } });
+const hubTokens = themes(block(style, ":root {"), block(style, "@media (prefers-color-scheme: dark) {"));
+const appTokens = themes(block(app, ':root, [data-theme="light"] {'), block(app, ':root[data-theme="dark"] {'));
+const drift = Object.entries(hubTokens).flatMap(([theme, t]) => Object.entries(t)
+  .filter(([name, value]) => value !== appTokens[theme][name])
+  .map(([name, value]) => `--${name} (${theme}) is ${value}, and ${appTokens[theme][name] ?? "missing"} in app.css`));
+if (drift.length) fail(`style.css's tokens are not Hedge School's: ${drift.join("; ")}`);
 
 // The timeline, in seconds: a hold on the first position, an edge a step, a hold before the last edge (with the
 // engine's choice from CHOICE after the edge before it) and on its label, then the fade back to the first position.
@@ -77,7 +102,8 @@ const cls = (...names) => `class="${names.flat().join(" ")}"`;
 const id = s => `enclosure-${s}`;
 const out = [];
 out.push(`<svg class="board" viewBox="-1.3 -1.3 20.6 20.6" role="img" aria-label="An Enclosure game between two bots, ` +
-  `played edge by edge, until the engine marks one of Blue's edges a Mistake and shows a better edge.">`);
+  `played edge by edge, until the engine marks one of ${PLAYER_NAME[owner]}'s edges ` +
+  `${/^[AEIOU]/.test(mark.note) ? "an" : "a"} ${mark.note} and shows a better edge.">`);
 out.push(`<defs><pattern id="${id("dots")}" width="1" height="1" patternUnits="userSpaceOnUse" x="-0.5" y="-0.5">` +
   `<circle cx="0.5" cy="0.5" r="0.07" class="dot"/></pattern>` +
   `<filter id="${id("shadow")}" x="-50%" y="-50%" width="200%" height="200%">` +
@@ -101,16 +127,18 @@ for (const n of nodes) out.push(`<circle cx="${n.x}" cy="${sy(n.y)}" r="0.16" ` 
 
 // The label of the scene's last edge, where the board puts it: a disc in the label's colour, with a shadow, and its
 // mark in white on a 24-unit square (LabelMark.svelte). On an edge of length 1 the disc moves off the line.
-const mark = frames[last].m[0], MARK_R = 0.33 * BADGE, e = mark.edge, off = 0.8 * MARK_R;
+const MARK_R = 0.33 * BADGE, e = mark.edge, off = 0.8 * MARK_R;
 let [bx, by] = [(e[0] + e[2]) / 2, sy((e[1] + e[3]) / 2)];
 if (Math.abs(e[0] - e[2]) + Math.abs(e[1] - e[3]) === 1) [bx, by] = e[1] === e[3] ? [bx, by - off] : [bx + off, by];
 const t = s => (s.t ? ` transform="${s.t}"` : "");
 const shape = s => s.kind === "stroke"
   ? `<path d="${s.d}" fill="none" stroke-width="${s.w}" stroke-linecap="butt" stroke-linejoin="${s.round ? "round" : "miter"}"${t(s)}/>`
   : s.kind === "fill" ? `<path d="${s.d}" stroke-width="${s.round}" stroke-linejoin="round"${t(s)}/>`
-    : `<rect x="${s.x}" y="${s.y}" width="${s.width}" height="${s.height}" rx="${s.r}" stroke="none"${t(s)}/>`;
+    : s.kind === "box"
+      ? `<rect x="${s.x}" y="${s.y}" width="${s.width}" height="${s.height}" rx="${s.r}" stroke="none"${t(s)}/>`
+      : fail(`labelShapes.ts has a shape of the kind ${s.kind}, which this script does not draw`);
 out.push(`<g ${cls(timed("fade", at[last] + DRAW, last))}>` +
-  `<circle cx="${r(bx)}" cy="${r(by)}" r="${MARK_R}" class="mark ${mark.label}" filter="url(#${id("shadow")})"/>` +
+  `<circle cx="${r(bx)}" cy="${r(by)}" r="${r(MARK_R)}" class="mark ${mark.label}" filter="url(#${id("shadow")})"/>` +
   `<g class="glyph" transform="translate(${r(bx - MARK_R)} ${r(by - MARK_R)}) scale(${r((2 * MARK_R) / 24)})">` +
   `${LABEL_SHAPES[mark.label].map(shape).join("")}</g></g>`);
 out.push(`</svg>`);
@@ -128,7 +156,16 @@ const page = join(hub, "public/index.html");
 const html = readFileSync(page, "utf8");
 const START_MARK = "<!-- enclosure-board: start -->", END_MARK = "<!-- enclosure-board: end -->";
 const i = html.indexOf(START_MARK), j = html.indexOf(END_MARK);
-if (i < 0 || j < i) throw new Error(`${page}: the enclosure-board comments are missing`);
-writeFileSync(page, html.slice(0, i + START_MARK.length) + "\n" + out.join("\n") + "\n" + html.slice(j));
-writeFileSync(join(hub, "public/enclosure-board.css"), css);
-console.log(`enclosure-board: ${edges.length} edges, ${regions.length} regions, ${rules.size} timings, ${r(LOOP)} s`);
+if (i < 0 || j < i) fail(`${page}: the enclosure-board comments are missing`);
+const files = [
+  [page, html.slice(0, i + START_MARK.length) + "\n" + out.join("\n") + "\n" + html.slice(j)],
+  [join(hub, "public/enclosure-board.css"), css],
+];
+if (process.argv.includes("--check")) {
+  const stale = files.filter(([file, text]) => readFileSync(file, "utf8") !== text).map(([file]) => file);
+  if (stale.length) fail(`not current: ${stale.join(", ")}. Run node apps/hub/scripts/enclosure-board.mjs`);
+  console.log("enclosure-board: the board is current");
+} else {
+  for (const [file, text] of files) writeFileSync(file, text);
+  console.log(`enclosure-board: ${edges.length} edges, ${regions.length} regions, ${rules.size} timings, ${r(LOOP)} s`);
+}

@@ -5,7 +5,7 @@
 # and the domain. So the repository has no Wrangler file: with one, Pages would take the bindings from that file.
 # The build is the one that Cloudflare's own build ran (npm run build:cloudflare): the engine's release with its SHA-256
 # checks, the unit tests, the type check, then the build. A failed step deploys nothing, and the site stays as it was.
-# The job hub, after it, deploys the hub at abstractclass.org (apps/hub) to its own Pages project.
+# The job hub deploys the hub at abstractclass.org (apps/hub) to its own Pages project, beside the site's job.
 name: Deploy
 
 on:
@@ -19,6 +19,10 @@ concurrency:
 
 permissions:
   contents: read
+
+# Wrangler, pinned to one version for both jobs' uploads.
+env:
+  WRANGLER: wrangler@4.144.0
 
 # The site's folder (design 26). npm ci runs at the root, with the workspace's one lockfile.
 defaults:
@@ -76,12 +80,13 @@ jobs:
           args=(--project-name=hedgeschool --branch="$BRANCH" --commit-hash="$GITHUB_SHA")
           first=${MESSAGE%%$'\n'*}
           if [ -n "$first" ]; then args+=(--commit-message="${first:0:300}"); fi
-          npx --yes wrangler@4.144.0 pages deploy build "${args[@]}"
+          npx --yes "$WRANGLER" pages deploy build "${args[@]}"
 
   # The hub at abstractclass.org (design 26, item 3; docs/hosting.md, "The hub"): its files in apps/hub/public, as they
   # are, with no build, to the Pages project that the repository variable HUB_PAGES_PROJECT names. A push to main
   # deploys the live hub, and a push to another branch a preview, as for the site. While the variable is empty, the job
-  # is skipped, and the workflow passes without it.
+  # is skipped, and the workflow passes without it. Wrangler runs in apps/hub, which has no functions/ folder: in the
+  # workflow's default folder, it would upload Hedge School's Function with the hub.
   hub:
     if: vars.HUB_PAGES_PROJECT != ''
     runs-on: ubuntu-latest
@@ -107,4 +112,4 @@ jobs:
           args=(--project-name="$PROJECT" --branch="$BRANCH" --commit-hash="$GITHUB_SHA")
           first=${MESSAGE%%$'\n'*}
           if [ -n "$first" ]; then args+=(--commit-message="${first:0:300}"); fi
-          npx --yes wrangler@4.144.0 pages deploy public "${args[@]}"
+          npx --yes "$WRANGLER" pages deploy public "${args[@]}"

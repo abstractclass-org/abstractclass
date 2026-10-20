@@ -342,35 +342,46 @@ job is skipped while the repository variable `HUB_PAGES_PROJECT` is empty, so th
   Without a `404.html`, Pages answers every path with the home page.
 - **Its board:** `apps/hub/scripts/enclosure-board.mjs` writes Enclosure's animated board into `index.html` and
   `enclosure-board.css`, from Hedge School's home board (`src/lib/home/replay.json`). Run it again at the root after
-  that board's scenes change: `node apps/hub/scripts/enclosure-board.mjs`.
+  that board's scenes change: `node apps/hub/scripts/enclosure-board.mjs`. The step `hub-board` of `npm run check:all`
+  fails when the two files are not what the script writes, and when a colour token of `style.css` is not Hedge
+  School's (`src/app.css`).
 
 **The owner's steps, once:**
 
-1. **Make the Pages project.** In the Cloudflare dashboard, go to **Workers & Pages**, then **Create application →
-   Get started → Drag and drop your files**. Enter the project name `abstractclass`. Drag the folder
-   `apps/hub/public` of a checkout of `dev` into the frame, and select **Deploy site**. This first deployment is
-   served at `abstractclass.pages.dev`. If Pages adds characters to a name that is taken, use the name that it shows
-   in the steps below.
-2. **Give it the domain.** In the project, go to **Custom domains → Set up a custom domain**. Enter
-   `abstractclass.org`, then select **Continue** and **Activate domain**. The zone is on Cloudflare, so Pages adds
-   the DNS record for the bare domain itself (a CNAME to the project's `pages.dev` address, which Cloudflare flattens
-   at the bare domain). The bare domain has no other record ("Not part of the site", below). The domain shows
-   **Active** when its certificate is ready, in minutes.
-3. **Set the variable.** On GitHub, in the repository's **Settings → Secrets and variables → Actions**, on the tab
+1. **Make the Pages project, with `main` as its production branch.** Use Wrangler, not the dashboard. A project made
+   by drag and drop in the dashboard has no setting for its production branch
+   ([Cloudflare's Direct Upload guide](https://developers.cloudflare.com/pages/get-started/direct-upload/#production-branch-configuration)).
+   In a terminal, at the root of a checkout of `dev`:
+   1. `npx wrangler@4.144.0 login`. A browser tab opens on Cloudflare. Sign in, then select **Allow**.
+   2. `npx wrangler@4.144.0 pages project create abstractclass --production-branch=main`. If Wrangler asks for an
+      account, select the account that holds the project `hedgeschool`.
+
+   The project's name is `abstractclass`. Its address is `abstractclass.pages.dev`. If that address is taken, Pages
+   adds a few characters to the address, not to the name, and Wrangler shows the address.
+2. **Deploy its first files.** In the same folder:
+   `npx wrangler@4.144.0 pages deploy apps/hub/public --project-name=abstractclass --branch=main`. The branch `main`
+   is the production branch, so this deployment is the live hub. It stays live until a release puts the hub on
+   `main`.
+3. **Give it the domain.** In the Cloudflare dashboard, go to **Workers & Pages**, select the project
+   `abstractclass`, then **Custom domains → Set up a domain**. Enter `abstractclass.org`, then select **Continue**
+   and **Activate domain**. The zone is on Cloudflare, so Pages adds the DNS record for the bare domain itself (a
+   CNAME to the project's `pages.dev` address, which Cloudflare flattens at the bare domain). The bare domain has no
+   other record ("Not part of the site", below). The domain shows **Active** when its certificate is ready, in
+   minutes.
+4. **Set the variable.** On GitHub, in the repository's **Settings → Secrets and variables → Actions**, on the tab
    **Variables**, select **New repository variable**. Name: `HUB_PAGES_PROJECT`. Value: the project's name,
    `abstractclass`. A repository variable applies to every branch. The secret `CLOUDFLARE_API_TOKEN` needs no change:
-   its permission (Account, Cloudflare Pages, Edit) covers every Pages project of the account.
-4. **Deploy from `main`.** Go to **Actions → Deploy → Run workflow**, select the branch `main`, and run it. The job
-   `hub` deploys the hub's files of `main`. Before the hub is on `main`, a push to `dev` deploys only a preview, at
-   `dev.abstractclass.pages.dev`.
+   its permission (Account, Cloudflare Pages, Edit) covers every Pages project of the account. From now on, each push
+   deploys the hub: a push to `dev` deploys a preview at `dev.abstractclass.pages.dev`, and a release
+   (`git push origin dev:main`) deploys the live hub.
 5. **Check:**
    - `https://abstractclass.org` shows the hub.
-   - In the project's **Deployments**, the deployment of `main` is under **Production**. If it is under **Preview**,
-     the project's production branch is not `main`. Then set it with Cloudflare's API (a `PATCH` of the project with
-     `{"production_branch": "main"}`, [the reference](https://developers.cloudflare.com/api/resources/pages/subresources/projects/methods/edit/)),
-     and run the workflow again.
+   - In the project's **Deployments**, the first deployment is under **Production**, not under **Preview**.
    - The page's response has the header `Content-Security-Policy`, and `https://abstractclass.pages.dev` answers with
      `X-Robots-Tag: noindex` (the browser's developer tools, **Network**, the page's first request).
+   - After the next push to `dev`, in GitHub's **Actions → Deploy**, the run's job `hub` passed, and
+     `https://dev.abstractclass.pages.dev` shows the hub.
+6. **End Wrangler's login** on the computer, if you do not use Wrangler there: `npx wrangler@4.144.0 logout`.
 
 `www.abstractclass.org` has no record and is not part of the hub.
 
