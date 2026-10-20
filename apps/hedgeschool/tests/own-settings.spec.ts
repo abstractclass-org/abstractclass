@@ -41,10 +41,10 @@ test("Custom at a preset's visits keeps its row, and a game from a review file s
   await page.evaluate(() => localStorage.setItem("learn-enclosure:engine:2", JSON.stringify({ on: false })));
   await page.locator('input[type="file"][accept*="json"]').first().setInputFiles(FIXTURE);
   await page.waitForURL(/#game=/);
-  const id = new URL(page.url()).hash.match(/game=([^&]+)/)![1], review = page.url();
-  // The Review tab reloads itself to open the game: a load of its own instead.
-  await page.goto("about:blank");
-  await page.goto(review);
+  const id = new URL(page.url()).hash.match(/game=([^&]+)/)![1];
+  // The Review tab reloads itself to open the game (Arrival.svelte), and the address names the game before that load
+  // starts. The review's controls show only after that reload, so wait for them: a goto here can meet the reload.
+  await page.getByRole("button", { name: "Engine settings" }).waitFor();
 
   for (const kind of ["stored", "mark"]) {
     const panel = await settings(page);
