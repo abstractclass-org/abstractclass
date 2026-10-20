@@ -4,13 +4,15 @@
 // Images always have the light look: an image leaves the site, for chats and forums of either background and for print,
 // and one look makes the images of a line alike whoever made them (decisions/product.md, "An image of a line").
 import { flushSync, mount, unmount, type ComponentProps } from "svelte";
+import { SITE_NAME } from "#lib/edition.ts";
 import Board from "./Board.svelte";
 
 type BoardProps = ComponentProps<typeof Board>;
 
-/** The properties that Board.svelte's style sets on its elements, written into the copy: the image has no stylesheet. */
-const STYLED = ["display", "visibility", "opacity", "fill", "fill-opacity", "fill-rule", "stroke", "stroke-width", "stroke-dasharray",
-                "stroke-linecap", "stroke-linejoin", "stroke-opacity", "font-family", "font-size", "font-weight", "text-anchor"];
+/** The properties that Board.svelte's style sets on its elements, written into the copy: the image has no stylesheet.
+ *  The copy keeps the elements' own attributes (fill-rule, stroke-linejoin). */
+const STYLED = ["visibility", "opacity", "fill", "fill-opacity", "stroke", "stroke-width", "stroke-dasharray", "stroke-linecap",
+                "stroke-opacity", "font-family", "font-size", "font-weight", "text-anchor"];
 
 /** A copy of the SVG with each element's computed style in its own style attribute, `size` pixels square. */
 function standalone(svg: SVGSVGElement, size: number): string {
@@ -29,11 +31,11 @@ function standalone(svg: SVGSVGElement, size: number): string {
 
 /** The PNG of a board drawn with `props`, `width` pixels wide, and under it the caption's lines (the first in bold)
  *  and the site's name, small. */
-export async function boardImage(props: BoardProps, caption: string[], site: string, width: number): Promise<Blob> {
+export async function boardImage(props: BoardProps, caption: string[], width: number): Promise<Blob> {
   const host = document.createElement("div");
   host.setAttribute("aria-hidden", "true");
   host.dataset.theme = "light"; // the light theme's colours (app.css)
-  host.style.cssText = "position: fixed; left: -100000px; top: 0; width: 600px; pointer-events: none";
+  host.className = "fixed top-0 -left-[100000px] w-[600px] pointer-events-none";
   document.body.append(host);
   let markup: string, colour: Record<"panel" | "text" | "muted", string>;
   const board = mount(Board, { target: host, props });
@@ -74,21 +76,21 @@ export async function boardImage(props: BoardProps, caption: string[], site: str
   });
   ctx.font = `400 ${small}px ${fonts}`;
   ctx.fillStyle = colour.muted;
-  ctx.fillText(site, pad, y + 0.3 * small);
+  ctx.fillText(SITE_NAME, pad, y + 0.3 * small);
   return new Promise((done, fail) => canvas.toBlob(b => (b ? done(b) : fail(new Error("the browser made no image"))), "image/png"));
 }
 
 /** Puts a PNG on the clipboard (a ClipboardItem: Chrome, Edge, Safari, Firefox 127 and later). The image is given as a
  *  promise, so that the write starts within the player's click, as Safari asks. False where the browser refuses an
- *  image. An image that fails throws its own error. */
+ *  image, once the image is made. An image that fails throws its own error. */
 export async function copyPng(png: Promise<Blob>): Promise<boolean> {
-  try {
-    if (typeof ClipboardItem === "undefined" || !navigator.clipboard?.write) return false;
-    await navigator.clipboard.write([new ClipboardItem({ "image/png": png })]);
-    return true;
-  } catch {
-    return false;
-  } finally {
-    await png;
+  let copied = false;
+  if (typeof ClipboardItem !== "undefined" && navigator.clipboard?.write) {
+    try {
+      await navigator.clipboard.write([new ClipboardItem({ "image/png": png })]);
+      copied = true;
+    } catch {} // refused: the image's own error, if any, comes from `png` below
   }
+  await png;
+  return copied;
 }

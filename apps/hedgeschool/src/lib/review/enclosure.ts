@@ -39,6 +39,9 @@ export interface Move { player: Player; edge: Edge | null; cut: Edge | null }
 
 export const PLAYER_NAME = ["Blue", "Red"] as const;
 export const otherPlayer = (p: Player): Player => (1 - p) as Player;
+const WHOLE = new Intl.NumberFormat("en", { maximumFractionDigits: 0 });
+/** Points or an area as the players' cards and the image's caption show them: whole, with thousands separated. */
+export const fmtScore = (s: number) => WHOLE.format(Math.round(s));
 
 /** An edge of a line, played: the edge it cuts (or null), and the regions and areas after it. */
 export interface LineStep { cut: Edge | null; regions: Position["regions"]; areas: [number, number] }

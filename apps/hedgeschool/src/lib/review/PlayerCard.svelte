@@ -1,5 +1,5 @@
 <script lang="ts" module>
-  import type { Player } from "./enclosure.ts";
+  import { fmtScore, type Player } from "./enclosure.ts";
 
   // The row above the board (design 06), in the review, in its skeleton and in Practice: the classes that set its
   // height, the same in each, so that a skeleton's board has the page's size. Each card has two lines, its name over its
@@ -16,9 +16,6 @@
   export const playerNumbers = (p: Player) => ["flex items-baseline gap-x-1 text-sm text-muted tabular-nums whitespace-nowrap",
     "@max-[27.5rem]/bar:flex-col @max-[21.25rem]/gauge:flex-col", p === 1 && "@max-[27.5rem]/bar:items-end @max-[21.25rem]/gauge:items-end"];
   export const AREA_DOT = "@max-[27.5rem]/bar:hidden @max-[21.25rem]/gauge:hidden";
-  const WHOLE = new Intl.NumberFormat("en", { maximumFractionDigits: 0 });
-  /** Points or an area as the row shows them: whole, with thousands separated. */
-  export const fmtScore = (s: number) => WHOLE.format(Math.round(s));
 </script>
 
 <script lang="ts">

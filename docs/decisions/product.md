@@ -4716,7 +4716,7 @@ sweep.
   - **The board:** every edge of the line at once with its number, the edges that it cuts, the regions after it, and
     the player's notes on the position where the line starts. No candidates and no labels.
   - **The caption** (text that explains): "Turn 12. Blue plays two edges.", then each player's points and area
-    before edge 1 and after the last edge, and "Hedge School", small.
+    before edge 1 and after the last edge ("Blue has 34 points and an area of 12."), and "Hedge School", small.
   - **The clipboard:** a PNG through `navigator.clipboard.write`. Where the browser refuses an image, the note says
     "This browser cannot copy an image. Save the image as a file." (text that a player follows, strict Simplified
     Technical English) with a "Save image" button.
@@ -4728,14 +4728,14 @@ sweep.
 - **How:** in the player's browser, with no server (Lichess renders its board images on its server, from the FEN).
   `boardImage.ts` draws the board's component apart from the page, writes each element's computed style into the
   copy of its SVG, and draws that on a canvas at twice the board's size on screen, at least 1,200 pixels wide, with
-  the caption under it. The write to the clipboard starts within the player's click, with the image still being
-  drawn, as Safari asks.
+  the caption under it. The write to the clipboard starts within the player's click, while the canvas still draws
+  the image, as Safari and Firefox ask.
 - **Checked:** `npm run check` and `npm test` in `apps/hedgeschool` (177 tests, among them `lineImage.test.ts`: the
   line for each kind of move, the caption's text and the file's name), the packages' type checks and tests, and the
   layout sweep in Chromium (21 passed, and 6 skipped for want of the Google tag and of stored practice games in a
   local build). A script drove the production build in headless Chromium, on the stored review in
-  `tests/fixtures/hedgefund-review.json`, in the dark theme. Each image was decoded in the page, and each was looked
-  at:
+  `tests/fixtures/hedgefund-review.json`, in the dark theme. The script decoded each image in the page and saved it,
+  to look at:
   - **A branch's move:** the engine's line under the Blunder, played to its third edge. Its image numbered the 3 edges
     from the position after edge 11, at the places and in the movers' colours of the preview's badges. The image was
     1,200 × 1,415 pixels. The PNG on the clipboard and the saved file had the same pixels. The clipboard encodes an
@@ -4752,7 +4752,40 @@ sweep.
     "Copy image" copied the same line.
   - **The Analysis board:** three edges played on its main line. From the start, the image of the third edge numbered
     all three.
-- **Not checked:** Edge (excluded for this work: on 2026-10-19 a test's Edge profiles signed in to the owner's
-  Windows account and synced its extensions), Safari and Firefox, and a real touch screen. The image of an edge of the
-  engine's line in the move list is not offered: the edge is not in the tree, so the line has no positions to give
-  the caption its points.
+- **Not checked:** Edge (this work did not use it: on 2026-10-19 a test's Edge profiles signed in to the owner's
+  Windows account and synced its extensions), Safari and Firefox, and a real touch screen. The move menu offers no
+  image of an edge of the engine's line in the move list: the edge is not in the tree, so the line has no positions
+  to give the caption its points.
+- **The review changed these:**
+  - The image shares the preview's walk along a line's edges (`treeLine`), the number format of the players' cards
+    (`fmtScore`, now in `enclosure.ts`) and the site's name (`SITE_NAME`). The note closes itself
+    (`Toast.svelte`), and a longer text stays longer, as the Export menu's note did.
+  - The caption's numbers are sentences: "Blue has 34 points and an area of 12." The file's name counts the edges
+    that the image numbers.
+  - Tailwind's `dark:` stays off inside an element with `data-theme="light"`. The site has two `dark:` classes, both
+    on the header's collie, and no element other than the page and the image's board sets `data-theme`.
+  - The release of a long press that opens the move menu no longer goes to the move. In Chromium's touch emulation
+    (390 × 844 pixels, a pixel ratio of 3), the release of a press of 900 ms or of 1,500 ms clicked the move, with no
+    `contextmenu` event. The position on screen then moved to the move, and the image of a main line move ahead of it
+    showed the position after the move. A branch's image does not depend on the position on screen, so the check of a
+    long press on a branch's move did not show this.
+- **Checked again** on the production build in headless Chromium, with the fixture's review, in the dark theme:
+  - **A row that forks from another branch:** a branch from the position after edge 11, and a row from its first
+    edge. The image of the row's last edge numbered 3 edges from the position after edge 11, at the places, in the
+    colours and with the cut of its preview. Its caption had the players' cards' numbers after edge 11 and at the
+    row's end. The PNG on the clipboard and the saved file had the same pixels.
+  - **The game's moves:** with the position after edge 20 on screen and a ring on K10, the image of edge 24 numbered
+    edges 21 to 24, with the ring, and its caption had the cards' numbers after edges 20 and 24. Edge 5 gave the
+    position after it, with the cards' numbers.
+  - **Three images of one line** had the same bytes. The page had the same elements before and after them. The
+    board's host was fixed at −100,000 pixels, 600 pixels wide, with the light board's colour in the dark page.
+  - **The light theme:** the same images had the same pixels in a light page as in a dark page.
+  - **No `ClipboardItem`:** the note showed with its "Save image" button. The file had the pixels of the saved image,
+    and the note closed.
+  - **A phone:** in a context of 390 × 844 pixels with touch, a press of 900 ms on edge 24 opened the menu, and the
+    position after edge 20 stayed on screen. "Copy image" copied edges 21 to 24, 1,200 pixels wide. A tap on another
+    move with the menu open closed the menu and went to that move, as a click does on a computer.
+- **Safari and Firefox, from their documentation:** MDN's compatibility data gives `ClipboardItem` and
+  `navigator.clipboard.write` to Firefox from version 127, and a promise as the item's data. Firefox asks for the
+  call within the handler of a user's gesture. Bits UI calls the menu item's `onSelect` from its click handler, and
+  from there `copyPng` calls `navigator.clipboard.write` before any `await`, so the call is within the click.

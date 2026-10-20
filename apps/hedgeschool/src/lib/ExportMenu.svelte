@@ -16,13 +16,11 @@
     { run: (kind: ExportKind) => Promise<ExportResult | void>; side?: "top" | "bottom"; small?: boolean; ready?: boolean; why?: string;
       items?: ExportItem[] } = $props();
   let note = $state(""), failed = $state(false), busy = $state(false);
-  let timer: ReturnType<typeof setTimeout> | undefined;
 
   async function choose(kind: ExportKind, done: string) {
     busy = true;
     note = "";
     failed = false;
-    clearTimeout(timer);
     try {
       const r = await run(kind);
       note = r?.note || done;
@@ -35,7 +33,6 @@
     } finally {
       busy = false;
     }
-    timer = setTimeout(() => (note = ""), note.length > 40 ? 10000 : 4000); // a longer note takes longer to read
   }
 </script>
 
@@ -57,5 +54,5 @@
   </DropdownMenu.Root>
 </span>
 {#if busy || note}
-  <Toast text={busy ? "Exporting…" : note} {failed} onclose={busy ? undefined : () => { clearTimeout(timer); note = ""; }} />
+  <Toast text={busy ? "Exporting…" : note} {failed} onclose={busy ? undefined : () => (note = "")} />
 {/if}

@@ -157,7 +157,8 @@ cut edges that are on the board, so a line drawn over the board can show edges t
     game's own moves in a review, the other actions are off: the review is of the game, so its line stays first, and
     its moves are evaluated already. On the engine's lines and the notes, the same menu opens with each action off,
     not the browser's menu. The Analysis board's main line has the actions, and "Make main line" for a branch's move
-    (design 21).
+    (design 21). The release of a long press that opens the menu does not go to the move. Some browsers click the move
+    on that release (Chromium's touch emulation does), and the position on screen would then change under the menu.
 13. **A branch's preview:** pointing at a move of a branch's row in the move list shows the branch's line on the board,
     from the position where the line leaves the game, up to that move (`branchLine` in `tree.ts`). A row that forks from
     another branch starts at the fork, but its line starts at the game: the preview draws and numbers the edges that the
@@ -221,19 +222,18 @@ cut edges that are on the board, so a line drawn over the board can show edges t
       notes (item 16) on the position where the line starts. No candidates and no labels. The protected edges follow
       the display setting.
     - **The caption** (text that explains): the turn and who plays where the line starts ("Turn 12. Blue plays two
-      edges."), then each player's points and area there ("Before edge 1: …") and after the line's last edge
-      ("After edge 6: …"), and the site's name, small. A position with no line gives its numbers once.
-    - **How it is drawn** (`boardImage.ts`): the board's SVG (`Board.svelte`) is drawn apart from the page, its
-      computed colours and fonts are written into each element, and a canvas draws it at twice its size on screen, at
-      least 1,200 pixels wide, with the caption under it. Lichess renders its board images on its server from the FEN.
-      This one needs no server, so the site stays static.
-    - **The light look, in either theme:** an image leaves the site, for chats and forums of either background and for
-      print. The light board keeps the edges' and regions' contrast on paper and on a dark chat. One look also makes
-      the images of a line alike, whoever made them.
+      edges."), then each player's points and area there ("Before edge 1: Blue has 34 points and an area of 12. …")
+      and after the line's last edge ("After edge 6: …"), and the site's name, small. A position with no line gives
+      its numbers once.
+    - **The drawing** (`boardImage.ts`): the site draws the board's component (`Board.svelte`) apart from the page,
+      writes each element's computed colours and fonts into a copy of its SVG, and removes the board. A canvas draws
+      the copy at twice the board's size on screen, at least 1,200 pixels wide, with the caption under it.
+    - **The look:** the light theme's, in either theme.
     - **The clipboard:** `navigator.clipboard.write` with a `ClipboardItem` (Chrome, Edge, Safari, Firefox 127 and
-      later). The write starts within the player's click, with the image still being drawn, as Safari asks. Where the
-      browser refuses an image, a note says "This browser cannot copy an image. Save the image as a file." with a
-      "Save image" button. "Save image" gives a file, `hedge-school-after-edge-N-line-M.png`.
+      later). The write starts within the player's click, while the canvas still draws the image, as Safari and
+      Firefox ask. Where the browser refuses an image, a note says "This browser cannot copy an image. Save the image
+      as a file." with a "Save image" button. "Save image" gives a file, `hedge-school-after-edge-N-line-M.png`: the
+      line starts after edge N and has M edges.
 
 ## Why
 
@@ -262,6 +262,11 @@ cut edges that are on the board, so a line drawn over the board can show edges t
   of the one the player picks.
 - **Circles, not notation:** an edge's name is two points to find on a 19 × 19 board. Go tools leave notation out of
   their variations for a board of that size. Numbers that match the board's line badges are read on the board itself.
+- **An image of a line has the light look in either theme.** An image leaves the site, for chats and forums of either
+  background and for print. The light board keeps the edges' and regions' contrast on paper and on a dark chat. One
+  look also makes the images of a line alike, whoever made them.
+- **An image made in the browser** keeps the site static: Lichess renders its board images on its server from the
+  FEN, and this site has no server.
 
 ## Alternatives
 
@@ -306,6 +311,12 @@ cut edges that are on the board, so a line drawn over the board can show edges t
   show it as a candidate): the start's table then spent two rows on each move, with the same numbers, and the ranks
   counted each move twice. One row for the pair keeps the table's rows for distinct moves, and the board still shows
   both edges, since either can be played.
+- **An image in the page's theme:** it matches what the player sees, but a dark image loses its contrast on a light
+  forum and on paper, and two players' images of one line differ.
+- **A board image rendered on a server** (Lichess's Share & export): the same image for every browser, but the site
+  then needs a server.
+- **Screenshots only:** no work, but the player crops by hand, holds the pointer on a move for its preview, and has no
+  caption.
 
 ## Consequences
 
@@ -339,9 +350,10 @@ cut edges that are on the board, so a line drawn over the board can show edges t
   press, drag and release (a click, a dragged edge, a note), and the notes drawn.
 - `src/lib/board/notes.ts`: the notes, `toggleNote` and `brushFor` (tests in `notes.test.ts`).
 - The image of a line: `src/lib/review/lineImage.ts` (`imageLine`, `imageCaption`, `imageName`, tests in
-  `lineImage.test.ts`), `src/lib/board/boardImage.ts` (the PNG, `copyPng`), `imageOf` in `ReviewView.svelte`, and the note in
-  `src/lib/ui/Toast.svelte` (the Export menu's too).
-  `[data-theme="light"]` in `src/app.css` gives the light tokens to the board that the image draws.
+  `lineImage.test.ts`), `src/lib/board/boardImage.ts` (the PNG, `copyPng`), and in `ReviewView.svelte`, `imageOf`,
+  `copyImage`, `saveImage` and `treeLine` (the line's edges, as a branch's preview draws them). The note is
+  `src/lib/ui/Toast.svelte` (the Export menu's too). `[data-theme="light"]` in `src/app.css` gives the light tokens to
+  the board that the image draws, and keeps Tailwind's `dark:` off inside it.
 - `packages/analysis/src/model.ts`: `enoughVisits`, `trustedLine` (the 25-visit cut, with its tests in
   `src/lib/review/enclosure.test.ts`). `src/lib/review/enclosure.ts`: `lineMovers`, `LineStep`.
 - `src/lib/review/display.ts`: the "one edge at a time" setting, and `branchText` (circles or notation).

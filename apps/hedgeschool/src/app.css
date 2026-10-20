@@ -6,8 +6,9 @@
    loads it only for a page that shows monospaced text, and only the subsets of the characters that the page shows. */
 @import "@fontsource-variable/fira-code/wght.css";
 
-/* Tailwind's dark: follows the site's theme (src/lib/theme.svelte.ts), not the system's alone. */
-@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+/* Tailwind's dark: follows the site's theme (src/lib/theme.svelte.ts), not the system's alone, and stays off inside an
+   element with data-theme="light" (below). */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *):not(:where([data-theme="light"], [data-theme="light"] *)));
 
 /* Colour tokens. Plain and clear (docs/design/04-product-shape.md). Players: Blue moves first, Red second. An element
    with data-theme="light" takes the light theme's tokens in either theme: the image of a line draws its board so

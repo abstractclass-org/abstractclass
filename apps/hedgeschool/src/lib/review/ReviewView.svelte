@@ -1,6 +1,6 @@
 <script lang="ts" module>
   import Swatch from "#lib/ui/Swatch.svelte";
-  import PlayerCard, { AREA_DOT, fmtScore, playerBox, playerName, playerNumbers, stripBox, stripRow } from "./PlayerCard.svelte";
+  import PlayerCard, { AREA_DOT, playerBox, playerName, playerNumbers, stripBox, stripRow } from "./PlayerCard.svelte";
   import PlayerRow from "./PlayerRow.svelte";
   import PlayerCardSkeleton, { BONE } from "./PlayerCardSkeleton.svelte";
   import ShareBar from "#lib/ui/ShareBar.svelte";
@@ -79,7 +79,7 @@
   // review may be partial while the engine works: an edge with no label yet shows none. The layout is design 06 (docs/design/06-review-layout.md): the board fills the window's height,
   // with the summary on its left from 1,260 pixels (Lichess's three columns), and the analysis on its right.
   import { ContextMenu, Dialog, Switch, Tabs } from "bits-ui";
-  import { untrack, type Snippet } from "svelte";
+  import { untrack, type ComponentProps, type Snippet } from "svelte";
   import { MediaQuery } from "svelte/reactivity";
   import { innerHeight, innerWidth } from "svelte/reactivity/window";
   import { CUSTOM_REVIEW, DEPTHS, NETWORKS, REVIEW_PRESETS, networkMB, networkName, offersNetwork, TIME_LIMITS, maxWorkers,
@@ -104,13 +104,13 @@
   import Glyph from "./Glyph.svelte";
   import LabelBadge from "./LabelBadge.svelte";
   import { LineDrawing } from "./lineDrawing.svelte.ts";
-  import { IMAGE_SITE, imageCaption, imageLine, imageName } from "./lineImage.ts";
+  import { imageCaption, imageLine, imageName } from "./lineImage.ts";
   import { boardImage, copyPng } from "#lib/board/boardImage.ts";
   import { download } from "#lib/game/reviewFile.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
   import Toast from "#lib/ui/Toast.svelte";
   import {
-    edgeName, endingText, moveName, moveNotation, opensTurn, turnFromCount, sameEdge, shortNote, turnShortNote, HARD_NOTE, complexity, likelyEdges, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchEdge, valuesAfter, resultWin, moverWin, costText, pct, shownCandidates, distinctCandidates, rankOf, twinsOf, lineMovers, enoughVisits, trustedLine, type Candidate, type EdgeReview, LABELS, LABEL_TEXT, LABEL_GLYPH, type Label, type Position, type Review, type Unit, type Move, type TurnJudgment, type TurnReview,
+    edgeName, endingText, fmtScore, moveName, moveNotation, opensTurn, turnFromCount, sameEdge, shortNote, turnShortNote, HARD_NOTE, complexity, likelyEdges, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchEdge, valuesAfter, resultWin, moverWin, costText, pct, shownCandidates, distinctCandidates, rankOf, twinsOf, lineMovers, enoughVisits, trustedLine, type Candidate, type EdgeReview, LABELS, LABEL_TEXT, LABEL_GLYPH, type Label, type Position, type Review, type Unit, type Move, type TurnJudgment, type TurnReview,
   } from "./enclosure.ts";
   import { branchChildren, branchLine, branchRows, mainIndex, nextFork, pathKey, prefixKeys, prevFork, sharedLength, siblingLine, treeLines, withLine,
            type BranchRow } from "@abstractclass/analysis/tree.ts";
@@ -195,7 +195,7 @@
   // the step controls stay in view and the page fits the window. They are measured again whenever the board's column or
   // the page changes size, not only the window: the row above the board, measured after the first paint, or a bar of
   // the browser's own, move it too.
-  let boardCol = $state<HTMLElement>();
+  let boardCol = $state<HTMLElement>(), boardWrap = $state<HTMLElement>();
   let sideHeight = $state<number | null>(null);
   function measureSide() {
     if (!boardCol) return;
@@ -477,12 +477,7 @@
     }
     const { start, keys } = branchLine(p.path, mainNames), from = positionOf(start);
     if (!from) return null;
-    const edges: BoardLineEdge[] = [];
-    for (const key of keys) {
-      const node = branches[key];
-      if (!node?.move.edge) break;
-      edges.push({ edge: node.move.edge, player: node.move.player, cut: node.move.cut, regions: node.position.regions });
-    }
+    const { edges } = treeLine(keys.map(k => k.split(" ")));
     return edges.length ? { start, from, edges } : null;
   });
   // Pointing at a later move of the same line goes on from the edges drawn.
@@ -590,6 +585,20 @@
     const i = mainIndex(p, mainNames);
     return !p.length ? undefined : i !== null ? moves[i - 1] : branches[pathKey(p)]?.move;
   }
+  /** A line in the tree, by the path after each of its edges (the game's or a branch's), as a preview draws it: each
+   *  edge with its mover, the edge that it cuts and the regions after it, and the position after the last. A pass (no
+   *  edge) ends it. */
+  function treeLine(paths: string[][]): { edges: BoardLineEdge[]; end?: Position } {
+    const edges: BoardLineEdge[] = [];
+    let end: Position | undefined;
+    for (const p of paths) {
+      const m = moveInto(p), after = positionOf(p);
+      if (!m?.edge || !after) break;
+      edges.push({ edge: m.edge, player: m.player, cut: m.cut, regions: after.regions });
+      end = after;
+    }
+    return { edges, end };
+  }
   function analysisAt(p: string[]): Analysis | undefined {
     const i = mainIndex(p, mainNames);
     return i !== null ? R.data.analysis[i] : branches[pathKey(p)]?.analysis;
@@ -672,8 +681,13 @@
   // Lichess's move menu on a branch's move (ui/analyse/src/treeView/contextMenu.ts): "Promote variation" and "Delete
   // from here". In a review they are off on the game's own moves: the review is of the game, so its line stays first.
   // The Analysis board's main line has them, and "Make main line" for a branch (design 21). Every move has "Copy
-  // image" and "Save image" (imageOf).
+  // image" and "Save image" (copyImage, saveImage).
   let menuPath = $state<string | null>(null); // the key of the move under the menu
+  // A long press opens the menu, and in some browsers its release then clicks the move (Chromium's touch emulation does,
+  // after 900 ms and after 1,500 ms). That click goes nowhere: it would move the position on screen under the menu, and
+  // the image of a main line move ahead of it would show the position after the move. A later click, on a move or to
+  // close the menu, works as before.
+  let pressAt = 0, menuAt = 0; // when the move list's last press began, and when the menu opened (0: closed)
   const menuBranch = $derived(menuPath !== null && (board || menuPath in branches) ? menuPath : null); // a move the menu edits
   /** A branch can be promoted when a branch node on its path, from its end back, is not the first branch from its parent. */
   function canPromote(key: string | null): boolean {
@@ -691,47 +705,34 @@
   // its edges numbered all at once with their cuts and regions, the player's notes there, and the caption. Copied, or
   // where the clipboard refuses an image, a note that says so and offers Save. The note's text is text that a player
   // follows: strict Simplified Technical English.
-  let imageNote = $state<{ text: string; failed?: boolean; save?: () => void } | null>(null);
-  let imageTimer: ReturnType<typeof setTimeout> | undefined;
-  function showImageNote(note: typeof imageNote, ms = 4000) {
-    clearTimeout(imageTimer);
-    imageNote = note;
-    if (note) imageTimer = setTimeout(() => (imageNote = null), ms);
-  }
-  function lineImage(key: string): { png: Promise<Blob>; name: string } {
-    const line = imageLine(key ? key.split(" ") : [], path, mainNames), from = positionOf(line.start);
+  let imageNote = $state.raw<ComponentProps<typeof Toast> | null>(null);
+  type LineImage = { png: Promise<Blob>; name: string };
+  function imageOf(key: string): LineImage {
+    const line = imageLine(key.split(" "), path, mainNames), from = positionOf(line.start);
     if (!from) return { png: Promise.reject(new Error("the position is not in the tree")), name: "" };
-    // The edges as far as the tree has them, as the preview draws them: a pass (no edge) ends the numbers.
-    const edges: BoardLineEdge[] = [];
-    let end: Position | undefined;
-    for (const p of line.paths) {
-      const m = moveInto(p), after = positionOf(p);
-      if (!m?.edge || !after) break;
-      edges.push({ edge: m.edge, player: m.player, cut: m.cut, regions: after.regions });
-      end = after;
-    }
-    const caption = imageCaption({ ...moveFrom(line.start), player: from.player, movesLeft: from.movesLeft, over: from.over,
-                                   scores: from.scores, areas: from.areas }, end ?? null, edges.length);
+    const { edges, end } = treeLine(line.paths);
+    const caption = imageCaption({ ...moveFrom(line.start), ...from }, end ?? null, edges.length);
     // Twice the board's size on screen, and at least 1,200 pixels wide.
-    const width = Math.max(1200, Math.round(2 * (boardCol?.querySelector("svg")?.getBoundingClientRect().width ?? 0)));
+    const width = Math.max(1200, Math.round(2 * (boardWrap?.getBoundingClientRect().width ?? 0)));
     const png = boardImage({ position: from, cut: edges.length ? null : moveInto(line.start)?.cut ?? null, line: edges,
                              notes: $state.snapshot(notesAt[pathKey(line.start)] ?? []),
                              layers: { ...$state.snapshot(display.layers), regions: true, candidates: false, marks: false } },
-                           caption, IMAGE_SITE, width);
-    return { png, name: imageName(line) };
+                           caption, width);
+    return { png, name: imageName(line.start, edges.length) };
   }
-  const imageFailed = (e: unknown) => showImageNote({ text: `The site cannot make the image: ${errorText(e)}`, failed: true }, 10000);
-  function saveImage(png: Promise<Blob>, name: string) {
-    showImageNote(null);
+  const imageFailed = (e: unknown) => (imageNote = { text: `The site cannot make the image: ${errorText(e)}`, failed: true });
+  function saveImage({ png, name }: LineImage) {
+    used("image saved");
+    imageNote = null;
     png.then(b => download(name, b, "image/png"), imageFailed);
   }
-  function imageOf(key: string, how: "copy" | "save") {
-    used(how === "copy" ? "image copied" : "image saved");
-    const { png, name } = lineImage(key);
-    if (how === "save") { saveImage(png, name); return; }
-    copyPng(png).then(copied => showImageNote(copied ? { text: "Image copied." }
-      : { text: "This browser cannot copy an image. Save the image as a file.", failed: true, save: () => saveImage(png, name) }, copied ? 4000 : 15000),
-                      imageFailed);
+  function copyImage(key: string) {
+    used("image copied");
+    const image = imageOf(key);
+    // The note with Save stays longer: the player reads it, then chooses.
+    copyPng(image.png).then(copied => (imageNote = copied ? { text: "Image copied" }
+      : { text: "This browser cannot copy an image. Save the image as a file.", failed: true, ms: 15000,
+          action: { label: "Save image", onclick: () => saveImage(image) } }), imageFailed);
   }
   async function deleteFrom(key: string) {
     used("branch deleted");
@@ -1143,13 +1144,14 @@
        ContextMenu), not the browser's: on a branch's move with its actions. On the game's moves in a review, only the
        image's, since the game's line stays as it is and its moves are evaluated already. Elsewhere (the engine's line,
        a note) each action is off. -->
-  <ContextMenu.Root>
+  <ContextMenu.Root onOpenChange={open => (menuAt = open ? performance.now() : 0)}>
   <ContextMenu.Trigger>
   {#snippet child({ props })}
   <!-- A click on a move does not focus it (Lichess's moves take no focus): the keys move through the game from the page,
        and a move kept in focus would show the browser's focus ring once a key is pressed, and take Space for itself. -->
   <div {...props} class={MOVE_LIST} bind:this={movelist}
-       onpointerdowncapture={e => (menuPath = (e.target as Element).closest<HTMLElement>("[data-path]")?.dataset.path ?? null)}
+       onpointerdowncapture={e => { pressAt = e.timeStamp; menuPath = (e.target as Element).closest<HTMLElement>("[data-path]")?.dataset.path ?? null; }}
+       onclickcapture={e => { if (menuAt && pressAt < menuAt) { e.preventDefault(); e.stopPropagation(); } }}
        onmousedown={e => { if ((e.target as Element).closest("button")) e.preventDefault(); }}>
     {#if !rowsDrawn}
       <!-- Grey bars until the rows come (rowsDrawn), in one element for the frame they show: a bar for each turn, a
@@ -1234,8 +1236,9 @@
       <ContextMenu.Item disabled={!!snapshot || !menuBranch || (game?.turnKeys(menuBranch.split(" ")) ?? [menuBranch]).every(k => !!branches[k]?.judged || !!board?.judged[k])}
                         onSelect={() => { if (menuBranch) { used("quality evaluated"); game?.judge(menuBranch.split(" ")); } }} class={MENU_ITEM}>Evaluate quality</ContextMenu.Item>
       <ContextMenu.Separator class="my-1 h-px bg-line" />
-      <ContextMenu.Item disabled={menuPath === null} onSelect={() => menuPath !== null && imageOf(menuPath, "copy")} class={MENU_ITEM}>Copy image</ContextMenu.Item>
-      <ContextMenu.Item disabled={menuPath === null} onSelect={() => menuPath !== null && imageOf(menuPath, "save")} class={MENU_ITEM}>Save image</ContextMenu.Item>
+      <ContextMenu.Item disabled={!menuPath} onSelect={() => menuPath && copyImage(menuPath)} class={MENU_ITEM}>Copy image</ContextMenu.Item>
+      <ContextMenu.Item disabled={!menuPath} onSelect={() => menuPath && saveImage(imageOf(menuPath))}
+                        class={MENU_ITEM}>Save image</ContextMenu.Item>
       <ContextMenu.Separator class="my-1 h-px bg-line" />
       <ContextMenu.Item disabled={!!snapshot || !menuBranch} onSelect={() => menuBranch && deleteFrom(menuBranch)} class={MENU_ITEM}>Delete from here</ContextMenu.Item>
     </ContextMenu.Content>
@@ -1690,7 +1693,7 @@
         <ShareBar upright share={blueWin} labels={[pct(blueWin), pct(1 - blueWin)]}
                   title={Number.isNaN(blueWin) ? "Win chance: not analysed yet" : `Blue's win chance ${pct(blueWin)}`} />
       {/if}
-      <div class="board-wrap rounded overflow-hidden">
+      <div class="board-wrap rounded overflow-hidden" bind:this={boardWrap}>
         <!-- While a branch's preview shows, the board is at the row's start, with the row as its line; while a played
              move's shows, at the position after it. Nothing of the position on screen: no candidates, labels or own
              moves. -->
@@ -1888,13 +1891,8 @@
     </Dialog.Portal>
   </Dialog.Root>
 
-  <!-- What the move menu's image did (imageOf): copied, or why not, with Save where the clipboard refuses it. -->
-  {#if imageNote}
-    {@const note = imageNote}
-    <Toast text={note.text} failed={note.failed} onclose={() => showImageNote(null)}>
-      {#snippet action()}{#if note.save}<button type="button" class="flex-none px-2 py-0 text-sm" onclick={note.save}>Save image</button>{/if}{/snippet}
-    </Toast>
-  {/if}
+  <!-- What the move menu's image did (copyImage): copied, or why not, with Save where the clipboard refuses it. -->
+  {#if imageNote}<Toast {...imageNote} onclose={() => (imageNote = null)} />{/if}
 </main>
 
 <style>
