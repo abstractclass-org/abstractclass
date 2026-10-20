@@ -119,7 +119,7 @@
       phase = { at: "share", shared: s, here };
       track("review_share_open", { network_found: !!network, same_engine: here.sameEngine });
     } catch (e) {
-      phase = { at: "failed", load: true, problem: `Hedge School cannot read the share link: ${errorText(e)}` };
+      phase = { at: "failed", load: true, problem: errorText(e) };
       trackLoadFailed("review_share_link", "link");
     }
   }
@@ -171,9 +171,9 @@
     <p><strong>{names.blue} against {names.red}</strong>, {shared.moves.length} edges{shared.branches.length
       ? `, with ${shared.branches.length} ${shared.branches.length === 1 ? "move" : "moves"} in the sender's branches` : ""}.</p>
     <p>The link carries the game, not the engine's work. <strong>Your browser reviews the game again</strong>, as it does
-      a game you import. The review shows each result as the engine finds it. With the sender's engine, network and depth,
-      your review is the same as the sender's: the same labels, lines and accuracy. A GPU computes the network a little
-      differently, so on a GPU a close call can rarely give another result.</p>
+      a game you import. The review shows each result as the engine finds it. With the sender's engine, network and
+      depth, your review is the same as the sender's: the same labels, lines and accuracy. A GPU computes the network a
+      little differently, so on a GPU a close call can rarely give another result.</p>
     <p>The sender's review: {here.network ? networkName(here.network) : "a network this site no longer has"}, at
       {reviewDepthText(shared.visits)}.
       {#if !here.network}The review uses your network, so its labels can differ.
@@ -190,12 +190,12 @@
         {#if stale === "bookmarklet"}Your bookmarklet is an older one. On the <a href="/tools">tools page</a>, drag the
           button to the bookmarks bar again, in place of the old one.
         {:else if stale === "userscript"}Your userscript is older than this site's. Tampermonkey updates it when it next
-          checks. To update it now, open the Hedge School userscript on the <a href="/tools">tools page</a>. Tampermonkey
-          then offers the update.
+          checks. To update it now, open the Hedge School userscript on the <a href="/tools">tools page</a>.
+          Tampermonkey then offers the update.
         {:else}This game came from a bookmarklet or a userscript made before they could tell this site their version. On
           the <a href="/tools">tools page</a>, drag the bookmarklet to the bookmarks bar again, in place of the old one.
-          The new bookmarklet loads its code from this site, so it stays up to date. For the userscript, open it there.
-          Tampermonkey then offers the update.{/if}
+          The new bookmarklet loads its code from this site, so it stays up to date. For the userscript, open it on the
+          <a href="/tools">tools page</a>. Tampermonkey then offers the update.{/if}
       </p>
     {/if}
     <h1 class="text-2xl font-bold">A game from {site}</h1>

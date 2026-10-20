@@ -1503,7 +1503,8 @@
         <!-- A game's network off the menu (an earlier one, which the site still ships): the Network setting has none
              chosen, so the note names it. -->
         <p class="mb-1.5 text-xs text-muted">{#if ownSettings === "mark"}This game keeps the network and depth per move of
-          its last review, so that the review opens as the engine made it. A change of the depth here applies to this game only.
+          its last review, so that the review opens as the engine made it. A change of the depth here applies to this game
+          only.
           {:else}This game came with a network and depth per move, from a review file or a shared link. It keeps them, so
           that its review stays the one it came with. A change of them here applies to this game only.{/if}
           {#if !offersNetwork(e.network)}Its network, {networkName(e.network)}, is an earlier one, and the Network setting
@@ -1525,7 +1526,7 @@
       <h3 class={SETTINGS_HEAD}>Engine</h3>
       {@render choice("Network", `Lite has ${NETWORKS[0].params} parameters, the other ${NETWORKS[1].params}: stronger per visit but about 3× slower. A change ${board ? "searches the positions again" : "reviews the game again"}. A network downloads once, and the browser keeps it.`,
         NETWORKS.map(n => [n.id, networkLabel(n.id)]), () => e.network, v => set({ network: v }))}
-      {@render steps("Workers", "Positions searched at the same time. Each worker uses more of your computer's memory. Check how much memory your computer has.", maxWorkers(),
+      {@render steps("Workers", "Positions searched at the same time. Each worker uses more of your computer's memory. Use only as many workers as your computer's memory can hold.", maxWorkers(),
         () => e.workers - 1, k => set({ workers: k + 1 }), k => `${k + 1} of ${maxWorkers()}`)}
       {@render choice("GPU", `Many positions at once on the graphics card, with the workers. Auto tests it on first use, and keeps it where it is faster than a worker. Its first use downloads ${gpu?.downloadMB ?? "?"} MB. While it searches, it uses more memory, as the workers do.`,
         [["auto", "Auto"], ["on", "On"], ["off", "Off"]], () => e.gpu, v => set({ gpu: v as GpuMode }))}

@@ -4992,21 +4992,23 @@ sweep.
 
 - **What:** the files that the second pass left (abscls-6npo), by the same rules: CLAUDE.md, "Writing the site's text",
   and the `/asd-ste100` skill with its linter. A script gave the linter each file's text: its string literals and its
-  template's prose, without its code and its `<pre>` blocks. The pass then read each file in full. The files had changed
-  after the second pass: the review has the move menu's image items and their note (`Toast.svelte`), and the board
-  editor has a new help in strict STE (abscls-dyms).
+  template's prose, without its code and its `<pre>` blocks. The pass then read each file in full, with the text that
+  came after the second pass: the move menu's image items (abscls-yeqg) and the board editor's new help (abscls-dyms).
 - **Strict, for what a player follows:**
   - The review's keys and clicks: "Close the settings, or cancel the edge that you started" (was "drop an edge begun"),
     and "Pin its line on the board. Click the candidate again to unpin it" (was one sentence with a semicolon).
   - `Arrival.svelte`: the errors say who acts, "Hedge School could not load the review" and "Hedge School could not
-    import the game". The notes for an out-of-date tool give one instruction in each sentence ("Tampermonkey then offers
-    the update"), and "The new bookmarklet loads its code from this site" replaces "it now loads its code".
+    import the game". After them, a share link's error gives the error's own text, such as the decoder's "the link is
+    broken". Its detail began with "Hedge School cannot read the share link", which named the actor a second time. The
+    notes for an out-of-date tool give one instruction in each sentence ("Tampermonkey then offers the update"). "The
+    new bookmarklet loads its code from this site" replaces "it now loads its code", and "For the userscript, open it
+    on the tools page" replaces "open it there", which pointed two sentences back.
   - `bookmarklet.ts`: "Check the connection. Then click the bookmarklet again." Before, one sentence held the two
     instructions, and "it" named the bookmarklet only by its context.
   - `meafPage.ts`, the message for a page with no game: "this page shows no game that Hedge School can read. Open a game
     on …: a game that you play or watch, or a finished game. Then click … again. If a game shows and you see this
-    message again, … may have changed its page. The newest bookmarklet and userscript are on …/tools." The phrasal verb
-    "comes back" went, and "may have changed" keeps its hedge. "Log in, then click" and "Wait a moment, then click"
+    message again, … may have changed its page. The newest bookmarklet and userscript are on …/tools." The phrasal
+    verb "comes back" went, and "may have changed" keeps its hedge. "Log in, then click" and "Wait a moment, then click"
     became two sentences each.
   - The board editor's help for Marks had 28 words. It became three sentences: "Click an edge's two points to mark it.
     Mark the waiting player's edges of the last turn (protected). Mark the mover's edges of this turn so far (placed)."
@@ -5018,32 +5020,50 @@ sweep.
   - The review's engine settings: "so that the review opens as the engine made it" (was "as it was made"). For a game
     from a file or a link: "This game came with a network and depth per move, from a review file or a shared link. It
     keeps them, so that its review stays the one it came with. A change of them here applies to this game only." Before,
-    the first two sentences were one of 30 words, and "applies to" is the words of the note for the other case. The
-    Workers setting: "Each worker uses more of your computer's memory. Check how much memory your computer has." (was
-    "mind how much it has").
-  - The shared review's note: sentences of at most 25 words in place of sentences of 32 words and more. "the review
+    the first two sentences were one of 30 words, and "applies to" are the words of the note for the other case. The
+    Workers setting: "Each worker uses more of your computer's memory. Use only as many workers as your computer's
+    memory can hold." (was "mind how much it has", which asked the player to choose a number that fits).
+  - The shared review's note: its first sentence, of 31 words, became three. "the review
     fills in as the engine goes" became "The review shows each result as the engine finds it", "it comes out as the
     sender's review" became "your review is the same as the sender's", and "a close call can rarely come out otherwise"
     became "a close call can rarely give another result", with "rarely" kept. "This site's engine changed after the
     sender made the link" replaces "has changed since the link was made".
   - The Privacy page: its passive verbs in the active voice, with the actor named. "that the site could not send yet",
-    "The site does not keep a game that ends before your first move", "With it, the site can tell your games apart", "If
-    the site cannot send a game when it ends", "Hedge School then keeps the game in your browser" and "Hedge School then
-    keeps it here" (the two "it is kept here"), "The script draws its button and its collie itself". Its sentences of 26
-    to 42 words became sentences of at most 25 words, with every fact. "To remove them, clear this site's data" became
-    "To delete them": the page says "delete" for what the browser or the site keeps, and "remove" only for the part of
-    an address after the `#`.
+    "The site does not keep a game that ends before your first move", "With it, the site can distinguish your games"
+    (not the phrasal verb "tell apart", which also left Google Analytics' cookies), "If the site cannot send a game
+    when it ends", "Hedge School then keeps the game in your browser" and "Hedge School then keeps it here" (the two
+    "it is kept here"), "The script draws its button and its collie itself". A game that waits "goes on your next
+    visit" read as "continues": now "the site sends it on your next visit", in the list and in the section on games
+    against HedgeFund. Its sentences of 26 to 42 words became sentences of at most 25 words, with every fact. "To remove
+    them, clear this site's data" became "To delete them": the page says "delete" for what the browser or the site
+    keeps, and "remove" only for the part of an address after the `#`.
 - **The text now says what the code does:**
   - The Privacy page's list of what this browser keeps names the board editor: "Your board editor position: the position
     you are making, and how you set its edge count, so that a reload keeps them" (`hedge-school:editor` and
     `hedge-school:editor-count`).
+  - The list, compared with every localStorage key and IndexedDB store that the site writes, also missed three things.
+    "Your games" now names "the branches you add to their reviews" (the store `branches`). "Your last review: the game
+    that "Continue your last review" opens" (`learn-enclosure:last-review:1`). "The GPU's test: the name of your GPU
+    and its speed against a worker, so that the GPU setting's Auto does not test it again" (`learn-enclosure:gpu:4`,
+    with the adapter's vendor and architecture). The list does not name the analyses' clean-up marks
+    (`learn-enclosure:analysis-shape:1`, `learn-enclosure:earlier-results:1`), which hold no data of the player's, or
+    the internal-traffic flag (`hedge-school:internal-traffic:1`, design 17), which only the address parameter
+    `?internal=on` sets. sessionStorage (the scroll places, the review's dialog shown once) ends with the tab.
   - The developers page said that Hedge School refuses a record with a `Rules` or a `Position` tag. `variantProblem`
-    (`src/lib/game/import.ts`) refuses a `Rules` tag that names other rules and a `Position` tag that gives another
-    start. It accepts either tag with the value `?` or `-`, and a `Position` tag that gives the standard start. The page
-    now says so.
+    (`src/lib/game/import.ts`) refuses a `Rules` tag with any value and a `Position` tag that gives a start other than
+    the standard start (`setUpStart`, `src/lib/engine/notation.ts`). Both read `?` or `-` as no value. The page now
+    says so: "refuses a record whose `Rules` tag has a value, or whose `Position` tag gives a start other than the
+    standard start", and "reads `?` or `-` as no value". The instruction to show the link for refused games only once
+    Hedge School reviews them comes last.
 - **Left:**
   - "/import is deprecated": `Arrival.svelte` no longer has the text.
-  - `meafPage.ts`, "only to a player who is logged in": "logged in" gives the player's state, not an action.
+  - `meafPage.ts`, "only to a player who is logged in": "logged in" gives the player's state, not an action. "Hedge
+    School: this page shows no game that Hedge School can read": the prefix "Hedge School:" is the label of each tool
+    message on another site, not the subject of the sentence.
+  - The board editor's help for Marks tells the player which edges to mark, and the brackets give each mark's meaning
+    (protected, placed). The old text gave the same edges as a list after a colon.
+  - The review's "A change of them here applies to this game only": the same form as the note for the other case and
+    the settings' notes ("A change searches the positions again").
   - The review: "Export once the review is done", because "Review done" is the name of that state (as on the developers
     page in the second pass). "Shown when a review opens" and "Refined as the review runs" in the display settings:
     participles that describe a setting, with no action. "delete from it" beside "Drawing it again removes it": "Delete
@@ -5052,8 +5072,16 @@ sweep.
     not a sentence to split. "each switch that you have not set yet": the present perfect gives the state now.
   - The move menu's image items, their notes and `Toast.svelte` (which has no text of its own) read as strict STE.
   - The developers page's other notes from the linter: this pass changed only its claim about the tags.
+- **The tools:** the text of `meafPage.ts` ships in `/bookmarklet.js`, which the bookmark loads at each click, and in
+  `/hedge-school.user.js`. The userscript's `@version` is the build's time (`vite.config.ts`), so Tampermonkey takes
+  each build as an update with no change by hand. `meafPage.ts` is one of the files of its code's hash
+  (`__USERSCRIPT_CODE__`), so the import page asks a player with an older userscript to update it. The alert in
+  `bookmarklet.ts` is in the bookmark itself (`load`): a bookmark dragged before keeps the old words. `BOOKMARK_VERSION`
+  stays 1, because a new number would ask every player to drag the bookmarklet again for the words of one error.
 - **Tests:** no test matched the changed text. `userscript.test.ts` matches the "no game" message's "Open a game on
   strategyjam.org" and its `/tools` address, which stay.
-- **Checked:** `npm run check` (0 errors) and `npm test` (181 passed) in `apps/hedgeschool`, and the layout sweep in
-  Chromium on a preview of the build (21 passed, and 6 skipped for want of the Google tag and of stored practice games
-  in a local build).
+- **Checked,** after the review's changes: `npm run check` (0 errors) and `npm test` (181 passed) in
+  `apps/hedgeschool`, and the layout sweep in Chromium on a preview of the build (20 passed, and 6 skipped for want of
+  the Google tag and of stored practice games in a local build). In the sweep, `own-settings.spec.ts` reached its
+  timeout of 10 minutes at `page.goto("about:blank")`, before any text of this pass. Alone, on the same build, it
+  passed in 3.4 s.

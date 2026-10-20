@@ -84,10 +84,9 @@ window.addEventListener("message", event => {
       players, and <code>Date</code>, <code>Result</code> and <code>TimeControl</code> describe the game. Put the
       game's own page in <code>Site</code> (as Lichess does), and the review links back to it.</li>
     <li><strong>The online rules from the standard start only.</strong> {SITE_NAME} refuses a record whose
-      <code>Rules</code> tag names other rules, or whose <code>Position</code> tag gives another start, with a message
-      that says why. It accepts either tag with the value <code>?</code> or <code>-</code>, and a <code>Position</code>
-      tag that gives the standard start. Show the link for games of other rules or from another
-      start only once {SITE_NAME} reviews such games.</li>
+      <code>Rules</code> tag has a value, or whose <code>Position</code> tag gives a start other than the standard start.
+      A message says why. In either tag, {SITE_NAME} reads <code>?</code> or <code>-</code> as no value. Show the link
+      for refused games only once {SITE_NAME} reviews them.</li>
     <li><strong>A finished game only.</strong> A link to a game in play would give a player the engine's help.</li>
     <li>The record goes after the <code>#</code>, which a browser never sends to a server, and the page removes it
       from the address at once.</li>
