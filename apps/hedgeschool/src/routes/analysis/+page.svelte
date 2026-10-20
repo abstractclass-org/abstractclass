@@ -192,7 +192,7 @@
       track("analysis_open", { edges: range(g.mainNames.length, EDGE_RANGES) });
       if (chosen.imported) trackImport("analysis", chosen.imported, g.mainNames.length);
       if (chosen.loaded) trackLoad(chosen.loaded, g.mainNames.length);
-      g.ready();
+      await g.sweep(); // the board's sweep makes the engine ready, unless another network loads (GameAnalysis.sweep)
     } catch (e) {
       error = errorText(e);
       track("engine_error", { error_kind: "load" });

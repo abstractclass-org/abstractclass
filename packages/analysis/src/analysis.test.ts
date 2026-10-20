@@ -114,10 +114,10 @@ test("a search of the previous network adds nothing to the analysis or the progr
   assert.equal(written().length, 1); // the first search's alone
 });
 
-test("the passes end with the previous network: no label search starts on its pool or reads its results", async () => {
+test("the passes end with the old network: no label search starts on its pool or reads its results", async () => {
   const { game, pool, searches } = await sweeping();
   const n = game.passCount, visits = game.labelVisits;
-  // The start's label result by the previous network, in the store.
+  // The start's label result by the old network, in the store.
   await cachePut(analysisKey(pool.search!, pool.model!.sha256, [], visits), toAnalysis(words, reply(visits)));
   game.dropAnalysis();
   for (const s of searches) s.end(SWEEP_VISITS); // the sweep's searches finish their few visits, as a halt lets them
@@ -147,6 +147,7 @@ test("a sweep after another network was chosen waits for that network's pool", a
     void game.sweep();
     game.focus([]);
     await settle();
+    // The focus's search, and the review's sweep of every position.
     assert.deepEqual([next.searches.length, game.engineReady], [game.board ? 1 : game.passCount + 1, true], id);
   }
 });

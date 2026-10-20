@@ -96,7 +96,7 @@ export class GameAnalysis<G extends GameTypes> {
   private running = $state.raw<Record<string, number>>({});
   private era = 0; // another network starts a new era: results from an earlier one are dropped
   private pool: EnginePool;
-  private oldNetwork = false; // the pool has the network dropped (dropAnalysis), until usePool gives the next pool
+  private stalePool = false; // the pool still has the old network: from dropAnalysis until usePool gives the next pool
   private readonly game: Game<G>;
   private readonly id: string; // the game's id in the site's store, under which its branches are kept, or the board's
   private nextOrder = 0;
@@ -490,9 +490,10 @@ export class GameAnalysis<G extends GameTypes> {
     return { version: 2, nodes, main: [...this.mainNames], ...(this.startPosition ? { start: this.startPosition } : {}) };
   }
 
-  /** Board: the engine is ready once the pool has a network. No pass runs: the engine searches the position on screen
-   *  (focus) and the moves evaluated, whose searches start again here (after another network, or the engine on). */
-  ready() {
+  /** Board: the engine is ready once the pool has a network (the board's sweep). No pass runs: the engine searches the
+   *  position on screen (focus) and the moves evaluated, whose searches start again here (after another network, or the
+   *  engine on). */
+  private ready() {
     this.engineReady = true;
     for (const k of this.judgedKeys()) this.judgeSearches(k.split(" "));
   }
@@ -600,10 +601,10 @@ export class GameAnalysis<G extends GameTypes> {
   /** The sweep, then the label pass, for the positions that lack them: a position already searched that far is
    *  skipped. Call after start() and once the pool has a network, and again to take the work up after a change (the
    *  engine on again, another label budget, another network). The branch moves evaluated on request are searched too.
-   *  After dropAnalysis, it does nothing until usePool gives the next pool: the engine is not ready, so no search
-   *  starts on the old network's pool. */
+   *  On the board, it makes the engine ready (ready), and no pass runs. After dropAnalysis, it does nothing until
+   *  usePool gives the next pool. */
   async sweep() {
-    if (this.oldNetwork) return;
+    if (this.stalePool) return;
     if (this.board) { this.ready(); return; }
     this.engineReady = true;
     const run = ++this.passes;
@@ -652,12 +653,11 @@ export class GameAnalysis<G extends GameTypes> {
 
   /** Drops the analysis before another network takes over: every result came from the old one. The searches and the
    *  run of the passes stop, and results that still arrive from them are dropped. The engine is not ready again until
-   *  usePool() and sweep(): a search on the old pool would keep the old network's result in the new era, and the new
-   *  sweep would skip its position. */
+   *  usePool() and sweep(). */
   dropAnalysis() {
     this.era++;
-    this.passes++; // else the run's label pass starts on the old pool once its halted sweep pass ends
-    this.oldNetwork = true;
+    this.passes++;
+    this.stalePool = true;
     this.dropFocus();
     this.pool.halt();
     this.engineReady = false;
@@ -676,7 +676,7 @@ export class GameAnalysis<G extends GameTypes> {
   usePool(pool: EnginePool) {
     const old = this.pool;
     this.pool = pool;
-    this.oldNetwork = false;
+    this.stalePool = false;
     old.terminate();
   }
 

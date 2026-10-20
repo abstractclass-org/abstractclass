@@ -4646,7 +4646,9 @@ sweep.
     its sweep pass.
   - From `dropAnalysis()` to `usePool()`, the pool has the old network, and `sweep()` does nothing: no pass runs, and
     the engine is not ready. The review says "Loading the engine's network…" until the next pool's sweep. The board's
-    `sweep()` follows the same rule.
+    `sweep()` follows the same rule. The Analysis board's page made the engine ready itself (`ready()`), so this rule
+    did not cover the board. The page now calls `sweep()`, as the session does after another network. `ready()` is
+    private.
 - **Why not the other fix:** the issue named a second fix: `sweep()` stops after its sweep pass while the engine is
   not ready (`engineReady`). That stops the first way, but not the second, where the page's `sweep()` makes the engine
   ready on the old pool. The run's counter is what stops an old run. `engineReady` is what the other searches read.
@@ -4673,7 +4675,19 @@ sweep.
   - Another network before the first sweep, for the review and for the board: `sweep()` and the focus start no
     search, and the engine is not ready. After `usePool()`, `sweep()` makes the engine ready, and the searches start
     on the next pool. Before the change, the review's sweep and its focus started 5 searches on the old pool.
-- **Not seen in a browser.** The tests are the evidence.
+- **In a browser:** headless Chromium on the preview build, with the review of the test fixture's game (120
+  positions, imported by its record). The review's depth was 256 visits, with 2 workers and the GPU off. Each case
+  ran in a fresh context, with no stored results. A script noted each search that the page sent to a worker, each
+  network that a worker loaded, and each write to the store's results.
+  - **Another network during the sweep:** HedgeFund 0.2 first, then HedgeFund 0.2 Lite, after the sweep had searched
+    10 of the 120 positions, before the label pass.
+  - **Another network while the first one loads:** the test held back both downloads. It let the first network go
+    first, so that the first pool loaded it before the next pool took over. No search started until the next pool
+    had loaded Lite, and the review said "Loading the engine's network…" until then.
+  - **Another network after the review was done:** Lite, then HedgeFund 0.2.
+  - **In each case,** after the change: no search went to a worker of the old pool, and the page wrote no result
+    with the old network's SHA-256. The new network searched all 120 positions, and its results in the store hold
+    each of them at the review's depth.
 - **Left:** a network chosen after Review again on a snapshot, before the new review's analysis shows, goes to the
   snapshot's analysis, and the new review runs on the earlier network (abscls-ysbn). In the second way above, the
   session's start also gives the GPU's control for the new network to the first pool until the next pool replaces it.
