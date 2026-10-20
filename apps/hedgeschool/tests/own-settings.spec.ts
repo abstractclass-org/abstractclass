@@ -42,9 +42,9 @@ test("Custom at a preset's visits keeps its row, and a game from a review file s
   await page.locator('input[type="file"][accept*="json"]').first().setInputFiles(FIXTURE);
   await page.waitForURL(/#game=/);
   const id = new URL(page.url()).hash.match(/game=([^&]+)/)![1];
-  // The Review tab reloads itself to open the game (Arrival.svelte), and the address names the game before that load
-  // starts. The review's controls show only after that reload, so wait for them: a goto here can meet the reload.
-  await page.getByRole("button", { name: "Engine settings" }).waitFor();
+  // The file's load names the game in the address (src/lib/review/ReviewHome.svelte), then the Review tab reloads to
+  // review it (src/routes/review/+page.svelte, otherGame). Only the reloaded page has the review's controls, and
+  // settings() waits for them: a goto here can meet the reload.
 
   for (const kind of ["stored", "mark"]) {
     const panel = await settings(page);
