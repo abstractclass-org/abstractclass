@@ -92,7 +92,9 @@ export class GameAnalysis<G extends GameTypes> {
   moments = $state.raw<number[]>([]); // the key moments' positions, searched deeper after the label pass
   private deepening = new Set<string>(); // their searches queued or running, by position and visits
   // The same searches by position, with how many, until the batch after each one's end (momentChecks).
-  private deepRunning = $state.raw<Record<number, number>>({});
+  private deepSearches = $state.raw<Record<string, number>>({});
+  // Every position and visits that the key moments' searches were asked for, until another network (momentChecks).
+  private deepAsked = $state.raw<Record<string, true>>({});
   private confirming = new Set<string>(); // the Greats' confirmations queued or running, by path key
   // The positions whose search runs now, by path key: their analysis can still change (the page's gleam on a line)
   private running = $state.raw<Record<string, number>>({});
@@ -140,9 +142,9 @@ export class GameAnalysis<G extends GameTypes> {
     if (this.running[pathKey(path)]) return true;
     const i = mainIndex(path, this.mainNames);
     if (this.board || i === null || i >= this.passCount || this.paused || !this.engineReady) return false;
-    const moment = this.moments.includes(i) || !!this.deepRunning[i]; // or a search for earlier key moments runs
+    // A key moment, or a position whose search for earlier key moments runs, waits for the key moments' depth.
     return this.reached[i] < this.labelVisits
-      || (moment && (this.analysis[i]?.visits ?? 0) < momentVisits(this.labelVisits));
+      || ((this.moments.includes(i) || !!this.deepSearches[i]) && (this.analysis[i]?.visits ?? 0) < momentVisits(this.labelVisits));
   }
 
   /** Whether the search of the position at `path` stopped at the time limit, with the focus settings as they are. */
@@ -290,15 +292,17 @@ export class GameAnalysis<G extends GameTypes> {
   }
 
   /** The key moments' deeper searches as the review's step: the positions `moments` (the key moments that the review
-   *  reads now) and the positions whose search for earlier key moments is queued or running, and how many of them have
-   *  the key moments' depth. A search's results so far change the labels, and with them the key moments (design 16),
-   *  so a position can leave them while its search runs. The step waits for that search: its result is stored only at
-   *  its end, so a Review done before it would leave the store without it, and the next visit's key moments would
-   *  have it again. */
+   *  reads now, which the page has before the label pass ends and `deepen` takes them) and the positions whose search
+   *  for earlier key moments is queued or running, and how many of them have the key moments' depth. A search's
+   *  results so far change the labels, and with them the key moments (design 16), so a position can leave them while
+   *  its search runs. The step waits for that search: its result is stored only at its end, so a Review done before it
+   *  would leave the store without it, and the next visit's key moments would have it again. A position that such a
+   *  search took to the depth counts too, so that the step's count does not go back when the key moments change. */
   momentChecks(moments: number[]): { total: number; done: number } {
-    const depth = momentVisits(this.labelVisits);
-    const positions = new Set([...moments, ...Object.keys(this.deepRunning).map(Number)]);
-    return { total: positions.size, done: [...positions].filter(i => (this.analysis[i]?.visits ?? 0) >= depth).length };
+    const depth = momentVisits(this.labelVisits), has = (i: number) => (this.analysis[i]?.visits ?? 0) >= depth;
+    const searched = Object.keys(this.deepAsked).map(k => k.split(" ").map(Number)).filter(([i, v]) => v === depth && has(i));
+    const positions = new Set([...moments, ...Object.keys(this.deepSearches).map(Number), ...searched.map(([i]) => i)]);
+    return { total: positions.size, done: [...positions].filter(has).length };
   }
 
   /** The review from the browser's store alone, with no search (an export away from the review page, design 13): each
@@ -686,6 +690,7 @@ export class GameAnalysis<G extends GameTypes> {
     this.reached = Array(this.moves.length + 1).fill(0);
     this.timed = {};
     this.moments = [];
+    this.deepAsked = {};
   }
 
   /** Moves the work to another pool, already started (another network, after dropAnalysis). The old pool ends. */
@@ -743,20 +748,10 @@ export class GameAnalysis<G extends GameTypes> {
       const key = `${i} ${visits}`;
       if (this.deepening.has(key)) continue;
       this.deepening.add(key);
-      this.markDeep(i, this.search(this.mainNames.slice(0, i), visits, PRIORITY.moment, "moment", { sliced: true })
+      if (!this.deepAsked[key]) this.deepAsked = { ...this.deepAsked, [key]: true };
+      this.markRunning("deepSearches", i, this.search(this.mainNames.slice(0, i), visits, PRIORITY.moment, "moment", { sliced: true })
         .catch(this.fail).finally(() => this.deepening.delete(key)));
     }
-  }
-
-  /** Counts the game's position `i` among the key moments' searches (momentChecks) until the batch after `search`
-   *  ends: the batch that shows its result. */
-  private markDeep(i: number, search: Promise<unknown>) {
-    this.deepRunning = { ...this.deepRunning, [i]: (this.deepRunning[i] ?? 0) + 1 };
-    const end = () => this.afterBatch(() => {
-      const left = (this.deepRunning[i] ?? 1) - 1, { [i]: _, ...rest } = this.deepRunning;
-      this.deepRunning = left > 0 ? { ...rest, [i]: left } : rest;
-    });
-    search.then(end, end);
   }
 
   /** Keeps an engine error for the page. A task cancelled before it ran, or a worker ended for another pool, is not one. */
@@ -822,7 +817,7 @@ export class GameAnalysis<G extends GameTypes> {
         // hidden tab").
         void nextTask().then(() => { if (pool.idle) this.applyBatch(); });
       });
-      this.markRunning(pathKey(path), shown);
+      this.markRunning("running", pathKey(path), shown);
       await done;
       return { shown };
     });
@@ -830,13 +825,14 @@ export class GameAnalysis<G extends GameTypes> {
     await ended?.shown;
   }
 
-  /** Marks the position `key` as running until the batch after `search` ends (pending): its search runs, its result's
-   *  write follows, and the batch shows the result. */
-  private markRunning(key: string, search: Promise<unknown>) {
-    this.running = { ...this.running, [key]: (this.running[key] ?? 0) + 1 };
+  /** Counts the position `key` in `field` until the batch after `search` ends: its search runs, its result's write
+   *  follows, and the batch shows the result. `running` counts a search that runs now, by path key (pending), and
+   *  `deepSearches` a key moment's search from its queue on, by the game's position (momentChecks). */
+  private markRunning(field: "running" | "deepSearches", key: string | number, search: Promise<unknown>) {
+    this[field] = { ...this[field], [key]: (this[field][key] ?? 0) + 1 };
     const end = () => this.afterBatch(() => {
-      const left = (this.running[key] ?? 1) - 1, { [key]: _, ...rest } = this.running;
-      this.running = left > 0 ? { ...rest, [key]: left } : rest;
+      const left = (this[field][key] ?? 1) - 1, { [key]: _, ...rest } = this[field];
+      this[field] = left > 0 ? { ...rest, [key]: left } : rest;
     });
     search.then(end, end);
   }

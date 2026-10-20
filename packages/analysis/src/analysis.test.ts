@@ -242,7 +242,7 @@ test("the key moments' step waits for a search whose position left them, until i
   const deep = searches.at(-1)!;
   deep.partial(depth - 32);
   mock.timers.tick(BATCH_MS);
-  // The labels follow the result so far, and position 1 is no key moment any more: its search still runs.
+  // The page's key moments lack position 1 now, as when its result so far changed the labels: its search still runs.
   assert.deepEqual(game.momentChecks([]), { total: 1, done: 0 });
   store.hold();
   deep.end(depth);
@@ -253,7 +253,22 @@ test("the key moments' step waits for a search whose position left them, until i
   await settle();
   assert.deepEqual(game.momentChecks([]), { total: 1, done: 0 }); // stored: its end shows with its result, in the batch
   mock.timers.tick(BATCH_MS);
-  assert.deepEqual([game.momentChecks([]), game.momentChecks([1])], [{ total: 0, done: 0 }, { total: 1, done: 1 }]);
+  // Searched to the depth, it still counts, though it is no key moment: the step's count does not go back.
+  assert.deepEqual([game.momentChecks([]), game.momentChecks([1])], [{ total: 1, done: 1 }, { total: 1, done: 1 }]);
+  game.setReview(2 * game.labelVisits); // another depth: the position has not got the new depth
+  assert.deepEqual(game.momentChecks([]), { total: 0, done: 0 });
+});
+
+test("the key moments' step does not wait for a search that ends with no result", async () => {
+  const { game, searches } = await sweeping();
+  game.deepen([1]);
+  await settle();
+  searches.at(-1)!.fail(new Error("engine error"));
+  await settle();
+  assert.deepEqual(game.momentChecks([]), { total: 1, done: 0 }); // until the batch after its end
+  mock.timers.tick(BATCH_MS);
+  assert.deepEqual(game.momentChecks([]), { total: 0, done: 0 });
+  assert.equal(game.error, "engine error");
 });
 
 test("a focus with a time limit stops at its first result past the limit, though its timer has not run", async () => {
