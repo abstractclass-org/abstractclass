@@ -29,6 +29,7 @@
     error: string;
     branches: Record<string, BranchNode>; // the branches' positions, by path key (tree.ts), in the order added
     focusing: string | null; // the path key of the position searched for the player, while it runs
+    engineReady: boolean; // the engine's network is loaded: the searches can start
     rulesAt(path: string[]): Promise<EdgeRules>; // a position's legal edges and mover's nodes, for the player's moves
     secondAt(path: string[]): Analysis | undefined; // the position after the engine's second choice, which confirms a Great
     otherAt(path: string[], turn: (Edge | null)[]): Analysis | undefined; // the same for a turn
@@ -945,6 +946,9 @@
   const timedOut = $derived(!!game?.stoppedByTime(path)); // the search stopped at its time limit
   const searching = $derived(!!game && game.focusing === here); // the position is searched for the player now
   const searched = $derived(analysis && deepVisits ? (timedOut ? 1 : Math.min(1, analysis.visits / deepVisits)) : null);
+  // The engine's network loads: no search of the position can start yet, so the header says so in the place of the
+  // visits (design 06). A snapshot searches nothing (design 20).
+  const networkLoads = $derived(!!game && !snapshot && !game.engineReady);
   // A slider's place while it moves, by its id: the setting changes when it is let go, so that a drag does not restart
   // the workers or the search at each step.
   let drafts = $state<Record<string, number>>({});
@@ -1757,7 +1761,9 @@
              aria-label="This position's search" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(100 * (searched ?? 0))}>
           {#if searched !== null}<div class="h-full bg-accent transition-[width] duration-200" style="width: {100 * searched}%"></div>{/if}
         </div>
-        {#if analysis}<span class="text-xs text-muted tabular-nums whitespace-nowrap">{analysis.visits.toLocaleString("en")}{searched !== null && searched < 1 ? ` of ${deepVisits.toLocaleString("en")}` : ""} visits{timedOut ? " · time limit" : ""}</span>{/if}
+        <!-- The words and the visits are two elements: the visits that replace the words are new, and move nothing. -->
+        {#if networkLoads}<span class="text-xs text-muted whitespace-nowrap">Loading the engine's network…</span>
+        {:else if analysis}<span class="text-xs text-muted tabular-nums whitespace-nowrap">{analysis.visits.toLocaleString("en")}{searched !== null && searched < 1 ? ` of ${deepVisits.toLocaleString("en")}` : ""} visits{timedOut ? " · time limit" : ""}</span>{/if}
         {#if engine && onengine}
           <button class="flex-none px-1.5 py-0 aria-expanded:border-accent aria-expanded:text-accent" aria-label="Engine settings"
                   title="Engine settings" aria-expanded={engineOpen} aria-controls="engine-settings"

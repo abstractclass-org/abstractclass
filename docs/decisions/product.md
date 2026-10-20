@@ -5194,3 +5194,27 @@ sweep.
     changed line. A file with a space in its name and an added line that starts with `++` gave the long line.
 - **Not checked:** the workflows on GitHub, before the push. On GitHub, the fetch of a force push's commit before
   by its hash depends on GitHub's keeping that commit.
+
+### The engine's panel says when the network still loads (2026-10-20)
+
+- **The problem** (abscls-f5ko, found in the review of abscls-72zg): a review opened again, with every step's results
+  in the browser's store, says "Review done" at once, before the engine's network loads. Until the network loads, the
+  engine's panel showed the position's stored result ("512 of 1,024 visits", with no gleam), and nothing said that it
+  waits: a deeper search of the position on screen starts only once the network is ready.
+- **Decided** ([design/06-review-layout.md](../design/06-review-layout.md), item 7): while the network loads, the
+  engine header's line says "Loading the engine's network…" in the place of the visits, on the review and on the
+  Analysis board. It is text that a player follows (strict Simplified Technical English). The words are the review's
+  line's words for the same state, so the two lines agree. The header reads the same state as the review's line: the
+  analysis's `engineReady`. So the words also show while another network loads. A snapshot (design 20) searches
+  nothing, and its header does not show them.
+- **No layout shift.** The words and the visits are two elements. The visits that replace the words are a new element,
+  which the browser does not count as a shift. The search bar takes the line's free width, so the switch and the gear
+  do not move.
+- **Checked** in Playwright's Chromium, headless, on the preview build, in a job of 2 threads (`scripts/machine run`):
+  - `tests/network-loading.spec.ts` holds the network's file. It opens the test fixture's review, stored with its
+    results, and then the Analysis board. Before the change, the review's header said "512 of 1,024 visits" while the
+    network loaded. With the change, it said "Loading the engine's network…", and the visits came once the file was
+    let through. The board's header said the words too, and they went when the network loaded.
+  - `scripts/measure/layout-shift.mjs` at 1,366 × 657, 3 pairs of 3 reloads, the build before the change against the
+    build with it: the review's layout shift was 0 in every reload of both builds, and the Analysis board's too.
+    Nothing moved.
