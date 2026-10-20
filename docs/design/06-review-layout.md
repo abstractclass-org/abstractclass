@@ -141,18 +141,18 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
    done" in the first frame, in place of "Loading the engine's network…", and its Export menu opens (design 13). The
    report does not say that its counts are partial: that sentence came and went as the network loaded, and moved the
    report's table (a layout shift). The network still loads for the searches that the player asks for (the position on
-   screen, a line). Until then, the engine's panel shows the position's stored result, and its search bar gleams once a
-   search starts. **While the network loads, the engine header's line says "Loading the engine's network…"** in the
-   place of the visits, on the review and on the Analysis board. Without it, a review that says "Review done" showed
-   a stored result ("512 of 1,024 visits") with no gleam, and nothing said that a deeper search waits for the network.
-   The words come from the same state as the review's line (the analysis's `engineReady`): they show at the first
-   load, and again while another network loads. A snapshot (design 20) searches nothing, so its header does not say
-   them. The words and the visits are two elements, not one element with new text, so that the visits that replace
-   the words are new on the page and move nothing (a layout shift). The search bar takes the line's free width, so
-   the switch and the gear do not move. A review with a result missing says what loads, and then what runs. After Review again on a snapshot
-   (design 20), the snapshot's analysis stays on screen until the new review's analysis replaces it, and the line says
-   what loads. **While the review has work to run, the slot's second line says "A review in a hidden tab can be
-   slower."** Its title says why: "When you cannot see this tab, the browser can give the review less processor time."
+   screen, a line). Until then, the engine's panel shows the values of the position's stored result, and its search bar
+   gleams once a search starts. **While the network loads, the engine header's line says "Loading the engine's
+   network…"** in the place of the visits, on the review and on the Analysis board. So the panel says that a deeper
+   search waits for the network, also when the review's line says "Review done". The header reads the same state as the
+   review's line (the analysis's `engineReady`), and says the same words. So they show at the first load, and again
+   while another network loads. A snapshot (design 20) searches nothing, so its header does not show them. The words and
+   the visits are two elements, and the search bar takes the line's free width. So the visits that replace the words are
+   new on the page, and the switch and the gear stay in place: no layout shift. A review with a result missing says what
+   loads, and then what runs. After Review again on a snapshot (design 20), the snapshot's analysis stays on screen
+   until the new review's analysis replaces it, and the line says what loads. **While the review has work to run, the
+   slot's second line says "A review in a hidden tab can be slower."** Its title says why: "When you cannot see this
+   tab, the browser can give the review less processor time."
    The browser gives a hidden tab's processes the lowest priority, so other programs that keep the processor busy come
    first (design 05). The line is in the slot's own height, so it moves nothing. It goes when the engine is off and when
    the review is done. A review that runs again because the site's engine changed gives that line to its reason.

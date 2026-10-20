@@ -61,6 +61,9 @@
    *  player follows: strict Simplified Technical English. */
   const HIDDEN_TAB = { text: "A review in a hidden tab can be slower.",
                        title: "When you cannot see this tab, the browser can give the review less processor time." };
+  /** The words while the engine's network loads (design 06, item 7): the review's line and the engine header's line say
+   *  the same. Text that a player follows: strict Simplified Technical English. */
+  export const NETWORK_LOADS = "Loading the engine's network…";
   export { reviewSkeleton };
 
   /** The skeleton's row above the board sets --strip, as the review's row does (stripHeight): the board's size takes
@@ -948,7 +951,7 @@
   const searched = $derived(analysis && deepVisits ? (timedOut ? 1 : Math.min(1, analysis.visits / deepVisits)) : null);
   // The engine's network loads: no search of the position can start yet, so the header says so in the place of the
   // visits (design 06). A snapshot searches nothing (design 20).
-  const networkLoads = $derived(!!game && !snapshot && !game.engineReady);
+  const waitsForNetwork = $derived(!!game && !snapshot && !game.engineReady);
   // A slider's place while it moves, by its id: the setting changes when it is let go, so that a drag does not restart
   // the workers or the search at each step.
   let drafts = $state<Record<string, number>>({});
@@ -1762,7 +1765,7 @@
           {#if searched !== null}<div class="h-full bg-accent transition-[width] duration-200" style="width: {100 * searched}%"></div>{/if}
         </div>
         <!-- The words and the visits are two elements: the visits that replace the words are new, and move nothing. -->
-        {#if networkLoads}<span class="text-xs text-muted whitespace-nowrap">Loading the engine's network…</span>
+        {#if waitsForNetwork}<span class="text-xs text-muted whitespace-nowrap">{NETWORK_LOADS}</span>
         {:else if analysis}<span class="text-xs text-muted tabular-nums whitespace-nowrap">{analysis.visits.toLocaleString("en")}{searched !== null && searched < 1 ? ` of ${deepVisits.toLocaleString("en")}` : ""} visits{timedOut ? " · time limit" : ""}</span>{/if}
         {#if engine && onengine}
           <button class="flex-none px-1.5 py-0 aria-expanded:border-accent aria-expanded:text-accent" aria-label="Engine settings"

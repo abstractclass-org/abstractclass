@@ -14,7 +14,7 @@
   // (docs/design/20-snapshot.md).
   import { onDestroy, onMount, untrack } from "svelte";
   import { PRACTICE_EVENT } from "#lib/practice/practice.ts";
-  import ReviewView, { WIDE, reviewSkeleton, type ReviewAgain, type ReviewProgress } from "#lib/review/ReviewView.svelte";
+  import ReviewView, { NETWORK_LOADS, WIDE, reviewSkeleton, type ReviewAgain, type ReviewProgress } from "#lib/review/ReviewView.svelte";
   import { loadDisplay } from "#lib/review/display.ts";
   import { MediaQuery } from "svelte/reactivity";
   import Arrival from "#lib/review/Arrival.svelte";
@@ -162,7 +162,7 @@
       ...(greats.total ? [{ share: (budget * greats.total) / total, done: greats.done / greats.total }] : []),
     ];
     const step = !game || game.swept < passCount ? 0 : !labelled ? 1 : !deep && deeper * m ? 2 : parts.length - 1;
-    if (!game?.engineReady) return { text: "Loading the engine's network…", parts, step };
+    if (!game?.engineReady) return { text: NETWORK_LOADS, parts, step };
     if (game.paused) return { text: "Engine off. The review is paused.", parts, waiting: true, step };
     if (step === 0) return { text: `Reviewing: the game's shape, ${game.swept} of ${passCount} positions`, parts, step };
     if (step === 1) return { text: `Reviewing: move quality, ${game.labelled} of ${passCount} positions`, parts, step };

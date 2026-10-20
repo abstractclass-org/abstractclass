@@ -5198,23 +5198,39 @@ sweep.
 ### The engine's panel says when the network still loads (2026-10-20)
 
 - **The problem** (abscls-f5ko, found in the review of abscls-72zg): a review opened again, with every step's results
-  in the browser's store, says "Review done" at once, before the engine's network loads. Until the network loads, the
-  engine's panel showed the position's stored result ("512 of 1,024 visits", with no gleam), and nothing said that it
-  waits: a deeper search of the position on screen starts only once the network is ready.
-- **Decided** ([design/06-review-layout.md](../design/06-review-layout.md), item 7): while the network loads, the
-  engine header's line says "Loading the engine's network…" in the place of the visits, on the review and on the
-  Analysis board. It is text that a player follows (strict Simplified Technical English). The words are the review's
-  line's words for the same state, so the two lines agree. The header reads the same state as the review's line: the
-  analysis's `engineReady`. So the words also show while another network loads. A snapshot (design 20) searches
-  nothing, and its header does not show them.
+  in the browser's store, says "Review done" at once, before the engine's network loads. Until the network loaded, the
+  engine's panel showed the position's stored result ("512 of 1,024 visits", with no gleam). Nothing said that it
+  waits. A deeper search of the position on screen starts only once the network is ready.
+- **Decided** ([design/06-review-layout.md](../design/06-review-layout.md), item 7): while the network loads, the engine
+  header's line says "Loading the engine's network…". The words take the place of the visits, on the review and on the
+  Analysis board. It is text that a player follows (strict Simplified Technical English). The header reads the same
+  state as the review's line (the analysis's `engineReady`) and says the same words (one constant, `NETWORK_LOADS` in
+  `ReviewView.svelte`). So the two lines agree, and the words also show while another network loads. A snapshot
+  (design 20) searches nothing, and its header does not show them.
 - **No layout shift.** The words and the visits are two elements. The visits that replace the words are a new element,
   which the browser does not count as a shift. The search bar takes the line's free width, so the switch and the gear
   do not move.
 - **Checked** in Playwright's Chromium, headless, on the preview build, in a job of 2 threads (`scripts/machine run`):
   - `tests/network-loading.spec.ts` holds the network's file. It opens the test fixture's review, stored with its
     results, and then the Analysis board. Before the change, the review's header said "512 of 1,024 visits" while the
-    network loaded. With the change, it said "Loading the engine's network…", and the visits came once the file was
-    let through. The board's header said the words too, and they went when the network loaded.
+    network loaded. With the change, it said "Loading the engine's network…", and the visits came once the test let
+    the file through. The board's header said the words too, and they went when the network loaded.
   - `scripts/measure/layout-shift.mjs` at 1,366 × 657, 3 pairs of 3 reloads, the build before the change against the
     build with it: the review's layout shift was 0 in every reload of both builds, and the Analysis board's too.
     Nothing moved.
+- **Checked again in the review of the change,** in the same way, with a script that held the network's file:
+  - A review done and opened again said "Review done: 512 visits a move." at once. Its header said "Loading the
+    engine's network…" until the file came, and then "1,024 visits". The switch and the gear did not move.
+  - After a change of network during a review, the header said the words while the test held the new network's
+    file. They went when the network loaded.
+  - A snapshot (design 20) asked for no network file, and its header said "512 visits". After Review again, the header
+    said the words until the review's network loaded.
+  - With the engine off, the page loads the network too. While it loads, the header and the review's line both say
+    "Loading the engine's network…", which is true. Then the header shows the stored visits with no gleam, and the
+    review's line says "Engine off. The review is paused."
+  - At 390 × 760, the words fit in the line, and the search bar takes the 57 pixels that remain.
+  - The test fails in 6 seconds on the build before the change, and passes on the build with it. When a check fails
+    while the test holds the file, the test ends when that check's time runs out: the held request does not keep it
+    waiting.
+  - `layout-shift.mjs` again, review and board, at 1,366 × 657, 3 pairs of 3 reloads: 0 in every reload of both
+    builds.

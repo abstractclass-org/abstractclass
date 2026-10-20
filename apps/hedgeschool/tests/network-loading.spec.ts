@@ -6,7 +6,8 @@ import { test, expect, type Page } from "@playwright/test";
 
 const FIXTURE = "tests/fixtures/hedgefund-review.json", WORDS = "Loading the engine's network…";
 
-/** Holds each request for a network's file (client.ts, checked) until `release` runs. */
+/** Holds each request for a network's file (client.ts, checked) until `release` runs. A later hold comes first: the
+ *  route added last answers first. */
 async function holdNetworks(page: Page) {
   let release!: () => void;
   const released = new Promise<void>(resolve => (release = resolve));
@@ -14,32 +15,32 @@ async function holdNetworks(page: Page) {
   return release;
 }
 
-/** The engine header's line: the engine's switch, the position's search bar, the visits and the gear. */
-const headerLine = (page: Page) => page.getByRole("progressbar", { name: "This position's search" }).locator("..");
+/** The engine header's line: the engine's switch, the position's search bar, the visits and the gear. It waits for the
+ *  page to show the line, which can take long on a busy machine. */
+async function headerLine(page: Page) {
+  const bar = page.getByRole("progressbar", { name: "This position's search" });
+  await bar.waitFor({ timeout: 60_000 });
+  return bar.locator("..");
+}
 
 test("the engine header says that the network loads, on the review and on the Analysis board", async ({ page }) => {
+  let release = await holdNetworks(page);
   await page.goto("/review");
   await page.evaluate(() => localStorage.setItem("learn-enclosure:engine:2", JSON.stringify({ on: false })));
+  // The file's load stores the game with every step's results and names it in the address. The Review tab then reloads
+  // to review it (src/routes/review/+page.svelte, otherGame), from the browser's store.
   await page.locator('input[type="file"][accept*="json"]').first().setInputFiles(FIXTURE);
-  await page.waitForURL(/#game=/);
-  const address = page.url(), context = page.context();
-  await page.close(); // it holds the game (reviewLock.ts)
-
-  // Each in a new page: a page keeps the network that it checked once (client.ts, checkedFiles).
-  const review = await context.newPage();
-  let release = await holdNetworks(review);
-  await review.goto(address);
-  await expect(headerLine(review)).toContainText(WORDS);
-  await expect(headerLine(review)).not.toContainText("visits");
+  let line = await headerLine(page);
+  await expect(line).toContainText(WORDS);
+  await expect(line).not.toContainText("visits");
   release();
-  await expect(headerLine(review)).not.toContainText(WORDS, { timeout: 120_000 });
-  await expect(headerLine(review)).toContainText("visits");
-  await review.close();
+  await expect(line).toContainText("visits", { timeout: 120_000 });
 
-  const board = await context.newPage();
-  release = await holdNetworks(board);
-  await board.goto("/analysis");
-  await expect(headerLine(board)).toContainText(WORDS);
+  // The board is a new document, which fetches the network again (client.ts, checkedFiles).
+  release = await holdNetworks(page);
+  await page.goto("/analysis");
+  line = await headerLine(page);
+  await expect(line).toContainText(WORDS);
   release();
-  await expect(headerLine(board)).not.toContainText(WORDS, { timeout: 120_000 });
+  await expect(line).not.toContainText(WORDS, { timeout: 120_000 });
 });

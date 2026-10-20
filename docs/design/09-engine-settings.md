@@ -25,9 +25,10 @@ Published tools give these settings:
 ## Decision
 
 The engine has its own controls in the engine header, as in Lichess's engine box. The header has two lines. The first
-line has the engine's switch, the search's bar with its visits, and the engine's gear. The second line has the values
-(the expected final margin and the lead) across the column's whole width. The settings are kept in this browser, and
-each applies at once, without a reload.
+line has the engine's switch, the search's bar with its visits, and the engine's gear. While the network loads, the line
+says "Loading the engine's network…" in the place of the visits (design 06, item 7). The second line has the values (the
+expected final margin and the lead) across the column's whole width. The settings are kept in this browser, and each
+applies at once, without a reload.
 
 1. **The engine's switch** is at the first line's left, and the e and l keys work it too: l is Lichess's, and e, for
    "engine", is the site's own (Lichess's e opens its opening explorer, which this site does not have). The switch's
