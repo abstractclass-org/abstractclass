@@ -1,8 +1,7 @@
 # The documents wrap at 120 characters (docs/working-notes.md): on each push to dev, an added line over 120 in a
-# Markdown file of the pushed range fails the run (scripts/doc-widths.mjs). Table rows, code blocks and the length of
-# URLs do not count. Code keeps its own lengths. Its own workflow, with no cancel: the Tests workflow cancels a run for
-# an older push, and the range of that push would then go unchecked. Beside it, the tests of the check and of the
-# commit-msg hook (.githooks/commit-msg).
+# Markdown file of the pushed range fails the run. What counts is in scripts/doc-widths.mjs. Its own workflow, with no
+# cancel: the Tests workflow cancels a run for an older push, and the range of that push would then go unchecked.
+# Beside it, the tests of the check and of the commit-msg hook (.githooks/commit-msg).
 name: Documents
 
 on:
@@ -18,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      # The whole history, so that the commit before the push is there.
+      # The whole history and every branch, so that the commit before the push and main are there.
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
@@ -29,11 +28,23 @@ jobs:
       - name: The tests of the width check and of the commit-msg hook
         run: node --test "scripts/*.test.mjs" && sh scripts/commit-msg.test.sh
 
-      # The pushed range: from the branch's commit before the push. A new branch, a run by hand, or a force push whose
-      # earlier commit is gone gives no such commit: the run then checks the last commit alone.
+      # The pushed range: the pushed commits, from where they leave the branch's commit before the push (the merge
+      # base: that commit itself, unless the push was forced). After a force push, the commit before is on no branch,
+      # so the clone does not have it: it is fetched by its hash. A new branch (its commit before is all zeros), a run
+      # by hand (no commit before), or a commit that GitHub no longer has: the range then starts where dev leaves main,
+      # which holds every commit of the push.
       - name: The documents' widths in the pushed range
         env:
           BEFORE: ${{ github.event.before }}
         run: |
-          if [ -z "$BEFORE" ] || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then BEFORE=HEAD~1; fi
-          node scripts/doc-widths.mjs "$BEFORE" HEAD
+          case "$BEFORE" in *[!0]*) ;; *) BEFORE= ;; esac
+          if [ -n "$BEFORE" ] && ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            git fetch --quiet --no-tags origin "$BEFORE" || true
+          fi
+          if [ -n "$BEFORE" ] && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            FROM=$(git merge-base "$BEFORE" HEAD)
+          else
+            FROM=$(git merge-base origin/main HEAD)
+            echo "No commit before the push: the range starts where dev leaves main, at $FROM."
+          fi
+          node scripts/doc-widths.mjs "$FROM" HEAD

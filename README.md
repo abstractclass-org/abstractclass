@@ -40,10 +40,9 @@ HS_EDGE=1 npm run test:layout         # the same, with Edge too (the owner only;
 node scripts/release-check.mjs <URL>  # the checks of a deployed site (docs/hosting.md)
 ```
 
-`npm run check:all` (`scripts/check-all.mjs`) runs the engine's release (`npm run engine -- --deploy`), the site's type
-check and unit tests, the shared packages' type checks and unit tests, and the build. The Tests workflow runs the same
-command, so the list of checks is in one place. Its last line says `check:all: PASS` or `check:all: FAIL`, with each
-step's result.
+`npm run check:all` runs the checks of the Tests workflow before its browser tests. The workflow runs the same command,
+so the list of checks is in one place: `scripts/check-all.mjs`. Its last line says `check:all: PASS` or
+`check:all: FAIL`, with each step's result.
 
 The repository's own checks run at the root:
 

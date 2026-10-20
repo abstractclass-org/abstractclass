@@ -3367,11 +3367,11 @@ sweep.
 ### strategyjam.org games through the bookmarklet and the userscript (2026-10-18)
 
 - **What:** the bookmarklet and the userscript take a game from strategyjam.org's game page
-  (`/enclosure/game/ID`), the strategy jam's site from 2026-10-17, as they take one from meaf.us (design 11, abscls-b60). The
-  reader (`src/lib/game/strategyjamPage.ts`) takes the game from the props of the React component that draws the
-  stage: `game.rules`, the site's rules module, and `state`, the game as the site sends it. The page's own rules
-  module plays the moves again for the scores. The conversion (`src/lib/game/strategyjam.ts`) writes First as Blue.
-  The Site tag is the game's page, so the review links back. The record has no TimeControl, because the site adds
+  (`/enclosure/game/ID`), the strategy jam's site from 2026-10-17, as they take one from meaf.us (design 11,
+  abscls-b60). The reader (`src/lib/game/strategyjamPage.ts`) takes the game from the props of the React component that
+  draws the stage: `game.rules`, the site's rules module, and `state`, the game as the site sends it. The page's own
+  rules module plays the moves again for the scores. The conversion (`src/lib/game/strategyjam.ts`) writes First as
+  Blue. The Site tag is the game's page, so the review links back. The record has no TimeControl, because the site adds
   its increment for each edge.
 - **The import's source** tells the sites apart (design 17): `strategyjam_bookmarklet` and `strategyjam_userscript`
   on strategyjam.org. `bookmarklet` and `userscript` stay meaf.us's, so the reports before this keep their
@@ -3561,13 +3561,13 @@ sweep.
   - **The cost,** in pairs of 5 reloads at 1,366 × 657 (the review) and 390 × 1,100 (the board): the time from the
     navigation to the skeleton's first frame, and to the review's or the board's, did not change in a way that the
     pairs agree on (the skeleton's medians 88 ms before and 161 ms after, with spreads of 465 and 467 ms, and the
-    board's 679 and 653 ms). The skeleton now waits for the game's read, which is part of the 60 to 100 milliseconds of the
-    game, the tab's lock and the engine's manifest (2026-10-14). The review's first draw (`review-first-frame.mjs`,
-    2 pairs of 5 reloads): the longest task by thread time 33 and 22 ms before, 23 and 22 ms after, and the draw's
-    total thread time 80 and 62 ms before, 57 and 52 ms after: no loss. By wall time the sets before had a task of
-    about 450 ms in the draw and the sets after did not, but a trace finds the same task in both builds near
-    `review:shown`: a message's handler that waits 374 to 474 ms on 5 to 43 ms of thread time, on this loaded
-    machine. So that is no gain of the change.
+    board's 679 and 653 ms). The skeleton now waits for the game's read, which is part of the 60 to 100 milliseconds of
+    the game, the tab's lock and the engine's manifest (2026-10-14). The review's first draw (`review-first-frame.mjs`,
+    2 pairs of 5 reloads): the longest task by thread time 33 and 22 ms before, 23 and 22 ms after, and the draw's total
+    thread time 80 and 62 ms before, 57 and 52 ms after: no loss. By wall time the sets before had a task of about 450
+    ms in the draw and the sets after did not, but a trace finds the same task in both builds near `review:shown`: a
+    message's handler that waits 374 to 474 ms on 5 to 43 ms of thread time, on this loaded machine. So that is no gain
+    of the change.
 - **The skeleton's wait for the game's read,** in 3 pairs of 5 reloads of the stored review at 1,366 × 657, the
   build before against the build after: until the skeleton shows, the prerendered line "Reading the game with the
   engine's rules…" shows, so the page is not blank. From the first paint to the skeleton's first frame, the medians
@@ -3735,8 +3735,8 @@ sweep.
 - **The measurement** (`scripts/measure/review-sweep.mjs`): the main thread's tasks from the sweep's start to its end,
   as the review's progress line names them. Each sweep reviews the fixture's game
   (`tests/fixtures/hedgefund-review.json`, 120 edges, so 120 positions) from its record, in a fresh browser context, so
-  that no stored result exists. Playwright's Chromium 153, headless, 1,366 × 657 pixels. Chrome's trace gives each task's wall time and thread time.
-  Each build ran 5 sweeps, in 5 pairs, and the build that ran first took turns.
+  that no stored result exists. Playwright's Chromium 153, headless, 1,366 × 657 pixels. Chrome's trace gives each
+  task's wall time and thread time. Each build ran 5 sweeps, in 5 pairs, and the build that ran first took turns.
   - **2 search workers,** the GPU off, under `scripts/machine run --threads 2`.
   - **8 search workers** (the default on 16 cores), under `--threads 8`, with the GPU set to On. The GPU did not start
     in Playwright's Chromium: the engine settings said "The GPU did not start: 9943656", though WebGPU gave an
@@ -5128,34 +5128,69 @@ sweep.
     site's tests and 34, 9 and 2 of the packages' tests passed, and the build passed. `check:all` took about a
     minute.
 - **The release checks:** `apps/hedgeschool/scripts/release-check.mjs <base URL> [<commit>]` does the checks of
-  docs/hosting.md, "Deploy, check and roll back". It came from a coordinator's script. The header's links and the
-  three pages that lead home are now checks, not notes, and the commit comes from `origin/main` or `origin/dev`.
-  Against `https://dev.hedgeschool.pages.dev`, at `77d27b1`, 15 of 15 checks passed. With a wrong commit, the
-  footer's check failed and the script exited 1.
-- **The decision logs merge by union** (`.gitattributes`). The README of the log does not.
-  - **A trial rebase** in a scratch clone: two branches each added an entry at the end of this file, and one rebased
-    on the other. Both entries stayed, with no conflict. But with Git's default conflict style, the second entry
-    lost the blank line before its heading. Git takes the blank line that both new entries start with as common
-    to both sides, and the union then writes it once. With `merge.conflictStyle diff3`, Git keeps the two sides
-    whole, and both entries kept their blank lines and headings, by `git rebase` and by `git merge`. No form of the
-    entries avoids this: any blank line at the start or at the end of both new entries is common.
-  - **So** the main checkout needs `git config merge.conflictStyle diff3`. A conflict in another file then also
-    shows the base's lines. A rebase in the same trial that changed an earlier heading on one branch kept that
-    change and the other branch's new entry.
+  docs/hosting.md, "Deploy, check and roll back". The header's links and the three pages that lead home are checks,
+  not notes, and the commit comes from `origin/main` or `origin/dev`.
+  The commit's form is the footer's: its first 7 characters. The engine's files come by the site's manifest and
+  `fetchArtifact` (@abstractclass/engine/artifacts.ts), as the page reads them: a file that the build stores in
+  gzip parts (a graph, or a file over 24 MiB) then downloads whole too. The manifest must name each of the lock's
+  19 files with the lock's SHA-256.
+  - **Checked:** against `https://dev.hedgeschool.pages.dev` at `f50704c`, 15 of 15 checks passed, in 4 seconds.
+    With a wrong commit, the footer's check failed and the script exited 1. A graph that the preview stores in gzip
+    came back whole through `fetchArtifact` in Node: 6,410,459 bytes.
+- **The decision logs merge by union** (`.gitattributes`), with a driver of their own, `decision-log`:
+  `git merge-file --union --diff3`. The README of the log does not merge by union.
+  - **Git's built-in union loses a blank line.** A trial rebase in a scratch clone: two branches each added an
+    entry at the end of this file, and one rebased on the other. With `merge=union`, both entries stayed, with no
+    conflict, but the second entry lost the blank line before its heading, by `git rebase` and by `git merge`. Git
+    takes the blank line that both new entries start with as common to both sides, and the union then writes it
+    once. `merge.conflictStyle zdiff3` loses it too. With `diff3`, Git keeps the two sides whole, and both entries
+    kept their blank lines. No form of the entries avoids this: any blank line at the start or at the end of both
+    new entries is common.
+  - **A driver in place of the setting `merge.conflictStyle diff3`.** That setting changes every conflict in every
+    file, which then shows the base's lines too. And where the setting is missing, the union drops the blank line
+    with no sign. The driver gives diff3 to the logs alone. Where Git's settings do not define the driver, Git
+    merges the logs as text and shows the conflict, as before the union. The trial gave both entries with their
+    blank lines and headings with the driver, by `git rebase` and by `git merge`, and a conflict without it. A
+    conflict in another file kept Git's default style.
+  - **Two edits of the same line** of an earlier entry, one on each branch: the rebase gave no conflict and no
+    markers, and the file held both versions of the line, first the version of the branch rebased onto. Edits of
+    two lines next to each other gave the same: both versions of the two lines. A rebase that changed an earlier
+    heading on one branch kept that change and the other branch's new entry. So after a merge or a rebase, read each
+    earlier entry that both branches changed.
 - **The commit-msg hook:** `.githooks/commit-msg`, in POSIX sh with LF line ends. It refuses a subject or a body
   line over 72 characters. It counts characters, not bytes. It skips comment lines and the diff below the
-  scissors line of `git commit -v`. A body line of one word after its list mark (a URL, a path) and a subject that
-  starts with `fixup! `, `squash! ` or `amend! ` may be longer. It works when the main checkout has
-  `git config core.hooksPath .githooks`.
-  - **Checked:** `sh scripts/commit-msg.test.sh` passed its 20 cases in Git for Windows' sh, among them 72 and 73
-    characters of 3 bytes each and a line with CRLF. In a scratch clone, Git for Windows ran the hook. It refused a
-    subject of 74 characters and a body line of 92, and it kept a commit with a URL as a long body line and a commit
-    with long comment lines from the editor.
+  scissors line of `git commit -v`. A body line of one word after its list mark (a URL, a path) may be longer. So
+  may the subjects that Git writes from other names: `fixup! `, `squash! ` and `amend! ` (they go away in a
+  rebase), `Revert "…"` and `Reapply "…"` (a revert of a subject over 63 characters is over 72), and the merges'
+  `Merge branch '…'` (`git pull` adds the remote's URL). It works when the main checkout has
+  `git config core.hooksPath .githooks`. The hook still checks the body of two messages that Git writes: a merge
+  with `merge.log` lists the merged subjects indented by 2, and `git merge --squash` lists the squashed messages
+  indented by 4. The hook refuses such a line over 72 characters. This repository's way of working uses neither,
+  and `merge.log` is off by default.
+  - **Checked:** `sh scripts/commit-msg.test.sh` passed its 25 cases in Git for Windows' sh and its awk (gawk), and
+    in dash with mawk 1.3.4, as on Ubuntu's runners. Among them: 72 and 73 characters of 3 bytes each, a line with
+    CRLF, and the messages of `git revert` and `git pull`. In a scratch
+    clone, Git for Windows ran the hook. It refused a subject of 74 characters and a body line of 92, and it kept a
+    commit with a URL as a long body line and a commit with long comment lines from the editor. The messages that
+    Git writes passed: `git revert --no-edit` of a subject of 68 characters, the revert of that revert
+    (`Reapply "…"`), `git commit --fixup`, the merge of a branch with a long name, and `git commit -v` with the
+    editor's comments and diff. The hook refused a merge with a subject of 74 characters: Git runs it for a merge.
 - **The documents wrap at 120:** the workflow Documents (`.github/workflows/docs.yml`) runs
   `scripts/doc-widths.mjs` on each push to `dev`. It refuses an added line over 120 characters in a Markdown file
-  of the pushed range. A table row, a line in a code block and the length of a URL do not count. The check has its
-  own workflow because the Tests workflow cancels a run when a newer push comes, and the range of the older push
-  would then go unchecked.
-  - **Checked:** its 6 unit tests passed. Over every line of every Markdown file in the repository, the rule found
-    26 lines over 120 characters: each was prose that can wrap. The last 5 commits added none.
-- **Not checked:** the workflows on GitHub, before the push.
+  of the pushed range. A table row, a line in a code block, the length of a URL and the lines of a moved file do not
+  count. The check has its own workflow because the Tests workflow cancels a run when a newer push comes, and the
+  range of the older push would then go unchecked. The range holds the pushed commits: it starts at the merge base
+  of the push's commit before and the new tip. That is the commit before itself, unless the push was forced. After
+  a force push, the clone does not have the commit before, and the run fetches it by its hash. For a new branch, a
+  run by hand, or a commit that GitHub no longer has, the range starts where `dev` leaves `main`. In the diff, a
+  `+++` line names a file only in a file's header, so an added line that starts with `++` stays a line.
+  - **Checked:** its 7 unit tests passed. Over every line of every Markdown file in the repository, the rule found
+    26 lines over 120 characters: each was prose that can wrap. Four of them were on `dev` and not on `main`, so a
+    range from `main` refused them. Their paragraphs now wrap at 120. The workflow's range lines ran against a bare
+    clone as the remote. A normal push and a force push each found only the pushed commit's long line, and the force
+    push's commit before came by its hash. A force push that dropped a commit which had wrapped a long line passed:
+    a diff from the commit before itself would count that line as added. A new branch, a run by hand and an unknown
+    commit took the range from `main`. A moved file gave no added lines, and a moved and changed file only its
+    changed line. A file with a space in its name and an added line that starts with `++` gave the long line.
+- **Not checked:** the workflows on GitHub, before the push. On GitHub, the fetch of a force push's commit before
+  by its hash depends on GitHub's keeping that commit.

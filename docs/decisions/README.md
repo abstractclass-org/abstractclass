@@ -11,10 +11,11 @@ Add a new entry at the end of the file whose topic fits. Give it a `###` heading
 headings list its entries, oldest first, and GitHub shows them as the file's outline.
 
 The topic files merge by union (`.gitattributes`): when two branches each add an entry at a file's end, a merge or a
-rebase keeps both entries, with no conflict. Union fits only a file that grows by new entries at its end. It also
-joins two edits of one paragraph with no conflict, and keeps the lines of both edits. So add to the end, and after a
-merge, read an entry that both branches changed. The union keeps each entry's blank line only with Git's setting
-`merge.conflictStyle diff3` ([../working-notes.md](../working-notes.md)). This README does not merge by union.
+rebase keeps both entries, with no conflict. Union fits only a file that grows by new entries at its end. Two edits
+of the same line, or of two lines next to each other, also give no conflict: the file then holds both versions of
+the lines, one after the other. So add to the end, and after a merge or a rebase, read each earlier entry that both
+branches changed. The union runs where Git's settings define its driver ([../working-notes.md](../working-notes.md)).
+Without the driver, Git shows each conflict, as in any file. This README does not merge by union.
 
 ## Topics
 

@@ -330,10 +330,9 @@ the next visit).
   repository's **Actions** tab, or the mark beside the commit). On each push to `dev` it runs two jobs at the same time
   (`.github/workflows/tests.yml`). Each one builds the site as production does, with the practice games' storage on:
   - **`test`, on Linux,** about 10 minutes: `npm run check:all` at the root, then the layout sweep in Chromium, and a
-    Decline in one tab while a practice game is open in another (tests/practice-games.spec.ts). `check:all`
-    (`scripts/check-all.mjs`) holds the one list of the checks before the browser tests: the engine's release files,
-    the site's type check and unit tests, the shared packages' type checks and unit tests, and the build. Run it
-    before a push to get the same result.
+    Decline in one tab while a practice game is open in another (tests/practice-games.spec.ts). `check:all` holds
+    the one list of the checks before the browser tests (`scripts/check-all.mjs`). Run it before a push to get the
+    same result.
   - **`test-windows`, on Windows:** the layout sweep in Playwright's own Chromium, with Windows' scroll bars, Windows'
     fonts (`system-ui` is Segoe UI there) and Windows' drawing of text. Linux does not show these. They change where
     text wraps or overflows.
@@ -354,14 +353,15 @@ the next visit).
   against the live site or a preview, when the workflow **Deploy** has finished. Without a commit, it takes
   `origin/main` for the live site and `origin/dev` for dev's preview: run `git fetch` first. Each line says PASS, FAIL
   or INFO, and the last line says `release-check: PASS` or `release-check: FAIL`. The checks, all true on the live
-  site on 2026-10-18 at commit `b4f0472`, and on dev's preview on 2026-10-20 at commit `77d27b1`:
+  site on 2026-10-18 at commit `b4f0472`, and on dev's preview on 2026-10-20 at commit `f50704c`:
   - the footer's version is the commit that the deploy built.
   - the live address answers with no `X-Robots-Tag`, `hedgeschool.pages.dev` and the previews with `noindex`
     (design 23), and an unknown address answers 404.
   - `/_app/immutable/…` and `/engine/<id>/<file>` carry `Cache-Control: public, max-age=31536000, immutable`, and
     `/engine/manifest.json` does not.
-  - the module is served as `application/wasm`, and the largest network (20.6 MB) and the terms download whole, with
-    the SHA-256 of `engine.lock.json`. The manifest names every network of the lock.
+  - the manifest names every file of `engine.lock.json`, with its SHA-256. The module is served as `application/wasm`.
+    The largest network (20.6 MB) and the terms download whole, as the page reads them (the manifest's parts, joined
+    and decompressed), with the lock's SHA-256.
   - the header shows Practice, Review, Analysis, Tools, Notation and About, and `/puzzles`, `/learn` and `/lab/engine`
     lead home.
   - the Function on `/api/practice-games` answers 400 to a request that is not JSON.

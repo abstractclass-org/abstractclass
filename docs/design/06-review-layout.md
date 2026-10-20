@@ -149,12 +149,13 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
    The browser gives a hidden tab's processes the lowest priority, so other programs that keep the processor busy come
    first (design 05). The line is in the slot's own height, so it moves nothing. It goes when the engine is off and when
    the review is done. A review that runs again because the site's engine changed gives that line to its reason.
-   **While a bar's work runs, a light gleam sweeps it** (Lichess's `bar-glider`, `ui/lib/css/component/_bar-glider.scss`: 70 pixels wide, every
-   3 seconds), so that a slow step does not look stopped: the review's bar while its passes run, and the search bar
-   while the position on screen is searched. With reduced motion asked for, there is no gleam. **The gleam is slower
-   than Lichess's:** it crosses the bar in 2 seconds at any width, then waits 1 second. Lichess's gleam moves 3,400
-   pixels in 3 seconds, so it flashes across a bar of 400 pixels in about a third of a second. The gleam moves by a
-   transform, not by its place (`left`): it asks for no layout in each frame, and moves nothing (a layout shift).
+   **While a bar's work runs, a light gleam sweeps it** (Lichess's `bar-glider`,
+   `ui/lib/css/component/_bar-glider.scss`: 70 pixels wide, every 3 seconds), so that a slow step does not look stopped:
+   the review's bar while its passes run, and the search bar while the position on screen is searched. With reduced
+   motion asked for, there is no gleam. **The gleam is slower than Lichess's:** it crosses the bar in 2 seconds at any
+   width, then waits 1 second. Lichess's gleam moves 3,400 pixels in 3 seconds, so it flashes across a bar of 400 pixels
+   in about a third of a second. The gleam moves by a transform, not by its place (`left`): it asks for no layout in
+   each frame, and moves nothing (a layout shift).
 8. **Two kinds of number, one form each:**
    - **Who is ahead:** the side ahead is named, and the number is never below 0: "Red +105", whoever is to move, as Go
      writes "B+3.5". Even reads "0" among numbers and "even" in a sentence. So: the engine header ("Expected final

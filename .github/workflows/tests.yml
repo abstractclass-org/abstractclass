@@ -47,9 +47,8 @@ jobs:
           path: apps/hedgeschool/node_modules/.cache/engine
           key: engine-${{ hashFiles('apps/hedgeschool/engine.lock.json') }}
 
-      # The checks before the browser tests, in the one command that people run too (scripts/check-all.mjs): the
-      # engine's release files (`npm run engine -- --deploy`), the site's type check and unit tests, the shared
-      # packages' type checks and unit tests (design 29), and the production build with the practice games' storage on.
+      # The checks before the browser tests, in the one command that people run too. Its list of steps, each with its
+      # flags and environment, is in scripts/check-all.mjs.
       - run: npm run check:all
         working-directory: .
 

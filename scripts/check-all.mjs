@@ -12,36 +12,32 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const site = join(root, "apps/hedgeschool");
 
 const steps = [
-	{ name: "engine", cwd: site, command: "npm run engine -- --deploy", needed: true },
-	{ name: "site-check", cwd: site, command: "npm run check" },
-	{ name: "site-test", cwd: site, command: "npm test" },
-	// The shared packages' type checks and unit tests (design 29): every workspace in packages/.
-	{ name: "packages-check", cwd: root, command: "npm run check --workspace=packages" },
-	{ name: "packages-test", cwd: root, command: "npm test --workspace=packages" },
-	{
-		name: "build", cwd: site, command: "npm run build",
-		env: { VITE_EDITION: "early", VITE_STORE_PRACTICE_GAMES: "on" },
-	},
+  { name: "engine", cwd: site, command: "npm run engine -- --deploy", stopsOnFailure: true },
+  { name: "site-check", cwd: site, command: "npm run check" },
+  { name: "site-test", cwd: site, command: "npm test" },
+  // The shared packages' type checks and unit tests (design 29): every workspace in packages/.
+  { name: "packages-check", cwd: root, command: "npm run check --workspace=packages" },
+  { name: "packages-test", cwd: root, command: "npm test --workspace=packages" },
+  {
+    name: "build", cwd: site, command: "npm run build",
+    env: { VITE_EDITION: "early", VITE_STORE_PRACTICE_GAMES: "on" },
+  },
 ];
 
 const results = [];
-let stopped = false;
 for (const step of steps) {
-	if (stopped) {
-		results.push(`SKIP ${step.name}`);
-		continue;
-	}
-	console.log(`\n=== check:all: ${step.name}: ${step.command}`);
-	const start = Date.now();
-	const run = spawnSync(step.command, {
-		cwd: step.cwd, stdio: "inherit", shell: true, env: { ...process.env, ...step.env },
-	});
-	const pass = run.status === 0;
-	console.log(`=== check:all: ${step.name}: ${pass ? "PASS" : "FAIL"} (${Math.round((Date.now() - start) / 1000)} s)`);
-	results.push(`${pass ? "PASS" : "FAIL"} ${step.name}`);
-	if (!pass && step.needed) stopped = true;
+  console.log(`\n=== check:all: ${step.name}: ${step.command}`);
+  const start = Date.now();
+  const run = spawnSync(step.command, {
+    cwd: step.cwd, stdio: "inherit", shell: true, env: { ...process.env, ...step.env },
+  });
+  const status = run.status === 0 ? "PASS" : "FAIL";
+  console.log(`=== check:all: ${step.name}: ${status} (${Math.round((Date.now() - start) / 1000)} s)`);
+  results.push({ name: step.name, status });
+  if (status === "FAIL" && step.stopsOnFailure) break;
 }
+for (const step of steps.slice(results.length)) results.push({ name: step.name, status: "SKIP" });
 
-const pass = results.every(r => r.startsWith("PASS"));
-console.log(`\ncheck:all: ${pass ? "PASS" : "FAIL"}: ${results.join(", ")}`);
+const pass = results.every(r => r.status === "PASS");
+console.log(`\ncheck:all: ${pass ? "PASS" : "FAIL"}: ${results.map(r => `${r.status} ${r.name}`).join(", ")}`);
 process.exit(pass ? 0 : 1);

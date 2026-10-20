@@ -1,5 +1,6 @@
 #!/bin/sh
-# The tests of the commit-msg hook (.githooks/commit-msg). Run them at the repository's root: sh scripts/commit-msg.test.sh
+# The tests of the commit-msg hook (.githooks/commit-msg). Run them at the repository's root:
+#   sh scripts/commit-msg.test.sh
 # Each test writes a message to a file, runs the hook on it, and compares the hook's exit status.
 
 hook=.githooks/commit-msg
@@ -48,6 +49,13 @@ expect 0 "the diff below the scissors line" \
 	"Subject$nl# ------------------------ >8 ------------------------$nl+ $s73 $s73$nl"
 expect 0 "a fixup subject" "fixup! $s73$nl"
 expect 1 "a subject that only names fixup" "Fixup $s73$nl"
+expect 0 "the subject and body of git revert" \
+	"Revert \"$s72\"$nl${nl}This reverts commit 0123456789abcdef0123456789abcdef01234567.$nl"
+expect 0 "the subject of a revert of a revert" "Reapply \"$s72\"$nl"
+expect 0 "the subject of git pull's merge" \
+	"Merge branch 'dev' of https://github.com/abstractclass-org/abstractclass into dev$nl"
+expect 0 "the subject of a merge of a remote-tracking branch" "Merge remote-tracking branch 'origin/$s72'$nl"
+expect 1 "a subject that only starts with Merge" "Merge the two caches $s73$nl"
 expect 1 "a long subject and a long body line" "$s73$nl${nl}a $s73$nl"
 
 exit $failed

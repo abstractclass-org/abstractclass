@@ -76,8 +76,9 @@ The move must keep these:
   beside the app, in `apps/hedgeschool/node_modules/.cache/engine/`.
 - **Local engine sources:** a `local` path in `engine.lock.json` starts at `apps/hedgeschool`. The engine
   repository's checkout is `../../../engines` from there.
-- **The commands and the documents:** `npm ci` runs at the root, and the site's commands run in `apps/hedgeschool`.
-  A path in the documents to the site's files starts there ([docs/README.md](../README.md)).
+- **The commands and the documents:** `npm ci` and the repository's own checks run at the root, and the site's
+  commands run in `apps/hedgeschool`. A path in the documents to the site's files starts there
+  ([docs/README.md](../README.md)).
 - **The players' data:** every storage key (`hedge-school:…`) and the IndexedDB name `learn-enclosure` stay as they are.
 - **The imports:** the alias `#lib/*` (`apps/hedgeschool/package.json`, `imports`) belongs to the app's package. A
   shared package gets a name of its own: `@abstractclass/<package>`, imported by its files' names (design 29).
@@ -88,15 +89,19 @@ The move must keep these:
 
 ## Where it is
 
-- `package.json` at the root: the workspace (`apps/*`, `packages/*`), private. `package-lock.json` at the root: its one
-  lockfile. `.node-version` and `.npmrc` stay at the root, where `actions/setup-node` and npm read them.
+- `package.json` at the root: the workspace (`apps/*`, `packages/*`), private, and its one script, `check:all`.
+  `package-lock.json` at the root: its one lockfile. `.node-version` and `.npmrc` stay at the root, where
+  `actions/setup-node` and npm read them.
+- `scripts/` at the root: the repository's own checks. `check-all.mjs` runs the checks of the Tests workflow before
+  its browser tests, `doc-widths.mjs` the widths of the documents, and `commit-msg.test.sh` the tests of the
+  commit-msg hook in `.githooks/`.
 - `apps/hedgeschool/`: the site. Its `package.json` (the package `hedgeschool`) has its scripts, its dependencies and
   the alias `#lib/*`.
 - `packages/`: the shared packages, `@abstractclass/engine`, `@abstractclass/storage` and `@abstractclass/analysis`
   (design 29).
-- `.github/workflows/deploy.yml` and `tests.yml`: the default working directory is `apps/hedgeschool`, and only
-  `npm ci` runs at the root. The caches, the failures' screenshots and the hash of `engine.lock.json` name their paths
-  from the root.
+- `.github/workflows/deploy.yml` and `tests.yml`: the default working directory is `apps/hedgeschool`. `npm ci` runs
+  at the root, and so does `npm run check:all` in the Linux job of `tests.yml`. The caches, the failures' screenshots
+  and the hash of `engine.lock.json` name their paths from the root. `docs.yml` runs at the root.
 - `apps/hedgeschool/scripts/fetch-engine.mjs`: finds `onnxruntime-web` by Node's resolution.
 - `.gitignore`: the site's generated folders, under `apps/hedgeschool/`.
 

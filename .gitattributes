@@ -2,11 +2,11 @@
 # workflow's job on Windows) then reads the same files as on Linux.
 * text=auto eol=lf
 
-# The decision logs (docs/decisions/) merge by union: Git keeps the lines of both sides, with no conflict. Two
-# branches that each add an entry at a log's end then both keep their entry. Union also joins two edits of one
-# paragraph with no conflict, and keeps both versions' lines. So it fits only files that grow by new entries at their
-# end. The log's README is no such file. After a merge, read an earlier entry that both sides changed. Git's default
-# conflict style takes the blank line that both new entries start with as common, and the second entry loses it:
-# `git config merge.conflictStyle diff3` keeps it (docs/working-notes.md).
-docs/decisions/*.md merge=union
+# The decision logs (docs/decisions/) merge by union: Git keeps the lines of both sides, with no conflict. So union
+# fits only files that grow by new entries at their end. What to read after a merge: docs/decisions/README.md. The
+# driver `decision-log` is `git merge-file --union --diff3`: the diff3 form keeps the blank line before each new
+# entry, which Git's built-in union drops for the second entry. The driver runs only where Git's settings define it
+# (docs/working-notes.md). Without it, Git merges these files as text and shows each conflict. The log's README does
+# not merge by union.
+docs/decisions/*.md merge=decision-log
 docs/decisions/README.md !merge

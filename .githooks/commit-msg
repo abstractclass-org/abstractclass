@@ -6,7 +6,8 @@
 # The hook reads the message as Git hands it, before Git takes out its comments. So it skips comment lines, and stops
 # at the scissors line of `git commit -v`. It counts characters, not bytes. A body line with no space after its
 # indentation and its list mark (a URL, a path) cannot wrap, so it may be longer. A subject that starts with
-# "fixup! ", "squash! " or "amend! " goes away in a rebase, so it may be longer too.
+# "fixup! ", "squash! " or "amend! " goes away in a rebase, so it may be longer too. So may a subject that Git writes
+# from other names: `Revert "<subject>"`, `Reapply "<subject>"` and the merges' `Merge branch '<name>' of <URL>`.
 # Test: sh scripts/commit-msg.test.sh
 
 LC_ALL=C awk '
@@ -22,7 +23,7 @@ LC_ALL=C awk '
 	!seen && n == 0 { next }
 	!seen {
 		seen = 1
-		if (n > 72 && $0 !~ /^(fixup|squash|amend)! /) {
+		if (n > 72 && $0 !~ /^((fixup|squash|amend)! |(Revert|Reapply) "|Merge (remote-tracking )?(branch|branches|tag|commit) )/) {
 			printf "commit-msg: the subject has %d characters (at most 72):\n  %s\n", n, $0
 			bad = 1
 		}
