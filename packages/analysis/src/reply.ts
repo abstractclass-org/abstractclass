@@ -20,7 +20,7 @@ export function toAnalysis<M>(game: Moves<M>, r: AnalysisReply): Analysis<M> {
 
 /** An ownership in whole hundredths: the map needs no finer steps, and a stored result keeps 361 small numbers. Never
  *  −0, which JSON writes as 0. */
-const hundredths = (v: number) => Math.round(100 * v) || 0;
+export const hundredths = (v: number) => Math.round(100 * v) || 0;
 
 /** A candidate's line (KataGo's pv, the move first), up to its first pass, with the visits through each of its edges. */
 function withLine<M>(game: Moves<M>, c: MoveInfo): { line: M[]; lineVisits?: number[] } {

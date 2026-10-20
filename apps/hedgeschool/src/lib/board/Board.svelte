@@ -10,8 +10,9 @@
   /** An edge of the engine's line from the position, with its mover, and, once the engine's rules have played it, the
    *  edge it cuts and the regions after it. */
   export interface BoardLineEdge { edge: Edge; player: 0 | 1; cut?: Edge | null; regions?: Position["regions"] }
-  export interface BoardLayers { regions: boolean; protected: boolean; candidates: boolean; marks: boolean; coordinates: boolean }
-  export const DEFAULT_LAYERS: BoardLayers = { regions: true, protected: true, candidates: true, marks: true, coordinates: true };
+  /** `areaMap`: the `ownership` given, as the area map (design 30). */
+  export interface BoardLayers { regions: boolean; protected: boolean; candidates: boolean; marks: boolean; coordinates: boolean; areaMap: boolean }
+  export const DEFAULT_LAYERS: BoardLayers = { regions: true, protected: true, candidates: true, marks: true, coordinates: true, areaMap: true };
   export type { BoardNote, NoteBrush } from "./notes.ts";
   /** A click on a point: with the right button (only with `rightClicks`), and whether it begins an edge (a drag's press,
    *  whatever point is pending). */
@@ -53,9 +54,11 @@
     oncandidatedblclick?: (edge: Edge) => void;
     notes?: BoardNote[]; // the player's notes on this position
     onnotes?: (notes: BoardNote[]) => void; // a note drawn, changed or removed, or all cleared: right-drawing works only with it
-    // The area map (design 30): the engine's ownership of each point, from Blue's side in hundredths (index y * 19 + x)
+    // The area map (design 30, the layer areaMap): the engine's ownership of each point, from Blue's side in hundredths
+    // (index y * 19 + x)
     ownership?: number[] | null;
-    lost?: number[] | null; // the area a mistake lost, by point (ownership.ts, lostArea): in the accent, in the map's place
+    // The area a mistake lost, by point (ownership.ts, lostArea): in the accent, in the map's place, whatever its layer
+    lost?: number[] | null;
   }
   let {
     position, cut = null, candidates = [], highlight = null, line = null,
@@ -78,6 +81,9 @@
   // colours at 0.45 leave the edges and the regions' shading readable. The area lost takes KaTrain's 0.8 for its hints
   // less as much: it is shown alone.
   const AREA_ALPHA = 0.45, LOST_ALPHA = 0.6;
+  // The values that the board shades, in whole hundredths (0: no shading): the area lost, or else the map
+  const area = $derived(lost ? { values: lost, lost: true, alpha: LOST_ALPHA }
+    : layers.areaMap && ownership ? { values: ownership, lost: false, alpha: AREA_ALPHA } : null);
   const markAt = (e: Edge) => {
     const [x, y] = mid(e), d = 0.8 * MARK_R;
     if (Math.abs(e[0] - e[2]) + Math.abs(e[1] - e[3]) !== 1) return [x, y] as const;
@@ -271,14 +277,14 @@
        the colour of the side that holds it and as strong as it holds it (KaTrain's OWNERSHIP_GAMMA), blended by a blur
        as KaTrain blends its texture. The area a mistake lost takes the map's place, as KaTrain's loss grid does, in the
        accent: KaTrain's colour of the move's class would be a player's colour here (a Blunder's red is near Red's). -->
-  {#if lost || ownership}
+  {#if area}
     <g filter="url(#{blendId})">
-      {#each points as [x, y] (x * N + y)}
-        {@const v = lost ? lost[y * N + x] : ownership![y * N + x]}
-        {#if Math.abs(v) >= 1}
+      {#each points as [x, y] (pointKey(x, y))}
+        {@const v = area.values[y * N + x]}
+        {#if v}
           <rect x={x - 0.5} y={sy(y) - 0.5} width="1" height="1"
-                style:fill={lost ? "var(--accent)" : v > 0 ? "var(--blue)" : "var(--red)"}
-                fill-opacity={(lost ? LOST_ALPHA : AREA_ALPHA) * shade(v)} />
+                style:fill={area.lost ? "var(--accent)" : v > 0 ? "var(--blue)" : "var(--red)"}
+                fill-opacity={area.alpha * shade(v)} />
         {/if}
       {/each}
     </g>

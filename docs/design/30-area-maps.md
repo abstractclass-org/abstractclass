@@ -128,11 +128,11 @@ KaTrain, the Go review tool that the site follows (design 05), has both displays
 ## Where it is
 
 - `src/lib/review/ownership.ts`: `lostArea`, `areaCaption`, `shownLost` (`focusOf`, `CLEAR_FALL`, `CLEAR_SHARE`) and
-  `shade` (KaTrain's gamma). Tests:
-  `ownership.test.ts`.
-- `src/lib/board/Board.svelte`: the map and the area lost on the board (`ownership`, `lost`).
-- `src/lib/review/ReviewView.svelte`: `ownershipHere`, `lostHere`, `lostBetween` and `lostCaptions`, the settings
-  and the key t. `src/lib/review/display.ts`: `areaMap` and `areaLost`.
+  `shade` (KaTrain's gamma). Tests: `ownership.test.ts`.
+- `src/lib/board/Board.svelte`: the map and the area lost on the board (`ownership`, `lost`), and the map's board
+  layer `areaMap`.
+- `src/lib/review/ReviewView.svelte`: `lostHere`, `lostIn` and `lostCaptions`, the settings and the key t.
+  `src/lib/review/display.ts`: `areaLost`.
 - `packages/analysis/src/reply.ts` (the ownership in hundredths), `packages/analysis/src/analysis.svelte.ts` (every
   search asks for it), `packages/analysis/src/cache.ts` (`SHAPE` 6), `packages/engine/src/protocol.ts` (the fields).
 - The measurements: `scripts/measure/ownership-maps.mjs` (the maps on real games) and

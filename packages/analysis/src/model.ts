@@ -32,9 +32,9 @@ export interface Candidate<M> {
   // mirror image. The engine lists the twin right after it, with its values and visits.
   twinOf?: M;
 }
-/** `ownership`: the engine's ownership of each of the game's points (KataGo's), from Blue's side, in hundredths: 100 is
- *  Blue's at every turn end left, −100 Red's (Hedge School's src/lib/review/ownership.ts). Absent from a reply without
- *  it. */
+/** `ownership`: the engine's ownership of each of the game's points (KataGo's, @abstractclass/engine/protocol.ts,
+ *  AnalysisReply), from Blue's side, in hundredths: 100 is Blue's at every turn end left, −100 Red's. Absent from a
+ *  reply without it. */
 export interface Analysis<M> {
   blueWin: number; visits: number; lead?: number; margin?: number; spread?: number; candidates: Candidate<M>[];
   ownership?: number[];

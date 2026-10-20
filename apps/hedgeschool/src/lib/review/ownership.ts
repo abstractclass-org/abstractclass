@@ -6,10 +6,10 @@
 // before it, where it fell for the mover. The ownership before a move is the mean over its search's tree, which follows
 // the engine's best line, so the difference is where the points lost went (the loss of design 10: the value before the
 // move less the value after it, each from its own search).
-import { PLAYER_NAME, otherPlayer, type Player, type Unit } from "./enclosure.ts";
+import { PLAYER_NAME, moverScore, otherPlayer, type Player, type Unit } from "./enclosure.ts";
 
 /** KaTrain's gamma on its territory's alpha (gui/theme.py, OWNERSHIP_GAMMA): a point held weakly still shows. */
-export const OWNERSHIP_GAMMA = 1.33;
+const OWNERSHIP_GAMMA = 1.33;
 /** How strongly the map shades a point of value `v` in hundredths, from 0 to 1, whatever its side: KaTrain's
  *  |v| ^ (1 / gamma), with the value capped at 1 as KaTrain caps it (a mistake's fall can reach 2). */
 export const shade = (v: number) => Math.min(1, Math.abs(v) / 100) ** (1 / OWNERSHIP_GAMMA);
@@ -21,24 +21,23 @@ export interface LostArea { drop: number[]; size: number; before: number; after:
 
 /** The area lost by `mover` from the ownership `before` the move to the ownership `after` it, both from Blue's side. */
 export function lostArea(before: number[], after: number[], mover: Player): LostArea {
-  const side = mover === 0 ? 1 : -1;
-  const drop = before.map((b, i) => Math.max(0, side * (b - after[i])));
+  const drop = before.map((b, i) => Math.max(0, moverScore(b - after[i], mover)));
   let weight = 0, held = 0, kept = 0;
   drop.forEach((d, i) => {
     weight += d;
-    held += d * side * before[i];
-    kept += d * side * after[i];
+    held += d * moverScore(before[i], mover);
+    kept += d * moverScore(after[i], mover);
   });
   return { drop, size: weight / 100, before: weight ? held / weight : 0, after: weight ? kept / weight : 0 };
 }
 
 /** A point that falls by this much or more, in hundredths, shows clearly: at 0.6 × 0.3 ^ (1 / 1.33), about a quarter of
  *  full strength. */
-export const CLEAR_FALL = 30;
+const CLEAR_FALL = 30;
 /** The share of the fall that must be in clear points for the area lost to show. On real games, the fall of a Mistake
  *  or a Blunder is often spread thin over the whole board, the more so in the opening: the map is then a haze with
  *  nothing to point at (decisions/product.md, "The area maps on real games"). */
-export const CLEAR_SHARE = 0.2;
+const CLEAR_SHARE = 0.2;
 /** The share of the fall in clear points (CLEAR_FALL), from 0 to 1: 0 when nothing fell. */
 export function focusOf(lost: LostArea): number {
   const clear = lost.drop.reduce((sum, d) => sum + (d >= CLEAR_FALL ? d : 0), 0);

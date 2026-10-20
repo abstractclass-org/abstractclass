@@ -5816,7 +5816,9 @@ ownership after the turn (`lostArea`).
   | All | 128 | 42 | 41 |
 
   This second table was counted from the run's list of turns. The script now prints its ranges of edges, with a
-  column of the turns shown.
+  column of the turns shown. It now also takes the median of an even count as the mean of the middle two
+  (`scripts/measure/speed.mjs`, `median`). The run took the upper of the two, in the first table's rows of 16, 4 and
+  2 turns.
 
 - **The decision:** no edge from which the map shows. The question "is this map clear" has a direct answer for each
   move, and an edge would hide the 13 clear maps of the opening and show the hazy ones after it. So the area lost

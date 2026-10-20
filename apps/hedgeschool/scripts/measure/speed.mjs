@@ -346,6 +346,13 @@ export async function inPairs(builds, count, run) {
 
 /** The median of numbers: the mean of the middle two for an even count. */
 export const median = xs => { const s = [...xs].sort((a, b) => a - b); return s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2; };
+/** The correlation of two lists of numbers of the same length (Pearson's r). */
+export const corr = (xs, ys) => {
+  const n = xs.length, mx = xs.reduce((s, x) => s + x, 0) / n, my = ys.reduce((s, y) => s + y, 0) / n;
+  let sxy = 0, sxx = 0, syy = 0;
+  for (let i = 0; i < n; i++) { sxy += (xs[i] - mx) * (ys[i] - my); sxx += (xs[i] - mx) ** 2; syy += (ys[i] - my) ** 2; }
+  return sxy / Math.sqrt(sxx * syy);
+};
 
 /**
  * The verdict on two builds measured in pairs (docs/working-notes.md). `pairs` holds one value of each build for each

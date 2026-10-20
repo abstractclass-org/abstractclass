@@ -10,6 +10,7 @@
 // less after it (the next position's search).
 import { createReadStream } from "node:fs";
 import { createInterface } from "node:readline";
+import { corr } from "./speed.mjs";
 
 const [part1, firstLook] = process.argv.slice(2);
 const lines = async function* (file) { for await (const l of createInterface({ input: createReadStream(file) })) if (l) yield JSON.parse(l); };
@@ -79,12 +80,6 @@ for (const r of rows) {
   if (!byPlayer.has(k)) byPlayer.set(k, { rating: r.rating, rows: [] });
   byPlayer.get(k).rows.push(r);
 }
-const corr = (xs, ys) => {
-  const n = xs.length, mx = xs.reduce((s, x) => s + x, 0) / n, my = ys.reduce((s, y) => s + y, 0) / n;
-  let sxy = 0, sxx = 0, syy = 0;
-  for (let i = 0; i < n; i++) { sxy += (xs[i] - mx) * (ys[i] - my); sxx += (xs[i] - mx) ** 2; syy += (ys[i] - my) ** 2; }
-  return sxy / Math.sqrt(sxx * syy);
-};
 const players = [...byPlayer.values()].filter(p => p.rows.length >= 10);
 const playerRatings = players.map(p => p.rating);
 // `parts`: both of KaTrain's terms, or the complexity alone, or the loss alone

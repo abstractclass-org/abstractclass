@@ -27,6 +27,7 @@ const root = fileURLToPath(new URL("../..", import.meta.url));
 
 if (!isMainThread) {
   const { nodeEngine } = await import("../node-engine.mjs");
+  const { hundredths } = await import("@abstractclass/analysis/reply.ts");
   const { call } = await nodeEngine(root, { network: NETWORK });
   for (const moves of workerData.jobs) {
     const r = call({ id: "a", moves, maxVisits: VISITS, includeOwnership: true, includeMovesOwnership: true });
@@ -34,12 +35,13 @@ if (!isMainThread) {
     const best = [...r.moveInfos].sort((a, b) => a.order - b.order)[0];
     parentPort.postMessage({ key: moves.join(" "), a: {
       blueWin: r.rootInfo.winrate, lead: r.rootInfo.scoreLead, mover: r.rootInfo.currentPlayer,
-      ownership: r.ownership.map(v => Math.round(100 * v) || 0), best: best.move, line: best.pv,
-      bestOwnership: best.ownership.map(v => Math.round(100 * v) || 0),
+      ownership: r.ownership.map(hundredths), best: best.move, line: best.pv, bestOwnership: best.ownership.map(hundredths),
     } });
   }
 } else {
   const { focusOf, lostArea, shownLost } = await import("../../src/lib/review/ownership.ts");
+  const { moverScore, moverWin } = await import("@abstractclass/analysis/model.ts");
+  const { corr, median } = await import("./speed.mjs");
   const [file, perBand = "2", threadsArg = "2"] = process.argv.slice(2);
   const threads = Number(threadsArg);
   const games = new Map();
@@ -73,14 +75,13 @@ if (!isMainThread) {
       let e = s + 1;
       while (e < g.played.length && at(e).mover === mover) e++;
       if (e >= g.played.length) break;
-      const before = at(s), after = at(e), p = mover === "b" ? 0 : 1, side = p === 0 ? 1 : -1;
-      const win = w => (p === 0 ? w : 1 - w);
-      const loss = win(before.blueWin) - win(after.blueWin), points = side * (before.lead - after.lead);
+      const before = at(s), after = at(e), p = mover === "b" ? 0 : 1;
+      const loss = moverWin(before.blueWin, p) - moverWin(after.blueWin, p), points = moverScore(before.lead - after.lead, p);
       const played = g.played.slice(s, e), best = [before.best, before.line[1]].slice(0, played.length);
       const isBest = played.every(m => best.includes(m)) && played.length === best.length;
       if (loss >= 0.10 && !isBest) {
         const lost = lostArea(before.ownership, after.ownership, p);
-        const net = before.ownership.reduce((sum, b, i) => sum + side * (after.ownership[i] - b), 0) / 100;
+        const net = moverScore(before.ownership.reduce((sum, b, i) => sum + after.ownership[i] - b, 0), p) / 100;
         const turnEnds = Math.ceil((120 - e) / 2); // the turn ends left after the turn: each turn of two edges ends once
         const clear = focusOf(lost), shown = shownLost(lost);
         const gap = before.ownership.reduce((sum, v, i) => sum + Math.abs(v - before.bestOwnership[i]), 0) / 361 / 100;
@@ -90,26 +91,21 @@ if (!isMainThread) {
     }
   }
 
-  const median = xs => { const v = [...xs].sort((a, b) => a - b); return v.length ? v[Math.floor(v.length / 2)] : NaN; };
-  const f = (x, d = 2) => x.toFixed(d);
+  const f =(x, d = 2) => x.toFixed(d);
   console.log(`${rows.length} flagged turns (a loss of 0.10 or more, not the engine's best turn)\n`);
   console.log("| Edges | Turns | Side right | Focus (median) | Shown | Area lost, points of the board (median) | Points lost ÷ (net fall × turn ends left), median | Root against best choice, mean |");
   console.log("|---|---|---|---|---|---|---|---|");
   for (const [from, to] of [[1, 16], [17, 40], [41, 60], [61, 120]]) {
     const r = rows.filter(x => x.edge >= from && x.edge <= to);
     if (!r.length) continue;
-    const side = r.filter(x => x.net < 0).length;
-    const ratio = r.filter(x => x.net < 0).map(x => x.points / (-x.net * x.turnEnds));
-    console.log(`| ${from}-${to} | ${r.length} | ${side} | ${f(median(r.map(x => x.clear)))} | ${r.filter(x => x.shown).length} | ` +
+    const right = r.filter(x => x.net < 0), ratio = right.map(x => x.points / (-x.net * x.turnEnds));
+    console.log(`| ${from}-${to} | ${r.length} | ${right.length} | ${f(median(r.map(x => x.clear)))} | ${r.filter(x => x.shown).length} | ` +
                 `${f(median(r.map(x => x.size)), 1)} | ` +
                 `${f(median(ratio))} | ${f(r.reduce((s, x) => s + x.gap, 0) / r.length, 3)} |`);
   }
   // The points lost against the fall times the turn ends, over every flagged turn whose side is right.
-  const ok = rows.filter(x => x.net < 0), xs = ok.map(x => -x.net * x.turnEnds), ys = ok.map(x => x.points);
-  const mx = xs.reduce((a, b) => a + b, 0) / xs.length, my = ys.reduce((a, b) => a + b, 0) / ys.length;
-  const cov = xs.reduce((s, x, i) => s + (x - mx) * (ys[i] - my), 0);
-  const corr = cov / Math.sqrt(xs.reduce((s, x) => s + (x - mx) ** 2, 0) * ys.reduce((s, y) => s + (y - my) ** 2, 0));
-  console.log(`\nPoints lost against the net fall × turn ends left: correlation ${f(corr)} over ${ok.length} turns`);
+  const ok = rows.filter(x => x.net < 0), c = corr(ok.map(x => -x.net * x.turnEnds), ok.map(x => x.points));
+  console.log(`\nPoints lost against the net fall × turn ends left: correlation ${f(c)} over ${ok.length} turns`);
   console.log("\nEach flagged turn: game, first edge, loss, points lost, area lost, net fall, focus, held before and after");
   for (const x of rows) console.log(`${x.id} ${x.edge} ${f(x.loss)} ${f(x.points, 0)} ${f(x.size, 1)} ${f(x.net, 1)} ${f(x.clear)} ${x.held.map(Math.round).join(" ")}`);
 }

@@ -12,10 +12,9 @@ export interface Display {
   // lines show, the other's do not
   reviewFor: "both" | "blue" | "red";
   win: "bar" | "gauge"; // a bar above the board (Blue left, Red right), or a vertical gauge beside it
+  // The board's layers. `areaMap` (design 30): each point shaded by the engine's ownership, as KaTrain's Territory
+  // switch, on by default in its analysis mode
   layers: BoardLayers;
-  // The area map (design 30): each point shaded by the engine's ownership, as KaTrain's Territory switch, on by default
-  // in its analysis mode
-  areaMap: boolean;
   // After a Mistake or a Blunder, the area that it lost, on the board in the map's place, and its caption in the move
   // list (design 30)
   areaLost: boolean;
@@ -45,7 +44,6 @@ export const DEFAULT_DISPLAY: Display = {
   reviewFor: "both",
   win: "bar",
   layers: DEFAULT_LAYERS,
-  areaMap: true,
   areaLost: true,
   scoreLine: true,
   areaLine: true,
@@ -68,7 +66,6 @@ export function loadDisplay(): Display {
     reviewFor: kept.reviewFor === "blue" || kept.reviewFor === "red" ? kept.reviewFor : "both",
     win: kept.win === "gauge" ? "gauge" : "bar",
     layers: { ...DEFAULT_DISPLAY.layers, ...kept.layers },
-    areaMap: kept.areaMap ?? DEFAULT_DISPLAY.areaMap,
     areaLost: kept.areaLost ?? DEFAULT_DISPLAY.areaLost,
     scoreLine: kept.scoreLine ?? DEFAULT_DISPLAY.scoreLine,
     areaLine: kept.areaLine ?? DEFAULT_DISPLAY.areaLine,
