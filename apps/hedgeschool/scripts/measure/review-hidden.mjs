@@ -26,6 +26,12 @@
 //     time that the tab was hidden;
 //   - the main thread's thread time during the sweep, from Chrome's trace (with the end `sweep` only);
 //   - each search's times, and the searches with no final reply (with the end `review`);
+//   - the key moments' wait (with the end `review`): from the label pass's last final reply (the label pass is the first
+//     search at the label budget of each position that the sweep searched) to the progress line's step "the key
+//     moments", and to the first search of the key moments, with the searches that ran then;
+//   - with FOCUS, the searches of the position on screen: the search's time in the worker, its visits, how long it ran
+//     past its time limit (in the worker, and on the page: from the search sent to its final reply), the time of the
+//     slice in which the limit passed, and the slices that ran after that one (the worker's time at each slice's end);
 //   - the search workers that ended before the run's end (the pool's idle release, IDLE_RELEASE_MS in
 //     packages/engine/src/pool.ts), and the workers made after the sweep's start;
 //   - in a hidden tab, each renderer process's priority class and Windows' power throttling (EcoQoS), from PowerShell.
@@ -38,7 +44,10 @@
 // default chromium alone, and msedge only with HS_EDGE=1: scripts/edge.mjs); end: sweep or review (by default sweep).
 // Each browser runs `runs` rounds (by default 3), and each round runs every set-up, in an order that turns by one each
 // round. The engine settings: 2 search workers (WORKERS sets another number), the GPU off, the rest the site's
-// defaults. With OUT, every run's numbers and the machine's load go to that file as JSON.
+// defaults. FOCUS=visits,seconds sets the position on screen's visits and time limit (the engine settings' Depth and
+// Time limit), for a search that stops at its time limit. With OUT, every run's numbers and the machine's load go to
+// that file as JSON. CDP_PORT sets the first browser's port for the DevTools protocol (by default 9400), so that two
+// measurements at once do not meet.
 import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { browserList } from "../edge.mjs";
@@ -53,6 +62,7 @@ const record = JSON.parse(readFileSync(FIXTURE, "utf8")).record;
 // The batch's delay, from its source: game.svelte.ts holds runes, which Node cannot import.
 const BATCH_MS = Number(readFileSync("../../packages/analysis/src/analysis.svelte.ts", "utf8").match(/export const BATCH_MS = (\d+);/)[1]);
 const LATE_MS = 340_000, WORKERS = Number(process.env.WORKERS ?? 2);
+const FOCUS = process.env.FOCUS ? Object.fromEntries(process.env.FOCUS.split(",").map((x, k) => [["visits", "seconds"][k], Number(x)])) : null;
 
 /** An init script that probes the tab: see the head of this file. */
 function probeTab(batchMs) {
@@ -114,12 +124,12 @@ Get-CimInstance Win32_Process -Filter "ParentProcessId=${pid}" | Where-Object { 
   catch (e) { return [`error: ${e.message.split("\n")[0]}`]; }
 }
 
-let cdpPort = 9400;
+let cdpPort = Number(process.env.CDP_PORT ?? 9400); // each run's browser takes the next port
 /** One run: the browser `channel`, the set-up `setup`, the site at `url`. */
 async function run(url, channel, setup) {
   const b = await launchHideable({ channel, port: cdpPort++ });
   try {
-    await b.context.addInitScript(watchSweep, JSON.stringify({ workers: WORKERS, gpu: "off" }));
+    await b.context.addInitScript(watchSweep, JSON.stringify({ workers: WORKERS, gpu: "off", ...FOCUS }));
     await b.context.addInitScript(probeTab, BATCH_MS);
     const address = `/import#record=${encodeURIComponent(record)}`;
     let waited = null;
@@ -180,6 +190,29 @@ function measure(d, traced) {
   const speedOf = xs => (xs.length ? (1000 * xs.reduce((n, x) => n + x.searched, 0)) / xs.reduce((n, x) => n + x.ms, 0) : null);
   const replied = searches.filter(x => x.ended !== undefined && x.ms > 0);
   const bySlice = n => { const xs = replied.filter(x => x.slice === n); return { count: xs.length, speed: speedOf(xs) }; };
+  // The label pass: the first search in slices of 256 (its early result) of each position that the sweep searched. A
+  // position searched past the label budget before (the position on screen) has none. The Greats' confirmations, in
+  // slices of 256 too, search other positions.
+  const swept = new Set(sweep.map(x => x.moves)), firsts = new Map();
+  for (const x of searches.filter(x => x.slice === 256 && swept.has(x.moves)).sort((a, b) => a.sent - b.sent))
+    if (!firsts.has(x.moves)) firsts.set(x.moves, x);
+  const labels = [...firsts.values()];
+  let moments = null;
+  if (labels.length && labels.every(x => x.ended !== undefined)) {
+    const lastLabel = Math.max(...labels.map(x => x.ended)), at = t => (t === undefined ? null : t - lastLabel);
+    const step = probe.steps.find(([t, s]) => s === "Reviewing: the key moments" && t >= lastLabel)?.[0];
+    const deep = searches.filter(x => x.slice === 32 && x.sent > lastLabel).sort((a, b) => a.sent - b.sent)[0];
+    // The searches that ran when the label pass's last reply came: [visits, slice].
+    const running = searches.filter(x => x.sent < lastLabel && (x.ended ?? Infinity) > lastLabel).map(x => [x.visits, x.slice ?? null]);
+    moments = { step: at(step), first: at(deep?.sent), running };
+  }
+  // The searches of the position on screen with FOCUS: their visits, their times past the time limit, the slice in
+  // which the limit passed (its time in the worker), and the slices that ran after that one.
+  const focus = FOCUS && searches.filter(x => x.visits === FOCUS.visits && x.slice === 32 && x.ended !== undefined).map(x => {
+    const limit = 1000 * FOCUS.seconds, k = x.slices.findIndex(t => t >= limit);
+    return { searched: x.searched, ms: x.ms, past: x.ms - limit, pastOnPage: x.ended - x.sent - limit,
+             crossing: k > 0 ? x.slices[k] - x.slices[k - 1] : null, after: k < 0 ? null : x.slices.length - 1 - k };
+  });
   return {
     shown: stop - start, engine: lastReply - first, lag: stop - lastReply,
     speed: speedOf(sweep), sliced: bySlice(32), label: bySlice(256),
@@ -192,7 +225,7 @@ function measure(d, traced) {
     hidden,
     ended: d.workers.filter(w => w.ended !== undefined).map(w => w.ended), made: d.workers.filter(w => w.made > start).length,
     main: tasks && { thread: tasks.reduce((s, t) => s + t.thread, 0), long: longTasks(tasks.map(t => t.thread)) },
-    steps: probe.steps.map(([t, s]) => [Math.round(t - start), s]), done: d.done,
+    steps: probe.steps.map(([t, s]) => [Math.round(t - start), s]), done: d.done, moments, focus,
   };
 }
 
@@ -220,7 +253,12 @@ for (const channel of browsers) {
                   `${r.priority ? `; renderers ${r.priority.join(", ")}` : ""}` +
                   `${end === "review" ? `; steps ${JSON.stringify(r.steps)}, done ${r.done}; the pool idle over 50 ms ` +
                                         `(from the sweep's start, ms) ${JSON.stringify(r.idles)}; searches with no final reply ` +
-                                        `${JSON.stringify(r.searches.filter(x => x[1] === null))}` : ""}`);
+                                        `${JSON.stringify(r.searches.filter(x => x[1] === null))}` : ""}` +
+                  `${r.moments ? `; the key moments' step ${ms(r.moments.step)} and their first search ${ms(r.moments.first)} after ` +
+                                 `the label pass's last reply, searches running then ${JSON.stringify(r.moments.running)}` : ""}` +
+                  `${r.focus ? `; the position on screen: ${r.focus.map(f => `${f.searched} visits in ${ms(f.ms)}, ${ms(f.past)} past ` +
+                                                                               `its limit (${ms(f.pastOnPage)} on the page), the limit passed in a ` +
+                                                                               `slice of ${ms(f.crossing)}, ${f.after} slices after it`).join("; ")}` : ""}`);
       if (r.waited) console.log(`  before the late start: ${r.waited.visibility}, the chained timer's last runs ${JSON.stringify(r.waited.ticks.map(Math.round))}`);
       if (process.env.OUT) writeFileSync(process.env.OUT, JSON.stringify(out));
     }

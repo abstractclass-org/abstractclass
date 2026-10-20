@@ -5234,3 +5234,108 @@ sweep.
     waiting.
   - `layout-shift.mjs` again, review and board, at 1,366 × 657, 3 pairs of 3 reloads: 0 in every reload of both
     builds.
+
+### A hidden tab's review: the key moments and the time limit without timers of the page (2026-10-20)
+
+- **The question** (abscls-a9uh): three items that "A review in a hidden tab" (2026-10-19) left. A step that waits for
+  the batch while another search runs still waits for the batch's timer. The time limit of the position on screen
+  still has a timer of the page. And the hidden tab's note has a title that differs from its line, so a cut line
+  cannot be read in full.
+- **The batch comes without its timer when no search waits** (`packages/analysis/src/analysis.svelte.ts`, `search`,
+  with the pool's `waiting` in `packages/engine/src/pool.ts`). Before, it came so only when no search ran or waited
+  (the pool's `idle`). The key moments wait for the batch with the label pass's last result, and Review done for the
+  batch with the last result of all. While a search waits in the pool's queue, no engine is free: the pool gives each
+  engine a task as it frees. So the step waits, but it costs no engine time. When no search waits, an engine can be
+  free while the position on screen or another search runs, and it stays free until the batch's timer: about a second
+  in a hidden tab, and up to about 100 s once the page's timers have used up their budget. More batches come: at a
+  pass's end, the results of its last searches come in a batch each, at most one for each engine, as their searches
+  end.
+  - **The tests** (`packages/analysis/src/analysis.test.ts`): once no search waits, the results show when they are
+    stored, without the timer, and the label pass's last result shows so while a focus runs. Both failed before the
+    change. The fake pool now takes its tasks by priority, as the pool does. The tests of a result that waits for the
+    batch now keep a search waiting in the queue: with a flush at every result, five of them fail.
+- **The time limit in the worker** (`packages/engine/src/channel.ts`, `searchInSlices`). The engine's protocol
+  (the engine repository's `docs/design/04-notation-and-protocol.md`, "Fields for bots" and "Search in slices") gives
+  `maxTime` to a whole search only: "a search in slices takes none". A search in slices ends with `terminate` at the
+  end of any slice. The site's release (`engine-d6786eba`, protocol 0.6.1) has both. So the site's worker keeps the
+  limit, and the engine's side does not change. The limit counts from the search's start in the worker. At the end
+  of each slice, the worker sends `terminate` once the limit has passed, so the search ends at the end of the slice
+  in which the limit passes. Its reply says so (`late`), and the page shows "time limit" from it. The page has no timer for the
+  search, and no stop at the first result past the limit. A search request carries the limit (`maxMs`, in
+  `messages.ts` and `gpuMessages.ts`), and the GPU worker keeps it the same way.
+  - **The tests:** `packages/engine/src/channel.test.ts`: the limit ends the search at the end of the slice in which
+    it passes, and a search that ends its visits within its limit is not late. `analysis.test.ts`: a focus gives its
+    limit to the engine, a search that its limit ended shows as stopped at the time limit, and a search that the page
+    stopped does not.
+- **The note's title where its line is cut** (`src/lib/review/ReviewView.svelte`, `HIDDEN_TAB`): when the pointer
+  comes to the line, the page checks whether the line is cut. When it is, the title gives the line, then the reason:
+  "A review in a hidden tab can be slower. When you cannot see this tab, the browser can give the review less
+  processor time." When it is not, the title gives the reason alone, as before. The words do not change. The browser
+  reads the title after the pointer's arrival. The line fits its column at the browser's text size (16 pixels), so a
+  larger text size cuts it. The test (`tests/review-notice.spec.ts`, in the layout sweep): at 360 pixels, the line
+  fits at 16 pixels, and is cut at 24 pixels, and each title is as above.
+- **The set-up:** as "A review in a hidden tab" (`scripts/measure/review-hidden.mjs`), in Chromium only, with 2
+  search workers on the CPU and the GPU off, each run under `scripts/machine run --threads 2`. The engine
+  repository's training held most of the machine's other threads. The builds: before (`f50704c`) and after the
+  changes. The script now also reads, with the end `review`, the key moments' wait: from the label pass's last final
+  reply to the progress line's step "the key moments". With `FOCUS`, it sets the position on screen's visits and time
+  limit, and reads how long its search ran past the limit. `speed.mjs` (`watchSweep`) now notes each search's moves
+  and the worker's time at the end of each slice. `CDP_PORT` sets the browsers' port, so that two measurements at once
+  do not meet.
+- **The time limit** (`FOCUS=16384,10`: the position on screen to 16,384 visits, for at most 10 seconds, so that its
+  search stops at the limit, with the end `sweep`). The position's search ran beside the sweep. Each run in its
+  order, in two sets. The first set did not note the slices' times:
+
+  | Build | Set-up | Load | Visits | In the worker | Past the limit | The slice in which the limit passed | Slices after it |
+  | --- | --- | --- | --- | --- | --- | --- | --- |
+  | before | front | 16%, 8.1 | 736 | 10,486 ms | 486 ms | - | - |
+  | before | hidden | 37%, 4.9 | 640 | 10,697 ms | 697 ms | - | - |
+  | before | hidden | 41%, 3.0 | 608 | 10,183 ms | 183 ms | - | - |
+  | before | front | 26%, 2.9 | 608 | 10,655 ms | 655 ms | - | - |
+  | after | front | 40%, 2.0 | 768 | 10,450 ms | 450 ms | - | - |
+  | after | hidden | 21%, 1.8 | 704 | 10,780 ms | 780 ms | - | - |
+  | after | hidden | 23%, 2.4 | 672 | 10,032 ms | 32 ms | - | - |
+  | after | front | 22%, 2.7 | 736 | 10,255 ms | 255 ms | - | - |
+  | before | front | 89%, 28.1 | 448 | 10,574 ms | 574 ms | 633 ms | 0 |
+  | before | hidden | 89%, 32.4 | 512 | 10,330 ms | 330 ms | 624 ms | 0 |
+  | before | hidden | 82%, 25.8 | 576 | 10,270 ms | 270 ms | 424 ms | 0 |
+  | before | front | 75%, 16.9 | 640 | 10,348 ms | 348 ms | 370 ms | 0 |
+  | before | front | 51%, 13.2 | 608 | 10,084 ms | 84 ms | 608 ms | 0 |
+  | before | hidden | 58%, 9.9 | 608 | 10,869 ms | 869 ms | 432 ms | 1 |
+  | after | front | 61%, 13.2 | 576 | 10,373 ms | 373 ms | 484 ms | 0 |
+  | after | hidden | 23%, 9.7 | 768 | 10,315 ms | 315 ms | 543 ms | 0 |
+  | after | hidden | 22%, 5.2 | 736 | 10,404 ms | 404 ms | 493 ms | 0 |
+  | after | front | 25%, 3.8 | 512 | 10,073 ms | 73 ms | 616 ms | 0 |
+  | after | front | 66%, 5.5 | 480 | 10,100 ms | 100 ms | 569 ms | 0 |
+  | after | hidden | 75%, 6.1 | 512 | 10,207 ms | 207 ms | 560 ms | 0 |
+
+  "In the worker" is the search's time in the worker, from its start to its final reply. The page got the reply
+  within 1 ms of that time in every run. "Slices after it" counts the slices that ran after the one in which the limit
+  passed. After the change, every search of the second set ended at the end of that slice, so it ran past the limit
+  by less than one slice (73 to 404 ms, in slices of 484 to 616 ms). Before it, five of six did, and one hidden search
+  ran one slice more: the page's stop came after the worker had started the next slice. The first set's 780 ms after
+  the change would need a slice of over 780 ms, if that search ended at the end of the slice in which the limit
+  passed. The first set did not note the slices, so it cannot tell. A slice of 32 visits took 370 to 633 ms in the
+  second set.
+- **The whole review in a hidden tab** (the end `review`), in turn before and after:
+
+  | Build | Load | The game's shape | Move quality | The key moments | Great moves | In all | The key moments' step after the label pass's last reply | Review done after the last reply |
+  | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+  | before | 47%, 2.3 | 35.6 s | 446.0 s | 23.0 s | 12.2 s | 516.8 s | 873 ms | 3 ms |
+  | after | 12%, 1.3 | 32.5 s | 393.0 s | 27.0 s | 13.8 s | 466.3 s | 996 ms | 4 ms |
+  | before | 52%, 0.6 | 36.2 s | 526.0 s | 44.0 s | 14.2 s | 620.4 s | 557 ms | 6 ms |
+  | after | 55%, 24.9 | 38.0 s | 489.0 s | 28.0 s | 16.1 s | 571.1 s | 938 ms | 8 ms |
+
+  Each step's time runs from its line in the progress slot to the next step's line, and "In all" from the sweep's
+  start to Review done. Every run was hidden for all of its time. These runs came before the script noted each
+  search's moves, so their key moments' wait comes from their saved searches: the label pass is the first 119
+  searches in slices of 256 after the sweep's start. The position on screen had 1,024 visits before the label pass,
+  so its position had no label search. The Greats' confirmations queue behind the label pass, at the same priority. In every run, the engine of the label pass's last search took a Great's
+  confirmation that waited in the queue at once, and the other engine ran a confirmation. So the batch kept its timer
+  in both builds, and the key moments' step came 557 to 996 ms after the label pass's last reply. That wait cost no
+  engine time: each key moment's first search started 8.1 to 15.5 s after that reply, when a confirmation ended (a
+  confirmation does not give way). No engine waited over 50 ms between two of its searches in any run. These four
+  runs did not meet the case that the change is for: an engine free while a search runs and none waits. The tests
+  above check it.
+- **Not measured:** Edge, the GPU worker, the case of the batch with an engine free in a real browser, and a review
+  in a tab hidden for over 5 minutes.

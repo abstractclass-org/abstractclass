@@ -152,7 +152,8 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
    loads, and then what runs. After Review again on a snapshot (design 20), the snapshot's analysis stays on screen
    until the new review's analysis replaces it, and the line says what loads. **While the review has work to run, the
    slot's second line says "A review in a hidden tab can be slower."** Its title says why: "When you cannot see this
-   tab, the browser can give the review less processor time."
+   tab, the browser can give the review less processor time." Where the line is cut, as with a larger text size, its
+   title gives the line in full before the reason, as the slot's other lines give their text.
    The browser gives a hidden tab's processes the lowest priority, so other programs that keep the processor busy come
    first (design 05). The line is in the slot's own height, so it moves nothing. It goes when the engine is off and when
    the review is done. A review that runs again because the site's engine changed gives that line to its reason.

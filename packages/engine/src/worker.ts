@@ -1,8 +1,8 @@
 // One engine module in a Web Worker (docs/design/02-static-site.md). Requests run one at a time, in order. A search
 // runs in slices (channel.ts, searchInSlices): after each slice the worker posts the results so far and yields, so that
-// a stop message can arrive. The engine continues the same tree, so slices change no result. The module runs through
-// the engine's own library (library.ts, createCpuEngine), and the network comes checked by the page (client.ts,
-// checked).
+// a stop message can arrive, and the worker keeps the search's time limit. The engine continues the same tree, so
+// slices change no result. The module runs through the engine's own library (library.ts, createCpuEngine), and the
+// network comes checked by the page (client.ts, checked).
 import { bytesOf } from "./artifacts.ts";
 import { searchInSlices } from "./channel.ts";
 import { loadLibrary, type CpuEngine } from "./library.ts";
@@ -21,7 +21,8 @@ function call(request: object): unknown {
 
 async function handle(m: WorkerRequest) {
   const t0 = performance.now();
-  const done = (reply: unknown) => post({ type: "reply", id: m.id, reply, ms: performance.now() - t0, memory: engine!.memoryBytes() });
+  const done = (reply: unknown, late = false) =>
+    post({ type: "reply", id: m.id, reply, ms: performance.now() - t0, memory: engine!.memoryBytes(), ...(late ? { late } : {}) });
   if (m.type === "init") {
     const library = await loadLibrary(m.library);
     engine = await library.createCpuEngine(m.module, { log: text => console.debug(text) }); // compiled by the page (client.ts)
@@ -32,9 +33,10 @@ async function handle(m: WorkerRequest) {
   } else if (m.type === "call") {
     done(call(m.request));
   } else if (m.type === "search") {
-    done(await searchInSlices(m.request, `q${m.id}`, call,
-                              reply => post({ type: "partial", id: m.id, reply, ms: performance.now() - t0 }),
-                              () => stopped.has(m.id)));
+    const { reply, late } = await searchInSlices(m.request, `q${m.id}`, call,
+                                                 partial => post({ type: "partial", id: m.id, reply: partial, ms: performance.now() - t0 }),
+                                                 () => stopped.has(m.id), m.maxMs);
+    done(reply, late);
     stopped.delete(m.id);
   }
 }

@@ -3,12 +3,14 @@
 // slices posts its results after each slice; a worker that ends or fails rejects every request still waiting.
 import { isError, type CheckReason, type ErrorReply } from "./protocol.ts";
 
-export interface Timed<T> { reply: T; ms: number; memory: number }
+/** A reply, with its time in the worker and the worker's memory. `late`: a search in slices that its time limit ended
+ *  (searchInSlices). */
+export interface Timed<T> { reply: T; ms: number; memory: number; late?: boolean }
 
-/** What a worker posts: a request's reply (with its time and the worker's memory), a search's results so far, or a
- *  failure. */
+/** What a worker posts: a request's reply (with its time, the worker's memory, and for a search whether its time limit
+ *  ended it), a search's results so far, or a failure. */
 export type ChannelReply =
-  | { type: "reply"; id: number; reply: unknown; ms: number; memory: number }
+  | { type: "reply"; id: number; reply: unknown; ms: number; memory: number; late?: boolean }
   | { type: "partial"; id: number; reply: unknown; ms: number }
   | { type: "error"; id: number; message: string };
 
@@ -51,7 +53,7 @@ export class WorkerChannel<Request extends { id: number }> {
       this.pending.delete(m.id);
       if (m.type === "error") p.reject(new Error(m.message));
       else if (isError(m.reply)) p.reject(new EngineError(m.reply));
-      else p.resolve({ reply: m.reply, ms: m.ms, memory: m.memory });
+      else p.resolve({ reply: m.reply, ms: m.ms, memory: m.memory, ...(m.late ? { late: true } : {}) });
     };
     // The worker failed outside a request (its script did not load, or it ran out of memory): every request fails.
     worker.onerror = (event: ErrorEvent) => {
@@ -89,17 +91,25 @@ export class WorkerChannel<Request extends { id: number }> {
 }
 
 /** The worker's side of a search in slices (the protocol's `slice`): the results after each slice go to `partial`, then
- *  the search goes on with "continue", or ends with "terminate" once `stopped()` says so. Between slices the worker
- *  yields, so that a stop message can arrive. Returns the last reply. */
+ *  the search goes on with "continue", or ends with "terminate" once `stopped()` says so or its time limit `maxMs` has
+ *  passed. Between slices the worker yields, so that a stop message can arrive. Returns the last reply, and whether the
+ *  time limit ended the search (`late`). */
+// The protocol's time limit (`maxTime`) is not for a search in slices, so the worker keeps the limit itself, from the
+// search's first slice: the search ends at the end of the slice in which the limit passes. A timer of the page would
+// stop it later in a hidden tab, which runs the page's timers about once a second (decisions/product.md, "A review in
+// a hidden tab").
 export async function searchInSlices(request: object, qid: string, call: (request: object) => unknown,
-                                     partial: (reply: unknown) => void, stopped: () => boolean): Promise<unknown> {
-  let reply = (await call({ ...request, id: qid })) as { isDuringSearch?: boolean };
+                                     partial: (reply: unknown) => void, stopped: () => boolean,
+                                     maxMs = Infinity): Promise<{ reply: unknown; late: boolean }> {
+  const deadline = performance.now() + maxMs;
+  let reply = (await call({ ...request, id: qid })) as { isDuringSearch?: boolean }, late = false;
   while (reply.isDuringSearch) {
     partial(reply);
     await nextTask();
-    reply = (await call(stopped() ? { id: qid, action: "terminate", terminateId: qid } : { id: qid, action: "continue" })) as typeof reply;
+    late = performance.now() >= deadline;
+    reply = (await call(late || stopped() ? { id: qid, action: "terminate", terminateId: qid } : { id: qid, action: "continue" })) as typeof reply;
   }
-  return reply;
+  return { reply, late };
 }
 
 /** Resolves in a task of its own: a message sent on a channel of its own. In Chromium and Edge, a message that came

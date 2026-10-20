@@ -1,7 +1,8 @@
 // Checks the page's side of a worker (WorkerChannel): a request that the page sends after the worker ended rejects with
 // Stopped, as a request still waiting does. A network load sends its request only once the page has checked the
 // network (client.ts, checked), and the pool can end meanwhile. And the worker's side of a search in slices
-// (searchInSlices): it yields between slices without a timer, and a stop ends it at the next slice. Run: npm test.
+// (searchInSlices): it yields between slices without a timer, a stop ends it at the next slice, and its time limit at
+// the end of the slice in which the limit passes. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { Stopped, WorkerChannel, searchInSlices } from "./channel.ts";
@@ -22,13 +23,16 @@ test("a request sent after the worker ended rejects with Stopped", async () => {
   await assert.rejects(channel.send({ type: "call" }).done, Stopped);
 });
 
-/** An engine's search of three slices: its replies, and the requests that it got. It answers a terminate at once. */
-function slices() {
+/** An engine's search of three slices: its replies, and the requests that it got. It answers a terminate at once. Each
+ *  slice runs for `ms` on the clock `clock`. */
+function slices(clock = { now: 0 }, ms = 0) {
   const replies = [{ isDuringSearch: true }, { isDuringSearch: true }, { done: true }], got: object[] = [];
   let next = 0;
   const call = (request: object) => {
     got.push(request);
-    return (request as { action?: string }).action === "terminate" ? { terminated: true } : replies[next++];
+    if ((request as { action?: string }).action === "terminate") return { terminated: true };
+    clock.now += ms;
+    return replies[next++];
   };
   return { got, call };
 }
@@ -41,14 +45,31 @@ test("a search in slices waits for no timer between its slices", async t => {
   t.mock.timers.enable({ apis: ["setTimeout"] });
   const { got, call } = slices();
   const search = searchInSlices({ maxVisits: 96 }, "q1", call, () => {}, () => false);
-  assert.deepEqual(await Promise.race([search, turns(50).then(() => "still waiting")]), { done: true });
+  assert.deepEqual(await Promise.race([search, turns(50).then(() => "still waiting")]), { reply: { done: true }, late: false });
   assert.deepEqual(got, [{ maxVisits: 96, id: "q1" }, { id: "q1", action: "continue" }, { id: "q1", action: "continue" }]);
 });
 
 test("a stop between slices ends the search at the next slice", async () => {
   const { got, call } = slices(), partials: unknown[] = [];
-  const reply = await searchInSlices({ maxVisits: 96 }, "q1", call, r => partials.push(r), () => partials.length > 0);
+  const ended = await searchInSlices({ maxVisits: 96 }, "q1", call, r => partials.push(r), () => partials.length > 0);
   assert.equal(partials.length, 1);
   assert.deepEqual(got.at(-1), { id: "q1", action: "terminate", terminateId: "q1" });
-  assert.deepEqual(reply, { terminated: true });
+  assert.deepEqual(ended, { reply: { terminated: true }, late: false });
+});
+
+test("a time limit ends the search at the end of the slice in which it passes", async t => {
+  const clock = { now: 1000 };
+  t.mock.method(performance, "now", () => clock.now);
+  const { got, call } = slices(clock, 40), partials: unknown[] = []; // the limit passes in the second slice
+  const ended = await searchInSlices({ maxVisits: 96 }, "q1", call, r => partials.push(r), () => false, 60);
+  assert.equal(partials.length, 2);
+  assert.deepEqual(got.slice(1), [{ id: "q1", action: "continue" }, { id: "q1", action: "terminate", terminateId: "q1" }]);
+  assert.deepEqual(ended, { reply: { terminated: true }, late: true });
+});
+
+test("a search that ends its visits within its time limit is not late", async t => {
+  const clock = { now: 1000 };
+  t.mock.method(performance, "now", () => clock.now);
+  const { call } = slices(clock, 40);
+  assert.deepEqual(await searchInSlices({ maxVisits: 96 }, "q1", call, () => {}, () => false, 120), { reply: { done: true }, late: false });
 });

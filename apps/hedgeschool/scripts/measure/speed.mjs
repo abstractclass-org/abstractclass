@@ -157,10 +157,10 @@ export async function reloadReview(page) {
  * that it keeps in the page's browser, as JSON. It marks the sweep's start (`sweep:start`, when the review's progress
  * line, ReviewView.svelte, first names the game's shape) and its end (`sweep:end`, when it names the move quality).
  * It wraps `Worker`. In `window.__searches` it notes each search that the page sends to a worker (a request with
- * maxVisits): the worker, the visits, the visits of its slices (`slice`, for a search in slices), when it was sent and
- * when its final reply came (a partial reply is a slice's result), with the worker's own time for it (`ms`) and the
- * visits that it searched (`searched`). In `window.__workers` it notes when each worker was made, and when it ended
- * (terminate).
+ * maxVisits): the worker, the position's moves (`moves`, joined by spaces), the visits, the visits of its slices
+ * (`slice`, for a search in slices), when it was sent and when its final reply came (a partial reply is a slice's
+ * result), with the worker's own time for it (`ms`), at the end of each slice (`slices`), and the visits that it
+ * searched (`searched`). In `window.__workers` it notes when each worker was made, and when it ended (terminate).
  */
 export function watchSweep(settings) {
   localStorage.setItem("learn-enclosure:engine:2", settings);
@@ -179,15 +179,17 @@ export function watchSweep(settings) {
     constructor(...args) {
       super(...args);
       this.addEventListener("message", e => {
-        const s = e.data?.type !== "partial" && this.#open.get(e.data?.id);
+        const s = this.#open.get(e.data?.id);
         if (!s) return;
+        if (e.data.type === "partial") { s.slices.push(e.data.ms); return; }
         Object.assign(s, { ended: performance.now(), ms: e.data.ms, searched: e.data.reply?.rootInfo?.visits });
         this.#open.delete(e.data.id);
       });
     }
     postMessage(m, ...rest) {
       if ((m?.type === "call" || m?.type === "search") && m.request?.maxVisits !== undefined) {
-        const s = { worker: this.#index, visits: m.request.maxVisits, slice: m.request.slice?.visits, sent: performance.now() };
+        const s = { worker: this.#index, moves: m.request.moves?.join(" ") ?? "", visits: m.request.maxVisits,
+                    slice: m.request.slice?.visits, sent: performance.now(), slices: [] };
         searches.push(s);
         this.#open.set(m.id, s);
       }

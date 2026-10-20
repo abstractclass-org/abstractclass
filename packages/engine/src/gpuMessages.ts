@@ -18,6 +18,6 @@ export interface GpuInit {
 
 export type GpuRequest =
   | GpuInit
-  | { type: "search"; id: number; engine: number; request: object }
+  | { type: "search"; id: number; engine: number; request: object; maxMs?: number } // for at most `maxMs` in slices
   | { type: "stop"; id: number }
   | { type: "stats"; id: number }; // its reply: the network evaluations so far (the GPU library's count)

@@ -35,8 +35,9 @@ noise.
      and can change when the search ends.
    - **Deeper where the player looks:** the position on screen to 1,024 visits, in slices, with the results shown as
      they come (KaTrain's `max_visits`). The engine settings change its visits and give it a time limit (design 09).
-     A timer stops the search at the limit. The search also stops at its first result past the limit, because a
-     hidden tab runs the page's timers late.
+     The search's worker keeps the limit from the search's start: it ends the search at the end of the slice in which
+     the limit passes. The protocol gives a search in slices no time limit (`maxTime` is for a whole search), and a
+     timer of the page would stop it late in a hidden tab.
      Then the key moments, one doubling past the review's depth (twice its visits: 1,024 with Lite), both ends of each
      turn, since a loss needs both (design 09). Every depth together, and which result a position uses, with examples:
      design 16.
@@ -58,11 +59,13 @@ noise.
      search that runs (the gleam on a line, the moving bar of the position on screen). A result from the browser's
      store shows at once. A search writes its final result to the browser's store first, and the result shows in the
      first batch after the write. So the game's mark of a review done (design 20) comes after every result that it
-     covers is stored. The engine does not wait for the write: it takes its next search when its search ends. When no
-     search runs or waits, the next step waits for the batch: the key moments wait for the label pass's last result,
-     and Review done for the last of all. Then the batch comes once the results are stored, without its timer. A
-     hidden tab runs that timer about once a second, and later still when the page's timers have used up their share
-     of the processor (Chromium gives a hidden page's timers 1% of it). No search waits for a timer of the page.
+     covers is stored. The engine does not wait for the write: it takes its next search when its search ends. The next
+     step waits for the batch: the key moments wait for the label pass's last result, and Review done for the last of
+     all. When no search waits in the pool's queue, an engine can be free for that step, though the position on
+     screen or another search still runs. Then the batch comes once the results are stored, without its timer. While
+     a search waits, every engine is busy, and the batch keeps its timer. A hidden tab runs that timer about once a
+     second, and later still when the page's timers have used up their share of the processor (Chromium gives a
+     hidden page's timers 1% of it). No search waits for a timer of the page.
    - **A search in slices yields by a message:** between two slices, the worker sends itself a message, so that a stop
      can arrive first. A timer would wait longer: from the sixth yield on, 4 ms at least, and 15.6 ms in a hidden tab
      of Edge.
@@ -102,7 +105,8 @@ noise.
 
 ## Where it is
 
-- `packages/engine/src/pool.ts` (the pool and its priorities), `packages/engine/src/channel.ts` (a search in slices),
+- `packages/engine/src/pool.ts` (the pool and its priorities), `packages/engine/src/channel.ts` (a search in slices,
+  and its time limit),
   `packages/analysis/src/session.svelte.ts` (the rules worker started before its pool: `startRules`, `takeRules`),
   `packages/analysis/src/analysis.svelte.ts` (the schedule, and the searches that confirm Great by edge and by turn),
   `packages/analysis/src/cache.ts` (the browser's store, and the removal of older shapes, which
@@ -131,3 +135,5 @@ noise.
 - [decisions/product.md](../decisions/product.md), "A review in a hidden tab" (2026-10-19).
 - [decisions/product.md](../decisions/product.md), "The passes end with the old network" (2026-10-20).
 - [decisions/product.md](../decisions/product.md), "A network chosen while the review starts its pool" (2026-10-20).
+- [decisions/product.md](../decisions/product.md), "A hidden tab's review: the key moments and the time limit without
+  timers of the page" (2026-10-20).

@@ -40,9 +40,10 @@ export class GpuEngines {
     return (await this.channel.send<number>({ type: "stats" }).done).reply;
   }
 
-  /** A search on engine `k`. With a slice, `onPartial` gets the results after each slice, and `stop` ends it. */
-  analyse(k: number, q: AnalysisQuery, onPartial?: (r: AnalysisReply, ms: number) => void) {
-    const { id, done } = this.channel.send<AnalysisReply>({ type: "search", engine: k, request: { id: "a", ...q } },
+  /** A search on engine `k`. With a slice, `onPartial` gets the results after each slice, `stop` ends it, and the
+   *  worker ends it at the end of the slice in which `maxMs` passes (its reply is then `late`). */
+  analyse(k: number, q: AnalysisQuery, onPartial?: (r: AnalysisReply, ms: number) => void, maxMs?: number) {
+    const { id, done } = this.channel.send<AnalysisReply>({ type: "search", engine: k, request: { id: "a", ...q }, maxMs },
                                                           onPartial as (r: unknown, ms: number) => void);
     return { done, stop: () => this.channel.post({ type: "stop", id }) };
   }
@@ -61,7 +62,9 @@ export class GpuSlot {
     this.gpu = gpu;
     this.index = index;
   }
-  analyse(q: AnalysisQuery, onPartial?: (r: AnalysisReply, ms: number) => void) { return this.gpu.analyse(this.index, q, onPartial); }
+  analyse(q: AnalysisQuery, onPartial?: (r: AnalysisReply, ms: number) => void, maxMs?: number) {
+    return this.gpu.analyse(this.index, q, onPartial, maxMs);
+  }
   /** The pool ends the GPU worker itself (pool.ts, dropGpu). */
   terminate() {}
 }

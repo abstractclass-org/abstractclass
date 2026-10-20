@@ -58,7 +58,8 @@
   /** The note under the progress while the review has work to run (design 06, item 7): a browser gives a hidden tab's
    *  processes the lowest priority (Chromium on Windows: the Idle class and power throttling), so a review there can be
    *  slower when other programs use the processor (decisions/product.md, "A review in a hidden tab"). Text that a
-   *  player follows: strict Simplified Technical English. */
+   *  player follows: strict Simplified Technical English. The title says why. Where the line is cut, as with a larger
+   *  text size, the title gives the line in full before the reason (hiddenTabCut). */
   const HIDDEN_TAB = { text: "A review in a hidden tab can be slower.",
                        title: "When you cannot see this tab, the browser can give the review less processor time." };
   /** The words while the engine's network loads (design 06, item 7): the review's line and the engine header's line say
@@ -801,6 +802,9 @@
   // keys: the list does.
   let keysOpen = $state(false);
   let againOpen = $derived(!!again?.dialog); // closed by the player
+  // Whether the hidden tab's note (HIDDEN_TAB) was cut when the pointer last came to it: the browser reads the title
+  // after the pointer's arrival, so the title then gives the line in full.
+  let hiddenTabCut = $state(false);
   function onkeydown(ev: KeyboardEvent) {
     if (ev.defaultPrevented || ev.target instanceof HTMLInputElement || ev.ctrlKey || ev.metaKey || ev.altKey) return;
     if (ev.key === "Escape") {
@@ -985,7 +989,9 @@
       </div>
       <p class="mt-1 text-xs text-muted truncate" title={progress.text}>{progress.text}</p>
       {#if again}<p class="mt-0.5 text-xs text-ink truncate" title={again.text}>{again.text}</p>
-      {:else if !progress.waiting}<p class="mt-0.5 text-xs text-muted truncate" title={HIDDEN_TAB.title}>{HIDDEN_TAB.text}</p>{/if}
+      {:else if !progress.waiting}<p class="mt-0.5 text-xs text-muted truncate"
+          title={hiddenTabCut ? `${HIDDEN_TAB.text} ${HIDDEN_TAB.title}` : HIDDEN_TAB.title}
+          onpointerenter={e => (hiddenTabCut = e.currentTarget.scrollWidth > e.currentTarget.clientWidth)}>{HIDDEN_TAB.text}</p>{/if}
     </div>
   {:else if !board && !snapshot}
     <div class="mb-2.5 h-[2.75rem]">

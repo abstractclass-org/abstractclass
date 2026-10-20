@@ -131,9 +131,11 @@ export class EngineWorker {
   play<P = unknown>(q: PositionQuery, move: string) {
     return this.channel.send<P>({ type: "call", request: { id: "p", action: "play", ...q, move } }).done;
   }
-  /** Analyses a position. With a slice, `onPartial` gets the results after each slice, and `stop` ends the search. */
-  analyse(q: AnalysisQuery, onPartial?: (r: AnalysisReply, ms: number) => void) {
-    const { id, done } = this.channel.send<AnalysisReply>({ type: q.slice ? "search" : "call", request: { id: "a", ...q } },
+  /** Analyses a position. With a slice, `onPartial` gets the results after each slice, `stop` ends the search, and the
+   *  worker ends it at the end of the slice in which `maxMs` passes (its reply is then `late`). */
+  analyse(q: AnalysisQuery, onPartial?: (r: AnalysisReply, ms: number) => void, maxMs?: number) {
+    const request = { id: "a", ...q };
+    const { id, done } = this.channel.send<AnalysisReply>(q.slice ? { type: "search", request, maxMs } : { type: "call", request },
                                                           onPartial as (r: unknown, ms: number) => void);
     return { done, stop: () => this.channel.post({ type: "stop", id }) };
   }

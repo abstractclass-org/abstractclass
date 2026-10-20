@@ -239,7 +239,7 @@ applies at once, without a reload.
 
 - `src/lib/analysis/engineSettings.ts`: the settings, their steps and defaults, and their storage.
 - `packages/analysis/src/analysis.svelte.ts`: `setPaused`, `setReview`, `setDepth`, `dropAnalysis`, `usePool`, and the
-  time limit in `search`.
+  time limit in `search`, which the search's worker keeps (`packages/engine/src/channel.ts`, `searchInSlices`).
 - `packages/engine/src/pool.ts`: `resize` and `halt`. `packages/engine/src/client.ts`: `Stopped`, for the requests of an
   ended worker.
 - `packages/analysis/src/session.svelte.ts` (`EngineSession`, for the review and the Analysis board): the settings

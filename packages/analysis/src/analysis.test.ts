@@ -1,8 +1,9 @@
 // Checks the analysis's batch (BATCH_MS in analysis.svelte.ts): a search's results so far and its final result are
 // applied together, at most once a batch, the deepest for each position, with what follows a search's end (the passes'
 // progress, its mark). And the order of a search's end: the engine takes its next search at once, and the result shows
-// in the batch after its write to the store, or once it is stored when no search runs or waits. And another network:
-// no pass searches on the old network's pool for the new network's analysis. Run: npm test.
+// in the batch after its write to the store, or once it is stored when no search waits in the pool's queue. And
+// another network: no pass searches on the old network's pool for the new network's analysis. And a focus's time
+// limit, which the engine's worker keeps. Run: npm test.
 import { afterEach, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
 import "./testing/svelteModules.ts";
@@ -23,33 +24,43 @@ const MOVES = ["a", "b", "c"]; // a game of the test game (testing/game.ts)
 
 let models = 0;
 /** A pool of `engines` engines (by default, as many as the tasks), whose searches end when the test says: `partial`
- *  posts a result so far, `end` the final result, `fail` an engine error. `stopped` once the page stops the search. A
- *  task runs when an engine is free, first come first served. `idle` when no task runs or waits. */
+ *  posts a result so far, `end` the final result (`late`: its time limit ended it), `fail` an engine error. `stopped`
+ *  once the page stops the search, `maxMs` its time limit. A task runs when an engine is free, the most urgent first,
+ *  then first come first served, as the pool runs them (pool.ts). `waiting`: the tasks that wait for an engine. */
 function fakePool(engines = Infinity) {
-  const searches: { partial(visits: number): void; end(visits: number): void; fail(e: Error): void; stopped: boolean }[] = [];
+  const searches: { partial(visits: number): void; end(visits: number, late?: boolean): void; fail(e: Error): void; stopped: boolean;
+                    maxMs?: number }[] = [];
   const engine = {
-    analyse(_query: unknown, onPartial: (r: AnalysisReply) => void) {
-      let end!: (t: { reply: AnalysisReply }) => void, fail!: (e: Error) => void;
+    analyse(_query: unknown, onPartial: (r: AnalysisReply) => void, maxMs?: number) {
+      let end!: (t: { reply: AnalysisReply; late?: boolean }) => void, fail!: (e: Error) => void;
       const done = new Promise((resolve, reject) => { end = resolve; fail = reject; });
-      const search = { partial: (v: number) => onPartial(reply(v)), end: (v: number) => end({ reply: reply(v) }), fail: (e: Error) => fail(e), stopped: false };
+      const search = {
+        partial: (v: number) => onPartial(reply(v)), fail: (e: Error) => fail(e), stopped: false, maxMs,
+        // A search that the page stopped, or that its time limit ended, ends as terminated (the protocol's terminate).
+        end: (v: number, late = false) => end({ reply: late || search.stopped ? { ...reply(v), terminated: true } : reply(v), ...(late ? { late } : {}) }),
+      };
       searches.push(search);
       return { done, stop() { search.stopped = true; } };
     },
   };
   let busy = 0;
-  const waiting: (() => void)[] = [];
+  const waiting: { priority: number; start: () => void }[] = [];
   const pool = {
     search: "test", model: { sha256: `m${++models}` }, // a network of its own: the cache's memory outlives a test
     rules: wordRules,
-    run: (_priority: number, _tag: string, work: Work<unknown>) => new Promise((resolve, reject) => {
+    run: (priority: number, _tag: string, work: Work<unknown>) => new Promise((resolve, reject) => {
       const start = () => {
         busy++;
-        work(engine as never, () => {}).then(resolve, reject).finally(() => { busy--; waiting.shift()?.(); });
+        work(engine as never, () => {}).then(resolve, reject).finally(() => { busy--; waiting.shift()?.start(); });
       };
-      if (busy < engines) start(); else waiting.push(start);
+      if (busy < engines) start();
+      else {
+        waiting.push({ priority, start });
+        waiting.sort((a, b) => b.priority - a.priority);
+      }
     }),
     cancel() {}, halt() {}, terminate() {},
-    get idle() { return busy === 0 && waiting.length === 0; },
+    get waiting() { return waiting.length; },
   };
   return { pool: pool as unknown as EnginePool, searches };
 }
@@ -73,11 +84,11 @@ beforeEach(() => mock.timers.enable({ apis: ["setTimeout"] }));
 afterEach(() => { mock.timers.reset(); store.release(); });
 
 test("a search's final results wait for the batch, and the sweep's progress comes with them", async () => {
-  const { game, searches } = await sweeping();
-  assert.equal(searches.length, game.passCount);
+  const { game, searches } = await sweeping(1); // the sweep's next searches wait for the engine
   searches[0].end(SWEEP_VISITS);
-  searches[1].end(SWEEP_VISITS);
   await settle();
+  searches[1].end(SWEEP_VISITS);
+  await turns();
   assert.equal(game.analysis[0], undefined);
   assert.equal(game.swept, 0);
   mock.timers.tick(BATCH_MS);
@@ -86,12 +97,12 @@ test("a search's final results wait for the batch, and the sweep's progress come
 });
 
 test("a final result is not replaced by a shallower result of the same batch", async () => {
-  const { game, searches } = await sweeping();
-  game.focus([]); // the start, on screen: searched in slices, beside the sweep's search of it
+  const { game, searches } = await sweeping(1);
+  game.focus([]); // the start, on screen: it takes the engine after the sweep's search of it
   await settle();
-  const focus = searches.at(-1)!;
   searches[0].end(SWEEP_VISITS);
-  await settle();
+  await turns();
+  const focus = searches.at(-1)!;
   focus.partial(SWEEP_VISITS / 2); // the focus's first slice, after the sweep's final result
   mock.timers.tick(BATCH_MS);
   assert.equal(game.analysis[0]?.visits, SWEEP_VISITS);
@@ -179,13 +190,14 @@ test("a result whose write fails shows, with its progress", async () => {
 });
 
 test("a position stays pending, and its focus runs, until the batch after its result's write", async () => {
-  const { pool, searches } = fakePool();
+  const { pool, searches } = fakePool(1);
   const game = new GameAnalysis(words, pool, MOVES, BOARD_ID); // the board: only its searches make a position pending
   await game.start();
   await game.sweep();
   game.focus([]);
-  void pool.run(0, "other", () => new Promise(() => {})); // another task runs: the result waits for the batch
   await settle();
+  // Two other tasks wait: once the focus ends, one of them still waits, and the result waits for the batch.
+  for (let k = 0; k < 2; k++) void pool.run(0, "other", () => new Promise(() => {}));
   store.hold();
   searches[0].end(game.focusVisits);
   await settle();
@@ -216,25 +228,46 @@ test("a search that fails ends its marks in the next batch, and the page gets th
   assert.match(game.error, /the engine failed/);
 });
 
-test("once no search runs or waits, the last results show when they are stored, without the batch's timer", async () => {
+/** Ends the searches `from` to `to` (not included) one at a time, at `visits`, each once the engine has it. */
+async function endEach(searches: { end(visits: number): void }[], from: number, to: number, visits: number) {
+  for (let k = from; k < to; k++) {
+    searches[k].end(visits);
+    await turns();
+  }
+}
+
+test("once no search waits, the results show when they are stored, without the batch's timer", async () => {
   const { game, searches } = await sweeping(1);
   const n = game.passCount;
-  for (let k = 0; k < 2 * n - 1; k++) { // the sweep, then the label pass but its last search, one at a time
-    searches[k].end(k < n ? SWEEP_VISITS : game.labelVisits);
-    await settle();
-  }
-  await turns();
-  assert.equal(game.labelled, 0); // the engine had the next search: the results wait for the batch
-  searches[2 * n - 1].end(game.labelVisits);
-  await turns();
+  await endEach(searches, 0, n, SWEEP_VISITS);
+  await endEach(searches, n, 2 * n - 2, game.labelVisits); // the label pass but its last two searches
+  assert.equal(game.labelled, 0); // the label pass's next search waited for the engine: the results wait for the batch
+  await endEach(searches, 2 * n - 2, 2 * n - 1, game.labelVisits);
+  assert.equal(game.labelled, n - 1); // its last search has the engine, and no search waits
+  await endEach(searches, 2 * n - 1, 2 * n, game.labelVisits);
   assert.equal(game.labelled, n); // the label pass's last: the key moments, which wait for it, do not wait for the timer
 });
 
+test("the label pass's last result shows without the batch's timer while a focus runs", async () => {
+  const { game, searches } = await sweeping(2);
+  const n = game.passCount;
+  await endEach(searches, 0, n, SWEEP_VISITS);
+  await endEach(searches, n, 2 * n - 2, game.labelVisits); // the label pass's last two searches have the engines
+  game.focus(game.mainNames.slice(0, 1)); // the player looks at a position: its search waits for an engine
+  await settle();
+  await endEach(searches, 2 * n - 2, 2 * n - 1, game.labelVisits);
+  assert.equal(searches.length, 2 * n + 1); // the focus has the engine
+  await endEach(searches, 2 * n - 1, 2 * n, game.labelVisits);
+  assert.equal(game.labelled, n);
+});
+
 test("the key moments' step waits for a search whose position left them, until its result is stored", async () => {
-  const { game, searches } = await sweeping();
+  const { game, searches } = await sweeping(1); // the sweep's searches wait: the results wait for the batch
   const depth = momentVisits(game.labelVisits);
   game.deepen([1]);
   await settle();
+  searches[0].end(SWEEP_VISITS); // the key moment's search takes the engine before the rest of the sweep
+  await turns();
   const deep = searches.at(-1)!;
   deep.partial(depth - 32);
   mock.timers.tick(BATCH_MS);
@@ -267,9 +300,7 @@ test("the key moments' step does not wait for a search that ends with no result"
   assert.equal(game.error, "engine error");
 });
 
-test("a focus with a time limit stops at its first result past the limit, though its timer has not run", async () => {
-  mock.timers.reset();
-  mock.timers.enable({ apis: ["setTimeout", "Date"] }); // the clock moves, the timers wait: a hidden tab runs them late
+test("a focus gives its time limit to the engine, and a search that the limit ended shows as stopped there", async () => {
   const { pool, searches } = fakePool();
   const game = new GameAnalysis(words, pool, MOVES, BOARD_ID);
   await game.start();
@@ -277,13 +308,28 @@ test("a focus with a time limit stops at its first result past the limit, though
   game.setDepth(4096, 2);
   game.focus([]);
   await settle();
+  assert.equal(searches[0].maxMs, 2000);
   searches[0].partial(32);
-  assert.equal(searches[0].stopped, false);
-  mock.timers.setTime(Date.now() + 2000);
-  searches[0].partial(64);
-  assert.equal(searches[0].stopped, true);
-  searches[0].end(96);
+  searches[0].end(64, true);
   await turns();
   mock.timers.tick(BATCH_MS);
   assert.equal(game.stoppedByTime([]), true);
+  assert.equal(game.analysis[0]?.visits, 64);
+});
+
+test("a focus that stops before its time limit does not show as stopped there", async () => {
+  const { pool, searches } = fakePool();
+  const game = new GameAnalysis(words, pool, MOVES, BOARD_ID);
+  await game.start();
+  await game.sweep();
+  game.setDepth(4096, 2);
+  game.focus([]);
+  await settle();
+  game.setDepth(4096, 10); // another time limit: the page stops the search
+  assert.equal(searches[0].stopped, true);
+  searches[0].end(64);
+  await turns();
+  mock.timers.tick(BATCH_MS);
+  game.setDepth(4096, 2);
+  assert.equal(game.stoppedByTime([]), false);
 });

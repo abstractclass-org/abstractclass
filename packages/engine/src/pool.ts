@@ -11,10 +11,12 @@ import { EngineError, EngineWorker, modelOf, moduleOf, type Manifest, type Timed
 import type { GpuEngines } from "./gpuClient.ts";
 import type { AnalysisQuery, AnalysisReply, ModelInfo, VersionReply } from "./protocol.ts";
 
-/** What searches: a CPU worker, or an engine of the GPU worker. */
+/** What searches: a CPU worker, or an engine of the GPU worker. A search in slices ends at the end of the slice in which
+ *  its time limit `maxMs` passes (channel.ts, searchInSlices). */
 export interface SearchEngine {
   readonly kind: "cpu" | "gpu";
-  analyse(q: AnalysisQuery, onPartial?: (r: AnalysisReply, ms: number) => void): { done: Promise<Timed<AnalysisReply>>; stop: () => void };
+  analyse(q: AnalysisQuery, onPartial?: (r: AnalysisReply, ms: number) => void,
+          maxMs?: number): { done: Promise<Timed<AnalysisReply>>; stop: () => void };
   terminate(): void;
 }
 
@@ -217,6 +219,10 @@ export class EnginePool {
   /** No task waits or runs. */
   get idle(): boolean { return !this.queue.length && !this.running.size; }
 
+  /** The tasks that wait in the queue for an engine. While one waits, no engine is free: each takes a task as it frees
+   *  (dispatch). */
+  get waiting(): number { return this.queue.length; }
+
   /** Ends the search workers and the GPU worker when no task has run for a while (IDLE_RELEASE_MS, shorter in a hidden
    *  tab), and starts them again with the next task: an open tab then holds their memory only while it searches. The
    *  rules worker stays, so the board answers at once. The page keeps the network's checked file (client.ts,
@@ -342,9 +348,9 @@ export class SpeedMeter {
     return {
       kind: engine.kind,
       terminate: () => engine.terminate(),
-      analyse: (q, onPartial) => {
+      analyse: (q, onPartial, maxMs) => {
         if (engine.kind === "gpu") this.active++;
-        const run = engine.analyse(q, onPartial);
+        const run = engine.analyse(q, onPartial, maxMs);
         run.done.then(t => this.ended(engine.kind, t.ms, t.reply.rootInfo.visits), () => this.ended(engine.kind, 0, 0));
         return run;
       },

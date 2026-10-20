@@ -6,5 +6,5 @@ export type WorkerRequest =
   | { type: "init"; id: number; module: WebAssembly.Module; library: string } // the module compiled, the library's URL
   | { type: "model"; id: number; model: Blob; name: string; settings?: Record<string, unknown> } // checked by the page
   | { type: "call"; id: number; request: object }
-  | { type: "search"; id: number; request: object }
+  | { type: "search"; id: number; request: object; maxMs?: number } // in slices, for at most `maxMs` (searchInSlices)
   | { type: "stop"; id: number };

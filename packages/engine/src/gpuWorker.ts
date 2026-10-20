@@ -15,7 +15,8 @@ let gpu: GpuEngines | null = null;
 const queues: Promise<void>[] = [];
 const stopped = new Set<number>();
 const post = (m: GpuReply) => self.postMessage(m);
-const reply = (id: number, value: unknown, ms = 0, memory = 0) => post({ type: "reply", id, reply: value, ms, memory });
+const reply = (id: number, value: unknown, ms = 0, memory = 0, late = false) =>
+  post({ type: "reply", id, reply: value, ms, memory, ...(late ? { late } : {}) });
 
 async function init(m: GpuInit) {
   const t0 = performance.now();
@@ -32,13 +33,13 @@ async function init(m: GpuInit) {
   reply(m.id, JSON.parse(await made.engines[0].call({ id: "v", action: "query_version" })), performance.now() - t0); // its version
 }
 
-async function search(id: number, engine: GpuEngine, request: object) {
+async function search(id: number, engine: GpuEngine, request: object, maxMs?: number) {
   const t0 = performance.now();
-  const last = await searchInSlices(request, `q${id}`, async r => JSON.parse(await engine.call(r)),
-                                    partial => post({ type: "partial", id, reply: partial, ms: performance.now() - t0 }),
-                                    () => stopped.has(id));
+  const { reply: last, late } = await searchInSlices(request, `q${id}`, async r => JSON.parse(await engine.call(r)),
+                                                     partial => post({ type: "partial", id, reply: partial, ms: performance.now() - t0 }),
+                                                     () => stopped.has(id), maxMs);
   stopped.delete(id);
-  reply(id, last, performance.now() - t0, engine.memoryBytes());
+  reply(id, last, performance.now() - t0, engine.memoryBytes(), late);
 }
 
 self.onmessage = (event: MessageEvent<GpuRequest>) => {
@@ -52,7 +53,7 @@ self.onmessage = (event: MessageEvent<GpuRequest>) => {
     .then(() => {
       const engine = gpu?.engines[k];
       if (!engine) throw new Error(`the GPU worker has no engine ${k}`);
-      return search(m.id, engine, m.request);
+      return search(m.id, engine, m.request, m.maxMs);
     })
     .catch(e => post({ type: "error", id: m.id, message: errorText(e) }));
 };
