@@ -10,6 +10,7 @@ import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { dirname, extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { checkBrowser } from "../edge.mjs";
 
 // The types of the build's files, by their extension. The browser checks some: a module script of another type does
 // not run (the engine's CPU evaluator is a .mjs file), and WebAssembly streams only as application/wasm.
@@ -53,8 +54,12 @@ export async function preview(dir, port) {
   return { url: `http://127.0.0.1:${port}`, stop: () => new Promise(resolve => server.close(resolve)) };
 }
 
-/** Playwright's Chromium, headless, with its scroll bars shown, as the layout sweep runs it (playwright.config.ts). */
-export const launch = (options = {}) => chromium.launch({ ignoreDefaultArgs: ["--hide-scrollbars"], ...options });
+/** Playwright's Chromium, headless, with its scroll bars shown, as the layout sweep runs it (playwright.config.ts). A
+ *  `channel` in `options` goes through the gate on Edge (edge.mjs). */
+export function launch(options = {}) {
+  if (options.channel) checkBrowser(options.channel);
+  return chromium.launch({ ignoreDefaultArgs: ["--hide-scrollbars"], ...options });
+}
 
 /** Edge's program on Windows, which Playwright's channel "msedge" starts. */
 const EDGE = "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe";
@@ -79,8 +84,8 @@ function accountsOf(profile) {
 
 /**
  * A browser whose tab can be hidden as a visitor hides one (docs/working-notes.md, "A hidden tab in Playwright"):
- * Playwright's Chromium (`channel` "chromium") or Edge ("msedge"), headless, with a new profile of its own in the
- * system's temporary folder, reached over CDP on `port`, its window `size` pixels. A browser that Playwright launches
+ * Playwright's Chromium (`channel` "chromium") or Edge ("msedge", only with HS_EDGE=1: edge.mjs), headless, with a
+ * new profile of its own in the system's temporary folder, reached over CDP on `port`, its window `size` pixels. A browser that Playwright launches
  * keeps every page visible and its timers unthrottled: its switches turn off the background throttling and the
  * hidden renderers' lower priority, and its focus emulation keeps each page visible. This browser has neither
  * (`connectOverCDP` with `noDefaults`). Its profile stays apart from the machine's (APART), and its preferences allow
@@ -91,6 +96,7 @@ function accountsOf(profile) {
  * all the same.
  */
 export async function launchHideable({ channel = "chromium", port, size = [1366, 657], args = [] }) {
+  checkBrowser(channel);
   const profile = mkdtempSync(join(tmpdir(), "hideable-"));
   mkdirSync(join(profile, "Default"));
   writeFileSync(join(profile, "Default", "Preferences"), JSON.stringify({ signin: { allowed: false } }));

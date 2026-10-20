@@ -5085,3 +5085,22 @@ sweep.
   the Google tag and of stored practice games in a local build). In the sweep, `own-settings.spec.ts` reached its
   timeout of 10 minutes at `page.goto("about:blank")`, before any text of this pass. Alone, on the same build, it
   passed in 3.4 s.
+
+### The measuring scripts start Edge only when asked (2026-10-20)
+
+- **What:** one gate holds the rule for every script that can start a browser: `apps/hedgeschool/scripts/edge.mjs`.
+  Edge starts only when the environment has `HS_EDGE=1`. Without the variable, a script refuses Edge with a message
+  that names the variable. The gate is in `launch` and `launchHideable` (`scripts/measure/speed.mjs`), in the browser
+  lists of `scripts/measure/review-hidden.mjs` and `scripts/measure/worker-yield.mjs`, in `scripts/favicon.mjs`, which
+  always runs Edge, and in `playwright.config.ts`, whose project `edge` it adds.
+- **The default browser list** of `review-hidden.mjs` and `worker-yield.mjs` is Chromium alone. It was Chromium and
+  Edge. A run with no variable starts no Edge.
+- **Why:** Edge signs a new profile in to the Windows account and syncs that account's extensions. On 2026-10-19 the
+  runs of `review-hidden.mjs` did so, and two older profiles from Playwright's Edge runs were found on 2026-10-20 ("The
+  layout sweep runs in Edge only when asked" closed the same hole in the layout sweep).
+- **The other places that name Edge** cannot start it by themselves: `scripts/social-card.html` gives Edge's command
+  in a comment, for a person to run by hand. The tests in `tests/` run in the projects of `playwright.config.ts`. CI
+  runs `--project=chromium`. No other file in the repository starts a browser.
+- **Checked** with no browser started (`scripts/edge.test.mjs`, in `npm test`): with no variable, the gate refuses
+  Edge, and with `HS_EDGE=1` it allows it. With no browser list, the list is Chromium alone. Each script, run with Edge
+  in its browser list (`favicon.mjs` with no list) and no variable, stops at the gate with the message.

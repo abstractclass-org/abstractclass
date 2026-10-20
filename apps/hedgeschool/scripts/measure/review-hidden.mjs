@@ -35,18 +35,19 @@
 //   node scripts/measure/review-hidden.mjs <build> [runs] [set-ups] [browsers] [end] [port]
 //
 // set-ups: a list from front, hidden and late (by default all three); browsers: a list from chromium and msedge (by
-// default both); end: sweep or review (by default sweep). Each browser runs `runs` rounds (by default 3), and each round
-// runs every set-up, in an order that turns by one each round. The engine settings: 2 search workers (WORKERS sets
-// another number), the GPU off, the rest the site's defaults. With OUT, every run's numbers and the machine's load go
-// to that file as JSON.
+// default chromium alone, and msedge only with HS_EDGE=1: scripts/edge.mjs); end: sweep or review (by default sweep).
+// Each browser runs `runs` rounds (by default 3), and each round runs every set-up, in an order that turns by one each
+// round. The engine settings: 2 search workers (WORKERS sets another number), the GPU off, the rest the site's
+// defaults. With OUT, every run's numbers and the machine's load go to that file as JSON.
 import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
+import { browserList } from "../edge.mjs";
 import { FIXTURE, launchHideable, longTasks, machineLoad, median, preview, sweepGaps, tasksBetween, trace, watchSweep } from "./speed.mjs";
 import { SWEEP_VISITS } from "@abstractclass/analysis/cache.ts";
 
 const [build] = process.argv.slice(2, 3);
 const runs = Number(process.argv[3] ?? 3), setups = (process.argv[4] ?? "front,hidden,late").split(",");
-const browsers = (process.argv[5] ?? "chromium,msedge").split(","), end = process.argv[6] ?? "sweep";
+const browsers = browserList(process.argv[5]), end = process.argv[6] ?? "sweep";
 const port = Number(process.argv[7] ?? 4391);
 const record = JSON.parse(readFileSync(FIXTURE, "utf8")).record;
 // The batch's delay, from its source: game.svelte.ts holds runes, which Node cannot import.

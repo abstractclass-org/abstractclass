@@ -12,11 +12,13 @@
 //
 //   node scripts/measure/worker-yield.mjs [browsers] [port]
 //
-// browsers: a list from chromium and msedge (by default both).
+// browsers: a list from chromium and msedge (by default chromium alone, and msedge only with HS_EDGE=1:
+// scripts/edge.mjs).
 import { createServer } from "node:http";
+import { browserList } from "../edge.mjs";
 import { launchHideable, median } from "./speed.mjs";
 
-const browsers = (process.argv[2] ?? "chromium,msedge").split(","), port = Number(process.argv[3] ?? 4395);
+const browsers = browserList(process.argv[2]), port = Number(process.argv[3] ?? 4395);
 const COUNT = 200, STOPS = 20;
 
 const server = createServer((_, res) => res.writeHead(200, { "content-type": "text/html" }).end("<!doctype html><title>yield</title>"));

@@ -10,11 +10,16 @@ learn one, and remove a note when it stops being true. The work itself is in bea
 - **The owner plays in this browser** (Edge, the local build): practice games and reviews of their own. Before a
   test that plays, save the keys that it changes (`hedge-school:practice-*`, the review's display settings) and the
   games' ids, and put them back after. Read the state again before each test: the owner plays between them.
+- **Edge starts only with `HS_EDGE=1`,** and only the owner sets it: an Edge that a worker starts signs a new profile
+  in to the owner's Windows account and syncs the owner's extensions. One gate holds the rule for every script that
+  can start a browser (`scripts/edge.mjs`): the layout sweep, `launch` and `launchHideable` in
+  `scripts/measure/speed.mjs`, the browser lists of `review-hidden.mjs` and `worker-yield.mjs`, and `favicon.mjs`.
+  Without the variable, a script refuses Edge with a message that names the variable, and a browser list is Chromium
+  alone by default.
 - **The layout sweep** (`npm run test:layout` in `apps/hedgeschool`) runs in Chromium alone. Its default address is the
   owner's preview on port 4173. A worker sets `BASE_URL` to its own preview (another port, or a Cloudflare preview).
-  The project `edge` comes only with `HS_EDGE=1`, and only the owner sets it: an Edge that a worker starts signs in to
-  the owner's Windows account and syncs the owner's extensions. `npx playwright test --list` shows the tests with no
-  browser, and shows the project `edge` only with the variable.
+  The project `edge` comes only with `HS_EDGE=1` (see the note before this one). `npx playwright test --list` shows
+  the tests with no browser, and shows the project `edge` only with the variable.
 - **The local server and a build:** stop the server before `npm run build`, then start it again. A build under a
   running server can stop it (a page asks for `_app/version.json` while the build replaces it).
 - **The local server:** `node ../../node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 4173 --strictPort`
@@ -33,8 +38,8 @@ learn one, and remove a note when it stops being true. The work itself is in bea
 - **Measuring speed in a browser:** a measuring script takes its tools from `scripts/measure/speed.mjs`. Do not
   write them again. Its tests are in `speed.test.mjs`. `review-first-frame.mjs`, `review-start.mjs`,
   `review-sweep.mjs` (a sweep's tasks, two builds in pairs), `review-hidden.mjs` (a review in a tab in front and in a
-  hidden tab, in Chromium and Edge), `worker-yield.mjs` (a worker's yield between two slices of a search) and
-  `layout-shift.mjs` use it.
+  hidden tab, in Chromium, and in Edge with `HS_EDGE=1`), `worker-yield.mjs` (a worker's yield between two slices of
+  a search) and `layout-shift.mjs` use it.
   - `watchSweep(settings)` is an init script that marks a review's sweep (`sweep:start`, `sweep:end`) and notes each
     search that the page sends to a worker, and each worker made and ended. `sweepGaps` gives the gaps between one
     engine's searches from those notes. `launchHideable` gives a browser whose tab can be hidden (see "A hidden tab in
@@ -71,9 +76,9 @@ learn one, and remove a note when it stops being true. The work itself is in bea
   (`--disable-background-timer-throttling`, `--disable-renderer-backgrounding`,
   `--disable-backgrounding-occluded-windows`) stop the throttling, and its focus emulation
   (`Emulation.setFocusEmulationEnabled`) keeps `document.visibilityState` "visible", also behind another tab and in a
-  minimized window. `launchHideable` in `scripts/measure/speed.mjs` starts Chromium or Edge itself, headless, with a
-  temporary profile, and connects with `connectOverCDP` and `noDefaults`. A new tab in front then hides the page, as
-  a visitor's browser does:
+  minimized window. `launchHideable` in `scripts/measure/speed.mjs` starts Chromium (or Edge, with `HS_EDGE=1`)
+  itself, headless, with a temporary profile, and connects with `connectOverCDP` and `noDefaults`. A new tab in front
+  then hides the page, as a visitor's browser does:
   - **A browser started by hand needs Playwright's switches that keep its profile apart** (`APART` in `speed.mjs`).
     Without them, Edge signs a new profile in to the Windows account and syncs that account's extensions into it.
     They then install and open pages of their own, which hide the page and take the processor. Playwright's own
@@ -140,4 +145,4 @@ learn one, and remove a note when it stops being true. The work itself is in bea
   reference can send the keys to GA's top search. Rename an exploration's tab by a double-click on the active tab's
   label, after a screenshot: the tab strip moves when a tab opens.
 - **The icon at `/favicon.ico`** is drawn from `src/lib/assets/favicon.svg` by `node scripts/favicon.mjs`, with
-  headless Edge. Run it again when the logo changes.
+  headless Edge. Run it again when the logo changes. It needs `HS_EDGE=1`, so only the owner runs it.

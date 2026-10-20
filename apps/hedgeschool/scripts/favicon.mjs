@@ -1,13 +1,16 @@
 // Draws static/favicon.ico (design 12): the favicon's head (src/lib/assets/favicon.svg) at 16, 32 and 48 pixels, each
 // drawn by the browser at its own size, with a clear background, in one ICO file. The file answers /favicon.ico, the
 // address that browsers and other clients ask for when a page names no icon. Run: node scripts/favicon.mjs
-// The browser is Edge's usual place on Windows, or EDGE.
+// The browser is Edge's usual place on Windows, or EDGE. Edge starts only when the environment has HS_EDGE=1
+// (scripts/edge.mjs), so only the owner runs this script.
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { checkBrowser } from "./edge.mjs";
 
+checkBrowser("msedge");
 const EDGE = process.env.EDGE ?? "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe";
 const SIZES = [16, 32, 48];
 const svg = pathToFileURL(resolve("src/lib/assets/favicon.svg")).href;
