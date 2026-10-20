@@ -4789,3 +4789,64 @@ sweep.
   `navigator.clipboard.write` to Firefox from version 127, and a promise as the item's data. Firefox asks for the
   call within the handler of a user's gesture. Bits UI calls the menu item's `onSelect` from its click handler, and
   from there `copyPng` calls `navigator.clipboard.write` before any `await`, so the call is within the click.
+
+### Review done waits for the key moments' searches (2026-10-20)
+
+- **The problem** (abscls-byld, found in the review of abscls-73h): a review said "Review done" while some of its key
+  moments' searches still ran. A reload or a closed page then ended them, and the store never got their results. The
+  next visit said "Reviewing: the key moments, deeper, 5 of 6 positions", and its report's table moved when that step
+  ended. When each reload came at once after "Review done", the store stayed one key moment short at every reload.
+- **Which search, and why.** Checked in Playwright's Chromium, headless, at 1,366 × 657, on the preview build, in a job
+  of 2 threads (`scripts/machine run`). The test fixture's review (`tests/fixtures/hedgefund-review.json`) was imported
+  with the default settings: Lite, the position on screen to 1,024 visits for at most 30 s, 8 search workers, the GPU
+  off. A script noted each search that the page sent to a worker, its results so far and its end, each write to the
+  store's results, and the progress line. A build with a log of the key moments noted them at each change.
+  - **The start is no key moment.** Its 1,024-visit result comes from the position on screen: the review opens at the
+    start and searches it to 1,024 visits. At the import, 7 searches shared the 2 threads, and that search stopped at
+    its time limit at 416 and 480 visits in two runs. It wrote nothing. A later visit had fewer searches, reached
+    1,024 visits in 24 s, and wrote the result. That is the result that the issue saw the first reload add.
+  - **The issue's first possible cause was not this case:** a result so far at the search's visits, and then a search
+    that returns at `held() >= visits` without a write. A search in slices posts its results so far below its visits
+    (992 of 1,024 at most), and a search that the page stops ends below them too.
+  - **The key moments** were positions 23, 24, 25, 39, 40 and 41. Their searches run in slices, and their results so
+    far show (design 16: a search that runs counts with its visits so far). At 864, 896 and 768 visits of 39, 40 and
+    41, the labels changed, and the key moments became 23, 24 and 25. These had their 1,024-visit results. So the step
+    counted 3 of 3, and the review said "Review done" while the 3 searches still ran. In another run, a later result
+    so far gave back the 6 key moments: the line said "Review done", then "5 of 6 positions", then "Review done".
+  - **At each later visit,** the stored results gave the 6 key moments again, and the search of 39 ran again. At
+    about 900 visits, its result so far gave the 3 key moments again, so "Review done" came before the search ended.
+    A reload at once then ended the search, and the next visit did the same.
+- **The change:** the key moments' step counts the key moments, and also each position whose search for earlier key
+  moments is queued or runs (`momentChecks` in `packages/analysis/src/analysis.svelte.ts`, which the review page
+  reads). Such a position counts until the batch that shows its search's final result, and that batch comes after
+  the result's write. So "Review done", the game's mark and the Export menu come only when the store holds every
+  result of the review. A search that ends without a result (cancelled, stopped when the engine goes off, another
+  network, an error) stops counting in its next batch, so the step never waits for a search that does not end. The
+  gleam on a line (`pending`) counts such a search too.
+- **Not changed:** the key moments' results so far still change the labels while their searches run (design 16). So
+  while a search of an earlier key moment runs, the line can count fewer positions than before: "5 of 6", then "3 of
+  4", then "5 of 6". The bar does not go back: its part holds.
+- **Why not hide the key moments' results so far:** KaTrain reports during a search only for the node on screen, and
+  the key moments would then change only with stored results. But design 16 makes every search count with its visits
+  so far. Also, a key moment's final result can still take another key moment out while that one's search runs. So
+  the step must count those searches in both cases.
+- **The test** (`packages/analysis/src/analysis.test.ts`): a key moment's search posts a result so far, and the key
+  moments then lack its position. The step counts the position until the batch after the result's write, then no
+  more. Before the change, the step counted none.
+- **In a browser:** the same setup, with the builds before and after the change, in alternating runs, each in a fresh
+  browser profile. Each run imported the fixture, read the store at "Review done", then reloaded 3 times. Each reload
+  came at once after the last one's first frame and was watched for 15 s. Two pairs of runs had the position on
+  screen at 1,024 visits, and two at 512, where it searches no position of the game.
+  - **Before** (4 runs): at the import's "Review done", the store lacked 39, or 39, 40 and 41, in 3 runs. Their first
+    reloads said "Reviewing: the key moments, deeper, 5 of 6 positions" (or "3 of 6"). In 2 of them, every later
+    reload said it again. The fourth run said "Review done", "5 of 6 positions" and "Review done" during its import.
+  - **After** (4 runs): at the import's "Review done", the store held the 6 key moments at 1,024 visits. All 12
+    reloads said "Review done" in their first frame, and the line did not change.
+  - **Layout shift** of each reload after the change (`layoutShift` in `scripts/measure/speed.mjs`): 0.0000 in all 6
+    reloads with the position on screen at 512. At 1,024, the first reload of one run searched the start to 1,024,
+    because the import's search of it had stopped at its time limit. Its results so far changed the start's labels
+    and moved the report's table once (0.0048), as design 16 says (example 2). The later reloads gave 0.0000.
+- **Left** (abscls-4woe): a search counts as met by a result so far of another search, such as the position on
+  screen past the label budget. When that search stops before its end, the store never gets a result at the budget.
+  A key moment's search that stops when the engine goes off also leaves its result so far in memory.
+- **Not measured:** Edge, the deployed site, the GPU, and other numbers of workers.

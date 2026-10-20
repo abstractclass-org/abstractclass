@@ -134,7 +134,8 @@
   // The review's work as one bar, each part as wide as its share of the visits, so that the bar moves at an even pace:
   // the sweep, the label pass, the key moments searched deeper, and the Great's confirmations. The last two are counted
   // from what the analysis asks for so far: they grow as labels come, and each is done when its positions have the
-  // searches, whoever ran them (after a change of the review's depth too). The bar shows the step that its line names:
+  // searches, whoever ran them (after a change of the review's depth too). The key moments' part also counts a search
+  // for earlier key moments that still runs (momentChecks). The bar shows the step that its line names:
   // the steps before are full, the later ones empty, though some of their work can end early, alongside (it shows when
   // their step comes). The step's own part never shows less than it has shown (held): a count that grows makes it wait
   // instead of going back. Another review depth, network or game starts it again.
@@ -142,8 +143,9 @@
   $effect(() => { void budget; void game; held = { step: -1, done: 0 }; });
   const rawProgress = $derived.by((): (ReviewProgress & { step: number }) | null => {
     if (snapshot) return null;
-    const n = Math.max(1, passCount), momentDepth = momentVisits(budget), deeper = momentDepth - budget;
-    const m = momentPositions.length, deepDone = momentPositions.filter(i => (game?.analysis[i]?.visits ?? 0) >= momentDepth).length;
+    const n = Math.max(1, passCount), deeper = momentVisits(budget) - budget;
+    const { total: m, done: deepDone } = game?.momentChecks(momentPositions)
+      ?? { total: momentPositions.length, done: 0 };
     const greats = game?.greatChecks ?? { total: 0, done: 0 };
     const labelled = game?.labelled !== undefined && game.labelled >= passCount, deep = deepDone >= m;
     // Every step has its results, from the searches or from the browser's store: the review is complete. A review opened

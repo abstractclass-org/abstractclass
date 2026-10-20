@@ -91,6 +91,8 @@ export class GameAnalysis<G extends GameTypes> {
   private passes = 0; // a new run of the passes, or another network, makes the earlier one stop after its sweep
   moments = $state.raw<number[]>([]); // the key moments' positions, searched deeper after the label pass
   private deepening = new Set<string>(); // their searches queued or running, by position and visits
+  // The same searches by position, with how many, until the batch after each one's end (momentChecks).
+  private deepRunning = $state.raw<Record<number, number>>({});
   private confirming = new Set<string>(); // the Greats' confirmations queued or running, by path key
   // The positions whose search runs now, by path key: their analysis can still change (the page's gleam on a line)
   private running = $state.raw<Record<string, number>>({});
@@ -138,7 +140,9 @@ export class GameAnalysis<G extends GameTypes> {
     if (this.running[pathKey(path)]) return true;
     const i = mainIndex(path, this.mainNames);
     if (this.board || i === null || i >= this.passCount || this.paused || !this.engineReady) return false;
-    return this.reached[i] < this.labelVisits || (this.moments.includes(i) && (this.analysis[i]?.visits ?? 0) < momentVisits(this.labelVisits));
+    const moment = this.moments.includes(i) || !!this.deepRunning[i]; // or a search for earlier key moments runs
+    return this.reached[i] < this.labelVisits
+      || (moment && (this.analysis[i]?.visits ?? 0) < momentVisits(this.labelVisits));
   }
 
   /** Whether the search of the position at `path` stopped at the time limit, with the focus settings as they are. */
@@ -283,6 +287,18 @@ export class GameAnalysis<G extends GameTypes> {
     }
     const done = [...after.values()].filter(t => (this.analysisOf(t.path)?.visits ?? 0) >= t.depth).length;
     return { total: after.size, done };
+  }
+
+  /** The key moments' deeper searches as the review's step: the positions `moments` (the key moments that the review
+   *  reads now) and the positions whose search for earlier key moments is queued or running, and how many of them have
+   *  the key moments' depth. A search's results so far change the labels, and with them the key moments (design 16),
+   *  so a position can leave them while its search runs. The step waits for that search: its result is stored only at
+   *  its end, so a Review done before it would leave the store without it, and the next visit's key moments would
+   *  have it again. */
+  momentChecks(moments: number[]): { total: number; done: number } {
+    const depth = momentVisits(this.labelVisits);
+    const positions = new Set([...moments, ...Object.keys(this.deepRunning).map(Number)]);
+    return { total: positions.size, done: [...positions].filter(i => (this.analysis[i]?.visits ?? 0) >= depth).length };
   }
 
   /** The review from the browser's store alone, with no search (an export away from the review page, design 13): each
@@ -727,9 +743,20 @@ export class GameAnalysis<G extends GameTypes> {
       const key = `${i} ${visits}`;
       if (this.deepening.has(key)) continue;
       this.deepening.add(key);
-      this.search(this.mainNames.slice(0, i), visits, PRIORITY.moment, "moment", { sliced: true })
-        .catch(this.fail).finally(() => this.deepening.delete(key));
+      this.markDeep(i, this.search(this.mainNames.slice(0, i), visits, PRIORITY.moment, "moment", { sliced: true })
+        .catch(this.fail).finally(() => this.deepening.delete(key)));
     }
+  }
+
+  /** Counts the game's position `i` among the key moments' searches (momentChecks) until the batch after `search`
+   *  ends: the batch that shows its result. */
+  private markDeep(i: number, search: Promise<unknown>) {
+    this.deepRunning = { ...this.deepRunning, [i]: (this.deepRunning[i] ?? 0) + 1 };
+    const end = () => this.afterBatch(() => {
+      const left = (this.deepRunning[i] ?? 1) - 1, { [i]: _, ...rest } = this.deepRunning;
+      this.deepRunning = left > 0 ? { ...rest, [i]: left } : rest;
+    });
+    search.then(end, end);
   }
 
   /** Keeps an engine error for the page. A task cancelled before it ran, or a worker ended for another pool, is not one. */

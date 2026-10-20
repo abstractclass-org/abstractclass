@@ -17,7 +17,7 @@ import { memoryDb } from "@abstractclass/storage/memoryDb.ts";
 
 const store = memoryDb(queueMicrotask); // its transactions complete in microtasks: the tests mock setTimeout
 
-const { BATCH_MS, GameAnalysis } = await import("./analysis.svelte.ts");
+const { BATCH_MS, GameAnalysis, momentVisits } = await import("./analysis.svelte.ts");
 
 const MOVES = ["a", "b", "c"]; // a game of the test game (testing/game.ts)
 
@@ -232,6 +232,28 @@ test("once no search runs or waits, the last results show when they are stored, 
   searches[2 * n - 1].end(game.labelVisits);
   await turns();
   assert.equal(game.labelled, n); // the label pass's last: the key moments, which wait for it, do not wait for the timer
+});
+
+test("the key moments' step waits for a search whose position left them, until its result is stored", async () => {
+  const { game, searches } = await sweeping();
+  const depth = momentVisits(game.labelVisits);
+  game.deepen([1]);
+  await settle();
+  const deep = searches.at(-1)!;
+  deep.partial(depth - 32);
+  mock.timers.tick(BATCH_MS);
+  // The labels follow the result so far, and position 1 is no key moment any more: its search still runs.
+  assert.deepEqual(game.momentChecks([]), { total: 1, done: 0 });
+  store.hold();
+  deep.end(depth);
+  await settle();
+  mock.timers.tick(BATCH_MS);
+  assert.deepEqual(game.momentChecks([]), { total: 1, done: 0 }); // its write has not committed
+  store.release();
+  await settle();
+  assert.deepEqual(game.momentChecks([]), { total: 1, done: 0 }); // stored: its end shows with its result, in the batch
+  mock.timers.tick(BATCH_MS);
+  assert.deepEqual([game.momentChecks([]), game.momentChecks([1])], [{ total: 0, done: 0 }, { total: 1, done: 1 }]);
 });
 
 test("a focus with a time limit stops at its first result past the limit, though its timer has not run", async () => {

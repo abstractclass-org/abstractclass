@@ -35,6 +35,9 @@ The engine searches the position on screen only when it holds less than P. A lab
   deeper result, and its labels follow it.
 - **Everything follows the held results:** the labels of the moves into and out of the position, the report's counts,
   accuracy and points lost, the chart, the key moments, and the Greats.
+- **A key moment's own search too.** Its results so far change the labels, and with them the key moments, so its
+  position can leave them while it runs. The review is not done until that search ends: the store gets its result
+  only then (design 06, the review's progress bar).
 - **From the store, the deepest too.** When a review opens, each position takes the deepest result stored for it at the
   visits asked or more (`cacheGetAtLeast` in `packages/analysis/src/cache.ts`). So a review opened again looks as the
   player left it, and a review file's deeper results count everywhere.
