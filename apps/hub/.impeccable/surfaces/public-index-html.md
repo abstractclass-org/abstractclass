@@ -18,10 +18,10 @@ related_targets: ["public/404.html"]
 - **Chosen structure:** "The game first, one column", locked from the second hand with the steer: "Game name first and
   largest, site name second and smaller. The game board should probably be animated."
 - **Unresolved:** Abstract Class has no mark yet: the favicon is a plain monogram until it has one. No share image.
-- **The build's adaptations of the contract,** accepted in the finish review: the "Played on" line is in the
-  description, not above the name (an eyebrow, and the game's name comes first); the board is 320 pixels, with badges
-  at 1.4 times Hedge School's, so that the review's moment reads; the address has a line of its own; the entry stacks
-  below 52rem.
+- **The build's adaptations of the contract,** accepted in the finish review: the board is 320 pixels, with badges
+  at 1.4 times Hedge School's, so that the review's moment reads; the entry stacks below 52rem.
+- **Changed after the build:** the hub names no website where a game is played (no "Played on" line), no game's
+  credit in the footer, and no address in plain text. These belong to each game's site.
 - **The roll:** the surface roll ran from the skill's catalog (source "api"). This skill version (4.5.2) prints no
   SEED REFERENCE line. A later `--check-seed` call, which this version does not have, dealt a hand that was
   discarded, and the build's roll was reproduced into `.impeccable/questions/roll.json`.
@@ -38,8 +38,8 @@ edges, regions at 16%.
 STORY: The visitor reads "Abstract Class" and one line, finds their game's name, sees its board play, and clicks
 "Learn Enclosure". A newcomer reads two lines and takes "Try a practice game".
 
-FIRST VIEWPORT: A 760-pixel column. At top, the wordmark at 24 pixels and the line at 17. Under a hairline, "Played
-on strategyjam.org, meaf.us and Constellation" at 14, "Enclosure" at 64 pixels, "at Hedge School" at 20, two lines,
+FIRST VIEWPORT: A 760-pixel column. At top, the wordmark at 24 pixels and the line at 17. Under a hairline,
+"Enclosure" at 64 pixels, "at Hedge School" at 20, two lines,
 the lavender "Learn Enclosure" and the quiet "Try a practice game". The board, 280 pixels, at left of the text, playing.
 
 FORM: The game first, one column, sixth of the second hand's seven (the dealt lead); seed: none (unavailable).

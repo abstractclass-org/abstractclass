@@ -35,7 +35,8 @@ review of your own games, move by move, for games too new or too small to have o
 ## Operating Context
 
 - **Hedge School** (`https://hedgeschool.abstractclass.org`): helps players learn Enclosure, the game of edges and
-  enclosed regions played on strategyjam.org, meaf.us and Constellation. Practice against the engine (HedgeFund) at a
+  enclosed regions played on strategyjam.org, meaf.us and Constellation (Hedge School says so, the hub does not).
+  Practice against the engine (HedgeFund) at a
   chosen strength, review a game you played (where it turned, which turns cost you, what was better), the Analysis
   board and a board editor. Early access. Free. The engine runs in the browser.
 - **A strategy-jam game's site** follows after 2026-10-24 (beads abscls-8tl1), at `<game>.abstractclass.org`. It

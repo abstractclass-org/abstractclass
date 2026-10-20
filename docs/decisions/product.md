@@ -5532,3 +5532,7 @@ sweep.
   and an unknown path answers the 404 page with status 404. With reduced motion, no animation runs.
 - **Still open:** Abstract Class has no mark of its own. The tab's icon is an "A" in white on the lavender until it
   has one. The hub has no share image, and `www.abstractclass.org` has no record.
+- **What the hub leaves to each game's site** (changed after the review): the websites where the game is played, the
+  game's credits, and the site's address in plain text. These belong to the game's site, and the link holds the
+  address. So Enclosure's description no longer names strategyjam.org, meaf.us and Constellation, the address under
+  "Hedge School" is gone, and the footer gives only "© 2026 Yshan", without "Enclosure by webgoatguy".

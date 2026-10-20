@@ -231,7 +231,7 @@
       },
       "label": {
         "displayName": "Label",
-        "purpose": "The site's address on its own line, and the footer."
+        "purpose": "The footer."
       }
     },
     "shadows": [
@@ -311,15 +311,15 @@
       "name": "Site Line",
       "kind": "nav",
       "refersTo": "link-site",
-      "description": "\"at\", then the site's mark and name in one link, and the address on a line of its own.",
-      "html": "<p class=\"ds-site\">at <a href=\"#\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><circle cx=\"10\" cy=\"10\" r=\"9\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/></svg>Hedge School</a> <span class=\"ds-address\">hedgeschool.abstractclass.org</span></p>",
-      "css": ".ds-site { margin: 0; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; font-size: 1.25rem; line-height: 1.45; color: var(--muted, #6a6c73); } .ds-site a { color: var(--text, #24252a); font-weight: 600; text-decoration-color: var(--border, #dddad3); text-decoration-thickness: 1px; text-underline-offset: 0.2em; } .ds-site a:hover { text-decoration-color: var(--accent, #6f5aa8); } .ds-site a:focus-visible { outline: 2px solid var(--accent, #6f5aa8); outline-offset: 3px; border-radius: 2px; } .ds-site svg { width: 1.25em; height: 1.25em; margin-right: 0.3em; vertical-align: -0.25em; } .ds-address { display: block; margin-top: 0.125rem; font-size: 0.875rem; overflow-wrap: anywhere; }"
+      "description": "\"at\", then the site's mark and name in one link.",
+      "html": "<p class=\"ds-site\">at <a href=\"#\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><circle cx=\"10\" cy=\"10\" r=\"9\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/></svg>Hedge School</a></p>",
+      "css": ".ds-site { margin: 0; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; font-size: 1.25rem; line-height: 1.45; color: var(--muted, #6a6c73); } .ds-site a { color: var(--text, #24252a); font-weight: 600; text-decoration-color: var(--border, #dddad3); text-decoration-thickness: 1px; text-underline-offset: 0.2em; } .ds-site a:hover { text-decoration-color: var(--accent, #6f5aa8); } .ds-site a:focus-visible { outline: 2px solid var(--accent, #6f5aa8); outline-offset: 3px; border-radius: 2px; } .ds-site svg { width: 1.25em; height: 1.25em; margin-right: 0.3em; vertical-align: -0.25em; }"
     },
     {
       "name": "Game Entry",
       "kind": "card",
       "refersTo": "game-name",
-      "description": "The unit a new game repeats: name, site line, address, description, the two actions, and the board. Stacks below 52rem.",
+      "description": "The unit a new game repeats: name, site line, description, the two actions, and the board. Stacks below 52rem.",
       "html": "<div class=\"ds-entry\"><svg class=\"ds-board\" viewBox=\"0 0 10 10\" role=\"img\" aria-label=\"A board\"><rect width=\"10\" height=\"10\" fill=\"var(--board-bg, #f3ead7)\"/><path d=\"M2 2L5 4L8 3\" fill=\"none\" stroke=\"var(--blue, #2f6fde)\" stroke-width=\"0.13\" stroke-linecap=\"round\"/><path d=\"M2 8L5 6L8 7\" fill=\"none\" stroke=\"var(--red, #d2453f)\" stroke-width=\"0.13\" stroke-linecap=\"round\"/></svg><div class=\"ds-text\"><h2 class=\"ds-name\">Enclosure</h2><p class=\"ds-site-line\">at <a href=\"#\">Hedge School</a></p><p class=\"ds-about\">A game of edges and enclosed regions for two players.</p><p class=\"ds-actions\"><a class=\"ds-entry-learn\" href=\"#\">Learn Enclosure</a><a class=\"ds-entry-try\" href=\"#\">Try a practice game</a></p></div></div>",
       "css": ".ds-entry { display: grid; grid-template-columns: 20rem minmax(0, 1fr); gap: 2.5rem; align-items: center; padding-block: 2rem; border-block: 1px solid var(--border, #dddad3); font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; color: var(--text, #24252a); } .ds-board { display: block; width: 100%; height: auto; border-radius: 8px; } .ds-text { display: grid; justify-items: start; } .ds-name { margin: 0; font-size: clamp(2.75rem, 2rem + 3vw, 4rem); line-height: 1.1; font-weight: 700; letter-spacing: -0.03em; text-wrap: balance; } .ds-site-line { margin: 0.75rem 0 0; font-size: 1.25rem; color: var(--muted, #6a6c73); } .ds-site-line a { color: var(--text, #24252a); font-weight: 600; text-decoration-color: var(--border, #dddad3); } .ds-about { margin: 0.875rem 0 0; max-width: 30rem; font-size: 1rem; color: var(--muted, #6a6c73); } .ds-actions { margin: 1.375rem 0 0; display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1.5rem; } .ds-entry-learn { padding: 0.75rem 1.5rem; border-radius: 6px; background: var(--accent, #6f5aa8); color: var(--on-accent, #fff); font-weight: 600; text-decoration: none; } .ds-entry-learn:hover { filter: brightness(1.1); } .ds-entry-try { color: var(--text, #24252a); text-decoration-color: var(--border, #dddad3); } .ds-entry-try:hover { text-decoration-color: var(--accent, #6f5aa8); } .ds-entry a:focus-visible { outline: 2px solid var(--accent, #6f5aa8); outline-offset: 3px; border-radius: 2px; } @media (max-width: 52rem) { .ds-entry { grid-template-columns: minmax(0, 1fr); gap: 1.75rem; } .ds-board { order: 1; max-width: 22.5rem; } }"
     },

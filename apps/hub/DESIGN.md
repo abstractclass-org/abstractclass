@@ -179,7 +179,7 @@ never from a second family. The hub ships no font files.
 - **Lede** (400, 1.0625rem, muted, at most 36rem wide): the organization's one line under the wordmark.
 - **Body** (400, 15px, 1.45): the page's base. The description is 1rem, muted, at most 30rem wide, with pretty wrap.
   The button and the quiet link are 1rem.
-- **Label** (400, 0.875rem): the site's address on a line of its own, and the footer.
+- **Label** (400, 0.875rem): the footer.
 
 The 404 page's heading is 2.25rem at 700, 1.1, -0.02em.
 
@@ -196,8 +196,8 @@ under a hairline.
 
 Each entry is a grid of two columns: the board at 20rem, then the text in `minmax(0, 1fr)`, with a 2.5rem gap. The two
 columns are centred on each other. The entry has 2rem of space above and below, and a hairline under it. The text
-column stacks its parts at the start, with these steps: 0.75rem to the site line, 0.125rem to the address, 0.875rem to
-the description, and 1.375rem to the actions. The actions wrap, with a gap of 0.75rem between rows and 1.5rem between
+column stacks its parts at the start, with these steps: 0.75rem to the site line, 0.875rem to the description, and
+1.375rem to the actions. The actions wrap, with a gap of 0.75rem between rows and 1.5rem between
 the two actions.
 
 Below 52rem (a phone, a narrow window or a large zoom), the entry becomes one column: the text first, then the board
@@ -245,11 +245,12 @@ badge is a rounded square.
 The entry is the unit that a new game repeats. Its parts, in order:
 1. The game's name, as an `h2` in Display type.
 2. The site line: "at", then the site's mark and name in one link.
-3. The site's address on a line of its own, in Label type, so that a long site name never leaves a separator at the
-   start of a line.
-4. The description: what the game is and where it is played, then what the site does.
-5. The two actions: "Learn <game>" for a player who knows the game, and the quiet link for a newcomer.
-6. The board, at the left of the text on a wide screen, and under the text below 52rem.
+3. The description: what the game is, then what the site does.
+4. The two actions: "Learn <game>" for a player who knows the game, and the quiet link for a newcomer.
+5. The board, at the left of the text on a wide screen, and under the text below 52rem.
+
+The hub leaves to each game's site what belongs to the game: the websites where it is played, its credits, and the
+site's address in plain text (the link holds it). The footer gives only the hub's own copyright.
 
 ### The board (signature component)
 - **Drawing:** inline SVG, as Hedge School's `Board.svelte` draws it. A sand ground with 8px corners, a lattice of dots
