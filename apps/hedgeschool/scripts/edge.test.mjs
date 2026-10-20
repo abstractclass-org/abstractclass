@@ -3,9 +3,15 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { browserList, checkBrowser, withEdge } from "./edge.mjs";
+import { browserList, checkBrowser, edgeProgram, withEdge } from "./edge.mjs";
+import { launch, launchHideable } from "./measure/speed.mjs";
 
 const NONE = {}, ASKED = { HS_EDGE: "1" };
+
+// The environment of the tests below and of the scripts that they run: no HS_EDGE, and an EDGE that names no program,
+// so that a script past a broken gate fails before Edge starts.
+delete process.env.HS_EDGE;
+process.env.EDGE = "no-such-folder/msedge.exe";
 
 test("Edge comes only when the environment has HS_EDGE=1", () => {
   assert.equal(withEdge(NONE), false);
@@ -14,16 +20,16 @@ test("Edge comes only when the environment has HS_EDGE=1", () => {
   assert.equal(withEdge(ASKED), true);
 });
 
-test("with no variable, Edge is refused with a message that names the variable", () => {
+test("with no variable, the gate refuses Edge with a message that names the variable", () => {
   assert.throws(() => checkBrowser("msedge", NONE), /HS_EDGE=1/);
   assert.equal(checkBrowser("chromium", NONE), "chromium");
 });
 
-test("with HS_EDGE=1, Edge is allowed", () => {
+test("with HS_EDGE=1, the gate allows Edge", () => {
   assert.equal(checkBrowser("msedge", ASKED), "msedge");
 });
 
-test("a browser that the scripts do not know is refused", () => {
+test("the gate refuses a browser that the scripts do not know", () => {
   assert.throws(() => checkBrowser("firefox", ASKED), /firefox/);
 });
 
@@ -33,13 +39,25 @@ test("with no browser list, the list is Chromium alone, with the variable too", 
   assert.deepEqual(browserList("", NONE), ["chromium"]);
 });
 
-test("a list with Edge is refused with no variable, and kept with it", () => {
+test("the gate refuses a list with Edge with no variable, and keeps it with the variable", () => {
   assert.throws(() => browserList("chromium,msedge", NONE), /HS_EDGE=1/);
   assert.deepEqual(browserList("chromium,msedge", ASKED), ["chromium", "msedge"]);
 });
 
-// Each script, with Edge where its browser list goes (or none: favicon.mjs always runs Edge), in an environment
-// without HS_EDGE. The gate stops it before it starts a server or a browser.
+test("Edge's program comes only through the gate: EDGE, or Edge's usual place", () => {
+  assert.throws(() => edgeProgram({ EDGE: "edge.exe" }), /HS_EDGE=1/);
+  assert.equal(edgeProgram({ ...ASKED, EDGE: "edge.exe" }), "edge.exe");
+  assert.match(edgeProgram(ASKED), /Microsoft\/Edge\/Application\/msedge\.exe$/);
+});
+
+// The program that does not exist makes Playwright fail before it starts a browser, if the gate in launch fails.
+test("launch and launchHideable refuse Edge with no variable", async () => {
+  assert.throws(() => launch({ channel: "msedge", executablePath: process.env.EDGE }), /HS_EDGE=1/);
+  await assert.rejects(launchHideable({ channel: "msedge", port: 9 }), /HS_EDGE=1/);
+});
+
+// Each script, with Edge where its browser list goes (or none: favicon.mjs always runs Edge). The gate stops it before
+// it starts a server or a browser.
 const SCRIPTS = {
   "scripts/measure/review-hidden.mjs": ["build", "1", "front", "msedge"],
   "scripts/measure/worker-yield.mjs": ["msedge"],
@@ -47,10 +65,7 @@ const SCRIPTS = {
 };
 for (const [script, args] of Object.entries(SCRIPTS)) {
   test(`${script} refuses Edge with no variable`, () => {
-    const env = { ...process.env };
-    delete env.HS_EDGE;
-    delete env.EDGE;
-    const run = spawnSync(process.execPath, [script, ...args], { env, encoding: "utf8", timeout: 30_000 });
+    const run = spawnSync(process.execPath, [script, ...args], { encoding: "utf8", timeout: 30_000 });
     assert.notEqual(run.status, 0);
     assert.match(run.stderr, /HS_EDGE=1/);
   });

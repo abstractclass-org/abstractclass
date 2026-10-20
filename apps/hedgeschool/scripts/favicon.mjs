@@ -8,10 +8,9 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { checkBrowser } from "./edge.mjs";
+import { edgeProgram } from "./edge.mjs";
 
-checkBrowser("msedge");
-const EDGE = process.env.EDGE ?? "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe";
+const EDGE = edgeProgram();
 const SIZES = [16, 32, 48];
 const svg = pathToFileURL(resolve("src/lib/assets/favicon.svg")).href;
 const dir = mkdtempSync(join(tmpdir(), "favicon-"));

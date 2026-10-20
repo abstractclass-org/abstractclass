@@ -11,15 +11,14 @@ learn one, and remove a note when it stops being true. The work itself is in bea
   test that plays, save the keys that it changes (`hedge-school:practice-*`, the review's display settings) and the
   games' ids, and put them back after. Read the state again before each test: the owner plays between them.
 - **Edge starts only with `HS_EDGE=1`,** and only the owner sets it: an Edge that a worker starts signs a new profile
-  in to the owner's Windows account and syncs the owner's extensions. One gate holds the rule for every script that
-  can start a browser (`scripts/edge.mjs`): the layout sweep, `launch` and `launchHideable` in
-  `scripts/measure/speed.mjs`, the browser lists of `review-hidden.mjs` and `worker-yield.mjs`, and `favicon.mjs`.
-  Without the variable, a script refuses Edge with a message that names the variable, and a browser list is Chromium
-  alone by default.
+  in to the owner's Windows account and syncs the owner's extensions. Every script that can start a browser goes
+  through one gate, `scripts/edge.mjs`. The layout sweep does too. Only the gate gives Edge's program. Without the
+  variable, a script refuses Edge with a message that names the variable, and a browser list is Chromium alone by
+  default. A new script that starts a browser uses the gate.
 - **The layout sweep** (`npm run test:layout` in `apps/hedgeschool`) runs in Chromium alone. Its default address is the
   owner's preview on port 4173. A worker sets `BASE_URL` to its own preview (another port, or a Cloudflare preview).
-  The project `edge` comes only with `HS_EDGE=1` (see the note before this one). `npx playwright test --list` shows
-  the tests with no browser, and shows the project `edge` only with the variable.
+  The project `edge` comes only with `HS_EDGE=1` (the note "Edge starts only with `HS_EDGE=1`").
+  `npx playwright test --list` shows the tests with no browser, and shows the project `edge` only with the variable.
 - **The local server and a build:** stop the server before `npm run build`, then start it again. A build under a
   running server can stop it (a page asks for `_app/version.json` while the build replaces it).
 - **The local server:** `node ../../node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 4173 --strictPort`

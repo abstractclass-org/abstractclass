@@ -10,7 +10,7 @@ import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { dirname, extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { checkBrowser } from "../edge.mjs";
+import { checkBrowser, edgeProgram } from "../edge.mjs";
 
 // The types of the build's files, by their extension. The browser checks some: a module script of another type does
 // not run (the engine's CPU evaluator is a .mjs file), and WebAssembly streams only as application/wasm.
@@ -55,14 +55,12 @@ export async function preview(dir, port) {
 }
 
 /** Playwright's Chromium, headless, with its scroll bars shown, as the layout sweep runs it (playwright.config.ts). A
- *  `channel` in `options` goes through the gate on Edge (edge.mjs). */
+ *  `channel` in `options` goes through the gate on Edge (edge.mjs). An `executablePath` does not, and no script gives
+ *  one. */
 export function launch(options = {}) {
   if (options.channel) checkBrowser(options.channel);
   return chromium.launch({ ignoreDefaultArgs: ["--hide-scrollbars"], ...options });
 }
-
-/** Edge's program on Windows, which Playwright's channel "msedge" starts. */
-const EDGE = "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe";
 
 /** The switches of a browser that Playwright launches (playwright-core, chromiumSwitches) that keep a new profile apart
  *  from the machine's: no sign-in, sync or extensions, and no network traffic of the browser's own. Without them, Edge
@@ -84,16 +82,16 @@ function accountsOf(profile) {
 
 /**
  * A browser whose tab can be hidden as a visitor hides one (docs/working-notes.md, "A hidden tab in Playwright"):
- * Playwright's Chromium (`channel` "chromium") or Edge ("msedge", only with HS_EDGE=1: edge.mjs), headless, with a
- * new profile of its own in the system's temporary folder, reached over CDP on `port`, its window `size` pixels. A browser that Playwright launches
- * keeps every page visible and its timers unthrottled: its switches turn off the background throttling and the
- * hidden renderers' lower priority, and its focus emulation keeps each page visible. This browser has neither
- * (`connectOverCDP` with `noDefaults`). Its profile stays apart from the machine's (APART), and its preferences allow
- * no sign-in, Edge's implicit sign-in too (in Local State). The page is in the profile's own context, not in one that
- * Playwright makes: Playwright turns on its focus emulation in those. Resolves with the browser, its one context, its
- * first page, `hide()`, which brings a new tab to front and so hides the others, `close()`, which ends the browser and
- * removes its profile, and the browser's process id (`pid`). `close()` throws when the profile signed in to an account
- * all the same.
+ * Playwright's Chromium (`channel` "chromium") or Edge ("msedge", only with HS_EDGE=1: edge.mjs), headless, with a new
+ * profile of its own in the system's temporary folder, reached over CDP on `port`, its window `size` pixels. A browser
+ * that Playwright launches keeps every page visible and its timers unthrottled: its switches turn off the background
+ * throttling and the hidden renderers' lower priority, and its focus emulation keeps each page visible. This browser
+ * has neither (`connectOverCDP` with `noDefaults`). Its profile stays apart from the machine's (APART), and its
+ * preferences allow no sign-in, Edge's implicit sign-in too (in Local State). The page is in the profile's own context,
+ * not in one that Playwright makes: Playwright turns on its focus emulation in those. Resolves with the browser, its
+ * one context, its first page, `hide()`, which brings a new tab to front and so hides the others, `close()`, which ends
+ * the browser and removes its profile, and the browser's process id (`pid`). `close()` throws when the profile signed
+ * in to an account all the same.
  */
 export async function launchHideable({ channel = "chromium", port, size = [1366, 657], args = [] }) {
   checkBrowser(channel);
@@ -101,7 +99,7 @@ export async function launchHideable({ channel = "chromium", port, size = [1366,
   mkdirSync(join(profile, "Default"));
   writeFileSync(join(profile, "Default", "Preferences"), JSON.stringify({ signin: { allowed: false } }));
   writeFileSync(join(profile, "Local State"), JSON.stringify({ profiles: { edge_implicit_sign_in_enabled: false } }));
-  const child = spawn(channel === "msedge" ? EDGE : chromium.executablePath(),
+  const child = spawn(channel === "msedge" ? edgeProgram() : chromium.executablePath(),
                       [`--remote-debugging-port=${port}`, `--user-data-dir=${profile}`, "--headless=new", ...APART,
                        `--window-size=${size.join(",")}`, ...args, "about:blank"], { stdio: "ignore" });
   const exited = new Promise(resolve => child.once("exit", resolve));

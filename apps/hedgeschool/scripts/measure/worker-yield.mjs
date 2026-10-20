@@ -1,14 +1,14 @@
-// The time of a worker's yield between two slices of a search (packages/engine/src/channel.ts, searchInSlices), in a tab in
-// front and in a hidden tab, in Chromium and Edge (decisions/product.md, "A review in a hidden tab"). A worker in an
-// empty page yields `COUNT` times in a chain, as a search does between its slices, in two ways: by a timer of 0 ms (a
-// timer set in the task of the timer before it: after the fifth, the browser waits 4 ms at least), and by a message
-// that the worker sends itself on a channel of its own. Each yield is timed from its start to the task that it waits
-// for. Then the stop: the worker runs slices of 50 ms with a yield by a message between them, and the page posts a stop
-// during a slice, `STOPS` times. The worker should end at the first yield after the stop arrives: no slice starts after
-// the page posts the stop. The worker reads the stop only between slices, so a slice that starts after the post shows a
-// stop that came after the worker's own message. Each browser starts headless, with a new profile, whose tab can be
-// hidden (speed.mjs, launchHideable). The tab is hidden by a new tab in front, and each set-up checks
-// document.visibilityState.
+// The time of a worker's yield between two slices of a search (packages/engine/src/channel.ts, searchInSlices), in a
+// tab in front and in a hidden tab, in Chromium, and in Edge with HS_EDGE=1 (decisions/product.md, "A review in a
+// hidden tab"). A worker in an empty page yields `COUNT` times in a chain, as a search does between its slices, in two
+// ways: by a timer of 0 ms (a timer set in the task of the timer before it: after the fifth, the browser waits 4 ms at
+// least), and by a message that the worker sends itself on a channel of its own. Each yield is timed from its start to
+// the task that it waits for. Then the stop: the worker runs slices of 50 ms with a yield by a message between them,
+// and the page posts a stop during a slice, `STOPS` times. The worker should end at the first yield after the stop
+// arrives: no slice starts after the page posts the stop. The worker reads the stop only between slices, so a slice
+// that starts after the post shows a stop that came after the worker's own message. Each browser starts headless, with
+// a new profile, whose tab can be hidden (speed.mjs, launchHideable). The tab is hidden by a new tab in front, and each
+// set-up checks document.visibilityState.
 //
 //   node scripts/measure/worker-yield.mjs [browsers] [port]
 //

@@ -5092,15 +5092,23 @@ sweep.
   Edge starts only when the environment has `HS_EDGE=1`. Without the variable, a script refuses Edge with a message
   that names the variable. The gate is in `launch` and `launchHideable` (`scripts/measure/speed.mjs`), in the browser
   lists of `scripts/measure/review-hidden.mjs` and `scripts/measure/worker-yield.mjs`, in `scripts/favicon.mjs`, which
-  always runs Edge, and in `playwright.config.ts`, whose project `edge` it adds.
+  always runs Edge, and in `playwright.config.ts`, whose project `edge` it adds. Edge's program (`edgeProgram`: the
+  environment's `EDGE`, or Edge's usual place on Windows) comes only from the gate, for `launchHideable` and
+  `favicon.mjs`.
 - **The default browser list** of `review-hidden.mjs` and `worker-yield.mjs` is Chromium alone. It was Chromium and
   Edge. A run with no variable starts no Edge.
 - **Why:** Edge signs a new profile in to the Windows account and syncs that account's extensions. On 2026-10-19 the
-  runs of `review-hidden.mjs` did so, and two older profiles from Playwright's Edge runs were found on 2026-10-20 ("The
-  layout sweep runs in Edge only when asked" closed the same hole in the layout sweep).
+  runs of `review-hidden.mjs` did so, and on 2026-10-20 a search found two older profiles from Playwright's Edge runs
+  ("The layout sweep runs in Edge only when asked" closed the same hole in the layout sweep).
 - **The other places that name Edge** cannot start it by themselves: `scripts/social-card.html` gives Edge's command
-  in a comment, for a person to run by hand. The tests in `tests/` run in the projects of `playwright.config.ts`. CI
-  runs `--project=chromium`. No other file in the repository starts a browser.
+  in a comment, for the owner to run by hand. The tests in `tests/` run in the projects of `playwright.config.ts`. CI
+  runs `--project=chromium`. The other measuring scripts call `launch` with no channel, so they start Chromium. No
+  other file starts a browser.
+- **The gate's limit:** `launch` checks the channel, not an `executablePath`. A script that gave Playwright Edge's
+  program as its `executablePath` would get past the gate. No script does, and no script names Edge's program: it
+  comes only from `edgeProgram`.
 - **Checked** with no browser started (`scripts/edge.test.mjs`, in `npm test`): with no variable, the gate refuses
-  Edge, and with `HS_EDGE=1` it allows it. With no browser list, the list is Chromium alone. Each script, run with Edge
-  in its browser list (`favicon.mjs` with no list) and no variable, stops at the gate with the message.
+  Edge, and with `HS_EDGE=1` it allows it. With no browser list, the list is Chromium alone. `launch` and
+  `launchHideable` refuse Edge with no variable. Each script, run with Edge in its browser list (`favicon.mjs` with no
+  list) and no variable, stops at the gate with the message. The tests set `EDGE` to a program that does not exist,
+  so that a broken gate fails before Edge starts.
