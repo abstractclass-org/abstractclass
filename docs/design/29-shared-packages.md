@@ -200,7 +200,9 @@ edit in the same commit), so their changes still apply.
 - `package.json` at the root: the workspace (`apps/*`, `packages/*`).
 - `packages/engine/`, `packages/storage/`, `packages/analysis/`: each with its `package.json` (name, `exports`,
   scripts), `tsconfig.json` and `src/`.
-- `packages/analysis/src/game.ts`: the game interface. `packages/analysis/src/testing/game.ts`: the test game.
+- `packages/analysis/src/game.ts`: the game interface. `packages/analysis/src/testing/game.ts`: the test game, with
+  the rules and a search's reply for a test's pool. `packages/analysis/src/testing/page.svelte.ts`: a page for the
+  engine session's tests.
 - `apps/hedgeschool/src/lib/review/enclosure.ts`: Enclosure's game and its part of the review.
 - `.github/workflows/tests.yml` and `deploy.yml`: the packages' checks.
 

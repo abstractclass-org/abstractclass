@@ -6,10 +6,10 @@
 import { afterEach, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
 import "./testing/svelteModules.ts";
-import type { AnalysisReply, PositionQuery } from "@abstractclass/engine/protocol.ts";
+import type { AnalysisReply } from "@abstractclass/engine/protocol.ts";
 import type { EnginePool, Work } from "@abstractclass/engine/pool.ts";
 import { BOARD_ID } from "./kept.ts";
-import { wordFields, words } from "./testing/game.ts";
+import { reply, wordRules, words } from "./testing/game.ts";
 import { SWEEP_VISITS, analysisKey, cachePut, readAnalysisKey } from "./cache.ts";
 import { toAnalysis } from "./reply.ts";
 import { STORES } from "@abstractclass/storage/db.ts";
@@ -20,10 +20,6 @@ const store = memoryDb(queueMicrotask); // its transactions complete in microtas
 const { BATCH_MS, GameAnalysis, momentVisits } = await import("./analysis.svelte.ts");
 
 const MOVES = ["a", "b", "c"]; // a game of the test game (testing/game.ts)
-
-const reply = (visits: number) => ({
-  rootInfo: { visits, winrate: 0.5, scoreLead: 0, scoreSelfplay: 0, scoreStdev: 0 }, moveInfos: [],
-}) as unknown as AnalysisReply;
 
 let models = 0;
 /** A pool of `engines` engines (by default, as many as the tasks), whose searches end when the test says: `partial`
@@ -44,7 +40,7 @@ function fakePool(engines = Infinity) {
   const waiting: (() => void)[] = [];
   const pool = {
     search: "test", model: { sha256: `m${++models}` }, // a network of its own: the cache's memory outlives a test
-    rules: { describeGame: async (q: PositionQuery) => ({ reply: { positions: Array.from({ length: q.moves.length + 1 }, (_, k) => wordFields(k)) } }) },
+    rules: wordRules,
     run: (_priority: number, _tag: string, work: Work<unknown>) => new Promise((resolve, reject) => {
       const start = () => {
         busy++;

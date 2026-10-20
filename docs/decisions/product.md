@@ -4890,25 +4890,31 @@ sweep.
     the next pool loaded before the first, the start answered null, and the review's analysis never searched.
   - **Before the first start's analysis shows** (the review's or the board's): the page has no analysis yet, so the
     change did nothing, and the review ran with the earlier network. This way has the same cause, and the test below
-    found it. Whether a page offers the engine settings before its analysis shows was not checked.
+    found it. A player cannot reach this way: each page shows the engine settings in the review's view, which it
+    shows only once it has its analysis (read in the pages' code, `src/routes/review` and `src/routes/analysis`).
   - **While the first network loads,** after the analysis shows: the change ran on the analysis, but the start then
     released the first pool's engines when idle, and gave the first pool the GPU's control for the new network
     (`#controlGpu`). The GPU worker could start on that pool until the next pool replaced it. The analysis did not
     search there (abscls-z0l6).
 - **The change:**
-  - While the start makes the analysis, until the page shows it (`onRules`), a change of network does nothing. Then
-    the start gives the network chosen meanwhile to its own analysis at once, while the first pool's network still
-    loads: a new pool loads the network for it, as for every change. The snapshot's analysis gets no pool of the
-    session. It searches nothing, and its results stay on screen until the new review shows.
+  - The session keeps the analysis that its start made (`#analysis`). It gets it once the page shows it (`onRules`).
+    A change of network acts on that analysis alone, never on the page's. Until the page shows it, a change does
+    nothing. Then the start gives the network chosen meanwhile to its analysis at once, while the first pool's network
+    still loads. A new pool loads that network for it, as for every change. The snapshot's analysis gets no pool of
+    the session. It searches nothing, and its results stay on screen until the new review shows.
   - The session's network changes only together with the drop of the analysis's results. Until the new network takes
     over, the session names the network whose results the analysis holds (the stored results that it read). So the
     game's mark always names the network of the results on screen.
-  - When another network was chosen while the first pool loaded, the start does not release that pool, and does not
-    give it the GPU. It answers the analysis, so the page counts the review's open and calls its sweep, which waits for
-    the next pool (design 05). The next pool gets the GPU when it takes over. When the next pool took over first, the
-    start answers null, as before: that pool's sweep runs already.
-  - When the first network fails to load while another network takes over, the start answers the analysis, with no
-    error. Before, the page showed the first network's error, also when the other network then loaded.
+  - When another network was chosen while the first pool loaded, the start does not give that pool the GPU. It
+    releases the pool's engines when idle, as before, so that they do not stay when the next network fails to load.
+    It answers the analysis, so the page counts the review's open and calls its sweep. That sweep waits for the next
+    pool (design 05), which gets the GPU when it takes over. When the next pool has taken over first, the start
+    answers null, as before: that pool's sweep runs already.
+  - When the first network fails to load while another network takes over, the start shows no error. It answers the
+    analysis, or null when the network failed before the page showed the analysis. Before, the page showed the first
+    network's error, also when the other network then loaded.
+  - Once the session has ended (the page closed, or another tab took the game), a network chosen meanwhile starts no
+    pool.
 - **Why this fix:** the issue named a fix: the start answers null when another network was chosen while its pool
   started, and the change reads the page's analysis again after the next pool loads. This change takes another way.
   The choice came from what reads the session's pool and network:
@@ -4916,10 +4922,10 @@ sweep.
     network. The start ends that pool once its own analysis has the rules. A change that reads the page's analysis
     after the load still drops the snapshot's results at the change, and loses a change made before any analysis
     exists. So the change waits for the start's analysis instead.
-  - **The GPU's control:** it is made for the session's network on one pool. So it goes to a pool only when that pool
+  - **The GPU's control:** the session makes it for its network on one pool. So it goes to a pool only when that pool
     has the session's network.
-  - **The page's error:** the start throws only when its own pool is still the session's and no other network takes
-    over. A failure of the other network shows as before (`session.error`).
+  - **The page's error:** the start throws only when its own pool is still the session's, and no other network takes
+    over or waits for the analysis. A failure of the other network shows as before (`session.error`).
   - **The game's mark:** it reads the session's network when the review is done. So that network changes together
     with the drop of the results.
   - **The page's work after the start:** a null answer skips it: the review's open and its time (`review_open`,
@@ -4927,33 +4933,57 @@ sweep.
     start answers null only when the next pool took over first, as before, so that one sweep runs.
 - **The test** (`packages/analysis/src/session.test.ts`), the first of the session. A page for the tests
   (`testing/page.svelte.ts`) holds the settings, its analysis and a snapshot as state, and runs the session's effects.
-  The session's pools are fakes whose network loads when the test says. Each test failed before the change:
+  The session's pools are fakes whose network loads or fails when the test says. Each test failed before the change,
+  except the two that guard what the change could break (a failure of the network chosen, and the session's end):
   - **A network chosen before the review's analysis shows,** on Review again and at the first start, with either
     pool's network loaded first: the snapshot's analysis searches nothing, and the review's analysis searches each
     position and the position on screen with the new network alone. The session names that network, and each result
     written has its SHA-256. Before the change, on Review again, the snapshot's analysis swept on the next pool in
-    both orders. When the next pool loaded first, the review's analysis also never became ready: the start answered
-    null, so the page did not sweep it, and the review would wait with no search. At the first start, the change made
-    no next pool.
-  - **A network chosen while the first network loads:** the first pool gets no GPU control and no release, and the
-    next pool gets the GPU's control. Before the change, the first pool got the GPU's control for the new network.
+    both orders. When the next pool loaded first, the review's analysis also never became ready. The start answered
+    null, so the page did not sweep it, and the review waited with no search. At the first start, the change made no
+    next pool.
+  - **A network chosen while the first network loads:** the first pool gets no GPU control, and the next pool gets
+    the GPU's control. Before the change, the first pool got the GPU's control for the new network.
   - **The first network fails to load after another was chosen:** the start answers the analysis, and the other
     network reviews it. Before the change, the start threw the first network's error.
-  - The session's effects run in Node: the tests' hook (`testing/svelteModules.ts`) now gives the module `svelte` for
-    the browser, whose `untrack` and `flushSync` work in an effect. `GpuSlot` (`packages/engine/src/gpuClient.ts`)
-    writes its fields out, because Node's type stripping refuses parameter properties.
-- **In a browser:** headless Chromium on the preview build, 2 workers and the GPU off, with a fresh store. The test
-  fixture's review file (120 positions, HedgeFund 0.1 Lite at 512 visits) was changed to read as an earlier
+  - **The first network fails before the analysis shows, with another network chosen:** the start answers null, with
+    no error. Once the analysis shows, the other network reviews it.
+  - **A failure of the network chosen** shows its error (`session.error`).
+  - **The session ends while the start waits for the page,** with another network chosen: no pool starts.
+  - The session's effects run in Node: the tests' hook (`testing/svelteModules.ts`) now gives Svelte's modules for the
+    browser, whose `untrack` and `flushSync` work in an effect. `GpuSlot` (`packages/engine/src/gpuClient.ts`) writes
+    its fields out, because Node's type stripping refuses parameter properties.
+- **In a browser:** headless Chromium on the preview build, 2 workers and the GPU off, with a fresh store. The script
+  changed the test fixture's review file (120 positions, HedgeFund 0.1 Lite at 512 visits) to read as an earlier
   engine's: a module that the site does not ship, and its results under a search of its own. So the game opened as a
   snapshot with 0.1 Lite, its own network. One task then clicked Review again and chose HedgeFund 0.2 Lite. The
   script read the store's keys before the click and after "Review done", the game's mark, and the report's table and
   the annotated record (Export) before and after a reload. The reload reads the stored results alone.
-  - **With the change,** in two runs: 248 and 249 results were written after the click, all with 0.2 Lite's SHA-256
+  - **With the change,** in two runs: the reviews wrote 248 and 249 results after the click, all with 0.2 Lite's SHA-256
     (120 at 32 visits, 125 at 512, and 3 or 4 at 1,024), and none with 0.1 Lite's. The mark names 0.2 Lite at 512
     visits. The report was the same before and after the reload. In the second run, the annotated record was the same
     too: each move's label, and its note, which names 0.2 Lite. The reviews took 10.2 and 13.9 minutes.
-  - **Before the change,** the same steps: 251 results were written with 0.1 Lite's SHA-256 (the review's analysis
+  - **Before the change,** the same steps: the review wrote 251 results with 0.1 Lite's SHA-256 (the review's analysis
     on the first pool), and 240 with 0.2 Lite's (the snapshot's analysis, out of sight). The mark and the annotated
     record's note named 0.2 Lite. But the labels on screen were 0.1 Lite's: the annotated record had 3 Inaccuracies
     and a Great, and after the reload, from 0.2 Lite's stored results, 1 Inaccuracy and no Great. The report after
     that reload was the report of the run with the change. The review took 20.4 minutes, with two analyses searching.
+- **The check of the final change in a browser** (after the review of abscls-ysbn): headless Chromium on the preview
+  build, 2 workers and the GPU off, and a fresh store for each case. The script read the store's keys and the game's
+  mark. It held a network's file for some seconds at the page's request, or failed it with HTTP 404. The menu offers
+  0.2 Lite and 0.2 alone, so the cases after the first use these two.
+  - **Review again with another network at once,** the case above: the review wrote 249 results after the click, all
+    with 0.2 Lite's SHA-256 (120 at 32 visits, 125 at 512 and 4 at 1,024), and none with 0.1 Lite's. The mark names
+    0.2 Lite at 512 visits. The review took 7.3 minutes.
+  - **A first review with another network chosen while its network loads:** the fixture's game cut to 12 turns (24
+    positions), pasted, with 0.2 Lite. The script chose 0.2 once the review showed, 0.9 s after it opened the Review
+    tab. 0.2 Lite's file came at 15.7 s, and 0.2's at 25.9 s. The review wrote 53 results, all with 0.2's SHA-256, and
+    the mark names 0.2 at 512 visits.
+  - **Another network with no review running:** in the same page, 0.2 Lite chosen again. The review wrote 52 results,
+    all with 0.2 Lite's SHA-256, and the mark names 0.2 Lite. It took 5.1 minutes.
+  - **The first network fails while another takes over:** as the first review above, but 0.2 Lite's file failed at
+    12.6 s, after the choice of 0.2. No error showed. The review wrote 53 results, all with 0.2's SHA-256, and the mark
+    names 0.2. The console's only error was the browser's line for the HTTP 404.
+  - **A failure of the network chosen:** after a first review with 0.2 Lite, the script chose 0.2, whose file failed.
+    The page showed the error ("/engine/b15c192-s90436608-d18027147/model-float16.bin: HTTP 404"), and the mark still
+    names 0.2 Lite.

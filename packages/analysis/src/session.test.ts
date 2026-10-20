@@ -5,10 +5,9 @@
 import { afterEach, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
 import "./testing/svelteModules.ts";
-import type { AnalysisReply, PositionQuery } from "@abstractclass/engine/protocol.ts";
 import type { EnginePool, Work } from "@abstractclass/engine/pool.ts";
 import type { Manifest } from "@abstractclass/engine/client.ts";
-import { wordFields, words, type Words } from "./testing/game.ts";
+import { reply, wordRules, words, type Words } from "./testing/game.ts";
 import { readAnalysisKey } from "./cache.ts";
 import { STORES } from "@abstractclass/storage/db.ts";
 import { memoryDb } from "@abstractclass/storage/memoryDb.ts";
@@ -23,21 +22,16 @@ const MOVES = ["a", "b", "c"]; // a game of the test game (testing/game.ts)
 const MANIFEST: Manifest = { artifacts: [] }; // the test's pools read none of it
 
 /** A pool in EnginePool's place. Its rules work at once, and its network loads when the test says (`load`), or fails
- *  (`fail`). Each engine search waits for the test (`end`). It keeps what the session asked of it: its release when
- *  idle, its end, and the GPU's control (gpu.svelte.ts, GpuControl), which sets its `onGpuLost`. */
+ *  (`fail`). Each engine search waits for the test (`searches`, which end it). It keeps what the session asked of it:
+ *  its release when idle, its end, and the GPU's control (gpu.svelte.ts, GpuControl), which sets its `onGpuLost`. */
 class FakePool {
   readonly size: number;
-  search: string | null = null;
+  readonly search = "test";
   model: { sha256: string } | null = null;
-  searches: { visits: number; end(): void }[] = [];
+  searches: (() => void)[] = [];
   released = false;
   terminated = false;
   onGpuLost: ((error: unknown) => void) | null = null;
-  onBacklog: (() => void) | null = null;
-  onRelease: (() => void) | null = null;
-  readonly hasGpu = false;
-  readonly backlogged = false;
-  readonly workerSpeed = null;
   private running = 0;
   private sha: (network: string) => string;
   private loaded: Promise<void>;
@@ -52,25 +46,19 @@ class FakePool {
 
   async start(_manifest: Manifest, network: string, onRules?: () => Promise<void>) {
     await Promise.all([
-      (async () => {
-        this.search = "test";
-        await onRules?.();
-      })(),
+      onRules?.(),
       this.size ? this.loaded.then(() => { this.model = { sha256: this.sha(network) }; }) : undefined,
     ]);
   }
   load() { this.settle.load(); }
   fail(e: Error) { this.settle.fail(e); }
 
-  readonly rules = {
-    describeGame: async (q: PositionQuery) => ({ reply: { positions: Array.from({ length: q.moves.length + 1 }, (_, k) => wordFields(k)) } }),
-  };
+  readonly rules = wordRules;
   private engine = {
     analyse: (query: { maxVisits: number }) => {
-      let end!: (t: { reply: AnalysisReply }) => void;
-      const done = new Promise<{ reply: AnalysisReply }>(resolve => { end = resolve; });
-      const visits = query.maxVisits;
-      this.searches.push({ visits, end: () => end({ reply: reply(visits) }) });
+      let end!: () => void;
+      const done = new Promise(resolve => { end = () => resolve({ reply: reply(query.maxVisits) }); });
+      this.searches.push(end);
       return { done, stop() {} };
     },
   };
@@ -81,19 +69,15 @@ class FakePool {
   get idle() { return this.running === 0; }
   cancel() {}
   halt() {}
-  resize() {}
   dropGpu() {}
   releaseWhenIdle() { this.released = true; }
   terminate() { this.terminated = true; }
 }
 
-const reply = (visits: number) => ({
-  rootInfo: { visits, winrate: 0.5, scoreLead: 0, scoreSelfplay: 0, scoreStdev: 0 }, moveInfos: [],
-}) as unknown as AnalysisReply;
 const asPool = (p: FakePool) => p as unknown as EnginePool;
 
-/** Lets the promises in flight settle: the rules' answers, and the store's reads and writes. */
-const settle = async () => { for (let k = 0; k < 20; k++) await new Promise(resolve => setImmediate(resolve)); };
+/** Lets the promises and the tasks in flight settle: the rules' answers, and the store's reads and writes. */
+const turns = async () => { for (let k = 0; k < 20; k++) await new Promise(resolve => setImmediate(resolve)); };
 
 let pages = 0;
 /** A page whose settings name the network n1, with the manifest read, and the pools that its session makes. Each page's
@@ -124,24 +108,19 @@ async function openSnapshot(p: InstanceType<typeof TestPage>): Promise<Analysis>
   return g;
 }
 
-/** The review's start, as the review's page runs it (startReview): the analysis shows once the rules work, and the
- *  passes start once the session answers it. */
-function startReview(p: InstanceType<typeof TestPage>) {
+/** The review's start, as the review's page runs it (startReview): the analysis shows once the rules work and `shown`
+ *  settles (the page's reads of the store), and the passes start once the session answers it. */
+function startReview(p: InstanceType<typeof TestPage>, shown = Promise.resolve()) {
   let made: Analysis | null = null;
   const answered = p.session.start(pool => (made = new GameAnalysis(words, pool, MOVES, "g")), async g => {
     await g.start();
+    await shown;
     p.show(g);
   }).then(g => {
     void g?.sweep();
     return g;
   });
   return { answered, made: () => made! };
-}
-
-/** Ends every search of the pool that waits, each at the visits it asked for. */
-async function endSearches(pool: FakePool) {
-  for (const s of pool.searches) s.end();
-  await settle();
 }
 
 beforeEach(() => mock.timers.enable({ apis: ["setTimeout"] }));
@@ -157,14 +136,14 @@ test("a network chosen while the review starts its pool searches the review, and
     if (shown) p.reviewAgain();
     const review = startReview(p);
     p.choose("n2"); // the review's analysis does not show yet
-    await settle();
+    await turns();
     const g = review.made();
     assert.equal(p.game, g, at);
     assert.equal(pools.length, 2, at); // the first pool, with n1, and the next, with n2
     const [first, next] = pools;
     for (const pool of firstLoads ? [first, next] : [next, first]) {
       pool.load();
-      await settle();
+      await turns();
     }
     await review.answered;
     // The snapshot's analysis searches nothing. The review's searches every position, and the position on screen, with
@@ -172,26 +151,28 @@ test("a network chosen while the review starts its pool searches the review, and
     assert.deepEqual([shown?.engineReady ?? false, g.engineReady], [false, true], at);
     assert.deepEqual([first.searches.length, next.searches.length], [0, g.passCount + 1], at);
     assert.deepEqual([p.session.pool, p.session.network], [asPool(next), "n2"], at);
-    await endSearches(next);
+    for (const end of next.searches) end();
+    await turns();
     assert.deepEqual(written(), new Set([sha("n2")]), at);
     p.end();
   }
 });
 
-test("a network chosen while the first network loads: the first pool gets no GPU control and is not released", async () => {
+test("a network chosen while the first network loads: the GPU's control goes to the next pool alone", async () => {
   const { page: p, pools } = page();
   const review = startReview(p);
-  await settle();
+  await turns();
   const g = review.made();
   assert.equal(p.game, g); // the review shows, from the rules
   p.choose("n2");
   const [first, next] = pools;
   first.load();
-  await settle();
+  await turns();
   assert.equal(await review.answered, g);
-  assert.deepEqual([p.session.gpu, first.onGpuLost, first.released], [null, null, false]);
+  // The first pool releases its engines when idle, as before: they do not stay when the next network fails to load.
+  assert.deepEqual([p.session.gpu, first.onGpuLost, first.released], [null, null, true]);
   next.load();
-  await settle();
+  await turns();
   assert.notEqual(next.onGpuLost, null); // the GPU's control is the next pool's
   assert.deepEqual([first.searches.length, next.searches.length, first.terminated], [0, g.passCount + 1, true]);
   assert.equal(p.session.network, "n2");
@@ -201,16 +182,64 @@ test("a network chosen while the first network loads: the first pool gets no GPU
 test("the first network failing to load after another was chosen is no error: the other takes over", async () => {
   const { page: p, pools } = page();
   const review = startReview(p);
-  await settle();
+  await turns();
   const g = review.made();
   p.choose("n2");
   const [first, next] = pools;
   first.fail(new Error("n1 did not load"));
-  await settle();
+  await turns();
   assert.equal(await review.answered, g);
   next.load();
-  await settle();
+  await turns();
   assert.deepEqual([p.session.error, p.session.network, g.engineReady], ["", "n2", true]);
   assert.deepEqual([first.searches.length, next.searches.length], [0, g.passCount + 1]);
+  p.end();
+});
+
+test("a failure of the network chosen shows", async () => {
+  const { page: p, pools } = page();
+  const review = startReview(p);
+  await turns();
+  p.choose("n2");
+  const [first, next] = pools;
+  next.fail(new Error("n2 did not load"));
+  await turns();
+  assert.match(p.session.error, /n2 did not load/);
+  first.load();
+  assert.notEqual(await review.answered, null);
+  p.end();
+});
+
+test("the first network failing before the review shows, with another chosen, is no error: the other takes over", async () => {
+  const { page: p, pools } = page();
+  let show!: () => void;
+  const review = startReview(p, new Promise<void>(resolve => { show = resolve; }));
+  await turns();
+  p.choose("n2"); // the review's analysis does not show yet
+  const [first] = pools;
+  first.fail(new Error("n1 did not load"));
+  await turns();
+  assert.equal(await review.answered, null); // no error: the page's own work waits for the analysis
+  show();
+  await turns();
+  const g = review.made(), next = pools[1];
+  assert.equal(p.game, g);
+  next.load();
+  await turns();
+  assert.deepEqual([p.session.error, p.session.network, g.engineReady], ["", "n2", true]);
+  assert.deepEqual([first.searches.length, next.searches.length], [0, g.passCount + 1]);
+  p.end();
+});
+
+test("a network chosen while the review starts makes no pool once the session has ended", async () => {
+  const { page: p, pools } = page();
+  let show!: () => void;
+  startReview(p, new Promise<void>(resolve => { show = resolve; }));
+  await turns();
+  p.choose("n2");
+  p.session.end(); // the page closed, or another tab took the game
+  show();
+  await turns();
+  assert.equal(pools.length, 1);
   p.end();
 });
