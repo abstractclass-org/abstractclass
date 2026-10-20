@@ -50,8 +50,9 @@ const SLICE_VISITS = 32;
 // slice, results come tens of times a second, the sweep's searches end one after another, and each change of the
 // analysis runs the review again.
 export const BATCH_MS = 100;
-// A branch edge's evaluation, asked for in its menu, comes after the position on screen and before the rest.
-const PRIORITY = { focus: 10, judge: 7, moment: 5, label: 2, sweep: 1 };
+// A branch edge's evaluation, asked for in its menu, comes after the position on screen and before the rest. The
+// ownership that the board shows comes just after the position on screen (askOwnership).
+const PRIORITY = { focus: 10, ownership: 9, judge: 7, moment: 5, label: 2, sweep: 1 };
 
 /** A position in a branch: the board, the move that led to it, its analysis once searched, its place among the
  *  branches from its parent (the lower first), and whether the player asked for the move's quality. */
@@ -102,6 +103,12 @@ export class GameAnalysis<G extends GameTypes> {
   // The positions whose search runs now, by path key, with each search's visits: their analysis can still change (the
   // page's gleam on a line)
   private running = $state.raw<Record<string, number[]>>({});
+  // The ownership of the positions whose result has none, by path key: a result of shape 5, stored or from a file
+  // (cache.ts, READ_FROM). From a short search of the position alone, for the area maps (askOwnership, Hedge School's
+  // design 30). It never replaces the position's result, and the store does not keep it.
+  ownership = $state.raw<Record<string, number[]>>({});
+  private owning = new Set<string>(); // their searches queued or running, by path key
+  private ownershipWanted = new Set<string>(); // the positions asked for last: a search queued for another one is skipped
   private era = 0; // another network starts a new era: results from an earlier one are dropped
   private pool: EnginePool;
   private stalePool = false; // the pool still has the old network: from dropAnalysis until usePool gives the next pool
@@ -729,6 +736,7 @@ export class GameAnalysis<G extends GameTypes> {
     this.analysis = Array(this.moves.length + 1).fill(undefined);
     this.branches = Object.fromEntries(Object.entries(this.branches).map(([k, n]) => [k, { ...n, analysis: undefined }]));
     this.outside = {};
+    this.ownership = {};
     this.stored = {};
     this.timed = {};
     this.moments = [];
@@ -759,6 +767,27 @@ export class GameAnalysis<G extends GameTypes> {
     })
       .catch(this.fail)
       .finally(() => this.afterBatch(() => { if (generation === this.focusGeneration) this.focusing = null; }));
+  }
+
+  /** Searches these positions, which the area maps show, for their ownership alone, where their result has none (an
+   *  older shape's: ownership): one search of the sweep's budget each, after the position on screen's. A position with
+   *  no result yet waits for its own search, which asks for the ownership. A search queued for a position that the page
+   *  no longer asks for starts and ends at once. */
+  askOwnership(paths: string[][]) {
+    this.ownershipWanted = new Set(paths.map(pathKey));
+    if (!this.engineReady || this.paused || this.stalePool) return;
+    for (const path of paths) {
+      const key = pathKey(path), a = this.analysisOf(path);
+      if (!a || a.ownership || this.ownership[key] || this.owning.has(key) || !this.searchable(path)) continue;
+      this.owning.add(key);
+      const era = this.era, query = this.query(path);
+      this.pool.run(PRIORITY.ownership, "ownership", async engine => {
+        if (era !== this.era || !this.ownershipWanted.has(key)) return;
+        const { reply } = await engine.analyse({ ...query, maxVisits: SWEEP_VISITS, includeOwnership: true }).done;
+        const { ownership } = toAnalysis(this.game, reply);
+        if (era === this.era && ownership) this.ownership = { ...this.ownership, [key]: ownership };
+      }).catch(this.fail).finally(() => this.owning.delete(key));
+    }
   }
 
   /** Ends the focus: an earlier focus is stale. Stops its search if it runs, and drops it if it waits. A search still

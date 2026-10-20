@@ -61,9 +61,10 @@ searching it again, and to share it as text that others can read.
    - **Its version:** one number. A new field keeps the version, and a reader ignores the fields it does not know. A
      field that changes its meaning, or goes, takes the next version. A reader refuses a newer version ("a newer Hedge
      School wrote it") and says which older ones it no longer reads. Each result carries the store's shape in its key,
-     so a change of the results' shape needs no new version of the file: a reader keeps the results of its own shape
-     and searches the rest again. One number suffices, unlike the engine protocol's `MAJOR.MINOR`: one program writes
-     and reads the file, and a visitor always has the newest copy of it, so only older files reach a reader.
+     so a change of the results' shape needs no new version of the file: a reader keeps the results of the shapes that
+     it reads (its own, and the ones before it that it still reads, design 05) and searches the rest again. One
+     number suffices, unlike the engine protocol's `MAJOR.MINOR`: one program writes and reads the file, and a visitor
+     always has the newest copy of it, so only older files reach a reader.
 5. **A load:** the site reads and checks the file: its format, version, record and branches. It drops an entry that
    is not a result. It keeps the game as it keeps a pasted record. The file's branches join the browser's own for that
    game: the browser's first, in their order, then the file's new ones. It keeps the results of the networks that this
@@ -143,7 +144,8 @@ searching it again, and to share it as text that others can read.
 ## Consequences
 
 - A result's key holds the store's shape. When the shape changes (to 5 for the priors, design 14), a file exported
-  before imports without its results, and the review searches again.
+  before imports without its results, and the review searches again. Shape 6 only adds the ownership (design 30): a
+  file of shape 5 imports with its results.
 - **The notation's rules for the record** (the engine repository's design 04, after
   [requests/13-branch-placement.md](../requests/13-branch-placement.md)):
   - A branch follows the turn it changes, after the turn's last edge, its mark and its comments. `N.` replaces the

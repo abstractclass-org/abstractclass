@@ -5815,10 +5815,9 @@ ownership after the turn (`lostArea`).
   | 61-120 | 10 | 2 | 2 |
   | All | 128 | 42 | 41 |
 
-  This second table was counted from the run's list of turns. The script now prints its ranges of edges, with a
-  column of the turns shown. It now also takes the median of an even count as the mean of the middle two
-  (`scripts/measure/speed.mjs`, `median`). The run took the upper of the two, in the first table's rows of 16, 4 and
-  2 turns.
+  The run printed the first table. The second was counted from the run's list of turns. The script now prints both.
+  It now takes the median of an even count as the mean of the middle two (`scripts/measure/speed.mjs`, `median`).
+  The run took the upper of the two, in the first table's rows of 16, 4 and 2 turns.
 
 - **The decision:** no edge from which the map shows. The question "is this map clear" has a direct answer for each
   move, and an edge would hide the 13 clear maps of the opening and show the hazy ones after it. So the area lost
@@ -5828,3 +5827,55 @@ ownership after the turn (`lostArea`).
 - Looked at on the test fixture's game in the review, in Chromium: its one Blunder (turn 7, Blue) shades the south of
   the board, where Red's regions grow. The caption: "with the best turn, it stays open. After the turn played, Red
   holds it for half the turns left or more."
+
+### The window of the area lost (2026-10-21)
+
+The review of the area maps found that the two maps count different turn ends. The engine's ownership is a mean over
+the turn ends left, and at a turn's start these include that turn's end. After the turn, they do not. So for a point
+held h at the turn's end and r on average after it, with N turn ends left at the start, the mover's ownership falls by
+about (h − r) / N even after the best turn. The search's tree mixes nodes before and after the turn's end, so this is
+an estimate. A point that the opponent encloses only later then falls by 1 / N: under the clear fall of 0.30 until 3
+turn ends are left.
+
+Measured on the test fixture's game (HedgeFund against HedgeFund, 120 edges, 61 turns), with `lostArea` from each
+turn's start to its end. 60 turns have both maps: the position after the last turn ends the game and has no search.
+
+| Turns | Count | Area lost, points of the board (median) | Clear enough to show (`shownLost`) |
+|---|---|---|---|
+| A loss of win chance under 0.02, more than 6 turn ends left | 48 | 1.5 | 18 |
+| A loss of win chance under 0.02, 6 turn ends left or fewer | 6 | 2.8 | 3 |
+| The Blunder (turn 7, Blue) | 1 | 64.3 | yes |
+
+- The area lost of a turn with no loss holds the window's part and the trades of a good turn: a turn that gains in one
+  place can lose in another. Both are small next to a Blunder's.
+- Many of these turns pass the clarity rule: a few points fall clearly. They show nothing, because the area lost shows
+  only for a Mistake or a Blunder.
+- None of the turns in the last 3 turn ends passed the rule.
+- An exact correction needs each point's regions at the turn's end. These come from the rules, which this repository
+  does not copy. The design keeps the two maps as they are, and names the limit (design 30, Consequences).
+
+### The results of shape 5 stay readable (2026-10-21)
+
+The first build of the area maps moved the stored shape from 5 to 6 and removed the results of shape 5 at the site's
+start, as earlier shapes were removed. A review file of HedgeFund 0.2 at 16,384 visits then opened with no results,
+and the site reviewed the whole game again. Shape 6 only adds a field, the ownership, and changes the meaning of none:
+a result of shape 5 is still right, with no ownership.
+
+- **The decision:** the site writes shape 6 and reads shapes 5 and 6 (`READ_FROM` in
+  `packages/analysis/src/cache.ts`). The store, a review file and an analysis file keep the results of both, and the
+  start removes only the shapes before 5. Of two results as deep, the review takes the one of shape 6.
+- **The maps of a result with no ownership** come from a short search of the position alone, at the sweep's 32 visits,
+  when the board shows it: the position on screen, and a Mistake's or a Blunder's two positions
+  (`GameAnalysis.askOwnership`). The ownership stays apart from the result, and the store does not keep it.
+- **Checked** in Playwright's Chromium, headless, on a local build:
+  - The test fixture's review file as the site wrote it before (shape 5, 244 results) opened with its results: four
+    seconds after it opened, the review was at the key moments' step. The page sent no search of the sweep or of the
+    label pass, only the key moments' searches at 1,024 visits, which the file does not hold.
+  - The same review stored in the browser, with its keys turned to shape 5 and its ownership removed, and the
+    browser's mark at 5: after a reload, the start kept the 244 results, and the review opened as the file did.
+  - At the file's Blunder (turn 7), two searches of 32 visits gave the ownership of the turn's two positions. The
+    area lost showed (169 and 171 squares shaded, against 172 from the review's own searches), with the same caption.
+  - No error on the page in either case.
+- **Tests:** a review file and an analysis file of shape 5 keep their results. A stored result of shape 5 is found,
+  and of two as deep, the one of shape 6. A game whose results are all of shape 5 opens with no search, and the
+  board's ownership comes from one short search that the store does not keep.

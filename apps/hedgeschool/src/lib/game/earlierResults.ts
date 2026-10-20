@@ -3,8 +3,8 @@
 // (@abstractclass/analysis/cache.ts). The site's engine reads its own results only. An earlier engine's are read by the
 // snapshot of a game whose last review used it, and by nothing else.
 import lock from "../../../engine.lock.json" with { type: "json" };
-import { BUDGETS, SHAPE, SWEEP_VISITS, earlierRemoval, isAnalysisKey, readAnalysisKey, searchHolding, snapshotExcept,
-         snapshotPositions } from "@abstractclass/analysis/cache.ts";
+import { BUDGETS, READ_FROM, SHAPE, SWEEP_VISITS, earlierRemoval, isAnalysisKey, readAnalysisKey, readable, searchHolding,
+         snapshotExcept, snapshotPositions } from "@abstractclass/analysis/cache.ts";
 import { STORES, dbReadThenDelete } from "@abstractclass/storage/db.ts";
 import { moduleOf, type Manifest } from "@abstractclass/engine/client.ts";
 import { positionKeys, shippedModels } from "./reviewFile.ts";
@@ -29,21 +29,22 @@ function keptGames(games: [string, unknown][], branches: [string, unknown][]): K
 /** A stored game as the removal reads it: its moves, its branches, and the mark of its last review. */
 export interface KeptGame { moves: string[]; branches: KeptBranches | null; mark?: ReviewMark }
 
-/** The stored results that nothing reads, among `keys` (in the store's order): of the store's shape, neither of the
- *  site's search with a network file it ships nor read by a stored game's snapshot. A snapshot reads the results of
- *  one search and network file, for the game's positions and those one move from them (the review file's, design
- *  13), each at the deepest that it reads (readsAt). `engine` is the site's (engine.lock.json). None without its CPU
+/** The stored results that nothing reads, among `keys` (in the store's order): of a shape that the readers read
+ *  (readable), neither of the site's search with a network file it ships nor read by a stored game's snapshot. A
+ *  snapshot reads the results of one search and network file, for the game's positions and those one move from them
+ *  (the review file's, design 13), each at the deepest that it reads (readsAt). `engine` is the site's (engine.lock.json). None without its CPU
  *  module's search: every result of the site's own engine would then count as an earlier engine's. */
 export function unneededResults(keys: string[], games: KeptGame[], engine: Manifest): string[] {
   const site = moduleOf(engine)?.search;
   if (!site) return [];
-  const own = [...shippedModels(engine)!].map(model => `${SHAPE}|${site}|${model}|`);
+  const own = [...shippedModels(engine)!].flatMap(model =>
+    Array.from({ length: SHAPE - READ_FROM + 1 }, (_, k) => `${READ_FROM + k}|${site}|${model}|`));
   // The earlier results, each key read back here once (the site's own are known by their start), and by their
   // position's moves: each game's choice of a search reads the keys of its own positions alone.
   const earlier = keys.map(key => {
     if (own.some(start => key.startsWith(start)) || !isAnalysisKey(key)) return null;
     const k = readAnalysisKey(key);
-    return k.shape === SHAPE ? k : null;
+    return readable(k.shape) ? k : null;
   });
   const atMoves = new Map<string, number[]>();
   earlier.forEach((k, i) => { if (k) (atMoves.get(k.moves) ?? atMoves.set(k.moves, []).get(k.moves)!).push(i); });

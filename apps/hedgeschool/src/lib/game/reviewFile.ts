@@ -4,7 +4,7 @@
 // another network keeps the game and its branches, and its review searches again with its own engine. KaTrain keeps its
 // analysis in its SGF files in the same spirit. The game's record alone, with evaluations and labels, is the annotated
 // record (review/annotate.ts).
-import { SHAPE, makeEarlierRemovalDue, isAnalysisKey, ofModels, readAnalysisKey } from "@abstractclass/analysis/cache.ts";
+import { makeEarlierRemovalDue, isAnalysisKey, ofModels, readAnalysisKey, readable } from "@abstractclass/analysis/cache.ts";
 import { STORES, dbEntriesWhere, dbGet, dbPut, dbPutMany } from "@abstractclass/storage/db.ts";
 import { parseRecord, playerNames } from "./record.ts";
 import { branchNodes, keptNode, loadGame, markReviewed, saveGame, setGameSettings, type KeptBranches, type ReviewMark } from "./store.ts";
@@ -44,7 +44,7 @@ export function positionKeys(moves: string[], branches: KeptBranches | null): Se
 }
 
 /** The results that belong to a game: of its positions, and of the positions one move from them, which confirm the
- *  Greats (@abstractclass/analysis/analysis.svelte.ts, confirmGreats), in the store's current shape, and of `models`
+ *  Greats (@abstractclass/analysis/analysis.svelte.ts, confirmGreats), in a shape that the readers read, and of `models`
  *  (the networks' SHA-256) when given: a result of a network that the site no longer ships is of no use to any copy of
  *  it. */
 export function gameAnalyses(entries: [string, unknown][], positions: Set<string>, models: Set<string> | null = null): [string, unknown][] {
@@ -52,7 +52,7 @@ export function gameAnalyses(entries: [string, unknown][], positions: Set<string
 }
 export const belongs = (key: string, positions: Set<string>, models: Set<string> | null) => {
   const k = readAnalysisKey(key);
-  return k.shape === SHAPE && atPositions(k.moves, positions) && (!models || models.has(k.model));
+  return readable(k.shape) && atPositions(k.moves, positions) && (!models || models.has(k.model));
 };
 /** Whether a result's position (its moves) is one of `positions`, or one move from one. */
 export const atPositions = (moves: string, positions: Set<string>) =>
@@ -71,8 +71,8 @@ export function buildReviewFile(record: string, branches: KeptBranches | null, e
 /** Reads a Hedge School file of `format` (a review file or an analysis file: `noun`), its fields not yet checked but
  *  its results. Throws an Error that tells the player what is wrong. The version changes only when a field changes its
  *  meaning or goes: a new field keeps it, and a reader ignores the fields it does not know (design 13). The results
- *  carry their own shape in their keys (@abstractclass/analysis/cache.ts): it keeps the store's current shape's, since
- *  no reader reads another's. */
+ *  carry their own shape in their keys (@abstractclass/analysis/cache.ts): it keeps the shapes that the readers read
+ *  (readable), and drops the others. */
 export function readSchoolFile(text: string, format: string, version: number, noun: string): Record<string, unknown> & { analyses: [string, unknown][] } {
   let data: unknown;
   try {
@@ -86,7 +86,7 @@ export function readSchoolFile(text: string, format: string, version: number, no
     throw new Error(`This ${noun} has version ${f.version}: a newer Hedge School wrote it. Reload the site and try again.`);
   if (f.version < version) throw new Error(`This ${noun} has version ${f.version}, which this site no longer reads.`);
   const analyses = (Array.isArray(f.analyses) ? f.analyses : []).filter((e): e is [string, unknown] =>
-    Array.isArray(e) && typeof e[0] === "string" && isAnalysisKey(e[0]) && readAnalysisKey(e[0]).shape === SHAPE &&
+    Array.isArray(e) && typeof e[0] === "string" && isAnalysisKey(e[0]) && readable(readAnalysisKey(e[0]).shape) &&
     !!e[1] && typeof e[1] === "object");
   return { ...f, analyses };
 }

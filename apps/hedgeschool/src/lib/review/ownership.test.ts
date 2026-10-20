@@ -59,6 +59,7 @@ test("the caption says who holds the area with the best move and after the move 
                "After the edge played, it stays open.");
   assert.equal(caption(-20, -49), "The area lost, shaded after the turn: with the best turn, Red holds it for some of the " +
                "turns left. After the turn played, Red holds it for more of the turns left.");
-  // Both in the same band: the second sentence says which way it went.
+  // Both in the same band: the second sentence says which way it went, also where it stays open.
   assert.equal(caption(90, 55).split(". ")[1], "After the turn played, Blue holds it for fewer of the turns left.");
+  assert.equal(caption(10, -10).split(". ")[1], "After the turn played, it stays open, but moves toward Red.");
 });

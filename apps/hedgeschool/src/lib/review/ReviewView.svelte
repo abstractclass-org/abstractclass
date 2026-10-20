@@ -41,6 +41,10 @@
     deleteFrom(path: string[]): Promise<void>; // deletes a branch node and what follows it
     promote(path: string[]): Promise<void>; // promotes a branch one step among the branches from its fork
     judge(path: string[]): Promise<void>; // evaluates a branch move's quality: searches its two positions
+    // The ownership of the positions whose result has none (a result of an older shape), by path key, from a short
+    // search that asks for it (design 30)
+    ownership: Record<string, number[]>;
+    askOwnership(paths: string[][]): void; // searches these positions for their ownership, where their result has none
   }
 
   // The numbers' formats, made once: a formatter is costly to make, and the move list and the tables format many numbers
@@ -564,21 +568,35 @@
   // The area maps (design 30). The map: the engine's ownership at the position on screen, from its search. The area
   // lost: after a Mistake or a Blunder of the game's line whose player the review explains, from the ownership before
   // it and after it (by turn, the turn just played; by edge, the edge), where the map is clear (shownLost). It takes the
-  // map's place on the board, as KaTrain's loss grid does, and its caption goes under the move in the move list.
+  // map's place on the board, as KaTrain's loss grid does, and its caption goes under the move in the move list. A
+  // position whose result has no ownership (a result of an older shape) takes it from a short search of its own, asked
+  // for while the board shows it (askOwnership).
   /** A move of the game's line, as a turn holds it: from position `start` to position `end`, by `player`. */
   type Span = Pick<TurnReview, "start" | "end" | "player" | "label">;
   const edgeSpan = (e: EdgeReview): Span => ({ start: e.index, end: e.index + 1, player: e.player, label: e.label });
+  /** Whether a move can have an area lost: a Mistake or a Blunder of a player whom the review explains. */
+  const explained = (s: Span | null): s is Span => !!s && bad(s.label) && forSide(s.player);
+  /** The ownership of the game's position `i`: its result's, or its short search's. */
+  const ownershipAt = (i: number) => R.data.analysis[i]?.ownership ?? game?.ownership[mainKeys[i]];
   /** The area that a move lost: for a Mistake or a Blunder, once both its positions have their ownership and the area
    *  is clear. */
   function lostIn(s: Span | null): LostArea | null {
-    if (!s || !bad(s.label) || !forSide(s.player)) return null;
-    const before = R.data.analysis[s.start]?.ownership, after = R.data.analysis[s.end]?.ownership;
+    if (!explained(s)) return null;
+    const before = ownershipAt(s.start), after = ownershipAt(s.end);
     if (!before || !after) return null;
     const lost = lostArea(before, after, s.player);
     return shownLost(lost) ? lost : null;
   }
-  const lostHere = $derived.by(() => !display.areaLost || previewing || !mainAt ? null
-    : lostIn(unit === "turn" ? endedTurn : edgeSpan(R.edges[mainAt - 1])));
+  // The move that ends at the position on screen, on the game's line, while the area lost can show
+  const spanHere = $derived.by(() => !display.areaLost || previewing || !mainAt ? null
+    : unit === "turn" ? endedTurn : edgeSpan(R.edges[mainAt - 1]));
+  const lostHere = $derived(lostIn(spanHere));
+  // The positions whose ownership the board can show: the map's, and the area lost's two
+  $effect(() => {
+    const s = spanHere, paths: string[][] = display.layers.areaMap && !previewing ? [path] : [];
+    if (explained(s)) paths.push(mainNames.slice(0, s.start), mainNames.slice(0, s.end));
+    untrack(() => game?.askOwnership(paths));
+  });
   /** The captions of the areas that a turn's moves lost, under the turn in the move list: the turn's by turn, each
    *  edge's by edge. */
   function lostCaptions(t: TurnReview): string[] {
@@ -1542,7 +1560,7 @@
         () => display.layers.regions, v => (display.layers.regions = v))}
       {@render toggle("Area map", "Shading on each point: the player that the engine expects to hold it, and how surely.",
         () => display.layers.areaMap, v => (display.layers.areaMap = v))}
-      {@render toggle("Area lost by a mistake", "After a Mistake or a Blunder, shading on the area that it lost, where that area is clear, in the map's place. A line under the move says who holds it.",
+      {@render toggle("Area lost by a mistake", "After a Mistake or a Blunder, shading on the area that it lost, where that area is clear, in the map's place. With \"Notes on the key moves\", a line under the move says who holds it.",
         () => display.areaLost, v => (display.areaLost = v))}
       {@render toggle("Protected edges", "The edges the opponent cannot cut on the next turn.",
         () => display.layers.protected, v => (display.layers.protected = v))}
@@ -1803,7 +1821,7 @@
           previewPlayer={mover}
           marks={previewing ? [] : marks}
           layers={display.layers}
-          ownership={previewing ? null : analysis?.ownership ?? null}
+          ownership={previewing ? null : analysis?.ownership ?? game?.ownership[here] ?? null}
           lost={lostHere?.drop ?? null}
           oncandidate={e => { hoverOnBoard = true; hover = e; }}
           notes={previewing ? [] : notesAt[here] ?? []}

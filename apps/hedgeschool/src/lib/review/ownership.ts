@@ -49,22 +49,23 @@ export const shownLost = (lost: LostArea) => focusOf(lost) >= CLEAR_SHARE;
 /** The bands of a side's ownership, in hundredths: held for half the turns left or more (a mean of 0.5 or more needs
  *  the side's regions over the point at half the turn ends at least), for some of them, or about even (open). */
 const band = (m: number) => (m >= 50 ? 2 : m >= 15 ? 1 : m > -15 ? 0 : m > -50 ? -1 : -2);
-const FOR = { 2: "for half the turns left or more", 1: "for some of the turns left" } as const;
+const HOW_LONG = { 2: "for half the turns left or more", 1: "for some of the turns left" } as const;
 
 /** Who holds an area with the mover's ownership `m` there: the mover, the opponent, or neither. */
 function holder(m: number, mover: Player): string {
   const b = band(m);
-  return b === 0 ? "it stays open" : `${PLAYER_NAME[b > 0 ? mover : otherPlayer(mover)]} holds it ${FOR[Math.abs(b) as 1 | 2]}`;
+  return b === 0 ? "it stays open" : `${PLAYER_NAME[b > 0 ? mover : otherPlayer(mover)]} holds it ${HOW_LONG[Math.abs(b) as 1 | 2]}`;
 }
 
 /** The caption of the area lost, from engine facts alone (design 01, principle 11): who holds it with the engine's best
- *  move, and after the move played. Where both are in one band, the second sentence says which way it went: the
- *  mover's ownership always fell there. */
+ *  move, and after the move played. Where both are in one band, open too, the second sentence says which way it went:
+ *  the mover's ownership always fell there. */
 export function areaCaption(lost: LostArea, mover: Player, unit: Unit): string {
-  const was = band(lost.before), is = band(lost.after);
-  const after = was !== is || is === 0 ? holder(lost.after, mover)
+  const was = band(lost.before), is = band(lost.after), opponent = PLAYER_NAME[otherPlayer(mover)];
+  const after = was !== is ? holder(lost.after, mover)
     : is > 0 ? `${PLAYER_NAME[mover]} holds it for fewer of the turns left`
-    : `${PLAYER_NAME[otherPlayer(mover)]} holds it for more of the turns left`;
+    : is < 0 ? `${opponent} holds it for more of the turns left`
+    : `it stays open, but moves toward ${opponent}`;
   return `The area lost, shaded after the ${unit}: with the best ${unit}, ${holder(lost.before, mover)}. ` +
     `After the ${unit} played, ${after}.`;
 }

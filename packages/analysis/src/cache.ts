@@ -15,18 +15,27 @@ export async function cachePut(key: string, value: unknown): Promise<void> {
   await dbPut(STORES.analysis, key, value);
 }
 
-// The stored shape's version. A change of what an analysis holds takes the next one, so that older results are not
-// read as the new shape, and the site's next start removes them (removeOlderShapes). 2: a candidate's visits are
-// KataGo's edgeVisits, no longer its child node's visits. 3: a candidate has its line (KataGo's pv). 4: and the visits
-// through each edge of its line (pvEdgeVisits). 5: and the network's prior for it, for the position's complexity. 6: and
-// the ownership of each point, for the area maps (Hedge School's design 30).
+// The stored shape's version, which the site writes. A change of what an analysis holds takes the next one, so that
+// older results are not read as the new shape, and the site's next start removes the ones that no reader reads
+// (removeOlderShapes). 2: a candidate's visits are KataGo's edgeVisits, no longer its child node's visits. 3: a
+// candidate has its line (KataGo's pv). 4: and the visits through each edge of its line (pvEdgeVisits). 5: and the
+// network's prior for it, for the position's complexity. 6: and the ownership of each point, for the area maps (Hedge
+// School's design 30).
 export const SHAPE = 6;
+/** The oldest shape that the readers read. A shape that only adds a field leaves the meaning of the others: a result of
+ *  the shape before it is still right, without that field. 6 adds the ownership, so a result of 5 is read, and a short
+ *  search gives its ownership where the area maps show it (Hedge School's design 30). */
+export const READ_FROM = 5;
+/** Whether the readers read a result of this shape: from READ_FROM to SHAPE. */
+export const readable = (shape: number) => shape >= READ_FROM && shape <= SHAPE;
+/** The shapes that the readers read, the oldest first. */
+const READ_SHAPES = Array.from({ length: SHAPE - READ_FROM + 1 }, (_, k) => READ_FROM + k);
 
 /** The moves part of a key for moves from `start`, a set-up position (design 21): the start first, as one word with `_`
  *  for its spaces after `@`, so that a key's position and its parent read as they do from the standard start. */
 export const keyMoves = (start: string | null, moves: string[]) => (start ? [`@${start.replaceAll(" ", "_")}`, ...moves] : moves);
-export const analysisKey = (search: string, model: string, moves: string[], visits: number) =>
-  `${SHAPE}|${search}|${model}|${visits}|${moves.join(" ")}`;
+export const analysisKey = (search: string, model: string, moves: string[], visits: number, shape = SHAPE) =>
+  `${shape}|${search}|${model}|${visits}|${moves.join(" ")}`;
 /** A stored analysis's key read back: the shape, the search, the network's SHA-256, the visits and the position's
  *  moves. A result kept before request 17 names its build there: the first build of a search is the search's name. */
 export function readAnalysisKey(key: string) {
@@ -35,9 +44,10 @@ export function readAnalysisKey(key: string) {
 }
 /** Whether a text has a stored analysis's key's form: a file's results are checked by it. */
 export const isAnalysisKey = (key: string) => /^\d+\|[^|]*\|[0-9a-f]+\|\d+\|/.test(key);
-/** Whether a stored key is a result that no reader reads: of an older shape, or of the form before the shape (the build,
- *  the network, the visits and the moves). A newer shape's result is not: a tab of a later release wrote it. */
-export const isOlderShape = (key: string) => !isAnalysisKey(key) || readAnalysisKey(key).shape < SHAPE;
+/** Whether a stored key is a result that no reader reads: of a shape older than READ_FROM, or of the form before the
+ *  shape (the build, the network, the visits and the moves). A newer shape's result is not: a tab of a later release
+ *  wrote it. */
+export const isOlderShape = (key: string) => !isAnalysisKey(key) || readAnalysisKey(key).shape < READ_FROM;
 /** Whether the removal of older shapes is due: the browser's mark (the shape it last removed the older ones for) is
  *  older than SHAPE, absent, or not a number. */
 export function removalDue(mark: string | null): boolean {
@@ -47,8 +57,8 @@ export function removalDue(mark: string | null): boolean {
 const REMOVED = "learn-enclosure:analysis-shape:1"; // the browser's mark
 
 /** Removes the stored results of older shapes (isOlderShape), at the site's first start after a change of SHAPE: a
- *  start with the same shape reads the mark alone. The results of this shape stay, of every engine and network: a
- *  snapshot reads an earlier engine's (design 20). The mark follows the removal, so a removal that fails runs again at
+ *  start with the same shape reads the mark alone. The results of the shapes that the readers read stay, of every
+ *  engine and network: a snapshot reads an earlier engine's (design 20). The mark follows the removal, so a removal that fails runs again at
  *  the next start. */
 export async function removeOlderShapes(): Promise<void> {
   if (!removalDue(readLocal(REMOVED))) return;
@@ -90,16 +100,18 @@ export const BUDGETS = [256, 512, 768, 1024, 1536, 2048, 3072, 4096, 8192, 16384
 /** The deepest stored result for a position at `visits` or deeper: a deeper search answers a shallower question, as the
  *  review takes a deeper result it holds. So a review opened again keeps what the player searched deeper where they
  *  looked (the position on screen, design 09), as it had it before the page closed, and a review imported from another
- *  browser, searched to another depth, opens without searching again (Hedge School's src/lib/game/reviewFile.ts). */
+ *  browser, searched to another depth, opens without searching again (Hedge School's src/lib/game/reviewFile.ts). Of
+ *  every shape that the readers read (READ_FROM): of two results as deep, the newer shape's. */
 export async function cacheGetAtLeast<T>(search: string, model: string, moves: string[], visits: number): Promise<T | undefined> {
   const keys = depthKeys(search, model, moves, visits);
   await readStored(keys);
   const key = [...keys].reverse().find(k => memory.has(k));
   return key === undefined ? undefined : (memory.get(key) as T);
 }
-/** The keys of a position's results at `visits` and every budget deeper. */
+/** The keys of a position's results at `visits` and every budget deeper, each depth's in the shapes that the readers
+ *  read, the oldest first. */
 const depthKeys = (search: string, model: string, moves: string[], visits: number) =>
-  [visits, ...BUDGETS.filter(v => v > visits)].map(v => analysisKey(search, model, moves, v));
+  [visits, ...BUDGETS.filter(v => v > visits)].flatMap(v => READ_SHAPES.map(s => analysisKey(search, model, moves, v, s)));
 /** Reads the keys not read yet in this visit into memory, in one transaction, and notes the ones not stored. */
 async function readStored(keys: string[]) {
   const unread = keys.filter(k => !memory.has(k) && !absent.has(k));
@@ -140,7 +152,7 @@ export function searchHolding(keys: string[], model: string, positions: string[]
   const found = new Map<string, Set<string>>();
   for (const key of keys) {
     const k = readAnalysisKey(key);
-    if (k.shape !== SHAPE || k.model !== model || k.search === except || (search !== undefined && k.search !== search) ||
+    if (!readable(k.shape) || k.model !== model || k.search === except || (search !== undefined && k.search !== search) ||
         k.visits < visits || !wanted.has(k.moves)) continue;
     found.set(k.search, (found.get(k.search) ?? new Set()).add(k.moves));
   }

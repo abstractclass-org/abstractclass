@@ -91,17 +91,23 @@ if (!isMainThread) {
     }
   }
 
-  const f =(x, d = 2) => x.toFixed(d);
+  const f = (x, d = 2) => x.toFixed(d);
+  const inEdges = (from, to) => rows.filter(x => x.edge >= from && x.edge <= to);
   console.log(`${rows.length} flagged turns (a loss of 0.10 or more, not the engine's best turn)\n`);
-  console.log("| Edges | Turns | Side right | Focus (median) | Shown | Area lost, points of the board (median) | Points lost ÷ (net fall × turn ends left), median | Root against best choice, mean |");
-  console.log("|---|---|---|---|---|---|---|---|");
-  for (const [from, to] of [[1, 16], [17, 40], [41, 60], [61, 120]]) {
-    const r = rows.filter(x => x.edge >= from && x.edge <= to);
+  console.log("| Edges | Turns | Side right | Focus (median) | Area lost, points of the board (median) | Points lost ÷ (net fall × turn ends left), median | Root against best choice, mean per point |");
+  console.log("|---|---|---|---|---|---|---|");
+  for (let from = 1; from <= 120; from += 20) {
+    const r = inEdges(from, from + 19);
     if (!r.length) continue;
     const right = r.filter(x => x.net < 0), ratio = right.map(x => x.points / (-x.net * x.turnEnds));
-    console.log(`| ${from}-${to} | ${r.length} | ${right.length} | ${f(median(r.map(x => x.clear)))} | ${r.filter(x => x.shown).length} | ` +
-                `${f(median(r.map(x => x.size)), 1)} | ` +
-                `${f(median(ratio))} | ${f(r.reduce((s, x) => s + x.gap, 0) / r.length, 3)} |`);
+    console.log(`| ${from}-${from + 19} | ${r.length} | ${right.length} | ${f(median(r.map(x => x.clear)))} | ` +
+                `${f(median(r.map(x => x.size)), 1)} | ${f(median(ratio))} | ${f(r.reduce((s, x) => s + x.gap, 0) / r.length, 3)} |`);
+  }
+  // The turns that show their area lost (shownLost), by stage: the first 8 turns, the middle game, and after
+  console.log("\n| Edges | Turns | Shown | Of those, side right |\n|---|---|---|---|");
+  for (const [name, r] of [["1-16", inEdges(1, 16)], ["17-40", inEdges(17, 40)], ["41-60", inEdges(41, 60)], ["61-120", inEdges(61, 120)], ["All", rows]]) {
+    const shown = r.filter(x => x.shown);
+    console.log(`| ${name} | ${r.length} | ${shown.length} | ${shown.filter(x => x.net < 0).length} |`);
   }
   // The points lost against the fall times the turn ends, over every flagged turn whose side is right.
   const ok = rows.filter(x => x.net < 0), c = corr(ok.map(x => -x.net * x.turnEnds), ok.map(x => x.points));

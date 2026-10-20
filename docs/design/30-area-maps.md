@@ -16,9 +16,8 @@ exact area: the map shows where, and the points lost give how much.
 
 The protocol has KataGo's two fields (the engine repository's `docs/design/04-notation-and-protocol.md`): the root's
 ownership (`includeOwnership`) and each candidate's (`includeMovesOwnership`). The WebAssembly module of release
-`engine-d6786eba` returns both, as 361 values from Blue's side, index y × 19 + x. Each candidate's is the mean over its
-own subtree, and a symmetric twin's is mirrored. The GPU module computes the ownership head too (its graph's
-`OutputOwnership`). So the site needs nothing more from the engine.
+`engine-d6786eba` returns both, and the GPU module computes the ownership head too. So the site needs nothing more from
+the engine.
 
 KaTrain, the Go review tool that the site follows (design 05), has both displays:
 
@@ -35,7 +34,9 @@ KaTrain, the Go review tool that the site follows (design 05), has both displays
 1. **The ownership at every position is stored with the review.** Every search of the review asks for the root's
    ownership (`includeOwnership`), whatever the display settings, so that a review opened again or imported has its
    maps. The review keeps it in whole hundredths, from Blue's side (`ownership` of an analysis). The stored shape
-   becomes 6 (`SHAPE` in `packages/analysis/src/cache.ts`). The candidates' ownership is not asked for: it is about
+   becomes 6 (`SHAPE` in `packages/analysis/src/cache.ts`). Shape 6 only adds this field, so the site still reads shape
+   5 (`READ_FROM`, design 05): a review stored or exported before opens at once with its results, with no ownership
+   (item 7). The candidates' ownership is not asked for: it is about
    3 kB of JSON for each candidate (262 kB for one reply of 100 visits at the start, against 24 kB without it), and the
    root's serves (item 4).
 2. **The area map** (the display setting "Area map", Board): at the position on screen, each point shaded by its
@@ -69,6 +70,12 @@ KaTrain, the Go review tool that the site follows (design 05), has both displays
    shows the map, and the move list no caption. On 10 real games, this showed 42 of 128 Mistakes and Blunders by
    turn: 13 of 61 in the first 8 turns, 20 of 41 in edges 17 to 40, and 9 of 26 after. The mover's ownership fell in
    all on 41 of the 42.
+7. **A result with no ownership** (shape 5) gets it from a short search of the position alone, at the sweep's budget
+   (32 visits), when the board shows it: the position on screen for the map, and the move's two positions for the
+   area lost (`askOwnership` in `packages/analysis/src/analysis.svelte.ts`). The search runs just after the position
+   on screen's, and the page keeps its ownership apart (`ownership` of the analysis). It never replaces the
+   position's result, and the store does not keep it. A move's caption shows once both of its positions have their
+   ownership. The game is never reviewed again for the maps.
 
 ## Why
 
@@ -79,10 +86,10 @@ KaTrain, the Go review tool that the site follows (design 05), has both displays
 - **The root's ownership for "after the best move", not the best candidate's.** The root's map is the mean over the
   whole tree, and the engine's first choice holds most of the tree's visits. On the real games measured
   ([decisions/product.md](../decisions/product.md), "The area maps on real games"), the two differ by 0.006 per point
-  on average, against values from −1 to 1. The candidates'
-  maps would make each reply about ten times larger, and the review would store or send them for no visible gain.
-  The before and after maps are also the two searches that the loss reads, so the map and the points lost agree by
-  construction.
+  on average, against values from −1 to 1. Over the whole board, that is about 2 points of the board, against a median
+  area lost of 9 to 16 points of the board. The candidates' maps would make each reply about ten times larger, and the
+  review would store or send them for no visible gain. The before and after maps are also the two searches that the
+  loss reads, so the map and the points lost come from the same searches.
 - **Stored with every search:** in a whole review, the ownership took no time that the measurement could show, and
   36% more space in the browser's store, about 1.1 kB for each result ([decisions/engine.md](../decisions/engine.md),
   "The cost of the ownership in a whole review"). A display setting then changes nothing in the store.
@@ -109,14 +116,30 @@ KaTrain, the Go review tool that the site follows (design 05), has both displays
   replies are about ten times larger, and it differs little from the root's (Why).
 - **The ownership only when the map is on:** a review made with the map off would have no maps, and a change of the
   setting would need the review again.
+- **Shape 6 alone, with the results of shape 5 removed:** each stored game would be reviewed again once, and a review
+  file of shape 5 would open with no results. A review at 16,384 visits would be searched again from the start, for a
+  field that a short search gives. The first build of the maps did this
+  ([decisions/product.md](../decisions/product.md), "The results of shape 5 stay readable").
 - **A point count in the caption** (the lost area's size in points of the board): the map counts lattice points and
   turn ends, not the score, and the review's points lost already give the size in the score's own points.
 
 ## Consequences
 
-- The stored shape changed: the results stored before are removed at the site's next start, and each stored game is
-  reviewed again once (design 05, item 3; design 20).
-- A review imported from a file of shape 5 opens without its results, as any older file does.
+- The stored shape changed, and the results stored before stay: a stored game and a review file of shape 5 open at
+  once with their labels, lines and points lost (design 05, item 3, and design 13). Their maps come from the short
+  searches of item 7, one position at a time, as the player looks.
+- A review of shape 5 has no captions in its move list until the player has looked at the moves: the short search
+  runs only for the positions that the board shows. Its area lost compares two short searches, not the two searches
+  that the move's loss reads.
+- **The two maps count different turn ends.** The ownership at a turn's start counts that turn's end, and the
+  ownership after the turn does not. So the area lost also holds how each point at that turn's end differs from the
+  rest of the game, divided by the turn ends left: a point that the opponent encloses only later falls by one part in
+  the turn ends left. In the middle game this is a faint haze. In the last turns it grows
+  ([decisions/product.md](../decisions/product.md), "The window of the area lost"). An exact correction needs each
+  point's regions at the turn's end, from the rules.
+- The last turn of a game shows no area lost: the position after it ends the game, and has no search.
+- The caption gives the mean over the area lost. Where the area mixes points of both players, the mean can come out
+  open.
 - The area lost is also the hint that "Learning from mistakes" (beads abscls-7e9) asks for: the area at stake,
   shown before the retry, from the same function (`lostArea`).
 - In the opening, few mistakes show their area lost: the engine holds the board open, and a mistake there moves a
@@ -131,14 +154,17 @@ KaTrain, the Go review tool that the site follows (design 05), has both displays
   `shade` (KaTrain's gamma). Tests: `ownership.test.ts`.
 - `src/lib/board/Board.svelte`: the map and the area lost on the board (`ownership`, `lost`), and the map's board
   layer `areaMap`.
-- `src/lib/review/ReviewView.svelte`: `lostHere`, `lostIn` and `lostCaptions`, the settings and the key t.
+- `src/lib/review/ReviewView.svelte`: `lostHere`, `lostIn`, `ownershipAt` and `lostCaptions`, the positions that it
+  asks ownership for, the settings and the key t.
   `src/lib/review/display.ts`: `areaLost`.
 - `packages/analysis/src/reply.ts` (the ownership in hundredths), `packages/analysis/src/analysis.svelte.ts` (every
-  search asks for it), `packages/analysis/src/cache.ts` (`SHAPE` 6), `packages/engine/src/protocol.ts` (the fields).
+  search asks for it, and `askOwnership`), `packages/analysis/src/cache.ts` (`SHAPE` 6, `READ_FROM` 5),
+  `packages/engine/src/protocol.ts` (the fields).
 - The measurements: `scripts/measure/ownership-maps.mjs` (the maps on real games) and
   `scripts/measure/review-ownership.mjs` (the cost in a whole review).
 
 ## Log entries
 
-- [decisions/product.md](../decisions/product.md): "The area maps on real games" (2026-10-21).
+- [decisions/product.md](../decisions/product.md): "The area maps on real games", "The window of the area lost" and
+  "The results of shape 5 stay readable" (2026-10-21).
 - [decisions/engine.md](../decisions/engine.md): "The cost of the ownership in a whole review" (2026-10-21).

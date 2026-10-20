@@ -5,7 +5,8 @@
 // is the label pass's last. And another network: no pass searches on the old network's pool for the new network's
 // analysis. And a focus's time limit, which the engine's worker keeps. And a search's budget and the review's steps, met
 // only by a result that the store has: not by another search's results so far, and not by a search that ends with no
-// result, which the engine on runs again. Run: npm test.
+// result, which the engine on runs again. And results of shape 5, with no ownership: the review opens with them and
+// searches nothing, and the board's ownership comes from a short search of its own. Run: npm test.
 import { afterEach, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
 import "./testing/svelteModules.ts";
@@ -14,7 +15,7 @@ import { Cancelled, type EnginePool, type Work } from "@abstractclass/engine/poo
 import { BOARD_ID } from "./kept.ts";
 import { reply, wordFields, wordRules, words } from "./testing/game.ts";
 import type { Player } from "./game.ts";
-import { SWEEP_VISITS, analysisKey, cachePut, readAnalysisKey } from "./cache.ts";
+import { READ_FROM, SWEEP_VISITS, analysisKey, cachePut, readAnalysisKey } from "./cache.ts";
 import { toAnalysis } from "./reply.ts";
 import { STORES } from "@abstractclass/storage/db.ts";
 import { memoryDb } from "@abstractclass/storage/memoryDb.ts";
@@ -32,8 +33,8 @@ let models = 0;
  *  then first come first served, as the pool runs them (pool.ts). `waiting`: the tasks that wait for an engine. `halt`
  *  drops the waiting tasks and stops the running searches in slices, as the pool does. */
 function fakePool(engines = Infinity) {
-  const searches: { partial(visits: number): void; end(visits: number, late?: boolean): void; fail(e: Error): void; stopped: boolean;
-                    maxMs?: number; query: AnalysisQuery }[] = [];
+  const searches: { partial(visits: number): void; end(visits: number, late?: boolean, more?: Partial<AnalysisReply>): void;
+                    fail(e: Error): void; stopped: boolean; maxMs?: number; query: AnalysisQuery }[] = [];
   const engine = {
     analyse(query: AnalysisQuery, onPartial: (r: AnalysisReply) => void, maxMs?: number) {
       let end!: (t: { reply: AnalysisReply; late?: boolean }) => void, fail!: (e: Error) => void;
@@ -41,7 +42,9 @@ function fakePool(engines = Infinity) {
       const search = {
         partial: (v: number) => onPartial(reply(v)), fail: (e: Error) => fail(e), stopped: false, maxMs, query,
         // A search that the page stopped, or that its time limit ended, ends as terminated (the protocol's terminate).
-        end: (v: number, late = false) => end({ reply: late || search.stopped ? { ...reply(v), terminated: true } : reply(v), late }),
+        // `more`: the reply's other fields, such as the ownership.
+        end: (v: number, late = false, more = {}) =>
+          end({ reply: { ...(late || search.stopped ? { ...reply(v), terminated: true } : reply(v)), ...more }, late }),
       };
       searches.push(search);
       return { done, stop() { search.stopped = true; } };
@@ -111,6 +114,37 @@ test("every search asks for the ownership of each point, for the area maps", asy
   const { searches } = await sweeping();
   assert.ok(searches.length > 0);
   assert.ok(searches.every(s => s.query.includeOwnership));
+});
+
+test("results of shape 5 open the review with no search, and the board's ownership comes from a short search", async () => {
+  const { pool, searches } = fakePool();
+  const deep = 16384, model = pool.model!.sha256;
+  // Every position at a deep budget, stored at shape 5 (READ_FROM): results with no ownership
+  for (let i = 0; i <= MOVES.length; i++)
+    await cachePut(analysisKey(pool.search!, model, MOVES.slice(0, i), deep, READ_FROM), toAnalysis(words, reply(deep)));
+  const game = new GameAnalysis(words, pool, MOVES, "g5");
+  await game.start();
+  await game.fromStore(pool.search!, model);
+  void game.sweep();
+  await turns();
+  mock.timers.tick(BATCH_MS);
+  assert.equal(searches.length, 0); // no review again
+  assert.equal(game.labelled, game.passCount);
+  assert.ok(game.analysis.slice(0, game.passCount).every(a => a?.visits === deep && !a.ownership));
+  // The board shows the position after "a": one search of the sweep's budget asks for its ownership alone
+  const puts = store.puts(STORES.analysis).length;
+  game.askOwnership([["a"]]);
+  game.askOwnership([["a"]]); // asked again while it runs
+  await turns();
+  assert.deepEqual(searches.map(s => [s.query.moves, s.query.maxVisits, s.query.includeOwnership]), [[["a"], SWEEP_VISITS, true]]);
+  searches[0].end(SWEEP_VISITS, false, { ownership: [0.5, -0.25] });
+  await turns();
+  assert.deepEqual(game.ownership, { a: [50, -25] });
+  assert.equal(game.analysis[1]?.visits, deep); // the result stays the position's
+  assert.equal(store.puts(STORES.analysis).length, puts); // and the store keeps no short search
+  game.askOwnership([["a"]]); // it has its ownership now
+  await turns();
+  assert.equal(searches.length, 1);
 });
 
 test("a final result is not replaced by a shallower result of the same batch", async () => {

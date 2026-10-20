@@ -20,15 +20,15 @@
 </script>
 
 <script lang="ts">
-  // The Enclosure board as SVG: the lattice, each player's regions and edges, the protected edges (the turn just
+  // The Enclosure board as SVG: the lattice, the area map or a mistake's area lost (design 30), each player's regions and edges, the protected edges (the turn just
   // played and the mover's edges of this turn, on the edge itself, with no band behind any edge), the edge just cut, the engine's candidates numbered by rank, a preview edge, label badges on the edges of the turn
   // just played, and a ghost edge (the game's edge in a retry). During edge input: the first point, the points that
   // complete a legal edge from it (dots), and the edge to the marked point under the pointer. Points are 0-18 with y
   // up, as in the engine.
   import { pointName, sameEdge } from "#lib/review/enclosure.ts";
   import LabelMark from "#lib/review/LabelMark.svelte";
-  import { brushFor, samePoint, toggleNote, type BoardNote, type NoteBrush } from "./notes.ts";
   import { shade } from "#lib/review/ownership.ts";
+  import { brushFor, samePoint, toggleNote, type BoardNote, type NoteBrush } from "./notes.ts";
 
   interface Props {
     position: Position;
@@ -82,8 +82,8 @@
   // less as much: it is shown alone.
   const AREA_ALPHA = 0.45, LOST_ALPHA = 0.6;
   // The values that the board shades, in whole hundredths (0: no shading): the area lost, or else the map
-  const area = $derived(lost ? { values: lost, lost: true, alpha: LOST_ALPHA }
-    : layers.areaMap && ownership ? { values: ownership, lost: false, alpha: AREA_ALPHA } : null);
+  const area = $derived(lost ? { values: lost, accent: true, alpha: LOST_ALPHA }
+    : layers.areaMap && ownership ? { values: ownership, accent: false, alpha: AREA_ALPHA } : null);
   const markAt = (e: Edge) => {
     const [x, y] = mid(e), d = 0.8 * MARK_R;
     if (Math.abs(e[0] - e[2]) + Math.abs(e[1] - e[3]) !== 1) return [x, y] as const;
@@ -283,7 +283,7 @@
         {@const v = area.values[y * N + x]}
         {#if v}
           <rect x={x - 0.5} y={sy(y) - 0.5} width="1" height="1"
-                style:fill={area.lost ? "var(--accent)" : v > 0 ? "var(--blue)" : "var(--red)"}
+                style:fill={area.accent ? "var(--accent)" : v > 0 ? "var(--blue)" : "var(--red)"}
                 fill-opacity={area.alpha * shade(v)} />
         {/if}
       {/each}

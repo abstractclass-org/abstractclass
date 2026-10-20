@@ -91,10 +91,12 @@ noise.
 3. **Results stay in the browser** (IndexedDB), keyed by the stored shape's version, the engine's search (request 17:
    the first build that searched as this one does), the network's SHA-256, the moves and the visits. A stored result
    equals a fresh one, because the engine is reproducible, and a release that keeps the search keeps the results.
-   A new shape makes the results of the older shapes useless: no reader reads them. The site removes them when it
-   starts for the first time after the change, and a mark in the browser's local storage keeps the shape that it
-   removed them for. The results of an earlier search or of an earlier network file stay while the snapshot of a
-   stored game reads them, and go at a later start when no game needs them (design 20, item 8).
+   A shape that changes what a result's fields mean makes the results of the older shapes useless: no reader reads
+   them. A shape that only adds a field leaves the shape before it readable (`READ_FROM`): those results are right
+   without the field, as shape 5's are without the ownership of shape 6 (design 30). The site removes the results that
+   no reader reads when it starts for the first time after a change, and a mark in the browser's local storage keeps
+   the shape that it removed them for. The results of an earlier search or of an earlier network file stay while the
+   snapshot of a stored game reads them, and go at a later start when no game needs them (design 20, item 8).
 
 ## Why
 

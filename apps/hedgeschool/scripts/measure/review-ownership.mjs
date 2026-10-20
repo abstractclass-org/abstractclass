@@ -8,8 +8,8 @@
 //     part that is ownership), in kB.
 //
 //   node scripts/measure/review-ownership.mjs <before> <after> [pairs] [workers] [port]
-import { FIXTURE, inPairs, launch, preview, verdict, verdictText, watchSweep } from "./speed.mjs";
 import { readFileSync } from "node:fs";
+import { FIXTURE, inPairs, launch, preview, verdict, verdictText, watchSweep } from "./speed.mjs";
 
 const [before, after] = process.argv.slice(2, 4);
 const pairs = Number(process.argv[4] ?? 3), workers = Number(process.argv[5] ?? 2), port = Number(process.argv[6] ?? 4491);

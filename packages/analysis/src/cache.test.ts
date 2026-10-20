@@ -1,10 +1,10 @@
 // Checks the choice of a snapshot's engine search (searchHolding, design 20): the search whose stored results hold the
 // game's line at the review's depth. And the snapshot's read of the store (snapshotSearch): the keys of the mark's
-// search, or every key for a mark that names no search. And the removal of older shapes: which keys it takes, and when
-// it runs. Run: npm test.
+// search, or every key for a mark that names no search. And the shapes that the readers read: a result of an older
+// shape that they read is found, and the removal of older shapes takes the others, once. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { SHAPE, analysisKey, isOlderShape, removalDue, searchHolding, snapshotSearch } from "./cache.ts";
+import { READ_FROM, SHAPE, analysisKey, cacheGetAtLeast, isOlderShape, removalDue, searchHolding, snapshotSearch } from "./cache.ts";
 import { STORES } from "@abstractclass/storage/db.ts";
 import { memoryDb } from "@abstractclass/storage/memoryDb.ts";
 
@@ -62,18 +62,34 @@ test("the site's own search is left out when the snapshot is of an earlier engin
   assert.equal(searchHolding(keys("new", "n1", 512), "n1", line, 512, "new"), undefined);
 });
 
-test("results of an older shape are not read", () => {
-  const stored = keys("old", "n1", 512).map(k => k.replace(/^\d+\|/, "4|"));
-  assert.equal(searchHolding(stored, "n1", line, 512), undefined);
+test("results of a shape older than the readers read are not read, and of an older shape that they read are", () => {
+  const stored = (shape: number) => keys("old", "n1", 512).map(k => k.replace(/^\d+\|/, `${shape}|`));
+  assert.equal(searchHolding(stored(READ_FROM - 1), "n1", line, 512), undefined);
+  assert.equal(searchHolding(stored(READ_FROM), "n1", line, 512), "old");
 });
 
-test("the removal takes the results of older shapes, and keeps every engine's and network's of this shape", () => {
+test("a stored result of an older shape that the readers read is found, and of two as deep, the newer shape's", async () => {
+  const older = (moves: string[], visits: number) => analysisKey("s5", "n1", moves, visits, READ_FROM);
+  db.rows(STORES.analysis).set(older(["d4"], 512), { visits: 512, shape: READ_FROM });
+  assert.deepEqual(await cacheGetAtLeast("s5", "n1", ["d4"], 256), { visits: 512, shape: READ_FROM });
+  db.rows(STORES.analysis).set(older(["g7"], 512), { visits: 512, shape: READ_FROM });
+  db.rows(STORES.analysis).set(analysisKey("s5", "n1", ["g7"], 512), { visits: 512, shape: SHAPE });
+  db.rows(STORES.analysis).set(older(["e5"], 16384), { visits: 16384, shape: READ_FROM });
+  db.rows(STORES.analysis).set(analysisKey("s5", "n1", ["e5"], 1024), { visits: 1024, shape: SHAPE });
+  assert.deepEqual(await cacheGetAtLeast("s5", "n1", ["g7"], 512), { visits: 512, shape: SHAPE });
+  assert.deepEqual(await cacheGetAtLeast("s5", "n1", ["e5"], 512), { visits: 16384, shape: READ_FROM }); // the deepest
+  db.rows(STORES.analysis).set(analysisKey("s5", "n1", ["f6"], 512, READ_FROM - 1), { visits: 512 });
+  assert.equal(await cacheGetAtLeast("s5", "n1", ["f6"], 512), undefined);
+});
+
+test("the removal takes the results of the shapes that no reader reads, and keeps every engine's and network's of the others", () => {
   // Real keys' parts: the search's name, and a network's SHA-256 (shortened here: any hex).
   assert.equal(isOlderShape(`${SHAPE}|fdfe5ad|800f0bbf|512|D10-G10 N11-Q10`), false);
   assert.equal(isOlderShape(`${SHAPE}|85c2adb|6e25445b|32|`), false); // an earlier engine's, which a snapshot reads (design 20)
   assert.equal(isOlderShape(`${SHAPE}|fdfe5ad|800f0bbf|512|@A1_B2 D10-G10`), false); // from a set-up start
   assert.equal(isOlderShape(`${SHAPE + 1}|fdfe5ad|800f0bbf|512|D10-G10`), false); // a tab of a later release wrote it
-  assert.equal(isOlderShape(`${SHAPE - 1}|fdfe5ad|800f0bbf|512|D10-G10`), true);
+  assert.equal(isOlderShape(`${READ_FROM}|fdfe5ad|800f0bbf|512|D10-G10`), false); // its readers read it: a result with no ownership
+  assert.equal(isOlderShape(`${READ_FROM - 1}|fdfe5ad|800f0bbf|512|D10-G10`), true);
   assert.equal(isOlderShape("2|85c2adb|800f0bbf|32|"), true);
   // Before shape 2, a key had no shape: the build, the network, the visits and the moves.
   assert.equal(isOlderShape("85c2adb|800f0bbf|512|D10-G10"), true);

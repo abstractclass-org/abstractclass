@@ -2,7 +2,7 @@
 // and an earlier network file's, unless a stored game's snapshot reads them. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { SHAPE, analysisKey, searchHolding, snapshotPositions } from "@abstractclass/analysis/cache.ts";
+import { READ_FROM, SHAPE, analysisKey, searchHolding, snapshotPositions } from "@abstractclass/analysis/cache.ts";
 import { unneededResults } from "./earlierResults.ts";
 import type { KeptBranches, ReviewMark } from "./store.ts";
 
@@ -123,8 +123,15 @@ test("without the site's CPU module, the removal takes nothing: it cannot tell t
   assert.deepEqual(unneededResults(stored, [{ moves: MOVES, branches: null, mark: mark("m0") }], networks), []);
 });
 
-test("the results of another shape are not this removal's", () => {
-  const older = results("s1", "b2", 512, line(MOVES)).map(k => k.replace(/^\d+\|/, `${SHAPE - 1}|`));
+test("the results of a shape that no reader reads are not this removal's", () => {
+  const older = results("s1", "b2", 512, line(MOVES)).map(k => k.replace(/^\d+\|/, `${READ_FROM - 1}|`));
   const newer = older.map(k => k.replace(/^\d+\|/, `${SHAPE + 1}|`));
   assert.deepEqual(unneededResults([...older, ...newer, "85c2adb|b2|512|D10-G10"], [], ENGINE), []);
+});
+
+test("the results of an older shape that the readers read are kept or removed as this shape's", () => {
+  const toShape = (keys: string[], shape: number) => keys.map(k => k.replace(/^\d+\|/, `${shape}|`));
+  const own = toShape(results("s2", "b2", 512, line(MOVES)), READ_FROM);
+  const earlier = toShape(results("s1", "b2", 512, line(MOVES)), READ_FROM);
+  assert.deepEqual(unneededResults([...own, ...earlier], [], ENGINE), earlier);
 });
