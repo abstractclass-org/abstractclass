@@ -186,7 +186,7 @@
 
   const TOOLS: [Tool, string][] = [[0, "Blue edges"], [1, "Red edges"], ["mark", "Marks"]];
   const toolHelp = (t: Tool) => t === "mark"
-    ? "Click an edge's two points to mark it: the waiting player's edges of the last turn (protected), and the mover's edges of this turn so far (placed)."
+    ? "Click an edge's two points to mark it. Mark the waiting player's edges of the last turn (protected). Mark the mover's edges of this turn so far (placed)."
     : `Click an edge's two points, at most 3 apart. Right-click to draw a ${PLAYER_NAME[otherPlayer(t)]} edge. To remove a ${PLAYER_NAME[t]} edge, draw it again. To change a ${PLAYER_NAME[otherPlayer(t)]} edge to ${PLAYER_NAME[t]}, draw it again.`;
   // The page's keys and clicks, as the review lists its own (ReviewView's KEYS and MOUSE). The end of the last edge stays
   // selected: the next click draws the next edge from it (a chain).

@@ -170,15 +170,15 @@
     <h1 class="text-2xl font-bold">A shared review</h1>
     <p><strong>{names.blue} against {names.red}</strong>, {shared.moves.length} edges{shared.branches.length
       ? `, with ${shared.branches.length} ${shared.branches.length === 1 ? "move" : "moves"} in the sender's branches` : ""}.</p>
-    <p>The link carries the game, not the engine's work: <strong>your browser reviews the game again</strong>, as it does a
-      game you import, and the review fills in as the engine goes. With the sender's engine, network and depth, it comes
-      out as the sender's review: the same labels, lines and accuracy. A GPU computes the network a little differently, so
-      on one a close call can rarely come out otherwise.</p>
+    <p>The link carries the game, not the engine's work. <strong>Your browser reviews the game again</strong>, as it does
+      a game you import. The review shows each result as the engine finds it. With the sender's engine, network and depth,
+      your review is the same as the sender's: the same labels, lines and accuracy. A GPU computes the network a little
+      differently, so on a GPU a close call can rarely give another result.</p>
     <p>The sender's review: {here.network ? networkName(here.network) : "a network this site no longer has"}, at
       {reviewDepthText(shared.visits)}.
       {#if !here.network}The review uses your network, so its labels can differ.
       {:else}The game keeps them for its review. Other games review as before.{/if}
-      {#if !here.sameEngine}This site's engine has changed since the link was made, so some labels can differ.{/if}</p>
+      {#if !here.sameEngine}This site's engine changed after the sender made the link, so some labels can differ.{/if}</p>
     <div><button class="btn-primary" type="button" onclick={() => reviewShared(shared, here)}>Review it</button></div>
   {:else if phase.at === "choose"}
     {@const { sent, record, source, stale } = phase}
@@ -190,12 +190,12 @@
         {#if stale === "bookmarklet"}Your bookmarklet is an older one. On the <a href="/tools">tools page</a>, drag the
           button to the bookmarks bar again, in place of the old one.
         {:else if stale === "userscript"}Your userscript is older than this site's. Tampermonkey updates it when it next
-          checks. To update it now, open the Hedge School userscript on the <a href="/tools">tools page</a>, and
-          Tampermonkey offers the update.
+          checks. To update it now, open the Hedge School userscript on the <a href="/tools">tools page</a>. Tampermonkey
+          then offers the update.
         {:else}This game came from a bookmarklet or a userscript made before they could tell this site their version. On
-          the <a href="/tools">tools page</a>, drag the bookmarklet to the bookmarks bar again, in place of the old one:
-          it now loads its code from this site, so it stays up to date. For the userscript, open it there, and
-          Tampermonkey offers the update.{/if}
+          the <a href="/tools">tools page</a>, drag the bookmarklet to the bookmarks bar again, in place of the old one.
+          The new bookmarklet loads its code from this site, so it stays up to date. For the userscript, open it there.
+          Tampermonkey then offers the update.{/if}
       </p>
     {/if}
     <h1 class="text-2xl font-bold">A game from {site}</h1>
@@ -218,7 +218,7 @@
       </section>
     </div>
   {:else}
-    <p class="text-blunder" role="alert">{phase.load ? "The review could not be loaded" : "The game could not be imported"}: {phase.problem}</p>
+    <p class="text-blunder" role="alert">{phase.load ? "Hedge School could not load the review" : "Hedge School could not import the game"}: {phase.problem}</p>
     <p>You can paste a game record in the <a href="/review" data-sveltekit-reload>Review tab</a>, or bring games from other sites with the
       <a href="/tools">tools</a>.</p>
   {/if}

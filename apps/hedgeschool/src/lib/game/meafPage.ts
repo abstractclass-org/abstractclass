@@ -51,8 +51,8 @@ export function watcherUrl(): string {
  *  and this site's tools page has the tools as they are now. */
 export function explain(why: "none" | "playing" | "loading" | "login", click: string, origin: string, host: string): string {
   return "Hedge School: " + (why === "none"
-    ? `no game found on this page. Open a game on ${host} (one you play or watch, or a finished one), then click ${click} again. If a game shows and this message comes back, ${host} may have changed its page: ${origin}/tools has the newest bookmarklet and userscript.`
+    ? `this page shows no game that Hedge School can read. Open a game on ${host}: a game that you play or watch, or a finished game. Then click ${click} again. If a game shows and you see this message again, ${host} may have changed its page. The newest bookmarklet and userscript are on ${origin}/tools.`
     : why === "playing" ? `meaf.us gives your own game without its moves while you play. When the game is over, click ${click} again.`
-    : why === "login" ? `${host} shows a finished game only to a player who is logged in. Log in, then click ${click} again.`
-    : `this page does not have the game's moves yet. Wait a moment, then click ${click} again.`);
+    : why === "login" ? `${host} shows a finished game only to a player who is logged in. Log in. Then click ${click} again.`
+    : `this page does not have the game's moves yet. Wait a moment. Then click ${click} again.`);
 }

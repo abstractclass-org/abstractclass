@@ -123,7 +123,7 @@ export const judgeTurn = withGame(shared.judgeTurn<Edge>);
 export function turnShortNote(t: TurnReview): string {
   if (t.label === "great") return `Great. The only good ${t.edges.length > 1 ? "edges" : "edge"}.`;
   const better = t.best && t.label !== "best" ? ` ${t.best.map(edgeName).join(" ")} was best.` : "";
-  return `${t.label ? shared.LABEL_TEXT[t.label] : "Not analysed yet"}.${better}`;
+  return `${t.label ? shared.LABEL_TEXT[t.label] : "Not analyzed yet"}.${better}`;
 }
 
 /** A note for the move list, in one line: the label, and the engine's choice when the edge was not it. */
@@ -131,7 +131,7 @@ export function shortNote(e: EdgeReview): string {
   if (e.label === "great") return "Great. The only good edge.";
   // Not when the edge is Best: it may be the best edge's symmetric twin (sameMove), another edge with the same move.
   const better = e.best && e.edge && e.label !== "best" && !sameEdge(e.best.edge, e.edge) ? ` ${edgeName(e.best.edge)} was best.` : "";
-  return `${e.label ? shared.LABEL_TEXT[e.label] : "Not analysed yet"}.${better}`;
+  return `${e.label ? shared.LABEL_TEXT[e.label] : "Not analyzed yet"}.${better}`;
 }
 
 /** The game's outcome in words: by the scores when the rules ended the game, else as the record says it ended (a

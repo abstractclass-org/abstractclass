@@ -4987,3 +4987,73 @@ sweep.
   - **A failure of the network chosen:** after a first review with 0.2 Lite, the script chose 0.2, whose file failed.
     The page showed the error ("/engine/b15c192-s90436608-d18027147/model-float16.bin: HTTP 404"), and the mark still
     names 0.2 Lite.
+
+### The site's text, a third pass (2026-10-20)
+
+- **What:** the files that the second pass left (abscls-6npo), by the same rules: CLAUDE.md, "Writing the site's text",
+  and the `/asd-ste100` skill with its linter. A script gave the linter each file's text: its string literals and its
+  template's prose, without its code and its `<pre>` blocks. The pass then read each file in full. The files had changed
+  after the second pass: the review has the move menu's image items and their note (`Toast.svelte`), and the board
+  editor has a new help in strict STE (abscls-dyms).
+- **Strict, for what a player follows:**
+  - The review's keys and clicks: "Close the settings, or cancel the edge that you started" (was "drop an edge begun"),
+    and "Pin its line on the board. Click the candidate again to unpin it" (was one sentence with a semicolon).
+  - `Arrival.svelte`: the errors say who acts, "Hedge School could not load the review" and "Hedge School could not
+    import the game". The notes for an out-of-date tool give one instruction in each sentence ("Tampermonkey then offers
+    the update"), and "The new bookmarklet loads its code from this site" replaces "it now loads its code".
+  - `bookmarklet.ts`: "Check the connection. Then click the bookmarklet again." Before, one sentence held the two
+    instructions, and "it" named the bookmarklet only by its context.
+  - `meafPage.ts`, the message for a page with no game: "this page shows no game that Hedge School can read. Open a game
+    on …: a game that you play or watch, or a finished game. Then click … again. If a game shows and you see this
+    message again, … may have changed its page. The newest bookmarklet and userscript are on …/tools." The phrasal verb
+    "comes back" went, and "may have changed" keeps its hedge. "Log in, then click" and "Wait a moment, then click"
+    became two sentences each.
+  - The board editor's help for Marks had 28 words. It became three sentences: "Click an edge's two points to mark it.
+    Mark the waiting player's edges of the last turn (protected). Mark the mover's edges of this turn so far (placed)."
+    The rest of the editor's help reads as strict STE and did not change.
+- **STE's sentence rules, for what explains:**
+  - "Not analysed yet" became "Not analyzed yet" in `ReviewView.svelte` and in `src/lib/review/enclosure.ts` together.
+    The second pass found the words in `model.ts`, and they moved to `enclosure.ts` with the packages. The review's note
+    "Analyzed in your browser" already had the interface's spelling.
+  - The review's engine settings: "so that the review opens as the engine made it" (was "as it was made"). For a game
+    from a file or a link: "This game came with a network and depth per move, from a review file or a shared link. It
+    keeps them, so that its review stays the one it came with. A change of them here applies to this game only." Before,
+    the first two sentences were one of 30 words, and "applies to" is the words of the note for the other case. The
+    Workers setting: "Each worker uses more of your computer's memory. Check how much memory your computer has." (was
+    "mind how much it has").
+  - The shared review's note: sentences of at most 25 words in place of sentences of 32 words and more. "the review
+    fills in as the engine goes" became "The review shows each result as the engine finds it", "it comes out as the
+    sender's review" became "your review is the same as the sender's", and "a close call can rarely come out otherwise"
+    became "a close call can rarely give another result", with "rarely" kept. "This site's engine changed after the
+    sender made the link" replaces "has changed since the link was made".
+  - The Privacy page: its passive verbs in the active voice, with the actor named. "that the site could not send yet",
+    "The site does not keep a game that ends before your first move", "With it, the site can tell your games apart", "If
+    the site cannot send a game when it ends", "Hedge School then keeps the game in your browser" and "Hedge School then
+    keeps it here" (the two "it is kept here"), "The script draws its button and its collie itself". Its sentences of 26
+    to 42 words became sentences of at most 25 words, with every fact. "To remove them, clear this site's data" became
+    "To delete them": the page says "delete" for what the browser or the site keeps, and "remove" only for the part of
+    an address after the `#`.
+- **The text now says what the code does:**
+  - The Privacy page's list of what this browser keeps names the board editor: "Your board editor position: the position
+    you are making, and how you set its edge count, so that a reload keeps them" (`hedge-school:editor` and
+    `hedge-school:editor-count`).
+  - The developers page said that Hedge School refuses a record with a `Rules` or a `Position` tag. `variantProblem`
+    (`src/lib/game/import.ts`) refuses a `Rules` tag that names other rules and a `Position` tag that gives another
+    start. It accepts either tag with the value `?` or `-`, and a `Position` tag that gives the standard start. The page
+    now says so.
+- **Left:**
+  - "/import is deprecated": `Arrival.svelte` no longer has the text.
+  - `meafPage.ts`, "only to a player who is logged in": "logged in" gives the player's state, not an action.
+  - The review: "Export once the review is done", because "Review done" is the name of that state (as on the developers
+    page in the second pass). "Shown when a review opens" and "Refined as the review runs" in the display settings:
+    participles that describe a setting, with no action. "delete from it" beside "Drawing it again removes it": "Delete
+    from here" is the move menu's item, as on Lichess, and a note is not a move.
+  - The Privacy page: the list of what Google Analytics receives keeps its long items. Each item is a list of counts,
+    not a sentence to split. "each switch that you have not set yet": the present perfect gives the state now.
+  - The move menu's image items, their notes and `Toast.svelte` (which has no text of its own) read as strict STE.
+  - The developers page's other notes from the linter: this pass changed only its claim about the tags.
+- **Tests:** no test matched the changed text. `userscript.test.ts` matches the "no game" message's "Open a game on
+  strategyjam.org" and its `/tools` address, which stay.
+- **Checked:** `npm run check` (0 errors) and `npm test` (181 passed) in `apps/hedgeschool`, and the layout sweep in
+  Chromium on a preview of the build (21 passed, and 6 skipped for want of the Google tag and of stored practice games
+  in a local build).

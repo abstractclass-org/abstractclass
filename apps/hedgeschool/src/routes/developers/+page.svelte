@@ -83,9 +83,11 @@ window.addEventListener("message", event => {
     <li><strong>Tags are welcome,</strong> but the link needs none: <code>Blue</code> and <code>Red</code> name the
       players, and <code>Date</code>, <code>Result</code> and <code>TimeControl</code> describe the game. Put the
       game's own page in <code>Site</code> (as Lichess does), and the review links back to it.</li>
-    <li><strong>The online rules from the standard start only.</strong> {SITE_NAME} refuses a record with a
-      <code>Rules</code> or a <code>Position</code> tag, with a message that says why. Show the link for such games
-      only once {SITE_NAME} reviews them.</li>
+    <li><strong>The online rules from the standard start only.</strong> {SITE_NAME} refuses a record whose
+      <code>Rules</code> tag names other rules, or whose <code>Position</code> tag gives another start, with a message
+      that says why. It accepts either tag with the value <code>?</code> or <code>-</code>, and a <code>Position</code>
+      tag that gives the standard start. Show the link for games of other rules or from another
+      start only once {SITE_NAME} reviews such games.</li>
     <li><strong>A finished game only.</strong> A link to a game in play would give a player the engine's help.</li>
     <li>The record goes after the <code>#</code>, which a browser never sends to a server, and the page removes it
       from the address at once.</li>

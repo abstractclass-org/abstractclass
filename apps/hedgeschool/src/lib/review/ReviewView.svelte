@@ -792,9 +792,9 @@
   // goes back to the last branch point), [ and ], or Shift + k and j (Lichess's); the line before and after this one by
   // Shift + ↑ and ↓, x and c (En Croissant's), or comma and period; Space plays the engine's choice; e or l turns the
   // engine on or off (l is Lichess's; e, for "engine", is the site's own: Lichess's e opens its opening explorer, which
-  // this site does not have). Escape closes the settings, or drops an edge begun. Keys kept free for later: m and
-  // Shift + m (the next and the previous mistake, KaTrain's n), and Delete. The controls' notes name no keys: the list
-  // does.
+  // this site does not have). Escape closes the settings, or cancels the edge that the player started. Keys kept free
+  // for later: m and Shift + m (the next and the previous mistake, KaTrain's n), and Delete. The controls' notes name no
+  // keys: the list does.
   let keysOpen = $state(false);
   let againOpen = $derived(!!again?.dialog); // closed by the player
   function onkeydown(ev: KeyboardEvent) {
@@ -841,11 +841,11 @@
     [["Home / End"], "The start, and the line's end"],
     [["Space"], "Play the pinned candidate, or number 1"],
     [["e", "l"], "Turn the engine on or off"],
-    [["Escape"], "Close the settings, or drop an edge begun"],
+    [["Escape"], "Close the settings, or cancel the edge that you started"],
     [["?"], "This list"],
   ];
   const MOUSE: [string, string][] = [
-    ["Click a candidate", "Pin its line on the board; click again to unpin it"],
+    ["Click a candidate", "Pin its line on the board. Click the candidate again to unpin it"],
     ["Double-click a candidate", "Play it"],
     ["Click a node, then a marked point", "Play your own edge"],
     ["Drag from a node to a marked point", "Play your own edge"],
@@ -930,7 +930,7 @@
     const move = !e ? "" : unit === "edge" ? moveText(e.index) : `${t!.number}. ${t!.edges.map(moveNotation).join(" ")}`;
     const title = e ? `${move}${listed(label) ? ` [${LABEL_TEXT[label]}]` : ""}` : "The start";
     const s = R.blueScore[i];
-    const value = i === last && endedByRules ? `Result: ${sideText(s!, 1)}` : s === undefined ? "Not analysed yet"
+    const value = i === last && endedByRules ? `Result: ${sideText(s!, 1)}` : s === undefined ? "Not analyzed yet"
       : `Lead: ${sideText(s, 1)}${chartSettled[i] ? "" : " · first estimate"}`;
     const details = [showScore && i !== last && `Score: ${sideText(scoreDiff[i], 1)}`,
                      showArea && `Area: ${sideText(areaDiff[i], 1)}`].filter(d => d !== false);
@@ -1133,7 +1133,7 @@
       {/each}
       {#each Array.from({ length: Math.max(0, TABLE_ROWS - rows.length) }, (_, k) => k) as k (k)}
         <tr class="h-(--row)">
-          <td class="italic text-muted" colspan="5">{k === 0 && !rows.length ? (over ? "The game is over." : "Not analysed yet.") : ""}</td>
+          <td class="italic text-muted" colspan="5">{k === 0 && !rows.length ? (over ? "The game is over." : "Not analyzed yet.") : ""}</td>
         </tr>
       {/each}
     </tbody>
@@ -1168,7 +1168,7 @@
         {#each t.edges as e (e.index)}
           {@const after = R.blueScore[e.index + 1]}
           {@const asked = !board || !!board.judged[mainKeys[e.index + 1]]} <!-- the board's moves: evaluated on request -->
-          {@const judged = unit === "edge" && forSide(e.player) && asked ? (e.label ? `${LABEL_TEXT[e.label]}: ${costText(e.rawLoss, e.rawPoints)}` : "Not analysed yet") : ""}
+          {@const judged = unit === "edge" && forSide(e.player) && asked ? (e.label ? `${LABEL_TEXT[e.label]}: ${costText(e.rawLoss, e.rawPoints)}` : "Not analyzed yet") : ""}
           {@const shown = forSide(e.player) ? e.label : null}
           <!-- A move fills its column. By edge, its label, the hard position's ◆ and its loss stand together at the
                column's right, as a turn's do at the turn's right, so that they line up down the list. The loss is
@@ -1195,7 +1195,7 @@
              with each edge's points. -->
         {#if unit === "turn" && forSide(t.player)}
           <span class="col-start-4 flex items-baseline gap-1 px-[0.2rem] py-px font-mono text-[0.95em] whitespace-nowrap {SIDE_TEXT[t.player]}"
-                title={t.label ? `${LABEL_TEXT[t.label]}: ${turnCost(t)}` : board && !t.edges.every(e => board.judged[mainKeys[e.index + 1]]) ? undefined : "Not analysed yet"}>
+                title={t.label ? `${LABEL_TEXT[t.label]}: ${turnCost(t)}` : board && !t.edges.every(e => board.judged[mainKeys[e.index + 1]]) ? undefined : "Not analyzed yet"}>
             <span class="w-[2.2ch]">{#if listed(t.label)}{@render mark(t.label)}{/if}</span>
             <span class="w-[1.2ch] text-[0.8em] text-muted text-center" title={t.hard ? HARD_NOTE : undefined}>{t.hard ? "◆" : ""}</span>
             <span class="w-[5ch] ml-auto text-[0.78em] text-right text-muted tabular-nums">{lossShort(t)}</span>
@@ -1503,9 +1503,9 @@
         <!-- A game's network off the menu (an earlier one, which the site still ships): the Network setting has none
              chosen, so the note names it. -->
         <p class="mb-1.5 text-xs text-muted">{#if ownSettings === "mark"}This game keeps the network and depth per move of
-          its last review, so that the review opens as it was made. A change of the depth here applies to this game only.
-          {:else}This game keeps the network and depth per move it came with, from a review file or a shared link, so that
-          its review is the one it came with. A change of them here changes this game's only.{/if}
+          its last review, so that the review opens as the engine made it. A change of the depth here applies to this game only.
+          {:else}This game came with a network and depth per move, from a review file or a shared link. It keeps them, so
+          that its review stays the one it came with. A change of them here applies to this game only.{/if}
           {#if !offersNetwork(e.network)}Its network, {networkName(e.network)}, is an earlier one, and the Network setting
             does not offer it. Choose a network there to review the game again with it.{/if}</p>
       {/if}
@@ -1525,7 +1525,7 @@
       <h3 class={SETTINGS_HEAD}>Engine</h3>
       {@render choice("Network", `Lite has ${NETWORKS[0].params} parameters, the other ${NETWORKS[1].params}: stronger per visit but about 3× slower. A change ${board ? "searches the positions again" : "reviews the game again"}. A network downloads once, and the browser keeps it.`,
         NETWORKS.map(n => [n.id, networkLabel(n.id)]), () => e.network, v => set({ network: v }))}
-      {@render steps("Workers", "Positions searched at the same time. Each worker uses more of your computer's memory: mind how much it has.", maxWorkers(),
+      {@render steps("Workers", "Positions searched at the same time. Each worker uses more of your computer's memory. Check how much memory your computer has.", maxWorkers(),
         () => e.workers - 1, k => set({ workers: k + 1 }), k => `${k + 1} of ${maxWorkers()}`)}
       {@render choice("GPU", `Many positions at once on the graphics card, with the workers. Auto tests it on first use, and keeps it where it is faster than a worker. Its first use downloads ${gpu?.downloadMB ?? "?"} MB. While it searches, it uses more memory, as the workers do.`,
         [["auto", "Auto"], ["on", "On"], ["off", "Off"]], () => e.gpu, v => set({ gpu: v as GpuMode }))}
@@ -1684,14 +1684,14 @@
       {#snippet blue()}{@render player(0)}{/snippet}
       {#snippet red()}{@render player(1)}{/snippet}
       {#snippet bar()}
-        <ShareBar share={blueWin} labels={[pct(blueWin), pct(1 - blueWin)]} empty="not analysed yet" title="Win chance from the engine's search" />
+        <ShareBar share={blueWin} labels={[pct(blueWin), pct(1 - blueWin)]} empty="not analyzed yet" title="Win chance from the engine's search" />
       {/snippet}
     </PlayerRow>
     </div>
     <div class="flex">
       {#if display.win === "gauge"}
         <ShareBar upright share={blueWin} labels={[pct(blueWin), pct(1 - blueWin)]}
-                  title={Number.isNaN(blueWin) ? "Win chance: not analysed yet" : `Blue's win chance ${pct(blueWin)}`} />
+                  title={Number.isNaN(blueWin) ? "Win chance: not analyzed yet" : `Blue's win chance ${pct(blueWin)}`} />
       {/if}
       <div class="board-wrap rounded overflow-hidden" bind:this={boardWrap}>
         <!-- While a branch's preview shows, the board is at the row's start, with the row as its line; while a played
@@ -1774,7 +1774,7 @@
             position</span></span>{/if}
         {:else if over}
           Final margin <strong class="text-ink">{sideText(position.scores[0] - position.scores[1], 1, "0")}</strong>
-        {:else}Not analysed yet{/if}
+        {:else}Not analyzed yet{/if}
       </p>
       {#if meter && !engineOpen}
         <!-- The network's likely edges here (design 14), as Maia's Blunder Meter shows a human's likely moves: the prior

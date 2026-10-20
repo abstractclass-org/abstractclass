@@ -31,7 +31,7 @@ function load(origin: string, version: number) {
   s.onload = () => s.remove();
   s.onerror = () => {
     s.remove();
-    alert(`Hedge School: the bookmarklet could not load its code from ${origin}. Check the connection, then click it again.`);
+    alert(`Hedge School: the bookmarklet could not load its code from ${origin}. Check the connection. Then click the bookmarklet again.`);
   };
   document.head.append(s);
 }
