@@ -53,7 +53,7 @@ export class WorkerChannel<Request extends { id: number }> {
       this.pending.delete(m.id);
       if (m.type === "error") p.reject(new Error(m.message));
       else if (isError(m.reply)) p.reject(new EngineError(m.reply));
-      else p.resolve({ reply: m.reply, ms: m.ms, memory: m.memory, ...(m.late ? { late: true } : {}) });
+      else p.resolve({ reply: m.reply, ms: m.ms, memory: m.memory, late: m.late });
     };
     // The worker failed outside a request (its script did not load, or it ran out of memory): every request fails.
     worker.onerror = (event: ErrorEvent) => {

@@ -22,7 +22,7 @@ function call(request: object): unknown {
 async function handle(m: WorkerRequest) {
   const t0 = performance.now();
   const done = (reply: unknown, late = false) =>
-    post({ type: "reply", id: m.id, reply, ms: performance.now() - t0, memory: engine!.memoryBytes(), ...(late ? { late } : {}) });
+    post({ type: "reply", id: m.id, reply, ms: performance.now() - t0, memory: engine!.memoryBytes(), late });
   if (m.type === "init") {
     const library = await loadLibrary(m.library);
     engine = await library.createCpuEngine(m.module, { log: text => console.debug(text) }); // compiled by the page (client.ts)

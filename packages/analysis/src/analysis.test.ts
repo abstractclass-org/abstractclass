@@ -37,7 +37,7 @@ function fakePool(engines = Infinity) {
       const search = {
         partial: (v: number) => onPartial(reply(v)), fail: (e: Error) => fail(e), stopped: false, maxMs,
         // A search that the page stopped, or that its time limit ended, ends as terminated (the protocol's terminate).
-        end: (v: number, late = false) => end({ reply: late || search.stopped ? { ...reply(v), terminated: true } : reply(v), ...(late ? { late } : {}) }),
+        end: (v: number, late = false) => end({ reply: late || search.stopped ? { ...reply(v), terminated: true } : reply(v), late }),
       };
       searches.push(search);
       return { done, stop() { search.stopped = true; } };
@@ -300,7 +300,8 @@ test("the key moments' step does not wait for a search that ends with no result"
   assert.equal(game.error, "engine error");
 });
 
-test("a focus gives its time limit to the engine, and a search that the limit ended shows as stopped there", async () => {
+/** The board, its start on screen with a time limit of 2 seconds: the focus's search waits for the test. */
+async function focusing() {
   const { pool, searches } = fakePool();
   const game = new GameAnalysis(words, pool, MOVES, BOARD_ID);
   await game.start();
@@ -308,6 +309,11 @@ test("a focus gives its time limit to the engine, and a search that the limit en
   game.setDepth(4096, 2);
   game.focus([]);
   await settle();
+  return { game, searches };
+}
+
+test("a focus gives its time limit to the engine, and a search that the limit ended shows as stopped there", async () => {
+  const { game, searches } = await focusing();
   assert.equal(searches[0].maxMs, 2000);
   searches[0].partial(32);
   searches[0].end(64, true);
@@ -318,13 +324,7 @@ test("a focus gives its time limit to the engine, and a search that the limit en
 });
 
 test("a focus that stops before its time limit does not show as stopped there", async () => {
-  const { pool, searches } = fakePool();
-  const game = new GameAnalysis(words, pool, MOVES, BOARD_ID);
-  await game.start();
-  await game.sweep();
-  game.setDepth(4096, 2);
-  game.focus([]);
-  await settle();
+  const { game, searches } = await focusing();
   game.setDepth(4096, 10); // another time limit: the page stops the search
   assert.equal(searches[0].stopped, true);
   searches[0].end(64);

@@ -32,7 +32,6 @@ class FakePool {
   released = false;
   terminated = false;
   onGpuLost: ((error: unknown) => void) | null = null;
-  private running = 0;
   private sha: (network: string) => string;
   private loaded: Promise<void>;
   private settle!: { load(): void; fail(e: Error): void };
@@ -63,10 +62,9 @@ class FakePool {
     },
   };
   run<T>(_priority: number, _tag: string, work: Work<T>): Promise<T> {
-    this.running++;
-    return work(this.engine as never, () => {}).finally(() => this.running--);
+    return work(this.engine as never, () => {});
   }
-  get idle() { return this.running === 0; }
+  readonly waiting = 0; // each task runs at once
   cancel() {}
   halt() {}
   dropGpu() {}

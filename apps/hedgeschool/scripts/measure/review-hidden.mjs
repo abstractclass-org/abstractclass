@@ -52,17 +52,27 @@ import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { browserList } from "../edge.mjs";
 import { FIXTURE, launchHideable, longTasks, machineLoad, median, preview, sweepGaps, tasksBetween, trace, watchSweep } from "./speed.mjs";
-import { SWEEP_VISITS } from "@abstractclass/analysis/cache.ts";
+import { LABEL_VISITS, SWEEP_VISITS } from "@abstractclass/analysis/cache.ts";
+import { DEPTHS, TIME_LIMITS } from "@abstractclass/analysis/settings.ts";
 
 const [build] = process.argv.slice(2, 3);
 const runs = Number(process.argv[3] ?? 3), setups = (process.argv[4] ?? "front,hidden,late").split(",");
 const browsers = browserList(process.argv[5]), end = process.argv[6] ?? "sweep";
 const port = Number(process.argv[7] ?? 4391);
 const record = JSON.parse(readFileSync(FIXTURE, "utf8")).record;
-// The batch's delay, from its source: game.svelte.ts holds runes, which Node cannot import.
-const BATCH_MS = Number(readFileSync("../../packages/analysis/src/analysis.svelte.ts", "utf8").match(/export const BATCH_MS = (\d+);/)[1]);
+// The batch's delay and the slice of a search in slices, from their source: analysis.svelte.ts holds runes, which Node
+// cannot import.
+const analysisSource = readFileSync("../../packages/analysis/src/analysis.svelte.ts", "utf8");
+const constant = name => Number(analysisSource.match(new RegExp(`const ${name} = (\\d+);`))[1]);
+const BATCH_MS = constant("BATCH_MS"), SLICE_VISITS = constant("SLICE_VISITS");
 const LATE_MS = 340_000, WORKERS = Number(process.env.WORKERS ?? 2);
-const FOCUS = process.env.FOCUS ? Object.fromEntries(process.env.FOCUS.split(",").map((x, k) => [["visits", "seconds"][k], Number(x)])) : null;
+let FOCUS = null;
+if (process.env.FOCUS) {
+  const [visits, seconds] = process.env.FOCUS.split(",").map(Number);
+  // The settings keep only their own steps (settings.ts), and take the default for another value.
+  if (!DEPTHS.includes(visits) || !TIME_LIMITS.includes(seconds)) throw new Error(`FOCUS: visits of ${DEPTHS.join(", ")}, seconds of ${TIME_LIMITS.filter(x => x).join(", ")}`);
+  FOCUS = { visits, seconds };
+}
 
 /** An init script that probes the tab: see the head of this file. */
 function probeTab(batchMs) {
@@ -190,32 +200,32 @@ function measure(d, traced) {
   const speedOf = xs => (xs.length ? (1000 * xs.reduce((n, x) => n + x.searched, 0)) / xs.reduce((n, x) => n + x.ms, 0) : null);
   const replied = searches.filter(x => x.ended !== undefined && x.ms > 0);
   const bySlice = n => { const xs = replied.filter(x => x.slice === n); return { count: xs.length, speed: speedOf(xs) }; };
-  // The label pass: the first search in slices of 256 (its early result) of each position that the sweep searched. A
-  // position searched past the label budget before (the position on screen) has none. The Greats' confirmations, in
-  // slices of 256 too, search other positions.
+  // The label pass: the first search in slices of LABEL_VISITS (its early result) of each position that the sweep
+  // searched. A position searched past the label budget before (the position on screen) has none. The Greats'
+  // confirmations, in slices of LABEL_VISITS too, search other positions.
   const swept = new Set(sweep.map(x => x.moves)), firsts = new Map();
-  for (const x of searches.filter(x => x.slice === 256 && swept.has(x.moves)).sort((a, b) => a.sent - b.sent))
+  for (const x of searches.filter(x => x.slice === LABEL_VISITS && swept.has(x.moves)).sort((a, b) => a.sent - b.sent))
     if (!firsts.has(x.moves)) firsts.set(x.moves, x);
   const labels = [...firsts.values()];
   let moments = null;
   if (labels.length && labels.every(x => x.ended !== undefined)) {
     const lastLabel = Math.max(...labels.map(x => x.ended)), at = t => (t === undefined ? null : t - lastLabel);
     const step = probe.steps.find(([t, s]) => s === "Reviewing: the key moments" && t >= lastLabel)?.[0];
-    const deep = searches.filter(x => x.slice === 32 && x.sent > lastLabel).sort((a, b) => a.sent - b.sent)[0];
+    const deep = searches.filter(x => x.slice === SLICE_VISITS && x.sent > lastLabel).sort((a, b) => a.sent - b.sent)[0];
     // The searches that ran when the label pass's last reply came: [visits, slice].
     const running = searches.filter(x => x.sent < lastLabel && (x.ended ?? Infinity) > lastLabel).map(x => [x.visits, x.slice ?? null]);
     moments = { step: at(step), first: at(deep?.sent), running };
   }
   // The searches of the position on screen with FOCUS: their visits, their times past the time limit, the slice in
   // which the limit passed (its time in the worker), and the slices that ran after that one.
-  const focus = FOCUS && searches.filter(x => x.visits === FOCUS.visits && x.slice === 32 && x.ended !== undefined).map(x => {
+  const focus = FOCUS && searches.filter(x => x.visits === FOCUS.visits && x.slice === SLICE_VISITS && x.ended !== undefined).map(x => {
     const limit = 1000 * FOCUS.seconds, k = x.slices.findIndex(t => t >= limit);
     return { searched: x.searched, ms: x.ms, past: x.ms - limit, pastOnPage: x.ended - x.sent - limit,
              crossing: k > 0 ? x.slices[k] - x.slices[k - 1] : null, after: k < 0 ? null : x.slices.length - 1 - k };
   });
   return {
     shown: stop - start, engine: lastReply - first, lag: stop - lastReply,
-    speed: speedOf(sweep), sliced: bySlice(32), label: bySlice(256),
+    speed: speedOf(sweep), sliced: bySlice(SLICE_VISITS), label: bySlice(LABEL_VISITS),
     // Each search from a minute before the sweep's start: [sent, ended or null, visits, slice or null, worker], in ms
     // from the sweep's start.
     searches: searches.filter(s => s.sent >= start - 60_000).map(s => [Math.round(s.sent - start), s.ended === undefined ? null : Math.round(s.ended - start), s.visits, s.slice ?? null, s.worker]),
@@ -231,6 +241,11 @@ function measure(d, traced) {
 
 const site = await preview(build, port);
 const s = x => (x === null || x === undefined ? "-" : `${(x / 1000).toFixed(1)} s`), ms = x => (x === null || x === undefined ? "-" : `${Math.round(x)} ms`);
+/** A run's key moments' wait (measure, `moments`), and one search of the position on screen (`focus`). */
+const momentsText = m => `the key moments' step ${ms(m.step)} and their first search ${ms(m.first)} after the label pass's last reply, ` +
+                         `searches running then ${JSON.stringify(m.running)}`;
+const focusText = f => `${f.searched} visits in ${ms(f.ms)}, ${ms(f.past)} past its limit (${ms(f.pastOnPage)} on the page), the limit ` +
+                       `passed in a slice of ${ms(f.crossing)}, ${f.after} slices after it`;
 const out = [];
 for (const channel of browsers) {
   for (let k = 0; k < runs; k++) {
@@ -242,8 +257,8 @@ for (const channel of browsers) {
       out.push({ channel, setup, load, ...r });
       console.log(`${channel} ${setup} (${load ? `${load.cpu}%, ${load.load}` : "load ?"}): hidden for ${Math.round(100 * r.hidden)}% of the sweep; ` +
                   `the sweep ${s(r.shown)} on the page, ` +
-                  `${s(r.engine)} in the engine, lag ${ms(r.lag)}; ${Math.round(r.speed)} visits/s a worker (in slices of 32: ` +
-                  `${r.sliced.speed ? Math.round(r.sliced.speed) : "-"}, ${r.sliced.count} searches; of 256: ${r.label.speed ? Math.round(r.label.speed) : "-"}, ` +
+                  `${s(r.engine)} in the engine, lag ${ms(r.lag)}; ${Math.round(r.speed)} visits/s a worker (in slices of ${SLICE_VISITS}: ` +
+                  `${r.sliced.speed ? Math.round(r.sliced.speed) : "-"}, ${r.sliced.count} searches; of ${LABEL_VISITS}: ${r.label.speed ? Math.round(r.label.speed) : "-"}, ` +
                   `${r.label.count}); gaps median ` +
                   `${r.gaps.median.toFixed(1)} ms, ${ms(r.gaps.total)} in all; the pool idle at most ${ms(r.idle.ms)}; the next search ` +
                   `${r.next ? `(${r.next.visits} visits) ${ms(r.next.after)} after the sweep's last reply` : "none"}; batch waits median ` +
@@ -254,11 +269,7 @@ for (const channel of browsers) {
                   `${end === "review" ? `; steps ${JSON.stringify(r.steps)}, done ${r.done}; the pool idle over 50 ms ` +
                                         `(from the sweep's start, ms) ${JSON.stringify(r.idles)}; searches with no final reply ` +
                                         `${JSON.stringify(r.searches.filter(x => x[1] === null))}` : ""}` +
-                  `${r.moments ? `; the key moments' step ${ms(r.moments.step)} and their first search ${ms(r.moments.first)} after ` +
-                                 `the label pass's last reply, searches running then ${JSON.stringify(r.moments.running)}` : ""}` +
-                  `${r.focus ? `; the position on screen: ${r.focus.map(f => `${f.searched} visits in ${ms(f.ms)}, ${ms(f.past)} past ` +
-                                                                               `its limit (${ms(f.pastOnPage)} on the page), the limit passed in a ` +
-                                                                               `slice of ${ms(f.crossing)}, ${f.after} slices after it`).join("; ")}` : ""}`);
+                  `${r.moments ? `; ${momentsText(r.moments)}` : ""}${r.focus ? `; the position on screen: ${r.focus.map(focusText).join("; ")}` : ""}`);
       if (r.waited) console.log(`  before the late start: ${r.waited.visibility}, the chained timer's last runs ${JSON.stringify(r.waited.ticks.map(Math.round))}`);
       if (process.env.OUT) writeFileSync(process.env.OUT, JSON.stringify(out));
     }
@@ -271,7 +282,7 @@ for (const channel of browsers) for (const setup of setups) {
   const m = f => { const xs = rs.map(f).filter(x => x !== null && x !== undefined); return xs.length ? median(xs) : null; };
   const v = x => (x === null ? "-" : Math.round(x));
   console.log(`${channel} ${setup}, median of ${rs.length}: the sweep ${s(m(r => r.shown))} on the page, ${s(m(r => r.engine))} in the engine; ` +
-              `${v(m(r => r.speed))} visits/s a worker (in slices of 32: ${v(m(r => r.sliced.speed))}, of 256: ${v(m(r => r.label.speed))}); the pool idle at most ${ms(m(r => r.idle.ms))}; batch waits ${ms(m(r => r.batch.median))}` +
+              `${v(m(r => r.speed))} visits/s a worker (in slices of ${SLICE_VISITS}: ${v(m(r => r.sliced.speed))}, of ${LABEL_VISITS}: ${v(m(r => r.label.speed))}); the pool idle at most ${ms(m(r => r.idle.ms))}; batch waits ${ms(m(r => r.batch.median))}` +
               `${rs[0].main ? `; main thread ${ms(m(r => r.main.thread))}` : ""}`);
 }
 await site.stop();

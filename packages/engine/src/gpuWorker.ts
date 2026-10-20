@@ -16,7 +16,7 @@ const queues: Promise<void>[] = [];
 const stopped = new Set<number>();
 const post = (m: GpuReply) => self.postMessage(m);
 const reply = (id: number, value: unknown, ms = 0, memory = 0, late = false) =>
-  post({ type: "reply", id, reply: value, ms, memory, ...(late ? { late } : {}) });
+  post({ type: "reply", id, reply: value, ms, memory, late });
 
 async function init(m: GpuInit) {
   const t0 = performance.now();

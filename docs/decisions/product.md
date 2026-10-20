@@ -5260,9 +5260,9 @@ sweep.
   end of any slice. The site's release (`engine-d6786eba`, protocol 0.6.1) has both. So the site's worker keeps the
   limit, and the engine's side does not change. The limit counts from the search's start in the worker. At the end
   of each slice, the worker sends `terminate` once the limit has passed, so the search ends at the end of the slice
-  in which the limit passes. Its reply says so (`late`), and the page shows "time limit" from it. The page has no timer for the
-  search, and no stop at the first result past the limit. A search request carries the limit (`maxMs`, in
-  `messages.ts` and `gpuMessages.ts`), and the GPU worker keeps it the same way.
+  in which the limit passes. Its reply says so (`late`), and the page shows "time limit" from it. The page has no
+  timer for the search, and no stop at the first result past the limit. A search request carries the limit (`maxMs`,
+  in `messages.ts` and `gpuMessages.ts`), and the GPU worker keeps it the same way.
   - **The tests:** `packages/engine/src/channel.test.ts`: the limit ends the search at the end of the slice in which
     it passes, and a search that ends its visits within its limit is not late. `analysis.test.ts`: a focus gives its
     limit to the engine, a search that its limit ended shows as stopped at the time limit, and a search that the page
@@ -5330,12 +5330,12 @@ sweep.
   start to Review done. Every run was hidden for all of its time. These runs came before the script noted each
   search's moves, so their key moments' wait comes from their saved searches: the label pass is the first 119
   searches in slices of 256 after the sweep's start. The position on screen had 1,024 visits before the label pass,
-  so its position had no label search. The Greats' confirmations queue behind the label pass, at the same priority. In every run, the engine of the label pass's last search took a Great's
-  confirmation that waited in the queue at once, and the other engine ran a confirmation. So the batch kept its timer
-  in both builds, and the key moments' step came 557 to 996 ms after the label pass's last reply. That wait cost no
-  engine time: each key moment's first search started 8.1 to 15.5 s after that reply, when a confirmation ended (a
-  confirmation does not give way). No engine waited over 50 ms between two of its searches in any run. These four
-  runs did not meet the case that the change is for: an engine free while a search runs and none waits. The tests
-  above check it.
+  so its position had no label search. The Greats' confirmations queue behind the label pass, at the same priority.
+  In every run, the engine of the label pass's last search took a Great's confirmation that waited in the queue at
+  once, and the other engine ran a confirmation. So the batch kept its timer in both builds, and the key moments'
+  step came 557 to 996 ms after the label pass's last reply. That wait cost no engine time: each key moment's first
+  search started 8.1 to 15.5 s after that reply, when a confirmation ended (a confirmation does not give way). No
+  engine waited over 50 ms between two of its searches in any run. These four runs did not meet the case that the
+  change is for: an engine free while a search runs and none waits. The tests above check it.
 - **Not measured:** Edge, the GPU worker, the case of the batch with an engine free in a real browser, and a review
   in a tab hidden for over 5 minutes.

@@ -3,7 +3,7 @@
 // network (client.ts, checked), and the pool can end meanwhile. And the worker's side of a search in slices
 // (searchInSlices): it yields between slices without a timer, a stop ends it at the next slice, and its time limit at
 // the end of the slice in which the limit passes. Run: npm test.
-import { test } from "node:test";
+import { test, type TestContext } from "node:test";
 import assert from "node:assert/strict";
 import { Stopped, WorkerChannel, searchInSlices } from "./channel.ts";
 
@@ -23,15 +23,17 @@ test("a request sent after the worker ended rejects with Stopped", async () => {
   await assert.rejects(channel.send({ type: "call" }).done, Stopped);
 });
 
-/** An engine's search of three slices: its replies, and the requests that it got. It answers a terminate at once. Each
- *  slice runs for `ms` on the clock `clock`. */
-function slices(clock = { now: 0 }, ms = 0) {
+/** An engine's search of three slices: its replies, and the requests that it got. It answers a terminate at once. With
+ *  `t`, each slice runs for `ms` on the clock of `performance.now`. */
+function slices(t?: TestContext, ms = 0) {
+  let now = 0;
+  t?.mock.method(performance, "now", () => now);
   const replies = [{ isDuringSearch: true }, { isDuringSearch: true }, { done: true }], got: object[] = [];
   let next = 0;
   const call = (request: object) => {
     got.push(request);
     if ((request as { action?: string }).action === "terminate") return { terminated: true };
-    clock.now += ms;
+    now += ms;
     return replies[next++];
   };
   return { got, call };
@@ -58,9 +60,7 @@ test("a stop between slices ends the search at the next slice", async () => {
 });
 
 test("a time limit ends the search at the end of the slice in which it passes", async t => {
-  const clock = { now: 1000 };
-  t.mock.method(performance, "now", () => clock.now);
-  const { got, call } = slices(clock, 40), partials: unknown[] = []; // the limit passes in the second slice
+  const { got, call } = slices(t, 40), partials: unknown[] = []; // the limit passes in the second slice
   const ended = await searchInSlices({ maxVisits: 96 }, "q1", call, r => partials.push(r), () => false, 60);
   assert.equal(partials.length, 2);
   assert.deepEqual(got.slice(1), [{ id: "q1", action: "continue" }, { id: "q1", action: "terminate", terminateId: "q1" }]);
@@ -68,8 +68,6 @@ test("a time limit ends the search at the end of the slice in which it passes", 
 });
 
 test("a search that ends its visits within its time limit is not late", async t => {
-  const clock = { now: 1000 };
-  t.mock.method(performance, "now", () => clock.now);
-  const { call } = slices(clock, 40);
+  const { call } = slices(t, 40);
   assert.deepEqual(await searchInSlices({ maxVisits: 96 }, "q1", call, () => {}, () => false, 120), { reply: { done: true }, late: false });
 });

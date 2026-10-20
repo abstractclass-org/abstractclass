@@ -217,7 +217,7 @@ export class EnginePool {
   get backlogged(): boolean { return this.free.length === 0 && this.queue.length > this.loading; }
 
   /** No task waits or runs. */
-  get idle(): boolean { return !this.queue.length && !this.running.size; }
+  private get idle(): boolean { return !this.queue.length && !this.running.size; }
 
   /** The tasks that wait in the queue for an engine. While one waits, no engine is free: each takes a task as it frees
    *  (dispatch). */
