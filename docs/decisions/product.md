@@ -5486,3 +5486,46 @@ sweep.
       position 25 at 1,024 visits. A reload said "Review done" from its first sample, and no other line.
 - **Not reached in a browser:** "Review done" with the engine off before the change (the Greats' confirmations still
   ran then), and the engine off and on before the stopped search ends (the unit test checks it).
+
+### The hub at abstractclass.org (2026-10-20)
+
+- **What** (abscls-l1l, [design 26](../design/26-one-repository.md), item 3): the organization's front page, in
+  `apps/hub`. At first it has one entry, Hedge School. The jam game's site (abscls-8tl1) is the next entry: a new
+  `<li>` with the same parts. The hub has no analytics, no cookies, no storage and no request to another host, so it
+  has no consent banner and no privacy page. Its product record, its design and its page's brief are in `apps/hub`
+  (`PRODUCT.md`, `DESIGN.md`, `.impeccable/surfaces/public-index-html.md`).
+- **The look is Hedge School's:** its colour tokens in the same names, the system's font, its lines and its board
+  drawing. The jam game's site will take Hedge School's parts (design 26, item 4), so every page under
+  `abstractclass.org` looks like one family. **Lavender is the accent of Abstract Class and of Hedge School.** It
+  stays a token, used sparingly and kept out of every raster image, so that a sibling site can take another accent
+  later by a change of two values (a light one and a dark one). The hub's tab icon is the one exception: a favicon
+  cannot read the page's tokens, so it writes the light lavender itself.
+- **The name on the page is "Abstract Class",** two words. The addresses and the repositories keep `abstractclass`.
+- **The page's structure was chosen from two hands of three,** dealt at random from seven candidates each (the
+  Impeccable skill's surface round):
+  - The first hand was "Pens on the board" (the page a dotted lattice, each site an enclosed pen on it), "The board at
+    full size" and "Two doors per game" (learn it if you play it, try it if you do not). It was dealt again: the pens
+    lean too close to Enclosure, a single game.
+  - From the second hand, **"The game first, one column"** was chosen: one calm column, and in each entry the game's
+    name first and largest, because a player knows the game before the site. The site's name comes second and
+    smaller, with Hedge School's collie in its link. Its board plays. The others were "Courses, with what you can do"
+    and "The games' names, large".
+- **The words** invite (plain web writing) and claim only what holds for every site: free, an engine trained for its
+  game, and the engine in the visitor's browser. The two ways in are "Learn Enclosure" (the site's home) and "Try a
+  practice game" (Practice), for a player and for a newcomer.
+- **The board plays a real scene in CSS alone,** so the page runs no script and its Content Security Policy allows
+  none. The scene is the first one of Hedge School's home board (games of bots, with no names, design 22): 19 edges
+  drawn one by one, the regions as they close, then the engine's first choice and Blue's edge marked Mistake. The
+  badges are 1.4 times Hedge School's, because the board is 320 pixels wide. The board stops under the pointer. With
+  reduced motion it shows the last moment, still. `apps/hub/scripts/enclosure-board.mjs` writes it from Hedge School's
+  files.
+- **The code:** plain HTML and CSS, with no build and no framework (`apps/hub/public`). The job `hub` of the workflow
+  **Deploy** uploads the folder to the Pages project that `HUB_PAGES_PROJECT` names, and is skipped while the
+  variable is empty. The owner's steps are in [hosting.md](../hosting.md), section 8.
+- **Checked** in Playwright's Chromium, headless, on a local server that applies the folder's `_headers`, in a job of
+  2 threads (`scripts/machine run`): at 1,366 × 657 and 390 × 760, light and dark, at 683 × 328 (200% zoom), and at
+  1,440 × 900 and 390 × 844. No horizontal scroll. No request to another host. No violation of the Content Security
+  Policy and no console error. At 1,366 × 657 the whole page fits in the window. Both links to Hedge School answer 200,
+  and an unknown path answers the 404 page with status 404. With reduced motion, no animation runs.
+- **Still open:** Abstract Class has no mark of its own. The tab's icon is an "A" in white on the lavender until it
+  has one. The hub has no share image, and `www.abstractclass.org` has no record.

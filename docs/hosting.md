@@ -1,6 +1,7 @@
 # Hosting: how the site is set up and deployed
 
 This document tells how Hedge School is served, how each part was set up, and how to deploy, check and roll back.
+Section 8 tells the same of the hub at `abstractclass.org`.
 The decisions and their reasons are in [design/11-early-access.md](design/11-early-access.md) (item 5 and item 7). The
 log of the setup is in [decisions/product.md](decisions/product.md) ("Cloudflare Pages: the repository's side" and the
 entries before it).
@@ -19,6 +20,7 @@ entries before it).
 | Tests | GitHub Actions (`.github/workflows/tests.yml`) | On each push to `dev`: the check, the unit tests and the browser tests on Linux, and the layout sweep on Windows ("Deploy, check and roll back"). |
 | Documents | GitHub Actions (`.github/workflows/docs.yml`) | On each push to `dev`: refuses an added line over 120 characters in a Markdown file of the pushed range. |
 | Practice games | Cloudflare D1: `hedgeschool-games` for production, `hedgeschool-games-preview` for the previews | A Pages Function (`functions/api/practice-games.ts`) keeps each game against HedgeFund when it ends (design 25). |
+| The hub | `apps/hub/public`, deployed by the job `hub` of **Deploy** to the Pages project that `HUB_PAGES_PROJECT` names | The organization's front page at `abstractclass.org`: static files, with no build, script or storage (section 8). |
 
 The site is static files: every page is prerendered, and the engine runs in the visitor's browser. One Pages Function
 runs at Cloudflare, on `/api/practice-games` only (`static/_routes.json`): it keeps the practice games (section 7).
@@ -324,6 +326,54 @@ comments are block comments (`/* … */`) only: the Console joins a pasted file 
 Without its binding, the Function answers 503, and the games wait in the players' browsers (the site sends them on
 the next visit).
 
+## 8. The hub (abstractclass.org)
+
+The hub is the organization's front page at `abstractclass.org` ([design 26](design/26-one-repository.md), item 3).
+It is the folder `apps/hub/public`: static files, with no build, no script, no cookie and nothing kept in the browser.
+Its own Pages project serves it, apart from Hedge School's. The job `hub` of the workflow **Deploy** uploads the folder
+with Wrangler on each push: `main` to production, another branch to a preview at `<branch>.<project>.pages.dev`. The
+job is skipped while the repository variable `HUB_PAGES_PROJECT` is empty, so the workflow passes without it.
+
+- **Its headers** (`apps/hub/public/_headers`): a Content Security Policy that lets the page load only its own style
+  sheets and images (no script, no frame, no form), `nosniff`, no framing by other sites, only the origin as the
+  referrer to other sites, HSTS for a year, and `noindex` on Cloudflare's own addresses for the project, as for
+  Hedge School (design 23).
+- **Its 404 page,** `404.html`: Pages answers each path that the folder does not have with it, and with status 404.
+  Without a `404.html`, Pages answers every path with the home page.
+- **Its board:** `apps/hub/scripts/enclosure-board.mjs` writes Enclosure's animated board into `index.html` and
+  `enclosure-board.css`, from Hedge School's home board (`src/lib/home/replay.json`). Run it again at the root after
+  that board's scenes change: `node apps/hub/scripts/enclosure-board.mjs`.
+
+**The owner's steps, once:**
+
+1. **Make the Pages project.** In the Cloudflare dashboard, go to **Workers & Pages**, then **Create application →
+   Get started → Drag and drop your files**. Enter the project name `abstractclass`. Drag the folder
+   `apps/hub/public` of a checkout of `dev` into the frame, and select **Deploy site**. This first deployment is
+   served at `abstractclass.pages.dev`. If Pages adds characters to a name that is taken, use the name that it shows
+   in the steps below.
+2. **Give it the domain.** In the project, go to **Custom domains → Set up a custom domain**. Enter
+   `abstractclass.org`, then select **Continue** and **Activate domain**. The zone is on Cloudflare, so Pages adds
+   the DNS record for the bare domain itself (a CNAME to the project's `pages.dev` address, which Cloudflare flattens
+   at the bare domain). The bare domain has no other record ("Not part of the site", below). The domain shows
+   **Active** when its certificate is ready, in minutes.
+3. **Set the variable.** On GitHub, in the repository's **Settings → Secrets and variables → Actions**, on the tab
+   **Variables**, select **New repository variable**. Name: `HUB_PAGES_PROJECT`. Value: the project's name,
+   `abstractclass`. A repository variable applies to every branch. The secret `CLOUDFLARE_API_TOKEN` needs no change:
+   its permission (Account, Cloudflare Pages, Edit) covers every Pages project of the account.
+4. **Deploy from `main`.** Go to **Actions → Deploy → Run workflow**, select the branch `main`, and run it. The job
+   `hub` deploys the hub's files of `main`. Before the hub is on `main`, a push to `dev` deploys only a preview, at
+   `dev.abstractclass.pages.dev`.
+5. **Check:**
+   - `https://abstractclass.org` shows the hub.
+   - In the project's **Deployments**, the deployment of `main` is under **Production**. If it is under **Preview**,
+     the project's production branch is not `main`. Then set it with Cloudflare's API (a `PATCH` of the project with
+     `{"production_branch": "main"}`, [the reference](https://developers.cloudflare.com/api/resources/pages/subresources/projects/methods/edit/)),
+     and run the workflow again.
+   - The page's response has the header `Content-Security-Policy`, and `https://abstractclass.pages.dev` answers with
+     `X-Robots-Tag: noindex` (the browser's developer tools, **Network**, the page's first request).
+
+`www.abstractclass.org` has no record and is not part of the hub.
+
 ## Deploy, check and roll back
 
 - **Check the tests first:** release only a commit whose run of the workflow **Tests** passed (GitHub, the
@@ -458,5 +508,5 @@ How to read the numbers:
   the bare domain answered as the parking server's two addresses, so Cloudflare kept them as A records. At Porkbun the
   record showed as an ALIAS to `pixie.porkbun.com`, not as A records. Until the domain has a site of its own, these
   records go (they went on 2026-10-12, at Porkbun and at Cloudflare): the addresses then do not resolve, which is
-  cleaner than an error page. The only record left is `hedgeschool`'s CNAME to `hedgeschool.pages.dev`. A later site for
-  the bare domain is added as a custom domain of its own Pages project, as section 3 tells, and Pages adds the records.
+  cleaner than an error page. The only record left is `hedgeschool`'s CNAME to `hedgeschool.pages.dev`. The hub takes
+  the bare domain as a custom domain of its own Pages project (section 8), and Pages adds its record.

@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Abstract Class: free sites to learn abstract strategy games</title>
+  <meta name="description" content="Free sites to help you learn abstract strategy games, each with an engine trained for its game that runs in your browser. Hedge School teaches Enclosure.">
+  <link rel="canonical" href="https://abstractclass.org/">
+  <meta name="color-scheme" content="light dark">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://abstractclass.org/">
+  <meta property="og:title" content="Abstract Class">
+  <meta property="og:description" content="Free sites to help you learn abstract strategy games. Hedge School teaches Enclosure.">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="enclosure-board.css">
+</head>
+<body>
+  <main>
+    <header class="intro">
+      <h1 class="wordmark">Abstract Class</h1>
+      <p class="lede">Free sites to help you learn abstract strategy games. Each one has an engine trained for its game,
+        and the engine runs in your browser.</p>
+    </header>
+
+    <!-- One entry for each game, each with the same parts: the game's name, its site, what the game is and where it
+         is played, what the site does, the two ways in, and its board. A new game is a new <li>. -->
+    <ol class="games" aria-label="Games">
+      <li class="game">
+        <div class="text">
+          <h2 class="name">Enclosure</h2>
+          <p class="site">at <a href="https://hedgeschool.abstractclass.org/"><img src="brand/hedge-school.svg" alt=""
+            width="20" height="20">Hedge School</a> <span class="address">hedgeschool.abstractclass.org</span></p>
+          <p class="about">A game of edges and enclosed regions for two players, played on strategyjam.org, meaf.us and
+            Constellation. Play the engine at the strength you choose, then see where your game turned and what was
+            better.</p>
+          <p class="actions">
+            <a class="learn" href="https://hedgeschool.abstractclass.org/">Learn Enclosure</a>
+            <a class="try" href="https://hedgeschool.abstractclass.org/practice">Try a practice game</a>
+          </p>
+        </div>
+<!-- enclosure-board: start -->
+<svg class="board" viewBox="-1.3 -1.3 20.6 20.6" role="img" aria-label="An Enclosure game between two bots, played edge by edge, until the engine marks one of Blue's edges a Mistake and shows a better edge.">
+<defs><pattern id="enclosure-dots" width="1" height="1" patternUnits="userSpaceOnUse" x="-0.5" y="-0.5"><circle cx="0.5" cy="0.5" r="0.07" class="dot"/></pattern><filter id="enclosure-shadow" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0.027" dy="0.046" stdDeviation="0.033" flood-opacity="0.5"/></filter></defs>
+<rect x="-1.3" y="-1.3" width="20.6" height="20.6" class="bg"/>
+<path d="M1.5 9.5L3 10L4.2 8.2L3 9Z" fill-rule="evenodd" class="region blue"/>
+<path d="M4.2 8.2L6 7L5 7Z" fill-rule="evenodd" class="region blue"/>
+<path d="M5 7L6 7L6.5 6.5Z" fill-rule="evenodd" class="region blue"/>
+<path d="M6.5 6.5L8 6L10 3L8 5Z" fill-rule="evenodd" class="region blue"/>
+<path d="M15 9L18 9L16 8L14 9.333Z" fill-rule="evenodd" class="region red"/>
+<path d="M14 9.333L12 10L10 13L13 10Z" fill-rule="evenodd" class="region red fade-start-23150 gone"/>
+<path d="M3 9L4.2 8.2L5 7L6.5 6.5L8 5L10 3L9 0L6 0L3 0L0 3L0 6Z" fill-rule="evenodd" class="region blue fade-11450-end"/>
+<path d="M18 9L15 9L14 9.333L13 10L10 13L7 15L10 18L13 18L16 18L18 15L18 12Z" fill-rule="evenodd" class="region red fade-12750-14050 gone"/>
+<path d="M18 9L15 9L14 9.333L13 10L10 13L7.5 15.5L10 18L13 18L16 18L18 15L18 12Z" fill-rule="evenodd" class="region red fade-14050-end"/>
+<path d="M10 13L7 15L7.5 15.5Z" fill-rule="evenodd" class="region red fade-14050-end"/>
+<path d="M10 3L12 6L12.5 5.5Z" fill-rule="evenodd" class="region blue fade-16650-end"/>
+<path d="M10 18L7.5 15.5L7 16Z" fill-rule="evenodd" class="region red fade-19250-end"/>
+<path d="M15 3L12.5 5.5L13 6Z" fill-rule="evenodd" class="region blue fade-20550-end"/>
+<path d="M12 10L12.667 9.778L11.2 8.8Z" fill-rule="evenodd" class="region red fade-23150-end"/>
+<path d="M12.667 9.778L12 10L10 13L13 10Z" fill-rule="evenodd" class="region red fade-23150-end"/>
+<path d="M14 9.333L12.667 9.778L13 10Z" fill-rule="evenodd" class="region red fade-23150-end"/>
+<rect x="-0.5" y="-0.5" width="19" height="19" fill="url(#enclosure-dots)"/>
+<g class="fade-24900-end"><path d="M3 10L5 13" class="choice"/><rect x="3.496" y="10.996" width="1.008" height="1.008" rx="0.238" class="rank"/><text x="4" y="11.71" class="rank-text">1</text></g>
+<path d="M0 10L3 9" pathLength="1" class="edge blue"/>
+<path d="M0 9L3 10" pathLength="1" class="edge blue"/>
+<path d="M0 6L0 3" pathLength="1" class="edge blue"/>
+<path d="M0 6L3 9" pathLength="1" class="edge blue"/>
+<path d="M0 3L3 0" pathLength="1" class="edge blue"/>
+<path d="M3 10L5 7" pathLength="1" class="edge blue"/>
+<path d="M3 9L6 7" pathLength="1" class="edge blue"/>
+<path d="M5 7L6 7" pathLength="1" class="edge blue"/>
+<path d="M5 7L8 6" pathLength="1" class="edge blue"/>
+<path d="M6 7L8 5" pathLength="1" class="edge blue"/>
+<path d="M8 6L10 3" pathLength="1" class="edge blue"/>
+<path d="M8 5L10 3" pathLength="1" class="edge blue"/>
+<path d="M10 13L12 10" pathLength="1" class="edge red"/>
+<path d="M10 13L13 10" pathLength="1" class="edge red"/>
+<path d="M10 7L12 10" pathLength="1" class="edge red"/>
+<path d="M12 10L15 9" pathLength="1" class="edge red"/>
+<path d="M13 10L16 8" pathLength="1" class="edge red"/>
+<path d="M15 9L18 9" pathLength="1" class="edge red"/>
+<path d="M16 8L18 9" pathLength="1" class="edge red"/>
+<path d="M18 15L18 12" pathLength="1" class="edge red"/>
+<path d="M18 12L18 9" pathLength="1" class="edge red"/>
+<path d="M16 18L18 15" pathLength="1" class="edge red draw-2000-end"/>
+<path d="M13 18L16 18" pathLength="1" class="edge red draw-3300-end"/>
+<path d="M9 0L10 3" pathLength="1" class="edge blue draw-4600-end"/>
+<path d="M6 0L9 0" pathLength="1" class="edge blue draw-5900-end"/>
+<path d="M7 15L10 13" pathLength="1" class="edge red draw-7200-end"/>
+<path d="M10 18L13 18" pathLength="1" class="edge red draw-8500-end"/>
+<path d="M10 3L12 6" pathLength="1" class="edge blue draw-9800-end"/>
+<path d="M3 0L6 0" pathLength="1" class="edge blue draw-11100-end"/>
+<path d="M7 15L10 18" pathLength="1" class="edge red draw-12400-end"/>
+<path d="M7 16L10 13" pathLength="1" class="edge red draw-13700-end"/>
+<path d="M12 6L15 3" pathLength="1" class="edge blue draw-15000-end"/>
+<path d="M10 3L13 6" pathLength="1" class="edge blue draw-16300-end"/>
+<path d="M16 8L18 5" pathLength="1" class="edge red draw-17600-end"/>
+<path d="M7 16L10 18" pathLength="1" class="edge red draw-18900-end"/>
+<path d="M13 6L15 3" pathLength="1" class="edge blue draw-20200-end"/>
+<path d="M12 0L15 3" pathLength="1" class="edge blue draw-21500-end"/>
+<path d="M10 8L13 10" pathLength="1" class="edge red draw-22800-end"/>
+<path d="M8 10L10 7" pathLength="1" class="edge red draw-24100-end"/>
+<path d="M6 7L7 10" pathLength="1" class="edge blue draw-26700-end"/>
+<circle cx="0" cy="10" r="0.16" class="node blue"/>
+<circle cx="3" cy="9" r="0.16" class="node blue"/>
+<circle cx="0" cy="9" r="0.16" class="node blue"/>
+<circle cx="3" cy="10" r="0.16" class="node blue"/>
+<circle cx="0" cy="6" r="0.16" class="node blue"/>
+<circle cx="0" cy="3" r="0.16" class="node blue"/>
+<circle cx="3" cy="0" r="0.16" class="node blue"/>
+<circle cx="5" cy="7" r="0.16" class="node blue"/>
+<circle cx="6" cy="7" r="0.16" class="node blue"/>
+<circle cx="8" cy="6" r="0.16" class="node blue"/>
+<circle cx="8" cy="5" r="0.16" class="node blue"/>
+<circle cx="10" cy="3" r="0.16" class="node blue"/>
+<circle cx="10" cy="13" r="0.16" class="node red"/>
+<circle cx="12" cy="10" r="0.16" class="node red"/>
+<circle cx="13" cy="10" r="0.16" class="node red"/>
+<circle cx="10" cy="7" r="0.16" class="node red"/>
+<circle cx="15" cy="9" r="0.16" class="node red"/>
+<circle cx="16" cy="8" r="0.16" class="node red"/>
+<circle cx="18" cy="9" r="0.16" class="node red"/>
+<circle cx="18" cy="15" r="0.16" class="node red"/>
+<circle cx="18" cy="12" r="0.16" class="node red"/>
+<circle cx="16" cy="18" r="0.16" class="node red fade-2000-end"/>
+<circle cx="13" cy="18" r="0.16" class="node red fade-3300-end"/>
+<circle cx="9" cy="0" r="0.16" class="node blue fade-4600-end"/>
+<circle cx="6" cy="0" r="0.16" class="node blue fade-5900-end"/>
+<circle cx="7" cy="15" r="0.16" class="node red fade-7200-end"/>
+<circle cx="10" cy="18" r="0.16" class="node red fade-8500-end"/>
+<circle cx="12" cy="6" r="0.16" class="node blue fade-9800-end"/>
+<circle cx="7" cy="16" r="0.16" class="node red fade-13700-end"/>
+<circle cx="15" cy="3" r="0.16" class="node blue fade-15000-end"/>
+<circle cx="13" cy="6" r="0.16" class="node blue fade-16300-end"/>
+<circle cx="18" cy="5" r="0.16" class="node red fade-17600-end"/>
+<circle cx="12" cy="0" r="0.16" class="node blue fade-21500-end"/>
+<circle cx="10" cy="8" r="0.16" class="node red fade-22800-end"/>
+<circle cx="8" cy="10" r="0.16" class="node red fade-24100-end"/>
+<circle cx="7" cy="10" r="0.16" class="node blue fade-26700-end"/>
+<g class="fade-27050-end"><circle cx="6.5" cy="8.5" r="0.46199999999999997" class="mark mistake" filter="url(#enclosure-shadow)"/><g class="glyph" transform="translate(6.038 8.038) scale(0.038)"><path d="M9.126 7.392A3.2 3.2 0 1 1 13.6 11.571Q12 12.495 12 13.3" fill="none" stroke-width="2.8" stroke-linecap="butt" stroke-linejoin="miter"/><rect x="-0.75" y="-1.4" width="1.65" height="2.8" rx="0.7" stroke="none" transform="translate(9.126 7.392) rotate(116.1)"/><rect x="-0.75" y="-1.4" width="1.65" height="2.8" rx="0.7" stroke="none" transform="translate(12 13.3) rotate(90)"/><rect x="10.488" y="16.788" width="3.024" height="3.024" rx="0.756" stroke="none"/></g></g>
+</svg>
+<!-- enclosure-board: end -->
+      </li>
+    </ol>
+  </main>
+
+  <footer>© 2026 Yshan · Enclosure by webgoatguy</footer>
+</body>
+</html>

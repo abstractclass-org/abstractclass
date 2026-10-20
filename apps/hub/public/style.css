@@ -1,0 +1,165 @@
+/* The hub at abstractclass.org (apps/hub/DESIGN.md). It looks like Hedge School: these are Hedge School's colour
+   tokens (apps/hedgeschool/src/app.css), in the same names. The hub keeps nothing in the browser, so its theme is the
+   system's. */
+:root {
+  --bg: #f6f5f2;
+  --panel: #ffffff;
+  --text: #24252a;
+  --muted: #6a6c73; /* 4.5:1 for small text on the page */
+  --border: #dddad3;
+  --accent: #6f5aa8; /* lavender, Abstract Class's and Hedge School's: 5.2:1 as text on the page, 5.7:1 under white */
+  --on-accent: #ffffff;
+  --blue: #2f6fde;
+  --red: #d2453f;
+  --board-bg: #f3ead7;
+  --board-dot: #b9ab8d;
+  --engine: #1f7a8c;
+  --on-badge: #ffffff;
+  --mistake-fill: #e07a2e;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1d1e21;
+    --panel: #26282c;
+    --text: #e4e4e6;
+    --muted: #9a9ca3;
+    --border: #3a3d42;
+    --accent: #b8a6e8; /* pale lavender: 8.2:1 under near-black text */
+    --on-accent: #16181c;
+    --blue: #5b8ff0;
+    --red: #e8635c;
+    --board-bg: #3a362e;
+    --board-dot: #6d6555;
+    --engine: #2f8fa3;
+    color-scheme: dark;
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+body, h1, h2, p, ol { margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.45;
+  -webkit-text-size-adjust: 100%;
+}
+::selection { background: color-mix(in srgb, var(--accent) 32%, transparent); }
+a { color: var(--accent); text-underline-offset: 0.2em; }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
+
+/* One column, centred: the organization's line, then the games. */
+main, footer {
+  max-width: 47.5rem;
+  margin-inline: auto;
+  padding-inline: 1rem;
+  box-sizing: content-box;
+}
+main { padding-top: clamp(2.5rem, 8vh, 6.5rem); }
+.intro { display: grid; gap: 0.75rem; }
+.wordmark { font-size: 1.5rem; line-height: 1.2; font-weight: 700; letter-spacing: -0.01em; }
+.lede { max-width: 36rem; font-size: 1.0625rem; color: var(--muted); text-wrap: pretty; }
+
+.games { list-style: none; padding: 0; margin-top: clamp(1.75rem, 5vh, 2.75rem); border-top: 1px solid var(--border); }
+.game {
+  display: grid;
+  grid-template-columns: 20rem minmax(0, 1fr);
+  grid-template-areas: "board text";
+  gap: 2.5rem;
+  align-items: center;
+  padding-block: 2rem;
+  border-bottom: 1px solid var(--border);
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+/* The entry under the pointer comes forward, and the others step back. */
+@media (hover: hover) {
+  .games:has(> .game:hover) > .game:not(:hover) { opacity: 0.55; }
+}
+.game .text { grid-area: text; display: grid; justify-items: start; }
+.game .board { grid-area: board; }
+
+/* The game first and largest, then its site, smaller. */
+.name {
+  font-size: clamp(2.75rem, 2rem + 3vw, 4rem);
+  line-height: 1.1; /* Hedge School's home heading: a name of two lines keeps its lines apart */
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+.site { margin-top: 0.75rem; font-size: 1.25rem; color: var(--muted); }
+.site a {
+  color: var(--text);
+  font-weight: 600;
+  text-decoration-color: var(--border);
+  text-decoration-thickness: 1px;
+}
+.site a:hover { text-decoration-color: var(--accent); }
+.site img { width: 1.25em; height: 1.25em; margin-right: 0.3em; vertical-align: -0.25em; }
+/* The address on a line of its own, so that a longer site name never leaves it a separator at a line's start. */
+.address { display: block; margin-top: 0.125rem; font-size: 0.875rem; overflow-wrap: anywhere; }
+.about { margin-top: 0.875rem; max-width: 30rem; font-size: 1rem; color: var(--muted); text-wrap: pretty; }
+
+.actions { margin-top: 1.375rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1.5rem; }
+.learn {
+  display: inline-flex;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.learn:hover { filter: brightness(1.1); }
+.try { color: var(--text); text-decoration-color: var(--border); text-decoration-thickness: 1px; }
+.try:hover { text-decoration-color: var(--accent); }
+
+footer { padding-block: 2rem 2.5rem; font-size: 0.875rem; color: var(--muted); }
+
+/* A phone, a narrow window or a large zoom: the text first, then the board under it. Below 52rem the text beside the
+   board would narrow to about 18rem. */
+@media (max-width: 52rem) {
+  .game { grid-template-columns: minmax(0, 1fr); grid-template-areas: "text" "board"; gap: 1.75rem; }
+  .game .board { max-width: 22.5rem; }
+}
+
+/* The board, as Hedge School's Board.svelte draws it. Its animation is in enclosure-board.css. */
+.board { display: block; width: 100%; height: auto; border-radius: 8px; }
+.board .bg { fill: var(--board-bg); }
+.board .dot { fill: var(--board-dot); }
+.board .region { fill-opacity: 0.16; }
+.board .region.blue { fill: var(--blue); }
+.board .region.red { fill: var(--red); }
+.board .edge { fill: none; stroke-width: 0.13; stroke-linecap: round; stroke-dasharray: 1 1; }
+.board .edge.blue { stroke: var(--blue); }
+.board .edge.red { stroke: var(--red); }
+.board .node.blue { fill: var(--blue); }
+.board .node.red { fill: var(--red); }
+.board .choice { stroke: var(--engine); stroke-width: 0.17; stroke-linecap: round; }
+.board .rank { fill: var(--engine); stroke: var(--board-bg); stroke-width: 0.06; }
+.board .rank-text {
+  font-family: system-ui, sans-serif;
+  font-size: 0.62px; /* Hedge School's 0.44, at the hub's badge size (enclosure-board.mjs, BADGE) */
+  font-weight: 700;
+  fill: var(--on-badge);
+  text-anchor: middle;
+}
+.board .mark.mistake { fill: var(--mistake-fill); }
+.board .glyph { fill: var(--on-badge); stroke: var(--on-badge); }
+/* The board stops while the pointer is on it. With reduced motion it shows the scene's last moment, still. */
+.board:hover * { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) {
+  .board * { animation: none !important; }
+  .board .gone { display: none; }
+}
+
+/* The page not found. */
+.missing { display: grid; gap: 0.875rem; justify-items: start; margin-top: clamp(1.75rem, 5vh, 2.75rem);
+  padding-top: 2rem; border-top: 1px solid var(--border); }
+.missing h1 { font-size: 2.25rem; line-height: 1.1; letter-spacing: -0.02em; }
+.missing p { color: var(--muted); font-size: 1rem; }
+.missing .learn { margin-top: 0.5rem; }
+.wordmark a { color: inherit; text-decoration: none; }

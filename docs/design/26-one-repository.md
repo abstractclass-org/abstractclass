@@ -2,7 +2,9 @@
 
 **Status:** in force. Items 1 and 6 are built: Hedge School is in `apps/hedgeschool`, in one npm workspace. Item 4's
 first parts are built: the engine, the storage and the analysis are in `packages/`, for the jam game's site (design 29).
-Item 2's check on a preview deploy, and the hub (item 3), are still to do.
+Item 3 is built: the hub is in `apps/hub`, with its deploy job. The owner's step is left: the hub's Pages project, its
+domain and the variable `HUB_PAGES_PROJECT` ([hosting.md](../hosting.md), section 8). Item 2's check on a preview
+deploy is still to do.
 **Decided:** 2026-10-16.
 
 ## Context
@@ -99,6 +101,10 @@ The move must keep these:
   the alias `#lib/*`.
 - `packages/`: the shared packages, `@abstractclass/engine`, `@abstractclass/storage` and `@abstractclass/analysis`
   (design 29).
+- `apps/hub/`: the hub. Its pages are the files in `public/`, served as they are, with no build and no package of its
+  own. `scripts/enclosure-board.mjs` writes Enclosure's board into its page. Its product record, design and page brief
+  are `PRODUCT.md`, `DESIGN.md` and `.impeccable/surfaces/`. The job `hub` of `.github/workflows/deploy.yml` deploys
+  it.
 - `.github/workflows/deploy.yml` and `tests.yml`: the default working directory is `apps/hedgeschool`. `npm ci` runs
   at the root, and so does `npm run check:all` in the Linux job of `tests.yml`. The caches, the failures' screenshots
   and the hash of `engine.lock.json` name their paths from the root. `docs.yml` runs at the root.
@@ -110,4 +116,4 @@ The move must keep these:
 [decisions/architecture.md](../decisions/architecture.md), "One repository for the learning sites", "The
 repositories get new names" and "Hedge School moves into apps/hedgeschool".
 [decisions/product.md](../decisions/product.md), "The analysis and the review in packages/" (2026-10-19): item 4's
-first parts.
+first parts. "The hub at abstractclass.org" (2026-10-20): item 3.

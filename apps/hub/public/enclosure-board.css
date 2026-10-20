@@ -1,0 +1,93 @@
+/* Written by apps/hub/scripts/enclosure-board.mjs from Hedge School's home board: do not edit. The board's
+   animation, 32 seconds a scene: a rule for each timing of the elements that come or go. */
+.board :is(.fade-start-23150, .fade-11450-end, .fade-12750-14050, .fade-14050-end, .fade-16650-end, .fade-19250-end, .fade-20550-end, .fade-23150-end, .fade-24900-end, .draw-2000-end, .draw-3300-end, .draw-4600-end, .draw-5900-end, .draw-7200-end, .draw-8500-end, .draw-9800-end, .draw-11100-end, .draw-12400-end, .draw-13700-end, .draw-15000-end, .draw-16300-end, .draw-17600-end, .draw-18900-end, .draw-20200-end, .draw-21500-end, .draw-22800-end, .draw-24100-end, .draw-26700-end, .fade-2000-end, .fade-3300-end, .fade-4600-end, .fade-5900-end, .fade-7200-end, .fade-8500-end, .fade-9800-end, .fade-13700-end, .fade-15000-end, .fade-16300-end, .fade-17600-end, .fade-21500-end, .fade-22800-end, .fade-24100-end, .fade-26700-end, .fade-27050-end) {
+  animation-duration: 32s; animation-iteration-count: infinite; animation-timing-function: linear;
+}
+.board .fade-start-23150 { animation-name: fade-start-23150; }
+.board .fade-11450-end { animation-name: fade-11450-end; }
+.board .fade-12750-14050 { animation-name: fade-12750-14050; }
+.board .fade-14050-end { animation-name: fade-14050-end; }
+.board .fade-16650-end { animation-name: fade-16650-end; }
+.board .fade-19250-end { animation-name: fade-19250-end; }
+.board .fade-20550-end { animation-name: fade-20550-end; }
+.board .fade-23150-end { animation-name: fade-23150-end; }
+.board .fade-24900-end { animation-name: fade-24900-end; }
+.board .draw-2000-end { animation-name: draw-2000-end; }
+.board .draw-3300-end { animation-name: draw-3300-end; }
+.board .draw-4600-end { animation-name: draw-4600-end; }
+.board .draw-5900-end { animation-name: draw-5900-end; }
+.board .draw-7200-end { animation-name: draw-7200-end; }
+.board .draw-8500-end { animation-name: draw-8500-end; }
+.board .draw-9800-end { animation-name: draw-9800-end; }
+.board .draw-11100-end { animation-name: draw-11100-end; }
+.board .draw-12400-end { animation-name: draw-12400-end; }
+.board .draw-13700-end { animation-name: draw-13700-end; }
+.board .draw-15000-end { animation-name: draw-15000-end; }
+.board .draw-16300-end { animation-name: draw-16300-end; }
+.board .draw-17600-end { animation-name: draw-17600-end; }
+.board .draw-18900-end { animation-name: draw-18900-end; }
+.board .draw-20200-end { animation-name: draw-20200-end; }
+.board .draw-21500-end { animation-name: draw-21500-end; }
+.board .draw-22800-end { animation-name: draw-22800-end; }
+.board .draw-24100-end { animation-name: draw-24100-end; }
+.board .draw-26700-end { animation-name: draw-26700-end; }
+.board .fade-2000-end { animation-name: fade-2000-end; }
+.board .fade-3300-end { animation-name: fade-3300-end; }
+.board .fade-4600-end { animation-name: fade-4600-end; }
+.board .fade-5900-end { animation-name: fade-5900-end; }
+.board .fade-7200-end { animation-name: fade-7200-end; }
+.board .fade-8500-end { animation-name: fade-8500-end; }
+.board .fade-9800-end { animation-name: fade-9800-end; }
+.board .fade-13700-end { animation-name: fade-13700-end; }
+.board .fade-15000-end { animation-name: fade-15000-end; }
+.board .fade-16300-end { animation-name: fade-16300-end; }
+.board .fade-17600-end { animation-name: fade-17600-end; }
+.board .fade-21500-end { animation-name: fade-21500-end; }
+.board .fade-22800-end { animation-name: fade-22800-end; }
+.board .fade-24100-end { animation-name: fade-24100-end; }
+.board .fade-26700-end { animation-name: fade-26700-end; }
+.board .fade-27050-end { animation-name: fade-27050-end; }
+@keyframes fade-start-23150{0%{opacity:1}72.344%{opacity:1}73.594%,97.5%{opacity:0}100%{opacity:1}}
+@keyframes fade-11450-end{0%,35.781%{opacity:0;animation-timing-function:cubic-bezier(.16,1,.3,1)}37.031%{opacity:1}97.5%{opacity:1}100%{opacity:0}}
+@keyframes fade-12750-14050{0%,39.844%{opacity:0;animation-timing-function:cubic-bezier(.16,1,.3,1)}41.094%{opacity:1}43.906%{opacity:1}45.156%,97.5%{opacity:0}100%{opacity:0}}
+@keyframes fade-14050-end{0%,43.906%{opacity:0;animation-timing-function:cubic-bezier(.16,1,.3,1)}45.156%{opacity:1}97.5%{opacity:1}100%{opacity:0}}
+@keyframes fade-16650-end{0%,52.031%{opacity:0;animation-timing-function:cubic-bezier(.16,1,.3,1)}53.281%{opacity:1}97.5%{opacity:1}100%{opacity:0}}
+@keyframes fade-19250-end{0%,60.156%{opacity:0;animation-timing-function:cubic-bezier(.16,1,.3,1)}61.406%{opacity:1}97.5%{opacity:1}100%{opacity:0}}
+@keyframes fade-20550-end{0%,64.219%{opacity:0;animation-timing-function:cubic-bezier(.16,1,.3,1)}65.469%{opacity:1}97.5%{opacity:1}100%{opacity:0}}
+@keyframes fade-23150-end{0%,72.344%{opacity:0;animation-timing-function:cubic-bezier(.16,1,.3,1)}73.594%{opacity:1}97.5%{opacity:1}100%{opacity:0}}
+@keyframes fade-24900-end{0%,77.813%{opacity:0;animation-timing-function:cubic-bezier(.16,1,.3,1)}79.063%{opacity:1}97.5%{opacity:1}100%{opacity:0}}
+@keyframes draw-2000-end{0%,6.25%{opacity:0;stroke-dashoffset:1;animation-timing-function:cubic-bezier(.16,1,.3,1)}7.344%{opacity:1;stroke-dashoffset:0}97.5%{opacity:1;stroke-dashoffset:0}100%{opacity:0;stroke-dashoffset:1}}
+@keyframes draw-3300-end{0%,10.312%{opacity:0;stroke-dashoffset:1;animation-timing-function:cubic-bezier(.16,1,.3,1)}11.406%{opacity:1;stroke-dashoffset:0}97.5%{opacity:1;stroke-dashoffset:0}100%{opacity:0;stroke-dashoffset:1}}
+@keyframes draw-4600-end{0%,14.375%{opacity:0;stroke-dashoffset:1;animation-timing-function:cubic-bezier(.16,1,.3,1)}15.469%{opacity:1;stroke-dashoffset:0}97.5%{opacity:1;stroke-dashoffset:0}100%{opacity:0;stroke-dashoffset:1}}
+@keyframes draw-5900-end{0%,18.437%{opacity:0;stroke-dashoffset:1;animation-timing-function:cubic-bezier(.16,1,.3,1)}19.531%{opacity:1;stroke-dashoffset:0}97.5%{opacity:1;stroke-dashoffset:0}100%{opacity:0;stroke-dashoffset:1}}
+@keyframes draw-7200-end{0%,22.5%{opacity:0;stroke-dashoffset:1;animation-timing-function:cubic-bezier(.16,1,.3,1)}23.594%{opacity:1;stroke-dashoffset:0}97.5%{opacity:1;stroke-dashoffset:0}100%{opacity:0;stroke-dashoffset:1}}
+@keyframes draw-8500-end{0%,26.562%{opacity:0;stroke-dashoffset:1;animation-timing-function:cubic-bezier(.16,1,.3,1)}27.656%{opacity:1;stroke-dashoffset:0}97.5%{opacity:1;stroke-dashoffset:0}100%{opacity:0;stroke-dashoffset:1}}
+@keyframes draw-9800-end{0%,30.625%{opacity:0;stroke-dashoffset:1;animation-timing-function:cubic-bezier(.16,1,.3,1)}31.719%{opacity:1;stroke-dashoffset:0}97.5%{opacity:1;stroke-dashoffset:0}100%{opacity:0;stroke-dashoffset:1}}
+@keyframes draw-11100-end{0%,34.688%{opacity:0;stroke-dashoffset:1;animation-timing-function:cubic-bezier(.16,1,.3,1)}35.781%{opacity:1;stroke-dashoffset:0}97.5%{opacity:1;stroke-dashoffset:0}100%{opacity:0;stroke-dashoffset:1}}
+@keyframes draw-12400-end{0%,38.75%{opacity:0;stroke-dashoffset:1;animation-timing-function:cubic-bezier(.16,1,.3,1)}39.844%{opacity:1;stroke-dashoffset:0}97.5%{opacity:1;stroke-dashoffset:0}100%{opacity:0;stroke-dashoffset:1}}
+@keyframes draw-13700-end{0%,42.813%{opacity:0;stroke-dashoffset:1;animation-timing-function:cubic-bezier(.16,1,.3,1)}43.906%{opacity:1;stroke-dashoffset:0}97.5%{opacity:1;stroke-dashoffset:0}100%{opacity:0;stroke-dashoffset:1}}
+@keyframes draw-15000-end{0%,46.875%{opacity:0;stroke-dashoffset:1;animation-timing-function:cubic-bezier(.16,1,.3,1)}47.969%{opacity:1;stroke-dashoffset:0}97.5%{opacity:1;stroke-dashoffset:0}100%{opacity:0;stroke-dashoffset:1}}
+@keyframes draw-16300-end{0%,50.938%{opacity:0;stroke-dashoffset:1;animation-timing-function:cubic-bezier(.16,1,.3,1)}52.031%{opacity:1;stroke-dashoffset:0}97.5%{opacity:1;stroke-dashoffset:0}100%{opacity:0;stroke-dashoffset:1}}
+@keyframes draw-17600-end{0%,55%{opacity:0;stroke-dashoffset:1;animation-timing-function:cubic-bezier(.16,1,.3,1)}56.094%{opacity:1;stroke-dashoffset:0}97.5%{opacity:1;stroke-dashoffset:0}100%{opacity:0;stroke-dashoffset:1}}
+@keyframes draw-18900-end{0%,59.063%{opacity:0;stroke-dashoffset:1;animation-timing-function:cubic-bezier(.16,1,.3,1)}60.156%{opacity:1;stroke-dashoffset:0}97.5%{opacity:1;stroke-dashoffset:0}100%{opacity:0;stroke-dashoffset:1}}
+@keyframes draw-20200-end{0%,63.125%{opacity:0;stroke-dashoffset:1;animation-timing-function:cubic-bezier(.16,1,.3,1)}64.219%{opacity:1;stroke-dashoffset:0}97.5%{opacity:1;stroke-dashoffset:0}100%{opacity:0;stroke-dashoffset:1}}
+@keyframes draw-21500-end{0%,67.188%{opacity:0;stroke-dashoffset:1;animation-timing-function:cubic-bezier(.16,1,.3,1)}68.281%{opacity:1;stroke-dashoffset:0}97.5%{opacity:1;stroke-dashoffset:0}100%{opacity:0;stroke-dashoffset:1}}
+@keyframes draw-22800-end{0%,71.25%{opacity:0;stroke-dashoffset:1;animation-timing-function:cubic-bezier(.16,1,.3,1)}72.344%{opacity:1;stroke-dashoffset:0}97.5%{opacity:1;stroke-dashoffset:0}100%{opacity:0;stroke-dashoffset:1}}
+@keyframes draw-24100-end{0%,75.313%{opacity:0;stroke-dashoffset:1;animation-timing-function:cubic-bezier(.16,1,.3,1)}76.406%{opacity:1;stroke-dashoffset:0}97.5%{opacity:1;stroke-dashoffset:0}100%{opacity:0;stroke-dashoffset:1}}
+@keyframes draw-26700-end{0%,83.438%{opacity:0;stroke-dashoffset:1;animation-timing-function:cubic-bezier(.16,1,.3,1)}84.531%{opacity:1;stroke-dashoffset:0}97.5%{opacity:1;stroke-dashoffset:0}100%{opacity:0;stroke-dashoffset:1}}
+@keyframes fade-2000-end{0%,6.25%{opacity:0;animation-timing-function:cubic-bezier(.16,1,.3,1)}7.5%{opacity:1}97.5%{opacity:1}100%{opacity:0}}
+@keyframes fade-3300-end{0%,10.312%{opacity:0;animation-timing-function:cubic-bezier(.16,1,.3,1)}11.562%{opacity:1}97.5%{opacity:1}100%{opacity:0}}
+@keyframes fade-4600-end{0%,14.375%{opacity:0;animation-timing-function:cubic-bezier(.16,1,.3,1)}15.625%{opacity:1}97.5%{opacity:1}100%{opacity:0}}
+@keyframes fade-5900-end{0%,18.437%{opacity:0;animation-timing-function:cubic-bezier(.16,1,.3,1)}19.687%{opacity:1}97.5%{opacity:1}100%{opacity:0}}
+@keyframes fade-7200-end{0%,22.5%{opacity:0;animation-timing-function:cubic-bezier(.16,1,.3,1)}23.75%{opacity:1}97.5%{opacity:1}100%{opacity:0}}
+@keyframes fade-8500-end{0%,26.562%{opacity:0;animation-timing-function:cubic-bezier(.16,1,.3,1)}27.812%{opacity:1}97.5%{opacity:1}100%{opacity:0}}
+@keyframes fade-9800-end{0%,30.625%{opacity:0;animation-timing-function:cubic-bezier(.16,1,.3,1)}31.875%{opacity:1}97.5%{opacity:1}100%{opacity:0}}
+@keyframes fade-13700-end{0%,42.813%{opacity:0;animation-timing-function:cubic-bezier(.16,1,.3,1)}44.063%{opacity:1}97.5%{opacity:1}100%{opacity:0}}
+@keyframes fade-15000-end{0%,46.875%{opacity:0;animation-timing-function:cubic-bezier(.16,1,.3,1)}48.125%{opacity:1}97.5%{opacity:1}100%{opacity:0}}
+@keyframes fade-16300-end{0%,50.938%{opacity:0;animation-timing-function:cubic-bezier(.16,1,.3,1)}52.187%{opacity:1}97.5%{opacity:1}100%{opacity:0}}
+@keyframes fade-17600-end{0%,55%{opacity:0;animation-timing-function:cubic-bezier(.16,1,.3,1)}56.25%{opacity:1}97.5%{opacity:1}100%{opacity:0}}
+@keyframes fade-21500-end{0%,67.188%{opacity:0;animation-timing-function:cubic-bezier(.16,1,.3,1)}68.438%{opacity:1}97.5%{opacity:1}100%{opacity:0}}
+@keyframes fade-22800-end{0%,71.25%{opacity:0;animation-timing-function:cubic-bezier(.16,1,.3,1)}72.5%{opacity:1}97.5%{opacity:1}100%{opacity:0}}
+@keyframes fade-24100-end{0%,75.313%{opacity:0;animation-timing-function:cubic-bezier(.16,1,.3,1)}76.563%{opacity:1}97.5%{opacity:1}100%{opacity:0}}
+@keyframes fade-26700-end{0%,83.438%{opacity:0;animation-timing-function:cubic-bezier(.16,1,.3,1)}84.688%{opacity:1}97.5%{opacity:1}100%{opacity:0}}
+@keyframes fade-27050-end{0%,84.531%{opacity:0;animation-timing-function:cubic-bezier(.16,1,.3,1)}85.781%{opacity:1}97.5%{opacity:1}100%{opacity:0}}

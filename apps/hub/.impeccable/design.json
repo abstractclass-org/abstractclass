@@ -1,0 +1,400 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-20T13:10:00Z",
+  "title": "Design System: Abstract Class",
+  "extensions": {
+    "colorMeta": {
+      "accent": {
+        "role": "primary",
+        "displayName": "Abstract Class Lavender",
+        "canonical": "oklch(52.4% 0.121 294)",
+        "darkVariant": "accent-dark",
+        "tonalRamp": [
+          "#120035",
+          "#2a0d57",
+          "#452e78",
+          "#634d9a",
+          "#8570c1",
+          "#a995e9",
+          "#cfbbff",
+          "#f3e0ff"
+        ]
+      },
+      "accent-dark": {
+        "role": "primary",
+        "displayName": "Pale Lavender (dark scheme)",
+        "canonical": "oklch(76.4% 0.095 296)",
+        "tonalRamp": [
+          "#12002d",
+          "#2a154b",
+          "#45336b",
+          "#63518d",
+          "#8674b2",
+          "#aa98d9",
+          "#d0beff",
+          "#f4e2ff"
+        ]
+      },
+      "on-accent": {
+        "role": "neutral",
+        "displayName": "White on Lavender",
+        "darkVariant": "on-accent-dark"
+      },
+      "on-accent-dark": {
+        "role": "neutral",
+        "displayName": "Near-black on Pale Lavender"
+      },
+      "bg": {
+        "role": "neutral",
+        "displayName": "Warm Page",
+        "canonical": "oklch(97.0% 0.004 91)",
+        "darkVariant": "bg-dark",
+        "tonalRamp": [
+          "#0c0b09",
+          "#252422",
+          "#40403d",
+          "#5e5d5b",
+          "#81807d",
+          "#a5a4a2",
+          "#cbcac7",
+          "#efeeeb"
+        ]
+      },
+      "text": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "oklch(26.6% 0.009 276)",
+        "darkVariant": "text-dark",
+        "tonalRamp": [
+          "#0a0b0f",
+          "#232429",
+          "#3e3f45",
+          "#5c5d63",
+          "#7e8086",
+          "#a3a4ab",
+          "#c9cad1",
+          "#edeef5"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted Grey",
+        "canonical": "oklch(53.2% 0.011 273)",
+        "darkVariant": "muted-dark",
+        "tonalRamp": [
+          "#0a0b10",
+          "#22242a",
+          "#3e3f46",
+          "#5b5d64",
+          "#7e8087",
+          "#a2a4ac",
+          "#c8cad2",
+          "#eceef6"
+        ]
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "oklch(88.9% 0.010 87)",
+        "darkVariant": "border-dark",
+        "tonalRamp": [
+          "#0d0b07",
+          "#26241f",
+          "#423f3a",
+          "#605d57",
+          "#83807a",
+          "#a7a49e",
+          "#cdcac3",
+          "#f1eee7"
+        ]
+      },
+      "blue": {
+        "role": "secondary",
+        "displayName": "Blue Player",
+        "canonical": "oklch(56.3% 0.182 260)",
+        "darkVariant": "blue-dark",
+        "tonalRamp": [
+          "#000041",
+          "#001669",
+          "#003693",
+          "#1856be",
+          "#3c7be9",
+          "#67a3ff",
+          "#92caff",
+          "#bbefff"
+        ]
+      },
+      "red": {
+        "role": "secondary",
+        "displayName": "Red Player",
+        "canonical": "oklch(58.9% 0.178 26)",
+        "darkVariant": "red-dark",
+        "tonalRamp": [
+          "#300000",
+          "#570000",
+          "#800004",
+          "#aa1f20",
+          "#d54943",
+          "#f9776d",
+          "#ffa397",
+          "#ffccbf"
+        ]
+      },
+      "board-bg": {
+        "role": "neutral",
+        "displayName": "Sand Ground",
+        "canonical": "oklch(93.9% 0.027 85)",
+        "darkVariant": "board-bg-dark",
+        "tonalRamp": [
+          "#100a01",
+          "#2a2315",
+          "#463f2f",
+          "#645d4c",
+          "#877f6e",
+          "#aca492",
+          "#d2cab7",
+          "#f7eedb"
+        ]
+      },
+      "board-dot": {
+        "role": "neutral",
+        "displayName": "Lattice Dot",
+        "canonical": "oklch(74.5% 0.044 85)",
+        "darkVariant": "board-dot-dark",
+        "tonalRamp": [
+          "#130900",
+          "#2e2207",
+          "#4a3e23",
+          "#695c41",
+          "#8c7f62",
+          "#b1a385",
+          "#d7c9aa",
+          "#fcedcd"
+        ]
+      },
+      "engine": {
+        "role": "tertiary",
+        "displayName": "Engine Teal",
+        "canonical": "oklch(53.6% 0.085 214)",
+        "darkVariant": "engine-dark",
+        "tonalRamp": [
+          "#001121",
+          "#002d3d",
+          "#004a5b",
+          "#00697b",
+          "#378da0",
+          "#5fb3c5",
+          "#86d9ed",
+          "#aafeff"
+        ]
+      },
+      "on-badge": {
+        "role": "neutral",
+        "displayName": "Badge White"
+      },
+      "mistake-fill": {
+        "role": "tertiary",
+        "displayName": "Mistake Orange",
+        "canonical": "oklch(68.2% 0.153 52)",
+        "tonalRamp": [
+          "#2c0000",
+          "#510000",
+          "#781700",
+          "#9c3c00",
+          "#c46100",
+          "#ed863c",
+          "#ffb071",
+          "#ffd79f"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Game Name",
+        "purpose": "The game's name in each entry, the largest type on the page. Balanced wrap."
+      },
+      "headline": {
+        "displayName": "Wordmark",
+        "purpose": "The Abstract Class wordmark at the top of each page."
+      },
+      "title": {
+        "displayName": "Site Line",
+        "purpose": "\"at\" and the site's name, muted, with the name an ink link at 600."
+      },
+      "lede": {
+        "displayName": "Lede",
+        "purpose": "The organization's one line under the wordmark, muted, at most 36rem wide."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "The page's base size. The description is 1rem, muted, at most 30rem wide."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "The site's address on its own line, and the footer."
+      }
+    },
+    "shadows": [
+      {
+        "name": "mistake-mark",
+        "value": "SVG feDropShadow dx=0.027 dy=0.046 stdDeviation=0.033 flood-opacity=0.5 (board units)",
+        "purpose": "The Mistake mark's disc on the board only. Page elements take no shadow."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Every edge draw, fade and the entry's step back."
+      },
+      {
+        "name": "edge-draw",
+        "value": "0.35s",
+        "purpose": "An edge draws from one end to the other by its dash offset."
+      },
+      {
+        "name": "fade-in",
+        "value": "0.4s",
+        "purpose": "A node, a region or a mark fades in."
+      },
+      {
+        "name": "edge-step",
+        "value": "1.3s",
+        "purpose": "The time between two edges of the scene. The scene starts 2s in, and the last edge comes 2.6s after the one before it."
+      },
+      {
+        "name": "scene",
+        "value": "32s, infinite",
+        "purpose": "One replay of the board's scene. The last 0.8s fades it out."
+      },
+      {
+        "name": "entry-step-back",
+        "value": "opacity 0.55, 0.3s",
+        "purpose": "Under a hovering pointer, the other entries step back."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "animation: none",
+        "purpose": "The board shows the scene's last moment, still, and hides what leaves the scene."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "stack",
+        "value": "52rem",
+        "purpose": "At and below this width the entry is one column: text, then the board at most 22.5rem wide."
+      }
+    ],
+    "constraints": [
+      "Content-Security-Policy: default-src 'none'; style-src 'self'; img-src 'self'. No script, no inline style, only the hub's own files.",
+      "The theme follows prefers-color-scheme. The hub keeps nothing in the browser."
+    ]
+  },
+  "components": [
+    {
+      "name": "Learn Button",
+      "kind": "button",
+      "refersTo": "button-learn",
+      "description": "The entry's main action, \"Learn <game>\". Also the 404 page's way home.",
+      "html": "<a class=\"ds-learn\" href=\"#\">Learn Enclosure</a>",
+      "css": ".ds-learn { display: inline-flex; padding: 0.75rem 1.5rem; border-radius: 6px; background: var(--accent, #6f5aa8); color: var(--on-accent, #ffffff); font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; font-size: 1rem; font-weight: 600; text-decoration: none; } .ds-learn:hover { filter: brightness(1.1); } .ds-learn:focus-visible { outline: 2px solid var(--accent, #6f5aa8); outline-offset: 3px; border-radius: 2px; }"
+    },
+    {
+      "name": "Try Link",
+      "kind": "button",
+      "refersTo": "link-try",
+      "description": "The quiet second action for a newcomer, \"Try a practice game\".",
+      "html": "<a class=\"ds-try\" href=\"#\">Try a practice game</a>",
+      "css": ".ds-try { color: var(--text, #24252a); font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; font-size: 1rem; text-decoration-color: var(--border, #dddad3); text-decoration-thickness: 1px; text-underline-offset: 0.2em; } .ds-try:hover { text-decoration-color: var(--accent, #6f5aa8); } .ds-try:focus-visible { outline: 2px solid var(--accent, #6f5aa8); outline-offset: 3px; border-radius: 2px; }"
+    },
+    {
+      "name": "Site Line",
+      "kind": "nav",
+      "refersTo": "link-site",
+      "description": "\"at\", then the site's mark and name in one link, and the address on a line of its own.",
+      "html": "<p class=\"ds-site\">at <a href=\"#\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><circle cx=\"10\" cy=\"10\" r=\"9\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/></svg>Hedge School</a> <span class=\"ds-address\">hedgeschool.abstractclass.org</span></p>",
+      "css": ".ds-site { margin: 0; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; font-size: 1.25rem; line-height: 1.45; color: var(--muted, #6a6c73); } .ds-site a { color: var(--text, #24252a); font-weight: 600; text-decoration-color: var(--border, #dddad3); text-decoration-thickness: 1px; text-underline-offset: 0.2em; } .ds-site a:hover { text-decoration-color: var(--accent, #6f5aa8); } .ds-site a:focus-visible { outline: 2px solid var(--accent, #6f5aa8); outline-offset: 3px; border-radius: 2px; } .ds-site svg { width: 1.25em; height: 1.25em; margin-right: 0.3em; vertical-align: -0.25em; } .ds-address { display: block; margin-top: 0.125rem; font-size: 0.875rem; overflow-wrap: anywhere; }"
+    },
+    {
+      "name": "Game Entry",
+      "kind": "card",
+      "refersTo": "game-name",
+      "description": "The unit a new game repeats: name, site line, address, description, the two actions, and the board. Stacks below 52rem.",
+      "html": "<div class=\"ds-entry\"><svg class=\"ds-board\" viewBox=\"0 0 10 10\" role=\"img\" aria-label=\"A board\"><rect width=\"10\" height=\"10\" fill=\"var(--board-bg, #f3ead7)\"/><path d=\"M2 2L5 4L8 3\" fill=\"none\" stroke=\"var(--blue, #2f6fde)\" stroke-width=\"0.13\" stroke-linecap=\"round\"/><path d=\"M2 8L5 6L8 7\" fill=\"none\" stroke=\"var(--red, #d2453f)\" stroke-width=\"0.13\" stroke-linecap=\"round\"/></svg><div class=\"ds-text\"><h2 class=\"ds-name\">Enclosure</h2><p class=\"ds-site-line\">at <a href=\"#\">Hedge School</a></p><p class=\"ds-about\">A game of edges and enclosed regions for two players.</p><p class=\"ds-actions\"><a class=\"ds-entry-learn\" href=\"#\">Learn Enclosure</a><a class=\"ds-entry-try\" href=\"#\">Try a practice game</a></p></div></div>",
+      "css": ".ds-entry { display: grid; grid-template-columns: 20rem minmax(0, 1fr); gap: 2.5rem; align-items: center; padding-block: 2rem; border-block: 1px solid var(--border, #dddad3); font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; color: var(--text, #24252a); } .ds-board { display: block; width: 100%; height: auto; border-radius: 8px; } .ds-text { display: grid; justify-items: start; } .ds-name { margin: 0; font-size: clamp(2.75rem, 2rem + 3vw, 4rem); line-height: 1.1; font-weight: 700; letter-spacing: -0.03em; text-wrap: balance; } .ds-site-line { margin: 0.75rem 0 0; font-size: 1.25rem; color: var(--muted, #6a6c73); } .ds-site-line a { color: var(--text, #24252a); font-weight: 600; text-decoration-color: var(--border, #dddad3); } .ds-about { margin: 0.875rem 0 0; max-width: 30rem; font-size: 1rem; color: var(--muted, #6a6c73); } .ds-actions { margin: 1.375rem 0 0; display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1.5rem; } .ds-entry-learn { padding: 0.75rem 1.5rem; border-radius: 6px; background: var(--accent, #6f5aa8); color: var(--on-accent, #fff); font-weight: 600; text-decoration: none; } .ds-entry-learn:hover { filter: brightness(1.1); } .ds-entry-try { color: var(--text, #24252a); text-decoration-color: var(--border, #dddad3); } .ds-entry-try:hover { text-decoration-color: var(--accent, #6f5aa8); } .ds-entry a:focus-visible { outline: 2px solid var(--accent, #6f5aa8); outline-offset: 3px; border-radius: 2px; } @media (max-width: 52rem) { .ds-entry { grid-template-columns: minmax(0, 1fr); gap: 1.75rem; } .ds-board { order: 1; max-width: 22.5rem; } }"
+    },
+    {
+      "name": "Board Edge Draw",
+      "kind": "custom",
+      "refersTo": "board",
+      "description": "The board's motion grammar: an edge draws in 0.35s on the ease-out, then holds. Stops under the pointer, still with reduced motion.",
+      "html": "<svg class=\"ds-mini-board\" viewBox=\"-1 -1 8 8\" role=\"img\" aria-label=\"An edge drawn on the board\"><rect x=\"-1\" y=\"-1\" width=\"8\" height=\"8\" class=\"ds-bg\"/><path d=\"M0 6L6 0\" pathLength=\"1\" class=\"ds-edge\"/><circle cx=\"0\" cy=\"6\" r=\"0.16\" class=\"ds-node\"/><circle cx=\"6\" cy=\"0\" r=\"0.16\" class=\"ds-node\"/></svg>",
+      "css": ".ds-mini-board { display: block; width: 10rem; height: auto; border-radius: 8px; } .ds-mini-board .ds-bg { fill: var(--board-bg, #f3ead7); } .ds-mini-board .ds-node { fill: var(--blue, #2f6fde); } .ds-mini-board .ds-edge { fill: none; stroke: var(--blue, #2f6fde); stroke-width: 0.13; stroke-linecap: round; stroke-dasharray: 1 1; animation: ds-draw 4s cubic-bezier(0.16, 1, 0.3, 1) infinite; } .ds-mini-board:hover * { animation-play-state: paused; } @keyframes ds-draw { 0%, 20% { opacity: 0; stroke-dashoffset: 1; } 28.75%, 90% { opacity: 1; stroke-dashoffset: 0; } 100% { opacity: 0; stroke-dashoffset: 1; } } @media (prefers-reduced-motion: reduce) { .ds-mini-board * { animation: none !important; } }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The game first, one column",
+    "overview": "The hub is one calm column of games, one entry for each game. Each entry leads with the game's name, because a player knows the game before the site. The page refuses the landing-page hero and the row of equal cards. Its look is Hedge School's look. The hub copies Hedge School's colour tokens (`apps/hedgeschool/src/app.css`) in the same names, its system sans, its hairlines and its board drawing. A visitor who goes from the hub to a game's site sees no change of world.\n\nThe page is quiet and sparse. Ink on a warm page carries the text. Hairlines separate the entries. Lavender appears only on the actions, the links and the focus ring. The one moving thing on the page is each game's board, which replays a real scene edge by edge in CSS. The theme follows the system's colour scheme, because the hub keeps nothing in the browser.\n\nThe page runs under a strict Content Security Policy: no script, no inline style, and only its own files. Every visual effect is a rule in a stylesheet of the hub's own origin. The board is inline SVG with classes, never `style` attributes.",
+    "keyCharacteristics": [
+      "One centred column of 47.5rem, with 1rem gutters.",
+      "The game's name is the largest type on the page.",
+      "Hedge School's tokens, light and dark, from `prefers-color-scheme`.",
+      "The board is the only motion, drawn and animated in CSS alone.",
+      "Every entry has the same parts, so a new game is a new list item."
+    ],
+    "rules": [
+      {
+        "name": "The Two Values Rule",
+        "body": "Lavender is a custom property, never a literal in a rule, a component or a raster image. A sibling site takes another accent by a change of two values, `--accent` in the light scheme and in the dark.",
+        "section": "colors"
+      },
+      {
+        "name": "The Lavender Means Action Rule",
+        "body": "Lavender marks only what the visitor can act on: the button, a link, focus and selection. Text and surfaces never take it.",
+        "section": "colors"
+      },
+      {
+        "name": "The Same Names Rule",
+        "body": "A colour token on the hub has the name and the value of its Hedge School token. A change to a shared value starts in Hedge School's `app.css`.",
+        "section": "colors"
+      },
+      {
+        "name": "The Game First Rule",
+        "body": "In each entry the game's name is the largest type, and the site's name comes second and smaller. Nothing sits above the game's name.",
+        "section": "typography"
+      },
+      {
+        "name": "The New List Item Rule",
+        "body": "A new game is a new `li.game` with the same parts in the same order. The page takes a second entry, and later more, with no change to the layout.",
+        "section": "layout"
+      },
+      {
+        "name": "The Flat Page Rule",
+        "body": "Page elements take no shadow. Depth on the hub belongs to the board's marks only.",
+        "section": "elevation"
+      },
+      {
+        "name": "The CSS Only Rule",
+        "body": "Motion and state are CSS: keyframes, `:hover`, `:has()` and media queries. The page has no script, no inline style and no file from another host. A new effect that needs one of these does not ship.",
+        "section": "components"
+      }
+    ],
+    "dos": [
+      "**Do** take every colour from a custom property in `style.css`, with its Hedge School name and value.",
+      "**Do** give each new game a new list item with the same six parts in the same order.",
+      "**Do** keep the game's name in Display type (`clamp(2.75rem, 2rem + 3vw, 4rem)`, 700) as the largest type in its entry.",
+      "**Do** keep lavender on the actions, links, focus and selection only.",
+      "**Do** give every animation a still state under `prefers-reduced-motion: reduce`.",
+      "**Do** keep text contrast at 4.5:1 or more in both colour schemes."
+    ],
+    "donts": [
+      "**Don't** write lavender as a literal in a rule or a component, or draw it into a raster image.",
+      "**Don't** add a script, an inline `style` attribute, a web font or a file from another host. The Content Security Policy refuses them.",
+      "**Don't** put a line of small text above the game's name. The places where a game is played go in its description.",
+      "**Don't** add a landing-page hero or a row of equal cards.",
+      "**Don't** add a shadow to a page element.",
+      "**Don't** show a site's mark anywhere but in a link to that site.",
+      "**Don't** use a programmer's pun on the name: no code braces and no monospace jokes."
+    ]
+  }
+}

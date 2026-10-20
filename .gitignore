@@ -28,3 +28,10 @@ vite.config.ts.timestamp-*
 # Playwright Test (npm run test:layout)
 /apps/hedgeschool/test-results/
 /apps/hedgeschool/playwright-report/
+
+# The hub (apps/hub): its screenshots, and the design skill's working files (mocks, decision pages, captures). The
+# skill's surface briefs and DESIGN.md's sidecar stay in Git.
+/apps/hub/runs/
+/apps/hub/.impeccable/*
+!/apps/hub/.impeccable/surfaces/
+!/apps/hub/.impeccable/design.json
