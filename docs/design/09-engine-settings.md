@@ -149,10 +149,11 @@ applies at once, without a reload.
   visits on a native engine. In the browser, 1,024 visits of b10c128 take about 11 to 21 seconds on a fast desktop,
   so 8 seconds would cut the default depth on most machines. With 30 seconds, a fast machine reaches 1,024 visits,
   and the limit bounds a slow machine or b15c192 (704 visits in 30 seconds, measured in Edge).
-- **The page stops a timed search.** The protocol's `maxTime` does not apply to a search in slices (the engine
-  repository's [design 04](https://github.com/abstractclass-org/engines/blob/main/docs/design/04-notation-and-protocol.md),
-  "Fields for bots"). The page sends `terminate` at the limit, counted from the search's start, not from its wait in
-  the queue.
+- **The search's worker stops a timed search.** The protocol's `maxTime` does not apply to a search in slices (the
+  engine repository's [design 04](https://github.com/abstractclass-org/engines/blob/main/docs/design/04-notation-and-protocol.md),
+  "Fields for bots"). The worker counts the limit from the search's start, not from its wait in the queue. It sends
+  `terminate` at the end of the slice in which the limit passes, and its reply tells the page that the limit ended
+  the search. A timer of the page would stop the search late in a hidden tab (design 05).
 - **Lite is 512 and Standard 1,024:** under protocol 0.3, after the opening, 256 visits finds only 42% of the
   mistakes that 1,024 visits finds, and 512 visits finds 67%, with 80% of its flags right ("Label agreement against
   search budget, under protocol 0.3" in [decisions/engine.md](../decisions/engine.md)). A review exists to show the

@@ -63,9 +63,11 @@ noise.
      step waits for the batch: the key moments wait for the label pass's last result, and Review done for the last of
      all. When no search waits in the pool's queue, an engine can be free for that step, though the position on
      screen or another search still runs. Then the batch comes once the results are stored, without its timer. While
-     a search waits, every engine is busy, and the batch keeps its timer. A hidden tab runs that timer about once a
-     second, and later still when the page's timers have used up their share of the processor (Chromium gives a
-     hidden page's timers 1% of it). No search waits for a timer of the page.
+     a search waits, every engine is busy, and the batch keeps its timer. The batch with the label pass's last result
+     comes without its timer all the same: the key moments' searches go before the Greats' confirmations that wait,
+     so they are in the queue when the next engine is free. A hidden tab runs the batch's timer about once a second,
+     and later still when the page's timers have used up their share of the processor (Chromium gives a hidden page's
+     timers 1% of it). No search waits for a timer of the page.
    - **A search in slices yields by a message:** between two slices, the worker sends itself a message, so that a stop
      can arrive first. A timer would wait longer: from the sixth yield on, 4 ms at least, and 15.6 ms in a hidden tab
      of Edge.

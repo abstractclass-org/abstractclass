@@ -5251,9 +5251,18 @@ sweep.
   pass's end, the results of its last searches come in a batch each, at most one for each engine, as their searches
   end.
   - **The tests** (`packages/analysis/src/analysis.test.ts`): once no search waits, the results show when they are
-    stored, without the timer, and the label pass's last result shows so while a focus runs. Both failed before the
-    change. The fake pool now takes its tasks by priority, as the pool does. The tests of a result that waits for the
-    batch now keep a search waiting in the queue: with a flush at every result, five of them fail.
+    stored, without the timer, and a result shows so while a focus runs. Both failed before the change. The fake pool
+    now takes its tasks by priority, as the pool does. The tests of a result that waits for the batch now keep a
+    search waiting in the queue: with a flush at every result, five of them fail.
+- **The batch with the label pass's last result comes without its timer** (`analysis.svelte.ts`, `sweep`), though
+  searches wait in the pool's queue. In every whole review measured below, a Great's confirmation waited in the queue
+  when the label pass's last result came. So the rule above did not apply there, and the key moments' step waited for
+  the batch's timer. The key moments' searches go before the confirmations that wait, so they must be in the queue
+  when the next engine is free. An engine that frees during the timer's wait takes a confirmation, and a confirmation
+  does not give way. The label pass ends once each of its results is stored and in the batch. Then `sweep` applies
+  the batch, in a task of its own, once the pool has taken its next search.
+  - **The test:** the label pass's last result shows without the timer while two confirmations wait. It fails
+    without the flush. With the rule above turned off, only the two tests of that rule fail.
 - **The time limit in the worker** (`packages/engine/src/channel.ts`, `searchInSlices`). The engine's protocol
   (the engine repository's `docs/design/04-notation-and-protocol.md`, "Fields for bots" and "Search in slices") gives
   `maxTime` to a whole search only: "a search in slices takes none". A search in slices ends with `terminate` at the
@@ -5283,8 +5292,8 @@ sweep.
   and the worker's time at the end of each slice. `CDP_PORT` sets the browsers' port, so that two measurements at once
   do not meet.
 - **The time limit** (`FOCUS=16384,10`: the position on screen to 16,384 visits, for at most 10 seconds, so that its
-  search stops at the limit, with the end `sweep`). The position's search ran beside the sweep. Each run in its
-  order, in two sets. The first set did not note the slices' times:
+  search stops at the limit, with the end `sweep`). The position's search ran beside the sweep. The table gives the
+  runs in their order, in two sets. The first set did not note the slices' times:
 
   | Build | Set-up | Load | Visits | In the worker | Past the limit | The slice in which the limit passed | Slices after it |
   | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -5337,5 +5346,25 @@ sweep.
   search started 8.1 to 15.5 s after that reply, when a confirmation ended (a confirmation does not give way). No
   engine waited over 50 ms between two of its searches in any run. These four runs did not meet the case that the
   change is for: an engine free while a search runs and none waits. The tests above check it.
+- **The whole review with the label pass's flush** (the end `review`, the set-up `hidden`): before (`1d41673`, the
+  rule of no search waiting alone) and after (that rule and the flush at the label pass's end), two runs of each:
+
+  | Build | The tab | Load | The game's shape | Move quality | The key moments | Great moves | In all | The key moments' step after the label pass's last reply | Their first search after that reply |
+  | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+  | before | hidden | 22%, 1.7 | 32.1 s | 400.0 s | 24.0 s | 12.2 s | 468.3 s | 164 ms | 7.2 s |
+  | before | in front | 42%, 2.1 | 29.0 s | 313.0 s | 17.9 s | 11.0 s | 370.9 s | 108 ms | 5.3 s |
+  | after | hidden | 32%, 1.6 | 35.0 s | 412.4 s | 23.6 s | 13.1 s | 484.1 s | 5 ms | 7.1 s |
+  | after | hidden | 23%, 1.8 | 31.2 s | 390.9 s | 24.1 s | 13.7 s | 459.9 s | 6 ms | 8.2 s |
+
+  The second run before the change did not hide its tab: the probe saw no hidden state, and its chained timer of
+  250 ms ran every 254 ms. Its row shows the tab in front. In the other three runs, the tab was hidden for all of the
+  sweep, and the chained timer ran once a second. In every run, the engine of the label pass's last search took a
+  Great's confirmation at once, and the other engine ran a confirmation. Before the change, the key moments' step came
+  with the batch's timer: 108 ms in front (100 ms, and the write), and 164 ms when hidden (the next of the hidden
+  tab's runs of its timers, once a second). After it, the step came 5 to 6 ms after the reply, in both runs. The key
+  moments' first search did not start earlier: it waited 5.3 to 8.2 s for a confirmation to end in every run, as
+  before. A confirmation does not give way. The flush puts the key moments' searches in the queue at once. So the
+  next engine that frees takes one of them, not a confirmation that waits. In these runs, no engine freed during the
+  timer's wait.
 - **Not measured:** Edge, the GPU worker, the case of the batch with an engine free in a real browser, and a review
   in a tab hidden for over 5 minutes.

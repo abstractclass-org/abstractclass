@@ -622,7 +622,8 @@ export class GameAnalysis<G extends GameTypes> {
    *  skipped. Call after start() and once the pool has a network, and again to take the work up after a change (the
    *  engine on again, another label budget, another network). The branch moves evaluated on request are searched too.
    *  On the board, it makes the engine ready (ready), and no pass runs. After dropAnalysis, it does nothing until
-   *  usePool gives the next pool. */
+   *  usePool gives the next pool. The batch with the label pass's last result comes without its timer: the key
+   *  moments wait for it. */
   async sweep() {
     if (this.stalePool) return;
     if (this.board) { this.ready(); return; }
@@ -637,6 +638,11 @@ export class GameAnalysis<G extends GameTypes> {
     await pass(SWEEP_VISITS, PRIORITY.sweep, "sweep");
     if (run !== this.passes) return; // a later run took over, or another network
     await pass(this.labelVisits, PRIORITY.label, "label");
+    // The key moments wait for the batch with the label pass's last result. That batch comes without its timer, though
+    // searches wait in the pool's queue (the Greats' confirmations): in a task of its own, once the pool has taken its
+    // next search (search).
+    await nextTask();
+    if (run === this.passes) this.applyBatch();
   }
 
   /** Turns the engine off or on. Off: the searches stop, none starts, and what they found stays. On: the work not done
@@ -806,9 +812,10 @@ export class GameAnalysis<G extends GameTypes> {
         // The next step waits for this batch: the key moments wait for the label pass's last result, and Review done
         // for the last of all. With no search waiting in the pool's queue, an engine can be free for that step, though
         // a focus or another search still runs. So the batch then comes in a task of its own, once the pool has taken
-        // its next search, if any. While a search waits, every engine is busy, and the batch keeps its timer. That
-        // timer runs late in a hidden tab: about once a second, and later once the page's timers have used up their
-        // share of the processor (decisions/product.md, "A review in a hidden tab").
+        // its next search, if any. While a search waits, every engine is busy, and the batch keeps its timer, but for
+        // the label pass's last result (sweep). That timer runs late in a hidden tab: about once a second, and later
+        // once the page's timers have used up their share of the processor (decisions/product.md, "A review in a
+        // hidden tab").
         void nextTask().then(() => { if (!pool.waiting) this.applyBatch(); });
       });
       this.markRunning("running", pathKey(path), shown);

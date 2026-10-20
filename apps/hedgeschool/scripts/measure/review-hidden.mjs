@@ -63,15 +63,17 @@ const record = JSON.parse(readFileSync(FIXTURE, "utf8")).record;
 // The batch's delay and the slice of a search in slices, from their source: analysis.svelte.ts holds runes, which Node
 // cannot import.
 const analysisSource = readFileSync("../../packages/analysis/src/analysis.svelte.ts", "utf8");
-const constant = name => Number(analysisSource.match(new RegExp(`const ${name} = (\\d+);`))[1]);
-const BATCH_MS = constant("BATCH_MS"), SLICE_VISITS = constant("SLICE_VISITS");
+const sourceConstant = name => Number(analysisSource.match(new RegExp(`const ${name} = (\\d+);`))[1]);
+const BATCH_MS = sourceConstant("BATCH_MS"), SLICE_VISITS = sourceConstant("SLICE_VISITS");
 const LATE_MS = 340_000, WORKERS = Number(process.env.WORKERS ?? 2);
-let FOCUS = null;
-if (process.env.FOCUS) {
-  const [visits, seconds] = process.env.FOCUS.split(",").map(Number);
-  // The settings keep only their own steps (settings.ts), and take the default for another value.
+const FOCUS = process.env.FOCUS ? focusSettings(process.env.FOCUS) : null;
+
+/** FOCUS's visits and seconds. The settings keep only their own steps (settings.ts), and take the default for another
+ *  value. */
+function focusSettings(text) {
+  const [visits, seconds] = text.split(",").map(Number);
   if (!DEPTHS.includes(visits) || !TIME_LIMITS.includes(seconds)) throw new Error(`FOCUS: visits of ${DEPTHS.join(", ")}, seconds of ${TIME_LIMITS.filter(x => x).join(", ")}`);
-  FOCUS = { visits, seconds };
+  return { visits, seconds };
 }
 
 /** An init script that probes the tab: see the head of this file. */
@@ -209,12 +211,12 @@ function measure(d, traced) {
   const labels = [...firsts.values()];
   let moments = null;
   if (labels.length && labels.every(x => x.ended !== undefined)) {
-    const lastLabel = Math.max(...labels.map(x => x.ended)), at = t => (t === undefined ? null : t - lastLabel);
+    const lastLabel = Math.max(...labels.map(x => x.ended)), sinceLabel = t => (t === undefined ? null : t - lastLabel);
     const step = probe.steps.find(([t, s]) => s === "Reviewing: the key moments" && t >= lastLabel)?.[0];
-    const deep = searches.filter(x => x.slice === SLICE_VISITS && x.sent > lastLabel).sort((a, b) => a.sent - b.sent)[0];
+    const firstMoment = searches.filter(x => x.slice === SLICE_VISITS && x.sent > lastLabel).sort((a, b) => a.sent - b.sent)[0];
     // The searches that ran when the label pass's last reply came: [visits, slice].
     const running = searches.filter(x => x.sent < lastLabel && (x.ended ?? Infinity) > lastLabel).map(x => [x.visits, x.slice ?? null]);
-    moments = { step: at(step), first: at(deep?.sent), running };
+    moments = { step: sinceLabel(step), first: sinceLabel(firstMoment?.sent), running };
   }
   // The searches of the position on screen with FOCUS: their visits, their times past the time limit, the slice in
   // which the limit passed (its time in the worker), and the slices that ran after that one.

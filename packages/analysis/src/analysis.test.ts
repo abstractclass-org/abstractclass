@@ -1,9 +1,9 @@
 // Checks the analysis's batch (BATCH_MS in analysis.svelte.ts): a search's results so far and its final result are
 // applied together, at most once a batch, the deepest for each position, with what follows a search's end (the passes'
 // progress, its mark). And the order of a search's end: the engine takes its next search at once, and the result shows
-// in the batch after its write to the store, or once it is stored when no search waits in the pool's queue. And
-// another network: no pass searches on the old network's pool for the new network's analysis. And a focus's time
-// limit, which the engine's worker keeps. Run: npm test.
+// in the batch after its write to the store, or once it is stored when no search waits in the pool's queue or when it
+// is the label pass's last. And another network: no pass searches on the old network's pool for the new network's
+// analysis. And a focus's time limit, which the engine's worker keeps. Run: npm test.
 import { afterEach, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
 import "./testing/svelteModules.ts";
@@ -44,23 +44,23 @@ function fakePool(engines = Infinity) {
     },
   };
   let busy = 0;
-  const waiting: { priority: number; start: () => void }[] = [];
+  const queue: { priority: number; start: () => void }[] = [];
   const pool = {
     search: "test", model: { sha256: `m${++models}` }, // a network of its own: the cache's memory outlives a test
     rules: wordRules,
     run: (priority: number, _tag: string, work: Work<unknown>) => new Promise((resolve, reject) => {
       const start = () => {
         busy++;
-        work(engine as never, () => {}).then(resolve, reject).finally(() => { busy--; waiting.shift()?.start(); });
+        work(engine as never, () => {}).then(resolve, reject).finally(() => { busy--; queue.shift()?.start(); });
       };
       if (busy < engines) start();
       else {
-        waiting.push({ priority, start });
-        waiting.sort((a, b) => b.priority - a.priority);
+        queue.push({ priority, start });
+        queue.sort((a, b) => b.priority - a.priority);
       }
     }),
     cancel() {}, halt() {}, terminate() {},
-    get waiting() { return waiting.length; },
+    get waiting() { return queue.length; },
   };
   return { pool: pool as unknown as EnginePool, searches };
 }
@@ -242,23 +242,34 @@ test("once no search waits, the results show when they are stored, without the b
   await endEach(searches, 0, n, SWEEP_VISITS);
   await endEach(searches, n, 2 * n - 2, game.labelVisits); // the label pass but its last two searches
   assert.equal(game.labelled, 0); // the label pass's next search waited for the engine: the results wait for the batch
-  await endEach(searches, 2 * n - 2, 2 * n - 1, game.labelVisits);
+  searches[2 * n - 2].end(game.labelVisits);
+  await turns();
   assert.equal(game.labelled, n - 1); // its last search has the engine, and no search waits
-  await endEach(searches, 2 * n - 1, 2 * n, game.labelVisits);
-  assert.equal(game.labelled, n); // the label pass's last: the key moments, which wait for it, do not wait for the timer
 });
 
-test("the label pass's last result shows without the batch's timer while a focus runs", async () => {
+test("once no search waits, a result shows without the batch's timer while a focus runs", async () => {
   const { game, searches } = await sweeping(2);
   const n = game.passCount;
   await endEach(searches, 0, n, SWEEP_VISITS);
   await endEach(searches, n, 2 * n - 2, game.labelVisits); // the label pass's last two searches have the engines
   game.focus(game.mainNames.slice(0, 1)); // the player looks at a position: its search waits for an engine
   await settle();
-  await endEach(searches, 2 * n - 2, 2 * n - 1, game.labelVisits);
-  assert.equal(searches.length, 2 * n + 1); // the focus has the engine
-  await endEach(searches, 2 * n - 1, 2 * n, game.labelVisits);
-  assert.equal(game.labelled, n);
+  searches[2 * n - 2].end(game.labelVisits);
+  await turns();
+  assert.equal(searches.length, 2 * n + 1); // the focus has the engine, and no search waits
+  assert.equal(game.labelled, n - 1);
+});
+
+test("the label pass's last result shows without the batch's timer, though searches wait", async () => {
+  const { game, pool, searches } = await sweeping(1);
+  const n = game.passCount;
+  await endEach(searches, 0, n, SWEEP_VISITS);
+  await endEach(searches, n, 2 * n - 1, game.labelVisits); // the label pass but its last search, which has the engine
+  // Two Greats' confirmations wait: once the label pass's last search ends, one of them takes the engine, one waits.
+  for (let k = 0; k < 2; k++) void pool.run(0, "confirm", () => new Promise(() => {}));
+  searches[2 * n - 1].end(game.labelVisits);
+  await turns();
+  assert.equal(game.labelled, n); // the key moments, which wait for it, do not wait for the timer
 });
 
 test("the key moments' step waits for a search whose position left them, until its result is stored", async () => {
