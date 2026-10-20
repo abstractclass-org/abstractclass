@@ -4536,3 +4536,16 @@ sweep.
 - **Not measured:** the GPU worker (abscls-3cjw), the Idle class's effect, phones (whose browsers can freeze a hidden
   tab), macOS, a processor with efficiency cores (where Windows can move a throttled process's threads to them),
   Firefox and Safari, a window behind other windows or minimized, and a review of a game with custom settings.
+
+### The layout sweep runs in Edge only when asked (2026-10-20)
+
+- **What:** the project `edge` of `apps/hedgeschool/playwright.config.ts` comes only when the environment has
+  `HS_EDGE=1`. With no variable, `npm run test:layout` runs the project `chromium` alone. `npx playwright test --list`
+  gives 27 tests without the variable and 54 with it.
+- **Why:** on 2026-10-19 the Edge runs of a worker signed temporary profiles in to the owner's Windows account and
+  synced the owner's extensions. The workers' rules say `--project=chromium`, but one plain `npm run test:layout` was
+  enough to start Edge again.
+- **The base URL stays** the owner's preview (port 4173). A worker sets `BASE_URL` to its own preview. The config's
+  comment and `docs/working-notes.md` say so.
+- **CI is as it was:** `.github/workflows/tests.yml` runs `--project=chromium` on Linux (all tests) and on Windows
+  (`tests/layout.spec.ts`). It never ran Edge, so it needs no change.

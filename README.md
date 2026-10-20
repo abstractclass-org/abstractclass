@@ -34,7 +34,8 @@ npm run build                         # the full site, into build/
 VITE_EDITION=early npm run build      # the early access
 npm run preview                       # serve build/
 npm run build:cloudflare              # what the deploy runs: the engine's release, tests, type check, build
-npm run test:layout                   # the layout sweep, against the preview (tests/layout.spec.ts)
+npm run test:layout                   # the layout sweep in Chromium, against the preview (tests/layout.spec.ts)
+HS_EDGE=1 npm run test:layout         # the same, with Edge too (the owner only; see docs/hosting.md)
 ```
 
 To add a dependency to the site, run `npm install <package> -w apps/hedgeschool` at the root.

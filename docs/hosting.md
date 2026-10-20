@@ -337,11 +337,12 @@ the next visit).
   The sweep loads each page at every width from 360 to 1,920 pixels, with real scroll bars (tests/layout.spec.ts). A
   failed run keeps the failures' screenshots for a week (the run's **Artifacts**: `layout-sweep` for Linux,
   `layout-sweep-windows` for Windows).
-- **The sweep in Edge, as an option,** on this computer: it shows Edge's own drawing, with this computer's settings.
-  In `apps/hedgeschool`, build as production does (`VITE_EDITION=early npm run build`), start the preview
-  (`npm run preview -- --host 127.0.0.1 --port 4173`), and run `npx playwright test --project=edge` (about 7 minutes).
-  `npm run test:layout` runs both browsers. Either can run against a preview:
-  `BASE_URL=https://dev.hedgeschool.pages.dev npm run test:layout`.
+- **The sweep in Edge, as an option,** on this computer, by the owner: it shows Edge's own drawing, with this
+  computer's settings. A plain `npm run test:layout` runs Chromium alone. The project `edge` comes only when the
+  environment has `HS_EDGE=1`. In `apps/hedgeschool`, build as production does (`VITE_EDITION=early npm run build`),
+  start the preview (`npm run preview -- --host 127.0.0.1 --port 4173`), and run `HS_EDGE=1 npx playwright test
+  --project=edge` (about 7 minutes). A worker does not run Edge, because its profile signs in to the owner's Windows
+  account. Any run can use another site: `BASE_URL=https://dev.hedgeschool.pages.dev npm run test:layout`.
 - **Deploy:** release `dev` to `main` (`git push origin dev:main`). The workflow **Deploy** builds and uploads it in a
   few minutes (its build runs the unit tests and the type check again). A failed build leaves the live site as it was.
   Try a change first on `dev`'s preview.
