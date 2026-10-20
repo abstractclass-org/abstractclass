@@ -5,6 +5,7 @@
   // button, in a game's row or the review's bar, it had no room for the link's length or a warning. It opens only once
   // the game's review is done (`ready`): before, `why` says what to do.
   import { DropdownMenu } from "bits-ui";
+  import Toast from "#lib/ui/Toast.svelte";
   import { errorText } from "@abstractclass/engine/errors.ts";
   import { reviewExports, type ExportItem, type ExportKind, type ExportResult } from "#lib/game/reviewFile.ts";
   import { track } from "#lib/analytics.svelte.ts";
@@ -56,11 +57,5 @@
   </DropdownMenu.Root>
 </span>
 {#if busy || note}
-  <div class="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 flex items-start gap-3 w-max max-w-[min(32rem,calc(100vw-2rem))]
-              px-4 py-2.5 raised rounded-lg text-sm"
-       role="status" aria-live="polite">
-    <p class={failed ? "text-blunder" : "text-ink"}>{busy ? "Exporting…" : note}</p>
-    {#if !busy}<button type="button" class="-mr-1 px-1.5 py-0 text-muted bg-transparent border-0" aria-label="Close"
-                       onclick={() => { clearTimeout(timer); note = ""; }}>×</button>{/if}
-  </div>
+  <Toast text={busy ? "Exporting…" : note} {failed} onclose={busy ? undefined : () => { clearTimeout(timer); note = ""; }} />
 {/if}

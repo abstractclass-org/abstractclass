@@ -153,10 +153,11 @@ cut edges that are on the board, so a line drawn over the board can show edges t
 12. **Lichess's move menu** on a branch's move, by a right-click or a long press: "Evaluate quality" (item 11),
     "Promote variation" (the nearest branch on the path that is not the first from its parent becomes the first, as
     Lichess's `promoteAt`) and "Delete from here" (the move and what follows it, and the place on screen goes to the
-    fork when it was inside). On the game's own moves, the engine's lines and the notes, the same menu opens with each
-    action off, not the browser's menu: the review is of the game, so its line stays first, and its moves are
-    evaluated already.
-    "Make main line" belongs to an analysis board, later (decisions/open-items.md).
+    fork when it was inside). Every move, the game's own too, has "Copy image" and "Save image" (item 17). On the
+    game's own moves in a review, the other actions are off: the review is of the game, so its line stays first, and
+    its moves are evaluated already. On the engine's lines and the notes, the same menu opens with each action off,
+    not the browser's menu. The Analysis board's main line has the actions, and "Make main line" for a branch's move
+    (design 21).
 13. **A branch's preview:** pointing at a move of a branch's row in the move list shows the branch's line on the board,
     from the position where the line leaves the game, up to that move (`branchLine` in `tree.ts`). A row that forks from
     another branch starts at the fork, but its line starts at the game: the preview draws and numbers the edges that the
@@ -205,6 +206,34 @@ cut edges that are on the board, so a line drawn over the board can show edges t
     on the board clears the position's notes (chessground's `eraseOnClick`). The notes belong to the position on
     screen, as Lichess keeps an analysis board's shapes on each position of its tree, for the visit only: they are not
     kept in the browser. They hide while a preview shows another position.
+17. **An image of a line** (the move menu's "Copy image" and "Save image", item 12, in a review and on the Analysis
+    board): players share lines with their community as screenshots, a position and how it could have gone, with the
+    edges numbered. The image is a PNG of the board with a caption under it, made in the player's browser.
+    - **The line, by the move under the menu** (`imageLine` in `lineImage.ts`):
+      - A branch's move: the branch's line from where it leaves the main line, numbered as its preview numbers it
+        (item 13, `branchLine`). The position on screen does not change it.
+      - A main line move ahead of the position on screen: the line from the position on screen to that move. A
+        position made in the board editor has only a main line, so this is how a player shares a line from it.
+      - Any other main line move (on screen, behind it, or on another line than the one on screen): the position
+        after the move, with the edge that it cut, and no numbers.
+    - **What the board draws:** all the line's edges at once with their numbers (the Static form of "Lines on the
+      board", whatever the setting), the edges that they cut and the regions after the last edge, and the player's
+      notes (item 16) on the position where the line starts. No candidates and no labels. The protected edges follow
+      the display setting.
+    - **The caption** (text that explains): the turn and who plays where the line starts ("Turn 12. Blue plays two
+      edges."), then each player's points and area there ("Before edge 1: …") and after the line's last edge
+      ("After edge 6: …"), and the site's name, small. A position with no line gives its numbers once.
+    - **How it is drawn** (`boardImage.ts`): the board's SVG (`Board.svelte`) is drawn apart from the page, its
+      computed colours and fonts are written into each element, and a canvas draws it at twice its size on screen, at
+      least 1,200 pixels wide, with the caption under it. Lichess renders its board images on its server from the FEN.
+      This one needs no server, so the site stays static.
+    - **The light look, in either theme:** an image leaves the site, for chats and forums of either background and for
+      print. The light board keeps the edges' and regions' contrast on paper and on a dark chat. One look also makes
+      the images of a line alike, whoever made them.
+    - **The clipboard:** `navigator.clipboard.write` with a `ClipboardItem` (Chrome, Edge, Safari, Firefox 127 and
+      later). The write starts within the player's click, with the image still being drawn, as Safari asks. Where the
+      browser refuses an image, a note says "This browser cannot copy an image. Save the image as a file." with a
+      "Save image" button. "Save image" gives a file, `hedge-school-after-edge-N-line-M.png`.
 
 ## Why
 
@@ -309,6 +338,10 @@ cut edges that are on the board, so a line drawn over the board can show edges t
 - `src/lib/board/Board.svelte`: `onlyActive` (the points that take the pointer), `oncandidatedblclick`, the pointer's
   press, drag and release (a click, a dragged edge, a note), and the notes drawn.
 - `src/lib/board/notes.ts`: the notes, `toggleNote` and `brushFor` (tests in `notes.test.ts`).
+- The image of a line: `src/lib/review/lineImage.ts` (`imageLine`, `imageCaption`, `imageName`, tests in
+  `lineImage.test.ts`), `src/lib/board/boardImage.ts` (the PNG, `copyPng`), `imageOf` in `ReviewView.svelte`, and the note in
+  `src/lib/ui/Toast.svelte` (the Export menu's too).
+  `[data-theme="light"]` in `src/app.css` gives the light tokens to the board that the image draws.
 - `packages/analysis/src/model.ts`: `enoughVisits`, `trustedLine` (the 25-visit cut, with its tests in
   `src/lib/review/enclosure.test.ts`). `src/lib/review/enclosure.ts`: `lineMovers`, `LineStep`.
 - `src/lib/review/display.ts`: the "one edge at a time" setting, and `branchText` (circles or notation).
@@ -318,4 +351,4 @@ cut edges that are on the board, so a line drawn over the board can show edges t
 
 - [decisions/product.md](../decisions/product.md), "The engine's line on the board", "The engine's line: where it
   stops", "The engine's line listed, and branches", its two rounds of feedback, and "The player's own moves, keys and
-  the move menu".
+  the move menu", and "An image of a line".

@@ -116,6 +116,8 @@ searching it again, and to share it as text that others can read.
 9. **The review file saved to a partner site** ([design 18](18-partner-links.md)): a game that came by a partner
    site's link offers "Save to" that site first in the Export menu. The review file goes to the site's save page, in
    the player's browser, when the player chooses it.
+10. **An image of a line** (design 07, item 17): the move menu's "Copy image" and "Save image" give a PNG of the board,
+    with the line of the move numbered and a caption. It is not in the Export menu: it shares a line, not the game.
 
 ## Why
 
@@ -173,4 +175,4 @@ searching it again, and to share it as text that others can read.
 
 - [decisions/product.md](../decisions/product.md): "Export and import of reviewed games" (2026-10-12), "A review
   shared by link, and the Greats in the review file" (2026-10-13), "The snapshot reads its results by their keys"
-  (2026-10-18).
+  (2026-10-18), "An image of a line" (2026-10-20).

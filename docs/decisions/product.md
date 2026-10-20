@@ -4702,3 +4702,57 @@ sweep.
 - **Why:** few people play Enclosure, so statistics of their games are not worth the work. The checks add little to
   the review of a player's own game. The labels already fit nothing to people (design 10).
 - **meaf.us:** the site asks meaf.us for nothing. The request for an export (abscls-c4u) is closed.
+
+### An image of a line (2026-10-20)
+
+- **Asked for** (abscls-yeqg): players share lines with their community as screenshots: a position, and how it could
+  have gone, with the edges numbered. They held the pointer on a branch's move and took the screenshot by hand.
+- **Decided** (design 07, item 17): the move menu has "Copy image" and "Save image" on every move, in a review and on
+  the Analysis board, the game's own moves too. In a review, the menu's other actions stay off on the game's moves.
+  - **The line:** for a branch's move, the branch's line from where it leaves the main line, numbered as its preview
+    numbers it (`branchLine`). For a main line move ahead of the position on screen, the line from there to the move.
+    A position made in the board editor has only a main line, so this is how a player shares a line from it. For any
+    other main line move, the position after the move.
+  - **The board:** every edge of the line at once with its number, the edges that it cuts, the regions after it, and
+    the player's notes on the position where the line starts. No candidates and no labels.
+  - **The caption** (text that explains): "Turn 12. Blue plays two edges.", then each player's points and area
+    before edge 1 and after the last edge, and "Hedge School", small.
+  - **The clipboard:** a PNG through `navigator.clipboard.write`. Where the browser refuses an image, the note says
+    "This browser cannot copy an image. Save the image as a file." (text that a player follows, strict Simplified
+    Technical English) with a "Save image" button.
+- **The look: light, in either theme.** An image leaves the site. It goes to chats and forums of either background,
+  and to print. The light board keeps the contrast of the edges and the regions on paper and inside a dark chat's
+  frame. One look also makes the images of one line alike, whoever made them. A dark image on a light forum, or on
+  paper, loses that. `[data-theme="light"]` in `app.css` gives the light tokens to the board that the image draws, in a
+  page in the dark theme.
+- **How:** in the player's browser, with no server (Lichess renders its board images on its server, from the FEN).
+  `boardImage.ts` draws the board's component apart from the page, writes each element's computed style into the
+  copy of its SVG, and draws that on a canvas at twice the board's size on screen, at least 1,200 pixels wide, with
+  the caption under it. The write to the clipboard starts within the player's click, with the image still being
+  drawn, as Safari asks.
+- **Checked:** `npm run check` and `npm test` in `apps/hedgeschool` (177 tests, among them `lineImage.test.ts`: the
+  line for each kind of move, the caption's text and the file's name), the packages' type checks and tests, and the
+  layout sweep in Chromium (21 passed, and 6 skipped for want of the Google tag and of stored practice games in a
+  local build). A script drove the production build in headless Chromium, on the stored review in
+  `tests/fixtures/hedgefund-review.json`, in the dark theme. Each image was decoded in the page, and each was looked
+  at:
+  - **A branch's move:** the engine's line under the Blunder, played to its third edge. Its image numbered the 3 edges
+    from the position after edge 11, at the places and in the movers' colours of the preview's badges. The image was
+    1,200 × 1,415 pixels. The PNG on the clipboard and the saved file had the same pixels. The clipboard encodes an
+    image again, so their bytes differ.
+  - **A main line move ahead of the position on screen:** at the position after edge 20, with a ring drawn on K10, the
+    image of edge 24 numbered edges 21 to 24 from there, with the ring.
+  - **A main line move behind it:** edge 5 gave the position after it, with no numbers and a caption of two lines.
+  - **The board and the caption:** the board's corner had the light board's colour in the dark page. The caption's
+    band was white, with its text.
+  - **The menu:** on a game's move in a review, "Promote variation", "Evaluate quality" and "Delete from here" were
+    off, and the two image items on.
+  - **A browser with no `ClipboardItem`:** the note showed with its button, and the button saved the file.
+  - **A long press:** in a phone's window with touch, a press of 900 ms on the branch's move opened the menu, and its
+    "Copy image" copied the same line.
+  - **The Analysis board:** three edges played on its main line. From the start, the image of the third edge numbered
+    all three.
+- **Not checked:** Edge (excluded for this work: on 2026-10-19 a test's Edge profiles signed in to the owner's
+  Windows account and synced its extensions), Safari and Firefox, and a real touch screen. The image of an edge of the
+  engine's line in the move list is not offered: the edge is not in the tree, so the line has no positions to give
+  the caption its points.
