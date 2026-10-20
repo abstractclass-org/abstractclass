@@ -3,7 +3,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { STANDARD_START } from "#lib/engine/notation.ts";
-import { drawEdge, moverOf, placeable, readPosition, toggleMark, writePosition } from "./position.ts";
+import { chooseMover, drawEdge, followBoard, moverOf, placeable, readPosition, ruleOf, toggleMark,
+         writePosition } from "./position.ts";
 
 test("the edge count fixes the mover and the edges left", () => {
   // The notation page's examples: the start, then after Blue's first turn, Red's first edge, and Blue's first edge of
@@ -50,6 +51,48 @@ test("the editor places edges at most 3 apart in each direction", () => {
   assert.ok(placeable(5, 5, 4, 2));
   assert.ok(!placeable(0, 0, 4, 0));
   assert.ok(!placeable(2, 2, 2, 2));
+});
+
+test("the edge count follows the board: the edges drawn, not the start edges", () => {
+  let p = followBoard(drawEdge(readPosition(STANDARD_START), [3, 9, 3, 12], 0), null); // D10-D13
+  assert.equal(writePosition(p), "A10-D10,D10-D13 Q10-T10 r2 0/0 1");
+  p = followBoard(drawEdge(p, [15, 9, 15, 12], 1), null); // Q10-Q13
+  assert.equal(p.count, 2);
+  p = followBoard(drawEdge(p, [3, 9, 3, 12], 0), null); // D10-D13 again: removed
+  assert.equal(p.count, 1);
+  p = followBoard(drawEdge(p, [0, 9, 3, 9], 0), null); // Blue's start edge removed (a cut): the count stays
+  assert.equal(writePosition(p), "- Q10-Q13,Q10-T10 r2 0/0 1");
+});
+
+test("a typed count stays as edges are drawn", () => {
+  const p = followBoard(drawEdge(readPosition("A10-D10 Q10-T10 b1 3/0 30"), [3, 9, 3, 12], 0), "typed");
+  assert.equal(writePosition(p), "A10-D10,D10-D13 Q10-T10 r1 3/0 30");
+});
+
+test("a mover chosen moves the count on to the next count with that mover", () => {
+  // Three edges drawn: Blue to play, 2 left. Red: count 5, the first edge of Red's turn 4.
+  const three = readPosition("A10-D10,D10-D13,D13-G13 Q10-T10,Q10-Q13 b2 0/0 3");
+  let { pos, rule } = chooseMover(three, null, 1);
+  assert.equal(rule, 1);
+  assert.equal(pos.count, 5);
+  pos = followBoard(drawEdge(pos, [15, 12, 18, 12], 1), rule); // four drawn: still count 5
+  assert.equal(pos.count, 5);
+  pos = followBoard(drawEdge(drawEdge(pos, [6, 12, 6, 15], 0), [18, 12, 18, 9], 1), rule); // six drawn: Red's second edge
+  assert.equal(writePosition(pos).split(" ").slice(2).join(" "), "r1 0/0 6");
+  // The mover of the count drawn is no move: the count stays.
+  assert.equal(chooseMover(three, null, 0).pos.count, 3);
+  // A typed count moves on from itself, and stays typed.
+  ({ pos, rule } = chooseMover({ ...three, count: 10 }, "typed", 0));
+  assert.deepEqual([pos.count, rule], [11, "typed"]);
+  // Near the end: Blue's last turn (119) has no Red count after it, so Red takes the last before it.
+  assert.equal(chooseMover({ ...three, count: 119 }, "typed", 1).pos.count, 118);
+});
+
+test("a position read follows the board when its count is the board's", () => {
+  assert.equal(ruleOf(readPosition(STANDARD_START)), null);
+  assert.equal(ruleOf(readPosition("A10-D10,D10-D13,D13-G13 Q10-T10,Q10-Q13 r2 0/0 5")), 1); // three drawn, Red's
+  assert.equal(ruleOf(readPosition("A10-D10,D10-D13,D13-G13 Q10-T10,Q10-Q13 b1 0/0 4")), "typed"); // Blue's, not 3
+  assert.equal(ruleOf(readPosition("A10-D10 Q10-T10 r1 0/0 30")), "typed");
 });
 
 test("a position that is not well formed says why", () => {

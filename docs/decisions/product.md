@@ -4549,3 +4549,58 @@ sweep.
   comment and `docs/working-notes.md` say so.
 - **CI is as it was:** `.github/workflows/tests.yml` runs `--project=chromium` on Linux (all tests) and on Windows
   (`tests/layout.spec.ts`). It never ran Edge, so it needs no change.
+
+### The board editor: the right button, chains, and a count that follows the board (2026-10-20)
+
+- **Asked for:** a position in the board editor (design 21, item 10) took many clicks, and choices that a player
+  cannot always make: the edge count and the scores.
+- **Decided:**
+  - **The right button draws the other player's edge,** as drawing programs do: in MS Paint the left button draws
+    the main colour and the right button the second. With Blue's tool, a left click draws Blue and a right click
+    Red, and the other way with Red's. The click that completes an edge sets its player. With the marks, the right
+    button does what the left does. **X** swaps the two players' tools, as Photoshop's X swaps its two colours. The
+    editor has no notes, so its right button was free. The Analysis board keeps its right button for notes (design
+    07, item 16). A touch screen keeps the tool buttons.
+  - **Chains:** after an edge, its end stays as the next edge's first point, so an enclosure's chain of edges takes
+    one click for each edge. Escape ends the chain, and so does a click on that point again, which is the way on a
+    touch screen. A removed edge ends the chain, and the marks take no chain.
+  - **The edge count follows the board:** the edges drawn, all but the two start edges, until the player types a
+    count, which then stays. "Blue to play" and "Red to play" move the count on to the next count with that mover,
+    and with a count from the board the choice stays as edges are drawn. The scores stay as they are until the player
+    types them. The page says that the engine uses this edge count and these scores. The notation stays a complete
+    position: a cut removes an edge, a timeout's forfeited edges count, and a score adds the areas at each turn's end
+    (the engine repository's design 04), so neither the count nor the scores follow from the board. An exact
+    position comes from a real game.
+- **Choices made in the building:**
+  - **The start edges are not in the count.** The standard start has two edges at the count 0, so a count of all the
+    edges on the board would make the standard start count 2. The edges drawn, less A10-D10 and Q10-T10, are the
+    edges played when no edge was cut and no turn forfeited. They are a lower bound on the count in any game.
+  - **A position read from the notation** (pasted, brought from the board, or kept by the browser for a reload)
+    follows the board when its count is the one that the board gives, with or without a mover chosen, and else keeps
+    its count as typed. So a reload keeps the rule without a second stored value.
+  - **A drag always begins its edge at the pressed point.** With chains, a point is nearly always waiting, and a drag
+    from another point would else draw an edge from the chain's end to the pressed point. The board tells the page
+    that a drag's press begins an edge.
+  - **Remove all edges** keeps a typed count. Standard start sets the count back to the board's.
+- **Where the chains and the two-click edge meet:** a new edge that starts near the last edge's end needs the chain
+  ended first (Escape, or a click on the end again). Else its first click draws an edge from the chain's end. A point
+  too far for an edge begins a new edge, as before. This is the one way that the two can confuse. The help says how
+  to stop a chain, and the dashed edge from the waiting point shows what the next click draws.
+- **Done:** `followBoard`, `chooseMover` and `ruleOf` in `src/lib/editor/position.ts` give the count, with checks in
+  `position.test.ts`. The board takes the right button on a point when the page asks for it (`rightClicks`) and has
+  no notes, and tells the page each click's button and whether it begins an edge (`PointClick`). The editor has a
+  "Keys and clicks" list under its tools. The sentence about the count and the scores follows strict Simplified
+  Technical English by its sentence rules (the `/asd-ste100` skill). ASD's dictionary was not available, so no one
+  checked the words against it.
+- **Checked:** `npm run check`, `npm test` (175 checks), the packages' check and tests (43 checks), the build, and
+  the layout sweep in Playwright's Chromium (11 passed, `/editor` among them). A script drove `/editor` on the production build in headless Chromium, with a mouse and
+  with a touch screen (390 by 844 pixels), and all 45 of its checks passed:
+  - Left and right clicks with each tool, and X in both directions. X in the position field left the tool as it was.
+  - A chain of four edges that closed a square, then Escape. A click on the chain's last point ended the chain, and
+    so did a removal.
+  - A drag from another point while a chain waited drew its own edge.
+  - The count as edges were drawn and removed, a typed count that stayed for both, and the mover choice with a count
+    from the board and with a typed one. A reload kept the mover chosen.
+  - The marks with the left and the right button, with no chain.
+  - No context menu showed on a right click in the editor. On the Analysis board, a right click drew a note's ring.
+  - Taps drew a chain, and the Red tool button worked by touch.

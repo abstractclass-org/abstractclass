@@ -119,13 +119,40 @@ engine does by itself.
       Lichess's editor starts from its analysis board, and a card on the home page. Its address is `/editor#position=…`.
       The position leaves the address at once, and the browser keeps the one being made, so that a reload keeps it.
     - **Three tools:** Blue's edges, Red's edges, and the marks. An edge is two clicks: its two points, at most 3 apart
-      in each direction (the engine's 48 directions). The same edge again removes it, and the other player's tool
-      gives it to that player. A mark is an edge of the turn: the waiting player's edges of the last turn (protected,
-      `*`) and the mover's edges of this turn so far (placed, `+`). The page writes `*` or `+` from the edge's player
-      and the mover, so a mark follows a change of the edge count. A player has at most two marked edges.
+      in each direction (the engine's 48 directions), or a drag from one to the other. The same edge again removes it,
+      and the other player's tool gives it to that player. A mark is an edge of the turn: the waiting player's edges of
+      the last turn (protected, `*`) and the mover's edges of this turn so far (placed, `+`). The page writes `*` or
+      `+` from the edge's player and the mover, so a mark follows a change of the edge count. A player has at most two
+      marked edges.
+    - **The right button draws the other player's edge,** as in drawing programs: in MS Paint the left button draws
+      the main colour and the right button the second. With Blue's tool, a left click draws Blue and a right click
+      Red, and the other way with Red's. The click that completes an edge sets its player, and the dashed edge shows
+      the player of the last click's button. With the marks, the right button does what the left does. The editor has
+      no notes, so its right button is free. The Analysis board keeps its right button for notes (design 07, item 16).
+      **X** swaps the two players' tools, as Photoshop's X swaps its two colours. A touch screen has no right button,
+      so it keeps the tool buttons.
+    - **Chains:** after an edge, its end point stays as the next edge's first point, so an enclosure's chain of edges
+      takes one click for each edge. **Escape** ends the chain, and so does a click on that point again (the way on a
+      touch screen). A removed edge ends the chain. A point too far for an edge begins a new one, and a drag always
+      begins its edge at the pressed point. The marks take two clicks each, with no chain. The cost: a new edge that
+      starts near the last edge's end needs the chain ended first, or else the first click draws an edge from that end.
+    - **The edge count follows the board:** it is the edges drawn, all but the two start edges (A10-D10 and Q10-T10,
+      each player's edge before the first), until the player types a count, which then stays. A choice "Blue to play"
+      or "Red to play" moves the count on to the next count with that mover. With a count from the board, the choice
+      stays as edges are drawn. A typed count moves on from itself and stays typed. The scores stay as they are until
+      the player types them: 0/0 from the start. A position read from the notation (pasted, brought, or kept by the
+      browser) follows the board when its count is the one that the board gives, with or without a mover chosen, and
+      else keeps its count as typed (`CountRule` in `src/lib/editor/position.ts`). The page says that the engine's
+      numbers assume this count and these scores.
+    - **The edge count and the scores are not the board's:** the notation stays a complete position. Neither follows
+      from the edges on the board (the engine repository's design 04): a score adds each player's enclosed area at
+      each turn's end, a cut removes an edge, and a timeout's forfeited edges count. The edges drawn are the edges
+      played only when no edge was cut and no turn forfeited. An exact position comes from a real game: the import
+      can analyze it.
     - **The edge count and the scores** are fields. The edge count fixes the mover and the edges left in its turn,
       which the page shows (a pass forfeits the rest of its turn, and the forfeited edges count). The page computes
       only the notation's turn structure (`moverOf` in `src/lib/editor/position.ts`). The engine checks the rest.
+    - **Keys and clicks:** a list under the tools, closed until opened, gives the clicks, X and Escape.
     - **The position in the notation** is a field too, with a Copy button: it shows the position, and a position
       pasted there replaces it.
     - **The engine draws and checks it** at each change (request 16, protocol 0.5's `describe`): the board with its

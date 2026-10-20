@@ -75,6 +75,46 @@ export function drawEdge(p: EditorPosition, edge: Edge, player: Player): EditorP
   return { ...p, edges };
 }
 
+/** How the editor sets the edge count: from the board, or as the player typed it. From the board, the count is the
+ *  edges drawn (`null`), or the first count from there with a chosen player to move. The edges drawn are the edges
+ *  played when no edge was cut and no turn forfeited: neither follows from the board (the engine repository's design
+ *  04), so a count typed stays. */
+export type CountRule = Player | null | "typed";
+
+const START_EDGES: Edge[] = [[0, 9, 3, 9], [15, 9, 18, 9]]; // A10-D10 and Q10-T10, each player's edge before the first
+/** The edges on the board that a game played: all but the start edges. */
+const drawnCount = (p: EditorPosition) =>
+  p.edges.filter(e => !sameEdge(e.edge, START_EDGES[e.player])).length;
+
+/** The first count from `count` on with `player` to move, or the last before it near the game's end. */
+function nextCount(count: number, player: Player): number {
+  for (let c = count; c < LAST_COUNT; c++) if (moverOf(c).player === player) return c;
+  for (let c = count - 1; c > 0; c--) if (moverOf(c).player === player) return c;
+  return count;
+}
+
+/** The position with the edge count that its rule gives. */
+export function followBoard(p: EditorPosition, rule: CountRule): EditorPosition {
+  if (rule === "typed") return p;
+  const drawn = Math.min(drawnCount(p), LAST_COUNT);
+  return { ...p, count: rule === null ? drawn : nextCount(drawn, rule) };
+}
+
+/** The position and its rule after the player chooses who is to move: a typed count moves on from itself, and a count
+ *  from the board keeps the choice as edges are drawn. */
+export function chooseMover(p: EditorPosition, rule: CountRule, player: Player): { pos: EditorPosition; rule: CountRule } {
+  if (rule === "typed") return { pos: { ...p, count: nextCount(p.count, player) }, rule };
+  return { pos: followBoard(p, player), rule: player };
+}
+
+/** The rule of a position read from the notation: from the board when its count is the one the board gives, else
+ *  typed. */
+export function ruleOf(p: EditorPosition): CountRule {
+  if (followBoard(p, null).count === p.count) return null;
+  const mover = moverOf(p.count).player;
+  return followBoard(p, mover).count === p.count ? mover : "typed";
+}
+
 /** The position with an edge's mark changed, or null when no edge is there. */
 export function toggleMark(p: EditorPosition, edge: Edge): EditorPosition | null {
   const at = p.edges.findIndex(e => sameEdge(e.edge, edge));

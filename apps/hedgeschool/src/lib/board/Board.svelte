@@ -13,6 +13,9 @@
   export interface BoardLayers { regions: boolean; protected: boolean; candidates: boolean; marks: boolean; coordinates: boolean }
   export const DEFAULT_LAYERS: BoardLayers = { regions: true, protected: true, candidates: true, marks: true, coordinates: true };
   export type { BoardNote, NoteBrush } from "./notes.ts";
+  /** A click on a point: with the right button (only with `rightClicks`), and whether it begins an edge (a drag's press,
+   *  whatever point is pending). */
+  export interface PointClick { right: boolean; begin: boolean }
 </script>
 
 <script lang="ts">
@@ -41,7 +44,8 @@
     active?: [number, number][] | null; // the points a click acts on (null: every point); the others show no hover
     view?: [number, number, number, number]; // the points shown: x0, y0, x1, y1 (a crop for lessons)
     targets?: Edge[]; // edges to point at, drawn as a soft glow (a lesson's hint)
-    onpoint?: (x: number, y: number) => void;
+    onpoint?: (x: number, y: number, how: PointClick) => void;
+    rightClicks?: boolean; // the right button clicks points too (PointClick's `right`): only on a board with no notes
     onlyActive?: boolean; // only the points a click acts on take the pointer, so that the candidates under the others keep it
     oncandidate?: (edge: Edge | null) => void;
     oncandidateclick?: (edge: Edge) => void;
@@ -53,8 +57,8 @@
     position, cut = null, candidates = [], highlight = null, line = null,
     preview = null, previewPlayer = 0, marks = [], ghost = null,
     layers: layersSet = {},
-    pending = null, ends = null, active = null, view = [0, 0, 18, 18], targets = [], onpoint, onlyActive = false, oncandidate, oncandidateclick,
-    oncandidatedblclick, notes = [], onnotes,
+    pending = null, ends = null, active = null, view = [0, 0, 18, 18], targets = [], onpoint, rightClicks = false, onlyActive = false,
+    oncandidate, oncandidateclick, oncandidatedblclick, notes = [], onnotes,
   }: Props = $props();
 
   const layers = $derived({ ...DEFAULT_LAYERS, ...layersSet });
@@ -132,8 +136,9 @@
   function leave() { hoveredEdge = null; oncandidate?.(null); }
 
   // The pointer on the board. A press and release on a point is a click (onpoint). A press on a point and a drag (Lichess
-  // drags a piece, as it also takes two clicks) begins the edge there, and the release on a point completes it: the
-  // dashed edge follows the pointer to a legal end, as on hover. A release elsewhere leaves the edge begun.
+  // drags a piece, as it also takes two clicks) begins the edge there (`begin`), and the release on a point completes
+  // it: the dashed edge follows the pointer to a legal end, as on hover. A release elsewhere leaves the edge begun. With
+  // `rightClicks`, the right button does the same, and the page reads `right`.
   let svg: SVGSVGElement;
   const same = (a: [number, number] | null | undefined, b: [number, number] | null | undefined) => !!a && !!b && samePoint(a, b);
   /** The lattice point nearest the pointer, within the points shown, or null off the board. */
@@ -147,10 +152,11 @@
   /** The pointer's later moves come to the board, wherever they go. A pointer that is no longer down cannot be held. */
   const capture = (ev: PointerEvent) => { try { svg.setPointerCapture(ev.pointerId); } catch { /* not down any more */ } };
   const DRAG_PX = 4; // a press that moves less is a click
-  let press: { id: number; from: [number, number]; x: number; y: number; moved: boolean } | null = null;
+  let press: { id: number; from: [number, number]; x: number; y: number; moved: boolean; right: boolean } | null = null;
+  const rightPoints = $derived(rightClicks && !onnotes);
   function pressPoint(ev: PointerEvent, x: number, y: number) {
-    if (ev.button !== 0) return;
-    press = { id: ev.pointerId, from: [x, y], x: ev.clientX, y: ev.clientY, moved: false };
+    if (ev.button !== 0 && !(ev.button === 2 && rightPoints)) return;
+    press = { id: ev.pointerId, from: [x, y], x: ev.clientX, y: ev.clientY, moved: false, right: ev.button === 2 };
     capture(ev);
   }
 
@@ -175,7 +181,7 @@
     if (!press || ev.pointerId !== press.id) return;
     if (!press.moved && Math.hypot(ev.clientX - press.x, ev.clientY - press.y) > DRAG_PX) {
       press.moved = true;
-      if (!same(pending, press.from)) onpoint?.(...press.from); // the edge begins at the pressed point
+      if (!same(pending, press.from)) onpoint?.(...press.from, { right: press.right, begin: true }); // the edge begins here
     }
     if (press.moved) hoverPoint = pointAt(ev);
   }
@@ -188,10 +194,10 @@
     if (!press || ev.pointerId !== press.id) return;
     const p = press;
     press = null;
-    if (!p.moved) { onpoint?.(...p.from); return; }
+    if (!p.moved) { onpoint?.(...p.from, { right: p.right, begin: false }); return; }
     hoverPoint = null;
     const q = pointAt(ev);
-    if (q && !same(q, p.from) && same(pending, p.from)) onpoint?.(...q);
+    if (q && !same(q, p.from) && same(pending, p.from)) onpoint?.(...q, { right: p.right, begin: false });
   }
   function cancel(ev: PointerEvent) {
     if (sketch?.id === ev.pointerId) sketch = null;
@@ -230,7 +236,7 @@
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <svg class="board" viewBox={box} role="img" aria-label="Enclosure board" bind:this={svg}
      onpointerdown={down} onpointermove={move} onpointerup={up} onpointercancel={cancel}
-     oncontextmenu={ev => { if (onnotes) ev.preventDefault(); }}>
+     oncontextmenu={ev => { if (onnotes || rightPoints) ev.preventDefault(); }}>
   <rect x="-1.3" y="-1.3" width="20.6" height="20.6" class="bg" />
   <!-- The label badges' shadow, as Lichess's board draws under its glyph badges (chessground's glyph.ts:
        feDropShadow dx 4, dy 7, deviation 5, opacity 0.5 on a disc of radius 50), scaled to the badge's radius of
