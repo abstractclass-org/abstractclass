@@ -58,7 +58,8 @@ learn one, and remove a note when it stops being true. The work itself is in bea
   write them again. Its tests are in `speed.test.mjs`. `review-first-frame.mjs`, `review-start.mjs`,
   `review-sweep.mjs` (a sweep's tasks, two builds in pairs), `review-hidden.mjs` (a review in a tab in front and in a
   hidden tab, in Chromium, and in Edge with `HS_EDGE=1`), `worker-yield.mjs` (a worker's yield between two slices of
-  a search) and `layout-shift.mjs` use it.
+  a search), `review-ownership.mjs` (a whole review's time and store, two builds in pairs) and `layout-shift.mjs` use
+  it.
   - `watchSweep(settings)` is an init script that marks a review's sweep (`sweep:start`, `sweep:end`) and notes each
     search that the page sends to a worker, and each worker made and ended. `sweepGaps` gives the gaps between one
     engine's searches from those notes. `launchHideable` gives a browser whose tab can be hidden (see "A hidden tab in

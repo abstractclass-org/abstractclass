@@ -91,7 +91,8 @@ cut edges that are on the board, so a line drawn over the board can show edges t
    Shift + ↑ and ↓ to the line beside this one, from the nearest fork above. Home and End go to the start and the line's
    end. **Single keys beside the Shift keys,** from other tools: k and j go back and forward (Lichess's). b and n go to
    the previous and the next fork (KaTrain's b). So do [ and ], and Shift + k and j (Lichess's). x and c, or comma and
-   period, go to the line before and after (En Croissant's x and c). None of them clash. Kept free for later: m and
+   period, go to the line before and after (En Croissant's x and c). t shows or hides the area map (KaTrain's key for
+   its Territory, design 30). None of them clash. Kept free for later: m and
    Shift + m for the next and the previous mistake (KaTrain's n, which the forks take here), and Delete. "?" opens the
    list of keys and clicks (Lichess's "?"), as does "Keys and clicks" in the display settings.
 5. **Branches show in the move list** under the turn where they start, after its comments (Lichess's column view):

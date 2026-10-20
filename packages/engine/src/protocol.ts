@@ -75,7 +75,8 @@ export interface AnalysisQuery extends PositionQuery {
   maxVisits: number;
   slice?: { visits: number } | { ms: number };
   includePolicy?: boolean;
-  includeOwnership?: boolean;
+  includeOwnership?: boolean; // KataGo's: the reply gives `ownership`
+  includeMovesOwnership?: boolean; // KataGo's: each candidate of `moveInfos` gives its `ownership` too
   includePVVisits?: boolean; // KataGo's: the reply gives the visits of each move of each pv
 }
 
@@ -102,6 +103,9 @@ export interface MoveInfo {
   // A symmetric twin (0.4): the edge that was searched, of which this edge is the mirror image. Its values, visits and
   // prior are that edge's, its line and ownership mirrored. Absent for a searched edge.
   isSymmetryOf?: string;
+  // With includeMovesOwnership: the ownership of the candidate's subtree, as `ownership` gives the root's. About 3 kB
+  // of JSON for each candidate, so the site does not ask for it (Hedge School's design 30).
+  ownership?: number[];
 }
 
 export interface RootInfo {
@@ -124,7 +128,11 @@ export interface AnalysisReply {
   rootInfo: RootInfo;
   moveInfos: MoveInfo[];
   policy?: [string, number][]; // every legal edge with its prior, highest first
-  ownership?: number[]; // a value for each point, from the first player's side (Enclosure: 361, index y * 19 + x)
+  // With includeOwnership: a value for each point, from the first player's side (Enclosure: 361, index y * 19 + x), the
+  // mean over the search's tree of the network's ownership (KataGo's getAverageTreeOwnership). Enclosure's: from -1 to 1,
+  // the mean over the turn ends left of +1 inside Blue's regions and -1 inside Red's (the engine repository's
+  // games/enclosure/docs/design/06-ownership-and-spatial-targets.md).
+  ownership?: number[];
 }
 
 export const isError = (r: unknown): r is ErrorReply => typeof r === "object" && r !== null && "error" in r;

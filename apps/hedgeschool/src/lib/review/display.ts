@@ -13,6 +13,12 @@ export interface Display {
   reviewFor: "both" | "blue" | "red";
   win: "bar" | "gauge"; // a bar above the board (Blue left, Red right), or a vertical gauge beside it
   layers: BoardLayers;
+  // The area map (design 30): each point shaded by the engine's ownership, as KaTrain's Territory switch, on by default
+  // in its analysis mode
+  areaMap: boolean;
+  // After a Mistake or a Blunder, the area that it lost, on the board in the map's place, and its caption in the move
+  // list (design 30)
+  areaLost: boolean;
   scoreLine: boolean; // the Advantage chart's score line (Blue − Red)
   areaLine: boolean; // the Advantage chart's area line: the area each player encloses now (Blue − Red)
   // "Lines on the board": the engine's line and a branch's preview drawn one edge at a time (KaTrain's way, the
@@ -39,6 +45,8 @@ export const DEFAULT_DISPLAY: Display = {
   reviewFor: "both",
   win: "bar",
   layers: DEFAULT_LAYERS,
+  areaMap: true,
+  areaLost: true,
   scoreLine: true,
   areaLine: true,
   lineSteps: true,
@@ -60,6 +68,8 @@ export function loadDisplay(): Display {
     reviewFor: kept.reviewFor === "blue" || kept.reviewFor === "red" ? kept.reviewFor : "both",
     win: kept.win === "gauge" ? "gauge" : "bar",
     layers: { ...DEFAULT_DISPLAY.layers, ...kept.layers },
+    areaMap: kept.areaMap ?? DEFAULT_DISPLAY.areaMap,
+    areaLost: kept.areaLost ?? DEFAULT_DISPLAY.areaLost,
     scoreLine: kept.scoreLine ?? DEFAULT_DISPLAY.scoreLine,
     areaLine: kept.areaLine ?? DEFAULT_DISPLAY.areaLine,
     lineSteps: kept.lineSteps ?? DEFAULT_DISPLAY.lineSteps,

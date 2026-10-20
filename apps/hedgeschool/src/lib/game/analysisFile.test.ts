@@ -2,11 +2,13 @@
 // what it cannot use, with a reason. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { SHAPE } from "@abstractclass/analysis/cache.ts";
 import { ANALYSIS_FORMAT, fileKind, readAnalysisFile } from "./analysisFile.ts";
 
 const BOARD = { version: 2, main: ["A10-D9"], nodes: [["A10-D9", -1, 1], ["D10-G9", 0]] };
+const KEY = `${SHAPE}|fdfe5ad|ab12|512|A10-D9`; // a result of this shape: a reader reads it
 const file = (extra: object = {}) => JSON.stringify({ format: ANALYSIS_FORMAT, version: 1, exported: "", site: "x", board: BOARD,
-                                                       analyses: [["5|fdfe5ad|ab12|512|A10-D9", { blueWin: 0.5 }], ["junk", 1]], ...extra });
+                                                       analyses: [[KEY, { blueWin: 0.5 }], ["junk", 1]], ...extra });
 
 test("a file's kind: an analysis, a review, or neither", () => {
   assert.equal(fileKind(file()), "analysis");
@@ -18,7 +20,7 @@ test("a file's kind: an analysis, a review, or neither", () => {
 test("an analysis file keeps its lines and its readable results", () => {
   const f = readAnalysisFile(file());
   assert.deepEqual(f.board, BOARD);
-  assert.deepEqual(f.analyses.map(a => a[0]), ["5|fdfe5ad|ab12|512|A10-D9"]);
+  assert.deepEqual(f.analyses.map(a => a[0]), [KEY]);
 });
 
 test("an analysis file that cannot be used says why", () => {

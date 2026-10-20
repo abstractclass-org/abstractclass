@@ -27,6 +27,7 @@
   import { pointName, sameEdge } from "#lib/review/enclosure.ts";
   import LabelMark from "#lib/review/LabelMark.svelte";
   import { brushFor, samePoint, toggleNote, type BoardNote, type NoteBrush } from "./notes.ts";
+  import { shade } from "#lib/review/ownership.ts";
 
   interface Props {
     position: Position;
@@ -52,6 +53,9 @@
     oncandidatedblclick?: (edge: Edge) => void;
     notes?: BoardNote[]; // the player's notes on this position
     onnotes?: (notes: BoardNote[]) => void; // a note drawn, changed or removed, or all cleared: right-drawing works only with it
+    // The area map (design 30): the engine's ownership of each point, from Blue's side in hundredths (index y * 19 + x)
+    ownership?: number[] | null;
+    lost?: number[] | null; // the area a mistake lost, by point (ownership.ts, lostArea): in the accent, in the map's place
   }
   let {
     position, cut = null, candidates = [], highlight = null, line = null,
@@ -59,15 +63,21 @@
     layers: layersSet = {},
     pending = null, ends = null, active = null, view = [0, 0, 18, 18], targets = [], onpoint, rightClicks = false, onlyActive = false,
     oncandidate, oncandidateclick, oncandidatedblclick, notes = [], onnotes,
+    ownership = null, lost = null,
   }: Props = $props();
 
   const layers = $derived({ ...DEFAULT_LAYERS, ...layersSet });
   const uid = $props.id();
   const shadowId = `${uid}-badge-shadow`; // one board's filter: a page can show several boards
+  const blendId = `${uid}-area-blend`;
   const N = 19;
   // A label badge's radius. On a length-1 edge, whose line is 0.68 between its nodes, the badge sidesteps by 80% of its
   // radius (up from a horizontal edge, right from a vertical one), and stays over the line: 0.28 of the line shows.
   const MARK_R = 0.33;
+  // The area map's strongest shading: KaTrain's 0.75 is for black and white on a wooden board. On this board the players'
+  // colours at 0.45 leave the edges and the regions' shading readable. The area lost takes KaTrain's 0.8 for its hints
+  // less as much: it is shown alone.
+  const AREA_ALPHA = 0.45, LOST_ALPHA = 0.6;
   const markAt = (e: Edge) => {
     const [x, y] = mid(e), d = 0.8 * MARK_R;
     if (Math.abs(e[0] - e[2]) + Math.abs(e[1] - e[3]) !== 1) return [x, y] as const;
@@ -245,6 +255,7 @@
     <filter id={shadowId} x="-50%" y="-50%" width="200%" height="200%">
       <feDropShadow dx="0.027" dy="0.046" stdDeviation="0.033" flood-opacity="0.5" />
     </filter>
+    <filter id={blendId}><feGaussianBlur stdDeviation="0.3" /></filter>
   </defs>
 
   {#if layers.coordinates}
@@ -254,6 +265,23 @@
     {#each Array.from({ length: view[3] - view[1] + 1 }, (_, i) => view[1] + i) as i (i)}
       <text x={view[0] - 0.85} y={sy(i) + 0.15} class="coord">{i + 1}</text>
     {/each}
+  {/if}
+
+  <!-- The area map (design 30), under everything else, as KaTrain draws its territory first: a square on each point, in
+       the colour of the side that holds it and as strong as it holds it (KaTrain's OWNERSHIP_GAMMA), blended by a blur
+       as KaTrain blends its texture. The area a mistake lost takes the map's place, as KaTrain's loss grid does, in the
+       accent: KaTrain's colour of the move's class would be a player's colour here (a Blunder's red is near Red's). -->
+  {#if lost || ownership}
+    <g filter="url(#{blendId})">
+      {#each points as [x, y] (x * N + y)}
+        {@const v = lost ? lost[y * N + x] : ownership![y * N + x]}
+        {#if Math.abs(v) >= 1}
+          <rect x={x - 0.5} y={sy(y) - 0.5} width="1" height="1"
+                style:fill={lost ? "var(--accent)" : v > 0 ? "var(--blue)" : "var(--red)"}
+                fill-opacity={(lost ? LOST_ALPHA : AREA_ALPHA) * shade(v)} />
+        {/if}
+      {/each}
+    </g>
   {/if}
 
   {#if layers.regions}

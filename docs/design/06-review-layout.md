@@ -113,7 +113,8 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
    than it.
    - **Grouped by where a setting shows,** as Lichess groups its analysis settings (Board, Move list): Review first, as
      it sets the whole page ("Review by" Turn or Edge, "Review for" Both, Blue or Red: design 10), then Board (the win
-     chance's form, candidates, move labels, regions, protected edges, lines on the board "Animated" or "Static"), Move
+     chance's form, candidates, move labels, regions, the area map and the area lost by a mistake (design 30), protected
+     edges, lines on the board "Animated" or "Static"), Move
      list (move labels as "Badges" or "Text", notes on the key moves, the previews of played moves and of branches,
      branches and lines as "Pills", "Dots" or "Notation", design 07), Sound (move sounds and their volume, design 08), Keyboard (the list of keys and clicks,
      also on "?"), and Advantage chart (whether the score and area lines show when a review opens).

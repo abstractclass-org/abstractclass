@@ -1188,3 +1188,28 @@ Blunder's loss.
     HedgeFund 0.1 Lite with its results and the note, and searched no review.
   - a new game of 15 turns: its review loaded HedgeFund 0.2 Lite alone, and its mark named HedgeFund 0.2 Lite at 512
     visits when the review ended, 130 s after it started.
+
+### The cost of the ownership in a whole review (2026-10-21)
+
+The area maps (design 30) need the root's ownership from every search of the review (`includeOwnership`: 361 values,
+kept in whole hundredths). Measured with `scripts/measure/review-ownership.mjs`: two builds of the same code, one
+whose searches ask for no ownership (and keep the stored shape 5) and one that asks for it (shape 6), in 3 alternating
+pairs. Each run reviews the test fixture's game (120 edges) from no stored result, in Playwright's Chromium, headless,
+at 1,366 × 657, in a fresh context, with 2 search workers, the GPU off and the site's defaults (the Lite review,
+HedgeFund 0.2 Lite). The job ran in `scripts/machine run` with 2 threads, while another job of 8 threads and the
+archive's measurement of the maps (2 threads) ran.
+
+| | Without ownership | With ownership |
+|---|---|---|
+| The review's time, to "Review done" | 358, 426, 350 s (median 358) | 368, 345, 349 s (median 349) |
+| The browser's store, the analysis store as JSON | 746 kB, 249 results | 1,017 kB, 249 results |
+
+- **Time:** no change that the pairs can show. The differences are +10, −81 and −2 s (median −2 s), with spreads of
+  76 s and 23 s. In the engine, the ownership is the network's head that it computes anyway: the search keeps it in
+  each node and averages it over the tree once for each reply.
+- **Space:** 271 kB more for the game, 36% more: about 1.1 kB for each result (361 numbers from −100 to 100 as
+  JSON). The share is the same in a review file, which holds the same results.
+- **The candidates' ownership** (`includeMovesOwnership`) was not measured in a review: at the start, one reply of 100
+  visits is 262 kB of JSON with it and 24 kB without it, in Node. The review does not ask for it (design 30).
+- Not measured: the GPU (another job held it), and the engine's memory at the position on screen's deepest searches:
+  each node keeps 361 more numbers.

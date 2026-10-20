@@ -9,7 +9,7 @@
 import { afterEach, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
 import "./testing/svelteModules.ts";
-import type { AnalysisReply } from "@abstractclass/engine/protocol.ts";
+import type { AnalysisQuery, AnalysisReply } from "@abstractclass/engine/protocol.ts";
 import { Cancelled, type EnginePool, type Work } from "@abstractclass/engine/pool.ts";
 import { BOARD_ID } from "./kept.ts";
 import { reply, wordFields, wordRules, words } from "./testing/game.ts";
@@ -33,13 +33,13 @@ let models = 0;
  *  drops the waiting tasks and stops the running searches in slices, as the pool does. */
 function fakePool(engines = Infinity) {
   const searches: { partial(visits: number): void; end(visits: number, late?: boolean): void; fail(e: Error): void; stopped: boolean;
-                    maxMs?: number }[] = [];
+                    maxMs?: number; query: AnalysisQuery }[] = [];
   const engine = {
-    analyse(_query: unknown, onPartial: (r: AnalysisReply) => void, maxMs?: number) {
+    analyse(query: AnalysisQuery, onPartial: (r: AnalysisReply) => void, maxMs?: number) {
       let end!: (t: { reply: AnalysisReply; late?: boolean }) => void, fail!: (e: Error) => void;
       const done = new Promise((resolve, reject) => { end = resolve; fail = reject; });
       const search = {
-        partial: (v: number) => onPartial(reply(v)), fail: (e: Error) => fail(e), stopped: false, maxMs,
+        partial: (v: number) => onPartial(reply(v)), fail: (e: Error) => fail(e), stopped: false, maxMs, query,
         // A search that the page stopped, or that its time limit ended, ends as terminated (the protocol's terminate).
         end: (v: number, late = false) => end({ reply: late || search.stopped ? { ...reply(v), terminated: true } : reply(v), late }),
       };
@@ -105,6 +105,12 @@ test("a search's final results wait for the batch, and the sweep's progress come
   mock.timers.tick(BATCH_MS);
   assert.deepEqual(game.analysis.slice(0, 2).map(a => a?.visits), [SWEEP_VISITS, SWEEP_VISITS]);
   assert.equal(game.swept, 2);
+});
+
+test("every search asks for the ownership of each point, for the area maps", async () => {
+  const { searches } = await sweeping();
+  assert.ok(searches.length > 0);
+  assert.ok(searches.every(s => s.query.includeOwnership));
 });
 
 test("a final result is not replaced by a shallower result of the same batch", async () => {

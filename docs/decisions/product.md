@@ -5775,3 +5775,54 @@ sweep.
   1,253 confirmed Greats by edge (28%).
 - **The limits:** one network, and people's games of the meaf.us archive. The third condition reads the search
   before the opponent's turn, which has its own error, as every loss does.
+
+### The area maps on real games (2026-10-21)
+
+The area maps (design 30) were looked at on real reviewed games before the rule for when a mistake's map shows was
+set. `scripts/measure/ownership-maps.mjs` took 10 human games of the meaf.us archive (the first 2 of each rating band
+from 1 to 5 in the engine repository's `runs/archive_analysis/part1-1000.jsonl`, each ended by the rules after 120
+edges), for this measurement only, and searched each position before a move as the Lite review does (HedgeFund 0.2
+Lite, 512 visits), with the root's ownership and each candidate's: 1,200 positions in 61 minutes on 2 threads of a busy
+machine. By turn, it took the 128 turns whose mover's win chance fell by 0.10 or more and that were not the engine's
+best turn (a Mistake or a Blunder, near enough), and compared the root's ownership at each turn's start with the root's
+ownership after the turn (`lostArea`).
+
+| Edges | Turns | Side right | Focus (median) | Area lost, points of the board (median) | Points lost ÷ (net fall × turn ends left), median | Root against best choice, mean per point |
+|---|---|---|---|---|---|---|
+| 1-20 | 69 | 65 | 0.00 | 11.4 | 0.98 | 0.006 |
+| 21-40 | 33 | 33 | 0.13 | 11.1 | 0.96 | 0.015 |
+| 41-60 | 16 | 14 | 0.19 | 16.3 | 0.99 | 0.006 |
+| 61-80 | 4 | 4 | 0.00 | 11.1 | 1.70 | 0.002 |
+| 81-100 | 2 | 1 | 0.26 | 12.9 | 1.65 | 0.008 |
+| 101-120 | 4 | 4 | 0.18 | 8.8 | 3.99 | 0.008 |
+
+- **The side agrees:** on 121 of the 128 turns, the mover's ownership fell in all.
+- **The rough size agrees:** the points lost are close to the net fall of the mover's ownership times the turn ends
+  left (ownership is a mean over them): a median ratio of 0.96 to 0.99 up to edge 60, and a correlation of 0.83 over
+  the 121 turns. Late in a game the ratio grows (1.7 to 4.0, on 10 turns), where few turn ends are left.
+- **The root's map for "after the best move":** it differs from the ownership of the engine's first choice by 0.006
+  per point on average, against values from −1 to 1. The candidates' ownership is not worth its size (design 30).
+- **The focus:** the share of the fall in the points that fall by 0.30 or more, which the map shades clearly. The
+  median is 0 up to edge 20: the fall of most mistakes there is spread thin over the whole board, a haze with nothing to
+  point at. Clear maps come at every stage, though. With the rule "show the area lost when its focus is 0.2 or more"
+  (`shownLost`), counted on the same turns:
+
+  | Edges | Turns | Shown | Of those, side right |
+  |---|---|---|---|
+  | 1-16 (the first 8 turns) | 61 | 13 | 12 |
+  | 17-40 | 41 | 20 | 20 |
+  | 41-60 | 16 | 7 | 7 |
+  | 61-120 | 10 | 2 | 2 |
+  | All | 128 | 42 | 41 |
+
+  This second table was counted from the run's list of turns. The script now prints its ranges of edges, with a
+  column of the turns shown.
+
+- **The decision:** no edge from which the map shows. The question "is this map clear" has a direct answer for each
+  move, and an edge would hide the 13 clear maps of the opening and show the hazy ones after it. So the area lost
+  shows for a Mistake or a Blunder when its focus is 0.2 or more, at any edge: about a third of them, the most in the
+  middle game. The map at every position shows from the start: it is the engine's estimate, and in the opening it is
+  faint because the engine holds the board open.
+- Looked at on the test fixture's game in the review, in Chromium: its one Blunder (turn 7, Blue) shades the south of
+  the board, where Red's regions grow. The caption: "with the best turn, it stays open. After the turn played, Red
+  holds it for half the turns left or more."

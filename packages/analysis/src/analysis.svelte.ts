@@ -836,8 +836,11 @@ export class GameAnalysis<G extends GameTypes> {
       if (met() || this.paused || !wanted() || era !== this.era) return;
       // The time limit counts from the search's start in the worker, not from its wait in the queue. The worker keeps
       // it, and ends the search at the end of the slice in which it passes (channel.ts, searchInSlices): a timer of the
-      // page would run late in a hidden tab (decisions/product.md, "A review in a hidden tab").
-      const run = engine.analyse({ ...query, maxVisits: visits, includePVVisits: true, ...(slice ? { slice: { visits: slice } } : {}) },
+      // page would run late in a hidden tab (decisions/product.md, "A review in a hidden tab"). Every search asks for
+      // the ownership of each point, so that a stored review has the area maps whatever the display settings (Hedge
+      // School's design 30).
+      const run = engine.analyse({ ...query, maxVisits: visits, includePVVisits: true, includeOwnership: true,
+                                   ...(slice ? { slice: { visits: slice } } : {}) },
                                  r => { if (era === this.era) this.toBatch(path, r.rootInfo.visits, () => toAnalysis(this.game, r)); },
                                  sliced && seconds !== null ? seconds * 1000 : undefined);
       if (sliced) onStop(run.stop); // the pool may stop it to give way, and runs it again later

@@ -70,6 +70,16 @@ test("the engine's reply keeps the game's moves, and a line stops at a pass", ()
   assert.deepEqual(a.candidates.map(c => [c.edge, c.line, c.lineVisits]), [["a", ["a", "c"], [6, 5]], ["b", ["b"], undefined]]);
 });
 
+test("the engine's ownership is kept for each point in hundredths, from Blue's side", () => {
+  const reply = {
+    rootInfo: { visits: 10, winrate: 0.5, scoreLead: 0, scoreSelfplay: 0, scoreStdev: 0 },
+    moveInfos: [{ move: "a", order: 0, edgeVisits: 10, winrate: 0.5, pv: ["a"] }],
+    ownership: [0.98761, -0.004999, -0.506, 0],
+  } as unknown as AnalysisReply;
+  assert.deepEqual(toAnalysis(words, reply).ownership, [99, 0, -51, 0]);
+  assert.equal(toAnalysis(words, { ...reply, ownership: undefined }).ownership, undefined); // a reply without it
+});
+
 test("the analysis of a game takes its positions, its moves played, its rules and its lines' steps from the game", async () => {
   const fields = (q: PositionQuery) => Array.from({ length: q.moves.length + 1 }, (_, k) => wordFields(k));
   const pool = {

@@ -23,7 +23,7 @@ if (!isMainThread) {
   const { nodeEngine } = await import("./node-engine.mjs");
   const { call } = await nodeEngine(root, { network: NETWORK });
   for (const moves of workerData.jobs) {
-    const reply = call({ id: "a", moves, maxVisits: VISITS, includePVVisits: true });
+    const reply = call({ id: "a", moves, maxVisits: VISITS, includePVVisits: true, includeOwnership: true });
     if (reply.error) throw new Error(`${moves.join(" ")}: ${reply.error}`);
     parentPort.postMessage({ moves, reply });
   }

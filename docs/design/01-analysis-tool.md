@@ -3,7 +3,9 @@
 **Status:** in force. It is the product's first design. **Written:** in the engine repository, before this repository
 existed, as
 [`docs/analysis-tool-design.md`](https://github.com/abstractclass-org/engines/blob/main/docs/analysis-tool-design.md).
-**Moved here:** 2026-10-09. Where the tool runs and how it gets the engine is in [02-static-site.md](02-static-site.md).
+**Moved here:** 2026-10-09. **Changed:** 2026-10-20: the tags and the names of concepts rest on engine facts, not on
+the community's terms (principles 8 and 10), and the area maps explain from engine facts (principle 11, design 30).
+Where the tool runs and how it gets the engine is in [02-static-site.md](02-static-site.md).
 
 Paths in this document are in the engine repository ([engines](https://github.com/abstractclass-org/engines)),
 unless a link says otherwise. Paths under `runs/` are not in Git there.
@@ -143,29 +145,18 @@ DecodeChess.
      - **The second-best, for a first edge,** is the best other turn, found as the review finds it for Great (design
        05): the edges of the solution's own turn are left out, because the best turn that starts with one of them is
        often the solution in the other order.
-8. **Tags as rules on the solution line, as Lichess's `cook.py` does, named in the players' own vocabulary where it
-   can be made exact.**
-   - **The community's document** ("Enclosure Tech & Strategy Documentation", a Google Doc, read as text, without its
-     images) names structures of 3–4 edges and discusses their uses: guards (spike, stitch, triple, knife, quad),
-     spear, needle, shield, bolt, spark, scute, factory, prong, lunge, home and anti-home. It also has theory tabs
-     (spear, stitch, sewing, edge, duck) and opening tabs. It is useful, but not to be relied on much. Its own note
-     says the wording is still loose.
-   - **Much of it is exact geometry.** A *guard* is a formation with an impenetrable segment. *unbreakable* means
-     every side is impenetrable. *closed* or *open* is about exterior endpoints. The numbers count connected segments
-     per path ("an open 1:1 guard, such as a simple stitch").
-     - **The images carry the definitions.** Every pictured structure is impenetrable. What makes a spear a spear is
-       its specific edge shape. The text gives the general classes, and the images give the named shapes.
-     - The document's HTML export (`…/export?format=html`) embeds all 255 images, so the shapes can be read and
-       turned into exact predicates when the tool is built.
-     - Under our rules an enemy edge may cut at most one of our edges. So one reading of *impenetrable*: every enemy
-       edge that could cross the segment would also cross another of ours.
-     - The engine's crossing table can check that reading, and whether it matches the players' meaning needs a check
-       against their own examples.
-     - So these terms can become exact predicates: tags for players, and labels for the probes in principle 10.
-   - **Terms that can't be made exact** (sewing, the playstyle advice) stay as reading material, not tags.
+8. **Tags as rules on the solution line, as Lichess's `cook.py` does, each from an exact engine fact.**
+   - **The facts:** what the engine's rules and searches give exactly. An edge closes a region, cuts an enemy edge, or
+     sets up a region that the next turn closes. The area at stake: the ownership that a move keeps or gives away
+     (design 30). Each tag is a predicate on these facts, tested on the solution line, not on the mistake.
+   - **Not the community's terms.** The players' document ("Enclosure Tech & Strategy Documentation", a Google Doc)
+     names structures of 3-4 edges: guards, spear, needle, shield, and others. Its own note says that the wording is
+     still loose, its definitions are in its pictures, and no engine fact checks them. Tags built on it could be noise:
+     a name that a player reads as exact when it is not. So the tags rest on the engine's facts alone. A term of the
+     players can name a tag later, if strong players agree that it means the same predicate.
    - **Our own motif list** (enclose, set-up-and-close, double threat, cut, deny, timing of invincible edges,
-     sacrifice, reach and wall) fills gaps. Strong players review each tag before it ships, since the tool is also for
-     top players.
+     sacrifice, reach and wall) gives the first predicates. Strong players review each tag before it ships, since the
+     tool is also for top players.
 
    Size tags come from the points lost. Phase tags from the edge number.
 9. **Rules of thumb by weighted distillation (VIPER).** Fit a small model to the engine's choices over readable move
@@ -177,8 +168,8 @@ DecodeChess.
      weights.
 10. **Concepts from the network: the main bet.** McGrath et al. and Schut et al. are the core of the tool, not an
     add-on.
-    - **Known concepts first (McGrath):** probe the network's activations for the community's structures made exact
-      (principle 8), and for our own quantities (reach, held ground, a region closable next turn). Which does the
+    - **Known concepts first (McGrath):** probe the network's activations for the engine facts of the tags (principle
+      8) and for our own quantities (reach, held ground, a region closable next turn). Which does the
       network encode, at which layer, and from which training step? A concept the network encodes but players don't
       name is the next principle's target.
     - **New concepts (Schut):** contrast the search's chosen line with worse lines it considered, and solve for sparse
@@ -188,11 +179,16 @@ DecodeChess.
       - Keep it only if the engine's games explain it better than human games do (novelty, the human games are our
         5,648 archived meaf.us games).
       - Its top-scoring positions become puzzles, for top players too.
-    - **Naming:** compare each discovered concept with the community's structures and our tags. A concept close to a
-      known one gets its name, the rest need a strong player to describe them.
+    - **Naming:** compare each discovered concept with the tags' engine facts. A concept close to a tag gets its name.
+      The rest are described by their example positions and the engine facts they share, and a strong player names
+      them. The community's terms are not the base (principle 8).
 11. **Any text explanation is built from engine facts.** Given the 22% error rate without tools (Hebbar et al.),
-    words come from checked facts: tags, points, lines. Free-form language model commentary, if ever, calls the
-    engine as a tool.
+    words come from checked facts: tags, points, lines, and the engine's ownership. Free-form language model
+    commentary, if ever, calls the engine as a tool.
+    - **The area maps** (design 30) are such an explanation. A move's label says what it cost, and its line says what
+      was better. The maps say where: the ownership of each point at every position, and for a Mistake or a Blunder
+      the area that it lost, from the ownership before it and after it (KaTrain's loss grid). The caption is a template
+      on the same numbers, with no language model.
 
 ## 3. What Enclosure changes
 
@@ -233,8 +229,8 @@ browser is measured in [decisions/engine.md](../decisions/engine.md).
 - **Priority:** in the engine repository, training a strong bot comes first. This repository uses the engine that
   exists and asks for changes through requests ([requests/](../requests/README.md)).
 - **Audience:** Enclosure players who want to improve, top players included.
-- **Tags:** the community's document, lightly (principle 8). The tool counts mostly on McGrath's and Schut's methods
-  (principle 10).
+- **Tags:** from exact engine facts (principle 8), not from the community's terms. The tool counts mostly on McGrath's
+  and Schut's methods (principle 10).
 - **Engine and timing:** the tool was to come after V2, because most features depend on V2 or are much cheaper on
   it. V2 now plays, and it runs in the browser as one WebAssembly module, so the work starts. The check:
 
@@ -246,5 +242,5 @@ browser is measured in [decisions/engine.md](../decisions/engine.md).
   | Concepts (principle 10) | possible on any network | best on the strongest network, which should be V2. Its analysis lines give the chosen and worse lines Schut contrasts |
   | Tags, puzzles, skill fit, win curve (principles 2, 3, 6–8) | engine-agnostic, but built on the loss measure above | same |
 
-- **Before then, for free:** the community's structures as exact predicates (principle 8) are CPU-only engine code.
-  They belong in the engine repository, since they read the rules. Nothing is scheduled.
+- **Before then, for free:** the tags' engine facts (principle 8) are CPU-only engine code. The ones that read the
+  rules belong in the engine repository. Nothing is scheduled.

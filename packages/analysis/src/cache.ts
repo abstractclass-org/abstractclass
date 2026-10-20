@@ -18,8 +18,9 @@ export async function cachePut(key: string, value: unknown): Promise<void> {
 // The stored shape's version. A change of what an analysis holds takes the next one, so that older results are not
 // read as the new shape, and the site's next start removes them (removeOlderShapes). 2: a candidate's visits are
 // KataGo's edgeVisits, no longer its child node's visits. 3: a candidate has its line (KataGo's pv). 4: and the visits
-// through each edge of its line (pvEdgeVisits). 5: and the network's prior for it, for the position's complexity.
-export const SHAPE = 5;
+// through each edge of its line (pvEdgeVisits). 5: and the network's prior for it, for the position's complexity. 6: and
+// the ownership of each point, for the area maps (Hedge School's design 30).
+export const SHAPE = 6;
 
 /** The moves part of a key for moves from `start`, a set-up position (design 21): the start first, as one word with `_`
  *  for its spaces after `@`, so that a key's position and its parent read as they do from the standard start. */

@@ -14,8 +14,13 @@ export function toAnalysis<M>(game: Moves<M>, r: AnalysisReply): Analysis<M> {
       edge: game.parseMove(c.move), visits: c.edgeVisits, blueWin: c.winrate, lead: c.scoreLead, margin: c.scoreSelfplay, prior: c.prior,
       ...withLine(game, c), ...(c.isSymmetryOf ? { twinOf: game.parseMove(c.isSymmetryOf) } : {}),
     })),
+    ...(r.ownership ? { ownership: r.ownership.map(hundredths) } : {}),
   };
 }
+
+/** An ownership in whole hundredths: the map needs no finer steps, and a stored result keeps 361 small numbers. Never
+ *  −0, which JSON writes as 0. */
+const hundredths = (v: number) => Math.round(100 * v) || 0;
 
 /** A candidate's line (KataGo's pv, the move first), up to its first pass, with the visits through each of its edges. */
 function withLine<M>(game: Moves<M>, c: MoveInfo): { line: M[]; lineVisits?: number[] } {
