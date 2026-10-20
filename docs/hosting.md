@@ -351,18 +351,20 @@ job is skipped while the repository variable `HUB_PAGES_PROJECT` is empty, so th
 1. **Make the Pages project, with `main` as its production branch.** Use Wrangler, not the dashboard. A project made
    by drag and drop in the dashboard has no setting for its production branch
    ([Cloudflare's Direct Upload guide](https://developers.cloudflare.com/pages/get-started/direct-upload/#production-branch-configuration)).
-   In a terminal, at the root of a checkout of `dev`:
+   In a terminal, in the folder `apps/hub` of a checkout of `dev`:
    1. `npx wrangler@4.144.0 login`. A browser tab opens on Cloudflare. Sign in, then select **Allow**.
-   2. `npx wrangler@4.144.0 pages project create abstractclass --production-branch=main`. If Wrangler asks for an
-      account, select the account that holds the project `hedgeschool`.
+   2. `npx wrangler@4.144.0 pages project create abstractclass --production-branch=main --force`. If Wrangler asks
+      for an account, select the account that holds the project `hedgeschool`. Without `--force`, Wrangler 4.144
+      tries to make the project in Cloudflare Workers in place of Pages. That attempt reads the folder's apps, and at
+      the repository's root it stops with an error about a workspace. `--force` makes a Pages project, as
+      `hedgeschool` is. Only the creation needs it: the commands for a project that exists go to Pages.
 
    The project's name is `abstractclass`. Its address is `abstractclass.pages.dev`. If that address is taken, Pages
    adds a few characters to the address, not to the name, and Wrangler shows the address. The steps below write the
    address as `abstractclass.pages.dev`. If Wrangler shows another address, use that address in its place.
-2. **Deploy its first files.** In the same folder:
-   `npx wrangler@4.144.0 pages deploy apps/hub/public --project-name=abstractclass --branch=main`. The branch `main`
-   is the production branch, so this deployment is the live hub. It stays live until a release puts the hub on
-   `main`.
+2. **Deploy its first files.** In the same folder, `apps/hub`, as the job `hub` does:
+   `npx wrangler@4.144.0 pages deploy public --project-name=abstractclass --branch=main`. The branch `main` is the
+   production branch, so this deployment is the live hub. It stays live until a release puts the hub on `main`.
 3. **Give it the domain.** In the Cloudflare dashboard, go to **Workers & Pages**, select the project
    `abstractclass`, then **Custom domains → Set up a domain**. Enter `abstractclass.org`, then select **Continue**
    and **Activate domain**. The zone is on Cloudflare, so Pages adds the DNS record for the bare domain itself (a
