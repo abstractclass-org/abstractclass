@@ -173,9 +173,10 @@
         const chosen = await opening;
         await g.start();
         if (chosen.board) await g.loadBoard(chosen.board);
-        // The stored results of the moves evaluated, read before the board shows, as the review reads its own: their
-        // labels and notes come in the first frame, and do not move the bar under the moves when they come (the layout
-        // shift). The search is the one that the rules worker names, the network the session's.
+        // The stored results of the board's lines, read before the board shows, as the review reads its own: the labels
+        // and notes of the moves evaluated, and the hard positions' marks, come in the first frame, and do not move the
+        // bar under the moves when they come (the layout shift). Reads only: the engine searches nothing more. The
+        // search is the one that the rules worker names, the network the session's.
         const model = modelOf(session.manifest!, session.network)?.sha256;
         if (g.rulesReady && pool.search && model) await g.fromStore(pool.search, model).catch(() => {});
         if (chosen.atMain !== undefined) await dbPut(STORES.branches, BOARD_ID, g.keptBoard()); // a link's board is now this browser's

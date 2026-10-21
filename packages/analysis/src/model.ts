@@ -244,7 +244,9 @@ export function valuesAfter<M>(p: PositionInfo, a: Analysis<M> | undefined, kind
 
 // Lichess's accuracy of one move from the drop in win% (0-100).
 const moveAccuracy = (dropPct: number) => Math.min(100, Math.max(0, 103.1668 * Math.exp(-0.04354 * dropPct) - 3.1669 + 1));
-const hardness = (c: number | undefined) => ({ complexity: c, hard: c !== undefined && c >= HARD });
+/** A hard position's complexity: HARD or more (design 14). */
+export const isHard = (c: number | undefined): c is number => c !== undefined && c >= HARD;
+const hardness = (c: number | undefined) => ({ complexity: c, hard: isHard(c) });
 
 /** What every judged turn or edge has. */
 interface Judged { player: Player; label: Label | null; loss: number; pointsLost: number | undefined; complexity: number | undefined }
@@ -385,8 +387,8 @@ export function largest<T extends Judged>(items: T[], order: (x: T) => number, n
 /** A win chance as text, with one decimal wherever it shows. */
 export const pct = (x: number) => `${(100 * x).toFixed(1)}%`;
 
-/** A hard position's tooltip: the mark's meaning, in two words. The strip under the chart and the meter in the engine
- *  header show how hard (design 14). */
+/** A hard position's tooltip: the mark's meaning, in two words. The Difficulty chart and the engine header's second
+ *  line show how hard (design 14). */
 export const HARD_NOTE = "Hard position";
 
 /** The network's likely edges in a position, as Maia's Blunder Meter shows a human's likely moves
@@ -501,8 +503,9 @@ export function shownCandidates<M>(game: Moves<M> & { scoreScale: number }, a: A
 }
 
 /** The review with labels only on the moves judged (the Analysis board, design 21): another move keeps its move and
- *  numbers, and loses its label, its loss and its hard-position mark. A turn keeps its own when each of its edges is
- *  judged. */
+ *  numbers, and loses its label, its loss and its hard-position mark, so that the annotated record names neither. It
+ *  keeps its complexity: the move list marks a hard position wherever it has a result (design 14). A turn keeps its
+ *  own when each of its edges is judged. */
 export function onlyJudged<G extends GameTypes>(R: Review<G>, judged: (edge: number) => boolean): Review<G> {
   const plain = <T extends EdgeReview<G> | TurnReview<G>>(x: T): T =>
     ({ ...x, label: null, loss: 0, pointsLost: undefined, rawLoss: 0, rawPoints: undefined, hard: false });

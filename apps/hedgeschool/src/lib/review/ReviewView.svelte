@@ -115,7 +115,7 @@
   import { errorText } from "@abstractclass/engine/errors.ts";
   import Toast from "#lib/ui/Toast.svelte";
   import {
-    edgeName, endingText, fmtScore, moveName, moveNotation, opensTurn, turnFromCount, sameEdge, shortNote, turnShortNote, HARD_NOTE, complexity, likelyEdges, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchEdge, valuesAfter, resultWin, moverWin, costText, pct, shownCandidates, distinctCandidates, rankOf, twinsOf, lineMovers, enoughVisits, trustedLine, type Candidate, type EdgeReview, LABELS, LABEL_TEXT, LABEL_GLYPH, type Label, type Position, type Review, type Unit, type Move, type TurnJudgment, type TurnReview,
+    edgeName, endingText, fmtScore, moveName, moveNotation, opensTurn, turnFromCount, sameEdge, shortNote, turnShortNote, HARD_NOTE, complexity, isHard, likelyEdges, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchEdge, valuesAfter, resultWin, moverWin, costText, pct, shownCandidates, distinctCandidates, rankOf, twinsOf, lineMovers, enoughVisits, trustedLine, type Candidate, type EdgeReview, LABELS, LABEL_TEXT, LABEL_GLYPH, type Label, type Position, type Review, type Unit, type Move, type TurnJudgment, type TurnReview,
   } from "./enclosure.ts";
   import { branchChildren, branchLine, branchRows, mainIndex, nextFork, pathKey, prefixKeys, prevFork, sharedLength, siblingLine, treeLines, withLine,
            type BranchRow } from "@abstractclass/analysis/tree.ts";
@@ -232,13 +232,21 @@
   // stops (the Analysis board's, an unfinished game) has a search at its last position, as any position.
   const over = $derived(!!position.over);
   const analysis = $derived(over ? undefined : mainAt !== null ? R.data.analysis[mainAt] : branchNode?.analysis);
-  // The position's complexity (model.ts) when it is hard, and its likely edges for the meter
-  const hardHere = $derived.by(() => { const c = complexity(analysis, position.player); return c !== undefined && c >= HARD ? c : undefined; });
+  // The position's complexity (model.ts), and its likely edges for the meter
+  const difficulty = $derived(complexity(analysis, position.player));
   const meter = $derived(likelyEdges(analysis, position.player));
   const METER_WORDS = { good: "good or better", inaccuracy: "inaccuracy", mistake: "mistake", blunder: "blunder" } as const;
   const meterText = (m: NonNullable<typeof meter>) =>
     `Likely edges: ${METER_GROUPS.map(g => `${Math.round(100 * m[g])}% ${METER_WORDS[g]}`).join(" · ")}` +
     (m.unsearched >= 0.005 ? ` · ${Math.round(100 * m.unsearched)}% not searched` : "");
+  // The difficulty line's tooltip and accessible name: the mark's meaning, the complexity in words, then the meter's
+  // shares. None before the search gives the position's edges.
+  const difficultyNote = $derived([
+    isHard(difficulty) ? `${HARD_NOTE}.` : "",
+    difficulty !== undefined ? `Difficulty ${costText(difficulty)}: the engine's likely edges lose ${pct(difficulty)} of win chance here`
+      + ` on average. A position is hard from ${Math.round(100 * HARD)}%.` : "",
+    meter ? meterText(meter) : "",
+  ].filter(Boolean).join(" ") || undefined);
   const mover = $derived(position.player as Player);
   const lastPlayed = $derived(moveInto(path)); // the move that led here, in the game or a branch
 
@@ -614,6 +622,20 @@
     if (!node || (!node.position.over && node.position.player === node.move.player)) return null;
     const parent = p.slice(0, -1), before = moveInto(parent);
     return before && before.player === node.move.player ? [parent, p] : [p];
+  }
+  /** A move's word on its difficulty in its tooltip, where the engine searches only what the player looks at (a branch,
+   *  the board): a hard position, or that a position before the move has no result yet. */
+  const searchNote = (hard: boolean, before: (Analysis | undefined)[]) => (hard ? HARD_NOTE : before.some(a => !a) ? "Not searched yet" : "");
+  /** A branch move's ◆ (design 14) and its word, for the side reviewed, from the results of the positions before it: by
+   *  edge, the move's own. By turn, at the move that ends the turn, the harder of the turn's, as a game turn's. Null
+   *  where the move shows none. */
+  function branchHardness(p: string[]): { hard: boolean; note: string } | null {
+    const node = branches[pathKey(p)];
+    const paths = !node || !forSide(node.move.player) ? null : unit === "edge" ? [p] : branchTurnPaths(p);
+    if (!node || !paths) return null;
+    const before = paths.map(q => analysisAt(q.slice(0, -1)));
+    const hard = before.some(a => isHard(complexity(a, node.move.player)));
+    return { hard, note: searchNote(hard, before) };
   }
   /** The turn that a branch move ends (design 10), by turn: its moves' paths, and its judgment (judgeTurn) once the player
    *  asked for its quality and its searches have the label budget. Null where the move does not end a turn, or where
@@ -1183,6 +1205,7 @@
           {@const asked = !board || !!board.judged[mainKeys[e.index + 1]]} <!-- the board's moves: evaluated on request -->
           {@const judged = unit === "edge" && forSide(e.player) && asked ? (e.label ? `${LABEL_TEXT[e.label]}: ${costText(e.rawLoss, e.rawPoints)}` : "Not analyzed yet") : ""}
           {@const shown = forSide(e.player) ? e.label : null}
+          {@const hard = forSide(e.player) && isHard(e.complexity)} <!-- on the board too, where the position has a result -->
           <!-- A move fills its column. By edge, its label, the hard position's ◆ and its loss stand together at the
                column's right, as a turn's do at the turn's right, so that they line up down the list. The loss is
                last, where Lichess's move list has its evaluation: the mover's points lost, so that a number never needs
@@ -1191,15 +1214,17 @@
                label's slot (2.2 characters: a badge, or ?? as text). The loss: at most 5 characters (−1.2k), smaller and
                right-aligned. The font is monospaced, so ch is one character of the span's own size. Before the loss, by edge
                and by turn, a slot for a hard position's ◆ (design 14) on every row, marked or not: a mark never moves
-               the label or widens the column. -->
+               the label or widens the column. The ◆ marks the position before the move (by turn, the turn's harder),
+               on the board too, wherever that position has a result: the board's tooltips say where it has none. -->
           <button data-path={mainKeys[e.index + 1]}
                   class={moveButton(e.player, mainAt === e.index + 1 ? MOVE_HERE : pickedKey === mainKeys[e.index + 1] ? PICKED : MOVE_HOVER)}
                   onclick={() => go(e.index + 1, true)} onmouseenter={() => startPreview({ kind: "move", index: e.index })} onmouseleave={endPreview} tabindex="-1"
-                  title={[judged, after !== undefined ? `Lead: ${sideText(after, 1)}` : ""].filter(Boolean).join(" · ")}>
+                  title={[judged, after !== undefined ? `Lead: ${sideText(after, 1)}` : "", unit === "edge" && board ? searchNote(hard, [R.data.analysis[e.index]]) : ""]
+                           .filter(Boolean).join(" · ")}>
             <span class={MOVE_TEXT}>{moveNotation(e)}</span>
             {#if unit === "edge"}
               <span class="w-[2.2ch] ml-auto">{#if listed(shown)}{@render mark(shown)}{/if}</span>
-              <span class="w-[1.2ch] text-[0.8em] text-muted text-center" title={e.hard && forSide(e.player) ? HARD_NOTE : undefined}>{e.hard && forSide(e.player) ? "◆" : ""}</span>
+              <span class="w-[1.2ch] text-[0.8em] text-muted text-center" title={hard ? HARD_NOTE : undefined}>{hard ? "◆" : ""}</span>
               <span class="w-[5ch] text-[0.78em] text-right text-muted tabular-nums">{forSide(e.player) ? lossShort(e) : ""}</span>
             {/if}
           </button>
@@ -1207,10 +1232,12 @@
         <!-- By turn: the turn's glyph and its loss, in the same font and sizes as an edge's by edge, and the turn's note
              with each edge's points. -->
         {#if unit === "turn" && forSide(t.player)}
+          {@const hard = isHard(t.complexity)}
           <span class="col-start-4 flex items-baseline gap-1 px-[0.2rem] py-px font-mono text-[0.95em] whitespace-nowrap {SIDE_TEXT[t.player]}"
-                title={t.label ? `${LABEL_TEXT[t.label]}: ${turnCost(t)}` : board && !t.edges.every(e => board.judged[mainKeys[e.index + 1]]) ? undefined : "Not analyzed yet"}>
+                title={[t.label ? `${LABEL_TEXT[t.label]}: ${turnCost(t)}` : board && !t.edges.every(e => board.judged[mainKeys[e.index + 1]]) ? "" : "Not analyzed yet",
+                        board ? searchNote(hard, t.edges.map(e => R.data.analysis[e.index])) : ""].filter(Boolean).join(" · ") || undefined}>
             <span class="w-[2.2ch]">{#if listed(t.label)}{@render mark(t.label)}{/if}</span>
-            <span class="w-[1.2ch] text-[0.8em] text-muted text-center" title={t.hard ? HARD_NOTE : undefined}>{t.hard ? "◆" : ""}</span>
+            <span class="w-[1.2ch] text-[0.8em] text-muted text-center" title={hard ? HARD_NOTE : undefined}>{hard ? "◆" : ""}</span>
             <span class="w-[5ch] ml-auto text-[0.78em] text-right text-muted tabular-nums">{lossShort(t)}</span>
           </span>
         {/if}
@@ -1344,6 +1371,7 @@
         {@const bt = unit === "turn" ? branchTurnAt(p) : null}
         {@const label = node && !forSide(node.move.player) ? null : unit === "edge" ? branchLabel(p) : bt?.judgment?.label ?? null}
         {@const waiting = unit === "edge" ? !!node?.judged && !label : !!bt && !bt.judgment}
+        {@const hardness = node ? branchHardness(p) : null}
         {#if node}
           {@render turnMark(t, k)}
           {#if display.branchForm === "text"}
@@ -1351,17 +1379,20 @@
                             at ? "here bg-panel-2 outline outline-accent -outline-offset-1" : pickedKey === pathKey(p) ? PICKED
                             : "hover:bg-panel-2 hover:outline hover:outline-line hover:-outline-offset-1"]}
                     onclick={() => setPath(p, true)} onmouseenter={() => startPreview({ kind: "branch", path: p })} onmouseleave={endPreview} tabindex="-1"
-                    data-path={pathKey(p)} title={label ? LABEL_TEXT[label] : waiting ? "Evaluating…" : undefined}>{moveNotation(node.move)}</button>
+                    data-path={pathKey(p)} title={[label ? LABEL_TEXT[label] : waiting ? "Evaluating…" : "", hardness?.note ?? ""].filter(Boolean).join(" · ") || undefined}>{moveNotation(node.move)}</button>
           {:else}
             <button class={["mv flex p-[0.08em] bg-transparent border-0 rounded-full",
                             at ? "here outline-2 outline-accent" : pickedKey === pathKey(p) ? PICKED : "hover:outline hover:outline-ink"]}
                     onclick={() => setPath(p, true)} onmouseenter={() => startPreview({ kind: "branch", path: p })} onmouseleave={endPreview} tabindex="-1"
-                    data-path={pathKey(p)} title="{turnText(t)} {moveNotation(node.move)}{label ? ` · ${LABEL_TEXT[label]}` : waiting ? ' · evaluating…' : ''}">
+                    data-path={pathKey(p)} title="{turnText(t)} {moveNotation(node.move)}{label ? ` · ${LABEL_TEXT[label]}` : waiting ? ' · evaluating…' : ''}{hardness?.note ? ` · ${hardness.note}` : ''}">
               {@render edgeShape(node.move.edge, node.move.player)}
             </button>
           {/if}
           {#if listed(label)}<span class="-ml-0.5 text-[0.9em]">{@render mark(label)}</span>
           {:else if waiting}<span class="-ml-0.5 text-[0.9em] text-muted animate-pulse motion-reduce:animate-none" title="Evaluating…">…</span>{/if}
+          <!-- A hard position's ◆, small and muted as the move list's, with no slot of its own, as a branch's labels have
+               none. -->
+          {#if hardness?.hard}<span class="-ml-0.5 text-[0.8em] text-muted" title={HARD_NOTE}>◆</span>{/if}
         {:else if engine && step}
           {@render engineEdge(engine, p, step, k)}
         {/if}
@@ -1785,24 +1816,27 @@
           Expected final margin
           <strong class="text-ink">{sideText(analysis.margin!, 0, "0")} ± {Math.round(analysis.spread!)}</strong>
           · lead {sideText(analysis.lead, 0, "0")}
-          <!-- The mark alone, as in the move list: a word would wrap the line and move the table below it. -->
-          {#if hardHere !== undefined}· <span class="text-ink" title={HARD_NOTE}>◆<span class="sr-only"> A hard
-            position</span></span>{/if}
         {:else if over}
           Final margin <strong class="text-ink">{sideText(position.scores[0] - position.scores[1], 1, "0")}</strong>
         {:else}Not analyzed yet{/if}
       </p>
-      {#if meter && !engineOpen}
-        <!-- The network's likely edges here (design 14), as Maia's Blunder Meter shows a human's likely moves: the prior
-             of the searched edges by the group of their loss, in the labels' colours. The rest of the bar, the panel's
-             grey, is the prior of the edges the search did not visit. The engine settings cover it: it says nothing
-             about them. -->
-        <div class="flex h-1.5 mt-1 rounded-full overflow-hidden bg-panel-2" role="img" aria-label={meterText(meter)} title={meterText(meter)}>
-          {#each METER_GROUPS as g (g)}<span class="h-full" style:width="{100 * meter[g]}%" style:background="var(--{g}-fill)"></span>{/each}
+      {#if !engineOpen}
+        <!-- The position's difficulty (design 14), in one row: a hard position's ◆, in a slot as wide as the move list's,
+             the network's likely edges, and the complexity as a loss, as the notes write losses. The likely edges are a
+             meter, as Maia's Blunder Meter shows a human's likely moves: the prior of the searched edges by the group of
+             their loss, in the labels' colours. The rest of the bar, the panel's grey, is the prior of the edges the
+             search did not visit. The number has the width of the longest (−99.9%), so that the meter keeps its width
+             from one position to the next. Until the search gives the position's edges, the row keeps its height (an
+             empty slot, the grey bar, no number): the table under it does not move. The engine settings cover it: it
+             says nothing about them. -->
+        <div class="flex items-center gap-1.5 h-4 mt-1 text-xs text-muted tabular-nums" role={difficultyNote ? "img" : undefined}
+             aria-label={difficultyNote} aria-hidden={!difficultyNote} title={difficultyNote}>
+          <span class="w-[1.2ch] text-center text-ink">{isHard(difficulty) ? "◆" : ""}</span>
+          <div class="flex flex-1 h-1.5 rounded-full overflow-hidden bg-panel-2">
+            {#if meter}{#each METER_GROUPS as g (g)}<span class="h-full" style:width="{100 * meter[g]}%" style:background="var(--{g}-fill)"></span>{/each}{/if}
+          </div>
+          <span class="w-[6.5ch] text-right whitespace-nowrap">{difficulty !== undefined ? costText(difficulty) : ""}</span>
         </div>
-      {:else if !engineOpen}
-        <!-- The meter's place, empty until the search gives the position's edges: the table under it does not move. -->
-        <div class="h-1.5 mt-1 rounded-full bg-panel-2" aria-hidden="true"></div>
       {/if}
     </div>
     {#if engineOpen && engine && onengine}

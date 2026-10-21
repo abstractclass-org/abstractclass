@@ -1,6 +1,7 @@
 # A position's difficulty: hard positions and the accuracy's weights
 
-**Status:** in force, built. **Decided:** 2026-10-12.
+**Status:** in force, built. **Decided:** 2026-10-12. **Changed:** 2026-10-21 (the engine header's second line, and
+the mark on a branch's moves and on the Analysis board's).
 
 ## Context
 
@@ -17,12 +18,29 @@ also wants to know where the game was hard, apart from where they lost.
    (the store's shape 5).
 2. **A hard position:** a complexity of 0.10 or more (`HARD` in `packages/analysis/src/labels.ts`). The network's likely
    edges lose a Mistake's worth there on average. A turn is as hard as its harder position.
-3. **What shows:** a mark where a position is hard, and two pictures of how hard. Words stay out: the tooltips say
-   "Hard position", and the numbers stay in the tooltips of the pictures.
+3. **What shows:** a mark where a position is hard, the complexity as a number, and two pictures of how hard. The
+   mark's tooltip says "Hard position".
+   - **The mark is the position's,** not the review's. It shows wherever the position before a move has a result with
+     the priors, from the same result that the engine header shows for that position. A review searches every
+     position of the game, so each of the game's moves has one. A branch (design 07) and the Analysis board
+     (design 21) search only what the player looks at: there a move without the mark is easy, or its position is not
+     searched yet. The move's tooltip then says "Not searched yet", and a marked move's says "Hard position".
    - ◆ in the move list, beside the loss of a turn (or of an edge, by edge). Every row keeps a slot for it, so that a
-     mark never moves the label beside it or widens the column.
-   - ◆ in the engine header's line for the position on screen. A word there would wrap the line and move the
-     candidates' table.
+     mark never moves the label beside it or widens the column. On the board, the main line's moves that the player
+     did not evaluate have it too.
+   - ◆ on a branch's moves, and on the board's variations: by edge, after the move and its label. By turn, at the move
+     that ends the turn, from the harder of the turn's positions, as a game turn's. For the side reviewed only, as the
+     labels. It is small and muted, as in the move list, with no slot of its own, as a branch's labels have none.
+   - **The engine header's second line,** the difficulty of the position on screen, in every form (a game's move, a
+     branch, the board). The first line gives the advantage ("Expected final margin … · lead …"). The second gives,
+     in one row: the ◆'s slot, as wide as the move list's and empty when the position is not hard, the likely
+     edges' meter (below), in the row's free width, and the complexity written as a loss to one decimal, as the notes
+     write losses (`costText`): −14.3%, and 0.0% with no sign when it rounds to 0. The number has the width of the
+     longest, −99.9%, so the meter keeps its width from one position to the next. Before the position has a result,
+     the row keeps its height (an empty slot, the grey bar, no number): nothing under it moves. The engine settings
+     cover it. Its tooltip, which is also its accessible name: "Hard position." when it is, then the difficulty in
+     words, then the meter's shares. For example: "Difficulty −14.3%: the engine's likely edges lose 14.3% of win
+     chance here on average. A position is hard from 10%. Likely edges: …".
    - **The Difficulty chart,** its own chart, in a tab beside the Advantage chart under the board (design 06), as
      Lichess sets its Move times chart beside its Advantage chart: a bar for each turn (or edge), as tall as its
      complexity, full at twice a hard position's. A hard one is in the ink, the others faint, and a dashed line marks
@@ -35,7 +53,10 @@ also wants to know where the game was hard, apart from where they lost.
      move. The tooltips say which: the Advantage chart's names the move played ("7. K9-K10 A9-D10"), and the
      Difficulty chart's names the decision ("7. Blue to play"), then "Played K9-K10 A9-D10", then "Hard position"
      when it is. The tooltip wraps inside the chart, on the side with more room.
-   - **The likely edges' meter,** under the engine header's line, as Maia's Blunder Meter (its platform's
+   - **The charts stay the game's.** A chart needs every position of its line searched, and only a review searches a
+     whole line. The board searches only what the player looks at, and bars for the visited positions alone would
+     mislead. The board has no chart.
+   - **The likely edges' meter,** in the engine header's second line, as Maia's Blunder Meter (its platform's
      `calculateBlunderMeter`): the network's prior of the searched edges, summed by the group of each edge's loss
      against the best searched edge's win chance, in the labels' colours: Good or better (a loss up to 0.05),
      Inaccuracy (to 0.10), Mistake (to 0.20) and Blunder. The groups go from good to bad, left to right: Maia's meter
@@ -119,8 +140,22 @@ The departures from the published methods:
 - **A note under each hard turn:** it crowds the move list.
 - **A strip under the Advantage chart** (the first form of the difficulty chart): difficulty is not advantage, and a
   strip that thin had no room for the labels' dots.
-- **The complexity as a number in the tooltip** ("the engine's likely edges lose 12.3% here on average"): too many
-  words, and a number that a player cannot weigh. The strip and the meter show the same as a picture.
+- **The complexity as a number in the tooltip** ("the engine's likely edges lose 12.3% here on average"), the first
+  form: too many words, and a number that a player cannot weigh. The number now shows beside the meter and the ◆, in
+  the notes' unit (a loss of win chance, as the notes write a move's cost), with the hard level in its tooltip. So a
+  player can weigh it against a move's loss and against the level.
+- **The ◆ at the end of the advantage's line,** the form before the second line: the header read as one line of
+  advantage, with difficulty at its end, and the meter under it had no number.
+- **The words and the number on a line of their own, the meter under them** ("Difficulty 14.3% · ◆ Hard position"):
+  18 pixels taller than before, twice the second line's 9.
+- **The Difficulty chart's bar lying down** in place of the meter: as tall as the second line, but it shows only the
+  complexity, which the number gives, and drops the likely edges' shares.
+- **A search of every branch position,** so that every branch move has its mark: design 07 refused it, because a line
+  played to show something should cost no search. The positions not searched are mostly inside the engine's lines
+  played to a point (a click on the engine's line adds every move before it). A move that the player plays starts
+  from the position on screen, which the engine searches, and a branch's first move starts from a game position.
+- **A hollow mark for a position not searched:** it clutters the list. A mark reads by its presence, as a branch's
+  labels do, and the tooltip says "Not searched yet".
 
 ## Consequences
 
@@ -136,15 +171,19 @@ The departures from the published methods:
 ## Where it is
 
 - `packages/analysis/src/labels.ts` (`HARD`, `accuracyWeight`), `packages/analysis/src/model.ts` (`complexity`, a move's
-  `complexity` and `hard`, the weighted accuracy in `summarize`, `hardNote`), `packages/analysis/src/reply.ts`
-  (`toAnalysis` keeps the prior), `packages/analysis/src/cache.ts` (`SHAPE`), `src/lib/review/ReviewView.svelte` (the
-  marks, the engine header's line, the meter, the Report's line, the charts' tabs),
+  `complexity` and `hard`, `isHard`, the weighted accuracy in `summarize`, `HARD_NOTE`, `onlyJudged` keeps the
+  complexity), `packages/analysis/src/reply.ts` (`toAnalysis` keeps the prior), `packages/analysis/src/cache.ts`
+  (`SHAPE`), `packages/analysis/src/analysis.svelte.ts` (`fromStore`: the board reads its lines' stored results),
+  `src/lib/review/ReviewView.svelte` (the marks, `branchHardness` and `searchNote`, the engine header's second line,
+  the meter, the Report's line, the charts' tabs),
   `src/lib/review/DifficultyChart.svelte`, `src/lib/review/annotate.ts` (the record's comment),
   `packages/analysis/src/labels.ts` (`meterGroup`), `packages/analysis/src/model.ts` (`likelyEdges`).
 - The measurement: `scripts/measure/complexity-check.mjs`.
-- The tests: `src/lib/review/enclosure.test.ts`.
+- The tests: `src/lib/review/enclosure.test.ts`, and `packages/analysis/src/analysis.test.ts` (the board's read).
 
 ## Log entries
 
 - [decisions/engine.md](../decisions/engine.md): "KaTrain's complexity on the archive" (2026-10-12).
 - [decisions/product.md](../decisions/product.md): "Hard positions and the accuracy's weights" (2026-10-12).
+- [decisions/product.md](../decisions/product.md): "Difficulty as the engine header's second line, and the ◆ on
+  searched branch moves" (2026-10-21).

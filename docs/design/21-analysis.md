@@ -40,6 +40,10 @@ engine does by itself.
      has only a main line: the image of a main line move ahead of the position on screen numbers the line from there.
 3. **Labels on request:** "Evaluate quality" on a move of any line, main line too, searches the two positions to the
    label budget, as for a review's branch move (design 10). Other moves have no label.
+   - **A hard position's ◆ is the position's,** not a label (design 14): every move of the board's lines whose
+     position before it has a result gets it, main line and variations, evaluated or not. A move whose position before
+     it has no result says "Not searched yet" in its tooltip, and a marked move says "Hard position". The annotated
+     record keeps "A hard position." for the moves evaluated only, as before.
 4. **The engine:** the position on screen only, with the engine settings of the review (design 09): the network, the
    depth on screen, the time limit, the workers and the GPU. The review's depth applies only to "Evaluate quality",
    and the engine settings name it so ("Evaluate quality: Depth").
@@ -47,9 +51,11 @@ engine does by itself.
      moves asked for, on both sides, and ignores it), and the Advantage chart's lines (the board has no chart). The
      help of the depth on screen and of the network leaves out the review.
    The results go to the browser's store, keyed by the position, as the review's (design 05). A position searched in
-   a review opens with its result here, and the other way. The board reads the stored results of the moves evaluated
-   (the positions before and after each) before it shows, as the review reads its own: their labels and notes are in
-   its first frame, and do not move the bar under the moves when they come (a layout shift).
+   a review opens with its result here, and the other way. The board reads the stored results of every position of
+   its main line and of its variations before it shows, in one read of the store, as the review reads its own. It
+   only reads: the engine searches nothing more. The labels and notes of the moves evaluated are in its first frame,
+   and do not move the bar under the moves when they come (a layout shift). The other positions' results give their
+   ◆ (item 3), so that a mark does not show only where the player stood during this visit. They give no label.
 5. **The ways in:**
    - **Analysis** in the header: the board as the player left it.
    - **A link** that carries a line: `/analysis#record=…` (a record), or `/analysis#packed=…` (a shared analysis),

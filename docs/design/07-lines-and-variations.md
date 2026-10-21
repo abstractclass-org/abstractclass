@@ -150,6 +150,11 @@ cut edges that are on the board, so a line drawn over the board can show edges t
     after the move that ends the turn, with every label in its tooltip, and the board shows the badges of the turn just
     played. The moves evaluated are kept with the branches. A branch that stops in a turn's middle has no turn label
     until the turn ends.
+    - **A hard position's ◆** (design 14) needs no request: it shows wherever the position before a branch move has a
+      result, from the search of that position. By edge, it follows the move and its label. By turn, it follows the
+      move that ends the turn, from the harder of the turn's positions. It shows for the side reviewed only, as the
+      labels. A move's tooltip says "Hard position" when it is marked, and "Not searched yet" when its position before
+      it (by turn, one of the turn's) has no result. A move without the mark and without that word is easy.
 12. **Lichess's move menu** on a branch's move, by a right-click or a long press: "Evaluate quality" (item 11),
     "Promote variation" (the nearest branch on the path that is not the first from its parent becomes the first, as
     Lichess's `promoteAt`) and "Delete from here" (the move and what follows it, and the place on screen goes to the

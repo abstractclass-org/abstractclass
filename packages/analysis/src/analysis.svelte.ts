@@ -318,11 +318,12 @@ export class GameAnalysis<G extends GameTypes> {
 
   /** The review from the browser's store alone, with no search (an export away from the review page, design 13): each
    *  position that the passes search and each of the branches, at the label budget or deeper, or the sweep's where that
-   *  is all there is, then the positions that confirm the Greats. The board reads the positions that judge its moves
-   *  evaluated (judgedPositions). Call after start(), and loadBoard() for the board. `search` and `model` name the
-   *  engine whose results to read. A position counts as searched that far (swept, labelled, the key moments' and the
-   *  Greats' steps), as the passes count it when they find the result in the store: a review opened again is complete
-   *  before the engine's network loads. */
+   *  is all there is, then the positions that confirm the Greats. The board reads the same: each position of its main
+   *  line and of its variations, though no pass searches them. Its labels stay on the moves evaluated (design 21): the
+   *  other moves take their positions' results only, which mark the hard positions (design 14). Call after start(),
+   *  and loadBoard() for the board. `search` and `model` name the engine whose results to read. A position counts as
+   *  searched that far (swept, labelled, the key moments' and the Greats' steps), as the passes count it when they find
+   *  the result in the store: a review opened again is complete before the engine's network loads. */
   async fromStore(search: string, model: string) {
     const take = async (path: string[]) => {
       const moves = this.keyMovesOf(path);
@@ -330,8 +331,7 @@ export class GameAnalysis<G extends GameTypes> {
         ?? (await cacheGetAtLeast<Analysis<G["move"]>>(search, model, moves, SWEEP_VISITS));
       if (a) this.keepStored(path, a);
     };
-    const paths = this.board ? this.judgedPositions()
-      : [...Array.from({ length: this.passCount }, (_, i) => this.mainNames.slice(0, i)), ...Object.keys(this.branches).map(k => k.split(" "))];
+    const paths = [...Array.from({ length: this.passCount }, (_, i) => this.mainNames.slice(0, i)), ...Object.keys(this.branches).map(k => k.split(" "))];
     await warmCache(search, model, paths.map(p => this.keyMovesOf(p)), SWEEP_VISITS); // one read of the store for them all
     await Promise.all(paths.map(take));
     // After the rest: they follow the results.
@@ -545,14 +545,6 @@ export class GameAnalysis<G extends GameTypes> {
   /** Board: the moves evaluated, by their path keys: the main line's and the branches'. */
   private judgedKeys(): string[] {
     return [...Object.keys(this.judgedMain), ...Object.entries(this.branches).filter(([, n]) => n.judged).map(([k]) => k)];
-  }
-
-  /** Board: the positions that judge the moves evaluated (judging), each once: what the board reads from the store
-   *  before it shows (fromStore). */
-  private judgedPositions(): string[][] {
-    const out = new Map<string, string[]>();
-    for (const k of this.judgedKeys()) for (const p of this.judging(k.split(" "))) out.set(pathKey(p), p);
-    return [...out.values()];
   }
 
   /** Board: plays a line from the start. A line that goes on from the main line's end makes it longer, as on Lichess's

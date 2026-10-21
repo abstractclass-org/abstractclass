@@ -320,6 +320,21 @@ test("a position whose result the store has, and the analysis lost, takes it fro
   assert.deepEqual([game.analysisOf(branch)?.visits, searches.length], [visits, before]);
 });
 
+test("the board reads the stored results of every position of its lines when it opens, searches none and judges none", async () => {
+  const { pool, searches } = fakePool();
+  const game = new GameAnalysis(words, pool, [], BOARD_ID);
+  await game.start();
+  // The main line a b, and the variation a c b. Its end (a c b) is a position too, as the main line's (a b).
+  await game.loadBoard({ version: 2, nodes: [["a", 0], ["a b", 0], ["a c", 1], ["a c b", 0]], main: ["a", "b"] });
+  const lines = [[], ["a"], ["a", "b"], ["a", "c"], ["a", "c", "b"]];
+  for (const p of lines) await cachePut(analysisKey(pool.search!, pool.model!.sha256, p, SWEEP_VISITS), toAnalysis(words, reply(SWEEP_VISITS)));
+  await game.fromStore(pool.search!, pool.model!.sha256);
+  assert.deepEqual(lines.map(p => game.analysisOf(p)?.visits), lines.map(() => SWEEP_VISITS));
+  assert.equal(searches.length, 0);
+  assert.deepEqual(game.judgedMain, {}); // the labels stay on the moves the player asks to evaluate (design 21)
+  assert.ok(Object.values(game.branches).every(n => !n.judged));
+});
+
 test("a line gleams while a search of its position can change it: not for a label search below the visits on screen", async () => {
   const { game, searches } = await sweeping();
   const n = game.passCount, visits = game.labelVisits;
