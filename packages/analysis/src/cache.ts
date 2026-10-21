@@ -121,6 +121,14 @@ export async function cacheGetAtLeast<T>(search: string, model: string, moves: s
   const key = [...keys].reverse().find(k => memory.has(k));
   return key === undefined ? undefined : (memory.get(key) as T);
 }
+/** The stored result for a position at exactly `visits`, of the newer shape where both are stored: a comparison of two
+ *  searches as deep reads it, where a deeper result would mix depths (the threat's size, Hedge School's design 31). */
+export async function cacheGetAt<T>(search: string, model: string, moves: string[], visits: number): Promise<T | undefined> {
+  const keys = READ_SHAPES.map(s => analysisKey(search, model, moves, visits, s));
+  await readStored(keys);
+  const key = [...keys].reverse().find(k => memory.has(k));
+  return key === undefined ? undefined : (memory.get(key) as T);
+}
 /** The keys of a position's results at `visits` and every budget deeper, each depth's in the shapes that the readers
  *  read, the oldest first. */
 const depthKeys = (search: string, model: string, moves: string[], visits: number) =>

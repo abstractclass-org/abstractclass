@@ -6548,3 +6548,40 @@ centre. Measured in headless Chromium on the test fixture's review and on the An
 21.8 pixels at 1,366 pixels wide (a line's circle 16.4 across), 25.8 on the Analysis board, and 13.3 at 390 pixels
 wide. Each number's box was within 1 pixel of its triangle's centre at every width, as a circle's number is. The
 close-ups in light and dark read as warning signs, with the number inside.
+
+### The threat's size at equal depths (2026-10-21)
+
+**The question.** In the review of a close game in the owner's browser, many threats cost over 90% of win chance. The
+threat results stored there (11 positions) and the positions' own results were read.
+
+**The large threats are real.** A pass forfeits the turn (`move_count += moves_left` in the engine), so the opponent
+plays two turns in a row, and the passer's edges are not protected in that turn, since the pass places none. The scores
+add each turn's areas, so a region lost early costs points at every later turn. After the pass, the mover's win chance
+was 0 to 9% at every turn's start there. The cost can never be more than the mover's win chance, and it was over 90%
+only where the engine gave the mover over 90%. The game swung between the players from turn to turn, so a free turn
+decided it, whoever led. The engine reads a position after a pass as a normal position: `forfeit_turn` keeps the edge
+count, so the turns and their parity are as in a normal game.
+
+**A fault: the size mixed depths.** The position's value was its deepest stored result (16,384 or 32,768 visits, the
+review's key moments and the player's Depth), and the threat's was a search at the Depth (256 visits there). At one
+position the position read 38.9% at 32,768 visits and 78.7% at 256: the size was 37.6%, and 77.4% at equal depth. A
+move's loss compares searches of one budget (design 10).
+
+**The rule** (design 31, item 4): the threat's size compares the threat with the position's result from a search with
+the same settings, the Depth's visits and its time limit. The position's own result serves where it is that search.
+Where the store has only a deeper one, the store's result at the Depth's visits serves, or else the position is
+searched with those settings as a part of the threat's work, and that result is stored. The values after the pass and
+the board do not change. A snapshot compares the stored threat with the position's stored result of the same visits.
+
+**The tests** (`packages/analysis/src/analysis.test.ts`): "a position with a deeper stored result than the threat's
+gets its size from a search with the threat's settings" fails on 56d7960 (no such search: the
+size there read the deeper result) and passes now. It checks the search's visits and time limit, the size in win
+chance and points, the deeper result kept, and that a second visit reads the stored result with no search. "A
+snapshot's threat size compares the stored threat with the position's stored result as deep, with no search" checks
+the snapshot.
+
+**In the browser** (headless Chromium, the test fixture's review at 512 visits): with the Depth at 256, the threat at a
+turn's start and in its middle sent a search of the position at 256 visits beside the threat's at 256, and the header
+showed "Threat to Blue: −6.2% · −307.3 pts" and "−5.0% · −144.7 pts". With the Depth at 1,024, deeper than the review,
+the position's own search at 1,024 served, and no other search was sent. The check on real games
+("The threat on real games") searched both positions at 512 visits, so its counts stand.

@@ -58,6 +58,8 @@
     threatAt(path: string[]): Analysis | undefined; // the analysis of the position after the pass
     passedAt(path: string[]): Position | undefined; // the position after the pass, from the rules
     threatState(path: string[]): ThreatState; // its search runs, waits, is done, or cannot come
+    // What the pass costs the side to move, against the position's result with the threat's settings
+    threatCost(path: string[]): { win: number; points: number | undefined } | undefined;
   }
 
   // The numbers' formats, made once: a formatter is costly to make, and the move list and the tables format many numbers
@@ -136,7 +138,7 @@
   import { errorText } from "@abstractclass/engine/errors.ts";
   import Toast from "#lib/ui/Toast.svelte";
   import {
-    edgeName, endingText, fmtScore, moveName, moveNotation, opensTurn, turnFromCount, sameEdge, shortNote, turnShortNote, HARD_NOTE, complexity, isHard, turnComplexity, likelyEdges, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchEdge, valuesAfter, resultWin, moverWin, moverScore, costText, pct, shownCandidates, distinctCandidates, rankOf, twinsOf, lineMovers, enoughVisits, trustedLine, type Candidate, type EdgeReview, LABELS, LABEL_TEXT, LABEL_GLYPH, type Label, type Review, type Unit, type Move, type TurnJudgment, type TurnReview,
+    edgeName, endingText, fmtScore, moveName, moveNotation, opensTurn, turnFromCount, sameEdge, shortNote, turnShortNote, HARD_NOTE, complexity, isHard, turnComplexity, likelyEdges, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchEdge, valuesAfter, resultWin, moverWin, costText, pct, shownCandidates, distinctCandidates, rankOf, twinsOf, lineMovers, enoughVisits, trustedLine, type Candidate, type EdgeReview, LABELS, LABEL_TEXT, LABEL_GLYPH, type Label, type Review, type Unit, type Move, type TurnJudgment, type TurnReview,
   } from "./enclosure.ts";
   import { branchChildren, branchLine, branchRows, mainIndex, nextFork, pathKey, prefixKeys, prevFork, sharedLength, siblingLine, treeLines, withLine,
            type BranchRow } from "@abstractclass/analysis/tree.ts";
@@ -463,11 +465,9 @@
     return turn.length ? turn : [first.edge];
   });
   // What the pass costs the player: the position's value less the value after the pass, from the player's side, in win
-  // chance and in points (the lead), as a move's loss (design 10).
-  const threatCost = $derived(analysis && threat ? {
-    win: moverWin(analysis.blueWin, mover) - moverWin(threat.blueWin, mover),
-    points: analysis.lead !== undefined && threat.lead !== undefined ? moverScore(analysis.lead, mover) - moverScore(threat.lead, mover) : undefined,
-  } : null);
+  // chance and in points (the lead), as a move's loss (design 10). Both from searches with the same settings
+  // (GameAnalysis.threatBaseAt), so that the size does not mix depths.
+  const threatCost = $derived(threat && game?.threatCost(path));
   // The board shows the threat while no candidate's line shows
   const threatShown = $derived(!lineEdges && !!threatEdges);
   const line = $derived.by((): BoardLineEdge[] | null => {
@@ -1244,6 +1244,9 @@
     if (threatState === "off") return { text: "Threat: the engine is off", busy: false };
     if (threatState === "searching") return { text: "Threat: searching", busy: true };
     if (threatState === "waiting") return { text: "Threat: waiting for the engine", busy: true };
+    // The threat is there, and the position's result with the same settings is not
+    if (threat && snapshot) return { text: "No threat size saved: snapshots do no searches", busy: false };
+    if (threat && engine && !engine.on) return { text: "Threat: the engine is off", busy: false };
     if (threat) return { text: "Threat: waiting for the search of this position", busy: true };
     return null;
   });
