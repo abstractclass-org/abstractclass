@@ -55,24 +55,28 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
    - **The Advantage chart's lines:** Blue's win chance, the score difference and the difference of the areas each
      player encloses now, each of the last two scaled to its own largest value, which reaches 70% of the way from the
      middle to the edge, and above the middle when Blue has more, as the win chance is. The legend names the lines only
-     ("Win chance for Blue", "Score difference", "Area difference"), each name first giving what its line measures.
-     The score line is teal (`--score`) and the area line magenta (`--area`), apart from the accent's lavender.
-     **The chart's note** gives the move and its label, the engine's lead, then a line each for the score and the area
-     of the lines shown, with the side ahead named ("Score: Blue +88.9"): the lines have no axis, so their numbers are
-     only there. At the game's end the result replaces the score. **The score and area lines show or hide** in two ways:
-     the display settings ("Score line", "Area line") say whether each shows when a review opens, and a box beside its
-     name in the legend shows or hides it for the moment, without changing the setting. A line that is off by setting
-     keeps its place in the legend, with its box clear. A click on a box does not focus it, so that the arrow keys still
-     step through the moves. **The key moments** are dots in their label's colour, 7 pixels wide. They are drawn in
-     HTML, as the hovered point is: the chart's SVG stretches to the column's width, and in a column as narrow as the
-     summary's, a circle in it is a thin ellipse. The chart's note takes at most the room beside the point, and wraps
-     there. **While the review runs,** the line is faint where a position has only its first search (the sweep's 32
-     visits), and full where its search has the review's depth. The legend then says "Win chance, first estimate",
+     ("Win chance for Blue", "Score difference", "Area difference"), each name first giving what its line measures. The
+     score line is teal (`--score`) and the area line magenta (`--area`), apart from the accent's lavender. **The
+     chart's note** gives the move and its label, the engine's lead, then a line each for the score and the area of the
+     lines shown, with the side ahead named ("Score: Blue +88.9"): the lines have no axis, so their numbers are only
+     there. At the game's end the result replaces the score. **The score and area lines show or hide** in two ways: the
+     display settings ("Score line", "Area line") say whether each shows when a review opens, and a box beside its name
+     in the legend shows or hides it for the moment, without changing the setting. A line that is off by setting keeps
+     its place in the legend, with its box clear. A click on a box does not focus it, so that the arrow keys still step
+     through the moves. **The labels that the move list shows** (Great, Inaccuracy, Mistake and Blunder) are dots in
+     their label's colour, 7 pixels wide: one for each such turn or edge, in the unit of "Judge by" and for the side
+     shown, as many as the game has. A click on a dot goes to its move. By edge, in the narrowest chart (313 pixels at a
+     window of 360), two labelled edges next to each other are 2.6 pixels apart, and the second dot covers most of the
+     first (decisions/product.md, "The charts mark every label, and every label has the review's depth"). The dots are
+     drawn in HTML, as the hovered point is: the chart's SVG stretches to the column's width, and in a column as narrow
+     as the summary's, a circle in it is a thin ellipse. The chart's note takes at most the room beside the point, and
+     wraps there. **While the review runs,** the line is faint where a position has only its first search (the sweep's
+     32 visits), and full where its search has the review's depth. The legend then says "Win chance, first estimate",
      with "Refined as the review runs" as its tooltip, and a faint position's note says "first estimate". This marking
      is the site's own, not taken from a published tool. It was dashed at first, and read as the chart's dashed 50%
-     line. **By turn** (design 10, "Review by"), the chart draws and snaps to the turns' ends
-     only: a turn is one step, and its note names the whole turn. A note gives the label in brackets, as Lichess's chart
-     does: "2. Q10-R8 O11-Q10 [Blunder]".
+     line. **By turn** (design 10, "Review by"), the chart draws and snaps to the turns' ends only: a turn is one step,
+     and its note names the whole turn. A note gives the label in brackets, as Lichess's chart does: "2. Q10-R8 O11-Q10
+     [Blunder]".
 4. **The step controls** (first, back, forward, last), the status line and the display settings' button are a bar at
    the bottom of the analysis column, as on Lichess, next to the move list that they step through. The steps are on
    the left, and the tools on the right (the Analysis board's New, Play and Export, the review's Export, and ☰). When
@@ -127,17 +131,11 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
 7. **The progress bars go by subject:** the position's search bar is in the position's engine header, at the top of
    the analysis (with the expected final margin, the lead and the visits). The review's progress bar is at the top of
    the summary (three columns), or at the top of the right column (fewer), over the tabs. It covers all of the
-   review's own work, each part as wide as its share of the visits: the sweep, the label pass, the key moments
-   searched deeper, and the Great's confirmations ("confirming Great moves, 18 of 22"). After them, while the area map
-   is on and the review's results lack their maps, the map pass is one more part ("Maps: 34 of 120", design 30): the
-   review is done without it. The Great's and the key moments' steps are counted from
-   the labels found so far, so they grow as labels come. The key moments' step also counts each position that the review
-   asked a key moment's search for, at the review's depth, until the store has the position's result. A search's results
-   so far change the labels, so its position can leave the key moments before the search ends. The store gets its result
-   only at the end. So the step waits for the search's end and for the write of its result, and its count does not go
-   back when the key moments change. Without this, "5 of 6" could become "3 of 4". When the engine goes off or fails
-   during such a search, the position stays in the step, and the engine on searches it again. Every step counts a
-   position only when the store has its result, not when another search's results so far reach the budget (design 05).
+   review's own work, each part as wide as its share of the visits: the sweep, the label pass, and the Great's
+   confirmations ("confirming Great moves, 18 of 22"). After them, while the area map is on and the review's results
+   lack their maps, the map pass is one more part ("Maps: 34 of 120", design 30): the review is done without it. The
+   Great's step is counted from the labels found so far, so it grows as labels come. Every step counts a position only
+   when the store has its result, not when another search's results so far reach the budget (design 05).
    The bar shows the step that its line names: the steps before are full, the later ones empty, though some of their
    work ends early, alongside (it shows when their step comes). The step's part never shows less than it showed before:
    when its count grows, it waits. Another review depth, network or game starts it again. A review opened again reads

@@ -3,10 +3,10 @@
   // player imported (src/lib/game/store.ts): after the `#`, which neither analytics service records (design 17). An
   // older address's `?game=ID` moves there. Without it, the page opens the last game reviewed in this browser, and
   // with none, asks for one: there is no sample game (design 11).
-  // The board works from the engine's rules at once. Then the sweep, the label pass, deeper searches where the
-  // player looks, and the key moments deepened after the label pass (docs/design/05-review-analysis.md). The engine's
-  // settings (docs/design/09-engine-settings.md) apply as they change: the workers, the GPU and the network without a
-  // reload. The GPU worker joins the pool once the network is loaded (docs/design/15-gpu.md). One tab reviews a game at
+  // The board works from the engine's rules at once. Then the sweep, the label pass, the Greats' confirmations, and
+  // deeper searches where the player looks (docs/design/05-review-analysis.md). The engine's settings
+  // (docs/design/09-engine-settings.md) apply as they change: the workers, the GPU and the network without a reload.
+  // The GPU worker joins the pool once the network is loaded (docs/design/15-gpu.md). One tab reviews a game at
   // a time (src/lib/game/reviewLock.ts). A game that arrives after the `#` (a shared review, a partner's, a tool's from
   // before the import page: the review's ways in, docs/design/22-site-map.md) is kept first, by Arrival, then reviewed.
   // A record there, which only the import page takes, gets the Review tab. A game reviewed with an earlier engine opens
@@ -24,7 +24,7 @@
   import { LABEL_VISITS, MAP_VISITS, SWEEP_VISITS, snapshotExcept, snapshotPositions, snapshotSearch, warmCache } from "@abstractclass/analysis/cache.ts";
   import { enclosure, review, type Enclosure, type GameEnding, type ReviewData } from "#lib/review/enclosure.ts";
   import { EnginePool } from "@abstractclass/engine/pool.ts";
-  import { GameAnalysis, momentVisits } from "@abstractclass/analysis/analysis.svelte.ts";
+  import { GameAnalysis } from "@abstractclass/analysis/analysis.svelte.ts";
   import { EngineSession } from "@abstractclass/analysis/session.svelte.ts";
   import { changeOwn, loadEngine, networkName, offersNetwork, ownSettings, reviewVisits, saveEngine, withOwn,
            type EngineSettings, type OwnSettings } from "#lib/analysis/engineSettings.ts";
@@ -113,31 +113,14 @@
   // and report in its first frame, and nothing moves as they come (Cloudflare measured the page's layout shift).
   let preloaded = $state(false);
   const R = $derived(data && preloaded ? review(data, "lead", LABEL_VISITS) : null);
-  // The key moments' positions, searched deeper after the label pass: every position of each, from its start to its end
-  // (its loss needs both ends, and a turn's note gives its edges' losses too). The key moments by turn and by edge,
-  // whichever the page shows: they are mostly the same positions. Before the label pass ends, the labels found so far
-  // give them, so that the progress bar has their part from the start.
-  const momentPositions = $derived.by(() => {
-    if (!R) return [];
-    const positions = [...R.keyMoments.turn, ...R.keyMoments.edge].flatMap(m => Array.from({ length: m.last - m.first + 2 }, (_, k) => m.first + k));
-    return [...new Set(positions)].filter(i => i < moveCount).sort((a, b) => a - b);
-  });
-  const momentKey = $derived(momentPositions.join(" ")); // one string, so that a new array with the same positions is no change
-  // The game's positions with a result deeper than the review asked for (the review's depth, or the key moments'),
-  // from the position on screen searched deeper where the player looked (design 09). The report says how many. The
-  // depths step by doublings, so a deeper search has at least twice the visits.
-  const deeperPositions = $derived.by(() => {
-    if (!game) return 0;
-    const moments = new Set(momentPositions);
-    return game.analysis.filter((a, i) => !!a && a.visits >= 1.5 * (moments.has(i) ? momentVisits(depth) : depth)).length;
-  });
+  // The game's positions with a result deeper than the review's depth: from the position on screen searched deeper
+  // where the player looked (design 09), or from an older review, which searched some positions at twice its depth.
+  // The report says how many. The depths step by doublings, so a deeper search has at least twice the visits.
+  const deeperPositions = $derived(game ? game.analysis.filter(a => !!a && a.visits >= 1.5 * depth).length : 0);
   // The review's work as one bar, each part as wide as its share of the visits, so that the bar moves at an even pace:
-  // the sweep, the label pass, the key moments searched deeper, and the Great's confirmations. The last two are counted
-  // from what the analysis asks for so far: they grow as labels come, and each is done when its positions have the
-  // searches' results in the store, whoever ran them (after a change of the review's depth too). The key moments' part
-  // also counts each position that a search for earlier key moments was asked for at the depth, until the store has its
-  // result (momentChecks), so that its count does not go back when the key moments change, and a search that the engine
-  // off ended waits for the engine on. The bar shows the step that its line names:
+  // the sweep, the label pass, and the Great's confirmations. The last is counted from what the analysis asks for so
+  // far: it grows as labels come, and it is done when its positions have the searches' results in the store, whoever
+  // ran them (after a change of the review's depth too). The bar shows the step that its line names:
   // the steps before are full, the later ones empty, though some of their work can end early, alongside (it shows when
   // their step comes). The step's own part never shows less than it has shown (held): a count that grows makes it wait
   // instead of going back. Another review depth, network or game starts it again. After the review, while the area map
@@ -147,33 +130,30 @@
   $effect(() => { void budget; void game; held = { step: -1, done: 0 }; });
   const rawProgress = $derived.by((): (ReviewProgress & { step: number }) | null => {
     if (snapshot) return null;
-    const n = Math.max(1, passCount), deeper = momentVisits(budget) - budget;
-    const { total: m, done: deepDone } = game?.momentChecks(momentPositions) ?? { total: 0, done: 0 };
+    const n = Math.max(1, passCount);
     const greats = game?.greatChecks ?? { total: 0, done: 0 };
-    const labelled = game?.labelled !== undefined && game.labelled >= passCount, deep = deepDone >= m;
+    const labelled = game?.labelled !== undefined && game.labelled >= passCount;
     // Every step has its results, from the searches or from the browser's store: the review is complete. A review opened
     // again is complete before the engine's network loads: its line says "Review done" at once, and its report's counts
     // are final, so they do not change their lines when the network comes (a layout shift). The snapshot's analysis
     // holds an earlier engine's results: after Review again it stays on screen until the new review's analysis
     // replaces it.
-    const complete = labelled && deep && greats.done >= greats.total && game !== snapshotGame, maps = game?.mapPass;
+    const complete = labelled && greats.done >= greats.total && game !== snapshotGame, maps = game?.mapPass;
     if (complete && !maps) return null;
     const mapVisits = maps ? MAP_VISITS * maps.total : 0;
-    const total = (SWEEP_VISITS + budget) * n + deeper * m + budget * greats.total + mapVisits;
+    const total = (SWEEP_VISITS + budget) * n + budget * greats.total + mapVisits;
     const parts = [
       { share: (SWEEP_VISITS * n) / total, done: (game?.swept ?? 0) / n },
       { share: (budget * n) / total, done: (game?.labelled ?? 0) / n },
-      ...(deeper * m ? [{ share: (deeper * m) / total, done: deepDone / m }] : []),
       ...(greats.total ? [{ share: (budget * greats.total) / total, done: greats.done / greats.total }] : []),
       ...(maps ? [{ share: mapVisits / total, done: maps.done / maps.total }] : []),
     ];
     if (complete && maps) return { text: `Maps: ${maps.done} of ${maps.total}`, parts, step: parts.length - 1, maps: true };
-    const step = !game || game.swept < passCount ? 0 : !labelled ? 1 : !deep && deeper * m ? 2 : parts.length - (maps ? 2 : 1);
+    const step = !game || game.swept < passCount ? 0 : !labelled ? 1 : parts.length - (maps ? 2 : 1);
     if (!game?.engineReady) return { text: NETWORK_LOADS, parts, step };
     if (game.paused) return { text: "Engine off. The review is paused.", parts, waiting: true, step };
     if (step === 0) return { text: `Reviewing: the game's shape, ${game.swept} of ${passCount} positions`, parts, step };
     if (step === 1) return { text: `Reviewing: move quality, ${game.labelled} of ${passCount} positions`, parts, step };
-    if (!deep) return { text: `Reviewing: the key moments, deeper, ${deepDone} of ${m} positions`, parts, step };
     return { text: `Reviewing: confirming Great moves, ${greats.done} of ${greats.total}`, parts, step };
   });
   const rawStepDone = $derived(rawProgress ? rawProgress.parts[rawProgress.step]?.done ?? 1 : 0);
@@ -233,15 +213,6 @@
     const { step, ...shown } = rawProgress;
     const own = held.step === step ? Math.max(held.done, rawStepDone) : rawStepDone;
     return { ...shown, parts: shown.parts.map((p, k) => ({ share: p.share, done: k < step ? 1 : k === step ? own : 0 })) };
-  });
-
-  // After the label pass: the key moments deeper (momentPositions), and again whenever they change (a label changed by
-  // a deeper search, another review depth). The analysis skips a position already queued or done.
-  const reviewed = $derived(!!R); // the review shows: a new result is no change of the key moments
-  $effect(() => {
-    void momentKey;
-    if (!reviewed || !game?.engineReady || game.labelled < passCount) return;
-    untrack(() => game!.deepen(momentPositions));
   });
 
   const wide = new MediaQuery(WIDE);

@@ -31,7 +31,7 @@ export const TIME_LIMITS: (number | null)[] = [10, 20, 30, 60, 120, 300, null];
  *  search finds, with 80% of its flags right (256 visits found 42%), and Standard is the reference of that measurement
  *  (decisions/engine.md, "Label agreement against search budget, under protocol 0.3"). KaTrain analyses a move with 500
  *  visits. A custom budget takes the Depth's steps, any whole number from 256 to 16,384: a move gets its label from 256
- *  visits on. The key moments go one doubling deeper (analysis.svelte.ts, momentVisits), to 32,768 at most. */
+ *  visits on. */
 export const REVIEW_PRESETS = { lite: 2 * LABEL_VISITS, standard: 4 * LABEL_VISITS } as const;
 export const CUSTOM_REVIEW = DEPTHS;
 

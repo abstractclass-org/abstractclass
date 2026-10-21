@@ -55,17 +55,17 @@ look at a past review pays it each time, and the earlier results are still in th
      the page, so these marks become fewer.
    - **The site's own search:** the snapshot of an earlier engine's review never takes it. The site's engine reads
      those results itself, so the game opens as a review.
-8. **An earlier engine's results go when no game needs them.** A result belongs to a position, not to a game. The
-   site keeps every result of its own search with a network file that it ships. An earlier engine's result, or an
-   earlier network file's, stays while the snapshot of a stored game reads it. A snapshot reads the results of one
-   search: the mark's search, or the search that holds the game's line at its depth for a mark that names none
-   (item 7). The removal takes the same search for each game. It reads the game's positions and the
-   positions one move from them, as the game's review file holds them (design 13). For each game's review depth, it
-   keeps the result of each position that the snapshot shows (item 2). The other results of the position go: a
-   shallower one, and a deeper one at a depth that the snapshot does not read. Examples are the key moments of a custom
-   depth, at twice its visits, and a Depth that the player typed. A map added to one of these positions (design 30)
-   stays while a snapshot reads the position, whatever the depth of the results there. A map further from the game's
-   positions goes, such as the map of a line's later edge. The other results of the store's shape go too:
+8. **An earlier engine's results go when no game needs them.** A result belongs to a position, not to a game. The site
+   keeps every result of its own search with a network file that it ships. An earlier engine's result, or an earlier
+   network file's, stays while the snapshot of a stored game reads it. A snapshot reads the results of one search: the
+   mark's search, or the search that holds the game's line at its depth for a mark that names none (item 7). The removal
+   takes the same search for each game. It reads the game's positions and the positions one move from them, as the
+   game's review file holds them (design 13). For each game's review depth, it keeps the result of each position that
+   the snapshot shows (item 2). The other results of the position go: a shallower one, and a deeper one at a depth that
+   the snapshot does not read. Examples are an older review's deeper search of a custom depth, at twice its visits, and
+   a Depth that the player typed. A map added to one of these positions (design 30) stays while a snapshot reads the
+   position, whatever the depth of the results there. A map further from the game's positions goes, such as the map of a
+   line's later edge. The other results of the store's shape go too:
    - **After Review again,** the game's mark names the site's engine when the new review ends. Its snapshot then reads
      nothing. A position that another game's snapshot reads keeps its result.
    - **After a delete,** the game needs nothing: the player confirms a delete and cannot undo it (design 11).

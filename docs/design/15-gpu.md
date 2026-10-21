@@ -36,12 +36,12 @@ which Chrome and Edge have from version 137.
 
 - **One more worker.** The engine repository measured that the GPU and the CPU workers together are faster than
   either alone, on an Apple laptop too.
-- **The CPU first.** Each search on the GPU waits for its batch, so it runs slower than a search on a CPU worker. On
-  the engine repository's RTX 5080, 16 searches ran at 571 visits a second together, 36 each, against 83 for one CPU
-  worker. The GPU gains by the number of its searches. So the CPU workers take the work first, and the GPU takes the
-  rest: in the sweep and the label pass, that is most of the game. A few deep searches, such as the key moments,
-  then run mostly on the CPU workers. Where the GPU took them first, they ran in small batches while the CPU workers
-  were idle. KataGo's analysis config gives the same advice: many positions at once on the GPU.
+- **The CPU first.** Each search on the GPU waits for its batch, so it runs slower than a search on a CPU worker. On the
+  engine repository's RTX 5080, 16 searches ran at 571 visits a second together, 36 each, against 83 for one CPU worker.
+  The GPU gains by the number of its searches. So the CPU workers take the work first, and the GPU takes the rest: in
+  the sweep and the label pass, that is most of the game. A few deep searches, such as the position on screen's, then
+  run mostly on the CPU workers. Where the GPU took them first, they ran in small batches while the CPU workers were
+  idle. KataGo's analysis config gives the same advice: many positions at once on the GPU.
 - **Auto, with a test.** GPUs differ a lot. On the engine repository's RTX 5080, the GPU worker ran 7 times faster
   than one CPU worker. A weak integrated GPU can be slower than a CPU worker, and there a CPU worker does the same work
   better.

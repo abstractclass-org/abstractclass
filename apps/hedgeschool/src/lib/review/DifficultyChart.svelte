@@ -1,10 +1,11 @@
 <script lang="ts">
   // The difficulty chart (design 14), beside the Advantage chart as Lichess sets its Move times chart beside its
   // Advantage chart: a bar for each turn (or edge), as tall as its position's complexity, full at twice a hard
-  // position's, dark where the position is hard, with a dashed line at the hard level. Under the bars, a row of the key
-  // moments' labels as dots, each under its turn: the bars' heights stay a picture of difficulty alone, and the row reads
-  // as a line of time, so the chart shows whether the mistakes fell where the game was hard. The pointer snaps to the
-  // bar under it and names its position: the decision, before its move. A click shows that position.
+  // position's, dark where the position is hard, with a dashed line at the hard level. Under the bars, a row of the
+  // labels that the move list shows, as dots, each under its turn: the bars' heights stay a picture of difficulty
+  // alone, and the row reads as a line of time, so the chart shows whether the mistakes fell where the game was hard.
+  // The pointer snaps to the bar under it and names its position: the decision, before its move. A click shows that
+  // position.
   import type { Label } from "./enclosure.ts";
   import { HARD } from "@abstractclass/analysis/labels.ts";
   import ChartTip, { pointerAt } from "./ChartTip.svelte";
@@ -14,10 +15,10 @@
     positions: number; // the game's positions, the end included
     bars: Bar[]; // in the game's order
     current: number;
-    moments: { index: number; label: Label }[]; // a key moment's last edge
+    dots: { index: number; label: Label }[]; // a labelled turn's or edge's last edge (model.ts, chartMarks)
     onjump: (position: number) => void;
   }
-  let { positions, bars, current, moments, onjump }: Props = $props();
+  let { positions, bars, current, dots, onjump }: Props = $props();
 
   const W = 600, H = 80, ROW = 14; // the labels' row, under the bars
   const BASE = H - ROW, TOP = 2 * HARD;
@@ -45,8 +46,8 @@
   <line x1="0" y1={BASE} x2={W} y2={BASE} class="stroke-line" vector-effect="non-scaling-stroke" />
   <line x1={x(current)} y1="0" x2={x(current)} y2={H} class="stroke-last" stroke-width="2" vector-effect="non-scaling-stroke" />
 </svg>
-<!-- The key moments' labels in their row under the bars, each under its turn: drawn in HTML, since the SVG stretches. -->
-{#each moments as m (m.index)}
+<!-- The labels in their row under the bars, each under its turn: drawn in HTML, since the SVG stretches. -->
+{#each dots as m (m.index)}
   {@const b = barAt(m.index)}
   {#if b}
     <span class="absolute size-[7px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-panel pointer-events-none"

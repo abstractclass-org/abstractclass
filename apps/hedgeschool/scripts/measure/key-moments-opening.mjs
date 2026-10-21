@@ -24,12 +24,12 @@
 //   node scripts/measure/key-moments-opening.mjs [../../../engines/runs/archive_analysis] [--only opening|reliable|step|great]
 //
 // The edges and the turns are judged as the site's review judges them (judge, below), and the key moments are the
-// site's (model.ts largest). About 1 s a part (about 5 s for all).
+// site's while it had them (largest, below, from model.ts). About 1 s a part (about 5 s for all).
 import { createReadStream } from "node:fs";
 import { createInterface } from "node:readline";
 import { join } from "node:path";
-import { KEPT_GAIN, ONLY_EDGE_GAP, classify } from "@abstractclass/analysis/labels.ts";
-import { BAD_LABELS, earlierIndex, keepsGain, largest, resultWin } from "@abstractclass/analysis/model.ts";
+import { KEPT_GAIN, LABELS, ONLY_EDGE_GAP, classify } from "@abstractclass/analysis/labels.ts";
+import { BAD_LABELS, earlierIndex, keepsGain, resultWin } from "@abstractclass/analysis/model.ts";
 
 const dir = process.argv[2]?.startsWith("--") ? undefined : process.argv[2];
 const ARCHIVE = dir ?? "../../../engines/runs/archive_analysis";
@@ -41,6 +41,13 @@ const pct = (x, d = 0) => `${(100 * x).toFixed(d)}%`;
 const share = (a, b, d = 1) => pct(a / b, d);
 const median = xs => { const s = [...xs].sort((a, b) => a - b); return s.length ? s[Math.floor(s.length / 2)] : NaN; };
 const range = (xs, d = 0) => { const lo = Math.min(...xs), hi = Math.max(...xs); return pct(lo, d) === pct(hi, d) ? pct(lo, d) : `${pct(lo, d)} to ${pct(hi, d)}`; };
+
+const severity = e => (e.label ? LABELS.indexOf(e.label) : -1) * 1e6 + (e.pointsLost ?? 0) + e.loss;
+/** The worst of these turns or edges (by label, then points, then win chance), at most `n`, in game order: the site's
+ *  key moments, as model.ts chose them until the charts marked every label. */
+function largest(items, order, n = 8) {
+  return [...items].sort((a, b) => severity(b) - severity(a)).slice(0, n).sort((a, b) => order(a) - order(b));
+}
 
 async function* lines(file) { for await (const l of createInterface({ input: createReadStream(file) })) if (l) yield JSON.parse(l); }
 const gamesRead = new Map();

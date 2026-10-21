@@ -8,7 +8,7 @@
   import StepBar from "#lib/ui/StepBar.svelte";
   import { pageScrollTop } from "#lib/pageScroll.ts";
   import { MOVE_HERE, MOVE_HOVER, MOVE_LIST, MOVE_TEXT, TURN_NUMBER, TURN_REM, keepInView, moveButton, turnRow } from "./moveList.ts";
-  import { PLAYER_NAME, type Analysis, type BranchNode, type Edge, type LineStep, type Player } from "./enclosure.ts";
+  import { LISTED, PLAYER_NAME, chartMarks, type Analysis, type BranchNode, type Edge, type LineStep, type Player } from "./enclosure.ts";
   import type { EdgeRules } from "#lib/board/edgeInput.svelte.ts";
   import type { MapState } from "@abstractclass/analysis/analysis.svelte.ts";
 
@@ -310,8 +310,7 @@
     const t = R.turnOf[index];
     return `${t.number}${opensTurn(t, index) ? "." : "..."} ${moveNotation(R.edges[index])}`;
   };
-  // The move list and the chart show only these labels, to stay quiet. The board shows every label.
-  const LISTED: Label[] = ["great", "inaccuracy", "mistake", "blunder"];
+  // The move list and the charts show only these labels (model.ts, LISTED).
   const listed = (l: Label | null): l is Label => !!l && LISTED.includes(l);
   // The move list explains these labels under their turn.
   const COMMENTED: Label[] = ["great", "mistake", "blunder"];
@@ -1067,8 +1066,9 @@
 
   const scoreDiff = $derived(gamePositions.map(p => p.scores[0] - p.scores[1]));
   const areaDiff = $derived(gamePositions.map(p => (p.areas ? p.areas[0] - p.areas[1] : 0)));
-  // The charts' key moments, and the Difficulty chart's bars: a turn's or an edge's complexity, for the side reviewed.
-  const chartMoments = $derived(R.keyMoments[unit].filter(m => forSide(R.edges[m.first].player)).map(m => ({ index: m.last, label: m.label })));
+  // The charts' marks: every turn or edge with a label that the move list shows, for the side reviewed (chartMarks).
+  // And the Difficulty chart's bars: a turn's or an edge's complexity, for the side reviewed.
+  const chartDots = $derived(chartMarks(R, unit, forSide));
   const difficultyBars = $derived((unit === "turn"
     ? R.turns.map(t => ({ from: t.start, to: t.end, c: t.complexity, hard: t.hard, player: t.player,
                           title: `${t.number}. ${PLAYER_NAME[t.player]} to play`, played: t.edges.map(moveNotation).join(" ") }))
@@ -1252,10 +1252,10 @@
   </div>
   <div class="flex-1 min-h-0">
     {#if chart === "difficulty"}
-      <DifficultyChart positions={gamePositions.length} current={pos} onjump={i => { used("chart jump"); go(i); }} moments={chartMoments} bars={difficultyBars} />
+      <DifficultyChart positions={gamePositions.length} current={pos} onjump={i => { used("chart jump"); go(i); }} dots={chartDots} bars={difficultyBars} />
     {:else}
     <AdvantageChart blueWin={R.blueWin} {scoreDiff} {areaDiff} current={pos} {showScore} {showArea}
-           tip={chartTip} settled={chartSettled} onjump={i => { used("chart jump"); go(i); }} moments={chartMoments}
+           tip={chartTip} settled={chartSettled} onjump={i => { used("chart jump"); go(i); }} dots={chartDots}
            points={unit === "turn" ? [0, ...R.turns.map(t => t.end)] : undefined} />
     {/if}
   </div>
@@ -1274,7 +1274,8 @@
     <p class="-mt-2 mb-3 text-sm"><a href={siteLink.href} target="_blank" rel="noopener noreferrer">View this game on {siteLink.host}</a></p>
   {/if}
   <!-- The positions searched deeper than the review by the position on screen's Depth (design 16), here or in the
-       browser that a review file came from: their results replace the review's, so this report follows them. -->
+       browser that a review file came from, and those that an older review searched at twice its depth: their results
+       replace the review's, so this report follows them. -->
   {#if deeperPositions}
     <p class="mb-3 text-xs text-muted">{deeperPositions} {deeperPositions === 1 ? "position was" : "positions were"} searched
       deeper than the review, by the Depth of the position on screen: the labels there, and this report, use the deeper
@@ -1531,7 +1532,7 @@
   {#each rows as row, r (r)}
     {@const rule = (depth: number) => `${depth - 0.55}rem`}
     <!-- A row of the engine's line gleams as the progress bars do while its position's search can still change it (the
-         review's passes, the key moments searched deeper, or the position on screen): its first choice can change,
+         review's passes, or the position on screen): its first choice can change,
          and its line grows. -->
     {@const gleams = !!engine && row.paths.some(p => engine.steps.has(pathKey(p))) && !!game?.pending(engine.search)}
     <div class={["relative flex flex-wrap items-center gap-y-0.5 py-0.5 font-mono text-[0.95em]",

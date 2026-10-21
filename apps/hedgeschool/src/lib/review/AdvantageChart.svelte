@@ -2,7 +2,8 @@
   // The advantage chart, named as Lichess names its own ("Advantage"): Blue's win chance by position as a line, with
   // the area between it and 50% in the colour of the side ahead (Lichess's chart), the score difference as a second line
   // in another colour (Enclosure pays points every turn), the difference of the areas each player encloses now as a
-  // third, each scaled to its own largest value, the key moments as dots, and the current position as a marker.
+  // third, each scaled to its own largest value, the labels that the move list shows as dots, and the current
+  // position as a marker.
   // The pointer snaps to the nearest position and shows its note (Lichess's chart tooltip). A click jumps there. By turn,
   // the chart draws and snaps to the turns' ends only: a turn is one step (design 10).
   // While the review runs, the line is faint where a position has only its first, quick search, and full where its
@@ -16,7 +17,7 @@
     scoreDiff: number[]; // Blue minus Red, by position
     areaDiff: number[]; // the area each player encloses, Blue's minus Red's, by position
     current: number;
-    moments: { index: number; label: Label }[];
+    dots: { index: number; label: Label }[]; // a labelled turn's or edge's last edge (model.ts, chartMarks)
     showScore: boolean;
     showArea: boolean;
     tip: (position: number) => { title: string; value: string; details?: string[] }; // the hover note: a line for each value
@@ -24,7 +25,7 @@
     points?: number[]; // the positions drawn and snapped to, in order (all, when not given): by turn, the turns' ends
     onjump: (position: number) => void;
   }
-  let { blueWin, scoreDiff, areaDiff, current, moments, showScore, showArea, tip, settled, points, onjump }: Props = $props();
+  let { blueWin, scoreDiff, areaDiff, current, dots, showScore, showArea, tip, settled, points, onjump }: Props = $props();
 
   const W = 600, H = 120;
   const n = $derived(blueWin.length - 1);
@@ -98,9 +99,9 @@
     <line x1={x(hovered)} y1="0" x2={x(hovered)} y2={H} class="stroke-muted pointer-events-none" vector-effect="non-scaling-stroke" />
   {/if}
 </svg>
-<!-- The key moments' labels, as dots in their label's colour, 7 pixels wide: drawn in HTML, since the SVG stretches,
+<!-- The labels, as dots in their label's colour, 7 pixels wide: drawn in HTML, since the SVG stretches,
      and in a column as narrow as the summary's a circle in it would be a thin ellipse. -->
-{#each moments.filter(m => !Number.isNaN(blueWin[m.index + 1])) as m (m.index)}
+{#each dots.filter(m => !Number.isNaN(blueWin[m.index + 1])) as m (m.index)}
   <span class="absolute size-[7px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-panel pointer-events-none"
         style:left="{(100 * (m.index + 1)) / n}%" style:top="{100 * (1 - blueWin[m.index + 1])}%" style:background="var(--{m.label})"></span>
 {/each}

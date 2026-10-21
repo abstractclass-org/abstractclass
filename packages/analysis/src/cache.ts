@@ -105,8 +105,9 @@ export const ofModels = (entries: [string, unknown][], models: Set<string> | nul
 export const SWEEP_VISITS = 32;
 export const LABEL_VISITS = 256; // the least visits that give an edge a label (the review's depths: settings.ts)
 export const DEEP_VISITS = 1024; // the position on screen by default
-// The budgets the site's searches ask for (settings.ts: the depths, the review's depths and the label pass, and
-// analysis.svelte.ts: the key moments at twice the review's depth), from shallow to deep.
+// The budgets the site's searches ask for (settings.ts: the depths, the review's depths and the label pass), from
+// shallow to deep. And twice each review depth, to 32,768: older reviews searched some positions that deep, and a
+// review takes those results as it takes any deeper result (cacheGetAtLeast).
 export const BUDGETS = [256, 512, 768, 1024, 1536, 2048, 3072, 4096, 8192, 16384, 32768];
 
 /** The deepest stored result for a position at `visits` or deeper: a deeper search answers a shallower question, as the

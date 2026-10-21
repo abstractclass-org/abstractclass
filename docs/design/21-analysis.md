@@ -25,7 +25,7 @@ engine does by itself.
    | | Review | Analysis |
    |---|---|---|
    | Starts from | a played game | the start, or a line brought in |
-   | The engine | searches the whole game: the sweep, the labels, the key moments, the Greats' confirmations | searches the position on screen only |
+   | The engine | searches the whole game: the sweep, the labels, the Greats' confirmations | searches the position on screen only |
    | The line | the game's line, fixed: the player's moves are branches | the player's: "Make main line" |
    | Labels | every move | none, until the player asks: "Evaluate quality" |
    | Report, chart, review mark | yes | no |

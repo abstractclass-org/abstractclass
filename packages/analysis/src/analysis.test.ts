@@ -4,9 +4,9 @@
 // in the batch after its write to the store, or once it is stored when no search waits in the pool's queue or when it
 // is the label pass's last. And another network: no pass searches on the old network's pool for the new network's
 // analysis. And a focus's time limit, which the engine's worker keeps. And a search's budget and the review's steps, met
-// only by a result that the store has: not by another search's results so far, and not by a search that ends with no
-// result, which the engine on runs again. And results of shape 5, with no ownership: the review opens with them and
-// searches nothing, and the board's ownership comes from a short search of its own. Run: npm test.
+// only by a result that the store has: not by another search's results so far. And results of shape 5, with no
+// ownership: the review opens with them and searches nothing, and the board's ownership comes from a short search of
+// its own. Run: npm test.
 import { afterEach, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
 import "./testing/svelteModules.ts";
@@ -24,7 +24,7 @@ import { memoryDb } from "@abstractclass/storage/memoryDb.ts";
 
 const store = memoryDb(queueMicrotask); // its transactions complete in microtasks: the tests mock setTimeout
 
-const { BATCH_MS, GameAnalysis, momentVisits } = await import("./analysis.svelte.ts");
+const { BATCH_MS, GameAnalysis } = await import("./analysis.svelte.ts");
 
 const MOVES = ["a", "b", "c"]; // a game of the test game (testing/game.ts)
 
@@ -682,7 +682,7 @@ test("the label pass's last result shows without the batch's timer, though searc
   for (let k = 0; k < 2; k++) void pool.run(0, "confirm", () => new Promise(() => {}));
   searches[2 * n - 1].end(game.labelVisits);
   await turns();
-  assert.equal(game.labelled, n); // the key moments, which wait for it, do not wait for the timer
+  assert.equal(game.labelled, n); // the review's last step, which waits for it, does not wait for the timer
 });
 
 test("a label search is met only by a result that the store has, not by the results so far of the position on screen", async () => {
@@ -754,124 +754,6 @@ test("a line gleams while a search of its position can change it: not for a labe
   await turns();
   mock.timers.tick(BATCH_MS);
   assert.deepEqual([game.analysis[0]?.visits, game.pending([])], [visits + 96, false]); // the label search runs on
-});
-
-test("the key moments' step waits for a search whose position left them, until its result is stored", async () => {
-  const { game, searches } = await sweeping(1); // the sweep's searches wait: the results wait for the batch
-  const depth = momentVisits(game.labelVisits);
-  game.deepen([1]);
-  await settle();
-  searches[0].end(SWEEP_VISITS); // the key moment's search takes the engine before the rest of the sweep
-  await turns();
-  const deep = searches.at(-1)!;
-  deep.partial(depth - 32);
-  mock.timers.tick(BATCH_MS);
-  // The page's key moments lack position 1 now, as when its result so far changed the labels: its search still runs.
-  assert.deepEqual(game.momentChecks([]), { total: 1, done: 0 });
-  store.hold();
-  deep.end(depth);
-  await settle();
-  mock.timers.tick(BATCH_MS);
-  assert.deepEqual(game.momentChecks([]), { total: 1, done: 0 }); // its write has not committed
-  store.release();
-  await settle();
-  assert.deepEqual(game.momentChecks([]), { total: 1, done: 0 }); // stored: its end shows with its result, in the batch
-  mock.timers.tick(BATCH_MS);
-  // Searched to the depth, it still counts, though it is no key moment: the step's count does not go back.
-  assert.deepEqual([game.momentChecks([]), game.momentChecks([1])], [{ total: 1, done: 1 }, { total: 1, done: 1 }]);
-  game.setReview(2 * game.labelVisits); // another depth: the position has not got the new depth
-  assert.deepEqual(game.momentChecks([]), { total: 0, done: 0 });
-});
-
-/** A game whose passes have ended: the sweep's searches and the label pass's. */
-async function reviewed() {
-  const swept = await sweeping();
-  const n = swept.game.passCount;
-  await endEach(swept.searches, 0, n, SWEEP_VISITS);
-  await endEach(swept.searches, n, 2 * n, swept.game.labelVisits);
-  return swept;
-}
-
-test("a key moment counts as done only with a result that the store has, not with the results so far of the position on screen", async () => {
-  const { game, searches } = await reviewed();
-  const n = game.passCount, depth = momentVisits(game.labelVisits);
-  game.setDepth(4096, null);
-  game.focus(game.mainNames.slice(0, 1)); // the key moment on screen, searched deeper than the key moments' depth
-  await settle();
-  searches[2 * n].partial(depth + 64);
-  mock.timers.tick(BATCH_MS);
-  game.deepen([1]);
-  await settle();
-  assert.deepEqual([searches.length, game.momentChecks([1])], [2 * n + 2, { total: 1, done: 0 }]); // its own search runs
-  searches[2 * n + 1].end(depth);
-  await turns();
-  mock.timers.tick(BATCH_MS);
-  assert.deepEqual([game.analysis[1]?.visits, game.momentChecks([1])], [depth + 64, { total: 1, done: 1 }]);
-});
-
-/** A review after its passes, whose key moment 1 is searched deeper: its results so far took it out of the key moments,
- *  and the search still runs. */
-async function deepening() {
-  const { game, pool, searches, written } = await reviewed();
-  const n = game.passCount, depth = momentVisits(game.labelVisits);
-  game.deepen([1]);
-  await settle();
-  const search = searches[2 * n];
-  search.partial(depth - 32);
-  mock.timers.tick(BATCH_MS);
-  game.deepen([]); // the page's key moments, which its results so far changed
-  const stored = () => written().includes(analysisKey(pool.search!, pool.model!.sha256, MOVES.slice(0, 1), depth));
-  return { game, searches, search, depth, stored };
-}
-
-/** Turns the engine on, and ends the search that it starts at `depth`: the key moments' step then counts it as done. */
-async function searchedAgain({ game, searches, depth, stored }: Awaited<ReturnType<typeof deepening>>) {
-  const before = searches.length;
-  game.setPaused(false);
-  await settle();
-  assert.equal(searches.length, before + 1); // the engine on searches the position again
-  searches.at(-1)!.end(depth);
-  await turns();
-  mock.timers.tick(BATCH_MS);
-  assert.deepEqual([game.momentChecks([]), stored()], [{ total: 1, done: 1 }, true]);
-}
-
-test("a key moment's search that the engine off stops counts until its result is stored, and runs again", async () => {
-  const review = await deepening();
-  review.game.setPaused(true);
-  assert.equal(review.search.stopped, true);
-  review.search.end(review.depth - 16);
-  await turns();
-  mock.timers.tick(BATCH_MS);
-  // The line does not say "Review done", and the step waits for the position though it is no key moment now.
-  assert.deepEqual([review.game.momentChecks([]), review.stored()], [{ total: 1, done: 0 }, false]);
-  await searchedAgain(review);
-});
-
-test("a key moment's search that the engine off stops runs again when the engine comes on before that search ends", async () => {
-  const { game, searches, search, depth, stored } = await deepening();
-  game.setPaused(true);
-  game.setPaused(false);
-  await settle();
-  const before = searches.length;
-  search.end(depth - 16);
-  await turns();
-  mock.timers.tick(BATCH_MS);
-  assert.equal(searches.length, before + 1);
-  searches.at(-1)!.end(depth);
-  await turns();
-  mock.timers.tick(BATCH_MS);
-  assert.deepEqual([game.momentChecks([]), stored()], [{ total: 1, done: 1 }, true]);
-});
-
-test("a key moment's search that an engine error ends counts until its result is stored, and runs again", async () => {
-  const review = await deepening();
-  review.search.fail(new Error("engine error"));
-  await turns();
-  mock.timers.tick(BATCH_MS);
-  assert.deepEqual([review.game.momentChecks([]), review.game.error], [{ total: 1, done: 0 }, "engine error"]);
-  review.game.setPaused(true); // the player turns the engine off and on
-  await searchedAgain(review);
 });
 
 /** The board, its start on screen with a time limit of 2 seconds: the focus's search waits for the test. */
@@ -975,7 +857,7 @@ async function greatBranch(id = "g", { moves = ["a", "b", "c", "d"], rules, engi
     await game.addLine(["a", "b", "x"], false);
     game.branches = { ...game.branches, "a b x": { ...game.branches["a b x"], analysis, ...(judged ? { judged } : {}) } };
   };
-  return { game, searches, at, asked, branchX };
+  return { game, pool, searches, at, asked, branchX };
 }
 
 test("Evaluate quality searches the position before the opponent's last turn where the move is the only good move", async () => {
@@ -1063,17 +945,19 @@ test("a turn of two that the board evaluates asks for the position before the op
   assert.equal(one.game.awaitsGreat("a b c"), false);
 });
 
-test("a Great's confirmation that the player asked for comes before the review's key moments", async () => {
-  const { game, at, asked, searches, branchX } = await greatBranch("g", { engines: 1 });
+test("a Great's confirmation that the player asked for comes before the review's label pass", async () => {
+  const { game, pool, at, asked, searches, branchX } = await greatBranch("g", { engines: 1 });
   // x is the only good move after a b, and keeps the 0.1 that b gave: its confirmation, the position after z, is asked for.
   game.analysis = [at(0.5), at(0.5), at(0.6, [["x", 0.6], ["z", 0.45]]), at(0.6), at(0.6)];
   await branchX(at(0.6), true);
-  // Two key moments: the search of the first takes the engine, and the second waits, as the confirmation does.
-  game.deepen([3, 0]);
+  // Two searches at the label pass's priority (2): the first takes the engine, and the second waits, as the
+  // confirmation does.
+  for (const moves of [["a", "b", "c"], []])
+    void pool.run(2, "label", engine => engine.analyse({ moves } as unknown as AnalysisQuery).done).catch(() => {});
   await turns();
   assert.deepEqual(await asked(), ["a b c"]);
   assert.equal(game.awaitsGreat("a b x"), true);
-  searches[0].end(momentVisits(game.labelVisits));
+  searches[0].end(game.labelVisits);
   await turns();
   assert.equal(searches[1].moves.join(" "), "a b z"); // "Evaluating…" waits for the confirmation alone
 });
@@ -1084,7 +968,7 @@ test("a Great's search that another review depth drops is asked for again, thoug
   // x is the only good move after a b, and keeps the gain: its confirmation searches the position after z to 512 visits.
   game.analysis = [at(0.5), at(0.5), at(0.6, [["x", 0.6], ["z", 0.45]]), at(0.6), at(0.6)];
   await branchX(at(0.6), true);
-  game.deepen([3]); // a key moment's search takes the engine, and the confirmation waits
+  game.focus(["a", "b", "c"]); // the position on screen's search takes the engine, and the confirmation waits
   await turns();
   assert.deepEqual(await asked(), ["a b c"]);
   // A review of 256 visits drops the confirmation from the pool's queue. The confirmation still searches 512 visits, as

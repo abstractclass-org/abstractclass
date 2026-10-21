@@ -45,10 +45,10 @@ also wants to know where the game was hard, apart from where they lost.
    - **The Difficulty chart,** its own chart, in a tab beside the Advantage chart under the board (design 06), as
      Lichess sets its Move times chart beside its Advantage chart: a bar for each turn (or edge), as tall as its
      complexity, full at twice a hard position's. A hard one is in the ink, the others faint, and a dashed line marks
-     the hard level. The key moments' labels are dots, 7 pixels wide, in a row under the bars, each under its turn: the
-     bars' heights stay a picture of difficulty alone, a dot never covers a short bar, and the row reads as a line of
-     time. So the chart shows whether the mistakes fell where the game was hard. Its legend: "Hard position" and
-     "Easier", in swatches of one size.
+     the hard level. Each label that the move list shows is a dot, 7 pixels wide, in a row under the bars, under its
+     turn (or edge): the bars' heights stay a picture of difficulty alone, a dot never covers a short bar, and the row
+     reads as a line of time. So the chart shows whether the mistakes fell where the game was hard. Its legend: "Hard
+     position" and "Easier", in swatches of one size.
    - **The difficulty chart's positions:** a bar belongs to the position before its move, where the player decided,
      and a click shows that position, with its meter. The Advantage chart and the move list show the position after a
      move. The tooltips say which: the Advantage chart's names the move played ("7. K9-K10 A9-D10"), and the

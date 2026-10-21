@@ -1,4 +1,4 @@
-// The review's data and what the page derives from it: turns, losses, labels, accuracy, key moments.
+// The review's data and what the page derives from it: turns, losses, labels, accuracy, the charts' marks.
 //
 // An edge's loss is measured as KaTrain and Lichess measure it: the mover's value before the edge (the position's
 // analysis) less the mover's value after it (the next position's analysis), in win chance and, when the analysis has
@@ -15,7 +15,7 @@
 // src/lib/review/enclosure.ts.
 
 import type { Game, GameTypes, Moves, Player, PositionInfo } from "./game.ts";
-import { BAD_LABELS, GOOD_WIN, HARD, KEPT_GAIN, LABELS, METER_GROUPS, ONLY_EDGE_GAP, accuracyWeight, classify, meterGroup,
+import { GOOD_WIN, HARD, KEPT_GAIN, LABELS, METER_GROUPS, ONLY_EDGE_GAP, accuracyWeight, classify, meterGroup,
          type Label, type MeterGroup } from "./labels.ts";
 export { BAD_LABELS, HARD, LABELS, METER_GROUPS, type Label, type MeterGroup } from "./labels.ts";
 export type { Player } from "./game.ts";
@@ -104,8 +104,6 @@ export interface TurnReview<G extends GameTypes> {
 }
 /** The unit the page judges (design 10): the turn, by default, or each edge. */
 export type Unit = "turn" | "edge";
-/** A turn or an edge, labelled, by the indices of its first and last edges. */
-export interface KeyMoment { first: number; last: number; label: Label }
 export interface PlayerSummary { counts: Record<Label, number>; accuracy: number; meanPointsLost: number | undefined }
 export interface Review<G extends GameTypes> {
   data: ReviewData<G>;
@@ -113,7 +111,6 @@ export interface Review<G extends GameTypes> {
   turns: TurnReview<G>[];
   turnOf: TurnReview<G>[]; // by edge index: the turn the edge is in
   summary: Record<Unit, [PlayerSummary, PlayerSummary]>;
-  keyMoments: Record<Unit, KeyMoment[]>;
   blueWin: number[]; // the engine's win chance by position (NaN until analysed), the last from the result
   blueScore: (number | undefined)[]; // by position, the score that measures points lost, from Blue's side
 }
@@ -283,7 +280,6 @@ const hardness = (c: number | undefined) => ({ complexity: c, hard: isHard(c) })
 
 /** What every judged turn or edge has. */
 interface Judged { player: Player; label: Label | null; loss: number; pointsLost: number | undefined; complexity: number | undefined }
-const severity = (e: Judged) => (e.label ? LABELS.indexOf(e.label) : -1) * 1e6 + (e.pointsLost ?? 0) + e.loss;
 
 const weightedMean = (xs: [number, number][]) => xs.reduce((s, [x, w]) => s + x * w, 0) / xs.reduce((s, [, w]) => s + w, 0);
 
@@ -359,19 +355,21 @@ export function review<G extends GameTypes>(game: Game<G>, data: ReviewData<G>, 
                         data.seconds?.[t.start + 1], earlier(t.start), kind, minVisits);
     if (j) Object.assign(t, j);
   }
-  // Key moments: the worst turns or edges, at least an inaccuracy, in game order, from the first turn on with no turn
-  // count (Lichess's evalSwings, chess.com's key moments, design 10).
-  const bad = (x: Judged) => !!x.label && BAD_LABELS.includes(x.label);
-  return {
-    data, edges, turns, turnOf, blueWin, blueScore,
-    summary: { turn: summarize(turns), edge: summarize(edges) },
-    keyMoments: {
-      turn: largest(turns.filter(bad), t => t.start)
-        .map(t => ({ first: t.start, last: t.end - 1, label: t.label! })),
-      edge: largest(edges.filter(bad), e => e.index)
-        .map(e => ({ first: e.index, last: e.index, label: e.label! })),
-    },
-  };
+  return { data, edges, turns, turnOf, blueWin, blueScore, summary: { turn: summarize(turns), edge: summarize(edges) } };
+}
+
+/** The labels that the move list and the charts show, to stay quiet. The board shows every label. */
+export const LISTED: Label[] = ["great", "inaccuracy", "mistake", "blunder"];
+
+/** The charts' marks (design 06): each turn or edge, in the unit that the page judges by, whose label the move list
+ *  shows (LISTED), for the sides that `shown` takes, in game order. Its `index` is its last edge: the Advantage chart
+ *  marks the position after it, and the Difficulty chart its bar. */
+export function chartMarks<G extends GameTypes>(R: Review<G>, unit: Unit,
+                                                shown: (p: Player) => boolean): { index: number; label: Label }[] {
+  const items = unit === "turn" ? R.turns.map(t => ({ player: t.player, label: t.label, index: t.end - 1 }))
+    : R.edges.map(e => ({ player: e.player, label: e.label, index: e.index }));
+  return items.flatMap(({ player, label, index }) =>
+    (label && LISTED.includes(label) && shown(player) ? [{ index, label }] : []));
 }
 
 /** A turn's judgment: its loss from its two ends, before the clamp at 0 too, and its label. */
@@ -415,11 +413,6 @@ export function judgeTurn<M>(game: Moves<M>, mover: Player, played: (M | null)[]
   const j = judgeEdge(winBefore, winAfter, before, afterScore, playedBest, playedBest && !ends && fromStart && fromMiddle
                                                                 && keepsGain(start, earlier, p, minVisits));
   return { ...j, rawLoss: winBefore - winAfter, rawPoints: before !== undefined && afterScore !== undefined ? before - afterScore : undefined };
-}
-
-/** The worst of these turns or edges (by label, then points, then win chance), at most `n`, in game order. */
-export function largest<T extends Judged>(items: T[], order: (x: T) => number, n = 8): T[] {
-  return [...items].sort((a, b) => severity(b) - severity(a)).slice(0, n).sort((a, b) => order(a) - order(b));
 }
 
 /** A win chance as text, with one decimal wherever it shows. */

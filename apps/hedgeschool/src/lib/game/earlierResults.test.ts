@@ -90,8 +90,9 @@ test("a mark that names its search keeps that search's results, which its snapsh
 });
 
 test("a custom depth's results stay under a deeper result at a depth that the snapshot does not read", () => {
-  // Reviewed at 3,000 visits, its key moment at 6,000 and the player's Depth at 5,000: the snapshot reads 3,000 and
-  // each budget deeper (4,096), not 5,000 or 6,000. Another game's snapshot, at Lite's 512 visits, reads 4,096.
+  // Reviewed at 3,000 visits, an older review's deeper search at 6,000 and the player's Depth at 5,000: the snapshot
+  // reads 3,000 and each budget deeper (4,096), not 5,000 or 6,000. Another game's snapshot, at Lite's 512 visits,
+  // reads 4,096.
   const at = (visits: number, i: number) => results("s1", "b2", visits, [line(MOVES)[i]]);
   const review = results("s1", "b2", 3000, line(MOVES)), unread = [...at(6000, 1), ...at(5000, 2)];
   const game = { moves: MOVES, branches: null, mark: { ...mark("m0", "b2", "lite", 3000), search: "s1" } };

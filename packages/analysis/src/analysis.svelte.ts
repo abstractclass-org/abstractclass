@@ -3,9 +3,10 @@
 //    before the network loads;
 // 2. a sweep: every position at a small budget (KaTrain: fast_visits, 25), for the game's shape;
 // 3. a label pass: every position at the label budget, since labels from the sweep are mostly wrong;
-// 4. deeper where the player looks: the position on screen, searched in slices with its results shown as they come
-//    (KaTrain: max_visits, 500), then the key moments. The key moments' searches run in slices too, so that the
-//    position on screen can stop one when no worker is free (pool.ts), and the stopped one runs again later.
+// 4. the Greats' confirmations: the position after the engine's second choice, searched as deep as the position
+//    after the played edge (confirmGreats);
+// 5. deeper where the player looks: the position on screen, searched in slices with its results shown as they come
+//    (KaTrain: max_visits, 500).
 // The budgets come from the measurement of label agreement against a deep search (docs/decisions/engine.md, "Label
 // agreement against search budget", and again under protocol 0.3): 256 visits is the first budget whose mistake flags
 // are mostly right, and the review's Lite depth searches 512, which finds two thirds of the mistakes.
@@ -42,9 +43,6 @@ import { Stopped } from "@abstractclass/engine/client.ts";
 import { nextTask } from "@abstractclass/engine/channel.ts";
 import { Cancelled, type EnginePool } from "@abstractclass/engine/pool.ts";
 
-/** The key moments' depth: twice the review's depth, one step of its doublings deeper, so that the moments that matter
- *  most get a surer search at every review depth (Lite's 512 gives 1,024, the reference of the labels' measurement). */
-export const momentVisits = (reviewVisits: number) => 2 * reviewVisits;
 const SLICE_VISITS = 32;
 // The searches' results are applied together, at most this often: their results so far and their final results, with
 // what a search's end changes (the passes' progress, its mark). With every worker and the GPU's 16 searches posting a
@@ -53,7 +51,7 @@ const SLICE_VISITS = 32;
 export const BATCH_MS = 100;
 // A branch edge's evaluation, asked for in its menu, comes after the position on screen and before the rest. The
 // ownership that the board shows comes just after the position on screen (askOwnership).
-const PRIORITY = { focus: 10, ownership: 9, judge: 7, moment: 5, label: 2, sweep: 1, mapPass: 0 };
+const PRIORITY = { focus: 10, ownership: 9, judge: 7, label: 2, sweep: 1, mapPass: 0 };
 
 /** The state of a position's map (GameAnalysis.mapState). */
 export type MapState = "ready" | "searching" | "waiting" | "none" | "unavailable" | "unasked";
@@ -96,13 +94,6 @@ export class GameAnalysis<G extends GameTypes> {
   private stopFocus: (() => void) | null = null;
   private focusGeneration = 0; // a new focus makes every earlier focus search stale
   private passes = 0; // a new run of the passes, or another network, makes the earlier one stop after its sweep
-  private pauses = 0; // how many times the engine went off (deepen)
-  moments = $state.raw<number[]>([]); // the key moments' positions, searched deeper after the label pass
-  private deepening = new Set<string>(); // their searches queued or running, by position and visits
-  // The same searches by position, with each one's visits, until the batch after each one's end (pending).
-  private deepSearches = $state.raw<Record<string, number[]>>({});
-  // Every position and visits that the key moments' searches were asked for, until another network (momentChecks).
-  private deepAsked = $state.raw<Record<string, true>>({});
   private greatSearches = new Set<string>(); // the Greats' searches queued or running (searchOnce)
   // The positions whose search runs now, by path key, with each search's visits: their analysis can still change (the
   // page's gleam on a line)
@@ -168,15 +159,13 @@ export class GameAnalysis<G extends GameTypes> {
   private storedCount(visits: number) { return this.mainKeys.filter(k => this.storedAt(k) >= visits).length; }
 
   /** Whether the review's own work can still change the analysis at `path`: a search of it runs now to the visits that
-   *  it shows or more (a shallower result does not replace it, keep), or the label pass or the key moments' deeper
-   *  search has yet to reach those visits. */
+   *  it shows or more (a shallower result does not replace it, keep), or the label pass has yet to reach them. */
   pending(path: string[]): boolean {
     const shown = this.analysisOf(path)?.visits ?? 0;
     if (this.running[pathKey(path)]?.some(visits => visits >= shown)) return true;
     const i = mainIndex(path, this.mainNames);
     if (this.board || i === null || i >= this.passCount || this.paused || !this.engineReady) return false;
-    // A key moment, or a position whose search for earlier key moments runs, waits for the key moments' depth.
-    return shown < this.labelVisits || ((this.moments.includes(i) || !!this.deepSearches[i]) && shown < momentVisits(this.labelVisits));
+    return shown < this.labelVisits;
   }
 
   /** Whether the search of the position at `path` stopped at the time limit, with the focus settings as they are. */
@@ -399,32 +388,13 @@ export class GameAnalysis<G extends GameTypes> {
     return { total: after.size, done };
   }
 
-  /** The key moments' deeper searches as the review's step: the positions `moments` (the key moments that the review
-   *  reads now, which the page has before the label pass ends and `deepen` takes them) and every position that the key
-   *  moments' searches were asked for at the key moments' depth, and how many of them have a result of that depth in
-   *  the store (stored). A search's results so far change the labels, and with them the key moments (design 16), so a
-   *  position can leave them while its search runs. The step waits for that search: its result is stored only at its
-   *  end, so a Review done before it would leave the store without it, and the next visit's key moments would have it
-   *  again. When the search ends with no result (the engine off, an engine error), the step still waits for its
-   *  position, which `deepen` asks for again. And the step's count does not go back when the key moments change. */
-  momentChecks(moments: number[]): { total: number; done: number } {
-    const depth = momentVisits(this.labelVisits);
-    const positions = new Set([...moments, ...this.askedAt(depth)]);
-    return { total: positions.size, done: [...positions].filter(i => this.storedAt(this.mainKeys[i]) >= depth).length };
-  }
-
-  /** The game's positions that the key moments' searches were asked for at `visits`, until another network. */
-  private askedAt(visits: number): number[] {
-    return Object.keys(this.deepAsked).map(k => k.split(" ").map(Number)).filter(([, v]) => v === visits).map(([i]) => i);
-  }
-
   /** The review from the browser's store alone, with no search (an export away from the review page, design 13): each
    *  position that the passes search and each of the branches, at the label budget or deeper, or the sweep's where that
    *  is all there is, then the positions that confirm the Greats. The board reads the same: each position of its main
    *  line and of its variations, though no pass searches them. Its labels stay on the moves evaluated (design 21): the
    *  other moves take their positions' results only, which mark the hard positions (design 14). Call after start(),
    *  and loadBoard() for the board. `search` and `model` name the engine whose results to read. A position counts as
-   *  searched that far (swept, labelled, the key moments' and the Greats' steps), as the passes count it when they find
+   *  searched that far (swept, labelled, the Greats' step), as the passes count it when they find
    *  the result in the store: a review opened again is complete before the engine's network loads. */
   async fromStore(search: string, model: string) {
     const take = async (path: string[]) => {
@@ -743,8 +713,8 @@ export class GameAnalysis<G extends GameTypes> {
    *  deep is skipped. Call after start() and once the pool has a network, and again to take the work up after a change
    *  (the engine on again, another label budget, another network). The branch moves evaluated on request are searched
    *  too. On the board, it makes the engine ready (ready), and no pass runs. After dropAnalysis, it does nothing until
-   *  usePool gives the next pool. The batch with the label pass's last result comes without its timer: the key
-   *  moments wait for it. */
+   *  usePool gives the next pool. The batch with the label pass's last result comes without its timer: the review's
+   *  last step, or Review done, waits for it. */
   async sweep() {
     if (this.stalePool) return;
     if (this.board) { this.ready(); return; }
@@ -759,9 +729,9 @@ export class GameAnalysis<G extends GameTypes> {
     await pass(SWEEP_VISITS, PRIORITY.sweep, "sweep");
     if (run !== this.passes) return; // a later run took over, or another network
     await pass(this.labelVisits, PRIORITY.label, "label");
-    // The key moments wait for the batch with the label pass's last result. That batch comes without its timer, though
-    // searches wait in the pool's queue (the Greats' confirmations): in a task of its own, once the pool has taken its
-    // next search (search).
+    // The review's last step, or Review done, waits for the batch with the label pass's last result. That batch comes
+    // without its timer, though searches wait in the pool's queue (the Greats' confirmations): in a task of its own,
+    // once the pool has taken its next search (search).
     await nextTask();
     if (run === this.passes) this.applyBatch();
   }
@@ -772,7 +742,6 @@ export class GameAnalysis<G extends GameTypes> {
     if (paused === this.paused) return;
     this.paused = paused;
     if (paused) {
-      this.pauses++;
       // The map pass stops with its searches and lets go of its maps: the engine on starts it again (askAgain)
       if (this.mapPassOn) {
         this.endPass();
@@ -782,7 +751,6 @@ export class GameAnalysis<G extends GameTypes> {
       this.pool.halt();
     } else if (this.engineReady) {
       void this.sweep();
-      this.deepen(this.moments);
     }
   }
 
@@ -826,8 +794,6 @@ export class GameAnalysis<G extends GameTypes> {
     this.endPass();
     this.stored = {};
     this.timed = {};
-    this.moments = [];
-    this.deepAsked = {};
   }
 
   /** Moves the work to another pool, already started (another network, after dropAnalysis). The old pool ends. */
@@ -1065,30 +1031,6 @@ export class GameAnalysis<G extends GameTypes> {
     return positions.slice(1).map(p => this.game.step(p));
   }
 
-  /** Searches these positions deeper, after the focus and before the sweep. The page calls it again when the key
-   *  moments change (another label, another review depth), and the engine on calls it: a position whose search is
-   *  queued or done is not asked again. A position asked for before at this depth whose search ended with no result in
-   *  the store (the engine off, an engine error) is asked for again, though it is no key moment now: the key moments'
-   *  step waits for it (momentChecks). A search that the engine off stopped can end after the engine is on again: it
-   *  then asks again itself. */
-  deepen(indices: number[]) {
-    this.moments = indices;
-    const visits = momentVisits(this.labelVisits), pauses = this.pauses;
-    const again = this.askedAt(visits).filter(i => this.storedAt(this.mainKeys[i]) < visits);
-    for (const i of new Set([...indices, ...again])) {
-      const key = `${i} ${visits}`;
-      if (this.deepening.has(key)) continue;
-      this.deepening.add(key);
-      if (!this.deepAsked[key]) this.deepAsked = { ...this.deepAsked, [key]: true };
-      this.markRunning("deepSearches", i, visits, this.search(this.mainNames.slice(0, i), visits, PRIORITY.moment, "moment", { sliced: true })
-        .catch(this.fail).finally(() => {
-          this.deepening.delete(key);
-          // The engine went off and on again before the search ended: the engine on did not ask for it again then.
-          if (pauses !== this.pauses && !this.paused && this.engineReady) this.deepen(this.moments);
-        }));
-    }
-  }
-
   /** Keeps an engine error for the page. A task cancelled before it ran, or a worker ended for another pool, is not one. */
   private fail = (e: unknown) => {
     if (!(e instanceof Cancelled) && !(e instanceof Stopped)) this.error = errorText(e);
@@ -1140,7 +1082,7 @@ export class GameAnalysis<G extends GameTypes> {
         if (era !== this.era) return;
         this.toBatch(path, a.visits, () => a);
         this.afterBatch(() => { if (t.late) ontime?.(); if (final) this.noteStored(at, a.visits); });
-        // The next step waits for this batch: the key moments wait for the label pass's last result, and Review done
+        // The next step waits for this batch: the review's last step for the label pass's last result, and Review done
         // for the last of all. With no search waiting in the pool's queue, an engine can be free for that step, though
         // a focus or another search still runs. So the batch then comes in a task of its own, once the pool has taken
         // its next search, if any. While a search waits, every engine is busy, and the batch keeps its timer, but for
@@ -1149,7 +1091,7 @@ export class GameAnalysis<G extends GameTypes> {
         // hidden tab").
         void nextTask().then(() => { if (!pool.waiting) this.applyBatch(); });
       });
-      this.markRunning("running", at, visits, shown);
+      this.markRunning(at, visits, shown);
       await run.done;
       return { shown };
     });
@@ -1157,14 +1099,13 @@ export class GameAnalysis<G extends GameTypes> {
     await ended?.shown;
   }
 
-  /** Notes the search of the position `key` to `visits` in `field` until the batch after `search` ends: its search
-   *  runs, its result's write follows, and the batch shows the result. `running` notes a search that runs now, by path
-   *  key, and `deepSearches` a key moment's search from its queue on, by the game's position (pending). */
-  private markRunning(field: "running" | "deepSearches", key: string | number, visits: number, search: Promise<unknown>) {
-    this[field] = { ...this[field], [key]: [...(this[field][key] ?? []), visits] };
+  /** Notes the search of the position with path key `key` to `visits` as running until the batch after `search` ends:
+   *  its search runs, its result's write follows, and the batch shows the result (pending). */
+  private markRunning(key: string, visits: number, search: Promise<unknown>) {
+    this.running = { ...this.running, [key]: [...(this.running[key] ?? []), visits] };
     const end = () => this.afterBatch(() => {
-      const { [key]: all = [], ...rest } = this[field], left = all.toSpliced(all.indexOf(visits), 1);
-      this[field] = left.length ? { ...rest, [key]: left } : rest;
+      const { [key]: all = [], ...rest } = this.running, left = all.toSpliced(all.indexOf(visits), 1);
+      this.running = left.length ? { ...rest, [key]: left } : rest;
     });
     search.then(end, end);
   }

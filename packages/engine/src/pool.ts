@@ -1,8 +1,8 @@
 // A pool of engine workers (docs/design/02-static-site.md: one module instance a worker, different positions a worker).
-// Work waits in one queue, and a free worker takes the most urgent task: the position on screen before the key moments,
-// and the key moments before the sweep of the whole game (KaTrain's priorities, core/engine.py). A task that can stop
-// (a search in slices) gives way: when a more urgent task finds no free worker, the least urgent such task is stopped
-// and waits in the queue again. The pool can grow or shrink while it works (the engine settings, design 09).
+// Work waits in one queue, and a free worker takes the most urgent task: the position on screen before the review's
+// passes, and the label pass before the sweep of the whole game (KaTrain's priorities, core/engine.py). A task that can
+// stop (a search in slices) gives way: when a more urgent task finds no free worker, the least urgent such task is
+// stopped and waits in the queue again. The pool can grow or shrink while it works (the engine settings, design 09).
 //
 // The GPU module's engines (gpuClient.ts) join the pool as more search engines, a slot each (design 15). The GPU
 // gains by many searches at once, whose evaluations go to it together, and each of its searches runs slower than a CPU

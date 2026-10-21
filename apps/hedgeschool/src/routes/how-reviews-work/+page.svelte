@@ -25,7 +25,6 @@
     <li><strong>A first look</strong> at every position, at 32 visits, draws the chart's first estimate.</li>
     <li><strong>The label pass</strong> searches every position at the review's depth: 512 visits with Lite, the default,
       and 1,024 with Standard (the engine's settings).</li>
-    <li><strong>The key moments</strong>, the game's worst turns, get another search at twice that depth.</li>
     <li><strong>The position on screen</strong> gets a search to the Depth setting, 1,024 visits by default. Each
       position keeps its deepest result, and everything follows it: the labels of the moves into and out of it, the
       report and the chart. So a position you look at closely can change its labels.</li>
@@ -88,11 +87,6 @@
     does. It adds up the network's likelihood of the searched edges, by how much each one loses against the best: good
     or better (up to 5%), Inaccuracy (up to 10%), Mistake (up to 20%) and Blunder. The grey rest is the edges that the
     search did not reach.</p>
-
-  <h2>Key moments</h2>
-  <p>The key moments are the worst turns, Inaccuracy or worse, at most eight. As in Lichess, they can come from any turn,
-    the first ones too. Enclosure has no opening theory, so the first turns show a player's own choices, as later turns
-    do.</p>
 
   <h2>Where the rules come from</h2>
   <p>{SITE_NAME} follows tools that players already trust, and names each change it makes for Enclosure:</p>

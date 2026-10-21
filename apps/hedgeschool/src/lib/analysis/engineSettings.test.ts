@@ -8,7 +8,6 @@ import assert from "node:assert/strict";
 import { BUDGETS, LABEL_VISITS } from "@abstractclass/analysis/cache.ts";
 import { CUSTOM_REVIEW, DEPTHS, NETWORKS, REVIEW_PRESETS, changeOwn, defaultEngine, inSteps, loadEngine, networkName,
          ownSettings, saveEngine, settingsFor, withOwn } from "./engineSettings.ts";
-import { momentVisits } from "@abstractclass/analysis/analysis.svelte.ts";
 
 // The browser's local storage, in memory: Node has none.
 const stored = new Map<string, string>();
@@ -89,9 +88,9 @@ test("a custom depth per move is any whole number from 256 to 16,384 visits, as 
   for (const visits of [255, 16385, 1000.5]) assert.ok(!inSteps(CUSTOM_REVIEW, visits), `${visits}`);
 });
 
-test("the cache's budgets hold every depth of the settings, and twice each review depth, for the key moments", () => {
+test("the cache's budgets hold every depth of the settings, and twice each review depth, where older reviews stored results", () => {
   const reviews = [...CUSTOM_REVIEW, ...Object.values(REVIEW_PRESETS)];
-  for (const visits of [LABEL_VISITS, ...DEPTHS, ...reviews, ...reviews.map(momentVisits)]) {
+  for (const visits of [LABEL_VISITS, ...DEPTHS, ...reviews, ...reviews.map(v => 2 * v)]) {
     assert.ok(BUDGETS.includes(visits), `${visits}`);
   }
 });

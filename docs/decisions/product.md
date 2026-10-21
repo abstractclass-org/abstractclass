@@ -6414,3 +6414,66 @@ The review of the six fixes above, after their rebase on `dev`.
 cases on the final build. In the snapshot, after edge 31 the stored map shows with no note, and after edge 30 the note
 says "No map saved: snapshots do no searches" from the first second. No page errors. The layout sweep in Chromium
 passes (25 tests, 5 skipped).
+
+### The charts mark every label, and every label has the review's depth (2026-10-21)
+
+- **What** (abscls-wy0p): the key moments go as a concept, and their deeper search goes with them.
+  - **The charts' dots:** the Advantage chart and the Difficulty chart mark every turn or edge whose label the move
+    list shows (Great, Inaccuracy, Mistake and Blunder), in the unit of "Judge by" and for the side shown
+    (`chartMarks` in `packages/analysis/src/model.ts`, [design 06](../design/06-review-layout.md), item 3). Before
+    this change they marked the key moments: at most 8 turns or edges, Inaccuracy or worse, and no Great. A click on a
+    dot still goes to its move.
+  - **The review** is the sweep, the label pass at the review's depth, and the Greats' confirmations. The progress
+    bar's step "the key moments, deeper" goes, and "Review done" and the game's mark (design 20) come after the label
+    pass and the Greats' confirmations. The position on screen is still searched deeper where the player looks.
+  - **The stored results stay valid.** The store's keys and versions do not change, and its budgets keep twice each
+    review depth, to 32,768 (`BUDGETS` in `packages/analysis/src/cache.ts`). A position that an older review searched
+    at twice its depth keeps that result, and the page takes it as any deeper result (`cacheGetAtLeast`). The report's
+    count of positions searched deeper than the review now counts those positions too: its threshold is 1.5 times the
+    review's depth for every position.
+  - The page "How reviews work" loses its section "Key moments" and the passes' item for their deeper search.
+    `largest` moved from `model.ts` into `apps/hedgeschool/scripts/measure/key-moments-opening.mjs`, the one user left.
+    The script's output is the same before and after the move (the engine repository's `runs/archive_analysis/`).
+- **Why the cap of 8 goes:** it has no source. It came with the first wireframe (35a3164, `largest(edges, n = 8)`),
+  for the walk's list of "mistakes to learn from". The walk ("Retry mistakes") and the Highlights' Biggest mistakes
+  are gone ("Biggest mistakes removed, and a turn's badge on both its edges", and abscls-7e9). The key moments then
+  served the charts' dots and the deeper search alone. A game with more than 8 bad turns had dots for 8 of them, and
+  the charts showed no Great, though design 10, item 8, says that the chart shows Great, Inaccuracy, Mistake and
+  Blunder, as the move list does. A later "Learning from mistakes" (abscls-7e9) chooses its own moments to learn from.
+- **Why the deeper search goes:** it gave the worst moves about what a review at twice the depth gives them. By edge,
+  Lite's labels right at those moves go from 77.8% to 83.0% with the deeper search, and Standard everywhere gives 83.3%
+  ("The key moments from the first turn on", part 3). The step cost 31.2% of the visits of the sweep, the label pass
+  and the step together. A player who wants surer labels sets a deeper review, and one depth for every label is what
+  the depth setting says.
+- **Lichess's chart marks no labelled move with a dot** (lila, `ui/chart/src/acpl.ts`, read on 2026-10-21 on
+  `master`). Its points have no radius unless the game has blurs: `pointRadius: d.player.blurs || d.opponent.blurs ?
+  pointSizes : 0`, and `pointSizes.push(isBlur ? 5 : 0)`. A move's label shows in the tooltip, after the move
+  (`annotation`), and a hover on a symbol of the advice summary lights up that player's moves of that
+  label (`christmasTree`, `chart.setActiveElements(points)`). Design 06 does not cite it for the dots.
+- **The dots when many come close** (headless Chromium, the build of this change, the review's display at 1 device
+  pixel and at 4). The narrowest chart that the layout gives is 313 pixels wide, at a window of 360 pixels (one
+  column). At 1,260 pixels (three columns) it is 539, and at 1,024 it is 573. A "pair" below is two dots whose centres
+  are less than a dot's 7 pixels apart; "covered" is less than 3.5 pixels.
+
+  | Game | Unit | Dots | Advantage at 313: pairs, covered | Difficulty at 313: pairs, covered |
+  | --- | --- | --- | --- | --- |
+  | The test fixture (`tests/fixtures/hedgefund-review.json`) | turn | 5 | 1, 0 | 1, 0 |
+  | The test fixture | edge | 6 | 4, 2 | 5, 2 |
+  | The fixture's game with every turn's win chance moved by 0.12 against its mover | turn | 32 | 0, 0 | 17, 0 |
+  | The same | edge | 28 | 1, 1 | 17, 2 |
+
+  The second game is the fixture's moves with their stored win chances changed, so that every turn loses 0.12 unless
+  it is the engine's first choice: no real game has that many bad turns in a row. By turn, the Advantage chart's dots
+  stay apart. In the Difficulty chart's row, the dots of turns next to each other touch (two turns of two edges are
+  5.2 pixels apart at 313 pixels), and each still reads. By edge, two labelled edges next to each other are 2.6 pixels
+  apart: the second dot covers most of the first. In the fixture, a Blunder and two Greats on edges next to each other
+  make one cluster of three. Only the tooltip or a wider window tells them apart there. No new mark was
+  made.
+- **Tests:** "the charts mark every labelled turn or edge that the move list shows, for the side shown: ten, not eight"
+  and "the charts mark a Great, at its turn's last edge by turn" (`enclosure.test.ts`) replace "a Blunder in the third
+  turn is a key moment". The analysis's tests of the key moments' step go: "the key moments' step waits for a search
+  whose position left them, until its result is stored", "a key moment counts as done only with a result that the
+  store has, not with the results so far of the position on screen", and the three of a key moment's search that the
+  engine off or an engine error ends. "A Great's confirmation that the player asked for comes before the review's key
+  moments" now checks the same order against the label pass, and "a Great's search that another review depth drops is
+  asked for again" holds the engine with the position on screen's search.

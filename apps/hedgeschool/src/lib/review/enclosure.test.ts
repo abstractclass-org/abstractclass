@@ -3,9 +3,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { Edge } from "#lib/engine/notation.ts";
-import { complexity, distinctCandidates, earlierIndex, endingText, onlyJudged, equalDepth, keepsGain, likelyEdges, judgeBranchEdge, onlyEdge,
+import { chartMarks, complexity, distinctCandidates, earlierIndex, endingText, onlyJudged, equalDepth, keepsGain, likelyEdges, judgeBranchEdge, onlyEdge,
          otherCandidate, review, roundTogether, rankOf, sameMove, secondChoice, shortNote, shownCandidates, trustedLine, twinsOf, turnCost,
-         valuesAfter, type Analysis, type Candidate, type Move, type Position, type ReviewData } from "./enclosure.ts";
+         valuesAfter, type Analysis, type Candidate, type Move, type Position, type ReviewData, type Unit } from "./enclosure.ts";
 import { accuracyWeight } from "@abstractclass/analysis/labels.ts";
 
 const edges = (n: number): Edge[] => Array.from({ length: n }, (_, k): Edge => [k, 0, k, 1]);
@@ -194,23 +194,34 @@ test("the line's first turn is never Great: no turn of the opponent comes before
   assert.deepEqual([R.edges[0].label, R.turns[0].label], ["best", "best"]);
 });
 
-test("the summary and the key moments come by turn and by edge", () => {
+test("the summary comes by turn and by edge", () => {
   const R = review(game([B, C], [at(0.5, 0), at(0.5, 0), at(0.4, -30), at(0.55, 20), at(0.6, 30)]));
   const labelled = (s: { counts: Record<string, number> }) => Object.values(s.counts).reduce((a, b) => a + b, 0);
   assert.equal(labelled(R.summary.edge[1]), 2); // Red's two edges
   assert.equal(labelled(R.summary.turn[1]), 1); // Red's one turn
 });
 
-test("a Blunder in the third turn is a key moment, by turn and by edge: the opening is not skipped", () => {
-  // Ten turns of one edge each, Blue and Red in turn. The game's third turn (edge 2, Blue's second) drops Blue's win
-  // chance from 0.5 to 0.2.
-  const moves = Array.from({ length: 10 }, (_, i) => ({ player: i % 2, edge: edges(10)[i], cut: null }) as Move);
-  const blunder = (i: number) => (i <= 2 ? 0.5 : 0.2);
-  const R = review({ players: { blue: "b", red: "r" }, result: { blue: 0, red: 10 }, moves, positions: Array(11).fill({} as Position),
-                     analysis: Array.from({ length: 11 }, (_, i) => at(blunder(i), 0)) });
-  assert.equal(R.turns[2].label, "blunder");
-  assert.deepEqual(R.keyMoments.turn, [{ first: 2, last: 2, label: "blunder" }]);
-  assert.deepEqual(R.keyMoments.edge, [{ first: 2, last: 2, label: "blunder" }]);
+test("the charts mark every labelled turn or edge that the move list shows, for the side shown: ten, not eight", () => {
+  // Twenty turns of one edge each, Blue and Red in turn. Each of Blue's ten edges drops Blue's win chance by 0.06, an
+  // Inaccuracy, and Red's keep it. The first is the game's first turn: the opening is not skipped.
+  const moves = Array.from({ length: 20 }, (_, i) => ({ player: i % 2, edge: edges(20)[i], cut: null }) as Move);
+  const win = (i: number) => 0.9 - 0.06 * Math.ceil(i / 2);
+  const R = review({ players: { blue: "b", red: "r" }, result: { blue: 0, red: 10 }, moves, positions: Array(21).fill({} as Position),
+                     analysis: Array.from({ length: 21 }, (_, i) => at(win(i), 0)) });
+  const blues = Array.from({ length: 10 }, (_, k) => ({ index: 2 * k, label: "inaccuracy" }));
+  assert.deepEqual([chartMarks(R, "turn", () => true), chartMarks(R, "edge", () => true)], [blues, blues]);
+  assert.deepEqual(chartMarks(R, "edge", p => p === 1), []); // Red's side alone
+});
+
+test("the charts mark a Great, at its turn's last edge by turn", () => {
+  // Red's turn B C from position 1 is the only good turn, and by edge C the only good edge in the middle (as above).
+  const start = at(0.4, -10, [cand(B, 0.4, [B, C]), cand(C, 0.41, [C, B]), cand(F, 0.55)]);
+  const middle = at(0.4, -10, [cand(C, 0.4), cand(D, 0.55)]);
+  const extra = { seconds: [undefined, undefined, at(0.58, 5)], others: [undefined, at(0.6, 10)] };
+  const R = review(game([B, C], [at(0.5, 0), start, middle, at(0.4, -10), at(0.4, -10)], extra));
+  const greats = (unit: Unit, side: 0 | 1) => chartMarks(R, unit, p => p === side).filter(d => d.label === "great");
+  assert.deepEqual([greats("turn", 1), greats("edge", 1)], [[{ index: 2, label: "great" }], [{ index: 2, label: "great" }]]);
+  assert.deepEqual(greats("turn", 0), []); // Blue's side alone
 });
 
 test("a turn's parts are rounded together, so that they add up to the turn", () => {
