@@ -6284,3 +6284,40 @@ before it.
   and its ownership are separate values, so that a batch of results that changes neither does not draw the map
   again. The protocol's types lose `includeMovesOwnership`, which no search asks for. The measuring scripts take
   their tools from `speed.mjs`.
+
+### Evaluate quality searches the position before the opponent's last turn (2026-10-21)
+
+- **What** (abscls-rcur, [design 10](../design/10-labels.md) item 6, [design 07](../design/07-lines-and-variations.md)
+  item 11, [design 21](../design/21-analysis.md) item 3): "Evaluate quality" also searches the position before the
+  opponent's last turn, to the label budget, for a move that would be Great but for it. The third condition needs
+  that position (see "Great: En Croissant's whole rule"). A move without a result there stayed Best, and nothing on the
+  page said why. A game move in a review has the result, because the label pass searches every position of the game.
+  A branch move may lack it. On the Analysis board, no pass searches the main line.
+- **When:** the search before the move has the label budget, the move is the engine's first choice, and the gap of
+  0.10 is in that search. No search runs where the position already has a result of the label budget, or where the gap
+  is absent. A deeper result before the move can change the first choice or the gap, and the analysis asks again
+  then. `GameAnalysis.greatNeeds` (it replaces `greatTargets`) gives the confirmations and these searches.
+- **"Evaluating…" holds** until these searches and the Great's confirmation end (`GameAnalysis.awaitsGreat`). The
+  labels show from 256 visits (`LABEL_VISITS`), and the searches run to the review's depth. So a move that looks like
+  an only move in its 256-visit result waits for the full result. Without that, a first browser check showed Best for
+  2.4 seconds, then "Evaluating…", then Great. On the board, the move has no label and its tooltip says "Not analyzed
+  yet".
+- **The review's steps do not count these searches.** The step "Great moves" counts the game's own confirmations
+  only (`greatChecks`). Before this change it counted a branch move's confirmations too, so a branch move that the
+  player evaluated could bring the bar back after "Review done".
+- **Checked in a browser** (headless Chromium, the CPU engine, a build on a server of its own, the fixture game
+  `tests/fixtures/hedgefund-review.json`, 512 visits, "Review by Edge"). The move is edge 13, N12-Q11, a Great in this
+  engine's own run:
+  - **A review's branch:** the game's edges 0 to 4, then edges 6 and 5 in the other order (H12-K9 H6-K9), then the
+    rest of the line up to N12-Q11. Every position of the line is a branch position. Before the request, the tooltip
+    said "Not searched yet". Then the move showed "Evaluating…" for 15.5 seconds and then Great. 4 searches ran: the
+    position before the move (13 edges), the position after it (14), the position before the opponent's last turn
+    (11), and the confirmation. The review's bar did not come back.
+  - **The Analysis board,** with no stored result: "Not analyzed yet" for 25.7 seconds, then Great. 7 searches ran
+    besides the start's: the two edges of the turn (each judges the position between them, so one position was searched
+    twice), the position before the opponent's last turn (11), and the two confirmations.
+  - Move 10 (L9-N12), a Great in the fixture's file, was not the only good move in this run: it stayed Best, and no
+    extra search ran.
+  - Not run: the build before this change.
+- **The limits:** one game, one network. The extra search uses the priority of the other searches that "Evaluate
+  quality" asks for. A position that the player looked at, deeper than the label budget, counts as a result.

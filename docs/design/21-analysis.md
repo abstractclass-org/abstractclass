@@ -40,6 +40,10 @@ engine does by itself.
      has only a main line: the image of a main line move ahead of the position on screen numbers the line from there.
 3. **Labels on request:** "Evaluate quality" on a move of any line, main line too, searches the two positions to the
    label budget, as for a review's branch move (design 10). Other moves have no label.
+   - **A move that is the engine's only good move** also searches the position before the opponent's last turn, which
+     no pass searches on the board, unless the player looked at it. A Great needs that position (design 10, item 6).
+     The move has no label, and its tooltip says "Not analyzed yet", until that search and the Great's confirmation
+     end. No extra search runs where that position has its result, or where the move is not the only good one.
    - **A hard position's ◆ is the position's,** not a label (design 14): every move of the board's lines whose
      position before it has a result gets it, main line and variations, evaluated or not. A move whose position before
      it has no result says "Not searched yet" in its tooltip, and a marked move says "Hard position". The annotated

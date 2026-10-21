@@ -261,7 +261,7 @@ async function great() {
   // A confirmed Great: whether it keeps the gain, leaves the mover not losing (the mover's win chance after it), or both.
   const tally = (x, kept, after) => { if (kept) x.keep++; if (after >= 0.5) x.notLosing++; if (kept && after >= 0.5) x.both++; };
   const e = { gaps: 0, last: 0, confirmed: 0, refuted: 0, ofRefuted: [], ofConfirmed: [], keep: 0, notLosing: 0, both: 0, after: [], saved: 0 };
-  // The searches, by the position searched: all of them, and those that the condition still asks for (greatTargets). A
+  // The searches, by the position searched: all of them, and those that the condition still asks for (greatNeeds). A
   // turn's search from its middle is asked for by the turn where its start has the gap and keeps the gain, and by its
   // second edge where its middle keeps the gain.
   const edgeSearches = new Set(), stillAsked = new Set();

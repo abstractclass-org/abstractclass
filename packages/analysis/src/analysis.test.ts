@@ -35,13 +35,14 @@ let models = 0;
  *  of the tags that it takes, and lets the running ones end, as the pool does. */
 function fakePool(engines = Infinity) {
   const searches: { partial(visits: number): void; end(visits: number, late?: boolean, more?: Partial<AnalysisReply>): void;
-                    fail(e: Error): void; stopped: boolean; maxMs?: number; query: AnalysisQuery }[] = [];
+                    fail(e: Error): void; stopped: boolean; maxMs?: number; query: AnalysisQuery; moves: string[] }[] = [];
   const engine = {
     analyse(query: AnalysisQuery, onPartial: (r: AnalysisReply) => void, maxMs?: number) {
       let end!: (t: { reply: AnalysisReply; late?: boolean }) => void, fail!: (e: Error) => void;
       const done = new Promise((resolve, reject) => { end = resolve; fail = reject; });
       const search = {
         partial: (v: number) => onPartial(reply(v)), fail: (e: Error) => fail(e), stopped: false, maxMs, query,
+        moves: query.moves,
         // A search that the page stopped, or that its time limit ended, ends as terminated (the protocol's terminate).
         // `more`: the reply's other fields, such as the ownership.
         end: (v: number, late = false, more = {}) =>
@@ -825,4 +826,119 @@ test("a turn of two whose start keeps the gain asks for the search from its midd
   // Before the first player's turn the second player had 0.52: neither the turn nor an edge keeps the gain.
   game.analysis = [at(0.48), start, middle, at(0.46), at(0.46), at(0.46)];
   assert.equal(game.greatChecks.total, 0);
+});
+
+/** The game a b c d (the first player moves first, so a and c are the first player's), with the first player's move x
+ *  as a branch after a b. The engine is ready, and the page asks for the Greats' searches as results come. */
+async function greatBranch(id = "g") {
+  const { pool, searches } = fakePool();
+  const game = new GameAnalysis(words, pool, ["a", "b", "c", "d"], id);
+  await game.start();
+  game.engineReady = true;
+  const at = (blueWin: number, candidates: [string, number][] = [], visits = game.labelVisits) =>
+    ({ blueWin, visits, candidates: candidates.map(([edge, w]) => ({ edge, visits: 10, blueWin: w })) });
+  const asked = async () => { game.confirmGreats(); await turns(); return searches.map(s => s.moves.join(" ")); };
+  return { game, searches, at, asked };
+}
+
+test("Evaluate quality searches the position before the opponent's last turn where the move is the only good move", async () => {
+  const { game, at, asked } = await greatBranch();
+  await game.addLine(["a", "b", "x"], false);
+  // x is the first player's first choice after a b, and the second choice z looks 0.15 worse. Before b, the position
+  // "a", the first player had 0.5 (searched below), so x keeps the 0.1 that b gave.
+  const only = at(0.6, [["x", 0.6], ["z", 0.45]]);
+  game.analysis = [at(0.5), undefined, only, at(0.6), at(0.6)];
+  game.branches = { ...game.branches, "a b x": { ...game.branches["a b x"], analysis: at(0.6) } };
+  await game.judge(["a", "b", "x"]);
+  await turns();
+  const own = (await asked()).length;
+  assert.equal((await asked()).filter(m => m === "a").length, 1); // asked once, though the page asks again at each result
+  assert.equal(game.awaitsGreat("a b x"), true); // the move shows "Evaluating…"
+  assert.equal(game.greatChecks.total, 0); // the review's own steps do not count it
+  // The search ends: the position keeps the gain, so the confirmation of the gap is asked for, and the move waits for it.
+  game.analysis = [at(0.5), at(0.5), only, at(0.6), at(0.6)];
+  assert.equal((await asked()).at(-1), "a b z");
+  assert.equal(own + 1, (await asked()).length);
+  assert.equal(game.awaitsGreat("a b x"), true);
+  assert.equal(game.greatChecks.total, 0); // the confirmation is the player's evaluation too
+  game.outside = { "a b z": at(0.4) };
+  assert.equal(game.awaitsGreat("a b x"), false);
+});
+
+test("Evaluate quality asks for no search of the earlier position without the gap, or where it has its result", async () => {
+  const { game, at, asked } = await greatBranch();
+  await game.addLine(["a", "b", "x"], false);
+  game.branches = { ...game.branches, "a b x": { ...game.branches["a b x"], analysis: at(0.6) } };
+  await game.judge(["a", "b", "x"]);
+  const earlier = async () => (await asked()).filter(m => m === "a").length;
+  // The second choice looks 0.05 worse: x is not the only good move.
+  game.analysis = [at(0.5), undefined, at(0.6, [["x", 0.6], ["z", 0.55]]), at(0.6), at(0.6)];
+  assert.deepEqual([await earlier(), game.awaitsGreat("a b x")], [0, false]);
+  // x is not the first choice.
+  game.analysis = [at(0.5), undefined, at(0.6, [["z", 0.6], ["x", 0.4]]), at(0.6), at(0.6)];
+  assert.deepEqual([await earlier(), game.awaitsGreat("a b x")], [0, false]);
+  // The search before the move is shallower than the label budget: it asks once that search has the budget.
+  const only = [["x", 0.6], ["z", 0.45]] as [string, number][];
+  game.analysis = [at(0.5), undefined, at(0.6, only, game.labelVisits / 2), at(0.6), at(0.6)];
+  assert.deepEqual([await earlier(), game.awaitsGreat("a b x")], [0, false]);
+  // The position before b has its result already, and x does not gain on it: no search, no wait, and no Great.
+  game.analysis = [at(0.5), at(0.58), at(0.6, only), at(0.6), at(0.6)];
+  assert.deepEqual([await earlier(), game.awaitsGreat("a b x")], [0, false]);
+  assert.equal(game.greatChecks.total, 0);
+  // A deeper result before the move changes its first choice and its gap: the search is asked for then.
+  game.analysis = [at(0.5), undefined, at(0.6, only), at(0.6), at(0.6)];
+  assert.deepEqual([await earlier(), game.awaitsGreat("a b x")], [1, true]);
+});
+
+test("the Analysis board's moves evaluated ask for the earlier position too, and the review's game moves do not", async () => {
+  const board = await greatBranch(BOARD_ID);
+  const only = (g: typeof board) => g.at(0.6, [["c", 0.6], ["z", 0.45]]);
+  board.game.analysis = [board.at(0.5), undefined, only(board), board.at(0.6), board.at(0.6)];
+  assert.deepEqual([(await board.asked()).includes("a"), board.game.awaitsGreat("a b c")], [false, false]); // not asked to evaluate
+  board.game.judgedMain = { "a b c": true };
+  assert.deepEqual([(await board.asked()).filter(m => m === "a").length, board.game.awaitsGreat("a b c")], [1, true]);
+  // A review's game move: its passes search the position, so the analysis asks for nothing.
+  const review = await greatBranch();
+  review.game.analysis = [review.at(0.5), undefined, only(review), review.at(0.6), review.at(0.6)];
+  assert.deepEqual([(await review.asked()).includes("a"), review.game.awaitsGreat("a b c")], [false, false]);
+  assert.equal(review.game.greatChecks.total, 0); // no earlier result, so no Great to confirm
+});
+
+test("a turn of two that the board evaluates asks for the position before the opponent's last turn, and waits for it", async () => {
+  const mover = (k: number) => (k === 0 || Math.floor((k - 1) / 2) % 2 === 1 ? 0 : 1) as Player;
+  const rules = { describeGame: async (q: { moves: string[] }) =>
+    ({ reply: { positions: Array.from({ length: q.moves.length + 1 }, (_, k) => ({ ...wordFields(k), mover: mover(k) })) } }) };
+  const { pool, searches } = fakePool();
+  Object.assign(pool, { rules });
+  const game = new GameAnalysis(words, pool, ["a", "b", "c", "d", "e"], BOARD_ID);
+  await game.start();
+  game.engineReady = true;
+  const at = (blueWin: number, candidates: [string, number][] = []) =>
+    ({ blueWin, visits: game.labelVisits, candidates: candidates.map(([edge, w]) => ({ edge, visits: 10, blueWin: w })) });
+  // The second player's turn b c from position 1 is the only good turn (x looks 0.16 worse), and the first player's
+  // turn a, before it, has no search yet. The turn waits for it as a whole: its last edge c.
+  game.analysis = [undefined, at(0.44, [["b", 0.44], ["x", 0.6]]), at(0.46, [["c", 0.46], ["y", 0.65]]), at(0.46), at(0.46), at(0.46)];
+  game.judgedMain = { "a b c": true };
+  game.confirmGreats();
+  await turns();
+  assert.deepEqual(searches.map(s => s.moves.join(" ")), [""]);
+  assert.deepEqual([game.awaitsGreat("a b c"), game.awaitsGreat("a b")], [true, false]);
+});
+
+test("a move that looks like the only good move in the shallower result that shows a label waits for the label budget", async () => {
+  const { game, at, asked } = await greatBranch();
+  game.labelVisits = 512; // the review's depth: labels show from 256 visits on (LABEL_VISITS)
+  await game.addLine(["a", "b", "x"], false);
+  game.branches = { ...game.branches, "a b x": { ...game.branches["a b x"], analysis: at(0.6, [], 256) } };
+  await game.judge(["a", "b", "x"]);
+  const only = [["x", 0.6], ["z", 0.45]] as [string, number][];
+  // At 256 visits the label would show Best: the move waits, and asks for no search of the earlier position yet.
+  game.analysis = [at(0.5), undefined, at(0.6, only, 256), at(0.6), at(0.6)];
+  assert.deepEqual([(await asked()).includes("a"), game.awaitsGreat("a b x")], [false, true]);
+  // Another first choice at 256 visits: the label shows.
+  game.analysis = [at(0.5), undefined, at(0.6, [["z", 0.6], ["x", 0.4]], 256), at(0.6), at(0.6)];
+  assert.equal(game.awaitsGreat("a b x"), false);
+  // At the label budget it asks for the earlier position, as before.
+  game.analysis = [at(0.5), undefined, at(0.6, only, 512), at(0.6), at(0.6)];
+  assert.deepEqual([(await asked()).includes("a"), game.awaitsGreat("a b x")], [true, true]);
 });

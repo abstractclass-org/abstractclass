@@ -75,7 +75,8 @@
     const g = game;
     if (!data || !g) return null;
     const judged = g.judgedMain, keys = g.mainKeys;
-    return onlyJudged(review(data, "lead", LABEL_VISITS), i => !!judged[keys[i + 1]]);
+    // A move waits for the searches of its Great (awaitsGreat) and shows its label once they end.
+    return onlyJudged(review(data, "lead", LABEL_VISITS), i => !!judged[keys[i + 1]] && !g.awaitsGreat(keys[i + 1]));
   });
 
   // The position on screen, kept for the next visit.

@@ -111,10 +111,18 @@ reason. Design 05 gives the searches that the labels read: their schedule, their
    first's visits. So a gap in one search only asks for a search of the position after the other choice, to the label
    budget, as deep as the position after the played move (KaTrain's "equalize" gives every candidate the top move's
    visits for the same reason). Until that search confirms the gap, the move is Best. A move that fails the third
-   condition asks for no search: it cannot be Great (`greatTargets` in `packages/analysis/src/analysis.svelte.ts`). A
+   condition asks for no search: it cannot be Great (`greatNeeds` in `packages/analysis/src/analysis.svelte.ts`). A
    turn reads the gain at its start, and its second edge reads it at the middle. So a turn of two whose start keeps the
    gain asks for the search from its middle, also where its middle does not keep it. On part1-1000, the review then
    asks for 1,410 of the 1,882 searches that confirm the Greats: 472 fewer (25%).
+   - **The position before the opponent's last turn, for a move that the player asked to evaluate.** A review has that
+     position for each game move: the label pass searches every position of the game. A branch move and a move of the
+     Analysis board may lack it. So "Evaluate quality" also searches it (`GameAnalysis.earlierAt`), to the label budget.
+     It asks for this search only when the move would be Great but for it: the search before the move has the label
+     budget, the move is the engine's first choice, and the gap of 0.10 is in that search. It asks for none where the
+     position has a result of the label budget, or where the gap is absent. A deeper result before the move can change
+     the first choice or the gap, and the search is asked for then. This search and the confirmation after it are the
+     player's evaluations. The steps of the review's progress bar do not count them.
    - **As deep as the position after the played move, when the player searched it deeper** (the position on screen,
      design 09): the confirmation then searches to the same depth, the largest doubling of the label budget within
      that position's visits (`equalDepth` in `packages/analysis/src/model.ts`: the depths step by doublings, and a
@@ -141,7 +149,9 @@ reason. Design 05 gives the searches that the labels read: their schedule, their
      (`endingText` in `src/lib/review/enclosure.ts`).
    - **A branch's moves** have no labels until the player asks ("Evaluate quality" in the move menu). Then every branch
      move of that turn is searched and judged as the game's moves are (`judgeTurn`, `judgeEdge`). A branch that stops
-     in a turn's middle has no turn label until the turn ends.
+     in a turn's middle has no turn label until the turn ends. A move that would be Great waits for its extra searches
+     (the position before the opponent's last turn, then the confirmation of the gap) and shows "Evaluating…" until
+     they end (`GameAnalysis.awaitsGreat`).
    - **A turn's note** gives the turn's cost, then each edge's points, in the turn's order: "Blunder: −25.2% · −144.0
      pts (−144.0 pts, 0.0 pts)". The parts are rounded together, in tenths, so that they make the turn's points
      (Hamilton's largest remainders, `roundTogether`). The engine's own turn, Best or Great, has no parts: its edges

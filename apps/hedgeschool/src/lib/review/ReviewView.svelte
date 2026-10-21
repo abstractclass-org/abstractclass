@@ -36,6 +36,7 @@
     secondAt(path: string[]): Analysis | undefined; // the position after the engine's second choice, which confirms a Great
     otherAt(path: string[], turn: (Edge | null)[]): Analysis | undefined; // the same for a turn
     earlierAt(path: string[], mover: Player): Analysis | undefined; // before the opponent's last turn, which a Great must gain on
+    awaitsGreat(key: string): boolean; // the move into this path key waits for the searches of its Great
     turnKeys(path: string[]): string[]; // the branch moves that evaluating this move's quality judges
     pending(path: string[]): boolean; // the review's own searches can still change this position's analysis
     stoppedByTime(path: string[]): boolean; // the position's search stopped at its time limit
@@ -758,7 +759,7 @@
   // something should cost no search (design 07).
   function branchLabel(p: string[]): Label | null {
     const node = branches[pathKey(p)];
-    if (!node?.judged) return null;
+    if (!node?.judged || game?.awaitsGreat(pathKey(p))) return null; // a Great's searches still run: "Evaluating…"
     const parent = p.slice(0, -1);
     return judgeBranchEdge(analysisAt(parent), valuesAfter(node.position, node.analysis, "lead", labelVisits), node.move.player,
                            node.move.edge, "lead", labelVisits, game?.secondAt(parent), game?.earlierAt(parent, node.move.player));
@@ -819,6 +820,7 @@
     const parent = p.slice(0, -1), twice = paths.length > 1;
     if (!paths.every(q => mainIndex(q, mainNames) !== null || branches[pathKey(q)]?.judged)) return null;
     const start = p.slice(0, twice ? -2 : -1), turn = paths.map(q => moveInto(q)?.edge ?? null);
+    if (game?.awaitsGreat(pathKey(p))) return { paths, judgment: null };
     return { paths, judgment: judgeTurn(node.move.player, turn, analysisAt(start), twice ? analysisAt(parent) : undefined,
                                         valuesAfter(node.position, node.analysis, "lead", labelVisits), !!node.position.over,
                                         game?.otherAt(start, turn), twice ? game?.secondAt(parent) : undefined,

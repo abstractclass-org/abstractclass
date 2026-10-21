@@ -151,6 +151,11 @@ cut edges that are on the board, so a line drawn over the board can show edges t
     after the move that ends the turn, with every label in its tooltip, and the board shows the badges of the turn just
     played. The moves evaluated are kept with the branches. A branch that stops in a turn's middle has no turn label
     until the turn ends.
+    - **A move that is the engine's only good move** also asks for the position before the opponent's last turn, when
+      that position has no result of the label budget: a Great needs it (design 10, item 6). A position of the game has
+      it already. A position of a branch has it when the player looked at it or evaluated a move from it. The move list
+      shows "…" until that search and the Great's confirmation end. Where the position has its result, or the engine
+      does not find the move to be the only good one, no search is added.
     - **A hard position's ◆** (design 14) needs no request: it shows wherever the position before a branch move has a
       result, from the search of that position. By edge, it follows the move and its label. By turn, it follows the
       move that ends the turn, from the harder of the turn's positions. It shows for the side reviewed only, as the
