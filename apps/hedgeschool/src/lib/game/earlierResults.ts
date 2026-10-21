@@ -32,9 +32,9 @@ export interface KeptGame { moves: string[]; branches: KeptBranches | null; mark
 /** The stored results that nothing reads, among `keys` (in the store's order): of a shape that the readers read
  *  (readable), neither of the site's search with a network file it ships nor read by a stored game's snapshot. A
  *  snapshot reads the results of one search and network file, for the game's positions and those one move from them
- *  (the review file's, design 13), each at the deepest that it reads (readsAt). `engine` is the site's
- *  (engine.lock.json). None without its CPU module's search: every result of the site's own engine would then count as
- *  an earlier engine's. */
+ *  (the review file's, design 13), each at the deepest that it reads (readsAt). It reads the maps added to those
+ *  positions too, whatever the depth of their results. `engine` is the site's (engine.lock.json). None without its CPU
+ *  module's search: every result of the site's own engine would then count as an earlier engine's. */
 export function unneededResults(keys: string[], games: KeptGame[], engine: Manifest): string[] {
   const site = moduleOf(engine)?.search;
   if (!site) return [];
@@ -66,23 +66,22 @@ export function unneededResults(keys: string[], games: KeptGame[], engine: Manif
     for (const p of positionKeys(moves, branches)) positions.set(p, (positions.get(p) ?? new Set()).add(mark.visits));
     snapshotReads.set(at, positions);
   }
-  // The results that a snapshot reads, by their position (search, network file and moves) and the review depths that
-  // read them, and the deepest visits that each depth reads at each position. An added map is read beside the results
-  // of its position, whatever their depth (analysis.svelte.ts, freeze): it stays while a snapshot reads its position.
-  const read = earlier.map(k => {
-    const positions = k && snapshotReads.get(`${k.search}|${k.model}`);
-    if (!positions) return [];
-    const depths = [...(positions.get(k.moves) ?? []), ...((k.moves && positions.get(parentKey(k.moves))) || [])];
-    return depths.filter(d => k.map || readsAt(d, k.visits)).map(d => `${k.search}|${k.model}|${k.moves}|${d}`);
-  });
+  // The review depths that read a stored key's position (search, network file and moves): a snapshot reads the
+  // position, or the position before it.
+  const depthsAt = ({ search, model, moves }: { search: string; model: string; moves: string }) => {
+    const positions = snapshotReads.get(`${search}|${model}`);
+    return positions ? [...(positions.get(moves) ?? []), ...((moves && positions.get(parentKey(moves))) || [])] : [];
+  };
+  // The results that a snapshot reads, by their position and the review depths that read them, and the deepest visits
+  // that each depth reads at each position. An added map is not one of them: it stays while a snapshot reads its
+  // position, whatever the depth of the results there (analysis.svelte.ts, freeze).
+  const read = earlier.map(k => k && !k.map
+    ? depthsAt(k).filter(d => readsAt(d, k.visits)).map(d => `${k.search}|${k.model}|${k.moves}|${d}`) : []);
   const deepest = new Map<string, number>();
-  read.forEach((at, i) => {
-    const k = earlier[i];
-    if (k && !k.map) at.forEach(p => deepest.set(p, Math.max(k.visits, deepest.get(p) ?? 0)));
-  });
+  read.forEach((at, i) => at.forEach(p => deepest.set(p, Math.max(earlier[i]!.visits, deepest.get(p) ?? 0))));
   return keys.filter((_, i) => {
     const k = earlier[i];
-    return !!k && !(k.map ? read[i].length : read[i].some(p => deepest.get(p) === k.visits));
+    return !!k && !(k.map ? depthsAt(k).length : read[i].some(p => deepest.get(p) === k.visits));
   });
 }
 

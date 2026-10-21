@@ -6339,8 +6339,8 @@ before it.
 
 ### The map's bookkeeping in edge cases (2026-10-21)
 
-A read-only review of the merged area map (design 30) found six cases where the site asked for a map, kept it or
-removed it wrongly. Each one had a test that failed before its fix: the analysis's tests
+A review of the merged area map (design 30) found six cases where the site asked for a map, kept it or removed it
+wrongly. Each one had a test that failed before its fix: the analysis's tests
 (`packages/analysis/src/analysis.test.ts`) and the removal's (`src/lib/game/earlierResults.test.ts`).
 
 - **The removal of an earlier engine's results removed the maps that a snapshot reads.** It compared an added map, of
@@ -6354,8 +6354,8 @@ removed it wrongly. Each one had a test that failed before its fix: the analysis
   network, and a map that it lacks cannot come". Before the fix, the stored map did not show.
 - **Another network lost the maps in flight.** The record of the maps that the page's tasks search outlived the
   network. When the new network was ready before the old network's task ended, the new one skipped the map, and the
-  old task then ended with nothing kept. Now each network has its own record. Test: "every state of a map ends: a map
-  asked for on the old network is asked for again on the new one".
+  old task then ended with nothing kept. Now another network starts a new record. Test: "every state of a map ends: a
+  map asked for on the old network is asked for again on the new one".
 - **A position's own search could bring no map.** The page's map waits for the position's own search, which asks for
   the ownership. On the Analysis board, that search can find a result stored before the maps, which has none. Then
   nothing asked for the map. Now the map is asked for again once that result applies. Test: "every state of a map
@@ -6368,8 +6368,49 @@ removed it wrongly. Each one had a test that failed before its fix: the analysis
   position of the tree knows that it has no map from its own end (`hasNoMap`), and the note says "No map: the game
   ends here". Test: "every state of a map ends: the game's last position, where it ends, has no map".
 
-**The browser check** (`scripts/measure/map-wait-check.mjs`, headless Chromium, 2 workers, GPU off) has a fifth case:
-the fixture's review as an earlier engine's, imported, so that it opens as a snapshot, with no ownership in its
-results and maps added to every position but those after 30 edges. After the fix, after edge 31 the stored map shows
-with no note, and after edge 30 the note says "No map: a snapshot searches nothing" from the first second. The other
-three cases still pass.
+**The browser check** (`scripts/measure/map-wait-check.mjs`, headless Chromium, 2 workers, GPU off) has a fourth
+case, with two checks: the fixture's review as an earlier engine's, imported, so that it opens as a snapshot, with no
+ownership in its results and maps added to every position but the one after 30 edges. After the fix, after edge 31
+the stored map shows with no note, and after edge 30 the note says "No map: a snapshot searches nothing" from the
+first second. The other three cases still pass.
+
+### The review of the map's bookkeeping (2026-10-21)
+
+The review of the six fixes above, after their rebase on `dev`.
+
+- **The note in a snapshot** says "No map saved: snapshots do no searches", not "No map: a snapshot searches nothing".
+  It gives both reasons, in the words of the snapshot's bar ("no searches"). At 360 pixels, the narrowest width of
+  the layout sweep, the margin has room for a note of 243 pixels beside the switch, and this note takes 231 (headless
+  Chromium, the fonts loaded). At 390 pixels the room is 267.
+- **A map asked for just before the engine went off was searched while the engine was off.** Its task read the store,
+  then reached the pool after the engine off had halted it, and its search ran to its 32 visits with "Map:
+  searching". Now no map's search starts while the engine is off: the task gives the map up, the note says "Map:
+  waiting for the engine", and the engine on asks for the map again. Test: "every state of a map ends: a map asked
+  for just before the engine goes off is searched once it is on again".
+- **The pass test** now also checks that the new pass holds the map's state after the stopped slice ends. Each of the
+  seven tests fails with its fix taken out.
+- **Simpler code, the same behaviour:**
+  - One record holds each map in work: its state and the task that holds it. It replaces three records of the same
+    tasks: the state, the holder and the page's own tasks. Another network drops it, and the engine off takes the map
+    pass's maps from it.
+  - A search that runs always asks for the ownership, so only a stored result can lack a map. The analysis asks
+    again for the map after a stored result alone, not after each search's batch.
+  - A position of the tree knows its end from `searchable`. The removal keeps the maps apart from the results'
+    depths.
+  - The browser check takes the keys' form from `cache.ts`, and its import and its browsers from `speed.mjs`.
+- **Left as they are:**
+  - The removal keeps the maps of the positions that a review file holds, as it keeps their results. The map of a
+    line's later edge goes, and a snapshot's line then shows fewer maps ("Maps of the line: 1 of 4"). To keep them,
+    the removal needs a rule for the positions past the game that a snapshot can read, and a line has no length
+    limit.
+  - In a snapshot, a line's edge that ends the game counts as a map not saved, not as a map that cannot come. No
+    search tells the snapshot that the game ends there. The legend then names the map before it, with no "(edge 3: no
+    map)".
+  - A review opened again says "Map: waiting for the engine" for a map that the store has, until the engine's network
+    loads: the analysis reads the store's maps only once the engine is ready. The wait ends.
+  - The snapshot's analysis takes its search and network file twice, in `fromStore` and in `freeze`.
+
+**The browser check** (`scripts/measure/map-wait-check.mjs`, headless Chromium, 2 workers, GPU off) passes its four
+cases on the final build. In the snapshot, after edge 31 the stored map shows with no note, and after edge 30 the note
+says "No map saved: snapshots do no searches" from the first second. No page errors. The layout sweep in Chromium
+passes (25 tests, 5 skipped).

@@ -137,8 +137,8 @@ export async function importFile(page, url, file) {
 }
 
 /** Imports a review file as importFile does, again until the page opens its game, from a page that has loaded: a file
- *  set before the page has started can go unread. Then waits until the review is done. */
-export async function importReview(page, url, file) {
+ *  set before the page has started can go unread. Then waits until the review is done, or for the text `done`. */
+export async function importReview(page, url, file, done = /^Review done/) {
   for (let tries = 0; !page.url().includes("#game="); tries++) {
     if (tries === 4) throw new Error("the import did not open");
     await page.goto(`${url}/review`);
@@ -147,7 +147,7 @@ export async function importReview(page, url, file) {
     await page.locator('input[type="file"][accept*="json"]').first().setInputFiles(file);
     await page.waitForURL(/#game=/, { timeout: 60_000 }).catch(() => {});
   }
-  await page.getByText(/^Review done/).waitFor({ timeout: 600_000 });
+  await page.getByText(done).first().waitFor({ timeout: 600_000 });
 }
 
 /** Steps the review on the page to the position after `n` edges, by its keys: the start, then `n` steps. */

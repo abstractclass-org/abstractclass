@@ -128,9 +128,10 @@ site asks for the root's alone (item 6).
    - **A snapshot** (design 20) searches nothing. It reads the maps added to its positions from the store, with the
      search and the network file of its results, and never takes a map as a search (`freeze`). A map that the store
      lacks cannot come, and the note says so (item 9).
-   - **The removal of earlier results** keeps an added map while a snapshot reads its position, whatever the depth of
-     the results there. It removes the map with its search's results where no snapshot reads the position
-     (`src/lib/game/earlierResults.ts`).
+   - **The removal of earlier results** keeps an added map at each position whose results a snapshot reads (design
+     20, item 8: the game's positions and those one move from them), whatever the depth of the results there.
+     Elsewhere it removes the map with its search's results (`src/lib/game/earlierResults.ts`). So the map of a line's
+     later edge goes, and the snapshot's line then lacks it.
 7. **Defaults by page.** The review starts with the map off: the improving player steps through the whole game, and a
    clean board shows the labels first. The Analysis board starts with the map on: its player reads the whole board.
    Each page keeps its own start (`areaMap` in `display.ts`).
@@ -147,7 +148,7 @@ site asks for the root's alone (item 6).
    what the map does (`mapWork` in `ReviewView.svelte`, `mapState` in `analysis.svelte.ts`):
    - For a position: "Map: waiting for the engine" while its search waits behind other searches, "Map: searching"
      while it runs, and "No map: the game ends here" where none can come. In a snapshot, a map that the store lacks
-     says "No map: a snapshot searches nothing". In after vs before, the map before the move counts too, and the
+     says "No map saved: snapshots do no searches". In after vs before, the map before the move counts too, and the
      game's start says "No map: the game starts here". There is no note when the map shown is the position's own: the
      legend alone means that the map is ready.
    - For a line or a preview: "Maps of the line: 3 of 7", the positions of the line whose maps are there.
@@ -157,12 +158,12 @@ site asks for the root's alone (item 6).
    - "Waiting" means asked for and not yet searched, or the position's own search to come (`pending`). The analysis
      keeps what the page asked for last (its maps and the map pass), and asks again once the engine is ready or on
      again (`askAgain`): a page that opens or reloads asks before the engine's network has loaded.
-   - A map that its task gave up without a try (a search that the page did not want when it started) is asked for
-     again while the page wants it.
+   - A map that its task gave up without a try (a search that the page did not want when it started, or the engine
+     off) is asked for again while the page wants it. No map's search starts while the engine is off.
    - A position with no result and no search to come gets a short search (item 6), never a wait. When the position's
      own search brings a result with no map (a result stored before the maps), the map is asked for again then.
-   - Another network asks again for the maps that the old one was searching: each network keeps its own record of
-     the maps that it searches.
+   - Another network asks again for the maps that the old one was searching: it drops the old network's record of
+     the maps in work, and the old network's tasks touch the new record no more.
    - The game's last position, where the game ends, knows that it has no map (`hasNoMap`), with no search.
    - Only the task that holds a map's state changes or ends it: a task that another task replaced, or a pass that the
      engine off ended, touches it no more.
@@ -179,7 +180,7 @@ site asks for the root's alone (item 6).
       pass.
     - **It stops when the map goes off.** Its searches in the queue go at once. A search that runs ends at its 32
       visits and keeps its map. A pass that starts again later counts only its own searches (`mapPassRun`).
-    - **It stops when the engine goes off, and starts again when the engine comes on** (`endPass` and `askAgain`).
+    - **It stops when the engine goes off, and starts again when the engine comes on** (`setPaused` and `askAgain`).
       The engine off stops every search, so the pass lets go of its maps, and the pass that starts again searches
       them. Its part of the progress bar goes while the engine is off.
 
@@ -347,5 +348,6 @@ The site follows KaTrain's review (design 05). The display departs from it on pu
   maps: their size and their time", "A candidate's map from a short search", "The delay of a candidate's map", "A
   candidate's map from a short search, on a close game", "The map follows the line as drawn", "After vs before: the
   third style", "The marks of After vs before, and 0.05", "The map's work made visible, and the map pass", "\"Map:
-  waiting for the engine\" did not end", "The area map's review" and "The map's bookkeeping in edge cases".
+  waiting for the engine\" did not end", "The area map's review", "The map's bookkeeping in edge cases" and "The
+  review of the map's bookkeeping".
 - [decisions/engine.md](../decisions/engine.md): "The cost of the ownership in a whole review" (2026-10-21).
