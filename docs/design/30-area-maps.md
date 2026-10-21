@@ -73,7 +73,9 @@ showed three faults:
    takes the results of shape 5 and ignores the fields that it does not know.
 2. **The area map has three styles** (the display settings "Area map" and "Area map style", Board; `areaMap` and
    `differenceMap` in `src/lib/review/ownership.ts`). Each name says what the style compares, and the setting gives
-   one sentence for each:
+   one sentence for each. The three use the board's two colours alone, and each mark is in the colour of the side
+   that the point moves toward, as every mark of the board is. They differ by shape: shading, dots and hatching, and
+   signs:
    - **Forecast** (the default): who the engine expects to hold each point, and how surely. Each point shaded in the
      colour of that side, as strong as |ownership| ^ (1 / 1.33), at most 0.45, and blended by a blur, under
      everything else. These are KaTrain's gamma and drawing, with the strongest shade lower, so that the regions and
@@ -85,10 +87,11 @@ showed three faults:
      its owner's gets nothing.
    - **After vs before:** what a choice changed: the forecast after it less the forecast before it, from the side of
      the player who chose. KaTrain's loss grid (katrain/gui/badukpan.py, draw_board_contents), the first build's area
-     lost, with the rises too. Where the forecast fell, a shade in the site's accent (lavender), as strong as
-     |difference| ^ (1 / 1.33), at most 0.6, blended as the forecast is, so that it never looks like a region. Where
-     it rose, plus signs in the text's colour, as strong as it rose: a shape, so that no colour has to tell it from
-     the fall, the change marks or the regions, in light and dark and for a colour-blind player. The choice:
+     lost, with the rises too. Where the forecast rose for the player who chose, plus signs in that player's colour;
+     where it fell, minus signs in the opponent's colour. So a sign's colour says toward whom the point moved, and its
+     shape says whether that is good or bad for the player who chose. Each sign is as strong as |difference| ^
+     (1 / 1.33), with no blur. A halo in the board's colour keeps a sign whole where it meets its own colour: a minus
+     in Red's colour on Red's region or edge, a plus in Blue's on Blue's. The choice:
      - at the position on screen, or a played move's preview: the move to it, by the labels' unit (design 10). By
        turn, the forecast at the turn's start against the forecast here; by edge, the edge's. At every move, the
        engine's best too, on the game's line and in a branch. The start of the game has no move, and no map.
@@ -99,8 +102,9 @@ showed three faults:
      and rises show after the engine's best move too.
 3. **The player sets the smallest value marked** ("Smallest value marked", from 0 to 1 in steps of 0.05), for each
    style apart (`mapMin` in `src/lib/review/display.ts`). At 0 the map shows every point with a value: the raw data.
-   The defaults: 0 for the forecast and for after vs before (KaTrain's maps), and 0.5 for the forecast vs board (the
-   second build's, measured on real games). It applies to the falls and the rises alike.
+   The default is 0.05 for all three: at 0, after vs before marks a third of the board after the engine's best move,
+   faintly; at 0.05, a median of 7.5 points. A browser keeps the value that it has stored. It applies to the falls and
+   the rises alike.
 4. **The legend and the numbers.** While the map shows, one line in the board's empty margin above its top row says
    what it shows: "Shade: who the engine expects to hold each point"; "Forecast vs board:" and its two marks; or
    "After turn 21 vs before it:" with "fell for Blue" and "rose for Blue". While the mouse's pointer is on a point,
@@ -146,14 +150,31 @@ showed three faults:
      refuses it, in a review file and in the store.
 7. **Defaults by page.** The review starts with the map off: the improving player steps through the whole game, and a
    clean board shows the labels first. The Analysis board starts with the map on: its player reads the whole board.
-   Each page keeps its own switch (`areaMap` in `display.ts`). **The key t** shows or hides the map on both, as
-   KaTrain's T shows its Territory.
+   Each page keeps its own start (`areaMap` in `display.ts`).
+8. **A quick switch, on the page and on the keys.** In the board's top margin, at the left of the legend, on the review
+   and on the Analysis board: Off, Forecast, Forecast vs board and After vs before, one click for each (`MAP_SWITCH`
+   and `setMap` in `ReviewView.svelte`). Its buttons are small icons, with their names for screen readers and as
+   tooltips, so that the switch and the legend fit the margin at 390 pixels; the legend ends in an ellipsis where it
+   does not. A click on them takes no focus from the page, whose keys step through the game. **The key t** shows or
+   hides the map, as KaTrain's T shows its Territory, so that hiding it is always one key. **Shift+T** goes to the next
+   style (Forecast, Forecast vs board, After vs before, then Forecast again), and shows the map if it is hidden. The
+   page keeps the style last chosen. The display menu keeps the same style setting ("Area map style"), each page's
+   start and the smallest value marked, and both keys are in the list of keys ("?").
 
 ## Why
 
 - **No captions for the mistakes, because one turn does not explain a mistake.** What a mistake gave away is the
   difference over the whole rest of the game. The label states the cost, and the engine's line and the map show
   where it goes. A sentence on one turn's close or cut was exact and misleading.
+- **The switch on the page, because the style changes as often as a position is read.** The player compares what a
+  position is expected to give (Forecast), what is still to happen (Forecast vs board) and what the last move changed
+  (After vs before) at the same position, one after another. The other display settings change once in a while, and
+  stay in the menu.
+- **One colour language, two colours.** Every mark of the board is in the colour of the side that it favours: the
+  regions, the edges, the candidates, the forecast and the change. The signs of after vs before take the same
+  colours, so that blue always means toward Blue and red toward Red. Green and red, the labels' colours, would add a
+  second language, and blue against red is easier than green against red for most colour-blind players. The styles
+  then differ by shape alone.
 - **The forecast as the default style, because it reads at once.** The players read a shade by colour as "whose",
   and its strength as "how surely". The forecast vs board asks the player to subtract the board in their head. It
   stays as a style for a player who wants to see only what is still to happen.
@@ -191,8 +212,9 @@ The site follows KaTrain's review (design 05). The display departs from it on pu
 - **A style of the forecast vs board.** KaTrain's Territory shades the ownership alone. In Go the stones are the
   state and the territory is not on the board. In Enclosure the regions are on the board, and a player can ask for the
   forecast less the board.
-- **The player's smallest value.** KaTrain shades every point, as strong as its ownership. The default here is the
-  same (0), and the player can raise it.
+- **The player's smallest value, 0.05 by default.** KaTrain shades every point, as strong as its ownership, and its
+  loss grid every fall. Here a value under 0.05 gets no mark by default: after the engine's best move, the difference
+  at 0 marks a third of the board. The player can set 0, KaTrain's, or more.
 - **The strongest shade 0.45, not 0.75.** KaTrain's 0.75 is for black and white stones on a wooden board. Here the
   players' colours at 0.75 hide the regions' fill and the edges.
 - **Off by default on the review.** KaTrain's Territory is on in its analysis mode. The review's first player steps
@@ -243,9 +265,11 @@ The site follows KaTrain's review (design 05). The display departs from it on pu
   searches hold both workers, a third of an animated line's steps never get their map while they are drawn: the
   legend then says which earlier map shows ([decisions/product.md](../decisions/product.md), "The map follows the
   line as drawn").
-- **After vs before marks a third of the board after a best move, faintly,** at the default smallest value (0): the
-  forecast before a move is the mean over its whole search. From 0.1 up, a best edge marks a median of 2 points
-  ("After vs before: the third style").
+- **After vs before marks a few points after a best move** at the default smallest value (0.05): a median of 7.5,
+  and a third of the board at 0, faintly. The forecast before a move is the mean over its whole search ("After vs
+  before: the third style", "The marks of After vs before, and 0.05").
+- **Forecast vs board marks more at 0.05 than at the second build's 0.5:** a median of 20.9% of the board on the test
+  fixture's game, and 63% in its opening, against 2.5% at 0.5. The player raises the value for fewer marks.
 - **A general rule for later data:** when the site starts to use a kind of data that a stored review lacks, the review
   gets it added on demand, beside its results, and is not done again. The added data is stored with its source, and
   goes into a review file.
@@ -259,8 +283,9 @@ The site follows KaTrain's review (design 05). The display departs from it on pu
   `differenceReading`, `drawnBoard`, `mapStep`, `askOrder`. Tests: `ownership.test.ts`.
 - `src/lib/board/Board.svelte`: the map's three styles (`areaMap`, the layer `areaMap`; `FALL_ALPHA` and the rise's
   pattern) and the point under the pointer (`onpointat`).
-- `src/lib/review/ReviewView.svelte`: `MAP_STYLE_NAME`, `mapOn`, `toggleMap`, `mapLine`, `mapShown`, `diffBase`,
-  `mapPlace`, `shownMap`, `mapReading`, the legend, the settings and the key t. `src/lib/review/display.ts`:
+- `src/lib/review/ReviewView.svelte`: `MAP_STYLE_NAME`, `MAP_SWITCH`, `setMap`, `nextMapStyle`, `mapOn`,
+  `toggleMap`, `mapLine`, `mapShown`, `diffBase`, `mapPlace`, `shownMap`, `mapReading`, the margin's switch and
+  legend, the settings, and the keys t and Shift+T. `src/lib/review/display.ts`:
   `areaMap`, `mapStyle`, `mapMin`.
 - `packages/analysis/src/reply.ts` (the ownership in hundredths), `packages/analysis/src/analysis.svelte.ts` (every
   search asks for the root's map, `askOwnership`, `mapAt`, `hasNoMap`),
@@ -280,5 +305,6 @@ The site follows KaTrain's review (design 05). The display departs from it on pu
   "The results of shape 5 stay readable" (2026-10-21), for the first build. "The area map and the explanations on real
   games" (2026-10-21), for the second. "The candidates' maps: their size and their time", "A candidate's map from a
   short search", "The delay of a candidate's map", "A candidate's map from a short search, on a close game", "The
-  map follows the line as drawn" and "After vs before: the third style" (2026-10-21), for this one.
+  map follows the line as drawn", "After vs before: the third style" and "The marks of After vs before, and 0.05"
+  (2026-10-21), for this one.
 - [decisions/engine.md](../decisions/engine.md): "The cost of the ownership in a whole review" (2026-10-21).

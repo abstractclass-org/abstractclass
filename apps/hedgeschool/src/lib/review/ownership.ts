@@ -13,12 +13,13 @@ const N = 19;
  *  line made to it. */
 export type MapStyle = "ownership" | "change" | "difference";
 
-/** A point that the map marks. The ownership style: `side` holds it, as strongly as `strength` says, from 0 to 1
- *  (shade). The change style: open area that `side` will probably close, or closed area that the other side holds now
- *  and will probably lose to `side`. The difference style: the forecast fell or rose there for the player who moved, as
+/** A point that the map marks, in the colour of `side`. The ownership style: `side` holds it, as strongly as
+ *  `strength` says, from 0 to 1 (shade). The change style: open area that `side` will probably close, or closed area
+ *  that the other side holds now and will probably lose to `side`. The difference style: the forecast rose there for
+ *  the player who moved (`side` is that player) or fell (`side` is the opponent): the point moved toward `side`, as
  *  strongly as `strength` says. */
 export type AreaMark = { kind: "hold"; side: Player; strength: number } | { kind: "close" | "lose"; side: Player }
-  | { kind: "fall" | "rise"; strength: number };
+  | { kind: "fall" | "rise"; side: Player; strength: number };
 
 /** KaTrain's gamma on its territory's alpha (gui/theme.py, OWNERSHIP_GAMMA): a point held weakly still shows. */
 const OWNERSHIP_GAMMA = 1.33;
@@ -89,7 +90,8 @@ export function areaMap(style: Exclude<MapStyle, "difference">, ownership: numbe
 export function differenceMap(before: number[], after: number[], mover: Player, min: number): (AreaMark | null)[] {
   return before.map((b, i) => {
     const fall = (mover === 0 ? 1 : -1) * (b - after[i]);
-    return fall && Math.abs(fall) >= min ? { kind: fall > 0 ? "fall" : "rise", strength: shade(fall) } : null;
+    if (!fall || Math.abs(fall) < min) return null;
+    return { kind: fall > 0 ? "fall" : "rise", side: fall > 0 ? (mover === 0 ? 1 : 0) : mover, strength: shade(fall) };
   });
 }
 

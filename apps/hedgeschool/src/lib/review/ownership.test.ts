@@ -22,7 +22,7 @@ function square(x: number, y: number, s: number): { edges: Edge[]; ring: [number
 }
 /** A position with Blue's square from (1, 1) of side 3 and Red's from (10, 10) of side 2. */
 const blue = square(1, 1, 3), red = square(10, 10, 2);
-/** The side of a mark of the ownership or the change style, or null. */
+/** The side of a mark, or null. */
 const sideOf = (m: AreaMark | null | undefined) => (m && "side" in m ? m.side : null);
 const board = { edges: [blue.edges, red.edges], regions: [[{ area: 9, rings: [blue.ring] }], [{ area: 4, rings: [red.ring] }]] } as
   Pick<Position, "edges" | "regions">;
@@ -111,13 +111,16 @@ test("the difference: where the forecast fell and where it rose, from the mover'
   const before = values([[1, 0, 80], [2, 0, 10], [3, 0, -30], [4, 0, 50], [5, 0, 20]]);
   const after = values([[1, 0, -60], [2, 0, 40], [3, 0, -70], [4, 0, 50], [5, 0, 15]]);
   const blue = differenceMap(before, after, 0, 0);
-  assert.deepEqual(blue[1], { kind: "fall", strength: 1 }); // 1.40 fell for Blue: capped at 1
-  assert.equal(blue[2]?.kind, "rise"); // 0.30 rose for Blue
+  // Each mark in the colour of the side that the point moved toward: a fall for Blue toward Red, a rise toward Blue
+  assert.deepEqual(blue[1], { kind: "fall", side: 1, strength: 1 }); // 1.40 fell for Blue: capped at 1
+  assert.deepEqual([blue[2]?.kind, sideOf(blue[2])], ["rise", 0]); // 0.30 rose for Blue
   assert.equal(blue[3]?.kind, "fall");
   assert.equal(blue[4], null); // no change
   assert.equal(blue[5]?.kind, "fall"); // from 0 on, every change shows
   // From Red's side, Blue's fall is Red's rise
-  assert.deepEqual(differenceMap(before, after, 1, 0).slice(1, 4).map(m => m?.kind), ["rise", "fall", "rise"]);
+  const red = differenceMap(before, after, 1, 0).slice(1, 4);
+  assert.deepEqual(red.map(m => m?.kind), ["rise", "fall", "rise"]);
+  assert.deepEqual(red.map(sideOf), [1, 0, 1]);
   // The smallest value marked applies to both
   assert.deepEqual(differenceMap(before, after, 0, 35).slice(1, 6).map(m => m?.kind ?? null), ["fall", null, "fall", null, null]);
 });

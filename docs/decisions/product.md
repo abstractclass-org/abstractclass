@@ -6161,3 +6161,32 @@ and "Forecast vs board".
   clean. The default stays 0, KaTrain's, until the styles are compared.
 - **At the fixture's Blunder** (turn 7), the map shows the trade: Red's coming area at the bottom fell for Blue, and
   area at the top rose for Blue.
+
+### The marks of After vs before, and 0.05 (2026-10-21)
+
+**The signs.** After vs before no longer shades the falls in the accent with a blur. Where the forecast rose for the
+player who chose, plus signs in that player's colour; where it fell, minus signs in the opponent's colour. A sign's
+colour says toward whom the point moved, as every mark of the board does, and its shape says whether that is good or
+bad for the player who chose. Each sign is as strong as |difference| ^ (1 / 1.33), the value's shade, and a halo in the
+board's colour keeps it whole where it meets its own colour. A first version took the labels' green and red: it was
+replaced before it was looked at, so that the board keeps one colour language (design 30).
+
+**How the signs read** (screenshots of the board alone, light and dark, at edges 13, 29, 45, 61 and 85 of the test
+fixture's game, headless Chromium):
+
+- A strong sign reads in both themes, on the open board, on its own player's region and across edges: the halo keeps
+  a red minus whole on Red's region and edges, and a blue plus on Blue's.
+- A faint sign (a value near the smallest value marked) is faint everywhere, as the value says. The faintest case is a
+  red minus on the dark board, and on Red's region there: red has less contrast than blue on the dark board, and the
+  halo, in the board's dark colour, adds none.
+- Rows of minus signs next to each other read a little as dashed lines. The hatching of Forecast vs board is
+  diagonal, so the two do not look alike.
+
+**The smallest value marked defaults to 0.05 for all three styles** (`mapMin` in `src/lib/review/display.ts`). A
+browser keeps the value that it has stored. What 0.05 marks on the test fixture's game:
+
+- After vs before, after the 58 edges that were the engine's first choice (`scripts/measure/difference-at-best.mjs`):
+  a median of 7.5 points (most 237), against 119 at 0 and 2 at 0.1.
+- Forecast vs board, at each position (`scripts/measure/ownership-maps.mjs` on the fixture's review): a median of
+  20.9% of the board, against 2.5% at the second build's 0.5. 62.9% in edges 0 to 20, where the engine holds the
+  board open and expects many small closes, 76.2% in edges 21 to 40, then 27.1%, 13.6% and 13.6%.

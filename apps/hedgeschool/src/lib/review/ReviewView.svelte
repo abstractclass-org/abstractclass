@@ -575,8 +575,19 @@
   // its result's, or else a map added to it (askOwnership): a short search of the position, asked for while the map
   // shows the line, in the order of drawing. While the map of the edge drawn now is searched, the board keeps the
   // latest map of the line before it (mapStep), and the legend names the position that the map is from.
-  // The styles' names, by what each compares (the display setting "Area map style")
+  // The styles' names, by what each compares (the display setting "Area map style"), in the order of Shift+T
   const MAP_STYLE_NAME: Record<Display["mapStyle"], string> = { ownership: "Forecast", change: "Forecast vs board", difference: "After vs before" };
+  const MAP_STYLES = Object.keys(MAP_STYLE_NAME) as Display["mapStyle"][];
+  // The switch in the board's margin: off, or a style, one click for each. The style changes as often as the player
+  // reads a position, so it is on the page, and on the keys: t shows or hides the map, and Shift+T goes to the next
+  // style, which shows the map.
+  const MAP_SWITCH = ["off", ...MAP_STYLES] as const;
+  function setMap(value: (typeof MAP_SWITCH)[number]) {
+    if (value === "off") { if (mapOn) toggleMap(); return; }
+    display.mapStyle = value;
+    if (!mapOn) toggleMap();
+  }
+  const nextMapStyle = () => setMap(MAP_STYLES[(MAP_STYLES.indexOf(display.mapStyle) + 1) % MAP_STYLES.length]);
   const mapOn = $derived(board ? display.areaMap.board : display.areaMap.review);
   function toggleMap() {
     if (board) display.areaMap.board = !display.areaMap.board;
@@ -949,6 +960,7 @@
     const line = (step: 1 | -1) => { const l = siblingLine(path, childrenOf, step); if (l) setPath(l); };
     if (key === "?" || (key === "/" && shift)) { keysOpen = !keysOpen; used("keys list"); }
     else if ((key === "e" || key === "l") && engine && onengine) { if (snapshot) nudge(); else onengine({ on: !engine.on }); }
+    else if (key === "t" && shift) nextMapStyle();
     else if (key === "t") toggleMap(); // KaTrain's key for its Territory
     else if ((key === "ArrowLeft" && shift) || key === "b" || key === "[" || (key === "k" && shift)) setPath(prevFork(path, childrenOf));
     else if ((key === "ArrowRight" && shift) || key === "n" || key === "]" || (key === "j" && shift)) setPath(nextFork(path, childrenOf));
@@ -978,6 +990,7 @@
     [["Space"], "Play the pinned candidate, or number 1"],
     [["e", "l"], "Turn the engine on or off"],
     [["t"], "Show or hide the area map"],
+    [["Shift + t"], "The area map's next style: Forecast, Forecast vs board, After vs before"],
     [["Escape"], "Close the settings, or cancel the edge that you started"],
     [["?"], "This list"],
   ];
@@ -1610,7 +1623,7 @@
         () => display.layers.regions, v => (display.layers.regions = v))}
       {@render toggle("Area map", "Shading or marks on each point from the engine's ownership, in the style below. While a line or a preview shows, the map is of the position after its last drawn edge. The key t shows or hides it.",
         () => mapOn, v => { if (v !== mapOn) toggleMap(); })}
-      {@render choice("Area map style", "Forecast: who the engine expects to hold each point, and how surely. Forecast vs board: what the engine expects still to happen, whoever moves: dots where a player will probably close open area, hatching where a player will probably lose closed area. After vs before: what the last move, or the line on the board, changed in the forecast for the player who moved: lavender where it fell, plus signs where it rose.",
+      {@render choice("Area map style", "Forecast: who the engine expects to hold each point, and how surely. Forecast vs board: what the engine expects still to happen, whoever moves: dots where a player will probably close open area, hatching where a player will probably lose closed area. After vs before: what the last move, or the line on the board, changed in the forecast for the player who moved: a plus in that player's colour where it rose, a minus in the opponent's where it fell.",
         Object.entries(MAP_STYLE_NAME), () => display.mapStyle, v => (display.mapStyle = v as Display["mapStyle"]))}
       <div class="flex items-center justify-between gap-3 py-1.5">
         <div class="min-w-0">
@@ -1644,7 +1657,7 @@
       <div class="flex items-start justify-between gap-3 py-1.5">
         <div class="min-w-0">
           <p class="text-sm font-medium">Keys and clicks</p>
-          <p class="text-xs text-muted">The keys for moving through the game and its branches, and what the clicks do.</p>
+          <p class="text-xs text-muted">The keys for moving through the game and its branches, and what the clicks do. The key t shows or hides the area map, and Shift + t goes to its next style.</p>
         </div>
         <button class="flex-none px-2 py-0.5 text-sm" onclick={() => (keysOpen = true)}>Show <kbd class="kbd">?</kbd></button>
       </div>
@@ -1887,13 +1900,38 @@
           notes={previewing ? [] : notesAt[here] ?? []}
           onnotes={previewing ? undefined : n => { if (n.length > (notesAt[here]?.length ?? 0)) used("note drawn"); notesAt[here] = n; }}
         />
-        <!-- The area map's legend (design 30), in the board's empty margin above its top row, in one line: what the map
-             shows, the position that the map is from while a line or a preview shows (mapPlace), and in the change
-             style each mark's look, in the text's colour, as the marks take the colour of the player that gains. The
-             point under the pointer shows its numbers there in its place. A text too long for the width ends in an
-             ellipsis. -->
+        <!-- The board's empty margin above its top row (design 30): the area map's switch, then its legend. The switch:
+             off or one of the three styles, one click for each, on both pages. Its buttons take no focus from the page,
+             whose keys step through the game. The legend, in one line: what the map shows, the position that the map
+             is from while a line or a preview shows (mapPlace), and in the change and difference styles each mark's
+             look. The point under the pointer shows its numbers there in its place. A text too long for the width ends
+             in an ellipsis. -->
+        <div class="map-margin absolute inset-x-0 top-0 flex items-center gap-2 px-1 pointer-events-none">
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div role="radiogroup" aria-label="Area map style" tabindex="-1" onmousedown={e => e.preventDefault()}
+               class="map-switch flex flex-none h-4/5 max-h-6 p-px gap-px rounded border border-line bg-panel-2 pointer-events-auto">
+            {#each MAP_SWITCH as value (value)}
+              {@const on = value === "off" ? !mapOn : mapOn && display.mapStyle === value}
+              {@const name = value === "off" ? "Area map off" : MAP_STYLE_NAME[value]}
+              <button role="radio" aria-checked={on} aria-label={name} title={name} tabindex={on ? 0 : -1}
+                      class={["h-full aspect-square p-0.5 border-0 rounded-sm", on ? "bg-accent text-on-accent" : "bg-transparent text-muted hover:text-ink"]}
+                      onclick={() => setMap(value)}>
+                <svg class="size-full" viewBox="0 0 1 1" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="0.1" stroke-linecap="round">
+                  {#if value === "off"}
+                    <circle cx="0.5" cy="0.5" r="0.32" /><path d="M0.27 0.73L0.73 0.27" />
+                  {:else if value === "ownership"}
+                    <rect x="0.15" y="0.15" width="0.7" height="0.7" rx="0.08" /><path d="M0.15 0.15H0.85L0.15 0.85Z" fill="currentColor" stroke="none" />
+                  {:else if value === "change"}
+                    {#each [0.3, 0.7] as x (x)}{#each [0.3, 0.7] as y (y)}<circle cx={x} cy={y} r="0.1" fill="currentColor" stroke="none" />{/each}{/each}
+                  {:else}
+                    <path d="M0.5 0.12V0.48M0.32 0.3H0.68M0.32 0.75H0.68" />
+                  {/if}
+                </svg>
+              </button>
+            {/each}
+          </div>
         {#if shownMap}
-          <div class="map-legend absolute inset-x-0 top-0 flex justify-center gap-3 px-2 text-xs text-muted whitespace-nowrap overflow-hidden pointer-events-none" aria-label="Area map">
+          <div class="map-legend flex flex-1 min-w-0 justify-center items-center gap-3 pr-1 text-xs text-muted whitespace-nowrap overflow-hidden" aria-label="Area map">
             {#if mapReading}
               <span>{mapReading}</span>
             {:else}
@@ -1911,9 +1949,9 @@
                       {:else if kind === "lose"}
                         {#each [-0.4, 0, 0.4, 0.8] as d (d)}<line x1={d} y1="1" x2={d + 1} y2="0" stroke="currentColor" stroke-width="0.1" />{/each}
                       {:else if kind === "fall"}
-                        <rect width="1" height="1" rx="0.2" style:fill="var(--accent)" fill-opacity="0.6" />
+                        <path d="M0.15 0.5H0.85" stroke-width="0.16" stroke-linecap="round" style:stroke={diffBase?.mover === 1 ? "var(--blue)" : "var(--red)"} />
                       {:else}
-                        <path d="M0.5 0.15V0.85M0.15 0.5H0.85" stroke="currentColor" stroke-width="0.14" stroke-linecap="round" />
+                        <path d="M0.5 0.15V0.85M0.15 0.5H0.85" stroke-width="0.16" stroke-linecap="round" style:stroke={diffBase?.mover === 1 ? "var(--red)" : "var(--blue)"} />
                       {/if}
                     </svg>{text}
                   </span>
@@ -1922,6 +1960,7 @@
             {/if}
           </div>
         {/if}
+        </div>
       </div>
     </div>
     {#if !board}<div class="chart-area flex flex-col ml-(--gauge-w)">{@render charts()}</div>{/if}
@@ -2165,7 +2204,8 @@
   .board-col { grid-area: board; }
   .board-wrap { width: var(--board); flex: none; }
   /* The legend sits in the board's margin above its top row: 1.3 of the board's 20.6 units. */
-  .map-legend { height: calc(100% * 1.3 / 20.6); align-items: center; }
+  /* The margin's row is the board's margin above its top row: 1.3 of the board's 20.6 units. */
+  .map-margin { height: calc(100% * 1.3 / 20.6); }
   .chart-area { height: var(--chart); margin-top: var(--chart-gap); }
   /* The analysis column is as high as the board's column; the move list takes what is left. */
   .side { grid-area: side; height: var(--column); }

@@ -22,9 +22,9 @@ export interface Display {
   // forecast against the board now ("Forecast vs board"), or the forecast after the last move or the line drawn against
   // the forecast before it ("After vs before", KaTrain's loss grid with the rises)
   mapStyle: MapStyle;
-  // For each style, the smallest value that gets a mark, in hundredths: 0 marks every point with a value. The
-  // ownership's and the difference's 0 are KaTrain's maps. The change's 50 marks a median of 3.7% of the board on real
-  // games (decisions/product.md, "The area map and the explanations on real games").
+  // For each style, the smallest value that gets a mark, in hundredths: 0 marks every point with a value. 5 by default
+  // for all three: after the engine's best move, the difference at 0 marks a third of the board, faintly
+  // (decisions/product.md, "After vs before: the third style"). A browser's own stored value stays.
   mapMin: Record<MapStyle, number>;
   scoreLine: boolean; // the Advantage chart's score line (Blue − Red)
   areaLine: boolean; // the Advantage chart's area line: the area each player encloses now (Blue − Red)
@@ -61,7 +61,7 @@ export const DEFAULT_DISPLAY: Display = {
   layers: withoutMap(DEFAULT_LAYERS),
   areaMap: { review: false, board: true },
   mapStyle: "ownership",
-  mapMin: { ownership: 0, change: 50, difference: 0 },
+  mapMin: { ownership: 5, change: 5, difference: 5 },
   scoreLine: true,
   areaLine: true,
   lineSteps: true,

@@ -81,7 +81,7 @@ if (!isMainThread) {
   };
 
   // The share of the board marked at each position searched, by stage, at three smallest values
-  const THRESHOLDS = [30, 50, 70], shares = [];
+  const THRESHOLDS = [5, 30, 50, 70], shares = [];
   for (const g of games) {
     const fields = play(g.moves), board = fields.map(boardPosition), at = i => g.results.get(g.moves.slice(0, i).join(" "));
     for (let i = 0; i < board.length; i++) {
