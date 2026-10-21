@@ -111,6 +111,10 @@ export class GameAnalysis<G extends GameTypes> {
   // The maps being added, by path key: their search waits for the engine, or runs (the area map's state)
   private mapWork = $state.raw<Record<string, "waiting" | "searching">>({});
   private mapPassOn = $state(false); // the map pass runs (passMaps)
+  // What the page asked for last: the maps (askOwnership) and the pass (passMaps). A call that comes before the engine
+  // is ready, or while it is off, does its work once the engine is ready or on again (askAgain).
+  private askedPaths: string[][] = [];
+  private passWanted: { on: boolean; from: string[] } = { on: false, from: [] };
   private mapPassLeft = 0; // its tasks that have not ended
   private mapless = $state.raw(new Set<string>()); // the positions of a line that the engine did not search: an ended game
   private ownershipWanted = new Set<string>(); // the positions asked for last: a search queued for another one is skipped
@@ -573,6 +577,7 @@ export class GameAnalysis<G extends GameTypes> {
   private ready() {
     this.engineReady = true;
     for (const k of this.judgedKeys()) this.judgeSearches(k.split(" "));
+    this.askAgain(); // the maps asked for before
   }
 
   /** Board: the moves evaluated, by their path keys: the main line's and the branches'. */
@@ -676,6 +681,7 @@ export class GameAnalysis<G extends GameTypes> {
     if (this.stalePool) return;
     if (this.board) { this.ready(); return; }
     this.engineReady = true;
+    this.askAgain(); // the maps and the map pass asked for before the engine was ready, or while it was off
     const run = ++this.passes;
     for (const [key, node] of Object.entries(this.branches)) if (node.judged) this.judgeSearches(key.split(" ")); // kept from a visit
     const n = this.passCount;
@@ -793,6 +799,13 @@ export class GameAnalysis<G extends GameTypes> {
     return path.slice(0, k);
   }
 
+  /** Does again what the page asked for last: its maps, and the map pass. Once the engine is ready or on again, and
+   *  for a map that its task gave up. */
+  private askAgain() {
+    this.askOwnership(this.askedPaths);
+    if (this.passWanted.on) this.passMaps(true, this.passWanted.from);
+  }
+
   /** The state of a position's map, for the area map's legend: there (`ready`), its search runs (`searching`), it
    *  waits for the engine (`waiting`: its search waits behind the review's searches, or the position's own result is
    *  still to come), none can come (`none`: the game ends there), or nothing asks for it (`unasked`). */
@@ -801,7 +814,10 @@ export class GameAnalysis<G extends GameTypes> {
     const key = pathKey(path);
     if (this.mapless.has(key)) return "none";
     if (this.mapWork[key]) return this.mapWork[key];
-    return this.known(path) && this.searchable(path) && !this.analysisOf(path) ? "waiting" : "unasked";
+    if (this.known(path) && this.searchable(path) && !this.analysisOf(path)) return "waiting"; // its own search comes
+    // Asked for while the engine is not ready or off: it is asked for again then (askAgain)
+    const idle = !this.engineReady || this.paused || this.stalePool;
+    return idle && this.ownershipWanted.has(key) ? "waiting" : "unasked";
   }
 
   /** Adds a map to these positions, which the area map shows, where they have none (mapAt): to a position of the tree
@@ -812,6 +828,7 @@ export class GameAnalysis<G extends GameTypes> {
    *  which asks for the ownership. A search queued for a position that the page no longer asks for starts and ends at
    *  once. */
   askOwnership(paths: string[][]) {
+    this.askedPaths = paths;
     this.ownershipWanted = new Set(paths.map(pathKey));
     if (!this.engineReady || this.paused || this.stalePool) return;
     for (const path of paths) {
@@ -827,6 +844,7 @@ export class GameAnalysis<G extends GameTypes> {
    *  to its start, stored as the maps that askOwnership adds. At the lowest priority, in slices, so that the pool stops
    *  a search of it at once for any search for the player, and runs it again later. Off stops it. */
   passMaps(on: boolean, from: string[]) {
+    this.passWanted = { on, from };
     if (!on) {
       if (!this.mapPassOn) return;
       this.mapPassOn = false;
@@ -865,9 +883,10 @@ export class GameAnalysis<G extends GameTypes> {
     const mark = (state: "waiting" | "searching") => { if (era === this.era) this.mapWork = { ...this.mapWork, [key]: state }; };
     const keep = (ownership: number[]) => { if (era === this.era) this.ownership = { ...this.ownership, [key]: ownership }; };
     mark("waiting");
+    let tried = false; // the store or a search answered, or the search failed: else the map may be asked for again
     void (async () => {
       const stored = await mapGet(pool.search!, pool.model!.sha256, keyed);
-      if (stored) { keep(stored.ownership); return; }
+      if (stored) { tried = true; keep(stored.ownership); return; }
       await pool.run(priority, tag, async (engine, onStop) => {
         if (era !== this.era || !wanted()) return;
         mark("searching");
@@ -876,6 +895,7 @@ export class GameAnalysis<G extends GameTypes> {
         if (sliced) onStop(run.stop);
         const { reply } = await run.done;
         if (reply.terminated) { mark("waiting"); return; } // stopped to give way: the pool runs it again
+        tried = true;
         const { ownership } = toAnalysis(this.game, reply);
         if (era !== this.era || !ownership) return;
         keep(ownership);
@@ -883,7 +903,12 @@ export class GameAnalysis<G extends GameTypes> {
       });
     })()
       // A position after a candidate can end the game, and the engine searches no ended position: it has no map
-      .catch(inTree ? this.fail : () => { this.mapless = new Set(this.mapless).add(key); })
+      .catch(e => {
+        if (e instanceof Cancelled || e instanceof Stopped) return;
+        tried = true;
+        if (inTree) this.fail(e);
+        else this.mapless = new Set(this.mapless).add(key);
+      })
       .finally(() => {
         if (era === this.era && this.mapWork[key]) {
           const rest = { ...this.mapWork };
@@ -891,6 +916,10 @@ export class GameAnalysis<G extends GameTypes> {
           this.mapWork = rest;
         }
         ended?.();
+        // Every map that the page asks for comes, or is asked for again: one that its task gave up without a try (the
+        // map pass stopped while it held the position, or a search that the page did not want when it started) and
+        // that the page wants now
+        if (era === this.era && !tried && this.ownershipWanted.has(key) && !this.mapAt(path)) queueMicrotask(() => this.askAgain());
       });
   }
 

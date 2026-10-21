@@ -671,19 +671,21 @@
   // have their maps; for a position, whether its map waits for the engine (the review's searches run first), is
   // searched now, or cannot come. `busy`: work goes on, which the site's sign of work in progress shows (bar-glider).
   // Nothing when the map shown is the board's own and ready.
+  // The note reads the map as the board does (mapOf): a map that shows is ready, whatever the analysis's state says.
+  // A map that nothing asks for has no note: a note shows only a state that ends.
+  const stateOf = (p: string[]) => (mapOf(p) ? "ready" : game?.mapState(p) ?? "unasked");
   const mapWork = $derived.by((): { text: string; busy: boolean } | null => {
     if (!mapOn || !game) return null;
     const l = mapLine, n = l.all.length;
     if (n) {
-      const states = Array.from({ length: n }, (_, k) => game.mapState(stepPath(l, k + 1)));
+      const states = Array.from({ length: n }, (_, k) => stateOf(stepPath(l, k + 1)));
       const done = states.filter(st => st === "ready" || st === "none").length;
       return { text: `Maps of the line: ${done} of ${n}`, busy: states.some(st => st === "waiting" || st === "searching") };
     }
-    const st = game.mapState(l.start);
+    const st = stateOf(l.start);
     if (st === "waiting") return { text: "Map: waiting for the engine", busy: true };
     if (st === "searching") return { text: "Map: searching", busy: true };
     if (st === "none") return { text: "No map: the game ends here", busy: false };
-    if (st === "unasked" && !mapShown) return { text: "Map: waiting for the engine", busy: true };
     return null;
   });
   // The map pass, for an older review: while the map is on, once the review's passes are done (labelled). The

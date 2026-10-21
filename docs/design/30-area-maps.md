@@ -167,7 +167,14 @@ showed three faults:
      the position's own: the legend alone means that the map is ready.
    - for a line or a preview: "Maps of the line: 3 of 7", the positions of the line whose maps are there.
    While work goes on, the note carries the site's sign of work in progress, the gleam of the review's progress bar
-   (bar-glider, Lichess's).
+   (bar-glider, Lichess's). **Every state that the note shows ends:**
+   - The note reads the map as the board does: a map that shows is ready.
+   - "Waiting" means asked for and not yet searched. The analysis keeps what the page asked for last (its maps and
+     the map pass), and asks again once the engine is ready or on again (`askAgain`): a page that opens or reloads
+     asks before the engine's network has loaded.
+   - A map that its task gave up without a try (the map pass stopped while it held the position, or a search that the
+     page did not want when it started) is asked for again while the page wants it.
+   - A map that nothing asks for has no note.
 10. **The map pass, for an older review.** While the map is on, once the review's passes are done, the analysis
     makes the maps of every position of the game that has none, in order from the position on screen to the game's
     end, then back to its start, and stores them as the maps of item 6 (`passMaps` in `analysis.svelte.ts`). Its
@@ -332,5 +339,6 @@ The site follows KaTrain's review (design 05). The display departs from it on pu
   games" (2026-10-21), for the second. "The candidates' maps: their size and their time", "A candidate's map from a
   short search", "The delay of a candidate's map", "A candidate's map from a short search, on a close game", "The
   map follows the line as drawn", "After vs before: the third style", "The marks of After vs before, and 0.05" and
-  "The map's work made visible, and the map pass" (2026-10-21), for this one.
+  "The map's work made visible, and the map pass", and the entry on "Map: waiting for the engine", which did not
+  end (2026-10-21), for this one.
 - [decisions/engine.md](../decisions/engine.md): "The cost of the ownership in a whole review" (2026-10-21).

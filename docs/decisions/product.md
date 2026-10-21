@@ -6219,3 +6219,35 @@ the map turned on with the key t. Playwright's Chromium, headless, 1,366 × 900 
 - **About 20 seconds for a game of 120 edges** with the engine idle: two searches at a time, of about 0.4 s each.
 - The review's counts stay final during the pass: the summary's note that the review still runs, and the italic
   counts, belong to the review's own work alone.
+
+### "Map: waiting for the engine" did not end (2026-10-21)
+
+At a position of an older review, already finished, the note said "Map: waiting for the engine" and never ended.
+Moving to the next position and back showed the map; after a reload, the same position waited again.
+
+**Reproduced** (`scripts/measure/map-wait-check.mjs`, headless Chromium, 2 search workers, the GPU off): the test
+fixture's review file with the ownership removed from every result and the results made as deep as the position on
+screen's search (1,024 visits), imported and done, the map turned on at edge 30, then the page reloaded. On the build
+before the fix: after the reload, at the position that the page opened (edge 1), the note said "Map: waiting for the
+engine" for all 30 seconds, with no map: FAIL. A first try with the results at 512 visits did not reproduce it: the
+deeper search of the position on screen asks for the ownership, and its result brought a map of its own.
+
+**The cause.** On a page that opens or reloads, the page's effects asked for the maps (askOwnership) and for the map
+pass (passMaps) before the engine's network had loaded. Both returned at once and kept nothing. Their effects did not
+run again, since the position and the line did not change. So nothing read the stored maps, and nothing searched
+them. The note showed the position's state "unasked" as "waiting", so it never ended. A step to another position ran
+the effect again, which found the stored map.
+
+**The fix** (design 30, item 9):
+
+- The analysis keeps what the page asked for last, its maps and the map pass, and asks again once the engine is ready
+  or on again (`askAgain`, from `sweep` and the board's `ready`).
+- A map that its task gave up without a try (the map pass stopped while it held the position, or a search that the
+  page did not want when it started) is asked for again while the page wants it.
+- "Waiting" means asked for and not yet searched. A map that nothing asks for has no note.
+- The note reads the map as the board does: a map that shows is ready.
+
+**The tests that failed before the fix** (packages/analysis/src/analysis.test.ts): "every state of a map ends: a map
+asked for before the engine is ready waits, then comes", and "every state of a map ends: a map that the pass held and
+dropped is asked for again". After the fix, the browser check passes for the three cases: the map turned on, after a
+reload, and a review while it runs (the map on from its start), each note gone within a second, with the map shown.

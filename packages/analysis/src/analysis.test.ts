@@ -222,6 +222,61 @@ test("the map pass: once the review's passes are done, the maps of the game's po
   assert.equal(searches.length, before);
 });
 
+/** A game whose results are all stored with no map (stored before the ownership), opened from the store: no search. */
+async function noMaps(engines: number, id: string) {
+  const { pool, searches } = fakePool(engines);
+  const deep = 16384, model = pool.model!.sha256;
+  for (let i = 0; i <= MOVES.length; i++)
+    await cachePut(analysisKey(pool.search!, model, MOVES.slice(0, i), deep, READ_FROM), toAnalysis(words, reply(deep)));
+  const game = new GameAnalysis(words, pool, MOVES, id);
+  await game.start();
+  await game.fromStore(pool.search!, model);
+  return { game, pool, searches };
+}
+
+test("every state of a map ends: a map asked for before the engine is ready waits, then comes", async () => {
+  const { game, searches } = await noMaps(2, "g7");
+  // The page asks before the engine's network has loaded (a reload): the map waits for the engine, not "unasked"
+  game.askOwnership([["a"]]);
+  game.passMaps(true, ["a"]);
+  await turns();
+  assert.equal(searches.length, 0);
+  assert.equal(game.mapState(["a"]), "waiting");
+  // The engine ready: the map is asked for, with no new call from the page, and the pass starts
+  void game.sweep();
+  await turns();
+  const asked = searches.find(s => s.query.moves.join(" ") === "a" && !s.query.slice);
+  assert.ok(asked, "the position's map is searched once the engine is ready");
+  assert.ok(game.mapPass, "the map pass starts once the engine is ready");
+  asked!.end(MAP_VISITS, false, { ownership: [0.3] });
+  await turns();
+  assert.equal(game.mapState(["a"]), "ready");
+  // Nothing that nobody asks for shows as waiting
+  game.passMaps(false, ["a"]);
+  game.askOwnership([]);
+  await turns();
+  assert.equal(game.mapState(["a", "x"]), "unasked");
+});
+
+test("every state of a map ends: a map that the pass held and dropped is asked for again", async () => {
+  const { game, searches } = await noMaps(1, "g8");
+  void game.sweep();
+  await turns();
+  game.passMaps(true, []); // from the start: "" first, then "a", "a b", "a b c"
+  await turns();
+  assert.deepEqual(searches.at(-1)!.query.moves, []);
+  game.askOwnership([["a", "b"]]); // the page wants a position that the pass holds (queued): it skips it
+  assert.equal(game.mapState(["a", "b"]), "waiting");
+  game.passMaps(false, []); // the map pass stops: its queued search of "a b" ends with no map
+  searches.at(-1)!.end(MAP_VISITS, false, { ownership: [0.1] });
+  await turns();
+  const again = searches.at(-1)!;
+  assert.deepEqual([again.query.moves, !!again.query.slice], [["a", "b"], false]); // asked again, for the page
+  again.end(MAP_VISITS, false, { ownership: [0.4] });
+  await turns();
+  assert.equal(game.mapState(["a", "b"]), "ready");
+});
+
 test("a final result is not replaced by a shallower result of the same batch", async () => {
   const { game, searches } = await sweeping(1);
   game.focus([]); // the start, on screen: it takes the engine after the sweep's search of it
