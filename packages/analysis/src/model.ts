@@ -61,7 +61,6 @@ export const THUMB_UP = "M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-
 export const LABEL_GLYPH: Record<Label, Glyph> = {
   great: "!", best: "★", excellent: { path: THUMB_UP }, good: "✓", inaccuracy: "?!", mistake: "?", blunder: "??",
 };
-const OPENING_TURNS = 8;
 
 // --- Derived review -------------------------------------------------------------------------------------------------
 /** A move's judgment, beside the move played (the game's, with its player and its edge). */
@@ -326,17 +325,15 @@ export function review<G extends GameTypes>(game: Game<G>, data: ReviewData<G>, 
     if (j) Object.assign(t, j);
   }
   // Key moments: the worst turns or edges, at least an inaccuracy, in game order (Lichess's evalSwings, chess.com's key
-  // moments). The first turns are left out, as Regan and Haworth skip the opening (design 01): the values swing most
-  // there.
-  const firstTurn = turns[Math.min(OPENING_TURNS, turns.length - 1)]?.start ?? 0; // none on an empty board
+  // moments), from the first turn on: Enclosure has no opening theory that excuses the first moves (design 10).
   const bad = (x: Judged) => !!x.label && BAD_LABELS.includes(x.label);
   return {
     data, edges, turns, turnOf, blueWin, blueScore,
     summary: { turn: summarize(turns), edge: summarize(edges) },
     keyMoments: {
-      turn: largest(turns.filter(t => t.start >= firstTurn && bad(t)), t => t.start)
+      turn: largest(turns.filter(bad), t => t.start)
         .map(t => ({ first: t.start, last: t.end - 1, label: t.label! })),
-      edge: largest(edges.filter(e => e.index >= firstTurn && bad(e)), e => e.index)
+      edge: largest(edges.filter(bad), e => e.index)
         .map(e => ({ first: e.index, last: e.index, label: e.label! })),
     },
   };

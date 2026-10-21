@@ -178,9 +178,9 @@ edit in the same commit), so their changes still apply.
 
 - **The tuning is the packages', the same for every site:** the search budgets (`SWEEP_VISITS` 32, `LABEL_VISITS`
   256, `DEEP_VISITS` 1,024, measured on Enclosure: design 05), a hard position's complexity (`HARD` 0.10, from
-  Enclosure's archive: design 14), the turns that key moments skip (`OPENING_TURNS` 8), and how far below the first
-  choice a candidate shows in points (3 times the game's `scoreScale`, KaTrain's 3 Go points). A new game may need
-  other values. A change of one of these constants changes Hedge School's review too, so a game that needs another
+  Enclosure's archive: design 14), and how far below the first choice
+  a candidate shows in points (3 times the game's `scoreScale`, KaTrain's 3 Go points). A new game may need other
+  values. A change of one of these constants changes Hedge School's review too, so a game that needs another
   value first makes it the game's, as `scoreScale` is, with Enclosure's value as the default (the template,
   abscls-8tl1.2). The labels' bands are chess.com's, the same for every game (design 10).
 - **What the engine package takes from the site's build:** the engine's files under `/engine/` with their manifest

@@ -5619,3 +5619,106 @@ sweep.
   meaf.us", with `https://meaf.us/sst1/?game=abc123&spectate=1` as its target, in a new tab. The check refused every
   request to meaf.us, so it did not follow the link.
 - **Not checked:** a game of other players, opened by its address.
+
+### The key moments from the first turn on (2026-10-21)
+
+- **What** (abscls-s8ec, [design 10](../design/10-labels.md), item 7): the key moments are the worst turns or edges,
+  Inaccuracy or worse, at most 8, from the first turn on. Until now the review left out the first 8 turns
+  (`OPENING_TURNS` in `packages/analysis/src/model.ts`). The cut is gone from `review`. The chart's marks, the progress
+  bar's key moments step and the key moments' deeper search read `keyMoments` and need no change. The page "How
+  reviews work" says the new rule. A unit test (`enclosure.test.ts`) checks that a Blunder in the third turn is a key
+  moment, by turn and by edge.
+- **Why the cut goes:**
+  - The rule came in with the placeholder labels (net1 at 64 visits, "Found while building" at the top of this log).
+    Regan and Haworth skip the opening of a chess game because its first moves come from memorized theory, so they
+    say nothing about a player's skill. Enclosure has no opening theory. Design 01 keeps their method for the skill
+    estimate.
+  - The published method does not cut by a turn count. Lichess's "Learn from your mistakes" takes every swing of more
+    than 0.10 of win chance from the first move on (`ui/analyse/src/nodeFinder.ts`, `evalSwings`). In the opening
+    (before the game's middlegame division) it drops a mistake only when the move played is in the masters' opening
+    explorer, in more than one game (`ui/analyse/src/retrospect/retroCtrl.ts`, `explorerCancelPlies`). Enclosure has
+    no such explorer, so that rule drops nothing here.
+- **Measured** (`apps/hedgeschool/scripts/measure/key-moments-opening.mjs`, read only, no new search; the engine
+  repository's `runs/archive_analysis/`, network s46923648 of 2026-10-12, protocol 0.3). "Flagged": a turn that is not
+  the engine's line and loses more than 0.05 of the mover's win chance (Inaccuracy or worse). The share of turns
+  flagged, by turn number (a range is the lowest and the highest turn of the group):
+
+  | Turns | The site's network against itself (ladder-384, 512 visits) | Bots rated 2,000 to 3,000 (gauntlet-620, 512) | People (part2-100, 4,096) |
+  | --- | --- | --- | --- |
+  | 1 to 3 | drawn at random | drawn at random | 62% to 84% |
+  | 4 to 8 | 19% to 24% | 43% to 72% | 70% to 80% |
+  | 9 to 12 | 22% | 40% | 59% |
+  | 13 to 20 | 19% | 34% | 47% |
+  | 21 on | 8% | 13% | 19% |
+
+  The bots' first 4 edges were drawn at random (`openingPlies`), so their turns 1 to 3 are left out.
+  - **The values do not swing more in the opening.** When the network plays itself, turns 4 to 8 lose 1.5% to 1.8% of
+    win chance on average, turns 9 to 12 lose 2.1% and turns 13 to 20 lose 2.2%. The flags in the opening are the
+    players' mistakes.
+  - **Opening flags are as reliable as later ones.** Of the people's turns flagged at 512 visits, the 4,096 reading
+    also flags 94% (577 of 611) in the first 8 turns and 94% (973 of 1,033) later. By edge, 92% (799 of 873) and 88%
+    (1,219 of 1,383).
+  - **Without the cut, about half of the people's key moments are in the opening.** By turn, 347 of 737 (at 512
+    visits), and 96% of them are Inaccuracy or worse at 4,096 (98% of the 390 later ones). By edge, 368 of 762, and 95%
+    of both groups.
+- **Why the review keeps its two extra searches** (the key moments' deeper search, and the Greats' confirmations). The
+  first turns now compete for the 8 places of the key moments, so the cost of the first search was measured again.
+  - **The key moments searched deeper,** at twice the review's depth. Emulated as the page does it
+    (`momentPositions` in `routes/review/+page.svelte`): the key moments by edge and by turn, deepened together, again
+    until they stay. On part2-100 (100 people's games, 8,533 positions, every position read at 512, 1,024, 2,048 and
+    4,096 from one search). "Right": the moment is one of the 4,096 reading's key moments, or has its label there.
+    From the first turn on:
+
+    | Depth | Key moments by edge right | Labels right | Key moments by turn right | Labels right |
+    | --- | --- | --- | --- | --- |
+    | 512 (Lite) | 78.7% | 78.3% | 87.2% | 85.8% |
+    | 512, then the step to 1,024 | 84.0% | 84.1% | 88.9% | 87.8% |
+    | 1,024 everywhere (Standard) | 84.1% | 84.1% | 90.0% | 87.3% |
+    | 1,024, then the step to 2,048 | 89.1% | 87.7% | 92.4% | 91.7% |
+    | 2,048 everywhere | 87.9% | 86.8% | 91.7% | 91.5% |
+
+    The step gives the key moments about what a review at twice the depth gives them. It deepens 20.0 positions a
+    game (23.4% of all) at 512 and 20.2 (23.6%) at 1,024. With each deepened search counted in full, its visits are
+    30.6% and 31.4% of the sweep, the label pass and the step together. A review with every position at twice the
+    depth adds 100% to the label pass. The step adds 46.9% and 47.3% of it. With one unit alone, the step changes a key
+    moment or its label in 73 of 100 games by edge and 57 by turn.
+  - **With the first 8 turns cut** (the review until now), the same measurement:
+
+    | Depth | Key moments by edge right | Labels right | Key moments by turn right | Labels right |
+    | --- | --- | --- | --- | --- |
+    | 512 (Lite) | 80.0% | 72.9% | 88.1% | 82.4% |
+    | 512, then the step to 1,024 | 85.4% | 80.1% | 89.5% | 85.6% |
+    | 1,024 everywhere (Standard) | 86.1% | 79.7% | 90.6% | 84.7% |
+    | 1,024, then the step to 2,048 | 90.3% | 86.0% | 93.1% | 91.5% |
+    | 2,048 everywhere | 91.2% | 85.7% | 93.4% | 91.5% |
+
+    The step deepens 14.4 positions a game (16.9% of all) at 512 and 14.6 (17.2%) at 1,024. Its visits are 24.1% and
+    25.0% of the three passes together, and 33.8% and 34.3% of the label pass. With one unit alone, it changes a key
+    moment or its label in 62 of 100 games by edge and 46 by turn.
+  - **On one review in the owner's browser** (not from the archive): game 97d7015abab8, the current network, 16,384
+    visits, the key moments at 32,768. No key moment changed, 3 edge labels changed, and the step searched 20
+    positions (+33% of the label pass's visits). One game only.
+  - **The time,** from this log's runs of the fixture game (bots, Lite, 2 workers, "The whole review in a hidden tab"
+    in "A hidden tab's review: the key moments and the time limit without timers of the page"): the key moments took
+    17.9 to 44.0 s and the Greats 11.0 to 16.1 s, of 370.9 to 620.4 s for the whole review.
+  - **The Greats' confirmations** (part1-1000's follow-ups: 1,000 people's games, 84,100 positions, 512 visits). A
+    Great needs a second search, as deep as the one that shows the gap, of the position after the second choice
+    ([Great confirmed by an equal search](#great-confirmed-by-an-equal-search-2026-10-11)).
+    - By edge there are 1,597 gaps in one search (3 more at a game's last edge, which nothing confirms). The equal
+      search keeps 1,253 (79%) and refutes 341 (21%). The share refuted, by the one search's gap: 0.10 to 0.15, 36%,
+      0.15 to 0.25, 17%, 0.25 to 0.50, 8%, and over 0.5, 11%. The median gap of the refuted is 0.137, and of the kept
+      0.197.
+    - By turn, 300 Greats in one search and 198 confirmed (66%).
+    - The cost: 1,882 searches (1,597 by edge, 958 by turn, 673 shared) of 512 visits for 84,100 positions, 2.2% of
+      the label pass.
+    - On game 97d7015abab8 (the owner's browser): 8 Greats by edge in one search and 7 confirmed. By turn, 2 and 2.
+  - **So both searches stay.** The key moments' deeper search gives them about what a review at twice the depth gives,
+    for 31% of the passes' visits where the full review adds 100% to the label pass. The Greats' confirmations refute
+    a fifth of the Greats by edge and a third by turn, for about 2% of the label pass's visits.
+- **The limits of these numbers:**
+  - One network, s46923648 of 2026-10-12. Another network may flag the opening differently.
+  - People's games from the meaf.us archive: part2-100 for the flags and the key moments, part1-1000 for the Greats.
+    The players' strength varies from game to game. The bots' games have 4 edges drawn at random.
+  - The reference is the same search read further. The 4,096 reading continues the 512 reading's own search, so it
+    favours the deeper readings, and "right" means agreement with it. It does not mean agreement with the best play.
+  - One game in the owner's browser is an example, not a measure.
