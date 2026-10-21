@@ -51,86 +51,33 @@
   {/if}
 
   <h2>What your browser keeps</h2>
-  <ul>
-    <li><strong>Your games:</strong> the records you import, with the players' names that the records hold, and the
-      branches you add to their reviews</li>
-    <li><strong>Your last review:</strong> the game that "Continue your last review" opens</li>
-    <li><strong>Their analyses:</strong> the engine's results, so that a review opens at once the next time</li>
-    <li><strong>Your analysis:</strong> the Analysis board's lines, the moves you evaluated, and the position you left it at</li>
-    <li><strong>Your practice game:</strong> the game in progress against the bot, with its settings and the name you
-      gave for its record, and the settings you chose for the next game</li>
-    <li><strong>Your board editor position:</strong> the position you are making, and how you set its edge count, so
-      that a reload keeps them</li>
-    <li><strong>Your settings:</strong> the review's, the engine's, Practice's, and the theme</li>
-    <li><strong>The GPU's test:</strong> the name of your GPU and its speed against a worker, so that the GPU setting's
-      Auto does not test it again</li>
-    <li><strong>Your choices</strong> about Google Analytics' cookies and about the link between your games, those
-      cookies if you accept them, and the random ID that groups your games if you accept it</li>
-    <li><strong>The request to allow the site in your blocker:</strong> that you closed it</li>
-    {#if STORES_PRACTICE_GAMES}<li><strong>Your games against HedgeFund that the site could not send yet:</strong> the
-      site sends them on your next visit</li>{/if}
-  </ul>
-  <p>They stay in this browser on this computer: another browser or another computer does not see them. To delete
-    them, clear this site's data in your browser's settings.</p>
+  <p>Your browser keeps your games, with their reviews and analyses. It also keeps your work on the Analysis board and
+    in the board editor, the practice game in progress, your settings and your choices. They stay in this browser on
+    this computer. To delete them, clear this site's data in your browser's settings.</p>
 
   {#if STORES_PRACTICE_GAMES}
     <h2 id="practice-games">Your games against HedgeFund</h2>
-    <p>When a game against HedgeFund ends, the site keeps it in its own database at Cloudflare. A game ends by the
-      rules, by Resign, by Abort, or when you leave it for a new start from the Analysis board. The site does not keep a
-      game that ends before your first move. The site keeps:</p>
-    <ul>
-      <li>the game's moves and the edges that they cut, and its start</li>
-      <li>the bot's settings, and where it ran (the GPU or the CPU)</li>
-      <li>your side, how the game ended, and its result</li>
-      <li>each takeback, and the time that each move took</li>
-      <li>the day the game ended, and the site's version</li>
-    </ul>
-    <p>It never keeps the name that you type for the game's record, and it never keeps your IP address.</p>
-    <p>The games show the site how players play against each setting of the bot, so that its levels fit real players.
-      They also show what players find hard. The site can publish them as an open dataset, under CC0, as Lichess
-      publishes its games. They hold no name. The site keeps them with no time limit.</p>
-    <p>If you accept, a random ID in this browser goes with each of your games. With it, the site can distinguish your
-      games from other players' games. The ID says nothing about you. If you do not accept, a game goes with no ID, and
-      nothing links it to another game. You can change this choice, and delete the games that went with the ID,
-      <a href="#consent">below</a>. After a delete, the site keeps the ID alone, with no game, so that it does not keep
-      a game that arrives with it later.</p>
-    <p>If the site cannot send a game when it ends, the game waits in this browser, and the site sends it on your next
-      visit. The ID goes with it only if you still accept then.</p>
+    <p>When a game against HedgeFund ends, the site keeps it in its own database at Cloudflare. It keeps the moves, your
+      takebacks, the bot's settings, the result and the time of each move. It never keeps a name or your IP address.
+      It keeps no game that ends before its first move.</p>
+    <p>The games show how players play against each setting of the bot, so that its levels fit real players. The site
+      can publish them as an open dataset, under CC0, as Lichess publishes its games. It keeps them with no time
+      limit.</p>
+    <p>If you accept, a random ID in this browser goes with each of your games, so that the site can group them. The ID
+      says nothing about you. Without it, nothing links one game to another. You can change this choice, and delete the
+      games that went with the ID, <a href="#consent">below</a>. After a delete, the site keeps only the ID, so that it
+      can refuse a game that arrives with it later.</p>
   {/if}
 
-  <h2>Shared reviews and analyses</h2>
-  <p>A link that shares a review carries the game, its branches and the engine's settings after the <code>#</code> in
-    the address. A link that shares an analysis carries its lines and the moves you evaluated. Browsers never send that
-    part of an address to a server, so {SITE_NAME}'s host does not see them. The page also removes them from the
-    address before the analytics start. Anyone who has the link can open them.</p>
-
-  <h2>Games from another site</h2>
-  <p>A site where you play can open {SITE_NAME} with your game, after the <code>#</code> in the address, as a shared
-    review's link does. Browsers never send that part to a server, and the page removes it at once. For a review,
-    {SITE_NAME} then keeps the game in your browser, as it keeps any game you import. On the Analysis board, it
-    replaces the board's lines, after you agree when the board has lines of its own.</p>
-  <p>When that site is one of {SITE_NAME}'s partners, the review's Export menu offers "Save to" it. Only when you choose
-    it, {SITE_NAME} opens that site's page and hands it the review file, from your browser to that site. The file holds
-    the game, its branches and the engine's results. That site keeps it under its own terms. Nothing goes to it before
-    you choose, and nothing else ever does. To open a review that it kept, that site's page sends the file back to
-    {SITE_NAME} in your browser. {SITE_NAME} then keeps it here, as it keeps any review file you load.</p>
-
-  <h2>The bookmarklet and userscript for meaf.us and strategyjam.org</h2>
-  <p>The bookmarklet runs in the game page that you have open on <a href="https://meaf.us/sst1/">meaf.us</a> or
-    <a href="https://strategyjam.org/">strategyjam.org</a>. It reads the game from that page, and the position that the
-    page shows. It uses nothing from your login and sends no request to the game's site. It opens {SITE_NAME} with the
-    game and the position after the <code>#</code> in the address. Browsers never send that part of an address to a
-    server, and the page removes it at once. If you choose the Analysis board, the game goes to the board's address
-    after the <code>#</code> too. meaf.us shows your own finished game without its moves. For such a game, the
-    bookmarklet opens the same meaf.us page again as a watcher's view (<code>spectate=1</code> in the address). Then
-    meaf.us loads the moves itself. At each click, the bookmarklet loads its code from this site, so that it stays up to
-    date. That request carries no game. By default, your browser names only the game's site as the page that made the
-    request.</p>
-  <p>The userscript, for the Tampermonkey extension, does the same on the game pages of the two sites, from a button
-    or Tampermonkey's menu. The script draws its button and its collie itself, with no request. Tampermonkey
-    asks this site for the script now and then, to update it: that request carries no game. With a game, both tools
-    tell this site which one sent it, their version and the game's site, after the same <code>#</code>. With that, this
-    site can say when one needs an update.</p>
+  <h2>Games in an address</h2>
+  <p>A link that shares a review or an analysis carries it after the <code>#</code> in the address. The bookmarklet,
+    the userscript and a partner site's link bring a game in the same way. Browsers never send that part of an address
+    to a server, and the page removes it before the analytics start. Anyone who has a share link can open what it
+    holds.</p>
+  <p>With each game, the bookmarklet and the userscript tell this site which tool sent it, its version and the game's
+    site. With that, this site can say when a tool needs an update.</p>
+  <p>A partner site can keep your review: choose "Save to" it in the review's Export menu. Only then does the review
+    file go to that site, from your browser. That site keeps it under its own terms.</p>
 
   <h2>Visits</h2>
   <ul>
@@ -141,36 +88,20 @@
       address. Google says that it does not keep the IP address. If you accept, it also sets cookies that distinguish
       your visits from other people's visits.</li>
   </ul>
-  <p>Neither sees your games. A game or a line after the <code>#</code> leaves the address before either starts. A
-    review's address names its game after the <code>#</code>, and neither records that part.</p>
-  <p>An ad blocker or your browser's tracking protection can stop Google Analytics. If it does, and you accept Google
-    Analytics' cookies, the site asks you to allow the site in your blocker. To know this, the site checks only whether
-    its own Google Analytics ran in the page. The request shows on each page until you close it. After that, this
-    browser does not show it again.</p>
-  <p>Google Analytics also receives what you do here, as counts, so that we can tell what to improve:</p>
+  <p>Google Analytics also receives counts of what you do here, so that we can tell what to improve:</p>
   <ul>
-    <li>that you imported a game, to a review or to the Analysis board, and how (pasted, from <a href="https://constellation.blueshrimp.uk">Constellation</a>, the
-      bookmarklet or the userscript, and on which site, or another site's link), its length as a range (for example 90 to 119 edges), or why
-      an import failed</li>
-    <li>that you loaded a review or an analysis, and how (a review or an analysis file, a share link, or a review that
-      another site kept), its game's length as a range, or why a load failed</li>
-    <li>that a review opened and ended: the engine settings it ran with, your computer's number of cores as a range,
-      how long the review took, and how fast the engine searched</li>
-    <li>that the Analysis board opened, with its main line's length as a range</li>
-    <li>that the board editor opened, and that you sent its position to the Analysis board</li>
-    <li>the GPU's first test: faster or slower than the CPU, and the GPU's maker and kind</li>
-    <li>that a practice game started and ended: how it started (new, from the Analysis board, from a set-up position
-      there, or resumed), the bot's settings, your side, where the bot ran (the GPU or the CPU),
-      your computer's number of cores as a range, how the game ended (won, lost, drawn, resigned or aborted), its
-      length and your takebacks as ranges, and the bot's average time a turn as a range</li>
-    <li>the engine settings you change, the features you use (each once in a review, in a visit to the Analysis board,
-      or in a practice game), and your exports (a review saved to a partner site among them), with a share link's length as a range</li>
-    <li>that you opened Support Us, but not whether you gave a tip</li>
-    <li>that you deleted a game in the Review tab, or that you cancelled the delete when the site asked</li>
-    <li>how many games this browser keeps, as a range</li>
+    <li>the games you import, load and delete</li>
+    <li>your reviews, and your visits to the Analysis board and the board editor</li>
+    <li>your practice games</li>
+    <li>the settings you change, the features you use, and your exports</li>
+    <li>that you opened Support Us</li>
   </ul>
-  <p>None of these holds a game, a move, a player's name or a game's code. Until you accept the cookies, Google receives
-    them with nothing that links one to another.</p>
+  <p>The counts hold ranges, such as a game's length, and how your computer runs the engine: its number of cores, its
+    GPU and the engine's speed. They never hold a game, a move or a player's name. Until you accept the cookies,
+    nothing links one count to another.</p>
+  <p>If you accept the cookies and a blocker stops Google Analytics, the site asks you to allow it in your blocker. To
+    know this, the site checks only whether its own Google Analytics ran in the page.</p>
+
   {#if ASKS_CONSENT}
     <h2 id="consent">Your choices</h2>
     <p>Each choice is separate. The banner's Accept and Decline set them all. When you change one switch here, the site
@@ -196,11 +127,9 @@
   {/if}
 
   <h2>Tips through Ko-fi</h2>
-  <p>"Support Us" opens Ko-fi's tip panel in this page. The panel is Ko-fi's own page, from ko-fi.com. Only when you
-    open it, your browser asks Ko-fi for it. Ko-fi then receives your IP address and your browser's name, as any site
-    does, and can set its own cookies. Until then, nothing goes to Ko-fi. What you enter in the panel goes to Ko-fi and
-    its payment providers, under <a href="https://more.ko-fi.com/privacy">Ko-fi's privacy policy</a>, which says what
-    Ko-fi shares with {SITE_NAME}.</p>
+  <p>Nothing goes to Ko-fi until you open Support Us. Its tip panel is Ko-fi's own page, so Ko-fi then receives your
+    IP address and your browser's name, and can set its own cookies. What you enter in the panel goes to Ko-fi, under
+    <a href="https://more.ko-fi.com/privacy">Ko-fi's privacy policy</a>.</p>
 
   <h2>Questions</h2>
   <p>Ask in <a href={DISCORD}>the players' Discord</a>.</p>

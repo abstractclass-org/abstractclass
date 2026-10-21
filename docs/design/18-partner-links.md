@@ -154,7 +154,7 @@ must make costs both of them a release.
   (the link back), `src/routes/review/+page.svelte`.
 - The public description: `src/routes/developers/+page.svelte`, linked from `src/lib/SiteFooter.svelte`. The head for
   the buttons: `static/brand/hedge-school.svg`, which `src/lib/collie.test.ts` keeps the same as the site's head. The
-  privacy page: "Games from another site".
+  privacy page: "Games in an address".
 - Tests: `src/lib/game/importHash.test.ts`, `src/lib/game/partners.test.ts`.
 
 ## Log entries

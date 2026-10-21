@@ -76,9 +76,10 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
 7. **Analytics: Cloudflare's and Google's.** Cloudflare's sets no cookies. Google Analytics runs in Google's consent
    mode, advanced form: the Google tag loads on every page with its cookies denied, and sends cookieless pings until
    the visitor accepts. A banner asks once, with Accept and Decline alike. The privacy page shows the choice, can
-   change it, and names what the pings hold. The banner now asks for the practice games' link too, with a choice for
-   each purpose on the privacy page (design 25, which replaces this item's banner). Neither service sees a game: the bookmarklet hands a game to the import
-   page in the address's fragment (after `#`), and that page removes it before it starts them. Every other page
+   change it, and names the kinds of events that the pings hold. The banner now asks for the practice games' link
+   too, with a choice for each purpose on the privacy page (design 25, which replaces this item's banner). Neither
+   service sees a game: the bookmarklet hands a game to the import page in the address's fragment (after `#`), and
+   that page removes it before it starts them. Every other page
    starts them from the layout, and the review page names its game after the `#` too (`/review#game=ID`). Google
    Analytics also takes events, in counts and ranges, for the decisions that wait on data (design 17). The build
    names the services (`VITE_GA_ID`, `VITE_CF_ANALYTICS_TOKEN`). Without them, as in development, nothing loads.
@@ -188,7 +189,8 @@ read the game from the player's own page.
     Neither meaf.us nor strategyjam.org sends one. A check of strategyjam.org on 2026-10-17 found none. If one comes,
     the bookmark needs the code in itself again, as before the loader.
   - **The request** carries no game. By default the browser names only the game site's origin as the page that made
-    it. The privacy page says so.
+    it. The privacy page does not describe it: it names what Cloudflare receives with each request, and this
+    request holds nothing more.
 - **Each tool says what it is,** with each game (`importHash.ts`): `#tool=…&v=…&site=…&at=…&record=…` after the import
   page's address. The bookmarklet sends its loader's version (`BOOKMARK_VERSION`), and the userscript a hash of the
   files that make its code (the build's `__USERSCRIPT_CODE__`, `vite.config.ts`), so that a build that changes neither

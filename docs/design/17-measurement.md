@@ -29,8 +29,11 @@ visitors' machines, and the GPU on other machines.
    page.
 4. **A feature counts once in each review** (`trackOnce`): its first use, not each use, so that a player who draws 40
    notes counts as one player who drew notes. In Practice, once in each game.
-5. **The privacy page lists every event** in plain words. A visitor who has not accepted the cookies sends the events
-   as cookieless pings, which Google counts with nothing that links one to another.
+5. **The privacy page names the kinds of events,** not each event: the imports, loads and deletes, the reviews, the
+   Analysis board and the board editor, the practice games, the settings, the features and the exports, as counts and
+   ranges, never a game, a move or a player's name. A visitor needs to know what goes to Google, not how each event
+   works. A visitor who has not accepted the cookies sends the events as cookieless pings, which Google counts with
+   nothing that links one to another.
 6. **The owner's own visits are internal traffic** (`src/lib/internalTraffic.ts`). Any page opened with `?internal=on`
    keeps a flag in the browser, and `?internal=off` removes it. The page then takes the parameter out of its address.
    While the flag is set, every event of that browser carries `traffic_type` = `internal`, from the first page view on.
@@ -500,7 +503,8 @@ shows few rows. Read it as section "Reading it" says.
 
 - A review's address is `/review#game=ID`. Older addresses keep working.
 - The owner registers the parameters in Google Analytics once (above). Until then the events show in Realtime only.
-- A new event or parameter goes into this document, the privacy page and Google's custom definitions together.
+- A new event or parameter goes into this document and Google's custom definitions together. It goes into the
+  privacy page only when it is a new kind of event, or when it holds something that the page does not name.
 - The owner sets the flag of internal traffic once in each browser, and sets the Internal Traffic filter to Active
   once ([hosting.md](../hosting.md), section 4). A browser without the flag counts as before.
 
@@ -533,3 +537,5 @@ shows few rows. Read it as section "Reading it" says.
 - [decisions/product.md](../decisions/product.md): "The owner's visits marked as internal traffic" (2026-10-17).
 - [decisions/product.md](../decisions/product.md): "The review's custom depth up to 16,384 visits" (2026-10-18): the
   review's minutes past 60 in three ranges.
+- [decisions/product.md](../decisions/product.md): "The Privacy page says what goes where, in less detail"
+  (2026-10-22): the page names the kinds of events, not each event.

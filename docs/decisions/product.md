@@ -6617,3 +6617,30 @@ showed within 2 seconds, the line in triangles, and a candidate pointed at drew 
 threat at its start. A snapshot of the fixture as an earlier engine's review, with a threat stored after edge 21, drew
 its line in triangles and gave its size, and after edge 20 said "No threat saved: snapshots do no searches". No page
 error and no horizontal scroll. The layout sweep in Chromium passes (25 tests, 5 skipped).
+
+### The Privacy page says what goes where, in less detail (2026-10-22)
+
+- **Decided:** the Privacy page says what each party receives, why, and the visitor's choices, in short sections. It
+  names the kinds of analytics events, not each event. A visitor needs to know what goes where and what they can
+  choose, not how each part works. This replaces design 17, item 5, which listed every event, and its consequence
+  that each new event goes into the page. Now only a new kind of event, or a value that the page does not name, goes
+  into it.
+- **What stays:** each promise, and each disclosure that a choice needs. No accounts, and games and reviews stay on
+  the visitor's computer. What the browser keeps, as one summary, and how to delete it. The games against HedgeFund:
+  what the site keeps and never keeps, why, the open dataset under CC0, no time limit, the random ID with consent,
+  and its delete. A game after the `#` never goes to a server, and the tools say which tool sent it. "Save to" a
+  partner sends the review file only when the visitor chooses it. What Cloudflare and Google Analytics receive, with
+  consent mode and the cookies. The request to allow Google Analytics in a blocker, and what the site checks for it.
+  The switches and the delete, as they were. Ko-fi, and the Discord.
+- **What went:** the eleven items that the browser keeps, one by one. Each field of a stored game, beyond the moves,
+  the takebacks, the bot's settings, the result and the times. When a game counts as ended. That a game that the
+  site could not send waits in the browser, with the ID only if the visitor still accepts. How a partner's link
+  replaces the Analysis board's lines, and how a partner sends a kept review back. How the bookmarklet reads the
+  page, opens meaf.us's watcher's view, and loads its code from the site, and how Tampermonkey updates the
+  userscript. Each analytics event with its ranges, and that Ko-fi's policy says what Ko-fi shares with the site.
+  That a review's own address names its game after the `#`, which neither analytics service records.
+- **The size:** 1,828 words before, 768 after (the text in the page's main part, both editions' introductions
+  together).
+- **Designs:** 17 (item 5 and its consequence), 11 (the pings, and the bookmarklet's request, which the page no
+  longer describes) and 18 (the section's new name, "Games in an address"). Designs 22, 25 and 27 hold: the page
+  still says what goes to Ko-fi and when, what the site stores and why, and that the site asks about a blocker.
