@@ -6,7 +6,7 @@
   // alone, and the row reads as a line of time, so the chart shows whether the mistakes fell where the game was hard.
   // The pointer snaps to the bar under it and names its position: the decision, before its move. A click shows that
   // position.
-  import type { Label } from "./enclosure.ts";
+  import type { ChartMark } from "./enclosure.ts";
   import { HARD } from "@abstractclass/analysis/labels.ts";
   import ChartTip, { pointerAt } from "./ChartTip.svelte";
 
@@ -15,7 +15,7 @@
     positions: number; // the game's positions, the end included
     bars: Bar[]; // in the game's order
     current: number;
-    dots: { index: number; label: Label }[]; // a labelled turn's or edge's last edge (model.ts, chartMarks)
+    dots: ChartMark[]; // the labels that the move list shows (model.ts, chartMarks)
     onjump: (position: number) => void;
   }
   let { positions, bars, current, dots, onjump }: Props = $props();
@@ -47,11 +47,11 @@
   <line x1={x(current)} y1="0" x2={x(current)} y2={H} class="stroke-last" stroke-width="2" vector-effect="non-scaling-stroke" />
 </svg>
 <!-- The labels in their row under the bars, each under its turn: drawn in HTML, since the SVG stretches. -->
-{#each dots as m (m.index)}
-  {@const b = barAt(m.index)}
+{#each dots as d (d.index)}
+  {@const b = barAt(d.index)}
   {#if b}
     <span class="absolute size-[7px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-panel pointer-events-none"
-          style:left="{(100 * (b.from + b.to)) / 2 / n}%" style:top="{(100 * (BASE + ROW / 2)) / H}%" style:background="var(--{m.label})"></span>
+          style:left="{(100 * (b.from + b.to)) / 2 / n}%" style:top="{(100 * (BASE + ROW / 2)) / H}%" style:background="var(--{d.label})"></span>
   {/if}
 {/each}
 {#if hovered}

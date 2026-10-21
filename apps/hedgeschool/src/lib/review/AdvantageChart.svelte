@@ -9,7 +9,7 @@
   // While the review runs, the line is faint where a position has only its first, quick search, and full where its
   // search has the review's depth: the sweep draws the whole line first, and the label pass then refines it (design
   // 06). Faint, not dashed: the 50% line is dashed.
-  import type { Label } from "./enclosure.ts";
+  import type { ChartMark } from "./enclosure.ts";
   import ChartTip, { pointerAt } from "./ChartTip.svelte";
 
   interface Props {
@@ -17,7 +17,7 @@
     scoreDiff: number[]; // Blue minus Red, by position
     areaDiff: number[]; // the area each player encloses, Blue's minus Red's, by position
     current: number;
-    dots: { index: number; label: Label }[]; // a labelled turn's or edge's last edge (model.ts, chartMarks)
+    dots: ChartMark[]; // the labels that the move list shows (model.ts, chartMarks)
     showScore: boolean;
     showArea: boolean;
     tip: (position: number) => { title: string; value: string; details?: string[] }; // the hover note: a line for each value
@@ -101,9 +101,9 @@
 </svg>
 <!-- The labels, as dots in their label's colour, 7 pixels wide: drawn in HTML, since the SVG stretches,
      and in a column as narrow as the summary's a circle in it would be a thin ellipse. -->
-{#each dots.filter(m => !Number.isNaN(blueWin[m.index + 1])) as m (m.index)}
+{#each dots.filter(d => !Number.isNaN(blueWin[d.index + 1])) as d (d.index)}
   <span class="absolute size-[7px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-panel pointer-events-none"
-        style:left="{(100 * (m.index + 1)) / n}%" style:top="{100 * (1 - blueWin[m.index + 1])}%" style:background="var(--{m.label})"></span>
+        style:left="{(100 * (d.index + 1)) / n}%" style:top="{100 * (1 - blueWin[d.index + 1])}%" style:background="var(--{d.label})"></span>
 {/each}
 {#if hovered !== null && !Number.isNaN(blueWin[hovered])}
   <!-- A dot drawn in HTML, since the SVG stretches and would draw an ellipse. -->

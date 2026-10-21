@@ -131,11 +131,11 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
 7. **The progress bars go by subject:** the position's search bar is in the position's engine header, at the top of
    the analysis (with the expected final margin, the lead and the visits). The review's progress bar is at the top of
    the summary (three columns), or at the top of the right column (fewer), over the tabs. It covers all of the
-   review's own work, each part as wide as its share of the visits: the sweep, the label pass, and the Great's
+   review's own work, each part as wide as its share of the visits: the sweep, the label pass, and the Greats'
    confirmations ("confirming Great moves, 18 of 22"). After them, while the area map is on and the review's results
    lack their maps, the map pass is one more part ("Maps: 34 of 120", design 30): the review is done without it. The
-   Great's step is counted from the labels found so far, so it grows as labels come. Every step counts a position only
-   when the store has its result, not when another search's results so far reach the budget (design 05).
+   page counts the Greats' step from the labels found so far, so it grows as labels come. Every step counts a position
+   only when the store has its result, not when another search's results so far reach the budget (design 05).
    The bar shows the step that its line names: the steps before are full, the later ones empty, though some of their
    work ends early, alongside (it shows when their step comes). The step's part never shows less than it showed before:
    when its count grows, it waits. Another review depth, network or game starts it again. A review opened again reads

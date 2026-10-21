@@ -15,9 +15,9 @@
 // src/lib/review/enclosure.ts.
 
 import type { Game, GameTypes, Moves, Player, PositionInfo } from "./game.ts";
-import { GOOD_WIN, HARD, KEPT_GAIN, LABELS, METER_GROUPS, ONLY_EDGE_GAP, accuracyWeight, classify, meterGroup,
+import { GOOD_WIN, HARD, KEPT_GAIN, LABELS, METER_GROUPS, ONLY_EDGE_GAP, accuracyWeight, classify, listed, meterGroup,
          type Label, type MeterGroup } from "./labels.ts";
-export { BAD_LABELS, HARD, LABELS, METER_GROUPS, type Label, type MeterGroup } from "./labels.ts";
+export { BAD_LABELS, HARD, LABELS, METER_GROUPS, listed, type Label, type MeterGroup } from "./labels.ts";
 export type { Player } from "./game.ts";
 
 /** Values from Blue's side. `lead` (the engine's scoreLead) and `margin` (scoreSelfplay) are in points, and `spread`
@@ -358,18 +358,16 @@ export function review<G extends GameTypes>(game: Game<G>, data: ReviewData<G>, 
   return { data, edges, turns, turnOf, blueWin, blueScore, summary: { turn: summarize(turns), edge: summarize(edges) } };
 }
 
-/** The labels that the move list and the charts show, to stay quiet. The board shows every label. */
-export const LISTED: Label[] = ["great", "inaccuracy", "mistake", "blunder"];
+/** A chart's mark (chartMarks): a labelled turn's or edge's last edge, and its label. */
+export interface ChartMark { index: number; label: Label }
 
 /** The charts' marks (design 06): each turn or edge, in the unit that the page judges by, whose label the move list
- *  shows (LISTED), for the sides that `shown` takes, in game order. Its `index` is its last edge: the Advantage chart
- *  marks the position after it, and the Difficulty chart its bar. */
-export function chartMarks<G extends GameTypes>(R: Review<G>, unit: Unit,
-                                                shown: (p: Player) => boolean): { index: number; label: Label }[] {
+ *  shows (labels.ts, listed), for the sides that `shown` takes, in game order. Its `index` is its last edge: the
+ *  Advantage chart marks the position after it, and the Difficulty chart its bar. */
+export function chartMarks<G extends GameTypes>(R: Review<G>, unit: Unit, shown: (p: Player) => boolean): ChartMark[] {
   const items = unit === "turn" ? R.turns.map(t => ({ player: t.player, label: t.label, index: t.end - 1 }))
     : R.edges.map(e => ({ player: e.player, label: e.label, index: e.index }));
-  return items.flatMap(({ player, label, index }) =>
-    (label && LISTED.includes(label) && shown(player) ? [{ index, label }] : []));
+  return items.flatMap(({ player, label, index }) => (listed(label) && shown(player) ? [{ index, label }] : []));
 }
 
 /** A turn's judgment: its loss from its two ends, before the clamp at 0 too, and its label. */

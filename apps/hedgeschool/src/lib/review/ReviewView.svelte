@@ -8,7 +8,7 @@
   import StepBar from "#lib/ui/StepBar.svelte";
   import { pageScrollTop } from "#lib/pageScroll.ts";
   import { MOVE_HERE, MOVE_HOVER, MOVE_LIST, MOVE_TEXT, TURN_NUMBER, TURN_REM, keepInView, moveButton, turnRow } from "./moveList.ts";
-  import { LISTED, PLAYER_NAME, chartMarks, type Analysis, type BranchNode, type Edge, type LineStep, type Player } from "./enclosure.ts";
+  import { PLAYER_NAME, chartMarks, listed, type Analysis, type BranchNode, type Edge, type LineStep, type Player } from "./enclosure.ts";
   import type { EdgeRules } from "#lib/board/edgeInput.svelte.ts";
   import type { MapState } from "@abstractclass/analysis/analysis.svelte.ts";
 
@@ -141,7 +141,7 @@
     progress?: ReviewProgress | null; // the review in progress, or null when it is complete
     game?: ReviewGame; // the analysis behind the view
     deepVisits?: number; // the budget of the position on screen: its search bar is full at this many visits
-    deeperPositions?: number; // the game's positions searched deeper than the review asked, where the player looked
+    deeperPositions?: number; // positions with a result deeper than the review's: by the Depth, or an older review
     again?: ReviewAgain | null; // why a game reviewed before is reviewed again, when the site's engine changed
     snapshot?: ReviewSnapshot | null; // a review by an earlier engine, shown as it was (design 20)
     board?: BoardForm | null; // the Analysis board (design 21)
@@ -310,8 +310,6 @@
     const t = R.turnOf[index];
     return `${t.number}${opensTurn(t, index) ? "." : "..."} ${moveNotation(R.edges[index])}`;
   };
-  // The move list and the charts show only these labels (model.ts, LISTED).
-  const listed = (l: Label | null): l is Label => !!l && LISTED.includes(l);
   // The move list explains these labels under their turn.
   const COMMENTED: Label[] = ["great", "mistake", "blunder"];
 
@@ -1275,11 +1273,10 @@
   {/if}
   <!-- The positions searched deeper than the review by the position on screen's Depth (design 16), here or in the
        browser that a review file came from, and those that an older review searched at twice its depth: their results
-       replace the review's, so this report follows them. -->
+       replace the review's, so this report follows them. The note names no cause: it has two. -->
   {#if deeperPositions}
     <p class="mb-3 text-xs text-muted">{deeperPositions} {deeperPositions === 1 ? "position was" : "positions were"} searched
-      deeper than the review, by the Depth of the position on screen: the labels there, and this report, use the deeper
-      searches.</p>
+      deeper than the review: the labels there, and this report, use the deeper searches.</p>
   {/if}
   <!-- The number columns are as wide as their content, and the labels take the rest. -->
   <table class="w-full text-sm">

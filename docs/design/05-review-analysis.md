@@ -75,7 +75,7 @@ noise.
      page shows them and the labels follow them (design 16). The position on screen can pass the label budget, and then
      stop before its end: the player moves on, its time limit passes, or the engine goes off. The store never gets such
      a result. So the review's own search of that position runs, at the same time as the search of the position on
-     screen while that one runs. So "Review done" and the game's mark (design 20) come only when the store holds every
+     screen while that one runs. "Review done" and the game's mark (design 20) come only when the store holds every
      result that the steps count, and the next visit opens done.
    - **A search in slices yields by a message:** between two slices, the worker sends itself a message, so that a stop
      can arrive first. A timer would wait longer: from the sixth yield on, 4 ms at least, and 15.6 ms in a hidden tab

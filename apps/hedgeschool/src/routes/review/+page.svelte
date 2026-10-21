@@ -118,7 +118,7 @@
   // The report says how many. The depths step by doublings, so a deeper search has at least twice the visits.
   const deeperPositions = $derived(game ? game.analysis.filter(a => !!a && a.visits >= 1.5 * depth).length : 0);
   // The review's work as one bar, each part as wide as its share of the visits, so that the bar moves at an even pace:
-  // the sweep, the label pass, and the Great's confirmations. The last is counted from what the analysis asks for so
+  // the sweep, the label pass, and the Greats' confirmations. The last is counted from what the analysis asks for so
   // far: it grows as labels come, and it is done when its positions have the searches' results in the store, whoever
   // ran them (after a change of the review's depth too). The bar shows the step that its line names:
   // the steps before are full, the later ones empty, though some of their work can end early, alongside (it shows when
@@ -149,7 +149,7 @@
       ...(maps ? [{ share: mapVisits / total, done: maps.done / maps.total }] : []),
     ];
     if (complete && maps) return { text: `Maps: ${maps.done} of ${maps.total}`, parts, step: parts.length - 1, maps: true };
-    const step = !game || game.swept < passCount ? 0 : !labelled ? 1 : parts.length - (maps ? 2 : 1);
+    const step = !game || game.swept < passCount ? 0 : !labelled || !greats.total ? 1 : 2;
     if (!game?.engineReady) return { text: NETWORK_LOADS, parts, step };
     if (game.paused) return { text: "Engine off. The review is paused.", parts, waiting: true, step };
     if (step === 0) return { text: `Reviewing: the game's shape, ${game.swept} of ${passCount} positions`, parts, step };

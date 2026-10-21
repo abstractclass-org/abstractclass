@@ -1,5 +1,6 @@
-// What the key moments from the first turn on (design 10, item 7) rest on, measured on the engine repository's archive
-// analysis (runs/archive_analysis/, read only; its README.md gives the fields; protocol 0.3, network s46923648). It
+// What the key moments from the first turn on (design 10, item 7, until abscls-wy0p) rested on, measured on the engine
+// repository's archive analysis (runs/archive_analysis/, read only; its README.md gives the fields; protocol 0.3,
+// network s46923648). It
 // prints, in this order, the numbers of decisions/product.md, "The key moments from the first turn on" (and in part 4
 // those of "Great: En Croissant's whole rule"):
 //   1. The share of turns flagged (Inaccuracy or worse) by turn number, for the network against itself
@@ -9,7 +10,7 @@
 //      how many of the people's key moments are in the first 8 turns when nothing is cut.
 //   3. What the key moments' deeper search (the review's step after the label pass) changes, on part2-100, with the
 //      key moments after the first 8 turns (as the review took them before the change) and from the first turn on.
-//      The page's step is emulated as routes/review/+page.svelte momentPositions does it: the key moments by edge and
+//      The page's step is emulated as routes/review/+page.svelte momentPositions did it: the key moments by edge and
 //      by turn, deepened together, again until they stay. "Right": the moment is one of the 4,096 reading's key
 //      moments, or has its label there. The visits are the search's own (the sweep 32 a position, the label pass at the base depth, the step at
 //      the deeper depth for each position it deepens), and a deepened search counts in full.

@@ -77,10 +77,10 @@ than D, the confirmation searches as deep: the largest doubling of D within that
 
 - **The Depth's help line:** "How far to search it. Deeper than the review, it also updates the review there: the
   labels and the report."
-- **The report**, when it applies: "N positions were searched deeper than the review, by the Depth of the position on
-  screen: the labels there, and this report, use the deeper searches." It counts the game's positions whose result has
-  at least 1.5 times D: the depths step by doublings, so such a result came from a deeper search. The 2 × D results of
-  an older review count too.
+- **The report**, when it applies: "N positions were searched deeper than the review: the labels there, and this
+  report, use the deeper searches." It counts the game's positions whose result has at least 1.5 times D: the depths
+  step by doublings, so such a result came from a deeper search. The 2 × D results of an older review count too, so
+  the note does not name the Depth of the position on screen as the cause.
 - **The game's engine settings**, for a game that keeps its own: "This game keeps the network and depth per move it
   came with, from a review file or a shared link, so that its review is the one it came with. A change of them here
   changes this game's only."

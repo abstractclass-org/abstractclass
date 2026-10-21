@@ -61,8 +61,8 @@ applies at once, without a reload.
      Custom, which shows its visits from 256 to 16,384, the Depth's range. Lite by default. An edge gets its label
      from 256 visits on at every depth. A label search shows its result at 256 visits, and again after each further
      256, so a label shows as early at every depth and changes as the deeper search goes on. Every label of the game
-     has this depth: a player who wants surer labels sets a deeper review. A branch move evaluated on request is
-     searched to the review's depth.
+     has this depth: a player who wants surer labels sets a deeper review. "Evaluate quality" searches a branch move
+     to the review's depth too.
    - **A game that keeps its own settings** (an imported review file's or a shared link's game, design 13) reviews with
      its own network and depth per move. The panel says so, shows the game's two, and changes the game's when they
      change. The settings kept in the browser serve every other game. A game's network can be an earlier one, which the

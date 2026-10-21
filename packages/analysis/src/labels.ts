@@ -16,6 +16,9 @@
 export type Label = "great" | "best" | "excellent" | "good" | "inaccuracy" | "mistake" | "blunder";
 export const LABELS: Label[] = ["great", "best", "excellent", "good", "inaccuracy", "mistake", "blunder"];
 export const BAD_LABELS: Label[] = ["inaccuracy", "mistake", "blunder"];
+/** Whether the move list and the charts show a label: Great and the bad labels, to stay quiet. The board shows every
+ *  label. */
+export const listed = (l: Label | null): l is Label => l === "great" || (!!l && BAD_LABELS.includes(l));
 
 /** The Good band's upper limit: a loss within it is Good or better. */
 export const GOOD_WIN = 0.05;

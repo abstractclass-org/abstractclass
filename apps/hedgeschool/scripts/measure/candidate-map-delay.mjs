@@ -63,7 +63,7 @@ async function run(kind) {
   for (const n of POSITIONS) {
     if (kind === "idle") {
       await stepTo(page, n);
-      // No search running: the position on screen's, the key moments' and the Greats' have ended
+      // No search running: the position on screen's and the Greats' have ended
       await searchesEnded(page);
       await page.waitForTimeout(1000);
       await searchesEnded(page);

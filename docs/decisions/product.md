@@ -6430,7 +6430,9 @@ passes (25 tests, 5 skipped).
     review depth, to 32,768 (`BUDGETS` in `packages/analysis/src/cache.ts`). A position that an older review searched
     at twice its depth keeps that result, and the page takes it as any deeper result (`cacheGetAtLeast`). The report's
     count of positions searched deeper than the review now counts those positions too: its threshold is 1.5 times the
-    review's depth for every position.
+    review's depth for every position. So its note no longer says that the Depth of the position on screen searched
+    them: "N positions were searched deeper than the review: the labels there, and this report, use the deeper
+    searches."
   - The page "How reviews work" loses its section "Key moments" and the passes' item for their deeper search.
     `largest` moved from `model.ts` into `apps/hedgeschool/scripts/measure/key-moments-opening.mjs`, the one user left.
     The script's output is the same before and after the move (the engine repository's `runs/archive_analysis/`).
@@ -6453,7 +6455,7 @@ passes (25 tests, 5 skipped).
 - **The dots when many come close** (headless Chromium, the build of this change, the review's display at 1 device
   pixel and at 4). The narrowest chart that the layout gives is 313 pixels wide, at a window of 360 pixels (one
   column). At 1,260 pixels (three columns) it is 539, and at 1,024 it is 573. A "pair" below is two dots whose centres
-  are less than a dot's 7 pixels apart; "covered" is less than 3.5 pixels.
+  are less than a dot's 7 pixels apart. A "covered" pair is less than 3.5 pixels apart.
 
   | Game | Unit | Dots | Advantage at 313: pairs, covered | Difficulty at 313: pairs, covered |
   | --- | --- | --- | --- | --- |
@@ -6467,8 +6469,8 @@ passes (25 tests, 5 skipped).
   stay apart. In the Difficulty chart's row, the dots of turns next to each other touch (two turns of two edges are
   5.2 pixels apart at 313 pixels), and each still reads. By edge, two labelled edges next to each other are 2.6 pixels
   apart: the second dot covers most of the first. In the fixture, a Blunder and two Greats on edges next to each other
-  make one cluster of three. Only the tooltip or a wider window tells them apart there. No new mark was
-  made.
+  make one cluster of three. Only the tooltip or a wider window tells them apart there. This change adds no new kind
+  of mark.
 - **Tests:** "the charts mark every labelled turn or edge that the move list shows, for the side shown: ten, not eight"
   and "the charts mark a Great, at its turn's last edge by turn" (`enclosure.test.ts`) replace "a Blunder in the third
   turn is a key moment". The analysis's tests of the key moments' step go: "the key moments' step waits for a search

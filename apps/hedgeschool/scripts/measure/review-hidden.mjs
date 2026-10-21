@@ -17,7 +17,7 @@
 //   - the sweep's time on the page (sweep:start to sweep:end), and the engine's: from the sweep's first search sent to
 //     its last search's final reply. The display's lag: from that reply to sweep:end;
 //   - the search workers' speed: the sweep searches' visits over the workers' own time for them (the reply's `ms`),
-//     and the same for the searches in slices of 32 visits (the position on screen, the key moments) and of 256 (the
+//     and the same for the searches in slices of 32 visits (the position on screen) and of 256 (the
 //     label pass, the Greats' confirmations): between two slices, the worker yields (packages/engine/src/channel.ts,
 //     searchInSlices);
 //   - the gaps between one engine's searches (speed.mjs, sweepGaps), and the pool's times with no search running, from
@@ -26,9 +26,6 @@
 //     time that the tab was hidden;
 //   - the main thread's thread time during the sweep, from Chrome's trace (with the end `sweep` only);
 //   - each search's times, and the searches with no final reply (with the end `review`);
-//   - the key moments' wait (with the end `review`): from the label pass's last final reply (the label pass is the first
-//     search at the label budget of each position that the sweep searched) to the progress line's step "the key
-//     moments", and to the first search of the key moments, with the searches that ran then;
 //   - with FOCUS, the searches of the position on screen: the search's time in the worker, its visits, how long it ran
 //     past its time limit (in the worker, and on the page: from the search sent to its final reply), the time of the
 //     slice in which the limit passed, and the slices that ran after that one (the worker's time at each slice's end);
@@ -202,22 +199,6 @@ function measure(d, traced) {
   const speedOf = xs => (xs.length ? (1000 * xs.reduce((n, x) => n + x.searched, 0)) / xs.reduce((n, x) => n + x.ms, 0) : null);
   const replied = searches.filter(x => x.ended !== undefined && x.ms > 0);
   const bySlice = n => { const xs = replied.filter(x => x.slice === n); return { count: xs.length, speed: speedOf(xs) }; };
-  // The label pass: the first search in slices of LABEL_VISITS (its early result) of each position that the sweep
-  // searched. A position searched past the label budget before (the position on screen) has none. The Greats'
-  // confirmations, in slices of LABEL_VISITS too, search other positions.
-  const swept = new Set(sweep.map(x => x.moves)), firsts = new Map();
-  for (const x of searches.filter(x => x.slice === LABEL_VISITS && swept.has(x.moves)).sort((a, b) => a.sent - b.sent))
-    if (!firsts.has(x.moves)) firsts.set(x.moves, x);
-  const labels = [...firsts.values()];
-  let moments = null;
-  if (labels.length && labels.every(x => x.ended !== undefined)) {
-    const lastLabel = Math.max(...labels.map(x => x.ended)), sinceLabel = t => (t === undefined ? null : t - lastLabel);
-    const step = probe.steps.find(([t, s]) => s === "Reviewing: the key moments" && t >= lastLabel)?.[0];
-    const firstMoment = searches.filter(x => x.slice === SLICE_VISITS && x.sent > lastLabel).sort((a, b) => a.sent - b.sent)[0];
-    // The searches that ran when the label pass's last reply came: [visits, slice].
-    const running = searches.filter(x => x.sent < lastLabel && (x.ended ?? Infinity) > lastLabel).map(x => [x.visits, x.slice ?? null]);
-    moments = { step: sinceLabel(step), first: sinceLabel(firstMoment?.sent), running };
-  }
   // The searches of the position on screen with FOCUS: their visits, their times past the time limit, the slice in
   // which the limit passed (its time in the worker), and the slices that ran after that one.
   const focus = FOCUS && searches.filter(x => x.visits === FOCUS.visits && x.slice === SLICE_VISITS && x.ended !== undefined).map(x => {
@@ -237,15 +218,13 @@ function measure(d, traced) {
     hidden,
     ended: d.workers.filter(w => w.ended !== undefined).map(w => w.ended), made: d.workers.filter(w => w.made > start).length,
     main: tasks && { thread: tasks.reduce((s, t) => s + t.thread, 0), long: longTasks(tasks.map(t => t.thread)) },
-    steps: probe.steps.map(([t, s]) => [Math.round(t - start), s]), done: d.done, moments, focus,
+    steps: probe.steps.map(([t, s]) => [Math.round(t - start), s]), done: d.done, focus,
   };
 }
 
 const site = await preview(build, port);
 const s = x => (x === null || x === undefined ? "-" : `${(x / 1000).toFixed(1)} s`), ms = x => (x === null || x === undefined ? "-" : `${Math.round(x)} ms`);
-/** A run's key moments' wait (measure, `moments`), and one search of the position on screen (`focus`). */
-const momentsText = m => `the key moments' step ${ms(m.step)} and their first search ${ms(m.first)} after the label pass's last reply, ` +
-                         `searches running then ${JSON.stringify(m.running)}`;
+/** One search of the position on screen (measure, `focus`). */
 const focusText = f => `${f.searched} visits in ${ms(f.ms)}, ${ms(f.past)} past its limit (${ms(f.pastOnPage)} on the page), the limit ` +
                        `passed in a slice of ${ms(f.crossing)}, ${f.after} slices after it`;
 const out = [];
@@ -271,7 +250,7 @@ for (const channel of browsers) {
                   `${end === "review" ? `; steps ${JSON.stringify(r.steps)}, done ${r.done}; the pool idle over 50 ms ` +
                                         `(from the sweep's start, ms) ${JSON.stringify(r.idles)}; searches with no final reply ` +
                                         `${JSON.stringify(r.searches.filter(x => x[1] === null))}` : ""}` +
-                  `${r.moments ? `; ${momentsText(r.moments)}` : ""}${r.focus ? `; the position on screen: ${r.focus.map(focusText).join("; ")}` : ""}`);
+                  `${r.focus ? `; the position on screen: ${r.focus.map(focusText).join("; ")}` : ""}`);
       if (r.waited) console.log(`  before the late start: ${r.waited.visibility}, the chained timer's last runs ${JSON.stringify(r.waited.ticks.map(Math.round))}`);
       if (process.env.OUT) writeFileSync(process.env.OUT, JSON.stringify(out));
     }
