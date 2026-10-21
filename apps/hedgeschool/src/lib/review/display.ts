@@ -5,6 +5,7 @@
 import { DEFAULT_LAYERS, type BoardLayers } from "#lib/board/Board.svelte";
 import { MOVE_SOUNDS, type MoveSound } from "#lib/sound.ts";
 import { readLocalJson, writeLocal } from "@abstractclass/storage/local.ts";
+import type { MapStyle } from "./ownership.ts";
 
 export interface Display {
   judge: "turn" | "edge"; // what the labels judge: each turn as a whole (the default), or each edge (design 10)
@@ -14,12 +15,16 @@ export interface Display {
   win: "bar" | "gauge"; // a bar above the board (Blue left, Red right), or a vertical gauge beside it
   // The board's layers, but the area map, which each page keeps on its own
   layers: Omit<BoardLayers, "areaMap">;
-  // The area map (design 30), on each page: off on the review, which explains the mistakes, and on on the Analysis
-  // board, whose player reads the whole board. The key t shows or hides it on the page.
+  // The area map (design 30), on each page: off on the review, whose player reads the labels first, and on on the
+  // Analysis board, whose player reads the whole board. The key t shows or hides it on the page.
   areaMap: { review: boolean; board: boolean };
-  // After a Mistake or a Blunder, the opponent's next turn in the engine's line on the board, and its caption in the
-  // move list (design 30)
-  explain: boolean;
+  // The map's style: the engine's ownership of each point (the default, as KaTrain's territory), or the change from
+  // the board now to it
+  mapStyle: MapStyle;
+  // For each style, the smallest value that gets a mark, in hundredths: 0 marks every point with a value. The
+  // ownership's 0 is KaTrain's map. The change's 50 marks a median of 3.7% of the board on real games
+  // (decisions/product.md, "The area map and the explanations on real games").
+  mapMin: Record<MapStyle, number>;
   scoreLine: boolean; // the Advantage chart's score line (Blue − Red)
   areaLine: boolean; // the Advantage chart's area line: the area each player encloses now (Blue − Red)
   // "Lines on the board": the engine's line and a branch's preview drawn one edge at a time (KaTrain's way, the
@@ -54,7 +59,8 @@ export const DEFAULT_DISPLAY: Display = {
   win: "bar",
   layers: withoutMap(DEFAULT_LAYERS),
   areaMap: { review: false, board: true },
-  explain: true,
+  mapStyle: "ownership",
+  mapMin: { ownership: 0, change: 50 },
   scoreLine: true,
   areaLine: true,
   lineSteps: true,
@@ -68,6 +74,10 @@ export const DEFAULT_DISPLAY: Display = {
   volume: 0.4,
 };
 
+/** A kept smallest value of the map's style: a whole number of hundredths from 0 to 100, or else the default. */
+const hundredths = (v: unknown, style: MapStyle) =>
+  typeof v === "number" && v >= 0 && v <= 100 ? Math.round(v) : DEFAULT_DISPLAY.mapMin[style];
+
 export function loadDisplay(): Display {
   const kept = readLocalJson<Partial<Display> & { branchText?: boolean }>(KEY);
   if (!kept) return structuredClone(DEFAULT_DISPLAY);
@@ -77,7 +87,8 @@ export function loadDisplay(): Display {
     win: kept.win === "gauge" ? "gauge" : "bar",
     layers: { ...DEFAULT_DISPLAY.layers, ...withoutMap(kept.layers ?? {}) },
     areaMap: { ...DEFAULT_DISPLAY.areaMap, ...kept.areaMap },
-    explain: kept.explain ?? DEFAULT_DISPLAY.explain,
+    mapStyle: kept.mapStyle === "change" ? "change" : "ownership",
+    mapMin: { ownership: hundredths(kept.mapMin?.ownership, "ownership"), change: hundredths(kept.mapMin?.change, "change") },
     scoreLine: kept.scoreLine ?? DEFAULT_DISPLAY.scoreLine,
     areaLine: kept.areaLine ?? DEFAULT_DISPLAY.areaLine,
     lineSteps: kept.lineSteps ?? DEFAULT_DISPLAY.lineSteps,

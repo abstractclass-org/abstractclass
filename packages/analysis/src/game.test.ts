@@ -8,7 +8,7 @@ import "./testing/svelteModules.ts";
 import type { AnalysisReply, PositionQuery } from "@abstractclass/engine/protocol.ts";
 import type { EnginePool } from "@abstractclass/engine/pool.ts";
 import { memoryDb } from "@abstractclass/storage/memoryDb.ts";
-import { rankOf, review, sameMove, shownCandidates, twinsOf, type Analysis, type ReviewData } from "./model.ts";
+import { rankOf, review, sameMove, shownCandidates, shownMaps, twinsOf, type Analysis, type ReviewData } from "./model.ts";
 import { toAnalysis } from "./reply.ts";
 import { wordFields, words, type Words } from "./testing/game.ts";
 
@@ -78,6 +78,22 @@ test("the engine's ownership is kept for each point in hundredths, from Blue's s
   } as unknown as AnalysisReply;
   assert.deepEqual(toAnalysis(words, reply).ownership, [99, 0, -51, 0]);
   assert.equal(toAnalysis(words, { ...reply, ownership: undefined }).ownership, undefined); // a reply without it
+});
+
+test("each candidate's ownership is kept in hundredths, and the stored result keeps the shown candidates' alone", () => {
+  const reply = {
+    rootInfo: { visits: 100, winrate: 0.5, scoreLead: 0, scoreSelfplay: 0, scoreStdev: 0 },
+    moveInfos: [{ move: "a", order: 0, edgeVisits: 60, winrate: 0.5, scoreLead: 0, pv: ["a"], ownership: [0.5, -0.256] },
+                { move: "a'", order: 1, edgeVisits: 60, winrate: 0.5, scoreLead: 0, pv: ["a'"], ownership: [-0.256, 0.5], isSymmetryOf: "a" },
+                { move: "b", order: 2, edgeVisits: 30, winrate: 0.49, scoreLead: 0, pv: ["b"], ownership: [1, 1] },
+                { move: "c", order: 3, edgeVisits: 5, winrate: 0.5, scoreLead: 0, pv: ["c"], ownership: [0, 0] }],
+  } as unknown as AnalysisReply;
+  const a = toAnalysis(words, reply);
+  assert.deepEqual(a.candidates.map(c => c.ownership), [[50, -26], [-26, 50], [100, 100], [0, 0]]);
+  // "c" has too few visits to show: its map goes. A symmetric twin keeps its own, mirrored.
+  assert.deepEqual(shownMaps(words, a, 0).candidates.map(c => c.ownership), [[50, -26], [-26, 50], [100, 100], undefined]);
+  // From the second player's side, "b" is 0.01 better than the first choice, and shows too
+  assert.deepEqual(shownMaps(words, a, 1).candidates.map(c => c.ownership !== undefined), [true, true, true, false]);
 });
 
 test("the analysis of a game takes its positions, its moves played, its rules and its lines' steps from the game", async () => {

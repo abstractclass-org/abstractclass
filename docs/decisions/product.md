@@ -5934,3 +5934,103 @@ from the position after the turn, as far as the search trusts it, played by the 
   opponent's turn does.
 - **The fixture's game** has one flagged turn, its Blunder (turn 7, Blue). Its caption: "After this turn, Red closes 2
   points of area at O11." A true fact, and a small one.
+
+### The mistakes' captions removed, and the ownership map back (2026-10-21)
+
+A look at the second build of the area map (design 30), on the review and the Analysis board, found:
+
+- **The captions of the Mistakes and the Blunders said nothing useful.** One turn's close or cut is never what a
+  mistake gave away: the whole rest of the game decides it. The measurements above count exact facts, not useful
+  ones.
+- **The opponent's turn drawn after a mistake repeated the engine's line,** which already shows what happens next.
+- **The change map was hard to read.** "The ownership less the board" needed an explanation, and its threshold hid the
+  data under 0.5. The first build's map of the ownership itself was easier to read.
+
+So the captions, the drawn turn, their outline and the setting "Explain mistakes" are removed. The map's default style
+is the first build's ownership map again (KaTrain's gamma, the strongest shade 0.45, the blur). The change map stays
+as a second style. The player sets the smallest value marked, for each style, from 0 (every point with a value). The
+legend says in one line what the map shows, and the point under the mouse's pointer shows its numbers there: its
+ownership, its state now and the change. While a candidate's line shows, the map shows that candidate's ownership.
+The measurements above stay as the record of the second build.
+
+### No new shape for an added field (2026-10-21)
+
+The first builds of the area map took a new stored shape for each field that they added: 6 for the ownership of each
+point, and 7, on this build's branch, for the candidates' maps. The live site was still at shape 5. A shape says what
+a result's fields mean: a new one is only for a change of meaning, as shape 2 was (a candidate's visits became KataGo's
+edgeVisits), so that an older result is not misread. A field that is only added changes no meaning, and a reader must
+check whether it is there anyway, for the results stored before it.
+
+- **`SHAPE` is 5 again** (`packages/analysis/src/cache.ts`). The ownership and the candidates' maps are optional
+  fields of a result of shape 5.
+- **The results that the branch's builds stored as shape 6** (the browser that tried them) are results of 5 with the
+  ownership. The readers read them as 5 (`READ_SHAPES`: 5 and 6), the removals keep them, and they are never searched
+  again.
+- **The site before the map reads this site's review files completely:** its file reader takes the entries whose key
+  has its shape, 5, and whose value is an object, and it ignores the fields that it does not know. With shapes 6 and
+  7, it dropped every result of such a file.
+- **The maps added to a stored review** (design 30) need a key that the site before the map never takes as a result.
+  Their key is a result's key with `map|` before it: that site's `isAnalysisKey` (`/^\d+\|[^|]*\|[0-9a-f]+\|\d+\|/`)
+  refuses it, so its file reader drops it and its removal of earlier results leaves it alone. A test checks the key
+  against that expression (`cache.test.ts`). The test fixture's results keep their content, with their keys at
+  shape 5.
+
+### A candidate's map from a short search (2026-10-21)
+
+A result stored before the candidates' maps gets a candidate's map from a short search of the position after the
+candidate's move (design 30). The question: at how many visits does such a search answer as the full search's own
+map of the candidate (KataGo's `includeMovesOwnership`, the mean over the candidate's subtree)?
+
+`scripts/measure/candidate-maps.mjs`, in Node on one thread, the CPU module of release `engine-d6786eba`, HedgeFund
+0.2 Lite: every 8th position of the test fixture's game (14 positions), each searched as the Lite review searches it
+(512 visits), and each candidate on the board (`shownMaps`), 102 candidates in all. For each candidate, short
+searches of the position after its move at 8 to 512 visits. The mean difference is over the 361 points, in the
+ownership's units (−1 to 1); the marks are the change style's at 0.5.
+
+| Short search, visits | Mean difference: median, p90 | Points whose mark differs: median, p90 | Time, ms (median) |
+|---|---|---|---|
+| 8 | 0.010, 0.022 | 0.0%, 1.4% | 105 |
+| 16 | 0.007, 0.013 | 0.0%, 0.6% | 101 |
+| 32 | 0.007, 0.012 | 0.0%, 0.6% | 195 |
+| 64 | 0.007, 0.014 | 0.3%, 0.6% | 388 |
+| 128 | 0.007, 0.013 | 0.0%, 0.8% | 796 |
+| 512 | 0.009, 0.016 | 0.0%, 1.1% | 4,630 |
+
+- **A candidate on the board rests on few visits:** a median of 17 of the full search's 512. Its map is the mean over
+  a small subtree, so a short search of the position after it is about as deep, and differs from it least. A search
+  of 512 visits differs a little more: it looks further.
+- **32 visits** (`MAP_VISITS`): as close as any count (a mean difference of 0.007 at a point, a mark that differs on
+  at most 0.6% of the points for 9 candidates in 10), at about 0.2 s in Node. 16 visits are as close here, and 32
+  keeps a margin for a position that the fixture's one-sided game does not have.
+- The fixture's game is one-sided, so much of its board is settled. A close game can differ more, at every count.
+
+### The candidates' maps: their size and their time (2026-10-21)
+
+Every search of the review asks for each candidate's map too (`includeMovesOwnership`), and a result keeps the maps of
+the candidates on the board (design 30). The cost, on the test fixture's game (120 edges, HedgeFund 0.2 Lite, 512
+visits a position):
+
+**The stored size.** The fixture's review file, the same results with and without the maps: 1,427 kB before, 4,298 kB
+after. 2,590 of its 5,015 candidates are on the board, about 1.1 kB of JSON each. The game is one-sided: where every
+win chance is near 1, the candidates within 36 points of the first choice show, and many do.
+
+**In the browser.** `scripts/measure/review-ownership.mjs`: two builds, one whose searches ask for the root's
+ownership alone (as the build before) and one that asks for the candidates' maps too, in three alternating pairs,
+each reviewing the fixture's game from no stored result. Playwright's Chromium, headless, 1,366 × 657 pixels, 2 search
+workers, the GPU off, through `scripts/machine run` with 2 threads while a training job held the other 10.
+
+| | Before | After | The pairs' differences |
+|---|---|---|---|
+| The review's time, s (median) | 323.3 | 386.1 | 120.6, 62.8, 47.9 |
+| A search of 512 visits, ms (median of the review's 125) | 4,965 | 6,015 | 2,250, 1,063, 868 |
+| A search of 32 visits, ms (median of 120) | 348 | 401 | 3, 48, 57 |
+| The store, kB (249 results) | 1,017 | 3,093 | 2,076 each |
+
+- **The store is three times as large:** 2,076 kB more, in 1,916 candidates' maps, against 271 kB for the 249
+  positions' own maps.
+- **Every review is slower,** by 48 to 121 s (a median of 63 s, about a fifth), and every search of 512 visits, by 0.9
+  to 2.2 s. Where the time goes was not measured: the engine builds every candidate's map from its subtree, and the
+  reply carries them all (about 3 kB of JSON each) before the page keeps the shown ones. The after runs spread by
+  64 s, more than the difference's smallest pair, so by the rule of `verdict` the review's time is not a sure change.
+  Its direction is: all three pairs agree.
+- **Searches of 1,024 visits** (4 a review, the key moments) differ in both directions: too few to say.

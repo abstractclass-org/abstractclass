@@ -26,17 +26,18 @@
 // The analysis is every game's (design 29): the game (game.ts) gives the positions from the engine's fields, the moves
 // played, a move's name, the rules for the player's moves and a line's steps. `G` is the game's types.
 import { toAnalysis } from "./reply.ts";
-import { positionQuery } from "@abstractclass/engine/protocol.ts";
+import { positionQuery, type AnalysisReply } from "@abstractclass/engine/protocol.ts";
 import { errorText } from "@abstractclass/engine/errors.ts";
 import { BOARD_ID, branchNodes, keptNode, type KeptNode, type KeptBoard, type KeptBranches } from "./kept.ts";
 import type { Game, GameTypes, Player } from "./game.ts";
-import { earlierIndex, equalDepth, keepsGain, moverWin, onlyEdge, otherCandidate, sameMove, secondChoice, type Analysis,
+import { earlierIndex, equalDepth, keepsGain, moverWin, onlyEdge, otherCandidate, sameMove, secondChoice, shownMaps, type Analysis,
          type Candidate, type GameEnding, type ReviewData } from "./model.ts";
 import { ONLY_EDGE_GAP } from "./labels.ts";
 import { lastMove, mainIndex, parentKey, pathKey, prefixKeys } from "./tree.ts";
 import { STORES, dbGet, dbPut } from "@abstractclass/storage/db.ts";
 import { keepStorage } from "@abstractclass/storage/persist.ts";
-import { DEEP_VISITS, LABEL_VISITS, SWEEP_VISITS, analysisKey, keyMoves, cacheGetAtLeast, cachePut, warmCache } from "./cache.ts";
+import { DEEP_VISITS, LABEL_VISITS, MAP_VISITS, SWEEP_VISITS, analysisKey, keyMoves, cacheGetAtLeast, cachePut, mapGet, mapPut,
+         warmCache } from "./cache.ts";
 import { Stopped } from "@abstractclass/engine/client.ts";
 import { nextTask } from "@abstractclass/engine/channel.ts";
 import { Cancelled, type EnginePool } from "@abstractclass/engine/pool.ts";
@@ -103,11 +104,13 @@ export class GameAnalysis<G extends GameTypes> {
   // The positions whose search runs now, by path key, with each search's visits: their analysis can still change (the
   // page's gleam on a line)
   private running = $state.raw<Record<string, number[]>>({});
-  // The ownership of the positions whose result has none, by path key: a result of shape 5, stored or from a file
-  // (cache.ts, READ_FROM). From a short search of the position alone, for the area maps (askOwnership, Hedge School's
-  // design 30). It never replaces the position's result, and the store does not keep it.
-  ownership = $state.raw<Record<string, number[]>>({});
+  // The maps added to positions without one, by path key (askOwnership, Hedge School's design 30): a position whose
+  // result was stored before the ownership, and a position after a candidate whose result has no candidates'
+  // maps. From the store, or from a short search of the position alone, which the store then keeps. They never replace
+  // the position's result.
+  private ownership = $state.raw<Record<string, number[]>>({});
   private owning = new Set<string>(); // their searches queued or running, by path key
+  private mapless = new Set<string>(); // the positions after a candidate that the engine did not search: an ended game
   private ownershipWanted = new Set<string>(); // the positions asked for last: a search queued for another one is skipped
   private era = 0; // another network starts a new era: results from an earlier one are dropped
   private pool: EnginePool;
@@ -653,6 +656,14 @@ export class GameAnalysis<G extends GameTypes> {
     return keyMoves(this.startPosition, this.engineMoves(path));
   }
 
+  /** A search's reply at `path` as the review keeps it: the candidates' maps of those on the board alone (shownMaps),
+   *  for the player to move there. */
+  private analysisFrom(path: string[], reply: AnalysisReply): Analysis<G["move"]> {
+    const a = toAnalysis(this.game, reply), i = mainIndex(path, this.mainNames);
+    const player = (i !== null ? this.positions[i] : this.branches[pathKey(path)]?.position)?.player;
+    return player === undefined ? a : shownMaps(this.game, a, player);
+  }
+
   /** A position the engine can search: on the game's line before its end, or a branch node where the game goes on. */
   private searchable(path: string[]) {
     const i = mainIndex(path, this.mainNames);
@@ -737,6 +748,7 @@ export class GameAnalysis<G extends GameTypes> {
     this.branches = Object.fromEntries(Object.entries(this.branches).map(([k, n]) => [k, { ...n, analysis: undefined }]));
     this.outside = {};
     this.ownership = {};
+    this.mapless.clear();
     this.stored = {};
     this.timed = {};
     this.moments = [];
@@ -769,24 +781,42 @@ export class GameAnalysis<G extends GameTypes> {
       .finally(() => this.afterBatch(() => { if (generation === this.focusGeneration) this.focusing = null; }));
   }
 
-  /** Searches these positions, which the area maps show, for their ownership alone, where their result has none (an
-   *  older shape's: ownership): one search of the sweep's budget each, after the position on screen's. A position with
-   *  no result yet waits for its own search, which asks for the ownership. A search queued for a position that the page
-   *  no longer asks for starts and ends at once. */
+  /** A position's map (Hedge School's design 30): its result's ownership, or else the map added to it (askOwnership). */
+  mapAt(path: string[]): number[] | undefined {
+    return this.analysisOf(path)?.ownership ?? this.ownership[pathKey(path)];
+  }
+
+  /** Adds a map to these positions, which the area map shows, where they have none (mapAt): to a position of the tree
+   *  whose result has none (stored before the ownership), and to a position one move from the tree (after a candidate whose
+   *  result has no candidates' maps). The map stored for it, or else a short search of the position alone
+   *  (MAP_VISITS), after the position on screen's, whose map the store then keeps (cache.ts, mapPut). The result itself
+   *  stays as it is. A position of the tree with no result yet waits for its own search, which asks for the ownership.
+   *  A search queued for a position that the page no longer asks for starts and ends at once. */
   askOwnership(paths: string[][]) {
     this.ownershipWanted = new Set(paths.map(pathKey));
     if (!this.engineReady || this.paused || this.stalePool) return;
     for (const path of paths) {
-      const key = pathKey(path), a = this.analysisOf(path);
-      if (!a || a.ownership || this.ownership[key] || this.owning.has(key) || !this.searchable(path)) continue;
+      const key = pathKey(path), inTree = this.known(path);
+      if (this.mapAt(path) || this.owning.has(key) || this.mapless.has(key)) continue;
+      if (inTree ? !this.searchable(path) || !this.analysisOf(path) : !path.length || !this.searchable(path.slice(0, -1))) continue;
       this.owning.add(key);
-      const era = this.era, query = this.query(path);
-      this.pool.run(PRIORITY.ownership, "ownership", async engine => {
-        if (era !== this.era || !this.ownershipWanted.has(key)) return;
-        const { reply } = await engine.analyse({ ...query, maxVisits: SWEEP_VISITS, includeOwnership: true }).done;
-        const { ownership } = toAnalysis(this.game, reply);
-        if (era === this.era && ownership) this.ownership = { ...this.ownership, [key]: ownership };
-      }).catch(this.fail).finally(() => this.owning.delete(key));
+      const era = this.era, pool = this.pool, query = this.query(path), keyed = this.keyMovesOf(path);
+      const keep = (ownership: number[]) => { if (era === this.era) this.ownership = { ...this.ownership, [key]: ownership }; };
+      void (async () => {
+        const stored = await mapGet(pool.search!, pool.model!.sha256, keyed);
+        if (stored) { keep(stored.ownership); return; }
+        await pool.run(PRIORITY.ownership, "ownership", async engine => {
+          if (era !== this.era || !this.ownershipWanted.has(key)) return;
+          const { reply } = await engine.analyse({ ...query, maxVisits: MAP_VISITS, includeOwnership: true }).done;
+          const { ownership } = toAnalysis(this.game, reply);
+          if (era !== this.era || !ownership) return;
+          keep(ownership);
+          await mapPut(pool.search!, pool.model!.sha256, keyed, { ownership, visits: reply.rootInfo.visits, source: "short search" });
+        });
+      })()
+        // A position after a candidate can end the game, and the engine searches no ended position: it has no map
+        .catch(inTree ? this.fail : () => { this.mapless.add(key); })
+        .finally(() => this.owning.delete(key));
     }
   }
 
@@ -866,16 +896,16 @@ export class GameAnalysis<G extends GameTypes> {
       // The time limit counts from the search's start in the worker, not from its wait in the queue. The worker keeps
       // it, and ends the search at the end of the slice in which it passes (channel.ts, searchInSlices): a timer of the
       // page would run late in a hidden tab (decisions/product.md, "A review in a hidden tab"). Every search asks for
-      // the ownership of each point, so that a stored review has the area maps whatever the display settings (Hedge
-      // School's design 30).
+      // the ownership of each point, and of each candidate, so that a stored review has the area maps whatever the
+      // display settings (Hedge School's design 30). The result keeps the candidates' on the board alone (shownMaps).
       const run = engine.analyse({ ...query, maxVisits: visits, includePVVisits: true, includeOwnership: true,
-                                   ...(slice ? { slice: { visits: slice } } : {}) },
-                                 r => { if (era === this.era) this.toBatch(path, r.rootInfo.visits, () => toAnalysis(this.game, r)); },
+                                   includeMovesOwnership: true, ...(slice ? { slice: { visits: slice } } : {}) },
+                                 r => { if (era === this.era) this.toBatch(path, r.rootInfo.visits, () => this.analysisFrom(path, r)); },
                                  sliced && seconds !== null ? seconds * 1000 : undefined);
       if (sliced) onStop(run.stop); // the pool may stop it to give way, and runs it again later
       if (tag === "focus") this.stopFocus = run.stop;
       const shown = run.done.then(async t => {
-        const a = toAnalysis(this.game, t.reply), final = !t.reply.terminated && a.visits >= visits;
+        const a = this.analysisFrom(path, t.reply), final = !t.reply.terminated && a.visits >= visits;
         if (era !== this.era) return;
         // The write first: the result and the passes' progress show only once it is stored, so that the game's mark
         // (markReviewed) comes after every result it covers. The end of the search's marks (markRunning, focus) then

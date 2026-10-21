@@ -41,10 +41,9 @@
     deleteFrom(path: string[]): Promise<void>; // deletes a branch node and what follows it
     promote(path: string[]): Promise<void>; // promotes a branch one step among the branches from its fork
     judge(path: string[]): Promise<void>; // evaluates a branch move's quality: searches its two positions
-    // The ownership of the positions whose result has none (a result of an older shape), by path key, from a short
-    // search that asks for it (design 30)
-    ownership: Record<string, number[]>;
-    askOwnership(paths: string[][]): void; // searches these positions for their ownership, where their result has none
+    mapAt(path: string[]): number[] | undefined; // a position's ownership: its result's, or the map added to it (design 30)
+    // Adds a map to these positions where they have none: of the tree, or one move from it (after a candidate)
+    askOwnership(paths: string[][]): void;
   }
 
   // The numbers' formats, made once: a formatter is costly to make, and the move list and the tables format many numbers
@@ -104,8 +103,8 @@
   import AdvantageChart from "./AdvantageChart.svelte";
   import DifficultyChart from "./DifficultyChart.svelte";
   import { loadDisplay, saveDisplay, type Display } from "./display.ts";
-  import { explainMistake, explanationCaption, type Explanation } from "./explain.ts";
-  import { changeMap } from "./ownership.ts";
+  import { areaMap, occupancy, pointReading } from "./ownership.ts";
+  import { pointName } from "#lib/engine/notation.ts";
   import { playMove, preload } from "#lib/sound.ts";
   import SettingChoice from "#lib/ui/SettingChoice.svelte";
   import SettingToggle from "#lib/ui/SettingToggle.svelte";
@@ -122,7 +121,7 @@
   import { errorText } from "@abstractclass/engine/errors.ts";
   import Toast from "#lib/ui/Toast.svelte";
   import {
-    edgeName, endingText, fmtScore, moveName, moveNotation, opensTurn, turnFromCount, sameEdge, shortNote, turnShortNote, HARD_NOTE, complexity, isHard, turnComplexity, likelyEdges, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchEdge, valuesAfter, resultWin, moverWin, costText, pct, shownCandidates, distinctCandidates, rankOf, twinsOf, lineMovers, otherPlayer, enoughVisits, trustedLine, type Candidate, type EdgeReview, LABELS, LABEL_TEXT, LABEL_GLYPH, type Label, type Position, type Review, type Unit, type Move, type TurnJudgment, type TurnReview,
+    edgeName, endingText, fmtScore, moveName, moveNotation, opensTurn, turnFromCount, sameEdge, shortNote, turnShortNote, HARD_NOTE, complexity, isHard, turnComplexity, likelyEdges, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchEdge, valuesAfter, resultWin, moverWin, costText, pct, shownCandidates, distinctCandidates, rankOf, twinsOf, lineMovers, enoughVisits, trustedLine, type Candidate, type EdgeReview, LABELS, LABEL_TEXT, LABEL_GLYPH, type Label, type Position, type Review, type Unit, type Move, type TurnJudgment, type TurnReview,
   } from "./enclosure.ts";
   import { branchChildren, branchLine, branchRows, mainIndex, nextFork, pathKey, prefixKeys, prevFork, sharedLength, siblingLine, treeLines, withLine,
            type BranchRow } from "@abstractclass/analysis/tree.ts";
@@ -566,75 +565,37 @@
       return { rows: kidsOf(mainNames.slice(0, e.index)).flatMap(first => branchRows(first, kidsOf)), engine };
     });
   }
-  // The area map (design 30): at the position on screen, where the engine's ownership differs from the board now. Off
-  // on the review and on on the Analysis board by default, each page's own setting. A position whose result has no
-  // ownership (a result of an older shape) takes it from a short search of its own, asked for while the map shows it
-  // (askOwnership).
+  // The area map (design 30): the engine's ownership at the position on screen, or the change from the board now to it
+  // (the map's style), on the points whose value is at least the style's smallest value (display settings). Off on the
+  // review and on on the Analysis board by default, each page's own setting. While a candidate's line shows, the map is
+  // the ownership after that candidate (KataGo's ownership of its subtree): the forecast after the move, in the change
+  // style still against the board now. A branch's preview and a played move's show no map. A map that a stored result
+  // lacks is added while the map shows it (askOwnership): a position's stored before the ownership, and a candidate's, from the
+  // position after its move, as the candidate is pointed at.
   const mapOn = $derived(board ? display.areaMap.board : display.areaMap.review);
   function toggleMap() {
     if (board) display.areaMap.board = !display.areaMap.board;
     else display.areaMap.review = !display.areaMap.review;
   }
-  const ownershipHere = $derived(previewing ? undefined : analysis?.ownership ?? game?.ownership[here]);
-  const change = $derived(mapOn && ownershipHere ? changeMap(ownershipHere, position) : null);
+  // The candidate whose line the board draws
+  const lineCandidate = $derived(!lineEdges ? null : listHover !== null && listLine ? listCandidate : hoverCandidate ?? pinnedCandidate);
+  // The position after the line's candidate, for a candidate without its map
+  const lineChild = $derived(lineCandidate && !lineCandidate.ownership ? [...path, edgeName(lineCandidate.edge)] : null);
+  const mapOwnership = $derived(!mapOn || previewing ? undefined
+    : lineCandidate ? lineCandidate.ownership ?? game?.mapAt(lineChild!) : analysis?.ownership ?? game?.mapAt(path));
+  const shownMap = $derived(mapOwnership ? areaMap(display.mapStyle, mapOwnership, position, display.mapMin[display.mapStyle]) : null);
   $effect(() => {
-    const paths = mapOn && !previewing ? [path] : [];
+    const paths = mapOn && !previewing ? [path, ...(lineChild ? [lineChild] : [])] : [];
     untrack(() => game?.askOwnership(paths));
   });
-  // A mistake explained by what happens next (design 30): after a Mistake or a Blunder of the game's line whose player
-  // the review explains (by turn, the turn just played; by edge, the edge), the opponent's next turn in the engine's
-  // line from the position after it (its first choice's line, as far as the search trusts it), from the rules' play of
-  // that line (explain.ts). The board draws that turn as it draws a line, with the regions that it closes outlined, and
-  // the caption goes under the move in the move list.
-  /** A move of the game's line, as a turn holds it: from position `start` to position `end`, by `player`. */
-  type Span = Pick<TurnReview, "start" | "end" | "player" | "label">;
-  const edgeSpan = (e: EdgeReview): Span => ({ start: e.index, end: e.index + 1, player: e.player, label: e.label });
-  /** Whether a move is explained: a Mistake or a Blunder of a player whom the review explains. */
-  const explained = (s: Span | null): s is Span => !!s && bad(s.label) && forSide(s.player);
-  /** The engine's line from the position after a move, and that position's path. */
-  function lineAfter(s: Span): { start: string[]; edges: Edge[] } | null {
-    const first = R.data.analysis[s.end]?.candidates[0];
-    return first ? { start: mainNames.slice(0, s.end), edges: trustedLine(first) } : null;
-  }
-  type ShownExplanation = Explanation & { player: Player; line: Edge[]; steps: LineStep[] };
-  /** A move's explanation, once the rules have played the line after it. */
-  function explainIn(s: Span | null): ShownExplanation | null {
-    if (!explained(s)) return null;
-    const after = lineAfter(s), steps = after && stepsByLine[lineKey(after.start, after.edges)];
-    const x = steps && explainMistake(gamePositions[s.end], after.edges, steps, s.player);
-    return x ? { ...x, player: s.player, line: after.edges, steps } : null;
-  }
-  /** The moves that the review explains, as the labels' unit has them. */
-  const explainedSpans = $derived(!display.explain ? [] : (unit === "turn" ? R.turns : R.edges.map(edgeSpan)).filter(explained));
-  // Their lines played by the rules, asked once for each line
-  $effect(() => {
-    const lines = explainedSpans.flatMap(s => lineAfter(s) ?? []);
-    untrack(() => { for (const l of lines) askSteps(l.start, l.edges); });
+  // The point under the pointer, and its numbers while the map shows: the ownership, the state now, the change
+  let mapPoint = $state<[number, number] | null>(null);
+  const boardNow = $derived(shownMap ? occupancy(position) : null);
+  const mapReading = $derived.by(() => {
+    if (!mapPoint || !mapOwnership || !boardNow) return null;
+    const i = mapPoint[1] * 19 + mapPoint[0];
+    return `${pointName(...mapPoint)} · ${pointReading(mapOwnership[i], boardNow[i])}`;
   });
-  // The move that ends at the position on screen, on the game's line, and its explanation
-  const spanHere = $derived.by(() => !display.explain || previewing || !mainAt ? null
-    : unit === "turn" ? endedTurn : edgeSpan(R.edges[mainAt - 1]));
-  const explainHere = $derived(explainIn(spanHere));
-  // The explanation on the board: the line through the opponent's turn explained, and the regions that it closes
-  const explainLine = $derived.by((): BoardLineEdge[] | null => {
-    const x = explainHere;
-    if (!x?.edges) return null;
-    const movers = lineMovers(position, x.edges);
-    return x.line.slice(0, x.edges).map((edge, i) => ({ edge, player: movers[i], ...x.steps[i] }));
-  });
-  // The line on the board: a branch's preview, the line pointed at, or the explanation. The area map hides while one
-  // shows (Board): the line's regions are not the board's now.
-  const boardLine = $derived(branchPreview ? previewLine : movePreview ? null : drawnLine ?? explainLine);
-  const mapShown = $derived(!!change && !previewing && !boardLine?.length);
-  const explainOutline = $derived(explainHere?.outline.length
-    ? { rings: explainHere.outline, player: otherPlayer(explainHere.player) } : null);
-  /** The captions of a turn's explained moves, under the turn in the move list: the turn's by turn, each edge's by
-   *  edge. */
-  function explanationCaptions(t: TurnReview): string[] {
-    if (!display.explain || !display.notes) return [];
-    return (unit === "turn" ? [t] : t.edges.map(edgeSpan))
-      .flatMap(s => { const x = explainIn(s); return x ? [explanationCaption(x, s.player, unit)] : []; });
-  }
 
   // The areas in the players' tags: now, or, while a line shows, after its last drawn edge (from the rules).
   const lineAreas = $derived(drawnLine ? stepsNow?.[drawnLine.length - 1]?.areas ?? null : null);
@@ -1335,15 +1296,10 @@
       {@const notes = !display.notes ? [] : unit === "turn" ? (t.label && COMMENTED.includes(t.label) && forSide(t.player) ? [turnShortNote(t)] : [])
         : [...new Set(t.edges.filter(e => !!e.label && COMMENTED.includes(e.label) && forSide(e.player)).map(shortNote))]}
       {@const groups = turnGroups(t)}
-      {@const captions = explanationCaptions(t)}
-      {#if notes.length || captions.length || groups.some(g => g.rows.length)}
+      {#if notes.length || groups.some(g => g.rows.length)}
         <div class="my-1 py-1 bg-panel-2/50 border-y border-line">
           {#each notes as note (note)}
             <div class="mb-0.5 px-2 text-sm text-muted truncate" title={note}>{note}</div>
-          {/each}
-          <!-- The mistake's explanation (design 30): one or two sentences, which wrap. -->
-          {#each captions as caption, k (k)}
-            <div class="mb-0.5 px-2 text-sm text-muted">{caption}</div>
           {/each}
           {#each groups as g, k (k)}{@render branchGroup(g.rows, g.engine)}{/each}
         </div>
@@ -1589,10 +1545,20 @@
         () => display.layers.marks, v => (display.layers.marks = v))}
       {@render toggle("Regions", "Shading on the areas each player encloses.",
         () => display.layers.regions, v => (display.layers.regions = v))}
-      {@render toggle("Area map", "Marks where the engine expects the board to change: dots on open area that a player will probably close, and hatching on closed area that its player will probably lose. The key t shows or hides it.",
+      {@render toggle("Area map", "Shading or marks on each point from the engine's ownership: who it expects to hold the point over the turns left, and how surely. While a candidate's line shows, the ownership after that candidate. The key t shows or hides it.",
         () => mapOn, v => { if (v !== mapOn) toggleMap(); })}
-      {@render toggle("Explain mistakes", "After a Mistake or a Blunder, the opponent's next turn in the engine's line, on the board. With \"Notes on the key moves\", a line under the move says what that turn cuts and closes.",
-        () => display.explain, v => (display.explain = v))}
+      {@render choice("Area map style", "The ownership of each point, shaded for the player that holds it. Or the change from the board now: dots on open area that a player will probably close, and hatching on closed area that its player will probably lose.",
+        [["ownership", "Ownership"], ["change", "Change"]], () => display.mapStyle, v => (display.mapStyle = v as Display["mapStyle"]))}
+      <div class="flex items-center justify-between gap-3 py-1.5">
+        <div class="min-w-0">
+          <label for="setting-map-min" class="text-sm font-medium">Smallest value marked</label>
+          <p class="text-xs text-muted">{display.mapStyle === "ownership" ? "Ownership" : "Change"} from 0 to 1: at 0, every point with a value. Hold the pointer over a point of the board to see its numbers.</p>
+        </div>
+        <span class="text-sm tabular-nums">{(display.mapMin[display.mapStyle] / 100).toFixed(2)}</span>
+        <input id="setting-map-min" type="range" min="0" max="100" step="5" value={display.mapMin[display.mapStyle]}
+               oninput={e => (display.mapMin[display.mapStyle] = e.currentTarget.valueAsNumber)}
+               class="w-28 flex-none accent-(--accent)" />
+      </div>
       {@render toggle("Protected edges", "The edges the opponent cannot cut on the next turn.",
         () => display.layers.protected, v => (display.layers.protected = v))}
       {@render choice("Lines on the board", "The engine's line and a branch's preview: one edge at a time, or all at once.",
@@ -1840,7 +1806,7 @@
           cut={branchPreview ? null : movePreview ? movePreview.move.cut : lastPlayed?.cut ?? null}
           candidates={previewing ? [] : candidates}
           highlight={previewing ? null : hover ?? pinnedCandidate?.edge ?? null}
-          line={boardLine}
+          line={branchPreview ? previewLine : movePreview ? null : drawnLine}
           oncandidateclick={selectRank}
           oncandidatedblclick={e => playPath([...path, edgeName(e)], "candidate played")}
           pending={input.pending}
@@ -1852,27 +1818,38 @@
           previewPlayer={mover}
           marks={previewing ? [] : marks}
           layers={display.layers}
-          change={previewing ? null : change}
-          outline={previewing || drawnLine ? null : explainOutline}
+          areaMap={shownMap}
+          onpointat={p => (mapPoint = p)}
           oncandidate={e => { hoverOnBoard = true; hover = e; }}
           notes={previewing ? [] : notesAt[here] ?? []}
           onnotes={previewing ? undefined : n => { if (n.length > (notesAt[here]?.length ?? 0)) used("note drawn"); notesAt[here] = n; }}
         />
-        <!-- The area map's legend (design 30), in the board's empty margin above its top row: each mark's look, in the text's
-             colour, as the marks take the colour of the player that gains. -->
-        {#if mapShown}
-          <div class="map-legend absolute inset-x-0 top-0 flex justify-center gap-4 text-xs text-muted pointer-events-none" aria-label="Area map">
-            {#each [["close", "Will be closed"], ["lose", "Will be lost"]] as [kind, text] (kind)}
-              <span class="inline-flex items-center gap-1">
-                <svg class="size-3" viewBox="0 0 1 1" aria-hidden="true">
-                  {#if kind === "close"}
-                    {#each [0.25, 0.75] as x (x)}{#each [0.25, 0.75] as y (y)}<circle cx={x} cy={y} r="0.11" fill="currentColor" />{/each}{/each}
-                  {:else}
-                    {#each [-0.4, 0, 0.4, 0.8] as d (d)}<line x1={d} y1="1" x2={d + 1} y2="0" stroke="currentColor" stroke-width="0.1" />{/each}
-                  {/if}
-                </svg>{text}
-              </span>
-            {/each}
+        <!-- The area map's legend (design 30), in the board's empty margin above its top row, in one line: what the map
+             shows, after which candidate while its line shows, and in the change style each mark's look, in the text's
+             colour, as the marks take the colour of the player that gains. The point under the pointer shows its
+             numbers there in its place. -->
+        {#if shownMap}
+          <div class="map-legend absolute inset-x-0 top-0 flex justify-center gap-3 px-2 text-xs text-muted whitespace-nowrap pointer-events-none" aria-label="Area map">
+            {#if mapReading}
+              <span>{mapReading}</span>
+            {:else}
+              {#if lineCandidate}<span>After {moveName(lineCandidate.edge)}:</span>{/if}
+              {#if display.mapStyle === "ownership"}
+                <span>{lineCandidate ? "who" : "Shade: who"} the engine expects to hold each point</span>
+              {:else}
+                {#each [["close", "Will be closed"], ["lose", "Will be lost"]] as [kind, text] (kind)}
+                  <span class="inline-flex items-center gap-1">
+                    <svg class="size-3" viewBox="0 0 1 1" aria-hidden="true">
+                      {#if kind === "close"}
+                        {#each [0.25, 0.75] as x (x)}{#each [0.25, 0.75] as y (y)}<circle cx={x} cy={y} r="0.11" fill="currentColor" />{/each}{/each}
+                      {:else}
+                        {#each [-0.4, 0, 0.4, 0.8] as d (d)}<line x1={d} y1="1" x2={d + 1} y2="0" stroke="currentColor" stroke-width="0.1" />{/each}
+                      {/if}
+                    </svg>{text}
+                  </span>
+                {/each}
+              {/if}
+            {/if}
           </div>
         {/if}
       </div>

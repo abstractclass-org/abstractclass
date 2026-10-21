@@ -2,7 +2,7 @@
 // and an earlier network file's, unless a stored game's snapshot reads them. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { READ_FROM, SHAPE, analysisKey, searchHolding, snapshotPositions } from "@abstractclass/analysis/cache.ts";
+import { READ_FROM, READ_SHAPES, analysisKey, mapKey, searchHolding, snapshotPositions } from "@abstractclass/analysis/cache.ts";
 import { unneededResults } from "./earlierResults.ts";
 import type { KeptBranches, ReviewMark } from "./store.ts";
 
@@ -25,6 +25,9 @@ const BRANCHES: KeptBranches = { version: 2, nodes: [["D10-G10 N11-Q11", 0]] };
 test("the site's own results stay, and another engine's go when no game reads them", () => {
   const own = results("s2", "b2", 512, line(MOVES)), earlier = results("s1", "b2", 512, line(MOVES));
   assert.deepEqual(unneededResults([...own, ...earlier], [], ENGINE), earlier);
+  // The maps added to the site's own results stay with them, and an earlier engine's go with its results (design 30)
+  const maps = line(MOVES).map(m => mapKey("s2", "b2", m)), earlierMaps = line(MOVES).map(m => mapKey("s1", "b2", m));
+  assert.deepEqual(unneededResults([...own, ...maps, ...earlierMaps], [], ENGINE), earlierMaps);
 });
 
 test("a game reviewed by an earlier engine keeps what its snapshot reads: its positions, and those one move from them", () => {
@@ -125,13 +128,17 @@ test("without the site's CPU module, the removal takes nothing: it cannot tell t
 
 test("the results of a shape that no reader reads are not this removal's", () => {
   const older = results("s1", "b2", 512, line(MOVES)).map(k => k.replace(/^\d+\|/, `${READ_FROM - 1}|`));
-  const newer = older.map(k => k.replace(/^\d+\|/, `${SHAPE + 1}|`));
+  const newer = older.map(k => k.replace(/^\d+\|/, `${Math.max(...READ_SHAPES) + 1}|`));
   assert.deepEqual(unneededResults([...older, ...newer, "85c2adb|b2|512|D10-G10"], [], ENGINE), []);
 });
 
 test("the results of an older shape that the readers read are kept or removed as this shape's", () => {
   const toShape = (keys: string[], shape: number) => keys.map(k => k.replace(/^\d+\|/, `${shape}|`));
-  const own = toShape(results("s2", "b2", 512, line(MOVES)), READ_FROM);
-  const earlier = toShape(results("s1", "b2", 512, line(MOVES)), READ_FROM);
+  // Shape 6, which the area map's first builds wrote for results of 5 with the ownership, is read as 5 (design 30)
+  const own = toShape(results("s2", "b2", 512, line(MOVES)), 6);
+  const earlier = toShape(results("s1", "b2", 512, line(MOVES)), 6);
   assert.deepEqual(unneededResults([...own, ...earlier], [], ENGINE), earlier);
+  // The maps added to the site's own results stay with them, and an earlier engine's go with its results (design 30)
+  const maps = line(MOVES).map(m => mapKey("s2", "b2", m)), earlierMaps = line(MOVES).map(m => mapKey("s1", "b2", m));
+  assert.deepEqual(unneededResults([...own, ...maps, ...earlierMaps], [], ENGINE), earlierMaps);
 });

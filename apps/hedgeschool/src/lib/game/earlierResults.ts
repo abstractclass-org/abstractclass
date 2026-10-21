@@ -3,7 +3,7 @@
 // (@abstractclass/analysis/cache.ts). The site's engine reads its own results only. An earlier engine's are read by the
 // snapshot of a game whose last review used it, and by nothing else.
 import lock from "../../../engine.lock.json" with { type: "json" };
-import { BUDGETS, READ_FROM, SHAPE, SWEEP_VISITS, earlierRemoval, isAnalysisKey, readAnalysisKey, readable, searchHolding,
+import { BUDGETS, MAP_PREFIX, READ_SHAPES, SWEEP_VISITS, earlierRemoval, isAnalysisKey, readAnalysisKey, readable, searchHolding,
          snapshotExcept, snapshotPositions } from "@abstractclass/analysis/cache.ts";
 import { STORES, dbReadThenDelete } from "@abstractclass/storage/db.ts";
 import { moduleOf, type Manifest } from "@abstractclass/engine/client.ts";
@@ -37,8 +37,9 @@ export interface KeptGame { moves: string[]; branches: KeptBranches | null; mark
 export function unneededResults(keys: string[], games: KeptGame[], engine: Manifest): string[] {
   const site = moduleOf(engine)?.search;
   if (!site) return [];
-  const own = [...shippedModels(engine)!].flatMap(model =>
-    Array.from({ length: SHAPE - READ_FROM + 1 }, (_, k) => `${READ_FROM + k}|${site}|${model}|`));
+  // The site's own results, and the maps added to them (cache.ts, MAP_PREFIX)
+  const own = [...shippedModels(engine)!].flatMap(model => READ_SHAPES.flatMap(shape =>
+    [`${shape}|${site}|${model}|`, `${MAP_PREFIX}${shape}|${site}|${model}|`]));
   // The earlier results, each key read back here once (the site's own are known by their start), and by their
   // position's moves: each game's choice of a search reads the keys of its own positions alone.
   const earlier = keys.map(key => {

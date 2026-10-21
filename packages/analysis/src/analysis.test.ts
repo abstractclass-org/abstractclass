@@ -15,7 +15,7 @@ import { Cancelled, type EnginePool, type Work } from "@abstractclass/engine/poo
 import { BOARD_ID } from "./kept.ts";
 import { reply, wordFields, wordRules, words } from "./testing/game.ts";
 import type { Player } from "./game.ts";
-import { READ_FROM, SWEEP_VISITS, analysisKey, cachePut, readAnalysisKey } from "./cache.ts";
+import { MAP_VISITS, READ_FROM, SWEEP_VISITS, analysisKey, cachePut, mapGet, readAnalysisKey } from "./cache.ts";
 import { toAnalysis } from "./reply.ts";
 import { STORES } from "@abstractclass/storage/db.ts";
 import { memoryDb } from "@abstractclass/storage/memoryDb.ts";
@@ -110,10 +110,10 @@ test("a search's final results wait for the batch, and the sweep's progress come
   assert.equal(game.swept, 2);
 });
 
-test("every search asks for the ownership of each point, for the area maps", async () => {
+test("every search asks for the ownership of each point and of each candidate, for the area map", async () => {
   const { searches } = await sweeping();
   assert.ok(searches.length > 0);
-  assert.ok(searches.every(s => s.query.includeOwnership));
+  assert.ok(searches.every(s => s.query.includeOwnership && s.query.includeMovesOwnership));
 });
 
 test("results of shape 5 open the review with no search, and the board's ownership comes from a short search", async () => {
@@ -131,20 +131,40 @@ test("results of shape 5 open the review with no search, and the board's ownersh
   assert.equal(searches.length, 0); // no review again
   assert.equal(game.labelled, game.passCount);
   assert.ok(game.analysis.slice(0, game.passCount).every(a => a?.visits === deep && !a.ownership));
-  // The board shows the position after "a": one search of the sweep's budget asks for its ownership alone
+  // The board shows the position after "a": one short search asks for its ownership alone
   const puts = store.puts(STORES.analysis).length;
   game.askOwnership([["a"]]);
   game.askOwnership([["a"]]); // asked again while it runs
   await turns();
-  assert.deepEqual(searches.map(s => [s.query.moves, s.query.maxVisits, s.query.includeOwnership]), [[["a"], SWEEP_VISITS, true]]);
-  searches[0].end(SWEEP_VISITS, false, { ownership: [0.5, -0.25] });
+  assert.deepEqual(searches.map(s => [s.query.moves, s.query.maxVisits, s.query.includeOwnership]), [[["a"], MAP_VISITS, true]]);
+  searches[0].end(MAP_VISITS, false, { ownership: [0.5, -0.25] });
   await turns();
-  assert.deepEqual(game.ownership, { a: [50, -25] });
+  assert.deepEqual(game.mapAt(["a"]), [50, -25]);
   assert.equal(game.analysis[1]?.visits, deep); // the result stays the position's
-  assert.equal(store.puts(STORES.analysis).length, puts); // and the store keeps no short search
+  // The store keeps the map beside the result, with its source
+  assert.equal(store.puts(STORES.analysis).length, puts + 1);
+  assert.deepEqual(await mapGet(pool.search!, model, ["a"]), { ownership: [50, -25], visits: MAP_VISITS, source: "short search" });
   game.askOwnership([["a"]]); // it has its ownership now
   await turns();
   assert.equal(searches.length, 1);
+  // The position after a candidate of "a" that is not in the game: a short search too, as the candidate is pointed at
+  game.askOwnership([["a"], ["a", "x"]]);
+  await turns();
+  assert.deepEqual(searches.at(-1)!.query.moves, ["a", "x"]);
+  searches.at(-1)!.end(MAP_VISITS, false, { ownership: [-1, 1] });
+  await turns();
+  assert.deepEqual(game.mapAt(["a", "x"]), [-100, 100]);
+  // The review opened again reads the maps from the store, with no search
+  const again = new GameAnalysis(words, pool, MOVES, "g5");
+  await again.start();
+  await again.fromStore(pool.search!, model);
+  void again.sweep();
+  await turns();
+  const before = searches.length;
+  again.askOwnership([["a"], ["a", "x"]]);
+  await turns();
+  assert.equal(searches.length, before);
+  assert.deepEqual([again.mapAt(["a"]), again.mapAt(["a", "x"])], [[50, -25], [-100, 100]]);
 });
 
 test("a final result is not replaced by a shallower result of the same batch", async () => {

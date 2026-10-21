@@ -2,7 +2,7 @@
 // that a load keeps. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { READ_FROM, SHAPE } from "@abstractclass/analysis/cache.ts";
+import { READ_FROM, SHAPE, mapKey } from "@abstractclass/analysis/cache.ts";
 import { buildReviewFile, gameAnalyses, importReview, mergeBranches, positionKeys, readReviewFile, reviewFileName } from "./reviewFile.ts";
 import { loadGame, reviewCovers, reviewMark, type KeptBranches, type ReviewMark } from "./store.ts";
 import { memoryDb } from "@abstractclass/storage/memoryDb.ts";
@@ -34,6 +34,9 @@ test("a game's results: its positions' and the ones a move from them (the Greats
   // Only the networks the site ships, when they are named
   const other: [string, unknown] = [key("D10-G10", SHAPE, "cd34"), { a: 6 }];
   assert.deepEqual(gameAnalyses([...entries, other], positionKeys(MOVES, BRANCHES), new Set(["cd34"])).map(e => e[1]), [{ a: 6 }]);
+  // The maps added to the positions (design 30): the position's own, and a candidate's, one move from it
+  const maps: [string, unknown][] = [[mapKey("85c2adb", "ab12", ["D10-G10"]), { m: 1 }], [mapKey("85c2adb", "ab12", ["D10-G10", "O11-R10"]), { m: 2 }]];
+  assert.deepEqual(gameAnalyses(maps, positionKeys(MOVES, BRANCHES)).map(e => e[1]), [{ m: 1 }, { m: 2 }]);
 });
 
 test("a review file reads back, and a wrong file says why", () => {
@@ -46,6 +49,9 @@ test("a review file reads back, and a wrong file says why", () => {
   assert.equal(readReviewFile(JSON.stringify({ ...file, review: { visits: "x" } })).review, null);
   assert.deepEqual(back.branches, BRANCHES);
   assert.deepEqual(back.analyses, [[key("D10-G10"), { blueWin: 0.5 }]]);
+  // An added map reads back with the results (design 30)
+  const map: [string, unknown] = [mapKey("85c2adb", "ab12", ["D10-G10"]), { ownership: [1], visits: 32, source: "short search" }];
+  assert.deepEqual(readReviewFile(JSON.stringify({ ...file, analyses: [...file.analyses, map] })).analyses.at(-1), map);
   assert.throws(() => readReviewFile("not json"), /not JSON/);
   assert.throws(() => readReviewFile('{"format":"other"}'), /not a Hedge School review file/);
   assert.throws(() => readReviewFile(JSON.stringify({ ...file, version: 99 })), /version 99: a newer Hedge School/);
