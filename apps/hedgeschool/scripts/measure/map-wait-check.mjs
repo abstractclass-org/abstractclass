@@ -10,7 +10,7 @@
 //   node scripts/measure/map-wait-check.mjs <build dir> <scratch dir> [seconds] [workers] [port]
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { FIXTURE, launch, preview, watchSweep } from "./speed.mjs";
+import { FIXTURE, importReview, launch, preview, stepTo, watchSweep } from "./speed.mjs";
 
 const [dir, scratch, secondsArg = "30", workersArg = "2", portArg = "4501"] = process.argv.slice(2);
 const seconds = Number(secondsArg), workers = Number(workersArg), AT = 30;
@@ -30,23 +30,10 @@ await context.addInitScript(watchSweep, JSON.stringify({ workers, gpu: "off" }))
 let page = await context.newPage();
 const errors = [];
 page.on("pageerror", e => errors.push(e.message));
-for (let tries = 0; !page.url().includes("#game="); tries++) {
-  if (tries === 4) throw new Error("the import did not open");
-  await page.goto(`${server.url}/review`);
-  await page.waitForLoadState("networkidle");
-  await page.waitForTimeout(2000);
-  await page.locator('input[type="file"][accept*="json"]').first().setInputFiles(file);
-  await page.waitForURL(/#game=/, { timeout: 60_000 }).catch(() => {});
-}
-await page.getByText(/^Review done/).waitFor({ timeout: 600_000 });
+await importReview(page, server.url, file);
 
 const note = () => page.locator('.map-margin [role="status"]').first().textContent({ timeout: 500 }).then(t => t.trim()).catch(() => null);
 const legend = () => page.locator(".map-legend").first().textContent({ timeout: 500 }).then(t => t.trim()).catch(() => null);
-const goTo = async n => {
-  await page.locator("body").click({ position: { x: 1, y: 1 } });
-  await page.keyboard.press("Home");
-  for (let i = 0; i < n; i++) await page.keyboard.press("ArrowRight");
-};
 /** Reads the note once a second for `seconds`, and says how it ended. */
 async function watch(name) {
   const seen = [];
@@ -62,7 +49,7 @@ async function watch(name) {
   return !stuck && !!map;
 }
 
-await goTo(AT);
+await stepTo(page, AT);
 await page.keyboard.press("t");
 const first = await watch(`the map turned on at edge ${AT}`);
 await page.reload();

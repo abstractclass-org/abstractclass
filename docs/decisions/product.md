@@ -6251,3 +6251,36 @@ the effect again, which found the stored map.
 asked for before the engine is ready waits, then comes", and "every state of a map ends: a map that the pass held and
 dropped is asked for again". After the fix, the browser check passes for the three cases: the map turned on, after a
 reload, and a review while it runs (the map on from its start), each note gone within a second, with the map shown.
+
+### The area map's review (2026-10-21)
+
+The review of the area map's branch (design 30), after its rebase on `dev`. Each fix below has a test that failed
+before it.
+
+- **Three states of the map that did not end** (design 30, items 6, 9 and 10):
+  - A position of the game's tree with no result, which no search would reach: a branch's position that the player
+    has not visited, or a position of the Analysis board. Its map waited for its own search, which never came, and
+    the note "Maps of the line: k of n" kept its gleam. Now such a position gets a short search. "Waiting" means a
+    search to come: the map's own, or the review's search of the position (`pending`).
+  - A map pass stopped and started again. The stopped pass's running search ended later, and counted as one of the
+    new pass's searches. So the new pass ended one search early: its part of the progress bar went while its last
+    search ran, and with more positions in the queue, it left one out. Now each pass counts only its own searches
+    (`mapPassRun`).
+  - The pass held the page's map. A position that the pass still held in its queue was not asked for again by the
+    page, so its map waited at the lowest priority, behind the pass: up to about 20 seconds in a game of 120 edges.
+    Now the page asks for it itself, ahead of the pass.
+- **A file holds every result as shape 5** (`atShape`, design 13). A file from a browser that holds results of shape
+  6 kept them as 6, and the site before the area map drops those: it would search their positions again. A test
+  reads a file of this site with that site's filter.
+- **The notes:** in After vs before, the note counts the map before the move, which the board needs too, and the
+  game's start says "No map: the game starts here".
+- **What reading shape 6 costs:** headless Chromium, one readonly transaction of the keys of 121 positions at 12
+  depths, on a store of 242 results of about 4 kB, 9 runs each: a median of 18 ms in one shape (1,452 reads) and 36
+  ms in two (2,904 reads). The review reads these keys while the engine starts (`warmCache`), which takes 0.6 to 1.2
+  seconds ("The review's layout shift, and a shorter footer"), so the first frame does not wait for the second
+  shape. `READ_SHAPES` stays.
+- **Simpler code, the same behaviour:** the board's map is a prop, not a layer as well. `READ_FROM`, which was equal
+  to `SHAPE`, is gone. An added map has one key. Forecast vs board computes the board's state once. The map's step
+  and its ownership are separate values, so that a batch of results that changes neither does not draw the map
+  again. The protocol's types lose `includeMovesOwnership`, which no search asks for. The measuring scripts take
+  their tools from `speed.mjs`.

@@ -2,7 +2,7 @@
 // that a load keeps. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { SHAPE, mapKey } from "@abstractclass/analysis/cache.ts";
+import { SHAPE, mapKey, readAnalysisKey } from "@abstractclass/analysis/cache.ts";
 import { buildReviewFile, gameAnalyses, importReview, mergeBranches, positionKeys, readReviewFile, reviewFileName } from "./reviewFile.ts";
 import { loadGame, reviewCovers, reviewMark, type KeptBranches, type ReviewMark } from "./store.ts";
 import { memoryDb } from "@abstractclass/storage/memoryDb.ts";
@@ -67,6 +67,28 @@ test("a review file reads back, and a wrong file says why", () => {
   assert.deepEqual(readReviewFile(JSON.stringify(older)).analyses, [[key(""), { blueWin: 0.5 }]]);
   const early = { ...file, analyses: [[key("D10-G10", 6), { blueWin: 0.4 }]] };
   assert.deepEqual(readReviewFile(JSON.stringify(early)).analyses, [[key("D10-G10", 6), { blueWin: 0.4 }]]);
+});
+
+/** Whether the site before the area map (origin/main) takes a file's entry as a result: its readSchoolFile keeps an
+ *  entry whose key has a result's form (its cache.ts, isAnalysisKey) and its shape, 5, and whose value is an object,
+ *  and its gameAnalyses (belongs) takes a result of shape 5. */
+const readBefore = ([key, value]: [string, unknown]) =>
+  /^\d+\|[^|]*\|[0-9a-f]+\|\d+\|/.test(key) && Number(key.split("|")[0]) === 5 && !!value && typeof value === "object";
+
+test("a review file of this site opens completely on the site before the area map, which leaves out the maps", () => {
+  const map: [string, unknown] = [mapKey("85c2adb", "ab12", ["D10-G10"]), { ownership: [1], visits: 32, source: "short search" }];
+  const entries: [string, unknown][] = [
+    [key(""), { blueWin: 0.5 }], [key("", 6), { blueWin: 0.5, ownership: [9] }], // as deep: the one with the ownership
+    [key("D10-G10"), { blueWin: 0.4, ownership: [2] }], [key("D10-G10 N11-Q10", 6), { blueWin: 0.3, ownership: [3] }], map,
+  ];
+  const file = buildReviewFile(RECORD, null, entries, "abc1234", null, null, new Date("2026-10-21T00:00:00Z"));
+  const results = file.analyses.filter(([k]) => !readAnalysisKey(k).map);
+  assert.deepEqual(results, [[key(""), { blueWin: 0.5, ownership: [9] }], [key("D10-G10"), { blueWin: 0.4, ownership: [2] }],
+                             [key("D10-G10 N11-Q10"), { blueWin: 0.3, ownership: [3] }]]);
+  assert.ok(results.every(readBefore)); // every position's result
+  assert.deepEqual(file.analyses.filter(e => !readBefore(e)), [map]); // the map alone is left out
+  // This site reads the file back whole
+  assert.deepEqual(readReviewFile(JSON.stringify(file)).analyses, file.analyses);
 });
 
 test("branches merge: the kept ones keep their order, the file's new ones follow", () => {

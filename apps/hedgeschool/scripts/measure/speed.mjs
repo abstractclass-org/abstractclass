@@ -136,6 +136,31 @@ export async function importFile(page, url, file) {
   await page.locator('input[type="file"][accept*="json"]').first().setInputFiles(file);
 }
 
+/** Imports a review file as importFile does, again until the page opens its game, from a page that has loaded: a file
+ *  set before the page has started can go unread. Then waits until the review is done. */
+export async function importReview(page, url, file) {
+  for (let tries = 0; !page.url().includes("#game="); tries++) {
+    if (tries === 4) throw new Error("the import did not open");
+    await page.goto(`${url}/review`);
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(2000);
+    await page.locator('input[type="file"][accept*="json"]').first().setInputFiles(file);
+    await page.waitForURL(/#game=/, { timeout: 60_000 }).catch(() => {});
+  }
+  await page.getByText(/^Review done/).waitFor({ timeout: 600_000 });
+}
+
+/** Steps the review on the page to the position after `n` edges, by its keys: the start, then `n` steps. */
+export async function stepTo(page, n) {
+  await page.locator("body").click({ position: { x: 1, y: 1 } });
+  await page.keyboard.press("Home");
+  for (let i = 0; i < n; i++) await page.keyboard.press("ArrowRight");
+}
+
+/** Waits until every search that the page sent to a worker has ended (watchSweep's `__searches`). */
+export const searchesEnded = (page, timeout = 180_000) =>
+  page.waitForFunction(() => window.__searches.every(s => s.ended !== undefined), null, { timeout });
+
 /** Keeps the fixture's review in the page's browser: imports it, and waits until the review is done, as the engine
  *  searches what the file lacks. */
 export async function storeReview(page, url) {

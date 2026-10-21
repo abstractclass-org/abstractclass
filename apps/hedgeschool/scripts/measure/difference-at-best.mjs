@@ -1,8 +1,8 @@
 // How much the area map's "After vs before" style (design 30) marks after the engine's best moves: on the test
 // fixture's game (tests/fixtures/hedgefund-review.json), each edge that was the engine's first choice, the difference
 // of the stored maps before and after it from its mover's side (ownership.ts, differenceMap), and the points marked at
-// the smallest values 0, 0.05 (the default), 0.1, 0.3 and 0.5; the strongest change; and the sum of the falls and of the rises, in points of
-// the forecast. By edge: the stored results are by position.
+// the smallest values 0, 0.05 (the default), 0.1, 0.3 and 0.5, the strongest change, and the sum of the falls and of
+// the rises, in points of the forecast. By edge: the stored results are by position.
 //
 //   node scripts/measure/difference-at-best.mjs
 import { readFileSync } from "node:fs";

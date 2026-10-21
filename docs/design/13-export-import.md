@@ -144,8 +144,9 @@ searching it again, and to share it as text that others can read.
 ## Consequences
 
 - A result's key holds the store's shape. When the shape changes (to 5 for the priors, design 14), a file exported
-  before imports without its results, and the review searches again. Shape 6 only adds the ownership (design 30): a
-  file of shape 5 imports with its results.
+  before imports without its results, and the review searches again. The ownership of the area map is a field
+  added to shape 5, not a new shape (design 30): a file of the site before the map imports with its results, and the
+  site before the map reads a file of this site whole. A file holds every result as shape 5 (`atShape`).
 - **The notation's rules for the record** (the engine repository's design 04, after
   [requests/13-branch-placement.md](../requests/13-branch-placement.md)):
   - A branch follows the turn it changes, after the turn's last edge, its mark and its comments. `N.` replaces the

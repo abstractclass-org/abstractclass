@@ -7,7 +7,7 @@
 //   node scripts/measure/map-pass.mjs <build dir> <scratch dir> [workers] [port]
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { FIXTURE, launch, median, preview, watchSweep } from "./speed.mjs";
+import { FIXTURE, importReview, launch, median, preview, searchesEnded, watchSweep } from "./speed.mjs";
 
 const [dir, scratch, workersArg = "2", portArg = "4499"] = process.argv.slice(2);
 const workers = Number(workersArg);
@@ -21,20 +21,10 @@ const server = await preview(dir, Number(portArg)), browser = await launch();
 const context = await browser.newContext({ viewport: { width: 1366, height: 900 } });
 await context.addInitScript(watchSweep, JSON.stringify({ workers, gpu: "off" }));
 const page = await context.newPage();
-// The file set before the page has started can go unread: the import is tried again, from a page that is ready
-for (let tries = 0; !page.url().includes("#game="); tries++) {
-  if (tries === 4) throw new Error("the import did not open");
-  await page.goto(`${server.url}/review`);
-  await page.waitForLoadState("networkidle");
-  await page.waitForTimeout(2000);
-  await page.locator('input[type="file"][accept*="json"]').first().setInputFiles(file);
-  await page.waitForURL(/#game=/, { timeout: 60_000 }).catch(() => {});
-}
-await page.getByText(/^Review done/).waitFor({ timeout: 600_000 });
-const idle = () => page.waitForFunction(() => window.__searches.every(s => s.ended !== undefined), null, { timeout: 600_000 });
-await idle();
+await importReview(page, server.url, file);
+await searchesEnded(page, 600_000);
 await page.waitForTimeout(1000);
-await idle();
+await searchesEnded(page, 600_000);
 const before = await page.evaluate(() => window.__searches.length);
 await page.locator("body").click({ position: { x: 1, y: 1 } });
 const t0 = Date.now();

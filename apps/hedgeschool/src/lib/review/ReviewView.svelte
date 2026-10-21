@@ -10,6 +10,7 @@
   import { MOVE_HERE, MOVE_HOVER, MOVE_LIST, MOVE_TEXT, TURN_NUMBER, TURN_REM, keepInView, moveButton, turnRow } from "./moveList.ts";
   import { PLAYER_NAME, type Analysis, type BranchNode, type Edge, type LineStep, type Player } from "./enclosure.ts";
   import type { EdgeRules } from "#lib/board/edgeInput.svelte.ts";
+  import type { MapState } from "@abstractclass/analysis/analysis.svelte.ts";
 
   /** The review in progress: what the engine does now, and the passes as parts of one bar, each with its share of the
    *  work (by visits) and how much of it is done (0 to 1). `waiting`: no work runs (the engine is off). `maps`: the
@@ -45,7 +46,7 @@
     mapAt(path: string[]): number[] | undefined; // a position's ownership: its result's, or the map added to it (design 30)
     hasNoMap(path: string[]): boolean; // the position gets no map: the engine did not search it (the game ends there)
     // The state of a position's map: there, its search runs, it waits for the engine, none can come, or none is asked
-    mapState(path: string[]): "ready" | "searching" | "waiting" | "none" | "unasked";
+    mapState(path: string[]): MapState;
     passMaps(on: boolean, from: string[]): void; // the map pass: the game's missing maps while the map is on (design 30)
     labelled: number; // the positions that the label pass has searched
     passCount: number; // the positions that the review's passes search
@@ -692,19 +693,24 @@
   // Nothing when the map shown is the board's own and ready.
   // The note reads the map as the board does (mapOf): a map that shows is ready, whatever the analysis's state says.
   // A map that nothing asks for has no note: a note shows only a state that ends.
-  const stateOf = (p: string[]) => (mapOf(p) ? "ready" : game?.mapState(p) ?? "unasked");
+  const stateOf = (p: string[]): MapState => (mapOf(p) ? "ready" : game?.mapState(p) ?? "unasked");
   const mapWork = $derived.by((): { text: string; busy: boolean } | null => {
     if (!mapOn || !game) return null;
     const l = mapLine, n = l.all.length;
+    const working = (st: MapState) => st === "waiting" || st === "searching";
     if (n) {
       const states = Array.from({ length: n }, (_, k) => stateOf(stepPath(l, k + 1)));
       const done = states.filter(st => st === "ready" || st === "none").length;
-      return { text: `Maps of the line: ${done} of ${n}`, busy: states.some(st => st === "waiting" || st === "searching") };
+      // In the difference style, the line's start too: its map is the forecast before
+      return { text: `Maps of the line: ${done} of ${n}`, busy: states.some(working) || (!!diffBase && working(stateOf(l.start))) };
     }
-    const st = stateOf(l.start);
-    if (st === "waiting") return { text: "Map: waiting for the engine", busy: true };
-    if (st === "searching") return { text: "Map: searching", busy: true };
-    if (st === "none") return { text: "No map: the game ends here", busy: false };
+    // The difference style at the game's start: no move comes before it
+    if (display.mapStyle === "difference" && !diffBase) return { text: "No map: the game starts here", busy: false };
+    // A position: its map, and in the difference style the map before the move, which the board needs too
+    const states = [l.start, ...(diffBase?.played ? [diffBase.before] : [])].map(stateOf);
+    if (states.includes("searching")) return { text: "Map: searching", busy: true };
+    if (states.includes("waiting")) return { text: "Map: waiting for the engine", busy: true };
+    if (states[0] === "none") return { text: "No map: the game ends here", busy: false };
     return null;
   });
   // The map pass, for an older review: while the map is on, once the review's passes are done (labelled). The
@@ -1673,14 +1679,14 @@
         () => display.layers.marks, v => (display.layers.marks = v))}
       {@render toggle("Regions", "Shading on the areas each player encloses.",
         () => display.layers.regions, v => (display.layers.regions = v))}
-      {@render toggle("Area map", "Shading or marks on each point from the engine's ownership, in the style below. While a line or a preview shows, the map is of the position after its last drawn edge. The key t shows or hides it.",
+      {@render toggle("Area map", "Shades or marks each point from the engine's forecast, in the style below. While a line or a preview shows, the map shows the position after its last drawn edge. The key t shows or hides the map.",
         () => mapOn, v => (display.areaMap[mapPage] = v))}
-      {@render choice("Area map style", "Forecast: who the engine expects to hold each point, and how surely. Forecast vs board: what the engine expects still to happen, whoever moves: dots where a player will probably close open area, hatching where a player will probably lose closed area. After vs before: what the last move, or the line on the board, changed in the forecast for the player who moved: a plus in that player's colour where it rose, a minus in the opponent's where it fell.",
+      {@render choice("Area map style", "Forecast: who the engine expects to hold each point, and how surely. Forecast vs board: what the engine expects to happen next, whoever moves. Dots show open area that a player will probably close. Hatching shows closed area that its owner will probably lose. After vs before: how the last move, or the line on the board, changed the forecast for the player who moved. A plus in that player's colour shows a rise. A minus in the opponent's colour shows a fall.",
         Object.entries(MAP_STYLE_NAME), () => display.mapStyle, v => (display.mapStyle = v as Display["mapStyle"]))}
       <div class="flex items-center justify-between gap-3 py-1.5">
         <div class="min-w-0">
           <label for="setting-map-min" class="text-sm font-medium">Smallest value marked</label>
-          <p class="text-xs text-muted">{MAP_STYLE_NAME[display.mapStyle]}, from 0 to 1. At 0, every point with a value. Hold the pointer over a point of the board to see its numbers.</p>
+          <p class="text-xs text-muted">{MAP_STYLE_NAME[display.mapStyle]}: from 0 to 1. At 0, the map marks every point that has a value. Hold the pointer over a point to see its numbers.</p>
         </div>
         <span class="text-sm tabular-nums">{valueText(display.mapMin[display.mapStyle])}</span>
         <input id="setting-map-min" type="range" min="0" max="100" step="5" value={display.mapMin[display.mapStyle]}

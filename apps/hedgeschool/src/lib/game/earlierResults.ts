@@ -32,8 +32,9 @@ export interface KeptGame { moves: string[]; branches: KeptBranches | null; mark
 /** The stored results that nothing reads, among `keys` (in the store's order): of a shape that the readers read
  *  (readable), neither of the site's search with a network file it ships nor read by a stored game's snapshot. A
  *  snapshot reads the results of one search and network file, for the game's positions and those one move from them
- *  (the review file's, design 13), each at the deepest that it reads (readsAt). `engine` is the site's (engine.lock.json). None without its CPU
- *  module's search: every result of the site's own engine would then count as an earlier engine's. */
+ *  (the review file's, design 13), each at the deepest that it reads (readsAt). `engine` is the site's
+ *  (engine.lock.json). None without its CPU module's search: every result of the site's own engine would then count as
+ *  an earlier engine's. */
 export function unneededResults(keys: string[], games: KeptGame[], engine: Manifest): string[] {
   const site = moduleOf(engine)?.search;
   if (!site) return [];

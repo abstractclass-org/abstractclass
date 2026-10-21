@@ -31,7 +31,8 @@ let models = 0;
  *  posts a result so far, `end` the final result (`late`: its time limit ended it), `fail` an engine error. `stopped`
  *  once the page stops the search, `maxMs` its time limit. A task runs when an engine is free, the most urgent first,
  *  then first come first served, as the pool runs them (pool.ts). `waiting`: the tasks that wait for an engine. `halt`
- *  drops the waiting tasks and stops the running searches in slices, as the pool does. */
+ *  drops the waiting tasks and stops the running searches in slices, as the pool does. `cancel` drops the waiting tasks
+ *  of the tags that it takes, and lets the running ones end, as the pool does. */
 function fakePool(engines = Infinity) {
   const searches: { partial(visits: number): void; end(visits: number, late?: boolean, more?: Partial<AnalysisReply>): void;
                     fail(e: Error): void; stopped: boolean; maxMs?: number; query: AnalysisQuery }[] = [];
@@ -51,12 +52,12 @@ function fakePool(engines = Infinity) {
     },
   };
   let busy = 0;
-  const queue: { priority: number; start: () => void; reject: (e: Error) => void }[] = [];
+  const queue: { priority: number; tag: string; start: () => void; reject: (e: Error) => void }[] = [];
   const stops = new Set<() => void>(); // the running searches in slices
   const pool = {
     search: "test", model: { sha256: `m${++models}` }, // a network of its own: the cache's memory outlives a test
     rules: wordRules,
-    run: (priority: number, _tag: string, work: Work<unknown>) => new Promise((resolve, reject) => {
+    run: (priority: number, tag: string, work: Work<unknown>) => new Promise((resolve, reject) => {
       const start = () => {
         busy++;
         let stop = () => {};
@@ -65,7 +66,7 @@ function fakePool(engines = Infinity) {
       };
       if (busy < engines) start();
       else {
-        queue.push({ priority, start, reject });
+        queue.push({ priority, tag, start, reject });
         queue.sort((a, b) => b.priority - a.priority);
       }
     }),
@@ -73,7 +74,10 @@ function fakePool(engines = Infinity) {
       for (const t of queue.splice(0)) t.reject(new Cancelled());
       for (const stop of stops) stop();
     },
-    cancel() {}, terminate() {},
+    cancel(match: (tag: string) => boolean) {
+      for (const t of queue.filter(t => match(t.tag))) { queue.splice(queue.indexOf(t), 1); t.reject(new Cancelled()); }
+    },
+    terminate() {},
     get waiting() { return queue.length; },
   };
   return { pool: pool as unknown as EnginePool, searches };
@@ -258,6 +262,108 @@ test("every state of a map ends: a map asked for before the engine is ready wait
   assert.equal(game.mapState(["a", "x"]), "unasked");
 });
 
+test("every state of a map ends: a map pass stopped and started again runs to its last map, whatever the old one's last task does", async () => {
+  const { game, searches } = await noMaps(1, "g9");
+  void game.sweep();
+  await turns();
+  game.passMaps(true, []); // from the start: "" runs, the others wait
+  await turns();
+  const old = searches.at(-1)!;
+  assert.deepEqual(old.query.moves, []);
+  game.passMaps(false, []); // the map off: the waiting ones go, the running one ends at its visits
+  await turns();
+  game.passMaps(true, []); // on again: a pass of the others
+  await turns();
+  old.end(MAP_VISITS, false, { ownership: [0.1] }); // the stopped pass's task ends late
+  await turns();
+  // Each search of the new pass ends: the pass runs, and shows its progress, until its last search ends
+  for (let k = 1; k < game.passCount; k++) {
+    const s = searches.at(-1)!;
+    assert.deepEqual(s.query.moves, MOVES.slice(0, k));
+    s.end(MAP_VISITS, false, { ownership: [0.2] });
+    await turns();
+    if (k < game.passCount - 1) assert.ok(game.mapPass, `the pass runs after its search ${k}`);
+  }
+  assert.equal(game.mapPass, null);
+  for (let k = 0; k < game.passCount; k++) assert.equal(game.mapState(MOVES.slice(0, k)), "ready");
+});
+
+test("the map pass gives way to the player: a position that it holds in its queue is searched first for the page", async () => {
+  const { game, searches } = await noMaps(1, "g11");
+  void game.sweep();
+  await turns();
+  game.passMaps(true, []); // "" runs; "a", "a b" and "a b c" wait, in that order
+  await turns();
+  game.askOwnership([["a", "b", "c"]]); // the player steps to the last position, which the pass would search last
+  await turns();
+  searches.at(-1)!.end(MAP_VISITS, false, { ownership: [0.1] }); // the pass's search of ""
+  await turns();
+  const asked = searches.at(-1)!;
+  assert.deepEqual([asked.query.moves, !!asked.query.slice], [["a", "b", "c"], false]); // the page's own search, first
+  asked.end(MAP_VISITS, false, { ownership: [0.5] });
+  await turns();
+  assert.equal(game.mapState(["a", "b", "c"]), "ready");
+  // The pass searches the rest, and not "a b c" again
+  for (const moves of [["a"], ["a", "b"]]) {
+    assert.deepEqual(searches.at(-1)!.query.moves, moves);
+    searches.at(-1)!.end(MAP_VISITS, false, { ownership: [0.2] });
+    await turns();
+  }
+  assert.equal(searches.length, 4);
+  assert.equal(game.mapPass, null);
+});
+
+test("results that the area map's first builds stored as shape 6 open the review with no search, with their maps", async () => {
+  const { pool, searches } = fakePool();
+  const deep = 16384, model = pool.model!.sha256;
+  for (let i = 0; i <= MOVES.length; i++)
+    await cachePut(analysisKey(pool.search!, model, MOVES.slice(0, i), deep, 6), { ...toAnalysis(words, reply(deep)), ownership: [i] });
+  const game = new GameAnalysis(words, pool, MOVES, "g12");
+  await game.start();
+  await game.fromStore(pool.search!, model);
+  void game.sweep();
+  await turns();
+  mock.timers.tick(BATCH_MS);
+  game.askOwnership([["a"]]);
+  await turns();
+  assert.equal(searches.length, 0); // no review again, and no map searched
+  assert.equal(game.labelled, game.passCount);
+  assert.deepEqual(game.mapAt(["a"]), [1]);
+});
+
+test("every state of a map ends: a branch's position that nothing searches gets a short search, not a wait", async () => {
+  const { game, searches } = await noMaps(2, "g10");
+  void game.sweep();
+  await turns();
+  await game.addLine(["a", "x"], false); // a branch's position, with no result: no search comes until the player looks
+  game.askOwnership([["a", "x"]]);
+  await turns();
+  const s = searches.at(-1)!;
+  assert.deepEqual([s.query.moves, s.query.maxVisits], [["a", "x"], MAP_VISITS]);
+  assert.equal(game.mapState(["a", "x"]), "searching");
+  s.end(MAP_VISITS, false, { ownership: [0.6] });
+  await turns();
+  assert.equal(game.mapState(["a", "x"]), "ready");
+});
+
+test("a branch's position on screen waits for its own search, which brings its map, and gets no short search", async () => {
+  const { game, searches } = await noMaps(2, "g13");
+  void game.sweep();
+  await turns();
+  await game.addLine(["a", "y"], false);
+  game.focus(["a", "y"]); // the player steps to it: its search for the player comes
+  game.askOwnership([["a", "y"]]);
+  await turns();
+  const own = searches.filter(s => s.query.moves.join(" ") === "a y");
+  assert.equal(own.length, 1);
+  assert.notEqual(own[0].query.maxVisits, MAP_VISITS);
+  assert.equal(game.mapState(["a", "y"]), "waiting");
+  own[0].end(own[0].query.maxVisits, false, { ownership: [0.7] });
+  await turns();
+  mock.timers.tick(BATCH_MS);
+  assert.deepEqual(game.mapAt(["a", "y"]), [70]);
+});
+
 test("every state of a map ends: a map that the pass held and dropped is asked for again", async () => {
   const { game, searches } = await noMaps(1, "g8");
   void game.sweep();
@@ -265,7 +371,7 @@ test("every state of a map ends: a map that the pass held and dropped is asked f
   game.passMaps(true, []); // from the start: "" first, then "a", "a b", "a b c"
   await turns();
   assert.deepEqual(searches.at(-1)!.query.moves, []);
-  game.askOwnership([["a", "b"]]); // the page wants a position that the pass holds (queued): it skips it
+  game.askOwnership([["a", "b"]]); // the page wants a position that the pass holds in its queue: its own search too
   assert.equal(game.mapState(["a", "b"]), "waiting");
   game.passMaps(false, []); // the map pass stops: its queued search of "a b" ends with no map
   searches.at(-1)!.end(MAP_VISITS, false, { ownership: [0.1] });

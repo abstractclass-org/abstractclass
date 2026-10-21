@@ -2,7 +2,7 @@
 // position of them, so that the analysis opens at once in another browser. It is the review file's kind for the board
 // (reviewFile.ts): the same results, chosen the same way (of the lines' positions and of the positions one move from
 // them, which confirm the Greats), and read the same way.
-import { ofModels, readAnalysisKey } from "@abstractclass/analysis/cache.ts";
+import { atShape, ofModels, readAnalysisKey } from "@abstractclass/analysis/cache.ts";
 import { STORES, dbEntriesWhere, dbPutMany } from "@abstractclass/storage/db.ts";
 import { moduleOf, type Manifest } from "@abstractclass/engine/client.ts";
 import { REVIEW_FORMAT, belongs, readSchoolFile, shippedModels } from "./reviewFile.ts";
@@ -34,7 +34,7 @@ export function fileKind(text: string): "review" | "analysis" | null {
 /** The analysis file of a board, with the results of `models`, the networks this site ships. */
 export async function exportAnalysis(board: KeptBoard, site: string, models: Set<string> | null, now = new Date()): Promise<AnalysisFile> {
   const positions = boardPositionKeys(board);
-  const analyses = await dbEntriesWhere(STORES.analysis, key => belongs(key, positions, models));
+  const analyses = atShape(await dbEntriesWhere(STORES.analysis, key => belongs(key, positions, models)));
   return { format: ANALYSIS_FORMAT, version: ANALYSIS_FILE_VERSION, exported: now.toISOString(), site, board, analyses };
 }
 

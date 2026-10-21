@@ -76,6 +76,9 @@ test("a result that the area map's first builds stored as shape 6 is read as one
   db.rows(STORES.analysis).set(sixth(["e5"], 16384), { visits: 16384, shape: 6 });
   db.rows(STORES.analysis).set(analysisKey("s5", "n1", ["e5"], 1024), { visits: 1024, shape: SHAPE });
   assert.deepEqual(await cacheGetAtLeast("s5", "n1", ["e5"], 512), { visits: 16384, shape: 6 }); // the deepest
+  db.rows(STORES.analysis).set(analysisKey("s5", "n1", ["h8"], 512), { visits: 512, shape: SHAPE });
+  db.rows(STORES.analysis).set(sixth(["h8"], 512), { visits: 512, shape: 6 });
+  assert.deepEqual(await cacheGetAtLeast("s5", "n1", ["h8"], 512), { visits: 512, shape: 6 }); // as deep: the one of 6
   db.rows(STORES.analysis).set(analysisKey("s5", "n1", ["f6"], 512, SHAPE - 1), { visits: 512 });
   assert.equal(await cacheGetAtLeast("s5", "n1", ["f6"], 512), undefined);
   db.rows(STORES.analysis).set(analysisKey("s5", "n1", ["g7"], 512, 7), { visits: 512 });

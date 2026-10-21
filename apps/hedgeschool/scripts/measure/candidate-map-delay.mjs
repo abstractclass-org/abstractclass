@@ -11,7 +11,7 @@
 //   node scripts/measure/candidate-map-delay.mjs <build dir> [workers] [port]
 import { readFileSync } from "node:fs";
 import { parseRecord } from "../../src/lib/game/record.ts";
-import { FIXTURE, importFile, launch, median, preview, watchSweep } from "./speed.mjs";
+import { FIXTURE, importFile, launch, median, preview, searchesEnded, stepTo, watchSweep } from "./speed.mjs";
 
 const [dir, workersArg = "2", portArg = "4495"] = process.argv.slice(2);
 const workers = Number(workersArg), POSITIONS = [15, 25, 35, 45, 55, 65, 75, 85, 95, 105];
@@ -19,16 +19,10 @@ const record = JSON.parse(readFileSync(FIXTURE, "utf8")).record, moves = parseRe
 const server = await preview(dir, Number(portArg)), browser = await launch();
 const DISPLAY = "learn-enclosure:review-display:1";
 
-async function goTo(page, n) {
-  await page.locator("body").click({ position: { x: 1, y: 1 } });
-  await page.keyboard.press("Home");
-  for (let i = 0; i < n; i++) await page.keyboard.press("ArrowRight");
-}
-
 /** At the position after `n` edges: points at a candidate other than the game's next move until its line shows, then
  *  waits for its map. */
 async function sample(page, n) {
-  await goTo(page, n);
+  await stepTo(page, n);
   const rows = page.locator('table:has(th:text-is("Edge")) tbody tr'), legend = page.locator(".map-legend");
   const until = Date.now() + 60_000;
   while (Date.now() < until) {
@@ -68,12 +62,11 @@ async function run(kind) {
   const out = [];
   for (const n of POSITIONS) {
     if (kind === "idle") {
-      await goTo(page, n);
+      await stepTo(page, n);
       // No search running: the position on screen's, the key moments' and the Greats' have ended
-      const idle = () => page.waitForFunction(() => window.__searches.every(s => s.ended !== undefined), null, { timeout: 180_000 });
-      await idle();
+      await searchesEnded(page);
       await page.waitForTimeout(1000);
-      await idle();
+      await searchesEnded(page);
     }
     const s = await sample(page, n);
     const done = await page.getByText(/^Review done/).count();

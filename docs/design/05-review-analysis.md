@@ -93,11 +93,11 @@ noise.
    equals a fresh one, because the engine is reproducible, and a release that keeps the search keeps the results.
    A new shape is only for a change of what a result's fields mean: it makes the results of the older shapes useless,
    and no reader reads them. A field that is only added takes no new shape: the reader checks whether the field is
-   there, as it must for the results stored before it. So a result of shape 5 can have the ownership and the
-   candidates' maps, or not (design 30). The area map's first builds wrote such results as shape 6 on their branch,
-   and the site reads them as shape 5 (`READ_SHAPES`). The site removes the results that no reader reads when it
-   starts for the first time after a change of shape, and a mark in the browser's local storage keeps the shape that
-   it removed them for. The results of an earlier search or of an earlier network file stay while the
+   there, as it must for the results stored before it. So a result of shape 5 can have the ownership, or not
+   (design 30). Development builds of the area map wrote such results as shape 6, before this rule: the site reads
+   them as shape 5 (`READ_SHAPES`), and a file holds them as shape 5. The site removes the results that no reader
+   reads when it starts for the first time after a change of shape, and a mark in the browser's local storage keeps
+   the shape that it removed them for. The results of an earlier search or of an earlier network file stay while the
    snapshot of a stored game reads them, and go at a later start when no game needs them (design 20, item 8).
 
 ## Why

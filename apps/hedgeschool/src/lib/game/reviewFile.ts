@@ -4,7 +4,7 @@
 // another network keeps the game and its branches, and its review searches again with its own engine. KaTrain keeps its
 // analysis in its SGF files in the same spirit. The game's record alone, with evaluations and labels, is the annotated
 // record (review/annotate.ts).
-import { makeEarlierRemovalDue, isAnalysisKey, ofModels, readAnalysisKey, readable } from "@abstractclass/analysis/cache.ts";
+import { atShape, makeEarlierRemovalDue, isAnalysisKey, ofModels, readAnalysisKey, readable } from "@abstractclass/analysis/cache.ts";
 import { STORES, dbEntriesWhere, dbGet, dbPut, dbPutMany } from "@abstractclass/storage/db.ts";
 import { parseRecord, playerNames } from "./record.ts";
 import { branchNodes, keptNode, loadGame, markReviewed, saveGame, setGameSettings, type KeptBranches, type ReviewMark } from "./store.ts";
@@ -64,7 +64,7 @@ export function buildReviewFile(record: string, branches: KeptBranches | null, e
   return {
     format: REVIEW_FORMAT, version: REVIEW_FILE_VERSION, exported: now.toISOString(), site,
     review: reviewed && { ...reviewed, networkName: networkName(reviewed.network) }, record, branches,
-    analyses: gameAnalyses(entries, positionKeys(moves, branches), models),
+    analyses: atShape(gameAnalyses(entries, positionKeys(moves, branches), models)),
   };
 }
 

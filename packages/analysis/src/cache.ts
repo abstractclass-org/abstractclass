@@ -23,12 +23,22 @@ export async function cachePut(key: string, value: unknown): Promise<void> {
 // the position's complexity. A result of 5 can also have the ownership of each point, for the area map (Hedge School's
 // design 30).
 export const SHAPE = 5;
-/** The shapes that the readers read, the oldest first: SHAPE, and 6, which the first builds of the area map wrote on
- *  their branch before the rule above, for results of 5 with the ownership (Hedge School's design 30). A result of 6 is
- *  read as one of 5, kept, and never searched again or removed. */
+/** The shapes that the readers read, the oldest first: SHAPE, and 6, which development builds of the area map wrote
+ *  before the rule above, for results of 5 with the ownership (Hedge School's design 30). A result of 6 is read as one
+ *  of 5, kept, and never searched again or removed. A file holds it as one of 5 (atShape). */
 export const READ_SHAPES = [SHAPE, 6];
 /** Whether the readers read a result of this shape. */
 export const readable = (shape: number) => READ_SHAPES.includes(shape);
+/** Results as a file that this site writes holds them: each one that the readers read under its key of SHAPE, so that a
+ *  reader of SHAPE alone, the site before the area map, reads them all (Hedge School's design 13 and 30). Of a result
+ *  of 6 and one of 5 as deep, the one of 6, which has the ownership. */
+export function atShape(entries: [string, unknown][]): [string, unknown][] {
+  const out = new Map<string, unknown>();
+  const ofShape = ([key]: [string, unknown]) => readAnalysisKey(key).shape === SHAPE;
+  for (const [key, value] of [...entries.filter(ofShape), ...entries.filter(e => !ofShape(e))])
+    out.set(key.replace(/^\d+\|/, `${SHAPE}|`), value);
+  return [...out];
+}
 
 /** The moves part of a key for moves from `start`, a set-up position (design 21): the start first, as one word with `_`
  *  for its spaces after `@`, so that a key's position and its parent read as they do from the standard start. */

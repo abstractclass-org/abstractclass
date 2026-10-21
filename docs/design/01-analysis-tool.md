@@ -189,8 +189,7 @@ DecodeChess.
       was better. The map shows the engine's ownership of each point, against the board, or against the ownership
       before a move (what the move changed), and while a line shows, the map of the position after its last drawn
       edge. Its legend and the numbers of the point under the pointer state the engine's values, with no language
-      model. A caption that read a mistake from the opponent's next turn was built and removed: one turn's close or
-      cut is not what the mistake gave away.
+      model. It has no caption for a mistake: one turn's close or cut is not what the mistake gave away.
 
 ## 3. What Enclosure changes
 
