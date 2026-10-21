@@ -95,6 +95,8 @@
     <li>your practice games</li>
     <li>the settings you change, the features you use, and your exports</li>
     <li>that you opened Support Us</li>
+    <li>errors, such as an engine that does not start, a game that the site cannot find, or a tool that needs an
+      update</li>
   </ul>
   <p>The counts hold ranges, such as a game's length. They also hold how your computer runs the engine: its number of
     cores, its GPU and the engine's speed. They never hold a game, a move or a player's name. Until you accept the
