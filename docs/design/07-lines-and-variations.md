@@ -129,8 +129,9 @@ cut edges that are on the board, so a line drawn over the board can show edges t
    among the branches from its parent, and come back when the game is opened again. A branch's analyses are in the
    analysis cache, which is keyed by the moves.
 8. **The candidates' ranks are rounded squares,** on the board, in the table and before the listed line, and the
-   line's numbers are circles (Go's numbered stones), so a rank is never read as a line's number. While a line shows,
-   the other candidates still leave the board.
+   line's numbers are circles (Go's numbered stones), so a rank is never read as a line's number. The threat's numbers
+   are warning triangles (design 31), so that the threat never reads as an engine's line. No other mark of the board
+   is a triangle. While a line shows, the other candidates still leave the board.
    - **A rank is a distinct move.** In a position that is its own image (the start, under the mirror of row r to row
      20 - r), the engine searches one edge of each mirror pair and lists the other with the same numbers (protocol
      0.4, its "symmetric twins"). The table has one row for the pair, with a mirror mark (⇅) whose note names the

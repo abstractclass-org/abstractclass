@@ -36,6 +36,9 @@
     candidates?: BoardCandidate[];
     highlight?: Edge | null; // a candidate pointed at from outside the board (a row of the candidates table)
     line?: BoardLineEdge[] | null; // the line of the candidate pointed at, as far as drawn: numbered, the candidate first
+    // The shape of the line's numbers: circles (Go's numbered stones, design 07), or warning triangles for the threat
+    // (design 31), which no other mark of the board uses
+    lineShape?: "circle" | "triangle";
     preview?: Edge | null;
     previewPlayer?: 0 | 1;
     marks?: BoardMark[];
@@ -61,7 +64,7 @@
     onpointat?: (point: [number, number] | null) => void;
   }
   let {
-    position, cut = null, candidates = [], highlight = null, line = null,
+    position, cut = null, candidates = [], highlight = null, line = null, lineShape = "circle",
     preview = null, previewPlayer = 0, marks = [], ghost = null,
     layers: layersSet = {},
     pending = null, ends = null, active = null, view = [0, 0, 18, 18], targets = [], onpoint, rightClicks = false, onlyActive = false,
@@ -133,6 +136,14 @@
   // The board as the line leaves it: the edges it cuts are off the board and drawn as cut (as the last edge's cut is),
   // and the regions are the ones after its last edge, once the engine's rules have played it.
   const drawnLine = $derived(line ?? []);
+  // The threat's warning triangle, pointing up, around the centre (x, y): the corners of an equilateral triangle whose
+  // inscribed circle has the radius TRIANGLE_R. The stroke that rounds its corners (TRIANGLE_ROUND) adds half its width
+  // all round, so the triangle drawn has an inscribed circle of 0.27, near a line's circle of 0.3: its number, of the
+  // same size as a circle's, reads as well.
+  const TRIANGLE_R = 0.23;
+  const triangle = (x: number, y: number) =>
+    [[x, y - 2 * TRIANGLE_R], [x + Math.sqrt(3) * TRIANGLE_R, y + TRIANGLE_R], [x - Math.sqrt(3) * TRIANGLE_R, y + TRIANGLE_R]]
+      .map(([a, b]) => `${a},${b}`).join(" ");
   const lineCuts = $derived(drawnLine.flatMap(l => (l.cut ? [l.cut] : [])));
   const shownEdges = $derived(([0, 1] as const).map(p => position.edges[p].filter(e => !lineCuts.some(c => sameEdge(c, e)))));
   const shownRegions = $derived(drawnLine.at(-1)?.regions ?? position.regions);
@@ -438,7 +449,15 @@
       {/each}
       {#each drawnLine as l, i (i)}
         {@const [lx, ly] = mid(l.edge)}
-        <circle cx={lx} cy={ly} r="0.3" class="line-badge p{l.player}" />
+        {#if lineShape === "triangle"}
+          <!-- A warning sign: its corners rounded by a stroke of its own colour, inside the board's border, and its
+               centre (the centre of its inscribed circle) on the edge's midpoint, where the number stands -->
+          {@const points = triangle(lx, ly)}
+          <polygon {points} class="line-triangle-border" />
+          <polygon {points} class="line-triangle p{l.player}" />
+        {:else}
+          <circle cx={lx} cy={ly} r="0.3" class="line-badge p{l.player}" />
+        {/if}
         <text x={lx} y={ly + 0.13} class="line-number">{i + 1}</text>
       {/each}
     </g>
@@ -562,6 +581,12 @@
   .line-badge { stroke: var(--board-bg); stroke-width: 0.05; }
   .line-badge.p0 { fill: var(--blue); }
   .line-badge.p1 { fill: var(--red); }
+  /* TRIANGLE_ROUND: the stroke of 0.08 that rounds the triangle's corners, and the board's border of 0.05 outside it,
+     as a line's circle has */
+  .line-triangle { stroke-width: 0.08; stroke-linejoin: round; }
+  .line-triangle.p0 { fill: var(--blue); stroke: var(--blue); }
+  .line-triangle.p1 { fill: var(--red); stroke: var(--red); }
+  .line-triangle-border { fill: var(--board-bg); stroke: var(--board-bg); stroke-width: 0.18; stroke-linejoin: round; }
   .line-number { font-size: 0.36px; fill: var(--on-badge); text-anchor: middle; font-weight: 700; font-family: system-ui, sans-serif; }
 
   /* Label badges on the turn just played. */

@@ -438,7 +438,8 @@
   // draws the engine's line, in the opponent's colour. At a turn's start the pass forfeits the whole turn, and in its
   // middle the turn's second edge. The header shows the position's values after the pass, and what the pass costs the
   // player, in the units of a move's loss (design 10). A candidate pointed at or pinned shows its own line in its place.
-  // For the visit only, as on Lichess.
+  // For the visit only, as on Lichess. Its numbers are in warning triangles, so that it reads as a threat (Lichess draws
+  // its threat as the one red arrow, and red is a player's colour here).
   let threatOn = $state(false);
   function toggleThreat() {
     threatOn = !threatOn;
@@ -2034,6 +2035,7 @@
           candidates={previewing ? [] : candidates}
           highlight={previewing ? null : hover ?? pinnedCandidate?.edge ?? null}
           line={branchPreview ? previewLine : movePreview ? null : drawnLine}
+          lineShape={!previewing && threatShown ? "triangle" : "circle"}
           oncandidateclick={selectRank}
           oncandidatedblclick={e => playPath([...path, edgeName(e)], "candidate played")}
           pending={input.pending}

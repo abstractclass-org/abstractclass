@@ -1,6 +1,7 @@
 # The threat
 
-**Status:** in force, built. **Decided:** 2026-10-21, from Lichess's "Show threat".
+**Status:** in force, built. **Decided:** 2026-10-21, from Lichess's "Show threat". **Changed:** 2026-10-21: its
+numbers in warning triangles.
 
 ## Context
 
@@ -56,8 +57,15 @@ a turn's start the pass places nothing, so nothing of the passer's is protected.
    that they cut, the regions that they close, Animated or Static. It is the first choice's line after the pass, as
    far as the search trusts it (25 visits through each edge), and only the opponent's turn, so all of it is in the
    opponent's colour. While it shows, the other candidates leave the board. A candidate pointed at or pinned shows
-   its own line in its place, and a preview shows over both. The players' tags show the areas after its last drawn
-   edge.
+   its own line in its place, with its circles, and a preview shows over both. The players' tags show the areas after
+   its last drawn edge.
+   - **Its numbers are in warning triangles,** in the opponent's colour, with the board's border round them, as a
+     line's circles have (`lineShape` in `src/lib/board/Board.svelte`). The edges stay a line's edges (dashed, in the
+     opponent's colour), and the cuts and the regions stay as they are. The triangle points up, its corners rounded,
+     and its number stands at its centre (the centre of its inscribed circle). The inscribed circle's radius is 0.27
+     of the lattice's step, near a line's circle of 0.3, and the number has a circle's size, so that it reads as well
+     at every width. No other mark of the board is a triangle. The image of a line (design 07, item 17) and every
+     other line keep their circles.
 6. **The area map follows it** as it follows any line (design 30, item 5): the map of the position after its last
    drawn edge, and "Maps of the threat: 1 of 2" while they come. Its step 0 is the position after the pass, whose map
    is the threat's search's. In After vs before, the map compares the position before the pass with the step shown,
@@ -75,6 +83,10 @@ a turn's start the pass places nothing, so nothing of the passer's is protected.
   pass costs over the rest of the game, as a move's loss does.
 - **A line, not a caption.** The board already draws a line's cuts and regions, and the area map already follows a
   line. The threat reads as the engine's lines read.
+- **A warning triangle, not Lichess's colour.** Lichess draws its threat as a red arrow, a colour that no other arrow
+  of its board has, so the threat reads as a threat. Red is a player's colour here, and a third colour would hide
+  whose edges they are. A line drawn in the opponent's colour with circles reads as any engine line. So the colour
+  still says whose edges they are, and the shape, the warning sign's, says "threat".
 - **The opponent's turn only.** The threat is what the opponent does if the player does nothing. The edges after it
   are the player's answer, which the candidates already show.
 - **Below the position's own search.** The player's own position comes first: its candidates are the player's choice.
@@ -94,6 +106,9 @@ a turn's start the pass places nothing, so nothing of the passer's is protected.
   position's own candidates.
 - **The label budget for the threat's search:** cheaper, but the threat's value would be shallower than the position
   on screen's, and the difference would measure the depth too.
+- **The threat in a third colour** (Lichess's red arrow): the colour would no longer say whose edges they are, and
+  red is a player's colour here.
+- **The threat drawn as any line** (the first build): it read as an engine line, not as a threat.
 - **The switch kept between visits:** Lichess's is not kept. A threat costs a deep search at every position that the
   player looks at.
 
@@ -113,9 +128,11 @@ a turn's start the pass places nothing, so nothing of the passer's is protected.
   (`ownSearchComes`). Tests: `analysis.test.ts`, "the threat: …".
 - `src/lib/review/ReviewView.svelte`: `threatOn`, `toggleThreat` and the key x, `threat`, `threatEdges`, `threatCost`,
   `threatShown`, `threatNote`, the threat's steps (`threatStepsHad`), the map's `threat` line (`mapLine`, `diffBase`,
-  `stepName`, `diffName`), and the switch in the engine header.
+  `stepName`, `diffName`), and the switch in the engine header. `src/lib/board/Board.svelte`: the warning triangles
+  (`lineShape`, `triangle`, `TRIANGLE_R`).
 - `scripts/measure/threat-check.mjs`: the check on real games.
 
 ## Log entries
 
-- [decisions/product.md](../decisions/product.md), "The threat on real games" (2026-10-21).
+- [decisions/product.md](../decisions/product.md), "The threat on real games" and "The threat's warning triangles"
+  (2026-10-21).

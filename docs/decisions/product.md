@@ -6532,3 +6532,19 @@ the threat's size, the threat's line on the board in the opponent's colour, the 
 snapshot from the store alone. Checked in headless Chromium on the test fixture's review and on the Analysis board,
 at a turn's start and in its middle, light and dark, at 1,366 and 390 pixels: no page error, no horizontal scroll. The
 layout sweep in Chromium passes (25 tests, 5 skipped).
+
+### The threat's warning triangles (2026-10-21)
+
+The first build of the threat (design 31) drew it as an engine line: dashed edges and numbers in circles, in the
+opponent's colour. It read as any line. Lichess draws its threat as the one red arrow of its board, but red is a
+player's colour here, and a third colour would hide whose edges they are. So the threat's numbers now stand in warning
+triangles, in the opponent's colour, with the board's border round them. The edges, the cuts and the regions stay a
+line's. A candidate pointed at or pinned replaces the threat with its circles, and the image of a line keeps circles.
+
+**The size:** an equilateral triangle, pointing up, whose inscribed circle has a radius of 0.23 of the lattice's step,
+and a stroke of 0.08 of its own colour that rounds its corners. As drawn, its inscribed circle has a radius of 0.27,
+against a line's circle of 0.3, and its number has the circle's size. The number stands at the inscribed circle's
+centre. Measured in headless Chromium on the test fixture's review and on the Analysis board: the triangle's side is
+21.8 pixels at 1,366 pixels wide (a line's circle 16.4 across), 25.8 on the Analysis board, and 13.3 at 390 pixels
+wide. Each number's box was within 1 pixel of its triangle's centre at every width, as a circle's number is. The
+close-ups in light and dark read as warning signs, with the number inside.
