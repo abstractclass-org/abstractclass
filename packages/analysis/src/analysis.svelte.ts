@@ -30,8 +30,8 @@ import { positionQuery } from "@abstractclass/engine/protocol.ts";
 import { errorText } from "@abstractclass/engine/errors.ts";
 import { BOARD_ID, branchNodes, keptNode, type KeptNode, type KeptBoard, type KeptBranches } from "./kept.ts";
 import type { Game, GameTypes, Player } from "./game.ts";
-import { equalDepth, keepsGain, moverWin, onlyEdge, otherCandidate, sameMove, secondChoice, type Analysis, type Candidate,
-         type GameEnding, type ReviewData } from "./model.ts";
+import { earlierIndex, equalDepth, keepsGain, moverWin, onlyEdge, otherCandidate, sameMove, secondChoice, type Analysis,
+         type Candidate, type GameEnding, type ReviewData } from "./model.ts";
 import { ONLY_EDGE_GAP } from "./labels.ts";
 import { lastMove, mainIndex, parentKey, pathKey, prefixKeys } from "./tree.ts";
 import { STORES, dbGet, dbPut } from "@abstractclass/storage/db.ts";
@@ -190,14 +190,11 @@ export class GameAnalysis<G extends GameTypes> {
   }
 
   /** The analysis of the position before the opponent's last turn, for a move of `mover` from the position at `path`
-   *  (model.ts, keepsGain): back over the mover's edge before it in its turn, then over the opponent's turn. Undefined
-   *  where the line has none: the mover's first turn, or a set-up start in the opponent's turn's middle. */
+   *  (model.ts, keepsGain and earlierIndex), on the path's line: the game's or a branch's. */
   earlierAt(path: string[], mover: Player): Analysis<G["move"]> | undefined {
-    let p = path;
-    while (this.moveInto(p)?.player === mover) p = p.slice(0, -1);
-    if (!this.moveInto(p)) return undefined;
-    while (p.length && this.moveInto(p)!.player !== mover) p = p.slice(0, -1);
-    return p.length || this.game.turn(this.positions[0]?.count ?? 0).first ? this.analysisOf(p) : undefined;
+    const k = earlierIndex(j => this.moveInto(path.slice(0, j))!.player, path.length, mover,
+                           this.game.turn(this.positions[0]?.count ?? 0).first);
+    return k === undefined ? undefined : this.analysisOf(path.slice(0, k));
   }
 
   /** Describes every position (the rules, no network), and adds the game's branches kept from an earlier visit. */
@@ -263,11 +260,14 @@ export class GameAnalysis<G extends GameTypes> {
   private greatTargets = $derived.by(() => {
     const out: { path: string[]; candidate: Candidate<G["move"]>; depth: number }[] = [];
     const depth = (after: () => string[]) => equalDepth(this.labelVisits, this.analysisOf(after())?.visits);
-    const keeps = (a: Analysis<G["move"]>, path: string[], mover: Player) => keepsGain(a, this.earlierAt(path, mover), mover, this.labelVisits);
-    const check = (a: Analysis<G["move"]> | undefined, before: () => string[], edge: G["move"] | null, mover: Player, over: boolean) => {
+    const keeps = (a: Analysis<G["move"]> | undefined, path: string[], mover: Player) =>
+      keepsGain(a, this.earlierAt(path, mover), mover, this.labelVisits);
+    // `gain`: the search whose first choice must keep the gain. An edge's own, or for a turn's middle, the turn's start.
+    const check = (a: Analysis<G["move"]> | undefined, before: () => string[], edge: G["move"] | null, mover: Player, over: boolean,
+                   gain = a) => {
       const first = a?.candidates[0];
       if (!over && a && a.visits >= this.labelVisits && first && edge != null && sameMove(this.game, a, first.edge, edge) && onlyEdge(a, mover)
-          && keeps(a, before(), mover))
+          && keeps(gain, before(), mover))
         out.push({ path: before(), candidate: secondChoice(a)!, depth: depth(() => [...before(), this.game.moveName(edge)]) });
     };
     const asked = (i: number) => !this.board || !!this.judgedMain[this.mainKeys[i + 1]]; // the board's: judged only
@@ -282,8 +282,14 @@ export class GameAnalysis<G extends GameTypes> {
       const first = a?.candidates[0];
       if (!a || a.visits < this.labelVisits || !first || !turn.some(e => e != null && sameMove(this.game, a, e, first.edge))) return;
       const other = otherCandidate(this.game, a, turn);
-      if (other && moverWin(first.blueWin, mover) - moverWin(other.blueWin, mover) >= ONLY_EDGE_GAP && keeps(a, path(), mover))
-        out.push({ path: path(), candidate: other, depth: depth(() => [...path(), ...turn.map(e => this.game.moveName(e))]) });
+      if (!other || moverWin(first.blueWin, mover) - moverWin(other.blueWin, mover) < ONLY_EDGE_GAP || !keeps(a, path(), mover)) return;
+      out.push({ path: path(), candidate: other, depth: depth(() => [...path(), ...turn.map(e => this.game.moveName(e))]) });
+      // A turn of two needs the search from its middle too (judgeTurn). Its second edge asks for that search only where the
+      // middle's first choice keeps the gain, and the turn reads the gain at its start.
+      if (turn.length > 1) {
+        const middle = [...path(), this.game.moveName(turn[0])];
+        check(this.analysisOf(middle), () => middle, turn[1], mover, false, a);
+      }
     };
     for (let i = 0; i < this.played.length; i++) {
       const turn = this.turnAt(i);

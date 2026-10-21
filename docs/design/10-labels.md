@@ -57,7 +57,7 @@ reason. Design 05 gives the searches that the labels read: their schedule, their
    - **By edge, both edges of the engine's best turn played in the other order are Best.** The first edge played is
      then the second edge of the engine's line, so it is not the first choice of its search, and its loss comes from
      the search between the two edges alone (turn 9 of the sample game: J11-M13 was Good by that search's −27 points).
-6. **Great: the only good move, which keeps what the opponent's mistake gave** (En Croissant's rule for "!",
+6. **Great: the only good move, which keeps what the opponent's last turn gave** (En Croissant's rule for "!",
    [`src/utils/score.ts`](https://github.com/franciscoBSalgueiro/en-croissant/blob/d64ce9e/src/utils/score.ts),
    `getAnnotation`, at commit d64ce9e. En Croissant's name for "!" is "Good", in `src/utils/annotation.ts`). En
    Croissant's "!" needs three conditions:
@@ -65,35 +65,41 @@ reason. Design 05 gives the searches that the labels read: their schedule, their
    2. The move is the engine's first line, and the first line is more than 0.10 better than the second: two lines of
       one MultiPV search, which Stockfish searches to the same depth.
    3. The best line is more than 0.05 better for the mover than the value before the opponent's last move: the move
-      keeps what the opponent's mistake gave. ("!!" when the move is also a sacrifice. Enclosure has no sacrifices.)
+      keeps what the opponent's last move gave. ("!!" when the move is also a sacrifice. Enclosure has no sacrifices.)
 
-   Here, Best covers the first condition: the first choice is Great or Best whatever its loss (item 5). The second
-   condition is confirmed by an equal search (below). The third condition:
+   Here, Best covers the first condition: the first choice is Great or Best whatever its loss (item 5). An equal search
+   confirms the second condition (below). En Croissant asks for a gap of more than 0.10, and the site asks for 0.10 or
+   more (`ONLY_EDGE_GAP` in `labels.ts`). The two differ only at a gap of exactly 0.10. The third condition:
    - **The values:** the first choice's win chance in the search before the move (En Croissant's best line), against
      the win chance of the position before the opponent's last turn, both for the mover. It must be more than 0.05
-     better (`keepsGain` in `packages/analysis/src/model.ts`, `KEPT_GAIN` in `labels.ts`).
+     better (`keepsGain` in `packages/analysis/src/model.ts`, `KEPT_GAIN` in `labels.ts`). The earlier position gives
+     its root's win chance, as every loss reads a position. En Croissant reads that position's best line, which is the
+     same value in Stockfish's search. In KataGo's search the two can differ a little.
    - **The opponent's last move is the opponent's last turn,** by turn and by edge alike: Enclosure's turns have two
      edges, and the opponent does not move between them. For a turn, and for a turn's first edge, the position is the
      start of the opponent's turn just before. For a turn's second edge, it is the same position: the mover's own first
      edge is between them, and the opponent's turn is still the last. For a branch move, the position is on the move's
      line: back over the mover's edge before it in the same turn, then back to the start of the opponent's turn. That
-     start can be a branch's position or the game's.
+     start can be a branch's position or the game's. One function finds the position for the game's line and for a
+     branch's (`earlierIndex` in `model.ts`).
    - **No result there, no Great:** the line's first turn has no turn of the opponent before it, so it is never Great
      (En Croissant reads a missing value as 0.00, an even position). A line from a set-up position in the middle of the
      opponent's turn has no start of that turn. A position not yet searched to the label budget counts as no result
      until it is.
-   - **The other open tools ask the same of a Great:** the move must matter. Chesskit's "!" (`isPerfectMove` in
-     `src/lib/engine/helpers/moveClassification.ts`, commit 9622d50) needs a loss of at most 0.02, not a simple
-     recapture, not when the mover is under 0.50 after the move, and not when the other line still wins (over 0.97).
-     Then the move is the only good move (more than 0.10 better than the best other line), or it changes the outcome
-     (more than 0.10 gained, across 0.50). WintrChess's "Critical" (`shared/src/lib/reporter/classification/critical.ts`
-     and `utils/criticalMove.ts`, commit d145b20) needs the top move, with the second line at least 0.10 of expected
-     points worse. It is not Critical when the mover still wins without it (the second line at +7.00 or more), in a
-     losing position (under 0), for a queen promotion, for an escape from check, with a mate in hand, or for a capture
-     of free material. chess.com's Great Move (the help article "How are moves classified?") is "critical to the
-     outcome of the game", such as a move that turns a losing position into an equal one, or that is the only good
-     move. chess.com publishes no thresholds. Lichess has no positive label: Inaccuracy, Mistake and Blunder only
-     (lila, `modules/tree/src/main/Advice.scala`).
+   - **The other open tools ask the same of a Great:** the move must matter.
+     - Chesskit's "!" (`isPerfectMove` in `src/lib/engine/helpers/moveClassification.ts`, commit 9622d50) needs a
+       loss of at most 0.02. It does not mark a simple recapture, a move that leaves the mover under 0.50, or a move
+       whose other line still wins (over 0.97). Then the move is the only good move (more than 0.10 better than the
+       best other line), or it changes the outcome (more than 0.10 gained, across 0.50).
+     - WintrChess's "Critical" (`shared/src/lib/reporter/classification/critical.ts` and `utils/criticalMove.ts`,
+       commit d145b20) needs the top move, with the second line at least 0.10 of expected points worse. It does not
+       mark these moves: a move that still wins without it (the second line at +7.00 or more), a move in a losing
+       position (under 0), a queen promotion, an escape from check, a move with a mate in hand, and a capture of free
+       material.
+     - chess.com's Great Move (the help article "How are moves classified?") is "critical to the outcome of the game",
+       such as a move that turns a losing position into an equal one, or that is the only good move. chess.com
+       publishes no thresholds.
+     - Lichess has no positive label: Inaccuracy, Mistake and Blunder only (lila, `modules/tree/src/main/Advice.scala`).
    - **So an only move that only holds the position is Best.** All these tools use the gap of 0.10, and each asks for
      more than the gap. En Croissant's third condition is the one of the rule that the site cites. On part1-1000 (1,000
      people's games, 512 visits), it keeps 952 of the 1,253 Greats by edge that the equal search confirms (76%), and
@@ -105,8 +111,10 @@ reason. Design 05 gives the searches that the labels read: their schedule, their
    first's visits. So a gap in one search only asks for a search of the position after the other choice, to the label
    budget, as deep as the position after the played move (KaTrain's "equalize" gives every candidate the top move's
    visits for the same reason). Until that search confirms the gap, the move is Best. A move that fails the third
-   condition asks for no search: it cannot be Great (`greatTargets` in `packages/analysis/src/analysis.svelte.ts`). On
-   part1-1000 that saves 391 of the 1,594 searches by edge, and the searches of 200 of the 658 turns that ask for one.
+   condition asks for no search: it cannot be Great (`greatTargets` in `packages/analysis/src/analysis.svelte.ts`). A
+   turn reads the gain at its start, and its second edge reads it at the middle. So a turn of two whose start keeps the
+   gain asks for the search from its middle, also where its middle does not keep it. On part1-1000, the review then
+   asks for 1,410 of the 1,882 searches that confirm the Greats: 472 fewer (25%).
    - **As deep as the position after the played move, when the player searched it deeper** (the position on screen,
      design 09): the confirmation then searches to the same depth, the largest doubling of the label budget within
      that position's visits (`equalDepth` in `packages/analysis/src/model.ts`: the depths step by doublings, and a
@@ -145,9 +153,9 @@ reason. Design 05 gives the searches that the labels read: their schedule, their
 8. **What shows** (design 06 and design 07 give the places): the move list and the chart show Great, Inaccuracy,
    Mistake and Blunder, to stay quiet, and the board shows every label. The notes under a turn or an edge are for
    Great, Mistake and Blunder: "Blunder. N9-Q10 M6-N9 was best.", "Great. The only good edges. It keeps the gain from
-   the opponent's error.". Under a Mistake or a
-   Blunder, the engine's best line from where it started shows as a branch. ◆ beside a loss marks a hard position
-   (design 14), and the player's accuracy weighs each move by the position's difficulty.
+   the opponent's last turn.". Under a Mistake or a Blunder, the engine's best line from where it started shows as a
+   branch. ◆ beside a loss marks a hard position (design 14), and the player's accuracy weighs each move by the
+   position's difficulty.
 
 ## Why
 
@@ -203,7 +211,7 @@ reason. Design 05 gives the searches that the labels read: their schedule, their
 ## Where it is
 
 - `packages/analysis/src/labels.ts` (the bands, `classify`), `packages/analysis/src/model.ts` (`judgeEdge`, `judgeTurn`,
-  `otherCandidate`, `keepsGain`, `review`, `costText`, `turnCost`, `roundTogether`),
+  `otherCandidate`, `keepsGain`, `earlierIndex`, `review`, `costText`, `turnCost`, `roundTogether`),
   `scripts/measure/label-bench.mjs` (the test on games of known strength), `packages/analysis/src/analysis.svelte.ts`
   (`confirmGreats`: the searches that confirm Great, `earlierAt`: the position before the opponent's last turn,
   `judge`: a branch's turn on request), `scripts/measure/key-moments-opening.mjs` (part 4: the Greats on the archive),

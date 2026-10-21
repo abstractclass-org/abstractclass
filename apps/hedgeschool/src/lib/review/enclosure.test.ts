@@ -3,9 +3,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { Edge } from "#lib/engine/notation.ts";
-import { complexity, distinctCandidates, endingText, onlyJudged, equalDepth, likelyEdges, judgeBranchEdge, onlyEdge, otherCandidate, review, roundTogether,
-         rankOf, sameMove, secondChoice, shortNote, shownCandidates, trustedLine, twinsOf, turnCost, valuesAfter, type Analysis, type Candidate, type Move, type Position,
-         type ReviewData } from "./enclosure.ts";
+import { complexity, distinctCandidates, earlierIndex, endingText, onlyJudged, equalDepth, keepsGain, likelyEdges, judgeBranchEdge, onlyEdge,
+         otherCandidate, review, roundTogether, rankOf, sameMove, secondChoice, shortNote, shownCandidates, trustedLine, twinsOf, turnCost,
+         valuesAfter, type Analysis, type Candidate, type Move, type Position, type ReviewData } from "./enclosure.ts";
 import { accuracyWeight } from "@abstractclass/analysis/labels.ts";
 
 const edges = (n: number): Edge[] => Array.from({ length: n }, (_, k): Edge => [k, 0, k, 1]);
@@ -143,28 +143,47 @@ test("a Great keeps what the opponent's last turn gave: an only move that only h
   const start = at(0.4, -10, [cand(B, 0.4, [B, C]), cand(C, 0.41, [C, B]), cand(F, 0.55)]);
   const middle = at(0.4, -10, [cand(C, 0.4), cand(D, 0.55)]);
   const extra = { seconds: [undefined, undefined, at(0.58, 5)], others: [undefined, at(0.6, 10)] };
-  const kept = review(game([B, C], [at(0.5, 0), start, middle, at(0.4, -10), at(0.4, -10)], extra));
+  const line = (blue0: number) => review(game([B, C], [at(blue0, 0), start, middle, at(0.4, -10), at(0.4, -10)], extra));
+  const kept = line(0.5);
   assert.equal(kept.turns[1].label, "great");
   assert.equal(kept.edges[2].label, "great"); // a turn's second edge: from before the opponent's turn too
   // Before Blue's turn, Red had 0.58: Blue gave Red only 0.02 (En Croissant asks for more than 0.05). Best.
-  const held = review(game([B, C], [at(0.42, 0), start, middle, at(0.4, -10), at(0.4, -10)], extra));
+  const held = line(0.42);
   assert.equal(held.turns[1].label, "best");
   assert.equal(held.edges[2].label, "best");
-  // 0.05 exactly is not more than 0.05.
-  assert.equal(review(game([B, C], [at(0.45, 0), start, middle, at(0.4, -10), at(0.4, -10)], extra)).turns[1].label, "best");
+  // The turn reads the gain at its start, its second edge at the middle. In this middle, Red's first choice is at 0.53,
+  // only 0.03 more than before Blue's turn: the turn is Great, and its second edge Best.
+  const lowMiddle = at(0.47, -10, [cand(C, 0.47), cand(D, 0.6)]);
+  const R = review(game([B, C], [at(0.5, 0), start, lowMiddle, at(0.4, -10), at(0.4, -10)], extra));
+  assert.deepEqual([R.turns[1].label, R.edges[2].label], ["great", "best"]);
+  // 0.05 exactly is not more than 0.05: Blue's first choice at 0.10, and Blue at 0.05 before (exact in floats).
+  assert.equal(0.1 - 0.05, 0.05);
+  assert.equal(keepsGain(at(0.1, 0, [cand(A, 0.1)]), at(0.05, 0), 0, 512), false);
+  assert.equal(keepsGain(at(0.11, 0, [cand(A, 0.11)]), at(0.05, 0), 0, 512), true);
 });
 
 test("a turn's first edge is Great by the position before the opponent's last turn", () => {
   // Red's first edge B is the only good edge at position 1: F looks 0.15 worse, and the position after it is 0.15 worse.
   const start = at(0.4, -10, [cand(B, 0.4), cand(F, 0.55)]);
-  const analysis = (blue0: number) => [at(blue0, 0), start, at(0.4, -10), at(0.4, -10), at(0.4, -10)];
-  const seconds = [undefined, at(0.55, 0)];
-  assert.equal(review(game([B, C], analysis(0.5), { seconds })).edges[1].label, "great");
-  assert.equal(review(game([B, C], analysis(0.42), { seconds })).edges[1].label, "best");
+  const firstEdge = (before: Analysis) => review(game([B, C], [before, start, at(0.4, -10), at(0.4, -10), at(0.4, -10)],
+                                                       { seconds: [undefined, at(0.55, 0)] }), "lead", 256).edges[1].label;
+  assert.equal(firstEdge(at(0.5, 0)), "great");
+  assert.equal(firstEdge(at(0.42, 0)), "best");
   // The position before Blue's turn not searched to the label budget yet: no Great until it is.
-  const shallow = analysis(0.5);
-  shallow[0] = { ...shallow[0]!, visits: 32 };
-  assert.equal(review(game([B, C], shallow, { seconds }), "lead", 256).edges[1].label, "best");
+  assert.equal(firstEdge({ ...at(0.5, 0), visits: 32 }), "best");
+});
+
+test("a line from a set-up position has no turn of the opponent before its first turn", () => {
+  // The movers into positions 1 to 5, from a line that starts in the middle of Red's turn: Red, Blue, Blue, Red, Red.
+  const movers = [1, 0, 0, 1, 1] as const, into = (k: number) => movers[k - 1];
+  // Blue's turn from position 1 and Red's from position 3: Red's turn started before the line, so Blue's has none. Red's
+  // turn reads the start of Blue's turn, position 1, from its start and from its middle.
+  assert.deepEqual([1, 2, 3, 4].map(i => earlierIndex(into, i, movers[i], false)), [undefined, undefined, 1, 1]);
+  // From a line that starts where Red's turn starts, Blue's turn reads its start, position 0.
+  const whole = [1, 1, 0, 0, 1] as const;
+  assert.deepEqual([2, 3, 4].map(i => earlierIndex(k => whole[k - 1], i, whole[i], true)), [0, 0, 2]);
+  // Red's first edge on a line that starts there has none.
+  assert.equal(earlierIndex(k => whole[k - 1], 0, 1, true), undefined);
 });
 
 test("the line's first turn is never Great: no turn of the opponent comes before it", () => {

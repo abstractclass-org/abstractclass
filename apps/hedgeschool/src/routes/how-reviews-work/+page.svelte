@@ -49,12 +49,12 @@
   <ul>
     <li><strong>Best:</strong> the engine's own first choice, whatever its loss. Two searches each have a small error,
       and the engine's own move should never read as a mistake.</li>
-    <li><strong>Great:</strong> the only good move, which keeps the gain from the opponent's error. It is Best, and
-      the engine's second choice is at least 10% worse. The second choice usually has few visits, so a search of the
-      position after it, as deep as the position after your move, must confirm the gap. Until then the move is Best.
-      Also, the engine's best move must be more than 5% better for you than the position before the opponent's last
-      turn. An only move that only holds the position is Best. The game's last move is never Great: nothing after it
-      can confirm it. The first turn is never Great: no turn of the opponent comes before it.</li>
+    <li><strong>Great:</strong> the only good move, which keeps the gain from the opponent's last turn. It is Best,
+      and the engine's second choice is at least 10% worse. The second choice usually has few visits, so a search of
+      the position after it, as deep as the position after your move, must confirm the gap. Until then the move is
+      Best. Also, the engine's first choice must be more than 5% better for you than the position before the
+      opponent's last turn. An only move that only holds the position is Best. The game's last move is never Great:
+      nothing after it can confirm it. The first turn is never Great: no turn of the opponent comes before it.</li>
     <li><strong>A turn or an edge:</strong> a turn of two edges is one decision, so the review judges whole turns by
       default. "Review by" in the display settings judges each edge instead. A turn's loss is from its start to the
       position after its last edge, which equals the sum of its edges' losses.</li>
@@ -103,7 +103,7 @@
     <li><strong>The accuracy:</strong> <a href="https://lichess.org/page/accuracy">Lichess's</a> formula, with
       <a href="https://github.com/sanderland/katrain">KaTrain</a>'s weights.</li>
     <li><strong>Great:</strong> <a href="https://github.com/franciscoBSalgueiro/en-croissant">En Croissant</a>'s
-      rule for "!": the only good move, which keeps the gain from the opponent's error.</li>
+      rule for "!": the only good move, which keeps the gain from the opponent's last turn.</li>
     <li><strong>The complexity:</strong> KaTrain's. <strong>The meter:</strong> Maia's Blunder Meter.</li>
     <li><strong>Turns of two edges</strong> have no model in chess or Go: judging whole turns is {SITE_NAME}'s own
       choice.</li>

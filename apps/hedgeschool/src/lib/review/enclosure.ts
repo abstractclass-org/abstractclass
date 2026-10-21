@@ -119,19 +119,20 @@ export const judgeBranchEdge = withGame(shared.judgeBranchEdge<Edge>);
 export const judgeTurn = withGame(shared.judgeTurn<Edge>);
 
 // --- Enclosure's texts ----------------------------------------------------------------------------------------------
-/** What a Great does besides being the only good move (design 10): it keeps what the opponent's last turn gave. */
-const KEEPS = "It keeps the gain from the opponent's error.";
+/** The note's word on what a Great does besides being the only good move (design 10): it keeps what the opponent's
+ *  last turn gave. */
+const KEPT_NOTE = "It keeps the gain from the opponent's last turn.";
 
 /** A turn's note for the move list, in one line: its label, and the engine's best turn when the turn was not it. */
 export function turnShortNote(t: TurnReview): string {
-  if (t.label === "great") return `Great. The only good ${t.edges.length > 1 ? "edges" : "edge"}. ${KEEPS}`;
+  if (t.label === "great") return `Great. The only good ${t.edges.length > 1 ? "edges" : "edge"}. ${KEPT_NOTE}`;
   const better = t.best && t.label !== "best" ? ` ${t.best.map(edgeName).join(" ")} was best.` : "";
   return `${t.label ? shared.LABEL_TEXT[t.label] : "Not analyzed yet"}.${better}`;
 }
 
 /** A note for the move list, in one line: the label, and the engine's choice when the edge was not it. */
 export function shortNote(e: EdgeReview): string {
-  if (e.label === "great") return `Great. The only good edge. ${KEEPS}`;
+  if (e.label === "great") return `Great. The only good edge. ${KEPT_NOTE}`;
   // Not when the edge is Best: it may be the best edge's symmetric twin (sameMove), another edge with the same move.
   const better = e.best && e.edge && e.label !== "best" && !sameEdge(e.best.edge, e.edge) ? ` ${edgeName(e.best.edge)} was best.` : "";
   return `${e.label ? shared.LABEL_TEXT[e.label] : "Not analyzed yet"}.${better}`;

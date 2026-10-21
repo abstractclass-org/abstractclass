@@ -5733,37 +5733,45 @@ sweep.
 
 - **What** (abscls-eu6v, [design 10](../design/10-labels.md), item 6): a Great now needs En Croissant's third
   condition too. The engine's first choice before the move must be more than 0.05 of win chance better for the mover
-  than the position before the opponent's last turn: the move keeps what the opponent's mistake gave. An only move
+  than the position before the opponent's last turn: the move keeps what the opponent's last turn gave. An only move
   that only holds the position is Best. The rule is En Croissant's "!" (`src/utils/score.ts`, `getAnnotation`,
-  commit d64ce9e), which the site cited and took only in part: before this change it had the loss of at most 0.05
-  (as Best) and the gap of 0.10 (confirmed by the equal search), and not the third condition.
+  commit d64ce9e). The site cited it, but took only part of it. Before this change, the site had the loss of at most
+  0.05 (as Best) and the gap of 0.10 (confirmed by the equal search). It did not have the third condition.
 - **The opponent's last move is the opponent's last turn,** by turn and by edge. For a turn and for each of its edges,
   the position is the start of the opponent's turn just before. The line's first turn has no such position, so it is
   never Great.
 - **Built:** `keepsGain` in `packages/analysis/src/model.ts`, read by `review` (the game's edges and turns),
   `judgeTurn` and `judgeBranchEdge` (a branch's moves evaluated on request, with `GameAnalysis.earlierAt`, the position
-  before the opponent's last turn on the branch's line). The Greats' confirmations (`greatTargets`) ask for no search
-  where the condition fails. The progress bar's step "Great moves" counts these searches, so it counts fewer. The
-  Great's note says "It keeps the gain from the opponent's error.", and How reviews work gives the condition.
+  before the opponent's last turn on the branch's line). `review` and `earlierAt` find that position with one function,
+  `earlierIndex`, so the labels and the searches that confirm them agree. The Greats' confirmations (`greatTargets`)
+  ask for no search where the condition fails. The progress bar's step "Great moves" counts these searches, so it
+  counts fewer. The Great's note says "It keeps the gain from the opponent's last turn.", and How reviews work gives
+  the condition.
 - **Measured** (`scripts/measure/key-moments-opening.mjs`, part 4: part1-1000's follow-ups, 1,000 people's games,
-  84,100 positions, 512 visits, network s46923648). The condition is judged as the site judges it (`keepsGain`), with
-  the first candidate's win chance and the root's win chance at the start of the opponent's turn before.
+  84,100 positions, 512 visits, network s46923648). The script judges the condition as the site does (`keepsGain`,
+  `earlierIndex`): the first candidate's win chance against the root's win chance at the start of the opponent's turn
+  before.
   - By edge: of the 1,253 Greats that the equal search confirms, 952 (76%) keep what the opponent's last turn gave.
     924 (74%) leave the mover not losing (a win chance of 0.50 or more after the move, as Chesskit and WintrChess
     ask), and 760 (61%) do both. The mover's win chance after a confirmed Great is under 0.30 for 8%, and from 0.30
     to 0.50 for 18%.
   - By turn: of the 198 confirmed Greats, 152 (77%) keep it, 145 (73%) leave the mover not losing, and 114 (58%) do
     both.
-  - The searches: 391 of the 1,594 gaps by edge, and 200 of the 658 turns with a follow-up, fail the condition, so the
-    review asks for no confirmation there.
-  - They are the same as the first measurement in abscls-eu6v.
+  - The searches: 391 of the 1,594 gaps by edge, and 200 of the 658 turns with a follow-up, fail the condition. Of the
+    1,882 searches that confirm the Greats, the review still asks for 1,410: 472 fewer (25%). A turn of two whose
+    start keeps the gain still asks for the search from its middle, also where its middle does not keep the gain.
 - **Checked in a browser** (headless Chromium, the software adapter, two builds on a preview of their own): the
   fixture game (`tests/fixtures/hedgefund-review.json`, bots, HedgeFund 0.1 Lite, 512 visits) from its file's results.
   Before the change: by turn, Blue 0 Greats and Red 1. By edge, Blue 0 and Red 4. After it: by turn, Blue 0 and Red 1.
   By edge, Blue 0 and Red 3. The review ended ("Review done") in both builds, and again when the page reloaded it from
   the browser's store.
+- **The step "Great moves" while it runs** (the same browser, the build after the change): the fixture's results of
+  the game's positions only, with none of its confirmations. The engine ran the key moments' searches and the
+  confirmations. The step counted 4 searches, showed "3 of 4" and then "Review done", and its total did not change.
+  The Greats were as above (by turn Red 1, by edge Red 3). A reload read the review from the store, with its
+  confirmations: "Review done" in 0.3 s, with the same Greats.
 - **Why not "not losing" instead** (Chesskit, WintrChess): the site cites En Croissant, and its third condition says
-  what a Great is for: a move that keeps what the opponent's mistake gave. The two conditions disagree on 356 of the
+  what a Great is for: a move that keeps what the opponent's last turn gave. The two conditions disagree on 356 of the
   1,253 confirmed Greats by edge (28%).
 - **The limits:** one network, and people's games of the meaf.us archive. The third condition reads the search
   before the opponent's turn, which has its own error, as every loss does.

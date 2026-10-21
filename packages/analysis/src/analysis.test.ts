@@ -12,7 +12,8 @@ import "./testing/svelteModules.ts";
 import type { AnalysisReply } from "@abstractclass/engine/protocol.ts";
 import { Cancelled, type EnginePool, type Work } from "@abstractclass/engine/pool.ts";
 import { BOARD_ID } from "./kept.ts";
-import { reply, wordRules, words } from "./testing/game.ts";
+import { reply, wordFields, wordRules, words } from "./testing/game.ts";
+import type { Player } from "./game.ts";
 import { SWEEP_VISITS, analysisKey, cachePut, readAnalysisKey } from "./cache.ts";
 import { toAnalysis } from "./reply.ts";
 import { STORES } from "@abstractclass/storage/db.ts";
@@ -525,4 +526,27 @@ test("a Great's confirmation is asked for only where the only good move keeps wh
   // A branch: the position before the opponent's last turn is the game's, or the branch's own.
   await game.addLine(["a", "b", "x", "y"], false);
   assert.equal(game.earlierAt(["a", "b", "x"], 1), game.analysis[2]);
+});
+
+test("a turn of two whose start keeps the gain asks for the search from its middle, though its middle does not", async () => {
+  // Turns as Enclosure's: the first player's turn of one move, then turns of two (positions 1 and 2 the second player's).
+  const mover = (k: number) => (k === 0 || Math.floor((k - 1) / 2) % 2 === 1 ? 0 : 1) as Player;
+  const rules = { describeGame: async (q: { moves: string[] }) =>
+    ({ reply: { positions: Array.from({ length: q.moves.length + 1 }, (_, k) => ({ ...wordFields(k), mover: mover(k) })) } }) };
+  const { pool } = fakePool();
+  Object.assign(pool, { rules });
+  const game = new GameAnalysis(words, pool, ["a", "b", "c", "d", "e"], "g");
+  await game.start();
+  const at = (blueWin: number, candidates: [string, number][] = []) =>
+    ({ blueWin, visits: game.labelVisits, candidates: candidates.map(([edge, w]) => ({ edge, visits: 10, blueWin: w })) });
+  // The second player's turn b c, from position 1: the only good turn (x looks 0.16 worse), and 0.06 better for it than
+  // before the first player's turn (0.5). In its middle, c is the only good move, but only 0.04 better than 0.5.
+  const start = at(0.44, [["b", 0.44], ["x", 0.6]]), middle = at(0.46, [["c", 0.46], ["y", 0.65]]);
+  game.analysis = [at(0.5), start, middle, at(0.46), at(0.46), at(0.46)];
+  assert.equal(game.earlierAt(["a", "b"], 1), game.analysis[0]);
+  // The search after x (the turn's, and the edge b's), and the search after y, which only the turn reads.
+  assert.equal(game.greatChecks.total, 2);
+  // Before the first player's turn the second player had 0.52: neither the turn nor an edge keeps the gain.
+  game.analysis = [at(0.48), start, middle, at(0.46), at(0.46), at(0.46)];
+  assert.equal(game.greatChecks.total, 0);
 });

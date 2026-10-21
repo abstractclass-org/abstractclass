@@ -142,9 +142,21 @@ export function onlyEdge<M>(a: Analysis<M> | undefined, p: Player): boolean {
  *  src/utils/score.ts, getAnnotation): it is more than KEPT_GAIN better for the mover than `earlier`, the position before
  *  the opponent's last turn, searched to `minVisits` at least. False where that position has no result: the line's
  *  first turn, or a position not searched yet. */
-export function keepsGain<M>(a: Analysis<M> | undefined, earlier: Analysis<M> | undefined, p: Player, minVisits = 0): boolean {
+export function keepsGain<M>(a: Analysis<M> | undefined, earlier: Analysis<M> | undefined, p: Player, minVisits: number): boolean {
   const first = a?.candidates[0];
   return !!first && !!earlier && earlier.visits >= minVisits && moverWin(first.blueWin, p) - moverWin(earlier.blueWin, p) > KEPT_GAIN;
+}
+
+/** The position before the opponent's last turn (keepsGain), for a move of `mover` from position `at` of a line: its
+ *  index on the line, where `moverInto(k)` is the player of the move into position k. Back over the mover's edge before
+ *  it in its turn, then over the opponent's turn. Undefined where the line has none: the mover's first turn on the line,
+ *  or a line from a set-up position in the opponent's turn's middle (`opens`: the line's start opens a turn). */
+export function earlierIndex(moverInto: (k: number) => Player, at: number, mover: Player, opens: boolean): number | undefined {
+  let k = at;
+  while (k > 0 && moverInto(k) === mover) k--;
+  if (k === 0) return undefined;
+  while (k > 0 && moverInto(k) !== mover) k--;
+  return k > 0 || opens ? k : undefined;
 }
 
 /** The depth that makes a Great's confirmation an equal search: the position after the second choice searched as deep
@@ -299,14 +311,10 @@ export function review<G extends GameTypes>(game: Game<G>, data: ReviewData<G>, 
   const known = (i: number, j: number) => !Number.isNaN(blueWin[i]) && !Number.isNaN(blueWin[j]) && deepEnough(i) && deepEnough(j);
   const scoreAt = (i: number, p: Player) => (blueScore[i] !== undefined ? moverScore(blueScore[i]!, p) : undefined);
   const from = game.turn(data.positions[0]?.count ?? 0); // a line from a set-up position numbers from its turn
-  // By edge, the index of its turn's first edge. The position before the opponent's last turn (keepsGain), for edge i:
-  // the start of the turn before its own. None for the line's first turn, nor for its second when the first started
-  // before the line (a set-up start in a turn's middle).
-  const turnStart: number[] = [];
-  data.moves.forEach((m, i) => turnStart.push(i > 0 && data.moves[i - 1].player === m.player ? turnStart[i - 1] : i));
+  // The position before the opponent's last turn (keepsGain), for the edge or the turn from position i.
   const earlier = (i: number) => {
-    const s = turnStart[i], o = s > 0 ? turnStart[s - 1] : -1;
-    return o > 0 || (o === 0 && from.first) ? data.analysis[o] : undefined;
+    const k = earlierIndex(j => data.moves[j - 1].player, i, data.moves[i].player, from.first);
+    return k === undefined ? undefined : data.analysis[k];
   };
   const edges: EdgeReview<G>[] = data.moves.map((m, i) => {
     const winBefore = moverWin(blueWin[i], m.player), winAfter = moverWin(blueWin[i + 1], m.player);

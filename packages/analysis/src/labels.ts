@@ -9,7 +9,7 @@
 // - Best: the played edge is the engine's first choice. Great: En Croissant's "!" (src/utils/score.ts, getAnnotation),
 //   the first choice when the second is at least 0.10 of win chance worse (the only good edge), and when the first
 //   choice is more than 0.05 better for the mover than the position before the opponent's last turn (it keeps what the
-//   opponent's mistake gave: model.ts, keepsGain). The rule compares two equal searches, so a gap in one search only
+//   opponent's last turn gave: model.ts, keepsGain). The rule compares two equal searches, so a gap in one search only
 //   asks for a search of the position after the second choice, as deep as the position after the played edge
 //   (model.ts, confirmedOnly).
 
