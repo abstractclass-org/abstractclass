@@ -799,6 +799,9 @@ export class GameAnalysis<G extends GameTypes> {
     return path.slice(0, k);
   }
 
+  /** Whether the engine can take no search now: its network is not ready, it is off, or its pool is an old network's. */
+  private get idle() { return !this.engineReady || this.paused || this.stalePool; }
+
   /** Does again what the page asked for last: its maps, and the map pass. Once the engine is ready or on again, and
    *  for a map that its task gave up. */
   private askAgain() {
@@ -816,8 +819,7 @@ export class GameAnalysis<G extends GameTypes> {
     if (this.mapWork[key]) return this.mapWork[key];
     if (this.known(path) && this.searchable(path) && !this.analysisOf(path)) return "waiting"; // its own search comes
     // Asked for while the engine is not ready or off: it is asked for again then (askAgain)
-    const idle = !this.engineReady || this.paused || this.stalePool;
-    return idle && this.ownershipWanted.has(key) ? "waiting" : "unasked";
+    return this.idle && this.ownershipWanted.has(key) ? "waiting" : "unasked";
   }
 
   /** Adds a map to these positions, which the area map shows, where they have none (mapAt): to a position of the tree
@@ -830,7 +832,7 @@ export class GameAnalysis<G extends GameTypes> {
   askOwnership(paths: string[][]) {
     this.askedPaths = paths;
     this.ownershipWanted = new Set(paths.map(pathKey));
-    if (!this.engineReady || this.paused || this.stalePool) return;
+    if (this.idle) return;
     for (const path of paths) {
       const key = pathKey(path), inTree = this.known(path);
       if (this.mapAt(path) || this.mapWork[key] || this.mapless.has(key)) continue;
@@ -852,7 +854,7 @@ export class GameAnalysis<G extends GameTypes> {
       this.mapPassLeft = 0;
       return;
     }
-    if (this.mapPassOn || this.board || !this.engineReady || this.paused || this.stalePool) return;
+    if (this.mapPassOn || this.board || this.idle) return;
     const n = this.passCount;
     if (this.labelled < n) return; // the review's passes first
     const at = Math.min(mainIndex(this.knownPrefix(from), this.mainNames) ?? 0, n - 1);
@@ -870,8 +872,9 @@ export class GameAnalysis<G extends GameTypes> {
    *  Null when it does not run. */
   get mapPass(): { total: number; done: number } | null {
     if (!this.mapPassOn) return null;
-    const n = this.passCount, paths = Array.from({ length: n }, (_, i) => this.mainNames.slice(0, i));
-    return { total: n, done: paths.filter(p => this.mapAt(p) || this.mapless.has(pathKey(p))).length };
+    const n = this.passCount;
+    const done = this.mainKeys.slice(0, n).filter((k, i) => this.analysis[i]?.ownership || this.ownership[k] || this.mapless.has(k));
+    return { total: n, done: done.length };
   }
 
   /** Adds the map of the position at `path`: the store's, or a short search's, which the store then keeps. `wanted`

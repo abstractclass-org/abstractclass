@@ -76,7 +76,6 @@ export interface AnalysisQuery extends PositionQuery {
   slice?: { visits: number } | { ms: number };
   includePolicy?: boolean;
   includeOwnership?: boolean; // KataGo's: the reply gives `ownership`
-  includeMovesOwnership?: boolean; // KataGo's: each candidate of `moveInfos` gives its `ownership` too
   includePVVisits?: boolean; // KataGo's: the reply gives the visits of each move of each pv
 }
 
@@ -103,9 +102,6 @@ export interface MoveInfo {
   // A symmetric twin (0.4): the edge that was searched, of which this edge is the mirror image. Its values, visits and
   // prior are that edge's, its line and ownership mirrored. Absent for a searched edge.
   isSymmetryOf?: string;
-  // With includeMovesOwnership: the ownership of the candidate's subtree, as `ownership` gives the root's. About 3 kB
-  // of JSON for each candidate, so the site does not ask for it (Hedge School's design 30).
-  ownership?: number[];
 }
 
 export interface RootInfo {

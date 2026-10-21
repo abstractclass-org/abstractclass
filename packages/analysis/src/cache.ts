@@ -20,11 +20,9 @@ export async function cachePut(key: string, value: unknown): Promise<void> {
 // for a field added: a reader checks whether an added field is there, as it must for the results stored before it.
 // 2: a candidate's visits are KataGo's edgeVisits, no longer its child node's visits. 3: a candidate has its line
 // (KataGo's pv). 4: and the visits through each edge of its line (pvEdgeVisits). 5: and the network's prior for it, for
-// the position's complexity. A result of 5 can also have the ownership of each point, and of each candidate on the
-// board, for the area map (Hedge School's design 30).
+// the position's complexity. A result of 5 can also have the ownership of each point, for the area map (Hedge School's
+// design 30).
 export const SHAPE = 5;
-/** The oldest shape that the readers read. */
-export const READ_FROM = 5;
 /** The shapes that the readers read, the oldest first: SHAPE, and 6, which the first builds of the area map wrote on
  *  their branch before the rule above, for results of 5 with the ownership (Hedge School's design 30). A result of 6 is
  *  read as one of 5, kept, and never searched again or removed. */
@@ -48,10 +46,10 @@ export function readAnalysisKey(key: string) {
 /** Whether a text has the form of a stored analysis's key, a result's or an added map's: a file's results are checked
  *  by it. */
 export const isAnalysisKey = (key: string) => /^(map\|)?\d+\|[^|]*\|[0-9a-f]+\|\d+\|/.test(key);
-/** Whether a stored key is a result that no reader reads: of a shape older than READ_FROM, or of the form before the
- *  shape (the build, the network, the visits and the moves). A newer shape's result is not: a tab of a later release
- *  wrote it. */
-export const isOlderShape = (key: string) => !isAnalysisKey(key) || readAnalysisKey(key).shape < READ_FROM;
+/** Whether a stored key is a result that no reader reads: of an older shape, or of the form before the shape (the
+ *  build, the network, the visits and the moves). A newer shape's result is not: a tab of a later release wrote it, or
+ *  the area map's first builds (READ_SHAPES). */
+export const isOlderShape = (key: string) => !isAnalysisKey(key) || readAnalysisKey(key).shape < SHAPE;
 /** Whether the removal of older shapes is due: the browser's mark (the shape it last removed the older ones for) is
  *  older than SHAPE, absent, or not a number. */
 export function removalDue(mark: string | null): boolean {
@@ -62,8 +60,8 @@ const REMOVED = "learn-enclosure:analysis-shape:1"; // the browser's mark
 
 /** Removes the stored results of older shapes (isOlderShape), at the site's first start after a change of SHAPE: a
  *  start with the same shape reads the mark alone. The results of the shapes that the readers read stay, of every
- *  engine and network: a snapshot reads an earlier engine's (design 20). The mark follows the removal, so a removal that fails runs again at
- *  the next start. */
+ *  engine and network: a snapshot reads an earlier engine's (design 20). The mark follows the removal, so a removal
+ *  that fails runs again at the next start. */
 export async function removeOlderShapes(): Promise<void> {
   if (!removalDue(readLocal(REMOVED))) return;
   if (await dbDeleteWhere(STORES.analysis, isOlderShape)) writeLocal(REMOVED, String(SHAPE));
@@ -105,7 +103,7 @@ export const BUDGETS = [256, 512, 768, 1024, 1536, 2048, 3072, 4096, 8192, 16384
  *  review takes a deeper result it holds. So a review opened again keeps what the player searched deeper where they
  *  looked (the position on screen, design 09), as it had it before the page closed, and a review imported from another
  *  browser, searched to another depth, opens without searching again (Hedge School's src/lib/game/reviewFile.ts). Of
- *  every shape that the readers read (READ_FROM): of two results as deep, the newer shape's. */
+ *  every shape that the readers read (READ_SHAPES): of two results as deep, the newer shape's. */
 export async function cacheGetAtLeast<T>(search: string, model: string, moves: string[], visits: number): Promise<T | undefined> {
   const keys = depthKeys(search, model, moves, visits);
   await readStored(keys);
@@ -137,24 +135,22 @@ async function readStored(keys: string[]) {
 export const MAP_PREFIX = "map|";
 /** The visits of a map's short search. A full search's candidate on the board rests on few visits (a median of 17 on
  *  the test fixture's game), and short searches of 16 to 128 visits of the position after it differ least from the
- *  full search's own map of it (includeMovesOwnership), less than one of 512 visits does (decisions/product.md, "A
- *  candidate's map from a short search"). */
+ *  full search's own map of the candidate, less than one of 512 visits does (decisions/product.md, "A candidate's map
+ *  from a short search"). */
 export const MAP_VISITS = 32;
 /** The slices of the map pass's searches, in visits: the pool can stop a search only between two slices. */
 export const MAP_SLICE = 8;
 /** An added map: the ownership, in hundredths from Blue's side, and its source. */
 export interface AddedMap { ownership: number[]; visits: number; source: "short search" }
-/** The key of a position's added map, at this shape. */
-export const mapKey = (search: string, model: string, moves: string[], shape = SHAPE) =>
-  MAP_PREFIX + analysisKey(search, model, moves, MAP_VISITS, shape);
+/** The key of a position's added map. */
+export const mapKey = (search: string, model: string, moves: string[]) => MAP_PREFIX + analysisKey(search, model, moves, MAP_VISITS);
 /** Keeps a position's added map. */
 export const mapPut = (search: string, model: string, moves: string[], map: AddedMap) => cachePut(mapKey(search, model, moves), map);
-/** A position's added map, of the newest shape that the readers read. */
+/** A position's added map. */
 export async function mapGet(search: string, model: string, moves: string[]): Promise<AddedMap | undefined> {
-  const keys = READ_SHAPES.map(s => mapKey(search, model, moves, s));
-  await readStored(keys);
-  const key = [...keys].reverse().find(k => memory.has(k));
-  return key === undefined ? undefined : (memory.get(key) as AddedMap);
+  const key = mapKey(search, model, moves);
+  await readStored([key]);
+  return memory.get(key) as AddedMap | undefined;
 }
 
 /** The engine search of an earlier review, for its snapshot (design 20): a search whose results with the network

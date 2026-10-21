@@ -2,7 +2,7 @@
 // that a load keeps. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { READ_FROM, SHAPE, mapKey } from "@abstractclass/analysis/cache.ts";
+import { SHAPE, mapKey } from "@abstractclass/analysis/cache.ts";
 import { buildReviewFile, gameAnalyses, importReview, mergeBranches, positionKeys, readReviewFile, reviewFileName } from "./reviewFile.ts";
 import { loadGame, reviewCovers, reviewMark, type KeptBranches, type ReviewMark } from "./store.ts";
 import { memoryDb } from "@abstractclass/storage/memoryDb.ts";
@@ -27,8 +27,8 @@ test("a game's results: its positions' and the ones a move from them (the Greats
     [key(""), { a: 1 }], [key("D10-G10 N11-Q10"), { a: 2 }], [key("D10-G10 N11-Q11"), { a: 3 }],
     [key("D10-G10 O11-R10"), { a: 7 }], // a move from the game: a Great's confirmation
     [key("A10-D10 N11-Q10"), { a: 4 }], // two moves from it: another game
-    [key("D10-G10", READ_FROM - 1), { a: 5 }], // a shape that no reader reads
-    [key("D10-G10 N11-Q10 L10-N11", READ_FROM), { a: 8 }], // an older shape that the readers read: a result with no ownership
+    [key("D10-G10", SHAPE - 1), { a: 5 }], // a shape that no reader reads
+    [key("D10-G10 N11-Q10 L10-N11", 6), { a: 8 }], // the area map's first builds' shape 6, which the readers read
   ];
   assert.deepEqual(gameAnalyses(entries, positionKeys(MOVES, BRANCHES)).map(e => e[1]), [{ a: 1 }, { a: 2 }, { a: 3 }, { a: 7 }, { a: 8 }]);
   // Only the networks the site ships, when they are named
@@ -62,11 +62,11 @@ test("a review file reads back, and a wrong file says why", () => {
   // Entries that are not results are dropped, not fatal.
   assert.equal(readReviewFile(JSON.stringify({ ...file, analyses: [["junk", {}], 5] })).analyses.length, 0);
   // A file of an earlier site keeps the results of the shapes that the readers read: the others no reader reads (design
-  // 13). A file of shape 5 keeps its results, with no ownership (design 30).
-  const older = { ...file, analyses: [[key("D10-G10", READ_FROM - 1), { blueWin: 0.4 }], [key(""), { blueWin: 0.5 }]] };
+  // 13). A file of the area map's first builds keeps its results of shape 6 (design 30).
+  const older = { ...file, analyses: [[key("D10-G10", SHAPE - 1), { blueWin: 0.4 }], [key(""), { blueWin: 0.5 }]] };
   assert.deepEqual(readReviewFile(JSON.stringify(older)).analyses, [[key(""), { blueWin: 0.5 }]]);
-  const shape5 = { ...file, analyses: [[key("D10-G10", READ_FROM), { blueWin: 0.4 }]] };
-  assert.deepEqual(readReviewFile(JSON.stringify(shape5)).analyses, [[key("D10-G10", READ_FROM), { blueWin: 0.4 }]]);
+  const early = { ...file, analyses: [[key("D10-G10", 6), { blueWin: 0.4 }]] };
+  assert.deepEqual(readReviewFile(JSON.stringify(early)).analyses, [[key("D10-G10", 6), { blueWin: 0.4 }]]);
 });
 
 test("branches merge: the kept ones keep their order, the file's new ones follow", () => {

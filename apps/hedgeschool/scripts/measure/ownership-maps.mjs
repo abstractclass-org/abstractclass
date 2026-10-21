@@ -1,6 +1,6 @@
 // The area map's change style on real games (design 30): how much of the board it marks at a position, at three
 // smallest values, by stage: whether the map points at something or is noise. It counts the points of each mark: open
-// area that a side will probably close, and closed area that its owner will probably lose (ownership.ts, areaMap).
+// area that a side will probably close, and closed area that its owner will probably lose (ownership.ts, changeMap).
 // The games: the test fixture's (its stored review, tests/fixtures/hedgefund-review.json), or the meaf.us archive's human
 // games as the engine repository analysed them (its runs/archive_analysis/part1-1000.jsonl, request 07): the first
 // `perBand` games of each rating band from 1 to 5 that the rules ended, with 120 edges, as the first build of the maps
@@ -30,7 +30,7 @@ if (!isMainThread) {
   const { toAnalysis } = await import("@abstractclass/analysis/reply.ts");
   const { enclosure, turnFromCount } = await import("../../src/lib/review/enclosure.ts");
   const { boardPosition } = await import("../../src/lib/engine/position.ts");
-  const { areaMap } = await import("../../src/lib/review/ownership.ts");
+  const { changeMap, occupancy } = await import("../../src/lib/review/ownership.ts");
   const { median } = await import("./speed.mjs");
   const [file, perBand = "2", threadsArg = "2"] = process.argv.slice(2);
   const threads = Number(threadsArg), fixture = file.endsWith(".json");
@@ -40,10 +40,11 @@ if (!isMainThread) {
   const games = [];
   if (fixture) {
     // The stored review: each position's deepest result, by its moves
+    const { readAnalysisKey } = await import("@abstractclass/analysis/cache.ts");
     const data = JSON.parse(readFileSync(file, "utf8")), results = new Map();
     for (const [key, a] of data.analyses) {
-      const moves = key.split("|").slice(4).join("|"), had = results.get(moves);
-      if (!had || a.visits > had.visits) results.set(moves, a);
+      const { moves, map } = readAnalysisKey(key), had = results.get(moves);
+      if (!map && (!had || a.visits > had.visits)) results.set(moves, a);
     }
     const longest = [...results.keys()].reduce((a, b) => (b.split(" ").length > a.split(" ").length ? b : a));
     games.push({ id: "fixture", moves: longest.split(" "), results });
@@ -87,8 +88,9 @@ if (!isMainThread) {
     for (let i = 0; i < board.length; i++) {
       const a = at(i);
       if (!a?.ownership) continue;
+      const now = occupancy(board[i]);
       const marked = t => {
-        const map = areaMap("change", a.ownership, board[i], t);
+        const map = changeMap(a.ownership, now, t);
         return { close: map.filter(m => m?.kind === "close").length, lose: map.filter(m => m?.kind === "lose").length };
       };
       shares.push({ edge: i, by: THRESHOLDS.map(marked) });

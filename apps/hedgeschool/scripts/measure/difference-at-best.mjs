@@ -9,14 +9,15 @@ import { readFileSync } from "node:fs";
 import { parseRecord } from "../../src/lib/game/record.ts";
 import { edgeName, turnFromCount } from "../../src/lib/review/enclosure.ts";
 import { differenceMap } from "../../src/lib/review/ownership.ts";
+import { readAnalysisKey } from "@abstractclass/analysis/cache.ts";
 import { FIXTURE, median } from "./speed.mjs";
 
 const fixture = JSON.parse(readFileSync(FIXTURE, "utf8")), moves = parseRecord(fixture.record).moves;
 // Each position's deepest result, by its moves
 const at = new Map();
 for (const [key, a] of fixture.analyses) {
-  const m = key.split("|").slice(4).join("|");
-  if (!at.has(m) || a.visits > at.get(m).visits) at.set(m, a);
+  const { moves: m, map } = readAnalysisKey(key);
+  if (!map && (!at.has(m) || a.visits > at.get(m).visits)) at.set(m, a);
 }
 const rows = [];
 for (let i = 0; i + 1 < moves.length; i++) {

@@ -110,7 +110,8 @@
   import AdvantageChart from "./AdvantageChart.svelte";
   import DifficultyChart from "./DifficultyChart.svelte";
   import { loadDisplay, saveDisplay, type Display } from "./display.ts";
-  import { areaMap, askOrder, differenceMap, differenceReading, drawnBoard, mapStep, occupancy, pointReading } from "./ownership.ts";
+  import { askOrder, changeMap, differenceMap, differenceReading, drawnBoard, mapStep, occupancy, ownershipMap, pointReading,
+           valueText } from "./ownership.ts";
   import { pointName } from "#lib/engine/notation.ts";
   import { playMove, preload } from "#lib/sound.ts";
   import SettingChoice from "#lib/ui/SettingChoice.svelte";
@@ -572,35 +573,32 @@
       return { rows: kidsOf(mainNames.slice(0, e.index)).flatMap(first => branchRows(first, kidsOf)), engine };
     });
   }
-  // The area map (design 30): the engine's ownership, or the change from the board to it (the map's style), on the
-  // points whose value is at least the style's smallest value (display settings). Off on the review and on on the
-  // Analysis board by default, each page's own setting. One rule: the map is the map of the position that the board
-  // shows. That is the position on screen, or, while a line or a preview shows, the position after its last drawn
-  // edge: the engine's line steps with its drawing, and a line drawn all at once, or pointed at in the list up to an
-  // edge, shows its last edge's. In the change style, the board is the board as drawn (drawnBoard). A position's map is
-  // its result's, or else a map added to it (askOwnership): a short search of the position, asked for while the map
-  // shows the line, in the order of drawing. While the map of the edge drawn now is searched, the board keeps the
-  // latest map of the line before it (mapStep), and the legend names the position that the map is from.
-  // The styles' names, by what each compares (the display setting "Area map style"), in the order of Shift+T
+  // The area map (design 30), in its style (the display setting "Area map style"), on the points whose value is at
+  // least the style's smallest value. Off on the review and on on the Analysis board by default, each page's own
+  // setting. One rule: the map is the map of the position that the board shows. That is the position on screen, or,
+  // while a line or a preview shows, the position after its last drawn edge: the engine's line steps with its drawing,
+  // and a line drawn all at once, or pointed at in the list up to an edge, shows its last edge's. In Forecast vs board,
+  // the board is the board as drawn (drawnBoard). A position's map is its result's, or else a map added to it
+  // (askOwnership): a short search of the position, asked for while the map shows the line, in the order of drawing.
+  // While the map of the edge drawn now is searched, the board keeps the latest map of the line before it (mapStep),
+  // and the legend names the position that the map is from.
+  // The styles' names, by what each compares, in the order of Shift+T
   const MAP_STYLE_NAME: Record<Display["mapStyle"], string> = { ownership: "Forecast", change: "Forecast vs board", difference: "After vs before" };
   const MAP_STYLES = Object.keys(MAP_STYLE_NAME) as Display["mapStyle"][];
   // The switch in the board's margin: off, or a style, one click for each. The style changes as often as the player
   // reads a position, so it is on the page, and on the keys: t shows or hides the map, and Shift+T goes to the next
   // style, which shows the map.
   const MAP_SWITCH = ["off", ...MAP_STYLES] as const;
+  const mapPage = $derived<keyof Display["areaMap"]>(board ? "board" : "review"); // each page keeps its map on or off
+  const mapOn = $derived(display.areaMap[mapPage]);
   function setMap(value: (typeof MAP_SWITCH)[number]) {
-    if (value === "off") { if (mapOn) toggleMap(); return; }
-    display.mapStyle = value;
-    if (!mapOn) toggleMap();
+    if (value !== "off") display.mapStyle = value;
+    display.areaMap[mapPage] = value !== "off";
   }
+  const toggleMap = () => (display.areaMap[mapPage] = !mapOn);
   const nextMapStyle = () => setMap(MAP_STYLES[(MAP_STYLES.indexOf(display.mapStyle) + 1) % MAP_STYLES.length]);
   // The review's own work runs: its counts are partial. The map pass, after it, leaves them final.
   const reviewRuns = $derived(!!progress && !progress.maps);
-  const mapOn = $derived(board ? display.areaMap.board : display.areaMap.review);
-  function toggleMap() {
-    if (board) display.areaMap.board = !display.areaMap.board;
-    else display.areaMap.review = !display.areaMap.review;
-  }
   // The line that the board draws, from its start: its edges, the ones drawn so far, and how the legend names it
   type MapLine = { kind: "here" | "line" | "branch" | "move"; start: string[]; from: Position; all: BoardLineEdge[]; drawn: BoardLineEdge[] };
   const mapLine = $derived.by((): MapLine => {
@@ -615,12 +613,14 @@
   const stepPath = (l: MapLine, j: number) => [...l.start, ...l.all.slice(0, j).map(e => edgeName(e.edge))];
   /** A position's map: the position on screen's from its analysis, which can be the search running now. */
   const mapOf = (p: string[]) => (pathKey(p) === here ? analysis?.ownership : undefined) ?? game?.mapAt(p);
-  // The map shown: the drawn edge's, or the latest one of the line before it while that is searched
+  // The step of the line whose map shows: the drawn edge's, or the latest one before it while that is searched. A
+  // number, then an array, so that a batch of results that changes neither redraws nothing.
   const drawnCount = $derived(mapLine.drawn.length);
-  const mapShown = $derived(!mapOn ? null
+  const shownStep = $derived(!mapOn ? null
     : mapStep(Array.from({ length: drawnCount + 1 }, (_, j) => mapOf(stepPath(mapLine, j))), drawnCount));
+  const shownOwnership = $derived(shownStep === null ? undefined : mapOf(stepPath(mapLine, shownStep)));
   // The board that the map's step shows, for the change style and the point's numbers
-  const mapBoard = $derived(mapShown ? drawnBoard(mapLine.from, mapLine.drawn.slice(0, mapShown.step)) : null);
+  const mapBoard = $derived(shownStep === null ? null : drawnBoard(mapLine.from, mapLine.drawn.slice(0, shownStep)));
   // The difference style (KaTrain's loss grid, with the rises): two forecasts, before and after. While a line or a
   // branch's preview shows, its start against the step shown, for the player to move at its start. Else the last move
   // to the position shown, by the labels' unit (the turn that ends there, so far, or the edge), for its player.
@@ -636,11 +636,17 @@
     return { before: p.slice(0, b), mover, played: true };
   });
   const beforeMap = $derived(diffBase ? mapOf(diffBase.before) : undefined);
+  // The point under the pointer, for its numbers, and each point's state on the board shown (occupancy): for the change
+  // style, and for the numbers
+  let mapPoint = $state.raw<[number, number] | null>(null);
+  const pointing = $derived(mapPoint !== null);
+  const boardNow = $derived(mapBoard && (display.mapStyle === "change" || pointing) ? occupancy(mapBoard) : null);
   const shownMap = $derived.by(() => {
-    if (!mapShown || !mapBoard) return null;
+    if (!shownOwnership) return null;
     const min = display.mapMin[display.mapStyle];
-    if (display.mapStyle !== "difference") return areaMap(display.mapStyle, mapShown.ownership, mapBoard, min);
-    return beforeMap && diffBase ? differenceMap(beforeMap, mapShown.ownership, diffBase.mover, min) : null;
+    if (display.mapStyle === "ownership") return ownershipMap(shownOwnership, min);
+    if (display.mapStyle === "change") return boardNow && changeMap(shownOwnership, boardNow, min);
+    return beforeMap && diffBase ? differenceMap(beforeMap, shownOwnership, diffBase.mover, min) : null;
   });
   $effect(() => {
     const l = mapLine, d = diffBase;
@@ -655,17 +661,30 @@
   }
   /** The difference style's name of its two positions: the move or the turn, or the line's step against its start. */
   function diffName(l: MapLine, j: number, d: DiffBase): string {
-    if (!d.played) return j ? `After edge ${j} of the ${l.kind} vs before the ${l.kind}` : `Before the ${l.kind}`;
+    if (!d.played) return j ? `${stepName(l, j)} vs before the ${l.kind}` : stepName(l, j);
     const p = l.start, from = moveFrom(p.slice(0, -1));
     return unit === "turn" ? `After turn ${from.turn} vs before it` : `After ${turnText(from)} ${p.at(-1)} vs before it`;
   }
   // The legend's start: the position that the map is from (in the difference style, its two positions), and the edge
   // drawn now while its map is searched (or has none: the game ends there)
   const mapPlace = $derived.by(() => {
-    if (!mapShown) return "";
-    const name = diffBase ? diffName(mapLine, mapShown.step, diffBase) : stepName(mapLine, mapShown.step);
-    if (mapShown.step === drawnCount || !game?.hasNoMap(stepPath(mapLine, drawnCount))) return name;
+    if (shownStep === null) return "";
+    const name = diffBase ? diffName(mapLine, shownStep, diffBase) : stepName(mapLine, shownStep);
+    if (shownStep === drawnCount || !game?.hasNoMap(stepPath(mapLine, drawnCount))) return name;
     return `${name} (edge ${drawnCount}: no map)`;
+  });
+  // The legend's lead, then each mark with its meaning: none for the forecast, whose shade says it all. A sign of the
+  // difference style is in the colour of the side that the point moved toward: a fall toward the opponent.
+  type LegendMark = { kind: "close" | "lose" | "fall" | "rise"; side?: Player; text: string };
+  const mapLegend = $derived.by((): { lead: string; marks: LegendMark[] } => {
+    if (display.mapStyle === "ownership")
+      return { lead: `${mapPlace ? `${mapPlace}: who` : "Shade: who"} the engine expects to hold each point`, marks: [] };
+    if (display.mapStyle === "change")
+      return { lead: mapPlace ? `${mapPlace}, forecast vs board:` : "Forecast vs board:",
+               marks: [{ kind: "close", text: "will be closed" }, { kind: "lose", text: "will be lost" }] };
+    const mover = diffBase?.mover ?? 0, name = PLAYER_NAME[mover];
+    return { lead: `${mapPlace}:`, marks: [{ kind: "fall", side: mover === 0 ? 1 : 0, text: `fell for ${name}` },
+                                           { kind: "rise", side: mover, text: `rose for ${name}` }] };
   });
   // The map's work, always in the legend's slot while the map is on (design 30): for a line, how many of its positions
   // have their maps; for a position, whether its map waits for the engine (the review's searches run first), is
@@ -694,15 +713,14 @@
     const on = mapOn && !board && !snapshot && !!game && game.labelled >= game.passCount, from = path;
     untrack(() => game?.passMaps(on, from));
   });
-  // The point under the pointer, and its numbers while the map shows: the ownership, the state now and the change, or
-  // in the difference style, the forecast before and after, and how it fell or rose for the player who moved
-  let mapPoint = $state<[number, number] | null>(null);
-  const boardNow = $derived(mapBoard ? occupancy(mapBoard) : null);
+  // The numbers of the point under the pointer while the map shows: the ownership, the state now and the change, or in
+  // the difference style, the forecast before and after, and how it fell or rose for the player who moved
   const mapReading = $derived.by(() => {
-    if (!mapPoint || !mapShown || !boardNow) return null;
+    if (!mapPoint || !shownOwnership) return null;
     const i = mapPoint[1] * 19 + mapPoint[0];
-    return `${pointName(...mapPoint)} · ${diffBase && beforeMap ? differenceReading(beforeMap[i], mapShown.ownership[i], diffBase.mover)
-      : pointReading(mapShown.ownership[i], boardNow[i])}`;
+    const reading = diffBase && beforeMap ? differenceReading(beforeMap[i], shownOwnership[i], diffBase.mover)
+      : boardNow && pointReading(shownOwnership[i], boardNow[i]);
+    return reading && `${pointName(...mapPoint)} · ${reading}`;
   });
 
   // The areas in the players' tags: now, or, while a line shows, after its last drawn edge (from the rules).
@@ -1024,7 +1042,7 @@
     [["Space"], "Play the pinned candidate, or number 1"],
     [["e", "l"], "Turn the engine on or off"],
     [["t"], "Show or hide the area map"],
-    [["Shift + t"], "The area map's next style: Forecast, Forecast vs board, After vs before"],
+    [["Shift + t"], `The area map's next style: ${MAP_STYLES.map(s => MAP_STYLE_NAME[s]).join(", ")}`],
     [["Escape"], "Close the settings, or cancel the edge that you started"],
     [["?"], "This list"],
   ];
@@ -1656,7 +1674,7 @@
       {@render toggle("Regions", "Shading on the areas each player encloses.",
         () => display.layers.regions, v => (display.layers.regions = v))}
       {@render toggle("Area map", "Shading or marks on each point from the engine's ownership, in the style below. While a line or a preview shows, the map is of the position after its last drawn edge. The key t shows or hides it.",
-        () => mapOn, v => { if (v !== mapOn) toggleMap(); })}
+        () => mapOn, v => (display.areaMap[mapPage] = v))}
       {@render choice("Area map style", "Forecast: who the engine expects to hold each point, and how surely. Forecast vs board: what the engine expects still to happen, whoever moves: dots where a player will probably close open area, hatching where a player will probably lose closed area. After vs before: what the last move, or the line on the board, changed in the forecast for the player who moved: a plus in that player's colour where it rose, a minus in the opponent's where it fell.",
         Object.entries(MAP_STYLE_NAME), () => display.mapStyle, v => (display.mapStyle = v as Display["mapStyle"]))}
       <div class="flex items-center justify-between gap-3 py-1.5">
@@ -1664,7 +1682,7 @@
           <label for="setting-map-min" class="text-sm font-medium">Smallest value marked</label>
           <p class="text-xs text-muted">{MAP_STYLE_NAME[display.mapStyle]}, from 0 to 1. At 0, every point with a value. Hold the pointer over a point of the board to see its numbers.</p>
         </div>
-        <span class="text-sm tabular-nums">{(display.mapMin[display.mapStyle] / 100).toFixed(2)}</span>
+        <span class="text-sm tabular-nums">{valueText(display.mapMin[display.mapStyle])}</span>
         <input id="setting-map-min" type="range" min="0" max="100" step="5" value={display.mapMin[display.mapStyle]}
                oninput={e => (display.mapMin[display.mapStyle] = e.currentTarget.valueAsNumber)}
                class="w-28 flex-none accent-(--accent)" />
@@ -1973,28 +1991,21 @@
             {#if mapReading}
               <span>{mapReading}</span>
             {:else}
-              {#if display.mapStyle === "ownership"}
-                <span class="min-w-0 truncate">{mapPlace ? `${mapPlace}: who` : "Shade: who"} the engine expects to hold each point</span>
-              {:else}
-                <span class="min-w-0 truncate">{display.mapStyle === "change" ? (mapPlace ? `${mapPlace}, forecast vs board:` : "Forecast vs board:")
-                  : `${mapPlace}:`}</span>
-                {#each display.mapStyle === "change" ? [["close", "will be closed"], ["lose", "will be lost"]]
-                  : [["fall", `fell for ${PLAYER_NAME[diffBase?.mover ?? 0]}`], ["rise", `rose for ${PLAYER_NAME[diffBase?.mover ?? 0]}`]] as [kind, text] (kind)}
-                  <span class="inline-flex flex-none items-center gap-1">
-                    <svg class="size-3" viewBox="0 0 1 1" aria-hidden="true">
-                      {#if kind === "close"}
-                        {#each [0.25, 0.75] as x (x)}{#each [0.25, 0.75] as y (y)}<circle cx={x} cy={y} r="0.11" fill="currentColor" />{/each}{/each}
-                      {:else if kind === "lose"}
-                        {#each [-0.4, 0, 0.4, 0.8] as d (d)}<line x1={d} y1="1" x2={d + 1} y2="0" stroke="currentColor" stroke-width="0.1" />{/each}
-                      {:else if kind === "fall"}
-                        <path d="M0.15 0.5H0.85" stroke-width="0.16" stroke-linecap="round" style:stroke={diffBase?.mover === 1 ? "var(--blue)" : "var(--red)"} />
-                      {:else}
-                        <path d="M0.5 0.15V0.85M0.15 0.5H0.85" stroke-width="0.16" stroke-linecap="round" style:stroke={diffBase?.mover === 1 ? "var(--red)" : "var(--blue)"} />
-                      {/if}
-                    </svg>{text}
-                  </span>
-                {/each}
-              {/if}
+              <span class="min-w-0 truncate">{mapLegend.lead}</span>
+              {#each mapLegend.marks as m (m.kind)}
+                <span class="inline-flex flex-none items-center gap-1">
+                  <svg class="size-3" viewBox="0 0 1 1" aria-hidden="true">
+                    {#if m.kind === "close"}
+                      {#each [0.25, 0.75] as x (x)}{#each [0.25, 0.75] as y (y)}<circle cx={x} cy={y} r="0.11" fill="currentColor" />{/each}{/each}
+                    {:else if m.kind === "lose"}
+                      {#each [-0.4, 0, 0.4, 0.8] as d (d)}<line x1={d} y1="1" x2={d + 1} y2="0" stroke="currentColor" stroke-width="0.1" />{/each}
+                    {:else}
+                      <path d={m.kind === "fall" ? "M0.15 0.5H0.85" : "M0.5 0.15V0.85M0.15 0.5H0.85"} stroke-width="0.16" stroke-linecap="round"
+                            style:stroke={m.side === 0 ? "var(--blue)" : "var(--red)"} />
+                    {/if}
+                  </svg>{m.text}
+                </span>
+              {/each}
             {/if}
           </div>
         {/if}
@@ -2241,7 +2252,6 @@
   .summary-col { grid-area: summary; max-height: var(--column); }
   .board-col { grid-area: board; }
   .board-wrap { width: var(--board); flex: none; }
-  /* The legend sits in the board's margin above its top row: 1.3 of the board's 20.6 units. */
   /* The margin's row is the board's margin above its top row: 1.3 of the board's 20.6 units. */
   .map-margin { height: calc(100% * 1.3 / 20.6); }
   .chart-area { height: var(--chart); margin-top: var(--chart-gap); }

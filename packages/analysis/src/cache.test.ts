@@ -4,7 +4,7 @@
 // shape that they read is found, and the removal of older shapes takes the others, once. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { MAP_VISITS, READ_FROM, SHAPE, analysisKey, cacheGetAtLeast, isAnalysisKey, isOlderShape, mapGet, mapKey, mapPut, removalDue, searchHolding,
+import { MAP_VISITS, SHAPE, analysisKey, cacheGetAtLeast, isAnalysisKey, isOlderShape, mapGet, mapKey, mapPut, removalDue, searchHolding,
          snapshotSearch } from "./cache.ts";
 import { STORES } from "@abstractclass/storage/db.ts";
 import { memoryDb } from "@abstractclass/storage/memoryDb.ts";
@@ -63,10 +63,10 @@ test("the site's own search is left out when the snapshot is of an earlier engin
   assert.equal(searchHolding(keys("new", "n1", 512), "n1", line, 512, "new"), undefined);
 });
 
-test("results of a shape older than the readers read are not read, and of an older shape that they read are", () => {
+test("results of an older shape are not read, and those that the area map's first builds stored as shape 6 are", () => {
   const stored = (shape: number) => keys("old", "n1", 512).map(k => k.replace(/^\d+\|/, `${shape}|`));
-  assert.equal(searchHolding(stored(READ_FROM - 1), "n1", line, 512), undefined);
-  assert.equal(searchHolding(stored(READ_FROM), "n1", line, 512), "old");
+  assert.equal(searchHolding(stored(SHAPE - 1), "n1", line, 512), undefined);
+  assert.equal(searchHolding(stored(6), "n1", line, 512), "old");
 });
 
 test("a result that the area map's first builds stored as shape 6 is read as one of shape 5, the deepest first", async () => {
@@ -76,7 +76,7 @@ test("a result that the area map's first builds stored as shape 6 is read as one
   db.rows(STORES.analysis).set(sixth(["e5"], 16384), { visits: 16384, shape: 6 });
   db.rows(STORES.analysis).set(analysisKey("s5", "n1", ["e5"], 1024), { visits: 1024, shape: SHAPE });
   assert.deepEqual(await cacheGetAtLeast("s5", "n1", ["e5"], 512), { visits: 16384, shape: 6 }); // the deepest
-  db.rows(STORES.analysis).set(analysisKey("s5", "n1", ["f6"], 512, READ_FROM - 1), { visits: 512 });
+  db.rows(STORES.analysis).set(analysisKey("s5", "n1", ["f6"], 512, SHAPE - 1), { visits: 512 });
   assert.equal(await cacheGetAtLeast("s5", "n1", ["f6"], 512), undefined);
   db.rows(STORES.analysis).set(analysisKey("s5", "n1", ["g7"], 512, 7), { visits: 512 });
   assert.equal(await cacheGetAtLeast("s5", "n1", ["g7"], 512), undefined); // a later shape's: another meaning
@@ -89,7 +89,7 @@ test("the removal takes the results of the shapes that no reader reads, and keep
   assert.equal(isOlderShape(`${SHAPE}|fdfe5ad|800f0bbf|512|@A1_B2 D10-G10`), false); // from a set-up start
   assert.equal(isOlderShape(`7|fdfe5ad|800f0bbf|512|D10-G10`), false); // a tab of a later release wrote it
   assert.equal(isOlderShape(`6|fdfe5ad|800f0bbf|512|D10-G10`), false); // the area map's first builds: read as 5
-  assert.equal(isOlderShape(`${READ_FROM - 1}|fdfe5ad|800f0bbf|512|D10-G10`), true);
+  assert.equal(isOlderShape(`${SHAPE - 1}|fdfe5ad|800f0bbf|512|D10-G10`), true);
   assert.equal(isOlderShape("2|85c2adb|800f0bbf|32|"), true);
   // Before shape 2, a key had no shape: the build, the network, the visits and the moves.
   assert.equal(isOlderShape("85c2adb|800f0bbf|512|D10-G10"), true);

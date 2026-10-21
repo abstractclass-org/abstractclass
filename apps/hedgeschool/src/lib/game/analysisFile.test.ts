@@ -2,7 +2,7 @@
 // what it cannot use, with a reason. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { READ_FROM, SHAPE } from "@abstractclass/analysis/cache.ts";
+import { SHAPE } from "@abstractclass/analysis/cache.ts";
 import { ANALYSIS_FORMAT, fileKind, readAnalysisFile } from "./analysisFile.ts";
 
 const BOARD = { version: 2, main: ["A10-D9"], nodes: [["A10-D9", -1, 1], ["D10-G9", 0]] };
@@ -21,9 +21,9 @@ test("an analysis file keeps its lines and its readable results", () => {
   const f = readAnalysisFile(file());
   assert.deepEqual(f.board, BOARD);
   assert.deepEqual(f.analyses.map(a => a[0]), [KEY]);
-  // A result of shape 5, with no ownership: a reader reads it too (design 30)
-  const older = `${READ_FROM}|fdfe5ad|ab12|16384|A10-D9`;
-  assert.deepEqual(readAnalysisFile(file({ analyses: [[older, { blueWin: 0.5 }]] })).analyses.map(a => a[0]), [older]);
+  // A result that the area map's first builds stored as shape 6: a reader reads it too (design 30)
+  const early = `6|fdfe5ad|ab12|16384|A10-D9`;
+  assert.deepEqual(readAnalysisFile(file({ analyses: [[early, { blueWin: 0.5 }]] })).analyses.map(a => a[0]), [early]);
 });
 
 test("an analysis file that cannot be used says why", () => {

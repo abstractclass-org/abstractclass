@@ -2,7 +2,7 @@
 // and an earlier network file's, unless a stored game's snapshot reads them. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { READ_FROM, READ_SHAPES, analysisKey, mapKey, searchHolding, snapshotPositions } from "@abstractclass/analysis/cache.ts";
+import { READ_SHAPES, SHAPE, analysisKey, mapKey, searchHolding, snapshotPositions } from "@abstractclass/analysis/cache.ts";
 import { unneededResults } from "./earlierResults.ts";
 import type { KeptBranches, ReviewMark } from "./store.ts";
 
@@ -127,7 +127,7 @@ test("without the site's CPU module, the removal takes nothing: it cannot tell t
 });
 
 test("the results of a shape that no reader reads are not this removal's", () => {
-  const older = results("s1", "b2", 512, line(MOVES)).map(k => k.replace(/^\d+\|/, `${READ_FROM - 1}|`));
+  const older = results("s1", "b2", 512, line(MOVES)).map(k => k.replace(/^\d+\|/, `${SHAPE - 1}|`));
   const newer = older.map(k => k.replace(/^\d+\|/, `${Math.max(...READ_SHAPES) + 1}|`));
   assert.deepEqual(unneededResults([...older, ...newer, "85c2adb|b2|512|D10-G10"], [], ENGINE), []);
 });

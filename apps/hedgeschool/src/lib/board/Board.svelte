@@ -10,9 +10,8 @@
   /** An edge of the engine's line from the position, with its mover, and, once the engine's rules have played it, the
    *  edge it cuts and the regions after it. */
   export interface BoardLineEdge { edge: Edge; player: 0 | 1; cut?: Edge | null; regions?: Position["regions"] }
-  /** `areaMap`: the area map given, in its style (design 30). */
-  export interface BoardLayers { regions: boolean; protected: boolean; candidates: boolean; marks: boolean; coordinates: boolean; areaMap: boolean }
-  export const DEFAULT_LAYERS: BoardLayers = { regions: true, protected: true, candidates: true, marks: true, coordinates: true, areaMap: true };
+  export interface BoardLayers { regions: boolean; protected: boolean; candidates: boolean; marks: boolean; coordinates: boolean }
+  export const DEFAULT_LAYERS: BoardLayers = { regions: true, protected: true, candidates: true, marks: true, coordinates: true };
   export type { BoardNote, NoteBrush } from "./notes.ts";
   /** A click on a point: with the right button (only with `rightClicks`), and whether it begins an edge (a drag's press,
    *  whatever point is pending). */
@@ -20,11 +19,12 @@
 </script>
 
 <script lang="ts">
-  // The Enclosure board as SVG: the lattice, the area map's ownership style (design 30), each player's regions, its change style, the edges, the protected edges (the turn just
-  // played and the mover's edges of this turn, on the edge itself, with no band behind any edge), the edge just cut, the engine's candidates numbered by rank, a preview edge, label badges on the edges of the turn
-  // just played, and a ghost edge (the game's edge in a retry). During edge input: the first point, the points that
-  // complete a legal edge from it (dots), and the edge to the marked point under the pointer. Points are 0-18 with y
-  // up, as in the engine.
+  // The Enclosure board as SVG: the lattice, the area map's shading (design 30), each player's regions, the area map's
+  // marks, each player's edges, the protected edges (the turn just played and the mover's edges of this turn, on the
+  // edge itself, with no band behind any edge), the edge just cut, the engine's candidates numbered by rank, a preview
+  // edge, label badges on the edges of the turn just played, and a ghost edge (the game's edge in a retry). During edge
+  // input: the first point, the points that complete a legal edge from it (dots), and the edge to the marked point under
+  // the pointer. Points are 0-18 with y up, as in the engine.
   import { pointName, sameEdge } from "#lib/review/enclosure.ts";
   import LabelMark from "#lib/review/LabelMark.svelte";
   import type { AreaMark } from "#lib/review/ownership.ts";
@@ -54,7 +54,7 @@
     oncandidatedblclick?: (edge: Edge) => void;
     notes?: BoardNote[]; // the player's notes on this position
     onnotes?: (notes: BoardNote[]) => void; // a note drawn, changed or removed, or all cleared: right-drawing works only with it
-    // The area map (design 30, the layer areaMap): by point (index y * 19 + x), its mark (ownership.ts, areaMap)
+    // The area map (design 30), when it shows: by point (index y * 19 + x), its mark (ownership.ts)
     areaMap?: (AreaMark | null)[] | null;
     // The lattice point under a mouse's pointer, or null when it leaves the board: the page shows its numbers. Touch
     // gives none, as a touch is edge input.
@@ -72,8 +72,7 @@
   const layers = $derived({ ...DEFAULT_LAYERS, ...layersSet });
   const uid = $props.id();
   const shadowId = `${uid}-badge-shadow`; // one board's filter: a page can show several boards
-  const patternId = (m: { kind: "close" | "lose"; side: 0 | 1 }) => `${uid}-${m.kind}-${m.side}`;
-  const signId = (kind: "rise" | "fall", side: 0 | 1) => `${uid}-${kind}-${side}`;
+  const markId = (kind: "close" | "lose" | "rise" | "fall", side: 0 | 1) => `${uid}-${kind}-${side}`; // a map mark's pattern
   const blendId = `${uid}-area-blend`;
   const N = 19;
   // A label badge's radius. On a length-1 edge, whose line is 0.68 between its nodes, the badge sidesteps by 80% of its
@@ -137,7 +136,6 @@
   const lineCuts = $derived(drawnLine.flatMap(l => (l.cut ? [l.cut] : [])));
   const shownEdges = $derived(([0, 1] as const).map(p => position.edges[p].filter(e => !lineCuts.some(c => sameEdge(c, e)))));
   const shownRegions = $derived(drawnLine.at(-1)?.regions ?? position.regions);
-  const shownMap = $derived(layers.areaMap ? areaMap : null);
   // Edge input: the point under the pointer, for the ghost edge from `pending` to a legal end.
   const pointKey = (x: number, y: number) => x * N + y;
   const activeKeys = $derived(active ? new Set(active.map(([x, y]) => pointKey(x, y))) : null);
@@ -168,6 +166,7 @@
   const capture = (ev: PointerEvent) => { try { svg.setPointerCapture(ev.pointerId); } catch { /* not down any more */ } };
   const DRAG_PX = 4; // a press that moves less is a click
   let press: { id: number; from: [number, number]; x: number; y: number; moved: boolean; right: boolean } | null = null;
+  let pointed: [number, number] | null = null; // the point under a mouse's pointer, last given to onpointat
   const rightPoints = $derived(rightClicks && !onnotes);
   function pressPoint(ev: PointerEvent, x: number, y: number) {
     if (ev.button !== 0 && !(ev.button === 2 && rightPoints)) return;
@@ -192,7 +191,10 @@
     } else if (ev.button === 0 && notes.length) onnotes?.([]);
   }
   function move(ev: PointerEvent) {
-    if (onpointat && ev.pointerType === "mouse") onpointat(pointAt(ev));
+    if (onpointat && ev.pointerType === "mouse") {
+      const p = pointAt(ev);
+      if (!(p && pointed ? samePoint(p, pointed) : p === pointed)) onpointat((pointed = p));
+    }
     if (sketch && ev.pointerId === sketch.id) sketch.to = pointAt(ev) ?? sketch.to;
     if (!press || ev.pointerId !== press.id) return;
     if (!press.moved && Math.hypot(ev.clientX - press.x, ev.clientY - press.y) > DRAG_PX) {
@@ -251,7 +253,7 @@
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <svg class="board" viewBox={box} role="img" aria-label="Enclosure board" bind:this={svg}
-     onpointerdown={down} onpointermove={move} onpointerup={up} onpointercancel={cancel} onpointerleave={() => onpointat?.(null)}
+     onpointerdown={down} onpointermove={move} onpointerup={up} onpointercancel={cancel} onpointerleave={() => { if (pointed) onpointat?.((pointed = null)); }}
      oncontextmenu={ev => { if (onnotes || rightPoints) ev.preventDefault(); }}>
   <rect x="-1.3" y="-1.3" width="20.6" height="20.6" class="bg" />
   <!-- The label badges' shadow, as Lichess's board draws under its glyph badges (chessground's glyph.ts:
@@ -266,10 +268,10 @@
          hatching on closed area that its owner will lose. Unlike the regions' solid fill, they read as a forecast. The
          tiles are in the board's units, so that the marks of next points join, and no dot falls on a lattice point. -->
     {#each ([0, 1] as const) as side (side)}
-      <pattern id={patternId({ kind: "close", side })} class="change p{side}" patternUnits="userSpaceOnUse" width="0.5" height="0.5">
+      <pattern id={markId("close", side)} class="change p{side}" patternUnits="userSpaceOnUse" width="0.5" height="0.5">
         <circle cx="0.25" cy="0.25" r="0.075" />
       </pattern>
-      <pattern id={patternId({ kind: "lose", side })} class="change p{side}" patternUnits="userSpaceOnUse" width="0.4" height="0.4"
+      <pattern id={markId("lose", side)} class="change p{side}" patternUnits="userSpaceOnUse" width="0.4" height="0.4"
                patternTransform="rotate(45)">
         <line x1="0" y1="0.2" x2="0.4" y2="0.2" />
       </pattern>
@@ -280,7 +282,7 @@
          colour (a region's fill, an edge), the shape carries the meaning: a halo in the board's colour keeps it whole. -->
     {#each ([0, 1] as const) as side (side)}
       {#each [["rise", "M0.25 0.13V0.37M0.13 0.25H0.37"], ["fall", "M0.13 0.25H0.37"]] as [kind, d] (kind)}
-        <pattern id={signId(kind as "rise" | "fall", side)} class="sign p{side}" patternUnits="userSpaceOnUse" width="0.5" height="0.5">
+        <pattern id={markId(kind as "rise" | "fall", side)} class="sign p{side}" patternUnits="userSpaceOnUse" width="0.5" height="0.5">
           <path {d} class="halo" />
           <path {d} class="ink" />
         </pattern>
@@ -300,13 +302,12 @@
   <!-- The ownership style (design 30), under everything else, as KaTrain draws its territory first: a square on each
        point, in the colour of the side that holds it and as strong as it holds it (KaTrain's OWNERSHIP_GAMMA), blended
        by a blur as KaTrain blends its texture. -->
-  {#if shownMap}
+  {#if areaMap}
     <g filter="url(#{blendId})">
       {#each points as [x, y] (pointKey(x, y))}
-        {@const m = shownMap[y * N + x]}
+        {@const m = areaMap[y * N + x]}
         {#if m?.kind === "hold"}
-          <rect x={x - 0.5} y={sy(y) - 0.5} width="1" height="1" style:fill={m.side === 0 ? "var(--blue)" : "var(--red)"}
-                fill-opacity={AREA_ALPHA * m.strength} />
+          <rect x={x - 0.5} y={sy(y) - 0.5} width="1" height="1" class="hold p{m.side}" fill-opacity={AREA_ALPHA * m.strength} />
         {/if}
       {/each}
     </g>
@@ -322,13 +323,11 @@
 
   <!-- The change style, and the difference style's signs (design 30), over the regions' fill and under the edges: a
        square on each point marked, filled with its mark's pattern, a sign as strong as the forecast rose or fell. -->
-  {#if shownMap}
+  {#if areaMap}
     {#each points as [x, y] (pointKey(x, y))}
-      {@const m = shownMap[y * N + x]}
-      {#if m?.kind === "close" || m?.kind === "lose"}
-        <rect x={x - 0.5} y={sy(y) - 0.5} width="1" height="1" fill="url(#{patternId(m)})" />
-      {:else if m?.kind === "rise" || m?.kind === "fall"}
-        <rect x={x - 0.5} y={sy(y) - 0.5} width="1" height="1" fill="url(#{signId(m.kind, m.side)})" opacity={m.strength} />
+      {@const m = areaMap[y * N + x]}
+      {#if m && m.kind !== "hold"}
+        <rect x={x - 0.5} y={sy(y) - 0.5} width="1" height="1" fill="url(#{markId(m.kind, m.side)})" opacity={"strength" in m ? m.strength : 1} />
       {/if}
     {/each}
   {/if}
@@ -500,17 +499,19 @@
   .region { stroke: none; }
   .region.p0 { fill: var(--blue); fill-opacity: 0.16; }
   .region.p1 { fill: var(--red); fill-opacity: 0.16; }
+  .hold.p0 { fill: var(--blue); }
+  .hold.p1 { fill: var(--red); }
   .change circle { stroke: none; }
   .change.p0 circle { fill: var(--blue); }
   .change.p1 circle { fill: var(--red); }
   .change line { stroke-width: 0.07; }
+  .change.p0 line { stroke: var(--blue); }
+  .change.p1 line { stroke: var(--red); }
   .sign path { fill: none; stroke-linecap: round; }
   .sign .halo { stroke: var(--board-bg); stroke-width: 0.15; }
   .sign .ink { stroke-width: 0.07; }
   .sign.p0 .ink { stroke: var(--blue); }
   .sign.p1 .ink { stroke: var(--red); }
-  .change.p0 line { stroke: var(--blue); }
-  .change.p1 line { stroke: var(--red); }
   .edge { stroke-width: 0.13; stroke-linecap: round; }
   .edge.p0 { stroke: var(--blue); }
   .edge.p1 { stroke: var(--red); }

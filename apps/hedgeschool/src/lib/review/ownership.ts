@@ -5,7 +5,8 @@
 // that holds it as KaTrain shades its territory; the forecast against the board now, where a point that its region holds
 // now and keeps gets nothing; and the difference between two forecasts, before and after a move or a line, as KaTrain's
 // loss grid, with the rises too.
-import { PLAYER_NAME, sameEdge, type Edge, type Player, type Position } from "./enclosure.ts";
+import type { BoardLineEdge } from "#lib/board/Board.svelte";
+import { PLAYER_NAME, sameEdge, type Player, type Position } from "./enclosure.ts";
 
 const N = 19;
 
@@ -64,14 +65,14 @@ export function occupancy(position: Pick<Position, "edges" | "regions">): number
   return out;
 }
 
-/** The area map: by point (index y * 19 + x), the style's mark where its value (the ownership, or the change, in
- *  hundredths) is not 0 and at least `min`, or null. `ownership` is the engine's, from Blue's side in hundredths. */
-export function areaMap(style: Exclude<MapStyle, "difference">, ownership: number[], position: Pick<Position, "edges" | "regions">,
-                        min: number): (AreaMark | null)[] {
-  if (style === "ownership") {
-    return ownership.map(o => (o && Math.abs(o) >= min ? { kind: "hold", side: o > 0 ? 0 : 1, strength: shade(o) } : null));
-  }
-  const now = occupancy(position);
+/** The ownership style: by point (index y * 19 + x), the side that the engine expects to hold it, where the ownership
+ *  (the engine's, from Blue's side in hundredths) is not 0 and at least `min`, or null. */
+export const ownershipMap = (ownership: number[], min: number): (AreaMark | null)[] =>
+  ownership.map(o => (o && Math.abs(o) >= min ? { kind: "hold", side: o > 0 ? 0 : 1, strength: shade(o) } : null));
+
+/** The change style: by point, its mark where the change from the board now (`now`, occupancy) to the ownership is not
+ *  0 and at least `min`, or null. */
+export function changeMap(ownership: number[], now: number[], min: number): (AreaMark | null)[] {
   return ownership.map((o, i) => {
     const change = o - 100 * now[i];
     if (!change || Math.abs(change) < min) return null;
@@ -95,14 +96,15 @@ export function differenceMap(before: number[], after: number[], mover: Player, 
   });
 }
 
-const fmt = (v: number) => (Math.abs(v) / 100).toFixed(2);
-const held = (o: number) => (o ? `${PLAYER_NAME[o > 0 ? 0 : 1]} ${fmt(o)}` : "even");
+/** A value in hundredths as the map's numbers show it, without its sign: 0.62. */
+export const valueText = (v: number) => (Math.abs(v) / 100).toFixed(2);
+const held = (o: number) => (o ? `${PLAYER_NAME[o > 0 ? 0 : 1]} ${valueText(o)}` : "even");
 /** A point's numbers in the difference style: the forecast before and after, each from Blue's side in hundredths, and
  *  how it fell or rose for `mover`. */
 export function differenceReading(before: number, after: number, mover: Player): string {
   const fall = (mover === 0 ? 1 : -1) * (before - after);
   return `before ${held(before)} · after ${held(after)} · ` +
-    (fall ? `${fall > 0 ? "fell" : "rose"} ${fmt(fall)} for ${PLAYER_NAME[mover]}` : "no change");
+    (fall ? `${fall > 0 ? "fell" : "rose"} ${valueText(fall)} for ${PLAYER_NAME[mover]}` : "no change");
 }
 const STATE: Record<number, string> = { 1: "Blue's region", 0: "open", [-1]: "Red's region" };
 /** A point's numbers, for the point under the pointer: its ownership `o` (from Blue's side, in hundredths), its state
@@ -110,16 +112,13 @@ const STATE: Record<number, string> = { 1: "Blue's region", 0: "open", [-1]: "Re
 export function pointReading(o: number, now: number): string {
   const change = o - 100 * now;
   return `${held(o)} · now ${STATE[now]} · ` +
-    (change ? `change ${fmt(change)} to ${PLAYER_NAME[change > 0 ? 0 : 1]}` : "no change");
+    (change ? `change ${valueText(change)} to ${PLAYER_NAME[change > 0 ? 0 : 1]}` : "no change");
 }
 
-/** A drawn edge of a line, with its mover, and once the rules have played it, the edge that it cuts and the regions
- *  after it (the board's BoardLineEdge). */
-type DrawnEdge = { edge: Edge; player: Player; cut?: Edge | null; regions?: Position["regions"] };
 /** The board as drawn after a line's edges, for the change style's "now": the position's edges less the ones that the
  *  line cuts, with the line's own edges, and the regions after its last edge, as the board draws them. While the rules
  *  have not played the line, the position's regions. */
-export function drawnBoard(from: Pick<Position, "edges" | "regions">, drawn: DrawnEdge[]): Pick<Position, "edges" | "regions"> {
+export function drawnBoard(from: Pick<Position, "edges" | "regions">, drawn: BoardLineEdge[]): Pick<Position, "edges" | "regions"> {
   if (!drawn.length) return from;
   const cuts = drawn.flatMap(l => (l.cut ? [l.cut] : []));
   const edges = ([0, 1] as const).map(p => [...from.edges[p].filter(e => !cuts.some(c => sameEdge(c, e))),
@@ -127,10 +126,11 @@ export function drawnBoard(from: Pick<Position, "edges" | "regions">, drawn: Dra
   return { edges, regions: drawn.at(-1)!.regions ?? from.regions };
 }
 
-/** The map that the board shows after `k` drawn edges of a line, from `maps` by step (0: the line's start, j: after its
- *  edge j): step k's, or, while step k's is searched, the latest step before it that has one. Null when none has. */
-export function mapStep(maps: (number[] | undefined)[], k: number): { step: number; ownership: number[] } | null {
-  for (let j = k; j >= 0; j--) if (maps[j]) return { step: j, ownership: maps[j]! };
+/** The step whose map the board shows after `k` drawn edges of a line, from `maps` by step (0: the line's start, j:
+ *  after its edge j): step k, or, while step k's map is searched, the latest step before it that has one. Null when
+ *  none has. */
+export function mapStep(maps: (number[] | undefined)[], k: number): number | null {
+  for (let j = k; j >= 0; j--) if (maps[j]) return j;
   return null;
 }
 

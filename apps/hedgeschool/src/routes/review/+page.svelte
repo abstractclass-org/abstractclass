@@ -142,7 +142,7 @@
   // their step comes). The step's own part never shows less than it has shown (held): a count that grows makes it wait
   // instead of going back. Another review depth, network or game starts it again. After the review, while the area map
   // is on and the review's results lack maps, the map pass (design 30) is one more part, which never holds the review's
-  // end: the review is done without it (reviewComplete).
+  // end: the review is done without it (reviewDone).
   let held = $state({ step: -1, done: 0 });
   $effect(() => { void budget; void game; held = { step: -1, done: 0 }; });
   const rawProgress = $derived.by((): (ReviewProgress & { step: number }) | null => {

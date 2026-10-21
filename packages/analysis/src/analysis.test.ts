@@ -15,7 +15,7 @@ import { Cancelled, type EnginePool, type Work } from "@abstractclass/engine/poo
 import { BOARD_ID } from "./kept.ts";
 import { reply, wordFields, wordRules, words } from "./testing/game.ts";
 import type { Player } from "./game.ts";
-import { MAP_VISITS, READ_FROM, SWEEP_VISITS, analysisKey, cachePut, mapGet, readAnalysisKey } from "./cache.ts";
+import { MAP_VISITS, SWEEP_VISITS, analysisKey, cachePut, mapGet, readAnalysisKey } from "./cache.ts";
 import { toAnalysis } from "./reply.ts";
 import { STORES } from "@abstractclass/storage/db.ts";
 import { memoryDb } from "@abstractclass/storage/memoryDb.ts";
@@ -110,18 +110,18 @@ test("a search's final results wait for the batch, and the sweep's progress come
   assert.equal(game.swept, 2);
 });
 
-test("every search asks for the ownership of each point, and none for each candidate's, for the area map", async () => {
+test("every search asks for the ownership of each point, for the area map", async () => {
   const { searches } = await sweeping();
   assert.ok(searches.length > 0);
-  assert.ok(searches.every(s => s.query.includeOwnership && !s.query.includeMovesOwnership));
+  assert.ok(searches.every(s => s.query.includeOwnership));
 });
 
 test("results of shape 5 open the review with no search, and the board's ownership comes from a short search", async () => {
   const { pool, searches } = fakePool();
   const deep = 16384, model = pool.model!.sha256;
-  // Every position at a deep budget, stored at shape 5 (READ_FROM): results with no ownership
+  // Every position at a deep budget, with no ownership, as the site before the area map stored it
   for (let i = 0; i <= MOVES.length; i++)
-    await cachePut(analysisKey(pool.search!, model, MOVES.slice(0, i), deep, READ_FROM), toAnalysis(words, reply(deep)));
+    await cachePut(analysisKey(pool.search!, model, MOVES.slice(0, i), deep), toAnalysis(words, reply(deep)));
   const game = new GameAnalysis(words, pool, MOVES, "g5");
   await game.start();
   await game.fromStore(pool.search!, model);
@@ -182,7 +182,7 @@ test("the map pass: once the review's passes are done, the maps of the game's po
   const deep = 16384, model = pool.model!.sha256;
   // Results with no map (stored before the ownership), at every position but the game's end, which is not over
   for (let i = 0; i <= MOVES.length; i++)
-    await cachePut(analysisKey(pool.search!, model, MOVES.slice(0, i), deep, READ_FROM), toAnalysis(words, reply(deep)));
+    await cachePut(analysisKey(pool.search!, model, MOVES.slice(0, i), deep), toAnalysis(words, reply(deep)));
   const game = new GameAnalysis(words, pool, MOVES, "g6");
   await game.start();
   await game.fromStore(pool.search!, model);
@@ -227,7 +227,7 @@ async function noMaps(engines: number, id: string) {
   const { pool, searches } = fakePool(engines);
   const deep = 16384, model = pool.model!.sha256;
   for (let i = 0; i <= MOVES.length; i++)
-    await cachePut(analysisKey(pool.search!, model, MOVES.slice(0, i), deep, READ_FROM), toAnalysis(words, reply(deep)));
+    await cachePut(analysisKey(pool.search!, model, MOVES.slice(0, i), deep), toAnalysis(words, reply(deep)));
   const game = new GameAnalysis(words, pool, MOVES, id);
   await game.start();
   await game.fromStore(pool.search!, model);

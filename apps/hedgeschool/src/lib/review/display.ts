@@ -13,8 +13,7 @@ export interface Display {
   // lines show, the other's do not
   reviewFor: "both" | "blue" | "red";
   win: "bar" | "gauge"; // a bar above the board (Blue left, Red right), or a vertical gauge beside it
-  // The board's layers, but the area map, which each page keeps on its own
-  layers: Omit<BoardLayers, "areaMap">;
+  layers: BoardLayers;
   // The area map (design 30), on each page: off on the review, whose player reads the labels first, and on on the
   // Analysis board, whose player reads the whole board. The key t shows or hides it on the page.
   areaMap: { review: boolean; board: boolean };
@@ -47,18 +46,11 @@ export interface Display {
 
 const KEY = "learn-enclosure:review-display:1";
 
-/** The layers that the display keeps: all but the area map. */
-function withoutMap<T extends Partial<BoardLayers>>(layers: T): Omit<T, "areaMap"> {
-  const kept = { ...layers };
-  delete kept.areaMap;
-  return kept;
-}
-
 export const DEFAULT_DISPLAY: Display = {
   judge: "turn",
   reviewFor: "both",
   win: "bar",
-  layers: withoutMap(DEFAULT_LAYERS),
+  layers: DEFAULT_LAYERS,
   areaMap: { review: false, board: true },
   mapStyle: "ownership",
   mapMin: { ownership: 5, change: 5, difference: 5 },
@@ -86,7 +78,7 @@ export function loadDisplay(): Display {
     judge: kept.judge === "edge" ? "edge" : "turn",
     reviewFor: kept.reviewFor === "blue" || kept.reviewFor === "red" ? kept.reviewFor : "both",
     win: kept.win === "gauge" ? "gauge" : "bar",
-    layers: { ...DEFAULT_DISPLAY.layers, ...withoutMap(kept.layers ?? {}) },
+    layers: { ...DEFAULT_DISPLAY.layers, ...kept.layers },
     areaMap: { ...DEFAULT_DISPLAY.areaMap, ...kept.areaMap },
     mapStyle: kept.mapStyle === "change" || kept.mapStyle === "difference" ? kept.mapStyle : "ownership",
     mapMin: { ownership: hundredths(kept.mapMin?.ownership, "ownership"), change: hundredths(kept.mapMin?.change, "change"),
