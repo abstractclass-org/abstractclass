@@ -5594,3 +5594,23 @@ sweep.
     opened again with the engine on. It started no search, and showed no label and no loss. By edge, 2 moves had the
     ◆ and 103 said "Not searched yet". By turn, 1 turn had the ◆ (both hard positions are in it). The annotated
     record exported then had 16 `[%eval]` comments, no "A hard position." and no label.
+
+### A meaf.us game's review links back to its game (2026-10-21)
+
+- **What:** `meafRecord` writes `https://meaf.us/sst1/?game=ID&spectate=1` as the Site tag when the game has an id
+  (`MeafGame.gameID`, encoded with `encodeURIComponent`), and `meaf.us` when it has none. The review then shows "View
+  this game on meaf.us" (`gamePage`, host `meaf.us`). The Event stays "meaf.us game". A record imported before keeps
+  `meaf.us` and has no link. Constellation keeps its name: its export has no game address. The Notation page's Site
+  row and design 11 say that the address opens the game for a player who is logged in to meaf.us (abscls-242q).
+- **`/sst1/` is the path of the games that the import reads:** the userscript matches `https://meaf.us/sst1/*`, and
+  the bookmarklet runs on the same page.
+- **Check 1, a visitor who is not logged in** (headless Chromium, only pages opened): `https://meaf.us/sst1/`,
+  `?history=1` and `?game=abc123&spectate=1` (an invented id: the History page lists no games without a login) all
+  showed "Sign in to play". The page asks `/sst1/api/auth`, gets 401, and draws the sign-in page before it reads
+  `?game`. The saved copy of meaf.us's code (the engine repository, `index-SqsmQbu0.js`) has the same logic.
+- **Check 2, a player who is logged in** (the owner's browser): a finished game opened from the History page showed
+  `https://meaf.us/sst1/?game=ID&spectate=1` in the address (meaf.us adds `&spectate=1` itself) and the game's moves
+  on the board.
+- **Decision:** the players who bring a game to Hedge School are logged in to meaf.us when they bring it, so the link
+  opens the game for them. Another reader gets meaf.us's sign-in page, as for any page of meaf.us.
+- **Not checked:** a game of other players, opened by its address.

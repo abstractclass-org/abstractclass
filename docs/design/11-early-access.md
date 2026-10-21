@@ -217,6 +217,17 @@ read the game from the player's own page.
 - **On meaf.us, the winner is a name.** meaf.us gives the winner as the winning player's name, as the engine
   repository's archive tools read it (`tools/analyze_archive.py`). The record's result compares it with the two
   players' names.
+- **On meaf.us, the Site tag is the game's address,** `https://meaf.us/sst1/?game=ID&spectate=1` (`meafRecord`), so
+  the review links back to it, as it does for strategyjam.org. `/sst1/` is the path of the game page that the tools
+  run on (`userscript.ts` matches it). The id is `MeafGame.gameID`, encoded with `encodeURIComponent`. meaf.us opens a
+  game from `?game=ID`, and adds `&spectate=1` itself to a finished game that it opens from the History page. The
+  watcher's view is the one that loads the moves.
+  - **The address opens the game for a player who is logged in to meaf.us.** A visitor who is not logged in gets
+    meaf.us's sign-in page at every address of meaf.us. The players who bring a game are logged in when they bring
+    it, so the link opens the game for them. Another reader of the review gets the sign-in page.
+  - **A game with no id keeps `meaf.us` as its Site tag** and has no link. A record imported before the link keeps
+    `meaf.us` too. Constellation keeps its name: its export is pasted text with no game address.
+  - **Not checked:** a game of other players, opened by its address.
 - **On strategyjam.org, it reads the game that the game's page holds** (`/enclosure/game/ID`, `strategyjamPage.ts`):
   the props of the React component that draws the stage (`.stage`, the board and the panel). `game.rules` is the
   site's rules module, and `state` the game as the site sends it: the seats, the first position, the moves

@@ -105,8 +105,9 @@ A10-D10,D10-E11,D10-F13+ Q10-T10,Q10-T13*,T10-T13* b1 0/4.5 4`;
     <thead><tr><th>Tag</th><th>Value</th></tr></thead>
     <tbody>
       <tr><td><code>Event</code></td><td>The event, or <code>?</code> when it is not known.</td></tr>
-      <tr><td><code>Site</code></td><td>Where the game took place: <code>meaf.us</code>, <code>Constellation</code>, the
-        game's own page (a strategyjam.org game gives its address, and the review links to it), or <code>?</code>.</td></tr>
+      <tr><td><code>Site</code></td><td>Where the game took place: <code>Constellation</code>, <code>meaf.us</code>, the
+        game's own page (the review links to it), or <code>?</code>. A strategyjam.org game and a meaf.us game give
+        their address. The address of a meaf.us game opens the game for a player who is logged in to meaf.us.</td></tr>
       <tr><td><code>Date</code></td><td><code>YYYY.MM.DD</code>, with <code>?</code> for unknown digits.</td></tr>
       <tr><td><code>Round</code></td><td>The round, or <code>-</code>.</td></tr>
       <tr><td><code>Blue</code>, <code>Red</code></td><td>The players' names, or <code>?</code> when a name is not
