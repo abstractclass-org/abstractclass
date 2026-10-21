@@ -5549,27 +5549,33 @@ sweep.
 - **The prototype** (four forms of the header, on a review with the owner's stored results copied to the dev server,
   the game 97d7015abab8, at a 1,148-pixel window), measured from the analysis table's top in the screenshots: 230
   pixels before, 239 for the ◆'s slot, the meter and the number in one row, and for the Difficulty chart's bar lying
-  down, and 248 for the words and the number on a line of their own with the meter under them. The one row was
-  chosen, with the number written as a loss, as the notes write losses.
+  down, and 248 for the words and the number on a line of their own with the meter under them. The decision is the
+  one row, with the number as a loss, as the notes write losses.
 - **The branch moves' marks on that review:** of the game's 49 branch moves, 8 had their position before searched
   (stored), and 2 of those were hard: 2 marks. The positions not searched are mostly inside the engine's lines played
   to a point: a click on the engine's line plays it to that edge (`playPath`), which adds every move before it as
   branch moves, but only the end goes on screen. A move that the player plays starts from the position on screen,
   which the engine searches when it is on, and a branch's first move starts from a game position, which the review
-  searched. So a missing mark is easy or not searched, and the tooltip says which. A search of every branch position
-  (design 07 refused it) and a hollow mark for a position not searched (clutter) were set aside.
+  searched. So a missing mark is easy or not searched, and the tooltip says which. The decision sets aside a search
+  of every branch position (design 07 refused it) and a hollow mark for a position not searched (clutter).
 - **The Analysis board's results:** its review held only the results of the positions that the player stood on, and
   of the moves evaluated, so a mark on its main line would show only where the player had stood. The board now reads
   the stored results of every position of its main line and of its variations when it opens (`fromStore`), in the one
   read of the store (`warmCache`) that the review makes too. It only reads: the engine searches nothing more. The
   labels stay on the moves evaluated: a label needs `judgedMain` or a branch node's `judged`, which the read does not
-  set. A unit test checks the read (`packages/analysis/src/analysis.test.ts`).
+  set. A unit test checks the read (`packages/analysis/src/analysis.test.ts`). The other results show from the first
+  frame too: the lead in the moves' tooltips, the evaluation bar and the engine's lines at the position on screen,
+  and the `[%eval]` comments of the annotated record. The record writes the evaluation of each position that has a
+  result (design 21, item 7), so a record copied as the board opens now has every stored position's. Before, it had
+  only those that the player stood on or evaluated. Its form, and "A hard position." on the moves evaluated only, stay
+  as they were. The analysis file and the link do not change: the file reads the store itself, and the link holds no
+  results.
 - **Where a board move's ◆ comes from:** the view, from the complexity that the review model keeps for each move
   (`isHard`, `packages/analysis/src/model.ts`). `onlyJudged` keeps the complexity of a move not evaluated, and still
   drops its `hard`: that `hard` also writes "A hard position." in the annotated record, which stays as it was. To keep
   the mark in the model, the board's export would need a second form of the review. A branch move's ◆ comes from the
   search of the position before it (`branchHardness` in `ReviewView.svelte`), by turn from the harder of the turn's
-  positions, as a game turn's.
+  positions, as a game turn's (`turnComplexity`, which the review's turns use too).
 - **Checked** in Playwright's Chromium, headless, on a preview of the build, in a job of 2 threads, at 1,148 × 800,
   with the test fixture's review (`tests/fixtures/hedgefund-review.json`):
   - The engine header was 63.75 pixels tall and its second line 16 at each of the game's 121 positions, by edge and
@@ -5584,3 +5590,7 @@ sweep.
   - The Analysis board, from the fixture's record, on its own network: 15 positions searched to 256 visits, then the
     board opened again with the engine off. The first 15 positions showed their results at once, 2 of them hard with
     their ◆, and 105 moves said "Not searched yet" (120 less the 15).
+  - The review's check of the board, in the same way: 17 positions searched to 256 visits on the CPU, then the board
+    opened again with the engine on. It started no search, and showed no label and no loss. By edge, 2 moves had the
+    ◆ and 103 said "Not searched yet". By turn, 1 turn had the ◆ (both hard positions are in it). The annotated
+    record exported then had 16 `[%eval]` comments, no "A hard position." and no label.

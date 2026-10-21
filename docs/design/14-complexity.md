@@ -23,8 +23,9 @@ also wants to know where the game was hard, apart from where they lost.
    - **The mark is the position's,** not the review's. It shows wherever the position before a move has a result with
      the priors, from the same result that the engine header shows for that position. A review searches every
      position of the game, so each of the game's moves has one. A branch (design 07) and the Analysis board
-     (design 21) search only what the player looks at: there a move without the mark is easy, or its position is not
-     searched yet. The move's tooltip then says "Not searched yet", and a marked move's says "Hard position".
+     (design 21) search only what the player looks at: there a move without the mark is easy, or the engine has not
+     searched its position yet. The move's tooltip then says "Not searched yet", and a marked move's says "Hard
+     position".
    - ◆ in the move list, beside the loss of a turn (or of an edge, by edge). Every row keeps a slot for it, so that a
      mark never moves the label beside it or widens the column. On the board, the main line's moves that the player
      did not evaluate have it too.
@@ -141,13 +142,14 @@ The departures from the published methods:
 - **A strip under the Advantage chart** (the first form of the difficulty chart): difficulty is not advantage, and a
   strip that thin had no room for the labels' dots.
 - **The complexity as a number in the tooltip** ("the engine's likely edges lose 12.3% here on average"), the first
-  form: too many words, and a number that a player cannot weigh. The number now shows beside the meter and the ◆, in
-  the notes' unit (a loss of win chance, as the notes write a move's cost), with the hard level in its tooltip. So a
-  player can weigh it against a move's loss and against the level.
-- **The ◆ at the end of the advantage's line,** the form before the second line: the header read as one line of
-  advantage, with difficulty at its end, and the meter under it had no number.
+  form: too many words, and a number that a player cannot weigh. The second line shows the number beside the meter
+  and the ◆, in the notes' unit (a loss of win chance, as the notes write a move's cost), with the hard level in its
+  tooltip. So a player can weigh it against a move's loss and against the level.
+- **The ◆ at the end of the advantage's line, the meter under it:** the header reads as one line of advantage with
+  the difficulty at its end, and the meter has no number.
 - **The words and the number on a line of their own, the meter under them** ("Difficulty 14.3% · ◆ Hard position"):
-  18 pixels taller than before, twice the second line's 9.
+  they make the header 18 pixels taller than the ◆ at the end of the advantage's line does, twice the 9 of the second
+  line.
 - **The Difficulty chart's bar lying down** in place of the meter: as tall as the second line, but it shows only the
   complexity, which the number gives, and drops the likely edges' shares.
 - **A search of every branch position,** so that every branch move has its mark: design 07 refused it, because a line

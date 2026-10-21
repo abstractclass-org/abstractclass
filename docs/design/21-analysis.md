@@ -55,7 +55,8 @@ engine does by itself.
    its main line and of its variations before it shows, in one read of the store, as the review reads its own. It
    only reads: the engine searches nothing more. The labels and notes of the moves evaluated are in its first frame,
    and do not move the bar under the moves when they come (a layout shift). The other positions' results give their
-   ◆ (item 3), so that a mark does not show only where the player stood during this visit. They give no label.
+   ◆ (item 3), so that a mark does not show only where the player stood during this visit. They give no label. They
+   also give the lead in the moves' tooltips, and their evaluations in the record (item 7).
 5. **The ways in:**
    - **Analysis** in the header: the board as the player left it.
    - **A link** that carries a line: `/analysis#record=…` (a record), or `/analysis#packed=…` (a shared analysis),
