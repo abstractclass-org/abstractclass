@@ -504,3 +504,25 @@ test("a focus that stops before its time limit does not show as stopped there", 
   game.setDepth(4096, 2);
   assert.equal(game.stoppedByTime([]), false);
 });
+
+test("a Great's confirmation is asked for only where the only good move keeps what the opponent's last turn gave", async () => {
+  const { pool } = fakePool();
+  const game = new GameAnalysis(words, pool, ["a", "b", "c", "d"], "g");
+  await game.start();
+  const at = (blueWin: number, candidates: [string, number][] = []) =>
+    ({ blueWin, visits: game.labelVisits, candidates: candidates.map(([edge, w]) => ({ edge, visits: 10, blueWin: w })) });
+  // The first player played c, its first choice at position 2, and its second choice x looks 0.15 worse there.
+  const only = at(0.6, [["c", 0.6], ["x", 0.45]]);
+  // Before the second player's last turn (b, from position 1) the first player had 0.5: b gave it 0.1. One search.
+  game.analysis = [at(0.5), at(0.5), only, at(0.6), at(0.6)];
+  assert.equal(game.earlierAt(["a", "b"], 0), game.analysis[1]);
+  assert.equal(game.greatChecks.total, 1);
+  // It had 0.58: c only holds the position, and cannot be Great. No search.
+  game.analysis = [at(0.5), at(0.58), only, at(0.6), at(0.6)];
+  assert.equal(game.greatChecks.total, 0);
+  // The first move has no turn of the opponent before it.
+  assert.equal(game.earlierAt([], 0), undefined);
+  // A branch: the position before the opponent's last turn is the game's, or the branch's own.
+  await game.addLine(["a", "b", "x", "y"], false);
+  assert.equal(game.earlierAt(["a", "b", "x"], 1), game.analysis[2]);
+});

@@ -1,5 +1,6 @@
 // Puzzles from the mock game, by Lichess's generator rule (lichess-puzzler generator.py): the solution must be the
-// only good move. Here: the engine's first choice is at least ONLY_EDGE_GAP better than its second (model.ts's Great).
+// only good move. Here: the engine's first choice is at least ONLY_EDGE_GAP better than its second (the gap of
+// model.ts's Great).
 // Lichess starts a puzzle right after the opponent's mistake. Positions that follow one come first.
 //
 // Placeholders: the difficulty is predicted from the gap and the game phase, not rated from solvers' attempts

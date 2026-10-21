@@ -33,6 +33,7 @@
     rulesAt(path: string[]): Promise<EdgeRules>; // a position's legal edges and mover's nodes, for the player's moves
     secondAt(path: string[]): Analysis | undefined; // the position after the engine's second choice, which confirms a Great
     otherAt(path: string[], turn: (Edge | null)[]): Analysis | undefined; // the same for a turn
+    earlierAt(path: string[], mover: Player): Analysis | undefined; // before the opponent's last turn, which a Great must gain on
     turnKeys(path: string[]): string[]; // the branch moves that evaluating this move's quality judges
     pending(path: string[]): boolean; // the review's own searches can still change this position's analysis
     stoppedByTime(path: string[]): boolean; // the position's search stopped at its time limit
@@ -591,7 +592,7 @@
     if (!node?.judged) return null;
     const parent = p.slice(0, -1);
     return judgeBranchEdge(analysisAt(parent), valuesAfter(node.position, node.analysis, "lead", labelVisits), node.move.player,
-                           node.move.edge, "lead", labelVisits, game?.secondAt(parent));
+                           node.move.edge, "lead", labelVisits, game?.secondAt(parent), game?.earlierAt(parent, node.move.player));
   }
   /** The move that leads to `p` (none at the start), and the analysis at `p`: the game's or a branch's. */
   function moveInto(p: string[]): Move | undefined {
@@ -651,7 +652,8 @@
     const start = p.slice(0, twice ? -2 : -1), turn = paths.map(q => moveInto(q)?.edge ?? null);
     return { paths, judgment: judgeTurn(node.move.player, turn, analysisAt(start), twice ? analysisAt(parent) : undefined,
                                         valuesAfter(node.position, node.analysis, "lead", labelVisits), !!node.position.over,
-                                        game?.otherAt(start, turn), twice ? game?.secondAt(parent) : undefined, "lead", labelVisits) };
+                                        game?.otherAt(start, turn), twice ? game?.secondAt(parent) : undefined,
+                                        game?.earlierAt(start, node.move.player), "lead", labelVisits) };
   }
   // By turn, on the game's line, the turn that ends here: the turn just played, whole. In its middle, none.
   const endedTurn = $derived(unit === "turn" && mainAt !== null && mainAt > 0 && R.turnOf[mainAt - 1].end === mainAt

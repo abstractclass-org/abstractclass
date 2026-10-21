@@ -1,6 +1,7 @@
 // What the key moments from the first turn on (design 10, item 7) rest on, measured on the engine repository's archive
 // analysis (runs/archive_analysis/, read only; its README.md gives the fields; protocol 0.3, network s46923648). It
-// prints, in this order, the numbers of decisions/product.md, "The key moments from the first turn on":
+// prints, in this order, the numbers of decisions/product.md, "The key moments from the first turn on" (and in part 4
+// those of "Great: En Croissant's whole rule"):
 //   1. The share of turns flagged (Inaccuracy or worse) by turn number, for the network against itself
 //      (ladder-384, 512 visits), bots rated 2,000 to 3,000 (gauntlet-620, 512) and people (part2-100, 4,096), and the
 //      mean loss of the network's own turns.
@@ -14,7 +15,10 @@
 //      the deeper depth for each position it deepens), and a deepened search counts in full.
 //   4. What the Greats' confirmations change, on part1-1000's follow-ups: of the one-search gaps (the played edge or
 //      turn is the engine's first choice and its second looks 0.10 of win chance worse), how many the equal search of the
-//      position after the second choice confirms (model.ts confirmedOnly, judgeTurn), and what the searches cost.
+//      position after the second choice confirms (model.ts confirmedOnly, judgeTurn), and what the searches cost. Then
+//      En Croissant's third condition (model.ts keepsGain, design 10): how many confirmed Greats keep what the
+//      opponent's last turn gave, how many leave the mover not losing (a win chance of 50% or more after the move, as
+//      Chesskit and WintrChess ask), both, and the confirmations' searches that the condition saves.
 //
 //   node scripts/measure/key-moments-opening.mjs [../../../engines/runs/archive_analysis] [--only opening|reliable|step|great]
 //
@@ -24,7 +28,7 @@ import { createReadStream } from "node:fs";
 import { createInterface } from "node:readline";
 import { join } from "node:path";
 import { ONLY_EDGE_GAP, classify } from "@abstractclass/analysis/labels.ts";
-import { BAD_LABELS, largest, resultWin } from "@abstractclass/analysis/model.ts";
+import { BAD_LABELS, keepsGain, largest, resultWin } from "@abstractclass/analysis/model.ts";
 
 const dir = process.argv[2]?.startsWith("--") ? undefined : process.argv[2];
 const ARCHIVE = dir ?? "../../../engines/runs/archive_analysis";
@@ -238,21 +242,42 @@ async function step() {
 }
 
 // --- 4. The Greats' confirmations ---------------------------------------------------------------------------------------
+/** A budget's reading as the site's analysis, for keepsGain: the root's values and the first candidate. */
+const asAnalysis = r => r && { blueWin: r.winrate, visits: r.visits, candidates: r.first ? [{ blueWin: r.first.winrate }] : [] };
+/** Whether the first choice at position `i` of a game keeps what the opponent's last turn gave, judged as the site
+ *  judges it (model.ts keepsGain, at 512 visits): against the start of the turn before the mover's own. The game's
+ *  first turn has none. */
+function keeps(g, i, mover) {
+  const starts = turnStarts(g.ps), k = starts.findLastIndex(s => s <= i);
+  const earlier = k > 0 ? g.ps[starts[k - 1]]?.budgets["512"] : undefined;
+  return keepsGain(asAnalysis(g.ps[i]?.budgets["512"]), asAnalysis(earlier), mover === "b" ? 0 : 1, 512);
+}
 async function great() {
+  const games = await readGames("part1-1000.jsonl");
   const [edgeFile, turnFile] = ["part1-1000.jsonl.great-edge.jsonl", "part1-1000.jsonl.great-turn.jsonl"].map(f => join(ARCHIVE, f));
   let positions = 0; const gameSet = new Set();
   for await (const p of lines(join(ARCHIVE, "part1-1000.jsonl"))) { positions++; gameSet.add(p.game); }
-  const e = { gaps: 0, last: 0, confirmed: 0, refuted: 0, ofRefuted: [], ofConfirmed: [] }, edgeSearches = new Set();
+  const e = { gaps: 0, last: 0, confirmed: 0, refuted: 0, ofRefuted: [], ofConfirmed: [], keep: 0, notLosing: 0, both: 0, after: [], saved: 0 };
+  const edgeSearches = new Set();
   for await (const x of lines(edgeFile)) {
     e.gaps++;
-    const f = x.followups[0];
+    const f = x.followups[0], kept = keeps(games.get(x.game), x.index, x.mover);
     edgeSearches.add(`${x.game} ${x.index} ${f.move}`);
     if (!x.after) { e.last++; continue; } // the game's last edge: no Great (nothing confirms it)
-    if (moverWin(x.after.winrate, x.mover) - moverWin(f.root.winrate, x.mover) >= ONLY_EDGE_GAP) { e.confirmed++; e.ofConfirmed.push(f.gap); }
+    if (!kept) e.saved++; // the site asks for no search here
+    if (moverWin(x.after.winrate, x.mover) - moverWin(f.root.winrate, x.mover) >= ONLY_EDGE_GAP) {
+      const after = moverWin(x.after.winrate, x.mover);
+      e.confirmed++; e.ofConfirmed.push(f.gap); e.after.push(after);
+      if (kept) e.keep++;
+      if (after >= 0.5) e.notLosing++;
+      if (kept && after >= 0.5) e.both++;
+    }
     else { e.refuted++; e.ofRefuted.push(f.gap); }
   }
-  const t = { best: 0, asked: 0, searches: 0, oneSearch: 0, confirmed: 0, shared: 0 };
+  const t = { best: 0, asked: 0, searches: 0, oneSearch: 0, confirmed: 0, shared: 0, keep: 0, notLosing: 0, both: 0, saved: 0 };
   for await (const x of lines(turnFile)) {
+    const kept = keeps(games.get(x.game), x.turnStart, x.mover);
+    if (x.followups.length && !kept) t.saved++;
     t.best++; t.searches += x.followups.length;
     for (const f of x.followups) // a turn's search from its start is the edge search at its first position, from its middle the one after
       if (edgeSearches.has(`${x.game} ${x.turnStart + (f.from === "middle" ? 1 : 0)} ${f.move}`)) t.shared++;
@@ -262,7 +287,11 @@ async function great() {
     if (!start || (x.edges.length > 1 && !middle)) continue; // a Great in one search needs each gap in its own search
     t.oneSearch++;
     const after = moverWin(x.after.winrate, x.mover);
-    if (x.followups.every(f => after - moverWin(f.root.winrate, x.mover) >= ONLY_EDGE_GAP)) t.confirmed++;
+    if (!x.followups.every(f => after - moverWin(f.root.winrate, x.mover) >= ONLY_EDGE_GAP)) continue;
+    t.confirmed++;
+    if (kept) t.keep++;
+    if (after >= 0.5) t.notLosing++;
+    if (kept && after >= 0.5) t.both++;
   }
   const rest = e.gaps - e.last, searches = e.gaps + t.searches - t.shared;
   console.log(`## 4. The Greats' confirmations (part1-1000: ${gameSet.size} games, ${positions} positions, 512 visits)\n`);
@@ -273,7 +302,14 @@ async function great() {
   }).join("; ")}.`);
   console.log(`  The median one-search gap: ${median(e.ofRefuted).toFixed(3)} of the refuted, ${median(e.ofConfirmed).toFixed(3)} of the kept.`);
   console.log(`- By turn: ${t.oneSearch} Greats in one search (of ${t.best} best turns, ${t.asked} with a follow-up), ${t.confirmed} confirmed (${share(t.confirmed, t.oneSearch, 0)}).`);
-  console.log(`- Cost: ${searches} searches (${e.gaps} by edge, ${t.searches} by turn, ${t.shared} shared) of 512 visits for ${positions} positions, ${share(searches, positions)} of the label pass at 512.\n`);
+  console.log(`- Cost: ${searches} searches (${e.gaps} by edge, ${t.searches} by turn, ${t.shared} shared) of 512 visits for ${positions} positions, ${share(searches, positions)} of the label pass at 512.`);
+  const third = (x, n) => `${x.keep} (${share(x.keep, n, 0)}) keep what the opponent's last turn gave (more than 5% of win chance), `
+    + `${x.notLosing} (${share(x.notLosing, n, 0)}) leave the mover not losing (50% or more after the move), both ${x.both} (${share(x.both, n, 0)})`;
+  console.log(`- En Croissant's third condition. By edge: of the ${e.confirmed} confirmed Greats, ${third(e, e.confirmed)}.`);
+  console.log(`  The mover's win chance after a confirmed Great: under 30% for ${share(e.after.filter(w => w < 0.3).length, e.confirmed, 0)}, `
+    + `30% to 50% for ${share(e.after.filter(w => w >= 0.3 && w < 0.5).length, e.confirmed, 0)}.`);
+  console.log(`  By turn: of the ${t.confirmed} confirmed Greats, ${third(t, t.confirmed)}.`);
+  console.log(`- The searches that the condition saves: ${e.saved} of the ${rest} gaps by edge and ${t.saved} of the ${t.asked} turns with a follow-up fail it, so they ask for no search.\n`);
 }
 
 for (const [name, run] of [["opening", opening], ["reliable", reliable], ["step", step], ["great", great]]) if (!only || only === name) await run();

@@ -6,10 +6,12 @@
 // - The bands: chess.com's bands of expected points (Excellent to 0.02, Good to 0.05, Inaccuracy to 0.10, Mistake to
 //   0.20, then Blunder), the same for every player. Points lost are shown in the notes, but they do not label: a point
 //   band flags the moves of a decided game, which chess.com's and Lichess's win-chance labels leave alone.
-// - Best: the played edge is the engine's first choice. Great: the first choice, when the second is at least 0.10 of
-//   win chance worse: the only good edge (En Croissant's "!" rule, utils/score.ts). The rule compares two equal
-//   searches, so a gap in one search only asks for a search of the position after the second choice, as deep as the
-//   position after the played edge (model.ts, confirmedOnly).
+// - Best: the played edge is the engine's first choice. Great: En Croissant's "!" (src/utils/score.ts, getAnnotation),
+//   the first choice when the second is at least 0.10 of win chance worse (the only good edge), and when the first
+//   choice is more than 0.05 better for the mover than the position before the opponent's last turn (it keeps what the
+//   opponent's mistake gave: model.ts, keepsGain). The rule compares two equal searches, so a gap in one search only
+//   asks for a search of the position after the second choice, as deep as the position after the played edge
+//   (model.ts, confirmedOnly).
 
 export type Label = "great" | "best" | "excellent" | "good" | "inaccuracy" | "mistake" | "blunder";
 export const LABELS: Label[] = ["great", "best", "excellent", "good", "inaccuracy", "mistake", "blunder"];
@@ -29,6 +31,8 @@ export function meterGroup(winLoss: number): MeterGroup {
   return label === "excellent" ? "good" : (label as MeterGroup);
 }
 export const ONLY_EDGE_GAP = 0.10;
+/** A Great's gain over the position before the opponent's last turn: more than this, in win chance (En Croissant's 5). */
+export const KEPT_GAIN = 0.05;
 
 /** A hard position: KaTrain's complexity (model.ts, `complexity`) in win chance at least this much, so that the
  *  network's likely moves lose a Mistake's worth on average. On the archive these are the hardest tenth of the

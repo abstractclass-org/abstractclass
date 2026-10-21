@@ -30,8 +30,8 @@ import { positionQuery } from "@abstractclass/engine/protocol.ts";
 import { errorText } from "@abstractclass/engine/errors.ts";
 import { BOARD_ID, branchNodes, keptNode, type KeptNode, type KeptBoard, type KeptBranches } from "./kept.ts";
 import type { Game, GameTypes, Player } from "./game.ts";
-import { equalDepth, moverWin, onlyEdge, otherCandidate, sameMove, secondChoice, type Analysis, type Candidate, type GameEnding,
-         type ReviewData } from "./model.ts";
+import { equalDepth, keepsGain, moverWin, onlyEdge, otherCandidate, sameMove, secondChoice, type Analysis, type Candidate,
+         type GameEnding, type ReviewData } from "./model.ts";
 import { ONLY_EDGE_GAP } from "./labels.ts";
 import { lastMove, mainIndex, parentKey, pathKey, prefixKeys } from "./tree.ts";
 import { STORES, dbGet, dbPut } from "@abstractclass/storage/db.ts";
@@ -189,6 +189,17 @@ export class GameAnalysis<G extends GameTypes> {
     return other ? this.analysisOf([...path, this.game.moveName(other.edge)]) : undefined;
   }
 
+  /** The analysis of the position before the opponent's last turn, for a move of `mover` from the position at `path`
+   *  (model.ts, keepsGain): back over the mover's edge before it in its turn, then over the opponent's turn. Undefined
+   *  where the line has none: the mover's first turn, or a set-up start in the opponent's turn's middle. */
+  earlierAt(path: string[], mover: Player): Analysis<G["move"]> | undefined {
+    let p = path;
+    while (this.moveInto(p)?.player === mover) p = p.slice(0, -1);
+    if (!this.moveInto(p)) return undefined;
+    while (p.length && this.moveInto(p)!.player !== mover) p = p.slice(0, -1);
+    return p.length || this.game.turn(this.positions[0]?.count ?? 0).first ? this.analysisOf(p) : undefined;
+  }
+
   /** Describes every position (the rules, no network), and adds the game's branches kept from an earlier visit. */
   async start() {
     const kept = this.board ? null : dbGet<KeptBranches>(STORES.branches, this.id); // read while the rules answer
@@ -229,8 +240,9 @@ export class GameAnalysis<G extends GameTypes> {
     return second ? this.analysisOf([...path, this.game.moveName(second.edge)]) : undefined;
   }
 
-  /** Confirms the Greats: where the played edge was the engine's first choice in a search to the label budget, and its
-   *  second choice looks at least 10% of win chance worse. That second value rests on few visits (the search spends them
+  /** Confirms the Greats: where the played edge was the engine's first choice in a search to the label budget, its
+   *  second choice looks at least 10% of win chance worse, and the first choice keeps what the opponent's last turn gave
+   *  (keepsGain, from results that the passes have already). That second value rests on few visits (the search spends them
    *  on the first choice), while En Croissant's rule compares two equal searches. So the position after the second
    *  choice is searched to the label budget, as the position after the played edge was, and the review compares the two
    *  (KaTrain's "equalize" gives every candidate the top move's visits for the same reason). For the game's edges and
@@ -246,13 +258,16 @@ export class GameAnalysis<G extends GameTypes> {
    *  refutes the gap. Derived once for each change of the analysis: the page reads it twice at each result. A game
    *  position's path is built only where it has a target. */
   // Each target has its depth: as deep as the position after the played move or turn, which the confirmation's
-  // position is compared with (equalDepth: the player may have searched that position deeper).
+  // position is compared with (equalDepth: the player may have searched that position deeper). A move that does not
+  // keep what the opponent's last turn gave (keepsGain) cannot be Great, so it asks for none.
   private greatTargets = $derived.by(() => {
     const out: { path: string[]; candidate: Candidate<G["move"]>; depth: number }[] = [];
     const depth = (after: () => string[]) => equalDepth(this.labelVisits, this.analysisOf(after())?.visits);
+    const keeps = (a: Analysis<G["move"]>, path: string[], mover: Player) => keepsGain(a, this.earlierAt(path, mover), mover, this.labelVisits);
     const check = (a: Analysis<G["move"]> | undefined, before: () => string[], edge: G["move"] | null, mover: Player, over: boolean) => {
       const first = a?.candidates[0];
-      if (!over && a && a.visits >= this.labelVisits && first && edge != null && sameMove(this.game, a, first.edge, edge) && onlyEdge(a, mover))
+      if (!over && a && a.visits >= this.labelVisits && first && edge != null && sameMove(this.game, a, first.edge, edge) && onlyEdge(a, mover)
+          && keeps(a, before(), mover))
         out.push({ path: before(), candidate: secondChoice(a)!, depth: depth(() => [...before(), this.game.moveName(edge)]) });
     };
     const asked = (i: number) => !this.board || !!this.judgedMain[this.mainKeys[i + 1]]; // the board's: judged only
@@ -267,7 +282,7 @@ export class GameAnalysis<G extends GameTypes> {
       const first = a?.candidates[0];
       if (!a || a.visits < this.labelVisits || !first || !turn.some(e => e != null && sameMove(this.game, a, e, first.edge))) return;
       const other = otherCandidate(this.game, a, turn);
-      if (other && moverWin(first.blueWin, mover) - moverWin(other.blueWin, mover) >= ONLY_EDGE_GAP)
+      if (other && moverWin(first.blueWin, mover) - moverWin(other.blueWin, mover) >= ONLY_EDGE_GAP && keeps(a, path(), mover))
         out.push({ path: path(), candidate: other, depth: depth(() => [...path(), ...turn.map(e => this.game.moveName(e))]) });
     };
     for (let i = 0; i < this.played.length; i++) {

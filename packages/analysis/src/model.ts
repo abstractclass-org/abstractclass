@@ -15,8 +15,8 @@
 // src/lib/review/enclosure.ts.
 
 import type { Game, GameTypes, Moves, Player, PositionInfo } from "./game.ts";
-import { BAD_LABELS, GOOD_WIN, HARD, LABELS, METER_GROUPS, ONLY_EDGE_GAP, accuracyWeight, classify, meterGroup, type Label,
-         type MeterGroup } from "./labels.ts";
+import { BAD_LABELS, GOOD_WIN, HARD, KEPT_GAIN, LABELS, METER_GROUPS, ONLY_EDGE_GAP, accuracyWeight, classify, meterGroup,
+         type Label, type MeterGroup } from "./labels.ts";
 export { BAD_LABELS, HARD, LABELS, METER_GROUPS, type Label, type MeterGroup } from "./labels.ts";
 export type { Player } from "./game.ts";
 
@@ -138,6 +138,15 @@ export function onlyEdge<M>(a: Analysis<M> | undefined, p: Player): boolean {
   return !!first && !!second && moverWin(first.blueWin, p) - moverWin(second.blueWin, p) >= ONLY_EDGE_GAP;
 }
 
+/** The engine's first choice keeps what the opponent's last turn gave (En Croissant's third condition for "!",
+ *  src/utils/score.ts, getAnnotation): it is more than KEPT_GAIN better for the mover than `earlier`, the position before
+ *  the opponent's last turn, searched to `minVisits` at least. False where that position has no result: the line's
+ *  first turn, or a position not searched yet. */
+export function keepsGain<M>(a: Analysis<M> | undefined, earlier: Analysis<M> | undefined, p: Player, minVisits = 0): boolean {
+  const first = a?.candidates[0];
+  return !!first && !!earlier && earlier.visits >= minVisits && moverWin(first.blueWin, p) - moverWin(earlier.blueWin, p) > KEPT_GAIN;
+}
+
 /** The depth that makes a Great's confirmation an equal search: the position after the second choice searched as deep
  *  as the position after the played move (`afterVisits`), which the player may have searched deeper than the label
  *  budget (the position on screen, design 09). The depths step by doublings, so it is the largest doubling of the
@@ -210,18 +219,20 @@ export function judgeEdge(winBefore: number, winAfter: number, scoreBefore: numb
 
 /** A branch edge's label, judged as the game's edges are: from the analysis before it and the values after it (an
  *  analysis, or the result where the game ends), each analysis to at least `minVisits`, and `second`, the position after
- *  the engine's second choice, which confirms a Great. Null until both are known. */
+ *  the engine's second choice, and `earlier`, the position before the opponent's last turn (keepsGain), which a Great
+ *  needs. Null until both are known. */
 export function judgeBranchEdge<M>(game: Moves<M>, before: Analysis<M> | undefined,
                                    after: { blueWin: number; blueScore: number | undefined; visits?: number } | undefined,
                                    mover: Player, edge: M | null, kind: ScoreKind = "lead", minVisits = 0,
-                                   second?: Analysis<M>): Label | null {
+                                   second?: Analysis<M>, earlier?: Analysis<M>): Label | null {
   if (!before || before.visits < minVisits || !after) return null;
   const best = before.candidates[0], s = scoreOf(before, kind), winAfter = moverWin(after.blueWin, mover);
   return judgeEdge(moverWin(before.blueWin, mover), winAfter,
                    s !== undefined ? moverScore(s, mover) : undefined,
                    after.blueScore !== undefined ? moverScore(after.blueScore, mover) : undefined,
                    !!best && edge != null && sameMove(game, before, best.edge, edge),
-                   onlyEdge(before, mover) && confirmedOnly(winAfter, second, mover, equalDepth(minVisits, after.visits))).label;
+                   onlyEdge(before, mover) && keepsGain(before, earlier, mover, minVisits)
+                     && confirmedOnly(winAfter, second, mover, equalDepth(minVisits, after.visits))).label;
 }
 
 /** Blue's win chance at the game's end, from the score difference (Blue less Red): 1, 0, or 0.5 for a draw. */
@@ -287,21 +298,31 @@ export function review<G extends GameTypes>(game: Game<G>, data: ReviewData<G>, 
   // Both ends of an edge or a turn analysed, to the label budget.
   const known = (i: number, j: number) => !Number.isNaN(blueWin[i]) && !Number.isNaN(blueWin[j]) && deepEnough(i) && deepEnough(j);
   const scoreAt = (i: number, p: Player) => (blueScore[i] !== undefined ? moverScore(blueScore[i]!, p) : undefined);
+  const from = game.turn(data.positions[0]?.count ?? 0); // a line from a set-up position numbers from its turn
+  // By edge, the index of its turn's first edge. The position before the opponent's last turn (keepsGain), for edge i:
+  // the start of the turn before its own. None for the line's first turn, nor for its second when the first started
+  // before the line (a set-up start in a turn's middle).
+  const turnStart: number[] = [];
+  data.moves.forEach((m, i) => turnStart.push(i > 0 && data.moves[i - 1].player === m.player ? turnStart[i - 1] : i));
+  const earlier = (i: number) => {
+    const s = turnStart[i], o = s > 0 ? turnStart[s - 1] : -1;
+    return o > 0 || (o === 0 && from.first) ? data.analysis[o] : undefined;
+  };
   const edges: EdgeReview<G>[] = data.moves.map((m, i) => {
     const winBefore = moverWin(blueWin[i], m.player), winAfter = moverWin(blueWin[i + 1], m.player);
     const a = data.analysis[i], best = a?.candidates[0];
     const before = scoreAt(i, m.player), after = scoreAt(i + 1, m.player);
     const j = known(i, i + 1) ? judgeEdge(winBefore, winAfter, before, after,
                                           !!best && m.edge != null && sameMove(game, a, best.edge, m.edge),
-                                          onlyEdge(a, m.player) && confirmedOnly(winAfter, data.seconds?.[i], m.player,
-                                                                                 equalDepth(minVisits, data.analysis[i + 1]?.visits))) : null;
+                                          onlyEdge(a, m.player) && keepsGain(a, earlier(i), m.player, minVisits)
+                                            && confirmedOnly(winAfter, data.seconds?.[i], m.player,
+                                                             equalDepth(minVisits, data.analysis[i + 1]?.visits))) : null;
     return { ...m, index: i, winBefore, winAfter, loss: j?.loss ?? 0,
              pointsLost: j?.pointsLost, rawLoss: j ? winBefore - winAfter : 0,
              rawPoints: j && before !== undefined && after !== undefined ? before - after : undefined,
              label: j?.label ?? null, best, ...hardness(complexity(a, m.player)) };
   });
   const turns: TurnReview<G>[] = [], turnOf: TurnReview<G>[] = [];
-  const from = game.turn(data.positions[0]?.count ?? 0); // a line from a set-up position numbers from its turn
   for (const e of edges) {
     const last = turns.at(-1);
     if (last && last.player === e.player) { last.edges.push(e); last.end = e.index + 1; }
@@ -321,7 +342,7 @@ export function review<G extends GameTypes>(game: Game<G>, data: ReviewData<G>, 
     if (!known(t.start, t.end)) continue;
     const j = judgeTurn(game, p, played, data.analysis[t.start], played.length > 1 ? data.analysis[t.start + 1] : undefined,
                         { blueWin: blueWin[t.end], blueScore: blueScore[t.end], visits: data.analysis[t.end]?.visits }, end(t.end), data.others?.[t.start],
-                        data.seconds?.[t.start + 1], kind, minVisits);
+                        data.seconds?.[t.start + 1], earlier(t.start), kind, minVisits);
     if (j) Object.assign(t, j);
   }
   // Key moments: the worst turns or edges, at least an inaccuracy, in game order, from the first turn on with no turn
@@ -347,13 +368,14 @@ export interface TurnJudgment {
 /** A turn's label, the game's or a branch's (design 10), from its searches: `start`, the position before it, to
  *  `minVisits` at least; `middle`, the position after its first edge, for a turn of two; `after`, the values after it
  *  (valuesAfter); `ends`, the game ends after it (no Great: nothing confirms it); `other`, the position after its other
- *  candidate, and `second`, the position after the middle's second choice, which confirm a Great. Null until the start
- *  and the values after are known. */
+ *  candidate, and `second`, the position after the middle's second choice, which confirm a Great; `earlier`, the
+ *  position before the opponent's last turn, which a Great's best turn must be better than (keepsGain). Null until the
+ *  start and the values after are known. */
 export function judgeTurn<M>(game: Moves<M>, mover: Player, played: (M | null)[], start: Analysis<M> | undefined,
                              middle: Analysis<M> | undefined,
                              after: { blueWin: number; blueScore: number | undefined; visits?: number } | undefined, ends: boolean,
-                             other: Analysis<M> | undefined, second: Analysis<M> | undefined, kind: ScoreKind = "lead",
-                             minVisits = 0): TurnJudgment | null {
+                             other: Analysis<M> | undefined, second: Analysis<M> | undefined, earlier: Analysis<M> | undefined,
+                             kind: ScoreKind = "lead", minVisits = 0): TurnJudgment | null {
   if (!start || start.visits < minVisits || !after || Number.isNaN(start.blueWin) || Number.isNaN(after.blueWin)) return null;
   const p = mover, first = start.candidates[0], top = middle?.candidates[0];
   const best = bestTurn(first, played.length > 1);
@@ -369,14 +391,15 @@ export function judgeTurn<M>(game: Moves<M>, mover: Player, played: (M | null)[]
   // Great: the only good turn, confirmed by equal searches. From the start: the other candidate (otherCandidate) looks
   // ONLY_EDGE_GAP worse there, and the position after it, searched as deep, is that much worse than the position after
   // the turn. From the middle, for a turn of two edges: the played second edge is the first choice there, and its second
-  // choice is that much worse, confirmed as for an edge.
+  // choice is that much worse, confirmed as for an edge. And the best turn keeps what the opponent's last turn gave.
   const otherFirst = otherCandidate(game, start, played), confirmDepth = equalDepth(minVisits, after.visits);
   const fromStart = !!first && !!otherFirst
     && moverWin(first.blueWin, p) - moverWin(otherFirst.blueWin, p) >= ONLY_EDGE_GAP
     && confirmedOnly(winAfter, other, p, confirmDepth);
   const fromMiddle = played.length === 1 || (!!top && played[1] != null && sameMove(game, middle, top.edge, played[1]) && onlyEdge(middle, p)
     && confirmedOnly(winAfter, second, p, confirmDepth));
-  const j = judgeEdge(winBefore, winAfter, before, afterScore, playedBest, playedBest && !ends && fromStart && fromMiddle);
+  const j = judgeEdge(winBefore, winAfter, before, afterScore, playedBest, playedBest && !ends && fromStart && fromMiddle
+                                                                && keepsGain(start, earlier, p, minVisits));
   return { ...j, rawLoss: winBefore - winAfter, rawPoints: before !== undefined && afterScore !== undefined ? before - afterScore : undefined };
 }
 

@@ -32,17 +32,24 @@ test("a branch edge is judged as the game's: Best or Great when it is the first 
   const before: Analysis = { blueWin: 0.6, visits: 256, lead: 20, candidates: [
     { edge: best, visits: 200, blueWin: 0.6, lead: 20 }, { edge: other, visits: 40, blueWin: 0.45, lead: -10 }] };
   // Blue played the first choice, and the second looks 0.15 worse in that search. Great only when a search of the
-  // position after the second, as deep, confirms the gap: until then Best.
+  // position after the second, as deep, confirms the gap: until then Best. And only when the first choice keeps what
+  // Red's last turn gave: before it, Blue had 0.5.
   const after = { blueWin: 0.6, blueScore: 20 };
-  assert.equal(judgeBranchEdge(before, after, 0, best, "lead", 256), "best");
-  const second = (blueWin: number, visits = 256): Analysis => ({ blueWin, visits, candidates: [] });
-  assert.equal(judgeBranchEdge(before, after, 0, best, "lead", 256, second(0.45)), "great");
-  assert.equal(judgeBranchEdge(before, after, 0, best, "lead", 256, second(0.55)), "best"); // only 0.05 worse
-  assert.equal(judgeBranchEdge(before, after, 0, best, "lead", 256, second(0.45, 32)), "best"); // too shallow
+  const analysed = (blueWin: number, visits = 256): Analysis => ({ blueWin, visits, candidates: [] });
+  const second = analysed, earlier = analysed(0.5);
+  assert.equal(judgeBranchEdge(before, after, 0, best, "lead", 256, undefined, earlier), "best");
+  assert.equal(judgeBranchEdge(before, after, 0, best, "lead", 256, second(0.45), earlier), "great");
+  assert.equal(judgeBranchEdge(before, after, 0, best, "lead", 256, second(0.55), earlier), "best"); // only 0.05 worse
+  assert.equal(judgeBranchEdge(before, after, 0, best, "lead", 256, second(0.45, 32), earlier), "best"); // too shallow
   // The position after the played edge searched deeper (the position on screen): the second's must be as deep.
   const deepAfter = { ...after, visits: 1024 };
-  assert.equal(judgeBranchEdge(before, deepAfter, 0, best, "lead", 256, second(0.45)), "best");
-  assert.equal(judgeBranchEdge(before, deepAfter, 0, best, "lead", 256, second(0.45, 1024)), "great");
+  assert.equal(judgeBranchEdge(before, deepAfter, 0, best, "lead", 256, second(0.45), earlier), "best");
+  assert.equal(judgeBranchEdge(before, deepAfter, 0, best, "lead", 256, second(0.45, 1024), earlier), "great");
+  // Red's last turn gave Blue 0.02 (Blue had 0.58): the only good edge only holds the position, and is Best. So it is
+  // where the position before Red's turn has no result, or one under the label budget.
+  assert.equal(judgeBranchEdge(before, after, 0, best, "lead", 256, second(0.45), analysed(0.58)), "best");
+  assert.equal(judgeBranchEdge(before, after, 0, best, "lead", 256, second(0.45)), "best");
+  assert.equal(judgeBranchEdge(before, after, 0, best, "lead", 256, second(0.45), analysed(0.5, 32)), "best");
   // Blue played the other edge: 0.15 of win chance and 30 points lost.
   assert.equal(judgeBranchEdge(before, { blueWin: 0.45, blueScore: -10 }, 0, other, "lead", 256), "mistake");
   // Not judged until the position before has the label budget, and the position after has values.
@@ -130,6 +137,44 @@ test("a turn is Great when searches from its start and its middle confirm it is 
   assert.equal(review(game([B, C], analysis, { seconds, others: [undefined, at(0.45, 0)] })).turns[1].label, "best");
 });
 
+test("a Great keeps what the opponent's last turn gave: an only move that only holds the position is Best", () => {
+  // Red's turn from position 1, as above: the only good turn, and by edge C the only good edge in the middle. Red's best
+  // line is at 0.6. Before Blue's turn (position 0), Red had 0.5: Blue's turn gave Red 0.1, which the turn keeps.
+  const start = at(0.4, -10, [cand(B, 0.4, [B, C]), cand(C, 0.41, [C, B]), cand(F, 0.55)]);
+  const middle = at(0.4, -10, [cand(C, 0.4), cand(D, 0.55)]);
+  const extra = { seconds: [undefined, undefined, at(0.58, 5)], others: [undefined, at(0.6, 10)] };
+  const kept = review(game([B, C], [at(0.5, 0), start, middle, at(0.4, -10), at(0.4, -10)], extra));
+  assert.equal(kept.turns[1].label, "great");
+  assert.equal(kept.edges[2].label, "great"); // a turn's second edge: from before the opponent's turn too
+  // Before Blue's turn, Red had 0.58: Blue gave Red only 0.02 (En Croissant asks for more than 0.05). Best.
+  const held = review(game([B, C], [at(0.42, 0), start, middle, at(0.4, -10), at(0.4, -10)], extra));
+  assert.equal(held.turns[1].label, "best");
+  assert.equal(held.edges[2].label, "best");
+  // 0.05 exactly is not more than 0.05.
+  assert.equal(review(game([B, C], [at(0.45, 0), start, middle, at(0.4, -10), at(0.4, -10)], extra)).turns[1].label, "best");
+});
+
+test("a turn's first edge is Great by the position before the opponent's last turn", () => {
+  // Red's first edge B is the only good edge at position 1: F looks 0.15 worse, and the position after it is 0.15 worse.
+  const start = at(0.4, -10, [cand(B, 0.4), cand(F, 0.55)]);
+  const analysis = (blue0: number) => [at(blue0, 0), start, at(0.4, -10), at(0.4, -10), at(0.4, -10)];
+  const seconds = [undefined, at(0.55, 0)];
+  assert.equal(review(game([B, C], analysis(0.5), { seconds })).edges[1].label, "great");
+  assert.equal(review(game([B, C], analysis(0.42), { seconds })).edges[1].label, "best");
+  // The position before Blue's turn not searched to the label budget yet: no Great until it is.
+  const shallow = analysis(0.5);
+  shallow[0] = { ...shallow[0]!, visits: 32 };
+  assert.equal(review(game([B, C], shallow, { seconds }), "lead", 256).edges[1].label, "best");
+});
+
+test("the line's first turn is never Great: no turn of the opponent comes before it", () => {
+  // Blue's first edge A is the only good edge, confirmed from its position and from after F.
+  const first = at(0.6, 10, [cand(A, 0.6), cand(F, 0.45)]);
+  const R = review(game([B, C], [first, at(0.6, 10), at(0.6, 10), at(0.6, 10), at(0.6, 10)],
+                        { seconds: [at(0.45, 0)], others: [at(0.45, 0)] }));
+  assert.deepEqual([R.edges[0].label, R.turns[0].label], ["best", "best"]);
+});
+
 test("the summary and the key moments come by turn and by edge", () => {
   const R = review(game([B, C], [at(0.5, 0), at(0.5, 0), at(0.4, -30), at(0.55, 20), at(0.6, 30)]));
   const labelled = (s: { counts: Record<string, number> }) => Object.values(s.counts).reduce((a, b) => a + b, 0);
@@ -209,7 +254,8 @@ test("the twin of the first choice, played, is Best, and Great once the next dis
   const after = { blueWin: 0.6, blueScore: 20 };
   assert.equal(judgeBranchEdge(mirrored, after, 0, A10D11, "lead", 256), "best");
   const second: Analysis = { blueWin: 0.45, visits: 256, candidates: [] };
-  assert.equal(judgeBranchEdge(mirrored, after, 0, A10D11, "lead", 256, second), "great");
+  const earlier: Analysis = { blueWin: 0.5, visits: 256, candidates: [] }; // before Red's turn: Red gave Blue 0.1
+  assert.equal(judgeBranchEdge(mirrored, after, 0, A10D11, "lead", 256, second, earlier), "great");
 });
 
 test("a Best edge that is the first choice's twin gets no \"was best\" note", () => {
