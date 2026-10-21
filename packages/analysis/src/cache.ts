@@ -140,6 +140,8 @@ export const MAP_PREFIX = "map|";
  *  full search's own map of it (includeMovesOwnership), less than one of 512 visits does (decisions/product.md, "A
  *  candidate's map from a short search"). */
 export const MAP_VISITS = 32;
+/** The slices of the map pass's searches, in visits: the pool can stop a search only between two slices. */
+export const MAP_SLICE = 8;
 /** An added map: the ownership, in hundredths from Blue's side, and its source. */
 export interface AddedMap { ownership: number[]; visits: number; source: "short search" }
 /** The key of a position's added map, at this shape. */

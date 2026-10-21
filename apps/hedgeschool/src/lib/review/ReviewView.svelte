@@ -12,8 +12,9 @@
   import type { EdgeRules } from "#lib/board/edgeInput.svelte.ts";
 
   /** The review in progress: what the engine does now, and the passes as parts of one bar, each with its share of the
-   *  work (by visits) and how much of it is done (0 to 1). `waiting`: no work runs (the engine is off). */
-  export interface ReviewProgress { text: string; parts: { share: number; done: number }[]; waiting?: boolean }
+   *  work (by visits) and how much of it is done (0 to 1). `waiting`: no work runs (the engine is off). `maps`: the
+   *  review is done, and the bar shows the map pass alone (design 30): the review's counts are final. */
+  export interface ReviewProgress { text: string; parts: { share: number; done: number }[]; waiting?: boolean; maps?: boolean }
   /** Why a game reviewed before is reviewed again: the engine or its network was updated (store.ts, reviewAgainWhy).
    *  `text` shows under the progress. The dialog, with `title` and `body`, says it once when `dialog` is set. */
   export interface ReviewAgain { title: string; text: string; body: string; dialog: boolean }
@@ -43,6 +44,11 @@
     judge(path: string[]): Promise<void>; // evaluates a branch move's quality: searches its two positions
     mapAt(path: string[]): number[] | undefined; // a position's ownership: its result's, or the map added to it (design 30)
     hasNoMap(path: string[]): boolean; // the position gets no map: the engine did not search it (the game ends there)
+    // The state of a position's map: there, its search runs, it waits for the engine, none can come, or none is asked
+    mapState(path: string[]): "ready" | "searching" | "waiting" | "none" | "unasked";
+    passMaps(on: boolean, from: string[]): void; // the map pass: the game's missing maps while the map is on (design 30)
+    labelled: number; // the positions that the label pass has searched
+    passCount: number; // the positions that the review's passes search
     // Adds a map to these positions where they have none, in their order: of the tree, or of a line from it
     askOwnership(paths: string[][]): void;
   }
@@ -588,6 +594,8 @@
     if (!mapOn) toggleMap();
   }
   const nextMapStyle = () => setMap(MAP_STYLES[(MAP_STYLES.indexOf(display.mapStyle) + 1) % MAP_STYLES.length]);
+  // The review's own work runs: its counts are partial. The map pass, after it, leaves them final.
+  const reviewRuns = $derived(!!progress && !progress.maps);
   const mapOn = $derived(board ? display.areaMap.board : display.areaMap.review);
   function toggleMap() {
     if (board) display.areaMap.board = !display.areaMap.board;
@@ -656,9 +664,33 @@
   const mapPlace = $derived.by(() => {
     if (!mapShown) return "";
     const name = diffBase ? diffName(mapLine, mapShown.step, diffBase) : stepName(mapLine, mapShown.step);
-    if (mapShown.step === drawnCount) return name;
-    const missing = game?.hasNoMap(stepPath(mapLine, drawnCount)) ? "no map" : "searching";
-    return `${name} (edge ${drawnCount}: ${missing})`;
+    if (mapShown.step === drawnCount || !game?.hasNoMap(stepPath(mapLine, drawnCount))) return name;
+    return `${name} (edge ${drawnCount}: no map)`;
+  });
+  // The map's work, always in the legend's slot while the map is on (design 30): for a line, how many of its positions
+  // have their maps; for a position, whether its map waits for the engine (the review's searches run first), is
+  // searched now, or cannot come. `busy`: work goes on, which the site's sign of work in progress shows (bar-glider).
+  // Nothing when the map shown is the board's own and ready.
+  const mapWork = $derived.by((): { text: string; busy: boolean } | null => {
+    if (!mapOn || !game) return null;
+    const l = mapLine, n = l.all.length;
+    if (n) {
+      const states = Array.from({ length: n }, (_, k) => game.mapState(stepPath(l, k + 1)));
+      const done = states.filter(st => st === "ready" || st === "none").length;
+      return { text: `Maps of the line: ${done} of ${n}`, busy: states.some(st => st === "waiting" || st === "searching") };
+    }
+    const st = game.mapState(l.start);
+    if (st === "waiting") return { text: "Map: waiting for the engine", busy: true };
+    if (st === "searching") return { text: "Map: searching", busy: true };
+    if (st === "none") return { text: "No map: the game ends here", busy: false };
+    if (st === "unasked" && !mapShown) return { text: "Map: waiting for the engine", busy: true };
+    return null;
+  });
+  // The map pass, for an older review: while the map is on, once the review's passes are done (labelled). The
+  // analysis starts it once, from the position on screen, and stops it when the map goes off.
+  $effect(() => {
+    const on = mapOn && !board && !snapshot && !!game && game.labelled >= game.passCount, from = path;
+    untrack(() => game?.passMaps(on, from));
   });
   // The point under the pointer, and its numbers while the map shows: the ownership, the state now and the change, or
   // in the difference style, the forecast before and after, and how it fell or rose for the player who moved
@@ -1206,7 +1238,7 @@
   <p class="mb-3.75">
     <strong>{ending}</strong>
     ({fmtScore(R.data.result.blue)} to {fmtScore(R.data.result.red)}{endedByRules ? "" : " on the board"}).
-    {#if progress}The review is still running: the counts below are partial.{/if}
+    {#if reviewRuns}The review is still running: the counts below are partial.{/if}
   </p>
   <!-- The game's own page, when its record's Site tag is an address (Lichess's way): back to the site it was played on. -->
   {#if siteLink}
@@ -1229,7 +1261,7 @@
       </tr>
     </thead>
     <tbody class={["[&_td]:py-0.5 [&_td]:border-t [&_td]:border-line [&_td+td]:w-px [&_td+td]:pl-3 [&_td+td]:text-right",
-                   "[&_td+td]:whitespace-nowrap [&_td+td]:tabular-nums", progress && "[&_td+td]:italic [&_td+td]:text-muted"]}>
+                   "[&_td+td]:whitespace-nowrap [&_td+td]:tabular-nums", reviewRuns && "[&_td+td]:italic [&_td+td]:text-muted"]}>
       <tr class="text-[1.1em] font-bold">
         <td>Accuracy</td>
         {#each R.summary[unit] as s, p (p)}<td>{Number.isNaN(s.accuracy) ? "–" : s.accuracy.toFixed(1)}</td>{/each}
@@ -1930,6 +1962,10 @@
               </button>
             {/each}
           </div>
+        {#if mapWork && !mapReading}
+          <span class={["flex-none px-1.5 py-px rounded bg-panel-2 text-xs text-muted whitespace-nowrap", mapWork.busy && "bar-glider"]}
+                role="status">{mapWork.text}</span>
+        {/if}
         {#if shownMap}
           <div class="map-legend flex flex-1 min-w-0 justify-center items-center gap-3 pr-1 text-xs text-muted whitespace-nowrap overflow-hidden" aria-label="Area map">
             {#if mapReading}

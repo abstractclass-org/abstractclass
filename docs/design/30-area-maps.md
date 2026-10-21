@@ -160,8 +160,31 @@ showed three faults:
    style (Forecast, Forecast vs board, After vs before, then Forecast again), and shows the map if it is hidden. The
    page keeps the style last chosen. The display menu keeps the same style setting ("Area map style"), each page's
    start and the smallest value marked, and both keys are in the list of keys ("?").
+9. **The map's work is visible.** While the map is on, a short note in the legend's slot, before the legend, says
+   what the map does (`mapWork` in `ReviewView.svelte`, `mapState` in `analysis.svelte.ts`):
+   - for a position: "Map: waiting for the engine" while its short search waits behind the review's searches, "Map:
+     searching" while it runs, and "No map: the game ends here" where none can come. Nothing when the map shown is
+     the position's own: the legend alone means that the map is ready.
+   - for a line or a preview: "Maps of the line: 3 of 7", the positions of the line whose maps are there.
+   While work goes on, the note carries the site's sign of work in progress, the gleam of the review's progress bar
+   (bar-glider, Lichess's).
+10. **The map pass, for an older review.** While the map is on, once the review's passes are done, the analysis
+    makes the maps of every position of the game that has none, in order from the position on screen to the game's
+    end, then back to its start, and stores them as the maps of item 6 (`passMaps` in `analysis.svelte.ts`). Its
+    searches have the lowest priority and run in slices of 8 visits (`MAP_SLICE`), so that the engine stops one at
+    once for any search for the player and runs it again later. It stops when the map goes off, and runs only on the
+    review. Its progress is one more part of the review's progress bar, with its line ("Maps: 34 of 120"), after the
+    review's own parts: the review is done without it (its mark, its export and its end). A review whose results all
+    have their maps never shows it.
 
 ## Why
+
+- **The map's work visible, because the player must see whether work goes on.** A map that waits for the engine
+  looked like no map, and a line's maps that came one by one looked like a map that did not follow the line. While a
+  review runs, a map's short search waits for seconds behind the review's searches.
+- **A pass for the whole game, because a stored review's positions lack their maps one by one.** Without it, each
+  position of an older review waits for its short search as the player comes to it. The pass makes them while the
+  engine has nothing else to do, so that the player who steps through the game finds them there.
 
 - **No captions for the mistakes, because one turn does not explain a mistake.** What a mistake gave away is the
   difference over the whole rest of the game. The label states the cost, and the engine's line and the map show
@@ -270,6 +293,8 @@ The site follows KaTrain's review (design 05). The display departs from it on pu
   before: the third style", "The marks of After vs before, and 0.05").
 - **Forecast vs board marks more at 0.05 than at the second build's 0.5:** a median of 20.9% of the board on the test
   fixture's game, and 63% in its opening, against 2.5% at 0.5. The player raises the value for fewer marks.
+- **The map pass takes about 20 seconds for a game of 120 edges** with the engine idle (two searches of about 0.4 s
+  at a time), and runs only once the review's own work is done ("The map's work made visible, and the map pass").
 - **A general rule for later data:** when the site starts to use a kind of data that a stored review lacks, the review
   gets it added on demand, beside its results, and is not done again. The added data is stored with its source, and
   goes into a review file.
@@ -283,12 +308,13 @@ The site follows KaTrain's review (design 05). The display departs from it on pu
   `differenceReading`, `drawnBoard`, `mapStep`, `askOrder`. Tests: `ownership.test.ts`.
 - `src/lib/board/Board.svelte`: the map's three styles (`areaMap`, the layer `areaMap`; `FALL_ALPHA` and the rise's
   pattern) and the point under the pointer (`onpointat`).
-- `src/lib/review/ReviewView.svelte`: `MAP_STYLE_NAME`, `MAP_SWITCH`, `setMap`, `nextMapStyle`, `mapOn`,
+- `src/routes/review/+page.svelte`: the map pass's part of the review's progress bar.
+- `src/lib/review/ReviewView.svelte`: `MAP_STYLE_NAME`, `MAP_SWITCH`, `setMap`, `nextMapStyle`, `mapWork`, `mapOn`,
   `toggleMap`, `mapLine`, `mapShown`, `diffBase`, `mapPlace`, `shownMap`, `mapReading`, the margin's switch and
   legend, the settings, and the keys t and Shift+T. `src/lib/review/display.ts`:
   `areaMap`, `mapStyle`, `mapMin`.
 - `packages/analysis/src/reply.ts` (the ownership in hundredths), `packages/analysis/src/analysis.svelte.ts` (every
-  search asks for the root's map, `askOwnership`, `mapAt`, `hasNoMap`),
+  search asks for the root's map, `askOwnership`, `mapAt`, `hasNoMap`, `mapState`, `passMaps`, `mapPass`),
   `packages/analysis/src/cache.ts` (`SHAPE` 5, `READ_SHAPES`, `MAP_VISITS`, `mapKey`, `mapPut`, `mapGet`),
   `src/lib/game/earlierResults.ts` (the added maps kept with the site's results), `packages/engine/src/protocol.ts`
   (the fields).
@@ -305,6 +331,6 @@ The site follows KaTrain's review (design 05). The display departs from it on pu
   "The results of shape 5 stay readable" (2026-10-21), for the first build. "The area map and the explanations on real
   games" (2026-10-21), for the second. "The candidates' maps: their size and their time", "A candidate's map from a
   short search", "The delay of a candidate's map", "A candidate's map from a short search, on a close game", "The
-  map follows the line as drawn", "After vs before: the third style" and "The marks of After vs before, and 0.05"
-  (2026-10-21), for this one.
+  map follows the line as drawn", "After vs before: the third style", "The marks of After vs before, and 0.05" and
+  "The map's work made visible, and the map pass" (2026-10-21), for this one.
 - [decisions/engine.md](../decisions/engine.md): "The cost of the ownership in a whole review" (2026-10-21).

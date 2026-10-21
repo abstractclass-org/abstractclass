@@ -6190,3 +6190,32 @@ browser keeps the value that it has stored. What 0.05 marks on the test fixture'
 - Forecast vs board, at each position (`scripts/measure/ownership-maps.mjs` on the fixture's review): a median of
   20.9% of the board, against 2.5% at the second build's 0.5. 62.9% in edges 0 to 20, where the engine holds the
   board open and expects many small closes, 76.2% in edges 21 to 40, then 27.1%, 13.6% and 13.6%.
+
+### The map's work made visible, and the map pass (2026-10-21)
+
+It was not clear whether a map was being made or was finished: a position's added map showed nothing until it came,
+and while a review runs its short search waits for seconds behind the review's searches. Two changes (design 30):
+
+- **The map's state, in the legend's slot.** For a position: "Map: waiting for the engine", "Map: searching" or "No
+  map: the game ends here", nothing when the map shown is ready. For a line or a preview: "Maps of the line: 3 of 7".
+  While work goes on, the note carries the gleam of the review's progress bar (bar-glider).
+- **The map pass.** While the map is on and the review's passes are done, the maps of every position of the game
+  that has none, from the position on screen, at the lowest priority and in slices of 8 visits, so that the engine
+  stops one at once for any search for the player. Its progress is one more part of the review's progress bar
+  ("Maps: 34 of 120"); the review is done without it.
+
+**The pass's time** (`scripts/measure/map-pass.mjs`): the test fixture's review file with the ownership removed from
+every result, as a review stored before the maps, imported (all its results there: no search), the engine idle, then
+the map turned on with the key t. Playwright's Chromium, headless, 1,366 × 900 pixels, 2 search workers, the GPU off,
+2 threads while a training job held the other 10.
+
+| Run | From the map on to "Review done" | The pass's searches | Each, the worker's own time (median) |
+|---|---|---|---|
+| 1 | 19.4 s | 113 of 32 visits | 369 ms |
+| 2 (with screenshots taken during it) | 21.8 s | 113 of 32 visits | 407 ms |
+
+- **113 of the game's 120 positions lacked a map:** 7 had one from the deeper searches of the position on screen,
+  which ask for the ownership. The line "Maps: 7 of 120" showed within 25 ms of the key.
+- **About 20 seconds for a game of 120 edges** with the engine idle: two searches at a time, of about 0.4 s each.
+- The review's counts stay final during the pass: the summary's note that the review still runs, and the italic
+  counts, belong to the review's own work alone.

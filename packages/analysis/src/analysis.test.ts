@@ -177,6 +177,51 @@ test("results of shape 5 open the review with no search, and the board's ownersh
   assert.deepEqual([again.mapAt(["a"]), again.mapAt(["a", "x"])], [[50, -25], [-100, 100]]);
 });
 
+test("the map pass: once the review's passes are done, the maps of the game's positions, from the one on screen", async () => {
+  const { pool, searches } = fakePool(1);
+  const deep = 16384, model = pool.model!.sha256;
+  // Results with no map (stored before the ownership), at every position but the game's end, which is not over
+  for (let i = 0; i <= MOVES.length; i++)
+    await cachePut(analysisKey(pool.search!, model, MOVES.slice(0, i), deep, READ_FROM), toAnalysis(words, reply(deep)));
+  const game = new GameAnalysis(words, pool, MOVES, "g6");
+  await game.start();
+  await game.fromStore(pool.search!, model);
+  void game.sweep();
+  await turns();
+  assert.equal(searches.length, 0);
+  assert.equal(game.mapState(["a"]), "unasked");
+  game.passMaps(true, ["a", "b"]);
+  await turns();
+  assert.deepEqual(game.mapPass, { total: game.passCount, done: 0 });
+  // The lowest priority, in slices, so that the pool can stop it for a search for the player
+  const first = searches.at(-1)!;
+  assert.deepEqual([first.query.moves, first.query.maxVisits, !!first.query.slice], [["a", "b"], MAP_VISITS, true]);
+  assert.equal(game.mapState(["a", "b"]), "searching");
+  assert.equal(game.mapState(["a", "b", "c"]), "waiting"); // queued behind it
+  first.end(MAP_VISITS, false, { ownership: [0.5] });
+  await turns();
+  assert.deepEqual(game.mapAt(["a", "b"]), [50]);
+  assert.equal(game.mapState(["a", "b"]), "ready");
+  assert.deepEqual(game.mapPass, { total: game.passCount, done: 1 });
+  // From the position on screen to the game's end, then back to its start
+  assert.deepEqual(searches.at(-1)!.query.moves, ["a", "b", "c"]);
+  searches.at(-1)!.end(MAP_VISITS, false, { ownership: [0.1] });
+  await turns();
+  assert.deepEqual(searches.at(-1)!.query.moves, ["a"]);
+  // A search that the pool stopped to give way keeps no map: the pool runs it again
+  searches.at(-1)!.stopped = true;
+  searches.at(-1)!.end(MAP_VISITS, false, { ownership: [0.2] });
+  await turns();
+  assert.equal(game.mapAt(["a"]), undefined);
+  // The map turned off: the pass stops, and the searches still queued end at once
+  game.passMaps(false, ["a", "b"]);
+  await turns();
+  assert.equal(game.mapPass, null);
+  const before = searches.length;
+  await turns();
+  assert.equal(searches.length, before);
+});
+
 test("a final result is not replaced by a shallower result of the same batch", async () => {
   const { game, searches } = await sweeping(1);
   game.focus([]); // the start, on screen: it takes the engine after the sweep's search of it

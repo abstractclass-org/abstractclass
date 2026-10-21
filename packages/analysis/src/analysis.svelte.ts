@@ -36,7 +36,7 @@ import { ONLY_EDGE_GAP } from "./labels.ts";
 import { lastMove, mainIndex, parentKey, pathKey, prefixKeys } from "./tree.ts";
 import { STORES, dbGet, dbPut } from "@abstractclass/storage/db.ts";
 import { keepStorage } from "@abstractclass/storage/persist.ts";
-import { DEEP_VISITS, LABEL_VISITS, MAP_VISITS, SWEEP_VISITS, analysisKey, keyMoves, cacheGetAtLeast, cachePut, mapGet, mapPut,
+import { DEEP_VISITS, LABEL_VISITS, MAP_SLICE, MAP_VISITS, SWEEP_VISITS, analysisKey, keyMoves, cacheGetAtLeast, cachePut, mapGet, mapPut,
          warmCache } from "./cache.ts";
 import { Stopped } from "@abstractclass/engine/client.ts";
 import { nextTask } from "@abstractclass/engine/channel.ts";
@@ -53,7 +53,7 @@ const SLICE_VISITS = 32;
 export const BATCH_MS = 100;
 // A branch edge's evaluation, asked for in its menu, comes after the position on screen and before the rest. The
 // ownership that the board shows comes just after the position on screen (askOwnership).
-const PRIORITY = { focus: 10, ownership: 9, judge: 7, moment: 5, label: 2, sweep: 1 };
+const PRIORITY = { focus: 10, ownership: 9, judge: 7, moment: 5, label: 2, sweep: 1, mapPass: 0 };
 
 /** A position in a branch: the board, the move that led to it, its analysis once searched, its place among the
  *  branches from its parent (the lower first), and whether the player asked for the move's quality. */
@@ -108,7 +108,10 @@ export class GameAnalysis<G extends GameTypes> {
   // result was stored before the ownership, and the position after a candidate, for the candidate's map. From the
   // store, or from a short search of the position alone, which the store then keeps. They never replace a result.
   private ownership = $state.raw<Record<string, number[]>>({});
-  private owning = new Set<string>(); // their searches queued or running, by path key
+  // The maps being added, by path key: their search waits for the engine, or runs (the area map's state)
+  private mapWork = $state.raw<Record<string, "waiting" | "searching">>({});
+  private mapPassOn = $state(false); // the map pass runs (passMaps)
+  private mapPassLeft = 0; // its tasks that have not ended
   private mapless = $state.raw(new Set<string>()); // the positions of a line that the engine did not search: an ended game
   private ownershipWanted = new Set<string>(); // the positions asked for last: a search queued for another one is skipped
   private era = 0; // another network starts a new era: results from an earlier one are dropped
@@ -740,6 +743,9 @@ export class GameAnalysis<G extends GameTypes> {
     this.outside = {};
     this.ownership = {};
     this.mapless = new Set();
+    this.mapWork = {};
+    this.mapPassOn = false;
+    this.mapPassLeft = 0;
     this.stored = {};
     this.timed = {};
     this.moments = [];
@@ -787,39 +793,105 @@ export class GameAnalysis<G extends GameTypes> {
     return path.slice(0, k);
   }
 
+  /** The state of a position's map, for the area map's legend: there (`ready`), its search runs (`searching`), it
+   *  waits for the engine (`waiting`: its search waits behind the review's searches, or the position's own result is
+   *  still to come), none can come (`none`: the game ends there), or nothing asks for it (`unasked`). */
+  mapState(path: string[]): "ready" | "searching" | "waiting" | "none" | "unasked" {
+    if (this.mapAt(path)) return "ready";
+    const key = pathKey(path);
+    if (this.mapless.has(key)) return "none";
+    if (this.mapWork[key]) return this.mapWork[key];
+    return this.known(path) && this.searchable(path) && !this.analysisOf(path) ? "waiting" : "unasked";
+  }
+
   /** Adds a map to these positions, which the area map shows, where they have none (mapAt): to a position of the tree
    *  whose result has none (stored before the ownership), and to a position of a line from the tree (after a
    *  candidate, or after an edge of the engine's line or of a preview). The map stored for it, or else a short search
-   *  of the position alone
-   *  (MAP_VISITS), after the position on screen's, whose map the store then keeps (cache.ts, mapPut). The result itself
-   *  stays as it is. A position of the tree with no result yet waits for its own search, which asks for the ownership.
-   *  A search queued for a position that the page no longer asks for starts and ends at once. */
+   *  of the position alone (MAP_VISITS), after the position on screen's, whose map the store then keeps (cache.ts,
+   *  mapPut). The result itself stays as it is. A position of the tree with no result yet waits for its own search,
+   *  which asks for the ownership. A search queued for a position that the page no longer asks for starts and ends at
+   *  once. */
   askOwnership(paths: string[][]) {
     this.ownershipWanted = new Set(paths.map(pathKey));
     if (!this.engineReady || this.paused || this.stalePool) return;
     for (const path of paths) {
       const key = pathKey(path), inTree = this.known(path);
-      if (this.mapAt(path) || this.owning.has(key) || this.mapless.has(key)) continue;
+      if (this.mapAt(path) || this.mapWork[key] || this.mapless.has(key)) continue;
       if (inTree ? !this.searchable(path) || !this.analysisOf(path) : !this.searchable(this.knownPrefix(path))) continue;
-      this.owning.add(key);
-      const era = this.era, pool = this.pool, query = this.query(path), keyed = this.keyMovesOf(path);
-      const keep = (ownership: number[]) => { if (era === this.era) this.ownership = { ...this.ownership, [key]: ownership }; };
-      void (async () => {
-        const stored = await mapGet(pool.search!, pool.model!.sha256, keyed);
-        if (stored) { keep(stored.ownership); return; }
-        await pool.run(PRIORITY.ownership, "ownership", async engine => {
-          if (era !== this.era || !this.ownershipWanted.has(key)) return;
-          const { reply } = await engine.analyse({ ...query, maxVisits: MAP_VISITS, includeOwnership: true }).done;
-          const { ownership } = toAnalysis(this.game, reply);
-          if (era !== this.era || !ownership) return;
-          keep(ownership);
-          await mapPut(pool.search!, pool.model!.sha256, keyed, { ownership, visits: reply.rootInfo.visits, source: "short search" });
-        });
-      })()
-        // A position after a candidate can end the game, and the engine searches no ended position: it has no map
-        .catch(inTree ? this.fail : () => { this.mapless = new Set(this.mapless).add(key); })
-        .finally(() => this.owning.delete(key));
+      this.addMap(path, PRIORITY.ownership, "ownership", () => this.ownershipWanted.has(key), false);
     }
+  }
+
+  /** The map pass (Hedge School's design 30): while the area map is on (`on`), once the review's passes are done, the
+   *  maps of the game's positions that have none, from the position on screen (`from`) to the game's end, then back
+   *  to its start, stored as the maps that askOwnership adds. At the lowest priority, in slices, so that the pool stops
+   *  a search of it at once for any search for the player, and runs it again later. Off stops it. */
+  passMaps(on: boolean, from: string[]) {
+    if (!on) {
+      if (!this.mapPassOn) return;
+      this.mapPassOn = false;
+      this.pool.cancel(t => t === "mappass");
+      this.mapPassLeft = 0;
+      return;
+    }
+    if (this.mapPassOn || this.board || !this.engineReady || this.paused || this.stalePool) return;
+    const n = this.passCount;
+    if (this.labelled < n) return; // the review's passes first
+    const at = Math.min(mainIndex(this.knownPrefix(from), this.mainNames) ?? 0, n - 1);
+    const order = [...Array.from({ length: n - at }, (_, k) => at + k), ...Array.from({ length: at }, (_, k) => at - 1 - k)];
+    const missing = order.map(i => this.mainNames.slice(0, i))
+      .filter(p => !this.mapAt(p) && !this.mapless.has(pathKey(p)) && !this.mapWork[pathKey(p)]);
+    if (!missing.length) return;
+    this.mapPassOn = true;
+    this.mapPassLeft = missing.length;
+    for (const p of missing) this.addMap(p, PRIORITY.mapPass, "mappass", () => this.mapPassOn, true, () => {
+      if (--this.mapPassLeft <= 0) this.mapPassOn = false;
+    });
+  }
+  /** The map pass's progress while it runs: the game's positions, and those that have their map (or can have none).
+   *  Null when it does not run. */
+  get mapPass(): { total: number; done: number } | null {
+    if (!this.mapPassOn) return null;
+    const n = this.passCount, paths = Array.from({ length: n }, (_, i) => this.mainNames.slice(0, i));
+    return { total: n, done: paths.filter(p => this.mapAt(p) || this.mapless.has(pathKey(p))).length };
+  }
+
+  /** Adds the map of the position at `path`: the store's, or a short search's, which the store then keeps. `wanted`
+   *  says whether the page still wants it when its search starts. `sliced`: in slices, which the pool can stop to give
+   *  way; a stopped search keeps nothing, and the pool runs it again. `ended` runs when it ends, however it ends. */
+  private addMap(path: string[], priority: number, tag: string, wanted: () => boolean, sliced: boolean, ended?: () => void) {
+    const key = pathKey(path), inTree = this.known(path);
+    const era = this.era, pool = this.pool, query = this.query(path), keyed = this.keyMovesOf(path);
+    const mark = (state: "waiting" | "searching") => { if (era === this.era) this.mapWork = { ...this.mapWork, [key]: state }; };
+    const keep = (ownership: number[]) => { if (era === this.era) this.ownership = { ...this.ownership, [key]: ownership }; };
+    mark("waiting");
+    void (async () => {
+      const stored = await mapGet(pool.search!, pool.model!.sha256, keyed);
+      if (stored) { keep(stored.ownership); return; }
+      await pool.run(priority, tag, async (engine, onStop) => {
+        if (era !== this.era || !wanted()) return;
+        mark("searching");
+        const run = engine.analyse({ ...query, maxVisits: MAP_VISITS, includeOwnership: true,
+                                     ...(sliced ? { slice: { visits: MAP_SLICE } } : {}) });
+        if (sliced) onStop(run.stop);
+        const { reply } = await run.done;
+        if (reply.terminated) { mark("waiting"); return; } // stopped to give way: the pool runs it again
+        const { ownership } = toAnalysis(this.game, reply);
+        if (era !== this.era || !ownership) return;
+        keep(ownership);
+        await mapPut(pool.search!, pool.model!.sha256, keyed, { ownership, visits: reply.rootInfo.visits, source: "short search" });
+      });
+    })()
+      // A position after a candidate can end the game, and the engine searches no ended position: it has no map
+      .catch(inTree ? this.fail : () => { this.mapless = new Set(this.mapless).add(key); })
+      .finally(() => {
+        if (era === this.era && this.mapWork[key]) {
+          const rest = { ...this.mapWork };
+          delete rest[key];
+          this.mapWork = rest;
+        }
+        ended?.();
+      });
   }
 
   /** Ends the focus: an earlier focus is stale. Stops its search if it runs, and drops it if it waits. A search still

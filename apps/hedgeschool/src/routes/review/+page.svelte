@@ -21,7 +21,7 @@
   import ReviewHome from "#lib/review/ReviewHome.svelte";
   import { REVIEW_PAGE_SCRIPT, markReviewPage } from "#lib/review/pageMarks.ts";
   import { reviewArrives } from "#lib/game/importHash.ts";
-  import { LABEL_VISITS, SWEEP_VISITS, snapshotExcept, snapshotPositions, snapshotSearch, warmCache } from "@abstractclass/analysis/cache.ts";
+  import { LABEL_VISITS, MAP_VISITS, SWEEP_VISITS, snapshotExcept, snapshotPositions, snapshotSearch, warmCache } from "@abstractclass/analysis/cache.ts";
   import { enclosure, review, type Enclosure, type GameEnding, type ReviewData } from "#lib/review/enclosure.ts";
   import { EnginePool } from "@abstractclass/engine/pool.ts";
   import { GameAnalysis, momentVisits } from "@abstractclass/analysis/analysis.svelte.ts";
@@ -140,7 +140,9 @@
   // off ended waits for the engine on. The bar shows the step that its line names:
   // the steps before are full, the later ones empty, though some of their work can end early, alongside (it shows when
   // their step comes). The step's own part never shows less than it has shown (held): a count that grows makes it wait
-  // instead of going back. Another review depth, network or game starts it again.
+  // instead of going back. Another review depth, network or game starts it again. After the review, while the area map
+  // is on and the review's results lack maps, the map pass (design 30) is one more part, which never holds the review's
+  // end: the review is done without it (reviewComplete).
   let held = $state({ step: -1, done: 0 });
   $effect(() => { void budget; void game; held = { step: -1, done: 0 }; });
   const rawProgress = $derived.by((): (ReviewProgress & { step: number }) | null => {
@@ -154,15 +156,19 @@
     // are final, so they do not change their lines when the network comes (a layout shift). The snapshot's analysis
     // holds an earlier engine's results: after Review again it stays on screen until the new review's analysis
     // replaces it.
-    if (labelled && deep && greats.done >= greats.total && game !== snapshotGame) return null;
-    const total = (SWEEP_VISITS + budget) * n + deeper * m + budget * greats.total;
+    const complete = labelled && deep && greats.done >= greats.total && game !== snapshotGame, maps = game?.mapPass;
+    if (complete && !maps) return null;
+    const mapVisits = maps ? MAP_VISITS * maps.total : 0;
+    const total = (SWEEP_VISITS + budget) * n + deeper * m + budget * greats.total + mapVisits;
     const parts = [
       { share: (SWEEP_VISITS * n) / total, done: (game?.swept ?? 0) / n },
       { share: (budget * n) / total, done: (game?.labelled ?? 0) / n },
       ...(deeper * m ? [{ share: (deeper * m) / total, done: deepDone / m }] : []),
       ...(greats.total ? [{ share: (budget * greats.total) / total, done: greats.done / greats.total }] : []),
+      ...(maps ? [{ share: mapVisits / total, done: maps.done / maps.total }] : []),
     ];
-    const step = !game || game.swept < passCount ? 0 : !labelled ? 1 : !deep && deeper * m ? 2 : parts.length - 1;
+    if (complete && maps) return { text: `Maps: ${maps.done} of ${maps.total}`, parts, step: parts.length - 1, maps: true };
+    const step = !game || game.swept < passCount ? 0 : !labelled ? 1 : !deep && deeper * m ? 2 : parts.length - (maps ? 2 : 1);
     if (!game?.engineReady) return { text: NETWORK_LOADS, parts, step };
     if (game.paused) return { text: "Engine off. The review is paused.", parts, waiting: true, step };
     if (step === 0) return { text: `Reviewing: the game's shape, ${game.swept} of ${passCount} positions`, parts, step };
@@ -173,7 +179,7 @@
   const rawStepDone = $derived(rawProgress ? rawProgress.parts[rawProgress.step]?.done ?? 1 : 0);
   // The review is done: every step of the bar. The game keeps the mark of it (store.ts), so that the home page can offer
   // its export, and the Export menu opens (design 13). Neither waits for the network: the export reads the store.
-  const reviewDone = $derived(!snapshot && !rawProgress);
+  const reviewDone = $derived(!snapshot && (!rawProgress || !!rawProgress.maps));
   // The review's events (design 17): when it opens and when it ends, with what it ran with and how long it took. The
   // time counts from the review's start, or from a change of its network or depth, which starts it again. A review that
   // opened already done (doneBefore: its mark covers it, or the store held every step's results) sends no end.

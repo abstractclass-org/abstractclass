@@ -128,7 +128,9 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
    the analysis (with the expected final margin, the lead and the visits). The review's progress bar is at the top of
    the summary (three columns), or at the top of the right column (fewer), over the tabs. It covers all of the
    review's own work, each part as wide as its share of the visits: the sweep, the label pass, the key moments
-   searched deeper, and the Great's confirmations ("confirming Great moves, 18 of 22"). The last two are counted from
+   searched deeper, and the Great's confirmations ("confirming Great moves, 18 of 22"). After them, while the area map
+   is on and the review's results lack their maps, the map pass is one more part ("Maps: 34 of 120", design 30): the
+   review is done without it. The Great's and the key moments' steps are counted from
    the labels found so far, so they grow as labels come. The key moments' step also counts each position that the review
    asked a key moment's search for, at the review's depth, until the store has the position's result. A search's results
    so far change the labels, so its position can leave the key moments before the search ends. The store gets its result
