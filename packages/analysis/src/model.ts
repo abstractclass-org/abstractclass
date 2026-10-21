@@ -77,7 +77,7 @@ export interface MoveJudgment<M> {
   label: Label | null; // null until both positions are analysed
   best: Candidate<M> | undefined; // the engine's first choice in the position before the edge
   complexity: number | undefined; // KaTrain's complexity of the position before the edge, in win chance (complexity)
-  hard: boolean; // a hard position: complexity HARD or more
+  hard: boolean; // a hard position: complexity HARD or more. On the board, the moves evaluated only (onlyJudged)
 }
 /** An edge of the review: the move played (`player`, `edge`, and what the game keeps of it), and its judgment. */
 export type EdgeReview<G extends GameTypes> = G["played"] & MoveJudgment<G["move"]>;
@@ -245,7 +245,12 @@ export function valuesAfter<M>(p: PositionInfo, a: Analysis<M> | undefined, kind
 // Lichess's accuracy of one move from the drop in win% (0-100).
 const moveAccuracy = (dropPct: number) => Math.min(100, Math.max(0, 103.1668 * Math.exp(-0.04354 * dropPct) - 3.1669 + 1));
 /** A hard position's complexity: HARD or more (design 14). */
-export const isHard = (c: number | undefined): c is number => c !== undefined && c >= HARD;
+export const isHard = (c: number | undefined) => c !== undefined && c >= HARD;
+/** A turn's complexity: its harder position's, of those with one (design 14). */
+export function turnComplexity(cs: (number | undefined)[]): number | undefined {
+  const known = cs.filter((c): c is number => c !== undefined);
+  return known.length ? Math.max(...known) : undefined;
+}
 const hardness = (c: number | undefined) => ({ complexity: c, hard: isHard(c) });
 
 /** What every judged turn or edge has. */
@@ -307,8 +312,7 @@ export function review<G extends GameTypes>(game: Game<G>, data: ReviewData<G>, 
     turnOf.push(turns.at(-1)!);
   }
   for (const t of turns) {
-    const cs = t.edges.map(e => e.complexity).filter((c): c is number => c !== undefined);
-    Object.assign(t, hardness(cs.length ? Math.max(...cs) : undefined));
+    Object.assign(t, hardness(turnComplexity(t.edges.map(e => e.complexity))));
     const p = t.player, first = data.analysis[t.start]?.candidates[0], played = t.edges.map(e => e.edge);
     t.best = bestTurn(first, t.edges.length > 1);
     // By edge too, the engine's best turn in the other order is Best: the same two edges make the same turn, so its

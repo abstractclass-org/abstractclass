@@ -115,7 +115,7 @@
   import { errorText } from "@abstractclass/engine/errors.ts";
   import Toast from "#lib/ui/Toast.svelte";
   import {
-    edgeName, endingText, fmtScore, moveName, moveNotation, opensTurn, turnFromCount, sameEdge, shortNote, turnShortNote, HARD_NOTE, complexity, isHard, likelyEdges, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchEdge, valuesAfter, resultWin, moverWin, costText, pct, shownCandidates, distinctCandidates, rankOf, twinsOf, lineMovers, enoughVisits, trustedLine, type Candidate, type EdgeReview, LABELS, LABEL_TEXT, LABEL_GLYPH, type Label, type Position, type Review, type Unit, type Move, type TurnJudgment, type TurnReview,
+    edgeName, endingText, fmtScore, moveName, moveNotation, opensTurn, turnFromCount, sameEdge, shortNote, turnShortNote, HARD_NOTE, complexity, isHard, turnComplexity, likelyEdges, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchEdge, valuesAfter, resultWin, moverWin, costText, pct, shownCandidates, distinctCandidates, rankOf, twinsOf, lineMovers, enoughVisits, trustedLine, type Candidate, type EdgeReview, LABELS, LABEL_TEXT, LABEL_GLYPH, type Label, type Position, type Review, type Unit, type Move, type TurnJudgment, type TurnReview,
   } from "./enclosure.ts";
   import { branchChildren, branchLine, branchRows, mainIndex, nextFork, pathKey, prefixKeys, prevFork, sharedLength, siblingLine, treeLines, withLine,
            type BranchRow } from "@abstractclass/analysis/tree.ts";
@@ -626,15 +626,18 @@
   /** A move's word on its difficulty in its tooltip, where the engine searches only what the player looks at (a branch,
    *  the board): a hard position, or that a position before the move has no result yet. */
   const searchNote = (hard: boolean, before: (Analysis | undefined)[]) => (hard ? HARD_NOTE : before.some(a => !a) ? "Not searched yet" : "");
+  /** A move's tooltip: its parts that have something to say, or none. */
+  const tooltip = (...parts: (string | undefined)[]) => parts.filter(Boolean).join(" · ") || undefined;
   /** A branch move's ◆ (design 14) and its word, for the side reviewed, from the results of the positions before it: by
    *  edge, the move's own. By turn, at the move that ends the turn, the harder of the turn's, as a game turn's. Null
    *  where the move shows none. */
   function branchHardness(p: string[]): { hard: boolean; note: string } | null {
     const node = branches[pathKey(p)];
-    const paths = !node || !forSide(node.move.player) ? null : unit === "edge" ? [p] : branchTurnPaths(p);
-    if (!node || !paths) return null;
+    if (!node || !forSide(node.move.player)) return null;
+    const paths = unit === "edge" ? [p] : branchTurnPaths(p);
+    if (!paths) return null;
     const before = paths.map(q => analysisAt(q.slice(0, -1)));
-    const hard = before.some(a => isHard(complexity(a, node.move.player)));
+    const hard = isHard(turnComplexity(before.map(a => complexity(a, node.move.player))));
     return { hard, note: searchNote(hard, before) };
   }
   /** The turn that a branch move ends (design 10), by turn: its moves' paths, and its judgment (judgeTurn) once the player
@@ -1205,7 +1208,9 @@
           {@const asked = !board || !!board.judged[mainKeys[e.index + 1]]} <!-- the board's moves: evaluated on request -->
           {@const judged = unit === "edge" && forSide(e.player) && asked ? (e.label ? `${LABEL_TEXT[e.label]}: ${costText(e.rawLoss, e.rawPoints)}` : "Not analyzed yet") : ""}
           {@const shown = forSide(e.player) ? e.label : null}
-          {@const hard = forSide(e.player) && isHard(e.complexity)} <!-- on the board too, where the position has a result -->
+          <!-- On the board too, where the position has a result: from the complexity, as the board's `hard` is the record's,
+               on the moves evaluated only (onlyJudged). -->
+          {@const hard = forSide(e.player) && isHard(e.complexity)}
           <!-- A move fills its column. By edge, its label, the hard position's ◆ and its loss stand together at the
                column's right, as a turn's do at the turn's right, so that they line up down the list. The loss is
                last, where Lichess's move list has its evaluation: the mover's points lost, so that a number never needs
@@ -1219,8 +1224,7 @@
           <button data-path={mainKeys[e.index + 1]}
                   class={moveButton(e.player, mainAt === e.index + 1 ? MOVE_HERE : pickedKey === mainKeys[e.index + 1] ? PICKED : MOVE_HOVER)}
                   onclick={() => go(e.index + 1, true)} onmouseenter={() => startPreview({ kind: "move", index: e.index })} onmouseleave={endPreview} tabindex="-1"
-                  title={[judged, after !== undefined ? `Lead: ${sideText(after, 1)}` : "", unit === "edge" && board ? searchNote(hard, [R.data.analysis[e.index]]) : ""]
-                           .filter(Boolean).join(" · ")}>
+                  title={tooltip(judged, after !== undefined ? `Lead: ${sideText(after, 1)}` : "", unit === "edge" && board ? searchNote(hard, [R.data.analysis[e.index]]) : "")}>
             <span class={MOVE_TEXT}>{moveNotation(e)}</span>
             {#if unit === "edge"}
               <span class="w-[2.2ch] ml-auto">{#if listed(shown)}{@render mark(shown)}{/if}</span>
@@ -1234,8 +1238,8 @@
         {#if unit === "turn" && forSide(t.player)}
           {@const hard = isHard(t.complexity)}
           <span class="col-start-4 flex items-baseline gap-1 px-[0.2rem] py-px font-mono text-[0.95em] whitespace-nowrap {SIDE_TEXT[t.player]}"
-                title={[t.label ? `${LABEL_TEXT[t.label]}: ${turnCost(t)}` : board && !t.edges.every(e => board.judged[mainKeys[e.index + 1]]) ? "" : "Not analyzed yet",
-                        board ? searchNote(hard, t.edges.map(e => R.data.analysis[e.index])) : ""].filter(Boolean).join(" · ") || undefined}>
+                title={tooltip(t.label ? `${LABEL_TEXT[t.label]}: ${turnCost(t)}` : board && !t.edges.every(e => board.judged[mainKeys[e.index + 1]]) ? "" : "Not analyzed yet",
+                               board ? searchNote(hard, t.edges.map(e => R.data.analysis[e.index])) : "")}>
             <span class="w-[2.2ch]">{#if listed(t.label)}{@render mark(t.label)}{/if}</span>
             <span class="w-[1.2ch] text-[0.8em] text-muted text-center" title={hard ? HARD_NOTE : undefined}>{hard ? "◆" : ""}</span>
             <span class="w-[5ch] ml-auto text-[0.78em] text-right text-muted tabular-nums">{lossShort(t)}</span>
@@ -1371,7 +1375,7 @@
         {@const bt = unit === "turn" ? branchTurnAt(p) : null}
         {@const label = node && !forSide(node.move.player) ? null : unit === "edge" ? branchLabel(p) : bt?.judgment?.label ?? null}
         {@const waiting = unit === "edge" ? !!node?.judged && !label : !!bt && !bt.judgment}
-        {@const hardness = node ? branchHardness(p) : null}
+        {@const hardness = branchHardness(p)}
         {#if node}
           {@render turnMark(t, k)}
           {#if display.branchForm === "text"}
@@ -1379,12 +1383,12 @@
                             at ? "here bg-panel-2 outline outline-accent -outline-offset-1" : pickedKey === pathKey(p) ? PICKED
                             : "hover:bg-panel-2 hover:outline hover:outline-line hover:-outline-offset-1"]}
                     onclick={() => setPath(p, true)} onmouseenter={() => startPreview({ kind: "branch", path: p })} onmouseleave={endPreview} tabindex="-1"
-                    data-path={pathKey(p)} title={[label ? LABEL_TEXT[label] : waiting ? "Evaluating…" : "", hardness?.note ?? ""].filter(Boolean).join(" · ") || undefined}>{moveNotation(node.move)}</button>
+                    data-path={pathKey(p)} title={tooltip(label ? LABEL_TEXT[label] : waiting ? "Evaluating…" : "", hardness?.note)}>{moveNotation(node.move)}</button>
           {:else}
             <button class={["mv flex p-[0.08em] bg-transparent border-0 rounded-full",
                             at ? "here outline-2 outline-accent" : pickedKey === pathKey(p) ? PICKED : "hover:outline hover:outline-ink"]}
                     onclick={() => setPath(p, true)} onmouseenter={() => startPreview({ kind: "branch", path: p })} onmouseleave={endPreview} tabindex="-1"
-                    data-path={pathKey(p)} title="{turnText(t)} {moveNotation(node.move)}{label ? ` · ${LABEL_TEXT[label]}` : waiting ? ' · evaluating…' : ''}{hardness?.note ? ` · ${hardness.note}` : ''}">
+                    data-path={pathKey(p)} title={tooltip(`${turnText(t)} ${moveNotation(node.move)}`, label ? LABEL_TEXT[label] : waiting ? "evaluating…" : "", hardness?.note)}>
               {@render edgeShape(node.move.edge, node.move.player)}
             </button>
           {/if}
