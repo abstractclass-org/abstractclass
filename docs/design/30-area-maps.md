@@ -1,7 +1,8 @@
 # The area map
 
 **Status:** in force, built. **Decided:** 2026-10-20. **Changed:** 2026-10-21: three styles, a map for every
-position that the board shows, the maps that a stored review lacks added on demand, the map's state, and the map pass.
+position that the board shows, the maps that a stored review lacks added on demand, the map's state, the map pass, and
+the maps of a snapshot.
 
 ## The players and their questions
 
@@ -120,11 +121,16 @@ site asks for the root's alone (item 6).
    - The short search has `MAP_VISITS` visits, 32, and runs just after the position on screen's search.
    - The map is stored in the analysis store beside the results, under its position's result's key for the search,
      at `MAP_VISITS`, with `map|` before it. Its value names its source: the short search and its visits (`mapKey`,
-     `mapPut` and `mapGet` in `packages/analysis/src/cache.ts`). So a review opened again reads it with no search, a
-     review file takes it with its positions' results (design 13), and the removal of earlier results treats it as a
-     result of its search (`src/lib/game/earlierResults.ts`). A snapshot never takes it as a search (design 20). The
-     site before the area map never takes it as a result: its key does not start with a shape, so that site's key
-     check refuses it, in a review file and in the store.
+     `mapPut` and `mapGet` in `packages/analysis/src/cache.ts`). So a review opened again reads it with no search, and
+     a review file takes it with its positions' results (design 13). The site before the area map never takes it as a
+     result: its key does not start with a shape, so that site's key check refuses it, in a review file and in the
+     store.
+   - **A snapshot** (design 20) searches nothing. It reads the maps added to its positions from the store, with the
+     search and the network file of its results, and never takes a map as a search (`freeze`). A map that the store
+     lacks cannot come, and the note says so (item 9).
+   - **The removal of earlier results** keeps an added map while a snapshot reads its position, whatever the depth of
+     the results there. It removes the map with its search's results where no snapshot reads the position
+     (`src/lib/game/earlierResults.ts`).
 7. **Defaults by page.** The review starts with the map off: the improving player steps through the whole game, and a
    clean board shows the labels first. The Analysis board starts with the map on: its player reads the whole board.
    Each page keeps its own start (`areaMap` in `display.ts`).
@@ -140,9 +146,10 @@ site asks for the root's alone (item 6).
 9. **The map's work is visible.** While the map is on, a short note in the legend's slot, before the legend, says
    what the map does (`mapWork` in `ReviewView.svelte`, `mapState` in `analysis.svelte.ts`):
    - For a position: "Map: waiting for the engine" while its search waits behind other searches, "Map: searching"
-     while it runs, and "No map: the game ends here" where none can come. In after vs before, the map before the move
-     counts too, and the game's start says "No map: the game starts here". There is no note when the map shown is the
-     position's own: the legend alone means that the map is ready.
+     while it runs, and "No map: the game ends here" where none can come. In a snapshot, a map that the store lacks
+     says "No map: a snapshot searches nothing". In after vs before, the map before the move counts too, and the
+     game's start says "No map: the game starts here". There is no note when the map shown is the position's own: the
+     legend alone means that the map is ready.
    - For a line or a preview: "Maps of the line: 3 of 7", the positions of the line whose maps are there.
    While work goes on, the note carries the site's sign of work in progress, the gleam of the review's progress bar
    (bar-glider, Lichess's). **Every state that the note shows ends:**
@@ -152,7 +159,13 @@ site asks for the root's alone (item 6).
      again (`askAgain`): a page that opens or reloads asks before the engine's network has loaded.
    - A map that its task gave up without a try (a search that the page did not want when it started) is asked for
      again while the page wants it.
-   - A position with no result and no search to come gets a short search (item 6), never a wait.
+   - A position with no result and no search to come gets a short search (item 6), never a wait. When the position's
+     own search brings a result with no map (a result stored before the maps), the map is asked for again then.
+   - Another network asks again for the maps that the old one was searching: each network keeps its own record of
+     the maps that it searches.
+   - The game's last position, where the game ends, knows that it has no map (`hasNoMap`), with no search.
+   - Only the task that holds a map's state changes or ends it: a task that another task replaced, or a pass that the
+     engine off ended, touches it no more.
    - A map that nothing asks for has no note.
 10. **The map pass, for an older review.** While the map is on, once the review's passes are done, the analysis
     makes the maps of every position of the game that has none, in order from the position on screen to the game's
@@ -166,6 +179,9 @@ site asks for the root's alone (item 6).
       pass.
     - **It stops when the map goes off.** Its searches in the queue go at once. A search that runs ends at its 32
       visits and keeps its map. A pass that starts again later counts only its own searches (`mapPassRun`).
+    - **It stops when the engine goes off, and starts again when the engine comes on** (`endPass` and `askAgain`).
+      The engine off stops every search, so the pass lets go of its maps, and the pass that starts again searches
+      them. Its part of the progress bar goes while the engine is off.
 
 ## Why
 
@@ -312,9 +328,10 @@ The site follows KaTrain's review (design 05). The display departs from it on pu
   `mapStyle`, `mapMin`.
 - `src/routes/review/+page.svelte`: the map pass's part of the review's progress bar.
 - `packages/analysis/src/reply.ts` (the ownership in hundredths), `packages/analysis/src/analysis.svelte.ts` (every
-  search asks for the root's map, `askOwnership`, `mapAt`, `hasNoMap`, `mapState`, `passMaps`, `mapPass`),
-  `packages/analysis/src/cache.ts` (`SHAPE` 5, `READ_SHAPES`, `atShape`, `MAP_VISITS`, `MAP_SLICE`, `mapKey`,
-  `mapPut`, `mapGet`), `src/lib/game/earlierResults.ts` (the added maps kept with the site's results),
+  search asks for the root's map, `askOwnership`, `mapAt`, `hasNoMap`, `freeze`, `mapState`, `passMaps`, `endPass`,
+  `mapPass`), `packages/analysis/src/cache.ts` (`SHAPE` 5, `READ_SHAPES`, `atShape`, `MAP_VISITS`, `MAP_SLICE`,
+  `mapKey`, `mapPut`, `mapGet`), `src/lib/game/earlierResults.ts` (the added maps kept with the site's results, and
+  at the positions that a snapshot reads),
   `src/lib/game/reviewFile.ts` and `src/lib/game/analysisFile.ts` (the files at shape 5),
   `packages/engine/src/protocol.ts` (the fields).
 - The measurements, in `scripts/measure/`: `review-ownership.mjs` (the maps' size and time in a whole review),
@@ -330,5 +347,5 @@ The site follows KaTrain's review (design 05). The display departs from it on pu
   maps: their size and their time", "A candidate's map from a short search", "The delay of a candidate's map", "A
   candidate's map from a short search, on a close game", "The map follows the line as drawn", "After vs before: the
   third style", "The marks of After vs before, and 0.05", "The map's work made visible, and the map pass", "\"Map:
-  waiting for the engine\" did not end" and "The area map's review".
+  waiting for the engine\" did not end", "The area map's review" and "The map's bookkeeping in edge cases".
 - [decisions/engine.md](../decisions/engine.md): "The cost of the ownership in a whole review" (2026-10-21).

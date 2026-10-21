@@ -6336,3 +6336,40 @@ before it.
   search as the pool does and asks again at once.
 - **The limits:** one game, one network. A position that the player looked at, deeper than the label budget, counts
   as a result.
+
+### The map's bookkeeping in edge cases (2026-10-21)
+
+A read-only review of the merged area map (design 30) found six cases where the site asked for a map, kept it or
+removed it wrongly. Each one had a test that failed before its fix: the analysis's tests
+(`packages/analysis/src/analysis.test.ts`) and the removal's (`src/lib/game/earlierResults.test.ts`).
+
+- **The removal of an earlier engine's results removed the maps that a snapshot reads.** It compared an added map, of
+  32 visits, with the position's results, and kept only the deepest. So a game reviewed at 512 visits by an earlier
+  engine lost its maps. Now a map stays while a snapshot reads its position, whatever the depth of the results there
+  (design 20, item 8). Test: "a snapshot keeps the maps added to the positions that it reads, beside deeper results".
+- **A snapshot waited for its maps without end.** A snapshot's engine is never ready, so the map was asked for, and the
+  note said "Map: waiting for the engine". Now the snapshot reads the maps added to its positions from the store, with
+  the search and the network file of its results (`freeze`). A map that the store lacks cannot come: the note says
+  "No map: a snapshot searches nothing". Test: "every state of a map ends: a snapshot reads its stored maps with no
+  network, and a map that it lacks cannot come". Before the fix, the stored map did not show.
+- **Another network lost the maps in flight.** The record of the maps that the page's tasks search outlived the
+  network. When the new network was ready before the old network's task ended, the new one skipped the map, and the
+  old task then ended with nothing kept. Now each network has its own record. Test: "every state of a map ends: a map
+  asked for on the old network is asked for again on the new one".
+- **A position's own search could bring no map.** The page's map waits for the position's own search, which asks for
+  the ownership. On the Analysis board, that search can find a result stored before the maps, which has none. Then
+  nothing asked for the map. Now the map is asked for again once that result applies. Test: "every state of a map
+  ends: a board position whose own search finds a stored result with no map gets a short search".
+- **The engine off and on again abandoned the map pass.** The engine on found the pass still marked as running and
+  started none, and the stopped search then ended the old pass. Now the engine off ends the pass and lets go of its
+  maps, and the engine on starts it again. Only the task that holds a map's state changes or ends it. Test: "every
+  state of a map ends: the engine off and on again while the map pass runs a search starts the pass again".
+- **The game's last position had no note.** Where the game ends, no search runs, so the map was "unasked". Now a
+  position of the tree knows that it has no map from its own end (`hasNoMap`), and the note says "No map: the game
+  ends here". Test: "every state of a map ends: the game's last position, where it ends, has no map".
+
+**The browser check** (`scripts/measure/map-wait-check.mjs`, headless Chromium, 2 workers, GPU off) has a fifth case:
+the fixture's review as an earlier engine's, imported, so that it opens as a snapshot, with no ownership in its
+results and maps added to every position but those after 30 edges. After the fix, after edge 31 the stored map shows
+with no note, and after edge 30 the note says "No map: a snapshot searches nothing" from the first second. The other
+three cases still pass.

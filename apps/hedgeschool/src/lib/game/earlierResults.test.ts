@@ -42,6 +42,14 @@ test("a game reviewed by an earlier engine keeps what its snapshot reads: its po
   assert.deepEqual(unneededResults([...read, ...other], [game], ENGINE), other);
 });
 
+test("a snapshot keeps the maps added to the positions that it reads, beside deeper results", () => {
+  const read = results("s1", "b2", 512, line(MOVES)), maps = line(MOVES).map(m => mapKey("s1", "b2", m));
+  // A candidate's map, one move from the line, stays. A map two moves from the line goes: no snapshot reads it.
+  const candidate = mapKey("s1", "b2", ["D10-G10", "O11-R10"]), far = mapKey("s1", "b2", ["A10-D10", "N11-Q10"]);
+  const game = { moves: MOVES, branches: null, mark: mark("m0") };
+  assert.deepEqual(unneededResults([...read, ...maps, candidate, far], [game], ENGINE), [far]);
+});
+
 test("after Review again, a game's earlier results go, but for the positions another game's snapshot reads", () => {
   const again = [...MOVES, "Q10-T10", "N11-Q11"], still = ["D10-G10", "N11-Q10", "Q10-T10"];
   const earlier = [...new Set([...results("s1", "b2", 512, line(again)), ...results("s1", "b2", 512, line(still))])];

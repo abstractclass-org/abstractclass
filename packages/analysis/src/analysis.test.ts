@@ -15,7 +15,8 @@ import { Cancelled, type EnginePool, type Work } from "@abstractclass/engine/poo
 import { BOARD_ID } from "./kept.ts";
 import { reply, wordFields, wordRules, words } from "./testing/game.ts";
 import type { Player } from "./game.ts";
-import { LABEL_VISITS, MAP_VISITS, SWEEP_VISITS, analysisKey, cachePut, mapGet, readAnalysisKey } from "./cache.ts";
+import { LABEL_VISITS, MAP_VISITS, SWEEP_VISITS, analysisKey, cachePut, mapGet, mapPut,
+         readAnalysisKey } from "./cache.ts";
 import { judgeBranchEdge, valuesAfter } from "./model.ts";
 import { toAnalysis } from "./reply.ts";
 import { STORES } from "@abstractclass/storage/db.ts";
@@ -34,7 +35,7 @@ let models = 0;
  *  then first come first served, as the pool runs them (pool.ts). `waiting`: the tasks that wait for an engine. `halt`
  *  drops the waiting tasks and stops the running searches in slices, as the pool does. `cancel` drops the waiting tasks
  *  of the tags that it takes, and lets the running ones end, as the pool does. */
-function fakePool(engines = Infinity) {
+function fakePool(engines = Infinity, rules: unknown = wordRules) {
   const searches: { partial(visits: number): void; end(visits: number, late?: boolean, more?: Partial<AnalysisReply>): void;
                     fail(e: Error): void; stopped: boolean; maxMs?: number; query: AnalysisQuery; moves: string[] }[] = [];
   const engine = {
@@ -58,7 +59,7 @@ function fakePool(engines = Infinity) {
   const stops = new Set<() => void>(); // the running searches in slices
   const pool = {
     search: "test", model: { sha256: `m${++models}` }, // a network of its own: the cache's memory outlives a test
-    rules: wordRules,
+    rules,
     run: (priority: number, tag: string, work: Work<unknown>) => new Promise((resolve, reject) => {
       const start = () => {
         busy++;
@@ -383,6 +384,108 @@ test("every state of a map ends: a map that the pass held and dropped is asked f
   again.end(MAP_VISITS, false, { ownership: [0.4] });
   await turns();
   assert.equal(game.mapState(["a", "b"]), "ready");
+});
+
+test("every state of a map ends: a snapshot reads its stored maps with no network, and a map that it lacks cannot come", async () => {
+  const { pool, searches } = fakePool();
+  const visits = 512, search = "earlier", model = `earlier-${pool.model!.sha256}`;
+  for (let i = 0; i <= MOVES.length; i++)
+    await cachePut(analysisKey(search, model, MOVES.slice(0, i), visits), toAnalysis(words, reply(visits)));
+  await mapPut(search, model, ["a"], { ownership: [50], visits: MAP_VISITS, source: "short search" });
+  // As the review page opens a snapshot (design 20): the rules alone, an earlier engine's results, no network
+  const game = new GameAnalysis(words, pool, MOVES, "g14");
+  game.setReview(visits);
+  await game.start();
+  await game.fromStore(search, model);
+  game.freeze(search, model);
+  game.askOwnership([["a"], ["a", "b"]]);
+  await turns();
+  assert.deepEqual(game.mapAt(["a"]), [50]);
+  assert.deepEqual([game.mapState(["a"]), game.mapState(["a", "b"])], ["ready", "unavailable"]);
+  game.passMaps(true, []);
+  await turns();
+  assert.deepEqual([searches.length, game.mapPass], [0, null]);
+});
+
+test("every state of a map ends: a map asked for on the old network is asked for again on the new one", async () => {
+  const { game, searches } = await noMaps(2, "g15");
+  void game.sweep();
+  await turns();
+  await game.addLine(["a", "x"], false);
+  game.askOwnership([["a", "x"]]);
+  await turns();
+  const old = searches.at(-1)!;
+  assert.deepEqual(old.query.moves, ["a", "x"]);
+  // Another network, ready before the old network's search of the map ends
+  game.dropAnalysis();
+  const next = fakePool(2);
+  game.usePool(next.pool);
+  void game.sweep();
+  await turns();
+  old.end(MAP_VISITS, false, { ownership: [0.1] }); // dropped: the old network's
+  await turns();
+  const asked = next.searches.find(s => s.query.moves.join(" ") === "a x" && s.query.maxVisits === MAP_VISITS);
+  assert.ok(asked, "the map is searched on the new network");
+  asked.end(MAP_VISITS, false, { ownership: [0.2] });
+  await turns();
+  assert.deepEqual(game.mapAt(["a", "x"]), [20]);
+});
+
+test("every state of a map ends: a board position whose own search finds a stored result with no map gets a short search", async () => {
+  const { pool, searches } = fakePool(2);
+  await cachePut(analysisKey(pool.search!, pool.model!.sha256, ["a"], 16384), toAnalysis(words, reply(16384)));
+  const game = new GameAnalysis(words, pool, MOVES, BOARD_ID);
+  await game.start();
+  void game.sweep();
+  await turns();
+  game.focus(["a"]); // the player steps to it: its own search comes, and finds the result stored before the maps
+  game.askOwnership([["a"]]);
+  assert.equal(game.mapState(["a"]), "waiting");
+  await turns();
+  mock.timers.tick(BATCH_MS);
+  await turns();
+  const asked = searches.find(s => s.query.moves.join(" ") === "a" && s.query.maxVisits === MAP_VISITS);
+  assert.ok(asked, "the map gets a short search once the position's own result has none");
+  asked.end(MAP_VISITS, false, { ownership: [0.3] });
+  await turns();
+  assert.equal(game.mapState(["a"]), "ready");
+});
+
+test("every state of a map ends: the engine off and on again while the map pass runs a search starts the pass again", async () => {
+  const { game, searches } = await noMaps(1, "g16");
+  void game.sweep();
+  await turns();
+  game.passMaps(true, []); // "" runs, the others wait
+  await turns();
+  const old = searches.at(-1)!;
+  game.setPaused(true); // its search stops at the end of its slice, and the others go
+  game.setPaused(false); // on again before that slice ends
+  await turns();
+  old.end(MAP_VISITS / 4); // the stopped slice ends, with no map
+  await turns();
+  assert.ok(game.mapPass, "the pass runs on");
+  for (let k = 0; k < game.passCount; k++) {
+    const s = searches.at(-1)!;
+    assert.deepEqual(s.query.moves, MOVES.slice(0, k));
+    s.end(MAP_VISITS, false, { ownership: [0.2] });
+    await turns();
+  }
+  assert.equal(game.mapPass, null);
+  for (let k = 0; k < game.passCount; k++) assert.equal(game.mapState(MOVES.slice(0, k)), "ready");
+});
+
+test("every state of a map ends: the game's last position, where it ends, has no map", async () => {
+  const rules = { describeGame: async (q: { moves: string[] }) =>
+    ({ reply: { positions: Array.from({ length: q.moves.length + 1 }, (_, k) => wordFields(k, k === MOVES.length)) } }) };
+  const { pool, searches } = fakePool(2, rules);
+  const game = new GameAnalysis(words, pool, MOVES, "g17");
+  await game.start();
+  void game.sweep();
+  await turns();
+  game.askOwnership([MOVES]);
+  await turns();
+  assert.equal(searches.filter(s => s.query.moves.length === MOVES.length).length, 0);
+  assert.deepEqual([game.mapState(MOVES), game.hasNoMap(MOVES)], ["none", true]);
 });
 
 test("a final result is not replaced by a shallower result of the same batch", async () => {

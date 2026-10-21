@@ -67,16 +67,23 @@ export function unneededResults(keys: string[], games: KeptGame[], engine: Manif
     snapshotReads.set(at, positions);
   }
   // The results that a snapshot reads, by their position (search, network file and moves) and the review depths that
-  // read them, and the deepest visits that each depth reads at each position.
+  // read them, and the deepest visits that each depth reads at each position. An added map is read beside the results
+  // of its position, whatever their depth (analysis.svelte.ts, freeze): it stays while a snapshot reads its position.
   const read = earlier.map(k => {
     const positions = k && snapshotReads.get(`${k.search}|${k.model}`);
     if (!positions) return [];
     const depths = [...(positions.get(k.moves) ?? []), ...((k.moves && positions.get(parentKey(k.moves))) || [])];
-    return depths.filter(d => readsAt(d, k.visits)).map(d => `${k.search}|${k.model}|${k.moves}|${d}`);
+    return depths.filter(d => k.map || readsAt(d, k.visits)).map(d => `${k.search}|${k.model}|${k.moves}|${d}`);
   });
   const deepest = new Map<string, number>();
-  read.forEach((at, i) => at.forEach(p => deepest.set(p, Math.max(earlier[i]!.visits, deepest.get(p) ?? 0))));
-  return keys.filter((_, i) => !!earlier[i] && !read[i].some(p => deepest.get(p) === earlier[i]!.visits));
+  read.forEach((at, i) => {
+    const k = earlier[i];
+    if (k && !k.map) at.forEach(p => deepest.set(p, Math.max(k.visits, deepest.get(p) ?? 0)));
+  });
+  return keys.filter((_, i) => {
+    const k = earlier[i];
+    return !!k && !(k.map ? read[i].length : read[i].some(p => deepest.get(p) === k.visits));
+  });
 }
 
 /** Whether a snapshot of a review at `depth` visits reads a result of `visits`

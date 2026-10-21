@@ -380,6 +380,7 @@
       await g.start();
       if (!g.rulesReady) { rules.terminate(); return false; } // the review shows why
       await g.fromStore(search, mark.model);
+      g.freeze(search, mark.model); // its maps from the store alone
       if (session.ended) { rules.terminate(); return true; }
       const date = new Date(mark.at).toLocaleDateString("en", { year: "numeric", month: "long", day: "numeric" });
       const what = why === "engine" ? "the engine" : (modelOf(manifest, network)?.displayName ?? "the network");

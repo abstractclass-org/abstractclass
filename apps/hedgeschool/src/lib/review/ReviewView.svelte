@@ -712,6 +712,7 @@
     if (states.includes("searching")) return { text: "Map: searching", busy: true };
     if (states.includes("waiting")) return { text: "Map: waiting for the engine", busy: true };
     if (states[0] === "none") return { text: "No map: the game ends here", busy: false };
+    if (states.includes("unavailable")) return { text: "No map: a snapshot searches nothing", busy: false };
     return null;
   });
   // The map pass, for an older review: while the map is on, once the review's passes are done (labelled). The

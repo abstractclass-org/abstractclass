@@ -1,6 +1,6 @@
 # A review by an earlier engine opens as it was
 
-**Status:** in force. **Decided:** 2026-10-14.
+**Status:** in force. **Decided:** 2026-10-14. **Changed:** 2026-10-21: the area map in a snapshot, and its maps kept.
 
 ## Context
 
@@ -16,7 +16,10 @@ look at a past review pays it each time, and the earlier results are still in th
 2. **What a snapshot shows:** the stored results, each position at its deepest that the review reads: at the review's
    depth or a deeper budget (`BUDGETS` in `packages/analysis/src/cache.ts`), else at the sweep's depth or a budget. The
    labels, the notes in the move list, the branches kept, the engine's candidates and lines, the charts and the report
-   all come from them. The engine gives the positions with its rules alone: it loads no network.
+   all come from them. The engine gives the positions with its rules alone: it loads no network. The area map shows
+   the ownership of the stored results, or else a map added to the position, which the store keeps with the same
+   search and network file (design 30, item 6). Where the store has neither, the map's note says "No map: a snapshot
+   searches nothing".
 3. **What a snapshot does not do:**
    - no search of the position on screen, and no change of its depth;
    - no new move: not on the board, not from a candidate, not from a line;
@@ -60,7 +63,9 @@ look at a past review pays it each time, and the earlier results are still in th
    positions one move from them, as the game's review file holds them (design 13). For each game's review depth, it
    keeps the result of each position that the snapshot shows (item 2). The other results of the position go: a
    shallower one, and a deeper one at a depth that the snapshot does not read. Examples are the key moments of a custom
-   depth, at twice its visits, and a Depth that the player typed. The other results of the store's shape go too:
+   depth, at twice its visits, and a Depth that the player typed. A map added to a position (design 30) stays while a
+   snapshot reads the position, whatever the depth of the results there. The other results of the store's shape go
+   too:
    - **After Review again,** the game's mark names the site's engine when the new review ends. Its snapshot then reads
      nothing. A position that another game's snapshot reads keeps its result.
    - **After a delete,** the game needs nothing: the player confirms a delete and cannot undo it (design 11).
@@ -151,4 +156,5 @@ look at a past review pays it each time, and the earlier results are still in th
 
 - [decisions/product.md](../decisions/product.md): "A review by an earlier engine opens as it was" (2026-10-14), "An
   earlier engine's results go when no game needs them" (2026-10-16), "The snapshot reads its results by their keys"
-  (2026-10-18), "A network chosen while the review starts its pool" (2026-10-20).
+  (2026-10-18), "A network chosen while the review starts its pool" (2026-10-20), "The map's bookkeeping in edge
+  cases" (2026-10-21).
