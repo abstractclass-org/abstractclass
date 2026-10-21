@@ -117,12 +117,15 @@ reason. Design 05 gives the searches that the labels read: their schedule, their
    asks for 1,410 of the 1,882 searches that confirm the Greats: 472 fewer (25%).
    - **The position before the opponent's last turn, for a move that the player asked to evaluate.** A review has that
      position for each game move: the label pass searches every position of the game. A branch move and a move of the
-     Analysis board may lack it. So "Evaluate quality" also searches it (`GameAnalysis.earlierAt`), to the label budget.
-     It asks for this search only when the move would be Great but for it: the search before the move has the label
-     budget, the move is the engine's first choice, and the gap of 0.10 is in that search. It asks for none where the
-     position has a result of the label budget, or where the gap is absent. A deeper result before the move can change
-     the first choice or the gap, and the search is asked for then. This search and the confirmation after it are the
-     player's evaluations. The steps of the review's progress bar do not count them.
+     Analysis board may lack it. So "Evaluate quality" also searches it, to the label budget (`greatNeeds` and
+     `confirmGreats`). It asks for this search only when the move can still be Great: the search before the move has the
+     label budget, the move is the engine's first choice, and the gap of 0.10 is in that search. It asks for none where
+     the position has a result of the label budget, or where the gap is absent. A deeper result before the move can
+     change the first choice or the gap, and the analysis then asks for the search. This search and the confirmation
+     after it are the player's evaluations. They have the priority of the evaluation's other searches (design 07), so
+     the move does not wait for the review's passes. The steps of the review's progress bar do not count them. On the
+     board, a turn asks for these searches only where the player evaluated each of its edges, as its label needs them
+     all.
    - **As deep as the position after the played move, when the player searched it deeper** (the position on screen,
      design 09): the confirmation then searches to the same depth, the largest doubling of the label budget within
      that position's visits (`equalDepth` in `packages/analysis/src/model.ts`: the depths step by doublings, and a

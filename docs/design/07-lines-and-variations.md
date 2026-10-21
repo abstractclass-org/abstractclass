@@ -342,6 +342,8 @@ cut edges that are on the board, so a line drawn over the board can show edges t
   its moves), each branch node's path, its order, and whether its move was evaluated (the kept shape's version 2.
   Version 1 kept the lines, and is still read).
 - An evaluation's searches have the pool's priority 7, between the position on screen and the game's key moments.
+  The searches of a Great that the player asked to evaluate have it too: the confirmation of the gap, and the position
+  before the opponent's last turn. The game's own confirmations have the label pass's priority.
 - The Report and the Advantage chart are the game's alone. In a branch, the chart marks the position where the
   branch leaves the game.
 

@@ -758,8 +758,8 @@
   // moves are, once its two positions have the label budget. Other branch moves have none: a line played to show
   // something should cost no search (design 07).
   function branchLabel(p: string[]): Label | null {
-    const node = branches[pathKey(p)];
-    if (!node?.judged || game?.awaitsGreat(pathKey(p))) return null; // a Great's searches still run: "Evaluating…"
+    const key = pathKey(p), node = branches[key];
+    if (!node?.judged || game?.awaitsGreat(key)) return null; // a Great's searches still run: "Evaluating…"
     const parent = p.slice(0, -1);
     return judgeBranchEdge(analysisAt(parent), valuesAfter(node.position, node.analysis, "lead", labelVisits), node.move.player,
                            node.move.edge, "lead", labelVisits, game?.secondAt(parent), game?.earlierAt(parent, node.move.player));
@@ -817,10 +817,10 @@
   function branchTurnAt(p: string[]): { paths: string[][]; judgment: TurnJudgment | null } | null {
     const node = branches[pathKey(p)], paths = branchTurnPaths(p);
     if (!node || !paths) return null;
-    const parent = p.slice(0, -1), twice = paths.length > 1;
     if (!paths.every(q => mainIndex(q, mainNames) !== null || branches[pathKey(q)]?.judged)) return null;
+    if (game?.awaitsGreat(pathKey(p))) return { paths, judgment: null }; // a Great's searches still run
+    const parent = p.slice(0, -1), twice = paths.length > 1;
     const start = p.slice(0, twice ? -2 : -1), turn = paths.map(q => moveInto(q)?.edge ?? null);
-    if (game?.awaitsGreat(pathKey(p))) return { paths, judgment: null };
     return { paths, judgment: judgeTurn(node.move.player, turn, analysisAt(start), twice ? analysisAt(parent) : undefined,
                                         valuesAfter(node.position, node.analysis, "lead", labelVisits), !!node.position.over,
                                         game?.otherAt(start, turn), twice ? game?.secondAt(parent) : undefined,

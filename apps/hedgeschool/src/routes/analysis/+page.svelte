@@ -71,12 +71,13 @@
 
   const data = $derived(game?.data(PLAYERS) ?? null);
   // The review of the main line, with labels only on the moves evaluated (design 21).
+  const fullReview = $derived(data && review(data, "lead", LABEL_VISITS)); // every move's labels
   const R = $derived.by(() => {
     const g = game;
-    if (!data || !g) return null;
+    if (!fullReview || !g) return null;
     const judged = g.judgedMain, keys = g.mainKeys;
     // A move waits for the searches of its Great (awaitsGreat) and shows its label once they end.
-    return onlyJudged(review(data, "lead", LABEL_VISITS), i => !!judged[keys[i + 1]] && !g.awaitsGreat(keys[i + 1]));
+    return onlyJudged(fullReview, i => !!judged[keys[i + 1]] && !g.awaitsGreat(keys[i + 1]));
   });
 
   // The position on screen, kept for the next visit.

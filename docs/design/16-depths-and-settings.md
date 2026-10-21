@@ -173,7 +173,7 @@ Lite (D = 512), P = 1,024, and a time limit of 30 s.
 ## Where it is
 
 - The depths: `packages/analysis/src/cache.ts` (`SWEEP_VISITS`, `LABEL_VISITS`, `DEEP_VISITS`, `BUDGETS`),
-  `packages/analysis/src/analysis.svelte.ts` (`momentVisits`, `deepen`, `focus`, `confirmGreat`, `greatNeeds`),
+  `packages/analysis/src/analysis.svelte.ts` (`momentVisits`, `deepen`, `focus`, `confirmGreats`, `greatNeeds`),
   `src/lib/analysis/engineSettings.ts` (`REVIEW_PRESETS`, `CUSTOM_REVIEW`, `DEPTHS`, `TIME_LIMITS`).
 - The deepest result: `keep` in `packages/analysis/src/analysis.svelte.ts`, `cacheGetAtLeast` in
   `packages/analysis/src/cache.ts`.

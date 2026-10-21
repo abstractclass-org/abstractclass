@@ -75,7 +75,7 @@ export class GameAnalysis<G extends GameTypes> {
   analysis = $state.raw<(Analysis<G["move"]> | undefined)[]>([]);
   branches = $state.raw<Record<string, BranchNode<G>>>({}); // by path key
   // Positions outside the tree, by path key: the positions after the engine's second choice, searched to confirm a
-  // Great (confirmGreat).
+  // Great (confirmGreats).
   outside = $state.raw<Record<string, Analysis<G["move"]>>>({});
   rulesReady = $state(false);
   engineReady = $state(false);
@@ -103,7 +103,7 @@ export class GameAnalysis<G extends GameTypes> {
   private deepSearches = $state.raw<Record<string, number[]>>({});
   // Every position and visits that the key moments' searches were asked for, until another network (momentChecks).
   private deepAsked = $state.raw<Record<string, true>>({});
-  private confirming = new Set<string>(); // the Greats' confirmations queued or running, by path key
+  private greatSearches = new Set<string>(); // the Greats' searches queued or running (searchOnce)
   // The positions whose search runs now, by path key, with each search's visits: their analysis can still change (the
   // page's gleam on a line)
   private running = $state.raw<Record<string, number[]>>({});
@@ -273,10 +273,13 @@ export class GameAnalysis<G extends GameTypes> {
    *  the branch edges evaluated on request, not where the game ends after the edge. A turn of the game asks for one more
    *  search when its first choice is one of its edges: the position after its other candidate (otherCandidate), which
    *  is the second choice unless that is the turn's other edge. The page calls it as results come: a deeper search can
-   *  change a position's second choice. */
+   *  change a position's second choice. A move that the player asked to evaluate searches at the priority of its
+   *  evaluation, the position before the opponent's last turn too where the gain needs it (greatNeeds): its label waits
+   *  for them (awaitsGreat). */
   confirmGreats() {
-    for (const t of this.greatNeeds.targets) this.confirmGreat(t.path, t.candidate, t.depth);
-    for (const path of this.greatNeeds.earlier) this.searchEarlier(path);
+    const { targets, earlier } = this.greatNeeds;
+    for (const t of targets) this.searchOnce(t.path, t.depth, t.judged ? PRIORITY.judge : PRIORITY.label, "confirm");
+    for (const path of earlier) this.searchOnce(path, this.labelVisits, PRIORITY.judge, "judge");
   }
 
   /** Whether the move into the position with path key `key` waits for the searches that its Great asks for (greatNeeds):
@@ -287,12 +290,12 @@ export class GameAnalysis<G extends GameTypes> {
   }
 
   /** The searches that the Greats ask for (confirmGreats), derived once for each change of the analysis: the page reads
-   *  it twice at each result. A game position's path is built only where it has a target.
-   *  - `targets`: at each place, the candidate whose position confirms or refutes the gap. `judged`: the player asked
-   *    for it ("Evaluate quality": a branch move, a move of the board). The review's own step counts the others only
-   *    (greatChecks).
+   *  it twice at each result. A game position's path is built only where its first choice is the only good one.
+   *  - `targets`: at each place, the position whose search confirms or refutes the gap: after the engine's second
+   *    choice, or after a turn's other candidate. `judged`: the player asked for it ("Evaluate quality": a branch move, a
+   *    move of the board). The review's own step counts the others only (greatChecks).
    *  - `earlier`: for a move that the player asked for, the position before the opponent's last turn, where it has no
-   *    result of the label budget and the move would be Great but for it (the first choice is the only good edge). A
+   *    result of the label budget and the move can still be Great (the first choice is the only good edge). A
    *    review's game moves ask for none: its passes search that position.
    *  - `awaiting`: the path keys of the moves that the player asked for and that wait for such a search, for the
    *    confirmation after it, or for the search before them to reach the label budget (awaitsGreat). The labels show
@@ -301,82 +304,79 @@ export class GameAnalysis<G extends GameTypes> {
   // position is compared with (equalDepth: the player may have searched that position deeper). A move that does not
   // keep what the opponent's last turn gave (keepsGain) cannot be Great, so it asks for none.
   private greatNeeds = $derived.by(() => {
-    const targets: { path: string[]; candidate: Candidate<G["move"]>; depth: number; judged: boolean }[] = [];
+    const targets: { path: string[]; depth: number; judged: boolean }[] = [];
     const earlier: string[][] = [], awaiting = new Set<string>();
     const name = (e: G["move"] | null) => this.game.moveName(e);
-    const depth = (after: () => string[]) => equalDepth(this.labelVisits, this.analysisOf(after())?.visits);
-    const shown = Math.min(LABEL_VISITS, this.labelVisits); // the least visits that show a label
-    // The search that a Great asks for from `path`, for the move or turn whose last edge has path key `key`, once its
-    // first choice is the only good one: the candidate's position when `gain` keeps what the opponent's last turn gave,
-    // else the position before that turn, where it has no result.
-    const ask = (judged: boolean, key: string, gain: Analysis<G["move"]>, path: string[], mover: Player,
+    const shownFrom = Math.min(LABEL_VISITS, this.labelVisits); // the least visits that show a label
+    // The search that a Great asks for from `path`, for the move or turn into `after`, whose first choice is the only
+    // good one in `a`: once `a` has the label budget, the position after `candidate` where `gain` keeps what the
+    // opponent's last turn gave, else the position before that turn, where it has no result. Whether `gain` keeps it.
+    const ask = (judged: boolean, a: Analysis<G["move"]>, gain: Analysis<G["move"]>, path: string[], mover: Player,
                  candidate: Candidate<G["move"]>, after: string[]) => {
-      const before = this.earlierAt(path, mover);
-      if (keepsGain(gain, before, mover, this.labelVisits)) {
-        const d = depth(() => after);
-        targets.push({ path, candidate, depth: d, judged });
-        if (judged && (this.analysisOf([...path, name(candidate.edge)])?.visits ?? 0) < d) awaiting.add(key);
-        return;
+      if (a.visits < this.labelVisits) {
+        if (judged) awaiting.add(pathKey(after)); // the label budget's search still runs
+        return false;
       }
-      const at = this.earlierPath(path, mover);
+      const at = this.earlierPath(path, mover), before = at && this.analysisOf(at);
+      if (keepsGain(gain, before, mover, this.labelVisits)) {
+        const confirm = [...path, name(candidate.edge)], depth = equalDepth(this.labelVisits, this.analysisOf(after)?.visits);
+        targets.push({ path: confirm, depth, judged });
+        if (judged && (this.analysisOf(confirm)?.visits ?? 0) < depth) awaiting.add(pathKey(after));
+        return true;
+      }
       if (judged && at && (before?.visits ?? 0) < this.labelVisits && this.searchable(at)) {
         earlier.push(at);
-        awaiting.add(key);
+        awaiting.add(pathKey(after));
+      }
+      return false;
+    };
+    // `judged`: the player asked for the move (a branch's, the board's): the analysis checks it from the visits that
+    // show a label. `gain`: the search whose first choice must keep the gain. An edge's own, or for a turn's middle, the
+    // turn's start.
+    const check = (judged: boolean, a: Analysis<G["move"]> | undefined, before: () => string[], edge: G["move"] | null,
+                   mover: Player, over: boolean, gain = a) => {
+      const first = a?.candidates[0];
+      if (over || !a || a.visits < (judged ? shownFrom : this.labelVisits) || !first || edge == null
+          || !sameMove(this.game, a, first.edge, edge) || !onlyEdge(a, mover)) return;
+      const path = before();
+      ask(judged, a, gain!, path, mover, secondChoice(a)!, [...path, name(edge)]);
+    };
+    const checkTurn = (judged: boolean, a: Analysis<G["move"]> | undefined, start: () => string[], turn: (G["move"] | null)[],
+                       mover: Player) => {
+      const first = a?.candidates[0];
+      if (!a || a.visits < (judged ? shownFrom : this.labelVisits) || !first
+          || !turn.some(e => e != null && sameMove(this.game, a, e, first.edge))) return;
+      const other = otherCandidate(this.game, a, turn);
+      if (!other || moverWin(first.blueWin, mover) - moverWin(other.blueWin, mover) < ONLY_EDGE_GAP) return;
+      const path = start();
+      // A turn of two needs the search from its middle too (judgeTurn). Its second edge asks for that search only where the
+      // middle's first choice keeps the gain, and the turn reads the gain at its start.
+      if (ask(judged, a, a, path, mover, other, [...path, ...turn.map(name)]) && turn.length > 1) {
+        const middle = [...path, name(turn[0])];
+        check(judged, this.analysisOf(middle), () => middle, turn[1], mover, false, a);
       }
     };
-    // `judged`: the player asked for the moves (the game's of the board, a branch's). `gain`: the search whose first
-    // choice must keep the gain. An edge's own, or for a turn's middle, the turn's start.
-    const checks = (judged: boolean) => {
-      const check = (a: Analysis<G["move"]> | undefined, before: () => string[], edge: G["move"] | null, mover: Player, over: boolean,
-                     gain = a) => {
-        const first = a?.candidates[0];
-        if (!over && a && a.visits >= shown && first && edge != null && sameMove(this.game, a, first.edge, edge) && onlyEdge(a, mover)) {
-          const played = [...before(), name(edge)];
-          if (a.visits >= this.labelVisits) ask(judged, pathKey(played), gain!, before(), mover, secondChoice(a)!, played);
-          else if (judged) awaiting.add(pathKey(played)); // the label budget's search still runs
-        }
-      };
-      const checkTurn = (a: Analysis<G["move"]> | undefined, path: () => string[], turn: (G["move"] | null)[], mover: Player) => {
-        const first = a?.candidates[0];
-        if (!a || a.visits < shown || !first || !turn.some(e => e != null && sameMove(this.game, a, e, first.edge))) return;
-        const other = otherCandidate(this.game, a, turn);
-        if (!other || moverWin(first.blueWin, mover) - moverWin(other.blueWin, mover) < ONLY_EDGE_GAP) return;
-        const played = [...path(), ...turn.map(name)];
-        if (a.visits < this.labelVisits) {
-          if (judged) awaiting.add(pathKey(played)); // the label budget's search still runs
-          return;
-        }
-        ask(judged, pathKey(played), a, path(), mover, other, played);
-        // A turn of two needs the search from its middle too (judgeTurn). Its second edge asks for that search only where the
-        // middle's first choice keeps the gain, and the turn reads the gain at its start.
-        if (turn.length > 1 && keepsGain(a, this.earlierAt(path(), mover), mover, this.labelVisits)) {
-          const middle = [...path(), name(turn[0])];
-          check(this.analysisOf(middle), () => middle, turn[1], mover, false, a);
-        }
-      };
-      return { check, checkTurn };
-    };
-    // The game's moves: all of a review's (its passes search their positions), the board's moves that were evaluated.
-    const game = checks(this.board), branch = checks(true);
+    // The game's moves: all of a review's (its passes search their positions), the board's moves that were evaluated. A
+    // turn of the board needs each of its edges evaluated, as its label does (onlyJudged).
     const asked = (i: number) => !this.board || !!this.judgedMain[this.mainKeys[i + 1]];
     for (let i = 0; i + 1 < this.played.length; i++)
-      if (asked(i)) game.check(this.analysis[i], () => this.mainNames.slice(0, i), this.played[i].edge, this.played[i].player, false);
+      if (asked(i)) check(this.board, this.analysis[i], () => this.mainNames.slice(0, i), this.played[i].edge, this.played[i].player, false);
     for (const [key, node] of Object.entries(this.branches)) {
       if (!node.judged) continue;
       const before = key.split(" ").slice(0, -1);
-      branch.check(this.analysisOf(before), () => before, node.move.edge, node.move.player, !!node.position.over);
+      check(true, this.analysisOf(before), () => before, node.move.edge, node.move.player, !!node.position.over);
     }
     for (let i = 0; i < this.played.length; i++) {
       const turn = this.turnAt(i);
-      if (turn && i + turn.length < this.played.length && asked(i))
-        game.checkTurn(this.analysis[i], () => this.mainNames.slice(0, i), turn, this.played[i].player);
+      if (turn && i + turn.length < this.played.length && turn.every((_, k) => asked(i + k)))
+        checkTurn(this.board, this.analysis[i], () => this.mainNames.slice(0, i), turn, this.played[i].player);
     }
     // A branch's turns judged on request: each judged branch move that ends a turn, with its turn's edge before it.
     for (const [key, node] of Object.entries(this.branches)) {
       if (!node.judged || node.position.over || node.position.player === node.move.player) continue;
       const path = key.split(" "), before = this.moveInto(path.slice(0, -1));
       const twice = !!before && before.player === node.move.player, start = path.slice(0, twice ? -2 : -1);
-      branch.checkTurn(this.analysisOf(start), () => start, twice ? [before!.edge, node.move.edge] : [node.move.edge], node.move.player);
+      checkTurn(true, this.analysisOf(start), () => start, twice ? [before!.edge, node.move.edge] : [node.move.edge], node.move.player);
     }
     return { targets, earlier, awaiting };
   });
@@ -387,7 +387,7 @@ export class GameAnalysis<G extends GameTypes> {
     const after = new Map<string, number>(); // the depth for each position, by path key
     for (const t of this.greatNeeds.targets) {
       if (t.judged) continue; // the player's evaluations are not the review's steps
-      const key = pathKey([...t.path, this.game.moveName(t.candidate.edge)]);
+      const key = pathKey(t.path);
       after.set(key, Math.max(t.depth, after.get(key) ?? 0));
     }
     const done = [...after].filter(([key, depth]) => this.storedAt(key) >= depth).length;
@@ -432,7 +432,7 @@ export class GameAnalysis<G extends GameTypes> {
     await warmCache(search, model, paths.map(p => this.keyMovesOf(p)), SWEEP_VISITS); // one read of the store for them all
     await Promise.all(paths.map(take));
     // After the rest: they follow the results.
-    await Promise.all(this.greatNeeds.targets.map(t => take([...t.path, this.game.moveName(t.candidate.edge)])));
+    await Promise.all(this.greatNeeds.targets.map(t => take(t.path)));
   }
 
   /** Keeps a result that the store has (stored). */
@@ -456,24 +456,17 @@ export class GameAnalysis<G extends GameTypes> {
     return this.storedAt(pathKey(path)) >= visits && (this.analysisOf(path)?.visits ?? 0) >= visits;
   }
 
-  /** Searches the position after `candidate` at `path` to the label budget, to confirm a Great. */
-  private confirmGreat(path: string[], candidate: Candidate<G["move"]> | undefined, depth: number) {
-    if (!candidate || !this.engineReady || this.paused) return;
-    const after = [...path, this.game.moveName(candidate.edge)], key = `${pathKey(after)}|${depth}`;
-    if (this.confirming.has(key) || this.searched(after, depth)) return;
-    this.confirming.add(key);
-    this.search(after, depth, PRIORITY.label, "confirm", { early: LABEL_VISITS })
-      .catch(this.fail).finally(() => this.confirming.delete(key));
-  }
-
-  /** Searches the position before the opponent's last turn to the label budget, for a move that the player asked to
-   *  evaluate and that would be Great but for it (greatNeeds). */
-  private searchEarlier(path: string[]) {
-    const key = `${pathKey(path)}|${this.labelVisits}|earlier`;
-    if (!this.engineReady || this.paused || this.confirming.has(key) || this.searched(path, this.labelVisits)) return;
-    this.confirming.add(key);
-    this.search(path, this.labelVisits, PRIORITY.judge, "judge", { early: LABEL_VISITS })
-      .catch(this.fail).finally(() => this.confirming.delete(key));
+  /** Searches the position at `path` to `visits` for a Great (confirmGreats), once: not while the same search waits or
+   *  runs, and not where it has nothing to add (searched). The key names the label budget and the priority too:
+   *  - Another budget drops the waiting searches (setReview), and the page asks for the Greats again in the same flush
+   *    of its effects, before the drops have settled. So a search that keeps its depth is asked for again at once.
+   *  - A search that the player's evaluation asks for does not wait behind the same search at the review's priority. The
+   *    later of the two to start searches nothing once the first has stored its result. */
+  private searchOnce(path: string[], visits: number, priority: number, tag: string) {
+    const key = `${pathKey(path)}|${visits}|${this.labelVisits}|${priority}`;
+    if (!this.engineReady || this.paused || this.greatSearches.has(key) || this.searched(path, visits)) return;
+    this.greatSearches.add(key);
+    this.search(path, visits, priority, tag, { early: LABEL_VISITS }).catch(this.fail).finally(() => this.greatSearches.delete(key));
   }
 
   /** Adds a line from the start to the tree: the positions it adds come from the rules. They are searched only when the

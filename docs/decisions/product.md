@@ -6289,10 +6289,10 @@ before it.
 
 - **What** (abscls-rcur, [design 10](../design/10-labels.md) item 6, [design 07](../design/07-lines-and-variations.md)
   item 11, [design 21](../design/21-analysis.md) item 3): "Evaluate quality" also searches the position before the
-  opponent's last turn, to the label budget, for a move that would be Great but for it. The third condition needs
-  that position (see "Great: En Croissant's whole rule"). A move without a result there stayed Best, and nothing on the
-  page said why. A game move in a review has the result, because the label pass searches every position of the game.
-  A branch move may lack it. On the Analysis board, no pass searches the main line.
+  opponent's last turn, to the label budget, for a move that lacks only that position's result to be Great. The third
+  condition needs that position (see "Great: En Croissant's whole rule"). A move without a result there stayed Best,
+  and nothing on the page said why. A game move in a review has the result, because the label pass searches every
+  position of the game. A branch move may lack it. On the Analysis board, no pass searches the main line.
 - **When:** the search before the move has the label budget, the move is the engine's first choice, and the gap of
   0.10 is in that search. No search runs where the position already has a result of the label budget, or where the gap
   is absent. A deeper result before the move can change the first choice or the gap, and the analysis asks again
@@ -6319,5 +6319,20 @@ before it.
   - Move 10 (L9-N12), a Great in the fixture's file, was not the only good move in this run: it stayed Best, and no
     extra search ran.
   - Not run: the build before this change.
-- **The limits:** one game, one network. The extra search uses the priority of the other searches that "Evaluate
-  quality" asks for. A position that the player looked at, deeper than the label budget, counts as a result.
+- **The priority of these searches:** the extra search and the Great's confirmation of a move that the player asked
+  to evaluate have the priority of the other searches that "Evaluate quality" asks for (7,
+  [design 07](../design/07-lines-and-variations.md)). Before, that confirmation had the label pass's priority (2): it
+  waited behind the review's key moments and its label pass, and the move showed Best meanwhile. Now the move shows
+  "Evaluating…" until the confirmation ends, so that wait would show on the move. The game's own confirmations keep
+  the label pass's priority.
+- **A turn of the board** asks for these searches only where the player evaluated each of its edges: the board shows a
+  turn's label only then (`onlyJudged`). Before, a turn whose first edge was evaluated asked for its confirmation,
+  though the player had played another second edge since.
+- **Another review depth** drops the Greats' searches that wait in the pool's queue. The page asks for the Greats
+  again in the same flush of its effects, before the drops have settled. A confirmation keeps its depth where the
+  position after the move was searched deeper than both budgets (`equalDepth`), so its key was still taken, and no
+  search ran until another result came. The move then showed "Evaluating…", and the review's step waited. The key of
+  each such search now names the label budget and the priority too (`GameAnalysis.searchOnce`). A test drops the
+  search as the pool does and asks again at once.
+- **The limits:** one game, one network. A position that the player looked at, deeper than the label budget, counts
+  as a result.
