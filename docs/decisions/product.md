@@ -6574,7 +6574,7 @@ searched with those settings as a part of the threat's work, and that result is 
 the board do not change. A snapshot compares the stored threat with the position's stored result of the same visits.
 
 **The tests** (`packages/analysis/src/analysis.test.ts`): "a position with a deeper stored result than the threat's
-gets its size from a search with the threat's settings" fails on 56d7960 (no such search: the
+gets its size from a search with the threat's settings" fails on ec0acf8 (no such search: the
 size there read the deeper result) and passes now. It checks the search's visits and time limit, the size in win
 chance and points, the deeper result kept, and that a second visit reads the stored result with no search. "A
 snapshot's threat size compares the stored threat with the position's stored result as deep, with no search" checks
@@ -6585,3 +6585,35 @@ turn's start and in its middle sent a search of the position at 256 visits besid
 showed "Threat to Blue: −6.2% · −307.3 pts" and "−5.0% · −144.7 pts". With the Depth at 1,024, deeper than the review,
 the position's own search at 1,024 served, and no other search was sent. The check on real games
 ("The threat on real games") searched both positions at 512 visits, so its counts stand.
+
+### The threat's review: one rule for the size, a snapshot's line (2026-10-21)
+
+The review of the threat (design 31), rebased on the removal of the key moments, found these faults:
+
+- **The size still mixed depths in two cases.** The tree keeps a position's deepest result. With the Depth lowered,
+  or with a deeper threat in the store, the size compared the deeper threat with the position at the new Depth. And
+  a focus that the time limit stopped short of the review's result left that result as the position's own. In a
+  review of 768 visits, a focus that stops at 150 gives a size that never corrects itself. Now the searches with the
+  threat's settings (the focus, the threat's own, and the size's searches) keep their results apart for the size,
+  and the size reads those or a result whose visits are the Depth's. A threat deeper than the Depth gets a search at
+  the Depth too.
+- **A part of a search gave a size with the engine off.** Now a part counts only while its search runs.
+- **A snapshot had no position after the pass.** The rules gave it only to a search, so a snapshot drew no threat line,
+  and where a pass ends the game it said "No threat saved". Now the rules give it first, to both.
+- **The removal of an earlier engine's results took the base of a snapshot's threat size,** the position's result at
+  the threat's visits, beside a deeper one. It stays now (design 20, item 8).
+- **A size's search ran where the pass ends the game,** before the rules had answered. Now it starts after them. The
+  size's searches come below the threat's own (priority 7, the evaluations 6), so that the threat's line shows first,
+  and the same position asked again keeps the searches that run.
+
+**The tests** (`packages/analysis/src/analysis.test.ts`): "with the Depth lowered, …", "a size's search runs on …",
+"the size compares the focus's own search, which the time limit stopped …", "where the pass ends the game, a position
+deeper …" and "a snapshot gets the position after the pass …" each fail on the code before the review (3437cdb) and
+pass now. `earlierResults.test.ts` has "a snapshot's threat keeps the result of the position before the pass …".
+
+**In the browser** (headless Chromium, software engine, the test fixture's review at 512 visits, two workers): with
+the Depth at 256 and at 1,024, at a turn's start and in its middle, light and dark, at 1,366 and 390 pixels, the size
+showed within 2 seconds, the line in triangles, and a candidate pointed at drew circles. The Analysis board showed the
+threat at its start. A snapshot of the fixture as an earlier engine's review, with a threat stored after edge 21, drew
+its line in triangles and gave its size, and after edge 20 said "No threat saved: snapshots do no searches". No page
+error and no horizontal scroll. The layout sweep in Chromium passes (25 tests, 5 skipped).

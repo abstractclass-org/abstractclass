@@ -51,6 +51,17 @@ test("a snapshot keeps the maps added to the positions that it reads, beside dee
   assert.deepEqual(unneededResults([...read, ...maps, candidate, far], [game], ENGINE), [far]);
 });
 
+test("a snapshot's threat keeps the result of the position before the pass at its visits, beside a deeper one", () => {
+  // Reviewed at Lite's 512 visits, with a deeper result after the first edge (a Depth of 1,024), and the threat there
+  // at 512: the snapshot reads the threat, and the position's result at 512 for the threat's size (design 31)
+  const at = ["D10-G10"], review = results("s1", "b2", 512, line(MOVES)), deeper = results("s1", "b2", 1024, [at]);
+  const threat = results("s1", "b2", 512, [[...at, "pass"]]);
+  const game = { moves: MOVES, branches: null, mark: mark("m0") };
+  assert.deepEqual(unneededResults([...review, ...deeper, ...threat], [game], ENGINE), []);
+  // Without the threat, the position's result at 512 goes under the deeper one
+  assert.deepEqual(unneededResults([...review, ...deeper], [game], ENGINE), review.slice(1, 2));
+});
+
 test("after Review again, a game's earlier results go, but for the positions another game's snapshot reads", () => {
   const again = [...MOVES, "Q10-T10", "N11-Q11"], still = ["D10-G10", "N11-Q10", "Q10-T10"];
   const earlier = [...new Set([...results("s1", "b2", 512, line(again)), ...results("s1", "b2", 512, line(still))])];

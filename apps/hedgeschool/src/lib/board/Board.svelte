@@ -137,9 +137,9 @@
   // and the regions are the ones after its last edge, once the engine's rules have played it.
   const drawnLine = $derived(line ?? []);
   // The threat's warning triangle, pointing up, around the centre (x, y): the corners of an equilateral triangle whose
-  // inscribed circle has the radius TRIANGLE_R. The stroke that rounds its corners (TRIANGLE_ROUND) adds half its width
-  // all round, so the triangle drawn has an inscribed circle of 0.27, near a line's circle of 0.3: its number, of the
-  // same size as a circle's, reads as well.
+  // inscribed circle has the radius TRIANGLE_R. The stroke of 0.08 that rounds its corners (.line-triangle) adds half
+  // its width all round, so the triangle drawn has an inscribed circle of 0.27, near a line's circle of 0.3: its number,
+  // of the same size as a circle's, reads as well.
   const TRIANGLE_R = 0.23;
   const triangle = (x: number, y: number) =>
     [[x, y - 2 * TRIANGLE_R], [x + Math.sqrt(3) * TRIANGLE_R, y + TRIANGLE_R], [x - Math.sqrt(3) * TRIANGLE_R, y + TRIANGLE_R]]
@@ -581,8 +581,8 @@
   .line-badge { stroke: var(--board-bg); stroke-width: 0.05; }
   .line-badge.p0 { fill: var(--blue); }
   .line-badge.p1 { fill: var(--red); }
-  /* TRIANGLE_ROUND: the stroke of 0.08 that rounds the triangle's corners, and the board's border of 0.05 outside it,
-     as a line's circle has */
+  /* The stroke of 0.08 that rounds the triangle's corners (TRIANGLE_R), and the board's border of 0.05 outside it, as a
+     line's circle has */
   .line-triangle { stroke-width: 0.08; stroke-linejoin: round; }
   .line-triangle.p0 { fill: var(--blue); stroke: var(--blue); }
   .line-triangle.p1 { fill: var(--red); stroke: var(--red); }

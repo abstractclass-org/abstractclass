@@ -33,7 +33,8 @@ export interface KeptGame { moves: string[]; branches: KeptBranches | null; mark
  *  (readable), neither of the site's search with a network file it ships nor read by a stored game's snapshot. A
  *  snapshot reads the results of one search and network file, for the game's positions and those one move from them
  *  (the review file's, design 13), each at the deepest that it reads (readsAt). It reads the maps added to those
- *  positions too, whatever the depth of their results. `engine` is the site's (engine.lock.json). None without its CPU
+ *  positions too, whatever the depth of their results. For a threat that it reads, it reads the result of the position
+ *  before the pass at the threat's visits (design 31). `engine` is the site's (engine.lock.json). None without its CPU
  *  module's search: every result of the site's own engine would then count as an earlier engine's. */
 export function unneededResults(keys: string[], games: KeptGame[], engine: Manifest): string[] {
   const site = moduleOf(engine)?.search;
@@ -79,9 +80,14 @@ export function unneededResults(keys: string[], games: KeptGame[], engine: Manif
     ? depthsAt(k).filter(d => readsAt(d, k.visits)).map(d => `${k.search}|${k.model}|${k.moves}|${d}`) : []);
   const deepest = new Map<string, number>();
   read.forEach((at, i) => at.forEach(p => deepest.set(p, Math.max(earlier[i]!.visits, deepest.get(p) ?? 0))));
+  const kept = (i: number) => read[i].some(p => deepest.get(p) === earlier[i]!.visits);
+  // A threat that a snapshot reads, the result after a pass (design 31): its size compares it with the result of the
+  // position before the pass at the same visits, which stays too, though the position has a deeper one.
+  const sizes = new Set(earlier.flatMap((k, i) => k && k.moves.split(" ").at(-1) === "pass" && kept(i)
+    ? [`${k.search}|${k.model}|${parentKey(k.moves)}|${k.visits}`] : []));
   return keys.filter((_, i) => {
     const k = earlier[i];
-    return !!k && !(k.map ? depthsAt(k).length : read[i].some(p => deepest.get(p) === k.visits));
+    return !!k && !(k.map ? depthsAt(k).length : kept(i) || sizes.has(`${k.search}|${k.model}|${k.moves}|${k.visits}`));
   });
 }
 

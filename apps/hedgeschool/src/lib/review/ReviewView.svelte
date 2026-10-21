@@ -10,7 +10,7 @@
   import { MOVE_HERE, MOVE_HOVER, MOVE_LIST, MOVE_TEXT, TURN_NUMBER, TURN_REM, keepInView, moveButton, turnRow } from "./moveList.ts";
   import { PLAYER_NAME, chartMarks, listed, type Analysis, type BranchNode, type Edge, type LineStep, type Player, type Position } from "./enclosure.ts";
   import type { EdgeRules } from "#lib/board/edgeInput.svelte.ts";
-  import type { MapState, ThreatState } from "@abstractclass/analysis/analysis.svelte.ts";
+  import type { MapState, ThreatCost, ThreatState } from "@abstractclass/analysis/analysis.svelte.ts";
 
   /** The review in progress: what the engine does now, and the passes as parts of one bar, each with its share of the
    *  work (by visits) and how much of it is done (0 to 1). `waiting`: no work runs (the engine is off). `maps`: the
@@ -59,7 +59,7 @@
     passedAt(path: string[]): Position | undefined; // the position after the pass, from the rules
     threatState(path: string[]): ThreatState; // its search runs, waits, is done, or cannot come
     // What the pass costs the side to move, against the position's result with the threat's settings
-    threatCost(path: string[]): { win: number; points: number | undefined } | undefined;
+    threatCost(path: string[]): ThreatCost | undefined;
   }
 
   // The numbers' formats, made once: a formatter is costly to make, and the move list and the tables format many numbers
@@ -138,7 +138,7 @@
   import { errorText } from "@abstractclass/engine/errors.ts";
   import Toast from "#lib/ui/Toast.svelte";
   import {
-    edgeName, endingText, fmtScore, moveName, moveNotation, opensTurn, turnFromCount, sameEdge, shortNote, turnShortNote, HARD_NOTE, complexity, isHard, turnComplexity, likelyEdges, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchEdge, valuesAfter, resultWin, moverWin, costText, pct, shownCandidates, distinctCandidates, rankOf, twinsOf, lineMovers, enoughVisits, trustedLine, type Candidate, type EdgeReview, LABELS, LABEL_TEXT, LABEL_GLYPH, type Label, type Review, type Unit, type Move, type TurnJudgment, type TurnReview,
+    edgeName, endingText, fmtScore, moveName, moveNotation, opensTurn, turnFromCount, sameEdge, shortNote, turnShortNote, HARD_NOTE, complexity, isHard, turnComplexity, likelyEdges, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchEdge, valuesAfter, resultWin, moverWin, costText, pct, shownCandidates, distinctCandidates, rankOf, twinsOf, lineMovers, threatTurn, enoughVisits, trustedLine, type Candidate, type EdgeReview, LABELS, LABEL_TEXT, LABEL_GLYPH, type Label, type Review, type Unit, type Move, type TurnJudgment, type TurnReview,
   } from "./enclosure.ts";
   import { branchChildren, branchLine, branchRows, mainIndex, nextFork, pathKey, prefixKeys, prevFork, sharedLength, siblingLine, treeLines, withLine,
            type BranchRow } from "@abstractclass/analysis/tree.ts";
@@ -447,7 +447,7 @@
     threatOn = !threatOn;
     if (threatOn) used("threat shown");
   }
-  const threatPath = $derived([...path, "pass"]);
+  const threatPath = $derived([...path, moveName(null)]);
   $effect(() => {
     const p = threatOn ? (here ? here.split(" ") : []) : null;
     untrack(() => game?.askThreat(p));
@@ -455,27 +455,20 @@
   const threat = $derived(threatOn ? game?.threatAt(path) : undefined);
   const threatState = $derived<ThreatState | null>(threatOn && game ? game.threatState(path) : null);
   const passed = $derived(threatOn ? game?.passedAt(path) : undefined); // the position after the pass
-  // The threat's line: the first choice's line after the pass as far as the search trusts it, and only the opponent's
-  // turn: what the opponent plays if the player does nothing.
-  const threatEdges = $derived.by((): Edge[] | null => {
-    const first = threat?.candidates[0], from = passed;
-    if (!first || !from) return null;
-    const edges = trustedLine(first), next = lineMovers(from, edges.length).findIndex(p => p !== from.player);
-    const turn = next < 0 ? edges : edges.slice(0, next);
-    return turn.length ? turn : [first.edge];
-  });
+  // The threat's line: the opponent's turn of the first choice's line after the pass (threatTurn)
+  const threatEdges = $derived(threat?.candidates[0] && passed ? threatTurn(threat.candidates[0], passed) : null);
   // What the pass costs the player: the position's value less the value after the pass, from the player's side, in win
   // chance and in points (the lead), as a move's loss (design 10). Both from searches with the same settings
-  // (GameAnalysis.threatBaseAt), so that the size does not mix depths.
+  // (GameAnalysis.threatCost), so that the size does not mix depths.
   const threatCost = $derived(threat && game?.threatCost(path));
-  // The board shows the threat while no candidate's line shows
+  // The board shows the threat while no candidate's line shows: its line starts after the pass
   const threatShown = $derived(!lineEdges && !!threatEdges);
+  const boardEdges = $derived(lineEdges ?? threatEdges);
   const line = $derived.by((): BoardLineEdge[] | null => {
-    if (lineEdges) {
-      const movers = lineMovers(position, lineEdges.length);
-      return lineEdges.map((edge, i) => ({ edge, player: movers[i], ...stepsNow?.[i] }));
-    }
-    return threatEdges && passed ? threatEdges.map((edge, i) => ({ edge, player: passed.player, ...stepsNow?.[i] })) : null;
+    const from = lineEdges ? position : passed;
+    if (!boardEdges || !from) return null;
+    const movers = lineMovers(from, boardEdges.length);
+    return boardEdges.map((edge, i) => ({ edge, player: movers[i], ...stepsNow?.[i] }));
   });
 
   // The listed line's edges played, from the engine's rules, asked once for each line: the edge each one cuts, and the
@@ -492,44 +485,43 @@
     askedSteps.add(key);
     game.lineSteps(start, edges).then(steps => (stepsByLine = { ...stepsByLine, [key]: steps })).catch(() => {});
   }
-  let lineStepsHad = $state<{ at: string; edges: Edge[]; steps: LineStep[] } | null>(null);
-  const listKey = $derived(listLine ? lineKey(path, listLine) : null);
-  $effect(() => {
-    const key = listKey, steps = key ? stepsByLine[key] : undefined;
-    if (!key) return;
-    untrack(() => {
-      if (steps) lineStepsHad = { at: here, edges: listLine!, steps };
-      else askSteps(path, listLine!);
+  type StepsHad = { at: string; edges: Edge[]; steps: LineStep[] };
+  /** The last steps that came for the line that `line` gives (its start and edges), with the position on screen then:
+   *  asked for once for each line (askSteps), and read by stepsOf. */
+  function keptSteps(line: () => { start: string[]; edges: Edge[] } | null): { readonly had: StepsHad | null } {
+    let had = $state<StepsHad | null>(null);
+    const key = $derived.by(() => { const l = line(); return l ? lineKey(l.start, l.edges) : null; });
+    $effect(() => {
+      const k = key, steps = k ? stepsByLine[k] : undefined;
+      if (!k) return;
+      untrack(() => {
+        const l = line()!;
+        if (steps) had = { at: here, edges: l.edges, steps };
+        else askSteps(l.start, l.edges);
+      });
     });
-  });
-  // The threat's steps, from the position after the pass, kept in the same way
-  let threatStepsHad = $state<{ at: string; edges: Edge[]; steps: LineStep[] } | null>(null);
-  const threatKey = $derived(threatEdges ? lineKey(threatPath, threatEdges) : null);
-  $effect(() => {
-    const key = threatKey, steps = key ? stepsByLine[key] : undefined;
-    if (!key) return;
-    untrack(() => {
-      if (steps) threatStepsHad = { at: here, edges: threatEdges!, steps };
-      else askSteps(threatPath, threatEdges!);
-    });
-  });
+    return { get had() { return had; } };
+  }
+  const listStepsKept = keptSteps(() => (listLine ? { start: path, edges: listLine } : null));
+  // The threat's, from the position after the pass
+  const threatStepsKept = keptSteps(() => (threatEdges ? { start: threatPath, edges: threatEdges } : null));
   // The steps of a line from here, as far as it matches the line whose steps came (`had`). The search can lengthen or
   // change a line while it shows: until the new line's steps come, the steps of the edges it shares with the line
   // before stay.
-  function stepsOf(edges: Edge[] | null, had = lineStepsHad): LineStep[] | null {
+  function stepsOf(edges: Edge[] | null, had: StepsHad | null): LineStep[] | null {
     if (!edges || !had || had.at !== here) return null;
     let k = 0;
     while (k < edges.length && k < had.edges.length && sameEdge(edges[k], had.edges[k])) k++;
     return had.steps.slice(0, k);
   }
-  const stepsNow = $derived(lineEdges ? stepsOf(lineEdges) : stepsOf(threatEdges, threatStepsHad));
-  const listSteps = $derived(stepsOf(listLine));
+  const stepsNow = $derived(stepsOf(boardEdges, lineEdges ? listStepsKept.had : threatStepsKept.had));
+  const listSteps = $derived(stepsOf(listLine, listStepsKept.had));
 
   // The line as far as drawn (lineDrawing.svelte.ts): one edge at a time (the default, a display setting), or all at
   // once. Pointing at another candidate draws its line again; a line that the search lengthens goes on from the edges
   // drawn. Its edges as one string, so that the drawing goes on while the search sends the same line again.
   // The threat's line is drawn from the position after the pass.
-  const lineText = $derived(line ? line.map(e => edgeName(e.edge)).join(" ") : null);
+  const lineText = $derived(boardEdges ? boardEdges.map(edgeName).join(" ") : null);
   const lineStart = $derived(lineEdges ? here : pathKey(threatPath));
   const lineDrawing = new LineDrawing();
   // The line pointed at in the list shows at once, as far as the edge pointed at.
@@ -1061,9 +1053,9 @@
   // goes back to the last branch point), [ and ], or Shift + k and j (Lichess's); the line before and after this one by
   // Shift + ↑ and ↓, or comma and period; Space plays the engine's choice; e or l turns the engine on or off (l is
   // Lichess's; e, for "engine", is the site's own: Lichess's e opens its opening explorer, which this site does not
-  // have); x shows or hides the threat (Lichess's). Escape closes the settings, or cancels the edge that the player started. Keys kept free
-  // for later: m and Shift + m (the next and the previous mistake, KaTrain's n), and Delete. The controls' notes name no
-  // keys: the list does.
+  // have); x shows or hides the threat (Lichess's). Escape closes the settings, or cancels the edge that the player
+  // started. Keys kept free for later: m and Shift + m (the next and the previous mistake, KaTrain's n), and Delete. The
+  // controls' notes name no keys: the list does.
   let keysOpen = $state(false);
   let againOpen = $derived(!!again?.dialog); // closed by the player
   // Whether the hidden tab's note (HIDDEN_TAB) was cut when the pointer last came to it: the browser reads the title
@@ -1232,7 +1224,7 @@
   // player, or why it shows nothing. Text that a player follows: strict Simplified Technical English. `busy`: work goes
   // on, as the area map's note shows it.
   const threatNote = $derived.by((): { text: string; busy: boolean; title?: string } | null => {
-    if (!threatOn || !threatState) return null;
+    if (!threatState) return null;
     const name = PLAYER_NAME[mover];
     if (threatState === "none") return { text: over ? "No threat: the game is over" : "No threat: a pass ends the game", busy: false };
     if (threatState === "unavailable") return { text: "No threat saved: snapshots do no searches", busy: false };
@@ -1241,13 +1233,13 @@
       title: `What ${name} loses with a pass: the value now less the value after the pass.`
         + (threatEdges ? ` ${PLAYER_NAME[passed!.player]} then plays ${threatEdges.map(edgeName).join(" ")}.` : ""),
     };
-    if (threatState === "off") return { text: "Threat: the engine is off", busy: false };
     if (threatState === "searching") return { text: "Threat: searching", busy: true };
     if (threatState === "waiting") return { text: "Threat: waiting for the engine", busy: true };
-    // The threat is there, and the position's result with the same settings is not
+    // The threat is there, and its size is not: a result with the threat's settings, of the position or of the threat's
+    // position, is still to come (GameAnalysis.threatCost)
     if (threat && snapshot) return { text: "No threat size saved: snapshots do no searches", busy: false };
-    if (threat && engine && !engine.on) return { text: "Threat: the engine is off", busy: false };
-    if (threat) return { text: "Threat: waiting for the search of this position", busy: true };
+    if (threatState === "off" || (threat && engine && !engine.on)) return { text: "Threat: the engine is off", busy: false };
+    if (threat) return { text: "Threat size: searching", busy: true };
     return null;
   });
   // The engine's network loads: no search of the position can start yet, so the header says so in the place of the

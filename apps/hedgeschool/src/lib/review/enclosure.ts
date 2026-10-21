@@ -3,7 +3,7 @@
 // its notation (engine/notation.ts) and its engine's fields (engine/position.ts). The site imports the review's model
 // from here: the shared model's names, its types named for Enclosure's, its functions that compare moves with
 // Enclosure's game given, and Enclosure's own part: the board's position, a move with the edge it cuts, the turns of the
-// notation, who plays each edge of a line, the players' names and the texts that say "edge".
+// notation, who plays each edge of a line, the threat's turn, the players' names and the texts that say "edge".
 import * as shared from "@abstractclass/analysis/model.ts";
 import type { Game, GameTypes, Player } from "@abstractclass/analysis/game.ts";
 import type { BranchNode as SharedNode } from "@abstractclass/analysis/analysis.svelte.ts";
@@ -56,6 +56,14 @@ export function lineMovers(p: Position, n: number): Player[] {
     if (--left === 0) { player = otherPlayer(player); left = 2; }
   }
   return movers;
+}
+
+/** The threat's turn (design 31): the line of the first choice `first` after a pass, as far as the search trusts it,
+ *  cut to the turn of the side to move after the pass (`from`): what the opponent plays if the player does nothing. Its
+ *  first edge where the search trusts none of the line. */
+export function threatTurn(first: Candidate, from: Position): Edge[] {
+  const turn = shared.trustedLine(first).slice(0, from.movesLeft);
+  return turn.length ? turn : [first.edge];
 }
 
 /** The move as text: its edge, or "pass". */

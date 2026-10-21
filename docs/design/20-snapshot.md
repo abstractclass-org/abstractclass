@@ -64,9 +64,10 @@ look at a past review pays it each time, and the earlier results are still in th
    game's review file holds them (design 13). For each game's review depth, it keeps the result of each position that
    the snapshot shows (item 2). The other results of the position go: a shallower one, and a deeper one at a depth that
    the snapshot does not read. Examples are an older review's deeper search of a custom depth, at twice its visits, and
-   a Depth that the player typed. A map added to one of these positions (design 30) stays while a snapshot reads the
-   position, whatever the depth of the results there. A map further from the game's positions goes, such as the map of a
-   line's later edge. The other results of the store's shape go too:
+   a Depth that the player typed. A threat that the snapshot reads, after a pass (design 31), keeps the position's
+   result at the threat's visits too: the threat's size compares the two. A map added to one of these positions (design
+   30) stays while a snapshot reads the position, whatever the depth of the results there. A map further from the
+   game's positions goes, such as the map of a line's later edge. The other results of the store's shape go too:
    - **After Review again,** the game's mark names the site's engine when the new review ends. Its snapshot then reads
      nothing. A position that another game's snapshot reads keeps its result.
    - **After a delete,** the game needs nothing: the player confirms a delete and cannot undo it (design 11).

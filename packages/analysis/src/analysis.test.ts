@@ -1095,8 +1095,10 @@ test("the map of the threat's position waits for the threat's search, which brin
 });
 
 /** A search's reply at `visits` visits with Blue's win chance `blueWin` and lead `lead`, and no candidate. */
-const valued = (visits: number, blueWin: number, lead: number) =>
-  ({ ...reply(visits), rootInfo: { ...reply(visits).rootInfo, winrate: blueWin, scoreLead: lead } }) as AnalysisReply;
+function valued(visits: number, blueWin: number, lead: number): AnalysisReply {
+  const r = reply(visits);
+  return { ...r, rootInfo: { ...r.rootInfo, winrate: blueWin, scoreLead: lead } };
+}
 
 test("a position with a deeper stored result than the threat's gets its size from a search with the threat's settings", async () => {
   const { game, pool, searches } = await focusing(); // the Depth: 4,096 visits, 2 seconds
@@ -1108,7 +1110,7 @@ test("a position with a deeper stored result than the threat's gets its size fro
   game.askThreat(["a"]);
   await turns();
   const own = searches.find(s => s.moves.join(" ") === "a")!, threat = searches.find(s => s.moves.join(" ") === "a pass")!;
-  assert.deepEqual([own?.query.maxVisits, own?.maxMs], [4096, 2000]); // the position too, with the threat's settings
+  assert.deepEqual([own.query.maxVisits, own.maxMs], [4096, 2000]); // the position too, with the threat's settings
   own.end(4096, false, valued(4096, 0.3, -20)); // Red 0.7, lead Red +20
   threat.end(4096, false, valued(4096, 0.8, 30)); // after the pass: Red 0.2, lead Blue +30
   await turns();
@@ -1147,4 +1149,117 @@ test("a snapshot's threat size compares the stored threat with the position's st
   const cost = game.threatCost(["a"]);
   assert.ok(cost && Math.abs(cost.win - 0.5) < 1e-9, `the cost ${cost?.win}`);
   assert.deepEqual([cost.points, searches.length], [50, 0]);
+});
+
+test("a snapshot gets the position after the pass from the rules: the threat's line, and no threat where it ends the game", async () => {
+  const { pool, searches } = fakePool();
+  const describeGame = async (q: PositionQuery) => (q.moves.join(" ") === "a b pass"
+    ? { reply: { positions: [wordFields(q.moves.length, true)] } } : wordRules.describeGame(q));
+  Object.assign(pool, { rules: { describeGame } });
+  const search = "earlier", model = `earlier-${pool.model!.sha256}`;
+  await cachePut(analysisKey(search, model, ["a", "pass"], 1024), toAnalysis(words, reply(1024)));
+  const game = new GameAnalysis(words, pool, MOVES, "g-threat-rules");
+  await game.start();
+  game.freeze(search, model);
+  game.askThreat(["a"]);
+  await turns();
+  game.askThreat(["a", "b"]);
+  await turns();
+  assert.deepEqual([!!game.passedAt(["a"]), game.threatState(["a"]), game.threatState(["a", "b"]), searches.length],
+                   [true, "ready", "none", 0]);
+});
+
+/** The searches of the position with these moves to these visits. */
+const searchesOf = <S extends { moves: string[]; query: AnalysisQuery }>(searches: S[], moves: string, visits: number) =>
+  searches.filter(s => s.moves.join(" ") === moves && s.query.maxVisits === visits);
+
+test("with the Depth lowered, the threat's size compares two searches at the new Depth, and the deeper results stay", async () => {
+  const { game, searches } = await focusing(); // the Depth: 4,096 visits, 2 seconds
+  game.focus(["a"]);
+  game.askThreat(["a"]);
+  await turns();
+  searchesOf(searches, "a", 4096)[0].end(4096, false, valued(4096, 0.3, -20));
+  searchesOf(searches, "a pass", 4096)[0].end(4096, false, valued(4096, 0.8, 30));
+  await turns();
+  mock.timers.tick(BATCH_MS);
+  assert.ok(Math.abs((game.threatCost(["a"])?.win ?? 0) - 0.5) < 1e-9);
+  game.setDepth(1024, 2);
+  await turns();
+  // Both positions hold 4,096 visits: each is searched to the new Depth for the size, which waits for them
+  const [own, threat] = [searchesOf(searches, "a", 1024), searchesOf(searches, "a pass", 1024)];
+  assert.deepEqual([game.threatCost(["a"]), own.length, threat.length, own[0]?.maxMs], [undefined, 1, 1, 2000]);
+  own[0].end(1024, false, valued(1024, 0.4, -10)); // Red 0.6, lead Red +10
+  threat[0].end(1024, false, valued(1024, 0.6, 10)); // after the pass: Red 0.4, lead Blue +10
+  await turns();
+  mock.timers.tick(BATCH_MS);
+  const cost = game.threatCost(["a"]);
+  assert.ok(cost && Math.abs(cost.win - 0.2) < 1e-9, `the cost ${cost?.win}, not against a result of 4,096 visits`);
+  assert.equal(cost.points, 20);
+  assert.deepEqual([game.analysisOf(["a"])?.visits, game.threatAt(["a"])?.visits], [4096, 4096]);
+});
+
+test("a size's search runs on when its threat is asked again, and its part gives no size once the engine is off", async () => {
+  const { game, pool, searches } = await focusing();
+  await cachePut(analysisKey(pool.search!, pool.model!.sha256, ["a"], 8192), toAnalysis(words, valued(8192, 0.1, -40)));
+  game.focus(["a"]);
+  await turns();
+  game.askThreat(["a"]);
+  await turns();
+  const sized = () => searchesOf(searches, "a", 4096);
+  searchesOf(searches, "a pass", 4096)[0].end(4096, false, valued(4096, 0.8, 30));
+  sized()[0].partial(64);
+  await turns();
+  mock.timers.tick(BATCH_MS);
+  assert.ok(game.threatCost(["a"])); // its results so far, as they come
+  game.askThreat(["a"]); // asked again, as the engine's work asks again for what the page wants (askAgain)
+  await turns();
+  assert.deepEqual([sized().length, sized()[0].stopped], [1, false]);
+  game.setPaused(true);
+  sized()[0].end(64);
+  await turns();
+  mock.timers.tick(BATCH_MS);
+  assert.equal(game.threatCost(["a"]), undefined);
+  game.setPaused(false);
+  await turns();
+  assert.deepEqual([sized().length, sized()[1].stopped], [2, false]);
+});
+
+test("the size compares the focus's own search, which the time limit stopped short of the deeper result the tree holds", async () => {
+  const { game, pool, searches } = await focusing(); // the Depth: 4,096 visits, 2 seconds
+  await cachePut(analysisKey(pool.search!, pool.model!.sha256, ["a"], 512), toAnalysis(words, valued(512, 0.1, -40)));
+  await game.fromStore(pool.search!, pool.model!.sha256); // a review's result of 512 visits
+  game.focus(["a"]);
+  game.askThreat(["a"]);
+  await turns();
+  // Both searches stop at the time limit short of 512 visits: the tree keeps the review's result
+  searchesOf(searches, "a", 4096)[0].end(150, true, valued(150, 0.3, -20));
+  searchesOf(searches, "a pass", 4096)[0].end(160, true, valued(160, 0.8, 30));
+  await turns();
+  mock.timers.tick(BATCH_MS);
+  const cost = game.threatCost(["a"]);
+  assert.equal(game.analysisOf(["a"])?.visits, 512);
+  assert.ok(cost && Math.abs(cost.win - 0.5) < 1e-9, `the cost ${cost?.win}, not against the result of 512 visits`);
+  // Another time limit: both are searched again, and the size waits for them
+  game.setDepth(4096, 5);
+  game.focus(["a"]);
+  await turns();
+  assert.deepEqual([game.threatCost(["a"]), searchesOf(searches, "a", 4096).length, searchesOf(searches, "a pass", 4096).length],
+                   [undefined, 2, 2]);
+});
+
+test("where the pass ends the game, a position deeper than the threat's settings gets no search for a size", async () => {
+  const { pool, searches } = fakePool();
+  const describeGame = async (q: PositionQuery) => (q.moves.at(-1) === "pass"
+    ? { reply: { positions: [wordFields(q.moves.length, true)] } } : wordRules.describeGame(q));
+  Object.assign(pool, { rules: { describeGame } });
+  await cachePut(analysisKey(pool.search!, pool.model!.sha256, ["a"], 8192), toAnalysis(words, valued(8192, 0.1, -40)));
+  const game = new GameAnalysis(words, pool, MOVES, BOARD_ID);
+  await game.start();
+  await game.sweep();
+  game.setDepth(1024, null);
+  await game.fromStore(pool.search!, pool.model!.sha256);
+  game.askThreat(["a"]);
+  await turns();
+  mock.timers.tick(BATCH_MS);
+  assert.deepEqual([searches.length, game.threatState(["a"]), game.threatCost(["a"])], [0, "none", undefined]);
 });

@@ -1,9 +1,10 @@
 // The threat on real games (design 31, beads abscls-mnqe): whether the engine reads the position after a pass well,
 // though self-play has no timeouts, so that its network has seldom seen one. On the meaf.us archive's human games, as
 // ownership-maps.mjs takes them (the engine repository's runs/archive_analysis/part1-1000.jsonl, request 07): the first
-// `perBand` games of each rating band from 1 to 5 that the rules ended, with 120 edges. At two positions of every `step`,
-// a turn's middle and the next turn's start (an even count of edges, then an odd one), it searches the position and the position after a pass as the Lite review searches
-// (HedgeFund 0.2 Lite, 512 visits), on `threads` engines (scripts/node-engine.mjs: `npm run engine` first), and counts:
+// `perBand` games of each rating band from 1 to 5 that the rules ended, with 120 edges. At two positions of every
+// `step`, a turn's middle and the next turn's start (an even count of edges, then an odd one), it searches the position
+// and the position after a pass as the Lite review searches (HedgeFund 0.2 Lite, 512 visits), on `threads` engines
+// (scripts/node-engine.mjs: `npm run engine` first), and counts:
 // - the threat's size, as the review shows it: the mover's win chance and points now less after the pass;
 // - the network's own value (a search of 1 visit) against the search's, at the positions and after the passes: a
 //   network that misreads a position after a pass differs from its search there more than elsewhere;
@@ -33,7 +34,7 @@ if (!isMainThread) {
 } else {
   const { nodeEngine } = await import("../node-engine.mjs");
   const { toAnalysis } = await import("@abstractclass/analysis/reply.ts");
-  const { enclosure, edgeName, lineMovers, moverScore, moverWin, trustedLine, turnFromCount } = await import("../../src/lib/review/enclosure.ts");
+  const { enclosure, edgeName, moverScore, moverWin, threatTurn, turnFromCount } = await import("../../src/lib/review/enclosure.ts");
   const { boardPosition } = await import("../../src/lib/engine/position.ts");
   const { median } = await import("./speed.mjs");
   const args = process.argv.slice(2), show = args.includes("--show");
@@ -59,8 +60,8 @@ if (!isMainThread) {
     for (const [, moves] of [...all].filter(([id, m]) => meta.get(id).band === band && meta.get(id).end === "score" && m.length === 120)
       .slice(0, Number(perBand))) games.push(moves);
   // The positions: two of every step from edge 4 to edge 112, a turn's middle and a turn's start, where the game goes
-  // on for a turn of each player after the pass. Each with its position after a pass, and the position at the opponent's next turn in the game, for the
-  // mover's loss there.
+  // on for a turn of each player after the pass. Each with its position after a pass, and the position at the
+  // opponent's next turn in the game, for the mover's loss there.
   const spots = games.flatMap((moves, g) => moves.map((_, i) => i).filter(i => i >= 4 && i <= 112 && i % step < 2).map(i => ({ g, i })));
   const oppTurn = i => i + (turnFromCount(i).first ? 2 : 1);
   const jobs = [...new Map(spots.flatMap(({ g, i }) => [games[g].slice(0, i), [...games[g].slice(0, i), "pass"], games[g].slice(0, oppTurn(i))])
@@ -82,13 +83,10 @@ if (!isMainThread) {
     const fields = play(passed, i), from = boardPosition(fields[fields.length - 1]), p = boardPosition(play(before, i)[0]).player;
     const first = t.candidates[0];
     if (!first) continue;
-    // The threat's turn: the opponent's edges of the first choice's line, as the review draws it
-    const line = trustedLine(first), next = lineMovers(from, line.length).findIndex(m => m !== from.player);
-    const turn = (next < 0 ? line : line.slice(0, next)).slice(0, 2);
-    const threat = turn.length ? turn : [first.edge];
-    const steps = play([...passed, ...threat.map(edgeName)], i + 1).map(boardPosition);
-    const opp = from.player, gain = steps.at(-1).areas[opp] - steps[0].areas[opp];
-    const cut = play([...passed, ...threat.map(edgeName)], i + 1).slice(1).some(f => f.cuts !== null);
+    // The threat's turn, as the review draws it, played by the rules
+    const threat = threatTurn(first, from), drawn = play([...passed, ...threat.map(edgeName)], i + 1);
+    const steps = drawn.map(boardPosition), opp = from.player, gain = steps.at(-1).areas[opp] - steps[0].areas[opp];
+    const cut = drawn.slice(1).some(f => f.cuts !== null);
     // The game's next turn of the opponent, after the mover's own edges
     const start = turnFromCount(i).first, oppFrom = oppTurn(i), played = moves.slice(oppFrom, oppFrom + 2);
     const played1 = moves[i + (start ? 1 : 0)];

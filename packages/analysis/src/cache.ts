@@ -115,24 +115,27 @@ export const BUDGETS = [256, 512, 768, 1024, 1536, 2048, 3072, 4096, 8192, 16384
  *  looked (the position on screen, design 09), as it had it before the page closed, and a review imported from another
  *  browser, searched to another depth, opens without searching again (Hedge School's src/lib/game/reviewFile.ts). Of
  *  every shape that the readers read (READ_SHAPES): of two results as deep, the newer shape's. */
-export async function cacheGetAtLeast<T>(search: string, model: string, moves: string[], visits: number): Promise<T | undefined> {
-  const keys = depthKeys(search, model, moves, visits);
-  await readStored(keys);
-  const key = [...keys].reverse().find(k => memory.has(k));
-  return key === undefined ? undefined : (memory.get(key) as T);
+export function cacheGetAtLeast<T>(search: string, model: string, moves: string[], visits: number): Promise<T | undefined> {
+  return lastStored<T>(depthKeys(search, model, moves, visits));
 }
 /** The stored result for a position at exactly `visits`, of the newer shape where both are stored: a comparison of two
  *  searches as deep reads it, where a deeper result would mix depths (the threat's size, Hedge School's design 31). */
-export async function cacheGetAt<T>(search: string, model: string, moves: string[], visits: number): Promise<T | undefined> {
-  const keys = READ_SHAPES.map(s => analysisKey(search, model, moves, visits, s));
+export function cacheGetAt<T>(search: string, model: string, moves: string[], visits: number): Promise<T | undefined> {
+  return lastStored<T>(shapeKeys(search, model, moves, visits));
+}
+/** The last of these keys that the store has, read into memory first. */
+async function lastStored<T>(keys: string[]): Promise<T | undefined> {
   await readStored(keys);
   const key = [...keys].reverse().find(k => memory.has(k));
   return key === undefined ? undefined : (memory.get(key) as T);
 }
+/** The keys of a position's results at `visits`, in the shapes that the readers read, the oldest first. */
+const shapeKeys = (search: string, model: string, moves: string[], visits: number) =>
+  READ_SHAPES.map(s => analysisKey(search, model, moves, visits, s));
 /** The keys of a position's results at `visits` and every budget deeper, each depth's in the shapes that the readers
  *  read, the oldest first. */
 const depthKeys = (search: string, model: string, moves: string[], visits: number) =>
-  [visits, ...BUDGETS.filter(v => v > visits)].flatMap(v => READ_SHAPES.map(s => analysisKey(search, model, moves, v, s)));
+  [visits, ...BUDGETS.filter(v => v > visits)].flatMap(v => shapeKeys(search, model, moves, v));
 /** Reads the keys not read yet in this visit into memory, in one transaction, and notes the ones not stored. */
 async function readStored(keys: string[]) {
   const unread = keys.filter(k => !memory.has(k) && !absent.has(k));

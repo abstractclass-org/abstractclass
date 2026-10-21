@@ -29,7 +29,8 @@ a turn's start the pass places nothing, so nothing of the passer's is protected.
    `packages/analysis/src/analysis.svelte.ts`). At a turn's start the pass forfeits the whole turn, and the threat is
    the opponent's whole next turn, two edges. In a turn's middle the pass forfeits the turn's second edge.
    - It is searched as the position on screen is: to the Depth's visits, within the time limit (design 09), in slices
-     whose results show as they come. A change of the Depth or the limit searches it again.
+     whose results show as they come. A change of the Depth or the limit searches it again, unless its result is
+     already that deep.
    - Its priority is below the position on screen's and the area map's short searches, and above the player's
      evaluations and the review's passes. In slices, so the pool stops it for the search of the player's own position
      when no worker is free, and runs it again later.
@@ -38,31 +39,43 @@ a turn's start the pass places nothing, so nothing of the passer's is protected.
      and an earlier engine's while a snapshot reads the position before the pass. A review file takes it with the
      results one move from the game's positions (design 13).
    - Where the pass ends the game (the game's last edges), there is no threat. The rules say so before any search.
-   - The engine off stops the search, and its result so far stays. The engine on searches it again.
+   - The engine off stops the search, and its result so far stays. The engine on searches it again. The same position,
+     asked for again, keeps the searches that run.
    - **A snapshot** (design 20) searches nothing. It reads the threat from the store, with the search and the network
-     file of its results, at the depths that a snapshot reads. Where the store has none, the header says "No threat
-     saved: snapshots do no searches", and the switch's note says that a snapshot shows only a threat that was saved.
+     file of its results, at the depths that a snapshot reads. The rules give the position after the pass, as they
+     give a snapshot's other positions: the threat's line shows, and where the pass ends the game, there is no threat.
+     Where the store has no threat, the header says "No threat saved: snapshots do no searches", and the switch's note
+     says that a snapshot shows only a threat that was saved.
 3. **The header, with the switch on,** shows the threat's search, as Lichess's engine box shows its threat's:
-   - the first line's bar and visits are the threat's search;
-   - the second line gives the values after the pass: "If Blue passes: margin Red +363 ± 182 · lead Red +349";
-   - the third line, in the place of the position's difficulty (design 14), gives the threat's size: "Threat to Blue:
+   - The first line's bar and visits are the threat's search.
+   - The second line gives the values after the pass: "If Blue passes: margin Red +363 ± 182 · lead Red +349".
+   - The third line, in the place of the position's difficulty (design 14), gives the threat's size: "Threat to Blue:
      −6.6% · −168.7 pts". Its note names the opponent's edges. While there is no size, the line says why: the search
-     waits for the engine or runs, the engine is off, the game ends, or a snapshot has no threat saved.
+     waits for the engine or runs, the size's searches run ("Threat size: searching"), the engine is off, the game
+     ends, or a snapshot has no threat saved.
 4. **The threat's size is the engine's own estimate:** what passing costs by the engine's evaluation. The position's
    value less the value after the pass, from the player's side, in the units of a move's loss (design 10): win chance
    and the lead's points, written as a note writes a loss (`costText`). It is not the area that the threat's first
    turn closes. A turn's close or cut is never the real gain or loss: the rest of the game decides (design 30, "Why").
    So there is no caption about the regions that it closes.
-   - **Two searches with the same settings** (`threatBaseAt` and `threatCost`): the threat's value and the position's
-     value both come from a search to the Depth's visits within its time limit. That is the position's own result
-     where it comes from such a search: its result at the Depth's visits, the focus that runs now, or a focus that the
-     time limit stopped. Where the position has only a deeper result, as a reviewed game's key moments have (twice the
-     review's depth) or an earlier, deeper Depth left, the store's result at the Depth's visits serves. Else the
-     position is searched with the threat's settings too, as a part of the threat's work: at the threat's priority, in
-     slices, its result stored at its visits (`askBase`). The position keeps its deeper result for everything else:
-     its labels, its candidates and the header's values with the threat off.
-   - **A snapshot** compares the stored threat with the position's stored result of the same visits. Where the store
-     has none, the header says "No threat size saved: snapshots do no searches".
+   - **Two searches with the same settings** (`sizeResultAt` and `threatCost`): the threat's value and the position's
+     value both come from a search to the Depth's visits within its time limit. For each of the two positions, that is
+     its own result where its visits are the Depth's. Else it is the result of the search with these settings: the
+     position on screen's (focus), the threat's own, or a search that the size asks for. The tree keeps a position's
+     deepest result, so the results of these searches are kept apart for the size (`sizeResults`): a search that the
+     time limit stops short of a deeper result still gives the size its own result.
+   - A position's own result can be deeper than the Depth: a review deeper than the Depth, an older review's results
+     at twice its depth (design 16), or an earlier, deeper Depth. Then the store's result at the Depth's visits
+     serves. Else that position is searched with the threat's settings too, as a part of the threat's work
+     (`askSizeResult`): in slices, just below the threat's priority, so that the threat's line shows first, and its
+     result is stored at its visits. It starts only once the rules have said that the pass does not end the game. Each
+     position keeps its deeper result for everything else: the position's labels, its candidates and the header's
+     values with the threat off, and the threat's line and its values after the pass.
+   - A part of a search counts only while the search runs. With the engine off, no size shows from a part of a search,
+     and the line says that the engine is off.
+   - **A snapshot** compares the stored threat with the position's stored result of the same visits. The removal of
+     an earlier engine's results keeps that result with the threat (design 20, item 8). Where the store has none, the
+     header says "No threat size saved: snapshots do no searches".
    - The second line (the values after the pass) and the board do not change: they are the threat's search alone.
 5. **The threat is a line on the board,** drawn as the engine's lines are (design 07, item 1): numbered edges, the edges
    that they cut, the regions that they close, Animated or Static. It is the first choice's line after the pass, as
@@ -111,6 +124,12 @@ a turn's start the pass places nothing, so nothing of the passer's is protected.
 - **A search of the position, not a shallower read of the deeper one.** A search keeps no tree between queries
   (design 09, "Alternatives"), and a deeper result does not hold its value at fewer visits. So the value at the
   threat's settings needs its own search, which then stays in the store.
+- **Departures from Lichess.** Lichess's engine box gives the evaluation after the pass, and its best line goes on
+  past the opponent's move. Three parts are the site's own:
+  - The threat's size, what the pass costs (item 4). A player reads it as a move's loss.
+  - The line cut to the opponent's turn (item 5). An Enclosure turn has two edges, and the edges after it are the
+    player's answer.
+  - The warning triangles in the place of Lichess's red arrow (item 5). Red is a player's colour here.
 
 ## Alternatives
 
@@ -124,42 +143,49 @@ a turn's start the pass places nothing, so nothing of the passer's is protected.
   position's own candidates.
 - **The label budget for the threat's search:** cheaper, but the threat's value would be shallower than the position
   on screen's, and the difference would measure the depth too.
-- **The position's deepest result against the threat** (the first build): the size then mixed depths, and in a
-  reviewed game it compared a search of 16,384 or 32,768 visits with one of the Depth's.
+- **The position's deepest result against the threat:** the size then mixes depths, and in a reviewed game it
+  compares a search of 16,384 or 32,768 visits with one of the Depth's.
 - **The threat searched as deep as the position's deepest result:** equal depths, but a search of 32,768 visits takes
   minutes for each position that the player looks at with the switch on.
 - **The threat in a third colour** (Lichess's red arrow): the colour would no longer say whose edges they are, and
   red is a player's colour here.
-- **The threat drawn as any line** (the first build): it read as an engine line, not as a threat.
+- **The threat drawn as any line:** it reads as an engine line, not as a threat.
 - **The switch kept between visits:** Lichess's is not kept. A threat costs a deep search at every position that the
   player looks at.
 
 ## Consequences
 
 - With the switch on, each position that the player looks at costs a second search to the Depth, after its own. On a
-  machine of one worker, the threat comes after the position's own search. Where the position's own result is deeper
-  than the Depth, as in a reviewed game, it costs a search of the position at the Depth too, the first time only:
-  that result is stored.
+  machine of one worker, the threat comes after the position's own search. Where the position's own result or the
+  threat's is deeper than the Depth, as in a reviewed game or after the player lowers the Depth, it costs a search of
+  that position at the Depth too. A search that reaches its visits is stored, so it runs the first time only. One that
+  the time limit stops is kept for the visit alone, as the focus is.
 - The threat's results are stored, as every result is. The store grows by one result for each position looked at with
-  the switch on.
+  the switch on, and by one more where the size needs a search of its own.
 - Self-play has no timeouts, so the network has seldom seen a position after a pass. The check on real games
   ([decisions/product.md](../decisions/product.md), "The threat on real games") measures whether it reads one well.
 
 ## Where it is
 
-- `packages/analysis/src/analysis.svelte.ts`: `askThreat`, `threatAt`, `passedAt`, `threatState`, `readThreat` (a
-  snapshot's), `dropThreat`, `PRIORITY.threat`, the size at equal depths (`threatBaseAt`, `threatCost`, `askBase`,
-  and `keep`, which asks for it when a deeper result comes later), and the map of the threat's position waiting for its
-  search (`ownSearchComes`). `packages/analysis/src/cache.ts`: `cacheGetAt`, a position's result at exactly a depth.
-  Tests: `analysis.test.ts`, "the threat: …", "a position with a deeper stored result than the threat's …" and "a
-  snapshot's threat size …".
+- `packages/analysis/src/analysis.svelte.ts`: `askThreat`, `threatAt`, `passedAt`, `describePass`, `threatState`,
+  `readThreat` (a snapshot's), `dropThreat`, `PRIORITY.threat`, the size at equal depths (`sizeResultAt`,
+  `sizeResults` and the searches' `record`, `threatCost`, `askSizeResult`, `PRIORITY.size`, and `keep`, which asks
+  for it when a deeper result comes later), and the map of the threat's position waiting for its search
+  (`ownSearchComes`). `packages/analysis/src/cache.ts`: `cacheGetAt`, a position's result at exactly a depth.
+  `src/lib/game/earlierResults.ts`: a snapshot's threat keeps the result that its size compares. Tests:
+  `analysis.test.ts`, "the threat: …", "a position with a deeper stored result than the threat's …", "with the Depth
+  lowered, …", "a size's search runs on …", "the size compares the focus's own search …", "where the pass ends the
+  game, a position deeper …", "a snapshot gets the position after the pass …" and "a snapshot's threat size …", and
+  `earlierResults.test.ts`, "a snapshot's threat keeps …".
 - `src/lib/review/ReviewView.svelte`: `threatOn`, `toggleThreat` and the key x, `threat`, `threatEdges`, `threatCost`,
-  `threatShown`, `threatNote`, the threat's steps (`threatStepsHad`), the map's `threat` line (`mapLine`, `diffBase`,
-  `stepName`, `diffName`), and the switch in the engine header. `src/lib/board/Board.svelte`: the warning triangles
-  (`lineShape`, `triangle`, `TRIANGLE_R`).
+  `threatShown`, `threatNote`, the board's line (`boardEdges`, `line`) and the threat's steps (`threatStepsKept`), the
+  map's `threat` line (`mapLine`, `diffBase`, `stepName`, `diffName`), and the switch in the engine header.
+  `src/lib/review/enclosure.ts`: `threatTurn`, the opponent's turn of the first choice's line.
+  `src/lib/board/Board.svelte`: the warning triangles (`lineShape`, `triangle`, `TRIANGLE_R`).
 - `scripts/measure/threat-check.mjs`: the check on real games.
 
 ## Log entries
 
-- [decisions/product.md](../decisions/product.md), "The threat on real games", "The threat's warning triangles" and
-  "The threat's size at equal depths" (2026-10-21).
+- [decisions/product.md](../decisions/product.md), "The threat on real games", "The threat's warning triangles",
+  "The threat's size at equal depths" and "The threat's review: one rule for the size, a snapshot's line"
+  (2026-10-21).
