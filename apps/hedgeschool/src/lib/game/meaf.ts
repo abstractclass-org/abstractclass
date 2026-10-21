@@ -72,10 +72,11 @@ export function meafRecord(g: MeafGame): string {
   const when = g.moveHistory[0].timestamp;
   const date = typeof when === "number" ? new Date(when > 1e12 ? when : when * 1000) : null;
   const pad = (n: number) => String(n).padStart(2, "0");
+  // The game's page as the Site, as strategyjam.ts writes it: the review links back to it. The watcher's view
+  // (`spectate=1`) is the one that loads the moves.
+  const site = g.gameID ? `https://meaf.us/sst1/?game=${encodeURIComponent(g.gameID)}&spectate=1` : "meaf.us";
   const tags: [string, string][] = [
-    // The game's page, as strategyjam.ts writes it: the review links back to it. meaf.us opens a finished game from this
-    // address for a player who is logged in. A game without an id has only the site's name.
-    ["Event", "meaf.us game"], ["Site", g.gameID ? `https://meaf.us/sst1/?game=${encodeURIComponent(g.gameID)}&spectate=1` : "meaf.us"],
+    ["Event", "meaf.us game"], ["Site", site],
     ["Date", date ? `${date.getUTCFullYear()}.${pad(date.getUTCMonth() + 1)}.${pad(date.getUTCDate())}` : "????.??.??"],
     ["Round", "-"], ["Blue", g.blue ?? "?"], ["Red", g.red ?? "?"], ["Result", result],
   ];

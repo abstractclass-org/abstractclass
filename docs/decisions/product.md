@@ -5600,17 +5600,22 @@ sweep.
 - **What:** `meafRecord` writes `https://meaf.us/sst1/?game=ID&spectate=1` as the Site tag when the game has an id
   (`MeafGame.gameID`, encoded with `encodeURIComponent`), and `meaf.us` when it has none. The review then shows "View
   this game on meaf.us" (`gamePage`, host `meaf.us`). The Event stays "meaf.us game". A record imported before keeps
-  `meaf.us` and has no link. Constellation keeps its name: its export has no game address. The Notation page's Site
-  row and design 11 say that the address opens the game for a player who is logged in to meaf.us (abscls-242q).
+  `meaf.us` and has no link, also when the player brings the game again: `saveGame` keeps the record that it saved
+  first. Constellation keeps its name: its export has no game address. The Notation page's Site row and design 11
+  say that the address opens the game for a player who is logged in to meaf.us (abscls-242q).
 - **`/sst1/` is the path of the games that the import reads:** the userscript matches `https://meaf.us/sst1/*`, and
   the bookmarklet runs on the same page.
-- **Check 1, a visitor who is not logged in** (headless Chromium, only pages opened): `https://meaf.us/sst1/`,
+- **The check for a visitor who is not logged in** (headless Chromium, only pages opened): `https://meaf.us/sst1/`,
   `?history=1` and `?game=abc123&spectate=1` (an invented id: the History page lists no games without a login) all
   showed "Sign in to play". The page asks `/sst1/api/auth`, gets 401, and draws the sign-in page before it reads
   `?game`. The saved copy of meaf.us's code (the engine repository, `index-SqsmQbu0.js`) has the same logic.
-- **Check 2, a player who is logged in** (the owner's browser): a finished game opened from the History page showed
+- **The check for a player who is logged in** (the owner's browser): a finished game opened from the History page showed
   `https://meaf.us/sst1/?game=ID&spectate=1` in the address (meaf.us adds `&spectate=1` itself) and the game's moves
   on the board.
 - **Decision:** the players who bring a game to Hedge School are logged in to meaf.us when they bring it, so the link
   opens the game for them. Another reader gets meaf.us's sign-in page, as for any page of meaf.us.
+- **The review's link, checked** on the production build in headless Chromium: a game that `meafRecord` wrote (id
+  `abc123`), sent to the import page as the bookmarklet sends it, then reviewed. The review showed "View this game on
+  meaf.us", with `https://meaf.us/sst1/?game=abc123&spectate=1` as its target, in a new tab. The check refused every
+  request to meaf.us, so it did not follow the link.
 - **Not checked:** a game of other players, opened by its address.

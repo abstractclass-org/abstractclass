@@ -1,5 +1,5 @@
 // Checks the meaf.us game to record conversion: the sample game in meaf.us's shape, a timeout pass, a resignation,
-// the winner by name, and a game in another rule variant. Run: npm test.
+// the winner by name, a game in another rule variant, and the game's address as the Site tag. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -59,21 +59,12 @@ test("another rule variant is refused", () => {
 });
 
 test("the Site tag is the game's address on meaf.us, and the review links back to it", () => {
-  const tags = parseRecord(meafRecord(base)).tags;
-  assert.equal(tags.Site, "https://meaf.us/sst1/?game=abc123&spectate=1");
-  assert.deepEqual(gamePage(tags), { href: "https://meaf.us/sst1/?game=abc123&spectate=1", host: "meaf.us" });
-});
-
-test("the game's id is encoded in the address", () => {
-  const tags = parseRecord(meafRecord({ ...base, gameID: "a b&c/d" })).tags;
-  assert.equal(tags.Site, "https://meaf.us/sst1/?game=a%20b%26c%2Fd&spectate=1");
-  assert.equal(gamePage(tags)?.host, "meaf.us");
-});
-
-test("a game with no id has the site's name as its Site tag and no link", () => {
-  for (const gameID of [undefined, ""]) {
-    const tags = parseRecord(meafRecord({ ...base, gameID })).tags;
-    assert.equal(tags.Site, "meaf.us");
-    assert.equal(gamePage(tags), null);
-  }
+  const site = (gameID?: string) => parseRecord(meafRecord({ ...base, gameID })).tags.Site;
+  const page = "https://meaf.us/sst1/?game=abc123&spectate=1";
+  assert.equal(site("abc123"), page);
+  assert.deepEqual(gamePage({ Site: page }), { href: page, host: "meaf.us" });
+  assert.equal(site("a b&c/d"), "https://meaf.us/sst1/?game=a%20b%26c%2Fd&spectate=1");
+  // A game with no id has the site's name, which gives no link (partners.test.ts).
+  assert.equal(site(undefined), "meaf.us");
+  assert.equal(site(""), "meaf.us");
 });

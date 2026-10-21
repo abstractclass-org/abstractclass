@@ -219,15 +219,15 @@ read the game from the player's own page.
   players' names.
 - **On meaf.us, the Site tag is the game's address,** `https://meaf.us/sst1/?game=ID&spectate=1` (`meafRecord`), so
   the review links back to it, as it does for strategyjam.org. `/sst1/` is the path of the game page that the tools
-  run on (`userscript.ts` matches it). The id is `MeafGame.gameID`, encoded with `encodeURIComponent`. meaf.us opens a
-  game from `?game=ID`, and adds `&spectate=1` itself to a finished game that it opens from the History page. The
-  watcher's view is the one that loads the moves.
+  run on (`userscript.ts` matches it). The id is `MeafGame.gameID`. `spectate=1` gives the watcher's view, which loads
+  the moves (above). meaf.us adds it too when it opens a finished game from its History page.
   - **The address opens the game for a player who is logged in to meaf.us.** A visitor who is not logged in gets
     meaf.us's sign-in page at every address of meaf.us. The players who bring a game are logged in when they bring
-    it, so the link opens the game for them. Another reader of the review gets the sign-in page.
-  - **A game with no id keeps `meaf.us` as its Site tag** and has no link. A record imported before the link keeps
-    `meaf.us` too. Constellation keeps its name: its export is pasted text with no game address.
-  - **Not checked:** a game of other players, opened by its address.
+    it, so the link opens the game for them. Another reader of the review gets the sign-in page. No check opened a
+    game of other players by its address.
+  - **A game with no id keeps `meaf.us` as its Site tag** and has no link. A record that an earlier version of the
+    tools wrote keeps `meaf.us` too, also when the player brings the game again: the store keeps the record that it
+    saved first (`saveGame`).
 - **On strategyjam.org, it reads the game that the game's page holds** (`/enclosure/game/ID`, `strategyjamPage.ts`):
   the props of the React component that draws the stage (`.stage`, the board and the panel). `game.rules` is the
   site's rules module, and `state` the game as the site sends it: the seats, the first position, the moves
@@ -328,5 +328,6 @@ read the game from the player's own page.
 - [decisions/product.md](../decisions/product.md): "Early access: the review only, as Hedge School", "Early access:
   the second round", "Google Analytics in Google's consent mode, advanced", "Early access: the third round"
   (2026-10-12), "Deleting a game, and the browser's storage" (2026-10-12), "A question before a delete replaces the
-  Undo" (2026-10-16).
+  Undo" (2026-10-16), "strategyjam.org games through the bookmarklet and the userscript" (2026-10-18), "A meaf.us
+  game's review links back to its game" (2026-10-21).
 - [decisions/architecture.md](../decisions/architecture.md): "The site's repository is public" (2026-10-17).
