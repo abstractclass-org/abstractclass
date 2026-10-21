@@ -19,7 +19,8 @@ look at a past review pays it each time, and the earlier results are still in th
    all come from them. The engine gives the positions with its rules alone: it loads no network. The area map shows
    the ownership of the stored results. Where a result has none, it shows the map added to the position, with the
    same search and network file (design 30, item 6). Where the store has neither, the map's note says "No map saved:
-   snapshots do no searches".
+   snapshots do no searches". The threat (design 31) shows where the store has its result, with the same search and
+   network file, and else the engine header says "No threat saved: snapshots do no searches".
 3. **What a snapshot does not do:**
    - no search of the position on screen, and no change of its depth;
    - no new move: not on the board, not from a candidate, not from a line;

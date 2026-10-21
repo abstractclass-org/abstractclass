@@ -6479,3 +6479,56 @@ passes (25 tests, 5 skipped).
   engine off or an engine error ends. "A Great's confirmation that the player asked for comes before the review's key
   moments" now checks the same order against the label pass, and "a Great's search that another review depth drops is
   asked for again" holds the engine with the position on screen's search.
+
+### The threat on real games (2026-10-21)
+
+The threat (design 31, beads abscls-mnqe): Lichess's "Show threat", a search of the position after a pass by the side
+to move. Self-play has no timeouts, so the network has seldom seen a position after a pass. The check asks whether the
+engine still reads one well.
+
+**The check** (`scripts/measure/threat-check.mjs`, in Node, HedgeFund 0.2 Lite at 512 visits, the Lite review's
+depth): the meaf.us archive's human games as the engine repository analysed them, the first 2 of each rating band
+from 1 to 5 that the rules ended with 120 edges, 10 games. At two positions of every 8 from edge 4 to edge 112, a
+turn's middle and a turn's start: 270 positions, 130 at a turn's start and 140 in a turn's middle, each with the
+position after its pass. The archive's games stay internal: the script prints counts, and these are counts.
+
+| Positions | Count | Median cost | Median points | Cost under 0 | Cost 0.10 or more | Closes area | Cuts | Neither |
+|---|---|---|---|---|---|---|---|---|
+| All | 270 | 1.4% | 171.7 | 5 | 108 | 146 | 93 | 31 |
+| Turn start | 130 | 1.6% | 235.5 | 4 | 55 | 66 | 46 | 18 |
+| Turn middle | 140 | 1.2% | 131.9 | 1 | 53 | 80 | 47 | 13 |
+| Edges 0 to 39 | 80 | 41.4% | 297.7 | 0 | 68 | 37 | 33 | 10 |
+| Edges 40 to 79 | 100 | 1.3% | 168.2 | 1 | 32 | 54 | 35 | 11 |
+| Edges 80 to 112 | 90 | 0.0% | 107.3 | 4 | 8 | 55 | 25 | 10 |
+
+The cost is the mover's win chance now less after the pass, and the points are the lead's. "Closes area" and "Cuts":
+what the threat's turn does on the board when the rules play it.
+
+- **The threat is never a gain beyond the search's noise.** A pass cannot be better than the best edge. 5 of 270
+  threats cost less than 0: one −1.9%, four that round to −0.0%, all but one after edge 80, where the game is decided.
+- **Its size follows the game:** large while the game is open (a median of 41% of win chance before edge 40), small
+  in the middle game, and 0 once the win chance has saturated. There the points still give it: a median of 107
+  points after edge 80. A turn's start, where the pass forfeits two edges, costs more points than a turn's middle,
+  where it forfeits one (235.5 against 131.9).
+- **The threat does something on the board:** 239 of 270 threats close area or cut an edge. In the 31 others the
+  value still changes, as a turn that builds toward a close does.
+- **The network reads the positions after a pass no worse than the others.** Its own value (a search of 1 visit)
+  differs from the 512-visit search by a median of 0.000 of win chance after the passes and 0.003 at the positions,
+  and before edge 40 by 0.007 after the passes and 0.055 at the positions. A first run on 5 games, at turns' middles
+  alone (140 positions), gave 0.013 after the passes and 0.006 at the positions: twice as large, and still small. The
+  search corrects the network in both.
+- **The opponent seldom played the threat's first edge next:** in 37 of the 270 positions (13.7%), and for 13 of the
+  108 threats of 0.10 or more. The mover's own edges come between, and they change the position: a mover who answers
+  a threat removes it. Where the mover lost 0.10 or more in the game, the opponent played the threat's first edge in
+  3 of 37. This count does not test the threat.
+
+**The reading of the threats.** The run's threats, read one by one (the script's `--show`, not kept), read right. A
+large threat is a close of an open region, often of 15 to 50 points of area, or a cut that opens a wall. In a decided
+game, a close of 49.5 points of area cost 0.1% of win chance, and the opponent played it next. The large costs before
+edge 40 come from weak players' games, where the engine's win chance swings steeply.
+
+**Built:** the switch and the key x on the review and on the Analysis board, the header's values after the pass and
+the threat's size, the threat's line on the board in the opponent's colour, the area map along it, the threat in a
+snapshot from the store alone. Checked in headless Chromium on the test fixture's review and on the Analysis board,
+at a turn's start and in its middle, light and dark, at 1,366 and 390 pixels: no page error, no horizontal scroll. The
+layout sweep in Chromium passes (25 tests, 5 skipped).

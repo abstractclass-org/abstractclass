@@ -50,11 +50,14 @@ const SLICE_VISITS = 32;
 // analysis runs the review again.
 export const BATCH_MS = 100;
 // A branch edge's evaluation, asked for in its menu, comes after the position on screen and before the rest. The
-// ownership that the board shows comes just after the position on screen (askOwnership).
-const PRIORITY = { focus: 10, ownership: 9, judge: 7, label: 2, sweep: 1, mapPass: 0 };
+// ownership that the board shows comes just after the position on screen (askOwnership), and the threat after it
+// (askThreat): it gives way to the search of the player's own position.
+const PRIORITY = { focus: 10, ownership: 9, threat: 8, judge: 7, label: 2, sweep: 1, mapPass: 0 };
 
 /** The state of a position's map (GameAnalysis.mapState). */
 export type MapState = "ready" | "searching" | "waiting" | "none" | "unavailable" | "unasked";
+/** The state of a position's threat (GameAnalysis.threatState): as a map's, and `off` while the engine is off. */
+export type ThreatState = "ready" | "searching" | "waiting" | "off" | "none" | "unavailable" | "unasked";
 
 /** A position in a branch: the board, the move that led to it, its analysis once searched, its place among the
  *  branches from its parent (the lower first), and whether the player asked for the move's quality. */
@@ -119,6 +122,17 @@ export class GameAnalysis<G extends GameTypes> {
   private mapPassRun = 0; // the map pass's number: the tasks of a stopped pass, which can end later, touch no other
   private mapless = $state.raw(new Set<string>()); // the positions of a line that the engine did not search: an ended game
   private ownershipWanted = new Set<string>(); // the positions asked for last: a search queued for another one is skipped
+  // The threat (askThreat, Lichess's "Show threat"): the position that the page asked for last, and the search of the
+  // position after its pass while it waits or runs, by that position's path key. A new threat makes every earlier
+  // threat's search stale.
+  private threatAsked: string[] | null = null;
+  private threatWork = $state.raw<{ key: string; state: "waiting" | "searching" } | null>(null);
+  private stopThreat: (() => void) | null = null;
+  private threatGeneration = 0;
+  // The positions after a pass, from the rules, by path key: where the pass ends the game, the engine searches none.
+  // A snapshot's threats that the store lacks cannot come.
+  private passed = $state.raw<Record<string, G["position"]>>({});
+  private unstoredThreats = $state.raw(new Set<string>());
   private era = 0; // another network starts a new era: results from an earlier one are dropped
   private pool: EnginePool;
   private stalePool = false; // the pool still has the old network: from dropAnalysis until usePool gives the next pool
@@ -748,6 +762,7 @@ export class GameAnalysis<G extends GameTypes> {
         this.mapWork = Object.fromEntries(Object.entries(this.mapWork).filter(([, work]) => !work.task.pass));
       }
       this.dropFocus();
+      this.dropThreat();
       this.pool.halt();
     } else if (this.engineReady) {
       void this.sweep();
@@ -770,6 +785,8 @@ export class GameAnalysis<G extends GameTypes> {
     this.focusVisits = visits;
     this.focusSeconds = seconds;
     this.dropFocus();
+    this.dropThreat();
+    this.askThreat(this.threatAsked); // the threat is searched as the position on screen is
   }
 
   /** Drops the analysis before another network takes over: every result came from the old one. The searches and the
@@ -780,6 +797,7 @@ export class GameAnalysis<G extends GameTypes> {
     this.passes++;
     this.stalePool = true;
     this.dropFocus();
+    this.dropThreat();
     this.pool.halt();
     this.engineReady = false;
     // The batch ends with the era: its results are dropped, and what waits for them runs now, before the reset below.
@@ -791,6 +809,7 @@ export class GameAnalysis<G extends GameTypes> {
     this.ownership = {};
     this.mapless = new Set();
     this.mapWork = {};
+    this.unstoredThreats = new Set();
     this.endPass();
     this.stored = {};
     this.timed = {};
@@ -848,10 +867,11 @@ export class GameAnalysis<G extends GameTypes> {
   /** Whether the engine can take no search now: its network is not ready, it is off, or its pool is an old network's. */
   private get idle() { return !this.engineReady || this.paused || this.stalePool; }
 
-  /** Does again what the page asked for last: its maps, and the map pass. Once the engine is ready or on again, and
-   *  for a map that its task gave up. */
+  /** Does again what the page asked for last: its maps, the threat and the map pass. Once the engine is ready or on
+   *  again, and for a map that its task gave up. */
   private askAgain() {
     this.askOwnership(this.askedPaths);
+    this.askThreat(this.threatAsked);
     if (this.passWanted.on) this.passMaps(true, this.passWanted.from);
   }
 
@@ -912,10 +932,13 @@ export class GameAnalysis<G extends GameTypes> {
   private mapAfterSearch(path: string[]) {
     if (this.ownershipWanted.has(pathKey(path)) && !this.mapAt(path)) this.askOwnership(this.askedPaths);
   }
-  /** Whether a position of the tree that has no result yet gets one from a search of its own, with its ownership: the
-   *  position on screen's (focus), one that runs, or a pass of the review that is still to search it (pending). */
+  /** Whether a position that has no result yet gets one from a search of its own, with its ownership: in the tree, the
+   *  position on screen's (focus), one that runs, or a pass of the review that is still to search it (pending). Off
+   *  the tree, the threat's position, while its search waits or runs (askThreat). */
   private ownSearchComes(path: string[]) {
-    return this.known(path) && !this.analysisOf(path) && (this.focusing === pathKey(path) || this.pending(path));
+    if (this.analysisOf(path)) return false;
+    if (!this.known(path)) return this.threatWork?.key === pathKey(path);
+    return this.focusing === pathKey(path) || this.pending(path);
   }
 
   /** The map pass (Hedge School's design 30): while the area map is on (`on`), once the review's passes are done, the
@@ -1012,6 +1035,83 @@ export class GameAnalysis<G extends GameTypes> {
       });
   }
 
+  /** The path of the position after a pass by the side to move at `path`: the threat's position. */
+  private passPath(path: string[]) { return [...path, this.game.moveName(null)]; }
+
+  /** The threat at `path` (Lichess's "Show threat"): the analysis of the position after a pass by the side to move.
+   *  Its first choice's line is the opponent's best turn if the player does nothing. */
+  threatAt(path: string[]): Analysis<G["move"]> | undefined { return this.analysisOf(this.passPath(path)); }
+  /** The position after the pass at `path`, from the rules, once askThreat has asked them. */
+  passedAt(path: string[]): G["position"] | undefined { return this.passed[pathKey(this.passPath(path))]; }
+
+  /** Searches the threat at `path` (threatAt), or none (null). The threat's position is the position after a pass,
+   *  searched as the position on screen is (focus): to the focus settings' visits or time limit, in slices that show
+   *  their results as they come, at a lower priority, so that it gives way to the search of the player's own position.
+   *  It is a position one move from the tree, kept and read as the others are: a stored result as deep is read and not
+   *  searched again (search), and the store keeps it while it keeps the position before it (Hedge School's design 20,
+   *  item 8). Where the pass ends the game, there is no threat, and the rules say so before any search. A snapshot
+   *  reads it from the store alone (freeze). The engine on again or ready asks for it again (askAgain), and so does a
+   *  change of the focus settings (setDepth). */
+  askThreat(path: string[] | null) {
+    const at = path && this.passPath(path), key = at && pathKey(at);
+    this.threatAsked = path;
+    if (key !== null && this.threatWork?.key === key) return; // its search waits or runs
+    const generation = this.dropThreat();
+    if (!path || !at || key === null || (this.known(path) && !this.searchable(path))) return;
+    if (this.frozen) { this.readThreat(at, this.frozen); return; }
+    if (this.idle) return;
+    const visits = this.focusVisits, seconds = this.focusSeconds, settings = `${visits} ${seconds}`;
+    if ((this.analysisOf(at)?.visits ?? 0) >= visits || this.timed[key] === settings) return;
+    const wanted = () => generation === this.threatGeneration;
+    this.threatWork = { key, state: "waiting" };
+    void (async () => {
+      if (!this.passed[key]) {
+        const fields = (await this.pool.rules.describeGame<G["fields"]>(this.query(at), at.length)).reply.positions[0];
+        this.passed = { ...this.passed, [key]: this.game.position(fields) };
+      }
+      if (!wanted() || this.passed[key].over) return;
+      await this.search(at, visits, PRIORITY.threat, "threat", {
+        sliced: true, seconds, wanted,
+        ontime: () => { this.timed = { ...this.timed, [key]: settings }; },
+        onrun: stop => { if (wanted()) { this.stopThreat = stop; this.threatWork = { key, state: "searching" }; } },
+      });
+    })()
+      .catch(this.fail)
+      .finally(() => this.afterBatch(() => { if (wanted()) { this.threatWork = null; this.stopThreat = null; } }));
+  }
+  /** A snapshot's threat (freeze), read from the store with the snapshot's search and network file, at the depths that
+   *  a snapshot reads (cacheGetAtLeast from the sweep's, as fromStore). */
+  private readThreat(at: string[], { search, model }: { search: string; model: string }) {
+    const key = pathKey(at);
+    if (this.analysisOf(at) || this.unstoredThreats.has(key)) return;
+    void cacheGetAtLeast<Analysis<G["move"]>>(search, model, this.keyMovesOf(at), SWEEP_VISITS).then(a => {
+      if (a) this.keep(at, a);
+      else this.unstoredThreats = new Set(this.unstoredThreats).add(key);
+    }, () => {});
+  }
+  /** The state of the threat at `path`, for the engine header: its search runs (`searching`) or waits for the engine
+   *  (`waiting`: behind other searches, or until the network has loaded), its result is there (`ready`), the engine is
+   *  off with no result (`off`), none can come (`none`: the game ends there or with the pass, `unavailable`: a
+   *  snapshot's threat that the store lacks), or nothing asks for it (`unasked`). */
+  threatState(path: string[]): ThreatState {
+    const at = this.passPath(path), key = pathKey(at);
+    if (this.threatWork?.key === key) return this.threatWork.state;
+    if ((this.known(path) && !this.searchable(path)) || this.passed[key]?.over) return "none";
+    if (this.analysisOf(at)) return "ready";
+    if (this.frozen) return this.unstoredThreats.has(key) ? "unavailable" : "unasked";
+    if (this.paused) return "off";
+    return this.idle && this.threatAsked && pathKey(this.threatAsked) === pathKey(path) ? "waiting" : "unasked";
+  }
+  /** Ends the threat's search: an earlier threat is stale. Stops its search if it runs, and drops it if it waits. */
+  private dropThreat() {
+    const generation = ++this.threatGeneration;
+    this.stopThreat?.();
+    this.stopThreat = null;
+    this.pool.cancel(t => t === "threat");
+    this.threatWork = null;
+    return generation;
+  }
+
   /** Ends the focus: an earlier focus is stale. Stops its search if it runs, and drops it if it waits. A search still
    *  reading the cache reaches the queue only after this, so it also checks its generation before it starts. */
   private dropFocus() {
@@ -1043,11 +1143,13 @@ export class GameAnalysis<G extends GameTypes> {
    *  never get.
    *  Options: `sliced` searches in slices, which show their results as they come and can stop; `seconds` is a sliced
    *  search's time limit, and `ontime` runs when it stops there. `early` shows the result at that many visits too
-   *  (slices of that size, which do not stop), so that a deep label search shows a label from 256 visits on. */
+   *  (slices of that size, which do not stop), so that a deep label search shows a label from 256 visits on. `onrun`
+   *  runs each time that an engine starts the search, with the search's stop. */
   private async search(path: string[], visits: number, priority: number, tag: string, options: {
     sliced?: boolean; wanted?: () => boolean; seconds?: number | null; ontime?: () => void; early?: number;
+    onrun?: (stop: () => void) => void;
   } = {}): Promise<void> {
-    const { sliced = false, wanted = () => true, seconds = null, ontime, early } = options;
+    const { sliced = false, wanted = () => true, seconds = null, ontime, early, onrun } = options;
     const slice = sliced ? SLICE_VISITS : early && early < visits ? early : null;
     const era = this.era, pool = this.pool, query = this.query(path), keyed = this.keyMovesOf(path);
     const key = analysisKey(pool.search!, pool.model!.sha256, keyed, visits);
@@ -1072,6 +1174,7 @@ export class GameAnalysis<G extends GameTypes> {
                                  sliced && seconds !== null ? seconds * 1000 : undefined);
       if (sliced) onStop(run.stop); // the pool may stop it to give way, and runs it again later
       if (tag === "focus") this.stopFocus = run.stop;
+      onrun?.(run.stop);
       const shown = run.done.then(async t => {
         const a = toAnalysis(this.game, t.reply), final = !t.reply.terminated && a.visits >= visits;
         if (era !== this.era) return;

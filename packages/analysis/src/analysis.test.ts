@@ -10,7 +10,7 @@
 import { afterEach, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
 import "./testing/svelteModules.ts";
-import type { AnalysisQuery, AnalysisReply } from "@abstractclass/engine/protocol.ts";
+import type { AnalysisQuery, AnalysisReply, PositionQuery } from "@abstractclass/engine/protocol.ts";
 import { Cancelled, type EnginePool, type Work } from "@abstractclass/engine/pool.ts";
 import { BOARD_ID } from "./kept.ts";
 import { reply, wordFields, wordRules, words } from "./testing/game.ts";
@@ -765,7 +765,7 @@ async function focusing() {
   game.setDepth(4096, 2);
   game.focus([]);
   await settle();
-  return { game, searches };
+  return { game, pool, searches };
 }
 
 test("a focus gives its time limit to the engine, and a search that the limit ended shows as stopped there", async () => {
@@ -998,4 +998,98 @@ test("a move that looks like the only good move in the shallower result that sho
   // At the label budget it asks for the earlier position, as before.
   game.analysis = [at(0.5), undefined, at(0.6, only, 512), at(0.6), at(0.6)];
   assert.deepEqual([(await asked()).includes("a"), game.awaitsGreat("a b x")], [true, true]);
+});
+
+test("the threat: a search of the position after a pass, to the focus's visits and time limit, shown as it comes", async () => {
+  const { game, searches } = await focusing();
+  game.askThreat(["a"]);
+  await settle();
+  const threat = searches.find(s => s.moves.join(" ") === "a pass")!;
+  assert.deepEqual([threat.query.maxVisits, threat.maxMs, game.threatState(["a"])], [4096, 2000, "searching"]);
+  threat.partial(32);
+  await turns();
+  mock.timers.tick(BATCH_MS);
+  assert.deepEqual([game.threatAt(["a"])?.visits, game.threatState(["a"])], [32, "searching"]);
+  threat.end(4096);
+  await turns();
+  mock.timers.tick(BATCH_MS);
+  assert.deepEqual([game.threatAt(["a"])?.visits, game.threatState(["a"])], [4096, "ready"]);
+});
+
+test("the threat gives way to the search of the player's own position, and another position's threat replaces it", async () => {
+  const { pool, searches } = fakePool(1);
+  const game = new GameAnalysis(words, pool, MOVES, BOARD_ID);
+  await game.start();
+  await game.sweep();
+  game.setDepth(1024, null);
+  game.askThreat(["a"]); // asked first, searched after the focus
+  game.focus(["a"]);
+  await turns();
+  assert.deepEqual([searches.map(s => s.moves.join(" ")), game.threatState(["a"])], [["a"], "waiting"]);
+  game.askThreat(["a", "b"]);
+  searches[0].end(1024);
+  await turns();
+  mock.timers.tick(BATCH_MS);
+  assert.deepEqual(searches.map(s => s.moves.join(" ")), ["a", "a b pass"]);
+  assert.deepEqual([game.threatState(["a"]), game.threatState(["a", "b"])], ["unasked", "searching"]);
+});
+
+test("a stored threat is read, not searched again, and a snapshot reads its threats from the store alone", async () => {
+  const { game, pool, searches } = await focusing();
+  await cachePut(analysisKey(pool.search!, pool.model!.sha256, ["a", "pass"], 4096), toAnalysis(words, reply(4096)));
+  game.askThreat(["a"]);
+  await turns();
+  mock.timers.tick(BATCH_MS);
+  assert.deepEqual([searches.length, game.threatAt(["a"])?.visits, game.threatState(["a"])], [1, 4096, "ready"]);
+  const frozen = new GameAnalysis(words, pool, MOVES, "g-threat");
+  await frozen.start();
+  frozen.freeze(pool.search!, pool.model!.sha256);
+  frozen.askThreat(["a"]);
+  frozen.askThreat(["a", "b"]);
+  await turns();
+  assert.deepEqual([frozen.threatAt(["a"])?.visits, frozen.threatState(["a"]), frozen.threatState(["a", "b"]), searches.length],
+                   [4096, "ready", "unavailable", 1]);
+});
+
+test("where the pass ends the game there is no threat, and no search", async () => {
+  const { pool, searches } = fakePool();
+  // The rules of a game that a pass ends
+  const describeGame = async (q: PositionQuery) => (q.moves.at(-1) === "pass"
+    ? { reply: { positions: [wordFields(q.moves.length, true)] } } : wordRules.describeGame(q));
+  Object.assign(pool, { rules: { describeGame } });
+  const game = new GameAnalysis(words, pool, MOVES, BOARD_ID);
+  await game.start();
+  await game.sweep();
+  game.askThreat(["a"]);
+  await turns();
+  mock.timers.tick(BATCH_MS);
+  assert.deepEqual([searches.length, game.threatState(["a"])], [0, "none"]);
+});
+
+test("the engine off stops the threat's search, and the engine on searches it again", async () => {
+  const { game, searches } = await focusing();
+  game.askThreat(["a"]);
+  await turns();
+  game.setPaused(true);
+  assert.equal(searches[1].stopped, true);
+  searches[1].end(64);
+  await turns();
+  mock.timers.tick(BATCH_MS);
+  assert.equal(game.threatState(["a"]), "ready"); // its result so far stays
+  game.setPaused(false);
+  await turns();
+  assert.deepEqual([searches.length, searches[2]?.moves.join(" "), game.threatState(["a"])], [3, "a pass", "searching"]);
+});
+
+test("the map of the threat's position waits for the threat's search, which brings it, and gets no short search", async () => {
+  const { game, searches } = await focusing();
+  game.askThreat(["a"]);
+  await turns();
+  game.askOwnership([["a", "pass"]]);
+  await turns();
+  assert.deepEqual([searches.length, game.mapState(["a", "pass"])], [2, "waiting"]);
+  searches[1].end(4096, false, { ownership: [0.5] });
+  await turns();
+  mock.timers.tick(BATCH_MS);
+  assert.deepEqual([searches.length, game.mapState(["a", "pass"])], [2, "ready"]);
 });

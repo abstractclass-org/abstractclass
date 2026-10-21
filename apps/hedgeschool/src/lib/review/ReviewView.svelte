@@ -8,9 +8,9 @@
   import StepBar from "#lib/ui/StepBar.svelte";
   import { pageScrollTop } from "#lib/pageScroll.ts";
   import { MOVE_HERE, MOVE_HOVER, MOVE_LIST, MOVE_TEXT, TURN_NUMBER, TURN_REM, keepInView, moveButton, turnRow } from "./moveList.ts";
-  import { PLAYER_NAME, chartMarks, listed, type Analysis, type BranchNode, type Edge, type LineStep, type Player } from "./enclosure.ts";
+  import { PLAYER_NAME, chartMarks, listed, type Analysis, type BranchNode, type Edge, type LineStep, type Player, type Position } from "./enclosure.ts";
   import type { EdgeRules } from "#lib/board/edgeInput.svelte.ts";
-  import type { MapState } from "@abstractclass/analysis/analysis.svelte.ts";
+  import type { MapState, ThreatState } from "@abstractclass/analysis/analysis.svelte.ts";
 
   /** The review in progress: what the engine does now, and the passes as parts of one bar, each with its share of the
    *  work (by visits) and how much of it is done (0 to 1). `waiting`: no work runs (the engine is off). `maps`: the
@@ -53,6 +53,11 @@
     passCount: number; // the positions that the review's passes search
     // Adds a map to these positions where they have none, in their order: of the tree, or of a line from it
     askOwnership(paths: string[][]): void;
+    // The threat (Lichess's "Show threat"): the search of the position after a pass by the side to move here, or none
+    askThreat(path: string[] | null): void;
+    threatAt(path: string[]): Analysis | undefined; // the analysis of the position after the pass
+    passedAt(path: string[]): Position | undefined; // the position after the pass, from the rules
+    threatState(path: string[]): ThreatState; // its search runs, waits, is done, or cannot come
   }
 
   // The numbers' formats, made once: a formatter is costly to make, and the move list and the tables format many numbers
@@ -131,7 +136,7 @@
   import { errorText } from "@abstractclass/engine/errors.ts";
   import Toast from "#lib/ui/Toast.svelte";
   import {
-    edgeName, endingText, fmtScore, moveName, moveNotation, opensTurn, turnFromCount, sameEdge, shortNote, turnShortNote, HARD_NOTE, complexity, isHard, turnComplexity, likelyEdges, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchEdge, valuesAfter, resultWin, moverWin, costText, pct, shownCandidates, distinctCandidates, rankOf, twinsOf, lineMovers, enoughVisits, trustedLine, type Candidate, type EdgeReview, LABELS, LABEL_TEXT, LABEL_GLYPH, type Label, type Position, type Review, type Unit, type Move, type TurnJudgment, type TurnReview,
+    edgeName, endingText, fmtScore, moveName, moveNotation, opensTurn, turnFromCount, sameEdge, shortNote, turnShortNote, HARD_NOTE, complexity, isHard, turnComplexity, likelyEdges, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchEdge, valuesAfter, resultWin, moverWin, moverScore, costText, pct, shownCandidates, distinctCandidates, rankOf, twinsOf, lineMovers, enoughVisits, trustedLine, type Candidate, type EdgeReview, LABELS, LABEL_TEXT, LABEL_GLYPH, type Label, type Review, type Unit, type Move, type TurnJudgment, type TurnReview,
   } from "./enclosure.ts";
   import { branchChildren, branchLine, branchRows, mainIndex, nextFork, pathKey, prefixKeys, prevFork, sharedLength, siblingLine, treeLines, withLine,
            type BranchRow } from "@abstractclass/analysis/tree.ts";
@@ -427,10 +432,49 @@
   // of the pinned one.
   const lineEdges = $derived(listHover !== null && listLine ? listLine.slice(0, listHover + 1)
     : hoverCandidate ? trusted(hoverCandidate) : pinnedCandidate ? trusted(pinnedCandidate) : null);
+
+  // The threat (Lichess's "Show threat", its key x, the engine header's switch): the engine searches the position after
+  // a pass by the side to move (GameAnalysis.askThreat), and the board draws the opponent's best turn from there, as it
+  // draws the engine's line, in the opponent's colour. At a turn's start the pass forfeits the whole turn, and in its
+  // middle the turn's second edge. The header shows the position's values after the pass, and what the pass costs the
+  // player, in the units of a move's loss (design 10). A candidate pointed at or pinned shows its own line in its place.
+  // For the visit only, as on Lichess.
+  let threatOn = $state(false);
+  function toggleThreat() {
+    threatOn = !threatOn;
+    if (threatOn) used("threat shown");
+  }
+  const threatPath = $derived([...path, "pass"]);
+  $effect(() => {
+    const p = threatOn ? (here ? here.split(" ") : []) : null;
+    untrack(() => game?.askThreat(p));
+  });
+  const threat = $derived(threatOn ? game?.threatAt(path) : undefined);
+  const threatState = $derived<ThreatState | null>(threatOn && game ? game.threatState(path) : null);
+  const passed = $derived(threatOn ? game?.passedAt(path) : undefined); // the position after the pass
+  // The threat's line: the first choice's line after the pass as far as the search trusts it, and only the opponent's
+  // turn: what the opponent plays if the player does nothing.
+  const threatEdges = $derived.by((): Edge[] | null => {
+    const first = threat?.candidates[0], from = passed;
+    if (!first || !from) return null;
+    const edges = trustedLine(first), next = lineMovers(from, edges.length).findIndex(p => p !== from.player);
+    const turn = next < 0 ? edges : edges.slice(0, next);
+    return turn.length ? turn : [first.edge];
+  });
+  // What the pass costs the player: the position's value less the value after the pass, from the player's side, in win
+  // chance and in points (the lead), as a move's loss (design 10).
+  const threatCost = $derived(analysis && threat ? {
+    win: moverWin(analysis.blueWin, mover) - moverWin(threat.blueWin, mover),
+    points: analysis.lead !== undefined && threat.lead !== undefined ? moverScore(analysis.lead, mover) - moverScore(threat.lead, mover) : undefined,
+  } : null);
+  // The board shows the threat while no candidate's line shows
+  const threatShown = $derived(!lineEdges && !!threatEdges);
   const line = $derived.by((): BoardLineEdge[] | null => {
-    if (!lineEdges) return null;
-    const movers = lineMovers(position, lineEdges.length);
-    return lineEdges.map((edge, i) => ({ edge, player: movers[i], ...stepsNow?.[i] }));
+    if (lineEdges) {
+      const movers = lineMovers(position, lineEdges.length);
+      return lineEdges.map((edge, i) => ({ edge, player: movers[i], ...stepsNow?.[i] }));
+    }
+    return threatEdges && passed ? threatEdges.map((edge, i) => ({ edge, player: passed.player, ...stepsNow?.[i] })) : null;
   });
 
   // The listed line's edges played, from the engine's rules, asked once for each line: the edge each one cuts, and the
@@ -457,25 +501,38 @@
       else askSteps(path, listLine!);
     });
   });
-  // The steps of a line from here, as far as it matches the line whose steps came. The search can lengthen or change a
-  // line while it shows: until the new line's steps come, the steps of the edges it shares with the line before stay.
-  function stepsOf(edges: Edge[] | null): LineStep[] | null {
-    const had = lineStepsHad;
+  // The threat's steps, from the position after the pass, kept in the same way
+  let threatStepsHad = $state<{ at: string; edges: Edge[]; steps: LineStep[] } | null>(null);
+  const threatKey = $derived(threatEdges ? lineKey(threatPath, threatEdges) : null);
+  $effect(() => {
+    const key = threatKey, steps = key ? stepsByLine[key] : undefined;
+    if (!key) return;
+    untrack(() => {
+      if (steps) threatStepsHad = { at: here, edges: threatEdges!, steps };
+      else askSteps(threatPath, threatEdges!);
+    });
+  });
+  // The steps of a line from here, as far as it matches the line whose steps came (`had`). The search can lengthen or
+  // change a line while it shows: until the new line's steps come, the steps of the edges it shares with the line
+  // before stay.
+  function stepsOf(edges: Edge[] | null, had = lineStepsHad): LineStep[] | null {
     if (!edges || !had || had.at !== here) return null;
     let k = 0;
     while (k < edges.length && k < had.edges.length && sameEdge(edges[k], had.edges[k])) k++;
     return had.steps.slice(0, k);
   }
-  const stepsNow = $derived(stepsOf(lineEdges));
+  const stepsNow = $derived(lineEdges ? stepsOf(lineEdges) : stepsOf(threatEdges, threatStepsHad));
   const listSteps = $derived(stepsOf(listLine));
 
   // The line as far as drawn (lineDrawing.svelte.ts): one edge at a time (the default, a display setting), or all at
   // once. Pointing at another candidate draws its line again; a line that the search lengthens goes on from the edges
   // drawn. Its edges as one string, so that the drawing goes on while the search sends the same line again.
-  const lineText = $derived(lineEdges ? lineEdges.map(edgeName).join(" ") : null);
+  // The threat's line is drawn from the position after the pass.
+  const lineText = $derived(line ? line.map(e => edgeName(e.edge)).join(" ") : null);
+  const lineStart = $derived(lineEdges ? here : pathKey(threatPath));
   const lineDrawing = new LineDrawing();
   // The line pointed at in the list shows at once, as far as the edge pointed at.
-  $effect(() => lineDrawing.draw(lineText === null ? null : here, lineText ? lineText.split(" ") : [],
+  $effect(() => lineDrawing.draw(lineText === null ? null : lineStart, lineText ? lineText.split(" ") : [],
                                  !display.lineSteps || listHover !== null));
   const drawnLine = $derived(line && line.slice(0, Math.max(1, lineDrawing.shown)));
 
@@ -599,13 +656,16 @@
   // The review's own work runs: its counts are partial. The map pass, after it, leaves them final.
   const reviewRuns = $derived(!!progress && !progress.maps);
   // The line that the board draws, from its start: its edges, the ones drawn so far, and how the legend names it
-  type MapLine = { kind: "here" | "line" | "branch" | "move"; start: string[]; from: Position; all: BoardLineEdge[]; drawn: BoardLineEdge[] };
+  // The threat's line starts after the pass, whose position is the board's own with the opponent to move.
+  type MapLine = { kind: "here" | "line" | "threat" | "branch" | "move"; start: string[]; from: Position; all: BoardLineEdge[];
+                   drawn: BoardLineEdge[] };
   const mapLine = $derived.by((): MapLine => {
     if (branchPreview && previewLine)
       return { kind: preview?.kind === "engine" ? "line" : "branch", start: branchPreview.start, from: branchPreview.from,
                all: branchPreview.edges, drawn: previewLine };
     if (movePreview) return { kind: "move", start: mainNames.slice(0, movePreview.index + 1), from: movePreview.position, all: [], drawn: [] };
-    if (line && drawnLine) return { kind: "line", start: path, from: position, all: line, drawn: drawnLine };
+    if (line && drawnLine) return threatShown ? { kind: "threat", start: threatPath, from: position, all: line, drawn: drawnLine }
+      : { kind: "line", start: path, from: position, all: line, drawn: drawnLine };
     return { kind: "here", start: path, from: position, all: [], drawn: [] };
   });
   /** The path of the line's position after its edge `j` (0: its start). */
@@ -622,11 +682,14 @@
   const mapBoard = $derived(shownStep === null ? null : drawnBoard(mapLine.from, mapLine.drawn.slice(0, shownStep)));
   // The difference style (KaTrain's loss grid, with the rises): two forecasts, before and after. While a line or a
   // branch's preview shows, its start against the step shown, for the player to move at its start. Else the last move
-  // to the position shown, by the labels' unit (the turn that ends there, so far, or the edge), for its player.
+  // to the position shown, by the labels' unit (the turn that ends there, so far, or the edge), for its player. The
+  // threat: the position before the pass against the step shown, for the player who passes, so that the map shows where
+  // the forecast falls if the player passes.
   type DiffBase = { before: string[]; mover: Player; played: boolean };
   const diffBase = $derived.by((): DiffBase | null => {
     if (display.mapStyle !== "difference") return null;
     const l = mapLine;
+    if (l.kind === "threat") return { before: path, mover: position.player, played: false };
     if (l.kind === "line" || l.kind === "branch") return { before: l.start, mover: l.from.player, played: false };
     const p = l.start, mover = p.length ? positionOf(p.slice(0, -1))?.player : undefined;
     if (mover === undefined) return null;
@@ -649,17 +712,20 @@
   });
   $effect(() => {
     const l = mapLine, d = diffBase;
-    const paths = mapOn ? [...askOrder(drawnCount, l.all.length).map(j => stepPath(l, j)), ...(d?.played ? [d.before] : [])] : [];
+    const before = d && (d.played || l.kind === "threat") ? [d.before] : []; // else the line's start, its step 0
+    const paths = mapOn ? [...askOrder(drawnCount, l.all.length).map(j => stepPath(l, j)), ...before] : [];
     untrack(() => game?.askOwnership(paths));
   });
   /** The legend's name of the position after the line's edge `j`: none for the position on screen. */
   function stepName(l: MapLine, j: number): string {
     if (l.kind === "move") return `After ${moveText(l.start.length - 1)}`;
     if (l.kind === "here") return "";
+    if (l.kind === "threat") return j ? `After edge ${j} of the threat` : "After the pass";
     return j ? `After edge ${j} of the ${l.kind}` : `Before the ${l.kind}`;
   }
   /** The difference style's name of its two positions: the move or the turn, or the line's step against its start. */
   function diffName(l: MapLine, j: number, d: DiffBase): string {
+    if (l.kind === "threat") return `${stepName(l, j)} vs before the pass`;
     if (!d.played) return j ? `${stepName(l, j)} vs before the ${l.kind}` : stepName(l, j);
     const p = l.start, from = moveFrom(p.slice(0, -1));
     return unit === "turn" ? `After turn ${from.turn} vs before it` : `After ${turnText(from)} ${p.at(-1)} vs before it`;
@@ -699,8 +765,9 @@
     if (n) {
       const states = Array.from({ length: n }, (_, k) => stateOf(stepPath(l, k + 1)));
       const done = states.filter(st => st === "ready" || st === "none").length;
-      // In the difference style, the line's start too: its map is the forecast before
-      return { text: `Maps of the line: ${done} of ${n}`, busy: states.some(working) || (!!diffBase && working(stateOf(l.start))) };
+      // In the difference style, the forecast before too: the line's start, or the position before the threat's pass
+      return { text: `Maps of the ${l.kind === "threat" ? "threat" : "line"}: ${done} of ${n}`,
+               busy: states.some(working) || (!!diffBase && working(stateOf(diffBase.before))) };
     }
     // The difference style at the game's start: no move comes before it
     if (display.mapStyle === "difference" && !diffBase) return { text: "No map: the game starts here", busy: false };
@@ -991,9 +1058,9 @@
   // other analysis tools. ← and → along the line (k and j, Lichess's); at a fork ↑ and ↓ pick the line that → follows,
   // elsewhere they go to the start and the end; the previous and the next fork by Shift + ← and →, b and n (KaTrain's b
   // goes back to the last branch point), [ and ], or Shift + k and j (Lichess's); the line before and after this one by
-  // Shift + ↑ and ↓, x and c (En Croissant's), or comma and period; Space plays the engine's choice; e or l turns the
-  // engine on or off (l is Lichess's; e, for "engine", is the site's own: Lichess's e opens its opening explorer, which
-  // this site does not have). Escape closes the settings, or cancels the edge that the player started. Keys kept free
+  // Shift + ↑ and ↓, or comma and period; Space plays the engine's choice; e or l turns the engine on or off (l is
+  // Lichess's; e, for "engine", is the site's own: Lichess's e opens its opening explorer, which this site does not
+  // have); x shows or hides the threat (Lichess's). Escape closes the settings, or cancels the edge that the player started. Keys kept free
   // for later: m and Shift + m (the next and the previous mistake, KaTrain's n), and Delete. The controls' notes name no
   // keys: the list does.
   let keysOpen = $state(false);
@@ -1020,10 +1087,11 @@
     else if ((key === "e" || key === "l") && engine && onengine) { if (snapshot) nudge(); else onengine({ on: !engine.on }); }
     else if (key === "t" && shift) nextMapStyle();
     else if (key === "t") toggleMap(); // KaTrain's key for its Territory
+    else if (key === "x") toggleThreat(); // Lichess's key for its "Show threat"
     else if ((key === "ArrowLeft" && shift) || key === "b" || key === "[" || (key === "k" && shift)) setPath(prevFork(path, childrenOf));
     else if ((key === "ArrowRight" && shift) || key === "n" || key === "]" || (key === "j" && shift)) setPath(nextFork(path, childrenOf));
-    else if ((key === "ArrowUp" && shift) || key === "x" || key === ",") line(-1);
-    else if ((key === "ArrowDown" && shift) || key === "c" || key === ".") line(1);
+    else if ((key === "ArrowUp" && shift) || key === ",") line(-1);
+    else if ((key === "ArrowDown" && shift) || key === ".") line(1);
     else if (key === "ArrowLeft" || key === "k") back();
     else if (key === "ArrowRight" || key === "j") forward();
     else if (key === "ArrowUp" || key === "ArrowDown") {
@@ -1043,10 +1111,11 @@
     [["← / →", "k / j"], "Back and forward along the line on screen"],
     [["↑ / ↓"], "At a fork, pick the line that → follows. Elsewhere, the start and the line's end"],
     [["Shift + ← / →", "b / n", "[ / ]", "Shift + k / j"], "The previous and the next fork"],
-    [["Shift + ↑ / ↓", "x / c", ", / ."], "The line before and after this one, from the fork above"],
+    [["Shift + ↑ / ↓", ", / ."], "The line before and after this one, from the fork above"],
     [["Home / End"], "The start, and the line's end"],
     [["Space"], "Play the pinned candidate, or number 1"],
     [["e", "l"], "Turn the engine on or off"],
+    [["x"], "Show or hide the threat: the opponent's best turn if you pass"],
     [["t"], "Show or hide the area map"],
     [["Shift + t"], `The area map's next style: ${MAP_STYLES.map(s => MAP_STYLE_NAME[s]).join(", ")}`],
     [["Escape"], "Close the settings, or cancel the edge that you started"],
@@ -1151,9 +1220,32 @@
   const chartRough = $derived(R.blueWin.some((v, i) => !Number.isNaN(v) && !chartSettled[i]));
   // The position's search, as Lichess shows its depth: the bar fills to the budget and stays full when the search ends.
   // A search stopped at its time limit has ended too: its bar is full (Lichess fills its bar by time).
-  const timedOut = $derived(!!game?.stoppedByTime(path)); // the search stopped at its time limit
-  const searching = $derived(!!game && game.focusing === here); // the position is searched for the player now
-  const searched = $derived(analysis && deepVisits ? (timedOut ? 1 : Math.min(1, analysis.visits / deepVisits)) : null);
+  // With the threat on, the header shows the threat's search, as Lichess's engine box shows its threat's.
+  const shownSearch = $derived(threatOn ? threat : analysis);
+  // The search stopped at its time limit
+  const timedOut = $derived(!!game?.stoppedByTime(threatOn ? threatPath : path));
+  // The position is searched for the player now, or its threat
+  const searching = $derived(!!game && (threatOn ? threatState === "searching" : game.focusing === here));
+  const searched = $derived(shownSearch && deepVisits ? (timedOut ? 1 : Math.min(1, shownSearch.visits / deepVisits)) : null);
+  // The threat's line in the header's third row, in the place of the position's difficulty: what the pass costs the
+  // player, or why it shows nothing. Text that a player follows: strict Simplified Technical English. `busy`: work goes
+  // on, as the area map's note shows it.
+  const threatNote = $derived.by((): { text: string; busy: boolean; title?: string } | null => {
+    if (!threatOn || !threatState) return null;
+    const name = PLAYER_NAME[mover];
+    if (threatState === "none") return { text: over ? "No threat: the game is over" : "No threat: a pass ends the game", busy: false };
+    if (threatState === "unavailable") return { text: "No threat saved: snapshots do no searches", busy: false };
+    if (threatCost) return {
+      text: `Threat to ${name}: ${costText(threatCost.win, threatCost.points)}`, busy: false,
+      title: `What ${name} loses with a pass: the value now less the value after the pass.`
+        + (threatEdges ? ` ${PLAYER_NAME[passed!.player]} then plays ${threatEdges.map(edgeName).join(" ")}.` : ""),
+    };
+    if (threatState === "off") return { text: "Threat: the engine is off", busy: false };
+    if (threatState === "searching") return { text: "Threat: searching", busy: true };
+    if (threatState === "waiting") return { text: "Threat: waiting for the engine", busy: true };
+    if (threat) return { text: "Threat: waiting for the search of this position", busy: true };
+    return null;
+  });
   // The engine's network loads: no search of the position can start yet, so the header says so in the place of the
   // visits (design 06). A snapshot searches nothing (design 20).
   const waitsForNetwork = $derived(!!game && !snapshot && !game.engineReady);
@@ -1216,7 +1308,7 @@
      after its last drawn edge, in the accent colour. -->
 {#snippet player(p: Player)}
   <PlayerCard player={p} name={p === 0 ? R.data.players.blue : R.data.players.red} tag={board ? null : PLAYER_NAME[p]} points={position.scores[p]}
-              area={areas ? areas[p] : null} areaNote={lineAreas ? "The area after the engine's line" : null} toMove={!over && mover === p} />
+              area={areas ? areas[p] : null} areaNote={lineAreas ? (threatShown ? "The area after the threat" : "The area after the engine's line") : null} toMove={!over && mover === p} />
 {/snippet}
 
 <!-- The charts under the board (design 06), as Lichess has its chart: always in view, the board a little smaller for it.
@@ -1716,7 +1808,7 @@
       <div class="flex items-start justify-between gap-3 py-1.5">
         <div class="min-w-0">
           <p class="text-sm font-medium">Keys and clicks</p>
-          <p class="text-xs text-muted">The keys for moving through the game and its branches, and what the clicks do. The key t shows or hides the area map, and Shift + t goes to its next style.</p>
+          <p class="text-xs text-muted">The keys for moving through the game and its branches, and what the clicks do. The key t shows or hides the area map, and Shift + t goes to its next style. The key x shows or hides the threat.</p>
         </div>
         <button class="flex-none px-2 py-0.5 text-sm" onclick={() => (keysOpen = true)}>Show <kbd class="kbd">?</kbd></button>
       </div>
@@ -2052,12 +2144,25 @@
           </Switch.Root>
         {/if}
         <div class={["flex-1 h-[3px] rounded-sm overflow-hidden bg-panel-2", searching && "bar-glider"]} role="progressbar"
-             aria-label="This position's search" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(100 * (searched ?? 0))}>
+             aria-label={threatOn ? "The threat's search" : "This position's search"} aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(100 * (searched ?? 0))}>
           {#if searched !== null}<div class="h-full bg-accent transition-[width] duration-200" style="width: {100 * searched}%"></div>{/if}
         </div>
         <!-- The words and the visits are two elements: the visits that replace the words are new, and move nothing. -->
         {#if waitsForNetwork}<span class="text-xs text-muted whitespace-nowrap">{NETWORK_LOADS}</span>
-        {:else if analysis}<span class="text-xs text-muted tabular-nums whitespace-nowrap">{analysis.visits.toLocaleString("en")}{searched !== null && searched < 1 ? ` of ${deepVisits.toLocaleString("en")}` : ""} visits{timedOut ? " · time limit" : ""}</span>{/if}
+        {:else if shownSearch}<span class="text-xs text-muted tabular-nums whitespace-nowrap">{shownSearch.visits.toLocaleString("en")}{searched !== null && searched < 1 ? ` of ${deepVisits.toLocaleString("en")}` : ""} visits{timedOut ? " · time limit" : ""}</span>{/if}
+        <!-- The threat's switch (Lichess's "Show threat" in its engine box, the key x), before the gear. A snapshot shows a
+             threat only where the store has it: the switch's note says why. -->
+        {#if game}
+          <button class="flex-none px-1.5 py-0 aria-pressed:border-accent aria-pressed:text-accent" aria-pressed={threatOn}
+                  aria-label="Show threat" title={snapshot ? "Show threat: a snapshot shows only a threat that was saved. Snapshots do no searches."
+                    : "Show threat: the opponent's best turn if you pass"}
+                  onclick={toggleThreat}>
+            <svg class="inline-block size-[1em] align-[-0.125em]" viewBox="0 0 1 1" aria-hidden="true" fill="none" stroke="currentColor"
+                 stroke-width="0.09" stroke-linecap="round">
+              <circle cx="0.5" cy="0.5" r="0.3" /><path d="M0.5 0.05V0.32M0.5 0.68V0.95M0.05 0.5H0.32M0.68 0.5H0.95" />
+            </svg>
+          </button>
+        {/if}
         {#if engine && onengine}
           <button class="flex-none px-1.5 py-0 aria-expanded:border-accent aria-expanded:text-accent" aria-label="Engine settings"
                   title="Engine settings" aria-expanded={engineOpen} aria-controls="engine-settings"
@@ -2065,7 +2170,14 @@
         {/if}
       </div>
       <p class="mt-1 text-xs text-muted tabular-nums">
-        {#if analysis?.lead !== undefined}
+        {#if threatOn}
+          <!-- The threat's values: the position after the pass, as Lichess's engine box shows its threat's evaluation. -->
+          {#if threat?.lead !== undefined}
+            If {PLAYER_NAME[mover]} passes: margin
+            <strong class="text-ink">{sideText(threat.margin!, 0, "0")} ± {Math.round(threat.spread!)}</strong>
+            · lead {sideText(threat.lead, 0, "0")}
+          {:else}If {PLAYER_NAME[mover]} passes: not analyzed yet{/if}
+        {:else if analysis?.lead !== undefined}
           <!-- Who is ahead, with the side named, as everywhere on the page. -->
           Expected final margin
           <strong class="text-ink">{sideText(analysis.margin!, 0, "0")} ± {Math.round(analysis.spread!)}</strong>
@@ -2074,7 +2186,12 @@
           Final margin <strong class="text-ink">{sideText(position.scores[0] - position.scores[1], 1, "0")}</strong>
         {:else}Not analyzed yet{/if}
       </p>
-      {#if !engineOpen}
+      {#if !engineOpen && threatOn}
+        <!-- With the threat on, the third row gives what the pass costs, in the units of a move's loss (design 10), or
+             why no threat shows. -->
+        <p class={["h-4 mt-1 text-xs text-muted tabular-nums truncate", threatNote?.busy && "bar-glider"]} role="status"
+           title={threatNote?.title}>{threatNote?.text ?? ""}</p>
+      {:else if !engineOpen}
         <!-- The position's difficulty (design 14), in one row: a hard position's ◆, in a slot as wide as the move list's,
              the network's likely edges, and the complexity as a loss, as the notes write losses. The likely edges are a
              meter, as Maia's Blunder Meter shows a human's likely moves: the prior of the searched edges by the group of

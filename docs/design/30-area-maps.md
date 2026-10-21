@@ -95,6 +95,9 @@ site asks for the root's alone (item 6).
      line as it draws one edge at a time ("Lines on the board": Animated). Drawn all at once (Static), the map is the
      map of the line's end. A line pointed at in the list up to an edge shows that edge's map.
    - **A branch's preview, the engine's line under a turn's note, and a played move's preview** follow the same rule.
+   - **The threat** (design 31) is a line from the position after a pass: its step 0 is that position, whose map the
+     threat's search gives. In after vs before it compares the position before the pass with the step shown, for the
+     player who passes, so that it shows where the forecast falls if the player passes.
    - **In forecast vs board,** the board is the board as drawn: the position's edges less the ones that the line
      cuts, with the line's edges, and the regions after the last drawn edge.
    - **The maps of a line's positions** come as a candidate's map comes (item 6). While a line shows, the page asks
