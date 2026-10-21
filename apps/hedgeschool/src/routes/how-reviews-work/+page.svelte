@@ -88,8 +88,9 @@
     search did not reach.</p>
 
   <h2>Key moments</h2>
-  <p>The key moments are the worst turns, Inaccuracy or worse, at most eight, from the first turn on. Enclosure has no
-    opening theory, so no turn is left out. The first turns can be key moments, as Lichess takes them.</p>
+  <p>The key moments are the worst turns, Inaccuracy or worse, at most eight. As in Lichess, they can come from any turn,
+    the first ones too. Enclosure has no opening theory, so the first turns show a player's own choices, as later turns
+    do.</p>
 
   <h2>Where the rules come from</h2>
   <p>{SITE_NAME} follows tools that players already trust, and names each change it makes for Enclosure:</p>

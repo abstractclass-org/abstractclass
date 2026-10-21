@@ -91,10 +91,10 @@ reason. Design 05 gives the searches that the labels read: their schedule, their
      pts (−144.0 pts, 0.0 pts)". The parts are rounded together, in tenths, so that they make the turn's points
      (Hamilton's largest remainders, `roundTogether`). The engine's own turn, Best or Great, has no parts: its edges
      have nothing to explain, and their losses would show only the error of the search between them.
-   - **The key moments** are the worst turns or edges, Inaccuracy or worse, at most 8, from the first turn on, as
-     Lichess takes them (`evalSwings`): no turn count. Regan and Haworth skip chess's opening because its first moves
+   - **The key moments** are the worst turns or edges, Inaccuracy or worse, at most 8, from the first turn on with no
+     turn count, as Lichess's `evalSwings` takes them. Regan and Haworth skip chess's opening because its first moves
      come from memorized theory, and Enclosure has none. The opening's flags are as reliable as later ones
-     (decisions/product.md, "The key moments from the first turn on").
+     ([decisions/product.md](../decisions/product.md), "The key moments from the first turn on").
 8. **What shows** (design 06 and design 07 give the places): the move list and the chart show Great, Inaccuracy,
    Mistake and Blunder, to stay quiet, and the board shows every label. The notes under a turn or an edge are for
    Great, Mistake and Blunder: "Blunder. N9-Q10 M6-N9 was best.", "Great. The only good edges.". Under a Mistake or a
@@ -171,3 +171,4 @@ reason. Design 05 gives the searches that the labels read: their schedule, their
 - [decisions/product.md](../decisions/product.md): "Labels from a human win chance: fixed bands, one curve", "Labels
   back on the engine's win chance" (2026-10-12).
 - [decisions/engine.md](../decisions/engine.md): "The label rules on games of known strength" (2026-10-12).
+- [decisions/product.md](../decisions/product.md): "The key moments from the first turn on" (2026-10-21).

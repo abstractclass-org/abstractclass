@@ -324,8 +324,8 @@ export function review<G extends GameTypes>(game: Game<G>, data: ReviewData<G>, 
                         data.seconds?.[t.start + 1], kind, minVisits);
     if (j) Object.assign(t, j);
   }
-  // Key moments: the worst turns or edges, at least an inaccuracy, in game order (Lichess's evalSwings, chess.com's key
-  // moments), from the first turn on: Enclosure has no opening theory that excuses the first moves (design 10).
+  // Key moments: the worst turns or edges, at least an inaccuracy, in game order, from the first turn on with no turn
+  // count (Lichess's evalSwings, chess.com's key moments, design 10).
   const bad = (x: Judged) => !!x.label && BAD_LABELS.includes(x.label);
   return {
     data, edges, turns, turnOf, blueWin, blueScore,

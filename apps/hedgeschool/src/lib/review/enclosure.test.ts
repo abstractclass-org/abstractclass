@@ -138,7 +138,8 @@ test("the summary and the key moments come by turn and by edge", () => {
 });
 
 test("a Blunder in the third turn is a key moment, by turn and by edge: the opening is not skipped", () => {
-  // Ten turns of one edge each, Blue and Red in turn. Blue's third turn (edge 2) drops its win chance from 0.5 to 0.2.
+  // Ten turns of one edge each, Blue and Red in turn. The game's third turn (edge 2, Blue's second) drops Blue's win
+  // chance from 0.5 to 0.2.
   const moves = Array.from({ length: 10 }, (_, i) => ({ player: i % 2, edge: edges(10)[i], cut: null }) as Move);
   const blunder = (i: number) => (i <= 2 ? 0.5 : 0.2);
   const R = review({ players: { blue: "b", red: "r" }, result: { blue: 0, red: 10 }, moves, positions: Array(11).fill({} as Position),
