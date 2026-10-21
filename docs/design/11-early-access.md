@@ -79,10 +79,10 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
    change it, and names the kinds of events that the pings hold. The banner now asks for the practice games' link
    too, with a choice for each purpose on the privacy page (design 25, which replaces this item's banner). Neither
    service sees a game: the bookmarklet hands a game to the import page in the address's fragment (after `#`), and
-   that page removes it before it starts them. Every other page
-   starts them from the layout, and the review page names its game after the `#` too (`/review#game=ID`). Google
-   Analytics also takes events, in counts and ranges, for the decisions that wait on data (design 17). The build
-   names the services (`VITE_GA_ID`, `VITE_CF_ANALYTICS_TOKEN`). Without them, as in development, nothing loads.
+   that page removes it before it starts them. Every other page starts them from the layout, and the review page
+   names its game after the `#` too (`/review#game=ID`). Google Analytics also takes events, in counts and ranges,
+   for the decisions that wait on data (design 17). The build names the services (`VITE_GA_ID`,
+   `VITE_CF_ANALYTICS_TOKEN`). Without them, as in development, nothing loads.
 8. **The notation page:** a full description of the position notation and the game record notation, written so that
    other developers can follow it, as PGN's standard describes PGN. The notations are decided in the engine
    repository's design (its `docs/design/04-notation-and-protocol.md`). That repository is private, so this page is
@@ -189,8 +189,8 @@ read the game from the player's own page.
     Neither meaf.us nor strategyjam.org sends one. A check of strategyjam.org on 2026-10-17 found none. If one comes,
     the bookmark needs the code in itself again, as before the loader.
   - **The request** carries no game. By default the browser names only the game site's origin as the page that made
-    it. The privacy page does not describe it: it names what Cloudflare receives with each request, and this
-    request holds nothing more.
+    it. The privacy page does not describe this request. It names the IP address and the browser that Cloudflare
+    receives with each request, but not the page that made a request.
 - **Each tool says what it is,** with each game (`importHash.ts`): `#tool=…&v=…&site=…&at=…&record=…` after the import
   page's address. The bookmarklet sends its loader's version (`BOOKMARK_VERSION`), and the userscript a hash of the
   files that make its code (the build's `__USERSCRIPT_CODE__`, `vite.config.ts`), so that a build that changes neither
@@ -331,5 +331,6 @@ read the game from the player's own page.
   the second round", "Google Analytics in Google's consent mode, advanced", "Early access: the third round"
   (2026-10-12), "Deleting a game, and the browser's storage" (2026-10-12), "A question before a delete replaces the
   Undo" (2026-10-16), "strategyjam.org games through the bookmarklet and the userscript" (2026-10-18), "A meaf.us
-  game's review links back to its game" (2026-10-21).
+  game's review links back to its game" (2026-10-21), "The Privacy page says what goes where, in less detail"
+  (2026-10-22).
 - [decisions/architecture.md](../decisions/architecture.md): "The site's repository is public" (2026-10-17).

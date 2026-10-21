@@ -60,9 +60,9 @@
     <p>When a game against HedgeFund ends, the site keeps it in its own database at Cloudflare. It keeps the moves, your
       takebacks, the bot's settings, the result and the time of each move. It never keeps a name or your IP address.
       It keeps no game that ends before its first move.</p>
-    <p>The games show how players play against each setting of the bot, so that its levels fit real players. The site
-      can publish them as an open dataset, under CC0, as Lichess publishes its games. It keeps them with no time
-      limit.</p>
+    <p>The games show how players play against each setting of the bot, so that its levels fit real players. They also
+      show what players find hard. The site can publish them as an open dataset, under CC0, as Lichess publishes its
+      games. It keeps them with no time limit.</p>
     <p>If you accept, a random ID in this browser goes with each of your games, so that the site can group them. The ID
       says nothing about you. Without it, nothing links one game to another. You can change this choice, and delete the
       games that went with the ID, <a href="#consent">below</a>. After a delete, the site keeps only the ID, so that it
@@ -96,9 +96,9 @@
     <li>the settings you change, the features you use, and your exports</li>
     <li>that you opened Support Us</li>
   </ul>
-  <p>The counts hold ranges, such as a game's length, and how your computer runs the engine: its number of cores, its
-    GPU and the engine's speed. They never hold a game, a move or a player's name. Until you accept the cookies,
-    nothing links one count to another.</p>
+  <p>The counts hold ranges, such as a game's length. They also hold how your computer runs the engine: its number of
+    cores, its GPU and the engine's speed. They never hold a game, a move or a player's name. Until you accept the
+    cookies, nothing links one count to another.</p>
   <p>If you accept the cookies and a blocker stops Google Analytics, the site asks you to allow it in your blocker. To
     know this, the site checks only whether its own Google Analytics ran in the page.</p>
 

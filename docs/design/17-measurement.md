@@ -29,11 +29,9 @@ visitors' machines, and the GPU on other machines.
    page.
 4. **A feature counts once in each review** (`trackOnce`): its first use, not each use, so that a player who draws 40
    notes counts as one player who drew notes. In Practice, once in each game.
-5. **The privacy page names the kinds of events,** not each event: the imports, loads and deletes, the reviews, the
-   Analysis board and the board editor, the practice games, the settings, the features and the exports, as counts and
-   ranges, never a game, a move or a player's name. A visitor needs to know what goes to Google, not how each event
-   works. A visitor who has not accepted the cookies sends the events as cookieless pings, which Google counts with
-   nothing that links one to another.
+5. **The privacy page names the kinds of events,** not each event, as counts and ranges (item 2). A visitor needs
+   to know what goes to Google, not how each event works. A visitor who has not accepted the cookies sends the
+   events as cookieless pings, which Google counts with nothing that links one to another.
 6. **The owner's own visits are internal traffic** (`src/lib/internalTraffic.ts`). Any page opened with `?internal=on`
    keeps a flag in the browser, and `?internal=off` removes it. The page then takes the parameter out of its address.
    While the flag is set, every event of that browser carries `traffic_type` = `internal`, from the first page view on.

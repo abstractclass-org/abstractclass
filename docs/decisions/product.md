@@ -6637,10 +6637,12 @@ error and no horizontal scroll. The layout sweep in Chromium passes (25 tests, 5
   site could not send waits in the browser, with the ID only if the visitor still accepts. How a partner's link
   replaces the Analysis board's lines, and how a partner sends a kept review back. How the bookmarklet reads the
   page, opens meaf.us's watcher's view, and loads its code from the site, and how Tampermonkey updates the
-  userscript. Each analytics event with its ranges, and that Ko-fi's policy says what Ko-fi shares with the site.
-  That a review's own address names its game after the `#`, which neither analytics service records.
-- **The size:** 1,828 words before, 768 after (the text in the page's main part, both editions' introductions
+  userscript. Each analytics event with its ranges. That the request to allow Google Analytics shows on each page
+  until the visitor closes it. Ko-fi's payment providers, and that Ko-fi's policy says what Ko-fi shares with the
+  site. That a review's own address names its game after the `#`, which neither analytics service records.
+- **The size:** 1,828 words before, 777 after (the text in the page's main part, both editions' introductions
   together).
-- **Designs:** 17 (item 5 and its consequence), 11 (the pings, and the bookmarklet's request, which the page no
-  longer describes) and 18 (the section's new name, "Games in an address"). Designs 22, 25 and 27 hold: the page
-  still says what goes to Ko-fi and when, what the site stores and why, and that the site asks about a blocker.
+- **Designs:** design 17 changes item 5 and its consequence. Design 11 changes its lines on the pings and on the
+  bookmarklet's request, which the page no longer describes. Design 18 takes the section's new name, "Games in an
+  address". Designs 22, 25 and 27 hold. The page still says what goes to Ko-fi and when, what the site stores and
+  why, and that the site asks about a blocker.
