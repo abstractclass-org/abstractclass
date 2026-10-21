@@ -23,7 +23,7 @@ if (!isMainThread) {
   const { nodeEngine } = await import("./node-engine.mjs");
   const { call } = await nodeEngine(root, { network: NETWORK });
   for (const moves of workerData.jobs) {
-    const reply = call({ id: "a", moves, maxVisits: VISITS, includePVVisits: true, includeOwnership: true, includeMovesOwnership: true });
+    const reply = call({ id: "a", moves, maxVisits: VISITS, includePVVisits: true, includeOwnership: true });
     if (reply.error) throw new Error(`${moves.join(" ")}: ${reply.error}`);
     parentPort.postMessage({ moves, reply });
   }
@@ -34,9 +34,7 @@ if (!isMainThread) {
   const { analysisKey } = await import("@abstractclass/analysis/cache.ts");
   const { writeRecord } = await import("../src/lib/game/record.ts");
   const { enclosure, otherCandidate, secondChoice } = await import("../src/lib/review/enclosure.ts");
-  const { shownMaps } = await import("@abstractclass/analysis/model.ts");
-  // As the site keeps a result: the candidates' maps of those on the board alone, for the player to move
-  const toAnalysis = reply => shownMaps(enclosure, analysisOf(enclosure, reply), reply.rootInfo.currentPlayer === "b" ? 0 : 1);
+  const toAnalysis = reply => analysisOf(enclosure, reply);
   const { parseEdge } = await import("../src/lib/engine/notation.ts");
   const threads = Number(process.argv[2] ?? Math.max(1, Math.min(12, availableParallelism() - 2)));
   const { manifest, module, call } = await nodeEngine(root);

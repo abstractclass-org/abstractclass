@@ -3,7 +3,7 @@
 // visit counts. A stored result of an older shape has no candidates' maps, and the site adds one from such a search.
 // The positions: every `step`-th position of the test fixture's game (tests/fixtures/hedgefund-review.json, the site's
 // own game), searched as the Lite review searches them (HedgeFund 0.2 Lite, 512 visits), and their candidates on the
-// board (shownMaps). For each candidate and each count, in ownership's units (from −1 to 1):
+// board (shownCandidates). For each candidate and each count, in ownership's units (from −1 to 1):
 //   - the mean of |short − full| over the 361 points;
 //   - the share of the points where the two disagree on the change style's mark at 0.5 (ownership.ts, areaMap);
 //   - the short search's time, in milliseconds.
@@ -16,7 +16,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { nodeEngine } from "../node-engine.mjs";
 import { toAnalysis } from "@abstractclass/analysis/reply.ts";
-import { shownMaps } from "@abstractclass/analysis/model.ts";
+import { shownCandidates } from "@abstractclass/analysis/model.ts";
 import { enclosure, edgeName } from "../../src/lib/review/enclosure.ts";
 import { boardPosition } from "../../src/lib/engine/position.ts";
 import { areaMap } from "../../src/lib/review/ownership.ts";
@@ -39,8 +39,11 @@ const positions = call({ id: "g", action: "describe_game", moves, from: 0 }).pos
 const rows = []; // one per candidate and count
 for (let i = step; i < moves.length - 1; i += step) {
   const at = moves.slice(0, i), { reply } = search(at, VISITS, { includeMovesOwnership: true, includePVVisits: true });
-  const a = shownMaps(enclosure, toAnalysis(enclosure, reply), reply.rootInfo.currentPlayer === "b" ? 0 : 1);
-  for (const c of a.candidates.filter(c => c.ownership)) {
+  // The candidates on the board, with their maps (the reply's, by the candidate's move)
+  const a = toAnalysis(enclosure, reply), maps = new Map(reply.moveInfos.map(m => [m.move, m.ownership.map(v => Math.round(100 * v) || 0)]));
+  const shown = shownCandidates(enclosure, a, reply.rootInfo.currentPlayer === "b" ? 0 : 1).flatMap(r => [r.c, ...r.twins])
+    .map(c => ({ ...c, ownership: maps.get(edgeName(c.edge)) }));
+  for (const c of shown) {
     const child = [...at, edgeName(c.edge)];
     const after = call({ id: "g", action: "describe_game", moves: child, from: child.length }).positions[0];
     if (after.outcome !== null) continue; // the move ends the game: nothing to search

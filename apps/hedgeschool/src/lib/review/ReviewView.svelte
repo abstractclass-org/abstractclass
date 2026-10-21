@@ -568,10 +568,10 @@
   // The area map (design 30): the engine's ownership at the position on screen, or the change from the board now to it
   // (the map's style), on the points whose value is at least the style's smallest value (display settings). Off on the
   // review and on on the Analysis board by default, each page's own setting. While a candidate's line shows, the map is
-  // the ownership after that candidate (KataGo's ownership of its subtree): the forecast after the move, in the change
-  // style still against the board now. A branch's preview and a played move's show no map. A map that a stored result
-  // lacks is added while the map shows it (askOwnership): a position's stored before the ownership, and a candidate's, from the
-  // position after its move, as the candidate is pointed at.
+  // the ownership of the position after that candidate: the forecast after the move, in the change style still against
+  // the board now. A branch's preview and a played move's show no map. A map that the page lacks is added while the map
+  // shows it (askOwnership): a position's stored before the ownership, and a candidate's, from a short search of the
+  // position after its move as the candidate is pointed at, or that position's own result (the game's next move).
   const mapOn = $derived(board ? display.areaMap.board : display.areaMap.review);
   function toggleMap() {
     if (board) display.areaMap.board = !display.areaMap.board;
@@ -579,10 +579,10 @@
   }
   // The candidate whose line the board draws
   const lineCandidate = $derived(!lineEdges ? null : listHover !== null && listLine ? listCandidate : hoverCandidate ?? pinnedCandidate);
-  // The position after the line's candidate, for a candidate without its map
-  const lineChild = $derived(lineCandidate && !lineCandidate.ownership ? [...path, edgeName(lineCandidate.edge)] : null);
+  // The position after the line's candidate, whose map is the candidate's
+  const lineChild = $derived(lineCandidate ? [...path, edgeName(lineCandidate.edge)] : null);
   const mapOwnership = $derived(!mapOn || previewing ? undefined
-    : lineCandidate ? lineCandidate.ownership ?? game?.mapAt(lineChild!) : analysis?.ownership ?? game?.mapAt(path));
+    : lineChild ? game?.mapAt(lineChild) : analysis?.ownership ?? game?.mapAt(path));
   const shownMap = $derived(mapOwnership ? areaMap(display.mapStyle, mapOwnership, position, display.mapMin[display.mapStyle]) : null);
   $effect(() => {
     const paths = mapOn && !previewing ? [path, ...(lineChild ? [lineChild] : [])] : [];

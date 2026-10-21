@@ -31,10 +31,6 @@ export interface Candidate<M> {
   // A symmetric twin (protocol 0.4): in a position that is its own image, the searched edge of which this edge is the
   // mirror image. The engine lists the twin right after it, with its values and visits.
   twinOf?: M;
-  // The engine's ownership after the move (KataGo's includeMovesOwnership: the mean over the move's subtree), as
-  // Analysis's `ownership`: the forecast that the area map shows while the move's line shows (Hedge School's design 30).
-  // Kept for the candidates on the board alone (shownMaps).
-  ownership?: number[];
 }
 /** `ownership`: the engine's ownership of each of the game's points (KataGo's, @abstractclass/engine/protocol.ts,
  *  AnalysisReply), from Blue's side, in hundredths: 100 is Blue's at every turn end left, −100 Red's. Absent from a
@@ -542,19 +538,6 @@ export function shownCandidates<M>(game: Moves<M> & { scoreScale: number }, a: A
     }))
     .filter(({ c, rank, gap, gapPts }) => rank === 1 || (c.visits >= MIN_VISIT_SHARE * most && gap <= CANDIDATE_GAP.win
       && (gapPts === undefined || gapPts <= gapPoints)));
-}
-
-/** The analysis with the ownership of the candidates on the board alone (shownCandidates, with their symmetric twins),
- *  for `p` to move: the board shows a line, and its map, for those only. Each candidate's map is about 1 kB stored, and
- *  an open position has scores of candidates with a few visits. */
-export function shownMaps<M>(game: Moves<M> & { scoreScale: number }, a: Analysis<M>, p: Player): Analysis<M> {
-  if (!a.candidates.some(c => c.ownership)) return a;
-  const shown = new Set(shownCandidates(game, a, p).flatMap(r => [r.c, ...r.twins]));
-  return { ...a, candidates: a.candidates.map(c => {
-    if (shown.has(c) || !c.ownership) return c;
-    const { ownership: _, ...rest } = c;
-    return rest;
-  }) };
 }
 
 /** The review with labels only on the moves judged (the Analysis board, design 21): another move keeps its move and

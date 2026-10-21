@@ -26,11 +26,11 @@
 // The analysis is every game's (design 29): the game (game.ts) gives the positions from the engine's fields, the moves
 // played, a move's name, the rules for the player's moves and a line's steps. `G` is the game's types.
 import { toAnalysis } from "./reply.ts";
-import { positionQuery, type AnalysisReply } from "@abstractclass/engine/protocol.ts";
+import { positionQuery } from "@abstractclass/engine/protocol.ts";
 import { errorText } from "@abstractclass/engine/errors.ts";
 import { BOARD_ID, branchNodes, keptNode, type KeptNode, type KeptBoard, type KeptBranches } from "./kept.ts";
 import type { Game, GameTypes, Player } from "./game.ts";
-import { earlierIndex, equalDepth, keepsGain, moverWin, onlyEdge, otherCandidate, sameMove, secondChoice, shownMaps, type Analysis,
+import { earlierIndex, equalDepth, keepsGain, moverWin, onlyEdge, otherCandidate, sameMove, secondChoice, type Analysis,
          type Candidate, type GameEnding, type ReviewData } from "./model.ts";
 import { ONLY_EDGE_GAP } from "./labels.ts";
 import { lastMove, mainIndex, parentKey, pathKey, prefixKeys } from "./tree.ts";
@@ -105,9 +105,8 @@ export class GameAnalysis<G extends GameTypes> {
   // page's gleam on a line)
   private running = $state.raw<Record<string, number[]>>({});
   // The maps added to positions without one, by path key (askOwnership, Hedge School's design 30): a position whose
-  // result was stored before the ownership, and a position after a candidate whose result has no candidates'
-  // maps. From the store, or from a short search of the position alone, which the store then keeps. They never replace
-  // the position's result.
+  // result was stored before the ownership, and the position after a candidate, for the candidate's map. From the
+  // store, or from a short search of the position alone, which the store then keeps. They never replace a result.
   private ownership = $state.raw<Record<string, number[]>>({});
   private owning = new Set<string>(); // their searches queued or running, by path key
   private mapless = new Set<string>(); // the positions after a candidate that the engine did not search: an ended game
@@ -656,14 +655,6 @@ export class GameAnalysis<G extends GameTypes> {
     return keyMoves(this.startPosition, this.engineMoves(path));
   }
 
-  /** A search's reply at `path` as the review keeps it: the candidates' maps of those on the board alone (shownMaps),
-   *  for the player to move there. */
-  private analysisFrom(path: string[], reply: AnalysisReply): Analysis<G["move"]> {
-    const a = toAnalysis(this.game, reply), i = mainIndex(path, this.mainNames);
-    const player = (i !== null ? this.positions[i] : this.branches[pathKey(path)]?.position)?.player;
-    return player === undefined ? a : shownMaps(this.game, a, player);
-  }
-
   /** A position the engine can search: on the game's line before its end, or a branch node where the game goes on. */
   private searchable(path: string[]) {
     const i = mainIndex(path, this.mainNames);
@@ -787,8 +778,8 @@ export class GameAnalysis<G extends GameTypes> {
   }
 
   /** Adds a map to these positions, which the area map shows, where they have none (mapAt): to a position of the tree
-   *  whose result has none (stored before the ownership), and to a position one move from the tree (after a candidate whose
-   *  result has no candidates' maps). The map stored for it, or else a short search of the position alone
+   *  whose result has none (stored before the ownership), and to a position one move from the tree (after a candidate:
+   *  the candidate's map). The map stored for it, or else a short search of the position alone
    *  (MAP_VISITS), after the position on screen's, whose map the store then keeps (cache.ts, mapPut). The result itself
    *  stays as it is. A position of the tree with no result yet waits for its own search, which asks for the ownership.
    *  A search queued for a position that the page no longer asks for starts and ends at once. */
@@ -896,16 +887,16 @@ export class GameAnalysis<G extends GameTypes> {
       // The time limit counts from the search's start in the worker, not from its wait in the queue. The worker keeps
       // it, and ends the search at the end of the slice in which it passes (channel.ts, searchInSlices): a timer of the
       // page would run late in a hidden tab (decisions/product.md, "A review in a hidden tab"). Every search asks for
-      // the ownership of each point, and of each candidate, so that a stored review has the area maps whatever the
-      // display settings (Hedge School's design 30). The result keeps the candidates' on the board alone (shownMaps).
+      // the ownership of each point, so that a stored review has the area map whatever the display settings (Hedge
+      // School's design 30). A candidate's map comes from a short search when it is pointed at (askOwnership).
       const run = engine.analyse({ ...query, maxVisits: visits, includePVVisits: true, includeOwnership: true,
-                                   includeMovesOwnership: true, ...(slice ? { slice: { visits: slice } } : {}) },
-                                 r => { if (era === this.era) this.toBatch(path, r.rootInfo.visits, () => this.analysisFrom(path, r)); },
+                                   ...(slice ? { slice: { visits: slice } } : {}) },
+                                 r => { if (era === this.era) this.toBatch(path, r.rootInfo.visits, () => toAnalysis(this.game, r)); },
                                  sliced && seconds !== null ? seconds * 1000 : undefined);
       if (sliced) onStop(run.stop); // the pool may stop it to give way, and runs it again later
       if (tag === "focus") this.stopFocus = run.stop;
       const shown = run.done.then(async t => {
-        const a = this.analysisFrom(path, t.reply), final = !t.reply.terminated && a.visits >= visits;
+        const a = toAnalysis(this.game, t.reply), final = !t.reply.terminated && a.visits >= visits;
         if (era !== this.era) return;
         // The write first: the result and the passes' progress show only once it is stored, so that the game's mark
         // (markReviewed) comes after every result it covers. The end of the search's marks (markRunning, focus) then

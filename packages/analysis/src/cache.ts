@@ -128,7 +128,7 @@ async function readStored(keys: string[]) {
 // The maps added to a stored review (Hedge School's design 30). When the site starts to use a kind of data that a
 // stored result lacks, the result gets it added on demand, beside it: the result itself is never replaced, searched
 // again or removed. A map is a position's ownership from a short search of the position alone (MAP_VISITS), for a
-// result without one, or for the position after a candidate whose result has no candidates' maps. It is kept in the
+// result without one, or for the position after a candidate, as the candidate's map. It is kept in the
 // analysis store under its position's result's key for that search, with MAP_PREFIX before it: so a review file takes
 // it with the results of its positions, and the removals treat it as they treat the results of its search. A reader
 // before the maps (the site before the area map) never takes it as a result: its key does not start with a shape, so
@@ -136,8 +136,9 @@ async function readStored(keys: string[]) {
 // (searchHolding).
 export const MAP_PREFIX = "map|";
 /** The visits of a map's short search. A full search's candidate on the board rests on few visits (a median of 17 on
- *  the test fixture's game), and short searches of 16 to 128 visits of the position after it differ least from its
- *  map, less than one of 512 visits does (decisions/product.md, "A candidate's map from a short search"). */
+ *  the test fixture's game), and short searches of 16 to 128 visits of the position after it differ least from the
+ *  full search's own map of it (includeMovesOwnership), less than one of 512 visits does (decisions/product.md, "A
+ *  candidate's map from a short search"). */
 export const MAP_VISITS = 32;
 /** An added map: the ownership, in hundredths from Blue's side, and its source. */
 export interface AddedMap { ownership: number[]; visits: number; source: "short search" }

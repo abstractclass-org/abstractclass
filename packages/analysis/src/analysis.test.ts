@@ -110,10 +110,10 @@ test("a search's final results wait for the batch, and the sweep's progress come
   assert.equal(game.swept, 2);
 });
 
-test("every search asks for the ownership of each point and of each candidate, for the area map", async () => {
+test("every search asks for the ownership of each point, and none for each candidate's, for the area map", async () => {
   const { searches } = await sweeping();
   assert.ok(searches.length > 0);
-  assert.ok(searches.every(s => s.query.includeOwnership && s.query.includeMovesOwnership));
+  assert.ok(searches.every(s => s.query.includeOwnership && !s.query.includeMovesOwnership));
 });
 
 test("results of shape 5 open the review with no search, and the board's ownership comes from a short search", async () => {

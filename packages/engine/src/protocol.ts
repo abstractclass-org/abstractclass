@@ -104,7 +104,7 @@ export interface MoveInfo {
   // prior are that edge's, its line and ownership mirrored. Absent for a searched edge.
   isSymmetryOf?: string;
   // With includeMovesOwnership: the ownership of the candidate's subtree, as `ownership` gives the root's. About 3 kB
-  // of JSON for each candidate: the review keeps it for the candidates on the board alone (Hedge School's design 30).
+  // of JSON for each candidate, so the site does not ask for it (Hedge School's design 30).
   ownership?: number[];
 }
 

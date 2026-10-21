@@ -3,7 +3,8 @@
 **Status:** in force, built. **Decided:** 2026-10-20. **Changed:** 2026-10-21: the map shows the engine's ownership
 again, with a second style for the change and the player's smallest value. The engine's lines get their own map. The
 mistakes' captions and the opponent's turn drawn after a mistake are removed. A stored review gets the maps that it
-lacks added on demand. The stored shape stays 5: a field that is only added takes no new shape.
+lacks added on demand. The stored shape stays 5: a field that is only added takes no new shape. A candidate's map
+comes from a short search of the position after its move, not from the full search.
 
 ## The players and their questions
 
@@ -30,7 +31,8 @@ the game's score over the points. It is not who holds a point at the end, as in 
 long, and each turn end scores. The protocol gives the root's ownership (`includeOwnership`) and each candidate's, the
 mean over the candidate's subtree (`includeMovesOwnership`, the engine repository's
 [docs/design/04-notation-and-protocol.md](https://github.com/abstractclass-org/engines/blob/main/docs/design/04-notation-and-protocol.md),
-"What a reply holds"). The WebAssembly module of release `engine-d6786eba`, which the site uses, returns both.
+"What a reply holds"). The WebAssembly module of release `engine-d6786eba`, which the site uses, returns both. The
+site asks for the root's alone.
 
 ## What the builds showed
 
@@ -56,15 +58,14 @@ showed three faults:
 
 ## Decision
 
-1. **The ownership is stored with the review.** Every search of the review asks for the root's ownership
-   (`includeOwnership`) and each candidate's (`includeMovesOwnership`), whatever the display settings. A result keeps
-   them in whole hundredths from Blue's side: the root's as `ownership` of the analysis, and each candidate's as
-   `ownership` of the candidate, for the candidates on the board alone (`shownMaps` in
-   `packages/analysis/src/model.ts`, with their symmetric twins). **The stored shape stays 5** (`SHAPE` in
+1. **The ownership is stored with the review.** Every search of the review and of the Analysis board asks for the
+   root's ownership (`includeOwnership`), whatever the display settings, and a result keeps it in whole hundredths
+   from Blue's side (`ownership` of the analysis). No search asks for the candidates' (`includeMovesOwnership`): a
+   candidate's map comes from the position after its move (item 5). **The stored shape stays 5** (`SHAPE` in
    `packages/analysis/src/cache.ts`, design 05). A new shape is only for a change of what a result's fields mean, so
    that an older result is not misread. A field that is only added takes none: the reader checks whether the field is
-   there, as it must for the results stored before it. So the two maps are optional fields of a result of shape 5. A
-   review stored or exported before them opens at once with its results, which are never searched again or removed.
+   there, as it must for the results stored before it. So the ownership is an optional field of a result of shape 5.
+   A review stored or exported before it opens at once with its results, which are never searched again or removed.
    The first builds of the map wrote shape 6 on their branch, for results of 5 with the ownership: the site reads them
    as shape 5 and keeps them (`READ_SHAPES`). The site before the map reads a review file of this site completely: it
    takes the results of shape 5 and ignores the fields that it does not know.
@@ -87,18 +88,19 @@ showed three faults:
    the change, for example "E5 · Blue 0.62 · now open · change 0.62 to Blue" (`pointReading`). Touch gives no
    numbers: a touch on the board is edge input.
 5. **A map for the engine's lines.** While a candidate's line shows (the candidate pointed at, on the board or in the
-   table, or pinned), the map shows that candidate's ownership: the engine's forecast after the move. The legend says
-   so ("After D10-G10: …"). In the change style, the change is still from the board now. A branch's preview and a
-   played move's preview show no map.
+   table, or pinned), the map shows the ownership of the position after the candidate's move: the engine's forecast
+   after the move. The legend says so ("After D10-G10: …"). In the change style, the change is still from the board
+   now. A branch's preview and a played move's preview show no map. The map is that position's own result's where it
+   has one (the game's next move), and else a map added to it (item 6).
 6. **A stored review gets the maps that it lacks, on demand, and keeps them.** When the site starts to use a kind of
    data that a stored result lacks, the result gets it added beside it. The result's own search, visits and
    candidates stay as they are: the review is not done again. For the maps (`askOwnership` and `mapAt` in
    `packages/analysis/src/analysis.svelte.ts`):
    - A position whose result has no ownership gets it from a short search of the position alone, while the map shows
      the position.
-   - A candidate whose result has no candidates' maps gets its map from a short search of the
-     position after its move, when the candidate is pointed at. Where that position has a result of its own (the
-     game's next move), its ownership serves.
+   - A candidate gets its map from a short search of the position after its move, when the candidate is pointed at,
+     on every review: the results keep no candidates' maps. Where that position has a result of its own (the game's
+     next move), its ownership serves.
    - The short search has MAP_VISITS visits, 32, and runs just after the position on screen's search.
    - The map is stored in the analysis store beside the results, under its position's result's key for the search,
      at MAP_VISITS, with `map|` before it. Its value names its source: the short search and its visits (`mapKey`,
@@ -124,16 +126,19 @@ showed three faults:
   the player and the position. At 0 the player sees the engine's data as it is.
 - **The numbers under the pointer,** because a shade is a rough reading. A player who doubts a shade can read its
   value, and the change, at the point.
-- **A map for the engine's lines, because the line is where the player asks "what does this move change?".** The
-  candidate's own ownership comes from the search that ranked it, so the map and the candidate's numbers agree.
-- **The shown candidates' maps alone,** because each map is about 1 kB stored, and an open position has scores of
-  candidates with a few visits, which the board does not show.
+- **A map for the engine's lines, because the line is where the player asks "what does this move change?".**
+- **A candidate's map from the short search, not from the full search** (`includeMovesOwnership`), because the full
+  search's maps give nothing that the short search does not, at a cost that every review pays. A candidate on the
+  board rests on few visits of the full search (a median of 17 of 512 on the test fixture's game), so a short search
+  of the position after it is about as deep. A short search of 32 visits differs from the full search's map of the
+  candidate by 0.007 at a point (the median candidate), and a search of 512 visits by 0.009
+  ([decisions/product.md](../decisions/product.md), "A candidate's map from a short search"). The full search's maps
+  made the stored review three times as large (1,017 kB to 3,093 kB) and the review about a fifth slower (a median of
+  323 s to 386 s) ([decisions/product.md](../decisions/product.md), "The candidates' maps: their size and their
+  time"). The short search costs a delay the first time that a candidate is pointed at: less than half a second
+  with the engine idle, and 1 to 7 s while the review's searches run.
 - **Added maps, not a review again,** because a review again replaces results that a player looked at, and costs a
-  whole review for one kind of data. A short search answers the same question as the full search's candidate map.
-  A candidate on the board rests on few visits of the full search (a median of 17 on the test fixture's game), so a
-  short search is about as deep. Measured there, a short search of 32 visits of the position after the move differs
-  from the full search's candidate map by 0.007 at a point (the median candidate), and a search of 512 visits by
-  0.009 ([decisions/product.md](../decisions/product.md), "A candidate's map from a short search").
+  whole review for one kind of data.
 
 ## Departures from KaTrain
 
@@ -161,7 +166,9 @@ The site follows KaTrain's review (design 05). The display departs from it on pu
   abstract.
 - **The area that a mistake lost** (KaTrain's loss grid, the first build): where, not what, and clear on a third of
   the mistakes only.
-- **Every candidate's map:** about 3 kB of JSON a candidate in the reply, for candidates that the board does not show.
+- **The full search's candidates' maps** (`includeMovesOwnership`, kept for the candidates on the board: the third
+  build): the stored review three times as large and the review a fifth slower, for maps that a short search gives as
+  well (Why).
 - **No map for a result stored before the maps** (a candidate's line of a stored review shows none): a stored review
   would never get the maps without a review again.
 - **A new shape for each field added** (6 for the ownership, 7 for the candidates' maps, on the branch): a shape says
@@ -176,12 +183,10 @@ The site follows KaTrain's review (design 05). The display departs from it on pu
 - The stored shape did not change, and the results stored before stay: a stored game and a review file open at once
   with their labels, lines and points lost (design 05, item 3, and design 13). Their maps come from the short
   searches of item 6, as the player looks, and then stay.
-- **The candidates' maps cost space and time.** On the test fixture's game, reviewed in the browser, they make the
-  stored review three times as large (1,017 kB to 3,093 kB: 1,916 maps in 249 results) and the review about a fifth
-  slower (323 s to 386 s, the median of three pairs; a search of 512 visits 5.0 s to 6.0 s)
-  ([decisions/product.md](../decisions/product.md), "The candidates' maps: their size and their time").
-- A candidate's map from a short search reads a shallower search than a candidate's own map. The legend does not say
-  which: the two differ less than two deep searches do.
+- **The review keeps its time and its size:** no search asks for the candidates' maps. A candidate's map costs one
+  short search, the first time that it is pointed at in a browser, and then stays in the store. The map shows a
+  median of 0.44 s after the pointer with the engine idle, and 2.8 s (1 to 7 s) while the review's searches hold both
+  workers ([decisions/product.md](../decisions/product.md), "The delay of a candidate's map").
 - **A general rule for later data:** when the site starts to use a kind of data that a stored review lacks, the review
   gets it added on demand, beside its results, and is not done again. The added data is stored with its source, and
   goes into a review file.
@@ -197,19 +202,20 @@ The site follows KaTrain's review (design 05). The display departs from it on pu
 - `src/lib/review/ReviewView.svelte`: `mapOn`, `toggleMap`, `lineCandidate`, `mapOwnership`, `shownMap`,
   `mapReading`, the legend, the settings and the key t. `src/lib/review/display.ts`: `areaMap`, `mapStyle`,
   `mapMin`.
-- `packages/analysis/src/reply.ts` (the ownership in hundredths), `packages/analysis/src/model.ts` (`shownMaps`),
-  `packages/analysis/src/analysis.svelte.ts` (every search asks for both maps, `askOwnership`, `mapAt`),
+- `packages/analysis/src/reply.ts` (the ownership in hundredths), `packages/analysis/src/analysis.svelte.ts` (every
+  search asks for the root's map, `askOwnership`, `mapAt`),
   `packages/analysis/src/cache.ts` (`SHAPE` 5, `READ_SHAPES`, `MAP_VISITS`, `mapKey`, `mapPut`, `mapGet`),
   `src/lib/game/earlierResults.ts` (the added maps kept with the site's results), `packages/engine/src/protocol.ts`
   (the fields).
 - The measurements: `scripts/measure/review-ownership.mjs` (the maps' size and time in a whole review),
-  `scripts/measure/candidate-maps.mjs` (a candidate's map from a short search) and `scripts/measure/ownership-maps.mjs`
-  (the change style's share of the board on real games).
+  `scripts/measure/candidate-maps.mjs` (a candidate's map from a short search),
+  `scripts/measure/candidate-map-delay.mjs` (its delay in the browser) and `scripts/measure/ownership-maps.mjs` (the
+  change style's share of the board on real games).
 
 ## Log entries
 
 - [decisions/product.md](../decisions/product.md): "The area maps on real games", "The window of the area lost" and
   "The results of shape 5 stay readable" (2026-10-21), for the first build. "The area map and the explanations on real
-  games" (2026-10-21), for the second. "The candidates' maps: their size and their time" and "A candidate's map from a
-  short search" (2026-10-21), for this one.
+  games" (2026-10-21), for the second. "The candidates' maps: their size and their time", "A candidate's map from a
+  short search" and "The delay of a candidate's map" (2026-10-21), for this one.
 - [decisions/engine.md](../decisions/engine.md): "The cost of the ownership in a whole review" (2026-10-21).

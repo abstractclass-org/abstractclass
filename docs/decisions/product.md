@@ -6034,3 +6034,39 @@ workers, the GPU off, through `scripts/machine run` with 2 threads while a train
   64 s, more than the difference's smallest pair, so by the rule of `verdict` the review's time is not a sure change.
   Its direction is: all three pairs agree.
 - **Searches of 1,024 visits** (4 a review, the key moments) differ in both directions: too few to say.
+
+### The candidates' maps from the short search alone (2026-10-21)
+
+The measurements above show that the full search's candidates' maps (`includeMovesOwnership`) cost every review a
+stored size three times as large and about a fifth more time. The candidates on the board rest on few visits of the
+full search (a median of 17 of 512), and a short search of 32 visits of the position after the move differs from
+their maps by 0.007 at a point. So the full search's maps give nothing that the short search does not.
+
+- No search asks for `includeMovesOwnership`, on the review or on the Analysis board, and a result keeps no
+  candidates' maps. The review's time and its stored size are those of the build before the candidates' maps.
+- Every candidate gets its map as an older review does (design 30): a search of 32 visits of the position after its
+  move, asked for when the candidate is pointed at, stored as an added map (its key starts with `map|`), read again
+  with no search, and exported with the review. The game's next move takes its position's own map.
+- The test fixture's review file keeps no candidates' maps: 1,427 kB, its size before them.
+
+### The delay of a candidate's map (2026-10-21)
+
+`scripts/measure/candidate-map-delay.mjs`: from the pointer on a candidate's row in the table to the map of the
+position after its move, the first time (no map stored), on the test fixture's game at every 10th position from edge
+15 to edge 105, for a candidate other than the game's next move. Playwright's Chromium, headless, 1,366 × 900
+pixels, the area map on, 2 search workers, the GPU off, through `scripts/machine run` with 2 threads while a training
+job held the other 10.
+
+| Case | Samples | The map, ms: median | Least | Most |
+|---|---|---|---|---|
+| The review runs (its label pass, both workers busy) | 9 | 2,835 | 961 | 7,061 |
+| The engine idle (the fixture's review file, no search running) | 9 | 441 | 328 | 455 |
+
+- **With the engine idle,** the map comes in less than half a second: one search of 32 visits.
+- **While the review runs,** the map's search waits for a worker: both run the review's searches, of up to 512
+  visits (about 5 s each). The map's priority is just under the position on screen's (`PRIORITY.ownership`), so it
+  takes the next free worker, and comes in 1 to 7 s.
+- The line shows at once (a median of 33 ms idle): the map follows it.
+- At edge 35, no candidate other than the game's next move had a line in 60 s: no sample there.
+- A first run took its "idle" samples without a check that no search ran: one map came in 10.6 s. The table is the
+  second run, which waits until no search runs.

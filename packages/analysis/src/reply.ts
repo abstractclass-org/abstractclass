@@ -5,9 +5,7 @@ import type { AnalysisReply, MoveInfo } from "@abstractclass/engine/protocol.ts"
 import type { Moves } from "./game.ts";
 import type { Analysis } from "./model.ts";
 
-/** An analysis reply as the review reads it: values from Blue's side, the candidates in the engine's order. Every
- *  candidate keeps the ownership that the reply gives it: the stored result keeps the shown candidates' alone
- *  (model.ts, shownMaps). */
+/** An analysis reply as the review reads it: values from Blue's side, the candidates in the engine's order. */
 export function toAnalysis<M>(game: Moves<M>, r: AnalysisReply): Analysis<M> {
   return {
     blueWin: r.rootInfo.winrate, visits: r.rootInfo.visits, lead: r.rootInfo.scoreLead, margin: r.rootInfo.scoreSelfplay,
@@ -15,7 +13,6 @@ export function toAnalysis<M>(game: Moves<M>, r: AnalysisReply): Analysis<M> {
     candidates: [...r.moveInfos].sort((a, b) => a.order - b.order).map(c => ({
       edge: game.parseMove(c.move), visits: c.edgeVisits, blueWin: c.winrate, lead: c.scoreLead, margin: c.scoreSelfplay, prior: c.prior,
       ...withLine(game, c), ...(c.isSymmetryOf ? { twinOf: game.parseMove(c.isSymmetryOf) } : {}),
-      ...(c.ownership ? { ownership: c.ownership.map(hundredths) } : {}),
     })),
     ...(r.ownership ? { ownership: r.ownership.map(hundredths) } : {}),
   };
