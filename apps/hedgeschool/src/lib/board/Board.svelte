@@ -72,7 +72,8 @@
   const layers = $derived({ ...DEFAULT_LAYERS, ...layersSet });
   const uid = $props.id();
   const shadowId = `${uid}-badge-shadow`; // one board's filter: a page can show several boards
-  const patternId = (m: AreaMark) => `${uid}-${m.kind}-${m.side}`;
+  const patternId = (m: { kind: "close" | "lose"; side: 0 | 1 }) => `${uid}-${m.kind}-${m.side}`;
+  const riseId = `${uid}-rise`;
   const blendId = `${uid}-area-blend`;
   const N = 19;
   // A label badge's radius. On a length-1 edge, whose line is 0.68 between its nodes, the badge sidesteps by 80% of its
@@ -81,6 +82,9 @@
   // The ownership style's strongest shading: KaTrain's 0.75 is for black and white on a wooden board. On this board the
   // players' colours at 0.45 leave the edges and the regions' shading readable.
   const AREA_ALPHA = 0.45;
+  // The difference style's fall: the first build's area lost, at KaTrain's 0.8 for its hints less as much, as it shows
+  // alone, in the accent, which is no player's colour.
+  const FALL_ALPHA = 0.6;
   const markAt = (e: Edge) => {
     const [x, y] = mid(e), d = 0.8 * MARK_R;
     if (Math.abs(e[0] - e[2]) + Math.abs(e[1] - e[3]) !== 1) return [x, y] as const;
@@ -273,6 +277,11 @@
         <line x1="0" y1="0.2" x2="0.4" y2="0.2" />
       </pattern>
     {/each}
+    <!-- The difference style's rise (design 30): plus signs in the text's colour, which no region, no change mark and no
+         fall has, and which a shape tells apart without colour. -->
+    <pattern id={riseId} class="rise" patternUnits="userSpaceOnUse" width="0.5" height="0.5">
+      <path d="M0.25 0.14V0.36M0.14 0.25H0.36" />
+    </pattern>
   </defs>
 
   {#if layers.coordinates}
@@ -286,7 +295,7 @@
 
   <!-- The ownership style (design 30), under everything else, as KaTrain draws its territory first: a square on each
        point, in the colour of the side that holds it and as strong as it holds it (KaTrain's OWNERSHIP_GAMMA), blended
-       by a blur as KaTrain blends its texture. -->
+       by a blur as KaTrain blends its texture. The difference style's falls the same way, in the accent. -->
   {#if shownMap}
     <g filter="url(#{blendId})">
       {#each points as [x, y] (pointKey(x, y))}
@@ -294,6 +303,8 @@
         {#if m?.kind === "hold"}
           <rect x={x - 0.5} y={sy(y) - 0.5} width="1" height="1" style:fill={m.side === 0 ? "var(--blue)" : "var(--red)"}
                 fill-opacity={AREA_ALPHA * m.strength} />
+        {:else if m?.kind === "fall"}
+          <rect x={x - 0.5} y={sy(y) - 0.5} width="1" height="1" style:fill="var(--accent)" fill-opacity={FALL_ALPHA * m.strength} />
         {/if}
       {/each}
     </g>
@@ -307,13 +318,15 @@
     {/each}
   {/if}
 
-  <!-- The change style (design 30), over the regions' fill and under the edges: a square on each point marked, filled
-       with its mark's pattern. -->
+  <!-- The change style, and the difference style's rises (design 30), over the regions' fill and under the edges: a
+       square on each point marked, filled with its mark's pattern, a rise as strong as it rose. -->
   {#if shownMap}
     {#each points as [x, y] (pointKey(x, y))}
       {@const m = shownMap[y * N + x]}
-      {#if m && m.kind !== "hold"}
+      {#if m?.kind === "close" || m?.kind === "lose"}
         <rect x={x - 0.5} y={sy(y) - 0.5} width="1" height="1" fill="url(#{patternId(m)})" />
+      {:else if m?.kind === "rise"}
+        <rect x={x - 0.5} y={sy(y) - 0.5} width="1" height="1" fill="url(#{riseId})" opacity={m.strength} />
       {/if}
     {/each}
   {/if}
@@ -489,6 +502,7 @@
   .change.p0 circle { fill: var(--blue); }
   .change.p1 circle { fill: var(--red); }
   .change line { stroke-width: 0.07; }
+  .rise path { stroke: var(--text); stroke-width: 0.06; stroke-linecap: round; }
   .change.p0 line { stroke: var(--blue); }
   .change.p1 line { stroke: var(--red); }
   .edge { stroke-width: 0.13; stroke-linecap: round; }

@@ -154,6 +154,16 @@ test("results of shape 5 open the review with no search, and the board's ownersh
   searches.at(-1)!.end(MAP_VISITS, false, { ownership: [-1, 1] });
   await turns();
   assert.deepEqual(game.mapAt(["a", "x"]), [-100, 100]);
+  // A position of a line, two moves from the tree, and one that the engine does not search (an ended game): no map
+  game.askOwnership([["a", "x", "y"], ["a", "x", "z"]]);
+  await turns();
+  const of = (last: string) => searches.find(s => s.query.moves.join(" ") === `a x ${last}`)!;
+  of("y").end(MAP_VISITS, false, { ownership: [0, 0] });
+  of("z").fail(new Error("the game is over"));
+  await turns();
+  assert.equal(game.error, ""); // not the review's error
+  assert.deepEqual(game.mapAt(["a", "x", "y"]), [0, 0]);
+  assert.deepEqual([game.hasNoMap(["a", "x", "y"]), game.hasNoMap(["a", "x", "z"])], [false, true]);
   // The review opened again reads the maps from the store, with no search
   const again = new GameAnalysis(words, pool, MOVES, "g5");
   await again.start();

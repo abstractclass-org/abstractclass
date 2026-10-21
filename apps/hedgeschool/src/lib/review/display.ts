@@ -18,12 +18,13 @@ export interface Display {
   // The area map (design 30), on each page: off on the review, whose player reads the labels first, and on on the
   // Analysis board, whose player reads the whole board. The key t shows or hides it on the page.
   areaMap: { review: boolean; board: boolean };
-  // The map's style: the engine's ownership of each point (the default, as KaTrain's territory), or the change from
-  // the board now to it
+  // The map's style: the engine's ownership of each point ("Forecast", the default, as KaTrain's territory), the
+  // forecast against the board now ("Forecast vs board"), or the forecast after the last move or the line drawn against
+  // the forecast before it ("After vs before", KaTrain's loss grid with the rises)
   mapStyle: MapStyle;
   // For each style, the smallest value that gets a mark, in hundredths: 0 marks every point with a value. The
-  // ownership's 0 is KaTrain's map. The change's 50 marks a median of 3.7% of the board on real games
-  // (decisions/product.md, "The area map and the explanations on real games").
+  // ownership's and the difference's 0 are KaTrain's maps. The change's 50 marks a median of 3.7% of the board on real
+  // games (decisions/product.md, "The area map and the explanations on real games").
   mapMin: Record<MapStyle, number>;
   scoreLine: boolean; // the Advantage chart's score line (Blue − Red)
   areaLine: boolean; // the Advantage chart's area line: the area each player encloses now (Blue − Red)
@@ -60,7 +61,7 @@ export const DEFAULT_DISPLAY: Display = {
   layers: withoutMap(DEFAULT_LAYERS),
   areaMap: { review: false, board: true },
   mapStyle: "ownership",
-  mapMin: { ownership: 0, change: 50 },
+  mapMin: { ownership: 0, change: 50, difference: 0 },
   scoreLine: true,
   areaLine: true,
   lineSteps: true,
@@ -87,8 +88,9 @@ export function loadDisplay(): Display {
     win: kept.win === "gauge" ? "gauge" : "bar",
     layers: { ...DEFAULT_DISPLAY.layers, ...withoutMap(kept.layers ?? {}) },
     areaMap: { ...DEFAULT_DISPLAY.areaMap, ...kept.areaMap },
-    mapStyle: kept.mapStyle === "change" ? "change" : "ownership",
-    mapMin: { ownership: hundredths(kept.mapMin?.ownership, "ownership"), change: hundredths(kept.mapMin?.change, "change") },
+    mapStyle: kept.mapStyle === "change" || kept.mapStyle === "difference" ? kept.mapStyle : "ownership",
+    mapMin: { ownership: hundredths(kept.mapMin?.ownership, "ownership"), change: hundredths(kept.mapMin?.change, "change"),
+              difference: hundredths(kept.mapMin?.difference, "difference") },
     scoreLine: kept.scoreLine ?? DEFAULT_DISPLAY.scoreLine,
     areaLine: kept.areaLine ?? DEFAULT_DISPLAY.areaLine,
     lineSteps: kept.lineSteps ?? DEFAULT_DISPLAY.lineSteps,

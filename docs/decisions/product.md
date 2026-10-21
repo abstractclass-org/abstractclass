@@ -6070,3 +6070,94 @@ job held the other 10.
 - At edge 35, no candidate other than the game's next move had a line in 60 s: no sample there.
 - A first run took its "idle" samples without a check that no search ran: one map came in 10.6 s. The table is the
   second run, which waits until no search runs.
+
+### A candidate's map from a short search, on a close game (2026-10-21)
+
+The test fixture's game is one-sided, so the comparison above is repeated on a close game of our own bots, from the
+empty board (the arena's 4 random opening edges).
+
+**The game's choice.** The engine repository's arena games (runs/*/arena/games.jsonl), read as
+games/enclosure/tools/export_blog_game.py --arena reads them: each action decoded and played by its rules binding
+(`Position`, `decode_action`, `edge`), in WSL, with the repository unchanged. 11,012 games have no timeout pass. Of
+the release matches (runs/v2-release-match and runs/v2-release-match-0.2: the released networks against each other at
+512 visits), the 12 games of at least 100 edges with the smallest final margin. Each of their positions, at every
+second edge, searched by the site's engine (HedgeFund 0.2 Lite, 32 visits). The chosen game is the one whose Blue win
+chance stays from 0.25 to 0.75 for the most edges from the start: runs/v2-release-match-0.2/arena/games.jsonl, line
+277 (b15c192-s66999040-d13350730 against b15c192-s71808256-d14315742, 512 visits each), 120 edges, a final margin of
+1.4 points, its win chance in that band up to edge 82. The next best stays in it up to edge 64.
+
+**The comparison** (`scripts/measure/candidate-maps.mjs 8 <the game's moves>`, as above): 14 positions, 21
+candidates on the board.
+
+| Short search, visits | Mean difference: median, p90 | Points whose mark differs: median, p90 | Time, ms (median) |
+|---|---|---|---|
+| 8 | 0.027, 0.041 | 0.6%, 1.9% | 53 |
+| 16 | 0.021, 0.051 | 0.3%, 1.9% | 54 |
+| 32 | 0.019, 0.038 | 0.3%, 1.4% | 99 |
+| 64 | 0.015, 0.049 | 0.3%, 0.8% | 186 |
+| 128 | 0.019, 0.049 | 0.3%, 0.8% | 405 |
+| 512 | 0.015, 0.035 | 0.0%, 0.6% | 3,120 |
+
+- **In a close game the candidates on the board are few and well searched:** a median of 355 visits of the full
+  search's 512, against 17 in the fixture's game. Their maps rest on a deep subtree, and every short search differs
+  more from them than in the fixture's game.
+- **32 visits differ from the full search's map by 0.019 at a point, 512 visits by 0.015.** A mark differs on at
+  most 1.4% of the points for 9 candidates in 10 (about 5 points), against 0.6% at 512 visits.
+- **The counts do not order cleanly:** 64 visits match 512 at the median and not at the 90th percentile, and 128
+  visits do worse than 64. With 21 candidates, the differences between the counts from 32 up are within the noise.
+- **MAP_VISITS stays 32.** The close game shows a small cost of the short search, about 0.004 at a point more than a
+  search of 512 visits, at a thirtieth of its time. It does not show a count that does clearly better.
+
+### The map follows the line as drawn (2026-10-21)
+
+A candidate's map stayed at the position after the candidate's first edge while the board drew its whole line, so
+the map and the board disagreed from the line's second edge on. Now the map is always the map of the position that the
+board shows: the position on screen, or the position after the last drawn edge of a line or a preview (design 30). The
+maps of a line's positions come as a candidate's map comes, asked for in the order of drawing.
+
+**How far the maps lag behind an animated line** (`scripts/measure/line-map-lag.mjs`): a candidate other than the
+game's next move pointed at in the table, at every 8th position of the test fixture's game from edge 9 to edge 105,
+where its line showed at least 3 edges; for each step, the time from the drawing of its edge (one every 500 ms) to the
+legend's "After edge k of the line", 0 when the map was there first. Playwright's Chromium, headless, 2 search
+workers, the GPU off, 2 threads while a training job held the other 10.
+
+| Case | Steps | With their map while drawn | At 0 ms | Lag: median, most |
+|---|---|---|---|---|
+| The engine idle (the review file's results, no search running) | 55 | 55 | 46 | 0 ms, 464 ms |
+| The review runs (its label pass, both workers busy) | 46 | 30 | 19 | 0 ms, 11,432 ms |
+
+- **With the engine idle, the maps keep up:** the first step's map comes 47 to 464 ms after the hover, and every
+  later step's is there when its edge is drawn. The searches of the later steps run while the first edges show.
+- **While the review runs, a step's map waits for a worker:** 16 of 46 steps never had their map while they were the
+  edge drawn. The board then keeps the latest map of the line before them, and the legend says which and that the
+  next is searched.
+- A first run asked again for the steps already drawn, after the steps to come. With the review running, 4 of 15
+  steps had their map while drawn. The order now leaves out the steps already drawn, so that their searches give way.
+  The two runs had other positions, so the gain is not measured.
+
+### After vs before: the third style (2026-10-21)
+
+A third style of the area map, "After vs before" (design 30): the forecast after a move, or after a drawn line, less
+the forecast before it, from the side of the player who chose. KaTrain's loss grid, the first build's area lost, at
+every move and with the rises as well as the falls. The two older styles are named by what they compare: "Forecast"
+and "Forecast vs board".
+
+**How much shows after the engine's best moves,** at the default smallest value (0): on the test fixture's game, the
+58 edges that were the engine's first choice, the stored maps before and after each edge
+(`scripts/measure/difference-at-best.mjs`, by edge).
+
+| Smallest value | Points marked: median | Most |
+|---|---|---|
+| 0 (the default) | 119 | 338 |
+| 0.1 | 2 | 211 |
+| 0.3 | 0 | 7 |
+| 0.5 | 0 | 3 |
+
+- **At 0, a best edge marks about a third of the board, faintly.** The strongest change at a best edge is 0.13 at the
+  median (0.86 at most), drawn at about a fifth of the full strength (|0.13| ^ (1 / 1.33)). The falls and the rises
+  are about even: a median of 1.1 points of the forecast each way. They come from the forecast before the move, which
+  is the mean over the whole search, not the best move's alone.
+- **From 0.1 up, a best edge marks a median of 2 points.** A smallest value of 0.1 would leave the best moves nearly
+  clean. The default stays 0, KaTrain's, until the styles are compared.
+- **At the fixture's Blunder** (turn 7), the map shows the trade: Red's coming area at the bottom fell for Blue, and
+  area at the top rose for Blue.

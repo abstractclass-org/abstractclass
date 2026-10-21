@@ -109,7 +109,7 @@ export class GameAnalysis<G extends GameTypes> {
   // store, or from a short search of the position alone, which the store then keeps. They never replace a result.
   private ownership = $state.raw<Record<string, number[]>>({});
   private owning = new Set<string>(); // their searches queued or running, by path key
-  private mapless = new Set<string>(); // the positions after a candidate that the engine did not search: an ended game
+  private mapless = $state.raw(new Set<string>()); // the positions of a line that the engine did not search: an ended game
   private ownershipWanted = new Set<string>(); // the positions asked for last: a search queued for another one is skipped
   private era = 0; // another network starts a new era: results from an earlier one are dropped
   private pool: EnginePool;
@@ -739,7 +739,7 @@ export class GameAnalysis<G extends GameTypes> {
     this.branches = Object.fromEntries(Object.entries(this.branches).map(([k, n]) => [k, { ...n, analysis: undefined }]));
     this.outside = {};
     this.ownership = {};
-    this.mapless.clear();
+    this.mapless = new Set();
     this.stored = {};
     this.timed = {};
     this.moments = [];
@@ -776,10 +776,21 @@ export class GameAnalysis<G extends GameTypes> {
   mapAt(path: string[]): number[] | undefined {
     return this.analysisOf(path)?.ownership ?? this.ownership[pathKey(path)];
   }
+  /** Whether a position gets no map: the engine did not search it (the game ends there). */
+  hasNoMap(path: string[]): boolean {
+    return this.mapless.has(pathKey(path));
+  }
+  /** The longest start of a path that the tree holds: the position where a line leaves the tree. */
+  private knownPrefix(path: string[]): string[] {
+    let k = path.length;
+    while (k > 0 && !this.known(path.slice(0, k))) k--;
+    return path.slice(0, k);
+  }
 
   /** Adds a map to these positions, which the area map shows, where they have none (mapAt): to a position of the tree
-   *  whose result has none (stored before the ownership), and to a position one move from the tree (after a candidate:
-   *  the candidate's map). The map stored for it, or else a short search of the position alone
+   *  whose result has none (stored before the ownership), and to a position of a line from the tree (after a
+   *  candidate, or after an edge of the engine's line or of a preview). The map stored for it, or else a short search
+   *  of the position alone
    *  (MAP_VISITS), after the position on screen's, whose map the store then keeps (cache.ts, mapPut). The result itself
    *  stays as it is. A position of the tree with no result yet waits for its own search, which asks for the ownership.
    *  A search queued for a position that the page no longer asks for starts and ends at once. */
@@ -789,7 +800,7 @@ export class GameAnalysis<G extends GameTypes> {
     for (const path of paths) {
       const key = pathKey(path), inTree = this.known(path);
       if (this.mapAt(path) || this.owning.has(key) || this.mapless.has(key)) continue;
-      if (inTree ? !this.searchable(path) || !this.analysisOf(path) : !path.length || !this.searchable(path.slice(0, -1))) continue;
+      if (inTree ? !this.searchable(path) || !this.analysisOf(path) : !this.searchable(this.knownPrefix(path))) continue;
       this.owning.add(key);
       const era = this.era, pool = this.pool, query = this.query(path), keyed = this.keyMovesOf(path);
       const keep = (ownership: number[]) => { if (era === this.era) this.ownership = { ...this.ownership, [key]: ownership }; };
@@ -806,7 +817,7 @@ export class GameAnalysis<G extends GameTypes> {
         });
       })()
         // A position after a candidate can end the game, and the engine searches no ended position: it has no map
-        .catch(inTree ? this.fail : () => { this.mapless.add(key); })
+        .catch(inTree ? this.fail : () => { this.mapless = new Set(this.mapless).add(key); })
         .finally(() => this.owning.delete(key));
     }
   }

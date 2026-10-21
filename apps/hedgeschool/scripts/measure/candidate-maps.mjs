@@ -1,8 +1,9 @@
 // A candidate's map from a short search (design 30): the full search's map of a candidate (includeMovesOwnership: the
 // ownership of the candidate's subtree) against a short search of the position after the candidate's move, at a few
-// visit counts. A stored result of an older shape has no candidates' maps, and the site adds one from such a search.
-// The positions: every `step`-th position of the test fixture's game (tests/fixtures/hedgefund-review.json, the site's
-// own game), searched as the Lite review searches them (HedgeFund 0.2 Lite, 512 visits), and their candidates on the
+// visit counts. The site gives every candidate its map from such a search. The positions: every `step`-th position of
+// the test fixture's game (tests/fixtures/hedgefund-review.json, the site's own game), or of the game in `moves.json`
+// (a JSON object whose `moves` are the edges' names: a close game of our own bots, which the fixture's one-sided game
+// is not), searched as the Lite review searches them (HedgeFund 0.2 Lite, 512 visits), and their candidates on the
 // board (shownCandidates). For each candidate and each count, in ownership's units (from −1 to 1):
 //   - the mean of |short − full| over the 361 points;
 //   - the share of the points where the two disagree on the change style's mark at 0.5 (ownership.ts, areaMap);
@@ -11,7 +12,7 @@
 // short search closer than that adds no error that matters. In Node, on one thread (scripts/node-engine.mjs: `npm run
 // engine` first).
 //
-//   node scripts/measure/candidate-maps.mjs [step]
+//   node scripts/measure/candidate-maps.mjs [step] [moves.json]
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { nodeEngine } from "../node-engine.mjs";
@@ -27,8 +28,9 @@ const NETWORK = "b10c128-s89066368-d17827487", VISITS = 512, SHORT = [8, 16, 32,
 const root = fileURLToPath(new URL("../..", import.meta.url));
 const step = Number(process.argv[2] ?? 10);
 const { call } = await nodeEngine(root, { network: NETWORK });
-const record = JSON.parse(readFileSync(new URL(`../../${FIXTURE}`, import.meta.url), "utf8")).record;
-const moves = parseRecord(record).moves;
+const movesFile = process.argv[3];
+const moves = movesFile ? JSON.parse(readFileSync(movesFile, "utf8")).moves
+  : parseRecord(JSON.parse(readFileSync(new URL(`../../${FIXTURE}`, import.meta.url), "utf8")).record).moves;
 const search = (m, visits, extra = {}) => {
   const t0 = performance.now(), r = call({ id: "a", moves: m, maxVisits: visits, includeOwnership: true, ...extra });
   if (r.error) throw new Error(`${m.join(" ")}: ${r.error}`);
