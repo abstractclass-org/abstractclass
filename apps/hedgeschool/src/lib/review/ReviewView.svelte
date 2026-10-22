@@ -965,13 +965,14 @@
   // The image of a line (design 07, item 17; lineImage.ts): the board where the line of the move under the menu starts,
   // its edges numbered all at once with their cuts and regions, the player's notes there, and the caption. Copied, or
   // where the clipboard refuses an image, a note that says so and offers Save. The note's text is text that a player
-  // follows: strict Simplified Technical English. The animated image plays the line one edge at a time, each frame
-  // drawn as the static image is (lineFrames). It is saved only: the clipboard keeps only an image's first frame.
+  // follows: strict Simplified Technical English. The animated image is a GIF that plays the line one edge at a time,
+  // each frame drawn as the static image is (lineFrames). It is saved only: the clipboard takes a PNG, and keeps only
+  // its first frame.
   let imageNote = $state.raw<ComponentProps<typeof Toast> | null>(null);
-  type LineImage = { png: Promise<Blob>; name: string };
+  type LineImage = { file: Promise<Blob>; name: string };
   function imageOf(key: string, animated = false): LineImage {
     const line = imageLine(key.split(" "), path, mainNames), from = positionOf(line.start);
-    if (!from) return { png: Promise.reject(new Error("the position is not in the tree")), name: "" };
+    if (!from) return { file: Promise.reject(new Error("the position is not in the tree")), name: "" };
     const { edges, end } = treeLine(line.paths);
     const caption = imageCaption({ ...moveFrom(line.start), ...from }, end ?? null, edges.length);
     // Twice the board's size on screen, and at least 1,200 pixels wide.
@@ -980,23 +981,23 @@
     const layers = { ...$state.snapshot(display.layers), regions: true, candidates: false, marks: false };
     // The board with the line's first `k` edges.
     const props = (k: number) => ({ position: from, cut: k ? null : cut, line: edges.slice(0, k), notes, layers });
-    const png = animated ? animatedBoardImage(lineFrames(edges.length).map(f => ({ props: props(f.edges), ms: f.ms })), caption, width)
+    const file = animated ? animatedBoardImage(lineFrames(edges.length).map(f => ({ props: props(f.edges), ms: f.ms })), caption, width)
       : boardImage(props(edges.length), caption, width);
-    return { png, name: imageName(line.start, edges.length, animated) };
+    return { file, name: imageName(line.start, edges.length, animated) };
   }
   // The edges of the line that the menu's move gives: the animated image plays only a line of one edge or more.
   const menuLineEdges = $derived(menuPath === null ? 0 : treeLine(imageLine(menuPath.split(" "), path, mainNames).paths).edges.length);
   const imageFailed = (e: unknown) => (imageNote = { text: `The site cannot make the image: ${errorText(e)}`, failed: true });
-  function saveImage({ png, name }: LineImage, animated = false) {
+  function saveImage({ file, name }: LineImage, animated = false) {
     used(animated ? "animated image saved" : "image saved");
     imageNote = null;
-    png.then(b => download(name, b, "image/png"), imageFailed);
+    file.then(b => download(name, b, b.type), imageFailed);
   }
   function copyImage(key: string) {
     used("image copied");
     const image = imageOf(key);
     // The note with Save stays longer: the player reads it, then chooses.
-    copyPng(image.png).then(copied => (imageNote = copied ? { text: "Image copied" }
+    copyPng(image.file).then(copied => (imageNote = copied ? { text: "Image copied" }
       : { text: "This browser cannot copy an image. Save the image as a file.", failed: true, ms: 15000,
           action: { label: "Save image", onclick: () => saveImage(image) } }), imageFailed);
   }

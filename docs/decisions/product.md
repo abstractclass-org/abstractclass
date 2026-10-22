@@ -6686,3 +6686,43 @@ error and no horizontal scroll. The layout sweep in Chromium passes (25 tests, 5
 - **Not checked:** Edge, Safari and Firefox, and a real touch screen. The menu words "Generate", "static" and
   "animated" are not in the approved words of Simplified Technical English. The menu keeps them, as the request
   gave them.
+
+### The animated image of a line is a GIF (2026-10-22)
+
+- **Seen** (abscls-iaph): the animated PNG (APNG) that "Save animated" gave was a correct APNG (17 frames, with the
+  delays and the play count of the entry "An animated image of a line"). But Windows Photos and Discord showed it as
+  a still image, its first frame: the start of the line with no edge.
+- **Decided** (design 07, item 17): "Save animated" gives an animated GIF, `…-animated.gif`, in place of the APNG.
+  The APNG encoder (`apng.ts`) is removed. The submenu keeps "Copy static", "Save static" and "Save animated".
+  - **The frames:** the whole line first, for 2 seconds, so that an app that shows only the first frame (Discord with
+    autoplay off, a preview) shows the line. Then the start with no edge (1 second), each edge (half a second), and
+    again from the whole line, with no end (the NETSCAPE2.0 extension, loop count 0). A line of n edges has n + 2
+    frames. The frame of the last edge and the first frame are the same picture.
+  - **The encoder:** `gif.ts`, GIF89a with LZW, in the site's code with tests. No library: gifenc and omggif, the
+    small ones, have had no release for years, and the palette needs the board's own rule.
+  - **The colours:** a GIF holds 256 colours a frame. The palette holds first the light theme's flat colours (the
+    board, its dots, the players, the badges' numbers, the caption's background and texts), then each colour that
+    fills a 2 × 2 block of pixels (the regions, which blend a player's colour over the board), to 192, then a median
+    cut of the anti-aliased colours. A pixel keeps its colour where the palette holds it, and takes the nearest colour
+    where it does not. No dithering. After the first frame, a frame holds only the box of the pixels that changed.
+- **Measured** on the production build in headless Chromium 153.0.8010.12 (started with `--disable-gpu`, the engine's
+  GPU setting off, 2 workers), with the review in `tests/fixtures/hedgefund-review.json`, the same two lines as for
+  the APNG (images 1,326 × 1,564 pixels):
+
+  | The line | Static PNG | Animated GIF | Frames | Delays (ms) | Pixels that differ from the static PNG | Largest difference |
+  |---|---|---|---|---|---|---|
+  | A branch's line of 3 edges, after edge 11 | 216,126 bytes | 87,359 bytes (40%) | 5 | 2,000, 1,000, 500, 500, 500 | 1.19% | 30 of 255 |
+  | A main line move ahead of the position on screen: edges 21 to 24, from the position after edge 20 | 235,072 bytes | 97,592 bytes (42%) | 6 | 2,000, 1,000, 500, 500, 500, 500 | 1.41% | 31 of 255 |
+
+  `ImageDecoder` (type `image/gif`) decoded every frame, with a repetition count of Infinity. The first frame and
+  the frame of the last edge each differ from the static PNG only in anti-aliased pixels: no pixel that differs lies
+  in a 2 × 2 block of one colour in the static PNG. The APNG files were 6% and 8% larger than the static PNG. The
+  GIF files are less than half its size.
+- **No "Copy animated",** still: Chromium 153 refuses an `image/gif` on the clipboard ("Type image/gif not supported
+  on write"), and keeps only the first frame of an APNG written as `image/png` (the entry "An animated image of a
+  line").
+- **Checked:** `gif.test.ts` (the frames, their delays, offsets and disposal, the loop count, each frame decoded
+  with the test's own LZW decoder, LZW through full tables, and the palette's rule), `lineImage.test.ts` (the frames'
+  order and the file's name), `npm run check:all` (all its steps passed, 223 tests in the site), and the layout sweep
+  in Chromium with `--disable-gpu` and the engine's GPU setting off (25 passed, 5 skipped).
+- **Not checked:** Windows Photos and Discord with the GIF (the owner's look), Edge, Safari and Firefox.

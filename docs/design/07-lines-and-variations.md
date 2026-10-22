@@ -249,23 +249,32 @@ cut edges that are on the board, so a line drawn over the board can show edges t
       Firefox ask. Where the browser refuses an image, a note says "This browser cannot copy an image. Save the image
       as a file." with a "Save image" button. "Save static" gives a file, `hedge-school-after-edge-N-line-M.png`: the
       line starts after edge N and has M edges.
-    - **The animated image** ("Save animated"): an animated PNG (APNG) that plays the line as the board's Animated
-      form of "Lines on the board" draws it. The first frame is the position where the line starts, with no edge, for
-      1 second. Each next frame adds one edge, with its number, the edge that it cuts and the regions after it, for
-      half a second. The frame of the last edge is the whole line, for 2 seconds. Then the image plays again from
-      the start, with no end. Each frame is drawn as the static image is, with the same size and the same caption, so
-      the last frame is the static image. A position with no line has nothing to play: the submenu does not show the
-      item. The file's name is the static image's, with `-animated` before `.png`.
-    - **How the animated image is made** (`apng.ts`, `animatedBoardImage` in `boardImage.ts`): the canvas draws each
-      frame, and the browser makes a PNG of it. The site's own code joins the PNGs into one APNG (the chunks acTL,
-      fcTL and fdAT of the PNG specification, third edition). No library does it: the format is a few chunks around
-      the browser's PNGs. After the first frame, a frame holds only the box of the pixels that changed, at its
-      offset, over the frame before it. An animated image is a few percent larger than its static image.
-    - **No "Copy animated":** the clipboard keeps only the first frame. Chromium decodes the image that a page writes
-      to the clipboard and encodes it again as a PNG of one frame. A test in headless Chromium 153 wrote an APNG of 3
-      frames (418 bytes, with acTL and 3 fcTL chunks) as `image/png`, and `navigator.clipboard.read` gave a PNG of
-      278 bytes with only IHDR, IDAT and IEND: one frame. A copied animated image would show the start of the line
-      with no edge, so the submenu does not offer it.
+    - **The animated image** ("Save animated"): an animated GIF that plays the line as the board's Animated form of
+      "Lines on the board" draws it. The first frame is the whole line, for 2 seconds: an app that shows only an
+      animation's first frame, or a still preview of it, shows the line. Next is the position where the line starts,
+      with no edge, for 1 second. Each next frame adds one edge, with its number, the edge that it cuts and the regions
+      after it, for half a second. Then the image plays again from the whole line, with no end (the NETSCAPE2.0
+      extension's loop count 0). Each frame is drawn as the static image is, with the same size and the same caption,
+      so the first frame and the frame of the last edge are the static image, but for the colours below. A position
+      with no line has nothing to play: the submenu does not show the item. The file's name is the static image's,
+      with `-animated.gif` in place of `.png`.
+    - **GIF, not APNG:** an animated PNG (APNG) is an image of the PNG standard, and browsers play it. But Windows
+      Photos and Discord show an APNG as a still image, its first frame. GIF plays in each of them.
+    - **How the animated image is made** (`gif.ts`, `animatedBoardImage` in `boardImage.ts`): the canvas draws each
+      frame, and the site's own code encodes the frames as one GIF89a, with GIF's LZW compression. The encoder is
+      about 200 lines, and its palette needs a rule of its own (below), so no library does it. After the first frame,
+      a frame holds only the box of the pixels that changed, at its offset, drawn over the frame before it.
+    - **The colours:** a GIF holds 256 colours, and the image holds more: its anti-aliased pixels blend the flat
+      colours. The flat colours stay exact. The palette holds first the light theme's colours of the board, its dots,
+      the players, the numbers on the badges and the caption, then each colour that fills a 2 × 2 block of pixels
+      somewhere (the regions, for example, blend a player's colour over the board), the colour of the most blocks
+      first, to 192 colours. A median cut of the other colours gives the places that are left. Each pixel keeps its
+      own colour where the palette holds it, and takes the nearest colour where it does not. Nothing is dithered.
+    - **No "Copy animated":** the clipboard takes an image as a PNG of one frame. Chromium 153's clipboard refuses
+      an `image/gif` ("Type image/gif not supported on write"). It decodes a PNG that a page writes and encodes it
+      again: a test in headless Chromium 153 wrote an APNG of 3 frames (418 bytes, with acTL and 3 fcTL chunks) as
+      `image/png`, and `navigator.clipboard.read` gave a PNG of 278 bytes with only IHDR, IDAT and IEND: one frame.
+      So the submenu does not offer a copy of the animated image.
 
 ## Why
 
@@ -384,8 +393,9 @@ cut edges that are on the board, so a line drawn over the board can show edges t
   press, drag and release (a click, a dragged edge, a note), and the notes drawn.
 - `src/lib/board/notes.ts`: the notes, `toggleNote` and `brushFor` (tests in `notes.test.ts`).
 - The image of a line: `src/lib/review/lineImage.ts` (`imageLine`, `imageCaption`, `imageName`, tests in
-  `lineImage.test.ts`), `src/lib/board/boardImage.ts` (the PNG, `copyPng`), and in `ReviewView.svelte`, `imageOf`,
-  `copyImage`, `saveImage` and `treeLine` (the line's edges, as a branch's preview draws them). The note is
+  `lineImage.test.ts`), `src/lib/board/boardImage.ts` (the PNG, `copyPng`, and the animated image,
+  `animatedBoardImage`), `src/lib/board/gif.ts` (the GIF, tests in `gif.test.ts`), and in `ReviewView.svelte`,
+  `imageOf`, `copyImage`, `saveImage` and `treeLine` (the line's edges, as a branch's preview draws them). The note is
   `src/lib/ui/Toast.svelte` (the Export menu's too). `[data-theme="light"]` in `src/app.css` gives the light tokens to
   the board that the image draws, and keeps Tailwind's `dark:` off inside it.
 - `packages/analysis/src/model.ts`: `enoughVisits`, `trustedLine` (the 25-visit cut, with its tests in

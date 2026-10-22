@@ -62,13 +62,14 @@ test("the file's name gives the position where the line starts and the edges tha
   assert.equal(imageName(["A1", "A2"], 0), "hedge-school-after-edge-2.png"); // a position, or a line that starts with a pass
 });
 
-test("the animated image's name has -animated before .png", () => {
-  assert.equal(imageName(["A1"], 2, true), "hedge-school-after-edge-1-line-2-animated.png");
-  assert.equal(imageName([], 1, true), "hedge-school-start-line-1-animated.png");
+test("the animated image's name has -animated before .gif", () => {
+  assert.equal(imageName(["A1"], 2, true), "hedge-school-after-edge-1-line-2-animated.gif");
+  assert.equal(imageName([], 1, true), "hedge-school-start-line-1-animated.gif");
 });
 
-test("the animation: the start with no edge for 1 second, each edge for half a second, the whole line for 2 seconds", () => {
-  assert.deepEqual(lineFrames(3), [{ edges: 0, ms: 1000 }, { edges: 1, ms: 500 }, { edges: 2, ms: 500 }, { edges: 3, ms: 2000 }]);
-  assert.deepEqual(lineFrames(1), [{ edges: 0, ms: 1000 }, { edges: 1, ms: 2000 }]);
+test("the animation: the whole line for 2 seconds, the start with no edge for 1 second, each edge for half a second", () => {
+  assert.deepEqual(lineFrames(3), [{ edges: 3, ms: 2000 }, { edges: 0, ms: 1000 }, { edges: 1, ms: 500 }, { edges: 2, ms: 500 },
+                                   { edges: 3, ms: 500 }]);
+  assert.deepEqual(lineFrames(1), [{ edges: 1, ms: 2000 }, { edges: 0, ms: 1000 }, { edges: 1, ms: 500 }]);
   assert.deepEqual(lineFrames(0), []); // no line: nothing to play
 });

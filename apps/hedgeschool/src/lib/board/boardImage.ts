@@ -1,11 +1,12 @@
 // The board as a PNG (design 07, item 17), in the player's browser, with no server: the board's SVG (Board.svelte),
 // drawn apart from the page in the light theme, with its computed colours and fonts written into each element, then
-// drawn on a canvas with a caption under it. Lichess renders its board images on its server, from the position's FEN.
-// Images always have the light look: an image leaves the site, for chats and forums of either background and for print,
-// and one look makes the images of a line alike whoever made them (decisions/product.md, "An image of a line").
+// drawn on a canvas with a caption under it. The animated image of a line is a GIF of such canvases (gif.ts). Lichess
+// renders its board images on its server, from the position's FEN. Images always have the light look: an image leaves
+// the site, for chats and forums of either background and for print, and one look makes the images of a line alike
+// whoever made them (decisions/product.md, "An image of a line").
 import { flushSync, mount, unmount, type ComponentProps } from "svelte";
 import { SITE_NAME } from "#lib/edition.ts";
-import { apng, changedBox, type ApngFrame } from "./apng.ts";
+import { animatedGif, changedBox, type GifFrame } from "./gif.ts";
 import Board from "./Board.svelte";
 
 type BoardProps = ComponentProps<typeof Board>;
@@ -33,41 +34,44 @@ function standalone(svg: SVGSVGElement, size: number): string {
 /** The PNG of a board drawn with `props`, `width` pixels wide, and under it the caption's lines (the first in bold)
  *  and the site's name, small. */
 export async function boardImage(props: BoardProps, caption: string[], width: number): Promise<Blob> {
-  return pngOf(await boardCanvas(props, caption, width));
+  return pngOf((await boardCanvas(props, caption, width)).canvas);
 }
 
-/** An animated PNG (apng.ts) of boards, each drawn as boardImage draws it, with the same caption, and shown for its
- *  `ms`. It plays again with no end. After the first frame, a frame holds only the part of the image that changed. */
+/** An animated GIF (gif.ts) of boards, each drawn as boardImage draws it, with the same caption, and shown for its
+ *  `ms`. It plays again with no end. After the first frame, a frame holds only the part of the image that changed. The
+ *  board's and the caption's colours (FLAT) stay exact in the GIF's 256 colours. */
 export async function animatedBoardImage(frames: { props: BoardProps; ms: number }[], caption: string[], width: number):
   Promise<Blob> {
-  const out: ApngFrame[] = [];
-  let before: ImageData | null = null;
+  const out: GifFrame[] = [];
+  let before: ImageData | null = null, fixed: number[] = [];
   for (const { props, ms } of frames) {
-    const canvas = await boardCanvas(props, caption, width), { width: w, height: h } = canvas;
-    const now = canvas.getContext("2d")!.getImageData(0, 0, w, h);
+    const { canvas, flat } = await boardCanvas(props, caption, width), { width: w, height: h } = canvas;
+    const ctx = canvas.getContext("2d")!, now = ctx.getImageData(0, 0, w, h);
+    fixed = flat;
     // A frame the same as the one before keeps one pixel: a frame cannot be empty.
     const box = !before ? { x: 0, y: 0, w, h } : changedBox(before.data, now.data, w, h) ?? { x: 0, y: 0, w: 1, h: 1 };
-    const part = document.createElement("canvas");
-    part.width = box.w;
-    part.height = box.h;
-    part.getContext("2d")!.putImageData(now, -box.x, -box.y);
-    out.push({ png: new Uint8Array(await (await pngOf(part)).arrayBuffer()), ...box, ms });
+    out.push({ rgba: ctx.getImageData(box.x, box.y, box.w, box.h).data, ...box, ms });
     before = now;
   }
-  return new Blob([apng(out)], { type: "image/png" });
+  return new Blob([animatedGif(before!.width, before!.height, out, fixed)], { type: "image/gif" });
 }
+
+/** The tokens of the light theme whose colours the image fills flat areas with: the board, its dots, the players'
+ *  colours, the numbers on the line's badges, and the caption's background and text. */
+const FLAT = ["board-bg", "board-dot", "blue", "red", "on-badge", "panel", "text", "muted"];
 
 const pngOf = (canvas: HTMLCanvasElement) => new Promise<Blob>((done, fail) =>
   canvas.toBlob(b => (b ? done(b) : fail(new Error("the browser made no image"))), "image/png"));
 
-/** The canvas of boardImage. */
-async function boardCanvas(props: BoardProps, caption: string[], width: number): Promise<HTMLCanvasElement> {
+/** The canvas of boardImage, and the colours of FLAT as 0xRRGGBB. */
+async function boardCanvas(props: BoardProps, caption: string[], width: number):
+  Promise<{ canvas: HTMLCanvasElement; flat: number[] }> {
   const host = document.createElement("div");
   host.setAttribute("aria-hidden", "true");
   host.dataset.theme = "light"; // the light theme's colours (app.css)
   host.className = "fixed top-0 -left-[100000px] w-[600px] pointer-events-none";
   document.body.append(host);
-  let markup: string, colour: Record<"panel" | "text" | "muted", string>;
+  let markup: string, colour: Record<"panel" | "text" | "muted", string>, flat: string[];
   const board = mount(Board, { target: host, props });
   try {
     flushSync();
@@ -75,6 +79,7 @@ async function boardCanvas(props: BoardProps, caption: string[], width: number):
     // Read now: a computed style is live, and empty once the host leaves the page.
     const css = getComputedStyle(host), token = (name: string) => css.getPropertyValue(`--${name}`).trim();
     colour = { panel: token("panel"), text: token("text"), muted: token("muted") };
+    flat = FLAT.map(token);
   } finally {
     void unmount(board);
     host.remove();
@@ -107,7 +112,16 @@ async function boardCanvas(props: BoardProps, caption: string[], width: number):
   ctx.font = `400 ${small}px ${fonts}`;
   ctx.fillStyle = colour.muted;
   ctx.fillText(SITE_NAME, pad, y + 0.3 * small);
-  return canvas;
+  return { canvas, flat: flat.map(rgbOf) };
+}
+
+/** A CSS colour as 0xRRGGBB, as a canvas draws it. */
+function rgbOf(css: string): number {
+  const ctx = Object.assign(document.createElement("canvas"), { width: 1, height: 1 }).getContext("2d")!;
+  ctx.fillStyle = css;
+  ctx.fillRect(0, 0, 1, 1);
+  const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+  return (r << 16) | (g << 8) | b;
 }
 
 /** Puts a PNG on the clipboard (a ClipboardItem: Chrome, Edge, Safari, Firefox 127 and later). The image is given as a

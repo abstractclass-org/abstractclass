@@ -38,16 +38,19 @@ export function imageCaption(start: CaptionStart, end: CaptionNumbers | null, ed
   return [turn, `Before edge 1: ${scoreText(start)}`, `After edge ${edges}: ${scoreText(end)}`];
 }
 
-/** The saved file's name: where the line starts, how many edges the image numbers, and whether it plays the line. */
+/** The saved file's name: where the line starts, how many edges the image numbers, and whether it plays the line (a
+ *  GIF). */
 export function imageName(start: string[], edges: number, animated = false): string {
   const from = start.length ? `after-edge-${start.length}` : "start";
-  return `hedge-school-${from}${edges ? `-line-${edges}` : ""}${animated ? "-animated" : ""}.png`;
+  return `hedge-school-${from}${edges ? `-line-${edges}` : ""}${animated ? "-animated.gif" : ".png"}`;
 }
 
 /** The frames of the animated image of a line of `edges` edges: how many of its edges each draws, and for how long.
- *  The start with no edge for a second, then the edges one at a time every half second, as the board draws a line
- *  (LINE_STEP_MS in lineDrawing.svelte.ts), and the whole line for two seconds. A line with no edge has no frames. */
+ *  The whole line first, for two seconds: an app that shows only an animation's first frame shows the line. Then the
+ *  start with no edge for a second, and the edges one at a time every half second, as the board draws a line
+ *  (LINE_STEP_MS in lineDrawing.svelte.ts). Then it plays again from the whole line. A line with no edge has no
+ *  frames. */
 export function lineFrames(edges: number): { edges: number; ms: number }[] {
   if (!edges) return [];
-  return Array.from({ length: edges + 1 }, (_, k) => ({ edges: k, ms: k === 0 ? 1000 : k === edges ? 2000 : 500 }));
+  return [{ edges, ms: 2000 }, { edges: 0, ms: 1000 }, ...Array.from({ length: edges }, (_, k) => ({ edges: k + 1, ms: 500 }))];
 }

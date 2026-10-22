@@ -118,8 +118,8 @@ searching it again, and to share it as text that others can read.
    site's link offers "Save to" that site first in the Export menu. The review file goes to the site's save page, in
    the player's browser, when the player chooses it.
 10. **An image of a line** (design 07, item 17): the move menu's submenu "Generate image" gives a PNG of the board,
-    with the line of the move numbered and a caption, still or animated. It is not in the Export menu: it shares a
-    line, not the game.
+    with the line of the move numbered and a caption, or an animated GIF that plays the line. It is not in the Export
+    menu: it shares a line, not the game.
 
 ## Why
 
