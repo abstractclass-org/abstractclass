@@ -969,26 +969,30 @@
   // each frame drawn as the static image is (lineFrames). It is saved only: the clipboard takes a PNG, and keeps only
   // its first frame.
   let imageNote = $state.raw<ComponentProps<typeof Toast> | null>(null);
-  type LineImage = { file: Promise<Blob>; name: string };
+  type LineImage = { file: Promise<Blob>; name: string; animated: boolean };
+  /** The line of the image of the move `key` (imageLine): where it starts, and its edges as a preview draws them. */
+  function imageTreeLine(key: string) {
+    const { start, paths } = imageLine(key.split(" "), path, mainNames);
+    return { start, ...treeLine(paths) };
+  }
   function imageOf(key: string, animated = false): LineImage {
-    const line = imageLine(key.split(" "), path, mainNames), from = positionOf(line.start);
-    if (!from) return { file: Promise.reject(new Error("the position is not in the tree")), name: "" };
-    const { edges, end } = treeLine(line.paths);
-    const caption = imageCaption({ ...moveFrom(line.start), ...from }, end ?? null, edges.length);
+    const { start, edges, end } = imageTreeLine(key), from = positionOf(start);
+    if (!from) return { file: Promise.reject(new Error("the position is not in the tree")), name: "", animated };
+    const caption = imageCaption({ ...moveFrom(start), ...from }, end ?? null, edges.length);
     // Twice the board's size on screen, and at least 1,200 pixels wide.
     const width = Math.max(1200, Math.round(2 * (boardWrap?.getBoundingClientRect().width ?? 0)));
-    const notes = $state.snapshot(notesAt[pathKey(line.start)] ?? []), cut = moveInto(line.start)?.cut ?? null;
+    const notes = $state.snapshot(notesAt[pathKey(start)] ?? []), cut = moveInto(start)?.cut ?? null;
     const layers = { ...$state.snapshot(display.layers), regions: true, candidates: false, marks: false };
     // The board with the line's first `k` edges.
     const props = (k: number) => ({ position: from, cut: k ? null : cut, line: edges.slice(0, k), notes, layers });
     const file = animated ? animatedBoardImage(lineFrames(edges.length).map(f => ({ props: props(f.edges), ms: f.ms })), caption, width)
       : boardImage(props(edges.length), caption, width);
-    return { file, name: imageName(line.start, edges.length, animated) };
+    return { file, name: imageName(start, edges.length, animated), animated };
   }
   // The edges of the line that the menu's move gives: the animated image plays only a line of one edge or more.
-  const menuLineEdges = $derived(menuPath === null ? 0 : treeLine(imageLine(menuPath.split(" "), path, mainNames).paths).edges.length);
+  const menuLineEdges = $derived(menuPath === null ? 0 : imageTreeLine(menuPath).edges.length);
   const imageFailed = (e: unknown) => (imageNote = { text: `The site cannot make the image: ${errorText(e)}`, failed: true });
-  function saveImage({ file, name }: LineImage, animated = false) {
+  function saveImage({ file, name, animated }: LineImage) {
     used(animated ? "animated image saved" : "image saved");
     imageNote = null;
     file.then(b => download(name, b, b.type), imageFailed);
@@ -1558,7 +1562,7 @@
           <ContextMenu.Item onSelect={() => menuPath && copyImage(menuPath)} class={MENU_ITEM}>Copy static</ContextMenu.Item>
           <ContextMenu.Item onSelect={() => menuPath && saveImage(imageOf(menuPath))} class={MENU_ITEM}>Save static</ContextMenu.Item>
           {#if menuLineEdges}
-            <ContextMenu.Item onSelect={() => menuPath && saveImage(imageOf(menuPath, true), true)} class={MENU_ITEM}>Save animated</ContextMenu.Item>
+            <ContextMenu.Item onSelect={() => menuPath && saveImage(imageOf(menuPath, true))} class={MENU_ITEM}>Save animated</ContextMenu.Item>
           {/if}
         </ContextMenu.SubContent>
       </ContextMenu.Sub>

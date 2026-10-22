@@ -224,7 +224,9 @@ cut edges that are on the board, so a line drawn over the board can show edges t
 17. **An image of a line** (the move menu's submenu "Generate image", item 12, in a review and on the Analysis
     board): players share lines with their community as screenshots, a position and how it could have gone, with the
     edges numbered. The image is a PNG of the board with a caption under it, made in the player's browser. The
-    submenu has "Copy static", "Save static" and, for a line of one edge or more, "Save animated".
+    submenu has "Copy static", "Save static" and, for a line of one edge or more, "Save animated". These words stay
+    as they were asked for: "Generate", "static" and "animated" are not approved words of Simplified Technical
+    English.
     - **The line, by the move under the menu** (`imageLine` in `lineImage.ts`):
       - A branch's move: the branch's line from where it leaves the main line, numbered as its preview numbers it
         (item 13, `branchLine`). The position on screen does not change it.
@@ -262,19 +264,18 @@ cut edges that are on the board, so a line drawn over the board can show edges t
       Photos and Discord show an APNG as a still image, its first frame. GIF plays in each of them.
     - **How the animated image is made** (`gif.ts`, `animatedBoardImage` in `boardImage.ts`): the canvas draws each
       frame, and the site's own code encodes the frames as one GIF89a, with GIF's LZW compression. The encoder is
-      about 200 lines, and its palette needs a rule of its own (below), so no library does it. After the first frame,
-      a frame holds only the box of the pixels that changed, at its offset, drawn over the frame before it.
+      short, and its palette needs a rule of its own (below), so no library does it. After the first frame, a frame
+      holds only the box of the pixels that changed, at its offset, drawn over the frame before it.
     - **The colours:** a GIF holds 256 colours, and the image holds more: its anti-aliased pixels blend the flat
       colours. The flat colours stay exact. The palette holds first the light theme's colours of the board, its dots,
       the players, the numbers on the badges and the caption, then each colour that fills a 2 × 2 block of pixels
       somewhere (the regions, for example, blend a player's colour over the board), the colour of the most blocks
       first, to 192 colours. A median cut of the other colours gives the places that are left. Each pixel keeps its
       own colour where the palette holds it, and takes the nearest colour where it does not. Nothing is dithered.
-    - **No "Copy animated":** the clipboard takes an image as a PNG of one frame. Chromium 153's clipboard refuses
-      an `image/gif` ("Type image/gif not supported on write"). It decodes a PNG that a page writes and encodes it
-      again: a test in headless Chromium 153 wrote an APNG of 3 frames (418 bytes, with acTL and 3 fcTL chunks) as
-      `image/png`, and `navigator.clipboard.read` gave a PNG of 278 bytes with only IHDR, IDAT and IEND: one frame.
-      So the submenu does not offer a copy of the animated image.
+    - **No "Copy animated":** the clipboard keeps one frame. Chromium's clipboard refuses an `image/gif`, and it
+      encodes a PNG that a page writes again, as one frame: an animated PNG loses its frames there (the tests are in
+      decisions/product.md, "An animated image of a line" and "The animated image of a line is a GIF"). So the
+      submenu does not offer a copy of the animated image.
 
 ## Why
 
@@ -392,10 +393,11 @@ cut edges that are on the board, so a line drawn over the board can show edges t
 - `src/lib/board/Board.svelte`: `onlyActive` (the points that take the pointer), `oncandidatedblclick`, the pointer's
   press, drag and release (a click, a dragged edge, a note), and the notes drawn.
 - `src/lib/board/notes.ts`: the notes, `toggleNote` and `brushFor` (tests in `notes.test.ts`).
-- The image of a line: `src/lib/review/lineImage.ts` (`imageLine`, `imageCaption`, `imageName`, tests in
-  `lineImage.test.ts`), `src/lib/board/boardImage.ts` (the PNG, `copyPng`, and the animated image,
-  `animatedBoardImage`), `src/lib/board/gif.ts` (the GIF, tests in `gif.test.ts`), and in `ReviewView.svelte`,
-  `imageOf`, `copyImage`, `saveImage` and `treeLine` (the line's edges, as a branch's preview draws them). The note is
+- The image of a line: `src/lib/review/lineImage.ts` (`imageLine`, `imageCaption`, `imageName`, the animation's
+  frames `lineFrames`, tests in `lineImage.test.ts`), `src/lib/board/boardImage.ts` (the PNG, `copyPng`, and the
+  animated image, `animatedBoardImage`), `src/lib/board/gif.ts` (the GIF, tests in `gif.test.ts`), and in
+  `ReviewView.svelte`, `imageTreeLine` (the line's edges, as a branch's preview draws them, by `treeLine`), `imageOf`,
+  `copyImage` and `saveImage`. The note is
   `src/lib/ui/Toast.svelte` (the Export menu's too). `[data-theme="light"]` in `src/app.css` gives the light tokens to
   the board that the image draws, and keeps Tailwind's `dark:` off inside it.
 - `packages/analysis/src/model.ts`: `enoughVisits`, `trustedLine` (the 25-visit cut, with its tests in

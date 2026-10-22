@@ -92,7 +92,7 @@ const frame = (x: number, y: number, w: number, h: number, ms: number, colour: (
   ({ rgba: pixels(w, h, colour), x, y, w, h, ms });
 
 test("an animated GIF holds each frame, with its delay, its offset and the loop count", () => {
-  const file = animatedGif(4, 3, [
+  const file = animatedGif([
     frame(0, 0, 4, 3, 2000, (x, y) => (x + y) % 2 ? 0xffffff : 0x000000),
     frame(1, 2, 2, 1, 1000, () => 0x0000ff),
     frame(3, 0, 1, 1, 500, () => 0xff0000),
@@ -111,12 +111,12 @@ test("an animated GIF holds each frame, with its delay, its offset and the loop 
   assert.deepEqual(read.frames[2].colours, [0xff0000]);
 });
 
-test("an animated GIF takes a loop count, and refuses frames that do not fit", () => {
-  assert.equal(readGif(animatedGif(1, 1, [frame(0, 0, 1, 1, 250, () => 0)], [], 3)).loops, 3);
+test("an animated GIF of one colour decodes, and frames that do not fit are refused", () => {
+  assert.deepEqual(readGif(animatedGif([frame(0, 0, 1, 1, 250, () => 0x123456)])).frames.map(f => f.colours), [[0x123456]]);
   const first = frame(0, 0, 4, 4, 500, () => 0);
-  assert.throws(() => animatedGif(4, 4, []));
-  assert.throws(() => animatedGif(4, 4, [{ ...first, x: 1 }]), /first frame/);
-  assert.throws(() => animatedGif(4, 4, [first, frame(3, 0, 2, 2, 500, () => 0)]), /outside/);
+  assert.throws(() => animatedGif([]), /needs a frame/);
+  assert.throws(() => animatedGif([{ ...first, x: 1 }]), /first frame/);
+  assert.throws(() => animatedGif([first, frame(3, 0, 2, 2, 500, () => 0)]), /outside/);
 });
 
 test("LZW: a long stream of many colours decodes, through the clear codes of a full table", () => {

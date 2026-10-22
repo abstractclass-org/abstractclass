@@ -6725,4 +6725,5 @@ error and no horizontal scroll. The layout sweep in Chromium passes (25 tests, 5
   with the test's own LZW decoder, LZW through full tables, and the palette's rule), `lineImage.test.ts` (the frames'
   order and the file's name), `npm run check:all` (all its steps passed, 223 tests in the site), and the layout sweep
   in Chromium with `--disable-gpu` and the engine's GPU setting off (25 passed, 5 skipped).
-- **Not checked:** Windows Photos and Discord with the GIF (the owner's look), Edge, Safari and Firefox.
+- **Seen** on a local build: the saved GIF plays in Discord and in Windows Photos.
+- **Not checked:** Edge, Safari and Firefox.

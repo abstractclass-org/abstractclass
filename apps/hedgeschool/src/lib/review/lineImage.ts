@@ -1,8 +1,9 @@
-// The image of a line (design 07, item 17): the move menu's "Generate image" draws the board with a line
-// numbered on it, and a caption under it. This file chooses the line for the move under the menu and writes the
-// caption. The board's drawing is boardImage.ts.
+// The image of a line (design 07, item 17): the move menu's "Generate image" draws the board with a line numbered on
+// it, and a caption under it. This file chooses the line for the move under the menu and writes the caption. The
+// board's drawing is boardImage.ts.
 import { branchLine, mainIndex, sharedLength } from "@abstractclass/analysis/tree.ts";
 import { fmtScore, PLAYER_NAME, type Position } from "./enclosure.ts";
+import { LINE_STEP_MS } from "./lineDrawing.svelte.ts";
 
 /** The line that an image draws: the position where it starts, and the path after each of its edges, numbered from 1.
  *  No edges: the image is the position at `start`. */
@@ -47,10 +48,9 @@ export function imageName(start: string[], edges: number, animated = false): str
 
 /** The frames of the animated image of a line of `edges` edges: how many of its edges each draws, and for how long.
  *  The whole line first, for two seconds: an app that shows only an animation's first frame shows the line. Then the
- *  start with no edge for a second, and the edges one at a time every half second, as the board draws a line
- *  (LINE_STEP_MS in lineDrawing.svelte.ts). Then it plays again from the whole line. A line with no edge has no
- *  frames. */
+ *  start with no edge for a second, and the edges one at a time, as the board draws a line (every LINE_STEP_MS, half a
+ *  second). Then it plays again from the whole line. A line with no edge has no frames. */
 export function lineFrames(edges: number): { edges: number; ms: number }[] {
   if (!edges) return [];
-  return [{ edges, ms: 2000 }, { edges: 0, ms: 1000 }, ...Array.from({ length: edges }, (_, k) => ({ edges: k + 1, ms: 500 }))];
+  return [{ edges, ms: 2000 }, { edges: 0, ms: 1000 }, ...Array.from({ length: edges }, (_, k) => ({ edges: k + 1, ms: LINE_STEP_MS }))];
 }

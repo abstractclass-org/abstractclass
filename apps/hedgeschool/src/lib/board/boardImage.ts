@@ -38,48 +38,52 @@ export async function boardImage(props: BoardProps, caption: string[], width: nu
 }
 
 /** An animated GIF (gif.ts) of boards, each drawn as boardImage draws it, with the same caption, and shown for its
- *  `ms`. It plays again with no end. After the first frame, a frame holds only the part of the image that changed. The
- *  board's and the caption's colours (FLAT) stay exact in the GIF's 256 colours. */
+ *  `ms`. It plays again with no end. After the first frame, a frame holds only the part of the image that changed, and
+ *  a frame that changes nothing adds its time to the frame before it. The board's and the caption's colours (FLAT)
+ *  stay exact in the GIF's 256 colours. */
 export async function animatedBoardImage(frames: { props: BoardProps; ms: number }[], caption: string[], width: number):
   Promise<Blob> {
   const out: GifFrame[] = [];
-  let before: ImageData | null = null, fixed: number[] = [];
+  let before: Uint8ClampedArray | null = null, fixed: number[] = [];
   for (const { props, ms } of frames) {
-    const { canvas, flat } = await boardCanvas(props, caption, width), { width: w, height: h } = canvas;
-    const ctx = canvas.getContext("2d")!, now = ctx.getImageData(0, 0, w, h);
-    fixed = flat;
-    // A frame the same as the one before keeps one pixel: a frame cannot be empty.
-    const box = !before ? { x: 0, y: 0, w, h } : changedBox(before.data, now.data, w, h) ?? { x: 0, y: 0, w: 1, h: 1 };
-    out.push({ rgba: ctx.getImageData(box.x, box.y, box.w, box.h).data, ...box, ms });
+    const { canvas, colour } = await boardCanvas(props, caption, width), { width: w, height: h } = canvas;
+    const ctx = canvas.getContext("2d")!, now = ctx.getImageData(0, 0, w, h).data;
+    if (!before) {
+      fixed = Object.values(colour).map(rgbOf);
+      out.push({ rgba: now, x: 0, y: 0, w, h, ms });
+    } else {
+      const box = changedBox(before, now, w, h);
+      if (box) out.push({ rgba: ctx.getImageData(box.x, box.y, box.w, box.h).data, ...box, ms });
+      else out[out.length - 1].ms += ms;
+    }
     before = now;
   }
-  return new Blob([animatedGif(before!.width, before!.height, out, fixed)], { type: "image/gif" });
+  return new Blob([animatedGif(out, fixed)], { type: "image/gif" });
 }
 
 /** The tokens of the light theme whose colours the image fills flat areas with: the board, its dots, the players'
  *  colours, the numbers on the line's badges, and the caption's background and text. */
-const FLAT = ["board-bg", "board-dot", "blue", "red", "on-badge", "panel", "text", "muted"];
+const FLAT = ["board-bg", "board-dot", "blue", "red", "on-badge", "panel", "text", "muted"] as const;
 
 const pngOf = (canvas: HTMLCanvasElement) => new Promise<Blob>((done, fail) =>
   canvas.toBlob(b => (b ? done(b) : fail(new Error("the browser made no image"))), "image/png"));
 
-/** The canvas of boardImage, and the colours of FLAT as 0xRRGGBB. */
+/** The canvas of boardImage, and the light theme's colours of FLAT, as CSS gives them. */
 async function boardCanvas(props: BoardProps, caption: string[], width: number):
-  Promise<{ canvas: HTMLCanvasElement; flat: number[] }> {
+  Promise<{ canvas: HTMLCanvasElement; colour: Record<(typeof FLAT)[number], string> }> {
   const host = document.createElement("div");
   host.setAttribute("aria-hidden", "true");
   host.dataset.theme = "light"; // the light theme's colours (app.css)
   host.className = "fixed top-0 -left-[100000px] w-[600px] pointer-events-none";
   document.body.append(host);
-  let markup: string, colour: Record<"panel" | "text" | "muted", string>, flat: string[];
+  let markup: string, colour: Record<(typeof FLAT)[number], string>;
   const board = mount(Board, { target: host, props });
   try {
     flushSync();
     markup = standalone(host.querySelector("svg")!, width);
     // Read now: a computed style is live, and empty once the host leaves the page.
-    const css = getComputedStyle(host), token = (name: string) => css.getPropertyValue(`--${name}`).trim();
-    colour = { panel: token("panel"), text: token("text"), muted: token("muted") };
-    flat = FLAT.map(token);
+    const css = getComputedStyle(host);
+    colour = Object.fromEntries(FLAT.map(name => [name, css.getPropertyValue(`--${name}`).trim()])) as typeof colour;
   } finally {
     void unmount(board);
     host.remove();
@@ -112,7 +116,7 @@ async function boardCanvas(props: BoardProps, caption: string[], width: number):
   ctx.font = `400 ${small}px ${fonts}`;
   ctx.fillStyle = colour.muted;
   ctx.fillText(SITE_NAME, pad, y + 0.3 * small);
-  return { canvas, flat: flat.map(rgbOf) };
+  return { canvas, colour };
 }
 
 /** A CSS colour as 0xRRGGBB, as a canvas draws it. */

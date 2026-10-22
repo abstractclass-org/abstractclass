@@ -1,8 +1,9 @@
 // An animated GIF (GIF89a, with its LZW compression), from frames of RGBA pixels. GIF and not APNG: Windows Photos and
 // Discord show an APNG as a still image (decisions/product.md, "The animated image of a line is a GIF"). The first
 // frame is the whole image, and an app that shows a still shows it. A later frame may hold only the part of the image
-// that changed, at its offset, drawn over the frame before it (disposal: do not dispose). The file plays with no end, by the
-// NETSCAPE2.0 extension. No library: the encoder is short, and the palette needs the board's own rule (gifPalette).
+// that changed, at its offset, drawn over the frame before it (disposal: do not dispose). The file plays with no end,
+// by the NETSCAPE2.0 extension. No library: the encoder is short, and the palette needs the board's own rule
+// (gifPalette).
 
 /** A frame: the RGBA pixels of a box `w` × `h` at `x`, `y` on the image, and how long it shows. Alpha is not read:
  *  every pixel is opaque. */
@@ -26,7 +27,7 @@ export function gifPalette(frames: GifFrame[], fixed: number[] = []): number[] {
         if (x + 1 < w && y + 1 < h && rgbAt(p, i + 4) === c && rgbAt(p, i + 4 * w) === c && rgbAt(p, i + 4 * w + 4) === c)
           blocks.set(c, (blocks.get(c) ?? 0) + 1);
       }
-  if (count.size <= 256) return [...new Set([...fixed.filter(c => count.has(c)), ...count.keys()])];
+  if (count.size <= 256) return [...count.keys()];
   const palette = [...new Set(fixed)].slice(0, 256);
   const flat = [...blocks].filter(([c]) => !palette.includes(c)).sort((a, b) => b[1] - a[1]);
   // A quarter of the places stay for the anti-aliased colours.
@@ -126,13 +127,12 @@ export function lzw(indices: Uint8Array, minSize: number): Uint8Array {
   return new Uint8Array(out);
 }
 
-/** The GIF of `frames` on an image `width` × `height`, played `loops` times after the first (0: with no end). The
- *  first frame is the whole image, at 0, 0. The colours are gifPalette's, with `fixed` first. */
-export function animatedGif(width: number, height: number, frames: GifFrame[], fixed: number[] = [], loops = 0):
-  Uint8Array<ArrayBuffer> {
+/** The GIF of `frames`, played again with no end. The first frame is the whole image, at 0, 0, and gives its size. The
+ *  colours are gifPalette's, which keeps the `fixed` colours exact. */
+export function animatedGif(frames: GifFrame[], fixed: number[] = []): Uint8Array<ArrayBuffer> {
   if (!frames.length) throw new Error("an animation needs a frame");
-  const [first] = frames;
-  if (first.x || first.y || first.w !== width || first.h !== height) throw new Error("the first frame is the whole image, at 0, 0");
+  const { x, y, w: width, h: height } = frames[0];
+  if (x || y) throw new Error("the first frame is the whole image, at 0, 0");
   if (frames.some(f => f.x < 0 || f.y < 0 || f.x + f.w > width || f.y + f.h > height)) throw new Error("a frame lies outside the image");
   const palette = gifPalette(frames, fixed);
   // The colour table holds 2 ** bits colours: 2 at the least.
@@ -150,7 +150,7 @@ export function animatedGif(width: number, height: number, frames: GifFrame[], f
   bytes(0x21, 0xff, 11);
   text("NETSCAPE2.0");
   bytes(3, 1);
-  u16(loops);
+  u16(0); // the loop count: with no end
   bytes(0);
   for (const f of frames) {
     // The graphic control extension: disposal 1 (do not dispose), the delay in hundredths of a second, no transparency.
