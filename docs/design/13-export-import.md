@@ -117,8 +117,9 @@ searching it again, and to share it as text that others can read.
 9. **The review file saved to a partner site** ([design 18](18-partner-links.md)): a game that came by a partner
    site's link offers "Save to" that site first in the Export menu. The review file goes to the site's save page, in
    the player's browser, when the player chooses it.
-10. **An image of a line** (design 07, item 17): the move menu's "Copy image" and "Save image" give a PNG of the board,
-    with the line of the move numbered and a caption. It is not in the Export menu: it shares a line, not the game.
+10. **An image of a line** (design 07, item 17): the move menu's submenu "Generate image" gives a PNG of the board,
+    with the line of the move numbered and a caption, still or animated. It is not in the Export menu: it shares a
+    line, not the game.
 
 ## Why
 

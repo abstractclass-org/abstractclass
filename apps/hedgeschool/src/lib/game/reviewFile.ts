@@ -262,7 +262,7 @@ export async function importReview(file: ReviewFile, models: Set<string> | null,
   return { id, kept, other };
 }
 
-/** Gives the player a file to save: text, or an image's bytes (the move menu's Save image). */
+/** Gives the player a file to save: text, or an image's bytes (the move menu's Save static and Save animated). */
 export function download(name: string, data: BlobPart, type = "application/json") {
   const url = URL.createObjectURL(new Blob([data], { type }));
   const a = Object.assign(document.createElement("a"), { href: url, download: name });

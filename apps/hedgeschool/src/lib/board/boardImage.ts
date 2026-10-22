@@ -5,6 +5,7 @@
 // and one look makes the images of a line alike whoever made them (decisions/product.md, "An image of a line").
 import { flushSync, mount, unmount, type ComponentProps } from "svelte";
 import { SITE_NAME } from "#lib/edition.ts";
+import { apng, changedBox, type ApngFrame } from "./apng.ts";
 import Board from "./Board.svelte";
 
 type BoardProps = ComponentProps<typeof Board>;
@@ -32,6 +33,35 @@ function standalone(svg: SVGSVGElement, size: number): string {
 /** The PNG of a board drawn with `props`, `width` pixels wide, and under it the caption's lines (the first in bold)
  *  and the site's name, small. */
 export async function boardImage(props: BoardProps, caption: string[], width: number): Promise<Blob> {
+  return pngOf(await boardCanvas(props, caption, width));
+}
+
+/** An animated PNG (apng.ts) of boards, each drawn as boardImage draws it, with the same caption, and shown for its
+ *  `ms`. It plays again with no end. After the first frame, a frame holds only the part of the image that changed. */
+export async function animatedBoardImage(frames: { props: BoardProps; ms: number }[], caption: string[], width: number):
+  Promise<Blob> {
+  const out: ApngFrame[] = [];
+  let before: ImageData | null = null;
+  for (const { props, ms } of frames) {
+    const canvas = await boardCanvas(props, caption, width), { width: w, height: h } = canvas;
+    const now = canvas.getContext("2d")!.getImageData(0, 0, w, h);
+    // A frame the same as the one before keeps one pixel: a frame cannot be empty.
+    const box = !before ? { x: 0, y: 0, w, h } : changedBox(before.data, now.data, w, h) ?? { x: 0, y: 0, w: 1, h: 1 };
+    const part = document.createElement("canvas");
+    part.width = box.w;
+    part.height = box.h;
+    part.getContext("2d")!.putImageData(now, -box.x, -box.y);
+    out.push({ png: new Uint8Array(await (await pngOf(part)).arrayBuffer()), ...box, ms });
+    before = now;
+  }
+  return new Blob([apng(out)], { type: "image/png" });
+}
+
+const pngOf = (canvas: HTMLCanvasElement) => new Promise<Blob>((done, fail) =>
+  canvas.toBlob(b => (b ? done(b) : fail(new Error("the browser made no image"))), "image/png"));
+
+/** The canvas of boardImage. */
+async function boardCanvas(props: BoardProps, caption: string[], width: number): Promise<HTMLCanvasElement> {
   const host = document.createElement("div");
   host.setAttribute("aria-hidden", "true");
   host.dataset.theme = "light"; // the light theme's colours (app.css)
@@ -77,7 +107,7 @@ export async function boardImage(props: BoardProps, caption: string[], width: nu
   ctx.font = `400 ${small}px ${fonts}`;
   ctx.fillStyle = colour.muted;
   ctx.fillText(SITE_NAME, pad, y + 0.3 * small);
-  return new Promise((done, fail) => canvas.toBlob(b => (b ? done(b) : fail(new Error("the browser made no image"))), "image/png"));
+  return canvas;
 }
 
 /** Puts a PNG on the clipboard (a ClipboardItem: Chrome, Edge, Safari, Firefox 127 and later). The image is given as a

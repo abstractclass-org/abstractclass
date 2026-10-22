@@ -1,4 +1,4 @@
-// The image of a line (design 07, item 17): the move menu's "Copy image" and "Save image" draw the board with a line
+// The image of a line (design 07, item 17): the move menu's "Generate image" draws the board with a line
 // numbered on it, and a caption under it. This file chooses the line for the move under the menu and writes the
 // caption. The board's drawing is boardImage.ts.
 import { branchLine, mainIndex, sharedLength } from "@abstractclass/analysis/tree.ts";
@@ -38,8 +38,16 @@ export function imageCaption(start: CaptionStart, end: CaptionNumbers | null, ed
   return [turn, `Before edge 1: ${scoreText(start)}`, `After edge ${edges}: ${scoreText(end)}`];
 }
 
-/** The saved file's name: where the line starts, and how many edges the image numbers. */
-export function imageName(start: string[], edges: number): string {
+/** The saved file's name: where the line starts, how many edges the image numbers, and whether it plays the line. */
+export function imageName(start: string[], edges: number, animated = false): string {
   const from = start.length ? `after-edge-${start.length}` : "start";
-  return `hedge-school-${from}${edges ? `-line-${edges}` : ""}.png`;
+  return `hedge-school-${from}${edges ? `-line-${edges}` : ""}${animated ? "-animated" : ""}.png`;
+}
+
+/** The frames of the animated image of a line of `edges` edges: how many of its edges each draws, and for how long.
+ *  The start with no edge for a second, then the edges one at a time every half second, as the board draws a line
+ *  (LINE_STEP_MS in lineDrawing.svelte.ts), and the whole line for two seconds. A line with no edge has no frames. */
+export function lineFrames(edges: number): { edges: number; ms: number }[] {
+  if (!edges) return [];
+  return Array.from({ length: edges + 1 }, (_, k) => ({ edges: k, ms: k === 0 ? 1000 : k === edges ? 2000 : 500 }));
 }

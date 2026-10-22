@@ -6646,3 +6646,43 @@ error and no horizontal scroll. The layout sweep in Chromium passes (25 tests, 5
   bookmarklet's request, which the page no longer describes. Design 18 takes the section's new name, "Games in an
   address". Designs 22, 25 and 27 hold. The page still says what goes to Ko-fi and when, what the site stores and
   why, and that the site asks about a blocker.
+
+### An animated image of a line (2026-10-22)
+
+- **Asked for** (abscls-iaph): the board draws a line one edge at a time by default ("Animated" in "Lines on the
+  board"). An image that plays the line in the same way shows its order, as the board does.
+- **Decided** (design 07, item 17): the move menu's image items go into a submenu, "Generate image", with "Copy
+  static", "Save static" and "Save animated". These replace "Copy image" and "Save image", in a review and on the
+  Analysis board. The note after a refused copy keeps its "Save image" button.
+  - **The frames:** the position where the line starts, with no edge (1 second), then one frame for each edge (half a
+    second, as the board's `LINE_STEP_MS`). The frame of the last edge is the whole line and shows for 2 seconds. Then
+    the image plays again, with no end. A line of n edges has n + 1 frames. Each frame is the static image of the
+    line's first edges, with the whole line's caption, so the last frame is the static image.
+  - **Only for a line:** "Save animated" shows when the move under the menu gives a line of one edge or more.
+  - **The file:** the static image's name with `-animated` before `.png`.
+- **No "Copy animated":** a test in headless Chromium 153.0.8010.12 wrote an APNG of 3 frames (418 bytes, with the
+  chunks IHDR, acTL, fcTL, IDAT, fdAT and IEND, and 3 frames in `ImageDecoder`) to the clipboard as `image/png`.
+  `navigator.clipboard.read` gave back an `image/png` of 278 bytes with only IHDR, IDAT and IEND, and `ImageDecoder`
+  read 1 frame. Chromium encodes the image again, and the frames do not stay. A copy would give the start of the line
+  with no edge.
+- **How:** `apng.ts` joins the browser's PNGs into one APNG, as the PNG specification (third edition) gives the
+  format: acTL after the header, an fcTL before each frame, the first frame's data in IDAT and the others' in fdAT.
+  No library: the encoder is about 120 lines and needs no compression of its own. After the first frame, a
+  frame holds only the box of the pixels that changed (`changedBox`), drawn over the frame before it.
+- **Measured** on the production build in headless Chromium 153, with the review in
+  `tests/fixtures/hedgefund-review.json`, in a window of 1,400 × 900 pixels (images 1,326 × 1,564 pixels):
+
+  | The line | Static | Animated | Frames | Delays (ms) |
+  |---|---|---|---|---|
+  | A branch's line of 3 edges, after edge 11 | 216,126 bytes | 233,488 bytes (+8%) | 4 | 1,000, 500, 500, 2,000 |
+  | A main line move ahead of the position on screen: edges 21 to 24, from the position after edge 20 | 235,072 bytes | 249,204 bytes (+6%) | 5 | 1,000, 500, 500, 500, 2,000 |
+
+  `ImageDecoder` decoded every frame of both files, with a repetition count of Infinity. The last frame had the
+  same pixels as the static image. The menu of a main line move behind the position on screen had no "Save
+  animated". "Copy static" still copied the image (an `image/png` of 155,874 bytes read back).
+- **Checked:** `apng.test.ts` (the frames, their delays and offsets, the play count, the CRCs, and each frame's data
+  decoded with zlib), `lineImage.test.ts` (the frames' plan and the file's name), `npm run check:all` (all its steps
+  passed, 221 tests in the site), and the layout sweep in Chromium (25 passed, 5 skipped).
+- **Not checked:** Edge, Safari and Firefox, and a real touch screen. The menu words "Generate", "static" and
+  "animated" are not in the approved words of Simplified Technical English. The menu keeps them, as the request
+  gave them.

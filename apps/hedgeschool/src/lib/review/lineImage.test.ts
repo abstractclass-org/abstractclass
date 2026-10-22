@@ -1,7 +1,7 @@
 // The image of a line (lineImage.ts): the line that each kind of move draws, and the caption's text. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { imageCaption, imageLine, imageName } from "./lineImage.ts";
+import { imageCaption, imageLine, imageName, lineFrames } from "./lineImage.ts";
 
 // The game A1 A2 A3 A4, with the branches A1 B1 B2 B3 and A1 B1 C1 C2 (design 07, item 13).
 const MAIN = ["A1", "A2", "A3", "A4"];
@@ -60,4 +60,15 @@ test("the file's name gives the position where the line starts and the edges tha
   assert.equal(imageName(["A1"], 2), "hedge-school-after-edge-1-line-2.png");
   assert.equal(imageName([], 1), "hedge-school-start-line-1.png");
   assert.equal(imageName(["A1", "A2"], 0), "hedge-school-after-edge-2.png"); // a position, or a line that starts with a pass
+});
+
+test("the animated image's name has -animated before .png", () => {
+  assert.equal(imageName(["A1"], 2, true), "hedge-school-after-edge-1-line-2-animated.png");
+  assert.equal(imageName([], 1, true), "hedge-school-start-line-1-animated.png");
+});
+
+test("the animation: the start with no edge for 1 second, each edge for half a second, the whole line for 2 seconds", () => {
+  assert.deepEqual(lineFrames(3), [{ edges: 0, ms: 1000 }, { edges: 1, ms: 500 }, { edges: 2, ms: 500 }, { edges: 3, ms: 2000 }]);
+  assert.deepEqual(lineFrames(1), [{ edges: 0, ms: 1000 }, { edges: 1, ms: 2000 }]);
+  assert.deepEqual(lineFrames(0), []); // no line: nothing to play
 });

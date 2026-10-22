@@ -36,7 +36,7 @@ engine does by itself.
    - A move at the main line's end makes the main line longer. Any other new move starts a variation.
    - **Make main line** (Lichess's): the line of the move becomes the main line, and the main line from that point
      becomes a variation. **Promote variation** and **Delete from here** work as in a review, on the main line too.
-   - **Copy image** and **Save image** work as in a review (design 07, item 17). A position made in the board editor
+   - **Generate image** works as in a review (design 07, item 17). A position made in the board editor
      has only a main line: the image of a main line move ahead of the position on screen numbers the line from there.
 3. **Labels on request:** "Evaluate quality" on a move of any line, main line too, searches the two positions to the
    label budget, as for a review's branch move (design 10). Other moves have no label.

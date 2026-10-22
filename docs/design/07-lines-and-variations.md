@@ -166,7 +166,7 @@ cut edges that are on the board, so a line drawn over the board can show edges t
 12. **Lichess's move menu** on a branch's move, by a right-click or a long press: "Evaluate quality" (item 11),
     "Promote variation" (the nearest branch on the path that is not the first from its parent becomes the first, as
     Lichess's `promoteAt`) and "Delete from here" (the move and what follows it, and the place on screen goes to the
-    fork when it was inside). Every move, the game's own too, has "Copy image" and "Save image" (item 17). On the
+    fork when it was inside). Every move, the game's own too, has the submenu "Generate image" (item 17). On the
     game's own moves in a review, the other actions are off: the review is of the game, so its line stays first, and
     its moves are evaluated already. On the engine's lines and the notes, the same menu opens with each action off,
     not the browser's menu. The Analysis board's main line has the actions, and "Make main line" for a branch's move
@@ -221,9 +221,10 @@ cut edges that are on the board, so a line drawn over the board can show edges t
     on the board clears the position's notes (chessground's `eraseOnClick`). The notes belong to the position on
     screen, as Lichess keeps an analysis board's shapes on each position of its tree, for the visit only: they are not
     kept in the browser. They hide while a preview shows another position.
-17. **An image of a line** (the move menu's "Copy image" and "Save image", item 12, in a review and on the Analysis
+17. **An image of a line** (the move menu's submenu "Generate image", item 12, in a review and on the Analysis
     board): players share lines with their community as screenshots, a position and how it could have gone, with the
-    edges numbered. The image is a PNG of the board with a caption under it, made in the player's browser.
+    edges numbered. The image is a PNG of the board with a caption under it, made in the player's browser. The
+    submenu has "Copy static", "Save static" and, for a line of one edge or more, "Save animated".
     - **The line, by the move under the menu** (`imageLine` in `lineImage.ts`):
       - A branch's move: the branch's line from where it leaves the main line, numbered as its preview numbers it
         (item 13, `branchLine`). The position on screen does not change it.
@@ -246,8 +247,25 @@ cut edges that are on the board, so a line drawn over the board can show edges t
     - **The clipboard:** `navigator.clipboard.write` with a `ClipboardItem` (Chrome, Edge, Safari, Firefox 127 and
       later). The write starts within the player's click, while the canvas still draws the image, as Safari and
       Firefox ask. Where the browser refuses an image, a note says "This browser cannot copy an image. Save the image
-      as a file." with a "Save image" button. "Save image" gives a file, `hedge-school-after-edge-N-line-M.png`: the
+      as a file." with a "Save image" button. "Save static" gives a file, `hedge-school-after-edge-N-line-M.png`: the
       line starts after edge N and has M edges.
+    - **The animated image** ("Save animated"): an animated PNG (APNG) that plays the line as the board's Animated
+      form of "Lines on the board" draws it. The first frame is the position where the line starts, with no edge, for
+      1 second. Each next frame adds one edge, with its number, the edge that it cuts and the regions after it, for
+      half a second. The frame of the last edge is the whole line, for 2 seconds. Then the image plays again from
+      the start, with no end. Each frame is drawn as the static image is, with the same size and the same caption, so
+      the last frame is the static image. A position with no line has nothing to play: the submenu does not show the
+      item. The file's name is the static image's, with `-animated` before `.png`.
+    - **How the animated image is made** (`apng.ts`, `animatedBoardImage` in `boardImage.ts`): the canvas draws each
+      frame, and the browser makes a PNG of it. The site's own code joins the PNGs into one APNG (the chunks acTL,
+      fcTL and fdAT of the PNG specification, third edition). No library does it: the format is a few chunks around
+      the browser's PNGs. After the first frame, a frame holds only the box of the pixels that changed, at its
+      offset, over the frame before it. An animated image is a few percent larger than its static image.
+    - **No "Copy animated":** the clipboard keeps only the first frame. Chromium decodes the image that a page writes
+      to the clipboard and encodes it again as a PNG of one frame. A test in headless Chromium 153 wrote an APNG of 3
+      frames (418 bytes, with acTL and 3 fcTL chunks) as `image/png`, and `navigator.clipboard.read` gave a PNG of
+      278 bytes with only IHDR, IDAT and IEND: one frame. A copied animated image would show the start of the line
+      with no edge, so the submenu does not offer it.
 
 ## Why
 

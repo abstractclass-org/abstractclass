@@ -132,8 +132,8 @@
   import Glyph from "./Glyph.svelte";
   import LabelBadge from "./LabelBadge.svelte";
   import { LineDrawing } from "./lineDrawing.svelte.ts";
-  import { imageCaption, imageLine, imageName } from "./lineImage.ts";
-  import { boardImage, copyPng } from "#lib/board/boardImage.ts";
+  import { imageCaption, imageLine, imageName, lineFrames } from "./lineImage.ts";
+  import { animatedBoardImage, boardImage, copyPng } from "#lib/board/boardImage.ts";
   import { download } from "#lib/game/reviewFile.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
   import Toast from "#lib/ui/Toast.svelte";
@@ -941,8 +941,8 @@
   const networkLabel = (id: string) => `${networkName(id).replaceAll(" ", "\u00a0")} (${networkMB(id)}\u00a0MB)`;
   // Lichess's move menu on a branch's move (ui/analyse/src/treeView/contextMenu.ts): "Promote variation" and "Delete
   // from here". In a review they are off on the game's own moves: the review is of the game, so its line stays first.
-  // The Analysis board's main line has them, and "Make main line" for a branch (design 21). Every move has "Copy
-  // image" and "Save image" (copyImage, saveImage).
+  // The Analysis board's main line has them, and "Make main line" for a branch (design 21). Every move has the submenu
+  // "Generate image" (copyImage, saveImage).
   let menuPath = $state<string | null>(null); // the key of the move under the menu
   // A long press opens the menu, and in some browsers its release then clicks the move (Chromium's touch emulation does,
   // after 900 ms and after 1,500 ms). That click goes nowhere: it would move the position on screen under the menu, and
@@ -965,25 +965,30 @@
   // The image of a line (design 07, item 17; lineImage.ts): the board where the line of the move under the menu starts,
   // its edges numbered all at once with their cuts and regions, the player's notes there, and the caption. Copied, or
   // where the clipboard refuses an image, a note that says so and offers Save. The note's text is text that a player
-  // follows: strict Simplified Technical English.
+  // follows: strict Simplified Technical English. The animated image plays the line one edge at a time, each frame
+  // drawn as the static image is (lineFrames). It is saved only: the clipboard keeps only an image's first frame.
   let imageNote = $state.raw<ComponentProps<typeof Toast> | null>(null);
   type LineImage = { png: Promise<Blob>; name: string };
-  function imageOf(key: string): LineImage {
+  function imageOf(key: string, animated = false): LineImage {
     const line = imageLine(key.split(" "), path, mainNames), from = positionOf(line.start);
     if (!from) return { png: Promise.reject(new Error("the position is not in the tree")), name: "" };
     const { edges, end } = treeLine(line.paths);
     const caption = imageCaption({ ...moveFrom(line.start), ...from }, end ?? null, edges.length);
     // Twice the board's size on screen, and at least 1,200 pixels wide.
     const width = Math.max(1200, Math.round(2 * (boardWrap?.getBoundingClientRect().width ?? 0)));
-    const png = boardImage({ position: from, cut: edges.length ? null : moveInto(line.start)?.cut ?? null, line: edges,
-                             notes: $state.snapshot(notesAt[pathKey(line.start)] ?? []),
-                             layers: { ...$state.snapshot(display.layers), regions: true, candidates: false, marks: false } },
-                           caption, width);
-    return { png, name: imageName(line.start, edges.length) };
+    const notes = $state.snapshot(notesAt[pathKey(line.start)] ?? []), cut = moveInto(line.start)?.cut ?? null;
+    const layers = { ...$state.snapshot(display.layers), regions: true, candidates: false, marks: false };
+    // The board with the line's first `k` edges.
+    const props = (k: number) => ({ position: from, cut: k ? null : cut, line: edges.slice(0, k), notes, layers });
+    const png = animated ? animatedBoardImage(lineFrames(edges.length).map(f => ({ props: props(f.edges), ms: f.ms })), caption, width)
+      : boardImage(props(edges.length), caption, width);
+    return { png, name: imageName(line.start, edges.length, animated) };
   }
+  // The edges of the line that the menu's move gives: the animated image plays only a line of one edge or more.
+  const menuLineEdges = $derived(menuPath === null ? 0 : treeLine(imageLine(menuPath.split(" "), path, mainNames).paths).edges.length);
   const imageFailed = (e: unknown) => (imageNote = { text: `The site cannot make the image: ${errorText(e)}`, failed: true });
-  function saveImage({ png, name }: LineImage) {
-    used("image saved");
+  function saveImage({ png, name }: LineImage, animated = false) {
+    used(animated ? "animated image saved" : "image saved");
     imageNote = null;
     png.then(b => download(name, b, "image/png"), imageFailed);
   }
@@ -1544,9 +1549,18 @@
       <ContextMenu.Item disabled={!!snapshot || !menuBranch || (game?.turnKeys(menuBranch.split(" ")) ?? [menuBranch]).every(k => !!branches[k]?.judged || !!board?.judged[k])}
                         onSelect={() => { if (menuBranch) { used("quality evaluated"); game?.judge(menuBranch.split(" ")); } }} class={MENU_ITEM}>Evaluate quality</ContextMenu.Item>
       <ContextMenu.Separator class="my-1 h-px bg-line" />
-      <ContextMenu.Item disabled={!menuPath} onSelect={() => menuPath && copyImage(menuPath)} class={MENU_ITEM}>Copy image</ContextMenu.Item>
-      <ContextMenu.Item disabled={!menuPath} onSelect={() => menuPath && saveImage(imageOf(menuPath))}
-                        class={MENU_ITEM}>Save image</ContextMenu.Item>
+      <ContextMenu.Sub>
+        <ContextMenu.SubTrigger disabled={!menuPath} class="{MENU_ITEM} flex items-center justify-between gap-4 data-[state=open]:bg-panel">
+          Generate image<span aria-hidden="true" class="text-muted">›</span>
+        </ContextMenu.SubTrigger>
+        <ContextMenu.SubContent class="z-10 min-w-36 menu-box" sideOffset={6}>
+          <ContextMenu.Item onSelect={() => menuPath && copyImage(menuPath)} class={MENU_ITEM}>Copy static</ContextMenu.Item>
+          <ContextMenu.Item onSelect={() => menuPath && saveImage(imageOf(menuPath))} class={MENU_ITEM}>Save static</ContextMenu.Item>
+          {#if menuLineEdges}
+            <ContextMenu.Item onSelect={() => menuPath && saveImage(imageOf(menuPath, true), true)} class={MENU_ITEM}>Save animated</ContextMenu.Item>
+          {/if}
+        </ContextMenu.SubContent>
+      </ContextMenu.Sub>
       <ContextMenu.Separator class="my-1 h-px bg-line" />
       <ContextMenu.Item disabled={!!snapshot || !menuBranch} onSelect={() => menuBranch && deleteFrom(menuBranch)} class={MENU_ITEM}>Delete from here</ContextMenu.Item>
     </ContextMenu.Content>

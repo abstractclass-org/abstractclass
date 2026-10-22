@@ -94,7 +94,8 @@ The features, by their `feature_name` (`ReviewView.svelte`, `used`). Each counts
 | `main line made` | "Make main line" chosen on the Analysis board (design 21) |
 | `branch promoted` | a branch promoted in its menu |
 | `branch deleted` | a branch deleted |
-| `image copied`, `image saved` | "Copy image" or "Save image" chosen in a move's menu, or the note's "Save image" (design 07, item 17) |
+| `image copied`, `image saved` | "Copy static" or "Save static" chosen in a move's menu ("Generate image"), or the note's "Save image" (design 07, item 17) |
+| `animated image saved` | "Save animated" chosen in a move's menu ("Generate image", design 07, item 17) |
 | `keys list` | the list of keys opened (`?`) |
 | `threat shown` | the threat shown, by its switch in the engine header or the key x (design 31) |
 | `chart jump` | a click on the Advantage or the Difficulty chart, to go to a position |
