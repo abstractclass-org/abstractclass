@@ -10,6 +10,7 @@ import type { BranchNode as SharedNode } from "@abstractclass/analysis/analysis.
 import { edgeName, parseEdge, sameEdge, type Edge } from "#lib/engine/notation.ts";
 import { boardPosition, playerOf, rulesOf, type DescribeReply, type GamePosition } from "#lib/engine/position.ts";
 import type { EdgeRules } from "#lib/board/edgeInput.svelte.ts";
+import { turnFromCount } from "@abstractclass/record/turns.ts";
 export * from "@abstractclass/analysis/model.ts";
 export { edgeName, pointName, sameEdge, type Edge } from "#lib/engine/notation.ts";
 
@@ -28,12 +29,11 @@ export interface Position {
   notation?: string; // the position in the notation (the engine's describe)
 }
 
-/** The turn of the next edge from a position with `count` edges played, and whether that edge opens its turn. The
- *  notation's turn structure (the /notation page): Blue's first turn has one edge, then turns of two, and Blue's last
- *  turn one. A pass counts the edges it forfeits, so the count alone fixes the turn. */
-export function turnFromCount(count: number): { turn: number; first: boolean } {
-  return count === 0 ? { turn: 1, first: true } : { turn: Math.floor((count - 1) / 2) + 2, first: (count - 1) % 2 === 0 };
-}
+// The turn of the next edge from a position with `count` edges played, and whether that edge opens its turn: the
+// notation's turn structure (the /notation page), which Blueprints shares (@abstractclass/record/turns.ts). Blue's
+// first turn has one edge, then turns of two, and Blue's last turn one. A pass counts the edges it forfeits, so the
+// count alone fixes the turn.
+export { turnFromCount };
 /** A move: an edge, or null for a timeout pass (the rest of the turn forfeited), and the opponent's edge that it cut. */
 export interface Move { player: Player; edge: Edge | null; cut: Edge | null }
 

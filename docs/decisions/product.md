@@ -6870,3 +6870,23 @@ error and no horizontal scroll. The layout sweep in Chromium passes (25 tests, 5
     average). The 83 others removed a star with no star of the mover's on the board. Of the 146,128 moves, 7,349 are
     passes.
 - **The marks:** `x` for a placement that removes enemy cells, `x+N` for one that scores N, and never `+0`.
+
+### Blueprints' notation and record in Drawing Board (2026-10-25)
+
+- **What:** Drawing Board reads and writes Blueprints' moves, their capture marks and its records, and makes a record
+  of a strategyjam.org game (design 33, items 5 to 10).
+- **The record's frame is a package,** `@abstractclass/record`: the tags, the turns, comments, branches, quality
+  marks, commands and the result. A game gives its moves' syntax and its marks as a parameter. Hedge School's
+  `record.ts` stays at its path with its exports, so that its importers and its tests do not change, as design 29's
+  `engineSettings.ts` and `store.ts` did. So no pure rename comes first: a rename would leave nothing at the old path.
+  The turns of one move, then two, moved with it, as Blueprints numbers them as Enclosure does.
+- **The reader's checks:** a blueprint's number from 1 to 3, an edit's source cell not before its blueprint's first
+  cell, a capture mark on a placement only, and no `x+0`. Each refusal names the problem and its place in the text.
+  A mark that the moves' effects do not confirm is refused, with the mark that they give.
+- **The import refuses another start.** The record has no position's notation yet, so a game from another first
+  position would be read from the standard start.
+- **Checked on the archive** (the engine repository's `runs/strategyjam-archive/blueprints.jsonl`, read from outside
+  the repository): all 146,128 moves are read and written back as the same strings (105,820 placements, 32,959
+  edits, 7,349 passes). Of the 1,826 games, the 1,791 with moves become records that read back to the same moves,
+  each from the standard start. 35 have no moves. The archive has no final scores, so its 726 games that the rules
+  ended get the result `*`: the game page gives the scores from its rules module.

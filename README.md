@@ -79,6 +79,7 @@ Web Analytics). Without them, as in development, the build has neither.
 | `packages/engine/` | `@abstractclass/engine`: the engine in the browser. Its client and its CPU and GPU workers, the protocol's general types, the pool of workers. |
 | `packages/storage/` | `@abstractclass/storage`: the browser's database (IndexedDB), local storage and persistent storage. |
 | `packages/analysis/` | `@abstractclass/analysis`: the game interface, the review's model and labels, the move tree, the cache, the analysis of a game (its schedule), the engine session and the GPU control. |
+| `packages/record/` | `@abstractclass/record`: the game record's frame (the tags, the turns, comments, branches, quality marks, commands and the result), with each game's moves and marks as a parameter, and the turns of one move, then two. |
 | `apps/hedgeschool/` | Hedge School, the site. The paths below start there. |
 | `src/lib/engine/` | Enclosure's notation, and its engine's description of a position as the board draws it. |
 | `src/routes/` | The pages. `review/` is the game review, on the engine. `import/` takes a game from the meaf.us bookmarklet. `about/`, `notation/`, `privacy/` and `notices/` are about the site. `lab/engine/` is the engine lab. |

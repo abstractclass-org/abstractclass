@@ -1,42 +1,20 @@
 // The game record, the engine repository's PGN-like notation (its docs/design/04-notation-and-protocol.md, "A game
-// record"): tag pairs, then the turns. A turn has a number (`1.`, `2.`: Blue's turns are odd, Red's even), then its
-// edges, or `pass` for a timeout. `{ comments }` and `( branches )` nest. A branch at a turn's second edge writes `...`
-// (`4...`). A move that cuts an opponent's edge carries an `x`: `D10-G10x`. A reader takes a move with or without
-// it, and a mark on a move that cuts nothing is an error (the engine checks that: check.ts). A turn's quality mark
-// (PGN's `!!`, `!`, `!?`, `?!`, `?`, `??`) follows its last edge, after any cut mark: `G9-G12x??`. A reader takes a
-// quality mark after any edge, and this one drops it. The result ends the record (`b+28`, `r+R`, `b+F`, `0`, `*`).
-//
-// This reader keeps the main line and its tags. It skips comments and branches, but reads `[%clk]` and `[%eval]` from the
-// comments after the main line's edges. It checks the notation, not the rules: the engine checks that every move is
-// legal (describe names the first illegal move). It also accepts a bare list of edges, without turn labels.
+// record"): tag pairs, then the turns. The record's frame (the tags, the turns, comments, branches, the quality marks,
+// the commands and the result) is the shared one (@abstractclass/record/record.ts). Enclosure's part is here: a move is
+// an edge in the notation (lower point first) or `pass`, and a move that cuts an opponent's edge carries an `x`:
+// `D10-G10x`. A reader takes a move with or without it, and a mark on a move that cuts nothing is an error (the engine
+// checks that: check.ts). A turn's quality mark follows the cut mark: `G9-G12x??`. A record from a set-up start numbers
+// its turns from its `Position` tag's edge count.
 import { edgeName, parseEdge, setUpStart } from "#lib/engine/notation.ts";
 import { turnFromCount } from "#lib/review/enclosure.ts";
+import * as shared from "@abstractclass/record/record.ts";
+export { gamePage, playerNames, RecordError, writeRecord, writeTags, type Eval } from "@abstractclass/record/record.ts";
 
-export interface GameRecord {
-  tags: Record<string, string>;
-  moves: string[]; // edges in the notation (lower point first), or "pass", without the cut mark
-  marked: boolean[]; // by move: the record marks it as a cut (`x`)
-  ends: number[]; // by move: where its text ends, so that a cut mark can be written after it (markCuts)
-  result: string | null;
-  evals: (Eval | null)[]; // by move: the evaluation after it, when the record has one
-  clocks: (string | null)[]; // by move: the clock after it, when the record has one
-}
-export interface Eval { blueWin: number; margin: number; spread: number }
-
-export class RecordError extends Error {
-  readonly offset: number; // where in the text the problem is
-  constructor(message: string, offset: number) {
-    super(message);
-    this.offset = offset;
-  }
-}
+/** A game record of Enclosure: `marked` gives, by move, whether the record marks it as a cut (`x`). */
+export type GameRecord = shared.GameRecord<boolean>;
 
 const POINT = "[A-HJ-T](?:1[0-9]|[1-9])";
 const EDGE = new RegExp(`^${POINT}-${POINT}$`);
-/** A quality mark at a move's end: PGN's six suffixes. */
-const QUALITY = /(!!|\?\?|!\?|\?!|!|\?)$/;
-const RESULT = /^(?:[br]\+(?:\d+(?:\.\d+)?|R|F)|0|\*)$/;
-const TURN = /^(\d+)(\.|\.\.\.)$/;
 
 /** The edge's one spelling: the lower point first (by column, then by row). Throws on a malformed edge. */
 export function canonicalEdge(text: string): string {
@@ -45,73 +23,27 @@ export function canonicalEdge(text: string): string {
   return edgeName(parseEdge(upper));
 }
 
-/** The game's own page, when the record's Site tag is a web address (Lichess writes its game's address there): its
- *  address and host. Null for a site's name, such as "meaf.us", or any other kind of address. */
-export function gamePage(tags: Record<string, string>): { href: string; host: string } | null {
-  try {
-    const url = new URL(tags.Site ?? "");
-    return url.protocol === "https:" || url.protocol === "http:" ? { href: url.href, host: url.hostname.replace(/^www\./, "") } : null;
-  } catch {
-    return null;
-  }
-}
-
-/** The players' names from the record's tags, or the side's name where a tag is missing or "?". */
-export function playerNames(tags: Record<string, string>): { blue: string; red: string } {
-  const name = (tag: string | undefined, side: string) => (tag && tag !== "?" ? tag : side);
-  return { blue: name(tags.Blue, "Blue"), red: name(tags.Red, "Red") };
-}
-
-type Token = { kind: "tag"; name: string; value: string; at: number }
-  | { kind: "comment"; text: string; at: number }
-  | { kind: "open"; at: number }
-  | { kind: "close"; at: number }
-  | { kind: "word"; text: string; at: number };
-
-function tokenize(text: string): Token[] {
-  const tokens: Token[] = [];
-  let i = 0;
-  while (i < text.length) {
-    const c = text[i];
-    if (/\s/.test(c)) { i++; continue; }
-    if (c === "[") {
-      const m = /^\[\s*([A-Za-z][A-Za-z0-9_]*)\s+"((?:[^"\\]|\\.)*)"\s*\]/.exec(text.slice(i));
-      if (!m) throw new RecordError("a tag must look like [Name \"value\"]", i);
-      tokens.push({ kind: "tag", name: m[1], value: m[2].replace(/\\(.)/g, "$1"), at: i });
-      i += m[0].length;
-    } else if (c === "{") {
-      const end = text.indexOf("}", i);
-      if (end < 0) throw new RecordError("a { has no closing }", i);
-      tokens.push({ kind: "comment", text: text.slice(i + 1, end), at: i });
-      i = end + 1;
-    } else if (c === "(" || c === ")") {
-      tokens.push(c === "(" ? { kind: "open", at: i } : { kind: "close", at: i });
-      i++;
-    } else {
-      const m = /^[^\s{}()[\]]+/.exec(text.slice(i))!;
-      // A turn label can touch its first edge: "1.A10-D10".
-      const label = /^\d+(?:\.\.\.|\.)/.exec(m[0]);
-      const word = label && label[0].length < m[0].length ? label[0] : m[0];
-      tokens.push({ kind: "word", text: word, at: i });
-      i += word.length;
-    }
-  }
-  return tokens;
-}
-
-function readCommands(comment: string, record: GameRecord, move: number) {
-  const ev = /\[%eval\s+([0-9.]+)\s+([+-]?[0-9.]+)\s+([0-9.]+)\s*\]/.exec(comment);
-  if (ev) record.evals[move] = { blueWin: Number(ev[1]), margin: Number(ev[2]), spread: Number(ev[3]) };
-  const clk = /\[%clk\s+([0-9:]+)\s*\]/.exec(comment);
-  if (clk) record.clocks[move] = clk[1];
-}
-
 /** The turn that a record's first move belongs to: 1 from the standard start, else the set-up start's (its `Position`
  *  tag's edge count, model.ts turnFromCount), and whether that move opens its turn. */
 function startTurn(position: string | undefined): { turn: number; first: boolean } {
   const count = Number(setUpStart(position)?.split(" ")[4]);
   return Number.isInteger(count) && count >= 0 ? turnFromCount(count) : { turn: 1, first: true };
 }
+
+/** Enclosure's moves and its cut mark, for the shared record. */
+const edges: shared.Notation<boolean> = {
+  read(move) {
+    const cut = /x$/i.test(move);
+    try {
+      return { name: canonicalEdge(cut ? move.slice(0, -1) : move), mark: cut, markAt: move.length - (cut ? 1 : 0) };
+    } catch {
+      return "not an edge, a turn label or a result";
+    }
+  },
+  mark: cut => (cut ? "x" : ""),
+  none: false,
+  start: tags => startTurn(tags.Position),
+};
 
 /** A record's text with its start given apart (the Analysis board's Import, its address's `position`): the start as
  *  the record's own `Position` tag, unless the record has one, so that its turns are read from the start's own
@@ -122,88 +54,7 @@ export function withStart(text: string, position: string | null): string {
 }
 
 /** Reads a game record. Throws a RecordError with the offset of the first problem. */
-export function parseRecord(text: string): GameRecord {
-  const record: GameRecord = { tags: {}, moves: [], marked: [], ends: [], result: null, evals: [], clocks: [] };
-  let depth = 0, expectedTurn: number | null = null; // the next turn's number, once the first turn sets it
-  for (const t of tokenize(text)) {
-    if (t.kind === "open") { depth++; continue; }
-    if (t.kind === "close") {
-      if (depth === 0) throw new RecordError("a ) has no opening (", t.at);
-      depth--;
-      continue;
-    }
-    if (depth > 0) continue; // a branch: not the main line
-    if (t.kind === "tag") {
-      if (record.moves.length) throw new RecordError("tags come before the moves", t.at);
-      record.tags[t.name] = t.value;
-    } else if (t.kind === "comment") {
-      if (record.moves.length) readCommands(t.text, record, record.moves.length - 1);
-    } else {
-      const w = t.text;
-      if (record.result !== null) throw new RecordError(`nothing may follow the result (${record.result})`, t.at);
-      const turn = TURN.exec(w);
-      if (turn) {
-        const number = Number(turn[1]);
-        if (expectedTurn === null) {
-          // The first turn: 1, or after a set-up start its own turn, from its edge count, as PGN numbers its moves from a
-          // FEN's. A start at a turn's second edge opens with `N...`. Only this number (the engine repository's design
-          // 04, "The turns after a set-up start"): a record numbered from 1 after a later start gives the wrong player.
-          const start = startTurn(record.tags.Position);
-          if (number !== start.turn || (turn[2] === "...") === start.first) {
-            throw new RecordError(`the record gives turn ${w} where the notation gives turn ${start.turn}${start.first ? "." : "..."}`, t.at);
-          }
-          expectedTurn = number + 1;
-          continue;
-        }
-        if (turn[2] === "...") continue; // only a branch starts at a turn's second edge
-        if (number !== expectedTurn) throw new RecordError(`the record gives turn ${number} where the notation gives turn ${expectedTurn}`, t.at);
-        expectedTurn++;
-      } else if (RESULT.test(w)) {
-        record.result = w;
-      } else {
-        const move = w.replace(QUALITY, ""); // the move without its quality mark
-        if (move.toLowerCase() === "pass") {
-          record.moves.push("pass");
-          record.marked.push(false);
-          record.ends.push(t.at + move.length);
-          continue;
-        }
-        const cut = /x$/i.test(move);
-        try { record.moves.push(canonicalEdge(cut ? move.slice(0, -1) : move)); } catch { throw new RecordError(`not an edge, a turn label or a result: ${w}`, t.at); }
-        record.marked.push(cut);
-        record.ends.push(t.at + move.length - (cut ? 1 : 0));
-      }
-    }
-  }
-  if (depth > 0) throw new RecordError("a ( has no closing )", text.length);
-  if (!record.moves.length) throw new RecordError("the record has no moves", 0);
-  record.evals.length = record.clocks.length = record.moves.length;
-  return { ...record, evals: Array.from(record.evals, e => e ?? null), clocks: Array.from(record.clocks, c => c ?? null) };
-}
+export const parseRecord = (text: string): GameRecord => shared.readRecord(text, edges);
 
 /** Adds the cut mark to every move that cuts and has none yet. `cuts` is by move, from the engine (check.ts). */
-export function markCuts(text: string, record: GameRecord, cuts: boolean[]): string {
-  let out = text;
-  for (let i = record.moves.length - 1; i >= 0; i--)
-    if (cuts[i] && !record.marked[i]) out = out.slice(0, record.ends[i]) + "x" + out.slice(record.ends[i]);
-  return out;
-}
-
-/** A record's tags, one to a line: the seven of PGN's roster first, in their order, with `?` and `-` where a value is not
- *  known, then the others. */
-export function writeTags(tags: Record<string, string>): string {
-  const order = ["Event", "Site", "Date", "Round", "Blue", "Red", "Result"];
-  const all = { Event: "?", Site: "?", Date: "????.??.??", Round: "-", Blue: "?", Red: "?", Result: "*", ...tags };
-  return [...order, ...Object.keys(all).filter(k => !order.includes(k))]
-    .map(k => `[${k} "${String(all[k as keyof typeof all]).replace(/(["\\])/g, "\\$1")}"]`).join("\n");
-}
-
-/** Writes a game record: the required tags, then the turns. `turns` gives each turn's number and how many moves it has. */
-export function writeRecord(tags: Record<string, string>, moves: string[], turns: { number: number; moves: number; second?: boolean }[],
-                            result = "*"): string {
-  const head = writeTags({ ...tags, Result: result });
-  let i = 0;
-  // `N...` for a first turn that starts at its second edge (a set-up start's, the engine repository's design 04).
-  const body = turns.map(t => `${t.number}${t.second ? "..." : "."} ${moves.slice(i, (i += t.moves)).join(" ")}`).join(" ");
-  return `${head}\n\n${body} ${result}\n`;
-}
+export const markCuts = (text: string, record: GameRecord, cuts: boolean[]): string => shared.markMoves(text, record, cuts, edges);
