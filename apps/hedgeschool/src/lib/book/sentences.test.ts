@@ -10,7 +10,8 @@ import { fileURLToPath } from "node:url";
 import { openBook, type Book } from "./book.ts";
 import type { BookIndex, BookMove, BookPart, BookPosition } from "./form.ts";
 import { SYMBOL_NAME, symbol } from "./symbols.ts";
-import { bestMoveSentence, endSentence, lineText, lineTurn, mainLine, moveSentence, trapSentence } from
+import { NOT_IN_BOOK_SENTENCE, bestMoveSentence, bookEndSentence, endSentence, leftBookSentence, lineText, lineTurn,
+  mainLine, moveSentence, trapPlayedSentence, trapSentence, weakBookMoveSentence } from
   "./sentences.ts";
 import { mirrorPosition } from "#lib/engine/notation.ts";
 
@@ -263,3 +264,39 @@ test("a position's sentences, as the table shows them: the best move with the tr
   assert.equal(trapSentence(p, trap), "Q11-T10 seems good after a short search, but it decreases Red's win chance " +
     "from 55.3% to 46.8%. After 2... N11-Q10 3. G9-K10 K10-M7, Blue is slightly better.");
 });
+
+test("the Report's rows on every book move, trap and end of both books: the turn, the sides and the label are true",
+  async () => {
+    let weak = 0, trapsSeen = 0, ends = 0;
+    for (const { p } of await everyPosition()) {
+      const other = mover(p) === "Blue" ? "Red" : "Blue";
+      if (!p.moves.length) {
+        // The book move that reached the end is in the turn before the end's next edge, or in the same turn
+        const turn = p.edge === 2 ? p.turn : p.turn - 1;
+        const text = bookEndSentence(p);
+        assert.equal(text, `The game followed the book to its end, at turn ${turn}. ` +
+          `${words(p.value.blueWin, p.complexity, "name")}.`);
+        plain(text);
+        ends++;
+        continue;
+      }
+      assert.equal(leftBookSentence(p, "D9-G11", "good"), `The game left the book at turn ${p.turn}: ${mover(p)}, D9-G11, Good.`);
+      for (const m of p.moves) {
+        if (m.trap) {
+          for (const [refuted, end] of [[true, ` ${other} played its refutation.`], [false, ` ${other} did not play its refutation.`],
+                                        [null, ""]] as const)
+            assert.equal(trapPlayedSentence(p, m, refuted), `Turn ${p.turn}: ${mover(p)} played a trap, ${m.move}.${end}`);
+          trapsSeen++;
+        } else if (loss(p, m) > 0.05) {
+          const name = band(loss(p, m));
+          const text = weakBookMoveSentence(p, m);
+          assert.equal(text, `Before that, at turn ${p.turn}, ${mover(p)} played ${m.move}, a book move and ` +
+            `${name === "Inaccuracy" ? "an" : "a"} ${name}.`);
+          plain(text);
+          weak++;
+        }
+      }
+    }
+    assert.ok(weak > 50 && trapsSeen >= 38 && ends > 50, `${weak} weak book moves, ${trapsSeen} traps, ${ends} ends`);
+    assert.equal(NOT_IN_BOOK_SENTENCE, "The game was not in the book from the first move.");
+  });

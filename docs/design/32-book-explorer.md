@@ -2,8 +2,9 @@
 
 **Status:** in force. The book file's form, its loader, a test book ("The book file"), the sentences (item 6) and the
 book's table ("The table") are built. The review and the Analysis board show the table, with the line outside the book
-("Where the pages show it"). Item 4 is not built: the review's rows, its mark and the game's row. Openings is not
-built. The work uses the test book, and it goes live with the engine repository's book (request 22).
+("Where the pages show it"). Item 4 is built in part: the Report's rows and the move list's mark ("The review"). The
+game's row is not built. Openings is not built. The work uses the test book, and it goes live with the engine
+repository's book (request 22).
 **Decided:** 2026-10-24, from user stories and journeys, Lichess's opening explorer, KataGo's book pages and OGS's
 Joseki Explorer.
 
@@ -348,6 +349,34 @@ for both (items 3 and 8). The page's part of the work is in `apps/hedgeschool/sr
   its regions. A click on a row or on its number plays the move as a branch. Space plays row 1, or the row that has
   the focus. A trap and its refutation play edge by edge at the engine's line's pace.
 - **The game's move:** the view gives the table no game's move yet. The review's row "Your game" comes with item 4.
+
+## The review
+
+The review's own parts (item 4) read the game's path through the book from
+`apps/hedgeschool/src/lib/book/game.ts` (`gameOpening`), and their sentences from `sentences.ts`. ReviewView.svelte
+shows them in the early edition, where the book loads (`SITE_BOOK` in `lookup.svelte.ts`: the test book).
+
+- **In the book** is a fact of a position: the book holds it, by any move order. The game leaves the book at the first
+  position after the start that the book does not hold. A game that comes back to a book position by another move
+  order starts a new stretch in the book.
+- **The opening row** names the first departure, with the review's label of the move that left. A game that followed
+  the book to its end gives the turn of the book move that reached the end. "Before that" names the book move worse
+  than Good with the largest loss before the departure, by the book's label. A trap has its own row, so it is not
+  named there.
+- **A trap's row** says that the other side played its refutation when the other side's edges of the refutation are
+  the game's edges at their places, in either order in the turn. A game that ends before them gets the trap's first
+  sentence only. A game that ends in the book, as a game imported while it is played, has no opening row.
+- **The mark,** "Last move in the book", is at the last book move of each stretch in the book. So it marks a return
+  too. It sits beside its turn's number, and its title names the move ("Last move in the book: O11-Q10"). The number's
+  column has a fixed width with room to spare. In the move's own cell, the mark widened the column, and at the move
+  list's narrowest width (1,260 pixels, by edge) the list hid 14 pixels sideways (`npm run test:layout`).
+- **A click** on a row or on the mark goes to the position, and turns the book on for this review only. The book's
+  table in the analysis column reads that choice (beads abscls-tpaj.7).
+- **The book did not load,** or a part of the game's path did not load: the Report has no opening row and the move
+  list no mark. The rest of the review works. The table says what failed.
+- **The test games:** `apps/hedgeschool/scripts/test-fixture.mjs` makes reviewed games that meet the test book in each
+  way, with a given opening: `tests/fixtures/book-left-review.json`, `book-never-review.json` (it comes back too) and
+  `book-trap-review.json`. The layout sweep's game (`hedgefund-review.json`) follows the test book to its end.
 
 ## Where it is
 

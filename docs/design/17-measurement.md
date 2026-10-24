@@ -100,6 +100,8 @@ The features, by their `feature_name` (`ReviewView.svelte`, `used`). Each counts
 | `threat shown` | the threat shown, by its switch in the engine header or the key x (design 31) |
 | `chart jump` | a click on the Advantage or the Difficulty chart, to go to a position |
 | `chart advantage`, `chart difficulty` | the chart's tab chosen |
+| `book opening row`, `book trap row` | a click on the Report's opening row or on a trap's row, which goes to the position and turns the book on (design 32, item 4) |
+| `book mark` | a click on the move list's book mark, "Last move in the book" (design 32, item 4) |
 | `snapshot opened` | a review by an earlier engine opened as it was (design 20) |
 | `review again` | Review again chosen on a snapshot |
 | `display` and a setting | a display setting changed, by its name in `src/lib/review/display.ts`: `display judge`, `display reviewFor`, `display win`, `display layers`, `display scoreLine`, `display areaLine`, `display lineSteps`, `display branchForm`, `display marks`, `display notes`, `display previewMoves`, `display previewBranches`, `display sound`, `display moveSound`, `display volume` |

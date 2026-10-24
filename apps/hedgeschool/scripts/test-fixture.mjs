@@ -8,15 +8,30 @@
 // confirm a Great (GameAnalysis.data), on several threads. It reads the engine from static/engine (`npm run engine`
 // first).
 //
-//   node scripts/test-fixture.mjs [threads]
+// The book's games (design 32, item 4) come the same way, with options: the game's first edges are given, then the bot
+// plays on, and the game stops after a number of edges. Each meets the test book (tests/fixtures/test-book) in its own
+// way: book-left-review.json leaves it at turn 3 after a book move worse than Good, book-never-review.json is not in it
+// from the first move and comes back by another move order, and book-trap-review.json plays a trap and its
+// refutation. A short game keeps the file small.
+//
+//   node scripts/test-fixture.mjs [threads] [--opening E1,E2,…] [--edges N] [--out NAME.json]
+//   node scripts/test-fixture.mjs 2 --opening A10-D9,N11-Q10,O11-Q10,D9-G11 --edges 24 --out book-left-review.json
+//   node scripts/test-fixture.mjs 2 --opening D10-G12,O9-Q10,L10-O9,A10-D9,D9-E11,H11-L10,G14-H11 --edges 24 \
+//     --out book-never-review.json
+//   node scripts/test-fixture.mjs 2 --opening D10-G9,N11-Q10,K9-N11,G9-K10,K10-N12,K9-M10,M10-P11 --edges 24 \
+//     --out book-trap-review.json
 import { availableParallelism } from "node:os";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { Worker, isMainThread, parentPort, workerData } from "node:worker_threads";
 
-const NETWORK = "b10c128-s66625408-d13350730", VISITS = 512, BOT_VISITS = { b: 1, r: 128 }, SEED = 7, EDGES = 120;
+const NETWORK = "b10c128-s66625408-d13350730", VISITS = 512, BOT_VISITS = { b: 1, r: 128 }, SEED = 7;
 const root = fileURLToPath(new URL("..", import.meta.url));
+/** The value of the option `--name VALUE`, or undefined. */
+const option = name => { const k = process.argv.indexOf(`--${name}`); return k < 0 ? undefined : process.argv[k + 1]; };
+const OPENING = option("opening")?.split(",").filter(Boolean) ?? [], EDGES = Number(option("edges") ?? 120);
+const OUT = option("out") ?? "hedgefund-review.json";
 
 if (!isMainThread) {
   // A worker: an engine of its own, which analyzes the positions it is given, one by one.
@@ -36,7 +51,8 @@ if (!isMainThread) {
   const { enclosure, otherCandidate, secondChoice } = await import("../src/lib/review/enclosure.ts");
   const toAnalysis = reply => analysisOf(enclosure, reply);
   const { parseEdge } = await import("../src/lib/engine/notation.ts");
-  const threads = Number(process.argv[2] ?? Math.max(1, Math.min(12, availableParallelism() - 2)));
+  const first = process.argv[2], threads = first && !first.startsWith("--") ? Number(first)
+    : Math.max(1, Math.min(12, availableParallelism() - 2));
   const { manifest, module, call } = await nodeEngine(root);
   const version = call({ id: "v", action: "query_version" });
   const model = manifest.artifacts.find(a => a.kind === "model" && a.id === NETWORK);
@@ -50,8 +66,15 @@ if (!isMainThread) {
   const moves = [];
   const describe = () => call({ id: "d", action: "describe", moves });
   for (let d = describe(); moves.length < EDGES && d.outcome === null; d = describe()) {
+    const color = d.mover === "b" ? "b" : "w";
+    if (moves.length < OPENING.length) {
+      // A given first edge: the bot plays it too, so that it plays on from the game's position
+      gtp(`play ${color} ${OPENING[moves.length]}`);
+      moves.push(OPENING[moves.length]);
+      continue;
+    }
     gtp(`kata-set-param maxVisits ${BOT_VISITS[d.mover]}`);
-    moves.push(gtp(`genmove ${d.mover === "b" ? "b" : "w"}`));
+    moves.push(gtp(`genmove ${color}`));
   }
   const positions = call({ id: "g", action: "describe_game", moves, from: 0 }).positions;
   console.log(`game: ${moves.length} edges, scores ${positions.at(-1).scores.map(Math.round).join(" to ")}`);
@@ -104,7 +127,7 @@ if (!isMainThread) {
     record, branches: null, analyses,
   };
   mkdirSync(join(root, "tests", "fixtures"), { recursive: true });
-  const out = join(root, "tests", "fixtures", "hedgefund-review.json");
+  const out = join(root, "tests", "fixtures", OUT);
   writeFileSync(out, JSON.stringify(file) + "\n");
-  console.log(`tests/fixtures/hedgefund-review.json: ${analyses.length} results, ${Math.round(readFileSync(out).length / 1024)} KB`);
+  console.log(`tests/fixtures/${OUT}: ${analyses.length} results, ${Math.round(readFileSync(out).length / 1024)} KB`);
 }

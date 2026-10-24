@@ -1,5 +1,5 @@
 <script lang="ts" module>
-  export type IconName = "first" | "back" | "forward" | "last" | "menu" | "takeback" | "abort" | "resign" | "heart" | "new" | "export" | "bot";
+  export type IconName = "first" | "back" | "forward" | "last" | "menu" | "takeback" | "abort" | "resign" | "heart" | "new" | "export" | "bot" | "book";
 </script>
 
 <script lang="ts">
@@ -40,6 +40,9 @@
          the forward triangle is the step forward. -->
     <rect x="4" y="9" width="16" height="10" rx="3" /><path d="M12 9V6" /><circle cx="12" cy="5" r="1" fill="currentColor" />
     <path d="M2 12v4M22 12v4" /><circle cx="9" cy="14" r="1" fill="currentColor" /><circle cx="15" cy="14" r="1" fill="currentColor" />
+  {:else if name === "book"}
+    <!-- An open book (the opening book's mark, design 32): two pages from the spine, their outer edges a little higher. -->
+    <path d="M12 7v13" /><path d="M12 7C10 5.5 7 5 3 5v13c4 0 7 .5 9 2 2-1.5 5-2 9-2V5c-4 0-7 .5-9 2z" />
   {:else if name === "heart"}
     <!-- Two circles of radius 4 (centres 8.5,9 and 15.5,9), and the lines from the point below that touch them. -->
     <path d="M12 20L5.35 11.46A4 4 0 1 1 12 7.06A4 4 0 1 1 18.65 11.46Z" fill="currentColor" />

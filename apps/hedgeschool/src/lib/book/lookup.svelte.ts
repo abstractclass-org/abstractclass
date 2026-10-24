@@ -5,6 +5,11 @@
 import { BookLoadError, openBook, type Book, type BookReader } from "./book.ts";
 import type { BookPosition, BookSource } from "./form.ts";
 
+/** The site's book: the test book until the engine repository's book is in (beads abscls-tpaj.13). The dev and preview
+ *  servers serve it (vite.config.ts, `testBook`), and no build holds it: on a deployed site it does not load, and the
+ *  pages show no book. */
+export const SITE_BOOK = "/test-book/prototype/index.json";
+
 /** The book at a position: its part still loads, a file did not load, the book does not hold it, or the position. */
 export type BookAt =
   | { state: "loading" }

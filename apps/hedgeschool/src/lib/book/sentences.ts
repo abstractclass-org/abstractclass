@@ -197,3 +197,39 @@ export function moveSentence(p: BookPosition, m: BookMove): string {
 export const endSentence = (p: BookPosition) => `End of the book. ${SYMBOL_NAME[positionSymbol(p)]}.`;
 
 const article = (word: string) => (/^[AEIOU]/.test(word) ? "an" : "a");
+
+// --- The review's Report (design 32, item 4) -------------------------------------------------------------------------
+// The rows of the Report on the game's opening, from the book's facts and the game's moves (game.ts, `gameOpening`).
+// The review keeps its own labels (design 16): a move that left the book has the review's label, and a book move the
+// book's.
+
+/** The opening row of a game that left the book, at the position before the move that left it: "The game left the
+ *  book at turn 3: Blue, D9-G11, Good." `label`: the review's label of the move, null until the review has it. */
+export const leftBookSentence = (p: BookPosition, move: string, label: Label | null) =>
+  `The game left the book at turn ${p.turn}: ${side(p)}, ${move}${label ? `, ${LABEL_TEXT[label]}` : ""}.`;
+
+/** A book move worse than Good that the game played before it left the book, at the position before it: "Before that,
+ *  at turn 2, Red played O11-Q10, a book move and an Inaccuracy." */
+export function weakBookMoveSentence(p: BookPosition, m: BookMove): string {
+  const name = LABEL_TEXT[moveLabel(p, m)];
+  return `Before that, at turn ${p.turn}, ${side(p)} played ${m.move}, a book move and ${article(name)} ${name}.`;
+}
+
+/** The opening row of a game whose first edge is not a book move. */
+export const NOT_IN_BOOK_SENTENCE = "The game was not in the book from the first move.";
+
+/** The opening row of a game that followed the book to its end (`end`, a position with no book move), with the turn
+ *  of the book move that reached it and the symbol there in words: "The game followed the book to its end, at turn 3.
+ *  Blue is slightly better." */
+export const bookEndSentence = (end: BookPosition) =>
+  `The game followed the book to its end, at turn ${turnFromCount(edgeCount(end) - 1).turn}. ` +
+  `${SYMBOL_NAME[positionSymbol(end)]}.`;
+
+/** A trap that the game played, at the position before it, and whether the other side played its refutation: "Turn 3:
+ *  Blue played a trap, G9-K10. Red played its refutation." `refuted` is null when the game ended before it: the row
+ *  then names the trap only. */
+export function trapPlayedSentence(p: BookPosition, m: BookMove, refuted: boolean | null): string {
+  const other = PLAYER_NAME[1 - playerOf(p.mover)];
+  return `Turn ${p.turn}: ${side(p)} played a trap, ${m.move}.` +
+    (refuted === null ? "" : ` ${other} ${refuted ? "played" : "did not play"} its refutation.`);
+}
