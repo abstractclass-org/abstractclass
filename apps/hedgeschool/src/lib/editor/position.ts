@@ -2,7 +2,7 @@
 // the scores, written as the notation's position (the /notation page, the engine repository's design 04). The editor
 // writes the five fields. The engine checks that the position could occur in a game (protocol 0.5), so nothing here
 // knows the rules: only the notation's form and its turn structure.
-import { edgeName, parseEdge, sameEdge, STANDARD_START } from "#lib/engine/notation.ts";
+import { byPoints, canonical, edgeName, parseEdge, sameEdge, STANDARD_START } from "#lib/engine/notation.ts";
 import { turnFromCount, type Edge, type Player } from "#lib/review/enclosure.ts";
 
 /** An edge on the editor's board. `marked`: an edge of the turn, written `*` (protected: the last turn's, of the player
@@ -26,11 +26,6 @@ export function moverOf(count: number): { player: Player; left: number } {
 export const placeable = (ax: number, ay: number, bx: number, by: number) =>
   (ax !== bx || ay !== by) && Math.abs(ax - bx) <= 3 && Math.abs(ay - by) <= 3;
 
-/** The edge with its lower point first, by column, then by row (the notation's spelling). */
-function canonical([ax, ay, bx, by]: Edge): Edge {
-  return ax < bx || (ax === bx && ay < by) ? [ax, ay, bx, by] : [bx, by, ax, ay];
-}
-const byPoints = (a: Edge, b: Edge) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2] || a[3] - b[3];
 /** A number as the notation writes a score: exact to the rules' rounding, with no trailing zeros. */
 const scoreText = (s: number) => String(Math.round(s * 1e9) / 1e9);
 

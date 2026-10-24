@@ -2,28 +2,25 @@
 // book through it only, so that another form of the book (the engine repository's, request 22) can come in through an
 // adapter that gives the same interface. `openBook` reads the site's own form (form.ts): the index first, then the
 // parts as the lookups need them, the start's part first.
-import { BOOK_FORMAT, BOOK_VERSION, type BookIndex, type BookPart, type BookPosition, type BookSource } from "./form.ts";
+import { BOOK_FORMAT, BOOK_VERSION, type BookIndex, type BookMove, type BookPart, type BookPosition,
+  type BookSource } from "./form.ts";
 import { mirrorArea } from "./area.ts";
-import { mirrorEdge, mirrorPosition } from "../engine/notation.ts";
+import { mirrorEdge, mirrorPosition } from "#lib/engine/notation.ts";
 
-/** Where the book holds a position: the notation that it stores, its part, and whether the stored position is the
- *  mirror image of the position looked up. */
-export interface BookPlace { stored: string; part: number; mirrored: boolean }
-/** A book position that a lookup found, as the book stores it, and whether it is the mirror image of the position
- *  looked up (`asReached` turns it around). */
-export interface BookFound { position: BookPosition; mirrored: boolean }
-
+/** The book. A lookup takes a position as the player reached it, and finds it or its mirror image, whichever the book
+ *  stores. It gives the position as the player reached it (design 32, "Mirror images"): every position and edge in the
+ *  player's orientation, so that a move's `to` and a parent's `position` are the positions that the player reaches,
+ *  and no `mirrored` stays. */
 export interface Book {
   readonly source: BookSource;
   /** The start, in the position notation. */
   readonly start: string;
-  /** Where the book holds a position or its mirror image, from the index alone. Null when it holds neither. */
-  find(position: string): BookPlace | null;
   /** The book's position, with its part loaded. Null when the book does not hold it. It rejects with a
    *  BookLoadError when the part does not load, and a later call tries again. */
-  get(position: string): Promise<BookFound | null>;
-  /** The book's position at once: null when the book does not hold it, undefined while its part is not loaded. */
-  peek(position: string): BookFound | null | undefined;
+  get(position: string): Promise<BookPosition | null>;
+  /** The book's position at once: null when the book does not hold it (from the index alone), undefined while its
+   *  part is not loaded. */
+  peek(position: string): BookPosition | null | undefined;
 }
 
 /** A file of the book that did not load, or that is not a book's file. */
@@ -64,83 +61,95 @@ export async function openBook(url: string, read: BookReader = fetchJson): Promi
   return book;
 }
 
+type Part = Map<string, BookPosition>;
+/** Where the book stores a position: the notation that it stores, its part, and whether the stored position is the
+ *  mirror image of the position looked up. */
+interface Place { stored: string; part: number; mirrored: boolean }
+
 class FileBook implements Book {
   readonly source: BookSource;
   readonly start: string;
-  private readonly index: BookIndex;
-  private readonly base: string;
+  private readonly urls: string[];
   private readonly read: BookReader;
-  private readonly where = new Map<string, number>();
-  private readonly loading: (Promise<Map<string, BookPosition>> | undefined)[] = [];
-  private readonly loaded: (Map<string, BookPosition> | undefined)[] = [];
+  private readonly where = new Map<string, number>(); // each stored position's part
+  // Each part while it loads, then when it is loaded. A part that did not load has neither, so a later lookup tries
+  // again ("Try again", design 32).
+  private readonly parts: (Promise<Part> | Part | undefined)[] = [];
 
   constructor(index: BookIndex, base: string, read: BookReader) {
-    this.index = index;
-    this.base = base;
-    this.read = read;
     this.source = index.source;
     this.start = index.start;
+    this.urls = index.parts.map(p => base + p.file);
+    this.read = read;
     index.parts.forEach((part, i) => part.positions.forEach(p => this.where.set(p, i)));
   }
 
-  find(position: string): BookPlace | null {
+  async get(position: string): Promise<BookPosition | null> {
+    const place = this.place(position);
+    return place && this.found(place, await (this.parts[place.part] ??= this.load(place.part)));
+  }
+
+  peek(position: string): BookPosition | null | undefined {
+    const place = this.place(position), part = place && this.parts[place.part];
+    return place && (part instanceof Map ? this.found(place, part) : undefined);
+  }
+
+  private place(position: string): Place | null {
     const part = this.where.get(position);
     if (part !== undefined) return { stored: position, part, mirrored: false };
     const image = mirrorPosition(position), imagePart = this.where.get(image);
     return imagePart === undefined ? null : { stored: image, part: imagePart, mirrored: true };
   }
 
-  async get(position: string): Promise<BookFound | null> {
-    const place = this.find(position);
-    if (!place) return null;
-    return this.found(place, await this.part(place.part));
+  private found({ stored, part, mirrored }: Place, positions: Part): BookPosition {
+    const position = positions.get(stored);
+    if (!position) throw new BookLoadError(this.urls[part], `it lacks the position ${stored}`);
+    return reached(position, mirrored);
   }
 
-  peek(position: string): BookFound | null | undefined {
-    const place = this.find(position);
-    if (!place) return null;
-    const part = this.loaded[place.part];
-    return part && this.found(place, part);
-  }
-
-  private found(place: BookPlace, part: Map<string, BookPosition>): BookFound {
-    const position = part.get(place.stored);
-    if (!position) throw new BookLoadError(this.url(place.part), `it lacks the position ${place.stored}`);
-    return { position, mirrored: place.mirrored };
-  }
-
-  private url = (part: number) => this.base + this.index.parts[part].file;
-
-  private part(i: number): Promise<Map<string, BookPosition>> {
-    const url = this.url(i);
-    return this.loading[i] ??= this.read(url).then(
-      file => {
-        const part = new Map(checked(file as BookPart).positions.map(p => [p.position, p]));
-        this.loaded[i] = part;
-        return part;
-      },
+  private load(i: number): Promise<Part> {
+    const url = this.urls[i];
+    return this.read(url).then(
+      file => (this.parts[i] = new Map(checked(file as BookPart).positions.map(p => [p.position, p]))),
       e => {
-        this.loading[i] = undefined; // a later lookup tries again ("Try again", design 32)
+        this.parts[i] = undefined;
         throw new BookLoadError(url, e);
       });
   }
 }
 
-/** A found position as the player reached it: the stored position when it is not mirrored, else its mirror image,
- *  with its moves, its outside move, its refutations and its area map mirrored. A move's `to` stays the notation that
- *  the book stores, so its `mirrored` turns over. The parents stay as the book stores them. */
-export function asReached({ position: p, mirrored }: BookFound): BookPosition {
-  if (!mirrored) return p;
+/** The book move that an edge plays from a position as a lookup gives it. A position that is its own mirror image (the
+ *  start) lists one edge of each pair of mirror images, as the engine's twins: the other edge plays the same move,
+ *  turned over. Undefined when the edge is not a book move. */
+export function bookMove(p: BookPosition, edge: string): BookMove | undefined {
+  const own = p.moves.find(m => m.move === edge);
+  if (own || mirrorPosition(p.position) !== p.position) return own;
+  const twin = p.moves.find(m => m.move === mirrorEdge(edge));
+  return twin && turnMove(twin, true);
+}
+
+/** A stored position as the player reached it: `mirrored` when the player's position is its mirror image. A parent
+ *  turns over, with its edge, when its `mirrored` differs from the position's. */
+function reached(p: BookPosition, mirrored: boolean): BookPosition {
   return {
     ...p,
-    position: mirrorPosition(p.position),
-    moves: p.moves.map(({ mirrored: storedMirrored, ...m }) => ({
-      ...m,
-      move: mirrorEdge(m.move),
-      ...(storedMirrored ? {} : { mirrored: true as const }),
-      ...(m.trap ? { trap: { ...m.trap, refutation: m.trap.refutation.map(mirrorEdge) } } : {}),
-    })),
-    outside: p.outside && { ...p.outside, move: mirrorEdge(p.outside.move) },
-    area: mirrorArea(p.area),
+    position: mirrored ? mirrorPosition(p.position) : p.position,
+    parents: p.parents.map(q => (mirrored !== !!q.mirrored
+      ? { position: mirrorPosition(q.position), move: mirrorEdge(q.move) } : { position: q.position, move: q.move })),
+    moves: p.moves.map(m => turnMove(m, mirrored)),
+    outside: p.outside && { ...p.outside, move: mirrored ? mirrorEdge(p.outside.move) : p.outside.move },
+    area: mirrored ? mirrorArea(p.area) : p.area,
+  };
+}
+
+/** A move from a position that turns over or not (`mirrored`). Its edge and its refutation turn with the position,
+ *  and its `to` is the image of the stored one when the move's `mirrored` differs from the position's. */
+function turnMove({ mirrored: stored, ...m }: BookMove, mirrored: boolean): BookMove {
+  const edge = (e: string) => (mirrored ? mirrorEdge(e) : e);
+  return {
+    ...m,
+    move: edge(m.move),
+    to: mirrored !== !!stored ? mirrorPosition(m.to) : m.to,
+    ...(m.trap ? { trap: { ...m.trap, refutation: m.trap.refutation.map(edge) } } : {}),
   };
 }

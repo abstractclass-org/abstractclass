@@ -3,7 +3,7 @@
 // symbols and the sentences from them by its own rules. A book is an index and its parts: the index lists every
 // position by the part that holds it, and the first part holds the start. Each position is keyed by the engine's
 // position notation (src/lib/engine/notation.ts). The book stores a position and its mirror image as one, in one of
-// the two orientations: a lookup finds both (book.ts, `find`).
+// the two orientations: a lookup finds both, and gives the position as the player reached it (book.ts, `Book`).
 //
 // The units: every win chance is Blue's, from 0 to 1, whoever moves, as the engine gives it. A lead is Blue's expected
 // score lead in points (negative when Red leads). An edge count is the position's fifth field: the edges played, 0 to
@@ -58,9 +58,10 @@ export interface BookPart {
 export interface BookValue {
   /** Blue's win chance, 0 to 1. */
   blueWin: number;
-  /** The lower bound of Blue's win chance, 0 to 1. */
+  /** The lower bound of Blue's win chance, minimaxed: KataGo's book bound (the value less its error times the book's
+   *  error factor), cut to 0 to 1. */
   low: number;
-  /** The upper bound of Blue's win chance, 0 to 1. */
+  /** The upper bound of Blue's win chance, as `low`: cut to 0 to 1. */
   high: number;
   /** Blue's expected score lead, in points. */
   lead: number;
@@ -81,15 +82,20 @@ export interface BookPosition {
   parents: BookParent[];
   /** The position's minimaxed values. */
   value: BookValue;
-  /** The complexity of the position's own deep search: the mover's mean loss of win chance over the search's
-   *  candidates, weighted by their prior, 0 to 1 (@abstractclass/analysis/model.ts, `complexity`; design 14). */
+  /** The complexity of the position's own deep search, 0 to 1 (KaTrain's, in win chance: design 14,
+   *  @abstractclass/analysis/model.ts `complexity`). For each candidate that the search lists, twins too: the mover's
+   *  loss of win chance from the search's own win chance (0 for a gain), weighted by the candidate's prior. Their
+   *  weighted mean. */
   complexity: number;
   /** The book moves, the best first, then by the mover's win chance. Empty where the book ends. */
   moves: BookMove[];
-  /** The best move outside the book and its value (KataGo's "other" row), or null when the book holds every move
-   *  that the search found. */
+  /** The best move outside the book (KataGo's "other" row), in the orientation of `position` as stored. `blueWin`:
+   *  Blue's win chance when the mover plays outside the book, KataGo's value not in the book (the search with the
+   *  book's moves excluded). Where the position has no book move, it is the position's own search value. Null when
+   *  the book holds every move that the search found. */
   outside: { move: string; blueWin: number } | null;
-  /** The area map: the ownership of each point from the position's deep search, one byte a point (area.ts). */
+  /** The area map: the ownership of each point from the position's deep search, one byte a point (area.ts: index
+   *  y * 19 + x, y = 0 at row 1). */
   area: string;
 }
 
@@ -111,7 +117,8 @@ export interface BookMove {
   to: string;
   /** True when the book stores `to` as the mirror image of the position that the move reaches. */
   mirrored?: true;
-  /** The values after the move: the minimaxed values of `to`. */
+  /** The values after the move: the minimaxed values of `to`. By the minimax, they are also those of the end of its
+   *  main line (`end`), so the symbol at the line's end comes from them. */
   value: BookValue;
   /** The end of the book's main line after the move: the line of each position's best move, while that move is in
    *  the book. `count`: its edge count. `complexity`: the complexity of its deep search, as above. */
@@ -121,6 +128,7 @@ export interface BookMove {
   /** A trap: a move that a short search rates Good or better and the deep values a Mistake or worse (request 22,
    *  item 3). `short`: Blue's win chance after the move by the short search, 0 to 1 (its deep value is `value`).
    *  `refutation`: the book's line from the position after it: the rest of the trap's turn, then the opponent's turn
-   *  that punishes it, in the orientation of `move`. */
+   *  that punishes it. Its edges are in the orientation of `move`, so they play from the position that `move`
+   *  reaches: the image of `to` when `mirrored`. */
   trap?: { short: number; refutation: string[] };
 }

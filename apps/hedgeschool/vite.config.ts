@@ -1,10 +1,11 @@
 import adapter from '@sveltejs/adapter-static';
 import { sveltekit } from '@sveltejs/kit/vite';
 import tailwindcss from '@tailwindcss/vite';
-import { defaultClientConditions, defineConfig } from 'vite';
+import { defaultClientConditions, defineConfig, type Connect, type Plugin } from 'vite';
 import { execSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
+import { join, resolve, sep } from 'node:path';
 
 // The site's version: the commit it is built from (Cloudflare's build names it, else Git), for the footer.
 const commit = process.env.CF_PAGES_COMMIT_SHA ?? process.env.WORKERS_CI_COMMIT_SHA
@@ -39,6 +40,22 @@ const userscriptCode = createHash('sha256')
 const engineFiles = (JSON.parse(readFileSync('engine.lock.json', 'utf8')).artifacts as { kind: string; sha256: string }[])
 	.filter(a => a.kind === 'module' || a.kind === 'model').map(a => a.sha256).join(' ');
 
+// The test book (design 32, "The test book"): the dev and preview servers serve tests/fixtures/test-book/ at
+// /test-book/, for the explorer until the engine repository's book comes. No build holds it, so no deployed site
+// serves a book that is not the engine's.
+function testBook(): Plugin {
+	const dir = resolve('tests/fixtures/test-book');
+	const serve = ({ middlewares }: { middlewares: Connect.Server }) => {
+		middlewares.use('/test-book', (req, res, next) => {
+			const file = join(dir, decodeURIComponent((req.url ?? '/').split('?')[0]));
+			if (!file.startsWith(dir + sep) || !existsSync(file) || !statSync(file).isFile()) return next();
+			res.setHeader('Content-Type', file.endsWith('.json') ? 'application/json' : 'text/plain; charset=utf-8');
+			res.end(readFileSync(file));
+		});
+	};
+	return { name: 'test-book', configureServer: serve, configurePreviewServer: serve };
+}
+
 export default defineConfig({
 	define: {
 		__SITE_VERSION__: JSON.stringify(commit.slice(0, 7)), __SITE_ORIGIN__: JSON.stringify(origin),
@@ -52,6 +69,7 @@ export default defineConfig({
 	// The workers as modules: the GPU worker imports the engine's GPU library by URL.
 	worker: { format: 'es' },
 	plugins: [
+		testBook(),
 		tailwindcss(),
 		sveltekit({
 			compilerOptions: {

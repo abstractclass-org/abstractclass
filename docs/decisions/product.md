@@ -6748,3 +6748,24 @@ error and no horizontal scroll. The layout sweep in Chromium passes (25 tests, 5
   moves. The game's row keeps the book's columns for the book's values. The switch names "Book" and "Candidates" and
   shows what the table holds. The traps show both values in both modes.
 - The design is [design 32](../design/32-book-explorer.md).
+
+### The book file's form and a test book (2026-10-24)
+
+- **The form is the site's own,** and the site proposes it to the engine repository (request 22, item 5): values
+  only, an index and its parts, each position keyed by its notation, and a position and its mirror image as one.
+  Design 32, "The book file", gives each field with its unit and its side.
+- **The test book** comes from the third prototype's book: 404 positions and 38 traps in 4 parts, 456 kB in all, the
+  largest part 164 kB. Hand-made cases add 15 positions in 16 kB: a position that move orders from two turns reach, a
+  position that the book stores as its mirror image, and a part that does not load.
+- **The form holds what the symbols need:** the symbols computed from the values are the prototype's for 395 of the
+  404 positions. The 9 others are on a cut-off, because the prototype's file rounds its values to 3 decimals.
+- **The prototype's bounds can pass 0 to 1** (a lower bound of −0.003): KataGo's bounds are the value less and plus
+  its error times the error factor. The form cuts them to 0 to 1.
+- **The mirror matches the engine:** for each of the 404 positions, the engine's position after the book's moves is
+  the position, and after the moves' images it is the position's image. Through the loader, the 99 positions after
+  D10-G11 (the image of D10-G9, a book move of the start) match the engine too.
+- **The review** moved the test book out of `static/`, into `tests/fixtures/test-book/`. The dev and preview servers
+  serve it, and no build holds it. The loader gives each position in the player's orientation, and `bookMove` plays a
+  twin's book move in a position that is its own mirror image.
+- **Not done:** the index lists every position, at 60 to 150 bytes each, so it suits a book of a few thousand
+  positions. A larger book needs its index in parts (abscls-bhe9).

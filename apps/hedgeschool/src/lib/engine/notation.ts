@@ -1,6 +1,7 @@
 // The engine repository's notation for points and edges (its docs/design/04-notation-and-protocol.md): points as GTP
 // (columns A-T without I, rows 1-19 from the bottom), an edge as two points with the lower one first (by column,
-// then by row): "D10-E11". The board works in numbers, [x1, y1, x2, y2] with 0-18 and y up; these convert.
+// then by row): "D10-E11". The board works in numbers, [x1, y1, x2, y2] with 0-18 and y up; these convert. The mirror
+// image of an edge and of a position, for the opening book (design 32), is here too.
 
 /** An edge as its two points: [x1, y1, x2, y2], 0-18, y up. */
 export type Edge = [number, number, number, number];
@@ -24,10 +25,17 @@ export function parsePoint(s: string): [number, number] {
   return [x, y];
 }
 
+/** The edge with its lower point first, by column, then by row (the notation's spelling). */
+export function canonical([ax, ay, bx, by]: Edge): Edge {
+  return ax < bx || (ax === bx && ay < by) ? [ax, ay, bx, by] : [bx, by, ax, ay];
+}
+/** The order of a position's list of edges, each canonical: by their first points, then by their second points. */
+export const byPoints = (a: Edge, b: Edge) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2] || a[3] - b[3];
+
 /** The edge's one spelling: the lower point first. */
-export function edgeName([ax, ay, bx, by]: Edge): string {
-  const [p, q] = ax < bx || (ax === bx && ay < by) ? [[ax, ay], [bx, by]] : [[bx, by], [ax, ay]];
-  return `${pointName(p[0], p[1])}-${pointName(q[0], q[1])}`;
+export function edgeName(edge: Edge): string {
+  const [ax, ay, bx, by] = canonical(edge);
+  return `${pointName(ax, ay)}-${pointName(bx, by)}`;
 }
 
 export function parseEdge(s: string): Edge {
@@ -41,15 +49,15 @@ const mirrorY = ([ax, ay, bx, by]: Edge): Edge => [ax, 18 - ay, bx, 18 - by];
 /** An edge's mirror image, in its one spelling. */
 export const mirrorEdge = (s: string) => edgeName(mirrorY(parseEdge(s)));
 /** A position's mirror image, in the position notation's one spelling: each list's edges mirrored with their marks,
- *  then sorted again by the edges' first points, then by their second points. */
+ *  then sorted again (`byPoints`). */
 export function mirrorPosition(position: string): string {
   const [blue, red, ...rest] = position.split(" ");
-  const mirrored = (s: string) => {
-    const mark = s.match(/[*+]$/)?.[0] ?? "";
-    return { edge: parseEdge(mirrorEdge(s.slice(0, s.length - mark.length))), mark };
-  };
-  const list = (edges: string) => edges === "-" ? edges : edges.split(",").map(mirrored)
-    .sort((u, v) => u.edge[0] - v.edge[0] || u.edge[1] - v.edge[1] || u.edge[2] - v.edge[2] || u.edge[3] - v.edge[3])
+  const list = (field: string) => field === "-" ? field : field.split(",")
+    .map(item => {
+      const [, name, mark] = /^(.+?)([*+]?)$/.exec(item)!;
+      return { edge: canonical(mirrorY(parseEdge(name))), mark };
+    })
+    .sort((u, v) => byPoints(u.edge, v.edge))
     .map(({ edge, mark }) => edgeName(edge) + mark).join(",");
   return [list(blue), list(red), ...rest].join(" ");
 }

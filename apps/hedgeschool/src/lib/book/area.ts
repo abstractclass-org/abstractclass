@@ -1,7 +1,8 @@
-// The book's area map (form.ts, BookPosition `area`): the ownership of each point, one byte a point, in base64. Each
-// byte is a signed number from -100 to 100: the ownership in hundredths from Blue's side, as the site stores an
-// analysis's ownership (@abstractclass/analysis/model.ts, Analysis `ownership`). The points come in the engine's order:
-// index y * 19 + x, y from the bottom (@abstractclass/engine/protocol.ts, AnalysisReply `ownership`).
+// The book's area map (design 30; design 32, "The book file"; form.ts, BookPosition `area`): the ownership of each
+// point, one byte a point, in base64. Each byte is a signed number from -100 to 100: the ownership in hundredths from
+// Blue's side, as the site stores an analysis's ownership (@abstractclass/analysis/model.ts, Analysis `ownership`).
+// The points come in the engine's order: index y * 19 + x, y from the bottom (@abstractclass/engine/protocol.ts,
+// AnalysisReply `ownership`).
 
 const SIZE = 19;
 export const POINTS = SIZE * SIZE;

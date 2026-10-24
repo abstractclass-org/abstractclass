@@ -1,7 +1,7 @@
 # The opening book explorer
 
 **Status:** in force. The book file's form, its loader and a test book are built ("The book file"). The explorer is
-not built: it is built on the test book, and goes live with the engine repository's book (request 22).
+not built. Its work uses the test book, and it goes live with the engine repository's book (request 22).
 **Decided:** 2026-10-24, from user stories and journeys, Lichess's opening explorer, KataGo's book pages and OGS's
 Joseki Explorer.
 
@@ -203,8 +203,10 @@ explorer reads the book through one interface, so a book in another form comes i
 `apps/hedgeschool/src/lib/book/form.ts`, with each value's unit.
 
 - **Values only.** The file holds positions, edges and values. It holds no label, no symbol and no sentence. The site
-  computes them by its own rules: the labels by design 10, and the symbols by the prototypes' cut-offs (0.524, 0.564
-  and 0.635 of Blue's win chance, with ∞ for an equal position whose complexity is hard, design 14).
+  computes them by its own rules: the labels by design 10, and the symbols by the prototypes' cut-offs. These are
+  chess.com's table of engine evaluations (WGM Natalia Pogonina, "Chess engines: evaluations": = to 0.26 pawns, ⩲ to
+  0.7, ± to 1.5, +− beyond), turned into a win chance by Lichess's curve (lichess.org/page/accuracy): 0.524, 0.564 and
+  0.635 of Blue's win chance. ∞ replaces = for an equal position whose complexity is hard (design 14).
 - **The units.** Every win chance is Blue's, from 0 to 1, whoever moves, as the engine gives it. A lead is Blue's
   expected score lead in points. An edge count is the number of edges played, 0 to 120: the fifth field of the
   position notation.
@@ -212,11 +214,14 @@ explorer reads the book through one interface, so a book in another form comes i
   search and of the traps' short search, and a note), the start, and each part's file with the positions that it
   holds. The first part holds the start, so the site loads it first. The index tells which part holds a position, so
   a lookup loads that part only. Each part stays small enough to load at once on a phone: a few hundred kilobytes at
-  most before compression.
+  most before compression. The index lists every position, at 60 to 150 bytes each, and the site loads it before the
+  start's part. So it suits a book of a few thousand positions. A larger book needs its index in parts too, for example
+  by a hash of the notation.
 - **The positions' keys.** The book keys each position by the engine's position notation (the engine repository's
   `docs/design/04-notation-and-protocol.md`, "A position"). So the move orders that reach a position reach one key.
   The book stores a position and its mirror image (row r to row 20 − r) as one, in one of the two orientations. A
-  lookup tries the position, then its mirror image, and says which one it found.
+  lookup tries the position, then its mirror image. A position that is its own mirror image, such as the start, lists
+  one edge of each pair of mirror images, as the engine's twins do.
 - **A position** has these fields:
 
   | Field | What it holds |
@@ -224,11 +229,11 @@ explorer reads the book through one interface, so a book in another form comes i
   | `position` | Its notation, as the book stores it. |
   | `mover`, `turn`, `edge` | The side to move (`b` or `r`), the turn of the next edge (1 to 61), and that edge's place in its turn (1 or 2). |
   | `parents` | The book moves that lead to it. Each has the position before it, the edge, and `mirrored` when the book stores this position as the mirror image of the one that the edge reaches. The first is the canonical parent: the page shows the subtree under it. |
-  | `value` | Blue's win chance (`blueWin`), its lower and upper bounds (`low`, `high`) and Blue's lead (`lead`), minimaxed through the book. |
-  | `complexity` | The complexity of the position's own deep search (design 14), from 0 to 1. |
+  | `value` | Blue's win chance (`blueWin`), its lower and upper bounds (`low`, `high`) and Blue's lead (`lead`), minimaxed through the book. The bounds are KataGo's book bounds (the value less and plus its error times the error factor), cut to 0 to 1. |
+  | `complexity` | KaTrain's complexity of the position's own deep search, in win chance (design 14), from 0 to 1. For each candidate that the search lists, twins too, the mover's loss of win chance from the search's own win chance (0 for a gain), weighted by the candidate's prior. |
   | `moves` | The book moves: the best first, then by the mover's win chance. Empty where the book ends. |
-  | `outside` | The best move outside the book and Blue's win chance after it (KataGo's "other" row), or null. |
-  | `area` | The area map: one signed byte a point, in base64. Each byte is the ownership in hundredths from Blue's side, from −100 to 100, in the engine's order of points (y × 19 + x). |
+  | `outside` | The best move outside the book (KataGo's "other" row), in the orientation of the position as stored, and Blue's win chance when the mover plays outside the book (`blueWin`): KataGo's value not in the book, from the search with the book's moves excluded. Where the position has no book move, it is the position's own search value. Null when the book holds every move that the search found. |
+  | `area` | The area map: one signed byte a point, in base64. Each byte is the ownership in hundredths from Blue's side, from −100 to 100, in the engine's order of points: y × 19 + x, with y = 0 at row 1. |
 
 - **A book move** has these fields:
 
@@ -236,23 +241,28 @@ explorer reads the book through one interface, so a book in another form comes i
   |---|---|
   | `move` | The edge, in the orientation of its position as the book stores it. |
   | `to`, `mirrored` | The position after the move as the book stores it, and `mirrored` as for a parent. |
-  | `value` | The values after the move: the minimaxed values of `to`. A trap's deep value is this one. |
+  | `value` | The values after the move: the minimaxed values of `to`. By the minimax, they are also the values of the end of its main line, so the symbol at the line's end comes from them. A trap's deep value is this one. |
   | `end` | The edge count and the complexity of the end of the book's main line after the move. The main line follows each position's best move while that move is in the book. |
   | `last` | The edge count of the deepest book position under the move: how far the book goes on. |
-  | `trap` | On a trap only: `short`, Blue's win chance after the move by the short search, and `refutation`, the book's line from the position after it: the rest of the trap's turn, then the opponent's turn that punishes it. |
+  | `trap` | On a trap only: `short`, Blue's win chance after the move by the short search, and `refutation`, the book's line from the position after it: the rest of the trap's turn, then the opponent's turn that punishes it. The refutation's edges are in the orientation of `move`, so they play from the position that the move reaches: the image of `to` when `mirrored`. |
 
-- **The loader** (`apps/hedgeschool/src/lib/book/book.ts`) gives the interface `Book`. `find` tells from the index
-  where the book holds a position. `get` gives the position with its part loaded. `peek` gives it at once when its part
-  is loaded. A part that does not load makes each lookup in it fail, and a later lookup tries it again. `asReached`
-  turns a position that the lookup found as a mirror image to the player's orientation: its edges, its area map, and
-  the `mirrored` of its moves.
+- **The loader** (`apps/hedgeschool/src/lib/book/book.ts`) gives the interface `Book`. `get` gives a position with its
+  part loaded. `peek` gives it at once when its part is loaded, and tells from the index alone when the book does not
+  hold it. A part that does not load makes each lookup in it fail, and a later lookup tries it again. A lookup takes the
+  position as the player reached it, and gives it in the player's orientation: its edges, its area map, the positions
+  that its moves reach and its parents. So a move's `to` is the position that the move reaches, and the `mirrored`
+  flags stay inside the loader. `bookMove` gives the book move that an edge plays. In a position that is its own
+  mirror image, an edge plays its twin's book move, turned over.
 
 ### The test book
 
 The test book is not the engine's book. `apps/hedgeschool/scripts/test-book.mjs` makes it from the third prototype's
-book (the branch abscls-tpaj.3, `static/book-prototype/book.json`), which the site's engine searched in WebAssembly at
-512 visits, with the site's network. It writes two books in `apps/hedgeschool/static/test-book/`, which the site serves
-and the unit tests read:
+book, which the site's engine searched in WebAssembly at 512 visits, with the site's network. That book is the file
+that the branch abscls-tpaj.3 writes with its `scripts/book-prototype/export.mjs` (`static/book-prototype/book.json`,
+1.5 MB, not in Git). The script reads it from `apps/hedgeschool/runs/book-prototype-3/book.json`. So the test book in
+Git is the copy that stays. It writes two books in `apps/hedgeschool/tests/fixtures/test-book/`, which the unit
+tests read. The dev and preview servers serve them at `/test-book/` (`apps/hedgeschool/vite.config.ts`, `testBook`).
+No build holds them, so no deployed site serves a book that is not the engine's:
 
 - `prototype/`: the prototype's 404 positions and 38 traps, in 4 parts and 456 kB. The start's part holds the first two
   turns. Each later position is in the part of the first edge of its first line, one part for each of Blue's first
@@ -261,20 +271,21 @@ and the unit tests read:
   orders from different turns reach, a position that the book stores as its mirror image, and a part that the index
   lists and no file holds. Its six added positions have copied values, not searched ones.
 
-A line that leaves the book and comes back is in `prototype/` itself, and the unit tests walk it. The converter adds
-what the prototype's file does not keep: the parents (it keeps only each position's first line), each move's line end
-and depth, and each trap's refutation. It checks that the form holds what the symbols need: the symbols computed from
-the values are the prototype's for 395 positions. The 9 others are on a cut-off, because the prototype's file rounds
-its values to 3 decimals. The files are in every build of the site, and no page links them until the explorer comes.
+A line that leaves the book and comes back is in `prototype/` itself, and the unit tests walk it. The script adds what
+the prototype's file does not keep: the parents (it keeps only each position's first line), each move's line end and
+depth, and each trap's refutation. It cuts the bounds to 0 to 1. It checks that the form holds what the symbols need:
+the symbols computed from the values are the prototype's for 395 positions. The 9 others are on a cut-off, because
+the prototype's file rounds its values to 3 decimals.
 
 ## Where it is
 
-The book file's form, its loader and their unit tests are in `apps/hedgeschool/src/lib/book/`, the converter in
-`apps/hedgeschool/scripts/test-book.mjs`, and the test book in `apps/hedgeschool/static/test-book/` ("The book
-file"). The explorer is not built. The design's files are in [../ux/book-explorer/](../ux/book-explorer/): `context-book-explorer.md`,
-`stories-book-explorer.md`, `journey-book-explorer.md` and its diagram, `sitemap-book-explorer.md` and its diagram,
-`wireframes-book-explorer.html`, `evaluation-book-explorer.md` and `decisions.md`. The prototypes' code is on the
-branches abscls-tpaj.1, abscls-tpaj.2 and abscls-tpaj.3, never merged.
+The book file's form, its loader and their unit tests are in `apps/hedgeschool/src/lib/book/`, the script that makes
+the test book in `apps/hedgeschool/scripts/test-book.mjs`, and the test book in
+`apps/hedgeschool/tests/fixtures/test-book/` ("The book file"). The explorer is not built. The design's files are in
+[../ux/book-explorer/](../ux/book-explorer/): `context-book-explorer.md`, `stories-book-explorer.md`,
+`journey-book-explorer.md` and its diagram, `sitemap-book-explorer.md` and its diagram, `wireframes-book-explorer.html`,
+`evaluation-book-explorer.md` and `decisions.md`. The prototypes' code is on the branches abscls-tpaj.1, abscls-tpaj.2
+and abscls-tpaj.3, never merged.
 
 ## Log entries
 

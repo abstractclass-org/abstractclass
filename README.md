@@ -87,6 +87,8 @@ Web Analytics). Without them, as in development, the build has neither.
 | `src/lib/board/`, `src/lib/review/` | The board (SVG), Enclosure's game and its part of the review (`review/enclosure.ts`), the review's page (layout: design 06), the Advantage chart, the display settings. |
 | `src/lib/edition.ts`, `src/lib/analytics.svelte.ts` | The early-access switch and the site's name; the analytics and the consent banner. |
 | `src/lib/sound.ts`, `static/sounds/` | The move sounds (design 08). |
+| `src/lib/book/`, `scripts/test-book.mjs` | The opening book's file form, its loader and the converter that makes the test book (design 32). |
+| `tests/fixtures/` | The browser tests' data, and the test book that the dev and preview servers serve at `/test-book/`. |
 | `src/lib/mock/`, `scripts/mock/` | Mock data for the wireframes, and how it was made. |
 | `scripts/measure/` | The measurements behind the labels (their results: `docs/decisions/`). |
 | `engine.lock.json`, `scripts/fetch-engine.mjs` | The engine's artifacts, pinned by SHA-256. |
