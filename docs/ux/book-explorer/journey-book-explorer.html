@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Book explorer journeys</title>
+<style>
+:root {
+  --bg: #fafafc; --surface: #ffffff; --fg: #18182b; --fg-muted: #65657a;
+  --border: #d8d8e4; --accent: #4338ca;
+  --sans: "Hanken Grotesk", Inter, system-ui, -apple-system, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px;
+  --s5: 20px; --s6: 24px; --s7: 32px; --s8: 48px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #18182b; --surface: #1f1f36; --fg: #f0f0f8; --fg-muted: #8888a8;
+    --border: #2a2a44; --accent: #7c6ff0;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #18182b; --surface: #1f1f36; --fg: #f0f0f8; --fg-muted: #8888a8;
+  --border: #2a2a44; --accent: #7c6ff0;
+}
+* { box-sizing: border-box; }
+body {
+  font-family: var(--sans); background: var(--bg); color: var(--fg);
+  padding: var(--s7); line-height: 1.5; margin: 0;
+}
+.visual-diagram {
+  margin: 0; padding: var(--s5);
+  background: var(--surface); border-radius: 8px;
+  border: 1px solid var(--border); overflow-x: auto;
+}
+.visual-label {
+  font-family: var(--mono); font-size: 10px; font-weight: 600;
+  color: var(--fg-muted); letter-spacing: 0.06em;
+  margin-bottom: var(--s4); text-transform: uppercase;
+}
+.flow-grid {
+  display: grid;
+  grid-template-columns: auto 16px 1fr 16px 1fr 16px 1fr 16px 1fr 16px 1fr;
+  align-items: center; padding: var(--s3) 0; row-gap: var(--s2);
+}
+.flow-node {
+  padding: var(--s2); background: var(--bg);
+  border: 1px solid var(--border); border-radius: 4px;
+  text-align: center; min-width: 0;
+}
+.flow-node-step { font-family: var(--mono); font-size: 10px; font-weight: 600; color: var(--accent); margin-bottom: 1px; }
+.flow-node-label { font-size: 11px; font-weight: 600; color: var(--fg); }
+.flow-node-detail { font-size: 10px; color: var(--fg-muted); margin-top: 1px; }
+.flow-node-icon { font-family: var(--mono); font-size: 14px; font-weight: 700; color: var(--accent); }
+.flow-start { border-color: var(--accent); border-width: 2px; padding: var(--s2) var(--s3); }
+.flow-end { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 6%, var(--bg)); }
+.flow-arrow { height: 1px; background: var(--border); position: relative; }
+.flow-arrow::after {
+  content: ''; position: absolute; right: 0; top: -3px;
+  border-left: 4px solid var(--border);
+  border-top: 3px solid transparent; border-bottom: 3px solid transparent;
+}
+.flow-gate { text-align: center; padding-top: var(--s1); }
+.flow-gate-connector { width: 1px; height: 10px; background: var(--border); margin: 0 auto; }
+.flow-gate-diamond {
+  width: 10px; height: 10px; background: var(--surface);
+  border: 1px solid var(--border);
+  transform: rotate(45deg); margin: 0 auto 4px;
+}
+.flow-gate-label { font-size: 10px; font-weight: 600; color: var(--fg-muted); }
+.flow-gate-action { font-size: 10px; color: var(--fg-muted); opacity: 0.6; }
+.flow-metric { margin-top: var(--s3); padding-top: var(--s3); border-top: 1px solid var(--border); font-size: 11px; }
+.flow-metric-value { font-weight: 600; color: var(--accent); }
+.flow-metric-label { color: var(--fg-muted); }
+</style>
+<style>
+body { font-size: 16px; }
+.visual-label { font-size: 12px; }
+.flow-node-step { font-size: 12px; }
+.flow-node-label { font-size: 14px; }
+.flow-node-detail, .flow-gate-label, .flow-gate-action, .flow-metric { font-size: 13px; }
+.flow-gate-action { opacity: 1; color: var(--fg); }
+.flow-grid { grid-template-columns: minmax(120px, auto) 16px 1fr 16px 1fr 16px 1fr 16px 1fr 16px 1fr; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --accent: #9b90f7; }
+}
+:root[data-theme="dark"] { --accent: #9b90f7; }
+</style>
+</head>
+<body>
+
+<div class="visual-diagram">
+  <div class="visual-label">Flow: after a game</div>
+  <div class="flow-grid">
+    <div class="flow-node flow-start">
+      <div class="flow-node-icon">▸</div>
+      <div class="flow-node-label">A reviewed game</div>
+    </div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node">
+      <div class="flow-node-step">A1</div>
+      <div class="flow-node-label">The opening row</div>
+      <div class="flow-node-detail">the Report, the book mark in the move list</div>
+    </div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node">
+      <div class="flow-node-step">A2</div>
+      <div class="flow-node-label">Where it left the book</div>
+      <div class="flow-node-detail">the book's moves and the game's move</div>
+    </div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node">
+      <div class="flow-node-step">A3</div>
+      <div class="flow-node-label">A trap in the game</div>
+      <div class="flow-node-detail">play its refutation</div>
+    </div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node">
+      <div class="flow-node-step">A4</div>
+      <div class="flow-node-label">A book line</div>
+      <div class="flow-node-detail">a branch of the game</div>
+    </div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node flow-end">
+      <div class="flow-node-step">A5</div>
+      <div class="flow-node-label">Back to the game</div>
+      <div class="flow-node-detail">a click on a game move</div>
+    </div>
+    <div class="flow-gate" style="grid-column: 3; grid-row: 2;">
+      <div class="flow-gate-connector"></div>
+      <div class="flow-gate-diamond"></div>
+      <div class="flow-gate-label">Never in the book?</div>
+      <div class="flow-gate-action">open at the start</div>
+    </div>
+    <div class="flow-gate" style="grid-column: 5; grid-row: 2;">
+      <div class="flow-gate-connector"></div>
+      <div class="flow-gate-diamond"></div>
+      <div class="flow-gate-label">Book did not load?</div>
+      <div class="flow-gate-action">the review works, try again</div>
+    </div>
+    <div class="flow-gate" style="grid-column: 7; grid-row: 2;">
+      <div class="flow-gate-connector"></div>
+      <div class="flow-gate-diamond"></div>
+      <div class="flow-gate-label">No trap?</div>
+      <div class="flow-gate-action">go on to A4</div>
+    </div>
+  </div>
+  <div class="flow-metric">
+    <span class="flow-metric-value">1 action</span>
+    <span class="flow-metric-label">from the Report to the book's moves where the game left the book</span>
+  </div>
+</div>
+
+<div style="height: 24px"></div>
+
+<div class="visual-diagram">
+  <div class="visual-label">Flow: study</div>
+  <div class="flow-grid">
+    <div class="flow-node flow-start">
+      <div class="flow-node-icon">▸</div>
+      <div class="flow-node-label">The menu, a lesson's end</div>
+    </div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node">
+      <div class="flow-node-step">S1</div>
+      <div class="flow-node-label">The first view</div>
+      <div class="flow-node-detail">the main line and its end in words</div>
+    </div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node">
+      <div class="flow-node-step">S2</div>
+      <div class="flow-node-label">Step through it</div>
+      <div class="flow-node-detail">edge by edge, the area map</div>
+    </div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node">
+      <div class="flow-node-step">S3</div>
+      <div class="flow-node-label">Compare the fine moves</div>
+      <div class="flow-node-detail">labels, symbols, lines on hover</div>
+    </div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node">
+      <div class="flow-node-step">S4</div>
+      <div class="flow-node-label">A trap</div>
+      <div class="flow-node-detail">two values, its refutation</div>
+    </div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node flow-end">
+      <div class="flow-node-step">S6</div>
+      <div class="flow-node-label">The end of the book</div>
+      <div class="flow-node-detail">the symbol, then the live engine</div>
+    </div>
+    <div class="flow-gate" style="grid-column: 3; grid-row: 2;">
+      <div class="flow-gate-connector"></div>
+      <div class="flow-gate-diamond"></div>
+      <div class="flow-gate-label">Wants numbers?</div>
+      <div class="flow-gate-action">Show the values</div>
+    </div>
+    <div class="flow-gate" style="grid-column: 7; grid-row: 2;">
+      <div class="flow-gate-connector"></div>
+      <div class="flow-gate-diamond"></div>
+      <div class="flow-gate-label">Lost? (S5)</div>
+      <div class="flow-gate-action">the path, back to the main line</div>
+    </div>
+    <div class="flow-gate" style="grid-column: 11; grid-row: 2;">
+      <div class="flow-gate-connector"></div>
+      <div class="flow-gate-diamond"></div>
+      <div class="flow-gate-label">A move outside the book?</div>
+      <div class="flow-gate-action">Not in the book, the live engine</div>
+    </div>
+  </div>
+  <div class="flow-metric">
+    <span class="flow-metric-value">0 numbers</span>
+    <span class="flow-metric-label">in the first view, until the player asks for the values</span>
+  </div>
+</div>
+
+</body>
+</html>

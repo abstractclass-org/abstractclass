@@ -6727,3 +6727,24 @@ error and no horizontal scroll. The layout sweep in Chromium passes (25 tests, 5
   in Chromium with `--disable-gpu` and the engine's GPU setting off (25 passed, 5 skipped).
 - **Seen** on a local build: the saved GIF plays in Discord and in Windows Photos.
 - **Not checked:** Edge, Safari and Firefox.
+
+### The opening book explorer, from user stories to wireframes (2026-10-24)
+
+- **No more prototype rounds of the book's growth on the site.** The engine repository computes the book later, with
+  its search that excludes the book's moves. The third prototype (abscls-tpaj.3) closed with this verdict.
+- **The design started from the players.** The files are in [../ux/book-explorer/](../ux/book-explorer/): the
+  context, 19 user stories, two journeys, the structure, five wireframes on the Analysis board's base, an evaluation
+  and the decision log. A survey of the explorers that people use is
+  [../research/03-opening-explorers.md](../research/03-opening-explorers.md).
+- **The choices that the design rests on:** the first version serves "after a game" and "study". In a review, the
+  review keeps its own labels and the book's table shows the book's values. The table lists one edge at a time, and
+  the move list groups the edges into turns. Openings goes into the header now. Crowded numbers on the board are the
+  board's problem, not the book's (abscls-4kso): the table and the board highlight each other. Each turn gets one
+  sentence, built from the book's facts.
+- **A finding from the third prototype's book:** all 31 positions that two move orders reach are a turn's two edges
+  in the other order. None comes from another turn. So a turn's pair is one branch of the move list.
+- **The evaluation** found no critical issue and no manipulative pattern. Its 4 major, 6 minor and 2 cosmetic findings
+  went into the design: "Book" means the moves that the engine studied, so the table splits fine moves from other book
+  moves. The game's row keeps the book's columns for the book's values. The switch names "Book" and "Candidates" and
+  shows what the table holds. The traps show both values in both modes.
+- The design is [design 32](../design/32-book-explorer.md).
