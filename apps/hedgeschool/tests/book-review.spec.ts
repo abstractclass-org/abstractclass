@@ -1,7 +1,8 @@
 // The book in the review (design 32, item 4; journey 1, A1): the Report's opening row and trap rows, and the move list's
 // mark at the game's last book move, on reviewed games through the test book (scripts/test-fixture.mjs). A click on a
-// row or on the mark goes to the position before the move that the row names. A book that does not load shows neither.
-// The engine is off, so that nothing searches. The test book is served by the dev and preview servers only, and the review shows the book in the early
+// row or on the mark goes to the position before the move that the row names, and shows the book's table there with the
+// game's row, for this review only. A book that does not load shows neither. The engine is off, so that nothing
+// searches. The test book is served by the dev and preview servers only, and the review shows the book in the early
 // edition only: elsewhere the test is skipped.
 import { test, expect, type Page } from "@playwright/test";
 
@@ -47,6 +48,29 @@ test.describe("desktop", () => {
     expect(await here(page)).toMatch(/^O11-Q10/);
   });
 
+  test("a row's click shows the book for this review, with the game's row, and keeps no choice", async ({ page }) => {
+    await open(page, "book-left-review.json");
+    const opening = row(page, /^The game left the book at turn 3/);
+    await expect(opening).toBeVisible({ timeout: 30_000 });
+    const book = page.getByRole("group", { name: "The table shows" }).getByRole("button", { name: "Book" });
+    await expect(book).toHaveAttribute("aria-pressed", "false");
+    await opening.click();
+    await expect(book).toHaveAttribute("aria-pressed", "true");
+    // The game's move here, D9-G11, is not in the book: the row "Your game", with the review's label and value
+    await expect(page.getByText("Your game", { exact: true })).toBeVisible();
+    await expect(page.getByText(/In your review: \w+, Blue \d+(\.\d)?% · not in the book/)).toBeVisible();
+    expect(await page.evaluate(() => localStorage.getItem("hedge-school:book-table:review:1"))).toBeNull();
+  });
+
+  test("the rows give the label that the move list shows: none for the player that Review for leaves out", async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem("learn-enclosure:review-display:1", JSON.stringify({ reviewFor: "red" })));
+    await open(page, "book-left-review.json");
+    const opening = row(page, /^The game left the book at turn 3: Blue, D9-G11\. Before that, at turn 2, Red played O11-Q10/);
+    await expect(opening).toBeVisible({ timeout: 30_000 });
+    await opening.click();
+    await expect(page.getByText(/In your review: Blue \d+(\.\d)?% · not in the book/)).toBeVisible();
+  });
+
   test("a game that follows the book to its end", async ({ page }) => {
     await open(page, "hedgefund-review.json");
     await expect(row(page, "The game followed the book to its end, at turn 3. Blue is slightly better. Show the position"))
@@ -74,6 +98,8 @@ test.describe("desktop", () => {
     await expect(trap).toBeVisible({ timeout: 30_000 });
     await trap.click();
     expect(await here(page)).toMatch(/^K9-N11/);
+    // The game's move is the trap, a book move: its row in the traps' group says so
+    await expect(page.getByText(/· a trap · your game/)).toBeVisible();
   });
 
   test("the book not loaded: no opening row and no mark, and the rest of the review works", async ({ page }) => {

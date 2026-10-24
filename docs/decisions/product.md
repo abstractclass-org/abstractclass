@@ -6921,3 +6921,29 @@ error and no horizontal scroll. The layout sweep in Chromium passes (25 tests, 5
   each mark is the one that its position gives (`x` alone where no star goes, `x+8` for one star by Blue's 8). The
   model is not the engine. The page also gives the start as the rules' version 3 has it: blueprints 1 and 3 with
   plain rings, blueprint 2 with a ring of walls and stars, and each player's three blueprints on the board.
+
+### The book in the review: its rows, its mark and the game's row (2026-10-25)
+
+- **The Report and the move list** (design 32, "The review"): the opening row and the trap rows sit under the counts,
+  and one mark, an open book, sits beside the turn number of the game's last book move. "In the book" is a fact of a
+  position, by any move order, so a game that comes back to the book gets a mark there too. In the move's own cell,
+  the mark widened the column: at 1,260 pixels, by edge, the move list hid 14 pixels sideways. Beside the turn number,
+  a number of one digit and the mark need 30 of the column's 35 pixels. From turn 10 they need 38, and the mark goes
+  3 pixels into the 4-pixel gap before the move, short of the move.
+- **A trap's refutation** counts only when the side of the trap ends its turn as the refutation does. After G9-K10
+  H6-K9, the first build said "Red played its refutation" for a position that the game did not reach. The row now
+  names the trap only.
+- **The book move that reached the end:** when the end row's book move worse than Good is the move that reached the
+  end, the row says "The last book move, G10-J13, is an Inaccuracy." "Before that" put the move before the end that it
+  reached. In the test book, 41 of the 75 book moves worse than Good, traps aside, reach an end.
+- **One label for one move:** the opening row and the table's game's row give the label that the move list shows:
+  the turn's label by turn (the default), the edge's label by edge, and no label for the player that "Review for"
+  leaves out. The first build gave the edge's label always, so by turn the player saw two labels for one move.
+- **The join with the table** (beads abscls-tpaj.7): the review reads the site's one book (`siteBook`), so each part
+  loads once. The game's move at the position on screen goes into the table (`bookGame`). A click on a row or on the
+  mark shows the book for that review only (`BookPlace.showForNow`): the choice that the browser keeps does not
+  change.
+- **The test games:** `scripts/test-fixture.mjs --opening` makes reviewed games through the test book, 24 edges each
+  (about 210 kB): `book-left-review.json`, `book-never-review.json` and `book-trap-review.json`.
+- **Not done:** the marks of a played refutation in the move list (journey 1, A3): item 4 keeps one mark. No event
+  says that a review showed the opening row: the clicks are enough until the usability tests (abscls-tpaj.10).

@@ -11,8 +11,8 @@ import type { Label } from "@abstractclass/analysis/labels.ts";
 import { moverOf } from "#lib/editor/position.ts";
 import { bookMove } from "./book.ts";
 import type { BookMove, BookPosition } from "./form.ts";
-import { NOT_IN_BOOK_SENTENCE, bookEndSentence, edgeCount, isFine, leftBookSentence, moveLoss, trapPlayedSentence,
-  weakBookMoveSentence } from "./sentences.ts";
+import { NOT_IN_BOOK_SENTENCE, bookEndSentence, edgeCount, isFine, lastBookMoveSentence, leftBookSentence, moveLoss,
+  trapPlayedSentence, weakBookMoveSentence } from "./sentences.ts";
 
 /** A book move that the game played: the edge's index, and the book's position before it. */
 export interface PlayedBookMove { index: number; position: BookPosition; move: BookMove }
@@ -80,9 +80,11 @@ function refuted({ index, position, move }: PlayedBookMove, edges: string[]): bo
 }
 
 /** The Report's opening row (design 32, item 4): where the game left the book, with the review's label of the move
- *  that left it (`label`), and the book move worse than Good before it. Null for a game that ended in the book. */
+ *  that left it (`label`), and the book move worse than Good before it. When that move reached the end of the book, the
+ *  row names it as the last book move. Null for a game that ended in the book. */
 export function openingSentence(o: GameOpening, edges: string[], label: Label | null): string | null {
-  const before = o.weak ? ` ${weakBookMoveSentence(o.weak.position, o.weak.move)}` : "";
+  const w = o.weak, reachedEnd = o.kind === "end" && w?.index === o.at - 1;
+  const before = !w ? "" : ` ${(reachedEnd ? lastBookMoveSentence : weakBookMoveSentence)(w.position, w.move)}`;
   switch (o.kind) {
     case "left": return leftBookSentence(o.position, edges[o.at], label) + before;
     case "end": return bookEndSentence(o.position) + before;

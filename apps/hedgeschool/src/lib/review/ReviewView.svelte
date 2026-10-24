@@ -142,10 +142,8 @@
   import { download } from "#lib/game/reviewFile.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
   import Toast from "#lib/ui/Toast.svelte";
-  import { EARLY_ACCESS } from "#lib/edition.ts";
-  import { OpeningBook, SITE_BOOK, type BookAt } from "#lib/book/lookup.svelte.ts";
+  import { OUT, type BookAt } from "#lib/book/lookup.svelte.ts";
   import { gameOpening, openingSentence, trapRows } from "#lib/book/game.ts";
-  import type { GameMove } from "#lib/book/rows.ts";
   import {
     edgeName, endingText, fmtScore, moveName, moveNotation, opensTurn, turnFromCount, sameEdge, shortNote, turnShortNote, HARD_NOTE, complexity, isHard, turnComplexity, likelyEdges, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchEdge, valuesAfter, resultWin, moverWin, costText, pct, shownCandidates, distinctCandidates, rankOf, twinsOf, lineMovers, threatTurn, enoughVisits, trustedLine, type Candidate, type EdgeReview, LABELS, LABEL_TEXT, LABEL_GLYPH, type Label, type Review, type Unit, type Move, type TurnJudgment, type TurnReview,
   } from "./enclosure.ts";
@@ -219,6 +217,12 @@
   // notes or the engine's lines, on the board and on the chart too. The counts keep both players.
   // The labels of the player chosen in "Review for". The board labels the moves the player asked for, on both sides.
   const forSide = (p: Player) => !!board || display.reviewFor === "both" || (display.reviewFor === "blue") === (p === 0);
+  /** The label that the move list shows for the game's edge `i`: its turn's by turn, its own by edge, and none for the
+   *  player that "Review for" leaves out. */
+  const shownLabel = (i: number): Label | null => {
+    const e = R.edges[i];
+    return !e || !forSide(e.player) ? null : unit === "edge" ? e.label : R.turnOf[i]?.label ?? null;
+  };
   let settingsOpen = $state(false);
   // The engine's settings (design 09) open under the engine header, from its gear, as Lichess's open from the gear in
   // its engine box: the header's values and its search bar stay in view while they change. The display settings take the
@@ -355,8 +359,13 @@
   // early edition, and only where the book's index loads: elsewhere the column stays as it was, with no switch. The
   // table's rows and the board's numbers point at each other (`book.pointed`), and the row pointed at draws its line as
   // a candidate's does. A book move played from the table is a branch, as any move that the player plays.
-  // The game's move at the position on screen, for the table's row "Your game": the review's (beads abscls-tpaj.6).
-  const bookGame: GameMove | null = null;
+  // The game's move at the position on screen, for the table's row "Your game" (design 32, item 4): its edge, the label
+  // that the move list shows for it, and Blue's win chance after it, by the review. None in a branch, at the game's end
+  // and on the Analysis board.
+  const bookGame = $derived<GameMove | null>(board || mainAt === null || mainAt >= moves.length ? null : {
+    move: mainNames[mainAt], label: shownLabel(mainAt),
+    blueWin: Number.isNaN(R.blueWin[mainAt + 1]) ? undefined : R.blueWin[mainAt + 1],
+  });
   // The notation of each position on the path from the start: the game's as far as the path follows it, then the
   // branch's nodes'
   const pathNotations = $derived.by(() => {
@@ -1097,38 +1106,25 @@
   $effect(() => onposition?.(path));
 
   // The opening book in the review (design 32, item 4): the Report's rows on the game's opening, and the move list's
-  // mark at the game's last book move. In the early edition only, and only where the book loads: a site that serves no
-  // book shows neither, and the Report has no opening row while the book loads or when it did not load. The Analysis
-  // board has none.
-  const book = untrack(() => (EARLY_ACCESS && !board ? new OpeningBook(SITE_BOOK) : null));
+  // mark at the game's last book move, from the site's one book (`openingBook`). In the early edition only, and only
+  // where the book loads: a site that serves no book shows neither, and the Report has no opening row while the book
+  // loads or when it did not load. The Analysis board has none.
   // The game's opening, once every part of the book that the game's positions need has loaded
   const opening = $derived.by(() => {
-    if (!book) return null;
-    const at = gamePositions.map((p): BookAt => (p.notation ? book.at(p.notation) : { state: "out" }));
+    if (board || !openingBook) return null;
+    const at = gamePositions.map((p): BookAt => (p.notation ? openingBook.at(p.notation) : OUT));
     if (at.some(a => a.state === "loading" || a.state === "failed")) return null;
     return gameOpening(at.map(a => (a.state === "in" ? a.position : null)), mainNames);
   });
-  // The row gives the label of the move that left the book, but not for the player that "Review for" leaves out
-  const openingRow = $derived.by(() => {
-    const left = opening && R.edges[opening.at];
-    return opening && openingSentence(opening, mainNames, left && forSide(left.player) ? left.label : null);
-  });
+  // The row gives the label that the move list shows for the move that left the book
+  const openingRow = $derived(opening && openingSentence(opening, mainNames, shownLabel(opening.at)));
   const bookMarks = $derived(new Set(opening?.marks));
-  /** The game's move at the position on screen, as the book's table shows it in "Your game" (rows.ts, `GameMove`): its
-   *  label and Blue's win chance after it, by the review. Null in a branch, at the game's end and on the Analysis
-   *  board. For the book's table in the analysis column (beads abscls-tpaj.7). */
-  const gameMove = $derived<GameMove | null>(!book || mainAt === null || mainAt >= moves.length ? null : {
-    move: mainNames[mainAt], label: R.edges[mainAt].label,
-    blueWin: Number.isNaN(R.blueWin[mainAt + 1]) ? undefined : R.blueWin[mainAt + 1],
-  });
-  // A click on a Report's row or on the book's mark turns the book on for this review only: the browser keeps no choice
-  // (design 32, item 4). The book's table in the analysis column reads it (beads abscls-tpaj.7).
-  let bookForReview = $state(false);
-  /** Goes to a position of the game from the Report's rows or the book's mark, and turns the book on for this review. */
+  /** Goes to a position of the game from the Report's rows or the book's mark, and shows the book there for this
+   *  review only: the switch shows "Book", and the choice that the browser keeps does not change. */
   function openBookAt(at: number, feature: string) {
     used(feature);
     go(at);
-    bookForReview = true;
+    book?.showForNow();
     if (tabbed) stage = "analysis";
   }
 
@@ -1313,7 +1309,7 @@
   function chartTip(i: number) {
     const e = i > 0 ? R.edges[i - 1] : null, t = e ? R.turnOf[e.index] : null;
     // By turn, the chart shows the turns' ends only: the turn whole, with its label.
-    const label = !e || !forSide(e.player) ? null : unit === "edge" ? e.label : t?.label ?? null;
+    const label = e ? shownLabel(e.index) : null;
     const move = !e ? "" : unit === "edge" ? moveText(e.index) : `${t!.number}. ${t!.edges.map(moveNotation).join(" ")}`;
     const title = e ? `${move}${listed(label) ? ` [${LABEL_TEXT[label]}]` : ""}` : "The start";
     const s = R.blueScore[i];

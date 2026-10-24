@@ -64,6 +64,16 @@ test("a game that follows the book to its end: the symbol there, and the mark at
   assert.equal(openingSentence(o, WHOLE, "best"), "The game followed the book to its end, at turn 3. Blue is slightly better.");
 });
 
+test("a game that reaches the end of the book by a book move worse than Good: the row names the last book move", async () => {
+  // Blue's G10-J13 at turn 3 is an Inaccuracy, and the book ends after it
+  const last = ["A10-D9", "N11-Q10", "L10-N11", "D9-G10", "G10-J13", "Q10-T9"];
+  const o = gameOpening(await walk(book, last), last)!;
+  assert.equal(o.kind, "end");
+  assert.equal(o.weak?.index, 4);
+  assert.equal(openingSentence(o, last, null), "The game followed the book to its end, at turn 3. Red is better. " +
+    "The last book move, G10-J13, is an Inaccuracy.");
+});
+
 test("a game not in the book from the first move, which comes back to it by another move order", async () => {
   const o = gameOpening(await walk(book, NEVER, { 7: RETURN }), NEVER)!;
   assert.equal(o.kind, "never");
@@ -82,6 +92,9 @@ test("a trap and its refutation, and the book move worse than Good before it", a
   assert.equal(o.weak?.index, 2);
   assert.equal(moveLabel(o.weak!.position, o.weak!.move), "mistake");
   assert.deepEqual(trapRows(o), [{ at: 3, text: "Turn 3: Blue played a trap, G9-K10. Red played its refutation." }]);
+  // The book ends after M10-P11, and the worse book move came before it
+  assert.equal(openingSentence(o, TRAP, null), "The game followed the book to its end, at turn 4. Red is better. " +
+    "Before that, at turn 2, Red played K9-N11, a book move and a Mistake.");
   // The same game in its mirror image: the start's twins play the same book moves, turned over
   const image = TRAP.map(mirrorEdge);
   const turned = gameOpening(await walk(book, image), image)!;

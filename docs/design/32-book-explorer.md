@@ -2,9 +2,9 @@
 
 **Status:** in force. The book file's form, its loader, a test book ("The book file"), the sentences (item 6) and the
 book's table ("The table") are built. The review and the Analysis board show the table, with the line outside the book
-("Where the pages show it"). Item 4 is built in part: the Report's rows and the move list's mark ("The review"). The
-game's row is not built. Openings is not built. The work uses the test book, and it goes live with the engine
-repository's book (request 22).
+("Where the pages show it"). The review's own parts (item 4) are built: the Report's rows, the move list's mark and
+the game's row in the table ("The review"). Openings is not built. The work uses the test book, and it goes live with
+the engine repository's book (request 22).
 **Decided:** 2026-10-24, from user stories and journeys, Lichess's opening explorer, KataGo's book pages and OGS's
 Joseki Explorer.
 
@@ -70,14 +70,18 @@ explorers that people use in chess and Go is [../research/03-opening-explorers.m
 4. **The review:**
    - **The Report** has an opening row: "The game left the book at turn {n}: {side}, {move}, {label}." When the game
      played a book move worse than Good before it left, the row names it: "Before that, at turn {n}, {side} played
-     {move}, a book move and {a label}." A game with a trap has a trap row: "Turn {n}: {side} played a trap, {move}.
-     {other side} played its refutation." or "… did not play its refutation." A click on a row goes to the position
-     before the move, and turns the book on for that review only.
+     {move}, a book move and {a label}." When that book move is the one that reached the end of the book, the row says
+     "The last book move, {move}, is {a label}.": "Before that" would put it before the end that it reached. A game
+     with a trap has a trap row: "Turn {n}: {side} played a trap, {move}. {other side} played its refutation." or "…
+     did not play its refutation." A click on a row goes to the position before the move, and turns the book on for
+     that review only.
    - **The move list** marks the game's last book move with one mark, an open-book icon, "Last move in the book". The
      moves keep their review labels.
    - **One engine and one depth rule a game:** the review keeps its own labels, on book moves too (design 16). The
      book's table shows the book's values. The game's row has "—" in the book's columns, and its move cell gives the
-     review's label and value with their source: "In your review: Good, Blue 46.5%".
+     review's label and value with their source: "In your review: Good, Blue 46.5%". The opening row and the game's
+     row give the label that the move list shows for the move: the turn's label when the review judges by turn, the
+     edge's when it judges by edge. So the player sees one label for one move. The rows still name the edge.
    - **A book move played from the table** is a branch of the game, as any move that the player plays in a review is
      (design 07). "Delete from here" removes it.
 5. **Openings:**
@@ -348,23 +352,30 @@ for both (items 3 and 8). The page's part of the work is in `apps/hedgeschool/sr
   on the board, draws the row's line as the engine's line draws: one edge at a time, with the edges that it cuts and
   its regions. A click on a row or on its number plays the move as a branch. Space plays row 1, or the row that has
   the focus. A trap and its refutation play edge by edge at the engine's line's pace.
-- **The game's move:** the view gives the table no game's move yet. The review's row "Your game" comes with item 4.
+- **The game's move:** in the review, the view gives the table the game's move at the position on screen (`bookGame`):
+  its edge, the label that the move list shows for it, and Blue's win chance after it. A move outside the book gets the
+  row "Your game", and a book move gets "your game" in its own row. A branch, the game's end and the Analysis board have
+  no game's move.
 
 ## The review
 
 The review's own parts (item 4) read the game's path through the book from
 `apps/hedgeschool/src/lib/book/game.ts` (`gameOpening`), and their sentences from `sentences.ts`. ReviewView.svelte
-shows them in the early edition, where the book loads (`SITE_BOOK` in `lookup.svelte.ts`: the test book).
+shows them in the early edition, where the book loads. They read the site's one book (`siteBook` in
+`place.svelte.ts`), as the table does, so a review loads each part of the book once.
 
 - **In the book** is a fact of a position: the book holds it, by any move order. The game leaves the book at the first
   position after the start that the book does not hold. A game that comes back to a book position by another move
   order starts a new stretch in the book.
 - **The Report's rows** are under the counts: the heading "Opening" and its row, then the heading "Traps" and a row
   for each trap. Each row is one button, its sentence followed by the link text "Show the position".
-- **The opening row** names the first departure, with the review's label of the move that left. "Review for" removes
-  that label when it leaves out the player that moved. A game that followed the book to its end gives the turn of the
-  book move that reached the end. "Before that" names the book move worse than Good with the largest loss before the
-  departure, by the book's label. The opening row does not name a trap, because the trap has its own row.
+- **The opening row** names the first departure, with the label that the move list shows for the move that left: the
+  turn's label by turn, the edge's by edge, and none for the player that "Review for" leaves out. A game that followed
+  the book to its end gives the turn of the book move that reached the end. "Before that" names the book move worse
+  than Good with the largest loss before the departure, by the book's label. When that move reached the end, the row
+  says "The last book move, G10-J13, is an Inaccuracy." in place of "Before that". In the test book, 41 of the 75 book
+  moves worse than Good (traps aside) reach an end. The opening row does not name a trap, because the trap has its own
+  row.
 - **A trap's row** says that the other side played its refutation when the game reached the refutation's turn and the
   other side's edges are the refutation's, in either order. The game reaches that turn when the side that played the
   trap ends its turn as the refutation does. Otherwise, the row gives the trap's first sentence only. A game that ends
@@ -376,8 +387,9 @@ shows them in the early edition, where the book loads (`SITE_BOOK` in `lookup.sv
   pixels: the mark goes 3 pixels into the gap of 4 pixels before the move, and does not touch it. In the move's own
   cell, the mark widened the column, and at the move list's narrowest width (1,260 pixels, by edge) the list hid 14
   pixels sideways (`npm run test:layout`).
-- **A click** on a row or on the mark goes to the position, and turns the book on for this review only. The book's
-  table in the analysis column reads that choice (beads abscls-tpaj.7).
+- **A click** on a row or on the mark goes to the position, and turns the book on for this review only
+  (`BookPlace.showForNow`): the switch shows "Book", and the choice that the browser keeps does not change. Only the
+  switch and the key o change it. Below 1,260 pixels, the click opens the Analysis tab too.
 - **The book did not load,** or a part of the game's path did not load: the Report has no opening row, and the move
   list has no mark. The rest of the review works. The table says what failed.
 - **The test games:** `apps/hedgeschool/scripts/test-fixture.mjs` makes reviewed games that meet the test book in each
@@ -402,3 +414,5 @@ and abscls-tpaj.3, never merged.
 
 - [decisions/product.md](../decisions/product.md), "The opening book explorer, from user stories to wireframes"
   (2026-10-24).
+- [decisions/product.md](../decisions/product.md), "The book in the review: its rows, its mark and the game's row"
+  (2026-10-25).

@@ -204,7 +204,8 @@ const article = (word: string) => (/^[AEIOU]/.test(word) ? "an" : "a");
 // book's.
 
 /** The opening row of a game that left the book, at the position before the move that left it: "The game left the
- *  book at turn 3: Blue, D9-G11, Good." `label`: the review's label of the move, null until the review has it. */
+ *  book at turn 3: Blue, D9-G11, Good." `label`: the review's label that the move list shows for the move (its turn's
+ *  when the review judges by turn), null until the review has it. */
 export const leftBookSentence = (p: BookPosition, move: string, label: Label | null) =>
   `The game left the book at turn ${p.turn}: ${side(p)}, ${move}${label ? `, ${LABEL_TEXT[label]}` : ""}.`;
 
@@ -213,6 +214,13 @@ export const leftBookSentence = (p: BookPosition, move: string, label: Label | n
 export function weakBookMoveSentence(p: BookPosition, m: BookMove): string {
   const name = LABEL_TEXT[moveLabel(p, m)];
   return `Before that, at turn ${p.turn}, ${side(p)} played ${m.move}, a book move and ${article(name)} ${name}.`;
+}
+
+/** The book move worse than Good that reached the end of the book, in the row of a game that followed the book to its
+ *  end: "The last book move, G10-J13, is an Inaccuracy." "Before that" would put it before the end that it reached. */
+export function lastBookMoveSentence(p: BookPosition, m: BookMove): string {
+  const name = LABEL_TEXT[moveLabel(p, m)];
+  return `The last book move, ${m.move}, is ${article(name)} ${name}.`;
 }
 
 /** The opening row of a game whose first edge is not a book move. */

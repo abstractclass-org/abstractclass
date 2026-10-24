@@ -74,6 +74,9 @@ export class BookPlace {
   get values() { return this.#values; }
   set values(v: boolean) { this.#values = v; this.#keep(); }
   #keep() { keepChoice(this.#page, { show: this.#show, values: this.#values }); }
+  /** "Book" for this page only: the review's Report rows and its mark turn the book on for the review on screen (design
+   *  32, item 4). Only the switch and the key o change the choice that the browser keeps. */
+  showForNow() { this.#show = "book"; }
 
   #atOf = (notation: string | undefined): BookAt => (notation === undefined ? OUT : this.book.at(notation));
   /** The book at the position on screen. */

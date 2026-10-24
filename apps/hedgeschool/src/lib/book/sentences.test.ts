@@ -10,8 +10,8 @@ import { fileURLToPath } from "node:url";
 import { openBook, type Book } from "./book.ts";
 import type { BookIndex, BookMove, BookPart, BookPosition } from "./form.ts";
 import { SYMBOL_NAME, symbol } from "./symbols.ts";
-import { NOT_IN_BOOK_SENTENCE, bestMoveSentence, bookEndSentence, endSentence, leftBookSentence, lineText, lineTurn,
-  mainLine, moveSentence, trapPlayedSentence, trapSentence, weakBookMoveSentence } from
+import { NOT_IN_BOOK_SENTENCE, bestMoveSentence, bookEndSentence, endSentence, lastBookMoveSentence, leftBookSentence,
+  lineText, lineTurn, mainLine, moveSentence, trapPlayedSentence, trapSentence, weakBookMoveSentence } from
   "./sentences.ts";
 import { mirrorPosition } from "#lib/engine/notation.ts";
 
@@ -293,6 +293,9 @@ test("the Report's rows on every book move, trap and end of both books: the turn
           assert.equal(text, `Before that, at turn ${p.turn}, ${mover(p)} played ${m.move}, a book move and ` +
             `${name === "Inaccuracy" ? "an" : "a"} ${name}.`);
           plain(text);
+          const last = lastBookMoveSentence(p, m);
+          assert.equal(last, `The last book move, ${m.move}, is ${name === "Inaccuracy" ? "an" : "a"} ${name}.`);
+          plain(last);
           weak++;
         }
       }
