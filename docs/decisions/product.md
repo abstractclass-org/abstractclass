@@ -6785,6 +6785,13 @@ error and no horizontal scroll. The layout sweep in Chromium passes (25 tests, 5
   each page, no button, link, tab or move in view is under the bar. The bar is 68 pixels high on the review, 46 on
   Practice (no status line) and 108 on the Analysis board, whose tools (New, Play, Export and ☰) wrap under the steps
   at 360 and at 390 pixels.
+- **New and Export became icon buttons,** at every width and in the review's bar too, so that the Analysis board's
+  tools fit beside the steps: New a plus, Export an arrow up out of a tray (the share mark), each with its name and a
+  tooltip. Play keeps its word, since its natural icon is the step forward beside it. Practice's tools and the home
+  page's Export in a game's row did not change. Measured in headless Chromium as a phone: the Analysis board's bar
+  has one row and is 68 pixels high at 360 × 640 and at 390 × 844, as the review's. At 360 pixels the steps take 150
+  pixels, the gap 8 and the tools 167 (New 35, Play 51, Export 35, ☰ 35, and the gaps), of 328: 3 pixels to spare.
+  The wrap rule stays for a wider font. On a desktop (1,400 × 900) the bar has one row, as before.
 - **What depends on the bar's place,** and what changed for it:
   - The page's end: the page keeps room as high as the bar (`.step-room`), so the bar covers no last row.
   - The page's scrolling: `scroll-padding-bottom` on the document and on the page's area keeps a focused element or a

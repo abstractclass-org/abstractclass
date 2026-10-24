@@ -1,8 +1,10 @@
 <script lang="ts">
   // The Analysis board's New menu (design 21), beside its Export: every way to start the board again. The standard
   // start, a position set up in the board editor, a position or moves imported, or an analysis file loaded (design
-  // 22's words). Each replaces the analysis kept here, after the board asks.
+  // 22's words). Each replaces the analysis kept here, after the board asks. Its button is an icon, as Export's beside
+  // it, so that the step bar's tools fit beside the steps on a phone (design 06, item 4).
   import { DropdownMenu } from "bits-ui";
+  import Icon from "#lib/ui/Icon.svelte";
   let { editor, onstart, onimport, onload }:
     { editor: string; onstart: () => void; onimport: () => void; onload: (file: File) => void } = $props();
 
@@ -10,7 +12,8 @@
 </script>
 
 <DropdownMenu.Root>
-  <DropdownMenu.Trigger class="text-sm data-[state=open]:border-accent data-[state=open]:text-accent">New</DropdownMenu.Trigger>
+  <DropdownMenu.Trigger class="btn-icon data-[state=open]:border-accent data-[state=open]:text-accent" aria-label="New"
+                        title="New"><Icon name="new" /></DropdownMenu.Trigger>
   <DropdownMenu.Portal>
     <DropdownMenu.Content side="top" align="end" sideOffset={4}
                           class="z-10 min-w-72 max-w-[90vw] menu-box">

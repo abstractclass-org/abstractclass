@@ -85,6 +85,12 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
    (`src/lib/ui/StepBar.svelte`, which Practice shares). It measures as it mounts, before its first frame: a change
    after the first frame moves the buttons (a layout shift). The buttons' icons are drawn, one set at one stroke
    (`src/lib/ui/Icon.svelte`), not text glyphs, whose shapes vary with the font.
+   - **New and Export are icon buttons,** at every width, so that the bar is the same on a phone and on a desktop:
+     New is a plus, the usual mark of a new document, tab or game. Export is an arrow up out of a tray, the share mark
+     of phones' share sheets: its menu sends the game out as a link, a file or to a partner site, so a download's
+     arrow would promise too little. Each has its name for a screen reader and as a tooltip. Play keeps its word: its
+     natural icon, a triangle, is the step forward beside it. ☰ is an icon already. In a game's row on the home page,
+     Export keeps its word: the row is not the bar. Practice's tools (Takeback, Abort, Resign) do not change.
    - **On a phone, the bar is fixed to the bottom of the window** (one column, below 800 pixels), as the Lichess app
      keeps Previous and Next in a bottom bar (design 32, item 10). So the step back is in view whenever the board is.
      Under the move list, the bar was below the board, and on a 360 × 640 screen the two were never in view together.
@@ -94,10 +100,12 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
      mouse, the area's scroll bar stays clear of it.
    - **The status line stays in the bar,** over the steps: it says what an edge on the board needs next.
    - **The tools stay beside the steps,** and go under them where they do not fit, as in a narrow column. At 360
-     pixels the review's tools (Export and ☰) and Practice's (Takeback, Abort, Resign and ☰) fit in one row: the
-     review's bar is 68 pixels high, and Practice's, with no status line, 46. The Analysis board's (New, Play, Export
-     and ☰) do not fit, also at 390 pixels, and its bar has two rows, 108 pixels. Smaller buttons would give one row,
-     but smaller targets on a touch screen, and two rules for one bar.
+     pixels every page's tools fit in one row: the review's (Export and ☰), the Analysis board's (New, Play, Export
+     and ☰) and Practice's (Takeback, Abort, Resign and ☰). The review's bar and the Analysis board's are 68 pixels
+     high, and Practice's, with no status line, 46. With New and Export as words, the Analysis board's tools did not
+     fit, also at 390 pixels, and its bar had two rows, 108 pixels high: icons give one row with targets of the same
+     size. At 360 pixels the Analysis board's row has 3 pixels to spare, so a wider font can still wrap it: the wrap
+     rule stays.
    - **The page keeps room for the bar** at its end, as high as the bar, so that the bar covers no last row and no
      control. The page's scrolling keeps clear of the bar too (`scroll-padding-bottom`): a focused element or a picked
      move comes into view above it. The bar gives its height to the page (`--step-dock`) whenever it changes.
@@ -275,6 +283,9 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
 - **Smaller move text:** the room as it was, but smaller moves for everyone.
 - **A sticky step bar on a phone** (`position: sticky`) in place of a fixed one: a sticky element stays inside its
   parent, so the bar rises no higher than the top of the analysis column, under the board.
+- **Smaller buttons in the step bar on a phone,** so that the Analysis board's tools fit in one row as words: smaller
+  targets on a touch screen, and two rules for one bar.
+- **New and Export as icons on a phone only:** the bar would differ between a phone and a desktop.
 
 ## Consequences
 
@@ -283,8 +294,7 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
 - The page must be checked at the column switches (800 and 1,260 pixels), on a common laptop window, and maximised on a
   large screen. On a phone (360 × 640), the step back must be in view wherever the board is, and the bar must cover no
   control at the page's end.
-- On a phone the bar covers the bottom of the window while the page scrolls: 46 to 68 pixels, and 108 on the
-  Analysis board.
+- On a phone the bar covers the bottom of the window while the page scrolls: 46 to 68 pixels.
 - The display settings' panel is the place for later display settings (sound, board zoom). It has room for them: it
   scrolls in the column.
 - Learning from mistakes, when it becomes a mode of the analysis (decisions/open-items.md), takes the place of the

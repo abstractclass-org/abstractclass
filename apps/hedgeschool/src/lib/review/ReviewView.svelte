@@ -2253,7 +2253,7 @@
       {#snippet tools()}
         {@render pageTools?.()}
         <!-- Export (design 13): the review file, with the engine's results, or the annotated record. -->
-        {#if onexport}<ExportMenu run={kind => onexport(kind, display.judge)} ready={exportReady} items={exportItems}
+        {#if onexport}<ExportMenu icon run={kind => onexport(kind, display.judge)} ready={exportReady} items={exportItems}
                                   why={snapshot ? "Review again to export: this review used an earlier engine." : "Export once the review is done."} />{/if}
         <!-- The menu button (Lichess's ☰ in the same place) opens the display settings in the analysis's place, and
              closes them. The gear is the engine's, in the engine header. -->
