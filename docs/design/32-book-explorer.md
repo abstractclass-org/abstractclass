@@ -1,8 +1,9 @@
 # The opening book explorer
 
 **Status:** in force. The book file's form, its loader, a test book ("The book file"), the sentences (item 6) and the
-book's table ("The table") are built. The pages that show the table are not built. Their work uses the test book, and
-they go live with the engine repository's book (request 22).
+book's table ("The table") are built. The review and the Analysis board show the table, with the line outside the book
+("Where the pages show it"). The review's rows, its mark and the game's row (item 4) and Openings are not built. The
+work uses the test book, and it goes live with the engine repository's book (request 22).
 **Decided:** 2026-10-24, from user stories and journeys, Lichess's opening explorer, KataGo's book pages and OGS's
 Joseki Explorer.
 
@@ -327,17 +328,38 @@ its own choice of "Book" or "Candidates" and of "Show the values", handles the k
 - **The lab page** `/lab/book-table` shows the board and the table on the test book. It has no engine: it draws the
   book's positions from their notation, with no regions.
 
+### Where the pages show it
+
+The review and the Analysis board draw one view (`ReviewView.svelte`), and it puts the table in its analysis column
+for both (items 3 and 8). The page's part of the work is in `apps/hedgeschool/src/lib/book/place.svelte.ts`:
+
+- **Where it shows:** in the early edition, where the book's index loads. The site loads one book for a visit. A build
+  that serves no book keeps the analysis column as it was, with no switch. A deployed site serves no test book, so the
+  live site does not change until the engine's book comes.
+- **The kept choice:** the switch starts on "Candidates". The browser keeps "Book" or "Candidates" and "Show the
+  values" for the review and for the Analysis board apart.
+- **Outside the book,** the title says "Not in the book", "Book" is unavailable, and the candidates show. The line
+  under the title names the last book position on the path ("Last book position: turn 2.") with "Go there". "Study in
+  Openings" comes with Openings. The key o does nothing there, and the choice of "Book" comes back at the next book
+  position.
+- **The board** numbers the book's rows while the table shows the book. The row pointed at in the table, or its number
+  on the board, draws the row's line as the engine's line draws: one edge at a time, with the edges that it cuts and
+  its regions. A click on a row or on its number plays the move as a branch, and Space plays row 1. A trap and its
+  refutation play edge by edge at the engine's line's pace.
+- **The game's move:** the view gives the table no game's move yet. The review's row "Your game" comes with item 4.
+
 ## Where it is
 
 The book file's form, its loader and their unit tests are in `apps/hedgeschool/src/lib/book/`, the script that makes
 the test book in `apps/hedgeschool/scripts/test-book.mjs`, and the test book in
 `apps/hedgeschool/tests/fixtures/test-book/` ("The book file"). The sentences and the symbols are in
 `apps/hedgeschool/src/lib/book/sentences.ts` and `symbols.ts` (item 6). The table is in `apps/hedgeschool/src/lib/book/`
-too, with its lab page in `apps/hedgeschool/src/routes/lab/book-table/` ("The table"). The pages that show it are not
-built. The design's files are in [../ux/book-explorer/](../ux/book-explorer/): `context-book-explorer.md`,
-`stories-book-explorer.md`, `journey-book-explorer.md` and its diagram, `sitemap-book-explorer.md` and its diagram,
-`wireframes-book-explorer.html`, `evaluation-book-explorer.md` and `decisions.md`. The prototypes' code is on the
-branches abscls-tpaj.1, abscls-tpaj.2 and abscls-tpaj.3, never merged.
+too, with its lab page in `apps/hedgeschool/src/routes/lab/book-table/` ("The table"). The review and the Analysis
+board show it through `place.svelte.ts` ("Where the pages show it"). Openings is not built. The design's files are in
+[../ux/book-explorer/](../ux/book-explorer/): `context-book-explorer.md`, `stories-book-explorer.md`,
+`journey-book-explorer.md` and its diagram, `sitemap-book-explorer.md` and its diagram, `wireframes-book-explorer.html`,
+`evaluation-book-explorer.md` and `decisions.md`. The prototypes' code is on the branches abscls-tpaj.1, abscls-tpaj.2
+and abscls-tpaj.3, never merged.
 
 ## Log entries
 

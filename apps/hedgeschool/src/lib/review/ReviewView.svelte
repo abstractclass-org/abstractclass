@@ -131,7 +131,12 @@
   import type { ExportItem, ExportKind, ExportResult } from "#lib/game/reviewFile.ts";
   import Glyph from "./Glyph.svelte";
   import LabelBadge from "./LabelBadge.svelte";
-  import { LineDrawing } from "./lineDrawing.svelte.ts";
+  import { LINE_STEP_MS, LineDrawing } from "./lineDrawing.svelte.ts";
+  import BookTable from "#lib/book/BookTable.svelte";
+  import { BookPlace, siteBook } from "#lib/book/place.svelte.ts";
+  import type { GameMove } from "#lib/book/rows.ts";
+  import { bestMoveSentence, moveSentence } from "#lib/book/sentences.ts";
+  import { EARLY_ACCESS } from "#lib/edition.ts";
   import { imageCaption, imageLine, imageName, lineFrames } from "./lineImage.ts";
   import { animatedBoardImage, boardImage, copyPng } from "#lib/board/boardImage.ts";
   import { download } from "#lib/game/reviewFile.ts";
@@ -341,6 +346,18 @@
     return [c, ...twins].map(x => ({ edge: x.edge, rank, note }));
   }));
 
+  // The opening book (design 32, items 3 and 8): its table in the candidates' place, with the switch "Book" or
+  // "Candidates", off until the player turns it on, each page with its own kept choice (place.svelte.ts). Only in the
+  // early edition, and only where the book's index loads: elsewhere the column stays as it was, with no switch. The
+  // table's rows and the board's numbers point at each other (`book.pointed`), and the row pointed at draws its line as
+  // a candidate's does. A book move played from the table is a branch, as any move that the player plays.
+  // The game's move at the position on screen, for the table's row "Your game": the review's (beads abscls-tpaj.6).
+  const bookGame: GameMove | null = null;
+  const pathNotations = $derived(Array.from({ length: path.length + 1 }, (_, k) => positionOf(path.slice(0, k))?.notation));
+  const openingBook = EARLY_ACCESS ? siteBook() : null;
+  const book = openingBook && new BookPlace(openingBook, untrack(() => board) ? "board" : "review", () => pathNotations, () => bookGame);
+  const bookLine = $derived(book?.pointedRow ? book.line(book.pointedRow).map(parseEdge) : null);
+
   // The engine's line from the candidate pointed at, on the board or in the table (KaTrain's and Lizzie's way), each
   // edge with its mover. Only for a candidate with enough visits (the board's rule), and only as far as the search
   // trusts it (trustedLine): the line of a barely searched move means little. A line needs an edge after the candidate.
@@ -390,12 +407,35 @@
   });
   const play = (k: number) => { if (listLine) playPath([...path, ...listLine.slice(0, k + 1).map(edgeName)], "listed line played"); };
   /** Plays a line from the start: along the tree where it is there, as a new branch where it is not, then goes there.
-   *  A snapshot plays along the tree alone, and its bar says why (nudge). `feature`: what the player used. */
-  async function playPath(target: string[], feature: string) {
+   *  A snapshot plays along the tree alone, and its bar says why (nudge). `feature`: what the player used. `stepwise`:
+   *  it goes there edge by edge, at the engine's line's pace (a trap and its refutation, design 32, item 7). */
+  async function playPath(target: string[], feature: string, stepwise = false) {
     if (snapshot && mainIndex(target, mainNames) === null && !(pathKey(target) in branches)) { nudge(); return; }
     used(feature);
     if (onplay) await onplay(target);
-    setPath(target, true);
+    clearInterval(stepping);
+    if (!stepwise || matchMedia("(prefers-reduced-motion: reduce)").matches || sharedLength(target, path) !== path.length) {
+      setPath(target, true);
+      return;
+    }
+    // Each step from the position on screen, while the player does not go elsewhere
+    let k = path.length;
+    const step = () => {
+      if (k >= target.length || pathKey(path) !== pathKey(target.slice(0, k))) clearInterval(stepping);
+      else setPath(target.slice(0, ++k), true);
+    };
+    step();
+    stepping = setInterval(step, LINE_STEP_MS);
+  }
+  let stepping: ReturnType<typeof setInterval> | undefined;
+  $effect(() => () => clearInterval(stepping));
+  /** A move from the book's table: its edge, or a trap and its refutation, edge by edge. */
+  const playBook = (edges: string[]) =>
+    playPath([...path, ...edges], edges.length > 1 ? "book refutation played" : "book move played", true);
+  /** A click on a book row's number on the board: its move. */
+  function playBookEdge(e: Edge) {
+    const row = book?.rows.find(r => sameEdge(parseEdge(r.move), e));
+    if (row) playBook([row.move]);
   }
   let nudged = $state(false), nudgeTimer: ReturnType<typeof setTimeout> | undefined;
   function nudge() {
@@ -403,8 +443,10 @@
     clearTimeout(nudgeTimer);
     nudgeTimer = setTimeout(() => (nudged = false), 2500);
   }
-  // Space plays the pinned candidate, or number 1 (Lichess's Space plays its best move).
+  // Space plays the pinned candidate, or number 1 (Lichess's Space plays its best move): the book's, while the table
+  // shows the book.
   function playCandidate() {
+    if (book?.shows) { if (book.rows[0]) playBook([book.rows[0].move]); return; }
     const c = pinnedCandidate ?? analysis?.candidates[0];
     if (c) playPath([...path, edgeName(c.edge)], "candidate played");
   }
@@ -431,8 +473,8 @@
   });
 
   // The board's line: the listed line up to the edge pointed at in the list, or the line of the candidate pointed at, or
-  // of the pinned one.
-  const lineEdges = $derived(listHover !== null && listLine ? listLine.slice(0, listHover + 1)
+  // of the pinned one. While the table shows the book, the line of the book's row pointed at.
+  const lineEdges = $derived(book?.shows ? bookLine : listHover !== null && listLine ? listLine.slice(0, listHover + 1)
     : hoverCandidate ? trusted(hoverCandidate) : pinnedCandidate ? trusted(pinnedCandidate) : null);
 
   // The threat (Lichess's "Show threat", its key x, the engine header's switch): the engine searches the position after
@@ -503,6 +545,7 @@
     return { get had() { return had; } };
   }
   const listStepsKept = keptSteps(() => (listLine ? { start: path, edges: listLine } : null));
+  const bookStepsKept = keptSteps(() => (bookLine ? { start: path, edges: bookLine } : null)); // the book's row's
   // The threat's, from the position after the pass
   const threatStepsKept = keptSteps(() => (threatEdges ? { start: threatPath, edges: threatEdges } : null));
   // The steps of a line from here, as far as it matches the line whose steps came (`had`). The search can lengthen or
@@ -514,7 +557,7 @@
     while (k < edges.length && k < had.edges.length && sameEdge(edges[k], had.edges[k])) k++;
     return had.steps.slice(0, k);
   }
-  const stepsNow = $derived(stepsOf(boardEdges, lineEdges ? listStepsKept.had : threatStepsKept.had));
+  const stepsNow = $derived(stepsOf(boardEdges, lineEdges ? (book?.shows ? bookStepsKept : listStepsKept).had : threatStepsKept.had));
   const listSteps = $derived(stepsOf(listLine, listStepsKept.had));
 
   // The line as far as drawn (lineDrawing.svelte.ts): one edge at a time (the default, a display setting), or all at
@@ -927,6 +970,7 @@
     else { selectedRank = 1; pinned = false; forkPick = null; }
     path = p;
     hover = null;
+    if (book) book.pointed = null;
     listHover = null;
     preview = null;
     if (display.sound && (sound || step) && p.length) void playMove(display.volume, display.moveSound, cutsAt(p));
@@ -1091,6 +1135,7 @@
     else if (key === "t" && shift) nextMapStyle();
     else if (key === "t") toggleMap(); // KaTrain's key for its Territory
     else if (key === "x") toggleThreat(); // Lichess's key for its "Show threat"
+    else if (key === "o" && book?.ready) book.toggle(); // the book's table or the candidates (design 32, item 9)
     else if ((key === "ArrowLeft" && shift) || key === "b" || key === "[" || (key === "k" && shift)) setPath(prevFork(path, childrenOf));
     else if ((key === "ArrowRight" && shift) || key === "n" || key === "]" || (key === "j" && shift)) setPath(nextFork(path, childrenOf));
     else if ((key === "ArrowUp" && shift) || key === ",") line(-1);
@@ -1110,7 +1155,7 @@
     ev.preventDefault();
   }
   // The list of keys, as Lichess's "?" list.
-  const KEYS: [string[], string][] = [
+  const KEYS = $derived<[string[], string][]>([
     [["← / →", "k / j"], "Back and forward along the line on screen"],
     [["↑ / ↓"], "At a fork, pick the line that → follows. Elsewhere, the start and the line's end"],
     [["Shift + ← / →", "b / n", "[ / ]", "Shift + k / j"], "The previous and the next fork"],
@@ -1121,10 +1166,13 @@
     [["x"], "Show or hide the threat: the opponent's best turn if you pass"],
     [["t"], "Show or hide the area map"],
     [["Shift + t"], `The area map's next style: ${MAP_STYLES.map(s => MAP_STYLE_NAME[s]).join(", ")}`],
+    ...(book?.ready ? [[["o"], "Show the book's moves or the engine's candidates"],
+                       [["Tab", "↑ / ↓", "Enter"], "Go into the book's table, go to a different row, and play its move. Escape goes back to the page"]] as [string[], string][] : []),
     [["Escape"], "Close the settings, or cancel the edge that you started"],
     [["?"], "This list"],
-  ];
-  const MOUSE: [string, string][] = [
+  ]);
+  const MOUSE = $derived<[string, string][]>([
+    ...(book?.ready ? [["Click a book move, in the table or on the board", "Play it"]] as [string, string][] : []),
     ["Click a candidate", "Pin its line on the board. Click the candidate again to unpin it"],
     ["Double-click a candidate", "Play it"],
     ["Click a node, then a marked point", "Play your own edge"],
@@ -1132,7 +1180,7 @@
     ["Right-click a point, or right-drag to another", "Draw a ring, or a line, as a note. Drawing it again removes it, and in another colour (below) changes its colour"],
     ["Click the board", "Clear the position's notes"],
     ["Right-click a branch's move", "Evaluate it, promote its branch, or delete from it"],
-  ];
+  ]);
 
   const scoreDiff = $derived(gamePositions.map(p => p.scores[0] - p.scores[1]));
   const areaDiff = $derived(gamePositions.map(p => (p.areas ? p.areas[0] - p.areas[1] : 0)));
@@ -1405,8 +1453,8 @@
   </table>
 {/snippet}
 
-<!-- The Analysis: the candidates table and the move list. -->
-{#snippet analysisView()}
+<!-- The engine's candidates: their table, and the line listed under it. -->
+{#snippet engineTable()}
   <!-- One row for each distinct move: a symmetric twin, the same move with the same numbers, is named in its row's
        mirror mark. The row is the searched edge: pointing at it lights that edge and draws its line. The name has a
        slot as wide as the widest edge (M13-O16: 4 em in the first row's semibold), so the marks line up in a column.
@@ -1452,6 +1500,33 @@
   </table>
   </div>
   {@render lineList()}
+{/snippet}
+
+<!-- The Analysis: the candidates table, or the book's table in its place, and the move list. -->
+{#snippet analysisView()}
+  {#if book?.ready}
+    <!-- The book's table (design 32, items 3 and 8), with the switch in its title row: the engine's candidates under it
+         when the player chooses them, and outside the book. While it shows the book, it takes at most a little over
+         half the column, and scrolls, so that the move list keeps its room. -->
+    <div class={["flex flex-col min-h-0", book.shows ? "flex-[0_1_auto] max-h-[55%] mb-3" : "flex-none"]}>
+      <BookTable at={book.at} source={book.book.source} rows={book.rows} bind:show={book.show} bind:values={book.values}
+                 bind:pointed={book.pointed} onplay={playBook} onretry={() => book.book.retry()}>
+        {#snippet candidates()}{@render engineTable()}{/snippet}
+        {#snippet outside()}
+          {#if book.last >= 0}
+            {@const to = path.slice(0, book.last)}
+            <p class="mt-0.5 mb-1.5 text-xs text-muted">Last book position: turn {moveFrom(to).turn}.
+              <button type="button" class="p-0 bg-transparent border-0 text-accent underline" onclick={() => setPath(to)}>Go there</button></p>
+          {/if}
+        {/snippet}
+        {#snippet sentence(row, p)}
+          <p class="text-sm">{row?.book ? moveSentence(p, row.book) : bestMoveSentence(p)}</p>
+        {/snippet}
+      </BookTable>
+    </div>
+  {:else}
+    {@render engineTable()}
+  {/if}
   <!-- A right-click, or a long press on a touch screen, anywhere in the move list opens the move menu (Bits UI's
        ContextMenu), not the browser's: on a branch's move with its actions. On the game's moves in a review, only the
        image's, since the game's line stays as it is and its moves are evaluated already. Elsewhere (the engine's line,
@@ -1823,7 +1898,7 @@
       <div class="flex items-start justify-between gap-3 py-1.5">
         <div class="min-w-0">
           <p class="text-sm font-medium">Keys and clicks</p>
-          <p class="text-xs text-muted">The keys for moving through the game and its branches, and what the clicks do. The key t shows or hides the area map, and Shift + t goes to its next style. The key x shows or hides the threat.</p>
+          <p class="text-xs text-muted">The keys for moving through the game and its branches, and what the clicks do. The key t shows or hides the area map, and Shift + t goes to its next style. The key x shows or hides the threat.{book?.ready ? " The key o shows the book's moves or the engine's candidates." : ""}</p>
         </div>
         <button class="flex-none px-2 py-0.5 text-sm" onclick={() => (keysOpen = true)}>Show <kbd class="kbd">?</kbd></button>
       </div>
@@ -2047,12 +2122,12 @@
         <Board
           position={branchPreview?.from ?? movePreview?.position ?? position}
           cut={branchPreview ? null : movePreview ? movePreview.move.cut : lastPlayed?.cut ?? null}
-          candidates={previewing ? [] : candidates}
-          highlight={previewing ? null : hover ?? pinnedCandidate?.edge ?? null}
+          candidates={previewing ? [] : book?.shows ? book.candidates : candidates}
+          highlight={previewing ? null : book?.shows ? (book.pointed ? parseEdge(book.pointed) : null) : hover ?? pinnedCandidate?.edge ?? null}
           line={branchPreview ? previewLine : movePreview ? null : drawnLine}
           lineShape={!previewing && threatShown ? "triangle" : "circle"}
-          oncandidateclick={selectRank}
-          oncandidatedblclick={e => playPath([...path, edgeName(e)], "candidate played")}
+          oncandidateclick={e => (book?.shows ? playBookEdge(e) : selectRank(e))}
+          oncandidatedblclick={e => { if (!book?.shows) playPath([...path, edgeName(e)], "candidate played"); }}
           pending={input.pending}
           ends={input.ends}
           active={input.active}
@@ -2064,7 +2139,7 @@
           layers={display.layers}
           areaMap={shownMap}
           onpointat={p => (mapPoint = p)}
-          oncandidate={e => { hoverOnBoard = true; hover = e; }}
+          oncandidate={e => { if (book?.shows) book.pointed = e && edgeName(e); else { hoverOnBoard = true; hover = e; } }}
           notes={previewing ? [] : notesAt[here] ?? []}
           onnotes={previewing ? undefined : n => { if (n.length > (notesAt[here]?.length ?? 0)) used("note drawn"); notesAt[here] = n; }}
         />
