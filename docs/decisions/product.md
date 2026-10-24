@@ -6792,6 +6792,14 @@ error and no horizontal scroll. The layout sweep in Chromium passes (25 tests, 5
   has one row and is 68 pixels high at 360 × 640 and at 390 × 844, as the review's. At 360 pixels the steps take 150
   pixels, the gap 8 and the tools 167 (New 35, Play 51, Export 35, ☰ 35, and the gaps), of 328: 3 pixels to spare.
   The wrap rule stays for a wider font. On a desktop (1,400 × 900) the bar has one row, as before.
+- **Play became an icon button too,** a robot's head ("Play the bot from here", its name and its tooltip), the
+  common sign for "play the computer". The word Play between the two icons did not sit well, and a triangle, Play's
+  usual icon, is the step forward beside it. The order is the steps, then the robot, New, Export and ☰. The robot is
+  a rounded box with two eyes, an antenna and two ears, in Icon.svelte's grid and stroke, as high as the other icons.
+  Measured in headless Chromium as a phone: the Analysis board's bar has one row and is 68 pixels high at 360 × 640
+  and at 390 × 844. At 360 pixels the steps take 150 pixels, the gap 8 and the tools 150 (four buttons of 35 and the
+  gaps), of 328: 20 pixels to spare, where Play as a word left 3. On a desktop (1,400 × 900) the bar has one row,
+  62 pixels high. The robot opens Practice from the position on screen, as Play did.
 - **What depends on the bar's place,** and what changed for it:
   - The page's end: the page keeps room as high as the bar (`.step-room`), so the bar covers no last row.
   - The page's scrolling: `scroll-padding-bottom` on the document and on the page's area keeps a focused element or a

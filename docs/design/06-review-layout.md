@@ -79,18 +79,20 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
      [Blunder]".
 4. **The step controls** (first, back, forward, last), the status line and the display settings' button are a bar at
    the bottom of the analysis column, as on Lichess, next to the move list that they step through. The steps are on
-   the left, and the tools on the right (the Analysis board's New, Play and Export, the review's Export, and ☰). When
+   the left, and the tools on the right (the Analysis board's Play, New and Export, the review's Export, and ☰). When
    the column is too narrow for one row, the tools go under the steps as a group, at the right, and the steps span the
    column's width, as Lichess's do. The bar measures whether the tools fit beside the steps at the steps' own width
    (`src/lib/ui/StepBar.svelte`, which Practice shares). It measures as it mounts, before its first frame: a change
    after the first frame moves the buttons (a layout shift). The buttons' icons are drawn, one set at one stroke
    (`src/lib/ui/Icon.svelte`), not text glyphs, whose shapes vary with the font.
-   - **New and Export are icon buttons,** at every width, so that the bar is the same on a phone and on a desktop:
-     New is a plus, the usual mark of a new document, tab or game. Export is an arrow up out of a tray, the share mark
-     of phones' share sheets: its menu sends the game out as a link, a file or to a partner site, so a download's
-     arrow would promise too little. Each has its name for a screen reader and as a tooltip. Play keeps its word: its
-     natural icon, a triangle, is the step forward beside it. ☰ is an icon already. In a game's row on the home page,
-     Export keeps its word: the row is not the bar. Practice's tools (Takeback, Abort, Resign) do not change.
+   - **Play, New and Export are icon buttons,** at every width, so that the bar is the same on a phone and on a
+     desktop. Play is a robot's head, the common sign for "play the computer": Play's usual icon, a triangle, is the
+     step forward beside it, and the word Play between two icons did not sit well. New is a plus, the usual mark of a
+     new document, tab or game. Export is an arrow up out of a tray, the share mark of phones' share sheets: its menu
+     sends the game out as a link, a file or to a partner site, so a download's arrow would promise too little. Each
+     has its name for a screen reader and as a tooltip ("Play the bot from here" for the robot). The order is the
+     steps, then the robot, New, Export and ☰. ☰ is an icon already. In a game's row on the home page, Export keeps
+     its word: the row is not the bar. Practice's tools (Takeback, Abort, Resign) do not change.
    - **On a phone, the bar is fixed to the bottom of the window** (one column, below 800 pixels), as the Lichess app
      keeps Previous and Next in a bottom bar (design 32, item 10). So the step back is in view whenever the board is.
      Under the move list, the bar was below the board, and on a 360 × 640 screen the two were never in view together.
@@ -100,12 +102,12 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
      mouse, the area's scroll bar stays clear of it.
    - **The status line stays in the bar,** over the steps: it says what an edge on the board needs next.
    - **The tools stay beside the steps,** and go under them where they do not fit, as in a narrow column. At 360
-     pixels every page's tools fit in one row: the review's (Export and ☰), the Analysis board's (New, Play, Export
+     pixels every page's tools fit in one row: the review's (Export and ☰), the Analysis board's (Play, New, Export
      and ☰) and Practice's (Takeback, Abort, Resign and ☰). The review's bar and the Analysis board's are 68 pixels
      high, and Practice's, with no status line, 46. With New and Export as words, the Analysis board's tools did not
      fit, also at 390 pixels, and its bar had two rows, 108 pixels high: icons give one row with targets of the same
-     size. At 360 pixels the Analysis board's row has 3 pixels to spare, so a wider font can still wrap it: the wrap
-     rule stays.
+     size. At 360 pixels the Analysis board's row has 20 pixels to spare. A much wider font can still wrap it, so the
+     wrap rule stays.
    - **The page keeps room for the bar** at its end, as high as the bar, so that the bar covers no last row and no
      control. The page's scrolling keeps clear of the bar too (`scroll-padding-bottom`): a focused element or a picked
      move comes into view above it. The bar gives its height to the page (`--step-dock`) whenever it changes.
@@ -286,6 +288,8 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
 - **Smaller buttons in the step bar on a phone,** so that the Analysis board's tools fit in one row as words: smaller
   targets on a touch screen, and two rules for one bar.
 - **New and Export as icons on a phone only:** the bar would differ between a phone and a desktop.
+- **Play as a word between the icons:** it broke the row of icons. **Play as a triangle:** the step forward is a
+  triangle beside it, so the two would read as one control.
 
 ## Consequences
 
