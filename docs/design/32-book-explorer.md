@@ -312,14 +312,17 @@ its own choice of "Book" or "Candidates" and of "Show the values", handles the k
 
 - **The rows** (`rows.ts`) take their labels from `moveLabel` in `sentences.ts`, the rule of the sentences (item 6,
   "The labels"): design 10's bands against the best move here, the first book move or the best move outside the book
-  when that is better. The table gives no Great, so that a position's table is the same however the player reaches
-  it: two move orders reach many book positions. The best move outside the book is Best when it is better than the
-  first book move.
+  when that is better. The table gives no Great, as item 6 says: a Great needs the position before the opponent's
+  last turn, and two move orders reach many book positions, so a Great would change a position's table with the
+  path. The best move outside the book is Best when it is better than the first book move.
 - **The symbols** come from `symbols.ts`, the rule of the sentences too: a position's from `positionSymbol`, a row's
   from `lineEndSymbol`, the symbol at the end of its main line. `BookSymbol.svelte` draws the eight symbols, because
   the site's font has no glyph for ⩲ and ⩱.
 - **The sentence under the table** is the page's: the lab page gives it from `sentences.ts`, the sentence of the row
   pointed at or focused (`moveSentence`), else the best move's (`bestMoveSentence`).
+- **The end of the book** (item 5): a position with no book move shows "End of the book" with its symbol in words
+  (`endSentence`), and then the best move outside the book in its row, as at any other position. Each end position
+  of the test book has such a move.
 - **The state at a position** (`lookup.svelte.ts`): loading, in the book, outside it, or failed until "Try again".
 - **The lab page** `/lab/book-table` shows the board and the table on the test book. It has no engine: it draws the
   book's positions from their notation, with no regions.

@@ -1,13 +1,14 @@
 // The book's table at a position (design 32, items 3, 7 and 9): its rows in their groups, each with its label and the
-// symbol at its line's end by the rules of the sentences (sentences.ts, `moveLabel`; symbols.ts, `lineEndSymbol`), so
-// that the table and the sentences agree, and the line that the board draws for it. The table (BookTable.svelte) and
+// symbol at its line's end by the rules of the sentences (`moveLabel` in sentences.ts, `lineEndSymbol` in symbols.ts),
+// so that the table and the sentences agree, and the line that the board draws for it. The table (BookTable.svelte) and
 // the board's numbers read the same rows, so a row's number is its candidate's rank on the board (design 07).
 import type { Label } from "@abstractclass/analysis/labels.ts";
 import type { Player } from "@abstractclass/analysis/game.ts";
 import { mirrorEdge, mirrorPosition, parseEdge, type Edge } from "#lib/engine/notation.ts";
 import { playerOf } from "#lib/engine/position.ts";
-import { LABEL_TEXT, turnFromCount } from "#lib/review/enclosure.ts";
-import { bookMove, type Book } from "./book.ts";
+import { moverOf } from "#lib/editor/position.ts";
+import { LABEL_TEXT, PLAYER_NAME, turnFromCount } from "#lib/review/enclosure.ts";
+import type { Book } from "./book.ts";
 import type { BookMove, BookPosition } from "./form.ts";
 import { edgeCount, isFine, moveLabel, outsideLabel, traps } from "./sentences.ts";
 import { lineEndSymbol, SYMBOL_NAME, type PositionSymbol } from "./symbols.ts";
@@ -35,11 +36,9 @@ export interface BookRow {
   /** Its label by the book's values (sentences.ts, `moveLabel`). Null for the game's row, whose label is the review's
    *  (`game`). */
   label: Label | null;
-  /** Blue's win chance after the move, by the book. Undefined for the game's row: the book has no value for it. */
+  /** Blue's win chance after the move, by the book. Undefined for the game's row: the book has no value for it. A book
+   *  move's bounds are in `book.value`. */
   blueWin?: number;
-  /** The bounds of `blueWin` (a book move only). */
-  low?: number;
-  high?: number;
   /** The symbol at the end of the move's main line (a book move only). */
   symbol?: PositionSymbol;
   /** The book ends at the position after the move. */
@@ -59,7 +58,7 @@ export function bookRows(p: BookPosition, game?: GameMove | null): BookRow[] {
   const lastTurn = (last: number) => turnFromCount(Math.max(0, last - 1)).turn;
   const row = (m: BookMove): BookRow => ({
     n: 0, group: m.trap ? "trap" : isFine(p, m) ? "fine" : "other", move: m.move, label: moveLabel(p, m),
-    blueWin: m.value.blueWin, low: m.value.low, high: m.value.high, symbol: lineEndSymbol(m), ends: m.last <= count + 1,
+    blueWin: m.value.blueWin, symbol: lineEndSymbol(m), ends: m.last <= count + 1,
     turns: Math.max(0, lastTurn(m.last) - p.turn), book: m,
   });
   const moves = p.moves.filter(m => !m.trap).map(row);
@@ -69,18 +68,14 @@ export function bookRows(p: BookPosition, game?: GameMove | null): BookRow[] {
   if (p.outside)
     rows.push({ n: 0, group: "outside", move: p.outside.move, blueWin: p.outside.blueWin, label: outsideLabel(p) });
   if (game) {
-    const own = rows.find(r => sameMove(p, r.move, game.move));
+    // The same edge, or its twin at a position that is its own mirror image (the start), as book.ts `bookMove` reads it
+    const twin = mirrorPosition(p.position) === p.position ? mirrorEdge(game.move) : game.move;
+    const own = rows.find(r => r.move === game.move || r.move === twin);
     if (own) own.game = game;
     else rows.push({ n: 0, group: "yours", move: game.move, label: null, game });
   }
   rows.forEach((r, k) => (r.n = k + 1));
   return rows;
-}
-
-/** Whether two edges play the same move from a position: the same edge, or, at a position that is its own mirror
- *  image (the start), its twin (book.ts, bookMove). */
-function sameMove(p: BookPosition, a: string, b: string): boolean {
-  return a === b || (mirrorPosition(p.position) === p.position && a === mirrorEdge(b));
 }
 
 /** The row's line, as the board draws it: its edge, then the book's main line after it while the book's parts that
@@ -100,19 +95,15 @@ export function rowCandidates(rows: BookRow[]): { edge: Edge; rank: number; note
   return rows.map(r => ({
     edge: parseEdge(r.move), rank: r.n,
     note: [r.label && LABEL_TEXT[r.label], r.book?.trap && "a trap", r.symbol && SYMBOL_NAME[r.symbol],
-           !r.book && r.group !== "yours" && "not in the book", r.group === "yours" && "your game"].filter(Boolean).join(" · "),
+           r.group === "outside" && "not in the book", r.group === "yours" && "your game"].filter(Boolean).join(" · "),
   }));
 }
 
 /** The row's line (rowLine) as the board draws it (Board.svelte, BoardLineEdge): each edge with its mover, from the
- *  position's mover and the edges left in its turn. */
+ *  edge count (editor/position.ts, moverOf). */
 export function rowBoardLine(book: Book, p: BookPosition, row: BookRow): { edge: Edge; player: Player }[] {
-  let player = playerOf(p.mover), left = p.turn === 1 || p.edge === 2 ? 1 : 2;
-  return rowLine(book, row).map(e => {
-    const step = { edge: parseEdge(e), player };
-    if (--left === 0) { player = (1 - player) as Player; left = 2; }
-    return step;
-  });
+  const count = edgeCount(p);
+  return rowLine(book, row).map((e, i) => ({ edge: parseEdge(e), player: moverOf(count + i).player }));
 }
 
 /** The count of the position's book moves, as the table announces it once a step: "4 book moves, 1 trap". */
@@ -125,12 +116,8 @@ export function bookCount(p: BookPosition): string {
 /** The position as the title row names it (design 32, item 3): "Start · Blue to play", or the turn, the side to move
  *  and the edge of the turn. */
 export function positionTitle(p: BookPosition): string {
-  const side = p.mover === "b" ? "Blue" : "Red";
-  if (edgeCount(p) === 0) return `Start · ${side} to play`;
-  const edges = p.turn === 1 || p.turn === 61 ? 1 : 2;
-  return `Turn ${p.turn} · ${side} to play, edge ${p.edge} of ${edges}`;
+  const side = PLAYER_NAME[playerOf(p.mover)], count = edgeCount(p);
+  if (count === 0) return `Start · ${side} to play`;
+  // The turn's edges: those played in it and those left (moverOf), as the review's title row counts them
+  return `Turn ${p.turn} · ${side} to play, edge ${p.edge} of ${p.edge - 1 + moverOf(count).left}`;
 }
-
-/** The position that an edge reaches from a book position, by the book: the book move's `to`. Undefined when the edge
- *  is not a book move. */
-export const bookTo = (p: BookPosition, edge: string) => bookMove(p, edge)?.to;

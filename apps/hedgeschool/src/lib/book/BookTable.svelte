@@ -20,7 +20,7 @@
   import type { BookAt } from "./lookup.svelte.ts";
   import type { BookPosition, BookSource } from "./form.ts";
   import { bookCount, GROUP_TITLES, positionTitle, type BookRow } from "./rows.ts";
-  import { edgeCount, endSentence, lineText } from "./sentences.ts";
+  import { endSentence, refutationText } from "./sentences.ts";
   import { positionSymbol } from "./symbols.ts";
 
   interface Props {
@@ -45,7 +45,8 @@
     /** Under the title row outside the book: the line that names the last book position on the path (design 32,
      *  item 8). */
     outside?: Snippet;
-    /** Under the table: the sentence of the book move pointed at or focused, or of the best move (null). */
+    /** Under the table, where the position has book moves: the sentence of the book move pointed at or focused, or of
+     *  the best move (null). */
     sentence?: Snippet<[BookRow | null, BookPosition]>;
   }
   let {
@@ -72,13 +73,13 @@
     ...(row.book?.trap ? [{ row, refutation: true }] : [])]));
   let active = $derived((void rows, 0)); // the item that takes the focus at Tab: the first, at each position
   let box = $state<HTMLElement | null>(null);
-  let refocus = false; // a key played a move: the focus goes to the new position's first row
+  // A key played a move: the focus goes to the first row of the new position once its rows show, also after its part
+  // loads
+  let refocus = false;
   $effect(() => {
-    void rows;
-    if (refocus) {
-      refocus = false;
-      queueMicrotask(() => box?.querySelector<HTMLElement>('[data-item="0"]')?.focus());
-    }
+    if (!rows.length || !refocus) return;
+    refocus = false;
+    queueMicrotask(() => box?.querySelector<HTMLElement>('[data-item="0"]')?.focus());
   });
   const edgesOf = (item: Item) => (item.refutation ? [item.row.move, ...item.row.book!.trap!.refutation] : [item.row.move]);
   const play = (item: Item) => { pointed = null; onplay(edgesOf(item)); };
@@ -86,7 +87,7 @@
   function onkeydown(e: KeyboardEvent) {
     const k = Number((e.target as HTMLElement).dataset.item);
     if (Number.isNaN(k)) return;
-    const focus = (j: number) => { active = j; box?.querySelector<HTMLElement>(`[data-item="${j}"]`)?.focus(); };
+    const focus = (j: number) => box?.querySelector<HTMLElement>(`[data-item="${j}"]`)?.focus(); // its onfocus sets active
     if (e.key === "ArrowDown" && k < items.length - 1) focus(k + 1);
     else if (e.key === "ArrowUp" && k > 0) focus(k - 1);
     else if (e.key === "Home") focus(0);
@@ -107,9 +108,18 @@
 
   // The sentence's row: the book move pointed at or focused, else null for the best move's sentence
   const sentenceRow = $derived(rows.find(r => r.move === pointed && r.book) ?? null);
-  // The polite count of the position's book moves, once a step (item 9)
-  const count = $derived(position ? bookCount(position) : "");
+  // The polite count of the position's book moves, once a step (item 9). A live region speaks when its text changes, and
+  // two steps can have the same count: so the text is emptied at each new position, then set a moment later.
+  let live = $state<HTMLElement | null>(null);
+  $effect(() => {
+    const text = position ? bookCount(position) : "", region = live;
+    if (!region) return;
+    region.textContent = "";
+    const later = setTimeout(() => (region.textContent = text), 100);
+    return () => clearTimeout(later);
+  });
   const cols = $derived(values ? 5 : 3);
+  const ROW = "cursor-pointer border-b border-line outline-none focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2";
   const CHIP = "px-2 py-0.5 text-xs font-medium border border-line first:rounded-l-md last:rounded-r-md -ml-px first:ml-0 disabled:cursor-not-allowed disabled:text-muted aria-pressed:bg-accent aria-pressed:border-accent aria-pressed:text-on-badge";
 </script>
 
@@ -137,8 +147,8 @@
       </p>
     {/if}
     <div class="flex items-center gap-2 mt-0.5 mb-1.5">
-      <p class="flex-1 text-xs text-muted" title={source ? [source.note, `Network ${source.network}, ${source.visits} visits a position.`].filter(Boolean).join(" ") : undefined}>
-        From the engine's analysis, not from games that people played.{source ? ` ${source.name}, ${made}.` : ""}
+      <p class="flex-1 text-xs text-muted" title={source ? [`${source.name}.`, source.note, `Network ${source.network}, ${source.visits} visits for each position.`].filter(Boolean).join(" ") : undefined}>
+        From the engine's analysis, not from games that people played.{source ? ` Book of ${made}.` : ""}
       </p>
       <label class="flex-none flex items-center gap-1.5 text-xs cursor-pointer">
         <Switch.Root checked={values} onCheckedChange={v => (values = v)} class={SWITCH}><Switch.Thumb class={SWITCH_THUMB} /></Switch.Root>
@@ -156,9 +166,11 @@
       <p>The book did not load. Check your connection, then try again.</p>
       <button type="button" class="btn-secondary mt-1.5 px-3 py-0.5 text-xs" onclick={onretry}>Try again</button>
     </div>
-  {:else if position && !position.moves.length && !rows.length}
+  {:else if position && !rows.length}
     <p class="py-2">{endSentence(position)}</p>
   {:else if position}
+    <!-- The end of the book: its text, then the best move outside the book (and the game's move) in their rows -->
+    {#if !position.moves.length}<p class="py-2">{endSentence(position)}</p>{/if}
     <div class="min-h-0 overflow-y-auto [scrollbar-gutter:stable]" bind:this={box} role="presentation"
          onpointerenter={() => (inside = true)} onpointerleave={() => { inside = false; pointed = null; }}>
       <table class="w-full border-collapse [&_:is(th,td)]:px-1 [&_:is(th,td)]:py-1 [&_:is(th,td)]:align-top [&_:is(th,td)]:text-left">
@@ -176,14 +188,14 @@
             {/if}
             {@const item = items.findIndex(i => i.row === row && !i.refutation)}
             {@render moveRow(row, item)}
-            {#if row.book?.trap}{@render refutationRow(row, item + 1, lineText(edgeCount(position) + 1, row.book.trap.refutation))}{/if}
+            {#if row.book?.trap}{@render refutationRow(row, item + 1, refutationText(position, row.book))}{/if}
           {/each}
         </tbody>
       </table>
     </div>
-    {#if sentence}<div class="mt-1.5">{@render sentence(sentenceRow, position)}</div>{/if}
+    {#if sentence && position.moves.length}<div class="mt-1.5">{@render sentence(sentenceRow, position)}</div>{/if}
   {/if}
-  <p class="sr-only" aria-live="polite">{count}</p>
+  <p class="sr-only" aria-live="polite" bind:this={live}></p>
 </section>
 
 <!-- A move's row: its number as the board draws it, the edge with its label, then its values and the symbol at its
@@ -191,8 +203,7 @@
 {#snippet moveRow(row: BookRow, item: number)}
   {@const lit = pointed === row.move}
   <tr data-item={item} data-move={row.move} tabindex={item === active ? 0 : -1}
-      class={["cursor-pointer border-b border-line outline-none focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2",
-              lit && "bg-panel-2", row.game && "shadow-[inset_3px_0_0_var(--accent)]"]}
+      class={[ROW, lit && "bg-panel-2", row.game && "shadow-[inset_3px_0_0_var(--accent)]"]}
       onpointerenter={() => (pointed = row.move)} onfocus={() => { active = item; pointed = row.move; }}
       onclick={() => play(items[item])} {onkeydown}>
     <td><span class={["inline-flex items-center justify-center min-w-[1.3em] h-[1.3em] px-[0.2em] rounded-[0.3em] text-[0.8em] font-bold leading-none text-on-badge",
@@ -205,7 +216,8 @@
             {#if row.game.label}<LabelBadge label={row.game.label} />{/if}
             In your review: {row.game.label ? `${LABEL_TEXT[row.game.label]}, ` : ""}{row.game.blueWin !== undefined ? `${side} ${moverPct(row.game.blueWin)}` : ""} · not in the book
           {:else if row.label}
-            <LabelBadge label={row.label} /> {LABEL_TEXT[row.label]}{#if row.book?.trap} · a trap{:else if row.ends} · the book ends here{/if}{#if row.game} · your game{/if}
+            <!-- In expressions: Svelte trims the white space at the start of a block -->
+            <LabelBadge label={row.label} /> {LABEL_TEXT[row.label]}{row.book?.trap ? " · a trap" : row.ends ? " · the book ends here" : ""}{row.game ? " · your game" : ""}
           {/if}
         </span>
         {#if row.book?.trap}
@@ -217,14 +229,14 @@
       <td class="tabular-nums">
         {#if row.blueWin !== undefined}
           {moverPct(row.blueWin)}
-          {#if row.low !== undefined && row.high !== undefined}
-            <span class="block text-xs text-muted whitespace-nowrap">{bounds(row.low, row.high)}</span>
+          {#if row.book}
+            <span class="block text-xs text-muted whitespace-nowrap">{bounds(row.book.value.low, row.book.value.high)}</span>
           {/if}
         {:else}<span class="text-muted">—</span>{/if}
       </td>
       <td>{#if row.turns !== undefined}{row.turns === 0 ? "This turn" : `${row.turns} turn${row.turns === 1 ? "" : "s"}`}{:else}<span class="text-muted">—</span>{/if}</td>
     {/if}
-    <td>{#if row.symbol && values}<BookSymbol symbol={row.symbol} words="under" />{:else if row.symbol}<span class="max-[799px]:hidden"><BookSymbol symbol={row.symbol} /></span><span class="min-[800px]:hidden"><BookSymbol symbol={row.symbol} words="under" /></span>{:else}<span class="text-muted">—</span>{/if}</td>
+    <td>{#if row.symbol}<BookSymbol symbol={row.symbol} words={values ? "under" : "phone-under"} />{:else}<span class="text-muted">—</span>{/if}</td>
   </tr>
 {/snippet}
 
@@ -232,7 +244,7 @@
      plays the trap and its refutation, edge by edge. -->
 {#snippet refutationRow(row: BookRow, item: number, refutation: string)}
   <tr data-item={item} tabindex={item === active ? 0 : -1}
-      class="cursor-pointer border-b border-line outline-none focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 hover:bg-panel-2"
+      class={[ROW, "hover:bg-panel-2"]}
       onpointerenter={() => (pointed = row.move)} onfocus={() => { active = item; pointed = row.move; }}
       onclick={() => play(items[item])} {onkeydown}>
     <td></td>

@@ -132,6 +132,10 @@ export async function mainLine(book: Book, from: string = book.start): Promise<L
   return turns;
 }
 
+/** A trap's refutation in the notation, from the position after the trap: "4. N12-Q10 L11-O12", or "3... F9-J10 4. …"
+ *  when it finishes the trap's turn first. The sentence and the table's row "Play the refutation" show it. */
+export const refutationText = (p: BookPosition, m: BookMove) => lineText(edgeCount(p) + 1, m.trap!.refutation);
+
 /** A trap: why it tempts, what it costs the side that plays it (that side's win chance with the best move here and
  *  after the trap), and its refutation with the end that it leads to. `again` names the trap after "but": its edge
  *  after "This move avoids a trap:", where "it" could read as this move. Only the win chance shows the cost always: a
@@ -139,7 +143,7 @@ export async function mainLine(book: Book, from: string = book.start): Promise<L
 const trapText = (p: BookPosition, m: BookMove, again: string) =>
   `${m.move} seems good after a short search, but ${again} decreases ${side(p)}'s win chance from ` +
   `${pct(bestWin(p))} to ${pct(win(p, m.value.blueWin))}. ` +
-  `After ${lineText(edgeCount(p) + 1, m.trap!.refutation)}, ${clause(lineEndSymbol(m))}.`;
+  `After ${refutationText(p, m)}, ${clause(lineEndSymbol(m))}.`;
 
 /** The sentence under the table: the best book move of a position (design 32, item 6), and the trap that it avoids.
  *  Null where the book ends: `endSentence` gives that position's text. Example: "F9-J10 is the only fine move here.

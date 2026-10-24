@@ -17,6 +17,9 @@ export class OpeningBook {
   #error = $state.raw<BookLoadError | null>(null); // the index's
   #failed = new Map<string, BookLoadError>(); // the positions whose part did not load, until `retry`
   #asked = new Set<string>(); // the positions whose part loads
+  // Each position in the book, as `at` first gave it: a loaded part does not change, and the same object stops the
+  // pages' $derived values at a load that does not change the position on screen
+  #in = new Map<string, BookAt>();
   #changed = $state(0); // counts the loads and failures, so that `at` runs again
   readonly #url: string;
   readonly #read: BookReader | undefined;
@@ -46,9 +49,15 @@ export class OpeningBook {
     if (!book) return this.#error ? { state: "failed", error: this.#error } : { state: "loading" };
     const error = this.#failed.get(position);
     if (error) return { state: "failed", error };
+    const known = this.#in.get(position);
+    if (known) return known;
     const p = book.peek(position);
     if (p === null) return { state: "out" };
-    if (p) return { state: "in", position: p };
+    if (p) {
+      const a: BookAt = { state: "in", position: p };
+      this.#in.set(position, a);
+      return a;
+    }
     if (!this.#asked.has(position)) {
       this.#asked.add(position);
       book.get(position).then(() => {}, e => this.#failed.set(position, e instanceof BookLoadError ? e : new BookLoadError(this.#url, e)))

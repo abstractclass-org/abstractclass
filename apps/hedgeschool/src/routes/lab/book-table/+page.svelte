@@ -14,17 +14,20 @@
   import PageMeta from "#lib/PageMeta.svelte";
   import BookTable from "#lib/book/BookTable.svelte";
   import { OpeningBook, type BookAt } from "#lib/book/lookup.svelte.ts";
-  import { bookRows, bookTo, rowBoardLine, rowCandidates, type BookRow, type GameMove } from "#lib/book/rows.ts";
+  import { bookMove } from "#lib/book/book.ts";
+  import { bookRows, rowBoardLine, rowCandidates, type GameMove } from "#lib/book/rows.ts";
   import { bestMoveSentence, moveSentence } from "#lib/book/sentences.ts";
-  import type { BookPosition } from "#lib/book/form.ts";
   import { edgeName, sameEdge, type Edge, type Position } from "#lib/review/enclosure.ts";
+  import { LINE_STEP_MS } from "#lib/review/lineDrawing.svelte.ts";
   import { parseEdge } from "#lib/engine/notation.ts";
-  import { moverOf, readPosition } from "#lib/editor/position.ts";
+  import { readPosition } from "#lib/editor/position.ts";
+  import { canonicalEdge } from "#lib/game/record.ts";
+  import { lineBoard } from "#lib/learn/lessons.ts";
   import { readLocalJson, writeLocal } from "@abstractclass/storage/local.ts";
 
   const BOOKS = { prototype: "/test-book/prototype/index.json", cases: "/test-book/cases/index.json" } as const;
   type Which = keyof typeof BOOKS;
-  const KEPT = "hs-lab-book-table"; // the table's choices, as the review and the boards keep theirs, each apart
+  const KEPT = "hedge-school:lab-book-table:1"; // the table's choices, as the review and the boards keep theirs, each apart
   const kept = readLocalJson<{ show?: "book" | "candidates"; values?: boolean }>(KEPT) ?? {};
 
   let which = $state<Which>("prototype");
@@ -49,46 +52,40 @@
     at = 0;
   }
 
-  // The positions on the path, from the start: each one's notation (null after a move outside the book), and the book
-  // there (undefined while its part loads). A move whose position still loads ends the path that the page knows.
+  // The book at each position of the path, from the start: out after a move outside the book, loading while its part
+  // loads. A position that does not hold the book yet ends the path that the page knows.
   const start = $derived(book.book?.start);
-  const walk = $derived.by(() => {
-    const notations: (string | null)[] = [], positions: (BookPosition | null | undefined)[] = [];
+  const ats = $derived.by(() => {
+    const list: BookAt[] = [];
     let n: string | null | undefined = start;
     for (let k = 0; n !== undefined; k++) {
-      const a: BookAt | null = n === null ? null : book.at(n);
-      const p: BookPosition | null | undefined = a?.state === "in" ? a.position : a?.state === "out" || n === null ? null : undefined;
-      notations.push(n);
-      positions.push(p);
+      const a: BookAt = n === null ? { state: "out" } : book.at(n);
+      list.push(a);
       if (k === path.length) break;
-      n = p ? bookTo(p, path[k]) ?? null : p === null ? null : undefined;
+      n = a.state === "in" ? bookMove(a.position, path[k])?.to ?? null : a.state === "out" ? null : undefined;
     }
-    return { notations, positions };
+    return list;
   });
-  const positions = $derived(walk.positions);
+  // The book's positions on the path: null outside the book, undefined while a part loads
+  const positions = $derived(ats.map(a => (a.state === "in" ? a.position : a.state === "out" ? null : undefined)));
   const here = $derived(positions[at]);
-  const view = $derived<BookAt>(!start ? book.at("") : walk.notations[at] === null ? { state: "out" }
-    : walk.notations[at] === undefined ? { state: "loading" } : book.at(walk.notations[at]!));
+  const view = $derived<BookAt>(!start ? book.at("") : ats[at] ?? { state: "loading" });
   // The last book position on the path, for the line outside the book
   const lastIn = $derived(positions.slice(0, at + 1).findLastIndex(p => !!p));
   const game = $derived.by<GameMove | null>(() => {
-    const move = gameMove.trim().toUpperCase();
-    if (!here || !/^[A-HJ-T]\d{1,2}-[A-HJ-T]\d{1,2}$/.test(move)) return null;
-    return { move: edgeName(parseEdge(move)), label: "good", blueWin: here.value.blueWin };
+    if (!here || !gameMove.trim()) return null;
+    try {
+      return { move: canonicalEdge(gameMove.trim()), label: "good", blueWin: here.value.blueWin };
+    } catch {
+      return null; // not an edge yet
+    }
   });
   const rows = $derived(view.state === "in" ? bookRows(view.position, game) : []);
   const showsBook = $derived(view.state === "in" && show === "book");
 
   // The board: the book's position, or the last book position with the move outside the book as a preview
-  function boardOf(notation: string): Position {
-    const p = readPosition(notation), { player, left } = moverOf(p.count);
-    const of = (side: 0 | 1, marked?: boolean) => p.edges.filter(e => e.player === side && (marked === undefined || e.marked === marked)).map(e => e.edge);
-    return {
-      edges: [of(0), of(1)], protected: of((1 - player) as 0 | 1, true), placed: of(player, true), scores: p.scores,
-      player, movesLeft: left, regions: [[], []], count: p.count, notation,
-    };
-  }
-  const shown = $derived(here ?? (lastIn >= 0 ? positions[lastIn] : undefined));
+  const boardOf = (notation: string): Position => ({ ...lineBoard(notation), count: readPosition(notation).count, notation });
+  const shown = $derived(positions[lastIn]); // here, or the last book position before it
   const board = $derived(shown ? boardOf(shown.position) : start ? boardOf(start) : null);
   const outsideEdge = $derived<Edge | null>(here === null && lastIn === at - 1 ? parseEdge(path[at - 1]) : null);
   const pointedRow = $derived(rows.find(r => r.move === pointed));
@@ -103,10 +100,9 @@
     const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduced || edges.length === 1) { at = path.length; return; }
     at++;
-    playing = setInterval(() => { if (at < path.length) at++; else clearInterval(playing); }, 450);
+    playing = setInterval(() => { if (at < path.length) at++; else clearInterval(playing); }, LINE_STEP_MS);
   }
   const step = (k: number) => { clearInterval(playing); pointed = null; at = Math.max(0, Math.min(path.length, k)); };
-  const playRow = (r: BookRow) => play([r.move]);
 
   function onkeydown(e: KeyboardEvent) {
     const target = e.target as HTMLElement;
@@ -127,9 +123,10 @@
 <main class="mx-auto max-w-6xl px-4 py-4">
   <h1 class="text-lg font-semibold">The book's table</h1>
   <p class="mb-3 text-sm text-muted">
-    The table on the test book, not the engine's book. Point at a row to draw its line, click it to play it. Tab puts
-    the focus in the table: the up and down keys, Enter and Escape. The left and right keys step, and o turns the
-    book on and off.
+    The table on the test book, not the engine's book. Point at a row to show its line on the board. Click a row to
+    play its move. Press Tab to put the focus on the table. Press the up and down keys to go to a different row, Enter
+    to play the move, and Escape to remove the focus from the table. Press the left and right keys to go back or
+    forward one edge. Press o to show or hide the book.
   </p>
   <div class="flex flex-wrap items-center gap-x-5 gap-y-2 mb-3 text-sm">
     <label class="flex items-center gap-1.5">Book
@@ -149,7 +146,7 @@
         <Board position={board} candidates={showsBook ? rowCandidates(rows) : []} highlight={pointed ? parseEdge(pointed) : null}
                {line} preview={outsideEdge} previewPlayer={board.player}
                oncandidate={e => (pointed = e ? edgeName(e) : null)}
-               oncandidateclick={e => { const r = rows.find(x => sameEdge(parseEdge(x.move), e)); if (r) playRow(r); }} />
+               oncandidateclick={e => { const r = rows.find(x => sameEdge(parseEdge(x.move), e)); if (r) play([r.move]); }} />
       {:else}
         <div class="aspect-square rounded-md bg-panel-2"></div>
       {/if}
@@ -161,8 +158,8 @@
           <p class="py-2 text-sm text-muted">The lab has no engine. On the review and the Analysis board, the engine's candidates show here.</p>
         {/snippet}
         {#snippet outside()}
-          {#if lastIn >= 0 && positions[lastIn]}
-            <p class="mt-0.5 text-xs text-muted">Last book position: turn {positions[lastIn]!.turn}.
+          {#if shown}
+            <p class="mt-0.5 text-xs text-muted">Last book position: turn {shown.turn}.
               <button type="button" class="text-accent underline" onclick={() => step(lastIn)}>Go there</button></p>
           {/if}
         {/snippet}
