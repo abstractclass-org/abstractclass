@@ -1,7 +1,7 @@
 // The book in the review (design 32, item 4; journey 1, A1): the Report's opening row and trap rows, and the move list's
 // mark at the game's last book move, on reviewed games through the test book (scripts/test-fixture.mjs). A click on a
-// row or on the mark goes to the position before the move that the row names. The engine is off, so that nothing
-// searches. The test book is served by the dev and preview servers only, and the review shows the book in the early
+// row or on the mark goes to the position before the move that the row names. A book that does not load shows neither.
+// The engine is off, so that nothing searches. The test book is served by the dev and preview servers only, and the review shows the book in the early
 // edition only: elsewhere the test is skipped.
 import { test, expect, type Page } from "@playwright/test";
 
@@ -74,6 +74,20 @@ test.describe("desktop", () => {
     await expect(trap).toBeVisible({ timeout: 30_000 });
     await trap.click();
     expect(await here(page)).toMatch(/^K9-N11/);
+  });
+
+  test("the book not loaded: no opening row and no mark, and the rest of the review works", async ({ page }) => {
+    await page.route("**/test-book/**", route => route.abort());
+    const failed = page.waitForEvent("requestfailed", r => r.url().includes("/test-book/"), { timeout: 60_000 });
+    await open(page, "book-left-review.json");
+    await failed;
+    await page.waitForTimeout(500); // the failure reaches the Report
+    await expect(page.getByText("Opening", { exact: true })).toHaveCount(0);
+    await expect(row(page, /Show the position$/)).toHaveCount(0);
+    await expect(marks(page)).toHaveCount(0);
+    await page.keyboard.press("Home");
+    await page.keyboard.press("ArrowRight");
+    expect(await here(page)).toMatch(/^A10-D9/);
   });
 });
 

@@ -1101,12 +1101,18 @@
   // book shows neither, and the Report has no opening row while the book loads or when it did not load. The Analysis
   // board has none.
   const book = untrack(() => (EARLY_ACCESS && !board ? new OpeningBook(SITE_BOOK) : null));
-  // The book at each of the game's positions, then the game's opening once every part that the game needs has loaded
-  const gameBook = $derived(book && gamePositions.map((p): BookAt => (p.notation ? book.at(p.notation) : { state: "out" })));
-  const opening = $derived(!gameBook || gameBook.some(a => a.state === "loading" || a.state === "failed") ? null
-    : gameOpening(gameBook.map(a => (a.state === "in" ? a.position : null)), mainNames));
-  const openingRow = $derived(opening && openingSentence(opening, mainNames,
-    opening.kind === "left" ? R.edges[opening.at]?.label ?? null : null));
+  // The game's opening, once every part of the book that the game's positions need has loaded
+  const opening = $derived.by(() => {
+    if (!book) return null;
+    const at = gamePositions.map((p): BookAt => (p.notation ? book.at(p.notation) : { state: "out" }));
+    if (at.some(a => a.state === "loading" || a.state === "failed")) return null;
+    return gameOpening(at.map(a => (a.state === "in" ? a.position : null)), mainNames);
+  });
+  // The row gives the label of the move that left the book, but not for the player that "Review for" leaves out
+  const openingRow = $derived.by(() => {
+    const left = opening && R.edges[opening.at];
+    return opening && openingSentence(opening, mainNames, left && forSide(left.player) ? left.label : null);
+  });
   const bookMarks = $derived(new Set(opening?.marks));
   /** The game's move at the position on screen, as the book's table shows it in "Your game" (rows.ts, `GameMove`): its
    *  label and Blue's win chance after it, by the review. Null in a branch, at the game's end and on the Analysis
@@ -1119,7 +1125,7 @@
   // (design 32, item 4). The book's table in the analysis column reads it (beads abscls-tpaj.7).
   let bookForReview = $state(false);
   /** Goes to a position of the game from the Report's rows or the book's mark, and turns the book on for this review. */
-  function bookAt(at: number, feature: string) {
+  function openBookAt(at: number, feature: string) {
     used(feature);
     go(at);
     bookForReview = true;
@@ -1519,7 +1525,7 @@
      does not focus it, so that the Space key does not click it again. -->
 {#snippet bookRow(text: string, at: number, feature: string)}
   <button type="button" class="block w-full px-0 py-1.5 text-left text-sm bg-transparent border-0 border-t border-line rounded-none hover:bg-panel-2"
-          onmousedown={e => e.preventDefault()} onclick={() => bookAt(at, feature)}>
+          onmousedown={e => e.preventDefault()} onclick={() => openBookAt(at, feature)}>
     {text} <span class="text-accent underline">Show the position</span>
   </button>
 {/snippet}
@@ -1623,13 +1629,14 @@
       {@const bookMark = t.edges.find(e => bookMarks.has(e.index))}
       <div class={turnRow(unit === "turn")}>
         <!-- The game's last book move (design 32, item 4): one mark, an open book, beside its turn's number. The number's
-             column has a fixed width with room to spare, so the mark never widens a move's column: in a move's cell, it
-             pushed the move list past its edge at its narrowest. Its title names the move. A click goes to the position
-             after the move, where the game left the book, and turns the book on for this review. -->
+             column has a fixed width, so the mark never widens a move's column: in a move's cell, it pushed the move list
+             past its edge at its narrowest. From turn 10, the mark goes into the gap before the move, short of the move.
+             Its title names the move. A click goes to the position after the move, where the game left the book, and
+             turns the book on for this review. -->
         <span class="{TURN_NUMBER} whitespace-nowrap">{t.number}.{#if bookMark}{@const name = moveNotation(bookMark)}<button
-              type="button" class="book-mark ml-0.5 p-0 bg-transparent border-0 text-muted hover:text-ink" tabindex="-1"
+              type="button" class="ml-0.5 p-0 bg-transparent border-0 text-muted hover:text-ink" tabindex="-1"
               title="Last move in the book: {name}" aria-label="Last move in the book: {name}"
-              onclick={() => bookAt(bookMark.index + 1, "book mark")}><Icon name="book" /></button>{/if}</span>
+              onclick={() => openBookAt(bookMark.index + 1, "book mark")}><Icon name="book" /></button>{/if}</span>
         {#if t.continued}<span class="px-[0.2rem] text-muted">…</span>{/if} <!-- its first edge was played before the start -->
         {#each t.edges as e (e.index)}
           {@const after = R.blueScore[e.index + 1]}

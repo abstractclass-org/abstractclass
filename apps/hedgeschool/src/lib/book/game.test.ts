@@ -10,6 +10,7 @@ import { fileURLToPath } from "node:url";
 import { bookMove, openBook, type Book } from "./book.ts";
 import type { BookPosition } from "./form.ts";
 import { gameOpening, openingSentence, trapRows } from "./game.ts";
+import { moveLabel } from "./sentences.ts";
 import { mirrorEdge } from "#lib/engine/notation.ts";
 
 const root = fileURLToPath(new URL("../../..", import.meta.url));
@@ -44,7 +45,7 @@ test("a game that leaves the book: the move that left it, the book move worse th
   assert.equal(o.kind, "left");
   assert.equal(o.at, 3, "the position before D9-G11");
   assert.equal(o.weak?.index, 2);
-  assert.equal(o.weak?.label, "inaccuracy");
+  assert.equal(moveLabel(o.weak!.position, o.weak!.move), "inaccuracy");
   assert.deepEqual(o.marks, [2], "O11-Q10, the last move in the book");
   assert.deepEqual(o.traps, []);
   assert.equal(openingSentence(o, LEFT, "good"), "The game left the book at turn 3: Blue, D9-G11, Good. " +
@@ -69,6 +70,9 @@ test("a game not in the book from the first move, which comes back to it by anot
   assert.equal(o.at, 0);
   assert.deepEqual(o.marks, [6], "G14-H11, back in the book");
   assert.equal(openingSentence(o, NEVER, "mistake"), "The game was not in the book from the first move.");
+  // The same game before it comes back: no mark
+  const out = NEVER.slice(0, 3);
+  assert.deepEqual(gameOpening(await walk(book, out), out)!.marks, []);
 });
 
 test("a trap and its refutation, and the book move worse than Good before it", async () => {
@@ -76,7 +80,7 @@ test("a trap and its refutation, and the book move worse than Good before it", a
   assert.deepEqual(o.traps.map(t => [t.index, t.move.move, t.refuted]), [[3, "G9-K10", true]]);
   // D10-G9 is an Inaccuracy and K9-N11 a Mistake: the row names the worse
   assert.equal(o.weak?.index, 2);
-  assert.equal(o.weak?.label, "mistake");
+  assert.equal(moveLabel(o.weak!.position, o.weak!.move), "mistake");
   assert.deepEqual(trapRows(o), [{ at: 3, text: "Turn 3: Blue played a trap, G9-K10. Red played its refutation." }]);
   // The same game in its mirror image: the start's twins play the same book moves, turned over
   const image = TRAP.map(mirrorEdge);
@@ -88,6 +92,14 @@ test("a trap whose refutation the other side did not play", async () => {
   const missed = [...TRAP.slice(0, 6), "M10-P9", "A10-D9"]; // Red's second edge is not the refutation's
   const o = gameOpening(await walk(book, missed), missed)!;
   assert.deepEqual(trapRows(o), [{ at: 3, text: "Turn 3: Blue played a trap, G9-K10. Red did not play its refutation." }]);
+});
+
+test("a trap whose side ended its turn outside the refutation: the row names the trap only", async () => {
+  // Blue's H6-K9 is not the refutation's K10-N12, so Red's K9-M10 M10-P11 answer another position
+  const other = [...TRAP.slice(0, 4), "H6-K9", ...TRAP.slice(5)];
+  const o = gameOpening(await walk(book, other), other)!;
+  assert.equal(o.kind, "left");
+  assert.deepEqual(trapRows(o), [{ at: 3, text: "Turn 3: Blue played a trap, G9-K10." }]);
 });
 
 test("a game that ends in the book, as a game imported while it is played: no opening row, and no claim on a refutation", async () => {

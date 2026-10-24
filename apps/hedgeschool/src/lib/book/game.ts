@@ -8,12 +8,11 @@
 // to it by another move order. The Report names the first departure, and the move list marks the last book move of
 // each stretch in the book (the journey, A1, "Variations").
 import type { Label } from "@abstractclass/analysis/labels.ts";
-import { edgeName, parseEdge } from "#lib/engine/notation.ts";
 import { moverOf } from "#lib/editor/position.ts";
 import { bookMove } from "./book.ts";
 import type { BookMove, BookPosition } from "./form.ts";
-import { NOT_IN_BOOK_SENTENCE, bookEndSentence, edgeCount, isFine, leftBookSentence, moveLabel, moveLoss,
-  trapPlayedSentence, weakBookMoveSentence } from "./sentences.ts";
+import { NOT_IN_BOOK_SENTENCE, bookEndSentence, edgeCount, isFine, leftBookSentence, moveLoss, trapPlayedSentence,
+  weakBookMoveSentence } from "./sentences.ts";
 
 /** A book move that the game played: the edge's index, and the book's position before it. */
 export interface PlayedBookMove { index: number; position: BookPosition; move: BookMove }
@@ -27,11 +26,12 @@ export interface GameOpening {
   at: number;
   /** The book's position there. */
   position: BookPosition;
-  /** The book move worse than Good that the game played before it left the book, the worst first, not a trap: the
-   *  trap has its own row. */
-  weak: (PlayedBookMove & { label: Label }) | null;
+  /** The worst book move worse than Good that the game played before it left the book, not a trap: the trap has its
+   *  own row. */
+  weak: PlayedBookMove | null;
   /** The traps that the game played, in the game's order. `refuted`: whether the other side played the refutation's
-   *  edges, in either order in its turn; null when the game ended before them. */
+   *  edges, in either order in its turn; null when the game ended before them, or when the side that played the trap
+   *  ended its turn otherwise. */
   traps: (PlayedBookMove & { refuted: boolean | null })[];
   /** The game's last book move of each stretch in the book, by the edge's index: the move list's mark. */
   marks: number[];
@@ -50,10 +50,9 @@ export function gameOpening(positions: (BookPosition | null)[], edges: string[])
   const kind = !end.moves.length ? "end" : last === positions.length - 1 ? "in" : last === 0 ? "never" : "left";
   // The book moves that the game played: from a book position, an edge that the book lists (bookMove reads a twin at
   // the start)
-  const played: PlayedBookMove[] = [];
-  positions.forEach((p, k) => {
+  const played = positions.flatMap((p, k): PlayedBookMove[] => {
     const m = p && k < edges.length ? bookMove(p, edges[k]) : undefined;
-    if (p && m) played.push({ index: k, position: p, move: m });
+    return p && m ? [{ index: k, position: p, move: m }] : [];
   });
   const weak = played.filter(b => b.index < last && !b.move.trap && !isFine(b.position, b.move))
     .reduce<PlayedBookMove | null>((w, b) => (!w || moveLoss(b.position, b.move) > moveLoss(w.position, w.move) ? b : w), null);
@@ -61,23 +60,23 @@ export function gameOpening(positions: (BookPosition | null)[], edges: string[])
   // stretch's last book move, but at the start, where no edge leads.
   const marks = positions.flatMap((p, k) => (p && k > 0 && k + 1 < positions.length && !positions[k + 1] ? [k - 1] : []));
   return {
-    kind, at: last, position: end,
-    weak: weak && { ...weak, label: moveLabel(weak.position, weak.move) },
+    kind, at: last, position: end, weak,
     traps: played.filter(b => b.move.trap).map(b => ({ ...b, refuted: refuted(b, edges) })),
     marks,
   };
 }
 
-/** Whether the other side played a trap's refutation: its edges of the refutation, which comes after the rest of the
- *  trap's turn, in either order in its turn. Null when the game ended before them. */
+/** Whether the other side played a trap's refutation: its edges of the refutation, which come after the rest of the
+ *  trap's turn, in either order in its turn. Null when the game ended before them, and when the side that played the
+ *  trap did not end its turn as the refutation does: the refutation then answers a position that the game did not
+ *  reach. The book and the game write an edge in the notation's one spelling, as `bookMove` reads them. */
 function refuted({ index, position, move }: PlayedBookMove, edges: string[]): boolean | null {
   const count = edgeCount(position), trapper = moverOf(count).player;
-  const theirs = move.trap!.refutation.map((e, j) => ({ e, k: index + 1 + j }))
-    .filter(({ k }, j) => moverOf(count + 1 + j).player !== trapper);
-  if (theirs.some(({ k }) => k >= edges.length)) return null;
-  const same = (e: string) => (e === "pass" ? e : edgeName(parseEdge(e)));
-  const played = new Set(theirs.map(({ k }) => same(edges[k])));
-  return theirs.every(({ e }) => played.has(same(e)));
+  const line = move.trap!.refutation
+    .map((e, j) => ({ e, k: index + 1 + j, own: moverOf(count + 1 + j).player === trapper }));
+  if (line.some(({ e, k, own }) => k >= edges.length || (own && edges[k] !== e))) return null;
+  const theirs = line.filter(({ own }) => !own), played = new Set(theirs.map(({ k }) => edges[k]));
+  return theirs.every(({ e }) => played.has(e));
 }
 
 /** The Report's opening row (design 32, item 4): where the game left the book, with the review's label of the move

@@ -1,7 +1,7 @@
 // The book's sentences (design 32, item 6), built from the book's values as the review builds its sentences from checked
 // engine facts (design 04), never from a language model. Each function takes positions as the loader gives them (book.ts,
-// `Book`: in the player's orientation) and gives the text that the table (beads abscls-tpaj.5) and Openings
-// (abscls-tpaj.12) show. The facts: how a line ends (its symbol, symbols.ts), how the other book moves end, a better
+// `Book`: in the player's orientation) and gives the text that the table (beads abscls-tpaj.5), Openings
+// (abscls-tpaj.12) and the review's Report (abscls-tpaj.6) show. The facts: how a line ends (its symbol, symbols.ts), how the other book moves end, a better
 // move outside the book, the labels of the book moves (design 10), the traps that the best move avoids, and what a trap
 // costs the side that plays it, with its refutation. No sentence says what a turn encloses: such sentences were exact
 // and misleading (design 30, "Why").
@@ -12,7 +12,7 @@
 import { GOOD_WIN, classify, type Label } from "@abstractclass/analysis/labels.ts";
 import { LABEL_TEXT, moverWin, pct } from "@abstractclass/analysis/model.ts";
 import { playerOf } from "#lib/engine/position.ts";
-import { PLAYER_NAME, turnFromCount } from "#lib/review/enclosure.ts";
+import { PLAYER_NAME, otherPlayer, turnFromCount } from "#lib/review/enclosure.ts";
 import type { Book } from "./book.ts";
 import type { BookMove, BookPosition } from "./form.ts";
 import { SYMBOL_NAME, lineEndSymbol, positionSymbol, rounded, type PositionSymbol } from "./symbols.ts";
@@ -229,7 +229,7 @@ export const bookEndSentence = (end: BookPosition) =>
  *  Blue played a trap, G9-K10. Red played its refutation." `refuted` is null when the game ended before it: the row
  *  then names the trap only. */
 export function trapPlayedSentence(p: BookPosition, m: BookMove, refuted: boolean | null): string {
-  const other = PLAYER_NAME[1 - playerOf(p.mover)];
+  const other = PLAYER_NAME[otherPlayer(playerOf(p.mover))];
   return `Turn ${p.turn}: ${side(p)} played a trap, ${m.move}.` +
     (refuted === null ? "" : ` ${other} ${refuted ? "played" : "did not play"} its refutation.`);
 }

@@ -37,7 +37,10 @@ learn one, and remove a note when it stops being true. The work itself is in bea
   default. A new script that starts a browser uses the gate.
 - **The layout sweep** (`npm run test:layout` in `apps/hedgeschool`) runs in Chromium alone. Its default address is the
   owner's preview on port 4173. A worker sets `BASE_URL` to its own preview (another port, or a Cloudflare preview).
-  The project `edge` comes only with `HS_EDGE=1` (the note "Edge starts only with `HS_EDGE=1`").
+  Set it in the job's environment. From Git Bash: `BASE_URL=http://127.0.0.1:5216 MSYS_NO_PATHCONV=1 scripts/machine
+  run … --windows -- cmd /c "npx playwright test …"`. Do not write `set "BASE_URL=…"` in the text after `cmd /c`: from
+  Git Bash, its quotes reach cmd with backslashes, cmd does not set the variable, and the tests go to port 4173 with no
+  error. The project `edge` comes only with `HS_EDGE=1` (the note "Edge starts only with `HS_EDGE=1`").
   `npx playwright test --list` shows the tests with no browser, and shows the project `edge` only with the variable.
 - **The local server and a build:** stop the server before `npm run build`, then start it again. A build under a
   running server can stop it (a page asks for `_app/version.json` while the build replaces it).
