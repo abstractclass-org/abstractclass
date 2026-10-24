@@ -182,13 +182,20 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
     draws of it: the cells that a placement stamps and removes come from the move's data, not from rules.
   - The hands: in a column on each side of a wide area (Blue's on the left, as Blue's cells start on the left), and
     in a row above and below a tall one, such as a phone's. Each blueprint has its own panel, with its number in a
-    box, its frame's grid, and its first cell (0, 0) ringed. All six blueprints have one scale.
+    box, its frame's grid, and its first cell (0, 0) ringed. The ring is inside the cell's edge, so it has one width
+    all round. All six blueprints have one scale.
+  - `variants.ts`: variants to compare on the lab page, until one of each is chosen. The first cell's mark
+    (`?first=`): the ring, a darker fill, the blueprint's outline with a dot, or a pointer above the cell. The
+    candidates' look (`?cand=`): the rank on the placement's hex, the placement's outline or its faded cells with the
+    rank in the middle, the blueprint's number beside the rank, chips in the hands, or a mix of the outline, the
+    number and the chips.
   - The view: the board fits the cells until the player pans or zooms, and again after "Show all the cells". A drag
     or one finger pans, two fingers pinch, and the wheel zooms round the pointer.
   - `position.ts`: the position in strategyjam.org's form and the move as the board draws it. `hex.ts`: the grid's
     geometry. `view.ts`: pan, zoom and fit. `fixtures.ts`: the hand-made positions.
 - `apps/drawingboard/src/routes/lab/board/`: the board's lab page (`/lab/board`), with its own small frame: the
-  start, a middle game with candidates and lines, a capture, an edit and an empty blueprint.
+  start, a middle game with five candidates and their lines, a capture, an edit and an empty blueprint. Its switches
+  choose the variants, and the address keeps each choice.
 - `apps/drawingboard/src/app.css`: the board's colour tokens that the shared style does not hold (the board, the
   last move, the engine's candidates), Hedge School's.
 - `scripts/check-all.mjs`: its type check, its unit tests and its build, in the Tests workflow's checks.

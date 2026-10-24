@@ -23,8 +23,9 @@
   // move stamps and removes comes from the move's data.
   import Cell from "./Cell.svelte";
   import Hand, { blueprintBoxes, PANEL_PAD, type HandEdit, type HandMarks } from "./Hand.svelte";
-  import { boxOf, center, GRID_TILE, gridTilePath, hexAt, hexKey, hexPath, sameHex } from "./hex.ts";
+  import { boxOf, center, GRID_TILE, gridTilePath, hexAt, hexKey, hexPath, outlinePath, sameHex } from "./hex.ts";
   import { cellsOf } from "./position.ts";
+  import { DEFAULT_VARIANT, type BoardVariant } from "./variants.ts";
   import { fit, pan, pinch, toArea, toPlane, viewBox, zoomAt, type View } from "./view.ts";
 
   interface Props {
@@ -34,16 +35,19 @@
     highlight?: string | null; // a candidate pointed at from outside the board (a row of the candidates table)
     line?: BoardLineMove[] | null; // the line of the candidate pointed at, as far as drawn: numbered, the candidate first
     layers?: Partial<BoardLayers>; // the layers that differ from DEFAULT_LAYERS
+    variant?: Partial<BoardVariant>; // the lab's variants (lib/board/variants.ts) that differ from DEFAULT_VARIANT
     oncandidate?: (name: string | null) => void;
     oncandidateclick?: (name: string) => void;
     // The hex under a mouse's pointer, or null when it leaves: the board shows its coordinates, and the page may too.
     onhexat?: (at: BoardHex | null) => void;
   }
   let {
-    position, last = null, candidates = [], highlight = null, line = null, layers: layersSet = {},
+    position, last = null, candidates = [], highlight = null, line = null, layers: layersSet = {}, variant: variantSet = {},
     oncandidate, oncandidateclick, onhexat,
   }: Props = $props();
   const layers = $derived({ ...DEFAULT_LAYERS, ...layersSet });
+  const variant = $derived({ ...DEFAULT_VARIANT, ...variantSet });
+  const look = $derived(variant.candidates);
 
   const uid = $props.id();
   const gridId = `${uid}-grid`;
@@ -88,16 +92,21 @@
   let hoverHex = $state<Hex | null>(null);
   let handHover = $state<{ player: Player; at: HandHex } | null>(null);
   const placeCandidates = $derived(layers.candidates ? candidates.filter(c => c.move.type === "place") : []);
+  /** The best placement whose first cell or whose rank is on a hex of the board. */
+  const placementAt = (h: Hex) => placeCandidates
+    .filter(c => c.move.type === "place" && (sameHex(c.move.at, h) || sameHex(rankPlaces.get(c.name)?.hex ?? c.move.at, h)))
+    .sort((a, b) => a.rank - b.rank)[0] ?? null;
   const hoveredName = $derived.by(() => {
-    if (hoverHex) return placeCandidates.filter(c => c.move.type === "place" && sameHex(c.move.at, hoverHex!))
-      .sort((a, b) => a.rank - b.rank)[0]?.name ?? null;
+    if (hoverHex) return placementAt(hoverHex)?.name ?? null;
     return handHover ? handCandidate(handHover.player, handHover.at)?.name ?? null : null;
   });
-  /** The candidate whose edit puts a cell on a hex of a hand. */
+  /** The candidate whose edit puts a cell on a hex of a hand, or takes it from there when the hand shows the rank on
+   *  the cell that the edit moves. */
   function handCandidate(player: Player, at: HandHex): BoardCandidate | null {
     if (!layers.candidates) return null;
-    return candidates.find(c => c.move.type === "edit" && c.move.player === player && c.move.to.blueprint === at.blueprint
-      && sameHex(c.move.to.hex, at.hex)) ?? null;
+    const on = (h: HandHex) => h.blueprint === at.blueprint && sameHex(h.hex, at.hex);
+    return candidates.find(c => c.move.type === "edit" && c.move.player === player && (on(c.move.to) || (look.hand && on(c.move.from))))
+      ?? null;
   }
   const hovered = $derived(hoveredName ? candidates.find(c => c.name === hoveredName) ?? null : null);
   const lit = $derived(hovered ?? (highlight ? candidates.find(c => c.name === highlight) ?? null : null));
@@ -112,10 +121,13 @@
     candidates: layers.candidates && !drawn.length
       ? candidates.flatMap(c => c.move.player === p && c.move.type === "edit" ? [{ ...editOf(c.move)!, name: c.name, rank: c.rank }] : [])
       : [],
+    placed: layers.candidates && look.hand && !drawn.length
+      ? candidates.flatMap(c => c.move.player === p && c.move.type === "place" ? [{ blueprint: c.move.blueprint, name: c.name, rank: c.rank }] : [])
+      : [],
     lit: lit?.name ?? null,
     line: drawn.flatMap((l, i) => l.move.player === p && l.move.type === "edit" ? [{ ...editOf(l.move)!, n: i + 1 }] : []),
   })));
-  const boxes = $derived(players.map(p => blueprintBoxes(hands[p], marks[p])));
+  const boxes = $derived(players.map(p => blueprintBoxes(hands[p], marks[p], variant.first)));
   // One scale for the six blueprints: the largest at which each fits its panel, a hex at most 36 pixels across.
   const unit = $derived.by(() => {
     const pw = sides ? handSize : width / 3, ph = sides ? height / 3 : handSize;
@@ -126,6 +138,38 @@
 
   // Draw the first choice last, so that it stays on top.
   const ordered = $derived([...placeCandidates].sort((a, b) => b.rank - a.rank));
+  // Where each placement's rank goes: on its first cell's hex, or with a footprint, on the footprint's hex nearest its
+  // middle; with the blueprint's number on the rank's right (the two centred on the hex), or on its left (the rank on
+  // the hex). The first place that keeps clear of the better candidates' ranks wins: candidates overlap, and a rank with
+  // the number is wider than a hex.
+  type RankAt = { hex: Hex; side: 1 | -1 };
+  const rankPlaces = $derived.by(() => {
+    const out = new Map<string, RankAt>(), taken: { x0: number; x1: number; y0: number; y1: number }[] = [];
+    const boxAt = ({ hex, side }: RankAt) => {
+      const [x, y] = center(hex);
+      const [x0, x1] = !look.number ? [x - 0.6, x + 0.6] : side === 1 ? [x - 1.05, x + 1.09] : [x - 1.54, x + 0.6];
+      return { x0, x1, y0: y - 0.6, y1: y + 0.6 };
+    };
+    const clear = (p: RankAt) => {
+      const b = boxAt(p);
+      return taken.every(t => b.x1 <= t.x0 || b.x0 >= t.x1 || b.y1 <= t.y0 || b.y0 >= t.y1);
+    };
+    for (const c of [...placeCandidates].sort((a, b) => a.rank - b.rank)) {
+      if (c.move.type !== "place") continue;
+      let hexes: Hex[] = [c.move.at];
+      if (look.footprint !== "none" && c.move.stamped.length) {
+        const points = c.move.stamped.map(s => center(s.hex));
+        const mx = points.reduce((a, p) => a + p[0], 0) / points.length, my = points.reduce((a, p) => a + p[1], 0) / points.length;
+        const off = (h: Hex) => { const [x, y] = center(h); return Math.hypot(x - mx, y - my); };
+        hexes = c.move.stamped.map(s => s.hex).sort((a, b) => off(a) - off(b));
+      }
+      const places = hexes.flatMap((hex): RankAt[] => (look.number ? [{ hex, side: 1 }, { hex, side: -1 }] : [{ hex, side: 1 }]));
+      const at = places.find(clear) ?? places[0];
+      taken.push(boxAt(at));
+      out.set(c.name, at);
+    }
+    return out;
+  });
 
   // Another position replaces the hexes under the pointer.
   $effect.pre(() => { void position; hoverHex = null; handHover = null; });
@@ -182,7 +226,7 @@
     if (!pointers.delete(ev.pointerId)) return;
     if (gesture?.kind === "press" && !gesture.moved && click) {
       const h = hexUnder(local(ev));
-      const c = placeCandidates.filter(c => c.move.type === "place" && sameHex(c.move.at, h)).sort((a, b) => a.rank - b.rank)[0];
+      const c = placementAt(h);
       if (c) oncandidateclick?.(c.name);
     }
     // One finger left of a pinch goes on panning, and is not a click.
@@ -216,6 +260,16 @@
   <rect x={x - 0.6} y={y - 0.6} width="1.2" height="1.2" rx="0.28" class="cand-badge" />
   <text {x} y={y + 0.27} class="badge-number">{rank}</text>
 {/snippet}
+<!-- The rank with the blueprint's number beside it, in a box in the mover's colour, as the hands number them. -->
+{#snippet numberedBadge(at: RankAt, rank: number, player: Player, blueprint: BlueprintNumber)}
+  {@const [x0, y] = center(at.hex)}
+  {@const x = at.side === 1 ? x0 - 0.45 : x0}
+  {@const nx = x + at.side * 1.08}
+  <rect x={x - 0.6} y={y - 0.6} width="1.2" height="1.2" rx="0.28" class="cand-badge" />
+  <text {x} y={y + 0.27} class="badge-number">{rank}</text>
+  <rect x={nx - 0.46} y={y - 0.46} width="0.92" height="0.92" rx="0.17" class="number-box p{player}" />
+  <text x={nx} y={y + 0.22} class="badge-number number">{blueprint}</text>
+{/snippet}
 
 <div class="board" class:sides bind:clientWidth={width} bind:clientHeight={height}
      style:--hand="{handSize}px" style:--gap="{GAP}px">
@@ -223,7 +277,7 @@
     <div class="hand-area p{p}">
       {#if width > 0 && height > 0}
         <Hand hand={hands[p]} player={p} width={sides ? handSize : width} height={sides ? height : handSize}
-              direction={sides ? "column" : "row"} {unit} boxes={boxes[p]} marks={marks[p]}
+              direction={sides ? "column" : "row"} {unit} boxes={boxes[p]} marks={marks[p]} first={variant.first} {look}
               hover={handHover?.player === p ? handHover.at : null} onhover={at => handAt(p, at)}
               onpick={at => { const c = handCandidate(p, at); if (c) oncandidateclick?.(c.name); }} />
       {/if}
@@ -264,22 +318,39 @@
         {/if}
 
         {#if layers.candidates}
+          {@const strong = look.footprint !== "none" || look.number}
+          <!-- The footprints first, then all the ranks over them. While a line shows, the other candidates are hidden,
+               so that the board's only numbers are the line's. -->
           {#each ordered as c (c.name)}
             {#if c.move.type === "place"}
               {@const isLit = lit?.name === c.name}
-              <!-- While a line shows, the other candidates are hidden, so that the board's only numbers are the line's. -->
               {#if isLit || !drawn.length}
-                <g class="candidate" class:first={c.rank === 1} class:lit={isLit}>
-                  {#if isLit && !drawn.length}
+                {@const [ax, ay] = center(c.move.at)}
+                <g class="candidate" class:first={c.rank === 1} class:lit={isLit} class:strong={strong && c.rank === 1}>
+                  {#if !drawn.length && look.footprint === "outline"}
+                    <path d={outlinePath(c.move.stamped.map(s => s.hex))} class="footprint" />
+                    <circle cx={ax} cy={ay - 1} r="0.2" class="footprint-dot" />
+                  {/if}
+                  {#if (isLit || look.footprint === "ghost") && !drawn.length}
                     {#each c.move.stamped as s (hexKey(s.hex))}
                       <Cell hex={s.hex} owner={c.move.player} kind={s.kind} look="ghost" />
                     {/each}
                   {/if}
-                  {#if !drawn.length}{@render rankBadge(c.move.at, c.rank)}{/if}
                 </g>
               {/if}
             {/if}
           {/each}
+          {#if !drawn.length}
+            {#each ordered as c (c.name)}
+              {#if c.move.type === "place"}
+                {@const at = rankPlaces.get(c.name) ?? { hex: c.move.at, side: 1 as const }}
+                <g class="candidate" class:first={c.rank === 1} class:lit={lit?.name === c.name} class:strong={strong && c.rank === 1}>
+                  {#if look.number}{@render numberedBadge(at, c.rank, c.move.player, c.move.blueprint)}
+                  {:else}{@render rankBadge(at.hex, c.rank)}{/if}
+                </g>
+              {/if}
+            {/each}
+          {/if}
         {/if}
 
         <!-- The engine's line from the candidate pointed at (KaTrain's and Lizzie's way): each placement's cells faded
@@ -360,6 +431,15 @@
   /* Candidates: the first choice in the engine's colour, the others grey. All are faded until hover. */
   .candidate { opacity: 0.6; transition: opacity 0.12s; pointer-events: none; }
   .candidate.lit { opacity: 1; }
+  .candidate.strong { opacity: 0.95; }
+  .footprint { fill: none; stroke: var(--candidate); stroke-width: 0.12; stroke-linecap: round; }
+  .first .footprint { stroke: var(--engine); stroke-width: 0.2; }
+  .footprint-dot { fill: var(--candidate); }
+  .first .footprint-dot { fill: var(--engine); }
+  .number-box { stroke: var(--board-bg); stroke-width: 0.06; }
+  .number-box.p0 { fill: var(--blue); }
+  .number-box.p1 { fill: var(--red); }
+  .number { font-size: 0.66px; }
   .cand-badge { fill: var(--candidate); stroke: var(--board-bg); stroke-width: 0.08; }
   .first .cand-badge { fill: var(--engine); }
   .lit .cand-badge { stroke: var(--text); stroke-width: 0.1; }

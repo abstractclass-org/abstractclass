@@ -114,13 +114,14 @@ g = place(g, 0, 1, [-11, -3]);
 g = place(g, 0, 3, [-1, 1], ["1,1", "1,0", "2,1"]);
 const middle = g;
 
-// Red's candidates in the middle game, and a line for the first three. A candidate's edit is in the position's frames
+// Red's five candidates in the middle game, and a line for the first three. A candidate's edit is in the position's frames
 // (before it).
 const candidateMoves: [BoardMove, string][] = [
   [place(middle, 1, 3, [3, 1], ["1,2"]).last!, "Score +1.4"],
   [place(middle, 1, 1, [1, -6]).last!, "−0.6"],
   [{ type: "edit", player: 1, kind: "wall", from: { blueprint: 2, hex: [0, 2] }, to: { blueprint: 2, hex: [2, 0] } }, "−1.1"],
   [place(middle, 1, 2, [4, 2]).last!, "−2.3"],
+  [place(middle, 1, 1, [3, 2]).last!, "−2.9"], // four of its hexes are the first choice's: candidates overlap
 ];
 const candidates: BoardCandidate[] = candidateMoves.map(([move, note], i) => ({ name: name(move), move, rank: i + 1, note }));
 /** A line: the moves played one after another from the position, each with the hands after it. */

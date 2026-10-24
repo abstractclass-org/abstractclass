@@ -35,13 +35,30 @@ export const sameHex = (a: Hex, b: Hex): boolean => a[0] === b[0] && a[1] === b[
 
 /** The outline of a hex of radius `size` around the point (x, y): its six corners, the first one at the top. */
 export function hexPath(x: number, y: number, size = 1): string {
-  const corners = Array.from({ length: 6 }, (_, i) => {
-    const a = (Math.PI / 3) * i - Math.PI / 2;
-    return `${round(x + size * Math.cos(a))},${round(y + size * Math.sin(a))}`;
-  });
-  return `M${corners.join("L")}Z`;
+  return `M${Array.from({ length: 6 }, (_, i) => corner(x, y, size, i)).join("L")}Z`;
 }
+/** Corner i of a hex, clockwise from the top one (0). */
+const corner = (x: number, y: number, size: number, i: number) => {
+  const a = (Math.PI / 3) * i - Math.PI / 2;
+  return `${round(x + size * Math.cos(a))},${round(y + size * Math.sin(a))}`;
+};
 const round = (v: number) => Math.round(v * 1000) / 1000 + 0;
+
+/** The six neighbours, in the order of a hex's sides: side i joins corners i and i + 1, the first is the upper right. */
+export const NEIGHBOURS: readonly Hex[] = [[1, -1], [1, 0], [0, 1], [-1, 1], [-1, 0], [0, -1]];
+
+/** The outline of a group of hexes: the sides that no other hex of the group shares, as separate lines of a path. */
+export function outlinePath(hexes: readonly Hex[]): string {
+  const keys = new Set(hexes.map(hexKey));
+  let d = "";
+  for (const h of hexes) {
+    const [x, y] = center(h);
+    NEIGHBOURS.forEach(([dq, dr], i) => {
+      if (!keys.has(hexKey([h[0] + dq, h[1] + dr]))) d += `M${corner(x, y, 1, i)}L${corner(x, y, 1, (i + 1) % 6)}`;
+    });
+  }
+  return d;
+}
 
 /** A blueprint's first cell: the first in reading order, the least r, then the least q. It is the cell (0, 0) of the
  *  blueprint's own frame (design 33, item 5). Null for no hexes. */

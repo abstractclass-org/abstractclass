@@ -2,11 +2,14 @@
   // The board's lab (design 33): Blueprints' board on hand-made positions (lib/board/fixtures.ts), so that the board
   // can be checked and looked at before the review and the Analysis board take it. The page has its own small frame
   // until the site's shell (abscls-8tl1.2) gives one. It has no engine: the candidates and their lines are hand-made.
-  // The address can choose the position, the theme and a candidate: ?p=1&theme=dark&c=3@3,1.
+  // The address can choose the position, the theme, a candidate and the board's variants (lib/board/variants.ts):
+  // ?p=1&theme=dark&c=3@3,1&first=outline&cand=mix. A choice on the page goes into the address, so that it can be
+  // shared.
   import { onMount } from "svelte";
   import Board, { type BoardHex } from "#lib/board/Board.svelte";
   import { FIXTURES } from "#lib/board/fixtures.ts";
   import { hexKey } from "#lib/board/hex.ts";
+  import { CANDIDATE_LOOKS, DEFAULT_VARIANT, FIRST_MARKS, type CandidateLookName, type FirstMark } from "#lib/board/variants.ts";
   import { SITE_NAME } from "#lib/site.ts";
 
   let index = $state(0);
@@ -15,6 +18,9 @@
   let chosen = $state<string | null>(null); // the candidate clicked: its line stays drawn
   let pointed = $state<string | null>(null); // the candidate under the pointer
   let at = $state<BoardHex | null>(null);
+  let first = $state<FirstMark>(DEFAULT_VARIANT.first);
+  let cand = $state<CandidateLookName>("badge");
+  const LOOK_NAMES = Object.keys(CANDIDATE_LOOKS) as CandidateLookName[];
   const fixture = $derived(FIXTURES[index]);
   const shown = $derived(pointed ?? chosen);
   const line = $derived(shown && showCandidates ? fixture.lines?.[shown] ?? null : null);
@@ -25,9 +31,18 @@
     if (Number.isInteger(p) && p >= 0 && p < FIXTURES.length) index = p;
     theme = q.get("theme") === "dark" || (!q.get("theme") && matchMedia("(prefers-color-scheme: dark)").matches) ? "dark" : "light";
     chosen = q.get("c");
+    const f = q.get("first"), c = q.get("cand");
+    if (FIRST_MARKS.includes(f as FirstMark)) first = f as FirstMark;
+    if (LOOK_NAMES.includes(c as CandidateLookName)) cand = c as CandidateLookName;
   });
   $effect(() => { document.documentElement.dataset.theme = theme; });
-  function choose(i: number) { index = i; chosen = null; pointed = null; }
+  function choose(i: number) { index = i; chosen = null; pointed = null; address({ p: i ? String(i) : null, c: null }); }
+  /** The address with these parameters set, or removed (null). */
+  function address(set: Record<string, string | null>) {
+    const url = new URL(location.href);
+    for (const [k, v] of Object.entries(set)) if (v === null) url.searchParams.delete(k); else url.searchParams.set(k, v);
+    history.replaceState(history.state, "", url);
+  }
   const where = (h: BoardHex | null) =>
     !h ? "" : h.hand ? `${h.hand.player === 0 ? "Blue" : "Red"}'s blueprint ${h.hand.blueprint}, at ${hexKey(h.hex)}` : `the board, at ${hexKey(h.hex)}`;
 </script>
@@ -39,7 +54,7 @@
     <a href="/" class="font-semibold">{SITE_NAME}</a>
     <span class="text-muted">Board lab</span>
     <button type="button" class="ml-auto rounded-md border border-line px-2 py-1 text-sm hover:bg-panel-2"
-            onclick={() => (theme = theme === "dark" ? "light" : "dark")}>
+            onclick={() => { theme = theme === "dark" ? "light" : "dark"; address({ theme }); }}>
       {theme === "dark" ? "Light theme" : "Dark theme"}
     </button>
   </header>
@@ -56,6 +71,21 @@
     {/if}
   </div>
 
+  <!-- The variants to compare: the first cell's mark in the hands, and the candidates' look. -->
+  {#snippet switches(label: string, names: readonly string[], current: string, pick: (name: string) => void)}
+    <div class="flex shrink-0 flex-wrap items-center gap-1 px-4 pb-1 text-xs" role="group" aria-label={label}>
+      <span class="mr-1 text-muted">{label}</span>
+      {#each names as n (n)}
+        <button type="button" onclick={() => pick(n)} aria-pressed={n === current}
+                class={["rounded border px-1.5 py-0.5", n === current ? "border-accent bg-accent text-on-accent" : "border-line hover:bg-panel-2"]}>
+          {n}
+        </button>
+      {/each}
+    </div>
+  {/snippet}
+  {@render switches("First cell", FIRST_MARKS, first, n => { first = n as FirstMark; address({ first: n === DEFAULT_VARIANT.first ? null : n }); })}
+  {@render switches("Candidates", LOOK_NAMES, cand, n => { cand = n as CandidateLookName; address({ cand: n === "badge" ? null : n }); })}
+
   <main class="flex min-h-0 flex-1 flex-col gap-2 px-4 pb-3">
     <p class="min-h-5 shrink-0 text-sm text-muted">
       Move {fixture.position.ply} · Blue {fixture.position.scores[0]}, Red {fixture.position.scores[1]}
@@ -64,7 +94,7 @@
     </p>
     <div class="min-h-0 flex-1">
       <Board position={fixture.position} last={fixture.last} candidates={fixture.candidates ?? []} {line}
-             highlight={chosen} layers={{ candidates: showCandidates }}
+             highlight={chosen} layers={{ candidates: showCandidates }} variant={{ first, candidates: CANDIDATE_LOOKS[cand] }}
              oncandidate={name => (pointed = name)} oncandidateclick={name => (chosen = chosen === name ? null : name)}
              onhexat={h => (at = h)} />
     </div>

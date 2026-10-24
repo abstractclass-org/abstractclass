@@ -60,7 +60,7 @@ test("the middle game's candidates are Red's, and each line starts with its cand
   const f = FIXTURES[1];
   assert.equal(f.position.ply, 9);
   assert.deepEqual(f.candidates?.map(c => [c.name, c.rank, c.move.player]),
-    [["3@3,1", 1, 1], ["1@1,-6", 2, 1], ["2:0,2>2:2,0", 3, 1], ["2@4,2", 4, 1]]);
+    [["3@3,1", 1, 1], ["1@1,-6", 2, 1], ["2:0,2>2:2,0", 3, 1], ["2@4,2", 4, 1], ["1@3,2", 5, 1]]);
   for (const [name, line] of Object.entries(f.lines ?? {}))
     assert.deepEqual(line[0].move, f.candidates?.find(c => c.name === name)?.move);
 });

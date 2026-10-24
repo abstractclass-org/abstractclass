@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { boxOf, center, firstHex, hexAt, hexKey, hexPath, inFrame, parseHex, type Hex } from "./hex.ts";
+import { boxOf, center, firstHex, hexAt, hexKey, hexPath, inFrame, NEIGHBOURS, outlinePath, parseHex, type Hex } from "./hex.ts";
 import { stamp } from "./position.ts";
 
 const near = (a: readonly number[], b: readonly number[]) =>
@@ -54,4 +54,18 @@ test("a box holds the hexes' shapes", () => {
   assert.equal(boxOf([]), null);
   const b = boxOf([[0, 0], [1, 1]])!;
   near([b.x0, b.y0, b.x1, b.y1], [-Math.sqrt(3) / 2, -1, 1.5 * Math.sqrt(3) + Math.sqrt(3) / 2, 2.5]);
+});
+
+test("a group's outline is the sides that no other hex of the group shares", () => {
+  const sides = (hexes: Hex[]) => outlinePath(hexes).split("M").length - 1;
+  assert.equal(sides([[0, 0]]), 6);
+  assert.equal(sides([[0, 0], [1, 0]]), 10);
+  assert.equal(sides([[0, 0], ...NEIGHBOURS]), 18); // a star with its ring
+  // Side i joins corners i and i + 1, and faces neighbour i: its middle is halfway to that neighbour's centre.
+  const corners = hexPath(0, 0).slice(1, -1).split("L").map(c => c.split(",").map(Number));
+  NEIGHBOURS.forEach((n, i) => {
+    const [a, b] = [corners[i], corners[(i + 1) % 6]];
+    const [x, y] = center(n).map(v => v / 2);
+    assert.ok(Math.hypot((a[0] + b[0]) / 2 - x, (a[1] + b[1]) / 2 - y) < 1e-3, `side ${i}`); // a path rounds to 0.001
+  });
 });
