@@ -182,9 +182,12 @@ function stepBarProblems(page: Page) {
 }
 
 // The step bar on a phone (design 06, item 4): on a touch screen of 360 × 640, the bar is fixed to the window's foot,
-// on the review, the Analysis board and Practice.
+// on the review, the Analysis board and Practice. The visitor has answered the consent notice, which covers the bar
+// until they choose: a build that stores practice games, as CI's, asks for it.
 test("the step bar on a phone", async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 360, height: 640 }, isMobile: true, hasTouch: true });
+  await context.addInitScript(() =>
+    localStorage.setItem("hedge-school:consent:2", JSON.stringify({ analytics: "denied", games: "denied" })));
   const page = await context.newPage();
   const record = JSON.parse(readFileSync(FIXTURE, "utf8")).record as string;
   const found: string[] = [];
