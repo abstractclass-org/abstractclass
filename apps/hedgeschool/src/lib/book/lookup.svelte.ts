@@ -11,15 +11,18 @@ export type BookAt =
   | { state: "failed"; error: BookLoadError }
   | { state: "out" }
   | { state: "in"; position: BookPosition };
+/** The states that hold nothing more, one object each, so that a page's $derived value stops at a lookup that gives the
+ *  same state again. */
+export const LOADING: BookAt = { state: "loading" }, OUT: BookAt = { state: "out" };
 
 export class OpeningBook {
   #book = $state.raw<Book | null>(null);
   #error = $state.raw<BookLoadError | null>(null); // the index's
   #failed = new Map<string, BookLoadError>(); // the positions whose part did not load, until `retry`
   #asked = new Set<string>(); // the positions whose part loads
-  // Each position in the book, as `at` first gave it: a loaded part does not change, and the same object stops the
-  // pages' $derived values at a load that does not change the position on screen
-  #in = new Map<string, BookAt>();
+  // Each position in the book or out of it, as `at` first gave it: the index and a loaded part do not change, and the
+  // same object stops the pages' $derived values at a load that does not change the position on screen
+  #known = new Map<string, BookAt>();
   #changed = $state(0); // counts the loads and failures, so that `at` runs again
   readonly #url: string;
   readonly #read: BookReader | undefined;
@@ -46,16 +49,15 @@ export class OpeningBook {
   at(position: string): BookAt {
     void this.#changed;
     const book = this.#book;
-    if (!book) return this.#error ? { state: "failed", error: this.#error } : { state: "loading" };
+    if (!book) return this.#error ? { state: "failed", error: this.#error } : LOADING;
     const error = this.#failed.get(position);
     if (error) return { state: "failed", error };
-    const known = this.#in.get(position);
+    const known = this.#known.get(position);
     if (known) return known;
     const p = book.peek(position);
-    if (p === null) return { state: "out" };
-    if (p) {
-      const a: BookAt = { state: "in", position: p };
-      this.#in.set(position, a);
+    if (p !== undefined) {
+      const a: BookAt = p ? { state: "in", position: p } : OUT;
+      this.#known.set(position, a);
       return a;
     }
     if (!this.#asked.has(position)) {
@@ -63,7 +65,7 @@ export class OpeningBook {
       book.get(position).then(() => {}, e => this.#failed.set(position, e instanceof BookLoadError ? e : new BookLoadError(this.#url, e)))
         .finally(() => { this.#asked.delete(position); this.#changed++; });
     }
-    return { state: "loading" };
+    return LOADING;
   }
 
   /** "Try again": the index again when it did not load, and each part that did not load at the next lookup. */

@@ -8,8 +8,9 @@
   // and the board's numbers set it from outside.
   //
   // The keys (item 9): Tab puts the focus on the table's row (one stop for the whole table), the up and down keys move
-  // between the rows, Enter plays the row's move (or a trap and its refutation), and Escape returns the focus to the
-  // page. On a phone (item 10), a tap anywhere on a row plays it.
+  // between the rows, Enter or Space plays the row's move (or a trap and its refutation), and Escape returns the focus
+  // to the page. When the rows go while one has the focus, the focus goes to the switch. On a phone (item 10), a tap
+  // anywhere on a row plays it.
   import type { Snippet } from "svelte";
   import { Switch } from "bits-ui";
   import { SWITCH, SWITCH_THUMB } from "#lib/ui/settings.ts";
@@ -81,6 +82,16 @@
     refocus = false;
     queueMicrotask(() => box?.querySelector<HTMLElement>('[data-item="0"]')?.focus());
   });
+  // The rows go (the key o, or a move out of the book): no row stays pointed at, and a row that had the focus gives it
+  // to the switch's chosen side, which stays, not to the page's start. Before the update, while the row is still there.
+  let chips = $state<HTMLElement | null>(null);
+  $effect.pre(() => {
+    if (showsBook) return;
+    pointed = null;
+    if (!box?.contains(document.activeElement)) return;
+    refocus = false;
+    queueMicrotask(() => chips?.querySelector<HTMLElement>('[aria-pressed="true"]')?.focus());
+  });
   const edgesOf = (item: Item) => (item.refutation ? [item.row.move, ...item.row.book!.trap!.refutation] : [item.row.move]);
   const play = (item: Item) => { pointed = null; onplay(edgesOf(item)); };
 
@@ -92,7 +103,7 @@
     else if (e.key === "ArrowUp" && k > 0) focus(k - 1);
     else if (e.key === "Home") focus(0);
     else if (e.key === "End") focus(items.length - 1);
-    else if (e.key === "Enter") { refocus = true; play(items[k]); }
+    else if (e.key === "Enter" || e.key === " ") { refocus = true; play(items[k]); }
     else if (e.key === "Escape") { pointed = null; (e.target as HTMLElement).blur(); }
     else if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
     e.preventDefault();
@@ -128,13 +139,14 @@
        above the table, so they keep their place as the table changes height. -->
   <div class="flex items-center gap-2">
     <h2 class="flex-1 font-semibold" id="{uid}-title">{at.state === "out" ? "Not in the book" : "Opening book"}</h2>
-    <div class="flex" role="group" aria-label="The table shows">
+    <div class="flex" role="group" aria-label="The table shows" bind:this={chips}>
       <button type="button" class={CHIP} aria-pressed={showsBook} disabled={at.state === "out"}
               title={at.state === "out" ? "Not in the book" : "The book's moves (o)"}
               aria-describedby={at.state === "out" ? `${uid}-title` : undefined}
               onclick={() => (show = "book")}>Book</button>
+      <!-- Outside the book the candidates show already: a click there keeps the player's choice of "Book" -->
       <button type="button" class={CHIP} aria-pressed={!showsBook} title="The engine's candidates (o)"
-              onclick={() => (show = "candidates")}>Candidates</button>
+              onclick={() => { if (at.state !== "out") show = "candidates"; }}>Candidates</button>
     </div>
   </div>
   {#if at.state === "out"}

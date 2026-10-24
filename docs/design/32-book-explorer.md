@@ -2,8 +2,8 @@
 
 **Status:** in force. The book file's form, its loader, a test book ("The book file"), the sentences (item 6) and the
 book's table ("The table") are built. The review and the Analysis board show the table, with the line outside the book
-("Where the pages show it"). The review's rows, its mark and the game's row (item 4) and Openings are not built. The
-work uses the test book, and it goes live with the engine repository's book (request 22).
+("Where the pages show it"). Item 4 is not built: the review's rows, its mark and the game's row. Openings is not
+built. The work uses the test book, and it goes live with the engine repository's book (request 22).
 **Decided:** 2026-10-24, from user stories and journeys, Lichess's opening explorer, KataGo's book pages and OGS's
 Joseki Explorer.
 
@@ -132,14 +132,15 @@ explorers that people use in chess and Go is [../research/03-opening-explorers.m
 7. **A trap** shows why it tempts in its move cell, with the values open or closed: "Seems good: Blue 41%. Is not:
    Blue 17%." No number is set in bold. A row under it gives the refutation and plays it: "Play the refutation: 4.
    N12-Q10 L11-O12".
-8. **Outside the book,** one line in the title row names the last book position on the path ("Not in the book. Last
-   book position: turn 3."), with "Go there" and "Study in Openings". It is a line, not a box, because it shows at
-   almost every position of a review.
+8. **Outside the book,** the title row says "Not in the book", and one line under it names the last book position on
+   the path ("Last book position: turn 3."), with "Go there" and "Study in Openings". It is a line, not a box, because
+   it shows at almost every position of a review.
 9. **Keys and assistive technology:**
    - The arrow keys step, as in the review. The key o turns the book on and off, as t shows the area map and x the
      threat. "Keys and clicks" lists it.
-   - Tab puts the focus in the table. There the up and down keys move between the rows, Enter plays the move, and the
-     focused row's line is drawn. Escape returns the focus to the page.
+   - Tab puts the focus in the table. There the up and down keys move between the rows, Enter or Space plays the move,
+     and the focused row's line is drawn. Escape returns the focus to the page. When the rows go while one has the
+     focus (the key o, or a move that leaves the book), the focus goes to the switch.
    - Each chevron is a button that says whether it is open and how many moves it holds. The position on screen is the
      move list's current item. The count of the position's book moves ("4 book moves, 1 trap") comes once a step, as
      a polite announcement. Each label and symbol has its words.
@@ -344,8 +345,8 @@ for both (items 3 and 8). The page's part of the work is in `apps/hedgeschool/sr
   position.
 - **The board** numbers the book's rows while the table shows the book. The row pointed at in the table, or its number
   on the board, draws the row's line as the engine's line draws: one edge at a time, with the edges that it cuts and
-  its regions. A click on a row or on its number plays the move as a branch, and Space plays row 1. A trap and its
-  refutation play edge by edge at the engine's line's pace.
+  its regions. A click on a row or on its number plays the move as a branch. Space plays row 1, or the row that has
+  the focus. A trap and its refutation play edge by edge at the engine's line's pace.
 - **The game's move:** the view gives the table no game's move yet. The review's row "Your game" comes with item 4.
 
 ## Where it is

@@ -8,11 +8,12 @@
 // servers serve it, and no build holds it (vite.config.ts, `testBook`): where its index does not load, the analysis
 // column stays as it was, with no switch (`ready`).
 import { readLocalJson, writeLocal } from "@abstractclass/storage/local.ts";
-import { OpeningBook, type BookAt } from "./lookup.svelte.ts";
+import { edgeName, parseEdge, type Edge } from "#lib/engine/notation.ts";
+import { OpeningBook, OUT, type BookAt } from "./lookup.svelte.ts";
 import { bookRows, rowCandidates, rowLine, type BookRow, type GameMove } from "./rows.ts";
 
 /** The book's index: the test book's, until the engine's book comes. */
-export const BOOK_URL = "/test-book/prototype/index.json";
+const BOOK_URL = "/test-book/prototype/index.json";
 let shared: OpeningBook | null = null;
 /** The site's book, one for every page of a visit, so that a part loads once. None in the build's prerender. */
 export function siteBook(): OpeningBook | null {
@@ -32,14 +33,20 @@ export function keptChoice(page: BookPage): BookChoice {
 }
 export const keepChoice = (page: BookPage, choice: BookChoice) => writeLocal(keyOf(page), JSON.stringify(choice));
 
-/** The last position in the book, by the states of a path's positions from the start: a position that the book's
- *  index lists, also while its part loads or after it failed. -1 when the path has none. */
-export const lastInBook = (states: BookAt["state"][]) => states.findLastIndex(s => s !== "out");
+/** The place of the last book position on a path, looked for from the path's end: a position that the book's index
+ *  lists, also while its part loads or after it failed. -1 when the path has none. `at`: the book at a place on the
+ *  path. The search stops at that position, so it starts no part's load for the positions before it. */
+export function lastInBook(length: number, at: (k: number) => BookAt): number {
+  let k = length - 1;
+  while (k >= 0 && at(k).state === "out") k--;
+  return k;
+}
 
 export class BookPlace {
   readonly book: OpeningBook;
   readonly #page: BookPage;
-  // The page's sources, set by the constructor: the $derived values below read them when they first run
+  // The page's sources, set by the constructor: the $derived values below read them when they first run. The values
+  // here only let TypeScript see the fields set before those values' initializers.
   #path: () => (string | undefined)[] = () => [];
   #game: () => GameMove | null = () => null;
   #show = $state<BookChoice["show"]>("candidates");
@@ -68,29 +75,35 @@ export class BookPlace {
   set values(v: boolean) { this.#values = v; this.#keep(); }
   #keep() { keepChoice(this.#page, { show: this.#show, values: this.#values }); }
 
-  #atOf = (notation: string | undefined): BookAt =>
-    (notation === undefined ? { state: "out" } : this.book.at(notation));
+  #atOf = (notation: string | undefined): BookAt => (notation === undefined ? OUT : this.book.at(notation));
   /** The book at the position on screen. */
   readonly at = $derived(this.#atOf(this.#path().at(-1)));
   /** The table's rows at a book position (rows.ts), for the table and the board's numbers. */
   readonly rows = $derived<BookRow[]>(this.at.state === "in" ? bookRows(this.at.position, this.#game()) : []);
   /** The table shows the book: its index has loaded, the player chose "Book", and the position is not outside the
    *  book. Its part can still load, or have failed: then it has no rows, and the board no numbers. */
-  readonly shows = $derived(this.ready && this.at.state !== "out" && this.#show === "book");
+  readonly showsBook = $derived(this.ready && this.at.state !== "out" && this.#show === "book");
   /** The place on the path of its last book position (the line outside the book, item 8), or -1. */
-  readonly last = $derived(lastInBook(this.#path().map(n => this.#atOf(n).state)));
-  /** The row pointed at, whose line the board draws. */
-  readonly pointedRow = $derived(this.shows ? this.rows.find(r => r.move === this.pointed) : undefined);
-  /** The board's numbers for the rows (rows.ts, rowCandidates) while the table shows the book. */
-  readonly candidates = $derived(this.shows ? rowCandidates(this.rows) : []);
+  readonly last = $derived.by(() => {
+    const path = this.#path();
+    return lastInBook(path.length, k => this.#atOf(path[k]));
+  });
+  /** The board's numbers for the rows (rows.ts, rowCandidates), shown while the table shows the book. */
+  readonly candidates = $derived(rowCandidates(this.rows));
+  /** The edge pointed at, which the board lights. */
+  readonly highlight = $derived(this.pointed ? parseEdge(this.pointed) : null);
+  /** The line of the row pointed at while the table shows the book, as the board draws it: its edge, then the book's
+   *  main line or a trap's refutation (rows.ts, rowLine). */
+  readonly line = $derived.by(() => {
+    const row = this.showsBook ? this.rows.find(r => r.move === this.pointed) : undefined, book = this.book.book;
+    return row && book ? rowLine(book, row).map(parseEdge) : null;
+  });
+
+  /** The board's pointer on a number, or on none. */
+  point(edge: Edge | null) { this.pointed = edge && edgeName(edge); }
 
   /** The key o: "Book" or "Candidates". Outside the book "Book" is unavailable, so the key does nothing there. */
   toggle() {
     if (this.at.state !== "out") this.show = this.#show === "book" ? "candidates" : "book";
-  }
-
-  /** A row's line as the board draws it: its edge, then the book's main line or a trap's refutation (rows.ts). */
-  line(row: BookRow): string[] {
-    return this.book.book ? rowLine(this.book.book, row) : [row.move];
   }
 }

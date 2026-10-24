@@ -353,10 +353,14 @@
   // a candidate's does. A book move played from the table is a branch, as any move that the player plays.
   // The game's move at the position on screen, for the table's row "Your game": the review's (beads abscls-tpaj.6).
   const bookGame: GameMove | null = null;
-  const pathNotations = $derived(Array.from({ length: path.length + 1 }, (_, k) => positionOf(path.slice(0, k))?.notation));
+  // The notation of each position on the path from the start: the game's as far as the path follows it, then the
+  // branch's nodes'
+  const pathNotations = $derived.by(() => {
+    const { start, keys } = branchLine(path, mainNames);
+    return [...gamePositions.slice(0, start.length + 1), ...keys.map(k => branches[k]?.position)].map(p => p?.notation);
+  });
   const openingBook = EARLY_ACCESS ? siteBook() : null;
   const book = openingBook && new BookPlace(openingBook, untrack(() => board) ? "board" : "review", () => pathNotations, () => bookGame);
-  const bookLine = $derived(book?.pointedRow ? book.line(book.pointedRow).map(parseEdge) : null);
 
   // The engine's line from the candidate pointed at, on the board or in the table (KaTrain's and Lizzie's way), each
   // edge with its mover. Only for a candidate with enough visits (the board's rule), and only as far as the search
@@ -421,7 +425,7 @@
     // Each step from the position on screen, while the player does not go elsewhere
     let k = path.length;
     const step = () => {
-      if (k >= target.length || pathKey(path) !== pathKey(target.slice(0, k))) clearInterval(stepping);
+      if (k >= target.length || mainIndex(path, target) !== k) clearInterval(stepping);
       else setPath(target.slice(0, ++k), true);
     };
     step();
@@ -429,13 +433,10 @@
   }
   let stepping: ReturnType<typeof setInterval> | undefined;
   $effect(() => () => clearInterval(stepping));
-  /** A move from the book's table: its edge, or a trap and its refutation, edge by edge. */
-  const playBook = (edges: string[]) =>
-    playPath([...path, ...edges], edges.length > 1 ? "book refutation played" : "book move played", true);
-  /** A click on a book row's number on the board: its move. */
-  function playBookEdge(e: Edge) {
-    const row = book?.rows.find(r => sameEdge(parseEdge(r.move), e));
-    if (row) playBook([row.move]);
+  /** A move from the book's table or its number on the board: its edge, or a trap and its refutation, edge by edge. */
+  function playBook(edges: string[]) {
+    const trap = edges.length > 1;
+    playPath([...path, ...edges], trap ? "book refutation played" : "book move played", trap);
   }
   let nudged = $state(false), nudgeTimer: ReturnType<typeof setTimeout> | undefined;
   function nudge() {
@@ -446,7 +447,7 @@
   // Space plays the pinned candidate, or number 1 (Lichess's Space plays its best move): the book's, while the table
   // shows the book.
   function playCandidate() {
-    if (book?.shows) { if (book.rows[0]) playBook([book.rows[0].move]); return; }
+    if (book?.showsBook) { if (book.rows[0]) playBook([book.rows[0].move]); return; }
     const c = pinnedCandidate ?? analysis?.candidates[0];
     if (c) playPath([...path, edgeName(c.edge)], "candidate played");
   }
@@ -474,8 +475,17 @@
 
   // The board's line: the listed line up to the edge pointed at in the list, or the line of the candidate pointed at, or
   // of the pinned one. While the table shows the book, the line of the book's row pointed at.
-  const lineEdges = $derived(book?.shows ? bookLine : listHover !== null && listLine ? listLine.slice(0, listHover + 1)
+  const lineEdges = $derived(book?.showsBook ? book.line : listHover !== null && listLine ? listLine.slice(0, listHover + 1)
     : hoverCandidate ? trusted(hoverCandidate) : pinnedCandidate ? trusted(pinnedCandidate) : null);
+  // The board's numbers, and what pointing at one and clicking it do: the book's rows while the table shows the book,
+  // else the engine's candidates.
+  const numbers = $derived(book?.showsBook ? {
+    candidates: book.candidates, highlight: book.highlight, point: (e: Edge | null) => book.point(e),
+    click: (e: Edge) => playBook([edgeName(e)]), dblclick: undefined,
+  } : {
+    candidates, highlight: hover ?? pinnedCandidate?.edge ?? null, point: (e: Edge | null) => { hoverOnBoard = true; hover = e; },
+    click: selectRank, dblclick: (e: Edge) => playPath([...path, edgeName(e)], "candidate played"),
+  });
 
   // The threat (Lichess's "Show threat", its key x, the engine header's switch): the engine searches the position after
   // a pass by the side to move (GameAnalysis.askThreat), and the board draws the opponent's best turn from there, as it
@@ -544,8 +554,12 @@
     });
     return { get had() { return had; } };
   }
-  const listStepsKept = keptSteps(() => (listLine ? { start: path, edges: listLine } : null));
-  const bookStepsKept = keptSteps(() => (bookLine ? { start: path, edges: bookLine } : null)); // the book's row's
+  // The board's line in full (lineEdges is a part of it): the book's row's while the table shows the book, else the
+  // listed line
+  const lineStepsKept = keptSteps(() => {
+    const edges = book?.showsBook ? book.line : listLine;
+    return edges ? { start: path, edges } : null;
+  });
   // The threat's, from the position after the pass
   const threatStepsKept = keptSteps(() => (threatEdges ? { start: threatPath, edges: threatEdges } : null));
   // The steps of a line from here, as far as it matches the line whose steps came (`had`). The search can lengthen or
@@ -557,8 +571,8 @@
     while (k < edges.length && k < had.edges.length && sameEdge(edges[k], had.edges[k])) k++;
     return had.steps.slice(0, k);
   }
-  const stepsNow = $derived(stepsOf(boardEdges, lineEdges ? (book?.shows ? bookStepsKept : listStepsKept).had : threatStepsKept.had));
-  const listSteps = $derived(stepsOf(listLine, listStepsKept.had));
+  const stepsNow = $derived(stepsOf(boardEdges, lineEdges ? lineStepsKept.had : threatStepsKept.had));
+  const listSteps = $derived(stepsOf(listLine, lineStepsKept.had));
 
   // The line as far as drawn (lineDrawing.svelte.ts): one edge at a time (the default, a display setting), or all at
   // once. Pointing at another candidate draws its line again; a line that the search lengthens goes on from the edges
@@ -1154,7 +1168,12 @@
     else return;
     ev.preventDefault();
   }
-  // The list of keys, as Lichess's "?" list.
+  // The list of keys, as Lichess's "?" list, and the clicks. The book's show where its table does.
+  const BOOK_KEYS: [string[], string][] = [
+    [["o"], "Show the book's moves or the engine's candidates"],
+    [["Tab", "↑ / ↓", "Enter"], "Go into the book's table, go to a different row, and play its move. Escape goes back to the page"],
+  ];
+  const BOOK_CLICKS: [string, string][] = [["Click a book move, in the table or on the board", "Play it"]];
   const KEYS = $derived<[string[], string][]>([
     [["← / →", "k / j"], "Back and forward along the line on screen"],
     [["↑ / ↓"], "At a fork, pick the line that → follows. Elsewhere, the start and the line's end"],
@@ -1166,13 +1185,12 @@
     [["x"], "Show or hide the threat: the opponent's best turn if you pass"],
     [["t"], "Show or hide the area map"],
     [["Shift + t"], `The area map's next style: ${MAP_STYLES.map(s => MAP_STYLE_NAME[s]).join(", ")}`],
-    ...(book?.ready ? [[["o"], "Show the book's moves or the engine's candidates"],
-                       [["Tab", "↑ / ↓", "Enter"], "Go into the book's table, go to a different row, and play its move. Escape goes back to the page"]] as [string[], string][] : []),
+    ...(book?.ready ? BOOK_KEYS : []),
     [["Escape"], "Close the settings, or cancel the edge that you started"],
     [["?"], "This list"],
   ]);
   const MOUSE = $derived<[string, string][]>([
-    ...(book?.ready ? [["Click a book move, in the table or on the board", "Play it"]] as [string, string][] : []),
+    ...(book?.ready ? BOOK_CLICKS : []),
     ["Click a candidate", "Pin its line on the board. Click the candidate again to unpin it"],
     ["Double-click a candidate", "Play it"],
     ["Click a node, then a marked point", "Play your own edge"],
@@ -1508,7 +1526,7 @@
     <!-- The book's table (design 32, items 3 and 8), with the switch in its title row: the engine's candidates under it
          when the player chooses them, and outside the book. While it shows the book, it takes at most a little over
          half the column, and scrolls, so that the move list keeps its room. -->
-    <div class={["flex flex-col min-h-0", book.shows ? "flex-[0_1_auto] max-h-[55%] mb-3" : "flex-none"]}>
+    <div class={["flex flex-col min-h-0", book.showsBook ? "flex-[0_1_auto] max-h-[55%] mb-3" : "flex-none"]}>
       <BookTable at={book.at} source={book.book.source} rows={book.rows} bind:show={book.show} bind:values={book.values}
                  bind:pointed={book.pointed} onplay={playBook} onretry={() => book.book.retry()}>
         {#snippet candidates()}{@render engineTable()}{/snippet}
@@ -2122,12 +2140,12 @@
         <Board
           position={branchPreview?.from ?? movePreview?.position ?? position}
           cut={branchPreview ? null : movePreview ? movePreview.move.cut : lastPlayed?.cut ?? null}
-          candidates={previewing ? [] : book?.shows ? book.candidates : candidates}
-          highlight={previewing ? null : book?.shows ? (book.pointed ? parseEdge(book.pointed) : null) : hover ?? pinnedCandidate?.edge ?? null}
+          candidates={previewing ? [] : numbers.candidates}
+          highlight={previewing ? null : numbers.highlight}
           line={branchPreview ? previewLine : movePreview ? null : drawnLine}
           lineShape={!previewing && threatShown ? "triangle" : "circle"}
-          oncandidateclick={e => (book?.shows ? playBookEdge(e) : selectRank(e))}
-          oncandidatedblclick={e => { if (!book?.shows) playPath([...path, edgeName(e)], "candidate played"); }}
+          oncandidateclick={numbers.click}
+          oncandidatedblclick={numbers.dblclick}
           pending={input.pending}
           ends={input.ends}
           active={input.active}
@@ -2139,7 +2157,7 @@
           layers={display.layers}
           areaMap={shownMap}
           onpointat={p => (mapPoint = p)}
-          oncandidate={e => { if (book?.shows) book.pointed = e && edgeName(e); else { hoverOnBoard = true; hover = e; } }}
+          oncandidate={numbers.point}
           notes={previewing ? [] : notesAt[here] ?? []}
           onnotes={previewing ? undefined : n => { if (n.length > (notesAt[here]?.length ?? 0)) used("note drawn"); notesAt[here] = n; }}
         />

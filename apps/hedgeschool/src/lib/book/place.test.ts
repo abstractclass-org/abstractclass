@@ -8,6 +8,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import "@abstractclass/analysis/testing/svelteModules.ts";
 import type { BookReader } from "./book.ts";
+import type { BookAt } from "./lookup.svelte.ts";
 
 const { OpeningBook } = await import("./lookup.svelte.ts");
 const { BookPlace, keptChoice, keepChoice, lastInBook } = await import("./place.svelte.ts");
@@ -36,10 +37,15 @@ test("the book is off by default, and each page keeps its own choice", () => {
 });
 
 test("the last book position on a path: a position that the index lists, also while its part loads", () => {
-  assert.equal(lastInBook(["in", "in", "out", "out"]), 1);
-  assert.equal(lastInBook(["in", "out", "loading", "out"]), 2, "a line that comes back into the book");
-  assert.equal(lastInBook(["in", "failed", "out"]), 1, "a part that did not load is still in the index");
-  assert.equal(lastInBook(["out", "out"]), -1);
+  const last = (states: BookAt["state"][]) => {
+    const looked: number[] = [];
+    const k = lastInBook(states.length, k => (looked.push(k), { state: states[k] } as BookAt));
+    return { k, looked };
+  };
+  assert.deepEqual(last(["in", "in", "out", "out"]), { k: 1, looked: [3, 2, 1] }, "no lookup before it");
+  assert.equal(last(["in", "out", "loading", "out"]).k, 2, "a line that comes back into the book");
+  assert.equal(last(["in", "failed", "out"]).k, 1, "a part that did not load is still in the index");
+  assert.equal(last(["out", "out"]).k, -1);
 });
 
 test("outside the book the table shows the candidates, and the choice of Book comes back at a book position", async () => {
@@ -51,23 +57,23 @@ test("outside the book the table shows the candidates, and the choice of Book co
   await settle();
   assert.equal(place.ready, true);
   assert.equal(place.at.state, "in");
-  assert.equal(place.shows, false, "off by default");
+  assert.equal(place.showsBook, false, "off by default");
   place.toggle();
   assert.equal(place.show, "book");
-  assert.equal(place.shows, true);
+  assert.equal(place.showsBook, true);
   assert.ok(place.rows.length > 0);
-  assert.deepEqual(keptChoice("review").show, "book", "the browser keeps the choice");
+  assert.equal(keptChoice("review").show, "book", "the browser keeps the choice");
 
   cell.set("path", [START, OUTSIDE]);
   assert.equal(place.at.state, "out");
-  assert.equal(place.shows, false, "Candidates outside the book");
+  assert.equal(place.showsBook, false, "Candidates outside the book");
   assert.deepEqual(place.rows, []);
   assert.equal(place.last, 0, "the start is the last book position");
   place.toggle();
   assert.equal(place.show, "book", "the key o does nothing outside the book: Book is unavailable");
 
   cell.set("path", [START]);
-  assert.equal(place.shows, true, "the choice of Book comes back");
+  assert.equal(place.showsBook, true, "the choice of Book comes back");
   assert.equal(place.last, 0, "in the book, the position on screen");
 });
 
