@@ -1,8 +1,8 @@
 # The opening book explorer
 
-**Status:** in force. The book file's form, its loader, a test book ("The book file") and the sentences (item 6) are
-built. The explorer is not built. Its work uses the test book, and it goes live with the engine repository's book
-(request 22).
+**Status:** in force. The book file's form, its loader, a test book ("The book file"), the sentences (item 6) and the
+book's table ("The table") are built. The pages that show the table are not built. Their work uses the test book, and
+they go live with the engine repository's book (request 22).
 **Decided:** 2026-10-24, from user stories and journeys, Lichess's opening explorer, KataGo's book pages and OGS's
 Joseki Explorer.
 
@@ -304,16 +304,37 @@ depth, and each trap's refutation. It cuts the bounds to 0 to 1. It checks that 
 the symbols computed from the values are the prototype's for 395 positions. The 9 others are on a cut-off, because
 the prototype's file rounds its values to 3 decimals.
 
+## The table
+
+The book's table (item 3) is one component, `apps/hedgeschool/src/lib/book/BookTable.svelte`, which Openings, the
+review and the Analysis board put in the candidates' place. It holds no state that the browser keeps: each page keeps
+its own choice of "Book" or "Candidates" and of "Show the values", handles the key o, and plays the moves.
+
+- **The rows** (`rows.ts`) take their labels from `moveLabel` in `sentences.ts`, the rule of the sentences (item 6,
+  "The labels"): design 10's bands against the best move here, the first book move or the best move outside the book
+  when that is better. The table gives no Great, so that a position's table is the same however the player reaches
+  it: two move orders reach many book positions. The best move outside the book is Best when it is better than the
+  first book move.
+- **The symbols** come from `symbols.ts`, the rule of the sentences too: a position's from `positionSymbol`, a row's
+  from `lineEndSymbol`, the symbol at the end of its main line. `BookSymbol.svelte` draws the eight symbols, because
+  the site's font has no glyph for ⩲ and ⩱.
+- **The sentence under the table** is the page's: the lab page gives it from `sentences.ts`, the sentence of the row
+  pointed at or focused (`moveSentence`), else the best move's (`bestMoveSentence`).
+- **The state at a position** (`lookup.svelte.ts`): loading, in the book, outside it, or failed until "Try again".
+- **The lab page** `/lab/book-table` shows the board and the table on the test book. It has no engine: it draws the
+  book's positions from their notation, with no regions.
+
 ## Where it is
 
 The book file's form, its loader and their unit tests are in `apps/hedgeschool/src/lib/book/`, the script that makes
 the test book in `apps/hedgeschool/scripts/test-book.mjs`, and the test book in
 `apps/hedgeschool/tests/fixtures/test-book/` ("The book file"). The sentences and the symbols are in
-`apps/hedgeschool/src/lib/book/sentences.ts` and `symbols.ts` (item 6). The explorer is not built. The design's
-files are in [../ux/book-explorer/](../ux/book-explorer/): `context-book-explorer.md`, `stories-book-explorer.md`,
-`journey-book-explorer.md` and its diagram, `sitemap-book-explorer.md` and its diagram, `wireframes-book-explorer.html`,
-`evaluation-book-explorer.md` and `decisions.md`. The prototypes' code is on the branches abscls-tpaj.1, abscls-tpaj.2
-and abscls-tpaj.3, never merged.
+`apps/hedgeschool/src/lib/book/sentences.ts` and `symbols.ts` (item 6). The table is in `apps/hedgeschool/src/lib/book/`
+too, with its lab page in `apps/hedgeschool/src/routes/lab/book-table/` ("The table"). The pages that show it are not
+built. The design's files are in [../ux/book-explorer/](../ux/book-explorer/): `context-book-explorer.md`,
+`stories-book-explorer.md`, `journey-book-explorer.md` and its diagram, `sitemap-book-explorer.md` and its diagram,
+`wireframes-book-explorer.html`, `evaluation-book-explorer.md` and `decisions.md`. The prototypes' code is on the
+branches abscls-tpaj.1, abscls-tpaj.2 and abscls-tpaj.3, never merged.
 
 ## Log entries
 

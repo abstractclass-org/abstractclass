@@ -25,7 +25,7 @@ export const lineText = (count: number, edges: string[]) => edges.map((e, i) => 
 }).join(" ");
 
 /** A position's edge count: the fifth field of its notation. */
-const edgeCount = (p: BookPosition) => Number(p.position.split(" ")[4]);
+export const edgeCount = (p: BookPosition) => Number(p.position.split(" ")[4]);
 /** The side to move, by name. */
 const side = (p: BookPosition) => PLAYER_NAME[playerOf(p.mover)];
 /** The mover's win chance, from Blue's. */
@@ -58,6 +58,11 @@ export const moveLoss = (p: BookPosition, m: BookMove) => lossTo(p, m.value.blue
 export function moveLabel(p: BookPosition, m: BookMove): Label {
   return classify(moveLoss(p, m), isFirst(p, m) && !outsideBetter(p), false);
 }
+
+/** The label of the best move outside the book, by the same bands: Best when it is better than the first book move,
+ *  or when the book has no move here. */
+export const outsideLabel = (p: BookPosition): Label | null =>
+  !p.outside ? null : !p.moves.length ? "best" : classify(lossTo(p, p.outside.blueWin), outsideBetter(p), false);
 
 /** A fine move: Good or better (design 32, item 3, "Fine moves"). */
 export const isFine = (p: BookPosition, m: BookMove) => moveLoss(p, m) <= GOOD_WIN;
