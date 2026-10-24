@@ -44,7 +44,9 @@ edit in the same commit), so their changes still apply.
    | `@abstractclass/analysis` | `packages/analysis` | The game interface, the review's model and its labels, the move tree, the analysis reply as the review reads it, the cache, the analysis of a game, the engine session, the GPU control, the engine settings' general part, the kept tree's shape, and the tests' loader of runes | `review/model.ts`, `review/labels.ts`, `review/tree.ts`, `engine/analysis.ts`, `analysis/` (but `engineSettings.ts`, `settingChanges.ts` and `NewMenu.svelte`), `testing/svelteModules.ts` |
 
    A fourth package, `@abstractclass/record` (`packages/record`), holds the game record's frame, with each game's
-   moves and marks as a parameter. Design 33 moved it out of Hedge School's `src/lib/game/record.ts`.
+   moves and marks as a parameter. Design 33 moved it out of Hedge School's `src/lib/game/record.ts`. It also moved
+   the turns of one move, then two (`turnFromCount`), out of `review/enclosure.ts` into the analysis package
+   (`turns.ts`).
 
    The engine package knows no game. The analysis package knows a game only through the game interface. No package
    imports a site.
@@ -204,7 +206,8 @@ edit in the same commit), so their changes still apply.
 - `package.json` at the root: the workspace (`apps/*`, `packages/*`).
 - `packages/engine/`, `packages/storage/`, `packages/analysis/`: each with its `package.json` (name, `exports`,
   scripts), `tsconfig.json` and `src/`.
-- `packages/record/`: the game record's frame (design 33).
+- `packages/record/`: the game record's frame (design 33). `packages/analysis/src/turns.ts`: the turns of one move,
+  then two, for a game's `turn`.
 - `packages/analysis/src/game.ts`: the game interface. `packages/analysis/src/testing/game.ts`: the test game, with
   the rules and a search's reply for a test's pool. `packages/analysis/src/testing/page.svelte.ts`: a page for the
   engine session's tests.

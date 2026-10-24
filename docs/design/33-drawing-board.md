@@ -72,8 +72,11 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
    turns, because the review labels turns (design 10). A pass is one move, so the turns go on in twos after it. The
    record's frame moved out of Hedge School into `@abstractclass/record` (item 4): the game gives its moves' syntax
    and its marks as a parameter (`Notation`). Hedge School gives Enclosure's edges and its cut mark, Drawing Board
-   Blueprints' moves and their capture marks. The turns of one move, then two (`turnFromCount`), are in the analysis
-   package, beside the game interface's `turn`, because both games number them so.
+   Blueprints' moves and their capture marks. Hedge School's `src/lib/game/record.ts` stays at its path with its
+   exports, as design 29's `engineSettings.ts` and `store.ts` do. So this move has no pure rename first: a rename
+   would leave nothing at the old path, and no file comes back at a moved path (design 29, item 8). The turns of one
+   move, then two (`turnFromCount`), are in the analysis package, beside the game interface's `turn`, because both
+   games number them so.
 8. **The move list** shows a move as strategyjam.org's move list does: the blueprint's number in a box, then the
    hex, then `+N` when the move scores. An edit shows the kind of the cell that it moves.
 9. **Two edits can give the same hand.** A string names one edit, but two edits can leave the same blueprints: for
@@ -82,8 +85,9 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
    their names, as it takes Enclosure's two edges of a turn in either order as one turn (design 29).
 10. **A position's notation** (as FEN gives a chess position) waits for the board editor and for starts from a set-up
     position. The first version takes games as records: the standard start and the moves. So the record's reader
-    refuses a `Position` tag (the shared frame does, for a game that gives it no start), and the import refuses a
-    strategyjam.org game whose first position is not the standard start (every game of the archive starts from it).
+    refuses a `Position` tag. The shared frame refuses it for each game that gives the frame no start. The import
+    refuses a strategyjam.org game whose first position is not the standard start. Every game of the archive starts
+    from it.
 
 ## Why
 

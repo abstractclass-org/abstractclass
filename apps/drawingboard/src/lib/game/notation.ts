@@ -1,8 +1,8 @@
 // Blueprints' moves in strategyjam.org's strings, as they are (docs/design/33-drawing-board.md, items 5 and 6):
-// - a placement `K@q,r`: blueprint K (1, 2 or 3) with its first cell (the least r, then the least q: the cell 0,0 of
-//   its own frame) on the hex (q, r) of the board's axial coordinates;
-// - an edit `I:q,r>J:q,r`: the cell at (q, r) of blueprint I goes to (q, r) of blueprint J, both in the blueprints'
-//   frames as they are before the edit (the target's cell can come before its first cell: `1:0,0>3:1,-1`);
+// - A placement `K@q,r`: blueprint K (1, 2 or 3) with its first cell (the least r, then the least q: the cell 0,0 of
+//   its own frame) on the hex (q, r) of the board's axial coordinates.
+// - An edit `I:q,r>J:q,r`: the cell at (q, r) of blueprint I goes to (q, r) of blueprint J, both in the blueprints'
+//   frames as they are before the edit (the target's cell can come before its first cell: `1:0,0>3:1,-1`).
 // - `pass`: a player's clock ran out. It counts as one move.
 // A placement that removes enemy cells carries the mark `x`, and `x+N` when it scores N points (`2@-3,1x+24`), never
 // `+0`. The engine gives the removed cells and the points (check.ts). This module checks the notation, not the rules:
@@ -45,7 +45,7 @@ function readName(text: string): Move | string {
   if (!blueprint(k) || (edit && !blueprint(j))) return "a blueprint's number is 1, 2 or 3";
   if (place) return { kind: "place", blueprint: k as Blueprint, q, r };
   // A blueprint's first cell is its cell 0,0, the least r, then the least q: the cell that an edit takes is not before it.
-  if (r < 0 || (r === 0 && q < 0)) return "an edit takes a cell of its blueprint, which is not before the blueprint's first cell (0,0)";
+  if (r < 0 || (r === 0 && q < 0)) return "an edit cannot take a cell before the first cell (0,0) of its blueprint";
   return { kind: "edit", from: { blueprint: k as Blueprint, q, r }, to: { blueprint: j as Blueprint, q: tq, r: tr } };
 }
 

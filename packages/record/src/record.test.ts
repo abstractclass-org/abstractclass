@@ -24,6 +24,8 @@ test("the game's moves in their one spelling, its marks, a pass, and the result"
   assert.deepEqual(r.moves, ["apple", "bee", "cat", "pass", "dog"]);
   assert.deepEqual(r.marked, [null, 2, null, null, null]);
   assert.equal(r.result, "b+12");
+  // The frame numbers the turns and leaves their length to the game: one move a turn reads too.
+  assert.deepEqual(read("1. apple 2. bee 3. cat *").moves, ["apple", "bee", "cat"]);
 });
 
 test("tags, evaluations and clocks in comments", () => {

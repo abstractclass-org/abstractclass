@@ -6883,12 +6883,12 @@ error and no horizontal scroll. The layout sweep in Chromium passes (25 tests, 5
   `turn`, as Blueprints numbers them as Enclosure does.
 - **The reader's checks:** a blueprint's number from 1 to 3, an edit's source cell not before its blueprint's first
   cell, a capture mark on a placement only, and no `x+0`. Each refusal names the problem and its place in the text.
-  A mark that the moves' effects do not confirm is refused, with the mark that they give. A game that gives the
-  frame no start (Blueprints) gets a refusal of a `Position` tag from the frame, at the tag.
-- **The import refuses another start.** The record has no position's notation yet, so a game from another first
-  position would be read from the standard start.
+  The check refuses a mark that the moves' effects do not confirm, and gives the mark that they confirm. The frame
+  refuses a `Position` tag, at the tag, for a game that gives it no start (Blueprints).
+- **The import refuses another start.** The record has no position's notation yet. So the reader would read a game
+  from another first position as a game from the standard start.
 - **Checked on the archive** (the engine repository's `runs/strategyjam-archive/blueprints.jsonl`, read from outside
-  the repository): all 146,128 moves are read and written back as the same strings (105,820 placements, 32,959
-  edits, 7,349 passes). Of the 1,826 games, the 1,791 with moves become records that read back to the same moves,
-  each from the standard start. 35 have no moves. The archive has no final scores, so its 726 games that the rules
-  ended get the result `*`: the game page gives the scores from its rules module.
+  the repository): the reader reads all 146,128 moves, and the writer writes them back as the same strings (105,820
+  placements, 32,959 edits, 7,349 passes). Of the 1,826 games, the 1,791 with moves become records that read back
+  to the same moves, each from the standard start. 35 have no moves. The archive has no final scores, so its 726
+  games that the rules ended get the result `*`: the game page gives the scores from its rules module.

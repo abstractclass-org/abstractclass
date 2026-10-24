@@ -10,12 +10,13 @@ export { gamePage, playerNames, RecordError, writeRecord, writeTags, type Eval }
 /** A game record of Blueprints: `marked` gives, by move, the capture mark that the record gives it, or null. */
 export type GameRecord = shared.GameRecord<Capture | null>;
 
-const blueprints: shared.Notation<Capture | null> = { read: readMove, mark: captureText, none: null };
+/** Blueprints' moves and capture marks, for the shared record. */
+const moveNotation: shared.Notation<Capture | null> = { read: readMove, mark: captureText, none: null };
 
 /** Reads a game record. Throws a RecordError with the offset of the first problem. Blueprints has no set-up start,
  *  so the shared reader refuses a `Position` tag. */
-export const parseRecord = (text: string): GameRecord => shared.readRecord(text, blueprints);
+export const parseRecord = (text: string): GameRecord => shared.readRecord(text, moveNotation);
 
 /** Adds the capture mark to every move that has none yet. `captures` is by move, from the engine (check.ts). */
 export const markCaptures = (text: string, record: GameRecord, captures: (Capture | null)[]): string =>
-  shared.markMoves(text, record, captures, blueprints);
+  shared.markMoves(text, record, captures, moveNotation);
