@@ -6,7 +6,7 @@
   import ShareBar from "#lib/ui/ShareBar.svelte";
   import Icon from "#lib/ui/Icon.svelte";
   import StepBar from "#lib/ui/StepBar.svelte";
-  import { pageScrollTop } from "#lib/pageScroll.ts";
+  import { intoView, pageScrollTop } from "#lib/pageScroll.ts";
   import { MOVE_HERE, MOVE_HOVER, MOVE_LIST, MOVE_TEXT, TURN_NUMBER, TURN_REM, keepInView, moveButton, turnRow } from "./moveList.ts";
   import { PLAYER_NAME, chartMarks, listed, type Analysis, type BranchNode, type Edge, type LineStep, type Player, type Position } from "./enclosure.ts";
   import type { EdgeRules } from "#lib/board/edgeInput.svelte.ts";
@@ -1764,7 +1764,7 @@
      with a line that says what it does. On and off is a switch, a choice of two is a pair of buttons (Bits UI's Switch
      and RadioGroup: their roles, focus and keys). -->
 {#snippet settingsPanel()}
-  <div id="display-settings" role="region" aria-label="Display settings" class="flex flex-col flex-1 min-h-0">
+  <div id="display-settings" role="region" aria-label="Display settings" class="flex flex-col flex-1 min-h-0" {@attach intoView}>
     <div class="flex items-center justify-between mb-1">
       <h2 class="font-semibold">Display settings</h2>
       <button class="px-2 py-0.5 text-sm" onclick={() => (settingsOpen = false)}>Done</button>
@@ -1995,7 +1995,8 @@
       <div class="movelist flex-1 min-h-0 mt-2 pt-3 border-t border-line overflow-hidden">
         {#each Array(24) as _, k (k)}<div class="h-4 mb-3 {BONE}" style:width="{k % 3 === 2 ? 55 : 85}%"></div>{/each}
       </div>
-      <div class="mt-1.5 pt-1.5 border-t border-line">
+      <!-- The step bar, where the review's is: on a phone, fixed to the bottom of the window (StepBar). -->
+      <div class="step-dock mt-1.5 pt-1.5 border-t border-line">
         <div class="h-3 mb-2 w-1/2 {BONE}"></div>
         <div class="h-7 {BONE}"></div>
       </div>
@@ -2245,23 +2246,22 @@
     {/if}
 
     <!-- The step controls and the display settings' button, at the bottom of the analysis column (Lichess's place), in
-         the bar that Practice shares (StepBar). -->
-    <div class="mt-1.5 pt-1.5 border-t border-line">
-      <p class="mb-1.5 text-xs text-muted truncate" title={statusLine}>{statusLine}</p>
-      <StepBar onfirst={() => setPath([])} onback={back} onforward={forward} onlast={toEnd}>
-        {#snippet tools()}
-          {@render pageTools?.()}
-          <!-- Export (design 13): the review file, with the engine's results, or the annotated record. -->
-          {#if onexport}<ExportMenu run={kind => onexport(kind, display.judge)} ready={exportReady} items={exportItems}
-                                    why={snapshot ? "Review again to export: this review used an earlier engine." : "Export once the review is done."} />{/if}
-          <!-- The menu button (Lichess's ☰ in the same place) opens the display settings in the analysis's place, and
-               closes them. The gear is the engine's, in the engine header. -->
-          <button class="btn-icon aria-expanded:border-accent aria-expanded:text-accent" aria-label="Display settings" title="Display settings"
-                  aria-expanded={settingsOpen} aria-controls="display-settings"
-                  onclick={() => { settingsOpen = !settingsOpen; engineOpen = false; }}><Icon name="menu" /></button>
-        {/snippet}
-      </StepBar>
-    </div>
+         the bar that Practice shares (StepBar), under the status line. On a phone the bar is fixed to the bottom of the
+         window, the status line with it: it says what an edge on the board needs next. -->
+    <StepBar class="mt-1.5 pt-1.5 border-t border-line" onfirst={() => setPath([])} onback={back} onforward={forward} onlast={toEnd}>
+      {#snippet above()}<p class="mb-1.5 text-xs text-muted truncate" title={statusLine}>{statusLine}</p>{/snippet}
+      {#snippet tools()}
+        {@render pageTools?.()}
+        <!-- Export (design 13): the review file, with the engine's results, or the annotated record. -->
+        {#if onexport}<ExportMenu run={kind => onexport(kind, display.judge)} ready={exportReady} items={exportItems}
+                                  why={snapshot ? "Review again to export: this review used an earlier engine." : "Export once the review is done."} />{/if}
+        <!-- The menu button (Lichess's ☰ in the same place) opens the display settings in the analysis's place, and
+             closes them. The gear is the engine's, in the engine header. -->
+        <button class="btn-icon aria-expanded:border-accent aria-expanded:text-accent" aria-label="Display settings" title="Display settings"
+                aria-expanded={settingsOpen} aria-controls="display-settings"
+                onclick={() => { settingsOpen = !settingsOpen; engineOpen = false; }}><Icon name="menu" /></button>
+      {/snippet}
+    </StepBar>
   </section>
 
   <!-- Why the review runs again (ReviewAgain): a dialog when the review starts, once in a visit. The line under the

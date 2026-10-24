@@ -3,7 +3,11 @@
   // positions on the left, and the page's tools on the right. When the column is too narrow for one row, the tools go
   // under the steps as a group, and the steps then span the bar's width, as Lichess's do. The bar measures whether the
   // tools fit beside the steps at their own width, and so it does not stay wrapped once the steps are wide.
+  // In one column (below 800 pixels) the bar is fixed to the bottom of the window, as the Lichess app's bottom bar, so
+  // that the step back is in view whenever the board is (the dock, app.css). The page then keeps room for it at its
+  // end, as high as the bar: the bar sets --step-dock on the document for the room and for the scroll padding.
   import { untrack, type Snippet } from "svelte";
+  import type { ClassValue } from "svelte/elements";
   import Icon from "./Icon.svelte";
 
   interface Props {
@@ -13,9 +17,21 @@
     onlast: () => void;
     atStart?: boolean; // the first position shows: First and Back are off
     atEnd?: boolean; // the last position shows: Forward and Last are off
+    above?: Snippet; // over the steps, in the bar: the review's status line
     tools?: Snippet;
+    class?: ClassValue; // the bar's place in its column, where it is not fixed: its margin, border and padding
   }
-  let { onfirst, onback, onforward, onlast, atStart = false, atEnd = false, tools }: Props = $props();
+  let { onfirst, onback, onforward, onlast, atStart = false, atEnd = false, above, tools, class: place }: Props = $props();
+
+  /** Gives the bar's height to the page (--step-dock), and again whenever it changes. The observer's first call comes
+   *  after the first frame's layout: the room is at the page's end, and nothing after it moves when it grows. A read
+   *  as the bar mounts would force a second layout of the whole page in its first frame, after the write. */
+  function dock(box: HTMLElement) {
+    const root = document.documentElement.style;
+    const observer = new ResizeObserver(() => root.setProperty("--step-dock", `${box.offsetHeight}px`));
+    observer.observe(box);
+    return () => { observer.disconnect(); root.removeProperty("--step-dock"); };
+  }
 
   const GAP = 8; // gap-x-2, between the steps and the tools
   let wrapped = $state(false);
@@ -41,12 +57,17 @@
   }
 </script>
 
-<div class="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5" {@attach watch}>
-  <div class={["flex gap-1", wrapped && "basis-full"]}>
-    {#each [["first", "First", onfirst, atStart], ["back", "Back", onback, atStart], ["forward", "Forward", onforward, atEnd],
-            ["last", "Last", onlast, atEnd]] as const as [icon, name, act, off] (icon)}
-      <button class={["btn-icon", wrapped && "flex-1"]} onclick={act} aria-label={name} title={name} disabled={off}><Icon name={icon} /></button>
-    {/each}
+<div class={["step-dock", place]} {@attach dock}>
+  {@render above?.()}
+  <div class="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5" {@attach watch}>
+    <div class={["flex gap-1", wrapped && "basis-full"]}>
+      {#each [["first", "First", onfirst, atStart], ["back", "Back", onback, atStart], ["forward", "Forward", onforward, atEnd],
+              ["last", "Last", onlast, atEnd]] as const as [icon, name, act, off] (icon)}
+        <button class={["btn-icon", wrapped && "flex-1"]} onclick={act} aria-label={name} title={name} disabled={off}><Icon name={icon} /></button>
+      {/each}
+    </div>
+    <div class="flex items-center gap-1 ml-auto">{@render tools?.()}</div>
   </div>
-  <div class="flex items-center gap-1 ml-auto">{@render tools?.()}</div>
 </div>
+<!-- The room at the page's end, under its last content, where the bar is fixed. -->
+<div class="step-room" aria-hidden="true"></div>

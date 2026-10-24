@@ -6769,3 +6769,39 @@ error and no horizontal scroll. The layout sweep in Chromium passes (25 tests, 5
   twin's book move in a position that is its own mirror image.
 - **Not done:** the index lists every position, at 60 to 150 bytes each, so it suits a book of a few thousand
   positions. A larger book needs its index in parts (abscls-bhe9).
+
+### On a phone, the step bar stays at the bottom of the screen (2026-10-24)
+
+- **The rule:** in one column (below 800 pixels), the step bar is fixed to the bottom of the window, on the review,
+  the Analysis board and Practice, and on Openings when it comes. The Lichess app keeps Previous and Next in a bottom
+  bar ([../research/03-opening-explorers.md](../research/03-opening-explorers.md), section 3), and design 32 asked for
+  it (item 10). The rule is in [design 06](../design/06-review-layout.md), item 4.
+- **Measured before,** in headless Chromium as a phone (touch, so that the document scrolls), on the review of the
+  test fixture, the Analysis board with the fixture's game and Practice with the fixture's first 20 edges, at
+  360 × 640 and 390 × 844, at every 100 pixels of scrolling and at the end: at 23 places the board was in view and
+  the step back was not. At 360 × 640 the review's bar showed only at the page's end, 834 pixels down, and the board
+  was out of view from 500 pixels down.
+- **After:** at every place on the three pages, at both sizes, the step back is in view and on top. At the end of
+  each page, no button, link, tab or move in view is under the bar. The bar is 68 pixels high on the review, 46 on
+  Practice (no status line) and 108 on the Analysis board, whose tools (New, Play, Export and ☰) wrap under the steps
+  at 360 and at 390 pixels.
+- **What depends on the bar's place,** and what changed for it:
+  - The page's end: the page keeps room as high as the bar (`.step-room`), so the bar covers no last row.
+  - The page's scrolling: `scroll-padding-bottom` on the document and on the page's area keeps a focused element or a
+    picked move clear of the bar. The bar gives its height (`--step-dock`) from a `ResizeObserver`. A read as the bar
+    mounts would force a second layout of the whole page in the review's first frame.
+  - What the bar opens: the display settings and Practice's question before Abort or Resign open under the board.
+    They now scroll into view as they show (`intoView`, at the nearest edge). Checked: at the top of the page, the
+    settings' top comes to the window's top, and Practice's question shows just above the bar.
+  - The page's area is a size container (`@container/page`). Headless Chromium keeps a fixed element in it at the
+    window's bottom, with a mouse (the area scrolls) and as a phone (the document scrolls). The bar's width is
+    `100cqw`, the area's width without its scroll bar: 345 of 360 pixels with a mouse.
+  - Design 06's other allowances (`--site-header`, `--strip`, `--chart`, `100vh`) size the board and the side
+    columns from 800 pixels up, or the board from the width in one column. They do not count the step bar, and
+    they did not change.
+  - The review's skeleton draws its bar with the same class, so it shows where the review's bar will be.
+  - The menus open over the bar (the Export menu, above its button). The bar is under the dialogs and the notices.
+  - From 800 pixels up the bar is in its column as before (checked at 800, 1,000 and 1,400 pixels: in the flow, the
+    room hidden, no scroll padding).
+- **Not checked:** a real phone, Safari's toolbars, and the safe area. The page does not ask for the whole screen
+  (`viewport-fit=cover`), so `env(safe-area-inset-bottom)` is 0 now.

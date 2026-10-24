@@ -24,6 +24,7 @@
   import PlayerRow from "#lib/review/PlayerRow.svelte";
   import PlayerCardSkeleton, { BONE } from "#lib/review/PlayerCardSkeleton.svelte";
   import StepBar from "#lib/ui/StepBar.svelte";
+  import { intoView } from "#lib/pageScroll.ts";
   import { MOVE_HERE, MOVE_LIST, MOVE_TEXT, TURN_NUMBER, keepInView, moveButton, turnRow } from "#lib/review/moveList.ts";
   import { EngineWorker, loadManifest, type Manifest } from "@abstractclass/engine/client.ts";
   import { edgeName, setUpStart } from "#lib/engine/notation.ts";
@@ -499,7 +500,8 @@
           </div>
         {/if}
         {#if confirming && g}
-          <div class="mt-3 p-2 rounded border border-line bg-panel-2 text-sm" role="alertdialog" aria-label={confirming === "resign" ? "Resign" : "Abort"}>
+          <div class="mt-3 p-2 rounded border border-line bg-panel-2 text-sm" role="alertdialog" aria-label={confirming === "resign" ? "Resign" : "Abort"}
+               {@attach intoView}>
             <p class="mb-2">{confirming === "resign" ? "Resign? HedgeFund wins, and the game goes into Your games."
                                                      : "Abort the game? It goes into Your games, unfinished."}</p>
             <div class="flex gap-2">
@@ -510,24 +512,23 @@
         {/if}
       {/if}
       <!-- The steps through the positions, then the game's actions and the display settings' button: the review's bar
-           (StepBar), whose actions go under the steps when the column is too narrow for one row. -->
-      <div class="mt-2 pt-2 border-t border-line">
-        <StepBar onfirst={() => step(0)} onback={() => step(shown - 1)} onforward={() => step(shown + 1)} onlast={() => step(last)}
-                 atStart={!g || shown === 0} atEnd={!g || atLatest}>
-          {#snippet tools()}
-            <!-- The actions show, off, while the bot starts, so that the bar keeps its layout. -->
-            {#if g?.status !== "over"}
-              <button class="btn-icon" aria-label="Take back" title="Takeback" disabled={!g?.canTakeBack || settingsOpen} onclick={takeback}><Icon name="takeback" /></button>
-              <button class={["btn-icon", DANGER]} aria-label="Abort" title="Abort" disabled={!g || g.status === "starting" || settingsOpen}
-                      onclick={() => (confirming = "abort")}><Icon name="abort" /></button>
-              <button class={["btn-icon", DANGER]} aria-label="Resign" title="Resign"
-                      disabled={!g || g.status === "starting" || g.status === "failed" || settingsOpen} onclick={() => (confirming = "resign")}><Icon name="resign" /></button>
-            {/if}
-            <button class="btn-icon aria-expanded:border-accent aria-expanded:text-accent" aria-label="Display settings" title="Display settings"
-                    aria-expanded={settingsOpen} onclick={() => (settingsOpen = !settingsOpen)}><Icon name="menu" /></button>
-          {/snippet}
-        </StepBar>
-      </div>
+           (StepBar), whose actions go under the steps when the column is too narrow for one row. On a phone it is fixed
+           to the bottom of the window. -->
+      <StepBar class="mt-2 pt-2 border-t border-line" onfirst={() => step(0)} onback={() => step(shown - 1)} onforward={() => step(shown + 1)}
+               onlast={() => step(last)} atStart={!g || shown === 0} atEnd={!g || atLatest}>
+        {#snippet tools()}
+          <!-- The actions show, off, while the bot starts, so that the bar keeps its layout. -->
+          {#if g?.status !== "over"}
+            <button class="btn-icon" aria-label="Take back" title="Takeback" disabled={!g?.canTakeBack || settingsOpen} onclick={takeback}><Icon name="takeback" /></button>
+            <button class={["btn-icon", DANGER]} aria-label="Abort" title="Abort" disabled={!g || g.status === "starting" || settingsOpen}
+                    onclick={() => (confirming = "abort")}><Icon name="abort" /></button>
+            <button class={["btn-icon", DANGER]} aria-label="Resign" title="Resign"
+                    disabled={!g || g.status === "starting" || g.status === "failed" || settingsOpen} onclick={() => (confirming = "resign")}><Icon name="resign" /></button>
+          {/if}
+          <button class="btn-icon aria-expanded:border-accent aria-expanded:text-accent" aria-label="Display settings" title="Display settings"
+                  aria-expanded={settingsOpen} onclick={() => (settingsOpen = !settingsOpen)}><Icon name="menu" /></button>
+        {/snippet}
+      </StepBar>
     </section>
   </main>
 {/snippet}
@@ -554,7 +555,7 @@
 {/snippet}
 
 {#snippet displaySettings()}
-  <div role="region" aria-label="Display settings" class="flex flex-col flex-1 min-h-0">
+  <div role="region" aria-label="Display settings" class="flex flex-col flex-1 min-h-0" {@attach intoView}>
     <div class="flex items-center justify-between mb-1">
       <h2 class="font-semibold">Display settings</h2>
       <button class="px-2 py-0.5 text-sm" onclick={() => (settingsOpen = false)}>Done</button>

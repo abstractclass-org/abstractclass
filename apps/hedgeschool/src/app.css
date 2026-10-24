@@ -268,3 +268,30 @@
     .bar-glider::after { display: none; }
   }
 }
+
+/* The step bar on a phone (design 06): in one column, below 800 pixels, the bar (StepBar) is fixed to the bottom of the
+   window, as the Lichess app's bottom bar, so that the step back is in view whenever the board is. It spans the page's
+   area (100cqw: the area is the nearest size container, and leaves out its scroll bar's room), with the page's padding,
+   so that its buttons line up with the column. Its bottom padding takes the phone's safe area. The page keeps room for
+   it at its end (.step-room), and its scrolling keeps clear of it (scroll-padding-bottom), from the bar's height
+   (--step-dock, which the bar sets). It is over the page (z-10), and under the menus, which come later in the document
+   at the same level, the dialogs (z-20, z-30) and the notices (z-50). On screen only: a printed page is as narrow, and
+   a fixed bar repeats on every sheet. These rules are outside Tailwind's layers, so that they override the margin,
+   border and padding that the bar's place in a wider column gives it. */
+.step-room { display: none; }
+@media screen and (max-width: 799px) {
+  html, #page { scroll-padding-bottom: var(--step-dock, 0px); }
+  .step-room { display: block; flex: none; height: var(--step-dock, 0px); }
+  .step-dock {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    z-index: 10;
+    width: 100cqw;
+    margin: 0;
+    padding: 0.375rem 1rem max(0.375rem, env(safe-area-inset-bottom));
+    border: 0;
+    border-top: 1px solid var(--border);
+    background: var(--panel);
+  }
+}
