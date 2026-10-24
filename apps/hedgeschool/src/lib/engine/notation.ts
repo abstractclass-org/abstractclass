@@ -35,6 +35,25 @@ export function parseEdge(s: string): Edge {
   return [...parsePoint(a), ...parsePoint(b)] as Edge;
 }
 
+// The mirror image: row r to row 20 - r (y to 18 - y), the symmetry that the start has (protocol 0.4's twins,
+// @abstractclass/engine/protocol.ts). A position's mirror image is the same position for the rules and the engine.
+const mirrorY = ([ax, ay, bx, by]: Edge): Edge => [ax, 18 - ay, bx, 18 - by];
+/** An edge's mirror image, in its one spelling. */
+export const mirrorEdge = (s: string) => edgeName(mirrorY(parseEdge(s)));
+/** A position's mirror image, in the position notation's one spelling: each list's edges mirrored with their marks,
+ *  then sorted again by the edges' first points, then by their second points. */
+export function mirrorPosition(position: string): string {
+  const [blue, red, ...rest] = position.split(" ");
+  const mirrored = (s: string) => {
+    const mark = s.match(/[*+]$/)?.[0] ?? "";
+    return { edge: parseEdge(mirrorEdge(s.slice(0, s.length - mark.length))), mark };
+  };
+  const list = (edges: string) => edges === "-" ? edges : edges.split(",").map(mirrored)
+    .sort((u, v) => u.edge[0] - v.edge[0] || u.edge[1] - v.edge[1] || u.edge[2] - v.edge[2] || u.edge[3] - v.edge[3])
+    .map(({ edge, mark }) => edgeName(edge) + mark).join(",");
+  return [list(blue), list(red), ...rest].join(" ");
+}
+
 export const sameEdge = (a: Edge, b: Edge) =>
   (a[0] === b[0] && a[1] === b[1] && a[2] === b[2] && a[3] === b[3]) ||
   (a[0] === b[2] && a[1] === b[3] && a[2] === b[0] && a[3] === b[1]);

@@ -35,6 +35,9 @@
      live search. A coarse form (for example one byte a point) is enough.
    The labels, the position symbols and the sentences are the site's product rules: the site computes them from these
    values. The file holds no label and no symbol.
+   The site's form for these values, with each field's unit, is in design 32, "The book file"
+   ([32-book-explorer.md](../design/32-book-explorer.md#the-book-file)). A test book in that form is in
+   `apps/hedgeschool/static/test-book/`.
 6. **In parts,** so that the start's part loads first: for example the first turns in one file, and each later
    subtree in its own file, with an index. Each part small enough to load at once on a phone (a few hundred kilobytes
    at most, before compression). Cloudflare Pages serves files of up to 25 MiB. The site defines its own form and
