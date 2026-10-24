@@ -8,6 +8,8 @@ node_modules
 .wrangler
 /apps/hedgeschool/.svelte-kit
 /apps/hedgeschool/build
+/apps/drawingboard/.svelte-kit
+/apps/drawingboard/build
 
 # OS
 .DS_Store

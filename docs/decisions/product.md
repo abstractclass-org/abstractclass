@@ -6844,3 +6844,29 @@ error and no horizontal scroll. The layout sweep in Chromium passes (25 tests, 5
     into view) and the keyboard (Tab to New, Enter opens its menu, Escape gives the focus back) work. The Export
     menu's toast ends 20 pixels above the bar. The layout sweep in Chromium passes: 25 tests, 6 skipped (the tests
     that need a Google tag, which a local build leaves out).
+
+### Drawing Board, Blueprints' site (2026-10-25)
+
+- **What:** the site for Blueprints, the Fall 2026 jam's game, and its notation (design 33). The engine's browser
+  build is asked in request 23.
+- **The names:** Drawing Board for the site, Stamp Duty for the engine and its practice bot. The other names
+  weighed for the bot: Fine Print, BlueChip, Starchitect, Compound Interest, Wall Street, Encroachment (from a Codex
+  agent's round), Due Diligence and others. Starchitect fits another game better, and BlueChip says little.
+- **The plan:** Hedge School's pages and design, with only the game's parts changed. The rehearsal game on
+  Connect-4 is dropped: Blueprints' board is the second board for the view's split (design 29, item 9).
+- **The notation, from strategyjam.org's entry script** (rules version 3, saved by the engine repository's game watch
+  in `runs/strategyjam/blueprints/20261024-215959/`): a placement `K@q,r`, an edit `I:q,r>J:q,r` with both
+  coordinates in the blueprints' frames before the edit, and `pass`. An edit uses a move: only the Sandbox's free
+  edit does not. The grid is axial, with pointy-top hexes and r down the screen. The site's move list numbers moves
+  and shows `+N` only when a placement scores.
+- **Checked on the archive** (the engine repository's `runs/strategyjam-archive/blueprints.jsonl`, 1,826 games), with
+  a model of the hand's rules and of placements written for the check:
+  - All 32,959 edits played are in the model's legal edits, and no placement stamps on a cell that has a piece.
+  - 7,061 edits move the source's first cell, 7,944 put a cell before the target's first cell, 11,539 stay in one
+    blueprint, and 53 go to an empty blueprint.
+  - In 990 of the first 4,000 positions where a game played an edit, two legal edits give the same hand (706.6 legal
+    edits and 702.0 different hands a position on average). One game played an edit that left its hand as it was.
+  - Of 105,820 placements, 73,599 remove an enemy cell, 41,947 remove a star and 41,864 score (57.4 points on
+    average). The 83 others removed a star with no star of the mover's on the board. Of the 146,128 moves, 7,349 are
+    passes.
+- **The marks:** `x` for a placement that removes enemy cells, `x+N` for one that scores N, and never `+0`.

@@ -10,6 +10,7 @@ import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const site = join(root, "apps/hedgeschool");
+const board = join(root, "apps/drawingboard");
 
 const steps = [
   { name: "engine", cwd: site, command: "npm run engine -- --deploy", stopsOnFailure: true },
@@ -25,6 +26,10 @@ const steps = [
     name: "build", cwd: site, command: "npm run build",
     env: { VITE_EDITION: "early", VITE_STORE_PRACTICE_GAMES: "on" },
   },
+  // Drawing Board, Blueprints' site (design 33): its type check, its unit tests and its build.
+  { name: "drawingboard-check", cwd: board, command: "npm run check" },
+  { name: "drawingboard-test", cwd: board, command: "npm test" },
+  { name: "drawingboard-build", cwd: board, command: "npm run build" },
 ];
 
 const results = [];

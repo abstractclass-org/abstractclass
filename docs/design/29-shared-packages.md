@@ -131,8 +131,9 @@ edit in the same commit), so their changes still apply.
    export the general part that moved out of them, so that their importers do not change: `analysis/engineSettings.ts`
    (the settings' general part) and `game/store.ts` (the kept tree's shape).
 9. **The views wait for the jam site's template** (abscls-8tl1.2). `ReviewView.svelte` and its components stay in
-   Hedge School. The template splits the view on Connect-4's board, the first board of a second game, and moves its
-   general part into a package. The view's game interface then needs these, each Enclosure's now:
+   Hedge School. The split happens on Blueprints' board, the first board of a second game (Drawing Board, design 33,
+   in place of a rehearsal game on Connect-4's board), and moves the view's general part into a package. The view's
+   game interface then needs these, each Enclosure's now:
    - **The board:** a component of the site's, with the position, the last move, the candidates (move, rank, note),
      the labels' marks, the line (each move with its player and step), the move pointed at, and the notes drawn on it.
    - **The player's own moves:** Enclosure's edge input (two points, by clicks or a drag).
