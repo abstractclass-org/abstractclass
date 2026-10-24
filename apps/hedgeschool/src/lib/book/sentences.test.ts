@@ -10,8 +10,8 @@ import { fileURLToPath } from "node:url";
 import { openBook, type Book } from "./book.ts";
 import type { BookIndex, BookMove, BookPart, BookPosition } from "./form.ts";
 import { SYMBOL_NAME, symbol } from "./symbols.ts";
-import { bestMoveSentence, endSentence, lineText, mainLine, moveSentence, nextPlace, trapSentence,
-  turnSentence } from "./sentences.ts";
+import { bestMoveSentence, endSentence, lineText, mainLine, moveSentence, trapSentence, turnSentence } from
+  "./sentences.ts";
 import { mirrorPosition } from "#lib/engine/notation.ts";
 import { turnFromCount } from "#lib/review/enclosure.ts";
 
@@ -99,11 +99,8 @@ test("the symbols: the cut-offs of design 32, each inclusive, and ∞ for a hard
 });
 
 test("a line in the notation numbers each turn, and a turn's second edge as N...", () => {
-  assert.equal(lineText({ turn: 1, edge: 1 }, ["A10-D9", "N11-Q10", "L10-N11", "D10-G12"]),
-    "1. A10-D9 2. N11-Q10 L10-N11 3. D10-G12");
-  assert.equal(lineText({ turn: 2, edge: 2 }, ["N11-Q10", "G9-K10", "K10-M7"]), "2... N11-Q10 3. G9-K10 K10-M7");
-  assert.deepEqual(nextPlace({ turn: 1, edge: 1 }), { turn: 2, edge: 1 });
-  assert.deepEqual(nextPlace({ turn: 4, edge: 1 }), { turn: 4, edge: 2 });
+  assert.equal(lineText(0, ["A10-D9", "N11-Q10", "L10-N11", "D10-G12"]), "1. A10-D9 2. N11-Q10 L10-N11 3. D10-G12");
+  assert.equal(lineText(2, ["N11-Q10", "G9-K10", "K10-M7"]), "2... N11-Q10 3. G9-K10 K10-M7");
 });
 
 test("the main line from the start: one sentence a turn, as the first view of Openings gives it", async () => {
@@ -115,8 +112,8 @@ test("the main line from the start: one sentence a turn, as the first view of Op
     "3. D10-G12 G12-J15 keep the game equal. The best other book move is 3. D9-G10. After it, the game is equal. " +
       "The main line ends here.",
   ]);
-  assert.deepEqual(turns.map(t => [t.at, t.edges.length]),
-    [[{ turn: 1, edge: 1 }, 1], [{ turn: 2, edge: 1 }, 2], [{ turn: 3, edge: 1 }, 2]]);
+  assert.deepEqual(turns.map(t => [t.at, t.edges.length, t.ends]),
+    [[{ turn: 1, edge: 1 }, 1, false], [{ turn: 2, edge: 1 }, 2, false], [{ turn: 3, edge: 1 }, 2, true]]);
 });
 
 test("every turn's sentence is true by the book's values, on the main line from every position", async () => {
@@ -156,6 +153,7 @@ test("every turn's sentence is true by the book's values, on the main line from 
         assert.equal(otherEnd, lineEnd(named.o, "clause"), t.sentence);
       } else assert.ok(none, t.sentence);
       assert.equal(!!ends, m.end.count === count(at) + 1, t.sentence);
+      assert.deepEqual([t.ends, t.to], [!!ends, m.to], t.sentence);
       n++;
       if (ends) break;
       p = (await book.get(m.to))!;

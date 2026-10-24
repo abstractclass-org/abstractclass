@@ -12,54 +12,56 @@
 import { GOOD_WIN, classify, type Label } from "@abstractclass/analysis/labels.ts";
 import { LABEL_TEXT, moverWin, pct } from "@abstractclass/analysis/model.ts";
 import { playerOf } from "#lib/engine/position.ts";
+import { PLAYER_NAME, turnFromCount } from "#lib/review/enclosure.ts";
 import type { Book } from "./book.ts";
 import type { BookMove, BookPosition } from "./form.ts";
-import { SYMBOL_CLAUSE, SYMBOL_NAME, SYMBOL_STATE, lineEndSymbol, positionSymbol } from "./symbols.ts";
+import { SYMBOL_NAME, rounded, symbol, type PositionSymbol } from "./symbols.ts";
 
-/** Where an edge goes in the game: its turn (1 to 61) and its place in the turn (1 or 2). Turn 1 has one edge. */
-export interface TurnPlace { turn: number; edge: 1 | 2 }
-
-/** The place of the edge after the edge at `at`. */
-export const nextPlace = ({ turn, edge }: TurnPlace): TurnPlace =>
-  turn === 1 || edge === 2 ? { turn: turn + 1, edge: 1 } : { turn, edge: 2 };
-
-/** A line in the notation (the site's /notation page), from the edge at `at`: `3. D10-G12 G12-J15`, and `2...` before
- *  a line that starts at a turn's second edge: `2... N11-Q10 3. G9-K10 K10-M7`. */
-export function lineText(at: TurnPlace, edges: string[]): string {
-  const words: string[] = [];
-  edges.forEach((e, i) => {
-    if (i === 0) words.push(at.edge === 2 ? `${at.turn}...` : `${at.turn}.`);
-    else if (at.edge === 1) words.push(`${at.turn}.`);
-    words.push(e);
-    at = nextPlace(at);
-  });
-  return words.join(" ");
-}
+/** A line in the notation (the site's /notation page), from the position after `count` edges: `3. D10-G12 G12-J15`,
+ *  and `2...` before a line that starts at a turn's second edge: `2... N11-Q10 3. G9-K10 K10-M7`. */
+export const lineText = (count: number, edges: string[]) => edges.map((e, i) => {
+  const { turn, first } = turnFromCount(count + i);
+  return i === 0 ? `${turn}${first ? "." : "..."} ${e}` : first ? `${turn}. ${e}` : e;
+}).join(" ");
 
 /** A position's edge count: the fifth field of its notation. */
 const edgeCount = (p: BookPosition) => Number(p.position.split(" ")[4]);
-/** The mover's win chance after a move, from the values that the book gives in Blue's. */
+/** The side to move, by name. */
+const side = (p: BookPosition) => PLAYER_NAME[playerOf(p.mover)];
+/** The mover's win chance, from Blue's. */
 const win = (p: BookPosition, blueWin: number) => moverWin(blueWin, playerOf(p.mover));
-/** A loss of win chance, rounded so that the values' own decimals decide a band, not the floating point's. */
-const rounded = (x: number) => Math.round(x * 1e6) / 1e6;
-
+/** The mover's best win chance here: the first book move's, or the best move outside the book's when it is better
+ *  (design 10, the engine's first choice). */
+const bestWin = (p: BookPosition) =>
+  Math.max(win(p, p.moves[0].value.blueWin), p.outside ? win(p, p.outside.blueWin) : 0);
+/** The mover's loss of win chance from the best here, for a move to Blue's win chance `blueWin`. */
+const lossTo = (p: BookPosition, blueWin: number) => rounded(Math.max(0, bestWin(p) - win(p, blueWin)));
+/** Whether a move is the first book move. By its edge: each lookup gives new objects. */
+const isFirst = (p: BookPosition, m: BookMove) => m.move === p.moves[0]?.move;
 /** Whether the best move outside the book is better for the mover than the first book move. */
 const outsideBetter = (p: BookPosition) =>
   !!p.outside && p.moves.length > 0 && win(p, p.outside.blueWin) > win(p, p.moves[0].value.blueWin);
 
+/** A position's own symbol: from its minimaxed value and its own complexity. At the book's end, the symbol in "End of
+ *  the book". */
+const positionSymbol = (p: BookPosition) => symbol(p.value.blueWin, p.complexity);
+/** The symbol at the end of a book move's main line: the move's values are those of its line's end. */
+const lineEndSymbol = (m: BookMove) => symbol(m.value.blueWin, m.end.complexity);
+/** A symbol as a clause: "After it, Blue is better.", "After it, the game is equal." */
+const clause = (s: PositionSymbol) =>
+  s === "=" ? "the game is equal" : s === "∞" ? "the game is unclear" : SYMBOL_NAME[s];
+/** A symbol after "keeps" or "leaves": "keeps the game equal", "leaves Red winning". */
+const state = (s: PositionSymbol) => clause(s).replace(" is ", " ");
+
 /** A book move's loss of win chance for the mover, from the best move here: the first book move, or the best move
  *  outside the book when it is better (design 10, the engine's first choice). */
-export function moveLoss(p: BookPosition, m: BookMove): number {
-  const best = Math.max(...[...p.moves.slice(0, 1).map(b => b.value.blueWin), ...(p.outside ? [p.outside.blueWin] : [])]
-    .map(w => win(p, w)));
-  return rounded(Math.max(0, best - win(p, m.value.blueWin)));
-}
+export const moveLoss = (p: BookPosition, m: BookMove) => lossTo(p, m.value.blueWin);
 
 /** A book move's label by design 10, from its loss (`moveLoss`). The first book move is Best when nothing outside the
  *  book is better. The book has no position before the opponent's last turn here, so it gives no Great: the table
  *  groups Best and Great as fine moves. */
 export function moveLabel(p: BookPosition, m: BookMove): Label {
-  return classify(moveLoss(p, m), m === p.moves[0] && !outsideBetter(p), false);
+  return classify(moveLoss(p, m), isFirst(p, m) && !outsideBetter(p), false);
 }
 
 /** A fine move: Good or better (design 32, item 3, "Fine moves"). */
@@ -67,13 +69,20 @@ export const isFine = (p: BookPosition, m: BookMove) => moveLoss(p, m) <= GOOD_W
 
 /** Whether a move's main line ends at the position that the move reaches. */
 const lineEndsAfter = (p: BookPosition, m: BookMove) => m.end.count === edgeCount(p) + 1;
+/** Whether the main line's turn from `p` has two edges on the line: the next edge opens no turn, and the line goes on
+ *  after it. */
+const twoEdges = (p: BookPosition) => !turnFromCount(edgeCount(p) + 1).first && !lineEndsAfter(p, p.moves[0]);
 
 /** One turn of a main line, with its sentence. */
 export interface LineTurn {
-  /** The turn's number and the place of its first edge (2 when the line starts at a turn's second edge). */
-  at: TurnPlace;
+  /** The turn's number and the place of its first edge on the line (2 when the line starts at a turn's second edge). */
+  at: { turn: number; edge: 1 | 2 };
   /** The turn's book moves on the main line: one or two edges. */
   edges: string[];
+  /** The position after the turn's last edge on the line. */
+  to: string;
+  /** Whether the main line ends after the turn. */
+  ends: boolean;
   sentence: string;
 }
 
@@ -84,24 +93,24 @@ export interface LineTurn {
 export function turnSentence(first: BookPosition, second?: BookPosition | null): LineTurn {
   const m1 = first.moves[0];
   if (!m1) throw new Error(`${first.position}: no book move, so no main line`);
-  const twoEdges = first.edge === 1 && first.turn > 1 && !lineEndsAfter(first, m1);
-  if (twoEdges && second?.position !== m1.to) throw new Error(`${first.position}: the turn needs the position after ${m1.move}`);
-  const [at, line] = twoEdges && second ? [second, second.moves[0]] : [first, m1];
-  const edges = twoEdges ? [m1.move, line.move] : [m1.move];
-  const place = { turn: first.turn, edge: first.edge };
-  const end = lineEndSymbol(line), plural = edges.length > 1;
-  const verb = positionSymbol(first) === end ? (plural ? "keep" : "keeps") : (plural ? "leave" : "leaves");
-  const parts = [`${lineText(place, edges)} ${verb} ${SYMBOL_STATE[end]}.`];
+  const two = twoEdges(first);
+  if (two && second?.position !== m1.to) throw new Error(`${first.position}: the turn needs the position after ${m1.move}`);
+  const at = two ? second! : first, line = at.moves[0];
+  const edges = two ? [m1.move, line.move] : [m1.move];
+  const end = lineEndSymbol(line);
+  const verb = (positionSymbol(first) === end ? "keep" : "leave") + (two ? "" : "s");
+  const parts = [`${lineText(edgeCount(first), edges)} ${verb} ${state(end)}.`];
   // The other book moves of the turn, at its first edge and at its second: the mover's best of them
-  const others = [first, ...(twoEdges ? [at] : [])].flatMap(p => p.moves.slice(1).map(m => ({ p, m })));
-  const other = others.reduce<(typeof others)[number] | undefined>(
-    (best, o) => (!best || win(o.p, o.m.value.blueWin) > win(best.p, best.m.value.blueWin) ? o : best), undefined);
+  const others = (two ? [first, at] : [first]).flatMap(p => p.moves.slice(1).map(m => ({ p, m })));
+  const other = others.length
+    ? others.reduce((b, o) => (win(o.p, o.m.value.blueWin) > win(b.p, b.m.value.blueWin) ? o : b)) : null;
   if (other) {
-    parts.push(`The best other book move is ${lineText(other.p, [other.m.move])}.`,
-      `After it, ${SYMBOL_CLAUSE[lineEndSymbol(other.m)]}.`);
+    parts.push(`The best other book move is ${lineText(edgeCount(other.p), [other.m.move])}.`,
+      `After it, ${clause(lineEndSymbol(other.m))}.`);
   } else parts.push("The book has no other move in this turn.");
-  if (lineEndsAfter(at, line)) parts.push("The main line ends here.");
-  return { at: place, edges, sentence: parts.join(" ") };
+  const ends = lineEndsAfter(at, line);
+  if (ends) parts.push("The main line ends here.");
+  return { at: { turn: first.turn, edge: first.edge }, edges, to: line.to, ends, sentence: parts.join(" ") };
 }
 
 /** The book's main line from a position (the start by default), one turn a sentence: the box of Openings' first view
@@ -111,12 +120,10 @@ export async function mainLine(book: Book, from: string = book.start): Promise<L
   const turns: LineTurn[] = [];
   let p = await book.get(from);
   while (p?.moves.length) {
-    const m = p.moves[0];
-    const next = await book.get(m.to);
-    const turn = turnSentence(p, next);
+    const turn = turnSentence(p, twoEdges(p) ? await book.get(p.moves[0].to) : null);
     turns.push(turn);
-    if (turn.sentence.endsWith("The main line ends here.")) break;
-    p = turn.edges.length > 1 ? await book.get(next!.moves[0].to) : next;
+    if (turn.ends) break;
+    p = await book.get(turn.to);
   }
   return turns;
 }
@@ -127,22 +134,18 @@ export async function mainLine(book: Book, from: string = book.start): Promise<L
 export function bestMoveSentence(p: BookPosition): string | null {
   const best = p.moves[0];
   if (!best) return null;
-  const after = `After it, ${SYMBOL_CLAUSE[lineEndSymbol(best)]}.`;
-  let parts: string[];
-  if (outsideBetter(p)) {
-    parts = [`${best.move} is the best book move here.`, after, `${p.outside!.move} is better, but it is not in the book.`];
-  } else {
-    // "book" when a move outside the book is fine too, so that the count stays true
-    const kind = p.outside && rounded(win(p, best.value.blueWin) - win(p, p.outside.blueWin)) <= GOOD_WIN
-      ? "book move" : "move";
-    const fine = p.moves.filter(m => isFine(p, m)).length;
-    parts = [fine === 1 ? `${best.move} is the only fine ${kind} here.`
+  const after = `After it, ${clause(lineEndSymbol(best))}.`;
+  // "book" when a move outside the book is fine too, so that the count stays true
+  const kind = p.outside && lossTo(p, p.outside.blueWin) <= GOOD_WIN ? "book move" : "move";
+  const fine = p.moves.filter(m => isFine(p, m)).length;
+  const parts = outsideBetter(p)
+    ? [`${best.move} is the best book move here.`, after, `${p.outside!.move} is better, but it is not in the book.`]
+    : [fine === 1 ? `${best.move} is the only fine ${kind} here.`
       : `${best.move} is the best of the ${fine} fine ${kind}s here.`, after];
-  }
-  const trap = traps(p).find(t => t !== best);
+  const trap = traps(p).find(t => t.move !== best.move);
   if (trap) {
     parts.push(`This move avoids a trap: ${trap.move} seems good after a short search, but ` +
-      `${lineText(nextPlace(p), trap.trap!.refutation)} leaves ${SYMBOL_STATE[lineEndSymbol(trap)]}.`);
+      `${lineText(edgeCount(p) + 1, trap.trap!.refutation)} leaves ${state(lineEndSymbol(trap))}.`);
   }
   return parts.join(" ");
 }
@@ -157,21 +160,20 @@ export function traps(p: BookPosition): BookMove[] {
  *  after a short search (Blue 41.4%). After 4. N12-Q10 L11-O12, Red is winning (Blue 16.6%)." */
 export function trapSentence(p: BookPosition, m: BookMove): string {
   if (!m.trap) throw new Error(`${p.position}: ${m.move} is not a trap`);
-  const side = p.mover === "b" ? "Blue" : "Red";
-  return `${m.move} seems good after a short search (${side} ${pct(win(p, m.trap.short))}). ` +
-    `After ${lineText(nextPlace(p), m.trap.refutation)}, ${SYMBOL_CLAUSE[lineEndSymbol(m)]} ` +
-    `(${side} ${pct(win(p, m.value.blueWin))}).`;
+  return `${m.move} seems good after a short search (${side(p)} ${pct(win(p, m.trap.short))}). ` +
+    `After ${lineText(edgeCount(p) + 1, m.trap.refutation)}, ${clause(lineEndSymbol(m))} ` +
+    `(${side(p)} ${pct(win(p, m.value.blueWin))}).`;
 }
 
 /** A book move's sentence: the row's sentence for the pointer or the focus. The best move's is `bestMoveSentence`, a
  *  trap's is `trapSentence`, and any other book move's gives its label and the end of its line. Example: "D10-G9 is an
  *  Inaccuracy here. After it, Red is slightly better." */
 export function moveSentence(p: BookPosition, m: BookMove): string {
-  if (m === p.moves[0]) return bestMoveSentence(p)!;
+  if (isFirst(p, m)) return bestMoveSentence(p)!;
   if (m.trap) return trapSentence(p, m);
-  const label = moveLabel(p, m), name = LABEL_TEXT[label];
-  const what = isFine(p, m) ? `${article(name)} ${name} move` : `${article(name)} ${name}`;
-  return `${m.move} is ${what} here. After it, ${SYMBOL_CLAUSE[lineEndSymbol(m)]}.`;
+  const name = LABEL_TEXT[moveLabel(p, m)];
+  return `${m.move} is ${article(name)} ${name}${isFine(p, m) ? " move" : ""} here. ` +
+    `After it, ${clause(lineEndSymbol(m))}.`;
 }
 
 /** The text where the book ends (design 32, item 5): "End of the book. Blue is slightly better." */
