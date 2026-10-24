@@ -1,8 +1,8 @@
 # The opening book explorer
 
-**Status:** in force. The book file's form, its loader and a test book are built ("The book file"), and the
-sentences (item 6). The explorer is not built. Its work uses the test book, and it goes live with the engine
-repository's book (request 22).
+**Status:** in force. The book file's form, its loader, a test book ("The book file") and the sentences (item 6) are
+built. The explorer is not built. Its work uses the test book, and it goes live with the engine repository's book
+(request 22).
 **Decided:** 2026-10-24, from user stories and journeys, Lichess's opening explorer, KataGo's book pages and OGS's
 Joseki Explorer.
 
@@ -104,17 +104,31 @@ explorers that people use in chess and Go is [../research/03-opening-explorers.m
    "Copy specifications".
    - **The module** (`apps/hedgeschool/src/lib/book/sentences.ts`) builds them from a position as the loader gives it:
      a main line's turn, the best move with the trap that it avoids, another book move with its label, a trap, and
-     the end of the book. The symbols' rule and words are in `symbols.ts`. A unit test reads each sentence back on
-     every position of the test book, in both orientations, and checks each fact that it states against the values.
+     the end of the book. The symbols' rule and their names are in `symbols.ts`, the one rule for the table and the
+     sentences. A unit test reads each sentence back on every position of both test books, in both orientations, and
+     checks each fact that it states against the values.
    - **One word, one meaning:** a trap "seems good after a short search", not "looks good at a short look", where
-     "look" has two meanings. The best other move of a turn gets a sentence of its own.
+     "look" has two meanings. The table's group of traps and a trap's values take the same words. The best other move
+     of a turn gets a sentence of its own. After "This move avoids a trap:", the sentence names the trap's edge again,
+     not "it", which could refer to the best move.
+   - **A trap's cost** is stated for the side that plays it: that side's win chance with the best move here and after
+     the trap, for example "decreases Red's win chance from 55.3% to 46.8%". The symbols alone do not always show the
+     cost. In the test book, a trap takes Blue from 36.4% to 16.6%, and both ends are "Red is winning".
+   - **A trap's short-search value is not in its sentence.** It comes from another search than the deep values. For 30
+     of the test book's 38 traps it is below the deep value with the best move, so beside that value it cannot show
+     why the trap tempts. The trap's move cell gives its two values (item 7).
+   - **A trap that is the first book move,** which happens only where a move outside the book is better, gets the
+     trap's sentence on its row, as its row is in the group of traps. The sentence under the table adds "This move is
+     a trap: …".
+   - **A turn's sentence names a better move outside the book:** "4. G9-K10 is better, but it is not in the book.".
+     The symbol before the turn counts that move, so without it "leaves the game equal" has no reason in the text.
    - **Where the main line ends,** the turn's sentence says "The main line ends here.", not "The book ends here.": at
      a position where a move outside the book is better, the book has moves after the main line's end.
    - **The labels** come from design 10's bands against the best move here, which is the first book move, or the best
      move outside the book when that is better. The book gives no Great, because a Great needs the position before
      the opponent's last turn.
    - **Not built:** a sentence for the trap that a move sets for the opponent.
-7. **A trap** shows why it tempts in its move cell, with the values open or closed: "Looks good: Blue 41%. Is not:
+7. **A trap** shows why it tempts in its move cell, with the values open or closed: "Seems good: Blue 41%. Is not:
    Blue 17%." No number is set in bold. A row under it gives the refutation and plays it: "Play the refutation: 4.
    N12-Q10 L11-O12".
 8. **Outside the book,** one line in the title row names the last book position on the path ("Not in the book. Last

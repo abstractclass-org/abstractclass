@@ -10,10 +10,9 @@ import { fileURLToPath } from "node:url";
 import { openBook, type Book } from "./book.ts";
 import type { BookIndex, BookMove, BookPart, BookPosition } from "./form.ts";
 import { SYMBOL_NAME, symbol } from "./symbols.ts";
-import { bestMoveSentence, endSentence, lineText, mainLine, moveSentence, trapSentence, turnSentence } from
+import { bestMoveSentence, endSentence, lineText, lineTurn, mainLine, moveSentence, trapSentence } from
   "./sentences.ts";
 import { mirrorPosition } from "#lib/engine/notation.ts";
-import { turnFromCount } from "#lib/review/enclosure.ts";
 
 const root = fileURLToPath(new URL("../../..", import.meta.url));
 const readJson = (url: string) => JSON.parse(readFileSync(join(root, "tests", "fixtures", url), "utf8"));
@@ -60,19 +59,36 @@ const lineEnd = (m: BookMove, form: "clause" | "state" | "name") => words(m.valu
 const bestWin = (p: BookPosition) =>
   Math.max(win(p, p.moves[0].value.blueWin), p.outside ? win(p, p.outside.blueWin) : 0);
 const loss = (p: BookPosition, m: BookMove) => Math.round((bestWin(p) - win(p, m.value.blueWin)) * 1e6) / 1e6;
+const outsideBetter = (p: BookPosition) => !!p.outside && win(p, p.outside.blueWin) > win(p, p.moves[0].value.blueWin);
 /** Design 10's bands, without Best: Excellent to 0.02, Good to 0.05, Inaccuracy to 0.10, Mistake to 0.20. */
 const band = (x: number) => (x <= 0.02 ? "Excellent" : x <= 0.05 ? "Good" : x <= 0.10 ? "Inaccuracy" : x <= 0.20
   ? "Mistake" : "Blunder");
 const percent = (x: number) => `${(100 * x).toFixed(1)}%`;
-/** A line in the notation, from the position after `count` edges: each turn's number from the edge counts. */
-function line(edgesBefore: number, edges: string[]): string {
-  return edges.map((e, i) => {
-    const { turn, first } = turnFromCount(edgesBefore + i);
-    return i === 0 ? `${turn}${first ? "." : "..."} ${e}` : first ? `${turn}. ${e}` : e;
-  }).join(" ");
+/** A place in the game: a turn and the place of an edge in it. */
+type Place = { turn: number; edge: 1 | 2 };
+/** The place after a position's next edge, from its turn and edge fields: turn 1 has one edge, the others two. */
+const next = ({ turn, edge }: Place): Place => (turn === 1 || edge === 2 ? { turn: turn + 1, edge: 1 } : { turn, edge: 2 });
+/** A line in the notation from a place: each turn's number from the places, not from the edge counts as lineText. */
+function line(at: Place, edges: string[]): string {
+  const words: string[] = [];
+  edges.forEach((e, i) => {
+    if (i === 0) words.push(`${at.turn}${at.edge === 2 ? "..." : "."}`);
+    else if (at.edge === 1) words.push(`${at.turn}.`);
+    words.push(e);
+    at = next(at);
+  });
+  return words.join(" ");
 }
 const traps = (p: BookPosition) => p.moves.filter(m => m.trap);
 const gap = (p: BookPosition, m: BookMove) => win(p, m.trap!.short) - win(p, m.value.blueWin);
+/** A trap's text, from its values: its side's win chance with the best move here and after the trap (lower, so that
+ *  "decreases" is true), its refutation from the place after it, and the end after that. */
+function trapText(p: BookPosition, m: BookMove, again: string): string {
+  assert.ok(percent(bestWin(p)) !== percent(win(p, m.value.blueWin)) && bestWin(p) > win(p, m.value.blueWin), m.move);
+  return `${m.move} seems good after a short search, but ${again} decreases ${mover(p)}'s win chance from ` +
+    `${percent(bestWin(p))} to ${percent(win(p, m.value.blueWin))}. After ${line(next(p), m.trap!.refutation)}, ` +
+    `${lineEnd(m, "clause")}.`;
+}
 
 /** Each text's sentences: one plain sentence each, at most 25 words (Simplified Technical English's limit for a
  *  description), with no semicolon and nothing on what a turn encloses (design 30, "Why"). A full stop after a turn's
@@ -117,11 +133,11 @@ test("the main line from the start: one sentence a turn, as the first view of Op
 });
 
 test("every turn's sentence is true by the book's values, on the main line from every position", async () => {
-  const re = /^(\d+)(\.|\.\.\.) (\S+)(?: (\S+))? (keeps|keep|leaves|leave) (.+?)\. (?:The best other book move is (.+)\. After it, (.+?)\.|(The book has no other move in this turn\.))( The main line ends here\.)?$/;
-  let n = 0;
+  const re = /^(\d+)(\.|\.\.\.) (\S+)(?: (\S+))? (keeps|keep|leaves|leave) (.+?)\.((?: \S+ \S+ is better, but it is not in the book\.)*) (?:The best other book move is (.+)\. After it, (.+?)\.|(The book has no other move in this turn\.))( The main line ends here\.)?$/;
+  let n = 0, outsideNamed = 0;
   for (const { book, p: from } of await everyPosition()) {
     if (!from.moves.length) {
-      await assert.rejects(async () => turnSentence(from), /no book move/);
+      assert.throws(() => lineTurn(from), /no book move/);
       continue;
     }
     let p = from;
@@ -129,7 +145,7 @@ test("every turn's sentence is true by the book's values, on the main line from 
       plain(t.sentence);
       const g = t.sentence.match(re);
       assert.ok(g, t.sentence);
-      const [, turn, dots, e1, e2, verb, state, other, otherEnd, none, ends] = g;
+      const [, turn, dots, e1, e2, verb, state, outside, other, otherEnd, none, ends] = g;
       const m1 = p.moves[0];
       assert.deepEqual([Number(turn), dots === "..." ? 2 : 1, e1], [p.turn, p.edge, m1.move], t.sentence);
       // A turn's second edge is on the line when the turn has one and the line goes on after the first
@@ -140,14 +156,19 @@ test("every turn's sentence is true by the book's values, on the main line from 
         m = second.moves[0];
         assert.equal(e2, m.move, t.sentence);
       } else assert.equal(e2, undefined, t.sentence);
+      const steps = at === p ? [p] : [p, at];
       assert.equal(state, lineEnd(m, "state"), t.sentence);
       const keeps = words(p.value.blueWin, p.complexity, "state") === state;
       assert.equal(verb.startsWith("keep"), keeps, t.sentence);
       assert.equal(verb.endsWith("s"), !e2, t.sentence);
-      const others = [p, ...(at === p ? [] : [at])].flatMap(q => q.moves.slice(1).map(o => ({ q, o })));
+      // A better move outside the book, at either edge of the turn, is named
+      assert.equal(outside, steps.filter(outsideBetter)
+        .map(q => ` ${line(q, [q.outside!.move])} is better, but it is not in the book.`).join(""), t.sentence);
+      if (outside) outsideNamed++;
+      const others = steps.flatMap(q => q.moves.slice(1).map(o => ({ q, o })));
       if (others.length) {
         const best = Math.max(...others.map(({ q, o }) => win(q, o.value.blueWin)));
-        const named = others.find(({ q, o }) => line(count(q), [o.move]) === other);
+        const named = others.find(({ q, o }) => line(q, [o.move]) === other);
         assert.ok(named, `${t.sentence}: the other move is a book move of the turn`);
         assert.equal(win(named.q, named.o.value.blueWin), best, `${t.sentence}: the best of them`);
         assert.equal(otherEnd, lineEnd(named.o, "clause"), t.sentence);
@@ -159,16 +180,15 @@ test("every turn's sentence is true by the book's values, on the main line from 
       p = (await book.get(m.to))!;
     }
   }
-  assert.ok(n > 400, String(n));
+  assert.ok(n > 400 && outsideNamed > 0, `${n} turns, ${outsideNamed} with a better move outside the book`);
 });
 
 test("every position's best move, other move and trap sentences, and the book's end, are true by its values",
   async () => {
-    const fine = /^(\S+) is (?:the only fine (book )?move|the best of the (\d+) fine (book )?moves) here\. After it, (.+?)\.(?: This move avoids a trap: (\S+) seems good after a short search, but (.+) leaves (.+)\.)?$/;
-    const outside = /^(\S+) is the best book move here\. After it, (.+?)\. (\S+) is better, but it is not in the book\.(?: This move avoids a trap: (\S+) seems good after a short search, but (.+) leaves (.+)\.)?$/;
-    const trapRe = /^(\S+) seems good after a short search \((Blue|Red) (\d+\.\d%)\)\. After (.+), (.+) \((Blue|Red) (\d+\.\d%)\)\.$/;
+    const fine = /^(\S+) is (?:the only fine (book )?move|the best of the (\d+) fine (book )?moves) here\. After it, (.+?)\.$/;
+    const outside = /^(\S+) is the best book move here\. After it, (.+?)\. (\S+) is better, but it is not in the book\.$/;
     const otherRe = /^(\S+) is (a|an) (\w+)( move)? here\. After it, (.+)\.$/;
-    const seen = { only: 0, several: 0, outside: 0, avoids: 0, traps: 0, others: 0, ends: 0 };
+    const seen = { only: 0, several: 0, outside: 0, avoids: 0, firstTraps: 0, traps: 0, others: 0, ends: 0 };
     for (const { p } of await everyPosition()) {
       if (!p.moves.length) {
         assert.equal(bestMoveSentence(p), null);
@@ -177,19 +197,24 @@ test("every position's best move, other move and trap sentences, and the book's 
         continue;
       }
       const best = p.moves[0], text = bestMoveSentence(p)!;
-      assert.equal(moveSentence(p, best), text);
       plain(text);
-      // The avoided trap: the one with the largest gap, its refutation, and the end after it
-      let avoided: string[] = [];
-      const better = !!p.outside && win(p, p.outside.blueWin) > win(p, best.value.blueWin);
-      if (better) {
-        const g = text.match(outside);
+      // The traps at the text's end: the best move's own, then the avoided one with the largest gap
+      const ts = traps(p).filter(m => m !== best).sort((a, b) => gap(p, b) - gap(p, a));
+      const own = best.trap ? ` This move is a trap: ${trapText(p, best, best.move)}` : "";
+      const avoids = ts.length ? ` This move avoids a trap: ${trapText(p, ts[0], ts[0].move)}` : "";
+      assert.ok(text.endsWith(own + avoids), text);
+      const rest = text.slice(0, text.length - (own + avoids).length);
+      assert.doesNotMatch(rest, /trap/, text);
+      if (own) seen.firstTraps++;
+      if (avoids) seen.avoids++;
+      if (outsideBetter(p)) {
+        const g = rest.match(outside);
         assert.ok(g, text);
         assert.deepEqual(g.slice(1, 4), [best.move, lineEnd(best, "clause"), p.outside!.move], text);
-        avoided = g.slice(4);
         seen.outside++;
       } else {
-        const g = text.match(fine);
+        assert.ok(!best.trap, `${text}: the first book move is a trap only where a move outside the book is better`);
+        const g = rest.match(fine);
         assert.ok(g, text);
         const [, edge, bookOnly, k, bookK, end] = g;
         const fines = p.moves.filter(m => loss(p, m) <= 0.05).length;
@@ -198,29 +223,19 @@ test("every position's best move, other move and trap sentences, and the book's 
         assert.equal(end, lineEnd(best, "clause"), text);
         assert.equal(k === undefined ? 1 : Number(k), fines, text);
         assert.equal(!!(bookOnly ?? bookK), outsideFine, text);
-        avoided = g.slice(6);
         seen[fines === 1 ? "only" : "several"]++;
       }
-      const ts = traps(p).filter(m => m !== best).sort((a, b) => gap(p, b) - gap(p, a));
-      if (ts.length) {
-        const [trap, refutation, state] = avoided;
-        assert.equal(trap, ts[0].move, text);
-        assert.equal(refutation, line(count(p) + 1, ts[0].trap!.refutation), text);
-        assert.equal(state, lineEnd(ts[0], "state"), text);
-        seen.avoids++;
-      } else assert.equal(avoided[0], undefined, text);
 
-      for (const m of p.moves.slice(1)) {
+      // A row's sentence: a trap's for each trap, the first book move too, and the best move's for the first
+      for (const m of p.moves) {
         const s = moveSentence(p, m);
         plain(s);
         if (m.trap) {
           assert.equal(s, trapSentence(p, m));
-          const g = s.match(trapRe);
-          assert.ok(g, s);
-          assert.deepEqual(g.slice(1), [m.move, mover(p), percent(win(p, m.trap.short)),
-            line(count(p) + 1, m.trap.refutation), lineEnd(m, "clause"), mover(p), percent(win(p, m.value.blueWin))], s);
+          assert.equal(s, trapText(p, m, "it"));
           seen.traps++;
-        } else {
+        } else if (m === best) assert.equal(s, text);
+        else {
           const g = s.match(otherRe);
           assert.ok(g, s);
           const [, edge, a, label, move, end] = g;
@@ -231,9 +246,9 @@ test("every position's best move, other move and trap sentences, and the book's 
         }
       }
     }
-    // Each kind of sentence comes on the test books: 38 traps, in both orientations
+    // Each kind of sentence comes on the test books: 39 traps, in both orientations
     assert.ok(Object.values(seen).every(x => x > 0), JSON.stringify(seen));
-    assert.ok(seen.traps >= 76, JSON.stringify(seen));
+    assert.ok(seen.traps >= 78, JSON.stringify(seen));
   });
 
 test("a position's sentences, as the table shows them: the best move with the trap it avoids, and the trap", async () => {
@@ -243,8 +258,8 @@ test("a position's sentences, as the table shows them: the best move with the tr
   assert.equal(moveSentence(start, start.moves[1]), "D10-G9 is an Inaccuracy here. After it, Red is slightly better.");
   const p = (await book.get("A10-D10,D10-G9* Q10-T10 r2 0/0 1"))!, trap = p.moves.find(m => m.trap)!;
   assert.equal(bestMoveSentence(p), "N11-Q10 is the best of the 2 fine moves here. After it, Red is slightly " +
-    "better. This move avoids a trap: Q11-T10 seems good after a short search, but 2... N11-Q10 3. G9-K10 K10-M7 " +
-    "leaves Blue slightly better.");
-  assert.equal(trapSentence(p, trap), "Q11-T10 seems good after a short search (Red 48.5%). After 2... N11-Q10 " +
-    "3. G9-K10 K10-M7, Blue is slightly better (Red 46.8%).");
+    "better. This move avoids a trap: Q11-T10 seems good after a short search, but Q11-T10 decreases Red's win " +
+    "chance from 55.3% to 46.8%. After 2... N11-Q10 3. G9-K10 K10-M7, Blue is slightly better.");
+  assert.equal(trapSentence(p, trap), "Q11-T10 seems good after a short search, but it decreases Red's win chance " +
+    "from 55.3% to 46.8%. After 2... N11-Q10 3. G9-K10 K10-M7, Blue is slightly better.");
 });

@@ -1,21 +1,21 @@
 // The book's sentences (design 32, item 6), built from the book's values as the review builds its sentences from checked
 // engine facts (design 04), never from a language model. Each function takes positions as the loader gives them (book.ts,
 // `Book`: in the player's orientation) and gives the text that the table (beads abscls-tpaj.5) and Openings
-// (abscls-tpaj.12) show. The facts: how a line ends (its symbol, symbols.ts), how the other book moves end, the labels
-// of the book moves (design 10), the traps that the best move avoids, and a trap's two values and its refutation. No
-// sentence says what a turn encloses: such sentences were exact and misleading (design 30, "Why").
+// (abscls-tpaj.12) show. The facts: how a line ends (its symbol, symbols.ts), how the other book moves end, a better
+// move outside the book, the labels of the book moves (design 10), the traps that the best move avoids, and what a trap
+// costs the side that plays it, with its refutation. No sentence says what a turn encloses: such sentences were exact
+// and misleading (design 30, "Why").
 //
 // The words are strict Simplified Technical English (CLAUDE.md, "Writing the site's text"), from the templates of
-// docs/ux/book-explorer/journey-book-explorer.md, "Copy specifications". Two departures, for one word one meaning: a
-// trap "seems good after a short search", not "looks good at a short look", and the best other move of a turn gets a
-// sentence of its own ("The best other book move is …").
+// docs/ux/book-explorer/journey-book-explorer.md, "Copy specifications". Design 32, item 6, gives where they depart
+// from the first templates, and why.
 import { GOOD_WIN, classify, type Label } from "@abstractclass/analysis/labels.ts";
 import { LABEL_TEXT, moverWin, pct } from "@abstractclass/analysis/model.ts";
 import { playerOf } from "#lib/engine/position.ts";
 import { PLAYER_NAME, turnFromCount } from "#lib/review/enclosure.ts";
 import type { Book } from "./book.ts";
 import type { BookMove, BookPosition } from "./form.ts";
-import { SYMBOL_NAME, rounded, symbol, type PositionSymbol } from "./symbols.ts";
+import { SYMBOL_NAME, lineEndSymbol, positionSymbol, rounded, type PositionSymbol } from "./symbols.ts";
 
 /** A line in the notation (the site's /notation page), from the position after `count` edges: `3. D10-G12 G12-J15`,
  *  and `2...` before a line that starts at a turn's second edge: `2... N11-Q10 3. G9-K10 K10-M7`. */
@@ -42,11 +42,6 @@ const isFirst = (p: BookPosition, m: BookMove) => m.move === p.moves[0]?.move;
 const outsideBetter = (p: BookPosition) =>
   !!p.outside && p.moves.length > 0 && win(p, p.outside.blueWin) > win(p, p.moves[0].value.blueWin);
 
-/** A position's own symbol: from its minimaxed value and its own complexity. At the book's end, the symbol in "End of
- *  the book". */
-const positionSymbol = (p: BookPosition) => symbol(p.value.blueWin, p.complexity);
-/** The symbol at the end of a book move's main line: the move's values are those of its line's end. */
-const lineEndSymbol = (m: BookMove) => symbol(m.value.blueWin, m.end.complexity);
 /** A symbol as a clause: "After it, Blue is better.", "After it, the game is equal." */
 const clause = (s: PositionSymbol) =>
   s === "=" ? "the game is equal" : s === "∞" ? "the game is unclear" : SYMBOL_NAME[s];
@@ -86,31 +81,35 @@ export interface LineTurn {
   sentence: string;
 }
 
-/** The sentence of a main line's turn: from `first`, the position before the turn's first edge on the line, and
+/** A main line's turn and its sentence: from `first`, the position before the turn's first edge on the line, and
  *  `second`, the position after it. `second` is needed when the turn has a second edge on the line. Example:
  *  "2. N11-Q10 L10-N11 keep the game equal. The best other book move is 2... L10-O9. After it, Red is slightly
  *  better." */
-export function turnSentence(first: BookPosition, second?: BookPosition | null): LineTurn {
+export function lineTurn(first: BookPosition, second?: BookPosition | null): LineTurn {
   const m1 = first.moves[0];
   if (!m1) throw new Error(`${first.position}: no book move, so no main line`);
   const two = twoEdges(first);
   if (two && second?.position !== m1.to) throw new Error(`${first.position}: the turn needs the position after ${m1.move}`);
-  const at = two ? second! : first, line = at.moves[0];
-  const edges = two ? [m1.move, line.move] : [m1.move];
-  const end = lineEndSymbol(line);
+  // The positions before the turn's edges on the line, and its last book move
+  const steps = two ? [first, second!] : [first], last = steps[steps.length - 1].moves[0];
+  const edges = steps.map(q => q.moves[0].move);
+  const end = lineEndSymbol(last);
   const verb = (positionSymbol(first) === end ? "keep" : "leave") + (two ? "" : "s");
   const parts = [`${lineText(edgeCount(first), edges)} ${verb} ${state(end)}.`];
+  // The symbol before the turn counts a better move outside the book: the sentence names it
+  for (const q of steps.filter(outsideBetter))
+    parts.push(`${lineText(edgeCount(q), [q.outside!.move])} is better, but it is not in the book.`);
   // The other book moves of the turn, at its first edge and at its second: the mover's best of them
-  const others = (two ? [first, at] : [first]).flatMap(p => p.moves.slice(1).map(m => ({ p, m })));
+  const others = steps.flatMap(q => q.moves.slice(1).map(m => ({ q, m })));
   const other = others.length
-    ? others.reduce((b, o) => (win(o.p, o.m.value.blueWin) > win(b.p, b.m.value.blueWin) ? o : b)) : null;
+    ? others.reduce((b, o) => (win(o.q, o.m.value.blueWin) > win(b.q, b.m.value.blueWin) ? o : b)) : null;
   if (other) {
-    parts.push(`The best other book move is ${lineText(edgeCount(other.p), [other.m.move])}.`,
+    parts.push(`The best other book move is ${lineText(edgeCount(other.q), [other.m.move])}.`,
       `After it, ${clause(lineEndSymbol(other.m))}.`);
   } else parts.push("The book has no other move in this turn.");
-  const ends = lineEndsAfter(at, line);
+  const ends = lineEndsAfter(steps[steps.length - 1], last);
   if (ends) parts.push("The main line ends here.");
-  return { at: { turn: first.turn, edge: first.edge }, edges, to: line.to, ends, sentence: parts.join(" ") };
+  return { at: { turn: first.turn, edge: first.edge }, edges, to: last.to, ends, sentence: parts.join(" ") };
 }
 
 /** The book's main line from a position (the start by default), one turn a sentence: the box of Openings' first view
@@ -120,13 +119,22 @@ export async function mainLine(book: Book, from: string = book.start): Promise<L
   const turns: LineTurn[] = [];
   let p = await book.get(from);
   while (p?.moves.length) {
-    const turn = turnSentence(p, twoEdges(p) ? await book.get(p.moves[0].to) : null);
+    const turn = lineTurn(p, twoEdges(p) ? await book.get(p.moves[0].to) : null);
     turns.push(turn);
     if (turn.ends) break;
     p = await book.get(turn.to);
   }
   return turns;
 }
+
+/** A trap: why it tempts, what it costs the side that plays it (that side's win chance with the best move here and
+ *  after the trap), and its refutation with the end that it leads to. `again` names the trap after "but": its edge
+ *  after "This move avoids a trap:", where "it" could read as this move. Only the win chance shows the cost always: a
+ *  trap can keep the symbol, as from Blue 36.4% to 16.6% with "Red is winning" before and after. */
+const trapText = (p: BookPosition, m: BookMove, again: string) =>
+  `${m.move} seems good after a short search, but ${again} decreases ${side(p)}'s win chance from ` +
+  `${pct(bestWin(p))} to ${pct(win(p, m.value.blueWin))}. ` +
+  `After ${lineText(edgeCount(p) + 1, m.trap!.refutation)}, ${clause(lineEndSymbol(m))}.`;
 
 /** The sentence under the table: the best book move of a position (design 32, item 6), and the trap that it avoids.
  *  Null where the book ends: `endSentence` gives that position's text. Example: "F9-J10 is the only fine move here.
@@ -142,11 +150,10 @@ export function bestMoveSentence(p: BookPosition): string | null {
     ? [`${best.move} is the best book move here.`, after, `${p.outside!.move} is better, but it is not in the book.`]
     : [fine === 1 ? `${best.move} is the only fine ${kind} here.`
       : `${best.move} is the best of the ${fine} fine ${kind}s here.`, after];
+  // The first book move can be a trap only where a move outside the book is better
+  if (best.trap) parts.push(`This move is a trap: ${trapText(p, best, best.move)}`);
   const trap = traps(p).find(t => t.move !== best.move);
-  if (trap) {
-    parts.push(`This move avoids a trap: ${trap.move} seems good after a short search, but ` +
-      `${lineText(edgeCount(p) + 1, trap.trap!.refutation)} leaves ${state(lineEndSymbol(trap))}.`);
-  }
+  if (trap) parts.push(`This move avoids a trap: ${trapText(p, trap, trap.move)}`);
   return parts.join(" ");
 }
 
@@ -156,21 +163,22 @@ export function traps(p: BookPosition): BookMove[] {
   return p.moves.filter(m => m.trap).sort((a, b) => gap(b) - gap(a));
 }
 
-/** A trap's sentence: why it tempts, and its refutation with the end that it leads to. Example: "F9-J7 seems good
- *  after a short search (Blue 41.4%). After 4. N12-Q10 L11-O12, Red is winning (Blue 16.6%)." */
+/** A trap's sentence (`trapText`). Its two values are in its move cell (design 32, item 7), not here: the short
+ *  search's value is often below the deep value with the best move, so beside it the value could not show why the trap
+ *  tempts. Example: "F9-J7 seems good after a short search, but it decreases Blue's win chance from 45.0% to 16.6%.
+ *  After 4. N12-Q10 L11-O12, Red is winning." */
 export function trapSentence(p: BookPosition, m: BookMove): string {
   if (!m.trap) throw new Error(`${p.position}: ${m.move} is not a trap`);
-  return `${m.move} seems good after a short search (${side(p)} ${pct(win(p, m.trap.short))}). ` +
-    `After ${lineText(edgeCount(p) + 1, m.trap.refutation)}, ${clause(lineEndSymbol(m))} ` +
-    `(${side(p)} ${pct(win(p, m.value.blueWin))}).`;
+  return trapText(p, m, "it");
 }
 
-/** A book move's sentence: the row's sentence for the pointer or the focus. The best move's is `bestMoveSentence`, a
- *  trap's is `trapSentence`, and any other book move's gives its label and the end of its line. Example: "D10-G9 is an
- *  Inaccuracy here. After it, Red is slightly better." */
+/** A book move's sentence: the row's sentence for the pointer or the focus. A trap's is `trapSentence`, the first book
+ *  move's too, as its row is in the group of traps. The best move's is `bestMoveSentence`, and any other book move's
+ *  gives its label and the end of its line. Example: "D10-G9 is an Inaccuracy here. After it, Red is slightly
+ *  better." */
 export function moveSentence(p: BookPosition, m: BookMove): string {
-  if (isFirst(p, m)) return bestMoveSentence(p)!;
   if (m.trap) return trapSentence(p, m);
+  if (isFirst(p, m)) return bestMoveSentence(p)!;
   const name = LABEL_TEXT[moveLabel(p, m)];
   return `${m.move} is ${article(name)} ${name}${isFine(p, m) ? " move" : ""} here. ` +
     `After it, ${clause(lineEndSymbol(m))}.`;

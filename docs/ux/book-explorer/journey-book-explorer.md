@@ -115,8 +115,8 @@ at the same position, with the same marks.
 **Why it exists:** a trap is the opening's most useful lesson. Its refutation is the line that the player must
 remember, whether they fell into the trap or missed the punishment.
 
-- A trap's row shows why it tempts, in its move cell, with the values open or closed: its value at a short look and
-  at the deep look ("Looks good: Blue 41%. Is not: Blue 17%.").
+- A trap's row shows why it tempts, in its move cell, with the values open or closed: its value after a short search
+  and after the deep search ("Seems good: Blue 41%. Is not: Blue 17%.").
 - One action plays the refutation on the board as a branch of the game, edge by edge, with the step controls. The
   panel then shows the position after the refutation, and the symbol of its line's end.
 - If the game played the refutation, the move list marks those moves as the book's refutation, and A3 says so.
@@ -205,8 +205,8 @@ their play (the book's purpose, beads abscls-tpaj).
 **Why it exists:** the traps are the tempting moves. The player must avoid them, and can set them for an opponent.
 
 - The panel lists the position's traps in their own group, under the book moves, each with its label and its two
-  values in its move cell, with the values open or closed ("Looks good: Blue 41%. Is not: Blue 17%."). The short
-  look's value is not set in bold: the trap is not the strongest move.
+  values in its move cell, with the values open or closed ("Seems good: Blue 41%. Is not: Blue 17%."). The short
+  search's value is not set in bold: the trap is not the strongest move.
 - One action plays the trap and its refutation as one line, edge by edge, with the step controls.
 - A position where the opponent can set a trap shows it from the mover's side too: the trap's row names the side
   that plays it.
@@ -275,15 +275,16 @@ first. The panel's name and the menu's name belong to the structure.
 | The Report, a trap | "Turn {n}: {side} played a trap, {move}. {other side} played its refutation." / "… did not play its refutation." |
 | The panel, the game's row | "Your game" · "Not in the book" · "In your review: {label}, {side} {value}%" |
 | The table's switch | "Book" · "Candidates". Book unavailable: "Not in the book" |
-| The table's groups | "Fine moves" · "Other book moves" · "Traps: they look good at a short look, and lose at a deep one" · "Best outside the book" · "Your game" |
-| The panel, a trap's values | "Looks good: {side} {short}%. Is not: {side} {deep}%." |
-| A sentence, a main line turn | "{n}. {edges} keeps the game equal." ("leaves" when the symbol before the turn differs, "keep" for two edges) then "The best other book move is {n}. {edge}. After it, {end in words}." or "The book has no other move in this turn.", and at the line's end "The main line ends here." |
+| The table's groups | "Fine moves" · "Other book moves" · "Traps: they seem good after a short search, and lose after a deep one" · "Best outside the book" · "Your game" |
+| The panel, a trap's values | "Seems good: {side} {short}%. Is not: {side} {deep}%." |
+| A sentence, a main line turn | "{n}. {edges} keeps the game equal." ("leaves" when the symbol before the turn differs, "keep" for two edges) then "The best other book move is {n}. {edge}. After it, {end in words}." or "The book has no other move in this turn.", and at the line's end "The main line ends here.". Before "The best other book move", "{n}. {outside} is better, but it is not in the book." for each edge of the turn where a move outside the book is better |
 | A sentence, the only fine move | "{edge} is the only fine move here. After it, {end in words}." ("fine book move" when a move outside the book is fine too) |
 | A sentence, several fine moves | "{edge} is the best of the {k} fine moves here. After it, {end in words}." |
 | A sentence, a better move outside the book | "{edge} is the best book move here. After it, {end in words}. {outside} is better, but it is not in the book." |
 | A sentence, another book move | "{edge} is an Excellent move here." / "a Good move" / "an Inaccuracy" / "a Mistake" / "a Blunder", then "After it, {end in words}." |
-| A sentence, a trap the move avoids | "This move avoids a trap: {trap} seems good after a short search, but {refutation} leaves {side} {end in words}." |
-| A sentence, a trap | "{trap} seems good after a short search ({side} {short}%). After {refutation}, {end in words} ({side} {deep}%)." |
+| A sentence, a trap the move avoids | "This move avoids a trap: {trap} seems good after a short search, but {trap} decreases {side}'s win chance from {best}% to {deep}%. After {refutation}, {end in words}." ({side}: the side that plays the trap. {best}: its win chance with the best move here) |
+| A sentence, a best book move that is a trap | "This move is a trap: {trap} seems good after a short search, but {trap} decreases …", as above, after "{outside} is better, but it is not in the book." |
+| A sentence, a trap | "{trap} seems good after a short search, but it decreases {side}'s win chance from {best}% to {deep}%. After {refutation}, {end in words}." |
 | The panel, a trap's action | "Play the refutation" |
 | The panel, a line's end | "End of the book. {symbol in words}." |
 | The panel, outside the book | "Not in the book. Last book position: turn {n}." with a link to it |

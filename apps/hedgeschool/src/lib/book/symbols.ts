@@ -3,8 +3,9 @@
 // 1.5, +− beyond), turned into a win chance by Lichess's curve: 0.524, 0.564 and 0.635 of Blue's win chance, the same
 // distance from 0.5 for Red. ∞ replaces = for an equal position whose complexity is hard (design 14). The words are
 // Lichess's names for its glyphs, with Blue and Red. This module holds the one rule: the table and the sentences
-// (sentences.ts) read every symbol from `symbol`.
+// (sentences.ts) read every symbol from `symbol`, a book position's and a book move's through the two below it.
 import { isHard } from "@abstractclass/analysis/model.ts";
+import type { BookMove, BookPosition } from "./form.ts";
 
 export type PositionSymbol = "=" | "⩲" | "⩱" | "±" | "∓" | "+−" | "−+" | "∞";
 /** Blue's win chance up to which a position is equal, slightly better and better for Blue (inclusive). */
@@ -22,6 +23,12 @@ export function symbol(blueWin: number, complexity: number): PositionSymbol {
   if (w <= SYMBOL_CUTS[2]) return blue ? "±" : "∓";
   return blue ? "+−" : "−+";
 }
+
+/** A position's own symbol: from its minimaxed value and its own complexity. The title row's symbol, and the one in
+ *  "End of the book". */
+export const positionSymbol = (p: BookPosition) => symbol(p.value.blueWin, p.complexity);
+/** The symbol at the end of a book move's main line, a row's symbol: the move's values are those of its line's end. */
+export const lineEndSymbol = (m: BookMove) => symbol(m.value.blueWin, m.end.complexity);
 
 /** Each symbol's name: Lichess's, with Blue and Red. A row and the end of the book show it. */
 export const SYMBOL_NAME: Record<PositionSymbol, string> = {
