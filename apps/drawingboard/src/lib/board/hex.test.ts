@@ -1,10 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { boxOf, center, firstHex, hexAt, hexKey, hexPath, inFrame, NEIGHBOURS, outlinePath, parseHex, type Hex } from "./hex.ts";
+import { boxOf, center, firstHex, fromMiddle, hexAt, hexKey, hexPath, inFrame, NEIGHBOURS, outlinePath, parseHex, type Hex } from "./hex.ts";
 import { stamp } from "./position.ts";
 
 const near = (a: readonly number[], b: readonly number[]) =>
   assert.ok(a.every((v, i) => Math.abs(v - b[i]) < 1e-9), `${a} is not ${b}`);
+/** The corners of the hex round the origin, as its path gives them. */
+const corners = () => hexPath(0, 0).slice(1, -1).split("L").map(c => c.split(",").map(Number));
 
 test("a hex's centre is strategyjam.org's: x = √3 (q + r / 2), y = 1.5 r, r down the screen", () => {
   near(center([0, 0]), [0, 0]);
@@ -31,10 +33,10 @@ test("keys read and write strategyjam.org's form", () => {
 });
 
 test("a hex's outline has six corners at the radius, the first at the top", () => {
-  const corners = hexPath(0, 0).slice(1, -1).split("L").map(c => c.split(",").map(Number));
-  assert.equal(corners.length, 6);
-  near(corners[0], [0, -1]);
-  for (const [x, y] of corners) assert.ok(Math.abs(Math.hypot(x, y) - 1) < 1e-3);
+  const c = corners();
+  assert.equal(c.length, 6);
+  near(c[0], [0, -1]);
+  for (const [x, y] of c) assert.ok(Math.abs(Math.hypot(x, y) - 1) < 1e-3);
 });
 
 test("a blueprint's first cell is the least r, then the least q, and its frame puts it at 0,0", () => {
@@ -62,10 +64,16 @@ test("a group's outline is the sides that no other hex of the group shares", () 
   assert.equal(sides([[0, 0], [1, 0]]), 10);
   assert.equal(sides([[0, 0], ...NEIGHBOURS]), 18); // a star with its ring
   // Side i joins corners i and i + 1, and faces neighbour i: its middle is halfway to that neighbour's centre.
-  const corners = hexPath(0, 0).slice(1, -1).split("L").map(c => c.split(",").map(Number));
+  const c = corners();
   NEIGHBOURS.forEach((n, i) => {
-    const [a, b] = [corners[i], corners[(i + 1) % 6]];
+    const [a, b] = [c[i], c[(i + 1) % 6]];
     const [x, y] = center(n).map(v => v / 2);
     assert.ok(Math.hypot((a[0] + b[0]) / 2 - x, (a[1] + b[1]) / 2 - y) < 1e-3, `side ${i}`); // a path rounds to 0.001
   });
+});
+
+test("hexes from their middle: the nearest the middle of their centres first", () => {
+  assert.deepEqual(fromMiddle([[0, 0], [1, 0], [2, 0]])[0], [1, 0]);
+  assert.deepEqual(fromMiddle([...NEIGHBOURS, [0, 0]])[0], [0, 0]); // a star with its ring: the star
+  assert.deepEqual(fromMiddle([[5, -2]]), [[5, -2]]);
 });

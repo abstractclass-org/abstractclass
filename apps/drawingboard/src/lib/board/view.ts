@@ -10,9 +10,10 @@ export interface Size { width: number; height: number }
 /** The zoom's limits, in pixels per unit: a hex from 4 pixels across to about 130. */
 export const SCALE_MIN = 2;
 export const SCALE_MAX = 64;
-/** A fit zooms in no further than a hex about 60 pixels across: a few cells do not fill a large area. */
+/** A fit zooms in no further than a hex 72 pixels across: a few cells do not fill a large area. */
 export const FIT_MAX = 36;
-const clampScale = (s: number, max = SCALE_MAX) => Math.min(max, Math.max(SCALE_MIN, s));
+export const clamp = (v: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, v));
+const clampScale = (s: number, max = SCALE_MAX) => clamp(s, SCALE_MIN, max);
 
 /** The view that shows the box whole and centred, with `margin` units round it. */
 export function fit(box: Box, size: Size, margin = 1): View {

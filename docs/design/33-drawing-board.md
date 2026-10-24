@@ -186,19 +186,20 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
     all round. All six blueprints have one scale.
   - The candidates: each placement's footprint as an outline, the first choice's thicker and in the engine's colour,
     the others grey. The rank goes on the footprint's hex nearest its middle, or on the next nearest that keeps clear
-    of a better candidate's rank. The outlines show each move's shape, and the board's cells stay visible. In the
-    hands, a chip with the rank goes on each blueprint that a placement places, and an edit's rank goes on the cell
-    that it moves, with an arrow to its new place, which is dashed. So a reader sees which blueprint each candidate
-    takes without a hover. When a candidate is pointed at or pinned, its cells show faded in the mover's colour, and
-    its first cell's hex has the hands' ring: the move's name (`K@q,r`) names that hex. A hover or a click finds a
-    candidate by its first cell's hex or by its rank's hex.
+    of a better candidate's rank and first cell. The outlines show each move's shape, and the board's cells stay
+    visible. In the hands, a chip with the rank goes on each blueprint that a placement places, and an edit's rank goes
+    on the cell that it moves, with an arrow to its new place, which is dashed. So a reader sees which blueprint each
+    candidate takes without a hover. When a candidate is pointed at or pinned, its cells show faded in the mover's
+    colour, and its first cell's hex has the hands' ring: the move's name (`K@q,r`) names that hex. A hover or a click
+    finds a candidate by its first cell's hex or by its rank's hex. While a line shows, the candidates are hidden, and
+    the pointer finds only the candidate whose line it is, as on Hedge School's board.
   - The view: the board fits the cells until the player pans or zooms, and again after "Show all the cells". A drag
-    or one finger pans, two fingers pinch, and the wheel zooms round the pointer.
+    or one finger pans, two fingers pinch, and the wheel zooms round the pointer by d3-zoom's steps.
   - `position.ts`: the position in strategyjam.org's form and the move as the board draws it. `hex.ts`: the grid's
     geometry. `view.ts`: pan, zoom and fit. `fixtures.ts`: the hand-made positions.
-- `apps/drawingboard/src/routes/lab/board/`: the board's lab page (`/lab/board`), with its own small frame: the
-  start, a middle game with five candidates and their lines, a capture, an edit and an empty blueprint. The address
-  keeps the position, the theme and the pinned candidate.
+- `apps/drawingboard/src/routes/lab/board/`: the board's lab page (`/lab/board`), in the site's frame: the start, a
+  middle game with five candidates and their lines, a capture, an edit and an empty blueprint. The board fills the
+  page area under the site's header. The address keeps the position and the pinned candidate.
 - `apps/drawingboard/src/app.css`: the board's colour tokens that the shared style does not hold (the board, the
   last move, the engine's candidates), Hedge School's.
 - `scripts/check-all.mjs`: its type check, its unit tests and its build, in the Tests workflow's checks.

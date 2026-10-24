@@ -32,8 +32,3 @@
   --engine: #2f8fa3;
   --candidate: #8d939c;
 }
-/* The board's tokens as Tailwind's colours (bg-board, text-engine), beside the shared ones. */
-@theme inline {
-  --color-board: var(--board-bg);
-  --color-engine: var(--engine);
-}

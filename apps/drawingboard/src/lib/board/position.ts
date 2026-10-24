@@ -1,16 +1,19 @@
 // A Blueprints position and a move, as the board draws them (docs/design/33-drawing-board.md). The position's form is
 // strategyjam.org's game state, which is also its archive's form, until the engine's describe gives one (request 23).
 // A move carries what the board draws of it: the move's data gives the cells that a placement removes, not the rules.
-import { type Hex, parseHex, shift } from "./hex.ts";
+import type { Player } from "@abstractclass/analysis/game.ts";
+import type { Blueprint as BlueprintNumber } from "../game/notation.ts";
+import { type Hex, parseHex, sameHex, shift } from "./hex.ts";
 
-/** Blue moves first. */
-export type Player = 0 | 1;
+// A player (0 or 1, the shared code's) and a blueprint's number (1, 2 or 3, the notation's).
+export type { BlueprintNumber, Player };
+/** The players' names: Blue moves first. */
+export const PLAYER_NAMES = ["Blue", "Red"] as const;
 export type Kind = "plain" | "star" | "wall";
 /** A blueprint, in its own frame: its cells by "q,r", with its first cell at "0,0". An empty blueprint has none. */
 export type Blueprint = Record<string, Kind>;
 /** A player's three blueprints, numbered 1 to 3. */
 export type Hand = readonly [Blueprint, Blueprint, Blueprint];
-export type BlueprintNumber = 1 | 2 | 3;
 
 /** A position, in strategyjam.org's form: the cells by "q,r" with their owner and kind, each player's hand, the
  *  scores, and the moves played. */
@@ -27,6 +30,7 @@ export interface Piece { hex: Hex; kind: Kind }
 
 /** A hex of a blueprint: blueprint I's cell at (q, r) of its frame, as an edit names it (`I:q,r`). */
 export interface HandHex { blueprint: BlueprintNumber; hex: Hex }
+export const sameHandHex = (a: HandHex, b: HandHex): boolean => a.blueprint === b.blueprint && sameHex(a.hex, b.hex);
 
 /** A move, with what the board draws of it.
  *  - A placement (`K@q,r`): blueprint K with its first cell on `at`, the cells that it stamped, and the cells that it

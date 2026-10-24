@@ -1,10 +1,13 @@
 // Hand-made positions for the board's lab page and tests: the start, a middle game with candidates and a line, a
 // capture, an edit and an empty blueprint. No game of strategyjam.org's archive: this repository is public. The
-// builder below only moves cells as each move's data says (the cells that a placement removes are listed by hand). It
-// checks no rule: the engine has the rules.
+// builder below only moves cells as each move's data says (the cells that a placement removes are listed by hand), and
+// puts each blueprint back in its frame, as the notation names the cells (design 33, item 5). It checks only that the
+// hand-made data holds together (a stamp on empty hexes, a removed cell of the opponent), not that a move is legal: the
+// engine has the rules.
+import { moveName } from "../game/notation.ts";
 import type { BoardCandidate, BoardLineMove } from "./Board.svelte";
-import { firstHex, hexKey, parseHex, shift, type Hex } from "./hex.ts";
-import { stamp, type Blueprint, type BlueprintNumber, type BoardMove, type Hand, type Kind, type Player, type SitePosition } from "./position.ts";
+import { firstHex, hexKey, inFrame, parseHex, type Hex } from "./hex.ts";
+import { stamp, type Blueprint, type BlueprintNumber, type BoardMove, type Hand, type HandHex, type Kind, type Player, type SitePosition } from "./position.ts";
 
 export interface Fixture {
   name: string;
@@ -25,9 +28,7 @@ const ringed = (kinds: Kind[]): Blueprint => {
 };
 /** Cells put in their frame, the first cell at 0,0. */
 function frame(cells: [Hex, Kind][]): Blueprint {
-  const first = firstHex(cells.map(c => c[0]));
-  if (!first) return {};
-  const hexes = shift(cells.map(c => c[0]), [-first[0], -first[1]]);
+  const hexes = inFrame(cells.map(c => c[0]));
   return Object.fromEntries(hexes.map((h, i) => [hexKey(h), cells[i][1]]));
 }
 const plainRing = ringed(["plain", "plain", "plain", "plain", "plain", "plain"]);
@@ -96,9 +97,10 @@ export function edit(b: Built, player: Player, i: BlueprintNumber, from: Hex, j:
   };
 }
 
-const name = (m: BoardMove): string =>
-  m.type === "place" ? `${m.blueprint}@${hexKey(m.at)}` : m.type === "edit"
-    ? `${m.from.blueprint}:${hexKey(m.from.hex)}>${m.to.blueprint}:${hexKey(m.to.hex)}` : "pass";
+/** A move's name, in the notation's one spelling. */
+const cellOf = ({ blueprint, hex: [q, r] }: HandHex) => ({ blueprint, q, r });
+const name = (m: BoardMove): string => moveName(m.type === "place" ? { kind: "place", blueprint: m.blueprint, q: m.at[0], r: m.at[1] }
+  : m.type === "edit" ? { kind: "edit", from: cellOf(m.from), to: cellOf(m.to) } : null);
 
 // A middle game: nine moves from the start, two of them captures, and two edits.
 const startBuilt: Built = { position: start(), last: null };

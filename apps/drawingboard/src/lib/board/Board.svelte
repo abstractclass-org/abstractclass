@@ -12,6 +12,9 @@
   export const DEFAULT_LAYERS: BoardLayers = { candidates: true, grid: true };
   /** A hex under the pointer: of the board (`hand` null), or of a blueprint's frame. */
   export type BoardHex = { hand: null; hex: Hex } | { hand: { player: Player } & HandHex; hex: Hex };
+  /** A candidate that places a blueprint, and one that edits a blueprint. */
+  type Placement = BoardCandidate & { move: Extract<BoardMove, { type: "place" }> };
+  type Edit = BoardCandidate & { move: Extract<BoardMove, { type: "edit" }> };
 </script>
 
 <script lang="ts">
@@ -22,10 +25,11 @@
   // go in a column on each side of a wide area, Blue's on the left as Blue's cells start on the left, and in a row above
   // and below a tall one (a phone). Geometry only: what a move stamps and removes comes from the move's data.
   import Cell from "./Cell.svelte";
-  import Hand, { blueprintBoxes, firstRing, PANEL_PAD, type HandEdit, type HandMarks } from "./Hand.svelte";
-  import { boxOf, center, GRID_TILE, gridTilePath, hexAt, hexKey, hexPath, outlinePath, sameHex } from "./hex.ts";
-  import { cellsOf } from "./position.ts";
-  import { fit, pan, pinch, toArea, toPlane, viewBox, zoomAt, type View } from "./view.ts";
+  import FirstRing from "./FirstRing.svelte";
+  import Hand, { blueprintBoxes, fitUnit, type HandMarks } from "./Hand.svelte";
+  import { boxOf, center, fromMiddle, GRID_TILE, GRID_TILE_PATH, hexAt, hexKey, hexPath, outlinePath, sameHex } from "./hex.ts";
+  import { cellsOf, PLAYER_NAMES, sameHandHex } from "./position.ts";
+  import { clamp, fit, pan, pinch, toArea, toPlane, viewBox, zoomAt, type View } from "./view.ts";
 
   interface Props {
     position: SitePosition;
@@ -47,126 +51,111 @@
 
   const uid = $props.id();
   const gridId = `${uid}-grid`;
-  const tile = gridTilePath();
   const players = [0, 1] as const;
 
-  // The layout: the area's size, and the hands' column (a wide area) or row (a tall one).
+  // The layout: the area's size, and the hands' column (a wide area, 1.25 times as wide as high) or row (a tall one).
+  // The hands take a share of the area, within limits in pixels. These are the board's own values, checked on the lab
+  // page at 360, 800 and 1,400 pixels wide: on a phone, columns would leave the field half its width (design 33).
   let width = $state(0), height = $state(0);
   const sides = $derived(width > 1.25 * height);
-  const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
-  const GAP = 6;
+  const GAP = 6; // between the hands and the field
   const handSize = $derived(sides ? clamp(width * 0.13, 72, 170) : clamp(height * 0.17, 52, 120));
+  const handArea = $derived(sides ? { width: handSize, height } : { width, height: handSize });
+  const direction = $derived(sides ? "column" : "row");
   const field = $derived(sides ? { width: Math.max(0, width - 2 * (handSize + GAP)), height }
                                : { width, height: Math.max(0, height - 2 * (handSize + GAP)) });
 
   // The hands shown: the position's, or a line's after its last move drawn. A line's edits are in those hands' frames.
   const drawn = $derived(line ?? []);
   const hands = $derived(drawn.findLast(l => l.hands)?.hands ?? position.blueprints);
+  // The candidates show while no line does, so that the board's only numbers are the line's. Their edits are in the
+  // position's frames too, and a line shows its own hands.
+  const showCandidates = $derived(layers.candidates && !drawn.length);
   // The board's cells, less the ones that the line removes: those are drawn removed, as the last move's are.
+  const allCells = $derived(cellsOf(position));
   const lineRemoved = $derived(drawn.flatMap(l => (l.move.type === "place" ? l.move.removed : [])));
   const cells = $derived.by(() => {
+    if (!lineRemoved.length) return allCells;
     const gone = new Set(lineRemoved.map(c => hexKey(c.hex)));
-    return cellsOf(position).filter(c => !gone.has(hexKey(c.hex)));
+    return allCells.filter(c => !gone.has(hexKey(c.hex)));
   });
   const lastPlace = $derived(last?.type === "place" ? last : null);
 
-  // The view. It fits the cells (and the cells that the last move removed) until the player pans or zooms, and again
-  // after "Show all the cells", also when the position or the area changes.
-  let view = $state<View>({ cx: 0, cy: 0, scale: 10 });
-  let auto = $state(true);
-  const fitBox = $derived(boxOf([...cellsOf(position).map(c => c.hex), ...(lastPlace?.removed ?? []).map(c => c.hex)])
+  // The view. It fits the cells (and the cells that the last move removed) in the area, until the player pans or
+  // zooms (`manual`), and again after "Show all the cells".
+  let manual = $state.raw<View | null>(null);
+  const fitBox = $derived(boxOf([...allCells.map(c => c.hex), ...(lastPlace?.removed ?? []).map(c => c.hex)])
     ?? boxOf([[-2, -2], [2, 2]])!);
-  $effect.pre(() => { if (auto && field.width > 0 && field.height > 0) view = fit(fitBox, field, 1.2); });
+  const view = $derived(manual ?? fit(fitBox, field, 1.2));
   const vb = $derived(viewBox(view, field));
-  function zoomButton(factor: number) {
-    auto = false;
-    view = zoomAt(view, field, factor, field.width / 2, field.height / 2);
-  }
 
-  // The candidates: the one under the pointer (on its hex, or on its edit's new place in a hand), or else the one
-  // pointed at from outside. A search in progress renews the candidates, so the hover is kept as a name.
-  let hoverHex = $state<Hex | null>(null);
-  let handHover = $state<{ player: Player; at: HandHex } | null>(null);
-  const placeCandidates = $derived(layers.candidates ? candidates.filter(c => c.move.type === "place") : []);
-  /** The best placement whose first cell or whose rank is on a hex of the board. */
-  const placementAt = (h: Hex) => placeCandidates
-    .filter(c => c.move.type === "place" && (sameHex(c.move.at, h) || sameHex(rankPlaces.get(c.name) ?? c.move.at, h)))
-    .sort((a, b) => a.rank - b.rank)[0] ?? null;
-  const hoveredName = $derived.by(() => {
-    if (hoverHex) return placementAt(hoverHex)?.name ?? null;
-    return handHover ? handCandidate(handHover.player, handHover.at)?.name ?? null : null;
-  });
-  /** The candidate whose edit takes a cell from a hex of a hand (where the hand shows its rank) or puts it there. */
-  function handCandidate(player: Player, at: HandHex): BoardCandidate | null {
-    if (!layers.candidates) return null;
-    const on = (h: HandHex) => h.blueprint === at.blueprint && sameHex(h.hex, at.hex);
-    return candidates.find(c => c.move.type === "edit" && c.move.player === player && (on(c.move.from) || on(c.move.to)))
-      ?? null;
-  }
-  const hovered = $derived(hoveredName ? candidates.find(c => c.name === hoveredName) ?? null : null);
-  const lit = $derived(hovered ?? (highlight ? candidates.find(c => c.name === highlight) ?? null : null));
-  let told: string | null = null; // the candidate last given to oncandidate
-  $effect(() => { if (hoveredName !== told) oncandidate?.((told = hoveredName)); });
-  const editOf = (m: BoardMove): HandEdit | null => (m.type === "edit" ? { from: m.from, to: m.to, kind: m.kind } : null);
-  const lineHasEdit = $derived(drawn.some(l => l.move.type === "edit"));
-  const marks = $derived(players.map((p): HandMarks => ({
-    // The last move's edit is in the position's frames: a line that edits a hand shows other frames.
-    last: last?.player === p && !lineHasEdit ? editOf(last) : null,
-    // A candidate's edit is in the position's frames, so a line, which shows its own hands, hides them.
-    candidates: layers.candidates && !drawn.length
-      ? candidates.flatMap(c => c.move.player === p && c.move.type === "edit" ? [{ ...editOf(c.move)!, name: c.name, rank: c.rank }] : [])
-      : [],
-    placed: layers.candidates && !drawn.length
-      ? candidates.flatMap(c => c.move.player === p && c.move.type === "place" ? [{ blueprint: c.move.blueprint, name: c.name, rank: c.rank }] : [])
-      : [],
-    line: drawn.flatMap((l, i) => l.move.player === p && l.move.type === "edit" ? [{ ...editOf(l.move)!, n: i + 1 }] : []),
-  })));
-  const boxes = $derived(players.map(p => blueprintBoxes(hands[p], marks[p])));
-  // One scale for the six blueprints: the largest at which each fits its panel, a hex at most 36 pixels across.
-  const unit = $derived.by(() => {
-    const pw = sides ? handSize : width / 3, ph = sides ? height / 3 : handSize;
-    let u = 18;
-    for (const b of boxes.flat()) u = Math.min(u, (pw - 2 * PANEL_PAD) / (b.x1 - b.x0), (ph - 2 * PANEL_PAD) / (b.y1 - b.y0));
-    return Math.max(1, u);
-  });
-
-  // Draw the first choice last, so that it stays on top.
-  const ordered = $derived([...placeCandidates].sort((a, b) => b.rank - a.rank));
-  // Where each placement's rank goes: on its footprint's hex nearest the footprint's middle, or on the next nearest
-  // that keeps clear of the better candidates' ranks, since candidates overlap.
+  // The candidates: the placements, best first, and the edits. Where each placement's rank goes: on its footprint's hex
+  // nearest the footprint's middle, or on the next nearest that keeps clear of the better candidates' ranks and first
+  // cells, since candidates overlap and the pointer finds a candidate on both. Ranks on two hexes never meet: a rank's
+  // badge is 1.2 wide and high, and two hexes' centres are √3 apart across, or 1.5 apart up and down.
+  const placements = $derived(layers.candidates
+    ? candidates.filter((c): c is Placement => c.move.type === "place").toSorted((a, b) => a.rank - b.rank) : []);
+  const edits = $derived(layers.candidates ? candidates.filter((c): c is Edit => c.move.type === "edit") : []);
   const rankPlaces = $derived.by(() => {
     const out = new Map<string, Hex>(), taken: Hex[] = [];
-    // Ranks on two hexes never meet: a rank's badge is 1.2 wide and high, and two hexes' centres are √3 apart across,
-    // or 1.5 apart up and down.
-    for (const c of [...placeCandidates].sort((a, b) => a.rank - b.rank)) {
-      if (c.move.type !== "place") continue;
-      let hexes: Hex[] = [c.move.at];
-      if (c.move.stamped.length) {
-        const points = c.move.stamped.map(s => center(s.hex));
-        const mx = points.reduce((a, p) => a + p[0], 0) / points.length, my = points.reduce((a, p) => a + p[1], 0) / points.length;
-        const off = (h: Hex) => { const [x, y] = center(h); return Math.hypot(x - mx, y - my); };
-        hexes = c.move.stamped.map(s => s.hex).sort((a, b) => off(a) - off(b));
-      }
+    for (const c of placements) {
+      const hexes = c.move.stamped.length ? fromMiddle(c.move.stamped.map(s => s.hex)) : [c.move.at];
       const at = hexes.find(h => !taken.some(t => sameHex(t, h))) ?? hexes[0];
-      taken.push(at);
+      taken.push(at, c.move.at);
       out.set(c.name, at);
     }
     return out;
   });
 
-  // Another position replaces the hexes under the pointer.
-  $effect.pre(() => { void position; hoverHex = null; handHover = null; });
+  // The pointer: the hex under it, on the board or in a hand, and the candidate there, kept by its name, since a search
+  // in progress renews the candidates. Another position clears them. The candidate lit is the one under the pointer,
+  // or else the one pointed at from outside.
+  let hoverHex = $state<Hex | null>(null);
+  let handHover = $state<{ player: Player; at: HandHex } | null>(null);
+  let hoverName = $state<string | null>(null);
+  $effect.pre(() => { void position; hoverHex = null; handHover = null; hoverName = null; });
+  const hovered = $derived(layers.candidates && hoverName ? candidates.find(c => c.name === hoverName) ?? null : null);
+  const lit = $derived(hovered ?? (highlight ? candidates.find(c => c.name === highlight) ?? null : null));
+  // While a line shows, the candidates are hidden, and the pointer finds only the lit one, so that the candidate whose
+  // line it is keeps its hover, as on Hedge School's board.
+  const findable = (c: BoardCandidate) => showCandidates || c.name === lit?.name;
+  /** The best placement whose first cell or whose rank is on a hex of the board. */
+  const placementAt = (h: Hex) =>
+    placements.find(c => findable(c) && (sameHex(c.move.at, h) || sameHex(rankPlaces.get(c.name)!, h))) ?? null;
+  /** The candidate whose edit takes a cell from a hex of a hand (where the hand shows its rank) or puts it there. */
+  const handCandidate = (player: Player, at: HandHex) =>
+    edits.find(c => findable(c) && c.move.player === player && (sameHandHex(c.move.from, at) || sameHandHex(c.move.to, at)))
+      ?? null;
   function pointAt(next: Hex | null) {
-    if (next && hoverHex && sameHex(next, hoverHex)) return;
-    hoverHex = next;
-    onhexat?.(next ? { hand: null, hex: next } : null);
+    if (!(next && hoverHex && sameHex(next, hoverHex))) hoverHex = next;
+    hoverName = next ? placementAt(next)?.name ?? null : null;
   }
   function handAt(player: Player, at: HandHex | null) {
     handHover = at ? { player, at } : null;
-    onhexat?.(at ? { hand: { player, ...at }, hex: at.hex } : null);
+    hoverName = at ? handCandidate(player, at)?.name ?? null : null;
   }
+  // The page hears of each change: of the hex, and of the candidate by its name.
+  const pointer = $derived<BoardHex | null>(hoverHex ? { hand: null, hex: hoverHex }
+    : handHover ? { hand: { player: handHover.player, ...handHover.at }, hex: handHover.at.hex } : null);
+  $effect(() => { onhexat?.(pointer); });
+  let told: string | null = null; // the candidate last given to oncandidate
+  $effect(() => { const name = hovered?.name ?? null; if (name !== told) oncandidate?.((told = name)); });
   const readout = $derived(hoverHex ? hexKey(hoverHex)
-    : handHover ? `${handHover.player === 0 ? "Blue" : "Red"} ${handHover.at.blueprint}:${hexKey(handHover.at.hex)}` : "");
+    : handHover ? `${PLAYER_NAMES[handHover.player]} ${handHover.at.blueprint}:${hexKey(handHover.at.hex)}` : "");
+
+  const lineHasEdit = $derived(drawn.some(l => l.move.type === "edit"));
+  const marks = $derived(players.map((p): HandMarks => ({
+    // The last move's edit is in the position's frames: a line that edits a hand shows other frames.
+    last: last?.type === "edit" && last.player === p && !lineHasEdit ? last : null,
+    candidates: showCandidates ? edits.filter(c => c.move.player === p).map(c => ({ ...c.move, name: c.name, rank: c.rank })) : [],
+    placed: showCandidates
+      ? placements.filter(c => c.move.player === p).map(c => ({ blueprint: c.move.blueprint, name: c.name, rank: c.rank }))
+      : [],
+    line: drawn.flatMap((l, i) => l.move.player === p && l.move.type === "edit" ? [{ ...l.move, n: i + 1 }] : []),
+  })));
+  const boxes = $derived(players.map(p => blueprintBoxes(hands[p], marks[p])));
+  // One scale for the six blueprints: the largest at which each fits its panel, a hex at most 36 pixels across.
+  const unit = $derived(Math.max(1, Math.min(18, ...boxes.map(b => fitUnit(handArea, direction, b)))));
 
   // The pointer on the field. A mouse's drag or one finger pans, two fingers pinch, the wheel zooms round the pointer.
   // A press and release that does not move is a click: on a candidate's hex, it clicks the candidate.
@@ -198,32 +187,30 @@
     if (!pointers.has(ev.pointerId)) return;
     pointers.set(ev.pointerId, p);
     if (gesture?.kind === "pinch" && pointers.size === 2) {
-      auto = false;
-      view = pinch(gesture.start, field, gesture.from, twoFingers());
+      manual = pinch(gesture.start, field, gesture.from, twoFingers());
     } else if (gesture?.kind === "press") {
-      if (!gesture.moved && Math.hypot(p.x - gesture.x, p.y - gesture.y) > DRAG_PX) { gesture.moved = true; auto = false; }
-      if (gesture.moved) view = pan(gesture.start, p.x - gesture.x, p.y - gesture.y);
+      if (!gesture.moved && Math.hypot(p.x - gesture.x, p.y - gesture.y) > DRAG_PX) gesture.moved = true;
+      if (gesture.moved) manual = pan(gesture.start, p.x - gesture.x, p.y - gesture.y);
     }
   }
   function up(ev: PointerEvent, click: boolean) {
     if (!pointers.delete(ev.pointerId)) return;
     if (gesture?.kind === "press" && !gesture.moved && click) {
-      const h = hexUnder(local(ev));
-      const c = placementAt(h);
+      const c = placementAt(hexUnder(local(ev)));
       if (c) oncandidateclick?.(c.name);
     }
     // One finger left of a pinch goes on panning, and is not a click.
     const rest = [...pointers.values()][0];
     gesture = rest ? { kind: "press", ...rest, moved: true, start: view } : null;
   }
-  // The wheel zooms: a mouse's wheel by steps, a touchpad's pinch (the wheel with Ctrl) by its small steps.
+  // The wheel zooms by d3-zoom's steps (its defaultWheelDelta, github.com/d3/d3-zoom): a pixel of the wheel is 0.002 of
+  // a doubling, a line 0.05 and a page 1, and a touchpad's pinch (the wheel with Ctrl) ten times as much.
   $effect(() => {
     const wheel = (ev: WheelEvent) => {
       ev.preventDefault();
-      const dy = ev.deltaY * (ev.deltaMode === 1 ? 16 : ev.deltaMode === 2 ? 400 : 1);
+      const doublings = -ev.deltaY * (ev.deltaMode === 1 ? 0.05 : ev.deltaMode ? 1 : 0.002) * (ev.ctrlKey ? 10 : 1);
       const p = local(ev);
-      auto = false;
-      view = zoomAt(view, field, Math.exp(-dy * (ev.ctrlKey ? 0.01 : 0.0015)), p.x, p.y);
+      manual = zoomAt(view, field, 2 ** doublings, p.x, p.y);
     };
     el.addEventListener("wheel", wheel, { passive: false }); // a passive listener cannot keep the page from scrolling
     return () => el.removeEventListener("wheel", wheel);
@@ -234,6 +221,10 @@
     const [x, y] = toArea(view, field, ...center(h));
     return { x, y, left: x > field.width * 0.6 };
   };
+  // The zoom's buttons: two steps double the scale.
+  const zoomBy = (factor: number) => { manual = zoomAt(view, field, factor, field.width / 2, field.height / 2); };
+  const TOOL = ["grid size-[30px] place-items-center rounded-md border border-line bg-panel/90 p-0",
+                "text-[17px] leading-none font-semibold hover:bg-panel-2"];
 </script>
 
 <!-- A candidate's rank in a rounded square: the engine's line numbers its moves in circles (Go's numbered stones), so
@@ -249,9 +240,9 @@
   {#each players as p (p)}
     <div class="hand-area p{p}">
       {#if width > 0 && height > 0}
-        <Hand hand={hands[p]} player={p} width={sides ? handSize : width} height={sides ? height : handSize}
-              direction={sides ? "column" : "row"} {unit} boxes={boxes[p]} marks={marks[p]}
-              hover={handHover?.player === p ? handHover.at : null} onhover={at => handAt(p, at)}
+        <Hand hand={hands[p]} player={p} width={handArea.width} height={handArea.height} {direction} {unit}
+              boxes={boxes[p]} marks={marks[p]} hover={handHover?.player === p ? handHover.at : null}
+              onhover={at => handAt(p, at)}
               onpick={at => { const c = handCandidate(p, at); if (c) oncandidateclick?.(c.name); }} />
       {/if}
     </div>
@@ -264,7 +255,7 @@
       <svg width={field.width} height={field.height} viewBox={vb.join(" ")} role="img" aria-label="Blueprints board">
         <defs>
           <pattern id={gridId} patternUnits="userSpaceOnUse" width={GRID_TILE.width} height={GRID_TILE.height}>
-            <path d={tile} class="grid" />
+            <path d={GRID_TILE_PATH} class="grid" />
           </pattern>
         </defs>
         <rect x={vb[0]} y={vb[1]} width={vb[2]} height={vb[3]} class="bg" />
@@ -291,28 +282,24 @@
         {/if}
 
         <!-- The candidates: each placement's footprint as an outline, the cells of the one pointed at faded in the mover's
-             colour, then all the ranks over them. While a line shows, the candidates are hidden, so that the board's
-             only numbers are the line's. -->
-        {#if layers.candidates && !drawn.length}
+             colour, then all the ranks over them. The first choice is drawn last, so that it stays on top. -->
+        {#if showCandidates}
+          {@const ordered = placements.toReversed()}
           {#each ordered as c (c.name)}
-            {#if c.move.type === "place"}
-              {@const isLit = lit?.name === c.name}
-              <g class="candidate" class:first={c.rank === 1} class:lit={isLit}>
-                <path d={outlinePath(c.move.stamped.map(s => s.hex))} class="footprint" />
-                {#if isLit}
-                  {#each c.move.stamped as s (hexKey(s.hex))}
-                    <Cell hex={s.hex} owner={c.move.player} kind={s.kind} look="ghost" />
-                  {/each}
-                {/if}
-              </g>
-            {/if}
+            {@const isLit = lit?.name === c.name}
+            <g class="candidate" class:first={c.rank === 1} class:lit={isLit}>
+              <path d={outlinePath(c.move.stamped.map(s => s.hex))} class="footprint" />
+              {#if isLit}
+                {#each c.move.stamped as s (hexKey(s.hex))}
+                  <Cell hex={s.hex} owner={c.move.player} kind={s.kind} look="ghost" />
+                {/each}
+              {/if}
+            </g>
           {/each}
           {#each ordered as c (c.name)}
-            {#if c.move.type === "place"}
-              <g class="candidate" class:first={c.rank === 1} class:lit={lit?.name === c.name}>
-                {@render rankBadge(rankPlaces.get(c.name) ?? c.move.at, c.rank)}
-              </g>
-            {/if}
+            <g class="candidate" class:first={c.rank === 1} class:lit={lit?.name === c.name}>
+              {@render rankBadge(rankPlaces.get(c.name)!, c.rank)}
+            </g>
           {/each}
         {/if}
 
@@ -344,8 +331,8 @@
         <!-- The first cell's hex of the candidate pointed at or pinned, ringed as the hands ring a blueprint's first cell:
              its name (K@q,r) names that hex. -->
         {#if layers.candidates && lit?.move.type === "place"}
-          {@const ring = firstRing(...center(lit.move.at), view.scale)}
-          <path d={ring.d} class="first-ring" stroke-width={ring.width} />
+          {@const [x, y] = center(lit.move.at)}
+          <FirstRing {x} {y} unit={view.scale} />
         {/if}
 
         {#if hoverHex}
@@ -353,20 +340,28 @@
         {/if}
       </svg>
 
+      <!-- Number 1's note gives its own values, the others' notes their difference from number 1. -->
       {#if hovered?.move.type === "place" && hovered.note}
         {@const n = noteAt(hovered.move.at)}
-        <div class="note" class:first={hovered.rank === 1} class:left={n.left}
+        <div class={["pointer-events-none absolute -translate-y-1/2 rounded-md border px-2 py-0.5 text-[13px] leading-[normal]",
+                     "whitespace-nowrap text-ink", hovered.rank === 1
+                       ? "border-(--engine) bg-[color-mix(in_srgb,var(--engine)_35%,var(--panel))] font-semibold"
+                       : "border-line bg-panel"]}
              style:left="{n.left ? undefined : n.x + 0.9 * view.scale}px"
              style:right="{n.left ? field.width - n.x + 0.9 * view.scale : undefined}px" style:top="{n.y}px">{hovered.note}</div>
       {/if}
-      {#if readout}<div class="readout">{readout}</div>{/if}
-      <div class="tools">
-        <button type="button" onclick={() => zoomButton(1.4)} aria-label="Zoom in" title="Zoom in">+</button>
-        <button type="button" onclick={() => zoomButton(1 / 1.4)} aria-label="Zoom out" title="Zoom out">−</button>
-        <button type="button" onclick={() => (auto = true)} aria-label="Show all the cells" title="Show all the cells"
-                class:on={auto}>
+      {#if readout}
+        <div class="pointer-events-none absolute top-1.5 left-1.5 rounded bg-panel/85 px-1.5 py-px font-mono text-xs leading-[normal] text-ink">
+          {readout}
+        </div>
+      {/if}
+      <div class="absolute right-1.5 bottom-1.5 flex gap-1">
+        <button type="button" class={[TOOL, "text-ink"]} onclick={() => zoomBy(Math.SQRT2)} aria-label="Zoom in" title="Zoom in">+</button>
+        <button type="button" class={[TOOL, "text-ink"]} onclick={() => zoomBy(Math.SQRT1_2)} aria-label="Zoom out" title="Zoom out">−</button>
+        <button type="button" class={[TOOL, manual ? "text-ink" : "text-muted"]} onclick={() => (manual = null)}
+                aria-label="Show all the cells" title="Show all the cells">
           <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
-            <path d="M1 5V1h4M11 1h4v4M15 11v4h-4M5 15H1v-4" />
+            <path d="M1 5V1h4M11 1h4v4M15 11v4h-4M5 15H1v-4" fill="none" stroke="currentColor" stroke-width="1.6" />
           </svg>
         </button>
       </div>
@@ -404,7 +399,6 @@
   .candidate.lit { opacity: 1; }
   .footprint { fill: none; stroke: var(--candidate); stroke-width: 0.12; stroke-linecap: round; }
   .first .footprint { stroke: var(--engine); stroke-width: 0.2; }
-  .first-ring { fill: none; stroke: var(--text); opacity: 0.75; pointer-events: none; }
   .cand-badge { fill: var(--candidate); stroke: var(--board-bg); stroke-width: 0.08; }
   .first .cand-badge { fill: var(--engine); }
   .lit .cand-badge { stroke: var(--text); stroke-width: 0.1; }
@@ -414,25 +408,4 @@
   .line-badge.p0 { fill: var(--blue); }
   .line-badge.p1 { fill: var(--red); }
   .line-number { font-size: 0.72px; }
-
-  .note {
-    position: absolute; transform: translateY(-50%); pointer-events: none; white-space: nowrap;
-    padding: 2px 8px; border-radius: 6px; font: 13px system-ui, sans-serif;
-    background: var(--panel); border: 1px solid var(--border); color: var(--text);
-  }
-  /* Number 1's note gives its own values, the others' notes their difference from number 1. */
-  .note.first { background: color-mix(in srgb, var(--engine) 35%, var(--panel)); border-color: var(--engine); font-weight: 600; }
-  .readout {
-    position: absolute; left: 6px; top: 6px; pointer-events: none; padding: 1px 6px; border-radius: 4px;
-    font: 12px ui-monospace, monospace; background: color-mix(in srgb, var(--panel) 85%, transparent); color: var(--text);
-  }
-  .tools { position: absolute; right: 6px; bottom: 6px; display: flex; gap: 4px; }
-  .tools button {
-    width: 30px; height: 30px; display: grid; place-items: center; border-radius: 6px; cursor: pointer;
-    font: 600 17px/1 system-ui, sans-serif; color: var(--text);
-    background: color-mix(in srgb, var(--panel) 90%, transparent); border: 1px solid var(--border);
-  }
-  .tools button:hover { background: var(--panel-2); }
-  .tools button.on { color: var(--muted); }
-  .tools svg path { fill: none; stroke: currentColor; stroke-width: 1.6; }
 </style>

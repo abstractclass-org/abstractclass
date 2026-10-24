@@ -77,6 +77,14 @@ export function inFrame(hexes: readonly Hex[]): Hex[] {
   return first ? shift(hexes, [-first[0], -first[1]]) : [];
 }
 
+/** The hexes in order of their distance from the middle of their centres, the nearest first. */
+export function fromMiddle(hexes: readonly Hex[]): Hex[] {
+  const points = hexes.map(center);
+  const mx = points.reduce((a, p) => a + p[0], 0) / points.length, my = points.reduce((a, p) => a + p[1], 0) / points.length;
+  const off = (h: Hex) => { const [x, y] = center(h); return Math.hypot(x - mx, y - my); };
+  return hexes.toSorted((a, b) => off(a) - off(b));
+}
+
 /** A rectangle of the plane, in the board's units. */
 export interface Box { x0: number; y0: number; x1: number; y1: number }
 
@@ -94,5 +102,5 @@ export function boxOf(hexes: Iterable<Hex>): Box | null {
 /** The grid as one tile of an SVG pattern, √3 wide and 3 high, with the hex (0, 0)'s centre at its corner: the
  *  outlines of the hexes that cross the tile. Repeated from the origin, it draws every hex of the plane. */
 export const GRID_TILE = { width: SQRT3, height: 3 } as const;
-export const gridTilePath = (): string =>
+export const GRID_TILE_PATH: string =
   ([[0, 0], [SQRT3, 0], [SQRT3 / 2, 1.5], [0, 3], [SQRT3, 3]] as const).map(([x, y]) => hexPath(x, y)).join("");
