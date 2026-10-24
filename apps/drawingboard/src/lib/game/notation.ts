@@ -10,7 +10,7 @@
 // tree, the cache and the engine key on it (@abstractclass/analysis/game.ts).
 import type { Moves } from "@abstractclass/analysis/game.ts";
 import type { ReadMove } from "@abstractclass/record/record.ts";
-export { turnFromCount } from "@abstractclass/record/turns.ts";
+export { turnFromCount } from "@abstractclass/analysis/turns.ts";
 
 export type Blueprint = 1 | 2 | 3;
 /** A cell of a blueprint, in the blueprint's own frame. */
@@ -38,11 +38,11 @@ export function moveName(move: Move | null): string {
 function readName(text: string): Move | string {
   const place = PLACEMENT.exec(text), edit = EDIT.exec(text);
   if (!place && !edit) return "not a move, a turn label or a result";
-  const numbers = (place ?? edit)!.slice(1).map(Number);
-  if (!numbers.every(Number.isSafeInteger)) return "a number of the move is too large";
   // `+ 0` makes -0 a 0, so that "-0" and "0" are one hex.
-  const [k, q, r, j, tq, tr] = numbers.map(n => n + 0);
-  if (![k, ...(edit ? [j] : [])].every(b => b >= 1 && b <= 3)) return "a blueprint's number is 1, 2 or 3";
+  const numbers = (place ?? edit)!.slice(1).map(n => Number(n) + 0);
+  if (!numbers.every(Number.isSafeInteger)) return "a number of the move is too large";
+  const [k, q, r, j, tq, tr] = numbers, blueprint = (b: number) => b >= 1 && b <= 3;
+  if (!blueprint(k) || (edit && !blueprint(j))) return "a blueprint's number is 1, 2 or 3";
   if (place) return { kind: "place", blueprint: k as Blueprint, q, r };
   // A blueprint's first cell is its cell 0,0, the least r, then the least q: the cell that an edit takes is not before it.
   if (r < 0 || (r === 0 && q < 0)) return "an edit takes a cell of its blueprint, which is not before the blueprint's first cell (0,0)";
@@ -56,8 +56,13 @@ export function parseMove(name: string): Move {
   return move;
 }
 
-/** Whether two values are one move. */
-export const sameMove = (a: Move, b: Move) => moveName(a) === moveName(b);
+const sameCell = (a: Cell, b: Cell) => a.blueprint === b.blueprint && a.q === b.q && a.r === b.r;
+
+/** Whether two values are one move. The shared code compares moves often, so this compares their fields, not their
+ *  names. */
+export const sameMove = (a: Move, b: Move): boolean => a.kind === "place"
+  ? b.kind === "place" && sameCell(a, b)
+  : b.kind === "edit" && sameCell(a.from, b.from) && sameCell(a.to, b.to);
 
 /** Blueprints' moves for the game interface: the shared code compares and keys moves with these. */
 export const moves: Moves<Move> = { equal: sameMove, moveName, parseMove };
@@ -74,8 +79,7 @@ export function readMove(word: string): ReadMove<Capture | null> | string {
   const mark = CAPTURE.exec(word);
   const move = readName(mark ? word.slice(0, mark.index) : word);
   if (typeof move === "string") return move;
-  if (!mark) return { name: moveName(move), mark: null, markAt: word.length };
-  if (move.kind === "edit") return "only a placement has a capture mark: an edit removes no cells";
-  if (mark[1] && Number(mark[1]) === 0) return "a placement that scores no points has the mark x, not x+0";
-  return { name: moveName(move), mark: { points: mark[1] ? Number(mark[1]) : 0 }, markAt: mark.index };
+  if (mark && move.kind === "edit") return "only a placement has a capture mark: an edit removes no cells";
+  if (mark?.[1] && Number(mark[1]) === 0) return "a placement that scores no points has the mark x, not x+0";
+  return { name: moveName(move), mark: mark && { points: Number(mark[1] ?? 0) }, markAt: mark?.index ?? word.length };
 }

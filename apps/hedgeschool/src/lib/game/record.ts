@@ -6,7 +6,7 @@
 // checks that: check.ts). A turn's quality mark follows the cut mark: `G9-G12x??`. A record from a set-up start numbers
 // its turns from its `Position` tag's edge count.
 import { edgeName, parseEdge, setUpStart } from "#lib/engine/notation.ts";
-import { turnFromCount } from "#lib/review/enclosure.ts";
+import { turnFromCount } from "@abstractclass/analysis/turns.ts";
 import * as shared from "@abstractclass/record/record.ts";
 export { gamePage, playerNames, RecordError, writeRecord, writeTags, type Eval } from "@abstractclass/record/record.ts";
 
@@ -24,7 +24,7 @@ export function canonicalEdge(text: string): string {
 }
 
 /** The turn that a record's first move belongs to: 1 from the standard start, else the set-up start's (its `Position`
- *  tag's edge count, model.ts turnFromCount), and whether that move opens its turn. */
+ *  tag's edge count, turnFromCount), and whether that move opens its turn. */
 function startTurn(position: string | undefined): { turn: number; first: boolean } {
   const count = Number(setUpStart(position)?.split(" ")[4]);
   return Number.isInteger(count) && count >= 0 ? turnFromCount(count) : { turn: 1, first: true };

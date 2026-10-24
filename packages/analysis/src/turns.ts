@@ -1,6 +1,6 @@
 // The turns of a game whose first player opens with one move, then each player plays two moves a turn: Enclosure's
-// and Blueprints' (design 33). The record numbers these turns (record.ts), and the game interface gives them to the
-// review (@abstractclass/analysis/game.ts, `turn`).
+// and Blueprints' (design 33). Such a game gives this to the game interface as its `turn` (game.ts), and its record
+// numbers its turns so (@abstractclass/record/record.ts).
 
 /** The turn of the next move from a position with `count` moves played, and whether that move opens its turn: the
  *  first player's first turn has one move, then turns of two. In a game of 120 moves, the first player's last turn

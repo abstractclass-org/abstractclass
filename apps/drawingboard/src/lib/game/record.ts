@@ -12,19 +12,9 @@ export type GameRecord = shared.GameRecord<Capture | null>;
 
 const blueprints: shared.Notation<Capture | null> = { read: readMove, mark: captureText, none: null };
 
-/** Whether a record's tags give a set-up start: "?" and "-" are PGN's values for none. */
-const setUp = (tags: Record<string, string>) => !["", "?", "-"].includes(tags.Position?.trim() ?? "");
-
-/** Reads a game record. Throws a RecordError with the offset of the first problem. */
-export function parseRecord(text: string): GameRecord {
-  const refuse = () => new shared.RecordError("Drawing Board reads a game from the standard start only: remove the Position tag",
-                                              Math.max(0, text.search(/\[\s*Position\s/)));
-  // A record with turn labels meets its start at its first label, before a wrong turn number: the start comes first.
-  const start = (tags: Record<string, string>) => { if (setUp(tags)) throw refuse(); return { turn: 1, first: true }; };
-  const record = shared.readRecord(text, { ...blueprints, start });
-  if (setUp(record.tags)) throw refuse();
-  return record;
-}
+/** Reads a game record. Throws a RecordError with the offset of the first problem. Blueprints has no set-up start,
+ *  so the shared reader refuses a `Position` tag. */
+export const parseRecord = (text: string): GameRecord => shared.readRecord(text, blueprints);
 
 /** Adds the capture mark to every move that has none yet. `captures` is by move, from the engine (check.ts). */
 export const markCaptures = (text: string, record: GameRecord, captures: (Capture | null)[]): string =>

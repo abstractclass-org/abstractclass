@@ -6879,10 +6879,12 @@ error and no horizontal scroll. The layout sweep in Chromium passes (25 tests, 5
   marks, commands and the result. A game gives its moves' syntax and its marks as a parameter. Hedge School's
   `record.ts` stays at its path with its exports, so that its importers and its tests do not change, as design 29's
   `engineSettings.ts` and `store.ts` did. So no pure rename comes first: a rename would leave nothing at the old path.
-  The turns of one move, then two, moved with it, as Blueprints numbers them as Enclosure does.
+  The turns of one move, then two (`turnFromCount`), moved to the analysis package, beside the game interface's
+  `turn`, as Blueprints numbers them as Enclosure does.
 - **The reader's checks:** a blueprint's number from 1 to 3, an edit's source cell not before its blueprint's first
   cell, a capture mark on a placement only, and no `x+0`. Each refusal names the problem and its place in the text.
-  A mark that the moves' effects do not confirm is refused, with the mark that they give.
+  A mark that the moves' effects do not confirm is refused, with the mark that they give. A game that gives the
+  frame no start (Blueprints) gets a refusal of a `Position` tag from the frame, at the tag.
 - **The import refuses another start.** The record has no position's notation yet, so a game from another first
   position would be read from the standard start.
 - **Checked on the archive** (the engine repository's `runs/strategyjam-archive/blueprints.jsonl`, read from outside

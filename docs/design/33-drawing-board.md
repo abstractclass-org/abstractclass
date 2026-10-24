@@ -2,8 +2,7 @@
 
 **Status:** in force. Built: the app's frame (`apps/drawingboard`), with its checks in `npm run check:all`, and the
 notation and the record, with the import of a strategyjam.org game as a record. The shell and the board are in
-progress. The review and the Analysis board wait for the engine's browser
-build (request 23).
+progress. The review and the Analysis board wait for the engine's browser build (request 23).
 **Decided:** 2026-10-25.
 
 ## Context
@@ -73,8 +72,8 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
    turns, because the review labels turns (design 10). A pass is one move, so the turns go on in twos after it. The
    record's frame moved out of Hedge School into `@abstractclass/record` (item 4): the game gives its moves' syntax
    and its marks as a parameter (`Notation`). Hedge School gives Enclosure's edges and its cut mark, Drawing Board
-   Blueprints' moves and their capture marks. The turns of one move, then two, are in the package too
-   (`turnFromCount`), because both games number them so.
+   Blueprints' moves and their capture marks. The turns of one move, then two (`turnFromCount`), are in the analysis
+   package, beside the game interface's `turn`, because both games number them so.
 8. **The move list** shows a move as strategyjam.org's move list does: the blueprint's number in a box, then the
    hex, then `+N` when the move scores. An edit shows the kind of the cell that it moves.
 9. **Two edits can give the same hand.** A string names one edit, but two edits can leave the same blueprints: for
@@ -83,8 +82,8 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
    their names, as it takes Enclosure's two edges of a turn in either order as one turn (design 29).
 10. **A position's notation** (as FEN gives a chess position) waits for the board editor and for starts from a set-up
     position. The first version takes games as records: the standard start and the moves. So the record's reader
-    refuses a `Position` tag, and the import refuses a strategyjam.org game whose first position is not the standard
-    start (every game of the archive starts from it).
+    refuses a `Position` tag (the shared frame does, for a game that gives it no start), and the import refuses a
+    strategyjam.org game whose first position is not the standard start (every game of the archive starts from it).
 
 ## Why
 
@@ -146,8 +145,9 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
   marks, and the turns. `record.ts`: the record, on the shared frame. `check.ts`: the capture marks' check against
   each move's removed cells and points, which the engine will give (request 23). `strategyjam.ts`: a strategyjam.org
   game as a record. It is self-contained, as Hedge School's is, so that a tool can run it on the game's page.
-- `packages/record/`: the record's frame (`record.ts`) and the turns (`turns.ts`), with a test game of words. Hedge
-  School's `src/lib/game/record.ts` gives Enclosure's moves and cut mark to it, with its calls as before.
+- `packages/record/`: the record's frame (`record.ts`), with a test game of words. Hedge School's
+  `src/lib/game/record.ts` gives Enclosure's moves and cut mark to it, with its calls as before.
+- `packages/analysis/src/turns.ts`: the turns of one move, then two, for both games' `turn`.
 - `scripts/check-all.mjs`: its type check, its unit tests and its build, in the Tests workflow's checks.
 - [requests/23-blueprints-browser-build.md](../requests/23-blueprints-browser-build.md): what the site asks of the
   engine's browser build.

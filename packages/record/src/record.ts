@@ -19,14 +19,15 @@ export interface ReadMove<Mark> { name: string; mark: Mark; markAt: number }
 /** What a game gives the record about its moves. */
 export interface Notation<Mark> {
   /** The move of a word without its quality mark (never a pass), or what is wrong with the word. The reader adds the
-   *  word to the text: "not an edge, a turn label or a result: Z1-A1". */
+   *  word to the text: "not a move, a turn label or a result: Z1-A1". */
   read(word: string): ReadMove<Mark> | string;
   /** A mark as the record writes it: "" for none. */
   mark(mark: Mark): string;
   /** The mark of a move that has none, and of a pass. */
   none: Mark;
   /** The turn of the record's first move, from its tags (a set-up start's `Position`), and whether that move opens its
-   *  turn. Without it, the first move opens turn 1. */
+   *  turn. Without it, the game has no set-up start: the first move opens turn 1, and the reader refuses a `Position`
+   *  tag. */
   start?(tags: Record<string, string>): { turn: number; first: boolean };
 }
 
@@ -129,6 +130,9 @@ export function readRecord<Mark>(text: string, notation: Notation<Mark>): GameRe
     if (depth > 0) continue; // a branch: not the main line
     if (t.kind === "tag") {
       if (record.moves.length) throw new RecordError("tags come before the moves", t.at);
+      // "?" and "-" are PGN's values for none.
+      if (t.name === "Position" && !notation.start && !["", "?", "-"].includes(t.value.trim()))
+        throw new RecordError("this site reads a game from the standard start only: remove the Position tag", t.at);
       record.tags[t.name] = t.value;
     } else if (t.kind === "comment") {
       if (record.moves.length) readCommands(t.text, record, record.moves.length - 1);
@@ -156,13 +160,7 @@ export function readRecord<Mark>(text: string, notation: Notation<Mark>): GameRe
         record.result = w;
       } else {
         const move = w.replace(QUALITY, ""); // the move without its quality mark
-        if (move.toLowerCase() === "pass") {
-          record.moves.push("pass");
-          record.marked.push(notation.none);
-          record.ends.push(t.at + move.length);
-          continue;
-        }
-        const read = notation.read(move);
+        const read = move.toLowerCase() === "pass" ? { name: "pass", mark: notation.none, markAt: move.length } : notation.read(move);
         if (typeof read === "string") throw new RecordError(`${read}: ${w}`, t.at);
         record.moves.push(read.name);
         record.marked.push(read.mark);
@@ -176,8 +174,8 @@ export function readRecord<Mark>(text: string, notation: Notation<Mark>): GameRe
   return { ...record, evals: Array.from(record.evals, e => e ?? null), clocks: Array.from(record.clocks, c => c ?? null) };
 }
 
-/** Adds the game's mark to every move that the record gives none. `marks` is by move, from the engine (Hedge School's
- *  check.ts). A move that has its mark keeps it: the site's check confirms it first. */
+/** Adds the game's mark to every move that the record gives none. `marks` is by move, from the engine (the site's
+ *  check). A move that has its mark keeps it: the site's check confirms it first. */
 export function markMoves<Mark>(text: string, record: GameRecord<Mark>, marks: Mark[], notation: Notation<Mark>): string {
   let out = text;
   for (let i = record.moves.length - 1; i >= 0; i--) {

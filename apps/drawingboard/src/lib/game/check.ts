@@ -13,14 +13,11 @@ export interface Checked {
   captures: (Capture | null)[]; // by move: its capture mark, for the record (markCaptures)
 }
 
-/** The capture mark of each move: `x` when it removes enemy cells, `x+N` when it also scores N points. */
-export const capturesOf = (effects: Effect[]): (Capture | null)[] =>
-  effects.map(e => (e.removed > 0 || e.points > 0 ? { points: e.points } : null));
-
-/** Checks the record's marks against the moves' effects, one for each move of the record. */
+/** Checks the record's marks against the moves' effects, one for each move of the record. A move's capture mark is `x`
+ *  when it removes enemy cells, `x+N` when it also scores N points. */
 export function checkCaptures(record: GameRecord, effects: Effect[]): Checked {
   if (effects.length !== record.moves.length) throw new Error(`${effects.length} effects for ${record.moves.length} moves`);
-  const captures = capturesOf(effects);
+  const captures = effects.map(e => (e.removed > 0 || e.points > 0 ? { points: e.points } : null));
   const wrong = record.marked.findIndex((m, i) => m && captureText(m) !== captureText(captures[i]));
   if (wrong < 0) return { problem: null, captures };
   const mark = record.marked[wrong]!, actual = captures[wrong];
