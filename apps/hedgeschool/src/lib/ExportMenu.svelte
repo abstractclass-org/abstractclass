@@ -15,8 +15,8 @@
   import { DISCORD_LIMIT } from "#lib/game/share.ts";
   import { LINK_RANGES, range } from "#lib/measure.ts";
   // The entries: the review's (reviewFile.ts, reviewExports), or another page's (the Analysis board's, design 21).
-  let { run, side = "top", small = false, icon = false, ready = true, why = "", items = reviewExports() }:
-    { run: (kind: ExportKind) => Promise<ExportResult | void>; side?: "top" | "bottom"; small?: boolean; icon?: boolean; ready?: boolean;
+  let { run, side = "top", icon = false, ready = true, why = "", items = reviewExports() }:
+    { run: (kind: ExportKind) => Promise<ExportResult | void>; side?: "top" | "bottom"; icon?: boolean; ready?: boolean;
       why?: string; items?: ExportItem[] } = $props();
   let note = $state(""), failed = $state(false), busy = $state(false);
 
@@ -45,7 +45,7 @@
     <!-- The icon's tooltip names the button while it opens: before, the box's title says why it does not. -->
     <DropdownMenu.Trigger disabled={busy || !ready} aria-label={icon ? "Export" : undefined} title={icon && ready ? "Export" : undefined}
                           class={["data-[state=open]:border-accent data-[state=open]:text-accent",
-                                  icon ? "btn-icon" : small ? "px-2 py-0 text-xs" : "text-sm"]}>
+                                  icon ? "btn-icon" : "px-2 py-0 text-xs"]}>
       {#if icon}<Icon name="export" />{:else}Export{/if}
     </DropdownMenu.Trigger>
     <DropdownMenu.Portal>

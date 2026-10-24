@@ -416,7 +416,8 @@
 
 <!-- The game: the review's layout (design 06). The board is the window's height, less the row above it, or the width
      that the side column leaves, as on Lichess's game page. The side column is Lichess's, 250 to 350 pixels. With the
-     gauge, the board's column is the gauge's width wider, and the row starts at the board's edge. -->
+     gauge, the board's column is the gauge's width wider, and the row starts at the board's edge. One column below 800
+     pixels (`max-[800px]`, a width under 800), as the review and the fixed step bar (app.css). -->
 {#snippet gameView()}
   {@const g = game}
   {@const pos = g?.positions[shown]}
@@ -425,7 +426,7 @@
   <main class="grid items-start justify-center gap-x-5 gap-y-3 my-4 px-4 select-none
                [--tall:calc(100vh-var(--site-header)-var(--strip)-2rem)] [--broad:calc(100cqw-250px-1.25rem-var(--gauge-w)-2rem-20px)]
                [--board:min(var(--tall),var(--broad))] grid-cols-[calc(var(--board)+var(--gauge-w))_minmax(250px,350px)]
-               max-[799px]:[--board:calc(100cqw-2rem-var(--gauge-w))] max-[799px]:grid-cols-1"
+               max-[800px]:[--board:calc(100cqw-2rem-var(--gauge-w))] max-[800px]:grid-cols-1"
         style:--strip={stripHeight ? `calc(${stripHeight}px + 0.5rem)` : "3.3125rem"} style:--gauge-w={gaugeW}>
     <section class="min-w-0">
       <div class={["mb-2 ml-(--gauge-w)", stripBox(gauge)]} bind:offsetHeight={stripHeight}>
@@ -448,7 +449,7 @@
       <div class="flex">
         {#if gauge && pos}{@render pointsBar(pos.scores, pos.areas ?? [0, 0], true)}
         {:else if gauge}<div class="flex-none self-stretch w-[calc(var(--gauge-w)-0.375rem)] mr-1.5 {BONE}"></div>{/if}
-        <div class="relative w-(--board) max-[799px]:flex-1 aspect-square rounded overflow-hidden bg-board">
+        <div class="relative w-(--board) max-[800px]:flex-1 aspect-square rounded overflow-hidden bg-board">
           {#if !(g && pos)}<div class="board-points"></div>{/if} <!-- the empty board, until the game's position -->
           {#if g && pos}
             <Board position={pos} cut={into?.cut ?? null}
@@ -459,7 +460,7 @@
         </div>
       </div>
     </section>
-    <section class="flex flex-col min-h-0 h-[calc(var(--strip)+var(--board))] max-[799px]:h-auto px-4 py-3 bg-panel border border-line rounded-md">
+    <section class="flex flex-col min-h-0 h-[calc(var(--strip)+var(--board))] max-[800px]:h-auto px-4 py-3 bg-panel border border-line rounded-md">
       {#if settingsOpen}
         {@render displaySettings()}
       {:else}
@@ -473,7 +474,7 @@
         <!-- The review's move list (moveList.ts): one row a turn, each edge a step to its position. A click on a move does
              not focus it, as in the review. -->
         <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <div bind:this={moveList} class={[MOVE_LIST, "min-h-24 max-[799px]:max-h-64"]}
+        <div bind:this={moveList} class={[MOVE_LIST, "min-h-24 max-[800px]:max-h-64"]}
              onmousedown={e => { if ((e.target as Element).closest("button")) e.preventDefault(); }}>
           {#if !g || g.status === "starting"}
             {#each Array(starting?.moves.length ? 12 : 0) as _, k (k)}<div class="h-4 mb-2.5 {BONE}" style:width="{k % 3 === 2 ? 55 : 85}%"></div>{/each}

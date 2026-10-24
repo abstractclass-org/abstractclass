@@ -133,6 +133,9 @@
 /* A screen with a mouse, whose scroll bars take room (the page's area, +layout.svelte). */
 @custom-variant desktop (@media (hover: hover) and (pointer: fine));
 
+/* One column on a screen, where the step bar is fixed to the window's foot (the step bar on a phone, below). */
+@custom-variant one-column (@media screen and (max-width: 799px));
+
 /* The review page before its code runs (src/lib/review/pageMarks.ts): a script in its head marks an address that names
    a game, and a last review kept in this browser. */
 @custom-variant review-game (&:where([data-review-game] *));
@@ -272,16 +275,15 @@
 /* The step bar on a phone (design 06): in one column, below 800 pixels, the bar (StepBar) is fixed to the bottom of the
    window, as the Lichess app's bottom bar, so that the step back is in view whenever the board is. It spans the page's
    area (100cqw: the area is the nearest size container, and leaves out its scroll bar's room), with the page's padding,
-   so that its buttons line up with the column. Its bottom padding takes the phone's safe area. The page keeps room for
-   it at its end (.step-room), and its scrolling keeps clear of it (scroll-padding-bottom), from the bar's height
-   (--step-dock, which the bar sets). It is over the page (z-10), and under the menus, which come later in the document
-   at the same level, the dialogs (z-20, z-30) and the notices (z-50). On screen only: a printed page is as narrow, and
-   a fixed bar repeats on every sheet. These rules are outside Tailwind's layers, so that they override the margin,
-   border and padding that the bar's place in a wider column gives it. */
-.step-room { display: none; }
-@media screen and (max-width: 799px) {
+   so that its buttons line up with the column. Its bottom padding takes the phone's safe area. The page's area keeps
+   room for it at its end (padding-bottom), and its scrolling keeps clear of it (scroll-padding-bottom), from the bar's
+   height (--step-dock, which the bar sets while it is on the page). It is over the page (z-10), and under the menus,
+   which come later in the document at the same level, the dialogs (z-20, z-30) and the notices (z-50). On screen only:
+   a printed page is as narrow, and a fixed bar repeats on every sheet. These rules are outside Tailwind's layers, so
+   that they override the margin, border and padding that the bar's place in a wider column gives it. */
+@variant one-column {
   html, #page { scroll-padding-bottom: var(--step-dock, 0px); }
-  .step-room { display: block; flex: none; height: var(--step-dock, 0px); }
+  #page { padding-bottom: var(--step-dock, 0px); }
   .step-dock {
     position: fixed;
     bottom: 0;

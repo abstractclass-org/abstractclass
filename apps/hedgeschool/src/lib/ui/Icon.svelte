@@ -3,10 +3,10 @@
 </script>
 
 <script lang="ts">
-  // The controls' icons (the review's and Practice's steps, display settings and game actions, and the Analysis board's Play, New and Export), drawn as one set: a
-  // 24-unit grid, a 2-unit stroke in the text's colour, round ends. A text glyph takes its shape from the font, which
-  // differs between systems. The icon is the button's picture: the button carries the name (aria-label). It sits on the
-  // text's line, so that an icon's button is as high as a word's.
+  // The controls' icons (the review's and Practice's steps, display settings and game actions, and the Analysis board's
+  // Play, New and Export), drawn as one set: a 24-unit grid, a 2-unit stroke in the text's colour, round ends. A text
+  // glyph takes its shape from the font, which differs between systems. The icon is the button's picture: the button
+  // carries the name (aria-label). It sits on the text's line, so that an icon's button is as high as a word's.
   let { name }: { name: IconName } = $props();
 </script>
 
@@ -32,8 +32,8 @@
     <!-- A plus, the usual mark of "new" (a new document, tab or game). -->
     <path d="M12 5v14M5 12h14" />
   {:else if name === "export"}
-    <!-- An arrow up out of a tray, the share mark of phones' share sheets: the menu sends the game out as a link, a file
-         or to a partner site, not only as a download. -->
+    <!-- An arrow up out of a tray, the share mark of phones' share sheets: the menu sends the game out as a link, a
+         file or to a partner site, not only as a download. -->
     <path d="M12 15V4" /><path d="M8 8l4-4 4 4" /><path d="M5 12v7h14v-7" />
   {:else if name === "bot"}
     <!-- A robot's head (a rounded box with two eyes, an antenna and two ears), the common sign for "play the computer":

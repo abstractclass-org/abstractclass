@@ -87,12 +87,12 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
    (`src/lib/ui/Icon.svelte`), not text glyphs, whose shapes vary with the font.
    - **Play, New and Export are icon buttons,** at every width, so that the bar is the same on a phone and on a
      desktop. Play is a robot's head, the common sign for "play the computer": Play's usual icon, a triangle, is the
-     step forward beside it, and the word Play between two icons did not sit well. New is a plus, the usual mark of a
-     new document, tab or game. Export is an arrow up out of a tray, the share mark of phones' share sheets: its menu
-     sends the game out as a link, a file or to a partner site, so a download's arrow would promise too little. Each
-     has its name for a screen reader and as a tooltip ("Play the bot from here" for the robot). The order is the
-     steps, then the robot, New, Export and ☰. ☰ is an icon already. In a game's row on the home page, Export keeps
-     its word: the row is not the bar. Practice's tools (Takeback, Abort, Resign) do not change.
+     step forward beside it, and the word Play between two icons broke the row of icons. New is a plus, the usual
+     mark of a new document, tab or game. Export is an arrow up out of a tray, the share mark of phones' share sheets:
+     its menu sends the game out as a link, a file or to a partner site, so a download's arrow would promise too
+     little. Each has its name for a screen reader and as a tooltip ("Play the bot from here" for the robot). The
+     order is the steps, then the robot, New, Export and ☰. ☰ is an icon already. In a game's row on the home page,
+     Export keeps its word: the row is not the bar. Practice's tools (Takeback, Abort, Resign) do not change.
    - **On a phone, the bar is fixed to the bottom of the window** (one column, below 800 pixels), as the Lichess app
      keeps Previous and Next in a bottom bar (design 32, item 10). So the step back is in view whenever the board is.
      Under the move list, the bar was below the board, and on a 360 × 640 screen the two were never in view together.
@@ -116,7 +116,9 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
    - **The bar's bottom padding takes the phone's safe area** (`env(safe-area-inset-bottom)`). The value is 0 while
      the page does not ask for the whole screen (`viewport-fit=cover` in its viewport tag), and it does not now.
    - **The bar is over the page,** and under the menus, the dialogs and the notices. The consent notice covers it
-     until the visitor chooses. On paper the bar is in its column: a fixed bar repeats on every sheet.
+     until the visitor chooses, and so does the ask to allow Analytics in its place (the card at the lower left). The
+     note that says what an action did (the Export menu's toast) shows above the bar, so that it does not cover the
+     steps and the button that it answers. On paper the bar is in its column: a fixed bar repeats on every sheet.
    - **Departures from the Lichess app's bar:** the bar holds the status line and the page's tools, not the app's
      database and Flip. A long press does not repeat a step.
 5. **The win chance is a display setting:**
@@ -247,7 +249,7 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
       notes and branches make the rows taller than the bars. The review's list is in its Analysis tab there, which
       the first frame does not show. The Analysis board shows its list there, and draws the rows at once. Its step
       bar is fixed to the window's bottom in one column (item 4), so rows that come later move only the room at the
-      page's end: the Analysis board could draw them later too. A hidden page also draws them at once: it draws no
+      page's end (abscls-pe11 asks whether it draws them later). A hidden page also draws them at once: it draws no
       frame.
 11. **One monospaced font** (Lichess ships its own fonts): Fira Code, shipped with the site
     (`@fontsource-variable/fira-code`, its weight axis), 0.6 em a character. The move list's columns are sized in
@@ -297,7 +299,7 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
 - The move list is taller on a tall window.
 - The page must be checked at the column switches (800 and 1,260 pixels), on a common laptop window, and maximised on a
   large screen. On a phone (360 × 640), the step back must be in view wherever the board is, and the bar must cover no
-  control at the page's end.
+  control at the page's end. The layout sweep checks it (`tests/layout.spec.ts`, "the step bar on a phone").
 - On a phone the bar covers the bottom of the window while the page scrolls: 46 to 68 pixels.
 - The display settings' panel is the place for later display settings (sound, board zoom). It has room for them: it
   scrolls in the column.
@@ -315,7 +317,7 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
 - `src/lib/review/display.ts`: the display settings and their storage in the browser.
 - `src/routes/review/+page.svelte`: the skeleton until the review shows (`gameOpen`, `preloaded`).
 - `src/app.css`: the monospaced font (`--font-mono`, and the font's import), and the step bar on a phone
-  (`.step-dock`, `.step-room`).
+  (`.step-dock`, and the room for it at the end of the page's area, `#page`).
 - `src/lib/ui/StepBar.svelte`: the step bar, its tools' wrap, and its height for the page (`--step-dock`).
   `src/lib/pageScroll.ts` (`intoView`): what the bar opens comes into view.
 

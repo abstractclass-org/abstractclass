@@ -222,7 +222,7 @@
             {/if}
             <span class="text-sm text-muted">{record.moves.length} edges{record.result && record.result !== "*" ? ` · ${record.result}` : ""} ·
               added {new Date(game.added).toLocaleDateString()}</span>
-            <span class="ml-auto flex items-center gap-1.5"><ExportMenu small side="bottom" run={kind => exportGame(game.id, game.record, kind)}
+            <span class="ml-auto flex items-center gap-1.5"><ExportMenu side="bottom" run={kind => exportGame(game.id, game.record, kind)}
               ready={reviewCovers(game.reviewed, wanted(game))}
               why={setUpStart(record.tags.Position) ? "A game from a set-up start opens on the Analysis board: export it there."
                 : !game.reviewed ? "Open the game to review it, then export."

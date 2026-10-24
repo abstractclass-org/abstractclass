@@ -4,8 +4,8 @@
   // under the steps as a group, and the steps then span the bar's width, as Lichess's do. The bar measures whether the
   // tools fit beside the steps at their own width, and so it does not stay wrapped once the steps are wide.
   // In one column (below 800 pixels) the bar is fixed to the bottom of the window, as the Lichess app's bottom bar, so
-  // that the step back is in view whenever the board is (the dock, app.css). The page then keeps room for it at its
-  // end, as high as the bar: the bar sets --step-dock on the document for the room and for the scroll padding.
+  // that the step back is in view whenever the board is (the dock, app.css). The page's area then keeps room for it at
+  // its end, as high as the bar: the bar sets --step-dock on the document for the room and for the scroll padding.
   import { untrack, type Snippet } from "svelte";
   import type { ClassValue } from "svelte/elements";
   import Icon from "./Icon.svelte";
@@ -25,10 +25,11 @@
 
   /** Gives the bar's height to the page (--step-dock), and again whenever it changes. The observer's first call comes
    *  after the first frame's layout: the room is at the page's end, and nothing after it moves when it grows. A read
-   *  as the bar mounts would force a second layout of the whole page in its first frame, after the write. */
+   *  as the bar mounts would force a second layout of the whole page in its first frame, after the write. The height
+   *  comes with the observer's entry, so that a layout that the other observer (watch) dirties is not forced here. */
   function dock(box: HTMLElement) {
     const root = document.documentElement.style;
-    const observer = new ResizeObserver(() => root.setProperty("--step-dock", `${box.offsetHeight}px`));
+    const observer = new ResizeObserver(([entry]) => root.setProperty("--step-dock", `${entry.borderBoxSize[0].blockSize}px`));
     observer.observe(box);
     return () => { observer.disconnect(); root.removeProperty("--step-dock"); };
   }
@@ -69,5 +70,3 @@
     <div class="flex items-center gap-1 ml-auto">{@render tools?.()}</div>
   </div>
 </div>
-<!-- The room at the page's end, under its last content, where the bar is fixed. -->
-<div class="step-room" aria-hidden="true"></div>

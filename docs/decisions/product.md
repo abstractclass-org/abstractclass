@@ -6801,7 +6801,8 @@ error and no horizontal scroll. The layout sweep in Chromium passes (25 tests, 5
   gaps), of 328: 20 pixels to spare, where Play as a word left 3. On a desktop (1,400 × 900) the bar has one row,
   62 pixels high. The robot opens Practice from the position on screen, as Play did.
 - **What depends on the bar's place,** and what changed for it:
-  - The page's end: the page keeps room as high as the bar (`.step-room`), so the bar covers no last row.
+  - The page's end: the page's area (`#page`) keeps room at its end as high as the bar (its bottom padding), so the
+    bar covers no last row.
   - The page's scrolling: `scroll-padding-bottom` on the document and on the page's area keeps a focused element or a
     picked move clear of the bar. The bar gives its height (`--step-dock`) from a `ResizeObserver`. A read as the bar
     mounts would force a second layout of the whole page in the review's first frame.
@@ -6817,6 +6818,29 @@ error and no horizontal scroll. The layout sweep in Chromium passes (25 tests, 5
   - The review's skeleton draws its bar with the same class, so it shows where the review's bar will be.
   - The menus open over the bar (the Export menu, above its button). The bar is under the dialogs and the notices.
   - From 800 pixels up the bar is in its column as before (checked at 800, 1,000 and 1,400 pixels: in the flow, the
-    room hidden, no scroll padding).
-- **Not checked:** a real phone, Safari's toolbars, and the safe area. The page does not ask for the whole screen
+    room at the page's end hidden, no scroll padding).
+- **Not checked:** a real phone, Safari's toolbars, Safari's place for a fixed element inside a size container (an
+  engine that gives `container-type` layout containment puts the bar at the end of the page's area), and the safe
+  area. The page does not ask for the whole screen
   (`viewport-fit=cover`), so `env(safe-area-inset-bottom)` is 0 now.
+- **The review of the change:**
+  - The room for the bar moved from an element after the bar, inside the bar's column, to the bottom padding of the
+    page's area (`#page`). It is now at the page's end whatever comes after the column, and the column's panel has no
+    empty strip at its foot.
+  - The Export menu's toast showed over the bar on a phone, on the steps and on the button that it answers, for 4 to
+    10 seconds. It now shows above the bar (`--step-dock`).
+  - The one-column breakpoint of these rules is one Tailwind variant (`one-column` in `src/app.css`). Practice's
+    layout took one column below 799 pixels (Tailwind's `max-[799px]` is a width under 799), so in a window of
+    exactly 799 pixels the fixed bar covered the foot of its board's column. It now takes one column below 800
+    (`max-[800px]`), as the review and the bar do.
+  - The Export menu lost its `small` option: its word form is only in a game's row now, so it is always small.
+  - The layout sweep has a test of the issue's goal: on a touch screen of 360 × 640, on the review, the Analysis
+    board and Practice, at every 100 pixels down, the step back is in view and on top wherever the board is, and at
+    the page's end the bar covers no move.
+  - Checked again on the reviewed code, in headless Chromium as a phone (touch) at 360 × 640 and 390 × 844, and at
+    1,400 × 900: the bar at the window's foot in one row on the three pages (68 pixels on the review and the Analysis
+    board, 46 on Practice), in its column on the desktop. The step back is in view with the board at every 100
+    pixels. The steps, the arrow keys, the robot (to Practice), New and Export (4 entries each), ☰ (the settings come
+    into view) and the keyboard (Tab to New, Enter opens its menu, Escape gives the focus back) work. The Export
+    menu's toast ends 20 pixels above the bar. The layout sweep in Chromium passes: 25 tests, 6 skipped (the tests
+    that need a Google tag, which a local build leaves out).

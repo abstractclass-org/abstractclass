@@ -9,8 +9,8 @@
 //   - the header is one row.
 // The review shows a game of HedgeFund against itself, reviewed (tests/fixtures/hedgefund-review.json, made by
 // scripts/test-fixture.mjs), the Review tab with that game kept, and Practice a game in progress from it. The import
-// page shows the choice for a userscript's game, with the notice to update the userscript. Run: npm run test:layout
-// (the site running first).
+// page shows the choice for a userscript's game, with the notice to update the userscript. A last test checks the step
+// bar on a phone, on the review, the Analysis board and Practice. Run: npm run test:layout (the site running first).
 import { expect, test, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 
@@ -136,9 +136,9 @@ test("layout of a review", async ({ page }) => {
   expect(reports.filter(Boolean).join("\n")).toBe("");
 });
 
-test("layout of a practice game", async ({ page }) => {
-  // A game in progress, kept in this browser (practice.ts, KeptPractice): the fixture's first 20 edges, the player to
-  // move next, so that the bot does not search.
+/** Opens Practice in a game in progress, kept in this browser (practice.ts, KeptPractice): the fixture's first 20
+ *  edges, the player to move next, so that the bot does not search. */
+async function practiceGame(page: Page) {
   const moves = (JSON.parse(readFileSync(FIXTURE, "utf8")).record as string).replace(/\[[^\]]*\]/g, "").split(/\s+/).filter(t => /^[A-T]\d+-[A-T]\d+$/.test(t)).slice(0, 20);
   await page.goto("/practice");
   await page.evaluate(kept => localStorage.setItem("hedge-school:practice-game:1", JSON.stringify(kept)), {
@@ -147,5 +147,55 @@ test("layout of a practice game", async ({ page }) => {
   });
   await page.reload();
   await expect(page.locator(".mv").first()).toBeVisible({ timeout: 120_000 });
+}
+
+test("layout of a practice game", async ({ page }) => {
+  await practiceGame(page);
   expect(await sweep(page, "/practice in a game")).toBe("");
+});
+
+/** Where the step bar on a phone fails, as text: at every 100 pixels down the page, the board in view and the step back
+ *  not in view or under something, and at the page's end, its last move under the bar. */
+function stepBarProblems(page: Page) {
+  return page.evaluate(async () => {
+    const out: string[] = [];
+    const frame = () => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done)));
+    const scroller = document.scrollingElement!, board = document.querySelector("svg.board")!;
+    const back = document.querySelector<HTMLElement>('.step-dock [aria-label="Back"]')!;
+    for (let y = 0; ; y += 100) {
+      scroller.scrollTop = y;
+      await frame();
+      const b = board.getBoundingClientRect(), r = back.getBoundingClientRect();
+      const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+      if (b.bottom > 0 && b.top < innerHeight && (r.top < 0 || r.bottom > innerHeight || !back.contains(hit)))
+        out.push(`at ${y} pixels down, the board is in view and the step back is not`);
+      if (scroller.scrollTop < y) break;
+    }
+    // The move list scrolls in its own box where it is taller than its room (moveList.ts, MOVE_LIST): its end too.
+    for (const list of document.querySelectorAll(".movelist")) list.scrollTop = list.scrollHeight;
+    await frame();
+    const moves = document.querySelectorAll(".mv"), last = moves[moves.length - 1].getBoundingClientRect();
+    if (last.bottom > document.querySelector(".step-dock")!.getBoundingClientRect().top)
+      out.push("at the page's end, the step bar covers the last move");
+    return out;
+  });
+}
+
+// The step bar on a phone (design 06, item 4): on a touch screen of 360 × 640, the bar is fixed to the window's foot,
+// on the review, the Analysis board and Practice.
+test("the step bar on a phone", async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 360, height: 640 }, isMobile: true, hasTouch: true });
+  const page = await context.newPage();
+  const record = JSON.parse(readFileSync(FIXTURE, "utf8")).record as string;
+  const found: string[] = [];
+  await reviewedGame(page);
+  await expect(page.getByText(/^Review done/).first()).toBeVisible({ timeout: 300_000 });
+  for (const problem of await stepBarProblems(page)) found.push(`/review: ${problem}`);
+  await page.goto("/analysis#" + new URLSearchParams({ record }));
+  await expect(page.locator(".mv").first()).toBeVisible({ timeout: 60_000 });
+  for (const problem of await stepBarProblems(page)) found.push(`/analysis: ${problem}`);
+  await practiceGame(page);
+  for (const problem of await stepBarProblems(page)) found.push(`/practice: ${problem}`);
+  await context.close();
+  expect(found.join("\n")).toBe("");
 });

@@ -9,7 +9,7 @@ export const pageArea = () => document.getElementById("page");
 export const pageScrollTop = () => (pageArea()?.scrollTop ?? 0) + window.scrollY;
 
 /** An attachment for what a button in the step bar opens in the page (the display settings, Practice's question): it
- *  brings the element into view as it shows. On a phone the bar is fixed to the bottom of the window (StepBar), so what
- *  it opens can be out of view, under the board. At the nearest edge, clear of the bar (its scroll padding, app.css): an
- *  element already in view does not move. */
+ *  brings the element into view as it shows. On a phone the bar is fixed to the bottom of the window (StepBar), so
+ *  what it opens can be out of view, under the board. At the nearest edge, clear of the bar (its scroll padding,
+ *  app.css): an element already in view does not move. */
 export const intoView = (element: HTMLElement) => element.scrollIntoView({ block: "nearest" });
