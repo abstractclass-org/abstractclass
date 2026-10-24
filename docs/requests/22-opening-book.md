@@ -37,8 +37,9 @@
    values. The file holds no label and no symbol.
 6. **In parts,** so that the start's part loads first: for example the first turns in one file, and each later
    subtree in its own file, with an index. Each part small enough to load at once on a phone (a few hundred kilobytes
-   at most, before compression). The form, JSON or another, is the engine repository's choice. Cloudflare Pages
-   serves files of up to 25 MiB.
+   at most, before compression). Cloudflare Pages serves files of up to 25 MiB. The site defines its own form and
+   builds the explorer on a test book in it now (beads abscls-tpaj.11). The engine repository may take that form, or
+   choose another, and the site then reads it through an adapter.
 7. **A versioned artifact,** as the engine's builds are: a release asset with its SHA-256, the network's name
    (request 12) and the date, so that the site pins it in `engine.lock.json` and names the book's version on the page.
    An earlier book stays available, as KataGo keeps its earlier books online.

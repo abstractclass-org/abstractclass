@@ -1,8 +1,8 @@
 # The opening book explorer
 
-**Status:** in force, not built. It waits for the book file, which the engine repository computes (a request still
-to write). **Decided:** 2026-10-24, from user stories and journeys, Lichess's opening explorer, KataGo's book pages
-and OGS's Joseki Explorer.
+**Status:** in force, not built. It is built on a test book in the site's own form, made from the third prototype's
+book, and goes live with the engine repository's book (request 22). **Decided:** 2026-10-24, from user stories and
+journeys, Lichess's opening explorer, KataGo's book pages and OGS's Joseki Explorer.
 
 ## Context
 
@@ -182,8 +182,9 @@ explorers that people use in chess and Go is [../research/03-opening-explorers.m
 
 - **The book file:** the explorer needs, for each position, its book moves with their labels, values, bounds and line
   ends, the number of turns under each move, its traps with both values and their refutations, the best move outside
-  the book, its symbol, and its parents. It loads in parts, the start's part first. A request to the engine repository
-  must define the file and its parts.
+  the book, its symbol, and its parents. It loads in parts, the start's part first. The site defines this form and
+  builds on a test book in it, made from the third prototype's book (404 positions, 38 traps, an area map for each).
+  The explorer stays out of the live build until the engine repository's book (request 22) is in.
 - **Design 06 changes:** the step bar is fixed to the bottom of the screen on a phone, on all three board pages.
 - **The header** gets a fourth tab. One row still fits above the menu's 1,024 pixels (design 22). The layout sweep
   (`npm run test:layout`) checks it.
