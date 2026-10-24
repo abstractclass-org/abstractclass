@@ -1,7 +1,8 @@
 # The opening book explorer
 
-**Status:** in force. The book file's form, its loader and a test book are built ("The book file"). The explorer is
-not built. Its work uses the test book, and it goes live with the engine repository's book (request 22).
+**Status:** in force. The book file's form, its loader and a test book are built ("The book file"), and the
+sentences (item 6). The explorer is not built. Its work uses the test book, and it goes live with the engine
+repository's book (request 22).
 **Decided:** 2026-10-24, from user stories and journeys, Lichess's opening explorer, KataGo's book pages and OGS's
 Joseki Explorer.
 
@@ -101,6 +102,18 @@ explorers that people use in chess and Go is [../research/03-opening-explorers.m
    shows that row's sentence. No sentence describes what a turn encloses: such sentences were exact and misleading
    (design 30, "Why"). The templates are in [journey-book-explorer.md](../ux/book-explorer/journey-book-explorer.md),
    "Copy specifications".
+   - **The module** (`apps/hedgeschool/src/lib/book/sentences.ts`) builds them from a position as the loader gives it:
+     a main line's turn, the best move with the trap that it avoids, another book move with its label, a trap, and
+     the end of the book. The symbols' rule and words are in `symbols.ts`. A unit test reads each sentence back on
+     every position of the test book, in both orientations, and checks each fact that it states against the values.
+   - **One word, one meaning:** a trap "seems good after a short search", not "looks good at a short look", where
+     "look" has two meanings. The best other move of a turn gets a sentence of its own.
+   - **Where the main line ends,** the turn's sentence says "The main line ends here.", not "The book ends here.": at
+     a position where a move outside the book is better, the book has moves after the main line's end.
+   - **The labels** come from design 10's bands against the best move here, which is the first book move, or the best
+     move outside the book when that is better. The book gives no Great, because a Great needs the position before
+     the opponent's last turn.
+   - **Not built:** a sentence for the trap that a move sets for the opponent.
 7. **A trap** shows why it tempts in its move cell, with the values open or closed: "Looks good: Blue 41%. Is not:
    Blue 17%." No number is set in bold. A row under it gives the refutation and plays it: "Play the refutation: 4.
    N12-Q10 L11-O12".
@@ -281,8 +294,9 @@ the prototype's file rounds its values to 3 decimals.
 
 The book file's form, its loader and their unit tests are in `apps/hedgeschool/src/lib/book/`, the script that makes
 the test book in `apps/hedgeschool/scripts/test-book.mjs`, and the test book in
-`apps/hedgeschool/tests/fixtures/test-book/` ("The book file"). The explorer is not built. The design's files are in
-[../ux/book-explorer/](../ux/book-explorer/): `context-book-explorer.md`, `stories-book-explorer.md`,
+`apps/hedgeschool/tests/fixtures/test-book/` ("The book file"). The sentences and the symbols are in
+`apps/hedgeschool/src/lib/book/sentences.ts` and `symbols.ts` (item 6). The explorer is not built. The design's
+files are in [../ux/book-explorer/](../ux/book-explorer/): `context-book-explorer.md`, `stories-book-explorer.md`,
 `journey-book-explorer.md` and its diagram, `sitemap-book-explorer.md` and its diagram, `wireframes-book-explorer.html`,
 `evaluation-book-explorer.md` and `decisions.md`. The prototypes' code is on the branches abscls-tpaj.1, abscls-tpaj.2
 and abscls-tpaj.3, never merged.

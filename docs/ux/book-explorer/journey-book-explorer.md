@@ -277,10 +277,13 @@ first. The panel's name and the menu's name belong to the structure.
 | The table's switch | "Book" · "Candidates". Book unavailable: "Not in the book" |
 | The table's groups | "Fine moves" · "Other book moves" · "Traps: they look good at a short look, and lose at a deep one" · "Best outside the book" · "Your game" |
 | The panel, a trap's values | "Looks good: {side} {short}%. Is not: {side} {deep}%." |
-| A sentence, a main line turn | "{n}. {edges} keeps the game {end in words}. After the other book moves, {end of the best other move, in words}." |
-| A sentence, the only fine move | "{edge} is the only fine move here. After it, {end in words}." |
-| A sentence, a trap the move avoids | "This move avoids a trap: {trap} looks good, but {refutation} leaves {side} {end in words}." |
-| A sentence, a trap | "{trap} looks good at a short look ({side} {short}%). After {refutation}, {end in words} ({side} {deep}%)." |
+| A sentence, a main line turn | "{n}. {edges} keeps the game equal." ("leaves" when the symbol before the turn differs, "keep" for two edges) then "The best other book move is {n}. {edge}. After it, {end in words}." or "The book has no other move in this turn.", and at the line's end "The main line ends here." |
+| A sentence, the only fine move | "{edge} is the only fine move here. After it, {end in words}." ("fine book move" when a move outside the book is fine too) |
+| A sentence, several fine moves | "{edge} is the best of the {k} fine moves here. After it, {end in words}." |
+| A sentence, a better move outside the book | "{edge} is the best book move here. After it, {end in words}. {outside} is better, but it is not in the book." |
+| A sentence, another book move | "{edge} is an Excellent move here." / "a Good move" / "an Inaccuracy" / "a Mistake" / "a Blunder", then "After it, {end in words}." |
+| A sentence, a trap the move avoids | "This move avoids a trap: {trap} seems good after a short search, but {refutation} leaves {side} {end in words}." |
+| A sentence, a trap | "{trap} seems good after a short search ({side} {short}%). After {refutation}, {end in words} ({side} {deep}%)." |
 | The panel, a trap's action | "Play the refutation" |
 | The panel, a line's end | "End of the book. {symbol in words}." |
 | The panel, outside the book | "Not in the book. Last book position: turn {n}." with a link to it |
