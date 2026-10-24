@@ -20,7 +20,7 @@
    with data-theme="light" takes the light theme's tokens in either theme: the image of a line draws its board so
    (Hedge School's src/lib/board/boardImage.ts). */
 :root, [data-theme="light"] {
-  --site-header: 3rem; /* the site's header bar (+layout.svelte): pages size their boards from the height below it */
+  --site-header: 3rem; /* the site's header bar (SiteFrame.svelte): pages size their boards from the height below it */
   --bg: #f6f5f2;
   --panel: #ffffff;
   --panel-2: #f0eeea;

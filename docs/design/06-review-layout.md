@@ -316,8 +316,8 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
   `SoundSettings.svelte`).
 - `src/lib/review/display.ts`: the display settings and their storage in the browser.
 - `src/routes/review/+page.svelte`: the skeleton until the review shows (`gameOpen`, `preloaded`).
-- `src/app.css`: the monospaced font (`--font-mono`, and the font's import), and the step bar on a phone
-  (`.step-dock`, and the room for it at the end of the page's area, `#page`).
+- `packages/site/src/site.css`: the monospaced font (`--font-mono`, and the font's import). `src/app.css`: the step
+  bar on a phone (`.step-dock`, and the room for it at the end of the page's area, `#page`).
 - `src/lib/ui/StepBar.svelte`: the step bar, its tools' wrap, and its height for the page (`--step-dock`).
   `src/lib/pageScroll.ts` (`intoView`): what the bar opens comes into view.
 

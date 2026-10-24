@@ -61,6 +61,6 @@ The early access stays: the About page says that everything can change (design 1
 ## Where it is
 
 - `packages/site/src/PageMeta.svelte` (each page's tags), `src/routes/+layout.svelte` (the shared tags, and the live
-  address for `PageMeta`: `setSiteOrigin`), the pages' own `PageMeta`, `src/lib/edition.ts` (`SITE_ORIGIN`).
+  address for `PageMeta`, as `SiteFrame`'s `origin`), the pages' own `PageMeta`, `src/lib/edition.ts` (`SITE_ORIGIN`).
 - `static/robots.txt`, `static/_headers`, `src/routes/sitemap.xml/+server.ts`.
 - `static/brand/card.png`, drawn from `scripts/social-card.html`.

@@ -1,8 +1,9 @@
 <script lang="ts">
   // The notation page (design 33, items 5 to 10): the moves, their marks and the game record, described for anyone
   // who writes a reader or a writer, as Hedge School's notation page describes Enclosure's. The moves are
-  // strategyjam.org's own strings. The record is Hedge School's form. The examples are made by hand, and show the form
-  // only: they are not from one game, and not from strategyjam.org's archive.
+  // strategyjam.org's own strings. The record is Hedge School's form. The examples are made by hand, not taken from
+  // strategyjam.org's archive: one game from the standard start, its moves legal and their marks right, by a model of
+  // the rules of the engine repository's games/blueprints/README.md. The evaluations and the clock are made up.
   import { PROSE } from "@abstractclass/site/prose.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import { ENGINE_NAME, SITE_NAME } from "#lib/site.ts";
@@ -29,11 +30,11 @@
 [Red "Ben"]
 [Result "*"]
 
-1. 2@-3,1 2. 1@4,-2 3:0,0>3:1,-1 { Red changes a blueprint. }
-3. 1@-1,-2x 2@-2,2x+6 (3. 2:0,0>2:1,2 1@-1,-2x) 4. 3@3,1x 1@5,-3 *`;
-  const BRANCH = "4. 3@3,1x 1@5,-3 (4... 2@2,-2x+4)";
-  const MARKED = "3. 1@-1,-2x 2@-2,2x+6? { Mistake. 2:0,0>2:1,2 1@-1,-2x was best. } (3. 2:0,0>2:1,2 1@-1,-2x)";
-  const COMMANDS = "3. 1@-1,-2x { [%eval 0.58 +9 31.2] } 2@-2,2x+6 { [%clk 0:00:52] [%eval 0.64 +15 30.8] }";
+1. 1@-2,2 2. 2@3,1 3:0,0>3:1,-1 { Red changes a blueprint. }
+3. 1@1,-3x 1@0,3x+8 (3. 2@1,-3x 1@0,3x+11) 4. 1@2,4x 3@0,6 *`;
+  const BRANCH = "4. 1@2,4x 3@0,6 (4... 3@0,5x+10)";
+  const MARKED = "3. 1@1,-3x 1@0,3x+8? { Mistake. 2@1,-3x 1@0,3x+11 was best. } (3. 2@1,-3x 1@0,3x+11)";
+  const COMMANDS = "3. 1@1,-3x { [%eval 0.58 +9 31.2] } 1@0,3x+8 { [%clk 0:00:52] [%eval 0.64 +15 30.8] }";
 </script>
 
 <PageMeta title="The notation of Blueprints · {SITE_NAME}"
@@ -44,7 +45,8 @@
   <p>This page describes how {SITE_NAME} writes the moves of Blueprints and a whole game. The moves are
     strategyjam.org's own: its game page and its move list show the same strings. A <strong>game record</strong> holds
     a whole game, as PGN records a chess game. The page is for anyone who writes a program that reads or writes them.
-    {SITE_NAME}'s review is to read game records in this notation, and {ENGINE_NAME}, its engine, speaks its moves.</p>
+    {SITE_NAME}'s review will read game records in this notation, and {ENGINE_NAME}, its engine, will speak its
+    moves.</p>
 
   <h2>The board</h2>
   <p>The board is a grid of hexes with no edge. A hex is two numbers, <code>q,r</code>, in axial coordinates:</p>
@@ -61,9 +63,10 @@
     <svg viewBox="{-WIDTH / 2} {-HEIGHT / 2} {WIDTH} {HEIGHT}" width={WIDTH} height={HEIGHT} class="max-w-full h-auto"
          role="img" aria-label="The 19 hexes within two steps of the origin, each with its q and r.">
       {#each HEXES as { q, r, x, y } (`${q},${r}`)}
+        {@const origin = q === 0 && r === 0}
         <g transform="translate({x.toFixed(2)} {y.toFixed(2)})">
-          <polygon points={CORNERS} fill={q === 0 && r === 0 ? "var(--panel-2)" : "var(--panel)"}
-                   stroke={q === 0 && r === 0 ? "var(--accent)" : "var(--border)"} stroke-width={q === 0 && r === 0 ? 2 : 1} />
+          <polygon points={CORNERS} fill={origin ? "var(--panel-2)" : "var(--panel)"}
+                   stroke={origin ? "var(--accent)" : "var(--border)"} stroke-width={origin ? 2 : 1} />
           <text text-anchor="middle" dominant-baseline="central" class="font-mono text-[11px]" fill="var(--text)">{q},{r}</text>
         </g>
       {/each}
@@ -81,14 +84,17 @@
     <li><strong>After each edit,</strong> the rules put the blueprints back in their frames: the new first cell becomes
       <code>0,0</code>.</li>
     <li><strong>At the start,</strong> each blueprint is a star with a ring of six cells. In its frame, its cells are
-      <code>{START}</code>, with the star at <code>0,1</code>.</li>
+      <code>{START}</code>, with the star at <code>0,1</code>. Blueprints 1 and 3 have a ring of plain cells.
+      Blueprint 2 has a ring of walls and stars in turn, three of each. The start also places each player's three
+      blueprints on the board: the stars of Blue's blueprints 1, 2 and 3 are at (−6, 0), (−10, 0) and (−2, 0), and
+      Red's at (6, 0), (10, 0) and (2, 0).</li>
   </ul>
 
   <h2>Moves</h2>
   <p>A move is one string with no space. There are three kinds:</p>
   <ul>
     <li><strong>A placement</strong> is <code>K@q,r</code>: blueprint <code>K</code>, with its first cell on the hex
-      (q, r) of the board. <code>2@-3,1</code> places blueprint 2 with its first cell on (−3, 1). The hex is the hex
+      (q, r) of the board. <code>1@-2,2</code> places blueprint 1 with its first cell on (−2, 2). The hex is the hex
       that a player clicks on strategyjam.org: its "Dots" button marks these hexes.</li>
     <li><strong>An edit</strong> is <code>I:q,r&gt;J:q,r</code>: the cell at (q, r) of blueprint <code>I</code> goes to
       (q, r) of blueprint <code>J</code>. Both coordinates are in the blueprints' frames as they are before the edit.
@@ -107,8 +113,8 @@
     it removes, times the player's own stars on the board before the move. Two marks after a placement tell what it
     did:</p>
   <ul>
-    <li><code>x</code>: it removes cells. <code>1@-1,-2x</code></li>
-    <li><code>x+N</code>: it removes cells and scores N points. <code>2@-2,2x+6</code></li>
+    <li><code>x</code>: it removes cells. <code>1@1,-3x</code></li>
+    <li><code>x+N</code>: it removes cells and scores N points. <code>1@0,3x+8</code></li>
   </ul>
   <p>A placement that removes a star and scores 0 has <code>x</code> alone: the player had no star on the board. A
     writer never writes <code>+0</code>. The marks repeat what the position shows. A reader accepts a placement with
@@ -157,7 +163,7 @@
   </table>
 
   <h3>Turns</h3>
-  <p>Each turn is its number and a dot, then its moves: <code>2. 1@4,-2 3:0,0&gt;3:1,-1</code>. The number tells whose
+  <p>Each turn is its number and a dot, then its moves: <code>2. 2@3,1 3:0,0&gt;3:1,-1</code>. The number tells whose
     turn it is, so the record names no player.</p>
 
   <h3>Comments and branches</h3>
@@ -167,21 +173,21 @@
     Its first number tells where it leaves the line, and it is always the number of the turn before it:</p>
   <ul>
     <li><code>N.</code> starts at the turn's start, and replaces the whole turn:
-      <code>3. 1@-1,-2x 2@-2,2x+6 (3. 2:0,0&gt;2:1,2 1@-1,-2x)</code>.</li>
+      <code>3. 1@1,-3x 1@0,3x+8 (3. 2@1,-3x 1@0,3x+11)</code>.</li>
     <li><code>N...</code> starts at the turn's second move, and keeps its first move:</li>
   </ul>
   <pre>{BRANCH}</pre>
-  <p>means: at turn 4, after <code>3@3,1x</code>, <code>2@2,-2x+4</code> in place of <code>1@5,-3</code>. Several
+  <p>means: at turn 4, after <code>1@2,4x</code>, <code>3@0,5x+10</code> in place of <code>3@0,6</code>. Several
     branches of one turn follow it one after another.</p>
 
   <h3>Marks of a turn's quality</h3>
   <p>PGN's six marks judge a turn: <code>!!</code> brilliant, <code>!</code> good, <code>!?</code> interesting,
     <code>?!</code> dubious, <code>?</code> a mistake, <code>??</code> a blunder. A mark comes once, right after the
     turn's last move, after the placement's marks, and before the comments and branches:
-    <code>2@-2,2x+6??</code>.</p>
+    <code>1@0,3x+8??</code>.</p>
   <pre>{MARKED}</pre>
   <p>A judgement of one move stays in a comment. A reader accepts a mark after any move, and can ignore it. The review
-    is to mark its labels by turn, as Hedge School's: Great <code>!</code>, Inaccuracy <code>?!</code>, Mistake
+    will mark its labels by turn, as Hedge School's does: Great <code>!</code>, Inaccuracy <code>?!</code>, Mistake
     <code>?</code> and Blunder <code>??</code>. Best, Excellent and Good have no mark, as PGN has none for them.</p>
 
   <h3>Commands in comments</h3>
@@ -213,10 +219,14 @@
   </table>
   <p>Nothing follows the result.</p>
 
+  <h3>A plain list of moves</h3>
+  <p>A reader also accepts the moves alone, one after another, without tags and turn numbers: the turns follow from
+    the rules.</p>
+
   <h2>Positions</h2>
   <p>Blueprints has no position notation yet, as FEN gives a chess position. It comes with a board editor, and with
     games that start from a position that is not the standard start. Until then, a game record starts from the standard
-    start.</p>
+    start, and a reader refuses a <code>Position</code> tag.</p>
 </main>
 
 <SiteFooter />

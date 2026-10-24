@@ -102,7 +102,8 @@ new builds arrive often.
 
 - `package.json`, `vite.config.ts`: the site's project. The root's `package.json` makes the repository one npm
   workspace ([design 26](26-one-repository.md)).
-- `src/app.css`: the colour tokens, Tailwind's theme from them, and the base element styles.
+- `packages/site/src/site.css`: the general colour tokens, Tailwind's theme from them, and the base element styles.
+  `src/app.css`: Hedge School's own tokens (the accent, the board's, the review's and the labels') and utilities.
 - `engine.lock.json` and `scripts/fetch-engine.mjs`: the engine's artifacts.
 
 ## Log entries

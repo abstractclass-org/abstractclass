@@ -14,14 +14,11 @@
 	import SiteMenu from '#lib/SiteMenu.svelte';
 	import SupportDialog from '#lib/SupportDialog.svelte';
 	import Icon from '#lib/ui/Icon.svelte';
-	import { startTheme } from '@abstractclass/site/theme.svelte.ts';
-	import { setSiteOrigin } from '@abstractclass/site/origin.ts';
 	import SiteFrame from '@abstractclass/site/SiteFrame.svelte';
 	import Collie from '#lib/Collie.svelte';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();
-	setSiteOrigin(SITE_ORIGIN);
 
 	// The site map (docs/research/01-ux-survey.md, section 8). The early access has Practice, the review and the Analysis
 	// board. Practice first, as Lichess's play comes first (design 22). Review opens the Review tab.
@@ -53,7 +50,6 @@
 	let mounted = $state(false);
 	onMount(() => {
 		mounted = true;
-		startTheme('hedge-school:theme:1'); // also in src/app.html
 		if (page.route.id !== '/import' && !holdsGame(location.hash)) startAnalytics();
 		void flushPractice(); // the practice games that could not be sent before (design 25)
 		void removeOlderShapes(); // the stored analyses that no reader reads, once after a change of their shape
@@ -84,15 +80,14 @@
 	<meta name="twitter:card" content="summary_large_image" />
 </svelte:head>
 
-<!-- On a screen with a mouse, the header over the page's own scrolling area, which fills the rest of the window
-     (SiteFrame, src/app.css, pageScroll.ts). This tab keeps each page's scroll place under the key placesKey. -->
-<SiteFrame placesKey="hedge-school:scroll-places:1">
+<!-- The site's frame (SiteFrame): on a screen with a mouse, the header over the page's own scrolling area, which fills
+     the rest of the window (site.css, pageScroll.ts). The theme's key is also in src/app.html. -->
+<SiteFrame origin={SITE_ORIGIN} themeKey="hedge-school:theme:1" placesKey="hedge-school:scroll-places:1">
 {#snippet header()}
-<!-- The gaps narrow on a phone, so that the theme menu fits in 360 pixels. Below 1,024 pixels, where the links and
-     "Support Us" no longer fit in one row (they need 860 pixels), the links go into the site's menu at the left
-     (SiteMenu), as on Lichess's phone pages. "Support Us" stays in the header down to 640 pixels, then goes into the
-     menu too. -->
-<header class="flex-none flex items-center gap-3 sm:gap-6 px-4 py-2 min-h-(--site-header) bg-panel border-b border-line">
+	<!-- The header's gaps narrow on a phone, so that the theme menu fits in 360 pixels. Below 1,024 pixels, where the
+	     links and "Support Us" no longer fit in one row (they need 860 pixels), the links go into the site's menu at the
+	     left (SiteMenu), as on Lichess's phone pages. "Support Us" stays in the header down to 640 pixels, then goes into
+	     the menu too. -->
 	<span class="lg:hidden"><SiteMenu tabs={NAV} about={ABOUT} {support} /></span>
 	<span class="flex items-center gap-2">
 		<a class="flex items-center gap-2 text-xl font-bold text-ink no-underline" href="/">
@@ -113,10 +108,9 @@
 		                             hover:brightness-110" onclick={support}><Icon name="heart" />Support Us</button>
 		<ThemeMenu />
 	</span>
-</header>
-<SupportDialog bind:open={supporting} />
 {/snippet}
 	{@render children()}
 </SiteFrame>
+<SupportDialog bind:open={supporting} />
 
 {#if mounted && ASKS_CONSENT && !consentChosen()}<ConsentBanner />{:else if asksToAllow()}<AnalyticsAsk />{/if}

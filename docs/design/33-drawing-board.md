@@ -150,7 +150,8 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
   (`drawing-board:…`). `src/routes/+layout.svelte`: the header, with the wordmark, Notation, About and the theme
   menu. `src/lib/SiteFooter.svelte`: the footer, with Privacy and Notices. `src/app.css`: the neutral accent.
 - `apps/drawingboard/src/routes/`: the pages. The Notation page describes the moves, the marks and the record of
-  items 5 to 10, with examples made by hand. `sitemap.xml`, `static/robots.txt` and `static/_headers` follow
+  items 5 to 7, 9 and 10, with one game made by hand as its examples. Item 8 is the move list's display, and comes
+  with the move list. `sitemap.xml`, `static/robots.txt` and `static/_headers` follow
   design 23. The build's `404.html` answers each path that the site does not have.
 - `apps/drawingboard/src/lib/game/`: the game's notation and records, as Hedge School's `src/lib/game/` holds
   Enclosure's records. `notation.ts`: the moves (Blueprints' part of the game interface: `moves`), their capture
@@ -162,11 +163,14 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
 - `packages/analysis/src/turns.ts`: the turns of one move, then two, for both games' `turn`.
 - `packages/site/` (`@abstractclass/site`): the frame that the two sites share, moved from Hedge School (item 4).
   `site.css` (the general colour tokens, the players' colours, the base styles, the page area's rules and the menus'
-  styles), `SiteFrame.svelte` (the header over the page's own scrolling area, with each page's scroll place),
+  styles), `SiteFrame.svelte` (the header's bar over the page's own scrolling area, with each page's scroll place),
   `theme.svelte.ts` and `ThemeMenu.svelte` (the theme, under each site's own key), `PageMeta.svelte` and
-  `origin.ts` (each page's metadata, from the live address that the layout sets), `prose.ts` (the pages' text style)
-  and `LibraryNotices.svelte` (the libraries that the pages ship). Each site keeps its own header, footer, logo and
-  accent. Hedge School's site menu and Support Us dialog stay in Hedge School.
+  `origin.ts` (each page's metadata, from the site's live address), `prose.ts` (the pages' text style) and
+  `LibraryNotices.svelte` (the libraries that the pages ship). Each site's root layout gives `SiteFrame` what its
+  header holds, its live address and its keys. Each site keeps its own logo, accent and header links. Hedge School's
+  site menu and Support Us dialog stay in Hedge School. The two footers (`src/lib/SiteFooter.svelte`) have the same
+  markup, with each site's links and the game's credit. They are still each site's own, and move into the package in a
+  later change (item 4).
 - `.github/workflows/deploy.yml`, the job `drawingboard`: the deploy, skipped while `DRAWINGBOARD_PAGES_PROJECT` is
   empty ([hosting.md](../hosting.md), "Drawing Board").
 - `scripts/check-all.mjs`: its type check, its unit tests and its build, in the Tests workflow's checks.

@@ -46,7 +46,9 @@ edit in the same commit), so their changes still apply.
    A fourth package, `@abstractclass/record` (`packages/record`), holds the game record's frame, with each game's
    moves and marks as a parameter. Design 33 moved it out of Hedge School's `src/lib/game/record.ts`. It also moved
    the turns of one move, then two (`turnFromCount`), out of `review/enclosure.ts` into the analysis package
-   (`turns.ts`).
+   (`turns.ts`). A fifth, `@abstractclass/site` (`packages/site`), holds the sites' frame: the colour tokens and base
+   styles, the header's bar and the page's area, the theme, the page's metadata and the pages' text style. Design 33
+   moved it out of Hedge School (its item 4).
 
    The engine package knows no game. The analysis package knows a game only through the game interface. No package
    imports a site.

@@ -7,7 +7,7 @@
 </script>
 
 <PageMeta title="About · {SITE_NAME}"
-          description="What Drawing Board is: a site that helps you learn Blueprints, with reviews of your games by an engine that runs in your browser." />
+          description="What Drawing Board is: a site that helps you learn Blueprints, where an engine in your browser will review your games." />
 
 <main class={PROSE}>
   <h1>About {SITE_NAME}</h1>
@@ -16,7 +16,7 @@
     <a href="/notation">notation</a>. Reviews of your games and an Analysis board come next.</p>
 
   <h2>The game</h2>
-  <p>Blueprints is played on a grid of hexes with no edge. Each player holds three blueprints: shapes of cells that the
+  <p>Blueprints uses a grid of hexes with no edge. Each player holds three blueprints: shapes of cells that the
     player can use again and again.</p>
   <ul>
     <li><strong>A placement</strong> stamps a blueprint on empty hexes next to the player's own cells. It removes the
@@ -28,13 +28,13 @@
   <p>Blue makes one move, then each player makes two moves a turn. The game ends after 120 moves.</p>
 
   <h2>The engine</h2>
-  <p>{ENGINE_NAME} is the engine that is to review your games, and the bot that you can practice against later. It is
+  <p>{ENGINE_NAME} is the engine that will review your games, and later the bot that you can practice against. It is
     a neural network trained for Blueprints, with a search from <a href="https://github.com/lightvector/KataGo">KataGo</a>.
-    It is to run in your browser, on your computer, so your games stay with you.</p>
+    It will run in your browser, on your computer, so a review needs no server.</p>
 
   <h2>The names</h2>
-  <p>A drawing board is where blueprints are drawn. "Back to the drawing board" is what a player says after a lost
-    game. Stamp duty is a tax on property, and a stamp is the game's main move.</p>
+  <p>A drawing board is where an architect draws blueprints. "Back to the drawing board" is what a player says after a
+    lost game. Stamp duty is a tax on property, and a stamp is the game's main move.</p>
 
   <h2>Hedge School</h2>
   <p>{SITE_NAME} is the sister site of <a href="https://hedgeschool.abstractclass.org">Hedge School</a>, which helps

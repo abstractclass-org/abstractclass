@@ -2,23 +2,17 @@
   // The site's frame (design 33): Hedge School's header, page area, theme and page metadata (packages/site), with
   // Drawing Board's name, links and keys.
   import "../app.css";
-  import { onMount } from "svelte";
   import { page } from "$app/state";
   import { PLACES_KEY, SITE_NAME, SITE_ORIGIN, THEME_KEY } from "#lib/site.ts";
-  import { startTheme } from "@abstractclass/site/theme.svelte.ts";
-  import { setSiteOrigin } from "@abstractclass/site/origin.ts";
   import SiteFrame from "@abstractclass/site/SiteFrame.svelte";
   import ThemeMenu from "@abstractclass/site/ThemeMenu.svelte";
 
   let { children } = $props();
-  setSiteOrigin(SITE_ORIGIN);
 
   // The pages about the site, on the header's right, as Hedge School's. The others are in the footer. The game's pages
   // (the review, the Analysis board) come on the header's left when they exist.
   const ABOUT = [{ href: "/notation", label: "Notation" }, { href: "/about", label: "About" }];
   const linkClass = (href: string) => ["no-underline hover:text-ink", page.url.pathname.startsWith(href) ? "text-ink" : "text-muted"];
-
-  onMount(() => startTheme(THEME_KEY));
 </script>
 
 <svelte:head>
@@ -29,17 +23,15 @@
   <meta name="twitter:card" content="summary" />
 </svelte:head>
 
-<SiteFrame placesKey={PLACES_KEY}>
+<SiteFrame origin={SITE_ORIGIN} themeKey={THEME_KEY} placesKey={PLACES_KEY}>
   {#snippet header()}
     <!-- The name is the site's wordmark until its logo is decided. The two links and the theme menu fit in a phone's
          360 pixels, so the header needs no menu of its own. -->
-    <header class="flex-none flex items-center gap-3 sm:gap-6 px-4 py-2 min-h-(--site-header) bg-panel border-b border-line">
-      <a class="text-xl font-bold text-ink no-underline" href="/">{SITE_NAME}</a>
-      <nav class="flex gap-4.5 ml-auto text-sm">
-        {#each ABOUT as item (item.href)}<a href={item.href} class={linkClass(item.href)}>{item.label}</a>{/each}
-      </nav>
-      <ThemeMenu />
-    </header>
+    <a class="text-xl font-bold text-ink no-underline" href="/">{SITE_NAME}</a>
+    <nav class="flex gap-4.5 ml-auto text-sm">
+      {#each ABOUT as item (item.href)}<a href={item.href} class={linkClass(item.href)}>{item.label}</a>{/each}
+    </nav>
+    <ThemeMenu />
   {/snippet}
   {@render children()}
 </SiteFrame>

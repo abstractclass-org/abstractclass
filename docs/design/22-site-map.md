@@ -86,17 +86,17 @@ ask where it goes (design 21): with that choice, "import" again names what the p
      inside is Ko-fi's in this way too: it keeps Ko-fi's colours in both themes. The dialog also links Ko-fi's page in
      a new tab, for a browser that blocks the frame.
    - **The header stays in view on a screen with a mouse,** and the page scrolls in its own area under it
-     (`src/routes/+layout.svelte`). That area keeps the scroll bar's room (`scrollbar-gutter: stable`), so that a page
-     whose height changes while it loads does not move sideways, and the header, outside it, reaches the window's
-     edge. A page sized to the window (the review, the Analysis board, Practice) takes its width from the area, a CSS
-     container (`100cqw`), which leaves out the scroll bar's room: `100vw` counts that room in, and the review's move
-     list then lost 7 pixels and ran under its scroll bar near 1,280 pixels. The browser draws nothing of a page in the
-     room that the document itself keeps (the CSS working group's
-     issue 5232), so the header stopped short there on every page that did not scroll. The layout keeps the area's
-     scroll as the browser keeps a page's: each address's place for Back, Forward and a reload, and the top of a page
-     opened anew. The area takes the focus after each navigation, in the body's place, so that Page Down and Space
-     scroll it. A touch screen keeps the usual page: its scroll bars take no room, and the header scrolls away, so that
-     its browser's bars hide as the page scrolls.
+     (`packages/site/src/SiteFrame.svelte`). That area keeps the scroll bar's room (`scrollbar-gutter: stable`), so
+     that a page whose height changes while it loads does not move sideways, and the header, outside it, reaches the
+     window's edge. A page sized to the window (the review, the Analysis board, Practice) takes its width from the
+     area, a CSS container (`100cqw`), which leaves out the scroll bar's room: `100vw` counts that room in, and the
+     review's move list then lost 7 pixels and ran under its scroll bar near 1,280 pixels. The browser draws nothing
+     of a page in the room that the document itself keeps (the CSS working group's issue 5232), so the header stopped
+     short there on every page that did not scroll. The frame keeps the area's scroll as the browser keeps a page's:
+     each address's place for Back, Forward and a reload, and the top of a page opened anew. The area takes the focus
+     after each navigation, in the body's place, so that Page Down and Space scroll it. A touch screen keeps the usual
+     page: its scroll bars take no room, and the header scrolls away, so that its browser's bars hide as the page
+     scrolls.
    - **Home:** what Hedge School is, and Practice as its first call to action ("Practice against bot"), beside a
      board that plays scenes from reviewed games as the review shows them judged by edge: the engine's first three
      candidates before each edge, and each edge's label on it (`src/lib/home/HomeReplay.svelte`). The board alone: no caption,

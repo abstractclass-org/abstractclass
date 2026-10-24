@@ -7,7 +7,7 @@ import { readLocal, writeLocal } from "@abstractclass/storage/local.ts";
 export type ThemeChoice = "system" | "light" | "dark";
 export const THEME_CHOICES: [ThemeChoice, string][] = [["system", "System"], ["light", "Light"], ["dark", "Dark"]];
 
-let key = ""; // the site's (startTheme), also in its src/app.html
+let key = ""; // the site's (startTheme, from SiteFrame's `themeKey`), also in its src/app.html
 const DARK = "(prefers-color-scheme: dark)";
 
 function stored(): ThemeChoice {

@@ -6899,13 +6899,16 @@ error and no horizontal scroll. The layout sweep in Chromium passes (25 tests, 5
   (design 33, abscls-8tl1.2).
 - **The shared frame, `@abstractclass/site`** (`packages/site`): the parts that Drawing Board uses as they are moved
   out of Hedge School, first as pure renames: the theme and its menu, the page's metadata and the prose style. Then
-  the edits: the theme takes the site's key (`startTheme(key)`), the metadata takes the live address from the layout
-  (`setSiteOrigin`), the page area with its scroll places moved out of Hedge School's layout (`SiteFrame.svelte`),
-  the general part of `app.css` moved to `site.css`, and the libraries' notice to `LibraryNotices.svelte`.
-- **Stayed in Hedge School:** its footer, its site menu (it holds Support Us), its logo, its lavender accent, its
-  board's, review's and labels' tokens, and the utilities that Drawing Board does not use yet (the main button, the
-  dialogs, the keys' table, the step bar, the bar's gleam). The review's tokens move with the view's split
-  (abscls-8tl1.6).
+  the edits: the header's bar and the page area with its scroll places moved out of Hedge School's layout
+  (`SiteFrame.svelte`). Each site's layout gives the frame what the header holds, the live address and the keys
+  (`origin`, `themeKey`, `placesKey`): the theme keeps its choice under the site's key (`startTheme(key)`), and the
+  metadata takes the live address from the frame (`setSiteOrigin`). The general part of `app.css` moved to
+  `site.css`, and the libraries' notice to `LibraryNotices.svelte`.
+- **Stayed in Hedge School:** its header's links, its site menu (it holds Support Us), its logo, its lavender accent,
+  its board's, review's and labels' tokens, and the utilities that Drawing Board does not use yet (the main button,
+  the dialogs, the keys' table, the step bar, the bar's gleam). The review's tokens move with the view's split
+  (abscls-8tl1.6). Its footer stays for now: the two footers have the same markup, and a later change moves them into
+  the package (design 33, item 4).
 - **Checked that Hedge School did not change:** its build's CSS has the same 1,559 rules after the move, in the same
   order, except that the colour tokens of each theme are two blocks in place of one. Its prerendered pages have the
   same DOM, except for Svelte's hydration marks.
@@ -6913,4 +6916,8 @@ error and no horizontal scroll. The layout sweep in Chromium passes (25 tests, 5
   the name as a wordmark, until its logo and colour are decided. Its header holds Notation, About and the theme menu,
   and fits in 360 pixels with no menu. Its keys are `drawing-board:theme:1` and `drawing-board:scroll-places:1`.
 - **The Notation page** describes design 33's items 5 to 7, 9 and 10, with examples made by hand. Item 8 (the move
-  list's display) waits for the move list.
+  list's display) waits for the move list. The examples are one game from the standard start, with its branches. A
+  model of the rules in the engine repository's `games/blueprints/README.md` replayed it: each move is legal, and
+  each mark is the one that its position gives (`x` alone where no star goes, `x+8` for one star by Blue's 8). The
+  model is not the engine. The page also gives the start as the rules' version 3 has it: blueprints 1 and 3 with
+  plain rings, blueprint 2 with a ring of walls and stars, and each player's three blueprints on the board.

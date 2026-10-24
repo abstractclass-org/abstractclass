@@ -25,9 +25,9 @@
   </ul>
   <p>Practice games against {ENGINE_NAME}, lessons and puzzles come later.</p>
 
-  <h2>Your games stay with you</h2>
-  <p>{ENGINE_NAME}, the engine behind the reviews, will run in your browser. Your games and their reviews stay on your
-    computer, and you don't need an account.</p>
+  <h2>Reviews in your browser</h2>
+  <p>{ENGINE_NAME}, the engine behind the reviews, will run in your browser. It will review your games on your
+    computer, and you will not need an account.</p>
 
   <p>Until the reviews are ready, <a href="/notation">the notation page</a> shows how the site writes moves and games,
     and <a href="/about">About</a> tells you more about the site.</p>

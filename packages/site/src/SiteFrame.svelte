@@ -1,16 +1,27 @@
 <script lang="ts">
-	// The site's frame (design 33, item 4): on a screen with a mouse, the site's header over the page's own scrolling
-	// area, which fills the rest of the window (site.css). Each site gives its header, and the key under which this
-	// tab keeps each page's scroll place.
+	// The site's frame (design 33, item 4), around every page of a site: on a screen with a mouse, the site's header
+	// over the page's own scrolling area, which fills the rest of the window (site.css). Each site's root layout gives
+	// what its header holds, and the site's own values:
+	// - `origin`: the live site's address, the canonical address of every page (origin.ts, PageMeta.svelte).
+	// - `themeKey`: the key under which this browser keeps the visitor's theme (theme.svelte.ts). The script in the
+	//   site's app.html reads it too, before the page draws.
+	// - `placesKey`: the key under which this tab keeps each page's scroll place.
 	//
 	// The router keeps the window's scroll only, so the area's is kept here, as the browser keeps a page's: each
 	// address's place, for Back, Forward and a reload, and the top of a page opened anew. A link to a place in a page
 	// (`#`) scrolls to it on its own. The page left is the navigation's own `from`: on Back and Forward, the address
 	// has changed already.
-	import type { Snippet } from 'svelte';
+	import { onMount, type Snippet } from 'svelte';
 	import { afterNavigate, beforeNavigate } from '$app/navigation';
+	import { setSiteOrigin } from './origin.ts';
+	import { startTheme } from './theme.svelte.ts';
 
-	let { header, children, placesKey }: { header: Snippet; children: Snippet; placesKey: string } = $props();
+	let { header, children, origin, themeKey, placesKey }: {
+		header: Snippet; children: Snippet; origin: string; themeKey: string; placesKey: string;
+	} = $props();
+
+	setSiteOrigin(() => origin);
+	onMount(() => startTheme(themeKey));
 
 	let area: HTMLElement;
 	const where = (url: URL | Location) => url.pathname + url.search + url.hash;
@@ -32,7 +43,11 @@
 <svelte:window onpagehide={() => keepPlace(location)} />
 
 <div class="desktop:flex desktop:flex-col desktop:h-full print:block print:h-auto">
-{@render header()}
+<!-- The header: one row, at least --site-header high (site.css), from which pages size their boards. Its gaps narrow
+     on a phone, so that what it holds fits in 360 pixels. -->
+<header class="flex-none flex items-center gap-3 sm:gap-6 px-4 py-2 min-h-(--site-header) bg-panel border-b border-line">
+	{@render header()}
+</header>
 <!-- The area is not in the Tab order and shows no outline (tabindex -1). It takes the focus after each navigation, so
      that the keys scroll it. It is a container (`page`): a page sized to the window takes its width from the area
      (`100cqw`), which leaves out its scroll bar's room, where `100vw` would count that room in. -->
