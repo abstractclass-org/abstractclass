@@ -5,7 +5,8 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="text-scale" content="scale" />
 		<script>
-			// The theme before the page draws (src/lib/theme.svelte.ts): the visitor's choice, else the system's.
+			// The theme before the page draws (@abstractclass/site/theme.svelte.ts, with this key in +layout.svelte): the
+			// visitor's choice, else the system's.
 			(function () {
 				var theme = null;
 				try { theme = localStorage.getItem("hedge-school:theme:1"); } catch (e) {}

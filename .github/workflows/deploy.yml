@@ -5,7 +5,8 @@
 # and the domain. So the repository has no Wrangler file: with one, Pages would take the bindings from that file.
 # The build is the one that Cloudflare's own build ran (npm run build:cloudflare): the engine's release with its SHA-256
 # checks, the unit tests, the type check, then the build. A failed step deploys nothing, and the site stays as it was.
-# The job hub deploys the hub at abstractclass.org (apps/hub) to its own Pages project, beside the site's job.
+# The job hub deploys the hub at abstractclass.org (apps/hub) to its own Pages project, beside the site's job. The job
+# drawingboard deploys Drawing Board (apps/drawingboard) to its own Pages project too.
 name: Deploy
 
 on:
@@ -109,3 +110,46 @@ jobs:
           first=${MESSAGE%%$'\n'*}
           if [ -n "$first" ]; then args+=(--commit-message="${first:0:300}"); fi
           npx --yes wrangler@4.144.0 pages deploy public "${args[@]}"
+
+  # Drawing Board, Blueprints' site (design 33; docs/hosting.md, "Drawing Board"): apps/drawingboard, built and checked
+  # as the site's build is, to the Pages project that the repository variable DRAWINGBOARD_PAGES_PROJECT names. A push
+  # to main deploys the live site, and a push to another branch a preview, as for the site. While the variable is
+  # empty, the job is skipped, and the workflow passes without it. Its pages are prerendered, and the canonical
+  # address is the live one in src/lib/site.ts, so its build needs no branch variables. Wrangler is the site job's
+  # version. It runs in apps/drawingboard, which has no functions/ folder: in the workflow's default folder, it would
+  # upload Hedge School's Function.
+  drawingboard:
+    if: vars.DRAWINGBOARD_PAGES_PROJECT != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/drawingboard
+    env:
+      BRANCH: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci
+        working-directory: .
+
+      # The shared packages' checks and tests (design 29), then the site's own: a failed step deploys nothing.
+      - name: The packages' checks and tests
+        run: npm run check --workspace=packages && npm test --workspace=packages
+        working-directory: .
+      - run: npm run check && npm test && npm run build
+
+      - name: Upload to Cloudflare Pages
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          PROJECT: ${{ vars.DRAWINGBOARD_PAGES_PROJECT }}
+          MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          args=(--project-name="$PROJECT" --branch="$BRANCH" --commit-hash="$GITHUB_SHA")
+          first=${MESSAGE%%$'\n'*}
+          if [ -n "$first" ]; then args+=(--commit-message="${first:0:300}"); fi
+          npx --yes wrangler@4.144.0 pages deploy build "${args[@]}"

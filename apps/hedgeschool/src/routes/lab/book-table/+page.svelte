@@ -11,7 +11,7 @@
   import { goto } from "$app/navigation";
   import Board from "#lib/board/Board.svelte";
   import StepBar from "#lib/ui/StepBar.svelte";
-  import PageMeta from "#lib/PageMeta.svelte";
+  import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import BookTable from "#lib/book/BookTable.svelte";
   import { OpeningBook, type BookAt } from "#lib/book/lookup.svelte.ts";
   import { bookMove } from "#lib/book/book.ts";

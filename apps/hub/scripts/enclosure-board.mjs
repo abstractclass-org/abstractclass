@@ -30,17 +30,20 @@ const player = frames[last].p.edges.findIndex(es => es.some(e => String(e) === S
 
 const style = readFileSync(join(hub, "public/style.css"), "utf8");
 if (!style.includes(`.board .mark.${mark.label} {`)) fail(`style.css gives the label ${mark.label} no colour`);
-// The colour tokens, in each theme: a token that a theme does not set keeps the light theme's value.
+// The colour tokens, in each theme: a token that a theme does not set keeps the light theme's value. Hedge School's
+// are the shared ones (packages/site/src/site.css) and its own (src/app.css).
+const shared = readFileSync(join(hub, "../../packages/site/src/site.css"), "utf8");
 const app = readFileSync(join(hub, "../hedgeschool/src/app.css"), "utf8");
 const block = (css, open) => css.includes(open) ? css.slice(css.indexOf(open), css.indexOf("\n}", css.indexOf(open)))
   : fail(`no "${open}" block`);
 const tokens = css => Object.fromEntries([...css.matchAll(/--([\w-]+):\s*([^;]+);/g)].map(m => [m[1], m[2].trim()]));
 const themes = (light, dark) => ({ light: tokens(light), dark: { ...tokens(light), ...tokens(dark) } });
 const hubTokens = themes(block(style, ":root {"), block(style, "@media (prefers-color-scheme: dark) {"));
-const appTokens = themes(block(app, ':root, [data-theme="light"] {'), block(app, ':root[data-theme="dark"] {'));
+const appTokens = themes(block(shared, ':root, [data-theme="light"] {') + block(app, ':root, [data-theme="light"] {'),
+  block(shared, ':root[data-theme="dark"] {') + block(app, ':root[data-theme="dark"] {'));
 const drift = Object.entries(hubTokens).flatMap(([theme, t]) => Object.entries(t)
   .filter(([name, value]) => value !== appTokens[theme][name])
-  .map(([name, value]) => `--${name} (${theme}) is ${value}, and ${appTokens[theme][name] ?? "missing"} in app.css`));
+  .map(([name, value]) => `--${name} (${theme}) is ${value}, and ${appTokens[theme][name] ?? "missing"} in Hedge School's`));
 if (drift.length) fail(`style.css's tokens are not Hedge School's: ${drift.join("; ")}`);
 
 // The timeline, in seconds: a hold on the first position, an edge a step, a hold before the last edge (with the

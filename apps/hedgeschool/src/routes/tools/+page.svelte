@@ -6,7 +6,7 @@
   import { onMount } from "svelte";
   import { bookmarkletHref } from "#lib/game/bookmarklet.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
-  import PageMeta from "#lib/PageMeta.svelte";
+  import PageMeta from "@abstractclass/site/PageMeta.svelte";
 
   let href = $state("");
   onMount(() => { href = bookmarkletHref(location.origin); });

@@ -6892,3 +6892,25 @@ error and no horizontal scroll. The layout sweep in Chromium passes (25 tests, 5
   placements, 32,959 edits, 7,349 passes). Of the 1,826 games, the 1,791 with moves become records that read back
   to the same moves, each from the standard start. 35 have no moves. The archive has no final scores, so its 726
   games that the rules ended get the result `*`: the game page gives the scores from its rules module.
+
+### Drawing Board's shell (2026-10-25)
+
+- **What:** Drawing Board's header, footer and pages (Home, About, Notation, Privacy, Notices) and its deploy job
+  (design 33, abscls-8tl1.2).
+- **The shared frame, `@abstractclass/site`** (`packages/site`): the parts that Drawing Board uses as they are moved
+  out of Hedge School, first as pure renames: the theme and its menu, the page's metadata and the prose style. Then
+  the edits: the theme takes the site's key (`startTheme(key)`), the metadata takes the live address from the layout
+  (`setSiteOrigin`), the page area with its scroll places moved out of Hedge School's layout (`SiteFrame.svelte`),
+  the general part of `app.css` moved to `site.css`, and the libraries' notice to `LibraryNotices.svelte`.
+- **Stayed in Hedge School:** its footer, its site menu (it holds Support Us), its logo, its lavender accent, its
+  board's, review's and labels' tokens, and the utilities that Drawing Board does not use yet (the main button, the
+  dialogs, the keys' table, the step bar, the bar's gleam). The review's tokens move with the view's split
+  (abscls-8tl1.6).
+- **Checked that Hedge School did not change:** its build's CSS has the same 1,559 rules after the move, in the same
+  order, except that the colour tokens of each theme are two blocks in place of one. Its prerendered pages have the
+  same DOM, except for Svelte's hydration marks.
+- **Drawing Board's look:** Hedge School's tokens with a neutral slate accent (`#4f5b69` light, `#b4bcc7` dark) and
+  the name as a wordmark, until its logo and colour are decided. Its header holds Notation, About and the theme menu,
+  and fits in 360 pixels with no menu. Its keys are `drawing-board:theme:1` and `drawing-board:scroll-places:1`.
+- **The Notation page** describes design 33's items 5 to 7, 9 and 10, with examples made by hand. Item 8 (the move
+  list's display) waits for the move list.

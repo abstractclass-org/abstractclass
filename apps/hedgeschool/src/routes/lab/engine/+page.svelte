@@ -13,7 +13,7 @@
   import { errorText } from "@abstractclass/engine/errors.ts";
   import { pct, PLAYER_NAME } from "#lib/review/enclosure.ts";
   import { SAMPLE, SAMPLE_MOVES as MOVES } from "#lib/mock/sample.ts";
-  import PageMeta from "#lib/PageMeta.svelte";
+  import PageMeta from "@abstractclass/site/PageMeta.svelte";
 
   let manifest = $state<Manifest | null>(null);
   let modelId = $state("");

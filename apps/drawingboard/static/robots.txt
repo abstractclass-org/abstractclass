@@ -1,0 +1,6 @@
+# Search engines may index the live site (docs/design/23-search.md). Cloudflare's preview addresses (*.pages.dev)
+# answer with noindex (static/_headers), so that no copy of a page competes with the live one.
+User-agent: *
+Allow: /
+
+Sitemap: https://drawingboard.abstractclass.org/sitemap.xml

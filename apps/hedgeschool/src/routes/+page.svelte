@@ -11,7 +11,7 @@
   import { EARLY_ACCESS, SITE_NAME, SITE_ORIGIN } from "#lib/edition.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
   import { SAMPLE } from "#lib/mock/sample.ts";
-  import PageMeta from "#lib/PageMeta.svelte";
+  import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import HomeReplay from "#lib/home/HomeReplay.svelte";
 
   const R = review(SAMPLE);

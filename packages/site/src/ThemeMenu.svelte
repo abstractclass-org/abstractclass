@@ -2,7 +2,7 @@
   // The theme menu, at the right of the site's header (design 11): System, Light or Dark. Its button shows the choice:
   // a half-filled circle for the system's theme, a sun, or a moon.
   import { DropdownMenu } from "bits-ui";
-  import { THEME_CHOICES, setTheme, theme, type ThemeChoice } from "#lib/theme.svelte.ts";
+  import { THEME_CHOICES, setTheme, theme, type ThemeChoice } from "./theme.svelte.ts";
 
   // The sun's eight rays, from just outside its disc.
   const RAYS = Array.from({ length: 8 }, (_, k) => {

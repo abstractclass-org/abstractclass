@@ -1,30 +1,13 @@
 @import "tailwindcss";
-/* The site's monospaced font (design 06): Fira Code (SIL Open Font License), from @fontsource-variable/fira-code, its
-   weight axis. One font on every system, so that the move list's columns, sized in characters, measure the same
-   everywhere: the systems' own differ by a tenth (Consolas 0.55 em, Menlo, SF Mono and DejaVu Sans Mono 0.6 em). Fira
-   Code is 0.6 em, and the review's analysis column is wide enough for it (ReviewView.svelte, --side-min). The browser
-   loads it only for a page that shows monospaced text, and only the subsets of the characters that the page shows. */
-@import "@fontsource-variable/fira-code/wght.css";
+/* The sites' shared style: the general colour tokens, the base styles and the page area (packages/site). This file
+   adds Hedge School's own: its accent, its board's, the review's and the labels'. */
+@import "@abstractclass/site/site.css";
 
-/* Tailwind's dark: follows the site's theme (src/lib/theme.svelte.ts), not the system's alone, and stays off inside an
-   element with data-theme="light" (below). */
-@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *):not(:where([data-theme="light"], [data-theme="light"] *)));
-
-/* Colour tokens. Plain and clear (docs/design/04-product-shape.md). Players: Blue moves first, Red second. An element
-   with data-theme="light" takes the light theme's tokens in either theme: the image of a line draws its board so
-   (src/lib/board/boardImage.ts). */
+/* Hedge School's colour tokens, beside the shared ones (site.css). An element with data-theme="light" takes the light
+   theme's tokens in either theme: the image of a line draws its board so (src/lib/board/boardImage.ts). */
 :root, [data-theme="light"] {
-  --site-header: 3rem; /* the site's header bar (+layout.svelte): pages size their boards from the height below it */
-  --bg: #f6f5f2;
-  --panel: #ffffff;
-  --panel-2: #f0eeea;
-  --text: #24252a;
-  --muted: #6a6c73; /* 4.5:1 for small text on the page and on panel-2 */
-  --border: #dddad3;
   --accent: #6f5aa8; /* lavender: 5.2:1 as text on the page, 5.7:1 under white text */
   --on-accent: #ffffff; /* text on the accent */
-  --blue: #2f6fde;
-  --red: #d2453f;
   --board-bg: #f3ead7;
   --board-dot: #b9ab8d;
   /* A protected edge's halo: a neutral that is neither player's colour, a warm grey on the light board and a warm
@@ -64,21 +47,11 @@
   --inaccuracy: #bc8d07;
   --mistake: #bb5c03;
   --blunder: #c62b2f;
-  color-scheme: light;
 }
-/* The dark theme: the system's when the visitor has not chosen, else the visitor's choice (src/lib/theme.svelte.ts).
-   A script in app.html sets data-theme before the page draws. */
+/* The dark theme (site.css). */
 :root[data-theme="dark"] {
-  --bg: #1d1e21;
-  --panel: #26282c;
-  --panel-2: #2f3236;
-  --text: #e4e4e6;
-  --muted: #9a9ca3;
-  --border: #3a3d42;
   --accent: #b8a6e8; /* pale lavender: 5.9:1 as text on panel-2, 8.2:1 under near-black text */
   --on-accent: #16181c;
-  --blue: #5b8ff0;
-  --red: #e8635c;
   --board-bg: #3a362e;
   --board-dot: #6d6555;
   --last: #d6a614;
@@ -99,24 +72,10 @@
   --inaccuracy: var(--inaccuracy-fill);
   --mistake: var(--mistake-fill);
   --blunder: var(--blunder-fill);
-  color-scheme: dark;
 }
-/* The tokens as Tailwind's colours (bg-panel, text-muted, border-line, …). Tailwind's own palette is cleared, so every
-   colour on the site comes from the tokens above, and dark mode follows them. Label colours are set from the label in
-   the markup (style:background="var(--{label})"), so they stay plain tokens. */
+/* Hedge School's tokens as Tailwind's colours, beside the shared ones (site.css). Label colours are set from the label
+   in the markup (style:background="var(--{label})"), so they stay plain tokens. */
 @theme inline {
-  --color-*: initial;
-  --color-white: #fff;
-  --color-page: var(--bg);
-  --color-panel: var(--panel);
-  --color-panel-2: var(--panel-2);
-  --color-ink: var(--text);
-  --color-muted: var(--muted);
-  --color-line: var(--border);
-  --color-accent: var(--accent);
-  --color-on-accent: var(--on-accent);
-  --color-blue: var(--blue);
-  --color-red: var(--red);
   --color-board: var(--board-bg);
   --color-last: var(--last);
   --color-area: var(--area);
@@ -127,11 +86,7 @@
   --color-best: var(--best);
   --color-mistake: var(--mistake);
   --color-blunder: var(--blunder);
-  --font-mono: "Fira Code Variable", ui-monospace, monospace;
 }
-
-/* A screen with a mouse, whose scroll bars take room (the page's area, +layout.svelte). */
-@custom-variant desktop (@media (hover: hover) and (pointer: fine));
 
 /* One column on a screen, where the step bar is fixed to the window's foot (the step bar on a phone, below). */
 @custom-variant one-column (@media screen and (max-width: 799px));
@@ -140,55 +95,6 @@
    a game, and a last review kept in this browser. */
 @custom-variant review-game (&:where([data-review-game] *));
 @custom-variant review-last (&:where([data-review-last] *));
-
-@layer base {
-  /* The scroll bar's room, kept whether the page scrolls or not: a page whose height changes while it loads (the
-     Review tab's list of games) does not move sideways when the bar comes and goes. The browser draws nothing of the
-     page in that room (the CSS working group's issue 5232), so on a screen with a mouse the page scrolls in its own
-     area under the site's header (#page in +layout.svelte), which keeps the room, and the header, outside it, reaches
-     the window's edge and stays in view. The document itself then does not scroll. A touch screen's scroll bars keep
-     no room, and its document scrolls as usual, so that its browser's bars still hide as the page scrolls. */
-  html { scrollbar-gutter: stable; }
-  @variant desktop {
-    html, body { height: 100%; overflow: hidden; }
-    html { scrollbar-gutter: auto; } /* a box that does not scroll keeps the room too: only the page's area keeps it */
-  }
-  /* A printed page is the whole page, not the area's view. */
-  @media print {
-    html, body { height: auto; overflow: visible; }
-  }
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-    font-size: 15px;
-    line-height: 1.45;
-  }
-  /* The reset takes the underline off links. Links that are not in running text (the site's header, the cards, the
-     bookmarklet) take it off again with no-underline. */
-  a { color: var(--accent); text-decoration-line: underline; }
-  button {
-    color: var(--text);
-    background: var(--panel-2);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 0.3rem 0.7rem;
-    cursor: pointer;
-  }
-  button:hover:not(:disabled) { border-color: var(--accent); }
-  button:disabled { opacity: 0.5; cursor: default; }
-  /* A label that holds a switch or a checkbox toggles it on a click, and one that holds a file input opens the file
-     chooser, so it takes the button's pointer, while the control is not disabled. A label that names its control by
-     `for` gives itself the pointer (SettingToggle): CSS cannot follow `for`. */
-  label:has(:is([role="switch"], input[type="checkbox"], input[type="file"]):not(:disabled)) { cursor: pointer; }
-  /* The reset leaves fields without a border. */
-  input:where(:not([type="range"], [type="radio"], [type="checkbox"])), select {
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 0.1rem 0.3rem;
-    background: var(--panel);
-  }
-}
 
 /* The site's main button. */
 @utility btn-primary {
@@ -219,17 +125,6 @@
   color: #fff;
 }
 
-/* A surface raised over the page: the menus', the dialogs' and the notes'. Each sets its own corners and layer. */
-@utility raised {
-  @apply bg-panel-2 border border-muted/50 shadow-[0_6px_20px_rgb(0_0_0/0.4)];
-}
-/* A menu (Bits UI's): its box, and its entries. */
-@utility menu-box {
-  @apply p-1 raised rounded-md text-sm;
-}
-@utility menu-item {
-  @apply px-2.5 py-1.5 rounded cursor-pointer outline-none data-highlighted:bg-panel;
-}
 /* A dialog (Bits UI's): the page darkened behind it, and its box in the window's middle. Each sets its own width. */
 @utility dialog-overlay {
   @apply fixed inset-0 z-20 bg-[rgb(0_0_0/0.45)];

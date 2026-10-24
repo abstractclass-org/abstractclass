@@ -104,9 +104,9 @@ components:
 
 The hub is one calm column of games, one entry for each game. Each entry leads with the game's name, because a player
 knows the game before the site. The page refuses the landing-page hero and the row of equal
-cards. Its look is Hedge School's look. The hub copies Hedge School's colour tokens (`apps/hedgeschool/src/app.css`)
-in the same names, its system sans, its hairlines and its board drawing. A visitor who goes from the hub to a game's
-site sees no change of world.
+cards. Its look is Hedge School's look. The hub copies Hedge School's colour tokens (`packages/site/src/site.css` and
+`apps/hedgeschool/src/app.css`) in the same names, its system sans, its hairlines and its board drawing. A visitor
+who goes from the hub to a game's site sees no change of world.
 
 The page is quiet and sparse. Ink on a warm page carries the text. Hairlines separate the entries. Lavender appears
 only on the actions, the links and the focus ring. The one moving thing on the page is each game's board, which replays
@@ -161,7 +161,7 @@ lavender as a literal, and a change of accent changes it too.
 selection. Text and surfaces never take it.
 
 **The Same Names Rule.** A colour token on the hub has the name and the value of its Hedge School token. A change to a
-shared value starts in Hedge School's `app.css`.
+shared value starts in Hedge School's tokens (`site.css` or `app.css`).
 
 ## Typography
 

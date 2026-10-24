@@ -40,7 +40,7 @@
   import { readLocal, writeLocal } from "@abstractclass/storage/local.ts";
   import { SITE_NAME, SITE_VERSION } from "#lib/edition.ts";
   import { EDGE_RANGES, range } from "#lib/measure.ts";
-  import PageMeta from "#lib/PageMeta.svelte";
+  import PageMeta from "@abstractclass/site/PageMeta.svelte";
 
   const MESSAGE = "box-content max-w-[1100px] mx-auto my-8 px-4";
   const PLAYERS: ReviewData["players"] = { blue: "Blue", red: "Red" };

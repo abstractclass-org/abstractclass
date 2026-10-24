@@ -1,7 +1,7 @@
 # Hosting: how the site is set up and deployed
 
 This document tells how Hedge School is served, how each part was set up, and how to deploy, check and roll back.
-Section 8 tells the same of the hub at `abstractclass.org`.
+Section 8 tells the same of the hub at `abstractclass.org`, and section 9 of Drawing Board.
 The decisions and their reasons are in [design/11-early-access.md](design/11-early-access.md) (item 5 and item 7). The
 log of the setup is in [decisions/product.md](decisions/product.md) ("Cloudflare Pages: the repository's side" and the
 entries before it).
@@ -21,6 +21,7 @@ entries before it).
 | Documents | GitHub Actions (`.github/workflows/docs.yml`) | On each push to `dev`: refuses an added line over 120 characters in a Markdown file of the pushed range. |
 | Practice games | Cloudflare D1: `hedgeschool-games` for production, `hedgeschool-games-preview` for the previews | A Pages Function (`functions/api/practice-games.ts`) keeps each game against HedgeFund when it ends (design 25). |
 | The hub | `apps/hub/public`, deployed by the job `hub` of **Deploy** to the Pages project that `HUB_PAGES_PROJECT` names | The organization's front page at `abstractclass.org`: static files, with no build, script or storage (section 8). |
+| Drawing Board | `apps/drawingboard`, deployed by the job `drawingboard` of **Deploy** to the Pages project that `DRAWINGBOARD_PAGES_PROJECT` names | Blueprints' site at `drawingboard.abstractclass.org`: prerendered pages, with no Function and no analytics (section 9). |
 
 The site is static files: every page is prerendered, and the engine runs in the visitor's browser. One Pages Function
 runs at Cloudflare, on `/api/practice-games` only (`static/_routes.json`): it keeps the practice games (section 7).
@@ -387,6 +388,59 @@ job is skipped while the repository variable `HUB_PAGES_PROJECT` is empty, so th
 6. **End Wrangler's login** on the computer, if you do not use Wrangler there: `npx wrangler@4.144.0 logout`.
 
 `www.abstractclass.org` has no record and is not part of the hub.
+
+## 9. Drawing Board (drawingboard.abstractclass.org)
+
+Drawing Board is Blueprints' site ([design 33](design/33-drawing-board.md)), in `apps/drawingboard`. Its own Pages
+project serves it, apart from Hedge School's and the hub's. The job `drawingboard` of the workflow **Deploy** checks
+and builds it on each push, as the site's job does: the packages' checks and tests, then the site's type check, unit
+tests and build. Then it uploads `build/` with Wrangler: `main` to production, another branch to a preview at
+`<branch>.<project>.pages.dev`. A failed step deploys nothing. The job is skipped while the repository variable
+`DRAWINGBOARD_PAGES_PROJECT` is empty, so the workflow passes without it.
+
+- **Its pages** are prerendered. Each names its live address as canonical (`src/lib/site.ts`), wherever it is served,
+  so the build needs no variable of the branch.
+- **Its headers** (`static/_headers`): `noindex` on Cloudflare's own addresses for the project, and a year's cache for
+  the build's hashed files, as for Hedge School (design 23). `static/robots.txt` names its sitemap.
+- **Its 404 page,** `404.html`, from the build (`vite.config.ts`): Pages answers each path that the site does not
+  have with it, and with status 404.
+- **No Function and no storage at Cloudflare.** The browser keeps only the theme and the scroll places (its Privacy
+  page).
+
+**The owner's steps, once** (abscls-8tl1.3):
+
+1. **Make the Pages project, with `main` as its production branch.** Use Wrangler, not the dashboard, as for the hub
+   (section 8). In a terminal, in the folder `apps/drawingboard` of a checkout of `dev`:
+   1. `npx wrangler@4.144.0 login`. A browser tab opens on Cloudflare. Sign in, then select **Allow**.
+   2. `npx wrangler@4.144.0 pages project create drawingboard --production-branch=main --force`. If Wrangler asks
+      for an account, select the account that holds the project `hedgeschool`. `--force` makes a Pages project, as
+      for the hub.
+
+   The project's name is `drawingboard`. Its address is `drawingboard.pages.dev`. If that address is taken, Pages
+   adds a few characters to the address, and Wrangler shows the address. Use that address in place of
+   `drawingboard.pages.dev` in the steps below.
+2. **Deploy its first files.** Run `npm ci` at the repository's root. Then, in the folder `apps/drawingboard`, run
+   `npm run build`, then `npx wrangler@4.144.0 pages deploy build --project-name=drawingboard --branch=main`. The
+   branch `main` is the production branch, so this deployment is the live site. It stays live until a release puts
+   Drawing Board on `main`.
+3. **Give it the domain.** In the Cloudflare dashboard, go to **Workers & Pages**, select the project
+   `drawingboard`, then **Custom domains → Set up a domain**. Enter `drawingboard.abstractclass.org`, then select
+   **Continue** and **Activate domain**. The zone is on Cloudflare, so Pages adds the DNS record itself: a CNAME from
+   `drawingboard` to `drawingboard.pages.dev`. The domain shows **Active** when its certificate is ready, in minutes.
+4. **Set the variable.** On GitHub, in the repository's **Settings → Secrets and variables → Actions**, on the tab
+   **Variables**, select **New repository variable**. Name: `DRAWINGBOARD_PAGES_PROJECT`. Value: the project's
+   name, `drawingboard`. A repository variable applies to every branch. The secret `CLOUDFLARE_API_TOKEN` needs no
+   change: its permission (Account, Cloudflare Pages, Edit) covers every Pages project of the account. From now on,
+   each push deploys Drawing Board: a push to `dev` deploys a preview at `dev.drawingboard.pages.dev`, and a release
+   (`git push origin dev:main`) deploys the live site.
+5. **Check:**
+   - `https://drawingboard.abstractclass.org` shows Drawing Board's home page.
+   - In the project's **Deployments**, the first deployment is under **Production**, not under **Preview**.
+   - `https://drawingboard.pages.dev` answers with `X-Robots-Tag: noindex` (the browser's developer tools,
+     **Network**, the page's first request).
+   - After the next push to `dev`, in GitHub's **Actions → Deploy**, the run's job `drawingboard` passed, and
+     `https://dev.drawingboard.pages.dev` shows the site.
+6. **End Wrangler's login** on the computer, if you do not use Wrangler there: `npx wrangler@4.144.0 logout`.
 
 ## Deploy, check and roll back
 

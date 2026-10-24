@@ -4,10 +4,10 @@
   // (its file is static/brand/hedge-school.svg), and what can change. The game
   // record's notation has its own page. The examples name the live site's address, which a partner's code names. A
   // partner tests against a deployment of the branch partner_test (design 18), whose address the page does not give.
-  import { PROSE } from "#lib/prose.ts";
+  import { PROSE } from "@abstractclass/site/prose.ts";
   import { DISCORD, SITE_NAME, SITE_ORIGIN } from "#lib/edition.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
-  import PageMeta from "#lib/PageMeta.svelte";
+  import PageMeta from "@abstractclass/site/PageMeta.svelte";
 
   const LIVE = SITE_ORIGIN;
   const LINK = `const link = "${LIVE}/import#" + new URLSearchParams({ record });

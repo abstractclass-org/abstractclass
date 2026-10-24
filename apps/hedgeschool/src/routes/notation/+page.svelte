@@ -3,10 +3,10 @@
   // writes a reader or a writer, as PGN's standard describes PGN. The notations are decided in the engine repository
   // (its docs/design/04-notation-and-protocol.md), which is private, so this page is their public description. A
   // change is decided there first, then this page follows (request 11).
-  import { PROSE } from "#lib/prose.ts";
+  import { PROSE } from "@abstractclass/site/prose.ts";
   import { SITE_NAME } from "#lib/edition.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
-  import PageMeta from "#lib/PageMeta.svelte";
+  import PageMeta from "@abstractclass/site/PageMeta.svelte";
 
   const POSITIONS = `A10-D10 Q10-T10 b1 0/0 0
 A10-D10,D10-E11* Q10-T10 r2 0/0 1

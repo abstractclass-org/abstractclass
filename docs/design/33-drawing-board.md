@@ -1,8 +1,10 @@
 # Drawing Board: Blueprints' site, on Hedge School's design
 
-**Status:** in force. Built: the app's frame (`apps/drawingboard`), with its checks in `npm run check:all`, and the
-notation and the record, with the import of a strategyjam.org game as a record. The shell and the board are in
-progress. The review and the Analysis board wait for the engine's browser build (request 23).
+**Status:** in force. Built: the app (`apps/drawingboard`), with its checks in `npm run check:all`, its shell (the
+header, the footer, the Home, About, Notation, Privacy and Notices pages, and the deploy job), and the notation and the
+record, with the import of a strategyjam.org game as a record. The owner's step for the address is left
+(abscls-8tl1.3). The board is in progress. The review and the Analysis board wait for the engine's browser build
+(request 23).
 **Decided:** 2026-10-25.
 
 ## Context
@@ -143,7 +145,13 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
 
 ## Where it is
 
-- `apps/drawingboard/`: the app. `src/lib/site.ts`: the site's name and the engine's.
+- `apps/drawingboard/`: the app. `src/lib/site.ts`: the site's name, the engine's, the live address
+  (`https://drawingboard.abstractclass.org`, the canonical address of each page) and the storage keys
+  (`drawing-board:…`). `src/routes/+layout.svelte`: the header, with the wordmark, Notation, About and the theme
+  menu. `src/lib/SiteFooter.svelte`: the footer, with Privacy and Notices. `src/app.css`: the neutral accent.
+- `apps/drawingboard/src/routes/`: the pages. The Notation page describes the moves, the marks and the record of
+  items 5 to 10, with examples made by hand. `sitemap.xml`, `static/robots.txt` and `static/_headers` follow
+  design 23. The build's `404.html` answers each path that the site does not have.
 - `apps/drawingboard/src/lib/game/`: the game's notation and records, as Hedge School's `src/lib/game/` holds
   Enclosure's records. `notation.ts`: the moves (Blueprints' part of the game interface: `moves`), their capture
   marks, and the turns. `record.ts`: the record, on the shared frame. `check.ts`: the capture marks' check against
@@ -152,6 +160,15 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
 - `packages/record/`: the record's frame (`record.ts`), with a test game of words. Hedge School's
   `src/lib/game/record.ts` gives Enclosure's moves and cut mark to it, with its calls as before.
 - `packages/analysis/src/turns.ts`: the turns of one move, then two, for both games' `turn`.
+- `packages/site/` (`@abstractclass/site`): the frame that the two sites share, moved from Hedge School (item 4).
+  `site.css` (the general colour tokens, the players' colours, the base styles, the page area's rules and the menus'
+  styles), `SiteFrame.svelte` (the header over the page's own scrolling area, with each page's scroll place),
+  `theme.svelte.ts` and `ThemeMenu.svelte` (the theme, under each site's own key), `PageMeta.svelte` and
+  `origin.ts` (each page's metadata, from the live address that the layout sets), `prose.ts` (the pages' text style)
+  and `LibraryNotices.svelte` (the libraries that the pages ship). Each site keeps its own header, footer, logo and
+  accent. Hedge School's site menu and Support Us dialog stay in Hedge School.
+- `.github/workflows/deploy.yml`, the job `drawingboard`: the deploy, skipped while `DRAWINGBOARD_PAGES_PROJECT` is
+  empty ([hosting.md](../hosting.md), "Drawing Board").
 - `scripts/check-all.mjs`: its type check, its unit tests and its build, in the Tests workflow's checks.
 - [requests/23-blueprints-browser-build.md](../requests/23-blueprints-browser-build.md): what the site asks of the
   engine's browser build.

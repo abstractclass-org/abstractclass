@@ -3,14 +3,14 @@
   // each purpose of the consent. The switches show in the browser only: the prerendered page cannot know the choices.
   import { onMount } from "svelte";
   import { Switch } from "bits-ui";
-  import { PROSE } from "#lib/prose.ts";
+  import { PROSE } from "@abstractclass/site/prose.ts";
   import { DISCORD, SITE_NAME, STORES_PRACTICE_GAMES } from "#lib/edition.ts";
   import { ASKS_CONSENT, PURPOSES, chooseShown, consent, keptNumber, type Purpose } from "#lib/analytics.svelte.ts";
   import { deletePractice } from "#lib/practice/send.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
   import { SWITCH, SWITCH_THUMB } from "#lib/ui/settings.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
-  import PageMeta from "#lib/PageMeta.svelte";
+  import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import ConfirmDialog, { type Answer } from "#lib/ui/ConfirmDialog.svelte";
 
   let mounted = $state(false), number = $state<string | null>(null), deleting = $state(false), deleted = $state("");

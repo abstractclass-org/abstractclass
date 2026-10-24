@@ -43,7 +43,7 @@
   import { PracticeGame, saveUnfinished } from "#lib/practice/game.svelte.ts";
   import { MAX_VISITS, VARIETY_NAME, VISIT_STOPS, botName, keep, loadChoices, loadKept, practiceEndParams, practiceOutcome, practiceParams,
            practiceTurn, saveChoices, visitsStop, visitsTaken, type KeptPractice, type PracticeOutcome, type Variety } from "#lib/practice/practice.ts";
-  import PageMeta from "#lib/PageMeta.svelte";
+  import PageMeta from "@abstractclass/site/PageMeta.svelte";
 
   const WHERE: Record<BotMode, string> = { gpu: "on the GPU", cpu: "on the CPU workers", single: "on one thread" };
   const VARIETY_HELP: Record<Variety, string> = {

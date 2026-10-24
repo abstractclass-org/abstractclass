@@ -3,7 +3,6 @@
 	import favicon from '#lib/assets/favicon.svg';
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
-	import { afterNavigate, beforeNavigate } from '$app/navigation';
 	import { EARLY_ACCESS, ENGINE_FILES, SITE_NAME, SITE_ORIGIN } from '#lib/edition.ts';
 	import { ASKS_CONSENT, asksToAllow, consentChosen, startAnalytics, track } from '#lib/analytics.svelte.ts';
 	import { flushPractice } from '#lib/practice/send.ts';
@@ -11,15 +10,18 @@
 	import { holdsGame } from '#lib/game/importHash.ts';
 	import ConsentBanner from '#lib/ConsentBanner.svelte';
 	import AnalyticsAsk from '#lib/AnalyticsAsk.svelte';
-	import ThemeMenu from '#lib/ThemeMenu.svelte';
+	import ThemeMenu from '@abstractclass/site/ThemeMenu.svelte';
 	import SiteMenu from '#lib/SiteMenu.svelte';
 	import SupportDialog from '#lib/SupportDialog.svelte';
 	import Icon from '#lib/ui/Icon.svelte';
-	import { startTheme } from '#lib/theme.svelte.ts';
+	import { startTheme } from '@abstractclass/site/theme.svelte.ts';
+	import { setSiteOrigin } from '@abstractclass/site/origin.ts';
+	import SiteFrame from '@abstractclass/site/SiteFrame.svelte';
 	import Collie from '#lib/Collie.svelte';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();
+	setSiteOrigin(SITE_ORIGIN);
 
 	// The site map (docs/research/01-ux-survey.md, section 8). The early access has Practice, the review and the Analysis
 	// board. Practice first, as Lichess's play comes first (design 22). Review opens the Review tab.
@@ -51,7 +53,7 @@
 	let mounted = $state(false);
 	onMount(() => {
 		mounted = true;
-		startTheme();
+		startTheme('hedge-school:theme:1'); // also in src/app.html
 		if (page.route.id !== '/import' && !holdsGame(location.hash)) startAnalytics();
 		void flushPractice(); // the practice games that could not be sent before (design 25)
 		void removeOlderShapes(); // the stored analyses that no reader reads, once after a change of their shape
@@ -63,27 +65,6 @@
 			if ('requestIdleCallback' in window) requestIdleCallback(remove, { timeout: 10_000 });
 			else setTimeout(remove, 2_000); // Safari
 		}
-	});
-
-	// The page's own scrolling area (src/app.css, pageScroll.ts), on a screen with a mouse. The router keeps the window's
-	// scroll only, so the area's is kept here, as the browser keeps a page's: each address's place, for Back, Forward
-	// and a reload, and the top of a page opened anew. A link to a place in a page (`#`) scrolls to it on its own.
-	// The page left is the navigation's own `from`: on Back and Forward, the address has changed already.
-	let area: HTMLElement;
-	const PLACES = 'hedge-school:scroll-places:1';
-	const where = (url: URL | Location) => url.pathname + url.search + url.hash;
-	const places = (): Record<string, number> => { try { return JSON.parse(sessionStorage.getItem(PLACES) ?? '{}'); } catch { return {}; } };
-	function keepPlace(url: URL | Location) {
-		try { sessionStorage.setItem(PLACES, JSON.stringify({ ...places(), [where(url)]: area.scrollTop })); } catch { /* storage blocked */ }
-	}
-	beforeNavigate(({ from }) => { if (from) keepPlace(from.url); });
-	afterNavigate(({ type, to }) => {
-		if (type === 'popstate' || type === 'enter') area.scrollTop = to ? places()[where(to.url)] ?? 0 : 0;
-		else if (!to?.url.hash) area.scrollTop = 0;
-		// The keys that scroll (Page Down, Space, the arrows) scroll what has the focus. The router gives it to the page
-		// (the body) after a navigation. The area takes it in the body's place, so that the keys scroll it, unless the
-		// page has given the focus to one of its own controls.
-		if (document.activeElement === document.body || !document.activeElement) area.focus({ preventScroll: true });
 	});
 </script>
 
@@ -103,10 +84,10 @@
 	<meta name="twitter:card" content="summary_large_image" />
 </svelte:head>
 
-<svelte:window onpagehide={() => keepPlace(location)} />
-
-<!-- On a screen with a mouse, the header over the page's own scrolling area, which fills the rest of the window. -->
-<div class="desktop:flex desktop:flex-col desktop:h-full print:block print:h-auto">
+<!-- On a screen with a mouse, the header over the page's own scrolling area, which fills the rest of the window
+     (SiteFrame, src/app.css, pageScroll.ts). This tab keeps each page's scroll place under the key placesKey. -->
+<SiteFrame placesKey="hedge-school:scroll-places:1">
+{#snippet header()}
 <!-- The gaps narrow on a phone, so that the theme menu fits in 360 pixels. Below 1,024 pixels, where the links and
      "Support Us" no longer fit in one row (they need 860 pixels), the links go into the site's menu at the left
      (SiteMenu), as on Lichess's phone pages. "Support Us" stays in the header down to 640 pixels, then goes into the
@@ -134,14 +115,8 @@
 	</span>
 </header>
 <SupportDialog bind:open={supporting} />
-
-<!-- The area is not in the Tab order and shows no outline (tabindex -1). It takes the focus after each navigation, so
-     that the keys scroll it. It is a container (`page`): a page sized to the window takes its width from the area
-     (`100cqw`), which leaves out its scroll bar's room, where `100vw` would count that room in. -->
-<div id="page" bind:this={area} tabindex="-1"
-     class="@container/page outline-none desktop:flex-1 desktop:min-h-0 desktop:overflow-y-auto desktop:[scrollbar-gutter:stable] print:overflow-visible">
+{/snippet}
 	{@render children()}
-</div>
-</div>
+</SiteFrame>
 
 {#if mounted && ASKS_CONSENT && !consentChosen()}<ConsentBanner />{:else if asksToAllow()}<AnalyticsAsk />{/if}

@@ -100,7 +100,7 @@ The move must keep these:
 - `apps/hedgeschool/`: the site. Its `package.json` (the package `hedgeschool`) has its scripts, its dependencies and
   the alias `#lib/*`.
 - `packages/`: the shared packages, `@abstractclass/engine`, `@abstractclass/storage` and `@abstractclass/analysis`
-  (design 29).
+  (design 29), and `@abstractclass/site`, the sites' frame (design 33).
 - `apps/hub/`: the hub. Its pages are the files in `public/`, served as they are, with no build and no package of its
   own. `scripts/enclosure-board.mjs` writes Enclosure's board into its page. Its product record, design and page brief
   are `PRODUCT.md`, `DESIGN.md` and `.impeccable/surfaces/`. The job `hub` of `.github/workflows/deploy.yml` deploys

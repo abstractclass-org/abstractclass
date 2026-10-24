@@ -21,7 +21,7 @@ The early access stays: the About page says that everything can change (design 1
 2. **Cloudflare's own addresses are not:** `hedgeschool.pages.dev` and each preview (`dev.hedgeschool.pages.dev`, a
    commit's hash) answer with `X-Robots-Tag: noindex` (`static/_headers`, Cloudflare's own pattern). Each page also
    names its live address as canonical. So no copy of a page competes with the live one.
-3. **Each page names itself** (`src/lib/PageMeta.svelte`):
+3. **Each page names itself** (`packages/site/src/PageMeta.svelte`):
    - **The title:** the page, then the site: "Board editor · Hedge School". The home page: "Hedge School: learn
      Enclosure", since "Hedge School" alone says nothing to a stranger.
    - **The description,** at most about 160 characters, for the search result's snippet and the preview. It names
@@ -60,7 +60,7 @@ The early access stays: the About page says that everything can change (design 1
 
 ## Where it is
 
-- `src/lib/PageMeta.svelte` (each page's tags), `src/routes/+layout.svelte` (the shared tags), the pages' own
-  `PageMeta`, `src/lib/edition.ts` (`SITE_ORIGIN`).
+- `packages/site/src/PageMeta.svelte` (each page's tags), `src/routes/+layout.svelte` (the shared tags, and the live
+  address for `PageMeta`: `setSiteOrigin`), the pages' own `PageMeta`, `src/lib/edition.ts` (`SITE_ORIGIN`).
 - `static/robots.txt`, `static/_headers`, `src/routes/sitemap.xml/+server.ts`.
 - `static/brand/card.png`, drawn from `scripts/social-card.html`.

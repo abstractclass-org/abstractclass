@@ -1,10 +1,10 @@
 <script lang="ts">
   // About Hedge School (design 11).
-  import { PROSE } from "#lib/prose.ts";
+  import { PROSE } from "@abstractclass/site/prose.ts";
   import { DISCORD, SITE_NAME, SITE_VERSION } from "#lib/edition.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
   import Collie from "#lib/Collie.svelte";
-  import PageMeta from "#lib/PageMeta.svelte";
+  import PageMeta from "@abstractclass/site/PageMeta.svelte";
 </script>
 
 <PageMeta title="About · {SITE_NAME}"

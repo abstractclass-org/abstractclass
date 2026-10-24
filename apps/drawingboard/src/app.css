@@ -1,1 +1,15 @@
 @import "tailwindcss";
+/* The sites' shared style: Hedge School's colour tokens, its base styles and its page area (packages/site). */
+@import "@abstractclass/site/site.css";
+
+/* Drawing Board's accent (design 33, "Consequences"): a neutral slate until its colour is decided, on Hedge School's
+   tokens. Light: 6.4:1 as text on the page, 6.9:1 under white text. Dark: 6.7:1 as text on panel-2, 9.3:1 under
+   near-black text. */
+:root, [data-theme="light"] {
+  --accent: #4f5b69;
+  --on-accent: #ffffff; /* text on the accent */
+}
+:root[data-theme="dark"] {
+  --accent: #b4bcc7;
+  --on-accent: #16181c;
+}

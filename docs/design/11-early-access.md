@@ -319,7 +319,7 @@ read the game from the player's own page.
 - One tab for each game's review: `src/lib/game/reviewLock.ts`, used in `src/routes/review/+page.svelte`. The check
   for a deleted game: `keepBranches` in `packages/analysis/src/analysis.svelte.ts`.
 - The pages: `src/routes/{about,notation,developers,privacy,notices}/+page.svelte`, `src/lib/SiteFooter.svelte`,
-  `src/lib/prose.ts` (their text style).
+  `packages/site/src/prose.ts` (their text style), `packages/site/src/LibraryNotices.svelte` (the pages' libraries).
 - Analytics: `src/lib/analytics.svelte.ts`, `src/lib/ConsentBanner.svelte`, started in `src/routes/+layout.svelte`, or,
   when the address holds a game, by the page that removes it (design 22).
 - Hosting: `package.json` (`build:cloudflare`), `.node-version` (at the root), `static/_headers`, `vite.config.ts`

@@ -205,7 +205,8 @@ edit in the same commit), so their changes still apply.
 
 - `package.json` at the root: the workspace (`apps/*`, `packages/*`).
 - `packages/engine/`, `packages/storage/`, `packages/analysis/`: each with its `package.json` (name, `exports`,
-  scripts), `tsconfig.json` and `src/`.
+  scripts), `tsconfig.json` and `src/`. `packages/site/` holds the sites' frame (design 33, item 4), on the same
+  rules. Its check is `svelte-check`, since it holds components.
 - `packages/record/`: the game record's frame (design 33). `packages/analysis/src/turns.ts`: the turns of one move,
   then two, for a game's `turn`.
 - `packages/analysis/src/game.ts`: the game interface. `packages/analysis/src/testing/game.ts`: the test game, with

@@ -21,7 +21,7 @@
   import { errorText } from "@abstractclass/engine/errors.ts";
   import { startAnalytics, track } from "#lib/analytics.svelte.ts";
   import { readLocal, writeLocal } from "@abstractclass/storage/local.ts";
-  import PageMeta from "#lib/PageMeta.svelte";
+  import PageMeta from "@abstractclass/site/PageMeta.svelte";
 
   const KEPT = "hedge-school:editor"; // the position being made (a convenience: the editor opens at the start without it)
   const KEPT_RULE = "hedge-school:editor-count"; // how its edge count is set (CountRule), which its notation cannot say

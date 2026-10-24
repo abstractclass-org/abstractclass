@@ -8,7 +8,7 @@
   import { onMount } from "svelte";
   import { holdsGame } from "#lib/game/importHash.ts";
   import Arrival from "#lib/review/Arrival.svelte";
-  import PageMeta from "#lib/PageMeta.svelte";
+  import PageMeta from "@abstractclass/site/PageMeta.svelte";
 
   let arriving = $state(false);
   onMount(() => {

@@ -10,7 +10,7 @@
   import { boardPosition, rulesOf, type DescribeReply, type GamePosition } from "#lib/engine/position.ts";
   import { COURSE, lineBoard, type Lesson, type Step } from "#lib/learn/lessons.ts";
   import type { Edge, Position } from "#lib/review/enclosure.ts";
-  import PageMeta from "#lib/PageMeta.svelte";
+  import PageMeta from "@abstractclass/site/PageMeta.svelte";
 
   let lesson = $state.raw<Lesson | null>(null); // raw: the course's own object, so that indexOf finds it
   let k = $state(0);

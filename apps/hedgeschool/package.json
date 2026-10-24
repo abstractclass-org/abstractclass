@@ -36,8 +36,8 @@
 		"@abstractclass/analysis": "*",
 		"@abstractclass/engine": "*",
 		"@abstractclass/record": "*",
+		"@abstractclass/site": "*",
 		"@abstractclass/storage": "*",
-		"@fontsource-variable/fira-code": "5.3.0",
 		"onnxruntime-web": "1.30.0"
 	}
 }

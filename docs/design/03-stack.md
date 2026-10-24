@@ -17,13 +17,13 @@ new builds arrive often.
   (review, puzzles, training) is a route, and each page is pre-rendered.
 - **Build tool:** Vite (inside SvelteKit). It bundles each Web Worker as a module script.
 - **Styles:** Tailwind CSS 4 (`@tailwindcss/vite`), as utility classes in the markup. The colour tokens in `src/app.css`
-  are Tailwind's only colours (`bg-panel`, `text-muted`, `border-line`), and dark mode follows the tokens. The page's
-  `data-theme` (`light` or `dark`) chooses the tokens, and Tailwind's `dark:` follows it: the theme menu sets it
-  (`src/lib/theme.svelte.ts`), and with no choice it follows the system's theme. An element with
-  `data-theme="light"` takes the light tokens in either theme, and `dark:` stays off inside it: the image of a line
-  draws its board so (design 07, item 17). Each theme has its own value of a
-  colour, tuned for its backgrounds, as Lichess and chess.com tune theirs: in the light theme a colour on a light
-  surface is darker, in the same hue. The accent is the school's lavender (design 12), and text on it takes
+  and in the shared `packages/site/src/site.css` are Tailwind's only colours (`bg-panel`, `text-muted`,
+  `border-line`), and dark mode follows the tokens. The page's `data-theme` (`light` or `dark`) chooses the tokens,
+  and Tailwind's `dark:` follows it: the theme menu sets it (`packages/site/src/theme.svelte.ts`), and with no choice
+  it follows the system's theme. An element with `data-theme="light"` takes the light tokens in either theme, and
+  `dark:` stays off inside it: the image of a line draws its board so (design 07, item 17). Each theme has its own
+  value of a colour, tuned for its backgrounds, as Lichess and chess.com tune theirs: in the light theme a colour on
+  a light surface is darker, in the same hue. The accent is the school's lavender (design 12), and text on it takes
   `--on-accent`: white in the light theme, near-black in the dark, where the accent is pale. A move label has two
   colours, as on both sites: its fill (`--best-fill`), the badges' disc under a white glyph and the meter's part, the
   same in both themes (but Great's and Blunder's, a little brighter in the dark theme, for 3:1 against the dark board),

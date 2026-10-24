@@ -3,10 +3,10 @@
   // hard positions and the meter come from: the rules and their numbers, in words, with the sources they follow. The
   // numbers are the code's (@abstractclass/analysis/labels.ts, model.ts, src/lib/analysis/engineSettings.ts): a change
   // there changes this page.
-  import { PROSE } from "#lib/prose.ts";
+  import { PROSE } from "@abstractclass/site/prose.ts";
   import { SITE_NAME } from "#lib/edition.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
-  import PageMeta from "#lib/PageMeta.svelte";
+  import PageMeta from "@abstractclass/site/PageMeta.svelte";
 </script>
 
 <PageMeta title="How a review works · {SITE_NAME}"
