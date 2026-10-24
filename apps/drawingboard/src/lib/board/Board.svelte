@@ -1,6 +1,6 @@
 <script lang="ts" module>
   import type { Hex } from "./hex.ts";
-  import type { BlueprintNumber, BoardMove, Hand as HandOf, HandHex, Player, SitePosition } from "./position.ts";
+  import type { BoardMove, Hand as HandOf, HandHex, Player, SitePosition } from "./position.ts";
 
   /** An engine candidate: its name (the move's string, its one spelling), its rank (1 is the engine's first choice),
    *  and a note shown on hover. */
@@ -16,16 +16,15 @@
 
 <script lang="ts">
   // Blueprints' board (docs/design/33-drawing-board.md), in Hedge School's style: the cells on an unbounded grid of
-  // hexes, each player's hand beside it, the last move, the engine's candidates numbered by rank, and the engine's line
-  // numbered from the candidate (design 07). The grid has no edge, so the board pans, zooms and fits the cells. It
-  // fills the area that the page gives it (design 06): the hands go in a column on each side of a wide area, Blue's on
-  // the left as Blue's cells start on the left, and in a row above and below a tall one (a phone). Geometry only: what a
-  // move stamps and removes comes from the move's data.
+  // hexes, each player's hand beside it, the last move, the engine's candidates (each placement's outline, numbered by
+  // rank, and the ranks in the hands), and the engine's line numbered from the candidate (design 07). The grid has no
+  // edge, so the board pans, zooms and fits the cells. It fills the area that the page gives it (design 06): the hands
+  // go in a column on each side of a wide area, Blue's on the left as Blue's cells start on the left, and in a row above
+  // and below a tall one (a phone). Geometry only: what a move stamps and removes comes from the move's data.
   import Cell from "./Cell.svelte";
-  import Hand, { blueprintBoxes, PANEL_PAD, type HandEdit, type HandMarks } from "./Hand.svelte";
+  import Hand, { blueprintBoxes, firstRing, PANEL_PAD, type HandEdit, type HandMarks } from "./Hand.svelte";
   import { boxOf, center, GRID_TILE, gridTilePath, hexAt, hexKey, hexPath, outlinePath, sameHex } from "./hex.ts";
   import { cellsOf } from "./position.ts";
-  import { DEFAULT_VARIANT, type BoardVariant } from "./variants.ts";
   import { fit, pan, pinch, toArea, toPlane, viewBox, zoomAt, type View } from "./view.ts";
 
   interface Props {
@@ -35,19 +34,16 @@
     highlight?: string | null; // a candidate pointed at from outside the board (a row of the candidates table)
     line?: BoardLineMove[] | null; // the line of the candidate pointed at, as far as drawn: numbered, the candidate first
     layers?: Partial<BoardLayers>; // the layers that differ from DEFAULT_LAYERS
-    variant?: Partial<BoardVariant>; // the lab's variants (lib/board/variants.ts) that differ from DEFAULT_VARIANT
     oncandidate?: (name: string | null) => void;
     oncandidateclick?: (name: string) => void;
     // The hex under a mouse's pointer, or null when it leaves: the board shows its coordinates, and the page may too.
     onhexat?: (at: BoardHex | null) => void;
   }
   let {
-    position, last = null, candidates = [], highlight = null, line = null, layers: layersSet = {}, variant: variantSet = {},
+    position, last = null, candidates = [], highlight = null, line = null, layers: layersSet = {},
     oncandidate, oncandidateclick, onhexat,
   }: Props = $props();
   const layers = $derived({ ...DEFAULT_LAYERS, ...layersSet });
-  const variant = $derived({ ...DEFAULT_VARIANT, ...variantSet });
-  const look = $derived(variant.candidates);
 
   const uid = $props.id();
   const gridId = `${uid}-grid`;
@@ -94,18 +90,17 @@
   const placeCandidates = $derived(layers.candidates ? candidates.filter(c => c.move.type === "place") : []);
   /** The best placement whose first cell or whose rank is on a hex of the board. */
   const placementAt = (h: Hex) => placeCandidates
-    .filter(c => c.move.type === "place" && (sameHex(c.move.at, h) || sameHex(rankPlaces.get(c.name)?.hex ?? c.move.at, h)))
+    .filter(c => c.move.type === "place" && (sameHex(c.move.at, h) || sameHex(rankPlaces.get(c.name) ?? c.move.at, h)))
     .sort((a, b) => a.rank - b.rank)[0] ?? null;
   const hoveredName = $derived.by(() => {
     if (hoverHex) return placementAt(hoverHex)?.name ?? null;
     return handHover ? handCandidate(handHover.player, handHover.at)?.name ?? null : null;
   });
-  /** The candidate whose edit puts a cell on a hex of a hand, or takes it from there when the hand shows the rank on
-   *  the cell that the edit moves. */
+  /** The candidate whose edit takes a cell from a hex of a hand (where the hand shows its rank) or puts it there. */
   function handCandidate(player: Player, at: HandHex): BoardCandidate | null {
     if (!layers.candidates) return null;
     const on = (h: HandHex) => h.blueprint === at.blueprint && sameHex(h.hex, at.hex);
-    return candidates.find(c => c.move.type === "edit" && c.move.player === player && (on(c.move.to) || (look.hand && on(c.move.from))))
+    return candidates.find(c => c.move.type === "edit" && c.move.player === player && (on(c.move.from) || on(c.move.to)))
       ?? null;
   }
   const hovered = $derived(hoveredName ? candidates.find(c => c.name === hoveredName) ?? null : null);
@@ -121,13 +116,12 @@
     candidates: layers.candidates && !drawn.length
       ? candidates.flatMap(c => c.move.player === p && c.move.type === "edit" ? [{ ...editOf(c.move)!, name: c.name, rank: c.rank }] : [])
       : [],
-    placed: layers.candidates && look.hand && !drawn.length
+    placed: layers.candidates && !drawn.length
       ? candidates.flatMap(c => c.move.player === p && c.move.type === "place" ? [{ blueprint: c.move.blueprint, name: c.name, rank: c.rank }] : [])
       : [],
-    lit: lit?.name ?? null,
     line: drawn.flatMap((l, i) => l.move.player === p && l.move.type === "edit" ? [{ ...editOf(l.move)!, n: i + 1 }] : []),
   })));
-  const boxes = $derived(players.map(p => blueprintBoxes(hands[p], marks[p], variant.first)));
+  const boxes = $derived(players.map(p => blueprintBoxes(hands[p], marks[p])));
   // One scale for the six blueprints: the largest at which each fits its panel, a hex at most 36 pixels across.
   const unit = $derived.by(() => {
     const pw = sides ? handSize : width / 3, ph = sides ? height / 3 : handSize;
@@ -138,34 +132,23 @@
 
   // Draw the first choice last, so that it stays on top.
   const ordered = $derived([...placeCandidates].sort((a, b) => b.rank - a.rank));
-  // Where each placement's rank goes: on its first cell's hex, or with a footprint, on the footprint's hex nearest its
-  // middle; with the blueprint's number on the rank's right (the two centred on the hex), or on its left (the rank on
-  // the hex). The first place that keeps clear of the better candidates' ranks wins: candidates overlap, and a rank with
-  // the number is wider than a hex.
-  type RankAt = { hex: Hex; side: 1 | -1 };
+  // Where each placement's rank goes: on its footprint's hex nearest the footprint's middle, or on the next nearest
+  // that keeps clear of the better candidates' ranks, since candidates overlap.
   const rankPlaces = $derived.by(() => {
-    const out = new Map<string, RankAt>(), taken: { x0: number; x1: number; y0: number; y1: number }[] = [];
-    const boxAt = ({ hex, side }: RankAt) => {
-      const [x, y] = center(hex);
-      const [x0, x1] = !look.number ? [x - 0.6, x + 0.6] : side === 1 ? [x - 1.05, x + 1.09] : [x - 1.54, x + 0.6];
-      return { x0, x1, y0: y - 0.6, y1: y + 0.6 };
-    };
-    const clear = (p: RankAt) => {
-      const b = boxAt(p);
-      return taken.every(t => b.x1 <= t.x0 || b.x0 >= t.x1 || b.y1 <= t.y0 || b.y0 >= t.y1);
-    };
+    const out = new Map<string, Hex>(), taken: Hex[] = [];
+    // Ranks on two hexes never meet: a rank's badge is 1.2 wide and high, and two hexes' centres are √3 apart across,
+    // or 1.5 apart up and down.
     for (const c of [...placeCandidates].sort((a, b) => a.rank - b.rank)) {
       if (c.move.type !== "place") continue;
       let hexes: Hex[] = [c.move.at];
-      if (look.footprint !== "none" && c.move.stamped.length) {
+      if (c.move.stamped.length) {
         const points = c.move.stamped.map(s => center(s.hex));
         const mx = points.reduce((a, p) => a + p[0], 0) / points.length, my = points.reduce((a, p) => a + p[1], 0) / points.length;
         const off = (h: Hex) => { const [x, y] = center(h); return Math.hypot(x - mx, y - my); };
         hexes = c.move.stamped.map(s => s.hex).sort((a, b) => off(a) - off(b));
       }
-      const places = hexes.flatMap((hex): RankAt[] => (look.number ? [{ hex, side: 1 }, { hex, side: -1 }] : [{ hex, side: 1 }]));
-      const at = places.find(clear) ?? places[0];
-      taken.push(boxAt(at));
+      const at = hexes.find(h => !taken.some(t => sameHex(t, h))) ?? hexes[0];
+      taken.push(at);
       out.set(c.name, at);
     }
     return out;
@@ -260,16 +243,6 @@
   <rect x={x - 0.6} y={y - 0.6} width="1.2" height="1.2" rx="0.28" class="cand-badge" />
   <text {x} y={y + 0.27} class="badge-number">{rank}</text>
 {/snippet}
-<!-- The rank with the blueprint's number beside it, in a box in the mover's colour, as the hands number them. -->
-{#snippet numberedBadge(at: RankAt, rank: number, player: Player, blueprint: BlueprintNumber)}
-  {@const [x0, y] = center(at.hex)}
-  {@const x = at.side === 1 ? x0 - 0.45 : x0}
-  {@const nx = x + at.side * 1.08}
-  <rect x={x - 0.6} y={y - 0.6} width="1.2" height="1.2" rx="0.28" class="cand-badge" />
-  <text {x} y={y + 0.27} class="badge-number">{rank}</text>
-  <rect x={nx - 0.46} y={y - 0.46} width="0.92" height="0.92" rx="0.17" class="number-box p{player}" />
-  <text x={nx} y={y + 0.22} class="badge-number number">{blueprint}</text>
-{/snippet}
 
 <div class="board" class:sides bind:clientWidth={width} bind:clientHeight={height}
      style:--hand="{handSize}px" style:--gap="{GAP}px">
@@ -277,7 +250,7 @@
     <div class="hand-area p{p}">
       {#if width > 0 && height > 0}
         <Hand hand={hands[p]} player={p} width={sides ? handSize : width} height={sides ? height : handSize}
-              direction={sides ? "column" : "row"} {unit} boxes={boxes[p]} marks={marks[p]} first={variant.first} {look}
+              direction={sides ? "column" : "row"} {unit} boxes={boxes[p]} marks={marks[p]}
               hover={handHover?.player === p ? handHover.at : null} onhover={at => handAt(p, at)}
               onpick={at => { const c = handCandidate(p, at); if (c) oncandidateclick?.(c.name); }} />
       {/if}
@@ -317,40 +290,30 @@
           {/each}
         {/if}
 
-        {#if layers.candidates}
-          {@const strong = look.footprint !== "none" || look.number}
-          <!-- The footprints first, then all the ranks over them. While a line shows, the other candidates are hidden,
-               so that the board's only numbers are the line's. -->
+        <!-- The candidates: each placement's footprint as an outline, the cells of the one pointed at faded in the mover's
+             colour, then all the ranks over them. While a line shows, the candidates are hidden, so that the board's
+             only numbers are the line's. -->
+        {#if layers.candidates && !drawn.length}
           {#each ordered as c (c.name)}
             {#if c.move.type === "place"}
               {@const isLit = lit?.name === c.name}
-              {#if isLit || !drawn.length}
-                {@const [ax, ay] = center(c.move.at)}
-                <g class="candidate" class:first={c.rank === 1} class:lit={isLit} class:strong={strong && c.rank === 1}>
-                  {#if !drawn.length && look.footprint === "outline"}
-                    <path d={outlinePath(c.move.stamped.map(s => s.hex))} class="footprint" />
-                    <circle cx={ax} cy={ay - 1} r="0.2" class="footprint-dot" />
-                  {/if}
-                  {#if (isLit || look.footprint === "ghost") && !drawn.length}
-                    {#each c.move.stamped as s (hexKey(s.hex))}
-                      <Cell hex={s.hex} owner={c.move.player} kind={s.kind} look="ghost" />
-                    {/each}
-                  {/if}
-                </g>
-              {/if}
+              <g class="candidate" class:first={c.rank === 1} class:lit={isLit}>
+                <path d={outlinePath(c.move.stamped.map(s => s.hex))} class="footprint" />
+                {#if isLit}
+                  {#each c.move.stamped as s (hexKey(s.hex))}
+                    <Cell hex={s.hex} owner={c.move.player} kind={s.kind} look="ghost" />
+                  {/each}
+                {/if}
+              </g>
             {/if}
           {/each}
-          {#if !drawn.length}
-            {#each ordered as c (c.name)}
-              {#if c.move.type === "place"}
-                {@const at = rankPlaces.get(c.name) ?? { hex: c.move.at, side: 1 as const }}
-                <g class="candidate" class:first={c.rank === 1} class:lit={lit?.name === c.name} class:strong={strong && c.rank === 1}>
-                  {#if look.number}{@render numberedBadge(at, c.rank, c.move.player, c.move.blueprint)}
-                  {:else}{@render rankBadge(at.hex, c.rank)}{/if}
-                </g>
-              {/if}
-            {/each}
-          {/if}
+          {#each ordered as c (c.name)}
+            {#if c.move.type === "place"}
+              <g class="candidate" class:first={c.rank === 1} class:lit={lit?.name === c.name}>
+                {@render rankBadge(rankPlaces.get(c.name) ?? c.move.at, c.rank)}
+              </g>
+            {/if}
+          {/each}
         {/if}
 
         <!-- The engine's line from the candidate pointed at (KaTrain's and Lizzie's way): each placement's cells faded
@@ -376,6 +339,13 @@
               {/if}
             {/each}
           </g>
+        {/if}
+
+        <!-- The first cell's hex of the candidate pointed at or pinned, ringed as the hands ring a blueprint's first cell:
+             its name (K@q,r) names that hex. -->
+        {#if layers.candidates && lit?.move.type === "place"}
+          {@const ring = firstRing(...center(lit.move.at), view.scale)}
+          <path d={ring.d} class="first-ring" stroke-width={ring.width} />
         {/if}
 
         {#if hoverHex}
@@ -428,18 +398,13 @@
   .last.anchor { stroke-width: 0.24; }
   .hover { fill: var(--last); fill-opacity: 0.25; stroke: var(--last); stroke-width: 0.08; pointer-events: none; }
 
-  /* Candidates: the first choice in the engine's colour, the others grey. All are faded until hover. */
+  /* Candidates: the first choice in the engine's colour, thicker, the others grey and faded until hover. */
   .candidate { opacity: 0.6; transition: opacity 0.12s; pointer-events: none; }
+  .candidate.first { opacity: 0.95; }
   .candidate.lit { opacity: 1; }
-  .candidate.strong { opacity: 0.95; }
   .footprint { fill: none; stroke: var(--candidate); stroke-width: 0.12; stroke-linecap: round; }
   .first .footprint { stroke: var(--engine); stroke-width: 0.2; }
-  .footprint-dot { fill: var(--candidate); }
-  .first .footprint-dot { fill: var(--engine); }
-  .number-box { stroke: var(--board-bg); stroke-width: 0.06; }
-  .number-box.p0 { fill: var(--blue); }
-  .number-box.p1 { fill: var(--red); }
-  .number { font-size: 0.66px; }
+  .first-ring { fill: none; stroke: var(--text); opacity: 0.75; pointer-events: none; }
   .cand-badge { fill: var(--candidate); stroke: var(--board-bg); stroke-width: 0.08; }
   .first .cand-badge { fill: var(--engine); }
   .lit .cand-badge { stroke: var(--text); stroke-width: 0.1; }

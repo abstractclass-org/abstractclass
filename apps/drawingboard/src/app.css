@@ -24,9 +24,6 @@
   --engine: #1f7a8c;
   --candidate: #7b818c;
   --on-badge: #ffffff;
-  /* A blueprint's first cell, shaded (the board lab's variant "fill"): its colour mixed with this, and its mark. */
-  --first-shade: #000000;
-  --first-mark: #ffffff;
 }
 :root[data-theme="dark"] {
   --board-bg: #3a362e;
@@ -34,8 +31,6 @@
   --last: #d6a614;
   --engine: #2f8fa3;
   --candidate: #8d939c;
-  --first-shade: #ffffff;
-  --first-mark: #1d1e21;
 }
 /* The board's tokens as Tailwind's colours (bg-board, text-engine), beside the shared ones. */
 @theme inline {

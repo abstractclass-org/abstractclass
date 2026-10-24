@@ -19,13 +19,12 @@
   // - "cell": a cell in place.
   // - "removed": a cell that a move removed, as Hedge School's board draws a cut edge: faded, dashed, with ×.
   // - "ghost": a cell that a candidate or a line would stamp: faded, dashed, in the mover's colour.
-  // `first`: a blueprint's first cell, shaded (the lab's variant "fill", lib/board/variants.ts).
-  interface Props { hex: Hex; owner: Player; kind: Kind; look?: "cell" | "removed" | "ghost"; first?: boolean }
-  let { hex, owner, kind, look = "cell", first = false }: Props = $props();
+  interface Props { hex: Hex; owner: Player; kind: Kind; look?: "cell" | "removed" | "ghost" }
+  let { hex, owner, kind, look = "cell" }: Props = $props();
   const [x, y] = $derived(center(hex));
 </script>
 
-<g class="cell {look} p{owner}" class:first transform="translate({x} {y})">
+<g class="cell {look} p{owner}" transform="translate({x} {y})">
   <path d={SHAPE} class="body" />
   {#if kind === "star"}
     <polygon points={STAR} class="mark star" />
@@ -44,10 +43,6 @@
   .p1 .body { fill: var(--red); }
   .star { fill: var(--on-badge); }
   .wall { fill: none; stroke: var(--on-badge); stroke-width: 0.07; stroke-linejoin: round; }
-  .first.p0 .body { fill: color-mix(in srgb, var(--blue) 55%, var(--first-shade)); }
-  .first.p1 .body { fill: color-mix(in srgb, var(--red) 55%, var(--first-shade)); }
-  .first .star { fill: var(--first-mark); }
-  .first .wall { stroke: var(--first-mark); }
 
   .removed .body, .ghost .body { fill-opacity: 0.18; stroke-width: 0.07; stroke-dasharray: 0.2 0.12; }
   .removed.p0 .body, .ghost.p0 .body { stroke: var(--blue); }

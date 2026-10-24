@@ -175,8 +175,8 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
   empty ([hosting.md](../hosting.md), "Drawing Board").
 - `apps/drawingboard/src/lib/board/`: the board, built on hand-made positions until the engine's browser build comes.
   - `Board.svelte`: the cells, the two hands, the last move (its stamped hexes ringed, the cells that it removed
-    drawn removed, an edit's arrow in the hand), the candidates (the rank on a placement's hex, or on an edit's new
-    place in the hand), the line (numbered from the candidate), and the hex under the pointer with its coordinates.
+    drawn removed, an edit's arrow in the hand), the candidates, the line (numbered from the candidate), and the hex
+    under the pointer with its coordinates.
     Its props follow design 29, item 9: the position, the last move, the candidates (name, move, rank, note), the line
     (each move with its mover and the hands after it), and the candidate pointed at. A move carries what the board
     draws of it: the cells that a placement stamps and removes come from the move's data, not from rules.
@@ -184,18 +184,21 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
     in a row above and below a tall one, such as a phone's. Each blueprint has its own panel, with its number in a
     box, its frame's grid, and its first cell (0, 0) ringed. The ring is inside the cell's edge, so it has one width
     all round. All six blueprints have one scale.
-  - `variants.ts`: variants to compare on the lab page, until one of each is chosen. The first cell's mark
-    (`?first=`): the ring, a darker fill, the blueprint's outline with a dot, or a pointer above the cell. The
-    candidates' look (`?cand=`): the rank on the placement's hex, the placement's outline or its faded cells with the
-    rank in the middle, the blueprint's number beside the rank, chips in the hands, or a mix of the outline, the
-    number and the chips.
+  - The candidates: each placement's footprint as an outline, the first choice's thicker and in the engine's colour,
+    the others grey. The rank goes on the footprint's hex nearest its middle, or on the next nearest that keeps clear
+    of a better candidate's rank. The outlines show each move's shape, and the board's cells stay visible. In the
+    hands, a chip with the rank goes on each blueprint that a placement places, and an edit's rank goes on the cell
+    that it moves, with an arrow to its new place, which is dashed. So a reader sees which blueprint each candidate
+    takes without a hover. When a candidate is pointed at or pinned, its cells show faded in the mover's colour, and
+    its first cell's hex has the hands' ring: the move's name (`K@q,r`) names that hex. A hover or a click finds a
+    candidate by its first cell's hex or by its rank's hex.
   - The view: the board fits the cells until the player pans or zooms, and again after "Show all the cells". A drag
     or one finger pans, two fingers pinch, and the wheel zooms round the pointer.
   - `position.ts`: the position in strategyjam.org's form and the move as the board draws it. `hex.ts`: the grid's
     geometry. `view.ts`: pan, zoom and fit. `fixtures.ts`: the hand-made positions.
 - `apps/drawingboard/src/routes/lab/board/`: the board's lab page (`/lab/board`), with its own small frame: the
-  start, a middle game with five candidates and their lines, a capture, an edit and an empty blueprint. Its switches
-  choose the variants, and the address keeps each choice.
+  start, a middle game with five candidates and their lines, a capture, an edit and an empty blueprint. The address
+  keeps the position, the theme and the pinned candidate.
 - `apps/drawingboard/src/app.css`: the board's colour tokens that the shared style does not hold (the board, the
   last move, the engine's candidates), Hedge School's.
 - `scripts/check-all.mjs`: its type check, its unit tests and its build, in the Tests workflow's checks.
