@@ -173,6 +173,24 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
   later change (item 4).
 - `.github/workflows/deploy.yml`, the job `drawingboard`: the deploy, skipped while `DRAWINGBOARD_PAGES_PROJECT` is
   empty ([hosting.md](../hosting.md), "Drawing Board").
+- `apps/drawingboard/src/lib/board/`: the board, built on hand-made positions until the engine's browser build comes.
+  - `Board.svelte`: the cells, the two hands, the last move (its stamped hexes ringed, the cells that it removed
+    drawn removed, an edit's arrow in the hand), the candidates (the rank on a placement's hex, or on an edit's new
+    place in the hand), the line (numbered from the candidate), and the hex under the pointer with its coordinates.
+    Its props follow design 29, item 9: the position, the last move, the candidates (name, move, rank, note), the line
+    (each move with its mover and the hands after it), and the candidate pointed at. A move carries what the board
+    draws of it: the cells that a placement stamps and removes come from the move's data, not from rules.
+  - The hands: in a column on each side of a wide area (Blue's on the left, as Blue's cells start on the left), and
+    in a row above and below a tall one, such as a phone's. Each blueprint has its own panel, with its number in a
+    box, its frame's grid, and its first cell (0, 0) ringed. All six blueprints have one scale.
+  - The view: the board fits the cells until the player pans or zooms, and again after "Show all the cells". A drag
+    or one finger pans, two fingers pinch, and the wheel zooms round the pointer.
+  - `position.ts`: the position in strategyjam.org's form and the move as the board draws it. `hex.ts`: the grid's
+    geometry. `view.ts`: pan, zoom and fit. `fixtures.ts`: the hand-made positions.
+- `apps/drawingboard/src/routes/lab/board/`: the board's lab page (`/lab/board`), with its own small frame: the
+  start, a middle game with candidates and lines, a capture, an edit and an empty blueprint.
+- `apps/drawingboard/src/app.css`: the board's colour tokens that the shared style does not hold (the board, the
+  last move, the engine's candidates), Hedge School's.
 - `scripts/check-all.mjs`: its type check, its unit tests and its build, in the Tests workflow's checks.
 - [requests/23-blueprints-browser-build.md](../requests/23-blueprints-browser-build.md): what the site asks of the
   engine's browser build.

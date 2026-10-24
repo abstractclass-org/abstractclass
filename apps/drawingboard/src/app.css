@@ -13,3 +13,27 @@
   --accent: #b4bcc7;
   --on-accent: #16181c;
 }
+
+/* The board's tokens, which the shared style does not hold: Hedge School's (apps/hedgeschool/src/app.css), as the
+   site starts with Hedge School's style. The board, the last move, and the engine's candidates: its first choice, and
+   the others. */
+:root, [data-theme="light"] {
+  --board-bg: #f3ead7;
+  --board-dot: #b9ab8d;
+  --last: #e7b416;
+  --engine: #1f7a8c;
+  --candidate: #7b818c;
+  --on-badge: #ffffff;
+}
+:root[data-theme="dark"] {
+  --board-bg: #3a362e;
+  --board-dot: #6d6555;
+  --last: #d6a614;
+  --engine: #2f8fa3;
+  --candidate: #8d939c;
+}
+/* The board's tokens as Tailwind's colours (bg-board, text-engine), beside the shared ones. */
+@theme inline {
+  --color-board: var(--board-bg);
+  --color-engine: var(--engine);
+}
