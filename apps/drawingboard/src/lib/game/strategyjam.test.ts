@@ -42,7 +42,7 @@ test("a whole game becomes its record: First is Blue, the site's strings as they
   assert.deepEqual(r.moves, WHOLE);
   assert.deepEqual([r.tags.Site, r.tags.Date, r.tags.Blue, r.tags.Red, r.tags.Result],
                    ["https://strategyjam.org/blueprints/game/abc123", "2026.10.24", "ann", "bob", "r+24"]);
-  assert.deepEqual([r.tags.TimeControl, r.tags.GameId, r.tags.Scores, r.tags.Termination], ["60+15", "abc123", "180/204", "normal"]);
+  assert.deepEqual([r.tags.GameId, r.tags.Scores, r.tags.Termination], ["abc123", "180/204", "normal"]);
 });
 
 test("the result: a resignation, a forfeit, a draw, an aborted game, and a game that goes on", () => {
@@ -59,10 +59,9 @@ test("the result: a resignation, a forfeit, a draw, an aborted game, and a game 
   assert.equal(parseRecord(jamRecord(game({ scores: null }))).result, "*"); // the rules ended it, but with no scores
 });
 
-test("the tags without a start time or a clock", () => {
-  const r = parseRecord(jamRecord(game({ startedAt: null, clock: null, seats: [null, "bob"] })));
+test("the tags without a start time, and no TimeControl: strategyjam.org's increment is for each move", () => {
+  const r = parseRecord(jamRecord(game({ startedAt: null, seats: [null, "bob"] })));
   assert.deepEqual([r.tags.Date, r.tags.TimeControl, r.tags.Blue], ["????.??.??", undefined, "?"]);
-  assert.equal(parseRecord(jamRecord(game({ clock: { initialMs: 180000, incrementMs: 2500 } }))).tags.TimeControl, "180+2.5");
 });
 
 test("a game of another game, another rules version or another start, or with no moves, is refused", () => {

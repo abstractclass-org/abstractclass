@@ -74,8 +74,8 @@ export function jamRecord(g: JamGame): string {
     ["Date", date ? `${date.getUTCFullYear()}.${pad(date.getUTCMonth() + 1)}.${pad(date.getUTCDate())}` : "????.??.??"],
     ["Round", "-"], ["Blue", g.seats[0] ?? "?"], ["Red", g.seats[1] ?? "?"], ["Result", result],
   ];
-  // PGN's TimeControl, in seconds: each player's time, then what strategyjam.org adds after each move.
-  if (g.clock) tags.push(["TimeControl", `${fmt(g.clock.initialMs / 1000)}+${fmt(g.clock.incrementMs / 1000)}`]);
+  // No TimeControl, as in Hedge School's record of a strategyjam.org game (design 11): strategyjam.org adds its
+  // increment for each move, where the notation's TimeControl adds it for each turn.
   tags.push(["GameId", g.id]);
   if (s && result !== "*") tags.push(["Scores", `${fmt(s[0])}/${fmt(s[1])}`]);
   if (termination) tags.push(["Termination", termination]);
