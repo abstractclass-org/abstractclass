@@ -48,8 +48,8 @@ site asks for the root's alone (item 6).
      site before the area map reads a file of this site whole: it takes the results of shape 5, ignores the fields
      that it does not know, and leaves out the maps of item 6.
 2. **The area map has three styles** (the display setting "Area map style", Board: `ownershipMap`, `changeMap` and
-   `differenceMap` in `src/lib/review/ownership.ts`). Each name says what the style compares, and the setting gives a
-   short explanation of each. The three use the board's two colours alone, and each mark is in the colour of the side
+   `differenceMap` in `packages/review/src/ownership.ts`). Each name says what the style compares, and the setting gives
+   a short explanation of each. The three use the board's two colours alone, and each mark is in the colour of the side
    that the point moves toward, as every mark of the board is. They differ by shape: shading, dots and hatching, and
    signs.
    - **Forecast** (the default): who the engine expects to hold each point, and how surely. Each point is shaded in
@@ -322,14 +322,17 @@ The site follows KaTrain's review (design 05). The display departs from it on pu
 
 ## Where it is
 
-- `src/lib/review/ownership.ts`: `ownershipMap`, `changeMap`, `differenceMap`, `occupancy`, `shade`, `pointReading`,
-  `differenceReading`, `valueText`, `drawnBoard`, `mapStep`, `askOrder`. Tests: `ownership.test.ts`.
+- `packages/review/src/ownership.ts`: `ownershipMap`, `changeMap`, `differenceMap`, `shade`, `differenceReading`,
+  `valueText`, `mapStep`, `askOrder`. Tests: `ownership.test.ts`. Enclosure's part, `src/lib/review/enclosureMap.ts`:
+  `occupancy`, `pointReading` and `drawnBoard` (tests: `enclosureMap.test.ts`), which `src/lib/review/enclosureView.ts`
+  gives the view (`map`), with the points' index and names.
 - `src/lib/board/Board.svelte`: the map's marks (the prop `areaMap`: the shade, `AREA_ALPHA` and the blur, and the
   patterns of the dots, the hatching and the signs) and the point under the pointer (`onpointat`).
-- `src/lib/review/ReviewView.svelte`: `MAP_STYLE_NAME`, `MAP_SWITCH`, `setMap`, `nextMapStyle`, `mapOn`, `toggleMap`,
-  `mapLine`, `shownStep`, `shownOwnership`, `diffBase`, `shownMap`, `mapPlace`, `mapLegend`, `mapWork`, `mapReading`,
-  the margin's switch and legend, the settings, and the keys t and Shift+T. `src/lib/review/display.ts`: `areaMap`,
-  `mapStyle`, `mapMin`.
+- `packages/review/src/ReviewView.svelte`: `MAP_STYLE_NAME`, `MAP_SWITCH`, `setMap`, `nextMapStyle`, `mapOn`,
+  `toggleMap`, `mapLine`, `shownStep`, `shownOwnership`, `diffBase`, `shownMap`, `mapPlace`, `mapLegend`, `mapWork`,
+  `mapReading`, the switch and the legend (`mapControls`), the settings, and the keys t and Shift+T. Enclosure's board
+  places the switch and the legend in its margin (`src/lib/review/EnclosureBoard.svelte`).
+  `src/lib/review/display.ts`: `areaMap`, `mapStyle`, `mapMin`.
 - `src/routes/review/+page.svelte`: the map pass's part of the review's progress bar.
 - `packages/analysis/src/reply.ts` (the ownership in hundredths), `packages/analysis/src/analysis.svelte.ts` (every
   search asks for the root's map, `askOwnership`, `mapAt`, `hasNoMap`, `freeze`, `mapState`, `passMaps`, `endPass`,

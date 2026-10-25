@@ -80,12 +80,14 @@ Web Analytics). Without them, as in development, the build has neither.
 | `packages/storage/` | `@abstractclass/storage`: the browser's database (IndexedDB), local storage and persistent storage. |
 | `packages/analysis/` | `@abstractclass/analysis`: the game interface, the review's model and labels, the move tree, the cache, the analysis of a game (its schedule), the engine session and the GPU control, and the turns of one move, then two. |
 | `packages/record/` | `@abstractclass/record`: the game record's frame (the tags, the turns, comments, branches, quality marks, commands and the result), with each game's moves and marks as a parameter. |
+| `packages/review/` | `@abstractclass/review`: the review's and the Analysis board's view (layout: design 06), its charts, cards, move list and step bar, and the view's game interface (design 29, item 9). |
+| `packages/site/` | `@abstractclass/site`: the sites' frame (the colour tokens, the header's bar and the page's area, the theme, the page's metadata) and their general controls (the icons, the toast, the settings' parts). |
 | `apps/hedgeschool/` | Hedge School, the site. The paths below start there. |
 | `src/lib/engine/` | Enclosure's notation, and its engine's description of a position as the board draws it. |
 | `src/routes/` | The pages. `review/` is the game review, on the engine. `import/` takes a game from the meaf.us bookmarklet. `about/`, `notation/`, `privacy/` and `notices/` are about the site. `lab/engine/` is the engine lab. |
 | `src/lib/analysis/` | The engine's settings: the networks, the defaults, a game's own settings. |
 | `src/lib/game/` | Game records (reading, the cut mark), the player's games, the meaf.us conversion and bookmarklet, Constellation's export. |
-| `src/lib/board/`, `src/lib/review/` | The board (SVG), Enclosure's game and its part of the review (`review/enclosure.ts`), the review's page (layout: design 06), the Advantage chart, the display settings. |
+| `src/lib/board/`, `src/lib/review/` | The board (SVG), Enclosure's game and its part of the review (`review/enclosure.ts`), Enclosure's part of the review's view (`review/enclosureView.ts`), the display settings. |
 | `src/lib/edition.ts`, `src/lib/analytics.svelte.ts` | The early-access switch and the site's name; the analytics and the consent banner. |
 | `src/lib/sound.ts`, `static/sounds/` | The move sounds (design 08). |
 | `src/lib/book/`, `scripts/test-book.mjs` | The opening book's file form, its loader and the converter that makes the test book (design 32). |

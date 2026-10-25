@@ -177,10 +177,12 @@ a turn's start the pass places nothing, so nothing of the passer's is protected.
   lowered, …", "a size's search runs on …", "the size compares the focus's own search …", "where the pass ends the
   game, a position deeper …", "a snapshot gets the position after the pass …" and "a snapshot's threat size …", and
   `earlierResults.test.ts`, "a snapshot's threat keeps …".
-- `src/lib/review/ReviewView.svelte`: `threatOn`, `toggleThreat` and the key x, `threat`, `threatEdges`, `threatCost`,
-  `threatShown`, `threatNote`, the board's line (`boardEdges`, `line`) and the threat's steps (`threatStepsKept`), the
-  map's `threat` line (`mapLine`, `diffBase`, `stepName`, `diffName`), and the switch in the engine header.
-  `src/lib/review/enclosure.ts`: `threatTurn`, the opponent's turn of the first choice's line.
+- `packages/review/src/ReviewView.svelte`: `threatOn`, `toggleThreat` and the key x, `threat`, `threatEdges`,
+  `threatCost`, `threatShown`, `threatNote`, the board's line (`boardEdges`, `line`) and the threat's steps
+  (`threatStepsKept`), the map's `threat` line (`mapLine`, `diffBase`, `stepName`, `diffName`), and the switch in the
+  engine header. `packages/analysis/src/model.ts`: `threatTurn`, the opponent's turn of the first choice's line, with
+  the turn's moves left that the game gives (`movesLeft`). `src/lib/review/enclosure.ts` gives it with an Enclosure
+  position.
   `src/lib/board/Board.svelte`: the warning triangles (`lineShape`, `triangle`, `TRIANGLE_R`).
 - `scripts/measure/threat-check.mjs`: the check on real games.
 

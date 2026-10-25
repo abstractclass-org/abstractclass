@@ -217,7 +217,7 @@ engine does by itself.
 ## Where it is
 
 - `src/routes/analysis/+page.svelte`: the board, its store and its ways in. `packages/analysis/src/session.svelte.ts`:
-  its engine, the review's (`EngineSession`). `src/lib/review/ReviewView.svelte`: the
+  its engine, the review's (`EngineSession`). `packages/review/src/ReviewView.svelte`: the
   view, in its board form (`BoardForm`). `packages/analysis/src/analysis.svelte.ts`: the board form of the analysis
   (`setMain`, `playLine`, `judgedMain`, `keptBoard`). `src/lib/game/board.ts`: the link and a record's line.
   `src/lib/game/analysisFile.ts`: the analysis file. `packages/analysis/src/model.ts`: `onlyJudged`.

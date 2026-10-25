@@ -3,7 +3,8 @@
 **Status:** in force. Built: the app (`apps/drawingboard`), with its checks in `npm run check:all`, its shell (the
 header, the footer, the Home, About, Notation, Privacy and Notices pages, and the deploy job), and the notation and the
 record, with the import of a strategyjam.org game as a record. The owner's step for the address is left
-(abscls-8tl1.3). The board is in progress. The review and the Analysis board wait for the engine's browser build
+(abscls-8tl1.3). The board is built, on hand-made positions. The review's view is in a package, on Hedge School's
+board and on Blueprints' (design 29, item 9). The review and the Analysis board wait for the engine's browser build
 (request 23).
 **Decided:** 2026-10-25.
 
@@ -44,7 +45,8 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
    second game. The work goes in this order:
    1. **Without the engine:** the app and its shell (its header, home, about, privacy and notation pages, its
       deploy job), the notation and the record, and the board (the cells, the hands, a move drawn on them).
-   2. **The view's split** into a package, on Hedge School's board and Blueprints' board.
+   2. **The view's split** into a package, on Hedge School's board and Blueprints' board: `@abstractclass/review`, with
+      the view's game interface (design 29, item 9). Drawing Board gives Blueprints' part of it with the review.
    3. **With the engine's browser build** (request 23): the review, the Analysis board, the import of a
       strategyjam.org game, and the player's own moves.
    4. **Later:** practice against Stamp Duty, lessons, puzzles and an opening book. The meaf.us tools stay Hedge
@@ -181,8 +183,9 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
     with its coordinates. The last-move outline is the edge of the footprint as a whole, in the last move's colour. It
     is inside the footprint, so it has one width all round and does not cover a touching hex.
     Its props follow design 29, item 9: the position, the last move, the candidates (name, move, rank, note), the line
-    (each move with its mover and the hands after it), and the pinned candidate. A move carries what the board draws of
-    it: a placement's footprint and its captured cells come from the move's data, not from rules.
+    (each move with its mover and the hands after it), and the candidate that the page points at (`pointed`: the one
+    pointed at in the review's table, or else the pinned one). A move carries what the board draws of it: a
+    placement's footprint and its captured cells come from the move's data, not from rules.
   - The hands: in a column on each side of a wide area (Blue's on the left, as Blue's cells start on the left), and
     in a row above and below a tall one, such as a phone's. Each blueprint has its own panel, with its number in a
     box and its frame's grid. A blueprint's anchor cell has no mark: it is the first in reading order. An empty

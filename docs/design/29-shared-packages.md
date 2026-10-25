@@ -1,7 +1,8 @@
 # The shared packages: the engine, the storage and the analysis, behind a game interface
 
-**Status:** in force. Built: the engine, the storage and the analysis are in `packages/`. The views wait for the jam
-site's template (item 9).
+**Status:** in force. Built: the engine, the storage, the analysis and the review's view are in `packages/`. The
+view's game interface rests on Hedge School's board and on Blueprints' (item 9). Drawing Board gives Blueprints' part
+with its review (abscls-8tl1.7).
 **Decided:** 2026-10-19.
 
 ## Context
@@ -48,7 +49,10 @@ edit in the same commit), so their changes still apply.
    the turns of one move, then two (`turnFromCount`), out of `review/enclosure.ts` into the analysis package
    (`turns.ts`). A fifth, `@abstractclass/site` (`packages/site`), holds the sites' frame: the colour tokens and base
    styles, the header's bar and the page's area, the theme, the page's metadata and the pages' text style. Design 33
-   moved it out of Hedge School (its item 4).
+   moved it out of Hedge School (its item 4). A sixth, `@abstractclass/review` (`packages/review`), holds the review's
+   and the Analysis board's view, with the view's game interface (item 9). The site's general controls that the view
+   uses (the icons, the toast, the settings' parts, the players' colours and their swatch) and the page's scroll moved
+   into `@abstractclass/site` with it.
 
    The engine package knows no game. The analysis package knows a game only through the game interface. No package
    imports a site.
@@ -100,18 +104,19 @@ edit in the same commit), so their changes still apply.
      (KataGo's convention, in Enclosure from Blue's). The shared types keep Hedge School's field names (`blueWin`,
      `edge`, `players.blue`): the browser's store and the review files hold them. So in the shared code, "edge" means a
      move and "blue" the first player.
-   - **Other names keep Enclosure's words too,** so that Hedge School's calls do not change: `EdgeReview`, `onlyEdge`,
-     `ONLY_EDGE_GAP`, `judgeEdge`, `judgeBranchEdge`, `likelyEdges`, `blueScore`, and the unit `"edge"`, which Hedge
-     School's display settings store. The storage keys (`learn-enclosure:…`) and the database's name keep theirs
-     (item 4). The names that nothing stores can change with the view's split (item 9).
+   - **The names that nothing stores take the glossary's word, "move":** `MoveReview`, `onlyMove`, `ONLY_MOVE_GAP`,
+     `judgeMove`, `judgeBranchMove` and `likelyMoves`. They changed with the view's split (item 9). Hedge School's own
+     names for Enclosure keep Enclosure's word, since an edge is Enclosure's move: its `enclosure.ts` gives
+     `EdgeReview` and `judgeBranchEdge`. `blueScore` and the unit `"edge"`, which Hedge School's display settings store,
+     keep theirs. The storage keys (`learn-enclosure:…`) and the database's name keep theirs (item 4).
 3. **Generic types.** The shared types take the game's types as a parameter: `Analysis<M>` and `Candidate<M>` the
    move's, `Review<G>`, `ReviewData<G>` and `GameAnalysis<G>` the whole `GameTypes`. A function that compares moves
    takes the game (`rankOf(game, analysis, move)`), and so does `GameAnalysis`'s constructor.
    `src/lib/review/enclosure.ts` in Hedge School gives Enclosure's types (`Enclosure`) and its game (`enclosure`). It
    also gives the site's code the review's model as the site read it before: the shared names, the shared types named
    for Enclosure's (`Review`, `Analysis`), the functions that compare moves with Enclosure's game given (`review`,
-   `rankOf`), and Enclosure's own part (its positions, a move with its cut, the turn numbers, the line's movers, the
-   players' names and the texts). So the site's calls stay as they were.
+   `rankOf`), and Enclosure's own part (its positions, a move with its cut, the turn numbers, the line's movers and the
+   texts). The players' names are the review package's, every game's (item 9). So the site's calls stay as they were.
 4. **The other ties to the site, beside the game:**
    - The engine session takes the site's analytics as an option (`tracker`): its events (`track`), and a network's
      name for them (`networkName`). Without it, the session sends no event. The engine settings' list of networks,
@@ -137,20 +142,50 @@ edit in the same commit), so their changes still apply.
    rename. So Hedge School's new files have new names (`review/enclosure.ts`). Two modules that stay in Hedge School
    export the general part that moved out of them, so that their importers do not change: `analysis/engineSettings.ts`
    (the settings' general part) and `game/store.ts` (the kept tree's shape).
-9. **The views wait for the jam site's template** (abscls-8tl1.2). `ReviewView.svelte` and its components stay in
-   Hedge School. The split happens on Blueprints' board, the first board of a second game (Drawing Board, design 33,
-   in place of a rehearsal game on Connect-4's board), and moves the view's general part into a package. The view's
-   game interface then needs these, each Enclosure's now:
-   - **The board:** a component of the site's, with the position, the last move, the candidates (move, rank, note),
-     the labels' marks, the line (each move with its player and step), the move pointed at, and the notes drawn on it.
-   - **The player's own moves:** Enclosure's edge input (two points, by clicks or a drag).
-   - **A move in the lists:** its notation (`D10-G10x`, with the cut mark), its shape (a pill along the edge), and its
-     turn number (`12.`, `12...`).
-   - **A line's movers:** who plays each move of a line, from the turn structure (`lineMovers`).
-   - **The players:** their names and colours (Blue and Red), and the numbers in their cards (the score, the area).
-   - **The texts:** the word for a move ("edge"), the status line, the game's end (`endingText`) and the move list's
-     notes (`shortNote`).
-   - **The board's display settings** (the regions, the protected edges, the area line), and the sound of a cut.
+9. **The views in a package, on two boards.** `@abstractclass/review` (`packages/review`) holds the review's and the
+   Analysis board's view (`ReviewView.svelte`) and its parts: the charts, the labels' badges, the players' cards and
+   their row, the move list's look, the step bar, the win bar, a line's drawing, the line that an image draws, and the
+   area map's styles. The split happened on Blueprints' board, the first board of a second game (Drawing Board, design
+   33, in place of a rehearsal game on Connect-4's board). The view's game interface (`packages/review/src/game.ts`,
+   `ViewGame`) extends the game interface (item 2), and its types (`ViewTypes`) extend `GameTypes`. A site gives one
+   object, and its pages give it to the view (the prop `view`). Hedge School's is `src/lib/review/enclosureView.ts`. The
+   seams:
+   - **The board** (`Board`): the site's component, with the view's props (`BoardProps`). They are the position, the
+     move that led to it (`last`: the board draws what it did, Enclosure's cut or Blueprints' captured cells), the
+     candidates (move, rank, note), the candidate pointed at from outside the board or else the pinned one
+     (`pointed`), the line (each move with its mover, and its `step` once the rules have played it), the shape of the
+     line's numbers (circles, or the threat's triangles), the move shown faintly (`preview`), the labels' marks, the
+     layers, the player's own moves, the area map and the notes. `pointed` has one name and one meaning on both
+     boards: Hedge School's board takes it as its prop `highlight`, and Drawing Board's as its prop `pointed`, which
+     was `pinned`. The area map's switch and
+     legend are a snippet that the board places (`mapControls`): Enclosure's board puts them in its empty margin above
+     its top row. The skeleton shows the game's empty board (`EmptyBoard`).
+   - **The player's own moves** (`input`, `inputStatus`, `clicks`): the game makes its own input. The view resets it
+     and gives it the position's rules, and only the game's board reads the rest. The game says what a move begun
+     needs next, for the status line, and lists its clicks for the list of keys and clicks.
+   - **A move in the lists:** its notation with the game's marks (`notation`: Enclosure's cut mark), a line's move with
+     its mark once the rules have played it (`lineNotation`), its shape (`Shape`: Enclosure's pill along the edge), and
+     the widths of its text (`moveText`, `nameText`). The turn numbers come from the game interface's `turn`.
+   - **Who plays each move** (`lineMovers`, `movesLeft`), from the turn structure, and what the board draws after a
+     move of the game's tree (`treeStep`).
+   - **The players:** the names and the colours are every game's (the glossary: Blue moves first). They are the
+     package's `PLAYER_NAME` and `@abstractclass/site`'s colours. The cards show the score, and the game's second
+     number when it has one (`second`: Enclosure's area, which the cards, the Advantage chart and an image's caption
+     show).
+   - **The texts:** the game's word for a move (`words`), the game's end (`ending`) and the move list's notes
+     (`shortNote`, `turnShortNote`). The texts of the game's own parts come with each part.
+   - **The display settings and the sounds:** the site keeps the settings under its own key (`display`), and lists its
+     board's own layers (`layers`: Enclosure's regions before the area map's settings, and its protected edges after
+     them). The sounds (`sounds`) have the site's settings and the game's sound for each move (Enclosure's cut has its
+     own).
+   - **The site's engine and tools:** its networks (`networks`), and its tools that a site can leave out: the area
+     map's points and the board's state now (`map`), the image of a line (`image`), the opening book (`book`, in Hedge
+     School's early edition) and the Export menu (`Export`). The view shows no tool that the site leaves out.
+   - **The comparison of two moves is the game's** (`equal`): two of Blueprints' edits can give the same hand (design
+     33, item 9). The view compares moves in no other way.
+   - **One type for the game:** Hedge School's `Enclosure` (`enclosure.ts`) extends `ViewTypes`, so that the review
+     (`Review<Enclosure>`), the analysis and the view take one type. The view takes the game's types from `view` alone
+     (TypeScript's `NoInfer` on its other props).
 
 ## Why
 
@@ -168,9 +203,10 @@ edit in the same commit), so their changes still apply.
   batch of results.
 - **The field names stay:** a new name for a stored field makes every stored result and every review file
   unreadable. The cache's shape would change (design 05), and each player's stored analyses would go.
-- **The views wait:** the view's seams with the game are many, and only a second board shows their right shape (the
-  rule of three, design 26). Two branches change `ReviewView.svelte` now (abscls-6xg, abscls-91ca). A split now would
-  conflict with both, and the view is where a change of Hedge School's behaviour would show.
+- **The views on two boards:** the view's seams with the game are many, and only a second board shows their right
+  shape (the rule of three, design 26). Blueprints' board shaped each seam beside Enclosure's. The view is where a
+  change of Hedge School's behaviour would show, so its split is checked page by page against the build before it
+  (decisions/product.md, "The review's view in packages/review").
 
 ## Alternatives
 
@@ -214,9 +250,23 @@ edit in the same commit), so their changes still apply.
 - `packages/analysis/src/game.ts`: the game interface. `packages/analysis/src/testing/game.ts`: the test game, with
   the rules and a search's reply for a test's pool. `packages/analysis/src/testing/page.svelte.ts`: a page for the
   engine session's tests.
-- `apps/hedgeschool/src/lib/review/enclosure.ts`: Enclosure's game and its part of the review.
+- `apps/hedgeschool/src/lib/review/enclosure.ts`: Enclosure's game and its part of the review, and Enclosure's types
+  for the view.
+- `packages/review/` (`@abstractclass/review`): the view (`ReviewView.svelte`) and its parts, on the same rules. Its
+  check is `svelte-check`. `src/game.ts`: the view's game interface (item 9), the players' names and the score's
+  format. `src/ownership.ts`: the area map's styles and marks. `src/lineImage.ts`: the line that an image draws, and
+  its animation's frames. `src/review.css`: the package's Tailwind source, which a site's style imports.
+- `apps/hedgeschool/src/lib/review/enclosureView.ts`: Enclosure's part of the view, which the review's and the
+  Analysis board's pages give it. Its components: `EnclosureBoard.svelte` (Hedge School's board with the view's
+  props, and the area map's margin), `EdgePill.svelte` (an edge's shape in the lists) and `EmptyBoard.svelte`.
+  `enclosureMap.ts`: the board's state for the area map, and a point's numbers. `enclosureImage.ts`: an image's
+  caption and file name. `src/lib/book/ReviewBookTable.svelte`: the book's table in the view.
+- `packages/site/src/`: the site's general controls that the view uses (`Icon.svelte`, `Toast.svelte`,
+  `SettingChoice.svelte`, `SettingToggle.svelte`, `settings.ts`, `Swatch.svelte`, `side.ts`) and the page's scroll
+  (`pageScroll.ts`).
 - `.github/workflows/tests.yml` and `deploy.yml`: the packages' checks.
 
 ## Log
 
-[decisions/product.md](../decisions/product.md), "The analysis and the review in packages/" (2026-10-19).
+[decisions/product.md](../decisions/product.md), "The analysis and the review in packages/" (2026-10-19), and "The
+review's view in packages/review" (2026-10-25).

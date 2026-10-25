@@ -182,10 +182,11 @@ How strong each setting plays against people is not measured yet.
 
 - **The page:** `src/routes/practice/+page.svelte`: the card, then the game: the players' row, the board, the move
   list, the steps, Abort, Resign and the display settings.
-- **The review's parts it shares:** the players' row (`src/lib/review/PlayerRow.svelte`, `PlayerCard.svelte`), the
-  win bar and gauge (`src/lib/ui/ShareBar.svelte`), the move list's look (`src/lib/review/moveList.ts`), the controls'
-  icons (`src/lib/ui/Icon.svelte`), and the settings' rows and the sound settings (`src/lib/ui/SettingChoice.svelte`,
-  `SettingToggle.svelte`, `SoundSettings.svelte`).
+- **The review's parts it shares:** the players' row (`packages/review/src/PlayerRow.svelte`, `PlayerCard.svelte`),
+  the win bar and gauge (`packages/review/src/ShareBar.svelte`), the move list's look
+  (`packages/review/src/moveList.ts`, and Enclosure's width of a move, `MOVE_TEXT` in `src/lib/review/enclosure.ts`),
+  the controls' icons (`packages/site/src/Icon.svelte`), and the settings' rows and the sound settings
+  (`packages/site/src/SettingChoice.svelte`, `SettingToggle.svelte`, and `src/lib/ui/SoundSettings.svelte`).
 - **The game:** `src/lib/practice/game.svelte.ts`: the moves to the bot and to the rules worker, the bot's time,
   Abort, Resign, the end and the save into Your games.
 - **The bot:** `src/lib/practice/bot.ts` (the form to start, with a fall back to the next) and `botWorker.ts` (the

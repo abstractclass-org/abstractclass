@@ -38,7 +38,7 @@ glossary when its first term is settled, and adds it to the shared glossary's "C
 /
 ├── docs/design/           ← decision records, one for each decision in force
 ├── docs/decisions/        ← the archive, by topic
-├── packages/              ← the shared packages: engine, storage, analysis (design 29), record, site (design 33)
+├── packages/              ← the shared packages: engine, storage, analysis, review (design 29), record, site (design 33)
 ├── apps/hedgeschool/      ← Hedge School, Enclosure's site (design 26)
 └── apps/drawingboard/     ← Drawing Board, Blueprints' site (design 33)
 

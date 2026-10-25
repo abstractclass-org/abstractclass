@@ -176,10 +176,10 @@ The departures from the published methods:
   `complexity` and `hard`, `isHard`, the weighted accuracy in `summarize`, `HARD_NOTE`, `onlyJudged` keeps the
   complexity), `packages/analysis/src/reply.ts` (`toAnalysis` keeps the prior), `packages/analysis/src/cache.ts`
   (`SHAPE`), `packages/analysis/src/analysis.svelte.ts` (`fromStore`: the board reads its lines' stored results),
-  `src/lib/review/ReviewView.svelte` (the marks, `branchHardness` and `searchNote`, the engine header's second line,
-  the meter, the Report's line, the charts' tabs),
-  `src/lib/review/DifficultyChart.svelte`, `src/lib/review/annotate.ts` (the record's comment),
-  `packages/analysis/src/labels.ts` (`meterGroup`), `packages/analysis/src/model.ts` (`likelyEdges`).
+  `packages/review/src/ReviewView.svelte` (the marks, `branchHardness` and `searchNote`, the engine header's second
+  line, the meter, the Report's line, the charts' tabs),
+  `packages/review/src/DifficultyChart.svelte`, `src/lib/review/annotate.ts` (the record's comment),
+  `packages/analysis/src/labels.ts` (`meterGroup`), `packages/analysis/src/model.ts` (`likelyMoves`).
 - The measurement: `scripts/measure/complexity-check.mjs`.
 - The tests: `src/lib/review/enclosure.test.ts`, and `packages/analysis/src/analysis.test.ts` (the board's read).
 

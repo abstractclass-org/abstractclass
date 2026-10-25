@@ -169,7 +169,7 @@ searching it again, and to share it as text that others can read.
   (`writeTags`).
 - `src/lib/ExportMenu.svelte` (the menu), `src/lib/review/exportText.ts` (`annotatedText`, `annotatedFromStore`),
   `packages/analysis/src/analysis.svelte.ts` (`fromStore`: a review from the stored results only).
-- `src/routes/review/+page.svelte` (`exportAs`), `src/lib/review/ReviewView.svelte` (the menu's place),
+- `src/routes/review/+page.svelte` (`exportAs`), `packages/review/src/ReviewView.svelte` (the menu's place),
   `src/lib/review/ReviewHome.svelte` (the menu beside each game, Load a review file, the drop).
 - The share link: `src/lib/game/share.ts` (the format), `shareLink` and `importShare` in `src/lib/game/reviewFile.ts`,
   the recipient's page in `src/lib/review/Arrival.svelte`, `withOwn` in `src/lib/analysis/engineSettings.ts`.

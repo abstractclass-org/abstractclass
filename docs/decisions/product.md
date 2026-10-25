@@ -6947,3 +6947,55 @@ error and no horizontal scroll. The layout sweep in Chromium passes (25 tests, 5
   (about 210 kB): `book-left-review.json`, `book-never-review.json` and `book-trap-review.json`.
 - **Not done:** the marks of a played refutation in the move list (journey 1, A3): item 4 keeps one mark. No event
   says that a review showed the opening row: the clicks are enough until the usability tests (abscls-tpaj.10).
+
+### The review's view in packages/review (2026-10-25)
+
+- **Decided:** the review's and the Analysis board's view moves into `@abstractclass/review` (`packages/review`), with
+  the view's game interface (design 29, item 9, and design 33, item 3). Hedge School gives Enclosure's part
+  (`src/lib/review/enclosureView.ts`), and Drawing Board gives Blueprints' with its review (abscls-8tl1.7). The site's
+  general controls that the view uses (the icons, the toast, the settings' parts, the players' colours and their
+  swatch) and the page's scroll moved into `@abstractclass/site`: the header, the site menu and the Privacy page use
+  them too.
+- **The seams, on two boards:** each part that is a game's is a member of the interface, shaped by Hedge School's
+  board and by Blueprints' (`apps/drawingboard/src/lib/board/Board.svelte`). Four shapes changed from Enclosure's.
+  The candidate pointed at or pinned has one name, `pointed`: Hedge School's board took `highlight`, and Drawing
+  Board's took `pinned`, which it now calls `pointed`. The board draws what the last move did (`last`, not Enclosure's
+  `cut`). A line's move carries the game's step (not Enclosure's cut and regions). The cards show the game's second
+  number when it has one (Enclosure's area). The comparison of two moves stays the game's (`equal`).
+- **Seams beyond design 29's list:** the view's later features needed their own: the area map (its points, and the
+  board's state now), the image of a line, the opening book, the site's networks, the Export menu and the skeleton's
+  empty board. A site can leave out each tool.
+- **The players' names are every game's** (the glossary: Blue moves first). The package holds them, and Hedge School's
+  `enclosure.ts` gives them as before.
+- **The renames from edge to move:** the shared code's names that nothing stores took the glossary's word:
+  `MoveReview`, `judgeMove`, `judgeBranchMove`, `onlyMove`, `ONLY_MOVE_GAP` and `likelyMoves`. Hedge School's names for
+  Enclosure keep "edge" (`EdgeReview`, `judgeBranchEdge`), and so does the puzzles' theme `"onlyEdge"`. The stored
+  names stay (`edge`, `blueWin`, the unit `"edge"`, the storage keys).
+- **One type for the game:** TypeScript compares `Review<Enclosure>` with `Review<V>` by their type parameters. So
+  Hedge School's `Enclosure` extends the view's types too, and the view takes the game's types from its game interface
+  alone (`NoInfer`).
+- **Hedge School's behaviour did not change.** The pages of the build before the split and of the split build, served
+  on one port, in 137 states, with the engine off so that nothing searches: the review of the test fixture in three
+  layouts (1,400, 1,000 and 390 pixels wide) and seven display settings, with candidates pointed at and pinned, the
+  previews, a branch, the move menu, the threat, the area map's three styles, the settings, the keys and the charts,
+  the Analysis board, the editor, the Review tab, Practice, and the book in the review and on the Analysis board (the
+  test book). The DOM was the same in every state, but Svelte's scoping classes: a component with no style of its own
+  gives its elements none. The CSS had the same rules in the same order, but the area map's margin rule, which no
+  other rule sets. The prerendered pages were the same, but the build's version. The screenshots differed in 47
+  states, by at most 2,759 pixels, along diagonal lines and in the regions' fills. Two captures of the build before
+  differed from each other in 49 states, by at most 2,583 pixels: the rasterizer's antialiasing, not the split. The
+  capture after the renames gave the same: the DOM the same in 136 states, and in one the book table's count for
+  screen readers, which the table sets 100 ms after each step. Its pixels differed in 39 states, by at most 3,027
+  pixels, each by at most 7 levels of 255.
+- **How it moved:** a commit of pure renames (`git mv`), then the edits, then the renames, then the documents (design
+  29, items 7 and 8). No file comes back at a moved path: a file that split keeps its general part at the moved path
+  (`ownership.ts`, `lineImage.ts`, `moveList.ts`), and Enclosure's part has a new name in Hedge School
+  (`enclosureMap.ts`, `enclosureImage.ts`, `MOVE_TEXT` in `enclosure.ts`). The tests split the same way.
+- **Checked** after each stage on this machine: `npm ci` (after the lockfile changed), `npm run check:all`, Hedge
+  School's build served on a port of its own with the test book, and its browser tests in Playwright's Chromium: 34
+  passed, and the 5 analytics tests skipped (they need a build with a Google tag). The rename commit alone does not
+  build: its importers still name the old paths.
+- **Not done:** the view's own words. Its comments and inner names still say "edge" in places, beside the names that
+  the interface gives. The layout's board area is square, and the analysis column's width (`--side-min`) was measured
+  on Enclosure's move list: Blueprints' board and moves may need other values. The package has no test game for the
+  view: Drawing Board's part is its first other game.

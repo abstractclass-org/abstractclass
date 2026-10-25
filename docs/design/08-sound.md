@@ -129,8 +129,8 @@ How the sound was chosen (decisions/product.md, "Move sounds, and progress bars 
 - `static/sounds/button/`, `static/sounds/pencil/`: the clips.
 - `src/lib/sound.ts`: the sets (`MOVE_SOUNDS`, with each sound's speed, and `MOVE_SOUND_NAMES`), `preload` and
   `playMove`, with the sources and the clips' times.
-- `src/lib/review/ReviewView.svelte`: when the sound plays (`setPath`), whether the move cuts (`cutsAt`), and the Sound
-  group of the display settings.
+- `packages/review/src/ReviewView.svelte`: when the sound plays (`setPath`), and the Sound group of the display
+  settings. `src/lib/review/enclosureView.ts` (`sounds`): whether the move cuts, which chooses the cut's sound.
 - `src/lib/review/display.ts`: `sound`, `moveSound` and `volume`.
 
 ## Log entries

@@ -69,7 +69,7 @@ reason. Design 05 gives the searches that the labels read: their schedule, their
 
    Here, Best covers the first condition: the first choice is Great or Best whatever its loss (item 5). An equal search
    confirms the second condition (below). En Croissant asks for a gap of more than 0.10, and the site asks for 0.10 or
-   more (`ONLY_EDGE_GAP` in `labels.ts`). The two differ only at a gap of exactly 0.10. The third condition:
+   more (`ONLY_MOVE_GAP` in `labels.ts`). The two differ only at a gap of exactly 0.10. The third condition:
    - **The values:** the first choice's win chance in the search before the move (En Croissant's best line), against
      the win chance of the position before the opponent's last turn, both for the mover. It must be more than 0.05
      better (`keepsGain` in `packages/analysis/src/model.ts`, `KEPT_GAIN` in `labels.ts`). The earlier position gives
@@ -151,7 +151,7 @@ reason. Design 05 gives the searches that the labels read: their schedule, their
      the scores on the board then. A game that the rules end takes its result from the scores, as before
      (`endingText` in `src/lib/review/enclosure.ts`).
    - **A branch's moves** have no labels until the player asks ("Evaluate quality" in the move menu). Then every branch
-     move of that turn is searched and judged as the game's moves are (`judgeTurn`, `judgeEdge`). A branch that stops
+     move of that turn is searched and judged as the game's moves are (`judgeTurn`, `judgeMove`). A branch that stops
      in a turn's middle has no turn label until the turn ends. A move that would be Great waits for its extra searches
      (the position before the opponent's last turn, then the confirmation of the gap) and shows "Evaluating…" until
      they end (`GameAnalysis.awaitsGreat`).
@@ -220,12 +220,12 @@ reason. Design 05 gives the searches that the labels read: their schedule, their
 
 ## Where it is
 
-- `packages/analysis/src/labels.ts` (the bands, `classify`), `packages/analysis/src/model.ts` (`judgeEdge`, `judgeTurn`,
+- `packages/analysis/src/labels.ts` (the bands, `classify`), `packages/analysis/src/model.ts` (`judgeMove`, `judgeTurn`,
   `otherCandidate`, `keepsGain`, `earlierIndex`, `review`, `costText`, `turnCost`, `roundTogether`),
   `scripts/measure/label-bench.mjs` (the test on games of known strength), `packages/analysis/src/analysis.svelte.ts`
   (`confirmGreats`: the searches that confirm Great, `earlierAt`: the position before the opponent's last turn,
   `judge`: a branch's turn on request), `scripts/measure/key-moments-opening.mjs` (part 4: the Greats on the archive),
-  `src/lib/review/ReviewView.svelte` (what shows).
+  `packages/review/src/ReviewView.svelte` (what shows).
 - The tests: `src/lib/review/enclosure.test.ts`, and `packages/analysis/src/analysis.test.ts` (the searches that a
   Great asks for).
 

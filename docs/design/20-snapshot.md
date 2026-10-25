@@ -145,9 +145,9 @@ look at a past review pays it each time, and the earlier results are still in th
 ## Where it is
 
 - `src/routes/review/+page.svelte` (the choice of a snapshot, its rules-only engine, Review again),
-  `src/lib/review/ReviewView.svelte` (the bar, the controls off), `packages/analysis/src/cache.ts` (`snapshotSearch`,
-  the read by keys: `warmCache`), `packages/analysis/src/analysis.svelte.ts` (`fromStore`), `src/lib/game/reviewFile.ts`
-  (`readReviewFile`, the file's search, and `importReview`, the mark kept),
+  `packages/review/src/ReviewView.svelte` (the bar, the controls off), `packages/analysis/src/cache.ts`
+  (`snapshotSearch`, the read by keys: `warmCache`), `packages/analysis/src/analysis.svelte.ts` (`fromStore`),
+  `src/lib/game/reviewFile.ts` (`readReviewFile`, the file's search, and `importReview`, the mark kept),
   `src/lib/game/store.ts` (`reviewAgainWhy`, the mark's `search`: `reviewMark`, `markReviewed`).
 - The removal: `src/lib/game/earlierResults.ts` (`unneededResults`, `readsAt`, `removeEarlierResults`, which
   `src/routes/+layout.svelte` starts), `packages/analysis/src/cache.ts` (the mark: `earlierRemovalDue`,

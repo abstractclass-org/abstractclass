@@ -239,8 +239,9 @@ kept in this browser, and each applies at once, without a reload.
   ended worker.
 - `packages/analysis/src/session.svelte.ts` (`EngineSession`, for the review and the Analysis board): the settings
   applied as they change, another network's pool, and the GPU (`GpuControl`, design 15).
-- `src/lib/review/ReviewView.svelte`: the engine header's switch and gear, the e and l keys, the `engineSettingsPanel`,
-  `steps` and `visitsSteps` snippets, and "time limit" in the header.
+- `packages/review/src/ReviewView.svelte`: the engine header's switch and gear, the e and l keys, the
+  `engineSettingsPanel`, `steps` and `visitsSteps` snippets, and "time limit" in the header. Hedge School's networks
+  in the panel: `src/lib/review/enclosureView.ts` (`networks`).
 - `src/routes/lab/engine/+page.svelte`: a single search's memory, for the measurement above.
 
 ## Log entries

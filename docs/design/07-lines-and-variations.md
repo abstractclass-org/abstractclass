@@ -148,7 +148,7 @@ cut edges that are on the board, so a line drawn over the board can show edges t
     take the machine from the game's review. The move menu's "Evaluate quality" asks for the labels of the move's
     turn: every branch move of the turn is evaluated, and the positions before and after each are searched to the label
     budget (after the position on screen, before the rest). The turn is judged as the game's turns are (`judgeTurn`),
-    and each edge as the game's edges are (`judgeEdge`, the same bands): "Review by" chooses which shows. Until then
+    and each edge as the game's edges are (`judgeMove`, the same bands): "Review by" chooses which shows. Until then
     the move list shows "…". Then it shows the label as for the game (Great, Inaccuracy, Mistake, Blunder), by turn
     after the move that ends the turn, with every label in its tooltip, and the board shows the badges of the turn just
     played. The moves evaluated are kept with the branches. A branch that stops in a turn's middle has no turn label
@@ -380,7 +380,7 @@ cut edges that are on the board, so a line drawn over the board can show edges t
 ## Where it is
 
 - `src/lib/board/Board.svelte`: the line as far as drawn (`line`), its cuts and regions, the hidden candidates.
-- `src/lib/review/ReviewView.svelte`: the place in the tree (`path`), the line of the candidate pointed at, its
+- `packages/review/src/ReviewView.svelte`: the place in the tree (`path`), the line of the candidate pointed at, its
   animation, the click that shows it whole, the players' areas, the listed line (`lineList`), the branches in the
   move list (`branch`), and the keys.
 - `packages/analysis/src/tree.ts`: paths, the game's line, a branch's rows, and the forks for the keys (`prevFork`,
@@ -388,18 +388,19 @@ cut edges that are on the board, so a line drawn over the board can show edges t
 - `packages/analysis/src/analysis.svelte.ts`: `lineSteps` (the line's positions from the rules), `toAnalysis` (the
   line), `branches`, `addLine`, `deleteFrom`, `promote`, `judge`, `addNodes` and `keepBranches` (the branches and their
   keeping), `rulesAt` (the rules for the player's moves), and the searches on any path.
-- `packages/analysis/src/model.ts`: `judgeEdge` (an edge's loss and label, for the game's edges and a branch's),
-  `judgeBranchEdge`, `valuesAfter` (tests in Hedge School's `src/lib/review/enclosure.test.ts`).
+- `packages/analysis/src/model.ts`: `judgeMove` (an edge's loss and label, for the game's edges and a branch's),
+  `judgeBranchMove`, `valuesAfter` (tests in Hedge School's `src/lib/review/enclosure.test.ts`).
 - `src/lib/board/Board.svelte`: `onlyActive` (the points that take the pointer), `oncandidatedblclick`, the pointer's
   press, drag and release (a click, a dragged edge, a note), and the notes drawn.
 - `src/lib/board/notes.ts`: the notes, `toggleNote` and `brushFor` (tests in `notes.test.ts`).
-- The image of a line: `src/lib/review/lineImage.ts` (`imageLine`, `imageCaption`, `imageName`, the animation's
-  frames `lineFrames`, tests in `lineImage.test.ts`), `src/lib/board/boardImage.ts` (the PNG, `copyPng`, and the
-  animated image, `animatedBoardImage`), `src/lib/board/gif.ts` (the GIF, tests in `gif.test.ts`), and in
-  `ReviewView.svelte`, `imageTreeLine` (the line's edges, as a branch's preview draws them, by `treeLine`), `imageOf`,
-  `copyImage` and `saveImage`. The note is
-  `src/lib/ui/Toast.svelte` (the Export menu's too). `[data-theme="light"]` in `src/app.css` gives the light tokens to
-  the board that the image draws, and keeps Tailwind's `dark:` off inside it.
+- The image of a line: `packages/review/src/lineImage.ts` (`imageLine`, the animation's frames `lineFrames`, tests in
+  `lineImage.test.ts`), `src/lib/review/enclosureImage.ts` (`imageCaption`, `imageName`, tests in
+  `enclosureImage.test.ts`), Enclosure's part of the view (`src/lib/review/enclosureView.ts`, `image`),
+  `src/lib/board/boardImage.ts` (the PNG, `copyPng`, and the animated image, `animatedBoardImage`),
+  `src/lib/board/gif.ts` (the GIF, tests in `gif.test.ts`), and in `ReviewView.svelte`, `imageTreeLine` (the line's
+  edges, as a branch's preview draws them, by `treeLine`), `imageOf`, `copyImage` and `saveImage`. The note is
+  `packages/site/src/Toast.svelte` (the Export menu's too). `[data-theme="light"]` in `src/app.css` gives the light
+  tokens to the board that the image draws, and keeps Tailwind's `dark:` off inside it.
 - `packages/analysis/src/model.ts`: `enoughVisits`, `trustedLine` (the 25-visit cut, with its tests in
   `src/lib/review/enclosure.test.ts`). `src/lib/review/enclosure.ts`: `lineMovers`, `LineStep`.
 - `src/lib/review/display.ts`: the "one edge at a time" setting, and `branchText` (circles or notation).

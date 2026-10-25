@@ -179,7 +179,7 @@ Lite (D = 512), P = 1,024, and a time limit of 30 s.
   `src/routes/review/+page.svelte`.
 - What leaves: `gameAnalyses` and `importReview` in `src/lib/game/reviewFile.ts`, `src/lib/game/share.ts`.
 - What the page says: `deeperPositions` in `src/routes/review/+page.svelte`, the note in `highlights` and the panel's
-  note in `engineSettingsPanel`, in `src/lib/review/ReviewView.svelte`.
+  note in `engineSettingsPanel`, in `packages/review/src/ReviewView.svelte`.
 
 ## Log entries
 

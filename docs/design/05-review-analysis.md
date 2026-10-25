@@ -127,7 +127,7 @@ noise.
   `packages/analysis/src/cache.ts` (the browser's store, and the removal of older shapes, which
   `src/routes/+layout.svelte` starts),
   `packages/analysis/src/labels.ts` and `packages/analysis/src/model.ts` (losses and labels, by edge and by turn),
-  `src/lib/review/display.ts` (the "Review by" setting), `src/lib/review/ReviewView.svelte`,
+  `src/lib/review/display.ts` (the "Review by" setting), `packages/review/src/ReviewView.svelte`,
   `src/lib/board/Board.svelte` (a turn's badges) and `src/routes/review/+page.svelte` (the page).
 - The measurement: `scripts/measure/budget-collect.mjs` and `scripts/measure/budget-summary.mjs`. The review's start:
   `scripts/measure/review-start.mjs`. A review in a hidden tab: `scripts/measure/review-hidden.mjs` and

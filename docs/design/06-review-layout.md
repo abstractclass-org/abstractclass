@@ -82,9 +82,9 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
    the left, and the tools on the right (the Analysis board's Play, New and Export, the review's Export, and ☰). When
    the column is too narrow for one row, the tools go under the steps as a group, at the right, and the steps span the
    column's width, as Lichess's do. The bar measures whether the tools fit beside the steps at the steps' own width
-   (`src/lib/ui/StepBar.svelte`, which Practice shares). It measures as it mounts, before its first frame: a change
-   after the first frame moves the buttons (a layout shift). The buttons' icons are drawn, one set at one stroke
-   (`src/lib/ui/Icon.svelte`), not text glyphs, whose shapes vary with the font.
+   (`packages/review/src/StepBar.svelte`, which Practice shares). It measures as it mounts, before its first frame: a
+   change after the first frame moves the buttons (a layout shift). The buttons' icons are drawn, one set at one
+   stroke (`packages/site/src/Icon.svelte`), not text glyphs, whose shapes vary with the font.
    - **Play, New and Export are icon buttons,** at every width, so that the bar is the same on a phone and on a
      desktop. Play is a robot's head, the common sign for "play the computer": Play's usual icon, a triangle, is the
      step forward beside it, and the word Play between two icons broke the row of icons. New is a plus, the usual
@@ -308,18 +308,19 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
 
 ## Where it is
 
-- `src/lib/review/ReviewView.svelte`: the columns, the board's size, the engine header, the controls' bar, the
-  display settings' panel (`settingsPanel`).
-- The parts that Practice shares (design 24): the row above the board (`src/lib/review/PlayerRow.svelte`,
-  `PlayerCard.svelte`), the win bar and gauge (`src/lib/ui/ShareBar.svelte`), the move list's look
-  (`src/lib/review/moveList.ts`), and the settings' rows (`src/lib/ui/SettingChoice.svelte`, `SettingToggle.svelte`,
-  `SoundSettings.svelte`).
+- `packages/review/src/ReviewView.svelte`: the columns, the board's size, the engine header, the controls' bar, the
+  display settings' panel (`settingsPanel`). Hedge School's part of the view, Enclosure's:
+  `src/lib/review/enclosureView.ts` (design 29, item 9).
+- The parts that Practice shares (design 24): the row above the board (`packages/review/src/PlayerRow.svelte`,
+  `PlayerCard.svelte`), the win bar and gauge (`packages/review/src/ShareBar.svelte`), the move list's look
+  (`packages/review/src/moveList.ts`), and the settings' rows (`packages/site/src/SettingChoice.svelte`,
+  `SettingToggle.svelte`, and Hedge School's `src/lib/ui/SoundSettings.svelte`).
 - `src/lib/review/display.ts`: the display settings and their storage in the browser.
 - `src/routes/review/+page.svelte`: the skeleton until the review shows (`gameOpen`, `preloaded`).
 - `packages/site/src/site.css`: the monospaced font (`--font-mono`, and the font's import). `src/app.css`: the step
   bar on a phone (`.step-dock`, and the room for it at the end of the page's area, `#page`).
-- `src/lib/ui/StepBar.svelte`: the step bar, its tools' wrap, and its height for the page (`--step-dock`).
-  `src/lib/pageScroll.ts` (`intoView`): what the bar opens comes into view.
+- `packages/review/src/StepBar.svelte`: the step bar, its tools' wrap, and its height for the page (`--step-dock`).
+  `packages/site/src/pageScroll.ts` (`intoView`): what the bar opens comes into view.
 
 ## Log entries
 

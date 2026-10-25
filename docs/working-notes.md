@@ -124,7 +124,7 @@ learn one, and remove a note when it stops being true. The work itself is in bea
 - **The browser tool's keys:** "PageDown", not "Page_Down": a key name that the tool does not know sends nothing, and
   the test then means nothing. Check that the key arrived (a `keydown` listener) before reading its effect.
 - **Timing the review's start:** `src/routes/review/+page.svelte` sets the performance marks `review:rules` (the rules
-  answered) and `review:shown` (the review shows), and `src/lib/review/ReviewView.svelte` sets `review:moves` (the
+  answered) and `review:shown` (the review shows), and `packages/review/src/ReviewView.svelte` sets `review:moves` (the
   move list's rows, a frame later). Read them with `performance.getEntriesByType("mark")`, beside the page's paint
   entries. `node scripts/measure/review-first-frame.mjs` reloads a stored review and reads the first draw's tasks, by
   wall time and thread time, and the page's layout shift. `node scripts/measure/review-start.mjs <before> <after>`

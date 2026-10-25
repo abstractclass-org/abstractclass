@@ -30,7 +30,7 @@ new builds arrive often.
   and its ink (`--best`), its glyph in the move list and its marks on the charts, 3:1 against the light theme's panels.
   The bad labels' marks read as text on white: Mistake 4.5:1, Blunder 5.5:1, and Inaccuracy 3.0:1, as dark as a yellow
   goes before it turns ochre. A label's badge is a disc of its fill with its mark in white, drawn as shapes
-  (`src/lib/review/labelShapes.ts`): in the report, on the board, and in the move list unless the display settings
+  (`packages/review/src/labelShapes.ts`): in the report, on the board, and in the move list unless the display settings
   choose "Text" for its labels. A label badge on the board has a drop shadow, as Lichess's glyph badges on its board
   have, which sets it apart from the edges and regions under it. Its radius is 0.33 board units. On a length-1 edge,
   whose line is 0.68 units between its nodes, the badge sidesteps by 80% of its radius, up from a horizontal edge and
