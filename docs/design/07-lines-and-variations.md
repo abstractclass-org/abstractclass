@@ -388,7 +388,7 @@ cut edges that are on the board, so a line drawn over the board can show edges t
 - `packages/analysis/src/analysis.svelte.ts`: `lineSteps` (the line's positions from the rules), `toAnalysis` (the
   line), `branches`, `addLine`, `deleteFrom`, `promote`, `judge`, `addNodes` and `keepBranches` (the branches and their
   keeping), `rulesAt` (the rules for the player's moves), and the searches on any path.
-- `packages/analysis/src/model.ts`: `judgeMove` (an edge's loss and label, for the game's edges and a branch's),
+- `packages/analysis/src/model.ts`: `judgeMove` (a move's loss and label, for the game's moves and a variation's),
   `judgeBranchMove`, `valuesAfter` (tests in Hedge School's `src/lib/review/enclosure.test.ts`).
 - `src/lib/board/Board.svelte`: `onlyActive` (the points that take the pointer), `oncandidatedblclick`, the pointer's
   press, drag and release (a click, a dragged edge, a note), and the notes drawn.

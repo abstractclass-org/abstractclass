@@ -88,7 +88,9 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
 9. **Two edits can give the same hand.** A string names one edit, but two edits can leave the same blueprints: for
    example, the end wall of a line of walls moved to the line's other end, and the star beside it moved one cell up.
    Some edits leave the hand as it was. So the review compares two moves by the position that they give, not only by
-   their names, as it takes Enclosure's two edges of a turn in either order as one turn (design 29).
+   their names, as it takes Enclosure's two edges of a turn in either order as one turn (design 29). Not built yet:
+   the view compares the engine's moves with the game's `equal`, which takes no position, and the game's tree keeps a
+   move by its name (design 29, item 9). Drawing Board's review shapes this (abscls-8tl1.7).
 10. **A position's notation** (as FEN gives a chess position) waits for the board editor and for starts from a set-up
     position. The first version takes games as records: the standard start and the moves. So the record's reader
     refuses a `Position` tag. The shared frame refuses it for each game that gives the frame no start. The import

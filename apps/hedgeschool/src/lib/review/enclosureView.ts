@@ -59,7 +59,7 @@ export const enclosureView: ViewGame<Enclosure> = {
     name: "Pills",
     help: "Each edge as a pill along its direction, a dot, or its notation. In the engine's line, the pills and dots carry the board's numbers.",
   },
-  // The table's name has a slot as wide as the widest edge (M13-O16: 4 em in the first row's semibold); where the
+  // The table's name has a slot as wide as the widest edge (M13-O16: 4 em in the first row's semibold). Where the
   // column is narrower than the longest name (7 characters, about 4.4em), the text gets smaller instead of being cut,
   // down to 70% of its size.
   moveText: MOVE_TEXT,
@@ -98,7 +98,7 @@ export const enclosureView: ViewGame<Enclosure> = {
   },
 
   networks: {
-    networks: NETWORKS,
+    offered: NETWORKS,
     name: networkName,
     mb: networkMB,
     help: board => `Lite has ${NETWORKS[0].params} parameters, the other ${NETWORKS[1].params}: stronger per visit but about 3× slower. A change ${board ? "searches the positions again" : "reviews the game again"}. A network downloads once, and the browser keeps it.`,

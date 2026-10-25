@@ -6977,19 +6977,19 @@ error and no horizontal scroll. The layout sweep in Chromium passes (25 tests, 5
 - **One type for the game:** TypeScript compares `Review<Enclosure>` with `Review<V>` by their type parameters. So
   Hedge School's `Enclosure` extends the view's types too, and the view takes the game's types from its game interface
   alone (`NoInfer`).
-- **Hedge School's behaviour did not change.** The pages of the build before the split and of the split build, served
-  on one port, in 137 states, with the engine off so that nothing searches: the review of the test fixture in three
-  layouts (1,400, 1,000 and 390 pixels wide) and seven display settings, with candidates pointed at and pinned, the
-  previews, a branch, the move menu, the threat, the area map's three styles, the settings, the keys and the charts,
-  the Analysis board, the editor, the Review tab, Practice, and the book in the review and on the Analysis board (the
-  test book). The DOM was the same in every state, but Svelte's scoping classes: a component with no style of its own
-  gives its elements none. The CSS had the same rules in the same order, but the area map's margin rule, which no
-  other rule sets. The prerendered pages were the same, but the build's version. The screenshots differed in 47
-  states, by at most 2,759 pixels, along diagonal lines and in the regions' fills. Two captures of the build before
-  differed from each other in 49 states, by at most 2,583 pixels: the rasterizer's antialiasing, not the split. The
-  capture after the renames gave the same: the DOM the same in 136 states, and in one the book table's count for
-  screen readers, which the table sets 100 ms after each step. Its pixels differed in 39 states, by at most 3,027
-  pixels, each by at most 7 levels of 255.
+- **Hedge School's behaviour did not change.** One port served the build before the split and the split build by
+  turns. The engine was off, so that nothing searched. The comparison took 137 states of the pages. They were the
+  review of the test fixture in three layouts (1,400, 1,000 and 390 pixels wide) and seven display settings, with
+  candidates pointed at and pinned, the previews, a variation, the move menu, the threat, the area map's three styles,
+  the settings, the keys and the charts. They were also the Analysis board, the editor, the Review tab, Practice, and
+  the book in the review and on the Analysis board (the test book). The DOM was the same in every state, but Svelte's
+  scoping classes: a component with no style of its own gives its elements none. The CSS had the same rules in the
+  same order, but the area map's margin rule, which no other rule sets. The prerendered pages were the same, but the
+  build's version. The screenshots differed in 47 states, by at most 2,759 pixels, along diagonal lines and in the
+  regions' fills. Two captures of the build before differed from each other in 49 states, by at most 2,583 pixels: the
+  rasterizer's antialiasing, not the split. The capture after the renames gave the same: the DOM the same in 136
+  states, and in one the book table's count for screen readers, which the table sets 100 ms after each step. Its
+  pixels differed in 39 states, by at most 3,027 pixels, each by at most 7 levels of 255.
 - **How it moved:** a commit of pure renames (`git mv`), then the edits, then the renames, then the documents (design
   29, items 7 and 8). No file comes back at a moved path: a file that split keeps its general part at the moved path
   (`ownership.ts`, `lineImage.ts`, `moveList.ts`), and Enclosure's part has a new name in Hedge School
@@ -6998,7 +6998,24 @@ error and no horizontal scroll. The layout sweep in Chromium passes (25 tests, 5
   School's build served on a port of its own with the test book, and its browser tests in Playwright's Chromium: 34
   passed, and the 5 analytics tests skipped (they need a build with a Google tag). The rename commit alone does not
   build: its importers still name the old paths.
+- **The code review's changes** made the interface smaller, with no change of behaviour. The Export menu went to the
+  pages' `tools`. One `Display` type serves both, Hedge School's extending the view's. The book's pointer is its
+  `pointed` alone, and the networks' list is `offered` alone. The layers' keys are typed. The area map's board state is
+  not computed again at each result while no move of the line is drawn, as before the split. The move's shape is a
+  direct call, not a dynamic component for each move. Checked the same way, on one port by turns: the build of the
+  split (ce38ad6) and the build after the code review, 138 states each. The DOM was the same in every state, but
+  comment nodes and whitespace text in flex rows, which draw nothing. Two captures of one build differed in one state,
+  the area map's status while it waits for the engine. `npm run check:all` passed, and the layout sweep in Chromium:
+  34 passed, 5 skipped (the analytics tests).
 - **Not done:** the view's own words. Its comments and inner names still say "edge" in places, beside the names that
-  the interface gives. The layout's board area is square, and the analysis column's width (`--side-min`) was measured
-  on Enclosure's move list: Blueprints' board and moves may need other values. The package has no test game for the
-  view: Drawing Board's part is its first other game.
+  the interface gives. The layout's board area is square, and Enclosure's move list set the analysis column's width
+  (`--side-min`): Blueprints' board and moves may need other values. The package has no test game for the view:
+  Drawing Board's part is its first other game. Drawing Board's review (abscls-8tl1.7) meets these seams first:
+  - The move list writes a move as text (`notation`), and a move's shape (`Shape`) gets the move alone. Blueprints'
+    move list shows the blueprint's number in a box, and an edit the kind of the cell that it moves (design 33, item
+    8): the move played, or the line's step, has that, and neither reaches the list or the shape.
+  - `equal` takes no position, and the tree keeps a move by its name (design 33, item 9).
+  - The view's styles use Hedge School's `app.css`: the labels' colours, `--last`, the board's, the score line's, the
+    engine's and the candidates' colours, and the utilities `btn-icon`, `btn-primary`, the dialogs', `kbd`,
+    `help-table`, `bar-glider` and `.step-dock`. A second site needs them in the package (`review.css`), not copied.
+  - The display settings keep the area map's and the second number's fields, also for a game with neither.

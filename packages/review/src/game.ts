@@ -34,7 +34,7 @@ export type BoardLayers = { candidates: boolean; marks: boolean };
 /** The display settings that the view reads and changes. The site keeps them, under its own key (Hedge School's
  *  review/display.ts), with the board's layers and the sounds of its game. */
 export interface Display {
-  judge: Unit; // what the quality labels judge: each turn as a whole, or each move ("edge", the stored name; design 10)
+  judge: Unit; // what the quality labels judge: each turn as a whole, or each move ("edge", the stored name, design 10)
   // Whose moves the review explains: both players, or one: its labels, numbers, notes and the engine's lines show, the
   // other's do not
   reviewFor: "both" | "blue" | "red";
@@ -215,7 +215,7 @@ export interface BookParts<G extends ViewTypes> {
 
 /** The site's engine: its networks (design 09). */
 export interface NetworkParts {
-  networks: readonly { id: string }[]; // the networks that the settings offer, the default first
+  offered: readonly { id: string }[]; // the networks that the settings offer, the default first
   name(id: string): string; // "HedgeFund 0.2 Lite"
   mb(id: string): string; // its download, in MB
   help(board: boolean): string; // the Network setting's help, on the Analysis board or on the review

@@ -2037,7 +2037,7 @@
           only.
           {:else}This game came with a network and depth per move, from a review file or a shared link. It keeps them, so
           that its review stays the one it came with. A change of them here applies to this game only.{/if}
-          {#if !view.networks.networks.some(n => n.id === e.network)}Its network, {view.networks.name(e.network)}, is an earlier one, and the Network setting
+          {#if !view.networks.offered.some(n => n.id === e.network)}Its network, {view.networks.name(e.network)}, is an earlier one, and the Network setting
             does not offer it. Choose a network there to review the game again with it.{/if}</p>
       {/if}
       <h3 class={SETTINGS_HEAD}>Position on screen</h3>
@@ -2055,7 +2055,7 @@
       {/if}
       <h3 class={SETTINGS_HEAD}>Engine</h3>
       {@render choice("Network", view.networks.help(!!board),
-        view.networks.networks.map(n => [n.id, networkLabel(n.id)]), () => e.network, v => set({ network: v }))}
+        view.networks.offered.map(n => [n.id, networkLabel(n.id)]), () => e.network, v => set({ network: v }))}
       {@render steps("Workers", "Positions searched at the same time. Each worker uses more of your computer's memory. Use only as many workers as your computer's memory can hold.", maxWorkers(),
         () => e.workers - 1, k => set({ workers: k + 1 }), k => `${k + 1} of ${maxWorkers()}`)}
       {@render choice("GPU", `Many positions at once on the graphics card, with the workers. Auto tests it on first use, and keeps it where it is faster than a worker. Its first use downloads ${gpu?.downloadMB ?? "?"} MB. While it searches, it uses more memory, as the workers do.`,

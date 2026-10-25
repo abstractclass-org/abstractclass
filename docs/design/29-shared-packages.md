@@ -157,9 +157,8 @@ edit in the same commit), so their changes still apply.
      line's numbers (circles, or the threat's triangles), the move shown faintly (`preview`), the labels' marks, the
      layers, the player's own moves, the area map and the notes. `pointed` has one name and one meaning on both
      boards: Hedge School's board takes it as its prop `highlight`, and Drawing Board's as its prop `pointed`, which
-     was `pinned`. The area map's switch and
-     legend are a snippet that the board places (`mapControls`): Enclosure's board puts them in its empty margin above
-     its top row. The skeleton shows the game's empty board (`EmptyBoard`).
+     was `pinned`. The area map's switch and legend are a snippet that the board places (`mapControls`): Enclosure's
+     board puts them in its empty margin above its top row. The skeleton shows the game's empty board (`EmptyBoard`).
    - **The player's own moves** (`input`, `inputStatus`, `clicks`): the game makes its own input. The view resets it
      and gives it the position's rules, and only the game's board reads the rest. The game says what a move begun
      needs next, for the status line, and lists its clicks for the list of keys and clicks.
@@ -256,9 +255,10 @@ edit in the same commit), so their changes still apply.
 - `apps/hedgeschool/src/lib/review/enclosure.ts`: Enclosure's game and its part of the review, and Enclosure's types
   for the view.
 - `packages/review/` (`@abstractclass/review`): the view (`ReviewView.svelte`) and its parts, on the same rules. Its
-  check is `svelte-check`. `src/game.ts`: the view's game interface (item 9), the players' names and the score's
-  format. `src/ownership.ts`: the area map's styles and marks. `src/lineImage.ts`: the line that an image draws, and
-  its animation's frames. `src/review.css`: the package's Tailwind source, which a site's style imports.
+  check is `svelte-check`. `src/game.ts`: the view's game interface (item 9), the players' names, the score's
+  format, and the class of a number in a move's shape (`DIGITS`). `src/ownership.ts`: the area map's styles and
+  marks. `src/lineImage.ts`: the line that an image draws, and its animation's frames. `src/review.css`: the
+  package's Tailwind source, which a site's style imports.
 - `apps/hedgeschool/src/lib/review/enclosureView.ts`: Enclosure's part of the view, which the review's and the
   Analysis board's pages give it. Its components: `EnclosureBoard.svelte` (Hedge School's board with the view's
   props, and the area map's margin), `EdgePill.svelte` (an edge's shape in the lists) and `EmptyBoard.svelte`.
