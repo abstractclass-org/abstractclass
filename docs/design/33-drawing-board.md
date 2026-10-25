@@ -174,24 +174,26 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
 - `.github/workflows/deploy.yml`, the job `drawingboard`: the deploy, skipped while `DRAWINGBOARD_PAGES_PROJECT` is
   empty ([hosting.md](../hosting.md), "Drawing Board").
 - `apps/drawingboard/src/lib/board/`: the board, built on hand-made positions until the engine's browser build comes.
-  - `Board.svelte`: the cells, the two hands, the last move (its stamped hexes ringed, the cells that it removed
-    drawn removed, an edit's arrow in the hand), the candidates, the line (numbered from the candidate), and the hex
-    under the pointer with its coordinates.
+  - `Board.svelte`: the cells, the two hands, the last move (one outline round its stamped hexes, the cells that it
+    removed drawn removed, an edit's arrow in the hand), the candidates, the line (numbered from the candidate), and
+    the hex under the pointer with its coordinates. The last move's outline is the edge of the stamped hexes as a
+    whole, in the last move's colour. It is inside those hexes, so it has one width all round and does not cover a
+    neighbour.
     Its props follow design 29, item 9: the position, the last move, the candidates (name, move, rank, note), the line
     (each move with its mover and the hands after it), and the candidate pointed at. A move carries what the board
     draws of it: the cells that a placement stamps and removes come from the move's data, not from rules.
   - The hands: in a column on each side of a wide area (Blue's on the left, as Blue's cells start on the left), and
     in a row above and below a tall one, such as a phone's. Each blueprint has its own panel, with its number in a
-    box, its frame's grid, and its first cell (0, 0) ringed. The ring is inside the cell's edge, so it has one width
-    all round. All six blueprints have one scale.
+    box and its frame's grid. A blueprint's first cell has no mark: it is the first in reading order. An empty
+    blueprint shows its hex 0,0 dashed, where an edit can put a cell. All six blueprints have one scale.
   - The candidates: each placement's footprint as an outline, the first choice's thicker and in the engine's colour,
     the others grey. The rank goes on the footprint's hex nearest its middle, or on the next nearest that keeps clear
     of a better candidate's rank and first cell. The outlines show each move's shape, and the board's cells stay
     visible. In the hands, a chip with the rank goes on each blueprint that a placement places, and an edit's rank goes
     on the cell that it moves, with an arrow to its new place, which is dashed. So a reader sees which blueprint each
     candidate takes without a hover. When a candidate is pointed at or pinned, its cells show faded in the mover's
-    colour, and its first cell's hex has the hands' ring: the move's name (`K@q,r`) names that hex. A hover or a click
-    finds a candidate by its first cell's hex or by its rank's hex. While a line shows, the candidates are hidden, and
+    colour. A hover or a click finds a candidate by its first cell's hex (the hex that its name, `K@q,r`, gives) or by
+    its rank's hex. While a line shows, the candidates are hidden, and
     the pointer finds only the candidate whose line it is, as on Hedge School's board.
   - The view: the board fits the cells until the player pans or zooms, and again after "Show all the cells". A drag
     or one finger pans, two fingers pinch, and the wheel zooms round the pointer by d3-zoom's steps.

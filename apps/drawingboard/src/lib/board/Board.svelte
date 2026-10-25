@@ -25,8 +25,7 @@
   // go in a column on each side of a wide area, Blue's on the left as Blue's cells start on the left, and in a row above
   // and below a tall one (a phone). Geometry only: what a move stamps and removes comes from the move's data.
   import Cell from "./Cell.svelte";
-  import FirstRing from "./FirstRing.svelte";
-  import Hand, { blueprintBoxes, fitUnit, type HandMarks } from "./Hand.svelte";
+  import Hand,{ blueprintBoxes, fitUnit, type HandMarks } from "./Hand.svelte";
   import { boxOf, center, fromMiddle, GRID_TILE, GRID_TILE_PATH, hexAt, hexKey, hexPath, outlinePath, sameHex } from "./hex.ts";
   import { cellsOf, PLAYER_NAMES, sameHandHex } from "./position.ts";
   import { clamp, fit, pan, pinch, toArea, toPlane, viewBox, zoomAt, type View } from "./view.ts";
@@ -50,7 +49,7 @@
   const layers = $derived({ ...DEFAULT_LAYERS, ...layersSet });
 
   const uid = $props.id();
-  const gridId = `${uid}-grid`;
+  const gridId = `${uid}-grid`, lastId = `${uid}-last`;
   const players = [0, 1] as const;
 
   // The layout: the area's size, and the hands' column (a wide area, 1.25 times as wide as high) or row (a tall one).
@@ -270,15 +269,20 @@
           <Cell hex={c.hex} owner={c.owner} kind={c.kind} />
         {/each}
 
-        <!-- The last move: a placement's stamped hexes ringed, its first cell's hex (the hex its name gives) more
-             strongly, and the cells that it removed, drawn removed. -->
+        <!-- The last move: one outline round a placement's stamped hexes, and the cells that it removed, drawn removed.
+             The outline is the edge of the stamped hexes as a whole, as a candidate's footprint, so that it has one
+             width all round. Its stroke is centred on that edge and clipped to the stamped hexes: the inner half
+             shows, and the neighbours' cells stay clear. Round caps fill the inner corners. -->
         {#if lastPlace}
           {#each lastPlace.removed as c (hexKey(c.hex))}
             <Cell hex={c.hex} owner={c.owner} kind={c.kind} look="removed" />
           {/each}
-          {#each lastPlace.stamped as s (hexKey(s.hex))}
-            <path d={hexPath(...center(s.hex), 0.86)} class="last" class:anchor={sameHex(s.hex, lastPlace.at)} />
-          {/each}
+          <clipPath id={lastId}>
+            {#each lastPlace.stamped as s (hexKey(s.hex))}
+              <path d={hexPath(...center(s.hex))} />
+            {/each}
+          </clipPath>
+          <path d={outlinePath(lastPlace.stamped.map(s => s.hex))} clip-path="url(#{lastId})" class="last" />
         {/if}
 
         <!-- The candidates: each placement's footprint as an outline, the cells of the one pointed at faded in the mover's
@@ -326,13 +330,6 @@
               {/if}
             {/each}
           </g>
-        {/if}
-
-        <!-- The first cell's hex of the candidate pointed at or pinned, ringed as the hands ring a blueprint's first cell:
-             its name (K@q,r) names that hex. -->
-        {#if layers.candidates && lit?.move.type === "place"}
-          {@const [x, y] = center(lit.move.at)}
-          <FirstRing {x} {y} unit={view.scale} />
         {/if}
 
         {#if hoverHex}
@@ -389,8 +386,8 @@
   .bg { fill: var(--board-bg); }
   .grid { fill: none; stroke: var(--board-dot); stroke-width: 0.04; opacity: 0.7; }
   .origin { fill: var(--board-dot); }
-  .last { fill: none; stroke: var(--last); stroke-width: 0.12; pointer-events: none; }
-  .last.anchor { stroke-width: 0.24; }
+  /* The last move's outline: 0.14 of a hex's radius shows, inside the stamped hexes. */
+  .last { fill: none; stroke: var(--last); stroke-width: 0.28; stroke-linecap: round; pointer-events: none; }
   .hover { fill: var(--last); fill-opacity: 0.25; stroke: var(--last); stroke-width: 0.08; pointer-events: none; }
 
   /* Candidates: the first choice in the engine's colour, thicker, the others grey and faded until hover. */

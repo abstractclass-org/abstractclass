@@ -2,8 +2,7 @@
   import { boxOf, center, GRID_TILE, GRID_TILE_PATH, hexAt, hexPath, type Box, type Hex } from "./hex.ts";
   import { piecesOf, PLAYER_NAMES, sameHandHex, type BlueprintNumber, type Hand, type HandHex, type Player } from "./position.ts";
   import type { Size } from "./view.ts";
-  import Cell from "./Cell.svelte";
-  import FirstRing from "./FirstRing.svelte";
+  import Cell, { CELL_SIZE } from "./Cell.svelte";
 
   /** A cell moved within the hand, as the hand draws it: the last move's edit, a candidate's, or a line's. */
   export interface HandEdit { from: HandHex; to: HandHex }
@@ -13,8 +12,8 @@
     placed: { blueprint: BlueprintNumber; name: string; rank: number }[]; // the placements' blueprints, for their chips
     line: (HandEdit & { n: number })[];
   }
-  /** The part of each blueprint's frame that the hand shows: its cells, its first cell (0, 0) also when it is empty,
-   *  and the hexes of the edits drawn on it. */
+  /** The part of each blueprint's frame that the hand shows: its cells, the hex 0,0 also when it is empty, and the
+   *  hexes of the edits drawn on it. */
   export function blueprintBoxes(hand: Hand, marks: HandMarks): Box[] {
     const edits = [marks.last, ...marks.candidates, ...marks.line].filter(e => !!e);
     return hand.map((b, i) => {
@@ -44,8 +43,9 @@
 
 <script lang="ts">
   // A player's hand: the three blueprints, numbered 1 to 3, each in its own panel in the player's colour, in a row or
-  // in a column. Each panel draws the blueprint's frame: its grid, and its first cell (0, 0) ringed, so that a reader
-  // can count an edit's coordinates (`I:q,r>J:q,r`, design 33, item 5). The edits drawn: the last move's (the cell
+  // in a column. Each panel draws the blueprint's frame, its grid, so that a reader can count an edit's coordinates
+  // (`I:q,r>J:q,r`, design 33, item 5), and an empty blueprint's hex 0,0 dashed: an edit can put a cell there. The
+  // first cell has no mark of its own: it is the first in reading order. The edits drawn: the last move's (the cell
   // ringed at its new place, its old place dashed, and an arrow between them), the candidates' (the rank on the cell
   // that the edit moves, an arrow, and its new place dashed), and a line's (its numbers). A chip with a placement's
   // rank goes on the blueprint that it places, so that a reader sees which blueprint each candidate takes. All hands of
@@ -133,8 +133,13 @@
         <rect x={(p.x - p.ox) / unit} y={(p.y - p.oy) / unit} width={p.w / unit} height={p.h / unit} fill="url(#{gridId})" />
         {#each pieces[p.n - 1] as c (`${c.hex}`)}
           <Cell hex={c.hex} owner={player} kind={c.kind} />
+        {:else}
+          <!-- A blueprint that the last move emptied gave its one cell, from 0,0: the old place's mark dashes it. -->
+          {#if marks.last?.from.blueprint !== p.n}
+            <path d={hexPath(0, 0, CELL_SIZE)} class="empty-place" stroke-width={1.5 / unit}
+                  stroke-dasharray="{3 / unit} {2 / unit}" />
+          {/if}
         {/each}
-        <FirstRing {unit} />
       </g>
     </svg>
     <rect x={d.left + INSET} y={d.top + INSET} width={LABEL} height={LABEL} rx="3" class="label" />
@@ -187,6 +192,7 @@
   .hand.p1 { --own: var(--red); }
   .panel { fill: var(--board-bg); }
   .grid { fill: none; stroke: var(--board-dot); stroke-width: 0.04; opacity: 0.6; }
+  .empty-place { fill: none; stroke: var(--own); opacity: 0.7; }
   .label { fill: var(--own); stroke: none; }
   .label-number { fill: var(--on-badge); font: 700 11px system-ui, sans-serif; text-anchor: middle; pointer-events: none; }
   .old-place { fill: none; stroke: var(--last); stroke-width: 1.5; stroke-dasharray: 3 2; }
