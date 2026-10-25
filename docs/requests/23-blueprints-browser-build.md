@@ -32,6 +32,11 @@ Enclosure's (requests 02, 03, 15, 18):
    request 12 gave HedgeFund's.
 7. **A release** in a public release repository with its manifest, as request 03 gave Enclosure's, and the
    network's terms, as requests 14 and 21 gave them.
+8. **A trained lead before the site's release.** Drawing Board shows the lead (KataGo's `scoreLead`) beside the
+   expected final margin and the spread, and measures a move's loss in it, as Hedge School does. Blueprints' lead head
+   has no targets now (`estimateLeadProb = 0` in `selfplay_blueprints.cfg`, since the network does not see a komi).
+   A release that Drawing Board goes live with needs the lead trained, as Enclosure's has been since 2026-10-05. An
+   early build with a test network (item 1) does not need it.
 
 ## Why
 

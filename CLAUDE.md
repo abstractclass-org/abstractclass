@@ -97,4 +97,5 @@ The five default triage roles, as beads labels. See `docs/agents/triage-labels.m
 
 ### Domain docs
 
-Single-context: `GLOSSARY.md` at the root, decision records in `docs/design/`. See `docs/agents/domain.md`.
+The glossaries are in the planning repository (`../GLOSSARY.md` for the shared terms, `../glossary/<game>.md` for
+each game's), and the decision records in `docs/design/`. See `docs/agents/domain.md`.
