@@ -17,6 +17,7 @@
   import ReviewView, { NETWORK_LOADS, WIDE, reviewSkeleton, type ReviewAgain, type ReviewProgress } from "@abstractclass/review/ReviewView.svelte";
   import { enclosureView } from "#lib/review/enclosureView.ts";
   import { loadDisplay } from "#lib/review/display.ts";
+  import ExportMenu from "#lib/ExportMenu.svelte";
   import { MediaQuery } from "svelte/reactivity";
   import Arrival from "#lib/review/Arrival.svelte";
   import ReviewHome from "#lib/review/ReviewHome.svelte";
@@ -424,10 +425,17 @@
   <p class="{MESSAGE} text-blunder">The engine could not read this game: {game.error}</p>
 {:else if R}
   <ReviewView view={enclosureView} {R} {progress} {deeperPositions} {again} snapshot={snapshot && { text: snapshot.text, onagain: reviewAgain }} {siteLink}
-              onexport={exportAs} exportItems={reviewExports(partnerName)} exportReady={reviewDone} game={game ?? undefined}
+              game={game ?? undefined}
               deepVisits={snapshot ? 0 : engine.visits} onposition={path => (current = path)} onplay={path => game!.addLine(path)}
               reviewVisits={depth} labelVisits={LABEL_VISITS} engine={settings} onengine={changeEngine} ownSettings={own?.from}
-              onfeature={name => kept && trackOnce(`${kept.id} ${name}`, "feature", { feature_name: name })} gpu={session.gpuView} />
+              onfeature={name => kept && trackOnce(`${kept.id} ${name}`, "feature", { feature_name: name })} gpu={session.gpuView}>
+    {#snippet tools(unit)}
+      <!-- Export (design 13): the review file, with the engine's results, or the annotated record, labelled by the
+           view's unit. -->
+      <ExportMenu icon run={kind => exportAs(kind, unit)} ready={reviewDone} items={reviewExports(partnerName)}
+                  why={snapshot ? "Review again to export: this review used an earlier engine." : "Export once the review is done."} />
+    {/snippet}
+  </ReviewView>
 {:else if gameOpen}
   {@render reviewSkeleton(enclosureView, wide.current, loadDisplay().win === "gauge", players, false)}
 {:else}

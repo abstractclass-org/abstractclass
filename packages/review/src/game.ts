@@ -4,12 +4,13 @@
 // the engine's results, the game's tree and the moves by their names, and draws the lists, the tables, the charts and
 // the settings. The site draws the board, takes the player's own moves, writes its moves and its texts, and gives its
 // display settings, its sounds, its engine's networks and its own tools (the area map, the image of a line, the
-// opening book, the Export menu).
+// opening book). The page gives its own menus (the Export menu, the New menu) in the step bar (`tools`).
 //
 // Each part is shaped for both boards: Enclosure's (Hedge School's review/enclosureView.ts) and Blueprints' (Drawing
 // Board's board/Board.svelte). Blueprints' moves are placements and edits, named by strategyjam.org's strings, and two
-// edits can give the same hand (docs/design/33-drawing-board.md, items 5 and 9): the game compares two moves
-// (`equal`), never the view.
+// edits can give the same hand (docs/design/33-drawing-board.md, items 5 and 9). The view compares the engine's moves
+// (the candidates, their twins, a line's steps) with the game's `equal`. The game's tree, the engine's queries and the
+// stored results know a move by its name: there, two names are two moves.
 import type { Component, Snippet } from "svelte";
 import type { Game, GameTypes, Player } from "@abstractclass/analysis/game.ts";
 import type { Label } from "@abstractclass/analysis/labels.ts";
@@ -18,35 +19,48 @@ import type { AreaMark, MapStyle } from "./ownership.ts";
 
 /** The players, in every game (the glossary): Blue moves first, Red second. */
 export const PLAYER_NAME = ["Blue", "Red"] as const;
-const WHOLE = new Intl.NumberFormat("en", { maximumFractionDigits: 0 });
+/** A whole number, with thousands separated. Made once: a formatter is costly to make. */
+export const WHOLE = new Intl.NumberFormat("en", { maximumFractionDigits: 0 });
 /** A score as the players' cards, the Report and an image's caption show it: whole, with thousands separated. */
 export const fmtScore = (s: number) => WHOLE.format(Math.round(s));
+/** The class of a number in a shape or a badge: trimmed to the digits' height (cap height to baseline), so that flex
+ *  centring centres the digits in any font. */
+export const DIGITS = "block [text-box:trim-both_cap_alphabetic]";
 
 /** The board's layers that the view's own settings turn on and off: the candidates, and the quality labels on the
  *  turn just played. A game's board has others (Enclosure's regions): the game's `layers` lists them. */
-export interface BoardLayers { candidates: boolean; marks: boolean }
+export type BoardLayers = { candidates: boolean; marks: boolean };
 
 /** The display settings that the view reads and changes. The site keeps them, under its own key (Hedge School's
  *  review/display.ts), with the board's layers and the sounds of its game. */
 export interface Display {
-  judge: Unit; // what the quality labels judge: each turn, or each move ("edge", the stored name)
-  reviewFor: "both" | "blue" | "red"; // whose moves the review explains
-  win: "bar" | "gauge"; // the win chance: a bar above the board, or a gauge beside it
+  judge: Unit; // what the quality labels judge: each turn as a whole, or each move ("edge", the stored name; design 10)
+  // Whose moves the review explains: both players, or one: its labels, numbers, notes and the engine's lines show, the
+  // other's do not
+  reviewFor: "both" | "blue" | "red";
+  win: "bar" | "gauge"; // the win chance: a bar above the board (Blue left, Red right), or a vertical gauge beside it
   layers: BoardLayers;
-  areaMap: { review: boolean; board: boolean }; // the area map, on each page
+  areaMap: { review: boolean; board: boolean }; // the area map (design 30), on each page: the key t shows or hides it
+  // The map's style: the engine's ownership of each point ("Forecast", as KaTrain's territory), the forecast against
+  // the board now ("Forecast vs board"), or the forecast after the last move or the line drawn against the forecast
+  // before it ("After vs before", KaTrain's loss grid with the rises)
   mapStyle: MapStyle;
-  mapMin: Record<MapStyle, number>; // each style's smallest value marked, in hundredths
-  scoreLine: boolean; // the Advantage chart's score line
-  areaLine: boolean; // the Advantage chart's line of the players' second number (the game's `second`)
-  lineSteps: boolean; // a line drawn on the board one move at a time
-  branchForm: "pills" | "dots" | "text"; // a move in the variations and the line: the game's shape, a dot, or its notation
-  marks: "badges" | "text"; // a quality label in the move list: a badge, or its mark in the label's colour
-  notes: boolean; // the move list's notes on the key moves
-  previewMoves: boolean; // the position after a played move, while the pointer is on it
-  previewBranches: boolean; // a variation's line on the board, while the pointer is on one of its moves
-  sound: boolean;
-  moveSound: string; // the set of sounds, the game's
-  volume: number;
+  mapMin: Record<MapStyle, number>; // each style's smallest value marked, in hundredths: 0 marks every point with one
+  scoreLine: boolean; // the Advantage chart's score line (Blue − Red)
+  areaLine: boolean; // the Advantage chart's line of the players' second number (the game's `second`), Blue − Red
+  lineSteps: boolean; // "Lines on the board": the engine's line and a variation's preview drawn one move at a time
+  // A move in the variations and the listed line: the game's shape (`Shape`), a dot (Go's way), or its notation. In the
+  // line, the shapes and the dots carry the board's numbers.
+  branchForm: "pills" | "dots" | "text";
+  // A label in the move list and the variations: a badge, or its mark alone in the label's colour, as Lichess's move
+  // list shows it
+  marks: "badges" | "text";
+  notes: boolean; // the move list's one-line notes on Great moves, mistakes and blunders
+  previewMoves: boolean; // the position after a played move on the board, while the pointer is on the move (design 07)
+  previewBranches: boolean; // a variation's line on the board, while the pointer is on one of its moves (design 07)
+  sound: boolean; // move sounds (design 08)
+  moveSound: string; // which set of sounds: the game's
+  volume: number; // the move sounds' volume, 0 to 1
 }
 
 /** A game's types for the view: the analysis's (GameTypes), and the board's own. */
@@ -56,7 +70,6 @@ export interface ViewTypes extends GameTypes {
   input: MoveInput<this["rules"]>; // the player's own moves on the board (Enclosure: the edge input)
   point: unknown; // a place on the board that the area map marks (Enclosure: a point, [x, y])
   book: ViewBook<this["move"]>; // the opening book where the view shows it (Hedge School's book/place.svelte.ts)
-  export: string; // an entry of the Export menu
 }
 
 /** The player's own moves on the board: the position's rules that the site takes them by, and the move begun. */
@@ -118,8 +131,9 @@ export interface SecondNumber<G extends GameTypes> {
   chart: { legend: string; setting: string; help: string; swatch: string; tint: string };
 }
 
-/** The game's own layer of the board in the display settings: before the area map's settings, or after them. */
-export interface LayerSetting { key: string; label: string; help: string; afterMap?: boolean }
+/** The game's own layer of the board in the display settings (`key`: its name in the display's layers): before the
+ *  area map's settings, or after them. */
+export interface LayerSetting<K extends string = string> { key: K; label: string; help: string; afterMap?: boolean }
 
 /** The sounds' settings (Hedge School's ui/SoundSettings.svelte), in the display settings. */
 export interface SoundSettingsProps<D extends Display> {
@@ -178,9 +192,7 @@ export interface ViewBook<M> {
   readonly line: M[] | null; // the line of the row pointed at, as the board draws it
   readonly last: number; // the place on the path of its last book position, or -1
   readonly numbers: BoardCandidate<M>[]; // the board's numbers for the rows
-  readonly highlight: M | null; // the move pointed at, in the table or by its number on the board
-  pointed: string | null; // that move's name
-  point(move: M | null): void; // the board's pointer on a number, or on none
+  pointed: string | null; // the name of the move pointed at, in the table or by its number on the board
   toggle(): void; // the key o: the book or the candidates
   showForNow(): void; // the book, for this page only
 }
@@ -203,20 +215,10 @@ export interface BookParts<G extends ViewTypes> {
 
 /** The site's engine: its networks (design 09). */
 export interface NetworkParts {
-  networks: { id: string; params: string }[]; // the networks that the settings offer, the default first
+  networks: readonly { id: string }[]; // the networks that the settings offer, the default first
   name(id: string): string; // "HedgeFund 0.2 Lite"
   mb(id: string): string; // its download, in MB
-  offers(id: string | undefined): boolean; // whether the settings offer it
   help(board: boolean): string; // the Network setting's help, on the Analysis board or on the review
-}
-
-/** The Export menu's props (Hedge School's ExportMenu.svelte). */
-export interface ExportProps<K extends string> {
-  icon?: boolean;
-  run: (kind: K) => Promise<{ note?: string } | void>;
-  ready?: boolean;
-  items?: [K, string, string, string][];
-  why?: string;
 }
 
 /** What a site gives the view about its game. */
@@ -226,8 +228,8 @@ export interface ViewGame<G extends ViewTypes> extends Game<G> {
   Board: Component<BoardProps<G>>;
   /** The board while the page loads, in the board's place: its empty grid (Enclosure's points). */
   EmptyBoard: Component;
-  /** The board's own layers in the display settings. */
-  layers: LayerSetting[];
+  /** The board's own layers in the display settings: the display's layers beside the view's own. */
+  layers: LayerSetting<Exclude<keyof G["display"]["layers"] & string, keyof BoardLayers>>[];
   /** The notes' colours, and the keys held for each, for the list of keys and clicks: groups of keys held together,
    *  each met by any one of its keys. None: the board takes no notes. */
   noteKeys?: readonly (readonly [string, readonly (readonly string[])[]])[];
@@ -287,6 +289,4 @@ export interface ViewGame<G extends ViewTypes> extends Game<G> {
   map?: MapParts<G>;
   image?: ImageParts<G>;
   book?: BookParts<G>;
-  /** The Export menu (design 13), in the step bar. */
-  Export?: Component<ExportProps<G["export"]>>;
 }

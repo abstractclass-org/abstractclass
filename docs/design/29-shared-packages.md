@@ -179,10 +179,13 @@ edit in the same commit), so their changes still apply.
      them). The sounds (`sounds`) have the site's settings and the game's sound for each move (Enclosure's cut has its
      own).
    - **The site's engine and tools:** its networks (`networks`), and its tools that a site can leave out: the area
-     map's points and the board's state now (`map`), the image of a line (`image`), the opening book (`book`, in Hedge
-     School's early edition) and the Export menu (`Export`). The view shows no tool that the site leaves out.
-   - **The comparison of two moves is the game's** (`equal`): two of Blueprints' edits can give the same hand (design
-     33, item 9). The view compares moves in no other way.
+     map's points and the board's state now (`map`), the image of a line (`image`) and the opening book (`book`, in
+     Hedge School's early edition). The view shows no tool that the site leaves out. The page's own menus go in the
+     step bar (`tools`, a snippet that takes the labels' unit): the Export menu, and the Analysis board's New menu.
+   - **The comparison of two moves is the game's** (`equal`): the view compares the engine's moves with it (the
+     candidates, their twins, a line's steps). The game's tree, the engine's queries and the stored results know a
+     move by its name, so there two names are two moves. Two of Blueprints' edits can give the same hand (design 33,
+     item 9): `equal` takes no position, so it cannot compare them by their hands yet (abscls-8tl1.7).
    - **One type for the game:** Hedge School's `Enclosure` (`enclosure.ts`) extends `ViewTypes`, so that the review
      (`Review<Enclosure>`), the analysis and the view take one type. The view takes the game's types from `view` alone
      (TypeScript's `NoInfer` on its other props).

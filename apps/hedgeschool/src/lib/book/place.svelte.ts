@@ -8,7 +8,7 @@
 // servers serve it, and no build holds it (vite.config.ts, `testBook`): where its index does not load, the analysis
 // column stays as it was, with no switch (`ready`).
 import { readLocalJson, writeLocal } from "@abstractclass/storage/local.ts";
-import { edgeName, parseEdge, type Edge } from "#lib/engine/notation.ts";
+import { parseEdge } from "#lib/engine/notation.ts";
 import { OpeningBook, OUT, type BookAt } from "./lookup.svelte.ts";
 import { bookRows, rowCandidates, rowLine, type BookRow, type GameMove } from "./rows.ts";
 
@@ -91,21 +91,15 @@ export class BookPlace {
     const path = this.#path();
     return lastInBook(path.length, k => this.#atOf(path[k]));
   });
-  /** The board's numbers for the rows (rows.ts, rowCandidates), shown while the table shows the book. */
-  readonly candidates = $derived(rowCandidates(this.rows));
-  /** The same numbers, as the review's view gives them to its board (@abstractclass/review/game.ts, ViewBook). */
-  readonly numbers = $derived(this.candidates.map(c => ({ move: c.edge, rank: c.rank, note: c.note })));
-  /** The edge pointed at, which the board lights. */
-  readonly highlight = $derived(this.pointed ? parseEdge(this.pointed) : null);
+  /** The board's numbers for the rows (rows.ts, rowCandidates), shown while the table shows the book, as the review's
+   *  view gives them to its board (@abstractclass/review/game.ts, ViewBook). */
+  readonly numbers = $derived(rowCandidates(this.rows).map(c => ({ move: c.edge, rank: c.rank, note: c.note })));
   /** The line of the row pointed at while the table shows the book, as the board draws it: its edge, then the book's
    *  main line or a trap's refutation (rows.ts, rowLine). */
   readonly line = $derived.by(() => {
     const row = this.showsBook ? this.rows.find(r => r.move === this.pointed) : undefined, book = this.book.book;
     return row && book ? rowLine(book, row).map(parseEdge) : null;
   });
-
-  /** The board's pointer on a number, or on none. */
-  point(edge: Edge | null) { this.pointed = edge && edgeName(edge); }
 
   /** The key o: "Book" or "Candidates". Outside the book "Book" is unavailable, so the key does nothing there. */
   toggle() {

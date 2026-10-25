@@ -12,7 +12,7 @@
   import { chartMarks, listed, type Analysis } from "@abstractclass/analysis/model.ts";
   import type { GameTypes, Player } from "@abstractclass/analysis/game.ts";
   import type { BranchNode, MapState, ThreatCost, ThreatState } from "@abstractclass/analysis/analysis.svelte.ts";
-  import { PLAYER_NAME, type ViewTypes } from "./game.ts";
+  import { PLAYER_NAME, WHOLE, type ViewTypes } from "./game.ts";
 
   /** The review in progress: what the engine does now, and the passes as parts of one bar, each with its share of the
    *  work (by visits) and how much of it is done (0 to 1). `waiting`: no work runs (the engine is off). `maps`: the
@@ -65,8 +65,7 @@
   }
 
   // The numbers' formats, made once: a formatter is costly to make, and the move list and the tables format many numbers
-  // at each result.
-  const WHOLE = new Intl.NumberFormat("en", { maximumFractionDigits: 0 });
+  // at each result (and WHOLE, game.ts).
   const ONE_DIGIT = new Intl.NumberFormat("en", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   /** Points in at most 5 characters: "105", or "1.2k" from 1,000 on. */
   const shortPoints = (a: number) => (a >= 999.5 ? `${(a / 1000).toFixed(1)}k` : `${Math.round(a)}`);
@@ -118,8 +117,8 @@
   import { SIDE_BG, SIDE_BORDER, SIDE_TEXT } from "@abstractclass/site/side.ts";
   import AdvantageChart from "./AdvantageChart.svelte";
   import DifficultyChart from "./DifficultyChart.svelte";
-  import { fmtScore, type BoardCandidate, type BoardMark, type BookGameMove, type Display, type LayerSetting, type LineMove,
-           type ViewGame } from "./game.ts";
+  import { DIGITS, fmtScore, type BoardCandidate, type BoardMark, type BookGameMove, type Display, type LayerSetting,
+           type LineMove, type ViewGame } from "./game.ts";
   import { askOrder, changeMap, differenceMap, differenceReading, mapStep, ownershipMap, valueText, type MapStyle } from "./ownership.ts";
   import SettingChoice from "@abstractclass/site/SettingChoice.svelte";
   import SettingToggle from "@abstractclass/site/SettingToggle.svelte";
@@ -149,8 +148,9 @@
     snapshot?: ReviewSnapshot | null; // a review by an earlier engine, shown as it was (design 20)
     board?: BoardForm | null; // the Analysis board (design 21)
     start?: string[]; // the position to open at: its path (the start when none)
-    exportItems?: [NoInfer<G>["export"], string, string, string][]; // the Export menu's entries (Hedge School's reviewFile.ts, reviewExports)
-    tools?: Snippet; // the Analysis board's New menu, beside Export (design 21)
+    // The page's menus in the step bar, before the display settings' button: the Analysis board's New menu (design 21),
+    // and the Export menu (design 13), which labels an export by the labels' unit given
+    tools?: Snippet<[Unit]>;
     siteLink?: { href: string; host: string } | null; // the game's own page, from its record's Site tag
     ownSettings?: "stored" | "mark"; // the game keeps its own network and depth, and where from (Hedge School's engineSettings.ts)
     onfeature?: (name: string) => void; // a feature used (design 17): the page counts its first use in each review
@@ -161,12 +161,9 @@
     engine?: EngineSettings; // the engine's settings (design 09), shown in the settings panel
     onengine?: (change: Partial<EngineSettings>) => void; // a setting changed in the panel
     gpu?: { status: GpuStatus; downloadMB: string }; // what the GPU does in this review, and its first download (design 15)
-    // Exports the review (design 13): the review file, or the annotated record copied or as a file, labelled by `unit`
-    onexport?: (kind: NoInfer<G>["export"], unit: Unit) => Promise<{ note?: string } | void>;
-    exportReady?: boolean; // the review is done: export only then (design 13)
   }
-  let { view, R, progress = null, game, deepVisits = 0, onposition, onplay, labelVisits = 0, engine, onengine, gpu, reviewVisits = 0, onexport,
-        exportReady = true, deeperPositions = 0, again = null, snapshot = null, board = null, start, exportItems, tools: pageTools, siteLink = null,
+  let { view, R, progress = null, game, deepVisits = 0, onposition, onplay, labelVisits = 0, engine, onengine, gpu, reviewVisits = 0,
+        deeperPositions = 0, again = null, snapshot = null, board = null, start, tools: pageTools, siteLink = null,
         ownSettings, onfeature }: Props = $props();
   const branches = $derived(game?.branches ?? {});
   const used = (name: string) => onfeature?.(name);
@@ -459,6 +456,9 @@
   // The player's own moves, always on (Lichess's analysis board): the puzzles' edge input, on the position's rules from
   // the engine. A move that is the game's goes along the game; another makes a branch.
   const input = untrack(() => view.input(move => playPath([...path, view.moveName(move)], `own ${view.words.move} played`)));
+  // A move's shape in the lists (the game's `Shape`), read once: a component read from `view` in the markup is made
+  // anew for each move, with effects of its own.
+  const Shape = untrack(() => view.Shape);
   // The player's notes on the board, by position, for this visit only (Lichess keeps an analysis board's shapes on each
   // position of its tree).
   let notesAt = $state<Record<string, G["note"][]>>({});
@@ -484,7 +484,8 @@
   // The board's numbers, and what pointing at one and clicking it do: the book's rows while the table shows the book,
   // else the engine's candidates.
   const numbers = $derived(book?.showsBook ? {
-    candidates: book.numbers, pointed: book.highlight, point: (e: G["move"] | null) => book.point(e),
+    candidates: book.numbers, pointed: book.pointed ? view.parseMove(book.pointed) : null,
+    point: (e: G["move"] | null) => { book.pointed = e === null ? null : view.moveName(e); },
     click: (e: G["move"]) => playBook([view.moveName(e)]), dblclick: undefined,
   } : {
     candidates, pointed: hover ?? pinnedCandidate?.edge ?? null, point: (e: G["move"] | null) => { hoverOnBoard = true; hover = e; },
@@ -754,10 +755,14 @@
   // style, and for the numbers
   let mapPoint = $state.raw<G["point"] | null>(null);
   const pointing = $derived(mapPoint !== null);
-  // The state of the board that the map's step shows (the game's `map.now`), for the change style and the point's
-  // numbers
+  // The board that the map's step shows: the line's start, and its moves drawn as far as the step. While none is drawn,
+  // the same values from result to result, so that the board's state is not computed again at each.
+  const NO_MOVES: LineMove<G>[] = [];
+  const mapFrom = $derived(mapLine.from);
+  const mapDrawn = $derived(shownStep ? mapLine.drawn.slice(0, shownStep) : NO_MOVES);
+  // The state of that board (the game's `map.now`), for the change style and the point's numbers
   const boardNow = $derived(shownStep !== null && view.map && (display.mapStyle === "change" || pointing)
-    ? view.map.now(mapLine.from, mapLine.drawn.slice(0, shownStep)) : null);
+    ? view.map.now(mapFrom, mapDrawn) : null);
   const shownMap = $derived.by(() => {
     if (!shownOwnership) return null;
     const min = display.mapMin[display.mapStyle];
@@ -1721,11 +1726,10 @@
   </ContextMenu.Root>
 {/snippet}
 
-<!-- A number centred in its badge: the inner block is trimmed to the digits' height (cap height to baseline), so that
-     flex centring centres the digits in any font. Without text-box (Firefox for now), a line box of the font's size
-     sets them within a quarter pixel. -->
+<!-- A number centred in its badge: the inner block is trimmed to the digits' height (DIGITS, game.ts). Without
+     text-box (Firefox for now), a line box of the font's size sets them within a quarter pixel. -->
 {#snippet digits(n: number)}
-  <span class="block [text-box:trim-both_cap_alphabetic]">{n}</span>
+  <span class={DIGITS}>{n}</span>
 {/snippet}
 
 <!-- A candidate's number: in a badge where the board draws the candidate (number 1 in the engine's colour), else plain.
@@ -1817,7 +1821,7 @@
 <!-- A branch edge without its notation: a pill along its direction, or a dot, in its mover's colour (the display
      setting). -->
 {#snippet edgeShape(edge: G["move"] | null, player: Player)}
-  {#if display.branchForm === "pills"}<view.Shape move={edge} {player} hollow={false} n={null} class="" />
+  {#if display.branchForm === "pills"}<Shape move={edge} {player} hollow={false} n={null} class="" />
   {:else}<span class={["block w-[0.85em] h-[0.85em] rounded-full", SIDE_BG[player]]}></span>{/if}
 {/snippet}
 
@@ -1869,7 +1873,7 @@
             {#if k > 0 && t.first}<span class="w-1"></span>{/if}
             <button class="flex p-0 bg-transparent border-0 rounded-full" onmouseenter={() => (listHover = k)} onclick={() => play(k)}
                     tabindex="-1" title="{turnText(t)} {name}{where} · play the line to here">
-              {#if display.branchForm === "pills"}<view.Shape move={e} {player} hollow={!!known} n={k + 1} class={shade} />
+              {#if display.branchForm === "pills"}<Shape move={e} {player} hollow={!!known} n={k + 1} class={shade} />
               {:else}{@render edgeCircle(k + 1, player, !!known, shade)}{/if}
             </button>
           {/if}
@@ -1956,7 +1960,7 @@
         [["turn", "Turn"], ["edge", view.words.Move]], () => display.judge, v => (display.judge = v as Unit))}
       {#if !board}<!-- the board's labels are the moves asked for, on both sides -->
         {@render choice("Review for", "Both players, or one: the labels, numbers, notes and the engine's lines of that player's moves. The counts keep both.",
-          [["both", "Both"], ["blue", PLAYER_NAME[0]], ["red", PLAYER_NAME[1]]], () => display.reviewFor, v => (display.reviewFor = v as "both" | "blue" | "red"))}
+          [["both", "Both"], ["blue", PLAYER_NAME[0]], ["red", PLAYER_NAME[1]]], () => display.reviewFor, v => (display.reviewFor = v as Display["reviewFor"]))}
       {/if}
       <h3 class={SETTINGS_HEAD}>Board</h3>
       {@render choice("Win chance", "A bar above the board, or a gauge beside it.",
@@ -2033,7 +2037,7 @@
           only.
           {:else}This game came with a network and depth per move, from a review file or a shared link. It keeps them, so
           that its review stays the one it came with. A change of them here applies to this game only.{/if}
-          {#if !view.networks.offers(e.network)}Its network, {view.networks.name(e.network)}, is an earlier one, and the Network setting
+          {#if !view.networks.networks.some(n => n.id === e.network)}Its network, {view.networks.name(e.network)}, is an earlier one, and the Network setting
             does not offer it. Choose a network there to review the game again with it.{/if}</p>
       {/if}
       <h3 class={SETTINGS_HEAD}>Position on screen</h3>
@@ -2126,7 +2130,7 @@
 
 <!-- A layer of the game's own board (the game's `layers`): on or off. -->
 {#snippet layer(l: LayerSetting)}
-  {@const layers = display.layers as unknown as Record<string, boolean>}
+  {@const layers = display.layers as Record<string, boolean>}
   {@render toggle(l.label, l.help, () => layers[l.key], v => (layers[l.key] = v))}
 {/snippet}
 
@@ -2379,10 +2383,8 @@
     <StepBar class="mt-1.5 pt-1.5 border-t border-line" onfirst={() => setPath([])} onback={back} onforward={forward} onlast={toEnd}>
       {#snippet above()}<p class="mb-1.5 text-xs text-muted truncate" title={statusLine}>{statusLine}</p>{/snippet}
       {#snippet tools()}
-        {@render pageTools?.()}
-        <!-- Export (design 13): the review file, with the engine's results, or the annotated record. -->
-        {#if onexport && view.Export}<view.Export icon run={kind => onexport(kind, display.judge)} ready={exportReady} items={exportItems}
-                                  why={snapshot ? "Review again to export: this review used an earlier engine." : "Export once the review is done."} />{/if}
+        <!-- The page's menus: New on the Analysis board (design 21), and Export (design 13) -->
+        {@render pageTools?.(display.judge)}
         <!-- The menu button (Lichess's ☰ in the same place) opens the display settings in the analysis's place, and
              closes them. The gear is the engine's, in the engine header. -->
         <button class="btn-icon aria-expanded:border-accent aria-expanded:text-accent" aria-label="Display settings" title="Display settings"

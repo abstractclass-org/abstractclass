@@ -6,7 +6,7 @@
      number (the listed line), the number stands upright at the pill's centre, a disc as wide as the pill, so it is
      always on the pill's colour. Hollow when the edge is already in the tree, as the circles are. -->
 <script lang="ts">
-  import type { ShapeProps } from "@abstractclass/review/game.ts";
+  import { DIGITS, type ShapeProps } from "@abstractclass/review/game.ts";
   import { SIDE_TEXT } from "@abstractclass/site/side.ts";
   import type { Edge } from "./enclosure.ts";
 
@@ -28,7 +28,6 @@
           rx={(thick - stroke) / 2} transform="rotate({(turn * 180) / Math.PI})"
           fill={hollow ? "none" : "currentColor"} stroke={hollow ? "currentColor" : "none"} stroke-width={stroke} />
   </svg>
-  <!-- The number centred in its disc, as the view's badges centre theirs: trimmed to the digits' height (cap height to
-       baseline), so that flex centring centres the digits in any font. -->
-  {#if n !== null}<span class="relative"><span class="block [text-box:trim-both_cap_alphabetic]">{n}</span></span>{/if}
+  <!-- The number centred in its disc, as the view's badges centre theirs (DIGITS). -->
+  {#if n !== null}<span class="relative"><span class={DIGITS}>{n}</span></span>{/if}
 </span>

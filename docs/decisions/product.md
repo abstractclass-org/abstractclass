@@ -6961,10 +6961,13 @@ error and no horizontal scroll. The layout sweep in Chromium passes (25 tests, 5
   The candidate pointed at or pinned has one name, `pointed`: Hedge School's board took `highlight`, and Drawing
   Board's took `pinned`, which it now calls `pointed`. The board draws what the last move did (`last`, not Enclosure's
   `cut`). A line's move carries the game's step (not Enclosure's cut and regions). The cards show the game's second
-  number when it has one (Enclosure's area). The comparison of two moves stays the game's (`equal`).
+  number when it has one (Enclosure's area). The comparison of two moves stays the game's (`equal`) for the engine's
+  moves. The tree keeps a move by its name, and `equal` takes no position: Blueprints' two edits that give one hand
+  (design 33, item 9) are two moves until Drawing Board's review shapes this seam (abscls-8tl1.7).
 - **Seams beyond design 29's list:** the view's later features needed their own: the area map (its points, and the
-  board's state now), the image of a line, the opening book, the site's networks, the Export menu and the skeleton's
-  empty board. A site can leave out each tool.
+  board's state now), the image of a line, the opening book, the site's networks and the skeleton's empty board. A
+  site can leave out each tool. The Export menu is the page's, in the step bar's `tools` beside the New menu: the view
+  gives it the labels' unit, and carries nothing else of it.
 - **The players' names are every game's** (the glossary: Blue moves first). The package holds them, and Hedge School's
   `enclosure.ts` gives them as before.
 - **The renames from edge to move:** the shared code's names that nothing stores took the glossary's word:

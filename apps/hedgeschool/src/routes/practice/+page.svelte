@@ -31,7 +31,7 @@
   import { NETWORKS, loadEngine, networkMB, networkName } from "#lib/analysis/engineSettings.ts";
   import { parseRecord, withStart } from "#lib/game/record.ts";
   import { variantProblem } from "#lib/game/import.ts";
-  import { AREA, MOVE_TEXT, PLAYER_NAME, moveNotation, type Player } from "#lib/review/enclosure.ts";
+  import { AREA, LAYERS, MOVE_TEXT, PLAYER_NAME, moveNotation, type Player } from "#lib/review/enclosure.ts";
   import { loadDisplay, saveDisplay } from "#lib/review/display.ts";
   import { playMove, preload } from "#lib/sound.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
@@ -573,10 +573,9 @@
                        set={v => (score.form = v as ScoreDisplay["form"])} />
       {/if}
       <h3 class={SETTINGS_HEAD}>Board</h3>
-      <SettingToggle label="Regions" help="Shading on the areas each player encloses."
-                     get={() => display.layers.regions} set={v => (display.layers.regions = v)} />
-      <SettingToggle label="Protected edges" help="The edges the opponent cannot cut on the next turn."
-                     get={() => display.layers.protected} set={v => (display.layers.protected = v)} />
+      {#each LAYERS as l (l.key)}
+        <SettingToggle label={l.label} help={l.help} get={() => display.layers[l.key]} set={v => (display.layers[l.key] = v)} />
+      {/each}
       <SoundSettings sound={display.sound} moveSound={display.moveSound} volume={display.volume} set={v => Object.assign(display, v)} />
     </div>
   </div>

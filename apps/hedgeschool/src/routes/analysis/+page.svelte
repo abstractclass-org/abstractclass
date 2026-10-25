@@ -13,6 +13,7 @@
   import { enclosureView } from "#lib/review/enclosureView.ts";
   import { loadDisplay } from "#lib/review/display.ts";
   import NewMenu from "#lib/analysis/NewMenu.svelte";
+  import ExportMenu from "#lib/ExportMenu.svelte";
   import Icon from "@abstractclass/site/Icon.svelte";
   import { STANDARD_START, setUpStart } from "#lib/engine/notation.ts";
   import { enclosure, onlyJudged, review, type Enclosure, type ReviewData, type Unit } from "#lib/review/enclosure.ts";
@@ -299,15 +300,16 @@
               onplay={path => g.playLine(path)} reviewVisits={budget} labelVisits={LABEL_VISITS} {engine}
               onengine={(change: Partial<EngineSettings>) => { trackSettingChange(change, engine, false); Object.assign(engine, change); }}
               onfeature={name => trackOnce(`board ${name}`, "feature", { feature_name: name })} gpu={session.gpuView}
-              board={{ judged: g.judgedMain, onmain: path => g.setMain(path) }}
-              onexport={exportAs} exportItems={EXPORT_ITEMS}>
-      {#snippet tools()}
+              board={{ judged: g.judgedMain, onmain: path => g.setMain(path) }}>
+      {#snippet tools(unit)}
         <!-- Practice from the position on screen (design 24), as Lichess's "Continue from here": not a new board, so
              beside New, not in it. A robot's head, since the forward triangle is the step forward (design 06, item 4).
              Off on a set-up start, which the bot cannot take yet (request 20). -->
         <button class="btn-icon" disabled={!practiceHref} onclick={() => practiceHref && location.assign(practiceHref)}
                 aria-label="Play the bot from here" title="Play the bot from here"><Icon name="bot" /></button>
         <NewMenu editor={editorHref} onstart={newBoard} onimport={() => (importing = true)} onload={loadFile} />
+        <!-- Export (design 13): the analysis file, or the annotated record, labelled by the view's unit. -->
+        <ExportMenu icon run={kind => exportAs(kind, unit)} items={EXPORT_ITEMS} />
       {/snippet}
     </ReviewView>
 {:else}

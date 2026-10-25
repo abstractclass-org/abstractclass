@@ -1,8 +1,8 @@
 // Enclosure's part of the review's view (docs/design/29-shared-packages.md, item 9; the view's game interface,
 // @abstractclass/review/game.ts): the board with the edge input, the edges as the lists write and draw them, who plays
 // each edge, the area, the texts that say "edge", the display settings and the sounds, Hedge School's networks, and its
-// tools: the area map's points, the image of a line, the opening book and the Export menu. The pages give it to the
-// view (@abstractclass/review/ReviewView.svelte) with Enclosure's game (enclosure.ts, `enclosure`), which it extends.
+// tools: the area map's points, the image of a line and the opening book. The pages give it to the view
+// (@abstractclass/review/ReviewView.svelte) with Enclosure's game (enclosure.ts, `enclosure`), which it extends.
 import type { ImageBoard, ViewGame } from "@abstractclass/review/game.ts";
 import { EdgeInput } from "#lib/board/edgeInput.svelte.ts";
 import { BRUSH_KEYS } from "#lib/board/notes.ts";
@@ -10,21 +10,20 @@ import { animatedBoardImage, boardImage, copyPng } from "#lib/board/boardImage.t
 import { pointName } from "#lib/engine/notation.ts";
 import { playMove, preload } from "#lib/sound.ts";
 import SoundSettings from "#lib/ui/SoundSettings.svelte";
-import ExportMenu from "#lib/ExportMenu.svelte";
 import { download } from "#lib/game/reviewFile.ts";
 import { EARLY_ACCESS } from "#lib/edition.ts";
 import { BookPlace, siteBook } from "#lib/book/place.svelte.ts";
 import { OUT, type BookAt } from "#lib/book/lookup.svelte.ts";
 import { gameOpening, openingSentence, trapRows } from "#lib/book/game.ts";
 import ReviewBookTable from "#lib/book/ReviewBookTable.svelte";
-import { NETWORKS, networkMB, networkName, offersNetwork } from "#lib/analysis/engineSettings.ts";
+import { NETWORKS, networkMB, networkName } from "#lib/analysis/engineSettings.ts";
 import { loadDisplay, saveDisplay } from "./display.ts";
 import { drawnBoard, occupancy, pointReading } from "./enclosureMap.ts";
 import { imageCaption, imageName } from "./enclosureImage.ts";
 import EnclosureBoard, { boardLine } from "./EnclosureBoard.svelte";
 import EdgePill from "./EdgePill.svelte";
 import EmptyBoard from "./EmptyBoard.svelte";
-import { AREA, edgeName, enclosure, endingText, lineMovers, MOVE_TEXT, moveNotation, PLAYER_NAME, shortNote, turnShortNote,
+import { AREA, enclosure, endingText, LAYERS, lineMovers, MOVE_TEXT, moveNotation, PLAYER_NAME, shortNote, turnShortNote,
          type Enclosure } from "./enclosure.ts";
 
 /** The board of an image of a line, as boardImage.ts draws it: the regions always shown, and the edge cut by the move
@@ -37,10 +36,7 @@ export const enclosureView: ViewGame<Enclosure> = {
 
   Board: EnclosureBoard,
   EmptyBoard,
-  layers: [
-    { key: "regions", label: "Regions", help: "Shading on the areas each player encloses." },
-    { key: "protected", label: "Protected edges", help: "The edges the opponent cannot cut on the next turn.", afterMap: true },
-  ],
+  layers: LAYERS,
   noteKeys: BRUSH_KEYS,
 
   input: play => new EdgeInput(play),
@@ -57,7 +53,7 @@ export const enclosureView: ViewGame<Enclosure> = {
   ],
 
   notation: moveNotation,
-  lineNotation: (edge, step) => `${edgeName(edge)}${step?.cut ? "x" : ""}`,
+  lineNotation: (edge, step) => moveNotation({ edge, cut: step?.cut ?? null }),
   Shape: EdgePill,
   shape: {
     name: "Pills",
@@ -105,7 +101,6 @@ export const enclosureView: ViewGame<Enclosure> = {
     networks: NETWORKS,
     name: networkName,
     mb: networkMB,
-    offers: offersNetwork,
     help: board => `Lite has ${NETWORKS[0].params} parameters, the other ${NETWORKS[1].params}: stronger per visit but about 3× slower. A change ${board ? "searches the positions again" : "reviews the game again"}. A network downloads once, and the browser keeps it.`,
   },
 
@@ -149,6 +144,4 @@ export const enclosureView: ViewGame<Enclosure> = {
     trapRows,
     Table: ReviewBookTable,
   } : undefined,
-
-  Export: ExportMenu,
 };

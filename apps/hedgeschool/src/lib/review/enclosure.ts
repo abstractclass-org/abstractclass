@@ -13,10 +13,9 @@ import { boardPosition, playerOf, rulesOf, type DescribeReply, type GamePosition
 import type { EdgeInput, EdgeRules } from "#lib/board/edgeInput.svelte.ts";
 import type { BoardNote } from "#lib/board/notes.ts";
 import type { BookPlace } from "#lib/book/place.svelte.ts";
-import type { ExportKind } from "#lib/game/reviewFile.ts";
 import type { Display } from "./display.ts";
 import { turnFromCount } from "@abstractclass/analysis/turns.ts";
-import { PLAYER_NAME, type ViewTypes } from "@abstractclass/review/game.ts";
+import { PLAYER_NAME, type LayerSetting, type ViewTypes } from "@abstractclass/review/game.ts";
 export * from "@abstractclass/analysis/model.ts";
 export { fmtScore, PLAYER_NAME } from "@abstractclass/review/game.ts";
 export { edgeName, pointName, sameEdge, type Edge } from "#lib/engine/notation.ts";
@@ -47,6 +46,12 @@ export const AREA = { word: "area", title: "The area enclosed now, added at the 
 /** A move's text in the move lists (the review's, Practice's): as wide as the widest edge in the notation, 8
  *  characters (D10-G10x), in a monospaced font. */
 export const MOVE_TEXT = "w-[8ch]";
+/** The board's own layers in the display settings (the review's, Practice's): the regions, and the protected edges
+ *  after the area map's settings. */
+export const LAYERS: LayerSetting<"regions" | "protected">[] = [
+  { key: "regions", label: "Regions", help: "Shading on the areas each player encloses." },
+  { key: "protected", label: "Protected edges", help: "The edges the opponent cannot cut on the next turn.", afterMap: true },
+];
 
 /** An edge of a line, played: the edge it cuts (or null), and the regions and areas after it. An edge of the game's
  *  tree has its areas only where its position has them. */
@@ -79,7 +84,7 @@ export const moveNotation = (m: { edge: Edge | null; cut: Edge | null }) => `${m
 /** Enclosure's types (GameTypes): a move is an edge, a position the board's, a move played has its cut, the engine's
  *  fields are describe_game's, the rules are the edge input's, and a line's step is its cut, regions and areas. And the
  *  review's view's (ViewTypes, enclosureView.ts): the review's display settings (display.ts), the board's notes, the
- *  edge input, a point of the lattice, the opening book's place and the Export menu's entries. */
+ *  edge input, a point of the lattice and the opening book's place. */
 export interface Enclosure extends ViewTypes {
   move: Edge;
   position: Position;
@@ -93,7 +98,6 @@ export interface Enclosure extends ViewTypes {
   input: EdgeInput;
   point: [number, number];
   book: BookPlace;
-  export: ExportKind;
 }
 
 /** A move's cut edge, from describe_game's `cuts`. */
@@ -135,7 +139,6 @@ export const rankOf = withGame(shared.rankOf<Edge>);
 export const otherCandidate = withGame(shared.otherCandidate<Edge>);
 export const shownCandidates = withGame(shared.shownCandidates<Edge>);
 export const judgeBranchEdge = withGame(shared.judgeBranchMove<Edge>);
-export const judgeTurn = withGame(shared.judgeTurn<Edge>);
 
 // --- Enclosure's texts ----------------------------------------------------------------------------------------------
 /** The note's word on what a Great does besides being the only good move (design 10): it keeps what the opponent's
