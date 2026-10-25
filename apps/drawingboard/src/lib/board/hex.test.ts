@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { boxOf, center, anchorOf, fromMiddle, hexAt, hexKey, hexPath, inFrame, TOUCHING, outlinePath, parseHex, type Hex } from "./hex.ts";
+import { anchorOf, boxOf, center, fromMiddle, hexAt, hexKey, hexPath, inFrame, outlinePath, parseHex, TOUCHING, type Hex } from "./hex.ts";
 import { footprintOf } from "./position.ts";
 
 const near = (a: readonly number[], b: readonly number[]) =>
@@ -65,9 +65,9 @@ test("a group's outline is the sides that no other hex of the group shares", () 
   assert.equal(sides([[0, 0], ...TOUCHING]), 18); // a star with its ring
   // Side i joins corners i and i + 1, and faces the touching hex i: its middle is halfway to that hex's centre.
   const c = corners();
-  TOUCHING.forEach((n, i) => {
+  TOUCHING.forEach((h, i) => {
     const [a, b] = [c[i], c[(i + 1) % 6]];
-    const [x, y] = center(n).map(v => v / 2);
+    const [x, y] = center(h).map(v => v / 2);
     assert.ok(Math.hypot((a[0] + b[0]) / 2 - x, (a[1] + b[1]) / 2 - y) < 1e-3, `side ${i}`); // a path rounds to 0.001
   });
 });

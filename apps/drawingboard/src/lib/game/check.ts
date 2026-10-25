@@ -1,7 +1,7 @@
 // Checks a record's capture marks against what each move did (docs/design/33-drawing-board.md, item 6), as Hedge
-// School's check.ts checks the cut mark. What a move did comes from the engine: describe_game gives each move's captured
-// cells and points (request 23). Until the engine's browser build exists, the caller gives them. Problems count moves
-// from 1, as strategyjam.org's move list does.
+// School's check.ts checks the cut mark. What a move did comes from the engine: describe_game gives each move's
+// captured cells and points (request 23). Until the engine's browser build exists, the caller gives them. Problems
+// count moves from 1, as strategyjam.org's move list does.
 import { captureText, moveText, type Capture } from "./notation.ts";
 import type { GameRecord } from "./record.ts";
 

@@ -19,11 +19,12 @@
 
 <script lang="ts">
   // Blueprints' board (docs/design/33-drawing-board.md), in Hedge School's style: the cells on an unbounded grid of
-  // hexes, each player's hand beside it, the last move, the engine's candidates (each placement's outline, numbered by
-  // rank, and the ranks in the hands), and the engine's line numbered from the candidate (design 07). The grid has no
-  // edge, so the board pans, zooms and fits the cells. It fills the area that the page gives it (design 06): the hands
-  // go in a column on each side of a wide area, Blue's on the left as Blue's cells start on the left, and in a row above
-  // and below a tall one (a phone). Geometry only: what a move places and captures comes from the move's data.
+  // hexes, each player's hand beside it, the last move, the engine's candidates (each placement's candidate outline
+  // with its rank, and the rank chips in the hands), and the engine's line numbered from the candidate (design 07). The
+  // grid has no edge, so the board pans, zooms and fits the cells. It fills the area that the page gives it (design
+  // 06): the hands go in a column on each side of a wide area, Blue's on the left as Blue's cells start on the left,
+  // and in a row above and below a tall one (a phone). Geometry only: a placement's footprint and its captured cells
+  // come from the move's data.
   import Cell from "./Cell.svelte";
   import Hand, { blueprintBoxes, fitUnit, type HandMarks } from "./Hand.svelte";
   import { boxOf, center, fromMiddle, GRID_TILE, GRID_TILE_PATH, hexAt, hexKey, hexPath, outlinePath, sameHex } from "./hex.ts";
@@ -35,7 +36,7 @@
     last?: BoardMove | null; // the move that led to the position
     candidates?: BoardCandidate[];
     pinned?: string | null; // the candidate pinned: the page keeps its line drawn after a click
-    line?: BoardLineMove[] | null; // the line of the candidate pointed at, as far as drawn: numbered, the candidate first
+    line?: BoardLineMove[] | null; // the line of the candidate pointed at or pinned, as far as drawn: the candidate first
     layers?: Partial<BoardLayers>; // the layers that differ from DEFAULT_LAYERS
     oncandidate?: (name: string | null) => void;
     oncandidateclick?: (name: string) => void;
@@ -70,13 +71,13 @@
   // The candidates show while no line does, so that the board's only numbers are the line's. Their edits are in the
   // position's frames too, and a line shows its own hands.
   const showCandidates = $derived(layers.candidates && !drawn.length);
-  // The board's cells, less the ones that the line captures: those are drawn as captured cells, as the last move's are.
+  // The board's cells, less the ones that the line captures: those are drawn as captured, as the last move's are.
   const allCells = $derived(cellsOf(position));
   const lineCaptured = $derived(drawn.flatMap(l => (l.move.type === "place" ? l.move.captured : [])));
   const cells = $derived.by(() => {
     if (!lineCaptured.length) return allCells;
-    const gone = new Set(lineCaptured.map(c => hexKey(c.hex)));
-    return allCells.filter(c => !gone.has(hexKey(c.hex)));
+    const captured = new Set(lineCaptured.map(c => hexKey(c.hex)));
+    return allCells.filter(c => !captured.has(hexKey(c.hex)));
   });
   const lastPlace = $derived(last?.type === "place" ? last : null);
 
@@ -89,9 +90,9 @@
   const vb = $derived(viewBox(view, field));
 
   // The candidates: the placements, best first, and the edits. Where each placement's rank goes: on its footprint's hex
-  // nearest the footprint's middle, or on the next nearest that keeps clear of the better candidates' ranks and first
-  // cells, since candidates overlap and the pointer finds a candidate on both. Ranks on two hexes never meet: a rank's
-  // badge is 1.2 wide and high, and two hexes' centres are √3 apart across, or 1.5 apart up and down.
+  // nearest the footprint's middle, or on the next nearest that keeps clear of the better candidates' ranks and anchor
+  // hexes, since candidates overlap and the pointer finds a candidate on both. Ranks on two hexes never meet: a rank's
+  // square is 1.2 wide and high, and two hexes' centres are √3 apart across, or 1.5 apart up and down.
   const placements = $derived(layers.candidates
     ? candidates.filter((c): c is Placement => c.move.type === "place").toSorted((a, b) => a.rank - b.rank) : []);
   const edits = $derived(layers.candidates ? candidates.filter((c): c is Edit => c.move.type === "edit") : []);
@@ -115,10 +116,10 @@
   $effect.pre(() => { void position; hoverHex = null; handHover = null; hoverName = null; });
   const hovered = $derived(layers.candidates && hoverName ? candidates.find(c => c.name === hoverName) ?? null : null);
   const active = $derived(hovered ?? (pinned ? candidates.find(c => c.name === pinned) ?? null : null));
-  // While a line shows, the candidates are hidden, and the pointer finds only the active one, so that the candidate whose
-  // line it is keeps its hover, as on Hedge School's board.
+  // While a line shows, the candidates are hidden, and the pointer finds only the active one, so that the candidate
+  // whose line it is keeps its hover, as on Hedge School's board.
   const findable = (c: BoardCandidate) => showCandidates || c.name === active?.name;
-  /** The best placement whose anchor hex or whose rank chip is on a hex of the board. */
+  /** The best placement whose anchor hex or whose rank is on a hex of the board. */
   const placementAt = (h: Hex) =>
     placements.find(c => findable(c) && (sameHex(c.move.at, h) || sameHex(rankPlaces.get(c.name)!, h))) ?? null;
   /** The candidate whose edit takes a cell from a hex of a hand (where the hand shows its rank) or puts it there. */
@@ -228,9 +229,9 @@
 
 <!-- A candidate's rank in a rounded square: the engine's line numbers its moves in circles (Go's numbered stones), so
      the candidates take another shape, as on Hedge School's board. -->
-{#snippet rankChip(h: Hex, rank: number)}
+{#snippet rankAt(h: Hex, rank: number)}
   {@const [x, y] = center(h)}
-  <rect x={x - 0.6} y={y - 0.6} width="1.2" height="1.2" rx="0.28" class="rank-chip" />
+  <rect x={x - 0.6} y={y - 0.6} width="1.2" height="1.2" rx="0.28" class="rank" />
   <text {x} y={y + 0.27} class="badge-number">{rank}</text>
 {/snippet}
 
@@ -269,10 +270,10 @@
           <Cell hex={c.hex} owner={c.owner} kind={c.kind} />
         {/each}
 
-        <!-- The last move: one outline round a placement's footprint, and the cells that it captured, drawn as captured cells.
-             The outline is the edge of the footprint as a whole, as a candidate outline is, so that it has one
-             width all round. Its stroke is centred on that edge and clipped to the footprint: the inner half
-             shows, and the neighbours' cells stay clear. Round caps fill the inner corners. -->
+        <!-- The last move: one outline round a placement's footprint, and its captured cells. The outline is the edge
+             of the footprint as a whole, as a candidate outline is, so that it has one width all round. Its stroke is
+             centred on that edge and clipped to the footprint: the inner half shows, and the cells on the touching
+             hexes stay clear. Round caps fill the inner corners. -->
         {#if lastPlace}
           {#each lastPlace.captured as c (hexKey(c.hex))}
             <Cell hex={c.hex} owner={c.owner} kind={c.kind} look="captured" />
@@ -282,11 +283,12 @@
               <path d={hexPath(...center(s.hex))} />
             {/each}
           </clipPath>
-          <path d={outlinePath(lastPlace.footprint.map(s => s.hex))} clip-path="url(#{lastId})" class="last-move-outline" />
+          <path d={outlinePath(lastPlace.footprint.map(s => s.hex))} clip-path="url(#{lastId})"
+                class="last-move-outline" />
         {/if}
 
-        <!-- The candidates: each placement's footprint as an outline, the cells of the one pointed at faded in the mover's
-             colour, then all the ranks over them. The first choice is drawn last, so that it stays on top. -->
+        <!-- The candidates: each placement's candidate outline, the cells of the active one faded in the mover's colour,
+             then all the ranks over them. The first choice is drawn last, so that it stays on top. -->
         {#if showCandidates}
           {@const ordered = placements.toReversed()}
           {#each ordered as c (c.name)}
@@ -302,14 +304,14 @@
           {/each}
           {#each ordered as c (c.name)}
             <g class="candidate" class:first={c.rank === 1} class:active={active?.name === c.name}>
-              {@render rankChip(rankPlaces.get(c.name)!, c.rank)}
+              {@render rankAt(rankPlaces.get(c.name)!, c.rank)}
             </g>
           {/each}
         {/if}
 
-        <!-- The engine's line from the candidate pointed at (KaTrain's and Lizzie's way): each placement's cells faded
-             and dashed in the mover's colour, numbered from the candidate, which is 1, on its hex. The cells that it
-             captures are drawn as captured cells. A line's edits are numbered in the hands. -->
+        <!-- The engine's line from the candidate pointed at or pinned (KaTrain's and Lizzie's way): each placement's
+             cells faded and dashed in the mover's colour, numbered from the candidate, which is 1, on its hex. Its
+             captured cells are drawn as the last move's are. A line's edits are numbered in the hands. -->
         {#if drawn.length}
           <g class="line">
             {#each lineCaptured as c, i (i)}
@@ -396,9 +398,9 @@
   .candidate.active { opacity: 1; }
   .candidate-outline { fill: none; stroke: var(--candidate); stroke-width: 0.12; stroke-linecap: round; }
   .first .candidate-outline { stroke: var(--engine); stroke-width: 0.2; }
-  .rank-chip { fill: var(--candidate); stroke: var(--board-bg); stroke-width: 0.08; }
-  .first .rank-chip { fill: var(--engine); }
-  .active .rank-chip { stroke: var(--text); stroke-width: 0.1; }
+  .rank { fill: var(--candidate); stroke: var(--board-bg); stroke-width: 0.08; }
+  .first .rank { fill: var(--engine); }
+  .active .rank { stroke: var(--text); stroke-width: 0.1; }
   .badge-number { font-size: 0.8px; fill: var(--on-badge); text-anchor: middle; font-weight: 700; font-family: system-ui, sans-serif; }
   .line { pointer-events: none; }
   .line-badge { stroke: var(--board-bg); stroke-width: 0.08; }

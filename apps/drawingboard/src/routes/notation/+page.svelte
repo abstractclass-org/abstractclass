@@ -55,7 +55,8 @@
       hex's radius. <code>q</code> grows to the right, and <code>r</code> grows down the screen. strategyjam.org draws
       its board so.</li>
     <li><strong>The origin,</strong> <code>0,0</code>, is between the two players' starting groups.</li>
-    <li><strong>The six hexes touching</strong> (q, r) are (q ± 1, r), (q, r ± 1), (q + 1, r − 1) and (q − 1, r + 1).</li>
+    <li><strong>The six hexes touching</strong> (q, r) are (q ± 1, r), (q, r ± 1), (q + 1, r − 1) and
+      (q − 1, r + 1).</li>
     <li><strong>A coordinate</strong> is an integer, with <code>-</code> when it is less than 0. A writer writes no
       <code>+</code> and no leading zeros.</li>
   </ul>
@@ -78,9 +79,9 @@
   <p>Each player holds three blueprints, numbered <code>1</code>, <code>2</code> and <code>3</code>. A blueprint is a
     shape of cells in its own frame, in the same axial coordinates as the board.</p>
   <ul>
-    <li><strong>The anchor cell</strong> of a blueprint is its first cell in reading order: the least <code>r</code>, then the
-      least <code>q</code>. It is the cell <code>0,0</code> of the blueprint's frame. Other cells can have a negative
-      <code>q</code>.</li>
+    <li><strong>The anchor cell</strong> of a blueprint is its first cell in reading order: the least <code>r</code>,
+      then the least <code>q</code>. It is the cell <code>0,0</code> of the blueprint's frame. Other cells can have a
+      negative <code>q</code>.</li>
     <li><strong>After each edit,</strong> the rules put the blueprints back in their frames: the new anchor cell becomes
       <code>0,0</code>.</li>
     <li><strong>At the start,</strong> each blueprint is a star with a ring of six cells. In its frame, its cells are
@@ -168,9 +169,9 @@
 
   <h3>Comments and variations</h3>
   <p>A comment is in braces, <code>{"{ … }"}</code>. A comment can also come before the first turn, after the tags, as
-    a note on the whole game. A variation is in parentheses, <code>( … )</code>: other moves in place of a turn. Both can
-    hold others. A variation follows the turn that it changes, after that turn's last move, its marks and its comments.
-    Its first number tells where it leaves the line, and it is always the number of the turn before it:</p>
+    a note on the whole game. A variation is in parentheses, <code>( … )</code>: other moves in place of a turn. Both
+    can hold others. A variation follows the turn that it changes, after that turn's last move, its marks and its
+    comments. Its first number tells where it leaves the line, and it is always the number of the turn before it:</p>
   <ul>
     <li><code>N.</code> starts at the turn's start, and replaces the whole turn:
       <code>3. 1@1,-3x 1@0,3x+8 (3. 2@1,-3x 1@0,3x+11)</code>.</li>
@@ -187,8 +188,8 @@
     <code>1@0,3x+8??</code>.</p>
   <pre>{MARKED}</pre>
   <p>A judgement of one move stays in a comment. A reader accepts a mark after any move, and can ignore it. The review
-    will mark its quality labels by turn, as Hedge School's does: Great <code>!</code>, Inaccuracy <code>?!</code>, Mistake
-    <code>?</code> and Blunder <code>??</code>. Best, Excellent and Good have no mark, as PGN has none for them.</p>
+    will mark its quality labels by turn, as Hedge School's does: Great <code>!</code>, Inaccuracy <code>?!</code>,
+    Mistake <code>?</code> and Blunder <code>??</code>. Best, Excellent and Good have no mark, as PGN has none for them.</p>
 
   <h3>Commands in comments</h3>
   <p>A comment after a move can hold commands, as Lichess writes the clock and the evaluation:</p>

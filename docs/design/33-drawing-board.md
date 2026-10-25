@@ -65,11 +65,11 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
    - **A pass** is `pass`: a player's clock ran out. The rules never offer it as a move.
    - **The board as the players see it:** pointy-top hexes, x = √3 (q + r / 2) and y = 1.5 r, with r down the
      screen. strategyjam.org draws its board so.
-6. **The marks of a placement:** `x` when it captures opponent cells, and `x+N` when it scores N points (`2@-3,1x+24`).
-   A placement that captures a star and scores 0 has `x` alone: the mover had no star on the board. No writer writes
-   `+0`. The marks repeat what the position shows. A reader accepts a move with them or without them, and refuses a
-   mark that the position does not confirm, as Hedge School's reader refuses `x` on an edge that cuts nothing. The
-   quality marks (`?`, `!` and the others) come after them.
+6. **A placement's capture mark:** `x` when it captures opponent cells, and `x+N` when it also scores N points
+   (`2@-3,1x+24`). A placement that captures a star and scores 0 has `x` alone: the mover had no star on the board. No
+   writer writes `+0`. The capture mark repeats what the position shows. A reader accepts a move with it or without
+   it, and refuses a capture mark that the position does not confirm, as Hedge School's reader refuses `x` on an edge
+   that cuts nothing. The quality marks (`?`, `!` and the others) come after it.
 7. **The record: Hedge School's form** (its Notation page): the tags, with `Blue` and `Red` for the players, the turns
    with their numbers (1 to 61, as Enclosure's), the comments, the variations, the quality marks by turn, and the
    commands in comments (`[%eval]`, `[%clk]`). strategyjam.org numbers the moves (1 to 120). The record numbers the
@@ -114,8 +114,8 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
 - **`x` alone would join two events.** Of the archive's 105,820 placements, 73,599 capture an opponent's cell and 41,864
   score, 57.4 points on average. So 31,735 placements capture cells and score nothing. A score is the event that
   decides a game, and strategyjam.org's move label shows it.
-- **No `+0`:** the mark gives the points, and the position's scores confirm it. A third case would give one move two
-  spellings. strategyjam.org's label shows `+N` only when N is more than 0.
+- **No `+0`:** the capture mark gives the points, and the position's scores confirm it. A third case would give one
+  move two spellings. strategyjam.org's label shows `+N` only when N is more than 0.
 
 ## Alternatives
 
@@ -126,9 +126,9 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
 - **A notation of our own:** a placement named by the blueprint's star or its centre, or cube coordinates. A
   blueprint's shape changes with each edit, so it may have no star and no centre. Every player and record would need
   a translation.
-- **One mark, `x`, for every capture:** it does not tell a scoring placement from one that scores nothing.
-- **A mark for a star captured:** it does not give the points, and it is wrong in the 83 placements where a star was
-  captured and the score did not change.
+- **`x` alone for every capture:** it does not tell a scoring placement from one that scores nothing.
+- **A capture mark for a star captured:** it does not give the points, and it is wrong in the 83 placements where a
+  star was captured and the score did not change.
 
 ## Consequences
 
@@ -176,26 +176,26 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
 - `.github/workflows/deploy.yml`, the job `drawingboard`: the deploy, skipped while `DRAWINGBOARD_PAGES_PROJECT` is
   empty ([hosting.md](../hosting.md), "Drawing Board").
 - `apps/drawingboard/src/lib/board/`: the board, built on hand-made positions until the engine's browser build comes.
-  - `Board.svelte`: the cells, the two hands, the last move (one outline round its footprint, the cells that it captured
-    drawn as captured cells, an edit's arrow in the hand), the candidates, the line (numbered from the candidate), and
-    the hex under the pointer with its coordinates. The last-move outline is the edge of the footprint as a whole, in
-    the last move's colour. It is inside the footprint, so it has one width all round and does not cover a touching hex.
+  - `Board.svelte`: the cells, the two hands, the last move (one outline round its footprint, its captured cells, an
+    edit's arrow in the hand), the candidates, the line (numbered from the candidate), and the hex under the pointer
+    with its coordinates. The last-move outline is the edge of the footprint as a whole, in the last move's colour. It
+    is inside the footprint, so it has one width all round and does not cover a touching hex.
     Its props follow design 29, item 9: the position, the last move, the candidates (name, move, rank, note), the line
     (each move with its mover and the hands after it), and the pinned candidate. A move carries what the board draws of
-    it: the cells that a placement puts and captures come from the move's data, not from rules.
+    it: a placement's footprint and its captured cells come from the move's data, not from rules.
   - The hands: in a column on each side of a wide area (Blue's on the left, as Blue's cells start on the left), and
     in a row above and below a tall one, such as a phone's. Each blueprint has its own panel, with its number in a
     box and its frame's grid. A blueprint's anchor cell has no mark: it is the first in reading order. An empty
     blueprint shows its hex 0,0 dashed, where an edit can put a cell. All six blueprints have one scale.
-  - The candidates: each placement's footprint as an outline, the first choice's thicker and in the engine's colour, the
-    others grey. The rank chip goes on the footprint's hex nearest its middle, or on the next nearest that keeps clear
-    of a better candidate's rank chip and anchor hex. The outlines show each move's shape, and the board's cells stay
-    visible. In the hands, a rank chip goes on each blueprint that a placement places, and an edit's rank chip goes on
-    the cell that it moves, with an arrow to its new place, which is dashed. So a reader sees which blueprint each
-    candidate takes without a hover. When a candidate is pointed at or pinned, its cells show faded in the mover's
-    colour. A hover or a click finds a candidate by its anchor hex (the hex that its name, `K@q,r`, gives) or by its
-    rank chip's hex. While a line shows, the candidates are hidden, and the pointer finds only the candidate whose line
-    it is, as on Hedge School's board.
+  - The candidates: each placement's candidate outline round its footprint, the first choice's thicker and in the
+    engine's colour, the others grey. The rank goes on the footprint's hex nearest its middle, or on the next nearest
+    that keeps clear of a better candidate's rank and anchor hex. The outlines show each move's shape, and the board's
+    cells stay visible. In the hands, a rank chip goes on each blueprint that a placement places, and an edit's rank
+    goes on the cell that it moves, with an arrow to its new place, which is dashed. So a reader sees which blueprint
+    each candidate takes without a hover. When a candidate is pointed at or pinned, its cells show faded in the
+    mover's colour. A hover or a click finds a candidate by its anchor hex (the hex that its name, `K@q,r`, gives) or
+    by its rank's hex. While a line shows, the candidates are hidden, and the pointer finds only the candidate whose
+    line it is, as on Hedge School's board.
   - The view: the board fits the cells until the player pans or zooms, and again after "Show all the cells". A drag
     or one finger pans, two fingers pinch, and the wheel zooms round the pointer by d3-zoom's steps.
   - `position.ts`: the position in strategyjam.org's form and the move as the board draws it. `hex.ts`: the grid's

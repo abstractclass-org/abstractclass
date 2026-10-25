@@ -1,9 +1,9 @@
 // Hand-made positions for the board's lab page and tests: the start, a middle game with candidates and a line, a
 // capture, an edit and an empty blueprint. No game of strategyjam.org's archive: this repository is public. The
-// builder below only moves cells as each move's data says (the cells that a placement captures are listed by hand), and
-// puts each blueprint back in its frame, as the notation names the cells (design 33, item 5). It checks only that the
-// hand-made data holds together (a footprint on empty hexes, a captured cell of the opponent), not that a move is legal: the
-// engine has the rules.
+// builder below only moves cells as each move's data says (the cells that a placement captures are listed by hand),
+// and puts each blueprint back in its frame, as the notation names the cells (design 33, item 5). It checks only that
+// the hand-made data holds together (a footprint on empty hexes, a captured cell of the opponent), not that a move is
+// legal: the engine has the rules.
 import { moveName } from "../game/notation.ts";
 import type { BoardCandidate, BoardLineMove } from "./Board.svelte";
 import { anchorOf, hexKey, inFrame, parseHex, type Hex } from "./hex.ts";
@@ -50,9 +50,10 @@ function start(): SitePosition {
 
 export interface Built { position: SitePosition; last: BoardMove | null }
 
-/** Blueprint `k` of `player` placed with its anchor cell on `at`, capturing the cells at `captured` (by hand), for
+/** Blueprint `k` of `player` placed with its anchor cell on `at`, capturing the cells at `capturedAt` (by hand), for
  *  `points`. */
-export function place(b: Built, player: Player, k: BlueprintNumber, at: Hex, captured: string[] = [], points = 0): Built {
+export function place(b: Built, player: Player, k: BlueprintNumber, at: Hex, capturedAt: string[] = [],
+                      points = 0): Built {
   const p = b.position, cells = { ...p.cells };
   const footprint = footprintOf(p.blueprints[player][k - 1], at);
   for (const s of footprint) {
@@ -60,7 +61,7 @@ export function place(b: Built, player: Player, k: BlueprintNumber, at: Hex, cap
     if (cells[key]) throw new Error(`fixture: ${k}@${hexKey(at)} puts a cell on ${key}, which has a cell`);
     cells[key] = [player, s.kind];
   }
-  const gone = captured.map(key => {
+  const captured = capturedAt.map(key => {
     const c = cells[key];
     if (!c || c[0] === player) throw new Error(`fixture: ${key} has no cell of the opponent to capture`);
     delete cells[key];
@@ -70,7 +71,7 @@ export function place(b: Built, player: Player, k: BlueprintNumber, at: Hex, cap
   scores[player] += points;
   return {
     position: { ply: p.ply + 1, cells, blueprints: p.blueprints, scores },
-    last: { type: "place", player, blueprint: k, at, footprint, captured: gone },
+    last: { type: "place", player, blueprint: k, at, footprint, captured },
   };
 }
 

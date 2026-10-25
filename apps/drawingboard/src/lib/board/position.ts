@@ -26,7 +26,8 @@ export interface SitePosition {
 
 /** A cell of the board, or of a blueprint (whose owner is the hand's). */
 export interface Cell { hex: Hex; owner: Player; kind: Kind }
-export interface Piece { hex: Hex; kind: Kind }
+/** A cell of a blueprint, without its owner: its hex in the blueprint's frame, or on the board once placed. */
+export interface BlueprintCell { hex: Hex; kind: Kind }
 
 /** A hex of a blueprint: blueprint I's cell at (q, r) of its frame, as an edit names it (`I:q,r`). */
 export interface HandHex { blueprint: BlueprintNumber; hex: Hex }
@@ -41,7 +42,7 @@ export const sameHandHex = (a: HandHex, b: HandHex): boolean => a.blueprint === 
  *    them).
  *  - A pass. */
 export type BoardMove =
-  | { type: "place"; player: Player; blueprint: BlueprintNumber; at: Hex; footprint: Piece[]; captured: Cell[] }
+  | { type: "place"; player: Player; blueprint: BlueprintNumber; at: Hex; footprint: BlueprintCell[]; captured: Cell[] }
   | { type: "edit"; player: Player; kind: Kind; from: HandHex; to: HandHex }
   | { type: "pass"; player: Player };
 
@@ -50,11 +51,12 @@ export const cellsOf = (p: SitePosition): Cell[] =>
   Object.entries(p.cells).map(([key, [owner, kind]]) => ({ hex: parseHex(key), owner, kind }));
 
 /** A blueprint's cells, in its frame. */
-export const piecesOf = (b: Blueprint): Piece[] => Object.entries(b).map(([key, kind]) => ({ hex: parseHex(key), kind }));
+export const blueprintCells = (b: Blueprint): BlueprintCell[] =>
+  Object.entries(b).map(([key, kind]) => ({ hex: parseHex(key), kind }));
 
 /** A blueprint's cells on the board, with its anchor cell on `at`: a placement's footprint. */
-export const footprintOf = (b: Blueprint, at: Hex): Piece[] => {
-  const pieces = piecesOf(b);
-  const hexes = shift(pieces.map(p => p.hex), at);
-  return pieces.map((p, i) => ({ hex: hexes[i], kind: p.kind }));
+export const footprintOf = (b: Blueprint, at: Hex): BlueprintCell[] => {
+  const cells = blueprintCells(b);
+  const hexes = shift(cells.map(c => c.hex), at);
+  return cells.map((c, i) => ({ hex: hexes[i], kind: c.kind }));
 };

@@ -1,6 +1,6 @@
 <script lang="ts" module>
   import { boxOf, center, GRID_TILE, GRID_TILE_PATH, hexAt, hexPath, type Box, type Hex } from "./hex.ts";
-  import { piecesOf, PLAYER_NAMES, sameHandHex, type BlueprintNumber, type Hand, type HandHex, type Player } from "./position.ts";
+  import { blueprintCells, PLAYER_NAMES, sameHandHex, type BlueprintNumber, type Hand, type HandHex, type Player } from "./position.ts";
   import type { Size } from "./view.ts";
   import Cell, { CELL_SIZE } from "./Cell.svelte";
 
@@ -18,7 +18,7 @@
     const edits = [marks.last, ...marks.candidates, ...marks.line].filter(e => !!e);
     return hand.map((b, i) => {
       const n = (i + 1) as BlueprintNumber;
-      const hexes: Hex[] = [[0, 0], ...piecesOf(b).map(p => p.hex)];
+      const hexes: Hex[] = [[0, 0], ...blueprintCells(b).map(c => c.hex)];
       for (const e of edits) for (const h of [e.from, e.to]) if (h.blueprint === n) hexes.push(h.hex);
       return boxOf(hexes)!;
     });
@@ -67,7 +67,7 @@
 
   const uid = $props.id();
   const gridId = `${uid}-grid`;
-  const pieces = $derived(hand.map(piecesOf));
+  const cells = $derived(hand.map(blueprintCells));
   // Each panel's place in the hand, the box that it draws (`inner`: less half the gap all round), and the point of the
   // panel where the blueprint's frame has its origin, so that the blueprint's box sits in the panel's middle.
   const panels = $derived(boxes.map((box, i) => {
@@ -131,7 +131,7 @@
     <svg x={d.left} y={d.top} width={d.width} height={d.height} overflow="hidden">
       <g transform="translate({p.ox - d.left} {p.oy - d.top}) scale({unit})">
         <rect x={(p.x - p.ox) / unit} y={(p.y - p.oy) / unit} width={p.w / unit} height={p.h / unit} fill="url(#{gridId})" />
-        {#each pieces[p.n - 1] as c (`${c.hex}`)}
+        {#each cells[p.n - 1] as c (`${c.hex}`)}
           <Cell hex={c.hex} owner={player} kind={c.kind} />
         {:else}
           <!-- A blueprint that the last move emptied gave its one cell, from 0,0: the old place's mark dashes it. -->
@@ -169,7 +169,7 @@
     <g class:first={c.rank === 1}>
       <path d={hexPath(x, y, 0.86 * unit)} class="target" />
       {@render arrow(c, "cand")}
-      <rect x={fx - 0.6 * unit} y={fy - 0.6 * unit} width={1.2 * unit} height={1.2 * unit} rx={0.3 * unit} class="rank-chip" />
+      <rect x={fx - 0.6 * unit} y={fy - 0.6 * unit} width={1.2 * unit} height={1.2 * unit} rx={0.3 * unit} class="rank" />
       <text x={fx} y={fy + 0.29 * unit} font-size={0.8 * unit} class="badge-number">{c.rank}</text>
     </g>
   {/each}
@@ -209,8 +209,8 @@
   .arrow-head.line { fill: var(--own); }
   .target { fill: none; stroke: var(--candidate); stroke-width: 1.5; stroke-dasharray: 2 2; }
   .first .target { stroke: var(--engine); }
-  .rank-chip { fill: var(--candidate); stroke: var(--board-bg); stroke-width: 1; }
-  .first .rank-chip { fill: var(--engine); }
+  .rank-chip, .rank { fill: var(--candidate); stroke: var(--board-bg); stroke-width: 1; }
+  .first .rank-chip, .first .rank { fill: var(--engine); }
   .line-badge { fill: var(--own); stroke: var(--board-bg); stroke-width: 1; }
   .badge-number { fill: var(--on-badge); font-weight: 700; font-family: system-ui, sans-serif; text-anchor: middle; pointer-events: none; }
   .hover { fill: var(--last); fill-opacity: 0.25; stroke: var(--last); stroke-width: 1.5; pointer-events: none; }

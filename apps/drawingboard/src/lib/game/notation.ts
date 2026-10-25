@@ -4,20 +4,21 @@
 // - An edit `I:q,r>J:q,r`: the cell at (q, r) of blueprint I goes to (q, r) of blueprint J, both in the blueprints'
 //   frames as they are before the edit (the target's cell can come before its anchor cell: `1:0,0>3:1,-1`).
 // - `pass`: a player's clock ran out. It counts as one move.
-// A placement that captures opponent cells carries the mark `x`, and `x+N` when it scores N points (`2@-3,1x+24`), never
-// `+0`. The engine gives the captured cells and the points (check.ts). This module checks the notation, not the rules:
-// the engine checks that a move is legal. The move's name, its one spelling, is the string without its mark: the move
-// tree, the cache and the engine key on it (@abstractclass/analysis/game.ts).
+// A placement that captures opponent cells carries the mark `x`, and `x+N` when it scores N points (`2@-3,1x+24`),
+// never `+0`. The engine gives the captured cells and the points (check.ts). This module checks the notation, not the
+// rules: the engine checks that a move is legal. The move's name, its one spelling, is the string without its mark: the
+// move tree, the cache and the engine key on it (@abstractclass/analysis/game.ts).
 import type { Moves } from "@abstractclass/analysis/game.ts";
 import type { ReadMove } from "@abstractclass/record/record.ts";
 export { turnFromCount } from "@abstractclass/analysis/turns.ts";
 
-/** A blueprint's number. */
 export type BlueprintNumber = 1 | 2 | 3;
 /** A cell's place in a hand: the blueprint's number, and the place in the blueprint's own frame. */
 export interface HandCell { blueprint: BlueprintNumber; q: number; r: number }
 /** A move, not a pass: a placement on the hex (q, r), or an edit of one cell. */
-export type Move = { kind: "place"; blueprint: BlueprintNumber; q: number; r: number } | { kind: "edit"; from: HandCell; to: HandCell };
+export type Move =
+  | { kind: "place"; blueprint: BlueprintNumber; q: number; r: number }
+  | { kind: "edit"; from: HandCell; to: HandCell };
 /** A placement's capture mark: it captures opponent cells, and scores `points` (0 for the mark `x` alone). */
 export interface Capture { points: number }
 
@@ -45,9 +46,10 @@ function readName(text: string): Move | string {
   const [k, q, r, j, tq, tr] = numbers, blueprint = (b: number) => b >= 1 && b <= 3;
   if (!blueprint(k) || (edit && !blueprint(j))) return "a blueprint's number is 1, 2 or 3";
   if (place) return { kind: "place", blueprint: k as BlueprintNumber, q, r };
-  // A blueprint's anchor cell is its cell 0,0, the least r, then the least q: the cell that an edit moves is not before it.
-  if (r < 0 || (r === 0 && q < 0)) return "an edit cannot move a cell from before its blueprint's anchor cell (0,0)";
-  return { kind: "edit", from: { blueprint: k as BlueprintNumber, q, r }, to: { blueprint: j as BlueprintNumber, q: tq, r: tr } };
+  // A blueprint's anchor cell, 0,0, is its first in reading order: the cell that an edit moves is not before it.
+  if (r < 0 || (r === 0 && q < 0)) return "an edit can move only a cell at or after its blueprint's anchor cell (0,0)";
+  return { kind: "edit", from: { blueprint: k as BlueprintNumber, q, r },
+           to: { blueprint: j as BlueprintNumber, q: tq, r: tr } };
 }
 
 /** The move of a name that is not "pass". Throws on a malformed name. */

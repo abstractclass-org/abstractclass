@@ -44,7 +44,8 @@ const corner = (x: number, y: number, size: number, i: number) => {
 };
 const round = (v: number) => Math.round(v * 1000) / 1000 + 0;
 
-/** The six hexes touching a hex, in the order of a hex's sides: side i joins corners i and i + 1, the first is the upper right. */
+/** The six hexes that touch a hex, in the order of its sides: side i joins corners i and i + 1, the first is the upper
+ *  right. */
 export const TOUCHING: readonly Hex[] = [[1, -1], [1, 0], [0, 1], [-1, 1], [-1, 0], [0, -1]];
 
 /** The outline of a group of hexes: the sides that no other hex of the group shares, as separate lines of a path. */
@@ -63,9 +64,9 @@ export function outlinePath(hexes: readonly Hex[]): string {
 /** The hex of a blueprint's anchor cell: the first in reading order, the least r, then the least q. It is the cell
  *  (0, 0) of the blueprint's own frame (design 33, item 5). Null for no hexes. */
 export function anchorOf(hexes: readonly Hex[]): Hex | null {
-  let first: Hex | null = null;
-  for (const h of hexes) if (!first || h[1] < first[1] || (h[1] === first[1] && h[0] < first[0])) first = h;
-  return first;
+  let anchor: Hex | null = null;
+  for (const h of hexes) if (!anchor || h[1] < anchor[1] || (h[1] === anchor[1] && h[0] < anchor[0])) anchor = h;
+  return anchor;
 }
 
 /** Hexes moved by (dq, dr). */

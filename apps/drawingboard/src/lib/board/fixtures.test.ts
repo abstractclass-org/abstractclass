@@ -26,7 +26,7 @@ test("every blueprint is in its frame: its anchor cell at 0,0, or no cell", () =
       }
 });
 
-test("a placement's footprint cells are the mover's after it, and its captured cells are gone", () => {
+test("a placement's footprint has the mover's cells after it, and its captured cells are off the board", () => {
   const moves = FIXTURES.flatMap(f => [
     { position: f.position, move: f.last },
     ...Object.values(f.lines ?? {}).flat().map(l => ({ position: null, move: l.move })),
@@ -34,7 +34,7 @@ test("a placement's footprint cells are the mover's after it, and its captured c
   for (const { position, move } of moves) {
     if (move?.type !== "place" || !position) continue;
     for (const s of move.footprint) assert.deepEqual(position.cells[hexKey(s.hex)], [move.player, s.kind]);
-    for (const r of move.captured) assert.equal(position.cells[hexKey(r.hex)], undefined);
+    for (const c of move.captured) assert.equal(position.cells[hexKey(c.hex)], undefined);
   }
   const capture = FIXTURES[2];
   assert.equal(capture.last?.type === "place" && capture.last.captured.length, 3);

@@ -2,10 +2,10 @@
 // 29, design 33): tag pairs, then the turns. A turn has a number (`1.`, `2.`: the first player's turns are odd, the
 // second player's even), then its moves, or `pass` for a timeout. `{ comments }` and `( branches )` nest. A branch at a
 // turn's second move writes `...` (`4...`). A move can carry the game's own mark, which repeats what the position shows
-// (Enclosure's cut mark `x`, Blueprints' capture mark `x+24`). A reader takes a move with or without it: the engine checks a mark,
-// in the site. A turn's quality mark (PGN's `!!`, `!`, `!?`, `?!`, `?`, `??`) follows its last move, after the game's
-// mark: `G9-G12x??`. A reader takes a quality mark after any move, and this one drops it. The result ends the record
-// (`b+28`, `r+R`, `b+F`, `0`, `*`).
+// (Enclosure's cut mark `x`, Blueprints' capture mark `x+24`). A reader takes a move with or without it: the engine
+// checks a mark, in the site. A turn's quality mark (PGN's `!!`, `!`, `!?`, `?!`, `?`, `??`) follows its last move,
+// after the game's mark: `G9-G12x??`. A reader takes a quality mark after any move, and this one drops it. The result
+// ends the record (`b+28`, `r+R`, `b+F`, `0`, `*`).
 //
 // The game gives its moves' syntax and marks (Notation): the reader asks it for each word that is not a turn label, a
 // pass or a result. This reader keeps the main line and its tags. It skips comments and branches, but reads `[%clk]`
