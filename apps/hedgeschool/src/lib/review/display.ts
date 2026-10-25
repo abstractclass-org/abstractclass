@@ -5,7 +5,7 @@
 import { DEFAULT_LAYERS, type BoardLayers } from "#lib/board/Board.svelte";
 import { MOVE_SOUNDS, type MoveSound } from "#lib/sound.ts";
 import { readLocalJson, writeLocal } from "@abstractclass/storage/local.ts";
-import type { MapStyle } from "./ownership.ts";
+import type { MapStyle } from "@abstractclass/review/ownership.ts";
 
 export interface Display {
   judge: "turn" | "edge"; // what the labels judge: each turn as a whole (the default), or each edge (design 10)

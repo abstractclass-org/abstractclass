@@ -10,7 +10,7 @@
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
   import Board from "#lib/board/Board.svelte";
-  import StepBar from "#lib/ui/StepBar.svelte";
+  import StepBar from "@abstractclass/review/StepBar.svelte";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import BookTable from "#lib/book/BookTable.svelte";
   import { OpeningBook, type BookAt } from "#lib/book/lookup.svelte.ts";
@@ -18,7 +18,7 @@
   import { bookRows, rowBoardLine, rowCandidates, type GameMove } from "#lib/book/rows.ts";
   import { bestMoveSentence, moveSentence } from "#lib/book/sentences.ts";
   import { edgeName, sameEdge, type Edge, type Position } from "#lib/review/enclosure.ts";
-  import { LINE_STEP_MS } from "#lib/review/lineDrawing.svelte.ts";
+  import { LINE_STEP_MS } from "@abstractclass/review/lineDrawing.svelte.ts";
   import { parseEdge } from "#lib/engine/notation.ts";
   import { readPosition } from "#lib/editor/position.ts";
   import { canonicalEdge } from "#lib/game/record.ts";

@@ -14,7 +14,8 @@
   // (docs/design/20-snapshot.md).
   import { onDestroy, onMount, untrack } from "svelte";
   import { PRACTICE_EVENT } from "#lib/practice/practice.ts";
-  import ReviewView, { NETWORK_LOADS, WIDE, reviewSkeleton, type ReviewAgain, type ReviewProgress } from "#lib/review/ReviewView.svelte";
+  import ReviewView, { NETWORK_LOADS, WIDE, reviewSkeleton, type ReviewAgain, type ReviewProgress } from "@abstractclass/review/ReviewView.svelte";
+  import { enclosureView } from "#lib/review/enclosureView.ts";
   import { loadDisplay } from "#lib/review/display.ts";
   import { MediaQuery } from "svelte/reactivity";
   import Arrival from "#lib/review/Arrival.svelte";
@@ -422,13 +423,13 @@
 {:else if game?.error && !game.rulesReady}
   <p class="{MESSAGE} text-blunder">The engine could not read this game: {game.error}</p>
 {:else if R}
-  <ReviewView {R} {progress} {deeperPositions} {again} snapshot={snapshot && { text: snapshot.text, onagain: reviewAgain }} {siteLink}
+  <ReviewView view={enclosureView} {R} {progress} {deeperPositions} {again} snapshot={snapshot && { text: snapshot.text, onagain: reviewAgain }} {siteLink}
               onexport={exportAs} exportItems={reviewExports(partnerName)} exportReady={reviewDone} game={game ?? undefined}
               deepVisits={snapshot ? 0 : engine.visits} onposition={path => (current = path)} onplay={path => game!.addLine(path)}
               reviewVisits={depth} labelVisits={LABEL_VISITS} engine={settings} onengine={changeEngine} ownSettings={own?.from}
               onfeature={name => kept && trackOnce(`${kept.id} ${name}`, "feature", { feature_name: name })} gpu={session.gpuView} />
 {:else if gameOpen}
-  {@render reviewSkeleton(wide.current, loadDisplay().win === "gauge", players, false)}
+  {@render reviewSkeleton(enclosureView, wide.current, loadDisplay().win === "gauge", players, false)}
 {:else}
   <p class="{MESSAGE} text-muted">Reading the game with the engine's rules…</p>
 {/if}

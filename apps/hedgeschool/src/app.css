@@ -2,6 +2,8 @@
 /* The sites' shared style: the general colour tokens, the base styles and the page area (packages/site). This file
    adds Hedge School's own: its accent, its board's, the review's and the labels'. */
 @import "@abstractclass/site/site.css";
+/* The review's view and its parts (packages/review): Tailwind finds their classes there. */
+@import "@abstractclass/review/review.css";
 
 /* Hedge School's colour tokens, beside the shared ones (site.css). An element with data-theme="light" takes the light
    theme's tokens in either theme: the image of a line draws its board so (src/lib/board/boardImage.ts). */

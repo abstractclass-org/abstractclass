@@ -5,7 +5,7 @@
   // phone, "Support Us" too, which the header has no room for: it opens Ko-fi's tip panel (SupportDialog).
   import { DropdownMenu } from "bits-ui";
   import { page } from "$app/state";
-  import Icon from "#lib/ui/Icon.svelte";
+  import Icon from "@abstractclass/site/Icon.svelte";
 
   type Link = { href: string; label: string; wide?: boolean };
   let { tabs, about, support }: { tabs: Link[]; about: Link[]; support: () => void } = $props();

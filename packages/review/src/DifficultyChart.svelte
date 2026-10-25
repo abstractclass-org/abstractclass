@@ -6,7 +6,7 @@
   // alone, and the row reads as a line of time, so the chart shows whether the mistakes fell where the game was hard.
   // The pointer snaps to the bar under it and names its position: the decision, before its move. A click shows that
   // position.
-  import type { ChartMark } from "./enclosure.ts";
+  import type { ChartMark } from "@abstractclass/analysis/model.ts";
   import { HARD } from "@abstractclass/analysis/labels.ts";
   import ChartTip, { pointerAt } from "./ChartTip.svelte";
 

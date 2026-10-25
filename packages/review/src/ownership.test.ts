@@ -1,9 +1,9 @@
 // The area map (ownership.ts, design 30): its three styles (the engine's ownership of each point, the change from the
-// board now to it, and the difference between two forecasts), the numbers of a point, and a line's steps. Run: npm test.
+// board now to it, and the difference between two forecasts), the numbers of a point, and a line's steps. A board of
+// 19 × 19 points, as Enclosure's, whose state now is given by point. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { askOrder, changeMap, differenceMap, differenceReading, drawnBoard, mapStep, occupancy, ownershipMap, pointReading, shade } from "./ownership.ts";
-import type { Edge, Position } from "./enclosure.ts";
+import { askOrder, changeMap, differenceMap, differenceReading, mapStep, ownershipMap, shade } from "./ownership.ts";
 import type { AreaMark } from "./ownership.ts";
 
 const N = 19;
@@ -13,20 +13,10 @@ const values = (at: [number, number, number][]) => {
   for (const [x, y, v] of at) out[y * N + x] = v;
   return out;
 };
-/** A square's four edges and its region, from (x, y) with side `s`. */
-function square(x: number, y: number, s: number): { edges: Edge[]; ring: [number, number][] } {
-  return {
-    edges: [[x, y, x + s, y], [x + s, y, x + s, y + s], [x, y + s, x + s, y + s], [x, y, x, y + s]],
-    ring: [[x, y], [x + s, y], [x + s, y + s], [x, y + s]],
-  };
-}
-/** A position with Blue's square from (1, 1) of side 3 and Red's from (10, 10) of side 2. */
-const blue = square(1, 1, 3), red = square(10, 10, 2);
 /** The side of a mark, or null. */
 const sideOf = (m: AreaMark | null | undefined) => (m && "side" in m ? m.side : null);
-const board = { edges: [blue.edges, red.edges], regions: [[{ area: 9, rings: [blue.ring] }], [{ area: 4, rings: [red.ring] }]] } as
-  Pick<Position, "edges" | "regions">;
-const now = occupancy(board);
+/** The board now: Blue holds the points from (2, 2) to (3, 3), and Red the point (11, 11). */
+const now = values([[2, 2, 1], [3, 2, 1], [2, 3, 1], [3, 3, 1], [11, 11, -1]]);
 
 test("the ownership style shades each point for the side that the engine expects to hold it, as KaTrain does", () => {
   const map = ownershipMap(values([[7, 7, 100], [8, 7, -50], [9, 7, 20], [2, 2, 90]]), 0);
@@ -63,34 +53,8 @@ test("the change style: closed area that its owner will probably lose, in the co
   assert.equal(map[3 * N + 2], null); // 0.7 in Blue's own region: the change is −0.3, too small
 });
 
-test("a point on a wall is not inside its region: the engine counts the points strictly inside", () => {
-  // (1, 2) is on Blue's left edge, so it is open now, and the forecast's 0.9 is a close
-  const map = changeMap(values([[1, 2, 90], [4, 4, 90]]), now, 50);
-  assert.deepEqual(map[2 * N + 1], { kind: "close", side: 0 });
-  assert.deepEqual(map[4 * N + 4], { kind: "close", side: 0 });
-  assert.deepEqual([occupancy(board)[2 * N + 2], occupancy(board)[11 * N + 11], occupancy(board)[2 * N + 1]], [1, -1, 0]);
-});
-
-test("a point's reading: its ownership, its state now, and the change", () => {
-  assert.equal(pointReading(62, 0), "Blue 0.62 · now open · change 0.62 to Blue");
-  assert.equal(pointReading(-40, 1), "Red 0.40 · now Blue's region · change 1.40 to Red");
-  assert.equal(pointReading(100, 1), "Blue 1.00 · now Blue's region · no change");
-  assert.equal(pointReading(0, -1), "even · now Red's region · change 1.00 to Blue");
-});
-
 test("KaTrain's shade: |v| ^ (1 / 1.33), capped at 1", () => {
   assert.deepEqual([shade(0), shade(100), shade(-100), shade(180)], [0, 1, 1, 1]);
-});
-
-test("the board as drawn after a line's edges: its edges less the ones cut, the line's own, the regions after the last", () => {
-  const red: Position["regions"] = [[], [{ area: 1, rings: [[[10, 10], [11, 10], [11, 11], [10, 11]]] }]];
-  const drawn = drawnBoard(board, [{ edge: [5, 5, 6, 5], player: 0 }, { edge: [1, 1, 4, 1], player: 1, cut: [1, 1, 4, 1], regions: red }]);
-  assert.deepEqual(drawn.edges[0].length, blue.edges.length); // Blue's first edge of the square is cut, the line's added
-  assert.ok(drawn.edges[0].some(e => e.join() === "5,5,6,5") && !drawn.edges[0].some(e => e.join() === "1,1,4,1"));
-  assert.ok(drawn.edges[1].some(e => e.join() === "1,1,4,1"));
-  assert.equal(drawn.regions, red);
-  assert.equal(drawnBoard(board, []), board); // no line: the board itself
-  assert.equal(drawnBoard(board, [{ edge: [5, 5, 6, 5], player: 0 }]).regions, board.regions); // no step yet: as it was
 });
 
 test("the map shown after k drawn edges: step k's, or while it is searched the latest step before it that has one", () => {

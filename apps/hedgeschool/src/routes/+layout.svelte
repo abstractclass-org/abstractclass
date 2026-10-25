@@ -13,7 +13,7 @@
 	import ThemeMenu from '@abstractclass/site/ThemeMenu.svelte';
 	import SiteMenu from '#lib/SiteMenu.svelte';
 	import SupportDialog from '#lib/SupportDialog.svelte';
-	import Icon from '#lib/ui/Icon.svelte';
+	import Icon from '@abstractclass/site/Icon.svelte';
 	import SiteFrame from '@abstractclass/site/SiteFrame.svelte';
 	import Collie from '#lib/Collie.svelte';
 	import type { LayoutProps } from './$types';

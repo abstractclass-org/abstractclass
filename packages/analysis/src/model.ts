@@ -502,6 +502,14 @@ export function trustedLine<M>(c: Candidate<M>): M[] {
   return thin < 0 ? line : line.slice(0, thin);
 }
 
+/** The threat's turn (design 31): the line of the first choice `first` after a pass, as far as the search trusts it,
+ *  cut to the turn of the side to move after the pass, which has `movesLeft` moves left in it: what the opponent plays
+ *  if the player does nothing. Its first move where the search trusts none of the line. */
+export function threatTurn<M>(first: Candidate<M>, movesLeft: number): M[] {
+  const turn = trustedLine(first).slice(0, movesLeft);
+  return turn.length ? turn : [first.edge];
+}
+
 /** A candidate with its rank (1: the engine's first choice) and how much worse it is than number 1 for the mover: `gap`
  *  in win chance, `gapPts` in points when the analysis has scores. Negative when it is better than number 1. `twins`:
  *  its symmetric twins, the same move with the same numbers, which share its rank. */

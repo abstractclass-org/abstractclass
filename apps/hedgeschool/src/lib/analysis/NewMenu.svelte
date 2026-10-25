@@ -4,7 +4,7 @@
   // 22's words). Each replaces the analysis kept here, after the board asks. Its button is an icon, as Export's beside
   // it, so that the step bar's tools fit beside the steps on a phone (design 06, item 4).
   import { DropdownMenu } from "bits-ui";
-  import Icon from "#lib/ui/Icon.svelte";
+  import Icon from "@abstractclass/site/Icon.svelte";
   let { editor, onstart, onimport, onload }:
     { editor: string; onstart: () => void; onimport: () => void; onload: (file: File) => void } = $props();
 

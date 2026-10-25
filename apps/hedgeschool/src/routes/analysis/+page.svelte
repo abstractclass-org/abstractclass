@@ -9,10 +9,11 @@
   import { onDestroy, onMount, untrack } from "svelte";
   import { Dialog } from "bits-ui";
   import { replaceState } from "$app/navigation";
-  import ReviewView, { reviewSkeleton } from "#lib/review/ReviewView.svelte";
+  import ReviewView, { reviewSkeleton } from "@abstractclass/review/ReviewView.svelte";
+  import { enclosureView } from "#lib/review/enclosureView.ts";
   import { loadDisplay } from "#lib/review/display.ts";
   import NewMenu from "#lib/analysis/NewMenu.svelte";
-  import Icon from "#lib/ui/Icon.svelte";
+  import Icon from "@abstractclass/site/Icon.svelte";
   import { STANDARD_START, setUpStart } from "#lib/engine/notation.ts";
   import { enclosure, onlyJudged, review, type Enclosure, type ReviewData, type Unit } from "#lib/review/enclosure.ts";
   import { annotatedRecord } from "#lib/review/annotate.ts";
@@ -294,7 +295,7 @@
 {:else if R && game && start}
   {@const g = game}
   {#if notice}<p class="{MESSAGE} mb-0 text-blunder" role="alert">{notice}</p>{/if}
-  <ReviewView {R} game={g} deepVisits={engine.visits} onposition={path => (current = path)} {start}
+  <ReviewView view={enclosureView} {R} game={g} deepVisits={engine.visits} onposition={path => (current = path)} {start}
               onplay={path => g.playLine(path)} reviewVisits={budget} labelVisits={LABEL_VISITS} {engine}
               onengine={(change: Partial<EngineSettings>) => { trackSettingChange(change, engine, false); Object.assign(engine, change); }}
               onfeature={name => trackOnce(`board ${name}`, "feature", { feature_name: name })} gpu={session.gpuView}
@@ -311,7 +312,7 @@
     </ReviewView>
 {:else}
   <!-- The board's skeleton until the board shows, from the prerendered page on (the review's, in its board form). -->
-  {@render reviewSkeleton(false, loadDisplay().win === "gauge", PLAYERS, true)}
+  {@render reviewSkeleton(enclosureView, false, loadDisplay().win === "gauge", PLAYERS, true)}
 {/if}
 
 <!-- A line brought, over the analysis kept here: the player chooses. -->

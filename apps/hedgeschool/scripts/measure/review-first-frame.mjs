@@ -2,8 +2,8 @@
 // reloads of the review of tests/fixtures/hedgefund-review.json in Playwright's Chromium, headless, with its scroll bars
 // shown (playwright.config.ts). The first draw runs from the task that holds the mark `review:shown` (the review shows,
 // src/routes/review/+page.svelte) to the end of the frame that paints the move list's rows: the first paint after the
-// task that holds `review:moves` (the rows, a frame later, src/lib/review/ReviewView.svelte), or after the first task
-// where the rows come with it. Each reload is traced (Chrome's trace of the page's main thread), and reads:
+// task that holds `review:moves` (the rows, a frame later, packages/review/src/ReviewView.svelte), or after the first
+// task where the rows come with it. Each reload is traced (Chrome's trace of the page's main thread), and reads:
 //   - the first draw's tasks over 50 milliseconds (a long task): how many, their time beyond 50 milliseconds each (as
 //     Total Blocking Time counts it), and the longest;
 //   - the same by each task's thread time, the time that the main thread ran. A loaded machine makes the thread wait

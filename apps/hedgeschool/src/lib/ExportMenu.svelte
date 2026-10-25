@@ -7,8 +7,8 @@
   // as New's beside it, so that the bar's tools fit beside the steps on a phone (design 06, item 4). In a game's row it
   // keeps its word.
   import { DropdownMenu } from "bits-ui";
-  import Icon from "#lib/ui/Icon.svelte";
-  import Toast from "#lib/ui/Toast.svelte";
+  import Icon from "@abstractclass/site/Icon.svelte";
+  import Toast from "@abstractclass/site/Toast.svelte";
   import { errorText } from "@abstractclass/engine/errors.ts";
   import { reviewExports, type ExportItem, type ExportKind, type ExportResult } from "#lib/game/reviewFile.ts";
   import { track } from "#lib/analytics.svelte.ts";

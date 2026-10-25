@@ -93,6 +93,8 @@ export class BookPlace {
   });
   /** The board's numbers for the rows (rows.ts, rowCandidates), shown while the table shows the book. */
   readonly candidates = $derived(rowCandidates(this.rows));
+  /** The same numbers, as the review's view gives them to its board (@abstractclass/review/game.ts, ViewBook). */
+  readonly numbers = $derived(this.candidates.map(c => ({ move: c.edge, rank: c.rank, note: c.note })));
   /** The edge pointed at, which the board lights. */
   readonly highlight = $derived(this.pointed ? parseEdge(this.pointed) : null);
   /** The line of the row pointed at while the table shows the book, as the board draws it: its edge, then the book's

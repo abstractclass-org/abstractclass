@@ -8,7 +8,7 @@
   // its end, as high as the bar: the bar sets --step-dock on the document for the room and for the scroll padding.
   import { untrack, type Snippet } from "svelte";
   import type { ClassValue } from "svelte/elements";
-  import Icon from "./Icon.svelte";
+  import Icon from "@abstractclass/site/Icon.svelte";
 
   interface Props {
     onfirst: () => void;

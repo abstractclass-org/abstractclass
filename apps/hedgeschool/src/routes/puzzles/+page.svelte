@@ -10,7 +10,7 @@
   import { review, edgeName, sameEdge, PLAYER_NAME, type Edge } from "#lib/review/enclosure.ts";
   import { puzzlesFrom, nextRating, THEME_TEXT, type Puzzle, type Theme } from "#lib/puzzles/model.ts";
   import { SAMPLE, SAMPLE_MOVES } from "#lib/mock/sample.ts";
-  import Swatch from "#lib/ui/Swatch.svelte";
+  import Swatch from "@abstractclass/site/Swatch.svelte";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
 
   const R = review(SAMPLE);

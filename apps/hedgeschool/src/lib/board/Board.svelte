@@ -26,8 +26,8 @@
   // input: the first point, the points that complete a legal edge from it (dots), and the edge to the marked point under
   // the pointer. Points are 0-18 with y up, as in the engine.
   import { pointName, sameEdge } from "#lib/review/enclosure.ts";
-  import LabelMark from "#lib/review/LabelMark.svelte";
-  import type { AreaMark } from "#lib/review/ownership.ts";
+  import LabelMark from "@abstractclass/review/LabelMark.svelte";
+  import type { AreaMark } from "@abstractclass/review/ownership.ts";
   import { brushFor, samePoint, toggleNote, type BoardNote, type NoteBrush } from "./notes.ts";
 
   interface Props {

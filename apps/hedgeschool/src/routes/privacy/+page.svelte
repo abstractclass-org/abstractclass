@@ -8,7 +8,7 @@
   import { ASKS_CONSENT, PURPOSES, chooseShown, consent, keptNumber, type Purpose } from "#lib/analytics.svelte.ts";
   import { deletePractice } from "#lib/practice/send.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
-  import { SWITCH, SWITCH_THUMB } from "#lib/ui/settings.ts";
+  import { SWITCH, SWITCH_THUMB } from "@abstractclass/site/settings.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import ConfirmDialog, { type Answer } from "#lib/ui/ConfirmDialog.svelte";

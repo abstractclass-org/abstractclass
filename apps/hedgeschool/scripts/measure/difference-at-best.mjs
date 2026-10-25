@@ -8,7 +8,7 @@
 import { readFileSync } from "node:fs";
 import { parseRecord } from "../../src/lib/game/record.ts";
 import { edgeName, turnFromCount } from "../../src/lib/review/enclosure.ts";
-import { differenceMap } from "../../src/lib/review/ownership.ts";
+import { differenceMap } from "@abstractclass/review/ownership.ts";
 import { readAnalysisKey } from "@abstractclass/analysis/cache.ts";
 import { FIXTURE, median } from "./speed.mjs";
 

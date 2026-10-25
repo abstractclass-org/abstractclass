@@ -30,7 +30,8 @@ if (!isMainThread) {
   const { toAnalysis } = await import("@abstractclass/analysis/reply.ts");
   const { enclosure, turnFromCount } = await import("../../src/lib/review/enclosure.ts");
   const { boardPosition } = await import("../../src/lib/engine/position.ts");
-  const { changeMap, occupancy } = await import("../../src/lib/review/ownership.ts");
+  const { changeMap } = await import("@abstractclass/review/ownership.ts");
+  const { occupancy } = await import("../../src/lib/review/enclosureMap.ts");
   const { median } = await import("./speed.mjs");
   const [file, perBand = "2", threadsArg = "2"] = process.argv.slice(2);
   const threads = Number(threadsArg), fixture = file.endsWith(".json");

@@ -13,8 +13,8 @@
   // anywhere on a row plays it.
   import type { Snippet } from "svelte";
   import { Switch } from "bits-ui";
-  import { SWITCH, SWITCH_THUMB } from "#lib/ui/settings.ts";
-  import LabelBadge from "#lib/review/LabelBadge.svelte";
+  import { SWITCH, SWITCH_THUMB } from "@abstractclass/site/settings.ts";
+  import LabelBadge from "@abstractclass/review/LabelBadge.svelte";
   import { LABEL_TEXT, moverWin, pct, PLAYER_NAME } from "#lib/review/enclosure.ts";
   import { playerOf } from "#lib/engine/position.ts";
   import BookSymbol from "./BookSymbol.svelte";

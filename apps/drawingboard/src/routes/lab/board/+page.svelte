@@ -60,7 +60,7 @@
   </p>
   <div class="min-h-0 flex-1">
     <Board position={fixture.position} last={fixture.last} candidates={fixture.candidates ?? []} {line}
-           {pinned} layers={{ candidates: showCandidates }}
+           pointed={pinned} layers={{ candidates: showCandidates }}
            oncandidate={name => (pointed = name)}
            oncandidateclick={name => { pinned = pinned === name ? null : name; address({ c: pinned }); }}
            onhexat={h => (at = h)} />

@@ -6,11 +6,12 @@
 <script lang="ts">
   // A player in a skeleton's row above the board (the review's, the Analysis board's, Practice's): the card's own layout
   // (PlayerCard), with bars as high as its text where the text is not known yet, so that the row has the card's height.
-  import Swatch from "#lib/ui/Swatch.svelte";
-  import { AREA_DOT, playerBox, playerName, playerNumbers } from "./PlayerCard.svelte";
-  import type { Player } from "./enclosure.ts";
+  // `second`: the word of the game's second number (Enclosure's "area"), when the card shows one.
+  import Swatch from "@abstractclass/site/Swatch.svelte";
+  import { NUMBER_DOT, playerBox, playerName, playerNumbers } from "./PlayerCard.svelte";
+  import type { Player } from "@abstractclass/analysis/game.ts";
 
-  let { player: p, name, tag = null }: { player: Player; name?: string; tag?: string | null } = $props();
+  let { player: p, name, tag = null, second }: { player: Player; name?: string; tag?: string | null; second?: string } = $props();
 </script>
 
 <div class={playerBox(p)}>
@@ -22,7 +23,9 @@
   </span>
   <span class={playerNumbers(p)}>
     <span class={BONE}><span class="invisible"><strong class="text-[1.1em]">0</strong> points</span></span>
-    <span class={[AREA_DOT, "invisible"]} aria-hidden="true">·</span>
-    <span class={BONE}><span class="invisible"><strong class="text-[1.1em]">0</strong> area</span></span>
+    {#if second}
+      <span class={[NUMBER_DOT, "invisible"]} aria-hidden="true">·</span>
+      <span class={BONE}><span class="invisible"><strong class="text-[1.1em]">0</strong> {second}</span></span>
+    {/if}
   </span>
 </div>

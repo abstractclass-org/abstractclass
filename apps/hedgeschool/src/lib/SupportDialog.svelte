@@ -6,7 +6,7 @@
   // colours to set. The frame's inside is Ko-fi's, and keeps Ko-fi's colours in both themes.
   import { Dialog } from "bits-ui";
   import { KOFI, SITE_NAME } from "#lib/edition.ts";
-  import Icon from "#lib/ui/Icon.svelte";
+  import Icon from "@abstractclass/site/Icon.svelte";
   import Collie from "#lib/Collie.svelte";
 
   let { open = $bindable(false) }: { open?: boolean } = $props();

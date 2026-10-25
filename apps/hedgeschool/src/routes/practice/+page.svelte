@@ -13,25 +13,25 @@
   import Board from "#lib/board/Board.svelte";
   import { EdgeInput } from "#lib/board/edgeInput.svelte.ts";
   import type { BoardNote } from "#lib/board/notes.ts";
-  import Swatch from "#lib/ui/Swatch.svelte";
-  import Icon from "#lib/ui/Icon.svelte";
-  import ShareBar, { ownShare } from "#lib/ui/ShareBar.svelte";
-  import SettingChoice from "#lib/ui/SettingChoice.svelte";
-  import SettingToggle from "#lib/ui/SettingToggle.svelte";
+  import Swatch from "@abstractclass/site/Swatch.svelte";
+  import Icon from "@abstractclass/site/Icon.svelte";
+  import ShareBar, { ownShare } from "@abstractclass/review/ShareBar.svelte";
+  import SettingChoice from "@abstractclass/site/SettingChoice.svelte";
+  import SettingToggle from "@abstractclass/site/SettingToggle.svelte";
   import SoundSettings from "#lib/ui/SoundSettings.svelte";
-  import { SETTINGS_HEAD } from "#lib/ui/settings.ts";
-  import PlayerCard, { stripBox } from "#lib/review/PlayerCard.svelte";
-  import PlayerRow from "#lib/review/PlayerRow.svelte";
-  import PlayerCardSkeleton, { BONE } from "#lib/review/PlayerCardSkeleton.svelte";
-  import StepBar from "#lib/ui/StepBar.svelte";
-  import { intoView } from "#lib/pageScroll.ts";
-  import { MOVE_HERE, MOVE_LIST, MOVE_TEXT, TURN_NUMBER, keepInView, moveButton, turnRow } from "#lib/review/moveList.ts";
+  import { SETTINGS_HEAD } from "@abstractclass/site/settings.ts";
+  import PlayerCard, { stripBox } from "@abstractclass/review/PlayerCard.svelte";
+  import PlayerRow from "@abstractclass/review/PlayerRow.svelte";
+  import PlayerCardSkeleton, { BONE } from "@abstractclass/review/PlayerCardSkeleton.svelte";
+  import StepBar from "@abstractclass/review/StepBar.svelte";
+  import { intoView } from "@abstractclass/site/pageScroll.ts";
+  import { MOVE_HERE, MOVE_LIST, TURN_NUMBER, keepInView, moveButton, turnRow } from "@abstractclass/review/moveList.ts";
   import { EngineWorker, loadManifest, type Manifest } from "@abstractclass/engine/client.ts";
   import { edgeName, setUpStart } from "#lib/engine/notation.ts";
   import { NETWORKS, loadEngine, networkMB, networkName } from "#lib/analysis/engineSettings.ts";
   import { parseRecord, withStart } from "#lib/game/record.ts";
   import { variantProblem } from "#lib/game/import.ts";
-  import { PLAYER_NAME, moveNotation, type Player } from "#lib/review/enclosure.ts";
+  import { AREA, MOVE_TEXT, PLAYER_NAME, moveNotation, type Player } from "#lib/review/enclosure.ts";
   import { loadDisplay, saveDisplay } from "#lib/review/display.ts";
   import { playMove, preload } from "#lib/sound.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
@@ -440,8 +440,8 @@
           <!-- The skeleton (the review's, PlayerCardSkeleton) while the bot starts: the row's height is the cards'. -->
           {@const k = g?.kept ?? starting}
           <PlayerRow {gauge} label="Players and scores">
-            {#snippet blue()}<PlayerCardSkeleton player={0} name={k ? nameOf(k, 0) : undefined} />{/snippet}
-            {#snippet red()}<PlayerCardSkeleton player={1} name={k ? nameOf(k, 1) : undefined} />{/snippet}
+            {#snippet blue()}<PlayerCardSkeleton player={0} name={k ? nameOf(k, 0) : undefined} second={AREA.word} />{/snippet}
+            {#snippet red()}<PlayerCardSkeleton player={1} name={k ? nameOf(k, 1) : undefined} second={AREA.word} />{/snippet}
             {#snippet bar()}{#if score.bar}<div class="h-[1.15rem] {BONE}"></div>{:else}<div></div>{/if}{/snippet}
           </PlayerRow>
         {/if}
@@ -538,7 +538,7 @@
 {#snippet card(g: PracticeGame, p: Player)}
   {@const pos = g.positions[shown]}
   <PlayerCard player={p} name={nameOf(g.kept, p)} points={pos.scores[p]}
-              area={pos.areas?.[p] ?? null} toMove={!pos.over && g.status !== "over" && pos.player === p} />
+              second={pos.areas ? { value: pos.areas[p], ...AREA } : null} toMove={!pos.over && g.status !== "over" && pos.player === p} />
 {/snippet}
 
 <!-- The points' bar (the review's win bar and gauge, ShareBar): each player's share of the points so far, from their own

@@ -20,7 +20,8 @@ import { hundredths, toAnalysis } from "@abstractclass/analysis/reply.ts";
 import { shownCandidates } from "@abstractclass/analysis/model.ts";
 import { enclosure, edgeName } from "../../src/lib/review/enclosure.ts";
 import { boardPosition } from "../../src/lib/engine/position.ts";
-import { changeMap, occupancy } from "../../src/lib/review/ownership.ts";
+import { changeMap } from "@abstractclass/review/ownership.ts";
+import { occupancy } from "../../src/lib/review/enclosureMap.ts";
 import { parseRecord } from "../../src/lib/game/record.ts";
 import { FIXTURE, median } from "./speed.mjs";
 

@@ -14,7 +14,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PLAYER_NAME } from "../../hedgeschool/src/lib/review/enclosure.ts";
-import { LABEL_SHAPES } from "../../hedgeschool/src/lib/review/labelShapes.ts";
+import { LABEL_SHAPES } from "../../../packages/review/src/labelShapes.ts";
 
 const hub = join(dirname(fileURLToPath(import.meta.url)), "..");
 const fail = message => { throw new Error(`enclosure-board: ${message}`); };

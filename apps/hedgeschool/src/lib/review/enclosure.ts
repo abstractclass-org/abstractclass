@@ -3,15 +3,22 @@
 // its notation (engine/notation.ts) and its engine's fields (engine/position.ts). The site imports the review's model
 // from here: the shared model's names, its types named for Enclosure's, its functions that compare moves with
 // Enclosure's game given, and Enclosure's own part: the board's position, a move with the edge it cuts, the turns of the
-// notation, who plays each edge of a line, the threat's turn, the players' names and the texts that say "edge".
+// notation, who plays each edge of a line, the threat's turn and the texts that say "edge". The players' names and
+// the score's format are the review package's (@abstractclass/review/game.ts): every game's.
 import * as shared from "@abstractclass/analysis/model.ts";
-import type { Game, GameTypes, Player } from "@abstractclass/analysis/game.ts";
+import type { Game, Player } from "@abstractclass/analysis/game.ts";
 import type { BranchNode as SharedNode } from "@abstractclass/analysis/analysis.svelte.ts";
 import { edgeName, parseEdge, sameEdge, type Edge } from "#lib/engine/notation.ts";
 import { boardPosition, playerOf, rulesOf, type DescribeReply, type GamePosition } from "#lib/engine/position.ts";
-import type { EdgeRules } from "#lib/board/edgeInput.svelte.ts";
+import type { EdgeInput, EdgeRules } from "#lib/board/edgeInput.svelte.ts";
+import type { BoardNote } from "#lib/board/notes.ts";
+import type { BookPlace } from "#lib/book/place.svelte.ts";
+import type { ExportKind } from "#lib/game/reviewFile.ts";
+import type { Display } from "./display.ts";
 import { turnFromCount } from "@abstractclass/analysis/turns.ts";
+import { PLAYER_NAME, type ViewTypes } from "@abstractclass/review/game.ts";
 export * from "@abstractclass/analysis/model.ts";
+export { fmtScore, PLAYER_NAME } from "@abstractclass/review/game.ts";
 export { edgeName, pointName, sameEdge, type Edge } from "#lib/engine/notation.ts";
 
 export interface Region { area: number; rings: [number, number][][] }
@@ -34,14 +41,16 @@ export { turnFromCount }; // the notation's turns (the /notation page), which Bl
 /** A move: an edge, or null for a timeout pass (the rest of the turn forfeited), and the opponent's edge that it cut. */
 export interface Move { player: Player; edge: Edge | null; cut: Edge | null }
 
-export const PLAYER_NAME = ["Blue", "Red"] as const;
 export const otherPlayer = (p: Player): Player => (1 - p) as Player;
-const WHOLE = new Intl.NumberFormat("en", { maximumFractionDigits: 0 });
-/** Points or an area as the players' cards and the image's caption show them: whole, with thousands separated. */
-export const fmtScore = (s: number) => WHOLE.format(Math.round(s));
+/** The area beside the points in the players' cards (the review's, Practice's): its word, and the number's title. */
+export const AREA = { word: "area", title: "The area enclosed now, added at the turn's end" } as const;
+/** A move's text in the move lists (the review's, Practice's): as wide as the widest edge in the notation, 8
+ *  characters (D10-G10x), in a monospaced font. */
+export const MOVE_TEXT = "w-[8ch]";
 
-/** An edge of a line, played: the edge it cuts (or null), and the regions and areas after it. */
-export interface LineStep { cut: Edge | null; regions: Position["regions"]; areas: [number, number] }
+/** An edge of a line, played: the edge it cuts (or null), and the regions and areas after it. An edge of the game's
+ *  tree has its areas only where its position has them. */
+export interface LineStep { cut: Edge | null; regions: Position["regions"]; areas?: [number, number] }
 
 /** Who plays each of the next `n` edges from a position: the mover for the edges left in this turn, then each player
  *  for a turn of two edges. */
@@ -58,10 +67,7 @@ export function lineMovers(p: Position, n: number): Player[] {
 /** The threat's turn (design 31): the line of the first choice `first` after a pass, as far as the search trusts it,
  *  cut to the turn of the side to move after the pass (`from`): what the opponent plays if the player does nothing. Its
  *  first edge where the search trusts none of the line. */
-export function threatTurn(first: Candidate, from: Position): Edge[] {
-  const turn = shared.trustedLine(first).slice(0, from.movesLeft);
-  return turn.length ? turn : [first.edge];
-}
+export const threatTurn = (first: Candidate, from: Position): Edge[] => shared.threatTurn(first, from.movesLeft);
 
 /** The move as text: its edge, or "pass". */
 export const moveName = (edge: Edge | null) => (edge ? edgeName(edge) : "pass");
@@ -71,8 +77,10 @@ export const moveNotation = (m: { edge: Edge | null; cut: Edge | null }) => `${m
 
 // --- Enclosure's game, as the packages take it ----------------------------------------------------------------------
 /** Enclosure's types (GameTypes): a move is an edge, a position the board's, a move played has its cut, the engine's
- *  fields are describe_game's, the rules are the edge input's, and a line's step is its cut, regions and areas. */
-export interface Enclosure extends GameTypes {
+ *  fields are describe_game's, the rules are the edge input's, and a line's step is its cut, regions and areas. And the
+ *  review's view's (ViewTypes, enclosureView.ts): the review's display settings (display.ts), the board's notes, the
+ *  edge input, a point of the lattice, the opening book's place and the Export menu's entries. */
+export interface Enclosure extends ViewTypes {
   move: Edge;
   position: Position;
   played: Move;
@@ -80,6 +88,12 @@ export interface Enclosure extends GameTypes {
   described: DescribeReply;
   rules: EdgeRules;
   step: LineStep;
+  display: Display;
+  note: BoardNote;
+  input: EdgeInput;
+  point: [number, number];
+  book: BookPlace;
+  export: ExportKind;
 }
 
 /** A move's cut edge, from describe_game's `cuts`. */

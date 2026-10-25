@@ -1,10 +1,10 @@
-// The move list's look, in the review, on the Analysis board and in Practice: one row a turn, its number, then its edges
-// in two equal columns (Lichess's move list), each at least a move wide, so that the edges line up down the list. A
-// move's text has one width: the widest in the notation is 8 characters (D10-G10x), in a monospaced font, the same on
-// every system (app.css). The move on the board is outlined in the accent colour, and a move under the pointer in the
-// line colour.
-import type { Player } from "./enclosure.ts";
-import { SIDE_TEXT } from "#lib/ui/side.ts";
+// The move list's look, in the review, on the Analysis board and in Practice: one row a turn, its number, then its moves
+// in two equal columns (Lichess's move list), each at least a move wide, so that the moves line up down the list. A
+// move's text has one width, the game's widest move (the view's game interface, `moveText`), in a monospaced font, the
+// same on every system (@abstractclass/site/site.css). The move on the board is outlined in the accent colour, and a
+// move under the pointer in the line colour.
+import type { Player } from "@abstractclass/analysis/game.ts";
+import { SIDE_TEXT } from "@abstractclass/site/side.ts";
 
 export const MOVE_LIST = "movelist flex-1 min-h-0 overflow-y-auto pt-1.5 text-sm border-t border-line";
 /** A turn's row. `judged`: a last column for the turn's own label (the review by turn). */
@@ -14,7 +14,6 @@ export const turnRow = (judged = false) => ["grid items-baseline gap-x-1",
  *  grey bars before its rows are this far apart (ReviewView.svelte, rowsDrawn). */
 export const TURN_REM = 1.375;
 export const TURN_NUMBER = "text-muted tabular-nums";
-export const MOVE_TEXT = "w-[8ch]";
 const MOVE = "mv flex items-baseline gap-1 px-[0.2rem] py-px font-mono text-[0.95em] text-left whitespace-nowrap bg-transparent border-0";
 export const MOVE_HERE = "here bg-panel-2 outline outline-accent -outline-offset-1";
 export const MOVE_HOVER = "hover:bg-panel-2 hover:outline hover:outline-line hover:-outline-offset-1";

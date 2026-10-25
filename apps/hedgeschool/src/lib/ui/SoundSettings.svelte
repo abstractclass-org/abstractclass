@@ -2,9 +2,9 @@
   // The move sounds' settings (design 08), in the review's display settings and in Practice's: on or off, which sound,
   // and the volume. A change of sound or volume plays the sound. `set` changes the page's own settings.
   import { MOVE_SOUND_NAMES, playMove, type MoveSound } from "#lib/sound.ts";
-  import { SETTINGS_HEAD } from "./settings.ts";
-  import SettingChoice from "./SettingChoice.svelte";
-  import SettingToggle from "./SettingToggle.svelte";
+  import { SETTINGS_HEAD } from "@abstractclass/site/settings.ts";
+  import SettingChoice from "@abstractclass/site/SettingChoice.svelte";
+  import SettingToggle from "@abstractclass/site/SettingToggle.svelte";
 
   type Sound = { sound: boolean; moveSound: MoveSound; volume: number };
   let { sound, moveSound, volume, set }: Sound & { set: (v: Partial<Sound>) => void } = $props();

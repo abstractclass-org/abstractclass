@@ -16,7 +16,7 @@
 //   - ready: the rules worker has started (its reply to the module);
 //   - rules, shown, moves: the page's marks `review:rules` (the rules answered), `review:shown` (the review's first
 //     frame starts) and `review:moves` (the move list's rows, a frame later), src/routes/review/+page.svelte and
-//     src/lib/review/ReviewView.svelte.
+//     packages/review/src/ReviewView.svelte.
 // A set is a few reloads of one build: the median of each time. The verdict (speed.mjs, verdict) compares the sets'
 // medians, pair by pair, for the rules worker's start and for the review's first frame, from the navigation and from
 // the page's start: the page's own scripts load first, and on a loaded machine that time varies. Each reload also

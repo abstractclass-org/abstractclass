@@ -1,0 +1,3 @@
+/* The review's view and its parts (design 29, item 9) use Tailwind's classes: Tailwind finds them here. A site that
+   shows the view imports this file after Tailwind (`@import "@abstractclass/review/review.css"`). */
+@source ".";

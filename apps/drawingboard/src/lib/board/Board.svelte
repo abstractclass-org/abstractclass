@@ -35,7 +35,10 @@
     position: SitePosition;
     last?: BoardMove | null; // the move that led to the position
     candidates?: BoardCandidate[];
-    pinned?: string | null; // the candidate pinned: the page keeps its line drawn after a click
+    // The candidate pointed at from outside the board (a row of the review's table), or else the pinned one, whose line
+    // the page keeps drawn after a click: the board lights it, as it lights the candidate under its own pointer (the
+    // review's board seam, @abstractclass/review/game.ts)
+    pointed?: string | null;
     line?: BoardLineMove[] | null; // the line of the candidate pointed at or pinned, as far as drawn: the candidate first
     layers?: Partial<BoardLayers>; // the layers that differ from DEFAULT_LAYERS
     oncandidate?: (name: string | null) => void;
@@ -44,7 +47,7 @@
     onhexat?: (at: BoardHex | null) => void;
   }
   let {
-    position, last = null, candidates = [], pinned = null, line = null, layers: layersSet = {},
+    position, last = null, candidates = [], pointed = null, line = null, layers: layersSet = {},
     oncandidate, oncandidateclick, onhexat,
   }: Props = $props();
   const layers = $derived({ ...DEFAULT_LAYERS, ...layersSet });
@@ -109,13 +112,13 @@
 
   // The pointer: the hex under it, on the board or in a hand, and the candidate there, kept by its name, since a search
   // in progress renews the candidates. Another position clears them. The active candidate is the one under the pointer,
-  // or else the pinned one.
+  // or else the one that the page points at (`pointed`).
   let hoverHex = $state<Hex | null>(null);
   let handHover = $state<{ player: Player; at: HandHex } | null>(null);
   let hoverName = $state<string | null>(null);
   $effect.pre(() => { void position; hoverHex = null; handHover = null; hoverName = null; });
   const hovered = $derived(layers.candidates && hoverName ? candidates.find(c => c.name === hoverName) ?? null : null);
-  const active = $derived(hovered ?? (pinned ? candidates.find(c => c.name === pinned) ?? null : null));
+  const active = $derived(hovered ?? (pointed ? candidates.find(c => c.name === pointed) ?? null : null));
   // While a line shows, the candidates are hidden, and the pointer finds only the active one, so that the candidate
   // whose line it is keeps its hover, as on Hedge School's board.
   const findable = (c: BoardCandidate) => showCandidates || c.name === active?.name;
