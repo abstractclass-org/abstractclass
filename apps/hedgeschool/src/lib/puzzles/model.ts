@@ -1,12 +1,12 @@
 // Puzzles from the mock game, by Lichess's generator rule (lichess-puzzler generator.py): the solution must be the
-// only good move. Here: the engine's first choice is at least ONLY_EDGE_GAP better than its second (the gap of
+// only good move. Here: the engine's first choice is at least ONLY_MOVE_GAP better than its second (the gap of
 // model.ts's Great).
 // Lichess starts a puzzle right after the opponent's mistake. Positions that follow one come first.
 //
 // Placeholders: the difficulty is predicted from the gap and the game phase, not rated from solvers' attempts
 // (design 01, principle 7). Themes are only what needs no rules: the phase by edge number (design 01, principle 8)
 // and "Only edge". Motif tags (enclose, cut, double threat) need the engine's rules.
-import { BAD_LABELS, moverWin, onlyEdge, type Edge, type Player, type Review } from "#lib/review/enclosure.ts";
+import { BAD_LABELS, moverWin, onlyMove, type Edge, type Player, type Review } from "#lib/review/enclosure.ts";
 
 export type Theme = "opening" | "middlegame" | "endgame" | "onlyEdge" | "afterMistake";
 export const THEME_TEXT: Record<Theme, { name: string; about: string }> = {
@@ -31,7 +31,7 @@ export function puzzlesFrom(R: Review): Puzzle[] {
   const out: Puzzle[] = [];
   R.data.analysis.forEach((a, i) => {
     const player = R.data.positions[i].player as Player;
-    if (!a || !onlyEdge(a, player)) return;
+    if (!a || !onlyMove(a, player)) return;
     const [first, second] = a.candidates;
     const gap = moverWin(first.blueWin, player) - moverWin(second.blueWin, player);
     const prev = R.edges[i - 1];

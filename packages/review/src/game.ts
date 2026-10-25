@@ -13,7 +13,7 @@
 import type { Component, Snippet } from "svelte";
 import type { Game, GameTypes, Player } from "@abstractclass/analysis/game.ts";
 import type { Label } from "@abstractclass/analysis/labels.ts";
-import type { EdgeReview, ReviewData, TurnReview, Unit } from "@abstractclass/analysis/model.ts";
+import type { MoveReview, ReviewData, TurnReview, Unit } from "@abstractclass/analysis/model.ts";
 import type { AreaMark, MapStyle } from "./ownership.ts";
 
 /** The players, in every game (the glossary): Blue moves first, Red second. */
@@ -134,7 +134,8 @@ export interface SoundSettingsProps<D extends Display> {
 export interface MapParts<G extends ViewTypes> {
   index(point: G["point"]): number; // the point's place in the engine's ownership
   name(point: G["point"]): string; // the point's name in the notation
-  /** Each point's state on the board as drawn after a line's moves, from Blue's side: 1 Blue's, −1 Red's, 0 neither. */
+  /** Each point's state on the board as drawn after a line's moves, from Blue's side: 1 Blue's, −1 Red's, 0
+   *  neither. */
   now(from: G["position"], drawn: LineMove<G>[]): number[];
   /** A point's numbers in the forecast styles: its ownership (from Blue's side, in hundredths) and its state now. */
   reading(ownership: number, now: number): string;
@@ -268,7 +269,7 @@ export interface ViewGame<G extends ViewTypes> extends Game<G> {
   /** The game's outcome in words. */
   ending(data: ReviewData<G>): string;
   /** A move's note in the move list, in one line: its label, and the engine's choice when the move was not it. */
-  shortNote(e: EdgeReview<G>): string;
+  shortNote(e: MoveReview<G>): string;
   /** A turn's note, by turn. */
   turnShortNote(t: TurnReview<G>): string;
 

@@ -29,7 +29,7 @@
 import { createReadStream } from "node:fs";
 import { createInterface } from "node:readline";
 import { join } from "node:path";
-import { KEPT_GAIN, LABELS, ONLY_EDGE_GAP, classify } from "@abstractclass/analysis/labels.ts";
+import { KEPT_GAIN, LABELS, ONLY_MOVE_GAP, classify } from "@abstractclass/analysis/labels.ts";
 import { BAD_LABELS, earlierIndex, keepsGain, resultWin } from "@abstractclass/analysis/model.ts";
 
 const dir = process.argv[2]?.startsWith("--") ? undefined : process.argv[2];
@@ -281,7 +281,7 @@ async function great() {
     if (!x.after) { e.last++; continue; } // the game's last edge: no Great (nothing confirms it)
     if (!kept) e.saved++; // the site asks for no search here
     const after = moverWin(x.after.winrate, x.mover);
-    if (after - moverWin(f.root.winrate, x.mover) >= ONLY_EDGE_GAP) { e.confirmed++; e.ofConfirmed.push(f.gap); e.after.push(after); tally(e, kept, after); }
+    if (after - moverWin(f.root.winrate, x.mover) >= ONLY_MOVE_GAP) { e.confirmed++; e.ofConfirmed.push(f.gap); e.after.push(after); tally(e, kept, after); }
     else { e.refuted++; e.ofRefuted.push(f.gap); }
   }
   const t = { best: 0, asked: 0, searches: 0, oneSearch: 0, confirmed: 0, shared: 0, keep: 0, notLosing: 0, both: 0, saved: 0 };
@@ -303,7 +303,7 @@ async function great() {
     if (!start || (x.edges.length > 1 && !middle)) continue; // a Great in one search needs each gap in its own search
     t.oneSearch++;
     const after = moverWin(x.after.winrate, x.mover);
-    if (!x.followups.every(f => after - moverWin(f.root.winrate, x.mover) >= ONLY_EDGE_GAP)) continue;
+    if (!x.followups.every(f => after - moverWin(f.root.winrate, x.mover) >= ONLY_MOVE_GAP)) continue;
     t.confirmed++; tally(t, kept, after);
   }
   const rest = e.gaps - e.last, searches = e.gaps + t.searches - t.shared;

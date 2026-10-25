@@ -1,8 +1,8 @@
-// The move list's look, in the review, on the Analysis board and in Practice: one row a turn, its number, then its moves
-// in two equal columns (Lichess's move list), each at least a move wide, so that the moves line up down the list. A
-// move's text has one width, the game's widest move (the view's game interface, `moveText`), in a monospaced font, the
-// same on every system (@abstractclass/site/site.css). The move on the board is outlined in the accent colour, and a
-// move under the pointer in the line colour.
+// The move list's look, in the review, on the Analysis board and in Practice: one row a turn, its number, then its
+// moves in two equal columns (Lichess's move list), each at least a move wide, so that the moves line up down the list.
+// A move's text has one width, the game's widest move (the view's game interface, `moveText`), in a monospaced font,
+// the same on every system (@abstractclass/site/site.css). The move on the board is outlined in the accent colour, and
+// a move under the pointer in the line colour.
 import type { Player } from "@abstractclass/analysis/game.ts";
 import { SIDE_TEXT } from "@abstractclass/site/side.ts";
 

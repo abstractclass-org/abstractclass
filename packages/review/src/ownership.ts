@@ -32,8 +32,8 @@ export const shade = (v: number) => Math.min(1, Math.abs(v) / 100) ** (1 / OWNER
 export const ownershipMap = (ownership: number[], min: number): (AreaMark | null)[] =>
   ownership.map(o => (o && Math.abs(o) >= min ? { kind: "hold", side: o > 0 ? 0 : 1, strength: shade(o) } : null));
 
-/** The change style: by point, its mark where the change from the board now (`now`: 1 Blue's, −1 Red's, 0 neither, the
- *  game's `map.now`) to the ownership is not 0 and at least `min`, or null. */
+/** The change style: by point, its mark where the change from the board now (`now`: 1 Blue's, −1 Red's, 0 neither,
+ *  the game's `map.now`) to the ownership is not 0 and at least `min`, or null. */
 export function changeMap(ownership: number[], now: number[], min: number): (AreaMark | null)[] {
   return ownership.map((o, i) => {
     const change = o - 100 * now[i];

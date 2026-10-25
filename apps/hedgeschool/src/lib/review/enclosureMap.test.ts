@@ -1,5 +1,5 @@
-// The area map, Enclosure's part (enclosureMap.ts, design 30): each point's state on the board now, from the regions and
-// the edges, a point's numbers in the forecast styles, and the board as drawn after a line's edges. Run: npm test.
+// The area map, Enclosure's part (enclosureMap.ts, design 30): each point's state on the board now, from the regions
+// and the edges, a point's numbers in the forecast styles, and the board as drawn after a line's edges. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { changeMap } from "@abstractclass/review/ownership.ts";

@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { Edge } from "#lib/engine/notation.ts";
-import { chartMarks, complexity, distinctCandidates, earlierIndex, endingText, onlyJudged, equalDepth, keepsGain, likelyEdges, judgeBranchEdge, onlyEdge,
+import { chartMarks, complexity, distinctCandidates, earlierIndex, endingText, onlyJudged, equalDepth, keepsGain, likelyMoves, judgeBranchEdge, onlyMove,
          otherCandidate, review, roundTogether, rankOf, sameMove, secondChoice, shortNote, shownCandidates, trustedLine, twinsOf, turnCost,
          valuesAfter, type Analysis, type Candidate, type Move, type Position, type ReviewData, type Unit } from "./enclosure.ts";
 import { accuracyWeight } from "@abstractclass/analysis/labels.ts";
@@ -254,11 +254,11 @@ test("the meter: the network's prior by the group of each searched edge's loss a
   // Red to move: the best searched edge leaves Blue 0.40; others lose 0.03, 0.08, 0.15 and 0.30 for Red
   const c = (blueWin: number, prior: number): Candidate => ({ edge: A, visits: 10, blueWin, prior });
   const a: Analysis = { blueWin: 0.41, visits: 512, candidates: [c(0.4, 0.3), c(0.43, 0.2), c(0.48, 0.1), c(0.55, 0.15), c(0.7, 0.05)] };
-  const m = likelyEdges(a, 1)!;
+  const m = likelyMoves(a, 1)!;
   const near = (x: number, y: number) => Math.abs(x - y) < 1e-12;
   assert.ok(near(m.good, 0.5) && near(m.inaccuracy, 0.1) && near(m.mistake, 0.15) && near(m.blunder, 0.05), JSON.stringify(m));
   assert.ok(near(m.unsearched, 0.2)); // the prior the search did not visit
-  assert.equal(likelyEdges({ ...a, candidates: a.candidates.map(({ prior: _, ...k }) => k) }, 1), undefined);
+  assert.equal(likelyMoves({ ...a, candidates: a.candidates.map(({ prior: _, ...k }) => k) }, 1), undefined);
 });
 
 // The start mirrored: the engine searches A10-D9 and lists its twin A10-D11 right after it with the same values
@@ -272,7 +272,7 @@ const mirrored: Analysis = { blueWin: 0.6, visits: 256, lead: 20, candidates: [
 test("a symmetric twin is the same move: the second choice and the other candidate skip it", () => {
   assert.deepEqual(distinctCandidates(mirrored).map(c => c.edge), [A10D9, D10G10]);
   assert.deepEqual(secondChoice(mirrored)?.edge, D10G10);
-  assert.ok(onlyEdge(mirrored, 0)); // the twin's equal values do not hide the gap to the next distinct move
+  assert.ok(onlyMove(mirrored, 0)); // the twin's equal values do not hide the gap to the next distinct move
   assert.ok(sameMove(mirrored, A10D9, A10D11) && sameMove(mirrored, A10D11, A10D9));
   assert.ok(!sameMove(mirrored, A10D11, D10G10));
   // Blue played the twin: the other candidate is the next distinct move, not the searched edge.

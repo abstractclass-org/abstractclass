@@ -118,7 +118,7 @@ export const enclosure: Game<Enclosure> = {
 export type Candidate = shared.Candidate<Edge>;
 export type Analysis = shared.Analysis<Edge>;
 export type ReviewData = shared.ReviewData<Enclosure>;
-export type EdgeReview = shared.EdgeReview<Enclosure>;
+export type EdgeReview = shared.MoveReview<Enclosure>;
 export type TurnReview = shared.TurnReview<Enclosure>;
 export type Review = shared.Review<Enclosure>;
 export type RankedCandidate = shared.RankedCandidate<Edge>;
@@ -134,7 +134,7 @@ export const twinsOf = withGame(shared.twinsOf<Edge>);
 export const rankOf = withGame(shared.rankOf<Edge>);
 export const otherCandidate = withGame(shared.otherCandidate<Edge>);
 export const shownCandidates = withGame(shared.shownCandidates<Edge>);
-export const judgeBranchEdge = withGame(shared.judgeBranchEdge<Edge>);
+export const judgeBranchEdge = withGame(shared.judgeBranchMove<Edge>);
 export const judgeTurn = withGame(shared.judgeTurn<Edge>);
 
 // --- Enclosure's texts ----------------------------------------------------------------------------------------------

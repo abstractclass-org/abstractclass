@@ -24,7 +24,7 @@ export const listed = (l: Label | null): l is Label => l === "great" || (!!l && 
 export const GOOD_WIN = 0.05;
 const WIN_BANDS: [Label, number][] = [["excellent", 0.02], ["good", GOOD_WIN], ["inaccuracy", 0.10], ["mistake", 0.20]];
 
-/** The meter's groups (model.ts, `likelyEdges`): Good or better (a loss up to GOOD_WIN), then Inaccuracy, Mistake and
+/** The meter's groups (model.ts, `likelyMoves`): Good or better (a loss up to GOOD_WIN), then Inaccuracy, Mistake and
  *  Blunder, by the labels' bands. Maia's Blunder Meter has three groups, cut at 0.05 and 0.10 of win chance; these cut
  *  at the same two places, and at 0.20 too. */
 export const METER_GROUPS = ["good", "inaccuracy", "mistake", "blunder"] as const;
@@ -33,7 +33,7 @@ export function meterGroup(winLoss: number): MeterGroup {
   const label = classify(winLoss, false, false);
   return label === "excellent" ? "good" : (label as MeterGroup);
 }
-export const ONLY_EDGE_GAP = 0.10;
+export const ONLY_MOVE_GAP = 0.10;
 /** A Great's gain over the position before the opponent's last turn: more than this, in win chance (En Croissant's 5). */
 export const KEPT_GAIN = 0.05;
 

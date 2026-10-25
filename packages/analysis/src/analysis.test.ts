@@ -17,7 +17,7 @@ import { reply, wordFields, wordRules, words } from "./testing/game.ts";
 import type { Player } from "./game.ts";
 import { LABEL_VISITS, MAP_VISITS, SWEEP_VISITS, analysisKey, cachePut, mapGet, mapPut,
          readAnalysisKey } from "./cache.ts";
-import { judgeBranchEdge, valuesAfter } from "./model.ts";
+import { judgeBranchMove, valuesAfter } from "./model.ts";
 import { toAnalysis } from "./reply.ts";
 import { STORES } from "@abstractclass/storage/db.ts";
 import { memoryDb } from "@abstractclass/storage/memoryDb.ts";
@@ -871,7 +871,7 @@ test("Evaluate quality searches the position before the opponent's last turn whe
   await turns();
   // The move's label, as the review reads it (ReviewView, branchLabel).
   const node = () => game.branches["a b x"];
-  const label = () => judgeBranchEdge(words, game.analysisOf(["a", "b"]), valuesAfter(node().position, node().analysis, "lead", LABEL_VISITS),
+  const label = () => judgeBranchMove(words, game.analysisOf(["a", "b"]), valuesAfter(node().position, node().analysis, "lead", LABEL_VISITS),
                                       0, "x", "lead", LABEL_VISITS, game.secondAt(["a", "b"]), game.earlierAt(["a", "b"], 0));
   const own = (await asked()).length;
   assert.equal((await asked()).filter(m => m === "a").length, 1); // asked once, though the page asks again at each result

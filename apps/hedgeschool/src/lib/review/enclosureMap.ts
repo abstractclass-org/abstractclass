@@ -29,9 +29,9 @@ function inRing(ring: [number, number][], x: number, y: number): boolean {
   return inside;
 }
 
-/** Each point's state now, by point (index y * 19 + x), from Blue's side: 1 strictly inside Blue's regions, −1 strictly
- *  inside Red's, 0 elsewhere. A point on a player's edge is not inside that player's region: the engine's ownership
- *  target counts the lattice points strictly inside (its planes.enclosed_points). */
+/** Each point's state now, by point (index y * 19 + x), from Blue's side: 1 strictly inside Blue's regions, −1
+ *  strictly inside Red's, 0 elsewhere. A point on a player's edge is not inside that player's region: the engine's
+ *  ownership target counts the lattice points strictly inside (its planes.enclosed_points). */
 export function occupancy(position: Pick<Position, "edges" | "regions">): number[] {
   const out = new Array<number>(N * N).fill(0);
   for (const p of [0, 1] as const) {

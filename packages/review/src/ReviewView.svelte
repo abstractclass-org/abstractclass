@@ -131,7 +131,7 @@
   import { errorText } from "@abstractclass/engine/errors.ts";
   import Toast from "@abstractclass/site/Toast.svelte";
   import {
-    opensTurn, HARD_NOTE, complexity, isHard, turnComplexity, likelyEdges, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchEdge, valuesAfter, resultWin, moverWin, costText, pct, shownCandidates, distinctCandidates, rankOf, twinsOf, enoughVisits, threatTurn, trustedLine, type Candidate, LABELS, LABEL_TEXT, LABEL_GLYPH, type Label, type MoveJudgment, type Review, type Unit, type TurnJudgment, type TurnReview,
+    opensTurn, HARD_NOTE, complexity, isHard, turnComplexity, likelyMoves, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchMove, valuesAfter, resultWin, moverWin, costText, pct, shownCandidates, distinctCandidates, rankOf, twinsOf, enoughVisits, threatTurn, trustedLine, type Candidate, LABELS, LABEL_TEXT, LABEL_GLYPH, type Label, type MoveJudgment, type Review, type Unit, type TurnJudgment, type TurnReview,
   } from "@abstractclass/analysis/model.ts";
   import { branchChildren, branchLine, branchRows, mainIndex, nextFork, pathKey, prefixKeys, prevFork, sharedLength, siblingLine, treeLines, withLine,
            type BranchRow } from "@abstractclass/analysis/tree.ts";
@@ -187,8 +187,9 @@
   const wide = new MediaQuery(WIDE);
   const threeCols = $derived(wide.current && !board); // the summary column: the review's
   const tabbed = $derived(!wide.current && !board); // the review's Report and Analysis as tabs, below 1,260 pixels
-  // The display settings, kept in this browser by the site (the game's `display`). They open in the analysis column, in
-  // the place of the analysis (Lichess's analysis menu takes the move list's place), so that the board shows each change.
+  // The display settings, kept in this browser by the site (the game's `display`). They open in the analysis column,
+  // in the place of the analysis (Lichess's analysis menu takes the move list's place), so that the board shows each
+  // change.
   const display = $state(untrack(() => view.display.load()));
   // Each change of a display setting is kept, and counted by its name (design 17): not the settings as they load.
   let shownDisplay = $state.snapshot(display);
@@ -259,7 +260,7 @@
   const analysis = $derived(over ? undefined : mainAt !== null ? R.data.analysis[mainAt] : branchNode?.analysis);
   // The position's complexity (model.ts), and its likely edges for the meter
   const difficulty = $derived(complexity(analysis, position.player));
-  const meter = $derived(likelyEdges(analysis, position.player));
+  const meter = $derived(likelyMoves(analysis, position.player));
   const METER_WORDS = { good: "good or better", inaccuracy: "inaccuracy", mistake: "mistake", blunder: "blunder" } as const;
   const meterText = (m: NonNullable<typeof meter>) =>
     `Likely ${view.words.moves}: ${METER_GROUPS.map(g => `${Math.round(100 * m[g])}% ${METER_WORDS[g]}`).join(" · ")}` +
@@ -753,7 +754,8 @@
   // style, and for the numbers
   let mapPoint = $state.raw<G["point"] | null>(null);
   const pointing = $derived(mapPoint !== null);
-  // The state of the board that the map's step shows (the game's `map.now`), for the change style and the point's numbers
+  // The state of the board that the map's step shows (the game's `map.now`), for the change style and the point's
+  // numbers
   const boardNow = $derived(shownStep !== null && view.map && (display.mapStyle === "change" || pointing)
     ? view.map.now(mapLine.from, mapLine.drawn.slice(0, shownStep)) : null);
   const shownMap = $derived.by(() => {
@@ -881,7 +883,7 @@
     const key = pathKey(p), node = branches[key];
     if (!node?.judged || game?.awaitsGreat(key)) return null; // a Great's searches still run: "Evaluating…"
     const parent = p.slice(0, -1);
-    return judgeBranchEdge(view, analysisAt(parent), valuesAfter(node.position, node.analysis, "lead", labelVisits), node.move.player,
+    return judgeBranchMove(view, analysisAt(parent), valuesAfter(node.position, node.analysis, "lead", labelVisits), node.move.player,
                            node.move.edge, "lead", labelVisits, game?.secondAt(parent), game?.earlierAt(parent, node.move.player));
   }
   /** The move that leads to `p` (none at the start), and the analysis at `p`: the game's or a branch's. */

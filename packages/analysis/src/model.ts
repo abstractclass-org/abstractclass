@@ -15,7 +15,7 @@
 // src/lib/review/enclosure.ts.
 
 import type { Game, GameTypes, Moves, Player, PositionInfo } from "./game.ts";
-import { GOOD_WIN, HARD, KEPT_GAIN, LABELS, METER_GROUPS, ONLY_EDGE_GAP, accuracyWeight, classify, listed, meterGroup,
+import { GOOD_WIN, HARD, KEPT_GAIN, LABELS, METER_GROUPS, ONLY_MOVE_GAP, accuracyWeight, classify, listed, meterGroup,
          type Label, type MeterGroup } from "./labels.ts";
 export { BAD_LABELS, HARD, LABELS, METER_GROUPS, listed, type Label, type MeterGroup } from "./labels.ts";
 export type { Player } from "./game.ts";
@@ -85,12 +85,12 @@ export interface MoveJudgment<M> {
   hard: boolean; // a hard position: complexity HARD or more. On the board, the moves evaluated only (onlyJudged)
 }
 /** An edge of the review: the move played (`player`, `edge`, and what the game keeps of it), and its judgment. */
-export type EdgeReview<G extends GameTypes> = G["played"] & MoveJudgment<G["move"]>;
+export type MoveReview<G extends GameTypes> = G["played"] & MoveJudgment<G["move"]>;
 export interface TurnReview<G extends GameTypes> {
   number: number;
   continued?: boolean; // the line starts in this turn's middle: its first edge was played before the start
   player: Player;
-  edges: EdgeReview<G>[];
+  edges: MoveReview<G>[];
   start: number; // the turn leads from position start to position end
   end: number;
   loss: number; // the mover's loss of win chance from the turn's start to its end, at least 0
@@ -107,7 +107,7 @@ export type Unit = "turn" | "edge";
 export interface PlayerSummary { counts: Record<Label, number>; accuracy: number; meanPointsLost: number | undefined }
 export interface Review<G extends GameTypes> {
   data: ReviewData<G>;
-  edges: EdgeReview<G>[];
+  edges: MoveReview<G>[];
   turns: TurnReview<G>[];
   turnOf: TurnReview<G>[]; // by edge index: the turn the edge is in
   summary: Record<Unit, [PlayerSummary, PlayerSummary]>;
@@ -135,10 +135,10 @@ export function complexity<M>(a: Analysis<M> | undefined, p: Player): number | u
   return weight > 0 ? sum / weight : undefined;
 }
 
-/** The engine's first choice is the only good edge: the second is at least ONLY_EDGE_GAP worse for the mover. */
-export function onlyEdge<M>(a: Analysis<M> | undefined, p: Player): boolean {
+/** The engine's first choice is the only good edge: the second is at least ONLY_MOVE_GAP worse for the mover. */
+export function onlyMove<M>(a: Analysis<M> | undefined, p: Player): boolean {
   const [first, second] = a ? distinctCandidates(a) : [];
-  return !!first && !!second && moverWin(first.blueWin, p) - moverWin(second.blueWin, p) >= ONLY_EDGE_GAP;
+  return !!first && !!second && moverWin(first.blueWin, p) - moverWin(second.blueWin, p) >= ONLY_MOVE_GAP;
 }
 
 /** The engine's first choice keeps what the opponent's last turn gave (En Croissant's third condition for "!",
@@ -173,11 +173,11 @@ export function equalDepth(minVisits: number, afterVisits: number | undefined): 
 
 /** The first choice, played, is the only good edge (Great), confirmed by an equal search: the position after the second
  *  choice, searched to `minVisits` at least (equalDepth: as deep as the position after the played edge), is
- *  ONLY_EDGE_GAP worse for the mover than the position after the played edge (`winAfter`, the mover's). The gap within
- *  one search (onlyEdge) only asks for that search: the second choice there rests on few visits
+ *  ONLY_MOVE_GAP worse for the mover than the position after the played edge (`winAfter`, the mover's). The gap within
+ *  one search (onlyMove) only asks for that search: the second choice there rests on few visits
  *  (GameAnalysis.confirmGreats). */
 export function confirmedOnly<M>(winAfter: number, second: Analysis<M> | undefined, p: Player, minVisits = 0): boolean {
-  return !!second && second.visits >= minVisits && winAfter - moverWin(second.blueWin, p) >= ONLY_EDGE_GAP;
+  return !!second && second.visits >= minVisits && winAfter - moverWin(second.blueWin, p) >= ONLY_MOVE_GAP;
 }
 
 /** The first candidate that is not an edge of the played turn: the start of the best other turn, which confirms a
@@ -225,7 +225,7 @@ function sameTurn<M>(game: Moves<M>, played: (M | null)[], turn: M[]): boolean {
 
 /** An edge's loss and label, from the mover's values before and after it: win chance, and score when both are known.
  *  `playedBest`: the edge was the engine's first choice; `only`: the first choice was the only good edge. */
-export function judgeEdge(winBefore: number, winAfter: number, scoreBefore: number | undefined, scoreAfter: number | undefined,
+export function judgeMove(winBefore: number, winAfter: number, scoreBefore: number | undefined, scoreAfter: number | undefined,
                           playedBest: boolean, only: boolean): { loss: number; pointsLost: number | undefined; label: Label } {
   const loss = Math.max(0, winBefore - winAfter);
   const pointsLost = scoreBefore !== undefined && scoreAfter !== undefined ? Math.max(0, scoreBefore - scoreAfter) : undefined;
@@ -236,17 +236,17 @@ export function judgeEdge(winBefore: number, winAfter: number, scoreBefore: numb
  *  analysis, or the result where the game ends), each analysis to at least `minVisits`, and `second`, the position after
  *  the engine's second choice, and `earlier`, the position before the opponent's last turn (keepsGain), which a Great
  *  needs. Null until both are known. */
-export function judgeBranchEdge<M>(game: Moves<M>, before: Analysis<M> | undefined,
+export function judgeBranchMove<M>(game: Moves<M>, before: Analysis<M> | undefined,
                                    after: { blueWin: number; blueScore: number | undefined; visits?: number } | undefined,
                                    mover: Player, edge: M | null, kind: ScoreKind = "lead", minVisits = 0,
                                    second?: Analysis<M>, earlier?: Analysis<M>): Label | null {
   if (!before || before.visits < minVisits || !after) return null;
   const best = before.candidates[0], s = scoreOf(before, kind), winAfter = moverWin(after.blueWin, mover);
-  return judgeEdge(moverWin(before.blueWin, mover), winAfter,
+  return judgeMove(moverWin(before.blueWin, mover), winAfter,
                    s !== undefined ? moverScore(s, mover) : undefined,
                    after.blueScore !== undefined ? moverScore(after.blueScore, mover) : undefined,
                    !!best && edge != null && sameMove(game, before, best.edge, edge),
-                   onlyEdge(before, mover) && keepsGain(before, earlier, mover, minVisits)
+                   onlyMove(before, mover) && keepsGain(before, earlier, mover, minVisits)
                      && confirmedOnly(winAfter, second, mover, equalDepth(minVisits, after.visits))).label;
 }
 
@@ -318,13 +318,13 @@ export function review<G extends GameTypes>(game: Game<G>, data: ReviewData<G>, 
     const k = earlierIndex(j => data.moves[j - 1].player, i, data.moves[i].player, from.first);
     return k === undefined ? undefined : data.analysis[k];
   };
-  const edges: EdgeReview<G>[] = data.moves.map((m, i) => {
+  const edges: MoveReview<G>[] = data.moves.map((m, i) => {
     const winBefore = moverWin(blueWin[i], m.player), winAfter = moverWin(blueWin[i + 1], m.player);
     const a = data.analysis[i], best = a?.candidates[0];
     const before = scoreAt(i, m.player), after = scoreAt(i + 1, m.player);
-    const j = known(i, i + 1) ? judgeEdge(winBefore, winAfter, before, after,
+    const j = known(i, i + 1) ? judgeMove(winBefore, winAfter, before, after,
                                           !!best && m.edge != null && sameMove(game, a, best.edge, m.edge),
-                                          onlyEdge(a, m.player) && keepsGain(a, earlier(i), m.player, minVisits)
+                                          onlyMove(a, m.player) && keepsGain(a, earlier(i), m.player, minVisits)
                                             && confirmedOnly(winAfter, data.seconds?.[i], m.player,
                                                              equalDepth(minVisits, data.analysis[i + 1]?.visits))) : null;
     return { ...m, index: i, winBefore, winAfter, loss: j?.loss ?? 0,
@@ -399,16 +399,16 @@ export function judgeTurn<M>(game: Moves<M>, mover: Player, played: (M | null)[]
   const s = scoreOf(start, kind), before = s !== undefined ? moverScore(s, p) : undefined;
   const afterScore = after.blueScore !== undefined ? moverScore(after.blueScore, p) : undefined;
   // Great: the only good turn, confirmed by equal searches. From the start: the other candidate (otherCandidate) looks
-  // ONLY_EDGE_GAP worse there, and the position after it, searched as deep, is that much worse than the position after
+  // ONLY_MOVE_GAP worse there, and the position after it, searched as deep, is that much worse than the position after
   // the turn. From the middle, for a turn of two edges: the played second edge is the first choice there, and its second
   // choice is that much worse, confirmed as for an edge. And the best turn keeps what the opponent's last turn gave.
   const otherFirst = otherCandidate(game, start, played), confirmDepth = equalDepth(minVisits, after.visits);
   const fromStart = !!first && !!otherFirst
-    && moverWin(first.blueWin, p) - moverWin(otherFirst.blueWin, p) >= ONLY_EDGE_GAP
+    && moverWin(first.blueWin, p) - moverWin(otherFirst.blueWin, p) >= ONLY_MOVE_GAP
     && confirmedOnly(winAfter, other, p, confirmDepth);
-  const fromMiddle = played.length === 1 || (!!top && played[1] != null && sameMove(game, middle, top.edge, played[1]) && onlyEdge(middle, p)
+  const fromMiddle = played.length === 1 || (!!top && played[1] != null && sameMove(game, middle, top.edge, played[1]) && onlyMove(middle, p)
     && confirmedOnly(winAfter, second, p, confirmDepth));
-  const j = judgeEdge(winBefore, winAfter, before, afterScore, playedBest, playedBest && !ends && fromStart && fromMiddle
+  const j = judgeMove(winBefore, winAfter, before, afterScore, playedBest, playedBest && !ends && fromStart && fromMiddle
                                                                 && keepsGain(start, earlier, p, minVisits));
   return { ...j, rawLoss: winBefore - winAfter, rawPoints: before !== undefined && afterScore !== undefined ? before - afterScore : undefined };
 }
@@ -424,7 +424,7 @@ export const HARD_NOTE = "Hard position";
  *  (maia-platform-frontend, calculateBlunderMeter): the network's prior summed by the group of each searched edge's loss
  *  against the best one's win chance, for the mover. `unsearched` is the prior of the edges the search did not visit:
  *  their loss is not known. Undefined without the priors. */
-export function likelyEdges<M>(a: Analysis<M> | undefined, p: Player): (Record<MeterGroup, number> & { unsearched: number }) | undefined {
+export function likelyMoves<M>(a: Analysis<M> | undefined, p: Player): (Record<MeterGroup, number> & { unsearched: number }) | undefined {
   const searched = a?.candidates.filter(c => c.prior !== undefined) ?? [];
   if (!searched.length) return undefined;
   const best = Math.max(...searched.map(c => moverWin(c.blueWin, p)));
@@ -544,7 +544,7 @@ export function shownCandidates<M>(game: Moves<M> & { scoreScale: number }, a: A
  *  keeps its complexity: the move list marks a hard position wherever it has a result (design 14). A turn keeps its
  *  own when each of its edges is judged. */
 export function onlyJudged<G extends GameTypes>(R: Review<G>, judged: (edge: number) => boolean): Review<G> {
-  const plain = <T extends EdgeReview<G> | TurnReview<G>>(x: T): T =>
+  const plain = <T extends MoveReview<G> | TurnReview<G>>(x: T): T =>
     ({ ...x, label: null, loss: 0, pointsLost: undefined, rawLoss: 0, rawPoints: undefined, hard: false });
   const edges = R.edges.map(e => (judged(e.index) ? e : plain(e)));
   const turns = R.turns.map(t => {

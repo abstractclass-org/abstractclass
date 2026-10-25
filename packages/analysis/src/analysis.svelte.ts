@@ -31,9 +31,9 @@ import { positionQuery } from "@abstractclass/engine/protocol.ts";
 import { errorText } from "@abstractclass/engine/errors.ts";
 import { BOARD_ID, branchNodes, keptNode, type KeptNode, type KeptBoard, type KeptBranches } from "./kept.ts";
 import type { Game, GameTypes, Player } from "./game.ts";
-import { earlierIndex, equalDepth, keepsGain, moverScore, moverWin, onlyEdge, otherCandidate, sameMove, secondChoice, type Analysis,
+import { earlierIndex, equalDepth, keepsGain, moverScore, moverWin, onlyMove, otherCandidate, sameMove, secondChoice, type Analysis,
          type Candidate, type GameEnding, type ReviewData } from "./model.ts";
-import { ONLY_EDGE_GAP } from "./labels.ts";
+import { ONLY_MOVE_GAP } from "./labels.ts";
 import { lastMove, mainIndex, parentKey, pathKey, prefixKeys } from "./tree.ts";
 import { STORES, dbGet, dbPut } from "@abstractclass/storage/db.ts";
 import { keepStorage } from "@abstractclass/storage/persist.ts";
@@ -357,7 +357,7 @@ export class GameAnalysis<G extends GameTypes> {
                    mover: Player, over: boolean, gain = a) => {
       const first = a?.candidates[0];
       if (over || !a || a.visits < (judged ? shownFrom : this.labelVisits) || !first || edge == null
-          || !sameMove(this.game, a, first.edge, edge) || !onlyEdge(a, mover)) return;
+          || !sameMove(this.game, a, first.edge, edge) || !onlyMove(a, mover)) return;
       const path = before();
       ask(judged, a, gain!, path, mover, secondChoice(a)!, [...path, name(edge)]);
     };
@@ -367,7 +367,7 @@ export class GameAnalysis<G extends GameTypes> {
       if (!a || a.visits < (judged ? shownFrom : this.labelVisits) || !first
           || !turn.some(e => e != null && sameMove(this.game, a, e, first.edge))) return;
       const other = otherCandidate(this.game, a, turn);
-      if (!other || moverWin(first.blueWin, mover) - moverWin(other.blueWin, mover) < ONLY_EDGE_GAP) return;
+      if (!other || moverWin(first.blueWin, mover) - moverWin(other.blueWin, mover) < ONLY_MOVE_GAP) return;
       const path = start();
       // A turn of two needs the search from its middle too (judgeTurn). Its second edge asks for that search only where the
       // middle's first choice keeps the gain, and the turn reads the gain at its start.
