@@ -25,7 +25,7 @@
   // go in a column on each side of a wide area, Blue's on the left as Blue's cells start on the left, and in a row above
   // and below a tall one (a phone). Geometry only: what a move stamps and removes comes from the move's data.
   import Cell from "./Cell.svelte";
-  import Hand,{ blueprintBoxes, fitUnit, type HandMarks } from "./Hand.svelte";
+  import Hand, { blueprintBoxes, fitUnit, type HandMarks } from "./Hand.svelte";
   import { boxOf, center, fromMiddle, GRID_TILE, GRID_TILE_PATH, hexAt, hexKey, hexPath, outlinePath, sameHex } from "./hex.ts";
   import { cellsOf, PLAYER_NAMES, sameHandHex } from "./position.ts";
   import { clamp, fit, pan, pinch, toArea, toPlane, viewBox, zoomAt, type View } from "./view.ts";
