@@ -13,6 +13,8 @@ const site = join(root, "apps/hedgeschool");
 const board = join(root, "apps/drawingboard");
 
 const steps = [
+  // No package.json with a key twice (a merge can leave two "dependencies" blocks), and the root scripts' own tests.
+  { name: "json-keys", cwd: root, command: 'node --test "scripts/*.test.mjs" && node scripts/json-keys.mjs' },
   { name: "engine", cwd: site, command: "npm run engine -- --deploy", stopsOnFailure: true },
   { name: "site-check", cwd: site, command: "npm run check" },
   { name: "site-test", cwd: site, command: "npm test" },
