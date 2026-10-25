@@ -19,9 +19,9 @@
   <p>Blueprints uses a grid of hexes with no edge. Each player holds three blueprints: shapes of cells that the
     player can use again and again.</p>
   <ul>
-    <li><strong>A placement</strong> stamps a blueprint on empty hexes next to the player's own cells. It removes the
-      opponent's cells next to it, but not walls.</li>
-    <li><strong>A score</strong> comes from the stars that a placement removes, times the player's own stars on the
+    <li><strong>A placement</strong> puts a copy of a blueprint on empty hexes touching the player's own cells. It captures the
+      opponent's cells touching it, but not walls.</li>
+    <li><strong>A score</strong> comes from the stars that a placement captures, times the player's own stars on the
       board.</li>
     <li><strong>An edit</strong> moves one cell of a blueprint, inside the blueprint or to another one.</li>
   </ul>

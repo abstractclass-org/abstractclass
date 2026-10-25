@@ -31,7 +31,7 @@ test("a malformed move is refused with its place in the text", () => {
   };
   assert.deepEqual(at("1. 2@-6,-2 2. 4@1,1"), ["a blueprint's number is 1, 2 or 3: 4@1,1", 14]);
   assert.deepEqual(at("1. 2@-6,-2x+0?"), ["a placement that scores no points has the mark x, not x+0: 2@-6,-2x+0?", 3]);
-  assert.deepEqual(at("1. 1:0,0>3:1,-1x"), ["only a placement has a capture mark: an edit removes no cells: 1:0,0>3:1,-1x", 3]);
+  assert.deepEqual(at("1. 1:0,0>3:1,-1x"), ["only a placement has a capture mark: an edit captures no cells: 1:0,0>3:1,-1x", 3]);
   assert.deepEqual(at("1. 2@-6 *"), ["not a move, a turn label or a result: 2@-6", 3]);
 });
 
@@ -48,10 +48,10 @@ test("a record written and read back", () => {
   assert.deepEqual(parseRecord(text).marked, [null, null, { points: 24 }, null]);
 });
 
-/** The moves' effects in GAME, as the engine would give them: 1@-8,2 removes cells and scores nothing. */
+/** The moves' effects in GAME, as the engine would give them: 1@-8,2 captures cells and scores nothing. */
 const EFFECTS: Effect[] = [
-  { removed: 0, points: 0 }, { removed: 0, points: 0 }, { removed: 3, points: 24 }, { removed: 2, points: 0 },
-  { removed: 0, points: 0 }, { removed: 0, points: 0 }, { removed: 1, points: 6 },
+  { captured: 0, points: 0 }, { captured: 0, points: 0 }, { captured: 3, points: 24 }, { captured: 2, points: 0 },
+  { captured: 0, points: 0 }, { captured: 0, points: 0 }, { captured: 1, points: 6 },
 ];
 
 test("the capture marks: confirmed by the moves' effects, and written where the record has none", () => {
@@ -66,13 +66,13 @@ test("the capture marks: confirmed by the moves' effects, and written where the 
 
 test("a capture mark that the move's effects do not confirm is refused", () => {
   const problem = (text: string, effects: Effect[]) => checkCaptures(parseRecord(text), effects).problem;
-  const none = { removed: 0, points: 0 }, removes = { removed: 2, points: 0 }, scores = { removed: 2, points: 24 };
-  assert.equal(problem("1. 2@-6,-2x", [none]), "Move 1 (2@-6,-2x) has the mark x, but the move removes no enemy cells.");
+  const none = { captured: 0, points: 0 }, captures = { captured: 2, points: 0 }, scores = { captured: 2, points: 24 };
+  assert.equal(problem("1. 2@-6,-2x", [none]), "Move 1 (2@-6,-2x) has the mark x, but the move captures no opponent cells.");
   assert.equal(problem("1. 2@-6,-2 2. 2@5,-2x", [none, scores]),
                "Move 2 (2@5,-2x) has the mark x. The move scores 24 points, so its mark is x+24.");
-  assert.equal(problem("1. 2@-6,-2x+24", [removes]),
+  assert.equal(problem("1. 2@-6,-2x+24", [captures]),
                "Move 1 (2@-6,-2x+24) has the mark x+24. The move scores no points, so its mark is x.");
-  assert.equal(problem("1. 2@-6,-2x+2", [{ removed: 1, points: 1 }]),
+  assert.equal(problem("1. 2@-6,-2x+2", [{ captured: 1, points: 1 }]),
                "Move 1 (2@-6,-2x+2) has the mark x+2. The move scores 1 point, so its mark is x+1.");
   assert.equal(problem("1. 2@-6,-2", [scores]), null); // no mark: the record gets one
   assert.throws(() => checkCaptures(parseRecord("1. 2@-6,-2"), []), /0 effects for 1 moves/);

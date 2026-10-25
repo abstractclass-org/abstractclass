@@ -44,8 +44,8 @@ const corner = (x: number, y: number, size: number, i: number) => {
 };
 const round = (v: number) => Math.round(v * 1000) / 1000 + 0;
 
-/** The six neighbours, in the order of a hex's sides: side i joins corners i and i + 1, the first is the upper right. */
-export const NEIGHBOURS: readonly Hex[] = [[1, -1], [1, 0], [0, 1], [-1, 1], [-1, 0], [0, -1]];
+/** The six hexes touching a hex, in the order of a hex's sides: side i joins corners i and i + 1, the first is the upper right. */
+export const TOUCHING: readonly Hex[] = [[1, -1], [1, 0], [0, 1], [-1, 1], [-1, 0], [0, -1]];
 
 /** The outline of a group of hexes: the sides that no other hex of the group shares, as separate lines of a path. */
 export function outlinePath(hexes: readonly Hex[]): string {
@@ -53,16 +53,16 @@ export function outlinePath(hexes: readonly Hex[]): string {
   let d = "";
   for (const h of hexes) {
     const [x, y] = center(h);
-    NEIGHBOURS.forEach(([dq, dr], i) => {
+    TOUCHING.forEach(([dq, dr], i) => {
       if (!keys.has(hexKey([h[0] + dq, h[1] + dr]))) d += `M${corner(x, y, 1, i)}L${corner(x, y, 1, (i + 1) % 6)}`;
     });
   }
   return d;
 }
 
-/** A blueprint's first cell: the first in reading order, the least r, then the least q. It is the cell (0, 0) of the
- *  blueprint's own frame (design 33, item 5). Null for no hexes. */
-export function firstHex(hexes: readonly Hex[]): Hex | null {
+/** The hex of a blueprint's anchor cell: the first in reading order, the least r, then the least q. It is the cell
+ *  (0, 0) of the blueprint's own frame (design 33, item 5). Null for no hexes. */
+export function anchorOf(hexes: readonly Hex[]): Hex | null {
   let first: Hex | null = null;
   for (const h of hexes) if (!first || h[1] < first[1] || (h[1] === first[1] && h[0] < first[0])) first = h;
   return first;
@@ -71,10 +71,10 @@ export function firstHex(hexes: readonly Hex[]): Hex | null {
 /** Hexes moved by (dq, dr). */
 export const shift = (hexes: readonly Hex[], [dq, dr]: Hex): Hex[] => hexes.map(([q, r]) => [q + dq, r + dr] as const);
 
-/** The hexes in their frame: moved so that the first is at (0, 0). */
+/** The hexes in their frame: moved so that the anchor cell is at (0, 0). */
 export function inFrame(hexes: readonly Hex[]): Hex[] {
-  const first = firstHex(hexes);
-  return first ? shift(hexes, [-first[0], -first[1]]) : [];
+  const anchor = anchorOf(hexes);
+  return anchor ? shift(hexes, [-anchor[0], -anchor[1]]) : [];
 }
 
 /** The hexes in order of their distance from the middle of their centres, the nearest first. */

@@ -17,9 +17,9 @@
 <script lang="ts">
   // A cell of the board or of a blueprint, on its hex: the owner's colour and the kind's mark.
   // - "cell": a cell in place.
-  // - "removed": a cell that a move removed, as Hedge School's board draws a cut edge: faded, dashed, with ×.
-  // - "ghost": a cell that a candidate or a line would stamp: faded, dashed, in the mover's colour.
-  interface Props { hex: Hex; owner: Player; kind: Kind; look?: "cell" | "removed" | "ghost" }
+  // - "captured": a cell that a move captured, as Hedge School's board draws a cut edge: faded, dashed, with ×.
+  // - "ghost": a cell that a candidate or a line would place: faded, dashed, in the mover's colour.
+  interface Props { hex: Hex; owner: Player; kind: Kind; look?: "cell" | "captured" | "ghost" }
   let { hex, owner, kind, look = "cell" }: Props = $props();
   const [x, y] = $derived(center(hex));
 </script>
@@ -31,7 +31,7 @@
   {:else if kind === "wall"}
     <path d={BRICKS} class="mark wall" />
   {/if}
-  {#if look === "removed"}
+  {#if look === "captured"}
     <text y="0.3" class="cross">×</text>
   {/if}
 </g>
@@ -44,7 +44,7 @@
   .star { fill: var(--on-badge); }
   .wall { fill: none; stroke: var(--on-badge); stroke-width: 0.07; stroke-linejoin: round; }
 
-  /* A removed cell and a ghost: faded and dashed, the mark in the owner's colour. */
+  /* A captured cell and a ghost: faded and dashed, the mark in the owner's colour. */
   .faded .body { fill-opacity: 0.18; stroke: var(--own); stroke-width: 0.07; stroke-dasharray: 0.2 0.12; }
   .faded .mark { opacity: 0.6; }
   .faded .star { fill: var(--own); }

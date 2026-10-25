@@ -45,7 +45,7 @@
   // A player's hand: the three blueprints, numbered 1 to 3, each in its own panel in the player's colour, in a row or
   // in a column. Each panel draws the blueprint's frame, its grid, so that a reader can count an edit's coordinates
   // (`I:q,r>J:q,r`, design 33, item 5), and an empty blueprint's hex 0,0 dashed: an edit can put a cell there. The
-  // first cell has no mark of its own: it is the first in reading order. The edits drawn: the last move's (the cell
+  // anchor cell has no mark of its own: it is the first in reading order. The edits drawn: the last move's (the cell
   // ringed at its new place, its old place dashed, and an arrow between them), the candidates' (the rank on the cell
   // that the edit moves, an arrow, and its new place dashed), and a line's (its numbers). A chip with a placement's
   // rank goes on the blueprint that it places, so that a reader sees which blueprint each candidate takes. All hands of
@@ -148,7 +148,7 @@
     {#each chipsOf(p.n) as c, k (c.name)}
       {@const x = d.left + d.width - INSET - (k + 1) * LABEL - 2 * k}
       <g class:first={c.rank === 1}>
-        <rect {x} y={d.top + INSET} width={LABEL} height={LABEL} rx="4" class="cand-badge" />
+        <rect {x} y={d.top + INSET} width={LABEL} height={LABEL} rx="4" class="rank-chip" />
         <text x={x + LABEL / 2} y={d.top + INSET + LABEL / 2 + 4} class="label-number">{c.rank}</text>
       </g>
     {/each}
@@ -169,7 +169,7 @@
     <g class:first={c.rank === 1}>
       <path d={hexPath(x, y, 0.86 * unit)} class="target" />
       {@render arrow(c, "cand")}
-      <rect x={fx - 0.6 * unit} y={fy - 0.6 * unit} width={1.2 * unit} height={1.2 * unit} rx={0.3 * unit} class="cand-badge" />
+      <rect x={fx - 0.6 * unit} y={fy - 0.6 * unit} width={1.2 * unit} height={1.2 * unit} rx={0.3 * unit} class="rank-chip" />
       <text x={fx} y={fy + 0.29 * unit} font-size={0.8 * unit} class="badge-number">{c.rank}</text>
     </g>
   {/each}
@@ -209,8 +209,8 @@
   .arrow-head.line { fill: var(--own); }
   .target { fill: none; stroke: var(--candidate); stroke-width: 1.5; stroke-dasharray: 2 2; }
   .first .target { stroke: var(--engine); }
-  .cand-badge { fill: var(--candidate); stroke: var(--board-bg); stroke-width: 1; }
-  .first .cand-badge { fill: var(--engine); }
+  .rank-chip { fill: var(--candidate); stroke: var(--board-bg); stroke-width: 1; }
+  .first .rank-chip { fill: var(--engine); }
   .line-badge { fill: var(--own); stroke: var(--board-bg); stroke-width: 1; }
   .badge-number { fill: var(--on-badge); font-weight: 700; font-family: system-ui, sans-serif; text-anchor: middle; pointer-events: none; }
   .hover { fill: var(--last); fill-opacity: 0.25; stroke: var(--last); stroke-width: 1.5; pointer-events: none; }

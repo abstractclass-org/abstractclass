@@ -32,7 +32,7 @@
 
 1. 1@-2,2 2. 2@3,1 3:0,0>3:1,-1 { Red changes a blueprint. }
 3. 1@1,-3x 1@0,3x+8 (3. 2@1,-3x 1@0,3x+11) 4. 1@2,4x 3@0,6 *`;
-  const BRANCH = "4. 1@2,4x 3@0,6 (4... 3@0,5x+10)";
+  const VARIATION = "4. 1@2,4x 3@0,6 (4... 3@0,5x+10)";
   const MARKED = "3. 1@1,-3x 1@0,3x+8? { Mistake. 2@1,-3x 1@0,3x+11 was best. } (3. 2@1,-3x 1@0,3x+11)";
   const COMMANDS = "3. 1@1,-3x { [%eval 0.58 +9 31.2] } 1@0,3x+8 { [%clk 0:00:52] [%eval 0.64 +15 30.8] }";
 </script>
@@ -55,7 +55,7 @@
       hex's radius. <code>q</code> grows to the right, and <code>r</code> grows down the screen. strategyjam.org draws
       its board so.</li>
     <li><strong>The origin,</strong> <code>0,0</code>, is between the two players' starting groups.</li>
-    <li><strong>The six neighbours</strong> of (q, r) are (q ± 1, r), (q, r ± 1), (q + 1, r − 1) and (q − 1, r + 1).</li>
+    <li><strong>The six hexes touching</strong> (q, r) are (q ± 1, r), (q, r ± 1), (q + 1, r − 1) and (q − 1, r + 1).</li>
     <li><strong>A coordinate</strong> is an integer, with <code>-</code> when it is less than 0. A writer writes no
       <code>+</code> and no leading zeros.</li>
   </ul>
@@ -78,13 +78,13 @@
   <p>Each player holds three blueprints, numbered <code>1</code>, <code>2</code> and <code>3</code>. A blueprint is a
     shape of cells in its own frame, in the same axial coordinates as the board.</p>
   <ul>
-    <li><strong>The first cell</strong> of a blueprint is its first in reading order: the least <code>r</code>, then the
+    <li><strong>The anchor cell</strong> of a blueprint is its first cell in reading order: the least <code>r</code>, then the
       least <code>q</code>. It is the cell <code>0,0</code> of the blueprint's frame. Other cells can have a negative
       <code>q</code>.</li>
-    <li><strong>After each edit,</strong> the rules put the blueprints back in their frames: the new first cell becomes
+    <li><strong>After each edit,</strong> the rules put the blueprints back in their frames: the new anchor cell becomes
       <code>0,0</code>.</li>
     <li><strong>At the start,</strong> each blueprint is a star with a ring of six cells. In its frame, its cells are
-      <code>{START}</code>, with the star at <code>0,1</code>. Blueprints 1 and 3 have a ring of plain cells.
+      <code>{START}</code>, with the star at <code>0,1</code>. Blueprints 1 and 3 have a ring of Normal cells.
       Blueprint 2 has a ring of walls and stars in turn, three of each. The start also places each player's three
       blueprints on the board: the stars of Blue's blueprints 1, 2 and 3 are at (−6, 0), (−10, 0) and (−2, 0), and
       Red's at (6, 0), (10, 0) and (2, 0).</li>
@@ -93,12 +93,12 @@
   <h2>Moves</h2>
   <p>A move is one string with no space. There are three kinds:</p>
   <ul>
-    <li><strong>A placement</strong> is <code>K@q,r</code>: blueprint <code>K</code>, with its first cell on the hex
-      (q, r) of the board. <code>1@-2,2</code> places blueprint 1 with its first cell on (−2, 2). The hex is the hex
-      that a player clicks on strategyjam.org: its "Dots" button marks these hexes.</li>
-    <li><strong>An edit</strong> is <code>I:q,r&gt;J:q,r</code>: the cell at (q, r) of blueprint <code>I</code> goes to
+    <li><strong>A placement</strong> is <code>K@q,r</code>: blueprint <code>K</code>, with its anchor cell on the anchor
+      hex (q, r) of the board. <code>1@-2,2</code> places blueprint 1 with its anchor cell on the anchor hex (−2, 2).
+      The anchor hex is the hex that a player clicks on strategyjam.org: its "Dots" button marks these hexes.</li>
+    <li><strong>An edit</strong> is <code>I:q,r&gt;J:q,r</code>: the cell at (q, r) of blueprint <code>I</code> moves to
       (q, r) of blueprint <code>J</code>. Both coordinates are in the blueprints' frames as they are before the edit.
-      So one string names one edit, also when the edit moves a blueprint's first cell (<code>2:0,0&gt;2:1,2</code>), or
+      So one string names one edit, also when the edit moves a blueprint's anchor cell (<code>2:0,0&gt;2:1,2</code>), or
       puts a cell before it, with a negative coordinate (<code>1:0,0&gt;3:1,-1</code>). An empty blueprint takes a
       cell only at <code>0,0</code>: <code>3:1,0&gt;2:0,0</code>.</li>
     <li><strong>A pass</strong> is <code>pass</code>: a player's clock ran out. A pass is one move. The rules never
@@ -109,22 +109,22 @@
     after them, not only their strings.</p>
 
   <h2>The marks of a placement</h2>
-  <p>A placement removes each opponent's cell next to it, but not a wall. The player scores the opponent's stars that
-    it removes, times the player's own stars on the board before the move. Two marks after a placement tell what it
+  <p>A placement captures each opponent's cell touching it, but not a wall. The player scores the opponent's stars that
+    it captures, times the player's own stars on the board before the move. Two marks after a placement tell what it
     did:</p>
   <ul>
-    <li><code>x</code>: it removes cells. <code>1@1,-3x</code></li>
-    <li><code>x+N</code>: it removes cells and scores N points. <code>1@0,3x+8</code></li>
+    <li><code>x</code>: it captures cells. <code>1@1,-3x</code></li>
+    <li><code>x+N</code>: it captures cells and scores N points. <code>1@0,3x+8</code></li>
   </ul>
-  <p>A placement that removes a star and scores 0 has <code>x</code> alone: the player had no star on the board. A
+  <p>A placement that captures a star and scores 0 has <code>x</code> alone: the player had no star on the board. A
     writer never writes <code>+0</code>. The marks repeat what the position shows. A reader accepts a placement with
     them or without them. It refuses a mark that the position does not confirm. An edit and a pass have no marks.</p>
 
   <h2>Turns</h2>
   <p>Blue moves first. Blue's first turn has one move. Then the players take turns of two moves. The game ends after
     120 moves, so the last turn, Blue's, has one move: a game has 61 turns, Blue's odd and Red's even.
-    strategyjam.org numbers the moves, from 1 to 120. A game record numbers the turns, because the review labels
-    turns.</p>
+    strategyjam.org numbers the moves, from 1 to 120. A game record numbers the turns, because the review gives quality
+    labels to turns.</p>
 
   <h2>A game record</h2>
   <p>Tag pairs, a blank line, then the turns and the result:</p>
@@ -166,28 +166,28 @@
   <p>Each turn is its number and a dot, then its moves: <code>2. 2@3,1 3:0,0&gt;3:1,-1</code>. The number tells whose
     turn it is, so the record names no player.</p>
 
-  <h3>Comments and branches</h3>
+  <h3>Comments and variations</h3>
   <p>A comment is in braces, <code>{"{ … }"}</code>. A comment can also come before the first turn, after the tags, as
-    a note on the whole game. A branch is in parentheses, <code>( … )</code>: other moves in place of a turn. Both can
-    hold others. A branch follows the turn that it changes, after that turn's last move, its marks and its comments.
+    a note on the whole game. A variation is in parentheses, <code>( … )</code>: other moves in place of a turn. Both can
+    hold others. A variation follows the turn that it changes, after that turn's last move, its marks and its comments.
     Its first number tells where it leaves the line, and it is always the number of the turn before it:</p>
   <ul>
     <li><code>N.</code> starts at the turn's start, and replaces the whole turn:
       <code>3. 1@1,-3x 1@0,3x+8 (3. 2@1,-3x 1@0,3x+11)</code>.</li>
     <li><code>N...</code> starts at the turn's second move, and keeps its first move:</li>
   </ul>
-  <pre>{BRANCH}</pre>
+  <pre>{VARIATION}</pre>
   <p>means: at turn 4, after <code>1@2,4x</code>, <code>3@0,5x+10</code> in place of <code>3@0,6</code>. Several
-    branches of one turn follow it one after another.</p>
+    variations of one turn follow it one after another.</p>
 
-  <h3>Marks of a turn's quality</h3>
+  <h3>Quality marks of a turn</h3>
   <p>PGN's six marks judge a turn: <code>!!</code> brilliant, <code>!</code> good, <code>!?</code> interesting,
     <code>?!</code> dubious, <code>?</code> a mistake, <code>??</code> a blunder. A mark comes once, right after the
-    turn's last move, after the placement's marks, and before the comments and branches:
+    turn's last move, after the placement's marks, and before the comments and variations:
     <code>1@0,3x+8??</code>.</p>
   <pre>{MARKED}</pre>
   <p>A judgement of one move stays in a comment. A reader accepts a mark after any move, and can ignore it. The review
-    will mark its labels by turn, as Hedge School's does: Great <code>!</code>, Inaccuracy <code>?!</code>, Mistake
+    will mark its quality labels by turn, as Hedge School's does: Great <code>!</code>, Inaccuracy <code>?!</code>, Mistake
     <code>?</code> and Blunder <code>??</code>. Best, Excellent and Good have no mark, as PGN has none for them.</p>
 
   <h3>Commands in comments</h3>

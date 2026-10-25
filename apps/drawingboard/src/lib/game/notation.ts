@@ -1,23 +1,24 @@
 // Blueprints' moves in strategyjam.org's strings, as they are (docs/design/33-drawing-board.md, items 5 and 6):
-// - A placement `K@q,r`: blueprint K (1, 2 or 3) with its first cell (the least r, then the least q: the cell 0,0 of
-//   its own frame) on the hex (q, r) of the board's axial coordinates.
+// - A placement `K@q,r`: blueprint K (1, 2 or 3) with its anchor cell (the least r, then the least q: the cell 0,0 of
+//   its own frame) on the anchor hex (q, r), in the board's axial coordinates.
 // - An edit `I:q,r>J:q,r`: the cell at (q, r) of blueprint I goes to (q, r) of blueprint J, both in the blueprints'
-//   frames as they are before the edit (the target's cell can come before its first cell: `1:0,0>3:1,-1`).
+//   frames as they are before the edit (the target's cell can come before its anchor cell: `1:0,0>3:1,-1`).
 // - `pass`: a player's clock ran out. It counts as one move.
-// A placement that removes enemy cells carries the mark `x`, and `x+N` when it scores N points (`2@-3,1x+24`), never
-// `+0`. The engine gives the removed cells and the points (check.ts). This module checks the notation, not the rules:
+// A placement that captures opponent cells carries the mark `x`, and `x+N` when it scores N points (`2@-3,1x+24`), never
+// `+0`. The engine gives the captured cells and the points (check.ts). This module checks the notation, not the rules:
 // the engine checks that a move is legal. The move's name, its one spelling, is the string without its mark: the move
 // tree, the cache and the engine key on it (@abstractclass/analysis/game.ts).
 import type { Moves } from "@abstractclass/analysis/game.ts";
 import type { ReadMove } from "@abstractclass/record/record.ts";
 export { turnFromCount } from "@abstractclass/analysis/turns.ts";
 
-export type Blueprint = 1 | 2 | 3;
-/** A cell of a blueprint, in the blueprint's own frame. */
-export interface Cell { blueprint: Blueprint; q: number; r: number }
+/** A blueprint's number. */
+export type BlueprintNumber = 1 | 2 | 3;
+/** A cell's place in a hand: the blueprint's number, and the place in the blueprint's own frame. */
+export interface HandCell { blueprint: BlueprintNumber; q: number; r: number }
 /** A move, not a pass: a placement on the hex (q, r), or an edit of one cell. */
-export type Move = { kind: "place"; blueprint: Blueprint; q: number; r: number } | { kind: "edit"; from: Cell; to: Cell };
-/** A placement's capture mark: it removes enemy cells, and scores `points` (0 for the mark `x` alone). */
+export type Move = { kind: "place"; blueprint: BlueprintNumber; q: number; r: number } | { kind: "edit"; from: HandCell; to: HandCell };
+/** A placement's capture mark: it captures opponent cells, and scores `points` (0 for the mark `x` alone). */
 export interface Capture { points: number }
 
 const N = "(-?\\d+)";
@@ -26,7 +27,7 @@ const EDIT = new RegExp(`^(\\d+):${N},${N}>(\\d+):${N},${N}$`);
 /** A capture mark at a word's end: `x`, or `x+N`. */
 const CAPTURE = /x(?:\+(\d+))?$/i;
 
-const cellName = (c: Cell) => `${c.blueprint}:${c.q},${c.r}`;
+const cellName = (c: HandCell) => `${c.blueprint}:${c.q},${c.r}`;
 
 /** The move's name, its one spelling: "pass" for null. */
 export function moveName(move: Move | null): string {
@@ -43,10 +44,10 @@ function readName(text: string): Move | string {
   if (!numbers.every(Number.isSafeInteger)) return "a number of the move is too large";
   const [k, q, r, j, tq, tr] = numbers, blueprint = (b: number) => b >= 1 && b <= 3;
   if (!blueprint(k) || (edit && !blueprint(j))) return "a blueprint's number is 1, 2 or 3";
-  if (place) return { kind: "place", blueprint: k as Blueprint, q, r };
-  // A blueprint's first cell is its cell 0,0, the least r, then the least q: the cell that an edit takes is not before it.
-  if (r < 0 || (r === 0 && q < 0)) return "an edit cannot take a cell before the first cell (0,0) of its blueprint";
-  return { kind: "edit", from: { blueprint: k as Blueprint, q, r }, to: { blueprint: j as Blueprint, q: tq, r: tr } };
+  if (place) return { kind: "place", blueprint: k as BlueprintNumber, q, r };
+  // A blueprint's anchor cell is its cell 0,0, the least r, then the least q: the cell that an edit moves is not before it.
+  if (r < 0 || (r === 0 && q < 0)) return "an edit cannot move a cell from before its blueprint's anchor cell (0,0)";
+  return { kind: "edit", from: { blueprint: k as BlueprintNumber, q, r }, to: { blueprint: j as BlueprintNumber, q: tq, r: tr } };
 }
 
 /** The move of a name that is not "pass". Throws on a malformed name. */
@@ -56,7 +57,7 @@ export function parseMove(name: string): Move {
   return move;
 }
 
-const sameCell = (a: Cell, b: Cell) => a.blueprint === b.blueprint && a.q === b.q && a.r === b.r;
+const sameCell = (a: HandCell, b: HandCell) => a.blueprint === b.blueprint && a.q === b.q && a.r === b.r;
 
 /** Whether two values are one move. The shared code compares moves often, so this compares their fields, not their
  *  names. */
@@ -79,7 +80,7 @@ export function readMove(word: string): ReadMove<Capture | null> | string {
   const mark = CAPTURE.exec(word);
   const move = readName(mark ? word.slice(0, mark.index) : word);
   if (typeof move === "string") return move;
-  if (mark && move.kind === "edit") return "only a placement has a capture mark: an edit removes no cells";
+  if (mark && move.kind === "edit") return "only a placement has a capture mark: an edit captures no cells";
   if (mark?.[1] && Number(mark[1]) === 0) return "a placement that scores no points has the mark x, not x+0";
   return { name: moveName(move), mark: mark && { points: Number(mark[1] ?? 0) }, markAt: mark?.index ?? word.length };
 }

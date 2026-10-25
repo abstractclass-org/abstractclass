@@ -1,13 +1,13 @@
 // Hand-made positions for the board's lab page and tests: the start, a middle game with candidates and a line, a
 // capture, an edit and an empty blueprint. No game of strategyjam.org's archive: this repository is public. The
-// builder below only moves cells as each move's data says (the cells that a placement removes are listed by hand), and
+// builder below only moves cells as each move's data says (the cells that a placement captures are listed by hand), and
 // puts each blueprint back in its frame, as the notation names the cells (design 33, item 5). It checks only that the
-// hand-made data holds together (a stamp on empty hexes, a removed cell of the opponent), not that a move is legal: the
+// hand-made data holds together (a footprint on empty hexes, a captured cell of the opponent), not that a move is legal: the
 // engine has the rules.
 import { moveName } from "../game/notation.ts";
 import type { BoardCandidate, BoardLineMove } from "./Board.svelte";
-import { firstHex, hexKey, inFrame, parseHex, type Hex } from "./hex.ts";
-import { stamp, type Blueprint, type BlueprintNumber, type BoardMove, type Hand, type HandHex, type Kind, type Player, type SitePosition } from "./position.ts";
+import { anchorOf, hexKey, inFrame, parseHex, type Hex } from "./hex.ts";
+import { footprintOf, type Blueprint, type BlueprintNumber, type BoardMove, type Hand, type HandHex, type Kind, type Player, type SitePosition } from "./position.ts";
 
 export interface Fixture {
   name: string;
@@ -20,13 +20,13 @@ export interface Fixture {
 
 // The start (the engine repository's games/blueprints/README.md): each blueprint is a star with a ring of six cells.
 // Blueprints 1 and 3 have plain rings, and blueprint 2 a ring of walls and stars. Red's blueprint 2 is Blue's turned
-// half round. Blue's are stamped at q = -6, -10 and -2, Red's at 6, 10 and 2.
+// half round. Blue's are placed at q = -6, -10 and -2, Red's at 6, 10 and 2.
 const RING: Hex[] = [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]]; // the six directions, round the star
 const ringed = (kinds: Kind[]): Blueprint => {
   const cells: [Hex, Kind][] = [[[0, 0], "star"], ...RING.map((d, i) => [d, kinds[i]] as [Hex, Kind])];
   return frame(cells);
 };
-/** Cells put in their frame, the first cell at 0,0. */
+/** Cells put in their frame, the anchor cell at 0,0. */
 function frame(cells: [Hex, Kind][]): Blueprint {
   const hexes = inFrame(cells.map(c => c[0]));
   return Object.fromEntries(hexes.map((h, i) => [hexKey(h), cells[i][1]]));
@@ -42,27 +42,27 @@ function start(): SitePosition {
   const cells: Record<string, [Player, Kind]> = {};
   for (const p of [0, 1] as const)
     START_HANDS[p].forEach((b, i) => {
-      // The blueprint's star is on (q, 0): its first cell is the ring's cell above it, at (q, -1).
-      for (const s of stamp(b, [START_AT[p][i], -1])) cells[hexKey(s.hex)] = [p, s.kind];
+      // The blueprint's star is on (q, 0): its anchor cell is the ring's cell above it, at (q, -1).
+      for (const s of footprintOf(b, [START_AT[p][i], -1])) cells[hexKey(s.hex)] = [p, s.kind];
     });
   return { ply: 0, cells, blueprints: START_HANDS, scores: [0, 0] };
 }
 
 export interface Built { position: SitePosition; last: BoardMove | null }
 
-/** Blueprint `k` of `player` placed with its first cell on `at`, removing the cells at `removed` (by hand), for
+/** Blueprint `k` of `player` placed with its anchor cell on `at`, capturing the cells at `captured` (by hand), for
  *  `points`. */
-export function place(b: Built, player: Player, k: BlueprintNumber, at: Hex, removed: string[] = [], points = 0): Built {
+export function place(b: Built, player: Player, k: BlueprintNumber, at: Hex, captured: string[] = [], points = 0): Built {
   const p = b.position, cells = { ...p.cells };
-  const stamped = stamp(p.blueprints[player][k - 1], at);
-  for (const s of stamped) {
+  const footprint = footprintOf(p.blueprints[player][k - 1], at);
+  for (const s of footprint) {
     const key = hexKey(s.hex);
-    if (cells[key]) throw new Error(`fixture: ${k}@${hexKey(at)} stamps on ${key}, which has a cell`);
+    if (cells[key]) throw new Error(`fixture: ${k}@${hexKey(at)} puts a cell on ${key}, which has a cell`);
     cells[key] = [player, s.kind];
   }
-  const gone = removed.map(key => {
+  const gone = captured.map(key => {
     const c = cells[key];
-    if (!c || c[0] === player) throw new Error(`fixture: ${key} has no cell of the opponent to remove`);
+    if (!c || c[0] === player) throw new Error(`fixture: ${key} has no cell of the opponent to capture`);
     delete cells[key];
     return { hex: parseHex(key), owner: c[0], kind: c[1] };
   });
@@ -70,7 +70,7 @@ export function place(b: Built, player: Player, k: BlueprintNumber, at: Hex, rem
   scores[player] += points;
   return {
     position: { ply: p.ply + 1, cells, blueprints: p.blueprints, scores },
-    last: { type: "place", player, blueprint: k, at, stamped, removed: gone },
+    last: { type: "place", player, blueprint: k, at, footprint, captured: gone },
   };
 }
 
@@ -84,8 +84,8 @@ export function edit(b: Built, player: Player, i: BlueprintNumber, from: Hex, j:
   delete hand[i - 1][hexKey(from)];
   // The target's cells, in the source's frame when the two are one blueprint.
   hand[j - 1][hexKey(to)] = kind;
-  // Both blueprints go back to their frames: each moves by its new first cell.
-  const moved = (n: number): Hex => firstHex(Object.keys(hand[n - 1]).map(parseHex)) ?? [0, 0];
+  // Both blueprints go back to their frames: each moves by its new anchor cell.
+  const moved = (n: number): Hex => anchorOf(Object.keys(hand[n - 1]).map(parseHex)) ?? [0, 0];
   const di = moved(i), dj = moved(j);
   const reframed = hand.map(bp => frame(Object.entries(bp).map(([k, v]) => [parseHex(k), v] as [Hex, Kind])));
   const blueprints: [Hand, Hand] = [...b.position.blueprints] as [Hand, Hand];
@@ -153,7 +153,7 @@ const lines: Record<string, BoardLineMove[]> = {
 };
 
 // A capture, hand-made: Red's blueprint 1 (three cells) on Blue's group, which loses two plain cells and a star. The
-// wall beside the stamp stays. Red has five stars on the board before the move, so it scores 5.
+// wall beside the footprint stays. Red has five stars on the board before the move, so it scores 5.
 const captureBefore: Built = {
   position: {
     ply: 41,
@@ -176,7 +176,7 @@ const captureBefore: Built = {
 };
 const capture = place(captureBefore, 1, 1, [2, 0], ["1,0", "2,-1", "1,2"], 5);
 
-// An edit: Blue's first move moves blueprint 3's first cell to blueprint 1. Blueprint 3 goes back to its frame, so the
+// An edit: Blue's first move moves blueprint 3's anchor cell to blueprint 1. Blueprint 3 goes back to its frame, so the
 // cell's old place is at -1,0 of its new frame.
 const editMove = edit(startBuilt, 0, 3, [0, 0], 1, [2, 1]);
 

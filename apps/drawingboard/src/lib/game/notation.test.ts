@@ -27,7 +27,7 @@ test("a move's name has no space, is not pass, and does not start with @ (the ga
 test("a malformed move is refused, with what is wrong", () => {
   const bad: [string, RegExp][] = [
     ["4@0,0", /blueprint's number is 1, 2 or 3/], ["0:0,0>1:0,0", /blueprint's number is 1, 2 or 3/],
-    ["2:-1,0>2:0,0", /cannot take a cell before the first cell/], ["2:0,-1>2:0,0", /cannot take a cell before the first cell/],
+    ["2:-1,0>2:0,0", /from before its blueprint's anchor cell/], ["2:0,-1>2:0,0", /from before its blueprint's anchor cell/],
     ["2@1", /not a move/], ["2@1,2,3", /not a move/], ["@1,2", /not a move/], ["2 @1,2", /not a move/], ["pass", /not a move/],
     ["2@99999999999999999999,0", /too large/],
   ];

@@ -13,20 +13,20 @@
 
   let index = $state(0);
   let showCandidates = $state(true);
-  let chosen = $state<string | null>(null); // the candidate clicked: its line stays drawn
+  let pinned = $state<string | null>(null); // the candidate clicked: its line stays drawn
   let pointed = $state<string | null>(null); // the candidate under the pointer
   let at = $state<BoardHex | null>(null);
   const fixture = $derived(FIXTURES[index]);
-  const shown = $derived(pointed ?? chosen);
+  const shown = $derived(pointed ?? pinned);
   const line = $derived(shown && showCandidates ? fixture.lines?.[shown] ?? null : null);
 
   onMount(() => {
     const q = new URLSearchParams(location.search);
     const p = Number(q.get("p"));
     if (Number.isInteger(p) && p >= 0 && p < FIXTURES.length) index = p;
-    chosen = q.get("c");
+    pinned = q.get("c");
   });
-  function choose(i: number) { index = i; chosen = null; address({ p: i ? String(i) : null, c: null }); }
+  function choose(i: number) { index = i; pinned = null; address({ p: i ? String(i) : null, c: null }); }
   /** The address with these parameters set, or removed (null). */
   function address(set: Record<string, string | null>) {
     const url = new URL(location.href);
@@ -55,14 +55,14 @@
   </div>
   <p class="min-h-5 shrink-0 text-sm text-muted">
     Move {fixture.position.ply} · Blue {fixture.position.scores[0]}, Red {fixture.position.scores[1]}
-    {#if chosen}· Line of {chosen}{/if}
+    {#if pinned}· Line of {pinned}{/if}
     {#if at}· The pointer is on {where(at)}{/if}
   </p>
   <div class="min-h-0 flex-1">
     <Board position={fixture.position} last={fixture.last} candidates={fixture.candidates ?? []} {line}
-           highlight={chosen} layers={{ candidates: showCandidates }}
+           {pinned} layers={{ candidates: showCandidates }}
            oncandidate={name => (pointed = name)}
-           oncandidateclick={name => { chosen = chosen === name ? null : name; address({ c: chosen }); }}
+           oncandidateclick={name => { pinned = pinned === name ? null : name; address({ c: pinned }); }}
            onhexat={h => (at = h)} />
   </div>
 </main>

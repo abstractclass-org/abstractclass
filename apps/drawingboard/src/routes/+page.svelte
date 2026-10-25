@@ -20,7 +20,7 @@
   <p>We're building the site now. These come first:</p>
   <ul>
     <li><strong>Reviews of your games.</strong> Paste a game, or bring one from strategyjam.org, and each turn gets a
-      label such as Best, Mistake or Blunder.</li>
+      quality label such as Best, Mistake or Blunder.</li>
     <li><strong>An Analysis board.</strong> Try your own ideas from any position, and see what the engine would play.</li>
   </ul>
   <p>Practice games against {ENGINE_NAME}, lessons and puzzles come later.</p>
