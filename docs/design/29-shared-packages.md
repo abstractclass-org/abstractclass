@@ -21,14 +21,14 @@ into three groups:
   on), the pool, the storage, the move tree (moves as words), the labels (the engine's win chance and chess.com's
   bands, design 10) and the cache (keys from the moves' names).
 - **General in their rules, with Enclosure in their types and a few calls:** the review's model, the analysis of a
-  game (the passes, the focus, the batch) and the engine session. The model's turn is already a run of one player's
+  game (the stages, the focus, the batch) and the engine session. The model's turn is already a run of one player's
   moves. What is Enclosure's in them is the move's type (an edge as four numbers), its name, the position that the
   board draws, the cut, the turn numbers of the notation, the players' names and the texts that say "edge".
 - **Enclosure's:** the notation, the board, the edge input, the records and their imports (meaf.us, strategyjam.org,
   Constellation), the practice bot, the lessons, the editor, and every page.
 
 The view of the review and of the Analysis board (`ReviewView.svelte`, 1,900 lines) draws Enclosure throughout: the
-board, the edges as pills along their slope, the regions and the protected edges, the areas in the players' cards,
+board, the edges as pills along their slope, the regions and the invincible edges, the areas in the players' cards,
 and "edge" in its texts.
 
 Other branches change some of these files while they move. Git follows a file across a pure rename (`git mv`, with no
@@ -134,7 +134,7 @@ edit in the same commit), so their changes still apply.
    change.
 7. **The move goes in stages,** each a commit of pure renames (`git mv`), then the commits of the edits. Each stage
    ends with the checks of design 26 item 2: `npm run engine`, the unit tests, the type check, the build and the
-   layout sweep.
+   layout test.
    1. The engine and the storage.
    2. The analysis, with the game interface.
    3. The documents: this one, design 26 and the paths in the others.
@@ -179,7 +179,7 @@ edit in the same commit), so their changes still apply.
    - **The texts:** the game's word for a move (`words`), the game's end (`ending`) and the move list's notes
      (`shortNote`, `turnShortNote`). The texts of the game's own parts come with each part.
    - **The display settings and the sounds:** the site keeps the settings under its own key (`display`), and lists its
-     board's own layers (`layers`: Enclosure's regions before the area map's settings, and its protected edges after
+     board's own layers (`layers`: Enclosure's regions before the area map's settings, and its invincible edges after
      them). The sounds (`sounds`) have the site's settings and the game's sound for each move (Enclosure's cut has its
      own).
    - **The site's engine and tools:** its networks (`networks`), and its tools that a site can leave out: the area
@@ -222,7 +222,7 @@ edit in the same commit), so their changes still apply.
 - **Moves as names in the shared code:** no move type to pass, but a stored analysis holds Enclosure's tuples. The
   cache's shape would change, and every stored result would go.
 - **The views now, with the rest:** the jam site would get a whole review at once, but the view's game interface would
-  rest on one board, conflict with two branches in flight, and risk Hedge School's behaviour.
+  rest on one board, conflict with two variations in flight, and risk Hedge School's behaviour.
 - **A copy in the jam site:** no risk to Hedge School, and two reviews that drift apart.
 
 ## Consequences

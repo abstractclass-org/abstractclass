@@ -3,18 +3,18 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { imageLine, lineFrames } from "./lineImage.ts";
 
-// The game A1 A2 A3 A4, with the branches A1 B1 B2 B3 and A1 B1 C1 C2 (design 07, item 13).
+// The game A1 A2 A3 A4, with the variations A1 B1 B2 B3 and A1 B1 C1 C2 (design 07, item 13).
 const MAIN = ["A1", "A2", "A3", "A4"];
 
-test("a branch's move draws its line from where it leaves the game, as its preview numbers it", () => {
+test("a variation's move draws its line from where it leaves the game, as its preview numbers it", () => {
   assert.deepEqual(imageLine(["A1", "B1", "B2", "B3"], [], MAIN),
                    { start: ["A1"], paths: [["A1", "B1"], ["A1", "B1", "B2"], ["A1", "B1", "B2", "B3"]] });
   // A row that forks from another branch: the edges the two share are numbered too.
   assert.deepEqual(imageLine(["A1", "B1", "C1", "C2"], ["A1", "A2", "A3"], MAIN),
                    { start: ["A1"], paths: [["A1", "B1"], ["A1", "B1", "C1"], ["A1", "B1", "C1", "C2"]] });
-  // Whatever the position on screen: the line is the branch's.
+  // Whatever the position on screen: the line is the variation's.
   assert.deepEqual(imageLine(["A1", "B1"], ["A1", "B1", "C1"], MAIN), { start: ["A1"], paths: [["A1", "B1"]] });
-  // A branch from the start.
+  // A variation from the start.
   assert.deepEqual(imageLine(["D1"], ["A1"], MAIN), { start: [], paths: [["D1"]] });
 });
 
@@ -27,7 +27,7 @@ test("a main line move ahead of the position on screen draws the line from there
 test("a main line move not ahead of the position on screen draws the position after it", () => {
   assert.deepEqual(imageLine(["A1", "A2"], ["A1", "A2", "A3"], MAIN), { start: ["A1", "A2"], paths: [] }); // behind
   assert.deepEqual(imageLine(["A1", "A2"], ["A1", "A2"], MAIN), { start: ["A1", "A2"], paths: [] }); // on screen
-  assert.deepEqual(imageLine(["A1", "A2"], ["A1", "B1"], MAIN), { start: ["A1", "A2"], paths: [] }); // from a branch
+  assert.deepEqual(imageLine(["A1", "A2"], ["A1", "B1"], MAIN), { start: ["A1", "A2"], paths: [] }); // from a variation
 });
 
 test("the animation: the whole line for 2 seconds, the start with no edge for 1 second, each edge for half a second", () => {

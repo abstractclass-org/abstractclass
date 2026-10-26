@@ -14,45 +14,45 @@
   import type { BranchNode, MapState, ThreatCost, ThreatState } from "@abstractclass/analysis/analysis.svelte.ts";
   import { PLAYER_NAME, WHOLE, type ViewTypes } from "./game.ts";
 
-  /** The review in progress: what the engine does now, and the passes as parts of one bar, each with its share of the
+  /** The review in progress: what the engine does now, and the stages as parts of one bar, each with its share of the
    *  work (by visits) and how much of it is done (0 to 1). `waiting`: no work runs (the engine is off). `maps`: the
-   *  review is done, and the bar shows the map pass alone (design 30): the review's counts are final. */
+   *  review is done, and the bar shows the map stage alone (design 30): the review's counts are final. */
   export interface ReviewProgress { text: string; parts: { share: number; done: number }[]; waiting?: boolean; maps?: boolean }
   /** Why a game reviewed before is reviewed again: the engine or its network was updated (store.ts, reviewAgainWhy).
    *  `text` shows under the progress. The dialog, with `title` and `body`, says it once when `dialog` is set. */
   export interface ReviewAgain { title: string; text: string; body: string; dialog: boolean }
   /** A review by an earlier engine shown as it was (design 20): `text` says when and with what, and `onagain` reviews
-   *  the game with the site's engine. Until then nothing is searched, and no move or branch changes. */
+   *  the game with the site's engine. Until then nothing is searched, and no move or variation changes. */
   export interface ReviewSnapshot { text: string; onagain: () => void }
   /** The Analysis board's form of the view (design 21): its main line's moves evaluated on request, by path key, and
    *  "Make main line". No report, no chart, no progress: the review's columns give way to the board and its moves. */
   export interface BoardForm { judged: Record<string, true>; onmain: (path: string[]) => void }
-  /** The analysis behind the view (GameAnalysis): its branches, an engine error, the position searched for the player,
+  /** The analysis behind the view (GameAnalysis): its variations, an engine error, the position searched for the player,
    *  the rules and the results the view asks for, and the changes of the tree. */
   export interface ReviewGame<G extends GameTypes> {
     error: string;
-    branches: Record<string, BranchNode<G>>; // the branches' positions, by path key (tree.ts), in the order added
+    branches: Record<string, BranchNode<G>>; // the variations' positions, by path key (tree.ts), in the order added
     focusing: string | null; // the path key of the position searched for the player, while it runs
     engineReady: boolean; // the engine's network is loaded: the searches can start
     rulesAt(path: string[]): Promise<G["rules"]>; // a position's rules, for the player's own moves
     secondAt(path: string[]): Analysis<G["move"]> | undefined; // the position after the engine's second choice, which confirms a Great
     otherAt(path: string[], turn: (G["move"] | null)[]): Analysis<G["move"]> | undefined; // the same for a turn
-    earlierAt(path: string[], mover: Player): Analysis<G["move"]> | undefined; // before the opponent's last turn, which a Great must gain on
+    earlierAt(path: string[], mover: Player): Analysis<G["move"]> | undefined; // before the enemy's last turn, which a Great must gain on
     awaitsGreat(key: string): boolean; // the move into this path key waits for the searches of its Great
-    turnKeys(path: string[]): string[]; // the branch moves that evaluating this move's quality judges
+    turnKeys(path: string[]): string[]; // the variation moves that evaluating this move's quality judges
     pending(path: string[]): boolean; // the review's own searches can still change this position's analysis
     stoppedByTime(path: string[]): boolean; // the position's search stopped at its time limit
     lineSteps(path: string[], line: G["move"][]): Promise<G["step"][]>; // a line's moves played: what the board draws after each (the rules)
-    deleteFrom(path: string[]): Promise<void>; // deletes a branch node and what follows it
-    promote(path: string[]): Promise<void>; // promotes a branch one step among the branches from its fork
-    judge(path: string[]): Promise<void>; // evaluates a branch move's quality: searches its two positions
+    deleteFrom(path: string[]): Promise<void>; // deletes a variation node and what follows it
+    promote(path: string[]): Promise<void>; // promotes a variation one step among the variations from its fork
+    judge(path: string[]): Promise<void>; // evaluates a variation move's quality: searches its two positions
     mapAt(path: string[]): number[] | undefined; // a position's ownership: its result's, or the map added to it (design 30)
     hasNoMap(path: string[]): boolean; // the position gets no map: the engine did not search it (the game ends there)
     // The state of a position's map: there, its search runs, it waits for the engine, none can come, or none is asked
     mapState(path: string[]): MapState;
-    passMaps(on: boolean, from: string[]): void; // the map pass: the game's missing maps while the map is on (design 30)
-    labelled: number; // the positions that the label pass has searched
-    passCount: number; // the positions that the review's passes search
+    passMaps(on: boolean, from: string[]): void; // the map stage: the game's missing maps while the map is on (design 30)
+    labelled: number; // the positions that the label stage has searched
+    passCount: number; // the positions that the review's stages search
     // Adds a map to these positions where they have none, in their order: of the tree, or of a line from it
     askOwnership(paths: string[][]): void;
     // The threat (Lichess's "Show threat"): the search of the position after a pass by the side to move here, or none
@@ -178,7 +178,7 @@
 
   type Stage = "highlights" | "analysis";
   let stage = $state<Stage>("highlights");
-  // The place on screen: a path in the game's tree (tree.ts), the game's own moves or a branch (design 07).
+  // The place on screen: a path in the game's tree (tree.ts), the game's own moves or a variation (design 07).
   let path = $state<string[]>(untrack(() => start ?? []));
   let hover = $state<G["move"] | null>(null);
   const wide = new MediaQuery(WIDE);
@@ -247,8 +247,8 @@
   // The path key of each position of the game: the first i moves.
   const mainKeys = $derived(prefixKeys(mainNames));
   const here = $derived(pathKey(path));
-  const mainAt = $derived(mainIndex(path, mainNames)); // the place on the game's line, or null in a branch
-  const pos = $derived(mainAt ?? sharedLength(path, mainNames)); // on the game's line: here, or where the branch leaves it
+  const mainAt = $derived(mainIndex(path, mainNames)); // the place on the game's line, or null in a variation
+  const pos = $derived(mainAt ?? sharedLength(path, mainNames)); // on the game's line: here, or where the variation leaves it
   const branchNode = $derived(mainAt === null ? branches[here] : undefined);
   const position = $derived(branchNode?.position ?? R.data.positions[pos]);
   // The game has ended here: only the rules end it. A game that ended early (a resignation, a forfeit) or a line that
@@ -271,10 +271,10 @@
     meter ? meterText(meter) : "",
   ].filter(Boolean).join(" ") || undefined);
   const mover = $derived(position.player as Player);
-  const lastPlayed = $derived(moveInto(path)); // the move that led here, in the game or a branch
+  const lastPlayed = $derived(moveInto(path)); // the move that led here, in the game or a variation
 
-  // The tree's children: the game's next move first, on its line, then the branches, in the order they were added.
-  // Derived from the branches' keys in their order: a branch's search result changes neither.
+  // The tree's children: the game's next move first, on its line, then the variations, in the order they were added.
+  // Derived from the variations' keys in their order: a variation's search result changes neither.
   const branchOrder = $derived(Object.entries(branches).sort((a, b) => a[1].order - b[1].order).map(([k]) => k).join("\n"));
   const kids = $derived(branchChildren(branchOrder ? branchOrder.split("\n").map(k => k.split(" ")) : []));
   const branchKids = (p: string[]) => kids.get(pathKey(p)) ?? [];
@@ -287,7 +287,7 @@
     return i !== null ? R.data.positions[i] : branches[pathKey(p)]?.position;
   };
   // The turn of the move from a place, and whether it is the turn's first edge: the game's own turns on its line, and in
-  // a branch the turn goes on while the same player moves.
+  // a variation the turn goes on while the same player moves.
   const turnCache = $derived.by(() => { void gamePositions; void branches; return new Map<string, { turn: number; first: boolean }>(); });
   function moveFrom(p: string[]): { turn: number; first: boolean } {
     const i = mainIndex(p, mainNames);
@@ -331,8 +331,8 @@
     return step ? `background: color-mix(in srgb, var(${blueWin > 0.5 ? "--blue" : "--red"}) ${step[1]}%, transparent)` : "";
   }
 
-  // The engine's candidates on the board (model.ts), each with its note: number 1's own values, and the others' cost
-  // against number 1 (costText), even when it is 0. A candidate after number 1 in the engine's order can be better than
+  // The engine's candidates on the board (model.ts), each with its note: rank 1's own values, and the others' cost
+  // against rank 1 (costText), even when it is 0. A candidate after rank 1 in the engine's order can be better than
   // it, by a little: its cost then has a plus. A symmetric twin is drawn too, with its move's rank and note: it is the
   // same move, and either edge can be played.
   const candidates = $derived<BoardCandidate<G["move"]>[]>(shownCandidates(view, analysis, mover).flatMap(({ c, rank, gap, gapPts, twins }) => {
@@ -345,16 +345,16 @@
   // "Candidates", off until the player turns it on, each page with its own kept choice (place.svelte.ts). Only in the
   // early edition, and only where the book's index loads: elsewhere the column stays as it was, with no switch. The
   // table's rows and the board's numbers point at each other (`book.pointed`), and the row pointed at draws its line as
-  // a candidate's does. A book move played from the table is a branch, as any move that the player plays.
+  // a candidate's does. A book move played from the table is a variation, as any move that the player plays.
   // The game's move at the position on screen, for the table's row "Your game" (design 32, item 4): its edge, the label
-  // that the move list shows for it, and Blue's win chance after it, by the review. None in a branch, at the game's end
+  // that the move list shows for it, and Blue's win chance after it, by the review. None in a variation, at the game's end
   // and on the Analysis board.
   const bookGame = $derived<BookGameMove | null>(board || mainAt === null || mainAt >= moves.length ? null : {
     move: mainNames[mainAt], label: shownLabel(mainAt),
     blueWin: Number.isNaN(R.blueWin[mainAt + 1]) ? undefined : R.blueWin[mainAt + 1],
   });
   // The notation of each position on the path from the start: the game's as far as the path follows it, then the
-  // branch's nodes'
+  // variation's nodes'
   const pathNotations = $derived.by(() => {
     const { start, keys } = branchLine(path, mainNames);
     return [...gamePositions.slice(0, start.length + 1), ...keys.map(k => branches[k]?.position)]
@@ -374,9 +374,9 @@
   const hoverCandidate = $derived(hover && analysis ? analysis.candidates.find(c => view.equal(c.edge, hover!)) : undefined);
 
   // The line listed under the table (Lichess lists the engine's line under its header, one line by default): the line
-  // of the candidate pointed at, or else of the selected one, number 1 or the candidate last clicked (in the table or
+  // of the candidate pointed at, or else of the selected one, rank 1 or the candidate last clicked (in the table or
   // on the board). So the pointer can go from a row to its line. Pointing at an edge of the list draws the line up to it on the board, all at once, and a
-  // click plays the line up to it as a branch (Lichess's playUciList).
+  // click plays the line up to it as a variation (Lichess's playUciList).
   // A click on a candidate, in the table or on the board, selects and pins it: its line stays on the board, and goes on
   // drawing, when the pointer leaves. A second click unpins it.
   let selectedRank = $state(1);
@@ -398,7 +398,7 @@
     if (k > 0) pick(k);
   };
   const hoverRank = $derived(hover ? rankOf(view, analysis, hover) : 0);
-  // How far the listed line follows the tree from here: its edges played in the game, or in a branch.
+  // How far the listed line follows the tree from here: its edges played in the game, or in a variation.
   const listKnown = $derived.by((): ("game" | "branch")[] => {
     const out: ("game" | "branch")[] = [];
     let p = path;
@@ -411,8 +411,8 @@
     return out;
   });
   const play = (k: number) => { if (listLine) playPath([...path, ...listLine.slice(0, k + 1).map(m => view.moveName(m))], "listed line played"); };
-  /** Plays a line from the start: along the tree where it is there, as a new branch where it is not, then goes there.
-   *  A snapshot plays along the tree alone, and its bar says why (nudge). `feature`: what the player used. `stepwise`:
+  /** Plays a line from the start: along the tree where it is there, as a new variation where it is not, then goes there.
+   *  A review snapshot plays along the tree alone, and its bar says why (nudge). `feature`: what the player used. `stepwise`:
    *  it goes there edge by edge, at the engine's line's pace (a trap and its refutation, design 32, item 7). */
   async function playPath(target: string[], feature: string, stepwise = false) {
     if (snapshot && mainIndex(target, mainNames) === null && !(pathKey(target) in branches)) { nudge(); return; }
@@ -445,7 +445,7 @@
     clearTimeout(nudgeTimer);
     nudgeTimer = setTimeout(() => (nudged = false), 2500);
   }
-  // Space plays the pinned candidate, or number 1 (Lichess's Space plays its best move): the book's, while the table
+  // Space plays the pinned candidate, or rank 1 (Lichess's Space plays its best move): the book's, while the table
   // shows the book.
   function playCandidate() {
     if (book?.showsBook) { if (book.rows[0]) playBook([book.rows[0].move]); return; }
@@ -453,13 +453,13 @@
     if (c) playPath([...path, view.moveName(c.edge)], "candidate played");
   }
 
-  // The player's own moves, always on (Lichess's analysis board): the puzzles' edge input, on the position's rules from
-  // the engine. A move that is the game's goes along the game; another makes a branch.
+  // The player's own moves, always on (Lichess's Analysis board): the puzzles' edge input, on the position's rules from
+  // the engine. A move that is the game's goes along the game; another makes a variation.
   const input = untrack(() => view.input(move => playPath([...path, view.moveName(move)], `own ${view.words.move} played`)));
   // A move's shape in the lists (the game's `Shape`), read once: a component read from `view` in the markup is made
   // anew for each move, with effects of its own.
   const Shape = untrack(() => view.Shape);
-  // The player's notes on the board, by position, for this visit only (Lichess keeps an analysis board's shapes on each
+  // The player's notes on the board, by position, for this visit only (Lichess keeps an Analysis board's shapes on each
   // position of its tree).
   let notesAt = $state<Record<string, G["note"][]>>({});
   const knownRules = new Map<string, G["rules"]>();
@@ -493,8 +493,8 @@
   });
 
   // The threat (Lichess's "Show threat", its key x, the engine header's switch): the engine searches the position after
-  // a pass by the side to move (GameAnalysis.askThreat), and the board draws the opponent's best turn from there, as it
-  // draws the engine's line, in the opponent's colour. At a turn's start the pass forfeits the whole turn, and in its
+  // a pass by the side to move (GameAnalysis.askThreat), and the board draws the enemy's best turn from there, as it
+  // draws the engine's line, in the enemy's colour. At a turn's start the pass forfeits the whole turn, and in its
   // middle the turn's second edge. The header shows the position's values after the pass, and what the pass costs the
   // player, in the units of a move's loss (design 10). A candidate pointed at or pinned shows its own line in its place.
   // For the visit only, as on Lichess. Its numbers are in warning triangles, so that it reads as a threat (Lichess draws
@@ -512,7 +512,7 @@
   const threat = $derived(threatOn ? game?.threatAt(path) : undefined);
   const threatState = $derived<ThreatState | null>(threatOn && game ? game.threatState(path) : null);
   const passed = $derived(threatOn ? game?.passedAt(path) : undefined); // the position after the pass
-  // The threat's line: the opponent's turn of the first choice's line after the pass (threatTurn)
+  // The threat's line: the enemy's turn of the first choice's line after the pass (threatTurn)
   const threatEdges = $derived(threat?.candidates[0] && passed ? threatTurn(threat.candidates[0], view.movesLeft(passed)) : null);
   // What the pass costs the player: the position's value less the value after the pass, from the player's side, in win
   // chance and in points (the lead), as a move's loss (design 10). Both from searches with the same settings
@@ -591,13 +591,13 @@
                                  !display.lineSteps || listHover !== null));
   const drawnLine = $derived(line && line.slice(0, Math.max(1, lineDrawing.shown)));
 
-  // A branch's preview (design 07): pointing at a branch's move in the move list shows the branch's line on the board,
+  // A variation's preview (design 07): pointing at a variation's move in the move list shows the variation's line on the board,
   // from the position where it leaves the game, up to the move (branchLine, tree.ts). A row that forks from another
-  // branch shows the edges the two share too. It shows as the engine's line shows: its edges numbered, one at a time or
-  // all at once (the same display setting), with the edges they cut and the regions they close, from the branch's own
+  // variation shows the edges the two share too. It shows as the engine's line shows: its edges numbered, one at a time or
+  // all at once (the same display setting), with the edges they cut and the regions they close, from the variation's own
   // positions. The rows of dots or pills look alike, and the board tells them apart. It ends when the pointer leaves.
-  // The engine's line shown as a branch under a bad turn's note (bestLine): pointing at one of its edges previews it as a
-  // branch's line, from where it leaves the game. Its cuts and regions come from the line's steps once the rules have
+  // The engine's line shown as a variation under a bad turn's note (bestLine): pointing at one of its edges previews it as a
+  // variation's line, from where it leaves the game. Its cuts and regions come from the line's steps once the rules have
   // played it. A played move's preview: below.
   type Preview = { kind: "move"; index: number } | { kind: "branch"; path: string[] }
     | { kind: "engine"; start: string[]; line: G["move"][]; k: number };
@@ -645,16 +645,16 @@
     clearTimeout(previewEnd);
     previewEnd = setTimeout(() => (preview = null), PREVIEW_END_MS);
   }
-  // The engine's best line from a position, shown as a branch under a bad turn's note (Lichess shows the engine's line
+  // The engine's best line from a position, shown as a variation under a bad turn's note (Lichess shows the engine's line
   // after a mistake as a variation): its first choice's line, as far as the search trusts it (trustedLine, by visits).
   const bestLine = (start: string[]): G["move"][] => {
     const first = analysisAt(start)?.candidates[0];
     return first ? trustedLine(first) : [];
   };
-  // That line in the move list, from where it leaves the game, merged into the branches there (withLine, as Lichess's
-  // computer lines are nodes of its tree): an edge the player has played shows as the branch's own, and the rest of the
-  // line follows it, faded. The line follows the search, and the player's branches stay. When the line changes, a
-  // branch off the new line shows as a branch of its own, and a branch on it merges into it.
+  // That line in the move list, from where it leaves the game, merged into the variations there (withLine, as Lichess's
+  // computer lines are nodes of its tree): an edge the player has played shows as the variation's own, and the rest of the
+  // line follows it, faded. The line follows the search, and the player's variations stay. When the line changes, a
+  // variation off the new line shows as a variation of its own, and a variation on it merges into it.
   type EngineStep = { k: number; mover: Player; turn: { turn: number; first: boolean } };
   interface EngineBranch { search: string[]; start: string[]; line: G["move"][]; paths: string[][]; steps: Map<string, EngineStep> }
   function engineBranch(search: string[]): EngineBranch | null {
@@ -668,7 +668,7 @@
     return { search, start, line, paths, steps: new Map(paths.map((p, k) => [pathKey(p), { k, mover: movers[k], turn: turns[k] }])) };
   }
   const bad = (l: Label | null) => l === "mistake" || l === "blunder";
-  /** A turn's branches, a group for each of its edges: the lines from the position before the edge. Under a Mistake's
+  /** A turn's variations, a group for each of its edges: the lines from the position before the edge. Under a Mistake's
    *  or a Blunder's note, the engine's best line from where it started (by turn, from the turn's start) joins the
    *  group where it leaves the game, first. A line that leaves the game after the turn shows nowhere: the engine
    *  played the turn as the player did. */
@@ -708,10 +708,10 @@
   }
   const toggleMap = () => (display.areaMap[mapPage] = !mapOn);
   const nextMapStyle = () => setMap(MAP_STYLES[(MAP_STYLES.indexOf(display.mapStyle) + 1) % MAP_STYLES.length]);
-  // The review's own work runs: its counts are partial. The map pass, after it, leaves them final.
+  // The review's own work runs: its counts are partial. The map stage, after it, leaves them final.
   const reviewRuns = $derived(!!progress && !progress.maps);
   // The line that the board draws, from its start: its edges, the ones drawn so far, and how the legend names it
-  // The threat's line starts after the pass, whose position is the board's own with the opponent to move.
+  // The threat's line starts after the pass, whose position is the board's own with the enemy to move.
   type MapLine = { kind: "here" | "line" | "threat" | "branch" | "move"; start: string[]; from: G["position"]; all: LineMove<G>[];
                    drawn: LineMove<G>[] };
   const mapLine = $derived.by((): MapLine => {
@@ -734,7 +734,7 @@
     : mapStep(Array.from({ length: drawnCount + 1 }, (_, j) => mapOf(stepPath(mapLine, j))), drawnCount));
   const shownOwnership = $derived(shownStep === null ? undefined : mapOf(stepPath(mapLine, shownStep)));
   // The difference style (KaTrain's loss grid, with the rises): two forecasts, before and after. While a line or a
-  // branch's preview shows, its start against the step shown, for the player to move at its start. Else the last move
+  // variation's preview shows, its start against the step shown, for the player to move at its start. Else the last move
   // to the position shown, by the labels' unit (the turn that ends there, so far, or the edge), for its player. The
   // threat: the position before the pass against the step shown, for the player who passes, so that the map shows where
   // the forecast falls if the player passes.
@@ -799,7 +799,7 @@
     return `${name} (${view.words.move} ${drawnCount}: no map)`;
   });
   // The legend's lead, then each mark with its meaning: none for the forecast, whose shade says it all. A sign of the
-  // difference style is in the colour of the side that the point moved toward: a fall toward the opponent.
+  // difference style is in the colour of the side that the point moved toward: a fall toward the enemy.
   type LegendMark = { kind: "close" | "lose" | "fall" | "rise"; side?: Player; text: string };
   const mapLegend = $derived.by((): { lead: string; marks: LegendMark[] } => {
     if (display.mapStyle === "ownership")
@@ -836,10 +836,10 @@
     if (states.includes("searching")) return { text: "Map: searching", busy: true };
     if (states.includes("waiting")) return { text: "Map: waiting for the engine", busy: true };
     if (states[0] === "none") return { text: "No map: the game ends here", busy: false };
-    if (states.includes("unavailable")) return { text: "No map saved: snapshots do no searches", busy: false };
+    if (states.includes("unavailable")) return { text: "No map saved: review snapshots do no searches", busy: false };
     return null;
   });
-  // The map pass, for an older review: while the map is on, once the review's passes are done (labelled). The
+  // The map stage, for an older review: while the map is on, once the review's stages are done (labelled). The
   // analysis starts it once, from the position on screen, and stops it when the map goes off.
   $effect(() => {
     const on = mapOn && !board && !snapshot && !!game && game.labelled >= game.passCount, from = path;
@@ -881,8 +881,8 @@
     else if (tableBox.scrollTop < bottom) tableBox.scrollTop = bottom;
   });
 
-  // A branch move's label, when the player asked for its quality (its menu's "Evaluate quality"): judged as the game's
-  // moves are, once its two positions have the label budget. Other branch moves have none: a line played to show
+  // A variation move's label, when the player asked for its quality (its menu's "Evaluate quality"): judged as the game's
+  // moves are, once its two positions have the label budget. Other variation moves have none: a line played to show
   // something should cost no search (design 07).
   function branchLabel(p: string[]): Label | null {
     const key = pathKey(p), node = branches[key];
@@ -891,12 +891,12 @@
     return judgeBranchMove(view, analysisAt(parent), valuesAfter(node.position, node.analysis, "lead", labelVisits), node.move.player,
                            node.move.edge, "lead", labelVisits, game?.secondAt(parent), game?.earlierAt(parent, node.move.player));
   }
-  /** The move that leads to `p` (none at the start), and the analysis at `p`: the game's or a branch's. */
+  /** The move that leads to `p` (none at the start), and the analysis at `p`: the game's or a variation's. */
   function moveInto(p: string[]): G["played"] | undefined {
     const i = mainIndex(p, mainNames);
     return !p.length ? undefined : i !== null ? moves[i - 1] : branches[pathKey(p)]?.move;
   }
-  /** A line in the tree, by the path after each of its moves (the game's or a branch's), as a preview draws it: each
+  /** A line in the tree, by the path after each of its moves (the game's or a variation's), as a preview draws it: each
    *  move with its mover and what the board draws after it (the game's `treeStep`), and the position after the last. A
    *  pass ends it. */
   function treeLine(paths: string[][]): { edges: LineMove<G>[]; end?: G["position"] } {
@@ -914,19 +914,19 @@
     const i = mainIndex(p, mainNames);
     return i !== null ? R.data.analysis[i] : branches[pathKey(p)]?.analysis;
   }
-  /** The paths of the turn that a branch move ends, or null where the turn goes on after it. */
+  /** The paths of the turn that a variation move ends, or null where the turn goes on after it. */
   function branchTurnPaths(p: string[]): string[][] | null {
     const node = branches[pathKey(p)];
     if (!node || (!node.position.over && node.position.player === node.move.player)) return null;
     const parent = p.slice(0, -1), before = moveInto(parent);
     return before && before.player === node.move.player ? [parent, p] : [p];
   }
-  /** A move's word on its difficulty in its tooltip, where the engine searches only what the player looks at (a branch,
+  /** A move's word on its difficulty in its tooltip, where the engine searches only what the player looks at (a variation,
    *  the board): a hard position, or that a position before the move has no result yet. */
   const searchNote = (hard: boolean, before: (Analysis<G["move"]> | undefined)[]) => (hard ? HARD_NOTE : before.some(a => !a) ? "Not searched yet" : "");
   /** A move's tooltip: its parts that have something to say, or none. */
   const tooltip = (...parts: (string | undefined)[]) => parts.filter(Boolean).join(" · ") || undefined;
-  /** A branch move's ◆ (design 14) and its word, for the side reviewed, from the results of the positions before it: by
+  /** A variation move's ◆ (design 14) and its word, for the side reviewed, from the results of the positions before it: by
    *  edge, the move's own. By turn, at the move that ends the turn, the harder of the turn's, as a game turn's. Null
    *  where the move shows none. */
   function branchHardness(p: string[]): { hard: boolean; note: string } | null {
@@ -938,7 +938,7 @@
     const hard = isHard(turnComplexity(before.map(a => complexity(a, node.move.player))));
     return { hard, note: searchNote(hard, before) };
   }
-  /** The turn that a branch move ends (design 10), by turn: its moves' paths, and its judgment (judgeTurn) once the player
+  /** The turn that a variation move ends (design 10), by turn: its moves' paths, and its judgment (judgeTurn) once the player
    *  asked for its quality and its searches have the label budget. Null where the move does not end a turn, or where
    *  the turn was not asked for. */
   function branchTurnAt(p: string[]): { paths: string[][]; judgment: TurnJudgment | null } | null {
@@ -958,7 +958,7 @@
     ? R.turnOf[mainAt - 1] : null);
   // Label badges on the turn just played, as far as the current position, each with its note. By turn, the turn's badge
   // on both its edges, one label (design 10), once the turn has ended. By edge, each edge's badge: the game's, and a
-  // branch's that were evaluated (a branch's edges are judged one by one, on request, whatever the unit).
+  // variation's that were evaluated (a variation's edges are judged one by one, on request, whatever the unit).
   const marks = $derived.by((): BoardMark<G["move"]>[] => marksHere().filter(m => forSide(m.player)).map(({ player, ...m }) => m));
   function marksHere(): (BoardMark<G["move"]> & { player: Player })[] {
     if (unit === "turn" && mainAt !== null) {
@@ -967,7 +967,7 @@
       const note = `${LABEL_TEXT[label]}: ${turnCost(t)}`;
       return t.edges.flatMap(e => (e.edge != null ? [{ move: e.edge, label, note, group: t.number, player: t.player }] : []));
     }
-    if (unit === "turn") { // in a branch: the branch's turn that ends here, when it was asked for
+    if (unit === "turn") { // in a variation: the variation's turn that ends here, when it was asked for
       const bt = branchTurnAt(path), j = bt?.judgment;
       if (!bt || !j) return [];
       const note = `${LABEL_TEXT[j.label]}: ${costText(j.rawLoss, j.rawPoints)}`;
@@ -999,7 +999,7 @@
     if (book) book.pointed = null;
     listHover = null;
     preview = null;
-    // The sound of the move that leads to the place: the game's move, or a branch's (a played move's branch exists
+    // The sound of the move that leads to the place: the game's move, or a variation's (a played move's variation exists
     // before its sound plays: playPath waits for it)
     if (display.sound && (sound || step) && p.length) view.sounds.play(display.volume, display.moveSound, moveInto(p));
   }
@@ -1008,9 +1008,9 @@
   /** A network's name in the settings: "HedgeFund 0.2 Lite (6.5 MB)". Its parts hold no-break spaces, so that a narrow
    *  panel breaks the name only before the parenthesis. */
   const networkLabel = (id: string) => `${view.networks.name(id).replaceAll(" ", "\u00a0")} (${view.networks.mb(id)}\u00a0MB)`;
-  // Lichess's move menu on a branch's move (ui/analyse/src/treeView/contextMenu.ts): "Promote variation" and "Delete
+  // Lichess's move menu on a variation's move (ui/analyse/src/treeView/contextMenu.ts): "Promote variation" and "Delete
   // from here". In a review they are off on the game's own moves: the review is of the game, so its line stays first.
-  // The Analysis board's main line has them, and "Make main line" for a branch (design 21). Every move has the submenu
+  // The Analysis board's main line has them, and "Make main line" for a variation (design 21). Every move has the submenu
   // "Generate image" (copyImage, saveImage).
   let menuPath = $state<string | null>(null); // the key of the move under the menu
   // A long press opens the menu, and in some browsers its release then clicks the move (Chromium's touch emulation does,
@@ -1019,7 +1019,7 @@
   // close the menu, works as before.
   let pressAt = 0, menuAt = 0; // when the move list's last press began, and when the menu opened (0: closed)
   const menuBranch = $derived(menuPath !== null && (board || menuPath in branches) ? menuPath : null); // a move the menu edits
-  /** A branch can be promoted when a branch node on its path, from its end back, is not the first branch from its parent. */
+  /** A variation can be promoted when a variation node on its path, from its end back, is not the first variation from its parent. */
   function canPromote(key: string | null): boolean {
     if (!key) return false;
     if (board) return key in branches;
@@ -1129,7 +1129,7 @@
   // review's first frame was one long task, and a click during it waited (decisions/product.md, "The review's first
   // frame"). Until then the list shows grey bars. The rows wait only where the list's box keeps its size without them:
   // in two and three columns, where the box has a set height, and in the Analysis tab while it is hidden. Elsewhere
-  // (the Analysis board in one column, ONE_COLUMN) the list's height follows its rows, and notes and branches make the
+  // (the Analysis board in one column, ONE_COLUMN) the list's height follows its rows, and notes and variations make the
   // rows taller than the bars, so the step bar under the list would move: the rows come at once. A hidden page draws
   // no frame, so it draws the rows at once too. The rows' task has a mark in the browser's performance timeline
   // (`review:moves`), for measuring it.
@@ -1151,7 +1151,7 @@
   // The keys (the list on "?"): Lichess's (ui/analyse/src/keyboard.ts), with single keys beside its Shift keys from
   // other analysis tools. ← and → along the line (k and j, Lichess's); at a fork ↑ and ↓ pick the line that → follows,
   // elsewhere they go to the start and the end; the previous and the next fork by Shift + ← and →, b and n (KaTrain's b
-  // goes back to the last branch point), [ and ], or Shift + k and j (Lichess's); the line before and after this one by
+  // goes back to the last variation point), [ and ], or Shift + k and j (Lichess's); the line before and after this one by
   // Shift + ↑ and ↓, or comma and period; Space plays the engine's choice; e or l turns the engine on or off (l is
   // Lichess's; e, for "engine", is the site's own: Lichess's e opens its opening explorer, which this site does not
   // have); x shows or hides the threat (Lichess's). Escape closes the settings, or cancels the edge that the player
@@ -1217,9 +1217,9 @@
     [["Shift + ← / →", "b / n", "[ / ]", "Shift + k / j"], "The previous and the next fork"],
     [["Shift + ↑ / ↓", ", / ."], "The line before and after this one, from the fork above"],
     [["Home / End"], "The start, and the line's end"],
-    [["Space"], "Play the pinned candidate, or number 1"],
+    [["Space"], "Play the pinned candidate, or rank 1"],
     [["e", "l"], "Turn the engine on or off"],
-    [["x"], "Show or hide the threat: the opponent's best turn if you pass"],
+    [["x"], "Show or hide the threat: the enemy's best turn if you pass"],
     ...(view.map ? MAP_KEYS : []),
     ...(book?.ready ? BOOK_KEYS : []),
     [["Escape"], `Close the settings, or cancel the ${view.words.move} that you started`],
@@ -1230,7 +1230,7 @@
     ["Click a candidate", "Pin its line on the board. Click the candidate again to unpin it"],
     ["Double-click a candidate", "Play it"],
     ...view.clicks,
-    ["Right-click a branch's move", "Evaluate it, promote its branch, or delete from it"],
+    ["Right-click a variation's move", "Evaluate it, promote its variation, or delete from it"],
   ]);
 
   const scoreDiff = $derived(gamePositions.map(p => p.scores[0] - p.scores[1]));
@@ -1259,14 +1259,14 @@
   const ending = $derived(view.ending(R.data)); // the game's outcome, by the rules or by the record (the game's)
   const endedByRules = $derived(!!R.data.positions[last]?.over);
   const status = $derived.by(() => {
-    // The position's own turn, in a branch and on the board: the turn as in the game.
+    // The position's own turn, in a variation and on the board: the turn as in the game.
     const turnHere = () => {
       const t = moveFrom(path), k = t.first ? 1 : 2;
       return `Turn ${t.turn} · ${PLAYER_NAME[mover]} to play, ${view.words.move} ${k} of ${k - 1 + view.movesLeft(position)}`;
     };
-    if (mainAt === null) return `A branch from ${view.words.move} ${pos + 1} · ${over ? "Game over" : turnHere()}`; // where it leaves the game
+    if (mainAt === null) return `A variation from ${view.words.move} ${pos + 1} · ${over ? "Game over" : turnHere()}`; // where it leaves the game
     if (board) {
-      if (over) return `Game over · ${PLAYER_NAME[position.scores[0] > position.scores[1] ? 0 : 1]} won by ${Math.abs(position.scores[0] - position.scores[1]).toFixed(1)} points`;
+      if (over) return `Game over · ${PLAYER_NAME[position.scores[0] > position.scores[1] ? 0 : 1]} won by ${Math.abs(position.scores[0] - position.scores[1]).toFixed(1)}`;
       return `${view.words.Move} ${(position.count ?? path.length) + 1} · ${turnHere()}`;
     }
     if (pos === last) return endedByRules ? `Game over · ${ending}` : `The record ends here · ${ending}`;
@@ -1334,7 +1334,7 @@
     if (!threatState) return null;
     const name = PLAYER_NAME[mover];
     if (threatState === "none") return { text: over ? "No threat: the game is over" : "No threat: a pass ends the game", busy: false };
-    if (threatState === "unavailable") return { text: "No threat saved: snapshots do no searches", busy: false };
+    if (threatState === "unavailable") return { text: "No threat saved: review snapshots do no searches", busy: false };
     if (threatCost) return {
       text: `Threat to ${name}: ${costText(threatCost.win, threatCost.points)}`, busy: false,
       title: `What ${name} loses with a pass: the value now less the value after the pass.`
@@ -1344,13 +1344,13 @@
     if (threatState === "waiting") return { text: "Threat: waiting for the engine", busy: true };
     // The threat is there, and its size is not: a result with the threat's settings, of the position or of the threat's
     // position, is still to come (GameAnalysis.threatCost)
-    if (threat && snapshot) return { text: "No threat size saved: snapshots do no searches", busy: false };
+    if (threat && snapshot) return { text: "No threat size saved: review snapshots do no searches", busy: false };
     if (threatState === "off" || (threat && engine && !engine.on)) return { text: "Threat: the engine is off", busy: false };
     if (threat) return { text: "Threat size: searching", busy: true };
     return null;
   });
   // The engine's network loads: no search of the position can start yet, so the header says so in the place of the
-  // visits (design 06). A snapshot searches nothing (design 20).
+  // visits (design 06). A review snapshot searches nothing (design 20).
   const waitsForNetwork = $derived(!!game && !snapshot && !game.engineReady);
   // A slider's place while it moves, by its id: the setting changes when it is let go, so that a drag does not restart
   // the workers or the search at each step.
@@ -1359,7 +1359,7 @@
 
 <svelte:window {onkeydown} />
 
-<!-- A label in the move list and the branches, in the form the display settings choose: a badge, or its mark in the
+<!-- A label in the move list and the variations, in the form the display settings choose: a badge, or its mark in the
      label's colour. -->
 {#snippet mark(label: Label)}
   {#if display.marks === "badges"}<LabelBadge {label} />
@@ -1396,13 +1396,13 @@
       <p class="mt-1 text-xs text-muted truncate">Review done: {reviewVisits.toLocaleString("en")} visits a move.</p>
     </div>
   {:else if snapshot}
-    <!-- A snapshot (design 20): when and with what, and Review again. A move it cannot add brings out its second line. -->
+    <!-- A review snapshot (design 20): when and with what, and Review again. A move it cannot add brings out its second line. -->
     <div class={["mb-2.5 px-3 py-2 rounded-md bg-panel-2 text-xs border", nudged ? "border-accent" : "border-transparent"]} role="status">
       <div class="flex items-center gap-2">
         <p class="flex-1">{snapshot.text}</p>
         <button class="btn-primary flex-none px-3 py-0.5 text-xs" type="button" onclick={snapshot.onagain}>Review again</button>
       </div>
-      <p class={["mt-1", nudged ? "text-ink" : "text-muted"]}>A snapshot: no searches and no new moves. Review again to explore.</p>
+      <p class={["mt-1", nudged ? "text-ink" : "text-muted"]}>A review snapshot: no searches and no new moves. Review again to explore.</p>
     </div>
   {/if}
 {/snippet}
@@ -1457,7 +1457,7 @@
 {/snippet}
 
 {#snippet highlights()}
-  <p class="mb-3 text-xs text-muted">Analyzed in your browser. Labels judge each move by the engine's win chance. ◆ marks a
+  <p class="mb-3 text-xs text-muted">Analyzed in your browser. Quality labels judge each move by the engine's win chance. ◆ marks a
     hard position. <a href="/how-reviews-work" target="_blank" rel="noopener noreferrer">How it works</a></p>
   <p class="mb-3.75">
     <strong>{ending}</strong>
@@ -1595,7 +1595,7 @@
     {@render engineTable()}
   {/if}
   <!-- A right-click, or a long press on a touch screen, anywhere in the move list opens the move menu (Bits UI's
-       ContextMenu), not the browser's: on a branch's move with its actions. On the game's moves in a review, only the
+       ContextMenu), not the browser's: on a variation's move with its actions. On the game's moves in a review, only the
        image's, since the game's line stays as it is and its moves are evaluated already. Elsewhere (the engine's line,
        a note) each action is off. -->
   <ContextMenu.Root onOpenChange={open => (menuAt = open ? performance.now() : 0)}>
@@ -1671,10 +1671,10 @@
           </span>
         {/if}
       </div>
-      <!-- Under the turn, its notes and its branches in one band across the move list (Lichess's column view, its
+      <!-- Under the turn, its notes and its variations in one band across the move list (Lichess's column view, its
            "interrupt"): a faint background and a rule above and below tie them to the turn, and they start at the
-           list's left, so that a branch's row has the list's whole width. One line for each note, and a note said
-           twice in a turn once (a turn of two Great edges). By turn, the turn's. Then the branches from the turn's
+           list's left, so that a variation's row has the list's whole width. One line for each note, and a note said
+           twice in a turn once (a turn of two Great edges). By turn, the turn's. Then the variations from the turn's
            positions, the lines from one position under one rule, and under a Mistake's or a Blunder's note, the
            engine's best line among them (turnGroups). -->
       {@const notes = !display.notes ? [] : unit === "turn" ? (t.label && COMMENTED.includes(t.label) && forSide(t.player) ? [view.turnShortNote(t)] : [])
@@ -1732,7 +1732,7 @@
   <span class={DIGITS}>{n}</span>
 {/snippet}
 
-<!-- A candidate's number: in a badge where the board draws the candidate (number 1 in the engine's colour), else plain.
+<!-- A candidate's rank: in a badge where the board draws the candidate (rank 1 in the engine's colour), else plain.
      `drawn`: in a badge whatever the board shows. -->
 {#snippet rankBadge(rank: number, title: string | undefined, cls = "", drawn = false)}
   <span class={["inline-flex items-center justify-center min-w-[1.3em] h-[1.3em] px-[0.2em] rounded-[0.3em] text-[0.8em] font-bold leading-none", cls,
@@ -1741,18 +1741,18 @@
 {/snippet}
 
 <!-- An edge of the listed line: a circle in its mover's colour with its number, as the board numbers the line (Go's
-     way). Hollow when the edge is already in the tree: played in the game, or in a branch. -->
+     way). Hollow when the edge is already in the tree: played in the game, or in a variation. -->
 {#snippet edgeCircle(n: number, player: Player, hollow: boolean, cls: string)}
   <span class={["inline-flex items-center justify-center min-w-[1.55em] h-[1.55em] px-[0.15em] rounded-full font-sans text-[0.75em] font-bold leading-none",
                 hollow ? `border-2 ${SIDE_BORDER[player]} ${SIDE_TEXT[player]}` : `text-white ${SIDE_BG[player]}`,
                 cls]}>{@render digits(n)}</span>
 {/snippet}
 
-<!-- The branches in the move list from one position: their rows (tree.ts), indented by depth, and Lichess's tree beside
+<!-- The variations in the move list from one position: their rows (tree.ts), indented by depth, and Lichess's tree beside
      them (its column view): a rule from the fork down to its last line, with a tick to each line, and the rules of a
      shallower fork passing the lines nested in it. Every turn has its number, as in the record. Without notation, an
      edge is a dot in its mover's colour (Go tools show a variation without names): the turn numbers place it, so the
-     dots carry no numbers of their own. Where a branch forks again, its continuations follow, one step further in
+     dots carry no numbers of their own. Where a variation forks again, its continuations follow, one step further in
      (Lichess's way inside a variation). Pointing at a move shows its line on the board, from where it leaves the game, up
      to that move (branchPreview). -->
 {#snippet branchGroup(rows: BranchRow[], engine: EngineBranch | null)}
@@ -1761,7 +1761,7 @@
   {#each rows as row, r (r)}
     {@const rule = (depth: number) => `${depth - 0.55}rem`}
     <!-- A row of the engine's line gleams as the progress bars do while its position's search can still change it (the
-         review's passes, or the position on screen): its first choice can change,
+         review's stages, or the position on screen): its first choice can change,
          and its line grows. -->
     {@const gleams = !!engine && row.paths.some(p => engine.steps.has(pathKey(p))) && !!game?.pending(engine.search)}
     <div class={["relative flex flex-wrap items-center gap-y-0.5 py-0.5 font-mono text-[0.95em]",
@@ -1802,7 +1802,7 @@
           {/if}
           {#if listed(label)}<span class="-ml-0.5 text-[0.9em]">{@render mark(label)}</span>
           {:else if waiting}<span class="-ml-0.5 text-[0.9em] text-muted animate-pulse motion-reduce:animate-none" title="Evaluating…">…</span>{/if}
-          <!-- A hard position's ◆, small and muted as the move list's, with no slot of its own, as a branch's labels have
+          <!-- A hard position's ◆, small and muted as the move list's, with no slot of its own, as a variation's labels have
                none. -->
           {#if hardness?.hard}<span class="-ml-0.5 text-[0.8em] text-muted" title={HARD_NOTE}>◆</span>{/if}
         {:else if engine && step}
@@ -1813,12 +1813,12 @@
   {/each}
 {/snippet}
 
-<!-- A branch edge's turn number, before the row's first edge and each turn's first: every turn has its number. -->
+<!-- A variation edge's turn number, before the row's first edge and each turn's first: every turn has its number. -->
 {#snippet turnMark(t: { turn: number; first: boolean }, k: number)}
   {#if k === 0 || t.first}<span class={["text-muted text-[0.9em]", k > 0 && "ml-1"]}>{turnText(t)}</span>{/if}
 {/snippet}
 
-<!-- A branch edge without its notation: a pill along its direction, or a dot, in its mover's colour (the display
+<!-- A variation edge without its notation: a pill along its direction, or a dot, in its mover's colour (the display
      setting). -->
 {#snippet edgeShape(edge: G["move"] | null, player: Player)}
   {#if display.branchForm === "pills"}<Shape move={edge} {player} hollow={false} n={null} class="" />
@@ -1826,9 +1826,9 @@
 {/snippet}
 
 <!-- An edge of the engine's best line that the player has not played (engineBranch): after candidate 1's badge, as a
-     branch's edge, a little faded, so that it reads as the engine's and the player's own edges as theirs. It is not
+     variation's edge, a little faded, so that it reads as the engine's and the player's own edges as theirs. It is not
      kept, and follows the search. Pointing at it previews the line up to it on the board, and a click plays the line up
-     to there as a branch (as the listed line's click does), which then shows here as the player's own. -->
+     to there as a variation (as the listed line's click does), which then shows here as the player's own. -->
 {#snippet engineEdge(engine: EngineBranch, p: string[], step: EngineStep, k: number)}
   {@const e = engine.line[step.k]}
   {@const note = `${turnText(step.turn)} ${view.moveName(e)} · the engine's line · play it to here`}
@@ -1847,8 +1847,8 @@
 {/snippet}
 
 <!-- The engine's line under the table: the candidate's badge, then its edges. Pointing at an edge draws the line up to
-     it on the board, and a click plays the line up to it as a branch. The edges already in the tree (the game's own
-     moves or a branch's) show as such, since a click goes along them and the branch starts after them. -->
+     it on the board, and a click plays the line up to it as a variation. The edges already in the tree (the game's own
+     moves or a variation's) show as such, since a click goes along them and the variation starts after them. -->
 {#snippet lineList()}
   <div class="flex-none h-[3.6em] mb-2 overflow-y-auto text-sm" role="group" aria-label="The engine's line"
        onmouseleave={() => (listHover = null)}>
@@ -1860,7 +1860,7 @@
           {@const player = view.lineMovers(position, k + 1)[k]}
           {@const name = view.lineNotation(e, listSteps?.[k])}
           {@const known = listKnown[k]}
-          {@const where = known === "game" ? " · played in the game" : known === "branch" ? " · in a branch" : ""}
+          {@const where = known === "game" ? " · played in the game" : known === "branch" ? " · in a variation" : ""}
           {#if display.branchForm === "text"}
             {#if k === 0 || t.first}<span class="text-muted text-[0.9em]">{turnText(t)}</span>{/if}
             <button class={["px-[0.2rem] py-px font-mono text-[0.95em] bg-transparent border-0 whitespace-nowrap", SIDE_TEXT[player],
@@ -1954,12 +1954,12 @@
       <button class="px-2 py-0.5 text-sm" onclick={() => (settingsOpen = false)}>Done</button>
     </div>
     <div class="flex-1 min-h-0 overflow-y-auto pr-1">
-      <h3 class={SETTINGS_HEAD}>{board ? "Labels" : "Review"}</h3>
-      {@render choice(board ? "Labels by" : "Review by", board ? `Each turn as a whole, or each ${view.words.move}: the labels and the move list's numbers. A turn's note gives its ${view.words.moves}' points.`
+      <h3 class={SETTINGS_HEAD}>{board ? "Quality labels" : "Review"}</h3>
+      {@render choice(board ? "Quality labels by" : "Review by", board ? `Each turn as a whole, or each ${view.words.move}: the quality labels and the move list's numbers. A turn's note gives its ${view.words.moves}' points.`
         : `Each turn as a whole, or each ${view.words.move}: the labels, the move list's numbers, the counts and the chart. A turn's note gives its ${view.words.moves}' points.`,
         [["turn", "Turn"], ["edge", view.words.Move]], () => display.judge, v => (display.judge = v as Unit))}
       {#if !board}<!-- the board's labels are the moves asked for, on both sides -->
-        {@render choice("Review for", "Both players, or one: the labels, numbers, notes and the engine's lines of that player's moves. The counts keep both.",
+        {@render choice("Review for", "Both players, or one: the quality labels, numbers, notes and the engine's lines of that player's moves. The counts keep both.",
           [["both", "Both"], ["blue", PLAYER_NAME[0]], ["red", PLAYER_NAME[1]]], () => display.reviewFor, v => (display.reviewFor = v as Display["reviewFor"]))}
       {/if}
       <h3 class={SETTINGS_HEAD}>Board</h3>
@@ -1967,7 +1967,7 @@
         [["bar", "Top horizontal bar"], ["gauge", "Side vertical gauge"]], () => display.win, v => (display.win = v as "bar" | "gauge"))}
       {@render toggle("Candidates", "The engine's choices on the board, with their ranks.",
         () => display.layers.candidates, v => (display.layers.candidates = v))}
-      {@render toggle("Move labels", "Move quality badges on the turn just played.",
+      {@render toggle("Quality labels", "Move quality badges on the turn just played.",
         () => display.layers.marks, v => (display.layers.marks = v))}
       {#each view.layers.filter(l => !l.afterMap) as l (l.key)}{@render layer(l)}{/each}
       {#if view.map}
@@ -1987,19 +1987,19 @@
         </div>
       {/if}
       {#each view.layers.filter(l => l.afterMap) as l (l.key)}{@render layer(l)}{/each}
-      {@render choice("Lines on the board", `The engine's line and a branch's preview: one ${view.words.move} at a time, or all at once.`,
+      {@render choice("Lines on the board", `The engine's line and a variation's preview: one ${view.words.move} at a time, or all at once.`,
         [["animated", "Animated"], ["static", "Static"]], () => (display.lineSteps ? "animated" : "static"),
         v => (display.lineSteps = v === "animated"))}
       <h3 class={SETTINGS_HEAD}>Move list</h3>
-      {@render choice("Move labels", "Each label as a badge, as in the report and on the board, or as its mark in the label's colour.",
+      {@render choice("Quality labels", "Each quality label as a badge, as in the report and on the board, or as its mark in its colour.",
         [["badges", "Badges"], ["text", "Text"]], () => display.marks, v => (display.marks = v as Display["marks"]))}
       {@render toggle("Notes on the key moves", "A line under each Great, Mistake and Blunder.",
         () => display.notes, v => (display.notes = v))}
       {@render toggle("Preview played moves", "Pointing at a move of the game shows the position after it on the board.",
         () => display.previewMoves, v => (display.previewMoves = v))}
-      {@render toggle("Preview branches", "Pointing at a branch's move draws its line on the board, from where it leaves the main line, as the engine's line.",
+      {@render toggle("Preview variations", "Pointing at a variation's move draws its line on the board, from where it leaves the main line, as the engine's line.",
         () => display.previewBranches, v => (display.previewBranches = v))}
-      {@render choice("Branches and lines", view.shape.help,
+      {@render choice("Variations and lines", view.shape.help,
         [["pills", view.shape.name], ["dots", "Dots"], ["text", "Notation"]], () => display.branchForm,
         v => (display.branchForm = v as Display["branchForm"]))}
       <view.sounds.Settings sound={display.sound} moveSound={display.moveSound} volume={display.volume} set={v => Object.assign(display, v)} />
@@ -2007,7 +2007,7 @@
       <div class="flex items-start justify-between gap-3 py-1.5">
         <div class="min-w-0">
           <p class="text-sm font-medium">Keys and clicks</p>
-          <p class="text-xs text-muted">The keys for moving through the game and its branches, and what the clicks do.{view.map ? " The key t shows or hides the area map, and Shift + t goes to its next style." : ""} The key x shows or hides the threat.{book?.ready ? " The key o shows the book's moves or the engine's candidates." : ""}</p>
+          <p class="text-xs text-muted">The keys for moving through the game and its variations, and what the clicks do.{view.map ? " The key t shows or hides the area map, and Shift + t goes to its next style." : ""} The key x shows or hides the threat.{book?.ready ? " The key o shows the book's moves or the engine's candidates." : ""}</p>
         </div>
         <button class="flex-none px-2 py-0.5 text-sm" onclick={() => (keysOpen = true)}>Show <kbd class="kbd">?</kbd></button>
       </div>
@@ -2041,14 +2041,14 @@
             does not offer it. Choose a network there to review the game again with it.{/if}</p>
       {/if}
       <h3 class={SETTINGS_HEAD}>Position on screen</h3>
-      {@render visitsSteps("Depth", board ? "How far to search it." : "How far to search it. Deeper than the review, it also updates the review there: the labels and the report.",
+      {@render visitsSteps("Depth", board ? "How far to search it." : "How far to search it. Deeper than the review, it also updates the review there: the quality labels and the report.",
         DEPTHS, () => e.visits, v => set({ visits: v }))}
       {@render steps("Time limit", "Stop sooner if this runs out.", TIME_LIMITS.length, () => TIME_LIMITS.indexOf(e.seconds),
         k => set({ seconds: TIME_LIMITS[k] }), k => (TIME_LIMITS[k] === null ? "None" : `${TIME_LIMITS[k]} s`))}
       <!-- On the board, the review's depth sets only how deep "Evaluate quality" searches (design 21). -->
       <h3 class={SETTINGS_HEAD}>{board ? "Evaluate quality" : "Game review"}</h3>
       {@render choice(board ? "Depth" : "Depth per move",
-        `${board ? "How far it searches the positions before and after the move. " : ""}Lite: ${REVIEW_PRESETS.lite} visits. Standard: ${REVIEW_PRESETS.standard.toLocaleString("en")}, surer labels in twice the time.`,
+        `${board ? "How far it searches the positions before and after the move. " : ""}Lite: ${REVIEW_PRESETS.lite} visits. Standard: ${REVIEW_PRESETS.standard.toLocaleString("en")}, surer quality labels in twice the time.`,
         [["lite", "Lite"], ["standard", "Standard"], ["custom", "Custom"]], () => e.review, v => set({ review: v as ReviewDepth }))}
       {#if e.review === "custom"}
         {@render visitsSteps("Custom", "", CUSTOM_REVIEW, () => e.customReview, v => set({ customReview: v }))}
@@ -2233,7 +2233,7 @@
                   title={Number.isNaN(blueWin) ? "Win chance: not analyzed yet" : `${PLAYER_NAME[0]}'s win chance ${pct(blueWin)}`} />
       {/if}
       <div class="board-wrap relative rounded overflow-hidden" bind:this={boardWrap}>
-        <!-- The game's board (the game's `Board`). While a branch's preview shows, the board is at the row's start,
+        <!-- The game's board (the game's `Board`). While a variation's preview shows, the board is at the row's start,
              with the row as its line; while a played move's shows, at the position after it. Nothing of the position on
              screen: no candidates, labels or own moves. -->
         <view.Board
@@ -2275,12 +2275,12 @@
     <div class="mb-1.5">
       <div class="flex items-center gap-2">
         {#if engine && onengine && snapshot}
-          <!-- A snapshot searches nothing (design 20): its switch shows off and does not move, and a click on it lights the
-               snapshot's bar. A disabled switch takes no click, so its wrapper does; the e and l keys do the same. -->
+          <!-- A review snapshot searches nothing (design 20): its switch shows off and does not move, and a click on it lights the
+               review snapshot's bar. A disabled switch takes no click, so its wrapper does; the e and l keys do the same. -->
           <!-- svelte-ignore a11y_click_events_have_key_events -->
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <span class="flex-none inline-flex cursor-not-allowed" onclick={nudge}>
-            <Switch.Root checked={false} disabled aria-label="Engine" title="Engine off: this review is a snapshot"
+            <Switch.Root checked={false} disabled aria-label="Engine" title="Engine off: this review is a review snapshot"
                          class={[SWITCH, "pointer-events-none opacity-60"]}>
               <Switch.Thumb class={SWITCH_THUMB} />
             </Switch.Root>
@@ -2299,12 +2299,12 @@
         <!-- The words and the visits are two elements: the visits that replace the words are new, and move nothing. -->
         {#if waitsForNetwork}<span class="text-xs text-muted whitespace-nowrap">{NETWORK_LOADS}</span>
         {:else if shownSearch}<span class="text-xs text-muted tabular-nums whitespace-nowrap">{shownSearch.visits.toLocaleString("en")}{searched !== null && searched < 1 ? ` of ${deepVisits.toLocaleString("en")}` : ""} visits{timedOut ? " · time limit" : ""}</span>{/if}
-        <!-- The threat's switch (Lichess's "Show threat" in its engine box, the key x), before the gear. A snapshot shows a
+        <!-- The threat's switch (Lichess's "Show threat" in its engine box, the key x), before the gear. A review snapshot shows a
              threat only where the store has it: the switch's note says why. -->
         {#if game}
           <button class="flex-none px-1.5 py-0 aria-pressed:border-accent aria-pressed:text-accent" aria-pressed={threatOn}
-                  aria-label="Show threat" title={snapshot ? "Show threat: a snapshot shows only a threat that was saved. Snapshots do no searches."
-                    : "Show threat: the opponent's best turn if you pass"}
+                  aria-label="Show threat" title={snapshot ? "Show threat: a review snapshot shows only a threat that was saved. Review snapshots do no searches."
+                    : "Show threat: the enemy's best turn if you pass"}
                   onclick={toggleThreat}>
             <svg class="inline-block size-[1em] align-[-0.125em]" viewBox="0 0 1 1" aria-hidden="true" fill="none" stroke="currentColor"
                  stroke-width="0.09" stroke-linecap="round">

@@ -185,7 +185,7 @@
         {:else if feedback === "win"}
           <p class="font-bold text-best">Best edge! {edgeName(puzzle.solution)} is the only good edge here.</p>
         {:else}
-          <p>The solution: <strong>{edgeName(puzzle.solution)}</strong>, number 1 on the board.</p>
+          <p>The solution: <strong>{edgeName(puzzle.solution)}</strong>, rank 1 on the board.</p>
         {/if}
 
         <div class="flex flex-wrap gap-1.5">

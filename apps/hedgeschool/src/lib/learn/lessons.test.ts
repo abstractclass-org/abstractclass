@@ -36,8 +36,8 @@ test("each step's line gives the mover and the edges left that its edge count gi
   }
 });
 
-test("a step's line keeps its marks: a protected edge of the player not to move", () => {
-  const b = lineBoard(step("Protected edges").position);
+test("a step's line keeps its marks: an invincible edge of the player not to move", () => {
+  const b = lineBoard(step("Invincible edges").position);
   assert.deepEqual(b.edges, [[parseEdge("A7-C7")], [parseEdge("A9-D9"), parseEdge("F5-F8")]]);
   assert.deepEqual(b.protected, [parseEdge("F5-F8")]);
   assert.deepEqual(b.placed, []);
@@ -57,7 +57,7 @@ const CASES: Record<string, { does: string[]; fails: string[] }> = {
   "Draw an edge": { does: ["A10-A13", "D10-G10", "D10-G13"], fails: [] },
   "Close a region": { does: ["C7-C10"], fails: ["C10-F7", "C9-C10", "C7-D8"] },
   "Cut an enemy edge": { does: ["C7-E8", "C7-E6"], fails: ["A7-A8", "C7-D7"] },
-  "Protected edges": { does: ["C7-C9", "A7-A9"], fails: ["C7-D6", "C7-E5"] },
+  "Invincible edges": { does: ["C7-C9", "A7-A9"], fails: ["C7-D6", "C7-E5"] },
 };
 
 test("each step's task takes the edges that do it, and gives its hint for the others", { skip }, () => {
@@ -77,8 +77,8 @@ test("only the edge that joins the square's open ends closes it", { skip }, () =
 });
 
 test("a legal edge does a cut step's task when it cuts the red edge of the goal, and only then", { skip }, () => {
-  // The red edge that each goal names. No legal edge cuts F5-F8, the protected one.
-  const named: Record<string, string> = { "Cut an enemy edge": "E6-E9", "Protected edges": "A9-D9" };
+  // The red edge that each goal names. No legal edge cuts F5-F8, the invincible one.
+  const named: Record<string, string> = { "Cut an enemy edge": "E6-E9", "Invincible edges": "A9-D9" };
   for (const [title, edge] of Object.entries(named)) {
     const s = step(title), played = legal(s).map(m => ({ m, p: play(s, m) }));
     assert.ok(played.some(({ p }) => p.after.cuts === edge), title);
@@ -92,7 +92,7 @@ test("a legal edge does a cut step's task when it cuts the red edge of the goal,
 });
 
 test("the boards after the edges show what the steps' texts say", { skip }, () => {
-  // "The square encloses 9 points of area. Blue gains 9 points after this turn": the turn is not over.
+  // "The square encloses an area of 9. Blue's score gains 9 after this turn": the turn is not over.
   const square = play(step("Close a region"), "C7-C10").after;
   assert.equal(square.areas[0], 9);
   assert.deepEqual(square.scores, [0, 0]);
@@ -101,8 +101,8 @@ test("the boards after the edges show what the steps' texts say", { skip }, () =
   const cut = play(step("Cut an enemy edge"), "C7-E8").after;
   assert.equal(cut.cuts, "E6-E9");
   assert.deepEqual(cut.edges.r, []);
-  // "The protection lasts one turn": Red's protected edge stays protected for the rest of Blue's turn.
-  const protectedEdge = play(step("Protected edges"), "C7-C9").after;
-  assert.deepEqual(protectedEdge.protected, ["F5-F8"]);
-  assert.deepEqual(protectedEdge.edges.r, ["F5-F8"]);
+  // "The invincibility lasts one turn": Red's invincible edge stays invincible for the rest of Blue's turn.
+  const invincibleEdge = play(step("Invincible edges"), "C7-C9").after;
+  assert.deepEqual(invincibleEdge.protected, ["F5-F8"]);
+  assert.deepEqual(invincibleEdge.edges.r, ["F5-F8"]);
 });

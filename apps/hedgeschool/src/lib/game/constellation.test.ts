@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { constellationRecord, isConstellation } from "./constellation.ts";
 import { parseRecord } from "./record.ts";
 
-// The first turns of an export from Constellation's analysis board: one edge, a path, two edges apart, a path.
+// The first turns of an export from Constellation's Analysis board: one edge, a path, two edges apart, a path.
 const EXPORT = "[B:A10-D10 R:P10-S10] D10-A7 P10-M10-J7 A7-A10,A7-D4 J7-L10-J13";
 
 test("an export is recognised by its start", () => {

@@ -1,7 +1,7 @@
 # Hedge School
 
-This project builds Hedge School, a website that helps people learn the board game Enclosure. It reviews their games, labels their
-moves, and later offers puzzles and training. Before you change anything, read these:
+This project builds Hedge School, a website that helps people learn the board game Enclosure. It reviews their games,
+labels their moves, and later offers puzzles and training. Before you change anything, read these:
 
 - **The work, in beads** (label `site`): what is live, what is in flight, and the backlog. The rules are in
   [../CLAUDE.md](../CLAUDE.md), "Tracking work in beads". Read the pinned issue "What is live" and the work in
@@ -38,7 +38,8 @@ The engine, the rules and the bots live in the engine repository,
 - **Never copy engine or rules code here.** The rules engine must match the site, and the engine repository's tests
   guard that. This repository uses the engine as versioned artifacts: a tagged WebAssembly build and a model.
 - **Decisions live where the thing decided lives.** Engine, rules, fork and protocol decisions stay there. Product
-  decisions (labels, thresholds, the interface, puzzles) live here. Link across the repositories by URL and path.
+  decisions (quality labels, thresholds, the interface, puzzles) live here. Link across the repositories by URL and
+  path.
 
 ## How to work
 
@@ -48,7 +49,7 @@ The engine, the rules and the bots live in the engine repository,
   short tests.
 - Before you change a site-wide layout mechanism (the page area that scrolls and its scroll bar's room, the header's
   height, a breakpoint), search for what depends on it: viewport units (`vw`, `vh`), `--site-header`, and fixed pixel
-  allowances. After the change, run the layout sweep (`npm run test:layout`). It runs in Chromium. Edge runs only with
+  allowances. After the change, run the layout test (`npm run test:layout`). It runs in Chromium. Edge runs only with
   `HS_EDGE=1`, and only the owner sets it.
 - Ask design questions a few at a time, each with its background and each option's merits. Stop only at real
   decisions.

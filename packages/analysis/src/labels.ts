@@ -1,4 +1,4 @@
-// Move labels: from a played edge's or turn's loss of win chance, from the mover's side (design 10).
+// Quality labels: from a played edge's or turn's loss of win chance, from the mover's side (design 10).
 //
 // - The win chance is the engine's own (its winrate), as chess.com and Lichess judge a move by the win chance their
 //   engine gives. It saturates in a decided game, so a move there loses little: a label tells what a move cost the
@@ -8,8 +8,8 @@
 //   band flags the moves of a decided game, which chess.com's and Lichess's win-chance labels leave alone.
 // - Best: the played edge is the engine's first choice. Great: En Croissant's "!" (src/utils/score.ts, getAnnotation),
 //   the first choice when the second is at least 0.10 of win chance worse (the only good edge), and when the first
-//   choice is more than 0.05 better for the mover than the position before the opponent's last turn (it keeps what the
-//   opponent's last turn gave: model.ts, keepsGain). The rule compares two equal searches, so a gap in one search only
+//   choice is more than 0.05 better for the mover than the position before the enemy's last turn (it keeps what the
+//   enemy's last turn gave: model.ts, keepsGain). The rule compares two equal searches, so a gap in one search only
 //   asks for a search of the position after the second choice, as deep as the position after the played edge
 //   (model.ts, confirmedOnly).
 
@@ -34,7 +34,7 @@ export function meterGroup(winLoss: number): MeterGroup {
   return label === "excellent" ? "good" : (label as MeterGroup);
 }
 export const ONLY_MOVE_GAP = 0.10;
-/** A Great's gain over the position before the opponent's last turn: more than this, in win chance (En Croissant's 5). */
+/** A Great's gain over the position before the enemy's last turn: more than this, in win chance (En Croissant's 5). */
 export const KEPT_GAIN = 0.05;
 
 /** A hard position: KaTrain's complexity (model.ts, `complexity`) in win chance at least this much, so that the

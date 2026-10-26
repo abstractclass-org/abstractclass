@@ -1,4 +1,4 @@
-// The review file (reviewFile.ts): which results belong to a game, the file read back, branches merged, and the mark
+// The review file (reviewFile.ts): which results belong to a game, the file read back, variations merged, and the mark
 // that a load keeps. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -14,10 +14,10 @@ const MOVES = ["D10-G10", "N11-Q10", "L10-N11"];
 const BRANCHES: KeptBranches = { version: 2, nodes: [["D10-G10 N11-Q11", 0], ["D10-G10 N11-Q11 L10-N11", 1, 1]] };
 const key = (moves: string, shape = SHAPE, model = "ab12") => `${shape}|85c2adb|${model}|512|${moves}`;
 
-test("a game's positions: each step of its line, and each branch node", () => {
+test("a game's positions: each step of its line, and each variation node", () => {
   const p = positionKeys(MOVES, BRANCHES);
   assert.deepEqual([...p], ["", "D10-G10", "D10-G10 N11-Q10", "D10-G10 N11-Q10 L10-N11", "D10-G10 N11-Q11", "D10-G10 N11-Q11 L10-N11"]);
-  // Version 1 kept a branch as its line: each node of it
+  // Version 1 kept a variation as its line: each node of it
   const v1 = positionKeys(MOVES, { version: 1, lines: [["D10-G10", "N11-Q11", "L10-N11", "Q11-T11"]] });
   assert.deepEqual([...v1].slice(4), ["D10-G10 N11-Q11", "D10-G10 N11-Q11 L10-N11", "D10-G10 N11-Q11 L10-N11 Q11-T11"]);
 });
@@ -91,7 +91,7 @@ test("a review file of this site opens completely on the site before the area ma
   assert.deepEqual(readReviewFile(JSON.stringify(file)).analyses, file.analyses);
 });
 
-test("branches merge: the kept ones keep their order, the file's new ones follow", () => {
+test("variations merge: the kept ones keep their order, the file's new ones follow", () => {
   const kept: KeptBranches = { version: 2, nodes: [["D10-G10 N11-Q11", 3]] };
   const added: KeptBranches = { version: 2, nodes: [["D10-G10 N11-Q11", 0], ["D10-G10 N11-Q12", 1], ["D10-G10 N11-Q13", 0, 1]] };
   assert.deepEqual(mergeBranches(kept, added), { version: 2, nodes: [["D10-G10 N11-Q11", 3], ["D10-G10 N11-Q13", 4, 1], ["D10-G10 N11-Q12", 5]] });
@@ -110,7 +110,7 @@ test("a finished review covers the same search and network at its depth or less"
     { id: "net-a", kind: "model" as const, interface: null, url: "", sha256: "ab12", bytes: 0, download: 0, released: true },
   ] };
   const want = reviewMark(manifest, "net-a", 512);
-  // The mark names the module's search, whose keys a snapshot reads (design 20).
+  // The mark names the module's search, whose keys a review snapshot reads (design 20).
   assert.deepEqual(want, { module: "m1", model: "ab12", network: "net-a", visits: 512, search: "s1", modules: ["m1", "m0"] });
   assert.equal(reviewMark(manifest, "net-b", 512), null);
   const mark: ReviewMark = { ...want!, visits: 1024, at: "" };
@@ -128,7 +128,7 @@ test("a review file's mark names its search, and the load keeps it: a file writt
     const text = JSON.stringify(buildReviewFile(record, null, [], "abc1234", null, review));
     return (await loadGame((await importReview(readReviewFile(text), null, ["m1"])).id))?.game.reviewed;
   };
-  assert.equal((await load(RECORD, { ...done, search: "s0" }))?.search, "s0"); // an earlier engine's: a snapshot
+  assert.equal((await load(RECORD, { ...done, search: "s0" }))?.search, "s0"); // an earlier engine's: a review snapshot
   const before = await load("1. D10-G10 2. N11-Q10 *", done);
   assert.equal(before?.model, "ab12");
   assert.equal(before?.search, undefined);

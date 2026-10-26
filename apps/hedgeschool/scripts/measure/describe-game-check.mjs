@@ -1,6 +1,6 @@
 // Request 18's check: on the meaf.us archive's games, describe_game (protocol 0.6.1) gives each position with the
 // fields that describe gives for the same moves, and each move's cut edge as the site found it before (an edge of the
-// opponent's that is there before the move and gone after it). Also from a later move (`from`), from a set-up start
+// enemy's that is there before the move and gone after it). Also from a later move (`from`), from a set-up start
 // (a position as a string, as the Analysis board sends it), and the error for a `from` out of range. It times both
 // ways too, in Node. It reads the engine from static/engine (`npm run engine` first), and prints counts only: the
 // archive holds other players' games.
@@ -84,7 +84,7 @@ for await (const line of createInterface({ input: createReadStream(file) })) {
   counts.positions += r.each.length;
   if (!same(r.game, r.each, 0)) counts.fieldDiffs += 1;
 
-  // From a later move, as a branch's line asks (GameAnalysis.addLine, lineSteps), on every tenth game.
+  // From a later move, as a variation's line asks (GameAnalysis.addLine, lineSteps), on every tenth game.
   if (counts.games % 10 === 0 && moves.length > 2) {
     counts.fromChecks += 1;
     const from = Math.floor(moves.length / 2), f = both(null, moves, from);

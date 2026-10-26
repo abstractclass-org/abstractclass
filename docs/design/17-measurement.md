@@ -66,7 +66,7 @@ The events use the site's words (design 22), each for one thing:
 | `tool_out_of_date` | the import page or the review asks to update a tool (Arrival) | `stale_tool` (bookmarklet, userscript, older) | how many players still need the new tools, and, on the review, when `/review#tool=` can go (design 22) |
 | `review_share_open` | a review's share link opened, before its load | `network_found`, `same_engine` | whether shared reviews arrive whole |
 | `game_missing` | a review's address in a browser without the game | none | whether players send review addresses, which do not work in another browser |
-| `review_open` | the review starts, with the engine loaded, or a snapshot opens (design 20) | `network`, `depth`, `depth_on_screen`, `time_limit`, `workers`, `gpu_mode`, `cores`, `edges`, `own_settings`, `done_before`, `practice_game` (a game against the practice bot) | the funnel's second step, and the settings in use |
+| `review_open` | the review starts, with the engine loaded, or a review snapshot opens (design 20) | `network`, `depth`, `depth_on_screen`, `time_limit`, `workers`, `gpu_mode`, `cores`, `edges`, `own_settings`, `done_before`, `practice_game` (a game against the practice bot) | the funnel's second step, and the settings in use |
 | `analysis_open` | the Analysis board opens, with the engine's rules (design 21). A line brought with it is an `import_game` or a `load_saved` too | `edges` (the main line's) | how many players use the board |
 | `editor_open` | the board editor opens (design 21) | none | whether players set up positions |
 | `editor_analyze` | the board editor's Analyze: a position that a game can reach goes to the Analysis board | none | whether an editor's position reaches the board |
@@ -90,10 +90,10 @@ The features, by their `feature_name` (`ReviewView.svelte`, `used`). Each counts
 | `engine line played` | an edge of the engine's line played |
 | `own edge played` | an edge drawn on the board by the player |
 | `note drawn` | a note drawn on the board |
-| `quality evaluated` | "Evaluate quality" chosen in a move's menu (a branch's, or any on the Analysis board) |
+| `quality evaluated` | "Evaluate quality" chosen in a move's menu (a variation's, or any on the Analysis board) |
 | `main line made` | "Make main line" chosen on the Analysis board (design 21) |
-| `branch promoted` | a branch promoted in its menu |
-| `branch deleted` | a branch deleted |
+| `branch promoted` | a variation promoted in its menu |
+| `branch deleted` | a variation deleted |
 | `image copied`, `image saved` | "Copy static" or "Save static" chosen in a move's menu ("Generate image"), or the note's "Save image" (design 07, item 17) |
 | `animated image saved` | "Save animated" chosen in a move's menu ("Generate image", design 07, item 17) |
 | `keys list` | the list of keys opened (`?`) |
@@ -103,7 +103,7 @@ The features, by their `feature_name` (`ReviewView.svelte`, `used`). Each counts
 | `book opening row`, `book trap row` | a click on the Report's opening row or on a trap's row, which goes to the position and turns the book on (design 32, item 4) |
 | `book mark` | a click on the move list's book mark, "Last move in the book" (design 32, item 4) |
 | `snapshot opened` | a review by an earlier engine opened as it was (design 20) |
-| `review again` | Review again chosen on a snapshot |
+| `review again` | Review again chosen on a review snapshot |
 | `display` and a setting | a display setting changed, by its name in `src/lib/review/display.ts`: `display judge`, `display reviewFor`, `display win`, `display layers`, `display scoreLine`, `display areaLine`, `display lineSteps`, `display branchForm`, `display marks`, `display notes`, `display previewMoves`, `display previewBranches`, `display sound`, `display moveSound`, `display volume` |
 
 In Practice (design 24), each once in a game: `practice takeback` (a takeback), `practice look back` (a step back to an
@@ -148,7 +148,7 @@ selector at the top left. Click **Admin**, the gear at the bottom left.
 | `load_failure` | Load failure | Event | why a load failed: file, link, rejected |
 | `edges` | Game edges | Event | the game's edges, as a range |
 | `with_results` | File with results | Event | a loaded review file, or a partner's review, that has the engine's results |
-| `with_branches` | Link with branches | Event | a review's share link that has branches |
+| `with_branches` | Link with variations | Event | a review's share link that has variations |
 | `stale_tool` | Tool out of date | Event | bookmarklet, userscript, older |
 | `network_found` | Share network found | Event | a review's share link: its network is on this site |
 | `same_engine` | Share same engine | Event | a review's share link: its engine searches as this site's (request 17) |
@@ -160,7 +160,7 @@ selector at the top left. Click **Admin**, the gear at the bottom left.
 | `gpu_mode` | GPU mode | Event | auto, on or off |
 | `cores` | CPU cores | Event | the machine's cores, as a range |
 | `own_settings` | Game own settings | Event | the game has its own settings: from a loaded review, or from its last review when that review's network has left the menus (design 09) |
-| `done_before` | Done before | Event | the review opened with its results stored, or as a snapshot |
+| `done_before` | Done before | Event | the review opened with its results stored, or as a review snapshot |
 | `minutes` | Review minutes | Event | the review's time, as a range |
 | `gpu_used` | GPU used | Event | the GPU searched in the review |
 | `gpu_outcome` | GPU test outcome | Event | faster or slower |

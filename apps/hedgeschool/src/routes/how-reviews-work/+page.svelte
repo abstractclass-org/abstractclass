@@ -10,7 +10,7 @@
 </script>
 
 <PageMeta title="How a review works · {SITE_NAME}"
-          description="How Hedge School reviews an Enclosure game: the engine's searches, the labels from Great to Blunder, the accuracy, hard positions and the likely edges' meter." />
+          description="How Hedge School reviews an Enclosure game: the engine's searches, the quality labels from Great to Blunder, the accuracy, hard positions and the likely edges' meter." />
 
 <main class={PROSE}>
   <h1>How a review works</h1>
@@ -23,7 +23,7 @@
     look best so far. More visits give a better estimate, and take longer.</p>
   <ul>
     <li><strong>A first look</strong> at every position, at 32 visits, draws the chart's first estimate.</li>
-    <li><strong>The label pass</strong> searches every position at the review's depth: 512 visits with Lite, the default,
+    <li><strong>The label stage</strong> searches every position at the review's depth: 512 visits with Lite, the default,
       and 1,024 with Standard (the engine's settings).</li>
     <li><strong>The position on screen</strong> gets a search to the Depth setting, 1,024 visits by default. Each
       position keeps its deepest result, and everything follows it: the labels of the moves into and out of it, the
@@ -31,12 +31,12 @@
   </ul>
   <p>Your browser keeps the results, so a game reviewed before opens at once.</p>
 
-  <h2>The labels</h2>
+  <h2>The quality labels</h2>
   <p>A move's <strong>loss</strong> is the mover's win chance before the move, less the mover's win chance after it,
-    each from its own position's search. A move that raises the win chance loses nothing. The label reads the loss in
+    each from its own position's search. A move that raises the win chance loses nothing. The quality label reads the loss in
     the bands that chess.com uses for every player:</p>
   <table>
-    <thead><tr><th>Label</th><th>Win chance lost</th></tr></thead>
+    <thead><tr><th>Quality label</th><th>Win chance lost</th></tr></thead>
     <tbody>
       <tr><td>Excellent</td><td>up to 2%</td></tr>
       <tr><td>Good</td><td>up to 5%</td></tr>
@@ -48,23 +48,23 @@
   <ul>
     <li><strong>Best:</strong> the engine's own first choice, whatever its loss. Two searches each have a small error,
       and the engine's own move should never read as a mistake.</li>
-    <li><strong>Great:</strong> the only good move, which keeps the gain from the opponent's last turn. It is Best,
+    <li><strong>Great:</strong> the only good move, which keeps the gain from the enemy's last turn. It is Best,
       and the engine's second choice is at least 10% worse. The second choice usually has few visits, so a search of
       the position after it, as deep as the position after your move, must confirm the gap. Until then the move is
       Best. Also, the engine's first choice must be more than 5% better for you than the position before the
-      opponent's last turn. An only move that only holds the position is Best. The game's last move is never Great:
-      nothing after it can confirm it. The first turn is never Great: no turn of the opponent comes before it.</li>
+      enemy's last turn. An only move that only holds the position is Best. The game's last move is never Great:
+      nothing after it can confirm it. The first turn is never Great: no turn of the enemy comes before it.</li>
     <li><strong>A turn or an edge:</strong> a turn of two edges is one decision, so the review judges whole turns by
       default. "Review by" in the display settings judges each edge instead. A turn's loss is from its start to the
       position after its last edge, which equals the sum of its edges' losses.</li>
     <li><strong>Why win chance, not points:</strong> once a game is decided, a move changes the result little, whatever
       it does to the score. Thirty points thrown away at a lead of 120 cost less than thirty at a lead of 20. The notes
       give the points lost too, from the engine's estimate of the lead.</li>
-    <li><strong>When a label shows:</strong> once the search of each position of the move reaches 256 visits. A
+    <li><strong>When a quality label shows:</strong> once the search of each position of the move reaches 256 visits. A
       deeper search can change it.</li>
   </ul>
-  <p>The move list and the chart show Great, Inaccuracy, Mistake and Blunder, to stay quiet. The board shows every label.
-    Under a Mistake or a Blunder, the engine's best line from that position shows as a branch.</p>
+  <p>The move list and the chart show Great, Inaccuracy, Mistake and Blunder, to stay quiet. The board shows every quality label.
+    Under a Mistake or a Blunder, the engine's best line from that position shows as a variation.</p>
 
   <h2>Accuracy</h2>
   <p>Each move gets an accuracy from its loss <em>d</em>, in percent, by Lichess's formula:</p>
@@ -97,7 +97,7 @@
     <li><strong>The accuracy:</strong> <a href="https://lichess.org/page/accuracy">Lichess's</a> formula, with
       <a href="https://github.com/sanderland/katrain">KaTrain</a>'s weights.</li>
     <li><strong>Great:</strong> <a href="https://github.com/franciscoBSalgueiro/en-croissant">En Croissant</a>'s
-      rule for "!": the only good move, which keeps the gain from the opponent's last turn.</li>
+      rule for "!": the only good move, which keeps the gain from the enemy's last turn.</li>
     <li><strong>The complexity:</strong> KaTrain's. <strong>The meter:</strong> Maia's Blunder Meter.</li>
     <li><strong>Turns of two edges</strong> have no model in chess or Go: judging whole turns is {SITE_NAME}'s own
       choice.</li>

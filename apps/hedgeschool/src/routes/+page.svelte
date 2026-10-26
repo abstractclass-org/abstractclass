@@ -24,7 +24,7 @@
     { "@context": "https://schema.org", "@type": "WebApplication", name: SITE_NAME, url: `${SITE_ORIGIN}/`,
       applicationCategory: "GameApplication", operatingSystem: "Any", browserRequirements: "Requires JavaScript and WebAssembly",
       offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
-      description: "Practice games against an Enclosure engine, reviews of your games, an analysis board and a board editor, with the engine running in the browser." },
+      description: "Practice games against an Enclosure engine, reviews of your games, an Analysis board and a board editor, with the engine running in the browser." },
   ];
 
   // The other ways in: a game played elsewhere, any line, any position.

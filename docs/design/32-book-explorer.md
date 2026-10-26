@@ -13,7 +13,7 @@ Joseki Explorer.
 The opening book is a tree of positions from the start, for people to learn. It holds every fine move near the start
 (Good or better), the tempting mistakes with their refutations, and a position symbol at each line's end (=, ⩲, ⩱, ±,
 ∓, +−, −+, ∞). The engine computes it offline with KataGo's book method, and the site serves it as static files (the
-beads epic abscls-tpaj). Three prototypes grew small books on the site and showed them on the Analysis board (branches
+beads epic abscls-tpaj). Three prototypes grew small books on the site and showed them on the Analysis board (variations
 abscls-tpaj.1 to abscls-tpaj.3). The final book comes from the engine repository, with a search that excludes the
 book's moves.
 
@@ -82,7 +82,7 @@ explorers that people use in chess and Go is [../research/03-opening-explorers.m
      review's label and value with their source: "In your review: Good, Blue 46.5%". The opening row and the game's
      row give the label that the move list shows for the move: the turn's label when the review judges by turn, the
      edge's when it judges by edge. So the player sees one label for one move. The rows still name the edge.
-   - **A book move played from the table** is a branch of the game, as any move that the player plays in a review is
+   - **A book move played from the table** is a variation of the game, as any move that the player plays in a review is
      (design 07). "Delete from here" removes it.
 5. **Openings:**
    - **The first view** opens at the start with the area map on. A box gives the main line, one turn a line, each with
@@ -91,11 +91,11 @@ explorers that people use in chess and Go is [../research/03-opening-explorers.m
      "Book" stops it. Outside the book it searches, as on the Analysis board.
    - **The move list holds the book's tree.** The main line is the best move at each position. The other book moves
      hang under the move before them, folded under a chevron: down when folded, up when open. The path to the position
-     on screen is always open, and every other branch stays folded until the player opens it. Traps hang with the
-     other branches, each followed by its refutation.
-   - **Move orders:** a turn's two edges in either order are one branch. A position that move orders from other turns
+     on screen is always open, and every other variation stays folded until the player opens it. Traps hang with the
+     other variations, each followed by its refutation.
+   - **Move orders:** a turn's two edges in either order are one variation. A position that move orders from other turns
      reach shows its subtree once, under its first parent in the book's order, as KataGo's pages name one canonical
-     parent. Under every other parent, the branch ends with a link: "Continues in {line}". The title row lists the
+     parent. Under every other parent, the variation ends with a link: "Continues in {line}". The title row lists the
      other move orders: "Also reached by: …".
    - **Mirror images:** the book stores a position and its mirror image as one. The page shows each position as the
      player reached it, with the book's moves mirrored to match, as KataGo's `symmetry` parameter does.
@@ -132,8 +132,8 @@ explorers that people use in chess and Go is [../research/03-opening-explorers.m
      a position where a move outside the book is better, the book has moves after the main line's end.
    - **The labels** come from design 10's bands against the best move here, which is the first book move, or the best
      move outside the book when that is better. The book gives no Great, because a Great needs the position before
-     the opponent's last turn.
-   - **Not built:** a sentence for the trap that a move sets for the opponent.
+     the enemy's last turn.
+   - **Not built:** a sentence for the trap that a move sets for the enemy.
 7. **A trap** shows why it tempts in its move cell, with the values open or closed: "Seems good: Blue 41%. Is not:
    Blue 17%." No number is set in bold. A row under it gives the refutation and plays it: "Play the refutation: 4.
    N12-Q10 L11-O12".
@@ -169,7 +169,7 @@ explorers that people use in chess and Go is [../research/03-opening-explorers.m
 - **The book is for people to learn.** So it shows every fine move, the traps that tempt, and a reason in words, and
   its first view is one line to learn, not a table of numbers.
 - **The book comes to the position.** The review and the Analysis board are where a player meets the opening's
-  positions, and Lichess's explorer sits on its analysis board in the same way. One board, one move list and one set of
+  positions, and Lichess's explorer sits on its Analysis board in the same way. One board, one move list and one set of
   controls serve both journeys, and the player knows them from the review.
 - **Published methods first:** Lichess's opening explorer for the panel, the click that plays a move into the tree, and
   the symbols' names. KataGo's book pages for the "other" row, the orientation across a mirror and the one canonical
@@ -185,10 +185,10 @@ explorers that people use in chess and Go is [../research/03-opening-explorers.m
   - **The book's depth under a move stands in for game counts.** The book has none, so the title row says where its
     order comes from, and the player does not read it as popularity.
   - **The move list shows the book's tree folded around the path.** No surveyed tool draws the tree around the
-    position. The second prototype's view showed that the branches need folding.
+    position. The second prototype's view showed that the variations need folding.
   - **The table lists the other move orders.** No surveyed tool does. In the third prototype's book, all 31 positions
-    that two move orders reach are a turn's two edges in the other order, so a turn's pair is one branch, and the list
-    is for move orders across turns.
+    that two move orders reach are a turn's two edges in the other order, so a turn's pair is one variation, and the
+    list is for move orders across turns.
 - **One edge at a time:** the book stores a position after each edge, and every surveyed explorer lists one move at a
   time. The move list keeps the review's turns.
 
@@ -221,7 +221,7 @@ explorers that people use in chess and Go is [../research/03-opening-explorers.m
   builds on a test book in it, made from the third prototype's book (404 positions, 38 traps, an area map for each).
   The explorer stays out of the live build until the engine repository's book (request 22) is in.
 - **Design 06 changes:** the step bar is fixed to the bottom of the screen on a phone, on all three board pages.
-- **The header** gets a fourth tab. One row still fits above the menu's 1,024 pixels (design 22). The layout sweep
+- **The header** gets a fourth tab. One row still fits above the menu's 1,024 pixels (design 22). The layout test
   (`npm run test:layout`) checks it.
 - **Design 17** gets the book's counts: where the book opens (the review's opening row, the switch, the menu, a
   lesson's end), the refutations played, and the positions looked at in a visit, as a range.
@@ -278,7 +278,7 @@ explorer reads the book through one interface, so a book in another form comes i
   | `value` | The values after the move: the minimaxed values of `to`. By the minimax, they are also the values of the end of its main line, so the symbol at the line's end comes from them. A trap's deep value is this one. |
   | `end` | The edge count and the complexity of the end of the book's main line after the move. The main line follows each position's best move while that move is in the book. |
   | `last` | The edge count of the deepest book position under the move: how far the book goes on. |
-  | `trap` | On a trap only: `short`, Blue's win chance after the move by the short search, and `refutation`, the book's line from the position after it: the rest of the trap's turn, then the opponent's turn that punishes it. The refutation's edges are in the orientation of `move`, so they play from the position that the move reaches: the image of `to` when `mirrored`. |
+  | `trap` | On a trap only: `short`, Blue's win chance after the move by the short search, and `refutation`, the book's line from the position after it: the rest of the trap's turn, then the enemy's turn that punishes it. The refutation's edges are in the orientation of `move`, so they play from the position that the move reaches: the image of `to` when `mirrored`. |
 
 - **The loader** (`apps/hedgeschool/src/lib/book/book.ts`) gives the interface `Book`. `get` gives a position with its
   part loaded. `peek` gives it at once when its part is loaded, and tells from the index alone when the book does not
@@ -319,7 +319,7 @@ its own choice of "Book" or "Candidates" and of "Show the values", handles the k
 
 - **The rows** (`rows.ts`) take their labels from `moveLabel` in `sentences.ts`, the rule of the sentences (item 6,
   "The labels"): design 10's bands against the best move here, the first book move or the best move outside the book
-  when that is better. The table gives no Great, as item 6 says: a Great needs the position before the opponent's
+  when that is better. The table gives no Great, as item 6 says: a Great needs the position before the enemy's
   last turn, and two move orders reach many book positions, so a Great would change a position's table with the
   path. The best move outside the book is Best when it is better than the first book move.
 - **The symbols** come from `symbols.ts`, the rule of the sentences too: a position's from `positionSymbol`, a row's
@@ -350,12 +350,12 @@ for both (items 3 and 8). The page's part of the work is in `apps/hedgeschool/sr
   position.
 - **The board** numbers the book's rows while the table shows the book. The row pointed at in the table, or its number
   on the board, draws the row's line as the engine's line draws: one edge at a time, with the edges that it cuts and
-  its regions. A click on a row or on its number plays the move as a branch. Space plays row 1, or the row that has
+  its regions. A click on a row or on its number plays the move as a variation. Space plays row 1, or the row that has
   the focus. A trap and its refutation play edge by edge at the engine's line's pace.
 - **The game's move:** in the review, the view gives the table the game's move at the position on screen (`bookGame`):
   its edge, the label that the move list shows for it, and Blue's win chance after it. A move outside the book gets the
-  row "Your game", and a book move gets "your game" in its own row. A branch, the game's end and the Analysis board have
-  no game's move.
+  row "Your game", and a book move gets "your game" in its own row. A variation, the game's end and the Analysis board
+  have no game's move.
 
 ## The review
 
@@ -394,7 +394,7 @@ shows them in the early edition, where the book loads. They read the site's one 
   list has no mark. The rest of the review works. The table says what failed.
 - **The test games:** `apps/hedgeschool/scripts/test-fixture.mjs` makes reviewed games that meet the test book in each
   way, with a given opening: `apps/hedgeschool/tests/fixtures/book-left-review.json`, `book-never-review.json` (it
-  comes back too) and `book-trap-review.json`. The layout sweep's game (`hedgefund-review.json`) follows the test book
+  comes back too) and `book-trap-review.json`. The layout test's game (`hedgefund-review.json`) follows the test book
   to its end.
 
 ## Where it is

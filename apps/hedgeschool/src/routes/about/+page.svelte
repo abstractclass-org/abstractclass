@@ -27,7 +27,7 @@
   </div>
 
   <h2 id="early-access">Early access</h2>
-  <p><strong>Everything here can change:</strong> the pages and their addresses, the labels and how they judge a move,
+  <p><strong>Everything here can change:</strong> the pages and their addresses, the quality labels and how they judge a move,
     the engine and its networks, the files and links that the site makes, and what it keeps in your browser. After a
     change, an old link or file can stop working, and a review can read differently.</p>
   <p>For now the site reviews your games and has an Analysis board. Puzzles and lessons come later. Tell us what works
@@ -40,7 +40,7 @@
       page</a> describes the records.</li>
     <li><strong>The engine</strong> runs in your browser, on your computer: it sends nothing to a server. A review takes
       a few minutes, first a quick look at every position, then a deeper search where it matters.</li>
-    <li><strong>The labels</strong> judge each turn by how much it lowered your chance of winning. You can judge each
+    <li><strong>The quality labels</strong> judge each turn by how much it lowered your chance of winning. You can judge each
       edge instead, in the review's settings.</li>
   </ul>
   <p>The rules and their numbers are on <a href="/how-reviews-work">How a review works</a>.</p>

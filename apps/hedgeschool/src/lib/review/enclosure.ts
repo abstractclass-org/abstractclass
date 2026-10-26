@@ -37,20 +37,20 @@ export interface Position {
 
 export { turnFromCount }; // the notation's turns (the /notation page), which Blueprints shares
 
-/** A move: an edge, or null for a timeout pass (the rest of the turn forfeited), and the opponent's edge that it cut. */
+/** A move: an edge, or null for a timeout pass (the rest of the turn forfeited), and the enemy's edge that it cut. */
 export interface Move { player: Player; edge: Edge | null; cut: Edge | null }
 
 export const otherPlayer = (p: Player): Player => (1 - p) as Player;
-/** The area beside the points in the players' cards (the review's, Practice's): its word, and the number's title. */
+/** The area beside the scores in the players' cards (the review's, Practice's): its word, and the number's title. */
 export const AREA = { word: "area", title: "The area enclosed now, added at the turn's end" } as const;
 /** A move's text in the move lists (the review's, Practice's): as wide as the widest edge in the notation, 8
  *  characters (D10-G10x), in a monospaced font. */
 export const MOVE_TEXT = "w-[8ch]";
-/** The board's own layers in the display settings (the review's, Practice's): the regions, and the protected edges
+/** The board's own layers in the display settings (the review's, Practice's): the regions, and the invincible edges
  *  after the area map's settings. */
 export const LAYERS: LayerSetting<"regions" | "protected">[] = [
   { key: "regions", label: "Regions", help: "Shading on the areas each player encloses." },
-  { key: "protected", label: "Protected edges", help: "The edges the opponent cannot cut on the next turn.", afterMap: true },
+  { key: "protected", label: "Invincible edges", help: "The edges that an enemy cannot cut in this turn.", afterMap: true },
 ];
 
 /** An edge of a line, played: the edge it cuts (or null), and the regions and areas after it. An edge of the game's
@@ -70,7 +70,7 @@ export function lineMovers(p: Position, n: number): Player[] {
 }
 
 /** The threat's turn (design 31): the line of the first choice `first` after a pass, as far as the search trusts it,
- *  cut to the turn of the side to move after the pass (`from`): what the opponent plays if the player does nothing. Its
+ *  cut to the turn of the side to move after the pass (`from`): what the enemy plays if the player does nothing. Its
  *  first edge where the search trusts none of the line. */
 export const threatTurn = (first: Candidate, from: Position): Edge[] => shared.threatTurn(first, from.movesLeft);
 
@@ -126,7 +126,7 @@ export type EdgeReview = shared.MoveReview<Enclosure>;
 export type TurnReview = shared.TurnReview<Enclosure>;
 export type Review = shared.Review<Enclosure>;
 export type RankedCandidate = shared.RankedCandidate<Edge>;
-/** A position of a branch, as the analysis keeps it (@abstractclass/analysis/analysis.svelte.ts). */
+/** A position of a variation, as the analysis keeps it (@abstractclass/analysis/analysis.svelte.ts). */
 export type BranchNode = SharedNode<Enclosure>;
 
 /** A shared function with Enclosure's game given: the site calls it as it called the review's model before. */
@@ -141,9 +141,9 @@ export const shownCandidates = withGame(shared.shownCandidates<Edge>);
 export const judgeBranchEdge = withGame(shared.judgeBranchMove<Edge>);
 
 // --- Enclosure's texts ----------------------------------------------------------------------------------------------
-/** The note's word on what a Great does besides being the only good move (design 10): it keeps what the opponent's
+/** The note's word on what a Great does besides being the only good move (design 10): it keeps what the enemy's
  *  last turn gave. */
-const KEPT_NOTE = "It keeps the gain from the opponent's last turn.";
+const KEPT_NOTE = "It keeps the gain from the enemy's last turn.";
 
 /** A turn's note for the move list, in one line: its label, and the engine's best turn when the turn was not it. */
 export function turnShortNote(t: TurnReview): string {
@@ -166,11 +166,11 @@ export function endingText(data: ReviewData): string {
   const n = data.moves.length, overByRules = data.positions[n]?.over ?? true;
   const { blue, red } = data.result;
   if (overByRules)
-    return blue === red ? "A draw" : `${PLAYER_NAME[blue > red ? 0 : 1]} won by ${Math.abs(blue - red).toFixed(1)} points`;
+    return blue === red ? "A draw" : `${PLAYER_NAME[blue > red ? 0 : 1]} won by ${Math.abs(blue - red).toFixed(1)}`;
   const m = /^([br])\+(R|F|\d+(?:\.\d+)?)$/.exec(data.ending?.result ?? "");
   if (!m) return data.ending?.result === "0" ? "A draw" : `Unfinished after edge ${n}`;
   const winner: Player = m[1] === "b" ? 0 : 1, loser = PLAYER_NAME[winner === 0 ? 1 : 0];
   if (m[2] === "R") return `${PLAYER_NAME[winner]} won: ${loser} resigned after edge ${n}`;
   if (m[2] === "F") return `${PLAYER_NAME[winner]} won: ${loser} left the game after edge ${n}`;
-  return `${PLAYER_NAME[winner]} won by ${Number(m[2]).toFixed(1)} points`;
+  return `${PLAYER_NAME[winner]} won by ${Number(m[2]).toFixed(1)}`;
 }

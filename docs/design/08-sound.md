@@ -8,7 +8,7 @@ edge that cuts.
 ## Context
 
 A move that makes a sound feels placed. Lichess plays a sound for each move, and for each step through a game in its
-analysis board, and its sound is on by default. Its sound sets are not free to take: its repository's `COPYING.md`
+Analysis board, and its sound is on by default. Its sound sets are not free to take: its repository's `COPYING.md`
 lists them under "Exceptions (non-free)" (the standard set), AGPLv3+ (Enigmahack's sets) or CC BY-NC-SA (one set).
 
 Browsers start sound only after the visitor clicks or presses a key on the page (their autoplay rules).

@@ -33,12 +33,12 @@ A map of `src/lib` by its imports, reviewed against the code by a second model (
    `engine.lock.json`, `static/` and `tests/`. One npm workspace, with one lockfile at the root. The workflows stay in
    `.github/workflows/` at the root.
 2. **The moved site is checked as a release is:** `npm run engine`, the unit tests, the type check, the build, the
-   layout sweep, and a preview deploy where a practice game is sent and then deleted.
+   layout test, and a preview deploy where a practice game is sent and then deleted.
 3. **The hub is a small site of its own** (`apps/hub`), with its own Pages project and deploy job. At first it is a
    page of links to the sites, with a short description of each. It has no analytics, so it has no consent banner.
 4. **A part goes into `packages/` when a second site needs it.** The second site is a strategy-jam game's (abscls-8tl1),
    whose rules come out only at the jam's start. So the parts that it needs moved before the game is known: the
-   engine, the storage and the analysis (the review's model and labels, the move tree, the cache, the passes and the
+   engine, the storage and the analysis (the review's model and labels, the move tree, the cache, the stages and the
    session), behind a game interface that each site gives them ([design 29](29-shared-packages.md)). The views, the
    theme's tokens, the fonts and the other components follow when the jam site's template shows what it needs. The
    consent and the practice games' storage stay in Hedge School.
@@ -84,7 +84,7 @@ The move must keep these:
 - **The players' data:** every storage key (`hedge-school:…`) and the IndexedDB name `learn-enclosure` stay as they are.
 - **The imports:** the alias `#lib/*` (`apps/hedgeschool/package.json`, `imports`) belongs to the app's package. A
   shared package gets a name of its own: `@abstractclass/<package>`, imported by its files' names (design 29).
-- **The tests:** the layout sweep (`tests/layout.spec.ts`) uses the app's fixtures, pages, storage keys and engine
+- **The tests:** the layout test (`tests/layout.spec.ts`) uses the app's fixtures, pages, storage keys and engine
   versions.
 - **Consent:** a site at another address asks for consent again, because a browser keeps the choice by address.
 - **Features:** work on Hedge School's features waits until the move is done.

@@ -1,5 +1,5 @@
 // Checks how much of the engine's line the review trusts (on visits that the engine gave in the sample game's positions:
-// docs/decisions/product.md, "The engine's line: where it stops"), and how a branch's edge is judged. Run: npm test.
+// docs/decisions/product.md, "The engine's line: where it stops"), and how a variation's edge is judged. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { Edge } from "#lib/engine/notation.ts";
@@ -27,7 +27,7 @@ test("a line without its visits is kept whole", () => {
   assert.equal(trustedLine(candidate(undefined, 5)).length, 5);
 });
 
-test("a branch edge is judged as the game's: Best or Great when it is the first choice, and by its loss otherwise", () => {
+test("a variation edge is judged as the game's: Best or Great when it is the first choice, and by its loss otherwise", () => {
   const best = edges(2)[0], other = edges(2)[1];
   const before: Analysis = { blueWin: 0.6, visits: 256, lead: 20, candidates: [
     { edge: best, visits: 200, blueWin: 0.6, lead: 20 }, { edge: other, visits: 40, blueWin: 0.45, lead: -10 }] };
@@ -137,7 +137,7 @@ test("a turn is Great when searches from its start and its middle confirm it is 
   assert.equal(review(game([B, C], analysis, { seconds, others: [undefined, at(0.45, 0)] })).turns[1].label, "best");
 });
 
-test("a Great keeps what the opponent's last turn gave: an only move that only holds the position is Best", () => {
+test("a Great keeps what the enemy's last turn gave: an only move that only holds the position is Best", () => {
   // Red's turn from position 1, as above: the only good turn, and by edge C the only good edge in the middle. Red's best
   // line is at 0.6. Before Blue's turn (position 0), Red had 0.5: Blue's turn gave Red 0.1, which the turn keeps.
   const start = at(0.4, -10, [cand(B, 0.4, [B, C]), cand(C, 0.41, [C, B]), cand(F, 0.55)]);
@@ -146,7 +146,7 @@ test("a Great keeps what the opponent's last turn gave: an only move that only h
   const line = (blue0: number) => review(game([B, C], [at(blue0, 0), start, middle, at(0.4, -10), at(0.4, -10)], extra));
   const kept = line(0.5);
   assert.equal(kept.turns[1].label, "great");
-  assert.equal(kept.edges[2].label, "great"); // a turn's second edge: from before the opponent's turn too
+  assert.equal(kept.edges[2].label, "great"); // a turn's second edge: from before the enemy's turn too
   // Before Blue's turn, Red had 0.58: Blue gave Red only 0.02 (En Croissant asks for more than 0.05). Best.
   const held = line(0.42);
   assert.equal(held.turns[1].label, "best");
@@ -162,7 +162,7 @@ test("a Great keeps what the opponent's last turn gave: an only move that only h
   assert.equal(keepsGain(at(0.11, 0, [cand(A, 0.11)]), at(0.05, 0), 0, 512), true);
 });
 
-test("a turn's first edge is Great by the position before the opponent's last turn", () => {
+test("a turn's first edge is Great by the position before the enemy's last turn", () => {
   // Red's first edge B is the only good edge at position 1: F looks 0.15 worse, and the position after it is 0.15 worse.
   const start = at(0.4, -10, [cand(B, 0.4), cand(F, 0.55)]);
   const firstEdge = (before: Analysis) => review(game([B, C], [before, start, at(0.4, -10), at(0.4, -10), at(0.4, -10)],
@@ -173,7 +173,7 @@ test("a turn's first edge is Great by the position before the opponent's last tu
   assert.equal(firstEdge({ ...at(0.5, 0), visits: 32 }), "best");
 });
 
-test("a line from a set-up position has no turn of the opponent before its first turn", () => {
+test("a line from a set-up position has no turn of the enemy before its first turn", () => {
   // The movers into positions 1 to 5, from a line that starts in the middle of Red's turn: Red, Blue, Blue, Red, Red.
   const movers = [1, 0, 0, 1, 1] as const, into = (k: number) => movers[k - 1];
   // Blue's turn from position 1 and Red's from position 3: Red's turn started before the line, so Blue's has none. Red's
@@ -186,7 +186,7 @@ test("a line from a set-up position has no turn of the opponent before its first
   assert.equal(earlierIndex(k => whole[k - 1], 0, 1, true), undefined);
 });
 
-test("the line's first turn is never Great: no turn of the opponent comes before it", () => {
+test("the line's first turn is never Great: no turn of the enemy comes before it", () => {
   // Blue's first edge A is the only good edge, confirmed from its position and from after F.
   const first = at(0.6, 10, [cand(A, 0.6), cand(F, 0.45)]);
   const R = review(game([B, C], [first, at(0.6, 10), at(0.6, 10), at(0.6, 10), at(0.6, 10)],
@@ -332,7 +332,7 @@ test("a game's outcome: by the scores when the rules ended it, else as its recor
     players: { blue: "Blue", red: "Red" }, result: { blue, red }, moves: [{} as Move, {} as Move],
     positions: [pos(false), pos(false), pos(over)], analysis: [], ending: { result },
   });
-  assert.equal(endingText(game(true, 40, 12.5, "b+27.5")), "Blue won by 27.5 points");
+  assert.equal(endingText(game(true, 40, 12.5, "b+27.5")), "Blue won by 27.5");
   assert.equal(endingText(game(true, 20, 20, "0")), "A draw");
   assert.equal(endingText(game(false, 3, 9, "b+R")), "Blue won: Red resigned after edge 2");
   assert.equal(endingText(game(false, 3, 9, "r+F")), "Red won: Blue left the game after edge 2");

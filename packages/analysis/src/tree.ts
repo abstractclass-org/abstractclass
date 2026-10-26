@@ -1,7 +1,7 @@
 // The review's game as a tree (design 07), as Lichess's analysis tree (ui/analyse): the game's own moves, and the
-// branches a player adds. A place in the tree is a path: the moves from the start, as the record names them. A path
-// that leaves the game's moves is a branch node. A node's children are the game's next move (when the node is on the
-// game's line), then the branches from it, in the order they were added.
+// variations a player adds. A place in the tree is a path: the moves from the start, as the record names them. A path
+// that leaves the game's moves is a variation node. A node's children are the game's next move (when the node is on the
+// game's line), then the variations from it, in the order they were added.
 
 /** A path as one string, for maps and keys. The start is "". */
 export const pathKey = (path: string[]) => path.join(" ");
@@ -28,14 +28,14 @@ export function mainIndex(path: string[], main: string[]): number | null {
   return sharedLength(path, main) === path.length ? path.length : null;
 }
 
-/** The line that a branch's preview draws up to `path` (design 07, item 13): from the position where the path leaves
+/** The line that a variation's preview draws up to `path` (design 07, item 13): from the position where the path leaves
  *  the game's line, the path's moves after it, each by its node's key. A path on the game's line has no line. */
 export function branchLine(path: string[], main: string[]): { start: string[]; keys: string[] } {
   const k = sharedLength(path, main);
   return { start: path.slice(0, k), keys: prefixKeys(path).slice(k + 1) };
 }
 
-/** The branch nodes' children, by their parent's key, in the order the nodes were added. */
+/** The variation nodes' children, by their parent's key, in the order the nodes were added. */
 export function branchChildren(paths: string[][]): Map<string, string[][]> {
   const kids = new Map<string, string[][]>();
   for (const p of paths) {
@@ -50,7 +50,7 @@ type Children = (path: string[]) => string[][];
 
 /** The children with a line merged in (the engine's best line, design 07): along the line, each of its paths is the
  *  first child of the path before it, whether the tree has it or not, and the tree's other children follow. So where a
- *  branch follows the line, the two are one row, and where they part, a fork. `line` is the line's paths in order. */
+ *  variation follows the line, the two are one row, and where they part, a fork. `line` is the line's paths in order. */
 export function withLine(kidsOf: Children, line: string[][]): Children {
   const next = new Map(line.map(p => [pathKey(p.slice(0, -1)), p]));
   return path => {
@@ -61,10 +61,10 @@ export function withLine(kidsOf: Children, line: string[][]): Children {
   };
 }
 
-/** A row of a branch in the move list: its moves (paths), and its indent (1 for a branch from the game). */
+/** A row of a variation in the move list: its moves (paths), and its indent (1 for a variation from the game). */
 export interface BranchRow { depth: number; paths: string[][] }
 
-/** A branch's rows in the move list, from its first move: the branch's moves on one row while each has one child.
+/** A variation's rows in the move list, from its first move: the variation's moves on one row while each has one child.
  *  Where a node has more children, the row ends there, and every child's line follows, indented one step further, the
  *  first child's too (Lichess's way inside a variation, ui/analyse/src/treeView): the lines from a fork stand side by
  *  side. */

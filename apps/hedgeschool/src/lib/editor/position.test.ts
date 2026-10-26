@@ -39,7 +39,7 @@ test("drawing an edge again removes it, and the other player's tool takes it ove
   assert.equal(writePosition(drawEdge(p, [3, 9, 0, 9], 1)), "- A10-D10,Q10-T10 b1 0/0 0");
 });
 
-test("a mark is protected on the waiting player's edge and placed on the mover's", () => {
+test("a mark is invincible on the waiting player's edge and placed on the mover's", () => {
   const p = readPosition("A10-D10 Q10-T10 r1 0/0 2"); // Red to play
   assert.equal(toggleMark(p, [15, 9, 17, 9]), null); // no edge Q10-S10
   const m = toggleMark(toggleMark(p, [0, 9, 3, 9])!, [15, 9, 18, 9])!;

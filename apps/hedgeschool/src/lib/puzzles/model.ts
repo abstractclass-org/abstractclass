@@ -1,7 +1,7 @@
 // Puzzles from the mock game, by Lichess's generator rule (lichess-puzzler generator.py): the solution must be the
 // only good move. Here: the engine's first choice is at least ONLY_MOVE_GAP better than its second (the gap of
 // model.ts's Great).
-// Lichess starts a puzzle right after the opponent's mistake. Positions that follow one come first.
+// Lichess starts a puzzle right after the enemy's mistake. Positions that follow one come first.
 //
 // Placeholders: the difficulty is predicted from the gap and the game phase, not rated from solvers' attempts
 // (design 01, principle 7). Themes are only what needs no rules: the phase by edge number (design 01, principle 8)
@@ -14,7 +14,7 @@ export const THEME_TEXT: Record<Theme, { name: string; about: string }> = {
   middlegame: { name: "Middlegame", about: "Edges 17 to 80." },
   endgame: { name: "Endgame", about: "The last 40 edges." },
   onlyEdge: { name: "Only edge", about: "Every other edge loses at least 10% of win chance." },
-  afterMistake: { name: "Punish the mistake", about: "The opponent's last edge was a mistake." },
+  afterMistake: { name: "Punish the mistake", about: "The enemy's last edge was a mistake." },
 };
 
 export interface Puzzle {

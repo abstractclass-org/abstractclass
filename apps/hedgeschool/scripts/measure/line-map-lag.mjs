@@ -5,7 +5,7 @@
 // Playwright's Chromium, headless, 1,366 × 900 pixels, with the area map on, `workers` search workers and the GPU off,
 // on tests/fixtures/hedgefund-review.json's game, at a few positions, for a candidate other than the game's next move
 // whose line shows at least 3 edges. Two cases, as in candidate-map-delay.mjs:
-//   - "running": the game imported with no result, while the review's label pass runs (after its sweep);
+//   - "running": the game imported with no result, while the review's label stage runs (after its sweep);
 //   - "idle": the fixture's review file imported, its review done, and no search running for a second.
 // The page's own clock (requestAnimationFrame) times both events.
 //

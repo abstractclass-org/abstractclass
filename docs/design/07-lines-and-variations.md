@@ -15,8 +15,8 @@ The tools that the site follows:
   stones. KaTrain draws them one move at a time (`set_animating_pv`, `katrain/gui/badukpan.py`, with an option to
   turn it off).
 - **Lichess** (chess): the engine's lines as text under the engine's header. Pointing at a move shows a small board at
-  that move, and clicking it plays the line up to there into the analysis as a branch (`renderPvs`,
-  `ui/lib/src/ceval/view/main.ts`). A move made on the board that differs from the game's makes a branch, shown in
+  that move, and clicking it plays the line up to there into the analysis as a variation (`renderPvs`,
+  `ui/lib/src/ceval/view/main.ts`). A move made on the board that differs from the game's makes a variation, shown in
   brackets under the move in the move list. Its keys (`ui/analyse/src/keyboard.ts`): ← and → go along the line. At a
   fork, ↑ and ↓ pick the line that → follows, and elsewhere they go to the first and the last move. Shift + ← and → go
   to the previous and the next fork, and Shift + ↑ and ↓ to the line beside this one. Space plays the engine's best
@@ -30,12 +30,12 @@ The tools that the site follows:
 - **chess.com** has an "Explore" mode in its Game Review: free play, left by a button. It judges the moves tried there.
 - **KaTrain** analyses each move added to its tree (`analyze_fast`) and colours each node by the points it lost. A
   middle click plays the line under the pointer. Its keys (`gui/theme.py`): z and x beside ← and →, b back to the last
-  branch point, n to the next mistake.
-- **En Croissant** (`src/state/keybinds.ts`): x and c for the previous and the next branch, Shift + ← and → for the
+  variation point, n to the next mistake.
+- **En Croissant** (`src/state/keybinds.ts`): x and c for the previous and the next variation, Shift + ← and → for the
   branching points, the Delete key removes a move. **Sabaki** (`src/menu.js`): Ctrl + ↑ and ↓ for the previous and the
   next fork.
 
-Enclosure differs from Go in one way that matters here: an edge can cut the opponent's edges, and a line's edges can
+Enclosure differs from Go in one way that matters here: an edge can cut the enemy's edges, and a line's edges can
 cut edges that are on the board, so a line drawn over the board can show edges that the line itself removes.
 
 ## Decision
@@ -66,46 +66,46 @@ cut edges that are on the board, so a line drawn over the board can show edges t
      already drawn stay, and the drawing goes on from there. The regions and areas of the shared edges stay until the
      rules give those of the new edges.
 2. **One line is listed under the candidates table** (Lichess lists one by default): the line of the candidate
-   pointed at, or else of the selected candidate, number 1 or the row last clicked (a click on a candidate on the
+   pointed at, or else of the selected candidate, rank 1 or the row last clicked (a click on a candidate on the
    board selects it too). So the pointer can go from a row to its line. The list shows the trusted line, as the board
    does. Pointing at an edge of the list draws the line up to it on the board, all at once. A click plays
-   the line up to it as a branch and goes there (Lichess's `playUciList`). Where the line is the game's own
+   the line up to it as a variation and goes there (Lichess's `playUciList`). Where the line is the game's own
    continuation, the click goes along the game. The list's edges that are already in the tree, the game's own or a
-   branch's, show as hollow circles (in text, dotted underlines), with "played in the game" or "in a branch" in their
-   tooltip, so that the player sees where a click's branch will start.
+   variation's, show as hollow circles (in text, dotted underlines), with "played in the game" or "in a variation" in
+   their tooltip, so that the player sees where a click's variation will start.
 3. **A player's own moves are always on in the Analysis** (Lichess's way, not a separate mode): at any position, one
    of the mover's nodes, then a marked end (the puzzles' edge input, on the position's rules from the engine's
    `describe`). Only the points a click acts on take the pointer, so that the candidates under the other points keep
-   their hover and their clicks. A move that is the game's goes along the game. Another move makes a branch, and the
+   their hover and their clicks. A move that is the game's goes along the game. Another move makes a variation, and the
    new position is searched. The status line says what the next click does ("Now the edge's second point"). Escape drops
    an edge started. **A drag plays an edge too** (Lichess drags a piece as well as taking two clicks): a press on a node
    and a move of more than 4 pixels starts the edge there, the dashed edge follows the pointer to a marked end, and the
    release there plays it. A release elsewhere leaves the edge started. A press and release on one point is a click. On
    a touch screen a drag that starts on a point plays, and does not scroll the page.
 4. **The game is a tree, as Lichess's analysis tree.** A place is a path of moves from the start. A node's children are
-   the game's next move, then its branches in the order they were added. A branch's positions come from the engine's
-   rules, and each is searched, as the game's are, when the player looks at it. **Lichess's keys:** ← and → go along the
-   line on screen, back to the parent and on to the first child. At a fork, ↑ and ↓ pick the line that → follows (the
-   board shows the picked edge, and the move list marks the picked move with a dashed outline and brings it into view),
-   and elsewhere they go to the start and the line's end. Shift + ← and → go to the previous and the next fork, and
-   Shift + ↑ and ↓ to the line beside this one, from the nearest fork above. Home and End go to the start and the line's
-   end. **Single keys beside the Shift keys,** from other tools: k and j go back and forward (Lichess's). b and n go to
-   the previous and the next fork (KaTrain's b). So do [ and ], and Shift + k and j (Lichess's). Comma and period go
-   to the line before and after. x shows or hides the threat (Lichess's key, design 31): En Croissant's x and c for
-   the line beside this one gave way to it, and c went with x. t shows or hides the area map (KaTrain's key for its
-   Territory, design 30), and Shift + t goes to its next style. None of them clash. Kept free for later: m and
+   the game's next move, then its variations in the order they were added. A variation's positions come from the
+   engine's rules, and each is searched, as the game's are, when the player looks at it. **Lichess's keys:** ← and → go
+   along the line on screen, back to the parent and on to the first child. At a fork, ↑ and ↓ pick the line that →
+   follows (the board shows the picked edge, and the move list marks the picked move with a dashed outline and brings it
+   into view), and elsewhere they go to the start and the line's end. Shift + ← and → go to the previous and the next
+   fork, and Shift + ↑ and ↓ to the line beside this one, from the nearest fork above. Home and End go to the start and
+   the line's end. **Single keys beside the Shift keys,** from other tools: k and j go back and forward (Lichess's). b
+   and n go to the previous and the next fork (KaTrain's b). So do [ and ], and Shift + k and j (Lichess's). Comma and
+   period go to the line before and after. x shows or hides the threat (Lichess's key, design 31): En Croissant's x and
+   c for the line beside this one gave way to it, and c went with x. t shows or hides the area map (KaTrain's key for
+   its Territory, design 30), and Shift + t goes to its next style. None of them clash. Kept free for later: m and
    Shift + m for the next and the previous mistake (KaTrain's n, which the forks take here), and Delete. "?" opens the
    list of keys and clicks (Lichess's "?"), as does "Keys and clicks" in the display settings.
-5. **Branches show in the move list** under the turn where they start, after its comments (Lichess's column view):
+5. **Variations show in the move list** under the turn where they start, after its comments (Lichess's column view):
    each on its own row, indented, and every turn with its number ("19..." for a row that starts at a turn's second
-   edge). Where a branch forks again, its row ends at the fork, and every line from the fork follows one step further
+   edge). Where a variation forks again, its row ends at the fork, and every line from the fork follows one step further
    in, the first line too, so that the lines from a fork stand side by side (Lichess's way inside a variation).
    Lichess's tree stands beside them (its column view, `ui/analyse/css/_tview.scss`): the lines from one position hang
    from one rule, each with a tick, the rule ends at the last line's tick, and a shallower fork's rule passes the lines
-   nested in it (`treeLines`). A turn's notes and branches share one band across the move list, as Lichess's
+   nested in it (`treeLines`). A turn's notes and variations share one band across the move list, as Lichess's
    "interrupt": a faint background and a rule above and below tie them to the turn, and they start at the
-   list's left, so that a branch's row has the list's whole width.
-6. **Without notation by default** (Go's way): a branch's edges are marks in the mover's colour, after their turn's
+   list's left, so that a variation's row has the list's whole width.
+6. **Without notation by default** (Go's way): a variation's edges are marks in the mover's colour, after their turn's
    number. The turn numbers place the edges, so the marks carry no numbers: numbers of their own would read as a
    second, unrelated count beside the turns. The listed line's marks are numbered as the board numbers the line. A
    mark's tooltip names its turn and edge. The display settings offer "Pills" (the default), "Dots" (circles, Go's
@@ -120,13 +120,13 @@ cut edges that are on the board, so a line drawn over the board can show edges t
      listed line, the number stands upright on the pill's centre: the centre is a disc as wide as the pill, so the
      number has the pill's colour behind it at every slope. A pill is never taller than its length, so every pill has
      one height and a row stays even. Its box is only as wide as the pill turned, so a steep pill takes little width.
-     The branch's pills are 1.15 by 0.5 times the text's size (the dots are 0.85 across). The line's pills are about
+     The variation's pills are 1.15 by 0.5 times the text's size (the dots are 0.85 across). The line's pills are about
      1.6 times the text's size long, against 1.16 for its circles.
    - **Spacing:** dots and pills stand closer than words: an eighth of a rem between them (a quarter between words),
      and a dot's or pill's button has a small margin for the outline that marks the move on screen. Between turns the
      turn number, or a small gap in the line, keeps the turns apart.
-7. **A game's branches are kept in this browser** (Lichess's way), under the game's id, each node with its place
-   among the branches from its parent, and come back when the game is opened again. A branch's analyses are in the
+7. **A game's variations are kept in this browser** (Lichess's way), under the game's id, each node with its place
+   among the variations from its parent, and come back when the game is opened again. A variation's analyses are in the
    analysis cache, which is keyed by the moves.
 8. **The candidates' ranks are rounded squares,** on the board, in the table and before the listed line, and the
    line's numbers are circles (Go's numbered stones), so a rank is never read as a line's number. The threat's numbers
@@ -135,82 +135,83 @@ cut edges that are on the board, so a line drawn over the board can show edges t
    - **A rank is a distinct move.** In a position that is its own image (the start, under the mirror of row r to row
      20 - r), the engine searches one edge of each mirror pair and lists the other with the same numbers (protocol
      0.4, its "symmetric twins"). The table has one row for the pair, with a mirror mark (⇅) whose note names the
-     twin ("Mirror: A10-D11"). The marks stand in one column, after a slot as wide as the widest edge's name. The board draws both edges with the pair's rank. Pointing lights one edge: the row is
-     the searched edge, and on the board the edge under the pointer, with its own line. While that line shows, the
-     other edge of the pair leaves the board, as the other candidates do. The ranks count the distinct moves, so the
-     start's first five moves are ranks 1 to 5, not 1 to 10.
+     twin ("Mirror: A10-D11"). The marks stand in one column, after a slot as wide as the widest edge's name. The board
+     draws both edges with the pair's rank. Pointing lights one edge: the row is the searched edge, and on the board the
+     edge under the pointer, with its own line. While that line shows, the other edge of the pair leaves the board, as
+     the other candidates do. The ranks count the distinct moves, so the start's first five moves are ranks 1 to 5, not
+     1 to 10.
 9. **A click on a candidate pins it,** on the board or in the table: the list shows its line, and the board keeps its
    line, still drawing, when the pointer leaves. A second click unpins it. The pinned row has an accent bar on its left.
-10. **Playing a candidate:** Space plays the pinned candidate, or number 1 (Lichess's Space plays its best move). A
+10. **Playing a candidate:** Space plays the pinned candidate, or rank 1 (Lichess's Space plays its best move). A
     double-click on a candidate on the board plays it, and so does the listed line's first edge.
-11. **A branch's edges have no labels unless asked,** and a branch's positions are searched only while the player
+11. **A variation's edges have no labels unless asked,** and a variation's positions are searched only while the player
     looks at them (Lichess's way). A line is often played only to show something, and searches for its labels would
     take the machine from the game's review. The move menu's "Evaluate quality" asks for the labels of the move's
-    turn: every branch move of the turn is evaluated, and the positions before and after each are searched to the label
-    budget (after the position on screen, before the rest). The turn is judged as the game's turns are (`judgeTurn`),
-    and each edge as the game's edges are (`judgeMove`, the same bands): "Review by" chooses which shows. Until then
-    the move list shows "…". Then it shows the label as for the game (Great, Inaccuracy, Mistake, Blunder), by turn
-    after the move that ends the turn, with every label in its tooltip, and the board shows the badges of the turn just
-    played. The moves evaluated are kept with the branches. A branch that stops in a turn's middle has no turn label
-    until the turn ends.
-    - **A move that is the engine's only good move** also asks for the position before the opponent's last turn, when
+    turn: every variation move of the turn is evaluated, and the positions before and after each are searched to the
+    label budget (after the position on screen, before the rest). The turn is judged as the game's turns are
+    (`judgeTurn`), and each edge as the game's edges are (`judgeMove`, the same bands): "Review by" chooses which shows.
+    Until then the move list shows "…". Then it shows the label as for the game (Great, Inaccuracy, Mistake, Blunder),
+    by turn after the move that ends the turn, with every label in its tooltip, and the board shows the badges of the
+    turn just played. The moves evaluated are kept with the variations. A variation that stops in a turn's middle has no
+    turn label until the turn ends.
+    - **A move that is the engine's only good move** also asks for the position before the enemy's last turn, when
       that position has no result of the label budget: a Great needs it (design 10, item 6). A position of the game has
-      it already. A position of a branch has it when the player looked at it or evaluated a move from it. The move list
-      shows "…" until that search and the Great's confirmation end. Where the position has its result, or the engine
-      does not find the move to be the only good one, no search is added.
-    - **A hard position's ◆** (design 14) needs no request: it shows wherever the position before a branch move has a
+      it already. A position of a variation has it when the player looked at it or evaluated a move from it. The move
+      list shows "…" until that search and the Great's confirmation end. Where the position has its result, or the
+      engine does not find the move to be the only good one, no search is added.
+    - **A hard position's ◆** (design 14) needs no request: it shows wherever the position before a variation move has a
       result, from the search of that position. By edge, it follows the move and its label. By turn, it follows the
       move that ends the turn, from the harder of the turn's positions. It shows for the side reviewed only, as the
       labels. A marked move's tooltip says "Hard position". A move whose position before it (by turn, one of the
       turn's) has no result says "Not searched yet". A move without the mark and without that word is easy.
-12. **Lichess's move menu** on a branch's move, by a right-click or a long press: "Evaluate quality" (item 11),
-    "Promote variation" (the nearest branch on the path that is not the first from its parent becomes the first, as
+12. **Lichess's move menu** on a variation's move, by a right-click or a long press: "Evaluate quality" (item 11),
+    "Promote variation" (the nearest variation on the path that is not the first from its parent becomes the first, as
     Lichess's `promoteAt`) and "Delete from here" (the move and what follows it, and the place on screen goes to the
     fork when it was inside). Every move, the game's own too, has the submenu "Generate image" (item 17). On the
     game's own moves in a review, the other actions are off: the review is of the game, so its line stays first, and
     its moves are evaluated already. On the engine's lines and the notes, the same menu opens with each action off,
-    not the browser's menu. The Analysis board's main line has the actions, and "Make main line" for a branch's move
+    not the browser's menu. The Analysis board's main line has the actions, and "Make main line" for a variation's move
     (design 21). The release of a long press that opens the menu does not go to the move. Some browsers click the move
     on that release (Chromium's touch emulation does), and the position on screen would then change under the menu.
-13. **A branch's preview:** pointing at a move of a branch's row in the move list shows the branch's line on the board,
-    from the position where the line leaves the game, up to that move (`branchLine` in `tree.ts`). A row that forks from
-    another branch starts at the fork, but its line starts at the game: the preview draws and numbers the edges that the
-    row shares with the other branch too. With the game A1 A2 A3 A4 and the branches A1 B1 B2 B3 and A1 B1 C1 C2,
-    pointing at B3 numbers B1, B2 and B3 as 1, 2 and 3 from the position after A1, and pointing at C2 numbers B1, C1 and
-    C2 as 1, 2 and 3. It is drawn as the engine's line is (item 3): the edges numbered, one at a time or all at once
-    (the same display setting, "Lines on the board"), with the edges they cut and the regions they close, from the
-    branch's own positions. Meanwhile the board shows nothing of the position on screen (no candidates, labels or own
-    moves), and the status line says "Branch preview" and the position where the numbering starts. The engine's best
-    line under a bad turn (item 15) shows in the same way, from where it leaves the game. The preview ends a moment (120
-    ms) after the pointer leaves the move, unless the pointer comes onto another move first, so that it can cross the
-    gap between two moves without the board going back. A click goes to the move. A display setting turns it off
-    ("Preview branches"). Rows of dots or pills look alike, and the board tells them apart. A small board that pops up
-    beside the move (Lichess's board on its engine lines) was the other choice: the main board is larger, and it draws
-    as the engine's line does.
+13. **A variation's preview:** pointing at a move of a variation's row in the move list shows the variation's line on
+    the board, from the position where the line leaves the game, up to that move (`branchLine` in `tree.ts`). A row that
+    forks from another variation starts at the fork, but its line starts at the game: the preview draws and numbers the
+    edges that the row shares with the other variation too. With the game A1 A2 A3 A4 and the variations A1 B1 B2 B3 and
+    A1 B1 C1 C2, pointing at B3 numbers B1, B2 and B3 as 1, 2 and 3 from the position after A1, and pointing at C2
+    numbers B1, C1 and C2 as 1, 2 and 3. It is drawn as the engine's line is (item 3): the edges numbered, one at a time
+    or all at once (the same display setting, "Lines on the board"), with the edges they cut and the regions they close,
+    from the variation's own positions. Meanwhile the board shows nothing of the position on screen (no candidates,
+    labels or own moves), and the status line says "Variation preview" and the position where the numbering starts. The
+    engine's best line under a bad turn (item 15) shows in the same way, from where it leaves the game. The preview ends
+    a moment (120 ms) after the pointer leaves the move, unless the pointer comes onto another move first, so that it
+    can cross the gap between two moves without the board going back. A click goes to the move. A display setting turns
+    it off ("Preview variations"). Rows of dots or pills look alike, and the board tells them apart. A small board that
+    pops up beside the move (Lichess's board on its engine lines) was the other choice: the main board is larger, and it
+    draws as the engine's line does.
 14. **A played move's preview:** pointing at one of the game's moves in the move list shows the position after it,
     with the move as the last edge, and nothing of the position on screen. The status line says "Preview" and the
-    move. It ends as the branch's preview does, a moment after the pointer leaves the move. A display setting turns
+    move. It ends as the variation's preview does, a moment after the pointer leaves the move. A display setting turns
     it off ("Preview played moves"). This is the site's own: Lichess's move list has none (its small board shows only
     a move of an engine line, `ui/lib/src/ceval/view/main.ts`, `renderPvBoard`), and the help pages of chess.com and
     Sabaki name none. Hover previews exist in browser extensions for those sites and in one Go client (SWHub).
-15. **The engine's best line as a branch** under a Mistake's or a Blunder's note (Lichess shows the engine's line after
-    a mistake as a variation): candidate 1's line from where the mistake started (by turn, from the turn's start), as
-    far as the search trusts it (by visits, as the listed line), behind candidate 1's badge.
-    - **It starts where it leaves the game,** as a branch does, and is the first of the branches from there. A line
+15. **The engine's best line as a variation** under a Mistake's or a Blunder's note (Lichess shows the engine's line
+    after a mistake as a variation): candidate 1's line from where the mistake started (by turn, from the turn's start),
+    as far as the search trusts it (by visits, as the listed line), behind candidate 1's badge.
+    - **It starts where it leaves the game,** as a variation does, and is the first of the variations from there. A line
       that leaves the game only after the turn shows nowhere: the engine played the turn as the player did.
     - **It is part of the tree** (`withLine` in `tree.ts`), as Lichess's computer lines are nodes of its tree, marked as
       the computer's. Along the line, each edge is the first child of the edge before it. An edge the player has
-      played shows as the branch's own (solid, with its label), and an edge not played shows a little faded, so that
-      the engine's line and the player's own edges read apart. Where a branch follows the line, the two are one row.
-      Where they part, the row forks: the line's way first, then the branch's.
-    - **A click on a faded edge** plays the line up to there as a branch (as the listed line's click does). The played
-      edges then show solid in the same row, with no second row. Pointing at a faded edge previews the line up to it
-      on the board, as a branch's line (item 13): from where it leaves the game.
-    - **The line follows the search, and the player's branches stay.** The faded edges are not kept. When the line
-      changes, a branch the player played along the old line shows as a branch of its own, and a branch on the new
-      line merges into it. While its position's search can still change it, the line's rows gleam as the progress
+      played shows as the variation's own (solid, with its label), and an edge not played shows a little faded, so that
+      the engine's line and the player's own edges read apart. Where a variation follows the line, the two are one row.
+      Where they part, the row forks: the line's way first, then the variation's.
+    - **A click on a faded edge** plays the line up to there as a variation (as the listed line's click does). The
+      played edges then show solid in the same row, with no second row. Pointing at a faded edge previews the line up to
+      it on the board, as a variation's line (item 13): from where it leaves the game.
+    - **The line follows the search, and the player's variations stay.** The faded edges are not kept. When the line
+      changes, a variation the player played along the old line shows as a variation of its own, and a variation on the
+      new line merges into it. While its position's search can still change it, the line's rows gleam as the progress
       bars do: the line updates after each slice of the search. That is while a search of the position runs to the
-      visits that the line shows or more (a shallower result does not replace the line), or while the label pass has
+      visits that the line shows or more (a shallower result does not replace the line), or while the label stage has
       yet to reach those visits.
 16. **The player's notes on the board** (Lichess's circles and arrows, from its chessground board's drawable shapes):
     a right-click on a point rings it, and a right drag from a point to another draws a line between them. A note is
@@ -219,7 +220,7 @@ cut edges that are on the board, so a line drawn over the board can show edges t
     yellow (Shift or Ctrl), green (Alt) and grey (both). Lichess's red and blue would read as the players' colours
     here. "Keys and clicks" lists the colours with their keys, so that each can be found. A left click
     on the board clears the position's notes (chessground's `eraseOnClick`). The notes belong to the position on
-    screen, as Lichess keeps an analysis board's shapes on each position of its tree, for the visit only: they are not
+    screen, as Lichess keeps an Analysis board's shapes on each position of its tree, for the visit only: they are not
     kept in the browser. They hide while a preview shows another position.
 17. **An image of a line** (the move menu's submenu "Generate image", item 12, in a review and on the Analysis
     board): players share lines with their community as screenshots, a position and how it could have gone, with the
@@ -228,7 +229,7 @@ cut edges that are on the board, so a line drawn over the board can show edges t
     as they were asked for: "Generate", "static" and "animated" are not approved words of Simplified Technical
     English.
     - **The line, by the move under the menu** (`imageLine` in `lineImage.ts`):
-      - A branch's move: the branch's line from where it leaves the main line, numbered as its preview numbers it
+      - A variation's move: the variation's line from where it leaves the main line, numbered as its preview numbers it
         (item 13, `branchLine`). The position on screen does not change it.
       - A main line move ahead of the position on screen: the line from the position on screen to that move. A
         position made in the board editor has only a main line, so this is how a player shares a line from it.
@@ -236,10 +237,10 @@ cut edges that are on the board, so a line drawn over the board can show edges t
         after the move, with the edge that it cut, and no numbers.
     - **What the board draws:** all the line's edges at once with their numbers (the Static form of "Lines on the
       board", whatever the setting), the edges that they cut and the regions after the last edge, and the player's
-      notes (item 16) on the position where the line starts. No candidates and no labels. The protected edges follow
+      notes (item 16) on the position where the line starts. No candidates and no labels. The invincible edges follow
       the display setting.
     - **The caption** (text that explains): the turn and who plays where the line starts ("Turn 12. Blue plays two
-      edges."), then each player's points and area there ("Before edge 1: Blue has 34 points and an area of 12. …")
+      edges."), then each player's score and area there ("Before edge 1: Blue has a score of 34 and an area of 12. …")
       and after the line's last edge ("After edge 6: …"), and the site's name, small. A position with no line gives
       its numbers once.
     - **The drawing** (`boardImage.ts`): the site draws the board's component (`Board.svelte`) apart from the page,
@@ -284,7 +285,7 @@ cut edges that are on the board, so a line drawn over the board can show edges t
 - **One edge at a time shows the order.** A line can jump from one side of the board to the other, and the numbers
   alone make the reader search for the next one. The list's last edge shows the whole line for a player who saw
   the order.
-- **The cuts and the regions keep the line honest.** In the first test, a line of 6 edges cut 3 of the opponent's
+- **The cuts and the regions keep the line honest.** In the first test, a line of 6 edges cut 3 of the enemy's
   edges (the sample game after edge 30). Drawn over the board as it was, the line crossed edges that would be gone.
 - **Two shapes for two kinds of number.** With the listed line, a candidate's rank and a line's numbers show side by
   side under the table, and in circles both read as a line. Hiding the other candidates was not enough.
@@ -294,10 +295,11 @@ cut edges that are on the board, so a line drawn over the board can show edges t
   of visits, and the end of any line can rest on a visit or two. KaTrain and Lizzie draw the whole line and do not ask
   for its visits. The site cuts it, with the count that KaTrain uses for an uncertain candidate. The visits through a
   move can grow along a line (graph search), so a line stops at its first thin edge, not where the visits sum up.
-- **Always-on moves and inline branches** are the analysis board's common way (Lichess), and need no step to start.
-- **Labels on branches only when asked:** a branch is often a demonstration (an engine line played out, or a try
+- **Always-on moves and inline variations** are the Analysis board's common way (Lichess), and need no step to start.
+- **Labels on variations only when asked:** a variation is often a demonstration (an engine line played out, or a try
   followed to its end), and a label needs both its positions searched to the label budget. Searching every position a
-  branch adds spends the machine on lines nobody judges. A try the player wants judged costs two searches, on request.
+  variation adds spends the machine on lines nobody judges. A try the player wants judged costs two searches, on
+  request.
 - **A click pins, so playing needs another gesture.** Space is Lichess's. A double-click keeps the board's own way of
   playing a candidate, without a stray click changing the position.
 - **One listed line** keeps the move list's room. The table already lists every candidate, so the list shows the line
@@ -324,10 +326,10 @@ cut edges that are on the board, so a line drawn over the board can show edges t
   that joins two nodes has no new point.
 - **A different shape for the line's numbers** (rounded squares): the line's numbers then differ from Go's numbered
   stones, and from the list's circles.
-- **Numbered circles in the move list's branches:** they match the board's line, but beside the turn numbers they
-  are a second count, and a branch's numbers do not say where it leaves its branch.
-- **A fork's first line going on in its branch's row** (Lichess's column view, for the game's own line): the first
-  line then reads as the branch, and the others as set apart from it.
+- **Numbered circles in the move list's variations:** they match the board's line, but beside the turn numbers they
+  are a second count, and a variation's numbers do not say where it leaves its variation.
+- **A fork's first line going on in its variation's row** (Lichess's column view, for the game's own line): the first
+  line then reads as the variation, and the others as set apart from it.
 - **A search when pointing at a weak candidate:** a line for every candidate, but the machine works while the player
   only looks, and the line comes late.
 - **The thin edges drawn faint** (KaTrain's way for its uncertain candidates): more to see, but faint edges still draw
@@ -335,19 +337,19 @@ cut edges that are on the board, so a line drawn over the board can show edges t
 - **A share of the candidate's visits** as the line's threshold: it scales with the search, but no published tool uses
   one.
 - **A separate Explore mode** (chess.com): a stray click never changes the line, but there is a step to start.
-- **A tree beside the move list** (Sabaki, KaTrain): clear for many branches, but it takes space the analysis column
+- **A tree beside the move list** (Sabaki, KaTrain): clear for many variations, but it takes space the analysis column
   lacks, and it is a large piece of work.
 - **One listed line for each candidate on the board** (Lichess with more lines on): every line at once, but 2 to 8
   rows taken from the move list.
-- **Branches for the visit only:** simpler, but the work on a variation is lost when the tab closes.
+- **Variations for the visit only:** simpler, but the work on a variation is lost when the tab closes.
 - **A click on a candidate plays it** (KaTrain, Lizzie): fast, but a stray click changes the position, and pinning
   would stay in the table only.
-- **Labels on every branch edge** (KaTrain judges every move in its tree, chess.com the moves tried): each new
+- **Labels on every variation edge** (KaTrain judges every move in its tree, chess.com the moves tried): each new
   position searched to the label budget at once. It was built and checked, then left out: the searches went to lines
   played only to show something.
 - **Labels only on the player's own edges:** fewer searches, but still a search for every try.
-- **No labels on branches at all** (Lichess): no searches, but a try could not be judged as the game's edges are.
-- **Delete only, by a key or a button:** no way to order the branches.
+- **No labels on variations at all** (Lichess): no searches, but a try could not be judged as the game's edges are.
+- **Delete only, by a key or a button:** no way to order the variations.
 - **"Make main line" in the review:** the review's labels, chart and summary would follow a line that was not played.
 - **The symmetric twins as rows of their own** (KaTrain's, Lizzie's and Sabaki's way: KataGo lists each twin, and they
   show it as a candidate): the start's table then spent two rows on each move, with the same numbers, and the ranks
@@ -366,28 +368,28 @@ cut edges that are on the board, so a line drawn over the board can show edges t
   Every search asks for them (`includePVVisits`).
 - The review has a worker for the rules alone (`EnginePool.rules`): a line's positions and a player's moves need the
   rules at once, and a search worker takes one request at a time.
-- A position in a branch needs its own analysis. Protocol 0.3 gives the network no moves from before the root, so a
+- A position in a variation needs its own analysis. Protocol 0.3 gives the network no moves from before the root, so a
   position gets the same analysis however it was reached.
 - The browser's store has a third store, `branches` (its version 3): under the game's id (`gameId`, the SHA-256 of
-  its moves), each branch node's path, its order, and whether its move was evaluated (the kept shape's version 2.
+  its moves), each variation node's path, its order, and whether its move was evaluated (the kept shape's version 2.
   Version 1 kept the lines, and is still read).
-- An evaluation's searches have the pool's priority 7, between the position on screen and the review's passes.
+- An evaluation's searches have the pool's priority 7, between the position on screen and the review's stages.
   The searches of a Great that the player asked to evaluate have it too: the confirmation of the gap, and the position
-  before the opponent's last turn. The game's own confirmations have the label pass's priority.
-- The Report and the Advantage chart are the game's alone. In a branch, the chart marks the position where the
-  branch leaves the game.
+  before the enemy's last turn. The game's own confirmations have the label stage's priority.
+- The Report and the Advantage chart are the game's alone. In a variation, the chart marks the position where the
+  variation leaves the game.
 
 ## Where it is
 
 - `src/lib/board/Board.svelte`: the line as far as drawn (`line`), its cuts and regions, the hidden candidates.
 - `packages/review/src/ReviewView.svelte`: the place in the tree (`path`), the line of the candidate pointed at, its
-  animation, the click that shows it whole, the players' areas, the listed line (`lineList`), the branches in the
+  animation, the click that shows it whole, the players' areas, the listed line (`lineList`), the variations in the
   move list (`branch`), and the keys.
-- `packages/analysis/src/tree.ts`: paths, the game's line, a branch's rows, and the forks for the keys (`prevFork`,
+- `packages/analysis/src/tree.ts`: paths, the game's line, a variation's rows, and the forks for the keys (`prevFork`,
   `nextFork`, `siblingLine`), with tests in `tree.test.ts`.
 - `packages/analysis/src/analysis.svelte.ts`: `lineSteps` (the line's positions from the rules), `toAnalysis` (the
-  line), `branches`, `addLine`, `deleteFrom`, `promote`, `judge`, `addNodes` and `keepBranches` (the branches and their
-  keeping), `rulesAt` (the rules for the player's moves), and the searches on any path.
+  line), `branches`, `addLine`, `deleteFrom`, `promote`, `judge`, `addNodes` and `keepBranches` (the variations and
+  their keeping), `rulesAt` (the rules for the player's moves), and the searches on any path.
 - `packages/analysis/src/model.ts`: `judgeMove` (a move's loss and label, for the game's moves and a variation's),
   `judgeBranchMove`, `valuesAfter` (tests in Hedge School's `src/lib/review/enclosure.test.ts`).
 - `src/lib/board/Board.svelte`: `onlyActive` (the points that take the pointer), `oncandidatedblclick`, the pointer's
@@ -398,7 +400,7 @@ cut edges that are on the board, so a line drawn over the board can show edges t
   `enclosureImage.test.ts`), Enclosure's part of the view (`src/lib/review/enclosureView.ts`, `image`),
   `src/lib/board/boardImage.ts` (the PNG, `copyPng`, and the animated image, `animatedBoardImage`),
   `src/lib/board/gif.ts` (the GIF, tests in `gif.test.ts`), and in `ReviewView.svelte`, `imageTreeLine` (the line's
-  edges, as a branch's preview draws them, by `treeLine`), `imageOf`, `copyImage` and `saveImage`. The note is
+  edges, as a variation's preview draws them, by `treeLine`), `imageOf`, `copyImage` and `saveImage`. The note is
   `packages/site/src/Toast.svelte` (the Export menu's too). `[data-theme="light"]` in `src/app.css`,
   `packages/site/src/site.css` and `packages/review/src/review.css` gives the light tokens to the board that the image
   draws, and keeps Tailwind's `dark:` off inside it.
@@ -410,5 +412,5 @@ cut edges that are on the board, so a line drawn over the board can show edges t
 ## Log entries
 
 - [decisions/product.md](../decisions/product.md), "The engine's line on the board", "The engine's line: where it
-  stops", "The engine's line listed, and branches", its two rounds of feedback, and "The player's own moves, keys and
+  stops", "The engine's line listed, and variations", its two rounds of feedback, and "The player's own moves, keys and
   the move menu", and "An image of a line".

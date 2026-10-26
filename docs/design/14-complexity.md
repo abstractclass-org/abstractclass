@@ -1,7 +1,7 @@
 # A position's difficulty: hard positions and the accuracy's weights
 
 **Status:** in force, built. **Decided:** 2026-10-12. **Changed:** 2026-10-21 (the engine header's second line, and
-the mark on a branch's moves and on the Analysis board's).
+the mark on a variation's moves and on the Analysis board's).
 
 ## Context
 
@@ -22,18 +22,18 @@ also wants to know where the game was hard, apart from where they lost.
    mark's tooltip says "Hard position".
    - **The mark is the position's,** not the review's. It shows wherever the position before a move has a result with
      the priors, from the same result that the engine header shows for that position. A review searches every
-     position of the game, so each of the game's moves has one. A branch (design 07) and the Analysis board
+     position of the game, so each of the game's moves has one. A variation (design 07) and the Analysis board
      (design 21) search only what the player looks at: there a move without the mark is easy, or the engine has not
      searched its position yet. The move's tooltip then says "Not searched yet", and a marked move's says "Hard
      position".
    - ◆ in the move list, beside the loss of a turn (or of an edge, by edge). Every row keeps a slot for it, so that a
      mark never moves the label beside it or widens the column. On the board, the main line's moves that the player
      did not evaluate have it too.
-   - ◆ on a branch's moves, and on the board's variations: by edge, after the move and its label. By turn, at the move
-     that ends the turn, from the harder of the turn's positions, as a game turn's. For the side reviewed only, as the
-     labels. It is small and muted, as in the move list, with no slot of its own, as a branch's labels have none.
+   - ◆ on a variation's moves, and on the board's variations: by edge, after the move and its label. By turn, at the
+     move that ends the turn, from the harder of the turn's positions, as a game turn's. For the side reviewed only, as
+     the labels. It is small and muted, as in the move list, with no slot of its own, as a variation's labels have none.
    - **The engine header's second line,** the difficulty of the position on screen, in every form (a game's move, a
-     branch, the board). The first line gives the advantage ("Expected final margin … · lead …"). The second gives,
+     variation, the board). The first line gives the advantage ("Expected final margin … · lead …"). The second gives,
      in one row: the ◆'s slot, as wide as the move list's and empty when the position is not hard, the likely
      edges' meter (below), in the row's free width, and the complexity written as a loss to one decimal, as the notes
      write losses (`costText`): −14.3%, and 0.0% with no sign when it rounds to 0. The number has the width of the
@@ -152,11 +152,11 @@ The departures from the published methods:
   line.
 - **The Difficulty chart's bar lying down** in place of the meter: as tall as the second line, but it shows only the
   complexity, which the number gives, and drops the likely edges' shares.
-- **A search of every branch position,** so that every branch move has its mark: design 07 refused it, because a line
-  played to show something should cost no search. The positions not searched are mostly inside the engine's lines
+- **A search of every variation position,** so that every variation move has its mark: design 07 refused it, because a
+  line played to show something should cost no search. The positions not searched are mostly inside the engine's lines
   played to a point (a click on the engine's line adds every move before it). A move that the player plays starts
-  from the position on screen, which the engine searches, and a branch's first move starts from a game position.
-- **A hollow mark for a position not searched:** it clutters the list. A mark reads by its presence, as a branch's
+  from the position on screen, which the engine searches, and a variation's first move starts from a game position.
+- **A hollow mark for a position not searched:** it clutters the list. A mark reads by its presence, as a variation's
   labels do, and the tooltip says "Not searched yet".
 
 ## Consequences
@@ -188,4 +188,4 @@ The departures from the published methods:
 - [decisions/engine.md](../decisions/engine.md): "KaTrain's complexity on the archive" (2026-10-12).
 - [decisions/product.md](../decisions/product.md): "Hard positions and the accuracy's weights" (2026-10-12).
 - [decisions/product.md](../decisions/product.md): "Difficulty as the engine header's second line, and the ◆ on
-  searched branch moves" (2026-10-21).
+  searched variation moves" (2026-10-21).

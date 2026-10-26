@@ -3,7 +3,7 @@
   // player imported (src/lib/game/store.ts): after the `#`, which neither analytics service records (design 17). An
   // older address's `?game=ID` moves there. Without it, the page opens the last game reviewed in this browser, and
   // with none, asks for one: there is no sample game (design 11).
-  // The board works from the engine's rules at once. Then the sweep, the label pass, the Greats' confirmations, and
+  // The board works from the engine's rules at once. Then the sweep, the label stage, the Greats' confirmations, and
   // deeper searches where the player looks (docs/design/05-review-analysis.md). The engine's settings
   // (docs/design/09-engine-settings.md) apply as they change: the workers, the GPU and the network without a reload.
   // The GPU worker joins the pool once the network is loaded (docs/design/15-gpu.md). One tab reviews a game at
@@ -11,7 +11,7 @@
   // before the import page: the review's ways in, docs/design/22-site-map.md) is kept first, by Arrival, then reviewed.
   // A record there, which only the import page takes, gets the Review tab. A game reviewed with an earlier engine opens
   // as that review, from the stored results with the engine's rules alone, until the player chooses Review again
-  // (docs/design/20-snapshot.md).
+  // (docs/design/20-review snapshot.md).
   import { onDestroy, onMount, untrack } from "svelte";
   import { PRACTICE_EVENT } from "#lib/practice/practice.ts";
   import ReviewView, { NETWORK_LOADS, WIDE, reviewSkeleton, type ReviewAgain, type ReviewProgress } from "@abstractclass/review/ReviewView.svelte";
@@ -55,7 +55,7 @@
   // A review by an earlier engine shown as it was (design 20): its depth and its bar's text. Nothing is searched until
   // the player chooses Review again.
   let snapshot = $state<{ visits: number; text: string } | null>(null);
-  // The snapshot's analysis, an earlier engine's results. It stays after Review again, which ends the snapshot, until
+  // The review snapshot's analysis, an earlier engine's results. It stays after Review again, which ends the review snapshot, until
   // the new review's analysis replaces it (rawProgress).
   let snapshotGame = $state.raw<GameAnalysis<Enclosure> | null>(null);
   let kept = $state.raw<{ id: string; text: string; record: GameRecord; partner?: GamePartner } | null>(null); // the stored game
@@ -73,7 +73,7 @@
   const partnerName = $derived(kept?.partner?.name ?? null);
   const siteLink = $derived(kept && gamePage(kept.record.tags));
   const moveCount = $derived(kept?.record.moves.length ?? 0);
-  // The positions the passes search: one before each move, and the end of an unfinished game (GameAnalysis.passCount).
+  // The positions the stages search: one before each move, and the end of an unfinished game (GameAnalysis.passCount).
   const passCount = $derived(game?.passCount ?? moveCount);
   let error = $state("");
   let current = $state<string[]>([]); // the position on screen: its path in the game's tree (the analysis's tree.ts)
@@ -87,7 +87,7 @@
   // show and change the game's two (engineSettings.ts, withOwn and changeOwn). Raw: the store cannot copy a proxy.
   let own = $state.raw<OwnSettings | null>(null);
   const settings = $derived(own ? withOwn(engine, own) : engine);
-  // The engine and the GPU worker (session.svelte.ts). A snapshot searches nothing: the settings wait for Review again.
+  // The engine and the GPU worker (session.svelte.ts). A review snapshot searches nothing: the settings wait for Review again.
   const session = new EngineSession({ settings: () => settings, game: () => game, position: () => current, frozen: () => !!snapshot,
                                       tracker: { track, networkName },
                                       dropped: () => (held = { step: -1, done: 0 }) });
@@ -105,7 +105,7 @@
     Object.assign(engine, change);
   }
 
-  // The label pass's budget. An edge gets its label from 256 visits on, at every depth: a label search shows its result
+  // The label stage's budget. An edge gets its label from 256 visits on, at every depth: a label search shows its result
   // at 256 visits, then at its budget, and the label changes as it does when a deeper search replaces a shallow one
   // (design 05).
   const budget = $derived(reviewVisits(settings));
@@ -120,13 +120,13 @@
   // The report says how many. The depths step by doublings, so a deeper search has at least twice the visits.
   const deeperPositions = $derived(game ? game.analysis.filter(a => !!a && a.visits >= 1.5 * depth).length : 0);
   // The review's work as one bar, each part as wide as its share of the visits, so that the bar moves at an even pace:
-  // the sweep, the label pass, and the Greats' confirmations. The last is counted from what the analysis asks for so
+  // the sweep, the label stage, and the Greats' confirmations. The last is counted from what the analysis asks for so
   // far: it grows as labels come, and it is done when its positions have the searches' results in the store, whoever
   // ran them (after a change of the review's depth too). The bar shows the step that its line names:
   // the steps before are full, the later ones empty, though some of their work can end early, alongside (it shows when
   // their step comes). The step's own part never shows less than it has shown (held): a count that grows makes it wait
   // instead of going back. Another review depth, network or game starts it again. After the review, while the area map
-  // is on and the review's results lack maps, the map pass (design 30) is one more part, which never holds the review's
+  // is on and the review's results lack maps, the map stage (design 30) is one more part, which never holds the review's
   // end: the review is done without it (reviewDone).
   let held = $state({ step: -1, done: 0 });
   $effect(() => { void budget; void game; held = { step: -1, done: 0 }; });
@@ -137,7 +137,7 @@
     const labelled = game?.labelled !== undefined && game.labelled >= passCount;
     // Every step has its results, from the searches or from the browser's store: the review is complete. A review opened
     // again is complete before the engine's network loads: its line says "Review done" at once, and its report's counts
-    // are final, so they do not change their lines when the network comes (a layout shift). The snapshot's analysis
+    // are final, so they do not change their lines when the network comes (a layout shift). The review snapshot's analysis
     // holds an earlier engine's results: after Review again it stays on screen until the new review's analysis
     // replaces it.
     const complete = labelled && greats.done >= greats.total && game !== snapshotGame, maps = game?.mapPass;
@@ -170,7 +170,7 @@
   // A game reviewed before that is reviewed again because the site's engine or network changed (reviewAgainWhy): the
   // view says why under its progress, and in a dialog once in a visit for each game and engine (design 11).
   let again = $state<ReviewAgain | null>(null);
-  // After Review again on a snapshot (`chosen`), the line alone: the player knows why.
+  // After Review again on a review snapshot (`chosen`), the line alone: the player knows why.
   function againFor(why: "engine" | "network", want: { module: string }, chosen: boolean): ReviewAgain {
     const what = why === "engine" ? "the engine"
       : modelOf(session.manifest!, session.network)?.displayName ?? "the network";
@@ -280,7 +280,7 @@
     if (!id) return; // the Review tab
     // The game, its lock and the engine's manifest are read at the same time. The rules worker needs only the
     // manifest: it starts once the manifest is read and the lock held, so a game open in another tab starts no
-    // engine. The pool that takes it, the review's or a snapshot's, waits for the game.
+    // engine. The pool that takes it, the review's or a review snapshot's, waits for the game.
     lock = holdReview(id, false, () => {
       elsewhere = "taken";
       session.end();
@@ -307,7 +307,7 @@
   });
 
   /** Reviews the game with the site's engine: the rules first, then the sweep. `chosen`: the player chose Review again
-   *  on a snapshot, whose pool ends once the new one has the rules, so that the board keeps working meanwhile. */
+   *  on a review snapshot, whose pool ends once the new one has the rules, so that the board keeps working meanwhile. */
   async function startReview(moves: string[], chosen: boolean) {
     const manifest = session.manifest!;
     // The stored results, read while the engine starts: the review shows them in its first frame, and does not wait for
@@ -332,7 +332,7 @@
     const why = doneBefore ? null : reviewAgainWhy(markBefore, want);
     again = why && want ? againFor(why, want, chosen) : null;
     startedAt = performance.now();
-    if (!chosen) track("review_open", { ...reviewParams(), done_before: doneBefore }); // a snapshot counted the open
+    if (!chosen) track("review_open", { ...reviewParams(), done_before: doneBefore }); // a review snapshot counted the open
     await g.sweep();
   }
 
@@ -370,7 +370,7 @@
       return false;
     }
   }
-  /** Review again, on a snapshot: the game reviewed with the site's engine, as a new review. The board stays. */
+  /** Review again, on a review snapshot: the game reviewed with the site's engine, as a new review. The board stays. */
   async function reviewAgain() {
     if (!snapshot || !kept) return;
     trackOnce(`${kept.id} review again`, "feature", { feature_name: "review again" });
@@ -416,7 +416,7 @@
   <div class={MESSAGE}>
     <p class="mb-3">{elsewhere === "taken" ? "This game is now open in another tab, so its review here stopped."
       : "This game is open in another tab."} Hedge School reviews a game in one tab at a time, so that two tabs do not
-      store over each other's branches.</p>
+      store over each other's variations.</p>
     <button class="btn-primary" type="button" onclick={reviewHere}>Review here</button>
   </div>
 {:else if failure}

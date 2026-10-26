@@ -53,7 +53,7 @@ const state = (s: PositionSymbol) => clause(s).replace(" is ", " ");
 export const moveLoss = (p: BookPosition, m: BookMove) => lossTo(p, m.value.blueWin);
 
 /** A book move's label by design 10, from its loss (`moveLoss`). The first book move is Best when nothing outside the
- *  book is better. The book has no position before the opponent's last turn here, so it gives no Great: the table
+ *  book is better. The book has no position before the enemy's last turn here, so it gives no Great: the table
  *  groups Best and Great as fine moves. */
 export function moveLabel(p: BookPosition, m: BookMove): Label {
   return classify(moveLoss(p, m), isFirst(p, m) && !outsideBetter(p), false);

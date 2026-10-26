@@ -127,7 +127,7 @@ export interface BookMove {
   last: number;
   /** A trap: a move that a short search rates Good or better and the deep values a Mistake or worse (request 22,
    *  item 3). `short`: Blue's win chance after the move by the short search, 0 to 1 (its deep value is `value`).
-   *  `refutation`: the book's line from the position after it: the rest of the trap's turn, then the opponent's turn
+   *  `refutation`: the book's line from the position after it: the rest of the trap's turn, then the enemy's turn
    *  that punishes it. Its edges are in the orientation of `move`, so they play from the position that `move`
    *  reaches: the image of `to` when `mirrored`. */
   trap?: { short: number; refutation: string[] };

@@ -7,7 +7,7 @@
   // The pointer snaps to the nearest position and shows its note (Lichess's chart tooltip). A click jumps there. By turn,
   // the chart draws and snaps to the turns' ends only: a turn is one step (design 10).
   // While the review runs, the line is faint where a position has only its first, quick search, and full where its
-  // search has the review's depth: the sweep draws the whole line first, and the label pass then refines it (design
+  // search has the review's depth: the sweep draws the whole line first, and the label stage then refines it (design
   // 06). Faint, not dashed: the 50% line is dashed.
   import type { ChartMark } from "@abstractclass/analysis/model.ts";
   import ChartTip, { pointerAt } from "./ChartTip.svelte";

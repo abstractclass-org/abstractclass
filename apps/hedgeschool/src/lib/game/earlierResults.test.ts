@@ -1,5 +1,5 @@
 // Checks which stored results the removal of earlier results takes (earlierResults.ts, design 20): an earlier engine's
-// and an earlier network file's, unless a stored game's snapshot reads them. Run: npm test.
+// and an earlier network file's, unless a stored game's review snapshot reads them. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { READ_SHAPES, SHAPE, analysisKey, mapKey, searchHolding, snapshotPositions } from "@abstractclass/analysis/cache.ts";
@@ -30,11 +30,11 @@ test("the site's own results stay, and another engine's go when no game reads th
   assert.deepEqual(unneededResults([...own, ...maps, ...earlierMaps], [], ENGINE), earlierMaps);
 });
 
-test("a game reviewed by an earlier engine keeps what its snapshot reads: its positions, and those one move from them", () => {
+test("a game reviewed by an earlier engine keeps what its review snapshot reads: its positions, and those one move from them", () => {
   const read = [...results("s1", "b2", 512, line(MOVES)),
-                ...results("s1", "b2", 512, [["D10-G10", "N11-Q11"]]), // a branch
+                ...results("s1", "b2", 512, [["D10-G10", "N11-Q11"]]), // a variation
                 ...results("s1", "b2", 32, [["D10-G10", "O11-R10"]])]; // a move from the line: a Great's confirmation
-  // The sweep's, under a deeper result: the snapshot shows each position at its deepest. And two moves from the game:
+  // The sweep's, under a deeper result: the review snapshot shows each position at its deepest. And two moves from the game:
   // another game's.
   const other = [...results("s1", "b2", 32, line(MOVES)),
                  ...results("s1", "b2", 512, [["A10-D10", "N11-Q10"], ["D10-G10", "N11-Q10", "L10-N11", "Q10-T10", "N11-Q11"]])];
@@ -42,7 +42,7 @@ test("a game reviewed by an earlier engine keeps what its snapshot reads: its po
   assert.deepEqual(unneededResults([...read, ...other], [game], ENGINE), other);
 });
 
-test("a snapshot keeps the maps added to the positions that it reads, beside deeper results", () => {
+test("a review snapshot keeps the maps added to the positions that it reads, beside deeper results", () => {
   const read = results("s1", "b2", 512, line(MOVES)), maps = line(MOVES).map(m => mapKey("s1", "b2", m));
   // A candidate's map, one move from the line, stays. A map two moves from the line goes, as a result there does: the
   // removal keeps the positions that a review file holds (design 20, item 8).
@@ -51,9 +51,9 @@ test("a snapshot keeps the maps added to the positions that it reads, beside dee
   assert.deepEqual(unneededResults([...read, ...maps, candidate, far], [game], ENGINE), [far]);
 });
 
-test("a snapshot's threat keeps the result of the position before the pass at its visits, beside a deeper one", () => {
+test("a review snapshot's threat keeps the result of the position before the pass at its visits, beside a deeper one", () => {
   // Reviewed at Lite's 512 visits, with a deeper result after the first edge (a Depth of 1,024), and the threat there
-  // at 512: the snapshot reads the threat, and the position's result at 512 for the threat's size (design 31)
+  // at 512: the review snapshot reads the threat, and the position's result at 512 for the threat's size (design 31)
   const at = ["D10-G10"], review = results("s1", "b2", 512, line(MOVES)), deeper = results("s1", "b2", 1024, [at]);
   const threat = results("s1", "b2", 512, [[...at, "pass"]]);
   const game = { moves: MOVES, branches: null, mark: mark("m0") };
@@ -62,7 +62,7 @@ test("a snapshot's threat keeps the result of the position before the pass at it
   assert.deepEqual(unneededResults([...review, ...deeper], [game], ENGINE), review.slice(1, 2));
 });
 
-test("after Review again, a game's earlier results go, but for the positions another game's snapshot reads", () => {
+test("after Review again, a game's earlier results go, but for the positions another game's review snapshot reads", () => {
   const again = [...MOVES, "Q10-T10", "N11-Q11"], still = ["D10-G10", "N11-Q10", "Q10-T10"];
   const earlier = [...new Set([...results("s1", "b2", 512, line(again)), ...results("s1", "b2", 512, line(still))])];
   const stored = [...earlier, ...results("s2", "b2", 512, line(again))];
@@ -73,7 +73,7 @@ test("after Review again, a game's earlier results go, but for the positions ano
   assert.deepEqual(unneededResults(stored, games.slice(0, 1), ENGINE), earlier);
 });
 
-test("after the removal, each snapshot still opens, on the same search and the same deepest results", () => {
+test("after the removal, each review snapshot still opens, on the same search and the same deepest results", () => {
   const s1 = [...results("s1", "b2", 512, line(MOVES)), ...results("s1", "b2", 1024, line(MOVES)), ...results("s1", "b2", 32, line(MOVES))];
   const games = [{ moves: MOVES, branches: null, mark: mark("m0") }, { moves: MOVES, branches: null, mark: mark("m0", "b2", "lite", 1024) }];
   const left = (stored: string[]) => {
@@ -84,25 +84,25 @@ test("after the removal, each snapshot still opens, on the same search and the s
     }
     return kept;
   };
-  // Both snapshots read s1 at 1024 visits.
+  // Both review snapshots read s1 at 1024 visits.
   assert.deepEqual(left(s1), results("s1", "b2", 1024, line(MOVES)));
-  // s0 comes first in the store's order, so both snapshots read it, and s1's results go.
+  // s0 comes first in the store's order, so both review snapshots read it, and s1's results go.
   assert.deepEqual(left([...results("s0", "b2", 1024, line(MOVES)), ...s1]), results("s0", "b2", 1024, line(MOVES)));
 });
 
-test("a mark that names its search keeps that search's results, which its snapshot reads, before another's", () => {
+test("a mark that names its search keeps that search's results, which its review snapshot reads, before another's", () => {
   const s0 = results("s0", "b2", 512, line(MOVES)), s1 = results("s1", "b2", 512, line(MOVES));
   const game = { moves: MOVES, branches: null, mark: { ...mark("m0"), search: "s1" } };
   assert.deepEqual(unneededResults([...s0, ...s1], [game], ENGINE), s0);
-  // Without its results, the snapshot opens none, and they all go.
+  // Without its results, the review snapshot opens none, and they all go.
   assert.deepEqual(unneededResults(s0, [game], ENGINE), s0);
   // An earlier engine's mark that names the site's search reads none of the site's results.
   assert.deepEqual(unneededResults(s0, [{ ...game, mark: { ...game.mark, search: "s2" } }], ENGINE), s0);
 });
 
-test("a custom depth's results stay under a deeper result at a depth that the snapshot does not read", () => {
-  // Reviewed at 3,000 visits, an older review's deeper search at 6,000 and the player's Depth at 5,000: the snapshot
-  // reads 3,000 and each budget deeper (4,096), not 5,000 or 6,000. Another game's snapshot, at Lite's 512 visits,
+test("a custom depth's results stay under a deeper result at a depth that the review snapshot does not read", () => {
+  // Reviewed at 3,000 visits, an older review's deeper search at 6,000 and the player's Depth at 5,000: the review snapshot
+  // reads 3,000 and each budget deeper (4,096), not 5,000 or 6,000. Another game's review snapshot, at Lite's 512 visits,
   // reads 4,096.
   const at = (visits: number, i: number) => results("s1", "b2", visits, [line(MOVES)[i]]);
   const review = results("s1", "b2", 3000, line(MOVES)), unread = [...at(6000, 1), ...at(5000, 2)];
@@ -113,20 +113,20 @@ test("a custom depth's results stay under a deeper result at a depth that the sn
                    [...review.slice(2, 3), ...unread]);
 });
 
-test("an earlier network file's results stay while a game's snapshot reads them", () => {
+test("an earlier network file's results stay while a game's review snapshot reads them", () => {
   const file1 = results("s2", "b1", 512, line(MOVES)); // the site's search, with an earlier file of "lite"
   const game = { moves: MOVES, branches: null, mark: mark("m1", "b1") }; // an earlier build of the site's search
   assert.deepEqual(unneededResults(file1, [game], ENGINE), []);
   assert.deepEqual(unneededResults(file1, [], ENGINE), file1);
 });
 
-test("an earlier engine's snapshot reads no result of the site's search, so those of an earlier file go", () => {
+test("an earlier engine's review snapshot reads no result of the site's search, so those of an earlier file go", () => {
   const site = results("s2", "b1", 512, line(MOVES)), earlier = results("s1", "b1", 512, line(MOVES));
   const game = { moves: MOVES, branches: null, mark: mark("m0", "b1") };
   assert.deepEqual(unneededResults([...site, ...earlier], [game], ENGINE), site);
 });
 
-test("a game whose review opens no snapshot needs none: no mark, a network the site no longer ships, results missing", () => {
+test("a game whose review opens no review snapshot needs none: no mark, a network the site no longer ships, results missing", () => {
   const earlier = results("s1", "b2", 512, line(MOVES));
   const games = [
     { moves: MOVES, branches: null }, // never reviewed to its end
@@ -134,7 +134,7 @@ test("a game whose review opens no snapshot needs none: no mark, a network the s
     { moves: MOVES, branches: null, mark: mark("m0", "b2", "lite", 1024) }, // its depth is not stored: reviewed again
   ];
   assert.deepEqual(unneededResults(earlier, games, ENGINE), earlier);
-  // The snapshot holds every position but the start: every game shares it.
+  // The review snapshot holds every position but the start: every game shares it.
   assert.deepEqual(unneededResults(earlier.slice(1), [{ moves: MOVES, branches: null, mark: mark("m0") }], ENGINE), []);
   assert.deepEqual(unneededResults(earlier.slice(0, -2), [{ moves: MOVES, branches: null, mark: mark("m0") }], ENGINE),
                    earlier.slice(0, -2));

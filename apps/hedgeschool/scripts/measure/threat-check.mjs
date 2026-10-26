@@ -9,7 +9,7 @@
 // - the network's own value (a search of 1 visit) against the search's, at the positions and after the passes: a
 //   network that misreads a position after a pass differs from its search there more than elsewhere;
 // - what the threat's turn does on the board (the rules play it): it closes area, cuts an edge, or neither;
-// - whether the opponent played the threat's first edge in the game's next turn, by the size of the threat and of the
+// - whether the enemy played the threat's first edge in the game's next turn, by the size of the threat and of the
 //   mover's loss there.
 // For internal measurement only: the archive's games are their players' (CLAUDE.md, "How to work"), so the script
 // prints counts alone. `--show` prints the threats themselves for the reader's own look, which stays out of the logs.
@@ -61,7 +61,7 @@ if (!isMainThread) {
       .slice(0, Number(perBand))) games.push(moves);
   // The positions: two of every step from edge 4 to edge 112, a turn's middle and a turn's start, where the game goes
   // on for a turn of each player after the pass. Each with its position after a pass, and the position at the
-  // opponent's next turn in the game, for the mover's loss there.
+  // enemy's next turn in the game, for the mover's loss there.
   const spots = games.flatMap((moves, g) => moves.map((_, i) => i).filter(i => i >= 4 && i <= 112 && i % step < 2).map(i => ({ g, i })));
   const oppTurn = i => i + (turnFromCount(i).first ? 2 : 1);
   const jobs = [...new Map(spots.flatMap(({ g, i }) => [games[g].slice(0, i), [...games[g].slice(0, i), "pass"], games[g].slice(0, oppTurn(i))])
@@ -87,10 +87,10 @@ if (!isMainThread) {
     const threat = threatTurn(first, from), drawn = play([...passed, ...threat.map(edgeName)], i + 1);
     const steps = drawn.map(boardPosition), opp = from.player, gain = steps.at(-1).areas[opp] - steps[0].areas[opp];
     const cut = drawn.slice(1).some(f => f.cuts !== null);
-    // The game's next turn of the opponent, after the mover's own edges
+    // The game's next turn of the enemy, after the mover's own edges
     const start = turnFromCount(i).first, oppFrom = oppTurn(i), played = moves.slice(oppFrom, oppFrom + 2);
     const played1 = moves[i + (start ? 1 : 0)];
-    // The mover's loss in the game, over the mover's edges left in this turn: from this position to the opponent's turn
+    // The mover's loss in the game, over the mover's edges left in this turn: from this position to the enemy's turn
     const atOpp = replies.get(moves.slice(0, oppFrom).join(" "));
     const lost = atOpp ? moverWin(a.blueWin, p) - moverWin(toAnalysis(enclosure, atOpp.search).blueWin, p) : undefined;
     rows.push({
@@ -117,7 +117,7 @@ if (!isMainThread) {
     const pts = r.map(x => x.pts).filter(x => x !== undefined);
     console.log(`| ${name} | ${r.length} | ${pc(median(r.map(x => x.cost)))} | ${median(pts).toFixed(1)} | ${n(r, x => x.cost < 0)} | ${n(r, x => x.cost >= 0.1)} | ${n(r, x => x.kind === "closes")} | ${n(r, x => x.kind === "cuts")} | ${n(r, x => x.kind === "neither")} | ${median(r.map(x => x.netHere)).toFixed(3)} | ${median(r.map(x => x.netPass)).toFixed(3)} |`);
   }
-  console.log("\nThe threat's first edge played by the opponent in the game's next turn");
+  console.log("\nThe threat's first edge played by the enemy in the game's next turn");
   console.log("| Positions | Count | Played |");
   console.log("|---|---|---|");
   for (const [name, f] of [["All", () => true], ["Threat 0.10 or more", r => r.cost >= 0.1], ["Threat under 0.02", r => r.cost < 0.02],

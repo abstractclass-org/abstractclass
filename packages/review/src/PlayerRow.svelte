@@ -4,7 +4,7 @@
   // player's column is as wide as the wider player: the other player's card is laid under each card, unseen, so that
   // the bar starts and ends at the same distance from the board's edges. With the gauge beside the board, no bar, and
   // each card takes its own width. The unseen card shrinks as the seen one does (min-w-0): a narrow row shortens the
-  // names, and never runs out of the page (the layout sweep found it at 360 to 390 pixels).
+  // names, and never runs out of the page (the layout test found it at 360 to 390 pixels).
   import type { Snippet } from "svelte";
   import { stripRow } from "./PlayerCard.svelte";
 

@@ -1,8 +1,8 @@
 # The area map
 
 **Status:** in force, built. **Decided:** 2026-10-20. **Changed:** 2026-10-21: three styles, a map for every
-position that the board shows, the maps that a stored review lacks added on demand, the map's state, the map pass, and
-the maps of a snapshot.
+position that the board shows, the maps that a stored review lacks added on demand, the map's state, the map stage, and
+the maps of a review snapshot.
 
 ## The players and their questions
 
@@ -64,14 +64,14 @@ site asks for the root's alone (item 6).
    - **After vs before:** what a choice changed. The forecast after it less the forecast before it, from the side of
      the player who chose: KaTrain's loss grid (katrain/gui/badukpan.py, draw_board_contents), with the rises too.
      Where the forecast rose for the player who chose, plus signs show in that player's colour. Where it fell, minus
-     signs show in the opponent's colour. So a sign's colour says toward whom the point moved, and its shape says
+     signs show in the enemy's colour. So a sign's colour says toward whom the point moved, and its shape says
      whether that is good or bad for the player who chose. Each sign is as strong as |difference| ^ (1 / 1.33), with
      no blur. A halo in the board's colour keeps a sign whole where it meets its own colour: a minus in Red's colour
      on Red's region or edge, a plus in Blue's on Blue's. The choice that it judges:
      - At the position on screen, or a played move's preview, it is the move to it, by the labels' unit (design 10).
        By turn, the forecast at the turn's start against the forecast here. By edge, the edge's. It shows at every
-       move, the engine's best too, on the game's line and in a branch. The game's start has no move, and no map.
-     - While a line or a branch's preview shows, it is the line: its start against the position after its last drawn
+       move, the engine's best too, on the game's line and in a variation. The game's start has no move, and no map.
+     - While a line or a variation's preview shows, it is the line: its start against the position after its last drawn
        edge, from the side of the player to move at the start. Along the engine's own line little shows. Along a poor
        candidate, its loss shows.
      The forecast before a move is the mean over the whole search there, not the best move's alone. So small falls
@@ -94,7 +94,7 @@ site asks for the root's alone (item 6).
    - **The engine's line** (a candidate pointed at, on the board or in the table, or pinned): the map steps with the
      line as it draws one edge at a time ("Lines on the board": Animated). Drawn all at once (Static), the map is the
      map of the line's end. A line pointed at in the list up to an edge shows that edge's map.
-   - **A branch's preview, the engine's line under a turn's note, and a played move's preview** follow the same rule.
+   - **A variation's preview, the engine's line under a turn's note, and a played move's preview** follow the same rule.
    - **The threat** (design 31) is a line from the position after a pass: its step 0 is that position, whose map the
      threat's search gives. In after vs before it compares the position before the pass with the step shown, for the
      player who passes, so that it shows where the forecast falls if the player passes.
@@ -105,7 +105,7 @@ site asks for the root's alone (item 6).
      edge already drawn is not asked again: its search, if it still waits for a worker, ends at once, and the edges to
      come get the workers.
    - **The legend always names the position that its map is from:** "After edge 3 of the line", "After edge 2 of the
-     branch", "After 21. K19-N19", and nothing for the position on screen. While the map of the edge drawn now is
+     variation", "After 21. K19-N19", and nothing for the position on screen. While the map of the edge drawn now is
      searched, the board keeps the latest map of the line before it, and the legend names that map's edge. So the map
      never flickers off between two steps, and it never shows one position's map as another's. Where the edge drawn
      now ends the game, the engine does not search it, and the legend says so: "(edge 3: no map)".
@@ -119,7 +119,7 @@ site asks for the root's alone (item 6).
      The results keep no candidates' maps. So does each position of a line that the board draws (item 5). Where a
      position has a result of its own (the game's next move), its ownership serves.
    - A position of the game's tree with no result waits for its own search where the review searches it (a position
-     of the game while the review runs, the position on screen). A branch's position and a position of the Analysis
+     of the game while the review runs, the position on screen). A variation's position and a position of the Analysis
      board, which nothing searches until the player looks at them, get a short search.
    - The short search has `MAP_VISITS` visits, 32, and runs just after the position on screen's search.
    - The map is stored in the analysis store beside the results, under its position's result's key for the search,
@@ -128,13 +128,13 @@ site asks for the root's alone (item 6).
      a review file takes it with its positions' results (design 13). The site before the area map never takes it as a
      result: its key does not start with a shape, so that site's key check refuses it, in a review file and in the
      store.
-   - **A snapshot** (design 20) searches nothing. It reads the maps added to its positions from the store, with the
-     search and the network file of its results, and never takes a map as a search (`freeze`). A map that the store
+   - **A review snapshot** (design 20) searches nothing. It reads the maps added to its positions from the store, with
+     the search and the network file of its results, and never takes a map as a search (`freeze`). A map that the store
      lacks cannot come, and the note says so (item 9).
-   - **The removal of earlier results** keeps an added map at each position whose results a snapshot reads (design
-     20, item 8: the game's positions and those one move from them), whatever the depth of the results there.
+   - **The removal of earlier results** keeps an added map at each position whose results a review snapshot reads
+     (design 20, item 8: the game's positions and those one move from them), whatever the depth of the results there.
      Elsewhere it removes the map with its search's results (`src/lib/game/earlierResults.ts`). So the map of a line's
-     later edge goes, and the snapshot's line then lacks it.
+     later edge goes, and the review snapshot's line then lacks it.
 7. **Defaults by page.** The review starts with the map off: the improving player steps through the whole game, and a
    clean board shows the labels first. The Analysis board starts with the map on: its player reads the whole board.
    Each page keeps its own start (`areaMap` in `display.ts`).
@@ -151,15 +151,15 @@ site asks for the root's alone (item 6).
    what the map does (`mapWork` in `ReviewView.svelte`, `mapState` in `analysis.svelte.ts`):
    - For a position: "Map: waiting for the engine" while its search waits behind other searches, "Map: searching"
      while it runs, and "No map: the game ends here" where none can come. In a snapshot, a map that the store lacks
-     says "No map saved: snapshots do no searches". In after vs before, the map before the move counts too, and the
-     game's start says "No map: the game starts here". There is no note when the map shown is the position's own: the
-     legend alone means that the map is ready.
+     says "No map saved: review snapshots do no searches". In after vs before, the map before the move counts too, and
+     the game's start says "No map: the game starts here". There is no note when the map shown is the position's own:
+     the legend alone means that the map is ready.
    - For a line or a preview: "Maps of the line: 3 of 7", the positions of the line whose maps are there.
    While work goes on, the note carries the site's sign of work in progress, the gleam of the review's progress bar
    (bar-glider, Lichess's). **Every state that the note shows ends:**
    - The note reads the map as the board does: a map that shows is ready.
    - "Waiting" means asked for and not yet searched, or the position's own search to come (`pending`). The analysis
-     keeps what the page asked for last (its maps and the map pass), and asks again once the engine is ready or on
+     keeps what the page asked for last (its maps and the map stage), and asks again once the engine is ready or on
      again (`askAgain`): a page that opens or reloads asks before the engine's network has loaded.
    - A map that its task gave up without a try (a search that the page did not want when it started, or the engine
      off) is asked for again while the page wants it. No map's search starts while the engine is off.
@@ -171,7 +171,7 @@ site asks for the root's alone (item 6).
    - Only the task that holds a map's state changes or ends it: a task that another task replaced, or a pass that the
      engine off ended, touches it no more.
    - A map that nothing asks for has no note.
-10. **The map pass, for an older review.** While the map is on, once the review's passes are done, the analysis
+10. **The map stage, for an older review.** While the map is on, once the review's stages are done, the analysis
     makes the maps of every position of the game that has none, in order from the position on screen to the game's
     end, then back to its start, and stores them as the maps of item 6 (`passMaps` in `analysis.svelte.ts`). It runs
     only on the review. Its progress is one more part of the review's progress bar, with its line ("Maps: 34 of
@@ -273,7 +273,7 @@ The site follows KaTrain's review (design 05). The display departs from it on pu
 
 - **The change map as the only map, at a change of 0.5 or more:** hard to read ("the ownership less the board"), and
   the threshold hid the data under it.
-- **A caption from the opponent's next turn in the engine's line,** with that turn drawn on the board: exact and
+- **A caption from the enemy's next turn in the engine's line,** with that turn drawn on the board: exact and
   misleading (Why), and the engine's line already shows what comes next, one edge at a time (design 07).
 - **A caption from the ownership's numbers** ("holds it for half the turns left or more"): abstract.
 - **The area that a mistake lost, at a Mistake or a Blunder alone, where it was clear** (KaTrain's loss grid, with a
@@ -308,8 +308,8 @@ The site follows KaTrain's review (design 05). The display departs from it on pu
   before: the third style", "The marks of After vs before, and 0.05").
 - **Forecast vs board marks much of the board at 0.05:** a median of 20.9% of the board on the test fixture's game,
   and 63% in its opening, against 2.5% at 0.5. The player raises the value for fewer marks.
-- **The map pass takes about 20 seconds for a game of 120 edges** with the engine idle (two searches of about 0.4 s
-  at a time), and runs only once the review's own work is done ("The map's work made visible, and the map pass").
+- **The map stage takes about 20 seconds for a game of 120 edges** with the engine idle (two searches of about 0.4 s
+  at a time), and runs only once the review's own work is done ("The map's work made visible, and the map stage").
 - **Shape 6 costs a read.** The site reads each position's results in shapes 5 and 6: 36 ms in place of 18 ms for
   the 121 positions of a game, at 12 depths, in headless Chromium. The read runs while the engine starts, which takes
   0.6 to 1.2 seconds, so the review's first frame does not wait for it.
@@ -333,18 +333,18 @@ The site follows KaTrain's review (design 05). The display departs from it on pu
   `mapReading`, the switch and the legend (`mapControls`), the settings, and the keys t and Shift+T. Enclosure's board
   places the switch and the legend in its margin (`src/lib/review/EnclosureBoard.svelte`).
   `src/lib/review/display.ts`: `areaMap`, `mapStyle`, `mapMin`.
-- `src/routes/review/+page.svelte`: the map pass's part of the review's progress bar.
+- `src/routes/review/+page.svelte`: the map stage's part of the review's progress bar.
 - `packages/analysis/src/reply.ts` (the ownership in hundredths), `packages/analysis/src/analysis.svelte.ts` (every
   search asks for the root's map, `askOwnership`, `mapAt`, `hasNoMap`, `freeze`, `mapState`, `passMaps`, `endPass`,
   `mapPass`), `packages/analysis/src/cache.ts` (`SHAPE` 5, `READ_SHAPES`, `atShape`, `MAP_VISITS`, `MAP_SLICE`,
   `mapKey`, `mapPut`, `mapGet`), `src/lib/game/earlierResults.ts` (the added maps kept with the site's results, and
-  at the positions that a snapshot reads),
+  at the positions that a review snapshot reads),
   `src/lib/game/reviewFile.ts` and `src/lib/game/analysisFile.ts` (the files at shape 5),
   `packages/engine/src/protocol.ts` (the fields).
 - The measurements, in `scripts/measure/`: `review-ownership.mjs` (the maps' size and time in a whole review),
   `candidate-maps.mjs` (a candidate's map from a short search), `candidate-map-delay.mjs` (its delay in the browser),
   `line-map-lag.mjs` (the maps' lag behind an animated line), `difference-at-best.mjs` (after vs before at the best
-  moves), `ownership-maps.mjs` (the change style's share of the board on real games), `map-pass.mjs` (the map pass's
+  moves), `ownership-maps.mjs` (the change style's share of the board on real games), `map-pass.mjs` (the map stage's
   time) and `map-wait-check.mjs` (a browser check that the note's states end).
 
 ## Log entries
@@ -353,7 +353,7 @@ The site follows KaTrain's review (design 05). The display departs from it on pu
   lost", "The results of shape 5 stay readable", "The area map and the explanations on real games", "The candidates'
   maps: their size and their time", "A candidate's map from a short search", "The delay of a candidate's map", "A
   candidate's map from a short search, on a close game", "The map follows the line as drawn", "After vs before: the
-  third style", "The marks of After vs before, and 0.05", "The map's work made visible, and the map pass", "\"Map:
+  third style", "The marks of After vs before, and 0.05", "The map's work made visible, and the map stage", "\"Map:
   waiting for the engine\" did not end", "The area map's review", "The map's bookkeeping in edge cases" and "The
   review of the map's bookkeeping".
 - [decisions/engine.md](../decisions/engine.md): "The cost of the ownership in a whole review" (2026-10-21).

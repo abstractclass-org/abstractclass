@@ -92,7 +92,7 @@ test("each test book is in the form, its links stay in the book, and the start's
   assert.ok(Math.max(...sizes) < 300_000 && sizes.reduce((a, b) => a + b) < 1_000_000, String(sizes));
 });
 
-test("a trap's refutation is a line of the book through the opponent's turn", async () => {
+test("a trap's refutation is a line of the book through the enemy's turn", async () => {
   const book = await openBook(TEST_BOOK, files());
   for (const { position } of PROTOTYPE.positions) {
     const p = (await book.get(position))!;

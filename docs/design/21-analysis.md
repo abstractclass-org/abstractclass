@@ -5,16 +5,16 @@
 
 ## Context
 
-Lichess and chess.com both have a game's review and a free analysis board, and the two look alike.
+Lichess and chess.com both have a game's review and a free Analysis board, and the two look alike.
 
 - **Lichess** has one tool in two states. A game's computer analysis (made on Lichess's servers) puts its judgements
-  on that game's analysis board: inaccuracies, mistakes, blunders, the accuracy and the advantage chart. `/analysis` is
+  on that game's Analysis board: inaccuracies, mistakes, blunders, the accuracy and the advantage chart. `/analysis` is
   the same board without a game.
 - **chess.com** has two products. Game Review is the guided report: its Highlights, the advantage graph, the Coach's
-  summary and the move classifications. Its analysis board ("Self Analysis") is the free tool: engine lines, arrows,
+  summary and the move classifications. Its Analysis board ("Self Analysis") is the free tool: engine lines, arrows,
   any moves.
 
-Hedge School's review already follows Lichess: it has inline branches, the engine on the position on screen, its
+Hedge School's review already follows Lichess: it has inline variations, the engine on the position on screen, its
 candidates and lines (designs 07 and 09). So the difference between the two pages is where each starts, and what the
 engine does by itself.
 
@@ -26,21 +26,21 @@ engine does by itself.
    |---|---|---|
    | Starts from | a played game | the start, or a line brought in |
    | The engine | searches the whole game: the sweep, the labels, the Greats' confirmations | searches the position on screen only |
-   | The line | the game's line, fixed: the player's moves are branches | the player's: "Make main line" |
+   | The line | the game's line, fixed: the player's moves are variations | the player's: "Make main line" |
    | Labels | every move | none, until the player asks: "Evaluate quality" |
    | Report, chart, review mark | yes | no |
    | Answers | how did I play, and where did the game turn? | what about this position, or this idea? |
 
 2. **The line:** the first line from the start is the main line, in the move list's turns. The other lines are
-   variations, as a review's branches are.
+   variations, as a review's variations are.
    - A move at the main line's end makes the main line longer. Any other new move starts a variation.
    - **Make main line** (Lichess's): the line of the move becomes the main line, and the main line from that point
      becomes a variation. **Promote variation** and **Delete from here** work as in a review, on the main line too.
    - **Generate image** works as in a review (design 07, item 17). A position made in the board editor has only a
      main line: the image of a main line move ahead of the position on screen numbers the line from there.
 3. **Labels on request:** "Evaluate quality" on a move of any line, main line too, searches the two positions to the
-   label budget, as for a review's branch move (design 10). Other moves have no label.
-   - **A move that is the engine's only good move** also searches the position before the opponent's last turn, which
+   label budget, as for a review's variation move (design 10). Other moves have no label.
+   - **A move that is the engine's only good move** also searches the position before the enemy's last turn, which
      no pass searches on the board, unless the player looked at it. A Great needs that position (design 10, item 6).
      The move has no label, and its tooltip says "Not analyzed yet", until that search and the Great's confirmation
      end. No extra search runs where that position has its result, or where the move is not the only good one.
@@ -96,8 +96,8 @@ engine does by itself.
      - **Load an analysis file,** with the file chooser. An analysis file dropped in the Review tab comes here too. A
        file that cannot be read leaves the board as it was, with a line that says why.
 6. **One board in each browser:** its main line, its variations and the moves evaluated, in the browser's store (the
-   branches' store, under `board`), and the position on screen, in the browser's local storage. It stays when the
-   player leaves, as the review's branches stay. A link or a record brought in replaces it. The page asks first when
+   `branches` store, under `board`), and the position on screen, in the browser's local storage. It stays when the
+   player leaves, as the review's variations stay. A link or a record brought in replaces it. The page asks first when
    the board has moves ("Replace your board?").
 7. **Share and export the analysis,** as the review's Export menu does:
    - **The link:** the main line, the variations, the moves evaluated, and the position on screen, packed as a
@@ -129,12 +129,12 @@ engine does by itself.
      or absent.
 10. **The board editor** (`/editor`, Lichess's board editor):
     - **Its entries:** the board's New menu and the Import's link, which start it from the position on screen, as
-      Lichess's editor starts from its analysis board, and a card on the home page. Its address is `/editor#position=…`.
+      Lichess's editor starts from its Analysis board, and a card on the home page. Its address is `/editor#position=…`.
       The position leaves the address at once, and the browser keeps the one being made, so that a reload keeps it.
     - **Three tools:** Blue's edges, Red's edges, and the marks. An edge is two clicks: its two points, at most 3 apart
       in each direction (the engine's 48 directions), or a drag from one to the other. The same edge again removes it,
       and the other player's tool gives it to that player. A mark is an edge of the turn: the waiting player's edges of
-      the last turn (protected, `*`) and the mover's edges of this turn so far (placed, `+`). The page writes `*` or
+      the last turn (invincible, `*`) and the mover's edges of this turn so far (placed, `+`). The page writes `*` or
       `+` from the edge's player and the mover, so a mark follows a change of the edge count. A player has at most two
       marked edges.
     - **The right button draws the other player's edge,** as in drawing programs: in MS Paint the left button draws
@@ -181,9 +181,9 @@ engine does by itself.
 - **Each page has one job.** The review judges a game played, and its line is the game. The board explores, and its
   line is the player's. Lichess and chess.com both keep a free board beside the review.
 - **The board costs only what the player looks at:** no pass over a game, so it is ready at once on any machine.
-- **Labels on request,** as a review's branches have them: a line played to see an idea should cost no search, and
+- **Labels on request,** as a review's variations have them: a line played to see an idea should cost no search, and
   a label where the player did not ask is noise (design 07).
-- **One board, not saved analyses:** Lichess's analysis board is not saved either. Its Studies keep work. Studies
+- **One board, not saved analyses:** Lichess's Analysis board is not saved either. Its Studies keep work. Studies
   are later here too (design 19), as files and links.
 - **The record carries a start, not a position alone:** the moves since the start keep the line, which the move list
   shows and the network's history reads. The notation's `[Position]` tag does this, as PGN's `FEN` tag does.

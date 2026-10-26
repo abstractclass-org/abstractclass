@@ -1,5 +1,5 @@
 // A game that keeps its own settings (design 09): the panel shows its depth per move as the player chose it, so Custom
-// at a preset's visits keeps its row, and a game from a review file stores each change. The layout sweep's game
+// at a preset's visits keeps its row, and a game from a review file stores each change. The layout test's game
 // (tests/fixtures/hedgefund-review.json, HedgeFund 0.1 Lite at 512 visits) as it loads, then the same game without its
 // settings: its review's mark names 0.1 Lite, and it stores none. The engine is off, so nothing searches.
 import { test, expect, type Page } from "@playwright/test";

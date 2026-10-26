@@ -1,7 +1,7 @@
 // Blueprints' game record: Hedge School's form (docs/design/33-drawing-board.md, item 7), with Blueprints' moves and
 // capture marks (notation.ts). The frame is the shared one (@abstractclass/record/record.ts): the tags, with Blue and
 // Red for the players, the turns with their numbers (Blue's first turn has one move, then two a turn), the comments,
-// the branches, the quality marks, `[%clk]` and `[%eval]`, and the result. `1. 2@-6,-2 2. 1:0,0>3:1,-1 2@5,-2x+24 *`.
+// the variations, the quality marks, `[%clk]` and `[%eval]`, and the result. `1. 2@-6,-2 2. 1:0,0>3:1,-1 2@5,-2x+24 *`.
 // The record starts from the standard start: a position's notation waits for the board editor (design 33, item 10).
 import * as shared from "@abstractclass/record/record.ts";
 import { captureText, readMove, type Capture } from "./notation.ts";

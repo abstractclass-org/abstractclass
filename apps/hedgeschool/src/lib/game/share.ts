@@ -1,4 +1,4 @@
-// A review shared by link (design 13): the game's record, the player's branches, and what the review ran with (the
+// A review shared by link (design 13): the game's record, the player's variations, and what the review ran with (the
 // engine's build, the network, the review's visits), packed after the review's `#` (`/review#packed=…`, design 22). The browser
 // never sends that part of an address to a server. The link holds no engine results: the recipient's browser reviews
 // the game again. The engine gives the same results for the same build, network and visits, so the review is the
@@ -8,10 +8,10 @@
 // - bytes: the version, then the first 4 bytes of the engine module's SHA-256 and of the network's;
 // - then bits: the review's visits (Elias gamma); the tags as UTF-8, `key<TAB>value` lines (their length in bytes,
 //   then the bytes); the game's moves (their number, then each as two points of 9 bits, x · 19 + y, or 511 for a
-//   pass); the branches as a tree: the game's positions that have branches (their number, then each as the gap from
-//   the one before), and from each, the branch nodes in order, each with its edge, 1 bit for "evaluated", and its number
+//   pass); the variations as a tree: the game's positions that have variations (their number, then each as the gap from
+//   the one before), and from each, the variation nodes in order, each with its edge, 1 bit for "evaluated", and its number
 //   of children (1 bit for one, 2 bits for none, more bits for more).
-// So a branch costs 20 bits for each edge where it goes on in one line, and a game's move 18 bits.
+// So a variation costs 20 bits for each edge where it goes on in one line, and a game's move 18 bits.
 import { edgeName, parseEdge } from "#lib/engine/notation.ts";
 import { writeRecord } from "./record.ts";
 import { keptNode, type BranchNode } from "./store.ts";
@@ -97,7 +97,7 @@ const unbase64url = (text: string) => Uint8Array.from(atob(text.replace(/-/g, "+
 
 interface Node { key: string; move: string; order: number; judged: boolean; kids: Node[] }
 
-/** The branches as a tree: for each position of the game that has branches (by its number of moves), its branch
+/** The variations as a tree: for each position of the game that has variations (by its number of moves), its variation
  *  nodes, each with its children, in the order the player added them. A node whose parent is gone is left out. */
 function branchTree(moves: string[], branches: BranchNode[]): [number, Node[]][] {
   const nodes = new Map<string, Node>(branches.map(([key, order, judged]) =>

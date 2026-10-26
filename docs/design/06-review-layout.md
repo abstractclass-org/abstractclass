@@ -11,7 +11,7 @@ layer switches, a status line and the Advantage chart. On a 1,376 × 952 window 
 the chart was partly below the fold. On a maximised window of a 2,560 × 1,440 screen, about 1,400 pixels of width
 stayed unused, while the height had room for a board of about 1,150 pixels.
 
-Lichess sizes its analysis board from the window, and keeps the board whole in view:
+Lichess sizes its Analysis board from the window, and keeps the board whole in view:
 
 - **The board's size** is the smaller of two limits, times a zoom setting that the player chooses: the window's
   height, less the site's header and 1rem, and the width left after the other columns at their least width.
@@ -124,14 +124,14 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
 5. **The win chance is a display setting:**
    - **A bar above the board** ("Top horizontal bar", the default): Blue on the left, Red on the right, as the players
      start. The players' tags flank it in one row: each player's name, then under it the points and the area the
-     player encloses now, which each turn's end adds to the points. While the engine's line shows (design 07), the area is the one after
-     the line's last drawn edge, in the accent colour.
+     player encloses now, which each turn's end adds to the points. While the engine's line shows (design 07), the area
+     is the one after the line's last drawn edge, in the accent colour.
    - **The bar is centred on the board:** each tag's column is as wide as the wider tag, so that the bar's 50% mark is
      at the board's middle. The bar's length is what the two tags leave. Practice's row is the same (design 24).
    - **Each tag has two lines,** its name over its numbers, at every width: the tags are narrow, so the bar between
      them is long, and the row has one height. The narrowest row takes three lines (the points, then the area): below
      27.5rem with the bar, and 21.25rem with the gauge, where the tags would meet. These widths are the row's own
-     (container queries), set by a game's widest numbers (points in the thousands) so that the bar keeps its 6rem. A
+     (container queries), set by a game's widest numbers (scores in the thousands) so that the bar keeps its 6rem. A
      game keeps one form throughout, so the board does not change size as the scores grow. The row's height is
      measured, and the board and the side columns take it. Until it is measured, the page takes the height of the
      lines that the row will have (`--strip`): three where the board, with a row of two lines, is 27.5rem wide or less
@@ -154,10 +154,11 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
    - **Grouped by where a setting shows,** as Lichess groups its analysis settings (Board, Move list): Review first, as
      it sets the whole page ("Review by" Turn or Edge, "Review for" Both, Blue or Red: design 10), then Board (the win
      chance's form, candidates, move labels, regions, the area map, its style and its smallest value marked (design
-     30), protected edges, lines on the board "Animated" or "Static"), Move
-     list (move labels as "Badges" or "Text", notes on the key moves, the previews of played moves and of branches,
-     branches and lines as "Pills", "Dots" or "Notation", design 07), Sound (move sounds and their volume, design 08), Keyboard (the list of keys and clicks,
-     also on "?"), and Advantage chart (whether the score and area lines show when a review opens).
+     30), invincible edges, lines on the board "Animated" or "Static"), Move
+     list (move labels as "Badges" or "Text", notes on the key moves, the previews of played moves and of variations,
+     variations and lines as "Pills", "Dots" or "Notation", design 07), Sound (move sounds and their volume, design 08),
+     Keyboard (the list of keys and clicks, also on "?"), and Advantage chart (whether the score and area lines show
+     when a review opens).
    - **Each setting says what it does,** in a short line under its name, always in view (Lichess shows a help video for
      the setting under the pointer, which a touch screen does not show).
    - **On and off is a switch** at the right of its name, as Lichess's settings. **A choice of two is a pair of
@@ -167,46 +168,47 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
 7. **The progress bars go by subject:** the position's search bar is in the position's engine header, at the top of
    the analysis (with the expected final margin, the lead and the visits). The review's progress bar is at the top of
    the summary (three columns), or at the top of the right column (fewer), over the tabs. It covers all of the
-   review's own work, each part as wide as its share of the visits: the sweep, the label pass, and the Greats'
+   review's own work, each part as wide as its share of the visits: the sweep, the label stage, and the Greats'
    confirmations ("confirming Great moves, 18 of 22"). After them, while the area map is on and the review's results
-   lack their maps, the map pass is one more part ("Maps: 34 of 120", design 30): the review is done without it. The
+   lack their maps, the map stage is one more part ("Maps: 34 of 120", design 30): the review is done without it. The
    page counts the Greats' step from the labels found so far, so it grows as labels come. Every step counts a position
    only when the store has its result, not when another search's results so far reach the budget (design 05).
    The bar shows the step that its line names: the steps before are full, the later ones empty, though some of their
    work ends early, alongside (it shows when their step comes). The step's part never shows less than it showed before:
    when its count grows, it waits. Another review depth, network or game starts it again. A review opened again reads
-   its results from the browser's store before it shows, and they count as searched (the sweep and the label pass). When
-   every step has its results from the store, the review is complete before the engine's network loads. Its line then
-   says "Review done" in the first frame, in place of "Loading the engine's network…", and its Export menu opens (design
-   13). The report does not say that its counts are partial: that sentence came and went as the network loaded, and
-   moved the report's table (a layout shift). The network still loads for the searches that the player asks for (the
+   its results from the browser's store before it shows, and they count as searched (the sweep and the label stage).
+   When every step has its results from the store, the review is complete before the engine's network loads. Its line
+   then says "Review done" in the first frame, in place of "Loading the engine's network…", and its Export menu opens
+   (design 13). The report does not say that its counts are partial: that sentence came and went as the network loaded,
+   and moved the report's table (a layout shift). The network still loads for the searches that the player asks for (the
    position on screen, a line). Until then, the engine's panel shows the values of the position's stored result, and its
    search bar gleams once a search starts. **While the network loads, the engine header's line says "Loading the
    engine's network…"** in the place of the visits, on the review and on the Analysis board. So the panel says that a
    deeper search waits for the network, also when the review's line says "Review done". The header reads the same state
    as the review's line (the analysis's `engineReady`), and says the same words. So they show at the first load, and
-   again while another network loads. A snapshot (design 20) searches nothing, so its header does not show them. The
-   words and the visits are two elements, and the search bar takes the line's free width. So the visits that replace the
-   words are new on the page, and the switch and the gear stay in place: no layout shift. A review with a result missing
-   says what loads, and then what runs. After Review again on a snapshot (design 20), the snapshot's analysis stays on
-   screen until the new review's analysis replaces it, and the line says what loads. **While the review has work to run,
-   the slot's second line says "A review in a hidden tab can be slower."** Its title says why: "When you cannot see this
-   tab, the browser can give the review less processor time." Where the line is cut, as with a larger text size, its
-   title gives the line in full before the reason, as the slot's other lines give their text. The browser gives a hidden
-   tab's processes the lowest priority, so other programs that keep the processor busy come first (design 05). The line
-   is in the slot's own height, so it moves nothing. It goes when the engine is off and when the review is done. A
-   review that runs again because the site's engine changed gives that line to its reason. **While a bar's work runs, a
-   light gleam sweeps it** (Lichess's `bar-glider`, `ui/lib/css/component/_bar-glider.scss`: 70 pixels wide, every 3
-   seconds), so that a slow step does not look stopped: the review's bar while its passes run, and the search bar while
-   the position on screen is searched. With reduced motion asked for, there is no gleam. **The gleam is slower than
-   Lichess's:** it crosses the bar in 2 seconds at any width, then waits 1 second. Lichess's gleam moves 3,400 pixels in
-   3 seconds, so it flashes across a bar of 400 pixels in about a third of a second. The gleam moves by a transform, not
-   by its place (`left`): it asks for no layout in each frame, and moves nothing (a layout shift).
+   again while another network loads. A review snapshot (design 20) searches nothing, so its header does not show them.
+   The words and the visits are two elements, and the search bar takes the line's free width. So the visits that replace
+   the words are new on the page, and the switch and the gear stay in place: no layout shift. A review with a result
+   missing says what loads, and then what runs. After Review again on a review snapshot (design 20), the review
+   snapshot's analysis stays on screen until the new review's analysis replaces it, and the line says what loads.
+   **While the review has work to run, the slot's second line says "A review in a hidden tab can be slower."** Its title
+   says why: "When you cannot see this tab, the browser can give the review less processor time." Where the line is cut,
+   as with a larger text size, its title gives the line in full before the reason, as the slot's other lines give their
+   text. The browser gives a hidden tab's processes the lowest priority, so other programs that keep the processor busy
+   come first (design 05). The line is in the slot's own height, so it moves nothing. It goes when the engine is off and
+   when the review is done. A review that runs again because the site's engine changed gives that line to its reason.
+   **While a bar's work runs, a light gleam sweeps it** (Lichess's `bar-glider`,
+   `ui/lib/css/component/_bar-glider.scss`: 70 pixels wide, every 3 seconds), so that a slow step does not look stopped:
+   the review's bar while its stages run, and the search bar while the position on screen is searched. With reduced
+   motion asked for, there is no gleam. **The gleam is slower than Lichess's:** it crosses the bar in 2 seconds at any
+   width, then waits 1 second. Lichess's gleam moves 3,400 pixels in 3 seconds, so it flashes across a bar of 400 pixels
+   in about a third of a second. The gleam moves by a transform, not by its place (`left`): it asks for no layout in
+   each frame, and moves nothing (a layout shift).
 8. **Two kinds of number, one form each:**
    - **Who is ahead:** the side ahead is named, and the number is never below 0: "Red +105", whoever is to move, as Go
      writes "B+3.5". Even reads "0" among numbers and "even" in a sentence. So: the engine header ("Expected final
      margin Red +116 ± 325 · lead Red +105", at the end "Final margin Red +60.5"), the candidates table's Lead column
-     ("Blue +22", and "Blue +1.2k" from 1,000), number 1's note on the board ("Red wins 67.8% · lead Red +109"), a
+     ("Blue +22", and "Blue +1.2k" from 1,000), rank 1's note on the board ("Red wins 67.8% · lead Red +109"), a
      move's note ("Lead: Blue +38", the same word as the header's and the chart's) and the chart's notes. The win
      chance is the mover's, and its column names the side ("Red wins"). The gauge, the chart and the players' tags
      show both sides. Every note gives points to one decimal ("−143.3 pts", "Lead: Blue +38.2"): a note is read
@@ -215,8 +217,8 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
      the move list, the points at the right of each move (by turn, of each turn), where Lichess's move list has its
      evaluation: "−136". In
      every note, the win chance first and then the points, each with its sign: a move's note ("Blunder: −25.0% · −143
-     pts · Lead: Blue +38") and the other candidates' notes on the board, against number 1 ("−4.0% · −26 pts").
-     A plus marks a gain (a candidate after number 1 that looks a little better), and a value that rounds to 0 has no
+     pts · Lead: Blue +38") and the other candidates' notes on the board, against rank 1 ("−4.0% · −26 pts").
+     A plus marks a gain (a candidate after rank 1 that looks a little better), and a value that rounds to 0 has no
      sign ("0.0% · 0 pts").
    - Lichess and chess.com give every value from White's side. Here every advantage of Red's would then be a number
      below 0, and Red's player would read their own choices in reverse.
@@ -246,7 +248,7 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
       pixels, `TURN_REM`). When the rows came with the rest, the review's first frame was one long task, so a click
       during it waited (Interaction to Next Paint, INP). In two and three columns the list's box has its height from
       the first frame, so the rows move nothing when they come. In one column the list's height follows its rows, and
-      notes and branches make the rows taller than the bars. The review's list is in its Analysis tab there, which
+      notes and variations make the rows taller than the bars. The review's list is in its Analysis tab there, which
       the first frame does not show. The Analysis board shows its list there, and draws the rows at once. Its step
       bar is fixed to the window's bottom in one column (item 4), so rows that come later move only the room at the
       page's end (abscls-pe11 asks whether it draws them later). A hidden page also draws them at once: it draws no
@@ -299,7 +301,7 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
 - The move list is taller on a tall window.
 - The page must be checked at the column switches (800 and 1,260 pixels), on a common laptop window, and maximised on a
   large screen. On a phone (360 × 640), the step back must be in view wherever the board is, and the bar must cover no
-  control at the page's end. The layout sweep checks it (`tests/layout.spec.ts`, "the step bar on a phone").
+  control at the page's end. The layout test checks it (`tests/layout.spec.ts`, "the step bar on a phone").
 - On a phone the bar covers the bottom of the window while the page scrolls: 46 to 68 pixels.
 - The display settings' panel is the place for later display settings (sound, board zoom). It has room for them: it
   scrolls in the column.

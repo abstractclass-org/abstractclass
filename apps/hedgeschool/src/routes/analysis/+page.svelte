@@ -280,14 +280,14 @@
       return;
     }
     const text = annotatedRecord({ R: r, unit, tags: g.startPosition ? { Position: g.startPosition } : {}, result: "*", branches: g.branches, annotator: SITE_NAME,
-                                   note: `${SITE_NAME}'s analysis board, with ${networkName(session.network)} (the network ${session.network}).` });
+                                   note: `${SITE_NAME}'s Analysis board, with ${networkName(session.network)} (the network ${session.network}).` });
     if (kind === "record_copy") await navigator.clipboard.writeText(text);
     else download("analysis.txt", text, "text/plain");
   }
 </script>
 
 <PageMeta title="Analysis board · Hedge School"
-          description="A free Enclosure analysis board: play any line or a set-up position, and the engine in your browser searches the position on screen." />
+          description="A free Enclosure Analysis board: play any line or a set-up position, and the engine in your browser searches the position on screen." />
 
 {#if failure}
   <p class="{MESSAGE} text-blunder">{failure}</p>
@@ -341,7 +341,7 @@
     <Dialog.Content class="dialog-box w-[min(94vw,34rem)]">
       <Dialog.Title class="mb-2 font-semibold">Import a position or moves</Dialog.Title>
       <form onsubmit={importPasted}>
-        <!-- Lichess's analysis board takes a FEN and a PGN apart: here a position and the moves from it, both in the
+        <!-- Lichess's Analysis board takes a FEN and a PGN apart: here a position and the moves from it, both in the
              notation. -->
         <label for="board-position" class="block text-sm">Position</label>
         <p class="mb-1 text-xs text-muted">Leave it empty for the standard start. Or set one up in the

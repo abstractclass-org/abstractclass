@@ -1,4 +1,4 @@
-// Checks the session's change of network while a review starts its pool (EngineSession.start): on a snapshot's Review
+// Checks the session's change of network while a review starts its pool (EngineSession.start): on a review snapshot's Review
 // again, before the review's analysis shows, and while its first network loads. The network chosen is the one that
 // searches the review, the session names it (the game's mark, markReviewed, reads it), no other analysis searches,
 // and the GPU's control goes to that network's pool alone. Run: npm test.
@@ -107,7 +107,7 @@ async function openSnapshot(p: InstanceType<typeof TestPage>): Promise<Analysis>
 }
 
 /** The review's start, as the review's page runs it (startReview): the analysis shows once the rules work and `shown`
- *  settles (the page's reads of the store), and the passes start once the session answers it. */
+ *  settles (the page's reads of the store), and the stages start once the session answers it. */
 function startReview(p: InstanceType<typeof TestPage>, shown = Promise.resolve()) {
   let made: Analysis | null = null;
   const answered = p.session.start(pool => (made = new GameAnalysis(words, pool, MOVES, "g")), async g => {
@@ -125,7 +125,7 @@ beforeEach(() => mock.timers.enable({ apis: ["setTimeout"] }));
 afterEach(() => { mock.timers.reset(); store.release(); });
 
 test("a network chosen while the review starts its pool searches the review, and the session names it", async () => {
-  // On a snapshot's Review again, or on the review's first start: before the review's analysis shows. Either pool's
+  // On a review snapshot's Review again, or on the review's first start: before the review's analysis shows. Either pool's
   // network can load first.
   for (const snapshot of [true, false]) for (const firstLoads of [true, false]) {
     const at = `${snapshot ? "Review again" : "the first start"}, the ${firstLoads ? "first" : "next"} pool loaded first`;
@@ -144,7 +144,7 @@ test("a network chosen while the review starts its pool searches the review, and
       await turns();
     }
     await review.answered;
-    // The snapshot's analysis searches nothing. The review's searches every position, and the position on screen, with
+    // The review snapshot's analysis searches nothing. The review's searches every position, and the position on screen, with
     // n2 alone.
     assert.deepEqual([shown?.engineReady ?? false, g.engineReady], [false, true], at);
     assert.deepEqual([first.searches.length, next.searches.length], [0, g.passCount + 1], at);

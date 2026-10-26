@@ -15,8 +15,8 @@ reason. Design 05 gives the searches that the labels read: their schedule, their
 ## Decision
 
 1. **The unit.** The page judges each turn as a whole (the default) or each edge: the display setting "Review by"
-   (Turn or Edge). A turn is the player's decision: the opponent does not move between its edges, the score is paid
-   at its end, and both edges are protected together. Lichess and KaTrain give one label to each decision, and in
+   (Turn or Edge). A turn is the player's decision: the enemy does not move between its edges, the score is paid
+   at its end, and both edges are invincible together. Lichess and KaTrain give one label to each decision, and in
    their games a move is a turn. No published tool has turns of two moves, so labels by turn are this site's own
    choice. The setting "Review for" (Both, Blue or Red) shows one player's labels, numbers, notes and engine lines
    only, on the board and the chart too. The counts keep both players.
@@ -57,34 +57,34 @@ reason. Design 05 gives the searches that the labels read: their schedule, their
    - **By edge, both edges of the engine's best turn played in the other order are Best.** The first edge played is
      then the second edge of the engine's line, so it is not the first choice of its search, and its loss comes from
      the search between the two edges alone (turn 9 of the sample game: J11-M13 was Good by that search's −27 points).
-6. **Great: the only good move, which keeps what the opponent's last turn gave** (En Croissant's rule for "!",
+6. **Great: the only good move, which keeps what the enemy's last turn gave** (En Croissant's rule for "!",
    [`src/utils/score.ts`](https://github.com/franciscoBSalgueiro/en-croissant/blob/d64ce9e/src/utils/score.ts),
    `getAnnotation`, at commit d64ce9e. En Croissant's name for "!" is "Good", in `src/utils/annotation.ts`). En
    Croissant's "!" needs three conditions:
    1. The move loses at most 0.05 of win chance. Else it is "?!", "?" or "??".
    2. The move is the engine's first line, and the first line is more than 0.10 better than the second: two lines of
       one MultiPV search, which Stockfish searches to the same depth.
-   3. The best line is more than 0.05 better for the mover than the value before the opponent's last move: the move
-      keeps what the opponent's last move gave. ("!!" when the move is also a sacrifice. Enclosure has no sacrifices.)
+   3. The best line is more than 0.05 better for the mover than the value before the enemy's last move: the move
+      keeps what the enemy's last move gave. ("!!" when the move is also a sacrifice. Enclosure has no sacrifices.)
 
    Here, Best covers the first condition: the first choice is Great or Best whatever its loss (item 5). An equal search
    confirms the second condition (below). En Croissant asks for a gap of more than 0.10, and the site asks for 0.10 or
    more (`ONLY_MOVE_GAP` in `labels.ts`). The two differ only at a gap of exactly 0.10. The third condition:
    - **The values:** the first choice's win chance in the search before the move (En Croissant's best line), against
-     the win chance of the position before the opponent's last turn, both for the mover. It must be more than 0.05
+     the win chance of the position before the enemy's last turn, both for the mover. It must be more than 0.05
      better (`keepsGain` in `packages/analysis/src/model.ts`, `KEPT_GAIN` in `labels.ts`). The earlier position gives
      its root's win chance, as every loss reads a position. En Croissant reads that position's best line, which is the
      same value in Stockfish's search. In KataGo's search the two can differ a little.
-   - **The opponent's last move is the opponent's last turn,** by turn and by edge alike: Enclosure's turns have two
-     edges, and the opponent does not move between them. For a turn, and for a turn's first edge, the position is the
-     start of the opponent's turn just before. For a turn's second edge, it is the same position: the mover's own first
-     edge is between them, and the opponent's turn is still the last. For a branch move, the position is on the move's
-     line: back over the mover's edge before it in the same turn, then back to the start of the opponent's turn. That
-     start can be a branch's position or the game's. One function finds the position for the game's line and for a
-     branch's (`earlierIndex` in `model.ts`).
-   - **No result there, no Great:** the line's first turn has no turn of the opponent before it, so it is never Great
+   - **The enemy's last move is the enemy's last turn,** by turn and by edge alike: Enclosure's turns have two
+     edges, and the enemy does not move between them. For a turn, and for a turn's first edge, the position is the
+     start of the enemy's turn just before. For a turn's second edge, it is the same position: the mover's own first
+     edge is between them, and the enemy's turn is still the last. For a variation move, the position is on the move's
+     line: back over the mover's edge before it in the same turn, then back to the start of the enemy's turn. That
+     start can be a variation's position or the game's. One function finds the position for the game's line and for a
+     variation's (`earlierIndex` in `model.ts`).
+   - **No result there, no Great:** the line's first turn has no turn of the enemy before it, so it is never Great
      (En Croissant reads a missing value as 0.00, an even position). A line from a set-up position in the middle of the
-     opponent's turn has no start of that turn. A position not yet searched to the label budget counts as no result
+     enemy's turn has no start of that turn. A position not yet searched to the label budget counts as no result
      until it is.
    - **The other open tools ask the same of a Great:** the move must matter.
      - Chesskit's "!" (`isPerfectMove` in `src/lib/engine/helpers/moveClassification.ts`, commit 9622d50) needs a
@@ -115,15 +115,15 @@ reason. Design 05 gives the searches that the labels read: their schedule, their
    turn reads the gain at its start, and its second edge reads it at the middle. So a turn of two whose start keeps the
    gain asks for the search from its middle, also where its middle does not keep it. On part1-1000, the review then
    asks for 1,410 of the 1,882 searches that confirm the Greats: 472 fewer (25%).
-   - **The position before the opponent's last turn, for a move that the player asked to evaluate.** A review has that
-     position for each game move: the label pass searches every position of the game. A branch move and a move of the
-     Analysis board may lack it. So "Evaluate quality" also searches it, to the label budget (`greatNeeds` and
+   - **The position before the enemy's last turn, for a move that the player asked to evaluate.** A review has that
+     position for each game move: the label stage searches every position of the game. A variation move and a move of
+     the Analysis board may lack it. So "Evaluate quality" also searches it, to the label budget (`greatNeeds` and
      `confirmGreats`). It asks for this search only when the move can still be Great: the search before the move has the
      label budget, the move is the engine's first choice, and the gap of 0.10 is in that search. It asks for none where
      the position has a result of the label budget, or where the gap is absent. A deeper result before the move can
      change the first choice or the gap, and the analysis then asks for the search. This search and the confirmation
      after it are the player's evaluations. They have the priority of the evaluation's other searches (design 07), so
-     the move does not wait for the review's passes. The steps of the review's progress bar do not count them. On the
+     the move does not wait for the review's stages. The steps of the review's progress bar do not count them. On the
      board, a turn asks for these searches only where the player evaluated each of its edges, as its label needs them
      all.
    - **As deep as the position after the played move, when the player searched it deeper** (the position on screen,
@@ -150,11 +150,11 @@ reason. Design 05 gives the searches that the labels read: their schedule, their
      the end as the record's result gives it ("Blue won: Red resigned after edge 74", "Unfinished after edge 40"), with
      the scores on the board then. A game that the rules end takes its result from the scores, as before
      (`endingText` in `src/lib/review/enclosure.ts`).
-   - **A branch's moves** have no labels until the player asks ("Evaluate quality" in the move menu). Then every branch
-     move of that turn is searched and judged as the game's moves are (`judgeTurn`, `judgeMove`). A branch that stops
-     in a turn's middle has no turn label until the turn ends. A move that would be Great waits for its extra searches
-     (the position before the opponent's last turn, then the confirmation of the gap) and shows "Evaluating…" until
-     they end (`GameAnalysis.awaitsGreat`).
+   - **A variation's moves** have no labels until the player asks ("Evaluate quality" in the move menu). Then every
+     variation move of that turn is searched and judged as the game's moves are (`judgeTurn`, `judgeMove`). A variation
+     that stops in a turn's middle has no turn label until the turn ends. A move that would be Great waits for its extra
+     searches (the position before the enemy's last turn, then the confirmation of the gap) and shows "Evaluating…"
+     until they end (`GameAnalysis.awaitsGreat`).
    - **A turn's note** gives the turn's cost, then each edge's points, in the turn's order: "Blunder: −25.2% · −144.0
      pts (−144.0 pts, 0.0 pts)". The parts are rounded together, in tenths, so that they make the turn's points
      (Hamilton's largest remainders, `roundTogether`). The engine's own turn, Best or Great, has no parts: its edges
@@ -163,8 +163,8 @@ reason. Design 05 gives the searches that the labels read: their schedule, their
    Mistake and Blunder, to stay quiet, and the board shows every label. The charts mark each such turn or edge with a
    dot (`chartMarks` in `packages/analysis/src/model.ts`). The notes under a turn or an edge are for
    Great, Mistake and Blunder: "Blunder. N9-Q10 M6-N9 was best.", "Great. The only good edges. It keeps the gain from
-   the opponent's last turn.". Under a Mistake or a Blunder, the engine's best line from where it started shows as a
-   branch. ◆ beside a loss marks a hard position (design 14), and the player's accuracy weighs each move by the
+   the enemy's last turn.". Under a Mistake or a Blunder, the engine's best line from where it started shows as a
+   variation. ◆ beside a loss marks a hard position (design 14), and the player's accuracy weighs each move by the
    position's difficulty.
 
 ## Why
@@ -223,9 +223,9 @@ reason. Design 05 gives the searches that the labels read: their schedule, their
 - `packages/analysis/src/labels.ts` (the bands, `classify`), `packages/analysis/src/model.ts` (`judgeMove`, `judgeTurn`,
   `otherCandidate`, `keepsGain`, `earlierIndex`, `review`, `costText`, `turnCost`, `roundTogether`),
   `scripts/measure/label-bench.mjs` (the test on games of known strength), `packages/analysis/src/analysis.svelte.ts`
-  (`confirmGreats`: the searches that confirm Great, `earlierAt`: the position before the opponent's last turn,
-  `judge`: a branch's turn on request), `scripts/measure/key-moments-opening.mjs` (part 4: the Greats on the archive),
-  `packages/review/src/ReviewView.svelte` (what shows).
+  (`confirmGreats`: the searches that confirm Great, `earlierAt`: the position before the enemy's last turn,
+  `judge`: a variation's turn on request), `scripts/measure/key-moments-opening.mjs` (part 4: the Greats on the
+  archive), `packages/review/src/ReviewView.svelte` (what shows).
 - The tests: `src/lib/review/enclosure.test.ts`, and `packages/analysis/src/analysis.test.ts` (the searches that a
   Great asks for).
 

@@ -8,12 +8,12 @@ type CaptionNumbers = Pick<Position, "scores" | "areas">;
  *  turn, and the position's mover, edges left, end and numbers. */
 export type CaptionStart = Pick<Position, "player" | "movesLeft" | "over"> & CaptionNumbers & { turn: number; first: boolean };
 
-/** Each player's points and, when the position has them, the area that the player encloses now: a sentence each. */
+/** Each player's score and, when the position has them, the area that the player encloses now: a sentence each. */
 const scoreText = ({ scores, areas }: CaptionNumbers) =>
-  ([0, 1] as const).map(p => `${PLAYER_NAME[p]} has ${fmtScore(scores[p])} points${areas ? ` and an area of ${fmtScore(areas[p])}` : ""}.`)
+  ([0, 1] as const).map(p => `${PLAYER_NAME[p]} has a score of ${fmtScore(scores[p])}${areas ? ` and an area of ${fmtScore(areas[p])}` : ""}.`)
     .join(" ");
 
-/** The caption's lines (text that explains): the turn and who plays where the line starts, then each player's points
+/** The caption's lines (text that explains): the turn and who plays where the line starts, then each player's score
  *  and area there and after the line's last edge (`end`, after `edges` edges). With no line, the position's numbers. */
 export function imageCaption(start: CaptionStart, end: CaptionNumbers | null, edges: number): string[] {
   const who = PLAYER_NAME[start.player];

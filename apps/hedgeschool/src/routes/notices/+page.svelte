@@ -59,7 +59,7 @@
 
   <h2>An icon and the sounds</h2>
   <ul>
-    <li>The thumbs-up of the Excellent label: <a href="https://fonts.google.com/icons">Material Design Icons</a>' "thumb_up",
+    <li>The thumbs-up of the Excellent quality label: <a href="https://fonts.google.com/icons">Material Design Icons</a>' "thumb_up",
       by Google, under the <a href="https://www.apache.org/licenses/LICENSE-2.0">Apache License 2.0</a>.</li>
     <li>The button sound of a move: "Select Button UI" by Emilianodleon
       (<a href="https://pixabay.com/sound-effects/film-special-effects-select-button-ui-395763/">Pixabay 395763</a>) and

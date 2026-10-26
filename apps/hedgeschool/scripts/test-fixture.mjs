@@ -1,4 +1,4 @@
-// The layout sweep's game (tests/layout.spec.ts): a game of HedgeFund against itself, reviewed as the Review tab reviews
+// The layout test's game (tests/layout.spec.ts): a game of HedgeFund against itself, reviewed as the Review tab reviews
 // a game by default (HedgeFund 0.1 Lite, 512 visits a position: the Lite review), as a review file (game/reviewFile.ts's
 // format) in tests/fixtures/hedgefund-review.json. The site's own game: the repository holds no one else's games (the
 // meaf.us games are their players'). The practice bot plays both sides (seed 7): Blue at 1 visit a move, Red at 128, so that

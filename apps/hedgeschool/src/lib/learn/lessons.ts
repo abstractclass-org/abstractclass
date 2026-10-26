@@ -42,8 +42,8 @@ export function lineBoard(line: string): Position {
 }
 
 // The boards: Blue to move at the start of a turn of two edges (`b2`, with 3 edges played, as at a game's third turn).
-// So the board after a step's edge is still in Blue's turn: the scores have not changed, and Red's protected edge is
-// still protected.
+// So the board after a step's edge is still in Blue's turn: the scores have not changed, and Red's invincible edge is
+// still invincible.
 export const COURSE: Stage[] = [
   {
     title: "The rules",
@@ -74,7 +74,7 @@ export const COURSE: Stage[] = [
             targets: [parseEdge("C7-C10")],
             // Blue's area (`areas[0]`) grows by the square's 9. A diagonal closes a triangle of 4.5.
             task: ({ before, after }) => (after.areas[0] - before.areas[0] >= 9 ? null : "Join the square's two open ends."),
-            done: "The square encloses 9 points of area. Blue gains 9 points after this turn, and again after every " +
+            done: "The square encloses an area of 9. Blue's score gains 9 after this turn, and again after every " +
                   "turn while it stays closed.",
           },
         ],
@@ -94,16 +94,16 @@ export const COURSE: Stage[] = [
             done: "The red edge is gone. Red's nodes with no edges left disappear too.",
           },
           {
-            title: "Protected edges",
-            text: "The edges a player places in a turn are protected during the opponent's next turn. You cannot " +
-                  "cut a protected edge.",
-            goal: "Cut the red edge that is not protected.",
+            title: "Invincible edges",
+            text: "The edges a player places in a turn are invincible during the enemy's next turn. You cannot " +
+                  "cut an invincible edge.",
+            goal: "Cut the red edge that is not invincible.",
             view: [0, 3, 8, 10],
             position: "A7-C7 A9-D9,F5-F8* b2 0/0 3",
-            // The engine takes no edge that cuts a protected one.
+            // The engine takes no edge that cuts a invincible one.
             task: ({ before, after }) => (after.cuts && !before.protected.includes(after.cuts) ? null
               : "Cross the red edge without the glow: A9-D9."),
-            done: "The protection lasts one turn. Next turn, you can cut Red's other edge too.",
+            done: "The invincibility lasts one turn. Next turn, you can cut Red's other edge too.",
           },
         ],
       },

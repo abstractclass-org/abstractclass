@@ -17,7 +17,7 @@ test("a Decline in another tab: the practice tab's game goes with no number, and
   await practice.goto("/privacy");
   test.skip(!(await practice.getByRole("heading", { name: "Your games against HedgeFund" }).count()), "this build stores no practice games");
 
-  // A game in progress, the player to move (as the layout sweep's), with the visitor's consent to the link.
+  // A game in progress, the player to move (as the layout test's), with the visitor's consent to the link.
   const moves = (JSON.parse(readFileSync("tests/fixtures/hedgefund-review.json", "utf8")).record as string)
     .replace(/\[[^\]]*\]/g, "").split(/\s+/).filter(t => /^[A-T]\d+-[A-T]\d+$/.test(t)).slice(0, 20);
   await practice.evaluate(([number, kept]) => {

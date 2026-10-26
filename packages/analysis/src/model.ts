@@ -141,19 +141,19 @@ export function onlyMove<M>(a: Analysis<M> | undefined, p: Player): boolean {
   return !!first && !!second && moverWin(first.blueWin, p) - moverWin(second.blueWin, p) >= ONLY_MOVE_GAP;
 }
 
-/** The engine's first choice keeps what the opponent's last turn gave (En Croissant's third condition for "!",
+/** The engine's first choice keeps what the enemy's last turn gave (En Croissant's third condition for "!",
  *  src/utils/score.ts, getAnnotation): it is more than KEPT_GAIN better for the mover than `earlier`, the position before
- *  the opponent's last turn, searched to `minVisits` at least. False where that position has no result: the line's
+ *  the enemy's last turn, searched to `minVisits` at least. False where that position has no result: the line's
  *  first turn, or a position not searched yet. */
 export function keepsGain<M>(a: Analysis<M> | undefined, earlier: Analysis<M> | undefined, p: Player, minVisits: number): boolean {
   const first = a?.candidates[0];
   return !!first && !!earlier && earlier.visits >= minVisits && moverWin(first.blueWin, p) - moverWin(earlier.blueWin, p) > KEPT_GAIN;
 }
 
-/** The position before the opponent's last turn (keepsGain), for a move of `mover` from position `at` of a line: its
+/** The position before the enemy's last turn (keepsGain), for a move of `mover` from position `at` of a line: its
  *  index on the line, where `moverInto(k)` is the player of the move into position k. Back over the mover's edge before
- *  it in its turn, then over the opponent's turn. Undefined where the line has none: the mover's first turn on the line,
- *  or a line from a set-up position in the opponent's turn's middle (`opens`: the line's start opens a turn). */
+ *  it in its turn, then over the enemy's turn. Undefined where the line has none: the mover's first turn on the line,
+ *  or a line from a set-up position in the enemy's turn's middle (`opens`: the line's start opens a turn). */
 export function earlierIndex(moverInto: (k: number) => Player, at: number, mover: Player, opens: boolean): number | undefined {
   let k = at;
   while (k > 0 && moverInto(k) === mover) k--;
@@ -232,9 +232,9 @@ export function judgeMove(winBefore: number, winAfter: number, scoreBefore: numb
   return { loss, pointsLost, label: classify(loss, playedBest, only) };
 }
 
-/** A branch edge's label, judged as the game's edges are: from the analysis before it and the values after it (an
+/** A variation edge's label, judged as the game's edges are: from the analysis before it and the values after it (an
  *  analysis, or the result where the game ends), each analysis to at least `minVisits`, and `second`, the position after
- *  the engine's second choice, and `earlier`, the position before the opponent's last turn (keepsGain), which a Great
+ *  the engine's second choice, and `earlier`, the position before the enemy's last turn (keepsGain), which a Great
  *  needs. Null until both are known. */
 export function judgeBranchMove<M>(game: Moves<M>, before: Analysis<M> | undefined,
                                    after: { blueWin: number; blueScore: number | undefined; visits?: number } | undefined,
@@ -313,7 +313,7 @@ export function review<G extends GameTypes>(game: Game<G>, data: ReviewData<G>, 
   const known = (i: number, j: number) => !Number.isNaN(blueWin[i]) && !Number.isNaN(blueWin[j]) && deepEnough(i) && deepEnough(j);
   const scoreAt = (i: number, p: Player) => (blueScore[i] !== undefined ? moverScore(blueScore[i]!, p) : undefined);
   const from = game.turn(data.positions[0]?.count ?? 0); // a line from a set-up position numbers from its turn
-  // The position before the opponent's last turn (keepsGain), for the edge or the turn from position i.
+  // The position before the enemy's last turn (keepsGain), for the edge or the turn from position i.
   const earlier = (i: number) => {
     const k = earlierIndex(j => data.moves[j - 1].player, i, data.moves[i].player, from.first);
     return k === undefined ? undefined : data.analysis[k];
@@ -375,11 +375,11 @@ export interface TurnJudgment {
   loss: number; pointsLost: number | undefined; rawLoss: number; rawPoints: number | undefined; label: Label;
 }
 
-/** A turn's label, the game's or a branch's (design 10), from its searches: `start`, the position before it, to
+/** A turn's label, the game's or a variation's (design 10), from its searches: `start`, the position before it, to
  *  `minVisits` at least; `middle`, the position after its first edge, for a turn of two; `after`, the values after it
  *  (valuesAfter); `ends`, the game ends after it (no Great: nothing confirms it); `other`, the position after its other
  *  candidate, and `second`, the position after the middle's second choice, which confirm a Great; `earlier`, the
- *  position before the opponent's last turn, which a Great's best turn must be better than (keepsGain). Null until the
+ *  position before the enemy's last turn, which a Great's best turn must be better than (keepsGain). Null until the
  *  start and the values after are known. */
 export function judgeTurn<M>(game: Moves<M>, mover: Player, played: (M | null)[], start: Analysis<M> | undefined,
                              middle: Analysis<M> | undefined,
@@ -401,7 +401,7 @@ export function judgeTurn<M>(game: Moves<M>, mover: Player, played: (M | null)[]
   // Great: the only good turn, confirmed by equal searches. From the start: the other candidate (otherCandidate) looks
   // ONLY_MOVE_GAP worse there, and the position after it, searched as deep, is that much worse than the position after
   // the turn. From the middle, for a turn of two edges: the played second edge is the first choice there, and its second
-  // choice is that much worse, confirmed as for an edge. And the best turn keeps what the opponent's last turn gave.
+  // choice is that much worse, confirmed as for an edge. And the best turn keeps what the enemy's last turn gave.
   const otherFirst = otherCandidate(game, start, played), confirmDepth = equalDepth(minVisits, after.visits);
   const fromStart = !!first && !!otherFirst
     && moverWin(first.blueWin, p) - moverWin(otherFirst.blueWin, p) >= ONLY_MOVE_GAP
@@ -436,7 +436,7 @@ export function likelyMoves<M>(a: Analysis<M> | undefined, p: Player): (Record<M
 
 /** A cost against the engine's best, as every note writes it: the win chance first, then the points when the analysis
  *  has scores, each with its sign and one decimal ("−4.0% · −26.3 pts"). `win` and `points` are losses: a minus marks a
- *  loss, a plus a gain (a candidate after number 1 that looks a little better), and a value that rounds to 0 has no
+ *  loss, a plus a gain (a candidate after rank 1 that looks a little better), and a value that rounds to 0 has no
  *  sign. The other places round the points whole (design 06). */
 export function costText(win: number, points?: number): string {
   const w = Math.abs(100 * win).toFixed(1);
@@ -503,15 +503,15 @@ export function trustedLine<M>(c: Candidate<M>): M[] {
 }
 
 /** The threat's turn (design 31): the line of the first choice `first` after a pass, as far as the search trusts it,
- *  cut to the turn of the side to move after the pass, which has `movesLeft` moves left in it: what the opponent plays
+ *  cut to the turn of the side to move after the pass, which has `movesLeft` moves left in it: what the enemy plays
  *  if the player does nothing. Its first move where the search trusts none of the line. */
 export function threatTurn<M>(first: Candidate<M>, movesLeft: number): M[] {
   const turn = trustedLine(first).slice(0, movesLeft);
   return turn.length ? turn : [first.edge];
 }
 
-/** A candidate with its rank (1: the engine's first choice) and how much worse it is than number 1 for the mover: `gap`
- *  in win chance, `gapPts` in points when the analysis has scores. Negative when it is better than number 1. `twins`:
+/** A candidate with its rank (1: the engine's first choice) and how much worse it is than rank 1 for the mover: `gap`
+ *  in win chance, `gapPts` in points when the analysis has scores. Negative when it is better than rank 1. `twins`:
  *  its symmetric twins, the same move with the same numbers, which share its rank. */
 export interface RankedCandidate<M> { c: Candidate<M>; rank: number; gap: number; gapPts: number | undefined; twins: Candidate<M>[] }
 

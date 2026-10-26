@@ -1,4 +1,4 @@
-// The annotated record (annotate.ts): evaluations, labels with the better turn, and the player's branches where the
+// The annotated record (annotate.ts): evaluations, labels with the better turn, and the player's variations where the
 // notation puts them. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -44,7 +44,7 @@ test("by edge, each edge's own label", () => {
   assert.ok(text.trimEnd().endsWith("*"));
 });
 
-test("branches follow the turn they change: those from its start, then those from its second edge", () => {
+test("variations follow the turn they change: those from its start, then those from its second edge", () => {
   const branches = {
     // Red's turn played another way from its start: X then Y
     [`${n(A)} ${n(X)}`]: { move: { player: 1, edge: X, cut: null } as Move, order: 0 },
@@ -54,7 +54,7 @@ test("branches follow the turn they change: those from its start, then those fro
   };
   const text = annotatedRecord({ R, unit: "turn", tags: {}, result: null, branches }).replace(/\n/g, " ").replace(/\{[^}]*\}/g, "{}");
   assert.ok(text.includes(`2. ${n(B)} {} ${n(C)}?? {} (2. ${n(X)} ${n(Y)}) (2... ${n(Y)}) 3. ${n(D)}`), text);
-  // A reader takes the game back, marks and branches dropped
+  // A reader takes the game back, marks and variations dropped
   assert.deepEqual(parseRecord(text.replace(/\{\}/g, "")).moves, [A, B, C, D, F].map(n));
 });
 

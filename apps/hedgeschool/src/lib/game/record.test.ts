@@ -29,7 +29,7 @@ test("tags, evaluations and clocks in comments (the design's example)", () => {
   assert.equal(r.clocks[0], null);
 });
 
-test("branches are skipped, after the turn they change (the design's examples)", () => {
+test("variations are skipped, after the turn they change (the design's examples)", () => {
   const r = parseRecord("1. D10-G10 2. N11-Q10 L10-N11 3. D10-G9 G9-H10 (3. D10-F13 F13-G10) 4. N9-Q10 L10-N9 (4... M12-N9) (4. N9-Q11 M12-N9) 5. G9-H8");
   assert.deepEqual(r.moves.slice(3), ["D10-G9", "G9-H10", "N9-Q10", "L10-N9", "G9-H8"]);
 });

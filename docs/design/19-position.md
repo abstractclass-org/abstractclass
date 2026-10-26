@@ -27,7 +27,7 @@ does not take away, and a plan for what it will need later: a backend, accounts,
    - **Puzzles from the player's own games:** the review finds the mistakes and the better moves, as Lichess's "Learn
      from your mistakes" does (the open items, "Learning from mistakes").
    - **A chosen set of puzzles:** files, with a difficulty from the engine (design 01).
-   - **Studies:** files and links. The review file holds the game's tree, its branches and its notes (design 13).
+   - **Studies:** files and links. The review file holds the game's tree, its variations and its notes (design 13).
 6. **A light backend when a feature needs shared data, not before:**
    - **Optional accounts,** to keep a player's games and progress on all the player's devices.
    - **Puzzle ratings from players' attempts,** as Lichess rates its puzzles (design 01).

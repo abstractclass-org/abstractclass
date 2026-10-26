@@ -23,7 +23,7 @@ const base = (branches: BranchNode[] = []): SharedReview =>
   ({ module: "0123abcd", model: "89ef4567", visits: 512, tags: TAGS, moves: MOVES, branches });
 const at = (i: number, ...edges: string[]) => [...MOVES.slice(0, i), ...edges].join(" ");
 
-test("a shared review comes back as it was: the settings, the tags, the moves and the branches with their order", () => {
+test("a shared review comes back as it was: the settings, the tags, the moves and the variations with their order", () => {
   const branches: BranchNode[] = [
     [at(30, "D10-G12"), 0], [at(30, "D10-G12", "N9-Q10"), 1, 1], [at(30, "D10-G12", "N9-Q11"), 2], // a fork
     [at(30, "A1-A4"), 3], [at(61, "T16-T19"), 4, 1], [at(120, "B2-B5"), 5], // another line at 30, one at 61, one at the end
@@ -51,7 +51,7 @@ test("the record has the game's turns, a pass ending its turn, and reads back", 
   assert.deepEqual(parseRecord(sharedRecord(base())).moves, MOVES);
 });
 
-test("how long a link is: a whole game, and each branch edge more", () => {
+test("how long a link is: a whole game, and each variation edge more", () => {
   const prefix = "https://hedgeschool.abstractclass.org/review#packed=".length;
   const game = prefix + encodeShare(base()).length;
   // A line of 40 edges from the middle of the game: 20 bits each, after a little for its fork.

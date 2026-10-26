@@ -20,13 +20,13 @@ noise.
      The page reads the game, the tab's lock on it (design 11) and the engine's manifest at the same time. The rules
      worker needs only the manifest: it starts when the manifest is read and the lock is held, so a game open in
      another tab starts no engine. When the game is read, the page chooses the pool that takes the worker: the
-     review's, or a snapshot's (design 20). A game that this browser lacks ends the worker and frees the lock, and so
-     does a page that closes meanwhile. Once the session has ended, it starts no pool.
+     review's, or a review snapshot's (design 20). A game that this browser lacks ends the worker and frees the lock,
+     and so does a page that closes meanwhile. Once the session has ended, it starts no pool.
    - **A sweep:** every position at 32 visits (KaTrain's `fast_visits`, 25), for the game's shape: the Advantage chart
      and the win bar. Its labels are mostly wrong, so it shows none. "Every position" is each position before a move,
      and the last one when the game is not over (an unfinished game, `*`): there the end has a search, not a result,
      so that the last move gets its label (`passCount` in `packages/analysis/src/analysis.svelte.ts`).
-   - **A label pass:** every position at 512 visits, the Lite review. Standard runs the pass at 1,024 visits, and
+   - **A label stage:** every position at 512 visits, the Lite review. Standard runs the pass at 1,024 visits, and
      Custom at another depth (design 09). Under protocol 0.3, after the opening, 512 visits finds 64% of the bad turns
      of a 1,024-visit search, with 82% of its flags right, and 256 visits finds 54%, with 88% right (by edge: 67% and
      80%, 42% and 79%). A turn gets a label only when its first position and the position after it have at least 256
@@ -39,18 +39,18 @@ noise.
      the limit passes. The protocol gives a search in slices no time limit (`maxTime` is for a whole search), and a
      timer of the page would stop it late in a hidden tab. Every depth together, and which result a position uses,
      with examples: design 16.
-   - **One progress bar for all of it** (design 06): the sweep, the label pass and the Greats' confirmations. Every
+   - **One progress bar for all of it** (design 06): the sweep, the label stage and the Greats' confirmations. Every
      label has the review's depth: a player who wants surer labels sets a deeper review (design 09).
-   - **Another network** (design 09): the run of the passes ends with the old network, and the old pool's results
-     that still arrive are dropped. No search starts until the next pool has loaded its network: the passes then run
+   - **Another network** (design 09): the run of the stages ends with the old network, and the old pool's results
+     that still arrive are dropped. No search starts until the next pool has loaded its network: the stages then run
      again from the sweep. A search on the old pool would keep the old network's result under the new one, and the
      new sweep would skip that position. A network chosen before the review's analysis shows waits for that analysis,
-     and then applies to it at once: on a snapshot's Review again (design 20), or while the rules load. Until then,
-     the session names the network of the results that the analysis holds, so the game's mark names it too. The GPU
-     joins only the pool of the network chosen.
+     and then applies to it at once: on a review snapshot's Review again (design 20), or while the rules load. Until
+     then, the session names the network of the results that the analysis holds, so the game's mark names it too. The
+     GPU joins only the pool of the network chosen.
    - A pool of workers runs the most urgent work first: the position on screen, then the moves that the player asked
-     to evaluate (design 07), then the label pass and the Greats' confirmations, then the sweep. A search in slices
-     gives way: when the position on screen finds no free worker, the pool stops a search of the map pass (design 30),
+     to evaluate (design 07), then the label stage and the Greats' confirmations, then the sweep. A search in slices
+     gives way: when the position on screen finds no free worker, the pool stops a search of the map stage (design 30),
      which runs again later. When the player leaves a focus, its search does not start.
    - **The results show in batches:** the page applies the searches' results together, at most every 100 ms
      (`BATCH_MS`): their results so far and their final results, the deepest result of each position. A search's end
@@ -59,18 +59,18 @@ noise.
      shows at once. A search writes its final result to the browser's store first, and the result shows in the first
      batch after the write. So the game's mark of a review done (design 20) comes after every result that it covers is
      stored. The engine does not wait for the write: it takes its next search when its search ends. The next step waits
-     for the batch: the progress bar's last step for the label pass's last result, and Review done for the last result
+     for the batch: the progress bar's last step for the label stage's last result, and Review done for the last result
      of all. When no search waits in the pool's queue, an engine can be free for that step, though the position on
      screen or another search still runs. Then the batch comes once the results are stored, without its timer. While a
-     search waits, every engine is busy, and the batch keeps its timer. The batch with the label pass's last result
+     search waits, every engine is busy, and the batch keeps its timer. The batch with the label stage's last result
      comes without its timer all the same, though the Greats' confirmations wait in the queue: the progress bar's last
      step, or Review done, starts from it. A hidden tab runs the batch's timer about once a second, and later still when
      the page's timers have used up their share of the processor (Chromium gives a hidden page's timers 1% of it). No
      search waits for a timer of the page.
    - **A search's budget is met only by a result in the store:** a result that the page read from the browser's store,
      or a search's final result, which the page writes before it shows it. Then no search of the position to that budget
-     starts, and each step of the review's progress counts the position: the sweep, the label pass and the Greats'
-     confirmations. A position whose result the page no longer holds, such as a branch that the player
+     starts, and each step of the review's progress counts the position: the sweep, the label stage and the Greats'
+     confirmations. A position whose result the page no longer holds, such as a variation that the player
      deleted and played again, reads it from the store. Another search's results so far do not meet a budget, though the
      page shows them and the labels follow them (design 16). The position on screen can pass the label budget, and then
      stop before its end: the player moves on, its time limit passes, or the engine goes off. The store never gets such
@@ -95,7 +95,7 @@ noise.
    them as shape 5 (`READ_SHAPES`), and a file holds them as shape 5. The site removes the results that no reader
    reads when it starts for the first time after a change of shape, and a mark in the browser's local storage keeps
    the shape that it removed them for. The results of an earlier search or of an earlier network file stay while the
-   snapshot of a stored game reads them, and go at a later start when no game needs them (design 20, item 8).
+   review snapshot of a stored game reads them, and go at a later start when no game needs them (design 20, item 8).
 
 ## Why
 

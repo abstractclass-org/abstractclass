@@ -35,7 +35,7 @@ test("tags, evaluations and clocks in comments", () => {
   assert.deepEqual(r.clocks, [null, "0:00:41", null]);
 });
 
-test("branches are skipped, and a turn label can touch its first move", () => {
+test("variations are skipped, and a turn label can touch its first move", () => {
   const r = read("1.apple 2. bee cat (2. dog emu (2... fox)) 3. gnu *");
   assert.deepEqual(r.moves, ["apple", "bee", "cat", "gnu"]);
 });

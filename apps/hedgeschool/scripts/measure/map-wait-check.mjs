@@ -4,7 +4,7 @@
 // review done, the area map turned on at a position (the key t); then the page reloaded, with the map still on, at the
 // position that it opens, with no step. And a review while it runs, the map on from its start, in a new browser. Each
 // time, the note in the board's margin is read once a second for `seconds`: the check fails when a note that says the
-// map waits or is searched is still there at the end, or when no map shows. Last, a snapshot (design 20), in a new
+// map waits or is searched is still there at the end, or when no map shows. Last, a review snapshot (design 20), in a new
 // browser: the fixture as an earlier engine's review, with maps stored for every position but the one after 30 edges.
 // Its stored map must show, and its missing one must say so. In Playwright's Chromium, headless, with `workers` search
 // workers and the GPU off.
@@ -78,10 +78,10 @@ await running.waitForURL(/#game=/, { timeout: 60_000 });
 page = running; // watch() reads the page in `page`
 const during = await watch("a review while it runs, at the position it opens");
 
-// A snapshot (design 20): the fixture's review as an earlier engine's, with no ownership in its results, and the maps
-// added to every position but the one after AT edges. A snapshot does no searches: it shows its stored maps, and a map
+// A review snapshot (design 20): the fixture's review as an earlier engine's, with no ownership in its results, and the maps
+// added to every position but the one after AT edges. A review snapshot does no searches: it shows its stored maps, and a map
 // that it lacks says so at once, with no wait.
-const EARLIER = "0ldsrch", NO_MAP = "No map saved: snapshots do no searches";
+const EARLIER = "0ldsrch", NO_MAP = "No map saved: review snapshots do no searches";
 const earlier = JSON.parse(readFileSync(FIXTURE, "utf8"));
 earlier.review = { ...earlier.review, module: "0".repeat(64), search: EARLIER };
 const maps = new Map();
@@ -98,9 +98,9 @@ page = await mapOnPage();
 await importReview(page, server.url, snapshotFile, /^Reviewed on/);
 // A few seconds: a stored map shows with no note, and a missing one says so
 await stepTo(page, AT + 1);
-const snapshotMap = await watch(`a snapshot, after edge ${AT + 1} (its map stored)`, 5, (last, map) => !!map && !last);
+const snapshotMap = await watch(`a review snapshot, after edge ${AT + 1} (its map stored)`, 5, (last, map) => !!map && !last);
 await stepTo(page, AT);
-const snapshotNone = await watch(`a snapshot, after edge ${AT} (no map stored)`, 5, (last, map) => last === NO_MAP && !map);
+const snapshotNone = await watch(`a review snapshot, after edge ${AT} (no map stored)`, 5, (last, map) => last === NO_MAP && !map);
 console.log(`page errors: ${errors.length ? errors.join("; ") : "none"}`);
 const ok = first && reloaded && during && snapshotMap && snapshotNone;
 console.log(ok ? "PASS" : "FAIL");

@@ -6,7 +6,7 @@
 //   - review: the review of tests/fixtures/hedgefund-review.json, stored, reloaded. Each reload waits for the mark
 //     `review:shown` (src/routes/review/+page.svelte), then 3 seconds for the frames after it.
 //   - board: the Analysis board from an analysis file of the fixture's first 15 edges, every move evaluated, with a
-//     branch at the second move (boardFile), reloaded. Each reload waits 5 seconds: the board has no mark.
+//     variation at the second move (boardFile), reloaded. Each reload waits 5 seconds: the board has no mark.
 //   - tab: the Review tab (`/review`), with the fixture's review stored, so that "Continue your last review" and the
 //     list of games come once the tab has read them, reloaded. Each reload waits for the link, then 2 seconds.
 // A set is a few reloads of one build. It gives its median layout shift, as the browser's Cumulative Layout Shift counts
@@ -32,7 +32,7 @@ const [kind, before, after, pairCount = "5", reloadCount = "3", ...sizeArgs] = p
 if (!["review", "board", "tab"].includes(kind) || !before || !after) throw new Error("usage: layout-shift.mjs <review|board|tab> <before> <after> [pairs] [reloads] [WxH...]");
 const sizes = (sizeArgs.length ? sizeArgs : ["1366x657", "1427x849", "390x760", "390x1100"]).map(s => s.split("x").map(Number));
 
-/** An analysis file of the fixture's first `edges` edges, every move evaluated, with a branch at the second move: the
+/** An analysis file of the fixture's first `edges` edges, every move evaluated, with a variation at the second move: the
  *  second move of another stored result. It holds the fixture's results of its positions and of those one move from
  *  them, as the site's export chooses them (src/lib/game/analysisFile.ts). */
 function boardFile(edges = 15) {

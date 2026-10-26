@@ -16,7 +16,7 @@ export type MapStyle = "ownership" | "change" | "difference";
 /** A point that the map marks, in the colour of `side`. The ownership style: `side` holds it, as strongly as
  *  `strength` says, from 0 to 1 (shade). The change style: open area that `side` will probably close, or closed area
  *  that the other side holds now and will probably lose to `side`. The difference style: the forecast rose there for
- *  the player who moved (`side` is that player) or fell (`side` is the opponent): the point moved toward `side`, as
+ *  the player who moved (`side` is that player) or fell (`side` is the enemy): the point moved toward `side`, as
  *  strongly as `strength` says. */
 export type AreaMark = { kind: "hold"; side: Player; strength: number } | { kind: "close" | "lose"; side: Player }
   | { kind: "fall" | "rise"; side: Player; strength: number };

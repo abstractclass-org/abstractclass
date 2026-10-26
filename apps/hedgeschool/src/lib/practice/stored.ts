@@ -64,10 +64,10 @@ export function storedProblem(x: unknown): string | null {
   return null;
 }
 
-/** The edges of a record's main line, passes included: its moves, without its tags, comments and branches. */
+/** The edges of a record's main line, passes included: its moves, without its tags, comments and variations. */
 export function recordEdges(record: string): number {
   let body = record.replace(/\[[^\]]*\]/g, "").replace(/\{[^}]*\}/g, "");
-  while (/\([^()]*\)/.test(body)) body = body.replace(/\([^()]*\)/g, ""); // branches, innermost first
+  while (/\([^()]*\)/.test(body)) body = body.replace(/\([^()]*\)/g, ""); // variations, innermost first
   return (body.match(/\b[A-T]\d{1,2}-[A-T]\d{1,2}x?(?![\w-])|\bpass\b/g) ?? []).length;
 }
 

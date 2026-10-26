@@ -38,7 +38,7 @@ must make costs both of them a release.
    The field is `protocol`, not `version`: the review file has a `version` of its own. Each side checks the other's
    origin. This site waits a minute for each answer. The partner's page stores the file with its own sign-in.
 7. **A saved review opens again from the partner's page,** by the same messages the other way. A review by an
-   earlier engine opens as a snapshot of it (design 20). At the player's click,
+   earlier engine opens as a review snapshot of it (design 20). At the player's click,
    the partner's page opens `/review#from=` and its origin, with `window.open`. The review posts
    `hedge-school:ready` (`protocol: 1`) to it, and the partner's page answers `hedge-school:review` with the file, or
    `hedge-school:failed`. The review takes the file only from the page that opened it, on that origin, and only
@@ -52,8 +52,8 @@ must make costs both of them a release.
      and so does a `Cross-Origin-Opener-Policy` of `same-origin`. The save page must send no such header, and the page
      that opens Hedge School sends none or `same-origin-allow-popups`. Hedge School sends none. A later header for the
      engine's threads (cross-origin isolation) would cut the tie, and this design would have to change with it.
-8. **One save, which updates:** "Save to" sends the game's whole review so far. Its branches hold the earlier save's
-   (an opened review's branches merge with the browser's), and its results only grow. A save therefore replaces the
+8. **One save, which updates:** "Save to" sends the game's whole review so far. Its variations hold the earlier save's
+   (an opened review's variations merge with the browser's), and its results only grow. A save therefore replaces the
    earlier one. A partner that wants a history can keep versions: its choice. There is no "Save as new": it would
    need another message field, a list of versions on the partner's side, and a choice for the player, to keep a copy
    that the newer save already holds.

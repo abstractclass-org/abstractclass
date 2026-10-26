@@ -5,19 +5,19 @@ numbers in warning triangles, and its size from two searches with the same setti
 
 ## Context
 
-A player who does not see the opponent's next close or cut loses the most points. A label says what a move cost, and
-the engine's line shows a better move. Neither shows what the opponent threatens now.
+A player who does not see the enemy's next close or cut loses the most points. A label says what a move cost, and
+the engine's line shows a better move. Neither shows what the enemy threatens now.
 
 Lichess's engine box has a switch, "Show threat", with the key x (`ui/analyse/src/keyboard.ts`, `ui/lib/src/ceval`).
 With the switch on, the engine searches the position as if the side to move passed, and the box shows that position's
-evaluation and the opponent's best line, drawn in red on the board.
+evaluation and the enemy's best line, drawn in red on the board.
 
 Enclosure has a pass: a timeout pass forfeits the rest of a turn (the engine repository's
 [docs/design/04-notation-and-protocol.md](https://github.com/abstractclass-org/engines/blob/main/docs/design/04-notation-and-protocol.md),
 "The moves list"). So the engine can search the position after a pass, and the protocol needs nothing new. A pass
-ends the turn as usual: the edges placed earlier in the turn stay protected during the opponent's next turn
+ends the turn as usual: the edges placed earlier in the turn stay invincible during the enemy's next turn
 (`end_turn` in KataGame's `cpp/game/enclosure/engine.h`), and the passer still scores its regions at the turn's end. At
-a turn's start the pass places nothing, so nothing of the passer's is protected. That is what "do nothing more" means.
+a turn's start the pass places nothing, so nothing of the passer's is invincible. That is what "do nothing more" means.
 
 ## Decision
 
@@ -27,32 +27,32 @@ a turn's start the pass places nothing, so nothing of the passer's is protected.
    and c goes with x.
 2. **The search:** the position after a pass by the side to move (`askThreat` in
    `packages/analysis/src/analysis.svelte.ts`). At a turn's start the pass forfeits the whole turn, and the threat is
-   the opponent's whole next turn, two edges. In a turn's middle the pass forfeits the turn's second edge.
+   the enemy's whole next turn, two edges. In a turn's middle the pass forfeits the turn's second edge.
    - It is searched as the position on screen is: to the Depth's visits, within the time limit (design 09), in slices
      whose results show as they come. A change of the Depth or the limit searches it again, unless its result is
      already that deep.
    - Its priority is below the position on screen's and the area map's short searches, and above the player's
-     evaluations and the review's passes. In slices, so the pool stops it for the search of the player's own position
+     evaluations and the review's stages. In slices, so the pool stops it for the search of the player's own position
      when no worker is free, and runs it again later.
    - It follows the rules of the review's other searches. A stored result as deep is read and not searched again. The
      store keeps it as it keeps a result one move from the game (design 20, item 8): the site's own results always,
-     and an earlier engine's while a snapshot reads the position before the pass. A review file takes it with the
+     and an earlier engine's while a review snapshot reads the position before the pass. A review file takes it with the
      results one move from the game's positions (design 13).
    - Where the pass ends the game (the game's last edges), there is no threat. The rules say so before any search.
    - The engine off stops the search, and its result so far stays. The engine on searches it again. The same position,
      asked for again, keeps the searches that run.
-   - **A snapshot** (design 20) searches nothing. It reads the threat from the store, with the search and the network
-     file of its results, at the depths that a snapshot reads. The rules give the position after the pass, as they
-     give a snapshot's other positions: the threat's line shows, and where the pass ends the game, there is no threat.
-     Where the store has no threat, the header says "No threat saved: snapshots do no searches", and the switch's note
-     says that a snapshot shows only a threat that was saved.
+   - **A review snapshot** (design 20) searches nothing. It reads the threat from the store, with the search and the
+     network file of its results, at the depths that a review snapshot reads. The rules give the position after the
+     pass, as they give a review snapshot's other positions: the threat's line shows, and where the pass ends the game,
+     there is no threat. Where the store has no threat, the header says "No threat saved: review snapshots do no
+     searches", and the switch's note says that a review snapshot shows only a threat that was saved.
 3. **The header, with the switch on,** shows the threat's search, as Lichess's engine box shows its threat's:
    - The first line's bar and visits are the threat's search.
    - The second line gives the values after the pass: "If Blue passes: margin Red +363 ± 182 · lead Red +349".
    - The third line, in the place of the position's difficulty (design 14), gives the threat's size: "Threat to Blue:
-     −6.6% · −168.7 pts". Its note names the opponent's edges. While there is no size, the line says why: the search
+     −6.6% · −168.7 pts". Its note names the enemy's edges. While there is no size, the line says why: the search
      waits for the engine or runs, the size's searches run ("Threat size: searching"), the engine is off, the game
-     ends, or a snapshot has no threat saved.
+     ends, or a review snapshot has no threat saved.
 4. **The threat's size is the engine's own estimate:** what passing costs by the engine's evaluation. The position's
    value less the value after the pass, from the player's side, in the units of a move's loss (design 10): win chance
    and the lead's points, written as a note writes a loss (`costText`). It is not the area that the threat's first
@@ -73,19 +73,19 @@ a turn's start the pass places nothing, so nothing of the passer's is protected.
      values with the threat off, and the threat's line and its values after the pass.
    - A part of a search counts only while the search runs. With the engine off, no size shows from a part of a search,
      and the line says that the engine is off.
-   - **A snapshot** compares the stored threat with the position's stored result of the same visits. The removal of
-     an earlier engine's results keeps that result with the threat (design 20, item 8). Where the store has none, the
-     header says "No threat size saved: snapshots do no searches".
+   - **A review snapshot** compares the stored threat with the position's stored result of the same visits. The removal
+     of an earlier engine's results keeps that result with the threat (design 20, item 8). Where the store has none, the
+     header says "No threat size saved: review snapshots do no searches".
    - The second line (the values after the pass) and the board do not change: they are the threat's search alone.
 5. **The threat is a line on the board,** drawn as the engine's lines are (design 07, item 1): numbered edges, the edges
    that they cut, the regions that they close, Animated or Static. It is the first choice's line after the pass, as
-   far as the search trusts it (25 visits through each edge), and only the opponent's turn, so all of it is in the
-   opponent's colour. While it shows, the other candidates leave the board. A candidate pointed at or pinned shows
+   far as the search trusts it (25 visits through each edge), and only the enemy's turn, so all of it is in the
+   enemy's colour. While it shows, the other candidates leave the board. A candidate pointed at or pinned shows
    its own line in its place, with its circles, and a preview shows over both. The players' tags show the areas after
    its last drawn edge.
-   - **Its numbers are in warning triangles,** in the opponent's colour, with the board's border round them, as a
+   - **Its numbers are in warning triangles,** in the enemy's colour, with the board's border round them, as a
      line's circles have (`lineShape` in `src/lib/board/Board.svelte`). The edges stay a line's edges (dashed, in the
-     opponent's colour), and the cuts and the regions stay as they are. The triangle points up, its corners rounded,
+     enemy's colour), and the cuts and the regions stay as they are. The triangle points up, its corners rounded,
      and its number stands at its centre (the centre of its inscribed circle). The inscribed circle's radius is 0.27
      of the lattice's step, near a line's circle of 0.3, and the number has a circle's size, so that it reads as well
      at every width. No other mark of the board is a triangle. The image of a line (design 07, item 17) and every
@@ -99,7 +99,7 @@ a turn's start the pass places nothing, so nothing of the passer's is protected.
 
 ## Why
 
-- **Lichess's way.** The question "what does my opponent threaten?" is the threat's, and Lichess answers it with one
+- **Lichess's way.** The question "what does my enemy threaten?" is the threat's, and Lichess answers it with one
   search of a pass. KaTrain and Lizzie have no threat. A threat comes from a full search, and the engine needs nothing
   new.
 - **The engine's own estimate for its size.** The area map's captions of a turn's close or cut were left out: a turn's
@@ -109,9 +109,9 @@ a turn's start the pass places nothing, so nothing of the passer's is protected.
   line. The threat reads as the engine's lines read.
 - **A warning triangle, not Lichess's colour.** Lichess draws its threat as a red arrow, a colour that no other arrow
   of its board has, so the threat reads as a threat. Red is a player's colour here, and a third colour would hide
-  whose edges they are. A line drawn in the opponent's colour with circles reads as any engine line. So the colour
+  whose edges they are. A line drawn in the enemy's colour with circles reads as any engine line. So the colour
   still says whose edges they are, and the shape, the warning sign's, says "threat".
-- **The opponent's turn only.** The threat is what the opponent does if the player does nothing. The edges after it
+- **The enemy's turn only.** The threat is what the enemy does if the player does nothing. The edges after it
   are the player's answer, which the candidates already show.
 - **Below the position's own search.** The player's own position comes first: its candidates are the player's choice.
   The threat waits for a free worker, or gives way in slices.
@@ -125,20 +125,20 @@ a turn's start the pass places nothing, so nothing of the passer's is protected.
   (design 09, "Alternatives"), and a deeper result does not hold its value at fewer visits. So the value at the
   threat's settings needs its own search, which then stays in the store.
 - **Departures from Lichess.** Lichess's engine box gives the evaluation after the pass, and its best line goes on
-  past the opponent's move. Three parts are the site's own:
+  past the enemy's move. Three parts are the site's own:
   - The threat's size, what the pass costs (item 4). A player reads it as a move's loss.
-  - The line cut to the opponent's turn (item 5). An Enclosure turn has two edges, and the edges after it are the
+  - The line cut to the enemy's turn (item 5). An Enclosure turn has two edges, and the edges after it are the
     player's answer.
   - The warning triangles in the place of Lichess's red arrow (item 5). Red is a player's colour here.
 
 ## Alternatives
 
-- **The network's opponent-reply head** (taken out of abscls-jk1c): it guesses the reply after the player's own move,
+- **The network's enemy-reply head** (taken out of abscls-jk1c): it guesses the reply after the player's own move,
   with no search. The threat is a full search.
 - **A caption of the regions that the threat closes:** exact and misleading (Why).
-- **The threat's line in the opponent's colour beyond the opponent's turn:** the line's later edges are the player's,
+- **The threat's line in the enemy's colour beyond the enemy's turn:** the line's later edges are the player's,
   in the player's colour, and they answer a different question.
-- **The threat's candidates in the table** (Lichess lists its threat's lines): the table then lists the opponent's
+- **The threat's candidates in the table** (Lichess lists its threat's lines): the table then lists the enemy's
   moves in the player's position, and the player must read which side each row is for. The table keeps the
   position's own candidates.
 - **The label budget for the threat's search:** cheaper, but the threat's value would be shallower than the position
@@ -168,19 +168,19 @@ a turn's start the pass places nothing, so nothing of the passer's is protected.
 ## Where it is
 
 - `packages/analysis/src/analysis.svelte.ts`: `askThreat`, `threatAt`, `passedAt`, `describePass`, `threatState`,
-  `readThreat` (a snapshot's), `dropThreat`, `PRIORITY.threat`, the size at equal depths (`sizeResultAt`,
+  `readThreat` (a review snapshot's), `dropThreat`, `PRIORITY.threat`, the size at equal depths (`sizeResultAt`,
   `sizeResults` and the searches' `record`, `threatCost`, `askSizeResult`, `PRIORITY.size`, and `keep`, which asks
   for it when a deeper result comes later), and the map of the threat's position waiting for its search
   (`ownSearchComes`). `packages/analysis/src/cache.ts`: `cacheGetAt`, a position's result at exactly a depth.
-  `src/lib/game/earlierResults.ts`: a snapshot's threat keeps the result that its size compares. Tests:
+  `src/lib/game/earlierResults.ts`: a review snapshot's threat keeps the result that its size compares. Tests:
   `analysis.test.ts`, "the threat: …", "a position with a deeper stored result than the threat's …", "with the Depth
   lowered, …", "a size's search runs on …", "the size compares the focus's own search …", "where the pass ends the
-  game, a position deeper …", "a snapshot gets the position after the pass …" and "a snapshot's threat size …", and
-  `earlierResults.test.ts`, "a snapshot's threat keeps …".
+  game, a position deeper …", "a review snapshot gets the position after the pass …" and "a review snapshot's threat
+  size …", and `earlierResults.test.ts`, "a review snapshot's threat keeps …".
 - `packages/review/src/ReviewView.svelte`: `threatOn`, `toggleThreat` and the key x, `threat`, `threatEdges`,
   `threatCost`, `threatShown`, `threatNote`, the board's line (`boardEdges`, `line`) and the threat's steps
   (`threatStepsKept`), the map's `threat` line (`mapLine`, `diffBase`, `stepName`, `diffName`), and the switch in the
-  engine header. `packages/analysis/src/model.ts`: `threatTurn`, the opponent's turn of the first choice's line, with
+  engine header. `packages/analysis/src/model.ts`: `threatTurn`, the enemy's turn of the first choice's line, with
   the turn's moves left that the game gives (`movesLeft`). `src/lib/review/enclosure.ts` gives it with an Enclosure
   position.
   `src/lib/board/Board.svelte`: the warning triangles (`lineShape`, `triangle`, `TRIANGLE_R`).
@@ -189,5 +189,5 @@ a turn's start the pass places nothing, so nothing of the passer's is protected.
 ## Log entries
 
 - [decisions/product.md](../decisions/product.md), "The threat on real games", "The threat's warning triangles",
-  "The threat's size at equal depths" and "The threat's review: one rule for the size, a snapshot's line"
+  "The threat's size at equal depths" and "The threat's review: one rule for the size, a review snapshot's line"
   (2026-10-21).

@@ -1,16 +1,16 @@
 // A reviewed game as an annotated record (design 13), as Lichess exports a game it analysed: the record's tags and
 // turns, the engine's view after each edge as `[%eval W L S]`, each Inaccuracy, Mistake, Blunder and Great as a
 // comment ("Mistake. D10-G9 G9-H10 was best.", Lichess's words), "A hard position." where the review marks one, the
-// record's clocks, and the player's own lines as branches. By turn, each turn's label is also a quality mark after its
+// record's clocks, and the player's own lines as variations. By turn, each turn's label is also a quality mark after its
 // last edge: `!` Great, `?!` Inaccuracy, `?` Mistake, `??` Blunder (Best, Excellent and Good have none, as in PGN and
 // Lichess). By edge, the labels stay in comments: the notation's marks judge turns. The notation is the engine
 // repository's (its docs/design/04-notation-and-protocol.md, and the site's /notation page). A reader takes the game
-// back from it (the branches are skipped), and the site reviews it again: the engine's full results stay in the review
+// back from it (the variations are skipped), and the site reviews it again: the engine's full results stay in the review
 // file (game/reviewFile.ts).
 //
-// Where a branch goes, as the notation decides: after the turn it changes, after that turn's last edge, its mark and
+// Where a variation goes, as the notation decides: after the turn it changes, after that turn's last edge, its mark and
 // its comments. `N.` starts at the turn's start and replaces the whole turn: `3. D10-G9 G9-H10 (3. D10-F13 F13-G10)`.
-// `N...` starts at the turn's second edge and shares its first: `4. N9-Q10 L10-N9 (4... M12-N9)`. Several branches of
+// `N...` starts at the turn's second edge and shares its first: `4. N9-Q10 L10-N9 (4... M12-N9)`. Several variations of
 // a turn follow it one after another: those from its start first, then those from its second edge, each in the order
 // the player made them.
 import { BAD_LABELS, type Label } from "@abstractclass/analysis/labels.ts";
@@ -97,12 +97,12 @@ export function annotatedRecord({ R, unit, tags, result, clocks = [], branches =
     return turnNo.get(k)!;
   };
 
-  /** A line from `start` on: its moves, and the branches off it where the notation puts them. `alternatives` are the
-   *  branches in place of `start`'s turn, when it starts one. */
+  /** A line from `start` on: its moves, and the variations off it where the notation puts them. `alternatives` are the
+   *  variations in place of `start`'s turn, when it starts one. */
   function walk(start: Node, alternatives: string[] = []): string[] {
     const out: string[] = [];
-    // The branches of the turn being written, which wait until it ends: those from its start, then those from its
-    // second edge. The branches in place of the next turn wait for that turn.
+    // The variations of the turn being written, which wait until it ends: those from its start, then those from its
+    // second edge. The variations in place of the next turn wait for that turn.
     let node: Node | undefined = start, first = true, waiting = alternatives;
     while (node) {
       if (startsTurn(node)) out.push(`${numberOf(node)}.`);
@@ -112,8 +112,8 @@ export function annotatedRecord({ R, unit, tags, result, clocks = [], branches =
       const endsTurn = !next || startsTurn(next);
       out.push(endsTurn && node.mark ? `${node.text}${node.mark}` : node.text);
       if (node.comment) out.push(`{ ${node.comment} }`);
-      if (endsTurn) { out.push(...waiting); waiting = texts; } // this turn's branches, then the next turn's wait
-      else waiting = [...waiting, ...texts]; // branches from this turn's second edge
+      if (endsTurn) { out.push(...waiting); waiting = texts; } // this turn's variations, then the next turn's wait
+      else waiting = [...waiting, ...texts]; // variations from this turn's second edge
       first = false;
       node = next;
     }

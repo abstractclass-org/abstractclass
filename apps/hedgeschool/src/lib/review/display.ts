@@ -1,5 +1,5 @@
 // The review's display settings (docs/design/06-review-layout.md): what the labels judge (design 10), the win chance's
-// form, the board's layers, the chart's score line, and how the engine's line and the branches show (design 07). Kept
+// form, the board's layers, the chart's score line, and how the engine's line and the variations show (design 07). Kept
 // in this browser: there are no accounts yet. Storage can be blocked (a private window, blocked site data), so every
 // read and write may fail, and the defaults then hold.
 import { DEFAULT_LAYERS, type BoardLayers } from "#lib/board/Board.svelte";
@@ -9,7 +9,7 @@ import type { MapStyle } from "@abstractclass/review/ownership.ts";
 import type { Display as ViewDisplay } from "@abstractclass/review/game.ts";
 
 /** The settings of the review's view (@abstractclass/review/game.ts, Display, which says what each does), with Hedge
- *  School's board's layers (board/Board.svelte: its regions and its protected edges, beside the view's) and its sets of
+ *  School's board's layers (board/Board.svelte: its regions and its invincible edges, beside the view's) and its sets of
  *  move sounds (src/lib/sound.ts). */
 export interface Display extends ViewDisplay {
   layers: BoardLayers;

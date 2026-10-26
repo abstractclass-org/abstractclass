@@ -1,7 +1,7 @@
-// A reviewed game as a file (design 13): the game's record, the player's branches, and the engine's results for every
-// position of the game and its branches, so that another browser opens the review without searching again. The
+// A reviewed game as a file (design 13): the game's record, the player's variations, and the engine's results for every
+// position of the game and its variations, so that another browser opens the review without searching again. The
 // results are keyed by the engine's build and network (@abstractclass/analysis/cache.ts), so a browser whose site ships
-// another network keeps the game and its branches, and its review searches again with its own engine. KaTrain keeps its
+// another network keeps the game and its variations, and its review searches again with its own engine. KaTrain keeps its
 // analysis in its SGF files in the same spirit. The game's record alone, with evaluations and labels, is the annotated
 // record (review/annotate.ts).
 import { atShape, makeEarlierRemovalDue, isAnalysisKey, ofModels, readAnalysisKey, readable } from "@abstractclass/analysis/cache.ts";
@@ -33,9 +33,9 @@ export interface ReviewFile {
  *  file), the network's id and name, the review's depth, and when it ended. */
 export interface FileReview extends ReviewMark { networkName: string }
 
-/** The moves of every position of a game and its branches, as the results' keys spell them: the record's own moves on
- *  the game's line, and a branch node's path key off it (@abstractclass/analysis/analysis.svelte.ts, engineMoves).
- *  Version 1 kept a branch as its line: each node of it. */
+/** The moves of every position of a game and its variations, as the results' keys spell them: the record's own moves on
+ *  the game's line, and a variation node's path key off it (@abstractclass/analysis/analysis.svelte.ts, engineMoves).
+ *  Version 1 kept a variation as its line: each node of it. */
 export function positionKeys(moves: string[], branches: KeptBranches | null): Set<string> {
   const out = new Set(prefixKeys(moves));
   if (branches?.version === 1) for (const line of branches.lines) for (const k of prefixKeys(line)) out.add(k);
@@ -117,7 +117,7 @@ export async function loadReviewFile(text: string, manifest: Manifest | null): P
   return { id, file };
 }
 
-/** The branches kept for a game after an import: the kept ones first, in their order, then the file's that are new, after
+/** The variations kept for a game after an import: the kept ones first, in their order, then the file's that are new, after
  *  them in the file's order. */
 export function mergeBranches(kept: KeptBranches | null, added: KeptBranches | null): KeptBranches | null {
   const mine = branchNodes(kept), theirs = branchNodes(added);
@@ -176,7 +176,7 @@ export const reviewExports = (partner: string | null = null): ExportItem[] => [
 /** What an export tells the player beyond the menu's own note, and a share link's length (design 17 counts it). */
 export interface ExportResult { note?: string; linkLength?: number }
 
-/** The link that shares a game's review (share.ts): its record, its branches, and the engine, network and visits of its
+/** The link that shares a game's review (share.ts): its record, its variations, and the engine, network and visits of its
  *  review (the game's mark: the deepest review that ran to its end). */
 async function shareLink(id: string, origin: string): Promise<string> {
   const stored = await loadGame(id), mark = stored?.game.reviewed;
@@ -186,7 +186,7 @@ async function shareLink(id: string, origin: string): Promise<string> {
                                             tags: stored.record.tags, moves: stored.record.moves, branches })}`;
 }
 
-/** Keeps a shared review's game and branches in this browser, beside the branches it may have already, and the sender's
+/** Keeps a shared review's game and variations in this browser, beside the variations it may have already, and the sender's
  *  network and depth with the game (`network`: this site's id of the sender's network, null when it has no such
  *  network). Its review is not in the link: the review page searches again. Returns the game's id. */
 export async function importShare(shared: SharedReview, network: string | null): Promise<string> {
@@ -220,7 +220,7 @@ export async function deliverExport(kind: ExportKind, id: string, record: string
     return {
       linkLength: link.length,
       note: link.length > DISCORD_LIMIT
-        ? `Link copied: ${n} characters, more than a Discord message takes (${DISCORD_LIMIT.toLocaleString("en")}). Delete some branches, or send the review file.`
+        ? `Link copied: ${n} characters, more than a Discord message takes (${DISCORD_LIMIT.toLocaleString("en")}). Delete some variations, or send the review file.`
         : `Link copied (${n} characters). The recipient's browser reviews the game again.`,
     };
   }
@@ -234,7 +234,7 @@ export async function deliverExport(kind: ExportKind, id: string, record: string
   else download(name.replace(/\.json$/, ".txt"), text, "text/plain");
 }
 
-/** Keeps a review file's game, branches and results in this browser. `models` are the networks that this site ships
+/** Keeps a review file's game, variations and results in this browser. `models` are the networks that this site ships
  *  (their SHA-256): results of another network are left out, since this site's engine never asks for them. `modules` are
  *  the engine modules of this site's search (their SHA-256). The file's review is the game's mark when it ran with a
  *  network kept: done here when it ran with one of these modules, else a review by an earlier engine, which opens as

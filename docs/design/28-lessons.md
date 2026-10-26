@@ -17,7 +17,7 @@ in the early access (design 11).
    a line of the position notation (the /notation page) in the course's file. The page sends it to the engine as the
    query's `position`, and ignores `describe`'s `check`: whether a game can reach the position.
    - Blue moves on every board, at the start of a turn of two edges (`b2`, with 3 edges played). So the board after
-     the step's edge is still in Blue's turn: the scores do not change yet, and Red's protected edge stays protected.
+     the step's edge is still in Blue's turn: the scores do not change yet, and Red's invincible edge stays invincible.
    - A player with no edges has `-` in place of its list, as the notation writes it. No board needed a change.
 2. **The engine's rules for the input,** as on the puzzles page: `describe` gives the edge input the legal edges and
    the mover's nodes. The first point must be one of Blue's nodes, and the board marks the legal ends from it. A
@@ -29,8 +29,8 @@ in the early access (design 11).
    - "Draw an edge": every legal edge does the task.
    - "Close a region": Blue's area grows by the square's 9. A diagonal closes a triangle of 4.5.
    - "Cut an enemy edge": the edge cuts an enemy edge.
-   - "Protected edges": the edge cuts an enemy edge that was not protected. The engine refuses an edge that would cut
-     the protected one.
+   - "Invincible edges": the edge cuts an enemy edge that was not invincible. The engine refuses an edge that would cut
+     the invincible one.
 5. **A legal edge that fails the task is not placed.** The step shows its hint ("Not quite. …"), and the board stays
    as it was. The visitor can enter another edge at once, or press "Try again".
 6. **Before the engine answers,** the page draws the step's line as the board editor reads it: the edges and their
@@ -63,7 +63,7 @@ in the early access (design 11).
 - A new step is a position line, a goal, a hint, a task test on the engine's boards and the text after it. The unit
   tests play each step's edges on the engine.
 - A step's text must agree with the engine's board. The unit tests check the texts' facts: the square's area of 9,
-  Red's nodes gone after the cut, and the protection kept for the rest of the turn.
+  Red's nodes gone after the cut, and the invincibility kept for the rest of the turn.
 - The board after an edge shows the new edge as the site shows a placed edge: wide, with a white line along it.
 - Learn loads the engine's CPU module (1.4 MB) and its library, with no network, as the puzzles page does. It loads
   them when the visitor opens the first lesson, so a visit to the map alone loads no engine.

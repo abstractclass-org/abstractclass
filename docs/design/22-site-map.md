@@ -23,7 +23,7 @@ ask where it goes (design 21): with that choice, "import" again names what the p
    | `/import#<record>` | an older tool's bare record: the same choice as for a tool |
    | `/import` | the tools page |
    | `/review#game=<id>` | a game kept in this browser |
-   | `/review#packed=<code>` | a shared review: its game, branches and engine settings (design 13) |
+   | `/review#packed=<code>` | a shared review: its game, variations and engine settings (design 13) |
    | `/review#from=<origin>` | a review that a partner's page kept, sent back by window messages (design 18) |
    | `…&save=<url>` | with `record=` or `from=`: the partner's page that "Save to" opens (design 18) |
    | `/review#tool=…` | the import page's choice, for a tool from before the import page (item 4) |
@@ -99,9 +99,9 @@ ask where it goes (design 21): with that choice, "import" again names what the p
      scrolls.
    - **Home:** what Hedge School is, and Practice as its first call to action ("Practice against bot"), beside a
      board that plays scenes from reviewed games as the review shows them judged by edge: the engine's first three
-     candidates before each edge, and each edge's label on it (`src/lib/home/HomeReplay.svelte`). The board alone: no caption,
-     and no row of players, points or win chance above it, which were more than the home page needs. An edge every 1
-     to 2 seconds, at random, as players take their time. Each scene is the 9 turns
+     candidates before each edge, and each edge's label on it (`src/lib/home/HomeReplay.svelte`). The board alone: no
+     caption, and no row of players, points or win chance above it, which were more than the home page needs. An edge
+     every 1 to 2 seconds, at random, as players take their time. Each scene is the 9 turns
      before a game's latest edge with a bad label, and that edge. It holds before that edge and on its label. The
      games are the owner's bot's against another bot on meaf.us, with no names shown (`scripts/home-replay.mjs`, from
      the games' review files). Then the ways in for a game played elsewhere: the Review tab, the Analysis board and

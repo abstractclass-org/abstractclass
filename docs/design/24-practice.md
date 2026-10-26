@@ -72,7 +72,7 @@ How strong each setting plays against people is not measured yet.
    - **The record and the move list number the turns from the start's own** (the engine repository's design 04,
      "The turns after a set-up start"): `51...` when the start is at a turn's second edge.
 5. **During the game, the review's layout and parts** (design 06): the review's row above the board, with the
-   players' names, points and areas and the bar centred on the board, the board as large as the window lets it be,
+   players' names, scores and areas and the bar centred on the board, the board as large as the window lets it be,
    with the player's notes on it (design 07, kept for each position while the page is open, as in the review), and a
    side column of Lichess's width (250 to 350 pixels). The side column has the bot's settings and where it runs, whose
    turn it is, the review's move list (its spacing, its columns of edges and its outlines), and the review's bar
@@ -81,9 +81,9 @@ How strong each setting plays against people is not measured yet.
    for one row, the steps then spanning the column (design 06). While the bot starts, a skeleton of the same layout:
    the cards with the players' names (the review's `PlayerCardSkeleton`), the empty board's points, bars for the
    moves of a kept game, and the bar with its actions off. Before the page's code runs, the page shows nothing: it
-   cannot know whether the card or a game comes. The game's own state only: no evaluation, no engine lines and no labels, as on Lichess. The
-   display settings are the review's where they apply: the regions, the protected edges and the move sounds. The
-   cards are the review's, two lines each. The bot's settings are in the side column's first line.
+   cannot know whether the card or a game comes. The game's own state only: no evaluation, no engine lines and no
+   labels, as on Lichess. The display settings are the review's where they apply: the regions, the invincible edges and
+   the move sounds. The cards are the review's, two lines each. The bot's settings are in the side column's first line.
 6. **The bot's time, not its visits:** while the bot searches, the line says so, with the seconds so far, and then how
    long its last turn took. GTP's `genmove` answers only with the move, so the page cannot show the visits so far. The
    time tells the player whether the machine copes with the visits set.
@@ -96,7 +96,7 @@ How strong each setting plays against people is not measured yet.
    Resign are red under the pointer and confirmed first, with a red button. No New game button during the game:
    - **Abort,** at any time: the game ends with no result, and goes into Your games as unfinished (`*`) when it has
      moves, so that it can still be reviewed. This departs from Lichess, which offers Abort only before the first
-     move: a game here has no clock and no opponent who waits, and an aborted game can still teach in its review.
+     move: a game here has no clock and no enemy who waits, and an aborted game can still teach in its review.
    - **Resign,** at any time, also while the bot searches: HedgeFund wins (`r+R` or `b+R`, as the meaf.us reader writes
      a resignation, with the tag `Termination "resignation"`).
    - **At the end** (the rules', or a resignation): the result, Review the game, and New game, which returns to the
@@ -119,9 +119,9 @@ How strong each setting plays against people is not measured yet.
     - **The points bar** (on by default): each player's share of the points so far, drawn as the review's win chance.
       While it is on, two more settings: its direction, horizontal above the board (the default) or vertical beside
       it, and the area.
-    - **The area** (off by default): a second, thinner lane, each player's area against their own points, under their
-      own part of the bar. With 300 points and an area of 50, Blue's lane is a sixth of Blue's part. A player with an
-      area and no points yet has a full lane. The share falls as the points grow, so the lane is long early and short
+    - **The area** (off by default): a second, thinner lane, each player's area against their own score, under their
+      own part of the bar. With a score of 300 and an area of 50, Blue's lane is a sixth of Blue's part. A player with
+      an area and no score yet has a full lane. The share falls as the score grows, so the lane is long early and short
       late.
 13. **A game across a release:** the kept game holds its moves and its settings, not the bot's state. A new build
     continues it from its moves alone (`clear_board`, then `play` for each edge), as the engine repository checked.

@@ -12,7 +12,7 @@ import { setUpStart } from "#lib/engine/notation.ts";
 import { modelOf, moduleOf, searchModules, type Manifest } from "@abstractclass/engine/client.ts";
 import type { GamePartner } from "./partners.ts";
 
-// The tree of a game's analysis as the browser keeps it, in the branches' store: the shared analysis's
+// The tree of a game's analysis as the browser keeps it, in the variations' store: the shared analysis's
 // (@abstractclass/analysis/kept.ts). A kept node is a BranchNode here.
 export { BOARD_ID, branchNodes, keptNode, type KeptBoard, type KeptBranches, type KeptNode as BranchNode }
   from "@abstractclass/analysis/kept.ts";
@@ -47,7 +47,7 @@ export async function setGameSettings(id: string, settings: GameSettings) {
 /** A review that ran to its end (design 13): the engine module's and the network's SHA-256 (the manifest's), the
  *  network's id, and the review's depth. A game exports only when its mark names a module of the site's search, the
  *  network set now, and the review depth set now or deeper. `search` is the module's search, which keys the review's
- *  results (@abstractclass/analysis/cache.ts): a snapshot reads them by their keys (design 20). An older mark, which
+ *  results (@abstractclass/analysis/cache.ts): a review snapshot reads them by their keys (design 20). An older mark, which
  *  the site kept before marks held their search, has none. */
 export interface ReviewMark { module: string; model: string; network: string; visits: number; at: string; search?: string }
 /** A review to compare a mark with: its mark, and the modules whose search is its module's (client.ts, searchModules). */
@@ -76,12 +76,12 @@ export function reviewAgainWhy(mark: ReviewMark | undefined, want: WantedReview 
 }
 
 /** Whether a new mark replaces a mark of another engine module or network file: the earlier one's results, which its
- *  snapshot read, may then be of no use (design 20). */
+ *  review snapshot read, may then be of no use (design 20). */
 export const replacesAnother = (before: ReviewMark | undefined, mark: Omit<ReviewMark, "at">) =>
   !!before && (before.module !== mark.module || before.model !== mark.model);
 
 /** Marks a game's review as done. A deeper mark of the same search and network stays: it takes the search's name when
- *  it has none (an older mark), so that its snapshot after a later release reads its keys. */
+ *  it has none (an older mark), so that its review snapshot after a later release reads its keys. */
 export async function markReviewed(id: string, { modules, ...mark }: WantedReview) {
   const game = await dbGet<StoredGame>(STORES.games, id), before = game?.reviewed;
   if (!game) return;
@@ -125,9 +125,9 @@ export const readGames = (games: StoredGame[]) => games.flatMap(game => {
   try { return [{ game, record: parseRecord(game.record) }]; } catch { return []; }
 });
 
-/** Deletes a game, its branches, and the Review link's pointer to it, for good: the player confirmed it (design 11).
+/** Deletes a game, its variations, and the Review link's pointer to it, for good: the player confirmed it (design 11).
  *  The site's engine's analyses stay: they belong to positions, which other games can share, and an import of the same
- *  game then opens its review from them at once. An earlier engine's, which only the game's snapshot read, go at a
+ *  game then opens its review from them at once. An earlier engine's, which only the game's review snapshot read, go at a
  *  later start, unless another game needs them (design 20). */
 export async function deleteGame(id: string) {
   await Promise.all([dbDelete(STORES.games, id), dbDelete(STORES.branches, id)]);

@@ -35,7 +35,7 @@ new builds arrive often.
   have, which sets it apart from the edges and regions under it. Its radius is 0.33 board units. On a length-1 edge,
   whose line is 0.68 units between its nodes, the badge sidesteps by 80% of its radius, up from a horizontal edge and
   right from a vertical one, and stays over the line: 0.28 units of the line show. No band is drawn behind any
-  edge: a protected edge is drawn on the edge itself, wider in its side's colour with a white line along it, and so
+  edge: an invincible edge is drawn on the edge itself, wider in its side's colour with a white line along it, and so
   are the mover's edges of this turn (placed), which no one can cut before the turn ends. These are the turns just
   played, so they show the last moves too. The board follows the theme
   (unlike both sites' boards, which have their own setting), so the player's notes have a value for each board. Plain

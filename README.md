@@ -11,9 +11,9 @@ browser, in Web Workers. Deep analyses run offline on a GPU and ship as JSON. Se
 
 **Early access:** the review only, at `hedgeschool.abstractclass.org`, unlisted
 ([docs/design/11-early-access.md](docs/design/11-early-access.md)). A player brings a game (a record in the site's
-notation, Constellation's export, or the meaf.us bookmarklet), and the engine reviews it in the browser: the labels,
-the Advantage chart, the engine's lines and the branches. The early access also has the pages About, The notation,
-Privacy and Notices.
+notation, Constellation's export, or the meaf.us bookmarklet), and the engine reviews it in the browser: the quality
+labels, the Advantage chart, the engine's lines and the variations. The early access also has the pages About, The
+notation, Privacy and Notices.
 
 The full site, built without the early-access switch, also has the puzzles, the lessons and the engine lab, on mock
 data. Analysis is not built yet.
@@ -35,7 +35,7 @@ npm run build                         # the full site, into build/
 VITE_EDITION=early npm run build      # the early access
 npm run preview                       # serve build/
 npm run build:cloudflare              # what the deploy runs: the engine's release, tests, type check, build
-npm run test:layout                   # the layout sweep in Chromium, against the preview (tests/layout.spec.ts)
+npm run test:layout                   # the layout test in Chromium, against the preview (tests/layout.spec.ts)
 HS_EDGE=1 npm run test:layout         # the same, with Edge too (the owner only; see docs/hosting.md)
 node scripts/release-check.mjs <URL>  # the checks of a deployed site (docs/hosting.md)
 ```
@@ -78,8 +78,8 @@ Web Analytics). Without them, as in development, the build has neither.
 | `.github/workflows/` | The deploy and the tests ([docs/hosting.md](docs/hosting.md)). |
 | `packages/engine/` | `@abstractclass/engine`: the engine in the browser. Its client and its CPU and GPU workers, the protocol's general types, the pool of workers. |
 | `packages/storage/` | `@abstractclass/storage`: the browser's database (IndexedDB), local storage and persistent storage. |
-| `packages/analysis/` | `@abstractclass/analysis`: the game interface, the review's model and labels, the move tree, the cache, the analysis of a game (its schedule), the engine session and the GPU control, and the turns of one move, then two. |
-| `packages/record/` | `@abstractclass/record`: the game record's frame (the tags, the turns, comments, branches, quality marks, commands and the result), with each game's moves and marks as a parameter. |
+| `packages/analysis/` | `@abstractclass/analysis`: the game interface, the review's model and quality labels, the move tree, the cache, the analysis of a game (its schedule), the engine session and the GPU control, and the turns of one move, then two. |
+| `packages/record/` | `@abstractclass/record`: the game record's frame (the tags, the turns, comments, variations, quality marks, commands and the result), with each game's moves and marks as a parameter. |
 | `packages/review/` | `@abstractclass/review`: the review's and the Analysis board's view (layout: design 06), its charts, cards, move list and step bar, and the view's game interface (design 29, item 9). |
 | `packages/site/` | `@abstractclass/site`: the sites' frame (the colour tokens, the header's bar and the page's area, the theme, the page's metadata) and their general controls (the icons, the toast, the settings' parts). |
 | `apps/hedgeschool/` | Hedge School, the site. The paths below start there. |
@@ -93,6 +93,6 @@ Web Analytics). Without them, as in development, the build has neither.
 | `src/lib/book/`, `scripts/test-book.mjs` | The opening book's file form, its loader and the converter that makes the test book (design 32). |
 | `tests/fixtures/` | The browser tests' data, and the test book that the dev and preview servers serve at `/test-book/`. |
 | `src/lib/mock/`, `scripts/mock/` | Mock data for the wireframes, and how it was made. |
-| `scripts/measure/` | The measurements behind the labels (their results: `docs/decisions/`). |
+| `scripts/measure/` | The measurements behind the quality labels (their results: `docs/decisions/`). |
 | `engine.lock.json`, `scripts/fetch-engine.mjs` | The engine's artifacts, pinned by SHA-256. |
 | `static/engine/` | The engine's artifacts, fetched. Not in Git. |

@@ -136,7 +136,7 @@
   let sweep = $state<{ rows: SweepRow[]; machine: string[] } | null>(null);
   let copied = $state(false);
   const params = (id: string) => NETWORKS.find(n => n.id === id)?.params ?? id;
-  // A Lite review of the whole game: the sweep and the label pass of every position.
+  // A Lite review of the whole game: the sweep and the label stage of every position.
   const liteMinutes = (vps: number) => (MOVES.length * (SWEEP_VISITS + REVIEW_PRESETS.lite)) / vps / 60;
 
   async function machine(): Promise<string[]> {

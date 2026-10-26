@@ -125,7 +125,7 @@ window.addEventListener("message", event => {
       <code>{"{ type: \"hedge-school:saved\" }"}</code>, or <code>{"{ type: \"hedge-school:failed\", message }"}</code>.</li>
   </ol>
   <pre>{SAVE}</pre>
-  <p>{SITE_NAME} waits a minute for each answer. Each save sends the game's whole review so far: its branches hold those
+  <p>{SITE_NAME} waits a minute for each answer. Each save sends the game's whole review so far: its variations hold those
     of the earlier save, and its results only grow. Store it in the place of the earlier one, or keep each version if
     your site wants a history.</p>
 

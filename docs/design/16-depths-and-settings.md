@@ -5,7 +5,7 @@
 ## Context
 
 A review searches the same position more than once, at several depths, for different reasons: a quick sweep, the
-label pass, the confirmation of a Great, and the position the player looks at. Each search can end in the browser's
+label stage, the confirmation of a Great, and the position the player looks at. Each search can end in the browser's
 store, in a review file, and in another browser. The settings that set these depths can be the browser's
 or the game's own. The rules are in designs 05, 09, 10 and 13. This document puts them in one place, with examples,
 because together they make an interaction that is hard to see from any one of them.
@@ -20,10 +20,10 @@ settings are always the ones kept in the browser.
 | Search | Which positions | Visits |
 |---|---|---|
 | The sweep | every position of the game | 32, for the chart's first estimate |
-| The label pass | every position of the game | D: Lite 512, Standard 1,024, Custom 256 to 16,384 |
+| The label stage | every position of the game | D: Lite 512, Standard 1,024, Custom 256 to 16,384 |
 | A Great's confirmation | the position after the engine's second choice (or the turn's other candidate) | D, or deeper: as deep as the position after the played move (section 3) |
 | The position on screen | the one the player looks at | the Depth setting, P: 256 to 16,384, 1,024 by default, with a time limit (30 s by default) |
-| A branch move evaluated on request | the branch's positions | D |
+| A variation move evaluated on request | the variation's positions | D |
 
 The engine searches the position on screen only when it holds less than P. A label shows from 256 visits on, at every D.
 Every label of the review has D: a player who wants surer labels sets a deeper D.
@@ -65,10 +65,10 @@ than D, the confirmation searches as deep: the largest doubling of D within that
 
 ### 5. What leaves the browser
 
-- **A review file** (design 13) carries every stored result of the game's positions, of its branches' positions, and of
-  the positions one move from them (the Greats' confirmations), at every depth, and the finished review's network and
+- **A review file** (design 13) carries every stored result of the game's positions, of its variations' positions, and
+  of the positions one move from them (the Greats' confirmations), at every depth, and the finished review's network and
   D. An import with the file's settings searches nothing.
-- **A share link** (design 13) carries the record, the branches, and the network and D. It carries no results: the
+- **A share link** (design 13) carries the record, the variations, and the network and D. It carries no results: the
   recipient's browser runs the review's own searches (section 1), and gets the same results for them with the same
   engine search (on a GPU, the network's arithmetic differs a little: design 15). It does not carry the sender's deeper
   looks (example 9).
@@ -91,7 +91,7 @@ The examples use a game of 120 edges and HedgeFund 0.1 Lite, unless they say oth
 Lite (D = 512), P = 1,024, and a time limit of 30 s.
 
 1. **A review, as it runs.** The sweep searches the 120 positions to 32 visits, and the chart draws a faint line. The
-   label pass searches them to 512, and the labels come. Say 3 moves are the first choice with a gap of 10% to the
+   label stage searches them to 512, and the labels come. Say 3 moves are the first choice with a gap of 10% to the
    second: the positions after the 3 second choices go to 512, and the 3 moves become Great or stay Best. The report has
    no note: every result is what the review asked for.
 2. **The player looks at a position.** The player steps to the position after move 40. It holds
@@ -124,12 +124,12 @@ Lite (D = 512), P = 1,024, and a time limit of 30 s.
    positions were searched deeper than the review". In that game, Bob changes the depth per move to Standard: the game
    keeps HedgeFund 0.1 and 1,024 now, and his other games still use Lite and 512.
 9. **A share link of the same review.** Alice shares a link of the same game instead. Bob's game keeps HedgeFund 0.1
-   and 4,096, and his browser runs the review's searches: the sweep, the label pass at 4,096, and the
+   and 4,096, and his browser runs the review's searches: the sweep, the label stage at 4,096, and the
    Greats' confirmations. These give Alice's results. The link does not carry her 10 deeper looks, so at those
    10 positions Bob's labels are the review's own, and they can differ from Alice's until Bob looks there with
    P = 16,384. For everything, a review file is the way.
 10. **A review file from before the Greats' confirmations were in it.** A file exported before 2026-10-13 holds the
-    game's and the branches' positions only. Its import at the same settings searches the positions after the second
+    game's and the variations' positions only. Its import at the same settings searches the positions after the second
     choices again, and the bar shows "Reviewing: confirming Great moves" until they end. A new export of the review
     holds them.
 
@@ -152,7 +152,7 @@ Lite (D = 512), P = 1,024, and a time limit of 30 s.
 
 - **The review's own depth from the store, and deeper results only where the player looks again:** a label could change
   after a reload, and a review file's deeper results showed only where the importer looked.
-- **The worst moves at 2 × D,** after the label pass: they got about the labels that a review at 2 × D gives them,
+- **The worst moves at 2 × D,** after the label stage: they got about the labels that a review at 2 × D gives them,
   for 31.2% of the review's visits, and a move's depth then hung on how bad it looked.
 - **The browser's settings changed by an import:** every later review used them, until the player changed them back.
 - **A share link with the deeper looks:** they are results, not settings, and the link holds no results. A review file

@@ -1,10 +1,10 @@
 // The site's store in the browser (IndexedDB): analyses (@abstractclass/analysis/cache.ts), the player's games (Hedge
-// School's src/lib/game/store.ts), and the branches a player adds to a game's review
+// School's src/lib/game/store.ts), and the variations a player adds to a game's review
 // (@abstractclass/analysis/analysis.svelte.ts). A player's data lives here until a server exists
 // (docs/design/04-product-shape.md). Storage can fail (a private window, blocked site data): then every call answers as
 // if the store were empty, and the site still works.
 //
-// Versions: 1 had the analyses. 2 adds the games. 3 adds the branches. An upgrade only adds stores, so data is never
+// Versions: 1 had the analyses. 2 adds the games. 3 adds the variations. An upgrade only adds stores, so data is never
 // lost.
 
 const NAME = "learn-enclosure", VERSION = 3;

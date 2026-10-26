@@ -1,4 +1,4 @@
-// The map pass's time (design 30): tests/fixtures/hedgefund-review.json with the ownership removed from every result,
+// The map stage's time (design 30): tests/fixtures/hedgefund-review.json with the ownership removed from every result,
 // as a review stored before the maps, imported and reviewed (its results are all there: no search), the engine idle
 // (no search running for a second), then the area map turned on (the key t). From there to the pass's end: the
 // review's line "Maps: n of n" gone and "Review done" back. In Playwright's Chromium, headless, 1,366 × 900 pixels,

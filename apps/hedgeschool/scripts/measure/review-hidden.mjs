@@ -18,7 +18,7 @@
 //     its last search's final reply. The display's lag: from that reply to sweep:end;
 //   - the search workers' speed: the sweep searches' visits over the workers' own time for them (the reply's `ms`),
 //     and the same for the searches in slices of 32 visits (the position on screen) and of 256 (the
-//     label pass, the Greats' confirmations): between two slices, the worker yields (packages/engine/src/channel.ts,
+//     label stage, the Greats' confirmations): between two slices, the worker yields (packages/engine/src/channel.ts,
 //     searchInSlices);
 //   - the gaps between one engine's searches (speed.mjs, sweepGaps), and the pool's times with no search running, from
 //     the sweep's start to the run's end: the longest, and each one over 50 ms;
@@ -32,7 +32,7 @@
 //   - the search workers that ended before the run's end (the pool's idle release, IDLE_RELEASE_MS in
 //     packages/engine/src/pool.ts), and the workers made after the sweep's start;
 //   - in a hidden tab, each renderer process's priority class and Windows' power throttling (EcoQoS), from PowerShell.
-// The end: `sweep` stops a run once a search after the sweep has ended (the label pass's first), or 60 s after the
+// The end: `sweep` stops a run once a search after the sweep has ended (the label stage's first), or 60 s after the
 // sweep's end. `review` stops it at Review done, and reads when each step of the progress line started.
 //
 //   node scripts/measure/review-hidden.mjs <build> [runs] [set-ups] [browsers] [end] [port]

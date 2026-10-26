@@ -1,4 +1,4 @@
-// Constellation's game export (constellation.blueshrimp.uk, the analysis board's Export), turned into this site's
+// Constellation's game export (constellation.blueshrimp.uk, the Analysis board's Export), turned into this site's
 // game record (design 11, "Constellation's export"). The export is one line: the start, then one item for each turn.
 //
 //   [B:A10-D10 R:P10-S10] D10-A7 P10-M10-J7 A7-A10,A7-D4 …

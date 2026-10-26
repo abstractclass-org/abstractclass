@@ -76,7 +76,7 @@ export class EngineSession<G extends GameTypes> {
       untrack(() => { if (game()?.engineReady) void this.gpu?.apply(mode); });
     });
     // The position on screen is searched once the network is loaded, and again when the player moves (on the game's
-    // line or in a branch), when the engine is on again, or when its depth changes.
+    // line or in a variation), when the engine is on again, or when its depth changes.
     $effect(() => {
       const g = game(), path = position();
       if (!g?.engineReady || g.paused) return;
@@ -101,7 +101,7 @@ export class EngineSession<G extends GameTypes> {
   }
 
   /** Starts the next pool's rules worker with the manifest, before the page chooses that pool: the review's (start) or
-   *  a snapshot's (design 20), which takes it (takeRules). The worker needs only the manifest, so the rules answer
+   *  a review snapshot's (design 20), which takes it (takeRules). The worker needs only the manifest, so the rules answer
    *  sooner. Once the session has ended, it starts none. */
   startRules(manifest: Manifest) {
     if (this.#ended || this.#rules) return;
@@ -125,7 +125,7 @@ export class EngineSession<G extends GameTypes> {
   }
 
   /** Starts a pool with the settings' network, for the analysis that `make` builds on it once the rules work. Then
-   *  `onRules` runs with it and the new pool, before the network loads, and the pool in use before (a snapshot's)
+   *  `onRules` runs with it and the new pool, before the network loads, and the pool in use before (a review snapshot's)
    *  ends. A network chosen before that waits for the analysis, and then applies to it (#useNetwork). Answers the
    *  analysis once the network is loaded. The pool then releases its engines when idle, and the GPU joins it, unless
    *  the rules refused the analysis. When another network was chosen meanwhile, the next pool takes over once it
@@ -167,7 +167,7 @@ export class EngineSession<G extends GameTypes> {
   /** Another network: a new pool loads it for the analysis that start() made, while the old pool still answers the
    *  board's rules. The analysis starts again, since every result came from the old network. The new network's results
    *  kept from earlier come from the cache, which keys them by network. Nothing changes while the analysis is frozen,
-   *  or until the page shows the analysis of start(): the page's analysis is then a snapshot's or none, and start()
+   *  or until the page shows the analysis of start(): the page's analysis is then a review snapshot's or none, and start()
    *  gives the network to its own analysis. Once the session has ended, no pool starts. */
   async #useNetwork(id: string) {
     const g = this.#analysis;

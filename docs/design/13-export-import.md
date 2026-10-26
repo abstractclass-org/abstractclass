@@ -4,7 +4,7 @@
 
 ## Context
 
-A review lives in one browser: its game, the player's branches and the engine's results are in that browser's store
+A review lives in one browser: its game, the player's variations and the engine's results are in that browser's store
 (IndexedDB). A player wants to take a reviewed game to another browser or device, or share it, without the engine
 searching it again, and to share it as text that others can read.
 
@@ -12,12 +12,12 @@ searching it again, and to share it as text that others can read.
 
 1. **Two exports** (Lichess offers both a study's PGN and its own analysis. KaTrain can keep its analysis in its SGF
    files):
-   - **The review file** (`.json`): the game's record, the player's branches, and the engine's results for every
-     position of the game and its branches (`src/lib/game/reviewFile.ts`). Loading it opens the review at once.
+   - **The review file** (`.json`): the game's record, the player's variations, and the engine's results for every
+     position of the game and its variations (`src/lib/game/reviewFile.ts`). Loading it opens the review at once.
    - **The annotated record** (text, copied or as a `.txt` file): the game in the site's notation, with the engine's
      view after each edge (`[%eval W L S]`), each Inaccuracy, Mistake, Blunder and Great as a comment ("Mistake. D10-G9
      G9-H10 was best.", Lichess's words), "A hard position." where the review marks one (design 14), the record's
-     clocks, a note of the network (its name and id) and the depth, and the player's own lines as branches
+     clocks, a note of the network (its name and id) and the depth, and the player's own lines as variations
      (`src/lib/review/annotate.ts`). The note's depth is the least visits among the game's searches, read from the
      results: the review depth set in the browser may differ from the depth of the stored results' searches.
      Its labels follow the page's "Review by" (turns or edges). Lines are at most 80 characters, as PGN's export format
@@ -30,15 +30,15 @@ searching it again, and to share it as text that others can read.
      (design 22, the words). The tab builds its annotated record from the stored results, with no
      search: the engine reads the rules only.
 3. **Only a finished review exports,** every kind of export. A review is finished when every step of its bar is done:
-   the sweep, the label pass and the Greats' confirmations. When the browser's
+   the sweep, the label stage and the Greats' confirmations. When the browser's
    store holds the results of every step, the review is finished, and exports, before the engine's network loads
    (design 06). Until the review is finished, the Export button is off, and its tooltip says why: "Export once the
    review is done." on the review page, and "Open the game to review it, then export." (or "to finish its review") in
    the Review tab.
    - **The mark of a finished review:** when a review ends, the browser keeps it with the game
      (`StoredGame.reviewed` in `src/lib/game/store.ts`): the engine module's and the network's SHA-256 (from the
-     site's manifest), the module's search, the network's id, the review's depth, and the time. A snapshot reads the
-     results of the mark's search by their keys (design 20). An older mark, kept before marks held their search, has
+     site's manifest), the module's search, the network's id, the review's depth, and the time. A review snapshot reads
+     the results of the mark's search by their keys (design 20). An older mark, kept before marks held their search, has
      none.
      The home page reads the marks, so it needs no engine to know which games can export. A game exports when its
      mark names the site's engine module and the network set now, at the review depth set now or deeper. A deeper
@@ -51,8 +51,8 @@ searching it again, and to share it as text that others can read.
      review: the game's mark, with the network's name, as "HedgeFund 0.1 Lite"), `record`, `branches` (as the browser
      keeps them), and `analyses`: each result with its key in the browser's store (the store's shape, the engine's
      build, the network's SHA-256, the visits, and the position's moves).
-   - The game's results only: the positions of its line (the record's own moves) and of its branches (their path keys),
-     and the positions one move from them, which confirm the Greats (`confirmGreats` in
+   - The game's results only: the positions of its line (the record's own moves) and of its variations (their path
+     keys), and the positions one move from them, which confirm the Greats (`confirmGreats` in
      `packages/analysis/src/analysis.svelte.ts`: the position after the engine's second choice, searched to the review's
      depth). Without them, an import with the same settings searched the Greats' confirmations again: on the owner's
      game at 4,096 visits with the larger network, 5 such searches ran after the import.
@@ -65,8 +65,8 @@ searching it again, and to share it as text that others can read.
      it reads (its own, and the ones before it that it still reads, design 05) and searches the rest again. One
      number suffices, unlike the engine protocol's `MAJOR.MINOR`: one program writes and reads the file, and a visitor
      always has the newest copy of it, so only older files reach a reader.
-5. **A load:** the site reads and checks the file: its format, version, record and branches. It drops an entry that
-   is not a result. It keeps the game as it keeps a pasted record. The file's branches join the browser's own for that
+5. **A load:** the site reads and checks the file: its format, version, record and variations. It drops an entry that
+   is not a result. It keeps the game as it keeps a pasted record. The file's variations join the browser's own for that
    game: the browser's first, in their order, then the file's new ones. It keeps the results of the networks that this
    site ships, and leaves out the others. When the file's review ran with this site's engine module and a network it
    ships, the game keeps its mark too, so that it exports at once. When the file's review ran with a network that the
@@ -83,36 +83,36 @@ searching it again, and to share it as text that others can read.
    - The Review tab's Export of the game asks for a review with the game's own settings.
 6. **Another engine:** the browser's store keys the results by the engine's build and network. An import keeps the
    file's mark when the site ships its network file, whatever the engine, and a mark of the site's engine stays over
-   an earlier engine's. A file from an earlier engine therefore opens as a snapshot of its review (design 20), and
-   Review again searches with the site's engine. The mark keeps the search that the file's review names. An older
-   file's review names none: its snapshot reads every key of the store (design 20). An import into a site that ships
-   another network keeps the game and the branches, and the review searches again.
+   an earlier engine's. A file from an earlier engine therefore opens as a review snapshot of its review (design 20),
+   and Review again searches with the site's engine. The mark keeps the search that the file's review names. An older
+   file's review names none: its review snapshot reads every key of the store (design 20). An import into a site that
+   ships another network keeps the game and the variations, and the review searches again.
 7. **A deeper result answers a shallower question:** a review asks for each position at its own budget (32 visits, the
-   label pass, the review's depth), and takes the deepest result the store has at that budget or deeper
+   label stage, the review's depth), and takes the deepest result the store has at that budget or deeper
    (`cacheGetAtLeast` in `packages/analysis/src/cache.ts`), as the review already takes a deeper result it holds in
    memory. So the file's deeper results, from the position on screen where the sender looked (design 09), count
    everywhere in the importer's review. Design 16 has every depth, and what a file and a link carry, with examples.
    So a file searched to 1,024 visits opens at once in a browser whose review depth is 512.
 8. **A link that shares a review** (the Export menu's first entry but for item 9's, "Copy a link to share the review",
-   `src/lib/game/share.ts`): the game's record, the player's branches, and what the review ran with (the engine
+   `src/lib/game/share.ts`): the game's record, the player's variations, and what the review ran with (the engine
    module's and the network's SHA-256, their first 4 bytes, and the review's visits), after the review's `#`
    (`/review#packed=…`, design 22). The browser never sends that part of an address to a server.
    - **It holds no results:** the recipient's browser reviews the game again. So it does not carry the sender's deeper
      looks at positions (design 16, example 9): a review file does. The engine gives the same results for
      the same build, network and visits, so the review is the sender's. On a GPU the network's arithmetic differs a
      little (design 15), so a close call can rarely come out otherwise.
-   - **The recipient's page** says so before anything runs: the game, its branches, and the sender's network and depth.
-     "Review it" keeps the game and the branches (beside the recipient's own), and the sender's network and depth for
-     that game alone, as an imported file's game keeps them (item 5), and opens the review. The page says that the
-     recipient's settings for other games stay, when the site no longer has the sender's network (the review then uses
-     the recipient's), and when the site's engine changed after the sender made the link.
-   - **Its format:** bits, in base64url: each move as two points of 9 bits, the branches as a tree (a node's edge, 1
+   - **The recipient's page** says so before anything runs: the game, its variations, and the sender's network and
+     depth. "Review it" keeps the game and the variations (beside the recipient's own), and the sender's network and
+     depth for that game alone, as an imported file's game keeps them (item 5), and opens the review. The page says that
+     the recipient's settings for other games stay, when the site no longer has the sender's network (the review then
+     uses the recipient's), and when the site's engine changed after the sender made the link.
+   - **Its format:** bits, in base64url: each move as two points of 9 bits, the variations as a tree (a node's edge, 1
      bit for "evaluated", its number of children in 1 or 2 bits for none or one), the tags as UTF-8 text. A game's
-     move costs 18 bits, and a branch's edge 20 where the branch goes on in one line. A version byte leads.
+     move costs 18 bits, and a variation's edge 20 where the variation goes on in one line. A version byte leads.
    - **The menu says what each export gives.** Under the link: "Short. The recipient's browser reviews the game
      again." Under the review file: "With the engine's results: the review opens at once."
    - **Its length:** a whole game of 120 edges with meaf.us's tags is a link of 653 characters (the tags 227 of them).
-     A branch's edge adds 3.36 characters, and each new line of branches from another position about 22. The note
+     A variation's edge adds 3.36 characters, and each new line of variations from another position about 22. The note
      after the copy gives the link's length, and warns past 2,000 characters, a Discord message's limit.
 9. **The review file saved to a partner site** ([design 18](18-partner-links.md)): a game that came by a partner
    site's link offers "Save to" that site first in the Export menu. The review file goes to the site's save page, in
@@ -149,16 +149,16 @@ searching it again, and to share it as text that others can read.
   added to shape 5, not a new shape (design 30): a file of the site before the map imports with its results, and the
   site before the map reads a file of this site whole. A file holds every result as shape 5 (`atShape`).
 - **The notation's rules for the record** (the engine repository's design 04, after
-  [requests/13-branch-placement.md](../requests/13-branch-placement.md)):
-  - A branch follows the turn it changes, after the turn's last edge, its mark and its comments. `N.` replaces the
+  [requests/13-variation-placement.md](../requests/13-variation-placement.md)):
+  - A variation follows the turn it changes, after the turn's last edge, its mark and its comments. `N.` replaces the
     whole turn: `3. D10-G9 G9-H10 (3. D10-F13 F13-G10)`. `N...` keeps the turn's first edge:
-    `4. N9-Q10 L10-N9 (4... M12-N9)`. The turn's branches from its start come first, then those from its second
+    `4. N9-Q10 L10-N9 (4... M12-N9)`. The turn's variations from its start come first, then those from its second
     edge.
   - By turn, a turn's label is also its quality mark, after its last edge and any cut mark: Great `!`, Inaccuracy
     `?!`, Mistake `?`, Blunder `??`. Best, Excellent and Good have no mark, as PGN and Lichess have none for them. By
     edge, the labels stay in comments: a mark judges a turn.
   - The note comes before the first turn, after the tags, and the `Annotator` tag names Hedge School.
-  - The site's own reader skips branches and comments, and drops a quality mark after any edge.
+  - The site's own reader skips variations and comments, and drops a quality mark after any edge.
 
 ## Where it is
 
@@ -178,5 +178,5 @@ searching it again, and to share it as text that others can read.
 ## Log entries
 
 - [decisions/product.md](../decisions/product.md): "Export and import of reviewed games" (2026-10-12), "A review
-  shared by link, and the Greats in the review file" (2026-10-13), "The snapshot reads its results by their keys"
+  shared by link, and the Greats in the review file" (2026-10-13), "The review snapshot reads its results by their keys"
   (2026-10-18), "An image of a line" (2026-10-20).

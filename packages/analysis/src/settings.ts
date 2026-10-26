@@ -25,7 +25,7 @@ export type GpuMode = "auto" | "on" | "off";
  *  shrink, so the steps stop at 16,384. */
 export const DEPTHS = [256, 512, 1024, 2048, 4096, 8192, 16384];
 /** The time limits, in seconds: Lichess's search times from 10 seconds, and no limit. A shorter limit adds little: a
- *  new search starts from zero, and shows only once it passes the label pass's 256 visits. */
+ *  new search starts from zero, and shows only once it passes the label stage's 256 visits. */
 export const TIME_LIMITS: (number | null)[] = [10, 20, 30, 60, 120, 300, null];
 /** The review's visits for each position. Under protocol 0.3, Lite finds two thirds of the mistakes that Standard's
  *  search finds, with 80% of its flags right (256 visits found 42%), and Standard is the reference of that measurement

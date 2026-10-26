@@ -5,7 +5,7 @@
 import { byPoints, canonical, edgeName, parseEdge, sameEdge, STANDARD_START } from "#lib/engine/notation.ts";
 import { turnFromCount, type Edge, type Player } from "#lib/review/enclosure.ts";
 
-/** An edge on the editor's board. `marked`: an edge of the turn, written `*` (protected: the last turn's, of the player
+/** An edge on the editor's board. `marked`: an edge of the turn, written `*` (invincible: the last turn's, of the player
  *  not to move) or `+` (placed: the turn being played, of the mover), as the edge's player and the mover decide. */
 export interface EditorEdge { edge: Edge; player: Player; marked: boolean }
 export interface EditorPosition { edges: EditorEdge[]; count: number; scores: [number, number] }

@@ -56,7 +56,7 @@ A10-D10,D10-E11,D10-F13+ Q10-T10,Q10-T13*,T10-T13* b1 0/4.5 4`;
       first: the one in the earlier column, or in the lower row when the columns are the same. So an edge has one
       spelling everywhere. A reader may accept the points in the other order and sort them.</li>
     <li><strong>A move</strong> is an edge, or <code>pass</code>: a timeout, which forfeits the rest of the turn.</li>
-    <li><strong>The cut mark:</strong> a move that cuts an opponent's edge may carry <code>x</code>:
+    <li><strong>The cut mark:</strong> a move that cuts an enemy's edge may carry <code>x</code>:
       <code>D10-G10x</code>, as SAN writes <code>x</code> for a capture. The mark repeats what the position shows. A
       reader accepts a move with it or without it, and refuses it on a move that cuts nothing.</li>
   </ul>
@@ -83,9 +83,9 @@ A10-D10,D10-E11,D10-F13+ Q10-T10,Q10-T13*,T10-T13* b1 0/4.5 4`;
   <p>A writer sorts each list by the edges' first points, then by their second points, a point by its column, then by
     its row. Two marks on an edge carry the turn:</p>
   <ul>
-    <li><code>*</code>: <strong>protected</strong>, an edge of the last turn of the player who is not to move. The
+    <li><code>*</code>: <strong>invincible</strong>, an edge of the last turn of the player who is not to move. The
       player to move cannot cut it during this turn.</li>
-    <li><code>+</code>: <strong>placed</strong>, an edge of the turn in progress. It becomes protected when the turn
+    <li><code>+</code>: <strong>placed</strong>, an edge of the turn in progress. It becomes invincible when the turn
       ends.</li>
   </ul>
   <p>The start, then the positions after Blue's first turn, after Red's first edge, and after Blue's first edge of turn
@@ -140,10 +140,10 @@ A10-D10,D10-E11,D10-F13+ Q10-T10,Q10-T13*,T10-T13* b1 0/4.5 4`;
   <p>Each turn is its number and a dot, then its moves: <code>2. N11-Q10 L10-N11</code>. The number tells whose turn
     it is, so the record names no player.</p>
 
-  <h3>Comments and branches</h3>
+  <h3>Comments and variations</h3>
   <p>A comment is in braces, <code>{"{ … }"}</code>. A comment may also come before the first turn, after the tags,
-    as a note on the whole game. A branch is in parentheses, <code>( … )</code>: other moves in place of a turn. Both
-    can hold others. A branch follows the turn it changes, after that turn's last edge, its mark and its comments. Its
+    as a note on the whole game. A variation is in parentheses, <code>( … )</code>: other moves in place of a turn. Both
+    can hold others. A variation follows the turn it changes, after that turn's last edge, its mark and its comments. Its
     first number tells where it leaves the line, and it is always the number of the turn before it:</p>
   <ul>
     <li><code>N.</code> starts at the turn's start, and replaces the whole turn: <code>3. D10-G9 G9-H10 (3. D10-F13
@@ -151,13 +151,13 @@ A10-D10,D10-E11,D10-F13+ Q10-T10,Q10-T13*,T10-T13* b1 0/4.5 4`;
     <li><code>N...</code> starts at the turn's second edge, and keeps its first edge:</li>
   </ul>
   <pre>{BRANCH}</pre>
-  <p>means: at turn 4, after <code>N9-Q10</code>, <code>M12-N9</code> instead of <code>L10-N9</code>. Several branches
+  <p>means: at turn 4, after <code>N9-Q10</code>, <code>M12-N9</code> instead of <code>L10-N9</code>. Several variations
     of one turn follow it one after another.</p>
 
   <h3>Marks of a turn's quality</h3>
   <p>PGN's six marks judge a turn: <code>!!</code> brilliant, <code>!</code> good, <code>!?</code> interesting,
     <code>?!</code> dubious, <code>?</code> a mistake, <code>??</code> a blunder. A mark comes once, right after the
-    turn's last edge (or its pass), after any cut mark, and before the comments and branches:
+    turn's last edge (or its pass), after any cut mark, and before the comments and variations:
     <code>G9-G12x??</code>.</p>
   <pre>{MARKED}</pre>
   <p>A judgement of one edge stays in a comment. A reader accepts a mark after any edge, and may ignore it.
@@ -174,10 +174,10 @@ A10-D10,D10-E11,D10-F13+ Q10-T10,Q10-T13*,T10-T13* b1 0/4.5 4`;
     <li><code>[%eval W L S]</code>: the engine's view after the move, in three numbers:
       <ul>
         <li><code>W</code>: Blue's chance of winning, from 0 to 1.</li>
-        <li><code>L</code>: the lead, in points: the komi that would make the game even. It carries its sign:
+        <li><code>L</code>: the lead, the komi that would make the game even. It carries its sign:
           <code>+</code> when Blue is ahead, <code>-</code> when Red is. A reader accepts it with or without the
           <code>+</code>.</li>
-        <li><code>S</code>: the spread of the final margin, in points.</li>
+        <li><code>S</code>: the spread of the final margin.</li>
       </ul>
       Each number can have any number of decimals.</li>
   </ul>
@@ -185,7 +185,7 @@ A10-D10,D10-E11,D10-F13+ Q10-T10,Q10-T13*,T10-T13* b1 0/4.5 4`;
   <h3>The result</h3>
   <table>
     <tbody>
-      <tr><td><code>b+28.5</code>, <code>r+12</code></td><td>Blue (Red) won by that many points.</td></tr>
+      <tr><td><code>b+28.5</code>, <code>r+12</code></td><td>Blue (Red) won by that margin.</td></tr>
       <tr><td><code>b+R</code>, <code>r+R</code></td><td>Blue (Red) won: the other player resigned.</td></tr>
       <tr><td><code>b+F</code>, <code>r+F</code></td><td>Blue (Red) won: the other player forfeited (left the game).</td></tr>
       <tr><td><code>0</code></td><td>The scores were equal.</td></tr>
@@ -203,7 +203,7 @@ A10-D10,D10-E11,D10-F13+ Q10-T10,Q10-T13*,T10-T13* b1 0/4.5 4`;
     the alphabet without <code>I</code>: <code>P10</code> is <code>Q10</code>. A list of edges looks the same in both
     letterings, so {SITE_NAME} reads the other lettering only in a form that it knows:</p>
   <ul>
-    <li><strong><a href="https://constellation.blueshrimp.uk">Constellation</a>'s export</strong> (its analysis board's Export): the start in
+    <li><strong><a href="https://constellation.blueshrimp.uk">Constellation</a>'s export</strong> (its Analysis board's Export): the start in
       brackets, then one item for each turn, two edges written as a path or apart with a comma.</li>
   </ul>
   <pre>{CONSTELLATION}</pre>

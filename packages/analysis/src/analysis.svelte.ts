@@ -2,7 +2,7 @@
 // 1. the rules first: every position from the engine's rules in one request (describe_game), so the board works
 //    before the network loads;
 // 2. a sweep: every position at a small budget (KaTrain: fast_visits, 25), for the game's shape;
-// 3. a label pass: every position at the label budget, since labels from the sweep are mostly wrong;
+// 3. a label stage: every position at the label budget, since labels from the sweep are mostly wrong;
 // 4. the Greats' confirmations: the position after the engine's second choice, searched as deep as the position
 //    after the played edge (confirmGreats);
 // 5. deeper where the player looks: the position on screen, searched in slices with its results shown as they come
@@ -16,8 +16,8 @@
 // what was found stays), the label budget can be deeper, the position on screen has its own visits and time limit,
 // and another network starts the analysis again in a new pool.
 //
-// The game is a tree (tree.ts): the player can add branches, and a branch's positions are searched as the game's
-// are, when the player looks at them. A game's branches are kept in the browser (kept.ts), as Lichess keeps its
+// The game is a tree (tree.ts): the player can add variations, and a variation's positions are searched as the game's
+// are, when the player looks at them. A game's variations are kept in the browser (kept.ts), as Lichess keeps its
 // analysis tree (ui/analyse/src/idbTree.ts).
 //
 // The Analysis board (design 21) is the same analysis in its board form: its main line is the player's and changes
@@ -45,11 +45,11 @@ import { Cancelled, type EnginePool } from "@abstractclass/engine/pool.ts";
 
 const SLICE_VISITS = 32;
 // The searches' results are applied together, at most this often: their results so far and their final results, with
-// what a search's end changes (the passes' progress, its mark). With every worker and the GPU's 16 searches posting a
+// what a search's end changes (the stages' progress, its mark). With every worker and the GPU's 16 searches posting a
 // slice, results come tens of times a second, the sweep's searches end one after another, and each change of the
 // analysis runs the review again.
 export const BATCH_MS = 100;
-// A branch edge's evaluation, asked for in its menu, comes after the position on screen and before the rest. The
+// A variation edge's evaluation, asked for in its menu, comes after the position on screen and before the rest. The
 // ownership that the board shows comes just after the position on screen (askOwnership), and the threat after it
 // (askThreat): it gives way to the search of the player's own position. Its size's search (askSizeResult) comes after
 // the threat's own, so that the threat's line shows first.
@@ -62,8 +62,8 @@ export type ThreatState = MapState | "off";
 /** What a pass costs the side to move (GameAnalysis.threatCost): win chance, and the lead's points where both have it. */
 export type ThreatCost = { win: number; points: number | undefined };
 
-/** A position in a branch: the board, the move that led to it, its analysis once searched, its place among the
- *  branches from its parent (the lower first), and whether the player asked for the move's quality. */
+/** A position in a variation: the board, the move that led to it, its analysis once searched, its place among the
+ *  variations from its parent (the lower first), and whether the player asked for the move's quality. */
 export interface BranchNode<G extends GameTypes> {
   position: G["position"]; move: G["played"]; analysis?: Analysis<G["move"]>; order: number; judged?: boolean;
 }
@@ -84,7 +84,7 @@ export class GameAnalysis<G extends GameTypes> {
   rulesReady = $state(false);
   engineReady = $state(false);
   paused = $state(false); // the engine is off: no search starts
-  labelVisits = $state(LABEL_VISITS); // the label pass's budget
+  labelVisits = $state(LABEL_VISITS); // the label stage's budget
   focusVisits = $state(DEEP_VISITS); // the position on screen is searched to this many visits,
   focusSeconds = $state<number | null>(null); // for at most this many seconds (null: no limit)
   // The positions whose search stopped at the time limit, by path key: the visits and the limit then. Such a position is
@@ -99,7 +99,7 @@ export class GameAnalysis<G extends GameTypes> {
   private stored = $state.raw<Record<string, number>>({});
   private stopFocus: (() => void) | null = null;
   private focusGeneration = 0; // a new focus makes every earlier focus search stale
-  private passes = 0; // a new run of the passes, or another network, makes the earlier one stop after its sweep
+  private passes = 0; // a new run of the stages, or another network, makes the earlier one stop after its sweep
   private greatSearches = new Set<string>(); // the Greats' searches queued or running (searchOnce)
   // The positions whose search runs now, by path key, with each search's visits: their analysis can still change (the
   // page's gleam on a line)
@@ -110,19 +110,19 @@ export class GameAnalysis<G extends GameTypes> {
   private ownership = $state.raw<Record<string, number[]>>({});
   // The maps being added, by path key: each one's state (its search waits for the engine, or runs), and the task that
   // holds it. Only that task changes or ends the state. The page's own task holds its map until it ends. The engine
-  // off takes the map pass's maps from it (setPaused), and another network drops them all.
+  // off takes the map stage's maps from it (setPaused), and another network drops them all.
   private mapWork = $state.raw<Record<string, { state: "waiting" | "searching"; task: { pass: boolean } }>>({});
-  // A snapshot (Hedge School's design 20): the search and the network file of its results, whose maps it reads from
-  // the store (freeze). Its maps that the store lacks, by path key, cannot come: a snapshot does no searches.
+  // A review snapshot (Hedge School's design 20): the search and the network file of its results, whose maps it reads from
+  // the store (freeze). Its maps that the store lacks, by path key, cannot come: a review snapshot does no searches.
   private frozen: { search: string; model: string } | null = null;
   private unstored = $state.raw(new Set<string>());
-  private mapPassOn = $state(false); // the map pass runs (passMaps)
+  private mapPassOn = $state(false); // the map stage runs (passMaps)
   // What the page asked for last: the maps (askOwnership) and the pass (passMaps). A call that comes before the engine
   // is ready, or while it is off, does its work once the engine is ready or on again (askAgain).
   private askedPaths: string[][] = [];
   private passWanted: { on: boolean; from: string[] } = { on: false, from: [] };
   private mapPassLeft = 0; // its tasks that have not ended
-  private mapPassRun = 0; // the map pass's number: the tasks of a stopped pass, which can end later, touch no other
+  private mapPassRun = 0; // the map stage's number: the tasks of a stopped pass, which can end later, touch no other
   private mapless = $state.raw(new Set<string>()); // the positions of a line that the engine did not search: an ended game
   private ownershipWanted = new Set<string>(); // the positions asked for last: a search queued for another one is skipped
   // The threat (askThreat, Lichess's "Show threat"): the position that the page asked for last, the path keys of that
@@ -135,7 +135,7 @@ export class GameAnalysis<G extends GameTypes> {
   private stopThreat: (() => void) | null = null;
   private threatGeneration = 0;
   // The positions after a pass, from the rules, by path key: where the pass ends the game, the engine searches none.
-  // A snapshot's threats that the store lacks cannot come.
+  // A review snapshot's threats that the store lacks cannot come.
   private passed = $state.raw<Record<string, G["position"]>>({});
   private unstoredThreats = $state.raw(new Set<string>());
   // The results that the threat's size compares (sizeResultAt), from searches with the threat's settings, by path key
@@ -149,11 +149,11 @@ export class GameAnalysis<G extends GameTypes> {
   private pool: EnginePool;
   private stalePool = false; // the pool still has the old network: from dropAnalysis until usePool gives the next pool
   private readonly game: Game<G>;
-  private readonly id: string; // the game's id in the site's store, under which its branches are kept, or the board's
+  private readonly id: string; // the game's id in the site's store, under which its variations are kept, or the board's
   private nextOrder = 0;
   readonly board: boolean; // the Analysis board's form (design 21)
   readonly startPosition: string | null; // the board's set-up start, in the notation: the standard start when null
-  // The board's main-line moves that the player asked to evaluate, by path key: only these have labels. A branch node
+  // The board's main-line moves that the player asked to evaluate, by path key: only these have labels. A variation node
   // keeps its own flag (judged).
   judgedMain = $state.raw<Record<string, true>>({});
   // The batch (BATCH_MS): the results that wait for it, the deepest for each position by path key (or for each of the
@@ -174,18 +174,18 @@ export class GameAnalysis<G extends GameTypes> {
     this.analysis = Array(moves.length + 1).fill(undefined);
   }
 
-  /** The positions that the passes search: each before a move, and the end where the game is not over (an unfinished
+  /** The positions that the stages search: each before a move, and the end where the game is not over (an unfinished
    *  game), so that its last move gets a label. */
   get passCount() { return this.moves.length + (this.positions.at(-1)?.over === false ? 1 : 0); }
 
-  /** The game's positions that the sweep has searched, and the label pass: whose result in the store has their budget.
+  /** The game's positions that the sweep has searched, and the label stage: whose result in the store has their budget.
    *  The end too, where the game is not over (passCount). */
   get swept() { return this.storedCount(SWEEP_VISITS); }
   get labelled() { return this.storedCount(this.labelVisits); }
   private storedCount(visits: number) { return this.mainKeys.filter(k => this.storedAt(k) >= visits).length; }
 
   /** Whether the review's own work can still change the analysis at `path`: a search of it runs now to the visits that
-   *  it shows or more (a shallower result does not replace it, keep), or the label pass has yet to reach them. */
+   *  it shows or more (a shallower result does not replace it, keep), or the label stage has yet to reach them. */
   pending(path: string[]): boolean {
     const shown = this.analysisOf(path)?.visits ?? 0;
     if (this.running[pathKey(path)]?.some(visits => visits >= shown)) return true;
@@ -230,21 +230,21 @@ export class GameAnalysis<G extends GameTypes> {
     return other ? this.analysisOf([...path, this.game.moveName(other.edge)]) : undefined;
   }
 
-  /** The analysis of the position before the opponent's last turn, for a move of `mover` from the position at `path`
-   *  (model.ts, keepsGain and earlierIndex), on the path's line: the game's or a branch's. */
+  /** The analysis of the position before the enemy's last turn, for a move of `mover` from the position at `path`
+   *  (model.ts, keepsGain and earlierIndex), on the path's line: the game's or a variation's. */
   earlierAt(path: string[], mover: Player): Analysis<G["move"]> | undefined {
     const earlier = this.earlierPath(path, mover);
     return earlier && this.analysisOf(earlier);
   }
 
-  /** The path of the position before the opponent's last turn (earlierAt), or undefined where the line has none. */
+  /** The path of the position before the enemy's last turn (earlierAt), or undefined where the line has none. */
   private earlierPath(path: string[], mover: Player): string[] | undefined {
     const k = earlierIndex(j => this.moveInto(path.slice(0, j))!.player, path.length, mover,
                            this.game.turn(this.positions[0]?.count ?? 0).first);
     return k === undefined ? undefined : path.slice(0, k);
   }
 
-  /** Describes every position (the rules, no network), and adds the game's branches kept from an earlier visit. */
+  /** Describes every position (the rules, no network), and adds the game's variations kept from an earlier visit. */
   async start() {
     const kept = this.board ? null : dbGet<KeptBranches>(STORES.branches, this.id); // read while the rules answer
     try {
@@ -285,16 +285,16 @@ export class GameAnalysis<G extends GameTypes> {
   }
 
   /** Confirms the Greats: where the played edge was the engine's first choice in a search to the label budget, its
-   *  second choice looks at least 10% of win chance worse, and the first choice keeps what the opponent's last turn gave
-   *  (keepsGain, from results that the passes have already). That second value rests on few visits (the search spends them
+   *  second choice looks at least 10% of win chance worse, and the first choice keeps what the enemy's last turn gave
+   *  (keepsGain, from results that the stages have already). That second value rests on few visits (the search spends them
    *  on the first choice), while En Croissant's rule compares two equal searches. So the position after the second
    *  choice is searched to the label budget, as the position after the played edge was, and the review compares the two
    *  (KaTrain's "equalize" gives every candidate the top move's visits for the same reason). For the game's edges and
-   *  the branch edges evaluated on request, not where the game ends after the edge. A turn of the game asks for one more
+   *  the variation edges evaluated on request, not where the game ends after the edge. A turn of the game asks for one more
    *  search when its first choice is one of its edges: the position after its other candidate (otherCandidate), which
    *  is the second choice unless that is the turn's other edge. The page calls it as results come: a deeper search can
    *  change a position's second choice. A move that the player asked to evaluate searches at the priority of its
-   *  evaluation, the position before the opponent's last turn too where the gain needs it (greatNeeds): its label waits
+   *  evaluation, the position before the enemy's last turn too where the gain needs it (greatNeeds): its label waits
    *  for them (awaitsGreat). */
   confirmGreats() {
     const { targets, earlier } = this.greatNeeds;
@@ -303,7 +303,7 @@ export class GameAnalysis<G extends GameTypes> {
   }
 
   /** Whether the move into the position with path key `key` waits for the searches that its Great asks for (greatNeeds):
-   *  the position before the opponent's last turn, or the confirmation of the gap. The page shows "Evaluating…" for it.
+   *  the position before the enemy's last turn, or the confirmation of the gap. The page shows "Evaluating…" for it.
    *  Only the moves that the player asked to evaluate wait, and only while the engine is on. */
   awaitsGreat(key: string): boolean {
     return this.engineReady && !this.paused && this.greatNeeds.awaiting.has(key);
@@ -312,17 +312,17 @@ export class GameAnalysis<G extends GameTypes> {
   /** The searches that the Greats ask for (confirmGreats), derived once for each change of the analysis: the page reads
    *  it twice at each result. A game position's path is built only where its first choice is the only good one.
    *  - `targets`: at each place, the position whose search confirms or refutes the gap: after the engine's second
-   *    choice, or after a turn's other candidate. `judged`: the player asked for it ("Evaluate quality": a branch move, a
+   *    choice, or after a turn's other candidate. `judged`: the player asked for it ("Evaluate quality": a variation move, a
    *    move of the board). The review's own step counts the others only (greatChecks).
-   *  - `earlier`: for a move that the player asked for, the position before the opponent's last turn, where it has no
+   *  - `earlier`: for a move that the player asked for, the position before the enemy's last turn, where it has no
    *    result of the label budget and the move can still be Great (the first choice is the only good edge). A
-   *    review's game moves ask for none: its passes search that position.
+   *    review's game moves ask for none: its stages search that position.
    *  - `awaiting`: the path keys of the moves that the player asked for and that wait for such a search, for the
    *    confirmation after it, or for the search before them to reach the label budget (awaitsGreat). The labels show
    *    from LABEL_VISITS on, so a move that looks like an only move in that shallower result waits: it is not Best yet. */
   // Each target has its depth: as deep as the position after the played move or turn, which the confirmation's
   // position is compared with (equalDepth: the player may have searched that position deeper). A move that does not
-  // keep what the opponent's last turn gave (keepsGain) cannot be Great, so it asks for none.
+  // keep what the enemy's last turn gave (keepsGain) cannot be Great, so it asks for none.
   private greatNeeds = $derived.by(() => {
     const targets: { path: string[]; depth: number; judged: boolean }[] = [];
     const earlier: string[][] = [], awaiting = new Set<string>();
@@ -330,7 +330,7 @@ export class GameAnalysis<G extends GameTypes> {
     const shownFrom = Math.min(LABEL_VISITS, this.labelVisits); // the least visits that show a label
     // The search that a Great asks for from `path`, for the move or turn into `after`, whose first choice is the only
     // good one in `a`: once `a` has the label budget, the position after `candidate` where `gain` keeps what the
-    // opponent's last turn gave, else the position before that turn, where it has no result. Whether `gain` keeps it.
+    // enemy's last turn gave, else the position before that turn, where it has no result. Whether `gain` keeps it.
     const ask = (judged: boolean, a: Analysis<G["move"]>, gain: Analysis<G["move"]>, path: string[], mover: Player,
                  candidate: Candidate<G["move"]>, after: string[]) => {
       if (a.visits < this.labelVisits) {
@@ -350,7 +350,7 @@ export class GameAnalysis<G extends GameTypes> {
       }
       return false;
     };
-    // `judged`: the player asked for the move (a branch's, the board's): the analysis checks it from the visits that
+    // `judged`: the player asked for the move (a variation's, the board's): the analysis checks it from the visits that
     // show a label. `gain`: the search whose first choice must keep the gain. An edge's own, or for a turn's middle, the
     // turn's start.
     const check = (judged: boolean, a: Analysis<G["move"]> | undefined, before: () => string[], edge: G["move"] | null,
@@ -376,7 +376,7 @@ export class GameAnalysis<G extends GameTypes> {
         check(judged, this.analysisOf(middle), () => middle, turn[1], mover, false, a);
       }
     };
-    // The game's moves: all of a review's (its passes search their positions), the board's moves that were evaluated. A
+    // The game's moves: all of a review's (its stages search their positions), the board's moves that were evaluated. A
     // turn of the board needs each of its edges evaluated, as its label does (onlyJudged).
     const asked = (i: number) => !this.board || !!this.judgedMain[this.mainKeys[i + 1]];
     for (let i = 0; i + 1 < this.played.length; i++)
@@ -391,7 +391,7 @@ export class GameAnalysis<G extends GameTypes> {
       if (turn && i + turn.length < this.played.length && turn.every((_, k) => asked(i + k)))
         checkTurn(this.board, this.analysis[i], () => this.mainNames.slice(0, i), turn, this.played[i].player);
     }
-    // A branch's turns judged on request: each judged branch move that ends a turn, with its turn's edge before it.
+    // A variation's turns judged on request: each judged variation move that ends a turn, with its turn's edge before it.
     for (const [key, node] of Object.entries(this.branches)) {
       if (!node.judged || node.position.over || node.position.player === node.move.player) continue;
       const path = key.split(" "), before = this.moveInto(path.slice(0, -1));
@@ -415,12 +415,12 @@ export class GameAnalysis<G extends GameTypes> {
   }
 
   /** The review from the browser's store alone, with no search (an export away from the review page, design 13): each
-   *  position that the passes search and each of the branches, at the label budget or deeper, or the sweep's where that
+   *  position that the stages search and each of the variations, at the label budget or deeper, or the sweep's where that
    *  is all there is, then the positions that confirm the Greats. The board reads the same: each position of its main
    *  line and of its variations, though no pass searches them. Its labels stay on the moves evaluated (design 21): the
    *  other moves take their positions' results only, which mark the hard positions (design 14). Call after start(),
    *  and loadBoard() for the board. `search` and `model` name the engine whose results to read. A position counts as
-   *  searched that far (swept, labelled, the Greats' step), as the passes count it when they find
+   *  searched that far (swept, labelled, the Greats' step), as the stages count it when they find
    *  the result in the store: a review opened again is complete before the engine's network loads. */
   async fromStore(search: string, model: string) {
     const take = async (path: string[]) => {
@@ -471,7 +471,7 @@ export class GameAnalysis<G extends GameTypes> {
   }
 
   /** Adds a line from the start to the tree: the positions it adds come from the rules. They are searched only when the
-   *  player looks at them, so that a line played to show something costs no search. Keeps the game's branches in the
+   *  player looks at them, so that a line played to show something costs no search. Keeps the game's variations in the
    *  browser, unless `keep` is false. */
   async addLine(line: string[], keep = true) {
     const path = [...line]; // a plain array, to keep in the browser
@@ -491,9 +491,9 @@ export class GameAnalysis<G extends GameTypes> {
     if (keep) await this.keepBranches();
   }
 
-  /** Evaluates the quality of a branch move's turn on request: every branch move of the turn (turnKeys) is judged, and
+  /** Evaluates the quality of a variation move's turn on request: every variation move of the turn (turnKeys) is judged, and
    *  the positions before and after each are searched to the label budget, so that the turn and each of its edges can
-   *  be judged as the game's are (design 10). A branch's moves are not judged unless asked: a line played only to show
+   *  be judged as the game's are (design 10). A variation's moves are not judged unless asked: a line played only to show
    *  something should cost no search. */
   async judge(path: string[]) {
     const keys = this.turnKeys(path);
@@ -506,7 +506,7 @@ export class GameAnalysis<G extends GameTypes> {
     await this.keepBranches();
   }
 
-  /** The branch moves of the turn of the move at `path`: the move, its turn's edge before it, and, when it begins a turn
+  /** The variation moves of the turn of the move at `path`: the move, its turn's edge before it, and, when it begins a turn
    *  of two, every next move of the same player (each makes a turn with it). The game's moves are judged already. On
    *  the board, the main line's moves are judged on request too. */
   turnKeys(path: string[]): string[] {
@@ -522,7 +522,7 @@ export class GameAnalysis<G extends GameTypes> {
     return keys;
   }
 
-  /** The move that leads to `path`: the game's or a branch's (none at the start). */
+  /** The move that leads to `path`: the game's or a variation's (none at the start). */
   private moveInto(path: string[]): G["played"] | undefined {
     if (!path.length) return undefined;
     const i = mainIndex(path, this.mainNames);
@@ -540,7 +540,7 @@ export class GameAnalysis<G extends GameTypes> {
       if (this.searchable(p)) this.search(p, this.labelVisits, PRIORITY.judge, "judge", { early: LABEL_VISITS }).catch(this.fail);
   }
 
-  /** Deletes a branch node and every position after it (Lichess's "Delete from here"). */
+  /** Deletes a variation node and every position after it (Lichess's "Delete from here"). */
   async deleteFrom(path: string[]) {
     const key = pathKey(path);
     if (this.board) { // the main line too: it ends before the move, or goes on along the next line from there
@@ -556,8 +556,8 @@ export class GameAnalysis<G extends GameTypes> {
     await this.keepBranches();
   }
 
-  /** Promotes a branch one step (Lichess's "Promote variation", ui/lib/src/tree promoteAt): the nearest branch node on
-   *  the path that is not the first of its parent's branches becomes the first. The game's own move stays before them. */
+  /** Promotes a variation one step (Lichess's "Promote variation", ui/lib/src/tree promoteAt): the nearest variation node on
+   *  the path that is not the first of its parent's variations becomes the first. The game's own move stays before them. */
   async promote(path: string[]) {
     for (let k = path.length; k > 0; k--) {
       const node = this.branches[pathKey(path.slice(0, k))];
@@ -582,8 +582,8 @@ export class GameAnalysis<G extends GameTypes> {
     return this.game.rules(reply);
   }
 
-  /** Keeps the game's branches in the browser: each node's key and order. Not for a game deleted meanwhile (in the
-   *  Review tab, in another tab): its branches would come back with a later import of the game. */
+  /** Keeps the game's variations in the browser: each node's key and order. Not for a game deleted meanwhile (in the
+   *  Review tab, in another tab): its variations would come back with a later import of the game. */
   private async keepBranches() {
     if (this.board) {
       await dbPut(STORES.branches, this.id, this.keptBoard());
@@ -644,7 +644,7 @@ export class GameAnalysis<G extends GameTypes> {
     this.askAgain(); // the maps asked for before
   }
 
-  /** Board: the moves evaluated, by their path keys: the main line's and the branches'. */
+  /** Board: the moves evaluated, by their path keys: the main line's and the variations'. */
   private judgedKeys(): string[] {
     return [...Object.keys(this.judgedMain), ...Object.entries(this.branches).filter(([, n]) => n.judged).map(([k]) => k)];
   }
@@ -668,7 +668,7 @@ export class GameAnalysis<G extends GameTypes> {
   /** Board: every node of the tree by path key, the main line's moves as nodes too, each before its siblings. */
   private treeNodes(): Record<string, BranchNode<G>> {
     const nodes: Record<string, BranchNode<G>> = { ...this.branches };
-    const least = new Map<string, number>(); // the least order of the branches from each position, 0 or lower
+    const least = new Map<string, number>(); // the least order of the variations from each position, 0 or lower
     for (const [k, n] of Object.entries(this.branches)) least.set(parentKey(k), Math.min(least.get(parentKey(k)) ?? 0, n.order));
     for (let i = 1; i < this.positions.length; i++) {
       const key = this.mainKeys[i], first = least.get(parentKey(key)) ?? 0;
@@ -734,7 +734,7 @@ export class GameAnalysis<G extends GameTypes> {
     return keyMoves(this.startPosition, this.engineMoves(path));
   }
 
-  /** A position the engine can search: on the game's line before its end, or a branch node where the game goes on. */
+  /** A position the engine can search: on the game's line before its end, or a variation node where the game goes on. */
   private searchable(path: string[]) {
     const i = mainIndex(path, this.mainNames);
     if (i !== null) return i < this.moves.length || !this.positions[i]?.over;
@@ -742,17 +742,17 @@ export class GameAnalysis<G extends GameTypes> {
     return !!node && !node.position.over;
   }
 
-  /** The sweep, then the label pass, for the positions that lack them: a position whose result in the store is that
+  /** The sweep, then the label stage, for the positions that lack them: a position whose result in the store is that
    *  deep is skipped. Call after start() and once the pool has a network, and again to take the work up after a change
-   *  (the engine on again, another label budget, another network). The branch moves evaluated on request are searched
+   *  (the engine on again, another label budget, another network). The variation moves evaluated on request are searched
    *  too. On the board, it makes the engine ready (ready), and no pass runs. After dropAnalysis, it does nothing until
-   *  usePool gives the next pool. The batch with the label pass's last result comes without its timer: the review's
+   *  usePool gives the next pool. The batch with the label stage's last result comes without its timer: the review's
    *  last step, or Review done, waits for it. */
   async sweep() {
     if (this.stalePool) return;
     if (this.board) { this.ready(); return; }
     this.engineReady = true;
-    this.askAgain(); // the maps and the map pass asked for before the engine was ready, or while it was off
+    this.askAgain(); // the maps and the map stage asked for before the engine was ready, or while it was off
     const run = ++this.passes;
     for (const [key, node] of Object.entries(this.branches)) if (node.judged) this.judgeSearches(key.split(" ")); // kept from a visit
     const n = this.passCount;
@@ -762,7 +762,7 @@ export class GameAnalysis<G extends GameTypes> {
     await pass(SWEEP_VISITS, PRIORITY.sweep, "sweep");
     if (run !== this.passes) return; // a later run took over, or another network
     await pass(this.labelVisits, PRIORITY.label, "label");
-    // The review's last step, or Review done, waits for the batch with the label pass's last result. That batch comes
+    // The review's last step, or Review done, waits for the batch with the label stage's last result. That batch comes
     // without its timer, though searches wait in the pool's queue (the Greats' confirmations): in a task of its own,
     // once the pool has taken its next search (search).
     await nextTask();
@@ -775,7 +775,7 @@ export class GameAnalysis<G extends GameTypes> {
     if (paused === this.paused) return;
     this.paused = paused;
     if (paused) {
-      // The map pass stops with its searches and lets go of its maps: the engine on starts it again (askAgain)
+      // The map stage stops with its searches and lets go of its maps: the engine on starts it again (askAgain)
       if (this.mapPassOn) {
         this.endPass();
         this.mapWork = Object.fromEntries(Object.entries(this.mapWork).filter(([, work]) => !work.task.pass));
@@ -788,7 +788,7 @@ export class GameAnalysis<G extends GameTypes> {
     }
   }
 
-  /** The label pass's budget (the review's depth). The passes run again for it, and the label searches
+  /** The label stage's budget (the review's depth). The stages run again for it, and the label searches
    *  still waiting for the old budget are dropped. */
   setReview(visits: number) {
     if (visits === this.labelVisits) return;
@@ -809,7 +809,7 @@ export class GameAnalysis<G extends GameTypes> {
   }
 
   /** Drops the analysis before another network takes over: every result came from the old one. The searches and the
-   *  run of the passes stop, and results that still arrive from them are dropped. The engine is not ready again until
+   *  run of the stages stop, and results that still arrive from them are dropped. The engine is not ready again until
    *  usePool() and sweep(). */
   dropAnalysis() {
     this.era++;
@@ -881,7 +881,7 @@ export class GameAnalysis<G extends GameTypes> {
     return this.mapless.has(pathKey(path)) || (this.known(path) && !this.searchable(path));
   }
 
-  /** Makes this the analysis of a snapshot (Hedge School's design 20). fromStore read its results with `search` and
+  /** Makes this the analysis of a review snapshot (Hedge School's design 20). fromStore read its results with `search` and
    *  `model`. It searches nothing. It reads the maps added to its positions from the store, with the same search and
    *  network file (askOwnership). A map that the store lacks cannot come (mapState, `unavailable`). */
   freeze(search: string, model: string) {
@@ -897,7 +897,7 @@ export class GameAnalysis<G extends GameTypes> {
   /** Whether the engine can take no search now: its network is not ready, it is off, or its pool is an old network's. */
   private get idle() { return !this.engineReady || this.paused || this.stalePool; }
 
-  /** Does again what the page asked for last: its maps, the threat and the map pass. Once the engine is ready or on
+  /** Does again what the page asked for last: its maps, the threat and the map stage. Once the engine is ready or on
    *  again, and for a map that its task gave up. */
   private askAgain() {
     this.askOwnership(this.askedPaths);
@@ -907,8 +907,8 @@ export class GameAnalysis<G extends GameTypes> {
 
   /** The state of a position's map, for the area map's legend: there (`ready`), its search runs (`searching`), it
    *  waits for the engine (`waiting`: its search waits behind the review's searches, or the position's own result is
-   *  still to come), none can come (`none`: the game ends there, `unavailable`: a snapshot's map that the store lacks),
-   *  or nothing asks for it (`unasked`, and a snapshot's map while the store is read). */
+   *  still to come), none can come (`none`: the game ends there, `unavailable`: a review snapshot's map that the store lacks),
+   *  or nothing asks for it (`unasked`, and a review snapshot's map while the store is read). */
   mapState(path: string[]): MapState {
     if (this.mapAt(path)) return "ready";
     const key = pathKey(path);
@@ -925,11 +925,11 @@ export class GameAnalysis<G extends GameTypes> {
    *  candidate, or after an edge of the engine's line or of a preview). The map stored for it, or else a short search
    *  of the position alone (MAP_VISITS), after the position on screen's, whose map the store then keeps (cache.ts,
    *  mapPut). The result itself stays as it is. A position of the tree with no result, which the review's work
-   *  searches (ownSearchComes), waits for that search, which asks for the ownership: a branch's position and the
+   *  searches (ownSearchComes), waits for that search, which asks for the ownership: a variation's position and the
    *  Analysis board's, which nothing searches until the player looks at them, get a short search. A position that the
-   *  map pass holds in its queue gets the page's own search too, ahead of the pass: the pass gives way to the player. A
+   *  map stage holds in its queue gets the page's own search too, ahead of the pass: the pass gives way to the player. A
    *  search queued for a position that the page no longer asks for, or that has its map by then, starts and ends at
-   *  once. A snapshot reads its maps from the store alone (freeze). */
+   *  once. A review snapshot reads its maps from the store alone (freeze). */
   askOwnership(paths: string[][]) {
     this.askedPaths = paths;
     this.ownershipWanted = new Set(paths.map(pathKey));
@@ -937,7 +937,7 @@ export class GameAnalysis<G extends GameTypes> {
     if (this.idle) return;
     for (const path of paths) {
       const key = pathKey(path), work = this.mapWork[key];
-      // The page's own task adds it, or a search of the map pass runs for it
+      // The page's own task adds it, or a search of the map stage runs for it
       if (work && (!work.task.pass || work.state === "searching")) continue;
       if (this.mapAt(path) || this.mapless.has(key) || this.ownSearchComes(path)) continue;
       if (!this.searchable(this.known(path) ? path : this.knownPrefix(path))) continue;
@@ -945,7 +945,7 @@ export class GameAnalysis<G extends GameTypes> {
       this.addMap(path, PRIORITY.ownership, "ownership", wanted, false);
     }
   }
-  /** A snapshot's maps (freeze), read from the store with the snapshot's search and network file. The store's memory
+  /** A review snapshot's maps (freeze), read from the store with the review snapshot's search and network file. The store's memory
    *  answers a read again (cache.ts, mapGet). */
   private readMaps(paths: string[][], { search, model }: { search: string; model: string }) {
     for (const path of paths) {
@@ -971,7 +971,7 @@ export class GameAnalysis<G extends GameTypes> {
     return this.focusing === pathKey(path) || this.pending(path);
   }
 
-  /** The map pass (Hedge School's design 30): while the area map is on (`on`), once the review's passes are done, the
+  /** The map stage (Hedge School's design 30): while the area map is on (`on`), once the review's stages are done, the
    *  maps of the game's positions that have none, from the position on screen (`from`) to the game's end, then back
    *  to its start, stored as the maps that askOwnership adds. At the lowest priority, in slices, so that the pool stops
    *  a search of it at once for any search for the player, and runs it again later. Off stops it. */
@@ -985,7 +985,7 @@ export class GameAnalysis<G extends GameTypes> {
     }
     if (this.mapPassOn || this.board || this.idle) return;
     const n = this.passCount;
-    if (this.labelled < n) return; // the review's passes first
+    if (this.labelled < n) return; // the review's stages first
     const at = Math.min(mainIndex(this.knownPrefix(from), this.mainNames) ?? 0, n - 1);
     const order = [...Array.from({ length: n - at }, (_, k) => at + k), ...Array.from({ length: at }, (_, k) => at - 1 - k)];
     const missing = order.map(i => this.mainNames.slice(0, i))
@@ -998,13 +998,13 @@ export class GameAnalysis<G extends GameTypes> {
       if (run === this.mapPassRun && --this.mapPassLeft <= 0) this.mapPassOn = false;
     });
   }
-  /** Ends the map pass: the tasks that it still has count no more. */
+  /** Ends the map stage: the tasks that it still has count no more. */
   private endPass() {
     this.mapPassOn = false;
     this.mapPassRun++;
     this.mapPassLeft = 0;
   }
-  /** The map pass's progress while it runs: the game's positions, and those that have their map (or can have none).
+  /** The map stage's progress while it runs: the game's positions, and those that have their map (or can have none).
    *  Null when it does not run. */
   get mapPass(): { total: number; done: number } | null {
     if (!this.mapPassOn) return null;
@@ -1059,7 +1059,7 @@ export class GameAnalysis<G extends GameTypes> {
         }
         ended?.();
         // Every map that the page asks for comes, or is asked for again: one that its task gave up without a try (the
-        // map pass stopped while it held the position, a search that the page did not want when it started, or the
+        // map stage stopped while it held the position, a search that the page did not want when it started, or the
         // engine off) and that the page wants now
         if (era === this.era && !tried && this.ownershipWanted.has(key) && !this.mapAt(path)) queueMicrotask(() => this.askAgain());
       });
@@ -1069,7 +1069,7 @@ export class GameAnalysis<G extends GameTypes> {
   private passPath(path: string[]) { return [...path, this.game.moveName(null)]; }
 
   /** The threat at `path` (Lichess's "Show threat"): the analysis of the position after a pass by the side to move.
-   *  Its first choice's line is the opponent's best turn if the player does nothing. */
+   *  Its first choice's line is the enemy's best turn if the player does nothing. */
   threatAt(path: string[]): Analysis<G["move"]> | undefined { return this.analysisOf(this.passPath(path)); }
   /** The position after the pass at `path`, from the rules, once askThreat has asked them. */
   passedAt(path: string[]): G["position"] | undefined { return this.passed[pathKey(this.passPath(path))]; }
@@ -1080,7 +1080,7 @@ export class GameAnalysis<G extends GameTypes> {
    *  It is a position one move from the tree, kept and read as the others are: a stored result as deep is read and not
    *  searched again (search), and the store keeps it while it keeps the position before it (Hedge School's design 20,
    *  item 8). The rules give the position after the pass first: where the pass ends the game, there is no threat and
-   *  no search. A snapshot reads the threat from the store alone (readThreat). The same position asked again keeps the
+   *  no search. A review snapshot reads the threat from the store alone (readThreat). The same position asked again keeps the
    *  searches that run. The engine on again or ready asks for it again (askAgain), and so does a change of the focus
    *  settings (setDepth). The searches of its size come with it (askSizeResult). */
   askThreat(path: string[] | null) {
@@ -1121,8 +1121,8 @@ export class GameAnalysis<G extends GameTypes> {
     }
     return this.passed[key];
   }
-  /** A snapshot's threat at `path` (freeze): the position after the pass from the rules, which a snapshot has, the
-   *  threat read from the store with the snapshot's search and network file, at the depths that a snapshot reads
+  /** A review snapshot's threat at `path` (freeze): the position after the pass from the rules, which a review snapshot has, the
+   *  threat read from the store with the review snapshot's search and network file, at the depths that a review snapshot reads
    *  (cacheGetAtLeast from the sweep's, as fromStore), and the position's result as deep, which its size compares with
    *  (threatCost), where the position's own is not. A stored threat is a search to its visits: a search that its time
    *  limit stopped is not stored. */
@@ -1166,7 +1166,7 @@ export class GameAnalysis<G extends GameTypes> {
   }
   /** What a pass costs the side to move at `path`, by the engine's evaluation: the position's value less the value after
    *  the pass, from that side, in win chance and in the lead's points, as a move's loss (design 10). Both values come
-   *  from searches with the threat's settings (sizeResultAt). In a snapshot: the stored threat, and the position's
+   *  from searches with the threat's settings (sizeResultAt). In a review snapshot: the stored threat, and the position's
    *  stored result as deep (readThreat). Undefined until both are there. */
   threatCost(path: string[]): ThreatCost | undefined {
     const p = this.positionAt(path)?.player;
@@ -1180,7 +1180,7 @@ export class GameAnalysis<G extends GameTypes> {
     return { win: moverWin(base.blueWin, p) - moverWin(threat.blueWin, p),
              points: base.lead !== undefined && threat.lead !== undefined ? moverScore(base.lead, p) - moverScore(threat.lead, p) : undefined };
   }
-  /** A position of the tree: the game's, or a branch's. */
+  /** A position of the tree: the game's, or a variation's. */
   private positionAt(path: string[]): G["position"] | undefined {
     const i = mainIndex(path, this.mainNames);
     return i !== null ? this.positions[i] : this.branches[pathKey(path)]?.position;
@@ -1226,7 +1226,7 @@ export class GameAnalysis<G extends GameTypes> {
   /** The state of the threat at `path`, for the engine header: its search runs (`searching`) or waits for the engine
    *  (`waiting`: behind other searches, or until the network has loaded), its result is there (`ready`), the engine is
    *  off with no result (`off`), none can come (`none`: the game ends there or with the pass, `unavailable`: a
-   *  snapshot's threat that the store lacks), or nothing asks for it (`unasked`). */
+   *  review snapshot's threat that the store lacks), or nothing asks for it (`unasked`). */
   threatState(path: string[]): ThreatState {
     const at = this.passPath(path), key = pathKey(at);
     if (this.threatWork?.key === key) return this.threatWork.state;
@@ -1321,18 +1321,18 @@ export class GameAnalysis<G extends GameTypes> {
       const shown = run.done.then(async t => {
         const a = toAnalysis(this.game, t.reply), final = !t.reply.terminated && a.visits >= visits;
         if (era !== this.era) return;
-        // The write first: the result and the passes' progress show only once it is stored, so that the game's mark
+        // The write first: the result and the stages' progress show only once it is stored, so that the game's mark
         // (markReviewed) comes after every result it covers. The end of the search's marks (markRunning, focus) then
         // follows in microtasks, before the batch.
         if (final) await cachePut(key, a);
         if (era !== this.era) return;
         this.toBatch(at, a.visits, () => { this.keep(path, a); record?.(a, final || !!t.late); });
         this.afterBatch(() => { if (t.late) ontime?.(); if (final) this.noteStored(at, a.visits); });
-        // The next step waits for this batch: the review's last step for the label pass's last result, and Review done
+        // The next step waits for this batch: the review's last step for the label stage's last result, and Review done
         // for the last of all. With no search waiting in the pool's queue, an engine can be free for that step, though
         // a focus or another search still runs. So the batch then comes in a task of its own, once the pool has taken
         // its next search, if any. While a search waits, every engine is busy, and the batch keeps its timer, but for
-        // the label pass's last result (sweep). That timer runs late in a hidden tab: about once a second, and later
+        // the label stage's last result (sweep). That timer runs late in a hidden tab: about once a second, and later
         // once the page's timers have used up their share of the processor (decisions/product.md, "A review in a
         // hidden tab").
         void nextTask().then(() => { if (!pool.waiting) this.applyBatch(); });
@@ -1388,7 +1388,7 @@ export class GameAnalysis<G extends GameTypes> {
 
   /** Keeps the deeper of the analysis held and the new one. A result deeper than the threat's settings, for the
    *  position whose threat shows or for the threat's position, can come after the threat was asked for (from the
-   *  store, or from the review's label pass): it asks for the result that the threat's size compares (askSizeResult). */
+   *  store, or from the review's label stage): it asks for the result that the threat's size compares (askSizeResult). */
   private keep(path: string[], a: Analysis<G["move"]>) {
     if ((this.analysisOf(path)?.visits ?? 0) > a.visits) return;
     const i = mainIndex(path, this.mainNames);

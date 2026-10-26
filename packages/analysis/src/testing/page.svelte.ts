@@ -1,5 +1,5 @@
 // A page for the session's tests (session.test.ts): what the review's page (Hedge School's src/routes/review) gives its
-// EngineSession, as state that the test changes: the settings, the page's analysis, and whether it shows a snapshot
+// EngineSession, as state that the test changes: the settings, the page's analysis, and whether it shows a review snapshot
 // (design 20). The session's effects run in a root of their own, as a component's do, and each change runs them at once.
 import { flushSync } from "svelte";
 import { EngineSession, type SessionOptions } from "../session.svelte.ts";
@@ -27,14 +27,14 @@ export class TestPage {
     flushSync();
   }
 
-  /** The page shows the analysis `game`: a snapshot's, or the review's. */
+  /** The page shows the analysis `game`: a review snapshot's, or the review's. */
   show(game: GameAnalysis<Words>, snapshot = false) {
     this.game = game;
     this.snapshot = snapshot;
     flushSync();
   }
 
-  /** Review again, on a snapshot: the snapshot ends, and its analysis stays on screen until the review's shows. */
+  /** Review again, on a review snapshot: the review snapshot ends, and its analysis stays on screen until the review's shows. */
   reviewAgain() {
     this.snapshot = false;
     flushSync();

@@ -1,5 +1,5 @@
 """Replays the fixture game through the engine repository's Python engine (read-only use) and writes, for each
-position, the state the board needs: each player's edges, the protected and placed edges, the scores, the regions as
+position, the state the board needs: each player's edges, the invincible and placed edges, the scores, the regions as
 polygons, and the edge each move cut. Mock data for the review wireframe.
 
     ENGINE_REPO/.venv/Scripts/python.exe replay.py ENGINE_REPO GAME.json OUT.json

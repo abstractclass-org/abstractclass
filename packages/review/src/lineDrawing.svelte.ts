@@ -1,4 +1,4 @@
-// A line drawn on the board one edge at a time (design 07): the engine's line, or a branch's preview. As KaTrain draws a
+// A line drawn on the board one edge at a time (design 07): the engine's line, or a variation's preview. As KaTrain draws a
 // line (its anim_pv_time): its first edge, then one more every LINE_STEP_MS, staying drawn at its end. The same line
 // lengthened, as a search lengthens it while it shows, goes on from the edges drawn; another line starts again. All at
 // once when asked, or when reduced motion is asked for.

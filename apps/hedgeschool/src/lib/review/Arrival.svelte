@@ -124,7 +124,7 @@
     }
   }
 
-  /** Keeps the shared game, its branches and the sender's network and depth for it, and opens the review. */
+  /** Keeps the shared game, its variations and the sender's network and depth for it, and opens the review. */
   async function reviewShared(shared: SharedReview, here: SharedHere) {
     phase = { at: "loading" };
     try {
@@ -169,7 +169,7 @@
     {@const names = playerNames(shared.tags)}
     <h1 class="text-2xl font-bold">A shared review</h1>
     <p><strong>{names.blue} against {names.red}</strong>, {shared.moves.length} edges{shared.branches.length
-      ? `, with ${shared.branches.length} ${shared.branches.length === 1 ? "move" : "moves"} in the sender's branches` : ""}.</p>
+      ? `, with ${shared.branches.length} ${shared.branches.length === 1 ? "move" : "moves"} in the sender's variations` : ""}.</p>
     <p>The link carries the game, not the engine's work. <strong>Your browser reviews the game again</strong>, as it does
       a game you import. The review shows each result as the engine finds it. With the sender's engine, network and
       depth, your review is the same as the sender's: the same labels, lines and accuracy. A GPU computes the network a

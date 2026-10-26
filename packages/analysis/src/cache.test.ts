@@ -1,5 +1,5 @@
-// Checks the choice of a snapshot's engine search (searchHolding, design 20): the search whose stored results hold the
-// game's line at the review's depth. And the snapshot's read of the store (snapshotSearch): the keys of the mark's
+// Checks the choice of a review snapshot's engine search (searchHolding, design 20): the search whose stored results hold the
+// game's line at the review's depth. And the review snapshot's read of the store (snapshotSearch): the keys of the mark's
 // search, or every key for a mark that names no search. And the shapes that the readers read: a result of an older
 // shape that they read is found, and the removal of older shapes takes the others, once. Run: npm test.
 import { test } from "node:test";
@@ -30,7 +30,7 @@ test("an older mark, which names no search, reads every key, and takes the searc
   assert.equal(db.scans(), before + 1);
 });
 
-test("no snapshot when a result of the mark's search is missing, too shallow, or of another network", async () => {
+test("no review snapshot when a result of the mark's search is missing, too shallow, or of another network", async () => {
   store([...keys("s1", "n3", 512, line.slice(0, 2)), ...keys("s2", "n3", 256), ...keys("s3", "n4", 512)]);
   assert.equal(await snapshotSearch("s1", "n3", line, 512), undefined); // deleted, or removed (design 20, item 8)
   assert.equal(await snapshotSearch("s2", "n3", line, 512), undefined);
@@ -38,7 +38,7 @@ test("no snapshot when a result of the mark's search is missing, too shallow, or
   assert.equal(await snapshotSearch("s1", "n3", [], 512), undefined); // no line to hold
 });
 
-test("an earlier engine's mark that names the site's search opens no snapshot: the site's engine reads those results", async () => {
+test("an earlier engine's mark that names the site's search opens no review snapshot: the site's engine reads those results", async () => {
   store(keys("s2", "n5", 512));
   assert.equal(await snapshotSearch("s2", "n5", line, 512, Promise.resolve("s2")), undefined);
   assert.equal(await snapshotSearch(undefined, "n5", line, 512, Promise.resolve("s2")), undefined);
@@ -57,7 +57,7 @@ test("no search when a position, the depth or the network is missing", () => {
   assert.equal(searchHolding(keys("old", "n1", 512), "n1", [], 512), undefined); // no line to hold
 });
 
-test("the site's own search is left out when the snapshot is of an earlier engine", () => {
+test("the site's own search is left out when the review snapshot is of an earlier engine", () => {
   const stored = [...keys("new", "n1", 512), ...keys("old", "n1", 512)];
   assert.equal(searchHolding(stored, "n1", line, 512, "new"), "old");
   assert.equal(searchHolding(keys("new", "n1", 512), "n1", line, 512, "new"), undefined);
@@ -88,7 +88,7 @@ test("a result that the area map's first builds stored as shape 6 is read as one
 test("the removal takes the results of the shapes that no reader reads, and keeps every engine's and network's of the others", () => {
   // Real keys' parts: the search's name, and a network's SHA-256 (shortened here: any hex).
   assert.equal(isOlderShape(`${SHAPE}|fdfe5ad|800f0bbf|512|D10-G10 N11-Q10`), false);
-  assert.equal(isOlderShape(`${SHAPE}|85c2adb|6e25445b|32|`), false); // an earlier engine's, which a snapshot reads (design 20)
+  assert.equal(isOlderShape(`${SHAPE}|85c2adb|6e25445b|32|`), false); // an earlier engine's, which a review snapshot reads (design 20)
   assert.equal(isOlderShape(`${SHAPE}|fdfe5ad|800f0bbf|512|@A1_B2 D10-G10`), false); // from a set-up start
   assert.equal(isOlderShape(`7|fdfe5ad|800f0bbf|512|D10-G10`), false); // a tab of a later release wrote it
   assert.equal(isOlderShape(`6|fdfe5ad|800f0bbf|512|D10-G10`), false); // the area map's first builds: read as 5
@@ -121,7 +121,7 @@ test("a map added to a stored review is kept beside the results, under its own m
   assert.equal(await cacheGetAtLeast("s7", "ab12", ["a1", "b2"], 1), undefined); // never read as the position's result
 });
 
-test("a snapshot never takes the added maps as a search", () => {
+test("a review snapshot never takes the added maps as a search", () => {
   const maps = line.map(m => mapKey("s1", "n1", m)).map(k => k.replace(`|${MAP_VISITS}|`, "|512|"));
   assert.equal(searchHolding(maps, "n1", line, 512), undefined);
 });

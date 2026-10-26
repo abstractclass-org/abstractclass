@@ -46,7 +46,7 @@ test("a game is valid as the browser sends it, and each field is checked", () =>
   assert.equal(storedProblem(null), "not an object");
 });
 
-test("a record's edges are its main line's, passes included, and no branch's", () => {
+test("a record's edges are its main line's, passes included, and no variation's", () => {
   assert.equal(recordEdges(game().record), 5);
   assert.equal(recordEdges('[Position "A10-D10 Q10-T10 b2 0/0 3"]\n\n3. D10-G10 G10-K9 (3. D10-F13 F13-G10) {a note: N9-Q10} 4. N9-Q10 *'), 3);
 });

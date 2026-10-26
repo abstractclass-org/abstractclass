@@ -3,7 +3,7 @@
 // stored. In Playwright's Chromium, headless, 1,366 × 900 pixels, with the area map on, `workers` search workers and
 // the GPU off, on tests/fixtures/hedgefund-review.json's game, at a few positions, for a candidate other than the
 // game's next move (that position has its own result, and its map shows at once). Two cases:
-//   - "running": the game imported with no result, while the review's label pass runs (after its sweep);
+//   - "running": the game imported with no result, while the review's label stage runs (after its sweep);
 //   - "idle": the fixture's review file imported, its review done, and no search running for a second (watchSweep's
 //     record of the searches sent to the workers).
 // Each sample gives the time to the line on the board and to the map, in milliseconds.

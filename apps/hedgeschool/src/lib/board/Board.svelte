@@ -20,7 +20,7 @@
 
 <script lang="ts">
   // The Enclosure board as SVG: the lattice, the area map's shading (design 30), each player's regions, the area map's
-  // marks, each player's edges, the protected edges (the turn just played and the mover's edges of this turn, on the
+  // marks, each player's edges, the invincible edges (the turn just played and the mover's edges of this turn, on the
   // edge itself, with no band behind any edge), the edge just cut, the engine's candidates numbered by rank, a preview
   // edge, label badges on the edges of the turn just played, and a ghost edge (the game's edge in a retry). During edge
   // input: the first point, the points that complete a legal edge from it (dots), and the edge to the marked point under
@@ -289,7 +289,7 @@
     {/each}
     <!-- The difference style's signs (design 30), in the colour of the side that the point moved toward, as every mark
          of the board: a plus in the colour of the player who chose, where the forecast rose for them, and a minus in
-         the opponent's, where it fell. The sign says good or bad for the player who chose. Where a sign meets its own
+         the enemy's, where it fell. The sign says good or bad for the player who chose. Where a sign meets its own
          colour (a region's fill, an edge), the shape carries the meaning: a halo in the board's colour keeps it whole. -->
     {#each ([0, 1] as const) as side (side)}
       {#each [["rise", "M0.25 0.13V0.37M0.13 0.25H0.37"], ["fall", "M0.13 0.25H0.37"]] as [kind, d] (kind)}
@@ -360,8 +360,8 @@
     {#each shownEdges[p] as e, i (i)}
       <line {...seg(e)} class="edge p{p}" />
     {/each}
-    <!-- A protected edge, on the edge itself: wider in its side's colour, with a white line along it. The mover's
-         edges of this turn (placed) too: no one can cut them before the turn ends, and then they are protected. So the
+    <!-- A invincible edge, on the edge itself: wider in its side's colour, with a white line along it. The mover's
+         edges of this turn (placed) too: no one can cut them before the turn ends, and then they are invincible. So the
          marked edges are the turns just played, and no band marks the last edge. -->
     {#if layers.protected}
       {#each shownEdges[p].filter(e => [...position.protected, ...position.placed].some(q => sameEdge(q, e))) as e, i (i)}
@@ -568,8 +568,8 @@
   .cand-note { pointer-events: none; }
   .cand-note rect { fill: var(--panel); stroke: var(--border); stroke-width: 0.04; }
   .cand-note text { font-size: 0.42px; fill: var(--text); font-family: system-ui, sans-serif; }
-  /* Number 1's note gives its own values, the others' notes give their difference from number 1: the colour of
-     number 1's note box tells them apart. */
+  /* Rank 1's note gives its own values, the others' notes give their difference from rank 1: the colour of
+     rank 1's note box tells them apart. */
   .cand-note.first rect { fill: color-mix(in srgb, var(--engine) 35%, var(--panel)); stroke: var(--engine); }
   .cand-note.first text { font-weight: 600; }
 

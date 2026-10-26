@@ -1,4 +1,4 @@
-// The layout sweep (CLAUDE.md, "How to work"): each page at every window width from 360 to 1,920 pixels, by steps of
+// The layout test (CLAUDE.md, "How to work"): each page at every window width from 360 to 1,920 pixels, by steps of
 // 10, at three heights (860: where the review's board is as wide as its column allows, and its move list was cut),
 // with the browser's scroll bars shown (playwright.config.ts). At each size:
 //   - the page does not scroll sideways;

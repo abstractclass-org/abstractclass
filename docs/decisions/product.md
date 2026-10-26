@@ -2149,9 +2149,9 @@ sweep.
   Mistake #d36e1e. Great and Blunder pass as they are. Inaccuracy at 3:1 was #ae8207, an ochre (as Lichess's Mistake
   in its light theme), and it did not read as yellow beside its badge. Of five golds between the badge's #d9a521
   (2.2:1 on white, chess.com's level) and #ae8207, #cf9b0a (2.5:1) was taken: still yellow, a little firmer than
-  chess.com's #E3AA24 (2.1:1). The board stays with the theme, so the notes have a light board's value, in the same hues: 3:1 against it
-  (#a66fd3, #a78202, #359a3b, #86868c). The muted text is #6a6c73 (4.5 on the page and on panel-2). The dark theme's
-  values are unchanged.
+  chess.com's #E3AA24 (2.1:1). The board stays with the theme, so the notes have a light board's value, in the same
+  hues: 3:1 against it (#a66fd3, #a78202, #359a3b, #86868c). The muted text is #6a6c73 (4.5 on the page and on panel-2).
+  The dark theme's values are unchanged.
 - **Checked in Edge:** the dark theme's computed colours are the same as before. On the light theme the move list's
   `?!` and `?` read clearly, the report's badges and the board's badges keep their fills.
 - **Seen on the way:**
@@ -2704,8 +2704,8 @@ sweep.
     narrow. In place of Practice's two rows. Icon buttons have narrower sides (`btn-icon` in `src/app.css`), so
     Practice's eight fit in one row in its widest column (350 pixels) and wrap below it.
   - **Two lines in each player's card,** on every page: the name over the numbers. The cards are narrow, so the bar is
-    longer (376 pixels in Practice, at a window 1,347 pixels wide), and the row has one height. The row's height until it is
-    measured (`--strip`) is the two lines' now, so that the review's board keeps its size as the review shows.
+    longer (376 pixels in Practice, at a window 1,347 pixels wide), and the row has one height. The row's height until
+    it is measured (`--strip`) is the two lines' now, so that the review's board keeps its size as the review shows.
   - **One drawn icon set** for the steps, ☰ and the game's actions (`src/lib/ui/Icon.svelte`), in place of text
     glyphs.
   - **The steps span the column when the bar wraps,** as Lichess's (`StepBar`, shared by the review, the Analysis
@@ -2731,13 +2731,13 @@ sweep.
     (`offsetWidth − clientWidth`), and a page grown to scroll did not move sideways (0 pixels). With the room off, it
     moved 7.5 pixels. The room no longer shows as a dark band: it is beside the content, in the page's colour, not
     beside the header.
-  - **Earlier: the header reaches the window's edge on the boards' pages:** the scroll bar's room that `scrollbar-gutter:
-    stable` keeps cannot be drawn in. The browser paints only the root's background colour there, clips an element
-    drawn into it, and leaves it out of `100vw` (checked in Edge). The CSS working group's issue 5232 is open on it,
-    and the common answers are an always-visible scroll bar, a header outside the scrolling element, or no room where
-    nothing scrolls. The pages sized to the window (the review, the Analysis board, Practice) do not scroll at a
-    desktop size, so they keep no room (`data-fits-window`, from the line that each shows while it loads). The other
-    pages keep it, as their height can change while they load, and most of them scroll.
+  - **Earlier: the header reaches the window's edge on the boards' pages:** the scroll bar's room that
+    `scrollbar-gutter: stable` keeps cannot be drawn in. The browser paints only the root's background colour there,
+    clips an element drawn into it, and leaves it out of `100vw` (checked in Edge). The CSS working group's issue 5232
+    is open on it, and the common answers are an always-visible scroll bar, a header outside the scrolling element, or
+    no room where nothing scrolls. The pages sized to the window (the review, the Analysis board, Practice) do not
+    scroll at a desktop size, so they keep no room (`data-fits-window`, from the line that each shows while it loads).
+    The other pages keep it, as their height can change while they load, and most of them scroll.
 - **The record reader** takes a record from a set-up start that numbers its turns from the start's turn, as the
   Analysis board's annotated record writes them, or from 1. The notation does not say which (request 19).
 - **Checked in Edge** on the local build, on a desktop with 16 cores:
@@ -2961,9 +2961,10 @@ sweep.
   the consent holds for a bot added later. The privacy page's account of what is kept still names HedgeFund.
 - **Checked:** `src/lib/practice/stored.test.ts` (5 tests, with the one added after the reviews): the stored game's
   checks, and the Function on the real schema in Node's own SQLite: a game kept once, a browser's games deleted, and
-  the refusals (not JSON, an invalid field, more than 64 KB, no database). `npm test` passes (116 after the reviews), `npm run check` has no errors or warnings. The banner
-  and the privacy page pass the layout sweep at every width (a build with `VITE_STORE_PRACTICE_GAMES=on`). Not checked:
-  a game sent in a browser, the banner's and the switches' behaviour in a browser, and the Function on Cloudflare.
+  the refusals (not JSON, an invalid field, more than 64 KB, no database). `npm test` passes (116 after the reviews),
+  `npm run check` has no errors or warnings. The banner and the privacy page pass the layout sweep at every width (a
+  build with `VITE_STORE_PRACTICE_GAMES=on`). Not checked: a game sent in a browser, the banner's and the switches'
+  behaviour in a browser, and the Function on Cloudflare.
 
 ### The site's text, a first pass (2026-10-15)
 
@@ -7072,3 +7073,27 @@ error and no horizontal scroll. The layout sweep in Chromium passes (25 tests, 5
   levels of 255 in 23 pixels, was the thumb of the Analysis board's engine switch. The two captures of the build
   before also differed there (34 levels). `npm run check:all` passed, and the layout tests in Chromium: 33 passed and
   6 skipped. The sixth, the practice games' test, needs a build that stores practice games. It passed on such a build.
+
+### 2026-10-26: Hedge School takes the glossary's words (abscls-ceau)
+
+The Enclosure glossary (planning repository, `glossary/enclosure.md` and `GLOSSARY.md`) names the words of the site.
+The pages, the lessons, the documents and the code's comments took them.
+
+- **Renamed:**
+  - protected edge -> invincible edge (meaf.us's word), on the Notation page, in the lessons, the editor and the
+    board's layer setting. The mark `*` stays.
+  - opponent -> enemy, in the site's text, the documents and the comments.
+  - A score has no unit: "9 points of area" -> "an area of 9", "won by 28.5 points" -> "won by 28.5", and the image
+    captions say "a score of 34 and an area of 12".
+  - branch -> variation (Lichess's and PGN's word), in the review's text, the Notation page and the comments of the
+    shared record and of Drawing Board's `record.ts`. A Git branch is still a branch.
+  - label pass, map pass -> the label stage, the map stage, and the review's "passes" -> "stages". "Layout sweep" ->
+    layout test.
+  - snapshot -> review snapshot. "Label" -> "quality label" in the pages and in the review's settings. "Number 1" ->
+    "rank 1". "Analysis board" has a capital A.
+- **Stayed, for stored data and for the later identifier issue:** the database's `branches` store, the fields `edge`
+  and `blueWin`, the storage keys, the display settings' unit `"edge"`, the analytics events ("branch promoted",
+  "snapshot opened") and the fixtures. Identifiers (functions, variables, types, files, CSS classes) keep their old
+  words, as do the style sheets.
+- **Not done:** "points lost" and the unit "pts" in the notes, because the glossary's entry for loss is not settled in
+  the issue. The design documents (except the first lines of `docs/design/README.md`) still say "label" alone.

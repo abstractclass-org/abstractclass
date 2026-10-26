@@ -6,9 +6,9 @@
 
 The review searches every position of a game in the visitor's browser, one position for each CPU worker
 ([design 02](02-static-site.md)). The network takes about 97% of a search's time. The engine repository's release
-`wasm-v2-engine-06534ee` added a GPU module, and `wasm-v2-engine-632f2a0` made its graphs half as large: many searches in one worker, whose network evaluations go to the GPU in
-batches through ONNX Runtime Web on WebGPU (the engine repository's
-[games/enclosure/docs/design/19-webgpu-module.md](https://github.com/abstractclass-org/engines/blob/main/games/enclosure/docs/design/19-webgpu-module.md)).
+`wasm-v2-engine-06534ee` added a GPU module, and `wasm-v2-engine-632f2a0` made its graphs half as large: many searches
+in one worker, whose network evaluations go to the GPU in batches through ONNX Runtime Web on WebGPU (the engine
+repository's [games/enclosure/docs/design/19-webgpu-module.md](https://github.com/abstractclass-org/engines/blob/main/games/enclosure/docs/design/19-webgpu-module.md)).
 The GPU is fast only in batches: one search alone runs no faster there than on a CPU worker. It needs JSPI and WebGPU,
 which Chrome and Edge have from version 137.
 
@@ -39,14 +39,14 @@ which Chrome and Edge have from version 137.
 - **The CPU first.** Each search on the GPU waits for its batch, so it runs slower than a search on a CPU worker. On the
   engine repository's RTX 5080, 16 searches ran at 571 visits a second together, 36 each, against 83 for one CPU worker.
   The GPU gains by the number of its searches. So the CPU workers take the work first, and the GPU takes the rest: in
-  the sweep and the label pass, that is most of the game. A few deep searches, such as the position on screen's, then
+  the sweep and the label stage, that is most of the game. A few deep searches, such as the position on screen's, then
   run mostly on the CPU workers. Where the GPU took them first, they ran in small batches while the CPU workers were
   idle. KataGo's analysis config gives the same advice: many positions at once on the GPU.
 - **Auto, with a test.** GPUs differ a lot. On the engine repository's RTX 5080, the GPU worker ran 7 times faster
   than one CPU worker. A weak integrated GPU can be slower than a CPU worker, and there a CPU worker does the same work
   better.
 - **The test on the review's own work.** Request 06 first planned a test of a few evaluations, in a second or two,
-  before the review. The test on real work measures what the review gets: full batches from the label pass, the
+  before the review. The test on real work measures what the review gets: full batches from the label stage, the
   search's own CPU time in the GPU worker, and the CPU workers' speed while the GPU worker runs beside them. A
   second or two would mostly measure the first batches, which compile the GPU's kernels. So the test's count starts
   after the GPU's first batch. And the test's work is not lost: it is the review's.
@@ -86,7 +86,7 @@ which Chrome and Edge have from version 137.
 - **The cache keys of the earlier engine build no longer match,** so the stored reviews search again once with the
   new build.
 - **The gain, measured on one desktop** (an RTX 5080, with the CPU busy with other work): with 4 CPU workers, the GPU
-  made the label pass 2.05 times as fast with Lite ([decisions/engine.md](../decisions/engine.md), "The GPU in the
+  made the label stage 2.05 times as fast with Lite ([decisions/engine.md](../decisions/engine.md), "The GPU in the
   review").
 - **A faster GPU and a slower one, measured on the same quiet desktop:** with Lite, the RTX 5080 made 404 evaluations
   a second, against 62 visits a second for a CPU worker (6.5 times). The CPU's integrated AMD Radeon (2 compute units)

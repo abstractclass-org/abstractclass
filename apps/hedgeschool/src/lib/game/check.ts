@@ -1,5 +1,5 @@
 // Checks a game's moves with the engine's rules before the game is kept: the engine module in a worker, without a
-// network (describe works before one loads). Finds which moves cut an opponent's edge, so that the record carries the
+// network (describe works before one loads). Finds which moves cut an enemy's edge, so that the record carries the
 // cut mark (record.ts), and refuses a mark on a move that cuts nothing. Problems count edges from 1 as the record does.
 import { EngineError, EngineWorker, loadManifest, moduleOf } from "@abstractclass/engine/client.ts";
 import { setUpStart } from "#lib/engine/notation.ts";
@@ -10,7 +10,7 @@ import type { GameRecord } from "./record.ts";
 
 export interface Checked {
   problem: string | null; // what is wrong, or null when the game is legal
-  cuts: boolean[] | null; // by move: it cuts an opponent's edge (null when the site has no engine)
+  cuts: boolean[] | null; // by move: it cuts an enemy's edge (null when the site has no engine)
 }
 
 export async function checkMoves(record: GameRecord): Promise<Checked> {

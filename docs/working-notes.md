@@ -32,10 +32,10 @@ learn one, and remove a note when it stops being true. The work itself is in bea
   games' ids, and put them back after. Read the state again before each test: the owner plays between them.
 - **Edge starts only with `HS_EDGE=1`,** and only the owner sets it: an Edge that a worker starts signs a new profile
   in to the owner's Windows account and syncs the owner's extensions. Every script that can start a browser goes
-  through one gate, `scripts/edge.mjs`. The layout sweep does too. Only the gate gives Edge's program. Without the
+  through one gate, `scripts/edge.mjs`. The layout test does too. Only the gate gives Edge's program. Without the
   variable, a script refuses Edge with a message that names the variable, and a browser list is Chromium alone by
   default. A new script that starts a browser uses the gate.
-- **The layout sweep** (`npm run test:layout` in `apps/hedgeschool`) runs in Chromium alone. Its default address is the
+- **The layout test** (`npm run test:layout` in `apps/hedgeschool`) runs in Chromium alone. Its default address is the
   owner's preview on port 4173. A worker sets `BASE_URL` to its own preview (another port, or a Cloudflare preview).
   Set it in the job's environment. From Git Bash: `BASE_URL=http://127.0.0.1:5216 MSYS_NO_PATHCONV=1 scripts/machine
   run … --windows -- cmd /c "npx playwright test …"`. Do not write `set "BASE_URL=…"` in the text after `cmd /c`: from
@@ -163,7 +163,7 @@ learn one, and remove a note when it stops being true. The work itself is in bea
 - **A script the browser tool runs** waits for its promise. A promise that never settles, such as an IndexedDB request
   on a store that does not exist, holds the tool for 45 seconds and reads as a frozen page. The site's database is
   `learn-enclosure` (`packages/storage/src/db.ts`). Check its store names before reading them. A stored game's `record`
-  is text, not an object. Save what a test changes (a game's branches, the board under the key `board`, the engine
+  is text, not an object. Save what a test changes (a game's variations, the board under the key `board`, the engine
   settings) and put it back after.
 - **Claude in Chrome runs in Edge only.** With the extension on in Chrome too, the two browsers took turns as one
   device and every action failed.

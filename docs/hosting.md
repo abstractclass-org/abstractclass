@@ -17,7 +17,7 @@ entries before it).
 | The host | Cloudflare Pages, the project `hedgeschool`, with no Git connection | Serves the files that the deploy uploads, and runs the one Function. Also at `hedgeschool.pages.dev`. |
 | The engine | GitHub Releases of the public repository `abstractclass-org/enclosure-engine` | The module and the networks, pinned by SHA-256 in `engine.lock.json`. The build downloads them. |
 | Visit counts | Google Analytics (the property's measurement ID `G-C5RY6DWGWN`) and Cloudflare Web Analytics | Counted in the browser (`src/lib/analytics.svelte.ts`). |
-| Tests | GitHub Actions (`.github/workflows/tests.yml`) | On each push to `dev`: the check, the unit tests and the browser tests on Linux, and the layout sweep on Windows ("Deploy, check and roll back"). |
+| Tests | GitHub Actions (`.github/workflows/tests.yml`) | On each push to `dev`: the check, the unit tests and the browser tests on Linux, and the layout test on Windows ("Deploy, check and roll back"). |
 | Documents | GitHub Actions (`.github/workflows/docs.yml`) | On each push to `dev`: refuses an added line over 120 characters in a Markdown file of the pushed range. |
 | Practice games | Cloudflare D1: `hedgeschool-games` for production, `hedgeschool-games-preview` for the previews | A Pages Function (`functions/api/practice-games.ts`) keeps each game against HedgeFund when it ends (design 25). |
 | The hub | `apps/hub/public`, deployed by the job `hub` of **Deploy** to the Pages project that `HUB_PAGES_PROJECT` names | The organization's front page at `abstractclass.org`: static files, with no build, script or storage (section 8). |
@@ -447,11 +447,11 @@ tests and build. Then it uploads `build/` with Wrangler: `main` to production, a
 - **Check the tests first:** release only a commit whose run of the workflow **Tests** passed (GitHub, the
   repository's **Actions** tab, or the mark beside the commit). On each push to `dev` it runs two jobs at the same time
   (`.github/workflows/tests.yml`). Each one builds the site as production does, with the practice games' storage on:
-  - **`test`, on Linux,** about 10 minutes: `npm run check:all` at the root, then the layout sweep in Chromium, and a
+  - **`test`, on Linux,** about 10 minutes: `npm run check:all` at the root, then the layout test in Chromium, and a
     Decline in one tab while a practice game is open in another (tests/practice-games.spec.ts). `check:all` holds
     the one list of the checks before the browser tests (`scripts/check-all.mjs`). Run it before a push to get the
     same result.
-  - **`test-windows`, on Windows:** the layout sweep in Playwright's own Chromium, with Windows' scroll bars, Windows'
+  - **`test-windows`, on Windows:** the layout test in Playwright's own Chromium, with Windows' scroll bars, Windows'
     fonts (`system-ui` is Segoe UI there) and Windows' drawing of text. Linux does not show these. They change where
     text wraps or overflows.
 

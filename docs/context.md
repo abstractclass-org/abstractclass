@@ -14,8 +14,8 @@ guidelines.
 
 - **The rules:** [`enclosure/README.md`](https://github.com/abstractclass-org/engines/blob/main/enclosure/README.md) in
   the engine repository, verified against the site's own rules code. In short: a 19 × 19 lattice, edges up to 3
-  units long, 1-2-2 turns (Blue's first turn is one edge, then two edges a turn), cuts of enemy edges, edges protected
-  for one opponent turn, and the enclosed area added to each player's score after every turn. The game ends after
+  units long, 1-2-2 turns (Blue's first turn is one edge, then two edges a turn), cuts of enemy edges, edges invincible
+  for one enemy turn, and the enclosed area added to each player's score after every turn. The game ends after
   120 edges.
 - **The online rule variant:** `tempo 1-2-2`, `validation edges-1`, `pruneMode degree-zero`, `swallowing false`,
   `startPosition central-line`, `lastMoveInvincible`

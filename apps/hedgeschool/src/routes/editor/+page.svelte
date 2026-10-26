@@ -1,6 +1,6 @@
 <script lang="ts">
   // The board editor (docs/design/21-analysis.md): sets up a position for the Analysis board, as Lichess's board editor
-  // does for its analysis board. The player draws each player's edges, marks the edges of the turn, and sets the edge
+  // does for its Analysis board. The player draws each player's edges, marks the edges of the turn, and sets the edge
   // count and the scores. The left button draws with the tool's player and the right button with the other, as a drawing
   // program's two colours, and X swaps the two tools. After an edge, the next click continues from its end (a chain),
   // until Escape. The edge count follows the board until the player types one (CountRule). The page writes the
@@ -97,8 +97,8 @@
     }
   }
 
-  // The board shows the turn's edges as it shows protected ones: in the editor, a mark is a mark.
-  const shown = $derived(drawn); // the board marks the placed edges as it marks the protected ones
+  // The board shows the turn's edges as it shows invincible ones: in the editor, a mark is a mark.
+  const shown = $derived(drawn); // the board marks the placed edges as it marks the invincible ones
   const reasonEdges = $derived((check?.reasons ?? []).flatMap(r => r.edges.map(parseEdge)));
   /** The points that finish an edge from the first point: any point near enough for a player's edge, the other ends
    *  of the edges there for a mark. */
@@ -186,7 +186,7 @@
 
   const TOOLS: [Tool, string][] = [[0, "Blue edges"], [1, "Red edges"], ["mark", "Marks"]];
   const toolHelp = (t: Tool) => t === "mark"
-    ? "Click an edge's two points to mark it. Mark the waiting player's edges of the last turn (protected). Mark the mover's edges of this turn so far (placed)."
+    ? "Click an edge's two points to mark it. Mark the waiting player's edges of the last turn (invincible). Mark the mover's edges of this turn so far (placed)."
     : `Click an edge's two points, at most 3 apart. Right-click to draw a ${PLAYER_NAME[otherPlayer(t)]} edge. To remove a ${PLAYER_NAME[t]} edge, draw it again. To change a ${PLAYER_NAME[otherPlayer(t)]} edge to ${PLAYER_NAME[t]}, draw it again.`;
   // The page's keys and clicks, as the review lists its own (ReviewView's KEYS and MOUSE). The end of the last edge stays
   // selected: the next click draws the next edge from it (a chain).

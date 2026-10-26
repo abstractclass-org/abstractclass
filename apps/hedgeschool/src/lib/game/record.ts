@@ -1,7 +1,7 @@
 // The game record, the engine repository's PGN-like notation (its docs/design/04-notation-and-protocol.md, "A game
-// record"): tag pairs, then the turns. The record's frame (the tags, the turns, comments, branches, the quality marks,
+// record"): tag pairs, then the turns. The record's frame (the tags, the turns, comments, variations, the quality marks,
 // the commands and the result) is the shared one (@abstractclass/record/record.ts). Enclosure's part is here: a move is
-// an edge in the notation (lower point first) or `pass`, and a move that cuts an opponent's edge carries an `x`:
+// an edge in the notation (lower point first) or `pass`, and a move that cuts an enemy's edge carries an `x`:
 // `D10-G10x`. A reader takes a move with or without it, and a mark on a move that cuts nothing is an error (the engine
 // checks that: check.ts). A turn's quality mark follows the cut mark: `G9-G12x??`. A record from a set-up start numbers
 // its turns from its `Position` tag's edge count.

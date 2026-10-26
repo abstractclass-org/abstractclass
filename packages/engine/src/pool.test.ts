@@ -1,5 +1,5 @@
 // Checks that a pool takes a rules worker that the page started before it: the review page starts one once the
-// engine's manifest is read, before it chooses the pool (the review's, or a snapshot's). The pool does not start the
+// engine's manifest is read, before it chooses the pool (the review's, or a review snapshot's). The pool does not start the
 // worker a second time, and its rules work. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";

@@ -8,7 +8,7 @@ import { LINE_STEP_MS } from "./lineDrawing.svelte.ts";
  *  No edges: the image is the position at `start`. */
 export interface ImageLine { start: string[]; paths: string[][] }
 
-/** The line of the move at `target` (its path). A branch's move: the branch's line from where it leaves the game, as
+/** The line of the move at `target` (its path). A variation's move: the variation's line from where it leaves the game, as
  *  its preview numbers it (branchLine). A move of the game ahead of the position on screen (`here`): the line from
  *  there to the move, as a position made in the board editor has only a main line. Any other move of the game: the
  *  position after it. */

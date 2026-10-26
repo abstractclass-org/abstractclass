@@ -70,7 +70,7 @@ const REMOVED = "learn-enclosure:analysis-shape:1"; // the browser's mark
 
 /** Removes the stored results of older shapes (isOlderShape), at the site's first start after a change of SHAPE: a
  *  start with the same shape reads the mark alone. The results of the shapes that the readers read stay, of every
- *  engine and network: a snapshot reads an earlier engine's (design 20). The mark follows the removal, so a removal
+ *  engine and network: a review snapshot reads an earlier engine's (design 20). The mark follows the removal, so a removal
  *  that fails runs again at the next start. */
 export async function removeOlderShapes(): Promise<void> {
   if (!removalDue(readLocal(REMOVED))) return;
@@ -105,7 +105,7 @@ export const ofModels = (entries: [string, unknown][], models: Set<string> | nul
 export const SWEEP_VISITS = 32;
 export const LABEL_VISITS = 256; // the least visits that give an edge a label (the review's depths: settings.ts)
 export const DEEP_VISITS = 1024; // the position on screen by default
-// The budgets the site's searches ask for (settings.ts: the depths, the review's depths and the label pass), from
+// The budgets the site's searches ask for (settings.ts: the depths, the review's depths and the label stage), from
 // shallow to deep. And twice each review depth, to 32,768: older reviews searched some positions that deep, and a
 // review takes those results as it takes any deeper result (cacheGetAtLeast).
 export const BUDGETS = [256, 512, 768, 1024, 1536, 2048, 3072, 4096, 8192, 16384, 32768];
@@ -152,7 +152,7 @@ async function readStored(keys: string[]) {
 // analysis store under its position's result's key for that search, with MAP_PREFIX before it: so a review file takes
 // it with the results of its positions, and the removals treat it as they treat the results of its search. A reader
 // before the maps (the site before the area map) never takes it as a result: its key does not start with a shape, so
-// that reader's isAnalysisKey refuses it, in a file and in the store. A snapshot never takes it as a search
+// that reader's isAnalysisKey refuses it, in a file and in the store. A review snapshot never takes it as a search
 // (searchHolding).
 export const MAP_PREFIX = "map|";
 /** The visits of a map's short search. A full search's candidate on the board rests on few visits (a median of 17 on
@@ -160,7 +160,7 @@ export const MAP_PREFIX = "map|";
  *  full search's own map of the candidate, less than one of 512 visits does (decisions/product.md, "A candidate's map
  *  from a short search"). */
 export const MAP_VISITS = 32;
-/** The slices of the map pass's searches, in visits: the pool can stop a search only between two slices. */
+/** The slices of the map stage's searches, in visits: the pool can stop a search only between two slices. */
 export const MAP_SLICE = 8;
 /** An added map: the ownership, in hundredths from Blue's side, and its source. */
 export interface AddedMap { ownership: number[]; visits: number; source: "short search" }
@@ -175,12 +175,12 @@ export async function mapGet(search: string, model: string, moves: string[]): Pr
   return memory.get(key) as AddedMap | undefined;
 }
 
-/** The engine search of an earlier review, for its snapshot (design 20): a search whose results with the network
+/** The engine search of an earlier review, for its review snapshot (design 20): a search whose results with the network
  *  `model` hold each of `positions` (their moves) at `visits` or deeper. `search` is the one that the review's mark
- *  names: the snapshot reads its results' keys alone, at `visits` and every budget deeper, into memory, where the
- *  review then finds them. An older mark names none (Hedge School's src/lib/game/store.ts, ReviewMark): the snapshot
+ *  names: the review snapshot reads its results' keys alone, at `visits` and every budget deeper, into memory, where the
+ *  review then finds them. An older mark names none (Hedge School's src/lib/game/store.ts, ReviewMark): the review snapshot
  *  then reads every stored key, and takes a search that holds them all. `except` is a search not to take: the site's
- *  own, when the snapshot is of an earlier engine. The store is read while it comes (the rules worker's start).
+ *  own, when the review snapshot is of an earlier engine. The store is read while it comes (the rules worker's start).
  *  Undefined when no search holds them all. */
 export async function snapshotSearch(search: string | undefined, model: string, positions: string[][], visits: number,
                                      except?: Promise<string | undefined>): Promise<string | undefined> {
@@ -190,12 +190,12 @@ export async function snapshotSearch(search: string | undefined, model: string, 
   return searchHolding(keys, model, positions, visits, not, search);
 }
 
-/** The search that a snapshot leaves out: the site's own (`site`) for an earlier engine's review ("engine"), and none
+/** The search that a review snapshot leaves out: the site's own (`site`) for an earlier engine's review ("engine"), and none
  *  for an earlier file of the network ("network"), whose search can be the site's. */
 export const snapshotExcept = (why: "engine" | "network", site: string | null | undefined) =>
   (why === "engine" ? site ?? undefined : undefined);
 
-/** The positions whose results a snapshot needs, by their moves: each one of the game's line after the start, which
+/** The positions whose results a review snapshot needs, by their moves: each one of the game's line after the start, which
  *  every game shares, up to the last before its last move. */
 export const snapshotPositions = (moves: string[]) => Array.from({ length: Math.max(0, moves.length - 1) }, (_, i) => moves.slice(0, i + 1));
 

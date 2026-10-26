@@ -1,4 +1,4 @@
-// The test book (design 32, "The book file"): the third prototype's book (beads abscls-tpaj.3, the branch's
+// The test book (design 32, "The book file"): the third prototype's book (beads abscls-tpaj.3, the variation's
 // static/book-prototype/book.json, which its scripts/book-prototype/export.mjs wrote) in the site's own form
 // (src/lib/book/form.ts), so that the explorer can be built before the engine repository's book comes (request 22).
 // It is not the engine's book: the site's engine searched it in WebAssembly at 512 visits, with the site's network.
@@ -56,7 +56,7 @@ for (let i = nodes.length - 1; i >= 0; i--) {
   lastOf[i] = Math.max(n.c, ...n.e.map(e => lastOf[e.to]));
 }
 /** A trap's refutation: from the position after it, the book's refutation edge or else its best move at each
- *  position, through the opponent's turn after the trap. */
+ *  position, through the enemy's turn after the trap. */
 function refutation(at, trapper) {
   const line = [];
   for (let n = nodes[at]; ;) {

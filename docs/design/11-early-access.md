@@ -19,7 +19,7 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
    - **The Review tab:** import a game, load a review file, continue the last review, and the player's games. No
      sample game: a review opens on a game the player brought. Each game has a Delete ([below](#deleting-a-game)).
    - **The ways to bring a game:** a pasted record in this site's notation, a pasted export of Constellation's
-     analysis board, and the bookmarklet for meaf.us and strategyjam.org ([import](#constellations-export) below).
+     Analysis board, and the bookmarklet for meaf.us and strategyjam.org ([import](#constellations-export) below).
      The pages name the record and the two sites' tools. Constellation's export is on the notation page only, as a
      notation whose columns have `I`.
    - **The header:** the name, which leads home, with "Early Access" beside it in the accent colour, which leads to the
@@ -52,11 +52,11 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
    - **Node 24** (`.node-version`): Node 22 cannot run the tests' TypeScript without a flag.
    - **The build's variables:** `VITE_EDITION=early`, `VITE_GA_ID` and `VITE_CF_ANALYTICS_TOKEN` (item 7). The footer
      shows the commit that the build runs from.
-   - **The headers** (`static/_headers`): `noindex` on Cloudflare's preview addresses (design 23), and a year's cache, never checked again, for the
-     build's hashed code (`/_app/immutable/`) and the engine's files (`/engine/<id>/<file>`): their paths name their
-     content, so a file there never changes. `/engine/manifest.json` keeps the default check on each load. The meaf.us
-     tools' files are checked at each use (`no-cache`), so that a deploy reaches the bookmark and Tampermonkey at
-     once: Cloudflare's own rule kept a `.js` file for 4 hours.
+   - **The headers** (`static/_headers`): `noindex` on Cloudflare's preview addresses (design 23), and a year's cache,
+     never checked again, for the build's hashed code (`/_app/immutable/`) and the engine's files
+     (`/engine/<id>/<file>`): their paths name their content, so a file there never changes. `/engine/manifest.json`
+     keeps the default check on each load. The meaf.us tools' files are checked at each use (`no-cache`), so that a
+     deploy reaches the bookmark and Tampermonkey at once: Cloudflare's own rule kept a `.js` file for 4 hours.
    - **A 404 page** (`404.html`, adapter-static's fallback): without it, Pages serves the home page for any unknown
      address.
    - **The size:** 69 files, 29 MB. Each file is under Pages' limit of 25 MiB (the larger network is 20.6 MB).
@@ -68,11 +68,11 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
    networks, as the engine settings offer both, and a notice of the licences of what is compiled into the module.
    The site ships that notice beside the module, and the notices page lists the works and links to it.
    - **A new engine:** the stored results' keys name the engine's build and the network's file. A game reviewed before a
-     release opens as a snapshot of that review, with Review again (design 20). Where the browser lacks the earlier
-     results, the game is searched again, and the player is told why (`reviewAgainWhy` in `src/lib/game/store.ts`): a
-     dialog says that the engine was updated, once in a visit for each game and build, and a line under the review's
-     progress says it while the review runs. In the Review tab, the game's Export, off until the review is done, says it
-     too. A network or a depth that the player chose is not an update, and has no notice.
+     release opens as a review snapshot of that review, with Review again (design 20). Where the browser lacks the
+     earlier results, the game is searched again, and the player is told why (`reviewAgainWhy` in
+     `src/lib/game/store.ts`): a dialog says that the engine was updated, once in a visit for each game and build, and a
+     line under the review's progress says it while the review runs. In the Review tab, the game's Export, off until the
+     review is done, says it too. A network or a depth that the player chose is not an update, and has no notice.
 7. **Analytics: Cloudflare's and Google's.** Cloudflare's sets no cookies. Google Analytics runs in Google's consent
    mode, advanced form: the Google tag loads on every page with its cookies denied, and sends cookieless pings until
    the visitor accepts. A banner asks once, with Accept and Decline alike. The privacy page shows the choice, can
@@ -110,7 +110,7 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
 
 ### Constellation's export
 
-Constellation's analysis board (`constellation.blueshrimp.uk/#analysis`) exports a game as one line: the start, then
+Constellation's Analysis board (`constellation.blueshrimp.uk/#analysis`) exports a game as one line: the start, then
 one item for each turn, separated by spaces.
 
 ```
@@ -131,10 +131,10 @@ one item for each turn, separated by spaces.
 
 ### Deleting a game
 
-- **Delete removes the game, its branches, and the Review link's pointer to it,** for good. The site's engine's
+- **Delete removes the game, its variations, and the Review link's pointer to it,** for good. The site's engine's
   analyses stay: they belong to positions, which other games can share, and an import of the same game then opens its
-  review at once. An earlier engine's, which only the game's snapshot read, go at a later start, unless another game
-  needs them (design 20, item 8).
+  review at once. An earlier engine's, which only the game's review snapshot read, go at a later start, unless another
+  game needs them (design 20, item 8).
 - **A question first.** Delete opens a dialog: "Delete this game?", with the game's name, and a line that says that
   the player cannot undo the delete. Its buttons are Cancel and Delete. Cancel has the focus when the dialog opens, so
   that Enter does not delete. Escape and a click outside the dialog cancel, as Cancel does. The privacy page's "Delete
@@ -159,16 +159,16 @@ one item for each turn, separated by spaces.
 
 ### One tab for each game's review
 
-- **The problem:** a review keeps the game's branches in memory, reads them once when it opens, and stores them whole
-  after each change. Two tabs on one game would store over each other's branches: a branch added in one tab would be
-  lost after a change in the other, and a deleted branch could come back. Both tabs would also run the engine on the
-  same positions, each with its own workers.
+- **The problem:** a review keeps the game's variations in memory, reads them once when it opens, and stores them whole
+  after each change. Two tabs on one game would store over each other's variations: a variation added in one tab would
+  be lost after a change in the other, and a deleted variation could come back. Both tabs would also run the engine on
+  the same positions, each with its own workers.
 - **A tab holds the game's lock** (the Web Locks API, `navigator.locks`) while its review runs. Another tab for the same
   game starts no engine. It says "This game is open in another tab", with a **Review here** button. The button takes
   the lock (`steal`) and loads the page again. The tab that held the lock stops its engine at once, and says that the
   game is now open in another tab, with the same button. The browser frees the lock when its tab closes. Reviews of
   different games in two tabs run as before: they share only the machine.
-- **A game deleted while its review is open** (in the Review tab, in another tab): the review stores no more branches
+- **A game deleted while its review is open** (in the Review tab, in another tab): the review stores no more variations
   for it, so a later import of the same game does not bring them back.
 
 ### The bookmarklet and the userscript (meaf.us, strategyjam.org)
@@ -265,7 +265,7 @@ read the game from the player's own page.
     between the menu and the panel. So no fixed spot there stays free. The button goes at the end of the move list's
     legend ("can be cut", "can't be cut yet", `.enc-legend`), in the page's own layout. It sits to the right, in a
     row of its own when the legend fills its row, and it scrolls with the panel. It is 36 pixels wide, as the page's
-    icon buttons. A sweep at the layout sweep's sizes (widths 360 to 1,920 by 10, heights 700, 860 and 1,000) found it
+    icon buttons. A sweep at the layout test's sizes (widths 360 to 1,920 by 10, heights 700, 860 and 1,000) found it
     over nothing: no text, control, board or scroll bar. The same sweep with the button fixed in the corner found it
     over the move list's scroll bar, the gains and the legend.
   - **It updates itself.** The site serves it at `/hedge-school.user.js`, and its header alone at
@@ -290,7 +290,7 @@ read the game from the player's own page.
   early access is for players who bring their games.
 - **An Undo, not a question** (before the question), as Gmail does: the site deleted the game at once, and its row
   showed "Deleted …" with an Undo until the page loaded again. A delete and a slip cost one click each. But an Undo
-  could restore a game without the results that its snapshot reads, once the site removes an earlier engine's
+  could restore a game without the results that its review snapshot reads, once the site removes an earlier engine's
   results (design 20, item 8). The question costs a second click on each delete.
 - **The free `pages.dev` address:** the owner's domain is the lasting one.
 - **Listed in search engines:** after the first players' reports.

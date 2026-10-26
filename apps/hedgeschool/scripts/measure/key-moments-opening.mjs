@@ -8,17 +8,17 @@
 //      mean loss of the network's own turns.
 //   2. How often a flag at 512 visits is right (the 4,096 reading also flags it), in the first 8 turns and later, and
 //      how many of the people's key moments are in the first 8 turns when nothing is cut.
-//   3. What the key moments' deeper search (the review's step after the label pass) changes, on part2-100, with the
+//   3. What the key moments' deeper search (the review's step after the label stage) changes, on part2-100, with the
 //      key moments after the first 8 turns (as the review took them before the change) and from the first turn on.
 //      The page's step is emulated as routes/review/+page.svelte momentPositions did it: the key moments by edge and
 //      by turn, deepened together, again until they stay. "Right": the moment is one of the 4,096 reading's key
-//      moments, or has its label there. The visits are the search's own (the sweep 32 a position, the label pass at the base depth, the step at
+//      moments, or has its label there. The visits are the search's own (the sweep 32 a position, the label stage at the base depth, the step at
 //      the deeper depth for each position it deepens), and a deepened search counts in full.
 //   4. What the Greats' confirmations change, on part1-1000's follow-ups: of the one-search gaps (the played edge or
 //      turn is the engine's first choice and its second looks 0.10 of win chance worse), how many the equal search of the
 //      position after the second choice confirms (model.ts confirmedOnly, judgeTurn), and what the searches cost. Then
 //      En Croissant's third condition (model.ts keepsGain, design 10): how many confirmed Greats keep what the
-//      opponent's last turn gave, how many leave the mover not losing (a win chance of 50% or more after the move, as
+//      enemy's last turn gave, how many leave the mover not losing (a win chance of 50% or more after the move, as
 //      Chesskit and WintrChess ask), both, how many of them the two conditions disagree on, and the confirmations'
 //      searches that the condition saves.
 //
@@ -238,13 +238,13 @@ async function step() {
     const row = (name, tag) => console.log(`| ${name} | ${["edge", "turn"].map(u => `${share(T[`${u} ${tag} | ref moment`], T[`${u} ${tag} | n`])} | ${share(T[`${u} ${tag} | ref label`], T[`${u} ${tag} | n`])}`).join(" | ")} |`);
     row("512 (Lite)", "512"); row("512, then the step to 1,024", "512 step"); row("1,024 everywhere (Standard)", "1024 all");
     row("1,024, then the step to 2,048", "1024 step"); row("2,048 everywhere", "2048 all");
-    // The visits: the sweep at 32 a position, the label pass, the step at the deeper depth for each position it deepens
+    // The visits: the sweep at 32 a position, the label stage, the step at the deeper depth for each position it deepens
     const sweep = 32 * positions;
     for (const [b0, b1] of runs) {
       const label = +b0 * positions, stepVisits = +b1 * T[`${b0} deepened`];
       console.log(`- From ${b0} to ${b1}: the step deepens ${T[`${b0} deepened`]} positions (${(T[`${b0} deepened`] / games.size).toFixed(1)} a game, ${share(T[`${b0} deepened`], positions)} of all). `
-        + `Its ${stepVisits} visits, each deepened search counted in full, are ${share(stepVisits, sweep + label + stepVisits)} of the sweep, the label pass and the step together `
-        + `and ${share(stepVisits, label)} of the label pass. A review with every position at ${b1} adds ${share(+b1 - +b0, +b0, 0)} to the label pass.`);
+        + `Its ${stepVisits} visits, each deepened search counted in full, are ${share(stepVisits, sweep + label + stepVisits)} of the sweep, the label stage and the step together `
+        + `and ${share(stepVisits, label)} of the label stage. A review with every position at ${b1} adds ${share(+b1 - +b0, +b0, 0)} to the label stage.`);
     }
     console.log(`- The step of the 512 depth, by one unit alone, changes a key moment or its label in ${changed.edge} of ${games.size} games by edge and ${changed.turn} by turn (the key moments compared as sets, with their labels).\n`);
   }
@@ -253,8 +253,8 @@ async function step() {
 // --- 4. The Greats' confirmations ---------------------------------------------------------------------------------------
 /** A budget's reading as the site's analysis, for keepsGain: the root's values and the first candidate. */
 const asAnalysis = r => r && { blueWin: r.winrate, visits: r.visits, candidates: r.first ? [{ blueWin: r.first.winrate }] : [] };
-/** Whether the first choice at position `i` of a game keeps what the opponent's last turn gave, judged as the site
- *  judges it (model.ts keepsGain and earlierIndex, at 512 visits): against the start of the opponent's turn before the
+/** Whether the first choice at position `i` of a game keeps what the enemy's last turn gave, judged as the site
+ *  judges it (model.ts keepsGain and earlierIndex, at 512 visits): against the start of the enemy's turn before the
  *  mover's own. The game's first turn has none. */
 function keeps(g, i, mover) {
   const player = p => (p === "b" ? 0 : 1), k = earlierIndex(j => player(g.ps[j - 1].mover), i, player(mover), true);
@@ -315,8 +315,8 @@ async function great() {
   }).join("; ")}.`);
   console.log(`  The median one-search gap: ${median(e.ofRefuted).toFixed(3)} of the refuted, ${median(e.ofConfirmed).toFixed(3)} of the kept.`);
   console.log(`- By turn: ${t.oneSearch} Greats in one search (of ${t.best} best turns, ${t.asked} with a follow-up), ${t.confirmed} confirmed (${share(t.confirmed, t.oneSearch, 0)}).`);
-  console.log(`- Cost: ${searches} searches (${e.gaps} by edge, ${t.searches} by turn, ${t.shared} shared) of 512 visits for ${positions} positions, ${share(searches, positions)} of the label pass at 512.`);
-  const third = (x, n) => `${x.keep} (${share(x.keep, n, 0)}) keep what the opponent's last turn gave (more than ${pct(KEPT_GAIN)} of win chance), `
+  console.log(`- Cost: ${searches} searches (${e.gaps} by edge, ${t.searches} by turn, ${t.shared} shared) of 512 visits for ${positions} positions, ${share(searches, positions)} of the label stage at 512.`);
+  const third = (x, n) => `${x.keep} (${share(x.keep, n, 0)}) keep what the enemy's last turn gave (more than ${pct(KEPT_GAIN)} of win chance), `
     + `${x.notLosing} (${share(x.notLosing, n, 0)}) leave the mover not losing (50% or more after the move), both ${x.both} (${share(x.both, n, 0)}). `
     + `The two disagree on ${x.keep + x.notLosing - 2 * x.both} (${share(x.keep + x.notLosing - 2 * x.both, n, 0)})`;
   console.log(`- En Croissant's third condition. By edge: of the ${e.confirmed} confirmed Greats, ${third(e, e.confirmed)}.`);

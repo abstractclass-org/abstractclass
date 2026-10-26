@@ -9,24 +9,24 @@ const at = (scores: [number, number], areas?: [number, number]) => ({ scores, ar
 test("the caption: the turn and who plays at the line's start, then the scores there and after the line", () => {
   assert.deepEqual(imageCaption({ turn: 12, first: true, player: 0, movesLeft: 2, ...at([34, 30], [12, 8]) }, at([40.4, 30], [20, 8]), 6), [
     "Turn 12. Blue plays two edges.",
-    "Before edge 1: Blue has 34 points and an area of 12. Red has 30 points and an area of 8.",
-    "After edge 6: Blue has 40 points and an area of 20. Red has 30 points and an area of 8.",
+    "Before edge 1: Blue has a score of 34 and an area of 12. Red has a score of 30 and an area of 8.",
+    "After edge 6: Blue has a score of 40 and an area of 20. Red has a score of 30 and an area of 8.",
   ]);
   assert.deepEqual(imageCaption({ turn: 12, first: false, player: 1, movesLeft: 1, ...at([1200, 980]) }, at([1210, 980]), 1), [
     "Turn 12. Red plays the second edge of the turn.",
-    "Before edge 1: Blue has 1,200 points. Red has 980 points.",
-    "After edge 1: Blue has 1,210 points. Red has 980 points.",
+    "Before edge 1: Blue has a score of 1,200. Red has a score of 980.",
+    "After edge 1: Blue has a score of 1,210. Red has a score of 980.",
   ]);
 });
 
 test("the caption of a position with no line: its turn and its scores", () => {
   assert.deepEqual(imageCaption({ turn: 1, first: true, player: 0, movesLeft: 1, ...at([0, 0], [0, 0]) }, null, 0), [
     "Turn 1. Blue plays one edge.",
-    "Blue has 0 points and an area of 0. Red has 0 points and an area of 0.",
+    "Blue has a score of 0 and an area of 0. Red has a score of 0 and an area of 0.",
   ]);
   assert.deepEqual(imageCaption({ turn: 61, first: true, player: 1, movesLeft: 2, over: true, ...at([310, 295]) }, null, 0), [
     "The game is over.",
-    "Blue has 310 points. Red has 295 points.",
+    "Blue has a score of 310. Red has a score of 295.",
   ]);
 });
 

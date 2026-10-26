@@ -1,6 +1,6 @@
 // The game record, as Hedge School's Notation page gives it, for any game whose site names its moves in words (design
 // 29, design 33): tag pairs, then the turns. A turn has a number (`1.`, `2.`: the first player's turns are odd, the
-// second player's even), then its moves, or `pass` for a timeout. `{ comments }` and `( branches )` nest. A branch at a
+// second player's even), then its moves, or `pass` for a timeout. `{ comments }` and `( variations )` nest. A variation at a
 // turn's second move writes `...` (`4...`). A move can carry the game's own mark, which repeats what the position shows
 // (Enclosure's cut mark `x`, Blueprints' capture mark `x+24`). A reader takes a move with or without it: the engine
 // checks a mark, in the site. A turn's quality mark (PGN's `!!`, `!`, `!?`, `?!`, `?`, `??`) follows its last move,
@@ -8,7 +8,7 @@
 // ends the record (`b+28`, `r+R`, `b+F`, `0`, `*`).
 //
 // The game gives its moves' syntax and marks (Notation): the reader asks it for each word that is not a turn label, a
-// pass or a result. This reader keeps the main line and its tags. It skips comments and branches, but reads `[%clk]`
+// pass or a result. This reader keeps the main line and its tags. It skips comments and variations, but reads `[%clk]`
 // and `[%eval]` from the comments after the main line's moves. It checks the notation, not the rules: the engine checks
 // that every move is legal. It also accepts a bare list of moves, without turn labels.
 
@@ -127,7 +127,7 @@ export function readRecord<Mark>(text: string, notation: Notation<Mark>): GameRe
       depth--;
       continue;
     }
-    if (depth > 0) continue; // a branch: not the main line
+    if (depth > 0) continue; // a variation: not the main line
     if (t.kind === "tag") {
       if (record.moves.length) throw new RecordError("tags come before the moves", t.at);
       // "?" and "-" are PGN's values for none.
@@ -153,7 +153,7 @@ export function readRecord<Mark>(text: string, notation: Notation<Mark>): GameRe
           expectedTurn = number + 1;
           continue;
         }
-        if (turn[2] === "...") continue; // only a branch starts at a turn's second move
+        if (turn[2] === "...") continue; // only a variation starts at a turn's second move
         if (number !== expectedTurn) throw new RecordError(`the record gives turn ${number} where the notation gives turn ${expectedTurn}`, t.at);
         expectedTurn++;
       } else if (RESULT.test(w)) {

@@ -6,7 +6,7 @@ measurements in Edge.
 ## Context
 
 The review searches every position on the visitor's CPU (design 02, design 05). Its budgets were fixed: the sweep at
-32 visits, the label pass at 256, the position on screen at 1,024, a pool of half the machine's cores (1 to 4
+32 visits, the label stage at 256, the position on screen at 1,024, a pool of half the machine's cores (1 to 4
 workers), and the network b10c128. Machines differ. On a fast desktop one worker of b10c128 searches
 about 70 to 90 visits a second, and b15c192 is three times slower ([decisions/engine.md](../decisions/engine.md)).
 A visitor on a laptop can want less load, and a visitor on a fast desktop can want deeper searches.
@@ -58,11 +58,11 @@ kept in this browser, and each applies at once, without a reload.
        the review, it also updates the review there: the labels and the report."), and the report says how many of the
        game's positions have a result deeper than the review's depth. With the depth at most the review's, nothing
        changes: the review's own result is the deepest. Design 16 has every depth together, with examples.
-   - **Game review:** "Depth per move", the label pass's visits for each position: Lite (512), Standard (1,024), or
+   - **Game review:** "Depth per move", the label stage's visits for each position: Lite (512), Standard (1,024), or
      Custom, which shows its visits from 256 to 16,384, the Depth's range. Lite by default. An edge gets its label
      from 256 visits on at every depth. A label search shows its result at 256 visits, and again after each further
      256, so a label shows as early at every depth and changes as the deeper search goes on. Every label of the game
-     has this depth: a player who wants surer labels sets a deeper review. "Evaluate quality" searches a branch move
+     has this depth: a player who wants surer labels sets a deeper review. "Evaluate quality" searches a variation move
      to the review's depth too.
    - **A game that keeps its own settings** (an imported review file's or a shared link's game, design 13) reviews with
      its own network and depth per move. The panel says so, shows the game's two, and changes the game's when they
@@ -74,7 +74,7 @@ kept in this browser, and each applies at once, without a reload.
      `src/lib/analysis/engineSettings.ts`).
    - **A game whose last review used an earlier network** with the browser's settings keeps that review's network and
      depth per move as its own, as a game from a review file does (`ownSettings` in
-     `src/lib/analysis/engineSettings.ts`). So it opens at once with that review's results, its branches and Evaluate
+     `src/lib/analysis/engineSettings.ts`). So it opens at once with that review's results, its variations and Evaluate
      quality, and it exports. The game's review mark (design 13) holds the two, and the game stores no settings. A
      change of its depth lasts while the page is open, and a deeper review that runs to its end moves the mark. The
      panel's note names the earlier network. A network chosen in the Network setting gives the game the browser's
@@ -158,7 +158,7 @@ kept in this browser, and each applies at once, without a reload.
   who wants surer labels can choose Standard.
 - **Labels from 256 visits at every depth:** no label disappears when the review becomes deeper, and a deeper review
   shows its first labels as soon as a review at 256 visits would. A label changes when a deeper result arrives, as it
-  does when the label pass replaces the sweep (design 05). The slices of 256 cost one more reply each, not more
+  does when the label stage replaces the sweep (design 05). The slices of 256 cost one more reply each, not more
   visits: a search in slices gives the same result as one search.
 - **Networks by the engine's names** (as Lichess's menu names "Stockfish 17"): the engine repository names each network
   file, so a name is the same on the site, for the bots and in the players' talk, and changes only with the file
@@ -211,7 +211,7 @@ kept in this browser, and each applies at once, without a reload.
   table already shows every candidate.
 - **Lite at 256 visits:** built first, from the measurement under protocol 0.2 (58% of the mistakes found after the
   opening, 67% of flags right). Under protocol 0.3 it finds 42%.
-- **Free budgets for the review's passes:** the label bands were measured at 256 visits. Presets keep the labels
+- **Free budgets for the review's stages:** the label bands were measured at 256 visits. Presets keep the labels
   comparable, and Custom stays at 256 or more.
 
 ## Consequences
