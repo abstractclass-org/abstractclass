@@ -10,8 +10,9 @@
   //
   // The keys (item 9): Tab puts the focus on the table's row (one stop for the whole table), the up and down keys move
   // between the rows, Enter or Space plays the row's move (or a trap and its refutation), and Escape returns the focus
-  // to the page. When the rows go while one has the focus, the focus goes to the switch. On a phone (item 10), a tap
-  // anywhere on a row plays it.
+  // to the page. When the key o hides the rows while one has the focus, the focus goes to the switch. A move out of
+  // the book removes the table, and the focus returns to the page. On a phone (item 10), a tap anywhere on a row plays
+  // it.
   import type { Snippet } from "svelte";
   import LabelBadge from "@abstractclass/review/LabelBadge.svelte";
   import { LABEL_TEXT, moverWin, pct, PLAYER_NAME } from "#lib/review/enclosure.ts";
@@ -21,7 +22,7 @@
   import type { BookPosition, BookSource } from "./form.ts";
   import { bookCount, GROUP_TITLES, positionTitle, type BookRow } from "./rows.ts";
   import { endSentence, refutationText } from "./sentences.ts";
-  import { positionSymbol, type PositionSymbol } from "./symbols.ts";
+  import { positionSymbol } from "./symbols.ts";
   import type { Label } from "@abstractclass/analysis/labels.ts";
 
   interface Props {
@@ -31,7 +32,7 @@
     source: BookSource | null;
     /** The position's rows (rows.ts, bookRows): the page computes them once, for the table and for the board. */
     rows: BookRow[];
-    /** What the table shows: the player's choice, which the page keeps. Outside the book it shows the candidates. */
+    /** What the table shows: the player's choice, which the page keeps. Outside the book: the candidates alone. */
     show: "book" | "candidates";
     /** The edge pointed at, in the table or on the board (its number): its row is lit, and the board draws its line. */
     pointed: string | null;
@@ -65,11 +66,6 @@
     `Network ${source.network}, ${source.visits} visits for each position.`,
     `Book of ${new Date(source.made).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}.`,
   ].filter(Boolean).join(" ") : undefined);
-  // Each symbol in a shade of its side's colour by its strength (site.css): = and ∞ in the text's colour
-  const SHADE: Record<PositionSymbol, string> = {
-    "⩲": "text-blue-slightly-better", "±": "text-blue-better", "+−": "text-blue-winning",
-    "⩱": "text-red-slightly-better", "∓": "text-red-better", "−+": "text-red-winning", "=": "", "∞": "",
-  };
 
   // The rows that take the focus, in order: each row, and each trap's refutation under it.
   type Item = { row: BookRow; refutation: boolean };
@@ -85,8 +81,8 @@
     refocus = false;
     queueMicrotask(() => box?.querySelector<HTMLElement>('[data-item="0"]')?.focus());
   });
-  // The rows go (the key o, or a move out of the book): no row stays pointed at, and a row that had the focus gives it
-  // to the switch's chosen side, which stays, not to the page's start. Before the update, while the row is still there.
+  // The rows go: no row stays pointed at. After the key o, a row that had the focus gives it to the switch's chosen
+  // side, which stays, not to the page's start. Before the update, while the row is still there.
   let chips = $state<HTMLElement | null>(null);
   $effect.pre(() => {
     if (showsBook) return;
@@ -133,7 +129,7 @@
     return () => clearTimeout(later);
   });
   const ROW = "cursor-pointer border-b border-line outline-none focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2";
-  const CHIP = "px-2 py-0.5 text-xs font-medium border border-line first:rounded-l-md last:rounded-r-md -ml-px first:ml-0 disabled:cursor-not-allowed disabled:text-muted aria-pressed:bg-accent aria-pressed:border-accent aria-pressed:text-on-badge";
+  const CHIP = "px-2 py-0.5 text-xs font-medium border border-line first:rounded-l-md last:rounded-r-md -ml-px first:ml-0 aria-pressed:bg-accent aria-pressed:border-accent aria-pressed:text-on-badge";
 </script>
 
 {#if at.state === "out"}
@@ -177,8 +173,8 @@
       <table class="w-full border-collapse [&_:is(th,td)]:px-1 [&_:is(th,td)]:py-1 [&_:is(th,td)]:align-top [&_:is(th,td)]:text-left">
         <thead>
           <tr class="[&>th]:sticky [&>th]:top-0 [&>th]:z-1 [&>th]:bg-panel [&>th]:font-medium [&>th]:text-muted [&>th]:border-b [&>th]:border-line [&>th]:whitespace-nowrap">
-            <!-- "Line ends" is as narrow as it can be on one line: its symbols are narrower than its head, and the edge's
-                 column takes the rest -->
+            <!-- "Line ends" is as narrow as it can be on one line: its symbols are narrower than its head, and the
+                 edge's column takes the rest -->
             <th class="w-7">#</th><th>Edge</th><th class="w-18">{side} wins</th><th class="w-0">Line ends</th>
           </tr>
         </thead>
@@ -203,14 +199,15 @@
 <!-- A win chance for the side to move, with the book's bounds as its title only (KataGo's book bounds): for assistive
      technology, the bounds follow it in words. The best move outside the book has no bounds. -->
 {#snippet winChance(blueWin: number, value: { low: number; high: number } | undefined, prefix = "")}
-  {#if value}
-    <span title={bounds(value.low, value.high)}>{prefix}{moverPct(blueWin)}<span class="sr-only"> {bounds(value.low, value.high)}</span></span>
-  {:else}{prefix}{moverPct(blueWin)}{/if}
+  {@const title = value && bounds(value.low, value.high)}
+  <span {title}>{prefix}{moverPct(blueWin)}{#if title}<span class="sr-only"> {title}</span>{/if}</span>
 {/snippet}
 
-<!-- A move's row: its number as the board draws it, the edge with its label's badge after it, its win chance and the
-     symbol at its line's end, in a shade of its side's colour. The badge and the symbol show no words: their words are
-     their titles and their names (design 32, item 3). A second line gives words only: a trap, or the book's end. -->
+<!-- A move's row: its number as the board draws it, the edge with its quality label's badge after it, its win chance
+     and the position symbol at its line's end, in a shade of its side's colour. The edge takes the width of the longest
+     edge (A10-D10, 7 characters of the monospaced font), so the badges line up. The badge and the symbol show no words:
+     their words are their titles and their names (design 32, item 3). A second line gives words only: a trap, or the
+     book's end. -->
 {#snippet moveRow(row: BookRow, item: number)}
   {@const lit = pointed === row.move}
   {@const note = row.book?.trap ? "a trap" : row.ends ? "the book ends here" : ""}
@@ -223,8 +220,8 @@
     <td>
       <div class="flex flex-col">
         <span class="flex items-center gap-1.5">
-          <span class={["font-mono", row.n === 1 && row.book && "font-semibold"]}>{row.move}</span>
-          {#if row.label}{@render badge(row.label)}{/if}
+          <span class={["flex-none w-[7ch] font-mono", row.n === 1 && row.book && "font-semibold"]}>{row.move}</span>
+          {@render badge(row.label)}
         </span>
         {#if note}<span class="text-xs text-muted">{note}</span>{/if}
         {#if row.book?.trap}
@@ -233,13 +230,11 @@
       </div>
     </td>
     <td class="tabular-nums">{@render winChance(row.blueWin, row.book?.value)}</td>
-    <td class={row.symbol && SHADE[row.symbol]}>
-      {#if row.symbol}<BookSymbol symbol={row.symbol} words="hidden" />{:else}<span class="text-muted">—</span>{/if}
-    </td>
+    <td>{#if row.symbol}<BookSymbol symbol={row.symbol} alone />{:else}<span class="text-muted">—</span>{/if}</td>
   </tr>
 {/snippet}
 
-<!-- A label's badge with its word as its title and its name: the row shows the badge only (design 32, item 3).
+<!-- A quality label's badge with its word as its title and its name: the row shows the badge only (design 32, item 3).
      LabelBadge itself stays hidden from assistive technology, for the move list and the Report, which give the word in
      their own text. -->
 {#snippet badge(label: Label)}

@@ -44,7 +44,6 @@ test("outside the book the table shows the candidates, and the choice of Book co
   await settle();
   assert.equal(place.ready, true);
   assert.equal(place.at.state, "in");
-  assert.equal(place.inBook, true);
   assert.equal(place.showsBook, false, "off by default");
   place.toggle();
   assert.equal(place.show, "book");
@@ -54,7 +53,6 @@ test("outside the book the table shows the candidates, and the choice of Book co
 
   cell.set("path", [START, OUTSIDE]);
   assert.equal(place.at.state, "out");
-  assert.equal(place.inBook, false, "the page shows its candidates alone");
   assert.equal(place.showsBook, false, "Candidates outside the book");
   assert.deepEqual(place.rows, []);
   place.toggle();
@@ -68,5 +66,4 @@ test("a position with no notation is outside the book", async () => {
   const place = new BookPlace(new OpeningBook(CASES, read), "board", () => [START, undefined]);
   await settle();
   assert.equal(place.at.state, "out");
-  assert.equal(place.inBook, false);
 });

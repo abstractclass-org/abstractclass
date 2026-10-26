@@ -1,8 +1,7 @@
 <script lang="ts">
   // The book's table in the review's view (@abstractclass/review/game.ts, the game's `book.Table`): the table
   // (BookTable.svelte) on the page's book place (place.svelte.ts), with the sentence of the book move pointed at or of
-  // the best move under it. The view gives the engine's table (`candidates`), and shows the table at a book position
-  // only.
+  // the best move under it. The view gives the engine's table (`candidates`), which shows alone outside the book.
   import type { Snippet } from "svelte";
   import BookTable from "./BookTable.svelte";
   import type { BookPlace } from "./place.svelte.ts";

@@ -204,17 +204,11 @@
   // notes or the engine's lines, on the board and on the chart too. The counts keep both players.
   // The labels of the player chosen in "Review for". The board labels the moves the player asked for, on both sides.
   const forSide = (p: Player) => !!board || display.reviewFor === "both" || (display.reviewFor === "blue") === (p === 0);
-  /** The label that the move list shows for the game's edge `i`: its turn's by turn, its own by edge, and none for the
-   *  player that "Review for" leaves out. */
-  const shownLabel = (i: number): Label | null => {
+  /** The quality label of the game's edge `i` by `by`: its turn's by turn, its own by edge, and none for the player
+   *  that "Review for" leaves out. By the review's unit, the default, it is the label that the move list shows. */
+  const shownLabel = (i: number, by: Unit = unit): Label | null => {
     const e = R.edges[i];
-    return !e || !forSide(e.player) ? null : unit === "edge" ? e.label : R.turnOf[i]?.label ?? null;
-  };
-  /** The review's label of the game's edge `i` itself, by turn too, and none for the player that "Review for" leaves
-   *  out: the Report's opening row judges the edge that it names, as the book works by edge (design 32, item 4). */
-  const edgeLabel = (i: number): Label | null => {
-    const e = R.edges[i];
-    return e && forSide(e.player) ? e.label : null;
+    return !e || !forSide(e.player) ? null : by === "edge" ? e.label : R.turnOf[i]?.label ?? null;
   };
   let settingsOpen = $state(false);
   // The engine's settings (design 09) open under the engine header, from its gear, as Lichess's open from the gear in
@@ -1112,8 +1106,9 @@
     if (board || !book || !parts) return null;
     return parts.opening(gamePositions.map(p => parts.notation(p)), mainNames);
   });
-  // The row gives the review's label of the edge that left the book
-  const openingRow = $derived(opening && view.book && view.book.openingRow(opening, mainNames, edgeLabel(opening.at)));
+  // The row gives the review's quality label of the edge that left the book, by turn too: the book works by edge
+  // (design 32, item 4)
+  const openingRow = $derived(opening && view.book && view.book.openingRow(opening, mainNames, shownLabel(opening.at, "edge")));
   const bookMarks = $derived(new Set(opening?.marks));
   /** Goes to a position of the game from the Report's rows or the book's mark, and shows the book there for this
    *  review only: the switch shows "Book", and the choice that the browser keeps does not change. */
@@ -1573,11 +1568,11 @@
 
 <!-- The Analysis: the candidates table, or the book's table in its place, and the move list. -->
 {#snippet analysisView()}
-  {#if book?.ready && book.inBook && view.book}
+  {#if book?.ready && view.book}
     {@const Table = view.book.Table}
-    <!-- The book's table at a book position (design 32, item 3, the site's), with the switch in its title row: the
-         engine's candidates under it when the player chooses them. Outside the book the column shows the candidates as
-         it does with no book (item 8). While it shows the book, it takes at most a little over half the column, and
+    <!-- The book's table (design 32, items 3 and 8, the site's), with the switch in its title row: the engine's
+         candidates under it when the player chooses them. Outside the book the table shows the candidates alone, as
+         the column does with no book. While it shows the book, it takes at most a little over half the column, and
          scrolls, so that the move list keeps its room. -->
     <div class={["flex flex-col min-h-0", book.showsBook ? "flex-[0_1_auto] max-h-[55%] mb-3" : "flex-none"]}>
       <Table place={book} onplay={playBook}>

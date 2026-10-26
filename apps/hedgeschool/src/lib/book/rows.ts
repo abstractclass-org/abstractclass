@@ -29,9 +29,9 @@ export interface BookRow {
   group: BookGroup;
   /** The edge, in the player's orientation. */
   move: string;
-  /** Its label by the book's values (sentences.ts, `moveLabel`, or `outsideLabel` for the best move outside the
-   *  book). */
-  label: Label | null;
+  /** Its quality label by the book's values (sentences.ts, `moveLabel`, or `outsideLabel` for the best move outside
+   *  the book). */
+  label: Label;
   /** Blue's win chance after the move, by the book. A book move's bounds are in `book.value`. */
   blueWin: number;
   /** The symbol at the end of the move's main line (a book move only). */
@@ -53,8 +53,10 @@ export function bookRows(p: BookPosition): BookRow[] {
   // The traps: the largest gap between the short search and the deep one first (sentences.ts, `traps`)
   const rows = [...moves.filter(r => r.group === "fine"), ...moves.filter(r => r.group === "other"),
                 ...traps(p).map(row)];
-  if (p.outside)
-    rows.push({ n: 0, group: "outside", move: p.outside.move, blueWin: p.outside.blueWin, label: outsideLabel(p) });
+  if (p.outside) {
+    const { move, blueWin } = p.outside;
+    rows.push({ n: 0, group: "outside", move, blueWin, label: outsideLabel(p, blueWin) });
+  }
   rows.forEach((r, k) => (r.n = k + 1));
   return rows;
 }
@@ -75,7 +77,7 @@ export function rowLine(book: Book, row: BookRow): string[] {
 export function rowCandidates(rows: BookRow[]): { edge: Edge; rank: number; note: string }[] {
   return rows.map(r => ({
     edge: parseEdge(r.move), rank: r.n,
-    note: [r.label && LABEL_TEXT[r.label], r.book?.trap && "a trap", r.symbol && SYMBOL_NAME[r.symbol],
+    note: [LABEL_TEXT[r.label], r.book?.trap && "a trap", r.symbol && SYMBOL_NAME[r.symbol],
            r.group === "outside" && "not in the book"].filter(Boolean).join(" · "),
   }));
 }

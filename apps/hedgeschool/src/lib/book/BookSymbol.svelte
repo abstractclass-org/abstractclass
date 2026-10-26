@@ -15,22 +15,26 @@
     "+−": { width: 22, d: plus(6, 8, 4) + bar(13, 20, 8) },
     "−+": { width: 22, d: bar(2, 9, 8) + plus(16, 8, 4) },
   };
+  // Each side's symbols in a shade of its colour by their strength (site.css): = and ∞ in the text's colour
+  const SHADES: Record<PositionSymbol, string> = {
+    "⩲": "text-blue-slightly-better", "±": "text-blue-better", "+−": "text-blue-winning",
+    "⩱": "text-red-slightly-better", "∓": "text-red-better", "−+": "text-red-winning", "=": "", "∞": "",
+  };
 </script>
 
 <script lang="ts">
-  // A position symbol (symbols.ts) and its words. `words`: the words beside the symbol (the table's title row), or
-  // only for assistive technology and the pointer's tooltip (a row's line end, design 32, item 3), as Lichess shows its
-  // position glyphs.
+  // A position symbol (symbols.ts) and its words beside it (the table's title row). `alone`: the symbol with no words,
+  // as Lichess shows its position symbols (a row's line end, design 32, item 3). Its words are then its title and its
+  // accessible name, and its shade gives the side, as the words do beside it.
   import { SYMBOL_NAME } from "./symbols.ts";
 
-  let { symbol, words = "beside" }: { symbol: PositionSymbol; words?: "beside" | "hidden" } = $props();
+  let { symbol, alone = false }: { symbol: PositionSymbol; alone?: boolean } = $props();
   const shape = $derived(SHAPES[symbol]);
+  const name = $derived(alone ? SYMBOL_NAME[symbol] : undefined);
 </script>
 
-<span class="inline-flex items-center gap-x-1"
-      title={words === "hidden" ? SYMBOL_NAME[symbol] : undefined}
-      role={words === "hidden" ? "img" : undefined} aria-label={words === "hidden" ? SYMBOL_NAME[symbol] : undefined}>
+<span class={["inline-flex items-center gap-x-1", alone && SHADES[symbol]]} title={name} role={name && "img"} aria-label={name}>
   <svg class="flex-none" width="{shape.width / 16}em" height="1em" viewBox="0 0 {shape.width} 16" fill="none" stroke="currentColor"
        stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d={shape.d} /></svg>
-  {#if words !== "hidden"}<span>{SYMBOL_NAME[symbol]}</span>{/if}
+  {#if !name}<span>{SYMBOL_NAME[symbol]}</span>{/if}
 </span>

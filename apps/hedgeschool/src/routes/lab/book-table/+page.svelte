@@ -1,10 +1,10 @@
 <script lang="ts">
   // The book's table lab (design 32, item 3 and "The table"): the board and the book's table (BookTable) on the test
   // book, so that the table can be checked and looked at before the review, the Analysis board and Openings take it
-  // (beads abscls-tpaj.6, .7 and .12). Each row shows its label's badge and its symbol with no words, as their
-  // titles hold them, and its win chance with the bounds as its title (beads abscls-tpaj.16). The dev and preview
-  // servers serve the test book at /test-book/ (vite.config.ts, `testBook`), and no build holds it: where it is not
-  // served, the page goes home.
+  // (beads abscls-tpaj.6, .7 and .12). Each row shows its quality label's badge and its position symbol with no words,
+  // as their titles hold them, and its win chance with the bounds as its title (beads abscls-tpaj.16). The dev and
+  // preview servers serve the test book at /test-book/ (vite.config.ts, `testBook`), and no build holds it: where it
+  // is not served, the page goes home.
   //
   // The page has no engine. It draws the board from the book's positions, which the book's moves reach by their
   // notation, with no regions. A move outside the book shows on the board as a preview edge on the position before
@@ -114,10 +114,11 @@
 <main class="mx-auto max-w-6xl px-4 py-4">
   <h1 class="text-lg font-semibold">The book's table</h1>
   <p class="mb-3 text-sm text-muted">
-    The table on the test book, not the engine's book. Point at a row to show its line on the board. Point at a label
-    or at a symbol to show its words, and at a win chance to show its bounds. Click a row to play its move. Press Tab to put the focus on the table. Press the up and down keys to go to a different row, Enter
-    to play the move, and Escape to remove the focus from the table. Press the left and right keys to go back or
-    forward one edge. Press o to show or hide the book.
+    The table on the test book, not the engine's book. Point at a row to show its line on the board. Point at a quality
+    label or at a position symbol to show its words, and at a win chance to show its bounds. Click a row to play its
+    move. Press Tab to put the focus on the table. Press the up and down keys to go to a different row, Enter to play
+    the move, and Escape to remove the focus from the table. Press the left and right keys to go back or forward one
+    edge. Press o to show or hide the book.
   </p>
   <div class="flex flex-wrap items-center gap-x-5 gap-y-2 mb-3 text-sm">
     <label class="flex items-center gap-1.5">Book

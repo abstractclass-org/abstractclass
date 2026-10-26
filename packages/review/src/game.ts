@@ -184,7 +184,6 @@ export interface ImageParts<G extends ViewTypes> {
 /** The opening book where the view shows it (Hedge School's book/place.svelte.ts, BookPlace). */
 export interface ViewBook<M> {
   readonly ready: boolean; // its index has loaded: the table and its switch show
-  readonly inBook: boolean; // the position on screen is in the book: elsewhere the column shows the candidates alone
   readonly showsBook: boolean; // the table shows the book, in the candidates' place
   readonly rows: readonly { move: string }[]; // the position's book moves, the best first
   readonly line: M[] | null; // the line of the row pointed at, as the board draws it
@@ -204,7 +203,7 @@ export interface BookParts<G extends ViewTypes> {
   opening(notations: (string | undefined)[], moves: string[]): BookOpening | null;
   openingRow(opening: BookOpening, moves: string[], label: Label | null): string | null; // the Report's row
   trapRows(opening: BookOpening): { at: number; text: string }[]; // the Report's rows on the traps
-  /** The book's table at a book position, with the engine's table (`candidates`) under its switch. */
+  /** The book's table, with the engine's table (`candidates`) under its switch, and alone outside the book. */
   Table: Component<{ place: G["book"]; onplay: (moves: string[]) => void; candidates: Snippet }>;
 }
 

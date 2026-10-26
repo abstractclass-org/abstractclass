@@ -65,14 +65,11 @@ export class BookPlace {
   #atOf = (notation: string | undefined): BookAt => (notation === undefined ? OUT : this.book.at(notation));
   /** The book at the position on screen. */
   readonly at = $derived(this.#atOf(this.#path().at(-1)));
-  /** The position on screen is in the book's index, also while its part loads or after it failed: the page shows the
-   *  table. Outside the book it shows the candidates as it does with no book (design 32, item 8). */
-  readonly inBook = $derived(this.at.state !== "out");
   /** The table's rows at a book position (rows.ts), for the table and the board's numbers. */
   readonly rows = $derived<BookRow[]>(this.at.state === "in" ? bookRows(this.at.position) : []);
   /** The table shows the book: its index has loaded, the player chose "Book", and the position is not outside the
    *  book. Its part can still load, or have failed: then it has no rows, and the board no numbers. */
-  readonly showsBook = $derived(this.ready && this.inBook && this.#show === "book");
+  readonly showsBook = $derived(this.ready && this.at.state !== "out" && this.#show === "book");
   /** The board's numbers for the rows (rows.ts, rowCandidates), shown while the table shows the book, as the review's
    *  view gives them to its board (@abstractclass/review/game.ts, ViewBook). */
   readonly numbers = $derived(rowCandidates(this.rows).map(c => ({ move: c.edge, rank: c.rank, note: c.note })));
@@ -85,6 +82,6 @@ export class BookPlace {
 
   /** The key o: "Book" or "Candidates". Outside the book "Book" is unavailable, so the key does nothing there. */
   toggle() {
-    if (this.inBook) this.show = this.#show === "book" ? "candidates" : "book";
+    if (this.at.state !== "out") this.show = this.#show === "book" ? "candidates" : "book";
   }
 }

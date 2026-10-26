@@ -63,8 +63,9 @@ function report(label: string, found: { width: number; height: number; problem: 
 /** Two frames, for the layout and what the page measures after it (the review's side columns, ResizeObserver). */
 const settle = (page: Page) => page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 30)))));
 
-/** Sweeps the page at every size: the report of what broke the rules, empty when nothing did. */
-async function sweep(page: Page, label: string): Promise<string> {
+/** Sweeps the page at every size: the report of what broke the rules, empty when nothing did. `ownRules`: the page's
+ *  own rules, checked at each size too. */
+async function sweep(page: Page, label: string, ownRules?: (page: Page) => Promise<string[]>): Promise<string> {
   // The browser must show scroll bars: without them, the sweep misses the room that they take.
   const bar = await page.evaluate(() => {
     const d = document.createElement("div");
@@ -79,7 +80,7 @@ async function sweep(page: Page, label: string): Promise<string> {
   for (const height of HEIGHTS) for (const width of WIDTHS) {
     await page.setViewportSize({ width, height });
     await settle(page);
-    for (const problem of await problems(page)) found.push({ width, height, problem });
+    for (const problem of [...await problems(page), ...await ownRules?.(page) ?? []]) found.push({ width, height, problem });
   }
   return found.length ? report(label, found) : "";
 }
@@ -136,10 +137,11 @@ test("layout of a review", async ({ page }) => {
   expect(reports.filter(Boolean).join("\n")).toBe("");
 });
 
-// The book's table in the review's analysis column (design 32, items 3 and 10): at the end of the test book. The
-// Report's opening row goes there, on a phone too, where it opens the Analysis tab. The head "Line ends" stays on one
-// line at every width. The test book is served by the dev and preview servers only, and the review shows the book in
-// the early edition only: elsewhere the test is skipped.
+// The book's table in the review's analysis column (design 32, items 3 and 10), after the game's first edge, where its
+// six rows have edges of 6 and 7 characters. The Report's end row turns the book on, and on a phone it opens the
+// Analysis tab. At every size, the head "Line ends" stays on one line, and the rows' quality label badges start at
+// one place, after the edge's fixed width. The test book is served by the dev and preview servers only, and the review
+// shows the book in the early edition only: elsewhere the test is skipped.
 test("layout of the book's table in a review", async ({ page }) => {
   const served = await page.request.get("/test-book/prototype/index.json");
   test.skip(!served.ok() || !(served.headers()["content-type"] ?? "").includes("json"), "the site serves no test book");
@@ -150,29 +152,37 @@ test("layout of the book's table in a review", async ({ page }) => {
   test.skip(!(await page.getByRole("link", { name: "Early Access" }).count()), "not the early edition");
   await reviewedGame(page);
   await expect(page.getByText(/^Review done/)).toBeVisible({ timeout: 300_000 });
-  await page.evaluate(() => localStorage.setItem("hedge-school:book-table:review:1", JSON.stringify({ show: "book" })));
   await page.setViewportSize({ width: 360, height: 700 });
   await page.reload();
   await page.getByRole("button", { name: /^The game followed the book to its end/ }).click({ timeout: 300_000 });
-  const table = page.getByRole("region", { name: "Opening book" }).locator("table");
-  await expect(table).toBeVisible();
-  const reports = [await sweep(page, "/review, the book's table")];
-  // The head's text in one line box at each width
-  const head = table.getByRole("columnheader", { name: "Line ends" });
-  const wrapped: number[] = [];
-  for (const width of WIDTHS) {
-    await page.setViewportSize({ width, height: 860 });
-    await settle(page);
-    const lines = await head.evaluate(th => {
-      const range = document.createRange();
-      range.selectNodeContents(th);
-      return new Set([...range.getClientRects()].map(r => Math.round(r.top))).size;
-    });
-    if (lines !== 1) wrapped.push(width);
-  }
-  if (wrapped.length) reports.push(`/review, the book's table: "Line ends" is not on one line at ${wrapped.join(", ")} px`);
-  expect(reports.filter(Boolean).join("\n")).toBe("");
+  await page.keyboard.press("Home");
+  await page.keyboard.press("ArrowRight");
+  await expect(page.locator(".mv.here")).toHaveText(/^A10-D9/);
+  await expect(page.getByRole("region", { name: "Opening book" }).locator("tbody tr[data-move]")).toHaveCount(6);
+  expect(await sweep(page, "/review, the book's table", bookTableProblems)).toBe("");
 });
+
+/** The book's table's own rules at the page's size: its head "Line ends" is one line box, and the rows' badges start
+ *  at one place, though their edges differ in length. */
+function bookTableProblems(page: Page) {
+  return page.evaluate(() => {
+    const table = document.querySelector('[aria-label="Opening book"] table');
+    const head = [...table?.querySelectorAll("th") ?? []].find(th => th.textContent?.trim() === "Line ends");
+    if (!table || !head) return ["the book's table is not there"];
+    const out: string[] = [];
+    const range = document.createRange();
+    range.selectNodeContents(head);
+    const lines = new Set([...range.getClientRects()].map(r => Math.round(r.top))).size;
+    if (lines !== 1) out.push(`the head "Line ends" takes ${lines} lines`);
+    // A row's badge is its second cell's image, whose name is its word
+    const starts = new Set([...table.querySelectorAll('tbody td:nth-child(2) [role="img"]')]
+      .map(b => Math.round(b.getBoundingClientRect().left)));
+    if (starts.size !== 1) out.push(`the rows' badges start at ${starts.size} places`);
+    const lengths = new Set([...table.querySelectorAll("tbody tr[data-move]")].map(r => r.getAttribute("data-move")!.length));
+    if (lengths.size < 2) out.push("the rows' edges have one length, so the badges' places prove nothing");
+    return out;
+  });
+}
 
 /** Opens Practice in a game in progress, kept in this browser (practice.ts, KeptPractice): the fixture's first 20
  *  edges, the player to move next, so that the bot does not search. */

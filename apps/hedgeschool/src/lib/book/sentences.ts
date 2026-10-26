@@ -59,10 +59,10 @@ export function moveLabel(p: BookPosition, m: BookMove): Label {
   return classify(moveLoss(p, m), isFirst(p, m) && !outsideBetter(p), false);
 }
 
-/** The label of the best move outside the book, by the same bands: Best when it is better than the first book move,
- *  or when the book has no move here. */
-export const outsideLabel = (p: BookPosition): Label | null =>
-  !p.outside ? null : !p.moves.length ? "best" : classify(lossTo(p, p.outside.blueWin), outsideBetter(p), false);
+/** The quality label of the best move outside the book (`p.outside`, Blue's win chance after it `blueWin`), by the
+ *  same bands: Best when it is better than the first book move, or when the book has no move here. */
+export const outsideLabel = (p: BookPosition, blueWin: number): Label =>
+  !p.moves.length ? "best" : classify(lossTo(p, blueWin), outsideBetter(p), false);
 
 /** A fine move: Good or better (design 32, item 3, "Fine moves"). */
 export const isFine = (p: BookPosition, m: BookMove) => moveLoss(p, m) <= GOOD_WIN;
@@ -204,8 +204,8 @@ const article = (word: string) => (/^[AEIOU]/.test(word) ? "an" : "a");
 // book's.
 
 /** The opening row of a game that left the book, at the position before the move that left it: "The game left the
- *  book at turn 3: Blue, D9-G11, Good." `label`: the review's label of the edge itself, by turn too, null until the
- *  review has it. */
+ *  book at turn 3: Blue, D9-G11, Good." `label`: the review's quality label of the edge itself, by turn too, null
+ *  until the review has it. */
 export const leftBookSentence = (p: BookPosition, move: string, label: Label | null) =>
   `The game left the book at turn ${p.turn}: ${side(p)}, ${move}${label ? `, ${LABEL_TEXT[label]}` : ""}.`;
 

@@ -58,20 +58,22 @@ explorers that people use in chess and Go is [../research/03-opening-explorers.m
      | Traps | each trap, the largest gap between its two values first. A book move that is a trap is here. |
      | Best outside the book | the best move outside the book and its value, as KataGo's "other" row |
 
-   - **A row** shows the edge with its label's badge after it, on one line, then the win chance for the side to move
-     and the symbol at its line's end. A second line has words only, where the row has them: "a trap" or "the book
-     ends here". So a row with none is one line. The badge and the symbol show no words, as Lichess shows its position
-     symbols: the label's word ("Excellent") and the symbol's name ("Blue is slightly better") are their titles and
-     their accessible names. The title row's symbol keeps its words, on one line, so the table shows once what the
-     symbols mean.
+   - **A row** shows the edge and its quality label's badge on one line. Then come the win chance for the side to
+     move and the position symbol at the end of the move's line. The edge takes the width of the longest edge
+     (A10-D10, 7 characters), so the badges line up in a column. A second line has words only, where the row has
+     them: "a trap" or "the book ends here". So a row with none is one line. The badge and the symbol show no words, as
+     Lichess shows its position symbols: the label's word ("Excellent") and the symbol's name ("Blue is slightly
+     better") are their titles and their accessible names. The title row's symbol keeps its words, on one line, so
+     the table shows once what the symbols mean.
    - **The win chance shows alone** ("52.3%"), in the rows and in the title row. Its bounds (KataGo's book bounds) are
      its title, "Between 48.1% and 56.4%.", and assistive technology reads them after it. The table has no switch for
      its values and no column for the turns that the book goes on under a move.
    - **Each symbol takes a shade of its side's colour by its strength:** slightly better (⩲, ⩱) the faintest, better
-     (±, ∓) the side's colour, and winning (+−, −+) the strongest. = and ∞ take the text's colour. The stronger the
-     position, the more its symbol stands out from the panel. Each shade has a contrast of at least 3:1 against the
-     panel, in both themes (WCAG 1.4.11). This is a departure from Lichess, whose symbols have no colour. Enclosure's
-     sides are Blue and Red, so the colour names the side. The colour does not carry the meaning alone: the symbol's
+     (±, ∓) the middle, and winning (+−, −+) the strongest. = and ∞ take the text's colour. The stronger the position,
+     the more its symbol stands out from the panel. A side's three shades step evenly in lightness, so each strength
+     differs as much from the next. The faintest has a contrast of at least 3:1 against the panel and a lit row, in
+     both themes (WCAG 1.4.11). This is a departure from Lichess, whose symbols have no colour. Enclosure's sides are
+     Blue and Red, so the colour names the side. The colour does not carry the meaning alone: the symbol's
      shape and its name give the side and the strength too.
    - **The table and the board point at each other:** the board numbers the rows' moves as the candidates are numbered
      (design 07). The pointer on a row highlights its edge and draws its line. The pointer on a numbered edge
@@ -88,7 +90,8 @@ explorers that people use in chess and Go is [../research/03-opening-explorers.m
      moves keep their review labels.
    - **One engine and one depth rule a game:** the review keeps its own labels, on book moves too (design 16). The
      book's table shows the book's values only, with no row for the game's move: the move list gives the review's
-     label. The opening row gives the review's label of the edge itself, also when the review judges by turn. The book
+     quality label. The opening row gives the review's quality label of the edge itself, also when the review judges
+     by turn. The book
      works by edge, also in the middle of a turn, so its row judges the edge that it names.
    - **A book move played from the table** is a variation of the game, as any move that the player plays in a review is
      (design 07). "Delete from here" removes it.
@@ -162,9 +165,10 @@ explorers that people use in chess and Go is [../research/03-opening-explorers.m
      a polite announcement. Each label's badge and each symbol has its words as its accessible name.
 10. **The phone:** the board, the book's table, the move list, then the step bar, as the Lichess app lays out its
     explorer. A tap anywhere on a row plays its move, and nothing in a row takes a tap of its own. A row shows its
-    badge and its symbol without words, as on a wide screen: the colour and the title row's words say what the symbols
-    mean. The step bar is fixed to the bottom of the screen on Openings, the review and the
-    Analysis board (a change to design 06), so that the step back is in view whenever the board is.
+    badge and its symbol without words, as on a wide screen. The title row's symbol keeps its words, and the shape and
+    the colour of each row's symbol say the side and the strength. The step bar is fixed to the bottom of the screen on
+    Openings, the review and the Analysis board (a change to design 06), so that the step back is in view whenever the
+    board is.
 11. **Loading and failure:** the book loads in parts, the start's part first. A position whose part still loads shows
     "Loading the book…". A failed load shows "The book did not load. Check your connection, then try again." with "Try
     again". The review and the boards work while the book loads or fails.
@@ -343,19 +347,22 @@ its own choice of "Book" or "Candidates", handles the key o, and plays the moves
 - **The symbols** come from `symbols.ts`, the rule of the sentences too: a position's from `positionSymbol`, a row's
   from `lineEndSymbol`, the symbol at the end of its main line. `BookSymbol.svelte` draws the eight symbols, because
   the site's font has no glyph for ⩲ and ⩱. In a row, it shows the symbol only, with its name as its title and its
-  accessible name.
+  accessible name, in its shade.
 - **The shades** are colour tokens in `packages/site/src/site.css`, beside `--blue` and `--red`, in both themes:
-  `--blue-slightly-better`, `--blue-better` and `--blue-winning`, and the same three for Red. "Slightly better" is the
-  side's colour 15% of the way to the panel, "better" the side's colour, and "winning" the side's colour 30% of the
-  way to black in the light theme and to white in the dark. `packages/site/src/symbolShades.test.ts` checks that each
-  has a contrast of at least 3:1 against the panel and panel-2 (a lit row), and that the contrast grows with the
-  strength.
-- **The badges:** a row's label is `LabelBadge` in a wrapper that gives the label's word as its title and its
+  `--blue-slightly-better`, `--blue-better` and `--blue-winning`, and the same three for Red. A side's three shades
+  step evenly in lightness (CIELAB L*), each with the hue and chroma of the side's colour (OKLCH, the chroma cut to
+  what sRGB can show). "Slightly better" has a contrast just over 3:1 against panel-2 (a lit row), and "winning" about
+  10:1 against the panel. The middle shade is not `--blue` or `--red`: only the faintest has a floor.
+  `packages/site/src/symbolShades.test.ts` checks that each has a contrast of at least 3:1 against the panel and
+  panel-2, that the contrast grows with the strength, and that the steps in L* differ by less than 1.
+- **The badges:** a row's quality label is `LabelBadge` in a wrapper that gives the label's word as its title and its
   accessible name. `LabelBadge` itself stays hidden from assistive technology, because the move list and the Report
-  give the word in their own text.
+  give the word in their own text. The edge before it is 7 characters of the monospaced font wide (`7ch`), the longest
+  edge's width, so the badges start at one place.
 - **The widths:** the last column ("Line ends") is as narrow as its head on one line, because its symbols are
   narrower than its head. The edge's column takes the rest. The layout test (`npm run test:layout`) checks the review
-  with the table at the end of the test book at every width from 360 pixels, and that the head stays on one line.
+  with the table after the game's first edge, where the rows' edges have 6 and 7 characters. At every size from 360
+  pixels wide, the table fits, the head stays on one line, and the rows' badges start at one place.
 - **The sentence under the table** is the page's: the lab page gives it from `sentences.ts`, the sentence of the row
   pointed at or focused (`moveSentence`), else the best move's (`bestMoveSentence`).
 - **The end of the book** (item 5): a position with no book move shows "End of the book" with its symbol in words
@@ -375,7 +382,7 @@ for both (items 3 and 8). The page's part of the work is in `apps/hedgeschool/sr
   live site does not change until the engine's book comes.
 - **The kept choice:** the switch starts on "Candidates". The browser keeps "Book" or "Candidates" for the review and
   for the Analysis board apart.
-- **Outside the book,** the view shows the engine's candidates as it does with no book (`BookPlace.inBook`). The key o
+- **Outside the book,** the table shows the engine's candidates alone, as the column does with no book. The key o
   does nothing there, and the choice of "Book" comes back at the next book position. A position whose part loads or
   failed is in the book: the table says so.
 - **The board** numbers the book's rows while the table shows the book. The row pointed at in the table, or its number
@@ -395,9 +402,9 @@ shows them in the early edition, where the book loads. They read the site's one 
   order starts a new stretch in the book.
 - **The Report's rows** are under the counts: the heading "Opening" and its row, then the heading "Traps" and a row
   for each trap. Each row is one button, its sentence followed by the link text "Show the position".
-- **The opening row** names the first departure, with the review's label of the edge that left, by turn too, and none
-  for the player that "Review for" leaves out. A game that followed
-  the book to its end gives the turn of the book move that reached the end. "Before that" names the book move worse
+- **The opening row** names the first departure, with the review's quality label of the edge that left, by turn too,
+  and none for the player that "Review for" leaves out. A game that followed the book to its end gives the turn of
+  the book move that reached the end. "Before that" names the book move worse
   than Good with the largest loss before the departure, by the book's label. When that move reached the end, the row
   says "The last book move, G10-J13, is an Inaccuracy." in place of "Before that". In the test book, 41 of the 75 book
   moves worse than Good (traps aside) reach an end. The opening row does not name a trap, because the trap has its own
@@ -443,4 +450,4 @@ and abscls-tpaj.3, never merged.
 - [decisions/product.md](../decisions/product.md), "The book in the review: its rows, its mark and the game's row"
   (2026-10-25).
 - [decisions/product.md](../decisions/product.md), "The book's table: badges and symbols alone, the win chance
-  alone, no game's row" (2026-10-26).
+  alone, no game's row" (2026-10-27).

@@ -2,8 +2,8 @@
 // mark at the game's last book move, on reviewed games through the test book (scripts/test-fixture.mjs). A click on a
 // row or on the mark goes to the position before the move that the row names, and shows the book's table there, for
 // this review only. Outside the book the column shows the candidates alone. A book that does not load shows neither.
-// The engine is off, so that nothing searches. The test book is served by the dev and preview servers only, and the review shows the book in the early
-// edition only: elsewhere the test is skipped.
+// The engine is off, so that nothing searches. The test book is served by the dev and preview servers only, and the
+// review shows the book in the early edition only: elsewhere the test is skipped.
 import { test, expect, type Page } from "@playwright/test";
 
 test.beforeEach(async ({ page }) => {
@@ -30,10 +30,10 @@ const marks = (page: Page) => page.getByRole("button", { name: /^Last move in th
 /** The move on screen in the move list, or null at the start. */
 const here = async (page: Page) => ((await page.locator(".mv.here").count()) ? (await page.locator(".mv.here").innerText()).trim() : null);
 const row = (page: Page, text: string | RegExp) => page.getByRole("button", { name: text });
-/** A label's badge, which shows no word: its word is its name. */
-const LABEL_NAME = /^(Best|Great|Excellent|Good|Inaccuracy|Mistake|Blunder)$/;
+/** A quality label's badge, which shows no word: its word is its name. */
+const LABEL_WORDS = /^(Best|Great|Excellent|Good|Inaccuracy|Mistake|Blunder)$/;
 /** A position symbol's name (symbols.ts, SYMBOL_NAME). */
-const SYMBOL_NAME = /^(Equal position|Unclear position|(Blue|Red) is (slightly better|better|winning))$/;
+const SYMBOL_WORDS = /^(Equal position|Unclear position|(Blue|Red) is (slightly better|better|winning))$/;
 /** The book's table. */
 const table = (page: Page) => page.getByRole("region", { name: "Opening book" });
 
@@ -65,28 +65,24 @@ test.describe("desktop", () => {
     // No row for the game's move, and no line about the book's source
     await expect(table(page).getByText(/your game|In your review/i)).toHaveCount(0);
     await expect(page.getByText(/not from games that people played/)).toHaveCount(0);
-    // The rows show their labels' badges and their line ends' symbols with no words, each symbol in a shade of its
-    // side's colour by its strength. The title row keeps the symbol's words.
+    // The rows show their quality labels' badges and their line ends' position symbols with no words, each symbol in a
+    // shade of its side's colour by its strength. The title row keeps the symbol's words.
     const rows = table(page).locator("tbody");
-    await expect(rows.getByRole("img", { name: LABEL_NAME }).first()).toBeVisible();
-    await expect(rows.getByText(LABEL_NAME)).toHaveCount(0);
-    await expect(rows.getByRole("img", { name: SYMBOL_NAME }).first()).toBeVisible();
-    await expect(rows.getByText(SYMBOL_NAME)).toHaveCount(0);
-    const color = (css: string) => page.evaluate(c => {
+    await expect(rows.getByRole("img", { name: LABEL_WORDS }).first()).toBeVisible();
+    await expect(rows.getByText(LABEL_WORDS)).toHaveCount(0);
+    await expect(rows.getByRole("img", { name: SYMBOL_WORDS }).first()).toBeVisible();
+    await expect(rows.getByText(SYMBOL_WORDS)).toHaveCount(0);
+    expect(await rows.getByRole("img", { name: /^(Blue|Red) is / }).count()).toBeGreaterThan(0);
+    // Each symbol's colour against its token's ("Red is slightly better": --red-slightly-better, = and ∞ the text's):
+    // those that differ
+    expect(await rows.getByRole("img", { name: SYMBOL_WORDS }).evaluateAll(all => all.flatMap(e => {
+      const name = e.getAttribute("aria-label")!, side = /^(Blue|Red) is (.+)$/.exec(name);
       const probe = document.body.appendChild(document.createElement("span"));
-      probe.style.color = c;
-      const value = getComputedStyle(probe).color;
+      probe.style.color = side ? `var(--${side[1].toLowerCase()}-${side[2].replace(" ", "-")})` : "var(--text)";
+      const want = getComputedStyle(probe).color, got = getComputedStyle(e).color;
       probe.remove();
-      return value;
-    }, css);
-    const SHADE: Record<string, string> = { "slightly better": "slightly-better", better: "better", winning: "winning" };
-    const symbols = rows.getByRole("img", { name: /^(Blue|Red) is / });
-    expect(await symbols.count()).toBeGreaterThan(0);
-    for (const symbol of await symbols.all()) {
-      const [, side, strength] = /^(Blue|Red) is (.+)$/.exec((await symbol.getAttribute("aria-label"))!)!;
-      expect(await symbol.evaluate(e => getComputedStyle(e).color))
-        .toBe(await color(`var(--${side.toLowerCase()}-${SHADE[strength]})`));
-    }
+      return got === want ? [] : [`${name}: ${got}, not ${want}`];
+    }))).toEqual([]);
     // A book move's win chance shows alone, and its bounds are its title
     const chance = rows.locator("td.tabular-nums > span[title]").first();
     await expect(chance).toHaveAttribute("title", /^Between \d+\.\d% and \d+\.\d%\.$/);
@@ -112,7 +108,7 @@ test.describe("desktop", () => {
     await expect(table(page).locator("table")).toBeVisible();
   });
 
-  test("the opening row gives the edge's own label: none for the player that Review for leaves out", async ({ page }) => {
+  test("the opening row gives the edge's own quality label: none for the player that Review for leaves out", async ({ page }) => {
     await page.addInitScript(() => localStorage.setItem("learn-enclosure:review-display:1", JSON.stringify({ reviewFor: "red" })));
     await open(page, "book-left-review.json");
     await expect(row(page, /^The game left the book at turn 3: Blue, D9-G11\. Before that, at turn 2, Red played O11-Q10/))

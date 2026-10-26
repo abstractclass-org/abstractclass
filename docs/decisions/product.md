@@ -7144,9 +7144,9 @@ the words of the site. The pages, the lessons, the documents and the code's comm
   driver: it starts the module with the build's own library (`gpu_engine.mjs`, its `createCpuEngine` only), as
   Hedge School's `node-engine.mjs` does, and writes the same `fixtures.json`, byte for byte.
 
-### The book's table: badges and symbols alone, the win chance alone, no game's row (2026-10-26)
+### The book's table: badges and symbols alone, the win chance alone, no game's row (2026-10-27)
 
-- **The rows show badges and symbols with no words** (design 32, item 3): a label's badge on the edge's own line,
+- **The rows show badges and symbols with no words** (design 32, item 3): a quality label's badge on the edge's line,
   after the edge, and the symbol at a line's end, on a phone too, as Lichess shows its position symbols. The words are
   each badge's and each symbol's title and accessible name. A row's second line holds words only ("a trap", "the book
   ends here"), so a row with none is one line. The title row's symbol keeps its words, on one line, so the table
@@ -7155,8 +7155,9 @@ the words of the site. The pages, the lessons, the documents and the code's comm
   shows the win chance for the side to move, alone ("52.3%"), in the rows and in the title row. Its bounds (KataGo's
   book bounds) are its title, "Between 48.1% and 56.4%.", and assistive technology reads them after it.
 - **No game's row:** the row "Your game" and the tag "your game" on a book row are gone, with the code that fed them.
-  The move list gives the review's label of the game's move. The Report's opening row keeps the review's label of the
-  edge itself, by turn too, with "Review for" still applied: the book works by edge, also in the middle of a turn.
+  The move list gives the review's quality label of the game's move. The Report's opening row keeps the review's
+  quality label of the edge itself, by turn too, with "Review for" still applied: the book works by edge, also in the
+  middle of a turn.
   This replaces "One label for one move" of "The book in the review: its rows, its mark and the game's row".
 - **No line about the source:** "From the engine's analysis, not from games that people played. Book of …" is gone.
   The heading "Opening book" gives the source and the date as its title.
@@ -7164,33 +7165,41 @@ the words of the site. The pages, the lessons, the documents and the code's comm
   no switch, and no line "Last book position: turn n. Go there". The table comes back at the next book position. Most
   positions of a review are outside the book, so the book takes no room there. "Study in Openings", which the design
   put on that line, gets its place when Openings is built.
-- **Each symbol takes a shade of its side's colour by its strength:** slightly better the faintest, better the side's
-  colour, winning the strongest. = and ∞ take the text's colour. Lichess's symbols have no colour. Enclosure's sides
+- **Each symbol takes a shade of its side's colour by its strength:** slightly better the faintest, better the
+  middle, winning the strongest. = and ∞ take the text's colour. Lichess's symbols have no colour. Enclosure's sides
   are Blue and Red, so the colour names the side. The shape and the name give the side and the strength too, so the
-  colour does not carry the meaning alone. The shades are tokens in `packages/site/src/site.css`. Their contrasts, by
-  `packages/site/src/symbolShades.test.ts` (WCAG's formula), against the panel and against panel-2 (a lit row):
+  colour does not carry the meaning alone. The shades are tokens in `packages/site/src/site.css`.
+- **The shades step evenly in lightness** (CIELAB L*), each with the hue and chroma of the side's colour (OKLCH, the
+  chroma cut to what sRGB can show). The faintest has a contrast just over 3:1 against panel-2, a lit row, which
+  makes it about 3.6 against the panel. 3.3 against the panel would give 2.85 on a lit row. The strongest is about 10:1
+  against the panel. A first set kept the side's colour as the middle shade. Its "slightly better" was the side's
+  colour 15% of the way to the panel. There is little room between 3:1 and the side's colour (3.6 against 4.7 in the
+  light theme), so "slightly better" and "better" looked almost the same. Only the faintest has a floor (WCAG
+  1.4.11), so the middle shade need not be `--blue` or `--red`. The contrasts, by
+  `packages/site/src/symbolShades.test.ts` (WCAG's formula), against the panel and against panel-2:
 
-  | Theme | Token | Colour | Panel | Panel-2 |
-  |---|---|---|---|---|
-  | Light | `--blue-slightly-better` | #4e85e3 | 3.63 | 3.13 |
-  | Light | `--blue-better` (`--blue`) | #2f6fde | 4.72 | 4.07 |
-  | Light | `--blue-winning` | #214e9b | 7.99 | 6.90 |
-  | Light | `--red-slightly-better` | #d9615c | 3.61 | 3.12 |
-  | Light | `--red-better` (`--red`) | #d2453f | 4.50 | 3.89 |
-  | Light | `--red-winning` | #93302c | 7.78 | 6.71 |
-  | Dark | `--blue-slightly-better` | #5380d3 | 3.79 | 3.31 |
-  | Dark | `--blue-better` (`--blue`) | #5b8ff0 | 4.66 | 4.07 |
-  | Dark | `--blue-winning` | #8cb1f5 | 6.84 | 5.96 |
-  | Dark | `--red-slightly-better` | #cb5a55 | 3.61 | 3.15 |
-  | Dark | `--red-better` (`--red`) | #e8635c | 4.48 | 3.91 |
-  | Dark | `--red-winning` | #ef928d | 6.44 | 5.62 |
+  | Theme | Token | Colour | L* | Panel | Panel-2 |
+  |---|---|---|---|---|---|
+  | Light | `--blue-slightly-better` | #4384f5 | 56.4 | 3.59 | 3.09 |
+  | Light | `--blue-better` | #1e5ecc | 42.2 | 5.95 | 5.14 |
+  | Light | `--blue-winning` | #003c9a | 28.3 | 9.94 | 8.58 |
+  | Light | `--red-slightly-better` | #e6584f | 56.5 | 3.58 | 3.09 |
+  | Light | `--red-better` | #bb2e2b | 42.3 | 5.93 | 5.12 |
+  | Light | `--red-winning` | #8b000d | 28.2 | 9.98 | 8.62 |
+  | Dark | `--blue-slightly-better` | #487ad9 | 52.2 | 3.56 | 3.10 |
+  | Dark | `--blue-better` | #78a7ff | 68.6 | 6.17 | 5.38 |
+  | Dark | `--blue-winning` | #bed6ff | 85.1 | 10.02 | 8.74 |
+  | Dark | `--red-slightly-better` | #d4514b | 52.3 | 3.57 | 3.11 |
+  | Dark | `--red-better` | #ff837a | 68.7 | 6.17 | 5.38 |
+  | Dark | `--red-winning` | #ffc8c1 | 85.2 | 10.04 | 8.76 |
 
-  The range from 3:1 to the side's colour is narrow (about 3.6 to 4.7), so "slightly better" and "better" differ
-  less than "better" and "winning".
+- **The badges line up:** the edge's text takes the width of the longest edge, A10-D10 (7 characters of the
+  monospaced font), so each row's badge starts at the same place.
 - **The widths,** measured in Playwright's Chromium on the review of `hedgefund-review.json` at the end of the test
   book: the table is as wide as its box at 360, 400, 799, 800, 1,023, 1,024, 1,259, 1,260, 1,280, 1,366 and 1,920
   pixels. The column "Line ends" takes 68 pixels, its head on one line at every width. The edge's column has 96 pixels
   at 360 and 157 at 1,260. With the values open and the column "Goes on", it had 62 and 123, and the head
   "Line ends" went on two lines. Left to the table's own layout, the column "Line ends" took a share of the free room:
-  at 1,260 pixels, values closed, the edge's column had 163 pixels in place of 229. The layout test checks the table at
-  every width from 360 pixels, and that the head stays on one line.
+  at 1,260 pixels, values closed, the edge's column had 163 pixels in place of 229. The layout test checks the table
+  after the game's first edge, where the rows' edges have 6 and 7 characters. At every size from 360 pixels wide, the
+  table fits, the head stays on one line, and the rows' badges start at one place.
