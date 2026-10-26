@@ -201,12 +201,13 @@ and their lines are hand-made marks, and the engine plays each one where it stan
 
 - **The build and the tests read the stored file:** CI has no engine files. `fixtures.engine.test.ts` runs the engine
   again and compares. It is skipped when no build's folder is in the engine repository's checkout beside this one.
-- **Node's own WASI imports** start the module, for now. The module needs only the clocks, random bytes and standard
-  error. The script's `call` repeats the engine's driver: the engine's library (`gpu_engine.mjs`, in the build's
-  folder too) drives the CPU module (`createCpuEngine`), and Hedge School's `scripts/node-engine.mjs` starts its
-  module with it. This copy must go, as CLAUDE.md and design 29 ("Move, do not copy") ask. Drawing Board's own
+- **The engine's own library starts the module,** as Hedge School's `scripts/node-engine.mjs` starts its module. The
+  script loads the build's `gpu_engine.mjs` (the manifest's asset of kind `gpu-library`) and calls only its
+  `createCpuEngine`, which drives the CPU module with the few WASI imports that it needs: the clocks, random bytes and
+  standard error. The site keeps no copy of the engine's driver (CLAUDE.md, and design 29: "Move, do not copy"). The
+  script checks the SHA-256 of the module and of the library against the manifest. Drawing Board's own
   `engine.lock.json` and the engine in the page come with the review (abscls-8tl1.7). Then `node-engine.mjs` moves
-  into `packages/engine` for both sites, and the script starts the module with the library through it.
+  into `packages/engine` for both sites, and the script takes it.
 - **The board computes geometry only, and the tests check it against the engine.** A footprint is the blueprint's
   cells moved to the anchor hex (`footprintOf`): the board draws it under the pointer, and the lab's moves take it
   for their drawing. An edit's hexes in the frames after it come from the notation's frames (item 5). The tests

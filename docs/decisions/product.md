@@ -7140,5 +7140,6 @@ the words of the site. The pages, the lessons, the documents and the code's comm
   on and nothing is begun, it now asks for the first click: "Click a blueprint or a cell in Blue's hand.", and "Tap"
   on a touch screen. Before the first click, the texts follow the device's primary pointer: the media feature
   `pointer: coarse` (design 33, "How the board takes a move", item 8). The board itself now takes no move while a
-  line shows, so the review gets the lab's rule. The script that runs the engine still repeats the engine library's
-  driver: that copy goes with abscls-8tl1.7.
+  line shows, so the review gets the lab's rule. The script that runs the engine no longer copies the engine's
+  driver: it starts the module with the build's own library (`gpu_engine.mjs`, its `createCpuEngine` only), as
+  Hedge School's `node-engine.mjs` does, and writes the same `fixtures.json`, byte for byte.
