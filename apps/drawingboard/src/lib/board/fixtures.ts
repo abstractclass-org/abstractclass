@@ -1,14 +1,43 @@
-// Hand-made positions for the board's lab page and tests: the start, a middle game with candidates and a line, a
-// capture, an edit and an empty blueprint, each with its mover and some of its legal moves for the player's own moves
-// (the list at the end). No game of strategyjam.org's archive: this repository is public. The
-// builder below only moves cells as each move's data says (the cells that a placement captures are listed by hand),
-// and puts each blueprint back in its frame, as the notation names the cells (design 33, item 5). It checks only that
-// the hand-made data holds together (a footprint on empty hexes, a captured cell of the opponent), not that a move is
-// legal: the engine has the rules.
-import { moveName, turnFromCount } from "../game/notation.ts";
+// The positions of the board's lab page and tests: the start, a middle game with candidates and a line, a capture, an
+// edit and an empty blueprint. Each is a game of moves from the standard start that Stamp Duty's early build played:
+// scripts/board-fixtures.mjs writes what the engine says to fixtures.json, the position, its mover, every legal move
+// (describe's `legal`), and what each move did (describe_game). The site has no rules: this module only reads that data
+// and gives each move what the board draws of it. The candidates and their lines are hand-made marks, each a legal
+// move where it stands. No game of strategyjam.org's archive: this repository is public.
+import data from "./fixtures.json" with { type: "json" };
+import { parseMove } from "../game/notation.ts";
 import type { BoardCandidate, BoardLineMove } from "./Board.svelte";
-import { anchorOf, hexKey, inFrame, parseHex, type Hex } from "./hex.ts";
-import { footprintOf, type Blueprint, type BlueprintNumber, type BoardMove, type Hand, type HandHex, type Kind, type Player, type SitePosition } from "./position.ts";
+import { anchorOf, hexKey, parseHex, type Hex } from "./hex.ts";
+import { footprintOf, type BoardMove, type Hand, type HandHex, type Kind, type Player, type SitePosition } from "./position.ts";
+
+/** What a move did, as the engine's describe_game gives it: the player who made it, the hexes that a placement filled,
+ *  the cells that it captured (as they were before it), its points, and the hands after it. */
+export interface EngineStep {
+  move: string;
+  player: Player;
+  footprint: string[];
+  captured: Record<string, [Player, Kind]>;
+  points: number;
+  blueprints: [Hand, Hand];
+}
+/** A position of the data file: the game's moves, the position after them with its mover and legal moves, the last
+ *  move with the hands before it, and the middle game's candidates (with their notes) and lines. */
+export interface FixtureData {
+  name: string;
+  moves: string[];
+  position: SitePosition;
+  mover: Player;
+  legal: string[];
+  last: EngineStep | null;
+  before: [Hand, Hand] | null;
+  candidates?: (EngineStep & { note: string })[];
+  lines?: Record<string, EngineStep[]>;
+}
+/** The data file: the engine's build, and the positions. */
+export const FIXTURE_DATA = data as unknown as {
+  engine: { tag: string; build: string; protocol: string; sha256: string };
+  fixtures: FixtureData[];
+};
 
 export interface Fixture {
   name: string;
@@ -19,216 +48,55 @@ export interface Fixture {
   lines?: Record<string, BoardLineMove[]>;
   /** Who moves: Blue's first turn has one move, then two a turn. */
   mover: Player;
-  /** Legal moves for the player's own moves, by hand and not all of them: several placements of each blueprint that
-   *  has cells, and several edits. The engine's describe gives the whole list (request 23). */
+  /** Every legal move, as the engine gives it, for the player's own moves. */
   legal: string[];
 }
 
-// The start (the engine repository's games/blueprints/README.md): each blueprint is a star with a ring of six cells.
-// Blueprints 1 and 3 have plain rings, and blueprint 2 a ring of walls and stars. Red's blueprint 2 is Blue's turned
-// half round. Blue's are placed at q = -6, -10 and -2, Red's at 6, 10 and 2.
-const RING: Hex[] = [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]]; // the six directions, round the star
-const ringed = (kinds: Kind[]): Blueprint => {
-  const cells: [Hex, Kind][] = [[[0, 0], "star"], ...RING.map((d, i) => [d, kinds[i]] as [Hex, Kind])];
-  return frame(cells);
-};
-/** Cells put in their frame, the anchor cell at 0,0. */
-function frame(cells: [Hex, Kind][]): Blueprint {
-  const hexes = inFrame(cells.map(c => c[0]));
-  return Object.fromEntries(hexes.map((h, i) => [hexKey(h), cells[i][1]]));
-}
-const plainRing = ringed(["plain", "plain", "plain", "plain", "plain", "plain"]);
-const START_HANDS: [Hand, Hand] = [
-  [plainRing, ringed(["wall", "star", "wall", "star", "wall", "star"]), plainRing],
-  [plainRing, ringed(["star", "wall", "star", "wall", "star", "wall"]), plainRing],
-];
-const START_AT: [number, number, number][] = [[-6, -10, -2], [6, 10, 2]];
+const at = (h: Hex, d: Hex): Hex => [h[0] - d[0], h[1] - d[1]];
 
-function start(): SitePosition {
-  const cells: Record<string, [Player, Kind]> = {};
-  for (const p of [0, 1] as const)
-    START_HANDS[p].forEach((b, i) => {
-      // The blueprint's star is on (q, 0): its anchor cell is the ring's cell above it, at (q, -1).
-      for (const s of footprintOf(b, [START_AT[p][i], -1])) cells[hexKey(s.hex)] = [p, s.kind];
-    });
-  return { ply: 0, cells, blueprints: START_HANDS, scores: [0, 0] };
+/** An edit's two hexes in the frames after it. The string names them in the frames before it (design 33, item 5), and
+ *  the two blueprints then go back to their frames: each moves by its anchor cell after the edit. */
+export function editAfter(hand: Hand, from: HandHex, to: HandHex): [Hex, Hex] {
+  const cells = hand.map(b => Object.keys(b).map(parseHex));
+  cells[from.blueprint - 1] = cells[from.blueprint - 1].filter(h => hexKey(h) !== hexKey(from.hex));
+  cells[to.blueprint - 1] = [...cells[to.blueprint - 1], to.hex];
+  const moved = (n: number): Hex => anchorOf(cells[n - 1]) ?? [0, 0];
+  return [at(from.hex, moved(from.blueprint)), at(to.hex, moved(to.blueprint))];
 }
 
-export interface Built { position: SitePosition; last: BoardMove | null }
-
-/** Blueprint `k` of `player` placed with its anchor cell on `at`, capturing the cells at `capturedAt` (by hand), for
- *  `points`. */
-export function place(b: Built, player: Player, k: BlueprintNumber, at: Hex, capturedAt: string[] = [],
-                      points = 0): Built {
-  const p = b.position, cells = { ...p.cells };
-  const footprint = footprintOf(p.blueprints[player][k - 1], at);
-  for (const s of footprint) {
-    const key = hexKey(s.hex);
-    if (cells[key]) throw new Error(`fixture: ${k}@${hexKey(at)} puts a cell on ${key}, which has a cell`);
-    cells[key] = [player, s.kind];
+/** The board's move of a step. A placement's footprint is its blueprint's cells on its anchor hex, in the hand before
+ *  it (a placement leaves the hand as it is). An edit's hexes are in the frames before it (`frames` "before", as a
+ *  candidate's name gives them), or after it. */
+function boardMove(s: EngineStep, before: readonly [Hand, Hand], frames: "before" | "after"): BoardMove {
+  const m = parseMove(s.move), hand = before[s.player];
+  if (m.kind === "place") {
+    const anchor: Hex = [m.q, m.r];
+    const captured = Object.entries(s.captured).map(([key, [owner, kind]]) => ({ hex: parseHex(key), owner, kind }));
+    return { type: "place", player: s.player, blueprint: m.blueprint, at: anchor, footprint: footprintOf(hand[m.blueprint - 1], anchor), captured };
   }
-  const captured = capturedAt.map(key => {
-    const c = cells[key];
-    if (!c || c[0] === player) throw new Error(`fixture: ${key} has no cell of the opponent to capture`);
-    delete cells[key];
-    return { hex: parseHex(key), owner: c[0], kind: c[1] };
-  });
-  const scores: [number, number] = [p.scores[0], p.scores[1]];
-  scores[player] += points;
+  let from: HandHex = { blueprint: m.from.blueprint, hex: [m.from.q, m.from.r] };
+  let to: HandHex = { blueprint: m.to.blueprint, hex: [m.to.q, m.to.r] };
+  const kind = hand[from.blueprint - 1][hexKey(from.hex)];
+  if (frames === "after") {
+    const [f, t] = editAfter(hand, from, to);
+    [from, to] = [{ ...from, hex: f }, { ...to, hex: t }];
+  }
+  return { type: "edit", player: s.player, kind, from, to };
+}
+
+function fixtureOf(f: FixtureData): Fixture {
+  const hands = f.position.blueprints;
+  const candidates = f.candidates?.map((c, i): BoardCandidate =>
+    ({ name: c.move, move: boardMove(c, hands, "before"), rank: i + 1, note: c.note }));
+  /** A line: each move with the hands after it, from the hands before it. */
+  const lineOf = (steps: EngineStep[]): BoardLineMove[] =>
+    steps.map((s, i) => ({ move: boardMove(s, i ? steps[i - 1].blueprints : hands, "after"), hands: s.blueprints }));
   return {
-    position: { ply: p.ply + 1, cells, blueprints: p.blueprints, scores },
-    last: { type: "place", player, blueprint: k, at, footprint, captured },
+    name: f.name, position: f.position, mover: f.mover, legal: f.legal,
+    last: f.last && f.before ? boardMove(f.last, f.before, "after") : null,
+    ...(candidates ? { candidates } : {}),
+    ...(f.lines ? { lines: Object.fromEntries(Object.entries(f.lines).map(([name, steps]) => [name, lineOf(steps)])) } : {}),
   };
 }
 
-/** The edit `I:from>J:to` of `player`, with both hexes in the frames before it. The move's hexes are in the frames
- *  after it, as the board draws it with the position after it. */
-export function edit(b: Built, player: Player, i: BlueprintNumber, from: Hex, j: BlueprintNumber, to: Hex): Built {
-  const hand = b.position.blueprints[player].map(bp => ({ ...bp }));
-  const kind = hand[i - 1][hexKey(from)];
-  if (!kind) throw new Error(`fixture: blueprint ${i} has no cell at ${hexKey(from)}`);
-  if (hand[j - 1][hexKey(to)] && !(i === j && hexKey(from) === hexKey(to))) throw new Error(`fixture: blueprint ${j} has a cell at ${hexKey(to)}`);
-  delete hand[i - 1][hexKey(from)];
-  // The target's cells, in the source's frame when the two are one blueprint.
-  hand[j - 1][hexKey(to)] = kind;
-  // Both blueprints go back to their frames: each moves by its new anchor cell.
-  const moved = (n: number): Hex => anchorOf(Object.keys(hand[n - 1]).map(parseHex)) ?? [0, 0];
-  const di = moved(i), dj = moved(j);
-  const reframed = hand.map(bp => frame(Object.entries(bp).map(([k, v]) => [parseHex(k), v] as [Hex, Kind])));
-  const blueprints: [Hand, Hand] = [...b.position.blueprints] as [Hand, Hand];
-  blueprints[player] = reframed as unknown as Hand;
-  const at = (h: Hex, d: Hex): Hex => [h[0] - d[0], h[1] - d[1]];
-  return {
-    position: { ...b.position, ply: b.position.ply + 1, blueprints },
-    last: { type: "edit", player, kind, from: { blueprint: i, hex: at(from, di) }, to: { blueprint: j, hex: at(to, dj) } },
-  };
-}
-
-/** A move's name, in the notation's one spelling. */
-const cellOf = ({ blueprint, hex: [q, r] }: HandHex) => ({ blueprint, q, r });
-const name = (m: BoardMove): string => moveName(m.type === "place" ? { kind: "place", blueprint: m.blueprint, q: m.at[0], r: m.at[1] }
-  : m.type === "edit" ? { kind: "edit", from: cellOf(m.from), to: cellOf(m.to) } : null);
-
-// A middle game: nine moves from the start, two of them captures, and two edits.
-const startBuilt: Built = { position: start(), last: null };
-let g = startBuilt;
-g = place(g, 0, 1, [-7, -3]);
-g = place(g, 1, 1, [5, -3]);
-g = place(g, 1, 3, [1, -3], ["-1,-1", "-1,0"]);
-g = place(g, 0, 3, [-3, -3]);
-g = edit(g, 0, 1, [1, 1], 3, [2, 1]);
-g = place(g, 1, 2, [9, -4]);
-g = edit(g, 1, 1, [-1, 2], 1, [2, 0]);
-g = place(g, 0, 1, [-11, -3]);
-g = place(g, 0, 3, [-1, 1], ["1,1", "1,0", "2,1"]);
-const middle = g;
-
-// Red's five candidates in the middle game, and a line for the first three. A candidate's edit is in the position's frames
-// (before it).
-const candidateMoves: [BoardMove, string][] = [
-  [place(middle, 1, 3, [3, 1], ["1,2"]).last!, "Score +1.4"],
-  [place(middle, 1, 1, [1, -6]).last!, "−0.6"],
-  [{ type: "edit", player: 1, kind: "wall", from: { blueprint: 2, hex: [0, 2] }, to: { blueprint: 2, hex: [2, 0] } }, "−1.1"],
-  [place(middle, 1, 2, [4, 2]).last!, "−2.3"],
-  [place(middle, 1, 1, [3, 2]).last!, "−2.9"], // four of its hexes are the first choice's: candidates overlap
-];
-const candidates: BoardCandidate[] = candidateMoves.map(([move, note], i) => ({ name: name(move), move, rank: i + 1, note }));
-/** A line: the moves played one after another from the position, each with the hands after it. */
-function lineOf(from: Built, steps: ((b: Built) => Built)[]): BoardLineMove[] {
-  const out: BoardLineMove[] = [];
-  let b = from;
-  for (const s of steps) {
-    b = s(b);
-    out.push({ move: b.last!, hands: b.position.blueprints });
-  }
-  return out;
-}
-const lines: Record<string, BoardLineMove[]> = {
-  [candidates[0].name]: lineOf(middle, [
-    b => place(b, 1, 3, [3, 1], ["1,2"]),
-    b => place(b, 1, 1, [1, -6]),
-    b => edit(b, 0, 1, [0, 2], 1, [1, 1]),
-  ]),
-  [candidates[1].name]: lineOf(middle, [
-    b => place(b, 1, 1, [1, -6]),
-    b => place(b, 1, 3, [3, 1], ["1,2"]),
-  ]),
-  [candidates[2].name]: lineOf(middle, [
-    b => edit(b, 1, 2, [0, 2], 2, [2, 0]),
-    b => place(b, 1, 3, [3, 1], ["1,2"]),
-  ]),
-};
-
-// A capture, hand-made: Red's blueprint 1 (three cells) on Blue's group, which loses two plain cells and a star. The
-// wall beside the footprint stays. Red has five stars on the board before the move, so it scores 5.
-const captureBefore: Built = {
-  position: {
-    ply: 41,
-    cells: Object.fromEntries(([
-      ["0,-1", 0, "plain"], ["1,-1", 0, "plain"], ["-1,0", 0, "plain"], ["0,0", 0, "star"], ["1,0", 0, "plain"],
-      ["-1,1", 0, "wall"], ["0,1", 0, "wall"], ["2,-1", 0, "star"], ["2,-2", 0, "plain"], ["1,2", 0, "plain"],
-      ["-2,1", 0, "star"], ["-2,2", 0, "plain"], ["-1,2", 0, "wall"], ["-3,1", 0, "plain"],
-      ["3,-1", 1, "plain"], ["3,-2", 1, "star"], ["4,-2", 1, "plain"], ["3,0", 1, "wall"], ["4,-1", 1, "star"],
-      ["4,0", 1, "plain"], ["5,-1", 1, "star"], ["5,-2", 1, "wall"], ["4,1", 1, "star"], ["3,1", 1, "plain"],
-      ["5,0", 1, "star"], ["2,-3", 1, "plain"], ["3,-3", 1, "plain"],
-    ] as [string, Player, Kind][]).map(([k, p, kind]) => [k, [p, kind] as const])),
-    blueprints: [
-      [plainRing, ringed(["wall", "star", "wall", "star", "wall", "star"]), { "0,0": "star", "1,0": "plain", "-1,1": "plain" }],
-      [{ "0,0": "plain", "-1,1": "star", "0,1": "plain" }, ringed(["star", "wall", "star", "wall", "star", "wall"]),
-       frame([[[0, 0], "plain"], [[1, 0], "plain"], [[2, 0], "star"], [[0, 1], "plain"], [[1, 1], "wall"], [[-1, 2], "plain"], [[0, 2], "star"], [[1, 2], "plain"], [[2, 1], "plain"], [[3, 0], "plain"], [[-1, 1], "plain"]])],
-    ],
-    scores: [96, 120],
-  },
-  last: null,
-};
-const capture = place(captureBefore, 1, 1, [2, 0], ["1,0", "2,-1", "1,2"], 5);
-
-// An edit: Blue's first move moves blueprint 3's anchor cell to blueprint 1. Blueprint 3 goes back to its frame, so the
-// cell's old place is at -1,0 of its new frame.
-const editMove = edit(startBuilt, 0, 3, [0, 0], 1, [2, 1]);
-
-// An empty blueprint: Red's blueprint 3 gives its last cell, a star, to blueprint 2, with the first move of Red's turn.
-// A blueprint with no cells takes a cell only at its 0,0.
-const emptyBefore: Built = {
-  position: {
-    ...middle.position, ply: 57,
-    blueprints: [middle.position.blueprints[0], [
-      frame([[[0, 0], "plain"], [[1, 0], "plain"], [[2, 0], "plain"], [[-1, 1], "plain"], [[0, 1], "star"], [[1, 1], "plain"], [[0, 2], "plain"], [[1, 2], "plain"], [[2, 1], "plain"], [[-1, 2], "plain"]]),
-      frame([[[0, 0], "star"], [[1, 0], "wall"], [[-1, 1], "wall"], [[0, 1], "star"], [[1, 1], "star"], [[-1, 2], "star"], [[0, 2], "wall"], [[2, 0], "plain"], [[2, -1], "plain"], [[-2, 2], "plain"]]),
-      { "0,0": "star" },
-    ]],
-  },
-  last: null,
-};
-const empty = edit(emptyBefore, 1, 3, [0, 0], 2, [1, 0]);
-
-/** Who moves after `ply` moves: turn 1 is Blue's, turn 2 Red's, and so on. */
-const moverAt = (ply: number): Player => (turnFromCount(ply).turn % 2 ? 0 : 1);
-const withMover = (b: Built) => ({ ...b, mover: moverAt(b.position.ply) });
-
-// The legal moves, by hand. Each placement's footprint is on empty hexes and touches the mover's cells. Each edit's
-// first hex is a cell, and its second an empty hex, in the frames before it: among them an edit with a negative
-// coordinate (before the target's anchor cell), and, in the empty blueprint's position, edits to blueprint 3's 0,0.
-// The start's three blueprints have one shape, so their placements are on the same hexes.
-export const FIXTURES: Fixture[] = [
-  { name: "The start", ...withMover(startBuilt), legal: [
-    "1@-9,-4", "1@-5,-4", "1@-12,2", "2@-7,-4", "2@-13,-1", "2@-1,-4", "3@-3,-4", "3@-12,2", "3@-1,-4",
-    "1:1,0>1:2,1", "1:0,2>1:0,-1", "3:0,0>1:2,1", "2:1,1>3:-1,0", "2:0,1>2:2,0",
-  ] },
-  { name: "A middle game", ...withMover(middle), candidates, lines, legal: [
-    "1@3,2", "1@1,-6", "1@13,-3", "2@4,2", "2@10,-7", "2@12,-6", "3@3,1", "3@0,-5", "3@7,2",
-    "2:0,2>2:2,0", "1:2,0>1:-1,2", "1:0,2>3:0,-1", "3:0,1>1:2,1",
-  ] },
-  { name: "A capture", ...withMover(capture), legal: [
-    "1@1,2", "1@5,1", "1@7,-4", "2@0,-4", "2@4,2", "2@7,-2", "3@2,-6", "3@6,-5", "3@7,-1",
-    "1:0,1>1:1,0", "1:0,0>2:-1,0", "3:3,0>1:1,1",
-  ] },
-  { name: "An edit", ...withMover(editMove), legal: [
-    "1@2,-4", "1@8,-4", "1@12,0", "2@4,-4", "2@10,-4", "2@-1,1", "3@6,-4", "3@2,-4", "3@12,0",
-    "1:1,0>1:2,1", "2:0,2>2:0,-1", "3:0,0>2:-1,0", "1:-1,2>3:2,1",
-  ] },
-  { name: "An empty blueprint", ...withMover(empty), legal: [
-    "1@0,-6", "1@8,2", "1@12,-4", "2@5,2", "2@10,-7", "2@14,-1",
-    "1:2,0>3:0,0", "2:1,0>3:0,0", "1:2,1>1:3,0", "2:-4,3>2:-1,0",
-  ] },
-];
+export const FIXTURES: Fixture[] = FIXTURE_DATA.fixtures.map(fixtureOf);

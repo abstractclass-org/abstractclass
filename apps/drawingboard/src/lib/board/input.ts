@@ -8,13 +8,14 @@
 // A click on a cell chooses both: its blueprint for a placement, and the cell for an edit. The next click tells them
 // apart, on the board or in a hand, as on strategyjam.org. On a touch screen, which has no hover, the first tap on a
 // marked hex shows the move (a placement's footprint, an edit's cell in its new place), and a second tap on it makes
-// it. A tap on the board snaps to the nearest marked anchor hex, as on strategyjam.org (tapHex). Pure functions, for the board's input (blueprintInput.svelte.ts) and its tests.
+// it. A tap on the board snaps to the nearest marked anchor hex, as on strategyjam.org (tapHex). Pure functions, for
+// the board's input (blueprintInput.svelte.ts) and its tests.
 import { parseMove, type Move } from "../game/notation.ts";
 import { center, hexKey, sameHex, type Hex } from "./hex.ts";
 import { PLAYER_NAMES, sameHandHex, type BlueprintNumber, type HandHex, type Player, type SitePosition } from "./position.ts";
 
-/** The position's rules for the player's own moves: the position, its mover, and its legal moves as strings (the
- *  engine's describe, request 23, or a hand-made list on the lab page). */
+/** The position's rules for the player's own moves: the position, its mover, and every legal move as a string (the
+ *  engine's describe, request 23). */
 export interface InputRules { position: SitePosition; mover: Player; legal: readonly string[] }
 
 /** The legal moves, as the board marks them: each blueprint's anchor hexes, and each cell's new places, by the cell's
@@ -40,8 +41,9 @@ export type Shown = { type: "place"; at: Hex } | { type: "edit"; to: HandHex };
 /** The move begun: the blueprint chosen for a placement, the cell of it chosen for an edit, and the move shown. */
 export interface Begun { blueprint: BlueprintNumber; cell: Hex | null; shown: Shown | null }
 /** Why the last click did nothing: a click on the board with nothing begun ("nothing"), a click in the opponent's
- *  hand ("opponent"), or a hex that is not a marked anchor hex ("anchor"). */
-export type Refusal = "nothing" | "opponent" | "anchor";
+ *  hand ("opponent"), a hex of the board that is not a marked anchor hex ("anchor"), or, while a cell is chosen, a hex
+ *  of a blueprint that is not a cell and not a marked new place ("target"). */
+export type Refusal = "nothing" | "opponent" | "anchor" | "target";
 export interface InputState { begun: Begun | null; refused: Refusal | null }
 /** Nothing begun: the state at the start, after a move, and after Escape. */
 export const IDLE: InputState = { begun: null, refused: null };
@@ -90,7 +92,8 @@ export function clickBoard(state: InputState, legal: Legal, hex: Hex, touch: boo
 /** A click on a hex of a blueprint's frame in a player's hand:
  *  - a marked new place of the chosen cell makes the edit,
  *  - a cell chooses its blueprint and itself, and the chosen cell again cancels the move begun,
- *  - any other hex of the blueprint's panel chooses the blueprint alone. */
+ *  - another hex of the blueprint's panel is a new place that is not legal while a cell is chosen, and else chooses
+ *    the blueprint alone. */
 export function clickHand(state: InputState, rules: InputRules, legal: Legal, player: Player, at: HandHex,
                           touch: boolean): Click {
   const begun = state.begun;
@@ -105,32 +108,51 @@ export function clickHand(state: InputState, rules: InputRules, legal: Legal, pl
     if (begun?.cell && begun.blueprint === at.blueprint && sameHex(begun.cell, at.hex)) return { state: IDLE, move: null };
     return begin({ blueprint: at.blueprint, cell: at.hex, shown: null });
   }
+  if (begun?.cell) return refuse({ ...begun, shown: null }, "target");
   return begin({ blueprint: at.blueprint, cell: null, shown: null });
 }
 
-/** What the input shows of itself, for its status. */
+/** What the input shows of itself, for its status: also its rules, and whether the last click was a touch's, so that
+ *  the texts say "tap". */
 export interface InputView {
+  readonly rules: InputRules | null;
   readonly pending: Begun | null;
   readonly refused: Refusal | null;
   readonly anchors: readonly Hex[] | null;
   readonly targets: readonly HandHex[] | null;
+  readonly touch: boolean;
 }
 
-/** The status line: what the move begun needs next, or why a click did nothing. Null when nothing is begun. Strict
- *  Simplified Technical English, with the glossary's words (CLAUDE.md, "Writing the site's text"). */
+/** The status line: what the move begun needs next, or why a click did nothing. Null when nothing is begun. It says
+ *  that a move is not legal only after the player tries that move: a click on the board for a placement, a click in
+ *  a blueprint for an edit. Strict Simplified Technical English, with the glossary's words (CLAUDE.md, "Writing the
+ *  site's text"), and "tap" on a touch screen. Each text fits in two lines of a phone's status line. */
 export function inputStatus(input: InputView, mover: Player): string | null {
   const name = PLAYER_NAMES[mover], { pending: begun, refused } = input;
-  if (refused === "nothing") return `First, click a blueprint in ${name}'s hand.`;
-  if (refused === "opponent") return `${name} moves now. Click a blueprint in ${name}'s hand.`;
+  const click = input.touch ? "tap" : "click", Click = input.touch ? "Tap" : "Click";
+  if (refused === "nothing") return `First, ${click} a blueprint or a cell in ${name}'s hand.`;
+  if (refused === "opponent") return `${name} moves now. ${Click} a blueprint or a cell in ${name}'s hand.`;
   if (!begun) return null;
-  const k = begun.blueprint, anchors = input.anchors ?? [], targets = input.targets;
+  const k = begun.blueprint;
   if (begun.shown) return begun.shown.type === "place" ? `To place blueprint ${k} here, tap the footprint again.`
     : "To move the cell here, tap the same hex again.";
-  if (refused === "anchor" && anchors.length)
-    return `Blueprint ${k} cannot have its anchor cell on this hex. Click a marked anchor hex.`;
-  const place = anchors.length ? `To place blueprint ${k}, click a marked anchor hex.` : `Blueprint ${k} has no legal placement.`;
-  if (!targets) return anchors.length ? place : `${place} Click a different blueprint.`;
-  return `${place} ${targets.length ? "To move the cell, click a marked hex in a blueprint." : "The cell has no legal edit."}`;
+  const anchors = input.anchors?.length ?? 0, targets = input.targets?.length ?? 0, cell = !!begun.cell;
+  const empty = !Object.keys(input.rules?.position.blueprints[mover][k - 1] ?? {}).length;
+  const place = `To place blueprint ${k}, ${click} a marked anchor hex.`;
+  const edit = `To move the cell, ${click} a marked hex in a blueprint.`;
+  const noPlace = `Blueprint ${k} has no legal placement.`, noEdit = "This cell has no legal edit.";
+  // A blueprint with no cells: only an edit can put a cell in it.
+  if (empty) return `Blueprint ${k} has no cells. To put a cell in it, first ${click} a cell in a different blueprint.`;
+  // The player tried a placement or an edit that is not legal: why, then what the move begun can do.
+  if (refused === "anchor") return anchors
+    ? `Blueprint ${k} cannot have its anchor cell on this hex. ${Click} a marked anchor hex.`
+    : `${noPlace} ${cell && targets ? edit : `${Click} a different ${cell ? "cell" : "blueprint"}.`}`;
+  if (refused === "target") return targets
+    ? `The cell cannot move to this hex. ${Click} a marked hex in a blueprint.`
+    : `${noEdit} ${anchors ? place : `${Click} a different cell.`}`;
+  // What the move begun needs next: a blueprint alone is placed, and a cell's blueprint is placed or the cell moved.
+  const next = [anchors ? place : "", cell && targets ? edit : ""].filter(Boolean).join(" ");
+  return next || (cell ? `${noPlace} ${noEdit} ${Click} a different cell.` : `${noPlace} ${Click} a different blueprint.`);
 }
 
 /** The clicks on the board, for the list of keys and clicks. */

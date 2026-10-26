@@ -7101,3 +7101,38 @@ the words of the site. The pages, the lessons, the documents and the code's comm
 - **Not done:** Practice's score bar ("Points bar", "Points: Blue …") and the players' cards
   (`packages/review/src/PlayerCard.svelte`, "34 points") still give a score in points. A note's cost is part of a
   longer text, with no element of its own to carry a title. Most design documents still say "label" alone.
+
+### The player's own moves on Drawing Board, from the engine's legal moves (2026-10-27)
+
+- **The finding:** on the first build of the player's own moves, the lab page's legal moves were hand-made: 3 to 5
+  placements of each blueprint and 4 or 5 edits in each position. A chosen blueprint showed about 3 dots where the game
+  has dozens, a cell with legal edits said "The cell has no legal edit.", and the hands changed their scale when the
+  switch "Your moves" turned on. The tests checked the clicks against the same partial lists, so none of them could
+  find this.
+- **Decided:** the lab's positions are games of moves from the standard start, and Stamp Duty's early build
+  (`engine-0d2a5416`, protocol 0.6.1) gives each position and every legal move (design 33, "How the board takes a
+  move"). The data file has 82 kB. The engine gives a position's describe in about 5 ms on the CPU, with no network,
+  and its module grows to 347 MB.
+
+  | Position | Move | Mover | Legal moves | Placements of blueprints 1, 2, 3 | Edits |
+  |---|---|---|---|---|---|
+  | The start | 0 | Blue | 843 | 35, 35, 35 | 738 |
+  | A middle game | 9 | Red | 849 | 36, 36, 36 | 741 |
+  | A capture | 10 | Red | 877 | 44, 46, 46 | 741 |
+  | An edit | 1 | Red | 843 | 35, 35, 35 | 738 |
+  | An empty blueprint | 14 | Red | 640 | 11, 11, 0 | 618 |
+
+- **The hands' panels:** each of the 3,576 legal edits puts its cell on a hex that touches its blueprint's cells, or
+  on an empty blueprint's 0,0 (21 edits). 2,286 have a negative coordinate. So each panel shows its blueprint's cells
+  and every hex that touches them, and no longer depends on the input. A blueprint of 7 cells then takes 5 hexes
+  across in place of 3, and the hands' shared scale is smaller.
+- **The status line** speaks only of what the player does: the move begun's next step, and why a click did nothing
+  only for the move that the player tried. A touch's texts say "tap".
+- **Checked** in headless Chromium (software rendering), at 1,400 × 900 and 390 × 844, each with a mouse and with
+  touch: in each position, each blueprint's dots were its legal placements' anchor hexes, and each cell's dots its
+  legal edits, all of them and no others, in view (every one of the 21 cells of the mover). A placement made, an edit
+  made, Escape, a hex that is not legal, a new place that is not legal and the opponent's hand gave the texts expected.
+  The hands' boxes, the board's area and its view stayed the same with the switch off and on, and after each
+  choice: 1,664 checks. The lab's row of information first grew to a third line at 390 pixels under a mouse, when the
+  hex under the pointer showed. That row is under the board now. A candidate's line under the pointer in a hand also
+  changed the hands: while the input is on, a hand's hex finds no candidate.

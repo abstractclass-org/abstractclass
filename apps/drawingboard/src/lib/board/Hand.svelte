@@ -1,5 +1,5 @@
 <script lang="ts" module>
-  import { boxOf, center, GRID_TILE, GRID_TILE_PATH, hexAt, hexKey, hexPath, type Box, type Hex } from "./hex.ts";
+  import { boxOf, center, GRID_TILE, GRID_TILE_PATH, hexAt, hexKey, hexPath, TOUCHING, type Box, type Hex } from "./hex.ts";
   import { blueprintCells, PLAYER_NAMES, sameHandHex, type BlueprintNumber, type Hand, type HandHex, type Player } from "./position.ts";
   import type { Size } from "./view.ts";
   import Cell, { CELL_SIZE } from "./Cell.svelte";
@@ -13,25 +13,26 @@
     line: (HandEdit & { n: number })[];
     input: HandInput | null; // the player's own move begun, in the mover's hand
   }
-  /** The player's own move in the mover's hand: the blueprint and the cell chosen, the cell's marked new places, the
-   *  new place that a touch shows, and every new place of an edit (`reach`, which the hand always shows). */
+  /** The player's own move in the mover's hand: the blueprint and the cell chosen, the cell's marked new places, and
+   *  the new place that a touch shows. */
   export interface HandInput {
     blueprint: BlueprintNumber | null;
     cell: Hex | null;
     targets: HandHex[];
     shown: HandHex | null;
-    reach: HandHex[];
   }
-  /** The part of each blueprint's frame that the hand shows: its cells, the hex 0,0 also when it is empty, and the
-   *  hexes of the edits drawn on it. */
+  /** The part of each blueprint's frame that the hand shows: its cells and every hex that touches them, the hex 0,0
+   *  also when it is empty, and the hexes of the edits drawn on it. An edit's new place touches its blueprint's cells,
+   *  or is an empty blueprint's 0,0 (the engine repository's games/blueprints/README.md), so every new place that a
+   *  legal edit can have is in the box. The box does not depend on the player's own move: the hands keep their scale
+   *  and their places whether the input is on or off, and when the player chooses a blueprint or a cell. */
   export function blueprintBoxes(hand: Hand, marks: HandMarks): Box[] {
     const edits = [marks.last, ...marks.candidates, ...marks.line].filter(e => !!e);
-    const reach = marks.input?.reach ?? [];
     return hand.map((b, i) => {
       const n = (i + 1) as BlueprintNumber;
-      const hexes: Hex[] = [[0, 0], ...blueprintCells(b).map(c => c.hex)];
+      const hexes: Hex[] = [[0, 0]];
+      for (const { hex: [q, r] } of blueprintCells(b)) hexes.push([q, r], ...TOUCHING.map(([dq, dr]) => [q + dq, r + dr] as const));
       for (const e of edits) for (const h of [e.from, e.to]) if (h.blueprint === n) hexes.push(h.hex);
-      for (const h of reach) if (h.blueprint === n) hexes.push(h.hex);
       return boxOf(hexes)!;
     });
   }

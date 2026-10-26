@@ -1,20 +1,21 @@
 <script lang="ts">
-  // The board's lab (design 33): Blueprints' board on hand-made positions (lib/board/fixtures.ts), so that the board
-  // can be checked and looked at before the review and the Analysis board take it. It has no engine: the candidates
-  // and their lines are hand-made, and so are the legal moves that the player's own moves take. A move made shows its
-  // string in the status line, and the input starts again: the lab does not play it. Escape cancels a move begun. The
-  // address can choose the position and a candidate: ?p=1&c=3@3,1. A choice on the page goes into the address, so that
-  // it can be shared. The site's header, with its theme menu, is above the page.
+  // The board's lab (design 33): Blueprints' board on the positions of a few games (lib/board/fixtures.ts), so that the
+  // board can be checked and looked at before the review and the Analysis board take it. The page runs no engine:
+  // Stamp Duty's early build gave each position and every legal move ahead of time (scripts/board-fixtures.mjs). The
+  // candidates and their lines are hand-made marks on legal moves. A move made shows its string in the status line, and
+  // the input starts again: the lab does not play it. Escape cancels a move begun. The address can choose the position
+  // and a candidate: ?p=1&c=2@3,-9. A choice on the page goes into the address, so that it can be shared. The site's
+  // header, with its theme menu, is above the page.
   import { onMount } from "svelte";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import Board, { type BoardHex } from "#lib/board/Board.svelte";
   import { BlueprintInput } from "#lib/board/blueprintInput.svelte.ts";
-  import { FIXTURES } from "#lib/board/fixtures.ts";
+  import { FIXTURE_DATA, FIXTURES } from "#lib/board/fixtures.ts";
   import { hexKey } from "#lib/board/hex.ts";
   import { inputStatus } from "#lib/board/input.ts";
   import { PLAYER_NAMES } from "#lib/board/position.ts";
   import { moveName } from "#lib/game/notation.ts";
-  import { SITE_NAME } from "#lib/site.ts";
+  import { ENGINE_NAME, SITE_NAME } from "#lib/site.ts";
 
   let index = $state(0);
   let showCandidates = $state(true);
@@ -76,10 +77,11 @@
     {/if}
     <label class="flex items-center gap-1"><input type="checkbox" bind:checked={takeMoves} /> Your moves</label>
   </div>
-  <p class="min-h-5 shrink-0 text-sm text-muted">
+  <!-- The rows above the board change only with the position: a row that grew while the player points or clicks would
+       move the board, and its hands, under the pointer. -->
+  <p class="shrink-0 text-sm text-muted">
     Move {fixture.position.ply} · {PLAYER_NAMES[fixture.mover]} to move · Blue {fixture.position.scores[0]}, Red {fixture.position.scores[1]}
-    {#if pinned}· Line of {pinned}{/if}
-    {#if at}· The pointer is on {where(at)}{/if}
+    · {fixture.legal.length} legal moves ({ENGINE_NAME}, {FIXTURE_DATA.engine.tag})
   </p>
   <!-- Two lines high, also for one line of text: a status that wraps would move the board between a touch's two taps. -->
   <p class="min-h-10 shrink-0 text-sm" data-testid="input-status">
@@ -87,9 +89,13 @@
   </p>
   <div class="min-h-0 flex-1">
     <Board position={fixture.position} last={fixture.last} candidates={fixture.candidates ?? []} {line}
-           pointed={pinned} layers={{ candidates: showCandidates }} {input} inputOn={takeMoves}
+           pointed={pinned} layers={{ candidates: showCandidates }} {input} inputOn={takeMoves && !line}
            oncandidate={name => (pointed = name)}
            oncandidateclick={name => { pinned = pinned === name ? null : name; address({ c: pinned }); }}
            onhexat={h => (at = h)} />
   </div>
+  <!-- One line under the board, cut short when it is too long. -->
+  <p class="h-5 shrink-0 truncate text-sm text-muted">
+    {#if pinned}Line of {pinned}{/if}{#if pinned && at} · {/if}{#if at}The pointer is on {where(at)}{/if}
+  </p>
 </main>

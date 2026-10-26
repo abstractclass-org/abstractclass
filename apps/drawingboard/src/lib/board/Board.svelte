@@ -91,9 +91,12 @@
   const lastPlace = $derived(last?.type === "place" ? last : null);
 
   // The view. It fits the cells (and the cells that the last move captured) in the area, until the player pans or
-  // zooms (`manual`), and again after "Show all the cells".
+  // zooms (`manual`), and again after "Show all the cells". With the input's rules, it fits the anchor hexes of every
+  // legal placement too, so that each dot is in view: also while the input is off, so that the view stays as it is
+  // when the input turns on.
   let manual = $state.raw<View | null>(null);
-  const fitBox = $derived(boxOf([...allCells.map(c => c.hex), ...(lastPlace?.captured ?? []).map(c => c.hex)])
+  const fitBox = $derived(boxOf([...allCells.map(c => c.hex), ...(lastPlace?.captured ?? []).map(c => c.hex),
+                                 ...(input?.allAnchors ?? [])])
     ?? boxOf([[-2, -2], [2, 2]])!);
   const view = $derived(manual ?? fit(fitBox, field, 1.2));
   const vb = $derived(viewBox(view, field));
@@ -131,13 +134,16 @@
   /** The best placement whose anchor hex or whose rank is on a hex of the board. */
   const placementAt = (h: Hex) =>
     placements.find(c => findable(c) && (sameHex(c.move.at, h) || sameHex(rankPlaces.get(c.name)!, h))) ?? null;
-  /** The candidate whose edit takes a cell from a hex of a hand (where the hand shows its rank) or puts it there. */
-  const handCandidate = (player: Player, at: HandHex) =>
-    edits.find(c => findable(c) && c.move.player === player && (sameHandHex(c.move.from, at) || sameHandHex(c.move.to, at)))
+  /** The candidate whose edit takes a cell from a hex of a hand (where the hand shows its rank) or puts it there. None
+   *  while the input takes moves: a click in the hand goes to the input, and a candidate's line would show other
+   *  hands under the pointer. */
+  const handCandidate = (player: Player, at: HandHex) => takes ? null
+    : edits.find(c => findable(c) && c.move.player === player && (sameHandHex(c.move.from, at) || sameHandHex(c.move.to, at)))
       ?? null;
+  // On the board, the pointer finds a candidate unless a move is begun: a click then goes to the input.
   function pointAt(next: Hex | null) {
     if (!(next && hoverHex && sameHex(next, hoverHex))) hoverHex = next;
-    hoverName = next ? placementAt(next)?.name ?? null : null;
+    hoverName = next && !takes?.pending ? placementAt(next)?.name ?? null : null;
   }
   function handAt(player: Player, at: HandHex | null) {
     handHover = at ? { player, at } : null;
@@ -162,7 +168,7 @@
     : null);
   const handInput = (p: Player): HandInput | null => !takes || p !== mover ? null : {
     blueprint: begun?.blueprint ?? null, cell: begun?.cell ?? null, targets: takes.targets ?? [],
-    shown: begun?.shown?.type === "edit" ? begun.shown.to : null, reach: takes.reach,
+    shown: begun?.shown?.type === "edit" ? begun.shown.to : null,
   };
 
   // The coordinates under the pointer, or the move that a click there makes: a placement on a marked anchor hex, an

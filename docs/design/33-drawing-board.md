@@ -3,7 +3,8 @@
 **Status:** in force. Built: the app (`apps/drawingboard`), with its checks in `npm run check:all`, its shell (the
 header, the footer, the Home, About, Notation, Privacy and Notices pages, and the deploy job), and the notation and the
 record, with the import of a strategyjam.org game as a record. The owner's step for the address is left
-(abscls-8tl1.3). The board is built, on hand-made positions. The review's view is in a package, on Hedge School's
+(abscls-8tl1.3). The board and the player's own moves are built, on positions that the engine's early build gave.
+The review's view is in a package, on Hedge School's
 board and on Blueprints' (design 29, item 9). The review and the Analysis board wait for the engine's browser build
 (request 23).
 **Decided:** 2026-10-25.
@@ -100,38 +101,55 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
 ## How the board takes a move
 
 The player's own moves on the board are the board's part of the view's game interface (design 29, item 9): a
-`MoveInput`, `input`, `inputStatus` and `clicks`. The input's rules are the position, its mover and its legal moves
-as strings. The engine's describe gives them (request 23), and the lab page gives hand-made lists. The site has no
-rules: the input never computes which moves are legal. It matches what the player points at against the list.
+`MoveInput`, `input`, `inputStatus` and `clicks`. The input's rules are the position, its mover and every legal move
+as a string: the engine's describe gives them (`legal`, request 23). The site has no rules: the input never computes
+which moves are legal. It matches what the player points at against the list. The list must be complete: a partial
+list marks a few hexes where the game has dozens, and the page then reads as if the rules were wrong.
 
 1. **A placement:** the player clicks a blueprint in the mover's hand. A dot marks each anchor hex where a legal
-   placement puts the blueprint's anchor cell. Under a mouse's pointer, the blueprint's footprint shows with a ring on
-   its anchor hex: faded in the mover's colour on a marked hex, and as a dashed grey outline on another hex. A click
-   on a marked hex makes the placement. The hex clicked is the anchor hex that the string names (`K@q,r`, item 5).
+   placement puts the blueprint's anchor cell: every one in the list, and no other hex. Under a mouse's pointer, the
+   blueprint's footprint shows with a ring on its anchor hex: faded in the mover's colour on a marked hex, and as a
+   dashed grey outline on another hex. A click on a marked hex makes the placement. The hex clicked is the anchor hex
+   that the string names (`K@q,r`, item 5). While the input has its rules, the board's view fits the anchor hexes of
+   every legal placement with the cells, so that every dot is in view. It fits them also while the input is off, so
+   that the view stays as it is when the input turns on.
 2. **An edit:** the player clicks a cell of a blueprint. A dot marks each legal new place of the cell, in that
-   blueprint or another one, with both coordinates in the frames before the edit. A new place can be outside the
-   blueprint's cells (a negative coordinate) or an empty blueprint's dashed hex 0,0. The hands always show every new
-   place of a legal edit, so their scale does not change when the player chooses a cell. A click on a marked new place
-   makes the edit.
-3. **A click on a cell chooses both.** It chooses the cell's blueprint for a placement and the cell for an edit. The
+   blueprint or another one, with both coordinates in the frames before the edit: every one in the list, and no other
+   hex. A new place can be outside the blueprint's cells (a negative coordinate) or an empty blueprint's dashed hex
+   0,0. A click on a marked new place makes the edit.
+3. **The hands do not move.** An edit's new place touches its blueprint's cells, or is an empty blueprint's 0,0 (the
+   engine repository's `games/blueprints/README.md`). So each blueprint's panel shows its cells and every hex that
+   touches them, and the hex 0,0. Every new place of a legal edit is then in view, and a click reaches it. The panels
+   do not depend on the input: each hand keeps its size, its scale and its place whether the input is on or off, and
+   when the player chooses a blueprint or a cell.
+4. **A click on a cell chooses both.** It chooses the cell's blueprint for a placement and the cell for an edit. The
    next click tells the two apart: a marked anchor hex on the board makes the placement, and a marked new place in a
-   hand makes the edit. A click elsewhere in a blueprint's panel chooses that blueprint alone. A click on the chosen
-   cell again cancels the move begun, as a click on Enclosure's first point does, unless an edit back to its own
-   place is legal: that place is then a marked hex like the others.
-4. **Escape** cancels the move begun, as on Hedge School's board.
-5. **A touch screen has no hover.** The first tap on a marked hex shows the move: a placement's footprint, or an
+   hand makes the edit. While a cell is chosen, a click on another hex of a blueprint's panel is an edit to a place
+   that is not legal. With no cell chosen, it chooses that blueprint alone. A click on the chosen cell again cancels
+   the move begun, as a click on Enclosure's first point does. The rules never give an edit back to the cell's own
+   place: an edit puts the cell in a new place.
+5. **Escape** cancels the move begun, as on Hedge School's board.
+6. **A touch screen has no hover.** The first tap on a marked hex shows the move: a placement's footprint, or an
    edit's cell faded in its new place. A second tap makes it: on the footprint, or on the same new place. A tap on the
    board snaps to the nearest marked anchor hex whose centre is within 2 hex radii, as strategyjam.org's does, because
    a hex on a phone's board is a few pixels wide. The first tap keeps a wrong touch from making a move, and the
    board needs no button of its own to confirm it.
-6. **The status line** (`inputStatus`) says what the move begun needs next, or why a click did nothing: nothing was
-   begun, the hand is the opponent's, the hex is not a marked anchor hex, or the blueprint has no legal placement.
-   The texts are strict Simplified Technical English, with the glossary's words: blueprint, hand, anchor hex,
-   footprint, placement, edit. The status line must keep its height, so that a text that wraps does not move the board
-   between a touch's two taps.
-7. **The candidates and the input.** While the input is on, a click in the mover's hand goes to the input. A click on
-   the board goes to it too, unless nothing is begun and the hex is a candidate's: that click finds the candidate,
-   as before. The candidates' edits are clicked in the review's table.
+7. **The status line** (`inputStatus`) says what the move begun needs next: with a blueprint chosen, how to place
+   it, and with a cell chosen, how to place its blueprint and, when the cell has a legal edit, how to move the cell.
+   It says why a click did nothing only when the player tried that move: a placement on a hex that is not marked, an
+   edit to a hex that is not marked, a click in the opponent's hand, or a click on the board with nothing begun. So
+   it says "This cell has no legal edit." only after the player tries to move that cell. An empty blueprint has its
+   own text: an edit can put a cell in it. On a touch screen every text says "tap", not "click". The texts are strict
+   Simplified Technical English, with the glossary's words: blueprint, hand, cell, anchor hex, footprint, placement,
+   edit. Each fits in two lines of a phone's status line, and the status line keeps the height of two lines, so that
+   a text that wraps does not move the board between a touch's two taps. A row above the board must not change its
+   height while the player points or clicks either: on the lab page, the hex under the pointer is in a row of one
+   line under the board.
+8. **The candidates and the input.** While the input is on, a click in the mover's hand goes to the input, and the
+   pointer in a hand finds no candidate: a candidate's line would show its own hands under the pointer, in other
+   frames than the dots'. A click on the board goes to the input too, unless nothing is begun and the hex is a
+   candidate's: that click finds the candidate, as before. While a candidate's line shows, the board takes no move
+   (`inputOn` is false): its hands are the line's. The candidates' edits are clicked in the review's table.
 
 **How strategyjam.org does it** (its game page's Blueprints module, saved by the game watch in the engine repository's
 `runs/strategyjam/blueprints/`). The mover always has a chosen blueprint: the first, or the one that the keys 1 to 3,
@@ -161,8 +179,23 @@ button makes the move. A cell can also be dragged to its new place. Escape drops
 
 Where it is: `apps/drawingboard/src/lib/board/input.ts` (what a click does, the status's texts and the clicks'
 list, with its tests), `blueprintInput.svelte.ts` (the `MoveInput` that the board and the view take), and
-`Board.svelte` and `Hand.svelte` (the dots, the footprint, the chosen blueprint and cell, and the clicks). The lab page
-gives each position its mover and a hand-made list of legal moves (`fixtures.ts`).
+`Board.svelte` and `Hand.svelte` (the dots, the footprint, the chosen blueprint and cell, and the clicks).
+
+**The lab's positions come from the engine.** Each position of the lab page is a game of moves from the standard
+start, which Stamp Duty's early build (`engine-0d2a5416`, protocol 0.6.1) played. The script
+`apps/drawingboard/scripts/board-fixtures.mjs` (`npm run fixtures`) runs the build's module in Node, and stores what
+the engine gives in `src/lib/board/fixtures.json`: each position, its mover, every legal move (describe), and what
+each move did (describe_game: the footprint, the captured cells, the points and the hands after it). The candidates
+and their lines are hand-made marks, and the engine plays each one where it stands, so each is a legal move.
+
+- **The build and the tests read the stored file:** CI has no engine files. `fixtures.engine.test.ts` runs the engine
+  again and compares. It is skipped when no build's folder is in the engine repository's checkout beside this one.
+- **Node's own WASI imports** start the module. Hedge School's `scripts/node-engine.mjs` starts its module through
+  the engine's library, but that library is the GPU module's (`gpu_engine.mjs`). The module needs only the clocks,
+  random bytes and standard error. Drawing Board's own `engine.lock.json` and the engine in the page come with the
+  review (abscls-8tl1.7).
+- **The unit tests click every legal move** of each position. They check that each blueprint's dots are its legal
+  placements' anchor hexes, all of them and no others, and that each cell's dots are its legal edits.
 
 ## Why
 
@@ -173,8 +206,8 @@ gives each position its mover and a hand-made list of legal moves (`fixtures.ts`
 - **strategyjam.org's strings are the game's notation.** The players see them in the site's move list. The game page
   and the site's records hold them, so an import needs no translation. The engine repository's port speaks them in
   its test against the site's rules (its `platforms/strategyjam/site_diff.py`). Each move has one string, with no
-  space, so the move tree can key on it (design 29). strategyjam.org's "Dots" button marks the hexes that a click
-  places a blueprint from: the hex that a player clicks is the hex that the string names.
+  space, so the move tree can key on it (design 29). On Drawing Board's board, the hex that a player clicks for a
+  placement is the anchor hex that the string names ("How the board takes a move").
 - **The rule for an edit works on the site's games.** A model of the hand's rules, written for this check, replayed
   the 1,826 games of strategyjam.org's archive that the engine repository keeps. Every one of the 32,959 edits played
   is in its list of legal edits. 7,061 of them move the source's anchor cell, 7,944 put a cell before the target's
@@ -248,7 +281,7 @@ gives each position its mover and a hand-made list of legal moves (`fixtures.ts`
   later change (item 4).
 - `.github/workflows/deploy.yml`, the job `drawingboard`: the deploy, skipped while `DRAWINGBOARD_PAGES_PROJECT` is
   empty ([hosting.md](../hosting.md), "Drawing Board").
-- `apps/drawingboard/src/lib/board/`: the board, built on hand-made positions until the engine's browser build comes.
+- `apps/drawingboard/src/lib/board/`: the board, built on the lab's positions, which the engine's early build gave.
   - `Board.svelte`: the cells, the two hands, the last move (one outline round its footprint, its captured cells, an
     edit's arrow in the hand), the candidates, the line (numbered from the candidate), and the hex under the pointer
     with its coordinates. The last-move outline is the edge of the footprint as a whole, in the last move's colour. It
@@ -273,7 +306,8 @@ gives each position its mover and a hand-made list of legal moves (`fixtures.ts`
   - The view: the board fits the cells until the player pans or zooms, and again after "Show all the cells". A drag
     or one finger pans, two fingers pinch, and the wheel zooms round the pointer by d3-zoom's steps.
   - `position.ts`: the position in strategyjam.org's form and the move as the board draws it. `hex.ts`: the grid's
-    geometry. `view.ts`: pan, zoom and fit. `fixtures.ts`: the hand-made positions.
+    geometry. `view.ts`: pan, zoom and fit. `fixtures.ts`: the lab's positions, from `fixtures.json` ("How the board
+    takes a move").
 - `apps/drawingboard/src/routes/lab/board/`: the board's lab page (`/lab/board`), in the site's frame: the start, a
   middle game with five candidates and their lines, a capture, an edit and an empty blueprint. The board fills the
   page area under the site's header. The address keeps the position and the pinned candidate.
@@ -286,5 +320,6 @@ gives each position its mover and a hand-made list of legal moves (`fixtures.ts`
 
 ## Log
 
-[decisions/product.md](../decisions/product.md), "Drawing Board, Blueprints' site" (2026-10-25), and "The review's
-styles in packages/review and packages/site" (2026-10-26).
+[decisions/product.md](../decisions/product.md), "Drawing Board, Blueprints' site" (2026-10-25), "The review's
+styles in packages/review and packages/site" (2026-10-26), and "The player's own moves on Drawing Board, from the
+engine's legal moves" (2026-10-27).
