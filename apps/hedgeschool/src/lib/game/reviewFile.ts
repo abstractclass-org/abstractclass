@@ -100,7 +100,7 @@ export function readReviewFile(text: string): ReviewFile {
   const branchesOk = b === null || b === undefined ||
     (b.version === 2 && Array.isArray(b.nodes) && b.nodes.every(n => Array.isArray(n) && typeof n[0] === "string" && typeof n[1] === "number")) ||
     (b.version === 1 && Array.isArray(b.lines) && b.lines.every(l => Array.isArray(l) && l.every(m => typeof m === "string")));
-  if (!branchesOk) throw new Error("Hedge School cannot read the review file's branches.");
+  if (!branchesOk) throw new Error("Hedge School cannot read the review file's variations.");
   const r = f.review;
   const review = r && typeof r === "object" && typeof r.module === "string" && typeof r.model === "string" &&
     typeof r.network === "string" && typeof r.visits === "number" ? r : null;

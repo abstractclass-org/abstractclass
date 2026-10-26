@@ -2,7 +2,7 @@
 // applied together, at most once a batch, the deepest for each position, with what follows a search's end (the stages'
 // progress, its mark). And the order of a search's end: the engine takes its next search at once, and the result shows
 // in the batch after its write to the store, or once it is stored when no search waits in the pool's queue or when it
-// is the label stage's last. And another network: no pass searches on the old network's pool for the new network's
+// is the label stage's last. And another network: no stage searches on the old network's pool for the new network's
 // analysis. And a focus's time limit, which the engine's worker keeps. And a search's budget and the review's steps, met
 // only by a result that the store has: not by another search's results so far. And results of shape 5, with no
 // ownership: the review opens with them and searches nothing, and the board's ownership comes from a short search of
@@ -220,7 +220,7 @@ test("the map stage: once the review's stages are done, the maps of the game's p
   searches.at(-1)!.end(MAP_VISITS, false, { ownership: [0.2] });
   await turns();
   assert.equal(game.mapAt(["a"]), undefined);
-  // The map turned off: the pass stops, and the searches still queued end at once
+  // The map turned off: the stage stops, and the searches still queued end at once
   game.passMaps(false, ["a", "b"]);
   await turns();
   assert.equal(game.mapPass, null);
@@ -249,7 +249,7 @@ test("every state of a map ends: a map asked for before the engine is ready wait
   await turns();
   assert.equal(searches.length, 0);
   assert.equal(game.mapState(["a"]), "waiting");
-  // The engine ready: the map is asked for, with no new call from the page, and the pass starts
+  // The engine ready: the map is asked for, with no new call from the page, and the stage starts
   void game.sweep();
   await turns();
   const asked = searches.find(s => s.query.moves.join(" ") === "a" && !s.query.slice);
@@ -277,9 +277,9 @@ test("every state of a map ends: a map stage stopped and started again runs to i
   await turns();
   game.passMaps(true, []); // on again: a pass of the others
   await turns();
-  old.end(MAP_VISITS, false, { ownership: [0.1] }); // the stopped pass's task ends late
+  old.end(MAP_VISITS, false, { ownership: [0.1] }); // the stopped stage's task ends late
   await turns();
-  // Each search of the new pass ends: the pass runs, and shows its progress, until its last search ends
+  // Each search of the new stage ends: the stage runs, and shows its progress, until its last search ends
   for (let k = 1; k < game.passCount; k++) {
     const s = searches.at(-1)!;
     assert.deepEqual(s.query.moves, MOVES.slice(0, k));
@@ -297,7 +297,7 @@ test("the map stage gives way to the player: a position that it holds in its que
   await turns();
   game.passMaps(true, []); // "" runs; "a", "a b" and "a b c" wait, in that order
   await turns();
-  game.askOwnership([["a", "b", "c"]]); // the player steps to the last position, which the pass would search last
+  game.askOwnership([["a", "b", "c"]]); // the player steps to the last position, which the stage would search last
   await turns();
   searches.at(-1)!.end(MAP_VISITS, false, { ownership: [0.1] }); // the pass's search of ""
   await turns();
@@ -306,7 +306,7 @@ test("the map stage gives way to the player: a position that it holds in its que
   asked.end(MAP_VISITS, false, { ownership: [0.5] });
   await turns();
   assert.equal(game.mapState(["a", "b", "c"]), "ready");
-  // The pass searches the rest, and not "a b c" again
+  // The stage searches the rest, and not "a b c" again
   for (const moves of [["a"], ["a", "b"]]) {
     assert.deepEqual(searches.at(-1)!.query.moves, moves);
     searches.at(-1)!.end(MAP_VISITS, false, { ownership: [0.2] });
@@ -367,14 +367,14 @@ test("a variation's position on screen waits for its own search, which brings it
   assert.deepEqual(game.mapAt(["a", "y"]), [70]);
 });
 
-test("every state of a map ends: a map that the pass held and dropped is asked for again", async () => {
+test("every state of a map ends: a map that the stage held and dropped is asked for again", async () => {
   const { game, searches } = await noMaps(1, "g8");
   void game.sweep();
   await turns();
   game.passMaps(true, []); // from the start: "" first, then "a", "a b", "a b c"
   await turns();
   assert.deepEqual(searches.at(-1)!.query.moves, []);
-  game.askOwnership([["a", "b"]]); // the page wants a position that the pass holds in its queue: its own search too
+  game.askOwnership([["a", "b"]]); // the page wants a position that the stage holds in its queue: its own search too
   assert.equal(game.mapState(["a", "b"]), "waiting");
   game.passMaps(false, []); // the map stage stops: its queued search of "a b" ends with no map
   searches.at(-1)!.end(MAP_VISITS, false, { ownership: [0.1] });
@@ -451,7 +451,7 @@ test("every state of a map ends: a board position whose own search finds a store
   assert.equal(game.mapState(["a"]), "ready");
 });
 
-test("every state of a map ends: the engine off and on again while the map stage runs a search starts the pass again", async () => {
+test("every state of a map ends: the engine off and on again while the map stage runs a search starts the stage again", async () => {
   const { game, searches } = await noMaps(1, "g16");
   void game.sweep();
   await turns();
@@ -463,8 +463,8 @@ test("every state of a map ends: the engine off and on again while the map stage
   await turns();
   old.end(MAP_VISITS / 4); // the stopped slice ends, with no map
   await turns();
-  assert.ok(game.mapPass, "the pass runs on");
-  // The new pass's search of the same map holds its state: the stopped slice's task does not end it
+  assert.ok(game.mapPass, "the stage runs on");
+  // The new stage's search of the same map holds its state: the stopped slice's task does not end it
   assert.equal(game.mapState([]), "searching");
   for (let k = 0; k < game.passCount; k++) {
     const s = searches.at(-1)!;
@@ -790,7 +790,7 @@ test("a focus that stops before its time limit does not show as stopped there", 
   assert.equal(game.stoppedByTime([]), false);
 });
 
-test("a Great's confirmation is asked for only where the only good move keeps what the enemy's last turn gave", async () => {
+test("a Great's confirmation is asked for only where the only good move keeps what the other player's last turn gave", async () => {
   const { pool } = fakePool();
   const game = new GameAnalysis(words, pool, ["a", "b", "c", "d"], "g");
   await game.start();
@@ -805,9 +805,9 @@ test("a Great's confirmation is asked for only where the only good move keeps wh
   // It had 0.58: c only holds the position, and cannot be Great. No search.
   game.analysis = [at(0.5), at(0.58), only, at(0.6), at(0.6)];
   assert.equal(game.greatChecks.total, 0);
-  // The first move has no turn of the enemy before it.
+  // The first move has no turn of the other player before it.
   assert.equal(game.earlierAt([], 0), undefined);
-  // A variation: the position before the enemy's last turn is the game's, or the variation's own.
+  // A variation: the position before the other player's last turn is the game's, or the variation's own.
   await game.addLine(["a", "b", "x", "y"], false);
   assert.equal(game.earlierAt(["a", "b", "x"], 1), game.analysis[2]);
 });
@@ -860,7 +860,7 @@ async function greatBranch(id = "g", { moves = ["a", "b", "c", "d"], rules, engi
   return { game, pool, searches, at, asked, branchX };
 }
 
-test("Evaluate quality searches the position before the enemy's last turn where the move is the only good move", async () => {
+test("Evaluate quality searches the position before the other player's last turn where the move is the only good move", async () => {
   const { game, at, asked, branchX } = await greatBranch();
   await branchX(at(0.6));
   // x is the first player's first choice after a b, and the second choice z looks 0.15 worse. Before b, the position
@@ -926,7 +926,7 @@ test("the Analysis board's moves evaluated ask for the earlier position too, and
   assert.equal(review.game.greatChecks.total, 0); // no earlier result, so no Great to confirm
 });
 
-test("a turn of two that the board evaluates asks for the position before the enemy's last turn, and waits for it", async () => {
+test("a turn of two that the board evaluates asks for the position before the other player's last turn, and waits for it", async () => {
   const enclosure = { moves: ["a", "b", "c", "d", "e"], rules: turnsOfTwo };
   const { game, at, asked } = await greatBranch(BOARD_ID, enclosure);
   // The second player's turn b c from position 1 is the only good turn (x looks 0.16 worse), and the first player's

@@ -37,7 +37,7 @@ export interface Position {
 
 export { turnFromCount }; // the notation's turns (the /notation page), which Blueprints shares
 
-/** A move: an edge, or null for a timeout pass (the rest of the turn forfeited), and the enemy's edge that it cut. */
+/** A move: an edge, or null for a timeout pass (the rest of the turn forfeited), and the enemy edge that it cut. */
 export interface Move { player: Player; edge: Edge | null; cut: Edge | null }
 
 export const otherPlayer = (p: Player): Player => (1 - p) as Player;
@@ -50,7 +50,7 @@ export const MOVE_TEXT = "w-[8ch]";
  *  after the area map's settings. */
 export const LAYERS: LayerSetting<"regions" | "protected">[] = [
   { key: "regions", label: "Regions", help: "Shading on the areas each player encloses." },
-  { key: "protected", label: "Invincible edges", help: "The edges that an enemy cannot cut in this turn.", afterMap: true },
+  { key: "protected", label: "Invincible edges", help: "The edges that no player can cut in this turn.", afterMap: true },
 ];
 
 /** An edge of a line, played: the edge it cuts (or null), and the regions and areas after it. An edge of the game's
@@ -104,7 +104,7 @@ export interface Enclosure extends ViewTypes {
 const cutOf = (cuts: string | null) => (cuts === null ? null : parseEdge(cuts));
 
 /** Enclosure's game. An edge's name puts its lower point first (edgeName), so two edges have one name exactly when
- *  sameEdge holds. Its engine's score is in its own points, 12 to one of Go's (KataGame's SCORE_SCALE). */
+ *  sameEdge holds. Its engine's score is in its own unit, 12 to one of Go's points (KataGame's SCORE_SCALE). */
 export const enclosure: Game<Enclosure> = {
   equal: sameEdge,
   moveName,

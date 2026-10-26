@@ -2,9 +2,9 @@
 // a game by default (HedgeFund 0.1 Lite, 512 visits a position: the Lite review), as a review file (game/reviewFile.ts's
 // format) in tests/fixtures/hedgefund-review.json. The site's own game: the repository holds no one else's games (the
 // meaf.us games are their players'). The practice bot plays both sides (seed 7): Blue at 1 visit a move, Red at 128, so that
-// Blue's mistakes cost tens of points, as real players' do. The move list's cells are then as wide as a real game's
-// (a mistake's label, and two digits of points lost): an even game's cells, with losses of 0 or 1, were narrower, and
-// the sweep missed a move list cut by 6 pixels. The analysis module analyzes each position, and the positions that
+// Blue's mistakes lose tens in the lead, as real players' do. The move list's cells are then as wide as a real game's
+// (a mistake's quality label, and two digits of loss in the lead): an even game's cells, with losses of 0 or 1, were narrower, and
+// the layout test missed a move list cut by 6 pixels. The analysis module analyzes each position, and the positions that
 // confirm a Great (GameAnalysis.data), on several threads. It reads the engine from static/engine (`npm run engine`
 // first).
 //

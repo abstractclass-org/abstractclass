@@ -12,7 +12,7 @@ import { setUpStart } from "#lib/engine/notation.ts";
 import { modelOf, moduleOf, searchModules, type Manifest } from "@abstractclass/engine/client.ts";
 import type { GamePartner } from "./partners.ts";
 
-// The tree of a game's analysis as the browser keeps it, in the variations' store: the shared analysis's
+// The tree of a game's analysis as the browser keeps it, in the `branches` store: the shared analysis's
 // (@abstractclass/analysis/kept.ts). A kept node is a BranchNode here.
 export { BOARD_ID, branchNodes, keptNode, type KeptBoard, type KeptBranches, type KeptNode as BranchNode }
   from "@abstractclass/analysis/kept.ts";

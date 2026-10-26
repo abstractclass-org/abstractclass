@@ -26,7 +26,7 @@ noise.
      and the win bar. Its labels are mostly wrong, so it shows none. "Every position" is each position before a move,
      and the last one when the game is not over (an unfinished game, `*`): there the end has a search, not a result,
      so that the last move gets its label (`passCount` in `packages/analysis/src/analysis.svelte.ts`).
-   - **A label stage:** every position at 512 visits, the Lite review. Standard runs the pass at 1,024 visits, and
+   - **A label stage:** every position at 512 visits, the Lite review. Standard runs it at 1,024 visits, and
      Custom at another depth (design 09). Under protocol 0.3, after the opening, 512 visits finds 64% of the bad turns
      of a 1,024-visit search, with 82% of its flags right, and 256 visits finds 54%, with 88% right (by edge: 67% and
      80%, 42% and 79%). A turn gets a label only when its first position and the position after it have at least 256

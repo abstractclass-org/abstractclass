@@ -149,7 +149,7 @@ searching it again, and to share it as text that others can read.
   added to shape 5, not a new shape (design 30): a file of the site before the map imports with its results, and the
   site before the map reads a file of this site whole. A file holds every result as shape 5 (`atShape`).
 - **The notation's rules for the record** (the engine repository's design 04, after
-  [requests/13-variation-placement.md](../requests/13-variation-placement.md)):
+  [requests/13-branch-placement.md](../requests/13-branch-placement.md)):
   - A variation follows the turn it changes, after the turn's last edge, its mark and its comments. `N.` replaces the
     whole turn: `3. D10-G9 G9-H10 (3. D10-F13 F13-G10)`. `N...` keeps the turn's first edge:
     `4. N9-Q10 L10-N9 (4... M12-N9)`. The turn's variations from its start come first, then those from its second

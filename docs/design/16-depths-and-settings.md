@@ -34,7 +34,7 @@ Every label of the review has D: a player who wants surer labels sets a deeper D
   visits. A search still running counts with its visits so far. So a position looked at with a P above D holds the
   deeper result, and its labels follow it.
 - **Everything follows the held results:** the labels of the moves into and out of the position, the report's counts,
-  accuracy and points lost, the charts and their dots, and the Greats.
+  accuracy and loss in the lead, the charts and their dots, and the Greats.
 - **The review's own work counts the store's results only.** A search of a position to a budget is done when the
   store has a result with that budget. The results so far that the page shows do not count: the store never gets them
   when their search stops before its end (design 05).

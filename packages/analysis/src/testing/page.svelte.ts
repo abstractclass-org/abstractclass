@@ -34,7 +34,7 @@ export class TestPage {
     flushSync();
   }
 
-  /** Review again, on a review snapshot: the review snapshot ends, and its analysis stays on screen until the review's shows. */
+  /** Review again, on a review snapshot: it ends, and its analysis stays on screen until the review's shows. */
   reviewAgain() {
     this.snapshot = false;
     flushSync();

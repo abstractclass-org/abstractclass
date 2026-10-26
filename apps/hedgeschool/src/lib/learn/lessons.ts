@@ -74,7 +74,7 @@ export const COURSE: Stage[] = [
             targets: [parseEdge("C7-C10")],
             // Blue's area (`areas[0]`) grows by the square's 9. A diagonal closes a triangle of 4.5.
             task: ({ before, after }) => (after.areas[0] - before.areas[0] >= 9 ? null : "Join the square's two open ends."),
-            done: "The square encloses an area of 9. Blue's score gains 9 after this turn, and again after every " +
+            done: "The square encloses an area of 9. Blue's score increases by 9 after this turn, and again after every " +
                   "turn while it stays closed.",
           },
         ],
@@ -100,10 +100,10 @@ export const COURSE: Stage[] = [
             goal: "Cut the red edge that is not invincible.",
             view: [0, 3, 8, 10],
             position: "A7-C7 A9-D9,F5-F8* b2 0/0 3",
-            // The engine takes no edge that cuts a invincible one.
+            // The engine takes no edge that cuts an invincible one.
             task: ({ before, after }) => (after.cuts && !before.protected.includes(after.cuts) ? null
               : "Cross the red edge without the glow: A9-D9."),
-            done: "The invincibility lasts one turn. Next turn, you can cut Red's other edge too.",
+            done: "An edge stays invincible for one turn only. Next turn, you can cut Red's other edge too.",
           },
         ],
       },

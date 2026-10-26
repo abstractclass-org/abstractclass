@@ -4,7 +4,7 @@
 // (docs/design/04-product-shape.md). Storage can fail (a private window, blocked site data): then every call answers as
 // if the store were empty, and the site still works.
 //
-// Versions: 1 had the analyses. 2 adds the games. 3 adds the variations. An upgrade only adds stores, so data is never
+// Versions: 1 had the analyses. 2 adds the games. 3 adds the variations (`branches`). An upgrade only adds stores, so data is never
 // lost.
 
 const NAME = "learn-enclosure", VERSION = 3;

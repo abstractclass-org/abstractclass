@@ -56,7 +56,7 @@ A10-D10,D10-E11,D10-F13+ Q10-T10,Q10-T13*,T10-T13* b1 0/4.5 4`;
       first: the one in the earlier column, or in the lower row when the columns are the same. So an edge has one
       spelling everywhere. A reader may accept the points in the other order and sort them.</li>
     <li><strong>A move</strong> is an edge, or <code>pass</code>: a timeout, which forfeits the rest of the turn.</li>
-    <li><strong>The cut mark:</strong> a move that cuts an enemy's edge may carry <code>x</code>:
+    <li><strong>The cut mark:</strong> a move that cuts an enemy edge may carry <code>x</code>:
       <code>D10-G10x</code>, as SAN writes <code>x</code> for a capture. The mark repeats what the position shows. A
       reader accepts a move with it or without it, and refuses it on a move that cuts nothing.</li>
   </ul>
@@ -161,7 +161,7 @@ A10-D10,D10-E11,D10-F13+ Q10-T10,Q10-T13*,T10-T13* b1 0/4.5 4`;
     <code>G9-G12x??</code>.</p>
   <pre>{MARKED}</pre>
   <p>A judgement of one edge stays in a comment. A reader accepts a mark after any edge, and may ignore it.
-    {SITE_NAME}'s exports mark its labels by turn: Great <code>!</code>, Inaccuracy <code>?!</code>, Mistake
+    {SITE_NAME}'s exports mark its quality labels by turn: Great <code>!</code>, Inaccuracy <code>?!</code>, Mistake
     <code>?</code> and Blunder <code>??</code>. Best, Excellent and Good have no mark, as PGN has none for them.</p>
 
   <h3>Commands in comments</h3>

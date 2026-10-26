@@ -7076,24 +7076,28 @@ error and no horizontal scroll. The layout sweep in Chromium passes (25 tests, 5
 
 ### 2026-10-26: Hedge School takes the glossary's words (abscls-ceau)
 
-The Enclosure glossary (planning repository, `glossary/enclosure.md` and `GLOSSARY.md`) names the words of the site.
-The pages, the lessons, the documents and the code's comments took them.
+The glossaries of the planning repository (`GLOSSARY.md` for every game, `glossary/enclosure.md` for Enclosure) name
+the words of the site. The pages, the lessons, the documents and the code's comments took them.
 
 - **Renamed:**
   - protected edge -> invincible edge (meaf.us's word), on the Notation page, in the lessons, the editor and the
     board's layer setting. The mark `*` stays.
-  - opponent -> enemy, in the site's text, the documents and the comments.
-  - A score has no unit: "9 points of area" -> "an area of 9", "won by 28.5 points" -> "won by 28.5", and the image
-    captions say "a score of 34 and an area of 12".
+  - opponent -> enemy ("an enemy edge"), in Hedge School's text, documents and comments. The shared packages serve
+    Blueprints too, whose glossary says "opponent": their text and comments say "the other player". Design 33, which
+    is Blueprints', keeps "opponent".
+  - A score, a lead and a loss have no unit: "9 points of area" -> "an area of 9", "won by 28.5 points" -> "won by
+    28.5", and the image captions say "a score of 34 and an area of 12". The notes drop "pts": "−4.0% · −26.3", and a
+    turn's "−27.1% · −150.2 (−45.0, −105.2)". "Points lost" -> the loss in the lead, and the Report's "Avg pts lost"
+    -> "Avg lead loss".
   - branch -> variation (Lichess's and PGN's word), in the review's text, the Notation page and the comments of the
     shared record and of Drawing Board's `record.ts`. A Git branch is still a branch.
   - label pass, map pass -> the label stage, the map stage, and the review's "passes" -> "stages". "Layout sweep" ->
     layout test.
-  - snapshot -> review snapshot. "Label" -> "quality label" in the pages and in the review's settings. "Number 1" ->
-    "rank 1". "Analysis board" has a capital A.
-- **Stayed, for stored data and for the later identifier issue:** the database's `branches` store, the fields `edge`
-  and `blueWin`, the storage keys, the display settings' unit `"edge"`, the analytics events ("branch promoted",
-  "snapshot opened") and the fixtures. Identifiers (functions, variables, types, files, CSS classes) keep their old
-  words, as do the style sheets.
-- **Not done:** "points lost" and the unit "pts" in the notes, because the glossary's entry for loss is not settled in
-  the issue. The design documents (except the first lines of `docs/design/README.md`) still say "label" alone.
+  - snapshot -> review snapshot. "Label" -> "quality label" where the text means the review's judgement. "Number 1"
+    -> "rank 1". "Analysis board" has a capital A.
+- **Stayed, for stored data:** the database's `branches` store, the fields `edge` and `blueWin`, the storage keys, the
+  display settings' unit `"edge"`, the analytics events ("branch promoted", "snapshot opened") and the fixtures.
+  Identifiers (functions, variables, types, files, CSS classes) keep their old words, as do the style sheets.
+- **Not done:** Practice's score bar ("Points bar", "Points: Blue …") and the players' cards
+  (`packages/review/src/PlayerCard.svelte`, "34 points") still give a score in points. A note's cost is part of a
+  longer text, with no element of its own to carry a title. Most design documents still say "label" alone.

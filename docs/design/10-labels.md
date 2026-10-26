@@ -26,9 +26,9 @@ reason. Design 05 gives the searches that the labels read: their schedule, their
    "Label agreement against search budget, under protocol 0.3", "Label agreement by turn"). The sweep's 32 visits
    give no label. A label can change when a deeper search replaces a shallow one.
 3. **The loss** (KaTrain's and Lichess's): the mover's value before less the mover's value after, each from its own
-   position's search, in the engine's win chance (below), and in points (the engine's `scoreLead`, as KaTrain's points
-   lost) for the notes. Whether the expected margin (`scoreSelfplay`) serves the points better is measured, not
-   assumed (decisions/open-items.md).
+   position's search, in the engine's win chance (below), and in the lead (the engine's `scoreLead`, as KaTrain's
+   points lost) for the notes. Whether the expected final margin (`scoreSelfplay`) serves the notes better is measured,
+   not assumed (decisions/open-items.md).
    - **An edge's loss:** from the position before it to the position after it. For a turn's first edge, that is its
      cost when the best second edge follows it. For the second edge, it is its distance from the best second edge.
    - **A turn's loss:** from the turn's start to the position after its last edge. It equals the sum of its edges'
@@ -38,11 +38,11 @@ reason. Design 05 gives the searches that the labels read: their schedule, their
 4. **The engine's win chance, and the bands** (`packages/analysis/src/labels.ts`).
    - **The engine's own win chance** (its `winrate`), as chess.com and Lichess judge a move by the win chance their
      engine gives. It saturates once a game is decided, so a move there loses little: a label tells what a move cost
-     the result, and 30 points thrown away at a lead of 120 cost less than 30 at a lead of 20.
+     the result, and a loss of 30 in the lead matters less at a lead of 120 than at a lead of 20.
    - **The bands:** chess.com's bands of expected points, the same for every player: Excellent to 0.02, Good to 0.05,
      Inaccuracy to 0.10, Mistake to 0.20, then Blunder. No site changes its bands by the player's rating.
-   - **Points lost do not label.** They show in the notes. A point band flags the moves of a decided game, which
-     chess.com and Lichess leave alone.
+   - **The loss in the lead does not label.** It shows in the notes. A band on the lead flags the moves of a decided
+     game, which chess.com and Lichess leave alone.
    - **Tested on games of known strength** ([decisions/engine.md](../decisions/engine.md), "The label rules on games
      of known strength"): the flags fall as the player gets stronger, for the site's network at 16 to 1,024 visits,
      for 37 bots rated 2,000 to 3,000, and for people by rating. They fall mostly where the game is still open (73% of
@@ -56,7 +56,8 @@ reason. Design 05 gives the searches that the labels read: their schedule, their
      line, in either order. The same two edges in the other order make the same turn.
    - **By edge, both edges of the engine's best turn played in the other order are Best.** The first edge played is
      then the second edge of the engine's line, so it is not the first choice of its search, and its loss comes from
-     the search between the two edges alone (turn 9 of the sample game: J11-M13 was Good by that search's −27 points).
+     the search between the two edges alone (turn 9 of the sample game: J11-M13 was Good, with a loss
+     of 27 in the lead by that search).
 6. **Great: the only good move, which keeps what the enemy's last turn gave** (En Croissant's rule for "!",
    [`src/utils/score.ts`](https://github.com/franciscoBSalgueiro/en-croissant/blob/d64ce9e/src/utils/score.ts),
    `getAnnotation`, at commit d64ce9e. En Croissant's name for "!" is "Good", in `src/utils/annotation.ts`). En
@@ -155,10 +156,10 @@ reason. Design 05 gives the searches that the labels read: their schedule, their
      that stops in a turn's middle has no turn label until the turn ends. A move that would be Great waits for its extra
      searches (the position before the enemy's last turn, then the confirmation of the gap) and shows "Evaluating…"
      until they end (`GameAnalysis.awaitsGreat`).
-   - **A turn's note** gives the turn's cost, then each edge's points, in the turn's order: "Blunder: −25.2% · −144.0
-     pts (−144.0 pts, 0.0 pts)". The parts are rounded together, in tenths, so that they make the turn's points
-     (Hamilton's largest remainders, `roundTogether`). The engine's own turn, Best or Great, has no parts: its edges
-     have nothing to explain, and their losses would show only the error of the search between them.
+   - **A turn's note** gives the turn's cost, then each edge's loss in the lead, in the turn's order: "Blunder:
+     −25.2% · −144.0 (−144.0, 0.0)". The parts are rounded together, in tenths, so that they make the turn's loss in
+     the lead (Hamilton's largest remainders, `roundTogether`). The engine's own turn, Best or Great, has no parts:
+     its edges have nothing to explain, and their losses would show only the error of the search between them.
 8. **What shows** (design 06 and design 07 give the places): the move list and the charts show Great, Inaccuracy,
    Mistake and Blunder, to stay quiet, and the board shows every label. The charts mark each such turn or edge with a
    dot (`chartMarks` in `packages/analysis/src/model.ts`). The notes under a turn or an edge are for

@@ -50,7 +50,7 @@ test("a variation edge is judged as the game's: Best or Great when it is the fir
   assert.equal(judgeBranchEdge(before, after, 0, best, "lead", 256, second(0.45), analysed(0.58)), "best");
   assert.equal(judgeBranchEdge(before, after, 0, best, "lead", 256, second(0.45)), "best");
   assert.equal(judgeBranchEdge(before, after, 0, best, "lead", 256, second(0.45), analysed(0.5, 32)), "best");
-  // Blue played the other edge: 0.15 of win chance and 30 points lost.
+  // Blue played the other edge: a loss of 0.15 in win chance and 30 in the lead.
   assert.equal(judgeBranchEdge(before, { blueWin: 0.45, blueScore: -10 }, 0, other, "lead", 256), "mistake");
   // Not judged until the position before has the label budget, and the position after has values.
   assert.equal(judgeBranchEdge({ ...before, visits: 32 }, { blueWin: 0.6, blueScore: 20 }, 0, best, "lead", 256), null);
@@ -86,23 +86,23 @@ function game(red: [Edge, Edge], analysis: (Analysis | undefined)[], extra: Part
 }
 
 test("a turn's loss comes from its two ends, so the search between them cancels", () => {
-  // In the middle, Red looks 0.10 and 30 points better than at the start: the first edge gains, the second loses.
+  // In the middle, Red looks 0.10 of win chance and 30 of the lead better than at the start: the first edge gains, the second loses.
   const R = review(game([B, C], [at(0.5, 0), at(0.5, 0), at(0.4, -30), at(0.55, 20), at(0.6, 30)]));
   const red = R.turns[1];
   assert.deepEqual([red.start, red.end], [1, 3]);
   assert.ok(Math.abs(red.loss - 0.05) < 1e-9); // 0.5 less 0.45, not the second edge's 0.15
   assert.equal(red.pointsLost, 20); // 0 less −20, not the second edge's 50
   assert.equal(R.edges[2].pointsLost, 50);
-  // The turn's note gives each edge's points after its own, a gain with a plus, so that they add up.
-  assert.equal(turnCost(red), "−5.0% · −20.0 pts (+30.0 pts, −50.0 pts)");
+  // The turn's note gives each edge's loss in the lead after its own, a gain with a plus, so that they add up.
+  assert.equal(turnCost(red), "−5.0% · −20.0 (+30.0, −50.0)");
 });
 
-test("labels read the engine's win chance, and points lost do not label", () => {
-  // A decided game: Blue at 0.99. Red's turn loses 100 points, but its win chance only from 0.01 to 0.005.
+test("labels read the engine's win chance, and the loss in the lead does not label", () => {
+  // A decided game: Blue at 0.99. Red's turn loses 100 in the lead, but its win chance only from 0.01 to 0.005.
   const decided = review(game([B, C], [0, 1, 2, 3, 4].map(i => (i === 3 ? at(0.995, 1100) : at(0.99, 1000)))));
   assert.equal(decided.turns[1].pointsLost, 100);
   assert.equal(decided.turns[1].label, "excellent");
-  // An even game: Red's turn loses 5 points, but its win chance falls from 0.5 to 0.2.
+  // An even game: Red's turn loses 5 in the lead, but its win chance falls from 0.5 to 0.2.
   const R = review(game([B, C], [0, 1, 2, 3, 4].map(i => (i === 3 ? at(0.8, 5) : at(0.5, 0)))));
   assert.ok(Math.abs(R.turns[1].loss - 0.3) < 1e-12);
   assert.equal(R.turns[1].label, "blunder");
@@ -129,7 +129,7 @@ test("a turn is Great when searches from its start and its middle confirm it is 
   const seconds = [undefined, undefined, at(0.58, 5)]; // after the middle's second choice: 0.18 worse for Red
   const confirmed = review(game([B, C], analysis, { seconds, others: [undefined, at(0.6, 10)] }));
   assert.equal(confirmed.turns[1].label, "great");
-  assert.equal(turnCost(confirmed.turns[1]), "0.0% · 0.0 pts"); // the engine's own turn: no parts
+  assert.equal(turnCost(confirmed.turns[1]), "0.0% · 0.0"); // the engine's own turn: no parts
   // By edge, B is only Best: the second choice at the start, C, is the same turn in the other order.
   assert.equal(confirmed.edges[1].label, "best");
   // Without the search after F, or with F as good as the turn, the turn stays Best.

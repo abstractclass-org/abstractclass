@@ -6,7 +6,7 @@
 // the two orientations: a lookup finds both, and gives the position as the player reached it (book.ts, `Book`).
 //
 // The units: every win chance is Blue's, from 0 to 1, whoever moves, as the engine gives it. A lead is Blue's expected
-// score lead in points (negative when Red leads). An edge count is the position's fifth field: the edges played, 0 to
+// score lead (negative when Red leads). An edge count is the position's fifth field: the edges played, 0 to
 // 120.
 
 export const BOOK_FORMAT = "hedge-school-book";
@@ -63,7 +63,7 @@ export interface BookValue {
   low: number;
   /** The upper bound of Blue's win chance, as `low`: cut to 0 to 1. */
   high: number;
-  /** Blue's expected score lead, in points. */
+  /** Blue's expected score lead. */
   lead: number;
 }
 

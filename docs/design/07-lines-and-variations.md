@@ -35,7 +35,7 @@ The tools that the site follows:
   branching points, the Delete key removes a move. **Sabaki** (`src/menu.js`): Ctrl + ↑ and ↓ for the previous and the
   next fork.
 
-Enclosure differs from Go in one way that matters here: an edge can cut the enemy's edges, and a line's edges can
+Enclosure differs from Go in one way that matters here: an edge can cut enemy edges, and a line's edges can
 cut edges that are on the board, so a line drawn over the board can show edges that the line itself removes.
 
 ## Decision

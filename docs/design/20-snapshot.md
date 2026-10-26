@@ -1,6 +1,7 @@
 # A review by an earlier engine opens as it was
 
-**Status:** in force. **Decided:** 2026-10-14. **Changed:** 2026-10-21: the area map in a snapshot, and its maps kept.
+**Status:** in force. **Decided:** 2026-10-14. **Changed:** 2026-10-21: the area map in a review snapshot, and its
+maps kept.
 
 ## Context
 
@@ -11,8 +12,8 @@ look at a past review pays it each time, and the earlier results are still in th
 
 ## Decision
 
-1. **A snapshot:** a game whose last review used an earlier engine, or an earlier file of the same network, opens as
-   that review, when the browser has its results for every position of the game's line. Nothing is searched.
+1. **A review snapshot:** a game whose last review used an earlier engine, or an earlier file of the same network,
+   opens as that review, when the browser has its results for every position of the game's line. Nothing is searched.
 2. **What a review snapshot shows:** the stored results, each position at its deepest that the review reads: at the
    review's depth or a deeper budget (`BUDGETS` in `packages/analysis/src/cache.ts`), else at the sweep's depth or a
    budget. The labels, the notes in the move list, the variations kept, the engine's candidates and lines, the charts
@@ -31,12 +32,12 @@ look at a past review pays it each time, and the earlier results are still in th
    The notes drawn on the board stay: they are for the visit. The engine settings stay too, and apply from the next
    review.
 4. **A bar says what the review snapshot is:** "Reviewed on October 12, 2026 with an earlier version of the engine" (or
-   of the network), with **Review again**, and under it "A snapshot: no searches and no new moves." The engine's switch
-   shows off and does not move. A move that the review snapshot cannot add, and a click on the switch, light the bar's
-   border. Review again reviews the game with the site's engine, as a new review does, and the board stays where it is.
-   A network chosen as the new review starts applies to the new review, and the review snapshot's analysis searches
-   nothing (design 05, "Another network"). When the new review ends, the game's mark names the site's engine. A later
-   start then removes the earlier results that no other game needs (item 8).
+   of the network), with **Review again**, and under it "A review snapshot: no searches and no new moves. Review again
+   to explore." The engine's switch shows off and does not move. A move that the review snapshot cannot add, and a click
+   on the switch, light the bar's border. Review again reviews the game with the site's engine, as a new review does,
+   and the board stays where it is. A network chosen as the new review starts applies to the new review, and the review
+   snapshot's analysis searches nothing (design 05, "Another network"). When the new review ends, the game's mark names
+   the site's engine. A later start then removes the earlier results that no other game needs (item 8).
 5. **Without the earlier results** (another browser, data cleared, or results of an older shape), the game is reviewed
    again, as before, and the dialog and the line under the progress say why (design 11).
 6. **Imports:** a review file keeps its mark when the site ships its network file (the same SHA-256), whatever its
@@ -101,8 +102,9 @@ look at a past review pays it each time, and the earlier results are still in th
 ## Alternatives
 
 - **Always review again** (before): the cost of a full review for each look.
-- **The snapshot, with the site's engine for what the player explores:** a variation's first position searched again, so
-  that its labels come from one engine. Each such position then has two values, the game's line's and the variation's.
+- **The review snapshot, with the site's engine for what the player explores:** a variation's first position searched
+  again, so that its labels come from one engine. Each such position then has two values, the game's line's and the
+  variation's.
 - **Exploration with the earlier engine:** each release stays on the site, and the site keeps each earlier protocol.
 - **Exploration without labels:** the variations lose the labels and "Evaluate quality", which teach.
 - **Review again asked at the first exploration:** it stops the player at the start of the work.
@@ -147,7 +149,7 @@ look at a past review pays it each time, and the earlier results are still in th
 
 ## Where it is
 
-- `src/routes/review/+page.svelte` (the choice of a snapshot, its rules-only engine, Review again),
+- `src/routes/review/+page.svelte` (the choice of a review snapshot, its rules-only engine, Review again),
   `packages/review/src/ReviewView.svelte` (the bar, the controls off), `packages/analysis/src/cache.ts`
   (`snapshotSearch`, the read by keys: `warmCache`), `packages/analysis/src/analysis.svelte.ts` (`fromStore`),
   `src/lib/game/reviewFile.ts` (`readReviewFile`, the file's search, and `importReview`, the mark kept),

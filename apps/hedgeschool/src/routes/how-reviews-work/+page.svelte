@@ -15,7 +15,7 @@
 <main class={PROSE}>
   <h1>How a review works</h1>
   <p>The engine, HedgeFund, searches every position of your game in your browser. For each position it estimates each
-    player's chance to win, and the edges worth playing. A move's label compares the position before the move with the
+    player's chance to win, and the edges worth playing. A move's quality label compares the position before the move with the
     position after it. This page gives the rules and their numbers, and where each one comes from.</p>
 
   <h2>The searches</h2>
@@ -26,7 +26,7 @@
     <li><strong>The label stage</strong> searches every position at the review's depth: 512 visits with Lite, the default,
       and 1,024 with Standard (the engine's settings).</li>
     <li><strong>The position on screen</strong> gets a search to the Depth setting, 1,024 visits by default. Each
-      position keeps its deepest result, and everything follows it: the labels of the moves into and out of it, the
+      position keeps its deepest result, and everything follows it: the quality labels of the moves into and out of it, the
       report and the chart. So a position you look at closely can change its labels.</li>
   </ul>
   <p>Your browser keeps the results, so a game reviewed before opens at once.</p>
@@ -57,9 +57,9 @@
     <li><strong>A turn or an edge:</strong> a turn of two edges is one decision, so the review judges whole turns by
       default. "Review by" in the display settings judges each edge instead. A turn's loss is from its start to the
       position after its last edge, which equals the sum of its edges' losses.</li>
-    <li><strong>Why win chance, not points:</strong> once a game is decided, a move changes the result little, whatever
-      it does to the score. Thirty points thrown away at a lead of 120 cost less than thirty at a lead of 20. The notes
-      give the points lost too, from the engine's estimate of the lead.</li>
+    <li><strong>Why win chance, not the lead:</strong> once a game is decided, a move changes the result little,
+      whatever it does to the score. A loss of 30 in the lead matters less at a lead of 120 than at a lead of 20. The
+      notes also give the loss in the lead, from the engine's estimate of the lead.</li>
     <li><strong>When a quality label shows:</strong> once the search of each position of the move reaches 256 visits. A
       deeper search can change it.</li>
   </ul>

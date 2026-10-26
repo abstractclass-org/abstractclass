@@ -123,8 +123,8 @@ Lichess sizes its Analysis board from the window, and keeps the board whole in v
      database and Flip. A long press does not repeat a step.
 5. **The win chance is a display setting:**
    - **A bar above the board** ("Top horizontal bar", the default): Blue on the left, Red on the right, as the players
-     start. The players' tags flank it in one row: each player's name, then under it the points and the area the
-     player encloses now, which each turn's end adds to the points. While the engine's line shows (design 07), the area
+     start. The players' tags flank it in one row: each player's name, then under it the score and the area the
+     player encloses now, which each turn's end adds to the score. While the engine's line shows (design 07), the area
      is the one after the line's last drawn edge, in the accent colour.
    - **The bar is centred on the board:** each tag's column is as wide as the wider tag, so that the bar's 50% mark is
      at the board's middle. The bar's length is what the two tags leave. Practice's row is the same (design 24).
@@ -153,9 +153,9 @@ Lichess sizes its Analysis board from the window, and keeps the board whole in v
    than it.
    - **Grouped by where a setting shows,** as Lichess groups its analysis settings (Board, Move list): Review first, as
      it sets the whole page ("Review by" Turn or Edge, "Review for" Both, Blue or Red: design 10), then Board (the win
-     chance's form, candidates, move labels, regions, the area map, its style and its smallest value marked (design
+     chance's form, candidates, quality labels, regions, the area map, its style and its smallest value marked (design
      30), invincible edges, lines on the board "Animated" or "Static"), Move
-     list (move labels as "Badges" or "Text", notes on the key moves, the previews of played moves and of variations,
+     list (quality labels as "Badges" or "Text", notes on the key moves, the previews of played moves and of variations,
      variations and lines as "Pills", "Dots" or "Notation", design 07), Sound (move sounds and their volume, design 08),
      Keyboard (the list of keys and clicks, also on "?"), and Advantage chart (whether the score and area lines show
      when a review opens).
@@ -211,15 +211,14 @@ Lichess sizes its Analysis board from the window, and keeps the board whole in v
      ("Blue +22", and "Blue +1.2k" from 1,000), rank 1's note on the board ("Red wins 67.8% · lead Red +109"), a
      move's note ("Lead: Blue +38", the same word as the header's and the chart's) and the chart's notes. The win
      chance is the mover's, and its column names the side ("Red wins"). The gauge, the chart and the players' tags
-     show both sides. Every note gives points to one decimal ("−143.3 pts", "Lead: Blue +38.2"): a note is read
-     closely. The move list, the header and the table give whole points.
+     show both sides. Every note gives the lead and the loss in the lead to one decimal ("−143.3", "Lead: Blue
+     +38.2"): a note is read closely. The move list, the header and the table give whole numbers.
    - **What a move cost:** the mover's loss against the engine's best. It needs no side: it is always the mover's. In
-     the move list, the points at the right of each move (by turn, of each turn), where Lichess's move list has its
-     evaluation: "−136". In
-     every note, the win chance first and then the points, each with its sign: a move's note ("Blunder: −25.0% · −143
-     pts · Lead: Blue +38") and the other candidates' notes on the board, against rank 1 ("−4.0% · −26 pts").
-     A plus marks a gain (a candidate after rank 1 that looks a little better), and a value that rounds to 0 has no
-     sign ("0.0% · 0 pts").
+     the move list, the loss in the lead at the right of each move (by turn, of each turn), where Lichess's move list
+     has its evaluation: "−136". In every note, the loss in win chance first and then the loss in the lead, each with
+     its sign, the lead's with no unit: a move's note ("Blunder: −25.0% · −143.3 · Lead: Blue +38.2") and the other
+     candidates' notes on the board, against rank 1 ("−4.0% · −26.3"). A plus marks a gain (a candidate after rank 1
+     that looks a little better), and a value that rounds to 0 has no sign ("0.0% · 0.0").
    - Lichess and chess.com give every value from White's side. Here every advantage of Red's would then be a number
      below 0, and Red's player would read their own choices in reverse.
 9. **No text selection on the review page:** the page's text is a

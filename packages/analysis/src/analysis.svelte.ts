@@ -21,7 +21,7 @@
 // analysis tree (ui/analyse/src/idbTree.ts).
 //
 // The Analysis board (design 21) is the same analysis in its board form: its main line is the player's and changes
-// (setMain), its moves have labels only where the player asks (judge), and no pass runs: the engine searches the
+// (setMain), its moves have labels only where the player asks (judge), and no stage runs: the engine searches the
 // position on screen and the moves evaluated.
 //
 // The analysis is every game's (design 29): the game (game.ts) gives the positions from the engine's fields, the moves
@@ -59,7 +59,7 @@ const PRIORITY = { focus: 10, ownership: 9, threat: 8, size: 7, judge: 6, label:
 export type MapState = "ready" | "searching" | "waiting" | "none" | "unavailable" | "unasked";
 /** The state of a position's threat (GameAnalysis.threatState): as a map's, and `off` while the engine is off. */
 export type ThreatState = MapState | "off";
-/** What a pass costs the side to move (GameAnalysis.threatCost): win chance, and the lead's points where both have it. */
+/** What a pass costs the side to move (GameAnalysis.threatCost): win chance, and the lead where both have it. */
 export type ThreatCost = { win: number; points: number | undefined };
 
 /** A position in a variation: the board, the move that led to it, its analysis once searched, its place among the
@@ -122,7 +122,7 @@ export class GameAnalysis<G extends GameTypes> {
   private askedPaths: string[][] = [];
   private passWanted: { on: boolean; from: string[] } = { on: false, from: [] };
   private mapPassLeft = 0; // its tasks that have not ended
-  private mapPassRun = 0; // the map stage's number: the tasks of a stopped pass, which can end later, touch no other
+  private mapPassRun = 0; // the map stage's number: the tasks of a stopped stage, which can end later, touch no other
   private mapless = $state.raw(new Set<string>()); // the positions of a line that the engine did not search: an ended game
   private ownershipWanted = new Set<string>(); // the positions asked for last: a search queued for another one is skipped
   // The threat (askThreat, Lichess's "Show threat"): the position that the page asked for last, the path keys of that
@@ -230,14 +230,14 @@ export class GameAnalysis<G extends GameTypes> {
     return other ? this.analysisOf([...path, this.game.moveName(other.edge)]) : undefined;
   }
 
-  /** The analysis of the position before the enemy's last turn, for a move of `mover` from the position at `path`
+  /** The analysis of the position before the other player's last turn, for a move of `mover` from the position at `path`
    *  (model.ts, keepsGain and earlierIndex), on the path's line: the game's or a variation's. */
   earlierAt(path: string[], mover: Player): Analysis<G["move"]> | undefined {
     const earlier = this.earlierPath(path, mover);
     return earlier && this.analysisOf(earlier);
   }
 
-  /** The path of the position before the enemy's last turn (earlierAt), or undefined where the line has none. */
+  /** The path of the position before the other player's last turn (earlierAt), or undefined where the line has none. */
   private earlierPath(path: string[], mover: Player): string[] | undefined {
     const k = earlierIndex(j => this.moveInto(path.slice(0, j))!.player, path.length, mover,
                            this.game.turn(this.positions[0]?.count ?? 0).first);
@@ -285,7 +285,7 @@ export class GameAnalysis<G extends GameTypes> {
   }
 
   /** Confirms the Greats: where the played edge was the engine's first choice in a search to the label budget, its
-   *  second choice looks at least 10% of win chance worse, and the first choice keeps what the enemy's last turn gave
+   *  second choice looks at least 10% of win chance worse, and the first choice keeps what the other player's last turn gave
    *  (keepsGain, from results that the stages have already). That second value rests on few visits (the search spends them
    *  on the first choice), while En Croissant's rule compares two equal searches. So the position after the second
    *  choice is searched to the label budget, as the position after the played edge was, and the review compares the two
@@ -294,7 +294,7 @@ export class GameAnalysis<G extends GameTypes> {
    *  search when its first choice is one of its edges: the position after its other candidate (otherCandidate), which
    *  is the second choice unless that is the turn's other edge. The page calls it as results come: a deeper search can
    *  change a position's second choice. A move that the player asked to evaluate searches at the priority of its
-   *  evaluation, the position before the enemy's last turn too where the gain needs it (greatNeeds): its label waits
+   *  evaluation, the position before the other player's last turn too where the gain needs it (greatNeeds): its label waits
    *  for them (awaitsGreat). */
   confirmGreats() {
     const { targets, earlier } = this.greatNeeds;
@@ -303,7 +303,7 @@ export class GameAnalysis<G extends GameTypes> {
   }
 
   /** Whether the move into the position with path key `key` waits for the searches that its Great asks for (greatNeeds):
-   *  the position before the enemy's last turn, or the confirmation of the gap. The page shows "Evaluating…" for it.
+   *  the position before the other player's last turn, or the confirmation of the gap. The page shows "Evaluating…" for it.
    *  Only the moves that the player asked to evaluate wait, and only while the engine is on. */
   awaitsGreat(key: string): boolean {
     return this.engineReady && !this.paused && this.greatNeeds.awaiting.has(key);
@@ -314,7 +314,7 @@ export class GameAnalysis<G extends GameTypes> {
    *  - `targets`: at each place, the position whose search confirms or refutes the gap: after the engine's second
    *    choice, or after a turn's other candidate. `judged`: the player asked for it ("Evaluate quality": a variation move, a
    *    move of the board). The review's own step counts the others only (greatChecks).
-   *  - `earlier`: for a move that the player asked for, the position before the enemy's last turn, where it has no
+   *  - `earlier`: for a move that the player asked for, the position before the other player's last turn, where it has no
    *    result of the label budget and the move can still be Great (the first choice is the only good edge). A
    *    review's game moves ask for none: its stages search that position.
    *  - `awaiting`: the path keys of the moves that the player asked for and that wait for such a search, for the
@@ -322,7 +322,7 @@ export class GameAnalysis<G extends GameTypes> {
    *    from LABEL_VISITS on, so a move that looks like an only move in that shallower result waits: it is not Best yet. */
   // Each target has its depth: as deep as the position after the played move or turn, which the confirmation's
   // position is compared with (equalDepth: the player may have searched that position deeper). A move that does not
-  // keep what the enemy's last turn gave (keepsGain) cannot be Great, so it asks for none.
+  // keep what the other player's last turn gave (keepsGain) cannot be Great, so it asks for none.
   private greatNeeds = $derived.by(() => {
     const targets: { path: string[]; depth: number; judged: boolean }[] = [];
     const earlier: string[][] = [], awaiting = new Set<string>();
@@ -330,7 +330,7 @@ export class GameAnalysis<G extends GameTypes> {
     const shownFrom = Math.min(LABEL_VISITS, this.labelVisits); // the least visits that show a label
     // The search that a Great asks for from `path`, for the move or turn into `after`, whose first choice is the only
     // good one in `a`: once `a` has the label budget, the position after `candidate` where `gain` keeps what the
-    // enemy's last turn gave, else the position before that turn, where it has no result. Whether `gain` keeps it.
+    // other player's last turn gave, else the position before that turn, where it has no result. Whether `gain` keeps it.
     const ask = (judged: boolean, a: Analysis<G["move"]>, gain: Analysis<G["move"]>, path: string[], mover: Player,
                  candidate: Candidate<G["move"]>, after: string[]) => {
       if (a.visits < this.labelVisits) {
@@ -417,7 +417,7 @@ export class GameAnalysis<G extends GameTypes> {
   /** The review from the browser's store alone, with no search (an export away from the review page, design 13): each
    *  position that the stages search and each of the variations, at the label budget or deeper, or the sweep's where that
    *  is all there is, then the positions that confirm the Greats. The board reads the same: each position of its main
-   *  line and of its variations, though no pass searches them. Its labels stay on the moves evaluated (design 21): the
+   *  line and of its variations, though no stage searches them. Its labels stay on the moves evaluated (design 21): the
    *  other moves take their positions' results only, which mark the hard positions (design 14). Call after start(),
    *  and loadBoard() for the board. `search` and `model` name the engine whose results to read. A position counts as
    *  searched that far (swept, labelled, the Greats' step), as the stages count it when they find
@@ -635,7 +635,7 @@ export class GameAnalysis<G extends GameTypes> {
     return { version: 2, nodes, main: [...this.mainNames], ...(this.startPosition ? { start: this.startPosition } : {}) };
   }
 
-  /** Board: the engine is ready once the pool has a network (the board's sweep). No pass runs: the engine searches the
+  /** Board: the engine is ready once the pool has a network (the board's sweep). No stage runs: the engine searches the
    *  position on screen (focus) and the moves evaluated, whose searches start again here (after another network, or the
    *  engine on). */
   private ready() {
@@ -745,7 +745,7 @@ export class GameAnalysis<G extends GameTypes> {
   /** The sweep, then the label stage, for the positions that lack them: a position whose result in the store is that
    *  deep is skipped. Call after start() and once the pool has a network, and again to take the work up after a change
    *  (the engine on again, another label budget, another network). The variation moves evaluated on request are searched
-   *  too. On the board, it makes the engine ready (ready), and no pass runs. After dropAnalysis, it does nothing until
+   *  too. On the board, it makes the engine ready (ready), and no stage runs. After dropAnalysis, it does nothing until
    *  usePool gives the next pool. The batch with the label stage's last result comes without its timer: the review's
    *  last step, or Review done, waits for it. */
   async sweep() {
@@ -927,7 +927,7 @@ export class GameAnalysis<G extends GameTypes> {
    *  mapPut). The result itself stays as it is. A position of the tree with no result, which the review's work
    *  searches (ownSearchComes), waits for that search, which asks for the ownership: a variation's position and the
    *  Analysis board's, which nothing searches until the player looks at them, get a short search. A position that the
-   *  map stage holds in its queue gets the page's own search too, ahead of the pass: the pass gives way to the player. A
+   *  map stage holds in its queue gets the page's own search too, ahead of the stage: the stage gives way to the player. A
    *  search queued for a position that the page no longer asks for, or that has its map by then, starts and ends at
    *  once. A review snapshot reads its maps from the store alone (freeze). */
   askOwnership(paths: string[][]) {
@@ -1069,7 +1069,7 @@ export class GameAnalysis<G extends GameTypes> {
   private passPath(path: string[]) { return [...path, this.game.moveName(null)]; }
 
   /** The threat at `path` (Lichess's "Show threat"): the analysis of the position after a pass by the side to move.
-   *  Its first choice's line is the enemy's best turn if the player does nothing. */
+   *  Its first choice's line is the other player's best turn if the player does nothing. */
   threatAt(path: string[]): Analysis<G["move"]> | undefined { return this.analysisOf(this.passPath(path)); }
   /** The position after the pass at `path`, from the rules, once askThreat has asked them. */
   passedAt(path: string[]): G["position"] | undefined { return this.passed[pathKey(this.passPath(path))]; }
@@ -1165,7 +1165,7 @@ export class GameAnalysis<G extends GameTypes> {
     return this.sizeResults[this.sizeKey(path, this.focusVisits, this.focusSeconds)]?.analysis;
   }
   /** What a pass costs the side to move at `path`, by the engine's evaluation: the position's value less the value after
-   *  the pass, from that side, in win chance and in the lead's points, as a move's loss (design 10). Both values come
+   *  the pass, from that side, in win chance and in the lead, as a move's loss (design 10). Both values come
    *  from searches with the threat's settings (sizeResultAt). In a review snapshot: the stored threat, and the position's
    *  stored result as deep (readThreat). Undefined until both are there. */
   threatCost(path: string[]): ThreatCost | undefined {

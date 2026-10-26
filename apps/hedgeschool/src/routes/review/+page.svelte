@@ -11,7 +11,7 @@
   // before the import page: the review's ways in, docs/design/22-site-map.md) is kept first, by Arrival, then reviewed.
   // A record there, which only the import page takes, gets the Review tab. A game reviewed with an earlier engine opens
   // as that review, from the stored results with the engine's rules alone, until the player chooses Review again
-  // (docs/design/20-review snapshot.md).
+  // (docs/design/20-snapshot.md).
   import { onDestroy, onMount, untrack } from "svelte";
   import { PRACTICE_EVENT } from "#lib/practice/practice.ts";
   import ReviewView, { NETWORK_LOADS, WIDE, reviewSkeleton, type ReviewAgain, type ReviewProgress } from "@abstractclass/review/ReviewView.svelte";

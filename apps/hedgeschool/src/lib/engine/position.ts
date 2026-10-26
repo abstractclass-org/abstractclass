@@ -36,7 +36,7 @@ export interface DescribeReply extends PositionFields {
   check?: { possible: boolean; reasons: CheckReason[] }; // the position's, before its moves (protocol 0.5)
 }
 
-/** A position in describe_game's reply (protocol 0.6.1), and `cuts`: the enemy's edge that the move to it cut, as
+/** A position in describe_game's reply (protocol 0.6.1), and `cuts`: the enemy edge that the move to it cut, as
  *  `play` gives it. Null before the moves, and after a move that cuts nothing. */
 export interface GamePosition extends PositionFields { cuts: string | null }
 /** describe_game's reply: each position from the query's `from` to the end, so the cut of `moves[k]` is

@@ -149,8 +149,8 @@ site asks for the root's alone (item 6).
    page's start and the smallest value marked, and both keys are in the list of keys ("?").
 9. **The map's work is visible.** While the map is on, a short note in the legend's slot, before the legend, says
    what the map does (`mapWork` in `ReviewView.svelte`, `mapState` in `analysis.svelte.ts`):
-   - For a position: "Map: waiting for the engine" while its search waits behind other searches, "Map: searching"
-     while it runs, and "No map: the game ends here" where none can come. In a snapshot, a map that the store lacks
+   - For a position: "Map: waiting for the engine" while its search waits behind other searches, "Map: searching" while
+     it runs, and "No map: the game ends here" where none can come. In a review snapshot, a map that the store lacks
      says "No map saved: review snapshots do no searches". In after vs before, the map before the move counts too, and
      the game's start says "No map: the game starts here". There is no note when the map shown is the position's own:
      the legend alone means that the map is ready.
@@ -292,8 +292,8 @@ The site follows KaTrain's review (design 05). The display departs from it on pu
 ## Consequences
 
 - The stored shape did not change, and the results stored before stay: a stored game and a review file open at once
-  with their labels, lines and points lost (design 05, item 3, and design 13). Their maps come from the short
-  searches of item 6, as the player looks, and then stay.
+  with their quality labels, lines and losses in the lead (design 05, item 3, and design 13). Their maps come from the
+  short searches of item 6, as the player looks, and then stay.
 - **The review keeps its time and its size:** no search asks for the candidates' maps. The ownership of each
   position makes a stored result about 1.1 kB larger ([decisions/engine.md](../decisions/engine.md), "The cost of the
   ownership in a whole review"). A candidate's map costs one short search, the first time that it is pointed at in a

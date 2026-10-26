@@ -360,7 +360,7 @@
     {#each shownEdges[p] as e, i (i)}
       <line {...seg(e)} class="edge p{p}" />
     {/each}
-    <!-- A invincible edge, on the edge itself: wider in its side's colour, with a white line along it. The mover's
+    <!-- An invincible edge, on the edge itself: wider in its side's colour, with a white line along it. The mover's
          edges of this turn (placed) too: no one can cut them before the turn ends, and then they are invincible. So the
          marked edges are the turns just played, and no band marks the last edge. -->
     {#if layers.protected}

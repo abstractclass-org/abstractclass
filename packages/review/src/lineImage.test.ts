@@ -9,7 +9,7 @@ const MAIN = ["A1", "A2", "A3", "A4"];
 test("a variation's move draws its line from where it leaves the game, as its preview numbers it", () => {
   assert.deepEqual(imageLine(["A1", "B1", "B2", "B3"], [], MAIN),
                    { start: ["A1"], paths: [["A1", "B1"], ["A1", "B1", "B2"], ["A1", "B1", "B2", "B3"]] });
-  // A row that forks from another branch: the edges the two share are numbered too.
+  // A row that forks from another variation: the edges the two share are numbered too.
   assert.deepEqual(imageLine(["A1", "B1", "C1", "C2"], ["A1", "A2", "A3"], MAIN),
                    { start: ["A1"], paths: [["A1", "B1"], ["A1", "B1", "C1"], ["A1", "B1", "C1", "C2"]] });
   // Whatever the position on screen: the line is the variation's.

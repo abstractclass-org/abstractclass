@@ -5,7 +5,7 @@ numbers in warning triangles, and its size from two searches with the same setti
 
 ## Context
 
-A player who does not see the enemy's next close or cut loses the most points. A label says what a move cost, and
+A player who does not see the enemy's next close or cut loses the most. A quality label says what a move cost, and
 the engine's line shows a better move. Neither shows what the enemy threatens now.
 
 Lichess's engine box has a switch, "Show threat", with the key x (`ui/analyse/src/keyboard.ts`, `ui/lib/src/ceval`).
@@ -50,12 +50,12 @@ a turn's start the pass places nothing, so nothing of the passer's is invincible
    - The first line's bar and visits are the threat's search.
    - The second line gives the values after the pass: "If Blue passes: margin Red +363 ± 182 · lead Red +349".
    - The third line, in the place of the position's difficulty (design 14), gives the threat's size: "Threat to Blue:
-     −6.6% · −168.7 pts". Its note names the enemy's edges. While there is no size, the line says why: the search
+     −6.6% · −168.7". Its note names the enemy edges. While there is no size, the line says why: the search
      waits for the engine or runs, the size's searches run ("Threat size: searching"), the engine is off, the game
      ends, or a review snapshot has no threat saved.
 4. **The threat's size is the engine's own estimate:** what passing costs by the engine's evaluation. The position's
    value less the value after the pass, from the player's side, in the units of a move's loss (design 10): win chance
-   and the lead's points, written as a note writes a loss (`costText`). It is not the area that the threat's first
+   and the lead, written as a note writes a loss (`costText`). It is not the area that the threat's first
    turn closes. A turn's close or cut is never the real gain or loss: the rest of the game decides (design 30, "Why").
    So there is no caption about the regions that it closes.
    - **Two searches with the same settings** (`sizeResultAt` and `threatCost`): the threat's value and the position's
@@ -133,7 +133,7 @@ a turn's start the pass places nothing, so nothing of the passer's is invincible
 
 ## Alternatives
 
-- **The network's enemy-reply head** (taken out of abscls-jk1c): it guesses the reply after the player's own move,
+- **The network's opponent-reply head** (taken out of abscls-jk1c): it guesses the reply after the player's own move,
   with no search. The threat is a full search.
 - **A caption of the regions that the threat closes:** exact and misleading (Why).
 - **The threat's line in the enemy's colour beyond the enemy's turn:** the line's later edges are the player's,

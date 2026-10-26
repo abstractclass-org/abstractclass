@@ -77,7 +77,7 @@ function engineLine(ps, s, e, budget) {
 
 // --- The site's judgment of a game's edges and turns -----------------------------------------------------------------
 /** The game's edges and turns judged with each position read at `budgetOf(i)`, as model.ts review judges them: the
- *  loss of the mover's win chance and the points lost (the engine's lead, the review's "lead"), each clamped at 0, and
+ *  loss of the mover's win chance and the loss in the lead (the engine's lead, the review's "lead"), each clamped at 0, and
  *  the label (labels.ts classify; no Great, which the key moments do not take). An edge of the engine's best turn is
  *  Best too. After the last edge the value is the result, where the game ended by score. A game that ended by
  *  resignation or abandonment has no reading there (the site searches that position), so its last edge and its last

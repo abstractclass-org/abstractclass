@@ -2,7 +2,7 @@
 //
 // An edge's loss is measured as KaTrain and Lichess measure it: the mover's value before the edge (the position's
 // analysis) less the mover's value after it (the next position's analysis), in win chance and, when the analysis has
-// scores, in points. A turn's loss is the mover's value at its start less the mover's value after its last edge: the sum
+// scores, in the lead. A turn's loss is the mover's value at its start less the mover's value after its last edge: the sum
 // of its edges' losses, with the value between them cancelled (design 10). The page
 // judges by turn or by edge (a display setting), so the review gives both. The labels are in labels.ts. Accuracy is
 // Lichess's per-move formula on win% (AccuracyPercent.scala), weighed by KaTrain's weights (design 14). The analysis
@@ -20,7 +20,7 @@ import { GOOD_WIN, HARD, KEPT_GAIN, LABELS, METER_GROUPS, ONLY_MOVE_GAP, accurac
 export { BAD_LABELS, HARD, LABELS, METER_GROUPS, listed, type Label, type MeterGroup } from "./labels.ts";
 export type { Player } from "./game.ts";
 
-/** Values from Blue's side. `lead` (the engine's scoreLead) and `margin` (scoreSelfplay) are in points, and `spread`
+/** Values from Blue's side. `lead` (the engine's scoreLead) and `margin` (scoreSelfplay) are in the game's score, and `spread`
  *  (scoreStdev) the spread of the final score after the move. `visits` is the visits through the move (KataGo's
  *  edgeVisits). `line` is the engine's expected continuation, the move first (KataGo's pv), up to a pass, and
  *  `lineVisits` the visits through each of its edges (KataGo's pvEdgeVisits). */
@@ -52,7 +52,7 @@ export interface ReviewData<G extends GameTypes> {
   // confirm a Great by turn
   others?: (Analysis<G["move"]> | undefined)[];
 }
-/** Which score measures points lost: the lead (KaTrain's choice) or the expected final margin. To be measured. */
+/** Which score measures a loss beside the win chance: the lead (KaTrain's choice) or the expected final margin. To be measured. */
 export type ScoreKind = "lead" | "margin";
 
 export const LABEL_TEXT: Record<Label, string> = {
@@ -75,7 +75,7 @@ export interface MoveJudgment<M> {
   winBefore: number; // the mover's win chance before and after the edge, the engine's (NaN until analysed)
   winAfter: number;
   loss: number; // the mover's loss of win chance, at least 0
-  pointsLost: number | undefined; // the mover's loss of points, at least 0, when the analysis has scores
+  pointsLost: number | undefined; // the mover's loss in the lead, at least 0, when the analysis has scores
   // The same before the clamp at 0, below 0 for a gain: the notes give them (costText), so that a turn's parts add up
   rawLoss: number;
   rawPoints: number | undefined;
@@ -94,7 +94,7 @@ export interface TurnReview<G extends GameTypes> {
   start: number; // the turn leads from position start to position end
   end: number;
   loss: number; // the mover's loss of win chance from the turn's start to its end, at least 0
-  pointsLost: number | undefined; // the mover's loss of points, at least 0, when the analysis has scores
+  pointsLost: number | undefined; // the mover's loss in the lead, at least 0, when the analysis has scores
   rawLoss: number; // the same before the clamp at 0, below 0 for a gain
   rawPoints: number | undefined;
   label: Label | null; // null until both ends are analysed
@@ -112,7 +112,7 @@ export interface Review<G extends GameTypes> {
   turnOf: TurnReview<G>[]; // by edge index: the turn the edge is in
   summary: Record<Unit, [PlayerSummary, PlayerSummary]>;
   blueWin: number[]; // the engine's win chance by position (NaN until analysed), the last from the result
-  blueScore: (number | undefined)[]; // by position, the score that measures points lost, from Blue's side
+  blueScore: (number | undefined)[]; // by position, the score that measures a loss beside the win chance (ScoreKind), from Blue's side
 }
 
 export const moverWin = (blueWin: number, p: Player) => (p === 0 ? blueWin : 1 - blueWin);
@@ -121,7 +121,7 @@ const scoreOf = <M>(a: Analysis<M> | Candidate<M> | undefined, kind: ScoreKind) 
 
 /** KaTrain's complexity of a position (katrain/core/ai.py, game_report), in win chance: the mean loss of the searched
  *  candidates for the mover, each weighed by the network's prior, from the root's win chance. KaTrain measures it in
- *  points, capped at 1 Go point. In Enclosure's points, 70% of the archive's positions would reach that cap times 12;
+ *  points, capped at 1 Go point. In Enclosure's score, 70% of the archive's positions would reach that cap times 12;
  *  in win chance it rises with the players' errors at every rating (decisions/engine.md, "Complexity on the archive").
  *  Undefined without the priors (an analysis stored before they were kept). */
 export function complexity<M>(a: Analysis<M> | undefined, p: Player): number | undefined {
@@ -141,19 +141,19 @@ export function onlyMove<M>(a: Analysis<M> | undefined, p: Player): boolean {
   return !!first && !!second && moverWin(first.blueWin, p) - moverWin(second.blueWin, p) >= ONLY_MOVE_GAP;
 }
 
-/** The engine's first choice keeps what the enemy's last turn gave (En Croissant's third condition for "!",
+/** The engine's first choice keeps what the other player's last turn gave (En Croissant's third condition for "!",
  *  src/utils/score.ts, getAnnotation): it is more than KEPT_GAIN better for the mover than `earlier`, the position before
- *  the enemy's last turn, searched to `minVisits` at least. False where that position has no result: the line's
+ *  the other player's last turn, searched to `minVisits` at least. False where that position has no result: the line's
  *  first turn, or a position not searched yet. */
 export function keepsGain<M>(a: Analysis<M> | undefined, earlier: Analysis<M> | undefined, p: Player, minVisits: number): boolean {
   const first = a?.candidates[0];
   return !!first && !!earlier && earlier.visits >= minVisits && moverWin(first.blueWin, p) - moverWin(earlier.blueWin, p) > KEPT_GAIN;
 }
 
-/** The position before the enemy's last turn (keepsGain), for a move of `mover` from position `at` of a line: its
+/** The position before the other player's last turn (keepsGain), for a move of `mover` from position `at` of a line: its
  *  index on the line, where `moverInto(k)` is the player of the move into position k. Back over the mover's edge before
- *  it in its turn, then over the enemy's turn. Undefined where the line has none: the mover's first turn on the line,
- *  or a line from a set-up position in the enemy's turn's middle (`opens`: the line's start opens a turn). */
+ *  it in its turn, then over the other player's turn. Undefined where the line has none: the mover's first turn on the line,
+ *  or a line from a set-up position in the other player's turn's middle (`opens`: the line's start opens a turn). */
 export function earlierIndex(moverInto: (k: number) => Player, at: number, mover: Player, opens: boolean): number | undefined {
   let k = at;
   while (k > 0 && moverInto(k) === mover) k--;
@@ -234,7 +234,7 @@ export function judgeMove(winBefore: number, winAfter: number, scoreBefore: numb
 
 /** A variation edge's label, judged as the game's edges are: from the analysis before it and the values after it (an
  *  analysis, or the result where the game ends), each analysis to at least `minVisits`, and `second`, the position after
- *  the engine's second choice, and `earlier`, the position before the enemy's last turn (keepsGain), which a Great
+ *  the engine's second choice, and `earlier`, the position before the other player's last turn (keepsGain), which a Great
  *  needs. Null until both are known. */
 export function judgeBranchMove<M>(game: Moves<M>, before: Analysis<M> | undefined,
                                    after: { blueWin: number; blueScore: number | undefined; visits?: number } | undefined,
@@ -283,7 +283,7 @@ interface Judged { player: Player; label: Label | null; loss: number; pointsLost
 
 const weightedMean = (xs: [number, number][]) => xs.reduce((s, [x, w]) => s + x * w, 0) / xs.reduce((s, [, w]) => s + w, 0);
 
-/** Each player's counts, accuracy and mean points lost, over the judged turns or edges. */
+/** Each player's counts, accuracy and mean loss in the lead, over the judged turns or edges. */
 function summarize(items: Judged[]): [PlayerSummary, PlayerSummary] {
   return ([0, 1] as Player[]).map(p => {
     const mine = items.filter(e => e.player === p && e.label);
@@ -313,7 +313,7 @@ export function review<G extends GameTypes>(game: Game<G>, data: ReviewData<G>, 
   const known = (i: number, j: number) => !Number.isNaN(blueWin[i]) && !Number.isNaN(blueWin[j]) && deepEnough(i) && deepEnough(j);
   const scoreAt = (i: number, p: Player) => (blueScore[i] !== undefined ? moverScore(blueScore[i]!, p) : undefined);
   const from = game.turn(data.positions[0]?.count ?? 0); // a line from a set-up position numbers from its turn
-  // The position before the enemy's last turn (keepsGain), for the edge or the turn from position i.
+  // The position before the other player's last turn (keepsGain), for the edge or the turn from position i.
   const earlier = (i: number) => {
     const k = earlierIndex(j => data.moves[j - 1].player, i, data.moves[i].player, from.first);
     return k === undefined ? undefined : data.analysis[k];
@@ -379,7 +379,7 @@ export interface TurnJudgment {
  *  `minVisits` at least; `middle`, the position after its first edge, for a turn of two; `after`, the values after it
  *  (valuesAfter); `ends`, the game ends after it (no Great: nothing confirms it); `other`, the position after its other
  *  candidate, and `second`, the position after the middle's second choice, which confirm a Great; `earlier`, the
- *  position before the enemy's last turn, which a Great's best turn must be better than (keepsGain). Null until the
+ *  position before the other player's last turn, which a Great's best turn must be better than (keepsGain). Null until the
  *  start and the values after are known. */
 export function judgeTurn<M>(game: Moves<M>, mover: Player, played: (M | null)[], start: Analysis<M> | undefined,
                              middle: Analysis<M> | undefined,
@@ -401,7 +401,7 @@ export function judgeTurn<M>(game: Moves<M>, mover: Player, played: (M | null)[]
   // Great: the only good turn, confirmed by equal searches. From the start: the other candidate (otherCandidate) looks
   // ONLY_MOVE_GAP worse there, and the position after it, searched as deep, is that much worse than the position after
   // the turn. From the middle, for a turn of two edges: the played second edge is the first choice there, and its second
-  // choice is that much worse, confirmed as for an edge. And the best turn keeps what the enemy's last turn gave.
+  // choice is that much worse, confirmed as for an edge. And the best turn keeps what the other player's last turn gave.
   const otherFirst = otherCandidate(game, start, played), confirmDepth = equalDepth(minVisits, after.visits);
   const fromStart = !!first && !!otherFirst
     && moverWin(first.blueWin, p) - moverWin(otherFirst.blueWin, p) >= ONLY_MOVE_GAP
@@ -434,24 +434,24 @@ export function likelyMoves<M>(a: Analysis<M> | undefined, p: Player): (Record<M
   return out;
 }
 
-/** A cost against the engine's best, as every note writes it: the win chance first, then the points when the analysis
- *  has scores, each with its sign and one decimal ("−4.0% · −26.3 pts"). `win` and `points` are losses: a minus marks a
- *  loss, a plus a gain (a candidate after rank 1 that looks a little better), and a value that rounds to 0 has no
- *  sign. The other places round the points whole (design 06). */
+/** A cost against the engine's best, as every note writes it: the loss in win chance first, then the loss in the lead
+ *  when the analysis has scores, each with its sign and one decimal, and the lead with no unit ("−4.0% · −26.3").
+ *  `win` and `points` are losses: a minus marks a loss, a plus a gain (a candidate after rank 1 that looks a little
+ *  better), and a value that rounds to 0 has no sign. The other places round the loss in the lead whole (design 06). */
 export function costText(win: number, points?: number): string {
   const w = Math.abs(100 * win).toFixed(1);
   return `${w === "0.0" ? w : (win > 0 ? "−" : "+") + w}%${points === undefined ? "" : ` · ${pointsText(points)}`}`;
 }
 
-/** Points lost as every note writes them, to one decimal: "−45.2 pts", "+3.0 pts" for a gain, "0.0 pts". */
+/** A loss in the lead as every note writes it, to one decimal and with no unit: "−45.2", "+3.0" for a gain, "0.0". */
 function pointsText(points: number): string {
   const p = Math.abs(points).toFixed(1);
-  return `${p === "0.0" ? p : (points > 0 ? "−" : "+") + p} pts`;
+  return p === "0.0" ? p : (points > 0 ? "−" : "+") + p;
 }
 
-/** A turn's cost (design 10): the turn's own, then each edge's points in the turn's order, so that one turn can be read
- *  by edge: "−27.1% · −150.2 pts (−45.0 pts, −105.2 pts)". An edge that gained has a plus. The parts are rounded
- *  together, in tenths, so that they add up to the turn's points (the largest remainders round up). The engine's own
+/** A turn's cost (design 10): the turn's own, then each edge's loss in the lead in the turn's order, so that one turn can
+ *  be read by edge: "−27.1% · −150.2 (−45.0, −105.2)". An edge that gained has a plus. The parts are rounded together,
+ *  in tenths, so that they add up to the turn's loss in the lead (the largest remainders round up). The engine's own
  *  turn (Best, Great) has no parts: its edges have nothing to explain, and their losses would show only the search
  *  between them. */
 export function turnCost<G extends GameTypes>(t: TurnReview<G>): string {
@@ -479,8 +479,8 @@ export function roundTogether(parts: number[]): number[] {
 const MIN_VISIT_SHARE = 0.15;
 /** How far below the first choice a candidate on the board may be, in the engine's win chance and in Go's points: the
  *  Good bands that the labels had until they moved to a human's win chance (chess.com's 0.05, KaTrain's 3 Go points,
- *  which the game's scoreScale turns into its own points: 36 in Enclosure). A candidate in a decided game, where every
- *  win chance is near 1, is held by the points. */
+ *  which the game's scoreScale turns into its own score: 36 in Enclosure). A candidate in a decided game, where every
+ *  win chance is near 1, is held by the lead. */
 const CANDIDATE_GAP = { win: GOOD_WIN, goPoints: 3 };
 
 /** The candidate has enough visits for its values and its line to be trusted: it is the engine's first choice, or it
@@ -503,7 +503,7 @@ export function trustedLine<M>(c: Candidate<M>): M[] {
 }
 
 /** The threat's turn (design 31): the line of the first choice `first` after a pass, as far as the search trusts it,
- *  cut to the turn of the side to move after the pass, which has `movesLeft` moves left in it: what the enemy plays
+ *  cut to the turn of the side to move after the pass, which has `movesLeft` moves left in it: what the other player plays
  *  if the player does nothing. Its first move where the search trusts none of the line. */
 export function threatTurn<M>(first: Candidate<M>, movesLeft: number): M[] {
   const turn = trustedLine(first).slice(0, movesLeft);
@@ -511,13 +511,13 @@ export function threatTurn<M>(first: Candidate<M>, movesLeft: number): M[] {
 }
 
 /** A candidate with its rank (1: the engine's first choice) and how much worse it is than rank 1 for the mover: `gap`
- *  in win chance, `gapPts` in points when the analysis has scores. Negative when it is better than rank 1. `twins`:
+ *  in win chance, `gapPts` in the lead when the analysis has scores. Negative when it is better than rank 1. `twins`:
  *  its symmetric twins, the same move with the same numbers, which share its rank. */
 export interface RankedCandidate<M> { c: Candidate<M>; rank: number; gap: number; gapPts: number | undefined; twins: Candidate<M>[] }
 
 /** The engine's candidates on the board: its first choice, and every other candidate that has enough visits to compare
  *  (MIN_VISIT_SHARE of the most visited candidate's) and is within CANDIDATE_GAP of the first choice. They are the
- *  engine's view, so `gap` is the engine's own win chance below the first choice's, and `gapPts` the points (design 07).
+ *  engine's view, so `gap` is the engine's own win chance below the first choice's, and `gapPts` the same in the lead (design 07).
  *  No limit on the count: in an open position the visits spread, and every move that earns them shows. The first choice
  *  is KataGo's order, its choice of move (the engine repository's design 04, "order"): by play selection value, where
  *  the move with the best lower confidence bound is raised as far as that bound justifies, at most fivefold. So the

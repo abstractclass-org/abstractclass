@@ -58,5 +58,5 @@ test("how long a link is: a whole game, and each variation edge more", () => {
   const line = Array.from({ length: 40 }, (_, k) => [at(60, ...MOVES.slice(0, k + 1).map((_, j) => `A${(j % 16) + 1}-A${(j % 16) + 4}`)), k] as BranchNode);
   const withLine = prefix + encodeShare(base(line)).length;
   assert.ok(game < 900, `a whole game's link is ${game} characters`);
-  assert.ok(Math.abs((withLine - game) / 40 - 20 / 6) < 0.2, `a branch edge costs ${(withLine - game) / 40} characters`);
+  assert.ok(Math.abs((withLine - game) / 40 - 20 / 6) < 0.2, `a variation edge costs ${(withLine - game) / 40} characters`);
 });

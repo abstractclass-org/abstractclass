@@ -37,7 +37,7 @@
     rulesAt(path: string[]): Promise<G["rules"]>; // a position's rules, for the player's own moves
     secondAt(path: string[]): Analysis<G["move"]> | undefined; // the position after the engine's second choice, which confirms a Great
     otherAt(path: string[], turn: (G["move"] | null)[]): Analysis<G["move"]> | undefined; // the same for a turn
-    earlierAt(path: string[], mover: Player): Analysis<G["move"]> | undefined; // before the enemy's last turn, which a Great must gain on
+    earlierAt(path: string[], mover: Player): Analysis<G["move"]> | undefined; // before the other player's last turn, which a Great must gain on
     awaitsGreat(key: string): boolean; // the move into this path key waits for the searches of its Great
     turnKeys(path: string[]): string[]; // the variation moves that evaluating this move's quality judges
     pending(path: string[]): boolean; // the review's own searches can still change this position's analysis
@@ -493,8 +493,8 @@
   });
 
   // The threat (Lichess's "Show threat", its key x, the engine header's switch): the engine searches the position after
-  // a pass by the side to move (GameAnalysis.askThreat), and the board draws the enemy's best turn from there, as it
-  // draws the engine's line, in the enemy's colour. At a turn's start the pass forfeits the whole turn, and in its
+  // a pass by the side to move (GameAnalysis.askThreat), and the board draws the other player's best turn from there, as it
+  // draws the engine's line, in the other player's colour. At a turn's start the pass forfeits the whole turn, and in its
   // middle the turn's second edge. The header shows the position's values after the pass, and what the pass costs the
   // player, in the units of a move's loss (design 10). A candidate pointed at or pinned shows its own line in its place.
   // For the visit only, as on Lichess. Its numbers are in warning triangles, so that it reads as a threat (Lichess draws
@@ -512,10 +512,10 @@
   const threat = $derived(threatOn ? game?.threatAt(path) : undefined);
   const threatState = $derived<ThreatState | null>(threatOn && game ? game.threatState(path) : null);
   const passed = $derived(threatOn ? game?.passedAt(path) : undefined); // the position after the pass
-  // The threat's line: the enemy's turn of the first choice's line after the pass (threatTurn)
+  // The threat's line: the other player's turn of the first choice's line after the pass (threatTurn)
   const threatEdges = $derived(threat?.candidates[0] && passed ? threatTurn(threat.candidates[0], view.movesLeft(passed)) : null);
   // What the pass costs the player: the position's value less the value after the pass, from the player's side, in win
-  // chance and in points (the lead), as a move's loss (design 10). Both from searches with the same settings
+  // chance and in the lead, as a move's loss (design 10). Both from searches with the same settings
   // (GameAnalysis.threatCost), so that the size does not mix depths.
   const threatCost = $derived(threat && game?.threatCost(path));
   // The board shows the threat while no candidate's line shows: its line starts after the pass
@@ -711,7 +711,7 @@
   // The review's own work runs: its counts are partial. The map stage, after it, leaves them final.
   const reviewRuns = $derived(!!progress && !progress.maps);
   // The line that the board draws, from its start: its edges, the ones drawn so far, and how the legend names it
-  // The threat's line starts after the pass, whose position is the board's own with the enemy to move.
+  // The threat's line starts after the pass, whose position is the board's own with the other player to move.
   type MapLine = { kind: "here" | "line" | "threat" | "branch" | "move"; start: string[]; from: G["position"]; all: LineMove<G>[];
                    drawn: LineMove<G>[] };
   const mapLine = $derived.by((): MapLine => {
@@ -799,7 +799,7 @@
     return `${name} (${view.words.move} ${drawnCount}: no map)`;
   });
   // The legend's lead, then each mark with its meaning: none for the forecast, whose shade says it all. A sign of the
-  // difference style is in the colour of the side that the point moved toward: a fall toward the enemy.
+  // difference style is in the colour of the side that the point moved toward: a fall toward the other player.
   type LegendMark = { kind: "close" | "lose" | "fall" | "rise"; side?: Player; text: string };
   const mapLegend = $derived.by((): { lead: string; marks: LegendMark[] } => {
     if (display.mapStyle === "ownership")
@@ -1219,7 +1219,7 @@
     [["Home / End"], "The start, and the line's end"],
     [["Space"], "Play the pinned candidate, or rank 1"],
     [["e", "l"], "Turn the engine on or off"],
-    [["x"], "Show or hide the threat: the enemy's best turn if you pass"],
+    [["x"], "Show or hide the threat: the other player's best turn if you pass"],
     ...(view.map ? MAP_KEYS : []),
     ...(book?.ready ? BOOK_KEYS : []),
     [["Escape"], `Close the settings, or cancel the ${view.words.move} that you started`],
@@ -1275,16 +1275,16 @@
     return `${view.words.Move} ${pos + 1} of ${last} · Turn ${t.number} · ${PLAYER_NAME[mover]} to play, ${view.words.move} ${k} of ${t.edges.length}`;
   });
   const statusLine = $derived(
-    branchPreview ? `Branch preview: ${branchPreview.edges.length} ${branchPreview.edges.length > 1 ? view.words.moves : view.words.move}, numbered from ${
+    branchPreview ? `Variation preview: ${branchPreview.edges.length} ${branchPreview.edges.length > 1 ? view.words.moves : view.words.move}, numbered from ${
       branchPreview.start.length ? `the position after ${view.words.move} ${branchPreview.start.length}` : "the start"}. Click to go there.`
     : movePreview ? `Preview: the position after ${view.words.move} ${movePreview.index + 1}, ${moveText(movePreview.index)}. Click to go there.`
     : view.inputStatus(input, mover) ?? status);
   const blueWin = $derived(mainAt !== null ? R.blueWin[mainAt] : over ? resultWin(position.scores[0] - position.scores[1])
     : analysis?.blueWin ?? NaN);
   // The chart's hover, as Lichess's: the move that led to the position and its label, then one number. The number is
-  // the engine's lead, which KaTrain's graph plots (B+n) and from which the points lost come. Under it, the score and the
+  // the engine's lead, which KaTrain's graph plots (B+n) and from which the loss in the lead comes. Under it, the score and the
   // area of the lines shown: the lines are scaled and have no axis, so their numbers are only here.
-  // A turn's or an edge's loss in the move list: the mover's points lost, in at most 5 characters (−1.2k), or the win
+  // A turn's or an edge's loss in the move list: the mover's loss in the lead, in at most 5 characters (−1.2k), or the win
   // chance lost when the analysis has no scores. Nothing until it is judged.
   function lossShort(e: Pick<MoveJudgment<G["move"]>, "label" | "loss" | "pointsLost">): string {
     if (!e.label) return "";
@@ -1491,7 +1491,7 @@
         {#each R.summary[unit] as s, p (p)}<td>{Number.isNaN(s.accuracy) ? "–" : s.accuracy.toFixed(1)}</td>{/each}
       </tr>
       <tr>
-        <td title="Points lost a {unit === "turn" ? "turn" : view.words.move}, on average">Avg pts lost</td>
+        <td title="Loss in the lead a {unit === "turn" ? "turn" : view.words.move}, on average">Avg lead loss</td>
         {#each R.summary[unit] as s, p (p)}<td>{s.meanPointsLost?.toFixed(1) ?? "–"}</td>{/each}
       </tr>
       {#each LABELS as l (l)}
@@ -1638,7 +1638,7 @@
           {@const hard = forSide(e.player) && isHard(e.complexity)}
           <!-- A move fills its column. By edge, its label, the hard position's ◆ and its loss stand together at the
                column's right, as a turn's do at the turn's right, so that they line up down the list. The loss is
-               last, where Lichess's move list has its evaluation: the mover's points lost, so that a number never needs
+               last, where Lichess's move list has its evaluation: the mover's loss in the lead, so that a number never needs
                a side to read. The lead after the move is in its note. The move's text has one width, so a column is never
                narrower than the widest move: the widest in the notation is 8 characters (D10-G10x), then by edge the
                label's slot (2.2 characters: a badge, or ?? as text). The loss: at most 5 characters (−1.2k), smaller and
@@ -1659,7 +1659,7 @@
           </button>
         {/each}
         <!-- By turn: the turn's glyph and its loss, in the same font and sizes as an edge's by edge, and the turn's note
-             with each edge's points. -->
+             with each edge's loss in the lead. -->
         {#if unit === "turn" && forSide(t.player)}
           {@const hard = isHard(t.complexity)}
           <span class="col-start-4 flex items-baseline gap-1 px-[0.2rem] py-px font-mono text-[0.95em] whitespace-nowrap {SIDE_TEXT[t.player]}"
@@ -1955,8 +1955,8 @@
     </div>
     <div class="flex-1 min-h-0 overflow-y-auto pr-1">
       <h3 class={SETTINGS_HEAD}>{board ? "Quality labels" : "Review"}</h3>
-      {@render choice(board ? "Quality labels by" : "Review by", board ? `Each turn as a whole, or each ${view.words.move}: the quality labels and the move list's numbers. A turn's note gives its ${view.words.moves}' points.`
-        : `Each turn as a whole, or each ${view.words.move}: the labels, the move list's numbers, the counts and the chart. A turn's note gives its ${view.words.moves}' points.`,
+      {@render choice(board ? "Quality labels by" : "Review by", board ? `Each turn as a whole, or each ${view.words.move}: the quality labels and the move list's numbers. A turn's note also gives each ${view.words.move}'s loss in the lead.`
+        : `Each turn as a whole, or each ${view.words.move}: the quality labels, the move list's numbers, the counts and the chart. A turn's note also gives each ${view.words.move}'s loss in the lead.`,
         [["turn", "Turn"], ["edge", view.words.Move]], () => display.judge, v => (display.judge = v as Unit))}
       {#if !board}<!-- the board's labels are the moves asked for, on both sides -->
         {@render choice("Review for", "Both players, or one: the quality labels, numbers, notes and the engine's lines of that player's moves. The counts keep both.",
@@ -1991,7 +1991,7 @@
         [["animated", "Animated"], ["static", "Static"]], () => (display.lineSteps ? "animated" : "static"),
         v => (display.lineSteps = v === "animated"))}
       <h3 class={SETTINGS_HEAD}>Move list</h3>
-      {@render choice("Quality labels", "Each quality label as a badge, as in the report and on the board, or as its mark in its colour.",
+      {@render choice("Quality labels", "Each quality label as a badge, as in the report and on the board, or as its quality mark in the badge's colour.",
         [["badges", "Badges"], ["text", "Text"]], () => display.marks, v => (display.marks = v as Display["marks"]))}
       {@render toggle("Notes on the key moves", "A line under each Great, Mistake and Blunder.",
         () => display.notes, v => (display.notes = v))}
@@ -2276,11 +2276,11 @@
       <div class="flex items-center gap-2">
         {#if engine && onengine && snapshot}
           <!-- A review snapshot searches nothing (design 20): its switch shows off and does not move, and a click on it lights the
-               review snapshot's bar. A disabled switch takes no click, so its wrapper does; the e and l keys do the same. -->
+               bar that says why (nudge). A disabled switch takes no click, so its wrapper does; the e and l keys do the same. -->
           <!-- svelte-ignore a11y_click_events_have_key_events -->
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <span class="flex-none inline-flex cursor-not-allowed" onclick={nudge}>
-            <Switch.Root checked={false} disabled aria-label="Engine" title="Engine off: this review is a review snapshot"
+            <Switch.Root checked={false} disabled aria-label="Engine" title="Engine off: this is a review snapshot"
                          class={[SWITCH, "pointer-events-none opacity-60"]}>
               <Switch.Thumb class={SWITCH_THUMB} />
             </Switch.Root>
@@ -2303,8 +2303,8 @@
              threat only where the store has it: the switch's note says why. -->
         {#if game}
           <button class="flex-none px-1.5 py-0 aria-pressed:border-accent aria-pressed:text-accent" aria-pressed={threatOn}
-                  aria-label="Show threat" title={snapshot ? "Show threat: a review snapshot shows only a threat that was saved. Review snapshots do no searches."
-                    : "Show threat: the enemy's best turn if you pass"}
+                  aria-label="Show threat" title={snapshot ? "Show threat: a review snapshot shows only a threat that was saved. It does no searches."
+                    : "Show threat: the other player's best turn if you pass"}
                   onclick={toggleThreat}>
             <svg class="inline-block size-[1em] align-[-0.125em]" viewBox="0 0 1 1" aria-hidden="true" fill="none" stroke="currentColor"
                  stroke-width="0.09" stroke-linecap="round">

@@ -172,13 +172,13 @@
       ? `, with ${shared.branches.length} ${shared.branches.length === 1 ? "move" : "moves"} in the sender's variations` : ""}.</p>
     <p>The link carries the game, not the engine's work. <strong>Your browser reviews the game again</strong>, as it does
       a game you import. The review shows each result as the engine finds it. With the sender's engine, network and
-      depth, your review is the same as the sender's: the same labels, lines and accuracy. A GPU computes the network a
+      depth, your review is the same as the sender's: the same quality labels, lines and accuracy. A GPU computes the network a
       little differently, so on a GPU a close call can rarely give another result.</p>
     <p>The sender's review: {here.network ? networkName(here.network) : "a network this site no longer has"}, at
       {reviewDepthText(shared.visits)}.
-      {#if !here.network}The review uses your network, so its labels can differ.
+      {#if !here.network}The review uses your network, so its quality labels can differ.
       {:else}The game keeps them for its review. Other games review as before.{/if}
-      {#if !here.sameEngine}This site's engine changed after the sender made the link, so some labels can differ.{/if}</p>
+      {#if !here.sameEngine}This site's engine changed after the sender made the link, so some quality labels can differ.{/if}</p>
     <div><button class="btn-primary" type="button" onclick={() => reviewShared(shared, here)}>Review it</button></div>
   {:else if phase.at === "choose"}
     {@const { sent, record, source, stale } = phase}
@@ -206,7 +206,7 @@
         <!-- svelte-ignore a11y_autofocus: the page holds only this choice, and Enter then reviews, as the tools did -->
         <button class="btn-primary justify-self-start" type="button" autofocus
                 onclick={() => reviewChosen(sent, record, source)}>Review the game</button>
-        <p class="text-sm">The engine examines all the moves of the game. It gives a label to each move. Hedge School
+        <p class="text-sm">The engine examines all the moves of the game. It gives a quality label to each move. Hedge School
           keeps the game in your list of games.</p>
       </section>
       <section class="grid content-start gap-2 p-4 bg-panel border border-line rounded-lg">

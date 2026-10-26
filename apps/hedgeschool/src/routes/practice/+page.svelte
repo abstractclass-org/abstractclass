@@ -283,7 +283,7 @@
     if (g.status === "over") {
       if (g.resigned) return "You resigned: HedgeFund wins.";
       const d = p.scores[0] - p.scores[1];
-      return Math.abs(d) < 0.05 ? "Game over: a draw." : `Game over: ${PLAYER_NAME[d > 0 ? 0 : 1]} wins by ${Math.abs(d).toFixed(1)} points.`;
+      return Math.abs(d) < 0.05 ? "Game over: a draw." : `Game over: ${PLAYER_NAME[d > 0 ? 0 : 1]} wins by ${Math.abs(d).toFixed(1)}.`;
     }
     if (g.status === "bot") return `HedgeFund is thinking… ${g.thinkingSince === null ? "" : seconds(Math.max(0, now - g.thinkingSince))}`;
     return `Your turn: ${p.movesLeft} ${p.movesLeft === 1 ? "edge" : "edges"} to play.`;

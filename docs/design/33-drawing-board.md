@@ -23,8 +23,8 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
 - Each player holds three blueprints: shapes of cells, reused at every placement. At the start, each is a star with a
   ring of six cells.
 - A move places a blueprint on empty hexes touching the mover's own cells, or edits the hand: it moves one cell within a
-  blueprint or between two of them. A placement captures every enemy cell touching it, except walls. The mover scores
-  the enemy's stars captured, times the mover's own stars on the board before the move.
+  blueprint or between two of them. A placement captures every opponent cell touching it, except walls. The mover scores
+  the opponent's stars captured, times the mover's own stars on the board before the move.
 - Blue makes one move, then each player makes two moves a turn. The game ends after 120 moves. These are Enclosure's
   turns.
 
@@ -67,7 +67,7 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
    - **A pass** is `pass`: a player's clock ran out. The rules never offer it as a move.
    - **The board as the players see it:** pointy-top hexes, x = √3 (q + r / 2) and y = 1.5 r, with r down the
      screen. strategyjam.org draws its board so.
-6. **A placement's capture mark:** `x` when it captures enemy cells, and `x+N` when it also scores N points
+6. **A placement's capture mark:** `x` when it captures opponent cells, and `x+N` when it also scores N points
    (`2@-3,1x+24`). A placement that captures a star and scores 0 has `x` alone: the mover had no star on the board. No
    writer writes `+0`. The capture mark repeats what the position shows. A reader accepts a move with it or without
    it, and refuses a capture mark that the position does not confirm, as Hedge School's reader refuses `x` on an edge
@@ -115,7 +115,7 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
 - **Two edits with one hand are common.** In 990 of the first 4,000 positions where a game played an edit, two of the
   legal edits give the same hand. A position had 706.6 legal edits and 702.0 different hands on average. One game
   played an edit that left its hand as it was.
-- **`x` alone would join two events.** Of the archive's 105,820 placements, 73,599 capture an enemy's cell and 41,864
+- **`x` alone would join two events.** Of the archive's 105,820 placements, 73,599 capture an opponent's cell and 41,864
   score, 57.4 points on average. So 31,735 placements capture cells and score nothing. A score is the event that
   decides a game, and strategyjam.org's move label shows it.
 - **No `+0`:** the capture mark gives the points, and the position's scores confirm it. A third case would give one
