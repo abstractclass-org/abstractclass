@@ -136,10 +136,10 @@ test("layout of a review", async ({ page }) => {
   expect(reports.filter(Boolean).join("\n")).toBe("");
 });
 
-// The book's table in the review's analysis column (design 32, items 3 and 10): at the end of the test book, with the
-// values closed and open. The Report's opening row goes there, on a phone too, where it opens the Analysis tab. The
-// test book is served by the dev and preview servers only, and the review shows the book in the early edition only:
-// elsewhere the test is skipped.
+// The book's table in the review's analysis column (design 32, items 3 and 10): at the end of the test book. The
+// Report's opening row goes there, on a phone too, where it opens the Analysis tab. The head "Line ends" stays on one
+// line at every width. The test book is served by the dev and preview servers only, and the review shows the book in
+// the early edition only: elsewhere the test is skipped.
 test("layout of the book's table in a review", async ({ page }) => {
   const served = await page.request.get("/test-book/prototype/index.json");
   test.skip(!served.ok() || !(served.headers()["content-type"] ?? "").includes("json"), "the site serves no test book");
@@ -149,16 +149,28 @@ test("layout of the book's table in a review", async ({ page }) => {
   await page.goto("/review");
   test.skip(!(await page.getByRole("link", { name: "Early Access" }).count()), "not the early edition");
   await reviewedGame(page);
-  const reports: string[] = [];
-  for (const values of [false, true]) {
-    await expect(page.getByText(/^Review done/)).toBeVisible({ timeout: 300_000 });
-    await page.evaluate(v => localStorage.setItem("hedge-school:book-table:review:1", JSON.stringify({ show: "book", values: v })), values);
-    await page.setViewportSize({ width: 360, height: 700 });
-    await page.reload();
-    await page.getByRole("button", { name: /^The game followed the book to its end/ }).click({ timeout: 300_000 });
-    await expect(page.getByRole("region", { name: "Opening book" }).locator("table")).toBeVisible();
-    reports.push(await sweep(page, `/review, the book's table${values ? " with the values" : ""}`));
+  await expect(page.getByText(/^Review done/)).toBeVisible({ timeout: 300_000 });
+  await page.evaluate(() => localStorage.setItem("hedge-school:book-table:review:1", JSON.stringify({ show: "book" })));
+  await page.setViewportSize({ width: 360, height: 700 });
+  await page.reload();
+  await page.getByRole("button", { name: /^The game followed the book to its end/ }).click({ timeout: 300_000 });
+  const table = page.getByRole("region", { name: "Opening book" }).locator("table");
+  await expect(table).toBeVisible();
+  const reports = [await sweep(page, "/review, the book's table")];
+  // The head's text in one line box at each width
+  const head = table.getByRole("columnheader", { name: "Line ends" });
+  const wrapped: number[] = [];
+  for (const width of WIDTHS) {
+    await page.setViewportSize({ width, height: 860 });
+    await settle(page);
+    const lines = await head.evaluate(th => {
+      const range = document.createRange();
+      range.selectNodeContents(th);
+      return new Set([...range.getClientRects()].map(r => Math.round(r.top))).size;
+    });
+    if (lines !== 1) wrapped.push(width);
   }
+  if (wrapped.length) reports.push(`/review, the book's table: "Line ends" is not on one line at ${wrapped.join(", ")} px`);
   expect(reports.filter(Boolean).join("\n")).toBe("");
 });
 

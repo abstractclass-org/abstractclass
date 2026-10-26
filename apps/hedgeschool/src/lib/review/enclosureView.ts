@@ -128,9 +128,9 @@ export const enclosureView: ViewGame<Enclosure> = {
 
   // The opening book (design 32): the test book, in the early edition only (book/place.svelte.ts, siteBook)
   book: EARLY_ACCESS ? {
-    place: (page, notations, game) => {
+    place: (page, notations) => {
       const book = siteBook();
-      return book && new BookPlace(book, page, notations, game);
+      return book && new BookPlace(book, page, notations);
     },
     notation: p => p.notation,
     opening: (notations, edges) => {

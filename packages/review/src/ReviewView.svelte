@@ -117,7 +117,7 @@
   import { SIDE_BG, SIDE_BORDER, SIDE_TEXT } from "@abstractclass/site/side.ts";
   import AdvantageChart from "./AdvantageChart.svelte";
   import DifficultyChart from "./DifficultyChart.svelte";
-  import { DIGITS, fmtScore, type BoardCandidate, type BoardMark, type BookGameMove, type Display, type LayerSetting,
+  import { DIGITS, fmtScore, type BoardCandidate, type BoardMark, type Display, type LayerSetting,
            type LineMove, type ViewGame } from "./game.ts";
   import { askOrder, changeMap, differenceMap, differenceReading, mapStep, ownershipMap, valueText, type MapStyle } from "./ownership.ts";
   import SettingChoice from "@abstractclass/site/SettingChoice.svelte";
@@ -211,7 +211,7 @@
     return !e || !forSide(e.player) ? null : unit === "edge" ? e.label : R.turnOf[i]?.label ?? null;
   };
   /** The review's label of the game's edge `i` itself, by turn too, and none for the player that "Review for" leaves
-   *  out: the book's rows judge the edge that they name, as the book works by edge (design 32, item 4). */
+   *  out: the Report's opening row judges the edge that it names, as the book works by edge (design 32, item 4). */
   const edgeLabel = (i: number): Label | null => {
     const e = R.edges[i];
     return e && forSide(e.player) ? e.label : null;
@@ -352,13 +352,6 @@
   // early edition, and only where the book's index loads: elsewhere the column stays as it was, with no switch. The
   // table's rows and the board's numbers point at each other (`book.pointed`), and the row pointed at draws its line as
   // a candidate's does. A book move played from the table is a variation, as any move that the player plays.
-  // The game's move at the position on screen, for the table's row "Your game" (design 32, item 4): its edge, the
-  // review's label of the edge itself, and Blue's win chance after it, by the review. None in a variation, at the game's
-  // end and on the Analysis board.
-  const bookGame = $derived<BookGameMove | null>(board || mainAt === null || mainAt >= moves.length ? null : {
-    move: mainNames[mainAt], label: edgeLabel(mainAt),
-    blueWin: Number.isNaN(R.blueWin[mainAt + 1]) ? undefined : R.blueWin[mainAt + 1],
-  });
   // The notation of each position on the path from the start: the game's as far as the path follows it, then the
   // variation's nodes'
   const pathNotations = $derived.by(() => {
@@ -367,7 +360,7 @@
       .map(p => (p ? view.book?.notation(p) : undefined));
   });
   // The site's book (the game's `book`), on this page: none where the site has none
-  const book = untrack(() => view.book?.place(board ? "board" : "review", () => pathNotations, () => bookGame)) ?? null;
+  const book = untrack(() => view.book?.place(board ? "board" : "review", () => pathNotations)) ?? null;
 
   // The engine's line from the candidate pointed at, on the board or in the table (KaTrain's and Lizzie's way), each
   // edge with its mover. Only for a candidate with enough visits (the board's rule), and only as far as the search
@@ -1580,21 +1573,15 @@
 
 <!-- The Analysis: the candidates table, or the book's table in its place, and the move list. -->
 {#snippet analysisView()}
-  {#if book?.ready && view.book}
+  {#if book?.ready && book.inBook && view.book}
     {@const Table = view.book.Table}
-    <!-- The book's table (design 32, items 3 and 8, the site's), with the switch in its title row: the engine's
-         candidates under it when the player chooses them, and outside the book. While it shows the book, it takes at
-         most a little over half the column, and scrolls, so that the move list keeps its room. -->
+    <!-- The book's table at a book position (design 32, item 3, the site's), with the switch in its title row: the
+         engine's candidates under it when the player chooses them. Outside the book the column shows the candidates as
+         it does with no book (item 8). While it shows the book, it takes at most a little over half the column, and
+         scrolls, so that the move list keeps its room. -->
     <div class={["flex flex-col min-h-0", book.showsBook ? "flex-[0_1_auto] max-h-[55%] mb-3" : "flex-none"]}>
       <Table place={book} onplay={playBook}>
         {#snippet candidates()}{@render engineTable()}{/snippet}
-        {#snippet outside()}
-          {#if book.last >= 0}
-            {@const to = path.slice(0, book.last)}
-            <p class="mt-0.5 mb-1.5 text-xs text-muted">Last book position: turn {moveFrom(to).turn}.
-              <button type="button" class="p-0 bg-transparent border-0 text-accent underline" onclick={() => setPath(to)}>Go there</button></p>
-          {/if}
-        {/snippet}
       </Table>
     </div>
   {:else}

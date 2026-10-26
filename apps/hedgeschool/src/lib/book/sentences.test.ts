@@ -9,7 +9,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { openBook, type Book } from "./book.ts";
 import type { BookIndex, BookMove, BookPart, BookPosition } from "./form.ts";
-import { SYMBOL_NAME, SYMBOL_SIDE, symbol, type PositionSymbol } from "./symbols.ts";
+import { SYMBOL_NAME, symbol } from "./symbols.ts";
 import { NOT_IN_BOOK_SENTENCE, bestMoveSentence, bookEndSentence, endSentence, lastBookMoveSentence, leftBookSentence,
   lineText, lineTurn, mainLine, moveSentence, trapPlayedSentence, trapSentence, weakBookMoveSentence } from
   "./sentences.ts";
@@ -113,12 +113,6 @@ test("the symbols: the cut-offs of design 32, each inclusive, and ∞ for a hard
   assert.equal(symbol(0.364, 0), "−+");
   assert.equal(symbol(0.9, 0), "+−");
   assert.equal(SYMBOL_NAME["∓"], "Red is better");
-});
-
-test("each symbol's side: Blue's three, Red's three, and none for = and ∞", () => {
-  assert.deepEqual(["⩲", "±", "+−"].map(s => SYMBOL_SIDE[s as PositionSymbol]), [0, 0, 0]);
-  assert.deepEqual(["⩱", "∓", "−+"].map(s => SYMBOL_SIDE[s as PositionSymbol]), [1, 1, 1]);
-  assert.deepEqual(["=", "∞"].map(s => SYMBOL_SIDE[s as PositionSymbol]), [null, null]);
 });
 
 test("a line in the notation numbers each turn, and a turn's second edge as N...", () => {

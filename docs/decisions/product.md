@@ -7144,25 +7144,53 @@ the words of the site. The pages, the lessons, the documents and the code's comm
   driver: it starts the module with the build's own library (`gpu_engine.mjs`, its `createCpuEngine` only), as
   Hedge School's `node-engine.mjs` does, and writes the same `fixtures.json`, byte for byte.
 
-### The book's table: labels and line ends as icons only (2026-10-26)
+### The book's table: badges and symbols alone, the win chance alone, no game's row (2026-10-26)
 
-- **The rows show icons only** (design 32, item 3): a label's badge with no word, and the symbol at a line's end with
-  no words, on a phone too, as Lichess shows its position glyphs. The words are each icon's title and accessible
-  name. The title row's symbol keeps its words, on one line, so the table shows once what the symbols mean. The
-  words took room that the icons already carry.
-- **A row's symbol takes its side's colour:** Blue's three symbols Blue's colour, Red's three Red's, = and ∞ the
-  text's. Lichess's glyphs have no colour. Enclosure's sides are Blue and Red, so the colour names the side. The
-  shape and the name give the side too, so the colour does not carry the meaning alone.
-- **The rows' label is the edge's own:** the table's row "Your game" and the Report's opening row give the review's
-  label of the edge that they name, by turn too, with "Review for" still applied. This replaces "One label for one
-  move" of "The book in the review: its rows, its mark and the game's row": the book works by edge, also in the
-  middle of a turn, so its rows judge the edge. In the three test games, the edge's label and its turn's label are
-  the same where a row gives one (D9-G11, a Blunder, in `book-left-review.json`), so no browser test tells the two
-  apart.
+- **The rows show badges and symbols with no words** (design 32, item 3): a label's badge on the edge's own line,
+  after the edge, and the symbol at a line's end, on a phone too, as Lichess shows its position symbols. The words are
+  each badge's and each symbol's title and accessible name. A row's second line holds words only ("a trap", "the book
+  ends here"), so a row with none is one line. The title row's symbol keeps its words, on one line, so the table
+  shows once what the symbols mean. The words took room that the badges and the symbols already carry.
+- **The values:** the switch "Show the values", its kept choice and the column "Goes on" are gone. The table always
+  shows the win chance for the side to move, alone ("52.3%"), in the rows and in the title row. Its bounds (KataGo's
+  book bounds) are its title, "Between 48.1% and 56.4%.", and assistive technology reads them after it.
+- **No game's row:** the row "Your game" and the tag "your game" on a book row are gone, with the code that fed them.
+  The move list gives the review's label of the game's move. The Report's opening row keeps the review's label of the
+  edge itself, by turn too, with "Review for" still applied: the book works by edge, also in the middle of a turn.
+  This replaces "One label for one move" of "The book in the review: its rows, its mark and the game's row".
+- **No line about the source:** "From the engine's analysis, not from games that people played. Book of …" is gone.
+  The heading "Opening book" gives the source and the date as its title.
+- **Outside the book** the analysis column shows the candidates as it does with no book: no heading "Not in the book",
+  no switch, and no line "Last book position: turn n. Go there". The table comes back at the next book position. Most
+  positions of a review are outside the book, so the book takes no room there. "Study in Openings", which the design
+  put on that line, gets its place when Openings is built.
+- **Each symbol takes a shade of its side's colour by its strength:** slightly better the faintest, better the side's
+  colour, winning the strongest. = and ∞ take the text's colour. Lichess's symbols have no colour. Enclosure's sides
+  are Blue and Red, so the colour names the side. The shape and the name give the side and the strength too, so the
+  colour does not carry the meaning alone. The shades are tokens in `packages/site/src/site.css`. Their contrasts, by
+  `packages/site/src/symbolShades.test.ts` (WCAG's formula), against the panel and against panel-2 (a lit row):
+
+  | Theme | Token | Colour | Panel | Panel-2 |
+  |---|---|---|---|---|
+  | Light | `--blue-slightly-better` | #4e85e3 | 3.63 | 3.13 |
+  | Light | `--blue-better` (`--blue`) | #2f6fde | 4.72 | 4.07 |
+  | Light | `--blue-winning` | #214e9b | 7.99 | 6.90 |
+  | Light | `--red-slightly-better` | #d9615c | 3.61 | 3.12 |
+  | Light | `--red-better` (`--red`) | #d2453f | 4.50 | 3.89 |
+  | Light | `--red-winning` | #93302c | 7.78 | 6.71 |
+  | Dark | `--blue-slightly-better` | #5380d3 | 3.79 | 3.31 |
+  | Dark | `--blue-better` (`--blue`) | #5b8ff0 | 4.66 | 4.07 |
+  | Dark | `--blue-winning` | #8cb1f5 | 6.84 | 5.96 |
+  | Dark | `--red-slightly-better` | #cb5a55 | 3.61 | 3.15 |
+  | Dark | `--red-better` (`--red`) | #e8635c | 4.48 | 3.91 |
+  | Dark | `--red-winning` | #ef928d | 6.44 | 5.62 |
+
+  The range from 3:1 to the side's colour is narrow (about 3.6 to 4.7), so "slightly better" and "better" differ
+  less than "better" and "winning".
 - **The widths,** measured in Playwright's Chromium on the review of `hedgefund-review.json` at the end of the test
   book: the table is as wide as its box at 360, 400, 799, 800, 1,023, 1,024, 1,259, 1,260, 1,280, 1,366 and 1,920
-  pixels, with the values closed and open. The column "Line ends" now takes its narrowest width: 68 pixels with the
-  values closed, its head on one line, and 38 pixels with the values open, its head on two lines. With the values
-  open, the edge's column has 62 pixels at 360 (40 with the head on one line) and 123 at 1,260 (93). Left to the
-  table's own layout, the column took a share of the free room: at 1,260 pixels, values closed, the edge's column
-  had 163 pixels in place of 229. The layout sweep gets a test of the table, with the values closed and open.
+  pixels. The column "Line ends" takes 68 pixels, its head on one line at every width. The edge's column has 96 pixels
+  at 360 and 157 at 1,260. With the values open and the column "Goes on", it had 62 and 123, and the head
+  "Line ends" went on two lines. Left to the table's own layout, the column "Line ends" took a share of the free room:
+  at 1,260 pixels, values closed, the edge's column had 163 pixels in place of 229. The layout test checks the table at
+  every width from 360 pixels, and that the head stays on one line.

@@ -1,8 +1,8 @@
 // The book in the review (design 32, item 4; journey 1, A1): the Report's opening row and trap rows, and the move list's
 // mark at the game's last book move, on reviewed games through the test book (scripts/test-fixture.mjs). A click on a
-// row or on the mark goes to the position before the move that the row names, and shows the book's table there with the
-// game's row, for this review only. A book that does not load shows neither. The engine is off, so that nothing
-// searches. The test book is served by the dev and preview servers only, and the review shows the book in the early
+// row or on the mark goes to the position before the move that the row names, and shows the book's table there, for
+// this review only. Outside the book the column shows the candidates alone. A book that does not load shows neither.
+// The engine is off, so that nothing searches. The test book is served by the dev and preview servers only, and the review shows the book in the early
 // edition only: elsewhere the test is skipped.
 import { test, expect, type Page } from "@playwright/test";
 
@@ -30,12 +30,12 @@ const marks = (page: Page) => page.getByRole("button", { name: /^Last move in th
 /** The move on screen in the move list, or null at the start. */
 const here = async (page: Page) => ((await page.locator(".mv.here").count()) ? (await page.locator(".mv.here").innerText()).trim() : null);
 const row = (page: Page, text: string | RegExp) => page.getByRole("button", { name: text });
-/** The book table's row "Your game": the game's move outside the book. */
-const gameRow = (page: Page) => page.locator("tr", { hasText: "In your review:" });
 /** A label's badge, which shows no word: its word is its name. */
 const LABEL_NAME = /^(Best|Great|Excellent|Good|Inaccuracy|Mistake|Blunder)$/;
 /** A position symbol's name (symbols.ts, SYMBOL_NAME). */
 const SYMBOL_NAME = /^(Equal position|Unclear position|(Blue|Red) is (slightly better|better|winning))$/;
+/** The book's table. */
+const table = (page: Page) => page.getByRole("region", { name: "Opening book" });
 
 test.describe("desktop", () => {
   test.use({ viewport: { width: 1366, height: 900 } });
@@ -54,7 +54,7 @@ test.describe("desktop", () => {
     expect(await here(page)).toMatch(/^O11-Q10/);
   });
 
-  test("a row's click shows the book for this review, with the game's row, and keeps no choice", async ({ page }) => {
+  test("a row's click shows the book for this review, and keeps no choice", async ({ page }) => {
     await open(page, "book-left-review.json");
     const opening = row(page, /^The game left the book at turn 3/);
     await expect(opening).toBeVisible({ timeout: 30_000 });
@@ -62,13 +62,14 @@ test.describe("desktop", () => {
     await expect(book).toHaveAttribute("aria-pressed", "false");
     await opening.click();
     await expect(book).toHaveAttribute("aria-pressed", "true");
-    // The game's move here, D9-G11, is not in the book: the row "Your game", with the review's label as a badge and
-    // its value
-    await expect(page.getByText("Your game", { exact: true })).toBeVisible();
-    await expect(page.getByText(/In your review: Blue \d+(\.\d)?% · not in the book/)).toBeVisible();
-    await expect(gameRow(page).getByRole("img", { name: LABEL_NAME })).toHaveCount(1);
-    // The rows show their line ends' symbols with no words, each in its side's colour. The title row keeps the words.
-    const rows = page.getByRole("region", { name: "Opening book" }).locator("tbody");
+    // No row for the game's move, and no line about the book's source
+    await expect(table(page).getByText(/your game|In your review/i)).toHaveCount(0);
+    await expect(page.getByText(/not from games that people played/)).toHaveCount(0);
+    // The rows show their labels' badges and their line ends' symbols with no words, each symbol in a shade of its
+    // side's colour by its strength. The title row keeps the symbol's words.
+    const rows = table(page).locator("tbody");
+    await expect(rows.getByRole("img", { name: LABEL_NAME }).first()).toBeVisible();
+    await expect(rows.getByText(LABEL_NAME)).toHaveCount(0);
     await expect(rows.getByRole("img", { name: SYMBOL_NAME }).first()).toBeVisible();
     await expect(rows.getByText(SYMBOL_NAME)).toHaveCount(0);
     const color = (css: string) => page.evaluate(c => {
@@ -78,17 +79,44 @@ test.describe("desktop", () => {
       probe.remove();
       return value;
     }, css);
-    expect(await rows.getByRole("img", { name: /^Blue / }).first().evaluate(e => getComputedStyle(e).color)).toBe(await color("var(--blue)"));
+    const SHADE: Record<string, string> = { "slightly better": "slightly-better", better: "better", winning: "winning" };
+    const symbols = rows.getByRole("img", { name: /^(Blue|Red) is / });
+    expect(await symbols.count()).toBeGreaterThan(0);
+    for (const symbol of await symbols.all()) {
+      const [, side, strength] = /^(Blue|Red) is (.+)$/.exec((await symbol.getAttribute("aria-label"))!)!;
+      expect(await symbol.evaluate(e => getComputedStyle(e).color))
+        .toBe(await color(`var(--${side.toLowerCase()}-${SHADE[strength]})`));
+    }
+    // A book move's win chance shows alone, and its bounds are its title
+    const chance = rows.locator("td.tabular-nums > span[title]").first();
+    await expect(chance).toHaveAttribute("title", /^Between \d+\.\d% and \d+\.\d%\.$/);
+    // Its text on screen: the bounds' words for assistive technology are in a child of their own
+    expect(await chance.evaluate(e => [...e.childNodes].filter(n => n.nodeType === Node.TEXT_NODE).map(n => n.textContent).join("").trim()))
+      .toMatch(/^\d+\.\d%$/);
+    await expect(table(page).getByRole("columnheader")).toHaveText(["#", "Edge", /^(Blue|Red) wins$/, "Line ends"]);
   });
 
-  test("the rows give the edge's own label: none for the player that Review for leaves out", async ({ page }) => {
-    await page.addInitScript(() => localStorage.setItem("learn-enclosure:review-display:1", JSON.stringify({ reviewFor: "red" })));
+  test("outside the book, the column shows the candidates alone; the table comes back at a book position", async ({ page }) => {
     await open(page, "book-left-review.json");
-    const opening = row(page, /^The game left the book at turn 3: Blue, D9-G11\. Before that, at turn 2, Red played O11-Q10/);
+    const opening = row(page, /^The game left the book at turn 3/);
     await expect(opening).toBeVisible({ timeout: 30_000 });
     await opening.click();
-    await expect(page.getByText(/In your review: Blue \d+(\.\d)?% · not in the book/)).toBeVisible();
-    await expect(gameRow(page).getByRole("img", { name: LABEL_NAME })).toHaveCount(0);
+    await expect(table(page).locator("table")).toBeVisible();
+    // D9-G11 leaves the book
+    await page.keyboard.press("ArrowRight");
+    expect(await here(page)).toMatch(/^D9-G11/);
+    await expect(table(page)).toHaveCount(0);
+    await expect(page.getByRole("group", { name: "The table shows" })).toHaveCount(0);
+    await expect(page.getByText(/Not in the book|Last book position/)).toHaveCount(0);
+    await page.keyboard.press("ArrowLeft");
+    await expect(table(page).locator("table")).toBeVisible();
+  });
+
+  test("the opening row gives the edge's own label: none for the player that Review for leaves out", async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem("learn-enclosure:review-display:1", JSON.stringify({ reviewFor: "red" })));
+    await open(page, "book-left-review.json");
+    await expect(row(page, /^The game left the book at turn 3: Blue, D9-G11\. Before that, at turn 2, Red played O11-Q10/))
+      .toBeVisible({ timeout: 30_000 });
   });
 
   test("a game that follows the book to its end", async ({ page }) => {
@@ -118,8 +146,8 @@ test.describe("desktop", () => {
     await expect(trap).toBeVisible({ timeout: 30_000 });
     await trap.click();
     expect(await here(page)).toMatch(/^K9-N11/);
-    // The game's move is the trap, a book move: its row in the traps' group says so
-    await expect(page.getByText(/a trap · your game/)).toBeVisible();
+    // The game's move is the trap: its row in the traps' group says so, on a line of its own
+    await expect(table(page).getByText("a trap", { exact: true }).first()).toBeVisible();
   });
 
   test("the book not loaded: no opening row and no mark, and the rest of the review works", async ({ page }) => {

@@ -1,9 +1,10 @@
 <script lang="ts">
   // The book's table lab (design 32, item 3 and "The table"): the board and the book's table (BookTable) on the test
   // book, so that the table can be checked and looked at before the review, the Analysis board and Openings take it
-  // (beads abscls-tpaj.6, .7 and .12). Each row shows its label and its symbol as icons only, with their words as
-  // their titles (beads abscls-tpaj.16). The dev and preview servers serve the test book at /test-book/ (vite.config.ts, `testBook`), and no
-  // build holds it: where it is not served, the page goes home.
+  // (beads abscls-tpaj.6, .7 and .12). Each row shows its label's badge and its symbol with no words, as their
+  // titles hold them, and its win chance with the bounds as its title (beads abscls-tpaj.16). The dev and preview
+  // servers serve the test book at /test-book/ (vite.config.ts, `testBook`), and no build holds it: where it is not
+  // served, the page goes home.
   //
   // The page has no engine. It draws the board from the book's positions, which the book's moves reach by their
   // notation, with no regions. A move outside the book shows on the board as a preview edge on the position before
@@ -16,30 +17,27 @@
   import BookTable from "#lib/book/BookTable.svelte";
   import { OpeningBook, type BookAt } from "#lib/book/lookup.svelte.ts";
   import { bookMove } from "#lib/book/book.ts";
-  import { bookRows, rowBoardLine, rowCandidates, type GameMove } from "#lib/book/rows.ts";
+  import { bookRows, rowBoardLine, rowCandidates } from "#lib/book/rows.ts";
   import { bestMoveSentence, moveSentence } from "#lib/book/sentences.ts";
   import { edgeName, sameEdge, type Edge, type Position } from "#lib/review/enclosure.ts";
   import { LINE_STEP_MS } from "@abstractclass/review/lineDrawing.svelte.ts";
   import { parseEdge } from "#lib/engine/notation.ts";
   import { readPosition } from "#lib/editor/position.ts";
-  import { canonicalEdge } from "#lib/game/record.ts";
   import { lineBoard } from "#lib/learn/lessons.ts";
   import { readLocalJson, writeLocal } from "@abstractclass/storage/local.ts";
 
   const BOOKS = { prototype: "/test-book/prototype/index.json", cases: "/test-book/cases/index.json" } as const;
   type Which = keyof typeof BOOKS;
-  const KEPT = "hedge-school:lab-book-table:1"; // the table's choices, as the review and the boards keep theirs, each apart
-  const kept = readLocalJson<{ show?: "book" | "candidates"; values?: boolean }>(KEPT) ?? {};
+  const KEPT = "hedge-school:lab-book-table:1"; // the table's choice, as the review and the boards keep theirs, each apart
+  const kept = readLocalJson<{ show?: "book" | "candidates" }>(KEPT) ?? {};
 
   let which = $state<Which>("prototype");
   let book = $state.raw(new OpeningBook(BOOKS.prototype));
   let show = $state<"book" | "candidates">(kept.show ?? "book");
-  let values = $state(kept.values ?? false);
   let pointed = $state<string | null>(null);
   let path = $state<string[]>([]); // the edges played from the start
   let at = $state(0); // the edges of the path on screen
-  let gameMove = $state(""); // a game's move at the position on screen, for the table's row "Your game"
-  $effect(() => writeLocal(KEPT, JSON.stringify({ show, values })));
+  $effect(() => writeLocal(KEPT, JSON.stringify({ show })));
 
   onMount(() => {
     // A deployed site does not serve the test book: the lab is for the dev and preview servers.
@@ -71,17 +69,9 @@
   const positions = $derived(ats.map(a => (a.state === "in" ? a.position : a.state === "out" ? null : undefined)));
   const here = $derived(positions[at]);
   const view = $derived<BookAt>(!start ? book.at("") : ats[at] ?? { state: "loading" });
-  // The last book position on the path, for the line outside the book
+  // The last book position on the path, which the board shows outside the book
   const lastIn = $derived(positions.slice(0, at + 1).findLastIndex(p => !!p));
-  const game = $derived.by<GameMove | null>(() => {
-    if (!here || !gameMove.trim()) return null;
-    try {
-      return { move: canonicalEdge(gameMove.trim()), label: "good", blueWin: here.value.blueWin };
-    } catch {
-      return null; // not an edge yet
-    }
-  });
-  const rows = $derived(view.state === "in" ? bookRows(view.position, game) : []);
+  const rows = $derived(view.state === "in" ? bookRows(view.position) : []);
   const showsBook = $derived(view.state === "in" && show === "book");
 
   // The board: the book's position, or the last book position with the move outside the book as a preview
@@ -125,7 +115,7 @@
   <h1 class="text-lg font-semibold">The book's table</h1>
   <p class="mb-3 text-sm text-muted">
     The table on the test book, not the engine's book. Point at a row to show its line on the board. Point at a label
-    or at a symbol to show its words. Click a row to play its move. Press Tab to put the focus on the table. Press the up and down keys to go to a different row, Enter
+    or at a symbol to show its words, and at a win chance to show its bounds. Click a row to play its move. Press Tab to put the focus on the table. Press the up and down keys to go to a different row, Enter
     to play the move, and Escape to remove the focus from the table. Press the left and right keys to go back or
     forward one edge. Press o to show or hide the book.
   </p>
@@ -135,9 +125,6 @@
         <option value="prototype">The third prototype's book</option>
         <option value="cases">The hand-made cases (a part fails)</option>
       </select>
-    </label>
-    <label class="flex items-center gap-1.5">The game's move here
-      <input class="input w-28 py-0.5 font-mono" placeholder="D10-G13" bind:value={gameMove} />
     </label>
   </div>
 
@@ -154,15 +141,9 @@
     </div>
 
     <div class="flex flex-col gap-3 min-w-0 min-[800px]:max-h-[44rem]">
-      <BookTable at={view} source={book.source} {rows} bind:show bind:values bind:pointed onplay={play} onretry={() => book.retry()}>
+      <BookTable at={view} source={book.source} {rows} bind:show bind:pointed onplay={play} onretry={() => book.retry()}>
         {#snippet candidates()}
           <p class="py-2 text-sm text-muted">The lab has no engine. On the review and the Analysis board, the engine's candidates show here.</p>
-        {/snippet}
-        {#snippet outside()}
-          {#if shown}
-            <p class="mt-0.5 text-xs text-muted">Last book position: turn {shown.turn}.
-              <button type="button" class="text-accent underline" onclick={() => step(lastIn)}>Go there</button></p>
-          {/if}
         {/snippet}
         {#snippet sentence(row, p)}
           <p class="text-sm">{row?.book ? moveSentence(p, row.book) : bestMoveSentence(p)}</p>

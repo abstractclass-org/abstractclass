@@ -1,6 +1,6 @@
 // Checks the book's table rows (rows.ts) on the test book (tests/fixtures/test-book): the groups and their order, the
-// labels and symbols of the sentences (sentences.ts, symbols.ts), the traps, the best move outside the book, the game's
-// row, the lines and the texts. Run: npm test.
+// labels and symbols of the sentences (sentences.ts, symbols.ts), the traps, the best move outside the book, the lines
+// and the texts. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -12,7 +12,6 @@ import { bookCount, bookRows, positionTitle, rowBoardLine, rowCandidates, rowLin
 import { isFine, moveLabel } from "./sentences.ts";
 import { lineEndSymbol, positionSymbol } from "./symbols.ts";
 import { moverWin } from "@abstractclass/analysis/model.ts";
-import { mirrorEdge } from "#lib/engine/notation.ts";
 import { playerOf } from "#lib/engine/position.ts";
 
 const root = fileURLToPath(new URL("../../..", import.meta.url));
@@ -28,7 +27,7 @@ const all: BookPosition[] = [];
 const groups = (rows: BookRow[]) => rows.map(r => r.group);
 
 test("every position's rows: each book move once, the groups in their order, numbered from 1", () => {
-  const order = ["fine", "other", "trap", "outside", "yours"];
+  const order = ["fine", "other", "trap", "outside"];
   for (const p of all) {
     const rows = bookRows(p);
     assert.deepEqual(rows.map(r => r.n), rows.map((_, k) => k + 1), p.position);
@@ -69,20 +68,12 @@ test("the traps follow the book moves, the largest gap between their two values 
   assert.equal(seen, 38);
 });
 
-test("the best move outside the book has its label; the game's move marks its row or has a row of its own", async () => {
+test("the best move outside the book has its label and no symbol", async () => {
   const s = await at(START), rows = bookRows(s);
   const outside = rows.find(r => r.group === "outside")!;
   assert.equal(outside.move, s.outside!.move);
   assert.equal(outside.book, undefined);
   assert.ok(outside.label && outside.symbol === undefined);
-  // A book move of the game: its own row is marked, also when the game played its twin at the start
-  const game = { move: mirrorEdge(s.moves[1].move), label: "good" as const, blueWin: 0.46 };
-  const marked = bookRows(s, game);
-  assert.equal(marked.length, rows.length);
-  assert.equal(marked.find(r => r.move === s.moves[1].move)!.game, game);
-  // A move that is in no group: its own row, last, with no value from the book
-  const away = bookRows(s, { move: "D10-G13", label: "mistake", blueWin: 0.3 });
-  assert.deepEqual([away.at(-1)!.group, away.at(-1)!.move, away.at(-1)!.blueWin], ["yours", "D10-G13", undefined]);
 });
 
 test("a row's line: the book's main line after it, a trap's refutation, an outside move alone", async () => {

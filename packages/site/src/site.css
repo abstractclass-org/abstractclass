@@ -30,6 +30,16 @@
   --border: #dddad3;
   --blue: #2f6fde;
   --red: #d2453f;
+  /* The position symbols' shades (Hedge School's book table, design 32, item 3): the stronger the position, the more
+     its symbol stands out from the panel. "Slightly better" is the side's colour 15% of the way to the panel, "better"
+     the side's colour, and "winning" 30% of the way to black in the light theme, to white in the dark. Each keeps a
+     contrast of at least 3:1 against the panel and panel-2 (WCAG 1.4.11): symbolShades.test.ts checks it. */
+  --blue-slightly-better: #4e85e3;
+  --blue-better: var(--blue);
+  --blue-winning: #214e9b;
+  --red-slightly-better: #d9615c;
+  --red-better: var(--red);
+  --red-winning: #93302c;
   color-scheme: light;
 }
 /* The dark theme: the system's when the visitor has not chosen, else the visitor's choice (theme.svelte.ts). A script
@@ -43,6 +53,10 @@
   --border: #3a3d42;
   --blue: #5b8ff0;
   --red: #e8635c;
+  --blue-slightly-better: #5380d3;
+  --blue-winning: #8cb1f5;
+  --red-slightly-better: #cb5a55;
+  --red-winning: #ef928d;
   color-scheme: dark;
 }
 /* The tokens as Tailwind's colours (bg-panel, text-muted, border-line, …). Tailwind's own palette is cleared, so every
@@ -61,6 +75,12 @@
   --color-on-accent: var(--on-accent);
   --color-blue: var(--blue);
   --color-red: var(--red);
+  --color-blue-slightly-better: var(--blue-slightly-better);
+  --color-blue-better: var(--blue-better);
+  --color-blue-winning: var(--blue-winning);
+  --color-red-slightly-better: var(--red-slightly-better);
+  --color-red-better: var(--red-better);
+  --color-red-winning: var(--red-winning);
   --font-mono: "Fira Code Variable", ui-monospace, monospace;
 }
 

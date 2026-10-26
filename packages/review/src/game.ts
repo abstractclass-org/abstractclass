@@ -181,16 +181,13 @@ export interface ImageParts<G extends ViewTypes> {
   download(name: string, file: Blob): void;
 }
 
-/** The game's move at the position on screen, for the book table's row "Your game": its name, the review's label of
- *  the edge itself (by turn too), and Blue's win chance after it. */
-export interface BookGameMove { move: string; label: Label | null; blueWin: number | undefined }
 /** The opening book where the view shows it (Hedge School's book/place.svelte.ts, BookPlace). */
 export interface ViewBook<M> {
   readonly ready: boolean; // its index has loaded: the table and its switch show
+  readonly inBook: boolean; // the position on screen is in the book: elsewhere the column shows the candidates alone
   readonly showsBook: boolean; // the table shows the book, in the candidates' place
   readonly rows: readonly { move: string }[]; // the position's book moves, the best first
   readonly line: M[] | null; // the line of the row pointed at, as the board draws it
-  readonly last: number; // the place on the path of its last book position, or -1
   readonly numbers: BoardCandidate<M>[]; // the board's numbers for the rows
   pointed: string | null; // the name of the move pointed at, in the table or by its number on the board
   toggle(): void; // the key o: the book or the candidates
@@ -200,17 +197,15 @@ export interface ViewBook<M> {
  *  moves that the move list marks, and the traps that it played. */
 export interface BookOpening { at: number; marks: number[]; traps: unknown[] }
 export interface BookParts<G extends ViewTypes> {
-  /** The book's place on a page, from the notation of each position on the path and the game's move at the position
-   *  on screen. Null where the site has no book. */
-  place(page: "review" | "board", notations: () => (string | undefined)[], game: () => BookGameMove | null): G["book"] | null;
+  /** The book's place on a page, from the notation of each position on the path. Null where the site has no book. */
+  place(page: "review" | "board", notations: () => (string | undefined)[]): G["book"] | null;
   notation(position: G["position"]): string | undefined; // the position's notation, by which the book finds it
   /** The game's opening, once every part of the book that the game's positions need has loaded. */
   opening(notations: (string | undefined)[], moves: string[]): BookOpening | null;
   openingRow(opening: BookOpening, moves: string[], label: Label | null): string | null; // the Report's row
   trapRows(opening: BookOpening): { at: number; text: string }[]; // the Report's rows on the traps
-  /** The book's table, with the engine's table (`candidates`) under its switch, and the line on the last book
-   *  position outside the book (`outside`). */
-  Table: Component<{ place: G["book"]; onplay: (moves: string[]) => void; candidates: Snippet; outside: Snippet }>;
+  /** The book's table at a book position, with the engine's table (`candidates`) under its switch. */
+  Table: Component<{ place: G["book"]; onplay: (moves: string[]) => void; candidates: Snippet }>;
 }
 
 /** The site's engine: its networks (design 09). */
