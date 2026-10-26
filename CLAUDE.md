@@ -23,7 +23,7 @@ holds one npm workspace and its one lockfile, the documents and the workflows. R
 site's commands ([README.md](README.md)) in `apps/hedgeschool`. `npm run check:all` at the root runs the checks of
 the Tests workflow before its browser tests, as the workflow does. A path in the documents to the site's files starts
 there ([docs/README.md](docs/README.md)). The parts that a jam game's site shares with Hedge School (the engine, the
-storage, the analysis and the review's view) are packages in `packages/`
+storage, the analysis, the review's view and the import's tools) are packages in `packages/`
 ([design 29](docs/design/29-shared-packages.md)): a path that starts with `packages/` starts at the root.
 
 ## The engine repository

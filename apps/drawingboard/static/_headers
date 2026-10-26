@@ -14,3 +14,16 @@ https://:version.:project.pages.dev/*
 # asking again.
 /_app/immutable/*
   Cache-Control: public, max-age=31536000, immutable
+
+# The tools' files (docs/design/11-early-access.md): the bookmarklet's code, which the bookmark loads at each click,
+# and the userscript, which Tampermonkey checks for updates. Their paths stay when their content changes, so a browser
+# asks again each time: an unchanged file costs a "not modified" reply. Without this, Cloudflare lets a browser keep a
+# .js file for 4 hours.
+/bookmarklet.js
+  Cache-Control: no-cache
+
+/drawing-board.user.js
+  Cache-Control: no-cache
+
+/drawing-board.meta.js
+  Cache-Control: no-cache

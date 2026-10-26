@@ -1,8 +1,7 @@
 <script lang="ts">
   // The arrival step, when the address holds a game after its `#` (importHash.ts, design 22): on the import page, every
   // game that comes in from outside, and on the review, its own ways in (reviewArrives).
-  // - a record from the bookmarklet or the userscript on meaf.us or strategyjam.org (bookmarklet.ts, userscript.ts), on
-  //   the import page, or on the review for a tool from before the import page: the player chooses to review it or to
+  // - a record from the bookmarklet or the userscript on meaf.us or strategyjam.org (tools.ts), on the import page, or on the review for a tool from before the import page: the player chooses to review it or to
   //   analyze it on the board (design 21). A review keeps it in this browser first. The board keeps no game in the
   //   list: the record goes to the board's address, at the position that the game's page showed (analysisAddress). For
   //   an out-of-date tool, the page also says how to update it;
@@ -16,9 +15,10 @@
   import { parseRecord, playerNames, type GameRecord } from "#lib/game/record.ts";
   import { importRecord } from "#lib/game/import.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
-  import { BOOKMARK_VERSION } from "#lib/game/bookmarklet.ts";
-  import { analysisAddress, hashParams, readImportHash, staleTool, toolSource, type ImportHash,
-           type Tool } from "#lib/game/importHash.ts";
+  import { BOOKMARK_VERSION } from "@abstractclass/import/bookmarklet.ts";
+  import { analysisAddress, hashParams, readImportHash, staleTool, type ImportHash,
+           type Tool } from "@abstractclass/import/importHash.ts";
+  import { toolSource } from "#lib/game/tools.ts";
   import { gamePartner, partnerOf, receiveFromPartner } from "#lib/game/partners.ts";
   import { setGamePartner } from "#lib/game/store.ts";
   import { decodeShare, type SharedReview } from "#lib/game/share.ts";
@@ -27,7 +27,7 @@
   import { networkName, reviewDepthText } from "#lib/analysis/engineSettings.ts";
   import { startAnalytics, track } from "#lib/analytics.svelte.ts";
   import { trackImport, trackImportFailed, trackLoad, trackLoadFailed, type ImportFailure,
-           type ImportSource } from "#lib/game/importEvents.ts";
+           type ImportSource } from "#lib/game/sources.ts";
 
   const MESSAGE = "box-content max-w-184 mx-auto my-6 px-4 grid gap-4";
 

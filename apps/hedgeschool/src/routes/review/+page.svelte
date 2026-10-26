@@ -22,7 +22,7 @@
   import Arrival from "#lib/review/Arrival.svelte";
   import ReviewHome from "#lib/review/ReviewHome.svelte";
   import { REVIEW_PAGE_SCRIPT, markReviewPage } from "#lib/review/pageMarks.ts";
-  import { reviewArrives } from "#lib/game/importHash.ts";
+  import { reviewArrives } from "@abstractclass/import/importHash.ts";
   import { LABEL_VISITS, MAP_VISITS, SWEEP_VISITS, snapshotExcept, snapshotPositions, snapshotSearch, warmCache } from "@abstractclass/analysis/cache.ts";
   import { enclosure, review, type Enclosure, type GameEnding, type ReviewData } from "#lib/review/enclosure.ts";
   import { EnginePool } from "@abstractclass/engine/pool.ts";

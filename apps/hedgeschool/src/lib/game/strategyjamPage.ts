@@ -1,6 +1,6 @@
-// What the bookmarklet (bookmarklet.ts) and the userscript (userscript.ts) run in the player's own strategyjam.org game
-// page (`/enclosure/game/ID`). The function is self-contained (no imports, nothing from outside its own body): the two
-// carry their source as text. The engine repository's docs/context.md, "strategyjam.org internals", describes the page.
+// What the bookmarklet and the userscript (tools.ts) run in the player's own strategyjam.org game page
+// (`/enclosure/game/ID`). The function is self-contained (no imports, nothing from outside its own body): the two carry
+// their source as text. The engine repository's docs/context.md, "strategyjam.org internals", describes the page.
 import type { JamGame } from "./strategyjam.ts";
 
 /** Why the page gives no game: "none", it holds no game; "login", strategyjam.org shows a finished game only to a player

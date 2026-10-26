@@ -1,7 +1,7 @@
-// The userscript's header alone (src/lib/game/userscript.ts), which Tampermonkey checks for a newer version
+// The userscript's header alone (src/lib/game/tools.ts), which Tampermonkey checks for a newer version
 // (`@updateURL`), as Greasy Fork serves a `.meta.js` beside each script: a small file for a frequent check. Written
 // once, at the build.
-import { userscriptHeader } from "#lib/game/userscript.ts";
+import { userscriptHeader } from "#lib/game/tools.ts";
 
 export const prerender = true;
 

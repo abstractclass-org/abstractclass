@@ -80,6 +80,7 @@ Web Analytics). Without them, as in development, the build has neither.
 | `packages/storage/` | `@abstractclass/storage`: the browser's database (IndexedDB), local storage and persistent storage. |
 | `packages/analysis/` | `@abstractclass/analysis`: the game interface, the review's model and quality labels, the move tree, the cache, the analysis of a game (its schedule), the engine session and the GPU control, and the turns of one move, then two. |
 | `packages/record/` | `@abstractclass/record`: the game record's frame (the tags, the turns, comments, variations, quality marks, commands and the result), with each game's moves and marks as a parameter. |
+| `packages/import/` | `@abstractclass/import`: the import's frame (design 29, item 10): the bookmarklet and the userscript that bring a game from a game site's page, with each site's page code as a parameter, the hash that they send to the import page, and the import's events. |
 | `packages/review/` | `@abstractclass/review`: the review's and the Analysis board's view (layout: design 06), its charts, cards, move list and step bar, and the view's game interface (design 29, item 9). |
 | `packages/site/` | `@abstractclass/site`: the sites' frame (the colour tokens, the header's bar and the page's area, the theme, the page's metadata) and their general controls (the icons, the toast, the settings' parts). |
 | `apps/hedgeschool/` | Hedge School, the site. The paths below start there. |

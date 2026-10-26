@@ -1,13 +1,12 @@
-// Checks the userscript's files and the bookmarklet (userscript.ts, bookmarklet.ts): their headers and address, that the
-// code they carry as text parses, what the page functions decide (meafPage.ts), and how the import page reads what they
-// send (importHash.ts). Run: npm test.
+// Checks the userscript's files and the bookmarklet (tools.ts): their headers and address, that the code they carry as
+// text parses, what the page functions decide (meafPage.ts), and how the import page reads what they send
+// (importHash.ts). Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { USERSCRIPT_NAME, userscriptHeader, userscriptSource } from "./userscript.ts";
-import { bookmarkletHref, bookmarkletScript } from "./bookmarklet.ts";
+import { USERSCRIPT_NAME, bookmarkletHref, bookmarkletScript, toolSource, userscriptHeader, userscriptSource } from "./tools.ts";
 import { explain, missingMoves, shownMove } from "./meafPage.ts";
 import { jamShownMove } from "./strategyjamPage.ts";
-import { readImportHash, staleTool, toolSource } from "./importHash.ts";
+import { readImportHash, staleTool } from "@abstractclass/import/importHash.ts";
 import type { MeafGame } from "./meaf.ts";
 
 const ORIGIN = "https://hedge.example";

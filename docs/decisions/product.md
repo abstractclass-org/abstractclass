@@ -7216,3 +7216,44 @@ the words of the site. The pages, the lessons, the documents and the code's comm
   at 1,260 pixels, values closed, the edge's column had 163 pixels in place of 229. The layout test checks the table
   after the game's first edge, where the rows' edges have 6 and 7 characters. At every size from 360 pixels wide, the
   table fits, the head stays on one line, and the rows' badges start at one place.
+
+### The import's frame in packages/import, and Drawing Board's tools (2026-10-27)
+
+- **Decided:** the parts of Hedge School's import that are not Enclosure's moved into `@abstractclass/import`
+  (`packages/import`, design 29, item 10), as pure renames first: the bookmarklet, the userscript, the page code's
+  frame, the hash after the `#` and the import's events. Each takes the site's parts as parameters. The site's page
+  code has one entry, `read`, which reads the page on a click and says what the tool does: send a game, show a
+  message, or load the address that has the moves (meaf.us's watcher's view). A package of its own, not
+  `@abstractclass/site`: the site's package holds components and styles that the pages draw, and the import's code
+  runs on other sites' pages as text, with a check of its own.
+- **Hedge School's tools, before and after,** each built with `VITE_EDITION=early` and the default address:
+  - The header (`/hedge-school.meta.js`) is the same, byte for byte, but for the build's time in `@version`.
+  - The bookmarklet's script (`/bookmarklet.js`, 10,140 bytes, then 10,636) and the userscript (`/hedge-school.user.js`,
+    24,212 bytes, then 24,860) differ in their frame: the site's parts come as data, and the page code has `read`.
+  - The bookmark's loader on the tools page takes the site's name as a third argument. Its text and its version (1)
+    are the same, so a bookmark made before needs no update.
+  - Both builds ran in Chromium on mock pages of meaf.us and strategyjam.org, with every request answered by the
+    test: 12 cases for the bookmarklet and 11 for the userscript (a game with and without a slider, no game, a game in
+    play, a watcher's view that loads, the reload of a finished game and the game that then opens, a refused tab, a
+    game of other rules, a login, a connection, a page with no stage). Each did the same in both builds: the same
+    alerts and notes, the same tabs and addresses, the same button places. The one difference is the userscript's code
+    version in the address (`v=4c9b28e04675`, then `v=84c64475dfe9`): the hash of the files that make its code. So
+    Hedge School's import page asks a player whose Tampermonkey has not yet taken the update to update it, once.
+  - Hedge School's unit tests of the tools and of the hash pass with only their imports changed, and its browser tests
+    of the import pass unchanged.
+- **Drawing Board's tools** (design 33, "How a game comes in from strategyjam.org"): the bookmark and the userscript
+  "Open in Drawing Board", the reader of Blueprints' game page, the import page that shows the record and the position
+  that the game's page showed, and the tools page. Blueprints' module (the engine repository's game watch, its
+  `runs/strategyjam/blueprints/20261026-142305/`) draws the stage in a wide window, and strategyjam.org's own view in a
+  narrow one. Both hold the game in the same props as Enclosure's page, with the replay slider, so the reader is
+  Hedge School's walk with Blueprints' game. The button goes at the end of the stage's row of game buttons
+  (`.stage .actions`), which both layouts draw.
+- **Checked** with page states that the tests make, with moves from `fixtures.json` (no game of strategyjam.org's
+  archive), and with Drawing Board's built tools in Chromium on mock pages of both layouts: the bookmarklet and the
+  userscript open the import page with the record and the position, the button ends the row of game buttons, and the
+  import page shows the game, the notice for an out-of-date userscript, and a link with no record. Drawing Board's
+  pages passed the layout test's rules at its 471 sizes (`/`, `/about`, `/privacy`, `/notation`, `/notices`, `/tools`,
+  `/lab/board`, and `/import` with a game). The first sweep found the import page wider than a phone: the record's
+  Site address did not break. It breaks anywhere now.
+- **Not checked:** the tools on strategyjam.org itself, and the button's place in its real layouts. The tools run in
+  the player's own logged-in page, so that test waits for the owner (abscls-8tl1.12).

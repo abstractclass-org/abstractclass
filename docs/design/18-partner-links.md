@@ -14,11 +14,11 @@ must make costs both of them a release.
 
 1. **One link brings a game in:** `/import#record=…`, the game's record URL-encoded after the `#` (design 22). The
    import page keeps the game and opens its review at once, with no notice to update a tool (`readImportHash` in
-   `src/lib/game/importHash.ts`). The partner's button says "Review", so the link goes straight to the review. Only a
-   game from the meaf.us and strategyjam.org tools asks the player to choose the review or the Analysis board, on the
-   same page (design 21, `src/lib/review/Arrival.svelte`). A link without `record` is refused by name ("the link has
-   no record="). `/review#record=…`, which the page for developers named from 2026-10-14 to 2026-10-19, no longer
-   opens a game: the review shows its Review tab.
+   `packages/import/src/importHash.ts`). The partner's button says "Review", so the link goes straight to the review.
+   Only a game from the meaf.us and strategyjam.org tools asks the player to choose the review or the Analysis board, on
+   the same page (design 21, `src/lib/review/Arrival.svelte`). A link without `record` is refused by name ("the link has
+   no record="). `/review#record=…`, which the page for developers named from 2026-10-14 to 2026-10-19, no longer opens
+   a game: the review shows its Review tab.
 2. **The record is this site's notation** (the /notation page), or a plain list of edges. Tags are optional. A web
    address in `Site` (Lichess writes its game's address there) gives the review a link back: "View this game on
    enclosuregame.com" under the result (`gamePage` in `src/lib/game/record.ts`).
@@ -145,7 +145,7 @@ must make costs both of them a release.
 
 ## Where it is
 
-- `src/lib/game/importHash.ts` (the link), `src/lib/game/partners.ts` (the partners, the handshake),
+- `packages/import/src/importHash.ts` (the link), `src/lib/game/partners.ts` (the partners, the handshake),
   `src/lib/game/import.ts` (`variantProblem`), `src/lib/game/record.ts` (`gamePage`), `src/lib/game/store.ts`
   (`partner`, `setGamePartner`).
 - `src/routes/import/+page.svelte` and `src/lib/review/Arrival.svelte` (the link's import, and a kept review's),

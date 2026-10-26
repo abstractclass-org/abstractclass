@@ -4,8 +4,10 @@
 header, the footer, the Home, About, Notation, Privacy and Notices pages, and the deploy job), and the notation and the
 record, with the import of a strategyjam.org game as a record. The owner's step for the address is left
 (abscls-8tl1.3). The board and the player's own moves are built, on positions that the engine's early build gave.
-The review's view is in a package, on Hedge School's board and on Blueprints' (design 29, item 9). The review and the
-Analysis board wait for the engine's browser build (request 23).
+The review's view is in a package, on Hedge School's board and on Blueprints' (design 29, item 9). The tools for
+strategyjam.org and the import page are built: the page shows the record that a tool sends ("How a game comes in from
+strategyjam.org"). Their test on strategyjam.org waits for the owner (abscls-8tl1.12). The review and the Analysis
+board wait for the engine's browser build (request 23).
 **Decided:** 2026-10-25.
 
 ## Context
@@ -48,7 +50,8 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
    2. **The view's split** into a package, on Hedge School's board and Blueprints' board: `@abstractclass/review`, with
       the view's game interface (design 29, item 9). Drawing Board gives Blueprints' part of it with the review.
    3. **With the engine's browser build** (request 23): the review, the Analysis board, the import of a
-      strategyjam.org game, and the player's own moves.
+      strategyjam.org game into them, and the player's own moves. The tools for strategyjam.org and the import page
+      need no engine, so they come first, and the import page shows the record until the review comes.
    4. **Later:** practice against Stamp Duty, lessons, puzzles and an opening book. The meaf.us tools stay Hedge
       School's: meaf.us plays Enclosure only.
 4. **Move, do not copy.** A part that both sites use goes into `packages/`, as design 29 moved the engine, the storage
@@ -215,6 +218,49 @@ and their lines are hand-made marks, and the engine plays each one where it stan
 - **The unit tests click every legal move** of each position. They check that each blueprint's dots are its legal
   placements' anchor hexes, all of them and no others, and that each cell's dots are its legal edits.
 
+## How a game comes in from strategyjam.org
+
+Drawing Board has Hedge School's bookmarklet and userscript for strategyjam.org (design 11) and its import page
+(design 22), on the tools' frame in `@abstractclass/import` (design 29, item 10). Its own parts:
+
+1. **The names, in Drawing Board's words.** The bookmark and the userscript are **Open in Drawing Board**. The button
+   and Tampermonkey's menu entry say "Open this game in Drawing Board". The messages name "the Open in Drawing Board
+   bookmark" and "the Drawing Board button". "Open", not Hedge School's "Review": the import page opens the game, and
+   the review is not built yet. The userscript's files are `/drawing-board.user.js` and `/drawing-board.meta.js`. It
+   runs on Blueprints' game pages alone (`https://strategyjam.org/blueprints/game/*`).
+2. **The page reader** (`strategyjamPage.ts`). Blueprints' game page is strategyjam.org's game page with Blueprints'
+   module (the engine repository's `runs/strategyjam/blueprints/`, `g/blueprints/index-*.js`). In a wide window the
+   module draws the stage itself (`.stage.stage-whole`), and in a narrow one strategyjam.org's own view draws it
+   (`.stage`). Both keep the game in the props of the components above the stage, as Enclosure's page does, and both
+   have strategyjam.org's replay slider (`input.replay-slider`). The reader takes the players, the first position
+   (`initial`), the moves, the clock (`initialMs`, `incrementMs`), the result, the scores (from the page's own rules
+   module, `observe`), the game's id (the last part of the page's path), and the position that the page shows (the
+   slider's value). The record (`strategyjam.ts`) refuses a game of other rules, of another rules version, or from
+   another start (item 10).
+3. **The button's place:** at the end of the page's row of buttons for the game (`.stage .actions`: Sandbox, Download
+   record, Resign), to the right, in a row of its own when the row is full. Both layouts draw that row inside the
+   stage: at the foot of the column beside the board in a wide window, and in the panel in a narrow one. Hedge
+   School's button on Enclosure's page ends the move list's legend, which Blueprints' page does not have. In a wide
+   window the column at the window's right holds the player's own hand, which a button fixed in the corner would
+   cover. Before the game comes, the button is fixed in the window's lower right corner, as Hedge School's is.
+4. **The button's picture,** until the site has a logo ("Consequences"): a blueprint as the game starts it, a star with
+   a ring of six cells, white on the button's dark ground, with the star marked.
+5. **The import page** (`/import`) shows the game that a tool sent: the players, the number of moves, the position
+   that the game's page showed (the moves before it, and that move's turn in the record), and the record as Drawing
+   Board wrote it. It says that the review and the Analysis board come later. For an out-of-date tool, it says how to
+   update it, as Hedge School's does. Without a game, the page goes to the tools page.
+6. **Until the review comes** (abscls-8tl1.7), the import page departs from Hedge School's: it offers no choice
+   between the review and the Analysis board, and the engine does not check the moves. The game stays in the page's
+   address, since the site has no analytics yet and keeps no game: a reload shows the game again. With the review, the
+   page takes the game out of the address as Hedge School's does, and the import's events count it.
+7. **The tools page** (`/tools`) gives the steps to install the bookmarklet and the userscript, in strict Simplified
+   Technical English with the glossary's words. Its link is in the header from a tablet's width, and in the footer on
+   a phone, as Hedge School's (design 22).
+
+The tools have not run on strategyjam.org itself: they run in the player's own logged-in page, and that test waits for
+the owner (abscls-8tl1.12). The tests use page states that they make, with moves that Stamp Duty's early build played
+(`fixtures.json`), and the built tools ran on mock pages of both layouts in Chromium.
+
 ## Why
 
 - **Hedge School's design is built and checked.** Its layout, its review and its quality labels hold for any game whose
@@ -265,7 +311,8 @@ and their lines are hand-made marks, and the engine plays each one where it stan
   threshold of a hard position, and how far below the first choice a candidate shows (design 29, "Consequences"). The
   score's scale is the engine's (`SCORE_SCALE` 12 in the port).
 - **The site's look:** a logo, a colour and the board's style are still to decide. The shell starts with Hedge
-  School's style and a wordmark.
+  School's style and a wordmark. The userscript's button shows a blueprint until the logo comes ("How a game comes in
+  from strategyjam.org", item 4).
 
 ## Where it is
 
@@ -283,6 +330,14 @@ and their lines are hand-made marks, and the engine plays each one where it stan
   marks, and the turns. `record.ts`: the record, on the shared frame. `check.ts`: the capture marks' check against
   each move's captured cells and points, which the engine will give (request 23). `strategyjam.ts`: a strategyjam.org
   game as a record. It is self-contained, as Hedge School's is, so that a tool can run it on the game's page.
+  `strategyjamPage.ts`: the reader of Blueprints' game page, and the tools' messages. `tools.ts`: the tools' parts
+  (their names, the button's picture and place, the page code), with the files that the routes serve.
+- `apps/drawingboard/src/routes/import/` and `src/routes/tools/`: the import page and the tools page.
+  `src/routes/bookmarklet.js/`, `drawing-board.user.js/` and `drawing-board.meta.js/`: the tools' files, which
+  `static/_headers` serves with `no-cache`. `vite.config.ts`: the build's address for the userscript, and the
+  userscript's versions, as Hedge School's.
+- `packages/import/` (`@abstractclass/import`): the tools' frame, the hash after the `#` and the import's events, which
+  both sites share (design 29, item 10).
 - `packages/record/`: the record's frame (`record.ts`), with a test game of words. Hedge School's
   `src/lib/game/record.ts` gives Enclosure's moves and cut mark to it, with its calls as before.
 - `packages/analysis/src/turns.ts`: the turns of one move, then two, for both games' `turn`.
@@ -339,5 +394,6 @@ and their lines are hand-made marks, and the engine plays each one where it stan
 ## Log
 
 [decisions/product.md](../decisions/product.md), "Drawing Board, Blueprints' site" (2026-10-25), "The review's
-styles in packages/review and packages/site" (2026-10-26), and "The player's own moves on Drawing Board, from the
-engine's legal moves" (2026-10-27).
+styles in packages/review and packages/site" (2026-10-26), "The player's own moves on Drawing Board, from the
+engine's legal moves" (2026-10-27), and "The import's frame in packages/import, and Drawing Board's tools"
+(2026-10-27).

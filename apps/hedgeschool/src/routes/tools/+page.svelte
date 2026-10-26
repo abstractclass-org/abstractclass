@@ -1,10 +1,9 @@
 <script lang="ts">
   // The tools that bring games from other sites (design 22): the bookmarklet and the userscript, for meaf.us and
-  // strategyjam.org, which open the import page with a game after the `#` (bookmarklet.ts, userscript.ts). The import
-  // page asks the player to review the game or to analyze it on the board, and says when the tool is out of date
-  // (Arrival.svelte).
+  // strategyjam.org, which open the import page with a game after the `#` (tools.ts). The import page asks the player
+  // to review the game or to analyze it on the board, and says when the tool is out of date (Arrival.svelte).
   import { onMount } from "svelte";
-  import { bookmarkletHref } from "#lib/game/bookmarklet.ts";
+  import { bookmarkletHref } from "#lib/game/tools.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
 

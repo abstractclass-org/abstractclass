@@ -1,8 +1,9 @@
 # The shared packages: the engine, the storage and the analysis, behind a game interface
 
-**Status:** in force. Built: the engine, the storage, the analysis and the review's view are in `packages/`. The
-view's game interface rests on Hedge School's board and on Blueprints' (item 9). Drawing Board gives Blueprints' part
-with its review (abscls-8tl1.7).
+**Status:** in force. Built: the engine, the storage, the analysis, the review's view and the import's frame are in
+`packages/`. The view's game interface rests on Hedge School's board and on Blueprints' (item 9). Drawing Board gives
+Blueprints' part with its review (abscls-8tl1.7). The import's frame serves Hedge School's tools and Drawing Board's
+(item 10).
 **Decided:** 2026-10-19.
 
 ## Context
@@ -52,7 +53,9 @@ edit in the same commit), so their changes still apply.
    moved it out of Hedge School (its item 4). A sixth, `@abstractclass/review` (`packages/review`), holds the review's
    and the Analysis board's view, with the view's game interface (item 9). The site's general controls that the view
    uses (the icons, the toast, the settings' parts, the players' colours and their swatch) and the page's scroll moved
-   into `@abstractclass/site` with it.
+   into `@abstractclass/site` with it. A seventh, `@abstractclass/import` (`packages/import`), holds the import's
+   frame: the tools for a game site's pages, the hash that they send and the import's events, with each site's parts
+   as parameters (item 10).
 
    The engine package knows no game. The analysis package knows a game only through the game interface. No package
    imports a site.
@@ -193,6 +196,41 @@ edit in the same commit), so their changes still apply.
    - **One type for the game:** Hedge School's `Enclosure` (`enclosure.ts`) extends `ViewTypes`, so that the review
      (`Review<Enclosure>`), the analysis and the view take one type. The view takes the game's types from `view` alone
      (TypeScript's `NoInfer` on its other props).
+10. **The import's frame in a package of its own.** Drawing Board takes strategyjam.org's games of Blueprints as Hedge
+    School takes its games of Enclosure (designs 11 and 22, design 33). So the parts of Hedge School's import that are
+    not Enclosure's moved out of its `src/lib/game/` into `@abstractclass/import` (`packages/import`), as pure renames
+    first: the bookmarklet (`bookmarklet.ts`), the userscript (`userscript.ts`), the page code's frame
+    (`pageCode.ts`), the hash after the `#` (`importHash.ts`) and the import's events (`importEvents.ts`). Each takes
+    the site's parts as parameters:
+    - **The page code** (`PageCode`): an object of the site's self-contained functions, which the tools carry as text.
+      Its `read` reads the page on a click. It gives a game (an id, its record and the position that the page shows),
+      or what to tell the player. When the page lacks the game's moves and another address has them (Hedge School's
+      meaf.us watcher's view), it also gives that address. The tools' own code shows the message, opens the import
+      page, loads the address that `read` gives, and in the userscript opens the game once the reloaded page has its
+      moves. So meaf.us's case stays in Hedge School's page code, and the frame knows no game site.
+    - **The bookmarklet:** the site's name, which starts each message, and the bookmark's name. **The userscript**
+      (`UserscriptSite`): the site's name, the script's name, its id (the name of its files, of the elements that it
+      adds and of its key), the button's label and picture, the button's place on each game site, and the header's
+      description, author, homepage and pages (`@match`).
+    - **The events:** the site's analytics (`track`), and a game's length as the site's range. Each site lists its
+      import's sources, and names a tool's source (`toolSource`).
+    - **What stays in each site:** Hedge School's `src/lib/game/tools.ts` (the page code that reads meaf.us and
+      strategyjam.org, the tools' names, the collie, the button's places and `toolSource`) and `sources.ts` (its
+      sources, with meaf.us's tools and Constellation's export, and the events with its analytics). Its page readers
+      and records (`meafPage.ts`, `meaf.ts`, `strategyjamPage.ts`, `strategyjam.ts`) stay as they were. Drawing
+      Board's are its `src/lib/game/tools.ts` and `strategyjamPage.ts` (design 33).
+    - **Hedge School's tools work as before.** Its routes keep their addresses (`/bookmarklet.js`,
+      `/hedge-school.user.js`, `/hedge-school.meta.js`). The userscript's header is the same but for the build's time.
+      The code of the bookmarklet and of the userscript changed in its frame: the site's parts come as data, and the
+      page code has `read`. The two builds did the same on mock pages of meaf.us and strategyjam.org (the log entry
+      gives the check). The userscript's code version is a hash of the files that make the code, so it changed once: a
+      player whose Tampermonkey has not yet taken the update sees the notice to update it once. The bookmark's loader
+      takes the site's name as a third argument. A bookmark made before keeps its own loader, with the same version,
+      so no player is asked to drag it again.
+    - **Each site has its own reader of strategyjam.org's game page.** Hedge School's and Drawing Board's
+      `strategyjamPage.ts` read the same props of the page, and give different games: Enclosure's and Blueprints'. They
+      stay each site's, as Hedge School's tests check its reader as it is. One reader can serve both later, with both
+      sites' tests.
 
 ## Why
 
@@ -214,6 +252,14 @@ edit in the same commit), so their changes still apply.
   shape (the rule of three, design 26). Blueprints' board shaped each seam beside Enclosure's. The view is where a
   change of Hedge School's behaviour would show, so its split is checked page by page against the build before it
   (decisions/product.md, "The review's view in packages/review").
+- **The import in a package of its own, not in `@abstractclass/site`:** the site's package holds the frame that a
+  site's pages draw: styles and Svelte components, which `svelte-check` checks. The import's frame draws none of the
+  site's pages. Its tools run on another site's page, as text that must stay self-contained, and its hash and events
+  are plain TypeScript, which `tsc` and Node's tests check. The record has a package of its own for the same reason
+  (item 1).
+- **The site's page code decides, and the frame acts:** the flows that differ by game site (meaf.us's watcher's view,
+  the login that strategyjam.org asks for) are each site's knowledge. With `read` in the site's page code, the frame
+  has one way to read a page, and a new game site changes only the site that reads it.
 
 ## Alternatives
 
@@ -224,6 +270,8 @@ edit in the same commit), so their changes still apply.
 - **The views now, with the rest:** the jam site would get a whole review at once, but the view's game interface would
   rest on one board, conflict with two variations in flight, and risk Hedge School's behaviour.
 - **A copy in the jam site:** no risk to Hedge School, and two reviews that drift apart.
+- **The import's frame in `@abstractclass/site`:** one package fewer, but a package of components would also hold code
+  that runs on other sites' pages, and its check would not be the import's.
 
 ## Consequences
 
@@ -272,10 +320,13 @@ edit in the same commit), so their changes still apply.
 - `packages/site/src/`: the site's general controls that the view uses (`Icon.svelte`, `Toast.svelte`,
   `SettingChoice.svelte`, `SettingToggle.svelte`, `settings.ts`, `Swatch.svelte`, `side.ts`) and the page's scroll
   (`pageScroll.ts`).
+- `packages/import/` (`@abstractclass/import`, item 10): `bookmarklet.ts`, `userscript.ts` and `pageCode.ts` (the
+  tools' frame), `importHash.ts` (the hash after the `#`) and `importEvents.ts` (the import's events), with tests on a
+  test site whose games are words. `apps/hedgeschool/src/lib/game/tools.ts` and `sources.ts`: Hedge School's parts.
 - `.github/workflows/tests.yml` and `deploy.yml`: the packages' checks.
 
 ## Log
 
 [decisions/product.md](../decisions/product.md), "The analysis and the review in packages/" (2026-10-19), "The
-review's view in packages/review" (2026-10-25), and "The review's styles in packages/review and packages/site"
-(2026-10-26).
+review's view in packages/review" (2026-10-25), "The review's styles in packages/review and packages/site"
+(2026-10-26), and "The import's frame in packages/import, and Drawing Board's tools" (2026-10-27).

@@ -6,7 +6,7 @@
   // can name this page (`from=`). The page alone goes to the tools. The layout starts no analytics here: the arrival
   // step starts them once the game has left the address.
   import { onMount } from "svelte";
-  import { holdsGame } from "#lib/game/importHash.ts";
+  import { holdsGame } from "@abstractclass/import/importHash.ts";
   import Arrival from "#lib/review/Arrival.svelte";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
 

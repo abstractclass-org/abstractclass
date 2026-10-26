@@ -1,6 +1,6 @@
-// What the bookmarklet (bookmarklet.ts) and the userscript (userscript.ts) run in the player's own meaf.us page, and
-// their messages, which serve on strategyjam.org too (strategyjamPage.ts). Each function is self-contained (no imports,
-// nothing from outside its own body): the two carry their source as text.
+// What the bookmarklet and the userscript (tools.ts) run in the player's own meaf.us page, and their messages, which
+// serve on strategyjam.org too (strategyjamPage.ts). Each function is self-contained (no imports, nothing from outside
+// its own body): the two carry their source as text.
 import type { MeafGame } from "./meaf.ts";
 
 /** The meaf.us game that the page's board holds, or null: React keeps it as the board component's `game` prop, the way

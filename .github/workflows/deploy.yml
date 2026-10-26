@@ -115,9 +115,9 @@ jobs:
   # as the site's build is, to the Pages project that the repository variable DRAWINGBOARD_PAGES_PROJECT names. A push
   # to main deploys the live site, and a push to another branch a preview, as for the site. While the variable is
   # empty, the job is skipped, and the workflow passes without it. Its pages are prerendered, and the canonical
-  # address is the live one in src/lib/site.ts, so its build needs no branch variables. Wrangler is the site job's
-  # version. It runs in apps/drawingboard, which has no functions/ folder: in the workflow's default folder, it would
-  # upload Hedge School's Function.
+  # address is the live one in src/lib/site.ts. Its userscript holds the build's own address, as the site's does, so
+  # its build takes the branch variables too. Wrangler is the site job's version. It runs in apps/drawingboard, which
+  # has no functions/ folder: in the workflow's default folder, it would upload Hedge School's Function.
   drawingboard:
     if: vars.DRAWINGBOARD_PAGES_PROJECT != ''
     runs-on: ubuntu-latest
@@ -135,6 +135,16 @@ jobs:
           cache: npm
       - run: npm ci
         working-directory: .
+
+      # The two variables of Cloudflare's own build that vite.config.ts reads, as in the site's job: the branch (main
+      # names the live site's address) and the preview's address, for the userscript.
+      - name: The branch and its address
+        env:
+          PROJECT: ${{ vars.DRAWINGBOARD_PAGES_PROJECT }}
+        run: |
+          alias=$(printf '%s' "$BRANCH" | tr 'A-Z' 'a-z' | sed 's/[^a-z0-9]/-/g')
+          echo "CF_PAGES_BRANCH=$BRANCH" >> "$GITHUB_ENV"
+          echo "CF_PAGES_URL=https://$alias.$PROJECT.pages.dev" >> "$GITHUB_ENV"
 
       # The shared packages' checks and tests (design 29), then the site's own: a failed step deploys nothing.
       - name: The packages' checks and tests

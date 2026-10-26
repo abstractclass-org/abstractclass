@@ -12,7 +12,7 @@ const commit = process.env.CF_PAGES_COMMIT_SHA ?? process.env.WORKERS_CI_COMMIT_
 	?? (() => { try { return execSync('git rev-parse HEAD').toString().trim(); } catch { return 'unknown'; } })();
 
 // The site's address, for what leaves the site and comes back to it: the userscript, which updates from it and opens
-// the review there (src/lib/game/userscript.ts). The deploy's build of main (.github/workflows/deploy.yml, which sets
+// the review there (src/lib/game/tools.ts). The deploy's build of main (.github/workflows/deploy.yml, which sets
 // Cloudflare's build variables) is the live site, a build of another branch its preview, and a local build the local
 // preview server. SITE_ORIGIN sets another.
 const origin = process.env.SITE_ORIGIN
@@ -25,14 +25,16 @@ const origin = process.env.SITE_ORIGIN
 // VITE_ variables after it loads this file.
 if (process.env.CF_PAGES_BRANCH === 'partner_test') process.env.VITE_PARTNER_TEST ??= '1';
 
-// The userscript's versions (src/lib/game/userscript.ts). For Tampermonkey: the build's time (UTC), which grows with
-// each build, so that Tampermonkey takes each new build as an update. For the import page: a hash of the files that
-// make its code, so that it tells a player of an out-of-date userscript only when that code changed.
+// The userscript's versions (src/lib/game/tools.ts). For Tampermonkey: the build's time (UTC), which grows with each
+// build, so that Tampermonkey takes each new build as an update. For the import page: a hash of the files that make its
+// code (its frame in packages/import, and Hedge School's page code), so that it tells a player of an out-of-date
+// userscript only when that code changed.
 const now = new Date(), pad = (n: number) => String(n).padStart(2, '0');
 const userscriptVersion = `${now.getUTCFullYear()}.${now.getUTCMonth() + 1}.${now.getUTCDate()}.${pad(now.getUTCHours())}${pad(now.getUTCMinutes())}`;
 const userscriptCode = createHash('sha256')
-	.update(['userscript.ts', 'pageCode.ts', 'meafPage.ts', 'meaf.ts', 'strategyjamPage.ts', 'strategyjam.ts']
-		.map(f => readFileSync(`src/lib/game/${f}`, 'utf8')).join('\0'))
+	.update(['../../packages/import/src/userscript.ts', '../../packages/import/src/pageCode.ts',
+		...['tools.ts', 'meafPage.ts', 'meaf.ts', 'strategyjamPage.ts', 'strategyjam.ts'].map(f => `src/lib/game/${f}`)]
+		.map(f => readFileSync(f, 'utf8')).join('\0'))
 	.digest('hex').slice(0, 12);
 
 // The engine files that the stored results name (src/lib/game/earlierResults.ts): the CPU module and the networks, by

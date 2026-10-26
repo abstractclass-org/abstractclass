@@ -43,10 +43,10 @@ ask where it goes (design 21): with that choice, "import" again names what the p
    Lichess's `/analysis/pgn/` name theirs so.
    - `record`: the notation's text, readable, which anyone can write.
    - `packed`: Hedge School's compact form of a record and its lines (share.ts), which only Hedge School writes.
-3. **The payload stays after the `#`:** a browser never sends that part of an address to a server, and Google
-   Analytics does not record it. The analytics start only once a page has taken a game out of its address (`holdsGame`
-   in `src/lib/game/importHash.ts`): a kept game's id and a place on the board name no moves, and may stay. This departs
-   from Lichess, whose paths carry the game: Hedge School keeps players' games out of its host and its analytics
+3. **The payload stays after the `#`:** a browser never sends that part of an address to a server, and Google Analytics
+   does not record it. The analytics start only once a page has taken a game out of its address (`holdsGame` in
+   `packages/import/src/importHash.ts`): a kept game's id and a place on the board name no moves, and may stay. This
+   departs from Lichess, whose paths carry the game: Hedge School keeps players' games out of its host and its analytics
    (designs 11 and 17).
 4. **`/import` takes every game that comes in from outside for the review,** in the review's arrival step
    (`src/lib/review/Arrival.svelte`):
@@ -59,12 +59,12 @@ ask where it goes (design 21): with that choice, "import" again names what the p
      ways in here too. `/import` with no game goes to `/tools`.
    - **The analytics:** the layout starts none on `/import`. The arrival step starts them once the game has left the
      address, and counts the import there (`import_game`, design 17). The page carries `noindex` (design 23).
-   - **`/review` takes only its own ways in** (`reviewArrives` in `src/lib/game/importHash.ts`): `game=`, `packed=`,
-     `from=`, and `tool=` for a tool from before the import page, a userscript that Tampermonkey has not yet updated.
-     That game shows the choice and the notice to update the tool, and counts `tool_out_of_date` (design 17) on
-     `/review`: there, every tool's game is from a tool older than the import page. The review's choice can go when
-     that count on `/review` stops (exploration 6, the tab **Old tools**, by page). A record on `/review` (`record=`,
-     or a bare one) gets the Review tab, and the analytics wait while it stays in the address.
+   - **`/review` takes only its own ways in** (`reviewArrives` in `packages/import/src/importHash.ts`): `game=`,
+     `packed=`, `from=`, and `tool=` for a tool from before the import page, a userscript that Tampermonkey has not yet
+     updated. That game shows the choice and the notice to update the tool, and counts `tool_out_of_date` (design 17) on
+     `/review`: there, every tool's game is from a tool older than the import page. The review's choice can go when that
+     count on `/review` stops (exploration 6, the tab **Old tools**, by page). A record on `/review` (`record=`, or a
+     bare one) gets the Review tab, and the analytics wait while it stays in the address.
 5. **The pages:**
    - **The header:** Practice, Review, Analysis (later Puzzles, Learn), then Tools, The notation, About and "Support
      us". Practice
@@ -185,11 +185,11 @@ ask where it goes (design 21): with that choice, "import" again names what the p
 
 - `src/routes/review/+page.svelte` and `src/lib/review/Arrival.svelte` (the review's ways in),
   `src/lib/review/ReviewHome.svelte` (the Review tab), `src/lib/review/pageMarks.ts` (the script in the review page's
-  head, and the variants `review-game` and `review-last` in `src/app.css`),
-  `src/routes/analysis/+page.svelte` (the board's), `src/routes/import/+page.svelte` (the games from outside),
-  `src/routes/tools/+page.svelte`, `src/routes/+layout.svelte` (the header, the analytics' start),
-  `src/lib/game/importHash.ts` (the parameters, `holdsGame`, `reviewArrives`), `src/lib/game/board.ts` and
-  `src/lib/game/share.ts` (`packed`), `src/routes/developers/+page.svelte`.
+  head, and the variants `review-game` and `review-last` in `src/app.css`), `src/routes/analysis/+page.svelte` (the
+  board's), `src/routes/import/+page.svelte` (the games from outside), `src/routes/tools/+page.svelte`,
+  `src/routes/+layout.svelte` (the header, the analytics' start), `packages/import/src/importHash.ts` (the parameters,
+  `holdsGame`, `reviewArrives`), `src/lib/game/board.ts` and `src/lib/game/share.ts` (`packed`),
+  `src/routes/developers/+page.svelte`.
 
 ## Log entries
 

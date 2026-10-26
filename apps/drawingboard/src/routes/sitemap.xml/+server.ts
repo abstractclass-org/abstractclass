@@ -3,7 +3,7 @@ import { SITE_ORIGIN } from "#lib/site.ts";
 
 export const prerender = true;
 
-const PAGES = ["/", "/notation", "/about", "/privacy", "/notices"];
+const PAGES = ["/", "/tools", "/notation", "/about", "/privacy", "/notices"];
 
 export function GET() {
   const urls = PAGES.map(p => `  <url><loc>${SITE_ORIGIN}${p}</loc></url>`).join("\n");

@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { REVIEW_PAGE_SCRIPT } from "./pageMarks.ts";
-import { reviewArrives } from "#lib/game/importHash.ts";
+import { reviewArrives } from "@abstractclass/import/importHash.ts";
 import { LAST_REVIEW } from "#lib/game/store.ts";
 
 const record = '[Blue "a"] [Red "b"]\n\n1. D10-E13 2. Q10-R8 O11-Q10 *';

@@ -35,6 +35,7 @@
 	"dependencies": {
 		"@abstractclass/analysis": "*",
 		"@abstractclass/engine": "*",
+		"@abstractclass/import": "*",
 		"@abstractclass/record": "*",
 		"@abstractclass/review": "*",
 		"@abstractclass/site": "*",

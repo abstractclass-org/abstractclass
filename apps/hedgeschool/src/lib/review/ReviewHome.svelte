@@ -20,7 +20,7 @@
   import { annotatedFromStore } from "#lib/review/exportText.ts";
   import ExportMenu from "#lib/ExportMenu.svelte";
   import { setVisitor, track } from "#lib/analytics.svelte.ts";
-  import { trackImport, trackImportFailed, trackLoad, trackLoadFailed } from "#lib/game/importEvents.ts";
+  import { trackImport, trackImportFailed, trackLoad, trackLoadFailed } from "#lib/game/sources.ts";
   import { GAME_RANGES, range } from "#lib/measure.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
   import ConfirmDialog, { type Answer } from "#lib/ui/ConfirmDialog.svelte";

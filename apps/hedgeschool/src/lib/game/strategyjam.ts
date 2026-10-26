@@ -1,6 +1,5 @@
-// A strategyjam.org game as a game record. The bookmarklet (bookmarklet.ts) and the userscript (userscript.ts) run this
-// on the strategyjam.org game page, so the function here is self-contained: no imports, and nothing from outside its
-// own body. A strategyjam.org game is what its page holds (strategyjamPage.ts), as the engine repository's
+// A strategyjam.org game as a game record. The bookmarklet and the userscript (tools.ts) run this on the
+// strategyjam.org game page, so the function here is self-contained: no imports, and nothing from outside its own body. A strategyjam.org game is what its page holds (strategyjamPage.ts), as the engine repository's
 // docs/context.md ("strategyjam.org internals") describes it: the players by seat, First then Second, and the moves one
 // by one, each `FROM-TO` with the columns a to s and the rows 1 to 19 (`a10-d10`), or `pass` for a timeout. First
 // starts with a10-d10, Blue's A10-D10 in the engine's notation, so First is Blue.

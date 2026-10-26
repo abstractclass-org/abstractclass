@@ -29,7 +29,7 @@
   import { boardLink, boardOfRecord, readBoardLink } from "#lib/game/board.ts";
   import { download, shippedModels, type ExportItem, type ExportKind, type ExportResult } from "#lib/game/reviewFile.ts";
   import { analysisFileName, exportAnalysis, fileKind, openAnalysisFile } from "#lib/game/analysisFile.ts";
-  import { holdsGame } from "#lib/game/importHash.ts";
+  import { holdsGame } from "@abstractclass/import/importHash.ts";
   import { parseRecord, withStart } from "#lib/game/record.ts";
   import { variantProblem } from "#lib/game/import.ts";
   import { checkMoves, checkPosition } from "#lib/game/check.ts";
@@ -37,7 +37,7 @@
   import { mainIndex, pathKey } from "@abstractclass/analysis/tree.ts";
   import { startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
   import { isImportSource, trackImport, trackImportFailed, trackLoad, trackLoadFailed, type ImportSource,
-           type LoadSource } from "#lib/game/importEvents.ts";
+           type LoadSource } from "#lib/game/sources.ts";
   import { readPasted } from "#lib/game/paste.ts";
   import { readLocal, writeLocal } from "@abstractclass/storage/local.ts";
   import { SITE_NAME, SITE_VERSION } from "#lib/edition.ts";
@@ -98,7 +98,7 @@
    *  for the analysis kept here. */
   interface Opening { board: KeptBoard | null; at?: string[]; atMain?: number; imported?: ImportSource; loaded?: LoadSource }
   // The ways in that this site's own pages name in the address (`via`): a pasted record, Constellation export or
-  // position, and a tool's game that the player chose to analyze (Arrival), which are imports (importEvents.ts), an
+  // position, and a tool's game that the player chose to analyze (Arrival), which are imports (sources.ts), an
   // analysis file (a load), and the board editor's position and the New menu's standard start (neither: the site's own,
   // design 17). Without one, `record=` and `position=` are another site's link, and `packed=` a shared analysis.
   const OWN: string[] = ["editor", "new", "practice", "your_games"];

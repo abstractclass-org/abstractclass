@@ -515,14 +515,15 @@ shows few rows. Read it as section "Reading it" says.
   `src/lib/measure.test.ts`).
 - The flag of internal traffic: `src/lib/internalTraffic.ts`, tested in `src/lib/internalTraffic.test.ts`. The site
   reads the address's parameter as it starts, in `src/hooks.client.ts`.
-- The events: `src/lib/game/importEvents.ts` (the imports and loads), `src/lib/review/ReviewHome.svelte` (the Review
-  tab's imports and loads, deletes, `games_stored`), `src/lib/review/Arrival.svelte` (the tools' imports, the share
-  links' and partners' loads), `src/routes/analysis/+page.svelte` (the board's imports and loads, `analysis_open`),
-  `src/routes/review/+page.svelte` (the review's events, settings, features, `game_missing`, the address),
-  `packages/review/src/ReviewView.svelte` (`onfeature`), `src/lib/ExportMenu.svelte` (`export`),
-  `packages/analysis/src/gpu.svelte.ts` (`gpu_test`, the GPU's failure), `workerSpeed` in `packages/engine/src/pool.ts`,
-  `src/routes/practice/+page.svelte` (Practice's events and features), with their parameters in
-  `src/lib/practice/practice.ts` (`practiceParams`, `practiceEndParams`, tested in `practice.test.ts`).
+- The events: `packages/import/src/importEvents.ts` (the imports and loads), with Hedge School's sources in
+  `src/lib/game/sources.ts`, `src/lib/review/ReviewHome.svelte` (the Review tab's imports and loads, deletes,
+  `games_stored`), `src/lib/review/Arrival.svelte` (the tools' imports, the share links' and partners' loads),
+  `src/routes/analysis/+page.svelte` (the board's imports and loads, `analysis_open`), `src/routes/review/+page.svelte`
+  (the review's events, settings, features, `game_missing`, the address), `packages/review/src/ReviewView.svelte`
+  (`onfeature`), `src/lib/ExportMenu.svelte` (`export`), `packages/analysis/src/gpu.svelte.ts` (`gpu_test`, the GPU's
+  failure), `workerSpeed` in `packages/engine/src/pool.ts`, `src/routes/practice/+page.svelte` (Practice's events and
+  features), with their parameters in `src/lib/practice/practice.ts` (`practiceParams`, `practiceEndParams`, tested in
+  `practice.test.ts`).
 - The privacy page: `src/routes/privacy/+page.svelte`.
 
 ## Log entries

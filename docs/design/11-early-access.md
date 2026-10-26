@@ -180,22 +180,24 @@ read the game from the player's own page.
 - **On meaf.us, it reads the game that the board holds:** React's `game` property of the board. It sends no request
   to meaf.us and uses nothing from the player's login. It opens the import page (`/import`) with the record after the
   `#` (design 22), and the page asks the player to review the game or to analyze it on the board (design 21).
-- **The bookmark is a loader** (`bookmarklet.ts`): a short `javascript:` that adds this site's `/bookmarklet.js` to the
-  game's page at each click. So the bookmark stays as it is when the code changes, and the player drags it to the
-  bar once. The script takes the site's address from its own address, so a game goes back to the site that the
-  bookmark came from. A click can open a tab only for a few seconds after it: after a slower load, the game's tab
-  goes to the import page instead. When the script cannot load, the bookmark says so.
+- **The bookmark is a loader** (`packages/import/src/bookmarklet.ts`, with Hedge School's parts in
+  `src/lib/game/tools.ts`): a short `javascript:` that adds this site's `/bookmarklet.js` to the game's page at each
+  click. So the bookmark stays as it is when the code changes, and the player drags it to the bar once. The script takes
+  the site's address from its own address, so a game goes back to the site that the bookmark came from. A click can open
+  a tab only for a few seconds after it: after a slower load, the game's tab goes to the import page instead. When the
+  script cannot load, the bookmark says so.
   - **It depends on the sites' headers:** a content security policy that blocks other sites' scripts would stop it.
     Neither meaf.us nor strategyjam.org sends one. A check of strategyjam.org on 2026-10-17 found none. If one comes,
     the bookmark needs the code in itself again, as before the loader.
   - **The request** carries no game. By default the browser names only the game site's origin as the page that made
     it. The privacy page does not describe this request. It names the IP address and the browser that Cloudflare
     receives with each request, but not the page that made a request.
-- **Each tool says what it is,** with each game (`importHash.ts`): `#tool=…&v=…&site=…&at=…&record=…` after the import
-  page's address. The bookmarklet sends its loader's version (`BOOKMARK_VERSION`), and the userscript a hash of the
-  files that make its code (the build's `__USERSCRIPT_CODE__`, `vite.config.ts`), so that a build that changes neither
-  flags no one. `site` is the page's host: the import's source tells the two sites apart (design 17). A tool from before
-  this sends the record alone, and one from before strategyjam.org sends no site.
+- **Each tool says what it is,** with each game (`packages/import/src/importHash.ts`):
+  `#tool=…&v=…&site=…&at=…&record=…` after the import page's address. The bookmarklet sends its loader's version
+  (`BOOKMARK_VERSION`), and the userscript a hash of the files that make its code (the build's `__USERSCRIPT_CODE__`,
+  `vite.config.ts`), so that a build that changes neither flags no one. `site` is the page's host: the import's source
+  tells the two sites apart (design 17). A tool from before this sends the record alone, and one from before
+  strategyjam.org sends no site.
 - **The position on the page** (`at`): the game's moves before the position that the page shows, a pass one move, as the
   record counts them. Both sites have a replay slider whose value is that count. On meaf.us, it is
   `input[aria-label="Replay position"]`, in a watcher's view and in a finished game's view from the History page
@@ -219,10 +221,10 @@ read the game from the player's own page.
 - **On meaf.us, the winner is a name.** meaf.us gives the winner as the winning player's name, as the engine
   repository's archive tools read it (`tools/analyze_archive.py`). The record's result compares it with the two
   players' names.
-- **On meaf.us, the Site tag is the game's address,** `https://meaf.us/sst1/?game=ID&spectate=1` (`meafRecord`), so
-  the review links back to it, as it does for strategyjam.org. `/sst1/` is the path of the game page that the tools
-  run on (`userscript.ts` matches it). The id is `MeafGame.gameID`. `spectate=1` gives the watcher's view, which loads
-  the moves (above). meaf.us adds it too when it opens a finished game from its History page.
+- **On meaf.us, the Site tag is the game's address,** `https://meaf.us/sst1/?game=ID&spectate=1` (`meafRecord`), so the
+  review links back to it, as it does for strategyjam.org. `/sst1/` is the path of the game page that the tools run on
+  (the userscript's `@match` in `src/lib/game/tools.ts`). The id is `MeafGame.gameID`. `spectate=1` gives the watcher's
+  view, which loads the moves (above). meaf.us adds it too when it opens a finished game from its History page.
   - **The address opens the game for a player who is logged in to meaf.us.** A visitor who is not logged in gets
     meaf.us's sign-in page at every address of meaf.us. The players who bring a game are logged in when they bring
     it, so the link opens the game for them. Another reader of the review gets the sign-in page. No check opened a
@@ -259,15 +261,15 @@ read the game from the player's own page.
   site sends a content security policy). It shows a round button with the school's collie near the page's lower
   right corner while a game shows, and adds "Review this game in Hedge School" to Tampermonkey's menu. Its note
   shows above the button.
-  - **The button's place** (`BUTTON_PLACES` in `userscript.ts`, one entry for each site). On meaf.us: fixed in the
-    window's lower right corner. strategyjam.org's page fills the window, and its move list holds the lower right
+  - **The button's place** (`BUTTON_PLACES` in `src/lib/game/tools.ts`, one entry for each site). On meaf.us: fixed in
+    the window's lower right corner. strategyjam.org's page fills the window, and its move list holds the lower right
     corner. In a narrow window the panel under the board scrolls, and in a wide one the board can fill the height
     between the menu and the panel. So no fixed spot there stays free. The button goes at the end of the move list's
-    legend ("can be cut", "can't be cut yet", `.enc-legend`), in the page's own layout. It sits to the right, in a
-    row of its own when the legend fills its row, and it scrolls with the panel. It is 36 pixels wide, as the page's
-    icon buttons. A sweep at the layout test's sizes (widths 360 to 1,920 by 10, heights 700, 860 and 1,000) found it
-    over nothing: no text, control, board or scroll bar. The same sweep with the button fixed in the corner found it
-    over the move list's scroll bar, the gains and the legend.
+    legend ("can be cut", "can't be cut yet", `.enc-legend`), in the page's own layout. It sits to the right, in a row
+    of its own when the legend fills its row, and it scrolls with the panel. It is 36 pixels wide, as the page's icon
+    buttons. A sweep at the layout test's sizes (widths 360 to 1,920 by 10, heights 700, 860 and 1,000) found it over
+    nothing: no text, control, board or scroll bar. The same sweep with the button fixed in the corner found it over the
+    move list's scroll bar, the gains and the legend.
   - **It updates itself.** The site serves it at `/hedge-school.user.js`, and its header alone at
     `/hedge-school.meta.js`, which Tampermonkey checks for a newer version (`@updateURL`, as Greasy Fork serves a
     `.meta.js`). Each build gives it a later version (the build's time). A change of a site's page then needs no new

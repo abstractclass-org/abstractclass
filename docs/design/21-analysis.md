@@ -71,11 +71,11 @@ engine does by itself.
      game.
      - **Review the game** keeps the game in the list of games, and reviews it.
      - **Analyze on the board** keeps no game in the list. The page goes to `/analysis#record=…&at=…&via=…`
-       (`analysisAddress` in `src/lib/game/importHash.ts`): the game's moves are the main line, so each line that the
-       player draws is a variation of the game. The board opens at the position that the game's page showed (`at`,
-       design 11), else at the game's last move, the position that a page without a replay shows. `via` names the
-       tool, for the import's source. The board checks the record and asks before it replaces the player's board, as
-       for any record brought.
+       (`analysisAddress` in `packages/import/src/importHash.ts`): the game's moves are the main line, so each line that
+       the player draws is a variation of the game. The board opens at the position that the game's page showed (`at`,
+       design 11), else at the game's last move, the position that a page without a replay shows. `via` names the tool,
+       for the import's source. The board checks the record and asks before it replaces the player's board, as for any
+       record brought.
      - **The choice is the site's,** not the tools': the bookmark's loader stays as it is (`BOOKMARK_VERSION`), and the
        userscript updates itself, so no player installs a tool again. An older bookmark, or a userscript that
        Tampermonkey has not yet updated, gets the choice too, on the review if it opens the review. Its game carries no
@@ -217,11 +217,11 @@ engine does by itself.
 ## Where it is
 
 - `src/routes/analysis/+page.svelte`: the board, its store and its ways in. `packages/analysis/src/session.svelte.ts`:
-  its engine, the review's (`EngineSession`). `packages/review/src/ReviewView.svelte`: the
-  view, in its board form (`BoardForm`). `packages/analysis/src/analysis.svelte.ts`: the board form of the analysis
-  (`setMain`, `playLine`, `judgedMain`, `keptBoard`). `src/lib/game/board.ts`: the link and a record's line.
-  `src/lib/game/analysisFile.ts`: the analysis file. `packages/analysis/src/model.ts`: `onlyJudged`.
-  `src/lib/game/paste.ts`: a pasted record. `src/lib/game/importEvents.ts`: the imports' events.
+  its engine, the review's (`EngineSession`). `packages/review/src/ReviewView.svelte`: the view, in its board form
+  (`BoardForm`). `packages/analysis/src/analysis.svelte.ts`: the board form of the analysis (`setMain`, `playLine`,
+  `judgedMain`, `keptBoard`). `src/lib/game/board.ts`: the link and a record's line. `src/lib/game/analysisFile.ts`: the
+  analysis file. `packages/analysis/src/model.ts`: `onlyJudged`. `src/lib/game/paste.ts`: a pasted record.
+  `packages/import/src/importEvents.ts`: the imports' events, with Hedge School's sources in `src/lib/game/sources.ts`.
 
 ## Log entries
 
