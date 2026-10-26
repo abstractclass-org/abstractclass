@@ -1,7 +1,8 @@
 <script lang="ts">
-  // The book's table lab (design 32, item 3): the board and the book's table (BookTable) on the test book, so that the
-  // table can be checked and looked at before the review, the Analysis board and Openings take it (beads abscls-tpaj.6,
-  // .7 and .12). The dev and preview servers serve the test book at /test-book/ (vite.config.ts, `testBook`), and no
+  // The book's table lab (design 32, item 3 and "The table"): the board and the book's table (BookTable) on the test
+  // book, so that the table can be checked and looked at before the review, the Analysis board and Openings take it
+  // (beads abscls-tpaj.6, .7 and .12). Each row shows its label and its symbol as icons only, with their words as
+  // their titles (beads abscls-tpaj.16). The dev and preview servers serve the test book at /test-book/ (vite.config.ts, `testBook`), and no
   // build holds it: where it is not served, the page goes home.
   //
   // The page has no engine. It draws the board from the book's positions, which the book's moves reach by their
@@ -123,8 +124,8 @@
 <main class="mx-auto max-w-6xl px-4 py-4">
   <h1 class="text-lg font-semibold">The book's table</h1>
   <p class="mb-3 text-sm text-muted">
-    The table on the test book, not the engine's book. Point at a row to show its line on the board. Click a row to
-    play its move. Press Tab to put the focus on the table. Press the up and down keys to go to a different row, Enter
+    The table on the test book, not the engine's book. Point at a row to show its line on the board. Point at a label
+    or at a symbol to show its words. Click a row to play its move. Press Tab to put the focus on the table. Press the up and down keys to go to a different row, Enter
     to play the move, and Escape to remove the focus from the table. Press the left and right keys to go back or
     forward one edge. Press o to show or hide the book.
   </p>

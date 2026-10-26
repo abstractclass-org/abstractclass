@@ -22,7 +22,8 @@
   import type { BookPosition, BookSource } from "./form.ts";
   import { bookCount, GROUP_TITLES, positionTitle, type BookRow } from "./rows.ts";
   import { endSentence, refutationText } from "./sentences.ts";
-  import { positionSymbol } from "./symbols.ts";
+  import { positionSymbol, SYMBOL_SIDE } from "./symbols.ts";
+  import type { Label } from "@abstractclass/analysis/labels.ts";
 
   interface Props {
     /** The book at the position on screen (lookup.svelte.ts, OpeningBook `at`). */
@@ -190,7 +191,9 @@
           <tr class="[&>th]:sticky [&>th]:top-0 [&>th]:z-1 [&>th]:bg-panel [&>th]:font-medium [&>th]:text-muted [&>th]:border-b [&>th]:border-line">
             <th class="w-7">#</th><th>Edge</th>
             {#if values}<th class="w-18">{side} wins</th><th class="w-16">Goes on</th>{/if}
-            <th>Line ends</th>
+            <!-- As narrow as it can be: its symbols are narrower than its head, and the edge's column takes the rest. With
+                 the values, its head goes on two lines, so the edge keeps its room on a phone. -->
+            <th class={["w-0", !values && "whitespace-nowrap"]}>Line ends</th>
           </tr>
         </thead>
         <tbody>
@@ -210,8 +213,9 @@
   <p class="sr-only" aria-live="polite" bind:this={live}></p>
 </section>
 
-<!-- A move's row: its number as the board draws it, the edge with its label, then its values and the symbol at its
-     line's end. A row outside the book and the game's row have "—" where the book has no value. -->
+<!-- A move's row: its number as the board draws it, the edge with its label's badge, then its values and the symbol at
+     its line's end, in its side's colour. The badge and the symbol show no words: their words are their titles and
+     their names (design 32, item 3). A row outside the book and the game's row have "—" where the book has no value. -->
 {#snippet moveRow(row: BookRow, item: number)}
   {@const lit = pointed === row.move}
   <tr data-item={item} data-move={row.move} tabindex={item === active ? 0 : -1}
@@ -225,11 +229,11 @@
         <span class={["font-mono", row.n === 1 && row.book && "font-semibold"]}>{row.move}</span>
         <span class="text-xs text-muted">
           {#if row.group === "yours" && row.game}
-            {#if row.game.label}<LabelBadge label={row.game.label} />{/if}
-            In your review: {row.game.label ? `${LABEL_TEXT[row.game.label]}, ` : ""}{row.game.blueWin !== undefined ? `${side} ${moverPct(row.game.blueWin)}` : ""} · not in the book
+            {#if row.game.label}{@render badge(row.game.label)}{/if}
+            In your review: {row.game.blueWin !== undefined ? `${side} ${moverPct(row.game.blueWin)}` : ""} · not in the book
           {:else if row.label}
             <!-- In expressions: Svelte trims the white space at the start of a block -->
-            <LabelBadge label={row.label} /> {LABEL_TEXT[row.label]}{row.book?.trap ? " · a trap" : row.ends ? " · the book ends here" : ""}{row.game ? " · your game" : ""}
+            {@render badge(row.label)} {[row.book?.trap ? "a trap" : row.ends && "the book ends here", row.game && "your game"].filter(Boolean).join(" · ")}
           {/if}
         </span>
         {#if row.book?.trap}
@@ -248,8 +252,17 @@
       </td>
       <td>{#if row.turns !== undefined}{row.turns === 0 ? "This turn" : `${row.turns} turn${row.turns === 1 ? "" : "s"}`}{:else}<span class="text-muted">—</span>{/if}</td>
     {/if}
-    <td>{#if row.symbol}<BookSymbol symbol={row.symbol} words={values ? "under" : "phone-under"} />{:else}<span class="text-muted">—</span>{/if}</td>
+    <td class={row.symbol && [SYMBOL_SIDE[row.symbol] === 0 && "text-blue", SYMBOL_SIDE[row.symbol] === 1 && "text-red"]}>
+      {#if row.symbol}<BookSymbol symbol={row.symbol} words="hidden" />{:else}<span class="text-muted">—</span>{/if}
+    </td>
   </tr>
+{/snippet}
+
+<!-- A label's badge with its word as its title and its name: the row shows the badge only (design 32, item 3).
+     LabelBadge itself stays hidden from assistive technology, for the move list and the Report, which give the word in
+     their own text. -->
+{#snippet badge(label: Label)}
+  <span role="img" aria-label={LABEL_TEXT[label]} title={LABEL_TEXT[label]}><LabelBadge {label} /></span>
 {/snippet}
 
 <!-- A trap's refutation, in a row of its own under the trap, so that the player reads it before playing it. The row

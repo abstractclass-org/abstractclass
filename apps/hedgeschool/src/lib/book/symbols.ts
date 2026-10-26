@@ -35,3 +35,9 @@ export const SYMBOL_NAME: Record<PositionSymbol, string> = {
   "=": "Equal position", "⩲": "Blue is slightly better", "⩱": "Red is slightly better", "±": "Blue is better",
   "∓": "Red is better", "+−": "Blue is winning", "−+": "Red is winning", "∞": "Unclear position",
 };
+
+/** The side that each symbol names as better (0 Blue, 1 Red), none for = and ∞. A row's symbol takes its side's
+ *  colour (design 32, item 3): Enclosure's sides are Blue and Red, so the colour names the side. */
+export const SYMBOL_SIDE: Record<PositionSymbol, 0 | 1 | null> = {
+  "=": null, "∞": null, "⩲": 0, "±": 0, "+−": 0, "⩱": 1, "∓": 1, "−+": 1,
+};

@@ -210,6 +210,12 @@
     const e = R.edges[i];
     return !e || !forSide(e.player) ? null : unit === "edge" ? e.label : R.turnOf[i]?.label ?? null;
   };
+  /** The review's label of the game's edge `i` itself, by turn too, and none for the player that "Review for" leaves
+   *  out: the book's rows judge the edge that they name, as the book works by edge (design 32, item 4). */
+  const edgeLabel = (i: number): Label | null => {
+    const e = R.edges[i];
+    return e && forSide(e.player) ? e.label : null;
+  };
   let settingsOpen = $state(false);
   // The engine's settings (design 09) open under the engine header, from its gear, as Lichess's open from the gear in
   // its engine box: the header's values and its search bar stay in view while they change. The display settings take the
@@ -346,11 +352,11 @@
   // early edition, and only where the book's index loads: elsewhere the column stays as it was, with no switch. The
   // table's rows and the board's numbers point at each other (`book.pointed`), and the row pointed at draws its line as
   // a candidate's does. A book move played from the table is a variation, as any move that the player plays.
-  // The game's move at the position on screen, for the table's row "Your game" (design 32, item 4): its edge, the label
-  // that the move list shows for it, and Blue's win chance after it, by the review. None in a variation, at the game's end
-  // and on the Analysis board.
+  // The game's move at the position on screen, for the table's row "Your game" (design 32, item 4): its edge, the
+  // review's label of the edge itself, and Blue's win chance after it, by the review. None in a variation, at the game's
+  // end and on the Analysis board.
   const bookGame = $derived<BookGameMove | null>(board || mainAt === null || mainAt >= moves.length ? null : {
-    move: mainNames[mainAt], label: shownLabel(mainAt),
+    move: mainNames[mainAt], label: edgeLabel(mainAt),
     blueWin: Number.isNaN(R.blueWin[mainAt + 1]) ? undefined : R.blueWin[mainAt + 1],
   });
   // The notation of each position on the path from the start: the game's as far as the path follows it, then the
@@ -1113,8 +1119,8 @@
     if (board || !book || !parts) return null;
     return parts.opening(gamePositions.map(p => parts.notation(p)), mainNames);
   });
-  // The row gives the label that the move list shows for the move that left the book
-  const openingRow = $derived(opening && view.book && view.book.openingRow(opening, mainNames, shownLabel(opening.at)));
+  // The row gives the review's label of the edge that left the book
+  const openingRow = $derived(opening && view.book && view.book.openingRow(opening, mainNames, edgeLabel(opening.at)));
   const bookMarks = $derived(new Set(opening?.marks));
   /** Goes to a position of the game from the Report's rows or the book's mark, and shows the book there for this
    *  review only: the switch shows "Book", and the choice that the browser keeps does not change. */

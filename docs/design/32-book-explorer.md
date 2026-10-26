@@ -61,9 +61,16 @@ explorers that people use in chess and Go is [../research/03-opening-explorers.m
      | Best outside the book | the best move outside the book and its value, as KataGo's "other" row |
      | Your game (the review only) | the game's move, when it is in no group above |
 
-   - **A row** shows the edge with its label under it and the symbol at its line's end, in words. "Show the values"
-     adds the win chance for the side to move, the bounds and the number of turns that the book goes on under the
-     move. The browser keeps the choice. The values are closed by default.
+   - **A row** shows the edge with its label's badge under it, and the symbol at its line's end. The badge and the
+     symbol show no words, as Lichess shows its position glyphs: the label's word ("Excellent") and the symbol's name
+     ("Blue is slightly better") are their titles and their accessible names. The title row's symbol keeps its words,
+     on one line, so the table shows once what the symbols mean. "Show the values" adds the win chance for the side to
+     move, the bounds and the number of turns that the book goes on under the move. The browser keeps the choice. The
+     values are closed by default.
+   - **A row's symbol takes its side's colour:** Blue's three (⩲, ±, +−) take Blue's colour, Red's three (⩱, ∓, −+)
+     Red's, and = and ∞ the text's. This is a departure from Lichess, whose glyphs have no colour. Enclosure's sides
+     are Blue and Red, so the colour names the side. The colour does not carry the meaning alone: the symbol's shape
+     and its name give the side too.
    - **The table and the board point at each other:** the board numbers the rows' moves as the candidates are numbered
      (design 07). The pointer on a row highlights its edge and draws its line. The pointer on a numbered edge
      highlights its row.
@@ -80,8 +87,8 @@ explorers that people use in chess and Go is [../research/03-opening-explorers.m
    - **One engine and one depth rule a game:** the review keeps its own labels, on book moves too (design 16). The
      book's table shows the book's values. The game's row has "—" in the book's columns, and its move cell gives the
      review's label and value with their source: "In your review: Good, Blue 46.5%". The opening row and the game's
-     row give the label that the move list shows for the move: the turn's label when the review judges by turn, the
-     edge's when it judges by edge. So the player sees one label for one move. The rows still name the edge.
+     row give the review's label of the edge itself, also when the review judges by turn. The book works by edge, also
+     in the middle of a turn, so its rows judge the edge that they name.
    - **A book move played from the table** is a variation of the game, as any move that the player plays in a review is
      (design 07). "Delete from here" removes it.
 5. **Openings:**
@@ -148,10 +155,11 @@ explorers that people use in chess and Go is [../research/03-opening-explorers.m
      focus (the key o, or a move that leaves the book), the focus goes to the switch.
    - Each chevron is a button that says whether it is open and how many moves it holds. The position on screen is the
      move list's current item. The count of the position's book moves ("4 book moves, 1 trap") comes once a step, as
-     a polite announcement. Each label and symbol has its words.
+     a polite announcement. Each label's badge and each symbol has its words as its accessible name.
 10. **The phone:** the board, the book's table, the move list, then the step bar, as the Lichess app lays out its
-    explorer. A tap anywhere on a row plays its move, and nothing in a row takes a tap of its own. Each row writes its
-    symbol's words under the symbol. The step bar is fixed to the bottom of the screen on Openings, the review and the
+    explorer. A tap anywhere on a row plays its move, and nothing in a row takes a tap of its own. A row shows its
+    badge and its symbol without words, as on a wide screen: the colour and the title row's words say what the symbols
+    mean. The step bar is fixed to the bottom of the screen on Openings, the review and the
     Analysis board (a change to design 06), so that the step back is in view whenever the board is.
 11. **Loading and failure:** the book loads in parts, the start's part first. A position whose part still loads shows
     "Loading the book…". A failed load shows "The book did not load. Check your connection, then try again." with "Try
@@ -187,8 +195,10 @@ explorers that people use in chess and Go is [../research/03-opening-explorers.m
   - **The move list shows the book's tree folded around the path.** No surveyed tool draws the tree around the
     position. The second prototype's view showed that the variations need folding.
   - **The table lists the other move orders.** No surveyed tool does. In the third prototype's book, all 31 positions
-    that two move orders reach are a turn's two edges in the other order, so a turn's pair is one variation, and the
-    list is for move orders across turns.
+    that two move orders reach are a turn's two edges in the other order, so a turn's pair is one variation, and
+    the list is for move orders across turns.
+  - **A row's symbol takes its side's colour.** Lichess's position glyphs have no colour. Enclosure's sides are Blue
+    and Red, so the colour names the side.
 - **One edge at a time:** the book stores a position after each edge, and every surveyed explorer lists one move at a
   time. The move list keeps the review's turns.
 
@@ -323,8 +333,16 @@ its own choice of "Book" or "Candidates" and of "Show the values", handles the k
   last turn, and two move orders reach many book positions, so a Great would change a position's table with the
   path. The best move outside the book is Best when it is better than the first book move.
 - **The symbols** come from `symbols.ts`, the rule of the sentences too: a position's from `positionSymbol`, a row's
-  from `lineEndSymbol`, the symbol at the end of its main line. `BookSymbol.svelte` draws the eight symbols, because
-  the site's font has no glyph for ⩲ and ⩱.
+  from `lineEndSymbol`, the symbol at the end of its main line, and each symbol's side from `SYMBOL_SIDE`.
+  `BookSymbol.svelte` draws the eight symbols, because the site's font has no glyph for ⩲ and ⩱. In a row, it shows
+  the symbol only, with its name as its title and its accessible name.
+- **The badges:** a row's label is `LabelBadge` in a wrapper that gives the label's word as its title and its
+  accessible name. `LabelBadge` itself stays hidden from assistive technology, because the move list and the Report
+  give the word in their own text.
+- **The widths:** the last column ("Line ends") is as narrow as it can be, because its symbols are narrower than its
+  head. The edge's column takes the rest. With the values, the head goes on two lines, so the edge keeps its room on
+  a phone. The layout sweep (`npm run test:layout`) checks the review with the table at the end of the test book, with
+  the values closed and open, at every width from 360 pixels.
 - **The sentence under the table** is the page's: the lab page gives it from `sentences.ts`, the sentence of the row
   pointed at or focused (`moveSentence`), else the best move's (`bestMoveSentence`).
 - **The end of the book** (item 5): a position with no book move shows "End of the book" with its symbol in words
@@ -353,9 +371,9 @@ for both (items 3 and 8). The page's part of the work is in `apps/hedgeschool/sr
   its regions. A click on a row or on its number plays the move as a variation. Space plays row 1, or the row that has
   the focus. A trap and its refutation play edge by edge at the engine's line's pace.
 - **The game's move:** in the review, the view gives the table the game's move at the position on screen (`bookGame`):
-  its edge, the label that the move list shows for it, and Blue's win chance after it. A move outside the book gets the
-  row "Your game", and a book move gets "your game" in its own row. A variation, the game's end and the Analysis board
-  have no game's move.
+  its edge, the review's label of the edge itself (`edgeLabel`, also by turn), and Blue's win chance after it. A move
+  outside the book gets the row "Your game", and a book move gets "your game" in its own row. A variation, the game's end
+  and the Analysis board have no game's move.
 
 ## The review
 
@@ -369,8 +387,8 @@ shows them in the early edition, where the book loads. They read the site's one 
   order starts a new stretch in the book.
 - **The Report's rows** are under the counts: the heading "Opening" and its row, then the heading "Traps" and a row
   for each trap. Each row is one button, its sentence followed by the link text "Show the position".
-- **The opening row** names the first departure, with the label that the move list shows for the move that left: the
-  turn's label by turn, the edge's by edge, and none for the player that "Review for" leaves out. A game that followed
+- **The opening row** names the first departure, with the review's label of the edge that left, by turn too, and none
+  for the player that "Review for" leaves out. A game that followed
   the book to its end gives the turn of the book move that reached the end. "Before that" names the book move worse
   than Good with the largest loss before the departure, by the book's label. When that move reached the end, the row
   says "The last book move, G10-J13, is an Inaccuracy." in place of "Before that". In the test book, 41 of the 75 book
@@ -416,3 +434,5 @@ and abscls-tpaj.3, never merged.
   (2026-10-24).
 - [decisions/product.md](../decisions/product.md), "The book in the review: its rows, its mark and the game's row"
   (2026-10-25).
+- [decisions/product.md](../decisions/product.md), "The book's table: labels and line ends as icons only"
+  (2026-10-26).

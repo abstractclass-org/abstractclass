@@ -204,8 +204,8 @@ const article = (word: string) => (/^[AEIOU]/.test(word) ? "an" : "a");
 // book's.
 
 /** The opening row of a game that left the book, at the position before the move that left it: "The game left the
- *  book at turn 3: Blue, D9-G11, Good." `label`: the review's label that the move list shows for the move (its turn's
- *  when the review judges by turn), null until the review has it. */
+ *  book at turn 3: Blue, D9-G11, Good." `label`: the review's label of the edge itself, by turn too, null until the
+ *  review has it. */
 export const leftBookSentence = (p: BookPosition, move: string, label: Label | null) =>
   `The game left the book at turn ${p.turn}: ${side(p)}, ${move}${label ? `, ${LABEL_TEXT[label]}` : ""}.`;
 

@@ -18,19 +18,19 @@
 </script>
 
 <script lang="ts">
-  // A position symbol (symbols.ts) and its words. `words`: the words beside the symbol, or under it, or under it on a
-  // phone only (a phone's row, design 32, item 10), or only for assistive technology and the pointer's tooltip.
+  // A position symbol (symbols.ts) and its words. `words`: the words beside the symbol (the table's title row), or
+  // only for assistive technology and the pointer's tooltip (a row's line end, design 32, item 3), as Lichess shows its
+  // position glyphs.
   import { SYMBOL_NAME } from "./symbols.ts";
 
-  let { symbol, words = "beside" }: { symbol: PositionSymbol; words?: "beside" | "under" | "phone-under" | "hidden" } = $props();
+  let { symbol, words = "beside" }: { symbol: PositionSymbol; words?: "beside" | "hidden" } = $props();
   const shape = $derived(SHAPES[symbol]);
 </script>
 
-<span class={["inline-flex gap-x-1", words === "under" ? "flex-col items-start" : "items-center",
-              words === "phone-under" && "max-[799px]:flex-col max-[799px]:items-start"]}
+<span class="inline-flex items-center gap-x-1"
       title={words === "hidden" ? SYMBOL_NAME[symbol] : undefined}
       role={words === "hidden" ? "img" : undefined} aria-label={words === "hidden" ? SYMBOL_NAME[symbol] : undefined}>
   <svg class="flex-none" width="{shape.width / 16}em" height="1em" viewBox="0 0 {shape.width} 16" fill="none" stroke="currentColor"
        stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d={shape.d} /></svg>
-  {#if words !== "hidden"}<span class={[words === "under" && "text-xs", words === "phone-under" && "max-[799px]:text-xs"]}>{SYMBOL_NAME[symbol]}</span>{/if}
+  {#if words !== "hidden"}<span>{SYMBOL_NAME[symbol]}</span>{/if}
 </span>

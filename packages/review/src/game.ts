@@ -181,8 +181,8 @@ export interface ImageParts<G extends ViewTypes> {
   download(name: string, file: Blob): void;
 }
 
-/** The game's move at the position on screen, for the book table's row "Your game": its name, the label that the
- *  move list shows for it, and Blue's win chance after it. */
+/** The game's move at the position on screen, for the book table's row "Your game": its name, the review's label of
+ *  the edge itself (by turn too), and Blue's win chance after it. */
 export interface BookGameMove { move: string; label: Label | null; blueWin: number | undefined }
 /** The opening book where the view shows it (Hedge School's book/place.svelte.ts, BookPlace). */
 export interface ViewBook<M> {

@@ -30,6 +30,12 @@ const marks = (page: Page) => page.getByRole("button", { name: /^Last move in th
 /** The move on screen in the move list, or null at the start. */
 const here = async (page: Page) => ((await page.locator(".mv.here").count()) ? (await page.locator(".mv.here").innerText()).trim() : null);
 const row = (page: Page, text: string | RegExp) => page.getByRole("button", { name: text });
+/** The book table's row "Your game": the game's move outside the book. */
+const gameRow = (page: Page) => page.locator("tr", { hasText: "In your review:" });
+/** A label's badge, which shows no word: its word is its name. */
+const LABEL_NAME = /^(Best|Great|Excellent|Good|Inaccuracy|Mistake|Blunder)$/;
+/** A position symbol's name (symbols.ts, SYMBOL_NAME). */
+const SYMBOL_NAME = /^(Equal position|Unclear position|(Blue|Red) is (slightly better|better|winning))$/;
 
 test.describe("desktop", () => {
   test.use({ viewport: { width: 1366, height: 900 } });
@@ -56,19 +62,33 @@ test.describe("desktop", () => {
     await expect(book).toHaveAttribute("aria-pressed", "false");
     await opening.click();
     await expect(book).toHaveAttribute("aria-pressed", "true");
-    // The game's move here, D9-G11, is not in the book: the row "Your game", with the review's label and value
+    // The game's move here, D9-G11, is not in the book: the row "Your game", with the review's label as a badge and
+    // its value
     await expect(page.getByText("Your game", { exact: true })).toBeVisible();
-    await expect(page.getByText(/In your review: \w+, Blue \d+(\.\d)?% · not in the book/)).toBeVisible();
-    expect(await page.evaluate(() => localStorage.getItem("hedge-school:book-table:review:1"))).toBeNull();
+    await expect(page.getByText(/In your review: Blue \d+(\.\d)?% · not in the book/)).toBeVisible();
+    await expect(gameRow(page).getByRole("img", { name: LABEL_NAME })).toHaveCount(1);
+    // The rows show their line ends' symbols with no words, each in its side's colour. The title row keeps the words.
+    const rows = page.getByRole("region", { name: "Opening book" }).locator("tbody");
+    await expect(rows.getByRole("img", { name: SYMBOL_NAME }).first()).toBeVisible();
+    await expect(rows.getByText(SYMBOL_NAME)).toHaveCount(0);
+    const color = (css: string) => page.evaluate(c => {
+      const probe = document.body.appendChild(document.createElement("span"));
+      probe.style.color = c;
+      const value = getComputedStyle(probe).color;
+      probe.remove();
+      return value;
+    }, css);
+    expect(await rows.getByRole("img", { name: /^Blue / }).first().evaluate(e => getComputedStyle(e).color)).toBe(await color("var(--blue)"));
   });
 
-  test("the rows give the label that the move list shows: none for the player that Review for leaves out", async ({ page }) => {
+  test("the rows give the edge's own label: none for the player that Review for leaves out", async ({ page }) => {
     await page.addInitScript(() => localStorage.setItem("learn-enclosure:review-display:1", JSON.stringify({ reviewFor: "red" })));
     await open(page, "book-left-review.json");
     const opening = row(page, /^The game left the book at turn 3: Blue, D9-G11\. Before that, at turn 2, Red played O11-Q10/);
     await expect(opening).toBeVisible({ timeout: 30_000 });
     await opening.click();
     await expect(page.getByText(/In your review: Blue \d+(\.\d)?% · not in the book/)).toBeVisible();
+    await expect(gameRow(page).getByRole("img", { name: LABEL_NAME })).toHaveCount(0);
   });
 
   test("a game that follows the book to its end", async ({ page }) => {
@@ -99,7 +119,7 @@ test.describe("desktop", () => {
     await trap.click();
     expect(await here(page)).toMatch(/^K9-N11/);
     // The game's move is the trap, a book move: its row in the traps' group says so
-    await expect(page.getByText(/· a trap · your game/)).toBeVisible();
+    await expect(page.getByText(/a trap · your game/)).toBeVisible();
   });
 
   test("the book not loaded: no opening row and no mark, and the rest of the review works", async ({ page }) => {

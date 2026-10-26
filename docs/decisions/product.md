@@ -7143,3 +7143,26 @@ the words of the site. The pages, the lessons, the documents and the code's comm
   line shows, so the review gets the lab's rule. The script that runs the engine no longer copies the engine's
   driver: it starts the module with the build's own library (`gpu_engine.mjs`, its `createCpuEngine` only), as
   Hedge School's `node-engine.mjs` does, and writes the same `fixtures.json`, byte for byte.
+
+### The book's table: labels and line ends as icons only (2026-10-26)
+
+- **The rows show icons only** (design 32, item 3): a label's badge with no word, and the symbol at a line's end with
+  no words, on a phone too, as Lichess shows its position glyphs. The words are each icon's title and accessible
+  name. The title row's symbol keeps its words, on one line, so the table shows once what the symbols mean. The
+  words took room that the icons already carry.
+- **A row's symbol takes its side's colour:** Blue's three symbols Blue's colour, Red's three Red's, = and ∞ the
+  text's. Lichess's glyphs have no colour. Enclosure's sides are Blue and Red, so the colour names the side. The
+  shape and the name give the side too, so the colour does not carry the meaning alone.
+- **The rows' label is the edge's own:** the table's row "Your game" and the Report's opening row give the review's
+  label of the edge that they name, by turn too, with "Review for" still applied. This replaces "One label for one
+  move" of "The book in the review: its rows, its mark and the game's row": the book works by edge, also in the
+  middle of a turn, so its rows judge the edge. In the three test games, the edge's label and its turn's label are
+  the same where a row gives one (D9-G11, a Blunder, in `book-left-review.json`), so no browser test tells the two
+  apart.
+- **The widths,** measured in Playwright's Chromium on the review of `hedgefund-review.json` at the end of the test
+  book: the table is as wide as its box at 360, 400, 799, 800, 1,023, 1,024, 1,259, 1,260, 1,280, 1,366 and 1,920
+  pixels, with the values closed and open. The column "Line ends" now takes its narrowest width: 68 pixels with the
+  values closed, its head on one line, and 38 pixels with the values open, its head on two lines. With the values
+  open, the edge's column has 62 pixels at 360 (40 with the head on one line) and 123 at 1,260 (93). Left to the
+  table's own layout, the column took a share of the free room: at 1,260 pixels, values closed, the edge's column
+  had 163 pixels in place of 229. The layout sweep gets a test of the table, with the values closed and open.
