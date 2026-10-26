@@ -17,8 +17,7 @@ new builds arrive often.
   (review, puzzles, training) is a route, and each page is pre-rendered.
 - **Build tool:** Vite (inside SvelteKit). It bundles each Web Worker as a module script.
 - **Styles:** Tailwind CSS 4 (`@tailwindcss/vite`), as utility classes in the markup. The colour tokens in `src/app.css`
-  and in the shared `packages/site/src/site.css` and `packages/review/src/review.css` are Tailwind's only colours
-  (`bg-panel`, `text-muted`,
+  and in the shared packages' `site.css` and `review.css` are Tailwind's only colours (`bg-panel`, `text-muted`,
   `border-line`), and dark mode follows the tokens. The page's `data-theme` (`light` or `dark`) chooses the tokens,
   and Tailwind's `dark:` follows it: the theme menu sets it (`packages/site/src/theme.svelte.ts`), and with no choice
   it follows the system's theme. An element with `data-theme="light"` takes the light tokens in either theme, and
@@ -105,7 +104,7 @@ new builds arrive often.
   workspace ([design 26](26-one-repository.md)).
 - `packages/site/src/site.css`: the general colour tokens, Tailwind's theme from them, and the base element styles.
   It also holds the general controls (the main button, the icon button, the dialogs, the menus and the keys' lists).
-  `packages/review/src/review.css`: the view's tokens (the labels', the last move's, the score line's and the
+  `packages/review/src/review.css`: the view's tokens (the quality labels', the last move's, the score line's and the
   engine's), the one-column variant, `bar-glider` and the step bar's dock. `src/app.css`: Hedge School's own tokens
   (the accent, the board's, the notes' and the area line's) and utilities (`board-points`, `btn-danger`).
 - `engine.lock.json` and `scripts/fetch-engine.mjs`: the engine's artifacts.

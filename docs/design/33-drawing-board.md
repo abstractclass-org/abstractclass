@@ -219,4 +219,5 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
 
 ## Log
 
-[decisions/product.md](../decisions/product.md), "Drawing Board, Blueprints' site" (2026-10-25).
+[decisions/product.md](../decisions/product.md), "Drawing Board, Blueprints' site" (2026-10-25), and "The review's
+styles in packages/review and packages/site" (2026-10-26).

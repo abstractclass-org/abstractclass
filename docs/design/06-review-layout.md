@@ -97,8 +97,7 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
      keeps Previous and Next in a bottom bar (design 32, item 10). So the step back is in view whenever the board is.
      Under the move list, the bar was below the board, and on a 360 × 640 screen the two were never in view together.
      The rule is the shared bar's (`StepBar.svelte`, and `.step-dock` in `packages/review/src/review.css`), so every
-     page with the bar
-     takes it: the review, the Analysis board, Practice, and Openings when it comes.
+     page with the bar takes it: the review, the Analysis board, Practice, and Openings when it comes.
    - **The bar spans the page's area,** with the page's padding, so that its buttons line up with the column. With a
      mouse, the area's scroll bar stays clear of it.
    - **The status line stays in the bar,** over the steps: it says what an edge on the board needs next.

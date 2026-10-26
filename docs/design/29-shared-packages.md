@@ -145,12 +145,12 @@ edit in the same commit), so their changes still apply.
 9. **The views in a package, on two boards.** `@abstractclass/review` (`packages/review`) holds the review's and the
    Analysis board's view (`ReviewView.svelte`) and its parts: the charts, the labels' badges, the players' cards and
    their row, the move list's look, the step bar, the win bar, a line's drawing, the line that an image draws, and the
-   area map's styles. Its style (`review.css`) holds the view's colour tokens in both themes (the labels', the last
-   move's, the score line's, the engine's and the candidates'), the one-column variant, the gleam of work in progress
-   (`bar-glider`) and the step bar's dock (`.step-dock`). The general controls that the view uses (the main button,
-   the icon button, the dialogs and the keys' lists) are in `@abstractclass/site`'s `site.css`. A site gives the
-   board's colour (Tailwind's `board`, from `--board-bg`) and the second number's line (`area`, from `--area`). The
-   split happened on Blueprints' board, the first board of a second game (Drawing Board, design
+   area map's styles. Its style (`review.css`) holds the view's colour tokens in both themes (the quality labels', the
+   last move's, the score line's, the engine's, the candidates' and the badges' text), the one-column variant, the gleam
+   of work in progress (`bar-glider`) and the step bar's dock (`.step-dock`). The general controls that the view uses
+   (the main button, the icon button, the dialogs and the keys' lists) are in `@abstractclass/site`'s `site.css`. A site
+   gives the board's colour (Tailwind's `board`, from `--board-bg`) and the second number's line (`area`, from
+   `--area`). The split happened on Blueprints' board, the first board of a second game (Drawing Board, design
    33, in place of a rehearsal game on Connect-4's board). The view's game interface (`packages/review/src/game.ts`,
    `ViewGame`) extends the game interface (item 2), and its types (`ViewTypes`) extend `GameTypes`. A site gives one
    object, and its pages give it to the view (the prop `view`). Hedge School's is `src/lib/review/enclosureView.ts`. The
@@ -263,8 +263,7 @@ edit in the same commit), so their changes still apply.
   check is `svelte-check`. `src/game.ts`: the view's game interface (item 9), the players' names, the score's
   format, and the class of a number in a move's shape (`DIGITS`). `src/ownership.ts`: the area map's styles and
   marks. `src/lineImage.ts`: the line that an image draws, and its animation's frames. `src/review.css`: the
-  package's Tailwind source and the view's style (its colour tokens, the one-column variant, `bar-glider` and
-  `.step-dock`), which a site's style imports after `site.css`.
+  package's Tailwind source and the view's style (item 9), which a site's style imports after `site.css`.
 - `apps/hedgeschool/src/lib/review/enclosureView.ts`: Enclosure's part of the view, which the review's and the
   Analysis board's pages give it. Its components: `EnclosureBoard.svelte` (Hedge School's board with the view's
   props, and the area map's margin), `EdgePill.svelte` (an edge's shape in the lists) and `EmptyBoard.svelte`.
@@ -277,5 +276,6 @@ edit in the same commit), so their changes still apply.
 
 ## Log
 
-[decisions/product.md](../decisions/product.md), "The analysis and the review in packages/" (2026-10-19), and "The
-review's view in packages/review" (2026-10-25).
+[decisions/product.md](../decisions/product.md), "The analysis and the review in packages/" (2026-10-19), "The
+review's view in packages/review" (2026-10-25), and "The review's styles in packages/review and packages/site"
+(2026-10-26).

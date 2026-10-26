@@ -87,8 +87,7 @@ school's colour seen beyond the site.
   `static/brand/hedge-school.svg`.
 - `src/routes/+layout.svelte` (the icons, the header), `src/routes/about/+page.svelte` (the mascot), `src/app.css`
   (`--accent`, `--on-accent`), `packages/review/src/review.css` (`--score`), `packages/site/src/site.css`
-  (`--site-header`). The partners' button style:
-  `src/routes/developers/+page.svelte`.
+  (`--site-header`). The partners' button style: `src/routes/developers/+page.svelte`.
 - The PNGs were drawn from the SVG by the browser, on a canvas: this machine's ffmpeg cannot read SVG. The tracing
   used the `potrace` package of npm outside the repository: the drawing's dark form split into the dog with its
   keyline, the dog inside it, and the white fur, each traced.

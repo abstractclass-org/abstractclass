@@ -1,7 +1,7 @@
 /* The review's view and its parts (design 29, item 9) use Tailwind's classes: Tailwind finds them here. A site that
    shows the view imports this file after Tailwind (`@import "@abstractclass/review/review.css"`). This file holds the
-   view's own style: the labels', the last move's, the score line's and the engine's colour tokens, the one-column
-   variant, the gleam of work in progress and the step bar's dock. */
+   view's own style: the quality labels', the last move's, the score line's and the engine's colour tokens, the
+   one-column variant, the gleam of work in progress and the step bar's dock. */
 @source ".";
 
 /* The view's colour tokens, beside the shared ones (@abstractclass/site/site.css). An element with data-theme="light"
@@ -53,7 +53,8 @@
   --blunder: var(--blunder-fill);
 }
 /* The view's tokens as Tailwind's colours, beside the shared ones (site.css). Label colours are set from the label in
-   the markup (style:background="var(--{label})"), so they stay plain tokens. */
+   the markup (style:background="var(--{label})"), so they stay plain tokens. Blunder's ink is also the colour of an
+   error's text. */
 @theme inline {
   --color-last: var(--last);
   --color-score: var(--score);

@@ -2,9 +2,7 @@
 /* The sites' shared style: the general colour tokens, the base styles and the page area (packages/site). This file
    adds Hedge School's own: its accent, its board's, the notes' and the area line's. */
 @import "@abstractclass/site/site.css";
-/* The review's view and its parts (packages/review): Tailwind finds their classes there. Its file holds the view's
-   style: the labels', the last move's, the score line's and the engine's colour tokens, the one-column variant, the
-   gleam of work in progress and the step bar's dock. */
+/* The review's view and its parts, with their style (packages/review): Tailwind finds their classes there. */
 @import "@abstractclass/review/review.css";
 
 /* Hedge School's colour tokens, beside the shared ones (site.css). An element with data-theme="light" takes the light
@@ -37,8 +35,7 @@
   --note-grey: #a8a8ae;
 }
 /* Hedge School's tokens as Tailwind's colours, beside the shared ones (site.css) and the view's (review.css). Best's
-   and Mistake's inks are the view's tokens, and only the lessons and the puzzles take them as colours. Label colours
-   are set from the label in the markup (style:background="var(--{label})"), so they stay plain tokens. */
+   and Mistake's inks are the view's tokens, and only the lessons and the puzzles take them as colours. */
 @theme inline {
   --color-board: var(--board-bg);
   --color-area: var(--area);

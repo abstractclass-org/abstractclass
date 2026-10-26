@@ -1,9 +1,7 @@
 @import "tailwindcss";
 /* The sites' shared style: Hedge School's colour tokens, its base styles and its page area (packages/site). */
 @import "@abstractclass/site/site.css";
-/* The review's view and its parts (packages/review): Tailwind finds their classes there. Its file holds the view's
-   style: the labels', the last move's, the score line's and the engine's colour tokens, the one-column variant, the
-   gleam of work in progress and the step bar's dock. */
+/* The review's view and its parts, with their style (packages/review): Tailwind finds their classes there. */
 @import "@abstractclass/review/review.css";
 
 /* Drawing Board's accent (design 33, "Consequences"): a neutral slate until its colour is decided, on Hedge School's
