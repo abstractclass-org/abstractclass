@@ -4,8 +4,8 @@
   // under the steps as a group, and the steps then span the bar's width, as Lichess's do. The bar measures whether the
   // tools fit beside the steps at their own width, and so it does not stay wrapped once the steps are wide.
   // In one column (below 800 pixels) the bar is fixed to the bottom of the window, as the Lichess app's bottom bar, so
-  // that the step back is in view whenever the board is (the dock, app.css). The page's area then keeps room for it at
-  // its end, as high as the bar: the bar sets --step-dock on the document for the room and for the scroll padding.
+  // that the step back is in view whenever the board is (the dock, review.css). The page's area then keeps room for it
+  // at its end, as high as the bar: the bar sets --step-dock on the document for the room and for the scroll padding.
   import { untrack, type Snippet } from "svelte";
   import type { ClassValue } from "svelte/elements";
   import Icon from "@abstractclass/site/Icon.svelte";

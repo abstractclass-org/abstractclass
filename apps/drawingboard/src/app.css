@@ -1,6 +1,10 @@
 @import "tailwindcss";
 /* The sites' shared style: Hedge School's colour tokens, its base styles and its page area (packages/site). */
 @import "@abstractclass/site/site.css";
+/* The review's view and its parts (packages/review): Tailwind finds their classes there. Its file holds the view's
+   style: the labels', the last move's, the score line's and the engine's colour tokens, the one-column variant, the
+   gleam of work in progress and the step bar's dock. */
+@import "@abstractclass/review/review.css";
 
 /* Drawing Board's accent (design 33, "Consequences"): a neutral slate until its colour is decided, on Hedge School's
    tokens. Light: 6.4:1 as text on the page, 6.9:1 under white text. Dark: 6.7:1 as text on panel-2, 9.3:1 under
@@ -14,21 +18,13 @@
   --on-accent: #16181c;
 }
 
-/* The board's tokens, which the shared style does not hold: Hedge School's (apps/hedgeschool/src/app.css), as the
-   site starts with Hedge School's style. The board, the last move, and the engine's candidates: its first choice, and
-   the others. */
+/* The board's tokens, which the shared style and the view's do not hold: Hedge School's (apps/hedgeschool/src/app.css),
+   as the site starts with Hedge School's style. */
 :root, [data-theme="light"] {
   --board-bg: #f3ead7;
   --board-dot: #b9ab8d;
-  --last: #e7b416;
-  --engine: #1f7a8c;
-  --candidate: #7b818c;
-  --on-badge: #ffffff;
 }
 :root[data-theme="dark"] {
   --board-bg: #3a362e;
   --board-dot: #6d6555;
-  --last: #d6a614;
-  --engine: #2f8fa3;
-  --candidate: #8d939c;
 }

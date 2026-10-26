@@ -399,7 +399,8 @@ cut edges that are on the board, so a line drawn over the board can show edges t
   `src/lib/board/boardImage.ts` (the PNG, `copyPng`, and the animated image, `animatedBoardImage`),
   `src/lib/board/gif.ts` (the GIF, tests in `gif.test.ts`), and in `ReviewView.svelte`, `imageTreeLine` (the line's
   edges, as a branch's preview draws them, by `treeLine`), `imageOf`, `copyImage` and `saveImage`. The note is
-  `packages/site/src/Toast.svelte` (the Export menu's too). `[data-theme="light"]` in `src/app.css` gives the light
+  `packages/site/src/Toast.svelte` (the Export menu's too). `[data-theme="light"]` in `src/app.css`,
+  `packages/site/src/site.css` and `packages/review/src/review.css` gives the light
   tokens to the board that the image draws, and keeps Tailwind's `dark:` off inside it.
 - `packages/analysis/src/model.ts`: `enoughVisits`, `trustedLine` (the 25-visit cut, with its tests in
   `src/lib/review/enclosure.test.ts`). `src/lib/review/enclosure.ts`: `lineMovers`, `LineStep`.

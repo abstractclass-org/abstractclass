@@ -417,7 +417,7 @@
 <!-- The game: the review's layout (design 06). The board is the window's height, less the row above it, or the width
      that the side column leaves, as on Lichess's game page. The side column is Lichess's, 250 to 350 pixels. With the
      gauge, the board's column is the gauge's width wider, and the row starts at the board's edge. One column below 800
-     pixels (`max-[800px]`, a width under 800), as the review and the fixed step bar (app.css). -->
+     pixels (`max-[800px]`, a width under 800), as the review and the fixed step bar (review.css in packages/review). -->
 {#snippet gameView()}
   {@const g = game}
   {@const pos = g?.positions[shown]}

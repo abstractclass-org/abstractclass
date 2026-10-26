@@ -31,16 +31,18 @@ const player = frames[last].p.edges.findIndex(es => es.some(e => String(e) === S
 const style = readFileSync(join(hub, "public/style.css"), "utf8");
 if (!style.includes(`.board .mark.${mark.label} {`)) fail(`style.css gives the label ${mark.label} no colour`);
 // The colour tokens, in each theme: a token that a theme does not set keeps the light theme's value. Hedge School's
-// are the shared ones (packages/site/src/site.css) and its own (src/app.css).
+// are the shared ones (packages/site/src/site.css), the view's (packages/review/src/review.css) and its own
+// (src/app.css), in the order that its style imports them.
 const shared = readFileSync(join(hub, "../../packages/site/src/site.css"), "utf8");
+const view = readFileSync(join(hub, "../../packages/review/src/review.css"), "utf8");
 const app = readFileSync(join(hub, "../hedgeschool/src/app.css"), "utf8");
 const block = (css, open) => css.includes(open) ? css.slice(css.indexOf(open), css.indexOf("\n}", css.indexOf(open)))
   : fail(`no "${open}" block`);
 const tokens = css => Object.fromEntries([...css.matchAll(/--([\w-]+):\s*([^;]+);/g)].map(m => [m[1], m[2].trim()]));
 const themes = (light, dark) => ({ light: tokens(light), dark: { ...tokens(light), ...tokens(dark) } });
 const hubTokens = themes(block(style, ":root {"), block(style, "@media (prefers-color-scheme: dark) {"));
-const appTokens = themes(block(shared, ':root, [data-theme="light"] {') + block(app, ':root, [data-theme="light"] {'),
-  block(shared, ':root[data-theme="dark"] {') + block(app, ':root[data-theme="dark"] {'));
+const appBlocks = open => [shared, view, app].map(css => block(css, open)).join("");
+const appTokens = themes(appBlocks(':root, [data-theme="light"] {'), appBlocks(':root[data-theme="dark"] {'));
 const drift = Object.entries(hubTokens).flatMap(([theme, t]) => Object.entries(t)
   .filter(([name, value]) => value !== appTokens[theme][name])
   .map(([name, value]) => `--${name} (${theme}) is ${value}, and ${appTokens[theme][name] ?? "missing"} in Hedge School's`));

@@ -96,7 +96,8 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
    - **On a phone, the bar is fixed to the bottom of the window** (one column, below 800 pixels), as the Lichess app
      keeps Previous and Next in a bottom bar (design 32, item 10). So the step back is in view whenever the board is.
      Under the move list, the bar was below the board, and on a 360 × 640 screen the two were never in view together.
-     The rule is the shared bar's (`StepBar.svelte`, and `.step-dock` in `src/app.css`), so every page with the bar
+     The rule is the shared bar's (`StepBar.svelte`, and `.step-dock` in `packages/review/src/review.css`), so every
+     page with the bar
      takes it: the review, the Analysis board, Practice, and Openings when it comes.
    - **The bar spans the page's area,** with the page's padding, so that its buttons line up with the column. With a
      mouse, the area's scroll bar stays clear of it.
@@ -317,8 +318,9 @@ Lichess sizes its analysis board from the window, and keeps the board whole in v
   `SettingToggle.svelte`, and Hedge School's `src/lib/ui/SoundSettings.svelte`).
 - `src/lib/review/display.ts`: the display settings and their storage in the browser.
 - `src/routes/review/+page.svelte`: the skeleton until the review shows (`gameOpen`, `preloaded`).
-- `packages/site/src/site.css`: the monospaced font (`--font-mono`, and the font's import). `src/app.css`: the step
-  bar on a phone (`.step-dock`, and the room for it at the end of the page's area, `#page`).
+- `packages/site/src/site.css`: the monospaced font (`--font-mono`, and the font's import).
+  `packages/review/src/review.css`: the step bar on a phone (`.step-dock`, and the room for it at the end of the page's
+  area, `#page`).
 - `packages/review/src/StepBar.svelte`: the step bar, its tools' wrap, and its height for the page (`--step-dock`).
   `packages/site/src/pageScroll.ts` (`intoView`): what the bar opens comes into view.
 

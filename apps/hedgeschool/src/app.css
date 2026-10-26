@@ -1,8 +1,10 @@
 @import "tailwindcss";
 /* The sites' shared style: the general colour tokens, the base styles and the page area (packages/site). This file
-   adds Hedge School's own: its accent, its board's, the review's and the labels'. */
+   adds Hedge School's own: its accent, its board's, the notes' and the area line's. */
 @import "@abstractclass/site/site.css";
-/* The review's view and its parts (packages/review): Tailwind finds their classes there. */
+/* The review's view and its parts (packages/review): Tailwind finds their classes there. Its file holds the view's
+   style: the labels', the last move's, the score line's and the engine's colour tokens, the one-column variant, the
+   gleam of work in progress and the step bar's dock. */
 @import "@abstractclass/review/review.css";
 
 /* Hedge School's colour tokens, beside the shared ones (site.css). An element with data-theme="light" takes the light
@@ -20,35 +22,7 @@
   --note-yellow: #a78202;
   --note-green: #359a3b;
   --note-grey: #86868c;
-  --last: #e7b416;
   --area: #a8508f; /* the Advantage chart's area line: magenta, apart from the players' blue and red and the labels' hues */
-  --score: #2a7d6f; /* the Advantage chart's score line: teal, apart from the lavender accent and the magenta area */
-  /* The engine's candidates: its first choice, and the others. */
-  --engine: #1f7a8c;
-  --candidate: #7b818c;
-  --on-badge: #ffffff;
-  /* Move labels, from the best down. Great is violet so that it is never read as the Blue player. Each label has two
-     colours, as on Lichess and chess.com. Its fill (--best-fill) is the badges' disc, under a white glyph, on the
-     board and in the report, and the meter's part: the same in both themes, but Great's and Blunder's, which the dark
-     theme brightens a little (below). Its ink (--best) is its glyph in the move
-     list and its marks on the charts: the fill in the dark theme, and in the light theme the same hue darker, as
-     Lichess darkens its labels, to 3:1 on panel-2. The greens keep the dark theme's steps of lightness. The three bad
-     labels' marks read as text on white: Mistake 4.5:1 and Blunder 5.5:1, near Lichess's light Blunder (5.0:1), and
-     Inaccuracy 3.0:1, as dark as a yellow goes before it turns ochre. */
-  --great-fill: #8a5cd1;
-  --best-fill: #3f9d4b;
-  --excellent-fill: #6faa52;
-  --good-fill: #8fb57a; /* the lightest of the three greens: Best, Excellent, Good */
-  --inaccuracy-fill: #d9a521;
-  --mistake-fill: #e07a2e;
-  --blunder-fill: #d43a3a;
-  --great: var(--great-fill);
-  --best: #147c2a;
-  --excellent: #4f8830;
-  --good: #6f935a;
-  --inaccuracy: #bc8d07;
-  --mistake: #bb5c03;
-  --blunder: #c62b2f;
 }
 /* The dark theme (site.css). */
 :root[data-theme="dark"] {
@@ -56,54 +30,26 @@
   --on-accent: #16181c;
   --board-bg: #3a362e;
   --board-dot: #6d6555;
-  --last: #d6a614;
   --area: #d27fbb;
-  --score: #4fb3a2;
-  --engine: #2f8fa3;
-  --candidate: #8d939c;
   --note-purple: #b37be0;
   --note-yellow: #e9b81c;
   --note-green: #4caf50;
   --note-grey: #a8a8ae;
-  /* Great and Blunder, a little brighter on the dark board (3:1 against it): their badges, glyphs and marks. */
-  --great-fill: #9467dd;
-  --blunder-fill: #e24845;
-  --best: var(--best-fill);
-  --excellent: var(--excellent-fill);
-  --good: var(--good-fill);
-  --inaccuracy: var(--inaccuracy-fill);
-  --mistake: var(--mistake-fill);
-  --blunder: var(--blunder-fill);
 }
-/* Hedge School's tokens as Tailwind's colours, beside the shared ones (site.css). Label colours are set from the label
-   in the markup (style:background="var(--{label})"), so they stay plain tokens. */
+/* Hedge School's tokens as Tailwind's colours, beside the shared ones (site.css) and the view's (review.css). Best's
+   and Mistake's inks are the view's tokens, and only the lessons and the puzzles take them as colours. Label colours
+   are set from the label in the markup (style:background="var(--{label})"), so they stay plain tokens. */
 @theme inline {
   --color-board: var(--board-bg);
-  --color-last: var(--last);
   --color-area: var(--area);
-  --color-score: var(--score);
-  --color-engine: var(--engine);
-  --color-candidate: var(--candidate);
-  --color-on-badge: var(--on-badge);
   --color-best: var(--best);
   --color-mistake: var(--mistake);
-  --color-blunder: var(--blunder);
 }
-
-/* One column on a screen, where the step bar is fixed to the window's foot (the step bar on a phone, below). */
-@custom-variant one-column (@media screen and (max-width: 799px));
 
 /* The review page before its code runs (src/lib/review/pageMarks.ts): a script in its head marks an address that names
    a game, and a last review kept in this browser. */
 @custom-variant review-game (&:where([data-review-game] *));
 @custom-variant review-last (&:where([data-review-last] *));
-
-/* The site's main button. */
-@utility btn-primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--on-accent);
-}
 
 /* An empty board's points, in a skeleton (the review's, the Analysis board's, Practice's), as the board draws them: 19 by
    19, one unit apart, 1.3 units in from the edges of a board 20.6 units wide (Board.svelte), each 0.07 units in radius.
@@ -114,83 +60,10 @@
   background: radial-gradient(circle closest-side, var(--board-dot) 12%, transparent 15%) 0 0 / calc(100% / 19) calc(100% / 19);
 }
 
-/* A button whose label is an icon (Icon.svelte): as high as a word's button, and narrower at its sides. */
-@utility btn-icon {
-  padding-inline: 0.5rem;
-}
-
 /* A button that ends something for good (Practice's Abort and Resign, a game's Delete, once confirmed): in the
    blunder's red. */
 @utility btn-danger {
   background: var(--blunder-fill);
   border-color: var(--blunder-fill);
   color: #fff;
-}
-
-/* A dialog (Bits UI's): the page darkened behind it, and its box in the window's middle. Each sets its own width. */
-@utility dialog-overlay {
-  @apply fixed inset-0 z-20 bg-[rgb(0_0_0/0.45)];
-}
-@utility dialog-box {
-  @apply fixed z-30 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 px-5 py-4 raised rounded-md;
-}
-/* A list of keys and clicks (the review's, the board editor's): a key, and a table of one row a key or a click. Each
-   table sets its own text size. */
-@utility kbd {
-  @apply inline-block min-w-[1.6em] px-1 py-px rounded border border-line bg-panel font-mono text-[0.85em] text-center leading-tight;
-}
-@utility help-table {
-  @apply w-full [&_td]:py-1 [&_td]:align-top [&_tr+tr_td]:border-t [&_tr+tr_td]:border-line;
-}
-
-/* Lichess's bar-glider (ui/lib/css/component/_bar-glider.scss): a light gleam sweeps a progress bar while its work
-   runs, so that a slow step does not look stopped. Lichess's gleam moves 3,400 pixels in 3 seconds, so it flashes
-   across a bar of 400 pixels in about a third of a second. This gleam crosses the bar in 2 seconds at any width, then
-   waits 1 second. None with reduced motion. The gleam moves by a transform, not by its place (`left`), so that it
-   asks for no layout and is no layout shift: it is the last 70 pixels of a layer as wide as the bar, which moves
-   from one bar's width left of the bar (the gleam's right edge at the bar's left edge) to 70 pixels right of it (its
-   left edge at the bar's right edge). */
-@keyframes bar-glider {
-  0% { transform: translateX(-100%); }
-  67%, 100% { transform: translateX(70px); }
-}
-@layer components {
-  .bar-glider { position: relative; overflow: hidden; }
-  .bar-glider::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(to right, rgb(255 255 255 / 0) calc(100% - 70px), rgb(255 255 255 / 0.3));
-    pointer-events: none; /* as wide as the bar: a move list's row under it takes its clicks */
-    animation: bar-glider 3s linear infinite;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .bar-glider::after { display: none; }
-  }
-}
-
-/* The step bar on a phone (design 06): in one column, below 800 pixels, the bar (StepBar) is fixed to the bottom of the
-   window, as the Lichess app's bottom bar, so that the step back is in view whenever the board is. It spans the page's
-   area (100cqw: the area is the nearest size container, and leaves out its scroll bar's room), with the page's padding,
-   so that its buttons line up with the column. Its bottom padding takes the phone's safe area. The page's area keeps
-   room for it at its end (padding-bottom), and its scrolling keeps clear of it (scroll-padding-bottom), from the bar's
-   height (--step-dock, which the bar sets while it is on the page). It is over the page (z-10), and under the menus,
-   which come later in the document at the same level, the dialogs (z-20, z-30) and the notices (z-50). On screen only:
-   a printed page is as narrow, and a fixed bar repeats on every sheet. These rules are outside Tailwind's layers, so
-   that they override the margin, border and padding that the bar's place in a wider column gives it. */
-@variant one-column {
-  html, #page { scroll-padding-bottom: var(--step-dock, 0px); }
-  #page { padding-bottom: var(--step-dock, 0px); }
-  .step-dock {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    z-index: 10;
-    width: 100cqw;
-    margin: 0;
-    padding: 0.375rem 1rem max(0.375rem, env(safe-area-inset-bottom));
-    border: 0;
-    border-top: 1px solid var(--border);
-    background: var(--panel);
-  }
 }

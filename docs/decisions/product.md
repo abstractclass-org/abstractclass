@@ -7019,3 +7019,50 @@ error and no horizontal scroll. The layout sweep in Chromium passes (25 tests, 5
     engine's and the candidates' colours, and the utilities `btn-icon`, `btn-primary`, the dialogs', `kbd`,
     `help-table`, `bar-glider` and `.step-dock`. A second site needs them in the package (`review.css`), not copied.
   - The display settings keep the area map's and the second number's fields, also for a game with neither.
+
+### The review's styles in packages/review and packages/site (2026-10-26)
+
+- **Decided:** the review's view takes its style from its package, as its code does (design 33, item 4: move, do not
+  copy). `packages/review/src/review.css` holds the view's colour tokens in both themes (the labels' fills and inks,
+  `--last`, `--score`, `--engine`, `--candidate` and `--on-badge`), their Tailwind colours (`last`, `score`, `engine`,
+  `candidate`, `on-badge` and `blunder`), the variant `one-column`, `bar-glider` and the step bar's dock
+  (`.step-dock`). `packages/site/src/site.css` holds the sites' general controls: `btn-primary`, `btn-icon`,
+  `dialog-overlay`, `dialog-box`, `kbd` and `help-table`. Hedge School's `app.css` keeps its accent, its board's
+  tokens and `board-points`, the notes' colours, `--area`, and the variants `review-game` and `review-last`. Drawing
+  Board imports `review.css` as Hedge School does, and keeps only its board's tokens (`--board-bg`, `--board-dot`).
+- **Each moved style has a user in shared code.** The view uses each token, colour, variant and rule that moved to
+  `review.css`. The general controls' users are the view's components, which depend on `@abstractclass/site`. The
+  site package's own components use none of them yet, but they are the sites' controls, and Drawing Board's shell can
+  use them. Three styles have no user in a package and stay in Hedge School's `app.css`: `btn-danger` (Practice's
+  Abort and Resign, a game's Delete) and the Tailwind colours `best` and `mistake` (the lessons and the puzzles).
+  Their tokens are the view's.
+- **What a site gives the view:** the skeleton's board colour (`bg-board`, from `--board-bg`) and the Advantage
+  chart's area line (`stroke-area`, from `--area`) stay the site's. Drawing Board has `--board-bg` but no `board`
+  colour yet: its review (abscls-8tl1.7) adds it. The site package's toast uses the variant `one-column` and the
+  colour `blunder`, and its switch's thumb the colour `on-badge`: both sites import `review.css`, which gives them.
+- **The hub's token check** (`apps/hub/scripts/enclosure-board.mjs`, the step `hub-board`) reads Hedge School's
+  tokens from `site.css`, `review.css` and `app.css`, in the order of the imports. The hub's board uses `--engine`,
+  `--on-badge` and `--mistake-fill`, which are in `review.css` now.
+- **Hedge School did not change.** Two builds, each in its own checkout with the engine's artifacts: dev at 7db8e3c
+  (from `git archive`) and this change. The built CSS had the same declarations for each selector, and for each
+  property in each cascade layer the rules that set it came in the same order. The main style had two rules more: the
+  view's token blocks, beside Hedge School's own with the same selectors. The view's chunk differed only in Svelte's
+  scoping class (`svelte-pd0pud`, `svelte-1jmnf16`): the package's component is outside the app's folder, so its
+  class comes from its absolute path, which differed between the two checkouts. The prerendered pages' inline style
+  was the same. The screenshots, in Playwright's Chromium (headless, its GPU off, the engine off in the browser's
+  settings), took 20 states: the review of the test fixture, the Analysis board with its record, Practice, Practice
+  in a game (the fixture's first 19 edges, the player to move, so that the bot did not search) and the Privacy page,
+  each 1,400 × 900 and 390 × 844, light and dark. Against two captures of the build before, 4 and 6 states differed,
+  by at most 27 pixels, each by at most 2 levels of 255, but one state of the second capture (34 levels). The two
+  captures of the build before differed from each other in 2 states, by at most 22 pixels and 34 levels: the
+  rasterizer's antialiasing.
+- **Drawing Board did not change.** Its built CSS kept every rule it had, with the same declarations, and its rules
+  kept their order among themselves. It gained the view's rules and tokens: Tailwind now finds the view's classes, and
+  a rule that targets no class (the step bar's dock: `html` and `#page` below 800 pixels) sets only the dock's room,
+  0 pixels while no step bar is on the page. The screenshots took 24 states: the home page, About, Notation, Notices,
+  Privacy and `/lab/board`, each 1,400 × 900 and 390 × 844, light and dark. Each was the same as the build before's,
+  to the pixel, in two captures. The footer names the commit that the build came from, which the build before did not
+  have (`unknown`): the comparison gave that text one value in both.
+- **Checked** on this machine: `npm ci`, `npm run check:all` (every step passed, `hub-board` too), and the layout
+  sweep in Chromium on this change's build: 34 passed, and the 5 analytics tests skipped (they need a build with a
+  Google tag).

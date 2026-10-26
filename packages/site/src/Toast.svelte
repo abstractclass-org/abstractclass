@@ -3,8 +3,8 @@
   // it failed: the Export menu's, and the move menu's image. `action`: a button beside the text, such as "Save image"
   // where the clipboard refuses an image. `onclose`: the × that closes it, none while the action runs. With `onclose`, it
   // also closes itself, `ms` after its text shows: by default 4 seconds, and 10 for a longer text, which takes longer to
-  // read. On a phone it shows above the step bar (--step-dock, app.css), which is fixed at the window's foot there:
-  // over the bar, it would cover the steps and the button that it answers.
+  // read. On a phone it shows above the step bar (--step-dock, review.css in packages/review), which is fixed at the
+  // window's foot there: over the bar, it would cover the steps and the button that it answers.
   let { text, failed = false, action, onclose, ms }:
     { text: string; failed?: boolean; action?: { label: string; onclick: () => void }; onclose?: () => void; ms?: number } = $props();
   const wait = $derived(ms ?? (text.length > 40 ? 10000 : 4000));

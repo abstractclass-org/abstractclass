@@ -1,6 +1,7 @@
-/* The sites' shared style (design 33, item 4): Hedge School's colour tokens, its base styles and its page area, for
-   every site of the repository. A site imports this file after Tailwind (`@import "@abstractclass/site/site.css"`),
-   then gives its own accent in each theme: --accent, and --on-accent, the text on it. */
+/* The sites' shared style (design 33, item 4): Hedge School's colour tokens, its base styles, its page area and its
+   general controls (the buttons, the dialogs, the menus, the keys' lists), for every site of the repository. A site
+   imports this file after Tailwind (`@import "@abstractclass/site/site.css"`), then gives its own accent in each
+   theme: --accent, and --on-accent, the text on it. */
 
 /* The sites' monospaced font (design 06): Fira Code (SIL Open Font License), from @fontsource-variable/fira-code, its
    weight axis. One font on every system, so that the move list's columns, sized in characters, measure the same
@@ -125,4 +126,32 @@
 }
 @utility menu-item {
   @apply px-2.5 py-1.5 rounded cursor-pointer outline-none data-highlighted:bg-panel;
+}
+
+/* The site's main button. */
+@utility btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+/* A button whose label is an icon (Icon.svelte): as high as a word's button, and narrower at its sides. */
+@utility btn-icon {
+  padding-inline: 0.5rem;
+}
+
+/* A dialog (Bits UI's): the page darkened behind it, and its box in the window's middle. Each sets its own width. */
+@utility dialog-overlay {
+  @apply fixed inset-0 z-20 bg-[rgb(0_0_0/0.45)];
+}
+@utility dialog-box {
+  @apply fixed z-30 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 px-5 py-4 raised rounded-md;
+}
+/* A list of keys and clicks (the review's, the board editor's): a key, and a table of one row a key or a click. Each
+   table sets its own text size. */
+@utility kbd {
+  @apply inline-block min-w-[1.6em] px-1 py-px rounded border border-line bg-panel font-mono text-[0.85em] text-center leading-tight;
+}
+@utility help-table {
+  @apply w-full [&_td]:py-1 [&_td]:align-top [&_tr+tr_td]:border-t [&_tr+tr_td]:border-line;
 }

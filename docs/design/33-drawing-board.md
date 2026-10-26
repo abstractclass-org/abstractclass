@@ -154,7 +154,8 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
 - `apps/drawingboard/`: the app. `src/lib/site.ts`: the site's name, the engine's, the live address
   (`https://drawingboard.abstractclass.org`, the canonical address of each page) and the storage keys
   (`drawing-board:…`). `src/routes/+layout.svelte`: the header, with the wordmark, Notation, About and the theme
-  menu. `src/lib/SiteFooter.svelte`: the footer, with Privacy and Notices. `src/app.css`: the neutral accent.
+  menu. `src/lib/SiteFooter.svelte`: the footer, with Privacy and Notices. `src/app.css`: the neutral accent and the
+  board's colour tokens, after the shared style and the view's (`@abstractclass/review/review.css`).
 - `apps/drawingboard/src/routes/`: the pages. The Notation page describes the moves, the marks and the record of
   items 5 to 7, 9 and 10, with one game made by hand as its examples. Item 8 is the move list's display, and comes
   with the move list. `sitemap.xml`, `static/robots.txt` and `static/_headers` follow
@@ -168,8 +169,9 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
   `src/lib/game/record.ts` gives Enclosure's moves and cut mark to it, with its calls as before.
 - `packages/analysis/src/turns.ts`: the turns of one move, then two, for both games' `turn`.
 - `packages/site/` (`@abstractclass/site`): the frame that the two sites share, moved from Hedge School (item 4).
-  `site.css` (the general colour tokens, the players' colours, the base styles, the page area's rules and the menus'
-  styles), `SiteFrame.svelte` (the header's bar over the page's own scrolling area, with each page's scroll place),
+  `site.css` (the general colour tokens, the players' colours, the base styles, the page area's rules and the general
+  controls: the menus, the main button, the icon button, the dialogs and the keys' lists), `SiteFrame.svelte` (the
+  header's bar over the page's own scrolling area, with each page's scroll place),
   `theme.svelte.ts` and `ThemeMenu.svelte` (the theme, under each site's own key), `PageMeta.svelte` and
   `origin.ts` (each page's metadata, from the site's live address), `prose.ts` (the pages' text style) and
   `LibraryNotices.svelte` (the libraries that the pages ship). Each site's root layout gives `SiteFrame` what its
@@ -208,8 +210,9 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
 - `apps/drawingboard/src/routes/lab/board/`: the board's lab page (`/lab/board`), in the site's frame: the start, a
   middle game with five candidates and their lines, a capture, an edit and an empty blueprint. The board fills the
   page area under the site's header. The address keeps the position and the pinned candidate.
-- `apps/drawingboard/src/app.css`: the board's colour tokens that the shared style does not hold (the board, the
-  last move, the engine's candidates), Hedge School's.
+- `apps/drawingboard/src/app.css`: the board's colour tokens that the shared style and the view's do not hold (the
+  board's background and its points), Hedge School's. The last move's, the engine's and the candidates' colours are
+  the view's (`packages/review/src/review.css`), and both sites take them from there.
 - `scripts/check-all.mjs`: its type check, its unit tests and its build, in the Tests workflow's checks.
 - [requests/23-blueprints-browser-build.md](../requests/23-blueprints-browser-build.md): what the site asks of the
   engine's browser build.
