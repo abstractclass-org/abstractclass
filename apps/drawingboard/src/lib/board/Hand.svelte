@@ -1,5 +1,6 @@
 <script lang="ts" module>
-  import { boxOf, center, GRID_TILE, GRID_TILE_PATH, hexAt, hexKey, hexPath, TOUCHING, type Box, type Hex } from "./hex.ts";
+  import { boxOf, center, GRID_TILE, GRID_TILE_PATH, hexAt, hexKey, hexPath, shift, TOUCHING, type Box, type Hex } from "./hex.ts";
+  import { cellKey } from "./input.ts";
   import { blueprintCells, PLAYER_NAMES, sameHandHex, type BlueprintNumber, type Hand, type HandHex, type Player } from "./position.ts";
   import type { Size } from "./view.ts";
   import Cell, { CELL_SIZE } from "./Cell.svelte";
@@ -11,15 +12,14 @@
     candidates: (HandEdit & { name: string; rank: number })[];
     placed: { blueprint: BlueprintNumber; name: string; rank: number }[]; // the placements' blueprints, for their chips
     line: (HandEdit & { n: number })[];
-    input: HandInput | null; // the player's own move begun, in the mover's hand
   }
   /** The player's own move in the mover's hand: the blueprint and the cell chosen, the cell's marked new places, and
-   *  the new place that a touch shows. */
+   *  the new place where the cell shows faded (the one that a tap shows, or the one under a mouse's pointer). */
   export interface HandInput {
     blueprint: BlueprintNumber | null;
-    cell: Hex | null;
+    cell: HandHex | null;
     targets: HandHex[];
-    shown: HandHex | null;
+    ghost: HandHex | null;
   }
   /** The part of each blueprint's frame that the hand shows: its cells and every hex that touches them, the hex 0,0
    *  also when it is empty, and the hexes of the edits drawn on it. An edit's new place touches its blueprint's cells,
@@ -31,7 +31,7 @@
     return hand.map((b, i) => {
       const n = (i + 1) as BlueprintNumber;
       const hexes: Hex[] = [[0, 0]];
-      for (const { hex: [q, r] } of blueprintCells(b)) hexes.push([q, r], ...TOUCHING.map(([dq, dr]) => [q + dq, r + dr] as const));
+      for (const { hex } of blueprintCells(b)) hexes.push(hex, ...shift(TOUCHING, hex));
       for (const e of edits) for (const h of [e.from, e.to]) if (h.blueprint === n) hexes.push(h.hex);
       return boxOf(hexes)!;
     });
@@ -62,9 +62,9 @@
   // ringed at its new place, its old place dashed, and an arrow between them), the candidates' (the rank on the cell
   // that the edit moves, an arrow, and its new place dashed), and a line's (its numbers). A chip with a placement's
   // rank goes on the blueprint that it places, so that a reader sees which blueprint each candidate takes. All hands of
-  // a board share one scale (`unit`), so that the same shape has the same size. The player's own move (`marks.input`):
-  // the chosen blueprint's panel outlined, the chosen cell ringed, its marked new places as dots, and the cell faded in
-  // the new place under a mouse's pointer, or in the one that a tap shows.
+  // a board share one scale (`unit`), so that the same shape has the same size. The player's own move (`input`): the
+  // chosen blueprint's panel outlined, the chosen cell ringed, its marked new places as dots, and the cell faded in the
+  // new place under a mouse's pointer, or in the one that a tap shows. The boxes do not depend on it.
   interface Props {
     hand: Hand;
     player: Player;
@@ -74,11 +74,12 @@
     unit: number; // pixels per unit (a hex's radius)
     boxes: Box[]; // blueprintBoxes(hand, marks)
     marks: HandMarks;
+    input?: HandInput | null; // the player's own move begun, in the mover's hand
     hover?: HandHex | null;
     onhover?: (at: HandHex | null) => void;
     onpick?: (at: HandHex, touch: boolean) => void; // a click on a hex of a blueprint's frame, and whether a touch made it
   }
-  let { hand, player, width, height, direction, unit, boxes, marks, hover = null, onhover, onpick }: Props = $props();
+  let { hand, player, width, height, direction, unit, boxes, marks, input = null, hover = null, onhover, onpick }: Props = $props();
 
   const uid = $props.id();
   const gridId = `${uid}-grid`;
@@ -99,10 +100,8 @@
   };
   const chipsOf = (n: BlueprintNumber) => marks.placed.filter(c => c.blueprint === n).sort((a, b) => a.rank - b.rank);
 
-  // The player's own move: the cell faded in the new place under the pointer, or in the one that a tap shows.
-  const input = $derived(marks.input);
-  const ghostAt = $derived(input?.cell ? input.shown ?? (hover && input.targets.some(t => sameHandHex(t, hover!)) ? hover : null) : null);
-  const ghostKind = $derived(input?.cell && input.blueprint ? hand[input.blueprint - 1][hexKey(input.cell)] ?? null : null);
+  // The player's own move: the chosen cell's kind, for its ghost.
+  const ghostKind = $derived(input?.cell ? hand[input.cell.blueprint - 1][hexKey(input.cell.hex)] ?? null : null);
 
   let svg: SVGSVGElement;
   let touched = false; // the last press was not a mouse's
@@ -205,21 +204,20 @@
 
   <!-- The player's own move: the chosen blueprint's panel, the chosen cell, its marked new places, and its ghost. -->
   {#if input}
-    {#each panels as p (p.n)}
-      {#if p.n === input.blueprint}
-        <rect x={p.inner.left + 1} y={p.inner.top + 1} width={p.inner.width - 2} height={p.inner.height - 2} rx="5" class="chosen" />
-      {/if}
-    {/each}
-    {#if input.cell && input.blueprint}
-      <path d={hexPath(...at({ blueprint: input.blueprint, hex: input.cell }), 0.9 * unit)} class="picked" />
+    {#if input.blueprint}
+      {@const p = panels[input.blueprint - 1].inner}
+      <rect x={p.left + 1} y={p.top + 1} width={p.width - 2} height={p.height - 2} rx="5" class="chosen" />
     {/if}
-    {#if ghostAt && ghostKind}
-      {@const [x, y] = at(ghostAt)}
+    {#if input.cell}
+      <path d={hexPath(...at(input.cell), 0.9 * unit)} class="chosen-cell" />
+    {/if}
+    {#if input.ghost && ghostKind}
+      {@const [x, y] = at(input.ghost)}
       <g transform="translate({x} {y}) scale({unit})"><Cell hex={[0, 0]} owner={player} kind={ghostKind} look="ghost" /></g>
     {/if}
-    {#each input.targets as t (`${t.blueprint}:${t.hex}`)}
+    {#each input.targets as t (cellKey(t.blueprint, t.hex))}
       {@const [x, y] = at(t)}
-      {#if !(ghostAt && sameHandHex(ghostAt, t))}
+      {#if !(input.ghost && sameHandHex(input.ghost, t))}
         <circle cx={x} cy={y} r={0.22 * unit} class="dot" />
       {/if}
     {/each}
@@ -262,6 +260,6 @@
   /* The player's own move: strategyjam.org's marks, a dot on each place that a click takes and a ring round the cell
      chosen, in the board's colours. */
   .chosen { fill: none; stroke: var(--own); stroke-width: 2; pointer-events: none; }
-  .picked { fill: none; stroke: var(--text); stroke-width: 2; pointer-events: none; }
+  .chosen-cell { fill: none; stroke: var(--text); stroke-width: 2; pointer-events: none; }
   .dot { fill: var(--own); pointer-events: none; }
 </style>

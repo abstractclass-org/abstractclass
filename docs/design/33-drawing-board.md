@@ -4,9 +4,8 @@
 header, the footer, the Home, About, Notation, Privacy and Notices pages, and the deploy job), and the notation and the
 record, with the import of a strategyjam.org game as a record. The owner's step for the address is left
 (abscls-8tl1.3). The board and the player's own moves are built, on positions that the engine's early build gave.
-The review's view is in a package, on Hedge School's
-board and on Blueprints' (design 29, item 9). The review and the Analysis board wait for the engine's browser build
-(request 23).
+The review's view is in a package, on Hedge School's board and on Blueprints' (design 29, item 9). The review and the
+Analysis board wait for the engine's browser build (request 23).
 **Decided:** 2026-10-25.
 
 ## Context
@@ -112,7 +111,8 @@ list marks a few hexes where the game has dozens, and the page then reads as if 
    dashed grey outline on another hex. A click on a marked hex makes the placement. The hex clicked is the anchor hex
    that the string names (`K@q,r`, item 5). While the input has its rules, the board's view fits the anchor hexes of
    every legal placement with the cells, so that every dot is in view. It fits them also while the input is off, so
-   that the view stays as it is when the input turns on.
+   that the view stays as it is when the input turns on. A page that sets the rules after the position (the review,
+   when the engine's describe answers) sees the view fit again once, when the rules come.
 2. **An edit:** the player clicks a cell of a blueprint. A dot marks each legal new place of the cell, in that
    blueprint or another one, with both coordinates in the frames before the edit: every one in the list, and no other
    hex. A new place can be outside the blueprint's cells (a negative coordinate) or an empty blueprint's dashed hex
@@ -139,17 +139,28 @@ list marks a few hexes where the game has dozens, and the page then reads as if 
    It says why a click did nothing only when the player tried that move: a placement on a hex that is not marked, an
    edit to a hex that is not marked, a click in the opponent's hand, or a click on the board with nothing begun. So
    it says "This cell has no legal edit." only after the player tries to move that cell. An empty blueprint has its
-   own text: an edit can put a cell in it. On a touch screen every text says "tap", not "click". The texts are strict
-   Simplified Technical English, with the glossary's words: blueprint, hand, cell, anchor hex, footprint, placement,
-   edit. Each fits in two lines of a phone's status line, and the status line keeps the height of two lines, so that
-   a text that wraps does not move the board between a touch's two taps. A row above the board must not change its
-   height while the player points or clicks either: on the lab page, the hex under the pointer is in a row of one
-   line under the board.
-8. **The candidates and the input.** While the input is on, a click in the mover's hand goes to the input, and the
+   own text: an edit can put a cell in it. While the input is on and nothing is begun, `firstStatus` says what to do
+   first: "Click a blueprint or a cell in Blue's hand.", with the mover's name. `inputStatus` is null then, as the
+   view's game interface asks, so that the page chooses where the first text goes. The lab page shows it in its
+   status line. The review's status line shows the position when `inputStatus` is null, and the review
+   (abscls-8tl1.7) chooses whether the first text goes there. On a touch screen every text says "tap", not "click",
+   the first text too. The texts are strict Simplified Technical English, with the glossary's words: blueprint,
+   hand, cell, anchor hex, footprint, placement, edit. Each fits in two lines of a phone's status line, and the
+   status line keeps the height of two lines, so that a text that wraps does not move the board between a touch's
+   two taps. No row of the page may change its height while the player points or clicks: a row that grew would move
+   the board under the pointer, or make the board's area smaller. On the lab page, the hex under the pointer is in a
+   row of one line, cut short when it is too long.
+8. **"Tap" before the first touch.** Before the first click, the page cannot know of a touch from a click. So the
+   input reads the device's primary pointer: when the media feature `pointer: coarse` (Media Queries Level 4)
+   matches, the primary pointer is a finger, as on a phone, and the texts say "tap". After each click, the click's
+   own pointer decides. A laptop with a touch screen has a fine primary pointer: its texts say "click" until the
+   player taps. A pen counts as a touch: every pointer that is not a mouse shows a move with its first tap.
+9. **The candidates and the input.** While the input is on, a click in the mover's hand goes to the input, and the
    pointer in a hand finds no candidate: a candidate's line would show its own hands under the pointer, in other
    frames than the dots'. A click on the board goes to the input too, unless nothing is begun and the hex is a
-   candidate's: that click finds the candidate, as before. While a candidate's line shows, the board takes no move
-   (`inputOn` is false): its hands are the line's. The candidates' edits are clicked in the review's table.
+   candidate's: that click finds the candidate, as before. While a line shows, the board takes no move: its hands
+   are the line's. The board decides this itself, so the review gets the same rule as the lab. The candidates' edits
+   are clicked in the review's table.
 
 **How strategyjam.org does it** (its game page's Blueprints module, saved by the game watch in the engine repository's
 `runs/strategyjam/blueprints/`). The mover always has a chosen blueprint: the first, or the one that the keys 1 to 3,
@@ -190,10 +201,16 @@ and their lines are hand-made marks, and the engine plays each one where it stan
 
 - **The build and the tests read the stored file:** CI has no engine files. `fixtures.engine.test.ts` runs the engine
   again and compares. It is skipped when no build's folder is in the engine repository's checkout beside this one.
-- **Node's own WASI imports** start the module. Hedge School's `scripts/node-engine.mjs` starts its module through
-  the engine's library, but that library is the GPU module's (`gpu_engine.mjs`). The module needs only the clocks,
-  random bytes and standard error. Drawing Board's own `engine.lock.json` and the engine in the page come with the
-  review (abscls-8tl1.7).
+- **Node's own WASI imports** start the module, for now. The module needs only the clocks, random bytes and standard
+  error. The script's `call` repeats the engine's driver: the engine's library (`gpu_engine.mjs`, in the build's
+  folder too) drives the CPU module (`createCpuEngine`), and Hedge School's `scripts/node-engine.mjs` starts its
+  module with it. This copy must go, as CLAUDE.md and design 29 ("Move, do not copy") ask. Drawing Board's own
+  `engine.lock.json` and the engine in the page come with the review (abscls-8tl1.7). Then `node-engine.mjs` moves
+  into `packages/engine` for both sites, and the script starts the module with the library through it.
+- **The board computes geometry only, and the tests check it against the engine.** A footprint is the blueprint's
+  cells moved to the anchor hex (`footprintOf`): the board draws it under the pointer, and the lab's moves take it
+  for their drawing. An edit's hexes in the frames after it come from the notation's frames (item 5). The tests
+  compare both with what describe_game gives: each placement's footprint, and the hands after each edit.
 - **The unit tests click every legal move** of each position. They check that each blueprint's dots are its legal
   placements' anchor hexes, all of them and no others, and that each cell's dots are its legal edits.
 

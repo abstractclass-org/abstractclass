@@ -8,6 +8,7 @@ import data from "./fixtures.json" with { type: "json" };
 import { parseMove } from "../game/notation.ts";
 import type { BoardCandidate, BoardLineMove } from "./Board.svelte";
 import { anchorOf, hexKey, parseHex, type Hex } from "./hex.ts";
+import { handHexOf } from "./input.ts";
 import { footprintOf, type BoardMove, type Hand, type HandHex, type Kind, type Player, type SitePosition } from "./position.ts";
 
 /** What a move did, as the engine's describe_game gives it: the player who made it, the hexes that a placement filled,
@@ -52,16 +53,16 @@ export interface Fixture {
   legal: string[];
 }
 
-const at = (h: Hex, d: Hex): Hex => [h[0] - d[0], h[1] - d[1]];
+const minus = (h: Hex, d: Hex): Hex => [h[0] - d[0], h[1] - d[1]];
 
 /** An edit's two hexes in the frames after it. The string names them in the frames before it (design 33, item 5), and
  *  the two blueprints then go back to their frames: each moves by its anchor cell after the edit. */
-export function editAfter(hand: Hand, from: HandHex, to: HandHex): [Hex, Hex] {
+function editAfter(hand: Hand, from: HandHex, to: HandHex): [Hex, Hex] {
   const cells = hand.map(b => Object.keys(b).map(parseHex));
   cells[from.blueprint - 1] = cells[from.blueprint - 1].filter(h => hexKey(h) !== hexKey(from.hex));
   cells[to.blueprint - 1] = [...cells[to.blueprint - 1], to.hex];
   const moved = (n: number): Hex => anchorOf(cells[n - 1]) ?? [0, 0];
-  return [at(from.hex, moved(from.blueprint)), at(to.hex, moved(to.blueprint))];
+  return [minus(from.hex, moved(from.blueprint)), minus(to.hex, moved(to.blueprint))];
 }
 
 /** The board's move of a step. A placement's footprint is its blueprint's cells on its anchor hex, in the hand before
@@ -74,8 +75,7 @@ function boardMove(s: EngineStep, before: readonly [Hand, Hand], frames: "before
     const captured = Object.entries(s.captured).map(([key, [owner, kind]]) => ({ hex: parseHex(key), owner, kind }));
     return { type: "place", player: s.player, blueprint: m.blueprint, at: anchor, footprint: footprintOf(hand[m.blueprint - 1], anchor), captured };
   }
-  let from: HandHex = { blueprint: m.from.blueprint, hex: [m.from.q, m.from.r] };
-  let to: HandHex = { blueprint: m.to.blueprint, hex: [m.to.q, m.to.r] };
+  let from = handHexOf(m.from), to = handHexOf(m.to);
   const kind = hand[from.blueprint - 1][hexKey(from.hex)];
   if (frames === "after") {
     const [f, t] = editAfter(hand, from, to);

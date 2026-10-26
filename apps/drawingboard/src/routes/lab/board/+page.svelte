@@ -2,17 +2,18 @@
   // The board's lab (design 33): Blueprints' board on the positions of a few games (lib/board/fixtures.ts), so that the
   // board can be checked and looked at before the review and the Analysis board take it. The page runs no engine:
   // Stamp Duty's early build gave each position and every legal move ahead of time (scripts/board-fixtures.mjs). The
-  // candidates and their lines are hand-made marks on legal moves. A move made shows its string in the status line, and
-  // the input starts again: the lab does not play it. Escape cancels a move begun. The address can choose the position
-  // and a candidate: ?p=1&c=2@3,-9. A choice on the page goes into the address, so that it can be shared. The site's
-  // header, with its theme menu, is above the page.
+  // candidates and their lines are hand-made marks on legal moves. While nothing is begun, the status line asks for the
+  // first click. A move made shows its string there, and the input starts again: the lab does not play it. Escape
+  // cancels a move begun, as on the review. The address can choose the position and a candidate: ?p=1&c=2@3,-9. A
+  // choice on the page goes into the address, so that it can be shared. The site's header, with its theme menu, is
+  // above the page.
   import { onMount } from "svelte";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import Board, { type BoardHex } from "#lib/board/Board.svelte";
   import { BlueprintInput } from "#lib/board/blueprintInput.svelte.ts";
   import { FIXTURE_DATA, FIXTURES } from "#lib/board/fixtures.ts";
   import { hexKey } from "#lib/board/hex.ts";
-  import { inputStatus } from "#lib/board/input.ts";
+  import { firstStatus, inputStatus } from "#lib/board/input.ts";
   import { PLAYER_NAMES } from "#lib/board/position.ts";
   import { moveName } from "#lib/game/notation.ts";
   import { ENGINE_NAME, SITE_NAME } from "#lib/site.ts";
@@ -29,13 +30,15 @@
   const line = $derived(shown && showCandidates ? fixture.lines?.[shown] ?? null : null);
 
   const input = new BlueprintInput(move => { made = moveName(move); });
-  // Each position gives the input its rules, as the view does after the engine's describe.
+  // Each position gives the input its rules (a fixture has them: its position, mover and legal moves), as the view does
+  // after the engine's describe.
   $effect.pre(() => {
     const f = fixture;
     input.reset();
     made = null;
-    input.rules = { position: f.position, mover: f.mover, legal: f.legal };
+    input.rules = f;
   });
+  const taking = $derived(takeMoves && !line); // the board takes no move while a line shows
   const status = $derived(inputStatus(input, fixture.mover));
 
   onMount(() => {
@@ -54,7 +57,7 @@
   const where = (h: BoardHex | null) =>
     !h ? "" : h.hand ? `${PLAYER_NAMES[h.hand.player]}'s blueprint ${h.hand.blueprint}, at ${hexKey(h.hex)}` : `the board, at ${hexKey(h.hex)}`;
   function onkeydown(ev: KeyboardEvent) {
-    if (ev.key === "Escape" && (input.pending || input.refused)) { input.reset(); ev.preventDefault(); }
+    if (ev.key === "Escape" && input.pending) { input.reset(); ev.preventDefault(); }
   }
 </script>
 
@@ -77,19 +80,20 @@
     {/if}
     <label class="flex items-center gap-1"><input type="checkbox" bind:checked={takeMoves} /> Your moves</label>
   </div>
-  <!-- The rows above the board change only with the position: a row that grew while the player points or clicks would
-       move the board, and its hands, under the pointer. -->
+  <!-- No row of the page changes its height while the player points or clicks: a row that grew would move the board,
+       and its hands, under the pointer, or shrink the board's area, and the board would fit its view again. -->
   <p class="shrink-0 text-sm text-muted">
     Move {fixture.position.ply} · {PLAYER_NAMES[fixture.mover]} to move · Blue {fixture.position.scores[0]}, Red {fixture.position.scores[1]}
     · {fixture.legal.length} legal moves ({ENGINE_NAME}, {FIXTURE_DATA.engine.tag})
   </p>
-  <!-- Two lines high, also for one line of text: a status that wraps would move the board between a touch's two taps. -->
-  <p class="min-h-10 shrink-0 text-sm" data-testid="input-status">
-    {#if takeMoves && status}{status}{:else if made}The move made: <span class="font-mono">{made}</span>{/if}
+  <!-- Two lines high, also for one line of text: a status that wraps would move the board between a touch's two taps.
+       With nothing begun, the move made, and the first click that the board takes. -->
+  <p class="h-10 shrink-0 text-sm" data-testid="input-status">
+    {#if taking && status}{status}{:else}{#if made}The move made: <span class="font-mono">{made}</span>.{taking ? " " : ""}{/if}{#if taking}{firstStatus(input, fixture.mover)}{/if}{/if}
   </p>
   <div class="min-h-0 flex-1">
     <Board position={fixture.position} last={fixture.last} candidates={fixture.candidates ?? []} {line}
-           pointed={pinned} layers={{ candidates: showCandidates }} {input} inputOn={takeMoves && !line}
+           pointed={pinned} layers={{ candidates: showCandidates }} {input} inputOn={takeMoves}
            oncandidate={name => (pointed = name)}
            oncandidateclick={name => { pinned = pinned === name ? null : name; address({ c: pinned }); }}
            onhexat={h => (at = h)} />

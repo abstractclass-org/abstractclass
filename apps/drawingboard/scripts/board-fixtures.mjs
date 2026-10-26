@@ -13,7 +13,10 @@
 // engine again and compares (src/lib/board/fixtures.engine.test.ts) is skipped without the folder.
 //
 // The module runs on the CPU with Node's own WASI imports: describe and describe_game need no network, and the module
-// needs only the clocks, random bytes and standard error. The engine's library (gpu_engine.mjs) is not used.
+// needs only the clocks, random bytes and standard error. `call` repeats the engine's driver: the build's gpu_engine.mjs
+// drives the CPU module too (createCpuEngine), and Hedge School's scripts/node-engine.mjs starts its module with it.
+// This copy goes when the engine comes into Drawing Board's page (abscls-8tl1.7): node-engine.mjs then moves into
+// packages/engine for both sites, and this script starts the module with the library through it (design 33).
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -120,10 +123,9 @@ export function describeGames(call) {
     const n = game.moves.length;
     const now = call({ id: "d", action: "describe", moves: game.moves });
     const positions = call({ id: "g", action: "describe_game", moves: game.moves }).positions;
-    /** The positions after `more`, played after the game's moves. @param {string[]} more */
-    const after = more => call({ id: "l", action: "describe_game", moves: [...game.moves, ...more], from: n + 1 }).positions;
-    const steps = (/** @type {string[]} */ more) => {
-      const ps = after(more);
+    /** The moves `more`, played after the game's moves, each with what it did. @param {string[]} more */
+    const steps = more => {
+      const ps = call({ id: "l", action: "describe_game", moves: [...game.moves, ...more], from: n + 1 }).positions;
       return more.map((m, i) => step(m, i ? ps[i - 1] : now, ps[i]));
     };
     return {

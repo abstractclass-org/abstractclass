@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { FIXTURE_DATA, FIXTURES } from "./fixtures.ts";
 import { parseMove } from "../game/notation.ts";
-import { anchorOf, hexKey, parseHex, TOUCHING } from "./hex.ts";
+import { anchorOf, hexKey, parseHex, shift, TOUCHING } from "./hex.ts";
 import { footprintOf } from "./position.ts";
 
 test("the lab's five positions: the start, a middle game, a capture, an edit, an empty blueprint", () => {
@@ -102,7 +102,7 @@ test("the legal lists: placements of each blueprint with cells, edits, and none 
       // hex that touches a blueprint's cells (Hand.svelte, blueprintBoxes), so every new place is in view.
       const target = hand[m.to.blueprint - 1];
       const touches = Object.keys(target).length
-        ? TOUCHING.some(([dq, dr]) => target[`${m.to.q + dq},${m.to.r + dr}`])
+        ? shift(TOUCHING, [m.to.q, m.to.r]).some(h => target[hexKey(h)])
         : m.to.q === 0 && m.to.r === 0;
       assert.ok(touches, `${f.name}: ${name}`);
     }

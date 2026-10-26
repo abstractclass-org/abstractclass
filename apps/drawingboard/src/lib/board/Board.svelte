@@ -30,7 +30,8 @@
   // marked hex, an outline on another) or on the hex that a tap shows, and the clicks on the board and in the hands.
   import Cell from "./Cell.svelte";
   import Hand, { blueprintBoxes, fitUnit, type HandInput, type HandMarks } from "./Hand.svelte";
-  import { tapHex } from "./input.ts";
+  import { moveName } from "../game/notation.ts";
+  import { clickBoard, clickHand, handHexOf, tapHex } from "./input.ts";
   import { boxOf, center, fromMiddle, GRID_TILE, GRID_TILE_PATH, hexAt, hexKey, hexPath, outlinePath, sameHex } from "./hex.ts";
   import { cellsOf, footprintOf, PLAYER_NAMES, sameHandHex } from "./position.ts";
   import { clamp, fit, pan, pinch, toArea, toPlane, viewBox, zoomAt, type View } from "./view.ts";
@@ -50,7 +51,7 @@
     // The hex under a mouse's pointer, or null when it leaves: the board shows its coordinates, and the page may too.
     onhexat?: (at: BoardHex | null) => void;
     input?: BlueprintInput | null; // the player's own moves
-    inputOn?: boolean; // the board takes them: the input's rules have come, and no preview shows
+    inputOn?: boolean; // the page lets the board take them: no preview shows (the board also needs the input's rules)
   }
   let {
     position, last = null, candidates = [], pointed = null, line = null, layers: layersSet = {},
@@ -93,7 +94,8 @@
   // The view. It fits the cells (and the cells that the last move captured) in the area, until the player pans or
   // zooms (`manual`), and again after "Show all the cells". With the input's rules, it fits the anchor hexes of every
   // legal placement too, so that each dot is in view: also while the input is off, so that the view stays as it is
-  // when the input turns on.
+  // when the input turns on. A page that sets the rules after the position (the review, when the engine's describe
+  // answers) sees the view fit again once, when they come.
   let manual = $state.raw<View | null>(null);
   const fitBox = $derived(boxOf([...allCells.map(c => c.hex), ...(lastPlace?.captured ?? []).map(c => c.hex),
                                  ...(input?.allAnchors ?? [])])
@@ -131,19 +133,19 @@
   // While a line shows, the candidates are hidden, and the pointer finds only the active one, so that the candidate
   // whose line it is keeps its hover, as on Hedge School's board.
   const findable = (c: BoardCandidate) => showCandidates || c.name === active?.name;
+  // The pointer and a click find a candidate, or else go to the player's own moves (`takes`, below). On the board, a
+  // candidate is found unless a move is begun. In a hand, none is found while the input takes moves: a candidate's line
+  // would show other hands under the pointer.
   /** The best placement whose anchor hex or whose rank is on a hex of the board. */
-  const placementAt = (h: Hex) =>
-    placements.find(c => findable(c) && (sameHex(c.move.at, h) || sameHex(rankPlaces.get(c.name)!, h))) ?? null;
-  /** The candidate whose edit takes a cell from a hex of a hand (where the hand shows its rank) or puts it there. None
-   *  while the input takes moves: a click in the hand goes to the input, and a candidate's line would show other
-   *  hands under the pointer. */
+  const placementAt = (h: Hex) => begun ? null
+    : placements.find(c => findable(c) && (sameHex(c.move.at, h) || sameHex(rankPlaces.get(c.name)!, h))) ?? null;
+  /** The candidate whose edit takes a cell from a hex of a hand (where the hand shows its rank) or puts it there. */
   const handCandidate = (player: Player, at: HandHex) => takes ? null
     : edits.find(c => findable(c) && c.move.player === player && (sameHandHex(c.move.from, at) || sameHandHex(c.move.to, at)))
       ?? null;
-  // On the board, the pointer finds a candidate unless a move is begun: a click then goes to the input.
   function pointAt(next: Hex | null) {
     if (!(next && hoverHex && sameHex(next, hoverHex))) hoverHex = next;
-    hoverName = next && !takes?.pending ? placementAt(next)?.name ?? null : null;
+    hoverName = next ? placementAt(next)?.name ?? null : null;
   }
   function handAt(player: Player, at: HandHex | null) {
     handHover = at ? { player, at } : null;
@@ -155,9 +157,10 @@
   $effect(() => { onhexat?.(pointer); });
   let told: string | null = null; // the candidate last given to oncandidate
   $effect(() => { const name = hovered?.name ?? null; if (name !== told) oncandidate?.((told = name)); });
-  // The player's own moves: on while the input has its rules and the page lets it. While it is on, a click in the
-  // mover's hand goes to it, and a click on the board too, unless nothing is begun and the hex is a candidate's.
-  const takes = $derived(inputOn && input?.rules ? input : null);
+  // The player's own moves: on while the input has its rules, the page lets it, and no line shows (the line's hands
+  // are in other frames than the dots'). While it is on, a click in the mover's hand goes to it, and a click on the
+  // board too, unless nothing is begun and the hex is a candidate's.
+  const takes = $derived(inputOn && input?.rules && !drawn.length ? input : null);
   const mover = $derived(takes?.rules?.mover ?? null);
   const begun = $derived(takes?.pending ?? null);
   const anchorKeys = $derived(new Set((takes?.anchors ?? []).map(hexKey)));
@@ -166,17 +169,20 @@
   const foot = $derived(begun && footAt && mover !== null
     ? { at: footAt, cells: footprintOf(position.blueprints[mover][begun.blueprint - 1], footAt), legal: anchorKeys.has(hexKey(footAt)) }
     : null);
+  // The move that a mouse's click under the pointer makes, as the input decides it (input.ts).
+  const clickMove = $derived(!takes?.legal || !begun ? null
+    : hoverHex ? clickBoard(begun, takes.legal, hoverHex, false).move
+    : handHover ? clickHand(begun, takes.rules!, takes.legal, handHover.player, handHover.at, false).move
+    : null);
   const handInput = (p: Player): HandInput | null => !takes || p !== mover ? null : {
-    blueprint: begun?.blueprint ?? null, cell: begun?.cell ?? null, targets: takes.targets ?? [],
-    shown: begun?.shown?.type === "edit" ? begun.shown.to : null,
+    blueprint: begun?.blueprint ?? null,
+    cell: begun?.cell ? { blueprint: begun.blueprint, hex: begun.cell } : null,
+    targets: takes.targets ?? [],
+    ghost: begun?.shown?.type === "edit" ? begun.shown.to : clickMove?.kind === "edit" ? handHexOf(clickMove.to) : null,
   };
 
-  // The coordinates under the pointer, or the move that a click there makes: a placement on a marked anchor hex, an
-  // edit on a marked new place.
-  const target = $derived(begun?.cell && handHover && handHover.player === mover
-    && takes?.targets?.some(t => sameHandHex(t, handHover!.at)) ? handHover.at : null);
-  const readout = $derived(foot?.legal && hoverHex && begun ? `${begun.blueprint}@${hexKey(hoverHex)}`
-    : target && begun?.cell ? `${begun.blueprint}:${hexKey(begun.cell)}>${target.blueprint}:${hexKey(target.hex)}`
+  // The move that a click under the pointer makes, or else the coordinates there.
+  const readout = $derived(clickMove ? moveName(clickMove)
     : hoverHex ? hexKey(hoverHex)
     : handHover ? `${PLAYER_NAMES[handHover.player]} ${handHover.at.blueprint}:${hexKey(handHover.at.hex)}` : "");
 
@@ -189,7 +195,6 @@
       ? placements.filter(c => c.move.player === p).map(c => ({ blueprint: c.move.blueprint, name: c.name, rank: c.rank }))
       : [],
     line: drawn.flatMap((l, i) => l.move.player === p && l.move.type === "edit" ? [{ ...l.move, n: i + 1 }] : []),
-    input: handInput(p),
   })));
   const boxes = $derived(players.map(p => blueprintBoxes(hands[p], marks[p])));
   // One scale for the six blueprints: the largest at which each fits its panel, a hex at most 36 pixels across.
@@ -235,10 +240,11 @@
     if (!pointers.delete(ev.pointerId)) return;
     if (gesture?.kind === "press" && !gesture.moved && click) {
       const p = local(ev), h = hexUnder(p), c = placementAt(h), touch = ev.pointerType !== "mouse";
-      if (takes && (takes.pending || !c)) {
-        const at = touch ? tapHex(h, toPlane(view, field, p.x, p.y), takes.pending, foot?.cells.map(s => s.hex) ?? [], takes.anchors ?? []) : h;
-        takes.clickBoard(at, touch);
-      } else if (c) oncandidateclick?.(c.name);
+      if (c) oncandidateclick?.(c.name);
+      else if (takes) {
+        const shown = begun?.shown?.type === "place" && foot ? { at: foot.at, hexes: foot.cells.map(s => s.hex) } : null;
+        takes.clickBoard(touch ? tapHex(h, toPlane(view, field, p.x, p.y), shown, takes.anchors ?? []) : h, touch);
+      }
     }
     // One finger left of a pinch goes on panning, and is not a click.
     const rest = [...pointers.values()][0];
@@ -282,12 +288,12 @@
     <div class="hand-area p{p}">
       {#if width > 0 && height > 0}
         <Hand hand={hands[p]} player={p} width={handArea.width} height={handArea.height} {direction} {unit}
-              boxes={boxes[p]} marks={marks[p]} hover={handHover?.player === p ? handHover.at : null}
+              boxes={boxes[p]} marks={marks[p]} input={handInput(p)} hover={handHover?.player === p ? handHover.at : null}
               onhover={at => handAt(p, at)}
               onpick={(at, touch) => {
-                if (takes) { takes.clickHand(p, at, touch); return; }
                 const c = handCandidate(p, at);
                 if (c) oncandidateclick?.(c.name);
+                else takes?.clickHand(p, at, touch);
               }} />
       {/if}
     </div>

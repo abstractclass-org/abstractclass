@@ -7136,3 +7136,9 @@ the words of the site. The pages, the lessons, the documents and the code's comm
   choice: 1,664 checks. The lab's row of information first grew to a third line at 390 pixels under a mouse, when the
   hex under the pointer showed. That row is under the board now. A candidate's line under the pointer in a hand also
   changed the hands: while the input is on, a hand's hex finds no candidate.
+- **The review's changes:** the owner's look found the status line blank until the first click. While the input is
+  on and nothing is begun, it now asks for the first click: "Click a blueprint or a cell in Blue's hand.", and "Tap"
+  on a touch screen. Before the first click, the texts follow the device's primary pointer: the media feature
+  `pointer: coarse` (design 33, "How the board takes a move", item 8). The board itself now takes no move while a
+  line shows, so the review gets the lab's rule. The script that runs the engine still repeats the engine library's
+  driver: that copy goes with abscls-8tl1.7.

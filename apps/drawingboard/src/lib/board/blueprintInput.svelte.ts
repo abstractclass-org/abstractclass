@@ -5,9 +5,13 @@
 import type { MoveInput } from "@abstractclass/review/game.ts";
 import type { Move } from "../game/notation.ts";
 import type { Hex } from "./hex.ts";
-import { anchorsOf, clickBoard, clickHand, IDLE, legalOf, targetsOf, type Begun, type Click, type InputRules, type InputView,
+import { anchorsOf, clickBoard, clickHand, legalOf, targetsOf, type Begun, type Click, type InputRules, type InputView,
          type Refusal } from "./input.ts";
 import type { HandHex, Player } from "./position.ts";
+
+/** Whether the device's primary pointer is a finger: the media feature `pointer: coarse` (Media Queries Level 4). False
+ *  where there is no window, as when the page is prerendered. */
+const coarsePointer = () => typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
 
 export class BlueprintInput implements MoveInput<InputRules>, InputView {
   /** The position's rules, or null when they are not known: the board then takes no move. */
@@ -15,8 +19,9 @@ export class BlueprintInput implements MoveInput<InputRules>, InputView {
   /** The move begun: Escape cancels it. */
   pending = $state.raw<Begun | null>(null);
   refused = $state.raw<Refusal | null>(null);
-  /** Whether the last click was a touch's: the status then says "tap". */
-  touch = $state(false);
+  /** Whether the player uses touch, so that the texts say "tap": the last click's pointer, and before the first click
+   *  the device's primary pointer. */
+  touch = $state(coarsePointer());
 
   legal = $derived(this.rules ? legalOf(this.rules) : null);
   /** The marked anchor hexes of the chosen blueprint. Null: no blueprint chosen. */
@@ -36,11 +41,10 @@ export class BlueprintInput implements MoveInput<InputRules>, InputView {
     if (click.move) this.play(click.move);
   }
   clickBoard = (hex: Hex, touch: boolean) => {
-    if (this.legal) this.#take(clickBoard({ begun: this.pending, refused: null }, this.legal, hex, touch), touch);
+    if (this.legal) this.#take(clickBoard(this.pending, this.legal, hex, touch), touch);
   };
   clickHand = (player: Player, at: HandHex, touch: boolean) => {
-    if (this.rules && this.legal)
-      this.#take(clickHand({ begun: this.pending, refused: null }, this.rules, this.legal, player, at, touch), touch);
+    if (this.rules && this.legal) this.#take(clickHand(this.pending, this.rules, this.legal, player, at, touch), touch);
   };
-  reset = () => { this.pending = IDLE.begun; this.refused = IDLE.refused; };
+  reset = () => { this.pending = null; this.refused = null; };
 }
