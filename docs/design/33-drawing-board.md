@@ -97,6 +97,73 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
     refuses a strategyjam.org game whose first position is not the standard start. Every game of the archive starts
     from it.
 
+## How the board takes a move
+
+The player's own moves on the board are the board's part of the view's game interface (design 29, item 9): a
+`MoveInput`, `input`, `inputStatus` and `clicks`. The input's rules are the position, its mover and its legal moves
+as strings. The engine's describe gives them (request 23), and the lab page gives hand-made lists. The site has no
+rules: the input never computes which moves are legal. It matches what the player points at against the list.
+
+1. **A placement:** the player clicks a blueprint in the mover's hand. A dot marks each anchor hex where a legal
+   placement puts the blueprint's anchor cell. Under a mouse's pointer, the blueprint's footprint shows with a ring on
+   its anchor hex: faded in the mover's colour on a marked hex, and as a dashed grey outline on another hex. A click
+   on a marked hex makes the placement. The hex clicked is the anchor hex that the string names (`K@q,r`, item 5).
+2. **An edit:** the player clicks a cell of a blueprint. A dot marks each legal new place of the cell, in that
+   blueprint or another one, with both coordinates in the frames before the edit. A new place can be outside the
+   blueprint's cells (a negative coordinate) or an empty blueprint's dashed hex 0,0. The hands always show every new
+   place of a legal edit, so their scale does not change when the player chooses a cell. A click on a marked new place
+   makes the edit.
+3. **A click on a cell chooses both.** It chooses the cell's blueprint for a placement and the cell for an edit. The
+   next click tells the two apart: a marked anchor hex on the board makes the placement, and a marked new place in a
+   hand makes the edit. A click elsewhere in a blueprint's panel chooses that blueprint alone. A click on the chosen
+   cell again cancels the move begun, as a click on Enclosure's first point does, unless an edit back to its own
+   place is legal: that place is then a marked hex like the others.
+4. **Escape** cancels the move begun, as on Hedge School's board.
+5. **A touch screen has no hover.** The first tap on a marked hex shows the move: a placement's footprint, or an
+   edit's cell faded in its new place. A second tap makes it: on the footprint, or on the same new place. A tap on the
+   board snaps to the nearest marked anchor hex whose centre is within 2 hex radii, as strategyjam.org's does, because
+   a hex on a phone's board is a few pixels wide. The first tap keeps a wrong touch from making a move, and the
+   board needs no button of its own to confirm it.
+6. **The status line** (`inputStatus`) says what the move begun needs next, or why a click did nothing: nothing was
+   begun, the hand is the opponent's, the hex is not a marked anchor hex, or the blueprint has no legal placement.
+   The texts are strict Simplified Technical English, with the glossary's words: blueprint, hand, anchor hex,
+   footprint, placement, edit. The status line must keep its height, so that a text that wraps does not move the board
+   between a touch's two taps.
+7. **The candidates and the input.** While the input is on, a click in the mover's hand goes to the input. A click on
+   the board goes to it too, unless nothing is begun and the hex is a candidate's: that click finds the candidate,
+   as before. The candidates' edits are clicked in the review's table.
+
+**How strategyjam.org does it** (its game page's Blueprints module, saved by the game watch in the engine repository's
+`runs/strategyjam/blueprints/`). The mover always has a chosen blueprint: the first, or the one that the keys 1 to 3,
+a click on its box, or a click on one of its cells chose. A click on a cell "lifts" it: the editor marks its legal new
+places, and the cell becomes the blueprint's grip on the board. Before a cell is lifted, the grip is the cell nearest
+the blueprint's middle. A click on the board puts the grip on the hex clicked, and a click on a new place makes the
+edit, so the next click tells a placement from an edit. The "Dots" button marks each hex where a click places the
+blueprint: the grip's hex, not the anchor hex. A mouse shows the footprint under the pointer, with the captures that
+it would make. A touch shows it on the tap's hex, snapped to the nearest legal place within 2 units, and a "Confirm"
+button makes the move. A cell can also be dragged to its new place. Escape drops the lifted cell.
+
+**Where Drawing Board departs from it:**
+
+- **The anchor cell is the grip.** The hex clicked is the anchor hex that the move's string names, so a player who
+  reads the coordinates sees the notation. strategyjam.org's grip is the middle cell or the lifted cell, and its
+  dots mark the grip's hexes.
+- **No blueprint is chosen until the player clicks one.** So the view's `pending` is null when nothing is begun, as
+  Enclosure's is, and Escape cancels the choice of a blueprint too. There are no keys 1 to 3: the review's keys are
+  the view's.
+- **The dots always show** while a blueprint is chosen. strategyjam.org shows them only after the "Dots" button.
+- **No captures in the footprint:** the site has no rules to compute them. The engine gives a move's captured cells
+  only after the move.
+- **A second tap, not a "Confirm" button,** on a touch screen, for a placement and for an edit.
+- **No drag of a cell** to its new place: two clicks make an edit.
+- **The chosen cell again cancels the whole move begun.** On strategyjam.org it drops the lifted cell, and the
+  blueprint stays chosen.
+
+Where it is: `apps/drawingboard/src/lib/board/input.ts` (what a click does, the status's texts and the clicks'
+list, with its tests), `blueprintInput.svelte.ts` (the `MoveInput` that the board and the view take), and
+`Board.svelte` and `Hand.svelte` (the dots, the footprint, the chosen blueprint and cell, and the clicks). The lab page
+gives each position its mover and a hand-made list of legal moves (`fixtures.ts`).
+
 ## Why
 
 - **Hedge School's design is built and checked.** Its layout, its review and its quality labels hold for any game whose

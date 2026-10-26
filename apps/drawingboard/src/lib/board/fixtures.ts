@@ -1,10 +1,11 @@
 // Hand-made positions for the board's lab page and tests: the start, a middle game with candidates and a line, a
-// capture, an edit and an empty blueprint. No game of strategyjam.org's archive: this repository is public. The
+// capture, an edit and an empty blueprint, each with its mover and some of its legal moves for the player's own moves
+// (the list at the end). No game of strategyjam.org's archive: this repository is public. The
 // builder below only moves cells as each move's data says (the cells that a placement captures are listed by hand),
 // and puts each blueprint back in its frame, as the notation names the cells (design 33, item 5). It checks only that
 // the hand-made data holds together (a footprint on empty hexes, a captured cell of the opponent), not that a move is
 // legal: the engine has the rules.
-import { moveName } from "../game/notation.ts";
+import { moveName, turnFromCount } from "../game/notation.ts";
 import type { BoardCandidate, BoardLineMove } from "./Board.svelte";
 import { anchorOf, hexKey, inFrame, parseHex, type Hex } from "./hex.ts";
 import { footprintOf, type Blueprint, type BlueprintNumber, type BoardMove, type Hand, type HandHex, type Kind, type Player, type SitePosition } from "./position.ts";
@@ -16,6 +17,11 @@ export interface Fixture {
   candidates?: BoardCandidate[];
   /** The line of each candidate that has one, by its name. */
   lines?: Record<string, BoardLineMove[]>;
+  /** Who moves: Blue's first turn has one move, then two a turn. */
+  mover: Player;
+  /** Legal moves for the player's own moves, by hand and not all of them: several placements of each blueprint that
+   *  has cells, and several edits. The engine's describe gives the whole list (request 23). */
+  legal: string[];
 }
 
 // The start (the engine repository's games/blueprints/README.md): each blueprint is a star with a ring of six cells.
@@ -181,11 +187,11 @@ const capture = place(captureBefore, 1, 1, [2, 0], ["1,0", "2,-1", "1,2"], 5);
 // cell's old place is at -1,0 of its new frame.
 const editMove = edit(startBuilt, 0, 3, [0, 0], 1, [2, 1]);
 
-// An empty blueprint: Red's blueprint 3 gives its last cell, a star, to blueprint 2. A blueprint with no cells takes
-// a cell only at its 0,0.
+// An empty blueprint: Red's blueprint 3 gives its last cell, a star, to blueprint 2, with the first move of Red's turn.
+// A blueprint with no cells takes a cell only at its 0,0.
 const emptyBefore: Built = {
   position: {
-    ...middle.position, ply: 58,
+    ...middle.position, ply: 57,
     blueprints: [middle.position.blueprints[0], [
       frame([[[0, 0], "plain"], [[1, 0], "plain"], [[2, 0], "plain"], [[-1, 1], "plain"], [[0, 1], "star"], [[1, 1], "plain"], [[0, 2], "plain"], [[1, 2], "plain"], [[2, 1], "plain"], [[-1, 2], "plain"]]),
       frame([[[0, 0], "star"], [[1, 0], "wall"], [[-1, 1], "wall"], [[0, 1], "star"], [[1, 1], "star"], [[-1, 2], "star"], [[0, 2], "wall"], [[2, 0], "plain"], [[2, -1], "plain"], [[-2, 2], "plain"]]),
@@ -196,10 +202,33 @@ const emptyBefore: Built = {
 };
 const empty = edit(emptyBefore, 1, 3, [0, 0], 2, [1, 0]);
 
+/** Who moves after `ply` moves: turn 1 is Blue's, turn 2 Red's, and so on. */
+const moverAt = (ply: number): Player => (turnFromCount(ply).turn % 2 ? 0 : 1);
+const withMover = (b: Built) => ({ ...b, mover: moverAt(b.position.ply) });
+
+// The legal moves, by hand. Each placement's footprint is on empty hexes and touches the mover's cells. Each edit's
+// first hex is a cell, and its second an empty hex, in the frames before it: among them an edit with a negative
+// coordinate (before the target's anchor cell), and, in the empty blueprint's position, edits to blueprint 3's 0,0.
+// The start's three blueprints have one shape, so their placements are on the same hexes.
 export const FIXTURES: Fixture[] = [
-  { name: "The start", ...startBuilt },
-  { name: "A middle game", ...middle, candidates, lines },
-  { name: "A capture", ...capture },
-  { name: "An edit", ...editMove },
-  { name: "An empty blueprint", ...empty },
+  { name: "The start", ...withMover(startBuilt), legal: [
+    "1@-9,-4", "1@-5,-4", "1@-12,2", "2@-7,-4", "2@-13,-1", "2@-1,-4", "3@-3,-4", "3@-12,2", "3@-1,-4",
+    "1:1,0>1:2,1", "1:0,2>1:0,-1", "3:0,0>1:2,1", "2:1,1>3:-1,0", "2:0,1>2:2,0",
+  ] },
+  { name: "A middle game", ...withMover(middle), candidates, lines, legal: [
+    "1@3,2", "1@1,-6", "1@13,-3", "2@4,2", "2@10,-7", "2@12,-6", "3@3,1", "3@0,-5", "3@7,2",
+    "2:0,2>2:2,0", "1:2,0>1:-1,2", "1:0,2>3:0,-1", "3:0,1>1:2,1",
+  ] },
+  { name: "A capture", ...withMover(capture), legal: [
+    "1@1,2", "1@5,1", "1@7,-4", "2@0,-4", "2@4,2", "2@7,-2", "3@2,-6", "3@6,-5", "3@7,-1",
+    "1:0,1>1:1,0", "1:0,0>2:-1,0", "3:3,0>1:1,1",
+  ] },
+  { name: "An edit", ...withMover(editMove), legal: [
+    "1@2,-4", "1@8,-4", "1@12,0", "2@4,-4", "2@10,-4", "2@-1,1", "3@6,-4", "3@2,-4", "3@12,0",
+    "1:1,0>1:2,1", "2:0,2>2:0,-1", "3:0,0>2:-1,0", "1:-1,2>3:2,1",
+  ] },
+  { name: "An empty blueprint", ...withMover(empty), legal: [
+    "1@0,-6", "1@8,2", "1@12,-4", "2@5,2", "2@10,-7", "2@14,-1",
+    "1:2,0>3:0,0", "2:1,0>3:0,0", "1:2,1>1:3,0", "2:-4,3>2:-1,0",
+  ] },
 ];

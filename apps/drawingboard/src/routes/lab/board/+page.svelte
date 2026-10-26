@@ -1,24 +1,41 @@
 <script lang="ts">
   // The board's lab (design 33): Blueprints' board on hand-made positions (lib/board/fixtures.ts), so that the board
   // can be checked and looked at before the review and the Analysis board take it. It has no engine: the candidates
-  // and their lines are hand-made. The address can choose the position and a candidate: ?p=1&c=3@3,1. A choice on the
-  // page goes into the address, so that it can be shared. The site's header, with its theme menu, is above the page.
+  // and their lines are hand-made, and so are the legal moves that the player's own moves take. A move made shows its
+  // string in the status line, and the input starts again: the lab does not play it. Escape cancels a move begun. The
+  // address can choose the position and a candidate: ?p=1&c=3@3,1. A choice on the page goes into the address, so that
+  // it can be shared. The site's header, with its theme menu, is above the page.
   import { onMount } from "svelte";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import Board, { type BoardHex } from "#lib/board/Board.svelte";
+  import { BlueprintInput } from "#lib/board/blueprintInput.svelte.ts";
   import { FIXTURES } from "#lib/board/fixtures.ts";
   import { hexKey } from "#lib/board/hex.ts";
+  import { inputStatus } from "#lib/board/input.ts";
   import { PLAYER_NAMES } from "#lib/board/position.ts";
+  import { moveName } from "#lib/game/notation.ts";
   import { SITE_NAME } from "#lib/site.ts";
 
   let index = $state(0);
   let showCandidates = $state(true);
+  let takeMoves = $state(true);
   let pinned = $state<string | null>(null); // the candidate clicked: its line stays drawn
   let pointed = $state<string | null>(null); // the candidate under the pointer
   let at = $state<BoardHex | null>(null);
+  let made = $state<string | null>(null); // the last move made, by its string
   const fixture = $derived(FIXTURES[index]);
   const shown = $derived(pointed ?? pinned);
   const line = $derived(shown && showCandidates ? fixture.lines?.[shown] ?? null : null);
+
+  const input = new BlueprintInput(move => { made = moveName(move); });
+  // Each position gives the input its rules, as the view does after the engine's describe.
+  $effect.pre(() => {
+    const f = fixture;
+    input.reset();
+    made = null;
+    input.rules = { position: f.position, mover: f.mover, legal: f.legal };
+  });
+  const status = $derived(inputStatus(input, fixture.mover));
 
   onMount(() => {
     const q = new URLSearchParams(location.search);
@@ -35,7 +52,12 @@
   }
   const where = (h: BoardHex | null) =>
     !h ? "" : h.hand ? `${PLAYER_NAMES[h.hand.player]}'s blueprint ${h.hand.blueprint}, at ${hexKey(h.hex)}` : `the board, at ${hexKey(h.hex)}`;
+  function onkeydown(ev: KeyboardEvent) {
+    if (ev.key === "Escape" && (input.pending || input.refused)) { input.reset(); ev.preventDefault(); }
+  }
 </script>
+
+<svelte:window {onkeydown} />
 
 <PageMeta title="Board lab · {SITE_NAME}" noindex />
 
@@ -52,15 +74,20 @@
     {#if fixture.candidates}
       <label class="flex items-center gap-1"><input type="checkbox" bind:checked={showCandidates} /> Candidates</label>
     {/if}
+    <label class="flex items-center gap-1"><input type="checkbox" bind:checked={takeMoves} /> Your moves</label>
   </div>
   <p class="min-h-5 shrink-0 text-sm text-muted">
-    Move {fixture.position.ply} · Blue {fixture.position.scores[0]}, Red {fixture.position.scores[1]}
+    Move {fixture.position.ply} · {PLAYER_NAMES[fixture.mover]} to move · Blue {fixture.position.scores[0]}, Red {fixture.position.scores[1]}
     {#if pinned}· Line of {pinned}{/if}
     {#if at}· The pointer is on {where(at)}{/if}
   </p>
+  <!-- Two lines high, also for one line of text: a status that wraps would move the board between a touch's two taps. -->
+  <p class="min-h-10 shrink-0 text-sm" data-testid="input-status">
+    {#if takeMoves && status}{status}{:else if made}The move made: <span class="font-mono">{made}</span>{/if}
+  </p>
   <div class="min-h-0 flex-1">
     <Board position={fixture.position} last={fixture.last} candidates={fixture.candidates ?? []} {line}
-           pointed={pinned} layers={{ candidates: showCandidates }}
+           pointed={pinned} layers={{ candidates: showCandidates }} {input} inputOn={takeMoves}
            oncandidate={name => (pointed = name)}
            oncandidateclick={name => { pinned = pinned === name ? null : name; address({ c: pinned }); }}
            onhexat={h => (at = h)} />

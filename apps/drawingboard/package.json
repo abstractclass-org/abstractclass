@@ -15,6 +15,7 @@
 	"dependencies": {
 		"@abstractclass/analysis": "*",
 		"@abstractclass/record": "*",
+		"@abstractclass/review": "*",
 		"@abstractclass/site": "*"
 	},
 	"devDependencies": {

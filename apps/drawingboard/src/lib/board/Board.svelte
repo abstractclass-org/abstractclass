@@ -1,4 +1,5 @@
 <script lang="ts" module>
+  import type { BlueprintInput } from "./blueprintInput.svelte.ts";
   import type { Hex } from "./hex.ts";
   import type { BoardMove, Hand as HandOf, HandHex, Player, SitePosition } from "./position.ts";
 
@@ -24,11 +25,14 @@
   // grid has no edge, so the board pans, zooms and fits the cells. It fills the area that the page gives it (design
   // 06): the hands go in a column on each side of a wide area, Blue's on the left as Blue's cells start on the left,
   // and in a row above and below a tall one (a phone). Geometry only: a placement's footprint and its captured cells
-  // come from the move's data.
+  // come from the move's data. The player's own moves (`input`, design 33, "How the board takes a move"): the chosen
+  // blueprint's anchor hexes marked with dots, its footprint under a mouse's pointer (faded in the mover's colour on a
+  // marked hex, an outline on another) or on the hex that a tap shows, and the clicks on the board and in the hands.
   import Cell from "./Cell.svelte";
-  import Hand, { blueprintBoxes, fitUnit, type HandMarks } from "./Hand.svelte";
+  import Hand, { blueprintBoxes, fitUnit, type HandInput, type HandMarks } from "./Hand.svelte";
+  import { tapHex } from "./input.ts";
   import { boxOf, center, fromMiddle, GRID_TILE, GRID_TILE_PATH, hexAt, hexKey, hexPath, outlinePath, sameHex } from "./hex.ts";
-  import { cellsOf, PLAYER_NAMES, sameHandHex } from "./position.ts";
+  import { cellsOf, footprintOf, PLAYER_NAMES, sameHandHex } from "./position.ts";
   import { clamp, fit, pan, pinch, toArea, toPlane, viewBox, zoomAt, type View } from "./view.ts";
 
   interface Props {
@@ -45,10 +49,12 @@
     oncandidateclick?: (name: string) => void;
     // The hex under a mouse's pointer, or null when it leaves: the board shows its coordinates, and the page may too.
     onhexat?: (at: BoardHex | null) => void;
+    input?: BlueprintInput | null; // the player's own moves
+    inputOn?: boolean; // the board takes them: the input's rules have come, and no preview shows
   }
   let {
     position, last = null, candidates = [], pointed = null, line = null, layers: layersSet = {},
-    oncandidate, oncandidateclick, onhexat,
+    oncandidate, oncandidateclick, onhexat, input = null, inputOn = true,
   }: Props = $props();
   const layers = $derived({ ...DEFAULT_LAYERS, ...layersSet });
 
@@ -143,7 +149,29 @@
   $effect(() => { onhexat?.(pointer); });
   let told: string | null = null; // the candidate last given to oncandidate
   $effect(() => { const name = hovered?.name ?? null; if (name !== told) oncandidate?.((told = name)); });
-  const readout = $derived(hoverHex ? hexKey(hoverHex)
+  // The player's own moves: on while the input has its rules and the page lets it. While it is on, a click in the
+  // mover's hand goes to it, and a click on the board too, unless nothing is begun and the hex is a candidate's.
+  const takes = $derived(inputOn && input?.rules ? input : null);
+  const mover = $derived(takes?.rules?.mover ?? null);
+  const begun = $derived(takes?.pending ?? null);
+  const anchorKeys = $derived(new Set((takes?.anchors ?? []).map(hexKey)));
+  // The chosen blueprint's footprint: on the hex that a tap shows, or else under a mouse's pointer.
+  const footAt = $derived(begun ? (begun.shown?.type === "place" ? begun.shown.at : hoverHex) : null);
+  const foot = $derived(begun && footAt && mover !== null
+    ? { at: footAt, cells: footprintOf(position.blueprints[mover][begun.blueprint - 1], footAt), legal: anchorKeys.has(hexKey(footAt)) }
+    : null);
+  const handInput = (p: Player): HandInput | null => !takes || p !== mover ? null : {
+    blueprint: begun?.blueprint ?? null, cell: begun?.cell ?? null, targets: takes.targets ?? [],
+    shown: begun?.shown?.type === "edit" ? begun.shown.to : null, reach: takes.reach,
+  };
+
+  // The coordinates under the pointer, or the move that a click there makes: a placement on a marked anchor hex, an
+  // edit on a marked new place.
+  const target = $derived(begun?.cell && handHover && handHover.player === mover
+    && takes?.targets?.some(t => sameHandHex(t, handHover!.at)) ? handHover.at : null);
+  const readout = $derived(foot?.legal && hoverHex && begun ? `${begun.blueprint}@${hexKey(hoverHex)}`
+    : target && begun?.cell ? `${begun.blueprint}:${hexKey(begun.cell)}>${target.blueprint}:${hexKey(target.hex)}`
+    : hoverHex ? hexKey(hoverHex)
     : handHover ? `${PLAYER_NAMES[handHover.player]} ${handHover.at.blueprint}:${hexKey(handHover.at.hex)}` : "");
 
   const lineHasEdit = $derived(drawn.some(l => l.move.type === "edit"));
@@ -155,6 +183,7 @@
       ? placements.filter(c => c.move.player === p).map(c => ({ blueprint: c.move.blueprint, name: c.name, rank: c.rank }))
       : [],
     line: drawn.flatMap((l, i) => l.move.player === p && l.move.type === "edit" ? [{ ...l.move, n: i + 1 }] : []),
+    input: handInput(p),
   })));
   const boxes = $derived(players.map(p => blueprintBoxes(hands[p], marks[p])));
   // One scale for the six blueprints: the largest at which each fits its panel, a hex at most 36 pixels across.
@@ -199,8 +228,11 @@
   function up(ev: PointerEvent, click: boolean) {
     if (!pointers.delete(ev.pointerId)) return;
     if (gesture?.kind === "press" && !gesture.moved && click) {
-      const c = placementAt(hexUnder(local(ev)));
-      if (c) oncandidateclick?.(c.name);
+      const p = local(ev), h = hexUnder(p), c = placementAt(h), touch = ev.pointerType !== "mouse";
+      if (takes && (takes.pending || !c)) {
+        const at = touch ? tapHex(h, toPlane(view, field, p.x, p.y), takes.pending, foot?.cells.map(s => s.hex) ?? [], takes.anchors ?? []) : h;
+        takes.clickBoard(at, touch);
+      } else if (c) oncandidateclick?.(c.name);
     }
     // One finger left of a pinch goes on panning, and is not a click.
     const rest = [...pointers.values()][0];
@@ -246,13 +278,17 @@
         <Hand hand={hands[p]} player={p} width={handArea.width} height={handArea.height} {direction} {unit}
               boxes={boxes[p]} marks={marks[p]} hover={handHover?.player === p ? handHover.at : null}
               onhover={at => handAt(p, at)}
-              onpick={at => { const c = handCandidate(p, at); if (c) oncandidateclick?.(c.name); }} />
+              onpick={(at, touch) => {
+                if (takes) { takes.clickHand(p, at, touch); return; }
+                const c = handCandidate(p, at);
+                if (c) oncandidateclick?.(c.name);
+              }} />
       {/if}
     </div>
   {/each}
 
   <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div class="field" bind:this={el} onpointerdown={down} onpointermove={move} onpointerup={ev => up(ev, true)}
+  <div class="field" class:aim={foot?.legal} bind:this={el} onpointerdown={down} onpointermove={move} onpointerup={ev => up(ev, true)}
        onpointercancel={ev => up(ev, false)} onpointerleave={ev => { if (ev.pointerType === "mouse") pointAt(null); }}>
     {#if field.width > 0 && field.height > 0}
       <svg width={field.width} height={field.height} viewBox={vb.join(" ")} role="img" aria-label="Blueprints board">
@@ -337,6 +373,29 @@
           </g>
         {/if}
 
+        <!-- The player's own move: a dot on each marked anchor hex (strategyjam.org's "Dots"), and the chosen
+             blueprint's footprint with a ring on its anchor hex. On a marked hex, the footprint's cells show faded in
+             the mover's colour, as a candidate's do. On another hex, only its outline shows, dashed. -->
+        {#if takes && mover !== null}
+          <g class="input p{mover}">
+            {#each takes.anchors ?? [] as a (hexKey(a))}
+              {#if !(foot && sameHex(foot.at, a))}
+                {@const [x, y] = center(a)}
+                <circle cx={x} cy={y} r="0.22" class="dot" />
+              {/if}
+            {/each}
+            {#if foot && foot.cells.length}
+              {#if foot.legal}
+                {#each foot.cells as s (hexKey(s.hex))}
+                  <Cell hex={s.hex} owner={mover} kind={s.kind} look="ghost" />
+                {/each}
+              {/if}
+              <path d={outlinePath(foot.cells.map(s => s.hex))} class="foot" class:off={!foot.legal} />
+              <path d={hexPath(...center(foot.at), 0.8)} class="foot-anchor" class:off={!foot.legal} />
+            {/if}
+          </g>
+        {/if}
+
         {#if hoverHex}
           <path d={hexPath(...center(hoverHex))} class="hover" />
         {/if}
@@ -387,6 +446,7 @@
     touch-action: none; /* a drag pans the board, not the page */ user-select: none; cursor: grab;
   }
   .field:active { cursor: grabbing; }
+  .field.aim { cursor: pointer; }
   .field > svg { display: block; }
   .bg { fill: var(--board-bg); }
   .grid { fill: none; stroke: var(--board-dot); stroke-width: 0.04; opacity: 0.7; }
@@ -410,4 +470,13 @@
   .line-badge.p0 { fill: var(--blue); }
   .line-badge.p1 { fill: var(--red); }
   .line-number { font-size: 0.72px; }
+  /* The player's own move, in the mover's colour. */
+  .input { pointer-events: none; }
+  .input.p0 { --own: var(--blue); }
+  .input.p1 { --own: var(--red); }
+  .dot { fill: var(--own); }
+  .foot { fill: none; stroke: var(--own); stroke-width: 0.12; stroke-linecap: round; }
+  .foot.off { stroke: var(--muted); stroke-dasharray: 0.25 0.15; }
+  .foot-anchor { fill: none; stroke: var(--text); stroke-width: 0.08; }
+  .foot-anchor.off { stroke: var(--muted); }
 </style>
