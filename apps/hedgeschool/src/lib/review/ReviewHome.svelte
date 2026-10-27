@@ -56,9 +56,8 @@
   $effect(() => { if (chosen) untrack(() => void open()); });
   async function open() {
     manifestLoad = loadManifest();
-    // A file chosen before the page's code ran: the prerendered page shows the input before its handler is attached.
-    void loadFile(fileInput?.files?.[0]);
-    if (fileInput) fileInput.value = "";
+    // A file chosen before the page's code ran: the prerendered page shows the input before Svelte attaches a handler.
+    if (fileInput) loadInputFile(fileInput);
     [games, kept] = await Promise.all([listGames(), storageKept().then(Boolean)]); // the list with its line on storage
     lastId = lastReview();
     read = true;
@@ -152,6 +151,12 @@
     }
   }
 
+  /** Loads the input's file, then empties the input: the same file chosen again then loads again. */
+  function loadInputFile(input: HTMLInputElement) {
+    void loadFile(input.files?.[0]);
+    input.value = "";
+  }
+
   function dropped(event: DragEvent) {
     event.preventDefault();
     dragging = false;
@@ -202,10 +207,11 @@
     <div class="flex flex-wrap items-center gap-3 mt-4 pt-3 border-t border-line">
       <label class={["px-3 py-1 text-sm rounded border border-line bg-panel-2", loadingFile ? "opacity-50" : "hover:border-accent"]}>
         {loadingFile ? "Loading…" : "Load a review file"}
-        <!-- data-ready: the tab has opened, and a file chosen now loads at once. The browser tests wait for it. -->
+        <!-- data-ready: the page has chosen the tab. By then Svelte has attached the handler, and open() reads a file
+             chosen earlier in the same step. So a file chosen from now on loads. The browser tests wait for it. -->
         <input bind:this={fileInput} type="file" accept=".json,application/json" class="sr-only" disabled={loadingFile}
                data-ready={chosen || undefined}
-               onchange={e => { void loadFile(e.currentTarget.files?.[0]); e.currentTarget.value = ""; }} />
+               onchange={e => loadInputFile(e.currentTarget)} />
       </label>
       <span class="flex-1 min-w-56 text-xs text-muted">A review file that {SITE_NAME} exported, from this browser or another. You can
         also drop it on this page. It opens at once, with the engine's results it holds.</span>
