@@ -66,10 +66,8 @@ function report(label: string, found: { width: number; height: number; problem: 
 const settle = (page: Page) => page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 30)))));
 
 /** Sweeps the page at every size: the report of what broke the rules, empty when nothing did. `ownRules`: the page's
- *  own rules, checked at each size too. `known`: a known fault that has its own issue, at the widths where it shows,
- *  which the report leaves out. */
-async function sweep(page: Page, label: string, ownRules?: (page: Page) => Promise<string[]>,
-                     known?: (problem: string, width: number) => boolean): Promise<string> {
+ *  own rules, checked at each size too. */
+async function sweep(page: Page, label: string, ownRules?: (page: Page) => Promise<string[]>): Promise<string> {
   // The browser must show scroll bars: without them, the sweep misses the room that they take.
   const bar = await page.evaluate(() => {
     const d = document.createElement("div");
@@ -85,7 +83,7 @@ async function sweep(page: Page, label: string, ownRules?: (page: Page) => Promi
     await page.setViewportSize({ width, height });
     await settle(page);
     for (const problem of [...await problems(page), ...await ownRules?.(page) ?? []]) {
-      if (!known?.(problem, width)) found.push({ width, height, problem });
+      found.push({ width, height, problem });
     }
   }
   return found.length ? report(label, found) : "";
@@ -214,12 +212,7 @@ test("layout of the book's table in a review", async ({ page }) => {
     await page.keyboard.press("ArrowRight");
     await expect(page.locator(".mv.here")).toHaveText(/^A10-D9/);
     await expect(page.getByRole("region", { name: "Opening book" }).locator("tbody tr[data-move]")).toHaveCount(rows);
-    // By edge, the move list hides 56 pixels sideways from 360 to 410 pixels wide, with or without the book (beads
-    // abscls-8n02): the sweep leaves that fault out, and checks the rest
-    const known = judge === "edge"
-      ? (problem: string, width: number) => width <= 410 && /^div(#\S+)?\.movelist\.\S* hides \d+ pixels sideways/.test(problem)
-      : undefined;
-    expect(await sweep(page, `/review, the book's table by ${judge}`, bookTableProblems, known)).toBe("");
+    expect(await sweep(page, `/review, the book's table by ${judge}`, bookTableProblems)).toBe("");
   }
 });
 

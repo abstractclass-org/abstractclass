@@ -6,10 +6,15 @@
 import type { Player } from "@abstractclass/analysis/game.ts";
 import { SIDE_TEXT } from "@abstractclass/site/side.ts";
 
-export const MOVE_LIST = "movelist flex-1 min-h-0 overflow-y-auto pt-1.5 text-sm border-t border-line";
-/** A turn's row. `judged`: a last column for the turn's own label (the review by turn). */
+/** The list is a container, so that a row can follow its box (`turnRow`). */
+export const MOVE_LIST = "movelist @container flex-1 min-h-0 overflow-y-auto pt-1.5 text-sm border-t border-line";
+/** A turn's row. `judged`: a last column for the turn's own label (the review by turn). By edge each move holds its
+ *  label, ◆ and loss (139 pixels at 14), so the two moves and the number need 20.02 rem. In a box narrower than 21.5 rem
+ *  the second move goes under the first, in the first move's column, so that no number hides sideways. The query reads
+ *  the box before its scroll bar, which takes up to 17 pixels (1.06 rem) of the room that the rows then have. */
 export const turnRow = (judged = false) => ["grid items-baseline gap-x-1",
-  judged ? "grid-cols-[2.2rem_repeat(2,minmax(max-content,1fr))_auto]" : "grid-cols-[2.2rem_repeat(2,minmax(max-content,1fr))]"];
+  judged ? "grid-cols-[2.2rem_repeat(2,minmax(max-content,1fr))_auto]"
+    : "grid-cols-[2.2rem_repeat(2,minmax(max-content,1fr))] @max-[21.5rem]:grid-cols-[2.2rem_minmax(max-content,1fr)] @max-[21.5rem]:[&>.mv]:col-start-2"];
 /** A turn's row, in rem: 22 pixels, as Chromium lays out the turn's number and its moves on one baseline. The review's
  *  grey bars before its rows are this far apart (ReviewView.svelte, rowsDrawn). */
 export const TURN_REM = 1.375;
