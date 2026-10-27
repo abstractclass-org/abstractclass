@@ -432,10 +432,10 @@ its own choice of "Book" or "Candidates", handles the key o, and plays the moves
   `apps/hedgeschool/src/symbolShades.test.ts` checks that each shade has a contrast of at least 3:1 against the panel
   and panel-2, that the stronger the position, the farther its shade from `--text` in OKLab and the lower its
   contrast, and that the steps in CIELAB L* differ by less than 1.
-- **The badges:** a row's quality label is `LabelBadge` in a wrapper that gives the label's word as its title and its
-  accessible name. `LabelBadge` itself stays hidden from assistive technology, because the move list and the Report
-  give the word in their own text. The edge before it is 7 characters of the monospaced font wide (`7ch`), the longest
-  edge's width, so the badges start at one place.
+- **The badges:** a row's quality label is `LabelBadge` with its option `named`, which gives the label's word as its
+  title and its accessible name. Without the option, `LabelBadge` stays hidden from assistive technology, because the
+  move list and the Report give the word in their own text. The edge before it is 7 characters of the monospaced font
+  wide (`7ch`), the longest edge's width, so the badges start at one place.
 - **The widths:** the last column ("Line ends") is as narrow as its head on one line, because its symbols are
   narrower than its head. The edge's column takes the rest. Every head stays on one line. By turn, a row's two edges
   on one line need 154 pixels, and the table 313 pixels. A window 360 pixels wide with its scroll bars gives the

@@ -76,10 +76,11 @@ test.describe("desktop", () => {
     await expect(table(page).getByText(/your game|In your review/i)).toHaveCount(0);
     await expect(page.getByText(/not from games that people played/)).toHaveCount(0);
     // The rows show their quality labels' badges and their line ends' position symbols with no words, each symbol in a
-    // shade of its side's colour by its strength. The title row keeps the symbol's words.
+    // shade of its side's colour by its strength. The title row keeps the symbol's words. A badge's word is its SVG
+    // title, which does not show.
     const rows = table(page).locator("tbody");
     await expect(rows.getByRole("img", { name: LABEL_WORDS }).first()).toBeVisible();
-    await expect(rows.getByText(LABEL_WORDS)).toHaveCount(0);
+    await expect(rows.getByText(LABEL_WORDS).filter({ visible: true })).toHaveCount(0);
     await expect(rows.getByRole("img", { name: SYMBOL_WORDS }).first()).toBeVisible();
     await expect(rows.getByText(SYMBOL_WORDS)).toHaveCount(0);
     expect(await rows.getByRole("img", { name: /^(Blue|Red) is / }).count()).toBeGreaterThan(0);

@@ -16,7 +16,7 @@
   // it.
   import type { Snippet } from "svelte";
   import LabelBadge from "@abstractclass/review/LabelBadge.svelte";
-  import { LABEL_TEXT, moverWin, pct, PLAYER_NAME } from "#lib/review/enclosure.ts";
+  import { moverWin, pct, PLAYER_NAME } from "#lib/review/enclosure.ts";
   import { playerOf } from "#lib/engine/position.ts";
   import BookSymbol from "./BookSymbol.svelte";
   import type { BookAt } from "./lookup.svelte.ts";
@@ -24,7 +24,6 @@
   import { bookCount, GROUP_TITLES, positionTitle, shownRows, TURN_GROUP_TITLES, type BookRow } from "./rows.ts";
   import { endSentence, refutationText } from "./sentences.ts";
   import { positionSymbol } from "./symbols.ts";
-  import type { Label } from "@abstractclass/analysis/labels.ts";
 
   interface Props {
     /** The book at the position on screen (lookup.svelte.ts, OpeningBook `at`). */
@@ -245,7 +244,7 @@
           {#if byTurn}<span class={edge}>{row.edges[0]}</span>{/if}
           <span class="flex items-center gap-1.5">
             <span class={edge}>{row.edges[byTurn ? 1 : 0] ?? ""}</span>
-            {@render badge(row.label)}
+            <LabelBadge label={row.label} named />
           </span>
         </span>
         {#if note}<span class="text-xs text-muted">{note}</span>{/if}
@@ -257,13 +256,6 @@
     <td class="tabular-nums">{@render winChance(row.blueWin, row.book?.value)}</td>
     <td>{#if row.symbol}<BookSymbol symbol={row.symbol} alone />{:else}<span class="text-muted">—</span>{/if}</td>
   </tr>
-{/snippet}
-
-<!-- A quality label's badge with its word as its title and its name: the row shows the badge only (design 32, item 3).
-     LabelBadge itself stays hidden from assistive technology, for the move list and the Report, which give the word in
-     their own text. -->
-{#snippet badge(label: Label)}
-  <span role="img" aria-label={LABEL_TEXT[label]} title={LABEL_TEXT[label]}><LabelBadge {label} /></span>
 {/snippet}
 
 <!-- A trap's refutation, in a row of its own under the trap, so that the player reads it before playing it. The row
