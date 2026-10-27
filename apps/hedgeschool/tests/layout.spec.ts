@@ -100,6 +100,46 @@ for (const path of ["/", "/about", "/privacy", "/notation", "/tools", "/editor",
   });
 }
 
+/** What the page's text in the monospaced font draws: each element with a code font, with its ligature settings, and
+ *  the width of "k3x9q" in that font (five characters of 0.6 em: a ligature would change it). */
+async function monoText(page: Page) {
+  return page.evaluate(() => {
+    const found = [...document.querySelectorAll("body *")].filter(e => /Fira Code/.test(getComputedStyle(e).fontFamily) && e.childNodes.length);
+    const probe = document.createElement("span");
+    probe.textContent = "k3x9q ?? => !=";
+    probe.className = "font-mono";
+    document.body.append(probe);
+    const s = getComputedStyle(probe);
+    const own = { settings: s.fontFeatureSettings, ligatures: s.fontVariantLigatures, width: probe.getBoundingClientRect().width, size: parseFloat(s.fontSize) };
+    probe.remove();
+    return { own, uses: found.filter(e => !/"liga" 0/.test(getComputedStyle(e).fontFeatureSettings)).map(e => e.tagName.toLowerCase() + "." + [...e.classList].join(".")) };
+  });
+}
+
+// The monospaced font draws no ligatures (design 06, item 11): a record's text shows as it is, and the columns keep
+// their width of 0.6 em a character.
+test("the monospaced font draws no ligatures on Hedge School", async ({ page }) => {
+  await page.goto("/notation");
+  await page.waitForLoadState("networkidle");
+  await page.evaluate(() => document.fonts.ready);
+  const { own, uses } = await monoText(page);
+  expect(own.settings).toContain('"liga" 0');
+  expect(uses, "text in Fira Code whose ligatures are on").toEqual([]);
+  expect(own.width / own.size).toBeCloseTo(14 * 0.6, 1);
+});
+
+// Drawing Board is another site: the test runs when DB_BASE_URL gives its running preview.
+test("the monospaced font draws no ligatures on Drawing Board", async ({ page }) => {
+  test.skip(!process.env.DB_BASE_URL, "DB_BASE_URL gives no Drawing Board preview");
+  await page.goto(new URL("/notation", process.env.DB_BASE_URL).href);
+  await page.waitForLoadState("networkidle");
+  await page.evaluate(() => document.fonts.ready);
+  const { own, uses } = await monoText(page);
+  expect(own.settings).toContain('"liga" 0');
+  expect(uses, "text in Fira Code whose ligatures are on").toEqual([]);
+  expect(own.width / own.size).toBeCloseTo(14 * 0.6, 1);
+});
+
 // The import page's choice for a tool's game (design 21), below the notice that an out-of-date userscript gets.
 test("layout of the choice for a tool's game", async ({ page }) => {
   const record = '[Blue "Ann"]\n[Red "Bo"]\n\n1. D10-E13 2. Q10-R8 O11-Q10 *\n';

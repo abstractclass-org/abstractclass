@@ -87,6 +87,9 @@
   --color-red-better: var(--red-better);
   --color-red-winning: var(--red-winning);
   --font-mono: "Fira Code Variable", ui-monospace, monospace;
+  /* No ligatures: a record's text must show as it is (k3x9q, not k3×9q). Tailwind adds this to each use of the
+     font-mono utility. No rule takes --font-mono itself. */
+  --font-mono--font-feature-settings: "liga" 0, "calt" 0;
 }
 
 /* A screen with a mouse, whose scroll bars take room (the page's area, SiteFrame.svelte). */

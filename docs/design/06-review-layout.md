@@ -258,7 +258,8 @@ Lichess sizes its Analysis board from the window, and keeps the board whole in v
     Linux's are 0.6 em, which ran the move list by edge 20 pixels past the analysis column at 340 pixels, its least
     width then. With one font the rows measure the same everywhere: 321 pixels. The analysis column's least width is
     364 pixels, so that the move list has 325. Fira Code was chosen by its look, from six fonts side by side in the
-    move list.
+    move list. Its ligatures are off (`--font-mono--font-feature-settings` in `packages/site/src/site.css`): a record's
+    text must show as it is, and a ligature changes it (the game id k3x9q showed as k3×9q, and "??" as one glyph).
 
 ## Why
 

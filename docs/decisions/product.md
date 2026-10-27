@@ -7275,3 +7275,16 @@ the words of the site. The pages, the lessons, the documents and the code's comm
   - Blueprints' module of the next save (`runs/strategyjam/blueprints/20261027-101649/`) has the same props, the same
     rules (`blueprints`, version 3), the replay slider and `.stage .actions`. The slider moved to a module that
     strategyjam.org's games share. strategyjam.org now has games from a position, which the record refuses.
+
+### The monospaced font's ligatures are off (2026-10-27)
+
+- Fira Code draws ligatures. A record's text changed on screen: the game id k3x9q showed as k3×9q, and "??" showed as
+  one glyph. A player who copies or reads an id, a move or a record must see the characters that are there.
+- The rule is one line in `packages/site/src/site.css`: `--font-mono--font-feature-settings: "liga" 0, "calt" 0` in
+  the theme, next to `--font-mono`. Tailwind 4 adds it to each use of the `font-mono` utility. No rule in either site
+  uses `--font-mono` itself, so the utility covers the records, the move lists, the Notation page and the editor on
+  Hedge School and Drawing Board.
+- The glyphs keep 0.6 em, so the move list's columns keep their width.
+- The test is in `apps/hedgeschool/tests/layout.spec.ts`. It checks the computed `font-feature-settings` of every text
+  in Fira Code on the Notation page, and the width of a probe text. The Drawing Board test runs when `DB_BASE_URL`
+  gives its preview.
