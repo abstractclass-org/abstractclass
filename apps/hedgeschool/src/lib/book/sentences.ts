@@ -15,6 +15,7 @@ import { playerOf } from "#lib/engine/position.ts";
 import { PLAYER_NAME, otherPlayer, turnFromCount } from "#lib/review/enclosure.ts";
 import type { Book } from "./book.ts";
 import type { BookMove, BookPosition } from "./form.ts";
+import type { BookRow } from "./rows.ts";
 import { SYMBOL_NAME, lineEndSymbol, positionSymbol, rounded, type PositionSymbol } from "./symbols.ts";
 
 /** A line in the notation (the site's /notation page), from the position after `count` edges: `3. D10-G12 G12-J15`,
@@ -191,6 +192,48 @@ export function moveSentence(p: BookPosition, m: BookMove): string {
   const name = LABEL_TEXT[moveLabel(p, m)];
   return `${m.move} is ${article(name)} ${name}${isFine(p, m) ? " move" : ""} here. ` +
     `After it, ${clause(lineEndSymbol(m))}.`;
+}
+
+// --- By turn (rows.ts, `turnRows`): the same sentences for whole turns, from the table's rows ----------------------
+
+/** A trap turn's text, as `trapText`: what the turn costs the side that plays it, and its refutation when the book
+ *  holds one after the turn. */
+const trapTurnText = (p: BookPosition, row: BookRow, again: string) =>
+  `${row.move} seems good after a short search, but ${again} decreases ${side(p)}'s win chance from ` +
+  `${pct(bestWin(p))} to ${pct(win(p, row.blueWin))}. ` +
+  (row.trap!.refutation.length
+    ? `After ${lineText(edgeCount(p) + row.edges.length, row.trap!.refutation)}, ${clause(row.symbol!)}.`
+    : `After it, ${clause(row.symbol!)}.`);
+
+/** The sentence under the table by turn, at a turn's start: the best book turn, and the trap that it avoids, as
+ *  `bestMoveSentence`. Null where the book has no turn here. Example: "D10-G9 Q11-T10 is the best of the 3 fine turns
+ *  here. After it, Red is slightly better." */
+export function bestTurnSentence(p: BookPosition, rows: BookRow[]): string | null {
+  const turns = rows.filter(r => r.book);
+  if (!turns.length) return null;
+  const best = turns.reduce((b, r) => (win(p, r.blueWin) > win(p, b.blueWin) ? r : b));
+  const outside = rows.find(r => r.group === "outside");
+  const after = `After it, ${clause(best.symbol!)}.`;
+  const kind = outside && lossTo(p, outside.blueWin) <= GOOD_WIN ? "book turn" : "turn";
+  const fine = rows.filter(r => r.group === "fine").length;
+  const parts = outside?.label === "best"
+    ? [`${best.move} is the best book turn here.`, after, `${outside.move} is better, but it is not in the book.`]
+    : [fine === 1 ? `${best.move} is the only fine ${kind} here.`
+      : `${best.move} is the best of the ${fine} fine ${kind}s here.`, after];
+  if (best.trap) parts.push(`This turn is a trap: ${trapTurnText(p, best, "it")}`);
+  const trap = rows.find(r => r.group === "trap" && r !== best);
+  if (trap) parts.push(`This turn avoids a trap: ${trapTurnText(p, trap, "it")}`);
+  return parts.join(" ");
+}
+
+/** A book turn's sentence, for the pointer or the focus, as `moveSentence`: a trap's, the best turn's, or its label
+ *  and the end of its line. Example: "D10-G9 O9-Q10 is an Inaccuracy here. After it, Red is better." */
+export function turnSentence(p: BookPosition, rows: BookRow[], row: BookRow): string {
+  if (row.trap) return trapTurnText(p, row, "it");
+  if (row.label === "best") return bestTurnSentence(p, rows)!;
+  const name = LABEL_TEXT[row.label];
+  return `${row.move} is ${article(name)} ${name}${row.group === "fine" ? " turn" : ""} here. ` +
+    `After it, ${clause(row.symbol!)}.`;
 }
 
 /** The text where the book ends (design 32, item 5): "End of the book. Blue is slightly better." */

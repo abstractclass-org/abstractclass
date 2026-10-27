@@ -43,11 +43,16 @@ const LABEL_WORDS = /^(Best|Great|Excellent|Good|Inaccuracy|Mistake|Blunder)$/;
 const SYMBOL_WORDS = /^(Equal position|Unclear position|(Blue|Red) is (slightly better|better|winning))$/;
 /** The book's table. */
 const table = (page: Page) => page.getByRole("region", { name: "Opening book" });
+/** "Review by" edge, before the page loads: the book's table and the opening row judge each edge. By turn, the
+ *  default, they judge whole turns. */
+const byEdge = (page: Page) =>
+  page.addInitScript(() => localStorage.setItem("learn-enclosure:review-display:1", JSON.stringify({ judge: "edge" })));
 
 test.describe("desktop", () => {
   test.use({ viewport: { width: 1366, height: 900 } });
 
   test("a game that leaves the book after a weak book move: the row, and the clicks", async ({ page }) => {
+    await byEdge(page);
     await open(page, "book-left-review.json");
     const opening = row(page, /^The game left the book at turn 3: Blue, D9-G11(, \w+)?\. Before that, at turn 2, Red played O11-Q10, a book move and an Inaccuracy\. Show the position$/);
     await expect(opening).toBeVisible({ timeout: 30_000 });
@@ -59,6 +64,7 @@ test.describe("desktop", () => {
   });
 
   test("a row's click shows the book for this review, and keeps no choice", async ({ page }) => {
+    await byEdge(page);
     await open(page, "book-left-review.json");
     const opening = row(page, /^The game left the book at turn 3/);
     await expect(opening).toBeVisible({ timeout: 30_000 });
@@ -113,7 +119,7 @@ test.describe("desktop", () => {
   });
 
   test("the opening row gives the edge's own quality label: none for the player that Review for leaves out", async ({ page }) => {
-    await display(page, { reviewFor: "red" });
+    await display(page, { reviewFor: "red", judge: "edge" });
     await open(page, "book-left-review.json");
     await expect(row(page, /^The game left the book at turn 3: Blue, D9-G11\. Before that, at turn 2, Red played O11-Q10/))
       .toBeVisible({ timeout: 30_000 });
@@ -270,4 +276,96 @@ test.describe("book moves in the move list", () => {
     await expect.poll(() => page.evaluate(k => JSON.parse(localStorage.getItem(k) ?? "{}").bookMoves, DISPLAY_KEY))
       .toBe("book");
   });
+});
+
+// "Review by" turn, the default (design 32, item 3, "One edge at a time"): at a turn's start the table's rows are whole
+// turns, and the Report's opening row names the turn that left the book. After Blue's first edge A10-D9, Red's turn 2
+// has 20 whole turns in the book (8 fine, 12 others) and a best turn outside the book.
+/** Turns the table to the book, and goes to the position after the game's first edge, turn 2's start. */
+async function turnTwo(page: Page) {
+  await page.getByRole("group", { name: "The table shows" }).getByRole("button", { name: "Book" }).click();
+  await page.keyboard.press("Home");
+  await page.keyboard.press("ArrowRight");
+  expect(await here(page)).toMatch(/^A10-D9/);
+}
+/** The table's rows that name moves, not the group titles, the refutations or "Show more". */
+const moveRows = (page: Page) => table(page).locator("tbody tr[data-move]");
+
+test.describe("by turn", () => {
+  test.use({ viewport: { width: 1366, height: 900 } });
+
+  test("the opening row names the turn that left the book, and goes to the turn's start", async ({ page }) => {
+    await open(page, "book-left-review.json");
+    const opening = row(page, /^The game left the book at turn 3: Blue, D9-G11 D10-G9(, \w+)?\. Before that, at turn 2, Red played O11-Q10, a book move and an Inaccuracy\. Show the position$/);
+    await expect(opening).toBeVisible({ timeout: 30_000 });
+    await opening.click();
+    expect(await here(page)).toMatch(/^O11-Q10/);
+    await expect(table(page).getByRole("columnheader")).toHaveText(["#", "Turn", /^Blue wins$/, "Line ends"]);
+    await expect(table(page).getByRole("rowheader", { name: "Fine turns" })).toBeVisible();
+  });
+
+  test("at a turn's start: whole turns, the best 8 and Show more, and a click plays both edges", async ({ page }) => {
+    await open(page, "book-left-review.json");
+    await expect(row(page, /^The game left the book/)).toBeVisible({ timeout: 30_000 });
+    await turnTwo(page);
+    await expect(table(page).getByText(/^Turn 2 · Red to play, edge 1 of 2/)).toBeVisible();
+    await expect(table(page).getByRole("columnheader").nth(1)).toHaveText("Turn");
+    // The best 8 book turns and the best turn outside the book, each with two edges but the outside one at most
+    await expect(moveRows(page)).toHaveCount(9);
+    const names = await moveRows(page).evaluateAll(rows => rows.map(r => r.getAttribute("data-move")!));
+    expect(names.slice(0, 8).every(n => /^\S+ \S+$/.test(n))).toBe(true);
+    await expect(table(page).getByRole("rowheader", { name: "Best turn outside the book" })).toBeVisible();
+    await table(page).getByRole("button", { name: "Show 12 more turns" }).click();
+    await expect(moveRows(page)).toHaveCount(21);
+    await expect(table(page).getByRole("button", { name: /^Show \d+ more turns$/ })).toHaveCount(0);
+    // A click on a row plays its two edges: Red's turn ends, and Blue's turn 3 starts
+    await moveRows(page).first().click();
+    await expect(table(page).getByText(/^Turn 3 · Blue to play, edge 1 of 2/)).toBeVisible();
+  });
+
+  test("in a turn's middle the rows are single edges", async ({ page }) => {
+    await open(page, "book-left-review.json");
+    await expect(row(page, /^The game left the book/)).toBeVisible({ timeout: 30_000 });
+    await turnTwo(page);
+    await page.keyboard.press("ArrowRight");
+    await expect(table(page).getByText(/^Turn 2 · Red to play, edge 2 of 2/)).toBeVisible();
+    await expect(table(page).getByRole("columnheader").nth(1)).toHaveText("Edge");
+    expect(await moveRows(page).evaluateAll(rows => rows.every(r => !r.getAttribute("data-move")!.includes(" ")))).toBe(true);
+  });
+
+  test("by edge, a turn's start has single edges, and no Show more", async ({ page }) => {
+    await byEdge(page);
+    await open(page, "book-left-review.json");
+    await expect(row(page, /^The game left the book at turn 3: Blue, D9-G11(, \w+)?\. /)).toBeVisible({ timeout: 30_000 });
+    await turnTwo(page);
+    await expect(table(page).getByRole("columnheader").nth(1)).toHaveText("Edge");
+    expect(await moveRows(page).evaluateAll(rows => rows.every(r => !r.getAttribute("data-move")!.includes(" ")))).toBe(true);
+    await expect(table(page).getByRole("button", { name: /^Show \d+ more turns$/ })).toHaveCount(0);
+  });
+});
+
+test.describe("by turn on a phone", () => {
+  test.use({ viewport: { width: 360, height: 640 }, hasTouch: true, isMobile: true });
+
+  for (const unit of ["turn", "edge"]) {
+    test(`by ${unit}: the badges line up, and the table stays in its column`, async ({ page }) => {
+      if (unit === "edge") await byEdge(page);
+      await open(page, "book-left-review.json");
+      await expect(row(page, /^The game left the book/)).toBeVisible({ timeout: 30_000 });
+      await page.getByRole("tab", { name: "Analysis" }).click();
+      await turnTwo(page);
+      const badges = table(page).locator("tbody").getByRole("img", { name: LABEL_WORDS });
+      await expect(badges.first()).toBeVisible();
+      const lefts = await badges.evaluateAll(all => all.map(e => Math.round(e.getBoundingClientRect().left * 10) / 10));
+      expect(lefts.length).toBeGreaterThan(2);
+      expect(new Set(lefts).size, `the badges' left edges: ${lefts}`).toBe(1);
+      // The table fits its box with no sideways scroll, and the box fits the page
+      const fit = await table(page).locator("table").evaluate(t => {
+        const box = t.parentElement!;
+        return { table: t.scrollWidth, box: box.clientWidth, right: box.getBoundingClientRect().right, page: innerWidth };
+      });
+      expect(fit.table).toBeLessThanOrEqual(fit.box);
+      expect(fit.right).toBeLessThanOrEqual(fit.page);
+    });
+  }
 });

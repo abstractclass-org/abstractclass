@@ -14,7 +14,7 @@ import { download } from "#lib/game/reviewFile.ts";
 import { EARLY_ACCESS } from "#lib/edition.ts";
 import { BookPlace, siteBook } from "#lib/book/place.svelte.ts";
 import { OUT, type BookAt } from "#lib/book/lookup.svelte.ts";
-import { gameOpening, openingSentence, trapRows } from "#lib/book/game.ts";
+import { gameOpening, openingAt, openingSentence, trapRows, type GameOpening } from "#lib/book/game.ts";
 import ReviewBookTable from "#lib/book/ReviewBookTable.svelte";
 import { NETWORKS, networkMB, networkName } from "#lib/analysis/engineSettings.ts";
 import { loadDisplay, saveDisplay } from "./display.ts";
@@ -128,9 +128,9 @@ export const enclosureView: ViewGame<Enclosure> = {
 
   // The opening book (design 32): the test book, in the early edition only (book/place.svelte.ts, siteBook)
   book: EARLY_ACCESS ? {
-    place: (page, notations) => {
+    place: (page, notations, unit) => {
       const book = siteBook();
-      return book && new BookPlace(book, page, notations);
+      return book && new BookPlace(book, page, notations, unit);
     },
     notation: p => p.notation,
     opening: (notations, edges) => {
@@ -140,7 +140,10 @@ export const enclosureView: ViewGame<Enclosure> = {
       if (at.some(a => a.state === "loading" || a.state === "failed")) return null;
       return gameOpening(at.map(a => (a.state === "in" ? a.position : null)), edges);
     },
-    openingRow: openingSentence,
+    openingRow: (o, edges, label, unit) => {
+      const text = openingSentence(o as GameOpening, edges, label, unit);
+      return text === null ? null : { text, at: openingAt(o as GameOpening, unit) };
+    },
     trapRows,
     Table: ReviewBookTable,
   } : undefined,

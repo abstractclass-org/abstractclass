@@ -67,3 +67,46 @@ test("a position with no notation is outside the book", async () => {
   await settle();
   assert.equal(place.at.state, "out");
 });
+
+test("by turn: whole turns at a turn's start once its positions load, single edges by edge and elsewhere", async () => {
+  kept.clear();
+  keepChoice("review", { show: "book" });
+  const PROTOTYPE = "/test-book/prototype/index.json", AFTER_G9 = "A10-D10,D10-G9* Q10-T10 r2 0/0 1";
+  const cell = new SvelteMap<string, unknown>([["path", [START, AFTER_G9]], ["unit", "turn"]]);
+  const place = new BookPlace(new OpeningBook(PROTOTYPE, read), "review", () => cell.get("path") as string[],
+                              () => cell.get("unit") as "turn" | "edge");
+  for (let k = 0; k < 4 && !(place.at.state === "in" && place.byTurn); k++) await settle();
+  assert.equal(place.at.state, "in");
+  assert.equal(place.byTurn, true);
+  assert.ok(place.rows.filter(r => r.book).every(r => r.edges.length === 2));
+  // The board: each first edge's number, and a click on it plays its row's two edges
+  const first = place.rows[0];
+  place.point(first.edges[0]);
+  assert.equal(place.pointed, first.move);
+  assert.equal(place.numbered, first.edges[0]);
+  assert.deepEqual(place.movesAt(first.edges[0]), first.edges);
+  // "Review by" edge: the rows are single edges, with no new load
+  cell.set("unit", "edge");
+  assert.equal(place.byTurn, false);
+  assert.ok(place.rows.every(r => r.edges.length === 1));
+  // The start: its turn has one edge, so its rows stay single edges by turn too
+  cell.set("unit", "turn");
+  cell.set("path", [START]);
+  assert.equal(place.byTurn, false);
+});
+
+test("by turn: the best 8 book turns, and the rest after Show more at this position only", async () => {
+  // Turn 2 after Blue's A10-D9: 20 whole turns
+  const PROTOTYPE = "/test-book/prototype/index.json", AFTER_D9 = "A10-D9*,A10-D10 Q10-T10 r2 0/0 1";
+  const cell = new SvelteMap<string, unknown>([["path", [START, AFTER_D9]]]);
+  const place = new BookPlace(new OpeningBook(PROTOTYPE, read), "review", () => cell.get("path") as string[], () => "turn");
+  for (let k = 0; k < 4 && !(place.at.state === "in" && place.byTurn); k++) await settle();
+  const plain = place.rows.filter(r => r.group === "fine" || r.group === "other");
+  assert.equal(plain.length, 20);
+  assert.equal(place.shown.filter(r => r.group === "fine" || r.group === "other").length, 8);
+  assert.ok(place.numbers.length <= place.shown.length);
+  place.more = true;
+  assert.equal(place.shown.length, place.rows.length);
+  cell.set("path", [START]);
+  assert.equal(place.more, false, "the next position shows the best turns only again");
+});

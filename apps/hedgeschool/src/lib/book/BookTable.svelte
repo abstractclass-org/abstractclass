@@ -6,10 +6,11 @@
   // (`sentence`). Outside the book the table shows the candidates alone, as the page does with no book (item 8). The
   // page owns the choice that the browser keeps (`show`), the key o, the board and what a played move does (`onplay`).
   // The table and the board point at each other through `pointed`: the table sets it on hover and focus, and the
-  // board's numbers set it from outside.
+  // board's numbers set it from outside. By turn (`byTurn`), each row is a whole turn: it names its two edges, and it
+  // plays both. The best turns show, and the rest after "Show more" (`more`).
   //
   // The keys (item 9): Tab puts the focus on the table's row (one stop for the whole table), the up and down keys move
-  // between the rows, Enter or Space plays the row's move (or a trap and its refutation), and Escape returns the focus
+  // between the rows, Enter or Space plays the row's edges (or a trap and its refutation), and Escape returns the focus
   // to the page. When the key o hides the rows while one has the focus, the focus goes to the switch. A move out of
   // the book removes the table, and the focus returns to the page. On a phone (item 10), a tap anywhere on a row plays
   // it.
@@ -20,8 +21,9 @@
   import BookSymbol from "./BookSymbol.svelte";
   import type { BookAt } from "./lookup.svelte.ts";
   import type { BookPosition, BookSource } from "./form.ts";
-  import { bookCount, GROUP_TITLES, positionTitle, type BookRow } from "./rows.ts";
-  import { endSentence, refutationText } from "./sentences.ts";
+  import { bookCount, GROUP_TITLES, positionTitle, rowRefutation, TURN_GROUP_TITLES, turnCount,
+    type BookRow } from "./rows.ts";
+  import { endSentence } from "./sentences.ts";
   import { positionSymbol } from "./symbols.ts";
   import type { Label } from "@abstractclass/analysis/labels.ts";
 
@@ -30,14 +32,21 @@
     at: BookAt;
     /** Where the book comes from (OpeningBook `source`). */
     source: BookSource | null;
-    /** The position's rows (rows.ts, bookRows): the page computes them once, for the table and for the board. */
+    /** The position's rows (rows.ts, bookRows or turnRows): the page computes them once, for the table and for the
+     *  board. */
     rows: BookRow[];
+    /** The rows are whole turns (rows.ts, turnRows). */
+    byTurn?: boolean;
+    /** By turn, "Show more" is open: the table shows the rows after the best turns too. The page keeps it, for the
+     *  board's numbers. */
+    more?: boolean;
     /** What the table shows: the player's choice, which the page keeps. Outside the book: the candidates alone. */
     show: "book" | "candidates";
-    /** The edge pointed at, in the table or on the board (its number): its row is lit, and the board draws its line. */
+    /** The row pointed at by its name, in the table or on the board (its number): it is lit, and the board draws its
+     *  line. */
     pointed: string | null;
-    /** Plays edges from the position on screen: a row's move, or a trap with its refutation. */
-    onplay: (edges: string[]) => void;
+    /** Plays edges from the position on screen: a row's edges, or a trap with its refutation (`refutation`). */
+    onplay: (edges: string[], refutation: boolean) => void;
     /** "Try again" after a failed load (OpeningBook `retry`). */
     onretry: () => void;
     /** The engine's candidates: shown when the player chooses "Candidates", and outside the book. */
@@ -47,7 +56,8 @@
     sentence?: Snippet<[BookRow | null, BookPosition]>;
   }
   let {
-    at, source, rows, show = $bindable(), pointed = $bindable(), onplay, onretry, candidates, sentence,
+    at, source, rows, byTurn = false, more = $bindable(false), show = $bindable(), pointed = $bindable(), onplay,
+    onretry, candidates, sentence,
   }: Props = $props();
 
   const position = $derived(at.state === "in" ? at.position : null);
@@ -67,10 +77,21 @@
     `Book of ${new Date(source.made).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}.`,
   ].filter(Boolean).join(" ") : undefined);
 
+  // The rows that show: by turn, the best turns until the player opens "Show more". Its button comes after the last
+  // book turn that shows, before the traps.
+  const shownRows = $derived(more ? rows : rows.filter(r => !r.more));
+  const hidden = $derived(rows.length - shownRows.length);
+  const moreAt = $derived.by(() => {
+    const k = shownRows.findIndex(r => r.group === "trap" || r.group === "outside");
+    return k < 0 ? shownRows.length : k;
+  });
+  const titles = $derived(byTurn ? TURN_GROUP_TITLES : GROUP_TITLES);
+  // By turn, a head that can take two lines in a narrow box (see the table)
+  const narrow = $derived(byTurn && "@max-[20rem]:whitespace-normal!");
   // The rows that take the focus, in order: each row, and each trap's refutation under it.
   type Item = { row: BookRow; refutation: boolean };
-  const items = $derived<Item[]>(rows.flatMap(row => [{ row, refutation: false },
-    ...(row.book?.trap ? [{ row, refutation: true }] : [])]));
+  const items = $derived<Item[]>(shownRows.flatMap(row => [{ row, refutation: false },
+    ...(row.trap?.refutation.length ? [{ row, refutation: true }] : [])]));
   let active = $derived((void rows, 0)); // the item that takes the focus at Tab: the first, at each position
   let box = $state<HTMLElement | null>(null);
   // A key played a move: the focus goes to the first row of the new position once its rows show, also after its part
@@ -91,8 +112,8 @@
     refocus = false;
     queueMicrotask(() => chips?.querySelector<HTMLElement>('[aria-pressed="true"]')?.focus());
   });
-  const edgesOf = (item: Item) => (item.refutation ? [item.row.move, ...item.row.book!.trap!.refutation] : [item.row.move]);
-  const play = (item: Item) => { pointed = null; onplay(edgesOf(item)); };
+  const edgesOf = (item: Item) => (item.refutation ? [...item.row.edges, ...item.row.trap!.refutation] : item.row.edges);
+  const play = (item: Item) => { pointed = null; onplay(edgesOf(item), item.refutation); };
 
   function onkeydown(e: KeyboardEvent) {
     const k = Number((e.target as HTMLElement).dataset.item);
@@ -116,13 +137,14 @@
     box.querySelector(`[data-move="${pointed}"]`)?.scrollIntoView({ block: "nearest" });
   });
 
-  // The sentence's row: the book move pointed at or focused, else null for the best move's sentence
+  // The sentence's row: the book move or turn pointed at or focused, else null for the best one's sentence
   const sentenceRow = $derived(rows.find(r => r.move === pointed && r.book) ?? null);
-  // The polite count of the position's book moves, once a step (item 9). A live region speaks when its text changes, and
-  // two steps can have the same count: so the text is emptied at each new position, then set a moment later.
+  // The polite count of the position's book moves or turns, once a step (item 9). A live region speaks when its text
+  // changes, and two steps can have the same count: so the text is emptied at each new position, then set a moment
+  // later.
   let live = $state<HTMLElement | null>(null);
   $effect(() => {
-    const text = position ? bookCount(position) : "", region = live;
+    const text = !position ? "" : byTurn ? turnCount(rows) : bookCount(position), region = live;
     if (!region) return;
     region.textContent = "";
     const later = setTimeout(() => (region.textContent = text), 100);
@@ -168,25 +190,32 @@
   {:else if position}
     <!-- The end of the book: its text, then the best move outside the book in its row -->
     {#if !position.moves.length}<p class="py-2">{endSentence(position)}</p>{/if}
-    <div class="min-h-0 overflow-y-auto [scrollbar-gutter:stable]" bind:this={box} role="presentation"
+    <div class="@container min-h-0 overflow-y-auto [scrollbar-gutter:stable]" bind:this={box} role="presentation"
          onpointerenter={() => (inside = true)} onpointerleave={() => { inside = false; pointed = null; }}>
-      <table class="w-full border-collapse [&_:is(th,td)]:px-1 [&_:is(th,td)]:py-1 [&_:is(th,td)]:align-top [&_:is(th,td)]:text-left">
+      <!-- By turn, in a box under 320 pixels wide (`narrow`), the cells' side padding halves, and the heads "{side}
+           wins" and "Line ends" can take two lines: a turn's two edges need the room. So the table fits the box of a
+           window 360 pixels wide (264 pixels with the scroll bars), where it needs 313 pixels as by edge. -->
+      <table class={["w-full border-collapse [&_:is(th,td)]:px-1 [&_:is(th,td)]:py-1 [&_:is(th,td)]:align-top [&_:is(th,td)]:text-left",
+                     byTurn && "@max-[20rem]:[&_:is(th,td)]:px-0.5!"]}>
         <thead>
           <tr class="[&>th]:sticky [&>th]:top-0 [&>th]:z-1 [&>th]:bg-panel [&>th]:font-medium [&>th]:text-muted [&>th]:border-b [&>th]:border-line [&>th]:whitespace-nowrap">
             <!-- "Line ends" is as narrow as it can be on one line: its symbols are narrower than its head, and the
                  edge's column takes the rest -->
-            <th class="w-7">#</th><th>Edge</th><th class="w-18">{side} wins</th><th class="w-0">Line ends</th>
+            <th class="w-7">#</th><th>{byTurn ? "Turn" : "Edge"}</th><th class={["w-18", narrow]}>{side} wins</th><th
+              class={["w-0", narrow]}>Line ends</th>
           </tr>
         </thead>
         <tbody>
-          {#each rows as row, k (row.move)}
-            {#if k === 0 || rows[k - 1].group !== row.group}
-              <tr><th colspan="4" scope="rowgroup" class="pt-2! text-xs font-semibold text-muted">{GROUP_TITLES[row.group]}</th></tr>
+          {#each shownRows as row, k (row.move)}
+            {#if hidden && k === moreAt}{@render showMore()}{/if}
+            {#if k === 0 || shownRows[k - 1].group !== row.group}
+              <tr><th colspan="4" scope="rowgroup" class="pt-2! text-xs font-semibold text-muted">{titles[row.group]}</th></tr>
             {/if}
             {@const item = items.findIndex(i => i.row === row && !i.refutation)}
             {@render moveRow(row, item)}
-            {#if row.book?.trap}{@render refutationRow(row, item + 1, refutationText(position, row.book))}{/if}
+            {#if row.trap?.refutation.length}{@render refutationRow(row, item + 1, rowRefutation(position, row))}{/if}
           {/each}
+          {#if hidden && moreAt === shownRows.length}{@render showMore()}{/if}
         </tbody>
       </table>
     </div>
@@ -203,14 +232,15 @@
   <span {title}>{prefix}{moverPct(blueWin)}{#if title}<span class="sr-only"> {title}</span>{/if}</span>
 {/snippet}
 
-<!-- A move's row: its number as the board draws it, the edge with its quality label's badge after it, its win chance
-     and the position symbol at its line's end, in a shade of its side's colour. The edge takes the width of the longest
-     edge (A10-D10, 7 characters of the monospaced font), so the badges line up. The badge and the symbol show no words:
-     their words are their titles and their names (design 32, item 3). A second line gives words only: a trap, or the
-     book's end. -->
+<!-- A row: its number as the board draws it, the edge with its quality label's badge after it, its win chance and the
+     position symbol at its line's end, in a shade of its side's colour. Each edge takes the width of the longest edge
+     (A10-D10, 7 characters of the monospaced font), so the badges line up. By turn, the row names its two edges, and
+     each turn takes the width of two, so the badges line up there too. The badge and the symbol show no words: their
+     words are their titles and their names (design 32, item 3). A second line gives words only: a trap, or the book's
+     end. -->
 {#snippet moveRow(row: BookRow, item: number)}
   {@const lit = pointed === row.move}
-  {@const note = row.book?.trap ? "a trap" : row.ends ? "the book ends here" : ""}
+  {@const note = row.trap ? "a trap" : row.ends ? "the book ends here" : ""}
   <tr data-item={item} data-move={row.move} tabindex={item === active ? 0 : -1}
       class={[ROW, lit && "bg-panel-2"]}
       onpointerenter={() => (pointed = row.move)} onfocus={() => { active = item; pointed = row.move; }}
@@ -220,16 +250,18 @@
     <td>
       <div class="flex flex-col">
         <span class="flex items-center gap-1.5">
-          <span class={["flex-none w-[7ch] font-mono", row.n === 1 && row.book && "font-semibold"]}>{row.move}</span>
+          {#each byTurn ? [0, 1] : [0] as e (e)}
+            <span class={["flex-none w-[7ch] font-mono", row.n === 1 && row.book && "font-semibold"]}>{row.edges[e] ?? ""}</span>
+          {/each}
           {@render badge(row.label)}
         </span>
         {#if note}<span class="text-xs text-muted">{note}</span>{/if}
-        {#if row.book?.trap}
-          <span class="text-xs">Seems good: {side} {moverPct(row.book.trap.short)}. Is not: {side} {moverPct(row.book.value.blueWin)}.</span>
+        {#if row.trap}
+          <span class="text-xs">Seems good: {side} {moverPct(row.trap.short)}. Is not: {side} {moverPct(row.blueWin)}.</span>
         {/if}
       </div>
     </td>
-    <td class="tabular-nums">{@render winChance(row.blueWin, row.book?.value)}</td>
+    <td class="tabular-nums">{@render winChance(row.blueWin, row.value)}</td>
     <td>{#if row.symbol}<BookSymbol symbol={row.symbol} alone />{:else}<span class="text-muted">—</span>{/if}</td>
   </tr>
 {/snippet}
@@ -242,7 +274,7 @@
 {/snippet}
 
 <!-- A trap's refutation, in a row of its own under the trap, so that the player reads it before playing it. The row
-     plays the trap and its refutation, edge by edge. -->
+     plays the trap's edges and its refutation, edge by edge. -->
 {#snippet refutationRow(row: BookRow, item: number, refutation: string)}
   <tr data-item={item} tabindex={item === active ? 0 : -1}
       class={[ROW, "hover:bg-panel-2"]}
@@ -251,6 +283,16 @@
     <td></td>
     <td colspan="3">
       <span class="inline-block px-2 py-0.5 rounded-md border border-line bg-panel-2 text-xs">Play the refutation: {refutation}</span>
+    </td>
+  </tr>
+{/snippet}
+
+<!-- By turn: the button that shows the rest of the book turns, after the best ones. -->
+{#snippet showMore()}
+  <tr class="border-b border-line">
+    <td></td>
+    <td colspan="3">
+      <button type="button" class="btn-secondary px-2 py-0.5 text-xs" onclick={() => (more = true)}>Show {hidden} more turns</button>
     </td>
   </tr>
 {/snippet}

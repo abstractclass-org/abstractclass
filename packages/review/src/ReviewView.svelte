@@ -345,7 +345,8 @@
   // "Candidates", off until the player turns it on, each page with its own kept choice (place.svelte.ts). Only in the
   // early edition, and only where the book's index loads: elsewhere the column stays as it was, with no switch. The
   // table's rows and the board's numbers point at each other (`book.pointed`), and the row pointed at draws its line as
-  // a candidate's does. A book move played from the table is a variation, as any move that the player plays.
+  // a candidate's does. A book move played from the table is a variation, as any move that the player plays. The rows
+  // follow "Review by" (`unit`): by turn, at a turn's start, each row is a whole turn.
   // The notation of each position on the path from the start: the game's as far as the path follows it, then the
   // variation's nodes'
   const pathNotations = $derived.by(() => {
@@ -354,7 +355,7 @@
       .map(p => (p ? view.book?.notation(p) : undefined));
   });
   // The site's book (the game's `book`), on this page: none where the site has none
-  const book = untrack(() => view.book?.place(board ? "board" : "review", () => pathNotations)) ?? null;
+  const book = untrack(() => view.book?.place(board ? "board" : "review", () => pathNotations, () => unit)) ?? null;
 
   // The engine's line from the candidate pointed at, on the board or in the table (KaTrain's and Lizzie's way), each
   // edge with its mover. Only for a candidate with enough visits (the board's rule), and only as far as the search
@@ -427,10 +428,10 @@
   }
   let stepping: ReturnType<typeof setInterval> | undefined;
   $effect(() => () => clearInterval(stepping));
-  /** A move from the book's table or its number on the board: its edge, or a trap and its refutation, edge by edge. */
-  function playBook(edges: string[]) {
-    const trap = edges.length > 1;
-    playPath([...path, ...edges], trap ? "book refutation played" : "book move played", trap);
+  /** A row from the book's table or its number on the board: its edge or its turn, or a trap and its refutation
+   *  (`refutation`). More than one edge plays edge by edge. */
+  function playBook(edges: string[], refutation = false) {
+    playPath([...path, ...edges], refutation ? "book refutation played" : "book move played", edges.length > 1);
   }
   let nudged = $state(false), nudgeTimer: ReturnType<typeof setTimeout> | undefined;
   function nudge() {
@@ -441,7 +442,7 @@
   // Space plays the pinned candidate, or rank 1 (Lichess's Space plays its best move): the book's, while the table
   // shows the book.
   function playCandidate() {
-    if (book?.showsBook) { if (book.rows[0]) playBook([book.rows[0].move]); return; }
+    if (book?.showsBook) { if (book.rows[0]) playBook(book.rows[0].edges); return; }
     const c = pinnedCandidate ?? analysis?.candidates[0];
     if (c) playPath([...path, view.moveName(c.edge)], "candidate played");
   }
@@ -475,11 +476,11 @@
   const lineEdges = $derived(book?.showsBook ? book.line : listHover !== null && listLine ? listLine.slice(0, listHover + 1)
     : hoverCandidate ? trusted(hoverCandidate) : pinnedCandidate ? trusted(pinnedCandidate) : null);
   // The board's numbers, and what pointing at one and clicking it do: the book's rows while the table shows the book,
-  // else the engine's candidates.
+  // else the engine's candidates. A book row's number is on its first move, and a click plays the row.
   const numbers = $derived(book?.showsBook ? {
-    candidates: book.numbers, pointed: book.pointed ? view.parseMove(book.pointed) : null,
-    point: (e: G["move"] | null) => { book.pointed = e === null ? null : view.moveName(e); },
-    click: (e: G["move"]) => playBook([view.moveName(e)]), dblclick: undefined,
+    candidates: book.numbers, pointed: book.numbered ? view.parseMove(book.numbered) : null,
+    point: (e: G["move"] | null) => book.point(e === null ? null : view.moveName(e)),
+    click: (e: G["move"]) => playBook(book.movesAt(view.moveName(e))), dblclick: undefined,
   } : {
     candidates, pointed: hover ?? pinnedCandidate?.edge ?? null, point: (e: G["move"] | null) => { hoverOnBoard = true; hover = e; },
     click: selectRank, dblclick: (e: G["move"]) => playPath([...path, view.moveName(e)], "candidate played"),
@@ -1106,9 +1107,10 @@
     if (board || !book || !parts) return null;
     return parts.opening(gamePositions.map(p => parts.notation(p)), mainNames);
   });
-  // The row gives the review's quality label of the edge that left the book, by turn too: the book works by edge
-  // (design 32, item 4)
-  const openingRow = $derived(opening && view.book && view.book.openingRow(opening, mainNames, shownLabel(opening.at, "edge")));
+  // The row follows "Review by" (design 32, item 4): by turn, the turn that left the book and the turn's quality label,
+  // and the row goes to the turn's start. By edge, the edge and its label.
+  const openingRow = $derived(opening && view.book
+    && view.book.openingRow(opening, mainNames, shownLabel(opening.at), unit));
   // The game's book moves, by the edge's index, each with the words of the position symbol after it
   const bookMoves = $derived(new Map(opening?.bookMoves.map(m => [m.index, m.after])));
   /** Goes to a position of the game from the Report's rows or a book move's mark, and shows the book there for this
@@ -1513,7 +1515,7 @@
        A click on a row goes to the position before the move, and turns the book on for this review only. -->
   {#if openingRow}
     <p class="mt-4 mb-1 text-sm font-semibold">Opening</p>
-    {@render bookRow(openingRow, opening!.at, "book opening row")}
+    {@render bookRow(openingRow.text, openingRow.at, "book opening row")}
   {/if}
   {#if opening?.traps.length}
     <p class="mt-4 mb-1 text-sm font-semibold">Traps</p>

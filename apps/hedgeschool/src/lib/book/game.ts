@@ -8,6 +8,7 @@
 // to it by another move order. The Report names the first departure, and the move list marks each book move of each
 // stretch in the book (the journey, A1, "Variations").
 import type { Label } from "@abstractclass/analysis/labels.ts";
+import type { Unit } from "@abstractclass/analysis/model.ts";
 import type { BookMoveMark } from "@abstractclass/review/game.ts";
 import { moverOf } from "#lib/editor/position.ts";
 import { bookMove } from "./book.ts";
@@ -85,17 +86,34 @@ function refuted({ index, position, move }: PlayedBookMove, edges: string[]): bo
 
 /** The Report's opening row (design 32, item 4): where the game left the book, with the review's label of the move
  *  that left it (`label`), and the book move worse than Good before it. When that move reached the end of the book, the
- *  row names it as the last book move. Null for a game that ended in the book. */
-export function openingSentence(o: GameOpening, edges: string[], label: Label | null): string | null {
+ *  row names it as the last book move. Null for a game that ended in the book. The row follows "Review by" (`unit`):
+ *  by turn it names the whole turn that left the book, and `label` is the turn's label. By edge it names the edge. */
+export function openingSentence(o: GameOpening, edges: string[], label: Label | null,
+                                unit: Unit = "edge"): string | null {
   const w = o.weak, reachedEnd = o.kind === "end" && w?.index === o.at - 1;
   const before = !w ? "" : ` ${(reachedEnd ? lastBookMoveSentence : weakBookMoveSentence)(w.position, w.move)}`;
   switch (o.kind) {
-    case "left": return leftBookSentence(o.position, edges[o.at], label) + before;
+    case "left": {
+      const { at, length } = unit === "turn" ? leftTurn(o) : { at: o.at, length: 1 };
+      return leftBookSentence(o.position, edges.slice(at, at + length).join(" "), label) + before;
+    }
     case "end": return bookEndSentence(o.position) + before;
     case "never": return NOT_IN_BOOK_SENTENCE;
     case "in": return null;
   }
 }
+
+/** The turn that left the book: the index of its first edge and its edges' count. The move that left the book is the
+ *  turn's first edge or its second. */
+function leftTurn(o: GameOpening): { at: number; length: number } {
+  const at = o.at - (o.position.edge - 1);
+  return { at, length: moverOf(edgeCount(o.position) - (o.position.edge - 1)).left };
+}
+
+/** The position that the opening row goes to: the position before the move that left the book, or by turn before the
+ *  turn that left it, where the book's table shows whole turns. */
+export const openingAt = (o: GameOpening, unit: Unit = "edge") =>
+  o.kind === "left" && unit === "turn" ? leftTurn(o).at : o.at;
 
 /** The Report's trap rows: each trap that the game played, with the position before it, where its row goes. */
 export const trapRows = (o: GameOpening): { at: number; text: string }[] =>

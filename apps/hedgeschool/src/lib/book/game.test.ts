@@ -9,7 +9,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { bookMove, openBook, type Book } from "./book.ts";
 import type { BookPosition } from "./form.ts";
-import { gameOpening, openingSentence, trapRows } from "./game.ts";
+import { gameOpening, openingAt, openingSentence, trapRows } from "./game.ts";
 import { moveLabel } from "./sentences.ts";
 import { mirrorEdge } from "#lib/engine/notation.ts";
 
@@ -135,4 +135,26 @@ test("a game that ends in the book, as a game imported while it is played: no op
 
 test("no opening row for a game whose start the book does not hold", () => {
   assert.equal(gameOpening([null, null], ["A10-D9"]), null);
+});
+
+test("by turn: the opening row names the whole turn that left the book, and goes to the turn's start", async () => {
+  // Blue's D9-G11 G11-J12 at turn 3: its first edge left the book
+  const o = gameOpening(await walk(book, LEFT), LEFT)!;
+  assert.equal(openingSentence(o, LEFT, "good", "turn"), "The game left the book at turn 3: Blue, D9-G11 G11-J12, Good. " +
+    "Before that, at turn 2, Red played O11-Q10, a book move and an Inaccuracy.");
+  assert.equal(openingAt(o, "turn"), 3);
+  assert.equal(openingAt(o, "edge"), 3);
+  // Blue's D9-G10 is a book move, and Q10-T9 after it is not: the turn's second edge left the book
+  const second = ["A10-D9", "N11-Q10", "K9-N11", "D9-G10", "Q10-T9", "A10-D10"];
+  const s = gameOpening(await walk(book, second), second)!;
+  assert.equal(s.kind, "left");
+  assert.equal(s.at, 4, "the position before Q10-T9");
+  assert.equal(openingSentence(s, second, "mistake", "turn"), "The game left the book at turn 3: Blue, D9-G10 Q10-T9, Mistake.");
+  assert.equal(openingSentence(s, second, "mistake", "edge"), "The game left the book at turn 3: Blue, Q10-T9, Mistake.");
+  assert.equal(openingAt(s, "turn"), 3, "the turn's start");
+  assert.equal(openingAt(s, "edge"), 4);
+  // The other rows do not change by turn
+  const end = gameOpening(await walk(book, WHOLE), WHOLE)!;
+  assert.equal(openingSentence(end, WHOLE, "best", "turn"), openingSentence(end, WHOLE, "best", "edge"));
+  assert.equal(openingAt(end, "turn"), end.at);
 });

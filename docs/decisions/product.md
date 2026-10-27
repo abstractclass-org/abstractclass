@@ -7341,3 +7341,44 @@ the words of the site. The pages, the lessons, the documents and the code's comm
   mark before. A book move with no quality label yet, or of the player that "Review for" leaves out, has no mark. A
   move that comes back to the book from a position outside it is not a book move: in `book-never-review.json`, G14-H11
   had the old mark and has none now.
+
+### The book's table follows Review by: whole turns at a turn's start (2026-10-27)
+
+- **What:** the book's table follows the display setting "Review by", as the review's labels do (design 32, item 3).
+  By turn, the default, a turn's start lists whole turns: each book move, then each book move of the position that it
+  reaches. A row names both edges. Its win chance is the one after the second edge, and its label comes from the
+  turn's loss against the best turn, by design 10's rule for a turn. By edge, and in a turn's middle, the rows stay
+  single edges. The book holds the position after each edge, with its minimaxed values, so the switch needs no new
+  search: the page loads the parts that hold the positions after the turn start's book moves.
+- **The test book's counts** (`rows.test.ts`): 78 turn starts after turn 1 have book moves. They give a median of 1
+  whole turn and at most 34 (turn 3 after Blue's D10-G9: 5 fine turns, 21 others and 8 traps), and 8 of them give
+  more than 8. The issue had counted 79 turn starts and 9 above 8. In every turn start, the value after a book move
+  equals the best of its position's book moves and its best move outside the book, so the best turn's win chance is
+  the position's best (the first book move's, or the best move outside the book's).
+- **The best 8:** the fine and the other turns, by the win chance for the side to move. The rest come after a button
+  ("Show 12 more turns" for 20), before the traps. The traps and the best turn outside the book always show: in the
+  start with 34 turns, the first 8 rows of the table would have put the 8 traps under the button. The board numbers
+  only the rows that show.
+- **The best turn outside the book:** the best for the side to move of the position's best first edge outside the
+  book (its second edge unknown) and each book move with the best second edge outside the book after it. In the test
+  book, the first kind is the best at 48 turn starts, and the second at 30.
+- **A trap's turn:** a second edge's trap keeps its refutation (the enemy's turn, 2 edges for all 25 of the test
+  book's). A first edge's trap (13 at turn starts) gives each of its turns: after the second edge that its refutation
+  starts with, the rest of the refutation, and after another, none. In the test book, a first edge's trap has 1 to 5
+  book moves after it.
+- **The Report's opening row:** by turn it names the turn that left the book, with the turn's review label, and goes
+  to the turn's start. "Blue, D9-G11 D10-G9, Blunder" in the test game book-left-review.json, where by edge it says
+  "D9-G11" and the edge's label. The trap rows and the other sentences do not change.
+- **The width:** by turn, a row's two edges take 154 pixels, and the table needs 313 pixels with its heads on one
+  line. A window 360 pixels wide gives the table's box 264 pixels with its scroll bars (the layout test), and 294
+  in a phone's emulation, whose scroll bars take no room (`tests/book-review.spec.ts`). With the head "Line ends" on
+  two lines alone, the table still needed 282 pixels. So by turn, in a box under 320 pixels wide (a container
+  query), the cells' side padding halves, and the heads "Blue wins" and "Line ends" can take two lines. The table
+  then fits, and the badges stay at one place by edge and by turn (`npm run test:layout`).
+- **The move list by edge** hides 56 pixels sideways from 360 to 410 pixels wide (320 pixels of rows in 264), with
+  or without the book, and fits by turn. The layout test swept the review by turn only, so it never met this
+  (beads abscls-8n02). The book's sweep by edge checks the table's own rules until it is fixed.
+- **A departure, named in design 32:** no published explorer lists turns of two moves, because chess and Go have one
+  move a turn.
+- **Openings** is not built, so it has no setting to follow yet. The lab page `/lab/book-table` has no display
+  settings, and its rows stay single edges.
