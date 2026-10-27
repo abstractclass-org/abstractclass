@@ -1,7 +1,8 @@
 // The book in the review (design 32, item 4; journey 1, A1): the Report's opening row and trap rows, and the move list's
 // mark on each book move, on reviewed games through the test book (scripts/test-fixture.mjs). A click on a row goes to
 // the position before the move that the row names, a click on a mark to the position before its move, and each shows
-// the book's table there, for this review only. Outside the book the column shows the candidates alone. A book that does not load shows neither.
+// the book's table there, for this review only. Outside the book the column shows the candidates alone. A book that
+// does not load shows neither.
 // The engine is off, so that nothing searches. The test book is served by the dev and preview servers only, and the
 // review shows the book in the early edition only: elsewhere the test is skipped.
 import { test, expect, type Locator, type Page } from "@playwright/test";
@@ -26,8 +27,13 @@ async function open(page: Page, fixture: string) {
   await page.getByText("Accuracy").first().waitFor({ timeout: 60_000 });
 }
 
-/** The move list's book moves' marks (their title and name: "Book move: Good. Equal position after it."). */
-const bookMarks = (page: Page) => page.getByRole("img", { name: /^Book move: / });
+/** The review's display settings that the browser keeps (review/display.ts), and `display` sets before the page loads. */
+const DISPLAY_KEY = "learn-enclosure:review-display:1";
+const display = (page: Page, d: Record<string, string>) =>
+  page.addInitScript(([k, v]) => localStorage.setItem(k, v), [DISPLAY_KEY, JSON.stringify(d)]);
+/** The move list's book moves' marks (their title and name: "Book move · Best: +0.6% · +2.0 · Lead: Blue +14.9 · Equal
+ *  position after it"). */
+const bookMarks = (page: Page) => page.getByRole("img", { name: /^Book move · / });
 /** The move on screen in the move list, or null at the start. */
 const here = async (page: Page) => ((await page.locator(".mv.here").count()) ? (await page.locator(".mv.here").innerText()).trim() : null);
 const row = (page: Page, text: string | RegExp) => page.getByRole("button", { name: text });
@@ -107,7 +113,7 @@ test.describe("desktop", () => {
   });
 
   test("the opening row gives the edge's own quality label: none for the player that Review for leaves out", async ({ page }) => {
-    await page.addInitScript(() => localStorage.setItem("learn-enclosure:review-display:1", JSON.stringify({ reviewFor: "red" })));
+    await display(page, { reviewFor: "red" });
     await open(page, "book-left-review.json");
     await expect(row(page, /^The game left the book at turn 3: Blue, D9-G11\. Before that, at turn 2, Red played O11-Q10/))
       .toBeVisible({ timeout: 30_000 });
@@ -173,37 +179,46 @@ test.describe("phone", () => {
 test.describe("book moves in the move list", () => {
   test.use({ viewport: { width: 1366, height: 900 } });
 
-  const display = (page: Page, d: Record<string, string>) =>
-    page.addInitScript(v => localStorage.setItem("learn-enclosure:review-display:1", v), JSON.stringify(d));
-  const LABEL = "(Best|Great|Excellent|Good|Inaccuracy|Mistake|Blunder)";
   const TOKEN = "(best|great|excellent|good|inaccuracy|mistake|blunder)";
-  /** A mark's name, with the position symbol's words after its move. */
-  const named = (after: string) => new RegExp(`^Book move: ${LABEL}\\. ${after} after it\\.$`);
-  const markOf = (page: Page, move: string) => page.locator(".mv", { hasText: move }).getByRole("img", { name: /^Book move: / });
-  const BOOK_PATH = 'path[d="M12 7v13"]'; // the open book's spine (Icon.svelte, BOOK_PATHS)
+  /** A mark's title and name: its move's tooltip (by turn, its turn's), between "Book move" and the position symbol's
+   *  words after its move. */
+  const named = (tip: string | null, after: string) => `Book move · ${tip} · ${after} after it`;
+  const moveOf = (page: Page, move: string) => page.locator(".mv", { hasText: move });
+  const markOf = (page: Page, move: string) => moveOf(page, move).getByRole("img", { name: /^Book move · / });
+  /** Its title and name are the tooltip that the mark covers: its move's, or its turn's label cell's. */
+  async function namedAfter(mark: Locator, after: string) {
+    const name = named(await mark.locator("xpath=ancestor::*[@title][1]").getAttribute("title"), after);
+    await expect(mark).toHaveAccessibleName(name);
+    await expect(mark).toHaveAttribute("title", name);
+  }
+  const BOOK_PATH = 'path[d^="M12 7v13"]'; // the open book, from its spine (Icon.svelte, BOOK_PATH)
 
-  test("by edge: a mark on each book move, and a click goes to the position before it", async ({ page }) => {
+  test("by edge: a mark on each book move, with the move's tooltip, and a click goes to the position before it", async ({ page }) => {
     await display(page, { judge: "edge" });
     await open(page, "book-left-review.json");
     await expect(bookMarks(page)).toHaveCount(3, { timeout: 30_000 });
-    await expect(markOf(page, "A10-D9")).toHaveAccessibleName(named("Equal position"));
-    await expect(markOf(page, "N11-Q10")).toHaveAccessibleName(named("Equal position"));
-    await expect(markOf(page, "O11-Q10")).toHaveAccessibleName(named("Blue is better"));
-    await expect(markOf(page, "O11-Q10")).toHaveAttribute("title", named("Blue is better"));
+    // The move's own tooltip, with its numbers
+    await expect(markOf(page, "A10-D9")).toHaveAccessibleName("Book move · Best: +0.6% · +2.0 · Lead: Blue +14.9 · Equal position after it");
+    await expect(moveOf(page, "A10-D9")).toHaveAttribute("title", "Best: +0.6% · +2.0 · Lead: Blue +14.9");
+    await namedAfter(markOf(page, "A10-D9"), "Equal position");
+    await namedAfter(markOf(page, "N11-Q10"), "Equal position");
+    await namedAfter(markOf(page, "O11-Q10"), "Blue is better");
     await expect(markOf(page, "D9-G11")).toHaveCount(0);
     await markOf(page, "O11-Q10").click();
     expect(await here(page)).toMatch(/^N11-Q10/);
     await expect(table(page)).toBeVisible();
     // A click on the move itself still goes to the position after it
-    await page.locator(".mv", { hasText: "O11-Q10" }).getByText("O11-Q10").click();
+    await moveOf(page, "O11-Q10").getByText("O11-Q10").click();
     expect(await here(page)).toMatch(/^O11-Q10/);
   });
 
-  test("by turn: a mark on each turn of book moves only, and a click goes to the position before the turn", async ({ page }) => {
+  test("by turn: a mark on each turn of book moves only, with the turn's tooltip, and a click goes to the position before the turn", async ({ page }) => {
     await open(page, "book-left-review.json");
     await expect(bookMarks(page)).toHaveCount(2, { timeout: 30_000 });
-    await expect(bookMarks(page).nth(0)).toHaveAccessibleName(named("Equal position"));
-    await expect(bookMarks(page).nth(1)).toHaveAccessibleName(named("Blue is better")); // after O11-Q10, the turn's end
+    // The turn's tooltip, and the position after its end, O11-Q10
+    await expect(bookMarks(page).nth(1)).toHaveAccessibleName("Book move · Good: −3.3% · −7.5 (+2.9, −10.4) · Blue is better after it");
+    await namedAfter(bookMarks(page).nth(0), "Equal position");
+    await namedAfter(bookMarks(page).nth(1), "Blue is better");
     await page.keyboard.press("End");
     await bookMarks(page).nth(1).click();
     expect(await here(page)).toMatch(/^A10-D9/);
@@ -252,7 +267,7 @@ test.describe("book moves in the move list", () => {
     await choice.getByRole("radio", { name: "Book" }).click();
     await page.getByRole("button", { name: "Done" }).click(); // the settings take the move list's place
     await expect(bookMarks(page).first().locator(BOOK_PATH)).toHaveCount(1);
-    await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("learn-enclosure:review-display:1") ?? "{}").bookMoves))
+    await expect.poll(() => page.evaluate(k => JSON.parse(localStorage.getItem(k) ?? "{}").bookMoves, DISPLAY_KEY))
       .toBe("book");
   });
 });

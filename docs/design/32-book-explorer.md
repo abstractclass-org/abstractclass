@@ -90,9 +90,9 @@ explorers that people use in chess and Go is [../research/03-opening-explorers.m
      that review only.
    - **The move list** marks each book move: an edge whose position and the position after it are both in the book.
      The mark takes the quality label's slot, whatever the label, from Great to Blunder. By turn, a turn shows it when
-     all its edges are book moves, with the turn's label. The display setting "Book moves" gives two forms: the
-     quality label on the book's brown (the default), or an open book in the label's colour. Each form follows the
-     setting "Quality labels": a badge, or a mark alone. The moves keep their review labels.
+     all its edges are book moves, with the turn's quality label. The display setting "Book moves" gives two forms:
+     the quality label on the book's brown (the default), or an open book in the quality label's colour. Each form
+     follows the setting "Quality labels": a badge, or the quality mark alone. The moves keep their review labels.
    - **One engine and one depth rule a game:** the review keeps its own labels, on book moves too (design 16). The
      book's table shows the book's values only, with no row for the game's move: the move list gives the review's
      quality label. The opening row gives the review's quality label of the edge itself, also when the review judges
@@ -202,8 +202,8 @@ explorers that people use in chess and Go is [../research/03-opening-explorers.m
     table at that move never learns it.
   - **A book move's mark keeps its quality label.** Chess.com's "Book" takes the place of the move's label, so a book
     move never shows as a poor move. A book move can still be a poor one: the book keeps the moves worse than Good
-    that tempt, and the traps. So the mark shows the label: on the book's brown, or with the book in the label's
-    colour. The default follows Chess.com's Book mark, a brown disc.
+    that tempt, and the traps. So the mark shows the quality label: on the book's brown, or with the book in the
+    quality label's colour. The default follows Chess.com's Book mark, a brown disc.
   - **The table takes the candidates' place,** not a box under the move list as on Lichess. A review's move list holds
     120 edges and needs the column's height. At a book position, the book's values are deeper than the live engine's,
     so the table shows the better set and the switch shows the other.
@@ -445,10 +445,12 @@ shows them in the early edition, where the book loads. They read the site's one 
 - **The marks** are on each book move (`gameOpening`, `bookMoves`). A move that comes back to the book from a
   position outside it is not a book move, so the marks of a return start at the move after it. A book move with no
   quality label yet, or of the player that "Review for" leaves out, has no mark. Each mark's title and accessible name
-  give the label and the position symbol after the move, in the symbol's words: "Book move: Good. Blue is slightly
-  better after it." By turn, they give the turn's label and the position after the turn. The mark is in the label's
-  slot, which has a fixed width (2.2 characters), so it never widens a move's column (`npm run test:layout`). By edge,
-  the mark is inside the move's button, which tells a click on the mark from a click on the move.
+  are the move's own tooltip, with "Book move" before it and the position symbol after the move at its end, in the
+  symbol's words: "Book move · Best: +0.6% · +2.0 · Lead: Blue +14.9 · Equal position after it". By turn, they are the
+  turn's tooltip and the position after the turn: "Book move · Good: −3.3% · −7.5 (+2.9, −10.4) · Blue is better after
+  it". The mark is inside the move's button, or the turn's cell, so its title covers theirs: it keeps their numbers.
+  The mark is in the label's slot, which has a fixed width (2.2 characters), so it never widens a move's column
+  (`npm run test:layout`). By edge, the move's button tells a click on the mark from a click on the move.
 - **The book's brown** is `--book` in `packages/review/src/review.css`: Chess.com's Book colour, #a88865, in the dark
   theme (4.5:1 against the panel, 3.9:1 against panel-2), and #a4835e, the same hue a little darker, in the light
   theme (3.5:1 and 3.0:1). #a88865 has only 2.8:1 against the light panel-2. White on the brown has 3.3:1 and 3.5:1,

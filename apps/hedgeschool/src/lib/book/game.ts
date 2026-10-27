@@ -8,6 +8,7 @@
 // to it by another move order. The Report names the first departure, and the move list marks each book move of each
 // stretch in the book (the journey, A1, "Variations").
 import type { Label } from "@abstractclass/analysis/labels.ts";
+import type { BookMoveMark } from "@abstractclass/review/game.ts";
 import { moverOf } from "#lib/editor/position.ts";
 import { bookMove } from "./book.ts";
 import type { BookMove, BookPosition } from "./form.ts";
@@ -17,10 +18,6 @@ import { SYMBOL_NAME, positionSymbol } from "./symbols.ts";
 
 /** A book move that the game played: the edge's index, and the book's position before it. */
 export interface PlayedBookMove { index: number; position: BookPosition; move: BookMove }
-
-/** A game's book move, for the move list's mark: the edge's index, and the words of the position symbol after it
- *  (symbols.ts, SYMBOL_NAME). */
-export interface BookMoveMark { index: number; after: string }
 
 export interface GameOpening {
   /** How the game met the book: it left the book, it followed the book to its end, it was not in the book from the
@@ -39,7 +36,7 @@ export interface GameOpening {
    *  ended its turn otherwise. */
   traps: (PlayedBookMove & { refuted: boolean | null })[];
   /** The game's book moves, in the game's order: each edge whose position and the position after it are both in the
-   *  book. The move list marks each. */
+   *  book, with the words of the position symbol after it (symbols.ts, SYMBOL_NAME). The move list marks each. */
   bookMoves: BookMoveMark[];
 }
 
