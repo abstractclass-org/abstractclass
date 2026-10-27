@@ -1,7 +1,8 @@
 # The site's tests on each push to dev (docs/hosting.md, "Deploy, check and roll back"): the type check, the unit tests,
 # and the browser tests in Chromium on Linux (tests/): the layout sweep, and the practice games' consent across tabs.
 # Beside them, the layout sweep in Chromium on Windows. On a production build with the practice games' storage on, so
-# that the consent banner shows on every page, and the practice games' test runs. A release takes only a commit whose
+# that the consent banner shows on every page, and the practice games' test runs. Both jobs also serve Drawing Board's
+# build (DB_BASE_URL), for the layout test of the monospaced font on that site. A release takes only a commit whose
 # run passed. The deploy (deploy.yml) runs the check and the unit tests again before each upload. The sweep in Edge
 # stays an option before a release. A newer push cancels a run still going for an older one. The repository is public,
 # so the standard runners cost no minutes.
@@ -58,10 +59,17 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ hashFiles('package-lock.json') }}
       - run: npx playwright install --with-deps --only-shell chromium
+      # Drawing Board's preview (port 4174) beside the site's, for the layout test of the monospaced font on Drawing Board
+      # (tests/layout.spec.ts), which runs only when DB_BASE_URL gives it. Its build is the one of check:all (the step
+      # drawingboard-build), made in this run: the test never serves a build of its own, so a stale build cannot pass.
       - name: The browser tests, in Chromium
+        env:
+          DB_BASE_URL: http://127.0.0.1:4174
         run: |
           npm run preview -- --host 127.0.0.1 --port 4173 --strictPort &
+          npm run preview --workspace=drawingboard -- --host 127.0.0.1 --port 4174 --strictPort &
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:4173/ > /dev/null && break; sleep 1; done
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:4174/ > /dev/null && break; sleep 1; done
           npx playwright test --project=chromium
 
       # The failures' screenshots and the page's state, for a week.
@@ -99,6 +107,11 @@ jobs:
           VITE_EDITION: early
           VITE_STORE_PRACTICE_GAMES: "on"
 
+      # Drawing Board's build, for its layout test below: check:all does not run on this job. A fresh build in each run,
+      # as the site's above.
+      - run: npm run build
+        working-directory: apps/drawingboard
+
       # Playwright keeps its browsers in the user's AppData on Windows.
       - name: Cache Playwright's browsers
         uses: actions/cache@v6
@@ -108,11 +121,17 @@ jobs:
       # The headless shell only: the project chromium runs headless, with no channel.
       - run: npx playwright install --only-shell chromium
       # Bash, not the default PowerShell, for the commands of the Linux job: the preview in the background, the wait.
+      # Drawing Board's preview (port 4174) beside the site's, and DB_BASE_URL, so that the layout test of the monospaced
+      # font runs on Drawing Board too, with Windows' fonts and rendering.
       - name: The layout sweep, in Chromium on Windows
         shell: bash
+        env:
+          DB_BASE_URL: http://127.0.0.1:4174
         run: |
           npm run preview -- --host 127.0.0.1 --port 4173 --strictPort &
+          npm run preview --workspace=drawingboard -- --host 127.0.0.1 --port 4174 --strictPort &
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:4173/ > /dev/null && break; sleep 1; done
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:4174/ > /dev/null && break; sleep 1; done
           npx playwright test tests/layout.spec.ts --project=chromium
 
       - if: failure()
