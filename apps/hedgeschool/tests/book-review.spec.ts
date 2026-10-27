@@ -6,6 +6,7 @@
 // The engine is off, so that nothing searches. The test book is served by the dev and preview servers only, and the
 // review shows the book in the early edition only: elsewhere the test is skipped.
 import { test, expect, type Locator, type Page } from "@playwright/test";
+import { loadReviewFile } from "./review-file.ts";
 
 test.beforeEach(async ({ page }) => {
   test.setTimeout(120_000);
@@ -23,7 +24,7 @@ test.beforeEach(async ({ page }) => {
 
 /** Loads a reviewed game from its file. The page stores it, then reloads to review it. */
 async function open(page: Page, fixture: string) {
-  await page.locator('input[type="file"][accept*="json"]').first().setInputFiles(`tests/fixtures/${fixture}`);
+  await loadReviewFile(page, `tests/fixtures/${fixture}`);
   await page.getByText("Accuracy").first().waitFor({ timeout: 60_000 });
 }
 

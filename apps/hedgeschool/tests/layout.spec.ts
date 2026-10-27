@@ -14,6 +14,7 @@
 // bar on a phone, on the review, the Analysis board and Practice. Run: npm run test:layout (the site running first).
 import { expect, test, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
+import { loadReviewFile } from "./review-file.ts";
 
 const WIDTHS = Array.from({ length: (1920 - 360) / 10 + 1 }, (_, k) => 360 + 10 * k);
 const HEIGHTS = [700, 860, 1000];
@@ -93,7 +94,7 @@ async function sweep(page: Page, label: string, ownRules?: (page: Page) => Promi
 /** Loads the fixture's review file in the Review tab, which opens its review. */
 async function reviewedGame(page: Page) {
   await page.goto("/review");
-  await page.locator('input[type="file"][accept*="json"]').first().setInputFiles(FIXTURE);
+  await loadReviewFile(page, FIXTURE);
   await page.waitForURL(/#game=/);
 }
 

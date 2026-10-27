@@ -56,6 +56,9 @@
   $effect(() => { if (chosen) untrack(() => void open()); });
   async function open() {
     manifestLoad = loadManifest();
+    // A file chosen before the page's code ran: the prerendered page shows the input before its handler is attached.
+    void loadFile(fileInput?.files?.[0]);
+    if (fileInput) fileInput.value = "";
     [games, kept] = await Promise.all([listGames(), storageKept().then(Boolean)]); // the list with its line on storage
     lastId = lastReview();
     read = true;
@@ -113,6 +116,7 @@
   let fileProblem = $state("");
   let loadingFile = $state(false);
   let dragging = $state(false);
+  let fileInput = $state<HTMLInputElement>();
 
   /** A game's export, as on the review page: the annotated record is written from the stored results, with no search. */
   async function exportGame(id: string, record: string, kind: ExportKind) {
@@ -198,7 +202,9 @@
     <div class="flex flex-wrap items-center gap-3 mt-4 pt-3 border-t border-line">
       <label class={["px-3 py-1 text-sm rounded border border-line bg-panel-2", loadingFile ? "opacity-50" : "hover:border-accent"]}>
         {loadingFile ? "Loading…" : "Load a review file"}
-        <input type="file" accept=".json,application/json" class="sr-only" disabled={loadingFile}
+        <!-- data-ready: the tab has opened, and a file chosen now loads at once. The browser tests wait for it. -->
+        <input bind:this={fileInput} type="file" accept=".json,application/json" class="sr-only" disabled={loadingFile}
+               data-ready={chosen || undefined}
                onchange={e => { void loadFile(e.currentTarget.files?.[0]); e.currentTarget.value = ""; }} />
       </label>
       <span class="flex-1 min-w-56 text-xs text-muted">A review file that {SITE_NAME} exported, from this browser or another. You can

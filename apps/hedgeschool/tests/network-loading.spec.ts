@@ -3,6 +3,7 @@
 // network is loaded. The test holds the network's files until it has read the header. The layout test's game
 // (tests/fixtures/hedgefund-review.json, with its results), with the engine off, so that nothing searches.
 import { test, expect, type Page } from "@playwright/test";
+import { loadReviewFile } from "./review-file.ts";
 
 const FIXTURE = "tests/fixtures/hedgefund-review.json", WORDS = "Loading the engine's network…";
 
@@ -29,7 +30,7 @@ test("the engine header says that the network loads, on the review and on the An
   await page.evaluate(() => localStorage.setItem("learn-enclosure:engine:2", JSON.stringify({ on: false })));
   // The file's load stores the game with every step's results and names it in the address. The Review tab then reloads
   // to review it (src/routes/review/+page.svelte, otherGame), from the browser's store.
-  await page.locator('input[type="file"][accept*="json"]').first().setInputFiles(FIXTURE);
+  await loadReviewFile(page, FIXTURE);
   let line = await headerLine(page);
   await expect(line).toContainText(WORDS);
   await expect(line).not.toContainText("visits");
