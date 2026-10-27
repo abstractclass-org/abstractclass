@@ -536,8 +536,9 @@ shows them in the early edition, where the book loads. They read the site's one 
   list has no mark. The rest of the review works. The table says what failed.
 - **The test games:** `apps/hedgeschool/scripts/test-fixture.mjs` makes reviewed games that meet the test book in each
   way, with a given opening: `apps/hedgeschool/tests/fixtures/book-left-review.json`, `book-never-review.json` (it
-  comes back too) and `book-trap-review.json`. The layout test's game (`hedgefund-review.json`) follows the test book
-  to its end.
+  comes back too), `book-trap-review.json` and `book-turn-label-review.json`. In the last, Red leaves the book at turn
+  2 with N8-Q10, a Good edge, and ends the turn with N9-Q10, so the turn is a Blunder: the opening row by edge and by
+  turn gives the two labels. The layout test's game (`hedgefund-review.json`) follows the test book to its end.
 
 ## Where it is
 

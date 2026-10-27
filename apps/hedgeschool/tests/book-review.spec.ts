@@ -126,6 +126,17 @@ test.describe("desktop", () => {
       .toBeVisible({ timeout: 30_000 });
   });
 
+  // In book-turn-label-review.json, Red leaves the book with N8-Q10, a Good edge, and ends its turn with N9-Q10, a
+  // Blunder: the turn's label is Blunder
+  for (const [judge, text] of [["edge", "N8-Q10, Good"], ["turn", "N8-Q10 N9-Q10, Blunder"]]) {
+    test(`the opening row gives the label of the move that left the book: by ${judge}, its ${judge}'s`, async ({ page }) => {
+      await display(page, { judge });
+      await open(page, "book-turn-label-review.json");
+      await expect(row(page, `The game left the book at turn 2: Red, ${text}. Show the position`))
+        .toBeVisible({ timeout: 30_000 });
+    });
+  }
+
   test("a game that follows the book to its end", async ({ page }) => {
     await open(page, "hedgefund-review.json");
     await expect(row(page, "The game followed the book to its end, at turn 3. Blue is slightly better. Show the position"))

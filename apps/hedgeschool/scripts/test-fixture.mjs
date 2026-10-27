@@ -11,8 +11,9 @@
 // The book's games (design 32, item 4) come the same way, with options: the game's first edges are given, then the bot
 // plays on, and the game stops after a number of edges. Each meets the test book (tests/fixtures/test-book) in its own
 // way: book-left-review.json leaves it at turn 3 after a book move worse than Good, book-never-review.json is not in it
-// from the first move and comes back by another move order, and book-trap-review.json plays a trap and its
-// refutation. A short game keeps the file small.
+// from the first move and comes back by another move order, book-trap-review.json plays a trap and its refutation, and
+// in book-turn-label-review.json Red leaves it at turn 2 with a Good edge and ends the turn with a Blunder, so that the
+// edge's quality label and its turn's differ. A short game keeps the file small.
 //
 //   node scripts/test-fixture.mjs [threads] [--opening E1,E2,…] [--edges N] [--out NAME.json]
 //   node scripts/test-fixture.mjs 2 --opening A10-D9,N11-Q10,O11-Q10,D9-G11 --edges 24 --out book-left-review.json
@@ -20,6 +21,7 @@
 //     --out book-never-review.json
 //   node scripts/test-fixture.mjs 2 --opening D10-G9,N11-Q10,K9-N11,G9-K10,K10-N12,K9-M10,M10-P11 --edges 24 \
 //     --out book-trap-review.json
+//   node scripts/test-fixture.mjs 2 --opening A10-D9,N8-Q10,N9-Q10 --edges 7 --out book-turn-label-review.json
 import { availableParallelism } from "node:os";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
