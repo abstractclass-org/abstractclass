@@ -30,19 +30,6 @@
   --border: #dddad3;
   --blue: #2f6fde;
   --red: #d2453f;
-  /* The position symbols' shades (Hedge School's book table, design 32, item 3): the stronger the position, the farther
-     its symbol's shade from the text's colour, which = and ∞ take. A side's three shades lie on a straight line in
-     OKLCH, with the side's hue, from --text (its lightness and chroma) to the side's far shade, at 0.45, 0.72 and 1 of
-     the way (lightness and chroma together). The far shade has the chroma of --blue or --red (cut to what sRGB can
-     show), at the lightness where its contrast against panel-2 (a lit row) is 3.1:1, the floor of WCAG 1.4.11 with a
-     margin. So "winning" is the most saturated and has the lowest contrast. symbolShades.test.ts checks the floor, the
-     order and the steps. */
-  --blue-slightly-better: #334f7f;
-  --blue-better: #3b68b7;
-  --blue-winning: #4384f4;
-  --red-slightly-better: #7a3d38;
-  --red-better: #ad4b43;
-  --red-winning: #e6574f;
   color-scheme: light;
 }
 /* The dark theme: the system's when the visitor has not chosen, else the visitor's choice (theme.svelte.ts). A script
@@ -56,12 +43,6 @@
   --border: #3a3d42;
   --blue: #5b8ff0;
   --red: #e8635c;
-  --blue-slightly-better: #9cb6e3;
-  --blue-better: #7299df;
-  --blue-winning: #487ad9;
-  --red-slightly-better: #e4a59e;
-  --red-better: #de7d75;
-  --red-winning: #d4514b;
   color-scheme: dark;
 }
 /* The tokens as Tailwind's colours (bg-panel, text-muted, border-line, …). Tailwind's own palette is cleared, so every
@@ -80,12 +61,6 @@
   --color-on-accent: var(--on-accent);
   --color-blue: var(--blue);
   --color-red: var(--red);
-  --color-blue-slightly-better: var(--blue-slightly-better);
-  --color-blue-better: var(--blue-better);
-  --color-blue-winning: var(--blue-winning);
-  --color-red-slightly-better: var(--red-slightly-better);
-  --color-red-better: var(--red-better);
-  --color-red-winning: var(--red-winning);
   --font-mono: "Fira Code Variable", ui-monospace, monospace;
   /* No ligatures: a record's text must show as it is (k3x9q, not k3×9q). Fira Code has all of its ligatures in
      "calt". Tailwind gives this setting with the font, to the font-mono utility and to preflight's code, kbd, samp and

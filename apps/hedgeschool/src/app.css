@@ -1,6 +1,6 @@
 @import "tailwindcss";
 /* The sites' shared style: the general colour tokens, the base styles and the page area (packages/site). This file
-   adds Hedge School's own: its accent, its board's, the notes' and the area line's. */
+   adds Hedge School's own: its accent, its board's, the notes', the area line's and the book's symbols' shades. */
 @import "@abstractclass/site/site.css";
 /* The review's view and its parts, with their style (packages/review): Tailwind finds their classes there. */
 @import "@abstractclass/review/review.css";
@@ -21,6 +21,19 @@
   --note-green: #359a3b;
   --note-grey: #86868c;
   --area: #a8508f; /* the Advantage chart's area line: magenta, apart from the players' blue and red and the labels' hues */
+  /* The position symbols' shades (the book's table, design 32, item 3): the stronger the position, the farther its
+     symbol's shade from the text's colour, which = and ∞ take. A side's three shades lie on a straight line in OKLCH,
+     with the side's hue, from --text (its lightness and chroma) to the side's far shade, at 0.45, 0.72 and 1 of the way
+     (lightness and chroma together). The far shade has the chroma of --blue or --red (cut to what sRGB can show), at
+     the lightness where its contrast against panel-2 (a lit row) is 3.1:1, the floor of WCAG 1.4.11 with a margin. So
+     "winning" is the most saturated and has the lowest contrast. symbolShades.test.ts checks the floor, the order and
+     the steps. */
+  --blue-slightly-better: #334f7f;
+  --blue-better: #3b68b7;
+  --blue-winning: #4384f4;
+  --red-slightly-better: #7a3d38;
+  --red-better: #ad4b43;
+  --red-winning: #e6574f;
 }
 /* The dark theme (site.css). */
 :root[data-theme="dark"] {
@@ -33,6 +46,12 @@
   --note-yellow: #e9b81c;
   --note-green: #4caf50;
   --note-grey: #a8a8ae;
+  --blue-slightly-better: #9cb6e3;
+  --blue-better: #7299df;
+  --blue-winning: #487ad9;
+  --red-slightly-better: #e4a59e;
+  --red-better: #de7d75;
+  --red-winning: #d4514b;
 }
 /* Hedge School's tokens as Tailwind's colours, beside the shared ones (site.css) and the view's (review.css). Best's
    and Mistake's inks are the view's tokens, and only the lessons and the puzzles take them as colours. */
@@ -41,6 +60,12 @@
   --color-area: var(--area);
   --color-best: var(--best);
   --color-mistake: var(--mistake);
+  --color-blue-slightly-better: var(--blue-slightly-better);
+  --color-blue-better: var(--blue-better);
+  --color-blue-winning: var(--blue-winning);
+  --color-red-slightly-better: var(--red-slightly-better);
+  --color-red-better: var(--red-better);
+  --color-red-winning: var(--red-winning);
 }
 
 /* The review page before its code runs (src/lib/review/pageMarks.ts): a script in its head marks an address that names

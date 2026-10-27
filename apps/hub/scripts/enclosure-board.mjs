@@ -15,6 +15,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PLAYER_NAME } from "../../hedgeschool/src/lib/review/enclosure.ts";
 import { LABEL_SHAPES } from "../../../packages/review/src/labelShapes.ts";
+import { block, siteThemes, themes } from "../../../packages/site/src/themeTokens.ts";
 
 const hub = join(dirname(fileURLToPath(import.meta.url)), "..");
 const fail = message => { throw new Error(`enclosure-board: ${message}`); };
@@ -32,18 +33,12 @@ const style = readFileSync(join(hub, "public/style.css"), "utf8");
 if (!style.includes(`.board .mark.${mark.label} {`)) fail(`style.css gives the label ${mark.label} no colour`);
 // The colour tokens, in each theme: a token that a theme does not set keeps the light theme's value. Hedge School's
 // are the shared ones, the view's and its own, in the order that its style imports them.
-const appStyles = ["../../packages/site/src/site.css", "../../packages/review/src/review.css",
-  "../hedgeschool/src/app.css"].map(path => readFileSync(join(hub, path), "utf8"));
-const block = (css, open) => css.includes(open) ? css.slice(css.indexOf(open), css.indexOf("\n}", css.indexOf(open)))
-  : fail(`no "${open}" block`);
-const tokens = css => Object.fromEntries([...css.matchAll(/--([\w-]+):\s*([^;]+);/g)].map(m => [m[1], m[2].trim()]));
-const themes = (light, dark) => ({ light: tokens(light), dark: { ...tokens(light), ...tokens(dark) } });
 const hubTokens = themes(block(style, ":root {"), block(style, "@media (prefers-color-scheme: dark) {"));
-const appBlocks = open => appStyles.map(css => block(css, open)).join("");
-const appTokens = themes(appBlocks(':root, [data-theme="light"] {'), appBlocks(':root[data-theme="dark"] {'));
+const appTokens = siteThemes(...["../../packages/site/src/site.css", "../../packages/review/src/review.css",
+  "../hedgeschool/src/app.css"].map(path => join(hub, path)));
 const drift = Object.entries(hubTokens).flatMap(([theme, t]) => Object.entries(t)
   .filter(([name, value]) => value !== appTokens[theme][name])
-  .map(([name, value]) => `--${name} (${theme}) is ${value}, and ${appTokens[theme][name] ?? "missing"} in Hedge School's`));
+  .map(([name, value]) => `${name} (${theme}) is ${value}, and ${appTokens[theme][name] ?? "missing"} in Hedge School's`));
 if (drift.length) fail(`style.css's tokens are not Hedge School's: ${drift.join("; ")}`);
 
 // The timeline, in seconds: a hold on the first position, an edge a step, a hold before the last edge (with the

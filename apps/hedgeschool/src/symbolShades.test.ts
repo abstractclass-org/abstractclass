@@ -1,26 +1,19 @@
-// Checks the position symbols' shades in site.css (Hedge School's book table, design 32, item 3): in each theme, each
-// shade has a contrast of at least 3:1 against the panel and panel-2 (WCAG 1.4.11, the contrast of a graphic), the
-// stronger the position, the farther its shade from the text's colour (in OKLab) and the lower its contrast, and a
-// side's three shades step evenly in lightness (CIELAB L*). The contrast is WCAG's, from the relative luminance. Run:
-// npm test.
+// Checks the position symbols' shades in app.css (the book's table, design 32, item 3): in each theme, each shade has a
+// contrast of at least 3:1 against the panel and panel-2 (WCAG 1.4.11, the contrast of a graphic), the stronger the
+// position, the farther its shade from the text's colour (in OKLab) and the lower its contrast, and a side's three
+// shades step evenly in lightness (CIELAB L*). The contrast is WCAG's, from the relative luminance. The text's and the
+// panels' colours are the shared ones (site.css). Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { siteThemes } from "@abstractclass/site/themeTokens.ts";
 
-const css = readFileSync(new URL("./site.css", import.meta.url), "utf8");
-/** The tokens of the rule whose selector is `selector`: the light theme's, or the dark theme's over the light's. */
-function tokens(selector: string): Map<string, string> {
-  const at = css.indexOf(`${selector} {`);
-  assert.ok(at >= 0, `site.css has the rule ${selector}`);
-  const body = css.slice(at, css.indexOf("}", at));
-  return new Map([...body.matchAll(/(--[\w-]+):\s*([^;]+);/g)].map(m => [m[1], m[2].trim()]));
-}
-const light = tokens(':root, [data-theme="light"]');
-const THEMES = { light, dark: new Map([...light, ...tokens(':root[data-theme="dark"]')]) };
+// The tokens as the site's style imports them: the shared ones, then Hedge School's
+const THEMES = siteThemes(new URL(import.meta.resolve("@abstractclass/site/site.css")),
+  new URL("./app.css", import.meta.url));
 
 /** A token's colour: "#rrggbb". */
-function colour(theme: Map<string, string>, name: string): string {
-  const value = theme.get(name) ?? "";
+function colour(theme: Record<string, string>, name: string): string {
+  const value = theme[name] ?? "";
   assert.match(value, /^#[\da-f]{6}$/i, `the token ${name}`);
   return value;
 }

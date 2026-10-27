@@ -423,15 +423,15 @@ its own choice of "Book" or "Candidates", handles the key o, and plays the moves
   from `lineEndSymbol`, the symbol at the end of its main line. `BookSymbol.svelte` draws the eight symbols, because
   the site's font has no glyph for ⩲ and ⩱. In a row, it shows the symbol only, with its name as its title and its
   accessible name, in its shade.
-- **The shades** are colour tokens in `packages/site/src/site.css`, beside `--blue` and `--red`, in both themes:
+- **The shades** are Hedge School's colour tokens, in `apps/hedgeschool/src/app.css`, in both themes:
   `--blue-slightly-better`, `--blue-better` and `--blue-winning`, and the same three for Red. A side's three shades
   lie on a straight line in OKLCH, with the hue of the side's colour. The line starts at the lightness and the chroma
   of `--text` and ends at the side's far shade. The shades are at 0.45, 0.72 and 1 of the way, in lightness and
   chroma together. The far shade is "winning". It has the chroma of `--blue` or `--red` in its theme (cut to what sRGB
   can show), at the lightness where its contrast against panel-2 (a lit row) is 3.1:1.
-  `packages/site/src/symbolShades.test.ts` checks that each shade has a contrast of at least 3:1 against the panel and
-  panel-2, that the stronger the position, the farther its shade from `--text` in OKLab and the lower its contrast,
-  and that the steps in CIELAB L* differ by less than 1.
+  `apps/hedgeschool/src/symbolShades.test.ts` checks that each shade has a contrast of at least 3:1 against the panel
+  and panel-2, that the stronger the position, the farther its shade from `--text` in OKLab and the lower its
+  contrast, and that the steps in CIELAB L* differ by less than 1.
 - **The badges:** a row's quality label is `LabelBadge` in a wrapper that gives the label's word as its title and its
   accessible name. `LabelBadge` itself stays hidden from assistive technology, because the move list and the Report
   give the word in their own text. The edge before it is 7 characters of the monospaced font wide (`7ch`), the longest
