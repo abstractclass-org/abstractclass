@@ -23,7 +23,7 @@ const KEY = "learn-enclosure:review-display:1";
  *  "Forecast". Each style marks from 5 hundredths: after the engine's best move, the difference at 0 marks a third of
  *  the board, faintly (decisions/product.md, "After vs before: the third style"). A browser's own stored value stays.
  *  The lines draw one edge at a time (KaTrain's way), an edge shows as a pill along its direction, and a label as a
- *  badge. The sounds are on, as on Lichess, with the button's set. */
+ *  badge, a book move's on the book's brown, as chess.com's Book mark is a brown disc (design 32, item 4). The sounds are on, as on Lichess, with the button's set. */
 export const DEFAULT_DISPLAY: Display = {
   judge: "turn",
   reviewFor: "both",
@@ -37,6 +37,7 @@ export const DEFAULT_DISPLAY: Display = {
   lineSteps: true,
   branchForm: "pills",
   marks: "badges",
+  bookMoves: "label",
   notes: true,
   previewMoves: true,
   previewBranches: true,
@@ -68,6 +69,7 @@ export function loadDisplay(): Display {
     branchForm: kept.branchForm === "pills" || kept.branchForm === "dots" || kept.branchForm === "text" ? kept.branchForm
       : kept.branchText ? "text" : DEFAULT_DISPLAY.branchForm,
     marks: kept.marks === "text" ? "text" : "badges",
+    bookMoves: kept.bookMoves === "book" ? "book" : "label",
     notes: kept.notes ?? DEFAULT_DISPLAY.notes,
     previewMoves: kept.previewMoves ?? DEFAULT_DISPLAY.previewMoves,
     previewBranches: kept.previewBranches ?? DEFAULT_DISPLAY.previewBranches,

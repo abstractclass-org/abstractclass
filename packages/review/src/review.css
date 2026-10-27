@@ -35,6 +35,10 @@
   --inaccuracy: #bc8d07;
   --mistake: #bb5c03;
   --blunder: #c62b2f;
+  /* A book move's colour in the move list (design 32, item 4): chess.com's Book colour (#a88865), the same hue a
+     little darker in the light theme, so that a badge's disc and a mark alone are 3:1 against panel-2 (3.0:1, and 3.5:1
+     against panel). White on it is 3.5:1. */
+  --book: #a4835e;
 }
 /* The dark theme (site.css). */
 :root[data-theme="dark"] {
@@ -51,6 +55,7 @@
   --inaccuracy: var(--inaccuracy-fill);
   --mistake: var(--mistake-fill);
   --blunder: var(--blunder-fill);
+  --book: #a88865; /* chess.com's own: 4.5:1 against panel and 3.9:1 against panel-2, white on it 3.3:1 */
 }
 /* The view's tokens as Tailwind's colours, beside the shared ones (site.css). Label colours are set from the label in
    the markup (style:background="var(--{label})"), so they stay plain tokens. Blunder's ink is also the colour of an

@@ -7295,3 +7295,42 @@ the words of the site. The pages, the lessons, the documents and the code's comm
   utility, and of every element in Fira Code on the Notation page and on Hedge School's editor, whose position field
   is in Fira Code. It also checks the width of a probe text. The Drawing Board test runs when `DB_BASE_URL` gives its
   preview.
+
+### A mark on each book move, in two forms (2026-10-27)
+
+- **Each book move has a mark** (design 32, item 4; beads abscls-tpaj.17): an edge whose position and the position
+  after it are both in the book. The mark takes the quality label's slot in the move list, whatever the label, from
+  Great to Blunder. By turn, a turn has it when all its edges are book moves. It replaces the one mark at the last
+  book move of each stretch, "Last move in the book". Nothing said what that mark meant without a pointer, and the
+  moves before it carried nothing, so it did not show how far the game followed the book.
+- **No special rule for poor moves:** the first plan kept the label of a Great, Inaccuracy, Mistake or Blunder book
+  move in the place of the book icon. A book move that the review calls an Inaccuracy or worse then never showed as a
+  book move. Every book move now has the mark, and the mark shows the label.
+- **Two forms, a display setting** ("Book moves", beside "Quality labels"): the label on the book's brown (the
+  default), or an open book in the label's colour. As a badge: the label's mark in white on a brown disc, or the book
+  in white on the label's disc. As a mark alone: the label's mark in the brown, or the book in the label's colour.
+  The default follows Chess.com, whose Book mark is a brown disc. Both forms depart from Chess.com, whose "Book" takes
+  the place of the move's label: a book move can still be a poor one.
+- **The previews,** drawn into the review of `book-left-review.json`, light and dark, by edge and by turn: A, the book
+  in the label's colour (now the second form); B, the label's badge with a small book tab (at this size the tab reads
+  as a dot); C, one book icon on the brown (it hides the move's quality); D1, the label's mark in white on the brown
+  (now the default); D2, the label's mark in its own colour on the brown. The label colours have 1.04:1 (Best) to
+  1.47:1 (Inaccuracy) against the brown, so D2's marks almost disappear.
+- **The brown,** `--book` in `packages/review/src/review.css`, at least 3:1 against the panel and panel-2:
+
+  | Theme | Colour | Against the panel | Against panel-2 | White on it |
+  |---|---|---|---|---|
+  | Light | #a4835e | 3.51:1 | 3.03:1 | 3.51:1 |
+  | Dark | #a88865 (Chess.com's) | 4.48:1 | 3.91:1 | 3.29:1 |
+
+  Chess.com's #a88865 has 2.84:1 against the light panel-2 (#f0eeea), under the floor. #a4835e keeps its hue and
+  saturation in HSL, and is the lightest such colour at 3:1 against panel-2. White on a label's badge is 2.32:1 on
+  Good, 2.24:1 on Inaccuracy and 2.78:1 on Excellent, so white on the brown reads as well or better.
+- **The title and accessible name** give the label and the position symbol after the move (the book's minimaxed
+  value of that position, in the symbol's words): "Book move: Good. Blue is slightly better after it." By turn, the
+  turn's label and the position after the turn. A click goes to the position before the move or the turn, and shows
+  the book there for this review only.
+- **No mark** on the live site, where the book does not load, on a set-up board and on the Analysis board, as with the
+  mark before. A book move with no quality label yet, or of the player that "Review for" leaves out, has no mark. A
+  move that comes back to the book from a position outside it is not a book move: in `book-never-review.json`, G14-H11
+  had the old mark and has none now.

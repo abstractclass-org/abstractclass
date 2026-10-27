@@ -1,21 +1,26 @@
 // A reviewed game's path through the opening book (design 32, item 4; journey 1, A1): where the game left the book, the
 // book move worse than Good that it played before, the traps that it played and whether the other side refuted them,
-// and the move list's mark at the game's last book move. The review gives the book's position at each of the game's
+// and the game's book moves, which the move list marks. The review gives the book's position at each of the game's
 // positions (lookup.svelte.ts, `OpeningBook`), and the Report takes its rows from here. The sentences are in
 // sentences.ts.
 //
 // A position is in the book when the book holds it, by any move order: so a game that leaves the book can come back
-// to it by another move order. The Report names the first departure, and the move list marks the last book move of
-// each stretch in the book (the journey, A1, "Variations").
+// to it by another move order. The Report names the first departure, and the move list marks each book move of each
+// stretch in the book (the journey, A1, "Variations").
 import type { Label } from "@abstractclass/analysis/labels.ts";
 import { moverOf } from "#lib/editor/position.ts";
 import { bookMove } from "./book.ts";
 import type { BookMove, BookPosition } from "./form.ts";
 import { NOT_IN_BOOK_SENTENCE, bookEndSentence, edgeCount, isFine, lastBookMoveSentence, leftBookSentence, moveLoss,
   trapPlayedSentence, weakBookMoveSentence } from "./sentences.ts";
+import { SYMBOL_NAME, positionSymbol } from "./symbols.ts";
 
 /** A book move that the game played: the edge's index, and the book's position before it. */
 export interface PlayedBookMove { index: number; position: BookPosition; move: BookMove }
+
+/** A game's book move, for the move list's mark: the edge's index, and the words of the position symbol after it
+ *  (symbols.ts, SYMBOL_NAME). */
+export interface BookMoveMark { index: number; after: string }
 
 export interface GameOpening {
   /** How the game met the book: it left the book, it followed the book to its end, it was not in the book from the
@@ -33,8 +38,9 @@ export interface GameOpening {
    *  edges, in either order in its turn; null when the game ended before them, or when the side that played the trap
    *  ended its turn otherwise. */
   traps: (PlayedBookMove & { refuted: boolean | null })[];
-  /** The game's last book move of each stretch in the book, by the edge's index: the move list's mark. */
-  marks: number[];
+  /** The game's book moves, in the game's order: each edge whose position and the position after it are both in the
+   *  book. The move list marks each. */
+  bookMoves: BookMoveMark[];
 }
 
 /** The game's opening, from the book's position at each of its positions (null where the book does not hold it) and
@@ -56,13 +62,14 @@ export function gameOpening(positions: (BookPosition | null)[], edges: string[])
   });
   const weak = played.filter(b => b.index < last && !b.move.trap && !isFine(b.position, b.move))
     .reduce<PlayedBookMove | null>((w, b) => (!w || moveLoss(b.position, b.move) > moveLoss(w.position, w.move) ? b : w), null);
-  // Each stretch in the book ends at a position whose next position the book does not hold. The edge into it is the
-  // stretch's last book move, but at the start, where no edge leads.
-  const marks = positions.flatMap((p, k) => (p && k > 0 && k + 1 < positions.length && !positions[k + 1] ? [k - 1] : []));
+  const bookMoves = positions.flatMap((p, k) => {
+    const next = positions[k + 1];
+    return p && next && k < edges.length ? [{ index: k, after: SYMBOL_NAME[positionSymbol(next)] }] : [];
+  });
   return {
     kind, at: last, position: end, weak,
     traps: played.filter(b => b.move.trap).map(b => ({ ...b, refuted: refuted(b, edges) })),
-    marks,
+    bookMoves,
   };
 }
 

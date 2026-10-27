@@ -55,6 +55,9 @@ export interface Display {
   // A label in the move list and the variations: a badge, or its mark alone in the label's colour, as Lichess's move
   // list shows it
   marks: "badges" | "text";
+  // A book move's quality label in the move list (design 32, item 4): the label on the book's brown (its badge's disc,
+  // or its mark alone, in --book), or an open book in the label's colour, in the place of its mark
+  bookMoves: "label" | "book";
   notes: boolean; // the move list's one-line notes on Great moves, mistakes and blunders
   previewMoves: boolean; // the position after a played move on the board, while the pointer is on the move (design 07)
   previewBranches: boolean; // a variation's line on the board, while the pointer is on one of its moves (design 07)
@@ -192,9 +195,9 @@ export interface ViewBook<M> {
   toggle(): void; // the key o: the book or the candidates
   showForNow(): void; // the book, for this page only
 }
-/** The game's opening in the book, for the Report (design 32, item 4): the position that its row goes to, the game's
- *  moves that the move list marks, and the traps that it played. */
-export interface BookOpening { at: number; marks: number[]; traps: unknown[] }
+/** The game's opening in the book (design 32, item 4): the position that the Report's row goes to, the game's book
+ *  moves that the move list marks, each with the words of the position symbol after it, and the traps that it played. */
+export interface BookOpening { at: number; bookMoves: { index: number; after: string }[]; traps: unknown[] }
 export interface BookParts<G extends ViewTypes> {
   /** The book's place on a page, from the notation of each position on the path. Null where the site has no book. */
   place(page: "review" | "board", notations: () => (string | undefined)[]): G["book"] | null;

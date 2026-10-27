@@ -154,11 +154,13 @@ test("layout of the choice for a tool's game", async ({ page }) => {
 
 // The review's display settings that change its move list's width (review/display.ts): by turn, the turn's label and
 // loss in a fourth column; by edge, each edge's in its own cell, wider (the move list cut at 1,280 pixels showed by
-// edge only); and the labels as text, not badges.
+// edge only); and the labels as text, not badges. In the early edition, the book moves' marks take the labels' slots:
+// the label on the book's brown by default, and an open book as a mark alone, the widest mark.
 const REVIEW_DISPLAYS: [string, Record<string, string>][] = [
   ["the default display", {}],
   ["labels by edge", { judge: "edge" }],
   ["labels by edge, as text", { judge: "edge", marks: "text", branchForm: "text" }],
+  ["labels by edge, as text, the book moves as a book", { judge: "edge", marks: "text", bookMoves: "book" }],
 ];
 
 test("layout of a review", async ({ page }) => {

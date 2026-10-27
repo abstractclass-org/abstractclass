@@ -1097,7 +1097,7 @@
   $effect(() => onposition?.(path));
 
   // The opening book in the review (design 32, item 4): the Report's rows on the game's opening, and the move list's
-  // mark at the game's last book move, from the site's one book (`openingBook`). In the early edition only, and only
+  // mark on each book move, from the site's one book (`openingBook`). In the early edition only, and only
   // where the book loads: a site that serves no book shows neither, and the Report has no opening row while the book
   // loads or when it did not load. The Analysis board has none.
   // The game's opening, once every part of the book that the game's positions need has loaded
@@ -1109,8 +1109,9 @@
   // The row gives the review's quality label of the edge that left the book, by turn too: the book works by edge
   // (design 32, item 4)
   const openingRow = $derived(opening && view.book && view.book.openingRow(opening, mainNames, shownLabel(opening.at, "edge")));
-  const bookMarks = $derived(new Set(opening?.marks));
-  /** Goes to a position of the game from the Report's rows or the book's mark, and shows the book there for this
+  // The game's book moves, by the edge's index, each with the words of the position symbol after it
+  const bookMoves = $derived(new Map(opening?.bookMoves.map(m => [m.index, m.after])));
+  /** Goes to a position of the game from the Report's rows or a book move's mark, and shows the book there for this
    *  review only: the switch shows "Book", and the choice that the browser keeps does not change. */
   function openBookAt(at: number, feature: string) {
     used(feature);
@@ -1360,6 +1361,18 @@
   {:else}<span class="font-extrabold" style:color="var(--{label})"><Glyph glyph={LABEL_GLYPH[label]} /></span>{/if}
 {/snippet}
 
+<!-- A book move's mark in the move list (design 32, item 4), in the label's slot: its quality label on the book's brown,
+     or an open book in the label's colour, as the display settings choose, each as a badge or as a mark alone. Its
+     title and its name give the label and the position symbol after the move (`after`, its words). The move's button,
+     or the turn's, takes its click (data-book). -->
+{#snippet bookMark(label: Label, after: string)}
+  {@const name = `Book move: ${LABEL_TEXT[label]}. ${after} after it.`}
+  <span role="img" aria-label={name} title={name} data-book>{#if display.marks === "badges"}{#if display.bookMoves === "book"}<LabelBadge
+      {label} book />{:else}<LabelBadge {label} fill="var(--book)" />{/if}{:else if display.bookMoves === "book"}<span
+      style:color="var(--{label})"><Icon name="book" /></span>{:else}<span class="font-extrabold" style:color="var(--book)"><Glyph
+      glyph={LABEL_GLYPH[label]} /></span>{/if}</span>
+{/snippet}
+
 <!-- The top of the side panel: the review's progress or an engine error. -->
 {#snippet panelHead()}
   {#if game?.error}
@@ -1604,23 +1617,15 @@
     {#each R.turns as t (t.number)}
       <!-- A turn's number, then its edges in two equal columns (Lichess's move list), each at least a move wide:
            with room to spare, the second edge starts halfway across. By turn, a last column judges the whole turn. -->
-      {@const bookMark = t.edges.find(e => bookMarks.has(e.index))}
       <div class={turnRow(unit === "turn")}>
-        <!-- The game's last book move (design 32, item 4): one mark, an open book, beside its turn's number. The number's
-             column has a fixed width, so the mark never widens a move's column: in a move's cell, it pushed the move list
-             past its edge at its narrowest. From turn 10, the mark goes into the gap before the move, short of the move.
-             Its title names the move. A click goes to the position after the move, where the game left the book, and
-             turns the book on for this review. -->
-        <span class="{TURN_NUMBER} whitespace-nowrap">{t.number}.{#if bookMark}{@const name = view.notation(bookMark)}<button
-              type="button" class="ml-0.5 p-0 bg-transparent border-0 text-muted hover:text-ink" tabindex="-1"
-              title="Last move in the book: {name}" aria-label="Last move in the book: {name}"
-              onclick={() => openBookAt(bookMark.index + 1, "book mark")}><Icon name="book" /></button>{/if}</span>
+        <span class="{TURN_NUMBER} whitespace-nowrap">{t.number}.</span>
         {#if t.continued}<span class="px-[0.2rem] text-muted">…</span>{/if} <!-- its first edge was played before the start -->
         {#each t.edges as e (e.index)}
           {@const after = R.blueScore[e.index + 1]}
           {@const asked = !board || !!board.judged[mainKeys[e.index + 1]]} <!-- the board's moves: evaluated on request -->
           {@const judged = unit === "edge" && forSide(e.player) && asked ? (e.label ? `${LABEL_TEXT[e.label]}: ${costText(e.rawLoss, e.rawPoints)}` : "Not analyzed yet") : ""}
           {@const shown = forSide(e.player) ? e.label : null}
+          {@const bookAfter = unit === "edge" ? bookMoves.get(e.index) : undefined}
           <!-- On the board too, where the position has a result: from the complexity, as the board's `hard` is the record's,
                on the moves evaluated only (onlyJudged). -->
           {@const hard = forSide(e.player) && isHard(e.complexity)}
@@ -1636,11 +1641,13 @@
                on the board too, wherever that position has a result: the board's tooltips say where it has none. -->
           <button data-path={mainKeys[e.index + 1]}
                   class={moveButton(e.player, mainAt === e.index + 1 ? MOVE_HERE : pickedKey === mainKeys[e.index + 1] ? PICKED : MOVE_HOVER)}
-                  onclick={() => go(e.index + 1, true)} onmouseenter={() => startPreview({ kind: "move", index: e.index })} onmouseleave={endPreview} tabindex="-1"
+                  onclick={ev => ((ev.target as Element).closest("[data-book]") ? openBookAt(e.index, "book mark") : go(e.index + 1, true))} onmouseenter={() => startPreview({ kind: "move", index: e.index })} onmouseleave={endPreview} tabindex="-1"
                   title={tooltip(judged, after !== undefined ? `Lead: ${sideText(after, 1)}` : "", unit === "edge" && board ? searchNote(hard, [R.data.analysis[e.index]]) : "")}>
             <span class={view.moveText}>{view.notation(e)}</span>
             {#if unit === "edge"}
-              <span class="w-[2.2ch] ml-auto">{#if listed(shown)}{@render mark(shown)}{/if}</span>
+              <!-- A book move's mark takes the label's slot, whatever the label: a click on it goes to the position
+                   before the move, and shows the book there. -->
+              <span class="w-[2.2ch] ml-auto">{#if shown && bookAfter !== undefined}{@render bookMark(shown, bookAfter)}{:else if listed(shown)}{@render mark(shown)}{/if}</span>
               <span class="w-[1.2ch] text-[0.8em] text-muted text-center" title={hard ? HARD_NOTE : undefined}>{hard ? "◆" : ""}</span>
               <span class="w-[5ch] text-[0.78em] text-right text-muted tabular-nums">{forSide(e.player) ? lossShort(e) : ""}</span>
             {/if}
@@ -1650,10 +1657,14 @@
              with each edge's loss in the lead. -->
         {#if unit === "turn" && forSide(t.player)}
           {@const hard = isHard(t.complexity)}
+          <!-- A turn of book moves only: the mark, with the position symbol after the turn. A click goes to the
+               position before the turn. -->
+          {@const bookAfter = t.edges.every(e => bookMoves.has(e.index)) ? bookMoves.get(t.edges.at(-1)!.index) : undefined}
           <span class="col-start-4 flex items-baseline gap-1 px-[0.2rem] py-px font-mono text-[0.95em] whitespace-nowrap {SIDE_TEXT[t.player]}"
                 title={tooltip(t.label ? `${LABEL_TEXT[t.label]}: ${turnCost(t)}` : board && !t.edges.every(e => board.judged[mainKeys[e.index + 1]]) ? "" : "Not analyzed yet",
                                board ? searchNote(hard, t.edges.map(e => R.data.analysis[e.index])) : "")}>
-            <span class="w-[2.2ch]">{#if listed(t.label)}{@render mark(t.label)}{/if}</span>
+            <span class="w-[2.2ch]">{#if t.label && bookAfter !== undefined}<button type="button" tabindex="-1"
+                    class="p-0 bg-transparent border-0" onclick={() => openBookAt(t.edges[0]!.index, "book mark")}>{@render bookMark(t.label, bookAfter)}</button>{:else if listed(t.label)}{@render mark(t.label)}{/if}</span>
             <span class="w-[1.2ch] text-[0.8em] text-muted text-center" title={hard ? HARD_NOTE : undefined}>{hard ? "◆" : ""}</span>
             <span class="w-[5ch] ml-auto text-[0.78em] text-right text-muted tabular-nums">{lossShort(t)}</span>
           </span>
@@ -1981,6 +1992,10 @@
       <h3 class={SETTINGS_HEAD}>Move list</h3>
       {@render choice("Quality labels", "Each quality label as a badge, as in the report and on the board, or as its quality mark in the badge's colour.",
         [["badges", "Badges"], ["text", "Text"]], () => display.marks, v => (display.marks = v as Display["marks"]))}
+      {#if book && !board}
+        {@render choice("Book moves", "Each book move's quality label in the book's brown, or an open book in the quality label's colour.",
+          [["label", "Brown"], ["book", "Book"]], () => display.bookMoves, v => (display.bookMoves = v as Display["bookMoves"]))}
+      {/if}
       {@render toggle("Notes on the key moves", "A line under each Great, Mistake and Blunder.",
         () => display.notes, v => (display.notes = v))}
       {@render toggle("Preview played moves", "Pointing at a move of the game shows the position after it on the board.",

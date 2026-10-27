@@ -88,8 +88,11 @@ explorers that people use in chess and Go is [../research/03-opening-explorers.m
      with a trap has a trap row: "Turn {n}: {side} played a trap, {move}. {other side} played its refutation." or "…
      did not play its refutation." A click on a row goes to the position before the move, and turns the book on for
      that review only.
-   - **The move list** marks the game's last book move with one mark, an open-book icon, "Last move in the book". The
-     moves keep their review labels.
+   - **The move list** marks each book move: an edge whose position and the position after it are both in the book.
+     The mark takes the quality label's slot, whatever the label, from Great to Blunder. By turn, a turn shows it when
+     all its edges are book moves, with the turn's label. The display setting "Book moves" gives two forms: the
+     quality label on the book's brown (the default), or an open book in the label's colour. Each form follows the
+     setting "Quality labels": a badge, or a mark alone. The moves keep their review labels.
    - **One engine and one depth rule a game:** the review keeps its own labels, on book moves too (design 16). The
      book's table shows the book's values only, with no row for the game's move: the move list gives the review's
      quality label. The opening row gives the review's quality label of the edge itself, also when the review judges
@@ -194,9 +197,13 @@ explorers that people use in chess and Go is [../research/03-opening-explorers.m
   parent. OGS's Joseki Explorer for traps as a category of their own, followed by their refutation. The Lichess app for
   the phone's layout.
 - **The departures, and their reasons:**
-  - **The review marks where the game left the book.** Lichess and KataGo show it only by an empty table, and a player
-    who does not look at the table at that move never learns it. Chess.com labels every book move, which doubles the
-    marks where the labels matter.
+  - **The review marks where the game left the book,** in the Report's opening row, and each book move in the move
+    list. Lichess and KataGo show the end of the book only by an empty table, and a player who does not look at the
+    table at that move never learns it.
+  - **A book move's mark keeps its quality label.** Chess.com's "Book" takes the place of the move's label, so a book
+    move never shows as a poor move. A book move can still be a poor one: the book keeps the moves worse than Good
+    that tempt, and the traps. So the mark shows the label: on the book's brown, or with the book in the label's
+    colour. The default follows Chess.com's Book mark, a brown disc.
   - **The table takes the candidates' place,** not a box under the move list as on Lichess. A review's move list holds
     120 edges and needs the column's height. At a book position, the book's values are deeper than the live engine's,
     so the table shows the better set and the switch shows the other.
@@ -223,7 +230,16 @@ explorers that people use in chess and Go is [../research/03-opening-explorers.m
   cannot be compared.
 - **The book's values in the review's labels** wherever the game is in the book, as design 16 has each position use
   its deepest result. One review would then mix two networks.
-- **A mark on every book move,** as Chess.com's "Book" label.
+- **Chess.com's "Book" in the place of the label.** It hides the quality of a book move worse than Good.
+- **One mark at the last book move of each stretch in the book,** beside the turn's number ("Last move in the book").
+  Nothing said what it meant without a pointer, and the moves before it carried nothing, so it did not show how far
+  the game followed the book.
+- **One book icon for every book move.** It hides the move's quality, as Chess.com's "Book" does.
+- **The book icon, but the label where it is Great or worse than Good.** A book move that the review calls an
+  Inaccuracy or worse then never shows as a book move.
+- **The label's badge with a small book tab.** At the badge's size, the tab reads as a dot.
+- **The label's colour on the brown disc.** The labels' colours have a contrast of 1.04:1 (Best) to 1.47:1
+  (Inaccuracy) against the brown, so their marks almost disappear.
 - **No sentences in the first version.** Stories 11 and 12 would fail, and the study would teach coordinates to
   memorize.
 - **A row for the game's move** ("Your game"), with the review's label and value beside the book's. It put two
@@ -426,15 +442,21 @@ shows them in the early edition, where the book loads. They read the site's one 
   trap ends its turn as the refutation does. Otherwise, the row gives the trap's first sentence only. A game that ends
   before the refutation's turn gets that sentence only too. A game that ends in the book, as a game imported while it
   is played, has no opening row.
-- **The mark,** "Last move in the book", is at the last book move of each stretch in the book. So it marks a return
-  too. It sits beside its turn's number, and its title names the move ("Last move in the book: O11-Q10"). The number's
-  column has a fixed width (35 pixels). A number of one digit and the mark need 30 pixels. From turn 10 they need 38
-  pixels: the mark goes 3 pixels into the gap of 4 pixels before the move, and does not touch it. In the move's own
-  cell, the mark widened the column, and at the move list's narrowest width (1,260 pixels, by edge) the list hid 14
-  pixels sideways (`npm run test:layout`).
-- **A click** on a row or on the mark goes to the position, and turns the book on for this review only
-  (`BookPlace.showForNow`): the switch shows "Book", and the choice that the browser keeps does not change. Only the
-  switch and the key o change it. Below 1,260 pixels, the click opens the Analysis tab too.
+- **The marks** are on each book move (`gameOpening`, `bookMoves`). A move that comes back to the book from a
+  position outside it is not a book move, so the marks of a return start at the move after it. A book move with no
+  quality label yet, or of the player that "Review for" leaves out, has no mark. Each mark's title and accessible name
+  give the label and the position symbol after the move, in the symbol's words: "Book move: Good. Blue is slightly
+  better after it." By turn, they give the turn's label and the position after the turn. The mark is in the label's
+  slot, which has a fixed width (2.2 characters), so it never widens a move's column (`npm run test:layout`). By edge,
+  the mark is inside the move's button, which tells a click on the mark from a click on the move.
+- **The book's brown** is `--book` in `packages/review/src/review.css`: Chess.com's Book colour, #a88865, in the dark
+  theme (4.5:1 against the panel, 3.9:1 against panel-2), and #a4835e, the same hue a little darker, in the light
+  theme (3.5:1 and 3.0:1). #a88865 has only 2.8:1 against the light panel-2. White on the brown has 3.3:1 and 3.5:1,
+  more than white on the Good (2.3:1), Inaccuracy (2.2:1) and Excellent (2.8:1) badges.
+- **A click** on a row goes to the position before its move, and a click on a mark to the position before its move or
+  its turn. Each turns the book on for this review only (`BookPlace.showForNow`): the switch shows "Book", and the
+  choice that the browser keeps does not change. Only the switch and the key o change it. Below 1,260 pixels, the
+  click opens the Analysis tab too.
 - **The book did not load,** or a part of the game's path did not load: the Report has no opening row, and the move
   list has no mark. The rest of the review works. The table says what failed.
 - **The test games:** `apps/hedgeschool/scripts/test-fixture.mjs` makes reviewed games that meet the test book in each
@@ -463,3 +485,4 @@ and abscls-tpaj.3, never merged.
   (2026-10-25).
 - [decisions/product.md](../decisions/product.md), "The book's table: badges and symbols alone, the win chance
   alone, no game's row" (2026-10-27).
+- [decisions/product.md](../decisions/product.md), "A mark on each book move, in two forms" (2026-10-27).

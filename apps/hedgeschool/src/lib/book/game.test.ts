@@ -40,13 +40,15 @@ const TRAP = ["D10-G9", "N11-Q10", "K9-N11", "G9-K10", "K10-N12", "K9-M10", "M10
 const NEVER = ["D10-G12", "O9-Q10", "L10-O9", "A10-D9", "D9-E11", "H11-L10", "G14-H11", "D9-G11"];
 const RETURN = "A10-D9,A10-D10,D9-E11,D10-G12 G14-H11*,H11-L10*,L10-O9,O9-Q10,Q10-T10 b2 3.75/0 7";
 
-test("a game that leaves the book: the move that left it, the book move worse than Good before it, and one mark", async () => {
+test("a game that leaves the book: the move that left it, the book move worse than Good before it, and its book moves", async () => {
   const o = gameOpening(await walk(book, LEFT), LEFT)!;
   assert.equal(o.kind, "left");
   assert.equal(o.at, 3, "the position before D9-G11");
   assert.equal(o.weak?.index, 2);
   assert.equal(moveLabel(o.weak!.position, o.weak!.move), "inaccuracy");
-  assert.deepEqual(o.marks, [2], "O11-Q10, the last move in the book");
+  // A10-D9, N11-Q10 and O11-Q10, each with the position symbol after it. D9-G11 left the book.
+  assert.deepEqual(o.bookMoves, [{ index: 0, after: "Equal position" }, { index: 1, after: "Equal position" },
+    { index: 2, after: "Blue is better" }]);
   assert.deepEqual(o.traps, []);
   assert.equal(openingSentence(o, LEFT, "good"), "The game left the book at turn 3: Blue, D9-G11, Good. " +
     "Before that, at turn 2, Red played O11-Q10, a book move and an Inaccuracy.");
@@ -54,12 +56,13 @@ test("a game that leaves the book: the move that left it, the book move worse th
     "Before that, at turn 2, Red played O11-Q10, a book move and an Inaccuracy.", "the review has no label for it yet");
 });
 
-test("a game that follows the book to its end: the symbol there, and the mark at the move that reached it", async () => {
+test("a game that follows the book to its end: the symbol there, and every move up to it a book move", async () => {
   const o = gameOpening(await walk(book, WHOLE), WHOLE)!;
   assert.equal(o.kind, "end");
   assert.equal(o.at, 5, "the end of the book, after D10-G9");
   assert.equal(o.weak, null, "K9-N11 is a Good book move");
-  assert.deepEqual(o.marks, [4]);
+  assert.deepEqual(o.bookMoves.map(m => m.index), [0, 1, 2, 3, 4], "H6-K9 is past the end");
+  assert.equal(o.bookMoves[4]!.after, "Blue is slightly better", "the end's symbol");
   // Blue's win chance there is 0.545: between 0.524 and 0.564
   assert.equal(openingSentence(o, WHOLE, "best"), "The game followed the book to its end, at turn 3. Blue is slightly better.");
 });
@@ -78,11 +81,9 @@ test("a game not in the book from the first move, which comes back to it by anot
   const o = gameOpening(await walk(book, NEVER, { 7: RETURN }), NEVER)!;
   assert.equal(o.kind, "never");
   assert.equal(o.at, 0);
-  assert.deepEqual(o.marks, [6], "G14-H11, back in the book");
+  // G14-H11 comes back to the book from a position outside it, and D9-G11 leaves it again: neither is a book move
+  assert.deepEqual(o.bookMoves, []);
   assert.equal(openingSentence(o, NEVER, "mistake"), "The game was not in the book from the first move.");
-  // The same game before it comes back: no mark
-  const out = NEVER.slice(0, 3);
-  assert.deepEqual(gameOpening(await walk(book, out), out)!.marks, []);
 });
 
 test("a trap and its refutation, and the book move worse than Good before it", async () => {
@@ -119,7 +120,7 @@ test("a game that ends in the book, as a game imported while it is played: no op
   const short = TRAP.slice(0, 5); // the game stops before Red's turn
   const o = gameOpening(await walk(book, short), short)!;
   assert.equal(o.kind, "in");
-  assert.deepEqual(o.marks, [], "the game did not leave the book");
+  assert.deepEqual(o.bookMoves.map(m => m.index), [0, 1, 2, 3, 4], "every edge of the game");
   assert.equal(openingSentence(o, short, null), null);
   assert.deepEqual(trapRows(o), [{ at: 3, text: "Turn 3: Blue played a trap, G9-K10." }]);
 });
