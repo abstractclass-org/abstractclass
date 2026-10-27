@@ -208,10 +208,12 @@ edit in the same commit), so their changes still apply.
       meaf.us watcher's view), it also gives that address. The tools' own code shows the message, opens the import
       page, loads the address that `read` gives, and in the userscript opens the game once the reloaded page has its
       moves. So meaf.us's case stays in Hedge School's page code, and the frame knows no game site.
-    - **The bookmarklet:** the site's name, which starts each message, and the bookmark's name. **The userscript**
-      (`UserscriptSite`): the site's name, the script's name, its id (the name of its files, of the elements that it
-      adds and of its key), the button's label and picture, the button's place on each game site, and the header's
-      description, author, homepage and pages (`@match`).
+    - **The tools** (`UserscriptSite`, one object for both): the site's name, the tools' own name, its id (the name of
+      the userscript's files, of the elements that it adds and of its key), the button's picture, the button's place
+      on each game site, and the header's description, author, homepage and pages (`@match`). The bookmarklet takes
+      the two names and the page code. The frame makes the words that name the tools from the two names: "the
+      Review in Hedge School bookmark", "the Hedge School button", and the button's label, "Open this game in Hedge
+      School".
     - **The events:** the site's analytics (`track`), and a game's length as the site's range. Each site lists its
       import's sources, and names a tool's source (`toolSource`).
     - **What stays in each site:** Hedge School's `src/lib/game/tools.ts` (the page code that reads meaf.us and

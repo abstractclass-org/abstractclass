@@ -2,9 +2,9 @@
 // script in src/app.html. `/review` prerenders as the Review tab (design 23), and the page's code runs after the first
 // paint. Until it runs, CSS reads the marks (the variants `review-game` and `review-last` in src/app.css):
 // - `data-review-game`: the address names a game: a way in that the review takes (reviewArrives in
-//   @abstractclass/import's importHash.ts), or a kept game's id, after the `#` or in an older address's query (+page.svelte,
-//   gameInAddress). The Review tab hides, and the line "Reading the game with the engine's rules…" shows in its place
-//   (design 06, item 10). A record, which only the import page takes, gets the Review tab.
+//   @abstractclass/import's importHash.ts), or a kept game's id, after the `#` or in an older address's query
+//   (+page.svelte, gameInAddress). The Review tab hides, and the line "Reading the game with the engine's rules…"
+//   shows in its place (design 06, item 10). A record, which only the import page takes, gets the Review tab.
 // - `data-review-last`: this browser keeps a last review (src/lib/game/store.ts, lastReview). The Review tab keeps the
 //   room of "Continue your last review", which comes once the tab has read the browser's games.
 import { LAST_REVIEW } from "#lib/game/store.ts";

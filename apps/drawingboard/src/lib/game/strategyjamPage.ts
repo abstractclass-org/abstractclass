@@ -14,8 +14,8 @@ export type JamMissing = "none" | "login" | "loading";
 
 /** The position that the page shows, as the game's moves before it (0 at the start, a pass one move, as in `history`),
  *  or "" when the page does not say. The import page shows it. The replay row has a slider (`.replay-slider`, "Move")
- *  whose value is that count, live or in a replay: strategyjam.org's own (its match module), which Blueprints' module
- *  puts under the board in a wide window, and strategyjam.org's view in the panel in a narrow one. */
+ *  whose value is that count, live or in a replay: strategyjam.org's own (a module that its games share), which
+ *  Blueprints' module puts under the board in a wide window, and strategyjam.org's view in the panel in a narrow one. */
 export function jamShownMove(): string {
   const slider = document.querySelector("input.replay-slider") as HTMLInputElement | null;
   return slider ? slider.value : "";
@@ -54,7 +54,8 @@ export function findJamGame(): JamGame | JamMissing {
   try { end = rules.observe(s.history.reduce((state, move) => rules.play(state, move), s.initial), 0); } catch { /* no scores */ }
   const c = s.clock;
   return {
-    id: location.pathname.split("/").filter(Boolean).pop() ?? "", rules: rules.id, version: rules.version, seats: s.seats,
+    id: location.pathname.split("/").filter(Boolean).pop() ?? "", rules: rules.id, version: rules.version,
+    seats: Array.isArray(s.seats) ? s.seats : [], // none: the record names no player ("?")
     initial: s.initial, history: s.history,
     scores: end && Array.isArray(end.scores) ? end.scores : null,
     // As the page reads the result: the view's while it plays, else the site's, else the rules'.

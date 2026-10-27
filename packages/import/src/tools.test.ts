@@ -44,7 +44,7 @@ function click(game: WordGame | null, opens = true) {
     alert: (text: string) => done.alerts.push(text),
     window: { open: (url: string) => { done.opened.push(url); return opens ? {} : null; } },
   });
-  new Function(bookmarkletScript({ name: "Words", click: "the Words bookmark", page: CODE }))();
+  new Function(bookmarkletScript({ name: "Words", toolName: "Words", page: CODE }))();
   return done;
 }
 
@@ -81,7 +81,7 @@ test("the bookmark is a loader of the site's script, with its version and the si
 
 test("the userscript's header and file: the site's names, pages and files, and code that parses", () => {
   const site: UserscriptSite<typeof CODE> = {
-    name: "Words", script: "Open in Words", id: "words-site", click: "the Words button", open: "Open this game in Words",
+    name: "Words", toolName: "Open in Words", id: "words-site",
     icon: size => `<svg width="${size}" height="${size}"></svg>`, places: { "play.example": { css: "display: block", into: ".bar" } },
     description: "Opens the game in Words.", author: "Someone", homepage: "https://someone.example",
     matches: ["https://play.example/g/*", "https://other.example/g/*"], page: CODE,
@@ -94,6 +94,7 @@ test("the userscript's header and file: the site's names, pages and files, and c
   assert.equal(atob(meta("icon")[0].replace("data:image/svg+xml;base64,", "")), site.icon(64));
   assert.ok(text.startsWith(userscriptHeader(site, ORIGIN, "2026.10.27.1200")));
   assert.doesNotThrow(() => new Function(text));
-  for (const part of ['"code":"abc"', '"id":"words-site"', '"click":"the Words button"', '"into":".bar"', site.icon(44).replaceAll('"', '\\"')])
+  for (const part of ['"code":"abc"', '"id":"words-site"', '"click":"the Words button"', '"open":"Open this game in Words"',
+                      '"into":".bar"', site.icon(44).replaceAll('"', '\\"')])
     assert.ok(text.includes(part), part);
 });

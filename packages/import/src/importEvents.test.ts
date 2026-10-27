@@ -8,7 +8,7 @@ test("imports and loads go to the site's analytics, with the game's length as th
   const sent: [string, Record<string, unknown>][] = [];
   const events = importEvents<"pasted_words" | "words_bookmarklet">({
     track: (name, params) => sent.push([name, params]),
-    edges: moves => (moves < 10 ? "1-9" : "10+"),
+    range: moves => (moves < 10 ? "1-9" : "10+"),
   });
   events.trackImport("review", "words_bookmarklet", 12);
   events.trackImportFailed("analysis", "pasted_words", "record");

@@ -19,9 +19,9 @@
   <h1 class="text-2xl font-bold">Bring your games from strategyjam.org</h1>
   <p>
     <a href="https://strategyjam.org/blueprints/">strategyjam.org</a> does not let other sites read its games, so this
-    site cannot get them. A bookmarklet can: you keep it in your browser's bookmarks bar, and click it on a game page of
-    Blueprints. It reads the game from that page and opens it here. It sends nothing to strategyjam.org and reads
-    nothing from your login. At each click it loads its code from this site, so it stays up to date.
+    site cannot get them. A bookmarklet can get them: you keep it in your browser's bookmarks bar, and click it on a
+    game page of Blueprints. It reads the game from that page and opens it here. It sends nothing to strategyjam.org and
+    reads nothing from your login. At each click it loads its code from this site, so it always has the newest code.
   </p>
   <p class="px-4 py-3 bg-panel border border-line rounded-lg">
     Drawing Board cannot review games yet. For now, it shows the record of the game and the position that you looked
@@ -41,8 +41,9 @@
   </ol>
   <h2 class="mt-2 text-lg font-bold">Or with Tampermonkey</h2>
   <p>
-    With the Tampermonkey extension, a userscript does the same: a button on the game pages of Blueprints, and an entry
-    in Tampermonkey's menu. It updates itself. It sends nothing to strategyjam.org and reads nothing from your login.
+    With the Tampermonkey extension, a userscript does the same. It adds a button to the game pages of Blueprints, and
+    an entry to Tampermonkey's menu. It updates itself. It sends nothing to strategyjam.org and reads nothing from your
+    login.
   </p>
   <ol class="grid gap-2.5 pl-5 list-decimal">
     <li>Install <a href="https://www.tampermonkey.net/">Tampermonkey</a>. In Chrome and Edge from version 138, also set

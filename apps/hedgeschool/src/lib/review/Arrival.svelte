@@ -1,10 +1,11 @@
 <script lang="ts">
   // The arrival step, when the address holds a game after its `#` (importHash.ts, design 22): on the import page, every
   // game that comes in from outside, and on the review, its own ways in (reviewArrives).
-  // - a record from the bookmarklet or the userscript on meaf.us or strategyjam.org (tools.ts), on the import page, or on the review for a tool from before the import page: the player chooses to review it or to
-  //   analyze it on the board (design 21). A review keeps it in this browser first. The board keeps no game in the
-  //   list: the record goes to the board's address, at the position that the game's page showed (analysisAddress). For
-  //   an out-of-date tool, the page also says how to update it;
+  // - a record from the bookmarklet or the userscript on meaf.us or strategyjam.org (tools.ts), on the import page, or
+  //   on the review for a tool from before the import page: the player chooses to review it or to analyze it on the
+  //   board (design 21). A review keeps it in this browser first. The board keeps no game in the list: the record goes
+  //   to the board's address, at the position that the game's page showed (analysisAddress). For an out-of-date tool,
+  //   the page also says how to update it;
   // - a record from another site's link (`record=`, design 18), on the import page: checked with the engine's rules,
   //   given its cut marks, kept in this browser, and reviewed, with the partner's save page when the link names one;
   // - a shared review (`packed=`, share.ts): what it holds, and that this browser reviews it again, then kept on a

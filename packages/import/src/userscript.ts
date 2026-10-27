@@ -26,13 +26,11 @@ export const FIXED_PLACE = "position: fixed; right: 16px; bottom: 16px; z-index:
 
 /** What the userscript takes of a site, whose page code is `P`. */
 export interface UserscriptSite<P extends PageCode<P>> {
-  name: string; // the site's name, which starts each message: "Hedge School"
-  script: string; // the script's own name, in Tampermonkey's lists: "Review in Hedge School"
+  name: string; // the site's name, which starts each message and names the button: "Hedge School"
+  toolName: string; // the tools' own name: the script's in Tampermonkey's lists, and the bookmark's
   /** The name of the script's files (/<id>.user.js, and its header alone at /<id>.meta.js), of the elements that it adds
    *  to the page, and of its key in the tab's storage: "hedge-school". */
   id: string;
-  click: string; // the button, as the messages name it: "the Hedge School button"
-  open: string; // the button's label, and the script's entry in Tampermonkey's menu: "Open this game in Hedge School"
   /** The button's picture: an SVG element of `size` pixels, on the button and in the header for Tampermonkey's lists. */
   icon(size: number): string;
   places: Record<string, ButtonPlace>; // the button's place on each game site, by the site's host
@@ -148,7 +146,7 @@ function main(d: Data, page: AnyPageCode) {
  *  Tampermonkey takes it as an update. */
 export function userscriptHeader<P extends PageCode<P>>(site: UserscriptSite<P>, origin: string, version: string): string {
   const header = [
-    ["name", site.script],
+    ["name", site.toolName],
     ["namespace", `${origin}/`],
     ["version", version],
     ["description", site.description],
@@ -168,10 +166,11 @@ export function userscriptHeader<P extends PageCode<P>>(site: UserscriptSite<P>,
 }
 
 /** The userscript's file: its header, then its code. `code` is the version of its code (the build's hash of the files
- *  it is made from), which it sends with each game. */
+ *  it is made from), which it sends with each game. The site's name names the button in the messages (`click`), and
+ *  gives the button's label and the entry in Tampermonkey's menu (`open`). */
 export function userscriptSource<P extends PageCode<P>>(site: UserscriptSite<P>, origin: string, version: string,
                                                         code: string): string {
-  const data: Data = { origin, code, name: site.name, id: site.id, click: site.click, open: site.open, icon: site.icon(44),
-                       places: site.places, fixed: FIXED_PLACE };
+  const data: Data = { origin, code, name: site.name, id: site.id, click: `the ${site.name} button`,
+                       open: `Open this game in ${site.name}`, icon: site.icon(44), places: site.places, fixed: FIXED_PLACE };
   return userscriptHeader(site, origin, version) + "\n" + `(${main})(${JSON.stringify(data)}, ${pageCodeText(site.page)});\n`;
 }

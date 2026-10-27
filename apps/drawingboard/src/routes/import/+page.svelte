@@ -8,6 +8,7 @@
   import { onMount } from "svelte";
   import { BOOKMARK_VERSION } from "@abstractclass/import/bookmarklet.ts";
   import { holdsGame, readImportHash, staleTool, type ImportHash, type Tool } from "@abstractclass/import/importHash.ts";
+  import { errorText } from "@abstractclass/engine/errors.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import { turnFromCount } from "#lib/game/notation.ts";
   import { parseRecord, playerNames, type GameRecord } from "#lib/game/record.ts";
@@ -17,7 +18,7 @@
 
   // What the page shows: the game that it read, with the tool when it is out of date, or why it cannot read one.
   type Phase = { at: "reading" }
-    | { at: "read"; sent: ImportHash; record: GameRecord; stale: Tool | "older" | null }
+    | { at: "read"; sent: ImportHash; record: GameRecord; stale: Tool | null }
     | { at: "failed"; problem: string };
   let phase = $state.raw<Phase>({ at: "reading" });
 
@@ -27,10 +28,11 @@
       const sent = readImportHash(location.hash.slice(1));
       // A partner's page that sends a kept review (`from=`) and a shared review (`packed=`) come with the review.
       if (sent.from || !sent.record) throw new Error("this link does not hold a game record");
-      const stale = sent.tool ? staleTool(sent, { bookmarklet: String(BOOKMARK_VERSION), userscript: __USERSCRIPT_CODE__ }) : null;
-      phase = { at: "read", sent, record: parseRecord(sent.record), stale };
+      // Drawing Board's tools always send their version, so a record with no tool (a link's) has no tool to update.
+      const stale = staleTool(sent, { bookmarklet: String(BOOKMARK_VERSION), userscript: __USERSCRIPT_CODE__ });
+      phase = { at: "read", sent, record: parseRecord(sent.record), stale: stale === "older" ? null : stale };
     } catch (e) {
-      phase = { at: "failed", problem: (e as Error).message };
+      phase = { at: "failed", problem: errorText(e) };
     }
   });
 
@@ -58,11 +60,9 @@
       <p class="px-4 py-3 bg-panel border border-accent rounded-lg" role="status">
         {#if stale === "bookmarklet"}Your bookmarklet is an old version. Go to the <a href="/tools">tools page</a>. Drag
           the button to the bookmarks bar again. Then delete the old bookmark.
-        {:else if stale === "userscript"}Your userscript is older than the userscript on this site. Tampermonkey updates it
-          at its next check. To update it now, open the Drawing Board userscript on the <a href="/tools">tools page</a>.
-          Tampermonkey then shows the update.
-        {:else}This game came from a tool that did not tell its version. Go to the <a href="/tools">tools page</a>, and
-          install the bookmarklet or the userscript again.{/if}
+        {:else}Your userscript is older than the userscript on this site. Tampermonkey updates it at its next check. To
+          update it now, open the Drawing Board userscript on the <a href="/tools">tools page</a>. Tampermonkey then
+          shows the update.{/if}
       </p>
     {/if}
     <h1 class="text-2xl font-bold">{sent.site === "strategyjam.org" ? "A game from strategyjam.org" : "A game"}</h1>

@@ -25,27 +25,27 @@ export type LoadSource =
 /** Why a load failed: the file or the link cannot be read, or the engine's rules (or the storage) refuse its game. */
 export type LoadFailure = "file" | "link" | "rejected";
 
-/** What the events take of the site: its analytics' events (`track`), and a game's length as the range that the
- *  events give (`edges`: a count goes as a range, design 17). */
+/** What the events take of the site: its analytics' events (`track`), and a game's length in moves as the range that
+ *  the events give (`range`: a count goes as a range, design 17). The events name that range `edges`. */
 export interface ImportTracker {
   track(name: string, params: Record<string, string | number | boolean>): void;
-  edges(moves: number): string;
+  range(moves: number): string;
 }
 
 /** The events of a site whose imports come by the sources `S`, sent to its analytics. */
 export function importEvents<S extends string>(t: ImportTracker) {
   return {
     /** A game imported: where it went, how it came, and its length as a range. */
-    trackImport(to: ImportTo, source: S, edges: number) {
-      t.track("import_game", { import_to: to, import_source: source, edges: t.edges(edges) });
+    trackImport(to: ImportTo, source: S, moves: number) {
+      t.track("import_game", { import_to: to, import_source: source, edges: t.range(moves) });
     },
     /** An import that failed, and why. */
     trackImportFailed(to: ImportTo, source: S, failure: ImportFailure) {
       t.track("import_failed", { import_to: to, import_source: source, import_failure: failure });
     },
     /** Saved work loaded: how it came, its game's length as a range, and what else it held. */
-    trackLoad(source: LoadSource, edges: number, extra: Record<string, boolean> = {}) {
-      t.track("load_saved", { load_source: source, edges: t.edges(edges), ...extra });
+    trackLoad(source: LoadSource, moves: number, extra: Record<string, boolean> = {}) {
+      t.track("load_saved", { load_source: source, edges: t.range(moves), ...extra });
     },
     /** A load that failed, and why. */
     trackLoadFailed(source: LoadSource, failure: LoadFailure) {

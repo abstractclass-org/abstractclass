@@ -1,6 +1,6 @@
 // Hedge School's ways in, as events (design 17, design 22): the sources of its imports, and the import's events
 // (@abstractclass/import's importEvents.ts) with Hedge School's analytics. Beside the ways in of every site, Hedge
-// School's name meaf.us's tools and Constellation's export.
+// School's sources name meaf.us's tools and Constellation's export.
 import { track } from "#lib/analytics.svelte.ts";
 import { EDGE_RANGES, range } from "#lib/measure.ts";
 import { importEvents } from "@abstractclass/import/importEvents.ts";
@@ -26,4 +26,4 @@ export const isImportSource = (s: string | null): s is ImportSource =>
   (IMPORT_SOURCES as readonly (string | null)[]).includes(s);
 
 export const { trackImport, trackImportFailed, trackLoad, trackLoadFailed } =
-  importEvents<ImportSource>({ track, edges: n => range(n, EDGE_RANGES) });
+  importEvents<ImportSource>({ track, range: n => range(n, EDGE_RANGES) });

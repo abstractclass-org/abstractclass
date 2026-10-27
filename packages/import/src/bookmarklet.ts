@@ -21,9 +21,9 @@ import { pageCodeText, type AnyPageCode, type PageCode } from "./pageCode.ts";
  *  players with an older one to drag the bookmarklet to the bar again. */
 export const BOOKMARK_VERSION = 1;
 
-/** What the bookmarklet takes of a site: its name, which starts each message, the bookmark, as the messages name what
- *  the player clicks, and its page code. */
-export interface BookmarkletSite<P extends PageCode<P>> { name: string; click: string; page: P }
+/** What the bookmarklet takes of a site: its name, which starts each message, the tools' own name, which is the
+ *  bookmark's, and its page code. A site's UserscriptSite (userscript.ts) has them all. */
+export interface BookmarkletSite<P extends PageCode<P>> { name: string; toolName: string; page: P }
 
 /** The bookmark's code: it loads the bookmarklet's script from the site, and says so if it cannot. */
 function load(origin: string, version: number, name: string) {
@@ -64,5 +64,6 @@ export function bookmarkletHref(origin: string, name: string): string {
 
 /** The script that the loader adds to the game's page, served at /bookmarklet.js. */
 export function bookmarkletScript<P extends PageCode<P>>(site: BookmarkletSite<P>): string {
-  return `(${grab})(${JSON.stringify(site.name)}, ${JSON.stringify(site.click)}, ${pageCodeText(site.page)});\n`;
+  const click = `the ${site.toolName} bookmark`; // what the player clicks, as the messages name it
+  return `(${grab})(${JSON.stringify(site.name)}, ${JSON.stringify(click)}, ${pageCodeText(site.page)});\n`;
 }

@@ -68,9 +68,9 @@ const BUTTON_PLACES: Record<string, ButtonPlace> = {
 const svg = (size: number) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${HEAD_VIEWBOX}" width="${size}" height="${size}" `
   + `fill-rule="evenodd" aria-hidden="true"><path fill="#fff" d="${HEAD_SILHOUETTE}"/><path fill="#0b0c0e" d="${HEAD_COAT}"/></svg>`;
 
-const USERSCRIPT: UserscriptSite<typeof PAGE_CODE> = {
-  name: "Hedge School", script: USERSCRIPT_NAME, id: "hedge-school", click: "the Hedge School button",
-  open: "Open this game in Hedge School", icon: svg, places: BUTTON_PLACES,
+/** Hedge School's parts of both tools (@abstractclass/import's UserscriptSite). */
+const SITE: UserscriptSite<typeof PAGE_CODE> = {
+  name: "Hedge School", toolName: USERSCRIPT_NAME, id: "hedge-school", icon: svg, places: BUTTON_PLACES,
   description: "Opens the meaf.us or strategyjam.org game on screen in Hedge School, to review it or to analyze it on the board. Reads the game from the page: no request to the game's site, nothing from your login.",
   author: "Yshan", homepage: "https://yhkao.com",
   matches: ["https://meaf.us/sst1/*", "https://strategyjam.org/enclosure/game/*"],
@@ -78,17 +78,16 @@ const USERSCRIPT: UserscriptSite<typeof PAGE_CODE> = {
 };
 
 /** The bookmarklet's address, for the site served from `origin`: the loader. */
-export const bookmarkletHref = (origin: string) => href(origin, "Hedge School");
+export const bookmarkletHref = (origin: string) => href(origin, SITE.name);
 
-/** The script that the loader adds to the game's page, served at /bookmarklet.js. `click` is the bookmark's name, as
- *  the tools page's link gives it. */
-export const bookmarkletScript = () => script({ name: "Hedge School", click: "the Review in Hedge School bookmark", page: PAGE_CODE });
+/** The script that the loader adds to the game's page, served at /bookmarklet.js. */
+export const bookmarkletScript = () => script(SITE);
 
 /** The userscript's header for Tampermonkey, alone (/hedge-school.meta.js). */
-export const userscriptHeader = (origin: string, version: string) => header(USERSCRIPT, origin, version);
+export const userscriptHeader = (origin: string, version: string) => header(SITE, origin, version);
 
 /** The userscript's file (/hedge-school.user.js). */
-export const userscriptSource = (origin: string, version: string, code: string) => source(USERSCRIPT, origin, version, code);
+export const userscriptSource = (origin: string, version: string, code: string) => source(SITE, origin, version, code);
 
 /** A tool's way in, for the import events (design 17): the tool, on the site that it ran on. A tool that names no
  *  site ran on meaf.us. */

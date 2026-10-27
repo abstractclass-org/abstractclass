@@ -74,13 +74,17 @@ test("the result as the page reads it: the view's while it plays, else the site'
   assert.equal(parseRecord(jamRecord(going)).result, "*");
 });
 
-test("of a component's two copies, the one with more moves; without a clock, the first move's time", () => {
+test("of a component's two copies, the one with more moves; without a clock, the first move's time; no seats", () => {
   const fewer = capture.moves.slice(0, 3);
   page(stage({ game: { rules: rules(fewer, [0, 0], null) }, state: state(fewer) },
              { game: { rules: rules(capture.moves, [0, 0], null) }, state: state(capture.moves, { clock: null, times: [STARTED] }) }));
   const game = findJamGame() as JamGame;
   assert.equal(game.history.length, capture.moves.length);
   assert.deepEqual([game.clock, game.startedAt], [null, STARTED]);
+  // A state without its seats: the record names no player.
+  page(stage({ game: { rules: rules(capture.moves, [0, 0], null) }, state: state(capture.moves, { seats: undefined }) }));
+  const r = parseRecord(jamRecord(findJamGame() as JamGame));
+  assert.deepEqual([r.tags.Blue, r.tags.Red], ["?", "?"]);
 });
 
 test("a page with no game says why: no stage, a stage of no game, a login, a game on its way", () => {

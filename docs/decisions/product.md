@@ -7257,3 +7257,21 @@ the words of the site. The pages, the lessons, the documents and the code's comm
   Site address did not break. It breaks anywhere now.
 - **Not checked:** the tools on strategyjam.org itself, and the button's place in its real layouts. The tools run in
   the player's own logged-in page, so that test waits for the owner (abscls-8tl1.12).
+- **The review** made the frame's parameters fewer and changed no text that a player sees, except two sentences of
+  the tools page:
+  - One object of a site's parts (`UserscriptSite`) serves both tools. The frame makes the words that name the tools
+    from the site's name and the tools' own name: "the Review in Hedge School bookmark", "the Hedge School button" and
+    the button's label, "Open this game in Hedge School". Each site wrote out these three before.
+  - The package says moves, as the glossary does: a game's length goes to the events as a range of its moves. The
+    events keep their key `edges`.
+  - Drawing Board: the button's picture takes its hexes from the board's `hex.ts`. The import page has no notice for a
+    tool that sends no version: Drawing Board's tools always send it. The reader gives a game with no players when
+    the page's state has no seats, so the record says "?" and the player sees no raw error. On the tools page, "A
+    bookmarklet can: you keep it…" and "a userscript does the same: a button…" became sentences with their verbs.
+  - Hedge School's tools, dev against the branch, written from their sources with Node and run in Chromium on 23 mock
+    cases of meaf.us and strategyjam.org: 19 the same, and the other 4 differ only in the userscript's code version
+    (`v=4c9b28e04675`, then `v=41eb34dc7cf9`). After the review's last edits the files are the same again but for that
+    version (`1ed11048e9a3`).
+  - Blueprints' module of the next save (`runs/strategyjam/blueprints/20261027-101649/`) has the same props, the same
+    rules (`blueprints`, version 3), the replay slider and `.stage .actions`. The slider moved to a module that
+    strategyjam.org's games share. strategyjam.org now has games from a position, which the record refuses.

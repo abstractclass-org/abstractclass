@@ -137,7 +137,9 @@ jobs:
         working-directory: .
 
       # The two variables of Cloudflare's own build that vite.config.ts reads, as in the site's job: the branch (main
-      # names the live site's address) and the preview's address, for the userscript.
+      # names the live site's address) and the preview's address, for the userscript. The preview's address takes the
+      # project's pages.dev address to be its name's (docs/hosting.md, section 9): if Pages gave it another, a
+      # preview's userscript opens the wrong address.
       - name: The branch and its address
         env:
           PROJECT: ${{ vars.DRAWINGBOARD_PAGES_PROJECT }}

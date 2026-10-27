@@ -23,7 +23,7 @@ export interface ImportHash {
 }
 
 /** The parameters after the `#`, or null for a bare record (an older tool's): a record's text starts with a tag, a turn
- *  or an edge, never with a name and "=". */
+ *  or a move, never with a name and "=". */
 export const hashParams = (hash: string) => (/^[A-Za-z_]+=/.test(hash) ? new URLSearchParams(hash) : null);
 
 /** What sent a record, for a way in that does not say. */
@@ -46,10 +46,10 @@ export function readImportHash(hash: string): ImportHash {
 }
 
 /** The Analysis board's address for a tool's game (design 21): its record, the position that its page showed, else the
- *  game's end (`edges`, its moves), and the import's source for the board's events (design 17, importEvents.ts). The
+ *  game's end (after its `moves`), and the import's source for the board's events (design 17, importEvents.ts). The
  *  board opens a position past the end at the end. */
-export function analysisAddress(sent: Pick<ImportHash, "record" | "at">, edges: number, source: string): string {
-  return "/analysis#" + new URLSearchParams({ record: sent.record, at: String(sent.at ?? edges), via: source });
+export function analysisAddress(sent: Pick<ImportHash, "record" | "at">, moves: number, source: string): string {
+  return "/analysis#" + new URLSearchParams({ record: sent.record, at: String(sent.at ?? moves), via: source });
 }
 
 /** The tool that is out of date, or "older" for a tool that sent no version, or null when it is the site's own
