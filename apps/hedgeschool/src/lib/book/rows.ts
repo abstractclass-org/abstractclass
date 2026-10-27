@@ -4,16 +4,16 @@
 // the board's numbers read the same rows, so a row's number is its candidate's rank on the board (design 07). The rows
 // follow the display setting "Review by": by turn, at a turn's start, each row is a whole turn of two edges
 // (`turnRows`). Elsewhere, and by edge, each row is one edge (`bookRows`).
-import { GOOD_WIN, classify, type Label } from "@abstractclass/analysis/labels.ts";
+import { classify, type Label } from "@abstractclass/analysis/labels.ts";
 import type { Player } from "@abstractclass/analysis/game.ts";
 import { parseEdge, type Edge } from "#lib/engine/notation.ts";
 import { playerOf } from "#lib/engine/position.ts";
 import { moverOf } from "#lib/editor/position.ts";
 import { LABEL_TEXT, moverWin, PLAYER_NAME } from "#lib/review/enclosure.ts";
 import type { Book } from "./book.ts";
-import type { BookMove, BookPosition, BookValue } from "./form.ts";
-import { edgeCount, isFine, lineText, moveLabel, outsideLabel, traps } from "./sentences.ts";
-import { lineEndSymbol, rounded, SYMBOL_NAME, type PositionSymbol } from "./symbols.ts";
+import type { BookMove, BookPosition } from "./form.ts";
+import { edgeCount, isFine, lossTo, moveLabel, outsideLabel, traps } from "./sentences.ts";
+import { lineEndSymbol, SYMBOL_NAME, type PositionSymbol } from "./symbols.ts";
 
 /** The table's groups, in their order (design 32, item 3). */
 export type BookGroup = "fine" | "other" | "trap" | "outside";
@@ -47,10 +47,8 @@ export interface BookRow {
   /** Its quality label by the book's values (sentences.ts, `moveLabel`, or `outsideLabel` for the best move outside
    *  the book. By turn: `turnRows`). */
   label: Label;
-  /** Blue's win chance after the row's edges, by the book. */
+  /** Blue's win chance after the row's edges, by the book. A book row's bounds are in `book.value`. */
   blueWin: number;
-  /** The book's values after the row (a book row only): the win chance's bounds. */
-  value?: BookValue;
   /** The symbol at the end of the main line after the row (a book row only). */
   symbol?: PositionSymbol;
   /** The book ends at the position after the row. */
@@ -69,8 +67,8 @@ export function bookRows(p: BookPosition): BookRow[] {
   const count = edgeCount(p);
   const row = (m: BookMove): BookRow => ({
     n: 0, group: m.trap ? "trap" : isFine(p, m) ? "fine" : "other", move: m.move, edges: [m.move],
-    label: moveLabel(p, m), blueWin: m.value.blueWin, value: m.value, symbol: lineEndSymbol(m), ends: m.last <= count + 1,
-    book: m, ...(m.trap ? { trap: m.trap } : {}),
+    label: moveLabel(p, m), blueWin: m.value.blueWin, symbol: lineEndSymbol(m), ends: m.last <= count + 1, book: m,
+    ...(m.trap ? { trap: m.trap } : {}),
   });
   const moves = p.moves.filter(m => !m.trap).map(row);
   // The traps: the largest gap between the short search and the deep one first (sentences.ts, `traps`)
@@ -88,13 +86,23 @@ export function bookRows(p: BookPosition): BookRow[] {
  *  turn has one edge. */
 export const turnStart = (p: BookPosition) => p.edge === 1 && moverOf(edgeCount(p)).left === 2;
 
+/** The table's rows at a book position. By turn at a turn's start (`seconds`, as `turnRows` takes them), the rows are
+ *  whole turns (`byTurn`) where the book holds one. Elsewhere, by edge, and where no book move here has a book move
+ *  after it, each row is one edge. */
+export function tableRows(p: BookPosition, seconds: (BookPosition | null)[] | null): { rows: BookRow[]; byTurn: boolean } {
+  const turns = seconds && turnRows(p, seconds);
+  return turns?.some(r => r.book) ? { rows: turns, byTurn: true } : { rows: bookRows(p), byTurn: false };
+}
+
 /** The rows of a turn's start by turn (design 32, item 3, "One edge at a time"): each whole turn of the book, its first
  *  edge a book move here and its second a book move of the position that the first reaches. `seconds[k]` is the book's
  *  position after the k-th book move (`p.moves[k]`): the book stores the position after each edge, with its minimaxed
  *  values, so the turns need no new search.
  *
+ *  - **One row a position:** two orders of the same edges reach the same position, so they are one row. It keeps the
+ *    order that the book prefers: its first edge is the better book move here.
  *  - **A turn's win chance** is the one after its second edge. Its loss is from the best turn here. By the book's
- *    minimax that is the best of the first book move's and the best move outside the book's (sentences.ts, `bestWin`).
+ *    minimax that is the best of the first book move's and the best move outside the book's (sentences.ts, `lossTo`).
  *    Its label comes from the loss, by the review's rule for a turn (design 10). The best book turn is Best when no
  *    turn outside the book is better. The book holds no position before the enemy's last turn, so no turn is Great,
  *    as no move is.
@@ -107,15 +115,18 @@ export const turnStart = (p: BookPosition) => p.edge === 1 && moverOf(edgeCount(
  *    outside the book at the position that it reaches (`outside` there). */
 export function turnRows(p: BookPosition, seconds: (BookPosition | null)[]): BookRow[] {
   const mover = playerOf(p.mover), count = edgeCount(p), win = (blueWin: number) => moverWin(blueWin, mover);
-  const bestWin = Math.max(p.moves[0] ? win(p.moves[0].value.blueWin) : 0, p.outside ? win(p.outside.blueWin) : 0);
-  const loss = (blueWin: number) => rounded(Math.max(0, bestWin - win(blueWin)));
-  const turns = p.moves.flatMap((m1, k) => (seconds[k]?.moves ?? []).map((m2): BookRow => {
+  // The positions that the turns reach, by their notation: the first turn to reach one has the better first edge
+  const reached = new Set<string>();
+  const turns = p.moves.flatMap((m1, k) => (seconds[k]?.moves ?? []).flatMap((m2): BookRow[] => {
+    if (reached.has(m2.to)) return [];
+    reached.add(m2.to);
     const trap = turnTrap(m1, m2);
-    return {
-      n: 0, group: trap ? "trap" : loss(m2.value.blueWin) <= GOOD_WIN ? "fine" : "other", move: `${m1.move} ${m2.move}`,
-      edges: [m1.move, m2.move], label: "best", blueWin: m2.value.blueWin, value: m2.value, symbol: lineEndSymbol(m2),
+    // A turn is fine as its last move is fine from the turn's start (sentences.ts, `isFine`): its loss is from there
+    return [{
+      n: 0, group: trap ? "trap" : isFine(p, m2) ? "fine" : "other", move: `${m1.move} ${m2.move}`,
+      edges: [m1.move, m2.move], label: "best", blueWin: m2.value.blueWin, symbol: lineEndSymbol(m2),
       ends: m2.last <= count + 2, book: m2, ...(trap ? { trap } : {}),
-    };
+    }];
   }));
   // The best turn outside the book: the start's own outside, then each first edge's
   const outsides = [
@@ -129,7 +140,7 @@ export function turnRows(p: BookPosition, seconds: (BookPosition | null)[]): Boo
   // The best book turn, and whether the best turn outside the book is better, as for a move (sentences.ts, moveLabel)
   const bookBest = turns.reduce<BookRow | null>((a, r) => (!a || win(r.blueWin) > win(a.blueWin) ? r : a), null);
   const outsideBetter = !!outside && (!bookBest || win(outside.blueWin) > win(bookBest.blueWin));
-  for (const r of turns) r.label = classify(loss(r.blueWin), r === bookBest && !outsideBetter, false);
+  for (const r of turns) r.label = classify(lossTo(p, r.blueWin), r === bookBest && !outsideBetter, false);
   const byWin = (rows: BookRow[]) => rows.sort((a, b) => win(b.blueWin) - win(a.blueWin));
   const gap = (r: BookRow) => win(r.trap!.short) - win(r.blueWin);
   const plain = [...byWin(turns.filter(r => r.group === "fine")), ...byWin(turns.filter(r => r.group === "other"))];
@@ -137,7 +148,7 @@ export function turnRows(p: BookPosition, seconds: (BookPosition | null)[]): Boo
   const rows = [...plain, ...turns.filter(r => r.group === "trap").sort((a, b) => gap(b) - gap(a))];
   if (outside) {
     rows.push({ n: 0, group: "outside", move: outside.edges.join(" "), edges: outside.edges, blueWin: outside.blueWin,
-                label: !bookBest ? "best" : classify(loss(outside.blueWin), outsideBetter, false) });
+                label: !bookBest ? "best" : classify(lossTo(p, outside.blueWin), outsideBetter, false) });
   }
   rows.forEach((r, k) => (r.n = k + 1));
   return rows;
@@ -165,16 +176,15 @@ export function rowLine(book: Book, row: BookRow): string[] {
   return line;
 }
 
-/** A trap's refutation in the notation, from the position after the row's edges: "4. N12-Q10 L11-O12", or "3... F9-J10
- *  4. …" when it finishes the trap's turn first. The row "Play the refutation" shows it. */
-export const rowRefutation = (p: BookPosition, row: BookRow) =>
-  lineText(edgeCount(p) + row.edges.length, row.trap!.refutation);
+/** The rows that show: by turn, the rows after the best `TURNS_SHOWN` only once the player opens "Show more" (`more`).
+ *  The table and the board's numbers show the same rows. */
+export const shownRows = (rows: BookRow[], more: boolean) => (more ? rows : rows.filter(r => !r.more));
 
 /** The rows as the board numbers them (Board.svelte, BoardCandidate: design 07), each with its note: its label, and the
  *  symbol at its line's end in words. The board numbers a row's first edge. By turn, rows can share a first edge: the
  *  edge takes the number of its first row. */
 export function rowCandidates(rows: BookRow[]): { edge: Edge; rank: number; note: string }[] {
-  const firsts = rows.filter((r, k) => rows.findIndex(o => o.edges[0] === r.edges[0]) === k);
+  const seen = new Set<string>(), firsts = rows.filter(r => !seen.has(r.edges[0]) && !!seen.add(r.edges[0]));
   return firsts.map(r => ({
     edge: parseEdge(r.edges[0]), rank: r.n,
     note: [LABEL_TEXT[r.label], r.trap && "a trap", r.symbol && SYMBOL_NAME[r.symbol],
@@ -189,18 +199,12 @@ export function rowBoardLine(book: Book, p: BookPosition, row: BookRow): { edge:
   return rowLine(book, row).map((e, i) => ({ edge: parseEdge(e), player: moverOf(count + i).player }));
 }
 
-/** The count of the position's book moves, as the table announces it once a step: "4 book moves, 1 trap". */
-export function bookCount(p: BookPosition): string {
-  if (!p.moves.length) return "End of the book";
-  const traps = p.moves.filter(m => m.trap).length, n = p.moves.length;
-  return `${n} book move${n === 1 ? "" : "s"}` + (traps ? `, ${traps} trap${traps === 1 ? "" : "s"}` : "");
-}
-
-/** The count of a turn's start's book turns, as the table announces it by turn: "12 book turns, 2 traps". */
-export function turnCount(rows: BookRow[]): string {
-  const turns = rows.filter(r => r.book), traps = turns.filter(r => r.trap).length, n = turns.length;
+/** The count of the book rows, as the table announces it once a step: "4 book moves, 1 trap", or by turn (`noun`)
+ *  "12 book turns, 2 traps". */
+export function bookCount(rows: BookRow[], noun: "move" | "turn"): string {
+  const book = rows.filter(r => r.book), traps = book.filter(r => r.trap).length, n = book.length;
   if (!n) return "End of the book";
-  return `${n} book turn${n === 1 ? "" : "s"}` + (traps ? `, ${traps} trap${traps === 1 ? "" : "s"}` : "");
+  return `${n} book ${noun}${n === 1 ? "" : "s"}` + (traps ? `, ${traps} trap${traps === 1 ? "" : "s"}` : "");
 }
 
 /** The position as the title row names it (design 32, item 3): "Start · Blue to play", or the turn, the side to move

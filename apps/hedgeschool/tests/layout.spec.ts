@@ -65,9 +65,10 @@ function report(label: string, found: { width: number; height: number; problem: 
 const settle = (page: Page) => page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 30)))));
 
 /** Sweeps the page at every size: the report of what broke the rules, empty when nothing did. `ownRules`: the page's
- *  own rules, checked at each size too. */
+ *  own rules, checked at each size too. `known`: a known fault that has its own issue, at the widths where it shows,
+ *  which the report leaves out. */
 async function sweep(page: Page, label: string, ownRules?: (page: Page) => Promise<string[]>,
-                     general = true): Promise<string> {
+                     known?: (problem: string, width: number) => boolean): Promise<string> {
   // The browser must show scroll bars: without them, the sweep misses the room that they take.
   const bar = await page.evaluate(() => {
     const d = document.createElement("div");
@@ -82,7 +83,9 @@ async function sweep(page: Page, label: string, ownRules?: (page: Page) => Promi
   for (const height of HEIGHTS) for (const width of WIDTHS) {
     await page.setViewportSize({ width, height });
     await settle(page);
-    for (const problem of [...general ? await problems(page) : [], ...await ownRules?.(page) ?? []]) found.push({ width, height, problem });
+    for (const problem of [...await problems(page), ...await ownRules?.(page) ?? []]) {
+      if (!known?.(problem, width)) found.push({ width, height, problem });
+    }
   }
   return found.length ? report(label, found) : "";
 }
@@ -187,10 +190,10 @@ test("layout of a review", async ({ page }) => {
 // The book's table in the review's analysis column (design 32, items 3 and 10), after the game's first edge, by edge
 // and by turn ("Review by"). By edge its six rows have edges of 6 and 7 characters. By turn it is turn 2's start, and
 // its rows are whole turns of two edges: the best 8 and the best turn outside the book. The Report's end row turns the
-// book on, and on a phone it opens the Analysis tab. At every size, the table fits its box, and the rows' quality
-// label badges start at one place, after the edges' fixed width. The head "Line ends" stays on one line, but by turn
-// in a box under 320 pixels wide, where it takes two. The test book is served by the dev and preview servers only,
-// and the review shows the book in the early edition only: elsewhere the test is skipped.
+// book on, and on a phone it opens the Analysis tab. At every size, the table fits its box, each head stays on one
+// line, and the rows' quality label badges start at one place, after the edges' fixed width. By turn in a narrow box,
+// a turn's second edge goes under its first. The test book is served by the dev and preview servers only, and the
+// review shows the book in the early edition only: elsewhere the test is skipped.
 test("layout of the book's table in a review", async ({ page }) => {
   const served = await page.request.get("/test-book/prototype/index.json");
   test.skip(!served.ok() || !(served.headers()["content-type"] ?? "").includes("json"), "the site serves no test book");
@@ -210,27 +213,30 @@ test("layout of the book's table in a review", async ({ page }) => {
     await page.keyboard.press("ArrowRight");
     await expect(page.locator(".mv.here")).toHaveText(/^A10-D9/);
     await expect(page.getByRole("region", { name: "Opening book" }).locator("tbody tr[data-move]")).toHaveCount(rows);
-    // By edge, the table's own rules only: the move list by edge hides 56 pixels sideways from 360 to 410 pixels wide
-    // (beads abscls-8n02), with or without the book
-    expect(await sweep(page, `/review, the book's table by ${judge}`, p => bookTableProblems(p, judge === "turn"),
-                       judge === "turn")).toBe("");
+    // By edge, the move list hides 56 pixels sideways from 360 to 410 pixels wide, with or without the book (beads
+    // abscls-8n02): the sweep leaves that fault out, and checks the rest
+    const known = judge === "edge"
+      ? (problem: string, width: number) => width <= 410 && /^div(#\S+)?\.movelist\.\S* hides \d+ pixels sideways/.test(problem)
+      : undefined;
+    expect(await sweep(page, `/review, the book's table by ${judge}`, bookTableProblems, known)).toBe("");
   }
 });
 
-/** The book's table's own rules at the page's size: it fits its box, its head "Line ends" is one line box (by turn,
- *  two at most in a box under 320 pixels wide), and the rows' badges start at one place, though their edges differ in
- *  length. */
-function bookTableProblems(page: Page, byTurn: boolean) {
-  return page.evaluate(byTurn => {
+/** The book's table's own rules at the page's size: it fits its box, each head is one line box, and the rows' badges
+ *  start at one place, though their edges differ in length. */
+function bookTableProblems(page: Page) {
+  return page.evaluate(() => {
     const table = document.querySelector('[aria-label="Opening book"] table');
-    const head = [...table?.querySelectorAll("th") ?? []].find(th => th.textContent?.trim() === "Line ends");
-    if (!table || !head) return ["the book's table is not there"];
+    const heads = [...table?.querySelectorAll("thead th") ?? []];
+    if (!table || !heads.length) return ["the book's table is not there"];
     const out: string[] = [];
-    const range = document.createRange();
-    range.selectNodeContents(head);
-    const lines = new Set([...range.getClientRects()].map(r => Math.round(r.top))).size;
-    const box = table.parentElement!, narrow = byTurn && box.clientWidth < 320;
-    if (lines !== 1 && !(narrow && lines === 2)) out.push(`the head "Line ends" takes ${lines} lines`);
+    for (const head of heads) {
+      const range = document.createRange();
+      range.selectNodeContents(head);
+      const lines = new Set([...range.getClientRects()].map(r => Math.round(r.top))).size;
+      if (lines !== 1) out.push(`the head "${head.textContent?.trim()}" takes ${lines} lines`);
+    }
+    const box = table.parentElement!;
     if (table.scrollWidth > box.clientWidth) out.push(`the table is ${table.scrollWidth - box.clientWidth} pixels wider than its box`);
     // A row's badge is its second cell's image, whose name is its word
     const starts = new Set([...table.querySelectorAll('tbody td:nth-child(2) [role="img"]')]
@@ -239,7 +245,7 @@ function bookTableProblems(page: Page, byTurn: boolean) {
     const lengths = new Set([...table.querySelectorAll("tbody tr[data-move]")].map(r => r.getAttribute("data-move")!.length));
     if (lengths.size < 2) out.push("the rows' edges have one length, so the badges' places prove nothing");
     return out;
-  }, byTurn);
+  });
 }
 
 /** Opens Practice in a game in progress, kept in this browser (practice.ts, KeptPractice): the fixture's first 20

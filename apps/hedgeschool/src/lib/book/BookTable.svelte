@@ -21,9 +21,8 @@
   import BookSymbol from "./BookSymbol.svelte";
   import type { BookAt } from "./lookup.svelte.ts";
   import type { BookPosition, BookSource } from "./form.ts";
-  import { bookCount, GROUP_TITLES, positionTitle, rowRefutation, TURN_GROUP_TITLES, turnCount,
-    type BookRow } from "./rows.ts";
-  import { endSentence } from "./sentences.ts";
+  import { bookCount, GROUP_TITLES, positionTitle, shownRows, TURN_GROUP_TITLES, type BookRow } from "./rows.ts";
+  import { endSentence, refutationText } from "./sentences.ts";
   import { positionSymbol } from "./symbols.ts";
   import type { Label } from "@abstractclass/analysis/labels.ts";
 
@@ -78,19 +77,14 @@
   ].filter(Boolean).join(" ") : undefined);
 
   // The rows that show: by turn, the best turns until the player opens "Show more". Its button comes after the last
-  // book turn that shows, before the traps.
-  const shownRows = $derived(more ? rows : rows.filter(r => !r.more));
-  const hidden = $derived(rows.length - shownRows.length);
-  const moreAt = $derived.by(() => {
-    const k = shownRows.findIndex(r => r.group === "trap" || r.group === "outside");
-    return k < 0 ? shownRows.length : k;
-  });
+  // book turn that shows (`moreAfter`), before the traps.
+  const shown = $derived(shownRows(rows, more));
+  const hidden = $derived(rows.length - shown.length);
+  const moreAfter = $derived(hidden ? shown.findLastIndex(r => r.group === "fine" || r.group === "other") : -1);
   const titles = $derived(byTurn ? TURN_GROUP_TITLES : GROUP_TITLES);
-  // By turn, a head that can take two lines in a narrow box (see the table)
-  const narrow = $derived(byTurn && "@max-[20rem]:whitespace-normal!");
   // The rows that take the focus, in order: each row, and each trap's refutation under it.
   type Item = { row: BookRow; refutation: boolean };
-  const items = $derived<Item[]>(shownRows.flatMap(row => [{ row, refutation: false },
+  const items = $derived<Item[]>(shown.flatMap(row => [{ row, refutation: false },
     ...(row.trap?.refutation.length ? [{ row, refutation: true }] : [])]));
   let active = $derived((void rows, 0)); // the item that takes the focus at Tab: the first, at each position
   let box = $state<HTMLElement | null>(null);
@@ -144,7 +138,7 @@
   // later.
   let live = $state<HTMLElement | null>(null);
   $effect(() => {
-    const text = !position ? "" : byTurn ? turnCount(rows) : bookCount(position), region = live;
+    const text = position ? bookCount(rows, byTurn ? "turn" : "move") : "", region = live;
     if (!region) return;
     region.textContent = "";
     const later = setTimeout(() => (region.textContent = text), 100);
@@ -190,32 +184,28 @@
   {:else if position}
     <!-- The end of the book: its text, then the best move outside the book in its row -->
     {#if !position.moves.length}<p class="py-2">{endSentence(position)}</p>{/if}
-    <div class="@container min-h-0 overflow-y-auto [scrollbar-gutter:stable]" bind:this={box} role="presentation"
+    <div class="min-h-0 overflow-y-auto [scrollbar-gutter:stable]" bind:this={box} role="presentation"
          onpointerenter={() => (inside = true)} onpointerleave={() => { inside = false; pointed = null; }}>
-      <!-- By turn, in a box under 320 pixels wide (`narrow`), the cells' side padding halves, and the heads "{side}
-           wins" and "Line ends" can take two lines: a turn's two edges need the room. So the table fits the box of a
-           window 360 pixels wide (264 pixels with the scroll bars), where it needs 313 pixels as by edge. -->
-      <table class={["w-full border-collapse [&_:is(th,td)]:px-1 [&_:is(th,td)]:py-1 [&_:is(th,td)]:align-top [&_:is(th,td)]:text-left",
-                     byTurn && "@max-[20rem]:[&_:is(th,td)]:px-0.5!"]}>
+      <table class="w-full border-collapse [&_:is(th,td)]:px-1 [&_:is(th,td)]:py-1 [&_:is(th,td)]:align-top [&_:is(th,td)]:text-left">
         <thead>
           <tr class="[&>th]:sticky [&>th]:top-0 [&>th]:z-1 [&>th]:bg-panel [&>th]:font-medium [&>th]:text-muted [&>th]:border-b [&>th]:border-line [&>th]:whitespace-nowrap">
-            <!-- "Line ends" is as narrow as it can be on one line: its symbols are narrower than its head, and the
-                 edge's column takes the rest -->
-            <th class="w-7">#</th><th>{byTurn ? "Turn" : "Edge"}</th><th class={["w-18", narrow]}>{side} wins</th><th
-              class={["w-0", narrow]}>Line ends</th>
+            <!-- Each head stays on one line. "Line ends" is as narrow as it can be on one line: its symbols are narrower
+                 than its head, and the edge's or the turn's column takes the rest -->
+            <th class="w-7">#</th><th>{byTurn ? "Turn" : "Edge"}</th><th class="w-18">{side} wins</th><th class="w-0">Line ends</th>
           </tr>
         </thead>
         <tbody>
-          {#each shownRows as row, k (row.move)}
-            {#if hidden && k === moreAt}{@render showMore()}{/if}
-            {#if k === 0 || shownRows[k - 1].group !== row.group}
+          {#each shown as row, k (row.move)}
+            {#if k === 0 || shown[k - 1].group !== row.group}
               <tr><th colspan="4" scope="rowgroup" class="pt-2! text-xs font-semibold text-muted">{titles[row.group]}</th></tr>
             {/if}
             {@const item = items.findIndex(i => i.row === row && !i.refutation)}
             {@render moveRow(row, item)}
-            {#if row.trap?.refutation.length}{@render refutationRow(row, item + 1, rowRefutation(position, row))}{/if}
+            {#if row.trap?.refutation.length}
+              {@render refutationRow(row, item + 1, refutationText(position, row.edges.length, row.trap.refutation))}
+            {/if}
+            {#if k === moreAfter}{@render showMore()}{/if}
           {/each}
-          {#if hidden && moreAt === shownRows.length}{@render showMore()}{/if}
         </tbody>
       </table>
     </div>
@@ -234,13 +224,15 @@
 
 <!-- A row: its number as the board draws it, the edge with its quality label's badge after it, its win chance and the
      position symbol at its line's end, in a shade of its side's colour. Each edge takes the width of the longest edge
-     (A10-D10, 7 characters of the monospaced font), so the badges line up. By turn, the row names its two edges, and
-     each turn takes the width of two, so the badges line up there too. The badge and the symbol show no words: their
-     words are their titles and their names (design 32, item 3). A second line gives words only: a trap, or the book's
-     end. -->
+     (A10-D10, 7 characters of the monospaced font), so the badges line up. By turn, the row names its two edges. When
+     the column has no room for both on one line, as in a window 360 pixels wide, the second edge and the badge go
+     under the first edge: so the heads stay on one line, and the badges line up there too. The badge and the symbol
+     show no words: their words are their titles and their names (design 32, item 3). A last line gives words only: a
+     trap, or the book's end. -->
 {#snippet moveRow(row: BookRow, item: number)}
   {@const lit = pointed === row.move}
   {@const note = row.trap ? "a trap" : row.ends ? "the book ends here" : ""}
+  {@const edge = ["flex-none w-[7ch] font-mono", row.n === 1 && row.book && "font-semibold"]}
   <tr data-item={item} data-move={row.move} tabindex={item === active ? 0 : -1}
       class={[ROW, lit && "bg-panel-2"]}
       onpointerenter={() => (pointed = row.move)} onfocus={() => { active = item; pointed = row.move; }}
@@ -249,11 +241,12 @@
                       row.n === 1 ? "bg-engine" : "bg-candidate"]}>{row.n}</span></td>
     <td>
       <div class="flex flex-col">
-        <span class="flex items-center gap-1.5">
-          {#each byTurn ? [0, 1] : [0] as e (e)}
-            <span class={["flex-none w-[7ch] font-mono", row.n === 1 && row.book && "font-semibold"]}>{row.edges[e] ?? ""}</span>
-          {/each}
-          {@render badge(row.label)}
+        <span class="flex flex-wrap items-center gap-x-1.5">
+          {#if byTurn}<span class={edge}>{row.edges[0]}</span>{/if}
+          <span class="flex items-center gap-1.5">
+            <span class={edge}>{row.edges[byTurn ? 1 : 0] ?? ""}</span>
+            {@render badge(row.label)}
+          </span>
         </span>
         {#if note}<span class="text-xs text-muted">{note}</span>{/if}
         {#if row.trap}
@@ -261,7 +254,7 @@
         {/if}
       </div>
     </td>
-    <td class="tabular-nums">{@render winChance(row.blueWin, row.value)}</td>
+    <td class="tabular-nums">{@render winChance(row.blueWin, row.book?.value)}</td>
     <td>{#if row.symbol}<BookSymbol symbol={row.symbol} alone />{:else}<span class="text-muted">—</span>{/if}</td>
   </tr>
 {/snippet}
@@ -292,7 +285,7 @@
   <tr class="border-b border-line">
     <td></td>
     <td colspan="3">
-      <button type="button" class="btn-secondary px-2 py-0.5 text-xs" onclick={() => (more = true)}>Show {hidden} more turns</button>
+      <button type="button" class="btn-secondary px-2 py-0.5 text-xs" onclick={() => (more = true)}>Show {hidden} more turn{hidden === 1 ? "" : "s"}</button>
     </td>
   </tr>
 {/snippet}

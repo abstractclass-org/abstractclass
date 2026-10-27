@@ -61,17 +61,23 @@ explorers that people use in chess and Go is [../research/03-opening-explorers.m
    - **"Review by"** (the display setting of design 10) rules the rows too. By edge, and in the middle of a turn, each
      row is one edge. By turn, the default, a turn's start has whole turns: each row is a book move, then a book move
      of the position that it reaches. The start is not a turn's start here, because its turn has one edge. Switching
-     needs no new search: the book holds the position after each edge, with its minimaxed values.
+     needs no new search: the book holds the position after each edge, with its minimaxed values. Where no book move
+     at a turn's start has a book move after it, the book holds no whole turn there, and each row is one edge.
      - **A turn's row** names its two edges. Its win chance is the one after its second edge. Its quality label comes
        from its loss against the best turn, by the review's rule for a turn (design 10). By the book's minimax, the
        best turn has the position's best win chance: the first book move's, or the best move outside the book's.
+     - **One row a position:** two orders of the same two edges reach the same position (the book's position after
+       the second edge), so they are one row with one quality label, in every group. The row keeps the order that the
+       book prefers: its first edge is the better book move. In the test book, 31 of the 284 whole turns at its 78 turn
+       starts are a second order of another turn, at 24 of the starts.
      - **The groups by turn:** "Fine turns", "Other book turns", "Traps" (each turn that holds a trap's edge, with its
-       refutation) and "Best turn outside the book". The fine and the other turns are ordered by the win chance for
-       the side to move. The best 8 of them show, and the rest after a button ("Show 12 more turns" for 20), which
+       refutation) and "Best turn outside the book". The table orders the fine and the other turns by the win chance
+       for the side to move. The best 8 of them show, and the rest after a button ("Show 11 more turns" for 19), which
        comes before the traps. The traps and the best turn outside the book always show.
-     - **The best turn outside the book** is the best for the side to move of these: the best first edge outside the
-       book (the position's "other" row), whose second edge the book does not hold, so its row names one edge, and
-       each book move followed by the best second edge outside the book at the position that the move reaches.
+     - **The best turn outside the book** is the best for the side to move of two kinds of turn. The first kind is the
+       best first edge outside the book (the position's "other" row). The book does not hold its second edge, so its
+       row names one edge. The second kind is a book move, then the best second edge outside the book at the position
+       that the move reaches.
      - **A trap's turn:** the trap's edge is the first or the second. A second edge's refutation is the enemy's turn
        after it. A first edge's refutation starts with the rest of its turn: after that second edge, the row's
        refutation is the rest. After another second edge, the book holds no refutation, and the row has none.
@@ -80,8 +86,9 @@ explorers that people use in chess and Go is [../research/03-opening-explorers.m
        on its number, plays its two edges.
    - **A row** shows the edge and its quality label's badge on one line. Then come the win chance for the side to
      move and the position symbol at the end of the move's line. The edge takes the width of the longest edge
-     (A10-D10, 7 characters), so the badges line up in a column. By turn, each of a row's two edges takes that width,
-     so the badges line up there too. A second line has words only, where the row has
+     (A10-D10, 7 characters), so the badges line up in a column. By turn, each of a row's two edges takes that width.
+     Where the column has no room for both on one line, the second edge and the badge go under the first edge, so the
+     heads stay on one line and the badges line up there too. A last line has words only, where the row has
      them: "a trap" or "the book ends here". So a row with none is one line. The badge and the symbol show no words, as
      Lichess shows its position symbols: the label's word ("Excellent") and the symbol's name ("Blue is slightly
      better") are their titles and their accessible names. The title row's symbol keeps its words, on one line, so
@@ -118,7 +125,10 @@ explorers that people use in chess and Go is [../research/03-opening-explorers.m
    - **One engine and one depth rule a game:** the review keeps its own labels, on book moves too (design 16). The
      book's table shows the book's values only, with no row for the game's move: the move list gives the review's
      quality label. The opening row follows "Review by", as the table does. By turn it names the turn that left the
-     book, with the turn's quality label, and it goes to the turn's start. By edge it names the edge and its label.
+     book, with the turn's quality label, and it goes to the turn's start. Its book turn worse than Good is a whole
+     turn too, with the quality label that the table gives the turn: "Before that, at turn {n}, {side} played {turn},
+     a book turn and {a label}.", or "The last book turn, {turn}, is {a label}.". By edge it names the edge and its
+     quality label.
    - **A book move played from the table** is a variation of the game, as any move that the player plays in a review is
      (design 07). "Delete from here" removes it.
 5. **Openings:**
@@ -239,11 +249,11 @@ explorers that people use in chess and Go is [../research/03-opening-explorers.m
     are Blue and Red, so the colour names the side, and its shade the strength.
 - **One edge at a time, and whole turns by turn:** the book stores a position after each edge, and every surveyed
   explorer lists one move at a time. By edge and in a turn's middle, the table does too. By turn, the review judges
-  whole turns, so a turn's start lists whole turns, and the table's labels agree with the move list's. This is a
-  departure: no published explorer lists turns of two moves, because chess and Go have one move a turn. In the test
-  book, 78 turn starts after turn 1 have book moves. They give a median of 1 whole turn and at most 34, and 8 of them
-  give more than 8. So the table shows the best 8, and the rest after "Show more". The move list keeps the review's
-  turns.
+  whole turns, so a turn's start lists whole turns, and the table's quality labels agree with the move list's.
+  This is a departure: no published explorer lists turns of two moves, because chess and Go have one move a turn. In
+  the test book, 78 turn starts after turn 1 have book moves. With one row a position, they give a median of 1 whole
+  turn and at most 33, and 6 of them give more than 8. So the table shows the best 8, and the rest after "Show more".
+  The traps always show, so 5 starts have the button. The move list keeps the review's turns.
 
 ## Alternatives
 
@@ -252,18 +262,21 @@ explorers that people use in chess and Go is [../research/03-opening-explorers.m
 - **The book on the Analysis board's own state.** It would overwrite the player's lines (one board a browser, design
   21).
 - **A box under the move list,** as on Lichess. It would leave a review's move list a few rows.
-- **Whole turns as one choice, at every position.** The list grows as each first edge times its second edges (34
+- **Whole turns as one choice, at every position.** The list grows as each first edge times its second edges (33
   whole turns at one turn's start of the test book), and a turn's middle has no whole turn to list. So whole turns
   come only by turn, at a turn's start, with the best 8 first.
 - **Single edges by turn too.** The table then labelled each edge while the move list labelled each turn, and the
   Report's opening row named an edge where the review judges the turn.
-- **The first 8 rows of the table, traps too, before "Show more".** At the turn's start with 34 whole turns, the 8
-  traps came after 26 other turns, all under "Show more". The traps are what a player must learn, so they always
+- **A row for each order of a turn's two edges.** The same position then had two rows with the same win chance, and
+  two labels: D9-G10 D10-G9 was Best and D10-G9 D9-G10 Excellent at turn 3 of the test game book-left-review.json.
+- **The first 8 rows of the table, traps too, before "Show more".** At the turn's start with 33 whole turns, the 8
+  traps came after 25 other turns, all under "Show more". The traps are what a player must learn, so they always
   show.
-- **Narrow heads and padding by turn at every width.** The turn's table needs the room only in a box under 320
-  pixels wide: the heads wrap and the padding halves there only, by a container query.
-- **A smaller font for a turn's edges.** It would make the edges harder to read, and the heads and the padding give
-  the room.
+- **Heads on two lines and half the padding in a narrow box.** The table then fitted a window 360 pixels wide, but
+  "Blue wins" and "Line ends" took two lines, and the head row was 49 pixels high, where by edge it is 29. A turn's
+  second edge under its first takes the room from the rows, and the heads stay on one line.
+- **A smaller font for a turn's edges.** It would make the edges harder to read, and the edges' own lines give the
+  room.
 - **The book's values in the review's labels** wherever the game is in the book, as design 16 has each position use
   its deepest result. One review would then mix two networks.
 - **Chess.com's "Book" in the place of the label.** It hides the quality of a book move worse than Good.
@@ -424,21 +437,23 @@ its own choice of "Book" or "Candidates", handles the key o, and plays the moves
   give the word in their own text. The edge before it is 7 characters of the monospaced font wide (`7ch`), the longest
   edge's width, so the badges start at one place.
 - **The widths:** the last column ("Line ends") is as narrow as its head on one line, because its symbols are
-  narrower than its head. The edge's column takes the rest. By turn, a row's two edges need 154 pixels, and the table
-  needs 313 pixels with its heads on one line. A window 360 pixels wide with its scroll bars gives the table's box 264
-  pixels. So by turn, in a box under 320 pixels wide (a container query on the table's box), the cells' side padding
-  halves, and the heads "Blue wins" and "Line ends" can take two lines. The layout test (`npm run test:layout`)
+  narrower than its head. The edge's column takes the rest. Every head stays on one line. By turn, a row's two edges
+  on one line need 154 pixels, and the table 313 pixels. A window 360 pixels wide with its scroll bars gives the
+  table's box 264 pixels. So a turn's edges wrap (`flex-wrap`): the second edge and the badge, which stay together, go
+  under the first edge where the column has no room for both. The table then needs the width that it needs by edge,
+  and every row wraps at the same width, so the badges stay at one place. The layout test (`npm run test:layout`)
   checks the review with the table after the game's first edge, by edge and by turn. By edge the rows' edges have 6
   and 7 characters. By turn the rows are turn 2's whole turns. At every size from 360 pixels wide, the table fits its
-  box, "Line ends" stays on one line (by turn, two at most under 320 pixels), and the rows' badges start at one place.
-  By edge the sweep checks the table's own rules only: the move list by edge hides 56 pixels sideways from 360 to 410
-  pixels wide, with or without the book (beads abscls-8n02).
+  box, each head stays on one line, and the rows' badges start at one place. By edge the sweep leaves out one known
+  fault: the move list by edge hides 56 pixels sideways from 360 to 410 pixels wide, with or without the book (beads
+  abscls-8n02).
 - **The sentence under the table** is the page's: the lab page gives it from `sentences.ts`, the sentence of the row
   pointed at or focused (`moveSentence`), else the best move's (`bestMoveSentence`). By turn, the review gives the
   turns' sentences of the same templates (`turnSentence`, `bestTurnSentence`): "D10-G9 Q11-T10 is the best of the 3
   fine turns here."
 - **The rows by turn** are `turnRows` in `rows.ts`, from the position and the book's position after each of its book
-  moves. The page loads those positions first: until they load, the table says that the book loads.
+  moves. The page loads those positions first: until they load, the table says that the book loads. Two turns that
+  reach one position (the book move's `to`) are one row: the first in the book's order of first edges.
 - **The end of the book** (item 5): a position with no book move shows "End of the book" with its symbol in words
   (`endSentence`), and then the best move outside the book in its row, as at any other position. Each end position
   of the test book has such a move.
@@ -477,15 +492,24 @@ shows them in the early edition, where the book loads. They read the site's one 
   order starts a new stretch in the book.
 - **The Report's rows** are under the counts: the heading "Opening" and its row, then the heading "Traps" and a row
   for each trap. Each row is one button, its sentence followed by the link text "Show the position".
-- **The opening row** names the first departure. It follows "Review by": by edge, the edge that left and its review
-  label. By turn, the turn that left (`openingAt` and `openingSentence` in `game.ts`: the edge that left is the
-  turn's first or its second) and the turn's review label, and the row goes to the turn's start, where the table
-  shows whole turns. The row has no label for the player that "Review for" leaves out. A game that followed the book
+- **The opening row** names the first departure. It follows "Review by". By edge, it names the edge that left, with
+  the review's quality label of the edge. By turn, it names the turn that left, with the review's quality label of
+  the turn (`openingRow` and `openingSentence` in `game.ts`). The edge that left is the turn's first or its second.
+  The row goes to the turn's start, where the table shows whole turns. The row has no quality label for the player
+  that "Review for" leaves out. A game that followed the book
   to its end gives the turn of the book move that reached the end. "Before that" names the book move worse than Good
-  with the largest loss before the departure, by the book's label. When that move reached the end, the row
+  with the largest loss before the departure, by the book's quality label. When that move reached the end, the row
   says "The last book move, G10-J13, is an Inaccuracy." in place of "Before that". In the test book, 41 of the 75 book
   moves worse than Good (traps aside) reach an end. The opening row does not name a trap, because the trap has its own
   row.
+- **"Before that" by turn** names a whole book turn (`weakTurn` in `game.ts`). The candidates are the game's turns
+  before the departure whose edges are all book moves and none a trap. The row names the one worse than Good with
+  the largest loss. A turn's loss is from its start (`lossTo` in `sentences.ts`): by the book's minimax, the best
+  move's win chance there is the best turn's. So its quality label is the one that the table gives the turn. By the
+  minimax too, a turn's loss is its two edges' losses added, so it is never less than either edge's. Blue's first
+  turn has one edge, and the row names it as a book move. In the test game book-left-review.json, by turn: "Before
+  that, at turn 2, Red played N11-Q10 O11-Q10, a book turn and an Inaccuracy." A game whose last book turn reached
+  the end: "The last book turn, D9-G10 G10-J13, is a Mistake.", where G10-J13 alone is an Inaccuracy.
 - **A trap's row** says that the other side played its refutation when the game reached the refutation's turn and the
   other side's edges are the refutation's, in either order. The game reaches that turn when the side that played the
   trap ends its turn as the refutation does. Otherwise, the row gives the trap's first sentence only. A game that ends

@@ -8,9 +8,9 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { openBook, type BookReader } from "./book.ts";
 import type { BookPosition } from "./form.ts";
-import { bookCount, bookRows, positionTitle, rowBoardLine, rowCandidates, rowLine, rowRefutation, turnCount, turnRows,
-  turnStart, TURNS_SHOWN, type BookRow } from "./rows.ts";
-import { bestTurnSentence, edgeCount, isFine, moveLabel, turnSentence } from "./sentences.ts";
+import { bookCount, bookRows, positionTitle, rowBoardLine, rowCandidates, rowLine, tableRows, turnRows, turnStart,
+  TURNS_SHOWN, type BookRow } from "./rows.ts";
+import { bestTurnSentence, edgeCount, isFine, moveLabel, refutationText, turnSentence } from "./sentences.ts";
 import { GOOD_WIN } from "@abstractclass/analysis/labels.ts";
 import { lineEndSymbol, positionSymbol } from "./symbols.ts";
 import { moverWin } from "@abstractclass/analysis/model.ts";
@@ -93,10 +93,10 @@ test("a row's line: the book's main line after it, a trap's refutation, an outsi
 
 test("the texts: the count, the title and the symbol", async () => {
   const s = await at(START);
-  assert.equal(bookCount(s), "3 book moves");
+  assert.equal(bookCount(bookRows(s), "move"), "3 book moves");
   const trapAt = all.find(q => q.moves.filter(m => m.trap).length === 1)!;
-  assert.match(bookCount(trapAt), /^\d+ book moves?, 1 trap$/);
-  assert.equal(bookCount(all.find(q => !q.moves.length)!), "End of the book");
+  assert.match(bookCount(bookRows(trapAt), "move"), /^\d+ book moves?, 1 trap$/);
+  assert.equal(bookCount(bookRows(all.find(q => !q.moves.length)!), "move"), "End of the book");
   assert.equal(positionTitle(s), "Start · Blue to play");
   assert.equal(positionTitle(await at(s.moves[0].to)), "Turn 2 · Red to play, edge 1 of 2");
   assert.equal(positionSymbol(s), "=");
@@ -127,19 +127,46 @@ test("by turn: the book's counts of whole turns at a turn's start", async () => 
   assert.equal(starts.length, 78, "turn starts with book moves, after turn 1 of one edge");
   assert.ok(!turnStart(await at(START)), "the start: its turn has one edge");
   assert.ok(all.filter(p => p.edge === 2).every(p => !turnStart(p)), "a turn's middle");
-  const counts = (await Promise.all(starts.map(byTurn))).map(rows => rows.filter(r => r.book).length).sort((a, b) => a - b);
+  const tables = await Promise.all(starts.map(byTurn));
+  const counts = tables.map(rows => rows.filter(r => r.book).length).sort((a, b) => a - b);
   assert.equal(counts[Math.floor(counts.length / 2)], 1, "the median");
-  assert.equal(counts.at(-1), 34, "the most");
-  assert.equal(counts.filter(c => c > TURNS_SHOWN).length, 8, "the starts that give more than 8");
+  assert.equal(counts.at(-1), 33, "the most");
+  assert.equal(counts.filter(c => c > TURNS_SHOWN).length, 6, "the starts that give more than 8");
+  assert.equal(tables.filter(rows => rows.some(r => r.more)).length, 5, "the starts with Show more: traps aside");
+  // Of the 284 whole turns in both orders, 31 reach a position that another turn reaches, at 24 starts
+  const pairs = await Promise.all(starts.map(async p => (await Promise.all(p.moves.map(m => book.get(m.to))))
+    .flatMap(s => s!.moves.map(m => m.to))));
+  assert.equal(pairs.flat().length, 284);
+  assert.equal(pairs.flat().length - counts.reduce((a, c) => a + c, 0), 31);
+  assert.equal(pairs.filter(tos => new Set(tos).size < tos.length).length, 24);
 });
 
-test("by turn: each book turn once, in the groups' order, numbered, and labelled from the turn's loss", async () => {
+test("by turn: single edges where no book move at a turn's start has a book move after it", async () => {
+  const p = await at(AFTER_G9), seconds = await Promise.all(p.moves.map(m => book.get(m.to)));
+  assert.deepEqual(tableRows(p, seconds), { rows: turnRows(p, seconds), byTurn: true });
+  assert.deepEqual(tableRows(p, seconds.map(s => s && { ...s, moves: [] })), { rows: bookRows(p), byTurn: false });
+  assert.deepEqual(tableRows(p, null), { rows: bookRows(p), byTurn: false }, "by edge");
+});
+
+test("by turn: two orders of the same edges are one row, in the order that the book prefers", async () => {
+  // Turn 3 of book-left-review.json: D9-G10 D10-G9 and D10-G9 D9-G10 reach one position
+  const p = await at("A10-D9,A10-D10 N11-Q10*,O11-Q10*,Q10-T10 b2 0/0 3"), rows = await byTurn(p);
+  assert.deepEqual(rows.filter(r => r.edges.includes("D9-G10") && r.edges.includes("D10-G9")).map(r => [r.move, r.label]),
+                   [["D9-G10 D10-G9", "best"]]);
+  assert.ok(p.moves.findIndex(m => m.move === "D9-G10") < p.moves.findIndex(m => m.move === "D10-G9"));
+});
+
+test("by turn: one row a position reached, in the groups' order, numbered, and labelled from the turn's loss", async () => {
   const order = ["fine", "other", "trap", "outside"];
   for (const p of starts) {
     const rows = await byTurn(p), mover = playerOf(p.mover), win = (b: number) => moverWin(b, mover);
     const seconds = await Promise.all(p.moves.map(m => book.get(m.to)));
-    const turns = p.moves.flatMap((m, k) => seconds[k]!.moves.map(m2 => `${m.move} ${m2.move}`)).sort();
-    assert.deepEqual(rows.filter(r => r.book).map(r => r.move).sort(), turns, p.position);
+    // Each position's row has the first edge that comes first in the book: the better one
+    const first = new Map<string, number>();
+    p.moves.forEach((m, k) => seconds[k]!.moves.forEach(m2 => first.has(m2.to) || first.set(m2.to, k)));
+    const turns = rows.filter(r => r.book);
+    assert.deepEqual(turns.map(r => r.book!.to).sort(), [...first.keys()].sort(), p.position);
+    for (const r of turns) assert.equal(p.moves.findIndex(m => m.move === r.edges[0]), first.get(r.book!.to), r.move);
     assert.deepEqual(rows.map(r => r.n), rows.map((_, k) => k + 1), p.position);
     const ranks = rows.map(r => order.indexOf(r.group));
     assert.ok(ranks.every((r, k) => k === 0 || r >= ranks[k - 1]), `${p.position}: ${rows.map(r => r.group)}`);
@@ -154,7 +181,7 @@ test("by turn: each book turn once, in the groups' order, numbered, and labelled
     }
     assert.equal(rows.filter(r => r.label === "best").length, 1, p.position);
     assert.ok(rows.every(r => r.label !== "great"), p.position);
-    // The fine and other turns by the mover's win chance, the best first; the best 8 show, the rest after "Show more"
+    // The fine and other turns by the mover's win chance, the best first. The best 8 show, the rest after "Show more"
     const plain = rows.filter(r => r.group === "fine" || r.group === "other");
     for (const g of ["fine", "other"]) {
       const w = plain.filter(r => r.group === g).map(r => win(r.blueWin));
@@ -174,7 +201,7 @@ test("by turn: a first edge's trap, with the rest of its refutation after the tu
   assert.equal(row.group, "trap");
   assert.equal(row.trap!.short, trap.short);
   assert.deepEqual(row.trap!.refutation, ["G9-K10", "K10-M7"]);
-  assert.equal(rowRefutation(p, row), "3. G9-K10 K10-M7");
+  assert.equal(refutationText(p, row.edges.length, row.trap!.refutation), "3. G9-K10 K10-M7");
   assert.deepEqual(rowLine(book, row), ["Q11-T10", "N11-Q10", "G9-K10", "K10-M7"]);
   assert.deepEqual(rowBoardLine(book, p, row).map(e => e.player), [1, 1, 0, 0]);
   assert.match(turnSentence(p, rows, row), /^Q11-T10 N11-Q10 seems good after a short search, but it decreases Red's win chance from \S+% to \S+%\. After 3\. G9-K10 K10-M7, /);
@@ -208,8 +235,8 @@ test("by turn: the board numbers each first edge once, by its first row, and the
   const p = await at(AFTER_G9), rows = await byTurn(p), numbers = rowCandidates(rows);
   const firsts = [...new Set(rows.map(r => r.edges[0]))];
   assert.deepEqual(numbers.map(c => c.rank), firsts.map(e => rows.find(r => r.edges[0] === e)!.n));
-  assert.match(turnCount(rows), /^\d+ book turns?, 2 traps$/);
-  assert.equal(turnCount([]), "End of the book");
+  assert.match(bookCount(rows, "turn"), /^\d+ book turns?, 2 traps$/);
+  assert.equal(bookCount([], "turn"), "End of the book");
   const best = rows.find(r => r.label === "best")!;
   assert.ok(bestTurnSentence(p, rows)!.startsWith(best.book ? `${best.move} is ` : `${rows[0].move} is the best book turn`));
   for (const r of rows.filter(r => r.book)) assert.ok(turnSentence(p, rows, r).startsWith(r.move), r.move);

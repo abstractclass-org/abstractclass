@@ -3,7 +3,7 @@
 // "Book" or "Candidates" in the browser. Outside the book the column shows the candidates as it does with no book, and
 // the player's choice of "Book" comes back at the next book position. The page draws the table (BookTable.svelte) and
 // the board from a BookPlace, and handles the key o (`toggle`). The rows follow the page's "Review by": by turn, at a
-// turn's start, each row is a whole turn (rows.ts, `turnRows`), from the book's positions after each book move there.
+// turn's start, each row is a whole turn (rows.ts, `tableRows`), from the book's positions after each book move there.
 //
 // The site serves the test book until the engine repository's book comes (beads abscls-tpaj.13). The dev and preview
 // servers serve it, and no build holds it (vite.config.ts, `testBook`): where its index does not load, the analysis
@@ -12,7 +12,7 @@ import type { Unit } from "@abstractclass/analysis/model.ts";
 import { readLocalJson, writeLocal } from "@abstractclass/storage/local.ts";
 import { parseEdge } from "#lib/engine/notation.ts";
 import { OpeningBook, OUT, type BookAt } from "./lookup.svelte.ts";
-import { bookRows, rowCandidates, rowLine, turnRows, turnStart, type BookRow } from "./rows.ts";
+import { rowCandidates, rowLine, shownRows, tableRows, turnStart, type BookRow } from "./rows.ts";
 
 /** The book's index: the test book's, until the engine's book comes. */
 const BOOK_URL = "/test-book/prototype/index.json";
@@ -50,7 +50,7 @@ export class BookPlace {
 
   /** `path`: the notation of each position from the start to the position on screen (undefined where a position has
    *  none). `unit`: the page's "Review by", which the rows follow. */
-  constructor(book: OpeningBook, page: BookPage, path: () => (string | undefined)[], unit: () => Unit = () => "edge") {
+  constructor(book: OpeningBook, page: BookPage, path: () => (string | undefined)[], unit: () => Unit) {
     this.book = book;
     this.#page = page;
     this.#path = path;
@@ -70,30 +70,31 @@ export class BookPlace {
 
   #atOf = (notation: string | undefined): BookAt => (notation === undefined ? OUT : this.book.at(notation));
   readonly #here = $derived(this.#atOf(this.#path().at(-1)));
-  /** By turn at a turn's start: the book at the position after each book move there, which the whole turns need. */
+  #seen: BookAt[] | null = null;
+  /** By turn at a turn's start: the book at the position after each book move there, which the whole turns need. A
+   *  lookup reads the book's loads, so each load of any part runs this again: the last list stays while its entries
+   *  stay the same (`#seen`), and the rows are not built again. */
   readonly #seconds = $derived.by((): BookAt[] | null => {
     const here = this.#here;
-    return here.state === "in" && this.#unit() === "turn" && turnStart(here.position)
-      ? here.position.moves.map(m => this.book.at(m.to)) : null;
+    if (here.state !== "in" || this.#unit() !== "turn" || !turnStart(here.position)) return null;
+    const next = here.position.moves.map(m => this.book.at(m.to)), seen = this.#seen;
+    return (this.#seen = seen?.length === next.length && next.every((a, k) => a === seen[k]) ? seen : next);
   });
-  /** The rows are whole turns. */
-  readonly byTurn = $derived(!!this.#seconds);
   /** The book at the position on screen. By turn at a turn's start, it loads or fails while a position after a book
    *  move there does. */
   readonly at = $derived(this.#seconds?.find(a => a.state === "loading" || a.state === "failed") ?? this.#here);
-  /** The table's rows at a book position (rows.ts), for the table and the board's numbers. */
-  readonly rows = $derived.by<BookRow[]>(() => {
-    if (this.at.state !== "in") return [];
-    const seconds = this.#seconds;
-    return seconds ? turnRows(this.at.position, seconds.map(a => (a.state === "in" ? a.position : null)))
-      : bookRows(this.at.position);
-  });
+  readonly #table = $derived.by(() => this.at.state !== "in" ? { rows: [] as BookRow[], byTurn: false }
+    : tableRows(this.at.position, this.#seconds?.map(a => (a.state === "in" ? a.position : null)) ?? null));
+  /** The table's rows at a book position (rows.ts, `tableRows`), for the table and the board's numbers. */
+  readonly rows = $derived(this.#table.rows);
+  /** The rows are whole turns. */
+  readonly byTurn = $derived(this.#table.byTurn);
   /** By turn, the player opened "Show more" at this position: the table and the board show every book turn. The next
    *  position shows the best turns only again. */
   get more(): boolean { return this.#more !== undefined && this.#more === this.#path().at(-1); }
   set more(v: boolean) { this.#more = v ? this.#path().at(-1) : undefined; }
   /** The rows that the table and the board show: the rows after "Show more" only once the player opens it. */
-  readonly shown = $derived(this.more ? this.rows : this.rows.filter(r => !r.more));
+  readonly shown = $derived(shownRows(this.rows, this.more));
   /** The table shows the book: its index has loaded, the player chose "Book", and the position is not outside the
    *  book. Its part can still load, or have failed: then it has no rows, and the board no numbers. */
   readonly showsBook = $derived(this.ready && this.at.state !== "out" && this.#show === "book");
@@ -101,7 +102,7 @@ export class BookPlace {
    *  view gives them to its board (@abstractclass/review/game.ts, ViewBook). */
   readonly numbers = $derived(rowCandidates(this.shown).map(c => ({ move: c.edge, rank: c.rank, note: c.note })));
   /** The first edge of the row pointed at: the board lights its number. */
-  get numbered(): string | null { return this.rows.find(r => r.move === this.pointed)?.edges[0] ?? null; }
+  readonly numbered = $derived(this.shown.find(r => r.move === this.pointed)?.edges[0] ?? null);
   /** The board's number on an edge pointed at: its row, the first row that starts with the edge. */
   point(edge: string | null) { this.pointed = edge === null ? null : this.#rowAt(edge)?.move ?? null; }
   /** The edges that a click on the board's number on an edge plays: its row's. */

@@ -7,18 +7,21 @@
 // A position is in the book when the book holds it, by any move order: so a game that leaves the book can come back
 // to it by another move order. The Report names the first departure, and the move list marks each book move of each
 // stretch in the book (the journey, A1, "Variations").
-import type { Label } from "@abstractclass/analysis/labels.ts";
+import { GOOD_WIN, type Label } from "@abstractclass/analysis/labels.ts";
 import type { Unit } from "@abstractclass/analysis/model.ts";
 import type { BookMoveMark } from "@abstractclass/review/game.ts";
 import { moverOf } from "#lib/editor/position.ts";
 import { bookMove } from "./book.ts";
 import type { BookMove, BookPosition } from "./form.ts";
-import { NOT_IN_BOOK_SENTENCE, bookEndSentence, edgeCount, isFine, lastBookMoveSentence, leftBookSentence, moveLoss,
+import { NOT_IN_BOOK_SENTENCE, bookEndSentence, edgeCount, lastBookMoveSentence, leftBookSentence, lossTo,
   trapPlayedSentence, weakBookMoveSentence } from "./sentences.ts";
 import { SYMBOL_NAME, positionSymbol } from "./symbols.ts";
 
 /** A book move that the game played: the edge's index, and the book's position before it. */
 export interface PlayedBookMove { index: number; position: BookPosition; move: BookMove }
+/** Book moves that the game played in a row: one book move, or by turn a whole turn (one edge in Blue's first turn,
+ *  else two). The first edge's index, and the book's position before it. */
+export interface PlayedBookMoves { index: number; position: BookPosition; moves: BookMove[] }
 
 export interface GameOpening {
   /** How the game met the book: it left the book, it followed the book to its end, it was not in the book from the
@@ -30,8 +33,11 @@ export interface GameOpening {
   /** The book's position there. */
   position: BookPosition;
   /** The worst book move worse than Good that the game played before it left the book, not a trap: the trap has its
-   *  own row. */
-  weak: PlayedBookMove | null;
+   *  own row. Its `moves` hold the one move. */
+  weak: PlayedBookMoves | null;
+  /** By turn: the worst whole book turn worse than Good that the game played before it left the book, by the turn's
+   *  loss (sentences.ts, `lossTo`), not a turn with a trap. */
+  weakTurn: PlayedBookMoves | null;
   /** The traps that the game played, in the game's order. `refuted`: whether the other side played the refutation's
    *  edges, in either order in its turn; null when the game ended before them, or when the side that played the trap
    *  ended its turn otherwise. */
@@ -58,14 +64,26 @@ export function gameOpening(positions: (BookPosition | null)[], edges: string[])
     const m = p && k < edges.length ? bookMove(p, edges[k]) : undefined;
     return p && m ? [{ index: k, position: p, move: m }] : [];
   });
-  const weak = played.filter(b => b.index < last && !b.move.trap && !isFine(b.position, b.move))
-    .reduce<PlayedBookMove | null>((w, b) => (!w || moveLoss(b.position, b.move) > moveLoss(w.position, w.move) ? b : w), null);
+  // The book move worse than Good with the largest loss before the departure, and by turn the whole book turn: a turn's
+  // loss is its last move's from the turn's start (sentences.ts, `lossTo`). A trap has its own row, so neither holds one
+  const loss = (w: PlayedBookMoves) => lossTo(w.position, w.moves[w.moves.length - 1].value.blueWin);
+  const worst = (all: PlayedBookMoves[]) => all
+    .filter(w => w.index + w.moves.length <= last && w.moves.every(m => !m.trap) && loss(w) > GOOD_WIN)
+    .reduce<PlayedBookMoves | null>((a, w) => (!a || loss(w) > loss(a) ? w : a), null);
+  // The game's whole turns in the book, from each turn's start: its edges are all book moves
+  const moveAt = new Map(played.map(b => [b.index, b.move]));
+  const turns = played.flatMap(({ index, position }): PlayedBookMoves[] => {
+    const moves = Array.from({ length: moverOf(edgeCount(position)).left }, (_, j) => moveAt.get(index + j));
+    return position.edge === 1 && moves.every(m => m) ? [{ index, position, moves: moves as BookMove[] }] : [];
+  });
+  const weak = worst(played.map(({ index, position, move }) => ({ index, position, moves: [move] })));
+  const weakTurn = worst(turns);
   const bookMoves = played.flatMap(({ index }) => {
     const next = positions[index + 1];
     return next ? [{ index, after: SYMBOL_NAME[positionSymbol(next)] }] : [];
   });
   return {
-    kind, at: last, position: end, weak,
+    kind, at: last, position: end, weak, weakTurn,
     traps: played.filter(b => b.move.trap).map(b => ({ ...b, refuted: refuted(b, edges) })),
     bookMoves,
   };
@@ -87,11 +105,12 @@ function refuted({ index, position, move }: PlayedBookMove, edges: string[]): bo
 /** The Report's opening row (design 32, item 4): where the game left the book, with the review's label of the move
  *  that left it (`label`), and the book move worse than Good before it. When that move reached the end of the book, the
  *  row names it as the last book move. Null for a game that ended in the book. The row follows "Review by" (`unit`):
- *  by turn it names the whole turn that left the book, and `label` is the turn's label. By edge it names the edge. */
-export function openingSentence(o: GameOpening, edges: string[], label: Label | null,
-                                unit: Unit = "edge"): string | null {
-  const w = o.weak, reachedEnd = o.kind === "end" && w?.index === o.at - 1;
-  const before = !w ? "" : ` ${(reachedEnd ? lastBookMoveSentence : weakBookMoveSentence)(w.position, w.move)}`;
+ *  by turn it names the whole turn that left the book, and `label` is the turn's label. Its book turn worse than Good
+ *  is a whole turn too, with the book's label of the turn. By edge it names the edge. */
+export function openingSentence(o: GameOpening, edges: string[], label: Label | null, unit: Unit): string | null {
+  const w = unit === "turn" ? o.weakTurn : o.weak;
+  const reachedEnd = o.kind === "end" && !!w && w.index + w.moves.length === o.at;
+  const before = !w ? "" : ` ${(reachedEnd ? lastBookMoveSentence : weakBookMoveSentence)(w.position, ...w.moves)}`;
   switch (o.kind) {
     case "left": {
       const { at, length } = unit === "turn" ? leftTurn(o) : { at: o.at, length: 1 };
@@ -110,10 +129,13 @@ function leftTurn(o: GameOpening): { at: number; length: number } {
   return { at, length: moverOf(edgeCount(o.position) - (o.position.edge - 1)).left };
 }
 
-/** The position that the opening row goes to: the position before the move that left the book, or by turn before the
- *  turn that left it, where the book's table shows whole turns. */
-export const openingAt = (o: GameOpening, unit: Unit = "edge") =>
-  o.kind === "left" && unit === "turn" ? leftTurn(o).at : o.at;
+/** The Report's opening row (`openingSentence`), with the position that it goes to: the position before the move that
+ *  left the book, or by turn before the turn that left it, where the book's table shows whole turns. */
+export function openingRow(o: GameOpening, edges: string[], label: Label | null,
+                           unit: Unit): { text: string; at: number } | null {
+  const text = openingSentence(o, edges, label, unit);
+  return text === null ? null : { text, at: o.kind === "left" && unit === "turn" ? leftTurn(o).at : o.at };
+}
 
 /** The Report's trap rows: each trap that the game played, with the position before it, where its row goes. */
 export const trapRows = (o: GameOpening): { at: number; text: string }[] =>

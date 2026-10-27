@@ -39,7 +39,7 @@ test("outside the book the table shows the candidates, and the choice of Book co
   kept.clear();
   const cell = new SvelteMap([["path", [START]]]);
   const book = new OpeningBook(CASES, read);
-  const place = new BookPlace(book, "review", () => cell.get("path")!);
+  const place = new BookPlace(book, "review", () => cell.get("path")!, () => "edge");
   assert.equal(place.ready, false, "the index still loads");
   await settle();
   assert.equal(place.ready, true);
@@ -63,7 +63,7 @@ test("outside the book the table shows the candidates, and the choice of Book co
 });
 
 test("a position with no notation is outside the book", async () => {
-  const place = new BookPlace(new OpeningBook(CASES, read), "board", () => [START, undefined]);
+  const place = new BookPlace(new OpeningBook(CASES, read), "board", () => [START, undefined], () => "edge");
   await settle();
   assert.equal(place.at.state, "out");
 });
@@ -96,13 +96,13 @@ test("by turn: whole turns at a turn's start once its positions load, single edg
 });
 
 test("by turn: the best 8 book turns, and the rest after Show more at this position only", async () => {
-  // Turn 2 after Blue's A10-D9: 20 whole turns
+  // Turn 2 after Blue's A10-D9: 19 whole turns, as N11-Q10 O11-Q10 and O11-Q10 N11-Q10 are one
   const PROTOTYPE = "/test-book/prototype/index.json", AFTER_D9 = "A10-D9*,A10-D10 Q10-T10 r2 0/0 1";
   const cell = new SvelteMap<string, unknown>([["path", [START, AFTER_D9]]]);
   const place = new BookPlace(new OpeningBook(PROTOTYPE, read), "review", () => cell.get("path") as string[], () => "turn");
   for (let k = 0; k < 4 && !(place.at.state === "in" && place.byTurn); k++) await settle();
   const plain = place.rows.filter(r => r.group === "fine" || r.group === "other");
-  assert.equal(plain.length, 20);
+  assert.equal(plain.length, 19);
   assert.equal(place.shown.filter(r => r.group === "fine" || r.group === "other").length, 8);
   assert.ok(place.numbers.length <= place.shown.length);
   place.more = true;

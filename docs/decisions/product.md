@@ -7346,38 +7346,59 @@ the words of the site. The pages, the lessons, the documents and the code's comm
 
 - **What:** the book's table follows the display setting "Review by", as the review's labels do (design 32, item 3).
   By turn, the default, a turn's start lists whole turns: each book move, then each book move of the position that it
-  reaches. A row names both edges. Its win chance is the one after the second edge, and its label comes from the
-  turn's loss against the best turn, by design 10's rule for a turn. By edge, and in a turn's middle, the rows stay
-  single edges. The book holds the position after each edge, with its minimaxed values, so the switch needs no new
-  search: the page loads the parts that hold the positions after the turn start's book moves.
-- **The test book's counts** (`rows.test.ts`): 78 turn starts after turn 1 have book moves. They give a median of 1
-  whole turn and at most 34 (turn 3 after Blue's D10-G9: 5 fine turns, 21 others and 8 traps), and 8 of them give
-  more than 8. The issue had counted 79 turn starts and 9 above 8. In every turn start, the value after a book move
-  equals the best of its position's book moves and its best move outside the book, so the best turn's win chance is
-  the position's best (the first book move's, or the best move outside the book's).
+  reaches. A row names both edges. Its win chance is the one after the second edge, and its quality label comes from
+  the turn's loss against the best turn, by design 10's rule for a turn. By edge, and in a turn's middle, the rows
+  stay single edges. The book holds the position after each edge, with its minimaxed values, so the switch needs no
+  new search: the page loads the parts that hold the positions after the turn start's book moves. A turn's start
+  where no book move has a book move after it lists single edges too. The test book has no such start.
+- **One row a position:** two orders of the same two edges reach the same position, so they are one row, with the
+  order whose first edge the book prefers. The first build gave each order a row: at turn 3 of the test game
+  book-left-review.json, D9-G10 D10-G9 (Best) and D10-G9 D9-G10 (Excellent) were two rows, both 58.1%. In the test
+  book, 31 of the 284 whole turns at turn starts are a second order of another, at 24 of the 78 turn starts. No merge
+  drops a trap's order for an order that is not a trap.
+- **The test book's counts** (`rows.test.ts`), with one row a position: 78 turn starts after turn 1 have book moves.
+  They give a median of 1 whole turn and at most 33 (turn 3 after Blue's D10-G9 and Red's N11-Q10 O11-Q10: 5 fine
+  turns, 20 others and 8 traps), and 6 of them give more than 8. With a row for each order, the counts were at most
+  34 and 8 above 8. Beads abscls-tpaj.18 had counted 79 turn starts and 9 above 8. In every turn start, the value
+  after a book move equals the best of its position's book moves and its best move outside the book. So the best
+  turn's win chance is the position's best: the first book move's, or the best move outside the book's.
 - **The best 8:** the fine and the other turns, by the win chance for the side to move. The rest come after a button
-  ("Show 12 more turns" for 20), before the traps. The traps and the best turn outside the book always show: in the
-  start with 34 turns, the first 8 rows of the table would have put the 8 traps under the button. The board numbers
-  only the rows that show.
-- **The best turn outside the book:** the best for the side to move of the position's best first edge outside the
-  book (its second edge unknown) and each book move with the best second edge outside the book after it. In the test
-  book, the first kind is the best at 48 turn starts, and the second at 30.
+  ("Show 11 more turns" for 19), before the traps. The traps and the best turn outside the book always show: in the
+  start with 33 turns, the first 8 rows of the table would have put the 8 traps under the button. So 5 of the 6
+  starts above 8 have the button. The board numbers only the rows that show.
+- **The best turn outside the book:** the best for the side to move of two kinds of turn. The first kind is the
+  position's best first edge outside the book, whose second edge the book does not hold. The second kind is a book
+  move, then the best second edge outside the book after it. In the test book, the first kind is the best at 48 turn
+  starts, and the second at 30.
 - **A trap's turn:** a second edge's trap keeps its refutation (the enemy's turn, 2 edges for all 25 of the test
   book's). A first edge's trap (13 at turn starts) gives each of its turns: after the second edge that its refutation
   starts with, the rest of the refutation, and after another, none. In the test book, a first edge's trap has 1 to 5
   book moves after it.
-- **The Report's opening row:** by turn it names the turn that left the book, with the turn's review label, and goes
-  to the turn's start. "Blue, D9-G11 D10-G9, Blunder" in the test game book-left-review.json, where by edge it says
-  "D9-G11" and the edge's label. The trap rows and the other sentences do not change.
+- **The Report's opening row:** by turn it names the turn that left the book, with the review's quality label of the
+  turn, and goes to the turn's start. "Blue, D9-G11 D10-G9, Blunder" in the test game book-left-review.json, where
+  by edge it says "D9-G11" and the edge's quality label. Its "Before that" names a whole book turn too. The
+  candidates are the game's turns before the departure whose edges are all book moves and none a trap. The row names
+  the one worse than Good with the largest loss, with the quality label that the table gives the turn. In
+  book-left-review.json: "Before that, at turn 2, Red played N11-Q10 O11-Q10, a book turn and an Inaccuracy." (a
+  loss of 0.077), where by edge it names O11-Q10. A game whose weak turn reached the end: "The last book turn, D9-G10
+  G10-J13, is a Mistake." (0.105), where G10-J13 alone is an Inaccuracy. The trap rows do not change. The row names
+  the worst whole book turn, not always the last one, as by edge it names the worst book move. In
+  book-left-review.json the worst is also the last.
 - **The width:** by turn, a row's two edges take 154 pixels, and the table needs 313 pixels with its heads on one
   line. A window 360 pixels wide gives the table's box 264 pixels with its scroll bars (the layout test), and 294
   in a phone's emulation, whose scroll bars take no room (`tests/book-review.spec.ts`). With the head "Line ends" on
-  two lines alone, the table still needed 282 pixels. So by turn, in a box under 320 pixels wide (a container
-  query), the cells' side padding halves, and the heads "Blue wins" and "Line ends" can take two lines. The table
-  then fits, and the badges stay at one place by edge and by turn (`npm run test:layout`).
+  two lines alone, the table still needed 282 pixels. The first build let the heads "Blue wins" and "Line ends" take
+  two lines and halved the cells' padding in a box under 320 pixels wide: the head row was then 49 pixels high, where
+  by edge it is 29. Now a turn's edges wrap: where the column has no room for both, the second edge and the badge go
+  under the first. The table then needs no more width than by edge, every head stays on one line, and every row wraps
+  at the same width, so the badges stay at one place (`npm run test:layout`, `tests/book-review.spec.ts`). The rows
+  take a line more there, and the words and the font keep their size. In a window 360 pixels wide with scroll bars,
+  by turn as by edge, the head row is 29 pixels high, and the heads are 28, 96, 72 ("Blue wins" and "Red wins") and
+  68 pixels wide, in a table of 264 pixels in its box of 264. A turn's row there is 49 pixels high, where an edge's
+  row is 29 (turn 2 of book-left-review.json). At 1,366 pixels a turn's row is one line.
 - **The move list by edge** hides 56 pixels sideways from 360 to 410 pixels wide (320 pixels of rows in 264), with
   or without the book, and fits by turn. The layout test swept the review by turn only, so it never met this
-  (beads abscls-8n02). The book's sweep by edge checks the table's own rules until it is fixed.
+  (beads abscls-8n02). The book's sweep by edge leaves out this one fault until it is fixed, and checks the rest.
 - **A departure, named in design 32:** no published explorer lists turns of two moves, because chess and Go have one
   move a turn.
 - **Openings** is not built, so it has no setting to follow yet. The lab page `/lab/book-table` has no display

@@ -279,8 +279,8 @@ test.describe("book moves in the move list", () => {
 });
 
 // "Review by" turn, the default (design 32, item 3, "One edge at a time"): at a turn's start the table's rows are whole
-// turns, and the Report's opening row names the turn that left the book. After Blue's first edge A10-D9, Red's turn 2
-// has 20 whole turns in the book (8 fine, 12 others) and a best turn outside the book.
+// turns, one a position that they reach, and the Report's opening row names whole turns. After Blue's first edge
+// A10-D9, Red's turn 2 has 19 whole turns in the book (8 fine, 11 others) and a best turn outside the book.
 /** Turns the table to the book, and goes to the position after the game's first edge, turn 2's start. */
 async function turnTwo(page: Page) {
   await page.getByRole("group", { name: "The table shows" }).getByRole("button", { name: "Book" }).click();
@@ -294,14 +294,17 @@ const moveRows = (page: Page) => table(page).locator("tbody tr[data-move]");
 test.describe("by turn", () => {
   test.use({ viewport: { width: 1366, height: 900 } });
 
-  test("the opening row names the turn that left the book, and goes to the turn's start", async ({ page }) => {
+  test("the opening row names whole turns, and goes to the turn's start, where two orders are one row", async ({ page }) => {
     await open(page, "book-left-review.json");
-    const opening = row(page, /^The game left the book at turn 3: Blue, D9-G11 D10-G9(, \w+)?\. Before that, at turn 2, Red played O11-Q10, a book move and an Inaccuracy\. Show the position$/);
+    const opening = row(page, /^The game left the book at turn 3: Blue, D9-G11 D10-G9(, \w+)?\. Before that, at turn 2, Red played N11-Q10 O11-Q10, a book turn and an Inaccuracy\. Show the position$/);
     await expect(opening).toBeVisible({ timeout: 30_000 });
     await opening.click();
     expect(await here(page)).toMatch(/^O11-Q10/);
     await expect(table(page).getByRole("columnheader")).toHaveText(["#", "Turn", /^Blue wins$/, "Line ends"]);
     await expect(table(page).getByRole("rowheader", { name: "Fine turns" })).toBeVisible();
+    // D9-G10 D10-G9 and D10-G9 D9-G10 reach one position: one row, the book's order, with one label
+    await expect(table(page).locator('tbody tr[data-move="D9-G10 D10-G9"]')).toHaveCount(1);
+    await expect(table(page).locator('tbody tr[data-move="D10-G9 D9-G10"]')).toHaveCount(0);
   });
 
   test("at a turn's start: whole turns, the best 8 and Show more, and a click plays both edges", async ({ page }) => {
@@ -315,8 +318,8 @@ test.describe("by turn", () => {
     const names = await moveRows(page).evaluateAll(rows => rows.map(r => r.getAttribute("data-move")!));
     expect(names.slice(0, 8).every(n => /^\S+ \S+$/.test(n))).toBe(true);
     await expect(table(page).getByRole("rowheader", { name: "Best turn outside the book" })).toBeVisible();
-    await table(page).getByRole("button", { name: "Show 12 more turns" }).click();
-    await expect(moveRows(page)).toHaveCount(21);
+    await table(page).getByRole("button", { name: "Show 11 more turns" }).click();
+    await expect(moveRows(page)).toHaveCount(20);
     await expect(table(page).getByRole("button", { name: /^Show \d+ more turns$/ })).toHaveCount(0);
     // A click on a row plays its two edges: Red's turn ends, and Blue's turn 3 starts
     await moveRows(page).first().click();
@@ -348,7 +351,7 @@ test.describe("by turn on a phone", () => {
   test.use({ viewport: { width: 360, height: 640 }, hasTouch: true, isMobile: true });
 
   for (const unit of ["turn", "edge"]) {
-    test(`by ${unit}: the badges line up, and the table stays in its column`, async ({ page }) => {
+    test(`by ${unit}: each head on one line, the badges line up, and the table stays in its column`, async ({ page }) => {
       if (unit === "edge") await byEdge(page);
       await open(page, "book-left-review.json");
       await expect(row(page, /^The game left the book/)).toBeVisible({ timeout: 30_000 });
@@ -366,6 +369,13 @@ test.describe("by turn on a phone", () => {
       });
       expect(fit.table).toBeLessThanOrEqual(fit.box);
       expect(fit.right).toBeLessThanOrEqual(fit.page);
+      // Each head's words take one line: by turn, a turn's second edge goes under its first in place
+      const lines = await table(page).getByRole("columnheader").evaluateAll(heads => heads.map(h => {
+        const range = document.createRange();
+        range.selectNodeContents(h);
+        return new Set([...range.getClientRects()].map(r => Math.round(r.top))).size;
+      }));
+      expect(lines).toEqual([1, 1, 1, 1]);
     });
   }
 });
