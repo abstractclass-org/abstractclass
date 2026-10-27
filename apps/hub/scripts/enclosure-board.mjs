@@ -34,7 +34,7 @@ if (!style.includes(`.board .mark.${mark.label} {`)) fail(`style.css gives the l
 // The colour tokens, in each theme: a token that a theme does not set keeps the light theme's value. Hedge School's
 // are the shared ones, the view's and its own, in the order that its style imports them.
 const hubTokens = themes(block(style, ":root {"), block(style, "@media (prefers-color-scheme: dark) {"));
-const appTokens = siteThemes(...["../../packages/site/src/site.css", "../../packages/review/src/review.css",
+const appTokens = siteThemes(["../../packages/site/src/site.css", "../../packages/review/src/review.css",
   "../hedgeschool/src/app.css"].map(path => join(hub, path)));
 const drift = Object.entries(hubTokens).flatMap(([theme, t]) => Object.entries(t)
   .filter(([name, value]) => value !== appTokens[theme][name])

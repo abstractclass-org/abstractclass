@@ -76,11 +76,10 @@ test.describe("desktop", () => {
     await expect(table(page).getByText(/your game|In your review/i)).toHaveCount(0);
     await expect(page.getByText(/not from games that people played/)).toHaveCount(0);
     // The rows show their quality labels' badges and their line ends' position symbols with no words, each symbol in a
-    // shade of its side's colour by its strength. The title row keeps the symbol's words. A badge's word is its SVG
-    // title, which does not show.
+    // shade of its side's colour by its strength. The title row keeps the symbol's words.
     const rows = table(page).locator("tbody");
     await expect(rows.getByRole("img", { name: LABEL_WORDS }).first()).toBeVisible();
-    await expect(rows.getByText(LABEL_WORDS).filter({ visible: true })).toHaveCount(0);
+    await expect(rows.getByText(LABEL_WORDS)).toHaveCount(0);
     await expect(rows.getByRole("img", { name: SYMBOL_WORDS }).first()).toBeVisible();
     await expect(rows.getByText(SYMBOL_WORDS)).toHaveCount(0);
     expect(await rows.getByRole("img", { name: /^(Blue|Red) is / }).count()).toBeGreaterThan(0);
@@ -126,8 +125,8 @@ test.describe("desktop", () => {
       .toBeVisible({ timeout: 30_000 });
   });
 
-  // In book-turn-label-review.json, Red leaves the book with N8-Q10, a Good edge, and ends its turn with N9-Q10, a
-  // Blunder: the turn's label is Blunder
+  // In book-turn-label-review.json, Red leaves the book with N8-Q10, a Good edge, and ends its turn with N9-Q10: the
+  // turn as a whole is a Blunder
   for (const [judge, text] of [["edge", "N8-Q10, Good"], ["turn", "N8-Q10 N9-Q10, Blunder"]]) {
     test(`the opening row gives the label of the move that left the book: by ${judge}, its ${judge}'s`, async ({ page }) => {
       await display(page, { judge });

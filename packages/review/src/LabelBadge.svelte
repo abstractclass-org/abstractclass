@@ -6,7 +6,8 @@
      icon's book, two thirds of its size and its stroke a little heavier, so that it reads at the badge's size. The badge
      stays hidden from assistive technology, because the move list and the Report give the word in their own text.
      `named`: the badge alone, with no word beside it (a row of the book's table, design 32, item 3). Its word is then
-     its title and its accessible name. -->
+     the title and the accessible name of a wrapper: an svg shows no tooltip for a title attribute, and a <title> in it
+     would give the word twice, as its name and as its description. -->
 <script lang="ts">
   import LabelMark from "./LabelMark.svelte";
   import { BOOK_PATH } from "@abstractclass/site/Icon.svelte";
@@ -15,17 +16,22 @@
 
   let { label, fill = `var(--${label}-fill)`, book = false, named = false }:
     { label: Label; fill?: string; book?: boolean; named?: boolean } = $props();
-  const name = $derived(named ? LABEL_TEXT[label] : undefined);
 </script>
 
-<svg class="inline-block flex-none size-[1.2em] align-[-0.24em] overflow-visible" viewBox="0 0 24 24"
-     role={name && "img"} aria-label={name} aria-hidden={!name || undefined}>
-  {#if name}<title>{name}</title>{/if}
-  <circle cx="12" cy="12" r="12" {fill} />
-  {#if book}
-    <path d={BOOK_PATH} transform="translate(12 12.5) scale(0.66) translate(-12 -12.5)" fill="none" stroke="var(--on-badge)"
-          stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
-  {:else}
-    <LabelMark {label} />
-  {/if}
-</svg>
+{#if named}
+  <span role="img" aria-label={LABEL_TEXT[label]} title={LABEL_TEXT[label]}>{@render badge()}</span>
+{:else}
+  {@render badge()}
+{/if}
+
+{#snippet badge()}
+  <svg class="inline-block flex-none size-[1.2em] align-[-0.24em] overflow-visible" viewBox="0 0 24 24" aria-hidden="true">
+    <circle cx="12" cy="12" r="12" {fill} />
+    {#if book}
+      <path d={BOOK_PATH} transform="translate(12 12.5) scale(0.66) translate(-12 -12.5)" fill="none" stroke="var(--on-badge)"
+            stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+    {:else}
+      <LabelMark {label} />
+    {/if}
+  </svg>
+{/snippet}
