@@ -30,17 +30,19 @@
   --border: #dddad3;
   --blue: #2f6fde;
   --red: #d2453f;
-  /* The position symbols' shades (Hedge School's book table, design 32, item 3): the stronger the position, the more
-     its symbol stands out from the panel. The three shades of a side step evenly in lightness (CIELAB L*), each with
-     the side's hue and chroma (OKLCH, the chroma cut to what sRGB can show). "Slightly better" has a contrast just over
-     3:1 against panel-2 (a lit row, WCAG 1.4.11), and "winning" about 10:1 against the panel. symbolShades.test.ts
-     checks the floor, the order and the steps. */
-  --blue-slightly-better: #4384f5;
-  --blue-better: #1e5ecc;
-  --blue-winning: #003c9a;
-  --red-slightly-better: #e6584f;
-  --red-better: #bb2e2b;
-  --red-winning: #8b000d;
+  /* The position symbols' shades (Hedge School's book table, design 32, item 3): the stronger the position, the farther
+     its symbol's shade from the text's colour, which = and ∞ take. A side's three shades lie on a straight line in
+     OKLCH, with the side's hue, from --text (its lightness and chroma) to the side's far shade, at 0.45, 0.72 and 1 of
+     the way (lightness and chroma together). The far shade has the chroma of --blue or --red (cut to what sRGB can
+     show), at the lightness where its contrast against panel-2 (a lit row) is 3.1:1, the floor of WCAG 1.4.11 with a
+     margin. So "winning" is the most saturated and has the lowest contrast. symbolShades.test.ts checks the floor, the
+     order and the steps. */
+  --blue-slightly-better: #334f7f;
+  --blue-better: #3b68b7;
+  --blue-winning: #4384f4;
+  --red-slightly-better: #7a3d38;
+  --red-better: #ad4b43;
+  --red-winning: #e6574f;
   color-scheme: light;
 }
 /* The dark theme: the system's when the visitor has not chosen, else the visitor's choice (theme.svelte.ts). A script
@@ -54,12 +56,12 @@
   --border: #3a3d42;
   --blue: #5b8ff0;
   --red: #e8635c;
-  --blue-slightly-better: #487ad9;
-  --blue-better: #78a7ff;
-  --blue-winning: #bed6ff;
-  --red-slightly-better: #d4514b;
-  --red-better: #ff837a;
-  --red-winning: #ffc8c1;
+  --blue-slightly-better: #9cb6e3;
+  --blue-better: #7299df;
+  --blue-winning: #487ad9;
+  --red-slightly-better: #e4a59e;
+  --red-better: #de7d75;
+  --red-winning: #d4514b;
   color-scheme: dark;
 }
 /* The tokens as Tailwind's colours (bg-panel, text-muted, border-line, …). Tailwind's own palette is cleared, so every

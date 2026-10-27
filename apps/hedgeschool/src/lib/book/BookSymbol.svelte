@@ -15,7 +15,8 @@
     "+−": { width: 22, d: plus(6, 8, 4) + bar(13, 20, 8) },
     "−+": { width: 22, d: bar(2, 9, 8) + plus(16, 8, 4) },
   };
-  // Each side's symbols in a shade of its colour by their strength (site.css): = and ∞ in the text's colour
+  // Each side's symbols in a shade of its colour by their strength (site.css): = and ∞ in the text's colour, and the
+  // stronger the position, the farther its shade from the text's colour
   const SHADES: Record<PositionSymbol, string> = {
     "⩲": "text-blue-slightly-better", "±": "text-blue-better", "+−": "text-blue-winning",
     "⩱": "text-red-slightly-better", "∓": "text-red-better", "−+": "text-red-winning", "=": "", "∞": "",

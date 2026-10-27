@@ -68,13 +68,15 @@ explorers that people use in chess and Go is [../research/03-opening-explorers.m
    - **The win chance shows alone** ("52.3%"), in the rows and in the title row. Its bounds (KataGo's book bounds) are
      its title, "Between 48.1% and 56.4%.", and assistive technology reads them after it. The table has no switch for
      its values and no column for the turns that the book goes on under a move.
-   - **Each symbol takes a shade of its side's colour by its strength:** slightly better (⩲, ⩱) the faintest, better
-     (±, ∓) the middle, and winning (+−, −+) the strongest. = and ∞ take the text's colour. The stronger the position,
-     the more its symbol stands out from the panel. A side's three shades step evenly in lightness, so each strength
-     differs as much from the next. The faintest has a contrast of at least 3:1 against the panel and a lit row, in
-     both themes (WCAG 1.4.11). This is a departure from Lichess, whose symbols have no colour. Enclosure's sides are
-     Blue and Red, so the colour names the side. The colour does not carry the meaning alone: the symbol's
-     shape and its name give the side and the strength too.
+   - **Each symbol takes a shade of its side's colour by its strength:** slightly better (⩲, ⩱) the least saturated,
+     better (±, ∓) the middle, and winning (+−, −+) the most saturated. = and ∞ take the text's colour, a neutral
+     colour: near black in the light theme, near white in the dark theme. The stronger the position, the farther its
+     shade from the text's colour: "slightly better" is near the text's colour, and "winning" is the most saturated. A
+     side's three shades step evenly in lightness, so each strength differs as much from the next. Each shade has a
+     contrast of at least 3:1 against the panel and a lit row, in both themes (WCAG 1.4.11). "Winning" has the lowest
+     contrast, but its saturation makes it the most distinct from the neutral symbols and the text. This is a departure
+     from Lichess, whose symbols have no colour. Enclosure's sides are Blue and Red, so the colour names the side. The
+     colour does not carry the meaning alone: the symbol's shape and its name give the side and the strength too.
    - **The table and the board point at each other:** the board numbers the rows' moves as the candidates are numbered
      (design 07). The pointer on a row highlights its edge and draws its line. The pointer on a numbered edge
      highlights its row.
@@ -232,6 +234,14 @@ explorers that people use in chess and Go is [../research/03-opening-explorers.m
   every position of a review, and the move list shows the path.
 - **A board that draws fewer of the book's moves** where they crowd. Crowded numbers are the board's problem for the
   engine's candidates too (beads abscls-4kso).
+- **Symbols' shades that rise in contrast with strength,** from just over 3:1 against a lit row to about 10:1
+  against the panel. "Winning" then came nearest the text's colour, the colour of the neutral symbols = and ∞: near
+  black in the light theme, near white in the dark theme. So the strongest position looked the most like = and ∞.
+- **Shades that differ in chroma alone,** at the far shade's lightness. ⩲ and ± looked alike on strokes 1.6 units
+  wide: neighbouring shades were only 0.04 to 0.05 apart in OKLab, against 0.10 to 0.12 on the line from the text's
+  colour. In the light theme, Red's "slightly better" shade had a contrast of 2.96:1 against a lit row, under the floor.
+- **A far shade at the edge of what sRGB can show** (chroma 0.20 to 0.25 in OKLCH). It is more saturated than the
+  site's own `--blue` and `--red`, and its shades are only 1 to 13% farther apart in OKLab.
 - **Openings under Tools, or under a later Learn tab.** Tools holds the bookmarklet and the userscript. Openings can
   move under Learn when it comes, and keep its address.
 
@@ -350,11 +360,13 @@ its own choice of "Book" or "Candidates", handles the key o, and plays the moves
   accessible name, in its shade.
 - **The shades** are colour tokens in `packages/site/src/site.css`, beside `--blue` and `--red`, in both themes:
   `--blue-slightly-better`, `--blue-better` and `--blue-winning`, and the same three for Red. A side's three shades
-  step evenly in lightness (CIELAB L*), each with the hue and chroma of the side's colour (OKLCH, the chroma cut to
-  what sRGB can show). "Slightly better" has a contrast just over 3:1 against panel-2 (a lit row), and "winning" about
-  10:1 against the panel. The middle shade is not `--blue` or `--red`: only the faintest has a floor.
-  `packages/site/src/symbolShades.test.ts` checks that each has a contrast of at least 3:1 against the panel and
-  panel-2, that the contrast grows with the strength, and that the steps in L* differ by less than 1.
+  lie on a straight line in OKLCH, with the hue of the side's colour. The line starts at the lightness and the chroma
+  of `--text` and ends at the side's far shade. The shades are at 0.45, 0.72 and 1 of the way, in lightness and
+  chroma together. The far shade is "winning". It has the chroma of `--blue` or `--red` in its theme (cut to what sRGB
+  can show), at the lightness where its contrast against panel-2 (a lit row) is 3.1:1.
+  `packages/site/src/symbolShades.test.ts` checks that each shade has a contrast of at least 3:1 against the panel and
+  panel-2, that the stronger the position, the farther its shade from `--text` in OKLab and the lower its contrast,
+  and that the steps in CIELAB L* differ by less than 1.
 - **The badges:** a row's quality label is `LabelBadge` in a wrapper that gives the label's word as its title and its
   accessible name. `LabelBadge` itself stays hidden from assistive technology, because the move list and the Report
   give the word in their own text. The edge before it is 7 characters of the monospaced font wide (`7ch`), the longest

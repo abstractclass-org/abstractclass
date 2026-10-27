@@ -7165,33 +7165,46 @@ the words of the site. The pages, the lessons, the documents and the code's comm
   no switch, and no line "Last book position: turn n. Go there". The table comes back at the next book position. Most
   positions of a review are outside the book, so the book takes no room there. "Study in Openings", which the design
   put on that line, gets its place when Openings is built.
-- **Each symbol takes a shade of its side's colour by its strength:** slightly better the faintest, better the
-  middle, winning the strongest. = and ∞ take the text's colour. Lichess's symbols have no colour. Enclosure's sides
-  are Blue and Red, so the colour names the side. The shape and the name give the side and the strength too, so the
-  colour does not carry the meaning alone. The shades are tokens in `packages/site/src/site.css`.
-- **The shades step evenly in lightness** (CIELAB L*), each with the hue and chroma of the side's colour (OKLCH, the
-  chroma cut to what sRGB can show). The faintest has a contrast just over 3:1 against panel-2, a lit row, which
-  makes it about 3.6 against the panel. 3.3 against the panel would give 2.85 on a lit row. The strongest is about 10:1
-  against the panel. A first set kept the side's colour as the middle shade. Its "slightly better" was the side's
-  colour 15% of the way to the panel. There is little room between 3:1 and the side's colour (3.6 against 4.7 in the
-  light theme), so "slightly better" and "better" looked almost the same. Only the faintest has a floor (WCAG
-  1.4.11), so the middle shade need not be `--blue` or `--red`. The contrasts, by
-  `packages/site/src/symbolShades.test.ts` (WCAG's formula), against the panel and against panel-2:
+- **Each symbol takes a shade of its side's colour by its strength:** slightly better the least saturated, better the
+  middle, winning the most saturated. = and ∞ take the text's colour. Lichess's symbols have no colour. Enclosure's
+  sides are Blue and Red, so the colour names the side. The shape and the name give the side and the strength too, so
+  the colour does not carry the meaning alone. The shades are tokens in `packages/site/src/site.css`.
+- **A symbol's strength is its shade's distance from the text's colour.** = and ∞ take the text's colour, a neutral
+  colour: near black in the light theme, near white in the dark theme. A side's three shades lie on a straight line in
+  OKLCH, with the side's hue, from `--text` to the side's far shade, at 0.45, 0.72 and 1 of the way (lightness and
+  chroma together). The far shade is "winning". It has the chroma of `--blue` or `--red` in its theme (cut to what
+  sRGB can show), at the lightness where its contrast against panel-2, a lit row, is 3.1:1. So "slightly better" is
+  near the text's colour, and "winning" is the most saturated and has the lowest contrast. Each shade keeps at least
+  3:1 against the panel and panel-2 (WCAG 1.4.11), and the steps in CIELAB L* are even within 1.
+- **The rule before it, rejected:** the stronger the position, the higher the contrast, from just over 3:1 against a
+  lit row to about 10:1 against the panel. "Winning" then came nearest the text's colour: 0.077 from it in OKLab in
+  the dark theme, where "slightly better" was 0.361 from it. So the strongest position looked the most like = and ∞.
+- **Chroma alone, rejected:** three shades at the far shade's lightness, with 0.45, 0.72 and 1 of its chroma. ⩲ and ±
+  looked alike on strokes 1.6 units wide: neighbouring shades were 0.041 to 0.051 apart in OKLab, against 0.097 to
+  0.117 on the line from the text's colour. In the light theme, Red's "slightly better" shade had 2.96:1 against
+  panel-2, under the floor.
+- **The far shade at the edge of what sRGB can show, rejected:** its chroma is 0.20 to 0.25 in OKLCH, against 0.16 to
+  0.18 for `--blue` and `--red`. It is more saturated than the site's own colours, for steps only 1 to 13% farther
+  apart in OKLab.
+- **The values** come from a script of the rule above. The line starts at the text's own chroma, not at chroma 0.
+  From chroma 0, the far shades stay, and the other eight shades differ by 1 to 3 in a channel. The distance from
+  `--text` in OKLab and the contrasts, by the formulas of `packages/site/src/symbolShades.test.ts` (WCAG's for the
+  contrast), against the panel and against panel-2:
 
-  | Theme | Token | Colour | L* | Panel | Panel-2 |
-  |---|---|---|---|---|---|
-  | Light | `--blue-slightly-better` | #4384f5 | 56.4 | 3.59 | 3.09 |
-  | Light | `--blue-better` | #1e5ecc | 42.2 | 5.95 | 5.14 |
-  | Light | `--blue-winning` | #003c9a | 28.3 | 9.94 | 8.58 |
-  | Light | `--red-slightly-better` | #e6584f | 56.5 | 3.58 | 3.09 |
-  | Light | `--red-better` | #bb2e2b | 42.3 | 5.93 | 5.12 |
-  | Light | `--red-winning` | #8b000d | 28.2 | 9.98 | 8.62 |
-  | Dark | `--blue-slightly-better` | #487ad9 | 52.2 | 3.56 | 3.10 |
-  | Dark | `--blue-better` | #78a7ff | 68.6 | 6.17 | 5.38 |
-  | Dark | `--blue-winning` | #bed6ff | 85.1 | 10.02 | 8.74 |
-  | Dark | `--red-slightly-better` | #d4514b | 52.3 | 3.57 | 3.11 |
-  | Dark | `--red-better` | #ff837a | 68.7 | 6.17 | 5.38 |
-  | Dark | `--red-winning` | #ffc8c1 | 85.2 | 10.04 | 8.76 |
+  | Theme | Token | Colour | L* | From text | Panel | Panel-2 |
+  |---|---|---|---|---|---|---|
+  | Light | `--blue-slightly-better` | #334f7f | 33.6 | 0.181 | 8.19 | 7.06 |
+  | Light | `--blue-better` | #3b68b7 | 44.6 | 0.289 | 5.45 | 4.71 |
+  | Light | `--blue-winning` | #4384f4 | 56.3 | 0.402 | 3.59 | 3.10 |
+  | Light | `--red-slightly-better` | #7a3d38 | 33.5 | 0.193 | 8.23 | 7.10 |
+  | Light | `--red-better` | #ad4b43 | 44.7 | 0.304 | 5.43 | 4.69 |
+  | Light | `--red-winning` | #e6574f | 56.3 | 0.421 | 3.60 | 3.10 |
+  | Dark | `--blue-slightly-better` | #9cb6e3 | 73.6 | 0.162 | 7.18 | 6.26 |
+  | Dark | `--blue-better` | #7299df | 63.1 | 0.261 | 5.16 | 4.50 |
+  | Dark | `--blue-winning` | #487ad9 | 52.2 | 0.361 | 3.56 | 3.10 |
+  | Dark | `--red-slightly-better` | #e4a59e | 73.5 | 0.159 | 7.15 | 6.24 |
+  | Dark | `--red-better` | #de7d75 | 62.9 | 0.256 | 5.13 | 4.48 |
+  | Dark | `--red-winning` | #d4514b | 52.3 | 0.353 | 3.57 | 3.11 |
 
 - **The badges line up:** the edge's text takes the width of the longest edge, A10-D10 (7 characters of the
   monospaced font), so each row's badge starts at the same place.
