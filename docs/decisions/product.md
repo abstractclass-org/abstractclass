@@ -7412,3 +7412,26 @@ the words of the site. The pages, the lessons, the documents and the code's comm
   move a turn.
 - **Openings** is not built, so it has no setting to follow yet. The lab page `/lab/book-table` has no display
   settings, and its rows stay single edges.
+
+### The Opening row gives the review's label of the earlier book move (2026-10-27)
+
+Beads abscls-tpaj.21.
+
+- **What:** the Report's Opening row names the worst earlier book move by the review's quality labels, not the book's.
+  It names a move that the review labels worse than Good: the worst label first (Inaccuracy, then Mistake, then
+  Blunder), and between equal labels the larger loss by the review's values. By turn it names the worst whole book
+  turn, by the review's label of the turn. When no earlier book move has such a label, the row says nothing of one. A
+  trap keeps its own row. A move that the review has not labeled yet, or has no label for (the player that "Review
+  for" leaves out), is not named. The departure's part of the row is as before: it already had the review's label.
+- **Why:** one page gave one move two labels. In book-left-review.json, the row said "Before that, at turn 2, Red
+  played O11-Q10, a book move and an Inaccuracy." (by turn: "N11-Q10 O11-Q10, a book turn and an Inaccuracy"), which
+  is the label of the book's search (`gameOpening`'s `weak` and `weakTurn`). The move list and the move's book mark
+  gave the review's label, Good (a loss of 4.2% by edge, 3.3% by turn). Design 32 says that one engine and one depth
+  rule a game's labels in the review, on book moves too. The two labels differ by design in the book's table, which
+  shows the book's values. They must not differ in the Report, which is part of the review. Now the row for that game
+  says "The game left the book at turn 3: Blue, D9-G11, Blunder." and nothing of O11-Q10.
+- **How:** `openingRow` takes a function from an edge's index to the review's label and loss (by turn, of the turn
+  that starts there), which `ReviewView.svelte` builds from the labels that it shows (`shownJudgment`). The book code
+  chooses the move from them (`worstBookPlay` in `game.ts`). `GameOpening` keeps the book moves before the departure
+  (`earlier` and `earlierTurns`) in place of the book's own choice (`weak` and `weakTurn`), and the sentences take
+  the label as an argument. The book's loss and label of a played move no longer reach the row.

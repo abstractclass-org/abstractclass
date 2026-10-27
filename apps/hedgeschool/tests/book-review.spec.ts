@@ -52,10 +52,10 @@ const byEdge = (page: Page) =>
 test.describe("desktop", () => {
   test.use({ viewport: { width: 1366, height: 900 } });
 
-  test("a game that leaves the book after a weak book move: the row, and the clicks", async ({ page }) => {
+  test("a game that leaves the book after a book move that the review labels Good: the row names none, and the clicks", async ({ page }) => {
     await byEdge(page);
     await open(page, "book-left-review.json");
-    const opening = row(page, /^The game left the book at turn 3: Blue, D9-G11(, \w+)?\. Before that, at turn 2, Red played O11-Q10, a book move and an Inaccuracy\. Show the position$/);
+    const opening = row(page, /^The game left the book at turn 3: Blue, D9-G11(, \w+)?\. Show the position$/);
     await expect(opening).toBeVisible({ timeout: 30_000 });
     await expect(page.getByText("Traps", { exact: true })).toHaveCount(0);
     await opening.click();
@@ -122,7 +122,7 @@ test.describe("desktop", () => {
   test("the opening row gives the edge's own quality label: none for the player that Review for leaves out", async ({ page }) => {
     await display(page, { reviewFor: "red", judge: "edge" });
     await open(page, "book-left-review.json");
-    await expect(row(page, /^The game left the book at turn 3: Blue, D9-G11\. Before that, at turn 2, Red played O11-Q10/))
+    await expect(row(page, /^The game left the book at turn 3: Blue, D9-G11\. Show the position$/))
       .toBeVisible({ timeout: 30_000 });
   });
 
@@ -308,7 +308,7 @@ test.describe("by turn", () => {
 
   test("the opening row names whole turns, and goes to the turn's start, where two orders are one row", async ({ page }) => {
     await open(page, "book-left-review.json");
-    const opening = row(page, /^The game left the book at turn 3: Blue, D9-G11 D10-G9(, \w+)?\. Before that, at turn 2, Red played N11-Q10 O11-Q10, a book turn and an Inaccuracy\. Show the position$/);
+    const opening = row(page, /^The game left the book at turn 3: Blue, D9-G11 D10-G9(, \w+)?\. Show the position$/);
     await expect(opening).toBeVisible({ timeout: 30_000 });
     await opening.click();
     expect(await here(page)).toMatch(/^O11-Q10/);

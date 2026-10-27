@@ -109,13 +109,14 @@ explorers that people use in chess and Go is [../research/03-opening-explorers.m
      (design 07). The pointer on a row highlights its edge and draws its line. The pointer on a numbered edge
      highlights its row.
 4. **The review:**
-   - **The Report** has an opening row: "The game left the book at turn {n}: {side}, {move}, {label}." When the game
-     played a book move worse than Good before it left, the row names it: "Before that, at turn {n}, {side} played
-     {move}, a book move and {a label}." When that book move is the one that reached the end of the book, the row says
-     "The last book move, {move}, is {a label}.": "Before that" would put it before the end that it reached. A game
-     with a trap has a trap row: "Turn {n}: {side} played a trap, {move}. {other side} played its refutation." or "…
-     did not play its refutation." A click on a row goes to the position before the move, and turns the book on for
-     that review only.
+   - **The Report** has an opening row: "The game left the book at turn {n}: {side}, {move}, {label}." When the review
+     labels a book move that the game played before it left worse than Good, the row names the worst one: "Before
+     that, at turn {n}, {side} played {move}, a book move and {a label}." When that book move is the one that reached
+     the end of the book, the row says "The last book move, {move}, is {a label}.": "Before that" would put it before
+     the end that it reached. When the review labels no earlier book move worse than Good, the row says nothing of
+     one. A game with a trap has a trap row: "Turn {n}: {side} played a trap, {move}. {other side} played its
+     refutation." or "… did not play its refutation." A click on a row goes to the position before the move, and
+     turns the book on for that review only.
    - **The move list** marks each book move: an edge that the book lists at its position, when the position after it is
      in the book too. A move that reaches a book position by another move order is not a book move.
      The mark takes the quality label's slot, whatever the label, from Great to Blunder. By turn, a turn shows it when
@@ -125,10 +126,11 @@ explorers that people use in chess and Go is [../research/03-opening-explorers.m
    - **One engine and one depth rule a game:** the review keeps its own labels, on book moves too (design 16). The
      book's table shows the book's values only, with no row for the game's move: the move list gives the review's
      quality label. The opening row follows "Review by", as the table does. By turn it names the turn that left the
-     book, with the turn's quality label, and it goes to the turn's start. Its book turn worse than Good is a whole
-     turn too, with the quality label that the table gives the turn: "Before that, at turn {n}, {side} played {turn},
-     a book turn and {a label}.", or "The last book turn, {turn}, is {a label}.". By edge it names the edge and its
-     quality label.
+     book, with the turn's quality label, and it goes to the turn's start. Its earlier book turn worse than Good is a
+     whole turn too, with the review's quality label of the turn: "Before that, at turn {n}, {side} played {turn}, a
+     book turn and {a label}.", or "The last book turn, {turn}, is {a label}.". By edge it names the edge and its
+     quality label. The row never gives the label that the book's values give a move: the move list, the move's
+     book mark and the row give one label to one move.
    - **A book move played from the table** is a variation of the game, as any move that the player plays in a review is
      (design 07). "Delete from here" removes it.
 5. **Openings:**
@@ -497,19 +499,22 @@ shows them in the early edition, where the book loads. They read the site's one 
   the turn (`openingRow` and `openingSentence` in `game.ts`). The edge that left is the turn's first or its second.
   The row goes to the turn's start, where the table shows whole turns. The row has no quality label for the player
   that "Review for" leaves out. A game that followed the book
-  to its end gives the turn of the book move that reached the end. "Before that" names the book move worse than Good
-  with the largest loss before the departure, by the book's quality label. When that move reached the end, the row
-  says "The last book move, G10-J13, is an Inaccuracy." in place of "Before that". In the test book, 41 of the 75 book
-  moves worse than Good (traps aside) reach an end. The opening row does not name a trap, because the trap has its own
-  row.
-- **"Before that" by turn** names a whole book turn (`weakTurn` in `game.ts`). The candidates are the game's turns
-  before the departure whose edges are all book moves and none a trap. The row names the one worse than Good with
-  the largest loss. A turn's loss is from its start (`lossTo` in `sentences.ts`): by the book's minimax, the best
-  move's win chance there is the best turn's. So its quality label is the one that the table gives the turn. By the
-  minimax too, a turn's loss is its two edges' losses added, so it is never less than either edge's. Blue's first
-  turn has one edge, and the row names it as a book move. In the test game book-left-review.json, by turn: "Before
-  that, at turn 2, Red played N11-Q10 O11-Q10, a book turn and an Inaccuracy." A game whose last book turn reached
-  the end: "The last book turn, D9-G10 G10-J13, is a Mistake.", where G10-J13 alone is an Inaccuracy.
+  to its end gives the turn of the book move that reached the end. "Before that" names the book move that the game
+  played before the departure and that the review labels worst (`worstBookPlay` in `game.ts`). The review's label of
+  the move is the one that the move list shows. Only a label worse than Good counts. The worst label comes first
+  (Inaccuracy, then Mistake, then Blunder), and between equal labels the larger loss by the review's values comes
+  first. A move that the review has not labeled yet, or has no label for (the player that "Review for" leaves out),
+  is not named. When no earlier book move has a label worse than Good, the row says nothing of one. When the move
+  reached the end, the row says "The last book move, G10-J13, is an Inaccuracy." in place of "Before that". The
+  opening row does not name a trap, because the trap has its own row. The review gives the row its labels and losses
+  as a function from an edge's index (`judged` in `openingRow`).
+- **"Before that" by turn** names a whole book turn (`earlierTurns` in `game.ts`). The candidates are the game's turns
+  before the departure whose edges are all book moves and none a trap. The review's label and loss of a turn are the
+  turn's own (design 10), found by the index of the turn's first edge. Blue's first turn has one edge, and the row
+  names it as a book move. The book's own label of a book move or turn (from its search, as the table shows) can
+  differ from the review's: in the test game book-left-review.json, the book calls O11-Q10 an Inaccuracy (by turn,
+  N11-Q10 O11-Q10, a loss of 0.077), and the review labels it Good (a loss of 4.2% by edge, 3.3% by turn). The row
+  names neither.
 - **A trap's row** says that the other side played its refutation when the game reached the refutation's turn and the
   other side's edges are the refutation's, in either order. The game reaches that turn when the side that played the
   trap ends its turn as the refutation does. Otherwise, the row gives the trap's first sentence only. A game that ends
@@ -565,3 +570,5 @@ and abscls-tpaj.3, never merged.
 - [decisions/product.md](../decisions/product.md), "A mark on each book move, in two forms" (2026-10-27).
 - [decisions/product.md](../decisions/product.md), "The book's table follows Review by: whole turns at a turn's
   start" (2026-10-27).
+- [decisions/product.md](../decisions/product.md), "The Opening row gives the review's label of the earlier book
+  move" (2026-10-27).

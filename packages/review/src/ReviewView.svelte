@@ -117,7 +117,7 @@
   import { SIDE_BG, SIDE_BORDER, SIDE_TEXT } from "@abstractclass/site/side.ts";
   import AdvantageChart from "./AdvantageChart.svelte";
   import DifficultyChart from "./DifficultyChart.svelte";
-  import { DIGITS, fmtScore, type BoardCandidate, type BoardMark, type Display, type LayerSetting,
+  import { DIGITS, fmtScore, type BoardCandidate, type BoardMark, type BookJudgment, type Display, type LayerSetting,
            type LineMove, type ViewGame } from "./game.ts";
   import { askOrder, changeMap, differenceMap, differenceReading, mapStep, ownershipMap, valueText, type MapStyle } from "./ownership.ts";
   import SettingChoice from "@abstractclass/site/SettingChoice.svelte";
@@ -209,6 +209,12 @@
   const shownLabel = (i: number, by: Unit = unit): Label | null => {
     const e = R.edges[i];
     return !e || !forSide(e.player) ? null : by === "edge" ? e.label : R.turnOf[i]?.label ?? null;
+  };
+  /** The review's judgment of the edge `i`, or by turn of the turn that starts at it (`shownLabel`'s label, with the
+   *  loss that the label comes from). Null when the review has no label for it. */
+  const shownJudgment = (i: number): BookJudgment | null => {
+    const label = shownLabel(i), x = unit === "edge" ? R.edges[i] : R.turnOf[i];
+    return label && x ? { label, loss: x.loss } : null;
   };
   let settingsOpen = $state(false);
   // The engine's settings (design 09) open under the engine header, from its gear, as Lichess's open from the gear in
@@ -1108,9 +1114,10 @@
     return parts.opening(gamePositions.map(p => parts.notation(p)), mainNames);
   });
   // The row follows "Review by" (design 32, item 4): by turn, the turn that left the book and the turn's quality label,
-  // and the row goes to the turn's start. By edge, the edge and its label.
+  // and the row goes to the turn's start. By edge, the edge and its label. Its earlier book move has the review's label
+  // too.
   const openingRow = $derived(opening && view.book
-    && view.book.openingRow(opening, mainNames, shownLabel(opening.at), unit));
+    && view.book.openingRow(opening, mainNames, shownLabel(opening.at), unit, shownJudgment));
   // The game's book moves, by the edge's index, each with the words of the position symbol after it
   const bookMoves = $derived(new Map(opening?.bookMoves.map(m => [m.index, m.after])));
   /** Goes to a position of the game from the Report's rows or a book move's mark, and shows the book there for this

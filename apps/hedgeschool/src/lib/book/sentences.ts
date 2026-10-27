@@ -248,8 +248,7 @@ const article = (word: string) => (/^[AEIOU]/.test(word) ? "an" : "a");
 
 // --- The review's Report (design 32, item 4) -------------------------------------------------------------------------
 // The rows of the Report on the game's opening, from the book's facts and the game's moves (game.ts, `gameOpening`).
-// The review keeps its own labels (design 16): a move that left the book has the review's label, and a book move the
-// book's.
+// The review keeps its own labels (design 16), on book moves too: the rows give the review's label of each move.
 
 /** The opening row of a game that left the book, at the position before the move that left it: "The game left the
  *  book at turn 3: Blue, D9-G11, Good." By turn, `move` is the whole turn that left: "Blue, D9-G11 D10-G9, Blunder".
@@ -258,30 +257,28 @@ export const leftBookSentence = (p: BookPosition, move: string, label: Label | n
   `The game left the book at turn ${p.turn}: ${side(p)}, ${move}${label ? `, ${LABEL_TEXT[label]}` : ""}.`;
 
 /** Book moves that the game played from `p`: one, or by turn a whole turn of two. Their edges, "move" or "turn", and
- *  the book's quality label with its article. A turn's label comes from its loss from its start (`lossTo`), as the
- *  table labels the turn (rows.ts, `turnRows`): a turn worse than Good is not the best turn, so the loss alone gives
- *  the label. */
-function bookPlay(p: BookPosition, moves: BookMove[]) {
-  const last = moves[moves.length - 1];
-  const name = LABEL_TEXT[moves.length === 1 ? moveLabel(p, last) : classify(lossTo(p, last.value.blueWin), false, false)];
+ *  the review's quality label of them, with its article. */
+function bookPlay(moves: BookMove[], label: Label) {
+  const name = LABEL_TEXT[label];
   return { edges: moves.map(m => m.move).join(" "), noun: moves.length === 1 ? "move" : "turn",
            label: `${article(name)} ${name}` };
 }
 
-/** A book move worse than Good that the game played before it left the book, at the position before it: "Before that,
- *  at turn 2, Red played O11-Q10, a book move and an Inaccuracy." By turn, `moves` is a whole book turn from its
- *  start: "Before that, at turn 2, Red played N11-Q10 O11-Q10, a book turn and an Inaccuracy." */
-export function weakBookMoveSentence(p: BookPosition, ...moves: BookMove[]): string {
-  const { edges, noun, label } = bookPlay(p, moves);
-  return `Before that, at turn ${p.turn}, ${side(p)} played ${edges}, a book ${noun} and ${label}.`;
+/** A book move that the game played before it left the book, and that the review labels worse than Good (`label`,
+ *  the review's), at the position before it: "Before that, at turn 2, Red played O11-Q10, a book move and an
+ *  Inaccuracy." By turn, `moves` is a whole book turn from its start: "Before that, at turn 2, Red played N11-Q10
+ *  O11-Q10, a book turn and an Inaccuracy." */
+export function weakBookMoveSentence(p: BookPosition, label: Label, ...moves: BookMove[]): string {
+  const { edges, noun, label: name } = bookPlay(moves, label);
+  return `Before that, at turn ${p.turn}, ${side(p)} played ${edges}, a book ${noun} and ${name}.`;
 }
 
-/** The book move worse than Good that reached the end of the book, in the row of a game that followed the book to its
- *  end: "The last book move, G10-J13, is an Inaccuracy." "Before that" would put it before the end that it reached.
- *  By turn, a whole book turn: "The last book turn, D9-G10 G10-J13, is a Mistake." */
-export function lastBookMoveSentence(p: BookPosition, ...moves: BookMove[]): string {
-  const { edges, noun, label } = bookPlay(p, moves);
-  return `The last book ${noun}, ${edges}, is ${label}.`;
+/** The book move that reached the end of the book, in the row of a game that followed the book to its end, with the
+ *  review's label of it: "The last book move, G10-J13, is an Inaccuracy." "Before that" would put it before the end
+ *  that it reached. By turn, a whole book turn: "The last book turn, D9-G10 G10-J13, is a Mistake." */
+export function lastBookMoveSentence(label: Label, ...moves: BookMove[]): string {
+  const { edges, noun, label: name } = bookPlay(moves, label);
+  return `The last book ${noun}, ${edges}, is ${name}.`;
 }
 
 /** The opening row of a game whose first edge is not a book move. */

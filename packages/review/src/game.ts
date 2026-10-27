@@ -205,6 +205,8 @@ export interface BookMoveMark { index: number; after: string }
 /** The game's opening in the book (design 32, item 4): the position that the Report's row goes to, the game's book
  *  moves that the move list marks, and the traps that it played. */
 export interface BookOpening { at: number; bookMoves: BookMoveMark[]; traps: unknown[] }
+/** The review's judgment of a move: its quality label and its loss in win chance. */
+export interface BookJudgment { label: Label; loss: number }
 export interface BookParts<G extends ViewTypes> {
   /** The book's place on a page, from the notation of each position on the path, and "Review by" (`unit`), which its
    *  rows follow. Null where the site has no book. */
@@ -212,9 +214,11 @@ export interface BookParts<G extends ViewTypes> {
   notation(position: G["position"]): string | undefined; // the position's notation, by which the book finds it
   /** The game's opening, once every part of the book that the game's positions need has loaded. */
   opening(notations: (string | undefined)[], moves: string[]): BookOpening | null;
-  // The Report's row, with the position that it goes to. By turn it names the turn that left the book.
-  openingRow(opening: BookOpening, moves: string[], label: Label | null,
-             unit: Unit): { text: string; at: number } | null;
+  /** The Report's row, with the position that it goes to. By turn it names the turn that left the book. `label`: the
+   *  review's label of the move or turn that left the book. `judged`: the review's judgment of the move that starts at
+   *  an edge's index, or by turn of the turn that starts there; null where the review has none. */
+  openingRow(opening: BookOpening, moves: string[], label: Label | null, unit: Unit,
+             judged: (index: number) => BookJudgment | null): { text: string; at: number } | null;
   trapRows(opening: BookOpening): { at: number; text: string }[]; // the Report's rows on the traps
   /** The book's table, with the engine's table (`candidates`) under its switch, and alone outside the book. */
   Table: Component<{ place: G["book"]; onplay: (moves: string[], refutation: boolean) => void; candidates: Snippet }>;
