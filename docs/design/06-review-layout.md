@@ -258,8 +258,9 @@ Lichess sizes its Analysis board from the window, and keeps the board whole in v
     Linux's are 0.6 em, which ran the move list by edge 20 pixels past the analysis column at 340 pixels, its least
     width then. With one font the rows measure the same everywhere: 321 pixels. The analysis column's least width is
     364 pixels, so that the move list has 325. Fira Code was chosen by its look, from six fonts side by side in the
-    move list. Its ligatures are off (`--font-mono--font-feature-settings` in `packages/site/src/site.css`): a record's
-    text must show as it is, and a ligature changes it (the game id k3x9q showed as k3×9q, and "??" as one glyph).
+    move list. Its ligatures are off: a ligature changes a record's text, and the text must show as it is. The game id
+    k3x9q showed as k3×9q, and "??" as one glyph. The layout test checks the setting (`tests/layout.spec.ts`, "the
+    monospaced font draws no ligatures").
 
 ## Why
 
@@ -319,7 +320,8 @@ Lichess sizes its Analysis board from the window, and keeps the board whole in v
   `SettingToggle.svelte`, and Hedge School's `src/lib/ui/SoundSettings.svelte`).
 - `src/lib/review/display.ts`: the display settings and their storage in the browser.
 - `src/routes/review/+page.svelte`: the skeleton until the review shows (`gameOpen`, `preloaded`).
-- `packages/site/src/site.css`: the monospaced font (`--font-mono`, and the font's import).
+- `packages/site/src/site.css`: the monospaced font (`--font-mono`, its ligatures' setting
+  `--font-mono--font-feature-settings`, and the font's import).
   `packages/review/src/review.css`: the step bar on a phone (`.step-dock`, and the room for it at the end of the page's
   area, `#page`).
 - `packages/review/src/StepBar.svelte`: the step bar, its tools' wrap, and its height for the page (`--step-dock`).
@@ -334,3 +336,4 @@ Lichess sizes its Analysis board from the window, and keeps the board whole in v
   (2026-10-20).
 - [decisions/product.md](../decisions/product.md), "On a phone, the step bar stays at the bottom of the screen"
   (2026-10-24).
+- [decisions/product.md](../decisions/product.md), "The monospaced font's ligatures are off" (2026-10-27).

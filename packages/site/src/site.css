@@ -87,8 +87,9 @@
   --color-red-better: var(--red-better);
   --color-red-winning: var(--red-winning);
   --font-mono: "Fira Code Variable", ui-monospace, monospace;
-  /* No ligatures: a record's text must show as it is (k3x9q, not k3×9q). Tailwind adds this to each use of the
-     font-mono utility. No rule takes --font-mono itself. */
+  /* No ligatures: a record's text must show as it is (k3x9q, not k3×9q). Fira Code has all of its ligatures in
+     "calt". Tailwind gives this setting with the font, to the font-mono utility and to preflight's code, kbd, samp and
+     pre. No other rule takes --font-mono. */
   --font-mono--font-feature-settings: "liga" 0, "calt" 0;
 }
 

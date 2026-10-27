@@ -7281,10 +7281,17 @@ the words of the site. The pages, the lessons, the documents and the code's comm
 - Fira Code draws ligatures. A record's text changed on screen: the game id k3x9q showed as k3×9q, and "??" showed as
   one glyph. A player who copies or reads an id, a move or a record must see the characters that are there.
 - The rule is one line in `packages/site/src/site.css`: `--font-mono--font-feature-settings: "liga" 0, "calt" 0` in
-  the theme, next to `--font-mono`. Tailwind 4 adds it to each use of the `font-mono` utility. No rule in either site
-  uses `--font-mono` itself, so the utility covers the records, the move lists, the Notation page and the editor on
-  Hedge School and Drawing Board.
-- The glyphs keep 0.6 em, so the move list's columns keep their width.
-- The test is in `apps/hedgeschool/tests/layout.spec.ts`. It checks the computed `font-feature-settings` of every text
-  in Fira Code on the Notation page, and the width of a probe text. The Drawing Board test runs when `DB_BASE_URL`
-  gives its preview.
+  the theme, next to `--font-mono`. Tailwind 4 gives the setting wherever it gives the font: the `font-mono` utility,
+  and preflight's `code`, `kbd`, `samp` and `pre`. No other rule in either site takes `--font-mono`. So the setting
+  covers every monospaced text of Hedge School and Drawing Board: the records, the move lists, the Notation page and
+  the editor.
+- Fira Code has all of its ligatures in the `calt` feature, and no `liga`. `"liga" 0` stays for a fallback font.
+  Measured in headless Chromium on both sites' builds: with `"calt" 0` alone, k3x9q, `????.??.??`, `=>`, `!=`, `->`,
+  `0x1F` and `www` draw the same pixels as with the rule. With `"liga" 0` alone, they draw their ligatures.
+- Fira Code's ligatures keep the grid: a ligature of two characters takes two cells. Each of those texts measured 0.6
+  em a character with the ligatures on and off. So the move list's columns, sized in `ch`, keep their width. The book
+  table's edge (A10-D10, 7 `ch`) draws the same with the ligatures on and off.
+- The test is in `apps/hedgeschool/tests/layout.spec.ts`. It checks the `font-feature-settings` of the `font-mono`
+  utility, and of every element in Fira Code on the Notation page and on Hedge School's editor, whose position field
+  is in Fira Code. It also checks the width of a probe text. The Drawing Board test runs when `DB_BASE_URL` gives its
+  preview.

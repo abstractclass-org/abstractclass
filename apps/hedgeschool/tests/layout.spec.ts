@@ -9,7 +9,8 @@
 //   - the header is one row.
 // The review shows a game of HedgeFund against itself, reviewed (tests/fixtures/hedgefund-review.json, made by
 // scripts/test-fixture.mjs), the Review tab with that game kept, and Practice a game in progress from it. The import
-// page shows the choice for a userscript's game, with the notice to update the userscript. A last test checks the step
+// page shows the choice for a userscript's game, with the notice to update the userscript. Two tests check that the
+// monospaced font draws no ligatures, on Hedge School and on Drawing Board (DB_BASE_URL). A last test checks the step
 // bar on a phone, on the review, the Analysis board and Practice. Run: npm run test:layout (the site running first).
 import { expect, test, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
@@ -100,45 +101,48 @@ for (const path of ["/", "/about", "/privacy", "/notation", "/tools", "/editor",
   });
 }
 
-/** What the page's text in the monospaced font draws: each element with a code font, with its ligature settings, and
- *  the width of "k3x9q" in that font (five characters of 0.6 em: a ligature would change it). */
-async function monoText(page: Page) {
+/** The monospaced font's ligature settings on the page: the font-mono utility's (a probe's), the elements in Fira Code
+ *  (texts and fields) whose settings differ from it, and the probe's width in em a character. */
+function monoSettings(page: Page) {
   return page.evaluate(() => {
-    const found = [...document.querySelectorAll("body *")].filter(e => /Fira Code/.test(getComputedStyle(e).fontFamily) && e.childNodes.length);
-    const probe = document.createElement("span");
-    probe.textContent = "k3x9q ?? => !=";
+    const name = (e: Element) => `${e.tagName.toLowerCase()}${e.id ? `#${e.id}` : ""}.${[...e.classList].slice(0, 4).join(".")}`;
+    const text = "k3x9q ?? => !=", probe = document.createElement("span");
+    probe.textContent = text;
     probe.className = "font-mono";
     document.body.append(probe);
-    const s = getComputedStyle(probe);
-    const own = { settings: s.fontFeatureSettings, ligatures: s.fontVariantLigatures, width: probe.getBoundingClientRect().width, size: parseFloat(s.fontSize) };
+    const s = getComputedStyle(probe), utility = s.fontFeatureSettings;
+    const emPerCharacter = probe.getBoundingClientRect().width / parseFloat(s.fontSize) / text.length;
     probe.remove();
-    return { own, uses: found.filter(e => !/"liga" 0/.test(getComputedStyle(e).fontFeatureSettings)).map(e => e.tagName.toLowerCase() + "." + [...e.classList].join(".")) };
+    const differing = [...document.querySelectorAll("body *")].filter(e => {
+      const t = getComputedStyle(e);
+      return /Fira Code/.test(t.fontFamily) && t.fontFeatureSettings !== utility;
+    });
+    return { utility, differing: differing.map(name), emPerCharacter };
   });
 }
 
-// The monospaced font draws no ligatures (design 06, item 11): a record's text shows as it is, and the columns keep
-// their width of 0.6 em a character.
-test("the monospaced font draws no ligatures on Hedge School", async ({ page }) => {
-  await page.goto("/notation");
-  await page.waitForLoadState("networkidle");
-  await page.evaluate(() => document.fonts.ready);
-  const { own, uses } = await monoText(page);
-  expect(own.settings).toContain('"liga" 0');
-  expect(uses, "text in Fira Code whose ligatures are on").toEqual([]);
-  expect(own.width / own.size).toBeCloseTo(14 * 0.6, 1);
-});
-
-// Drawing Board is another site: the test runs when DB_BASE_URL gives its running preview.
-test("the monospaced font draws no ligatures on Drawing Board", async ({ page }) => {
-  test.skip(!process.env.DB_BASE_URL, "DB_BASE_URL gives no Drawing Board preview");
-  await page.goto(new URL("/notation", process.env.DB_BASE_URL).href);
-  await page.waitForLoadState("networkidle");
-  await page.evaluate(() => document.fonts.ready);
-  const { own, uses } = await monoText(page);
-  expect(own.settings).toContain('"liga" 0');
-  expect(uses, "text in Fira Code whose ligatures are on").toEqual([]);
-  expect(own.width / own.size).toBeCloseTo(14 * 0.6, 1);
-});
+// The monospaced font draws no ligatures (design 06, item 11), on both sites: a record's text shows as it is, and the
+// columns keep their width of 0.6 em a character. Fira Code's ligatures keep that width, so the settings show them,
+// not the width. The pages: each site's Notation page, and Hedge School's editor, whose position field is in Fira Code.
+// Drawing Board's test runs when DB_BASE_URL gives its running preview.
+const DRAWING_BOARD = process.env.DB_BASE_URL;
+for (const [site, urls] of Object.entries({
+  "Hedge School": ["/notation", "/editor"],
+  "Drawing Board": DRAWING_BOARD ? [new URL("/notation", DRAWING_BOARD).href] : [],
+})) {
+  test(`the monospaced font draws no ligatures on ${site}`, async ({ page }) => {
+    test.skip(!urls.length, "DB_BASE_URL gives no Drawing Board preview");
+    for (const url of urls) {
+      await page.goto(url);
+      await page.waitForLoadState("networkidle");
+      await page.evaluate(() => document.fonts.ready);
+      const { utility, differing, emPerCharacter } = await monoSettings(page);
+      expect(utility.split(", ").sort(), url).toEqual(['"calt" 0', '"liga" 0']);
+      expect(differing, `${url}: Fira Code with other ligature settings`).toEqual([]);
+      expect(emPerCharacter, url).toBeCloseTo(0.6, 2);
+    }
+  });
+}
 
 // The import page's choice for a tool's game (design 21), below the notice that an out-of-date userscript gets.
 test("layout of the choice for a tool's game", async ({ page }) => {
