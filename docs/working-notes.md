@@ -43,13 +43,13 @@ learn one, and remove a note when it stops being true. The work itself is in bea
   error. The project `edge` comes only with `HS_EDGE=1` (the note "Edge starts only with `HS_EDGE=1`").
   `npx playwright test --list` shows the tests with no browser, and shows the project `edge` only with the variable.
 - **The layout test on Drawing Board:** the test "the monospaced font draws no ligatures on Drawing Board" runs only
-  when `DB_BASE_URL` gives the address of a running Drawing Board preview. Without the variable, Playwright skips it
-  with no error. The Tests workflow builds Drawing Board in each run, starts its preview on port 4174, and sets the
-  variable, so that CI runs the test. To run it here: build Drawing Board (`npm run build` in `apps/drawingboard`),
-  start its preview (`npm run preview -- --host 127.0.0.1 --port <port> --strictPort` in `apps/drawingboard`), and set
-  `DB_BASE_URL=http://127.0.0.1:<port>` in the job's environment, as for `BASE_URL`. A worker uses its own port. Never
-  serve the build from inside the test: a stale build would pass with no message. Rebuild Drawing Board and restart its
-  preview after each change. The line of the test in Playwright's output shows `ok`, not `-` (skipped).
+  when `DB_BASE_URL` gives the address of a running Drawing Board preview. Without the variable, Playwright skips the
+  test with no error: its line in the output shows `-`, not `ok` or `✓`. The Tests workflow builds Drawing Board in
+  each run, starts its preview on port 4174 and sets the variable. To run the test here, build Drawing Board (`npm run
+  build` in `apps/drawingboard`). Start its preview as in the note "The local server", in `apps/drawingboard` and on a
+  port other than Hedge School's. Then set `DB_BASE_URL` to the address of that preview, in the same way as `BASE_URL`
+  (the note "The layout test"). The test does not serve a build itself, because a stale build would pass with no
+  message.
 - **The local server and a build:** stop the server before `npm run build`, then start it again. A build under a
   running server can stop it (a page asks for `_app/version.json` while the build replaces it).
 - **The local server:** `node ../../node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 4173 --strictPort`

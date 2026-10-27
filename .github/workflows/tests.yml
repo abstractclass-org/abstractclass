@@ -59,9 +59,9 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ hashFiles('package-lock.json') }}
       - run: npx playwright install --with-deps --only-shell chromium
-      # Drawing Board's preview (port 4174) beside the site's, for the layout test of the monospaced font on Drawing Board
-      # (tests/layout.spec.ts), which runs only when DB_BASE_URL gives it. Its build is the one of check:all (the step
-      # drawingboard-build), made in this run: the test never serves a build of its own, so a stale build cannot pass.
+      # Drawing Board's preview (port 4174) beside the site's, for the layout test of the monospaced font on Drawing
+      # Board (tests/layout.spec.ts), which runs only when DB_BASE_URL gives the preview's address. Its build is the one
+      # that check:all made in this run (the step drawingboard-build), so a stale build cannot pass.
       - name: The browser tests, in Chromium
         env:
           DB_BASE_URL: http://127.0.0.1:4174
@@ -107,8 +107,7 @@ jobs:
           VITE_EDITION: early
           VITE_STORE_PRACTICE_GAMES: "on"
 
-      # Drawing Board's build, for its layout test below: check:all does not run on this job. A fresh build in each run,
-      # as the site's above.
+      # Drawing Board's build, for its layout test below: check:all, which makes it on Linux, does not run on this job.
       - run: npm run build
         working-directory: apps/drawingboard
 
@@ -120,9 +119,9 @@ jobs:
           key: playwright-windows-${{ hashFiles('package-lock.json') }}
       # The headless shell only: the project chromium runs headless, with no channel.
       - run: npx playwright install --only-shell chromium
-      # Bash, not the default PowerShell, for the commands of the Linux job: the preview in the background, the wait.
-      # Drawing Board's preview (port 4174) beside the site's, and DB_BASE_URL, so that the layout test of the monospaced
-      # font runs on Drawing Board too, with Windows' fonts and rendering.
+      # Bash, not the default PowerShell, for the commands of the Linux job: the previews in the background, the waits.
+      # Drawing Board's preview and DB_BASE_URL, as on Linux, so that the layout test of the monospaced font runs on
+      # Drawing Board too, with Windows' fonts and rendering.
       - name: The layout sweep, in Chromium on Windows
         shell: bash
         env:
