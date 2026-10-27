@@ -35,8 +35,8 @@ export interface GameOpening {
    *  edges, in either order in its turn; null when the game ended before them, or when the side that played the trap
    *  ended its turn otherwise. */
   traps: (PlayedBookMove & { refuted: boolean | null })[];
-  /** The game's book moves, in the game's order: each edge whose position and the position after it are both in the
-   *  book, with the words of the position symbol after it (symbols.ts, SYMBOL_NAME). The move list marks each. */
+  /** The game's book moves, in the game's order: each edge that the book lists at its position, when the position after
+   *  it is in the book too, with the words of the position symbol after it (symbols.ts, SYMBOL_NAME). The move list marks each. */
   bookMoves: BookMoveMark[];
 }
 
@@ -59,9 +59,9 @@ export function gameOpening(positions: (BookPosition | null)[], edges: string[])
   });
   const weak = played.filter(b => b.index < last && !b.move.trap && !isFine(b.position, b.move))
     .reduce<PlayedBookMove | null>((w, b) => (!w || moveLoss(b.position, b.move) > moveLoss(w.position, w.move) ? b : w), null);
-  const bookMoves = positions.flatMap((p, k) => {
-    const next = positions[k + 1];
-    return p && next && k < edges.length ? [{ index: k, after: SYMBOL_NAME[positionSymbol(next)] }] : [];
+  const bookMoves = played.flatMap(({ index }) => {
+    const next = positions[index + 1];
+    return next ? [{ index, after: SYMBOL_NAME[positionSymbol(next)] }] : [];
   });
   return {
     kind, at: last, position: end, weak,

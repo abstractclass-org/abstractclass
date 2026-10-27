@@ -86,6 +86,14 @@ test("a game not in the book from the first move, which comes back to it by anot
   assert.equal(openingSentence(o, NEVER, "mistake"), "The game was not in the book from the first move.");
 });
 
+test("an edge that reaches a book position without being listed at its position is not a book move", async () => {
+  // LEFT's first three edges are listed book moves. D9-G11 at position 3 is not listed there, and the game reaches
+  // RETURN (a book position, as in NEVER) by it: the position after it is in the book, the edge is not.
+  const edges = LEFT.slice(0, 4);
+  const o = gameOpening(await walk(book, edges, { 4: RETURN }), edges)!;
+  assert.deepEqual(o.bookMoves.map(m => m.index), [0, 1, 2], "A10-D9, N11-Q10 and O11-Q10 keep their marks");
+});
+
 test("a trap and its refutation, and the book move worse than Good before it", async () => {
   const o = gameOpening(await walk(book, TRAP), TRAP)!;
   assert.deepEqual(o.traps.map(t => [t.index, t.move.move, t.refuted]), [[3, "G9-K10", true]]);

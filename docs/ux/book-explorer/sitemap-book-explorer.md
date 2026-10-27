@@ -141,7 +141,7 @@ address follow the player's line, not the stored one.
 | **Study in Openings** | the review's and the Analysis board's table | names the place it opens |
 | **Open in Analysis** | Openings | the same form, for the other way |
 | **Back to the main line** | Openings | names the destination |
-| **Last move in the book** | the tooltip of the review's book mark | what the mark marks |
+| **Book move** | the review's book mark, and the start of its tooltip ("Book move · Best: +0.6% · … · Equal position after it") | what the mark marks |
 
 Words kept out:
 

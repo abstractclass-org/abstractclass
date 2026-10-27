@@ -88,7 +88,8 @@ explorers that people use in chess and Go is [../research/03-opening-explorers.m
      with a trap has a trap row: "Turn {n}: {side} played a trap, {move}. {other side} played its refutation." or "…
      did not play its refutation." A click on a row goes to the position before the move, and turns the book on for
      that review only.
-   - **The move list** marks each book move: an edge whose position and the position after it are both in the book.
+   - **The move list** marks each book move: an edge that the book lists at its position, when the position after it is
+     in the book too. A move that reaches a book position by another move order is not a book move.
      The mark takes the quality label's slot, whatever the label, from Great to Blunder. By turn, a turn shows it when
      all its edges are book moves, with the turn's quality label. The display setting "Book moves" gives two forms:
      the quality label on the book's brown (the default), or an open book in the quality label's colour. Each form
