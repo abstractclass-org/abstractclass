@@ -7484,3 +7484,34 @@ label of the earlier book move", above), and the choice of 2026-10-24 that the r
   any position of the game's line (`searchHolding`'s `holds`). So it can keep the results of a review snapshot that
   does not open, until the game is reviewed again. A mark that names no search is older than the book: its review
   snapshot and the removal ask for every position, as before.
+
+### Drawing Board's practice: its layout, its engine's files, and the shared parts (2026-10-30)
+
+abscls-8tl1.14, without the bot, whose build is the engine repository's abscls-1if9. Design 33, "The engine's files"
+and "Practice against Stamp Duty", give the result.
+
+- **The layout:** screenshots of three layouts at design 06's four sizes, on fixtures.json's move 10 and on move 100
+  of a game that the early build played against itself (64 visits, its analysis's best candidate each move). With
+  the hands in the board's box at 1,376 × 952, the box was 1.17 times as wide as high, the hands took rows, and the
+  field was 959 × 567 pixels. With them beside the score bar, a hand's hex was 14 pixels across on a computer and 8
+  on a phone. With them in the side column, the field was the whole box (959 × 819), and the move list lost 222
+  pixels. The owner chose the side column's board with the hands in a panel over it, and on a phone the hands under
+  the board.
+- **The panel's fit,** measured in Node and in headless Chromium on the two positions at the three computer sizes:
+  some corner was always free at the plain fit's scale. The early position kept the top-right corner, and the late
+  one took the top left at 1,376 and 1,920 pixels. No hex was under the panel. A board full of hexes (31 rows of 30
+  or 31 hexes) at 959 × 819 took a hex 20.8 pixels across, where the plain fit gives 28.7. A choice of place,
+  five fits, took 0 to 10 ms.
+- **The owner's rules for the panel:** a drag never makes the board smaller, and the fits after it keep the panel and
+  fit as if it were not there; "Show all the cells" and a reload fit with it. The panel is resizable on a computer.
+- **The bot:** first planned as the analysis module's `chooseMove`, with two departures from design 24 (no tree kept
+  from move to move, and no temperature in a search of more views). That plan was dropped for the reasons of request
+  15: the bot is the engine repository's GTP practice bot, as Hedge School's. The bot's own departures are named when
+  its build comes.
+- **The engine's files:** the 0.7.0 build `engine-b64eea10` in Drawing Board's `engine.lock.json`, from the engine
+  repository's checkout (it is not released). The five lab games give the same data on it as on the early build.
+  `fetch-engine.mjs` and `node-engine.mjs` moved into `packages/engine` for both sites. Hedge School's `npm run engine
+  -- --deploy` fetched its release with the moved script, and its 266 unit tests passed.
+- **The shared parts:** `@abstractclass/practice` took practice.ts's part that is not Enclosure's (a pure rename,
+  then the edits), and the settings card and the game's frame from Hedge School's page. Hedge School's stored games
+  (design 25) stay in Hedge School until Drawing Board has a backend: the server's check names Enclosure's edges.

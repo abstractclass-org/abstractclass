@@ -111,7 +111,7 @@ which Chrome and Edge have from version 137.
 - `packages/analysis/src/gpu.svelte.ts`: `GpuControl`, one for each pool (the setting applied, the start on a backlog,
   the test), the setting's states, the test's length and the stored results.
 - `packages/analysis/src/session.svelte.ts`: a `GpuControl` for each pool (`EngineSession`).
-- `scripts/fetch-engine.mjs`: the GPU's files, ONNX Runtime's two files, and the compressed storage.
+- `packages/engine/src/fetch-engine.mjs`: the GPU's files, ONNX Runtime's two files, and the compressed storage.
 - `vite.config.ts`: ONNX Runtime's build that takes its WebAssembly from the page, and module workers.
 
 ## Log

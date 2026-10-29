@@ -107,7 +107,7 @@ new builds arrive often.
   `packages/review/src/review.css`: the view's tokens (the quality labels', the last move's, the score line's and the
   engine's), the one-column variant, `bar-glider` and the step bar's dock. `src/app.css`: Hedge School's own tokens
   (the accent, the board's, the notes' and the area line's) and utilities (`board-points`, `btn-danger`).
-- `engine.lock.json` and `scripts/fetch-engine.mjs`: the engine's artifacts.
+- `engine.lock.json` and `packages/engine/src/fetch-engine.mjs` (`npm run engine`): the engine's artifacts.
 
 ## Log entries
 

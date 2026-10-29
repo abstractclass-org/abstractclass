@@ -76,7 +76,7 @@ in the early access (design 11).
   puzzles page shows too. Its rules from a `describe` reply: `rulesOf` in `src/lib/engine/position.ts`, which the
   puzzles, Practice and the Analysis board use too.
 - The tests: `src/lib/learn/lessons.test.ts`. Each step's line, and each step's task on the engine in Node
-  (`scripts/node-engine.mjs`). The engine's tests are skipped without the engine's files.
+  (`@abstractclass/engine/node-engine.mjs`). The engine's tests are skipped without the engine's files.
 
 ## Log entries
 

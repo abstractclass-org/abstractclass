@@ -6,9 +6,11 @@ record, with the import of a strategyjam.org game as a record. The owner's step 
 (abscls-8tl1.3). The board and the player's own moves are built, on positions that the engine's early build gave.
 The review's view is in a package, on Hedge School's board and on Blueprints' (design 29, item 9). The tools for
 strategyjam.org and the import page are built: the page shows the record that a tool sends ("How a game comes in from
-strategyjam.org"). Their test on strategyjam.org waits for the owner (abscls-8tl1.12). The review and the Analysis
-board wait for the engine's browser build (request 23).
-**Decided:** 2026-10-25.
+strategyjam.org"). Their test on strategyjam.org waits for the owner (abscls-8tl1.12). The site fetches the engine's
+0.7.0 build (`engine-b64eea10`, on this machine only) as Hedge School fetches its own. For practice against Stamp Duty
+("Practice against Stamp Duty"), the board's hands panel and its fit are built. The page waits for the practice bot's
+build (the engine repository's abscls-1if9). The review and the Analysis board come after it (abscls-8tl1.7).
+**Decided:** 2026-10-25. Practice's layout: 2026-10-30.
 
 ## Context
 
@@ -196,27 +198,99 @@ list, with its tests), `blueprintInput.svelte.ts` (the `MoveInput` that the boar
 `Board.svelte` and `Hand.svelte` (the dots, the footprint, the chosen blueprint and cell, and the clicks).
 
 **The lab's positions come from the engine.** Each position of the lab page is a game of moves from the standard
-start, which Stamp Duty's early build (`engine-0d2a5416`, protocol 0.6.1) played. The script
-`apps/drawingboard/scripts/board-fixtures.mjs` (`npm run fixtures`) runs the build's module in Node, and stores what
-the engine gives in `src/lib/board/fixtures.json`: each position, its mover, every legal move (describe), and what
-each move did (describe_game: the footprint, the captured cells, the points and the hands after it). The candidates
-and their lines are hand-made marks, and the engine plays each one where it stands, so each is a legal move.
+start, which Stamp Duty's early build (`engine-0d2a5416`) played. The script
+`apps/drawingboard/scripts/board-fixtures.mjs` (`npm run fixtures`) runs the site's build in Node, and stores what the
+engine gives in `src/lib/board/fixtures.json`: each position, its mover, every legal move (describe), and what each
+move did (describe_game: the footprint, the captured cells, the points and the hands after it). The candidates and
+their lines are hand-made marks, and the engine plays each one where it stands, so each is a legal move. The 0.7.0
+build (`engine-b64eea10`) gives the five games the same data as the early build: only the file's header, which names
+the build, changed.
 
 - **The build and the tests read the stored file:** CI has no engine files. `fixtures.engine.test.ts` runs the engine
-  again and compares. It is skipped when no build's folder is in the engine repository's checkout beside this one.
-- **The engine's own library starts the module,** as Hedge School's `scripts/node-engine.mjs` starts its module. The
-  script loads the build's `gpu_engine.mjs` (the manifest's asset of kind `gpu-library`) and calls only its
+  again and compares. It is skipped when the site has no engine (`npm run engine` was not run).
+- **The engine's own library starts the module,** through `@abstractclass/engine/node-engine.mjs`, which both sites'
+  checks take. It loads the build's `gpu_engine.mjs` (the manifest's asset of kind `gpu-library`) and calls only its
   `createCpuEngine`, which drives the CPU module with the few WASI imports that it needs: the clocks, random bytes and
-  standard error. The site keeps no copy of the engine's driver (CLAUDE.md, and design 29: "Move, do not copy"). The
-  script checks the SHA-256 of the module and of the library against the manifest. Drawing Board's own
-  `engine.lock.json` and the engine in the page come with the review (abscls-8tl1.7). Then `node-engine.mjs` moves
-  into `packages/engine` for both sites, and the script takes it.
+  standard error. The site keeps no copy of the engine's driver (CLAUDE.md, and design 29: "Move, do not copy").
+  `npm run engine` checks the SHA-256 of each file against `engine.lock.json` ("The engine's files").
 - **The board computes geometry only, and the tests check it against the engine.** A footprint is the blueprint's
   cells moved to the anchor hex (`footprintOf`): the board draws it under the pointer, and the lab's moves take it
   for their drawing. An edit's hexes in the frames after it come from the notation's frames (item 5). The tests
   compare both with what describe_game gives: each placement's footprint, and the hands after each edit.
 - **The unit tests click every legal move** of each position. They check that each blueprint's dots are its legal
   placements' anchor hexes, all of them and no others, and that each cell's dots are its legal edits.
+
+## The engine's files
+
+Drawing Board takes the engine's files as Hedge School does (design 03): `apps/drawingboard/engine.lock.json` pins each
+file by its SHA-256, and `npm run engine` (`packages/engine/src/fetch-engine.mjs`, which both sites run) puts them in
+`static/engine/` with their manifest. The page loads them from there.
+
+1. **The build:** `engine-b64eea10`, the engine repository's 0.7.0 build with the search of the root's views (request
+   24) and bpj4's network `b6c96-s19117184-d446546`. It is not released: the lock takes its files from the engine
+   repository's checkout beside this one (a source of kind `engines`). So `npm run engine -- --deploy` refuses it, as
+   it refuses each file that is not from a release. A live page needs a release with a trained network (the owner's
+   yes) and Drawing Board's Pages project (abscls-8tl1.3).
+2. **Protocol 0.7.** Blueprints' build speaks 0.7.0, and Enclosure's stays 0.6.x (the engine repository's design 04,
+   "Versioning"). The lock's `protocol` names the protocol that Drawing Board's code is written for, and the manifest
+   carries it, so `packages/engine` refuses a module of another minor version for each site: 0.6.x for Hedge School,
+   0.7.x for Drawing Board. The types take request 24's fields: the query's `rootViews`, a candidate's `checkVisits`,
+   and `rootInfo`'s `views` and `searches`. The network's raw values are optional: a reply of more views has none.
+3. **No file only on this machine for the build or the tests.** The build and the Tests workflow run without
+   `static/engine`. The checks that need the engine skip without it (the fixtures' test).
+4. **The CPU only.** The lock has no GPU module, so the fetch script stores no ONNX Runtime for Drawing Board. The
+   page starts the engine with `createCpuEngine` alone.
+
+## Practice against Stamp Duty
+
+A game against Stamp Duty in the browser, as Hedge School's Practice (design 24, design 25): the settings card, then
+the game in the review's layout. The bot is the engine repository's practice bot for Blueprints (abscls-1if9), in
+Hedge School's form where Blueprints allows: KataGo's GTP engine with its play settings, not the analysis module's
+`chooseMove`, for the reasons of request 15 (the analysis settings, and a new tree for each query). The page and the
+bot's part are built when its build comes. Its range of visits is Hedge School's, 1 to 8,192.
+
+**The layout** (the owner's choice, 2026-10-30, after screenshots of three layouts at design 06's sizes):
+
+1. **On a computer, the board takes all the room** left of the side column and under the players' row: the window's
+   height less the row, and the width that the side column leaves at its widest. Blueprints' grid has no edge, so the
+   box need not be square, as Hedge School's is. The side column holds the bot's line, the move list at its full
+   height and the step bar, with no hands.
+2. **The hands float over the board, in a panel:** Blue's three blueprints above Red's, at about a side column's
+   width (each hand 312 × 100 pixels at first). The player's own moves work in it as in the hands beside the board.
+   It starts in the top-right corner.
+3. **The player can drag it and resize it.** A drag of its top strip moves it, and the handle at its lower corner
+   towards the board's middle resizes it. It stays inside the board's box, never covers the zoom buttons, and keeps 6
+   pixels from both. Its smallest size gives each hand 216 × 72 pixels: a blueprint as the game starts it then has
+   hexes 12 pixels across, which a mouse can still click. The page keeps its place and its size over a reload. It has
+   no button to fold it away.
+4. **A fit counts the panel:** after a fit, no cell and no legal anchor hex lies under the panel. The fit takes the
+   largest scale at which the view has no hex under the panel, with 4 pixels round it, and the view nearest the plain
+   fit's centre. It may move the panel to another corner when that gives a larger board. When the panel's place gives
+   the same size, it stays. Corners of the same size go in this order: top right, top left, bottom right, bottom left.
+5. **A drag or a resize is the player's choice,** as a pan or a zoom is: it never makes the board smaller. When the
+   player puts the panel over cells, it covers them. The fits after it (a move, a change of the board's size) keep the
+   panel where it is, and fit as if no panel were there. "Show all the cells" and a reload fit with the panel again,
+   and may move it to a corner.
+6. **On a phone, the hands go under the board,** Blue's above Red's, each as wide as the board and a third of that
+   high at most, as the board's own rows. The board takes the window's height less the header, the row and the step
+   bar, and at least a square field with its hands. The page scrolls down to the move list.
+7. **The status line is in the step bar,** as the review's is, not in the side column as Hedge School's Practice has
+   it: the board's input text ("How the board takes a move", item 7) needs its two lines in view, also on a
+   phone.
+
+**Why this layout:** the screenshots measured each layout's board, at 1,376 × 952, 1,920 × 1,080, 2,560 × 1,440 and
+390 × 844, on a position of move 10 and one of move 100. With the hands beside the field in the board's box, the field
+lost 252 pixels of its height at 1,376 × 952 (the box was too square for columns). With the hands beside the score
+bar, a hand's hex was 14 pixels on a computer and 8 on a phone. With the hands in the side column, the board was the
+largest, and the move list lost 222 pixels. The panel keeps that board, and the move list keeps its height. In the
+six screenshots on a computer, a corner was always free at the plain fit's scale, so the panel cost the board nothing.
+
+**What it shares with Hedge School** (design 29: move, do not copy): the settings card and the game's frame
+(`@abstractclass/practice`: `PracticeCard.svelte`, and `PracticeFrame.svelte` with its board's box in the form
+"fill"), and the practice's part that is not Enclosure's (`practice.ts`: the visits and the variety, the choices and
+the kept game under each site's key, the GTP helpers, the takeback, the results). Hedge School's stored games (design
+25) stay in Hedge School until Drawing Board has a backend: the server's check names Enclosure's edges, and the
+Pages Function bundles it alone.
 
 ## How a game comes in from strategyjam.org
 
@@ -352,6 +426,12 @@ the owner (abscls-8tl1.12). The tests use page states that they make, with moves
   site menu and Support Us dialog stay in Hedge School. The two footers (`src/lib/SiteFooter.svelte`) have the same
   markup, with each site's links and the game's credit. They are still each site's own, and move into the package in a
   later change (item 4).
+- `apps/drawingboard/engine.lock.json`: the engine's files ("The engine's files"), which `npm run engine` fetches into
+  `static/engine/` (not in Git).
+- `apps/drawingboard/src/lib/board/panel.ts`: the hands' panel: its place and size, its limits, the resize handle, and
+  the fit's choice of corner (`fitWithPanel`). `view.ts`, `fitAround`: the fit that keeps the hexes out from under it.
+  `Board.svelte`, its prop `hands`: the hands in the board's box ("box", the lab's), in the panel ("panel") or under
+  the field ("under"), with the panel's `place` and `size`. Tests: `panel.test.ts` and `view.test.ts`.
 - `.github/workflows/deploy.yml`, the job `drawingboard`: the deploy, skipped while `DRAWINGBOARD_PAGES_PROJECT` is
   empty ([hosting.md](../hosting.md), "Drawing Board").
 - `apps/drawingboard/src/lib/board/`: the board, built on the lab's positions, which the engine's early build gave.
@@ -395,5 +475,5 @@ the owner (abscls-8tl1.12). The tests use page states that they make, with moves
 
 [decisions/product.md](../decisions/product.md), "Drawing Board, Blueprints' site" (2026-10-25), "The review's
 styles in packages/review and packages/site" (2026-10-26), "The player's own moves on Drawing Board, from the
-engine's legal moves" (2026-10-27), and "The import's frame in packages/import, and Drawing Board's tools"
-(2026-10-27).
+engine's legal moves" (2026-10-27), "The import's frame in packages/import, and Drawing Board's tools"
+(2026-10-27), and "Drawing Board's practice: its layout, its engine's files, and the shared parts" (2026-10-30).

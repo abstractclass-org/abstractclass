@@ -73,9 +73,10 @@ The move must keep these:
   Function in `functions/` is not uploaded. The Pages project `hedgeschool` keeps its `GAMES` bindings and its D1
   databases.
 - **The engine's files:** npm puts `onnxruntime-web` in the workspace's `node_modules` at the root, not beside the app.
-  So `scripts/fetch-engine.mjs` finds the package by Node's own resolution (`findPackageJSON`, from `node:module`),
-  wherever npm puts it. Its checks of each file's SHA-256, the protocol and the search stay. Its download cache stays
-  beside the app, in `apps/hedgeschool/node_modules/.cache/engine/`.
+  So the engine's fetch script (`packages/engine/src/fetch-engine.mjs`, design 29) finds the package by Node's own
+  resolution (`findPackageJSON`, from `node:module`), wherever npm puts it. Its checks of each file's SHA-256, the
+  protocol and the search stay. Its download cache stays beside the app, in
+  `apps/hedgeschool/node_modules/.cache/engine/`.
 - **Local engine sources:** a `local` path in `engine.lock.json` starts at `apps/hedgeschool`. The engine
   repository's checkout is `../../../engines` from there.
 - **The commands and the documents:** `npm ci` and the repository's own checks run at the root, and the site's
@@ -108,7 +109,7 @@ The move must keep these:
 - `.github/workflows/deploy.yml` and `tests.yml`: the default working directory is `apps/hedgeschool`. `npm ci` runs
   at the root, and so does `npm run check:all` in the Linux job of `tests.yml`. The caches, the failures' screenshots
   and the hash of `engine.lock.json` name their paths from the root. `docs.yml` runs at the root.
-- `apps/hedgeschool/scripts/fetch-engine.mjs`: finds `onnxruntime-web` by Node's resolution.
+- `packages/engine/src/fetch-engine.mjs`: finds `onnxruntime-web` by Node's resolution.
 - `.gitignore`: the site's generated folders, under `apps/hedgeschool/`.
 
 ## Log

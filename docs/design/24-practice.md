@@ -191,12 +191,18 @@ How strong each setting plays against people is not measured yet.
   Abort, Resign, the end and the save into Your games.
 - **The bot:** `src/lib/practice/bot.ts` (the form to start, with a fall back to the next) and `botWorker.ts` (the
   bot in its worker, with ONNX Runtime set up as the GPU worker sets it up, `packages/engine/src/ort.ts`).
-- **The pure parts:** `src/lib/practice/practice.ts`: the settings, the kept game (`hedge-school:practice-game:1`) and
-  the choices (`hedge-school:practice-choices:1`) in the browser's local storage, the GTP commands, the results and
-  the record. Tests: `practice.test.ts`. The score's display settings are kept under
-  `hedge-school:practice-display:2`.
-- **The files:** the release's practice files in `engine.lock.json`, which `scripts/fetch-engine.mjs` puts in
-  `static/engine/engine-54486cd-lib/` and the bot's module folders.
+- **The pure parts:** the shared part in `packages/practice/src/practice.ts` (`@abstractclass/practice`, design 29):
+  the visits and the variety, the choices and the kept game under each site's key, the GTP commands with each site's
+  half-life, the takeback's reach, the results and the outcome. Hedge School's part in `src/lib/practice/hedgefund.ts`:
+  its keys (the kept game `hedge-school:practice-game:1` and the choices `hedge-school:practice-choices:1`, in the
+  browser's local storage), its networks, the bot's half-life, the turns after a set-up start, the analytics'
+  parameters and the record. Tests: `practice.test.ts` here, and the package's own on a game of words. The score's
+  display settings are kept under `hedge-school:practice-display:2`.
+- **The card and the frame:** `packages/practice/src/PracticeCard.svelte` (the settings card) and
+  `PracticeFrame.svelte` (the game's layout: the row, the square board, the side column and the step bar), which
+  Drawing Board's practice shares (design 33). The page gives their content.
+- **The files:** the release's practice files in `engine.lock.json`, which `npm run engine`
+  (`packages/engine/src/fetch-engine.mjs`) puts in `static/engine/engine-54486cd-lib/` and the bot's module folders.
 - **The ways in:** the header, the sitemap, and the Analysis board's Play button (`src/routes/analysis/+page.svelte`).
 
 ## Log entries

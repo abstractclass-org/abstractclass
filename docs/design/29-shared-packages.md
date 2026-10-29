@@ -55,7 +55,12 @@ edit in the same commit), so their changes still apply.
    uses (the icons, the toast, the settings' parts, the players' colours and their swatch) and the page's scroll moved
    into `@abstractclass/site` with it. A seventh, `@abstractclass/import` (`packages/import`), holds the import's
    frame: the tools for a game site's pages, the hash that they send and the import's events, with each site's parts
-   as parameters (item 10).
+   as parameters (item 10). An eighth, `@abstractclass/practice` (`packages/practice`), holds the practice's part that
+   is not Enclosure's: the bot's settings, the kept game and the choices under each site's key, the GTP helpers, the
+   takeback, the results, the settings card and the game's frame. Design 33 moved it out of Hedge School's
+   `src/lib/practice/practice.ts`, whose Enclosure's part is now `hedgefund.ts`. The engine's two scripts for Node,
+   `node-engine.mjs` (the CPU module in Node, for the checks) and `fetch-engine.mjs` (`npm run engine`: a site's
+   `engine.lock.json`), moved from Hedge School's `scripts/` into the engine package with it, for both sites.
 
    The engine package knows no game. The analysis package knows a game only through the game interface. No package
    imports a site.
@@ -285,10 +290,12 @@ edit in the same commit), so their changes still apply.
   Enclosure's value as the default (the template, abscls-8tl1.2). The labels' bands are chess.com's, the same for
   every game (design 10).
 - **What the engine package takes from the site's build:** the engine's files under `/engine/` with their manifest
-  (Hedge School's `scripts/fetch-engine.mjs`), ONNX Runtime Web in its form that takes its WebAssembly from the page
-  (the Vite condition `onnxruntime-web-use-extern-wasm`), and the workers as modules. Hedge School's `vite.config.ts`
-  sets the last two. The engine package names `onnxruntime-web` as a peer dependency: the site's copy, whose
-  WebAssembly the fetch script stores. A second site copies these until the template moves them into the package.
+  (the package's `fetch-engine.mjs`, from the site's `engine.lock.json`), ONNX Runtime Web in its form that takes its
+  WebAssembly from the page (the Vite condition `onnxruntime-web-use-extern-wasm`), and the workers as modules. Hedge
+  School's `vite.config.ts` sets the last two. The engine package names `onnxruntime-web` as a peer dependency: the
+  site's copy, whose WebAssembly the fetch script stores. A second site copies these until the template moves them
+  into the package. Drawing Board's engine runs on the CPU alone: its lock has no GPU module, so the fetch script
+  stores no ONNX Runtime for it.
 - **Paths in the documents:** a path that starts with `packages/` starts at the repository's root. A path to Hedge
   School's files starts at `apps/hedgeschool`, as before ([docs/README.md](../README.md)).
 - **A change to a package is a change to every site that uses it.** Its tests and each site's checks run for it.
@@ -325,6 +332,14 @@ edit in the same commit), so their changes still apply.
 - `packages/import/` (`@abstractclass/import`, item 10): `bookmarklet.ts`, `userscript.ts` and `pageCode.ts` (the
   tools' frame), `importHash.ts` (the hash after the `#`) and `importEvents.ts` (the import's events), with tests on a
   test site whose games are words. `apps/hedgeschool/src/lib/game/tools.ts` and `sources.ts`: Hedge School's parts.
+- `packages/engine/src/node-engine.mjs` and `fetch-engine.mjs`: the engine in Node, and the fetch of a site's engine
+  files, which each site runs in its own folder (`npm run engine`). `protocol.ts`: the protocol that each site's code
+  is written for (Hedge School 0.6.x, Drawing Board 0.7.x with the root's views), from the site's `engine.lock.json`
+  and its manifest.
+- `packages/practice/` (`@abstractclass/practice`): `practice.ts` (the practice's shared part, with tests on a game of
+  words), `PracticeCard.svelte` (the settings card), `PracticeFrame.svelte` (the game's layout: a square board or one
+  that fills the room) and `practice.css` (the package's Tailwind source). Its check is `svelte-check`.
+  `apps/hedgeschool/src/lib/practice/hedgefund.ts`: Hedge School's part.
 - `.github/workflows/tests.yml` and `deploy.yml`: the packages' checks.
 
 ## Log
