@@ -7515,3 +7515,35 @@ and "Practice against Stamp Duty", give the result.
 - **The shared parts:** `@abstractclass/practice` took practice.ts's part that is not Enclosure's (a pure rename,
   then the edits), and the settings card and the game's frame from Hedge School's page. Hedge School's stored games
   (design 25) stay in Hedge School until Drawing Board has a backend: the server's check names Enclosure's edges.
+
+### Drawing Board's practice: the bot and the page (2026-10-30)
+
+abscls-8tl1.14, on the engine repository's practice bot (abscls-1if9, build `217be61f`). Design 33, "Practice against
+Stamp Duty", gives the result.
+
+- **The build:** Drawing Board's `engine.lock.json` pins `engine-217be61f` for every file, the bot's too. Its module
+  is not `b64eea10`'s (SHA-256 `dc2be755` against `8f31ecd7`), so the lab's five fixtures were made again from it:
+  no position, legal move or step differs. Only the file's header changed.
+- **The visits:** 27 to 8,192, not Hedge School's 1 to 8,192. The bot's genmove fails with 2n visits or fewer for a
+  cover of n views (on the site's games: 9.7% of positions at 1 to 4 visits, 1.7% at 8, 0.1% at 16, none at 27 or
+  more). The least is one constant, for the engine's fix (abscls-csmy, protocol 0.7.1). The tests use 32 visits.
+- **The shared parts:** the bot's page side and its worker moved into `@abstractclass/practice` (a pure rename, then
+  the edits), with the game's name for the bot's commands and the site's worker module. Hedge School's GPU and CPU
+  workers' forms stay in Hedge School, so Drawing Board's bundle has no ONNX Runtime and no WebGPU code.
+- **Whole games in headless Chromium,** at 32 visits and a window of 1,376 × 952, the player's moves random clicks on
+  the page: one game with the player as Blue (2.4 minutes) and one as Red (2.2 minutes). Each went to its 120th move
+  with no page error and no stop, so each of the bot's moves was in the rules' legal moves. A reload after move 40
+  kept the moves and the move list. A turn of the bot took about 3.5 seconds at the game's start.
+- **The final score is the rules' score:** the cards and the status line read the last position's `scores` from the
+  rules' worker. In Node, the engine's describe of each game's 120 moves gave the same: Blue 14, Red 2,868
+  (`r+2854`), and Blue 2,457, Red 27 (`b+2430`). The scores are large because a captured star scores the
+  capturer's stars on the board before the move: late in a game a side has about 100 stars, and its largest moves
+  scored 216 and 206 with two stars captured. The random player captures few.
+- **The layout:** the layout test's sweep (every width from 360 to 1,920 pixels, at three heights) of `/practice` and
+  of a game in progress found nothing, nor did design 06's four sizes (2,560 × 1,440 among them).
+- **Chromium off the GPU:** with `--disable-gpu`, Chromium's GPU process (SwiftShader) still opened the RTX 5080's
+  adapter: Windows' GPU Engine counters listed it, with 0 KB of GPU memory and 0% on every engine, and `nvidia-smi`
+  did not list it. `--disable-d3d11` and `--disable-gpu-process-for-dx12-info-collection` did not change that. With
+  `--disable-software-rasterizer` added, no process of the browser showed in the counters, and the page still played.
+  `playwright.config.ts` gives the four to Chromium on Windows (docs/working-notes.md, "The GPU in Playwright's
+  Chromium").

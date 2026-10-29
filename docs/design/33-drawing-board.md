@@ -7,10 +7,10 @@ record, with the import of a strategyjam.org game as a record. The owner's step 
 The review's view is in a package, on Hedge School's board and on Blueprints' (design 29, item 9). The tools for
 strategyjam.org and the import page are built: the page shows the record that a tool sends ("How a game comes in from
 strategyjam.org"). Their test on strategyjam.org waits for the owner (abscls-8tl1.12). The site fetches the engine's
-0.7.0 build (`engine-b64eea10`, on this machine only) as Hedge School fetches its own. For practice against Stamp Duty
-("Practice against Stamp Duty"), the board's hands panel and its fit are built. The page waits for the practice bot's
-build (the engine repository's abscls-1if9). The review and the Analysis board come after it (abscls-8tl1.7).
-**Decided:** 2026-10-25. Practice's layout: 2026-10-30.
+0.7.0 build with its practice bot (`engine-217be61f`, on this machine only) as Hedge School fetches its own. Practice
+against Stamp Duty (`/practice`) is built and plays on this machine ("Practice against Stamp Duty"). The review and the
+Analysis board come after it (abscls-8tl1.7).
+**Decided:** 2026-10-25. Practice's layout and its bot: 2026-10-30.
 
 ## Context
 
@@ -203,8 +203,8 @@ start, which Stamp Duty's early build (`engine-0d2a5416`) played. The script
 engine gives in `src/lib/board/fixtures.json`: each position, its mover, every legal move (describe), and what each
 move did (describe_game: the footprint, the captured cells, the points and the hands after it). The candidates and
 their lines are hand-made marks, and the engine plays each one where it stands, so each is a legal move. The 0.7.0
-build (`engine-b64eea10`) gives the five games the same data as the early build: only the file's header, which names
-the build, changed.
+builds (`engine-b64eea10`, then `engine-217be61f`) give the five games the same data as the early build: only the
+file's header, which names the build, changed.
 
 - **The build and the tests read the stored file:** CI has no engine files. `fixtures.engine.test.ts` runs the engine
   again and compares. It is skipped when the site has no engine (`npm run engine` was not run).
@@ -226,30 +226,66 @@ Drawing Board takes the engine's files as Hedge School does (design 03): `apps/d
 file by its SHA-256, and `npm run engine` (`packages/engine/src/fetch-engine.mjs`, which both sites run) puts them in
 `static/engine/` with their manifest. The page loads them from there.
 
-1. **The build:** `engine-b64eea10`, the engine repository's 0.7.0 build with the search of the root's views (request
-   24) and bpj4's network `b6c96-s19117184-d446546`. It is not released: the lock takes its files from the engine
-   repository's checkout beside this one (a source of kind `engines`). So `npm run engine -- --deploy` refuses it, as
-   it refuses each file that is not from a release. A live page needs a release with a trained network (the owner's
-   yes) and Drawing Board's Pages project (abscls-8tl1.3).
+1. **The build:** `engine-217be61f`, the engine repository's 0.7.0 build with the search of the root's views (request
+   24), its practice bot (`blueprints-bot.wasm`, interface 0.1.0, with `practice_bot.mjs`, request 25) and bpj4's
+   network `b6c96-s19117184-d446546`. Every file comes from the one build. It is not released: the lock takes its
+   files from the engine repository's checkout beside this one (a source of kind `engines`). So
+   `npm run engine -- --deploy` refuses it, as it refuses each file that is not from a release. A live page needs a
+   release with a trained network (the owner's yes) and Drawing Board's Pages project (abscls-8tl1.3).
 2. **Protocol 0.7.** Blueprints' build speaks 0.7.0, and Enclosure's stays 0.6.x (the engine repository's design 04,
    "Versioning"). The lock's `protocol` names the protocol that Drawing Board's code is written for, and the manifest
    carries it, so `packages/engine` refuses a module of another minor version for each site: 0.6.x for Hedge School,
    0.7.x for Drawing Board. The types take request 24's fields: the query's `rootViews`, a candidate's `checkVisits`,
    and `rootInfo`'s `views` and `searches`. The network's raw values are optional: a reply of more views has none.
 3. **No file only on this machine for the build or the tests.** The build and the Tests workflow run without
-   `static/engine`. The checks that need the engine skip without it (the fixtures' test).
+   `static/engine`. The checks that need the engine skip without it, with a message: the fixtures' test, and the
+   browser tests that play against the bot. Without the files, `/practice` says that the engine is not on the site.
 4. **The CPU only.** The lock has no GPU module, so the fetch script stores no ONNX Runtime for Drawing Board. The
-   page starts the engine with `createCpuEngine` alone.
+   rules' worker starts the engine with `createCpuEngine` alone. The bot is the practice bot with one search thread,
+   whose network runs in its own module, and its worker has no ONNX Runtime and no WebGPU code: Blueprints has no
+   threaded bot.
 
 ## Practice against Stamp Duty
 
 A game against Stamp Duty in the browser, as Hedge School's Practice (design 24, design 25): the settings card, then
 the game in the review's layout. The bot is the engine repository's practice bot for Blueprints (abscls-1if9), in
 Hedge School's form where Blueprints allows: KataGo's GTP engine with its play settings, not the analysis module's
-`chooseMove`, for the reasons of request 15 (the analysis settings, and a new tree for each query). The page and the
-bot's part are built when its build comes. Its range of visits is Hedge School's, 1 to 8,192.
+`chooseMove`, for the reasons of request 15 (the analysis settings, and a new tree for each query).
 
-**The layout** (the owner's choice, 2026-10-30, after screenshots of three layouts at design 06's sizes):
+**The bot** (the engine repository's games/blueprints/README.md, "The practice bot"): `blueprints-bot.wasm`, one
+search thread on the CPU, the native GTP engine's play settings, the root's views on. The page sends
+`blueprints-start SEED`, then the visits and the variety (`kata-set-param`, with GTP's half-life of 19 moves, as for
+Enclosure), then `play`, `genmove` and `undo` with the site's strings. A reload sets the bot's game to the kept moves
+with `blueprints-set-game`: `undo` then takes them back as any others, so a takeback works after a reload.
+
+**The game:** the engine's rules worker gives each position, what each move did and the player's legal moves
+(describe, describe_game), as on Hedge School's Practice. The page checks each of the bot's moves against the rules'
+legal moves, and stops the game with an error when one is not legal. An error of the engine stops the game too, with
+the engine's message ("The game stopped: ..."), as Hedge School shows it. The final score is the rules' score of the
+game's last position (`scores`, and the margin of `outcome`). This browser keeps the game in progress
+(`drawing-board:practice-game:1`), the choices (`drawing-board:practice-choices:1`) and the panel's place and size
+(`drawing-board:practice-panel:1`).
+
+**How it departs from Hedge School's Practice (design 24):**
+
+1. **The visits start at 27,** not 1: Drawing Board offers 27 to 8,192. With the root's views on, the bot's genmove
+   fails when the visits are at most twice the views of the position's cover, and the site's games have covers of up
+   to 13 views. It failed on no position with 27 visits or more (the engine's README, "The search"). The least is one
+   constant (`LEAST_VISITS` in `src/lib/practice/stampduty.ts`), so that the engine's fix (abscls-csmy, protocol
+   0.7.1) can lower it to 1.
+2. **A search of more views takes its best check, with no temperature,** and a move of another view keeps no tree for
+   the next move (the engine's README, "The search"). The variety then does not act on that move. Request 25 accepts
+   this.
+3. **No Your games, no stored game, no analytics and no review:** the site has no store of games, no backend (design
+   25) and no analytics (design 17) yet, and the review comes with abscls-8tl1.7. So a game that ends is no longer
+   kept: the next visit starts a new one. Abort ends the game, and it is gone.
+4. **Fewer display settings:** the points' bar always shows, with no second number (Blueprints has no area), and the
+   page has no sounds and no notes on the board. No game comes from a record or a set-up start: the Analysis board's
+   Play comes with it (abscls-8tl1.7).
+5. **The move list has one move a line,** each turn's number at its first move: Blueprints' moves are up to about 19
+   characters long, and two in a row do not fit the side column.
+
+**The layout** (chosen 2026-10-30, after screenshots of three layouts at design 06's sizes):
 
 1. **On a computer, the board takes all the room** left of the side column and under the players' row: the window's
    height less the row, and the width that the side column leaves at its widest. Blueprints' grid has no edge, so the
@@ -287,8 +323,11 @@ six screenshots on a computer, a corner was always free at the plain fit's scale
 
 **What it shares with Hedge School** (design 29: move, do not copy): the settings card and the game's frame
 (`@abstractclass/practice`: `PracticeCard.svelte`, and `PracticeFrame.svelte` with its board's box in the form
-"fill"), and the practice's part that is not Enclosure's (`practice.ts`: the visits and the variety, the choices and
-the kept game under each site's key, the GTP helpers, the takeback, the results). Hedge School's stored games (design
+"fill"), the practice's part that is not Enclosure's (`practice.ts`: the visits with each site's least, the variety
+and its help, the choices and the kept game under each site's key, the GTP helpers, the takeback, the results), and
+the bot's page side and its worker (`bot.ts`, `botWorker.ts`, `botMessages.ts`). Each site gives its worker module and
+the game's name in the bot's commands. Hedge School's threaded forms (the GPU, the CPU workers) stay in Hedge School
+(`botForms.ts`, `hedgefundWorker.ts`). Hedge School's stored games (design
 25) stay in Hedge School until Drawing Board has a backend: the server's check names Enclosure's edges, and the
 Pages Function bundles it alone.
 
@@ -432,6 +471,14 @@ the owner (abscls-8tl1.12). The tests use page states that they make, with moves
   the fit's choice of corner (`fitWithPanel`). `view.ts`, `fitAround`: the fit that keeps the hexes out from under it.
   `Board.svelte`, its prop `hands`: the hands in the board's box ("box", the lab's), in the panel ("panel") or under
   the field ("under"), with the panel's `place` and `size`. Tests: `panel.test.ts` and `view.test.ts`.
+- `apps/drawingboard/src/routes/practice/+page.svelte`: Practice. `src/lib/practice/game.svelte.ts`: the game, with
+  the rules' worker and the bot. `stampduty.ts`: the site's part of `@abstractclass/practice` (its keys, its networks,
+  `LEAST_VISITS`, the half-life, the bot's name). `botWorker.ts`: the bot's worker, in its one form.
+  `src/lib/board/described.ts`: the engine's describe and describe_game as the board draws them, for the lab and
+  Practice.
+- `apps/hedgeschool/tests/drawingboard-practice.spec.ts`: whole games against the bot, with each side to start, and a
+  reload in the middle. `layout.spec.ts`: the layout of `/practice` and of a game in progress. Both run with
+  `DB_BASE_URL`, and the games skip when the site has no bot.
 - `.github/workflows/deploy.yml`, the job `drawingboard`: the deploy, skipped while `DRAWINGBOARD_PAGES_PROJECT` is
   empty ([hosting.md](../hosting.md), "Drawing Board").
 - `apps/drawingboard/src/lib/board/`: the board, built on the lab's positions, which the engine's early build gave.
@@ -476,4 +523,5 @@ the owner (abscls-8tl1.12). The tests use page states that they make, with moves
 [decisions/product.md](../decisions/product.md), "Drawing Board, Blueprints' site" (2026-10-25), "The review's
 styles in packages/review and packages/site" (2026-10-26), "The player's own moves on Drawing Board, from the
 engine's legal moves" (2026-10-27), "The import's frame in packages/import, and Drawing Board's tools"
-(2026-10-27), and "Drawing Board's practice: its layout, its engine's files, and the shared parts" (2026-10-30).
+(2026-10-27), "Drawing Board's practice: its layout, its engine's files, and the shared parts" (2026-10-30), and
+"Drawing Board's practice: the bot and the page" (2026-10-30).
