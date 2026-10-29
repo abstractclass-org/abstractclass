@@ -10,8 +10,10 @@
 // The review shows a game of HedgeFund against itself, reviewed (tests/fixtures/hedgefund-review.json, made by
 // scripts/test-fixture.mjs), the Review tab with that game kept, and Practice a game in progress from it. The import
 // page shows the choice for a userscript's game, with the notice to update the userscript. Two tests check that the
-// monospaced font draws no ligatures, on Hedge School and on Drawing Board (DB_BASE_URL). A last test checks the step
-// bar on a phone, on the review, the Analysis board and Practice. Run: npm run test:layout (the site running first).
+// monospaced font draws no ligatures, on Hedge School and on Drawing Board (DB_BASE_URL). Two check Drawing Board's
+// Practice (DB_BASE_URL): its page, and a game in progress when the site has its practice bot. A last test checks the
+// step bar on a phone, on the review, the Analysis board and Practice. Run: npm run test:layout (the site running
+// first).
 import { expect, test, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { loadReviewFile } from "./review-file.ts";
@@ -146,6 +148,52 @@ for (const [site, urls] of Object.entries({
     }
   });
 }
+
+// Drawing Board's Practice (its design 33, "Practice against Stamp Duty"), when DB_BASE_URL gives its preview. The page
+// as the site's build gives it: the settings card with the engine's files, a notice without them (CI's build has none).
+// With the practice bot, a game in progress, the player to move: the lab's middle game, Stamp Duty's own moves
+// (apps/drawingboard/src/lib/board/fixtures.json). Besides the sweep, design 06's window sizes, 2,560 x 1,440 among them.
+// The page's own rules: the status line shows its whole text, and the hands' panel stays on the board.
+const DB_PRACTICE_SIZES = [[1376, 952], [1920, 1080], [2560, 1440], [390, 844]];
+test("layout of Drawing Board's /practice", async ({ page }) => {
+  test.skip(!DRAWING_BOARD, "DB_BASE_URL gives no Drawing Board preview");
+  await page.goto(new URL("/practice", DRAWING_BOARD).href);
+  await page.evaluate(() => localStorage.removeItem("drawing-board:practice-game:1"));
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Play as Blue" }).or(page.getByRole("alert"))).toBeVisible({ timeout: 60_000 });
+  expect(await sweep(page, "Drawing Board's /practice")).toBe("");
+});
+
+test("layout of a practice game on Drawing Board", async ({ page }) => {
+  test.skip(!DRAWING_BOARD, "DB_BASE_URL gives no Drawing Board preview");
+  const manifest = await page.request.get(new URL("/engine/manifest.json", DRAWING_BOARD).href).then(r => r.json()).catch(() => null);
+  test.skip(!manifest?.artifacts?.some((a: { kind: string }) => a.kind === "practice-module"),
+            "Drawing Board's preview has no practice bot: run `npm run engine` in apps/drawingboard before its build");
+  const fixtures = JSON.parse(readFileSync("../drawingboard/src/lib/board/fixtures.json", "utf8")).fixtures as { name: string; moves: string[] }[];
+  const moves = fixtures.find(f => f.name === "A middle game")!.moves; // Red to move
+  await page.goto(new URL("/practice", DRAWING_BOARD).href);
+  await page.evaluate(kept => localStorage.setItem("drawing-board:practice-game:1", JSON.stringify(kept)),
+    { version: 1, bot: { network: manifest.artifacts.find((a: { kind: string }) => a.kind === "model").id, visits: 32, variety: "low" },
+      human: 1, name: "", seed: 1, moves, builds: [], started: new Date().toISOString() });
+  await page.reload();
+  await expect(page.getByTestId("practice-status")).toHaveText(/^Your turn/, { timeout: 120_000 });
+  const own = (p: Page) => p.evaluate(() => {
+    const out: string[] = [], status = document.querySelector('[data-testid="practice-status"]');
+    if (status && status.scrollHeight > status.clientHeight + 1) out.push(`the status line cuts its text (${status.scrollHeight} in ${status.clientHeight})`);
+    const field = document.querySelector(".board .field")?.getBoundingClientRect(), panel = document.querySelector(".hands-panel")?.getBoundingClientRect();
+    if (field && panel && (panel.left < field.left - 1 || panel.top < field.top - 1 || panel.right > field.right + 1 || panel.bottom > field.bottom + 1))
+      out.push("the hands' panel leaves the board");
+    return out;
+  });
+  expect(await sweep(page, "a practice game on Drawing Board", own)).toBe("");
+  const found: string[] = [];
+  for (const [width, height] of DB_PRACTICE_SIZES) {
+    await page.setViewportSize({ width, height });
+    await settle(page);
+    found.push(...[...await problems(page), ...await own(page)].map(p => `${width} x ${height}: ${p}`));
+  }
+  expect(found).toEqual([]);
+});
 
 // The import page's choice for a tool's game (design 21), below the notice that an out-of-date userscript gets.
 test("layout of the choice for a tool's game", async ({ page }) => {
