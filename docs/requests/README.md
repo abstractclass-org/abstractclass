@@ -34,3 +34,4 @@ accepted, done (with the engine repository's commit, tag or document), or declin
 | 22 | [The opening book: KataGo's book method, as files for the site](22-opening-book.md) | open |
 | 23 | [Blueprints' engine in the browser, before the trained network](23-blueprints-browser-build.md) | open |
 | 24 | [Blueprints' browser engine searches the root's views](24-root-views-browser.md) | done (engine repository commit `d9d355e4`), to check here with Drawing Board's review |
+| 25 | [Practice games against Stamp Duty: Blueprints' GTP bot in the browser](25-blueprints-practice-bot.md) | open |
