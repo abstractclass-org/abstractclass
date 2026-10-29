@@ -52,7 +52,7 @@ the protocol, and its `games/blueprints/docs/decisions/port.md` the decision.
   with its view in the reply.
 - **An error:** when no pass finds a candidate (a `maxVisits` of 6 or less with 3 views), the reply is an error with
   the field `maxVisits`. The site's budgets are larger, but the site must show the error as a failed request.
-- **The protocol stays 0.6.1.** By the engine repository's design 04, a reply with no raw values and the new error
-  are breaking changes. But no site code reads those values for Blueprints, the site's budgets stay above 6 visits,
-  and no release of Blueprints' build exists yet. Request 23 asked for 0.6.1, so that the shared engine package
-  (`packages/engine`) needs no change. The version of the first release is set with that release.
+- **The protocol is 0.7.0** (engine repository commit `b64eea10`). By the engine repository's design 04, a reply
+  with no raw values and the new error are breaking changes, and a breaking change takes the next minor version at
+  once, also before a release. The shared engine package (`packages/engine`) then takes each site's protocol: 0.6.x
+  for Hedge School, 0.7.x for Drawing Board (abscls-8tl1.14).

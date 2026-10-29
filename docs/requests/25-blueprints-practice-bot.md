@@ -1,6 +1,7 @@
 # Practice games against Stamp Duty: Blueprints' GTP bot in the browser
 
-**Status:** accepted (the engine repository's issue abscls-1if9), with bpj4's network b6c96-s19117184-d446546.
+**Status:** done (engine repository commit `217be61f`, the build `engine-217be61f` on this machine), to check here
+with Drawing Board's practice page.
 **Asked:** 2026-10-30.
 
 ## What Drawing Board builds
@@ -50,3 +51,19 @@ with no temperature. Drawing Board accepts this.
 - A build with its manifest is on this machine.
 - Drawing Board then plays whole games against the bot in headless Chromium, with each side to start: every move that
   the bot plays is legal, and a reload keeps the game.
+
+## Delivered
+
+The practice bot in engine repository commit `217be61f` (KataGame `edadf38e`). The engine repository's
+`games/blueprints/README.md`, "The practice bot", gives its settings, its commands and how they differ from
+Enclosure's.
+
+- **The build:** `runs/wasm/blueprints/engine-217be61f/` in the engine repository, with its manifest and no release:
+  `blueprints-bot.wasm` (interface 0.1.0) with `practice_bot.mjs`, the engine module (protocol 0.7.0), and bpj4's
+  network b6c96-s19117184-d446546, which the manifest names by its own name.
+- **The play:** the native GTP engine's settings (`analysis_blueprints.cfg`, with no root noise), the tree kept from
+  move to move, and the search of the root's views. Its moves equal the native `genmove` in 240 of 240 positions.
+- **A reload:** `blueprints-set-game` starts a game from its moves, and `undo` takes these moves back as any others.
+- **The bot's info** gives the build, the rules, the network (its name, SHA-256 and size) and the settings.
+- **A limit:** with a cover of n views, a search of `maxVisits` 2n or less finds no move, and `genmove` gives an
+  error. So the page's visits start at 27, until the engine gives a move in that case (abscls-csmy).
