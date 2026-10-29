@@ -154,6 +154,15 @@ learn one, and remove a note when it stops being true. The work itself is in bea
   the GPU on Windows while no training ran. Check that the GPU worker started before a
   measurement relies on it: in one review with the real GPU's flags, WebGPU gave an adapter, but the engine settings
   said "The GPU did not start: 9943656". The cause is not known.
+  - **Off the GPU, for a run that needs no WebGPU** (the layout test, Drawing Board's practice games): with
+    `--disable-gpu` alone, Chromium's GPU process (`--type=gpu-process --use-angle=swiftshader-webgl`) still opens the
+    RTX 5080's adapter. Windows' GPU Engine counters list it there, with 0 KB of GPU memory and 0% on every engine,
+    and `nvidia-smi` does not list it. `--disable-d3d11` and `--disable-gpu-process-for-dx12-info-collection` added
+    do not change that. With `--disable-software-rasterizer` added to the three, no process of the browser shows in
+    the counters, the GPU process too, and the pages still play (2026-10-30, on Drawing Board's Practice).
+    `playwright.config.ts` gives the four to Chromium on Windows. To check a run, read the counters
+    `\GPU Engine(*)\Utilization Percentage` and `\GPU Process Memory(*)\Dedicated Usage` for each process under the
+    job's.
 - **A unit test of a module with runes** (`*.svelte.ts`): import `@abstractclass/analysis/testing/svelteModules.ts`
   first, then the module by a dynamic import, as `packages/analysis/src/analysis.test.ts` does. In Node the browser's
   store finds no IndexedDB, and every read of it answers as if the store were empty. The cache's memory (`cache.ts`)

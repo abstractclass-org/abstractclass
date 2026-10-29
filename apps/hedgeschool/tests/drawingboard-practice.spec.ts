@@ -88,7 +88,9 @@ for (const side of ["Blue", "Red"] as const) {
       status = await turn(page);
     }
     const kept = await keptMoves(page), all = await listed(page);
-    console.log(`${side}: ${all.length} moves, ${moves} of them the player's; ${status}`);
+    const points = await page.locator('[aria-label="Players and scores"] > div > div:first-child strong').allTextContents();
+    console.log(`${side}: ${all.length} moves, ${moves} of them the player's; ${status} The cards' points: ${points.join(", ")}.`);
+    console.log(`${side}'s moves: ${all.join(" ")}`);
     expect(status, `the game's moves: ${all.join(" ")}`).toMatch(/^The game is over/);
     expect(all.length).toBe(120);
     expect(kept).toBeNull(); // an ended game is no longer kept
