@@ -37,6 +37,8 @@
 
   const MISSING = "The engine is not on this site. You cannot play a practice game.";
   const DANGER = "hover:not-disabled:text-blunder hover:not-disabled:border-blunder"; // Abort and Resign, as Lichess's
+  const FILL_HEIGHT = "max(calc(100dvh - var(--site-header) - var(--strip) - var(--step-dock, 0px) - 1.5rem), " +
+                      "calc(100cqw - 2rem + 2 * min(104px, (100cqw - 2rem) / 3) + 12px))";
 
   // What the page shows: nothing until the script knows whether a game is in progress (the prerendered page cannot
   // know), then the settings card or the game.
@@ -216,6 +218,7 @@
 {:else if phase === "settings"}
   <PracticeCard bind:choices networks={NETWORKS.map(n => [n.id, `${n.name} (${megabytes(n.bytes)} MB)`])}
                 networkHelp="The network that {ENGINE_NAME} plays with." varietyHelp={VARIETY_HELP} visits={BOT_VISITS}
+                nameHelp={'The name above the board. Without a name, the page shows "You".'}
                 {ready} onside={newGame}>
     {#snippet intro()}A game against {ENGINE_NAME}, the engine, in your browser, with no clock: it searches each move to
       the visits you set. This browser keeps the game until it ends.{/snippet}
@@ -227,103 +230,101 @@
 {/if}
 
 <!-- The game, in the practice's frame (@abstractclass/practice) with the board that fills the room. In one column, the
-     board's box is the window's height less the header, the row and the step bar, and at least a square field with
-     its hands under it. The custom properties are in the style attribute, apart from the classes: a CSS build of calc()
-     with min() inside max() stops Vite. -->
+     board's box is the window's height less the header, the row (the frame's --strip), the step bar and the margins,
+     and at least a square field with its hands under it, each a third of the board's width high, 104 pixels at most,
+     with 6 pixels between (Board.svelte). The frame sets it as a custom property on its own element, where --strip
+     is: a CSS build of calc() with min() inside max() stops Vite, so it is not in a class. -->
 {#snippet gameView()}
   {@const g = game}
   {@const pos = g?.positions[shown]}
   {@const into = g && shown > 0 ? g.played[shown - 1] : null}
-  <div style="--w: calc(100cqw - 2rem); --least: calc(var(--w) + 2 * min(104px, var(--w) / 3) + 12px);
-              --avail: calc(100dvh - var(--site-header) - var(--strip) - var(--step-dock, 0px) - 1.5rem)">
-    <PracticeFrame form="fill" fillHeight="max(var(--avail), var(--least))"
-                   onstep={to => step(to === "first" ? 0 : to === "back" ? shown - 1 : to === "forward" ? shown + 1 : last)}
-                   atStart={!g || shown === 0} atEnd={!g || atLatest}>
-      {#snippet strip()}
-        {#if g && pos}
-          <PlayerRow gauge={false} label="Players and scores">
-            {#snippet blue()}{@render card(g, 0)}{/snippet}
-            {#snippet red()}{@render card(g, 1)}{/snippet}
-            {#snippet bar()}{@render pointsBar(pos.scores)}{/snippet}
-          </PlayerRow>
-        {:else}
-          <!-- The skeleton (the review's, PlayerCardSkeleton) while the bot starts: the row's height is the cards'. -->
-          {@const k = g?.kept ?? starting}
-          <PlayerRow gauge={false} label="Players and scores">
-            {#snippet blue()}<PlayerCardSkeleton player={0} name={k ? nameOf(k, 0) : undefined} />{/snippet}
-            {#snippet red()}<PlayerCardSkeleton player={1} name={k ? nameOf(k, 1) : undefined} />{/snippet}
-            {#snippet bar()}<div class="h-[1.15rem] {BONE}"></div>{/snippet}
-          </PlayerRow>
+  <PracticeFrame form="fill" fillHeight={FILL_HEIGHT}
+                 onstep={to => step(to === "first" ? 0 : to === "back" ? shown - 1 : to === "forward" ? shown + 1 : last)}
+                 atStart={!g || shown === 0} atEnd={!g || atLatest}>
+    {#snippet strip()}
+      {#if g && pos}
+        <PlayerRow gauge={false} label="Players and scores">
+          {#snippet blue()}{@render card(g, 0)}{/snippet}
+          {#snippet red()}{@render card(g, 1)}{/snippet}
+          {#snippet bar()}{@render pointsBar(pos.scores)}{/snippet}
+        </PlayerRow>
+      {:else}
+        <!-- The skeleton (the review's, PlayerCardSkeleton) while the bot starts: the row's height is the cards'. -->
+        {@const k = g?.kept ?? starting}
+        <PlayerRow gauge={false} label="Players and scores">
+          {#snippet blue()}<PlayerCardSkeleton player={0} name={k ? nameOf(k, 0) : undefined} />{/snippet}
+          {#snippet red()}<PlayerCardSkeleton player={1} name={k ? nameOf(k, 1) : undefined} />{/snippet}
+          {#snippet bar()}<div class="h-[1.15rem] {BONE}"></div>{/snippet}
+        </PlayerRow>
+      {/if}
+    {/snippet}
+    {#snippet board()}
+      {#if g && pos}
+        <Board position={pos} last={into?.move ?? null} layers={{ candidates: false }} {input} inputOn={taking} {hands}
+               bind:place={panel.place} bind:size={panel.size} />
+      {:else}
+        <div class="size-full rounded bg-board"></div>
+      {/if}
+    {/snippet}
+    {#snippet side()}
+      <h1 class="text-lg font-bold">Practice</h1>
+      {#if g}<p class="text-xs text-muted">{botName(g.kept.bot)}, on one thread.</p>{:else}<div class="h-3 mt-1 w-3/4 {BONE}"></div>{/if}
+      <p class="min-h-[1.25rem] mt-1 mb-1.5 text-xs text-muted">
+        {#if g?.lastTurnMs != null && g.status !== "over"}{ENGINE_NAME}'s last turn took {seconds(g.lastTurnMs)}.{/if}
+      </p>
+      <!-- The review's move list's look (moveList.ts), one move a line: each move a step to its position. A click on a
+           move does not focus it, as in the review. -->
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div bind:this={moveList} class={[MOVE_LIST, "min-h-24 max-[800px]:max-h-64"]}
+           onmousedown={e => { if ((e.target as Element).closest("button")) e.preventDefault(); }}>
+        {#if !g || g.status === "starting"}
+          {#each Array(starting?.moves.length ? 12 : 0) as _, k (k)}<div class="h-4 mb-2.5 {BONE}" style:width="{k % 3 === 2 ? 55 : 85}%"></div>{/each}
         {/if}
-      {/snippet}
-      {#snippet board()}
-        {#if g && pos}
-          <Board position={pos} last={into?.move ?? null} layers={{ candidates: false }} {input} inputOn={taking} {hands}
-                 bind:place={panel.place} bind:size={panel.size} />
-        {:else}
-          <div class="size-full rounded bg-board"></div>
-        {/if}
-      {/snippet}
-      {#snippet side()}
-        <h1 class="text-lg font-bold">Practice</h1>
-        {#if g}<p class="text-xs text-muted">{botName(g.kept.bot)}, on one thread.</p>{:else}<div class="h-3 mt-1 w-3/4 {BONE}"></div>{/if}
-        <p class="min-h-[1.25rem] mt-1 mb-1.5 text-xs text-muted">
-          {#if g?.lastTurnMs != null && g.status !== "over"}{ENGINE_NAME}'s last turn took {seconds(g.lastTurnMs)}.{/if}
-        </p>
-        <!-- The review's move list's look (moveList.ts), one move a line: each move a step to its position. A click on a
-             move does not focus it, as in the review. -->
-        <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <div bind:this={moveList} class={[MOVE_LIST, "min-h-24 max-[800px]:max-h-64"]}
-             onmousedown={e => { if ((e.target as Element).closest("button")) e.preventDefault(); }}>
-          {#if !g || g.status === "starting"}
-            {#each Array(starting?.moves.length ? 12 : 0) as _, k (k)}<div class="h-4 mb-2.5 {BONE}" style:width="{k % 3 === 2 ? 55 : 85}%"></div>{/each}
-          {/if}
-          {#each turns as t, k (k)}
-            {#each t.moves as m, i (m.at)}
-              <div class="grid grid-cols-[2.2rem_minmax(0,1fr)] items-baseline gap-x-1">
-                <span class={TURN_NUMBER}>{i === 0 ? `${k + 1}.` : ""}</span>
-                <button type="button" class={[moveButton(t.player, shown === m.at ? MOVE_HERE : undefined), "justify-self-start"]} tabindex="-1"
-                        aria-current={shown === m.at ? "step" : undefined} onclick={() => step(m.at)}>{m.text}</button>
-              </div>
-            {/each}
-          {/each}
-        </div>
-        {#if g?.status === "over"}
-          <div class="flex flex-wrap gap-2 mt-3">
-            <button type="button" class="btn-primary px-3 py-1 rounded text-sm" onclick={toSettings}>New game</button>
-          </div>
-        {/if}
-        {#if confirming && g}
-          <div class="mt-3 p-2 rounded border border-line bg-panel-2 text-sm" role="alertdialog" aria-label={confirming === "resign" ? "Resign" : "Abort"}
-               {@attach intoView}>
-            <p class="mb-2">{confirming === "resign" ? `Resign? ${ENGINE_NAME} wins.` : "Abort the game? You cannot continue it after this."}</p>
-            <div class="flex gap-2">
-              <button type="button" class="btn-danger text-sm" onclick={confirmAction}>{confirming === "resign" ? "Resign" : "Abort"}</button>
-              <button type="button" class="text-sm" onclick={() => (confirming = null)}>Keep playing</button>
+        {#each turns as t, k (k)}
+          {#each t.moves as m, i (m.at)}
+            <div class="grid grid-cols-[2.2rem_minmax(0,1fr)] items-baseline gap-x-1">
+              <span class={TURN_NUMBER}>{i === 0 ? `${k + 1}.` : ""}</span>
+              <button type="button" class={[moveButton(t.player, shown === m.at ? MOVE_HERE : undefined), "justify-self-start"]} tabindex="-1"
+                      aria-current={shown === m.at ? "step" : undefined} onclick={() => step(m.at)}>{m.text}</button>
             </div>
+          {/each}
+        {/each}
+      </div>
+      {#if g?.status === "over"}
+        <div class="flex flex-wrap gap-2 mt-3">
+          <button type="button" class="btn-primary px-3 py-1 rounded text-sm" onclick={toSettings}>New game</button>
+        </div>
+      {/if}
+      {#if confirming && g}
+        <div class="mt-3 p-2 rounded border border-line bg-panel-2 text-sm" role="alertdialog" aria-label={confirming === "resign" ? "Resign" : "Abort"}
+             {@attach intoView}>
+          <p class="mb-2">{confirming === "resign" ? `Resign? ${ENGINE_NAME} wins.` : "Abort the game? You cannot continue it after this."}</p>
+          <div class="flex gap-2">
+            <button type="button" class="btn-danger text-sm" onclick={confirmAction}>{confirming === "resign" ? "Resign" : "Abort"}</button>
+            <button type="button" class="text-sm" onclick={() => (confirming = null)}>Keep playing</button>
           </div>
-        {/if}
-      {/snippet}
-      <!-- The status line, over the steps: two lines high at least. In one column it is two lines high, so that a text
-           that changes does not move the board: the bar is fixed under the board, and the board's box counts its
-           height. The input's texts fit two lines of a phone (input.ts). -->
-      {#snippet above()}
-        <p class={["min-h-10 max-[800px]:h-10 max-[800px]:overflow-hidden mb-1.5 text-sm", g?.status === "failed" && "text-blunder"]}
-           role="status" aria-live="polite"
-           data-testid="practice-status">{statusText}</p>
-      {/snippet}
-      <!-- The game's actions, right of the steps: off while the bot starts, so that the bar keeps its layout. -->
-      {#snippet tools()}
-        {#if g?.status !== "over"}
-          <button class="btn-icon" aria-label="Take back" title="Takeback" disabled={!g?.canTakeBack} onclick={() => { viewAt = null; void g?.takeback(); }}><Icon name="takeback" /></button>
-          <button class={["btn-icon", DANGER]} aria-label="Abort" title="Abort" disabled={!g || g.status === "starting"}
-                  onclick={() => (confirming = "abort")}><Icon name="abort" /></button>
-          <button class={["btn-icon", DANGER]} aria-label="Resign" title="Resign"
-                  disabled={!g || g.status === "starting" || g.status === "failed"} onclick={() => (confirming = "resign")}><Icon name="resign" /></button>
-        {/if}
-      {/snippet}
-    </PracticeFrame>
-  </div>
+        </div>
+      {/if}
+    {/snippet}
+    <!-- The status line, over the steps: two lines high at least. In one column it is two lines high, so that a text
+         that changes does not move the board: the bar is fixed under the board, and the board's box counts its
+         height. The input's texts fit two lines of a phone (input.ts). -->
+    {#snippet above()}
+      <p class={["min-h-10 max-[800px]:h-10 max-[800px]:overflow-hidden mb-1.5 text-sm", g?.status === "failed" && "text-blunder"]}
+         role="status" aria-live="polite"
+         data-testid="practice-status">{statusText}</p>
+    {/snippet}
+    <!-- The game's actions, right of the steps: off while the bot starts, so that the bar keeps its layout. -->
+    {#snippet tools()}
+      {#if g?.status !== "over"}
+        <button class="btn-icon" aria-label="Take back" title="Takeback" disabled={!g?.canTakeBack} onclick={() => { viewAt = null; void g?.takeback(); }}><Icon name="takeback" /></button>
+        <button class={["btn-icon", DANGER]} aria-label="Abort" title="Abort" disabled={!g || g.status === "starting"}
+                onclick={() => (confirming = "abort")}><Icon name="abort" /></button>
+        <button class={["btn-icon", DANGER]} aria-label="Resign" title="Resign"
+                disabled={!g || g.status === "starting" || g.status === "failed"} onclick={() => (confirming = "resign")}><Icon name="resign" /></button>
+      {/if}
+    {/snippet}
+  </PracticeFrame>
 {/snippet}
 
 <!-- A player's card in the row above the board (the review's). The bot's settings are in the side column's first line. -->

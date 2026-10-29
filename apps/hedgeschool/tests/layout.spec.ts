@@ -153,7 +153,8 @@ for (const [site, urls] of Object.entries({
 // as the site's build gives it: the settings card with the engine's files, a notice without them (CI's build has none).
 // With the practice bot, a game in progress, the player to move: the lab's middle game, Stamp Duty's own moves
 // (apps/drawingboard/src/lib/board/fixtures.json). Besides the sweep, design 06's window sizes, 2,560 x 1,440 among them.
-// The page's own rules: the status line shows its whole text, and the hands' panel stays on the board.
+// The page's own rules: the status line shows its whole text, the hands' panel stays on the board, and in one column
+// (under 800 pixels) the field is at least as high as it is wide.
 const DB_PRACTICE_SIZES = [[1376, 952], [1920, 1080], [2560, 1440], [390, 844]];
 test("layout of Drawing Board's /practice", async ({ page }) => {
   test.skip(!DRAWING_BOARD, "DB_BASE_URL gives no Drawing Board preview");
@@ -183,6 +184,7 @@ test("layout of a practice game on Drawing Board", async ({ page }) => {
     const field = document.querySelector(".board .field")?.getBoundingClientRect(), panel = document.querySelector(".hands-panel")?.getBoundingClientRect();
     if (field && panel && (panel.left < field.left - 1 || panel.top < field.top - 1 || panel.right > field.right + 1 || panel.bottom > field.bottom + 1))
       out.push("the hands' panel leaves the board");
+    if (innerWidth < 800 && field && field.height < field.width - 1) out.push(`the field is ${Math.round(field.width)} wide and ${Math.round(field.height)} high`);
     return out;
   });
   expect(await sweep(page, "a practice game on Drawing Board", own)).toBe("");

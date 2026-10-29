@@ -14,12 +14,14 @@
     networkHelp: string;
     varietyHelp: Record<Variety, string>;
     visits?: VisitRange; // the visits that the site's bot takes (Hedge School's: from 1)
+    nameHelp?: string; // what the player's name is for (Hedge School's: the game's record)
     ready: boolean; // the rules are loaded: a game can start
     intro: Snippet; // what the game is, under the heading
     notes?: Snippet; // the site's notices: a record brought, a game aborted
     onside: (side: PracticeChoices["side"]) => void; // a side chosen: the game starts
   }
-  let { choices = $bindable(), networks, networkHelp, varietyHelp, visits = VISITS, ready, intro, notes, onside }: Props = $props();
+  let { choices = $bindable(), networks, networkHelp, varietyHelp, visits = VISITS,
+        nameHelp = `For the game's record. Without one, the record says "You".`, ready, intro, notes, onside }: Props = $props();
 
   // The visits box's text while the player types in it (null: it shows the setting). The visits change when the box is
   // left or Enter is pressed, as in the engine settings. A number that the bot does not take stays in the box with the
@@ -64,7 +66,7 @@
                    options={Object.entries(VARIETY_NAME)} get={() => choices.bot.variety} set={v => (choices.bot.variety = v as Variety)} />
     <div class="py-1.5">
       <label for="name" class="text-sm font-medium">Your name</label>
-      <p class="mb-1 text-xs text-muted">For the game's record. Without one, the record says "You".</p>
+      <p class="mb-1 text-xs text-muted">{nameHelp}</p>
       <input id="name" class="w-full max-w-72 px-2 py-1" maxlength="40" placeholder="You" autocomplete="off" bind:value={choices.name} />
     </div>
     <!-- The side starts the game, as on Lichess: Random in the middle, larger. -->
