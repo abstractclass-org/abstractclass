@@ -12,6 +12,7 @@
 	},
 	"dependencies": {
 		"@abstractclass/analysis": "*",
+		"@abstractclass/engine": "*",
 		"@abstractclass/review": "*",
 		"@abstractclass/site": "*",
 		"@abstractclass/storage": "*"

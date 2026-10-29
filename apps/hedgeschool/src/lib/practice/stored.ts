@@ -1,7 +1,7 @@
 // A practice game as the site stores it (design 25): what the browser sends when a game ends, and what the server
 // checks before it keeps it (functions/api/practice-games.ts). Never the name typed for the record, and never the
 // visitor's IP address. This module has no imports but types, so that the server's bundle takes it alone.
-import type { BotMode } from "./botMessages.ts";
+import type { BotMode } from "@abstractclass/practice/botMessages.ts";
 import type { PracticeOutcome, Variety } from "./hedgefund.ts";
 
 /** How a stored game ended, for the player: Practice's outcomes, and "set_aside", a game in progress left for a new

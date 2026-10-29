@@ -189,8 +189,11 @@ How strong each setting plays against people is not measured yet.
   (`packages/site/src/SettingChoice.svelte`, `SettingToggle.svelte`, and `src/lib/ui/SoundSettings.svelte`).
 - **The game:** `src/lib/practice/game.svelte.ts`: the moves to the bot and to the rules worker, the bot's time,
   Abort, Resign, the end and the save into Your games.
-- **The bot:** `src/lib/practice/bot.ts` (the form to start, with a fall back to the next) and `botWorker.ts` (the
-  bot in its worker, with ONNX Runtime set up as the GPU worker sets it up, `packages/engine/src/ort.ts`).
+- **The bot:** `src/lib/practice/botForms.ts` (the form to start, with a fall back to the next) and
+  `hedgefundWorker.ts` (the threaded bot's evaluators in the bot's worker, with ONNX Runtime set up as the GPU worker
+  sets it up, `packages/engine/src/ort.ts`). The page's side of the bot and its worker serve both sites, in
+  `@abstractclass/practice` (design 29): `packages/practice/src/bot.ts` (the bot in one form, sent GTP commands one at
+  a time), `botWorker.ts` (the bot in its worker, `serveBot`) and `botMessages.ts`.
 - **The pure parts:** the shared part in `packages/practice/src/practice.ts` (`@abstractclass/practice`, design 29):
   the visits and the variety, the choices and the kept game under each site's key, the GTP commands with each site's
   half-life, the takeback's reach, the results and the outcome. Hedge School's part in `src/lib/practice/hedgefund.ts`:

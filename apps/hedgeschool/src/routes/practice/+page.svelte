@@ -38,8 +38,8 @@
   import { readLocalJson, writeLocal } from "@abstractclass/storage/local.ts";
   import { browserNumber, startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
   import { sendPractice } from "#lib/practice/send.ts";
-  import { startBot } from "#lib/practice/bot.ts";
-  import type { BotMode } from "#lib/practice/botMessages.ts";
+  import { startBot } from "#lib/practice/botForms.ts";
+  import type { BotMode } from "@abstractclass/practice/botMessages.ts";
   import { PracticeGame, saveUnfinished } from "#lib/practice/game.svelte.ts";
   import { botName, keep, loadChoices, loadKept, practiceEndParams, practiceOutcome, practiceParams, practiceTurn, saveChoices,
            type KeptPractice, type PracticeOutcome, type Variety } from "#lib/practice/hedgefund.ts";

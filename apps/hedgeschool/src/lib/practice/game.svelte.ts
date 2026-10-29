@@ -14,8 +14,8 @@ import type { Move, Player, Position } from "#lib/review/enclosure.ts";
 import { botCommands, gtpColor, keep, practiceRecord, resignResult, scoreResult, takebackCount, type KeptPractice, type PracticeOutcome } from "./hedgefund.ts";
 import { sendPractice, storedGame, type StoredPractice } from "./send.ts";
 import { browserNumber } from "#lib/analytics.svelte.ts";
-import type { PracticeBot } from "./bot.ts";
-import type { BotMode } from "./botMessages.ts";
+import type { PracticeBot } from "@abstractclass/practice/bot.ts";
+import type { BotMode } from "@abstractclass/practice/botMessages.ts";
 
 /** Whose move it is, or the game's state when nobody moves. "playing": the player's edge, on its way to the bot and
  *  the rules. */

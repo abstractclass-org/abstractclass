@@ -10,7 +10,7 @@ import {
   botLabel, choicesStore, keptStore, settingsCommands, VARIETY_NAME, type BotSettings, type KeptPractice as Kept,
   type PracticeOutcome,
 } from "@abstractclass/practice/practice.ts";
-import type { BotMode } from "./botMessages.ts";
+import type { BotMode } from "@abstractclass/practice/botMessages.ts";
 
 export * from "@abstractclass/practice/practice.ts";
 
