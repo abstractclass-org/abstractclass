@@ -1,6 +1,7 @@
 # Practice games against Stamp Duty: Blueprints' GTP bot in the browser
 
-**Status:** open. **Asked:** 2026-10-30.
+**Status:** accepted (the engine repository's issue abscls-1if9), with bpj4's network b6c96-s19117184-d446546.
+**Asked:** 2026-10-30.
 
 ## What Drawing Board builds
 
@@ -35,8 +36,10 @@ that bot in the browser (`enclosure-bot.wasm`, the engine repository's
    seed, takebacks, no resignation, and a version. A start from a game's moves, for a reload of the page (design 25).
 4. **The CPU first:** one search thread, in any browser. The batched and GPU forms can come later.
 5. **The reply names the build, the network and the play settings,** so that the game's record can name its opponent.
-6. **A build on this machine with its manifest,** as request 23's early build, with Stamp Duty 0.1. A release follows
-   with the trained network.
+6. **A build on this machine with its manifest,** as request 23's early build, with the strongest network that the
+   training has. Practice plays the network, so a test network does not serve. Stamp Duty 0.1 (bpj2's
+   b6c96-s3635840-d475170) is far weaker than bpj4's networks. A build that stays on this machine needs no release, so
+   its manifest names the network by its own name. A release and its Stamp Duty number come later.
 
 The variety of request 15 stays as the engine gives it: in a search of more views, `genmove` takes the best check,
 with no temperature. Drawing Board accepts this.
