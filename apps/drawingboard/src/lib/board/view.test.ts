@@ -1,6 +1,28 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { FIT_MAX, fit, pan, pinch, SCALE_MAX, SCALE_MIN, toArea, toPlane, viewBox, zoomAt } from "./view.ts";
+import { boxOf, center, type Hex } from "./hex.ts";
+import { FIT_MAX, fit, fitAround, pan, pinch, SCALE_MAX, SCALE_MIN, toArea, toPlane, viewBox, zoomAt, type Rect, type Size,
+         type View } from "./view.ts";
+
+/** The hexes whose shapes' boxes, in the area's pixels, overlap the rectangle, and the hexes not wholly in the area. */
+function underAndOut(hexes: readonly Hex[], v: View, area: Size, cover: Rect) {
+  const boxes = hexes.map(h => {
+    const [x, y] = toArea(v, area, ...center(h)), hw = v.scale * Math.sqrt(3) / 2, hh = v.scale;
+    return { x0: x - hw, x1: x + hw, y0: y - hh, y1: y + hh };
+  });
+  const e = 1e-6;
+  return {
+    under: boxes.filter(b => b.x1 > cover.x + e && b.x0 < cover.x + cover.width - e && b.y1 > cover.y + e && b.y0 < cover.y + cover.height - e).length,
+    out: boxes.filter(b => b.x0 < -e || b.y0 < -e || b.x1 > area.width + e || b.y1 > area.height + e).length,
+  };
+}
+/** A rectangle of hexes on the screen: the rows r0 to r1, each with the hexes whose columns (2q + r, half a hex's width
+ *  apart) are from c0 to c1. */
+function block(c0: number, c1: number, r0: number, r1: number): Hex[] {
+  const out: Hex[] = [];
+  for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) if ((c - r) % 2 === 0) out.push([(c - r) / 2, r]);
+  return out;
+}
 
 const size = { width: 400, height: 300 };
 const near = (a: readonly number[], b: readonly number[]) =>
@@ -41,4 +63,29 @@ test("a pinch zooms by the fingers' distance, and the plane follows their midpoi
   assert.equal(p.scale, 20);
   near(toPlane(p, size, 140, 90), toPlane(v, size, 100, 100));
   assert.deepEqual(pinch(v, size, { x: 0, y: 0, d: 0 }, { x: 0, y: 0, d: 40 }).scale, 10); // no distance at the start
+});
+
+test("a fit round a cover is the plain fit when no hex lies under the cover", () => {
+  const area = { width: 800, height: 600 }, hexes = block(-6, 6, -2, 2);
+  const cover = { x: 790, y: 0, width: 10, height: 10 }; // the corner, which the cells leave free
+  assert.deepEqual(fitAround(hexes, area, cover, 1.2), fit(boxOf(hexes)!, area, 1.2));
+});
+
+test("a fit round a cover keeps every hex out from under it and in the area, at a smaller scale when it must", () => {
+  const area = { width: 959, height: 819 }, hexes = block(-60, 60, -15, 15); // a board full of hexes
+  const cover = { x: 627, y: 6, width: 326, height: 230 }; // the hands' panel in the top-right corner
+  const plain = fit(boxOf(hexes)!, area, 1.2), v = fitAround(hexes, area, cover, 1.2);
+  assert.ok(underAndOut(hexes, plain, area, cover).under > 0);
+  assert.deepEqual(underAndOut(hexes, v, area, { x: cover.x - 4, y: cover.y - 4, width: cover.width + 8, height: cover.height + 8 }),
+                   { under: 0, out: 0 }); // with the 4 pixels kept round the cover
+  assert.ok(v.scale < plain.scale && v.scale > plain.scale / 2, `${v.scale} against ${plain.scale}`);
+});
+
+test("a fit round a cover can show the cover in a gap of the hexes", () => {
+  // Two blocks with a gap between them as wide as the cover: the cover fits in it, and the fit keeps most of its scale.
+  const area = { width: 1000, height: 400 }, hexes = [...block(-80, -24, -4, 4), ...block(24, 80, -4, 4)];
+  const plain = fit(boxOf(hexes)!, area, 1.2), cover = { x: 460, y: 100, width: 80, height: 200 };
+  const v = fitAround(hexes, area, cover, 1.2);
+  assert.equal(underAndOut(hexes, v, area, cover).under, 0);
+  assert.ok(v.scale > 0.9 * plain.scale, `${v.scale} against ${plain.scale}`);
 });

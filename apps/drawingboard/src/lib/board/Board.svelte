@@ -34,7 +34,11 @@
   import { clickBoard, clickHand, handHexOf, tapHex } from "./input.ts";
   import { boxOf, center, fromMiddle, GRID_TILE, GRID_TILE_PATH, hexAt, hexKey, hexPath, outlinePath, sameHex } from "./hex.ts";
   import { cellsOf, footprintOf, PLAYER_NAMES, sameHandHex } from "./position.ts";
-  import { clamp, fit, pan, pinch, toArea, toPlane, viewBox, zoomAt, type View } from "./view.ts";
+  import { untrack } from "svelte";
+  import { clamp, fit, fitAround, pan, pinch, toArea, toPlane, viewBox, zoomAt, type Rect, type Size, type View } from "./view.ts";
+  import { FIRST_PLACE, FIRST_SIZE, fitWithPanel, handleSide, handsOf, HANDS_GAP, PANEL_GRIP, PANEL_PAD, panelRect,
+           panelSizeIn, placeAt, resized,
+           type PanelPlace } from "./panel.ts";
 
   interface Props {
     position: SitePosition;
@@ -52,10 +56,17 @@
     onhexat?: (at: BoardHex | null) => void;
     input?: BlueprintInput | null; // the player's own moves
     inputOn?: boolean; // the page lets the board take them: no preview shows (the board also needs the input's rules)
+    // Where the hands go: beside the field in its area ("box"), in a panel over the field that the player can drag
+    // ("panel"), or under the field, Blue's above Red's ("under")
+    hands?: "box" | "panel" | "under";
+    // The panel's place, which a drag and a fit change, and its size, which its handle changes: the page keeps them
+    place?: PanelPlace;
+    size?: Size;
   }
   let {
     position, last = null, candidates = [], pointed = null, line = null, layers: layersSet = {},
-    oncandidate, oncandidateclick, onhexat, input = null, inputOn = true,
+    oncandidate, oncandidateclick, onhexat, input = null, inputOn = true, hands: handsForm = "box",
+    place = $bindable(FIRST_PLACE), size = $bindable(FIRST_SIZE),
   }: Props = $props();
   const layers = $derived({ ...DEFAULT_LAYERS, ...layersSet });
 
@@ -65,15 +76,24 @@
 
   // The layout: the area's size, and the hands' column (a wide area, 1.25 times as wide as high) or row (a tall one).
   // The hands take a share of the area, within limits in pixels. These are the board's own values, checked on the lab
-  // page at 360, 800 and 1,400 pixels wide: on a phone, columns would leave the field half its width (design 33).
+  // page at 360, 800 and 1,400 pixels wide: on a phone, columns would leave the field half its width (design 33). In
+  // the panel, each hand is a row that the panel's size sets (panel.ts). Under the field, each hand is a row as wide as
+  // the area, and a third of that high at most.
   let width = $state(0), height = $state(0);
-  const sides = $derived(width > 1.25 * height);
+  const sides = $derived(handsForm === "box" && width > 1.25 * height);
   const GAP = 6; // between the hands and the field
-  const handSize = $derived(sides ? clamp(width * 0.13, 72, 170) : clamp(height * 0.17, 52, 120));
-  const handArea = $derived(sides ? { width: handSize, height } : { width, height: handSize });
+  const handSize = $derived(sides ? clamp(width * 0.13, 72, 170)
+    : handsForm === "under" ? Math.min(104, width / 3) : clamp(height * 0.17, 52, 120));
+  // The panel's size within its limits in this area, and while the player resizes it, the size that the handle shows.
+  let resizeTo = $state<Rect | null>(null);
+  const panelSize = $derived(panelSizeIn(size, { width, height }, zoomRectOf({ width, height })));
+  const shownPanel = $derived(resizeTo ?? panelSize);
+  const handArea = $derived(handsForm === "panel" ? handsOf(shownPanel) : sides ? { width: handSize, height } : { width, height: handSize });
   const direction = $derived(sides ? "column" : "row");
-  const field = $derived(sides ? { width: Math.max(0, width - 2 * (handSize + GAP)), height }
-                               : { width, height: Math.max(0, height - 2 * (handSize + GAP)) });
+  const field = $derived(handsForm === "panel" ? { width, height }
+    : handsForm === "under" ? { width, height: Math.max(0, height - 2 * (handSize + GAP)) }
+    : sides ? { width: Math.max(0, width - 2 * (handSize + GAP)), height }
+    : { width, height: Math.max(0, height - 2 * (handSize + GAP)) });
 
   // The hands shown: the position's, or a line's after its last move drawn. A line's edits are in those hands' frames.
   const drawn = $derived(line ?? []);
@@ -96,12 +116,67 @@
   // legal placement too, so that each dot is in view: also while the input is off, so that the view stays as it is
   // when the input turns on. A page that sets the rules after the position (the review, when the engine's describe
   // answers) sees the view fit again once, when they come.
+  // With the hands' panel, a fit keeps every hex out from under the panel, and may move the panel to the corner where
+  // the fit is larger (panel.ts). A drag or a resize of the panel is the player's choice, as a pan or a zoom is: the
+  // fits after it (a move, a change of the area's size) keep the panel where it is, and fit as if no panel were there,
+  // so a drag never makes the board smaller. "Show all the cells" and a new page fit with the panel again.
   let manual = $state.raw<View | null>(null);
-  const fitBox = $derived(boxOf([...allCells.map(c => c.hex), ...(lastPlace?.captured ?? []).map(c => c.hex),
-                                 ...(input?.allAnchors ?? [])])
-    ?? boxOf([[-2, -2], [2, 2]])!);
-  const view = $derived(manual ?? fit(fitBox, field, 1.2));
+  let chosen = $state(false); // the player dragged or resized the panel
+  const fitHexes = $derived([...allCells.map(c => c.hex), ...(lastPlace?.captured ?? []).map(c => c.hex), ...(input?.allAnchors ?? [])]);
+  const fitBox = $derived(boxOf(fitHexes) ?? boxOf([[-2, -2], [2, 2]])!);
+  const ZOOM_BUTTONS = { width: 3 * 30 + 2 * 4, height: 30, inset: 6 }; // the buttons at the field's lower right
+  function zoomRectOf(area: Size): Rect {
+    return { x: area.width - ZOOM_BUTTONS.inset - ZOOM_BUTTONS.width, y: area.height - ZOOM_BUTTONS.inset - ZOOM_BUTTONS.height,
+             width: ZOOM_BUTTONS.width, height: ZOOM_BUTTONS.height };
+  }
+  const zoomRect = $derived(zoomRectOf(field));
+  const hasPanel = $derived(handsForm === "panel" && field.width > 0 && field.height > 0);
+  // When the cells, the legal moves or the area change, the fit may move the panel to a corner, before the board
+  // draws. Not after the player's choice, and not in a view that the player panned or zoomed.
+  $effect.pre(() => {
+    if (!hasPanel || manual || chosen) return;
+    const hexes = fitHexes, area = field;
+    untrack(() => {
+      const best = fitWithPanel(hexes, area, panelSize, place, zoomRect, 1.2).place;
+      if (best !== place) place = best;
+    });
+  });
+  // The panel's rectangle, and its rectangle while the player drags it (`dragAt`) or resizes it (`resizeTo`).
+  let dragAt = $state<Rect | null>(null);
+  const panelAt = $derived(panelRect(place, field, panelSize, zoomRect));
+  const shownAt = $derived(resizeTo ?? dragAt ?? panelAt);
+  const view = $derived(manual ?? (hasPanel && !chosen ? fitAround(fitHexes, field, panelAt, 1.2) : fit(fitBox, field, 1.2)));
   const vb = $derived(viewBox(view, field));
+  /** Shows all the cells: the fit, with the panel again. */
+  function fitAll() { manual = null; chosen = false; }
+  // A drag of the panel's top strip moves it, and a drag of its handle resizes it. Each keeps the pointer's offset from
+  // where the press began, and sets the place and the size at its end.
+  let panelGesture = $state.raw<{ id: number; kind: "move" | "size"; x: number; y: number; from: Rect; side: "left" | "right" } | null>(null);
+  function grab(ev: PointerEvent, kind: "move" | "size") {
+    if (ev.pointerType === "mouse" && ev.button !== 0) return;
+    (ev.currentTarget as Element).setPointerCapture(ev.pointerId);
+    panelGesture = { id: ev.pointerId, kind, x: ev.clientX, y: ev.clientY, from: panelAt, side: handleSide(panelAt, field) };
+    ev.preventDefault();
+  }
+  function drag(ev: PointerEvent) {
+    const g = panelGesture;
+    if (g?.id !== ev.pointerId) return;
+    const dx = ev.clientX - g.x, dy = ev.clientY - g.y;
+    if (g.kind === "size") resizeTo = resized(g.from, g.side, dx, dy, field, zoomRect);
+    else dragAt = panelRect(placeAt(g.from.x + dx, g.from.y + dy, field, g.from), field, g.from, zoomRect);
+  }
+  function drop(ev: PointerEvent) {
+    const g = panelGesture;
+    if (g?.id !== ev.pointerId) return;
+    panelGesture = null;
+    const to = resizeTo ?? dragAt;
+    if (to) {
+      size = { width: to.width, height: to.height };
+      place = placeAt(to.x, to.y, field, to);
+      chosen = true;
+    }
+    dragAt = resizeTo = null;
+  }
 
   // The candidates: the placements, best first, and the edits. Where each placement's rank goes: on its footprint's hex
   // nearest the footprint's middle, or on the next nearest that keeps clear of the better candidates' ranks and anchor
@@ -282,22 +357,46 @@
   <text {x} y={y + 0.27} class="badge-number">{rank}</text>
 {/snippet}
 
-<div class="board" class:sides bind:clientWidth={width} bind:clientHeight={height}
+{#snippet handOf(p: Player)}
+  <Hand hand={hands[p]} player={p} width={handArea.width} height={handArea.height} {direction} {unit}
+        boxes={boxes[p]} marks={marks[p]} input={handInput(p)} hover={handHover?.player === p ? handHover.at : null}
+        onhover={at => handAt(p, at)}
+        onpick={(at, touch) => {
+          const c = handCandidate(p, at);
+          if (c) oncandidateclick?.(c.name);
+          else takes?.clickHand(p, at, touch);
+        }} />
+{/snippet}
+
+<div class="board {handsForm}" class:sides bind:clientWidth={width} bind:clientHeight={height}
      style:--hand="{handSize}px" style:--gap="{GAP}px">
-  {#each players as p (p)}
-    <div class="hand-area p{p}">
-      {#if width > 0 && height > 0}
-        <Hand hand={hands[p]} player={p} width={handArea.width} height={handArea.height} {direction} {unit}
-              boxes={boxes[p]} marks={marks[p]} input={handInput(p)} hover={handHover?.player === p ? handHover.at : null}
-              onhover={at => handAt(p, at)}
-              onpick={(at, touch) => {
-                const c = handCandidate(p, at);
-                if (c) oncandidateclick?.(c.name);
-                else takes?.clickHand(p, at, touch);
-              }} />
-      {/if}
+  {#if handsForm !== "panel"}
+    {#each players as p (p)}
+      <div class="hand-area p{p}">
+        {#if width > 0 && height > 0}{@render handOf(p)}{/if}
+      </div>
+    {/each}
+  {:else if field.width > 0 && field.height > 0}
+    <!-- The hands' panel over the field: Blue's hand above Red's. Its top strip drags it, and the handle at its lower
+         corner towards the field's middle resizes it, inside the field and off the zoom's buttons. -->
+    {@const side = panelGesture?.side ?? handleSide(shownAt, field)}
+    <div class="hands-panel" style:left="{shownAt.x}px" style:top="{shownAt.y}px" style:width="{shownAt.width}px"
+         style:height="{shownAt.height}px" style:--pad="{PANEL_PAD}px" style:--grip="{PANEL_GRIP}px"
+         style:--rows-gap="{HANDS_GAP / 2}px">
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div class="grip" class:dragging={!!dragAt} title="Drag to move the hands" onpointerdown={ev => grab(ev, "move")}
+           onpointermove={drag} onpointerup={drop} onpointercancel={drop}><span></span></div>
+      {@render handOf(0)}
+      {@render handOf(1)}
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div class="resize {side}" title="Drag to resize the hands" onpointerdown={ev => grab(ev, "size")}
+           onpointermove={drag} onpointerup={drop} onpointercancel={drop}>
+        <svg viewBox="0 0 10 10" width="10" height="10" aria-hidden="true">
+          <path d={side === "right" ? "M9 3L3 9M9 6L6 9" : "M1 3L7 9M1 6L4 9"} />
+        </svg>
+      </div>
     </div>
-  {/each}
+  {/if}
 
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="field" class:aim={foot?.legal} bind:this={el} onpointerdown={down} onpointermove={move} onpointerup={ev => up(ev, true)}
@@ -431,7 +530,7 @@
       <div class="absolute right-1.5 bottom-1.5 flex gap-1">
         <button type="button" class={[TOOL, "text-ink"]} onclick={() => zoomBy(Math.SQRT2)} aria-label="Zoom in" title="Zoom in">+</button>
         <button type="button" class={[TOOL, "text-ink"]} onclick={() => zoomBy(Math.SQRT1_2)} aria-label="Zoom out" title="Zoom out">−</button>
-        <button type="button" class={[TOOL, manual ? "text-ink" : "text-muted"]} onclick={() => (manual = null)}
+        <button type="button" class={[TOOL, manual || chosen ? "text-ink" : "text-muted"]} onclick={fitAll}
                 aria-label="Show all the cells" title="Show all the cells">
           <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
             <path d="M1 5V1h4M11 1h4v4M15 11v4h-4M5 15H1v-4" fill="none" stroke="currentColor" stroke-width="1.6" />
@@ -450,6 +549,23 @@
     grid-template-areas: "blue" "field" "red";
   }
   .board.sides { grid-template-columns: var(--hand) 1fr var(--hand); grid-template-rows: 1fr; grid-template-areas: "blue field red"; }
+  .board.under { grid-template-areas: "field" "blue" "red"; grid-template-rows: 1fr var(--hand) var(--hand); }
+  .board.panel { position: relative; grid-template-columns: 1fr; grid-template-rows: 1fr; grid-template-areas: "field"; }
+  .hands-panel {
+    position: absolute; z-index: 2; display: grid; align-content: start; gap: var(--rows-gap);
+    padding: 0 var(--pad) var(--pad); border: 1px solid var(--border); border-radius: 8px;
+    background: color-mix(in srgb, var(--panel) 92%, transparent); box-shadow: 0 2px 10px rgb(0 0 0 / 0.18);
+  }
+  .grip { height: var(--grip); display: grid; place-items: center; cursor: grab; touch-action: none; }
+  .grip.dragging { cursor: grabbing; }
+  .grip > span { width: 36px; height: 4px; border-radius: 2px; background: var(--muted); opacity: 0.6; }
+  /* The resize handle: a square at the panel's lower corner, its two lines towards that corner. */
+  .resize {
+    position: absolute; bottom: 0; width: 16px; height: 16px; display: grid; place-items: center; touch-action: none;
+  }
+  .resize.right { right: 0; cursor: nwse-resize; }
+  .resize.left { left: 0; cursor: nesw-resize; }
+  .resize path { fill: none; stroke: var(--muted); stroke-width: 1.4; stroke-linecap: round; }
   .hand-area { min-width: 0; min-height: 0; overflow: hidden; }
   .hand-area.p0 { grid-area: blue; }
   .hand-area.p1 { grid-area: red; }
