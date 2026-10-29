@@ -1,67 +1,40 @@
-// The board lab's positions (src/lib/board/fixtures.ts), from Stamp Duty's early build: each position is a game of
-// moves from the standard start, and the engine gives the position, every legal move and what each move did. The site
-// has no rules (CLAUDE.md): it never computes which moves are legal, so the lab's legal moves come from here, complete.
-// The candidates and their lines are hand-made marks, but the engine plays each of them where it stands, and refuses
-// one that is not legal. No game of strategyjam.org's archive: this repository is public.
+// The board lab's positions (src/lib/board/fixtures.ts), from Stamp Duty's build: each position is a game of moves
+// from the standard start, and the engine gives the position, every legal move and what each move did. The site has
+// no rules (CLAUDE.md): it never computes which moves are legal, so the lab's legal moves come from here, complete. The
+// candidates and their lines are hand-made marks, but the engine plays each of them where it stands, and refuses one
+// that is not legal. No game of strategyjam.org's archive: this repository is public.
 //
-//   node scripts/board-fixtures.mjs [ENGINE_FOLDER]     writes src/lib/board/fixtures.json
+//   npm run engine && node scripts/board-fixtures.mjs     writes src/lib/board/fixtures.json
 //
-// ENGINE_FOLDER: the build's folder, with its manifest.json, its module blueprints-engine.wasm and its library
-// gpu_engine.mjs (the engine repository's games/blueprints/README.md, "The browser build"). By default, the engine
-// repository's checkout beside this repository's (also from a worktree): engines/runs/wasm/blueprints/engine-0d2a5416.
-// The engine's files are not in this repository, and CI has none: the build and the tests read the stored data file,
-// and the test that runs the engine again and compares (src/lib/board/fixtures.engine.test.ts) is skipped without the
-// folder.
+// The build is the one that the site's engine.lock.json pins, which `npm run engine` puts in static/engine with its
+// SHA-256 checked (@abstractclass/engine's fetch-engine.mjs). Its files are not in this repository, and CI has none:
+// the build and the tests read the stored data file, and the test that runs the engine again and compares
+// (src/lib/board/fixtures.engine.test.ts) is skipped without them.
 //
-// The module runs on the CPU, through the engine's own library, as Hedge School's scripts/node-engine.mjs runs its
-// module: the build's gpu_engine.mjs (its asset of kind "gpu-library"), whose createCpuEngine drives the CPU module
-// with the few WASI imports that it needs. The script calls nothing else of the library. describe and describe_game
-// need no network.
-import { createHash } from "node:crypto";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+// The module runs on the CPU in Node, through the engine's own library, as both sites' checks run their modules
+// (@abstractclass/engine/node-engine.mjs). describe and describe_game need no network.
+import { writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { loadLibrary } from "@abstractclass/engine/library.ts";
+import { fileURLToPath } from "node:url";
+import { hasEngine, nodeEngine } from "@abstractclass/engine/node-engine.mjs";
 
 const app = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-/** The build that the data file comes from. */
-export const ENGINE_TAG = "engine-0d2a5416";
 export const DATA_FILE = join(app, "src", "lib", "board", "fixtures.json");
+/** Whether the site has its engine (`npm run engine`): the test that compares with it skips without it. */
+export const engineHere = () => hasEngine(app);
 
-/** The build's folder: `folder`, or else the engine repository's checkout beside an ancestor of this app. Null when
- *  there is none (CI). */
-export function engineFolder(folder = process.env.BLUEPRINTS_ENGINE) {
-  if (folder) return resolve(folder);
-  for (let dir = app; ; dir = dirname(dir)) {
-    const found = join(dir, "engines", "runs", "wasm", "blueprints", ENGINE_TAG);
-    if (existsSync(join(found, "manifest.json"))) return found;
-    if (dirname(dir) === dir) return null;
-  }
-}
-
-/** The CPU module, started by the build's library: `call(request)` sends one request of the engine protocol and parses
- *  its reply. A reply with an error throws. The module and the library must have the SHA-256 that the manifest gives.
- *  @param {string} folder */
-export async function blueprintsEngine(folder) {
-  const manifest = JSON.parse(readFileSync(join(folder, "manifest.json"), "utf8"));
-  /** The manifest's asset of a kind, its file's bytes, and their SHA-256, checked. @param {string} kind */
-  const asset = kind => {
-    const a = manifest.assets.find((/** @type {{ kind: string }} */ a) => a.kind === kind);
-    const path = join(folder, a.file), bytes = readFileSync(path);
-    const sha256 = createHash("sha256").update(bytes).digest("hex");
-    if (sha256 !== a.sha256) throw new Error(`${a.file}: SHA-256 ${sha256}, but the manifest gives ${a.sha256}`);
-    return { ...a, path, bytes, sha256 };
-  };
-  const module = asset("module"), library = asset("gpu-library");
-  const lib = await loadLibrary(pathToFileURL(library.path).href);
-  const cpu = await lib.createCpuEngine(await WebAssembly.compile(module.bytes));
+/** The site's CPU module: `call(request)` sends one request of the engine protocol and parses its reply. A reply with
+ *  an error throws. `engine` names the build: its tag, build and protocol, and the module's SHA-256. */
+export async function blueprintsEngine() {
+  const { module, call: send } = await nodeEngine(app);
   /** @param {object} request */
   function call(request) {
-    const reply = JSON.parse(cpu.call(request));
+    const reply = send(request);
     if (reply.error) throw new Error(`${JSON.stringify(request).slice(0, 200)}: ${reply.error}`);
     return reply;
   }
-  return { engine: { tag: ENGINE_TAG, build: module.build, protocol: module.protocol, sha256: module.sha256 }, call };
+  const version = call({ id: "v", action: "query_version" });
+  return { engine: { tag: module.id, build: version.build, protocol: version.protocol, sha256: module.sha256 }, call };
 }
 
 /** The lab's games, from the standard start. The middle game's candidates are Red's, with hand-made notes, and three of
@@ -149,12 +122,11 @@ export function dataText(engine, fixtures) {
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const folder = engineFolder(process.argv[2]);
-  if (!folder) throw new Error(`no engine folder: give it, or set BLUEPRINTS_ENGINE (engines/runs/wasm/blueprints/${ENGINE_TAG})`);
-  const { engine, call } = await blueprintsEngine(folder);
+  if (!engineHere()) throw new Error("no engine in static/engine: run `npm run engine` first");
+  const { engine, call } = await blueprintsEngine();
   const fixtures = describeGames(call);
   writeFileSync(DATA_FILE, dataText(engine, fixtures));
   for (const f of fixtures)
     console.log(`${f.name}: move ${f.position.ply}, ${f.legal.length} legal moves, ${f.candidates?.length ?? 0} candidates`);
-  console.log(`wrote ${DATA_FILE} from ${folder}`);
+  console.log(`wrote ${DATA_FILE} from ${engine.tag}, protocol ${engine.protocol}`);
 }

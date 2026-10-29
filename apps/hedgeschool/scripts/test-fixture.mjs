@@ -37,7 +37,7 @@ const OUT = option("out") ?? "hedgefund-review.json";
 
 if (!isMainThread) {
   // A worker: an engine of its own, which analyzes the positions it is given, one by one.
-  const { nodeEngine } = await import("./node-engine.mjs");
+  const { nodeEngine } = await import("@abstractclass/engine/node-engine.mjs");
   const { call } = await nodeEngine(root, { network: NETWORK });
   for (const moves of workerData.jobs) {
     const reply = call({ id: "a", moves, maxVisits: VISITS, includePVVisits: true, includeOwnership: true });
@@ -45,7 +45,7 @@ if (!isMainThread) {
     parentPort.postMessage({ moves, reply });
   }
 } else {
-  const { nodeEngine } = await import("./node-engine.mjs");
+  const { nodeEngine } = await import("@abstractclass/engine/node-engine.mjs");
   const { edgeName } = await import("../src/lib/engine/notation.ts");
   const { toAnalysis: analysisOf } = await import("@abstractclass/analysis/reply.ts");
   const { analysisKey } = await import("@abstractclass/analysis/cache.ts");

@@ -9,7 +9,7 @@
 // writes src/lib/home/replay.json (the scenes, loaded after the page shows) and src/lib/home/still.json (the first
 // frame, in the page itself).
 import { readFileSync, writeFileSync } from "node:fs";
-import { nodeEngine } from "./node-engine.mjs";
+import { nodeEngine } from "@abstractclass/engine/node-engine.mjs";
 import { boardPosition } from "../src/lib/engine/position.ts";
 import { edgeName, parseEdge } from "../src/lib/engine/notation.ts";
 import { parseRecord } from "../src/lib/game/record.ts";

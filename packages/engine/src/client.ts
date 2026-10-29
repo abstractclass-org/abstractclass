@@ -10,8 +10,9 @@ import {
 
 export { EngineError, Stopped, type Timed } from "./channel.ts";
 
-/** The engine's artifacts that the site was built with (static/engine/manifest.json, scripts/fetch-engine.mjs). */
-export interface Manifest { artifacts: Artifact[] }
+/** The engine's artifacts that the site was built with (static/engine/manifest.json, fetch-engine.mjs), and the protocol
+ *  that the site's code is written for when it is not PROTOCOL (its engine.lock.json's). */
+export interface Manifest { artifacts: Artifact[]; protocol?: string }
 export interface Artifact extends StoredArtifact {
   id: string; kind: ArtifactKind; interface: string | null; released: boolean;
   displayName?: string; // a network's name (the release's manifest): "HedgeFund 0.2 Lite"
@@ -41,9 +42,9 @@ export async function loadManifest(): Promise<Manifest | null> {
 
 export const moduleOf = (manifest: Manifest) => manifest.artifacts.find(a => a.kind === "module");
 /** Refuses a module whose protocol the site does not speak (protocol.ts, speaksProtocol): the CPU module and the GPU
- *  module. */
-export function checkVersion(version: VersionReply): VersionReply {
-  if (!speaksProtocol(version.protocol)) throw new Error(`engine protocol ${version.protocol}: this site speaks ${PROTOCOL}`);
+ *  module. `site` is the protocol that the site's code is written for: its manifest's, or PROTOCOL. */
+export function checkVersion(version: VersionReply, site = PROTOCOL): VersionReply {
+  if (!speaksProtocol(version.protocol, site)) throw new Error(`engine protocol ${version.protocol}: this site speaks ${site}`);
   return version;
 }
 /** The CPU modules whose search is the site's, by SHA-256: its own, and the earlier ones of the same search. A review's
@@ -110,7 +111,7 @@ export class EngineWorker {
     const module = moduleOf(manifest), library = libraryOf(manifest);
     if (!module || !library) throw new Error("the manifest lacks the engine module or its library");
     const t = await this.channel.send<VersionReply>({ type: "init", module: await compile(module.url), library: library.url }).done;
-    checkVersion(t.reply);
+    checkVersion(t.reply, manifest.protocol);
     return t;
   }
   /** Loads a network from the manifest: the page fetches it and checks its SHA-256 once for all its workers

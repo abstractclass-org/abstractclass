@@ -11,6 +11,7 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"test": "node --test \"src/**/*.test.ts\"",
+		"engine": "node ../../packages/engine/src/fetch-engine.mjs",
 		"fixtures": "node scripts/board-fixtures.mjs"
 	},
 	"dependencies": {

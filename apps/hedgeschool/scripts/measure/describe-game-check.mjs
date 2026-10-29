@@ -13,7 +13,7 @@ import { meafRecord } from "../../src/lib/game/meaf.ts";
 import { parseRecord } from "../../src/lib/game/record.ts";
 import { variantProblem } from "../../src/lib/game/import.ts";
 import { positionQuery } from "@abstractclass/engine/protocol.ts";
-import { nodeEngine } from "../node-engine.mjs";
+import { nodeEngine } from "@abstractclass/engine/node-engine.mjs";
 
 const [file, limitArg] = process.argv.slice(2);
 if (!file) throw new Error("usage: node scripts/measure/describe-game-check.mjs GAMES.jsonl [games]");

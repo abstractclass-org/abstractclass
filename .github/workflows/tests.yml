@@ -40,8 +40,8 @@ jobs:
         working-directory: .
 
       # The engine's release files (engine.lock.json), kept between runs in the download cache that `npm run engine`
-      # reads by SHA-256 (scripts/fetch-engine.mjs). Not static/engine: the script empties that folder on each run. After
-      # npm ci, which removes node_modules. The script checks each file's SHA-256, cached or downloaded.
+      # reads by SHA-256 (packages/engine/src/fetch-engine.mjs). Not static/engine: the script empties that folder on
+      # each run. After npm ci, which removes node_modules. The script checks each file's SHA-256, cached or downloaded.
       - name: Cache the engine's files
         uses: actions/cache@v6
         with:

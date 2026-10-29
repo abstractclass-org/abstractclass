@@ -8,8 +8,8 @@
 // move IDs. Only bot games are used. The games: the first --games whose two bots both searched at least --min-visits,
 // each from a different opening and colour.
 //
-// The engine is the CPU module the site is built with, in Node (scripts/node-engine.mjs): it reads static/engine
-// (`npm run engine` first). The network is the manifest's b10c128, or the one that --network names.
+// The engine is the CPU module the site is built with, in Node (@abstractclass/engine/node-engine.mjs): it reads
+// static/engine (`npm run engine` first). The network is the manifest's b10c128, or the one that --network names.
 //
 // One search per position: the engine runs in slices, and the result after a slice equals a fresh search of that many
 // visits (the engine repository's check), so one search of --deep visits gives every budget. Each output line is one
@@ -19,7 +19,7 @@ import { Worker, isMainThread, parentPort, workerData } from "node:worker_thread
 import { appendFileSync, existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { nodeEngine } from "../node-engine.mjs";
+import { nodeEngine } from "@abstractclass/engine/node-engine.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const { edgeName } = await import(new URL("../../src/lib/engine/notation.ts", import.meta.url).href);

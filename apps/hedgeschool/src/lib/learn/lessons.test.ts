@@ -1,6 +1,7 @@
 // Checks the Learn page's course (lessons.ts): each step's board as the page reads its line without the engine, and
-// each step's task test on the engine's boards, with the engine's CPU module in Node (scripts/node-engine.mjs). The
-// engine's tests need its files (`npm run engine`), and are skipped without them. Run: npm test.
+// each step's task test on the engine's boards, with the engine's CPU module in Node
+// (@abstractclass/engine/node-engine.mjs). The engine's tests need its files (`npm run engine`), and are skipped
+// without them. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
@@ -8,7 +9,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseEdge } from "#lib/engine/notation.ts";
 import type { DescribeGameReply, DescribeReply } from "#lib/engine/position.ts";
-import { nodeEngine } from "../../../scripts/node-engine.mjs";
+import { nodeEngine } from "@abstractclass/engine/node-engine.mjs";
 import { COURSE, lineBoard, type Played, type Step } from "./lessons.ts";
 
 const root = fileURLToPath(new URL("../../..", import.meta.url));

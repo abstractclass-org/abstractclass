@@ -1,5 +1,6 @@
 # The engine's artifacts: fetched by `npm run engine` (engine.lock.json), never committed.
 /apps/hedgeschool/static/engine/
+/apps/drawingboard/static/engine/
 
 node_modules
 

@@ -1,8 +1,8 @@
 // Checks the book's loader (book.ts) and the test books in tests/fixtures/test-book (scripts/test-book.mjs), as the dev
 // and preview servers serve them (vite.config.ts, `testBook`): the form, the lookups with mirror images, the parts that
 // load on demand and the part that fails. The engine's tests check the books' positions against the engine's rules,
-// with its CPU module in Node (scripts/node-engine.mjs). They need its files (`npm run engine`), and are skipped
-// without them. Run: npm test.
+// with its CPU module in Node (@abstractclass/engine/node-engine.mjs). They need its files (`npm run engine`), and are
+// skipped without them. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync, statSync } from "node:fs";
@@ -15,7 +15,7 @@ import { mirrorEdge, mirrorPosition } from "#lib/engine/notation.ts";
 import { playerOf } from "#lib/engine/position.ts";
 import { turnFromCount } from "#lib/review/enclosure.ts";
 import { moverWin } from "@abstractclass/analysis/model.ts";
-import { nodeEngine } from "../../../scripts/node-engine.mjs";
+import { nodeEngine } from "@abstractclass/engine/node-engine.mjs";
 
 const root = fileURLToPath(new URL("../../..", import.meta.url));
 const TEST_BOOK = "/test-book/prototype/index.json", CASES = "/test-book/cases/index.json";

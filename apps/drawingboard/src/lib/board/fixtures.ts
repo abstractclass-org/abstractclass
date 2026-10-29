@@ -1,5 +1,5 @@
 // The positions of the board's lab page and tests: the start, a middle game with candidates and a line, a capture, an
-// edit and an empty blueprint. Each is a game of moves from the standard start that Stamp Duty's early build played:
+// edit and an empty blueprint. Each is a game of moves from the standard start that Stamp Duty's build played:
 // scripts/board-fixtures.mjs writes what the engine says to fixtures.json, the position, its mover, every legal move
 // (describe's `legal`), and what each move did (describe_game). The site has no rules: this module only reads that data
 // and gives each move what the board draws of it. The candidates and their lines are hand-made marks, each a legal

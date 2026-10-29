@@ -95,5 +95,5 @@ Web Analytics). Without them, as in development, the build has neither.
 | `tests/fixtures/` | The browser tests' data, and the test book that the dev and preview servers serve at `/test-book/`. |
 | `src/lib/mock/`, `scripts/mock/` | Mock data for the wireframes, and how it was made. |
 | `scripts/measure/` | The measurements behind the quality labels (their results: `docs/decisions/`). |
-| `engine.lock.json`, `scripts/fetch-engine.mjs` | The engine's artifacts, pinned by SHA-256. |
+| `engine.lock.json` | The engine's artifacts, pinned by SHA-256. `npm run engine` fetches them (`packages/engine/src/fetch-engine.mjs`). |
 | `static/engine/` | The engine's artifacts, fetched. Not in Git. |

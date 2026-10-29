@@ -4,7 +4,7 @@
 // `perBand` games of each rating band from 1 to 5 that the rules ended, with 120 edges. At two positions of every
 // `step`, a turn's middle and the next turn's start (an even count of edges, then an odd one), it searches the position
 // and the position after a pass as the Lite review searches (HedgeFund 0.2 Lite, 512 visits), on `threads` engines
-// (scripts/node-engine.mjs: `npm run engine` first), and counts:
+// (@abstractclass/engine/node-engine.mjs: `npm run engine` first), and counts:
 // - the threat's size, as the review shows it: the mover's win chance and points now less after the pass;
 // - the network's own value (a search of 1 visit) against the search's, at the positions and after the passes: a
 //   network that misreads a position after a pass differs from its search there more than elsewhere;
@@ -23,7 +23,7 @@ const NETWORK = "b10c128-s89066368-d17827487", VISITS = 512;
 const root = fileURLToPath(new URL("../..", import.meta.url));
 
 if (!isMainThread) {
-  const { nodeEngine } = await import("../node-engine.mjs");
+  const { nodeEngine } = await import("@abstractclass/engine/node-engine.mjs");
   const { call } = await nodeEngine(root, { network: NETWORK });
   for (const moves of workerData.jobs) {
     const search = call({ id: "a", moves, maxVisits: VISITS, includePVVisits: true });
@@ -32,7 +32,7 @@ if (!isMainThread) {
     parentPort.postMessage({ key: moves.join(" "), search, net });
   }
 } else {
-  const { nodeEngine } = await import("../node-engine.mjs");
+  const { nodeEngine } = await import("@abstractclass/engine/node-engine.mjs");
   const { toAnalysis } = await import("@abstractclass/analysis/reply.ts");
   const { enclosure, edgeName, moverScore, moverWin, threatTurn, turnFromCount } = await import("../../src/lib/review/enclosure.ts");
   const { boardPosition } = await import("../../src/lib/engine/position.ts");

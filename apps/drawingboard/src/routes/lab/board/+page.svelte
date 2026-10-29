@@ -1,7 +1,7 @@
 <script lang="ts">
   // The board's lab (design 33): Blueprints' board on the positions of a few games (lib/board/fixtures.ts), so that the
   // board can be checked and looked at before the review and the Analysis board take it. The page runs no engine:
-  // Stamp Duty's early build gave each position and every legal move ahead of time (scripts/board-fixtures.mjs). The
+  // Stamp Duty's build gave each position and every legal move ahead of time (scripts/board-fixtures.mjs). The
   // candidates and their lines are hand-made marks on legal moves. While nothing is begun, the status line asks for the
   // first click. A move made shows its string there, and the input starts again: the lab does not play it. Escape
   // cancels a move begun, as on the review. The address can choose the position and a candidate: ?p=1&c=2@3,-9. A

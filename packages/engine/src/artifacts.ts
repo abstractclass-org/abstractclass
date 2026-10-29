@@ -1,4 +1,4 @@
-// An engine artifact's bytes, as scripts/fetch-engine.mjs stores it: one file, or, when the file is too large for
+// An engine artifact's bytes, as fetch-engine.mjs stores it: one file, or, when the file is too large for
 // Cloudflare Pages (25 MiB), its gzip compression in one or more parts. The parts are joined and decompressed here, and
 // the bytes are checked against the manifest's SHA-256.
 

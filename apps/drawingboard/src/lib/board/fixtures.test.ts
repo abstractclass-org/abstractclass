@@ -1,5 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { ROOT_VIEWS_PROTOCOL } from "@abstractclass/engine/protocol.ts";
+import lock from "../../../engine.lock.json" with { type: "json" };
 import { FIXTURE_DATA, FIXTURES } from "./fixtures.ts";
 import { parseMove } from "../game/notation.ts";
 import { anchorOf, hexKey, parseHex, shift, TOUCHING } from "./hex.ts";
@@ -7,7 +9,14 @@ import { footprintOf } from "./position.ts";
 
 test("the lab's five positions: the start, a middle game, a capture, an edit, an empty blueprint", () => {
   assert.deepEqual(FIXTURES.map(f => f.name), ["The start", "A middle game", "A capture", "An edit", "An empty blueprint"]);
-  assert.equal(FIXTURE_DATA.engine.tag, "engine-0d2a5416");
+});
+
+test("the positions come from the build that engine.lock.json pins, whose protocol has the root's views", () => {
+  const module = lock.artifacts.find(a => a.kind === "module")!;
+  assert.equal(FIXTURE_DATA.engine.tag, module.id);
+  assert.equal(FIXTURE_DATA.engine.sha256, module.sha256);
+  assert.equal(lock.protocol, ROOT_VIEWS_PROTOCOL); // the protocol that Drawing Board's code is written for
+  assert.equal(FIXTURE_DATA.engine.protocol, ROOT_VIEWS_PROTOCOL);
 });
 
 test("the start has 42 cells, a star with a ring of six for each of the six blueprints", () => {

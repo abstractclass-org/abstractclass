@@ -4,7 +4,7 @@
 	"version": "0.0.1",
 	"type": "module",
 	"scripts": {
-		"engine": "node scripts/fetch-engine.mjs",
+		"engine": "node ../../packages/engine/src/fetch-engine.mjs",
 		"dev": "vite dev",
 		"build": "vite build",
 		"preview": "vite preview",

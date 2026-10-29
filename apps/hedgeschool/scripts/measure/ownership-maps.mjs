@@ -5,9 +5,9 @@
 // games as the engine repository analysed them (its runs/archive_analysis/part1-1000.jsonl, request 07): the first
 // `perBand` games of each rating band from 1 to 5 that the rules ended, with 120 edges, as the first build of the maps
 // measured them. An archive game's positions at its turns' starts are searched here as the Lite review searches them
-// (HedgeFund 0.2 Lite, 512 visits, with the root's ownership), on `threads` engines (scripts/node-engine.mjs: `npm run
-// engine` first). For internal measurement only: the archive's games are their players' (CLAUDE.md, "How to work"),
-// so the script prints counts alone.
+// (HedgeFund 0.2 Lite, 512 visits, with the root's ownership), on `threads` engines
+// (@abstractclass/engine/node-engine.mjs: `npm run engine` first). For internal measurement only: the archive's games
+// are their players' (CLAUDE.md, "How to work"), so the script prints counts alone.
 //
 //   node scripts/measure/ownership-maps.mjs <part1-1000.jsonl | hedgefund-review.json> [perBand] [threads]
 import { readFileSync } from "node:fs";
@@ -18,7 +18,7 @@ const NETWORK = "b10c128-s89066368-d17827487", VISITS = 512;
 const root = fileURLToPath(new URL("../..", import.meta.url));
 
 if (!isMainThread) {
-  const { nodeEngine } = await import("../node-engine.mjs");
+  const { nodeEngine } = await import("@abstractclass/engine/node-engine.mjs");
   const { call } = await nodeEngine(root, { network: NETWORK });
   for (const moves of workerData.jobs) {
     const reply = call({ id: "a", moves, maxVisits: VISITS, includeOwnership: true });
@@ -26,7 +26,7 @@ if (!isMainThread) {
     parentPort.postMessage({ key: moves.join(" "), reply });
   }
 } else {
-  const { nodeEngine } = await import("../node-engine.mjs");
+  const { nodeEngine } = await import("@abstractclass/engine/node-engine.mjs");
   const { toAnalysis } = await import("@abstractclass/analysis/reply.ts");
   const { enclosure, turnFromCount } = await import("../../src/lib/review/enclosure.ts");
   const { boardPosition } = await import("../../src/lib/engine/position.ts");

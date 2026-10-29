@@ -1,0 +1,49 @@
+{
+  "repository": "abstractclass-org/blueprints-engine",
+  "protocol": "0.7.0",
+  "artifacts": [
+    {
+      "id": "engine-b64eea10",
+      "kind": "module",
+      "interface": "engine-protocol-0.7.0",
+      "file": "blueprints-engine.wasm",
+      "source": { "engines": "runs/wasm/blueprints/engine-b64eea10/blueprints-engine.wasm" },
+      "sha256": "8f31ecd72fa66eb7cdec913461010de1da1850f9dce125d114686de8651b2006",
+      "bytes": 1488225,
+      "search": "b64eea10"
+    },
+    {
+      "id": "engine-b64eea10-lib",
+      "kind": "gpu-library",
+      "file": "gpu_engine.mjs",
+      "source": { "engines": "runs/wasm/blueprints/engine-b64eea10/gpu_engine.mjs" },
+      "sha256": "7976a5f48fe868b969a4964adcb9bf87d22be78b29595c4e2bcc8458fbd01227",
+      "bytes": 16816
+    },
+    {
+      "id": "engine-b64eea10-notices",
+      "kind": "notices",
+      "file": "NOTICES.txt",
+      "source": { "engines": "runs/wasm/blueprints/engine-b64eea10/NOTICES.txt" },
+      "sha256": "2967bab664d0aabe0336d59454cfccc1e8fc37ce04fee9c3274df23cc1f6adc6",
+      "bytes": 10206
+    },
+    {
+      "id": "engine-b64eea10-terms",
+      "kind": "terms",
+      "file": "LICENSE.txt",
+      "source": { "engines": "runs/wasm/blueprints/engine-b64eea10/LICENSE.txt" },
+      "sha256": "6c0d45d2e196cdf50a34d8c50c967e2b2ad749a568cd94046fb789e225e632cd",
+      "bytes": 1994
+    },
+    {
+      "id": "b6c96-s19117184-d446546",
+      "kind": "model",
+      "displayName": "b6c96-s19117184-d446546",
+      "file": "model-float16.bin",
+      "source": { "engines": "runs/wasm/blueprints/engine-b64eea10/b6c96-s19117184-d446546.model-float16.bin" },
+      "sha256": "01b9ab1ac036ab64fee45bfdce30970db706bb67836dc989e209b65e2d3ece66",
+      "bytes": 2207862
+    }
+  ]
+}

@@ -7,7 +7,7 @@ import { anchorsOf, clickBoard, clickHand, firstStatus, IDLE, inputStatus, legal
          type Legal } from "./input.ts";
 import type { BlueprintNumber, HandHex } from "./position.ts";
 
-// The lab's positions, with every legal move as Stamp Duty's early build gives it (fixtures.json). A fixture has the
+// The lab's positions, with every legal move as Stamp Duty's build gives it (fixtures.json). A fixture has the
 // input's rules: its position, its mover and its legal moves.
 const [start, middle, , , empty] = FIXTURES;
 const legals = new Map<Fixture, Legal>(FIXTURES.map(f => [f, legalOf(f)]));

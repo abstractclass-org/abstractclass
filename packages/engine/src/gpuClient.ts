@@ -30,7 +30,7 @@ export class GpuEngines {
       type: "init", module, library: library.url, ortGlue: files.glue.url, ortWasm: files.wasm, graph: files.graph,
       model, name: files.model.id, searches,
     }).done;
-    this.version = checkVersion(reply);
+    this.version = checkVersion(reply, manifest.protocol);
     for (let k = 0; k < searches; k++) this.slots.push(new GpuSlot(this, k));
   }
 

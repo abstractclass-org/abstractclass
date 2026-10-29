@@ -9,13 +9,13 @@
 //   - the share of the points where the two disagree on the change style's mark at 0.5 (ownership.ts, changeMap);
 //   - the short search's time, in milliseconds.
 // The same short search at the full search's 512 visits shows how far two deep searches of one position differ: a
-// short search closer than that adds no error that matters. In Node, on one thread (scripts/node-engine.mjs: `npm run
-// engine` first).
+// short search closer than that adds no error that matters. In Node, on one thread
+// (@abstractclass/engine/node-engine.mjs: `npm run engine` first).
 //
 //   node scripts/measure/candidate-maps.mjs [step] [moves.json]
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { nodeEngine } from "../node-engine.mjs";
+import { nodeEngine } from "@abstractclass/engine/node-engine.mjs";
 import { hundredths, toAnalysis } from "@abstractclass/analysis/reply.ts";
 import { shownCandidates } from "@abstractclass/analysis/model.ts";
 import { enclosure, edgeName } from "../../src/lib/review/enclosure.ts";

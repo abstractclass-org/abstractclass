@@ -292,7 +292,7 @@
         <p class="my-3.75">
           {PLAYER_NAME[r.currentPlayer === "b" ? 0 : 1]} to play. Blue's win chance <strong>{pct(r.winrate)}</strong>,
           margin <strong>{pts(r.scoreSelfplay)} ± {r.scoreStdev.toFixed(0)}</strong>, lead {pts(r.scoreLead)}.
-          Network alone: {pct(r.rawWinrate)}, {pts(r.rawScoreSelfplay)}.
+          {#if r.rawWinrate !== undefined && r.rawScoreSelfplay !== undefined}Network alone: {pct(r.rawWinrate)}, {pts(r.rawScoreSelfplay)}.{/if}
           {r.visits} visits in {fmt(live.ms)} ({(r.visits / (live.ms / 1000)).toFixed(0)} a second).
           {#if live.memory}The worker's memory after the search: {mib(live.memory)}.{/if}
         </p>

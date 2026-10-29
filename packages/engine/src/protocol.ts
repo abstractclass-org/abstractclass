@@ -25,17 +25,26 @@
 // 0.6.1 adds `describe_game` (request 18): every position of a game from a move on, in one request, with describe's
 // fields but the legal moves, the nodes and the check, and each move's cut edge.
 //
+// 0.7.0 is Blueprints' build only (request 24): the search of the root's views. `rootViews` is on by default, so a query
+// can search several views of the board. A reply of more views has no network's raw values, and a query whose searches
+// find no candidate is refused with an error of the field `maxVisits`. New in it: a query's `rootViews`, `rootInfo`'s
+// `views` and `searches`, and a candidate's `checkVisits`. Enclosure's engine stays 0.6.x, so each site says which
+// protocol its code is written for: Hedge School PROTOCOL, Drawing Board ROOT_VIEWS_PROTOCOL (its engine.lock.json's
+// `protocol`, which fetch-engine.mjs copies into the manifest).
+//
 // The fields of describe, describe_game and play are each game's own: the engine package types only the analysis and
 // the messages that every game's engine shares (design 29). Enclosure's are in Hedge School's
 // src/lib/engine/position.ts. Every win chance and score is from the first player's side (KataGo's convention:
 // Enclosure's Blue). Win chance 0-1. Scores in game points.
 
-/** The protocol the site is written for: 0.6.1 brings describe_game. */
+/** The protocol that a site's code is written for, unless its manifest names another: 0.6.1 brings describe_game. */
 export const PROTOCOL = "0.6.1";
-/** Whether a build's protocol is one the site speaks: PROTOCOL's major and minor version (before 1.0, a minor version
- *  can break), with its patch or a later one. */
-export function speaksProtocol(version: string): boolean {
-  const [major, minor, patch] = PROTOCOL.split(".").map(Number);
+/** Blueprints' protocol: 0.7.0 brings the search of the root's views. */
+export const ROOT_VIEWS_PROTOCOL = "0.7.0";
+/** Whether a build's protocol is one that a site written for `site` speaks: the same major and minor version (before
+ *  1.0, a minor version can break), with `site`'s patch or a later one. */
+export function speaksProtocol(version: string, site = PROTOCOL): boolean {
+  const [major, minor, patch] = site.split(".").map(Number);
   const m = /^(\d+)\.(\d+)\.(\d+)$/.exec(version);
   return !!m && Number(m[1]) === major && Number(m[2]) === minor && Number(m[3]) >= patch;
 }
@@ -77,6 +86,7 @@ export interface AnalysisQuery extends PositionQuery {
   includePolicy?: boolean;
   includeOwnership?: boolean; // KataGo's: the reply gives `ownership`
   includePVVisits?: boolean; // KataGo's: the reply gives the visits of each move of each pv
+  rootViews?: boolean; // 0.7: whether to search the root's views, by default the module's setting (true)
 }
 
 export interface MoveInfo {
@@ -102,7 +112,13 @@ export interface MoveInfo {
   // A symmetric twin (0.4): the edge that was searched, of which this edge is the mirror image. Its values, visits and
   // prior are that edge's, its line and ownership mirrored. Absent for a searched edge.
   isSymmetryOf?: string;
+  // 0.7, in a search of more views: the visits of the search of the candidate's child position (its check), whose
+  // values the candidate then has. `visits` are its visits in the searches of the views.
+  checkVisits?: number;
 }
+
+/** A view of Blueprints' board (0.7): the hex in its middle, its orientation (0 to 5) and its radius in hexes. */
+export interface EngineView { q: number; r: number; orientation: number; radius: number }
 
 export interface RootInfo {
   currentPlayer: string; // the player to move, as the game's engine names it (Enclosure's: "b", "r")
@@ -111,9 +127,14 @@ export interface RootInfo {
   scoreSelfplay: number;
   scoreStdev: number;
   scoreLead: number;
-  rawWinrate: number;
-  rawScoreSelfplay: number;
-  rawLead: number;
+  // The network's values at the root. A reply of more views (0.7) has none: each of its searches has its own root.
+  rawWinrate?: number;
+  rawScoreSelfplay?: number;
+  rawLead?: number;
+  // 0.7: the views that hold the root's legal placements (the cover), and the searches that the move took: one for each
+  // view, then one for each candidate that a second search checked.
+  views?: EngineView[];
+  searches?: number;
 }
 
 export interface AnalysisReply {
