@@ -42,15 +42,10 @@
   import type { BotMode } from "@abstractclass/practice/botMessages.ts";
   import { PracticeGame, saveUnfinished } from "#lib/practice/game.svelte.ts";
   import { botName, keep, loadChoices, loadKept, practiceEndParams, practiceOutcome, practiceParams, practiceTurn, saveChoices,
-           type KeptPractice, type PracticeOutcome, type Variety } from "#lib/practice/hedgefund.ts";
+           VARIETY_HELP, type KeptPractice, type PracticeOutcome } from "#lib/practice/hedgefund.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
 
   const WHERE: Record<BotMode, string> = { gpu: "on the GPU", cpu: "on the CPU workers", single: "on one thread" };
-  const VARIETY_HELP: Record<Variety, string> = {
-    low: "Plays its best move almost always.",
-    medium: "Plays other good moves more often, most of all early in the game.",
-    high: "Often plays a move other than its best.",
-  };
   const DANGER = "hover:not-disabled:text-blunder hover:not-disabled:border-blunder"; // Abort and Resign, as Lichess's
 
   // Practice's own display settings (design 24): the points' bar between the players or beside the board, with each

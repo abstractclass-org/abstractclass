@@ -40,6 +40,12 @@ export const VARIETY = {
 } as const;
 export type Variety = keyof typeof VARIETY;
 export const VARIETY_NAME: Record<Variety, string> = { low: "Low", medium: "Medium", high: "High" };
+/** What each variety does, for the settings card. */
+export const VARIETY_HELP: Record<Variety, string> = {
+  low: "Plays its best move almost always.",
+  medium: "Plays other good moves more often, most of all early in the game.",
+  high: "Often plays a move other than its best.",
+};
 
 /** The bot's settings for a game, fixed for it. */
 export interface BotSettings { network: string; visits: number; variety: Variety }
