@@ -1,0 +1,31 @@
+{
+	"name": "@abstractclass/practice",
+	"private": true,
+	"version": "0.0.0",
+	"type": "module",
+	"exports": {
+		"./*": "./src/*"
+	},
+	"scripts": {
+		"check": "svelte-check --tsconfig ./tsconfig.json",
+		"test": "node --test \"src/**/*.test.ts\""
+	},
+	"dependencies": {
+		"@abstractclass/analysis": "*",
+		"@abstractclass/review": "*",
+		"@abstractclass/site": "*",
+		"@abstractclass/storage": "*"
+	},
+	"peerDependencies": {
+		"bits-ui": "^2.19.3",
+		"svelte": "^5.57.1",
+		"tailwindcss": "^4.3.3"
+	},
+	"devDependencies": {
+		"@types/node": "^26.6.4",
+		"bits-ui": "^2.19.3",
+		"svelte": "^5.57.1",
+		"svelte-check": "^4.6.0",
+		"typescript": "^6.0.3"
+	}
+}

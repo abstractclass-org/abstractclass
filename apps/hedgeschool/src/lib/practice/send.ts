@@ -6,7 +6,7 @@ import { SITE_VERSION, STORES_PRACTICE_GAMES } from "#lib/edition.ts";
 import { forgetNumber, keptNumber, linksGames } from "#lib/analytics.svelte.ts";
 import { readLocalJson, writeLocal } from "@abstractclass/storage/local.ts";
 import { storedDay, type StoredOutcome, type StoredPractice } from "./stored.ts";
-import type { KeptPractice } from "./practice.ts";
+import type { KeptPractice } from "./hedgefund.ts";
 
 export type { StoredPractice } from "./stored.ts";
 

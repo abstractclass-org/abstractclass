@@ -13,7 +13,7 @@
   // as that review, from the stored results with the engine's rules alone, until the player chooses Review again
   // (docs/design/20-snapshot.md).
   import { onDestroy, onMount, untrack } from "svelte";
-  import { PRACTICE_EVENT } from "#lib/practice/practice.ts";
+  import { PRACTICE_EVENT } from "#lib/practice/hedgefund.ts";
   import ReviewView, { NETWORK_LOADS, WIDE, reviewSkeleton, type ReviewAgain, type ReviewProgress } from "@abstractclass/review/ReviewView.svelte";
   import { enclosureView } from "#lib/review/enclosureView.ts";
   import { loadDisplay } from "#lib/review/display.ts";

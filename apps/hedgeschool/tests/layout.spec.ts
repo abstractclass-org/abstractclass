@@ -242,7 +242,7 @@ function bookTableProblems(page: Page) {
   });
 }
 
-/** Opens Practice in a game in progress, kept in this browser (practice.ts, KeptPractice): the fixture's first 20
+/** Opens Practice in a game in progress, kept in this browser (hedgefund.ts, KeptPractice): the fixture's first 20
  *  edges, the player to move next, so that the bot does not search. */
 async function practiceGame(page: Page) {
   const moves = (JSON.parse(readFileSync(FIXTURE, "utf8")).record as string).replace(/\[[^\]]*\]/g, "").split(/\s+/).filter(t => /^[A-T]\d+-[A-T]\d+$/.test(t)).slice(0, 20);

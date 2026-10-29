@@ -36,6 +36,7 @@
 		"@abstractclass/analysis": "*",
 		"@abstractclass/engine": "*",
 		"@abstractclass/import": "*",
+		"@abstractclass/practice": "*",
 		"@abstractclass/record": "*",
 		"@abstractclass/review": "*",
 		"@abstractclass/site": "*",

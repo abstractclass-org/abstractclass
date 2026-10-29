@@ -1,7 +1,7 @@
 // A practice game (docs/design/24-practice.md): the player against the practice bot. The positions and the player's legal
 // edges come from the analysis module's rules worker, as on the Analysis board: the board draws what the site's rules
 // say. Each move goes to the bot too, so that the two play the same game. The game's moves and settings are kept in
-// this browser after each move (practice.ts, keep), so that a reload, or a new build, continues it from its moves.
+// this browser after each move (hedgefund.ts, keep), so that a reload, or a new build, continues it from its moves.
 import { boardPosition, rulesOf, type DescribeReply, type GamePosition } from "#lib/engine/position.ts";
 import type { EngineWorker } from "@abstractclass/engine/client.ts";
 import { parseEdge } from "#lib/engine/notation.ts";
@@ -11,7 +11,7 @@ import { errorText } from "@abstractclass/engine/errors.ts";
 import { parseRecord } from "#lib/game/record.ts";
 import { saveGame } from "#lib/game/store.ts";
 import type { Move, Player, Position } from "#lib/review/enclosure.ts";
-import { botCommands, gtpColor, keep, practiceRecord, resignResult, scoreResult, takebackCount, type KeptPractice, type PracticeOutcome } from "./practice.ts";
+import { botCommands, gtpColor, keep, practiceRecord, resignResult, scoreResult, takebackCount, type KeptPractice, type PracticeOutcome } from "./hedgefund.ts";
 import { sendPractice, storedGame, type StoredPractice } from "./send.ts";
 import { browserNumber } from "#lib/analytics.svelte.ts";
 import type { PracticeBot } from "./bot.ts";

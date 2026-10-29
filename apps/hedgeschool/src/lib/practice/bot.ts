@@ -5,7 +5,7 @@ import { checked, compile, gpuFilesOf, libraryOf, modelOf, type ArtifactKind, ty
 import { gpuSupport } from "@abstractclass/engine/gpuClient.ts";
 import { GPU_SEARCHES, gpuAdapterName, gpuFaster, loadGpuTest } from "@abstractclass/analysis/gpu.svelte.ts";
 import type { EngineSettings } from "#lib/analysis/engineSettings.ts";
-import { gtpAnswer } from "./practice.ts";
+import { gtpAnswer } from "./hedgefund.ts";
 import type { BotMode, BotRequest } from "./botMessages.ts";
 
 /** Whether this browser has JSPI (WebAssembly.Suspending and WebAssembly.promising), which the threaded bot needs. */

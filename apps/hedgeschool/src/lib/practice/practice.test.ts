@@ -1,11 +1,12 @@
-// Checks Practice's pure parts (practice.ts): the takeback's reach, the results, the GTP answers, the bot's commands,
-// and the record, read back by the record's reader. Run: npm test.
+// Checks Practice's pure parts (hedgefund.ts, and @abstractclass/practice's practice.ts through it): the takeback's
+// reach, the results, the GTP answers, the bot's commands, and the record, read back by the record's reader. Run: npm
+// test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { NETWORKS } from "#lib/analysis/engineSettings.ts";
 import { parseRecord } from "#lib/game/record.ts";
 import { botCommands, gtpAnswer, keep, loadChoices, loadKept, practiceEndParams, practiceOutcome, practiceParams, practiceRecord, practiceTurn,
-         resignResult, saveChoices, scoreResult, takebackCount, VISIT_STOPS, visitsStop, type KeptPractice } from "./practice.ts";
+         resignResult, saveChoices, scoreResult, takebackCount, VISIT_STOPS, visitsStop, type KeptPractice } from "./hedgefund.ts";
 
 // The browser's local storage, in memory: Node has none.
 const stored = new Map<string, string>();

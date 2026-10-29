@@ -8,7 +8,7 @@ import { jamRecord, type JamGame } from "./strategyjam.ts";
 import { findJamGame } from "./strategyjamPage.ts";
 import { parseRecord } from "./record.ts";
 import { edgeName, type Edge } from "#lib/engine/notation.ts";
-import { scoreResult } from "#lib/practice/practice.ts";
+import { scoreResult } from "#lib/practice/hedgefund.ts";
 
 type Played = { history: string[]; scores: number[]; result: { winner: number | null; reason: string } };
 const games: { whole: Played; passes: Played & { at: number[] } } =
