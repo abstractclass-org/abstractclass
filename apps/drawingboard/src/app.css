@@ -3,6 +3,8 @@
 @import "@abstractclass/site/site.css";
 /* The review's view and its parts, with their style (packages/review): Tailwind finds their classes there. */
 @import "@abstractclass/review/review.css";
+/* The practice's settings card and game frame (packages/practice): Tailwind finds their classes there. */
+@import "@abstractclass/practice/practice.css";
 
 /* Drawing Board's accent (design 33, "Consequences"): a neutral slate until its colour is decided, on Hedge School's
    tokens. Light: 6.4:1 as text on the page, 6.9:1 under white text. Dark: 6.7:1 as text on panel-2, 9.3:1 under

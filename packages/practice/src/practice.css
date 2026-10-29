@@ -1,0 +1,3 @@
+/* The practice's components (the settings card and the game's frame) use Tailwind's classes: a site that shows them
+   imports this file after Tailwind (`@import "@abstractclass/practice/practice.css"`), so that Tailwind finds them. */
+@source ".";

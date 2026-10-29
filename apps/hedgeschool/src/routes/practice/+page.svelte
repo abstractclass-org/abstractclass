@@ -13,17 +13,17 @@
   import Board from "#lib/board/Board.svelte";
   import { EdgeInput } from "#lib/board/edgeInput.svelte.ts";
   import type { BoardNote } from "#lib/board/notes.ts";
-  import Swatch from "@abstractclass/site/Swatch.svelte";
   import Icon from "@abstractclass/site/Icon.svelte";
   import ShareBar, { ownShare } from "@abstractclass/review/ShareBar.svelte";
   import SettingChoice from "@abstractclass/site/SettingChoice.svelte";
   import SettingToggle from "@abstractclass/site/SettingToggle.svelte";
   import SoundSettings from "#lib/ui/SoundSettings.svelte";
   import { SETTINGS_HEAD } from "@abstractclass/site/settings.ts";
-  import PlayerCard, { stripBox } from "@abstractclass/review/PlayerCard.svelte";
+  import PlayerCard from "@abstractclass/review/PlayerCard.svelte";
   import PlayerRow from "@abstractclass/review/PlayerRow.svelte";
   import PlayerCardSkeleton, { BONE } from "@abstractclass/review/PlayerCardSkeleton.svelte";
-  import StepBar from "@abstractclass/review/StepBar.svelte";
+  import PracticeCard from "@abstractclass/practice/PracticeCard.svelte";
+  import PracticeFrame from "@abstractclass/practice/PracticeFrame.svelte";
   import { intoView } from "@abstractclass/site/pageScroll.ts";
   import { MOVE_HERE, MOVE_LIST, TURN_NUMBER, keepInView, moveButton, turnRow } from "@abstractclass/review/moveList.ts";
   import { EngineWorker, loadManifest, type Manifest } from "@abstractclass/engine/client.ts";
@@ -41,8 +41,8 @@
   import { startBot } from "#lib/practice/bot.ts";
   import type { BotMode } from "#lib/practice/botMessages.ts";
   import { PracticeGame, saveUnfinished } from "#lib/practice/game.svelte.ts";
-  import { MAX_VISITS, VARIETY_NAME, VISIT_STOPS, botName, keep, loadChoices, loadKept, practiceEndParams, practiceOutcome, practiceParams,
-           practiceTurn, saveChoices, visitsStop, visitsTaken, type KeptPractice, type PracticeOutcome, type Variety } from "#lib/practice/hedgefund.ts";
+  import { botName, keep, loadChoices, loadKept, practiceEndParams, practiceOutcome, practiceParams, practiceTurn, saveChoices,
+           type KeptPractice, type PracticeOutcome, type Variety } from "#lib/practice/hedgefund.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
 
   const WHERE: Record<BotMode, string> = { gpu: "on the GPU", cpu: "on the CPU workers", single: "on one thread" };
@@ -75,7 +75,7 @@
   // What the page shows: nothing until the script knows whether a game is in progress (the prerendered page cannot
   // know), then the settings card or the game.
   let phase = $state<"loading" | "settings" | "game">("loading");
-  const choices = $state(loadChoices());
+  let choices = $state(loadChoices());
   let manifest: Manifest | null = null;
   let rules: EngineWorker | null = null;
   let game = $state<PracticeGame | null>(null);
@@ -324,12 +324,6 @@
     return out;
   });
   const gaugeW = $derived(!score.bar || score.form !== "gauge" ? "0px" : score.area ? "1.875rem" : "1.375rem");
-  // The visits box's text while the player types in it (null: it shows the setting). The visits change when the box is
-  // left or Enter is pressed, as in the engine settings. A number that the bot does not take stays in the box with the
-  // range, and no game starts until it changes.
-  let visitsTyped = $state<string | null>(null);
-  const visitsWrong = $derived(visitsTyped !== null && !visitsTaken(Number(visitsTyped)));
-  let stripHeight = $state(0);
   let moveList = $state<HTMLElement | null>(null);
   $effect(() => { void shown; void turns; keepInView(moveList); });
 </script>
@@ -349,87 +343,32 @@
   <main class="min-h-[60vh]" aria-busy="true"></main>
 {/if}
 
-<!-- The settings card (Lichess's "Play with the computer"): the bot, the player's name, then the side, which starts the
-     game. -->
+<!-- The settings card (Lichess's "Play with the computer", @abstractclass/practice): the bot, the player's name, then the
+     side, which starts the game. -->
 {#snippet settingsCard()}
-  <main class="flex justify-center my-6 px-4">
-    <section class="w-full max-w-[34rem] grid gap-1 bg-panel border border-line rounded-lg px-5 pt-5 pb-6">
-      <h1 class="text-2xl font-bold">Practice against bot</h1>
-      <p class="mb-2 text-sm text-muted">A game against the engine, in your browser, with no clock: the bot searches each
-        move to the visits you set. The game then goes into <a href="/review">Your games</a>, for its review.</p>
+  <PracticeCard bind:choices networks={NETWORKS.map(n => [n.id, `${networkName(n.id)} (${networkMB(n.id)} MB)`])}
+                networkHelp="The larger network plays stronger, and takes longer." varietyHelp={VARIETY_HELP} {ready} onside={newGame}>
+    {#snippet intro()}A game against the engine, in your browser, with no clock: the bot searches each move to the visits
+      you set. The game then goes into <a href="/review">Your games</a>, for its review.{/snippet}
+    {#snippet notes()}
       {#if notice}<p class="mb-1 text-sm text-blunder" role="alert">{notice}</p>{/if}
       {#if aborted}<p class="mb-1 text-sm" role="status">The game you aborted is in <a href="/review">Your games</a>, unfinished.</p>{/if}
       {#if brought}<p class="mb-1 text-sm">{broughtText}</p>{/if}
-      <SettingChoice label="Network" help="The larger network plays stronger, and takes longer."
-                     options={NETWORKS.map(n => [n.id, `${networkName(n.id)} (${networkMB(n.id)} MB)`])}
-                     get={() => choices.bot.network} set={v => (choices.bot.network = v)} />
-      <!-- The visits: a slider over the doublings, and a box that takes any whole number in their range (design 24). The
-           slider shows the doubling at or below a typed number. -->
-      <div class="py-1.5">
-        <div class="flex items-center justify-between gap-3">
-          <label for="visits" class="text-sm font-medium">Visits for each move</label>
-          <input id="visits" type="number" min="1" max={MAX_VISITS} step="1" value={visitsTyped ?? choices.bot.visits}
-                 aria-invalid={visitsWrong} aria-describedby={visitsWrong ? "visits-message" : undefined}
-                 class="w-[4.5rem] text-right tabular-nums"
-                 oninput={e => (visitsTyped = e.currentTarget.value)}
-                 onchange={e => {
-                   const v = e.currentTarget.valueAsNumber;
-                   if (visitsTaken(v)) { choices.bot.visits = v; visitsTyped = null; }
-                 }} />
-        </div>
-        {#if visitsWrong}
-          <p id="visits-message" class="text-xs text-blunder" role="alert">Type a whole number from 1 to {MAX_VISITS.toLocaleString("en")}.</p>
-        {/if}
-        <p class="text-xs text-muted">More visits play stronger, and take longer. We have not yet measured how strong
-          each setting plays.</p>
-        <input type="range" min="0" max={VISIT_STOPS.length - 1} step="1" value={visitsStop(choices.bot.visits)}
-               aria-label="Visits for each move" aria-valuetext="{choices.bot.visits.toLocaleString("en")} visits"
-               class="w-full mt-1 accent-(--accent)"
-               oninput={e => { visitsTyped = null; choices.bot.visits = VISIT_STOPS[e.currentTarget.valueAsNumber]; }} />
-        <div class="flex justify-between text-xs text-muted tabular-nums"><span>1</span><span>{MAX_VISITS.toLocaleString("en")}</span></div>
-      </div>
-      <SettingChoice label="Variety" help={VARIETY_HELP[choices.bot.variety]}
-                     options={Object.entries(VARIETY_NAME)} get={() => choices.bot.variety} set={v => (choices.bot.variety = v as Variety)} />
-      <div class="py-1.5">
-        <label for="name" class="text-sm font-medium">Your name</label>
-        <p class="mb-1 text-xs text-muted">For the game's record. Without one, the record says "You".</p>
-        <input id="name" class="w-full max-w-72 px-2 py-1" maxlength="40" placeholder="You" autocomplete="off" bind:value={choices.name} />
-      </div>
-      <!-- The side starts the game, as on Lichess: Random in the middle, larger. -->
-      <div class="mt-3 pt-4 border-t border-line">
-        <p class="mb-3 text-sm font-medium text-center">{ready ? "Choose your side to start" : "Loading the rules…"}</p>
-        <div class="flex justify-center items-end gap-4">
-          {#each [["blue", 0, "Blue"], ["random", "either", "Random"], ["red", 1, "Red"]] as const as [side, dot, label] (side)}
-            <button type="button" disabled={!ready || visitsWrong} onclick={() => newGame(side)}
-                    class={["grid justify-items-center gap-1.5 rounded-lg", side === "random" ? "px-5 py-4" : "px-4 py-3",
-                            choices.side === side && "border-accent"]}
-                    aria-label="Play as {label}">
-              <span class={side === "random" ? "text-[2.75rem] leading-none" : "text-[2rem] leading-none"}><Swatch player={dot} /></span>
-              <span class="text-sm">{label}</span>
-            </button>
-          {/each}
-        </div>
-      </div>
-    </section>
-  </main>
+    {/snippet}
+  </PracticeCard>
 {/snippet}
 
-<!-- The game: the review's layout (design 06). The board is the window's height, less the row above it, or the width
-     that the side column leaves, as on Lichess's game page. The side column is Lichess's, 250 to 350 pixels. With the
-     gauge, the board's column is the gauge's width wider, and the row starts at the board's edge. One column below 800
-     pixels (`max-[800px]`, a width under 800), as the review and the fixed step bar (review.css in packages/review). -->
+<!-- The game: the review's layout (design 06), in the practice's frame (@abstractclass/practice): the board square, the
+     window's height less the row above it, or the width that the side column leaves, as on Lichess's game page. With
+     the gauge, the board's column is the gauge's width wider, and the row starts at the board's edge. -->
 {#snippet gameView()}
   {@const g = game}
   {@const pos = g?.positions[shown]}
   {@const into = g && shown > 0 ? g.played[shown - 1] : null}
   {@const gauge = score.form === "gauge" && score.bar}
-  <main class="grid items-start justify-center gap-x-5 gap-y-3 my-4 px-4 select-none
-               [--tall:calc(100vh-var(--site-header)-var(--strip)-2rem)] [--broad:calc(100cqw-250px-1.25rem-var(--gauge-w)-2rem-20px)]
-               [--board:min(var(--tall),var(--broad))] grid-cols-[calc(var(--board)+var(--gauge-w))_minmax(250px,350px)]
-               max-[800px]:[--board:calc(100cqw-2rem-var(--gauge-w))] max-[800px]:grid-cols-1"
-        style:--strip={stripHeight ? `calc(${stripHeight}px + 0.5rem)` : "3.3125rem"} style:--gauge-w={gaugeW}>
-    <section class="min-w-0">
-      <div class={["mb-2 ml-(--gauge-w)", stripBox(gauge)]} bind:offsetHeight={stripHeight}>
+  <PracticeFrame form="square" {gauge} gaugeWidth={gaugeW} onstep={to => step(to === "first" ? 0 : to === "back" ? shown - 1 : to === "forward" ? shown + 1 : last)}
+                 atStart={!g || shown === 0} atEnd={!g || atLatest}>
+    {#snippet strip()}
         {#if g && pos}
           <PlayerRow {gauge} label="Players and scores">
             {#snippet blue()}{@render card(g, 0)}{/snippet}
@@ -445,11 +384,12 @@
             {#snippet bar()}{#if score.bar}<div class="h-[1.15rem] {BONE}"></div>{:else}<div></div>{/if}{/snippet}
           </PlayerRow>
         {/if}
-      </div>
-      <div class="flex">
+    {/snippet}
+    {#snippet beside()}
         {#if gauge && pos}{@render pointsBar(pos.scores, pos.areas ?? [0, 0], true)}
         {:else if gauge}<div class="flex-none self-stretch w-[calc(var(--gauge-w)-0.375rem)] mr-1.5 {BONE}"></div>{/if}
-        <div class="relative w-(--board) max-[800px]:flex-1 aspect-square rounded overflow-hidden bg-board">
+    {/snippet}
+    {#snippet board()}
           {#if !(g && pos)}<div class="board-points"></div>{/if} <!-- the empty board, until the game's position -->
           {#if g && pos}
             <Board position={pos} cut={into?.cut ?? null}
@@ -457,10 +397,8 @@
                    pending={input.pending} ends={input.ends} active={input.active} onpoint={input.rules ? input.click : undefined} onlyActive
                    notes={notesAt[shown] ?? []} onnotes={n => { if (n.length > (notesAt[shown]?.length ?? 0)) used("note drawn"); notesAt[shown] = n; }} />
           {/if}
-        </div>
-      </div>
-    </section>
-    <section class="flex flex-col min-h-0 h-[calc(var(--strip)+var(--board))] max-[800px]:h-auto px-4 py-3 bg-panel border border-line rounded-md">
+    {/snippet}
+    {#snippet side()}
       {#if settingsOpen}
         {@render displaySettings()}
       {:else}
@@ -512,12 +450,9 @@
           </div>
         {/if}
       {/if}
-      <!-- The steps through the positions, then the game's actions and the display settings' button: the review's bar
-           (StepBar), whose actions go under the steps when the column is too narrow for one row. On a phone it is fixed
-           to the bottom of the window. -->
-      <StepBar class="mt-2 pt-2 border-t border-line" onfirst={() => step(0)} onback={() => step(shown - 1)} onforward={() => step(shown + 1)}
-               onlast={() => step(last)} atStart={!g || shown === 0} atEnd={!g || atLatest}>
-        {#snippet tools()}
+    {/snippet}
+    <!-- The game's actions and the display settings' button, right of the steps in the frame's step bar. -->
+    {#snippet tools()}
           <!-- The actions show, off, while the bot starts, so that the bar keeps its layout. -->
           {#if g?.status !== "over"}
             <button class="btn-icon" aria-label="Take back" title="Takeback" disabled={!g?.canTakeBack || settingsOpen} onclick={takeback}><Icon name="takeback" /></button>
@@ -528,10 +463,8 @@
           {/if}
           <button class="btn-icon aria-expanded:border-accent aria-expanded:text-accent" aria-label="Display settings" title="Display settings"
                   aria-expanded={settingsOpen} onclick={() => (settingsOpen = !settingsOpen)}><Icon name="menu" /></button>
-        {/snippet}
-      </StepBar>
-    </section>
-  </main>
+    {/snippet}
+  </PracticeFrame>
 {/snippet}
 
 <!-- A player's card in the row above the board (the review's). The bot's settings are in the side column's first line. -->
