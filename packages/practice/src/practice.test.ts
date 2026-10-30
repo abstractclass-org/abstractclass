@@ -5,7 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   botLabel, choicesStore, gtpAnswer, keptStore, practiceOutcome, resignResult, scoreResult, settingsCommands,
-  takebackCount, visitRange, visitsStop, visitsTaken, type KeptPractice,
+  takebackCount, visitsStop, visitsTaken, type KeptPractice,
 } from "./practice.ts";
 
 // The browser's local storage, in memory: Node has none.
@@ -19,23 +19,6 @@ test("the visits: any whole number from 1 to 8,192, and the slider's doubling at
   for (const v of [1, 64, 3000, 8192]) assert.equal(visitsTaken(v), true, String(v));
   for (const v of [0, 8193, 2.5, "64", null]) assert.equal(visitsTaken(v), false, String(v));
   assert.deepEqual([1, 2, 3, 3000, 8192].map(visitsStop), [0, 1, 1, 11, 13]);
-});
-
-test("a site's least visits: the slider starts there, then takes the doublings above it", () => {
-  const range = visitRange(27);
-  assert.deepEqual(range.stops, [27, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]);
-  for (const v of [27, 31, 8192]) assert.equal(range.taken(v), true, String(v));
-  for (const v of [1, 26, 8193]) assert.equal(range.taken(v), false, String(v));
-  assert.deepEqual([27, 31, 32, 100, 8192].map(range.stop), [0, 0, 1, 2, 9]);
-  const store = choicesStore("test:least", "new", () => true, range);
-  assert.equal(store.defaults().bot.visits, 64);
-  store.save({ bot: { network: "new", visits: 16, variety: "low" }, side: "red", name: "" });
-  assert.equal(store.load().bot.visits, 64);
-  assert.equal(choicesStore("test:least", "new", () => true, visitRange(100)).defaults().bot.visits, 100);
-  const kept = keptStore("test:least-game", range);
-  kept.keep({ version: 1, bot: { network: "new", visits: 16, variety: "low" }, human: 0, name: "", seed: 1, moves: [],
-              builds: [], started: "2026-10-30T00:00:00Z" });
-  assert.equal(kept.load(), null);
 });
 
 test("the choices are kept under the site's key, and a network that the site no longer offers takes its first", () => {

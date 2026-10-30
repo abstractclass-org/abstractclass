@@ -7,29 +7,14 @@ import type { Player } from "@abstractclass/analysis/game.ts";
 import { inSteps } from "@abstractclass/analysis/settings.ts";
 import { readLocalJson, writeLocal } from "@abstractclass/storage/local.ts";
 
-/** The visits for each bot move: any whole number from the site's least to 8,192 (design 24: from 1). */
+/** The visits for each bot move: any whole number from 1 to 8,192 (design 24). The slider's stops are the doublings. */
 export const MAX_VISITS = 8192;
+export const VISIT_STOPS = Array.from({ length: Math.log2(MAX_VISITS) + 1 }, (_, k) => 2 ** k);
 export const DEFAULT_VISITS = 64;
-
-/** The visits that a site's bot takes: any whole number from `least` to 8,192. The slider's stops are the least, then
- *  the doublings above it. */
-export function visitRange(least = 1) {
-  const stops = [least, ...Array.from({ length: Math.log2(MAX_VISITS) + 1 }, (_, k) => 2 ** k).filter(v => v > least)];
-  return {
-    least, stops,
-    /** Whether the bot takes this number of visits. */
-    taken: (visits: unknown): visits is number => inSteps(stops, visits),
-    /** The slider's stop for a number of visits that the bot takes: the last stop at or below it. */
-    stop: (visits: number) => stops.findLastIndex(s => s <= visits),
-  };
-}
-export type VisitRange = ReturnType<typeof visitRange>;
-
-/** Hedge School's visits, from 1: the slider's stops are the doublings. */
-export const VISITS = visitRange();
-export const VISIT_STOPS = VISITS.stops;
-export const visitsTaken = VISITS.taken;
-export const visitsStop = VISITS.stop;
+/** Whether the bot takes this number of visits. */
+export const visitsTaken = (visits: unknown): visits is number => inSteps(VISIT_STOPS, visits);
+/** The slider's stop for a number of visits that the bot takes: the doubling at or below it. */
+export const visitsStop = (visits: number) => 31 - Math.clz32(visits);
 
 /** Variety, the move temperature (KataGo's chosen-move temperature): at the game's start, halved every half-life of
  *  moves (the site's own), down to the floor. Low is KataGo's default. Medium and High are Hedge School's (design 24). */
@@ -55,18 +40,16 @@ export interface BotSettings { network: string; visits: number; variety: Variety
 export interface PracticeChoices { bot: BotSettings; side: "blue" | "red" | "random"; name: string }
 
 /** The player's choices, kept under a site's key. `network` is the site's first network, and `offers` says whether the
- *  site still offers a kept one: a choice of a network that it no longer offers takes the first. `visits` is the
- *  site's range: a kept number out of it takes the default. */
-export function choicesStore(key: string, network: string, offers: (id: string | undefined) => boolean, visits = VISITS) {
-  const defaults = (): PracticeChoices =>
-    ({ bot: { network, visits: Math.max(DEFAULT_VISITS, visits.least), variety: "low" }, side: "random", name: "" });
+ *  site still offers a kept one: a choice of a network that it no longer offers takes the first. */
+export function choicesStore(key: string, network: string, offers: (id: string | undefined) => boolean) {
+  const defaults = (): PracticeChoices => ({ bot: { network, visits: DEFAULT_VISITS, variety: "low" }, side: "random", name: "" });
   function load(): PracticeChoices {
     const d = defaults(), kept = readLocalJson<Partial<PracticeChoices>>(key);
     const bot = kept?.bot;
     return {
       bot: {
         network: offers(bot?.network) ? bot!.network : d.bot.network,
-        visits: visits.taken(bot?.visits) ? bot.visits : d.bot.visits,
+        visits: visitsTaken(bot?.visits) ? bot.visits : d.bot.visits,
         variety: bot?.variety && bot.variety in VARIETY ? bot.variety : d.bot.variety,
       },
       side: kept?.side === "blue" || kept?.side === "red" ? kept.side : d.side,
@@ -106,11 +89,11 @@ export interface KeptPractice<Form extends string = string> {
   ms?: (number | null)[];
 }
 
-/** The game in progress, kept under a site's key. A game whose visits are out of the site's range is not kept. */
-export function keptStore<Form extends string = string>(key: string, visits = VISITS) {
+/** The game in progress, kept under a site's key. */
+export function keptStore<Form extends string = string>(key: string) {
   function load(): KeptPractice<Form> | null {
     const k = readLocalJson<KeptPractice<Form>>(key);
-    return k && k.version === 1 && Array.isArray(k.moves) && (k.human === 0 || k.human === 1) && visits.taken(k.bot?.visits) ? k : null;
+    return k && k.version === 1 && Array.isArray(k.moves) && (k.human === 0 || k.human === 1) && visitsTaken(k.bot?.visits) ? k : null;
   }
   const keep = (k: KeptPractice<Form> | null) => writeLocal(key, k && JSON.stringify(k));
   return { load, keep };
