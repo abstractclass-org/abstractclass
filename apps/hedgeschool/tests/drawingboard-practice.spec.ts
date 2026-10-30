@@ -3,11 +3,11 @@
 // blueprint in the hand, then a marked anchor hex on the board, chosen at random, or a cell and a marked new place
 // when no blueprint has a legal placement. Each game goes to its end with no page error and no stop. The page checks
 // each of the bot's moves against the rules' legal moves, and stops the game when one is not legal. A reload in the
-// middle keeps the game: the same moves, and the game goes on. The bot's visits are 32: until the engine's fix
-// (abscls-csmy), its genmove fails with 2n visits or fewer for a cover of n views. The site's build and the Tests
-// workflow have no engine files (design 33, "The engine's files"), so the tests skip, with a message, when the preview
-// has no practice bot: run `npm run engine` in apps/drawingboard before its build. Run: npm run test:layout -- \
-// tests/drawingboard-practice.spec.ts, with DB_BASE_URL.
+// middle keeps the game: the same moves, and the game goes on. The bot's visits are 32, so that a game takes minutes:
+// the bot at 1 and 2 visits has its own test (apps/drawingboard/src/lib/practice/bot.engine.test.ts). The site's
+// build and the Tests workflow have no engine files (design 33, "The engine's files"), so the tests skip, with a
+// message, when the preview has no practice bot: run `npm run engine` in apps/drawingboard before its build. Run:
+// npm run test:layout -- tests/drawingboard-practice.spec.ts, with DB_BASE_URL.
 import { expect, test, type Page } from "@playwright/test";
 
 const DRAWING_BOARD = process.env.DB_BASE_URL;
