@@ -444,9 +444,9 @@ its own choice of "Book" or "Candidates", handles the key o, and plays the moves
   and every row wraps at the same width, so the badges stay at one place. The layout test (`npm run test:layout`)
   checks the review with the table after the game's first edge, by edge and by turn. By edge the rows' edges have 6
   and 7 characters. By turn the rows are turn 2's whole turns. At every size from 360 pixels wide, the table fits its
-  box, each head stays on one line, and the rows' badges start at one place. By edge the sweep leaves out one known
-  fault: the move list by edge hides 56 pixels sideways from 360 to 410 pixels wide, with or without the book (beads
-  abscls-8n02).
+  box, each head stays on one line, and the rows' badges start at one place. The sweep runs in full by edge too. The
+  move list by edge fits from 360 pixels wide: where a turn's two moves do not fit side by side, the second move goes
+  under the first (beads abscls-8n02).
 - **The sentence under the table** is the page's: the lab page gives it from `sentences.ts`, the sentence of the row
   pointed at or focused (`moveSentence`), else the best move's (`bestMoveSentence`). By turn, the review gives the
   turns' sentences of the same templates (`turnSentence`, `bestTurnSentence`): "D10-G9 Q11-T10 is the best of the 3

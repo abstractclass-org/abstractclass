@@ -7398,7 +7398,16 @@ the words of the site. The pages, the lessons, the documents and the code's comm
   row is 29 (turn 2 of book-left-review.json). At 1,366 pixels a turn's row is one line.
 - **The move list by edge** hides 56 pixels sideways from 360 to 410 pixels wide (320 pixels of rows in 264), with
   or without the book, and fits by turn. The layout test swept the review by turn only, so it never met this
-  (beads abscls-8n02). The book's sweep by edge leaves out this one fault until it is fixed, and checks the rest.
+  (beads abscls-8n02). The book's sweep by edge left out this one fault until the fix, and checked the rest.
+- **The fix of the move list by edge:** each move takes 139 pixels by edge, so a row of two needs 320. Each row now
+  wraps: where a turn's two moves do not fit side by side, the second move goes under the first, at its own width, so
+  that its quality label and its loss stay next to its notation. By edge the rows wrap at 360, 385 and 410 pixels
+  wide (move lists of 264, 289 and 314 pixels) and hide nothing. From 420 pixels, a turn is one line again, also at
+  1,260 to 1,300 pixels, where the move list has its least width of 325 pixels (design 06). By turn nothing changed.
+  The first build wrapped below a fixed width of 21.5 rem. That wrapped every turn of Practice's move list, whose
+  moves have no labels and need about 180 pixels, and every row by edge at 1,260 to 1,300 pixels. A wrapping row wraps
+  only where the two moves do not fit, for every move list and every game's moves. The book's sweep by edge now runs
+  in full (`npm run test:layout`: 53 passed, 7 skipped).
 - **A departure, named in design 32:** no published explorer lists turns of two moves, because chess and Go have one
   move a turn.
 - **Openings** is not built, so it has no setting to follow yet. The lab page `/lab/book-table` has no display
