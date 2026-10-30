@@ -50,8 +50,9 @@ the protocol, and its `games/blueprints/docs/decisions/port.md` the decision.
   `searches`. It has no raw values. `describe` gives `views` too.
 - **The ownership and the policy** are those of the rule's view. A far view's ownership would need each pass's map
   with its view in the reply.
-- **An error:** when no pass finds a candidate (a `maxVisits` of 6 or less with 3 views), the reply is an error with
-  the field `maxVisits`. The site's budgets are larger, but the site must show the error as a failed request.
+- **When no pass finds a candidate** (a `maxVisits` of 6 or less with 3 views), the reply gives the first pass's
+  policy move (protocol 0.7.1, engine repository commit `70dfdc0f`). In protocol 0.7.0, the reply was an error with
+  the field `maxVisits`. The site still shows an engine error as a failed request.
 - **The protocol is 0.7.0** (engine repository commit `b64eea10`). By the engine repository's design 04, a reply
   with no raw values and the new error are breaking changes, and a breaking change takes the next minor version at
   once, also before a release. The shared engine package (`packages/engine`) then takes each site's protocol: 0.6.x

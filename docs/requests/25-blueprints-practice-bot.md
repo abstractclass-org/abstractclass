@@ -1,7 +1,7 @@
 # Practice games against Stamp Duty: Blueprints' GTP bot in the browser
 
-**Status:** done (engine repository commit `217be61f`, the build `engine-217be61f` on this machine), to check here
-with Drawing Board's practice page.
+**Status:** done (engine repository commits `217be61f` and `70dfdc0f`, the build `engine-70dfdc0f` on this machine), to
+check here with Drawing Board's practice page.
 **Asked:** 2026-10-30.
 
 ## What Drawing Board builds
@@ -58,12 +58,14 @@ The practice bot in engine repository commit `217be61f` (KataGame `edadf38e`). T
 `games/blueprints/README.md`, "The practice bot", gives its settings, its commands and how they differ from
 Enclosure's.
 
-- **The build:** `runs/wasm/blueprints/engine-217be61f/` in the engine repository, with its manifest and no release:
-  `blueprints-bot.wasm` (interface 0.1.0) with `practice_bot.mjs`, the engine module (protocol 0.7.0), and bpj4's
-  network b6c96-s19117184-d446546, which the manifest names by its own name.
+- **The build:** `runs/wasm/blueprints/engine-70dfdc0f/` in the engine repository, with its manifest and no release:
+  `blueprints-bot.wasm` (interface 0.1.1) with `practice_bot.mjs`, the engine module (protocol 0.7.1), and bpj4's
+  network b6c96-s22323968-d845223, which the manifest names by its own name. bpj4's gauntlet rates it 2411 over 16
+  games, above 2270 over 40 games for b6c96-s19117184-d446546, the network of the first build (`engine-217be61f`).
 - **The play:** the native GTP engine's settings (`analysis_blueprints.cfg`, with no root noise), the tree kept from
   move to move, and the search of the root's views. Its moves equal the native `genmove` in 240 of 240 positions.
 - **A reload:** `blueprints-set-game` starts a game from its moves, and `undo` takes these moves back as any others.
 - **The bot's info** gives the build, the rules, the network (its name, SHA-256 and size) and the settings.
-- **A limit:** with a cover of n views, a search of `maxVisits` 2n or less finds no move, and `genmove` gives an
-  error. So the page's visits start at 27, until the engine gives a move in that case (abscls-csmy).
+- **Every visit count from 1 to 8,192** gives a legal move (engine repository commit `70dfdc0f`, abscls-csmy,
+  interface 0.1.1). With a cover of n views, a search of `maxVisits` 2n or less finds no candidate, and the search
+  then gives the first pass's policy move. In the first build, `genmove` gave an error there.
