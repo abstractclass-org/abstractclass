@@ -2,8 +2,9 @@
 
 **Status:** in force. The book file's form, its loader, a test book ("The book file"), the sentences (item 6) and the
 book's table ("The table") are built. The review and the Analysis board show the table ("Where the pages show it").
-The review's own parts (item 4) are built: the Report's rows and the move list's mark ("The review"). Openings is not
-built. The work uses the test book, and it goes live with the engine repository's book (request 22).
+The review's own parts (item 4) are built: the Report's rows, the move list's mark and the book's values at a book
+position ("The review"). Openings is not built. The work uses the test book, and it goes live with the engine
+repository's book (request 22).
 **Decided:** 2026-10-24, from user stories and journeys, Lichess's opening explorer, KataGo's book pages and OGS's
 Joseki Explorer.
 
@@ -122,15 +123,18 @@ explorers that people use in chess and Go is [../research/03-opening-explorers.m
      The mark takes the quality label's slot, whatever the label, from Great to Blunder. By turn, a turn shows it when
      all its edges are book moves, with the turn's quality label. The display setting "Book moves" gives two forms:
      the quality label on the book's brown (the default), or an open book in the quality label's colour. Each form
-     follows the setting "Quality labels": a badge, or the quality mark alone. The moves keep their review labels.
-   - **One engine and one depth rule a game:** the review keeps its own labels, on book moves too (design 16). The
-     book's table shows the book's values only, with no row for the game's move: the move list gives the review's
-     quality label. The opening row follows "Review by", as the table does. By turn it names the turn that left the
-     book, with the turn's quality label, and it goes to the turn's start. Its earlier book turn worse than Good is a
-     whole turn too, with the review's quality label of the turn: "Before that, at turn {n}, {side} played {turn}, a
-     book turn and {a label}.", or "The last book turn, {turn}, is {a label}.". By edge it names the edge and its
-     quality label. The row never gives the label that the book's values give a move: the move list, the move's
-     book mark and the row give one label to one move.
+     follows the setting "Quality labels": a badge, or the quality mark alone. The moves keep their review labels,
+     which are the book's on a book move (the next bullet).
+   - **The book's values rule a book position:** at each position of the game that the book holds, the review takes
+     the book's values in place of the engine's search, and does not search the position ("The review", "A book
+     position's values"). The book's searches are the deeper (item 5). So a book move has one quality label and one
+     loss on the page, the book's: in the move list, on its book mark, in the Report's opening row, in the charts and
+     the counts, and in the book's table. The review's rules (design 10) give the labels from the book's values, as
+     the book's rules do. The book's table has no row for the game's move. The opening row follows "Review by", as
+     the table does. By turn it names the turn that left the book, with the turn's quality label, and it goes to the
+     turn's start. Its earlier book turn worse than Good is a whole turn too, with the turn's quality label: "Before
+     that, at turn {n}, {side} played {turn}, a book turn and {a label}.", or "The last book turn, {turn}, is {a
+     label}.". By edge it names the edge and its quality label.
    - **A book move played from the table** is a variation of the game, as any move that the player plays in a review is
      (design 07). "Delete from here" removes it.
 5. **Openings:**
@@ -240,6 +244,12 @@ explorers that people use in chess and Go is [../research/03-opening-explorers.m
   - **The table takes the candidates' place,** not a box under the move list as on Lichess. A review's move list holds
     120 edges and needs the column's height. At a book position, the book's values are deeper than the live engine's,
     so the table shows the better set and the switch shows the other.
+  - **The review takes the book's values at a book position,** where Lichess and KataGo keep the review's engine
+    apart from the book. The book's searches are deeper than the review's (item 5), and KataGo's book method
+    minimaxes them through the book's tree. With the book's values, a book move has the label and the loss that the
+    book's table gives it, and the review saves its search of the opening. The cost: one review mixes two networks,
+    the book's and the review's, and the move that leaves the book compares the book's value before it with a search
+    after it ("A book position's values").
   - **The table has no game counts.** The book has none. The heading's title says where the book comes from, so the
     player does not read the rows' order as popularity.
   - **The move list shows the book's tree folded around the path.** No surveyed tool draws the tree around the
@@ -279,8 +289,11 @@ explorers that people use in chess and Go is [../research/03-opening-explorers.m
   second edge under its first takes the room from the rows, and the heads stay on one line.
 - **A smaller font for a turn's edges.** It would make the edges harder to read, and the edges' own lines give the
   room.
-- **The book's values in the review's labels** wherever the game is in the book, as design 16 has each position use
-  its deepest result. One review would then mix two networks.
+- **The review's own labels on book moves,** from its search of each book position (decided on 2026-10-27, replaced
+  on 2026-10-30). One move then had two labels on one page: in book-left-review.json the table called O11-Q10 an
+  Inaccuracy and the move list Good. The review's labels came from the shallower search.
+- **The book's label in the Opening row only,** and the review's in the move list and on the mark. The page still gave
+  one move two labels.
 - **Chess.com's "Book" in the place of the label.** It hides the quality of a book move worse than Good.
 - **One mark at the last book move of each stretch in the book,** beside the turn's number ("Last move in the book").
   Nothing said what it meant without a pointer, and the moves before it carried nothing, so it did not show how far
@@ -511,10 +524,9 @@ shows them in the early edition, where the book loads. They read the site's one 
 - **"Before that" by turn** names a whole book turn (`earlierTurns` in `game.ts`). The candidates are the game's turns
   before the departure whose edges are all book moves and none a trap. The review's label and loss of a turn are the
   turn's own (design 10), found by the index of the turn's first edge. Blue's first turn has one edge, and the row
-  names it as a book move. The book's own label of a book move or turn (from its search, as the table shows) can
-  differ from the review's: in the test game book-left-review.json, the book calls O11-Q10 an Inaccuracy (by turn,
-  N11-Q10 O11-Q10, a loss of 0.077), and the review labels it Good (a loss of 4.2% by edge, 3.3% by turn). The row
-  names neither.
+  names it as a book move. The review's label and loss of a book move or turn are the book's ("A book position's
+  values"). In the test game book-left-review.json, O11-Q10 is an Inaccuracy, a loss of 7.7% (by turn, N11-Q10
+  O11-Q10, the same loss), in the row, in the move list, on its book mark and in the table.
 - **A trap's row** says that the other side played its refutation when the game reached the refutation's turn and the
   other side's edges are the refutation's, in either order. The game reaches that turn when the side that played the
   trap ends its turn as the refutation does. Otherwise, the row gives the trap's first sentence only. A game that ends
@@ -546,6 +558,56 @@ shows them in the early edition, where the book loads. They read the site's one 
   Blunder. So the opening row gives Good by edge and Blunder by turn. The layout test's game (`hedgefund-review.json`)
   follows the test book to its end.
 
+### A book position's values
+
+At each position of the game that the book holds, the review takes the book's values in place of the engine's search
+(`apps/hedgeschool/src/lib/book/results.ts`, `GameAnalysis.useBook` in `packages/analysis/src/analysis.svelte.ts`).
+The review's own rules (design 10) then give the labels, the losses, the charts and the counts from those values, as
+from a search. A unit test checks every book move of the test book, by edge and by turn in both orders: the review's
+label and loss are the ones that the book's table gives (434 edges and 284 whole turns).
+
+- **What the book's fields replace** in a search's result (`Analysis` in `packages/analysis/src/model.ts`, with
+  `book`):
+  - `value`: the win chance and the lead. By the book's minimax, the position's value is the best of the first book
+    move's and the best move outside the book's, so the loss of a book move is the book's (`moveLoss`).
+  - `moves` and `outside`: the candidates, the best for the side to move first. The first is the engine's first
+    choice, which a Best needs. The first book move's line goes on with the best move after it, which a Best by turn
+    needs: the best turn in the other order is Best too, as the table's one row a position is. At the start, each
+    edge's mirror image follows it as its twin, as the engine lists twins.
+  - `complexity`: the position's complexity (design 14), and so the hard positions and the accuracy's weights.
+  - `area`: the area map (design 30). The map stage searches no book position.
+  - The book's source: the visits of its deep search, as the result's visits. A label needs no more: the book's values
+    count as deep enough at any review depth.
+- **What the review still takes from a search at a book position:** nothing for its labels. The analysis column shows
+  the engine's own search of the position on screen (design 16, the position on screen), as at any position: the
+  switch's "Candidates" and the engine header (item 3). The threat (design 31) searches the position after a pass, as
+  everywhere. The engine's results stay apart from the book's (`searched` in `ReviewData`), and the store keeps them.
+- **The move that leaves the book** compares the book's value before it with the review's search after it: mixed
+  depths, as design 16 accepts where a position holds a deeper result. A Great needs two equal searches (design 10),
+  and the book's minimax is no search of a depth that the review can match. So no move from or into a book position is
+  Great, and the book gives none either (item 6, "The labels"). The move can be Best: the book's best move outside the
+  book is a candidate.
+- **A book that loads after the review started:** its values come as its parts load (`giveBook` in
+  `reviewBook.ts`), and the stages skip each book position whose search still waits for an engine. A search that ran
+  before keeps its result for the analysis column, and the labels take the book's values.
+- **A book that does not load:** no values come, and the review searches every position, as with no book. A part that
+  does not load leaves its positions to the review's search. The review does not try again: the table's "Try again"
+  serves the table.
+- **A review stored before:** its results at the book's positions stay in the store, and the review opens with them.
+  The book's values then take their place in the labels, though a stored result is deeper (design 16, "The deepest
+  result, everywhere"): the book's searches are the deeper by design. A result deeper than the review's at a book
+  position does not count in the report's note on deeper searches.
+- **The annotated record** that the home page exports from the store takes the book's values too, so it gives the
+  review's labels. A review snapshot (design 20) takes them as the review did. Its check of the store still asks for a
+  result at each of the game's positions: a review made with the book holds none at the book's positions, so it
+  opens as a new review (beads abscls-tpaj.22).
+- **The Analysis board and a set-up board** take no book values: the board's analysis searches its positions as
+  before, and its labels stay on the moves that the player evaluates (design 21). The book's table shows the book there.
+- **Values with three decimals:** the book's win chances have three decimals, so a loss can fall on a band's limit
+  (0.55 less 0.5 is 0.05, Good). A quality label rounds the loss to 6 decimals (`classify` in
+  `packages/analysis/src/labels.ts`), as the book's rule does, so that a floating-point error does not put it in the
+  next band. Without the rounding, one book move of the test book went to the next band.
+
 ## Where it is
 
 The book file's form, its loader and their unit tests are in `apps/hedgeschool/src/lib/book/`, the script that makes
@@ -553,8 +615,10 @@ the test book in `apps/hedgeschool/scripts/test-book.mjs`, and the test book in
 `apps/hedgeschool/tests/fixtures/test-book/` ("The book file"). The sentences and the symbols are in
 `apps/hedgeschool/src/lib/book/sentences.ts` and `symbols.ts` (item 6). The table is in `apps/hedgeschool/src/lib/book/`
 too, with its lab page in `apps/hedgeschool/src/routes/lab/book-table/` ("The table"). The review and the Analysis
-board show it through `place.svelte.ts` ("Where the pages show it"). Openings is not built. The design's files are in
-[../ux/book-explorer/](../ux/book-explorer/): `context-book-explorer.md`, `stories-book-explorer.md`,
+board show it through `place.svelte.ts` ("Where the pages show it"). The book's values in the review are in
+`apps/hedgeschool/src/lib/book/results.ts`, `reviewBook.ts` and `GameAnalysis.useBook` ("A book position's
+values"). Openings is not built. The design's files are in [../ux/book-explorer/](../ux/book-explorer/):
+`context-book-explorer.md`, `stories-book-explorer.md`,
 `journey-book-explorer.md` and its diagram, `sitemap-book-explorer.md` and its diagram, `wireframes-book-explorer.html`,
 `evaluation-book-explorer.md` and `decisions.md`. The prototypes' code is on the branches abscls-tpaj.1, abscls-tpaj.2
 and abscls-tpaj.3, never merged.
@@ -571,4 +635,6 @@ and abscls-tpaj.3, never merged.
 - [decisions/product.md](../decisions/product.md), "The book's table follows Review by: whole turns at a turn's
   start" (2026-10-27).
 - [decisions/product.md](../decisions/product.md), "The Opening row gives the review's label of the earlier book
-  move" (2026-10-27).
+  move" (2026-10-27), replaced by the next entry.
+- [decisions/product.md](../decisions/product.md), "A book move takes the book's label and loss: the review takes a
+  book position's values from the book" (2026-10-30).

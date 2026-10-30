@@ -49,13 +49,19 @@ const table = (page: Page) => page.getByRole("region", { name: "Opening book" })
 const byEdge = (page: Page) =>
   page.addInitScript(() => localStorage.setItem("learn-enclosure:review-display:1", JSON.stringify({ judge: "edge" })));
 
+/** The opening row of book-left-review.json, by edge and by turn: O11-Q10 with the book's label. */
+const LEFT_BY_EDGE = "The game left the book at turn 3: Blue, D9-G11, Blunder. Before that, at turn 2, Red played O11-Q10, "
+  + "a book move and an Inaccuracy. Show the position";
+const LEFT_BY_TURN = "The game left the book at turn 3: Blue, D9-G11 D10-G9, Blunder. Before that, at turn 2, Red played "
+  + "N11-Q10 O11-Q10, a book turn and an Inaccuracy. Show the position";
+
 test.describe("desktop", () => {
   test.use({ viewport: { width: 1366, height: 900 } });
 
-  test("a game that leaves the book after a book move that the review labels Good: the row names none, and the clicks", async ({ page }) => {
+  test("a game that leaves the book after a book move worse than Good: the row names it, and the clicks", async ({ page }) => {
     await byEdge(page);
     await open(page, "book-left-review.json");
-    const opening = row(page, /^The game left the book at turn 3: Blue, D9-G11(, \w+)?\. Show the position$/);
+    const opening = row(page, LEFT_BY_EDGE);
     await expect(opening).toBeVisible({ timeout: 30_000 });
     await expect(page.getByText("Traps", { exact: true })).toHaveCount(0);
     await opening.click();
@@ -122,8 +128,8 @@ test.describe("desktop", () => {
   test("the opening row gives the edge's own quality label: none for the player that Review for leaves out", async ({ page }) => {
     await display(page, { reviewFor: "red", judge: "edge" });
     await open(page, "book-left-review.json");
-    await expect(row(page, /^The game left the book at turn 3: Blue, D9-G11\. Show the position$/))
-      .toBeVisible({ timeout: 30_000 });
+    await expect(row(page, "The game left the book at turn 3: Blue, D9-G11. Before that, at turn 2, Red played O11-Q10, a book "
+      + "move and an Inaccuracy. Show the position")).toBeVisible({ timeout: 30_000 });
   });
 
   // In book-turn-label-review.json, Red leaves the book with N8-Q10, a Good edge, and ends its turn with N9-Q10: the
@@ -215,9 +221,9 @@ test.describe("book moves in the move list", () => {
     await display(page, { judge: "edge" });
     await open(page, "book-left-review.json");
     await expect(bookMarks(page)).toHaveCount(3, { timeout: 30_000 });
-    // The move's own tooltip, with its numbers
-    await expect(markOf(page, "A10-D9")).toHaveAccessibleName("Book move · Best: +0.6% · +2.0 · Lead: Blue +14.9 · Equal position after it");
-    await expect(moveOf(page, "A10-D9")).toHaveAttribute("title", "Best: +0.6% · +2.0 · Lead: Blue +14.9");
+    // The move's own tooltip, with its numbers: the book's values before and after it
+    await expect(markOf(page, "A10-D9")).toHaveAccessibleName("Book move · Best: 0.0% · 0.0 · Lead: Blue +2.0 · Equal position after it");
+    await expect(moveOf(page, "A10-D9")).toHaveAttribute("title", "Best: 0.0% · 0.0 · Lead: Blue +2.0");
     await namedAfter(markOf(page, "A10-D9"), "Equal position");
     await namedAfter(markOf(page, "N11-Q10"), "Equal position");
     await namedAfter(markOf(page, "O11-Q10"), "Blue is better");
@@ -234,13 +240,41 @@ test.describe("book moves in the move list", () => {
     await open(page, "book-left-review.json");
     await expect(bookMarks(page)).toHaveCount(2, { timeout: 30_000 });
     // The turn's tooltip, and the position after its end, O11-Q10
-    await expect(bookMarks(page).nth(1)).toHaveAccessibleName("Book move · Good: −3.3% · −7.5 (+2.9, −10.4) · Blue is better after it");
+    await expect(bookMarks(page).nth(1)).toHaveAccessibleName("Book move · Inaccuracy: −7.7% · −17.9 (0.0, −17.9) · Blue is better after it");
     await namedAfter(bookMarks(page).nth(0), "Equal position");
     await namedAfter(bookMarks(page).nth(1), "Blue is better");
     await page.keyboard.press("End");
     await bookMarks(page).nth(1).click();
     expect(await here(page)).toMatch(/^A10-D9/);
     await expect(table(page)).toBeVisible();
+  });
+
+  // The review takes a book position's values from the book (design 32, "A book position's values"): O11-Q10 has the
+  // book's label and loss, an Inaccuracy and 7.7% (by turn, N11-Q10 O11-Q10), in the Report's opening row, in the
+  // move list, on its book mark and in the book's table.
+  test("by edge: O11-Q10 has one label and one loss, the book's, in the opening row, the move list, its mark and the table", async ({ page }) => {
+    await display(page, { judge: "edge" });
+    await open(page, "book-left-review.json");
+    await expect(row(page, LEFT_BY_EDGE)).toBeVisible({ timeout: 30_000 });
+    await expect(moveOf(page, "O11-Q10")).toHaveAttribute("title", "Inaccuracy: −7.7% · −17.9 · Lead: Blue +19.9");
+    await expect(markOf(page, "O11-Q10"))
+      .toHaveAccessibleName("Book move · Inaccuracy: −7.7% · −17.9 · Lead: Blue +19.9 · Blue is better after it");
+    await markOf(page, "O11-Q10").click(); // the position before it, with the book's table
+    await expect(table(page).locator('tbody tr[data-move="O11-Q10"]').getByRole("img", { name: LABEL_WORDS }))
+      .toHaveAccessibleName("Inaccuracy");
+  });
+
+  test("by turn: N11-Q10 O11-Q10 has one label and one loss, the book's, in the opening row, the move list, its mark and the table", async ({ page }) => {
+    await open(page, "book-left-review.json");
+    await expect(row(page, LEFT_BY_TURN)).toBeVisible({ timeout: 30_000 });
+    const mark = bookMarks(page).nth(1);
+    await expect(mark).toHaveAccessibleName("Book move · Inaccuracy: −7.7% · −17.9 (0.0, −17.9) · Blue is better after it");
+    await namedAfter(mark, "Blue is better"); // the turn's label cell gives the same label and loss
+    await page.keyboard.press("End");
+    await mark.click(); // the turn's start, with the book's whole turns
+    await table(page).getByRole("button", { name: /^Show \d+ more turns$/ }).click();
+    await expect(table(page).locator('tbody tr[data-move="N11-Q10 O11-Q10"]').getByRole("img", { name: LABEL_WORDS }))
+      .toHaveAccessibleName("Inaccuracy");
   });
 
   // Each form's drawing: the badge's disc and what it holds, or the mark alone's colour and what it is
@@ -308,7 +342,7 @@ test.describe("by turn", () => {
 
   test("the opening row names whole turns, and goes to the turn's start, where two orders are one row", async ({ page }) => {
     await open(page, "book-left-review.json");
-    const opening = row(page, /^The game left the book at turn 3: Blue, D9-G11 D10-G9(, \w+)?\. Show the position$/);
+    const opening = row(page, LEFT_BY_TURN);
     await expect(opening).toBeVisible({ timeout: 30_000 });
     await opening.click();
     expect(await here(page)).toMatch(/^O11-Q10/);

@@ -17,7 +17,7 @@ import { reply, wordFields, wordRules, words } from "./testing/game.ts";
 import type { Player } from "./game.ts";
 import { LABEL_VISITS, MAP_VISITS, SWEEP_VISITS, analysisKey, cachePut, mapGet, mapPut,
          readAnalysisKey } from "./cache.ts";
-import { judgeBranchMove, valuesAfter } from "./model.ts";
+import { judgeBranchMove, valuesAfter, type Analysis } from "./model.ts";
 import { toAnalysis } from "./reply.ts";
 import { STORES } from "@abstractclass/storage/db.ts";
 import { memoryDb } from "@abstractclass/storage/memoryDb.ts";
@@ -1262,4 +1262,86 @@ test("where the pass ends the game, a position deeper than the threat's settings
   await turns();
   mock.timers.tick(BATCH_MS);
   assert.deepEqual([searches.length, game.threatState(["a"]), game.threatCost(["a"])], [0, "none", undefined]);
+});
+
+// The opening book's values (useBook, Hedge School's design 32): the review judges the positions that the book holds
+// by them, and its stages search only the others.
+/** A book position's values (model.ts, Analysis `book`): Blue's win chance, the visits of the book's searches. */
+const bookAt = (blueWin: number): Analysis<string> => ({ blueWin, visits: 512, candidates: [], book: true });
+
+test("the book's values: the review judges by them, the stages search only outside the book, and the engine's own results stay", async () => {
+  const { pool, searches } = fakePool();
+  const game = new GameAnalysis(words, pool, MOVES, "g");
+  await game.start();
+  game.useBook([bookAt(0.5), bookAt(0.55)]);
+  void game.sweep();
+  await settle();
+  // The sweep: the positions after a b and after a b c only (passCount: an unfinished game's end too)
+  assert.deepEqual(searches.map(s => s.moves.join(" ")), ["a b", "a b c"]);
+  for (const s of searches) s.end(SWEEP_VISITS);
+  await turns();
+  mock.timers.tick(BATCH_MS);
+  assert.equal(game.swept, 4); // the book's positions count as done
+  assert.deepEqual(searches.slice(2).map(s => s.moves.join(" ")), ["a b", "a b c"]); // then the label stage
+  for (const s of searches.slice(2)) s.end(game.labelVisits);
+  await turns();
+  mock.timers.tick(BATCH_MS);
+  assert.equal(game.labelled, 4);
+  assert.equal(game.pending([]), false);
+  const data = game.data({ blue: "First", red: "Second" })!;
+  assert.deepEqual(data.analysis.map(a => a?.book ?? false), [true, true, false, false]);
+  assert.deepEqual(data.searched!.map(a => a?.visits), [undefined, undefined, game.labelVisits, game.labelVisits]);
+  // The position on screen in the book: the engine searches it for the analysis column, and the review keeps the book's
+  game.focus([]);
+  await settle();
+  assert.deepEqual(searches.at(-1)!.moves, []);
+  searches.at(-1)!.end(game.focusVisits);
+  await turns();
+  mock.timers.tick(BATCH_MS);
+  const after = game.data({ blue: "First", red: "Second" })!;
+  assert.equal(after.analysis[0]?.book, true);
+  assert.equal(after.searched![0]?.visits, game.focusVisits);
+});
+
+test("a book that comes once the stages run: the searches that still wait for the engine skip its positions", async () => {
+  const { game, searches } = await sweeping(1);
+  assert.equal(searches.length, 1); // the start's search runs, and the others wait
+  game.useBook([undefined, bookAt(0.5), bookAt(0.55)]);
+  searches[0].end(SWEEP_VISITS);
+  await turns();
+  assert.deepEqual(searches.map(s => s.moves.join(" ")), ["", "a b c"]);
+});
+
+test("no values from the book, as where it did not load: the review searches every position", async () => {
+  const { pool, searches } = fakePool();
+  const game = new GameAnalysis(words, pool, MOVES, "g");
+  await game.start();
+  game.useBook([undefined, undefined, undefined, undefined]);
+  void game.sweep();
+  await settle();
+  assert.deepEqual(searches.map(s => s.moves.join(" ")), ["", "a", "a b", "a b c"]);
+  assert.equal(game.data({ blue: "First", red: "Second" })!.searched?.length, 4);
+});
+
+test("the Analysis board takes no book: its analysis has none", async () => {
+  const { pool } = fakePool();
+  const game = new GameAnalysis(words, pool, [], BOARD_ID);
+  await game.start();
+  game.useBook([bookAt(0.5)]);
+  assert.deepEqual(game.bookResults, []);
+});
+
+test("no Great's confirmation from or into a position with the book's values", async () => {
+  const { pool } = fakePool();
+  const game = new GameAnalysis(words, pool, ["a", "b", "c", "d"], "g");
+  await game.start();
+  const at = (blueWin: number, candidates: [string, number][] = []) =>
+    ({ blueWin, visits: game.labelVisits, candidates: candidates.map(([edge, w]) => ({ edge, visits: 10, blueWin: w })) });
+  // c is the only good move at position 2, and it keeps what b gave: one search, as above
+  game.analysis = [at(0.5), at(0.5), at(0.6, [["c", 0.6], ["x", 0.45]]), at(0.6), at(0.6)];
+  assert.equal(game.greatChecks.total, 1);
+  game.useBook([undefined, undefined, { ...game.analysis[2]!, book: true }]); // the position before c is the book's
+  assert.equal(game.greatChecks.total, 0);
+  game.useBook([undefined, undefined, undefined, { ...game.analysis[3]!, book: true }]); // the position after c
+  assert.equal(game.greatChecks.total, 0);
 });

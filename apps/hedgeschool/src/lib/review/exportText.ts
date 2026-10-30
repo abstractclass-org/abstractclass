@@ -9,6 +9,7 @@ import { modelOf, type Manifest } from "@abstractclass/engine/client.ts";
 import { SITE_NAME } from "#lib/edition.ts";
 import { playerNames, type GameRecord } from "#lib/game/record.ts";
 import { loadGame } from "#lib/game/store.ts";
+import { giveBook } from "#lib/book/reviewBook.ts";
 import { annotatedRecord } from "./annotate.ts";
 import { loadDisplay } from "./display.ts";
 import { enclosure, review, type BranchNode, type Review, type Unit } from "./enclosure.ts";
@@ -42,6 +43,7 @@ export async function annotatedFromStore(id: string, manifest: Manifest | null):
     await game.start();
     if (game.error) throw new Error(game.error);
     await game.fromStore(pool.search!, model.sha256);
+    await giveBook(game).catch(() => {}); // the book's values, as the review takes them: the stages did not search those positions
     const data = game.data(playerNames(stored.record.tags));
     if (!data) throw new Error("the engine could not read this game");
     // A game this browser has not reviewed with the current engine and network, or only in part: a record without the

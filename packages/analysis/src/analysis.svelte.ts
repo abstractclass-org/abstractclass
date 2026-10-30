@@ -81,6 +81,9 @@ export class GameAnalysis<G extends GameTypes> {
   // Positions outside the tree, by path key: the positions after the engine's second choice, searched to confirm a
   // Great (confirmGreats).
   outside = $state.raw<Record<string, Analysis<G["move"]>>>({});
+  // The opening book's values of the game's positions that the book holds, by index (useBook): the review judges by
+  // them in place of the engine's results there, and the stages search none of those positions.
+  bookResults = $state.raw<(Analysis<G["move"]> | undefined)[]>([]);
   rulesReady = $state(false);
   engineReady = $state(false);
   paused = $state(false); // the engine is off: no search starts
@@ -182,7 +185,9 @@ export class GameAnalysis<G extends GameTypes> {
    *  The end too, where the game is not over (passCount). */
   get swept() { return this.storedCount(SWEEP_VISITS); }
   get labelled() { return this.storedCount(this.labelVisits); }
-  private storedCount(visits: number) { return this.mainKeys.filter(k => this.storedAt(k) >= visits).length; }
+  private storedCount(visits: number) {
+    return this.mainKeys.filter((k, i) => this.bookResults[i] || this.storedAt(k) >= visits).length; // the book's: done
+  }
 
   /** Whether the review's own work can still change the analysis at `path`: a search of it runs now to the visits that
    *  it shows or more (a shallower result does not replace it, keep), or the label stage has yet to reach them. */
@@ -190,7 +195,7 @@ export class GameAnalysis<G extends GameTypes> {
     const shown = this.analysisOf(path)?.visits ?? 0;
     if (this.running[pathKey(path)]?.some(visits => visits >= shown)) return true;
     const i = mainIndex(path, this.mainNames);
-    if (this.board || i === null || i >= this.passCount || this.paused || !this.engineReady) return false;
+    if (this.board || i === null || i >= this.passCount || this.paused || !this.engineReady || this.bookResults[i]) return false;
     return shown < this.labelVisits;
   }
 
@@ -211,8 +216,26 @@ export class GameAnalysis<G extends GameTypes> {
       const turn = this.turnAt(i);
       return turn && i + turn.length < this.played.length ? after(i, otherCandidate(this.game, this.analysis[i], turn)) : undefined;
     });
-    return { players, result: { blue: end[0], red: end[1] }, moves: this.played, positions: this.positions, analysis: this.analysis,
-             seconds, others, ...(ending ? { ending } : {}) };
+    // A position that the book holds takes the book's values, and the engine's own results stay for the analysis column
+    const book = this.bookResults, analysis = book.length ? this.analysis.map((a, i) => book[i] ?? a) : this.analysis;
+    return { players, result: { blue: end[0], red: end[1] }, moves: this.played, positions: this.positions, analysis,
+             seconds, others, ...(book.length ? { searched: this.analysis } : {}), ...(ending ? { ending } : {}) };
+  }
+
+  /** Takes the opening book's values (model.ts, Analysis `book`) for the game's positions that the book holds, by
+   *  index (undefined elsewhere): the review judges by them in place of the engine's results there (data), with the
+   *  book's area maps (mapAt), and the stages do not search those positions (Hedge School's design 32). The engine
+   *  still searches the position on screen there, for the analysis column (focus). The book loads in parts, so a call
+   *  can come once the stages run: a position that they searched before keeps that result for the column. Not on the
+   *  board, whose analysis takes no book. */
+  useBook(results: (Analysis<G["move"]> | undefined)[]) {
+    if (!this.board) this.bookResults = results;
+  }
+
+  /** Whether the review takes the book's values at the position at `path` (useBook): a position of the game only. */
+  private fromBook(path: string[]): boolean {
+    const i = mainIndex(path, this.mainNames);
+    return i !== null && !!this.bookResults[i];
   }
 
   /** The game's edges of the turn that starts with edge `i`, or undefined when no turn starts there. */
@@ -380,15 +403,18 @@ export class GameAnalysis<G extends GameTypes> {
     // turn of the board needs each of its edges evaluated, as its label does (onlyJudged).
     const asked = (i: number) => !this.board || !!this.judgedMain[this.mainKeys[i + 1]];
     for (let i = 0; i + 1 < this.played.length; i++)
-      if (asked(i)) check(this.board, this.analysis[i], () => this.mainNames.slice(0, i), this.played[i].edge, this.played[i].player, false);
+      if (asked(i) && !this.bookResults[i] && !this.bookResults[i + 1])
+        check(this.board, this.analysis[i], () => this.mainNames.slice(0, i), this.played[i].edge, this.played[i].player, false);
     for (const [key, node] of Object.entries(this.branches)) {
       if (!node.judged) continue;
       const before = key.split(" ").slice(0, -1);
+      if (this.fromBook(before)) continue;
       check(true, this.analysisOf(before), () => before, node.move.edge, node.move.player, !!node.position.over);
     }
     for (let i = 0; i < this.played.length; i++) {
       const turn = this.turnAt(i);
-      if (turn && i + turn.length < this.played.length && turn.every((_, k) => asked(i + k)))
+      if (turn && i + turn.length < this.played.length && turn.every((_, k) => asked(i + k))
+          && this.bookResults.slice(i, i + turn.length + 1).every(a => !a))
         checkTurn(this.board, this.analysis[i], () => this.mainNames.slice(0, i), turn, this.played[i].player);
     }
     // A variation's turns judged on request: each judged variation move that ends a turn, with its turn's edge before it.
@@ -396,6 +422,7 @@ export class GameAnalysis<G extends GameTypes> {
       if (!node.judged || node.position.over || node.position.player === node.move.player) continue;
       const path = key.split(" "), before = this.moveInto(path.slice(0, -1));
       const twice = !!before && before.player === node.move.player, start = path.slice(0, twice ? -2 : -1);
+      if (this.fromBook(start) || (twice && this.fromBook(path.slice(0, -1)))) continue;
       checkTurn(true, this.analysisOf(start), () => start, twice ? [before!.edge, node.move.edge] : [node.move.edge], node.move.player);
     }
     return { targets, earlier, awaiting };
@@ -536,8 +563,8 @@ export class GameAnalysis<G extends GameTypes> {
 
   private judgeSearches(path: string[]) {
     if (!this.engineReady) return; // the sweep starts them
-    for (const p of this.judging(path))
-      if (this.searchable(p)) this.search(p, this.labelVisits, PRIORITY.judge, "judge", { early: LABEL_VISITS }).catch(this.fail);
+    for (const p of this.judging(path)) // a position of the game that has the book's values needs no search
+      if (this.searchable(p) && !this.fromBook(p)) this.search(p, this.labelVisits, PRIORITY.judge, "judge", { early: LABEL_VISITS }).catch(this.fail);
   }
 
   /** Deletes a variation node and every position after it (Lichess's "Delete from here"). */
@@ -758,7 +785,8 @@ export class GameAnalysis<G extends GameTypes> {
     const n = this.passCount;
     const pass = (visits: number, priority: number, tag: string) =>
       Promise.all(Array.from({ length: n }, (_, i) =>
-        this.search(this.mainNames.slice(0, i), visits, priority, tag, { early: LABEL_VISITS }).catch(this.fail)));
+        this.search(this.mainNames.slice(0, i), visits, priority, tag, { early: LABEL_VISITS, wanted: () => !this.bookResults[i] })
+          .catch(this.fail)));
     await pass(SWEEP_VISITS, PRIORITY.sweep, "sweep");
     if (run !== this.passes) return; // a later run took over, or another network
     await pass(this.labelVisits, PRIORITY.label, "label");
@@ -871,9 +899,11 @@ export class GameAnalysis<G extends GameTypes> {
     return (this.analysisOf(path)?.visits ?? 0) >= this.focusVisits || this.stoppedByTime(path);
   }
 
-  /** A position's map (Hedge School's design 30): its result's ownership, or else the map added to it (askOwnership). */
+  /** A position's map (Hedge School's design 30): the book's where the review takes the book's values (useBook), else
+   *  its result's ownership, or else the map added to it (askOwnership). */
   mapAt(path: string[]): number[] | undefined {
-    return this.analysisOf(path)?.ownership ?? this.ownership[pathKey(path)];
+    const i = mainIndex(path, this.mainNames);
+    return (i !== null ? this.bookResults[i]?.ownership : undefined) ?? this.analysisOf(path)?.ownership ?? this.ownership[pathKey(path)];
   }
   /** Whether a position gets no map: the game ends there, so the engine does not search it. A position of the tree
    *  says so itself (searchable). A position of a line says so when the engine refuses its search. */
@@ -1009,7 +1039,8 @@ export class GameAnalysis<G extends GameTypes> {
   get mapPass(): { total: number; done: number } | null {
     if (!this.mapPassOn) return null;
     const n = this.passCount;
-    const done = this.mainKeys.slice(0, n).filter((k, i) => this.analysis[i]?.ownership || this.ownership[k] || this.mapless.has(k));
+    const done = this.mainKeys.slice(0, n)
+      .filter((k, i) => this.bookResults[i]?.ownership || this.analysis[i]?.ownership || this.ownership[k] || this.mapless.has(k));
     return { total: n, done: done.length };
   }
 

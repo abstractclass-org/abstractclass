@@ -51,9 +51,12 @@ export function accuracyWeight(complexity: number | undefined, loss: number): nu
   return Math.max(0.05, Math.min(1, Math.max(complexity / HARD, loss / 0.20)));
 }
 
-/** The label of a played edge or turn, from its loss of the engine's win chance. */
+/** The label of a played edge or turn, from its loss of the engine's win chance. The loss is rounded to 6 decimals,
+ *  so that values with few decimals, as an opening book's, give the band that their decimals give: 0.55 less 0.5 is a
+ *  loss of 0.05, Good, not Inaccuracy by a floating-point error. */
 export function classify(winLoss: number, playedBest: boolean, isOnly: boolean): Label {
   if (playedBest) return isOnly ? "great" : "best";
-  for (const [label, upTo] of WIN_BANDS) if (winLoss <= upTo) return label;
+  const loss = Math.round(winLoss * 1e6) / 1e6;
+  for (const [label, upTo] of WIN_BANDS) if (loss <= upTo) return label;
   return "blunder";
 }

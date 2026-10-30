@@ -38,6 +38,7 @@
   import { loadGame, markReviewed, rememberReview, reviewAgainWhy, reviewCovers, reviewMark, setGameSettings,
            type ReviewMark } from "#lib/game/store.ts";
   import { holdReview } from "#lib/game/reviewLock.ts";
+  import { giveBook } from "#lib/book/reviewBook.ts";
   import { afterNavigate, replaceState } from "$app/navigation";
   import { track, trackOnce } from "#lib/analytics.svelte.ts";
   import { CORE_RANGES, EDGE_RANGES, MINUTE_RANGES, range } from "#lib/measure.ts";
@@ -118,7 +119,8 @@
   // The game's positions with a result deeper than the review's depth: from the position on screen searched deeper
   // where the player looked (design 09), or from an older review, which searched some positions at twice its depth.
   // The report says how many. The depths step by doublings, so a deeper search has at least twice the visits.
-  const deeperPositions = $derived(game ? game.analysis.filter(a => !!a && a.visits >= 1.5 * depth).length : 0);
+  // The positions that take the book's values are left out: their labels come from the book (GameAnalysis.useBook)
+  const deeperPositions = $derived(game ? game.analysis.filter((a, i) => !!a && !game!.bookResults[i] && a.visits >= 1.5 * depth).length : 0);
   // The review's work as one bar, each part as wide as its share of the visits, so that the bar moves at an even pace:
   // the sweep, the label stage, and the Greats' confirmations. The last is counted from what the analysis asks for so
   // far: it grows as labels come, and it is done when its positions have the searches' results in the store, whoever
@@ -319,6 +321,9 @@
     const g = await session.start(pool => new GameAnalysis(enclosure, pool, moves, kept!.id), async (g, pool) => {
       await g.start();
       performance.mark("review:rules"); // the start's steps, for measuring it (the browser's performance timeline)
+      // The book's values of the game's book positions, which the stages then do not search: they come while the review
+      // works, as the book's parts load (design 32, "The review")
+      void giveBook(g).catch(() => {});
       await warm;
       if (g.rulesReady && pool.search && model) await g.fromStore(pool.search, model).catch(() => {});
       preloaded = true;
@@ -354,6 +359,7 @@
       if (!g.rulesReady) { rules.terminate(); return false; } // the review shows why
       await g.fromStore(search, mark.model);
       g.freeze(search, mark.model); // its maps from the store alone
+      void giveBook(g).catch(() => {}); // the book's values, as in the review
       if (session.ended) { rules.terminate(); return true; }
       const date = new Date(mark.at).toLocaleDateString("en", { year: "numeric", month: "long", day: "numeric" });
       const what = why === "engine" ? "the engine" : (modelOf(manifest, network)?.displayName ?? "the network");

@@ -260,7 +260,9 @@
   // The game has ended here: only the rules end it. A game that ended early (a resignation, a forfeit) or a line that
   // stops (the Analysis board's, an unfinished game) has a search at its last position, as any position.
   const over = $derived(!!position.over);
-  const analysis = $derived(over ? undefined : mainAt !== null ? R.data.analysis[mainAt] : branchNode?.analysis);
+  // The engine's own result: where the review takes a position's values from the book, the analysis column shows the
+  // engine's search there (ReviewData `searched`)
+  const analysis = $derived(over ? undefined : mainAt !== null ? (R.data.searched ?? R.data.analysis)[mainAt] : branchNode?.analysis);
   // The position's complexity (model.ts), and its likely edges for the meter
   const difficulty = $derived(complexity(analysis, position.player));
   const meter = $derived(likelyMoves(analysis, position.player));
@@ -1318,9 +1320,10 @@
                      showArea && !!view.second && `${view.second.name}: ${sideText(areaDiff[i], 1)}`].filter(d => d !== false);
     return { title, value, details };
   }
-  // The positions whose search has the review's depth (or the end, whose value is the result): the chart draws the rest
-  // as a first estimate.
-  const chartSettled = $derived(R.data.positions.map((_, i) => i === last || (R.data.analysis[i]?.visits ?? 0) >= reviewVisits));
+  // The positions whose search has the review's depth (or the end, whose value is the result, or the book's values): the
+  // chart draws the rest as a first estimate.
+  const chartSettled = $derived(R.data.positions.map((_, i) => i === last || !!R.data.analysis[i]?.book
+    || (R.data.analysis[i]?.visits ?? 0) >= reviewVisits));
   const chartRough = $derived(R.blueWin.some((v, i) => !Number.isNaN(v) && !chartSettled[i]));
   // The position's search, as Lichess shows its depth: the bar fills to the budget and stays full when the search ends.
   // A search stopped at its time limit has ended too: its bar is full (Lichess fills its bar by time).

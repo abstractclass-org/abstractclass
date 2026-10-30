@@ -34,11 +34,19 @@ export interface Candidate<M> {
 }
 /** `ownership`: the engine's ownership of each of the game's points (KataGo's, @abstractclass/engine/protocol.ts,
  *  AnalysisReply), from Blue's side, in hundredths: 100 is Blue's at every turn end left, −100 Red's. Absent from a
- *  reply without it. */
+ *  reply without it.
+ *  `book`: the values come from an opening book, minimaxed through its tree, not from a search: the review takes them
+ *  in place of searching the position (GameAnalysis.useBook, Hedge School's design 32). `visits` is then the visits of
+ *  the book's searches, and `complexity` the book's own (`complexity` below takes it). No move from or into such a
+ *  position is Great: a Great compares two equal searches (design 10), and the book's values are no search of a depth
+ *  that a review can match. */
 export interface Analysis<M> {
   blueWin: number; visits: number; lead?: number; margin?: number; spread?: number; candidates: Candidate<M>[];
-  ownership?: number[];
+  ownership?: number[]; book?: true; complexity?: number;
 }
+/** Whether an analysis counts as deep enough for a label: `minVisits` or more, or the book's values. */
+export const deepEnough = <M>(a: Analysis<M> | undefined, minVisits: number): a is Analysis<M> =>
+  !!a && (!!a.book || a.visits >= minVisits);
 export interface ReviewData<G extends GameTypes> {
   players: { blue: string; red: string };
   result: { blue: number; red: number }; // the scores after the last edge
@@ -51,6 +59,9 @@ export interface ReviewData<G extends GameTypes> {
   // By the index of a turn's first edge: the position after the turn's other candidate (otherCandidate), searched to
   // confirm a Great by turn
   others?: (Analysis<G["move"]> | undefined)[];
+  // By position: the engine's own results, where `analysis` takes a position's values from an opening book (Analysis
+  // `book`). The analysis column shows the engine's candidates from these, and the labels come from `analysis`.
+  searched?: (Analysis<G["move"]> | undefined)[];
 }
 /** Which score measures a loss beside the win chance: the lead (KaTrain's choice) or the expected final margin. To be measured. */
 export type ScoreKind = "lead" | "margin";
@@ -126,6 +137,7 @@ const scoreOf = <M>(a: Analysis<M> | Candidate<M> | undefined, kind: ScoreKind) 
  *  Undefined without the priors (an analysis stored before they were kept). */
 export function complexity<M>(a: Analysis<M> | undefined, p: Player): number | undefined {
   if (!a) return undefined;
+  if (a.complexity !== undefined) return a.complexity; // the book's (Analysis `book`)
   let sum = 0, weight = 0;
   for (const c of a.candidates) {
     if (c.prior === undefined) continue;
@@ -147,7 +159,7 @@ export function onlyMove<M>(a: Analysis<M> | undefined, p: Player): boolean {
  *  first turn, or a position not searched yet. */
 export function keepsGain<M>(a: Analysis<M> | undefined, earlier: Analysis<M> | undefined, p: Player, minVisits: number): boolean {
   const first = a?.candidates[0];
-  return !!first && !!earlier && earlier.visits >= minVisits && moverWin(first.blueWin, p) - moverWin(earlier.blueWin, p) > KEPT_GAIN;
+  return !!first && deepEnough(earlier, minVisits) && moverWin(first.blueWin, p) - moverWin(earlier.blueWin, p) > KEPT_GAIN;
 }
 
 /** The position before the other player's last turn (keepsGain), for a move of `mover` from position `at` of a line: its
@@ -237,16 +249,16 @@ export function judgeMove(winBefore: number, winAfter: number, scoreBefore: numb
  *  the engine's second choice, and `earlier`, the position before the other player's last turn (keepsGain), which a Great
  *  needs. Null until both are known. */
 export function judgeBranchMove<M>(game: Moves<M>, before: Analysis<M> | undefined,
-                                   after: { blueWin: number; blueScore: number | undefined; visits?: number } | undefined,
+                                   after: AfterValues | undefined,
                                    mover: Player, edge: M | null, kind: ScoreKind = "lead", minVisits = 0,
                                    second?: Analysis<M>, earlier?: Analysis<M>): Label | null {
-  if (!before || before.visits < minVisits || !after) return null;
+  if (!deepEnough(before, minVisits) || !after) return null;
   const best = before.candidates[0], s = scoreOf(before, kind), winAfter = moverWin(after.blueWin, mover);
   return judgeMove(moverWin(before.blueWin, mover), winAfter,
                    s !== undefined ? moverScore(s, mover) : undefined,
                    after.blueScore !== undefined ? moverScore(after.blueScore, mover) : undefined,
                    !!best && edge != null && sameMove(game, before, best.edge, edge),
-                   onlyMove(before, mover) && keepsGain(before, earlier, mover, minVisits)
+                   !before.book && !after.book && onlyMove(before, mover) && keepsGain(before, earlier, mover, minVisits)
                      && confirmedOnly(winAfter, second, mover, equalDepth(minVisits, after.visits))).label;
 }
 
@@ -257,14 +269,20 @@ export const resultWin = (blueLead: number) => (blueLead > 0 ? 1 : blueLead < 0 
 const bestTurn = <M>(first: Candidate<M> | undefined, twoEdges: boolean): M[] | undefined =>
   first && (twoEdges && (first.line?.length ?? 0) >= 2 ? [first.edge, first.line![1]] : [first.edge]);
 
+/** The values after an edge or a turn, which judge it: Blue's win chance and score, the visits of their search, and
+ *  `book` where they are the book's (Analysis `book`). */
+export interface AfterValues { blueWin: number; blueScore: number | undefined; visits?: number; book?: true }
+
 /** The values after a position, for judging the edge into it: the result where the game ends, else its analysis once
- *  it has `minVisits`. */
-export function valuesAfter<M>(p: PositionInfo, a: Analysis<M> | undefined, kind: ScoreKind = "lead", minVisits = 0) {
+ *  it has `minVisits`, or the book's values. */
+export function valuesAfter<M>(p: PositionInfo, a: Analysis<M> | undefined, kind: ScoreKind = "lead", minVisits = 0):
+    AfterValues | undefined {
   if (p.over) {
     const d = p.scores[0] - p.scores[1];
     return { blueWin: resultWin(d), blueScore: d };
   }
-  return a && a.visits >= minVisits ? { blueWin: a.blueWin, blueScore: scoreOf(a, kind), visits: a.visits } : undefined;
+  return deepEnough(a, minVisits) ? { blueWin: a.blueWin, blueScore: scoreOf(a, kind), visits: a.visits, ...(a.book ? { book: a.book } : {}) }
+    : undefined;
 }
 
 // Lichess's accuracy of one move from the drop in win% (0-100).
@@ -308,9 +326,9 @@ export function review<G extends GameTypes>(game: Game<G>, data: ReviewData<G>, 
   const end = (i: number) => i === n && over;
   const blueWin = data.positions.map((_, i) => (end(i) ? final : data.analysis[i]?.blueWin ?? NaN));
   const blueScore = data.positions.map((_, i) => (end(i) ? blueResult : scoreOf(data.analysis[i], kind)));
-  const deepEnough = (j: number) => end(j) || (data.analysis[j]?.visits ?? 0) >= minVisits;
+  const deep = (j: number) => end(j) || deepEnough(data.analysis[j], minVisits);
   // Both ends of an edge or a turn analysed, to the label budget.
-  const known = (i: number, j: number) => !Number.isNaN(blueWin[i]) && !Number.isNaN(blueWin[j]) && deepEnough(i) && deepEnough(j);
+  const known = (i: number, j: number) => !Number.isNaN(blueWin[i]) && !Number.isNaN(blueWin[j]) && deep(i) && deep(j);
   const scoreAt = (i: number, p: Player) => (blueScore[i] !== undefined ? moverScore(blueScore[i]!, p) : undefined);
   const from = game.turn(data.positions[0]?.count ?? 0); // a line from a set-up position numbers from its turn
   // The position before the other player's last turn (keepsGain), for the edge or the turn from position i.
@@ -324,7 +342,8 @@ export function review<G extends GameTypes>(game: Game<G>, data: ReviewData<G>, 
     const before = scoreAt(i, m.player), after = scoreAt(i + 1, m.player);
     const j = known(i, i + 1) ? judgeMove(winBefore, winAfter, before, after,
                                           !!best && m.edge != null && sameMove(game, a, best.edge, m.edge),
-                                          onlyMove(a, m.player) && keepsGain(a, earlier(i), m.player, minVisits)
+                                          !a?.book && !data.analysis[i + 1]?.book && onlyMove(a, m.player)
+                                            && keepsGain(a, earlier(i), m.player, minVisits)
                                             && confirmedOnly(winAfter, data.seconds?.[i], m.player,
                                                              equalDepth(minVisits, data.analysis[i + 1]?.visits))) : null;
     return { ...m, index: i, winBefore, winAfter, loss: j?.loss ?? 0,
@@ -351,7 +370,8 @@ export function review<G extends GameTypes>(game: Game<G>, data: ReviewData<G>, 
       for (const e of t.edges) if (e.label && e.label !== "great") e.label = "best";
     if (!known(t.start, t.end)) continue;
     const j = judgeTurn(game, p, played, data.analysis[t.start], played.length > 1 ? data.analysis[t.start + 1] : undefined,
-                        { blueWin: blueWin[t.end], blueScore: blueScore[t.end], visits: data.analysis[t.end]?.visits }, end(t.end), data.others?.[t.start],
+                        { blueWin: blueWin[t.end], blueScore: blueScore[t.end], visits: data.analysis[t.end]?.visits,
+                          ...(data.analysis[t.end]?.book ? { book: true as const } : {}) }, end(t.end), data.others?.[t.start],
                         data.seconds?.[t.start + 1], earlier(t.start), kind, minVisits);
     if (j) Object.assign(t, j);
   }
@@ -383,16 +403,16 @@ export interface TurnJudgment {
  *  start and the values after are known. */
 export function judgeTurn<M>(game: Moves<M>, mover: Player, played: (M | null)[], start: Analysis<M> | undefined,
                              middle: Analysis<M> | undefined,
-                             after: { blueWin: number; blueScore: number | undefined; visits?: number } | undefined, ends: boolean,
+                             after: AfterValues | undefined, ends: boolean,
                              other: Analysis<M> | undefined, second: Analysis<M> | undefined, earlier: Analysis<M> | undefined,
                              kind: ScoreKind = "lead", minVisits = 0): TurnJudgment | null {
-  if (!start || start.visits < minVisits || !after || Number.isNaN(start.blueWin) || Number.isNaN(after.blueWin)) return null;
+  if (!deepEnough(start, minVisits) || !after || Number.isNaN(start.blueWin) || Number.isNaN(after.blueWin)) return null;
   const p = mover, first = start.candidates[0], top = middle?.candidates[0];
   const best = bestTurn(first, played.length > 1);
   // Best: the turn reaches the engine's best turn: each edge the first choice of its own search, or the same edges as the
   // first choice and the next edge of its line, in either order.
   const firstChoices = !!first && played[0] != null && sameMove(game, start, first.edge, played[0])
-    && (played.length === 1 || (!!middle && middle.visits >= minVisits && !!top && played[1] != null && sameMove(game, middle, top.edge, played[1])));
+    && (played.length === 1 || (deepEnough(middle, minVisits) && !!top && played[1] != null && sameMove(game, middle, top.edge, played[1])));
   const playedBest = firstChoices || (!!best && sameTurn(game, played, best));
   // `after.blueWin` is the win chance that labels read (valuesAfter).
   const winBefore = moverWin(start.blueWin, p), winAfter = moverWin(after.blueWin, p);
@@ -408,7 +428,9 @@ export function judgeTurn<M>(game: Moves<M>, mover: Player, played: (M | null)[]
     && confirmedOnly(winAfter, other, p, confirmDepth);
   const fromMiddle = played.length === 1 || (!!top && played[1] != null && sameMove(game, middle, top.edge, played[1]) && onlyMove(middle, p)
     && confirmedOnly(winAfter, second, p, confirmDepth));
-  const j = judgeMove(winBefore, winAfter, before, afterScore, playedBest, playedBest && !ends && fromStart && fromMiddle
+  // No Great where the book gives a value: at the start, after the first edge or after the turn (Analysis `book`)
+  const searched = !start.book && !middle?.book && !after.book;
+  const j = judgeMove(winBefore, winAfter, before, afterScore, playedBest, playedBest && !ends && searched && fromStart && fromMiddle
                                                                 && keepsGain(start, earlier, p, minVisits));
   return { ...j, rawLoss: winBefore - winAfter, rawPoints: before !== undefined && afterScore !== undefined ? before - afterScore : undefined };
 }

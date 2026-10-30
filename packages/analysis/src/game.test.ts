@@ -43,6 +43,26 @@ test("a move's loss labels it, from the mover's side", () => {
   assert.deepEqual(R.edges.map(e => e.label), ["mistake", "blunder"]); // the first player lost 0.15, the second 0.30
 });
 
+test("the book's values judge as a search's do, below the label budget too, and no move from or into them is Great", () => {
+  const positions = [0, 1, 2, 3, 4].map(k => words.position(wordFields(k)));
+  // c, the first player's first choice at position 2, is the only good move (x is 0.15 worse there, and after it), and
+  // keeps what b gave (from 0.5): Great, where every value is a search's
+  const only = analysis(0.6, "c", 256, [["x", 0.45]]);
+  const data = (book: number[]): ReviewData<Words> => ({
+    players: { blue: "First", red: "Second" }, result: { blue: 0, red: 0 },
+    moves: ["a", "b", "c", "d"].map((m, k) => words.played(m, wordFields(k), wordFields(k + 1))),
+    positions,
+    analysis: [analysis(0.5, "a"), analysis(0.5, "b"), only, analysis(0.6, "d"), analysis(0.6, "e")]
+      .map((a, k) => (book.includes(k) ? { ...a, visits: 100, book: true as const } : a)),
+    seconds: [undefined, undefined, analysis(0.45, "y")],
+  });
+  assert.equal(review(words, data([]), "lead", 256).edges[2].label, "great");
+  // The book's values at 100 visits, under the label budget, still judge: c is Best, as the book gives no Great
+  assert.deepEqual(review(words, data([2]), "lead", 256).edges.map(e => e.label), ["best", "best", "best", "best"]);
+  assert.equal(review(words, data([3]), "lead", 256).edges[2].label, "best");
+  assert.deepEqual(review(words, data([0, 1, 2, 3, 4]), "lead", 256).turns.map(t => t.label), ["best", "best", "best", "best"]);
+});
+
 test("moves compare by the game's equality, symmetric twins too", () => {
   const a: Analysis<string> = { blueWin: 0.5, visits: 100, candidates: [
     { edge: "a", visits: 60, blueWin: 0.5 }, { edge: "a'", visits: 60, blueWin: 0.5, twinOf: "a" }, { edge: "b", visits: 40, blueWin: 0.48 }] };

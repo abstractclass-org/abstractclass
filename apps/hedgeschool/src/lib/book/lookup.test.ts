@@ -1,5 +1,6 @@
 // Checks the book's state at a position as the pages read it (lookup.svelte.ts) on the hand-made cases of the test
-// book: loading, in the book, out of it, and the part that does not load, with "Try again". Run: npm test.
+// book: loading, in the book, out of it, and the part that does not load, with "Try again". And the book once its index
+// loads, which the review takes its values from (reviewBook.ts, giveBook). Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -52,4 +53,11 @@ test("a part that does not load fails until Try again, and the index's failure t
   await settle(); await settle();
   assert.equal(book.at(missing).state, "failed");
   assert.equal(log.filter(u => u.endsWith("/2.json")).length, tries + 1, "Try again loads the part again");
+});
+
+test("the book once its index loads, for the review's values, and null when the index does not load", async () => {
+  const book = new OpeningBook(CASES, files([]));
+  assert.equal((await book.opened())?.start, START);
+  const down = new OpeningBook(CASES, files([], { on: true }));
+  assert.equal(await down.opened(), null);
 });

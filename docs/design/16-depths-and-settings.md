@@ -26,7 +26,9 @@ settings are always the ones kept in the browser.
 | A variation move evaluated on request | the variation's positions | D |
 
 The engine searches the position on screen only when it holds less than P. A label shows from 256 visits on, at every D.
-Every label of the review has D: a player who wants surer labels sets a deeper D.
+Every label of the review has D: a player who wants surer labels sets a deeper D. The exception is a position of the
+game that the opening book holds: the review takes its values from the book, and the stages search none of them
+(Hedge School's design 32, "A book position's values").
 
 ### 2. Which result a position uses
 
@@ -46,13 +48,20 @@ Every label of the review has D: a player who wants surer labels sets a deeper D
   them. The page shows and uses a search stopped at its time limit while it is open, but the store does not keep that
   result (example 6).
 
+- **The book's values at a book position.** Where the opening book holds a position of the game, the labels, the
+  counts and the charts take the book's values, whatever result the position holds, deeper ones too: the book's
+  searches are the deeper by design (design 32). The engine's own results there stay apart, for the analysis column,
+  and the store keeps them. The report's note on deeper searches leaves those positions out. The rest of this section
+  holds for the other positions.
+
 ### 3. The Greats compare equal searches
 
 A move is Great when it is the engine's first choice, its second choice looks at least 10% of win chance worse in that
 search, and a search of the position after the second choice confirms the gap against the position after the played
 move (design 10). The two must be equal searches. So when the position after the played move holds a result deeper
 than D, the confirmation searches as deep: the largest doubling of D within that result's visits (`equalDepth` in
-`packages/analysis/src/model.ts`). Until it does, the move is Best.
+`packages/analysis/src/model.ts`). Until it does, the move is Best. A move from or into a position with the book's
+values is never Great: the book's minimax is no search of a depth that the confirmation can match (design 32).
 
 ### 4. Whose settings apply
 
@@ -137,7 +146,9 @@ Lite (D = 512), P = 1,024, and a time limit of 30 s.
 
 - **The deepest result, everywhere.** A deeper search is the better answer, and the review already took it while it
   was on screen. Taking it from the store too makes the review the same before and after a reload, and after an
-  import. The cost is that a review's labels come from mixed depths, as they did within a visit.
+  import. The cost is that a review's labels come from mixed depths, as they did within a visit. A book position
+  takes the book's values instead (design 32): an opening book is made with more search than a review gives a
+  position, and the book's values give each book move the label that the book's table gives it.
 - **One depth for every label,** as the depth setting says. A search of the worst moves at 2 × D gave them about
   what a review at 2 × D gives them, for 31.2% of the review's visits ([decisions/product.md](../decisions/product.md),
   "The charts mark every label, and every label has the review's depth").
@@ -191,5 +202,7 @@ Lite (D = 512), P = 1,024, and a time limit of 30 s.
   (2026-10-20).
 - [decisions/product.md](../decisions/product.md): "The charts mark every label, and every label has the review's
   depth" (2026-10-21).
+- [decisions/product.md](../decisions/product.md): "A book move takes the book's label and loss: the review takes a
+  book position's values from the book" (2026-10-30).
 - Designs [05](05-review-analysis.md), [09](09-engine-settings.md), [10](10-labels.md) and
   [13](13-export-import.md) hold each rule in its place.

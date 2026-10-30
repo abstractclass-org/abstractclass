@@ -24,6 +24,7 @@ export class OpeningBook {
   // same object stops the pages' $derived values at a load that does not change the position on screen
   #known = new Map<string, BookAt>();
   #changed = $state(0); // counts the loads and failures, so that `at` runs again
+  #opened: Promise<Book | null> = Promise.resolve(null); // the index's load: the book, or null when it did not load
   readonly #url: string;
   readonly #read: BookReader | undefined;
 
@@ -36,9 +37,14 @@ export class OpeningBook {
 
   #open() {
     this.#error = null;
-    openBook(this.#url, this.#read).then(b => (this.#book = b),
-      e => (this.#error = e instanceof BookLoadError ? e : new BookLoadError(this.#url, e)));
+    this.#opened = openBook(this.#url, this.#read).then(b => (this.#book = b), e => {
+      this.#error = e instanceof BookLoadError ? e : new BookLoadError(this.#url, e);
+      return null;
+    });
   }
+
+  /** The book once its index has loaded, or null when the index did not load. */
+  opened(): Promise<Book | null> { return this.#opened; }
 
   /** The book once its index has loaded. */
   get book(): Book | null { return this.#book; }

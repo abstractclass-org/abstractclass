@@ -7415,7 +7415,8 @@ the words of the site. The pages, the lessons, the documents and the code's comm
 
 ### The Opening row gives the review's label of the earlier book move (2026-10-27)
 
-Beads abscls-tpaj.21.
+Beads abscls-tpaj.21. Replaced on 2026-10-30: the review takes a book position's values from the book, so the
+review's label of a book move is the book's ("A book move takes the book's label and loss", below).
 
 - **What:** the Report's Opening row names the worst earlier book move by the review's quality labels, not the book's.
   It names a move that the review labels worse than Good: the worst label first (Inaccuracy, then Mistake, then
@@ -7435,3 +7436,38 @@ Beads abscls-tpaj.21.
   chooses the move from them (`worstBookPlay` in `game.ts`). `GameOpening` keeps the book moves before the departure
   (`earlier` and `earlierTurns`) in place of the book's own choice (`weak` and `weakTurn`), and the sentences take
   the label as an argument. The book's loss and label of a played move no longer reach the row.
+
+### A book move takes the book's label and loss: the review takes a book position's values from the book (2026-10-30)
+
+Beads abscls-tpaj.21, round 2. It replaces the decision of 2026-10-27 ("The Opening row gives the review's label of
+the earlier book move", above), and the choice of 2026-10-24 that the review keeps its own labels in the book.
+
+- **What:** where the book's label of a book move and the review's differ, the book's rules. A book move takes the
+  book's quality label and loss everywhere on the page: the move list, its book mark, the Report's Opening row, the
+  charts and the counts. The way to it: at each position of the game that the book holds, the review takes the
+  book's values in place of searching the position (design 32, "A book position's values"). The review's own rules
+  (design 10) then give the book's labels, and the review does not search the opening.
+- **Why:** the book's searches are the deeper (design 32, item 5): an opening book is made with the most search. A
+  review that keeps its own labels gave one move two labels on one page, the table's and the move list's.
+- **How:** `bookAnalysis` and `bookResults` (`apps/hedgeschool/src/lib/book/results.ts`) make a search's result from
+  a book position: its value, its candidates (the book moves and the best move outside the book, the best first), its
+  complexity and its area map, with `book` set. `GameAnalysis.useBook` takes them by the game's index, and `giveBook`
+  (`reviewBook.ts`) gives them once the book's parts load: on the review page, on a review snapshot and in the
+  annotated record from the store. `data()` gives the book's values in `analysis` and the engine's own results in
+  `searched`, which the analysis column shows. The stages, the variations' evaluations and the map stage search no
+  book position. The model judges the book's values as deep enough at any depth and gives no Great from or into a book
+  position. A label rounds its loss to 6 decimals (`classify`), as the book's rule does.
+- **Settled:** the move that leaves the book compares the book's value with a search, and is never Great. A book that
+  loads late gives its values as they come, and the stages skip the positions that still wait. A book that does not
+  load gives none, and the review searches every position. A review stored before keeps its results in the store,
+  and its labels take the book's values. The Analysis board and a set-up board take no book values. One review now
+  mixes two networks, the book's and the review's.
+- **Measured:** a unit test reads every book move of the test book through the review's model with the book's values:
+  the label and the loss are the table's for 434 edges and 284 whole turns (both orders of a turn). Without the
+  rounding, one edge went to the next band. In book-left-review.json, O11-Q10 is an Inaccuracy, −7.7% and −17.9
+  points, by edge, and N11-Q10 O11-Q10 the same by turn. The Opening row says "The game left the book at turn 3:
+  Blue, D9-G11, Blunder. Before that, at turn 2, Red played O11-Q10, a book move and an Inaccuracy." (by turn:
+  "Blue, D9-G11 D10-G9, Blunder. Before that, at turn 2, Red played N11-Q10 O11-Q10, a book turn and an
+  Inaccuracy."). A10-D9 is Best at 0.0%, where the review's search gave it +0.6%.
+- **Open:** a review snapshot of a review made with the book does not open, because its check of the store asks for
+  the book's positions (beads abscls-tpaj.22).
