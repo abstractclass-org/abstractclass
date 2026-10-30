@@ -7547,3 +7547,21 @@ Stamp Duty", gives the result.
   `--disable-software-rasterizer` added, no process of the browser showed in the counters, and the page still played.
   `playwright.config.ts` gives the four to Chromium on Windows (docs/working-notes.md, "The GPU in Playwright's
   Chromium").
+
+### Drawing Board's practice on protocol 0.7.1 (2026-10-30)
+
+abscls-8tl1.14, after the owner's look at the page ("practice looks fine"), on the engine repository's fix
+abscls-csmy. Design 33, "The engine's files" and "Practice against Stamp Duty", gives the result.
+
+- **The build:** Drawing Board's `engine.lock.json` pins `engine-70dfdc0f` for every file, with protocol 0.7.1: the
+  module (build and search 70dfdc0f), the bot with interface 0.1.1, and bpj4's network b6c96-s22323968-d845223. bpj4's
+  gauntlet rates it 2411 [2263, 2624] over 16 games, and s19117184 2270 [2189, 2447] over 40.
+- **The fixtures:** made again from 70dfdc0f, the five lab games changed only in the file's header. Their data is the
+  rules' (positions, legal moves, what each move did), which the network does not change.
+- **The visits:** 1 to 8,192 again, as Hedge School's: `LEAST_VISITS` and the site's least in `@abstractclass/practice`
+  are gone. `ROOT_VIEWS_PROTOCOL` is 0.7.1, the protocol that Drawing Board's code is written for.
+- **The check at few visits:** a game against the bot in Node (70dfdc0f, 32 visits), in which Blue placed the legal
+  placement farthest to the left each move, reached a cover of 2 views at move 36, Blue to move (987 legal moves, 45
+  outside the mover's view). The test games of the browser test had covers of one view only. At that position, at 1
+  and at 2 visits, 217be61f's bot answered "genmove returned null location or illegal move", and 70dfdc0f's gave a
+  legal move. At 32 visits both gave a legal move. `bot.engine.test.ts` keeps the check at 1 and 2 visits.
