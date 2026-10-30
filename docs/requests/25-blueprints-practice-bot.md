@@ -1,7 +1,7 @@
 # Practice games against Stamp Duty: Blueprints' GTP bot in the browser
 
-**Status:** done (engine repository commits `217be61f` and `70dfdc0f`, the build `engine-70dfdc0f` on this machine), to
-check here with Drawing Board's practice page.
+**Status:** done (engine repository commits `217be61f` and `70dfdc0f`, the build `engine-70dfdc0f` on this machine),
+checked here: Drawing Board's practice page plays whole games against the bot (design 33).
 **Asked:** 2026-10-30.
 
 ## What Drawing Board builds
