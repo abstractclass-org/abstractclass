@@ -221,6 +221,16 @@ Lichess sizes its Analysis board from the window, and keeps the board whole in v
      that looks a little better), and a value that rounds to 0 has no sign ("0.0% · 0.0").
    - Lichess and chess.com give every value from White's side. Here every advantage of Red's would then be a number
      below 0, and Red's player would read their own choices in reverse.
+   - **A row's parts behave the same by edge and by turn.** "Review by" changes how the move list groups the moves,
+     not how its parts behave. Pointing at a move previews the position after it, and a click goes there. The move's
+     judgement (the label slot with a quality label or a book mark, design 32, item 4, then the ◆ and the loss
+     figure) does the same. By edge, they are inside the move's button. By turn, they are the turn's judgement cell,
+     which is one button: pointing anywhere in it previews the position after the turn, after its last edge, with the
+     status line of a move ("Preview: the position after edge 3, …"), and a click goes there. A cell with nothing in
+     it is a plain element. "Preview played moves" off turns the preview off, by edge and by turn. The cell keeps its
+     widths (the slot's 2.2 characters, the ◆'s 1.2 and the loss's 5), so it never widens a column
+     (`npm run test:layout`). Its title and the names of its parts are the same as before: the label word or the book
+     mark's name, the ◆'s note and the turn's tooltip.
 9. **No text selection on the review page:** the page's text is a
    tool's, not a document's, so it takes no selection (`select-none`), and the pointer stays an arrow over the move
    list's labels and marks instead of a text cursor. An engine error can be selected, to be copied. The board never

@@ -335,7 +335,7 @@ first. The panel's name and the menu's name belong to the structure.
 
 | Measure | How | Success |
 |---|---|---|
-| The opening row is used | a count of clicks on the Report's opening row and on the move list's book mark, against the reviews that have the row (design 17's events) | one review in five that has the row |
+| The opening row is used | a count of clicks on the Report's opening row, against the reviews that have the row (design 17's events) | one review in five that has the row |
 | The traps are studied | a count of "Play the refutation", against the book panels opened | a baseline for the next version |
 | The study journey starts | a count of book's boards opened from the menu and from a lesson's end | a baseline for the next version |
 | Depth of study | the number of book positions on screen in a visit, as a range | most visits pass the start position |

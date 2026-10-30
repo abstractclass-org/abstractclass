@@ -124,7 +124,12 @@ explorers that people use in chess and Go is [../research/03-opening-explorers.m
      all its edges are book moves, with the turn's quality label. The display setting "Book moves" gives two forms:
      the quality label on the book's brown (the default), or an open book in the quality label's colour. Each form
      follows the setting "Quality labels": a badge, or the quality mark alone. The moves keep their review labels,
-     which are the book's on a book move (the next bullet).
+     which are the book's on a book move (the next bullet). The setting shows only where the book loaded. The mark
+     has no click or preview of its own: pointing at it and clicking it do what they do on a quality label in the same
+     slot, and the slot behaves the same by edge and by turn (design 06). By edge, the slot is inside the move's
+     button: pointing at it previews the position after the move, and a click goes there. By turn, the slot is in the
+     turn's judgement cell, which is one button with the ◆ and the loss figure: pointing at any part of it previews
+     the position after the turn's last edge, and a click goes there.
    - **The book's values rule a book position:** at each position of the game that the book holds, the review takes
      the book's values in place of the engine's search, and does not search the position ("The review", "A book
      position's values"). The book's searches are the deeper (item 5). So a book move has one quality label and one
@@ -540,15 +545,19 @@ shows them in the early edition, where the book loads. They read the site's one 
   turn's tooltip and the position after the turn: "Book move · Good: −3.3% · −7.5 (+2.9, −10.4) · Blue is better after
   it". The mark is inside the move's button, or the turn's cell, so its title covers theirs: it keeps their numbers.
   The mark is in the label's slot, which has a fixed width (2.2 characters), so it never widens a move's column
-  (`npm run test:layout`). By edge, the move's button tells a click on the mark from a click on the move.
+  (`npm run test:layout`). The mark has no click or preview of its own. By edge, it is part of the move's button, so
+  pointing at it previews the position after the move, and a click goes there. By turn, the label slot is in
+  the turn's judgement cell, which is one button, as the whole move's button is by edge: pointing at the mark
+  previews the position after the turn's last edge, and a click goes there, the same as for a quality label in the
+  slot. The book's table is reachable at any position as before (the Book
+  view, the key o).
 - **The book's brown** is `--book` in `packages/review/src/review.css`: Chess.com's Book colour, #a88865, in the dark
   theme (4.5:1 against the panel, 3.9:1 against panel-2), and #a4835e, the same hue a little darker, in the light
   theme (3.5:1 and 3.0:1). #a88865 has only 2.8:1 against the light panel-2. White on the brown has 3.3:1 and 3.5:1,
   more than white on the Good (2.3:1), Inaccuracy (2.2:1) and Excellent (2.8:1) badges.
-- **A click** on a row goes to the position before its move, and a click on a mark to the position before its move or
-  its turn. Each turns the book on for this review only (`BookPlace.showForNow`): the switch shows "Book", and the
-  choice that the browser keeps does not change. Only the switch and the key o change it. Below 1,260 pixels, the
-  click opens the Analysis tab too.
+- **A click** on a row goes to the position before its move. It turns the book on for this review only
+  (`BookPlace.showForNow`): the switch shows "Book", and the choice that the browser keeps does not change. Only the
+  switch and the key o change it. Below 1,260 pixels, the click opens the Analysis tab too.
 - **The book did not load,** or a part of the game's path did not load: the Report has no opening row, and the move
   list has no mark. The rest of the review works. The table says what failed.
 - **The test games:** `apps/hedgeschool/scripts/test-fixture.mjs` makes reviewed games that meet the test book in each
