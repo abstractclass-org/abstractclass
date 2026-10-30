@@ -31,8 +31,7 @@
   import type { Size } from "#lib/board/view.ts";
   import { moveName } from "#lib/game/notation.ts";
   import { PracticeGame } from "#lib/practice/game.svelte.ts";
-  import { BOT_VISITS, NETWORKS, PANEL_KEY, botName, keep, loadChoices, loadKept, saveChoices,
-           type KeptPractice } from "#lib/practice/stampduty.ts";
+  import { NETWORKS, PANEL_KEY, botName, keep, loadChoices, loadKept, saveChoices, type KeptPractice } from "#lib/practice/stampduty.ts";
   import { ENGINE_NAME, SITE_NAME } from "#lib/site.ts";
 
   const MISSING = "The engine is not on this site. You cannot play a practice game.";
@@ -217,7 +216,7 @@
   <main class="max-w-160 mx-auto my-6 px-4"><p class="text-blunder" role="alert">{failed}</p></main>
 {:else if phase === "settings"}
   <PracticeCard bind:choices networks={NETWORKS.map(n => [n.id, `${n.name} (${megabytes(n.bytes)} MB)`])}
-                networkHelp="The network that {ENGINE_NAME} plays with." varietyHelp={VARIETY_HELP} visits={BOT_VISITS}
+                networkHelp="The network that {ENGINE_NAME} plays with." varietyHelp={VARIETY_HELP}
                 nameHelp={'The name above the board. Without a name, the page shows "You".'}
                 {ready} onside={newGame}>
     {#snippet intro()}A game against {ENGINE_NAME}, the engine, in your browser, with no clock: it searches each move to

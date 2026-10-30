@@ -32,6 +32,10 @@
 // protocol its code is written for: Hedge School PROTOCOL, Drawing Board ROOT_VIEWS_PROTOCOL (its engine.lock.json's
 // `protocol`, which fetch-engine.mjs copies into the manifest).
 //
+// 0.7.1 is compatible (abscls-csmy): a query whose searches find no candidate, as with few visits over many views, is
+// no longer refused. The search gives its first pass's policy move. Drawing Board's practice bot then plays at any
+// visits from 1, as Hedge School's does.
+//
 // The fields of describe, describe_game and play are each game's own: the engine package types only the analysis and
 // the messages that every game's engine shares (design 29). Enclosure's are in Hedge School's
 // src/lib/engine/position.ts. Every win chance and score is from the first player's side (KataGo's convention:
@@ -39,8 +43,8 @@
 
 /** The protocol that a site's code is written for, unless its manifest names another: 0.6.1 brings describe_game. */
 export const PROTOCOL = "0.6.1";
-/** Blueprints' protocol: 0.7.0 brings the search of the root's views. */
-export const ROOT_VIEWS_PROTOCOL = "0.7.0";
+/** Blueprints' protocol: 0.7.0 brings the search of the root's views, and 0.7.1 its move at few visits. */
+export const ROOT_VIEWS_PROTOCOL = "0.7.1";
 /** Whether a build's protocol is one that a site written for `site` speaks: the same major and minor version (before
  *  1.0, a minor version can break), with `site`'s patch or a later one. */
 export function speaksProtocol(version: string, site = PROTOCOL): boolean {

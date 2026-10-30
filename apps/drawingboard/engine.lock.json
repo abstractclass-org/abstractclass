@@ -1,66 +1,66 @@
 {
   "repository": "abstractclass-org/blueprints-engine",
-  "protocol": "0.7.0",
+  "protocol": "0.7.1",
   "artifacts": [
     {
-      "id": "engine-217be61f",
+      "id": "engine-70dfdc0f",
       "kind": "module",
-      "interface": "engine-protocol-0.7.0",
+      "interface": "engine-protocol-0.7.1",
       "file": "blueprints-engine.wasm",
-      "source": { "engines": "runs/wasm/blueprints/engine-217be61f/blueprints-engine.wasm" },
-      "sha256": "dc2be7557e35c197ef3d59b1ef83504d212e96bec7b99547c86bae07aff6a138",
-      "bytes": 1488909,
-      "search": "217be61f"
+      "source": { "engines": "runs/wasm/blueprints/engine-70dfdc0f/blueprints-engine.wasm" },
+      "sha256": "56723513db41fdbaa91e79dc611c2535c8dbff6cde4ff8e2952c1bb6689259b1",
+      "bytes": 1491481,
+      "search": "70dfdc0f"
     },
     {
-      "id": "engine-217be61f-lib",
+      "id": "engine-70dfdc0f-lib",
       "kind": "gpu-library",
       "file": "gpu_engine.mjs",
-      "source": { "engines": "runs/wasm/blueprints/engine-217be61f/gpu_engine.mjs" },
+      "source": { "engines": "runs/wasm/blueprints/engine-70dfdc0f/gpu_engine.mjs" },
       "sha256": "7976a5f48fe868b969a4964adcb9bf87d22be78b29595c4e2bcc8458fbd01227",
       "bytes": 16816
     },
     {
-      "id": "engine-217be61f-practice",
+      "id": "engine-70dfdc0f-practice",
       "kind": "practice-library",
-      "dir": "engine-217be61f-lib",
+      "dir": "engine-70dfdc0f-lib",
       "file": "practice_bot.mjs",
-      "source": { "engines": "runs/wasm/blueprints/engine-217be61f/practice_bot.mjs" },
+      "source": { "engines": "runs/wasm/blueprints/engine-70dfdc0f/practice_bot.mjs" },
       "sha256": "cfd579ae53a597139ec1bde823bc604d5a4eb08e588d7308e3808d304161e254",
       "bytes": 7314
     },
     {
-      "id": "engine-217be61f-bot",
+      "id": "engine-70dfdc0f-bot",
       "kind": "practice-module",
-      "interface": "practice-0.1.0",
+      "interface": "practice-0.1.1",
       "file": "blueprints-bot.wasm",
-      "source": { "engines": "runs/wasm/blueprints/engine-217be61f/blueprints-bot.wasm" },
-      "sha256": "8c9a4bc6c7946bafa0fa9f3ebfc242d1e02dacb97583398e87638796158c3c65",
-      "bytes": 1740546
+      "source": { "engines": "runs/wasm/blueprints/engine-70dfdc0f/blueprints-bot.wasm" },
+      "sha256": "2d5df6e5531dc82e639142226db574d991514b86ace189f2814a0101065570df",
+      "bytes": 1743117
     },
     {
-      "id": "engine-217be61f-notices",
+      "id": "engine-70dfdc0f-notices",
       "kind": "notices",
       "file": "NOTICES.txt",
-      "source": { "engines": "runs/wasm/blueprints/engine-217be61f/NOTICES.txt" },
+      "source": { "engines": "runs/wasm/blueprints/engine-70dfdc0f/NOTICES.txt" },
       "sha256": "2967bab664d0aabe0336d59454cfccc1e8fc37ce04fee9c3274df23cc1f6adc6",
       "bytes": 10206
     },
     {
-      "id": "engine-217be61f-terms",
+      "id": "engine-70dfdc0f-terms",
       "kind": "terms",
       "file": "LICENSE.txt",
-      "source": { "engines": "runs/wasm/blueprints/engine-217be61f/LICENSE.txt" },
+      "source": { "engines": "runs/wasm/blueprints/engine-70dfdc0f/LICENSE.txt" },
       "sha256": "6c0d45d2e196cdf50a34d8c50c967e2b2ad749a568cd94046fb789e225e632cd",
       "bytes": 1994
     },
     {
-      "id": "b6c96-s19117184-d446546",
+      "id": "b6c96-s22323968-d845223",
       "kind": "model",
-      "displayName": "b6c96-s19117184-d446546",
+      "displayName": "b6c96-s22323968-d845223",
       "file": "model-float16.bin",
-      "source": { "engines": "runs/wasm/blueprints/engine-217be61f/b6c96-s19117184-d446546.model-float16.bin" },
-      "sha256": "01b9ab1ac036ab64fee45bfdce30970db706bb67836dc989e209b65e2d3ece66",
+      "source": { "engines": "runs/wasm/blueprints/engine-70dfdc0f/b6c96-s22323968-d845223.model-float16.bin" },
+      "sha256": "4ca5b721a056ab1032051021cbed28d79562bb444c795d53c74e035b0dbda263",
       "bytes": 2207862
     }
   ]
