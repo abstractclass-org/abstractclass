@@ -1,22 +1,27 @@
 // The move list's look, in the review, on the Analysis board and in Practice: one row a turn, its number, then its
 // moves in two equal columns (Lichess's move list), each at least a move wide, so that the moves line up down the list.
-// A move's text has one width, the game's widest move (the view's game interface, `moveText`), in a monospaced font,
-// the same on every system (@abstractclass/site/site.css). The move on the board is outlined in the accent colour, and
-// a move under the pointer in the line colour.
+// Where two moves do not fit, a turn's second move goes under its first (`turnRow`). A move's text has one width, the
+// game's widest move (the view's game interface, `moveText`), in a monospaced font, the same on every system
+// (@abstractclass/site/site.css). The move on the board is outlined in the accent colour, and a move under the pointer
+// in the line colour.
 import type { Player } from "@abstractclass/analysis/game.ts";
 import { SIDE_TEXT } from "@abstractclass/site/side.ts";
 
-/** The list is a container, so that a row can follow its box (`turnRow`). */
-export const MOVE_LIST = "movelist @container flex-1 min-h-0 overflow-y-auto pt-1.5 text-sm border-t border-line";
-/** A turn's row. `judged`: a last column for the turn's own label (the review by turn). By edge each move holds its
- *  label, ◆ and loss (139 pixels at 14), so the two moves and the number need 20.02 rem. In a box narrower than 21.5 rem
- *  the second move goes under the first, in the first move's column, so that no number hides sideways. The query reads
- *  the box before its scroll bar, which takes up to 17 pixels (1.06 rem) of the room that the rows then have. */
-export const turnRow = (judged = false) => ["grid items-baseline gap-x-1",
-  judged ? "grid-cols-[2.2rem_repeat(2,minmax(max-content,1fr))_auto]"
-    : "grid-cols-[2.2rem_repeat(2,minmax(max-content,1fr))] @max-[21.5rem]:grid-cols-[2.2rem_minmax(max-content,1fr)] @max-[21.5rem]:[&>.mv]:col-start-2"];
-/** A turn's row, in rem: 22 pixels, as Chromium lays out the turn's number and its moves on one baseline. The review's
- *  grey bars before its rows are this far apart (ReviewView.svelte, rowsDrawn). */
+export const MOVE_LIST = "movelist flex-1 min-h-0 overflow-y-auto pt-1.5 text-sm border-t border-line";
+/** A turn's row. `judged`: a last column for the turn's own quality label (the review by turn). Otherwise the moves
+ *  wrap. Where the number and two moves do not fit, the second move goes under the first, so that nothing hides
+ *  sideways. By edge a move holds its quality label, ◆ and loss too, so its rows wrap in a wider box. The number hangs
+ *  in the row's left padding (2.45rem: its 2.2rem and the gap), so a second line starts in the first move's column.
+ *  Each move takes half the room after the number (50%, less half the gap), and at least its own width. A continued
+ *  turn's … takes a move's place. The half pixel less keeps rounding from wrapping two moves that fit. */
+export const turnRow = (judged = false) => judged
+  ? ["grid items-baseline gap-x-1 grid-cols-[2.2rem_repeat(2,minmax(max-content,1fr))_auto]"]
+  : ["flex flex-wrap items-baseline gap-x-1 pl-[2.45rem]",
+     "[&>:first-child]:flex-none [&>:first-child]:w-[2.2rem] [&>:first-child]:-ml-[2.45rem]",
+     "[&>:not(:first-child)]:flex-[0_0_calc(50%-0.125rem-0.5px)] [&>:not(:first-child)]:min-w-max"];
+/** A turn's row on one line, in rem: 22 pixels, as Chromium lays out the turn's number and its moves on one baseline.
+ *  The review's grey bars before its rows are this far apart (ReviewView.svelte, rowsDrawn), also where the rows by
+ *  edge take two lines (`turnRow`). */
 export const TURN_REM = 1.375;
 export const TURN_NUMBER = "text-muted tabular-nums";
 const MOVE = "mv flex items-baseline gap-1 px-[0.2rem] py-px font-mono text-[0.95em] text-left whitespace-nowrap bg-transparent border-0";
