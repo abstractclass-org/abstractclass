@@ -554,8 +554,9 @@ shows them in the early edition, where the book loads. They read the site's one 
 - **The test games:** `apps/hedgeschool/scripts/test-fixture.mjs` makes reviewed games that meet the test book in each
   way, with a given opening: `apps/hedgeschool/tests/fixtures/book-left-review.json`, `book-never-review.json` (it
   comes back too), `book-trap-review.json` and `book-turn-label-review.json`. In `book-turn-label-review.json`, Red
-  leaves the book at turn 2 with N8-Q10, a Good edge. Red's next edge, N9-Q10, ends the turn, and the turn is a
-  Blunder. So the opening row gives Good by edge and Blunder by turn. The layout test's game (`hedgefund-review.json`)
+  leaves the book at turn 2 with N8-Q10, an Inaccuracy edge by the book's value before it. Red's next edge, N9-Q10,
+  ends the turn, and the turn is a Blunder. So the opening row gives Inaccuracy by edge and Blunder by turn. The
+  layout test's game (`hedgefund-review.json`)
   follows the test book to its end.
 
 ### A book position's values

@@ -132,9 +132,9 @@ test.describe("desktop", () => {
       + "move and an Inaccuracy. Show the position")).toBeVisible({ timeout: 30_000 });
   });
 
-  // In book-turn-label-review.json, Red leaves the book with N8-Q10, a Good edge, and ends its turn with N9-Q10: the
-  // turn as a whole is a Blunder
-  for (const [judge, text] of [["edge", "N8-Q10, Good"], ["turn", "N8-Q10 N9-Q10, Blunder"]]) {
+  // In book-turn-label-review.json, Red leaves the book with N8-Q10, an Inaccuracy edge (the book's value before it,
+  // the search's after it), and ends its turn with N9-Q10: the turn as a whole is a Blunder
+  for (const [judge, text] of [["edge", "N8-Q10, Inaccuracy"], ["turn", "N8-Q10 N9-Q10, Blunder"]]) {
     test(`the opening row gives the label of the move that left the book: by ${judge}, its ${judge}'s`, async ({ page }) => {
       await display(page, { judge });
       await open(page, "book-turn-label-review.json");
