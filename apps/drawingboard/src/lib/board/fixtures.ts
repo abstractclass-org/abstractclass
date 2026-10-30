@@ -9,7 +9,6 @@ import type { BoardCandidate, BoardLineMove } from "./Board.svelte";
 import { boardMove, type EngineStep } from "./described.ts";
 import type { BoardMove, Hand, Player, SitePosition } from "./position.ts";
 
-export type { EngineStep };
 /** A position of the data file: the game's moves, the position after them with its mover and legal moves, the last
  *  move with the hands before it, and the middle game's candidates (with their notes) and lines. */
 export interface FixtureData {

@@ -1,7 +1,7 @@
 // Checks which engine protocols a site takes (speaksProtocol): a site written for 0.6.1, which brings describe_game,
 // takes a later 0.6.x, and a site written for 0.7.1, whose search of the root's views (Blueprints' build) gives a move
-// at few visits, takes a later 0.7.x. Before 1.0 a breaking change takes the next minor version, and a compatible one the next patch
-// (the engine repository's design 04, "Versioning"). Run: npm test.
+// at few visits, takes a later 0.7.x. Before 1.0 a breaking change takes the next minor version, and a compatible one
+// the next patch (the engine repository's design 04, "Versioning"). Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { checkVersion } from "./client.ts";

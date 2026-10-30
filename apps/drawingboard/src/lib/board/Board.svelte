@@ -84,16 +84,20 @@
   const GAP = 6; // between the hands and the field
   const handSize = $derived(sides ? clamp(width * 0.13, 72, 170)
     : handsForm === "under" ? Math.min(104, width / 3) : clamp(height * 0.17, 52, 120));
+  const field = $derived(handsForm === "panel" ? { width, height }
+    : sides ? { width: Math.max(0, width - 2 * (handSize + GAP)), height }
+    : { width, height: Math.max(0, height - 2 * (handSize + GAP)) });
+  const ZOOM_BUTTONS = { width: 3 * 30 + 2 * 4, height: 30, inset: 6 }; // the buttons at the field's lower right
+  const zoomRect: Rect = $derived({
+    x: field.width - ZOOM_BUTTONS.inset - ZOOM_BUTTONS.width, y: field.height - ZOOM_BUTTONS.inset - ZOOM_BUTTONS.height,
+    width: ZOOM_BUTTONS.width, height: ZOOM_BUTTONS.height,
+  });
   // The panel's size within its limits in this area, and while the player resizes it, the size that the handle shows.
   let resizeTo = $state<Rect | null>(null);
-  const panelSize = $derived(panelSizeIn(size, { width, height }, zoomRectOf({ width, height })));
+  const panelSize = $derived(panelSizeIn(size, field, zoomRect));
   const shownPanel = $derived(resizeTo ?? panelSize);
   const handArea = $derived(handsForm === "panel" ? handsOf(shownPanel) : sides ? { width: handSize, height } : { width, height: handSize });
   const direction = $derived(sides ? "column" : "row");
-  const field = $derived(handsForm === "panel" ? { width, height }
-    : handsForm === "under" ? { width, height: Math.max(0, height - 2 * (handSize + GAP)) }
-    : sides ? { width: Math.max(0, width - 2 * (handSize + GAP)), height }
-    : { width, height: Math.max(0, height - 2 * (handSize + GAP)) });
 
   // The hands shown: the position's, or a line's after its last move drawn. A line's edits are in those hands' frames.
   const drawn = $derived(line ?? []);
@@ -121,20 +125,14 @@
   // fits after it (a move, a change of the area's size) keep the panel where it is, and fit as if no panel were there,
   // so a drag never makes the board smaller. "Show all the cells" and a new page fit with the panel again.
   let manual = $state.raw<View | null>(null);
-  let chosen = $state(false); // the player dragged or resized the panel
+  let placedByPlayer = $state(false); // the player dragged or resized the panel
   const fitHexes = $derived([...allCells.map(c => c.hex), ...(lastPlace?.captured ?? []).map(c => c.hex), ...(input?.allAnchors ?? [])]);
   const fitBox = $derived(boxOf(fitHexes) ?? boxOf([[-2, -2], [2, 2]])!);
-  const ZOOM_BUTTONS = { width: 3 * 30 + 2 * 4, height: 30, inset: 6 }; // the buttons at the field's lower right
-  function zoomRectOf(area: Size): Rect {
-    return { x: area.width - ZOOM_BUTTONS.inset - ZOOM_BUTTONS.width, y: area.height - ZOOM_BUTTONS.inset - ZOOM_BUTTONS.height,
-             width: ZOOM_BUTTONS.width, height: ZOOM_BUTTONS.height };
-  }
-  const zoomRect = $derived(zoomRectOf(field));
   const hasPanel = $derived(handsForm === "panel" && field.width > 0 && field.height > 0);
   // When the cells, the legal moves or the area change, the fit may move the panel to a corner, before the board
   // draws. Not after the player's choice, and not in a view that the player panned or zoomed.
   $effect.pre(() => {
-    if (!hasPanel || manual || chosen) return;
+    if (!hasPanel || manual || placedByPlayer) return;
     const hexes = fitHexes, area = field;
     untrack(() => {
       const best = fitWithPanel(hexes, area, panelSize, place, zoomRect, 1.2).place;
@@ -145,10 +143,11 @@
   let dragAt = $state<Rect | null>(null);
   const panelAt = $derived(panelRect(place, field, panelSize, zoomRect));
   const shownAt = $derived(resizeTo ?? dragAt ?? panelAt);
-  const view = $derived(manual ?? (hasPanel && !chosen ? fitAround(fitHexes, field, panelAt, 1.2) : fit(fitBox, field, 1.2)));
+  const view = $derived(manual ?? (hasPanel && !placedByPlayer ? fitAround(fitHexes, field, panelAt, 1.2)
+                                                                : fit(fitBox, field, 1.2)));
   const vb = $derived(viewBox(view, field));
   /** Shows all the cells: the fit, with the panel again. */
-  function fitAll() { manual = null; chosen = false; }
+  function fitAll() { manual = null; placedByPlayer = false; }
   // A drag of the panel's top strip moves it, and a drag of its handle resizes it. Each keeps the pointer's offset from
   // where the press began, and sets the place and the size at its end.
   let panelGesture = $state.raw<{ id: number; kind: "move" | "size"; x: number; y: number; from: Rect; side: "left" | "right" } | null>(null);
@@ -173,7 +172,7 @@
     if (to) {
       size = { width: to.width, height: to.height };
       place = placeAt(to.x, to.y, field, to);
-      chosen = true;
+      placedByPlayer = true;
     }
     dragAt = resizeTo = null;
   }
@@ -530,7 +529,7 @@
       <div class="absolute right-1.5 bottom-1.5 flex gap-1">
         <button type="button" class={[TOOL, "text-ink"]} onclick={() => zoomBy(Math.SQRT2)} aria-label="Zoom in" title="Zoom in">+</button>
         <button type="button" class={[TOOL, "text-ink"]} onclick={() => zoomBy(Math.SQRT1_2)} aria-label="Zoom out" title="Zoom out">−</button>
-        <button type="button" class={[TOOL, manual || chosen ? "text-ink" : "text-muted"]} onclick={fitAll}
+        <button type="button" class={[TOOL, manual || placedByPlayer ? "text-ink" : "text-muted"]} onclick={fitAll}
                 aria-label="Show all the cells" title="Show all the cells">
           <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
             <path d="M1 5V1h4M11 1h4v4M15 11v4h-4M5 15H1v-4" fill="none" stroke="currentColor" stroke-width="1.6" />

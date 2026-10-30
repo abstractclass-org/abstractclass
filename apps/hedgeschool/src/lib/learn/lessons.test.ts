@@ -4,16 +4,14 @@
 // without them. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
-import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseEdge } from "#lib/engine/notation.ts";
 import type { DescribeGameReply, DescribeReply } from "#lib/engine/position.ts";
-import { nodeEngine } from "@abstractclass/engine/node-engine.mjs";
+import { hasEngine, nodeEngine } from "@abstractclass/engine/node-engine.mjs";
 import { COURSE, lineBoard, type Played, type Step } from "./lessons.ts";
 
 const root = fileURLToPath(new URL("../../..", import.meta.url));
-const skip = existsSync(join(root, "static", "engine", "manifest.json")) ? false : "no engine: run `npm run engine` first";
+const skip = hasEngine(root) ? false : "no engine: run `npm run engine` first";
 const engine = skip ? null : await nodeEngine(root);
 
 const STEPS = COURSE.flatMap(s => s.lessons.flatMap(l => l.steps));

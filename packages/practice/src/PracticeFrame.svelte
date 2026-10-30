@@ -25,14 +25,15 @@
     side: Snippet; // the side column's content, above the step bar
     above?: Snippet; // in the step bar, above the steps: a status line
     tools?: Snippet; // in the step bar, right of the steps: the game's actions
-    onstep: (to: "first" | "back" | "forward" | "last") => void;
-    atStart: boolean;
-    atEnd: boolean;
+    shown: number; // the position on the board, from 0 at the start
+    last: number; // the game's latest position
+    onstep: (to: number) => void; // a step to a position: the site keeps it from 0 to `last`
   }
-  let { form = "square", gauge = false, gaugeWidth = "0px", fillHeight, strip, beside, board, side, above, tools, onstep,
-        atStart, atEnd }: Props = $props();
+  let { form = "square", gauge = false, gaugeWidth = "0px", fillHeight, strip, beside, board, side, above, tools, shown,
+        last, onstep }: Props = $props();
 
   let stripHeight = $state(0);
+  const stripRoom = $derived(stripHeight ? `calc(${stripHeight}px + 0.5rem)` : "3.3125rem");
 </script>
 
 {#if form === "square"}
@@ -40,7 +41,7 @@
                [--tall:calc(100vh-var(--site-header)-var(--strip)-2rem)] [--broad:calc(100cqw-250px-1.25rem-var(--gauge-w)-2rem-20px)]
                [--board:min(var(--tall),var(--broad))] grid-cols-[calc(var(--board)+var(--gauge-w))_minmax(250px,350px)]
                max-[800px]:[--board:calc(100cqw-2rem-var(--gauge-w))] max-[800px]:grid-cols-1"
-        style:--strip={stripHeight ? `calc(${stripHeight}px + 0.5rem)` : "3.3125rem"} style:--gauge-w={gaugeWidth}>
+        style:--strip={stripRoom} style:--gauge-w={gaugeWidth}>
     <section class="min-w-0">
       <div class={["mb-2 ml-(--gauge-w)", stripBox(gauge)]} bind:offsetHeight={stripHeight}>{@render strip()}</div>
       <div class="flex">
@@ -55,7 +56,7 @@
 {:else}
   <main class="grid items-start gap-x-5 gap-y-3 my-4 px-4 select-none grid-cols-[minmax(0,1fr)_minmax(250px,350px)]
                [--tall:calc(100vh-var(--site-header)-var(--strip)-2rem)] max-[800px]:grid-cols-1"
-        style:--strip={stripHeight ? `calc(${stripHeight}px + 0.5rem)` : "3.3125rem"} style:--fill-h={fillHeight}>
+        style:--strip={stripRoom} style:--fill-h={fillHeight}>
     <section class="min-w-0">
       <div class={["mb-2", stripBox(false)]} bind:offsetHeight={stripHeight}>{@render strip()}</div>
       <div class="relative min-h-0 h-(--tall) max-[800px]:h-(--fill-h)">{@render board()}</div>
@@ -70,6 +71,7 @@
      is too narrow for one row. On a phone it is fixed to the bottom of the window. -->
 {#snippet sideAndBar()}
   {@render side()}
-  <StepBar class="mt-2 pt-2 border-t border-line" onfirst={() => onstep("first")} onback={() => onstep("back")}
-           onforward={() => onstep("forward")} onlast={() => onstep("last")} {atStart} {atEnd} {above} {tools} />
+  <StepBar class="mt-2 pt-2 border-t border-line" onfirst={() => onstep(0)} onback={() => onstep(shown - 1)}
+           onforward={() => onstep(shown + 1)} onlast={() => onstep(last)} atStart={shown === 0} atEnd={shown === last}
+           {above} {tools} />
 {/snippet}

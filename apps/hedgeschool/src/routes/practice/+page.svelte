@@ -42,7 +42,7 @@
   import type { BotMode } from "@abstractclass/practice/botMessages.ts";
   import { PracticeGame, saveUnfinished } from "#lib/practice/game.svelte.ts";
   import { botName, keep, loadChoices, loadKept, practiceEndParams, practiceOutcome, practiceParams, practiceTurn, saveChoices,
-           VARIETY_HELP, type KeptPractice, type PracticeOutcome } from "#lib/practice/hedgefund.ts";
+           type KeptPractice, type PracticeOutcome } from "#lib/practice/hedgefund.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
 
   const WHERE: Record<BotMode, string> = { gpu: "on the GPU", cpu: "on the CPU workers", single: "on one thread" };
@@ -342,7 +342,7 @@
      side, which starts the game. -->
 {#snippet settingsCard()}
   <PracticeCard bind:choices networks={NETWORKS.map(n => [n.id, `${networkName(n.id)} (${networkMB(n.id)} MB)`])}
-                networkHelp="The larger network plays stronger, and takes longer." varietyHelp={VARIETY_HELP} {ready} onside={newGame}>
+                networkHelp="The larger network plays stronger, and takes longer." {ready} onside={newGame}>
     {#snippet intro()}A game against the engine, in your browser, with no clock: the bot searches each move to the visits
       you set. The game then goes into <a href="/review">Your games</a>, for its review.{/snippet}
     {#snippet notes()}
@@ -361,8 +361,7 @@
   {@const pos = g?.positions[shown]}
   {@const into = g && shown > 0 ? g.played[shown - 1] : null}
   {@const gauge = score.form === "gauge" && score.bar}
-  <PracticeFrame form="square" {gauge} gaugeWidth={gaugeW} onstep={to => step(to === "first" ? 0 : to === "back" ? shown - 1 : to === "forward" ? shown + 1 : last)}
-                 atStart={!g || shown === 0} atEnd={!g || atLatest}>
+  <PracticeFrame form="square" {gauge} gaugeWidth={gaugeW} {shown} {last} onstep={step}>
     {#snippet strip()}
         {#if g && pos}
           <PlayerRow {gauge} label="Players and scores">

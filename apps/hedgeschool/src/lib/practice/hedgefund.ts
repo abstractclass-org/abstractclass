@@ -18,7 +18,7 @@ export * from "@abstractclass/practice/practice.ts";
 export type KeptPractice = Kept<BotMode>;
 
 const choices = choicesStore("hedge-school:practice-choices:1", NETWORKS[0].id, offersNetwork);
-export const { defaults: defaultChoices, load: loadChoices, save: saveChoices } = choices;
+export const { load: loadChoices, save: saveChoices } = choices;
 const kept = keptStore<BotMode>("hedge-school:practice-game:1");
 export const { load: loadKept, keep } = kept;
 

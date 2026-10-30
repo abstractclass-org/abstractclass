@@ -63,6 +63,20 @@ test("the resize handle is on the side towards the area's middle, and the opposi
   assert.ok(inside(large), JSON.stringify(large));
 });
 
+test("a resize stops at the zoom's buttons, so the panel does not move when the player lets go", () => {
+  // In the lower-left corner, the panel grows to the right up to the buttons' room.
+  const low = panelRect({ fx: 0, fy: 1 }, area, FIRST_SIZE, zoom), wide = resized(low, "right", 5000, 0, area, zoom);
+  assert.equal(wide.x + wide.width, zoom.x - INSET);
+  // On the right, over the buttons' columns, the panel grows down to the buttons' room.
+  const mid = panelRect({ fx: 1, fy: 0.5 }, area, FIRST_SIZE, zoom), tall = resized(mid, "left", 0, 5000, area, zoom);
+  assert.equal(tall.y + tall.height, zoom.y - INSET);
+  for (const r of [wide, tall]) {
+    assert.ok(inside(r) && !meets(r, zoom), JSON.stringify(r));
+    const dropped = panelRect(placeAt(r.x, r.y, area, r), area, r, zoom);
+    assert.ok(Math.abs(dropped.x - r.x) < 1e-9 && Math.abs(dropped.y - r.y) < 1e-9, JSON.stringify(dropped));
+  }
+});
+
 /** The hexes whose shapes lie under the panel in the view that the fit gives. */
 function under(hexes: Hex[], fitted: ReturnType<typeof fitWithPanel>) {
   const r = panelRect(fitted.place, area, FIRST_SIZE, zoom), v = fitted.view;

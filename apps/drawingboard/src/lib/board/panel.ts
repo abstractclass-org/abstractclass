@@ -2,8 +2,8 @@
 // that the board's area leaves it, and its size, which the player sets with the handle at its lower corner. The panel
 // stays inside the area and off the zoom's buttons. A fit keeps every hex out from under it (view.ts, fitAround), and
 // may move it to the corner where the fit is larger. Pure functions.
-import type { Hex } from "./hex.ts";
-import { clamp, fitAround, type Rect, type Size, type View } from "./view.ts";
+import { boxOf, type Hex } from "./hex.ts";
+import { clamp, fit, fitAround, type Rect, type Size, type View } from "./view.ts";
 
 /** The panel's place: its left and top edges, as fractions of the room that the area leaves round it (0, 0: the
  *  top-left corner; 1, 1: the bottom-right corner, above the zoom's buttons). */
@@ -35,6 +35,9 @@ export const MIN_SIZE: Size = panelOf({ width: 216, height: 72 });
 
 const meets = (a: Rect, b: Rect) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
 const unit = (v: number) => clamp(v, 0, 1);
+/** The room that the panel keeps clear round the zoom's buttons. */
+const zoneOf = (avoid: Rect): Rect =>
+  ({ x: avoid.x - INSET, y: avoid.y - INSET, width: avoid.width + 2 * INSET, height: avoid.height + 2 * INSET });
 
 /** The panel's size within its limits: MIN_SIZE at the least, and at the most what the area holds inside its insets
  *  and above the zoom's buttons (`avoid`). */
@@ -49,8 +52,7 @@ export function panelRect(place: PanelPlace, area: Size, panel: Size, avoid: Rec
   const x = INSET + unit(place.fx) * Math.max(0, area.width - panel.width - 2 * INSET);
   let y = INSET + unit(place.fy) * Math.max(0, area.height - panel.height - 2 * INSET);
   const rect = { x, y, width: panel.width, height: panel.height };
-  if (avoid && meets(rect, { x: avoid.x - INSET, y: avoid.y - INSET, width: avoid.width + 2 * INSET, height: avoid.height + 2 * INSET }))
-    y = Math.max(INSET, avoid.y - INSET - panel.height);
+  if (avoid && meets(rect, zoneOf(avoid))) y = Math.max(INSET, avoid.y - INSET - panel.height);
   return { ...rect, y };
 }
 
@@ -65,13 +67,21 @@ export const handleSide = (rect: Rect, area: Size): "left" | "right" => (rect.x 
 
 /** The panel's rectangle while the player drags its resize handle by (dx, dy) pixels. The handle is at the lower corner
  *  on `side`, and the opposite corner stays where it is. The size stays within its limits (panelSizeIn), and the panel
- *  inside the area. */
+ *  inside the area and off the zoom's buttons (`avoid`), as after a drag (panelRect): a panel over the buttons'
+ *  columns stops above them, and one beside them stops short of them. */
 export function resized(rect: Rect, side: "left" | "right", dx: number, dy: number, area: Size, avoid: Rect | null): Rect {
   const most = panelSizeIn({ width: Infinity, height: Infinity }, area, avoid);
   const room = side === "left" ? rect.x + rect.width - INSET : area.width - INSET - rect.x;
-  const width = clamp(side === "left" ? rect.width - dx : rect.width + dx, MIN_SIZE.width, Math.max(MIN_SIZE.width, Math.min(most.width, room)));
-  const height = clamp(rect.height + dy, MIN_SIZE.height, Math.max(MIN_SIZE.height, Math.min(most.height, area.height - INSET - rect.y)));
-  return { x: side === "left" ? rect.x + rect.width - width : rect.x, y: rect.y, width, height };
+  let width = clamp(side === "left" ? rect.width - dx : rect.width + dx, MIN_SIZE.width, Math.max(MIN_SIZE.width, Math.min(most.width, room)));
+  let height = clamp(rect.height + dy, MIN_SIZE.height, Math.max(MIN_SIZE.height, Math.min(most.height, area.height - INSET - rect.y)));
+  const at = (w: number, h: number): Rect => ({ x: side === "left" ? rect.x + rect.width - w : rect.x, y: rect.y, width: w, height: h });
+  const zone = avoid && zoneOf(avoid);
+  // The panel at the press was clear of the buttons, so it never gets smaller than it was.
+  if (zone && meets(at(width, height), zone)) {
+    if (rect.x < zone.x + zone.width && zone.x < rect.x + rect.width) height = Math.max(rect.height, zone.y - rect.y);
+    else width = Math.max(rect.width, side === "right" ? zone.x - rect.x : rect.x + rect.width - zone.x - zone.width);
+  }
+  return at(width, height);
 }
 
 /** The fit with the panel at its place, or at the corner where the fit has the larger scale. The panel stays where it
@@ -80,6 +90,9 @@ export function fitWithPanel(hexes: readonly Hex[], area: Size, panel: Size, pla
                              margin: number): { view: View; place: PanelPlace } {
   const at = (p: PanelPlace) => fitAround(hexes, area, panelRect(p, area, panel, avoid), margin);
   let best = { view: at(place), place };
+  // No corner fits larger than the fit with no panel: when the place already gives that scale, the panel stays.
+  const box = boxOf(hexes);
+  if (!box || best.view.scale * 1.001 >= fit(box, area, margin).scale) return best;
   for (const corner of CORNERS) {
     if (corner.fx === place.fx && corner.fy === place.fy) continue;
     const view = at(corner);

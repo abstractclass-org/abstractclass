@@ -9,7 +9,7 @@ import type { EngineWorker } from "@abstractclass/engine/client.ts";
 import { errorText } from "@abstractclass/engine/errors.ts";
 import { positionQuery } from "@abstractclass/engine/protocol.ts";
 import type { PracticeBot } from "@abstractclass/practice/bot.ts";
-import { gtpColor, resignResult, takebackCount } from "@abstractclass/practice/practice.ts";
+import { gtpColor, takebackCount } from "@abstractclass/practice/practice.ts";
 import { boardMove, playerOf, sitePosition, stepOf, type DescribeReply, type GamePosition } from "../board/described.ts";
 import type { InputRules } from "../board/input.ts";
 import type { BoardMove, Player, SitePosition } from "../board/position.ts";
@@ -40,7 +40,7 @@ export class PracticeGame {
   // so that the board's view, which fits their anchor hexes, does not change at each turn.
   rules = $state.raw<InputRules | null>(null);
   resigned = $state(false); // the player resigned: the bot won
-  result = $state<string | null>(null); // the game's result once it is over: `b+N`, `r+N`, `0`, or a resignation's
+  result = $state<string | null>(null); // the rules' result once the game is over: `b+N`, `r+N` or `0`
   thinkingSince = $state<number | null>(null); // when the bot's turn began (performance.now), while it searches
   lastTurnMs = $state<number | null>(null); // how long the bot's last turn took
   readonly kept: KeptPractice;
@@ -64,7 +64,6 @@ export class PracticeGame {
     try {
       const info = JSON.parse(await this.bot.command("blueprints-bot-info")) as { build: string };
       if (this.kept.builds.at(-1) !== info.build) this.kept.builds.push(info.build); // a new build continues the game
-      this.kept.form = this.bot.mode as KeptPractice["form"];
       for (const line of botCommands(this.kept.bot)) await this.bot.command(line);
       if (this.kept.moves.length) await this.bot.command(`blueprints-set-game ${this.kept.moves.join(" ")}`);
       const described = (await this.rulesWorker.describeGame<GamePosition>(positionQuery(null, this.kept.moves))).reply.positions;
@@ -119,7 +118,7 @@ export class PracticeGame {
   resign() {
     if (this.status !== "human" && this.status !== "playing" && this.status !== "bot") return;
     this.resigned = true;
-    this.finish(resignResult(this.human));
+    this.finish();
   }
 
   /** The game ends without a result, at any time: it is no longer kept. */
@@ -135,9 +134,8 @@ export class PracticeGame {
   }
 
   /** The game is over: no longer the game in progress (the next visit starts a new one). */
-  private finish(result: string) {
+  private finish() {
     this.status = "over";
-    this.result = result;
     this.rules = null;
     this.thinkingSince = null;
     this.end();
@@ -176,7 +174,10 @@ export class PracticeGame {
       this.thinkingSince = null;
     }
     const outcome = this.described.at(-1)?.outcome;
-    if (outcome) return this.finish(outcome.result);
+    if (outcome) {
+      this.result = outcome.result;
+      return this.finish();
+    }
     const reply = await this.describe();
     this.rules = { position: sitePosition(reply), mover: playerOf(reply.mover), legal: reply.legal };
     this.status = "human";

@@ -6,7 +6,8 @@
 // middle keeps the game: the same moves, and the game goes on. The bot's visits are 32, so that a game takes minutes:
 // the bot at 1 and 2 visits has its own test (apps/drawingboard/src/lib/practice/bot.engine.test.ts). The site's
 // build and the Tests workflow have no engine files (design 33, "The engine's files"), so the tests skip, with a
-// message, when the preview has no practice bot: run `npm run engine` in apps/drawingboard before its build. Run:
+// message, when the preview has no practice bot: run `npm run engine` in apps/drawingboard before its build. A last
+// test keeps a game whose network the site does not ship: the page drops it and shows the settings card. Run:
 // npm run test:layout -- tests/drawingboard-practice.spec.ts, with DB_BASE_URL.
 import { expect, test, type Page } from "@playwright/test";
 
@@ -46,12 +47,18 @@ const keptMoves = (page: Page) => page.evaluate(() =>
   (JSON.parse(localStorage.getItem("drawing-board:practice-game:1") ?? "null") as { moves: string[] } | null)?.moves ?? null);
 const listed = (page: Page) => page.locator(".movelist .mv").allTextContents();
 
+/** The preview's engine manifest. Skips the test when there is no preview, or when it has no practice bot. */
+async function botManifest(page: Page) {
+  test.skip(!DRAWING_BOARD, "DB_BASE_URL gives no Drawing Board preview");
+  const manifest = await page.request.get(new URL("/engine/manifest.json", DRAWING_BOARD).href).then(r => r.json()).catch(() => null);
+  test.skip(!manifest?.artifacts?.some((a: { kind: string }) => a.kind === "practice-module"),
+            "Drawing Board's preview has no practice bot: run `npm run engine` in apps/drawingboard before its build");
+  return manifest;
+}
+
 for (const side of ["Blue", "Red"] as const) {
   test(`a whole game against Stamp Duty on Drawing Board, the player ${side}`, async ({ page }) => {
-    test.skip(!DRAWING_BOARD, "DB_BASE_URL gives no Drawing Board preview");
-    const manifest = await page.request.get(new URL("/engine/manifest.json", DRAWING_BOARD).href).then(r => r.json()).catch(() => null);
-    test.skip(!manifest?.artifacts?.some((a: { kind: string }) => a.kind === "practice-module"),
-              "Drawing Board's preview has no practice bot: run `npm run engine` in apps/drawingboard before its build");
+    const manifest = await botManifest(page);
     const errors: string[] = [];
     page.on("pageerror", e => errors.push(String(e)));
     let seed = side === "Blue" ? 1 : 2; // the player's clicks: the same for each run of a side (mulberry32)
@@ -98,3 +105,19 @@ for (const side of ["Blue", "Red"] as const) {
     expect(errors).toEqual([]);
   });
 }
+
+test("a kept game whose network the site does not ship gives way to the settings card", async ({ page }) => {
+  await botManifest(page);
+  const errors: string[] = [];
+  page.on("pageerror", e => errors.push(String(e)));
+  await page.goto(new URL("/practice", DRAWING_BOARD).href);
+  await page.evaluate(() => localStorage.setItem("drawing-board:practice-game:1", JSON.stringify({
+    version: 1, bot: { network: "no-such-network", visits: 32, variety: "low" }, human: 0, name: "", seed: 1,
+    moves: ["1@-13,-1"], builds: [], started: new Date().toISOString(),
+  })));
+  await page.reload();
+  await expect(page.getByRole("status").filter({ hasText: "does not have the network of your last game" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Play as Blue" })).toBeEnabled({ timeout: 60_000 });
+  expect(await keptMoves(page)).toBeNull();
+  expect(errors).toEqual([]);
+});

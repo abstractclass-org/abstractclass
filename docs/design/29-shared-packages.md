@@ -57,8 +57,9 @@ edit in the same commit), so their changes still apply.
    frame: the tools for a game site's pages, the hash that they send and the import's events, with each site's parts
    as parameters (item 10). An eighth, `@abstractclass/practice` (`packages/practice`), holds the practice's part that
    is not Enclosure's: the bot's settings, the kept game and the choices under each site's key, the GTP helpers, the
-   takeback, the results, the settings card and the game's frame. Design 33 moved it out of Hedge School's
-   `src/lib/practice/practice.ts`, whose Enclosure's part is now `hedgefund.ts`. The engine's two scripts for Node,
+   takeback, the results, the settings card, the game's frame, and the bot's page side and its worker. Design 33
+   moved it out of Hedge School's `src/lib/practice/`, whose Enclosure's part is now `hedgefund.ts`, `botForms.ts`
+   and `hedgefundWorker.ts`. The engine's two scripts for Node,
    `node-engine.mjs` (the CPU module in Node, for the checks) and `fetch-engine.mjs` (`npm run engine`: a site's
    `engine.lock.json`), moved from Hedge School's `scripts/` into the engine package with it, for both sites.
 
@@ -299,9 +300,11 @@ edit in the same commit), so their changes still apply.
 - **Paths in the documents:** a path that starts with `packages/` starts at the repository's root. A path to Hedge
   School's files starts at `apps/hedgeschool`, as before ([docs/README.md](../README.md)).
 - **A change to a package is a change to every site that uses it.** Its tests and each site's checks run for it.
-- **The engine's protocol:** the engine package speaks the protocol of Enclosure's site build (0.6.1). A jam game's
-  browser build speaks the same (abscls-zdbf). The fields of `describe` are each game's own: Enclosure's are in
-  Hedge School's `src/lib/engine/position.ts`.
+- **The engine's protocol:** each site's code is written for one protocol, and the engine package refuses a module of
+  another minor version (`protocol.ts`, `speaksProtocol`). Hedge School's is 0.6.1, the package's `PROTOCOL`. A site
+  whose engine speaks another names its protocol in its `engine.lock.json`, and the manifest carries it: Drawing
+  Board's 0.7.1, with the search of the root's views (design 33, "The engine's files"). The fields of `describe` are
+  each game's own: Enclosure's are in Hedge School's `src/lib/engine/position.ts`.
 
 ## Where it is
 
@@ -338,7 +341,9 @@ edit in the same commit), so their changes still apply.
   and its manifest.
 - `packages/practice/` (`@abstractclass/practice`): `practice.ts` (the practice's shared part, with tests on a game of
   words), `PracticeCard.svelte` (the settings card), `PracticeFrame.svelte` (the game's layout: a square board or one
-  that fills the room) and `practice.css` (the package's Tailwind source). Its check is `svelte-check`.
+  that fills the room), `bot.ts`, `botWorker.ts` and `botMessages.ts` (the page's side of the practice bot and its
+  worker, with the site's worker module) and `practice.css` (the package's Tailwind source). Its check is
+  `svelte-check`.
   `apps/hedgeschool/src/lib/practice/hedgefund.ts`: Hedge School's part.
 - `.github/workflows/tests.yml` and `deploy.yml`: the packages' checks.
 

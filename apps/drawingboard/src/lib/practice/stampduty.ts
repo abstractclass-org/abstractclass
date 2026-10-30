@@ -2,8 +2,7 @@
 // of @abstractclass/practice (Hedge School's design 24). Its keys in this browser, its networks, the bot's half-life,
 // and the bot's name. Its visits are Hedge School's, 1 to 8,192.
 import lock from "../../../engine.lock.json" with { type: "json" };
-import { botLabel, choicesStore, keptStore, settingsCommands, type BotSettings, type KeptPractice as Kept }
-  from "@abstractclass/practice/practice.ts";
+import { botLabel, choicesStore, keptStore, settingsCommands, type BotSettings } from "@abstractclass/practice/practice.ts";
 import { ENGINE_NAME } from "../site.ts";
 
 /** The networks that the site ships (engine.lock.json), the first one first: the settings card offers them. Each by
@@ -12,14 +11,12 @@ export const NETWORKS = lock.artifacts.filter(a => a.kind === "model").map(a => 
 export const offersNetwork = (id: string | undefined) => NETWORKS.some(n => n.id === id);
 export const networkName = (id: string) => NETWORKS.find(n => n.id === id)?.name ?? id;
 
-/** The bot's only form: its one search thread, with the network in its module, on the CPU. */
-export type BotForm = "single";
-/** The game in progress, with where the bot ran. */
-export type KeptPractice = Kept<BotForm>;
+/** The game in progress. The bot has one form (its one search thread), so the game names none. */
+export type { KeptPractice } from "@abstractclass/practice/practice.ts";
 
 const choices = choicesStore("drawing-board:practice-choices:1", NETWORKS[0].id, offersNetwork);
 export const { load: loadChoices, save: saveChoices } = choices;
-const kept = keptStore<BotForm>("drawing-board:practice-game:1");
+const kept = keptStore("drawing-board:practice-game:1");
 export const { load: loadKept, keep } = kept;
 /** The key of the hands' panel: its place and its size, which the player chose. */
 export const PANEL_KEY = "drawing-board:practice-panel:1";

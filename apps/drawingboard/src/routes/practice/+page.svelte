@@ -20,7 +20,6 @@
   import PracticeCard from "@abstractclass/practice/PracticeCard.svelte";
   import PracticeFrame from "@abstractclass/practice/PracticeFrame.svelte";
   import { PracticeBot } from "@abstractclass/practice/bot.ts";
-  import { VARIETY_HELP } from "@abstractclass/practice/practice.ts";
   import { EngineWorker, loadManifest, megabytes, type Manifest } from "@abstractclass/engine/client.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
   import Board from "#lib/board/Board.svelte";
@@ -31,7 +30,8 @@
   import type { Size } from "#lib/board/view.ts";
   import { moveName } from "#lib/game/notation.ts";
   import { PracticeGame } from "#lib/practice/game.svelte.ts";
-  import { NETWORKS, PANEL_KEY, botName, keep, loadChoices, loadKept, saveChoices, type KeptPractice } from "#lib/practice/stampduty.ts";
+  import { NETWORKS, PANEL_KEY, botName, keep, loadChoices, loadKept, offersNetwork, saveChoices, type KeptPractice }
+    from "#lib/practice/stampduty.ts";
   import { ENGINE_NAME, SITE_NAME } from "#lib/site.ts";
 
   const MISSING = "The engine is not on this site. You cannot play a practice game.";
@@ -50,8 +50,13 @@
   let failed = $state(""); // the engine could not start
   let ready = $state(false); // the rules are loaded: a game can start
   let confirming = $state<"abort" | "resign" | null>(null); // Abort or Resign, waiting for its confirmation
+  let dropped = $state(false); // the kept game's network is not in this build: the game cannot go on
 
   onMount(() => {
+    // A game kept with a network that the site no longer ships cannot go on: its bot has no network to start with.
+    // The site ships only its lock's networks (design 33), so a new build can drop the game's network.
+    const kept = loadKept();
+    if (kept && !offersNetwork(kept.bot.network)) { keep(null); dropped = true; }
     phase = loadKept() ? "game" : "settings";
     void (async () => {
       try {
@@ -90,6 +95,7 @@
   /** A new game with the settings chosen and the side picked. */
   function newGame(side: "blue" | "red" | "random") {
     choices.side = side;
+    dropped = false;
     saveChoices($state.snapshot(choices));
     const human: Player = side === "blue" ? 0 : side === "red" ? 1 : Math.random() < 0.5 ? 0 : 1;
     const kept: KeptPractice = {
@@ -182,8 +188,8 @@
     if (g.status === "failed") return `The game stopped: ${g.error}`;
     if (g.status === "over") {
       if (g.resigned) return `You resigned. ${ENGINE_NAME} wins.`;
-      const d = p.scores[0] - p.scores[1];
-      return d === 0 ? "The game is over: a draw." : `The game is over: ${PLAYER_NAMES[d > 0 ? 0 : 1]} wins by ${Math.abs(d)}.`;
+      const won = /^([br])\+(.+)$/.exec(g.result ?? ""); // the rules' result: the winner and the margin
+      return won ? `The game is over: ${PLAYER_NAMES[won[1] === "b" ? 0 : 1]} wins by ${won[2]}.` : "The game is over: a draw.";
     }
     if (!atLatest) return `You look at move ${shown}. To go back to the game, go to the last move.`;
     if (g.status === "bot") return `${ENGINE_NAME} thinks… ${g.thinkingSince === null ? "" : seconds(Math.max(0, now - g.thinkingSince))}`;
@@ -216,11 +222,15 @@
   <main class="max-w-160 mx-auto my-6 px-4"><p class="text-blunder" role="alert">{failed}</p></main>
 {:else if phase === "settings"}
   <PracticeCard bind:choices networks={NETWORKS.map(n => [n.id, `${n.name} (${megabytes(n.bytes)} MB)`])}
-                networkHelp="The network that {ENGINE_NAME} plays with." varietyHelp={VARIETY_HELP}
+                networkHelp="The network that {ENGINE_NAME} plays with."
                 nameHelp={'The name above the board. Without a name, the page shows "You".'}
                 {ready} onside={newGame}>
     {#snippet intro()}A game against {ENGINE_NAME}, the engine, in your browser, with no clock: it searches each move to
       the visits you set. This browser keeps the game until it ends.{/snippet}
+    {#snippet notes()}
+      {#if dropped}<p class="mb-1 text-sm" role="status">This site does not have the network of your last game. You cannot
+        continue that game.</p>{/if}
+    {/snippet}
   </PracticeCard>
 {:else if phase === "game"}
   {@render gameView()}
@@ -237,9 +247,7 @@
   {@const g = game}
   {@const pos = g?.positions[shown]}
   {@const into = g && shown > 0 ? g.played[shown - 1] : null}
-  <PracticeFrame form="fill" fillHeight={FILL_HEIGHT}
-                 onstep={to => step(to === "first" ? 0 : to === "back" ? shown - 1 : to === "forward" ? shown + 1 : last)}
-                 atStart={!g || shown === 0} atEnd={!g || atLatest}>
+  <PracticeFrame form="fill" fillHeight={FILL_HEIGHT} {shown} {last} onstep={step}>
     {#snippet strip()}
       {#if g && pos}
         <PlayerRow gauge={false} label="Players and scores">

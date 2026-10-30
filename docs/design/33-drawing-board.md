@@ -279,7 +279,9 @@ game's last position (`scores`, and the margin of `outcome`). This browser keeps
    this.
 2. **No Your games, no stored game, no analytics and no review:** the site has no store of games, no backend (design
    25) and no analytics (design 17) yet, and the review comes with abscls-8tl1.7. So a game that ends is no longer
-   kept: the next visit starts a new one. Abort ends the game, and it is gone.
+   kept: the next visit starts a new one. Abort ends the game, and it is gone. The site ships only its lock's
+   networks, so a new build can drop a kept game's network. Such a game cannot go on: the page drops it, and the
+   settings card says so.
 3. **Fewer display settings:** the points' bar always shows, with no second number (Blueprints has no area), and the
    page has no sounds and no notes on the board. No game comes from a record or a set-up start: the Analysis board's
    Play comes with it (abscls-8tl1.7).

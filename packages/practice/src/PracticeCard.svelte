@@ -1,25 +1,25 @@
 <script lang="ts">
   // The settings card before a practice game (Hedge School's design 24), as Lichess's "Play with the computer": the bot's
   // settings (the network, the visits for each move, the variety), the player's name, then the side, which starts the
-  // game. The site gives its text above the settings, its notes, its networks and the variety's help. The choices are
-  // the page's: the card changes them in place.
+  // game. The site gives its text above the settings, its notes and its networks. The choices are the page's: the card
+  // changes them in place.
   import type { Snippet } from "svelte";
   import SettingChoice from "@abstractclass/site/SettingChoice.svelte";
   import Swatch from "@abstractclass/site/Swatch.svelte";
-  import { MAX_VISITS, VARIETY_NAME, VISIT_STOPS, visitsStop, visitsTaken, type PracticeChoices, type Variety } from "./practice.ts";
+  import { MAX_VISITS, VARIETY_HELP, VARIETY_NAME, VISIT_STOPS, visitsStop, visitsTaken, type PracticeChoices,
+           type Variety } from "./practice.ts";
 
   interface Props {
     choices: PracticeChoices;
     networks: [string, string][]; // each network the site offers: its id, and its name for the list
     networkHelp: string;
-    varietyHelp: Record<Variety, string>;
     nameHelp?: string; // what the player's name is for (Hedge School's: the game's record)
     ready: boolean; // the rules are loaded: a game can start
     intro: Snippet; // what the game is, under the heading
     notes?: Snippet; // the site's notices: a record brought, a game aborted
     onside: (side: PracticeChoices["side"]) => void; // a side chosen: the game starts
   }
-  let { choices = $bindable(), networks, networkHelp, varietyHelp,
+  let { choices = $bindable(), networks, networkHelp,
         nameHelp = `For the game's record. Without one, the record says "You".`, ready, intro, notes, onside }: Props = $props();
 
   // The visits box's text while the player types in it (null: it shows the setting). The visits change when the box is
@@ -61,7 +61,7 @@
              oninput={e => { visitsTyped = null; choices.bot.visits = VISIT_STOPS[e.currentTarget.valueAsNumber]; }} />
       <div class="flex justify-between text-xs text-muted tabular-nums"><span>1</span><span>{MAX_VISITS.toLocaleString("en")}</span></div>
     </div>
-    <SettingChoice label="Variety" help={varietyHelp[choices.bot.variety]}
+    <SettingChoice label="Variety" help={VARIETY_HELP[choices.bot.variety]}
                    options={Object.entries(VARIETY_NAME)} get={() => choices.bot.variety} set={v => (choices.bot.variety = v as Variety)} />
     <div class="py-1.5">
       <label for="name" class="text-sm font-medium">Your name</label>

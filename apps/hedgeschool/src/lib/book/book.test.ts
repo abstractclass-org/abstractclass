@@ -15,7 +15,7 @@ import { mirrorEdge, mirrorPosition } from "#lib/engine/notation.ts";
 import { playerOf } from "#lib/engine/position.ts";
 import { turnFromCount } from "#lib/review/enclosure.ts";
 import { moverWin } from "@abstractclass/analysis/model.ts";
-import { nodeEngine } from "@abstractclass/engine/node-engine.mjs";
+import { hasEngine, nodeEngine } from "@abstractclass/engine/node-engine.mjs";
 
 const root = fileURLToPath(new URL("../../..", import.meta.url));
 const TEST_BOOK = "/test-book/prototype/index.json", CASES = "/test-book/cases/index.json";
@@ -235,7 +235,7 @@ test("a position's mirror image: each edge turns over, and the lists keep the no
 });
 
 // --- With the engine --------------------------------------------------------------------------------------------
-const skip = existsSync(join(root, "static", "engine", "manifest.json")) ? false : "no engine: run `npm run engine` first";
+const skip = hasEngine(root) ? false : "no engine: run `npm run engine` first";
 const engine = skip ? null : await nodeEngine(root);
 const positionsAfter = (moves: string[]): string[] =>
   engine!.call({ id: "g", action: "describe_game", moves, from: 0 }).positions.map((p: { position: string }) => p.position);

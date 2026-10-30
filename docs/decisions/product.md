@@ -7495,15 +7495,16 @@ and "Practice against Stamp Duty", give the result.
   the hands in the board's box at 1,376 × 952, the box was 1.17 times as wide as high, the hands took rows, and the
   field was 959 × 567 pixels. With them beside the score bar, a hand's hex was 14 pixels across on a computer and 8
   on a phone. With them in the side column, the field was the whole box (959 × 819), and the move list lost 222
-  pixels. The owner chose the side column's board with the hands in a panel over it, and on a phone the hands under
-  the board.
+  pixels. The page takes the side column's board, with the hands in a panel over it, and on a phone the hands under
+  the board: the panel keeps the largest board, and the move list keeps its height.
 - **The panel's fit,** measured in Node and in headless Chromium on the two positions at the three computer sizes:
   some corner was always free at the plain fit's scale. The early position kept the top-right corner, and the late
   one took the top left at 1,376 and 1,920 pixels. No hex was under the panel. A board full of hexes (31 rows of 30
   or 31 hexes) at 959 × 819 took a hex 20.8 pixels across, where the plain fit gives 28.7. A choice of place,
   five fits, took 0 to 10 ms.
-- **The owner's rules for the panel:** a drag never makes the board smaller, and the fits after it keep the panel and
-  fit as if it were not there; "Show all the cells" and a reload fit with it. The panel is resizable on a computer.
+- **The panel's rules:** a drag is the player's choice, as a pan or a zoom is, so it never makes the board smaller.
+  The fits after it keep the panel where it is and fit as if it were not there. "Show all the cells" and a reload fit
+  with it. The panel is resizable on a computer.
 - **The bot:** first planned as the analysis module's `chooseMove`, with two departures from design 24 (no tree kept
   from move to move, and no temperature in a search of more views). That plan was dropped for the reasons of request
   15: the bot is the engine repository's GTP practice bot, as Hedge School's. The bot's own departures are named when
@@ -7550,8 +7551,8 @@ Stamp Duty", gives the result.
 
 ### Drawing Board's practice on protocol 0.7.1 (2026-10-30)
 
-abscls-8tl1.14, after the owner's look at the page ("practice looks fine"), on the engine repository's fix
-abscls-csmy. Design 33, "The engine's files" and "Practice against Stamp Duty", gives the result.
+abscls-8tl1.14, on the engine repository's fix abscls-csmy. Design 33, "The engine's files" and "Practice against
+Stamp Duty", gives the result.
 
 - **The build:** Drawing Board's `engine.lock.json` pins `engine-70dfdc0f` for every file, with protocol 0.7.1: the
   module (build and search 70dfdc0f), the bot with interface 0.1.1, and bpj4's network b6c96-s22323968-d845223. bpj4's
@@ -7565,3 +7566,19 @@ abscls-csmy. Design 33, "The engine's files" and "Practice against Stamp Duty", 
   outside the mover's view). The test games of the browser test had covers of one view only. At that position, at 1
   and at 2 visits, 217be61f's bot answered "genmove returned null location or illegal move", and 70dfdc0f's gave a
   legal move. At 32 visits both gave a legal move. `bot.engine.test.ts` keeps the check at 1 and 2 visits.
+
+### Drawing Board's practice: the review's changes (2026-10-31)
+
+abscls-8tl1.14's review. Design 33, "Practice against Stamp Duty", gives the result.
+
+- **A kept game whose network the site no longer ships:** the bot could not start, and the page showed only the
+  error, on every visit, with no way back to the settings card. Drawing Board ships only its lock's networks, and
+  this branch changed the network (`b6c96-s19117184-d446546` to `b6c96-s22323968-d845223`), so a game kept on an
+  earlier build met it. The page now drops such a game, and the settings card says that it cannot continue.
+- **A resize of the hands' panel stops at the zoom buttons,** as a drag does: a panel over the buttons' columns stops
+  above them, and one beside them stops short of them. Before, a resize could cover them, and the panel then jumped
+  up when the player let go.
+- **The status line at the game's end reads the rules' result** (`outcome`'s winner and margin), as the design says.
+  It had computed the winner from the scores.
+- **The fit of the panel** returns at once when the panel's place gives the fit with no panel: no corner can give a
+  larger board then. The other three corners' fits are no longer made.
