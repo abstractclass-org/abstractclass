@@ -41,7 +41,7 @@ export const lossTo = (p: BookPosition, blueWin: number) => rounded(Math.max(0, 
 /** Whether a move is the first book move. By its edge: each lookup gives new objects. */
 const isFirst = (p: BookPosition, m: BookMove) => m.move === p.moves[0]?.move;
 /** Whether the best move outside the book is better for the mover than the first book move. */
-const outsideBetter = (p: BookPosition) =>
+export const outsideBetter = (p: BookPosition) =>
   !!p.outside && p.moves.length > 0 && win(p, p.outside.blueWin) > win(p, p.moves[0].value.blueWin);
 
 /** A symbol as a clause: "After it, Blue is better.", "After it, the game is equal." */
@@ -248,7 +248,8 @@ const article = (word: string) => (/^[AEIOU]/.test(word) ? "an" : "a");
 
 // --- The review's Report (design 32, item 4) -------------------------------------------------------------------------
 // The rows of the Report on the game's opening, from the book's facts and the game's moves (game.ts, `gameOpening`).
-// The review keeps its own labels (design 16), on book moves too: the rows give the review's label of each move.
+// The rows give the review's label of each move, which is the book's on a book move: the review takes a book position's
+// values from the book (design 32, "A book position's values").
 
 /** The opening row of a game that left the book, at the position before the move that left it: "The game left the
  *  book at turn 3: Blue, D9-G11, Good." By turn, `move` is the whole turn that left: "Blue, D9-G11 D10-G9, Blunder".

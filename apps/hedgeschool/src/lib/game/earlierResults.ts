@@ -61,7 +61,11 @@ export function unneededResults(keys: string[], games: KeptGame[], engine: Manif
     if (!why) continue;
     const line = snapshotPositions(moves);
     const ofLine = line.flatMap(m => atMoves.get(m.join(" ")) ?? []).sort((a, b) => a - b).map(i => keys[i]);
-    const held = searchHolding(ofLine, mark.model, line, mark.visits, snapshotExcept(why, site), mark.search);
+    // A review that took the book's values holds no result at the positions that the book holds, and the review
+    // snapshot leaves them out of its test (design 32, "A book position's values"). The removal reads no book: it keeps
+    // the mark's search where that holds any position of the line. A mark that names no search is older than the book.
+    const held = searchHolding(ofLine, mark.model, line, mark.visits, snapshotExcept(why, site), mark.search,
+                               mark.search === undefined ? line.length : 1);
     if (held === undefined) continue;
     const at = `${held}|${mark.model}`, positions = snapshotReads.get(at) ?? new Map<string, Set<number>>();
     for (const p of positionKeys(moves, branches)) positions.set(p, (positions.get(p) ?? new Set()).add(mark.visits));

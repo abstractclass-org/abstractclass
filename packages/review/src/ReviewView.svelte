@@ -130,7 +130,7 @@
   import { errorText } from "@abstractclass/engine/errors.ts";
   import Toast from "@abstractclass/site/Toast.svelte";
   import {
-    opensTurn, HARD_NOTE, complexity, isHard, turnComplexity, likelyMoves, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchMove, valuesAfter, resultWin, moverWin, costText, pct, shownCandidates, distinctCandidates, rankOf, twinsOf, enoughVisits, threatTurn, trustedLine, type Candidate, LABELS, LABEL_TEXT, LABEL_GLYPH, type Label, type MoveJudgment, type Review, type Unit, type TurnJudgment, type TurnReview,
+    opensTurn, HARD_NOTE, complexity, deepEnough, isHard, turnComplexity, likelyMoves, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchMove, valuesAfter, resultWin, moverWin, costText, pct, shownCandidates, distinctCandidates, rankOf, twinsOf, enoughVisits, threatTurn, trustedLine, type Candidate, LABELS, LABEL_TEXT, LABEL_GLYPH, type Label, type MoveJudgment, type Review, type Unit, type TurnJudgment, type TurnReview,
   } from "@abstractclass/analysis/model.ts";
   import { branchChildren, branchLine, branchRows, mainIndex, nextFork, pathKey, prefixKeys, prevFork, sharedLength, siblingLine, treeLines, withLine,
            type BranchRow } from "@abstractclass/analysis/tree.ts";
@@ -1322,8 +1322,7 @@
   }
   // The positions whose search has the review's depth (or the end, whose value is the result, or the book's values): the
   // chart draws the rest as a first estimate.
-  const chartSettled = $derived(R.data.positions.map((_, i) => i === last || !!R.data.analysis[i]?.book
-    || (R.data.analysis[i]?.visits ?? 0) >= reviewVisits));
+  const chartSettled = $derived(R.data.positions.map((_, i) => i === last || deepEnough(R.data.analysis[i], reviewVisits)));
   const chartRough = $derived(R.blueWin.some((v, i) => !Number.isNaN(v) && !chartSettled[i]));
   // The position's search, as Lichess shows its depth: the bar fills to the budget and stays full when the search ends.
   // A search stopped at its time limit has ended too: its bar is full (Lichess fills its bar by time).

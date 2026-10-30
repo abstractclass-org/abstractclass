@@ -15,13 +15,13 @@
 // - `area`: the area map (design 30).
 // - The book's source: the visits of its deep search, as the result's visits.
 // The book has no candidate's visits, prior, margin or score spread: the review needs none of them for its labels.
-import type { Analysis, Candidate } from "@abstractclass/analysis/model.ts";
-import { moverWin } from "@abstractclass/analysis/model.ts";
+import { moverWin, type Analysis, type Candidate } from "@abstractclass/analysis/model.ts";
 import { mirrorEdge, mirrorPosition, parseEdge, type Edge } from "#lib/engine/notation.ts";
 import { playerOf } from "#lib/engine/position.ts";
 import { decodeArea } from "./area.ts";
 import { BookLoadError, type Book } from "./book.ts";
 import type { BookPosition } from "./form.ts";
+import { outsideBetter } from "./sentences.ts";
 
 /** A book position as the review's result (Analysis `book`). `visits`: the visits of the book's deep search (its
  *  source). `next`: the book's position after the first book move, for that move's line, or null. In a position that
@@ -49,12 +49,9 @@ export function bookAnalysis(p: BookPosition, visits: number, next: BookPosition
 }
 
 /** The best move at a book position for its mover: the first book move, or the best move outside the book when that
- *  is better (sentences.ts, `bestWin`). Null where the position has neither. */
-function bestMove(p: BookPosition): string | null {
-  const win = (blueWin: number) => moverWin(blueWin, playerOf(p.mover)), first = p.moves[0];
-  if (p.outside && (!first || win(p.outside.blueWin) > win(first.value.blueWin))) return p.outside.move;
-  return first?.move ?? null;
-}
+ *  is better, as the table's Best is (sentences.ts, `outsideBetter`). Null where the position has neither. */
+const bestMove = (p: BookPosition): string | null =>
+  p.outside && (!p.moves.length || outsideBetter(p)) ? p.outside.move : p.moves[0]?.move ?? null;
 
 /** The book's values of a game's positions, by index, as the review takes them (`bookAnalysis`). `notations[i]`:
  *  position i in the notation, undefined where it has none. Undefined where the book does not hold a position, and

@@ -289,8 +289,8 @@ explorers that people use in chess and Go is [../research/03-opening-explorers.m
   second edge under its first takes the room from the rows, and the heads stay on one line.
 - **A smaller font for a turn's edges.** It would make the edges harder to read, and the edges' own lines give the
   room.
-- **The review's own labels on book moves,** from its search of each book position (decided on 2026-10-27, replaced
-  on 2026-10-30). One move then had two labels on one page: in book-left-review.json the table called O11-Q10 an
+- **The review's own labels on book moves,** from its search of each book position, which this design held before.
+  One move then had two labels on one page: in book-left-review.json the table called O11-Q10 an
   Inaccuracy and the move list Good. The review's labels came from the shallower search.
 - **The book's label in the Opening row only,** and the review's in the move list and on the mark. The page still gave
   one move two labels.
@@ -564,7 +564,7 @@ At each position of the game that the book holds, the review takes the book's va
 (`apps/hedgeschool/src/lib/book/results.ts`, `GameAnalysis.useBook` in `packages/analysis/src/analysis.svelte.ts`).
 The review's own rules (design 10) then give the labels, the losses, the charts and the counts from those values, as
 from a search. A unit test checks every book move of the test book, by edge and by turn in both orders: the review's
-label and loss are the ones that the book's table gives (434 edges and 284 whole turns).
+label and loss are the ones that the book's table gives (434 edges, and 284 whole turns with each of their edges).
 
 - **What the book's fields replace** in a search's result (`Analysis` in `packages/analysis/src/model.ts`, with
   `book`):
@@ -572,8 +572,11 @@ label and loss are the ones that the book's table gives (434 edges and 284 whole
     move's and the best move outside the book's, so the loss of a book move is the book's (`moveLoss`).
   - `moves` and `outside`: the candidates, the best for the side to move first. The first is the engine's first
     choice, which a Best needs. The first book move's line goes on with the best move after it, which a Best by turn
-    needs: the best turn in the other order is Best too, as the table's one row a position is. At the start, each
-    edge's mirror image follows it as its twin, as the engine lists twins.
+    needs: the best turn in the other order is Best too, as the table's one row a position is. By edge, each edge of
+    that turn keeps the label that the table by edge gives it. The review's rule that makes both edges of the engine's
+    best turn in the other order Best (design 10) does not apply to an edge between two positions with the book's
+    values: the book's minimax values each such edge. It still applies to an edge that leaves the book or comes into
+    it. At the start, each edge's mirror image follows it as its twin, as the engine lists twins.
   - `complexity`: the position's complexity (design 14), and so the hard positions and the accuracy's weights.
   - `area`: the area map (design 30). The map stage searches no book position.
   - The book's source: the visits of its deep search, as the result's visits. A label needs no more: the book's values
@@ -586,9 +589,11 @@ label and loss are the ones that the book's table gives (434 edges and 284 whole
   depths, as design 16 accepts where a position holds a deeper result. A Great needs two equal searches (design 10),
   and the book's minimax is no search of a depth that the review can match. So no move from or into a book position is
   Great, and the book gives none either (item 6, "The labels"). The move can be Best: the book's best move outside the
-  book is a candidate.
-- **A book that loads after the review started:** its values come as its parts load (`giveBook` in
-  `reviewBook.ts`), and the stages skip each book position whose search still waits for an engine. A search that ran
+  book is a candidate. A later move can be Great. Where the position before the other player's last turn is a book
+  position, the Great's test of what that turn gave reads the book's value there, as the labels do (`earlierAt`).
+- **A book that loads after the review started:** its values come once the parts that the game's positions need have
+  loaded (`giveBook` in `reviewBook.ts`), and the stages skip each book position whose search still waits for an
+  engine. A search that ran
   before keeps its result for the analysis column, and the labels take the book's values.
 - **A book that does not load:** no values come, and the review searches every position, as with no book. A part that
   does not load leaves its positions to the review's search. The review does not try again: the table's "Try again"
@@ -598,9 +603,16 @@ label and loss are the ones that the book's table gives (434 edges and 284 whole
   result, everywhere"): the book's searches are the deeper by design. A result deeper than the review's at a book
   position does not count in the report's note on deeper searches.
 - **The annotated record** that the home page exports from the store takes the book's values too, so it gives the
-  review's labels. A review snapshot (design 20) takes them as the review did. Its check of the store still asks for a
-  result at each of the game's positions: a review made with the book holds none at the book's positions, so it
-  opens as a new review (beads abscls-tpaj.22).
+  review's labels. A review snapshot (design 20) takes them as the review did.
+- **A review snapshot** asks the store for a result at each of the game's positions but the start and the positions
+  that the book holds: the review did not search those. So the review snapshot starts the rules and waits for the
+  book's values before it checks the store (`openSnapshot` in `src/routes/review/+page.svelte`, `snapshotSearch` in
+  `packages/analysis/src/cache.ts`). Where the book does not load, it asks for every position, as without the book.
+  The removal of earlier results (design 20, item 8) reads no book. For a mark that names its search, it keeps that
+  search's results where they hold any position of the game's line, so it keeps what such a review snapshot reads. It
+  can keep the results of a review snapshot that does not open, until the game is reviewed again. A mark that names no
+  search is older than the book: its review searched every position. Its review snapshot and the removal ask for every
+  position, as before.
 - **The Analysis board and a set-up board** take no book values: the board's analysis searches its positions as
   before, and its labels stay on the moves that the player evaluates (design 21). The book's table shows the book there.
 - **Values with three decimals:** the book's win chances have three decimals, so a loss can fall on a band's limit
@@ -618,9 +630,9 @@ too, with its lab page in `apps/hedgeschool/src/routes/lab/book-table/` ("The ta
 board show it through `place.svelte.ts` ("Where the pages show it"). The book's values in the review are in
 `apps/hedgeschool/src/lib/book/results.ts`, `reviewBook.ts` and `GameAnalysis.useBook` ("A book position's
 values"). Openings is not built. The design's files are in [../ux/book-explorer/](../ux/book-explorer/):
-`context-book-explorer.md`, `stories-book-explorer.md`,
-`journey-book-explorer.md` and its diagram, `sitemap-book-explorer.md` and its diagram, `wireframes-book-explorer.html`,
-`evaluation-book-explorer.md` and `decisions.md`. The prototypes' code is on the branches abscls-tpaj.1, abscls-tpaj.2
+`context-book-explorer.md`, `stories-book-explorer.md`, `journey-book-explorer.md` and its diagram,
+`sitemap-book-explorer.md` and its diagram, `wireframes-book-explorer.html`, `evaluation-book-explorer.md` and
+`decisions.md`. The prototypes' code is on the branches abscls-tpaj.1, abscls-tpaj.2
 and abscls-tpaj.3, never merged.
 
 ## Log entries

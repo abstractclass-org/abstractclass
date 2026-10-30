@@ -31,7 +31,7 @@ import { positionQuery } from "@abstractclass/engine/protocol.ts";
 import { errorText } from "@abstractclass/engine/errors.ts";
 import { BOARD_ID, branchNodes, keptNode, type KeptNode, type KeptBoard, type KeptBranches } from "./kept.ts";
 import type { Game, GameTypes, Player } from "./game.ts";
-import { earlierIndex, equalDepth, keepsGain, moverScore, moverWin, onlyMove, otherCandidate, sameMove, secondChoice, type Analysis,
+import { deepEnough, earlierIndex, equalDepth, keepsGain, moverScore, moverWin, onlyMove, otherCandidate, sameMove, secondChoice, type Analysis,
          type Candidate, type GameEnding, type ReviewData } from "./model.ts";
 import { ONLY_MOVE_GAP } from "./labels.ts";
 import { lastMove, mainIndex, parentKey, pathKey, prefixKeys } from "./tree.ts";
@@ -232,10 +232,10 @@ export class GameAnalysis<G extends GameTypes> {
     if (!this.board) this.bookResults = results;
   }
 
-  /** Whether the review takes the book's values at the position at `path` (useBook): a position of the game only. */
-  private fromBook(path: string[]): boolean {
+  /** The book's values that the review takes at the position at `path` (useBook): a position of the game only. */
+  private bookAt(path: string[]): Analysis<G["move"]> | undefined {
     const i = mainIndex(path, this.mainNames);
-    return i !== null && !!this.bookResults[i];
+    return i === null ? undefined : this.bookResults[i];
   }
 
   /** The game's edges of the turn that starts with edge `i`, or undefined when no turn starts there. */
@@ -254,10 +254,11 @@ export class GameAnalysis<G extends GameTypes> {
   }
 
   /** The analysis of the position before the other player's last turn, for a move of `mover` from the position at `path`
-   *  (model.ts, keepsGain and earlierIndex), on the path's line: the game's or a variation's. */
+   *  (model.ts, keepsGain and earlierIndex), on the path's line: the game's or a variation's. The book's values where the
+   *  review takes them (useBook), as the labels read them (data). */
   earlierAt(path: string[], mover: Player): Analysis<G["move"]> | undefined {
     const earlier = this.earlierPath(path, mover);
-    return earlier && this.analysisOf(earlier);
+    return earlier && (this.bookAt(earlier) ?? this.analysisOf(earlier));
   }
 
   /** The path of the position before the other player's last turn (earlierAt), or undefined where the line has none. */
@@ -356,18 +357,19 @@ export class GameAnalysis<G extends GameTypes> {
     // other player's last turn gave, else the position before that turn, where it has no result. Whether `gain` keeps it.
     const ask = (judged: boolean, a: Analysis<G["move"]>, gain: Analysis<G["move"]>, path: string[], mover: Player,
                  candidate: Candidate<G["move"]>, after: string[]) => {
+      if (this.bookAt(path) || this.bookAt(after)) return false; // no Great from or into the book's values (model.ts)
       if (a.visits < this.labelVisits) {
         if (judged) awaiting.add(pathKey(after)); // the label budget's search still runs
         return false;
       }
-      const at = this.earlierPath(path, mover), before = at && this.analysisOf(at);
+      const at = this.earlierPath(path, mover), before = this.earlierAt(path, mover);
       if (keepsGain(gain, before, mover, this.labelVisits)) {
         const confirm = [...path, name(candidate.edge)], depth = equalDepth(this.labelVisits, this.analysisOf(after)?.visits);
         targets.push({ path: confirm, depth, judged });
         if (judged && (this.analysisOf(confirm)?.visits ?? 0) < depth) awaiting.add(pathKey(after));
         return true;
       }
-      if (judged && at && (before?.visits ?? 0) < this.labelVisits && this.searchable(at)) {
+      if (judged && at && !deepEnough(before, this.labelVisits) && this.searchable(at)) {
         earlier.push(at);
         awaiting.add(pathKey(after));
       }
@@ -392,6 +394,7 @@ export class GameAnalysis<G extends GameTypes> {
       const other = otherCandidate(this.game, a, turn);
       if (!other || moverWin(first.blueWin, mover) - moverWin(other.blueWin, mover) < ONLY_MOVE_GAP) return;
       const path = start();
+      if (turn.length > 1 && this.bookAt([...path, name(turn[0])])) return; // nor through them (judgeTurn)
       // A turn of two needs the search from its middle too (judgeTurn). Its second edge asks for that search only where the
       // middle's first choice keeps the gain, and the turn reads the gain at its start.
       if (ask(judged, a, a, path, mover, other, [...path, ...turn.map(name)]) && turn.length > 1) {
@@ -403,18 +406,15 @@ export class GameAnalysis<G extends GameTypes> {
     // turn of the board needs each of its edges evaluated, as its label does (onlyJudged).
     const asked = (i: number) => !this.board || !!this.judgedMain[this.mainKeys[i + 1]];
     for (let i = 0; i + 1 < this.played.length; i++)
-      if (asked(i) && !this.bookResults[i] && !this.bookResults[i + 1])
-        check(this.board, this.analysis[i], () => this.mainNames.slice(0, i), this.played[i].edge, this.played[i].player, false);
+      if (asked(i)) check(this.board, this.analysis[i], () => this.mainNames.slice(0, i), this.played[i].edge, this.played[i].player, false);
     for (const [key, node] of Object.entries(this.branches)) {
       if (!node.judged) continue;
       const before = key.split(" ").slice(0, -1);
-      if (this.fromBook(before)) continue;
       check(true, this.analysisOf(before), () => before, node.move.edge, node.move.player, !!node.position.over);
     }
     for (let i = 0; i < this.played.length; i++) {
       const turn = this.turnAt(i);
-      if (turn && i + turn.length < this.played.length && turn.every((_, k) => asked(i + k))
-          && this.bookResults.slice(i, i + turn.length + 1).every(a => !a))
+      if (turn && i + turn.length < this.played.length && turn.every((_, k) => asked(i + k)))
         checkTurn(this.board, this.analysis[i], () => this.mainNames.slice(0, i), turn, this.played[i].player);
     }
     // A variation's turns judged on request: each judged variation move that ends a turn, with its turn's edge before it.
@@ -422,7 +422,6 @@ export class GameAnalysis<G extends GameTypes> {
       if (!node.judged || node.position.over || node.position.player === node.move.player) continue;
       const path = key.split(" "), before = this.moveInto(path.slice(0, -1));
       const twice = !!before && before.player === node.move.player, start = path.slice(0, twice ? -2 : -1);
-      if (this.fromBook(start) || (twice && this.fromBook(path.slice(0, -1)))) continue;
       checkTurn(true, this.analysisOf(start), () => start, twice ? [before!.edge, node.move.edge] : [node.move.edge], node.move.player);
     }
     return { targets, earlier, awaiting };
@@ -564,7 +563,7 @@ export class GameAnalysis<G extends GameTypes> {
   private judgeSearches(path: string[]) {
     if (!this.engineReady) return; // the sweep starts them
     for (const p of this.judging(path)) // a position of the game that has the book's values needs no search
-      if (this.searchable(p) && !this.fromBook(p)) this.search(p, this.labelVisits, PRIORITY.judge, "judge", { early: LABEL_VISITS }).catch(this.fail);
+      if (this.searchable(p) && !this.bookAt(p)) this.search(p, this.labelVisits, PRIORITY.judge, "judge", { early: LABEL_VISITS }).catch(this.fail);
   }
 
   /** Deletes a variation node and every position after it (Lichess's "Delete from here"). */
@@ -902,8 +901,7 @@ export class GameAnalysis<G extends GameTypes> {
   /** A position's map (Hedge School's design 30): the book's where the review takes the book's values (useBook), else
    *  its result's ownership, or else the map added to it (askOwnership). */
   mapAt(path: string[]): number[] | undefined {
-    const i = mainIndex(path, this.mainNames);
-    return (i !== null ? this.bookResults[i]?.ownership : undefined) ?? this.analysisOf(path)?.ownership ?? this.ownership[pathKey(path)];
+    return this.bookAt(path)?.ownership ?? this.analysisOf(path)?.ownership ?? this.ownership[pathKey(path)];
   }
   /** Whether a position gets no map: the game ends there, so the engine does not search it. A position of the tree
    *  says so itself (searchable). A position of a line says so when the engine refuses its search. */

@@ -365,9 +365,12 @@ export function review<G extends GameTypes>(game: Game<G>, data: ReviewData<G>, 
     const p = t.player, first = data.analysis[t.start]?.candidates[0], played = t.edges.map(e => e.edge);
     t.best = bestTurn(first, t.edges.length > 1);
     // By edge too, the engine's best turn in the other order is Best: the same two edges make the same turn, so its
-    // first edge, the second of the engine's line, is not judged by the search between them.
+    // first edge, the second of the engine's line, is not judged by the search between them. Not an edge between two
+    // positions with the book's values (Analysis `book`): the book's minimax values it, and its table gives it its own
+    // label.
+    const byBook = (e: MoveReview<G>) => !!data.analysis[e.index]?.book && !!data.analysis[e.index + 1]?.book;
     if (t.edges.length > 1 && t.best && sameTurn(game, played, t.best))
-      for (const e of t.edges) if (e.label && e.label !== "great") e.label = "best";
+      for (const e of t.edges) if (e.label && e.label !== "great" && !byBook(e)) e.label = "best";
     if (!known(t.start, t.end)) continue;
     const j = judgeTurn(game, p, played, data.analysis[t.start], played.length > 1 ? data.analysis[t.start + 1] : undefined,
                         { blueWin: blueWin[t.end], blueScore: blueScore[t.end], visits: data.analysis[t.end]?.visits,

@@ -16,7 +16,7 @@ import { bookMove, openBook } from "./book.ts";
 import type { BookPart, BookPosition } from "./form.ts";
 import { bookAnalysis, bookResults } from "./results.ts";
 import { turnRows } from "./rows.ts";
-import { edgeCount, moveLabel, moveLoss } from "./sentences.ts";
+import { edgeCount, lossTo, moveLabel, moveLoss } from "./sentences.ts";
 
 const root = fileURLToPath(new URL("../../..", import.meta.url));
 const read = async (url: string) => JSON.parse(readFileSync(join(root, "tests", "fixtures", url), "utf8"));
@@ -103,6 +103,13 @@ test("every book move of the test book: the review's label and loss are the book
         if (!end) continue; // the other order is not in the book
         const R = await reviewOf([p, middle, end], order);
         assert.equal(R.turns[0].label, row.label, `${p.position} ${order.join(" ")}`);
+        assert.ok(Math.abs(R.turns[0].loss - lossTo(p, row.blueWin)) < 1e-6, `${p.position} ${order.join(" ")} the turn's loss`);
+        // By edge, each edge of the turn has the label and the loss that the table by edge gives it at its own position,
+        // the book's best turn in the other order too (model.ts, review)
+        assert.deepEqual(R.edges.map(e => e.label), [moveLabel(p, first), moveLabel(middle, second)],
+                         `${p.position} ${order.join(" ")} by edge`);
+        assert.ok(Math.abs(R.edges[0].loss - moveLoss(p, first)) < 1e-6 && Math.abs(R.edges[1].loss - moveLoss(middle, second)) < 1e-6,
+                  `${p.position} ${order.join(" ")} losses by edge`);
         turns++;
       }
     }

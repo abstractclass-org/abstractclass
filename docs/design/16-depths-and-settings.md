@@ -28,7 +28,7 @@ settings are always the ones kept in the browser.
 The engine searches the position on screen only when it holds less than P. A label shows from 256 visits on, at every D.
 Every label of the review has D: a player who wants surer labels sets a deeper D. The exception is a position of the
 game that the opening book holds: the review takes its values from the book, and the stages search none of them
-(Hedge School's design 32, "A book position's values").
+(design 32, "A book position's values").
 
 ### 2. Which result a position uses
 

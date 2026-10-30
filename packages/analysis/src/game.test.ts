@@ -63,6 +63,26 @@ test("the book's values judge as a search's do, below the label budget too, and 
   assert.deepEqual(review(words, data([0, 1, 2, 3, 4]), "lead", 256).turns.map(t => t.label), ["best", "best", "best", "best"]);
 });
 
+test("by edge, the best turn in the other order is Best, but an edge between two positions with the book's values", () => {
+  // The first player's turn y x: the engine's best turn is x y, and its second choice y loses nothing (Excellent)
+  const at = (count: number) => words.position({ mover: count < 2 ? 0 : 1, scores: [0, 0], over: false, count });
+  const start: Analysis<string> = { blueWin: 0.6, visits: 256, candidates: [
+    { edge: "x", visits: 256, blueWin: 0.6, line: ["x", "y"] }, { edge: "y", visits: 256, blueWin: 0.6 }] };
+  // After y: w first, and x 0.02 worse (Excellent)
+  const middle = analysis(0.62, "w", 256, [["x", 0.6]]);
+  const labels = (book: number[]) => review(words, {
+    players: { blue: "First", red: "Second" }, result: { blue: 0, red: 0 },
+    moves: [{ player: 0, edge: "y" }, { player: 0, edge: "x" }, { player: 1, edge: "z" }],
+    positions: [0, 1, 2, 3].map(at),
+    analysis: [start, middle, analysis(0.6, "z"), analysis(0.6, "v")]
+      .map((a, k) => (book.includes(k) ? { ...a, book: true as const } : a)),
+  }, "lead", 256).edges.slice(0, 2).map(e => e.label);
+  assert.deepEqual(labels([]), ["best", "best"], "design 10: both edges of the best turn");
+  assert.deepEqual(labels([0, 1, 2]), ["excellent", "excellent"], "two book moves: each its own label, as the book's table");
+  assert.deepEqual(labels([0]), ["best", "best"], "y leaves the book, and x is played outside it");
+  assert.deepEqual(labels([1, 2]), ["best", "excellent"], "y comes into the book, and x is a book move");
+});
+
 test("moves compare by the game's equality, symmetric twins too", () => {
   const a: Analysis<string> = { blueWin: 0.5, visits: 100, candidates: [
     { edge: "a", visits: 60, blueWin: 0.5 }, { edge: "a'", visits: 60, blueWin: 0.5, twinOf: "a" }, { edge: "b", visits: 40, blueWin: 0.48 }] };

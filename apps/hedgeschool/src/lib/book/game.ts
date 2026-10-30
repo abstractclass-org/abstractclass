@@ -1,8 +1,8 @@
 // A reviewed game's path through the opening book (design 32, item 4; journey 1, A1): where the game left the book, the
 // book move worse than Good by the review's labels that it played before, the traps that it played and whether the
-// other side refuted them, and the game's book moves, which the move list marks. The review gives the book's position at each of the game's
-// positions (lookup.svelte.ts, `OpeningBook`), and the Report takes its rows from here. The sentences are in
-// sentences.ts.
+// other side refuted them, and the game's book moves, which the move list marks. The review gives the book's position
+// at each of the game's positions (lookup.svelte.ts, `OpeningBook`), and the Report takes its rows from here. The
+// sentences are in sentences.ts.
 //
 // A position is in the book when the book holds it, by any move order: so a game that leaves the book can come back
 // to it by another move order. The Report names the first departure, and the move list marks each book move of each

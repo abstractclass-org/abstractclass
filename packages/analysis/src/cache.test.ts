@@ -38,6 +38,17 @@ test("no review snapshot when a result of the mark's search is missing, too shal
   assert.equal(await snapshotSearch("s1", "n3", [], 512), undefined); // no line to hold
 });
 
+test("a review that took the book's values: the positions that the book holds are left out, and the others must be held", async () => {
+  // The first position is the book's: the review did not search it
+  store(keys("s6", "n6", 512, line.slice(1)));
+  const outside = Promise.resolve(line.slice(1));
+  assert.equal(await snapshotSearch("s6", "n6", line, 512), undefined); // every position, as without the book
+  assert.equal(await snapshotSearch("s6", "n6", line, 512, undefined, outside), "s6");
+  assert.equal(await snapshotSearch(undefined, "n6", line, 512, undefined, outside), "s6");
+  assert.equal(await snapshotSearch("s6", "n6", line, 512, undefined, Promise.resolve(line)), undefined);
+  assert.equal(await snapshotSearch("s6", "n6", line, 512, undefined, Promise.resolve([])), undefined); // all the book's
+});
+
 test("an earlier engine's mark that names the site's search opens no review snapshot: the site's engine reads those results", async () => {
   store(keys("s2", "n5", 512));
   assert.equal(await snapshotSearch("s2", "n5", line, 512, Promise.resolve("s2")), undefined);
@@ -55,6 +66,15 @@ test("no search when a position, the depth or the network is missing", () => {
   assert.equal(searchHolding(keys("old", "n1", 256), "n1", line, 512), undefined);
   assert.equal(searchHolding(keys("old", "n1", 512), "n2", line, 512), undefined);
   assert.equal(searchHolding(keys("old", "n1", 512), "n1", [], 512), undefined); // no line to hold
+});
+
+test("a search that holds at least `holds` positions of the line", () => {
+  const two = keys("old", "n1", 512, line.slice(1));
+  assert.equal(searchHolding(two, "n1", line, 512, undefined, "old", 1), "old");
+  assert.equal(searchHolding(two, "n1", line, 512, undefined, "old", 2), "old");
+  assert.equal(searchHolding(two, "n1", line, 512, undefined, "old", 3), undefined);
+  assert.equal(searchHolding(keys("old", "n1", 256), "n1", line, 512, undefined, "old", 1), undefined); // too shallow
+  assert.equal(searchHolding(two, "n1", [], 512, undefined, "old", 0), undefined); // no line to hold
 });
 
 test("the site's own search is left out when the review snapshot is of an earlier engine", () => {

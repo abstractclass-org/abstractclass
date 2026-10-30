@@ -180,14 +180,16 @@ export async function mapGet(search: string, model: string, moves: string[]): Pr
  *  names: the review snapshot reads its results' keys alone, at `visits` and every budget deeper, into memory, where the
  *  review then finds them. An older mark names none (Hedge School's src/lib/game/store.ts, ReviewMark): the review snapshot
  *  then reads every stored key, and takes a search that holds them all. `except` is a search not to take: the site's
- *  own, when the review snapshot is of an earlier engine. The store is read while it comes (the rules worker's start).
- *  Undefined when no search holds them all. */
+ *  own, when the review snapshot is of an earlier engine. `needed`: the positions of `positions` that the search must
+ *  hold, where not all: a review that took a position's values from an opening book did not search it (Hedge School's
+ *  design 32). The store is read while they come (the rules worker's start). Undefined when no search holds them all. */
 export async function snapshotSearch(search: string | undefined, model: string, positions: string[][], visits: number,
-                                     except?: Promise<string | undefined>): Promise<string | undefined> {
+                                     except?: Promise<string | undefined>, needed?: Promise<string[][]>):
+    Promise<string | undefined> {
   const stored = search === undefined ? dbKeys(STORES.analysis).then(k => k.map(String))
     : warmCache(search, model, positions, visits);
-  const [keys, not] = await Promise.all([stored, except]);
-  return searchHolding(keys, model, positions, visits, not, search);
+  const [keys, not, held] = await Promise.all([stored, except, needed]);
+  return searchHolding(keys, model, held ?? positions, visits, not, search);
 }
 
 /** The search that a review snapshot leaves out: the site's own (`site`) for an earlier engine's review ("engine"), and none
@@ -199,9 +201,10 @@ export const snapshotExcept = (why: "engine" | "network", site: string | null | 
  *  every game shares, up to the last before its last move. */
 export const snapshotPositions = (moves: string[]) => Array.from({ length: Math.max(0, moves.length - 1) }, (_, i) => moves.slice(0, i + 1));
 
-/** snapshotSearch's choice among `keys`. `search`, when given, is the only search to take: the mark's. */
+/** snapshotSearch's choice among `keys`. `search`, when given, is the only search to take: the mark's. `holds`: how many
+ *  of the positions it must hold, all of them by default. */
 export function searchHolding(keys: string[], model: string, positions: string[][], visits: number, except?: string,
-                              search?: string): string | undefined {
+                              search?: string, holds = positions.length): string | undefined {
   const wanted = new Set(positions.map(m => m.join(" ")));
   const found = new Map<string, Set<string>>();
   for (const key of keys) {
@@ -210,7 +213,7 @@ export function searchHolding(keys: string[], model: string, positions: string[]
         k.map || k.visits < visits || !wanted.has(k.moves)) continue;
     found.set(k.search, (found.get(k.search) ?? new Set()).add(k.moves));
   }
-  return wanted.size ? [...found].find(([, held]) => held.size === wanted.size)?.[0] : undefined;
+  return wanted.size ? [...found].find(([, held]) => held.size >= holds)?.[0] : undefined;
 }
 
 /** Reads the stored results of these positions into memory, at `least` visits and every depth above, and notes the

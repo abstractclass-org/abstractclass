@@ -1344,4 +1344,10 @@ test("no Great's confirmation from or into a position with the book's values", a
   assert.equal(game.greatChecks.total, 0);
   game.useBook([undefined, undefined, undefined, { ...game.analysis[3]!, book: true }]); // the position after c
   assert.equal(game.greatChecks.total, 0);
+  // The position before the other player's last turn is the book's, which the stages did not search: c keeps what b
+  // gave by the book's value there, as the review's labels read it (data, earlierAt)
+  game.analysis = [at(0.5), undefined, at(0.6, [["c", 0.6], ["x", 0.45]]), at(0.6), at(0.6)];
+  game.useBook([undefined, { blueWin: 0.5, visits: 64, candidates: [], book: true }]);
+  assert.equal(game.greatChecks.total, 1);
+  assert.equal(game.earlierAt(["a", "b"], 0)?.book, true);
 });

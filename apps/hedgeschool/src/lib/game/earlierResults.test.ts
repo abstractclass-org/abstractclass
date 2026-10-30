@@ -100,6 +100,20 @@ test("a mark that names its search keeps that search's results, which its review
   assert.deepEqual(unneededResults(s0, [{ ...game, mark: { ...game.mark, search: "s2" } }], ENGINE), s0);
 });
 
+test("a review that took the book's values: the mark's search keeps its results without the book's positions", () => {
+  // The review did not search the position after D10-G10, which the book holds (design 32, "A book position's values")
+  const searched = results("s1", "b2", 512, line(MOVES).filter(m => m.join(" ") !== "D10-G10"));
+  const game = { moves: MOVES, branches: null, mark: { ...mark("m0"), search: "s1" } };
+  assert.deepEqual(unneededResults(searched, [game], ENGINE), []);
+  // The review snapshot's own test is the book's: the removal reads no book, so a position of the line is enough. With
+  // none, the review snapshot opens none.
+  const one = results("s1", "b2", 512, [["D10-G10", "N11-Q10"]]);
+  assert.deepEqual(unneededResults(one, [game], ENGINE), []);
+  assert.deepEqual(unneededResults(searched.slice(-1), [game], ENGINE), searched.slice(-1), "the game's end is not in the line");
+  // A mark that names no search is older than the book: its review snapshot needs every position
+  assert.deepEqual(unneededResults(searched, [{ ...game, mark: mark("m0") }], ENGINE), searched);
+});
+
 test("a custom depth's results stay under a deeper result at a depth that the review snapshot does not read", () => {
   // Reviewed at 3,000 visits, an older review's deeper search at 6,000 and the player's Depth at 5,000: the review snapshot
   // reads 3,000 and each budget deeper (4,096), not 5,000 or 6,000. Another game's review snapshot, at Lite's 512 visits,

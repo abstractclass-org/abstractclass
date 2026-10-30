@@ -323,7 +323,7 @@
       performance.mark("review:rules"); // the start's steps, for measuring it (the browser's performance timeline)
       // The book's values of the game's book positions, which the stages then do not search: they come while the review
       // works, as the book's parts load (design 32, "The review")
-      void giveBook(g).catch(() => {});
+      void giveBook(g);
       await warm;
       if (g.rulesReady && pool.search && model) await g.fromStore(pool.search, model).catch(() => {});
       preloaded = true;
@@ -344,22 +344,29 @@
   /** Opens the game's last review, by an earlier engine or network file, as it was (design 20): the engine's rules
    *  alone, no network, and the stored results of the mark's search, which hold the game's line at the review's depth
    *  (for an older mark, which names no search: the search that holds it). The start is left out of that test:
-   *  every game shares it. False, with nothing kept, when the store lacks them. True, with nothing kept, when the
-   *  session ended meanwhile (another tab took the game, or the page closed). */
+   *  every game shares it. So are the positions that the book holds: the review took their values from the book, and
+   *  the review snapshot takes them as the review did (design 32, "A book position's values"). False, with nothing
+   *  kept, when the store lacks them. True, with nothing kept, when the session ended meanwhile (another tab took the
+   *  game, or the page closed). */
   async function openSnapshot(moves: string[], why: "engine" | "network"): Promise<boolean> {
     const mark = markBefore!, manifest = session.manifest!, network = settings.network, rules = new EnginePool(0, session.takeRules());
     try {
-      // The store is read while the rules worker starts: an earlier engine's search is not the site's.
+      // The store is read while the rules worker starts: an earlier engine's search is not the site's. The positions
+      // that the test needs come once the rules give the game's positions and the book its values there.
       const started = rules.start(manifest, network).then(() => snapshotExcept(why, rules.search));
-      const search = await snapshotSearch(mark.search, mark.model, snapshotPositions(moves), mark.visits, started);
-      if (!search) { rules.terminate(); return false; }
-      const g = new GameAnalysis(enclosure, rules, moves, kept!.id);
-      g.setReview(mark.visits);
-      await g.start();
-      if (!g.rulesReady) { rules.terminate(); return false; } // the review shows why
+      const g = new GameAnalysis(enclosure, rules, moves, kept!.id), line = snapshotPositions(moves);
+      // An older mark, which names no search, is older than the book: its review searched every position, and the
+      // removal of earlier results keeps them by that rule (earlierResults.ts)
+      const needed = started.then(async () => {
+        g.setReview(mark.visits);
+        await g.start();
+        await giveBook(g);
+        return mark.search === undefined ? line : line.filter((_, i) => !g.bookResults[i + 1]); // line[i]: after i + 1 moves
+      });
+      const search = await snapshotSearch(mark.search, mark.model, line, mark.visits, started, needed);
+      if (!search || !g.rulesReady) { rules.terminate(); return false; } // without the rules, the review shows why
       await g.fromStore(search, mark.model);
       g.freeze(search, mark.model); // its maps from the store alone
-      void giveBook(g).catch(() => {}); // the book's values, as in the review
       if (session.ended) { rules.terminate(); return true; }
       const date = new Date(mark.at).toLocaleDateString("en", { year: "numeric", month: "long", day: "numeric" });
       const what = why === "engine" ? "the engine" : (modelOf(manifest, network)?.displayName ?? "the network");

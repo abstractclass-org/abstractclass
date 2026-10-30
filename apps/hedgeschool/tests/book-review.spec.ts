@@ -425,3 +425,58 @@ test.describe("by turn on a phone", () => {
     });
   }
 });
+
+// Every book move of the games through the test book has one quality label and one loss, the book's (design 32, "The
+// book's values rule a book position"): the move list's tooltip, the move's book mark, the book's table at the
+// position before it, and the Report's opening row where it names the move. By turn, each turn of book moves, with the
+// table's row of the whole turn. "Review by" changes how the moves are grouped, never what the parts give.
+test.describe("one label and one loss on each book move", () => {
+  test.use({ viewport: { width: 1366, height: 900 } });
+  /** A mark's quality label and loss of win chance in percent: "Book move · Inaccuracy: −7.7% · …" gives 7.7, and
+   *  "+0.6%" gives −0.6, a gain. */
+  const judged = (name: string) => {
+    const [, label, sign, loss] = /^Book move · (\w+): ([+−]?)([\d.]+)%/.exec(name)!;
+    return { label, loss: (sign === "+" ? -1 : 1) * Number(loss) };
+  };
+  /** A book move or turn that the opening row names: its edges and its label. */
+  const namedIn = (text: string) =>
+    /Before that, at turn \d+, \w+ played ([^,]+), a book (?:move|turn) and an? (\w+)\./.exec(text)
+    ?? /The last book (?:move|turn), ([^,]+), is an? (\w+)\./.exec(text);
+  const sorted = (edges: string[]) => [...edges].sort().join(" ");
+
+  for (const unit of ["edge", "turn"] as const)
+    for (const game of ["book-left-review.json", "hedgefund-review.json", "book-trap-review.json"])
+      test(`by ${unit}, ${game}: the move list, the mark, the table and the opening row agree`, async ({ page }) => {
+        await display(page, { judge: unit });
+        await open(page, game);
+        await expect(bookMarks(page).first()).toBeVisible({ timeout: 30_000 });
+        const labels = new Map<string, string>(); // each book move's or turn's edges, with its mark's label
+        const count = await bookMarks(page).count();
+        for (let k = 0; k < count; k++) {
+          const mark = bookMarks(page).nth(k), name = (await mark.getAttribute("title"))!, { label, loss } = judged(name);
+          // The mark's name holds the tooltip of its move in the move list, or by turn of its turn's label cell
+          const tip = await mark.locator("xpath=ancestor::*[@title][1]").getAttribute("title");
+          expect(name.startsWith(`Book move · ${tip} · `), `${name} | ${tip}`).toBe(true);
+          const moves = unit === "edge" ? mark.locator("xpath=ancestor::button[@data-path][1]")
+            : mark.locator("xpath=ancestor::div[.//button[@data-path]][1]").locator("button[data-path]");
+          const edges = (await moves.evaluateAll(all => all.map(m => m.getAttribute("data-path")!))).map(p => p.split(" ").at(-1)!);
+          labels.set(edges.join(" "), label);
+          await page.keyboard.press("End");
+          await mark.click(); // the position before the move, or by turn the turn's start, with the book's table
+          await expect(table(page)).toBeVisible();
+          const more = table(page).getByRole("button", { name: /^Show \d+ more turns$/ });
+          if (await more.count()) await more.click();
+          const rows = table(page).locator("tbody tr[data-move]");
+          const listed = await rows.evaluateAll(all => all.map(r => r.getAttribute("data-move")!));
+          const at = listed.findIndex(m => sorted(m.split(" ")) === sorted(edges)); // a turn's row holds both orders
+          expect(at, `${edges.join(" ")} in the table: ${listed.join(", ")}`).toBeGreaterThanOrEqual(0);
+          await expect(rows.nth(at).getByRole("img", { name: LABEL_WORDS })).toHaveAccessibleName(label);
+          // The loss: the table's best win chance for the mover, less the row's, to 0.1% each
+          const wins = await rows.evaluateAll(all => all.map(r => Number(/([\d.]+)%/.exec((r as HTMLTableRowElement).cells[2].textContent!)![1])));
+          expect(Math.abs(Math.max(...wins) - wins[at] - loss), `${edges.join(" ")}: ${name}, the table ${wins.join(", ")}`)
+            .toBeLessThan(0.16);
+        }
+        const opening = (await row(page, /^The game /).first().textContent())!, named = namedIn(opening);
+        if (named) expect(labels.get(named[1]), opening).toBe(named[2]);
+      });
+});

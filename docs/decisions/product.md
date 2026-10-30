@@ -7439,12 +7439,12 @@ review's label of a book move is the book's ("A book move takes the book's label
 
 ### A book move takes the book's label and loss: the review takes a book position's values from the book (2026-10-30)
 
-Beads abscls-tpaj.21, round 2. It replaces the decision of 2026-10-27 ("The Opening row gives the review's label of
-the earlier book move", above), and the choice of 2026-10-24 that the review keeps its own labels in the book.
+Beads abscls-tpaj.21 and abscls-tpaj.22. It replaces the decision of 2026-10-27 ("The Opening row gives the review's
+label of the earlier book move", above), and the choice of 2026-10-24 that the review keeps its own labels in the book.
 
-- **What:** where the book's label of a book move and the review's differ, the book's rules. A book move takes the
-  book's quality label and loss everywhere on the page: the move list, its book mark, the Report's Opening row, the
-  charts and the counts. The way to it: at each position of the game that the book holds, the review takes the
+- **What:** where the book's label of a book move and the review's differ, the book's label stands. A book move takes
+  the book's quality label and loss everywhere on the page: the move list, its book mark, the Report's Opening row,
+  the charts and the counts. The way to it: at each position of the game that the book holds, the review takes the
   book's values in place of searching the position (design 32, "A book position's values"). The review's own rules
   (design 10) then give the book's labels, and the review does not search the opening.
 - **Why:** the book's searches are the deeper (design 32, item 5): an opening book is made with the most search. A
@@ -7463,11 +7463,24 @@ the earlier book move", above), and the choice of 2026-10-24 that the review kee
   and its labels take the book's values. The Analysis board and a set-up board take no book values. One review now
   mixes two networks, the book's and the review's.
 - **Measured:** a unit test reads every book move of the test book through the review's model with the book's values:
-  the label and the loss are the table's for 434 edges and 284 whole turns (both orders of a turn). Without the
-  rounding, one edge went to the next band. In book-left-review.json, O11-Q10 is an Inaccuracy, −7.7% and −17.9
-  points, by edge, and N11-Q10 O11-Q10 the same by turn. The Opening row says "The game left the book at turn 3:
-  Blue, D9-G11, Blunder. Before that, at turn 2, Red played O11-Q10, a book move and an Inaccuracy." (by turn:
-  "Blue, D9-G11 D10-G9, Blunder. Before that, at turn 2, Red played N11-Q10 O11-Q10, a book turn and an
-  Inaccuracy."). A10-D9 is Best at 0.0%, where the review's search gave it +0.6%.
-- **Open:** a review snapshot of a review made with the book does not open, because its check of the store asks for
-  the book's positions (beads abscls-tpaj.22).
+  the label and the loss are the table's for 434 edges and 284 whole turns (both orders of a turn), and for each edge
+  of those turns by edge. Without the rounding, one edge went to the next band. In book-left-review.json, O11-Q10 is
+  an Inaccuracy, −7.7% and −17.9 points, by edge, and N11-Q10 O11-Q10 the same by turn. The Opening row says "The
+  game left the book at turn 3: Blue, D9-G11, Blunder. Before that, at turn 2, Red played O11-Q10, a book move and an
+  Inaccuracy." (by turn: "Blue, D9-G11 D10-G9, Blunder. Before that, at turn 2, Red played N11-Q10 O11-Q10, a book
+  turn and an Inaccuracy."). A10-D9 is Best at 0.0%, where the review's search gave it +0.6%.
+- **The best turn in the other order, by edge:** design 10 makes both edges of the engine's best turn in the other
+  order Best. From the book's values, that rule gave the turn's first edge Best where the table by edge gives it its
+  own label: at `A10-D10,D10-G9* Q10-T10 r2 0/0 1`, Red's O11-Q10 N11-Q10 gave O11-Q10 Best, and the table gives it
+  Excellent (a loss of 0). The rule does not apply to an edge between two positions with the book's values (`review`
+  in `model.ts`). It still applies to an edge that leaves the book or comes into it.
+- **A Great after the book:** the review's labels read the book's value at the position before the other player's last
+  turn, but the Greats' confirmations read the engine's result there, which the stages did not search. So no
+  confirmation was asked for, and the move could not be Great. Both now read the book's value (`earlierAt`).
+- **A review snapshot** of a review made with the book did not open, because its check of the store asked for a
+  result at the book's positions, which the review did not search (beads abscls-tpaj.22). The check now leaves out
+  the positions that the book holds, once the rules give the positions and the book its values. The removal of
+  earlier results reads no book: for a mark that names its search, it keeps that search's results where they hold
+  any position of the game's line (`searchHolding`'s `holds`). So it can keep the results of a review snapshot that
+  does not open, until the game is reviewed again. A mark that names no search is older than the book: its review
+  snapshot and the removal ask for every position, as before.
