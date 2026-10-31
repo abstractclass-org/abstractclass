@@ -9,9 +9,10 @@
 
   let { children } = $props();
 
-  // The pages about the site, on the header's right, as Hedge School's (design 22): Tools from a tablet's width, since
-  // the tools are for a computer's browser, and the footer leads to it on a phone. The others are in the footer. The
-  // game's pages (the review, the Analysis board) come on the header's left when they exist.
+  // The game's pages on the header's left, as Hedge School's (design 22), from a tablet's width. The pages about the
+  // site on its right: Tools from a tablet's width, since the tools are for a computer's browser, and the footer leads
+  // to it on a phone. The others are in the footer.
+  const NAV = [{ href: "/practice", label: "Practice" }, { href: "/review", label: "Review" }, { href: "/analysis", label: "Analysis" }];
   const ABOUT = [{ href: "/tools", label: "Tools", wide: true }, { href: "/notation", label: "Notation" },
                  { href: "/about", label: "About" }];
   const linkClass = (href: string) => ["no-underline hover:text-ink", page.url.pathname.startsWith(href) ? "text-ink" : "text-muted"];
@@ -30,6 +31,9 @@
     <!-- The name is the site's wordmark until its logo is decided. On a phone, the two links and the theme menu fit in
          its 360 pixels, so the header needs no menu of its own. -->
     <a class="text-xl font-bold text-ink no-underline" href="/">{SITE_NAME}</a>
+    <nav class="flex gap-4.5 max-sm:hidden">
+      {#each NAV as item (item.href)}<a href={item.href} class={linkClass(item.href)}>{item.label}</a>{/each}
+    </nav>
     <nav class="flex gap-4.5 ml-auto text-sm">
       {#each ABOUT as item (item.href)}<a href={item.href} class={[linkClass(item.href), item.wide && "max-sm:hidden"]}>{item.label}</a>{/each}
     </nav>

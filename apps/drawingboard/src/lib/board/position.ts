@@ -60,3 +60,13 @@ export const footprintOf = (b: Blueprint, at: Hex): BlueprintCell[] => {
   const hexes = shift(cells.map(c => c.hex), at);
   return cells.map((c, i) => ({ hex: hexes[i], kind: c.kind }));
 };
+
+/** Each player's stars among the board's cells. */
+export function starsOf(cells: SitePosition["cells"]): [number, number] {
+  const stars: [number, number] = [0, 0];
+  for (const [owner, kind] of Object.values(cells)) if (kind === "star") stars[owner]++;
+  return stars;
+}
+/** The stars in the players' cards, beside the points (design 33, item 2): a capture of each of the opponent's stars
+ *  scores the player's stars on the board. */
+export const STARS = { word: "stars", title: "The stars on the board. Each opponent's star that this player captures scores this many points." } as const;

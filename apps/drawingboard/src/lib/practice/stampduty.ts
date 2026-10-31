@@ -18,8 +18,6 @@ const choices = choicesStore("drawing-board:practice-choices:1", NETWORKS[0].id,
 export const { load: loadChoices, save: saveChoices } = choices;
 const kept = keptStore("drawing-board:practice-game:1");
 export const { load: loadKept, keep } = kept;
-/** The key of the hands' panel: its place and its size, which the player chose. */
-export const PANEL_KEY = "drawing-board:practice-panel:1";
 
 /** Variety's half-life: GTP's default of 19 moves, as the engine's practice bot gives it for both games (its README,
  *  "The play settings"). */

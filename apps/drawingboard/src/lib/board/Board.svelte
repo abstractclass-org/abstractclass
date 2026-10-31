@@ -1,4 +1,6 @@
 <script lang="ts" module>
+  import type { Label } from "@abstractclass/analysis/labels.ts";
+  import type { AreaMark } from "@abstractclass/review/ownership.ts";
   import type { BlueprintInput } from "./blueprintInput.svelte.ts";
   import type { Hex } from "./hex.ts";
   import type { BoardMove, Hand as HandOf, HandHex, Player, SitePosition } from "./position.ts";
@@ -13,6 +15,9 @@
   export const DEFAULT_LAYERS: BoardLayers = { candidates: true, grid: true };
   /** A hex under the pointer: of the board (`hand` null), or of a blueprint's frame. */
   export type BoardHex = { hand: null; hex: Hex } | { hand: { player: Player } & HandHex; hex: Hex };
+  /** A quality label on a move of the turn just played (the review's marks), with its note: a placement's on the
+   *  board, an edit's in the hand. The move is in the frames of the hands that the board shows. */
+  export interface BoardLabel { move: BoardMove; label: Label; note?: string }
   /** A candidate that places a blueprint, and one that edits a blueprint. */
   type Placement = BoardCandidate & { move: Extract<BoardMove, { type: "place" }> };
   type Edit = BoardCandidate & { move: Extract<BoardMove, { type: "edit" }> };
@@ -34,7 +39,9 @@
   import { clickBoard, clickHand, handHexOf, tapHex } from "./input.ts";
   import { boxOf, center, fromMiddle, GRID_TILE, GRID_TILE_PATH, hexAt, hexKey, hexPath, outlinePath, sameHex } from "./hex.ts";
   import { cellsOf, footprintOf, PLAYER_NAMES, sameHandHex } from "./position.ts";
-  import { untrack } from "svelte";
+  import { untrack, type Snippet } from "svelte";
+  import LabelMark from "@abstractclass/review/LabelMark.svelte";
+  import { viewHexes } from "../review/blueprintsMap.ts";
   import { clamp, fit, fitAround, pan, pinch, toArea, toPlane, viewBox, zoomAt, type Rect, type Size, type View } from "./view.ts";
   import { FIRST_PLACE, FIRST_SIZE, fitWithPanel, handleSide, handsOf, HANDS_GAP, PANEL_GRIP, PANEL_PAD, panelRect,
            panelSizeIn, placeAt, resized,
@@ -62,16 +69,25 @@
     // The panel's place, which a drag and a fit change, and its size, which its handle changes: the page keeps them
     place?: PanelPlace;
     size?: Size;
+    labels?: BoardLabel[]; // the quality labels of the turn just played (the review's)
+    // The area map (design 30), by the index of the map's view (review/blueprintsMap.ts), and the map that it comes
+    // from, which holds the view's place: a hex outside the view gets no mark
+    areaMap?: (AreaMark | null)[] | null;
+    areaOf?: number[] | null;
+    // Controls in a strip along the field's foot, left of the zoom's buttons, which the hands' panel keeps off: the
+    // review's area map's switch and legend
+    controls?: Snippet;
   }
   let {
     position, last = null, candidates = [], pointed = null, line = null, layers: layersSet = {},
     oncandidate, oncandidateclick, onhexat, input = null, inputOn = true, hands: handsForm = "box",
-    place = $bindable(FIRST_PLACE), size = $bindable(FIRST_SIZE),
+    place = $bindable(FIRST_PLACE), size = $bindable(FIRST_SIZE), labels = [], areaMap = null, areaOf = null, controls,
   }: Props = $props();
   const layers = $derived({ ...DEFAULT_LAYERS, ...layersSet });
 
   const uid = $props.id();
-  const gridId = `${uid}-grid`, lastId = `${uid}-last`;
+  const gridId = `${uid}-grid`, lastId = `${uid}-last`, shadowId = `${uid}-shadow`;
+  const markId = (kind: "close" | "lose", side: Player) => `${uid}-${kind}-${side}`; // a map mark's pattern
   const players = [0, 1] as const;
 
   // The layout: the area's size, and the hands' column (a wide area, 1.25 times as wide as high) or row (a tall one).
@@ -88,9 +104,11 @@
     : sides ? { width: Math.max(0, width - 2 * (handSize + GAP)), height }
     : { width, height: Math.max(0, height - 2 * (handSize + GAP)) });
   const ZOOM_BUTTONS = { width: 3 * 30 + 2 * 4, height: 30, inset: 6 }; // the buttons at the field's lower right
-  const zoomRect: Rect = $derived({
-    x: field.width - ZOOM_BUTTONS.inset - ZOOM_BUTTONS.width, y: field.height - ZOOM_BUTTONS.inset - ZOOM_BUTTONS.height,
-    width: ZOOM_BUTTONS.width, height: ZOOM_BUTTONS.height,
+  // The field's foot that the panel keeps off: the zoom's buttons, and with controls the strip that holds them too
+  const zoomRect: Rect = $derived.by(() => {
+    const y = field.height - ZOOM_BUTTONS.inset - ZOOM_BUTTONS.height, x = field.width - ZOOM_BUTTONS.inset - ZOOM_BUTTONS.width;
+    return controls ? { x: ZOOM_BUTTONS.inset, y, width: field.width - 2 * ZOOM_BUTTONS.inset, height: ZOOM_BUTTONS.height }
+      : { x, y, width: ZOOM_BUTTONS.width, height: ZOOM_BUTTONS.height };
   });
   // The panel's size within its limits in this area, and while the player resizes it, the size that the handle shows.
   let resizeTo = $state<Rect | null>(null);
@@ -261,6 +279,21 @@
     : handHover ? `${PLAYER_NAMES[handHover.player]} ${handHover.at.blueprint}:${hexKey(handHover.at.hex)}` : "");
 
   const lineHasEdit = $derived(drawn.some(l => l.move.type === "edit"));
+  // The quality labels of the placements of the turn just played: each at the upper right of its footprint, by the
+  // rightmost hex of its top row. Not while a line shows: its moves are the line's.
+  const boardLabels = $derived(drawn.length ? [] : labels.flatMap(l => {
+    if (l.move.type !== "place" || !l.move.footprint.length) return [];
+    const top = Math.min(...l.move.footprint.map(c => c.hex[1]));
+    const hex = l.move.footprint.filter(c => c.hex[1] === top).reduce((a, b) => (b.hex[0] > a.hex[0] ? b : a)).hex;
+    const [x, y] = center(hex);
+    return [{ x: x + 0.75, y: y - 0.55, label: l.label, note: l.note }];
+  }));
+  // The area map: each marked hex of the map's view, by its index (blueprintsMap.ts).
+  const AREA_ALPHA = 0.45; // Hedge School's board's
+  const areaHexes = $derived(areaOf ? viewHexes(areaOf) : []);
+  const areaMarks = $derived(areaMap ? areaHexes.flatMap((hex, i) => (areaMap![i] ? [{ hex, m: areaMap![i]! }] : [])) : []);
+  // The board's cells by hex, for the marks over a cell
+  const owners = $derived(new Map(cells.map(c => [hexKey(c.hex), c.owner])));
   const marks = $derived(players.map((p): HandMarks => ({
     // The last move's edit is in the position's frames: a line that edits a hand shows other frames.
     last: last?.type === "edit" && last.player === p && !lineHasEdit ? last : null,
@@ -269,6 +302,7 @@
       ? placements.filter(c => c.move.player === p).map(c => ({ blueprint: c.move.blueprint, name: c.name, rank: c.rank }))
       : [],
     line: drawn.flatMap((l, i) => l.move.player === p && l.move.type === "edit" ? [{ ...l.move, n: i + 1 }] : []),
+    labels: lineHasEdit ? [] : labels.flatMap(l => (l.move.type === "edit" && l.move.player === p ? [{ at: l.move.to, label: l.label, note: l.note }] : [])),
   })));
   const boxes = $derived(players.map(p => blueprintBoxes(hands[p], marks[p])));
   // One scale for the six blueprints: the largest at which each fits its panel, a hex at most 36 pixels across.
@@ -406,6 +440,22 @@
           <pattern id={gridId} patternUnits="userSpaceOnUse" width={GRID_TILE.width} height={GRID_TILE.height}>
             <path d={GRID_TILE_PATH} class="grid" />
           </pattern>
+          <!-- The change style's two marks, in each player's colour, as Hedge School's board draws them (design 30):
+               dots on an empty hex that a side will probably fill, and hatching on a cell that its owner will
+               probably lose. -->
+          {#each ([0, 1] as const) as side (side)}
+            <pattern id={markId("close", side)} class="change p{side}" patternUnits="userSpaceOnUse" width="0.8" height="0.8">
+              <circle cx="0.4" cy="0.4" r="0.12" />
+            </pattern>
+            <pattern id={markId("lose", side)} class="change p{side}" patternUnits="userSpaceOnUse" width="0.6" height="0.6"
+                     patternTransform="rotate(45)">
+              <line x1="0" y1="0.3" x2="0.6" y2="0.3" />
+            </pattern>
+          {/each}
+          <!-- The label badges' shadow, as Hedge School's board's. -->
+          <filter id={shadowId} x="-50%" y="-50%" width="200%" height="200%">
+            <feDropShadow dx="0.05" dy="0.08" stdDeviation="0.06" flood-opacity="0.5" />
+          </filter>
         </defs>
         <rect x={vb[0]} y={vb[1]} width={vb[2]} height={vb[3]} class="bg" />
         <!-- The grid, while its hexes are large enough to read (a hex 8 pixels across), and a dot on the origin's hex
@@ -415,8 +465,33 @@
           <circle r="0.16" class="origin" />
         {/if}
 
+        <!-- The ownership style (design 30) on an empty hex, under the cells, as Hedge School's board draws it under its
+             edges: a hex in the colour of the side that the engine expects to hold it, as strong as it holds it. -->
+        {#each areaMarks as { hex, m } (hexKey(hex))}
+          {#if m.kind === "hold" && !owners.has(hexKey(hex))}
+            <path d={hexPath(...center(hex))} class="hold p{m.side}" fill-opacity={AREA_ALPHA * m.strength} />
+          {/if}
+        {/each}
+
         {#each cells as c (hexKey(c.hex))}
           <Cell hex={c.hex} owner={c.owner} kind={c.kind} />
+        {/each}
+
+        <!-- Over the cells: a cell that the forecast gives the other side gets a smaller hex in that side's colour, as
+             KaTrain marks a stone that it expects to die. Then the change style's marks, and the difference style's
+             signs, each as strong as the forecast rose or fell. -->
+        {#each areaMarks as { hex, m } (hexKey(hex))}
+          {@const [x, y] = center(hex)}
+          {#if m.kind === "hold"}
+            {#if owners.has(hexKey(hex)) && owners.get(hexKey(hex)) !== m.side}
+              <path d={hexPath(x, y, 0.5)} class="hold p{m.side}" fill-opacity={Math.min(1, 0.4 + 0.6 * m.strength)} />
+            {/if}
+          {:else if m.kind === "close" || m.kind === "lose"}
+            <path d={hexPath(x, y)} fill="url(#{markId(m.kind, m.side)})" class="change-hex" />
+          {:else if m.kind === "fall" || m.kind === "rise"}
+            {@const d = m.kind === "rise" ? `M${x - 0.38} ${y}H${x + 0.38}M${x} ${y - 0.38}V${y + 0.38}` : `M${x - 0.38} ${y}H${x + 0.38}`}
+            <g class="sign p{m.side}" opacity={m.strength}><path {d} class="halo" /><path {d} class="ink" /></g>
+          {/if}
         {/each}
 
         <!-- The last move: one outline round a placement's footprint, and its captured cells. The outline is the edge
@@ -506,6 +581,14 @@
           </g>
         {/if}
 
+        <!-- The quality labels of the turn just played, as Hedge School's board draws its badges. -->
+        {#each boardLabels as b, i (i)}
+          <g role="img" aria-label={b.note}><title>{b.note}</title>
+            <circle cx={b.x} cy={b.y} r="0.62" style:fill="var(--{b.label}-fill)" filter="url(#{shadowId})" />
+            <LabelMark label={b.label} transform="translate({b.x - 0.62} {b.y - 0.62}) scale({1.24 / 24})" />
+          </g>
+        {/each}
+
         {#if hoverHex}
           <path d={hexPath(...center(hoverHex))} class="hover" />
         {/if}
@@ -524,6 +607,12 @@
       {#if readout}
         <div class="pointer-events-none absolute top-1.5 left-1.5 rounded bg-panel/85 px-1.5 py-px font-mono text-xs leading-[normal] text-ink">
           {readout}
+        </div>
+      {/if}
+      {#if controls}
+        <div class={["absolute bottom-1.5 left-1.5 flex h-[30px] max-w-[calc(100%-122px)] items-center gap-2 rounded px-1",
+                     "bg-panel/85 pointer-events-none"]}>
+          {@render controls()}
         </div>
       {/if}
       <div class="absolute right-1.5 bottom-1.5 flex gap-1">
@@ -581,6 +670,22 @@
   /* The last move's outline: 0.14 of a hex's radius shows, inside the footprint. */
   .last-move-outline { fill: none; stroke: var(--last); stroke-width: 0.28; stroke-linecap: round; pointer-events: none; }
   .hover { fill: var(--last); fill-opacity: 0.25; stroke: var(--last); stroke-width: 0.08; pointer-events: none; }
+  /* The area map, in the players' colours, as Hedge School's board draws it. */
+  .hold, .change-hex { stroke: none; pointer-events: none; }
+  .hold.p0 { fill: var(--blue); }
+  .hold.p1 { fill: var(--red); }
+  .change circle { stroke: none; }
+  .change.p0 circle { fill: var(--blue); }
+  .change.p1 circle { fill: var(--red); }
+  .change line { stroke-width: 0.12; }
+  .change.p0 line { stroke: var(--blue); }
+  .change.p1 line { stroke: var(--red); }
+  .sign { pointer-events: none; }
+  .sign path { fill: none; stroke-linecap: round; }
+  .sign .halo { stroke: var(--board-bg); stroke-width: 0.3; }
+  .sign .ink { stroke-width: 0.14; }
+  .sign.p0 .ink { stroke: var(--blue); }
+  .sign.p1 .ink { stroke: var(--red); }
 
   /* Candidates: the first choice in the engine's colour, thicker, the others grey and faded until hover. */
   .candidate { opacity: 0.6; transition: opacity 0.12s; pointer-events: none; }

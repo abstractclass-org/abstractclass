@@ -19,12 +19,20 @@
 }
 
 /* The board's tokens, which the shared style and the view's do not hold: Hedge School's (apps/hedgeschool/src/app.css),
-   as the site starts with Hedge School's style. */
+   as the site starts with Hedge School's style. And the review's line of the players' second number (the view's game
+   interface, `second`: the stars), Hedge School's magenta for its area. */
 :root, [data-theme="light"] {
   --board-bg: #f3ead7;
   --board-dot: #b9ab8d;
+  --area: #a8508f;
 }
 :root[data-theme="dark"] {
   --board-bg: #3a362e;
   --board-dot: #6d6555;
+  --area: #d27fbb;
+}
+/* The tokens as Tailwind's colours, beside the shared ones (site.css) and the view's (review.css), as Hedge School's. */
+@theme inline {
+  --color-board: var(--board-bg);
+  --color-area: var(--area);
 }

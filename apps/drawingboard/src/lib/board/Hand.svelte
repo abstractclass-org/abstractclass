@@ -4,6 +4,8 @@
   import { blueprintCells, PLAYER_NAMES, sameHandHex, type BlueprintNumber, type Hand, type HandHex, type Player } from "./position.ts";
   import type { Size } from "./view.ts";
   import Cell, { CELL_SIZE } from "./Cell.svelte";
+  import LabelMark from "@abstractclass/review/LabelMark.svelte";
+  import type { Label } from "@abstractclass/analysis/labels.ts";
 
   /** A cell moved within the hand, as the hand draws it: the last move's edit, a candidate's, or a line's. */
   export interface HandEdit { from: HandHex; to: HandHex }
@@ -12,6 +14,7 @@
     candidates: (HandEdit & { name: string; rank: number })[];
     placed: { blueprint: BlueprintNumber; name: string; rank: number }[]; // the placements' blueprints, for their chips
     line: (HandEdit & { n: number })[];
+    labels?: { at: HandHex; label: Label; note?: string }[]; // the quality labels of the turn just played's edits, on their new places
   }
   /** The player's own move in the mover's hand: the blueprint and the cell chosen, the cell's marked new places, and
    *  the new place where the cell shows faded (the one that a tap shows, or the one under a mouse's pointer). */
@@ -223,6 +226,19 @@
     {/each}
   {/if}
 
+  <!-- The quality label of an edit of the turn just played, at the upper right of the cell's new place, as the board
+       puts a placement's (Board.svelte). -->
+  {#each marks.labels ?? [] as l (cellKey(l.at.blueprint, l.at.hex))}
+    {@const [x, y] = at(l.at)}
+    {@const r = Math.max(7, 0.62 * unit)}
+    {@const bx = x + 0.8 * unit}
+    {@const by = y - 0.75 * unit}
+    <g role="img" aria-label={l.note}><title>{l.note}</title>
+      <circle cx={bx} cy={by} r={r} style:fill="var(--{l.label}-fill)" class="label-badge" />
+      <LabelMark label={l.label} transform="translate({bx - r} {by - r}) scale({(2 * r) / 24})" />
+    </g>
+  {/each}
+
   {#if hover}
     <path d={hexPath(...at(hover), unit)} class="hover" />
   {/if}
@@ -255,6 +271,7 @@
   .rank-chip, .rank { fill: var(--candidate); stroke: var(--board-bg); stroke-width: 1; }
   .first .rank-chip, .first .rank { fill: var(--engine); }
   .line-badge { fill: var(--own); stroke: var(--board-bg); stroke-width: 1; }
+  .label-badge { stroke: var(--board-bg); stroke-width: 1; }
   .badge-number { fill: var(--on-badge); font-weight: 700; font-family: system-ui, sans-serif; text-anchor: middle; pointer-events: none; }
   .hover { fill: var(--last); fill-opacity: 0.25; stroke: var(--last); stroke-width: 1.5; pointer-events: none; }
   /* The player's own move: strategyjam.org's marks, a dot on each place that a click takes and a ring round the cell

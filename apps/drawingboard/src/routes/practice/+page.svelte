@@ -11,7 +11,6 @@
   import Icon from "@abstractclass/site/Icon.svelte";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import { intoView } from "@abstractclass/site/pageScroll.ts";
-  import { readLocalJson, writeLocal } from "@abstractclass/storage/local.ts";
   import PlayerCard from "@abstractclass/review/PlayerCard.svelte";
   import PlayerRow from "@abstractclass/review/PlayerRow.svelte";
   import PlayerCardSkeleton, { BONE } from "@abstractclass/review/PlayerCardSkeleton.svelte";
@@ -25,19 +24,16 @@
   import Board from "#lib/board/Board.svelte";
   import { BlueprintInput } from "#lib/board/blueprintInput.svelte.ts";
   import { firstStatus, inputStatus } from "#lib/board/input.ts";
-  import { FIRST_PLACE, FIRST_SIZE, type PanelPlace } from "#lib/board/panel.ts";
-  import { PLAYER_NAMES, type Player } from "#lib/board/position.ts";
-  import type { Size } from "#lib/board/view.ts";
+  import { handsAt, keptPanel, ONE_COLUMN_HEIGHT } from "#lib/board/keptPanel.svelte.ts";
+  import { PLAYER_NAMES, STARS, starsOf, type Player } from "#lib/board/position.ts";
   import { moveName } from "#lib/game/notation.ts";
   import { PracticeGame } from "#lib/practice/game.svelte.ts";
-  import { NETWORKS, PANEL_KEY, botName, keep, loadChoices, loadKept, offersNetwork, saveChoices, type KeptPractice }
+  import { NETWORKS, botName, keep, loadChoices, loadKept, offersNetwork, saveChoices, type KeptPractice }
     from "#lib/practice/stampduty.ts";
   import { ENGINE_NAME, SITE_NAME } from "#lib/site.ts";
 
   const MISSING = "The engine is not on this site. You cannot play a practice game.";
   const DANGER = "hover:not-disabled:text-blunder hover:not-disabled:border-blunder"; // Abort and Resign, as Lichess's
-  const FILL_HEIGHT = "max(calc(100dvh - var(--site-header) - var(--strip) - var(--step-dock, 0px) - 1.5rem), " +
-                      "calc(100cqw - 2rem + 2 * min(104px, (100cqw - 2rem) / 3) + 12px))";
 
   // What the page shows: nothing until the script knows whether a game is in progress (the prerendered page cannot
   // know), then the settings card or the game.
@@ -160,14 +156,8 @@
   // The hands: in a panel over the board on a computer, under the board in one column (below 800 pixels, as the
   // frame's one column). The panel's place and size are the player's: kept in this browser.
   let innerWidth = $state(0);
-  const hands = $derived(innerWidth > 0 && innerWidth < 800 ? "under" : "panel");
-  const keptPanel = readLocalJson<{ place?: PanelPlace; size?: Size }>(PANEL_KEY);
-  const finite = (...n: unknown[]) => n.every(v => typeof v === "number" && Number.isFinite(v));
-  const panel = $state({
-    place: keptPanel?.place && finite(keptPanel.place.fx, keptPanel.place.fy) ? keptPanel.place : FIRST_PLACE,
-    size: keptPanel?.size && finite(keptPanel.size.width, keptPanel.size.height) ? keptPanel.size : FIRST_SIZE,
-  });
-  $effect(() => writeLocal(PANEL_KEY, JSON.stringify($state.snapshot(panel))));
+  const hands = $derived(handsAt(innerWidth));
+  const panel = keptPanel();
 
   // The seconds the bot has thought, while it searches.
   let now = $state(0);
@@ -239,15 +229,13 @@
 {/if}
 
 <!-- The game, in the practice's frame (@abstractclass/practice) with the board that fills the room. In one column, the
-     board's box is the window's height less the header, the row (the frame's --strip), the step bar and the margins,
-     and at least a square field with its hands under it, each a third of the board's width high, 104 pixels at most,
-     with 6 pixels between (Board.svelte). The frame sets it as a custom property on its own element, where --strip
-     is: a CSS build of calc() with min() inside max() stops Vite, so it is not in a class. -->
+     board's box has the height that keptPanel.svelte.ts gives, which the frame sets on its own element, where --strip
+     is. -->
 {#snippet gameView()}
   {@const g = game}
   {@const pos = g?.positions[shown]}
   {@const into = g && shown > 0 ? g.played[shown - 1] : null}
-  <PracticeFrame form="fill" fillHeight={FILL_HEIGHT} {shown} {last} onstep={step}>
+  <PracticeFrame form="fill" fillHeight={ONE_COLUMN_HEIGHT} {shown} {last} onstep={step}>
     {#snippet strip()}
       {#if g && pos}
         <PlayerRow gauge={false} label="Players and scores">
@@ -259,8 +247,8 @@
         <!-- The skeleton (the review's, PlayerCardSkeleton) while the bot starts: the row's height is the cards'. -->
         {@const k = g?.kept ?? starting}
         <PlayerRow gauge={false} label="Players and scores">
-          {#snippet blue()}<PlayerCardSkeleton player={0} name={k ? nameOf(k, 0) : undefined} />{/snippet}
-          {#snippet red()}<PlayerCardSkeleton player={1} name={k ? nameOf(k, 1) : undefined} />{/snippet}
+          {#snippet blue()}<PlayerCardSkeleton player={0} name={k ? nameOf(k, 0) : undefined} second={STARS.word} />{/snippet}
+          {#snippet red()}<PlayerCardSkeleton player={1} name={k ? nameOf(k, 1) : undefined} second={STARS.word} />{/snippet}
           {#snippet bar()}<div class="h-[1.15rem] {BONE}"></div>{/snippet}
         </PlayerRow>
       {/if}
@@ -334,10 +322,11 @@
   </PracticeFrame>
 {/snippet}
 
-<!-- A player's card in the row above the board (the review's). The bot's settings are in the side column's first line. -->
+<!-- A player's card in the row above the board (the review's): the points and the stars on the board. The bot's
+     settings are in the side column's first line. -->
 {#snippet card(g: PracticeGame, p: Player)}
   {@const pos = g.positions[shown]}
-  <PlayerCard player={p} name={nameOf(g.kept, p)} points={pos.scores[p]}
+  <PlayerCard player={p} name={nameOf(g.kept, p)} points={pos.scores[p]} second={{ value: starsOf(pos.cells)[p], ...STARS }}
               toMove={g.status !== "over" && shown === g.positions.length - 1 && g.mover === p} />
 {/snippet}
 
