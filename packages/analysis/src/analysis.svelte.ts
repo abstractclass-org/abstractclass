@@ -44,6 +44,13 @@ import { nextTask } from "@abstractclass/engine/channel.ts";
 import { Cancelled, type EnginePool } from "@abstractclass/engine/pool.ts";
 
 const SLICE_VISITS = 32;
+/** A search's result at its end. A search that ended by itself, not stopped, reached its budget (`visits`), also when
+ *  the engine spent fewer visits: Blueprints' search of the root's views gives each view a pass and each of a few
+ *  candidates a check, and spends less than its budget when its passes find few candidates (the engine repository's
+ *  games/blueprints/README.md, "The search of the root's views"). Its depth is then the budget, so that the stages
+ *  take it as done and do not search it again. Enclosure's searches always reach their budget. */
+const endedAt = <M>(a: Analysis<M>, reply: { terminated?: boolean }, visits: number): Analysis<M> =>
+  !reply.terminated && a.visits < visits ? { ...a, visits } : a;
 // The searches' results are applied together, at most this often: their results so far and their final results, with
 // what a search's end changes (the stages' progress, its mark). With every worker and the GPU's 16 searches posting a
 // slice, results come tens of times a second, the sweep's searches end one after another, and each change of the
@@ -1243,7 +1250,7 @@ export class GameAnalysis<G extends GameTypes> {
                                       seconds !== null ? seconds * 1000 : undefined);
         onStop(search.stop); // the pool may stop it to give way, and runs it again later
         run.stop = search.stop;
-        const t = await search.done, a = toAnalysis(this.game, t.reply);
+        const t = await search.done, a = endedAt(toAnalysis(this.game, t.reply), t.reply, visits);
         if (t.reply.terminated && !t.late) return; // it gave way, or the threat ended
         keepResult(a, true);
         if (!t.reply.terminated && a.visits >= visits) await cachePut(analysisKey(pool.search!, pool.model!.sha256, keyed, visits), a);
@@ -1348,7 +1355,7 @@ export class GameAnalysis<G extends GameTypes> {
       if (sliced) onStop(run.stop); // the pool may stop it to give way, and runs it again later
       onrun?.(run.stop);
       const shown = run.done.then(async t => {
-        const a = toAnalysis(this.game, t.reply), final = !t.reply.terminated && a.visits >= visits;
+        const a = endedAt(toAnalysis(this.game, t.reply), t.reply, visits), final = !t.reply.terminated && a.visits >= visits;
         if (era !== this.era) return;
         // The write first: the result and the stages' progress show only once it is stored, so that the game's mark
         // (markReviewed) comes after every result it covers. The end of the search's marks (markRunning, focus) then

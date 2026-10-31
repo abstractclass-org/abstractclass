@@ -13,7 +13,8 @@
 	"dependencies": {
 		"@abstractclass/analysis": "*",
 		"@abstractclass/engine": "*",
-		"@abstractclass/site": "*"
+		"@abstractclass/site": "*",
+		"@abstractclass/storage": "*"
 	},
 	"peerDependencies": {
 		"bits-ui": "^2.19.3",

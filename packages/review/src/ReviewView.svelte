@@ -89,7 +89,7 @@
   export { reviewSkeleton };
   /** The game's parts that the skeleton shows (the view's game interface, game.ts): its empty board, and the word of
    *  the players' second number. */
-  export interface SkeletonParts { EmptyBoard: Component; second?: { word: string } }
+  export interface SkeletonParts { EmptyBoard: Component; second?: { word: string }; box?: { form: "fill"; oneColumn: string } }
 
   /** The skeleton's row above the board sets --strip, as the review's row does (stripHeight): the board's size takes
    *  the row's height from the window's. */
@@ -160,7 +160,9 @@
     labelVisits?: number; // the label budget: a move is judged once both its positions have this many visits
     engine?: EngineSettings; // the engine's settings (design 09), shown in the settings panel
     onengine?: (change: Partial<EngineSettings>) => void; // a setting changed in the panel
-    gpu?: { status: GpuStatus; downloadMB: string }; // what the GPU does in this review, and its first download (design 15)
+    // What the GPU does in this review, and its first download (design 15). None: the site offers no GPU (Drawing
+    // Board's engine runs on the CPU only), and the engine settings do not show it.
+    gpu?: { status: GpuStatus; downloadMB: string };
   }
   let { view, R, progress = null, game, deepVisits = 0, onposition, onplay, labelVisits = 0, engine, onengine, gpu, reviewVisits = 0,
         deeperPositions = 0, again = null, snapshot = null, board = null, start, tools: pageTools, siteLink = null,
@@ -752,7 +754,11 @@
     if (unit === "turn") while (b > 0 && !moveFrom(p.slice(0, b)).first) b--;
     return { before: p.slice(0, b), mover, played: true };
   });
-  const beforeMap = $derived(diffBase ? mapOf(diffBase.before) : undefined);
+  // The forecast before, at the points of the map shown (the game's `map.align`, where its maps hold other points)
+  const beforeMap = $derived.by(() => {
+    const before = diffBase ? mapOf(diffBase.before) : undefined;
+    return before && shownOwnership && view.map?.align ? view.map.align(before, shownOwnership) : before;
+  });
   // The point under the pointer, for its numbers, and each point's state on the board shown (occupancy): for the change
   // style, and for the numbers
   let mapPoint = $state.raw<G["point"] | null>(null);
@@ -763,8 +769,8 @@
   const mapFrom = $derived(mapLine.from);
   const mapDrawn = $derived(shownStep ? mapLine.drawn.slice(0, shownStep) : NO_MOVES);
   // The state of that board (the game's `map.now`), for the change style and the point's numbers
-  const boardNow = $derived(shownStep !== null && view.map && (display.mapStyle === "change" || pointing)
-    ? view.map.now(mapFrom, mapDrawn) : null);
+  const boardNow = $derived(shownStep !== null && shownOwnership && view.map && (display.mapStyle === "change" || pointing)
+    ? view.map.now(mapFrom, mapDrawn, shownOwnership) : null);
   const shownMap = $derived.by(() => {
     if (!shownOwnership) return null;
     const min = display.mapMin[display.mapStyle];
@@ -851,7 +857,8 @@
   // the difference style, the forecast before and after, and how it fell or rose for the player who moved
   const mapReading = $derived.by(() => {
     if (mapPoint === null || !shownOwnership || !view.map) return null;
-    const i = view.map.index(mapPoint);
+    const i = view.map.index(mapPoint, shownOwnership);
+    if (i < 0) return null;
     const reading = diffBase && beforeMap ? differenceReading(beforeMap[i], shownOwnership[i], diffBase.mover)
       : boardNow && view.map.reading(shownOwnership[i], boardNow[i]);
     return reading && `${view.map.name(mapPoint)} · ${reading}`;
@@ -1003,9 +1010,9 @@
     preview = null;
     // The sound of the move that leads to the place: the game's move, or a variation's (a played move's variation exists
     // before its sound plays: playPath waits for it)
-    if (display.sound && (sound || step) && p.length) view.sounds.play(display.volume, display.moveSound, moveInto(p));
+    if (view.sounds && display.sound && (sound || step) && p.length) view.sounds.play(display.volume, display.moveSound, moveInto(p));
   }
-  $effect(() => { if (display.sound) view.sounds.preload(display.moveSound); });
+  $effect(() => { if (display.sound) view.sounds?.preload(display.moveSound); });
 
   /** A network's name in the settings: "HedgeFund 0.2 Lite (6.5 MB)". Its parts hold no-break spaces, so that a narrow
    *  panel breaks the name only before the parenthesis. */
@@ -1628,7 +1635,7 @@
     {#each R.turns as t (t.number)}
       <!-- A turn's number, then its edges in two equal columns (Lichess's move list), each at least a move wide:
            with room to spare, the second edge starts halfway across. By turn, a last column judges the whole turn. -->
-      <div class={turnRow(unit === "turn")}>
+      <div class={turnRow(unit === "turn", view.oneMoveALine)}>
         <span class={TURN_NUMBER}>{t.number}.</span>
         {#if t.continued}<span class="px-[0.2rem] text-muted">…</span>{/if} <!-- its first edge was played before the start -->
         {#each t.edges as e (e.index)}
@@ -1655,7 +1662,8 @@
                   class={moveButton(e.player, mainAt === e.index + 1 ? MOVE_HERE : pickedKey === mainKeys[e.index + 1] ? PICKED : MOVE_HOVER)}
                   onclick={ev => ((ev.target as Element).closest("[data-book]") ? openBookAt(e.index, "book mark") : go(e.index + 1, true))} onmouseenter={() => startPreview({ kind: "move", index: e.index })} onmouseleave={endPreview} tabindex="-1"
                   title={tip}>
-            <span class={view.moveText}>{view.notation(e)}</span>
+            {#if view.MoveLabel}{@const MoveLabel = view.MoveLabel}<span class={view.moveText}><MoveLabel played={e} /></span>
+            {:else}<span class={view.moveText}>{view.notation(e)}</span>{/if}
             {#if unit === "edge"}
               <!-- A book move's mark takes the label's slot, whatever the label: a click on it goes to the position
                    before the move, and shows the book there. -->
@@ -1674,7 +1682,7 @@
           {@const bookAfter = t.edges.every(e => bookMoves.has(e.index)) ? bookMoves.get(t.edges.at(-1)!.index) : undefined}
           {@const tip = tooltip(t.label ? `${LABEL_TEXT[t.label]}: ${turnCost(t)}` : board && !t.edges.every(e => board.judged[mainKeys[e.index + 1]]) ? "" : "Not analyzed yet",
                                 board ? searchNote(hard, t.edges.map(e => R.data.analysis[e.index])) : "")}
-          <span class="col-start-4 flex items-baseline gap-1 px-[0.2rem] py-px font-mono text-[0.95em] whitespace-nowrap {SIDE_TEXT[t.player]}"
+          <span class="{view.oneMoveALine ? 'col-start-3 row-start-1' : 'col-start-4'} flex items-baseline gap-1 px-[0.2rem] py-px font-mono text-[0.95em] whitespace-nowrap {SIDE_TEXT[t.player]}"
                 title={tip}>
             <span class="w-[2.2ch]">{#if t.label && bookAfter !== undefined}<button type="button" tabindex="-1"
                     class="p-0 bg-transparent border-0" onclick={() => openBookAt(t.edges[0]!.index, "book mark")}>{@render bookMark(t.label, tip, bookAfter)}</button>{:else if listed(t.label)}{@render mark(t.label)}{/if}</span>
@@ -2018,7 +2026,7 @@
       {@render choice("Variations and lines", view.shape.help,
         [["pills", view.shape.name], ["dots", "Dots"], ["text", "Notation"]], () => display.branchForm,
         v => (display.branchForm = v as Display["branchForm"]))}
-      <view.sounds.Settings sound={display.sound} moveSound={display.moveSound} volume={display.volume} set={v => Object.assign(display, v)} />
+      {#if view.sounds}{@const Sounds = view.sounds.Settings}<Sounds sound={display.sound} moveSound={display.moveSound} volume={display.volume} set={v => Object.assign(display, v)} />{/if}
       <h3 class={SETTINGS_HEAD}>Keyboard</h3>
       <div class="flex items-start justify-between gap-3 py-1.5">
         <div class="min-w-0">
@@ -2074,8 +2082,11 @@
         view.networks.offered.map(n => [n.id, networkLabel(n.id)]), () => e.network, v => set({ network: v }))}
       {@render steps("Workers", "Positions searched at the same time. Each worker uses more of your computer's memory. Use only as many workers as your computer's memory can hold.", maxWorkers(),
         () => e.workers - 1, k => set({ workers: k + 1 }), k => `${k + 1} of ${maxWorkers()}`)}
-      {@render choice("GPU", `Many positions at once on the graphics card, with the workers. Auto tests it on first use, and keeps it where it is faster than a worker. Its first use downloads ${gpu?.downloadMB ?? "?"} MB. While it searches, it uses more memory, as the workers do.`,
-        [["auto", "Auto"], ["on", "On"], ["off", "Off"]], () => e.gpu, v => set({ gpu: v as GpuMode }))}
+      <!-- The GPU, where the site offers it (design 15): its control comes with the page's `gpu`. -->
+      {#if gpu}
+        {@render choice("GPU", `Many positions at once on the graphics card, with the workers. Auto tests it on first use, and keeps it where it is faster than a worker. Its first use downloads ${gpu.downloadMB} MB. While it searches, it uses more memory, as the workers do.`,
+          [["auto", "Auto"], ["on", "On"], ["off", "Off"]], () => e.gpu, v => set({ gpu: v as GpuMode }))}
+      {/if}
       {#if gpu && gpuStatusText(gpu.status)}
         <p class="-mt-1 mb-1 text-xs text-muted" aria-live="polite">{gpuStatusText(gpu.status)}</p>
       {/if}
@@ -2163,9 +2174,9 @@
      their names. `board`: the Analysis board's form, with no chart, its sides for names, and its own line while the
      engine's rules set the board up (design 21). -->
 {#snippet reviewSkeleton(parts: SkeletonParts, three: boolean, gauge: boolean, players: { blue: string; red: string }, board: boolean)}
-  <main class={["review select-none", three && "wide", board && "board-form", gauge && "gauge-mode"]} aria-busy="true"
+  <main class={["review select-none", three && "wide", board && "board-form", gauge && "gauge-mode", parts.box && "fill"]} aria-busy="true"
         {@attach measureStrip}
-        style:--side-h="max(var(--column), calc(100vh - var(--site-header) - 2rem))">
+        style:--side-h="max(var(--column), calc(100vh - var(--site-header) - 2rem))" style:--fill-h={parts.box?.oneColumn}>
     {#if three}
       <aside class="summary-col {PANEL} flex flex-col overflow-hidden">
         {@render skeletonHead()}
@@ -2185,7 +2196,7 @@
       <div class="flex">
         {#if gauge}<div class="flex-none self-stretch w-4 mr-1.5 {BONE}"></div>{/if}
         <!-- The empty board: its colour, and the game's empty grid, where the board draws it. -->
-        <div class="board-wrap relative aspect-square rounded overflow-hidden bg-board"><parts.EmptyBoard /></div>
+        <div class={["board-wrap relative rounded overflow-hidden bg-board", !parts.box && "aspect-square"]}><parts.EmptyBoard /></div>
       </div>
       {#if !board}
         <div class="chart-area flex flex-col ml-(--gauge-w)">
@@ -2222,8 +2233,8 @@
 
 <!-- The page's text is a tool's, not a document's: it takes no selection, so the pointer stays an arrow over it. An
      engine error can be selected, to be copied. -->
-<main class={["review select-none", threeCols && "wide", board && "board-form", display.win === "gauge" && "gauge-mode"]} style:--side-h={sideHeight ? `${sideHeight}px` : undefined}
-      style:--strip={stripHeight ? `calc(${stripHeight}px + 0.5rem)` : null}>
+<main class={["review select-none", threeCols && "wide", board && "board-form", display.win === "gauge" && "gauge-mode", view.box && "fill"]} style:--side-h={sideHeight ? `${sideHeight}px` : undefined}
+      style:--strip={stripHeight ? `calc(${stripHeight}px + 0.5rem)` : null} style:--fill-h={view.box?.oneColumn}>
   {#if threeCols}
     <aside class="summary-col {PANEL} flex flex-col overflow-y-auto">
       {@render panelHead()}
@@ -2268,6 +2279,7 @@
           marks={previewing ? [] : marks}
           layers={display.layers}
           areaMap={shownMap}
+          areaOf={shownMap ? shownOwnership ?? null : null}
           onpointat={p => (mapPoint = p)}
           oncandidate={numbers.point}
           notes={previewing ? [] : notesAt[here] ?? []}
@@ -2564,4 +2576,34 @@
   }
   /* The Analysis board has no chart: the board takes its height (design 21). */
   .review.board-form { --chart: 0px; --chart-min: 0px; --chart-gap: 0px; }
+  /* A board with no edge (the game's `box`, "fill": Blueprints', design 33). Its height is the window's less the row
+     above it and the charts, whose area takes a share of the height that the width does not decide here. Its width is
+     its height, a square, within the widths that the side columns leave at their widest (--broad-max) and at their
+     least (--broad): in a wide window it takes all the room that the columns leave at their widest, and in a narrow
+     one the columns give it room down to their least. The row's line count takes the width with two lines (--board-2),
+     as the square's does. Each term is a custom property of its own: a calc() with min() inside max() stops Vite. In one
+     column, the height that the game gives (--fill-h). */
+  .review.fill {
+    --broad-max: calc(var(--broad) - var(--side-max) + var(--side-min));
+    --board-2: clamp(var(--broad-max), calc(var(--tall-2) - var(--chart-gap) - var(--chart-min)), var(--broad));
+    --chart: clamp(var(--chart-min), calc(0.15 * var(--tall)), var(--chart-max));
+    --board: calc(var(--tall) - var(--chart-gap) - var(--chart));
+    --board-w: clamp(var(--broad-max), var(--board), var(--broad));
+    grid-template-columns: calc(var(--board-w) + var(--gauge-w)) minmax(var(--side-min), var(--side-max));
+  }
+  .review.fill.wide {
+    --broad-max: calc(var(--broad) - var(--side-max) + var(--side-min) - var(--summary-max) + var(--summary-min));
+    grid-template-columns: minmax(var(--summary-min), var(--summary-max)) calc(var(--board-w) + var(--gauge-w))
+      minmax(var(--side-min), var(--side-max));
+  }
+  .review.fill .board-wrap { width: var(--board-w); height: var(--board); }
+  .review.fill.board-form { --chart: 0px; }
+  @media (max-width: 799px) {
+    .review.fill, .review.fill.wide {
+      --board-2: calc(100cqw - 2rem - var(--gauge-w));
+      --chart: 8rem;
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .review.fill .board-wrap { width: auto; height: var(--fill-h); }
+  }
 </style>

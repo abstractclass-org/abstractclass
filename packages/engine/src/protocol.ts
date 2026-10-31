@@ -154,6 +154,10 @@ export interface AnalysisReply {
   // the mean over the turn ends left of +1 inside Blue's regions and -1 inside Red's (the engine repository's
   // games/enclosure/docs/design/06-ownership-and-spatial-targets.md).
   ownership?: number[];
+  // 0.7: the view whose hexes the ownership gives, the rule's view of the position. Blueprints' ownership has a value
+  // for each hex of the view, at the index y * 67 + x (the engine repository's games/blueprints/README.md, "The
+  // ownership").
+  view?: EngineView;
 }
 
 export const isError = (r: unknown): r is ErrorReply => typeof r === "object" && r !== null && "error" in r;

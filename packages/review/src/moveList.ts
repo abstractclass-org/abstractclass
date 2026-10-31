@@ -1,6 +1,7 @@
 // The move list's look, in the review, on the Analysis board and in Practice: one row a turn, its number, then its
 // moves in two equal columns (Lichess's move list), each at least a move wide, so that the moves line up down the list.
-// Where two moves do not fit, a turn's second move goes under its first (`turnRow`). A move's text has one width, the
+// Where two moves do not fit, a turn's second move goes under its first (`turnRow`). A game whose moves are too long
+// for two to a row has one move a line, the turn's number at its first (Blueprints', as on Drawing Board's Practice). A move's text has one width, the
 // game's widest move (the view's game interface, `moveText`), in a monospaced font, the same on every system
 // (@abstractclass/site/site.css). The move on the board is outlined in the accent colour, and a move under the pointer
 // in the line colour.
@@ -8,13 +9,15 @@ import type { Player } from "@abstractclass/analysis/game.ts";
 import { SIDE_TEXT } from "@abstractclass/site/side.ts";
 
 export const MOVE_LIST = "movelist flex-1 min-h-0 overflow-y-auto pt-1.5 text-sm border-t border-line";
-/** A turn's row. `judged`: a last column for the turn's own quality label (the review by turn). Otherwise the moves
- *  wrap. Where the number and two moves do not fit, the second move goes under the first, so that nothing hides
+/** A turn's row. `judged`: a last column for the turn's own quality label (the review by turn). `oneMoveALine`: each
+ *  move on a line of its own, the turn's label beside its first. Otherwise the moves wrap. Where the number and two moves do not fit, the second move goes under the first, so that nothing hides
  *  sideways. By edge a move holds its quality label, ◆ and loss too, so its rows wrap in a wider box. The number hangs
  *  in the row's left padding (2.45rem: its 2.2rem and the gap), so a second line starts in the first move's column.
  *  Each move takes half the room after the number (50%, less half the gap), and at least its own width. A continued
  *  turn's … takes a move's place. The half pixel less keeps rounding from wrapping two moves that fit. */
-export const turnRow = (judged = false) => judged
+export const turnRow = (judged = false, oneMoveALine = false) => oneMoveALine
+  ? ["grid items-baseline gap-x-1 [&>.mv]:col-start-2", judged ? "grid-cols-[2.2rem_minmax(0,1fr)_auto]" : "grid-cols-[2.2rem_minmax(0,1fr)]"]
+  : judged
   ? ["grid items-baseline gap-x-1 grid-cols-[2.2rem_repeat(2,minmax(max-content,1fr))_auto]"]
   : ["flex flex-wrap items-baseline gap-x-1 pl-[2.45rem]",
      "[&>:first-child]:flex-none [&>:first-child]:w-[2.2rem] [&>:first-child]:-ml-[2.45rem]",

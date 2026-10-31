@@ -107,6 +107,8 @@ export interface BoardProps<G extends ViewTypes> {
   input: G["input"]; // the player's own moves
   inputOn: boolean; // the board takes them: the rules have come, and no preview shows
   areaMap: (AreaMark | null)[] | null; // the area map, by point (the game's `map.index`)
+  // The map that the area map's marks come from: a game whose maps carry their place reads it there (Blueprints' view)
+  areaOf: number[] | null;
   notes: G["note"][];
   onnotes?: (notes: G["note"][]) => void; // a note drawn, changed or removed, or all cleared: none while a preview shows
   oncandidate: (move: G["move"] | null) => void; // the candidate under the board's pointer
@@ -147,13 +149,18 @@ export interface SoundSettingsProps<D extends Display> {
 }
 
 /** The area map's part that is the board's (design 30): how its points are named and indexed, and the board's state
- *  that the "Forecast vs board" style compares with. */
+ *  that the "Forecast vs board" style compares with. A map is a position's ownership as the game keeps it (the analysis
+ *  game's `mapOf`): where the game's points are not fixed, as Blueprints' view moves with the play, a map holds its own
+ *  place, and two maps are compared at their common points (`align`). */
 export interface MapParts<G extends ViewTypes> {
-  index(point: G["point"]): number; // the point's place in the engine's ownership
+  index(point: G["point"], map: number[]): number; // the point's place in a map: −1 where the map does not hold it
   name(point: G["point"]): string; // the point's name in the notation
-  /** Each point's state on the board as drawn after a line's moves, from Blue's side: 1 Blue's, −1 Red's, 0
-   *  neither. */
-  now(from: G["position"], drawn: LineMove<G>[]): number[];
+  /** The state of each of a map's points on the board as drawn after a line's moves, from Blue's side: 1 Blue's, −1
+   *  Red's, 0 neither. */
+  now(from: G["position"], drawn: LineMove<G>[], map: number[]): number[];
+  /** The map's values at the points of the map `to`, in `to`'s form, NaN where it holds no value: the forecast before
+   *  a move, against the forecast after it. None: every map holds the same points. */
+  align?(map: number[], to: number[]): number[];
   /** A point's numbers in the forecast styles: its ownership (from Blue's side, in hundredths) and its state now. */
   reading(ownership: number, now: number): string;
   point: string; // the word for a point: "point"
@@ -239,6 +246,12 @@ export interface ViewGame<G extends ViewTypes> extends Game<G> {
   Board: Component<BoardProps<G>>;
   /** The board while the page loads, in the board's place: its empty grid (Enclosure's points). */
   EmptyBoard: Component;
+  /** The board's box. None: a square, the window's height less the row above it and the charts, or the width that the
+   *  side columns leave at their least (design 06: Enclosure's board). "fill": the window's height less the row and the
+   *  charts, and as wide as high within the widths that the side columns leave at their widest and at their least, and
+   *  in one column the height `oneColumn` (a CSS length): a board with no edge, which fits its cells into the box that
+   *  it gets (Blueprints', design 33). */
+  box?: { form: "fill"; oneColumn: string };
   /** The board's own layers in the display settings: the display's layers beside the view's own. */
   layers: LayerSetting<Exclude<keyof G["display"]["layers"] & string, keyof BoardLayers>>[];
   /** The notes' colours, and the keys held for each, for the list of keys and clicks: groups of keys held together,
@@ -256,12 +269,18 @@ export interface ViewGame<G extends ViewTypes> extends Game<G> {
   // --- A move in the lists
   /** A move played, as the move list writes it: its name with its marks (Enclosure's cut mark, D10-G10x). */
   notation(played: G["played"]): string;
+  /** A move played as the move list shows it, where its notation alone is not the game's look (Blueprints' blueprint
+   *  number in a box, design 33, item 8), as wide as `moveText`. None: the move list writes the notation. */
+  MoveLabel?: Component<{ played: G["played"] }>;
   /** A move of a line, as the line's list writes it: its name, and its mark once the rules have played it. */
   lineNotation(move: G["move"], step: G["step"] | undefined): string;
   /** A move's shape in the variations and the line (Enclosure's pill along the edge). */
   Shape: Component<ShapeProps<G["move"]>>;
   shape: { name: string; help: string }; // its choice's name in the display settings, and the choice's help
   moveText: string; // the class of a move's text in the move list: as wide as the widest move
+  // Each move on a line of its own in the move list, the turn's number at its first: moves too long for two to a row
+  // (Blueprints', as on Drawing Board's Practice). None: two to a row, as Lichess's
+  oneMoveALine?: boolean;
   nameText: string; // the class of a candidate's name in the table: as wide as the widest move's name
 
   // --- Who plays each move
@@ -288,7 +307,8 @@ export interface ViewGame<G extends ViewTypes> extends Game<G> {
 
   // --- The display settings and the sounds
   display: { load(): G["display"]; save(d: G["display"]): void };
-  sounds: {
+  /** The move sounds and their settings. None: the site has no sounds, and the settings do not offer them. */
+  sounds?: {
     Settings: Component<SoundSettingsProps<G["display"]>>;
     /** A move's sound, at a volume from 0 to 1: the set's sound for the move played. */
     play(volume: number, set: G["display"]["moveSound"], played: G["played"] | undefined): void;

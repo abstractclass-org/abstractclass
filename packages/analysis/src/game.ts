@@ -48,6 +48,10 @@ export interface Moves<M> {
   moveName(move: M | null): string;
   /** The move of a name that is not "pass". */
   parseMove(name: string): M;
+  /** The area map of a reply's ownership (in hundredths, as the engine indexes it), where the game's points are not
+   *  fixed: Blueprints' ownership is of the view of the position, which moves with the play, so its map ends with the
+   *  view's place (the engine's `view`). None: the map is the ownership. */
+  mapOf?(ownership: number[], view: unknown): number[];
 }
 
 /** A game, as the analysis and the review compute with it. */

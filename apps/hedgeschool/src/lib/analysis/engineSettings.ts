@@ -7,10 +7,8 @@ import lock from "../../../engine.lock.json" with { type: "json" };
 import { DEEP_VISITS } from "@abstractclass/analysis/cache.ts";
 import { defaultPoolSize } from "@abstractclass/engine/pool.ts";
 import { megabytes } from "@abstractclass/engine/client.ts";
-import { readLocalJson, writeLocal } from "@abstractclass/storage/local.ts";
 import type { GameSettings, StoredGame } from "#lib/game/store.ts";
-import { CUSTOM_REVIEW, DEPTHS, REVIEW_PRESETS, TIME_LIMITS, inSteps, maxWorkers, reviewVisits, type EngineSettings }
-  from "@abstractclass/analysis/settings.ts";
+import { REVIEW_PRESETS, reviewVisits, settingsStore, type EngineSettings } from "@abstractclass/analysis/settings.ts";
 // The settings' general part (their shape, the steps, the review's depths) is the shared analysis's: this module gives
 // it to the site's code with the site's own part.
 export * from "@abstractclass/analysis/settings.ts";
@@ -97,20 +95,4 @@ export const defaultEngine = (): EngineSettings => ({
   workers: defaultPoolSize(), gpu: "auto",
 });
 
-export function loadEngine(): EngineSettings {
-  const d = defaultEngine();
-  const kept = readLocalJson<Partial<EngineSettings>>(KEY);
-  if (!kept) return d;
-  return {
-    on: typeof kept.on === "boolean" ? kept.on : d.on,
-    visits: inSteps(DEPTHS, kept.visits) ? kept.visits : d.visits,
-    seconds: kept.seconds !== undefined && TIME_LIMITS.includes(kept.seconds) ? kept.seconds : d.seconds,
-    review: kept.review === "standard" || kept.review === "custom" ? kept.review : "lite",
-    customReview: inSteps(CUSTOM_REVIEW, kept.customReview) ? kept.customReview : d.customReview,
-    network: offersNetwork(kept.network) ? kept.network! : d.network,
-    workers: Number.isInteger(kept.workers) ? Math.min(maxWorkers(), Math.max(1, kept.workers!)) : d.workers,
-    gpu: kept.gpu === "on" || kept.gpu === "off" ? kept.gpu : d.gpu,
-  };
-}
-
-export const saveEngine = (s: EngineSettings) => writeLocal(KEY, JSON.stringify(s));
+export const { load: loadEngine, save: saveEngine } = settingsStore(KEY, defaultEngine, offersNetwork);

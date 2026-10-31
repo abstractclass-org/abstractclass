@@ -10,24 +10,31 @@ export function toAnalysis<M>(game: Moves<M>, r: AnalysisReply): Analysis<M> {
   return {
     blueWin: r.rootInfo.winrate, visits: r.rootInfo.visits, lead: r.rootInfo.scoreLead, margin: r.rootInfo.scoreSelfplay,
     spread: r.rootInfo.scoreStdev,
+    // A candidate that a search of more views checked (protocol 0.7) has its check's values: its visits are the check's
     candidates: [...r.moveInfos].sort((a, b) => a.order - b.order).map(c => ({
-      edge: game.parseMove(c.move), visits: c.edgeVisits, blueWin: c.winrate, lead: c.scoreLead, margin: c.scoreSelfplay, prior: c.prior,
+      edge: game.parseMove(c.move), visits: c.checkVisits ?? c.edgeVisits, blueWin: c.winrate, lead: c.scoreLead, margin: c.scoreSelfplay, prior: c.prior,
       ...withLine(game, c), ...(c.isSymmetryOf ? { twinOf: game.parseMove(c.isSymmetryOf) } : {}),
     })),
-    ...(r.ownership ? { ownership: r.ownership.map(hundredths) } : {}),
+    ...(r.ownership ? { ownership: areaMapOf(game, r.ownership.map(hundredths), r.view) } : {}),
   };
 }
+
+/** The game's area map of an ownership in hundredths (game.ts, Moves.mapOf): the ownership itself, or with its place. */
+const areaMapOf = <M>(game: Moves<M>, ownership: number[], view: unknown) => (game.mapOf ? game.mapOf(ownership, view) : ownership);
 
 /** An ownership in whole hundredths: the map needs no finer steps, and a stored result keeps 361 small numbers. Never
  *  −0, which JSON writes as 0. */
 export const hundredths = (v: number) => Math.round(100 * v) || 0;
 
-/** A candidate's line (KataGo's pv, the move first), up to its first pass, with the visits through each of its edges. */
+/** A candidate's line (KataGo's pv, the move first), up to its first pass, with the visits through each of its edges. A
+ *  checked candidate's move (protocol 0.7) has its check's visits: the check searched the position after it. */
 function withLine<M>(game: Moves<M>, c: MoveInfo): { line: M[]; lineVisits?: number[] } {
   const line: M[] = [];
   for (const m of c.pv) {
     if (m === "pass") break; // a pass ends the turn: the line stops there
     line.push(game.parseMove(m));
   }
-  return { line, ...(c.pvEdgeVisits ? { lineVisits: c.pvEdgeVisits.slice(0, line.length) } : {}) };
+  const visits = c.pvEdgeVisits?.slice(0, line.length);
+  if (visits?.length && c.checkVisits !== undefined) visits[0] = c.checkVisits;
+  return { line, ...(visits ? { lineVisits: visits } : {}) };
 }

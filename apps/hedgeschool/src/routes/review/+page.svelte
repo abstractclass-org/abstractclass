@@ -14,7 +14,8 @@
   // (docs/design/20-snapshot.md).
   import { onDestroy, onMount, untrack } from "svelte";
   import { PRACTICE_EVENT } from "#lib/practice/hedgefund.ts";
-  import ReviewView, { NETWORK_LOADS, WIDE, reviewSkeleton, type ReviewAgain, type ReviewProgress } from "@abstractclass/review/ReviewView.svelte";
+  import ReviewView, { WIDE, reviewSkeleton, type ReviewAgain } from "@abstractclass/review/ReviewView.svelte";
+  import { ReviewBar } from "@abstractclass/review/progress.svelte.ts";
   import { enclosureView } from "#lib/review/enclosureView.ts";
   import { loadDisplay } from "#lib/review/display.ts";
   import ExportMenu from "#lib/ExportMenu.svelte";
@@ -23,7 +24,7 @@
   import ReviewHome from "#lib/review/ReviewHome.svelte";
   import { REVIEW_PAGE_SCRIPT, markReviewPage } from "#lib/review/pageMarks.ts";
   import { reviewArrives } from "@abstractclass/import/importHash.ts";
-  import { LABEL_VISITS, MAP_VISITS, SWEEP_VISITS, snapshotExcept, snapshotPositions, snapshotSearch, warmCache } from "@abstractclass/analysis/cache.ts";
+  import { LABEL_VISITS, SWEEP_VISITS, snapshotExcept, snapshotPositions, snapshotSearch, warmCache } from "@abstractclass/analysis/cache.ts";
   import { enclosure, review, type Enclosure, type GameEnding, type ReviewData } from "#lib/review/enclosure.ts";
   import { EnginePool } from "@abstractclass/engine/pool.ts";
   import { GameAnalysis } from "@abstractclass/analysis/analysis.svelte.ts";
@@ -57,7 +58,7 @@
   // the player chooses Review again.
   let snapshot = $state<{ visits: number; text: string } | null>(null);
   // The review snapshot's analysis, an earlier engine's results. It stays after Review again, which ends the review snapshot, until
-  // the new review's analysis replaces it (rawProgress).
+  // the new review's analysis replaces it (ReviewBar's `stale`).
   let snapshotGame = $state.raw<GameAnalysis<Enclosure> | null>(null);
   let kept = $state.raw<{ id: string; text: string; record: GameRecord; partner?: GamePartner } | null>(null); // the stored game
   // A game's review is open: the page's title names it, else the Review tab's (design 23). The review's skeleton shows
@@ -74,8 +75,6 @@
   const partnerName = $derived(kept?.partner?.name ?? null);
   const siteLink = $derived(kept && gamePage(kept.record.tags));
   const moveCount = $derived(kept?.record.moves.length ?? 0);
-  // The positions the stages search: one before each move, and the end of an unfinished game (GameAnalysis.passCount).
-  const passCount = $derived(game?.passCount ?? moveCount);
   let error = $state("");
   let current = $state<string[]>([]); // the position on screen: its path in the game's tree (the analysis's tree.ts)
   const engine = $state(loadEngine());
@@ -91,7 +90,7 @@
   // The engine and the GPU worker (session.svelte.ts). A review snapshot searches nothing: the settings wait for Review again.
   const session = new EngineSession({ settings: () => settings, game: () => game, position: () => current, frozen: () => !!snapshot,
                                       tracker: { track, networkName },
-                                      dropped: () => (held = { step: -1, done: 0 }) });
+                                      dropped: () => bar.reset() });
   const failure = $derived(error || session.error);
   function changeEngine(change: Partial<EngineSettings>) {
     const { network, review, customReview, ...rest } = change;
@@ -121,49 +120,14 @@
   // The report says how many. The depths step by doublings, so a deeper search has at least twice the visits.
   // The positions that take the book's values are left out: their labels come from the book (GameAnalysis.useBook)
   const deeperPositions = $derived(game ? game.analysis.filter((a, i) => !!a && !game!.bookResults[i] && a.visits >= 1.5 * depth).length : 0);
-  // The review's work as one bar, each part as wide as its share of the visits, so that the bar moves at an even pace:
-  // the sweep, the label stage, and the Greats' confirmations. The last is counted from what the analysis asks for so
-  // far: it grows as labels come, and it is done when its positions have the searches' results in the store, whoever
-  // ran them (after a change of the review's depth too). The bar shows the step that its line names:
-  // the steps before are full, the later ones empty, though some of their work can end early, alongside (it shows when
-  // their step comes). The step's own part never shows less than it has shown (held): a count that grows makes it wait
-  // instead of going back. Another review depth, network or game starts it again. After the review, while the area map
-  // is on and the review's results lack maps, the map stage (design 30) is one more part, which never holds the review's
-  // end: the review is done without it (reviewDone).
-  let held = $state({ step: -1, done: 0 });
-  $effect(() => { void budget; void game; held = { step: -1, done: 0 }; });
-  const rawProgress = $derived.by((): (ReviewProgress & { step: number }) | null => {
-    if (snapshot) return null;
-    const n = Math.max(1, passCount);
-    const greats = game?.greatChecks ?? { total: 0, done: 0 };
-    const labelled = game?.labelled !== undefined && game.labelled >= passCount;
-    // Every step has its results, from the searches or from the browser's store: the review is complete. A review opened
-    // again is complete before the engine's network loads: its line says "Review done" at once, and its report's counts
-    // are final, so they do not change their lines when the network comes (a layout shift). The review snapshot's analysis
-    // holds an earlier engine's results: after Review again it stays on screen until the new review's analysis
-    // replaces it.
-    const complete = labelled && greats.done >= greats.total && game !== snapshotGame, maps = game?.mapPass;
-    if (complete && !maps) return null;
-    const mapVisits = maps ? MAP_VISITS * maps.total : 0;
-    const total = (SWEEP_VISITS + budget) * n + budget * greats.total + mapVisits;
-    const parts = [
-      { share: (SWEEP_VISITS * n) / total, done: (game?.swept ?? 0) / n },
-      { share: (budget * n) / total, done: (game?.labelled ?? 0) / n },
-      ...(greats.total ? [{ share: (budget * greats.total) / total, done: greats.done / greats.total }] : []),
-      ...(maps ? [{ share: mapVisits / total, done: maps.done / maps.total }] : []),
-    ];
-    if (complete && maps) return { text: `Maps: ${maps.done} of ${maps.total}`, parts, step: parts.length - 1, maps: true };
-    const step = !game || game.swept < passCount ? 0 : !labelled || !greats.total ? 1 : 2;
-    if (!game?.engineReady) return { text: NETWORK_LOADS, parts, step };
-    if (game.paused) return { text: "Engine off. The review is paused.", parts, waiting: true, step };
-    if (step === 0) return { text: `Reviewing: the game's shape, ${game.swept} of ${passCount} positions`, parts, step };
-    if (step === 1) return { text: `Reviewing: move quality, ${game.labelled} of ${passCount} positions`, parts, step };
-    return { text: `Reviewing: confirming Great moves, ${greats.done} of ${greats.total}`, parts, step };
-  });
-  const rawStepDone = $derived(rawProgress ? rawProgress.parts[rawProgress.step]?.done ?? 1 : 0);
-  // The review is done: every step of the bar. The game keeps the mark of it (store.ts), so that the home page can offer
-  // its export, and the Export menu opens (design 13). Neither waits for the network: the export reads the store.
-  const reviewDone = $derived(!snapshot && (!rawProgress || !!rawProgress.maps));
+  // The review's work as one bar (@abstractclass/review/progress.svelte.ts). A review snapshot's has none. The review
+  // snapshot's analysis holds an earlier engine's results: after Review again it stays on screen until the new review's
+  // analysis replaces it. The review is done: every step of the bar. The game keeps the mark of it (store.ts), so that
+  // the home page can offer its export, and the Export menu opens (design 13). Neither waits for the network: the export
+  // reads the store.
+  const bar = new ReviewBar({ game: () => game, moves: () => moveCount, budget: () => budget, frozen: () => !!snapshot,
+                              stale: () => game === snapshotGame });
+  const reviewDone = $derived(bar.done);
   // The review's events (design 17): when it opens and when it ends, with what it ran with and how long it took. The
   // time counts from the review's start, or from a change of its network or depth, which starts it again. A review that
   // opened already done (doneBefore: its mark covers it, or the store held every step's results) sends no end.
@@ -208,17 +172,6 @@
       });
     });
   });
-  $effect(() => {
-    const step = rawProgress?.step ?? -1, done = rawStepDone, was = untrack(() => held);
-    if (step !== was.step || done > was.done) held = { step, done };
-  });
-  const progress = $derived.by((): ReviewProgress | null => {
-    if (!rawProgress) return null;
-    const { step, ...shown } = rawProgress;
-    const own = held.step === step ? Math.max(held.done, rawStepDone) : rawStepDone;
-    return { ...shown, parts: shown.parts.map((p, k) => ({ share: p.share, done: k < step ? 1 : k === step ? own : 0 })) };
-  });
-
   const wide = new MediaQuery(WIDE);
   // The game shown, or none (null or "") for the Review tab's page (ReviewHome). Undefined until the page has read its
   // address, as in the prerendered page: the page then holds both the Review tab and the line of text, and the marks
@@ -437,7 +390,7 @@
 {:else if game?.error && !game.rulesReady}
   <p class="{MESSAGE} text-blunder">The engine could not read this game: {game.error}</p>
 {:else if R}
-  <ReviewView view={enclosureView} {R} {progress} {deeperPositions} {again} snapshot={snapshot && { text: snapshot.text, onagain: reviewAgain }} {siteLink}
+  <ReviewView view={enclosureView} {R} progress={bar.progress} {deeperPositions} {again} snapshot={snapshot && { text: snapshot.text, onagain: reviewAgain }} {siteLink}
               game={game ?? undefined}
               deepVisits={snapshot ? 0 : engine.visits} onposition={path => (current = path)} onplay={path => game!.addLine(path)}
               reviewVisits={depth} labelVisits={LABEL_VISITS} engine={settings} onengine={changeEngine} ownSettings={own?.from}

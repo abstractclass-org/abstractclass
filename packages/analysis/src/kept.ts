@@ -1,7 +1,7 @@
 // The tree of a game's analysis as the browser keeps it (analysis.svelte.ts): a game's variations under the game's id,
 // and the Analysis board's tree under BOARD_ID, both in the `branches` store (@abstractclass/storage/db.ts). A site's
 // store of games re-exports these (Hedge School's src/lib/game/store.ts).
-import { pathKey } from "./tree.ts";
+import { pathKey, prefixKeys } from "./tree.ts";
 
 /** A game's variations as kept in the browser (analysis.svelte.ts): each node's path key (its moves, as the review's
  *  tree names them), its order, and 1 when its move was evaluated. Version 1 kept the lines. */
@@ -13,6 +13,10 @@ export const keptNode = (key: string, order: number, judged?: unknown): KeptNode
  *  line. One board in each browser, under BOARD_ID in the `branches` store. */
 export interface KeptBoard { version: 2; nodes: KeptNode[]; main: string[]; start?: string } // start: a set-up position (design 21)
 export const BOARD_ID = "board";
+/** A board of one line, its moves by the tree's names: a node for each of its positions, as a link packs every node
+ *  with its parent, from the start or from a set-up start (design 21). */
+export const boardOfLine = (main: string[], start?: string): KeptBoard =>
+  ({ version: 2, main, nodes: prefixKeys(main).slice(1).map((k): KeptNode => [k, 0]), ...(start ? { start } : {}) });
 
 /** The kept variations as version 2's nodes: a version 1 line is the node at its end, in the lines' order. */
 export const branchNodes = (b: KeptBranches | null): KeptNode[] =>

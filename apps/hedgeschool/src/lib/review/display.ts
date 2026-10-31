@@ -1,11 +1,9 @@
 // The review's display settings (docs/design/06-review-layout.md): what the labels judge (design 10), the win chance's
 // form, the board's layers, the chart's score line, and how the engine's line and the variations show (design 07). Kept
-// in this browser: there are no accounts yet. Storage can be blocked (a private window, blocked site data), so every
-// read and write may fail, and the defaults then hold.
+// in this browser (@abstractclass/review/display.ts): there are no accounts yet.
 import { DEFAULT_LAYERS, type BoardLayers } from "#lib/board/Board.svelte";
 import { MOVE_SOUNDS, type MoveSound } from "#lib/sound.ts";
-import { readLocalJson, writeLocal } from "@abstractclass/storage/local.ts";
-import type { MapStyle } from "@abstractclass/review/ownership.ts";
+import { displayStore } from "@abstractclass/review/display.ts";
 import type { Display as ViewDisplay } from "@abstractclass/review/game.ts";
 
 /** The settings of the review's view (@abstractclass/review/game.ts, Display, which says what each does), with Hedge
@@ -47,37 +45,5 @@ export const DEFAULT_DISPLAY: Display = {
   volume: 0.4,
 };
 
-/** A kept smallest value of the map's style: a whole number of hundredths from 0 to 100, or else the default. */
-const hundredths = (v: unknown, style: MapStyle) =>
-  typeof v === "number" && v >= 0 && v <= 100 ? Math.round(v) : DEFAULT_DISPLAY.mapMin[style];
-
-export function loadDisplay(): Display {
-  const kept = readLocalJson<Partial<Display> & { branchText?: boolean }>(KEY);
-  if (!kept) return structuredClone(DEFAULT_DISPLAY);
-  return {
-    judge: kept.judge === "edge" ? "edge" : "turn",
-    reviewFor: kept.reviewFor === "blue" || kept.reviewFor === "red" ? kept.reviewFor : "both",
-    win: kept.win === "gauge" ? "gauge" : "bar",
-    layers: { ...DEFAULT_DISPLAY.layers, ...kept.layers },
-    areaMap: { ...DEFAULT_DISPLAY.areaMap, ...kept.areaMap },
-    mapStyle: kept.mapStyle === "change" || kept.mapStyle === "difference" ? kept.mapStyle : "ownership",
-    mapMin: { ownership: hundredths(kept.mapMin?.ownership, "ownership"), change: hundredths(kept.mapMin?.change, "change"),
-              difference: hundredths(kept.mapMin?.difference, "difference") },
-    scoreLine: kept.scoreLine ?? DEFAULT_DISPLAY.scoreLine,
-    areaLine: kept.areaLine ?? DEFAULT_DISPLAY.areaLine,
-    lineSteps: kept.lineSteps ?? DEFAULT_DISPLAY.lineSteps,
-    // Kept before the pills as `branchText`, true for the notation
-    branchForm: kept.branchForm === "pills" || kept.branchForm === "dots" || kept.branchForm === "text" ? kept.branchForm
-      : kept.branchText ? "text" : DEFAULT_DISPLAY.branchForm,
-    marks: kept.marks === "text" ? "text" : "badges",
-    bookMoves: kept.bookMoves === "book" ? "book" : "label",
-    notes: kept.notes ?? DEFAULT_DISPLAY.notes,
-    previewMoves: kept.previewMoves ?? DEFAULT_DISPLAY.previewMoves,
-    previewBranches: kept.previewBranches ?? DEFAULT_DISPLAY.previewBranches,
-    sound: kept.sound ?? DEFAULT_DISPLAY.sound,
-    moveSound: kept.moveSound && kept.moveSound in MOVE_SOUNDS ? kept.moveSound : DEFAULT_DISPLAY.moveSound,
-    volume: typeof kept.volume === "number" ? Math.min(1, Math.max(0, kept.volume)) : DEFAULT_DISPLAY.volume,
-  };
-}
-
-export const saveDisplay = (d: Display) => writeLocal(KEY, JSON.stringify(d));
+export const { load: loadDisplay, save: saveDisplay } =
+  displayStore(KEY, DEFAULT_DISPLAY, (s): s is MoveSound => typeof s === "string" && s in MOVE_SOUNDS);

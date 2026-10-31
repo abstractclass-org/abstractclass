@@ -2,6 +2,7 @@
 // of the depth on screen and of the time limit, and the review's depths. Each site keeps its own networks, its storage
 // key, its defaults and its games' own settings (Hedge School's src/lib/analysis/engineSettings.ts).
 import { LABEL_VISITS } from "./cache.ts";
+import { readLocalJson, writeLocal } from "@abstractclass/storage/local.ts";
 
 export type ReviewDepth = "lite" | "standard" | "custom";
 
@@ -52,3 +53,25 @@ export function reviewDepthText(visits: number): string {
 
 /** Every core the machine reports: a worker more than that only waits. */
 export const maxWorkers = () => Math.max(1, navigator.hardwareConcurrency || 2);
+
+/** The settings kept in this browser under `key`, with the site's defaults: a kept value that is not one of the
+ *  setting's values gives way to the default, and a network that the site does not offer (`offers`) to the site's
+ *  first. Storage can be blocked (a private window, blocked site data): then the defaults hold. */
+export function settingsStore(key: string, defaults: () => EngineSettings, offers: (network: string | undefined) => boolean) {
+  function load(): EngineSettings {
+    const d = defaults();
+    const kept = readLocalJson<Partial<EngineSettings>>(key);
+    if (!kept) return d;
+    return {
+      on: typeof kept.on === "boolean" ? kept.on : d.on,
+      visits: inSteps(DEPTHS, kept.visits) ? kept.visits : d.visits,
+      seconds: kept.seconds !== undefined && TIME_LIMITS.includes(kept.seconds) ? kept.seconds : d.seconds,
+      review: kept.review === "standard" || kept.review === "custom" ? kept.review : "lite",
+      customReview: inSteps(CUSTOM_REVIEW, kept.customReview) ? kept.customReview : d.customReview,
+      network: offers(kept.network) ? kept.network! : d.network,
+      workers: Number.isInteger(kept.workers) ? Math.min(maxWorkers(), Math.max(1, kept.workers!)) : d.workers,
+      gpu: kept.gpu === "on" || kept.gpu === "off" ? kept.gpu : d.gpu,
+    };
+  }
+  return { load, save: (s: EngineSettings) => writeLocal(key, JSON.stringify(s)) };
+}
