@@ -9,8 +9,8 @@ strategyjam.org and the import page are built: the page shows the record that a 
 strategyjam.org"). Their test on strategyjam.org waits for the owner (abscls-8tl1.12). The site fetches the engine's
 0.7.1 build with its practice bot (`engine-70dfdc0f`, on this machine only) as Hedge School fetches its own. Practice
 against Stamp Duty (`/practice`) is built and plays on this machine ("Practice against Stamp Duty"). The review and the
-Analysis board come after it (abscls-8tl1.7).
-**Decided:** 2026-10-25. Practice's layout and its bot: 2026-10-30.
+Analysis board are built (abscls-8tl1.7, "The review and the Analysis board"), with no area map yet.
+**Decided:** 2026-10-25. Practice's layout and its bot: 2026-10-30. The review and the Analysis board: 2026-11-01.
 
 ## Context
 
@@ -89,13 +89,16 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
    one move, then two (`turnFromCount`), are in the analysis package, beside the game interface's `turn`, because both
    games number them so.
 8. **The move list** shows a move as strategyjam.org's move list does: the blueprint's number in a box, then the
-   hex, then `+N` when the move scores. An edit shows the kind of the cell that it moves.
+   hex, then `+N` when the move scores, or a small `x` when it captures and scores nothing. An edit shows the kind of
+   the cell that it moves. These are the glyphs of the setting "Move notation", whose other form is item 5's text ("The
+   review and the Analysis board", item 4).
 9. **Two edits can give the same hand.** A string names one edit, but two edits can leave the same blueprints: for
    example, the end wall of a line of walls moved to the line's other end, and the star beside it moved one cell up.
    Some edits leave the hand as it was. So the review compares two moves by the position that they give, not only by
    their names, as it takes Enclosure's two edges of a turn in either order as one turn (design 29). Not built yet:
    the view compares the engine's moves with the game's `equal`, which takes no position, and the game's tree keeps a
-   move by its name (design 29, item 9). Drawing Board's review shapes this (abscls-8tl1.7).
+   move by its name (design 29, item 9). Drawing Board's review keeps two such edits as two moves, as the game's tree
+   and the engine name them.
 10. **A position's notation** (as FEN gives a chess position) waits for the board editor and for starts from a set-up
     position. The first version takes games as records: the standard start and the moves. So the record's reader
     refuses a `Position` tag. The shared frame refuses it for each game that gives the frame no start. The import
@@ -376,6 +379,104 @@ The tools have not run on strategyjam.org itself: they run in the player's own l
 the owner (abscls-8tl1.12). The tests use page states that they make, with moves that Stamp Duty's early build played
 (`fixtures.json`), and the built tools ran on mock pages of both layouts in Chromium.
 
+## The review and the Analysis board
+
+Drawing Board's review (`/review`) and Analysis board (`/analysis`) are Hedge School's (designs 05, 06, 07 and 10), in
+the shared view (design 29, item 9) with Blueprints' part (`src/lib/review/blueprintsView.ts`), on the practice page's
+layout. The engine is Stamp Duty's early build, on the CPU ("The engine's files"). Each part below was chosen from
+drawings of the real page, from the engine's replies. The decision log gives the measurements that led to each choice.
+
+1. **The layout:** the practice page's board, with its hands' panel and its kept place ("Practice against Stamp
+   Duty"), and the review's side columns, as Hedge School's. The board's box takes the window's height less the
+   players' row and the charts. On a phone, the hands go under the board.
+2. **The players' cards:** each player's points, and the stars on the board. The chart's second line is the stars'
+   difference.
+3. **The move list:** one move a row, by turn and by move, at every size. A turn's number stands at its first move.
+   Two of Blueprints' moves do not fit one row: a move has 5 to 19 characters, and the test game's widest turn by move
+   needs 440 pixels in a list of 325 at 1,376 pixels.
+4. **The setting "Move notation"** in the display settings, as Lichess's "Piece notation": "Glyphs" (the default) or
+   "Text".
+   - **Glyphs,** as strategyjam.org's move list writes a move: a placement is its blueprint's number in a box, its
+     anchor, and its capture mark, `+N` when it scores and a small `x` when it captures and scores nothing (item 6).
+     An edit is its cell, with its kind, then each blueprint's number in a box with the cell's place, before and
+     after. The boxes and the cell take the colour of the text round them.
+   - **Text:** the notation of items 5 and 6, as the Notation page gives it (`2@-3,-9x+12`, `1:-1,2>2:0,4`).
+   - The setting writes the move list, its notes ("Mistake. … was best."), the status line, the variations and the
+     engine's line in the form "Notation", and the candidates' table. A screen reader reads the text in both forms.
+   - A candidate, a note's best move and a line's move before the rules play it have no capture mark, in both forms:
+     what they capture is not known yet.
+5. **The small pictures** (the variations' form "Pictures", and the engine's line under the table): a placement is a
+   hex in the mover's colour with its blueprint's number in it, which tells the hand that the move plays. An edit is
+   its cell, with its kind, and an arrow drawn out of it, as one glyph. A pass is a dot. The engine's line has no
+   numbers in this form: a number beside the hex would read as the blueprint's number, and the board numbers the
+   line's moves. The form "Dots" keeps the board's numbers in its dots.
+6. **The board's numbers:** a line's move has its number in a small disc at its anchor cell's corner, so that the cell
+   shows. An edit candidate has its rank in a small badge at its cell's corner, in the hand.
+7. **The marks of a turn:** at each position, the board marks every move of the turn so far: each placement's outline,
+   and each edit's arrow in the hand. By turn and by move alike: the review's unit changes the labels' grouping only.
+   Hedge School's board marks the edges of a turn so too.
+8. **The hands' rank chips:** each candidate that places a blueprint has its rank in a chip at the blueprint's panel.
+   The best chips that fit one row show, then a chip "+N" for the others (`src/lib/board/chips.ts`). A row that
+   wrapped would cover the blueprint's cells.
+9. **The candidates' table** follows the setting "Move notation", in the move list's monospaced font. A name is as
+   large as its cell allows (the view's `fitName`): its full size, or smaller where it is wider than its cell, down to
+   65%, below which it is cut and fades at its end (`src/lib/review/table.ts`). At 65% (9 pixels), the longest edit of
+   strategyjam.org's archive fits as text in the cell at 1,376 pixels. As glyphs it would need 54%, too small to read.
+   The Move header shows a cut name in full (design 06, item 12).
+10. **The root's views** (request 24): on a position whose legal placements need more than one of the engine's views,
+    the engine searches each view, so a candidate can lie outside the rule's view. The board draws a candidate
+    anywhere, and the site reads every candidate placement as a placement, with its anchor. A test checks it on a
+    position of two views, where the engine's best move lies outside the rule's view
+    (`src/lib/review/rootViews.engine.test.ts`).
+11. **Not built yet:** sounds, notes on the board, the image of a line, the opening book, a list of games and a GPU
+    setting. The review keeps one game in this browser: `#record=`, from the import page or a link, brings one. The
+    engine's pool keeps its 2 workers while the page is open.
+
+### No area map yet
+
+Drawing Board shows no area map (design 30): no switch, no legend and no shading, on the review and on the Analysis
+board. The area map is essential to Enclosure, where the enclosed area decides the game. For Blueprints, it is not known
+yet which view of the analysis helps a player. A later study can choose one, and the area map can then be one option:
+`AREA_MAP` in `blueprintsView.ts`, with `blueprintsMap.ts` and its tests, is kept for it.
+
+The map would take the engine's ownership as it is: the rule's view, a rhombus of 67 × 67 hexes round the mover's last
+placements (the engine repository's `games/blueprints/README.md`, "The ownership"), with no mark outside it. The
+archive check below gives the share of positions with cells outside that view.
+
+### The archive check
+
+Each record of strategyjam.org's archive that the engine repository keeps (`runs/strategyjam-archive/blueprints.jsonl`,
+5,680 records when the check ran), read in place through the site's code path: the import, the record's reader, the
+engine's describe_game, Blueprints' game, and the check of the capture marks, with the engine's describe at every 20th
+position from move 10. Counts only: the archive's games are other people's, and stay out of this repository.
+
+- The import refused 65 records, which have no moves. The engine accepted every move of the other 5,615 games (510,853
+  moves), and the site read each.
+- All 2,630 games that the rules end end with the record's winner. The other 2,985 end before the rules' end.
+- Of 25,580 positions described, 6,444 (25.2%) have cells outside the rule's view: 729,739 of 6,074,915 cells
+  (12.0%), and at most 917 in one position.
+- 2,008 positions (7.9%) need more than one view, 4,717 (18.4%) need one view that is not the rule's, and 6,725
+  (26.3%) have a legal placement outside the rule's view.
+- The longest placement has 15 characters with its capture mark, and the longest edit 17. The largest score of one
+  move is 1,206.
+
+### The departures from Hedge School's view
+
+- **One move a row in the move list** (item 3): two of Blueprints' moves do not fit one row. Enclosure's edges have 5
+  to 7 characters, and two fit, as Lichess's moves do.
+- **The setting "Move notation"** (item 4): a Blueprints move reads in two forms, strategyjam.org's glyphs and its
+  notation. Enclosure's edge has one form, its notation.
+- **The small pictures, and no numbers in the engine's line in "Pictures"** (item 5): Hedge School's pill lies along
+  its edge and holds the line's number. Blueprints' hex holds the blueprint's number, so the line's number goes.
+- **The table's names, each sized to its cell, in the monospaced font, by the notation setting** (item 9): Blueprints'
+  names have 5 to 19 characters, so one size for every name in a cell would make the short ones small. Enclosure's
+  names have 5 to 7 characters, and Hedge School keeps its one size for a cell.
+- **No area map** ("No area map yet").
+- **The cards' second number:** the stars on the board, in the place of the enclosed area (item 2).
+
+The Move header and the fade of a cut name are in the shared table, so Hedge School has them too (design 06, item
+12).
+
 ## Why
 
 - **Hedge School's design is built and checked.** Its layout, its review and its quality labels hold for any game whose
@@ -420,8 +521,9 @@ the owner (abscls-8tl1.12). The tests use page states that they make, with moves
   browser build that takes and gives whole moves in the site's strings, before the trained network.
 - **A placement outside the engine's view.** The engine sees 67 × 67 hexes around the mover's last placements, and
   97.6% of the placements in the site's games fall in it (the engine repository's `games/blueprints/README.md`).
-  The engine must still play the others and describe the positions after them. They are never among its
-  candidates.
+  The engine must still play the others and describe the positions after them. Since request 24, the engine also
+  searches the other views of a position, so a candidate can lie outside the rule's view ("The review and the Analysis
+  board", item 10).
 - **The review's constants are Hedge School's** until Blueprints' games show other values: the search budgets, the
   threshold of a hard position, and how far below the first choice a candidate shows (design 29, "Consequences"). The
   score's scale is the engine's (`SCORE_SCALE` 12 in the port).
@@ -517,6 +619,14 @@ the owner (abscls-8tl1.12). The tests use page states that they make, with moves
 - `apps/drawingboard/src/app.css`: the board's colour tokens that the shared style and the view's do not hold (the
   board's background and its points), Hedge School's. The last move's, the engine's and the candidates' colours are
   the view's (`packages/review/src/review.css`), and both sites take them from there.
+- `apps/drawingboard/src/routes/review/` and `src/routes/analysis/`: the review and the Analysis board, in the shared
+  view (`@abstractclass/review/ReviewView.svelte`). `src/lib/review/`: Blueprints' part of the view
+  (`blueprintsView.ts`), its game for the analysis (`blueprints.ts`, with the glyphs' parts and the notes), the board
+  (`ReviewBoard.svelte`), the glyphs (`MoveLabel.svelte`), the small pictures (`MoveShape.svelte`), the table's least
+  size (`table.ts`), the display settings (`display.ts`), and the area map kept for later (`blueprintsMap.ts`).
+  `src/lib/board/chips.ts`: the hands' rank chips.
+- `apps/hedgeschool/tests/drawingboard-review.spec.ts` and `move-header.spec.ts`: the browser tests of the review, and
+  `layout.spec.ts` its layout. They run on this machine, where the engine's files are: without them they skip.
 - `scripts/check-all.mjs`: its type check, its unit tests and its build, in the Tests workflow's checks.
 - [requests/23-blueprints-browser-build.md](../requests/23-blueprints-browser-build.md): what the site asks of the
   engine's browser build.
@@ -527,5 +637,5 @@ the owner (abscls-8tl1.12). The tests use page states that they make, with moves
 styles in packages/review and packages/site" (2026-10-26), "The player's own moves on Drawing Board, from the
 engine's legal moves" (2026-10-27), "The import's frame in packages/import, and Drawing Board's tools"
 (2026-10-27), "Drawing Board's practice: its layout, its engine's files, and the shared parts" (2026-10-30),
-"Drawing Board's practice: the bot and the page" (2026-10-30), and "Drawing Board's practice on protocol 0.7.1"
-(2026-10-30).
+"Drawing Board's practice: the bot and the page" (2026-10-30), "Drawing Board's practice on protocol 0.7.1"
+(2026-10-30), and "Drawing Board's review and Analysis board" (2026-11-01).

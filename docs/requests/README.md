@@ -33,5 +33,5 @@ accepted, done (with the engine repository's commit, tag or document), or declin
 | 21 | [No training on the engine's outputs, in the engine's terms](21-no-training-on-outputs.md) | done (the engine repository's commit `ef6e24e`, its design 21, release `wasm-v2-engine-85f1792-terms2`), checked here, pinned and on the notices page |
 | 22 | [The opening book: KataGo's book method, as files for the site](22-opening-book.md) | open |
 | 23 | [Blueprints' engine in the browser, before the trained network](23-blueprints-browser-build.md) | open |
-| 24 | [Blueprints' browser engine searches the root's views](24-root-views-browser.md) | done (engine repository commit `d9d355e4`), to check here with Drawing Board's review |
+| 24 | [Blueprints' browser engine searches the root's views](24-root-views-browser.md) | done (engine repository commit `d9d355e4`), checked here with Drawing Board's review |
 | 25 | [Practice games against Stamp Duty: Blueprints' GTP bot in the browser](25-blueprints-practice-bot.md) | done (engine repository commits `217be61f` and `70dfdc0f`), checked here with Drawing Board's practice page |

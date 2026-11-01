@@ -7582,3 +7582,92 @@ abscls-8tl1.14's review. Design 33, "Practice against Stamp Duty", gives the res
   It had computed the winner from the scores.
 - **The fit of the panel** returns at once when the panel's place gives the fit with no panel: no corner can give a
   larger board then. The other three corners' fits are no longer made.
+
+### Drawing Board's review and Analysis board (2026-11-01)
+
+abscls-8tl1.7, on Stamp Duty's early build `engine-70dfdc0f` (protocol 0.7.1). Design 33, "The review and the
+Analysis board", gives the result, and design 06, item 12, the Move header that both sites now have. Each part was
+chosen in six looks at drawings of the real page in headless Chromium, from the engine's replies: the review of a game
+of Stamp Duty against itself (`apps/drawingboard/src/lib/review/fixtures/stamp-duty.txt`: 120 moves, 61 turns,
+reviewed at 512 visits a move in 1,771 seconds with 2 workers). Each number below was read in the page by the scripts
+of the look that it names, or by the archive check.
+
+- **The move list (the second look).** Two moves a row, each as wide as its text, with a turn's second move on a line
+  of its own where the two did not fit: of the 61 turns, 20 by turn and 59 by move took two lines at 1,376 × 952 (a
+  list 325 pixels wide), and 11 and 12 at 1,920 × 1,080 (411 pixels). Each turn's width on one row, with its label, the
+  ◆ and its loss: 378 pixels at the most by turn (turn 2, two edits), 440 by move. Turns wider than the list: 17 by
+  turn and 56 by move at 1,376, 0 and 4 at 1,920, 45 and 59 at 390 × 844. The archive's longest placement has 15
+  characters with its capture mark, its longest edit 17, and its largest score of one move is 1,206: 2 and 4
+  characters more than the test game's. Three forms were drawn: every turn on two rows; every turn on one row with
+  shorter text, where no cut of the text fitted every turn by move at 1,376 (the closest was 3 pixels too wide there,
+  and 34 on a phone); and a list of 440 pixels, which takes 125 pixels from the board at 1,376. One move a row holds at
+  every size for every move of the archive, with the full text. Its cost is the turns in view: 10 instead of 12 at
+  1,376 by turn, and 14 instead of 24 at 1,920. It was chosen, at every size.
+- **The marks of a turn (the first look).** Hedge School's board marks the edges of the turn so far alike by turn and
+  by move (its layer "Invincible edges"). Drawing Board's board does the same: each placement of the turn so far has
+  the last move's outline, and each edit its arrow in the hand. The shared view gives the board the turn's earlier
+  moves (`BoardProps.earlier`), which Hedge School's board does not read.
+- **The hands' rank chips (the first look).** At move 118, 27 candidates place Red's blueprint 1: the chips "1" and
+  "+26" at the panel's least size, and "1 2 3" and "+24" at its first size. A row that wrapped would cover the
+  blueprint's cells.
+- **The board's numbers (the first and second looks).** An edit candidate's rank covered its whole cell, and a line's
+  number disc covered its anchor cell. Three forms of each were drawn. The small badge at the cell's corner and the
+  small disc at the anchor cell's corner keep the cell in view, and were chosen.
+- **The small pictures (the first to fourth looks).** The first form, "Boxes" (a placement's blueprint number in a
+  box, an edit's in a hex, and in the engine's line a numbered disc for every move), did not show a move's kind in the
+  line. A placement drawn as its blueprint's shape at the row's height ("fit") drew a blueprint one hex wide and eight
+  high about 0.25 em wide (3 to 4 pixels), in a line made by hand for the check. At one size for each hex ("fixed"),
+  the same blueprint was 2.9 em high, and its row grew. Neither was chosen: a placement is a hex with its blueprint's
+  number, which tells the hand that the move plays. An edit's cell and its arrow were drawn three ways (two parts, one
+  chip, and the arrow drawn out of the cell as one glyph), and the one glyph was chosen.
+- **The engine's line's numbers (the fourth and fifth looks).** With the line's number in a disc after each picture, a
+  placement read "[hex 3][disc 1]": two filled shapes of one colour, 1.2 em and 0.9 em high, each with a white digit.
+  A plain grey number before each move was drawn as a fix. Neither was kept: in "Pictures" the line has no numbers,
+  and the board numbers its moves.
+- **The setting "Move notation" (the third and fourth looks),** as Lichess's "Piece notation". A note wrote its moves
+  in the engine's notation whatever the list showed, and now follows the setting. In glyphs, a placement that captured
+  and scored nothing had no mark (`2@-6,2x` in text, `-6,2` in glyphs). The small `x` now says what the text says.
+- **The candidates' table (the third to sixth looks),** over the test game's 121 positions (2,075 rows, 605 names), with
+  the engine off, so that each form had the same candidates:
+  - **One size for a cell's width** (`clamp(0.7em, 8.5cqi, 1em)`), in the sans-serif font: at 1,376 every name was at
+    70%, although every text name fitted at full size (the widest needed 81 pixels, in a cell of 93). In glyphs, in the
+    mover's colour on the row's tint, 114 names were wider than the cell, and the colour on the tint was hard to read.
+  - **Each name sized to its cell,** in the sans-serif font, the glyphs in the table's text colour: at 1,376, text 605
+    at full size, and glyphs 491 at full size, 114 smaller (79% at the least) and 0 cut. At 1,920, all at full size. On
+    a phone (a cell of 62 pixels), text 475 at full size and 130 smaller, and glyphs 475 at full size, 16 smaller and
+    114 cut. One size of 12.5 cqi would have drawn all 605 at 83% at 1,376, and cut 20 glyph names.
+  - **The win rate and the lead in one column on a phone:** the Move cell grew from 62 to 138 pixels, and every name
+    fitted. Hedge School's phone table at the review fixture's position after move 20: its name's slot is 4.1 em of its
+    own size (56 pixels), and M12-O13 was cut at every size in it. The columns stay apart: the Move header opens the
+    column instead.
+  - **In the monospaced font (Fira Code),** each name sized to its cell, with 65% at the least: at 1,376, text 525 at
+    full size, 80 smaller (85% at the least) and 0 cut, and glyphs 491, 114 (66.7%) and 0. At 1,920, all at full size.
+    On a phone, text 322, 203 (67%) and 80 cut, and glyphs 322, 169 (79%) and 114 cut. With 70% at the least, glyphs
+    at 1,376 had 20 cut, and text on a phone 114 cut.
+  - **The archive's longest edit** (17 characters, 12 of them its two places), measured in the page: at full size,
+    99.4 pixels in text and 136.9 in glyphs in the sans-serif font, and 142.8 and 172 in Fira Code. In the cell of 93
+    pixels at 1,376, it needs 65.1% in text and 54.1% in glyphs. 54% would make the text 7.6 pixels high and the boxes'
+    digits 6.4 pixels: too small to read. So the least size is 65% (9.1 pixels), and the longest edit fits there as
+    text.
+- **The Move header (the fifth look).** At move 101 (five edits in view): on a phone in glyphs, the Move column grows
+  from 70 to 148 pixels, and the table is 372 pixels wide in a box of 294. In text the column grows to 118 pixels, the
+  table to 342. At 1,376 in glyphs the column grows from 101 to 148 pixels, the table to 372 in a box of 325. The
+  header's mark showed at 46 of the 121 positions at 1,376 in text, at 57 in glyphs, at 106 on a phone in both forms,
+  and at none at 1,920: at each position exactly where a name was smaller or cut. On Hedge School, at the review
+  fixture's position after move 20, the name's slot opens from 56 to 59 pixels, and M12-O13 shows in full.
+- **The fade replaces the ellipsis** of a cut name, on both sites: one mark for text and glyphs. The layout test now
+  passes text that ends in a fade, as it passes text that ends in an ellipsis.
+- **A row of glyphs was too high.** An edit's glyph begins with its cell's picture. A row of glyphs takes its baseline
+  from its first part, and a picture's baseline is its lower edge, so the glyph rose about 3 pixels above the line:
+  its row was 28.3 pixels high, not 26.6, and five such rows hid 8.5 pixels of the table's fifth row. It showed wherever
+  edit glyphs were at full size (at 1,920, and in the open column). In the table the glyphs now sit on the middle of
+  their line, and every row is 26.6 pixels high, closed and open.
+- **The dark theme (stage 2).** In the table the glyphs take the text colour, which is light grey in the dark theme,
+  so white digits would not show on their boxes. There the boxes' digits and the cells' marks take the table's ground
+  colour (`--on-text`, the panel's colour): 11.63:1 on their boxes and cells in the dark theme, and 15.29:1 in the
+  light (WCAG's ratio, from the colours that Chromium computed at move 101, over 57 boxes and 16 cells). The boxes and
+  the cells on the strongest row tint (44% of the side's colour over the panel), computed from the colour tokens:
+  5.84:1 at the least in the dark theme, and 8.09:1 in the light. The move list keeps white digits on the mover's
+  colour.
+- **Request 24 is checked** (its "Checked here"): on the practice bot's position of two views, the engine's best move,
+  2@-3,2, lies outside the rule's view, and the site reads every candidate as the engine names it.

@@ -1,7 +1,7 @@
 # Blueprints' browser engine searches the root's views
 
-**Status:** done: engine repository commit `d9d355e4` (abscls-il4e.9), to check here with Drawing Board's review
-(abscls-8tl1.7). **Asked:** 2026-10-29.
+**Status:** done: engine repository commit `d9d355e4` (abscls-il4e.9), checked here with Drawing Board's review
+(abscls-8tl1.7, "Checked here"). **Asked:** 2026-10-29.
 
 ## What
 
@@ -57,3 +57,20 @@ the protocol, and its `games/blueprints/docs/decisions/port.md` the decision.
   with no raw values and the new error are breaking changes, and a breaking change takes the next minor version at
   once, also before a release. The shared engine package (`packages/engine`) then takes each site's protocol: 0.6.x
   for Hedge School, 0.7.x for Drawing Board (abscls-8tl1.14).
+
+## Checked here
+
+Drawing Board's review reads a reply of more views as the engine gives it (its design 33, "The review and the Analysis
+board", item 10), on `engine-70dfdc0f` (protocol 0.7.1). The test
+`apps/drawingboard/src/lib/review/rootViews.engine.test.ts` takes the practice bot's position of two views (Blue to
+move, 987 legal moves) and the review's search of it (64 visits, in slices, as the engine's worker runs it):
+
+- `describe` and the reply's `rootInfo` give a cover of two views or more.
+- The site reads every candidate as the engine names it, none dropped. Each placement is read as a placement with its
+  anchor, in the rule's view or not. An edit, which moves a cell within the hand, is read as an edit.
+- The engine's best move, 2@-3,2, lies outside the rule's view: the view of the reply's ownership, round Blue's last
+  placements far to the left.
+
+The test needs the engine's files, which only this machine has: in the Tests workflow it skips, with a message. The
+archive check (design 33, "The archive check") counts the positions of more views in the site's games: 2,008 of
+25,580 (7.9%).

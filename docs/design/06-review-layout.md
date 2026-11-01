@@ -261,6 +261,20 @@ Lichess sizes its Analysis board from the window, and keeps the board whole in v
     move list. Its ligatures are off: a ligature changes a record's text, and the text must show as it is. The game id
     k3x9q showed as k3×9q, and "??" as one glyph. The layout test checks the setting (`tests/layout.spec.ts`, "the
     monospaced font draws no ligatures").
+12. **The candidates table's Move header opens its column.** The table's columns are fixed, so that it keeps its layout
+    from position to position, and the Move column takes the room that the others leave. A move's name gets smaller
+    where its cell is narrow, down to its least size: Hedge School's names by their cell's width (70% at the least),
+    and Drawing Board's each by its own width (65%, its design 33). Below it the name is cut, and its last 1.25 em
+    fades out, so that the player sees that it is cut. While a name in the table is smaller than its full size or
+    cut, the Move header is a button with a mark: "Move ›" (Hedge School's "Edge ›"). A click opens the column: every
+    name at its full size, in a column as wide as the widest name, and the table as wide as it then needs, so that
+    its box scrolls sideways. The # and Move columns come first, so they show at the scroll's start, and the others
+    scroll in from the right. A second click ("Move ‹") closes it. The column stays open from position to position
+    until that click, and the page does not keep it. While the box scrolls sideways, it grows by its scroll bar's
+    height, so that its rows stay in view. With nothing to open, the header is the plain word, and a click does
+    nothing. The button's name is the column's word, because a screen reader reads the header's name with each cell
+    of the column. Its title ("Show the moves in full") is its description, and `aria-expanded` gives its state. A
+    click does not take the focus, so that the page's keys stay on the game.
 
 ## Why
 
@@ -312,8 +326,9 @@ Lichess sizes its Analysis board from the window, and keeps the board whole in v
 ## Where it is
 
 - `packages/review/src/ReviewView.svelte`: the columns, the board's size, the engine header, the controls' bar, the
-  display settings' panel (`settingsPanel`). Hedge School's part of the view, Enclosure's:
-  `src/lib/review/enclosureView.ts` (design 29, item 9).
+  display settings' panel (`settingsPanel`), and the candidates table with its Move header (`fitNames`,
+  `packages/review/src/nameSize.ts`; its browser test `tests/move-header.spec.ts`). Hedge School's part of the view,
+  Enclosure's: `src/lib/review/enclosureView.ts` (design 29, item 9).
 - The parts that Practice shares (design 24): the row above the board (`packages/review/src/PlayerRow.svelte`,
   `PlayerCard.svelte`), the win bar and gauge (`packages/review/src/ShareBar.svelte`), the move list's look
   (`packages/review/src/moveList.ts`), and the settings' rows (`packages/site/src/SettingChoice.svelte`,
@@ -337,3 +352,5 @@ Lichess sizes its Analysis board from the window, and keeps the board whole in v
 - [decisions/product.md](../decisions/product.md), "On a phone, the step bar stays at the bottom of the screen"
   (2026-10-24).
 - [decisions/product.md](../decisions/product.md), "The monospaced font's ligatures are off" (2026-10-27).
+- [decisions/product.md](../decisions/product.md), "Drawing Board's review and Analysis board" (2026-11-01): the Move
+  header and the fade of a cut name.
