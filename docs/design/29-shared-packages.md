@@ -334,7 +334,10 @@ edit in the same commit), so their changes still apply.
   (`pageScroll.ts`).
 - `packages/import/` (`@abstractclass/import`, item 10): `bookmarklet.ts`, `userscript.ts` and `pageCode.ts` (the
   tools' frame), `importHash.ts` (the hash after the `#`) and `importEvents.ts` (the import's events), with tests on a
-  test site whose games are words. `apps/hedgeschool/src/lib/game/tools.ts` and `sources.ts`: Hedge School's parts.
+  test site whose games are words. `ToolChoice.svelte`: the import page's choice for a tool's game, between the review
+  and the Analysis board, with each site's words (design 33, "How a game comes in from strategyjam.org"), and
+  `import.css`, which lets Tailwind find its classes. `apps/hedgeschool/src/lib/game/tools.ts` and `sources.ts`:
+  Hedge School's parts.
 - `packages/engine/src/node-engine.mjs` and `fetch-engine.mjs`: the engine in Node, and the fetch of a site's engine
   files, which each site runs in its own folder (`npm run engine`). `protocol.ts`: the protocol that each site's code
   is written for (Hedge School 0.6.x, Drawing Board 0.7.x with the root's views), from the site's `engine.lock.json`

@@ -1,8 +1,7 @@
 <script lang="ts">
   // The tools that bring games from strategyjam.org (design 22, design 33): the bookmarklet and the userscript, which
-  // open the import page with a game of Blueprints after the `#` (src/lib/game/tools.ts). Until the review comes
-  // (abscls-8tl1.7), the import page shows the game's record and the position that the game's page showed. The steps
-  // are strict Simplified Technical English: the player follows them.
+  // open the import page with a game of Blueprints after the `#` (src/lib/game/tools.ts), which opens it in the review
+  // or on the Analysis board. The steps are strict Simplified Technical English: the player follows them.
   import { onMount } from "svelte";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import { bookmarkletHref, TOOL_NAME } from "#lib/game/tools.ts";
@@ -22,10 +21,6 @@
     site cannot get them. A bookmarklet can get them: you keep it in your browser's bookmarks bar, and click it on a
     game page of Blueprints. It reads the game from that page and opens it here. It sends nothing to strategyjam.org and
     reads nothing from your login. At each click it loads its code from this site, so it always has the newest code.
-  </p>
-  <p class="px-4 py-3 bg-panel border border-line rounded-lg">
-    Drawing Board cannot review games yet. For now, it shows the record of the game and the position that you looked
-    at. The review and the Analysis board come later.
   </p>
   <ol class="grid gap-2.5 pl-5 list-decimal">
     <li>Show the bookmarks bar. In Chrome and Edge, press Ctrl+Shift+B. In Firefox, press Ctrl+Shift+B, or use the View

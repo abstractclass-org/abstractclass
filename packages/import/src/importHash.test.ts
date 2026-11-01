@@ -41,9 +41,11 @@ test("which part after the `#` holds a game, and which the review's arrival step
   for (const hash of ["#record=x", "#1.%20ab", "#record=x&tool=bookmarklet", "#game=abc", ""]) assert.equal(reviewArrives(hash), false, hash);
 });
 
-test("the Analysis board's address: the record, the page's position or the game's end, and the source", () => {
+test("the Analysis board's address: the record, the page's position or the game's end, and the source if any", () => {
   const read = (address: string) => new URLSearchParams(address.slice("/analysis#".length));
   const at = read(analysisAddress({ record, at: 1 }, 3, "words_bookmarklet"));
   assert.deepEqual([at.get("record"), at.get("at"), at.get("via")], [record, "1", "words_bookmarklet"]);
   assert.equal(read(analysisAddress({ record, at: null }, 3, "words_userscript")).get("at"), "3");
+  // A site that counts no events gives no source, and the address names none
+  assert.deepEqual([...read(analysisAddress({ record, at: 2 }, 3)).keys()], ["record", "at"]);
 });

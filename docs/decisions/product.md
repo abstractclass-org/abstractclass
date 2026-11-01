@@ -7671,3 +7671,28 @@ of the look that it names, or by the archive check.
   colour.
 - **Request 24 is checked** (its "Checked here"): on the practice bot's position of two views, the engine's best move,
   2@-3,2, lies outside the rule's view, and the site reads every candidate as the engine names it.
+
+### Drawing Board's import page opens the review and the Analysis board (2026-11-01)
+
+abscls-8tl1.18. Design 33, "How a game comes in from strategyjam.org", items 5 and 6, gives the result. The choices
+that the designs left open:
+
+- **The engine checks the record before the page offers the choice,** not after a click. A record that the engine
+  refuses then shows no button that would fail. The page starts a rules worker of its own for the check, and ends it
+  after: the rules alone need no network. The wait is not measured alone: in the browser tests (headless Chromium,
+  2 workers, the engine on the CPU), a test of an out-of-date tool, from the page's load to the choice, took 7.7 to
+  8.2 s, and the refused record's test 8.1 to 9.9 s. The page shows the game while the engine checks it.
+- **The page sends the record by each page's own address** (`/review#record=`, `/analysis#record=…&at=`), which
+  already took a record and checked it. Hedge School's import keeps the game itself and opens `/review#game=`, since
+  its review has a list of games. Drawing Board's review keeps one game, under the key that the review writes. So the
+  record is checked twice, once on each page: the review's check is part of its start, and costs nothing more.
+- **The choice's frame moved to `packages/import`** (`ToolChoice.svelte`): the notice's place, the game's line, and
+  the two ways, each a button with what it does. Each site gives its own words. Hedge School's import page gives the
+  same markup as before, and its tests (`tool-choice.spec.ts`, the layout test's choice) are unchanged.
+- **The Analysis board's card says that the game replaces the board's moves.** Hedge School's board asks before it
+  replaces the player's board ("Replace your analysis?"). Drawing Board's board has no such question yet: it replaces
+  the board kept in this browser once the engine accepts the record. The card says so, in place of the question.
+- **The record stays on the page, under "The record", closed.** It helps the test of the tools on strategyjam.org
+  (abscls-8tl1.12), and it no longer takes the page's room.
+- **No `via` in the board's address:** Drawing Board counts no import, so `analysisAddress` takes the source only on
+  a site that counts it.

@@ -66,7 +66,8 @@ engine does by itself.
    - **A link** that carries a line: `/analysis#record=…` (a record), or `/analysis#packed=…` (a shared analysis),
      with `&at=` for the position (design 22).
    - **A game from the bookmarklet or the userscript** (design 11): the import page (`/import`, design 22) asks first,
-     "Review the game" or "Analyze on the board" (`src/lib/review/Arrival.svelte`). A player who watches a game on
+     "Review the game" or "Analyze on the board" (`src/lib/review/Arrival.svelte`, in the choice's frame that
+     Drawing Board shares, `packages/import/src/ToolChoice.svelte`). A player who watches a game on
      meaf.us or strategyjam.org often wants to show how a move could have gone, not to wait for the review of the whole
      game.
      - **Review the game** keeps the game in the list of games, and reviews it.

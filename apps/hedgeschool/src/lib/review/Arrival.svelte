@@ -19,6 +19,7 @@
   import { BOOKMARK_VERSION } from "@abstractclass/import/bookmarklet.ts";
   import { analysisAddress, hashParams, readImportHash, staleTool, type ImportHash,
            type Tool } from "@abstractclass/import/importHash.ts";
+  import ToolChoice from "@abstractclass/import/ToolChoice.svelte";
   import { toolSource } from "#lib/game/tools.ts";
   import { gamePartner, partnerOf, receiveFromPartner } from "#lib/game/partners.ts";
   import { setGamePartner } from "#lib/game/store.ts";
@@ -185,39 +186,29 @@
     {@const { sent, record, source, stale } = phase}
     {@const names = playerNames(record.tags)}
     {@const site = sent.site === "strategyjam.org" ? "strategyjam.org" : "meaf.us"}
-    <!-- `site`: one of the two sites, as the import's source names them (toolSource), never the link's own text. -->
-    {#if stale}
-      <p class="px-4 py-3 bg-panel border border-accent rounded-lg" role="status">
-        {#if stale === "bookmarklet"}Your bookmarklet is an older one. On the <a href="/tools">tools page</a>, drag the
-          button to the bookmarks bar again, in place of the old one.
-        {:else if stale === "userscript"}Your userscript is older than this site's. Tampermonkey updates it when it next
-          checks. To update it now, open the Hedge School userscript on the <a href="/tools">tools page</a>.
-          Tampermonkey then offers the update.
-        {:else}This game came from a bookmarklet or a userscript made before they could tell this site their version. On
-          the <a href="/tools">tools page</a>, drag the bookmarklet to the bookmarks bar again, in place of the old one.
-          The new bookmarklet loads its code from this site, so it stays up to date. For the userscript, open it on the
-          <a href="/tools">tools page</a>. Tampermonkey then offers the update.{/if}
-      </p>
-    {/if}
-    <h1 class="text-2xl font-bold">A game from {site}</h1>
-    <p><strong>{names.blue} against {names.red}</strong>, {record.moves.length} {record.moves.length === 1 ? "edge" : "edges"}.</p>
-    <!-- Two ways for the game (design 21): the text that a player follows, in strict Simplified Technical English. -->
-    <div class="grid gap-3 sm:grid-cols-2">
-      <section class="grid content-start gap-2 p-4 bg-panel border border-line rounded-lg">
-        <!-- svelte-ignore a11y_autofocus: the page holds only this choice, and Enter then reviews, as the tools did -->
-        <button class="btn-primary justify-self-start" type="button" autofocus
-                onclick={() => reviewChosen(sent, record, source)}>Review the game</button>
-        <p class="text-sm">The engine examines all the moves of the game. It gives a quality label to each move. Hedge School
-          keeps the game in your list of games.</p>
-      </section>
-      <section class="grid content-start gap-2 p-4 bg-panel border border-line rounded-lg">
-        <button class="btn-primary justify-self-start" type="button"
-                onclick={() => analyzeChosen(sent, record, source)}>Analyze on the board</button>
-        <p class="text-sm">The Analysis board shows {sent.at === null ? "the position after the last move of the game"
-          : `the position that you saw on ${site}`}. Make your own moves to examine other lines. Hedge School does not
-          keep the game in your list of games.</p>
-      </section>
-    </div>
+    <!-- `site`: one of the two sites, as the import's source names them (toolSource), never the link's own text. Two
+         ways for the game (design 21): the text that a player follows, in strict Simplified Technical English. -->
+    <ToolChoice heading="A game from {site}" players="{names.blue} against {names.red}"
+                length="{record.moves.length} {record.moves.length === 1 ? 'edge' : 'edges'}"
+                notice={stale ? staleNotice : undefined}
+                review={{ label: "Review the game", onclick: () => reviewChosen(sent, record, source),
+                          text: "The engine examines all the moves of the game. It gives a quality label to each move. "
+                            + "Hedge School keeps the game in your list of games." }}
+                analyze={{ label: "Analyze on the board", onclick: () => analyzeChosen(sent, record, source),
+                           text: `The Analysis board shows ${sent.at === null ? "the position after the last move of the game"
+                             : `the position that you saw on ${site}`}. Make your own moves to examine other lines. `
+                             + "Hedge School does not keep the game in your list of games." }} />
+    {#snippet staleNotice()}
+      {#if stale === "bookmarklet"}Your bookmarklet is an older one. On the <a href="/tools">tools page</a>, drag the
+        button to the bookmarks bar again, in place of the old one.
+      {:else if stale === "userscript"}Your userscript is older than this site's. Tampermonkey updates it when it next
+        checks. To update it now, open the Hedge School userscript on the <a href="/tools">tools page</a>.
+        Tampermonkey then offers the update.
+      {:else}This game came from a bookmarklet or a userscript made before they could tell this site their version. On
+        the <a href="/tools">tools page</a>, drag the bookmarklet to the bookmarks bar again, in place of the old one.
+        The new bookmarklet loads its code from this site, so it stays up to date. For the userscript, open it on the
+        <a href="/tools">tools page</a>. Tampermonkey then offers the update.{/if}
+    {/snippet}
   {:else}
     <p class="text-blunder" role="alert">{phase.load ? "Hedge School could not load the review" : "Hedge School could not import the game"}: {phase.problem}</p>
     <p>You can paste a game record in the <a href="/review" data-sveltekit-reload>Review tab</a>, or bring games from other sites with the

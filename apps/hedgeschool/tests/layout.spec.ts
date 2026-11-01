@@ -11,13 +11,14 @@
 // scripts/test-fixture.mjs), the Review tab with that game kept, and Practice a game in progress from it. The import
 // page shows the choice for a userscript's game, with the notice to update the userscript. Two tests check that the
 // monospaced font draws no ligatures, on Hedge School and on Drawing Board (DB_BASE_URL). Two check Drawing Board's
-// Practice (DB_BASE_URL): its page, and a game in progress when the site has its practice bot. A last test checks the
+// Practice (DB_BASE_URL): its page, and a game in progress when the site has its practice bot. Two check Drawing
+// Board's import page: the choice for a tool's game, and a record that the engine refuses. A last test checks the
 // step bar on a phone, on the review, the Analysis board and Practice. Run: npm run test:layout (the site running
 // first).
 import { expect, test, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { loadReviewFile } from "./review-file.ts";
-import { SPREAD_BOARD, noReview, reviewTestGame } from "./drawingboard-review.ts";
+import { SPREAD_BOARD, noReview, reviewTestGame, testRecord } from "./drawingboard-review.ts";
 
 const WIDTHS = Array.from({ length: (1920 - 360) / 10 + 1 }, (_, k) => 360 + 10 * k);
 const HEIGHTS = [700, 860, 1000];
@@ -228,6 +229,28 @@ test("layout of the choice for a tool's game", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Analyze on the board" })).toBeVisible();
   expect(await sweep(page, "/import, a tool's game")).toBe("");
 });
+
+// Drawing Board's import page (its design 33), when DB_BASE_URL gives its preview with the engine's files: the choice
+// for the review's test game, below the notice that an out-of-date userscript gets, and a record that the engine
+// refuses (the test game's first three turns, with an x on a move that captures nothing). Besides the sweep, design
+// 06's window sizes.
+const REFUSED = '[Blue "Ann"]\n[Red "Bo"]\n\n1. 1:-1,1>2:0,-1 2. 1:-1,1>2:-2,1 1:0,2>2:0,3 3. 1:0,2>2:2,2 2@1,-5x *\n';
+for (const [name, record] of [["the choice", ""], ["a refused record", REFUSED]] as const) {
+  test(`layout of Drawing Board's import page: ${name}`, async ({ page }) => {
+    const skip = await noReview(page);
+    test.skip(!!skip, skip);
+    await page.goto(new URL("/import#" + new URLSearchParams({ tool: "userscript", v: "old", site: "strategyjam.org", at: "5",
+                                                             record: record || testRecord() }), DRAWING_BOARD).href);
+    await expect(page.getByRole(record ? "alert" : "button", record ? {} : { name: "Analyze on the board" })).toBeVisible({ timeout: 120_000 });
+    const found: string[] = [];
+    for (const [width, height] of DB_PRACTICE_SIZES) {
+      await page.setViewportSize({ width, height });
+      await settle(page);
+      found.push(...(await problems(page)).map(p => `${width} x ${height}: ${p}`));
+    }
+    expect([await sweep(page, `Drawing Board's /import, ${name}`), ...found].filter(Boolean).join("\n")).toBe("");
+  });
+}
 
 // The review's display settings that change its move list's width (review/display.ts): by turn, the turn's label and
 // loss in a fourth column; by edge, each edge's in its own cell, wider (the move list cut at 1,280 pixels showed by

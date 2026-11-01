@@ -18,8 +18,6 @@
   import { mainIndex, pathKey } from "@abstractclass/analysis/tree.ts";
   import { modelOf } from "@abstractclass/engine/client.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
-  import type { EnginePool } from "@abstractclass/engine/pool.ts";
-  import { positionQuery } from "@abstractclass/engine/protocol.ts";
   import { STORES, dbGet, dbPut } from "@abstractclass/storage/db.ts";
   import { readLocal, writeLocal } from "@abstractclass/storage/local.ts";
   import Icon from "@abstractclass/site/Icon.svelte";
@@ -27,9 +25,8 @@
   import { blueprints, type Blueprints, type ReviewData } from "#lib/review/blueprints.ts";
   import { blueprintsView } from "#lib/review/blueprintsView.ts";
   import { loadDisplay } from "#lib/review/display.ts";
+  import { describeBy, recordProblem } from "#lib/review/recordCheck.ts";
   import { loadEngine, reviewVisits, saveEngine, type EngineSettings } from "#lib/analysis/engineSettings.ts";
-  import type { GamePosition } from "#lib/board/described.ts";
-  import { checkCaptures } from "#lib/game/check.ts";
   import { parseRecord, type GameRecord } from "#lib/game/record.ts";
   import { BOARD_AT_KEY, SITE_NAME } from "#lib/site.ts";
 
@@ -64,7 +61,7 @@
   });
 
   /** The board kept here, at its kept place, and a line brought after the `#`, which leaves the address, and which
-   *  replaces the kept board once the engine has checked it (recordProblem). */
+   *  replaces the kept board once the engine has checked it (recordCheck.ts). */
   async function chooseBoard(): Promise<{ kept: KeptBoard | null; at: string[]; brought?: { record: GameRecord; at: number } }> {
     const kept = (await dbGet<KeptBoard>(STORES.branches, BOARD_ID)) ?? null;
     const at = readLocal(BOARD_AT_KEY), keptAt = at ? at.split(" ") : [];
@@ -82,17 +79,6 @@
   /** The notice of a record that the board cannot open. */
   const refuse = (problem: string) =>
     (notice = `The Analysis board cannot open this record: ${problem.replace(/\.?$/, ".")} Your own analysis is here instead.`);
-  /** What is wrong with a record by the engine's rules, or null: a move that the engine refuses, or a capture mark that
-   *  the move does not confirm. */
-  async function recordProblem(pool: EnginePool, record: GameRecord): Promise<string | null> {
-    try {
-      const ps = (await pool.rules.describeGame<GamePosition>(positionQuery(null, record.moves))).reply.positions;
-      const did = record.moves.map((m, i) => blueprints.played(m, ps[i], ps[i + 1]).did);
-      return checkCaptures(record, did.map(d => ({ captured: Object.keys(d.captured).length, points: d.points }))).problem;
-    } catch (e) {
-      return errorText(e);
-    }
-  }
 
   onMount(async () => {
     try {
@@ -101,7 +87,7 @@
       const g = await session.start(pool => new GameAnalysis(blueprints, pool, [], BOARD_ID), async (g, pool) => {
         const chosen = await opening;
         await g.start();
-        const problem = chosen.brought && g.rulesReady ? await recordProblem(pool, chosen.brought.record) : null;
+        const problem = chosen.brought && g.rulesReady ? await recordProblem(describeBy(pool.rules), chosen.brought.record) : null;
         if (problem) refuse(problem);
         const brought = !problem ? chosen.brought : undefined, board = brought ? boardOfLine(brought.record.moves) : chosen.kept;
         if (board) await g.loadBoard(board);

@@ -14,7 +14,7 @@ export const DISPLAY = "drawing-board:review-display:1";
 const ENGINE = "drawing-board:engine:1";
 
 /** The test game's record up to the end of turn TURNS: its tags, but not its result, and its moves. */
-function testRecord(): string {
+export function testRecord(): string {
   const text = readFileSync("../drawingboard/src/lib/review/fixtures/stamp-duty.txt", "utf8");
   const [tags, moves] = text.split(/\r?\n\r?\n/);
   const words = moves.trim().split(/\s+/);
