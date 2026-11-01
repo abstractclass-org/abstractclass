@@ -17,12 +17,19 @@ export const readTable = (box: Locator) => box.evaluate(b => {
              cut: range.getBoundingClientRect().width > s.clientWidth + 0.5 };
   });
   const button = b.querySelector("[data-move-head] button");
-  return { names, short: names.some(n => n.size < 0.999 || n.cut), full: names.every(n => n.size >= 0.999 && !n.cut),
-           button: !!button, expanded: button?.getAttribute("aria-expanded") ?? null, sideways: b.scrollWidth > b.clientWidth + 1 };
+  return { names, short: names.some(n => n.size < 0.999 || n.cut), button: !!button, sideways: b.scrollWidth > b.clientWidth + 1 };
 });
 
+/** The position after move `k`: the start, then `k` steps by the keys, which the page takes while no control has the
+ *  focus. */
+export async function toMove(page: Page, k: number) {
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur?.());
+  await page.keyboard.press("Home");
+  for (let i = 0; i < k; i++) await page.keyboard.press("ArrowRight");
+}
+
 /** A click on the table's second row pins its line (the row's mark at its left), and a second click unpins it. */
-export async function pinRow(box: Locator) {
+async function pinRow(box: Locator) {
   const row = box.locator("tbody tr").nth(1), cell = row.locator("td").nth(1);
   await cell.click();
   await expect(row).toHaveClass(/inset_3px/);
@@ -31,9 +38,9 @@ export async function pinRow(box: Locator) {
 }
 
 /** The Move header (its word: "Move", or Hedge School's "Edge") at the position on screen, where a move of the table is
- *  smaller than its full size or cut: the button and its mark, a row's pin, the open column, the next position
- *  (`forward`, then `back`), and the close. */
-export async function checkMoveHeader(page: Page, word: string, step: { forward: () => Promise<void>; back: () => Promise<void> }) {
+ *  smaller than its full size or cut: the button and its mark, a row's pin, the open column, the next position (the
+ *  keys → then ←, which the page takes while no control has the focus), and the close. */
+export async function checkMoveHeader(page: Page, word: string) {
   const box = tableBox(page), head = box.locator("[data-move-head] button");
   let t = await readTable(box);
   expect(t.short, "a move of the table is smaller than its full size or cut").toBe(true);
@@ -45,14 +52,14 @@ export async function checkMoveHeader(page: Page, word: string, step: { forward:
 
   await head.click();
   await expect(head).toHaveAttribute("aria-expanded", "true");
-  await expect.poll(async () => (await readTable(box)).full, { message: "every move at its full size" }).toBe(true);
+  await expect.poll(async () => !(await readTable(box)).short, { message: "every move at its full size" }).toBe(true);
   expect((await readTable(box)).sideways, "the box scrolls sideways").toBe(true);
   await pinRow(box);
 
-  await step.forward();
+  await page.keyboard.press("ArrowRight");
   await expect(head).toHaveAttribute("aria-expanded", "true");
-  await expect.poll(async () => (await readTable(box)).full, { message: "open on the next position" }).toBe(true);
-  await step.back();
+  await expect.poll(async () => !(await readTable(box)).short, { message: "open on the next position" }).toBe(true);
+  await page.keyboard.press("ArrowLeft");
 
   await head.click();
   await expect(head).toHaveAttribute("aria-expanded", "false");

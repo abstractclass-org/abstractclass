@@ -8,14 +8,14 @@
   import { glyphOf, playedText, type Played } from "./blueprints.ts";
 
   let { played }: { played: Played } = $props();
-  const parts = $derived(glyphOf(played));
+  const parts = $derived(glyphOf(played)), text = $derived(playedText(played));
 </script>
 
 {#snippet box(n: number)}<span class="inline-grid place-items-center min-w-[1.35em] h-[1.2em] mr-[0.2em] rounded-[3px] bg-current
   font-sans text-[0.85em] font-bold leading-none"><span class="text-[color:var(--on-text,var(--on-badge))]">{n}</span></span>{/snippet}
 
-<span class="sr-only">{playedText(played)}</span>
-<span class="inline-flex items-center whitespace-nowrap" aria-hidden="true" title={playedText(played)}>
+<span class="sr-only">{text}</span>
+<span class="inline-flex items-center whitespace-nowrap" aria-hidden="true" title={text}>
   {#each parts as part, k (k)}
     {#if part.kind === "box"}{@render box(part.n)}
     {:else if part.kind === "place"}{part.text}

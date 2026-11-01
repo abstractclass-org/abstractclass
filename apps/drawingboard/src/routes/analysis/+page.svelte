@@ -1,6 +1,8 @@
 <script lang="ts">
   // The Analysis board (Hedge School's design 21, design 33): a free board in the browser, from the standard start, or
   // a line brought after the `#` (`#record=`: a record, whose moves become the main line, and `&at=`, the place on it).
+  // The engine checks a record brought as the review checks a game: it plays each move, and confirms each capture mark
+  // (design 33, item 6). A record that fails leaves the board kept here, with a notice.
   // The engine searches the position on screen only, and the moves the player asks to evaluate: no pass runs over the
   // line (GameAnalysis's board form). The tree is the player's: its first line is the main line, which "Make main line"
   // changes. One board in each browser, kept as the player leaves it. The engine's settings are the review's, and it
@@ -16,6 +18,8 @@
   import { mainIndex, pathKey } from "@abstractclass/analysis/tree.ts";
   import { modelOf } from "@abstractclass/engine/client.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
+  import type { EnginePool } from "@abstractclass/engine/pool.ts";
+  import { positionQuery } from "@abstractclass/engine/protocol.ts";
   import { STORES, dbGet, dbPut } from "@abstractclass/storage/db.ts";
   import { readLocal, writeLocal } from "@abstractclass/storage/local.ts";
   import Icon from "@abstractclass/site/Icon.svelte";
@@ -24,7 +28,9 @@
   import { blueprintsView } from "#lib/review/blueprintsView.ts";
   import { loadDisplay } from "#lib/review/display.ts";
   import { loadEngine, reviewVisits, saveEngine, type EngineSettings } from "#lib/analysis/engineSettings.ts";
-  import { parseRecord } from "#lib/game/record.ts";
+  import type { GamePosition } from "#lib/board/described.ts";
+  import { checkCaptures } from "#lib/game/check.ts";
+  import { parseRecord, type GameRecord } from "#lib/game/record.ts";
   import { BOARD_AT_KEY, SITE_NAME } from "#lib/site.ts";
 
   const MESSAGE = "box-content max-w-184 mx-auto my-8 px-4";
@@ -57,20 +63,34 @@
     untrack(() => { if (game?.rulesReady) writeLocal(BOARD_AT_KEY, key); });
   });
 
-  /** The board to open: a line brought after the `#`, which leaves the address and replaces the board kept here, else
-   *  the board kept here, at its kept place. */
-  async function chooseBoard(): Promise<{ board: KeptBoard | null; at?: string[]; atMain?: number }> {
+  /** The board kept here, at its kept place, and a line brought after the `#`, which leaves the address, and which
+   *  replaces the kept board once the engine has checked it (recordProblem). */
+  async function chooseBoard(): Promise<{ kept: KeptBoard | null; at: string[]; brought?: { record: GameRecord; at: number } }> {
     const kept = (await dbGet<KeptBoard>(STORES.branches, BOARD_ID)) ?? null;
     const at = readLocal(BOARD_AT_KEY), keptAt = at ? at.split(" ") : [];
-    const p = new URLSearchParams(location.hash.slice(1)), record = p.get("record");
-    if (record === null) return { board: kept, at: keptAt };
+    const p = new URLSearchParams(location.hash.slice(1)), text = p.get("record");
+    if (text === null) return { kept, at: keptAt };
     await replaceState("/analysis", {}); // async: the address changes only once it resolves
     try {
-      const moves = parseRecord(record).moves;
-      return { board: boardOfLine(moves), atMain: Math.max(0, Math.floor(Number(p.get("at") ?? moves.length)) || 0) };
+      const record = parseRecord(text);
+      return { kept, at: keptAt, brought: { record, at: Math.max(0, Math.floor(Number(p.get("at") ?? record.moves.length)) || 0) } };
     } catch (e) {
-      notice = `The Analysis board cannot open this record: ${errorText(e).replace(/\.?$/, ".")} Your own analysis is here instead.`;
-      return { board: kept, at: keptAt };
+      refuse(errorText(e));
+      return { kept, at: keptAt };
+    }
+  }
+  /** The notice of a record that the board cannot open. */
+  const refuse = (problem: string) =>
+    (notice = `The Analysis board cannot open this record: ${problem.replace(/\.?$/, ".")} Your own analysis is here instead.`);
+  /** What is wrong with a record by the engine's rules, or null: a move that the engine refuses, or a capture mark that
+   *  the move does not confirm. */
+  async function recordProblem(pool: EnginePool, record: GameRecord): Promise<string | null> {
+    try {
+      const ps = (await pool.rules.describeGame<GamePosition>(positionQuery(null, record.moves))).reply.positions;
+      const did = record.moves.map((m, i) => blueprints.played(m, ps[i], ps[i + 1]).did);
+      return checkCaptures(record, did.map(d => ({ captured: Object.keys(d.captured).length, points: d.points }))).problem;
+    } catch (e) {
+      return errorText(e);
     }
   }
 
@@ -81,12 +101,15 @@
       const g = await session.start(pool => new GameAnalysis(blueprints, pool, [], BOARD_ID), async (g, pool) => {
         const chosen = await opening;
         await g.start();
-        if (chosen.board) await g.loadBoard(chosen.board);
+        const problem = chosen.brought && g.rulesReady ? await recordProblem(pool, chosen.brought.record) : null;
+        if (problem) refuse(problem);
+        const brought = !problem ? chosen.brought : undefined, board = brought ? boardOfLine(brought.record.moves) : chosen.kept;
+        if (board) await g.loadBoard(board);
         const model = modelOf(session.manifest!, session.network)?.sha256;
         if (g.rulesReady && pool.search && model) await g.fromStore(pool.search, model).catch(() => {});
-        if (chosen.atMain !== undefined) await dbPut(STORES.branches, BOARD_ID, g.keptBoard()); // a link's board is now this browser's
-        const at = chosen.atMain !== undefined ? g.mainNames.slice(0, chosen.atMain)
-          : chosen.at && (mainIndex(chosen.at, g.mainNames) !== null || pathKey(chosen.at) in g.branches) ? chosen.at : [];
+        if (brought) await dbPut(STORES.branches, BOARD_ID, g.keptBoard()); // a link's board is now this browser's
+        const at = brought ? g.mainNames.slice(0, brought.at)
+          : mainIndex(chosen.at, g.mainNames) !== null || pathKey(chosen.at) in g.branches ? chosen.at : [];
         start = at;
         current = at;
         game = g;

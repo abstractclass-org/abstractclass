@@ -7,6 +7,7 @@ import type { Analysis } from "./model.ts";
 
 /** An analysis reply as the review reads it: values from Blue's side, the candidates in the engine's order. */
 export function toAnalysis<M>(game: Moves<M>, r: AnalysisReply): Analysis<M> {
+  const ownership = r.ownership?.map(hundredths);
   return {
     blueWin: r.rootInfo.winrate, visits: r.rootInfo.visits, lead: r.rootInfo.scoreLead, margin: r.rootInfo.scoreSelfplay,
     spread: r.rootInfo.scoreStdev,
@@ -15,12 +16,10 @@ export function toAnalysis<M>(game: Moves<M>, r: AnalysisReply): Analysis<M> {
       edge: game.parseMove(c.move), visits: c.checkVisits ?? c.edgeVisits, blueWin: c.winrate, lead: c.scoreLead, margin: c.scoreSelfplay, prior: c.prior,
       ...withLine(game, c), ...(c.isSymmetryOf ? { twinOf: game.parseMove(c.isSymmetryOf) } : {}),
     })),
-    ...(r.ownership ? { ownership: areaMapOf(game, r.ownership.map(hundredths), r.view) } : {}),
+    // The game's area map of the ownership (game.ts, Moves.mapOf): the ownership itself, or with its place
+    ...(ownership ? { ownership: game.mapOf?.(ownership, r.view) ?? ownership } : {}),
   };
 }
-
-/** The game's area map of an ownership in hundredths (game.ts, Moves.mapOf): the ownership itself, or with its place. */
-const areaMapOf = <M>(game: Moves<M>, ownership: number[], view: unknown) => (game.mapOf ? game.mapOf(ownership, view) : ownership);
 
 /** An ownership in whole hundredths: the map needs no finer steps, and a stored result keeps 361 small numbers. Never
  *  −0, which JSON writes as 0. */

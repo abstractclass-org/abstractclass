@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import { nameSize } from "@abstractclass/review/nameSize.ts";
 import { parseMove } from "../game/notation.ts";
 import type { Hand, Kind } from "../board/position.ts";
-import { asPlayed, glyphOf, playedText, shortNote, turnShortNote, type MoveReview, type Played, type Position, type Step,
-         type TurnReview } from "./blueprints.ts";
+import { asPlayed, glyphOf, playedText, shortNote, turnShortNote, type GlyphPart, type MoveReview, type Played, type Position,
+         type Step, type TurnReview } from "./blueprints.ts";
 import { NAME_LEAST } from "./table.ts";
 
 // The display setting `notation`: a move in its text (playedText) and in its glyphs (glyphOf, which MoveLabel.svelte
@@ -25,7 +25,7 @@ const played = (name: string, did: Step = step(), kind: Kind = "plain"): Played 
 };
 
 test("each move in its text and in its glyphs, with the same marks", () => {
-  const cases: [Played, string, ReturnType<typeof glyphOf>][] = [
+  const cases: [Played, string, GlyphPart[]][] = [
     [played("2@1,-5"), "2@1,-5", [{ kind: "box", n: 2 }, { kind: "place", text: "1,-5" }]],
     [played("2@6,-5", step({ "7,-5": [1, "plain"] })), "2@6,-5x", [{ kind: "box", n: 2 }, { kind: "place", text: "6,-5" }, { kind: "x" }]],
     [played("2@3,-7", step({ "4,-7": [0, "plain"] }, 10)), "2@3,-7x+10",
@@ -71,6 +71,19 @@ test("a note's moves are moves played, which the lists write by the setting", ()
   const turnNote = turnShortNote(t, before);
   assert.ok(Array.isArray(turnNote));
   assert.equal(turnNote.map(p => (typeof p === "string" ? p : playedText(p))).join(""), "Blunder. 2@6,-5 2@1,-5 was best.");
+});
+
+test("a turn note's second edit has its cell only where the hands before it are known", () => {
+  // Blue's hand at the turn's start: a star at 1:-1,1 and a wall at 1:0,2
+  const before = { player: 0, blueprints: [[{ "-1,1": "star", "0,2": "wall" }, {}, {}], EMPTY], stars: [0, 0] } as unknown as Position;
+  const note = (best: string[]) => {
+    const t = { label: "mistake", player: 0, edges: [], best: best.map(parseMove) } as unknown as TurnReview;
+    return (turnShortNote(t, before) as (string | Played)[]).filter(p => typeof p !== "string").map(p => glyphOf(p as Played)[0]);
+  };
+  // After a placement, the hands are as at the turn's start: the edit's cell is the wall
+  assert.deepEqual(note(["2@6,-5", "1:0,2>2:0,3"])[1], { kind: "cell", cell: "wall" });
+  // After an edit, the hands have changed, and the note does not know them: the second edit has no cell
+  assert.deepEqual(note(["1:-1,1>2:0,-1", "1:0,2>2:0,3"]).map(g => g.kind), ["cell", "box"]);
 });
 
 test("the table's least size is 65%: the archive's longest edit fits as text at 1,376 pixels, not as glyphs", () => {

@@ -327,7 +327,7 @@ Lichess sizes its Analysis board from the window, and keeps the board whole in v
 
 - `packages/review/src/ReviewView.svelte`: the columns, the board's size, the engine header, the controls' bar, the
   display settings' panel (`settingsPanel`), and the candidates table with its Move header (`fitNames`,
-  `packages/review/src/nameSize.ts`; its browser test `tests/move-header.spec.ts`). Hedge School's part of the view,
+  `packages/review/src/nameSize.ts`, and its browser test `tests/move-header.spec.ts`). Hedge School's part of the view,
   Enclosure's: `src/lib/review/enclosureView.ts` (design 29, item 9).
 - The parts that Practice shares (design 24): the row above the board (`packages/review/src/PlayerRow.svelte`,
   `PlayerCard.svelte`), the win bar and gauge (`packages/review/src/ShareBar.svelte`), the move list's look

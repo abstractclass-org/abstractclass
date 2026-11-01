@@ -3,19 +3,11 @@
 // at the position after move 20, on a phone 360 pixels wide. There M12-O13 is cut and the other names are smaller, and
 // the open column is wider than the table's box. At 1,920 pixels the names have room, but M12-O13 is cut in its slot
 // (4.1 em of its own size): the header shows its mark there too.
-import { expect, test, type Page } from "@playwright/test";
-import { checkMoveHeader, readTable, tableBox } from "./move-header.ts";
+import { expect, test } from "@playwright/test";
+import { checkMoveHeader, readTable, tableBox, toMove } from "./move-header.ts";
 import { loadReviewFile } from "./review-file.ts";
 
 const FIXTURE = "tests/fixtures/hedgefund-review.json";
-
-/** The position after move `k`: the start, then `k` steps by the keys, which the page takes while no control has the
- *  focus. */
-async function toMove(page: Page, k: number) {
-  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur?.());
-  await page.keyboard.press("Home");
-  for (let i = 0; i < k; i++) await page.keyboard.press("ArrowRight");
-}
 
 test("the Edge header opens the table's Edge column on Hedge School", async ({ page }) => {
   await page.addInitScript(() => {
@@ -31,10 +23,7 @@ test("the Edge header opens the table's Edge column on Hedge School", async ({ p
   await toMove(page, 20);
   const box = tableBox(page);
   await expect.poll(async () => (await readTable(box)).names.some(n => n.cut), { message: "M12-O13 is cut" }).toBe(true);
-  await checkMoveHeader(page, "Edge", {
-    forward: async () => { await page.keyboard.press("ArrowRight"); },
-    back: async () => { await page.keyboard.press("ArrowLeft"); },
-  });
+  await checkMoveHeader(page, "Edge");
 
   // At 1,920 pixels, the header shows its mark while a name is cut or smaller, and only then
   await page.setViewportSize({ width: 1920, height: 1080 });

@@ -1,12 +1,12 @@
 // Drawing Board's review (its design 33) on its preview (DB_BASE_URL): the review's test game up to turn 20, reviewed
 // once from the engine's real replies (drawingboard-review.ts), in one page that the tests share in turn. The tests
 // check the candidates' table's Move header (move-header.ts), the display setting "Move notation", the marks of a
-// turn's two moves by turn and by move, the hands' rank chips with "+N", and that the page has no area map. Without the
-// engine's files the tests skip, with a message. Run: npm run test:layout -- tests/drawingboard-review.spec.ts, with
+// turn's two moves by turn and by move, the hands' rank chips with "+N", and that the page has no area map. And the
+// Analysis board's check of a record brought to it. Without the engine's files the tests skip, with a message. Run: npm run test:layout -- tests/drawingboard-review.spec.ts, with
 // DB_BASE_URL.
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
-import { checkMoveHeader, readTable, tableBox } from "./move-header.ts";
-import { DISPLAY, MOVES, noReview, reviewTestGame } from "./drawingboard-review.ts";
+import { checkMoveHeader, readTable, tableBox, toMove as stepTo } from "./move-header.ts";
+import { DISPLAY, DRAWING_BOARD, MOVES, noReview, reviewTestGame } from "./drawingboard-review.ts";
 
 test.describe.configure({ mode: "serial" });
 let context: BrowserContext | undefined, page: Page, skipped = "";
@@ -32,13 +32,18 @@ async function open(w: number, h: number, display: object = {}) {
   await page.reload();
   await expect(page.locator("main.review")).not.toHaveAttribute("aria-busy", { timeout: 120_000 });
   if (w < 800) await page.getByRole("tab", { name: "Analysis", exact: true }).click();
-  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur?.());
 }
-/** The position after move `k`, by the keys: the status line names the move to play. */
+/** The status line names the move to play after move `k`. */
+const at = (k: number) => expect(page.locator("section.side")).toContainText(`Move ${k + 1} of ${MOVES}`);
+/** The position after move `k`, by the keys. */
 async function toMove(k: number) {
-  await page.keyboard.press("Home");
-  for (let i = 0; i < k; i++) await page.keyboard.press("ArrowRight");
-  await expect(page.locator("section.side")).toContainText(`Move ${k + 1} of ${MOVES}`);
+  await stepTo(page, k);
+  await at(k);
+}
+/** The position after the next move, by the key →: move `k`. */
+async function next(k: number) {
+  await page.keyboard.press("ArrowRight");
+  await at(k);
 }
 const glyphBoxes = "span.bg-current"; // a blueprint's number in a box: the glyphs (MoveLabel.svelte)
 
@@ -47,14 +52,11 @@ test("the Move header opens the table's Move column, and is plain where every mo
   // The first position whose table has a cut move: an edit is cut on a phone
   let k = 0;
   for (; k < MOVES; k++) {
-    await toMove(k);
+    await (k ? next(k) : toMove(0));
     if (await expect.poll(async () => (await readTable(tableBox(page))).names.some(n => n.cut), { timeout: 10_000 }).toBe(true).then(() => true, () => false)) break;
   }
   expect(k, "a position with a cut move").toBeLessThan(MOVES);
-  await checkMoveHeader(page, "Move", {
-    forward: async () => { await page.keyboard.press("ArrowRight"); },
-    back: async () => { await page.keyboard.press("ArrowLeft"); },
-  });
+  await checkMoveHeader(page, "Move");
   // At 1,920 pixels every move of the game fits its cell: the header is the plain word
   await open(1920, 1080);
   await toMove(k);
@@ -77,9 +79,8 @@ test("the setting Move notation writes the lists, the status line and the table,
   await expect(list.locator("button[data-path]").first()).toBeVisible();
   await page.keyboard.press("ArrowLeft");
   const notes = list.locator("div.truncate[title]").filter({ hasText: /^(Great|Mistake|Blunder)\b/ });
-  const noted = `${await notes.count()} notes in the review, ${await notes.filter({ hasText: /was best/ }).count()} with a best move`;
-  console.log(noted);
-  expect(await notes.filter({ hasText: /was best/ }).count(), "a note that names the best move").toBeGreaterThan(0);
+  const best = await notes.filter({ hasText: /was best/ }).count();
+  expect(best, `a note that names the best move (${await notes.count()} notes in the review, ${best} with a best move)`).toBeGreaterThan(0);
 
   /** Each list in the form `form`: the move played, the variation's moves, the notes' moves, the status line while the
    *  pointer is on a move, and the table's names. */
@@ -136,6 +137,13 @@ test("by turn and by move, the board marks the same moves: both moves of the tur
     expect(seen[`turn ${k}`].old.length, `the edits marked after move ${k}`).toBe(e.edits);
     expect(seen[`turn ${k}`].new.length).toBe(e.edits);
   }
+  // A played move's preview marks the turn so far too: from the start, the pointer on turn 4's second move marks both
+  // of the turn's placements, as the position after it does
+  await toMove(0);
+  await page.locator(".movelist button.mv", { hasText: "2@3,-7x+10" }).first().hover();
+  await expect(page.locator("p", { hasText: /^Preview: / })).toBeVisible();
+  await expect.poll(async () => (await marks()).outlines).toEqual(seen["move 7"].outlines);
+  await page.mouse.move(2, 2);
 });
 
 test("many candidates on one blueprint: the rank chips fit the hand's panel, with +N", async () => {
@@ -158,7 +166,7 @@ test("many candidates on one blueprint: the rank chips fit the hand's panel, wit
   });
   let found = -1;
   for (let k = 0; k < MOVES && found < 0; k++) {
-    await toMove(k);
+    await (k ? next(k) : toMove(0));
     await page.waitForTimeout(300);
     const all = await chips();
     expect(all.filter(c => !c.inside), `after move ${k}: chips outside their panel`).toEqual([]);
@@ -180,6 +188,24 @@ test("the review has no area map: no switch, no legend and no shading", async ()
     await page.getByRole("button", { name: "Display settings" }).click();
     await expect(page.getByRole("region", { name: "Display settings" })).not.toContainText("Area map");
     await page.getByRole("region", { name: "Display settings" }).getByRole("button", { name: "Done" }).click();
+  }
+});
+
+test("the Analysis board refuses a record whose capture mark the engine does not confirm", async ({ browser }) => {
+  // The test game's first three turns, with an x on 2@1,-5, which captures nothing. In a browser of its own: the
+  // board kept there, empty, opens instead, with a notice.
+  const own = await browser.newContext({ viewport: { width: 1376, height: 952 } });
+  try {
+    const board = await own.newPage();
+    const record = "1. 1:-1,1>2:0,-1 2. 1:-1,1>2:-2,1 1:0,2>2:0,3 3. 1:0,2>2:2,2 2@1,-5x *";
+    await board.goto(new URL(`/analysis#record=${encodeURIComponent(record)}`, DRAWING_BOARD).href);
+    await expect(board.getByRole("alert")).toContainText("Move 5 (2@1,-5x) has the mark x, but the move captures no opponent cells.",
+                                                         { timeout: 120_000 });
+    await expect(board.getByRole("alert")).toContainText("Your own analysis is here instead.");
+    expect(new URL(board.url()).hash, "the record left the address").toBe("");
+    await expect(board.locator(".movelist button[data-path]")).toHaveCount(0);
+  } finally {
+    await own.close();
   }
 });
 

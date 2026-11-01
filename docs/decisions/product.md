@@ -7598,11 +7598,11 @@ of the look that it names, or by the archive check.
   ◆ and its loss: 378 pixels at the most by turn (turn 2, two edits), 440 by move. Turns wider than the list: 17 by
   turn and 56 by move at 1,376, 0 and 4 at 1,920, 45 and 59 at 390 × 844. The archive's longest placement has 15
   characters with its capture mark, its longest edit 17, and its largest score of one move is 1,206: 2 and 4
-  characters more than the test game's. Three forms were drawn: every turn on two rows; every turn on one row with
-  shorter text, where no cut of the text fitted every turn by move at 1,376 (the closest was 3 pixels too wide there,
-  and 34 on a phone); and a list of 440 pixels, which takes 125 pixels from the board at 1,376. One move a row holds at
-  every size for every move of the archive, with the full text. Its cost is the turns in view: 10 instead of 12 at
-  1,376 by turn, and 14 instead of 24 at 1,920. It was chosen, at every size.
+  characters more than the test game's. Three forms were drawn. The first put every turn on two rows. The second put
+  every turn on one row with shorter text, but no cut of the text fitted every turn by move at 1,376 (the closest was
+  3 pixels too wide there, and 34 on a phone). The third was a list of 440 pixels, which takes 125 pixels from the
+  board at 1,376. One move a row holds at every size for every move of the archive, with the full text. Its cost is the
+  turns in view: 10 instead of 12 at 1,376 by turn, and 14 instead of 24 at 1,920. It was chosen, at every size.
 - **The marks of a turn (the first look).** Hedge School's board marks the edges of the turn so far alike by turn and
   by move (its layer "Invincible edges"). Drawing Board's board does the same: each placement of the turn so far has
   the last move's outline, and each edit its arrow in the hand. The shared view gives the board the turn's earlier

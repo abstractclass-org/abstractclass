@@ -74,7 +74,7 @@ export class ReviewBar<G extends GameTypes> {
 
   constructor(options: ProgressOptions<G>) {
     this.#o = { frozen: () => false, stale: () => false, ...options };
-    $effect(() => { void this.#o.budget(); void this.#o.game(); this.#held = { step: -1, done: 0 }; });
+    $effect(() => { void this.#o.budget(); void this.#o.game(); this.reset(); });
     $effect(() => {
       const step = this.raw?.step ?? -1, done = this.#stepDone, was = untrack(() => this.#held);
       if (step !== was.step || done > was.done) this.#held = { step, done };

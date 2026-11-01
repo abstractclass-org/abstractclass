@@ -12,6 +12,7 @@
 // make it: the same two moves in either order are the same turn, and the engine's best turn is its first choice and
 // the next move of that choice's line (model.ts, judgeTurn). A game of longer turns, or one where the order within a
 // turn matters, needs those rules changed first.
+import type { EngineView } from "@abstractclass/engine/protocol.ts";
 
 /** A player: 0 moves first (Enclosure's Blue), 1 second (Red). */
 export type Player = 0 | 1;
@@ -51,7 +52,7 @@ export interface Moves<M> {
   /** The area map of a reply's ownership (in hundredths, as the engine indexes it), where the game's points are not
    *  fixed: Blueprints' ownership is of the view of the position, which moves with the play, so its map ends with the
    *  view's place (the engine's `view`). None: the map is the ownership. */
-  mapOf?(ownership: number[], view: unknown): number[];
+  mapOf?(ownership: number[], view: EngineView | undefined): number[];
 }
 
 /** A game, as the analysis and the review compute with it. */

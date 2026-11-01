@@ -6,12 +6,13 @@
 // opening book yet (design 33), so the view offers none of them, and no area map (`AREA_MAP`). The board's box fills
 // the room that the side columns leave, with the hands in a panel over it, and under it in one column, as on Practice.
 import type { ViewGame } from "@abstractclass/review/game.ts";
+import { held } from "@abstractclass/review/ownership.ts";
 import { BlueprintInput } from "../board/blueprintInput.svelte.ts";
 import { INPUT_CLICKS, inputStatus } from "../board/input.ts";
 import { ONE_COLUMN_HEIGHT } from "../board/keptPanel.svelte.ts";
 import { hexKey } from "../board/hex.ts";
 import { STARS } from "../board/position.ts";
-import { captureText, moveName } from "../game/notation.ts";
+import { moveName, moveText } from "../game/notation.ts";
 import { NETWORKS, networkMB, networkName } from "../analysis/engineSettings.ts";
 import { asPlayed, blueprints, captureOf, endingText, lineMovers, playedText, shortNote, turnShortNote, type Blueprints } from "./blueprints.ts";
 import { alignMap, boardState, mapIndex } from "./blueprintsMap.ts";
@@ -24,8 +25,7 @@ import MoveShape from "./MoveShape.svelte";
 
 /** A forecast of a hex's ownership against the board now, in the forecast styles' numbers: "Blue 0.62 · now Red's". */
 const reading = (ownership: number, now: number) =>
-  `forecast ${ownership ? `${ownership > 0 ? "Blue" : "Red"} ${(Math.abs(ownership) / 100).toFixed(2)}` : "even"} · ` +
-  (now > 0 ? "now Blue's cell" : now < 0 ? "now Red's cell" : "empty now");
+  `forecast ${held(ownership)} · ${now > 0 ? "now Blue's cell" : now < 0 ? "now Red's cell" : "empty now"}`;
 
 export const blueprintsView: ViewGame<Blueprints> = {
   ...blueprints,
@@ -42,16 +42,18 @@ export const blueprintsView: ViewGame<Blueprints> = {
   clicks: INPUT_CLICKS,
 
   notation: playedText,
-  lineNotation: (move, step) => moveName(move) + (step ? captureText(captureOf(step)) : ""),
-  MoveLabel,
-  notationHelp: "Glyphs: each move as the hands show it, the blueprint's number in a box, and for an edit the cell that it moves. Text: each move as the Notation page writes it. The move list, its notes, the status line, and the variations and lines in notation follow this setting.",
-  asPlayed: (move, player, before, step) => asPlayed(move, player, before, step),
+  lineNotation: (move, step) => moveText(moveName(move), step ? captureOf(step) : null),
+  glyphs: {
+    Label: MoveLabel,
+    asPlayed,
+    help: "Glyphs: each move as the hands show it, the blueprint's number in a box, and for an edit the cell that it moves. Text: each move as the Notation page writes it. The move list, its notes, the status line, and the variations and lines in notation follow this setting.",
+  },
   Shape: MoveShape,
   shape: {
     name: "Pictures",
     help: "Each move as a small picture, a dot, or its notation. A placement is a hex with the number of its blueprint. An edit is the cell that it moves, with an arrow. In the engine's line, the dots show the numbers of the board.",
   },
-  // A move's text: as wide as its own (MoveLabel: a box, the hex and +N). Moves run from 5 to 19 characters, so two do
+  // A move's text: as wide as its own (its glyphs: a box, the hex and +N). Moves run from 5 to 19 characters, so two do
   // not fit a row of the side column: each move has a row of its own.
   moveText: "",
   oneMoveALine: true,

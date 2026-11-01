@@ -499,10 +499,10 @@
           {/if}
         {/each}
 
-        <!-- The last move: one outline round a placement's footprint, and its captured cells. The outline is the edge
-             of the footprint as a whole, as a candidate outline is, so that it has one width all round. Its stroke is
-             centred on that edge and clipped to the footprint: the inner half shows, and the cells on the touching
-             hexes stay clear. Round caps fill the inner corners. -->
+        <!-- The moves of the turn so far: the last move's captured cells, and one outline round each placement's
+             footprint. The outline is the edge of the footprint as a whole, as a candidate outline is, so that it has
+             one width all round. Its stroke is centred on that edge and clipped to the footprint: the inner half
+             shows, and the cells on the touching hexes stay clear. Round caps fill the inner corners. -->
         {#if lastPlace}
           {#each lastPlace.captured as c (hexKey(c.hex))}
             <Cell hex={c.hex} owner={c.owner} kind={c.kind} look="captured" />

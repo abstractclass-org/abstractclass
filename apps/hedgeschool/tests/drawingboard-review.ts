@@ -8,13 +8,13 @@ import { expect, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 
 export const DRAWING_BOARD = process.env.DB_BASE_URL;
-export const TURNS = 20;
+const TURNS = 20;
 export const MOVES = 1 + 2 * (TURNS - 1); // the first turn has one move, each other turn two
 export const DISPLAY = "drawing-board:review-display:1";
 const ENGINE = "drawing-board:engine:1";
 
 /** The test game's record up to the end of turn TURNS: its tags, but not its result, and its moves. */
-export function testRecord(): string {
+function testRecord(): string {
   const text = readFileSync("../drawingboard/src/lib/review/fixtures/stamp-duty.txt", "utf8");
   const [tags, moves] = text.split(/\r?\n\r?\n/);
   const words = moves.trim().split(/\s+/);

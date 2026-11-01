@@ -59,7 +59,7 @@ export interface Display {
   // or its quality mark alone, in --book), or an open book in the label's colour, in the place of its quality mark
   bookMoves: "label" | "book";
   notes: boolean; // the move list's one-line notes on Great moves, mistakes and blunders
-  // How the lists write a move, where the game has glyphs (the view's `MoveLabel`): its glyphs, or its notation as text.
+  // How the lists write a move, where the game has glyphs (the view's `glyphs`): its glyphs, or its notation as text.
   // The move list, its notes, the status line, and the variations and lines in notation follow it. None: the notation
   notation?: "glyphs" | "text";
   previewMoves: boolean; // the position after a played move on the board, while the pointer is on the move (design 07)
@@ -282,15 +282,18 @@ export interface ViewGame<G extends ViewTypes> extends Game<G> {
   // --- A move in the lists
   /** A move played, as the move list writes it: its name with its marks (Enclosure's cut mark, D10-G10x). */
   notation(played: G["played"]): string;
-  /** A move played as the move list shows it, where its notation alone is not the game's look (Blueprints' blueprint
-   *  number in a box, design 33, item 8), as wide as `moveText`: the glyphs of the display setting `notation`, whose
-   *  help `notationHelp` gives. None: the move list writes the notation, and the settings offer no choice. */
-  MoveLabel?: Component<{ played: G["played"] }>;
-  notationHelp?: string;
-  /** A move not played as a move played, for its glyphs (`MoveLabel`): a candidate, a line's move, a note's move. From
-   *  the position before it, or the line's step before it, where the view knows it, and from its own step once the
-   *  rules have played it (a line's). */
-  asPlayed?(move: G["move"], player: Player, before?: G["position"] | G["step"], step?: G["step"]): G["played"];
+  /** The moves in glyphs, where their notation alone is not the game's look (Blueprints' blueprint number in a box,
+   *  design 33, item 8): the second form of the display setting `notation`, whose help `help` gives. None: the lists
+   *  write the notation, and the settings offer no choice.
+   *  - `Label`: a move played, as wide as `moveText`.
+   *  - `asPlayed`: a move not played as a move played, for its glyphs: a candidate, a line's move, a note's move. From
+   *    the position before it, or the line's step before it, where the view knows it, and from its own step once the
+   *    rules have played it (a line's). */
+  glyphs?: {
+    Label: Component<{ played: G["played"] }>;
+    asPlayed(move: G["move"], player: Player, before?: G["position"] | G["step"], step?: G["step"]): G["played"];
+    help: string;
+  };
   /** A move of a line, as the line's list writes it: its name, and its mark once the rules have played it. */
   lineNotation(move: G["move"], step: G["step"] | undefined): string;
   /** A move's shape in the variations and the line (Enclosure's pill along the edge). */

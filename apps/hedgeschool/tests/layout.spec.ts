@@ -17,7 +17,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { loadReviewFile } from "./review-file.ts";
-import { DRAWING_BOARD as DB_PREVIEW, SPREAD_BOARD, noReview, reviewTestGame } from "./drawingboard-review.ts";
+import { SPREAD_BOARD, noReview, reviewTestGame } from "./drawingboard-review.ts";
 
 const WIDTHS = Array.from({ length: (1920 - 360) / 10 + 1 }, (_, k) => 360 + 10 * k);
 const HEIGHTS = [700, 860, 1000];
@@ -207,7 +207,7 @@ for (const [name, path] of [["review", ""], ["Analysis board", SPREAD_BOARD]] as
     const skip = await noReview(page);
     test.skip(!!skip, skip);
     if (path) {
-      await page.goto(new URL(path, DB_PREVIEW).href);
+      await page.goto(new URL(path, DRAWING_BOARD).href);
       await expect(page.locator("main.review")).not.toHaveAttribute("aria-busy", { timeout: 120_000 });
       await expect(page.locator("table").filter({ hasText: "Visits" }).first().locator("[data-name]").first()).toBeVisible({ timeout: 300_000 });
     } else await reviewTestGame(page);

@@ -283,13 +283,14 @@
   ].filter(Boolean).join(" ") || undefined);
   const mover = $derived(position.player as Player);
   const lastPlayed = $derived(moveInto(path)); // the move that led here, in the game or a variation
-  // The moves of the turn before it, as far as here: a turn has two at most. The board marks them with it, by turn and
-  // by move alike, as the review's unit changes the grouping of the labels only.
-  const earlierPlayed = $derived.by((): G["played"][] => {
-    if (path.length < 2 || moveFrom(path.slice(0, -1)).first) return [];
-    const m = moveInto(path.slice(0, -1));
+  /** The moves of the turn before the last move of `p`, as far as there: a turn has two at most. The board marks them
+   *  with it, by turn and by move alike, as the review's unit changes the grouping of the labels only, and in a played
+   *  move's preview too. */
+  function earlierOf(p: string[]): G["played"][] {
+    if (p.length < 2 || moveFrom(p.slice(0, -1)).first) return [];
+    const m = moveInto(p.slice(0, -1));
     return m ? [m] : [];
-  });
+  }
 
   // The tree's children: the game's next move first, on its line, then the variations, in the order they were added.
   // Derived from the variations' keys in their order: a variation's search result changes neither.
@@ -710,15 +711,14 @@
   // The styles' names, by what each compares, in the order of Shift+T
   const MAP_STYLE_NAME: Record<Display["mapStyle"], string> = { ownership: "Forecast", change: "Forecast vs board", difference: "After vs before" };
   const MAP_STYLES = Object.keys(MAP_STYLE_NAME) as Display["mapStyle"][];
-  // How the lists write a move (the display setting `notation`, where the game has glyphs): its glyphs, or its notation
-  const glyphs = $derived(!!view.MoveLabel && display.notation !== "text");
-  // The candidates' table writes its moves so too, in the table's text colour
-  const tableGlyphs = $derived(glyphs && !!view.asPlayed);
+  // How the lists write a move (the display setting `notation`): the game's glyphs while the setting asks for them,
+  // else its notation. The candidates' table writes its moves so too, in the table's text colour.
+  const glyphs = $derived(display.notation !== "text" ? view.glyphs : undefined);
+  /** A note's parts: its text, and the moves that it names (a note of text alone is one part). */
+  const partsOf = (note: string | NotePart<G>[]): NotePart<G>[] => (typeof note === "string" ? [note] : note);
   /** A note as text, its moves in their notation: its title, and how a turn's notes say a note once. */
-  const noteText = (note: string | NotePart<G>[]) =>
-    typeof note === "string" ? note : note.map(p => (typeof p === "string" ? p : view.notation(p))).join("");
-  const onceEach = <N extends string | NotePart<G>[]>(notes: N[]) =>
-    notes.filter((n, i) => notes.findIndex(m => noteText(m) === noteText(n)) === i);
+  const noteText = (note: NotePart<G>[]) => note.map(p => (typeof p === "string" ? p : view.notation(p))).join("");
+  const onceEach = (notes: NotePart<G>[][]) => notes.filter((n, i) => notes.findIndex(m => noteText(m) === noteText(n)) === i);
   // The switch in the board's margin: off, or a style, one click for each. The style changes as often as the player
   // reads a position, so it is on the page, and on the keys: t shows or hides the map, and Shift+T goes to the next
   // style, which shows the map.
@@ -914,32 +914,36 @@
     const range = document.createRange();
     const width = (el: HTMLElement) => { range.selectNodeContents(el); return range.getBoundingClientRect().width; };
     const names = [...table.querySelectorAll<HTMLElement>("[data-name]")];
+    // The writes and the reads in turn, not a name at a time, so that the page lays out the table twice in all: each
+    // name at its full size, then each at its own size.
     for (const el of names) { el.style.fontSize = "1em"; el.style.width = ""; }
-    const full = names.map(width), widest = Math.ceil(Math.max(0, ...full));
-    let short = false, after = 0;
+    const full = names.map(width), room = names.map(el => el.clientWidth), widest = Math.ceil(Math.max(0, ...full));
     names.forEach((el, i) => {
-      const cell = el.parentElement!;
       if (movesOpen) el.style.width = `${widest}px`;
       else {
-        const size = view.fitName ? nameSize(el.clientWidth, full[i], view.fitName) : 1;
+        const size = view.fitName ? nameSize(room[i], full[i], view.fitName) : 1;
         el.style.fontSize = size < 1 ? `${size}em` : "";
       }
-      const cut = width(el) > el.clientWidth + 0.5;
-      el.toggleAttribute("data-cut", cut);
-      short ||= cut || parseFloat(getComputedStyle(el).fontSize) < parseFloat(getComputedStyle(cell).fontSize) - 0.05;
+    });
+    let short = false, after = 0;
+    const cuts = names.map(el => {
+      const cut = width(el) > el.clientWidth + 0.5, cell = getComputedStyle(el.parentElement!);
+      short ||= cut || parseFloat(getComputedStyle(el).fontSize) < parseFloat(cell.fontSize) - 0.05;
       // A mark after the name (a twin's): the open column has room for it
       const mark = el.nextElementSibling;
-      if (mark) after = Math.max(after, mark.getBoundingClientRect().width + parseFloat(getComputedStyle(cell).columnGap));
+      if (mark) after = Math.max(after, mark.getBoundingClientRect().width + parseFloat(cell.columnGap));
+      return cut;
     });
     const head = table.querySelector<HTMLElement>("[data-move-head]")!, { paddingLeft, paddingRight } = getComputedStyle(head);
     const open = Math.ceil(table.getBoundingClientRect().width - head.getBoundingClientRect().width
                            + parseFloat(paddingLeft) + parseFloat(paddingRight) + widest + after);
+    names.forEach((el, i) => el.toggleAttribute("data-cut", cuts[i]));
     if (nameFit.short !== short || nameFit.open !== open) nameFit = { short, open };
   }
   // The names are measured once the table shows a position's rows, in their form, open or closed; again when the box's
   // width changes (a hidden tab's box has none); and when the fonts load.
   $effect(() => {
-    void here; void tableNames; void tableGlyphs; void movesOpen; void table;
+    void here; void tableNames; void glyphs; void movesOpen; void table;
     untrack(fitNames);
   });
   $effect(() => {
@@ -1654,7 +1658,7 @@
        fades at its end. While a name is smaller or cut, the Move header is a button that opens the column: each name
        at its full size, the column as wide as the widest name, and the table wider than its box, which then scrolls
        to the other columns. The # and Move columns come first, so they show at the scroll's start. A name's glyphs
-       (`MoveLabel`) sit on the middle of its line: an edit's begins with its cell's picture, whose baseline is its
+       (`glyphs`) sit on the middle of its line: an edit's begins with its cell's picture, whose baseline is its
        lower edge, and on the line's baseline it would make the row taller. -->
   <div class="flex-none mb-3 overflow-y-auto [scrollbar-gutter:stable] text-sm" bind:this={tableBox}
        style="height: calc({(TABLE_ROWS + 1) * ROW_EM}em + {scrollBar}px); --row: {ROW_EM}em">
@@ -1685,7 +1689,7 @@
           <!-- A candidate on the board has its number in a badge, as the board draws it. The others have a plain number. -->
           <td>{@render rankBadge(rank, onBoard.has(rank) ? "On the board" : undefined)}</td>
           <td><div class="@container flex items-center gap-1 min-w-0"><span data-name class="flex-none {view.nameText} [--on-text:var(--panel)] [&>*]:align-middle
-                data-cut:text-clip data-cut:[mask-image:linear-gradient(to_right,#000_calc(100%_-_1.25em),transparent)]">{#if tableGlyphs && view.asPlayed}{@render written(view.asPlayed(c.edge, mover, position))}{:else}{view.moveName(c.edge)}{/if}</span>{#if twins.length}<span
+                data-cut:text-clip data-cut:[mask-image:linear-gradient(to_right,#000_calc(100%_-_1.25em),transparent)]">{#if glyphs}<glyphs.Label played={glyphs.asPlayed(c.edge, mover, position)} />{:else}{view.moveName(c.edge)}{/if}</span>{#if twins.length}<span
                 class="flex-none leading-none font-normal text-muted" title="Mirror: {twins.map(t => view.moveName(t.edge)).join(', ')}">⇅</span>{/if}</div></td>
           <td>{pct(moverWin(c.blueWin, mover))}</td>
           <td>{c.lead !== undefined ? sideShort(c.lead) : "–"}</td>
@@ -1769,13 +1773,13 @@
            positions, the lines from one position under one rule, and under a Mistake's or a Blunder's note, the
            engine's best line among them (turnGroups). -->
       {@const notes = !display.notes ? [] : unit === "turn" ? (t.label && COMMENTED.includes(t.label) && forSide(t.player)
-        ? [view.turnShortNote(t, R.data.positions[t.start])] : [])
-        : onceEach(t.edges.filter(e => !!e.label && COMMENTED.includes(e.label) && forSide(e.player)).map(e => view.shortNote(e, R.data.positions[e.index])))}
+        ? [partsOf(view.turnShortNote(t, R.data.positions[t.start]))] : [])
+        : onceEach(t.edges.filter(e => !!e.label && COMMENTED.includes(e.label) && forSide(e.player)).map(e => partsOf(view.shortNote(e, R.data.positions[e.index]))))}
       {@const groups = turnGroups(t)}
       {#if notes.length || groups.some(g => g.rows.length)}
         <div class="my-1 py-1 bg-panel-2/50 border-y border-line">
           {#each notes as note (noteText(note))}
-            <div class="mb-0.5 px-2 text-sm text-muted truncate" title={noteText(note)}>{#if typeof note === "string"}{note}{:else}{#each note as part, k (k)}{#if typeof part === "string"}{part}{:else}<span class={SIDE_TEXT[part.player]}>{@render written(part)}</span>{/if}{/each}{/if}</div>
+            <div class="mb-0.5 px-2 text-sm text-muted truncate" title={noteText(note)}>{#each note as part, k (k)}{#if typeof part === "string"}{part}{:else}<span class={SIDE_TEXT[part.player]}>{@render written(part)}</span>{/if}{/each}</div>
           {/each}
           {#each groups as g, k (k)}{@render branchGroup(g.rows, g.engine)}{/each}
         </div>
@@ -1840,10 +1844,10 @@
                 cls]}>{@render digits(n)}</span>
 {/snippet}
 
-<!-- A move as the lists write it, by the display setting `notation`: its glyphs (the game's MoveLabel), or its
+<!-- A move as the lists write it, by the display setting `notation`: its glyphs (the game's `glyphs`), or its
      notation. -->
 {#snippet written(played: G["played"])}
-  {#if glyphs && view.MoveLabel}{@const MoveLabel = view.MoveLabel}<MoveLabel {played} />{:else}{view.notation(played)}{/if}
+  {#if glyphs}<glyphs.Label {played} />{:else}{view.notation(played)}{/if}
 {/snippet}
 
 <!-- A turn's moves in the move list, each a step to the position after it. -->
@@ -1873,8 +1877,7 @@
             class={moveButton(e.player, mainAt === e.index + 1 ? MOVE_HERE : pickedKey === mainKeys[e.index + 1] ? PICKED : MOVE_HOVER)}
             onclick={ev => ((ev.target as Element).closest("[data-book]") ? openBookAt(e.index, "book mark") : go(e.index + 1, true))} onmouseenter={() => startPreview({ kind: "move", index: e.index })} onmouseleave={endPreview} tabindex="-1"
             title={tip}>
-      {#if glyphs && view.MoveLabel}{@const MoveLabel = view.MoveLabel}<span class={view.moveText}><MoveLabel played={e} /></span>
-      {:else}<span class={view.moveText}>{view.notation(e)}</span>{/if}
+      <span class={view.moveText}>{@render written(e)}</span>
       {#if unit === "edge"}
         <!-- A book move's mark takes the label's slot, whatever the label: a click on it goes to the position
              before the move, and shows the book there. -->
@@ -1969,17 +1972,18 @@
      to there as a variation (as the listed line's click does), which then shows here as the player's own. -->
 {#snippet engineEdge(engine: EngineBranch, p: string[], step: EngineStep, k: number)}
   {@const e = engine.line[step.k]}
+  {@const before = positionOf(p.slice(0, -1))} <!-- the position before the move, where the tree holds it -->
   {@const note = `${turnText(step.turn)} ${view.moveName(e)} · the engine's line · play it to here`}
   {@render turnMark(step.turn, k)}
   {#if display.branchForm === "text"}
     <button class={["mv px-[0.2rem] py-px bg-transparent border-0 whitespace-nowrap opacity-75 hover:opacity-100 hover:bg-panel-2", SIDE_TEXT[step.mover]]}
             onclick={() => playPath(p, "engine line played")} onmouseenter={() => startPreview({ kind: "engine", start: engine.start, line: engine.line, k: step.k })}
-            onmouseleave={endPreview} tabindex="-1" title={note}>{#if glyphs && view.asPlayed}{@render written(view.asPlayed(e, step.mover))}{:else}{view.moveName(e)}{/if}</button>
+            onmouseleave={endPreview} tabindex="-1" title={note}>{#if glyphs}<glyphs.Label played={glyphs.asPlayed(e, step.mover, before)} />{:else}{view.moveName(e)}{/if}</button>
   {:else}
     <button class="mv flex p-[0.08em] bg-transparent border-0 rounded-full opacity-75 hover:opacity-100 hover:outline hover:outline-ink"
             onclick={() => playPath(p, "engine line played")} onmouseenter={() => startPreview({ kind: "engine", start: engine.start, line: engine.line, k: step.k })}
             onmouseleave={endPreview} tabindex="-1" title={note}>
-      {@render edgeShape(e, step.mover)}
+      {@render edgeShape(e, step.mover, before)}
     </button>
   {/if}
 {/snippet}
@@ -1999,24 +2003,23 @@
           {@const name = view.lineNotation(e, listSteps?.[k])}
           {@const known = listKnown[k]}
           {@const where = known === "game" ? " · played in the game" : known === "branch" ? " · in a variation" : ""}
-          {@const inGlyphs = glyphs && !!view.asPlayed}
+          {@const before = k === 0 ? position : listSteps?.[k - 1]} <!-- what the board shows before the move -->
           {#if display.branchForm === "text"}
             {#if k === 0 || t.first}<span class="text-muted text-[0.9em]">{turnText(t)}</span>{/if}
             <!-- A move played in the game or in a variation is underlined with dots. A glyph is a box of its own, which a
                  text's underline does not reach, so in glyphs the button's lower edge is dotted instead. -->
             <button class={["px-[0.2rem] py-px font-mono text-[0.95em] bg-transparent border-0 whitespace-nowrap", SIDE_TEXT[player],
-                            known && !inGlyphs && "underline decoration-dotted underline-offset-3",
+                            known && !glyphs && "underline decoration-dotted underline-offset-3",
                             listHover !== null && k <= listHover ? "bg-panel-2" : "hover:bg-panel-2"]}
-                    style:border-bottom={known && inGlyphs ? "1px dotted currentColor" : undefined}
+                    style:border-bottom={known && glyphs ? "1px dotted currentColor" : undefined}
                     onmouseenter={() => (listHover = k)} onclick={() => play(k)} tabindex="-1"
-                    title="{name}{where} · play the line to here">{#if inGlyphs && view.asPlayed}{@render written(view.asPlayed(e, player, k === 0 ? position : listSteps?.[k - 1], listSteps?.[k]))}{:else}{name}{/if}</button>
+                    title="{name}{where} · play the line to here">{#if glyphs}<glyphs.Label played={glyphs.asPlayed(e, player, before, listSteps?.[k])} />{:else}{name}{/if}</button>
           {:else}
             {@const shade = listHover !== null && k <= listHover ? "" : "opacity-70 hover:opacity-100"}
             {#if k > 0 && t.first}<span class="w-1"></span>{/if}
             <button class="flex p-0 bg-transparent border-0 rounded-full" onmouseenter={() => (listHover = k)} onclick={() => play(k)}
                     tabindex="-1" title="{turnText(t)} {name}{where} · play the line to here">
-              {#if display.branchForm === "pills"}<Shape move={e} {player} hollow={!!known} n={k + 1} class={shade}
-                                                         before={k === 0 ? position : listSteps?.[k - 1]} />
+              {#if display.branchForm === "pills"}<Shape move={e} {player} hollow={!!known} n={k + 1} class={shade} {before} />
               {:else}{@render edgeCircle(k + 1, player, !!known, shade)}{/if}
             </button>
           {/if}
@@ -2136,8 +2139,8 @@
       <h3 class={SETTINGS_HEAD}>Move list</h3>
       {@render choice("Quality labels", "Each quality label as a badge, as in the report and on the board, or as its quality mark in the badge's colour.",
         [["badges", "Badges"], ["text", "Text"]], () => display.marks, v => (display.marks = v as Display["marks"]))}
-      {#if view.MoveLabel}
-        {@render choice("Move notation", view.notationHelp ?? "", [["glyphs", "Glyphs"], ["text", "Text"]],
+      {#if view.glyphs}
+        {@render choice("Move notation", view.glyphs.help, [["glyphs", "Glyphs"], ["text", "Text"]],
           () => (display.notation === "text" ? "text" : "glyphs"), v => (display.notation = v as "glyphs" | "text"))}
       {/if}
       {#if book && !board}
@@ -2393,7 +2396,7 @@
         <view.Board
           position={branchPreview?.from ?? movePreview?.position ?? position}
           last={branchPreview ? null : movePreview ? movePreview.move : lastPlayed ?? null}
-          earlier={previewing ? [] : earlierPlayed}
+          earlier={branchPreview ? [] : earlierOf(movePreview ? mainNames.slice(0, movePreview.index + 1) : path)}
           candidates={previewing ? [] : numbers.candidates}
           pointed={previewing ? null : numbers.pointed}
           line={branchPreview ? previewLine : movePreview ? null : drawnLine}

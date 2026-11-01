@@ -9,7 +9,8 @@ strategyjam.org and the import page are built: the page shows the record that a 
 strategyjam.org"). Their test on strategyjam.org waits for the owner (abscls-8tl1.12). The site fetches the engine's
 0.7.1 build with its practice bot (`engine-70dfdc0f`, on this machine only) as Hedge School fetches its own. Practice
 against Stamp Duty (`/practice`) is built and plays on this machine ("Practice against Stamp Duty"). The review and the
-Analysis board are built (abscls-8tl1.7, "The review and the Analysis board"), with no area map yet.
+Analysis board are built (abscls-8tl1.7, "The review and the Analysis board"), with no area map yet. The import page
+does not open a game in them yet.
 **Decided:** 2026-10-25. Practice's layout and its bot: 2026-10-30. The review and the Analysis board: 2026-11-01.
 
 ## Context
@@ -97,8 +98,8 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
    Some edits leave the hand as it was. So the review compares two moves by the position that they give, not only by
    their names, as it takes Enclosure's two edges of a turn in either order as one turn (design 29). Not built yet:
    the view compares the engine's moves with the game's `equal`, which takes no position, and the game's tree keeps a
-   move by its name (design 29, item 9). Drawing Board's review keeps two such edits as two moves, as the game's tree
-   and the engine name them.
+   move by its name (design 29, item 9). For now, Drawing Board's review keeps two such edits as two moves, as the
+   game's tree and the engine name them. The comparison by position is still to be decided and built.
 10. **A position's notation** (as FEN gives a chess position) waits for the board editor and for starts from a set-up
     position. The first version takes games as records: the standard start and the moves. So the record's reader
     refuses a `Position` tag. The shared frame refuses it for each game that gives the frame no start. The import
@@ -428,8 +429,12 @@ drawings of the real page, from the engine's replies. The decision log gives the
     anywhere, and the site reads every candidate placement as a placement, with its anchor. A test checks it on a
     position of two views, where the engine's best move lies outside the rule's view
     (`src/lib/review/rootViews.engine.test.ts`).
-11. **Not built yet:** sounds, notes on the board, the image of a line, the opening book, a list of games and a GPU
-    setting. The review keeps one game in this browser: `#record=`, from the import page or a link, brings one. The
+11. **A record's check:** the engine plays each move of a record and confirms each capture mark (item 6), on the
+    review and on the Analysis board alike. The review then shows why it cannot review the game. The Analysis board
+    keeps the board that this browser kept, and a notice says why it did not open the record.
+12. **Not built yet:** sounds, notes on the board, the image of a line, the opening book, a list of games and a GPU
+    setting. The review keeps one game in this browser: `#record=` in a link brings one. The import page does not
+    open a game in the review or the Analysis board yet ("How a game comes in from strategyjam.org", item 6). The
     engine's pool keeps its 2 workers while the page is open.
 
 ### No area map yet

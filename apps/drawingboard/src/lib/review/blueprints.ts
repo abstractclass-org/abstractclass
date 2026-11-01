@@ -7,10 +7,9 @@
 // view's game interface: the board, the lists' looks, the settings and the engine's networks.
 import * as shared from "@abstractclass/analysis/model.ts";
 import type { Game, Player } from "@abstractclass/analysis/game.ts";
-import type { EngineView } from "@abstractclass/engine/protocol.ts";
 import { turnFromCount } from "@abstractclass/analysis/turns.ts";
 import { PLAYER_NAME, WHOLE, type NotePart, type ViewTypes } from "@abstractclass/review/game.ts";
-import { captureText, moveName, moves, type BlueprintNumber, type Capture, type Move } from "../game/notation.ts";
+import { moveName, moveText, moves, type BlueprintNumber, type Capture, type Move } from "../game/notation.ts";
 import { boardMove, playerOf, sitePosition, stepOf, type DescribeReply, type EngineStep, type GamePosition } from "../board/described.ts";
 import type { BlueprintInput } from "../board/blueprintInput.svelte.ts";
 import type { InputRules } from "../board/input.ts";
@@ -65,7 +64,7 @@ export interface Blueprints extends ViewTypes {
 }
 
 /** A position from the engine's fields. */
-export const positionOf = (f: GamePosition | DescribeReply): Position => ({
+const positionOf = (f: GamePosition | DescribeReply): Position => ({
   ...sitePosition(f), player: playerOf(f.mover), movesLeft: f.movesLeft, scores: f.scores, count: f.moveCount,
   stars: starsOf(f.cells), ...(f.outcome ? { over: true } : {}),
 });
@@ -84,7 +83,7 @@ export const captureOf = (s: Pick<Step, "captured" | "points">): Capture | null 
   Object.keys(s.captured).length || s.points ? { points: s.points } : null;
 
 /** A move as the record and the move list write it: its name and its capture mark (`2@-3,1x+24`), or "pass". */
-export const playedText = (m: Pick<Played, "edge" | "did">) => moveName(m.edge) + (m.edge ? captureText(captureOf(m.did)) : "");
+export const playedText = (m: Pick<Played, "edge" | "did">) => moveText(moveName(m.edge), m.edge ? captureOf(m.did) : null);
 
 /** A part of a move's glyphs (MoveLabel.svelte): a blueprint's number in a box, a hex's place (an anchor, or a cell's
  *  place in its blueprint's frame), an edit's cell with its kind, the arrow between an edit's two places, a capture's
@@ -128,7 +127,7 @@ export function lineMovers(p: Position, n: number): Player[] {
  *  the view's place (blueprintsMap.ts). */
 export const blueprints: Game<Blueprints> = {
   ...moves,
-  mapOf: (ownership, view) => mapWithView(ownership, view as EngineView | undefined),
+  mapOf: mapWithView,
   position: positionOf,
   played: (name, before, after) => {
     const did = stepOfAfter(after), player = playerOf(before.mover);
@@ -152,13 +151,17 @@ export type TurnReview = shared.TurnReview<Blueprints>;
 const KEPT_NOTE = "It keeps the gain from the opponent's last turn.";
 
 /** A turn's note for the move list, in one line: its label, and the engine's best turn when the turn was not it. Its
- *  moves as the lists write a move (the view's `asPlayed`), from the hands at the turn's start: the engine names the
- *  turn's second move, not what its first did. */
+ *  moves as the lists write a move (the view's `glyphs.asPlayed`), from the hands at the turn's start: the engine
+ *  names the turn's second move, not what its first did. A placement leaves the hands as they were, so the second
+ *  move after it has the same hands. After an edit, the hands are not known here: the second move's glyphs then have
+ *  no cell. */
 export function turnShortNote(t: TurnReview, before: Position): string | NotePart<Blueprints>[] {
   if (t.label === "great") return `Great. The only good ${t.edges.length > 1 ? "moves" : "move"}. ${KEPT_NOTE}`;
   const said = `${t.label ? shared.LABEL_TEXT[t.label] : "Not analyzed yet"}.`;
-  if (!t.best || t.label === "best") return said;
-  return [`${said} `, ...t.best.flatMap((m, k) => [...(k ? [" "] : []), asPlayed(m, t.player, before)]), " was best."];
+  const best = t.best;
+  if (!best || t.label === "best") return said;
+  const hands = (k: number) => (k === 0 || best[0].kind === "place" ? before : undefined);
+  return [`${said} `, ...best.flatMap((m, k) => [...(k ? [" "] : []), asPlayed(m, t.player, hands(k))]), " was best."];
 }
 
 /** A note for the move list, in one line: the label, and the engine's choice when the move was not it. */
@@ -184,9 +187,9 @@ export function endingText(data: ReviewData): string {
   return `${PLAYER_NAME[winner]} won by ${WHOLE.format(Number(m[2]))}`;
 }
 
-/** A move not played as a move played, for the lists' glyphs (the view's `asPlayed`): from the hands before it (a
- *  position's, or a line's step before it), with what it did once the rules have played it (a line's step), else with
- *  no captures. Without the hands, an edit's glyphs have no cell. */
+/** A move not played as a move played, for the lists' glyphs (the view's `glyphs.asPlayed`): from the hands before it
+ *  (a position's, or a line's step before it), with what it did once the rules have played it (a line's step), else
+ *  with no captures. Without the hands, an edit's glyphs have no cell. */
 export function asPlayed(move: Move, player: Player, before?: { blueprints: readonly [Hand, Hand]; stars: [number, number] },
                          step?: Step): Played {
   const hands: readonly [Hand, Hand] = before?.blueprints ?? [NO_HAND, NO_HAND];

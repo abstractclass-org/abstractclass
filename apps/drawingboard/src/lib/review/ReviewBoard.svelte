@@ -8,7 +8,7 @@
 
   /** A line as the board draws it, from the hands `hands` where it starts: each move that the rules have played with
    *  what it did and the hands after it, and the others where they stand. */
-  export function boardLine(line: readonly LineMove<Blueprints>[], hands: readonly [Hand, Hand]): BoardLineMove[] {
+  function boardLine(line: readonly LineMove<Blueprints>[], hands: readonly [Hand, Hand]): BoardLineMove[] {
     let before = hands;
     return line.map(l => {
       if (!l.step) return { move: moveBefore(l.move, l.player, before) };
@@ -44,8 +44,9 @@
   const boardLines = $derived(line ? boardLine(line, position.blueprints) : null);
   // The quality labels of the turn just played, on its moves as they were played (the last move and the earlier one of
   // its turn), else where they stand in the position's hands.
+  const turn = $derived([...earlier, ...(last ? [last] : [])]);
   const labels = $derived(!layers.marks ? [] : marks.map((m): BoardLabel => ({
-    move: [...earlier, ...(last ? [last] : [])].find(p => p.edge && moves.equal(p.edge, m.move))?.drawn
+    move: turn.find(p => p.edge && moves.equal(p.edge, m.move))?.drawn
       ?? moveBefore(m.move, last?.player ?? position.player, position.blueprints),
     label: m.label, note: m.note,
   })));

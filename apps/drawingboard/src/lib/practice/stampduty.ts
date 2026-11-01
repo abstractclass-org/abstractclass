@@ -1,15 +1,12 @@
 // Practice against Stamp Duty (docs/design/33-drawing-board.md, "Practice against Stamp Duty"): Drawing Board's part
 // of @abstractclass/practice (Hedge School's design 24). Its keys in this browser, its networks, the bot's half-life,
 // and the bot's name. Its visits are Hedge School's, 1 to 8,192.
-import lock from "../../../engine.lock.json" with { type: "json" };
 import { botLabel, choicesStore, keptStore, settingsCommands, type BotSettings } from "@abstractclass/practice/practice.ts";
+import { NETWORKS, networkName, offersNetwork } from "../analysis/engineSettings.ts";
 import { ENGINE_NAME } from "../site.ts";
 
-/** The networks that the site ships (engine.lock.json), the first one first: the settings card offers them. Each by
- *  its release's name, which is the network's own name until a release gives it a number of Stamp Duty. */
-export const NETWORKS = lock.artifacts.filter(a => a.kind === "model").map(a => ({ id: a.id, name: a.displayName ?? a.id, bytes: a.bytes }));
-export const offersNetwork = (id: string | undefined) => NETWORKS.some(n => n.id === id);
-export const networkName = (id: string) => NETWORKS.find(n => n.id === id)?.name ?? id;
+/** The networks that the site ships, the first one first: the settings card offers them (engineSettings.ts). */
+export { NETWORKS, networkName, offersNetwork };
 
 /** The game in progress. The bot has one form (its one search thread), so the game names none. */
 export type { KeptPractice } from "@abstractclass/practice/practice.ts";

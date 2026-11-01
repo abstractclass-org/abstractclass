@@ -11,16 +11,18 @@ import { ENGINE_KEY } from "../site.ts";
 export * from "@abstractclass/analysis/settings.ts";
 
 type Locked = { id: string; kind: string; displayName?: string; bytes: number };
-const locked = (id: string) => (lock.artifacts as Locked[]).find(a => a.id === id);
 
-/** The networks that the site ships (engine.lock.json), the default first: the settings offer them. */
-export const NETWORKS = (lock.artifacts as Locked[]).filter(a => a.kind === "model").map(a => ({ id: a.id }));
+/** The networks that the site ships (engine.lock.json), the default first: the engine's settings and Practice's card
+ *  offer them. Each by its release's name (its manifest's `displayName`), which is the network's own id until a release
+ *  gives it a number of Stamp Duty, and with its download in bytes. */
+export const NETWORKS = (lock.artifacts as Locked[]).filter(a => a.kind === "model")
+  .map(a => ({ id: a.id, name: a.displayName ?? a.id, bytes: a.bytes }));
 /** Whether the settings offer the network `id`. */
 export const offersNetwork = (id: string | undefined): boolean => NETWORKS.some(n => n.id === id);
-/** A network's name: the release's name (its manifest's `displayName`), else its id until a release names it. */
-export const networkName = (id: string): string => locked(id)?.displayName ?? id;
-/** A network's download in MB, from engine.lock.json. */
-export const networkMB = (id: string): string => megabytes(locked(id)?.bytes ?? 0);
+/** A network's name, or its id where the site does not ship it. */
+export const networkName = (id: string): string => NETWORKS.find(n => n.id === id)?.name ?? id;
+/** A network's download in MB. */
+export const networkMB = (id: string): string => megabytes(NETWORKS.find(n => n.id === id)?.bytes ?? 0);
 
 /** The pool's workers at first: few, for each one's start and memory (abscls-qyms). */
 const FIRST_WORKERS = 2;

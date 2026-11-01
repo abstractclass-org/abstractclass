@@ -13,10 +13,10 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { hasEngine, nodeEngine } from "@abstractclass/engine/node-engine.mjs";
-import { gtpColor, settingsCommands } from "@abstractclass/practice/practice.ts";
+import { gtpAnswer, gtpColor, settingsCommands } from "@abstractclass/practice/practice.ts";
 import { turnFromCount } from "@abstractclass/analysis/turns.ts";
 import { writeRecord } from "@abstractclass/record/record.ts";
-import { moveText } from "../src/lib/game/notation.ts";
+import { blueprints, playedText } from "../src/lib/review/blueprints.ts";
 
 const app = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 /** The value of the option `--name VALUE`, or `fallback`. @param {string} name @param {string} fallback */
@@ -39,9 +39,8 @@ const bot = await library.createPracticeBot(await WebAssembly.compile(readFileSy
 bot.setModel(readFileSync(file("model")));
 /** A GTP command's answer, or a thrown error. @param {string} line */
 function command(line) {
-  const reply = /** @type {string} */ (bot.command(line));
-  if (!reply.startsWith("=")) throw new Error(`${line}: ${reply}`);
-  return reply.slice(1).trim();
+  try { return gtpAnswer(/** @type {string} */ (bot.command(line))); }
+  catch (e) { throw new Error(`${line}: ${e instanceof Error ? e.message : e}`); }
 }
 command(`blueprints-start ${SEED}`);
 for (const line of settingsCommands({ network: network.id, visits: BLUE, variety: "low" }, HALFLIFE)) command(line);
@@ -62,12 +61,10 @@ for (;;) {
   if (moves.length % 20 === 0) console.log(`${moves.length} moves, ${((performance.now() - t0) / 1000).toFixed(0)} s`);
 }
 
-// Each move with its capture mark, from what it did, and the record's turns: Blue's first has one move, then two a turn.
+// Each move with its capture mark, from what it did, as the review writes it (blueprints.ts), and the record's turns:
+// Blue's first has one move, then two a turn.
 const positions = call({ id: "g", action: "describe_game", moves }).positions;
-const texts = moves.map((m, i) => {
-  const after = positions[i + 1], captured = Object.keys(after.captured ?? {}).length;
-  return moveText(m, captured || after.points ? { points: after.points } : null);
-});
+const texts = moves.map((m, i) => playedText(blueprints.played(m, positions[i], positions[i + 1])));
 /** @type {{ number: number; moves: number }[]} */
 const turns = [];
 moves.forEach((_, i) => {

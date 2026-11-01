@@ -12,11 +12,11 @@
   export interface HandEdit { from: HandHex; to: HandHex }
   export interface HandMarks {
     last: HandEdit | null;
-    turn?: HandEdit[]; // the edits of the same turn before the last move, marked as the last move's is
+    turn: HandEdit[]; // the edits of the same turn before the last move, marked as the last move's is
     candidates: (HandEdit & { name: string; rank: number })[];
     placed: { blueprint: BlueprintNumber; name: string; rank: number }[]; // the placements' blueprints, for their chips
     line: (HandEdit & { n: number })[];
-    labels?: { at: HandHex; label: Label; note?: string }[]; // the quality labels of the turn just played's edits, on their new places
+    labels: { at: HandHex; label: Label; note?: string }[]; // the quality labels of the turn just played's edits, on their new places
   }
   /** The player's own move in the mover's hand: the blueprint and the cell chosen, the cell's marked new places, and
    *  the new place where the cell shows faded (the one that a tap shows, or the one under a mouse's pointer). */
@@ -32,7 +32,7 @@
    *  legal edit can have is in the box. The box does not depend on the player's own move: the hands keep their scale
    *  and their places whether the input is on or off, and when the player chooses a blueprint or a cell. */
   export function blueprintBoxes(hand: Hand, marks: HandMarks): Box[] {
-    const edits = [marks.last, ...(marks.turn ?? []), ...marks.candidates, ...marks.line].filter(e => !!e);
+    const edits = [marks.last, ...marks.turn, ...marks.candidates, ...marks.line].filter(e => !!e);
     return hand.map((b, i) => {
       const n = (i + 1) as BlueprintNumber;
       const hexes: Hex[] = [[0, 0]];
@@ -198,7 +198,7 @@
 
   <!-- The edits of the turn so far, the last move's and an earlier one's: the cell's old place dashed, the cell ringed
        at its new place, an arrow between them. -->
-  {#each [...(marks.turn ?? []), ...(marks.last ? [marks.last] : [])] as e, i (i)}
+  {#each [...marks.turn, ...(marks.last ? [marks.last] : [])] as e, i (i)}
     <path d={hexPath(...at(e.from), 0.86 * unit)} class="old-place" />
     <path d={hexPath(...at(e.to), 0.86 * unit)} class="new-place" />
     {@render arrow(e, "last")}
@@ -252,7 +252,7 @@
 
   <!-- The quality label of an edit of the turn just played, at the upper right of the cell's new place, as the board
        puts a placement's (Board.svelte). -->
-  {#each marks.labels ?? [] as l (cellKey(l.at.blueprint, l.at.hex))}
+  {#each marks.labels as l (cellKey(l.at.blueprint, l.at.hex))}
     {@const [x, y] = at(l.at)}
     {@const r = Math.max(7, 0.62 * unit)}
     {@const bx = x + 0.8 * unit}
