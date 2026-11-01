@@ -5,10 +5,12 @@
   // against what each move did. Then the sweep, the label stage, the Greats' confirmations, and deeper searches where
   // the player looks (Hedge School's design 05). The engine's settings apply as they change.
   //
-  // Drawing Board has no store of games yet: this browser keeps the one game in review (its record), as Practice keeps
-  // its game. A record that comes after the `#` (`#record=`, from the import page or a link) takes its place, and
-  // leaves the address at once, so that a reload keeps the review. The engine's results are kept by position
-  // (@abstractclass/analysis/cache.ts), so a review opened again shows them at once.
+  // Drawing Board has no list of games yet: this browser keeps each game that it reviews (its record) in the browser's
+  // store of games (@abstractclass/storage/db.ts, STORES.games), under the game's id, and local storage names the game
+  // in review. The analysis keeps a game's variations only while its game is in that store. A record that comes after
+  // the `#` (`#record=`, from the import page or a link) becomes the game in review, and leaves the address at once, so
+  // that a reload keeps the review. The engine's results are kept by position (@abstractclass/analysis/cache.ts), so a
+  // review opened again shows them at once.
   import { onDestroy, onMount } from "svelte";
   import { replaceState } from "$app/navigation";
   import { MediaQuery } from "svelte/reactivity";
@@ -21,6 +23,7 @@
   import { modelOf, moduleOf } from "@abstractclass/engine/client.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
   import { readLocal, writeLocal } from "@abstractclass/storage/local.ts";
+  import { STORES, dbGet, dbPut } from "@abstractclass/storage/db.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import { blueprints, type Blueprints, type ReviewData } from "#lib/review/blueprints.ts";
   import { blueprintsView } from "#lib/review/blueprintsView.ts";
@@ -56,8 +59,10 @@
   const bar = new ReviewBar({ game: () => game, moves: () => kept?.record.moves.length ?? 0, budget: () => budget });
   const wide = new MediaQuery(WIDE);
 
-  /** A short name of a game's moves, for its tree's key in this browser's store: two games with the same moves share
-   *  their variations, as their positions share the engine's results. FNV-1a, 32 bits. */
+  /** A game as this browser keeps it: its record, and when it came. */
+  interface KeptGame { record: string; added: string }
+  /** A short name of a game's moves, its key in this browser's store: two games with the same moves are one game, and
+   *  share their variations, as their positions share the engine's results. FNV-1a, 32 bits. */
   function gameId(moves: string[]): string {
     let h = 0x811c9dc5;
     for (const c of moves.join(" ")) h = Math.imul(h ^ c.charCodeAt(0), 0x01000193) >>> 0;
@@ -65,18 +70,20 @@
   }
 
   onMount(async () => {
-    // A record after the `#` becomes the game in review, and leaves the address.
+    // A record after the `#` becomes the game in review, kept in this browser's store, and leaves the address.
     const sent = new URLSearchParams(location.hash.slice(1)).get("record");
-    if (sent !== null) {
-      writeLocal(REVIEW_GAME_KEY, sent);
-      await replaceState("/review", {}); // async: the address changes only once it resolves
-    }
-    const text = sent ?? readLocal(REVIEW_GAME_KEY);
-    if (!text) { none = true; return; }
+    if (sent !== null) await replaceState("/review", {}); // async: the address changes only once it resolves
     try {
+      let text = sent, id = readLocal(REVIEW_GAME_KEY);
+      if (text !== null) {
+        id = gameId(parseRecord(text).moves);
+        await dbPut(STORES.games, id, { record: text, added: new Date().toISOString() } satisfies KeptGame);
+        writeLocal(REVIEW_GAME_KEY, id);
+      } else if (id) text = (await dbGet<KeptGame>(STORES.games, id))?.record ?? null;
+      if (!text || !id) { none = true; return; }
       const record = parseRecord(text);
       const moves = record.moves;
-      kept = { id: gameId(moves), record };
+      kept = { id, record };
       const manifest = await session.load();
       // The stored results, read while the engine starts: the review shows them in its first frame.
       const model = modelOf(manifest, engine.network)?.sha256, search = moduleOf(manifest)?.search;

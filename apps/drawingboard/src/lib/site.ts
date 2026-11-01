@@ -14,10 +14,10 @@ export const THEME_KEY = "drawing-board:theme:1";
 /** The key under which this tab keeps each page's scroll place (SiteFrame). */
 export const PLACES_KEY = "drawing-board:scroll-places:1";
 /** The keys under which this browser keeps the review's display settings, the engine's settings, the place and size
- *  of the hands' panel (the same on every page with the board), the game in review, and the Analysis board's position
- *  on screen. */
+ *  of the hands' panel (the same on every page with the board), the id of the game in review (the game is in the
+ *  browser's store of games), and the Analysis board's position on screen. */
 export const DISPLAY_KEY = "drawing-board:review-display:1";
 export const ENGINE_KEY = "drawing-board:engine:1";
 export const PANEL_KEY = "drawing-board:panel:1";
-export const REVIEW_GAME_KEY = "drawing-board:review-game:1";
+export const REVIEW_GAME_KEY = "drawing-board:review-game:2";
 export const BOARD_AT_KEY = "drawing-board:board-at:1";

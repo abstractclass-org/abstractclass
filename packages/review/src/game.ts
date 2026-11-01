@@ -59,6 +59,9 @@ export interface Display {
   // or its quality mark alone, in --book), or an open book in the label's colour, in the place of its quality mark
   bookMoves: "label" | "book";
   notes: boolean; // the move list's one-line notes on Great moves, mistakes and blunders
+  // How the lists write a move, where the game has glyphs (the view's `MoveLabel`): its glyphs, or its notation as text.
+  // The move list, its notes, the status line, and the variations and lines in notation follow it. None: the notation
+  notation?: "glyphs" | "text";
   previewMoves: boolean; // the position after a played move on the board, while the pointer is on the move (design 07)
   previewBranches: boolean; // a variation's line on the board, while the pointer is on one of its moves (design 07)
   sound: boolean; // move sounds (design 08)
@@ -94,6 +97,9 @@ export interface LineMove<G extends GameTypes> { move: G["move"]; player: Player
 export interface BoardProps<G extends ViewTypes> {
   position: G["position"];
   last: G["played"] | null; // the move that led to the position: the board draws what it did (Enclosure: its cut)
+  // The moves of the same turn before `last`, the first first: the board marks them with it, so that the moves of the
+  // turn so far show together, by turn and by move alike (Enclosure's board marks them from its position: `placed`)
+  earlier: G["played"][];
   candidates: BoardCandidate<G["move"]>[];
   // The candidate pointed at from outside the board (a row of the table), or else the pinned one: the board lights
   // it, as it lights the candidate under its own pointer
@@ -119,8 +125,15 @@ export interface BoardProps<G extends ViewTypes> {
 }
 
 /** A move's shape in the variations and the engine's line, in its mover's colour: hollow where the move is in the
- *  tree already, and with the board's number in the line (`n`). Null: a pass. */
-export interface ShapeProps<M> { move: M | null; player: Player; hollow: boolean; n: number | null; class: string }
+ *  tree already, and with the board's number in the line (`n`), which a game may leave out (Blueprints': its number
+ *  would read as the blueprint's). Null: a pass. `before`: what the board showed before
+ *  the move, where the view knows it: the position (a variation's move, the line's first), or the step of the line's
+ *  move before it, once the rules have played it. */
+export interface ShapeProps<M, B = unknown> { move: M | null; player: Player; hollow: boolean; n: number | null; class: string; before?: B }
+
+/** A part of a note in the move list: its text, or a move that it names, which the lists write as they write a move
+ *  (by the display setting `notation`). */
+export type NotePart<G extends ViewTypes> = string | G["played"];
 
 /** A number of each player's beside the score, in the cards, on the Advantage chart and in an image's caption
  *  (Enclosure: the area each player encloses now, which each turn's end adds to the score). */
@@ -270,18 +283,28 @@ export interface ViewGame<G extends ViewTypes> extends Game<G> {
   /** A move played, as the move list writes it: its name with its marks (Enclosure's cut mark, D10-G10x). */
   notation(played: G["played"]): string;
   /** A move played as the move list shows it, where its notation alone is not the game's look (Blueprints' blueprint
-   *  number in a box, design 33, item 8), as wide as `moveText`. None: the move list writes the notation. */
+   *  number in a box, design 33, item 8), as wide as `moveText`: the glyphs of the display setting `notation`, whose
+   *  help `notationHelp` gives. None: the move list writes the notation, and the settings offer no choice. */
   MoveLabel?: Component<{ played: G["played"] }>;
+  notationHelp?: string;
+  /** A move not played as a move played, for its glyphs (`MoveLabel`): a candidate, a line's move, a note's move. From
+   *  the position before it, or the line's step before it, where the view knows it, and from its own step once the
+   *  rules have played it (a line's). */
+  asPlayed?(move: G["move"], player: Player, before?: G["position"] | G["step"], step?: G["step"]): G["played"];
   /** A move of a line, as the line's list writes it: its name, and its mark once the rules have played it. */
   lineNotation(move: G["move"], step: G["step"] | undefined): string;
   /** A move's shape in the variations and the line (Enclosure's pill along the edge). */
-  Shape: Component<ShapeProps<G["move"]>>;
+  Shape: Component<ShapeProps<G["move"], G["position"] | G["step"]>>;
   shape: { name: string; help: string }; // its choice's name in the display settings, and the choice's help
   moveText: string; // the class of a move's text in the move list: as wide as the widest move
   // Each move on a line of its own in the move list, the turn's number at its first: moves too long for two to a row
   // (Blueprints', as on Drawing Board's Practice). None: two to a row, as Lichess's
   oneMoveALine?: boolean;
   nameText: string; // the class of a candidate's name in the table: as wide as the widest move's name
+  /** Each candidate's name in the table as large as its cell allows, measured: its full size, or smaller where it is
+   *  wider than the cell, down to this share of its size, where it is cut. For names whose widths differ much
+   *  (Blueprints' edits and placements, and their glyphs). None: `nameText` gives the size. */
+  fitName?: number;
 
   // --- Who plays each move
   /** The moves left in the turn from a position, for its mover. */
@@ -300,10 +323,12 @@ export interface ViewGame<G extends ViewTypes> extends Game<G> {
   words: { move: string; moves: string; Move: string }; // the game's word for a move: "edge", "edges", "Edge"
   /** The game's outcome in words. */
   ending(data: ReviewData<G>): string;
-  /** A move's note in the move list, in one line: its label, and the engine's choice when the move was not it. */
-  shortNote(e: MoveReview<G>): string;
-  /** A turn's note, by turn. */
-  turnShortNote(t: TurnReview<G>): string;
+  /** A move's note in the move list, in one line: its label, and the engine's choice when the move was not it. Its text,
+   *  or its parts, where the note names moves that the lists write in glyphs (`NotePart`). `before`: the position
+   *  before the move. */
+  shortNote(e: MoveReview<G>, before: G["position"]): string | NotePart<G>[];
+  /** A turn's note, by turn. `before`: the position at the turn's start. */
+  turnShortNote(t: TurnReview<G>, before: G["position"]): string | NotePart<G>[];
 
   // --- The display settings and the sounds
   display: { load(): G["display"]; save(d: G["display"]): void };

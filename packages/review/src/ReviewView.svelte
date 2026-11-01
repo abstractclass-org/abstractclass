@@ -118,13 +118,14 @@
   import AdvantageChart from "./AdvantageChart.svelte";
   import DifficultyChart from "./DifficultyChart.svelte";
   import { DIGITS, fmtScore, type BoardCandidate, type BoardMark, type BookJudgment, type Display, type LayerSetting,
-           type LineMove, type ViewGame } from "./game.ts";
+           type LineMove, type NotePart, type ViewGame } from "./game.ts";
   import { askOrder, changeMap, differenceMap, differenceReading, mapStep, ownershipMap, valueText, type MapStyle } from "./ownership.ts";
   import SettingChoice from "@abstractclass/site/SettingChoice.svelte";
   import SettingToggle from "@abstractclass/site/SettingToggle.svelte";
   import { SETTINGS_HEAD, SWITCH, SWITCH_THUMB, settingId } from "@abstractclass/site/settings.ts";
   import Glyph from "./Glyph.svelte";
   import LabelBadge from "./LabelBadge.svelte";
+  import { nameSize } from "./nameSize.ts";
   import { LINE_STEP_MS, LineDrawing } from "./lineDrawing.svelte.ts";
   import { imageLine, lineFrames } from "./lineImage.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
@@ -282,6 +283,13 @@
   ].filter(Boolean).join(" ") || undefined);
   const mover = $derived(position.player as Player);
   const lastPlayed = $derived(moveInto(path)); // the move that led here, in the game or a variation
+  // The moves of the turn before it, as far as here: a turn has two at most. The board marks them with it, by turn and
+  // by move alike, as the review's unit changes the grouping of the labels only.
+  const earlierPlayed = $derived.by((): G["played"][] => {
+    if (path.length < 2 || moveFrom(path.slice(0, -1)).first) return [];
+    const m = moveInto(path.slice(0, -1));
+    return m ? [m] : [];
+  });
 
   // The tree's children: the game's next move first, on its line, then the variations, in the order they were added.
   // Derived from the variations' keys in their order: a variation's search result changes neither.
@@ -322,11 +330,13 @@
     return out;
   }
   const turnText = (t: { turn: number; first: boolean }) => `${t.turn}${t.first ? "." : "..."}`;
-  /** A move in the record's notation with its turn: "12. L10-N11", and "12... N11-Q10" for a turn's second edge. */
-  const moveText = (index: number) => {
+  /** A move's turn as the record writes it before the move: "12. ", and "12... " for a turn's second edge. */
+  const turnBefore = (index: number) => {
     const t = R.turnOf[index];
-    return `${t.number}${opensTurn(t, index) ? "." : "..."} ${view.notation(R.edges[index])}`;
+    return `${t.number}${opensTurn(t, index) ? "." : "..."} `;
   };
+  /** A move in the record's notation with its turn: "12. L10-N11", and "12... N11-Q10" for a turn's second edge. */
+  const moveText = (index: number) => `${turnBefore(index)}${view.notation(R.edges[index])}`;
   // The move list explains these labels under their turn.
   const COMMENTED: Label[] = ["great", "mistake", "blunder"];
 
@@ -700,6 +710,15 @@
   // The styles' names, by what each compares, in the order of Shift+T
   const MAP_STYLE_NAME: Record<Display["mapStyle"], string> = { ownership: "Forecast", change: "Forecast vs board", difference: "After vs before" };
   const MAP_STYLES = Object.keys(MAP_STYLE_NAME) as Display["mapStyle"][];
+  // How the lists write a move (the display setting `notation`, where the game has glyphs): its glyphs, or its notation
+  const glyphs = $derived(!!view.MoveLabel && display.notation !== "text");
+  // The candidates' table writes its moves so too, in the table's text colour
+  const tableGlyphs = $derived(glyphs && !!view.asPlayed);
+  /** A note as text, its moves in their notation: its title, and how a turn's notes say a note once. */
+  const noteText = (note: string | NotePart<G>[]) =>
+    typeof note === "string" ? note : note.map(p => (typeof p === "string" ? p : view.notation(p))).join("");
+  const onceEach = <N extends string | NotePart<G>[]>(notes: N[]) =>
+    notes.filter((n, i) => notes.findIndex(m => noteText(m) === noteText(n)) === i);
   // The switch in the board's margin: off, or a style, one click for each. The style changes as often as the player
   // reads a position, so it is on the page, and on the keys: t shows or hides the map, and Shift+T goes to the next
   // style, which shows the map.
@@ -873,7 +892,71 @@
   // The table: every candidate, in the engine's order, in a box of TABLE_ROWS rows that scrolls. The rows on the board
   // have their number in a badge, as the board draws it.
   const onBoard = $derived(new Set(candidates.map(c => c.rank)));
+  const tableRows = $derived(analysis ? distinctCandidates(analysis).map((c, k) => ({ c, rank: k + 1, twins: twinsOf(view, analysis, c) })) : []);
+  const tableNames = $derived(tableRows.map(r => view.moveName(r.c.edge)).join(" "));
   let tableBox = $state<HTMLElement | null>(null);
+  let table = $state<HTMLTableElement | null>(null);
+  // The Move header opens its column (movesOpen): each move at its full size, in a column as wide as the widest move,
+  // and the table as wide as it then needs, so that the box scrolls to the columns after it. A second click closes it.
+  // It stays open from position to position until the next click, and the page does not keep it.
+  let movesOpen = $state(false);
+  // From the names' measure (fitNames): whether a name is smaller than its full size or cut, so that the header offers
+  // to open the column, and the open table's width. The box takes in its scroll bar's height, so that its rows stay in
+  // view.
+  let nameFit = $state({ short: false, open: 0 });
+  let scrollBar = $state(0);
+  /** Measures the table's names. A name's full width is its content's width at its cell's font size. Closed, a name is
+   *  as large as its cell allows where the game asks for it (`fitName`, nameSize.ts): its full size, or smaller where
+   *  it is wider than the cell, down to the game's least size, where it is cut. Else its class (`nameText`) gives its
+   *  size. Open, each name is at its full size, as wide as the widest. A cut name fades at its end (data-cut). */
+  function fitNames() {
+    if (!table) return;
+    const range = document.createRange();
+    const width = (el: HTMLElement) => { range.selectNodeContents(el); return range.getBoundingClientRect().width; };
+    const names = [...table.querySelectorAll<HTMLElement>("[data-name]")];
+    for (const el of names) { el.style.fontSize = "1em"; el.style.width = ""; }
+    const full = names.map(width), widest = Math.ceil(Math.max(0, ...full));
+    let short = false, after = 0;
+    names.forEach((el, i) => {
+      const cell = el.parentElement!;
+      if (movesOpen) el.style.width = `${widest}px`;
+      else {
+        const size = view.fitName ? nameSize(el.clientWidth, full[i], view.fitName) : 1;
+        el.style.fontSize = size < 1 ? `${size}em` : "";
+      }
+      const cut = width(el) > el.clientWidth + 0.5;
+      el.toggleAttribute("data-cut", cut);
+      short ||= cut || parseFloat(getComputedStyle(el).fontSize) < parseFloat(getComputedStyle(cell).fontSize) - 0.05;
+      // A mark after the name (a twin's): the open column has room for it
+      const mark = el.nextElementSibling;
+      if (mark) after = Math.max(after, mark.getBoundingClientRect().width + parseFloat(getComputedStyle(cell).columnGap));
+    });
+    const head = table.querySelector<HTMLElement>("[data-move-head]")!, { paddingLeft, paddingRight } = getComputedStyle(head);
+    const open = Math.ceil(table.getBoundingClientRect().width - head.getBoundingClientRect().width
+                           + parseFloat(paddingLeft) + parseFloat(paddingRight) + widest + after);
+    if (nameFit.short !== short || nameFit.open !== open) nameFit = { short, open };
+  }
+  // The names are measured once the table shows a position's rows, in their form, open or closed; again when the box's
+  // width changes (a hidden tab's box has none); and when the fonts load.
+  $effect(() => {
+    void here; void tableNames; void tableGlyphs; void movesOpen; void table;
+    untrack(fitNames);
+  });
+  $effect(() => {
+    if (!tableBox) return;
+    let width = -1;
+    const sized = new ResizeObserver(([entry]) => {
+      if (entry.contentRect.width !== width) { width = entry.contentRect.width; fitNames(); }
+    });
+    sized.observe(tableBox);
+    void document.fonts?.ready.then(() => fitNames());
+    return () => sized.disconnect();
+  });
+  // The scroll bar of the open table, under its rows
+  $effect(() => {
+    void nameFit; void movesOpen;
+    if (tableBox) scrollBar = tableBox.offsetHeight - tableBox.clientHeight;
+  });
   // A new position starts the table at its top.
   $effect(() => { void here; if (tableBox) tableBox.scrollTop = 0; });
   // A candidate pointed at on the board brings its row into view, below the header. A row pointed at in the table does
@@ -1242,6 +1325,7 @@
     ...(book?.ready ? BOOK_CLICKS : []),
     ["Click a candidate", "Pin its line on the board. Click the candidate again to unpin it"],
     ["Double-click a candidate", "Play it"],
+    [`Click the ${view.words.Move} header`, `Show each ${view.words.move} in full, if the table makes one smaller or cuts it. Click the header again to make the column narrow`],
     ...view.clicks,
     ["Right-click a variation's move", "Evaluate it, promote its variation, or delete from it"],
   ]);
@@ -1292,6 +1376,11 @@
       branchPreview.start.length ? `the position after ${view.words.move} ${branchPreview.start.length}` : "the start"}. Click to go there.`
     : movePreview ? `Preview: the position after ${view.words.move} ${movePreview.index + 1}, ${moveText(movePreview.index)}. Click to go there.`
     : view.inputStatus(input, mover) ?? status);
+  // A played move's preview in glyphs: the status line's text round the move, which the line writes as the move list
+  // does (written)
+  const statusMove = $derived(!branchPreview && movePreview && glyphs ? {
+    before: `Preview: the position after ${view.words.move} ${movePreview.index + 1}, ${turnBefore(movePreview.index)}`,
+    played: R.edges[movePreview.index], after: ". Click to go there." } : null);
   const blueWin = $derived(mainAt !== null ? R.blueWin[mainAt] : over ? resultWin(position.scores[0] - position.scores[1])
     : analysis?.blueWin ?? NaN);
   // The chart's hover, as Lichess's: the move that led to the position and its label, then one number. The number is
@@ -1554,25 +1643,40 @@
        mirror mark. The row is the searched edge: pointing at it lights that edge and draws its line. The name has a
        slot as wide as the widest edge (M13-O16: 4 em in the first row's semibold), so the marks line up in a column.
        In em, not ch: a ch of the semibold first row is wider than the other rows'. -->
-  {@const rows = analysis ? distinctCandidates(analysis).map((c, k) => ({ c, rank: k + 1, twins: twinsOf(view, analysis, c) })) : []}
   <!-- The table's box: a fixed height (from TABLE_ROWS), a scroll bar when there are more rows, and room for the
        scroll bar kept at all times, so that the columns do not move when it appears. Fixed columns: the table
        keeps its layout from position to position. Each fits its widest content (a two-digit rank, the header
        "Blue wins", a lead with its side, "Blue +999" or "Blue +1.2k", five-digit visits), and the space left goes to
        the edge column. When that column is narrower than the longest edge name (7 characters, about 4.4em), the
        name's text gets smaller instead of being cut: its cell is a size container, and the text is at most 22% of its
-       width. Below 70% of its size the text would be hard to read, so the name is cut there. -->
+       width. Below 70% of its size the text would be hard to read, so the name is cut there. Where the game's names
+       differ much in width (`fitName`), each name is measured instead, and is as large as its cell allows. A cut name
+       fades at its end. While a name is smaller or cut, the Move header is a button that opens the column: each name
+       at its full size, the column as wide as the widest name, and the table wider than its box, which then scrolls
+       to the other columns. The # and Move columns come first, so they show at the scroll's start. A name's glyphs
+       (`MoveLabel`) sit on the middle of its line: an edit's begins with its cell's picture, whose baseline is its
+       lower edge, and on the line's baseline it would make the row taller. -->
   <div class="flex-none mb-3 overflow-y-auto [scrollbar-gutter:stable] text-sm" bind:this={tableBox}
-       style="height: {(TABLE_ROWS + 1) * ROW_EM}em; --row: {ROW_EM}em">
-  <table class="w-full table-fixed [&_:is(th,td)]:px-1 [&_:is(th,td)]:py-0.5 [&_:is(th,td)]:border-b [&_:is(th,td)]:border-line [&_:is(th,td)]:truncate">
+       style="height: calc({(TABLE_ROWS + 1) * ROW_EM}em + {scrollBar}px); --row: {ROW_EM}em">
+  <table class="w-full table-fixed [&_:is(th,td)]:px-1 [&_:is(th,td)]:py-0.5 [&_:is(th,td)]:border-b [&_:is(th,td)]:border-line [&_:is(th,td)]:truncate"
+         bind:this={table} style:width={movesOpen ? `max(100%, ${nameFit.open}px)` : undefined}>
     <colgroup><col class="w-7" /><col /><col class="w-18" /><col class="w-19" /><col class="w-12" /></colgroup>
     <thead>
       <tr class="[&>th]:sticky [&>th]:top-0 [&>th]:z-1 [&>th]:h-(--row) [&>th]:bg-panel [&>th]:text-left [&>th]:font-medium [&>th]:text-muted">
-        <th>#</th><th>{view.words.Move}</th><th>{PLAYER_NAME[mover]} wins</th><th>Lead</th><th>Visits</th>
+        <!-- The Move header, while it can open or close the column: a button, its mark after the word. A click does not
+             focus it, so that the page's keys stay on the game. -->
+        <th>#</th>
+        <th data-move-head>{#if movesOpen || nameFit.short}<button type="button" aria-expanded={movesOpen}
+              class="inline-flex max-w-full items-baseline gap-[0.3em] p-0 border-0 rounded-none bg-transparent text-inherit hover:text-ink"
+              title={movesOpen ? "Make the column narrow again" : `Show the ${view.words.moves} in full`}
+              onmousedown={e => e.preventDefault()} onclick={() => (movesOpen = !movesOpen)}>{view.words.Move}<span
+              aria-hidden="true">{movesOpen ? "‹" : "›"}</span></button>{:else}{view.words.Move}{/if}</th>
+        <th>{PLAYER_NAME[mover]} wins</th><th>Lead</th>
+        <th>Visits</th>
       </tr>
     </thead>
     <tbody>
-      {#each rows as { c, rank, twins } (rank)}
+      {#each tableRows as { c, rank, twins } (rank)}
         <tr class={["h-(--row)", rank === 1 && "font-semibold", hoverRank === rank && "lit outline outline-accent -outline-offset-1",
                     pinned && rank === selectedRank && "shadow-[inset_3px_0_0_var(--accent)]"]}
             style={rowTint(c.blueWin)} onmouseenter={() => { hoverOnBoard = false; hover = c.edge; }} onmouseleave={() => (hover = null)}
@@ -1580,15 +1684,17 @@
             title={analysis && !trusted(c) ? "Too few visits to show the engine's line" : undefined}>
           <!-- A candidate on the board has its number in a badge, as the board draws it. The others have a plain number. -->
           <td>{@render rankBadge(rank, onBoard.has(rank) ? "On the board" : undefined)}</td>
-          <td><div class="@container flex items-center gap-1 min-w-0"><span class="flex-none {view.nameText}">{view.moveName(c.edge)}</span>{#if twins.length}<span
+          <td><div class="@container flex items-center gap-1 min-w-0"><span data-name class="flex-none {view.nameText} [--on-text:var(--panel)] [&>*]:align-middle
+                data-cut:text-clip data-cut:[mask-image:linear-gradient(to_right,#000_calc(100%_-_1.25em),transparent)]">{#if tableGlyphs && view.asPlayed}{@render written(view.asPlayed(c.edge, mover, position))}{:else}{view.moveName(c.edge)}{/if}</span>{#if twins.length}<span
                 class="flex-none leading-none font-normal text-muted" title="Mirror: {twins.map(t => view.moveName(t.edge)).join(', ')}">⇅</span>{/if}</div></td>
           <td>{pct(moverWin(c.blueWin, mover))}</td>
-          <td>{c.lead !== undefined ? sideShort(c.lead) : "–"}</td><td>{c.visits}</td>
+          <td>{c.lead !== undefined ? sideShort(c.lead) : "–"}</td>
+          <td>{c.visits}</td>
         </tr>
       {/each}
-      {#each Array.from({ length: Math.max(0, TABLE_ROWS - rows.length) }, (_, k) => k) as k (k)}
+      {#each Array.from({ length: Math.max(0, TABLE_ROWS - tableRows.length) }, (_, k) => k) as k (k)}
         <tr class="h-(--row)">
-          <td class="italic text-muted" colspan="5">{k === 0 && !rows.length ? (over ? "The game is over." : "Not analyzed yet.") : ""}</td>
+          <td class="italic text-muted" colspan="5">{k === 0 && !tableRows.length ? (over ? "The game is over." : "Not analyzed yet.") : ""}</td>
         </tr>
       {/each}
     </tbody>
@@ -1637,42 +1743,7 @@
            with room to spare, the second edge starts halfway across. By turn, a last column judges the whole turn. -->
       <div class={turnRow(unit === "turn", view.oneMoveALine)}>
         <span class={TURN_NUMBER}>{t.number}.</span>
-        {#if t.continued}<span class="px-[0.2rem] text-muted">…</span>{/if} <!-- its first edge was played before the start -->
-        {#each t.edges as e (e.index)}
-          {@const after = R.blueScore[e.index + 1]}
-          {@const asked = !board || !!board.judged[mainKeys[e.index + 1]]} <!-- the board's moves: evaluated on request -->
-          {@const judged = unit === "edge" && forSide(e.player) && asked ? (e.label ? `${LABEL_TEXT[e.label]}: ${costText(e.rawLoss, e.rawPoints)}` : "Not analyzed yet") : ""}
-          {@const shown = forSide(e.player) ? e.label : null}
-          {@const bookAfter = bookMoves.get(e.index)}
-          <!-- On the board too, where the position has a result: from the complexity, as the board's `hard` is the record's,
-               on the moves evaluated only (onlyJudged). -->
-          {@const hard = forSide(e.player) && isHard(e.complexity)}
-          {@const tip = tooltip(judged, after !== undefined ? `Lead: ${sideText(after, 1)}` : "", unit === "edge" && board ? searchNote(hard, [R.data.analysis[e.index]]) : "")}
-          <!-- A move fills its column. By edge, its label, the hard position's ◆ and its loss stand together at the
-               column's right, as a turn's do at the turn's right, so that they line up down the list. The loss is
-               last, where Lichess's move list has its evaluation: the mover's loss in the lead, so that a number never needs
-               a side to read. The lead after the move is in its note. The move's text has one width, so a column is never
-               narrower than the widest move: the widest in the notation is 8 characters (D10-G10x), then by edge the
-               label's slot (2.2 characters: a badge, or ?? as text). The loss: at most 5 characters (−1.2k), smaller and
-               right-aligned. The font is monospaced, so ch is one character of the span's own size. Before the loss, by edge
-               and by turn, a slot for a hard position's ◆ (design 14) on every row, marked or not: a mark never moves
-               the label or widens the column. The ◆ marks the position before the move (by turn, the turn's harder),
-               on the board too, wherever that position has a result: the board's tooltips say where it has none. -->
-          <button data-path={mainKeys[e.index + 1]}
-                  class={moveButton(e.player, mainAt === e.index + 1 ? MOVE_HERE : pickedKey === mainKeys[e.index + 1] ? PICKED : MOVE_HOVER)}
-                  onclick={ev => ((ev.target as Element).closest("[data-book]") ? openBookAt(e.index, "book mark") : go(e.index + 1, true))} onmouseenter={() => startPreview({ kind: "move", index: e.index })} onmouseleave={endPreview} tabindex="-1"
-                  title={tip}>
-            {#if view.MoveLabel}{@const MoveLabel = view.MoveLabel}<span class={view.moveText}><MoveLabel played={e} /></span>
-            {:else}<span class={view.moveText}>{view.notation(e)}</span>{/if}
-            {#if unit === "edge"}
-              <!-- A book move's mark takes the label's slot, whatever the label: a click on it goes to the position
-                   before the move, and shows the book there. -->
-              <span class="w-[2.2ch] ml-auto">{#if shown && bookAfter !== undefined}{@render bookMark(shown, tip, bookAfter)}{:else if listed(shown)}{@render mark(shown)}{/if}</span>
-              <span class="w-[1.2ch] text-[0.8em] text-muted text-center" title={hard ? HARD_NOTE : undefined}>{hard ? "◆" : ""}</span>
-              <span class="w-[5ch] text-[0.78em] text-right text-muted tabular-nums">{forSide(e.player) ? lossShort(e) : ""}</span>
-            {/if}
-          </button>
-        {/each}
+        {@render turnMoves(t)}
         <!-- By turn: the turn's glyph and its loss, in the same font and sizes as an edge's by edge, and the turn's note
              with each edge's loss in the lead. -->
         {#if unit === "turn" && forSide(t.player)}
@@ -1697,13 +1768,14 @@
            twice in a turn once (a turn of two Great edges). By turn, the turn's. Then the variations from the turn's
            positions, the lines from one position under one rule, and under a Mistake's or a Blunder's note, the
            engine's best line among them (turnGroups). -->
-      {@const notes = !display.notes ? [] : unit === "turn" ? (t.label && COMMENTED.includes(t.label) && forSide(t.player) ? [view.turnShortNote(t)] : [])
-        : [...new Set(t.edges.filter(e => !!e.label && COMMENTED.includes(e.label) && forSide(e.player)).map(e => view.shortNote(e)))]}
+      {@const notes = !display.notes ? [] : unit === "turn" ? (t.label && COMMENTED.includes(t.label) && forSide(t.player)
+        ? [view.turnShortNote(t, R.data.positions[t.start])] : [])
+        : onceEach(t.edges.filter(e => !!e.label && COMMENTED.includes(e.label) && forSide(e.player)).map(e => view.shortNote(e, R.data.positions[e.index])))}
       {@const groups = turnGroups(t)}
       {#if notes.length || groups.some(g => g.rows.length)}
         <div class="my-1 py-1 bg-panel-2/50 border-y border-line">
-          {#each notes as note (note)}
-            <div class="mb-0.5 px-2 text-sm text-muted truncate" title={note}>{note}</div>
+          {#each notes as note (noteText(note))}
+            <div class="mb-0.5 px-2 text-sm text-muted truncate" title={noteText(note)}>{#if typeof note === "string"}{note}{:else}{#each note as part, k (k)}{#if typeof part === "string"}{part}{:else}<span class={SIDE_TEXT[part.player]}>{@render written(part)}</span>{/if}{/each}{/if}</div>
           {/each}
           {#each groups as g, k (k)}{@render branchGroup(g.rows, g.engine)}{/each}
         </div>
@@ -1768,6 +1840,52 @@
                 cls]}>{@render digits(n)}</span>
 {/snippet}
 
+<!-- A move as the lists write it, by the display setting `notation`: its glyphs (the game's MoveLabel), or its
+     notation. -->
+{#snippet written(played: G["played"])}
+  {#if glyphs && view.MoveLabel}{@const MoveLabel = view.MoveLabel}<MoveLabel {played} />{:else}{view.notation(played)}{/if}
+{/snippet}
+
+<!-- A turn's moves in the move list, each a step to the position after it. -->
+{#snippet turnMoves(t: TurnReview<G>)}
+  {#if t.continued}<span class="px-[0.2rem] text-muted">…</span>{/if} <!-- its first edge was played before the start -->
+  {#each t.edges as e (e.index)}
+    {@const after = R.blueScore[e.index + 1]}
+    {@const asked = !board || !!board.judged[mainKeys[e.index + 1]]} <!-- the board's moves: evaluated on request -->
+    {@const judged = unit === "edge" && forSide(e.player) && asked ? (e.label ? `${LABEL_TEXT[e.label]}: ${costText(e.rawLoss, e.rawPoints)}` : "Not analyzed yet") : ""}
+    {@const shown = forSide(e.player) ? e.label : null}
+    {@const bookAfter = bookMoves.get(e.index)}
+    <!-- On the board too, where the position has a result: from the complexity, as the board's `hard` is the record's,
+         on the moves evaluated only (onlyJudged). -->
+    {@const hard = forSide(e.player) && isHard(e.complexity)}
+    {@const tip = tooltip(judged, after !== undefined ? `Lead: ${sideText(after, 1)}` : "", unit === "edge" && board ? searchNote(hard, [R.data.analysis[e.index]]) : "")}
+    <!-- A move fills its column. By edge, its label, the hard position's ◆ and its loss stand together at the
+         column's right, as a turn's do at the turn's right, so that they line up down the list. The loss is
+         last, where Lichess's move list has its evaluation: the mover's loss in the lead, so that a number never needs
+         a side to read. The lead after the move is in its note. The move's text has one width, so a column is never
+         narrower than the widest move: the widest in the notation is 8 characters (D10-G10x), then by edge the
+         label's slot (2.2 characters: a badge, or ?? as text). The loss: at most 5 characters (−1.2k), smaller and
+         right-aligned. The font is monospaced, so ch is one character of the span's own size. Before the loss, by edge
+         and by turn, a slot for a hard position's ◆ (design 14) on every row, marked or not: a mark never moves
+         the label or widens the column. The ◆ marks the position before the move (by turn, the turn's harder),
+         on the board too, wherever that position has a result: the board's tooltips say where it has none. -->
+    <button data-path={mainKeys[e.index + 1]}
+            class={moveButton(e.player, mainAt === e.index + 1 ? MOVE_HERE : pickedKey === mainKeys[e.index + 1] ? PICKED : MOVE_HOVER)}
+            onclick={ev => ((ev.target as Element).closest("[data-book]") ? openBookAt(e.index, "book mark") : go(e.index + 1, true))} onmouseenter={() => startPreview({ kind: "move", index: e.index })} onmouseleave={endPreview} tabindex="-1"
+            title={tip}>
+      {#if glyphs && view.MoveLabel}{@const MoveLabel = view.MoveLabel}<span class={view.moveText}><MoveLabel played={e} /></span>
+      {:else}<span class={view.moveText}>{view.notation(e)}</span>{/if}
+      {#if unit === "edge"}
+        <!-- A book move's mark takes the label's slot, whatever the label: a click on it goes to the position
+             before the move, and shows the book there. -->
+        <span class="w-[2.2ch] ml-auto">{#if shown && bookAfter !== undefined}{@render bookMark(shown, tip, bookAfter)}{:else if listed(shown)}{@render mark(shown)}{/if}</span>
+        <span class="w-[1.2ch] text-[0.8em] text-muted text-center" title={hard ? HARD_NOTE : undefined}>{hard ? "◆" : ""}</span>
+        <span class="w-[5ch] text-[0.78em] text-right text-muted tabular-nums">{forSide(e.player) ? lossShort(e) : ""}</span>
+      {/if}
+    </button>
+  {/each}
+{/snippet}
+
 <!-- The variations in the move list from one position: their rows (tree.ts), indented by depth, and Lichess's tree beside
      them (its column view): a rule from the fork down to its last line, with a tick to each line, and the rules of a
      shallower fork passing the lines nested in it. Every turn has its number, as in the record. Without notation, an
@@ -1811,13 +1929,13 @@
                             at ? "here bg-panel-2 outline outline-accent -outline-offset-1" : pickedKey === pathKey(p) ? PICKED
                             : "hover:bg-panel-2 hover:outline hover:outline-line hover:-outline-offset-1"]}
                     onclick={() => setPath(p, true)} onmouseenter={() => startPreview({ kind: "branch", path: p })} onmouseleave={endPreview} tabindex="-1"
-                    data-path={pathKey(p)} title={tooltip(label ? LABEL_TEXT[label] : waiting ? "Evaluating…" : "", hardness?.note)}>{view.notation(node.move)}</button>
+                    data-path={pathKey(p)} title={tooltip(label ? LABEL_TEXT[label] : waiting ? "Evaluating…" : "", hardness?.note)}>{@render written(node.move)}</button>
           {:else}
             <button class={["mv flex p-[0.08em] bg-transparent border-0 rounded-full",
                             at ? "here outline-2 outline-accent" : pickedKey === pathKey(p) ? PICKED : "hover:outline hover:outline-ink"]}
                     onclick={() => setPath(p, true)} onmouseenter={() => startPreview({ kind: "branch", path: p })} onmouseleave={endPreview} tabindex="-1"
                     data-path={pathKey(p)} title={tooltip(`${turnText(t)} ${view.notation(node.move)}`, label ? LABEL_TEXT[label] : waiting ? "evaluating…" : "", hardness?.note)}>
-              {@render edgeShape(node.move.edge, node.move.player)}
+              {@render edgeShape(node.move.edge, node.move.player, positionOf(p.slice(0, -1)))}
             </button>
           {/if}
           {#if listed(label)}<span class="-ml-0.5 text-[0.9em]">{@render mark(label)}</span>
@@ -1840,8 +1958,8 @@
 
 <!-- A variation edge without its notation: a pill along its direction, or a dot, in its mover's colour (the display
      setting). -->
-{#snippet edgeShape(edge: G["move"] | null, player: Player)}
-  {#if display.branchForm === "pills"}<Shape move={edge} {player} hollow={false} n={null} class="" />
+{#snippet edgeShape(edge: G["move"] | null, player: Player, before?: G["position"])}
+  {#if display.branchForm === "pills"}<Shape move={edge} {player} hollow={false} n={null} class="" {before} />
   {:else}<span class={["block w-[0.85em] h-[0.85em] rounded-full", SIDE_BG[player]]}></span>{/if}
 {/snippet}
 
@@ -1856,7 +1974,7 @@
   {#if display.branchForm === "text"}
     <button class={["mv px-[0.2rem] py-px bg-transparent border-0 whitespace-nowrap opacity-75 hover:opacity-100 hover:bg-panel-2", SIDE_TEXT[step.mover]]}
             onclick={() => playPath(p, "engine line played")} onmouseenter={() => startPreview({ kind: "engine", start: engine.start, line: engine.line, k: step.k })}
-            onmouseleave={endPreview} tabindex="-1" title={note}>{view.moveName(e)}</button>
+            onmouseleave={endPreview} tabindex="-1" title={note}>{#if glyphs && view.asPlayed}{@render written(view.asPlayed(e, step.mover))}{:else}{view.moveName(e)}{/if}</button>
   {:else}
     <button class="mv flex p-[0.08em] bg-transparent border-0 rounded-full opacity-75 hover:opacity-100 hover:outline hover:outline-ink"
             onclick={() => playPath(p, "engine line played")} onmouseenter={() => startPreview({ kind: "engine", start: engine.start, line: engine.line, k: step.k })}
@@ -1881,19 +1999,24 @@
           {@const name = view.lineNotation(e, listSteps?.[k])}
           {@const known = listKnown[k]}
           {@const where = known === "game" ? " · played in the game" : known === "branch" ? " · in a variation" : ""}
+          {@const inGlyphs = glyphs && !!view.asPlayed}
           {#if display.branchForm === "text"}
             {#if k === 0 || t.first}<span class="text-muted text-[0.9em]">{turnText(t)}</span>{/if}
+            <!-- A move played in the game or in a variation is underlined with dots. A glyph is a box of its own, which a
+                 text's underline does not reach, so in glyphs the button's lower edge is dotted instead. -->
             <button class={["px-[0.2rem] py-px font-mono text-[0.95em] bg-transparent border-0 whitespace-nowrap", SIDE_TEXT[player],
-                            known && "underline decoration-dotted underline-offset-3",
+                            known && !inGlyphs && "underline decoration-dotted underline-offset-3",
                             listHover !== null && k <= listHover ? "bg-panel-2" : "hover:bg-panel-2"]}
+                    style:border-bottom={known && inGlyphs ? "1px dotted currentColor" : undefined}
                     onmouseenter={() => (listHover = k)} onclick={() => play(k)} tabindex="-1"
-                    title="{name}{where} · play the line to here">{name}</button>
+                    title="{name}{where} · play the line to here">{#if inGlyphs && view.asPlayed}{@render written(view.asPlayed(e, player, k === 0 ? position : listSteps?.[k - 1], listSteps?.[k]))}{:else}{name}{/if}</button>
           {:else}
             {@const shade = listHover !== null && k <= listHover ? "" : "opacity-70 hover:opacity-100"}
             {#if k > 0 && t.first}<span class="w-1"></span>{/if}
             <button class="flex p-0 bg-transparent border-0 rounded-full" onmouseenter={() => (listHover = k)} onclick={() => play(k)}
                     tabindex="-1" title="{turnText(t)} {name}{where} · play the line to here">
-              {#if display.branchForm === "pills"}<Shape move={e} {player} hollow={!!known} n={k + 1} class={shade} />
+              {#if display.branchForm === "pills"}<Shape move={e} {player} hollow={!!known} n={k + 1} class={shade}
+                                                         before={k === 0 ? position : listSteps?.[k - 1]} />
               {:else}{@render edgeCircle(k + 1, player, !!known, shade)}{/if}
             </button>
           {/if}
@@ -2013,6 +2136,10 @@
       <h3 class={SETTINGS_HEAD}>Move list</h3>
       {@render choice("Quality labels", "Each quality label as a badge, as in the report and on the board, or as its quality mark in the badge's colour.",
         [["badges", "Badges"], ["text", "Text"]], () => display.marks, v => (display.marks = v as Display["marks"]))}
+      {#if view.MoveLabel}
+        {@render choice("Move notation", view.notationHelp ?? "", [["glyphs", "Glyphs"], ["text", "Text"]],
+          () => (display.notation === "text" ? "text" : "glyphs"), v => (display.notation = v as "glyphs" | "text"))}
+      {/if}
       {#if book && !board}
         {@render choice("Book moves", "Each book move's quality label in brown, or an open book in the quality label's colour.",
           [["label", "Brown"], ["book", "Book"]], () => display.bookMoves, v => (display.bookMoves = v as Display["bookMoves"]))}
@@ -2266,6 +2393,7 @@
         <view.Board
           position={branchPreview?.from ?? movePreview?.position ?? position}
           last={branchPreview ? null : movePreview ? movePreview.move : lastPlayed ?? null}
+          earlier={previewing ? [] : earlierPlayed}
           candidates={previewing ? [] : numbers.candidates}
           pointed={previewing ? null : numbers.pointed}
           line={branchPreview ? previewLine : movePreview ? null : drawnLine}
@@ -2409,7 +2537,8 @@
          the bar that Practice shares (StepBar), under the status line. On a phone the bar is fixed to the bottom of the
          window, the status line with it: it says what an edge on the board needs next. -->
     <StepBar class="mt-1.5 pt-1.5 border-t border-line" onfirst={() => setPath([])} onback={back} onforward={forward} onlast={toEnd}>
-      {#snippet above()}<p class="mb-1.5 text-xs text-muted truncate" title={statusLine}>{statusLine}</p>{/snippet}
+      {#snippet above()}<p class="mb-1.5 text-xs text-muted truncate" title={statusLine}>{#if statusMove}{statusMove.before}<span
+        class={SIDE_TEXT[statusMove.played.player]}>{@render written(statusMove.played)}</span>{statusMove.after}{:else}{statusLine}{/if}</p>{/snippet}
       {#snippet tools()}
         <!-- The page's menus: New on the Analysis board (design 21), and Export (design 13) -->
         {@render pageTools?.(display.judge)}

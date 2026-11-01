@@ -19,12 +19,14 @@
   // - "cell": a cell in place.
   // - "captured": a cell that a move captured, as Hedge School's board draws a cut edge: faded, dashed, with ×.
   // - "ghost": a cell that a candidate or a line would place: faded, dashed, in the mover's colour.
-  interface Props { hex: Hex; owner: Player; kind: Kind; look?: "cell" | "captured" | "ghost" }
-  let { hex, owner, kind, look = "cell" }: Props = $props();
+  // In a text (`inText`, a move's glyph), the cell takes the colour of the text round it, as the glyph's boxes do, and
+  // its mark the colour that the text gives (--on-text), else white.
+  interface Props { hex: Hex; owner: Player; kind: Kind; look?: "cell" | "captured" | "ghost"; inText?: boolean }
+  let { hex, owner, kind, look = "cell", inText = false }: Props = $props();
   const [x, y] = $derived(center(hex));
 </script>
 
-<g class="cell {look} p{owner}" class:faded={look !== "cell"} transform="translate({x} {y})">
+<g class="cell {look} p{owner}" class:faded={look !== "cell"} class:in-text={inText} transform="translate({x} {y})">
   <path d={SHAPE} class="body" />
   {#if kind === "star"}
     <polygon points={STAR} class="mark star" />
@@ -40,9 +42,12 @@
   .cell { pointer-events: none; }
   .p0 { --own: var(--blue); }
   .p1 { --own: var(--red); }
+  .in-text { --own: currentColor; }
   .body { fill: var(--own); stroke: none; }
   .star { fill: var(--on-badge); }
   .wall { fill: none; stroke: var(--on-badge); stroke-width: 0.07; stroke-linejoin: round; }
+  .in-text .star { fill: var(--on-text, var(--on-badge)); }
+  .in-text .wall { stroke: var(--on-text, var(--on-badge)); }
 
   /* A captured cell and a ghost: faded and dashed, the mark in the owner's colour. */
   .faded .body { fill-opacity: 0.18; stroke: var(--own); stroke-width: 0.07; stroke-dasharray: 0.2 0.12; }

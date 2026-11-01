@@ -35,6 +35,7 @@ export function displayStore<D extends Display>(key: string, defaults: D, isSoun
       marks: kept.marks === "text" ? "text" : "badges",
       bookMoves: kept.bookMoves === "book" ? "book" : "label",
       notes: kept.notes ?? defaults.notes,
+      notation: kept.notation === "glyphs" || kept.notation === "text" ? kept.notation : defaults.notation,
       previewMoves: kept.previewMoves ?? defaults.previewMoves,
       previewBranches: kept.previewBranches ?? defaults.previewBranches,
       sound: kept.sound ?? defaults.sound,

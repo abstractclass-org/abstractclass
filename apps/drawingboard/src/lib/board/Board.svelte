@@ -50,6 +50,7 @@
   interface Props {
     position: SitePosition;
     last?: BoardMove | null; // the move that led to the position
+    earlier?: BoardMove[]; // the moves of the same turn before it: marked as it is, so that the turn's moves show together
     candidates?: BoardCandidate[];
     // The candidate pointed at from outside the board (a row of the review's table), or else the pinned one, whose line
     // the page keeps drawn after a click: the board lights it, as it lights the candidate under its own pointer (the
@@ -79,7 +80,7 @@
     controls?: Snippet;
   }
   let {
-    position, last = null, candidates = [], pointed = null, line = null, layers: layersSet = {},
+    position, last = null, earlier = [], candidates = [], pointed = null, line = null, layers: layersSet = {},
     oncandidate, oncandidateclick, onhexat, input = null, inputOn = true, hands: handsForm = "box",
     place = $bindable(FIRST_PLACE), size = $bindable(FIRST_SIZE), labels = [], areaMap = null, areaOf = null, controls,
   }: Props = $props();
@@ -132,6 +133,9 @@
     return allCells.filter(c => !captured.has(hexKey(c.hex)));
   });
   const lastPlace = $derived(last?.type === "place" ? last : null);
+  // The placements of the turn so far: the last move's, and an earlier one's of the same turn. Each has the last-move
+  // outline. The captured cells are the last move's only, as Hedge School's board shows the last edge's cut alone.
+  const turnPlaces = $derived([...earlier, ...(last ? [last] : [])].filter(m => m.type === "place"));
 
   // The view. It fits the cells (and the cells that the last move captured) in the area, until the player pans or
   // zooms (`manual`), and again after "Show all the cells". With the input's rules, it fits the anchor hexes of every
@@ -297,6 +301,7 @@
   const marks = $derived(players.map((p): HandMarks => ({
     // The last move's edit is in the position's frames: a line that edits a hand shows other frames.
     last: last?.type === "edit" && last.player === p && !lineHasEdit ? last : null,
+    turn: lineHasEdit ? [] : earlier.flatMap(m => (m.type === "edit" && m.player === p ? [m] : [])),
     candidates: showCandidates ? edits.filter(c => c.move.player === p).map(c => ({ ...c.move, name: c.name, rank: c.rank })) : [],
     placed: showCandidates
       ? placements.filter(c => c.move.player === p).map(c => ({ blueprint: c.move.blueprint, name: c.name, rank: c.rank }))
@@ -502,14 +507,15 @@
           {#each lastPlace.captured as c (hexKey(c.hex))}
             <Cell hex={c.hex} owner={c.owner} kind={c.kind} look="captured" />
           {/each}
-          <clipPath id={lastId}>
-            {#each lastPlace.footprint as s (hexKey(s.hex))}
+        {/if}
+        {#each turnPlaces as m, i (i)}
+          <clipPath id="{lastId}-{i}">
+            {#each m.footprint as s (hexKey(s.hex))}
               <path d={hexPath(...center(s.hex))} />
             {/each}
           </clipPath>
-          <path d={outlinePath(lastPlace.footprint.map(s => s.hex))} clip-path="url(#{lastId})"
-                class="last-move-outline" />
-        {/if}
+          <path d={outlinePath(m.footprint.map(s => s.hex))} clip-path="url(#{lastId}-{i})" class="last-move-outline" />
+        {/each}
 
         <!-- The candidates: each placement's candidate outline, the cells of the active one faded in the mover's colour,
              then all the ranks over them. The first choice is drawn last, so that it stays on top. -->
@@ -551,8 +557,11 @@
             {#each drawn as l, i (i)}
               {#if l.move.type === "place"}
                 {@const [x, y] = center(l.move.at)}
-                <circle cx={x} cy={y} r="0.6" class="line-badge p{l.move.player}" />
-                <text {x} y={y + 0.25} class="badge-number line-number">{i + 1}</text>
+                <!-- The number, in a small disc at the anchor cell's corner: the cell stays in view. -->
+                {@const r = 0.38}
+                {@const [cx, cy] = [x + 0.6, y - 0.52]}
+                <circle {cx} {cy} {r} class="line-badge p{l.move.player}" />
+                <text x={cx} y={cy + 0.42 * r} style:font-size="{1.2 * r}px" class="badge-number">{i + 1}</text>
               {/if}
             {/each}
           </g>
@@ -701,7 +710,6 @@
   .line-badge { stroke: var(--board-bg); stroke-width: 0.08; }
   .line-badge.p0 { fill: var(--blue); }
   .line-badge.p1 { fill: var(--red); }
-  .line-number { font-size: 0.72px; }
   /* The player's own move, in the mover's colour. */
   .input { pointer-events: none; }
   .input.p0 { --own: var(--blue); }

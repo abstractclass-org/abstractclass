@@ -24,6 +24,7 @@ export const DEFAULT_DISPLAY: Display = {
   marks: "badges",
   bookMoves: "label",
   notes: true,
+  notation: "glyphs", // the moves as the board's hands show them: the blueprint's number in a box
   previewMoves: true,
   previewBranches: true,
   sound: false,

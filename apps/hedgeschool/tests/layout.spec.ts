@@ -3,7 +3,7 @@
 // with the browser's scroll bars shown (playwright.config.ts). At each size:
 //   - the page does not scroll sideways;
 //   - no area that clips or scrolls hides its content sideways (its content is no wider than its inside), but text cut
-//     with an ellipsis, which shows that it is cut, what no one sees (hidden for screen readers alone, or unseen, as the
+//     with an ellipsis or a fade at its end, which shows that it is cut (the analysis table's moves), what no one sees (hidden for screen readers alone, or unseen, as the
 //     players' row's twin cards), a code block, which scrolls sideways on purpose, a text field, which scrolls its
 //     text by design (the board editor's position), and a moving gleam that its bar clips (Lichess's bar-glider);
 //   - the header is one row.
@@ -17,6 +17,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { loadReviewFile } from "./review-file.ts";
+import { DRAWING_BOARD as DB_PREVIEW, SPREAD_BOARD, noReview, reviewTestGame } from "./drawingboard-review.ts";
 
 const WIDTHS = Array.from({ length: (1920 - 360) / 10 + 1 }, (_, k) => 360 + 10 * k);
 const HEIGHTS = [700, 860, 1000];
@@ -34,7 +35,7 @@ function problems(page: Page) {
       if (!(e instanceof HTMLElement) || !e.offsetParent && getComputedStyle(e).position !== "fixed") continue;
       const s = getComputedStyle(e);
       if (!/auto|scroll|hidden|clip/.test(s.overflowX) || e.clientWidth <= 1) continue;
-      if (s.textOverflow === "ellipsis" || e.classList.contains("sr-only") || s.visibility === "hidden") continue;
+      if (s.textOverflow === "ellipsis" || s.maskImage !== "none" || e.classList.contains("sr-only") || s.visibility === "hidden") continue;
       if (["PRE", "INPUT", "TEXTAREA"].includes(e.tagName)) continue;
       if (["::before", "::after"].some(p => getComputedStyle(e, p).animationName !== "none")) continue;
       if (e.scrollWidth > e.clientWidth + 1) out.push(`${name(e)} hides ${e.scrollWidth - e.clientWidth} pixels sideways (${e.scrollWidth} in ${e.clientWidth})`);
@@ -196,6 +197,29 @@ test("layout of a practice game on Drawing Board", async ({ page }) => {
   }
   expect(found).toEqual([]);
 });
+
+// Drawing Board's review and Analysis board (its design 33), when DB_BASE_URL gives its preview with the engine's
+// files: the review's test game up to turn 20, reviewed (drawingboard-review.ts), and the Analysis board on the practice
+// bot's position of more views. Besides the sweep, design 06's window sizes.
+for (const [name, path] of [["review", ""], ["Analysis board", SPREAD_BOARD]] as const) {
+  test(`layout of Drawing Board's ${name}`, async ({ page }) => {
+    test.setTimeout(30 * 60_000); // the review at Lite takes about 15 minutes, before the sweep
+    const skip = await noReview(page);
+    test.skip(!!skip, skip);
+    if (path) {
+      await page.goto(new URL(path, DB_PREVIEW).href);
+      await expect(page.locator("main.review")).not.toHaveAttribute("aria-busy", { timeout: 120_000 });
+      await expect(page.locator("table").filter({ hasText: "Visits" }).first().locator("[data-name]").first()).toBeVisible({ timeout: 300_000 });
+    } else await reviewTestGame(page);
+    const found: string[] = [];
+    for (const [width, height] of DB_PRACTICE_SIZES) {
+      await page.setViewportSize({ width, height });
+      await settle(page);
+      found.push(...(await problems(page)).map(p => `${width} x ${height}: ${p}`));
+    }
+    expect([await sweep(page, `Drawing Board's ${name}`), ...found].filter(Boolean).join("\n")).toBe("");
+  });
+}
 
 // The import page's choice for a tool's game (design 21), below the notice that an out-of-date userscript gets.
 test("layout of the choice for a tool's game", async ({ page }) => {

@@ -6,11 +6,13 @@
   import Cell, { CELL_SIZE } from "./Cell.svelte";
   import LabelMark from "@abstractclass/review/LabelMark.svelte";
   import type { Label } from "@abstractclass/analysis/labels.ts";
+  import { chipRow } from "./chips.ts";
 
   /** A cell moved within the hand, as the hand draws it: the last move's edit, a candidate's, or a line's. */
   export interface HandEdit { from: HandHex; to: HandHex }
   export interface HandMarks {
     last: HandEdit | null;
+    turn?: HandEdit[]; // the edits of the same turn before the last move, marked as the last move's is
     candidates: (HandEdit & { name: string; rank: number })[];
     placed: { blueprint: BlueprintNumber; name: string; rank: number }[]; // the placements' blueprints, for their chips
     line: (HandEdit & { n: number })[];
@@ -30,7 +32,7 @@
    *  legal edit can have is in the box. The box does not depend on the player's own move: the hands keep their scale
    *  and their places whether the input is on or off, and when the player chooses a blueprint or a cell. */
   export function blueprintBoxes(hand: Hand, marks: HandMarks): Box[] {
-    const edits = [marks.last, ...marks.candidates, ...marks.line].filter(e => !!e);
+    const edits = [marks.last, ...(marks.turn ?? []), ...marks.candidates, ...marks.line].filter(e => !!e);
     return hand.map((b, i) => {
       const n = (i + 1) as BlueprintNumber;
       const hexes: Hex[] = [[0, 0]];
@@ -102,6 +104,10 @@
     return [p.ox + x * unit, p.oy + y * unit];
   };
   const chipsOf = (n: BlueprintNumber) => marks.placed.filter(c => c.blueprint === n).sort((a, b) => a.rank - b.rank);
+  /** A panel's chips that fit in one row beside its number (chips.ts): the best, then "+N". */
+  const chipsIn = (n: BlueprintNumber, width: number) => chipRow(chipsOf(n), width - 2 * INSET - LABEL - 2, LABEL, 2, moreWidth);
+  /** The "+N" chip's width: its text's, in the label's bold 9-pixel font, and the label's width at least. */
+  const moreWidth = (more: number) => Math.max(LABEL, 7 + 5.5 * `+${more}`.length);
 
   // The player's own move: the chosen cell's kind, for its ghost.
   const ghostKind = $derived(input?.cell ? hand[input.cell.blueprint - 1][hexKey(input.cell.hex)] ?? null : null);
@@ -168,41 +174,59 @@
     </svg>
     <rect x={d.left + INSET} y={d.top + INSET} width={LABEL} height={LABEL} rx="3" class="label" />
     <text x={d.left + INSET + LABEL / 2} y={d.top + INSET + LABEL / 2 + 4} class="label-number">{p.n}</text>
-    <!-- The placements of this blueprint among the candidates: their ranks, at the panel's other corner. -->
-    {#each chipsOf(p.n) as c, k (c.name)}
+    <!-- The placements of this blueprint among the candidates: their ranks, at the panel's other corner, the best that
+         fit in one row, and then how many more. -->
+    {@const chips = chipsIn(p.n, d.width)}
+    {#each chips.shown as c, k (c.name)}
       {@const x = d.left + d.width - INSET - (k + 1) * LABEL - 2 * k}
       <g class:first={c.rank === 1}>
         <rect {x} y={d.top + INSET} width={LABEL} height={LABEL} rx="4" class="rank-chip" />
         <text x={x + LABEL / 2} y={d.top + INSET + LABEL / 2 + 4} class="label-number">{c.rank}</text>
       </g>
     {/each}
+    {#if chips.more}
+      {@const k = chips.shown.length}
+      {@const w = moreWidth(chips.more)}
+      {@const x = d.left + d.width - INSET - k * (LABEL + 2) - w}
+      <g role="img" aria-label="{chips.more} more candidates place blueprint {p.n}">
+        <title>{chips.more} more candidates place blueprint {p.n}</title>
+        <rect {x} y={d.top + INSET} width={w} height={LABEL} rx="4" class="more-chip" />
+        <text x={x + w / 2} y={d.top + INSET + LABEL / 2 + 3.5} class="more-number">+{chips.more}</text>
+      </g>
+    {/if}
   {/each}
 
-  <!-- The last move's edit: the cell's old place dashed, the cell ringed at its new place, an arrow between them. -->
-  {#if marks.last}
-    {@const e = marks.last}
+  <!-- The edits of the turn so far, the last move's and an earlier one's: the cell's old place dashed, the cell ringed
+       at its new place, an arrow between them. -->
+  {#each [...(marks.turn ?? []), ...(marks.last ? [marks.last] : [])] as e, i (i)}
     <path d={hexPath(...at(e.from), 0.86 * unit)} class="old-place" />
     <path d={hexPath(...at(e.to), 0.86 * unit)} class="new-place" />
     {@render arrow(e, "last")}
-  {/if}
+  {/each}
 
   <!-- The candidates' edits: the rank on the cell that the edit moves, an arrow, and the cell's new place dashed. -->
   {#each marks.candidates.toSorted((a, b) => b.rank - a.rank) as c (c.name)}
     {@const [x, y] = at(c.to)}
     {@const [fx, fy] = at(c.from)}
+    <!-- The rank, in a small badge at the corner of the cell that the edit moves: the cell and its kind stay in view. -->
+    {@const s = Math.max(11, 0.75 * unit)}
+    {@const [bx, by] = [fx + 0.62 * unit, fy - 0.62 * unit]}
     <g class:first={c.rank === 1}>
       <path d={hexPath(x, y, 0.86 * unit)} class="target" />
       {@render arrow(c, "cand")}
-      <rect x={fx - 0.6 * unit} y={fy - 0.6 * unit} width={1.2 * unit} height={1.2 * unit} rx={0.3 * unit} class="rank" />
-      <text x={fx} y={fy + 0.29 * unit} font-size={0.8 * unit} class="badge-number">{c.rank}</text>
+      <rect x={bx - s / 2} y={by - s / 2} width={s} height={s} rx={s / 4} class="rank" />
+      <text x={bx} y={by + 0.36 * s} font-size={0.75 * s} class="badge-number">{c.rank}</text>
     </g>
   {/each}
 
   {#each marks.line as l (l.n)}
     {@const [x, y] = at(l.to)}
     {@render arrow(l, "line")}
-    <circle cx={x} cy={y} r={0.8 * unit} class="line-badge" />
-    <text {x} y={y + 0.32 * unit} font-size={0.9 * unit} class="badge-number">{l.n}</text>
+    <!-- The line's number, in a small disc at the corner of the cell's new place: the cell stays in view. -->
+    {@const r = Math.max(6, 0.45 * unit)}
+    {@const [cx, cy] = [x + 0.62 * unit, y - 0.62 * unit]}
+    <circle {cx} {cy} {r} class="line-badge" />
+    <text x={cx} y={cy + 0.4 * r} font-size={1.12 * r} class="badge-number">{l.n}</text>
   {/each}
 
   <!-- The player's own move: the chosen blueprint's panel, the chosen cell, its marked new places, and its ghost. -->
@@ -269,6 +293,8 @@
   .target { fill: none; stroke: var(--candidate); stroke-width: 1.5; stroke-dasharray: 2 2; }
   .first .target { stroke: var(--engine); }
   .rank-chip, .rank { fill: var(--candidate); stroke: var(--board-bg); stroke-width: 1; }
+  .more-chip { fill: var(--panel); stroke: var(--candidate); stroke-width: 1; }
+  .more-number { fill: var(--text); font: 700 9px system-ui, sans-serif; text-anchor: middle; pointer-events: none; }
   .first .rank-chip, .first .rank { fill: var(--engine); }
   .line-badge { fill: var(--own); stroke: var(--board-bg); stroke-width: 1; }
   .label-badge { stroke: var(--board-bg); stroke-width: 1; }

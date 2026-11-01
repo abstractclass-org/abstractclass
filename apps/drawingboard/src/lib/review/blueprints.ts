@@ -9,8 +9,8 @@ import * as shared from "@abstractclass/analysis/model.ts";
 import type { Game, Player } from "@abstractclass/analysis/game.ts";
 import type { EngineView } from "@abstractclass/engine/protocol.ts";
 import { turnFromCount } from "@abstractclass/analysis/turns.ts";
-import { PLAYER_NAME, WHOLE, type ViewTypes } from "@abstractclass/review/game.ts";
-import { captureText, moveName, moves, type Capture, type Move } from "../game/notation.ts";
+import { PLAYER_NAME, WHOLE, type NotePart, type ViewTypes } from "@abstractclass/review/game.ts";
+import { captureText, moveName, moves, type BlueprintNumber, type Capture, type Move } from "../game/notation.ts";
 import { boardMove, playerOf, sitePosition, stepOf, type DescribeReply, type EngineStep, type GamePosition } from "../board/described.ts";
 import type { BlueprintInput } from "../board/blueprintInput.svelte.ts";
 import type { InputRules } from "../board/input.ts";
@@ -86,6 +86,30 @@ export const captureOf = (s: Pick<Step, "captured" | "points">): Capture | null 
 /** A move as the record and the move list write it: its name and its capture mark (`2@-3,1x+24`), or "pass". */
 export const playedText = (m: Pick<Played, "edge" | "did">) => moveName(m.edge) + (m.edge ? captureText(captureOf(m.did)) : "");
 
+/** A part of a move's glyphs (MoveLabel.svelte): a blueprint's number in a box, a hex's place (an anchor, or a cell's
+ *  place in its blueprint's frame), an edit's cell with its kind, the arrow between an edit's two places, a capture's
+ *  points (+N), the x of a capture that scores nothing, or a pass. */
+export type GlyphPart =
+  | { kind: "box"; n: BlueprintNumber } | { kind: "place"; text: string } | { kind: "cell"; cell: Kind } | { kind: "arrow" }
+  | { kind: "points"; points: number } | { kind: "x" } | { kind: "pass" };
+
+/** A move as the lists write it in glyphs (the display setting `notation`), as strategyjam.org's move list does: a
+ *  placement is its blueprint's number in a box, its anchor, and its capture mark (+N, or x when it scores nothing);
+ *  an edit is its cell (where the board draws it with its kind), then each blueprint's number in a box with the cell's
+ *  place, before and after. The same marks as its text (playedText), so both forms say the same. */
+export function glyphOf(m: Pick<Played, "edge" | "did" | "drawn">): GlyphPart[] {
+  const e = m.edge;
+  if (!e) return [{ kind: "pass" }];
+  if (e.kind === "place") {
+    const capture = captureOf(m.did);
+    const mark: GlyphPart[] = capture?.points ? [{ kind: "points", points: capture.points }] : capture ? [{ kind: "x" }] : [];
+    return [{ kind: "box", n: e.blueprint }, { kind: "place", text: `${e.q},${e.r}` }, ...mark];
+  }
+  return [...(m.drawn.type === "edit" ? [{ kind: "cell", cell: m.drawn.kind } as const] : []),
+          { kind: "box", n: e.from.blueprint }, { kind: "place", text: `${e.from.q},${e.from.r}` }, { kind: "arrow" },
+          { kind: "box", n: e.to.blueprint }, { kind: "place", text: `${e.to.q},${e.to.r}` }];
+}
+
 /** Who plays each of the next `n` moves from a position: the mover for the moves left in this turn, then each player
  *  for a turn of two moves. */
 export function lineMovers(p: Position, n: number): Player[] {
@@ -127,18 +151,22 @@ export type TurnReview = shared.TurnReview<Blueprints>;
  *  last turn gave. */
 const KEPT_NOTE = "It keeps the gain from the opponent's last turn.";
 
-/** A turn's note for the move list, in one line: its label, and the engine's best turn when the turn was not it. */
-export function turnShortNote(t: TurnReview): string {
+/** A turn's note for the move list, in one line: its label, and the engine's best turn when the turn was not it. Its
+ *  moves as the lists write a move (the view's `asPlayed`), from the hands at the turn's start: the engine names the
+ *  turn's second move, not what its first did. */
+export function turnShortNote(t: TurnReview, before: Position): string | NotePart<Blueprints>[] {
   if (t.label === "great") return `Great. The only good ${t.edges.length > 1 ? "moves" : "move"}. ${KEPT_NOTE}`;
-  const better = t.best && t.label !== "best" ? ` ${t.best.map(moveName).join(" ")} was best.` : "";
-  return `${t.label ? shared.LABEL_TEXT[t.label] : "Not analyzed yet"}.${better}`;
+  const said = `${t.label ? shared.LABEL_TEXT[t.label] : "Not analyzed yet"}.`;
+  if (!t.best || t.label === "best") return said;
+  return [`${said} `, ...t.best.flatMap((m, k) => [...(k ? [" "] : []), asPlayed(m, t.player, before)]), " was best."];
 }
 
 /** A note for the move list, in one line: the label, and the engine's choice when the move was not it. */
-export function shortNote(e: MoveReview): string {
+export function shortNote(e: MoveReview, before: Position): string | NotePart<Blueprints>[] {
   if (e.label === "great") return `Great. The only good move. ${KEPT_NOTE}`;
-  const better = e.best && e.edge && e.label !== "best" && !moves.equal(e.best.edge, e.edge) ? ` ${moveName(e.best.edge)} was best.` : "";
-  return `${e.label ? shared.LABEL_TEXT[e.label] : "Not analyzed yet"}.${better}`;
+  const said = `${e.label ? shared.LABEL_TEXT[e.label] : "Not analyzed yet"}.`;
+  if (!e.best || !e.edge || e.label === "best" || moves.equal(e.best.edge, e.edge)) return said;
+  return [`${said} `, asPlayed(e.best.edge, e.player, before), " was best."];
 }
 
 /** The game's outcome in words: by the scores when the rules ended the game, else as the record says it ended (a
@@ -155,6 +183,17 @@ export function endingText(data: ReviewData): string {
   if (m[2] === "F") return `${PLAYER_NAME[winner]} won: ${loser} left the game after move ${n}`;
   return `${PLAYER_NAME[winner]} won by ${WHOLE.format(Number(m[2]))}`;
 }
+
+/** A move not played as a move played, for the lists' glyphs (the view's `asPlayed`): from the hands before it (a
+ *  position's, or a line's step before it), with what it did once the rules have played it (a line's step), else with
+ *  no captures. Without the hands, an edit's glyphs have no cell. */
+export function asPlayed(move: Move, player: Player, before?: { blueprints: readonly [Hand, Hand]; stars: [number, number] },
+                         step?: Step): Played {
+  const hands: readonly [Hand, Hand] = before?.blueprints ?? [NO_HAND, NO_HAND];
+  return { player, edge: move, did: step ?? { footprint: [], captured: {}, points: 0, blueprints: [...hands], stars: before?.stars ?? [0, 0] },
+           drawn: before ? moveBefore(move, player, hands) : { type: "pass", player } };
+}
+const NO_HAND: Hand = [{}, {}, {}];
 
 /** A candidate or a line's move that the rules have not played yet, as the board draws it: a placement's footprint on
  *  its anchor hex, with no captures known, or an edit in the frames of `hands`, the hands before it. */
