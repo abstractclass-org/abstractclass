@@ -452,42 +452,55 @@ drawings of the real page, from the engine's replies. The decision log gives the
 
 ### The player's notes
 
-The player draws notes on the board in the review, on the Analysis board and on Practice, as on Hedge School's three
-pages (design 07, item 16). They are Lichess's circles and arrows (its chessground board's drawable shapes) on
-Blueprints' hexes.
+The player draws notes on the board in the review, on the Analysis board and on Practice. Hedge School's three pages
+have them too (design 07, item 16). The notes are Lichess's circles and arrows (its chessground board's drawable
+shapes) on Blueprints' hexes.
 
-1. **Hedge School's notes, at a hex:** the same logic, colours and keys. The logic is in `packages/review`
-   (`notes.ts`, which moved there from Hedge School), and a Blueprints hex (q, r) is its point. A right-click marks a
-   hex, and a right drag from a hex to another draws an arrow. The same note again removes it, and in another colour
-   changes its colour. An arrow drawn the other way is the same arrow. The keys held choose the colour: purple with no
-   key, yellow with Shift or Ctrl, green with Alt, grey with both. The colours are the view's tokens
-   (`review.css`), 3:1 against the board that the two sites share. "Keys and clicks" lists the clicks and the colours.
-2. **Only the drawing is Blueprints' own** (`Board.svelte`). A marked hex has a ring inside the hex, round a cell's
-   mark, and a faint fill under the cells. An arrow runs from a hex's centre to the other's, with its head's tip short
-   of that centre (`arrowPoints` in `hex.ts`). The ring and the arrow have a halo in the board's colour, so they read on
-   a cell of either player.
-3. **The notes belong to the position on screen, for the visit:** the view keeps them by position, as Hedge School's
-   does, and Practice by its positions. They are not kept in the browser.
-4. **On the board only, not in the hands.** A note is at hexes of the board. The hands' cells are in each blueprint's
-   own frame, and that frame changes: a line shows the hands after its last move, and an edit moves a cell. A note at
-   a blueprint's cell would need a note of another kind, and could point at a cell that is no longer there.
-   strategyjam.org's Sandbox marks the board only too.
-5. **An arrow between two hexes that touch is a note,** as Lichess draws an arrow between two squares that touch.
-   Its shaft still shows (0.87 of a hex's radius long), since the tip stops 0.2 short of the centre.
-6. **A note on a hex that holds a cell** keeps the cell readable. The fill goes under the cells, so the cell keeps
-   its owner's colour, and the ring goes over everything, round the cell's mark. The same hex under a candidate's or a
+1. **Hedge School's notes, at a hex, with Drawing Board's keys.** The logic and the colours are Hedge School's, in
+   `packages/review` (`notes.ts`, which moved there from Hedge School). A Blueprints hex (q, r) is its point. A
+   right-click highlights a hex, and a right drag from a hex to another draws an arrow. The same note again removes
+   it. The same note in another colour changes its colour. An arrow drawn the other way is the same arrow. The keys
+   held choose the colour: purple with no key, yellow with Ctrl, green with Alt, and grey with Ctrl and Alt. Hedge
+   School gives yellow to Shift or Ctrl. Drawing Board gives Shift to a drag of highlights (item 2). Each site gives
+   its keys as one table (`BrushKeys` in `notes.ts`), and Drawing Board's is `NOTE_KEYS` in `Board.svelte`. The board
+   chooses the colour by its table, and "Keys and clicks" shows the table. The colours are the view's tokens
+   (`review.css`), 3:1 against the board that the two sites share.
+2. **A right drag with Shift highlights each hex that it goes across,** as strategyjam.org's Sandbox does. The other
+   keys held choose the colour. A highlight of another colour on a hex changes to the drag's colour. If the drag's
+   first hex has a highlight of the drag's colour, the drag clears instead. It removes that colour's highlights from
+   the hexes that it goes across, and adds none. So the same drag again clears the group that it drew, as a second
+   right-click clears a highlight. A right-click with Shift highlights or clears one hex. Arrows stay. The drag takes
+   each hex between two of the pointer's moves (`hexesAlong` in `hex.ts`), so a fast drag misses none. "Keys and
+   clicks" gives the drag and its clearing.
+3. **A drag off the board on screen takes no hex,** as chessground drops a shape that is released off its board. Off
+   the board is outside the field or under the hands' panel, where the player cannot see the hex. An arrow released
+   there is no note.
+4. **Only the drawing is Blueprints' own** (`Board.svelte`). A highlighted hex has a ring inside the hex, round a
+   cell's mark, and a faint fill under the cells. An arrow runs from a hex's centre to the other hex's centre. Its
+   head's tip stops short of that centre (`arrowPoints` in `hex.ts`). The ring and the arrow have a halo in the
+   board's colour, so they read on a cell of either player.
+5. **The notes belong to the position on screen, for the visit.** The view keeps them by position, as Hedge School's
+   view does. Practice keeps them by its positions. The browser does not keep them.
+6. **On the board only, not in the hands.** A note is at hexes of the board. The hands' cells are in each blueprint's
+   own frame, and that frame changes. A line shows the hands after its last move, and an edit moves a cell. A note at
+   a blueprint's cell would need a note of another kind. It could also point at a cell that is no longer there.
+   strategyjam.org's Sandbox puts its notes on the board only too.
+7. **An arrow between two hexes that touch is a note,** as Lichess draws an arrow between two squares that touch. Its
+   shaft still shows (0.87 of a hex's radius long), since the tip stops 0.2 short of the centre.
+8. **A note on a hex that holds a cell** keeps the cell readable. The fill goes under the cells, so the cell keeps
+   its owner's colour. The ring goes over everything, round the cell's mark. The same hex under a candidate's or a
    line's faded cells shows the ring over them.
-7. **While a preview shows another position** (a move pointed at in the move list, or a variation's move), the notes
-   hide, and the board takes no note: the view gives the board none (`ReviewView.svelte`, as for Hedge School). They
-   come back with the position. A candidate's line drawn on the position on screen does not hide them: it is that
-   position's.
-8. **A click on the board clears the position's notes** (chessground's `eraseOnClick`), and does what it does
-   besides, as on Hedge School's board. A pan does not clear them, and a zoom does not: this board pans, and
-   Hedge School's does not. A pan would lose the notes that the player drew to read the position.
-9. **Where strategyjam.org differs** (its Sandbox's mode "Mark", read for reference): it has three colours (yellow,
-   green and purple), chosen by a button or a key. A right drag there draws an arrow in any mode, and Shift with a
-   right drag marks hexes. So Shift there changes the kind of note, and here it changes the colour (yellow). Drawing
-   Board keeps Hedge School's keys, so that a player of the two sites learns one set.
+9. **While a preview shows another position,** the notes hide, and the board takes no note. A preview shows a move
+   that the pointer is on in the move list, or a variation's move. The view then gives the board no notes
+   (`ReviewView.svelte`, as for Hedge School). The notes come back with the position. A candidate's line on the
+   position on screen does not hide them: the line belongs to that position.
+10. **A click on the board clears the position's notes** (chessground's `eraseOnClick`), and does what it does
+    besides. Hedge School's board does the same. A pan does not clear them, and a zoom does not. This board pans,
+    and Hedge School's does not. A pan would lose the notes that the player drew to read the position.
+11. **Where strategyjam.org differs** (its Sandbox's mode "Mark", read for reference). It has three colours (yellow,
+    green and purple), chosen by a button or a key. In its mode "Mark", a left click marks a hex and a left drag
+    draws an arrow. As here, a right drag draws an arrow in any mode, and Shift with a right drag highlights hexes.
+    Drawing Board keeps Hedge School's four colours, with Ctrl in the place of Shift for yellow.
 
 ### No area map yet
 
@@ -529,9 +542,11 @@ position from move 10. Counts only: the archive's games are other people's, and 
   names have 5 to 19 characters, so one size for every name in a cell would make the short ones small. Enclosure's
   names have 5 to 7 characters, and Hedge School keeps its one size for a cell.
 - **No area map** ("No area map yet").
-- **The notes' drawing, and a pan that keeps them** ("The player's notes", items 2 and 8): a marked hex in the place
-  of a ring round a point, and an arrow in the place of a line. A click clears the notes, as on Hedge School's board,
-  but a pan does not: Hedge School's board does not pan.
+- **The notes' keys, their drawing, and a pan that keeps them** ("The player's notes", items 1 to 4 and 10). Ctrl
+  alone gives yellow, and Shift with a right drag highlights the hexes that the drag goes across. Hedge School gives
+  yellow to Shift or Ctrl. A highlighted hex takes the place of a ring round a point, and an arrow the place of a
+  line. A click clears the notes, as on Hedge School's board. A pan does not, since Hedge School's board does not
+  pan.
 - **The cards' second number:** the stars on the board, in the place of the enclosed area (item 2).
 
 The Move header and the fade of a cut name are in the shared table, so Hedge School has them too (design 06, item
@@ -692,8 +707,9 @@ The Move header and the fade of a cut name are in the shared table, so Hedge Sch
   (`ReviewBoard.svelte`), the glyphs (`MoveLabel.svelte`), the small pictures (`MoveShape.svelte`), the table's least
   size (`table.ts`), the display settings (`display.ts`), and the area map kept for later (`blueprintsMap.ts`).
   `src/lib/board/chips.ts`: the hands' rank chips. The player's notes ("The player's notes"): `notes.ts` and the
-  notes' colours (`review.css`) in `packages/review`, which both sites use, and their drawing in
-  `src/lib/board/Board.svelte`, with the arrow's shape in `hex.ts` (`arrowPoints`).
+  notes' colours (`review.css`) in `packages/review`, which both sites use, and their keys (`NOTE_KEYS`) and drawing
+  in `src/lib/board/Board.svelte`, with the arrow's shape and a drag's hexes in `hex.ts` (`arrowPoints`,
+  `hexesAlong`).
   `packages/review/src/ReplaceAnalysis.svelte`: the board's question before a record replaces the analysis kept here,
   which both sites' boards use.
 - `apps/hedgeschool/tests/drawingboard-review.spec.ts` and `move-header.spec.ts`: the browser tests of the review, and

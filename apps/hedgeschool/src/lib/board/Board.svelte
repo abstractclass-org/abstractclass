@@ -28,7 +28,7 @@
   import { pointName, sameEdge } from "#lib/review/enclosure.ts";
   import LabelMark from "@abstractclass/review/LabelMark.svelte";
   import type { AreaMark } from "@abstractclass/review/ownership.ts";
-  import { brushFor, samePoint, toggleNote, type BoardNote, type NoteBrush } from "@abstractclass/review/notes.ts";
+  import { brushFor, drawnNote, samePoint, toggleNote, type BoardNote, type NoteBrush } from "@abstractclass/review/notes.ts";
 
   interface Props {
     position: Position;
@@ -189,8 +189,7 @@
   // circles and arrows. The left button clears the position's notes (chessground's eraseOnClick).
   let sketch = $state<{ id: number; from: [number, number]; to: [number, number]; brush: NoteBrush } | null>(null);
   // The note being drawn: a ring where the pointer has not left its point, else a line.
-  const sketchNote = $derived<BoardNote | null>(sketch && (same(sketch.from, sketch.to) ? { at: sketch.from, brush: sketch.brush }
-                                                                                      : { at: sketch.from, to: sketch.to, brush: sketch.brush }));
+  const sketchNote = $derived<BoardNote | null>(sketch && drawnNote(sketch.from, sketch.to, sketch.brush));
   const toggle = (note: BoardNote) => onnotes?.(toggleNote(notes, note));
   function down(ev: PointerEvent) {
     if (ev.button === 2 && onnotes) {

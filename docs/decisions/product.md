@@ -7942,18 +7942,29 @@ abscls-8tl1.16. Design 33, "The player's notes", gives the result. What the issu
 
 - **Hedge School's notes logic moved to `packages/review`** (`notes.ts` and its test, by `git mv`), with the notes'
   colour tokens (`review.css`). The two boards share the board's colours, so the notes' 3:1 against the board holds
-  on both. Hedge School's notes do what they did: its unit test moved unchanged, and its board, view and Practice take
-  the same functions from the package. Hedge School has no browser test of its notes.
+  on both. Hedge School's notes do what they did. Its unit test moved unchanged, and its board, view and Practice
+  take the same functions from the package. `brushFor` now reads a site's table of keys. So a new unit test checks
+  Hedge School's colour for each of the 16 sets of keys held, against chessground's rule. Hedge School has no browser
+  test of its notes.
 - **Notes on the board only.** The hands' cells are in each blueprint's frame, which a line and an edit change. A note
   there would need another kind of note, and could outlive its cell.
 - **An arrow between touching hexes is a note,** as on Lichess. The tip stops 0.2 short of the centre, and the head is
-  0.66 long, so the shaft still shows between touching hexes (0.87).
-- **A marked hex is a ring and a fill:** the fill under the cells, the ring over everything, with a halo in the
-  board's colour. A cell keeps its owner's colour, and the note reads on a cell of either player.
-- **The notes hide while a preview shows another position,** as in Hedge School's view, which gives the board no
-  notes then. A candidate's line on the position on screen keeps them.
+  0.66 long. So the shaft still shows between touching hexes (0.87).
+- **A highlighted hex is a ring and a fill.** The fill goes under the cells, and the ring over everything, with a halo
+  in the board's colour. A cell keeps its owner's colour, and the note reads on a cell of either player.
+- **The notes hide while a preview shows another position,** as in Hedge School's view, which then gives the board no
+  notes. A candidate's line on the position on screen keeps them.
 - **A click clears the notes, and a pan does not.** Chessground clears the shapes on any press of the left button.
-  Hedge School's board does not pan, so a press there is a click. Drawing Board's board pans with the left button, and
-  a pan that cleared the notes would lose them each time the player moved the board.
-- **The keys stay Hedge School's.** strategyjam.org's Sandbox (its mode "Mark") has three colours, chosen by a button
-  or a key, and Shift with a right drag marks hexes there. Here Shift chooses yellow, as on Hedge School.
+  Hedge School's board does not pan, so a press there is a click. Drawing Board's board pans with the left button. A
+  pan that cleared the notes would lose them each time the player moved the board.
+- **Drawing Board's own keys.** Shift with a right drag highlights each hex that the drag goes across, as
+  strategyjam.org's Sandbox does ("Shift+right-drag: highlight hexes" in its help). A hex is an area, and a group of
+  hexes is a usual note on this board. Ctrl alone gives yellow, so Shift is free for the drag. A drag whose first hex
+  has a highlight of its colour clears that colour's highlights instead. So the same drag again removes what it drew,
+  as a second right-click does, with no key for an eraser. Hedge School's notes are at points, and its keys stay:
+  Shift or Ctrl for yellow. Each site gives its keys as one table (`BrushKeys` in `notes.ts`). Its board reads the
+  table to choose the colour, and its list of keys and clicks shows the table, so the two cannot differ.
+  strategyjam.org's Sandbox has three colours (yellow, green and purple), chosen by a button or a key.
+- **A drag off the board on screen takes no hex,** as chessground drops a shape that is released off its board. Off
+  the board is outside the field or under the hands' panel, where the player cannot see the hex. An arrow released
+  there is no note.

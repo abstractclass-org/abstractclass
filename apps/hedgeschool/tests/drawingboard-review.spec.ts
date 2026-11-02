@@ -197,7 +197,7 @@ test("the player's notes: on the review's board, by position, and hidden while a
   await open(1376, 952, { previewMoves: true });
   await toMove(9);
   await rightClick(page, await spot(page, -60, 0));
-  await rightDrag(page, await spot(page, -60, 40), await spot(page, 60, 40), ["Shift"]);
+  await rightDrag(page, await spot(page, -60, 40), await spot(page, 60, 40), ["Control"]);
   const drawn = [{ brush: "purple", kind: "hex" }, { brush: "yellow", kind: "arrow" }];
   await expect.poll(() => notesOn(page)).toEqual(drawn);
   // The pointer on another move of the list shows its position, with no notes. Off the list, the notes come back.

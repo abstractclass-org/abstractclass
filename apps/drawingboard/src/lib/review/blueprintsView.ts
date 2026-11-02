@@ -2,16 +2,17 @@
 // @abstractclass/review/game.ts): the board with the player's own moves, the moves as the lists write and draw them, who
 // plays each move, the stars beside the points, the texts that say "move", the display settings and Stamp Duty's
 // networks. The pages give it to the view (@abstractclass/review/ReviewView.svelte) with Blueprints' game
-// (blueprints.ts, `blueprints`), which it extends. The player's notes are Hedge School's, in its colours and keys, at
-// hexes of the board (design 33, "The player's notes"). Drawing Board has no sounds, no image of a line and no opening
-// book yet (design 33), so the view offers none of them, and no area map (`AREA_MAP`). The board's box fills
-// the room that the side columns leave, with the hands in a panel over it, and under it in one column, as on Practice.
+// (blueprints.ts, `blueprints`), which it extends. The player's notes are Hedge School's, in its colours, at hexes of
+// the board, with the board's own keys (`NOTE_KEYS`, design 33, "The player's notes"). Drawing Board has no sounds, no
+// image of a line and no opening book yet (design 33), so the view offers none of them, and no area map (`AREA_MAP`).
+// The board's box fills the room that the side columns leave, with the hands in a panel over it, and under it in one
+// column, as on Practice.
 import type { ViewGame } from "@abstractclass/review/game.ts";
 import { held } from "@abstractclass/review/ownership.ts";
-import { BRUSH_KEYS } from "@abstractclass/review/notes.ts";
 import { BlueprintInput } from "../board/blueprintInput.svelte.ts";
 import { INPUT_CLICKS, inputStatus } from "../board/input.ts";
 import { ONE_COLUMN_HEIGHT } from "../board/keptPanel.svelte.ts";
+import { NOTE_KEYS } from "../board/Board.svelte";
 import { hexKey } from "../board/hex.ts";
 import { STARS } from "../board/position.ts";
 import { moveName, moveText } from "../game/notation.ts";
@@ -36,7 +37,7 @@ export const blueprintsView: ViewGame<Blueprints> = {
   EmptyBoard,
   box: { form: "fill", oneColumn: ONE_COLUMN_HEIGHT },
   layers: [],
-  noteKeys: BRUSH_KEYS,
+  noteKeys: NOTE_KEYS,
 
   input: play => new BlueprintInput(play),
   // What the move begun needs next. With nothing begun, the status line shows the position, as Hedge School's does
@@ -44,7 +45,10 @@ export const blueprintsView: ViewGame<Blueprints> = {
   inputStatus,
   clicks: [
     ...INPUT_CLICKS,
-    ["Right-click a hex, or right-drag to another", "Mark the hex, or draw an arrow, as a note. Drawing it again removes it, and in another colour (below) changes its colour"],
+    // The player's notes (design 33, "The player's notes"). "Highlight", not "mark": a marked hex is a place of the
+    // player's own move (INPUT_CLICKS).
+    ["Right-click a hex, or right-drag to another hex", "Highlight the hex, or draw an arrow, as a note. Do it again to remove the note. Do it in another colour (below) to change the colour of the note"],
+    ["Hold Shift and right-drag across hexes", "Highlight each hex that the drag goes across, in the colour (below). If the first hex has a highlight of that colour, the drag removes the highlights of that colour"],
     ["Click the board", "Clear the position's notes"],
   ],
 

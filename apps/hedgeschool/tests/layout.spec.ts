@@ -224,8 +224,8 @@ for (const [name, path] of [["review", ""], ["Analysis board", SPREAD_BOARD]] as
 }
 
 // Drawing Board's board with the player's notes (its design 33, "The player's notes"), on the Analysis board with the
-// review's test game, the engine off: a marked hex and an arrow in each colour, at design 06's sizes. The notes stay
-// with the board when the window's size changes, and stay inside the field.
+// review's test game, the engine off: in each colour four hexes marked by a right drag with Shift and an arrow, at
+// design 06's sizes. The notes stay with the board when the window's size changes, and stay inside the field.
 test("layout of Drawing Board's board with notes", async ({ page }) => {
   const skip = await noReview(page);
   test.skip(!!skip, skip);
@@ -235,7 +235,7 @@ test("layout of Drawing Board's board with notes", async ({ page }) => {
   const own = (p: Page) => p.evaluate(() => {
     const out: string[] = [], field = document.querySelector(".board .field")!.getBoundingClientRect();
     const notes = [...document.querySelectorAll(".board .field g.note")];
-    if (notes.length !== 8) out.push(`${notes.length} notes on the board, not 8`);
+    if (notes.length !== 20) out.push(`${notes.length} notes on the board, not 20`);
     for (const n of notes) {
       const r = n.getBoundingClientRect();
       if (r.left < field.left - 1 || r.top < field.top - 1 || r.right > field.right + 1 || r.bottom > field.bottom + 1)
@@ -243,7 +243,6 @@ test("layout of Drawing Board's board with notes", async ({ page }) => {
     }
     return out;
   });
-  expect(await own(page)).toEqual([]);
   expect(await problemsAtSizes(page, own)).toEqual([]);
 });
 

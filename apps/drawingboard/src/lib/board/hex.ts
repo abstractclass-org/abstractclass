@@ -78,6 +78,22 @@ export function arrowPoints(from: Hex, to: Hex): [number, number][] {
   return [at(0, ARROW.shaft), at(base, ARROW.shaft), at(base, ARROW.head), at(tip, 0),
           at(base, -ARROW.head), at(base, -ARROW.shaft), at(0, -ARROW.shaft)];
 }
+/** A note's arrow from one hex to another, as an SVG path (`arrowPoints`). */
+export const arrowPath = (from: Hex, to: Hex): string =>
+  `M${arrowPoints(from, to).map(([x, y]) => `${round(x)},${round(y)}`).join("L")}Z`;
+
+/** The hexes that a straight stroke goes across, from one point of the plane to another, in order, each once: the hex
+ *  under each point of the stroke, a tenth of a hex's radius apart. A drag of marks (design 33, "The player's notes")
+ *  takes the hexes between two of the pointer's moves, so that a fast drag misses none. */
+export function hexesAlong([ax, ay]: readonly [number, number], [bx, by]: readonly [number, number]): Hex[] {
+  const n = Math.max(1, Math.ceil(Math.hypot(bx - ax, by - ay) / 0.1));
+  const out: Hex[] = [];
+  for (let i = 0; i <= n; i++) {
+    const h = hexAt(ax + ((bx - ax) * i) / n, ay + ((by - ay) * i) / n);
+    if (!out.length || !sameHex(out[out.length - 1], h)) out.push(h); // a straight stroke leaves a hex once
+  }
+  return out;
+}
 
 /** The hex of a blueprint's anchor cell: the first in reading order, the least r, then the least q. It is the cell
  *  (0, 0) of the blueprint's own frame (design 33, item 5). Null for no hexes. */

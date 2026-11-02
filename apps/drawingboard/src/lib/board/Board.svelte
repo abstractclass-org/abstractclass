@@ -1,6 +1,7 @@
 <script lang="ts" module>
   import type { Label } from "@abstractclass/analysis/labels.ts";
   import type { AreaMark } from "@abstractclass/review/ownership.ts";
+  import type { BrushKeys } from "@abstractclass/review/notes.ts";
   import type { BlueprintInput } from "./blueprintInput.svelte.ts";
   import type { Hex } from "./hex.ts";
   import type { BoardMove, Hand as HandOf, HandHex, Player, SitePosition } from "./position.ts";
@@ -21,6 +22,9 @@
   /** A candidate that places a blueprint, and one that edits a blueprint. */
   type Placement = BoardCandidate & { move: Extract<BoardMove, { type: "place" }> };
   type Edit = BoardCandidate & { move: Extract<BoardMove, { type: "edit" }> };
+  /** Drawing Board's keys for the notes' colours (design 33, "The player's notes"): Ctrl for yellow, Alt for green,
+   *  both for grey. Shift chooses no colour here: with the right button, it marks each hex that a drag goes across. */
+  export const NOTE_KEYS: BrushKeys = [["purple", []], ["yellow", [["Ctrl"]]], ["green", [["Alt"]]], ["grey", [["Ctrl"], ["Alt"]]]];
 </script>
 
 <script lang="ts">
@@ -37,12 +41,12 @@
   import Hand, { blueprintBoxes, fitUnit, type HandInput, type HandMarks } from "./Hand.svelte";
   import { moveName } from "../game/notation.ts";
   import { clickBoard, clickHand, handHexOf, tapHex } from "./input.ts";
-  import { arrowPoints, boxOf, center, fromMiddle, GRID_TILE, GRID_TILE_PATH, hexAt, hexKey, hexPath, outlinePath, sameHex }
-    from "./hex.ts";
+  import { arrowPath, boxOf, center, fromMiddle, GRID_TILE, GRID_TILE_PATH, hexAt, hexesAlong, hexKey, hexPath, outlinePath,
+    sameHex } from "./hex.ts";
   import { cellsOf, footprintOf, PLAYER_NAMES, sameHandHex } from "./position.ts";
   import { untrack, type Snippet } from "svelte";
   import LabelMark from "@abstractclass/review/LabelMark.svelte";
-  import { brushFor, toggleNote, type BoardNote, type NoteBrush } from "@abstractclass/review/notes.ts";
+  import { brushFor, drawnNote, ringed, ringPoints, toggleNote, type BoardNote, type NoteBrush } from "@abstractclass/review/notes.ts";
   import { viewHexes } from "../review/blueprintsMap.ts";
   import { clamp, fit, fitAround, pan, pinch, toArea, toPlane, viewBox, zoomAt, type Rect, type Size, type View } from "./view.ts";
   import { FIRST_PLACE, FIRST_SIZE, fitWithPanel, handleSide, handsOf, HANDS_GAP, PANEL_GRIP, PANEL_PAD, panelRect,
@@ -228,8 +232,12 @@
   let hoverHex = $state<Hex | null>(null);
   let handHover = $state<{ player: Player; at: HandHex } | null>(null);
   let hoverName = $state<string | null>(null);
-  // The note that the right button draws (the notes, below): its pointer, its first hex and the hex under the pointer.
-  let sketch = $state<{ id: number; from: Hex; to: Hex; brush: NoteBrush } | null>(null);
+  // The note that the right button draws (the notes, below): its pointer, its colour, its first hex and the hex under
+  // the pointer (none off the board on screen). With Shift, the drag's marks instead: whether they clear, and the hexes
+  // that the drag went across.
+  let sketch = $state.raw<{ id: number; brush: NoteBrush; from: Hex; to: Hex | null; marks: { clear: boolean; hexes: Hex[] } | null }
+                          | null>(null);
+  let sketchAt: [number, number] | null = null; // the point of the plane where the drag of marks last was on the board
   $effect.pre(() => { void position; hoverHex = null; handHover = null; hoverName = null; sketch = null; });
   const hovered = $derived(layers.candidates && hoverName ? candidates.find(c => c.name === hoverName) ?? null : null);
   const active = $derived(hovered ?? (pointed ? candidates.find(c => c.name === pointed) ?? null : null));
@@ -332,6 +340,9 @@
     return { x: ev.clientX - r.left, y: ev.clientY - r.top };
   };
   const hexUnder = (p: { x: number; y: number }) => hexAt(...toPlane(view, field, p.x, p.y));
+  /** Whether a point of the field shows the board: inside the field, and not under the hands' panel. */
+  const onBoard = (p: { x: number; y: number }) => p.x >= 0 && p.y >= 0 && p.x < field.width && p.y < field.height
+    && !(hasPanel && p.x >= shownAt.x && p.x < shownAt.x + shownAt.width && p.y >= shownAt.y && p.y < shownAt.y + shownAt.height);
   function twoFingers() {
     const [a, b] = [...pointers.values()];
     return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, d: Math.hypot(a.x - b.x, a.y - b.y) };
@@ -341,8 +352,11 @@
     if (ev.pointerType === "mouse" && ev.button === 2 && onnotes) {
       ev.preventDefault();
       try { el.setPointerCapture(ev.pointerId); } catch { /* not down any more */ }
-      const h = hexUnder(local(ev));
-      sketch = { id: ev.pointerId, from: h, to: h, brush: brushFor(ev) };
+      const p = local(ev), brush = brushFor(ev, NOTE_KEYS);
+      sketchAt = toPlane(view, field, p.x, p.y);
+      const h = hexAt(...sketchAt);
+      const marks = ev.shiftKey ? { clear: ringed(notes, h, brush), hexes: [h] } : null;
+      sketch = { id: ev.pointerId, brush, from: h, to: h, marks };
       return;
     }
     if (ev.pointerType === "mouse" && ev.button !== 0) return;
@@ -352,11 +366,20 @@
     else if (pointers.size === 2) gesture = { kind: "pinch", from: twoFingers(), start: view };
   }
   function move(ev: PointerEvent) {
-    const p = local(ev);
-    if (ev.pointerType === "mouse") pointAt(hexUnder(p));
+    const p = local(ev), at = toPlane(view, field, p.x, p.y), h = hexAt(...at);
+    if (ev.pointerType === "mouse") pointAt(h);
     if (sketch?.id === ev.pointerId) {
-      const h = hexUnder(p);
-      if (!sameHex(h, sketch.to)) sketch.to = h;
+      // Off the board on screen, the drag takes no hex, and an arrow released there is no note, as chessground drops a
+      // shape released off its board.
+      const on = onBoard(p);
+      if (sketch.marks) {
+        // The hexes from the drag's last point to this one: a fast drag skips hexes between two of its moves.
+        const { hexes } = sketch.marks;
+        const more = (!on ? [] : sketchAt ? hexesAlong(sketchAt, at) : [h]).filter(x => !hexes.some(y => sameHex(x, y)));
+        sketchAt = on ? at : null;
+        if (more.length) sketch = { ...sketch, marks: { ...sketch.marks, hexes: [...hexes, ...more] } };
+      } else if (!on) { if (sketch.to) sketch = { ...sketch, to: null }; }
+      else if (!sketch.to || !sameHex(h, sketch.to)) sketch = { ...sketch, to: h };
     }
     if (!pointers.has(ev.pointerId)) return;
     pointers.set(ev.pointerId, p);
@@ -369,9 +392,9 @@
   }
   function up(ev: PointerEvent, click: boolean) {
     if (sketch?.id === ev.pointerId) {
-      const note = click ? sketchNote : null;
+      const next = !click ? notes : sketchNote ? toggleNote(notes, sketchNote) : markedNotes ?? notes;
       sketch = null;
-      if (note) onnotes?.(toggleNote(notes, note));
+      if (next !== notes) onnotes?.(next);
       return;
     }
     if (!pointers.delete(ev.pointerId)) return;
@@ -403,16 +426,16 @@
 
   // The player's notes (design 33, "The player's notes", with @abstractclass/review/notes.ts, as Hedge School's board):
   // the right button marks a hex, and a right drag draws an arrow to another hex, as Lichess draws circles and arrows.
-  // The keys held choose the colour. A note is at hexes of the board only. A click on the field clears the position's
-  // notes (chessground's eraseOnClick), but a pan or a zoom does not: this board pans, and a pan would lose them.
-  const pointOf = (h: Hex): [number, number] => [h[0], h[1]];
-  // The note being drawn: a marked hex while the pointer has not left its hex, else an arrow.
-  const sketchNote = $derived<BoardNote | null>(sketch && (sameHex(sketch.from, sketch.to)
-    ? { at: pointOf(sketch.from), brush: sketch.brush }
-    : { at: pointOf(sketch.from), to: pointOf(sketch.to), brush: sketch.brush }));
-  const shownNotes = $derived(sketchNote ? [...notes, sketchNote] : notes);
-  /** An arrow's seven corners, as an SVG polygon's points. */
-  const arrowAt = (n: BoardNote) => arrowPoints(n.at, n.to!).map(p => p.map(v => Math.round(v * 1000) / 1000).join(",")).join(" ");
+  // With Shift, a right drag marks each hex that it goes across, as strategyjam.org's Sandbox does, or clears that
+  // colour's marks from them when its first hex has a mark of the colour. The keys held choose the colour (`NOTE_KEYS`).
+  // A note is at hexes of the board only. A click on the field clears the position's notes (chessground's
+  // eraseOnClick), but a pan or a zoom does not: this board pans, and a pan would lose them.
+  // The note being drawn: a marked hex while the pointer has not left its hex, else an arrow. Or the notes with the
+  // drag's marks so far.
+  const sketchNote = $derived(sketch && !sketch.marks && sketch.to ? drawnNote(sketch.from, sketch.to, sketch.brush) : null);
+  const markedNotes = $derived(sketch?.marks ? ringPoints(notes, sketch.marks.hexes, sketch.brush, sketch.marks.clear) : null);
+  const shownNotes = $derived(sketchNote ? [...notes, sketchNote] : markedNotes ?? notes);
+  const drawing = $derived(sketchNote ? notes.length : -1); // the index of the note being drawn in shownNotes
 
   /** A note beside a hex, in the area's pixels: on its right, or on its left near the area's right edge. */
   const noteAt = (h: Hex) => {
@@ -521,7 +544,8 @@
              cell keeps its owner's colour. Their rings go over everything (below). -->
         {#each shownNotes as n, i (i)}
           {#if !n.to}
-            <path d={hexPath(...center(n.at))} class="note-fill {n.brush}" class:drawing={!!sketch && i === notes.length} />
+            <path d={hexPath(...center(n.at))} class="note-fill" class:drawing={i === drawing}
+                  style:--note="var(--note-{n.brush})" />
           {/if}
         {/each}
 
@@ -649,9 +673,10 @@
              cell's mark, and an arrow from a hex's centre to another's. Each has a halo in the board's colour, so that it
              reads on a cell of either player. -->
         {#each shownNotes as n, i (i)}
-          <g class="note {n.brush}" class:drawing={!!sketch && i === notes.length}>
+          <g class="note" class:drawing={i === drawing} data-brush={n.brush}
+             style:--note="var(--note-{n.brush})">
             {#if n.to}
-              <polygon points={arrowAt(n)} class="note-arrow" />
+              <path d={arrowPath(n.at, n.to)} class="note-arrow" />
             {:else}
               {@const d = hexPath(...center(n.at), 0.76)}
               <path {d} class="note-halo" /><path {d} class="note-ring" />
@@ -780,11 +805,8 @@
   .foot.off { stroke: var(--muted); stroke-dasharray: 0.25 0.15; }
   .foot-anchor { fill: none; stroke: var(--text); stroke-width: 0.08; }
   .foot-anchor.off { stroke: var(--muted); }
-  /* The player's notes, in the notes' colours (@abstractclass/review/review.css), soft as Lichess's shapes. */
-  .purple { --note: var(--note-purple); }
-  .yellow { --note: var(--note-yellow); }
-  .green { --note: var(--note-green); }
-  .grey { --note: var(--note-grey); }
+  /* The player's notes, in the notes' colours (@abstractclass/review/review.css, set in the markup as --note), soft as
+     Lichess's shapes. */
   .note { opacity: 0.85; pointer-events: none; }
   .note.drawing { opacity: 0.55; }
   .note-fill { fill: var(--note); fill-opacity: 0.3; stroke: none; pointer-events: none; }

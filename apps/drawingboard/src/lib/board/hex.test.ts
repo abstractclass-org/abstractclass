@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { anchorOf, ARROW, arrowPoints, boxOf, center, fromMiddle, hexAt, hexKey, hexPath, inFrame, outlinePath, parseHex, TOUCHING, type Hex } from "./hex.ts";
+import { anchorOf, ARROW, arrowPath, arrowPoints, boxOf, center, fromMiddle, hexAt, hexesAlong, hexKey, hexPath, inFrame,
+  outlinePath, parseHex, TOUCHING, type Hex } from "./hex.ts";
 import { footprintOf } from "./position.ts";
 
 const near = (a: readonly number[], b: readonly number[]) =>
@@ -92,4 +93,23 @@ test("a note's arrow runs from a hex's centre to the other's, its tip short of t
     near([along[2]], [d - ARROW.short - ARROW.length]); // the head's base
     assert.ok(along[1] > 0.5, "the shaft shows between touching hexes");
   }
+  // As a path: seven corners, rounded as the hexes' paths
+  assert.match(arrowPath([0, 0], [-1, 1]), /^M(-?\d+(\.\d+)?,-?\d+(\.\d+)?L){6}-?\d+(\.\d+)?,-?\d+(\.\d+)?Z$/);
+  assert.doesNotMatch(arrowPath([0, 0], [0, 1]), /-0[,L]/); // no -0
+});
+
+test("a stroke's hexes: each hex that it goes across, in order, each touching the one before", () => {
+  // Along a row and along a diagonal, through the hexes' centres
+  assert.deepEqual(hexesAlong(center([0, 0]), center([3, 0])), [[0, 0], [1, 0], [2, 0], [3, 0]]);
+  assert.deepEqual(hexesAlong(center([2, -1]), center([2, 2])), [[2, -1], [2, 0], [2, 1], [2, 2]]);
+  assert.deepEqual(hexesAlong([0.1, 0.2], [0.3, -0.1]), [[0, 0]]); // inside one hex
+  // Any stroke: no hex missed between two that it goes across
+  const hs = hexesAlong([0.3, 0.2], [7.1, -4.4]);
+  assert.deepEqual(hs[0], [0, 0]);
+  assert.deepEqual(hs.at(-1), hexAt(7.1, -4.4));
+  for (let i = 1; i < hs.length; i++) {
+    const dq = hs[i][0] - hs[i - 1][0], dr = hs[i][1] - hs[i - 1][1];
+    assert.equal((Math.abs(dq) + Math.abs(dr) + Math.abs(dq + dr)) / 2, 1, `${hexKey(hs[i - 1])} to ${hexKey(hs[i])}`);
+  }
+  assert.equal(new Set(hs.map(hexKey)).size, hs.length);
 });

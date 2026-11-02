@@ -1,14 +1,17 @@
 // The player's notes on Drawing Board's board (its design 33, "The player's notes"), on its preview (DB_BASE_URL): on
 // the Analysis board with the review's test game (Stamp Duty against itself), and on Practice with a game in progress.
-// A right-click marks a hex and a right drag draws an arrow, in each colour by the keys held. The same note again
-// removes it, and in another colour changes its colour. The notes stay with their position for the visit, a click on
-// the board clears them, and a pan does not. The review's notes are in drawingboard-review.spec.ts, which reviews the
+// A right-click marks a hex and a right drag draws an arrow, in each colour by the keys held (Drawing Board's: Ctrl,
+// Alt or both). The same note again removes it, and in another colour changes its colour. A right drag with Shift
+// marks each hex that it goes across, or clears that colour's marks when its first hex has one. The notes stay with
+// their position for the visit, a click on the board clears them, and a pan does not. Hedge School's keys are its unit
+// test's (packages/review/src/notes.test.ts). The review's notes are in drawingboard-review.spec.ts, which reviews the
 // game once. Without the engine's files the tests skip, with a message. Run: npx playwright test
 // tests/drawingboard-notes.spec.ts, with DB_BASE_URL.
 import { expect, test } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { DRAWING_BOARD, noReview } from "./drawingboard-review.ts";
-import { analysisAt, BRUSHES, field, hexUnder, notesOn, rightClick, rightDrag, spot } from "./drawingboard-notes.ts";
+import { analysisAt, BRUSHES, field, hexSpot, hexUnder, marksOn, middleHex, notesOn, rightClick, rightDrag, spot }
+  from "./drawingboard-notes.ts";
 
 test.describe("with the engine's files", () => {
   test.beforeEach(async ({ page }) => {
@@ -29,7 +32,7 @@ test.describe("with the engine's files", () => {
     expect(await hexUnder(page, a)).not.toBe(await hexUnder(page, b));
     await rightClick(page, a);
     await expect.poll(() => notesOn(page)).toEqual([{ brush: "purple", kind: "hex" }]);
-    await expect(field(page).locator("path.note-fill.purple")).toHaveCount(1); // the hex's fill, under the cells
+    await expect(field(page).locator("path.note-fill")).toHaveCount(1); // the hex's fill, under the cells
     await rightDrag(page, a, b);
     await expect.poll(() => notesOn(page)).toEqual([{ brush: "purple", kind: "hex" }, { brush: "purple", kind: "arrow" }]);
     expect(await page.evaluate(() => (window as unknown as { menus: boolean[] }).menus)).toEqual([true, true]);
@@ -37,16 +40,39 @@ test.describe("with the engine's files", () => {
     // arrow drawn the other way is the same arrow.
     await rightClick(page, a);
     await expect.poll(() => notesOn(page)).toEqual([{ brush: "purple", kind: "arrow" }]);
-    await rightDrag(page, b, a, ["Shift"]);
+    await rightDrag(page, b, a, ["Control"]);
     await expect.poll(() => notesOn(page)).toEqual([{ brush: "yellow", kind: "arrow" }]);
-    await rightDrag(page, a, b, ["Shift"]);
+    await rightDrag(page, a, b, ["Control"]);
     await expect.poll(() => notesOn(page)).toEqual([]);
-    // Each colour by its keys: Ctrl as Shift, Alt, both
-    for (const [i, [brush, keys]] of [...BRUSHES, ["yellow", ["Control"]] as [string, string[]]].entries()) {
+    // Each colour by its keys (none, Ctrl, Alt, both), and Shift alone, which chooses no colour
+    for (const [i, [brush, keys]] of [...BRUSHES, ["purple", ["Shift"]] as [string, string[]]].entries()) {
       await rightClick(page, await spot(page, -140 + 70 * i, -90), keys);
       await expect.poll(async () => (await notesOn(page)).at(-1)).toEqual({ brush, kind: "hex" });
     }
     await expect.poll(async () => (await notesOn(page)).length).toBe(5);
+  });
+
+  test("the Analysis board: a right drag with Shift marks the hexes that it goes across, or clears them", async ({ page }) => {
+    await page.setViewportSize({ width: 1376, height: 952 });
+    await analysisAt(page, 10);
+    const [q, r] = await middleHex(page);
+    const drag = async (from: [number, number], to: [number, number], keys: string[]) =>
+      rightDrag(page, await hexSpot(page, from), await hexSpot(page, to), ["Shift", ...keys]);
+    // In each colour, along a row of four hexes: four marks, and no arrow
+    for (const [i, [, keys]] of BRUSHES.entries()) await drag([q - 2, r - 3 + 2 * i], [q + 1, r - 3 + 2 * i], keys);
+    await expect.poll(() => marksOn(page)).toEqual({ purple: 4, yellow: 4, green: 4, grey: 4 });
+    expect((await notesOn(page)).every(n => n.kind === "hex")).toBe(true);
+    // A drag that starts on a mark of its colour clears that colour's marks from the hexes that it goes across: three
+    // purple marks of the four
+    await drag([q - 2, r - 3], [q, r - 3], []);
+    await expect.poll(() => marksOn(page)).toEqual({ purple: 1, yellow: 4, green: 4, grey: 4 });
+    // A clearing drag marks no hex: yellow from its row's first hex up to the purple row, where no mark is left
+    await drag([q - 2, r - 1], [q - 2, r - 3], ["Control"]);
+    await expect.poll(() => marksOn(page)).toEqual({ purple: 1, yellow: 3, green: 4, grey: 4 });
+    // A drag that starts on a mark of another colour marks: green from the last purple mark down to the yellow row,
+    // over an empty hex
+    await drag([q + 1, r - 3], [q + 1, r - 1], ["Alt"]);
+    await expect.poll(() => marksOn(page)).toEqual({ purple: 0, yellow: 2, green: 7, grey: 4 });
   });
 
   test("the Analysis board: the notes stay with their position, a pan keeps them, and a click clears them", async ({ page }) => {
@@ -60,7 +86,7 @@ test.describe("with the engine's files", () => {
     await page.locator("body").click({ position: { x: 2, y: 2 } }); // no control has the focus: the page takes the keys
     await page.keyboard.press("ArrowRight");
     await expect.poll(() => notesOn(page)).toEqual([]);
-    await rightClick(page, await spot(page, 0, -60), ["Shift", "Alt"]);
+    await rightClick(page, await spot(page, 0, -60), ["Control", "Alt"]);
     await expect.poll(() => notesOn(page)).toEqual([{ brush: "grey", kind: "hex" }]);
     await page.keyboard.press("ArrowLeft");
     await expect.poll(() => notesOn(page)).toEqual(drawn);
@@ -83,7 +109,11 @@ test.describe("with the engine's files", () => {
     await page.keyboard.press("?");
     const dialog = page.getByRole("dialog");
     await expect(dialog.getByText("Note colours")).toBeVisible();
-    await expect(dialog.getByText("Right-click a hex, or right-drag to another")).toBeVisible();
+    await expect(dialog.getByText("Right-click a hex, or right-drag to another hex")).toBeVisible();
+    await expect(dialog.getByText("Hold Shift and right-drag across hexes")).toBeVisible();
+    const yellow = dialog.locator("tr", { hasText: "Yellow" });
+    await expect(yellow).toContainText("Ctrl");
+    await expect(yellow).not.toContainText("Shift");
   });
 
   test("Practice: the notes stay with their position", async ({ page }) => {
@@ -100,7 +130,7 @@ test.describe("with the engine's files", () => {
         human: 1, name: "", seed: 1, moves, builds: [], started: new Date().toISOString() });
     await page.reload();
     await expect(page.getByTestId("practice-status")).toHaveText(/^Your turn/, { timeout: 120_000 });
-    await rightClick(page, await spot(page, -60, 0), ["Shift"]);
+    await rightClick(page, await spot(page, -60, 0), ["Control"]);
     await rightDrag(page, await spot(page, -60, 40), await spot(page, 60, 40));
     const drawn = [{ brush: "yellow", kind: "hex" }, { brush: "purple", kind: "arrow" }];
     await expect.poll(() => notesOn(page)).toEqual(drawn);
