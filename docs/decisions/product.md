@@ -3947,6 +3947,32 @@ sweep.
   code does not load, the footer stays invisible. Before the change, the page then showed only its line of text.
 - **Not measured:** Edge, the owner's devices, a slower device, and a store that reads slowly.
 
+### The Review tab reads a file chosen before its code runs (2026-10-27)
+
+Beads abscls-vuke. It follows the entry above: the prerendered Review tab shows "Load a review file" before the page's
+code runs.
+
+- **The problem:** the prerendered input is on the screen before Svelte attaches its change handler. A file chosen in
+  that time was never read: the input kept the file, and the review did not open. The browser tests met it as a lost
+  load: `goto("/review")`, then `setInputFiles` at once.
+- **Measured** on the early build, before the fix, in Playwright's Chromium with 4 times CPU throttling
+  (`Emulation.setCPUThrottlingRate`, over the Chrome DevTools Protocol), 40 loads in each run:
+  - 9 of 40 loads lost the review file in one run and 11 of 40 in another. Each lost load had no handler at the change
+    event, and the input still held the file.
+  - At normal speed, 0 of 40 loads were lost.
+- **The change** (design 22, "The Review tab"): the Review tab reads a file already in the input when it opens
+  (`loadInputFile` in `ReviewHome.svelte`), and the input carries `data-ready` from then. The browser tests choose a
+  file through one helper, `tests/review-file.ts`, which waits for `data-ready`. `tests/review-file.spec.ts` sets the
+  file while the page's scripts are held. The menu's input in `NewMenu` cannot lose a file this way: it is hidden, and
+  only its menu item, which needs the page's code, opens it.
+- **Measured on the fixed build,** the same 40 loads:
+  - 0 of 40 loads were lost at 4 times throttling, in each of two runs, and 0 of 40 at normal speed. In 10 of 40
+    loads, the file was set before the handler existed, and the tab read it when it opened.
+  - Without the read in `open()`, `review-file.spec.ts` failed at `waitForURL` with the tab open: 1 of 1 on the preview
+    build and 2 of 2 on the dev server. With it, the five specs that use the helper passed (43 passed, 1 skipped), the
+    book-review spec run 3 times passed 78, and the dev server passed 2 of 2.
+- **What stays:** a file dropped on the page before it hydrates is abscls-tybh.
+
 ### The rules worker starts with the manifest (2026-10-19)
 
 - **The problem:** the review page read the game, then the tab's lock on it, then the engine's manifest, one after

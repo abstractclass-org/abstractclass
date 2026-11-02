@@ -136,8 +136,10 @@ export async function importFile(page, url, file) {
   await page.locator('input[type="file"][accept*="json"]').first().setInputFiles(file);
 }
 
-/** Imports a review file as importFile does, again until the page opens its game, from a page that has loaded: a file
- *  set before the page has started can go unread. Then waits until the review is done, or for the text `done`. */
+/** Imports a review file as importFile does, again until the page opens its game, from a page that has loaded. A fixed
+ *  build reads a file set early, when the Review tab opens (data-ready). The retries serve older builds, which have no
+ *  data-ready: a file set before such a page has started can go unread. Then waits until the review is done, or for the
+ *  text `done`. */
 export async function importReview(page, url, file, done = /^Review done/) {
   for (let tries = 0; !page.url().includes("#game="); tries++) {
     if (tries === 4) throw new Error("the import did not open");
