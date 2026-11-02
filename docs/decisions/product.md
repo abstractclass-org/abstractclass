@@ -7756,3 +7756,37 @@ that the designs left open:
   logo. The slate read as a grey, and the site needs a colour. On the tokens that the sites share, the lavender has
   Hedge School's contrast: 5.2:1 as text on the page and 5.7:1 under white text, light, and 5.9:1 as text on panel-2
   and 8.2:1 under near-black text, dark.
+
+### A book move played from the table takes the book's label: a variation's book positions (2026-11-02)
+
+Bead abscls-8981, left by the review of abscls-tpaj.21 ("A book move takes the book's label and loss", above).
+
+- **What:** a book move that the player plays from the book's table becomes a variation of the game (design 07).
+  "Evaluate quality" judged it by the book's value before it, where that position is the game's, and by an engine
+  search after it. Its label could then differ from the table's row for the same move. Now each position of a
+  variation that the book holds takes the book's values, as the game's positions do (design 32, "A book position's
+  values"), and the evaluation does not search it. A position outside the book is searched, as before.
+- **What the book's values replace:** `GameAnalysis.judge` marks the turn's variation moves, and `judgeSearches` queues
+  a search of the positions before and after each, to the label budget, at the evaluation's priority. Their results go
+  to the variation's nodes (`branches`, each node's `analysis`), and the view judges the move from them (`branchLabel`
+  and `branchTurnAt` in `ReviewView.svelte`). Before the change, only the game's positions took the book's values
+  (`bookAt` read `bookResults` by the game's index). Now `bookAt` reads a variation's position too, and the view's
+  `analysisAt` takes it before the node's own search. The Greats' checks read `bookAt` already, so no move from or into
+  a variation's book position is Great, as on the game's line.
+- **How:** `giveBook` gives `useBook` a lookup by position (`bookValues` in `results.ts`), beside the game's values.
+  The analysis asks it once for each variation position, when the tree adds the position or when the book comes. The
+  evaluation waits for the answers of its positions, then searches the positions with no book values. A search that
+  still waits for an engine when the book's values come is dropped (`wanted`).
+- **Settled:** a book that loads after the evaluation started gives its values as they come, and the waiting searches
+  of its positions are dropped. A search that ran before keeps its result for the analysis column. A book that does
+  not load, or a lookup that fails, gives no values, and the evaluation searches the variation's positions, as before.
+  The book holds positions, not lines: a variation that reaches a book position by another move order takes its
+  values. The Analysis board and a set-up board take no book, so their variations are searched as before. The area
+  map of a variation's book position is the book's too, as on the game's line (`mapAt` reads `bookAt`).
+- **Measured:** unit tests. In the analysis package, with a book that holds two positions, "Evaluate quality" on a
+  variation move between them searches nothing, and the move after it searches only the position outside the book. In
+  the site, with the test book, K12-N11 after A10-D9 N11-Q10 (a variation of book-left-review.json) gets the table's
+  label, Inaccuracy, and its loss of 8.5% by edge, and N11-Q10 K12-N11 the label and the loss of the table's row by
+  turn. A browser test plays K12-N11 from the table with the engine off: "Evaluate quality" shows Inaccuracy in the
+  move list. Before the change the move list kept "…" there, by the code: the position after the move waited for a
+  search that the engine, off, does not start. The test did not run on the code before the change.

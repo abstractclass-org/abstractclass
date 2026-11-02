@@ -569,8 +569,10 @@ shows them in the early edition, where the book loads. They read the site's one 
 At each position of the game that the book holds, the review takes the book's values in place of the engine's search
 (`apps/hedgeschool/src/lib/book/results.ts`, `GameAnalysis.useBook` in `packages/analysis/src/analysis.svelte.ts`).
 The review's own rules (design 10) then give the labels, the losses, the charts and the counts from those values, as
-from a search. A unit test checks every book move of the test book, by edge and by turn in both orders: the review's
-label and loss are the ones that the book's table gives (434 edges, and 284 whole turns with each of their edges).
+from a search. A variation's positions that the book holds take the book's values in the same way ("A variation's
+positions", below). A unit test checks every book move of the test book, by edge and by turn in both orders: the
+review's label and loss are the ones that the book's table gives (434 edges, and 284 whole turns with each of their
+edges).
 
 - **What the book's fields replace** in a search's result (`Analysis` in `packages/analysis/src/model.ts`, with
   `book`):
@@ -619,8 +621,26 @@ label and loss are the ones that the book's table gives (434 edges, and 284 whol
   can keep the results of a review snapshot that does not open, until the game is reviewed again. A mark that names no
   search is older than the book: its review searched every position. Its review snapshot and the removal ask for every
   position, as before.
+- **A variation's positions:** a book move that the player plays from the table becomes a variation of the game
+  (design 07). When "Evaluate quality" asks for the labels of a variation's turn (design 07, item 11), each position
+  before or after its moves that the book holds takes the book's values, and the engine does not search it. A
+  position outside the book is searched, as before. The labels then follow by the review's rules, with the exceptions
+  above, as on the game's line. So a book move played from the table gets the label and the loss of the table's row.
+  - **How:** `giveBook` gives `GameAnalysis.useBook` a lookup of the book's values by position (`bookValues` in
+    `results.ts`). The analysis asks it once for each variation position that the tree adds, and for the variations
+    that the tree has when the book comes. The evaluation waits for the answers before it starts its searches. The view
+    judges a variation move from the book's values where the analysis has them (`bookAt`). The analysis column shows
+    the engine's own search of the position on screen, as on the game's line.
+  - **Another move order:** the book holds positions, not lines. A variation that reaches a book position by another
+    move order takes that position's values.
+  - **A book that loads after the evaluation started:** the evaluation's searches that still wait for an engine skip
+    the positions that the book holds. A search that ran before keeps its result for the analysis column, and the
+    labels take the book's values.
+  - **A book that does not load,** or a position whose part does not load: the evaluation searches the variation's
+    positions, as without a book.
 - **The Analysis board and a set-up board** take no book values: the board's analysis searches its positions as
-  before, and its labels stay on the moves that the player evaluates (design 21). The book's table shows the book there.
+  before, its variations' positions too, and its labels stay on the moves that the player evaluates (design 21). The
+  book's table shows the book there.
 - **Values with three decimals:** the book's win chances have three decimals, so a loss can fall on a band's limit
   (0.55 less 0.5 is 0.05, Good). A quality label rounds the loss to 6 decimals (`classify` in
   `packages/analysis/src/labels.ts`), as the book's rule does, so that a floating-point error does not put it in the

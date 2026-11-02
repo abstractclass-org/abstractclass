@@ -53,17 +53,22 @@ export function bookAnalysis(p: BookPosition, visits: number, next: BookPosition
 const bestMove = (p: BookPosition): string | null =>
   p.outside && (!p.moves.length || outsideBetter(p)) ? p.outside.move : p.moves[0]?.move ?? null;
 
-/** The book's values of a game's positions, by index, as the review takes them (`bookAnalysis`). `notations[i]`:
- *  position i in the notation, undefined where it has none. Undefined where the book does not hold a position, and
- *  where its part did not load: the review searches those positions. */
-export async function bookResults(book: Book, notations: (string | undefined)[]): Promise<(Analysis<Edge> | undefined)[]> {
+/** The book's values of a position, as the review takes them (`bookAnalysis`), by its notation: undefined where it
+ *  has none, where the book does not hold it, and where its part did not load. The review searches those positions. */
+export function bookValues(book: Book): (notation: string | undefined) => Promise<Analysis<Edge> | undefined> {
   const get = (n: string) => book.get(n).catch(e => {
     if (e instanceof BookLoadError) return null;
     throw e;
   });
-  return Promise.all(notations.map(async n => {
+  return async n => {
     const p = n === undefined ? null : await get(n);
     if (!p) return undefined;
     return bookAnalysis(p, book.source.visits, p.moves[0] ? await get(p.moves[0].to) : null);
-  }));
+  };
+}
+
+/** The book's values of a game's positions, by index (`bookValues`). `notations[i]`: position i in the notation,
+ *  undefined where it has none. */
+export async function bookResults(book: Book, notations: (string | undefined)[]): Promise<(Analysis<Edge> | undefined)[]> {
+  return Promise.all(notations.map(bookValues(book)));
 }

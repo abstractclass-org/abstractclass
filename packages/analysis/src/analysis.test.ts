@@ -17,7 +17,7 @@ import { reply, wordFields, wordRules, words } from "./testing/game.ts";
 import type { Player } from "./game.ts";
 import { LABEL_VISITS, MAP_VISITS, SWEEP_VISITS, analysisKey, cachePut, mapGet, mapPut,
          readAnalysisKey } from "./cache.ts";
-import { judgeBranchMove, valuesAfter, type Analysis } from "./model.ts";
+import { judgeBranchMove, judgeTurn, valuesAfter, type Analysis } from "./model.ts";
 import { toAnalysis } from "./reply.ts";
 import { STORES } from "@abstractclass/storage/db.ts";
 import { memoryDb } from "@abstractclass/storage/memoryDb.ts";
@@ -1327,8 +1327,10 @@ test("the Analysis board takes no book: its analysis has none", async () => {
   const { pool } = fakePool();
   const game = new GameAnalysis(words, pool, [], BOARD_ID);
   await game.start();
-  game.useBook([bookAt(0.5)]);
-  assert.deepEqual(game.bookResults, []);
+  game.useBook([bookAt(0.5)], async () => bookAt(0.5));
+  await game.addLine(["a"], false);
+  await turns();
+  assert.deepEqual([game.bookResults, game.bookAt(["a"])], [[], undefined]);
 });
 
 test("no Great's confirmation from or into a position with the book's values", async () => {
@@ -1350,4 +1352,79 @@ test("no Great's confirmation from or into a position with the book's values", a
   game.useBook([undefined, { blueWin: 0.5, visits: 64, candidates: [], book: true }]);
   assert.equal(game.greatChecks.total, 1);
   assert.equal(game.earlierAt(["a", "b"], 0)?.book, true);
+});
+
+/** A game whose engine is ready, and a book that holds the positions after one move and after two (`held`, by the
+ *  position: the test game's positions differ only by their count, so the book holds them whatever the line). After a,
+ *  the second player's first choice z keeps Blue's win chance at 0.4, and x gives Blue 0.45. `looked`: the counts of
+ *  the positions that the book was asked for. */
+async function bookGame(engines?: number) {
+  const { pool, searches } = fakePool(engines);
+  // The rules answer from the position at `from`, as the engine's do (client.ts, describeGame): a variation's
+  // positions have their own counts
+  Object.assign(pool, { rules: { describeGame: async (q: PositionQuery, from = 0) =>
+    ({ reply: { positions: Array.from({ length: q.moves.length - from + 1 }, (_, j) => wordFields(from + j)) } }) } });
+  const game = new GameAnalysis(words, pool, MOVES, "g");
+  await game.start();
+  game.engineReady = true;
+  const held: Record<number, Analysis<string>> = {
+    1: { blueWin: 0.4, visits: 512, book: true, candidates: [{ edge: "z", visits: 0, blueWin: 0.4 }, { edge: "x", visits: 0, blueWin: 0.45 }] },
+    2: { blueWin: 0.45, visits: 512, book: true, candidates: [] },
+  };
+  const looked: number[] = [];
+  const give = () => game.useBook([undefined, held[1], held[2], undefined], async ({ count = -1 }) => { looked.push(count); return held[count]; });
+  const searched = () => searches.map(s => s.moves.join(" "));
+  return { game, searches, held, looked, give, searched };
+}
+
+test("Evaluate quality on a variation's book move: the book's label and loss, by edge and by turn, and no search", async () => {
+  const { game, looked, give, searched } = await bookGame();
+  give();
+  await game.addLine(["a", "x", "y"], false);
+  await turns();
+  assert.deepEqual(looked, [2, 3]); // each of the variation's positions, once
+  await game.judge(["a", "x"]);
+  await turns();
+  assert.deepEqual(searched(), []); // the positions before and after x are the book's
+  // The labels as the view reads them (ReviewView, analysisAt, branchLabel and branchTurnAt): the book's values at both
+  const at = (p: string[]) => game.bookAt(p) ?? game.analysisOf(p), node = game.branches["a x"];
+  const after = valuesAfter(node.position, at(["a", "x"]), "lead", LABEL_VISITS);
+  assert.equal(after?.book, true);
+  assert.equal(judgeBranchMove(words, at(["a"]), after, 1, "x", "lead", LABEL_VISITS, game.secondAt(["a"]), game.earlierAt(["a"], 1)), "good");
+  const turn = judgeTurn(words, 1, ["x"], at(["a"]), undefined, after, false, game.otherAt(["a"], ["x"]), undefined,
+                         game.earlierAt(["a"], 1), "lead", LABEL_VISITS)!;
+  assert.equal(turn.label, "good");
+  assert.ok(Math.abs(turn.rawLoss - 0.05) < 1e-9);
+  // The move after it leaves the book: the position after y is searched, and the position before it is not
+  await game.judge(["a", "x", "y"]);
+  await turns();
+  assert.deepEqual(searched(), ["a x y"]);
+  // A variation that reaches a book position by another line takes the book's values too: the book holds positions
+  await game.addLine(["a", "w"], false);
+  await turns();
+  assert.equal(game.bookAt(["a", "w"])?.book, true);
+});
+
+test("a book that comes after Evaluate quality started: its positions' searches that still wait are dropped", async () => {
+  const { game, give, searched, searches } = await bookGame(1);
+  await game.addLine(["a", "x"], false);
+  await game.judge(["a", "x"]);
+  await turns();
+  assert.deepEqual(searched(), ["a"]); // no book yet: the position before x runs, and the position after it waits
+  give();
+  await turns();
+  searches[0].end(LABEL_VISITS);
+  await turns();
+  assert.deepEqual(searched(), ["a"]);
+  assert.equal(game.bookAt(["a", "x"])?.book, true);
+});
+
+test("a book that does not answer for a variation's position: Evaluate quality searches it, as with no book", async () => {
+  const { game, searched } = await bookGame();
+  game.useBook([undefined, undefined, undefined, undefined], async () => { throw new Error("offline"); });
+  await game.addLine(["a", "x"], false);
+  await game.judge(["a", "x"]);
+  await turns();
+  assert.deepEqual(searched().sort(), ["a", "a x"]);
+  assert.equal(game.bookAt(["a", "x"]), undefined);
 });

@@ -148,8 +148,10 @@ cut edges that are on the board, so a line drawn over the board can show edges t
     looks at them (Lichess's way). A line is often played only to show something, and searches for its labels would
     take the machine from the game's review. The move menu's "Evaluate quality" asks for the labels of the move's
     turn: every variation move of the turn is evaluated, and the positions before and after each are searched to the
-    label budget (after the position on screen, before the rest). The turn is judged as the game's turns are
-    (`judgeTurn`), and each edge as the game's edges are (`judgeMove`, the same bands): "Review by" chooses which shows.
+    label budget (after the position on screen, before the rest). A position that the opening book holds is not
+    searched: the labels take the book's values there, as on the game's line (design 32, "A book position's
+    values"). The turn is judged as the game's turns are (`judgeTurn`), and each edge as the game's edges are
+    (`judgeMove`, the same bands): "Review by" chooses which shows.
     Until then the move list shows "…". Then it shows the label as for the game (Great, Inaccuracy, Mistake, Blunder),
     by turn after the move that ends the turn, with every label in its tooltip, and the board shows the badges of the
     turn just played. The moves evaluated are kept with the variations. A variation that stops in a turn's middle has no

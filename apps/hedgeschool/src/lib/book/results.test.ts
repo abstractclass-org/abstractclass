@@ -1,7 +1,8 @@
 // Checks the book's values as the review's results (results.ts; design 32, "The review"): a book position gives the
 // values, the candidates, the area map and the complexity, and the review's own rules (design 10) give each book move
-// of the test book the book's quality label and loss, by edge and by turn. A book whose parts do not load gives no
-// values, so that the review searches every position. Run: npm test.
+// of the test book the book's quality label and loss, by edge and by turn. A book move played from the table, a
+// variation, gets them too once evaluated. A book whose parts do not load gives no values, so that the review searches
+// every position. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -10,11 +11,11 @@ import { fileURLToPath } from "node:url";
 import { moverOf } from "#lib/editor/position.ts";
 import { edgeName, mirrorEdge, parseEdge } from "#lib/engine/notation.ts";
 import { playerOf } from "#lib/engine/position.ts";
-import { review, type Analysis, type ReviewData } from "#lib/review/enclosure.ts";
+import { enclosure, judgeBranchMove, judgeTurn, moverWin, review, valuesAfter, type Analysis, type ReviewData } from "#lib/review/enclosure.ts";
 import { decodeArea } from "./area.ts";
 import { bookMove, openBook } from "./book.ts";
 import type { BookPart, BookPosition } from "./form.ts";
-import { bookAnalysis, bookResults } from "./results.ts";
+import { bookAnalysis, bookResults, bookValues } from "./results.ts";
 import { turnRows } from "./rows.ts";
 import { edgeCount, lossTo, moveLabel, moveLoss } from "./sentences.ts";
 
@@ -127,4 +128,32 @@ test("a book whose parts do not load gives no values: the review searches every 
   // The book that loads: the positions that it holds, and none for the one that it does not
   const given = await bookResults(book, [start, after, "A10-D9 Q10-T10 r2 0/0 1"]);
   assert.deepEqual(given.map(a => a?.book ?? null), [true, true, null]);
+});
+
+// A book move that the player plays from the table is a variation of the game (design 07). "Evaluate quality" takes the
+// book's values at its positions that the book holds (bookValues, GameAnalysis.useBook's lookup) and searches the
+// others, and the view judges the move from them (ReviewView, branchLabel and branchTurnAt).
+test("a variation's book move, evaluated: the table's label and loss, by edge and by turn; outside the book, a search", async () => {
+  const values = bookValues(book), LABEL_VISITS = 256;
+  // In book-left-review.json Red played N11-Q10 O11-Q10 at turn 2. The variation K12-N11 after N11-Q10: Red's worst
+  // book move there.
+  const start = (await book.get(bookMove((await book.get(book.start))!, "A10-D9")!.to))!;
+  const middle = (await book.get(bookMove(start, "N11-Q10")!.to))!, k12 = bookMove(middle, "K12-N11")!;
+  const end = (await book.get(k12.to))!;
+  const [before, at, after] = await Promise.all([start, middle, end].map(p => values(p.position)));
+  const red = playerOf(middle.mover);
+  const position = { player: playerOf(end.mover), scores: [0, 0] as [number, number], over: false, count: edgeCount(end) };
+  const afterValues = valuesAfter(position, after, "lead", LABEL_VISITS);
+  // By edge: the label that the table by edge gives K12-N11, an Inaccuracy, and its loss
+  const label = judgeBranchMove(enclosure, at, afterValues, red, parseEdge("K12-N11"), "lead", LABEL_VISITS);
+  assert.deepEqual([label, moveLabel(middle, k12)], ["inaccuracy", "inaccuracy"]);
+  assert.ok(Math.abs(moverWin(at!.blueWin, red) - moverWin(after!.blueWin, red) - moveLoss(middle, k12)) < 1e-6);
+  // By turn: N11-Q10 K12-N11, the label and the loss of the table's row at the turn's start
+  const row = turnRows(start, await Promise.all(start.moves.map(m => book.get(m.to)))).find(r => r.move === "N11-Q10 K12-N11")!;
+  const turn = judgeTurn(enclosure, red, ["N11-Q10", "K12-N11"].map(parseEdge), before, at, afterValues, false,
+                         undefined, undefined, undefined, "lead", LABEL_VISITS)!;
+  assert.equal(turn.label, row.label);
+  assert.ok(Math.abs(turn.rawLoss - lossTo(start, row.blueWin)) < 1e-6);
+  // A position that the book does not hold has no values: Evaluate quality searches it
+  assert.equal(await values("A10-D9 Q10-T10 r2 0/0 1"), undefined);
 });

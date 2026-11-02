@@ -676,3 +676,32 @@ test.describe("a book move's mark, pointed at and clicked", () => {
     });
   }
 });
+
+// A book move played from the book's table becomes a variation of the game (design 07). "Evaluate quality" takes the
+// book's values at its positions that the book holds, as the review does on the game's line, so the move gets the
+// table's label with no search (design 32, "A book position's values"). The engine is off: no search would come.
+test.describe("a book move played from the table", () => {
+  test.use({ viewport: { width: 1366, height: 900 } });
+
+  test("by edge: Evaluate quality gives the move the table's label, with no search", async ({ page }) => {
+    await byEdge(page);
+    await open(page, "book-left-review.json");
+    await expect(row(page, LEFT_BY_EDGE)).toBeVisible({ timeout: 30_000 });
+    await turnTwo(page);
+    await page.keyboard.press("ArrowRight");
+    expect(await here(page)).toMatch(/^N11-Q10/);
+    // K12-N11, Red's worst book move here: the positions before and after it are both the book's
+    const tableRow = table(page).locator('tbody tr[data-move="K12-N11"]');
+    await expect(tableRow.getByRole("img", { name: LABEL_WORDS })).toHaveAccessibleName("Inaccuracy");
+    await tableRow.click();
+    const move = page.locator('button[data-path="A10-D9 N11-Q10 K12-N11"]');
+    await expect(move).toBeVisible();
+    await move.click({ button: "right" });
+    await page.getByRole("menuitem", { name: "Evaluate quality" }).click();
+    // The move's tooltip names the label (in glyphs after the move), and its badge follows it, hidden from assistive
+    // technology (LabelBadge.svelte): the Inaccuracy's disc
+    await expect(move).toHaveAttribute("title", /(^| · )Inaccuracy( · |$)/);
+    await expect(move.locator("xpath=following-sibling::span[1]//*[name()='circle']"))
+      .toHaveAttribute("fill", "var(--inaccuracy-fill)");
+  });
+});

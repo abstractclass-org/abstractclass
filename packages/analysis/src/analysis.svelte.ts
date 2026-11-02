@@ -91,6 +91,11 @@ export class GameAnalysis<G extends GameTypes> {
   // The opening book's values of the game's positions that the book holds, by index (useBook): the review judges by
   // them in place of the engine's results there, and the stages search none of those positions.
   bookResults = $state.raw<(Analysis<G["move"]> | undefined)[]>([]);
+  // The book's values of the variations' positions that the book holds, by path key (useBook's `lookup`). The book
+  // holds positions, not lines: a variation that reaches a book position by another move order takes its values too.
+  private branchBook = $state.raw<Record<string, Analysis<G["move"]>>>({});
+  private bookLookup: ((position: G["position"]) => Promise<Analysis<G["move"]> | undefined>) | null = null;
+  private bookAsked = new Map<string, Promise<Analysis<G["move"]> | undefined>>(); // the lookups, by path key
   rulesReady = $state(false);
   engineReady = $state(false);
   paused = $state(false); // the engine is off: no search starts
@@ -234,15 +239,41 @@ export class GameAnalysis<G extends GameTypes> {
    *  book's area maps (mapAt), and the stages do not search those positions (Hedge School's design 32). The engine
    *  still searches the position on screen there, for the analysis column (focus). The book loads in parts, so a call
    *  can come once the stages run: a position that they searched before keeps that result for the column. Not on the
-   *  board, whose analysis takes no book. */
-  useBook(results: (Analysis<G["move"]> | undefined)[]) {
-    if (!this.board) this.bookResults = results;
+   *  board, whose analysis takes no book.
+   *  `lookup` gives the book's values of any position, or undefined where the book does not hold it or its part does
+   *  not load. The variations' positions take their values from it (bookAt): "Evaluate quality" does not search those
+   *  positions (judge), and the labels read the book's values there, as on the game's line. */
+  useBook(results: (Analysis<G["move"]> | undefined)[],
+          lookup?: (position: G["position"]) => Promise<Analysis<G["move"]> | undefined>) {
+    if (this.board) return;
+    this.bookResults = results;
+    if (!lookup) return;
+    this.bookLookup = lookup;
+    for (const key of Object.keys(this.branches)) void this.branchBookOf(key);
   }
 
-  /** The book's values that the review takes at the position at `path` (useBook): a position of the game only. */
-  private bookAt(path: string[]): Analysis<G["move"]> | undefined {
+  /** The book's values that the review takes at the position at `path` (useBook): a position of the game, or of a
+   *  variation once the book has answered for it. */
+  bookAt(path: string[]): Analysis<G["move"]> | undefined {
     const i = mainIndex(path, this.mainNames);
-    return i === null ? undefined : this.bookResults[i];
+    return i === null ? this.branchBook[pathKey(path)] : this.bookResults[i];
+  }
+
+  /** Asks the book once for the values of the variation's position with path key `key` (useBook's `lookup`).
+   *  Undefined where no book has come yet, where the book does not hold the position, and where the lookup fails: the
+   *  position is then searched, as without a book. */
+  private branchBookOf(key: string): Promise<Analysis<G["move"]> | undefined> {
+    const node = this.branches[key], lookup = this.bookLookup;
+    if (!node || !lookup) return Promise.resolve(undefined);
+    let asked = this.bookAsked.get(key);
+    if (!asked) {
+      asked = lookup(node.position).catch(() => undefined).then(a => {
+        if (a) this.branchBook = { ...this.branchBook, [key]: a };
+        return a;
+      });
+      this.bookAsked.set(key, asked);
+    }
+    return asked;
   }
 
   /** The game's edges of the turn that starts with edge `i`, or undefined when no turn starts there. */
@@ -521,13 +552,15 @@ export class GameAnalysis<G extends GameTypes> {
       };
     }
     this.branches = next;
+    for (let j = k + 1; j <= path.length; j++) void this.branchBookOf(pathKey(path.slice(0, j))); // the book's values there
     if (keep) await this.keepBranches();
   }
 
   /** Evaluates the quality of a variation move's turn on request: every variation move of the turn (turnKeys) is judged, and
    *  the positions before and after each are searched to the label budget, so that the turn and each of its edges can
-   *  be judged as the game's are (design 10). A variation's moves are not judged unless asked: a line played only to show
-   *  something should cost no search. */
+   *  be judged as the game's are (design 10). A position that has the book's values is not searched (bookAt): the labels
+   *  read the book's values there, as on the game's line. A variation's moves are not judged unless asked: a line played
+   *  only to show something should cost no search. */
   async judge(path: string[]) {
     const keys = this.turnKeys(path);
     if (!keys.length) return;
@@ -535,7 +568,7 @@ export class GameAnalysis<G extends GameTypes> {
     for (const k of keys) if (k in next) next[k] = { ...next[k], judged: true }; else main[k] = true; // the board's main line
     this.branches = next;
     this.judgedMain = main;
-    for (const k of keys) this.judgeSearches(k.split(" "));
+    for (const k of keys) void this.judgeSearches(k.split(" "));
     await this.keepBranches();
   }
 
@@ -567,10 +600,16 @@ export class GameAnalysis<G extends GameTypes> {
     return [path.slice(0, -1), path];
   }
 
-  private judgeSearches(path: string[]) {
+  private async judgeSearches(path: string[]) {
     if (!this.engineReady) return; // the sweep starts them
-    for (const p of this.judging(path)) // a position of the game that has the book's values needs no search
-      if (this.searchable(p) && !this.bookAt(p)) this.search(p, this.labelVisits, PRIORITY.judge, "judge", { early: LABEL_VISITS }).catch(this.fail);
+    // A position that has the book's values needs no search: the game's, or a variation's once the book has answered for
+    // it. A book that comes later drops the searches that still wait for an engine.
+    const positions = this.judging(path);
+    await Promise.all(positions.map(p => (mainIndex(p, this.mainNames) === null ? this.branchBookOf(pathKey(p)) : undefined)));
+    for (const p of positions)
+      if (this.searchable(p) && !this.bookAt(p))
+        this.search(p, this.labelVisits, PRIORITY.judge, "judge", { early: LABEL_VISITS, wanted: () => !this.bookAt(p) })
+          .catch(this.fail);
   }
 
   /** Deletes a variation node and every position after it (Lichess's "Delete from here"). */
@@ -673,7 +712,7 @@ export class GameAnalysis<G extends GameTypes> {
    *  engine on). */
   private ready() {
     this.engineReady = true;
-    for (const k of this.judgedKeys()) this.judgeSearches(k.split(" "));
+    for (const k of this.judgedKeys()) void this.judgeSearches(k.split(" "));
     this.askAgain(); // the maps asked for before
   }
 
@@ -787,7 +826,7 @@ export class GameAnalysis<G extends GameTypes> {
     this.engineReady = true;
     this.askAgain(); // the maps and the map stage asked for before the engine was ready, or while it was off
     const run = ++this.passes;
-    for (const [key, node] of Object.entries(this.branches)) if (node.judged) this.judgeSearches(key.split(" ")); // kept from a visit
+    for (const [key, node] of Object.entries(this.branches)) if (node.judged) void this.judgeSearches(key.split(" ")); // kept from a visit
     const n = this.passCount;
     const pass = (visits: number, priority: number, tag: string) =>
       Promise.all(Array.from({ length: n }, (_, i) =>

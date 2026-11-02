@@ -38,6 +38,7 @@
     secondAt(path: string[]): Analysis<G["move"]> | undefined; // the position after the engine's second choice, which confirms a Great
     otherAt(path: string[], turn: (G["move"] | null)[]): Analysis<G["move"]> | undefined; // the same for a turn
     earlierAt(path: string[], mover: Player): Analysis<G["move"]> | undefined; // before the other player's last turn, which a Great must gain on
+    bookAt(path: string[]): Analysis<G["move"]> | undefined; // the book's values, which the labels take where the book holds the position
     awaitsGreat(key: string): boolean; // the move into this path key waits for the searches of its Great
     turnKeys(path: string[]): string[]; // the variation moves that evaluating this move's quality judges
     pending(path: string[]): boolean; // the review's own searches can still change this position's analysis
@@ -984,7 +985,7 @@
     const key = pathKey(p), node = branches[key];
     if (!node?.judged || game?.awaitsGreat(key)) return null; // a Great's searches still run: "Evaluating…"
     const parent = p.slice(0, -1);
-    return judgeBranchMove(view, analysisAt(parent), valuesAfter(node.position, node.analysis, "lead", labelVisits), node.move.player,
+    return judgeBranchMove(view, analysisAt(parent), valuesAfter(node.position, analysisAt(p), "lead", labelVisits), node.move.player,
                            node.move.edge, "lead", labelVisits, game?.secondAt(parent), game?.earlierAt(parent, node.move.player));
   }
   /** The move that leads to `p` (none at the start), and the analysis at `p`: the game's or a variation's. */
@@ -1006,9 +1007,10 @@
     }
     return { edges, end };
   }
+  /** The analysis that judges the moves at `p`: the book's values where the book holds the position (design 32). */
   function analysisAt(p: string[]): Analysis<G["move"]> | undefined {
     const i = mainIndex(p, mainNames);
-    return i !== null ? R.data.analysis[i] : branches[pathKey(p)]?.analysis;
+    return i !== null ? R.data.analysis[i] : game?.bookAt(p) ?? branches[pathKey(p)]?.analysis;
   }
   /** The paths of the turn that a variation move ends, or null where the turn goes on after it. */
   function branchTurnPaths(p: string[]): string[][] | null {
@@ -1045,7 +1047,7 @@
     const parent = p.slice(0, -1), twice = paths.length > 1;
     const start = p.slice(0, twice ? -2 : -1), turn = paths.map(q => moveInto(q)?.edge ?? null);
     return { paths, judgment: judgeTurn(view, node.move.player, turn, analysisAt(start), twice ? analysisAt(parent) : undefined,
-                                        valuesAfter(node.position, node.analysis, "lead", labelVisits), !!node.position.over,
+                                        valuesAfter(node.position, analysisAt(p), "lead", labelVisits), !!node.position.over,
                                         game?.otherAt(start, turn), twice ? game?.secondAt(parent) : undefined,
                                         game?.earlierAt(start, node.move.player), "lead", labelVisits) };
   }
