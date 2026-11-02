@@ -34,6 +34,7 @@
     branches: Record<string, BranchNode<G>>; // the variations' positions, by path key (tree.ts), in the order added
     focusing: string | null; // the path key of the position searched for the player, while it runs
     engineReady: boolean; // the engine's network is loaded: the searches can start
+    paused: boolean; // the engine is off: no search starts
     rulesAt(path: string[]): Promise<G["rules"]>; // a position's rules, for the player's own moves
     secondAt(path: string[]): Analysis<G["move"]> | undefined; // the position after the engine's second choice, which confirms a Great
     otherAt(path: string[], turn: (G["move"] | null)[]): Analysis<G["move"]> | undefined; // the same for a turn
@@ -127,6 +128,7 @@
   import Glyph from "./Glyph.svelte";
   import LabelBadge from "./LabelBadge.svelte";
   import { nameSize } from "./nameSize.ts";
+  import { noSearchReason, unlabeledText } from "./searchWait.ts";
   import { LINE_STEP_MS, LineDrawing } from "./lineDrawing.svelte.ts";
   import { imageLine, lineFrames } from "./lineImage.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
@@ -1469,6 +1471,10 @@
   // The engine's network loads: no search of the position can start yet, so the header says so in the place of the
   // visits (design 06). A review snapshot searches nothing (design 20).
   const waitsForNetwork = $derived(!!game && !snapshot && !game.engineReady);
+  // Why no search for a move can run now (searchWait.ts), or null when one can run or runs: a move that the player asked to
+  // evaluate says "Evaluating…" and pulses only then (design 07, item 11). The engine's switch is its pause (the session
+  // gives the analysis the switch), and a network that loads still counts: its search starts when it is loaded.
+  const searchReason = $derived(noSearchReason({ snapshot: !!snapshot, off: !!game?.paused || (!!engine && !engine.on), error: game?.error ?? "" }));
   // A slider's place while it moves, by its id: the setting changes when it is let go, so that a drag does not restart
   // the workers or the search at each step.
   let drafts = $state<Record<string, number>>({});
@@ -1774,7 +1780,7 @@
           {@const end = t.edges.at(-1)!.index}
           <!-- A turn of book moves only: the mark, with the position symbol after the turn. -->
           {@const bookAfter = t.edges.every(e => bookMoves.has(e.index)) ? bookMoves.get(end) : undefined}
-          {@const tip = tooltip(t.label ? `${LABEL_TEXT[t.label]}: ${turnCost(t)}` : board && !t.edges.every(e => board.judged[mainKeys[e.index + 1]]) ? "" : "Not analyzed yet",
+          {@const tip = tooltip(t.label ? `${LABEL_TEXT[t.label]}: ${turnCost(t)}` : board && !t.edges.every(e => board.judged[mainKeys[e.index + 1]]) ? "" : board ? unlabeledText(searchReason) : "Not analyzed yet",
                                 board ? searchNote(hard, t.edges.map(e => R.data.analysis[e.index])) : "")}
           {@const loss = lossShort(t)}
           {@const slotted = !!t.label && (bookAfter !== undefined || listed(t.label))}
@@ -1888,7 +1894,7 @@
   {#each t.edges as e (e.index)}
     {@const after = R.blueScore[e.index + 1]}
     {@const asked = !board || !!board.judged[mainKeys[e.index + 1]]} <!-- the board's moves: evaluated on request -->
-    {@const judged = unit === "edge" && forSide(e.player) && asked ? (e.label ? `${LABEL_TEXT[e.label]}: ${costText(e.rawLoss, e.rawPoints)}` : "Not analyzed yet") : ""}
+    {@const judged = unit === "edge" && forSide(e.player) && asked ? (e.label ? `${LABEL_TEXT[e.label]}: ${costText(e.rawLoss, e.rawPoints)}` : board ? unlabeledText(searchReason) : "Not analyzed yet") : ""}
     {@const shown = forSide(e.player) ? e.label : null}
     {@const bookAfter = bookMoves.get(e.index)}
     <!-- On the board too, where the position has a result: from the complexity, as the board's `hard` is the record's,
@@ -1962,17 +1968,17 @@
                             at ? "here bg-panel-2 outline outline-accent -outline-offset-1" : pickedKey === pathKey(p) ? PICKED
                             : "hover:bg-panel-2 hover:outline hover:outline-line hover:-outline-offset-1"]}
                     onclick={() => setPath(p, true)} onmouseenter={() => startPreview({ kind: "branch", path: p })} onmouseleave={endPreview} tabindex="-1"
-                    data-path={pathKey(p)} title={tooltip(label ? LABEL_TEXT[label] : waiting ? "Evaluating…" : "", hardness?.note)}>{@render written(node.move)}</button>
+                    data-path={pathKey(p)} title={tooltip(label ? LABEL_TEXT[label] : waiting ? unlabeledText(searchReason) : "", hardness?.note)}>{@render written(node.move)}</button>
           {:else}
             <button class={["mv flex p-[0.08em] bg-transparent border-0 rounded-full",
                             at ? "here outline-2 outline-accent" : pickedKey === pathKey(p) ? PICKED : "hover:outline hover:outline-ink"]}
                     onclick={() => setPath(p, true)} onmouseenter={() => startPreview({ kind: "branch", path: p })} onmouseleave={endPreview} tabindex="-1"
-                    data-path={pathKey(p)} title={tooltip(`${turnText(t)} ${view.notation(node.move)}`, label ? LABEL_TEXT[label] : waiting ? "evaluating…" : "", hardness?.note)}>
+                    data-path={pathKey(p)} title={tooltip(`${turnText(t)} ${view.notation(node.move)}`, label ? LABEL_TEXT[label] : waiting ? unlabeledText(searchReason) : "", hardness?.note)}>
               {@render edgeShape(node.move.edge, node.move.player, positionOf(p.slice(0, -1)))}
             </button>
           {/if}
           {#if listed(label)}<span class="-ml-0.5 text-[0.9em]">{@render mark(label)}</span>
-          {:else if waiting}<span class="-ml-0.5 text-[0.9em] text-muted animate-pulse motion-reduce:animate-none" title="Evaluating…">…</span>{/if}
+          {:else if waiting && searchReason === null}<span class="-ml-0.5 text-[0.9em] text-muted animate-pulse motion-reduce:animate-none" title="Evaluating…">…</span>{/if}
           <!-- A hard position's ◆, small and muted as the move list's, with no slot of its own, as a variation's labels have
                none. -->
           {#if hardness?.hard}<span class="-ml-0.5 text-[0.8em] text-muted" title={HARD_NOTE}>◆</span>{/if}

@@ -7796,3 +7796,26 @@ abscls-8981, left by the review of abscls-tpaj.21 ("A book move takes the book's
   tooltip and the same badge in both. Pointing at the move previews the position after it, and a click goes there.
   The badge after a variation's move is not part of its button in either unit: pointing at it and clicking it do
   nothing, as on any variation move that was evaluated.
+
+### A move that was asked for says "Evaluating…" only while a search can run (2026-11-02)
+
+- **The fault:** a variation move that the player marked with "Evaluate quality" showed "Evaluating…" and a pulsing
+  "…" whenever it had no label (`judged` and no label), also with the engine off, when nothing evaluates it.
+- **The rule** (design 07, item 11): the text and the pulse show while a search for the move can run or runs. The states
+  where one can: the engine on (the engine's switch is its pause: `GameAnalysis.paused`, which the session sets from
+  the switch), with its network loaded or still loading, and no engine error. The states where none can: the engine off,
+  an engine error (`GameAnalysis.error`), and a review snapshot (design 20). The rule is in `searchWait.ts`, with the
+  texts, and `ReviewView.svelte` reads it once (`searchReason`).
+- **Where none can,** the move says "Not analyzed yet", as the game's moves say it, and then why and what to do:
+  "Not analyzed yet. The engine is off. Turn it on to evaluate this move.", "Not analyzed yet. The engine has an error."
+  and "Not analyzed yet. A review snapshot does no searches." The "…" mark does not show. The words "engine is off"
+  are the site's (the Threat line, the review bar: "Engine off. The review is paused.").
+- **Edge and turn, review and board:** the variation's move button (its tooltip, by edge and by turn), the pulse after
+  it, and the Analysis board's main-line moves that the player evaluated (`board.judged`: the edge's tooltip, the turn
+  cell's) use the one rule. Before, the board's main-line moves said "Not analyzed yet" also while their search ran.
+  They now say "Evaluating…" then.
+- **Not changed:** a game move in a review, which has no label yet because the review is under way, keeps its text.
+  A position that the book holds (abscls-8981) is that branch's work.
+- **Tests:** `searchWait.test.ts` (the rule, with every state, "Evaluating…" included) and `tests/search-wait.spec.ts`
+  (the Analysis board with the engine off, by edge and by turn, on a variation and on the main line: the text, and no
+  pulse). The browser tests keep the engine off, so "Evaluating…" has the unit test alone.
