@@ -587,8 +587,11 @@ The Move header and the fade of a cut name are in the shared table, so Hedge Sch
   header's bar over the page's own scrolling area, with each page's scroll place),
   `theme.svelte.ts` and `ThemeMenu.svelte` (the theme, under each site's own key), `PageMeta.svelte` and
   `origin.ts` (each page's metadata, from the site's live address), `prose.ts` (the pages' text style) and
-  `LibraryNotices.svelte` (the libraries that the pages ship). Each site's root layout gives `SiteFrame` what its
-  header holds, its live address and its keys. Each site keeps its own logo, accent and header links. Hedge School's
+  `LibraryNotices.svelte` (the libraries that the pages ship), and `themeTokens.ts` (the colour tokens of a site's style
+  sheets in each theme, read in Node by Hedge School's `symbolShades.test.ts` and the hub's
+  `scripts/enclosure-board.mjs`, for the checks that compare colours). Each site's root layout gives `SiteFrame`
+  what its header holds, its live address and its keys. Each site keeps its own logo, accent and header links. Hedge
+  School's
   site menu and Support Us dialog stay in Hedge School. The two footers (`src/lib/SiteFooter.svelte`) have the same
   markup, with each site's links and the game's credit. They are still each site's own, and move into the package in a
   later change (item 4).
