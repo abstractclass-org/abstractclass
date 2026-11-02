@@ -12,7 +12,7 @@
   import { Dialog } from "bits-ui";
   import Board from "#lib/board/Board.svelte";
   import { EdgeInput } from "#lib/board/edgeInput.svelte.ts";
-  import type { BoardNote } from "#lib/board/notes.ts";
+  import type { BoardNote } from "@abstractclass/review/notes.ts";
   import Icon from "@abstractclass/site/Icon.svelte";
   import ShareBar, { ownShare } from "@abstractclass/review/ShareBar.svelte";
   import SettingChoice from "@abstractclass/site/SettingChoice.svelte";

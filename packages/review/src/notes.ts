@@ -1,6 +1,8 @@
 // The player's notes on the board (design 07): rings round points and lines between points, drawn with the right
 // button, as Lichess's board draws circles and arrows (its chessground board's drawable shapes). A note is only a
-// drawing: it is not an edge, and cuts or encloses nothing.
+// drawing: it is not an edge, and cuts or encloses nothing. A point is the game's: Enclosure's point (x, y), and
+// Blueprints' hex (q, r), which Drawing Board's board draws as a highlighted hex and an arrow (design 33). Each site's
+// board draws the notes.
 
 export type NoteBrush = "green" | "yellow" | "purple" | "grey";
 export interface BoardNote { at: [number, number]; to?: [number, number]; brush: NoteBrush }

@@ -1,6 +1,6 @@
 @import "tailwindcss";
 /* The sites' shared style: the general colour tokens, the base styles and the page area (packages/site). This file
-   adds Hedge School's own: its accent, its board's, the notes', the area line's and the book's symbols' shades. */
+   adds Hedge School's own: its accent, its board's, the area line's and the book's symbols' shades. */
 @import "@abstractclass/site/site.css";
 /* The review's view and its parts, with their style (packages/review): Tailwind finds their classes there. */
 @import "@abstractclass/review/review.css";
@@ -18,12 +18,6 @@
   --board-dot: #b9ab8d;
   /* A protected edge's halo: a neutral that is neither player's colour, a warm grey on the light board and a warm
      off-white on the dark one, each the board's contrast. */
-  /* The player's notes on the board (board/notes.ts), in colours apart from the players' blue and red. The light
-     board's are darker than the dark board's, in the same hues: 3:1 against the board. */
-  --note-purple: #a66fd3;
-  --note-yellow: #a78202;
-  --note-green: #359a3b;
-  --note-grey: #86868c;
   --area: #a8508f; /* the Advantage chart's area line: magenta, apart from the players' blue and red and the labels' hues */
   /* The position symbols' shades (the book's table, design 32, item 3): the stronger the position, the farther its
      symbol's shade from the text's colour, which = and ∞ take. A side's three shades lie on a straight line in OKLCH,
@@ -46,10 +40,6 @@
   --board-bg: #3a362e;
   --board-dot: #6d6555;
   --area: #d27fbb;
-  --note-purple: #b37be0;
-  --note-yellow: #e9b81c;
-  --note-green: #4caf50;
-  --note-grey: #a8a8ae;
   --blue-slightly-better: #9cb6e3;
   --blue-better: #7299df;
   --blue-winning: #487ad9;

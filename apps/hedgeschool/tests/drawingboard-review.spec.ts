@@ -1,12 +1,14 @@
 // Drawing Board's review (its design 33) on its preview (DB_BASE_URL): the review's test game up to turn 20, reviewed
 // once from the engine's real replies (drawingboard-review.ts), in one page that the tests share in turn. The tests
 // check the candidates' table's Move header (move-header.ts), the display setting "Move notation", the marks of a
-// turn's two moves by turn and by move, the hands' rank chips with "+N", and that the page has no area map. And the
+// turn's two moves by turn and by move, the hands' rank chips with "+N", that the page has no area map, and the
+// player's notes (drawingboard-notes.ts) by position and while a preview shows. And the
 // Analysis board's check of a record brought to it. Without the engine's files the tests skip, with a message. Run: npm run test:layout -- tests/drawingboard-review.spec.ts, with
 // DB_BASE_URL.
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import { checkMoveHeader, readTable, tableBox, toMove as stepTo } from "./move-header.ts";
 import { DISPLAY, DRAWING_BOARD, MOVES, noReview, reviewTestGame } from "./drawingboard-review.ts";
+import { notesOn, rightClick, rightDrag, spot } from "./drawingboard-notes.ts";
 
 test.describe.configure({ mode: "serial" });
 let context: BrowserContext | undefined, page: Page, skipped = "";
@@ -189,6 +191,29 @@ test("the review has no area map: no switch, no legend and no shading", async ()
     await expect(page.getByRole("region", { name: "Display settings" })).not.toContainText("Area map");
     await page.getByRole("region", { name: "Display settings" }).getByRole("button", { name: "Done" }).click();
   }
+});
+
+test("the player's notes: on the review's board, by position, and hidden while a move's preview shows", async () => {
+  await open(1376, 952, { previewMoves: true });
+  await toMove(9);
+  await rightClick(page, await spot(page, -60, 0));
+  await rightDrag(page, await spot(page, -60, 40), await spot(page, 60, 40), ["Shift"]);
+  const drawn = [{ brush: "purple", kind: "hex" }, { brush: "yellow", kind: "arrow" }];
+  await expect.poll(() => notesOn(page)).toEqual(drawn);
+  // The pointer on another move of the list shows its position, with no notes. Off the list, the notes come back.
+  await page.locator(".movelist button.mv").nth(3).hover();
+  await expect.poll(() => notesOn(page)).toEqual([]);
+  await page.mouse.move(2, 2);
+  await expect.poll(() => notesOn(page)).toEqual(drawn);
+  await next(10);
+  await expect.poll(() => notesOn(page)).toEqual([]);
+  await page.keyboard.press("ArrowLeft");
+  await at(9);
+  await expect.poll(() => notesOn(page)).toEqual(drawn);
+  // A click on the board clears them
+  const p = await spot(page, 150, 150);
+  await page.mouse.click(p.x, p.y);
+  await expect.poll(() => notesOn(page)).toEqual([]);
 });
 
 test("the Analysis board refuses a record whose capture mark the engine does not confirm", async ({ browser }) => {

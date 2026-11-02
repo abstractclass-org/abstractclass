@@ -5,7 +5,7 @@
 // (@abstractclass/review/ReviewView.svelte) with Enclosure's game (enclosure.ts, `enclosure`), which it extends.
 import type { ImageBoard, ViewGame } from "@abstractclass/review/game.ts";
 import { EdgeInput } from "#lib/board/edgeInput.svelte.ts";
-import { BRUSH_KEYS } from "#lib/board/notes.ts";
+import { BRUSH_KEYS } from "@abstractclass/review/notes.ts";
 import { animatedBoardImage, boardImage, copyPng } from "#lib/board/boardImage.ts";
 import { pointName } from "#lib/engine/notation.ts";
 import { playMove, preload } from "#lib/sound.ts";

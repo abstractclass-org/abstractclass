@@ -11,7 +11,7 @@ import type { BranchNode as SharedNode } from "@abstractclass/analysis/analysis.
 import { edgeName, parseEdge, sameEdge, type Edge } from "#lib/engine/notation.ts";
 import { boardPosition, playerOf, rulesOf, type DescribeReply, type GamePosition } from "#lib/engine/position.ts";
 import type { EdgeInput, EdgeRules } from "#lib/board/edgeInput.svelte.ts";
-import type { BoardNote } from "#lib/board/notes.ts";
+import type { BoardNote } from "@abstractclass/review/notes.ts";
 import type { BookPlace } from "#lib/book/place.svelte.ts";
 import type { Display } from "./display.ts";
 import { turnFromCount } from "@abstractclass/analysis/turns.ts";

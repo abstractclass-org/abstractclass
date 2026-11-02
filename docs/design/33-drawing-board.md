@@ -288,8 +288,8 @@ game's last position (`scores`, and the margin of `outcome`). This browser keeps
    networks, so a new build can drop a kept game's network. Such a game cannot go on: the page drops it, and the
    settings card says so.
 3. **Fewer display settings:** the points' bar always shows, with no second number (Blueprints has no area), and the
-   page has no sounds and no notes on the board. No game comes from a record or a set-up start: the Analysis board's
-   Play comes with it (abscls-8tl1.7).
+   page has no sounds. The player's notes are on the board ("The player's notes"). No game comes from a record or a
+   set-up start: the Analysis board's Play comes with it (abscls-8tl1.7).
 4. **The move list has one move a line,** each turn's number at its first move: Blueprints' moves are up to about 19
    characters long, and two in a row do not fit the side column.
 
@@ -446,10 +446,48 @@ drawings of the real page, from the engine's replies. The decision log gives the
     accepts replaces the board kept here. When that board has moves, the board first asks "Replace your analysis?":
     "Keep mine" keeps it. The question is Hedge School's (its design 21, item 6), in `packages/review`
     (`ReplaceAnalysis.svelte`), which both boards use.
-12. **Not built yet:** sounds, notes on the board, the image of a line, the opening book, a list of games and a GPU
-    setting. The review keeps one game in this browser: `#record=` in a link brings one, and the import page sends
-    one so ("How a game comes in from strategyjam.org", item 6). The engine's pool keeps its 2 workers while the page
-    is open.
+12. **Not built yet:** sounds, the image of a line, the opening book, a list of games and a GPU setting. The review
+    keeps one game in this browser: `#record=` in a link brings one, and the import page sends one so ("How a game
+    comes in from strategyjam.org", item 6). The engine's pool keeps its 2 workers while the page is open.
+
+### The player's notes
+
+The player draws notes on the board in the review, on the Analysis board and on Practice, as on Hedge School's three
+pages (design 07, item 16). They are Lichess's circles and arrows (its chessground board's drawable shapes) on
+Blueprints' hexes.
+
+1. **Hedge School's notes, at a hex:** the same logic, colours and keys. The logic is in `packages/review`
+   (`notes.ts`, which moved there from Hedge School), and a Blueprints hex (q, r) is its point. A right-click marks a
+   hex, and a right drag from a hex to another draws an arrow. The same note again removes it, and in another colour
+   changes its colour. An arrow drawn the other way is the same arrow. The keys held choose the colour: purple with no
+   key, yellow with Shift or Ctrl, green with Alt, grey with both. The colours are the view's tokens
+   (`review.css`), 3:1 against the board that the two sites share. "Keys and clicks" lists the clicks and the colours.
+2. **Only the drawing is Blueprints' own** (`Board.svelte`). A marked hex has a ring inside the hex, round a cell's
+   mark, and a faint fill under the cells. An arrow runs from a hex's centre to the other's, with its head's tip short
+   of that centre (`arrowPoints` in `hex.ts`). The ring and the arrow have a halo in the board's colour, so they read on
+   a cell of either player.
+3. **The notes belong to the position on screen, for the visit:** the view keeps them by position, as Hedge School's
+   does, and Practice by its positions. They are not kept in the browser.
+4. **On the board only, not in the hands.** A note is at hexes of the board. The hands' cells are in each blueprint's
+   own frame, and that frame changes: a line shows the hands after its last move, and an edit moves a cell. A note at
+   a blueprint's cell would need a note of another kind, and could point at a cell that is no longer there.
+   strategyjam.org's Sandbox marks the board only too.
+5. **An arrow between two hexes that touch is a note,** as Lichess draws an arrow between two squares that touch.
+   Its shaft still shows (0.87 of a hex's radius long), since the tip stops 0.2 short of the centre.
+6. **A note on a hex that holds a cell** keeps the cell readable. The fill goes under the cells, so the cell keeps
+   its owner's colour, and the ring goes over everything, round the cell's mark. The same hex under a candidate's or a
+   line's faded cells shows the ring over them.
+7. **While a preview shows another position** (a move pointed at in the move list, or a variation's move), the notes
+   hide, and the board takes no note: the view gives the board none (`ReviewView.svelte`, as for Hedge School). They
+   come back with the position. A candidate's line drawn on the position on screen does not hide them: it is that
+   position's.
+8. **A click on the board clears the position's notes** (chessground's `eraseOnClick`), and does what it does
+   besides, as on Hedge School's board. A pan does not clear them, and a zoom does not: this board pans, and
+   Hedge School's does not. A pan would lose the notes that the player drew to read the position.
+9. **Where strategyjam.org differs** (its Sandbox's mode "Mark", read for reference): it has three colours (yellow,
+   green and purple), chosen by a button or a key. A right drag there draws an arrow in any mode, and Shift with a
+   right drag marks hexes. So Shift there changes the kind of note, and here it changes the colour (yellow). Drawing
+   Board keeps Hedge School's keys, so that a player of the two sites learns one set.
 
 ### No area map yet
 
@@ -491,6 +529,9 @@ position from move 10. Counts only: the archive's games are other people's, and 
   names have 5 to 19 characters, so one size for every name in a cell would make the short ones small. Enclosure's
   names have 5 to 7 characters, and Hedge School keeps its one size for a cell.
 - **No area map** ("No area map yet").
+- **The notes' drawing, and a pan that keeps them** ("The player's notes", items 2 and 8): a marked hex in the place
+  of a ring round a point, and an arrow in the place of a line. A click clears the notes, as on Hedge School's board,
+  but a pan does not: Hedge School's board does not pan.
 - **The cards' second number:** the stars on the board, in the place of the enclosed area (item 2).
 
 The Move header and the fade of a cut name are in the shared table, so Hedge School has them too (design 06, item
@@ -650,12 +691,17 @@ The Move header and the fade of a cut name are in the shared table, so Hedge Sch
   (`blueprintsView.ts`), its game for the analysis (`blueprints.ts`, with the glyphs' parts and the notes), the board
   (`ReviewBoard.svelte`), the glyphs (`MoveLabel.svelte`), the small pictures (`MoveShape.svelte`), the table's least
   size (`table.ts`), the display settings (`display.ts`), and the area map kept for later (`blueprintsMap.ts`).
-  `src/lib/board/chips.ts`: the hands' rank chips. `packages/review/src/ReplaceAnalysis.svelte`: the board's question
-  before a record replaces the analysis kept here, which both sites' boards use.
+  `src/lib/board/chips.ts`: the hands' rank chips. The player's notes ("The player's notes"): `notes.ts` and the
+  notes' colours (`review.css`) in `packages/review`, which both sites use, and their drawing in
+  `src/lib/board/Board.svelte`, with the arrow's shape in `hex.ts` (`arrowPoints`).
+  `packages/review/src/ReplaceAnalysis.svelte`: the board's question before a record replaces the analysis kept here,
+  which both sites' boards use.
 - `apps/hedgeschool/tests/drawingboard-review.spec.ts` and `move-header.spec.ts`: the browser tests of the review, and
-  `layout.spec.ts` its layout. `drawingboard-import.spec.ts`: the import page's choice, the Analysis board's question
-  over a kept analysis, a record that the engine refuses and the notice of an out-of-date tool, and `layout.spec.ts`
-  the page's layout. They run on this machine, where the engine's files are: without them they skip.
+  `layout.spec.ts` its layout. `drawingboard-notes.spec.ts`: the notes on the Analysis board and on Practice, with
+  `drawingboard-notes.ts`, which the review's test and the layout test of the board with notes use too.
+  `drawingboard-import.spec.ts`: the import page's choice, the Analysis board's question over a kept analysis, a
+  record that the engine refuses and the notice of an out-of-date tool, and `layout.spec.ts` the page's layout. They
+  run on this machine, where the engine's files are: without them they skip.
 - `scripts/check-all.mjs`: its type check, its unit tests and its build, in the Tests workflow's checks.
 - [requests/23-blueprints-browser-build.md](../requests/23-blueprints-browser-build.md): what the site asks of the
   engine's browser build.
@@ -667,5 +713,5 @@ styles in packages/review and packages/site" (2026-10-26), "The player's own mov
 engine's legal moves" (2026-10-27), "The import's frame in packages/import, and Drawing Board's tools"
 (2026-10-27), "Drawing Board's practice: its layout, its engine's files, and the shared parts" (2026-10-30),
 "Drawing Board's practice: the bot and the page" (2026-10-30), "Drawing Board's practice on protocol 0.7.1"
-(2026-10-30), "Drawing Board's review and Analysis board" (2026-11-01), and "Drawing Board's import page opens the
-review and the Analysis board" (2026-11-01).
+(2026-10-30), "Drawing Board's review and Analysis board" (2026-11-01), "Drawing Board's import page opens the
+review and the Analysis board" (2026-11-01), and "Drawing Board's notes" (2026-11-02).

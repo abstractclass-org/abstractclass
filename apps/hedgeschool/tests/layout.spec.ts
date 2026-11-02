@@ -12,13 +12,15 @@
 // page shows the choice for a userscript's game, with the notice to update the userscript. Two tests check that the
 // monospaced font draws no ligatures, on Hedge School and on Drawing Board (DB_BASE_URL). Two check Drawing Board's
 // Practice (DB_BASE_URL): its page, and a game in progress when the site has its practice bot. Two check Drawing
-// Board's import page: the choice for a tool's game, and a record that the engine refuses. A last test checks the
+// Board's import page: the choice for a tool's game, and a record that the engine refuses. One checks Drawing Board's
+// board with the player's notes, at design 06's sizes. A last test checks the
 // step bar on a phone, on the review, the Analysis board and Practice. Run: npm run test:layout (the site running
 // first).
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { loadReviewFile } from "./review-file.ts";
 import { REFUSED, SPREAD_BOARD, noReview, reviewTestGame, toolLink } from "./drawingboard-review.ts";
+import { analysisAt, drawEach } from "./drawingboard-notes.ts";
 
 const WIDTHS = Array.from({ length: (1920 - 360) / 10 + 1 }, (_, k) => 360 + 10 * k);
 const HEIGHTS = [700, 860, 1000];
@@ -220,6 +222,30 @@ for (const [name, path] of [["review", ""], ["Analysis board", SPREAD_BOARD]] as
     expect([await sweep(page, `Drawing Board's ${name}`), ...found].filter(Boolean).join("\n")).toBe("");
   });
 }
+
+// Drawing Board's board with the player's notes (its design 33, "The player's notes"), on the Analysis board with the
+// review's test game, the engine off: a marked hex and an arrow in each colour, at design 06's sizes. The notes stay
+// with the board when the window's size changes, and stay inside the field.
+test("layout of Drawing Board's board with notes", async ({ page }) => {
+  const skip = await noReview(page);
+  test.skip(!!skip, skip);
+  await page.setViewportSize({ width: 1376, height: 952 });
+  await analysisAt(page, 10);
+  await drawEach(page);
+  const own = (p: Page) => p.evaluate(() => {
+    const out: string[] = [], field = document.querySelector(".board .field")!.getBoundingClientRect();
+    const notes = [...document.querySelectorAll(".board .field g.note")];
+    if (notes.length !== 8) out.push(`${notes.length} notes on the board, not 8`);
+    for (const n of notes) {
+      const r = n.getBoundingClientRect();
+      if (r.left < field.left - 1 || r.top < field.top - 1 || r.right > field.right + 1 || r.bottom > field.bottom + 1)
+        out.push(`a note leaves the field (${Math.round(r.left)}, ${Math.round(r.top)})`);
+    }
+    return out;
+  });
+  expect(await own(page)).toEqual([]);
+  expect(await problemsAtSizes(page, own)).toEqual([]);
+});
 
 // The import page's choice for a tool's game (design 21), below the notice that an out-of-date userscript gets.
 test("layout of the choice for a tool's game", async ({ page }) => {

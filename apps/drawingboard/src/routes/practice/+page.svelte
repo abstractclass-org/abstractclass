@@ -4,9 +4,10 @@
   // the settings card (@abstractclass/practice): the bot's network, visits and variety, the player's name, then a side,
   // which starts the game. During the game, the practice's frame with a board that fills the room: the players' row
   // with the points' bar above the board, the hands in a panel over the board (under it on a phone), and a side column
-  // with the bot's line, the move list, and the step bar with the status line. One game in progress, kept in this
-  // browser and resumed. The engine and its bot run on the CPU only: the rules in the engine's worker, the bot in its
-  // own, with one search thread.
+  // with the bot's line, the move list, and the step bar with the status line. The player's notes on the board, by
+  // position, for the visit, as on Hedge School's Practice (design 33, "The player's notes"). One game in progress,
+  // kept in this browser and resumed. The engine and its bot run on the CPU only: the rules in the engine's worker, the
+  // bot in its own, with one search thread.
   import { onDestroy, onMount } from "svelte";
   import Icon from "@abstractclass/site/Icon.svelte";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
@@ -21,6 +22,7 @@
   import { PracticeBot } from "@abstractclass/practice/bot.ts";
   import { EngineWorker, loadManifest, megabytes, type Manifest } from "@abstractclass/engine/client.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
+  import type { BoardNote } from "@abstractclass/review/notes.ts";
   import Board from "#lib/board/Board.svelte";
   import { BlueprintInput } from "#lib/board/blueprintInput.svelte.ts";
   import { firstStatus, inputStatus } from "#lib/board/input.ts";
@@ -47,6 +49,7 @@
   let ready = $state(false); // the rules are loaded: a game can start
   let confirming = $state<"abort" | "resign" | null>(null); // Abort or Resign, waiting for its confirmation
   let dropped = $state(false); // the kept game's network is not in this build: the game cannot go on
+  let notesAt = $state<Record<number, BoardNote[]>>({}); // the player's notes on the board, by position (design 33)
 
   onMount(() => {
     // A game kept with a network that the site no longer ships cannot go on: its bot has no network to start with.
@@ -77,6 +80,7 @@
     phase = "game";
     starting = kept;
     viewAt = null;
+    notesAt = {};
     const bot = new PracticeBot("blueprints", "single", new Worker(new URL("../../lib/practice/botWorker.ts", import.meta.url), { type: "module" }));
     try {
       await bot.start(manifest, kept.bot.network, kept.seed);
@@ -256,7 +260,7 @@
     {#snippet board()}
       {#if g && pos}
         <Board position={pos} last={into?.move ?? null} layers={{ candidates: false }} {input} inputOn={taking} {hands}
-               bind:place={panel.place} bind:size={panel.size} />
+               bind:place={panel.place} bind:size={panel.size} notes={notesAt[shown] ?? []} onnotes={n => (notesAt[shown] = n)} />
       {:else}
         <div class="size-full rounded bg-board"></div>
       {/if}

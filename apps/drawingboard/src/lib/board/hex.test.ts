@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { anchorOf, boxOf, center, fromMiddle, hexAt, hexKey, hexPath, inFrame, outlinePath, parseHex, TOUCHING, type Hex } from "./hex.ts";
+import { anchorOf, ARROW, arrowPoints, boxOf, center, fromMiddle, hexAt, hexKey, hexPath, inFrame, outlinePath, parseHex, TOUCHING, type Hex } from "./hex.ts";
 import { footprintOf } from "./position.ts";
 
 const near = (a: readonly number[], b: readonly number[]) =>
@@ -76,4 +76,20 @@ test("hexes from their middle: the nearest the middle of their centres first", (
   assert.deepEqual(fromMiddle([[0, 0], [1, 0], [2, 0]])[0], [1, 0]);
   assert.deepEqual(fromMiddle([...TOUCHING, [0, 0]])[0], [0, 0]); // a star with its ring: the star
   assert.deepEqual(fromMiddle([[5, -2]]), [[5, -2]]);
+});
+
+test("a note's arrow runs from a hex's centre to the other's, its tip short of the centre, even between touching hexes", () => {
+  for (const [a, b] of [[[0, 0], [1, 0]], [[0, 0], [-1, 1]], [[2, -3], [-4, 5]]] as [Hex, Hex][]) {
+    const ps = arrowPoints(a, b), [ax, ay] = center(a), [bx, by] = center(b);
+    const d = Math.hypot(bx - ax, by - ay), ux = (bx - ax) / d, uy = (by - ay) / d;
+    // Each point as its distance along the line from a's centre, and its offset across it.
+    const along = ps.map(([x, y]) => (x - ax) * ux + (y - ay) * uy), across = ps.map(([x, y]) => (y - ay) * ux - (x - ax) * uy);
+    assert.equal(ps.length, 7);
+    near([along[3], across[3]], [d - ARROW.short, 0]); // the tip, on the line
+    near([along[0], along[6]], [0, 0]); // the shaft starts at the centre
+    for (let i = 0; i < 3; i++) near([along[i], across[i]], [along[6 - i], -across[6 - i]]); // the two sides mirror
+    near([Math.abs(across[0]), Math.abs(across[2])], [ARROW.shaft, ARROW.head]);
+    near([along[2]], [d - ARROW.short - ARROW.length]); // the head's base
+    assert.ok(along[1] > 0.5, "the shaft shows between touching hexes");
+  }
 });

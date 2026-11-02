@@ -9,6 +9,7 @@ import * as shared from "@abstractclass/analysis/model.ts";
 import type { Game, Player } from "@abstractclass/analysis/game.ts";
 import { turnFromCount } from "@abstractclass/analysis/turns.ts";
 import { PLAYER_NAME, WHOLE, type NotePart, type ViewTypes } from "@abstractclass/review/game.ts";
+import type { BoardNote } from "@abstractclass/review/notes.ts";
 import { moveName, moveText, moves, type BlueprintNumber, type Capture, type Move } from "../game/notation.ts";
 import { boardMove, playerOf, sitePosition, stepOf, type DescribeReply, type EngineStep, type GamePosition } from "../board/described.ts";
 import type { BlueprintInput } from "../board/blueprintInput.svelte.ts";
@@ -47,7 +48,8 @@ export interface Played { player: Player; edge: Move | null; did: Step; drawn: B
 /** Blueprints' types (GameTypes): a move is a placement or an edit (notation.ts), a position the board's with the
  *  analysis's fields, the engine's fields are describe_game's and describe's, the rules are the board's input's, and a
  *  line's step is what the move did. And the view's (ViewTypes, blueprintsView.ts): the display settings (display.ts),
- *  the board's input, a hex of the board for the area map, and no notes and no book. */
+ *  the board's input, a hex of the board for the area map, the notes at hexes of the board (a hex as a point), and no
+ *  book. */
 export interface Blueprints extends ViewTypes {
   move: Move;
   position: Position;
@@ -57,7 +59,7 @@ export interface Blueprints extends ViewTypes {
   rules: InputRules;
   step: Step;
   display: Display;
-  note: never;
+  note: BoardNote;
   input: BlueprintInput;
   point: readonly [number, number];
   book: never;

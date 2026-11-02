@@ -61,6 +61,24 @@ export function outlinePath(hexes: readonly Hex[]): string {
   return d;
 }
 
+/** A note's arrow (design 33, "The player's notes"), for hexes of radius 1: the shaft's half-width, the head's half-width
+ *  and length, and how far short of the end hex's centre the tip stops. Lichess's arrows are about a sixth of a square
+ *  wide with a head about four times that: here two touching hexes' centres are √3 apart, so the shaft is 0.26 wide.
+ *  Between touching hexes the shaft still shows (0.87 long). */
+export const ARROW = { shaft: 0.13, head: 0.4, length: 0.66, short: 0.2 };
+
+/** A note's arrow from one hex's centre to another's, as one outline of seven corners: the shaft from the first hex's
+ *  centre, the head, and its tip short of the second hex's centre. */
+export function arrowPoints(from: Hex, to: Hex): [number, number][] {
+  const [ax, ay] = center(from), [bx, by] = center(to);
+  const d = Math.hypot(bx - ax, by - ay), ux = (bx - ax) / d, uy = (by - ay) / d;
+  const at = (along: number, across: number): [number, number] =>
+    [ax + along * ux - across * uy, ay + along * uy + across * ux];
+  const tip = d - ARROW.short, base = tip - ARROW.length;
+  return [at(0, ARROW.shaft), at(base, ARROW.shaft), at(base, ARROW.head), at(tip, 0),
+          at(base, -ARROW.head), at(base, -ARROW.shaft), at(0, -ARROW.shaft)];
+}
+
 /** The hex of a blueprint's anchor cell: the first in reading order, the least r, then the least q. It is the cell
  *  (0, 0) of the blueprint's own frame (design 33, item 5). Null for no hexes. */
 export function anchorOf(hexes: readonly Hex[]): Hex | null {

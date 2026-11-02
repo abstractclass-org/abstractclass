@@ -7935,3 +7935,25 @@ abscls-exfe and abscls-gapn, built together, because both change what follows a 
   the pointer stays on it, and the group grows with it. An element put into the row before the turn's edges moves
   them, and the group moves with them. A tap on the label, in a page with touch, sends the mouse events of a tap, goes
   to the move and lights no group.
+
+### Drawing Board's notes (2026-11-02)
+
+abscls-8tl1.16. Design 33, "The player's notes", gives the result. What the issue left open, and why:
+
+- **Hedge School's notes logic moved to `packages/review`** (`notes.ts` and its test, by `git mv`), with the notes'
+  colour tokens (`review.css`). The two boards share the board's colours, so the notes' 3:1 against the board holds
+  on both. Hedge School's notes do what they did: its unit test moved unchanged, and its board, view and Practice take
+  the same functions from the package. Hedge School has no browser test of its notes.
+- **Notes on the board only.** The hands' cells are in each blueprint's frame, which a line and an edit change. A note
+  there would need another kind of note, and could outlive its cell.
+- **An arrow between touching hexes is a note,** as on Lichess. The tip stops 0.2 short of the centre, and the head is
+  0.66 long, so the shaft still shows between touching hexes (0.87).
+- **A marked hex is a ring and a fill:** the fill under the cells, the ring over everything, with a halo in the
+  board's colour. A cell keeps its owner's colour, and the note reads on a cell of either player.
+- **The notes hide while a preview shows another position,** as in Hedge School's view, which gives the board no
+  notes then. A candidate's line on the position on screen keeps them.
+- **A click clears the notes, and a pan does not.** Chessground clears the shapes on any press of the left button.
+  Hedge School's board does not pan, so a press there is a click. Drawing Board's board pans with the left button, and
+  a pan that cleared the notes would lose them each time the player moved the board.
+- **The keys stay Hedge School's.** strategyjam.org's Sandbox (its mode "Mark") has three colours, chosen by a button
+  or a key, and Shift with a right drag marks hexes there. Here Shift chooses yellow, as on Hedge School.

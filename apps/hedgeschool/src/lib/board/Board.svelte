@@ -12,7 +12,7 @@
   export interface BoardLineEdge { edge: Edge; player: 0 | 1; cut?: Edge | null; regions?: Position["regions"] }
   export interface BoardLayers { regions: boolean; protected: boolean; candidates: boolean; marks: boolean; coordinates: boolean }
   export const DEFAULT_LAYERS: BoardLayers = { regions: true, protected: true, candidates: true, marks: true, coordinates: true };
-  export type { BoardNote, NoteBrush } from "./notes.ts";
+  export type { BoardNote, NoteBrush } from "@abstractclass/review/notes.ts";
   /** A click on a point: with the right button (only with `rightClicks`), and whether it begins an edge (a drag's press,
    *  whatever point is pending). */
   export interface PointClick { right: boolean; begin: boolean }
@@ -28,7 +28,7 @@
   import { pointName, sameEdge } from "#lib/review/enclosure.ts";
   import LabelMark from "@abstractclass/review/LabelMark.svelte";
   import type { AreaMark } from "@abstractclass/review/ownership.ts";
-  import { brushFor, samePoint, toggleNote, type BoardNote, type NoteBrush } from "./notes.ts";
+  import { brushFor, samePoint, toggleNote, type BoardNote, type NoteBrush } from "@abstractclass/review/notes.ts";
 
   interface Props {
     position: Position;

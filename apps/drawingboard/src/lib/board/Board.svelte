@@ -37,10 +37,12 @@
   import Hand, { blueprintBoxes, fitUnit, type HandInput, type HandMarks } from "./Hand.svelte";
   import { moveName } from "../game/notation.ts";
   import { clickBoard, clickHand, handHexOf, tapHex } from "./input.ts";
-  import { boxOf, center, fromMiddle, GRID_TILE, GRID_TILE_PATH, hexAt, hexKey, hexPath, outlinePath, sameHex } from "./hex.ts";
+  import { arrowPoints, boxOf, center, fromMiddle, GRID_TILE, GRID_TILE_PATH, hexAt, hexKey, hexPath, outlinePath, sameHex }
+    from "./hex.ts";
   import { cellsOf, footprintOf, PLAYER_NAMES, sameHandHex } from "./position.ts";
   import { untrack, type Snippet } from "svelte";
   import LabelMark from "@abstractclass/review/LabelMark.svelte";
+  import { brushFor, toggleNote, type BoardNote, type NoteBrush } from "@abstractclass/review/notes.ts";
   import { viewHexes } from "../review/blueprintsMap.ts";
   import { clamp, fit, fitAround, pan, pinch, toArea, toPlane, viewBox, zoomAt, type Rect, type Size, type View } from "./view.ts";
   import { FIRST_PLACE, FIRST_SIZE, fitWithPanel, handleSide, handsOf, HANDS_GAP, PANEL_GRIP, PANEL_PAD, panelRect,
@@ -78,11 +80,14 @@
     // Controls in a strip along the field's foot, left of the zoom's buttons, which the hands' panel keeps off: the
     // review's area map's switch and legend
     controls?: Snippet;
+    notes?: BoardNote[]; // the player's notes on this position, at hexes of the board
+    onnotes?: (notes: BoardNote[]) => void; // a note drawn, changed or removed, or all cleared: notes work only with it
   }
   let {
     position, last = null, earlier = [], candidates = [], pointed = null, line = null, layers: layersSet = {},
     oncandidate, oncandidateclick, onhexat, input = null, inputOn = true, hands: handsForm = "box",
     place = $bindable(FIRST_PLACE), size = $bindable(FIRST_SIZE), labels = [], areaMap = null, areaOf = null, controls,
+    notes = [], onnotes,
   }: Props = $props();
   const layers = $derived({ ...DEFAULT_LAYERS, ...layersSet });
 
@@ -223,7 +228,9 @@
   let hoverHex = $state<Hex | null>(null);
   let handHover = $state<{ player: Player; at: HandHex } | null>(null);
   let hoverName = $state<string | null>(null);
-  $effect.pre(() => { void position; hoverHex = null; handHover = null; hoverName = null; });
+  // The note that the right button draws (the notes, below): its pointer, its first hex and the hex under the pointer.
+  let sketch = $state<{ id: number; from: Hex; to: Hex; brush: NoteBrush } | null>(null);
+  $effect.pre(() => { void position; hoverHex = null; handHover = null; hoverName = null; sketch = null; });
   const hovered = $derived(layers.candidates && hoverName ? candidates.find(c => c.name === hoverName) ?? null : null);
   const active = $derived(hovered ?? (pointed ? candidates.find(c => c.name === pointed) ?? null : null));
   // While a line shows, the candidates are hidden, and the pointer finds only the active one, so that the candidate
@@ -330,8 +337,15 @@
     return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, d: Math.hypot(a.x - b.x, a.y - b.y) };
   }
   function down(ev: PointerEvent) {
-    if (ev.pointerType === "mouse" && ev.button !== 0) return;
     if ((ev.target as Element).closest("button")) return; // the field's buttons take their own clicks
+    if (ev.pointerType === "mouse" && ev.button === 2 && onnotes) {
+      ev.preventDefault();
+      try { el.setPointerCapture(ev.pointerId); } catch { /* not down any more */ }
+      const h = hexUnder(local(ev));
+      sketch = { id: ev.pointerId, from: h, to: h, brush: brushFor(ev) };
+      return;
+    }
+    if (ev.pointerType === "mouse" && ev.button !== 0) return;
     try { el.setPointerCapture(ev.pointerId); } catch { /* not down any more */ }
     pointers.set(ev.pointerId, local(ev));
     if (pointers.size === 1) gesture = { kind: "press", ...local(ev), moved: false, start: view };
@@ -340,6 +354,10 @@
   function move(ev: PointerEvent) {
     const p = local(ev);
     if (ev.pointerType === "mouse") pointAt(hexUnder(p));
+    if (sketch?.id === ev.pointerId) {
+      const h = hexUnder(p);
+      if (!sameHex(h, sketch.to)) sketch.to = h;
+    }
     if (!pointers.has(ev.pointerId)) return;
     pointers.set(ev.pointerId, p);
     if (gesture?.kind === "pinch" && pointers.size === 2) {
@@ -350,9 +368,16 @@
     }
   }
   function up(ev: PointerEvent, click: boolean) {
+    if (sketch?.id === ev.pointerId) {
+      const note = click ? sketchNote : null;
+      sketch = null;
+      if (note) onnotes?.(toggleNote(notes, note));
+      return;
+    }
     if (!pointers.delete(ev.pointerId)) return;
     if (gesture?.kind === "press" && !gesture.moved && click) {
       const p = local(ev), h = hexUnder(p), c = placementAt(h), touch = ev.pointerType !== "mouse";
+      if (notes.length) onnotes?.([]);
       if (c) oncandidateclick?.(c.name);
       else if (takes) {
         const shown = begun?.shown?.type === "place" && foot ? { at: foot.at, hexes: foot.cells.map(s => s.hex) } : null;
@@ -375,6 +400,19 @@
     el.addEventListener("wheel", wheel, { passive: false }); // a passive listener cannot keep the page from scrolling
     return () => el.removeEventListener("wheel", wheel);
   });
+
+  // The player's notes (design 33, "The player's notes", with @abstractclass/review/notes.ts, as Hedge School's board):
+  // the right button marks a hex, and a right drag draws an arrow to another hex, as Lichess draws circles and arrows.
+  // The keys held choose the colour. A note is at hexes of the board only. A click on the field clears the position's
+  // notes (chessground's eraseOnClick), but a pan or a zoom does not: this board pans, and a pan would lose them.
+  const pointOf = (h: Hex): [number, number] => [h[0], h[1]];
+  // The note being drawn: a marked hex while the pointer has not left its hex, else an arrow.
+  const sketchNote = $derived<BoardNote | null>(sketch && (sameHex(sketch.from, sketch.to)
+    ? { at: pointOf(sketch.from), brush: sketch.brush }
+    : { at: pointOf(sketch.from), to: pointOf(sketch.to), brush: sketch.brush }));
+  const shownNotes = $derived(sketchNote ? [...notes, sketchNote] : notes);
+  /** An arrow's seven corners, as an SVG polygon's points. */
+  const arrowAt = (n: BoardNote) => arrowPoints(n.at, n.to!).map(p => p.map(v => Math.round(v * 1000) / 1000).join(",")).join(" ");
 
   /** A note beside a hex, in the area's pixels: on its right, or on its left near the area's right edge. */
   const noteAt = (h: Hex) => {
@@ -438,7 +476,8 @@
 
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="field" class:aim={foot?.legal} bind:this={el} onpointerdown={down} onpointermove={move} onpointerup={ev => up(ev, true)}
-       onpointercancel={ev => up(ev, false)} onpointerleave={ev => { if (ev.pointerType === "mouse") pointAt(null); }}>
+       onpointercancel={ev => up(ev, false)} onpointerleave={ev => { if (ev.pointerType === "mouse") pointAt(null); }}
+       oncontextmenu={ev => { if (onnotes) ev.preventDefault(); }}>
     {#if field.width > 0 && field.height > 0}
       <svg width={field.width} height={field.height} viewBox={vb.join(" ")} role="img" aria-label="Blueprints board">
         <defs>
@@ -475,6 +514,14 @@
         {#each areaMarks as { hex, m } (hexKey(hex))}
           {#if m.kind === "hold" && !owners.has(hexKey(hex))}
             <path d={hexPath(...center(hex))} class="hold p{m.side}" fill-opacity={AREA_ALPHA * m.strength} />
+          {/if}
+        {/each}
+
+        <!-- The marked hexes of the player's notes, filled faintly under the cells: an empty hex shows the fill, and a
+             cell keeps its owner's colour. Their rings go over everything (below). -->
+        {#each shownNotes as n, i (i)}
+          {#if !n.to}
+            <path d={hexPath(...center(n.at))} class="note-fill {n.brush}" class:drawing={!!sketch && i === notes.length} />
           {/if}
         {/each}
 
@@ -595,6 +642,20 @@
           <g role="img" aria-label={b.note}><title>{b.note}</title>
             <circle cx={b.x} cy={b.y} r="0.62" style:fill="var(--{b.label}-fill)" filter="url(#{shadowId})" />
             <LabelMark label={b.label} transform="translate({b.x - 0.62} {b.y - 0.62}) scale({1.24 / 24})" />
+          </g>
+        {/each}
+
+        <!-- The player's notes, and the one being drawn, over the board: a marked hex's ring inside the hex, round a
+             cell's mark, and an arrow from a hex's centre to another's. Each has a halo in the board's colour, so that it
+             reads on a cell of either player. -->
+        {#each shownNotes as n, i (i)}
+          <g class="note {n.brush}" class:drawing={!!sketch && i === notes.length}>
+            {#if n.to}
+              <polygon points={arrowAt(n)} class="note-arrow" />
+            {:else}
+              {@const d = hexPath(...center(n.at), 0.76)}
+              <path {d} class="note-halo" /><path {d} class="note-ring" />
+            {/if}
           </g>
         {/each}
 
@@ -719,4 +780,16 @@
   .foot.off { stroke: var(--muted); stroke-dasharray: 0.25 0.15; }
   .foot-anchor { fill: none; stroke: var(--text); stroke-width: 0.08; }
   .foot-anchor.off { stroke: var(--muted); }
+  /* The player's notes, in the notes' colours (@abstractclass/review/review.css), soft as Lichess's shapes. */
+  .purple { --note: var(--note-purple); }
+  .yellow { --note: var(--note-yellow); }
+  .green { --note: var(--note-green); }
+  .grey { --note: var(--note-grey); }
+  .note { opacity: 0.85; pointer-events: none; }
+  .note.drawing { opacity: 0.55; }
+  .note-fill { fill: var(--note); fill-opacity: 0.3; stroke: none; pointer-events: none; }
+  .note-fill.drawing { fill-opacity: 0.18; }
+  .note-halo { fill: none; stroke: var(--board-bg); stroke-width: 0.26; stroke-linejoin: round; }
+  .note-ring { fill: none; stroke: var(--note); stroke-width: 0.14; stroke-linejoin: round; }
+  .note-arrow { fill: var(--note); stroke: var(--board-bg); stroke-width: 0.08; stroke-linejoin: round; paint-order: stroke; }
 </style>

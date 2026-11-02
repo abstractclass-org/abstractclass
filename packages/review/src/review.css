@@ -1,7 +1,7 @@
 /* The review's view and its parts (design 29, item 9) use Tailwind's classes: Tailwind finds them here. A site that
    shows the view imports this file after Tailwind (`@import "@abstractclass/review/review.css"`). This file holds the
-   view's own style: the quality labels', the last move's, the score line's and the engine's colour tokens, the
-   one-column variant, the gleam of work in progress and the step bar's dock. */
+   view's own style: the quality labels', the last move's, the score line's, the engine's and the notes' colour
+   tokens, the one-column variant, the gleam of work in progress and the step bar's dock. */
 @source ".";
 
 /* The view's colour tokens, beside the shared ones (@abstractclass/site/site.css). An element with data-theme="light"
@@ -39,6 +39,12 @@
      little darker in the light theme, so that a badge's disc and a mark alone are 3:1 against panel-2 (3.0:1, and 3.5:1
      against panel). White on it is 3.5:1. */
   --book: #a4835e;
+  /* The player's notes on the board (notes.ts), in colours apart from the players' blue and red. The light board's are
+     darker than the dark board's, in the same hues: 3:1 against the board, whose colours the two sites share. */
+  --note-purple: #a66fd3;
+  --note-yellow: #a78202;
+  --note-green: #359a3b;
+  --note-grey: #86868c;
 }
 /* The dark theme (site.css). */
 :root[data-theme="dark"] {
@@ -56,6 +62,10 @@
   --mistake: var(--mistake-fill);
   --blunder: var(--blunder-fill);
   --book: #a88865; /* chess.com's own: 4.5:1 against panel and 3.9:1 against panel-2, white on it 3.3:1 */
+  --note-purple: #b37be0;
+  --note-yellow: #e9b81c;
+  --note-green: #4caf50;
+  --note-grey: #a8a8ae;
 }
 /* The view's tokens as Tailwind's colours, beside the shared ones (site.css). Label colours are set from the label in
    the markup (style:background="var(--{label})"), so they stay plain tokens. Blunder's ink is also the colour of an
