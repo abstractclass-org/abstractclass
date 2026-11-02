@@ -1,11 +1,12 @@
 // The book in the review (design 32, item 4; journey 1, A1): the Report's opening row and trap rows, and the move list's
 // mark on each book move, on reviewed games through the test book (scripts/test-fixture.mjs). A click on a row goes to
-// the position before the move that the row names, and shows the book's table there, for this review only. Outside the book the column shows the candidates alone. A book that
-// does not load shows neither.
+// the position before the move that the row names, and shows the book's table there, for this review only. Outside the
+// book the column shows the candidates alone. A book that does not load shows neither.
 // The engine is off, so that nothing searches. The test book is served by the dev and preview servers only, and the
 // review shows the book in the early edition only: elsewhere the test is skipped.
-import { test, expect, type Locator, type Page } from "@playwright/test";
+import { test, expect, type Locator, type Page, type Request } from "@playwright/test";
 import { loadReviewFile } from "./review-file.ts";
+import { toMove } from "./move-header.ts";
 
 test.beforeEach(async ({ page }) => {
   test.setTimeout(120_000);
@@ -27,6 +28,21 @@ async function open(page: Page, fixture: string) {
   await page.getByText("Accuracy").first().waitFor({ timeout: 60_000 });
 }
 
+/** Watches the test book's loads from now on. The marks show once the book's index and the game's path load, and the
+ *  review takes the book's values a little later, once their parts load too (reviewBook.ts, giveBook). A test that
+ *  reads the marks' values before that reads the review file's own. The function that it gives is true once no load of
+ *  the book is open and none started or ended for half a second. */
+function bookLoads(page: Page): () => boolean {
+  let open = 0, last = Date.now();
+  const count = (step: number) => (r: Request) => {
+    if (r.url().includes("/test-book/")) { open += step; last = Date.now(); }
+  };
+  page.on("request", count(1));
+  page.on("requestfinished", count(-1));
+  page.on("requestfailed", count(-1));
+  return () => open === 0 && Date.now() - last >= 500;
+}
+
 /** The review's display settings that the browser keeps (review/display.ts), and `display` sets before the page loads. */
 const DISPLAY_KEY = "learn-enclosure:review-display:1";
 const display = (page: Page, d: Record<string, string>) =>
@@ -34,6 +50,9 @@ const display = (page: Page, d: Record<string, string>) =>
 /** The move list's book moves' marks (their title and name: "Book move · Best: +0.6% · +2.0 · Lead: Blue +14.9 · Equal
  *  position after it"). */
 const bookMarks = (page: Page) => page.getByRole("img", { name: /^Book move · / });
+/** A move's button in the move list, and its book mark. */
+const moveOf = (page: Page, move: string) => page.locator(".mv", { hasText: move });
+const markOf = (page: Page, move: string) => moveOf(page, move).getByRole("img", { name: /^Book move · / });
 /** The move on screen in the move list, or null at the start. */
 const here = async (page: Page) => ((await page.locator(".mv.here").count()) ? (await page.locator(".mv.here").innerText()).trim() : null);
 const row = (page: Page, text: string | RegExp) => page.getByRole("button", { name: text });
@@ -167,7 +186,7 @@ test.describe("desktop", () => {
     await expect(table(page).getByText("a trap", { exact: true }).first()).toBeVisible();
   });
 
-  test("the book not loaded: no opening row and no mark, and the rest of the review works", async ({ page }) => {
+  test("the book not loaded: no opening row, no mark and no setting Book moves, and the rest of the review works", async ({ page }) => {
     await page.route("**/test-book/**", route => route.abort());
     const failed = page.waitForEvent("requestfailed", r => r.url().includes("/test-book/"), { timeout: 60_000 });
     await open(page, "book-left-review.json");
@@ -179,6 +198,12 @@ test.describe("desktop", () => {
     await page.keyboard.press("Home");
     await page.keyboard.press("ArrowRight");
     expect(await here(page)).toMatch(/^A10-D9/);
+    // The display setting "Book moves" shows only where the book loaded ("the display setting changes the form" finds
+    // it there). The other settings show.
+    await page.getByRole("button", { name: "Display settings" }).click();
+    const settings = page.getByRole("region", { name: "Display settings" });
+    await expect(settings.getByRole("radiogroup", { name: "Quality labels" })).toBeVisible();
+    await expect(settings.getByRole("radiogroup", { name: "Book moves" })).toHaveCount(0);
   });
 });
 
@@ -206,8 +231,6 @@ test.describe("book moves in the move list", () => {
   /** A mark's title and name: its move's tooltip (by turn, its turn's), between "Book move" and the position symbol's
    *  words after its move. */
   const named = (tip: string | null, after: string) => `Book move · ${tip} · ${after} after it`;
-  const moveOf = (page: Page, move: string) => page.locator(".mv", { hasText: move });
-  const markOf = (page: Page, move: string) => moveOf(page, move).getByRole("img", { name: /^Book move · / });
   /** Its title and name are the tooltip that the mark covers: its move's, or its turn's label cell's. */
   async function namedAfter(mark: Locator, after: string) {
     const name = named(await mark.locator("xpath=ancestor::*[@title][1]").getAttribute("title"), after);
@@ -227,6 +250,8 @@ test.describe("book moves in the move list", () => {
     await namedAfter(markOf(page, "N11-Q10"), "Equal position");
     await namedAfter(markOf(page, "O11-Q10"), "Blue is better");
     await expect(markOf(page, "D9-G11")).toHaveCount(0);
+    // A quality label that is not a book move's has its word as its name, as by turn
+    await expect(moveOf(page, "D9-G11").getByRole("img", { name: LABEL_WORDS })).toHaveAccessibleName("Blunder");
   });
 
   test("by turn: a mark on each turn of book moves only, with the turn's tooltip", async ({ page }) => {
@@ -248,7 +273,10 @@ test.describe("book moves in the move list", () => {
     await expect(moveOf(page, "O11-Q10")).toHaveAttribute("title", "Inaccuracy: −7.7% · −17.9 · Lead: Blue +19.9");
     await expect(markOf(page, "O11-Q10"))
       .toHaveAccessibleName("Book move · Inaccuracy: −7.7% · −17.9 · Lead: Blue +19.9 · Blue is better after it");
-    await markOf(page, "O11-Q10").click(); // the position before it, with the book's table
+    // The position before it, after N11-Q10, with the book's table
+    await turnTwo(page);
+    await page.keyboard.press("ArrowRight");
+    expect(await here(page)).toMatch(/^N11-Q10/);
     await expect(table(page).locator('tbody tr[data-move="O11-Q10"]').getByRole("img", { name: LABEL_WORDS }))
       .toHaveAccessibleName("Inaccuracy");
   });
@@ -259,8 +287,7 @@ test.describe("book moves in the move list", () => {
     const mark = bookMarks(page).nth(1);
     await expect(mark).toHaveAccessibleName("Book move · Inaccuracy: −7.7% · −17.9 (0.0, −17.9) · Blue is better after it");
     await namedAfter(mark, "Blue is better"); // the turn's label cell gives the same label and loss
-    await page.keyboard.press("End");
-    await mark.click(); // the turn's start, with the book's whole turns
+    await turnTwo(page); // the turn's start, after A10-D9, with the book's whole turns
     await table(page).getByRole("button", { name: /^Show \d+ more turns$/ }).click();
     await expect(table(page).locator('tbody tr[data-move="N11-Q10 O11-Q10"]').getByRole("img", { name: LABEL_WORDS }))
       .toHaveAccessibleName("Inaccuracy");
@@ -437,8 +464,10 @@ test.describe("one label and one loss on each book move", () => {
     for (const game of ["book-left-review.json", "hedgefund-review.json", "book-trap-review.json"])
       test(`by ${unit}, ${game}: the move list, the mark, the table and the opening row agree`, async ({ page }) => {
         await display(page, { judge: unit });
+        const loaded = bookLoads(page);
         await open(page, game);
         await expect(bookMarks(page).first()).toBeVisible({ timeout: 30_000 });
+        await expect.poll(loaded, { timeout: 30_000 }).toBe(true); // the review has the book's values
         const labels = new Map<string, string>(); // each book move's or turn's edges, with its mark's label
         const count = await bookMarks(page).count();
         for (let k = 0; k < count; k++) {
@@ -447,11 +476,18 @@ test.describe("one label and one loss on each book move", () => {
           const tip = await mark.locator("xpath=ancestor::*[@title][1]").getAttribute("title");
           expect(name.startsWith(`Book move · ${tip} · `), `${name} | ${tip}`).toBe(true);
           const moves = unit === "edge" ? mark.locator("xpath=ancestor::button[@data-path][1]")
-            : mark.locator("xpath=ancestor::div[.//button[@data-path]][1]").locator("button[data-path]");
+            : mark.locator("xpath=ancestor::div[.//button[@data-path]][1]").locator("button.mv[data-path]");
           const edges = (await moves.evaluateAll(all => all.map(m => m.getAttribute("data-path")!))).map(p => p.split(" ").at(-1)!);
           labels.set(edges.join(" "), label);
-          await page.keyboard.press("End");
-          await mark.click(); // the position before the move, or by turn the turn's start, with the book's table
+          // The position before the move, or by turn the turn's start, by the keys: the first edge's path less its
+          // last edge. Then the book's table there.
+          const before = (await moves.first().getAttribute("data-path"))!.split(" ").slice(0, -1);
+          await toMove(page, before.length);
+          const shown = await here(page);
+          expect(before.length ? !!shown?.startsWith(before.at(-1)!) : shown === null, `before ${edges.join(" ")}: ${shown}`)
+            .toBe(true);
+          const showsBook = page.getByRole("group", { name: "The table shows" }).getByRole("button", { name: "Book" });
+          if ((await showsBook.getAttribute("aria-pressed")) !== "true") await showsBook.click();
           await expect(table(page)).toBeVisible();
           const more = table(page).getByRole("button", { name: /^Show \d+ more turns$/ });
           if (await more.count()) await more.click();
@@ -468,23 +504,23 @@ test.describe("one label and one loss on each book move", () => {
         const opening = (await row(page, /^The game /).first().textContent())!, named = namedIn(opening);
         if (named) expect(labels.get(named[1]), opening).toBe(named[2]);
       });
+});
 
 // The mark has no preview or click of its own (design 32, item 4): pointing at it and clicking it do what they do on a
-// quality label in the same slot. By edge, the label is part of the move's button, so the mark previews the position
-// after its move, as the rest of the button does, and a click goes there. By turn, the label slot is a button in the
-// turn's cell: it previews the position after the turn, and a click goes there. In book-left-review.json, Red's turn 2
-// is N11-Q10 and O11-Q10.
+// quality label in the same slot. By edge, the label slot is part of the move's button, so the mark previews the
+// position after its move, as the rest of the button does, and a click goes there. By turn, the label slot is in the
+// turn's judgement cell, which is one button: it previews the position after the turn, and a click goes there. In
+// book-left-review.json, Red's turn 2 is N11-Q10 and O11-Q10.
 test.describe("a book move's mark, pointed at and clicked", () => {
   test.use({ viewport: { width: 1366, height: 900 } });
 
   /** The edges on the board, by their geometry: two positions that differ show different edges. */
-  const edges = (page: Page) => page.locator("svg.board line.edge").evaluateAll(ls =>
+  const boardEdges = (page: Page) => page.locator("svg.board line.edge").evaluateAll(ls =>
     ls.map(l => [l.getAttribute("class"), ...["x1", "y1", "x2", "y2"].map(a => l.getAttribute(a))].join(",")).join("|"));
   /** The board's edges after `n` edges of the game, read by the keys, with the pointer away from the move list. */
-  async function after(page: Page, n: number) {
-    await page.keyboard.press("Home");
-    for (let k = 0; k < n; k++) await page.keyboard.press("ArrowRight");
-    return edges(page);
+  async function edgesAfter(page: Page, n: number) {
+    await toMove(page, n);
+    return boardEdges(page);
   }
   const status = (page: Page) => page.getByText(/^Preview: the position /);
 
@@ -492,23 +528,23 @@ test.describe("a book move's mark, pointed at and clicked", () => {
     await display(page, { judge: "edge" });
     await open(page, "book-left-review.json");
     await expect(bookMarks(page)).toHaveCount(3, { timeout: 30_000 });
-    const [start, afterMove] = [await after(page, 0), await after(page, 3)];
+    const [start, afterMove] = [await edgesAfter(page, 0), await edgesAfter(page, 3)];
     expect(afterMove).not.toBe(start);
     await page.keyboard.press("Home");
-    const move = page.locator(".mv", { hasText: "O11-Q10" });
+    const move = moveOf(page, "O11-Q10"), mark = markOf(page, "O11-Q10");
     await move.getByText("O11-Q10").hover();
-    await expect.poll(() => edges(page)).toBe(afterMove);
+    await expect.poll(() => boardEdges(page)).toBe(afterMove);
     await expect(status(page)).toHaveText(/^Preview: the position after edge 3, 2\.\.\. O11-Q10\./);
     // Off the move list, the board goes back to the position on screen
     await page.mouse.move(5, 5);
-    await expect.poll(() => edges(page)).toBe(start);
+    await expect.poll(() => boardEdges(page)).toBe(start);
     await expect(status(page)).toHaveCount(0);
     // On the mark, the same preview
-    await move.getByRole("img", { name: /^Book move · / }).hover();
-    await expect.poll(() => edges(page)).toBe(afterMove);
+    await mark.hover();
+    await expect.poll(() => boardEdges(page)).toBe(afterMove);
     await expect(status(page)).toHaveText(/^Preview: the position after edge 3, 2\.\.\. O11-Q10\./);
     // A click on it goes where a click on the move goes, to the position after the move
-    await move.getByRole("img", { name: /^Book move · / }).click();
+    await mark.click();
     expect(await here(page)).toMatch(/^O11-Q10/);
   });
 
@@ -516,10 +552,10 @@ test.describe("a book move's mark, pointed at and clicked", () => {
     await display(page, { judge: "edge", previewMoves: false });
     await open(page, "book-left-review.json");
     await expect(bookMarks(page)).toHaveCount(3, { timeout: 30_000 });
-    const start = await after(page, 0);
+    const start = await edgesAfter(page, 0);
     await bookMarks(page).nth(2).hover();
     await page.waitForTimeout(500);
-    expect(await edges(page)).toBe(start);
+    expect(await boardEdges(page)).toBe(start);
     await expect(status(page)).toHaveCount(0);
     await bookMarks(page).nth(2).click();
     expect(await here(page)).toMatch(/^O11-Q10/);
@@ -528,11 +564,13 @@ test.describe("a book move's mark, pointed at and clicked", () => {
   // "Review by" changes how the move list groups the moves, not how its parts behave: by turn, the turn's whole judgement
   // cell (the label slot, the ◆ and the loss figure) is one button, as a move's button holds them by edge. Pointing
   // anywhere in it previews the position after the turn, after its last edge, and a click goes there.
+  /** The turns' judgement cells that are buttons. */
+  const cells = (page: Page) => page.locator(".movelist button.col-start-4");
   /** A turn's quality labels, in the move list's cells (a book move's mark has its own name). */
-  const qualityLabels = (page: Page) => page.locator(".movelist button.col-start-4").getByRole("img", { name: LABEL_WORDS });
+  const qualityLabels = (page: Page) => cells(page).getByRole("img", { name: LABEL_WORDS });
   /** The turns' loss figures and ◆s. */
-  const losses = (page: Page) => page.locator(".movelist button.col-start-4 span.tabular-nums:not(:empty)");
-  const hards = (page: Page) => page.locator(".movelist button.col-start-4").getByText("◆");
+  const losses = (page: Page) => cells(page).locator("span.tabular-nums:not(:empty)");
+  const hards = (page: Page) => cells(page).getByText("◆");
   /** Each part of a turn's cell, as the test names it. */
   const PARTS: [string, (page: Page) => Locator][] = [
     ["the book mark", page => bookMarks(page).nth(1)],
@@ -544,102 +582,97 @@ test.describe("a book move's mark, pointed at and clicked", () => {
   test("by turn: the book mark previews the position after the turn, as the label slot does by edge, and a click goes there", async ({ page }) => {
     await open(page, "book-left-review.json");
     await expect(bookMarks(page)).toHaveCount(2, { timeout: 30_000 });
-    const [start, afterTurn] = [await after(page, 0), await after(page, 3)];
+    const [start, afterTurn] = [await edgesAfter(page, 0), await edgesAfter(page, 3)];
     expect(afterTurn).not.toBe(start);
     await page.keyboard.press("Home");
     await bookMarks(page).nth(1).hover();
-    await expect.poll(() => edges(page)).toBe(afterTurn);
+    await expect.poll(() => boardEdges(page)).toBe(afterTurn);
     await expect(status(page)).toHaveText(/^Preview: the position after edge 3, 2\.\.\. O11-Q10\./);
     // Off the move list, the board goes back
     await page.mouse.move(5, 5);
-    await expect.poll(() => edges(page)).toBe(start);
+    await expect.poll(() => boardEdges(page)).toBe(start);
     await expect(status(page)).toHaveCount(0);
     await bookMarks(page).nth(1).click();
     expect(await here(page)).toMatch(/^O11-Q10/);
-    expect(await edges(page)).toBe(afterTurn);
+    expect(await boardEdges(page)).toBe(afterTurn);
   });
 
-  for (const [name, part] of PARTS) {
-    test(`by turn: pointing at ${name} previews the position after the turn, and a click goes there`, async ({ page }) => {
-      await open(page, "book-left-review.json");
-      await expect(bookMarks(page)).toHaveCount(2, { timeout: 30_000 });
-      await expect(part(page).first()).toBeVisible();
+  // One review for the four parts: each part's step starts at the game's start, with the pointer off the move list.
+  test("by turn: pointing at each part of the cell previews the position after the turn, and a click goes there", async ({ page }) => {
+    await open(page, "book-left-review.json");
+    await expect(bookMarks(page)).toHaveCount(2, { timeout: 30_000 });
+    for (const [name, part] of PARTS) await test.step(name, async () => {
       const target = part(page);
-      const start = await after(page, 0);
+      await expect(target).toBeVisible();
+      const start = await edgesAfter(page, 0);
       // Where a click goes, then back to the start, and the same position as a preview. The position that a click
       // reaches may also draw the engine's line, so the preview's edges are among its edges.
       await target.click();
-      const there = (await edges(page)).split("|");
+      const reached = await boardEdges(page), there = reached.split("|");
       const moved = await here(page);
       expect(moved).not.toBeNull();
-      expect(there.join("|")).not.toBe(start);
+      expect(reached).not.toBe(start);
       await page.keyboard.press("Home");
       await page.mouse.move(5, 5);
-      await expect.poll(() => edges(page)).toBe(start);
+      await expect.poll(() => boardEdges(page)).toBe(start);
       await target.hover();
-      await expect.poll(async () => (await edges(page)) !== start).toBe(true);
-      const previewed = (await edges(page)).split("|");
+      await expect.poll(async () => (await boardEdges(page)) !== start).toBe(true);
+      const previewed = (await boardEdges(page)).split("|");
       expect(previewed.length).toBeGreaterThan(start.split("|").length);
       for (const e of previewed) expect(there).toContain(e);
       await expect(status(page)).toHaveText(/^Preview: the position after edge \d+, /);
-      await expect(status(page)).toContainText(moved!.trim());
+      await expect(status(page)).toContainText(moved!);
       await page.mouse.move(5, 5);
-      await expect.poll(() => edges(page)).toBe(start);
+      await expect.poll(() => boardEdges(page)).toBe(start);
     });
+  });
 
-    test(`by turn, with 'Preview played moves' off: pointing at ${name} previews nothing, and a click goes to the turn's end`, async ({ page }) => {
-      await display(page, { previewMoves: false });
-      await open(page, "book-left-review.json");
-      await expect(bookMarks(page)).toHaveCount(2, { timeout: 30_000 });
-      const start = await after(page, 0);
-      await page.keyboard.press("Home");
+  test("by turn, with 'Preview played moves' off: pointing at each part of the cell previews nothing, and a click goes to the turn's end", async ({ page }) => {
+    await display(page, { previewMoves: false });
+    await open(page, "book-left-review.json");
+    await expect(bookMarks(page)).toHaveCount(2, { timeout: 30_000 });
+    for (const [name, part] of PARTS) await test.step(name, async () => {
+      const start = await edgesAfter(page, 0);
       await part(page).hover();
       await page.waitForTimeout(500);
-      expect(await edges(page)).toBe(start);
+      expect(await boardEdges(page)).toBe(start);
       await expect(status(page)).toHaveCount(0);
       await part(page).click();
       expect(await here(page)).not.toBeNull();
-      expect(await edges(page)).not.toBe(start);
+      expect(await boardEdges(page)).not.toBe(start);
+      await page.mouse.move(5, 5);
     });
-  }
+  });
 
   test("by turn: the cell keeps its names and titles, and an empty cell is no button", async ({ page }) => {
     await open(page, "book-left-review.json");
     await expect(bookMarks(page)).toHaveCount(2, { timeout: 30_000 });
-    const cell = page.locator(".movelist button.col-start-4");
-    // The label word, the book mark's name, the ◆'s title and the tooltip
-    await expect(cell.getByRole("img", { name: LABEL_WORDS }).first()).toBeVisible();
-    await expect(cell.filter({ has: bookMarks(page) }).first()).toHaveAttribute("title", /^Best: /);
+    // A quality label's word, the book mark's name, the ◆'s title and the tooltip
+    await expect(qualityLabels(page).first()).toBeVisible();
+    await expect(cells(page).filter({ has: bookMarks(page) }).first()).toHaveAttribute("title", /^Best: /);
     await expect(hards(page).first()).toHaveAttribute("title", /./);
+    // The label stands at its slot's left, as in a move's button (a button centres its text by default)
+    expect(Math.abs(await qualityLabels(page).first().evaluate(s =>
+      s.firstElementChild!.getBoundingClientRect().left - s.getBoundingClientRect().left))).toBeLessThan(0.5);
     // A cell with nothing in it is a plain element
     const plain = page.locator(".movelist span.col-start-4");
     for (const c of await plain.all()) await expect(c).toHaveText(/^\s*$/);
   });
-});
 
-// The display setting "Book moves" is offered where the book loaded for the review, and only there.
-test.describe("the display setting Book moves", () => {
-  test.use({ viewport: { width: 1366, height: 900 } });
-
-  const settings = async (page: Page) => {
-    await page.getByRole("button", { name: "Display settings" }).click();
-    const region = page.getByRole("region", { name: "Display settings" });
-    await expect(region.getByRole("radiogroup", { name: "Quality labels" })).toBeVisible();
-    return region;
-  };
-
-  test("the book loaded: the setting is offered", async ({ page }) => {
-    await open(page, "book-left-review.json");
-    await expect(bookMarks(page)).toHaveCount(2, { timeout: 30_000 });
-    await expect((await settings(page)).getByRole("radiogroup", { name: "Book moves" })).toBeVisible();
-  });
-
-  test("the book not loaded: the setting is not offered, and the others are", async ({ page }) => {
-    await page.route("**/test-book/**", route => route.abort());
-    const failed = page.waitForEvent("requestfailed", r => r.url().includes("/test-book/"), { timeout: 60_000 });
-    await open(page, "book-left-review.json");
-    await failed;
-    await page.waitForTimeout(500); // the failure reaches the page
-    await expect((await settings(page)).getByRole("radiogroup", { name: "Book moves" })).toHaveCount(0);
-  });
+  // A right-click on the mark opens the move menu of the position that a click reaches, with the image of its line
+  // (design 07, item 12): by edge its move's, by turn the turn's last edge's. No click on its item: the menu only.
+  for (const judge of ["edge", "turn"]) {
+    test(`by ${judge}: a right-click on the mark opens the move menu of its move, with Generate image`, async ({ page }) => {
+      await display(page, { judge });
+      await open(page, "book-left-review.json");
+      await expect(bookMarks(page)).toHaveCount(judge === "edge" ? 3 : 2, { timeout: 30_000 });
+      // The menu takes its move from the nearest data-path: O11-Q10's, the move or the turn's last edge
+      expect(await bookMarks(page).last().locator("xpath=ancestor::*[@data-path][1]").getAttribute("data-path"))
+        .toBe(await moveOf(page, "O11-Q10").getAttribute("data-path"));
+      await bookMarks(page).last().click({ button: "right" });
+      await expect(page.getByRole("menuitem", { name: "Generate image" })).toBeEnabled();
+      await page.keyboard.press("Escape");
+      await expect(page.getByRole("menuitem", { name: "Generate image" })).toHaveCount(0);
+    });
+  }
 });

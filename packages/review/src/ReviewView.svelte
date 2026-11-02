@@ -1188,6 +1188,15 @@
   $effect(() => { if (pickedKey) movelist?.querySelector(".picked")?.scrollIntoView({ block: "nearest" }); });
   /** Goes to a position on the game's line. */
   const go = (p: number, sound = false) => setPath(mainNames.slice(0, Math.max(0, Math.min(last, p))), sound);
+  /** What makes an element of the move list act as the game's move `index`: the move menu's key (`data-path`), a click
+   *  to the position after the move, and its preview while the pointer is on it. A move's button, and by turn the
+   *  turn's judgement cell as its last edge (design 06, item 8: a row's parts behave the same by edge and by turn). */
+  const asMove = (index: number) => ({
+    "data-path": mainKeys[index + 1], tabindex: -1,
+    onclick: () => go(index + 1, true),
+    onmouseenter: () => startPreview({ kind: "move", index }),
+    onmouseleave: endPreview,
+  });
   // Along the line on screen, as Lichess's arrows: back to the parent, forward to the first child (the game's move on
   // its line), and to the line's end.
   const back = () => { if (path.length) setPath(path.slice(0, -1)); };
@@ -1216,8 +1225,8 @@
     && view.book.openingRow(opening, mainNames, shownLabel(opening.at), unit, shownJudgment));
   // The game's book moves, by the edge's index, each with the words of the position symbol after it
   const bookMoves = $derived(new Map(opening?.bookMoves.map(m => [m.index, m.after])));
-  /** Goes to a position of the game from the Report's rows, and shows the book there for this
-   *  review only: the switch shows "Book", and the choice that the browser keeps does not change. */
+  /** Goes to a position of the game from the Report's rows, and shows the book there for this review only: the switch
+   *  shows "Book", and the choice that the browser keeps does not change. */
   function openBookAt(at: number, feature: string) {
     used(feature);
     go(at);
@@ -1482,6 +1491,14 @@
   <span role="img" aria-label={name} title={name}>{#if display.bookMoves === "label"}{@render mark(label, "var(--book)")}
     {:else if display.marks === "badges"}<LabelBadge {label} book />
     {:else}<span style:color="var(--{label})"><Icon name="book" /></span>{/if}</span>
+{/snippet}
+
+<!-- The label slot in the move list, by edge a move's and by turn a turn's: the book mark (`bookAfter`, the words of the
+     position symbol after it), or a quality label that the list shows. Assistive technology does not read the label's
+     badge, so the label's word names the slot. A book mark has its own name. -->
+{#snippet labelSlot(label: Label | null, tip: string | undefined, bookAfter: string | undefined, cls: string)}
+  {@const word = bookAfter === undefined && listed(label) ? LABEL_TEXT[label] : undefined}
+  <span class={cls} role={word ? "img" : undefined} aria-label={word}>{#if label && bookAfter !== undefined}{@render bookMark(label, tip, bookAfter)}{:else if listed(label)}{@render mark(label)}{/if}</span>
 {/snippet}
 
 <!-- The top of the side panel: the review's progress or an engine error. -->
@@ -1752,32 +1769,30 @@
              with each edge's loss in the lead. -->
         {#if unit === "turn" && forSide(t.player)}
           {@const hard = isHard(t.complexity)}
+          {@const end = t.edges.at(-1)!.index}
           <!-- A turn of book moves only: the mark, with the position symbol after the turn. -->
-          {@const bookAfter = t.edges.every(e => bookMoves.has(e.index)) ? bookMoves.get(t.edges.at(-1)!.index) : undefined}
+          {@const bookAfter = t.edges.every(e => bookMoves.has(e.index)) ? bookMoves.get(end) : undefined}
           {@const tip = tooltip(t.label ? `${LABEL_TEXT[t.label]}: ${turnCost(t)}` : board && !t.edges.every(e => board.judged[mainKeys[e.index + 1]]) ? "" : "Not analyzed yet",
                                 board ? searchNote(hard, t.edges.map(e => R.data.analysis[e.index])) : "")}
-          {@const end = t.edges.at(-1)!.index}
           {@const loss = lossShort(t)}
-          {@const marked = !!t.label && (bookAfter !== undefined || listed(t.label))}
+          {@const slotted = !!t.label && (bookAfter !== undefined || listed(t.label))}
+          <!-- The cell's look is a move's (moveList.ts, MOVE), its label at the slot's left. -->
+          {@const cell = [view.oneMoveALine ? "col-start-3 row-start-1" : "col-start-4",
+                          "flex items-baseline gap-1 px-[0.2rem] py-px font-mono text-[0.95em] text-left whitespace-nowrap", SIDE_TEXT[t.player]]}
           {#snippet judgement()}
-            <!-- A quality label's name is its word (its badge is hidden from readers); a book mark has its own name. -->
-            <span class="w-[2.2ch]" role={marked && bookAfter === undefined ? "img" : undefined}
-                  aria-label={marked && bookAfter === undefined ? LABEL_TEXT[t.label!] : undefined}>{#if marked}{#if bookAfter !== undefined}{@render bookMark(t.label!, tip, bookAfter)}{:else}{@render mark(t.label!)}{/if}{/if}</span>
+            {@render labelSlot(t.label, tip, bookAfter, "w-[2.2ch]")}
             <span class="w-[1.2ch] text-[0.8em] text-muted text-center" title={hard ? HARD_NOTE : undefined}>{hard ? "◆" : ""}</span>
             <span class="w-[5ch] ml-auto text-[0.78em] text-right text-muted tabular-nums">{loss}</span>
           {/snippet}
-          <!-- The whole cell (the label slot, the ◆ and the loss) is one button, as a move's button holds them by edge:
-               pointing anywhere in it previews the position after the turn (after its last edge), and a click goes there.
-               A cell with nothing in it is a plain element. -->
-          {#if marked || hard || loss}
-            <button type="button" tabindex="-1" title={tip}
-                    class="{view.oneMoveALine ? 'col-start-3 row-start-1' : 'col-start-4'} flex items-baseline gap-1 px-[0.2rem] py-px font-mono text-[0.95em] whitespace-nowrap bg-transparent border-0 {SIDE_TEXT[t.player]} {MOVE_HOVER}"
-                    onclick={() => go(end + 1, true)} onmouseenter={() => startPreview({ kind: "move", index: end })} onmouseleave={endPreview}>
+          <!-- The whole cell (the label slot, the ◆ and the loss) is one button that acts as the turn's last edge, as a
+               move's button holds them by edge: pointing anywhere in it previews the position after the turn, a click
+               goes there, and a right-click opens that edge's move menu. A cell with nothing in it is a plain element. -->
+          {#if slotted || hard || loss}
+            <button type="button" {...asMove(end)} title={tip} class={[cell, "bg-transparent border-0", MOVE_HOVER]}>
               {@render judgement()}
             </button>
           {:else}
-            <span class="{view.oneMoveALine ? 'col-start-3 row-start-1' : 'col-start-4'} flex items-baseline gap-1 px-[0.2rem] py-px font-mono text-[0.95em] whitespace-nowrap {SIDE_TEXT[t.player]}"
-                  title={tip}>{@render judgement()}</span>
+            <span class={cell} title={tip}>{@render judgement()}</span>
           {/if}
         {/if}
       </div>
@@ -1888,14 +1903,13 @@
          and by turn, a slot for a hard position's ◆ (design 14) on every row, marked or not: a mark never moves
          the label or widens the column. The ◆ marks the position before the move (by turn, the turn's harder),
          on the board too, wherever that position has a result: the board's tooltips say where it has none. -->
-    <button data-path={mainKeys[e.index + 1]}
+    <button {...asMove(e.index)}
             class={moveButton(e.player, mainAt === e.index + 1 ? MOVE_HERE : pickedKey === mainKeys[e.index + 1] ? PICKED : MOVE_HOVER)}
-            onclick={() => go(e.index + 1, true)} onmouseenter={() => startPreview({ kind: "move", index: e.index })} onmouseleave={endPreview} tabindex="-1"
             title={tip}>
       <span class={view.moveText}>{@render written(e)}</span>
       {#if unit === "edge"}
         <!-- A book move's mark takes the label's slot, whatever the label. -->
-        <span class="w-[2.2ch] ml-auto">{#if shown && bookAfter !== undefined}{@render bookMark(shown, tip, bookAfter)}{:else if listed(shown)}{@render mark(shown)}{/if}</span>
+        {@render labelSlot(shown, tip, bookAfter, "w-[2.2ch] ml-auto")}
         <span class="w-[1.2ch] text-[0.8em] text-muted text-center" title={hard ? HARD_NOTE : undefined}>{hard ? "◆" : ""}</span>
         <span class="w-[5ch] text-[0.78em] text-right text-muted tabular-nums">{forSide(e.player) ? lossShort(e) : ""}</span>
       {/if}

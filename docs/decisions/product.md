@@ -7363,22 +7363,27 @@ the words of the site. The pages, the lessons, the documents and the code's comm
   was not chosen: the mark is inside the move's button, so its title covers the button's, and that title hid the
   move's numbers. The mark's title and the move's come from one value, so they cannot drift apart.
 - **The mark has no click or preview of its own.** The old mark, "Last move in the book", went to the position before
-  its move and showed the book there, and this change first kept that click. Pointing at the mark by edge still
-  previewed the position after the move, because the mark is inside the move's button, so a first build previewed the
+  its move and showed the book there, and this change first kept that click. By edge, pointing at the mark still
+  previewed the position after the move, because the mark is inside the move's button. So a first build previewed the
   position before the move on the mark alone. The click and that preview were confusing, and unlike every other
-  quality label in the move list. Both are removed. The mark behaves as a quality label
-  does in the same slot: by edge, pointing at it previews the position after the move and a click goes there, as on
-  the rest of the move's button. By turn, the first version of this change left the slot in the turn's cell, which
-  had no preview and no click. The book's table stays reachable at any position (the Book view, the key o).
+  quality label in the move list. This change removes both. The mark behaves as a quality label does in the same
+  slot. By edge, pointing at it previews the position after the move, and a click goes there, as on the rest of the
+  move's button. By turn, the first version of this change left the slot in the turn's cell, which had no preview and
+  no click. The book's table stays reachable at any position (the Book view, the key o).
 - **By edge and by turn, a row's parts behave the same** (the owner's words on that version, 2026-10-30: "by edge and
   by turn shouldn't have this behavior difference"). "Review by" changes how the move list groups the moves, not how
-  its parts behave. By turn, the label slot, whether it holds a quality label or the book mark, the ◆ and the loss
-  figure are now one button, the turn's whole judgement cell, as they sit in the move's button by edge: pointing
-  anywhere in it previews the position after the turn (after its last edge), with the status line of a move, and a
-  click goes there. "Preview played moves" off turns the preview off. A first build made the label slot alone a
-  button, and the ◆ and the loss figure still did nothing by turn. The quality labels had the difference before this
-  change: by turn, pointing at one and clicking it did nothing. By edge, nothing changes. The cell keeps its widths.
-  Design 06 states the rule.
+  its parts behave. By edge, the move's button holds the label slot, the ◆ and the loss figure. By turn, these three
+  are now one button, the turn's whole judgement cell. Its label slot holds a quality label or the book mark.
+  Pointing anywhere in the cell previews the position after the turn (after its last edge), with the status line of a
+  move. A click goes there. "Preview played moves" off turns the preview off. A first build made the label slot alone
+  a button, and the ◆ and the loss figure still did nothing by turn. The quality labels had the difference before
+  this change: by turn, pointing at one and clicking it did nothing. By edge, nothing changes. The cell keeps its
+  widths. Design 06 states the rule. The review of the change found one more difference. By edge, a right-click on a
+  quality label opens its move's menu, with "Generate image". By turn, a right-click on the cell opened the menu with
+  each action off. The cell now opens the menu of the turn's last edge. One function gives the move's button and the
+  cell their click, preview and menu, so the two cannot drift apart again. The label slot is one snippet too: by edge
+  and by turn, a quality label's word names it for assistive technology (by edge it had no name), and its label
+  stands at the slot's left (the cell's button had centred it).
 - **The setting "Book moves" shows only where the book loaded.** It offered itself wherever the review had a book
   place, also when the book did not load, and then it changed nothing.
 - **No mark** on the live site, where the book does not load, on a set-up board and on the Analysis board, as with the

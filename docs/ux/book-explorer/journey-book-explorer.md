@@ -67,7 +67,7 @@ answers, beside the result and the counts of labels.
   ([03-opening-explorers.md](../../research/03-opening-explorers.md), section 3).
 - If the game met a trap, the Report has a second row: "Turn 3: Blue played a trap, F9-J7. Red did not play its
   refutation." or "… Red played its refutation."
-- A click on the opening row, or on the mark in the move list, goes to A2. It turns the book on for this review only.
+- A click on the opening row goes to A2. It turns the book on for this review only.
   Only the table's switch changes the choice that the browser keeps.
 
 **Variations:**

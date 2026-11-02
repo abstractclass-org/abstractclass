@@ -222,15 +222,18 @@ Lichess sizes its Analysis board from the window, and keeps the board whole in v
    - Lichess and chess.com give every value from White's side. Here every advantage of Red's would then be a number
      below 0, and Red's player would read their own choices in reverse.
    - **A row's parts behave the same by edge and by turn.** "Review by" changes how the move list groups the moves,
-     not how its parts behave. Pointing at a move previews the position after it, and a click goes there. The move's
-     judgement (the label slot with a quality label or a book mark, design 32, item 4, then the ◆ and the loss
-     figure) does the same. By edge, they are inside the move's button. By turn, they are the turn's judgement cell,
-     which is one button: pointing anywhere in it previews the position after the turn, after its last edge, with the
-     status line of a move ("Preview: the position after edge 3, …"), and a click goes there. A cell with nothing in
-     it is a plain element. "Preview played moves" off turns the preview off, by edge and by turn. The cell keeps its
-     widths (the slot's 2.2 characters, the ◆'s 1.2 and the loss's 5), so it never widens a column
-     (`npm run test:layout`). Its title and the names of its parts are the same as before: the label word or the book
-     mark's name, the ◆'s note and the turn's tooltip.
+     not how its parts behave. Pointing at a move previews the position after it, a click goes there, and a
+     right-click or a long press opens its move menu (design 07, item 12). The move's judgement (the label slot with a
+     quality label or a book mark, design 32, item 4, then the ◆ and the loss figure) does the same. By edge, they are
+     inside the move's button. By turn, they are the turn's judgement cell, which is one button. The cell acts as the
+     turn's last edge. Pointing anywhere in it previews the position after the turn, with the status line of a move
+     ("Preview: the position after edge 3, …"). A click goes there, and its menu is that edge's. One function gives
+     the move's button and the cell these actions (`asMove` in `ReviewView.svelte`), so they cannot drift apart. A
+     cell with nothing in it is a plain element. "Preview played moves" off turns the preview off, by edge and by
+     turn. The cell keeps its widths (the slot's 2.2 characters, the ◆'s 1.2 and the loss's 5), so it never widens a
+     column (`npm run test:layout`), and its label stands at the slot's left, as in a move's button. Its title is the
+     turn's tooltip. Assistive technology does not read a quality label's badge, so by edge and by turn the label's
+     word names its slot. The book mark keeps its name, and the ◆ its note.
 9. **No text selection on the review page:** the page's text is a
    tool's, not a document's, so it takes no selection (`select-none`), and the pointer stays an arrow over the move
    list's labels and marks instead of a text cursor. An engine error can be selected, to be copied. The board never
