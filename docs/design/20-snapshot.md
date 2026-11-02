@@ -1,7 +1,7 @@
 # A review by an earlier engine opens as it was
 
 **Status:** in force. **Decided:** 2026-10-14. **Changed:** 2026-10-21: the area map in a review snapshot, and its
-maps kept.
+maps kept. 2026-10-30: the book's positions.
 
 ## Context
 
@@ -14,6 +14,9 @@ look at a past review pays it each time, and the earlier results are still in th
 
 1. **A review snapshot:** a game whose last review used an earlier engine, or an earlier file of the same network,
    opens as that review, when the browser has its results for every position of the game's line. Nothing is searched.
+   The positions that the opening book holds are left out of that test, as the review left them out: it took their
+   values from the book and searched none (design 32, "A book position's values"). A mark that names no search is
+   older than the book, so its test asks for every position.
 2. **What a review snapshot shows:** the stored results, each position at its deepest that the review reads: at the
    review's depth or a deeper budget (`BUDGETS` in `packages/analysis/src/cache.ts`), else at the sweep's depth or a
    budget. The labels, the notes in the move list, the variations kept, the engine's candidates and lines, the charts
@@ -22,6 +25,9 @@ look at a past review pays it each time, and the earlier results are still in th
    the same search and network file (design 30, item 6). Where the store has neither, the map's note says "No map saved:
    review snapshots do no searches". The threat (design 31) shows where the store has its result, with the same search
    and network file, and else the engine header says "No threat saved: review snapshots do no searches".
+   At a position that the book holds, the labels, the charts and the counts come from the book's values, as in the
+   review. The snapshot waits for the book before it checks the store. Where the book does not load, the test asks for
+   every position, and the game is reviewed again if the store lacks one.
 3. **What a review snapshot does not do:**
    - no search of the position on screen, and no change of its depth;
    - no new move: not on the board, not from a candidate, not from a line;
@@ -67,7 +73,11 @@ look at a past review pays it each time, and the earlier results are still in th
    that the review snapshot shows (item 2). The other results of the position go: a shallower one, and a deeper one at a
    depth that the review snapshot does not read. Examples are an older review's deeper search of a custom depth, at
    twice its visits, and a Depth that the player typed. A threat that the review snapshot reads, after a pass (design
-   31), keeps the position's result at the threat's visits too: the threat's size compares the two. A map added to one
+   31), keeps the position's result at the threat's visits too: the threat's size compares the two. The removal reads no
+   book. For a mark that names its search, it keeps that search's results where they hold at least one position of the
+   game's line, so it keeps what a review snapshot of a review made with the book reads (item 1). It can keep the
+   results of a review snapshot that does not open, until the game is reviewed again. A mark that names no search keeps
+   them where they hold every position of the line. A map added to one
    of these positions (design 30) stays while a review snapshot reads the position, whatever the depth of the results
    there. A map further from the game's positions goes, such as the map of a line's later edge. The other results of the
    store's shape go too:
@@ -94,6 +104,8 @@ look at a past review pays it each time, and the earlier results are still in th
 - **Published practice:** Lichess keeps a game's computer analysis as it was made, with the Stockfish of its day, and
   does not make it again when Stockfish changes. Its live engine is apart from it. KaTrain opens an analysis saved with
   a game as it was, and analyses again on request.
+- **The same labels as the review.** A review made with the book searched no book position. The snapshot asks the
+  store for none of them either, and takes the book's values there, as the review did.
 - **A quick look costs nothing,** and the player chooses when a review is made again.
 - **The browser keeps only what a page reads:** a result that no game's review snapshot reads takes space and gives
   nothing, and each release would add one more set. The removal follows the reader: the rule that opens a review
@@ -152,6 +164,7 @@ look at a past review pays it each time, and the earlier results are still in th
 - `src/routes/review/+page.svelte` (the choice of a review snapshot, its rules-only engine, Review again),
   `packages/review/src/ReviewView.svelte` (the bar, the controls off), `packages/analysis/src/cache.ts`
   (`snapshotSearch`, the read by keys: `warmCache`), `packages/analysis/src/analysis.svelte.ts` (`fromStore`),
+  `src/lib/book/reviewBook.ts` (`giveBook`, the book's values),
   `src/lib/game/reviewFile.ts` (`readReviewFile`, the file's search, and `importReview`, the mark kept),
   `src/lib/game/store.ts` (`reviewAgainWhy`, the mark's `search`: `reviewMark`, `markReviewed`).
 - The removal: `src/lib/game/earlierResults.ts` (`unneededResults`, `readsAt`, `removeEarlierResults`, which

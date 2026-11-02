@@ -13,7 +13,10 @@ searching it again, and to share it as text that others can read.
 1. **Two exports** (Lichess offers both a study's PGN and its own analysis. KaTrain can keep its analysis in its SGF
    files):
    - **The review file** (`.json`): the game's record, the player's variations, and the engine's results for every
-     position of the game and its variations (`src/lib/game/reviewFile.ts`). Loading it opens the review at once.
+     position of the game and its variations (`src/lib/game/reviewFile.ts`). Loading it opens the review at once. A
+     review made with the opening book searched none of the book's positions, so the file holds no result there
+     except one that a search of the position on screen or an earlier review stored. The review takes the book's
+     values there again when it opens (design 32, "A book position's values").
    - **The annotated record** (text, copied or as a `.txt` file): the game in the site's notation, with the engine's
      view after each edge (`[%eval W L S]`), each Inaccuracy, Mistake, Blunder and Great as a comment ("Mistake. D10-G9
      G9-H10 was best.", Lichess's words), "A hard position." where the review marks one (design 14), the record's
@@ -45,7 +48,8 @@ searching it again, and to share it as text that others can read.
      mark for the same engine and network stays.
    - **A safety net:** the home page's annotated record also refuses a game whose positions lack a stored result
      ("open the game to review it first", or "to finish its review first"). Every game shares the start, so the start
-     does not count.
+     does not count. A position that the opening book holds counts as having a result: the record takes the book's
+     values there (design 32, "A book position's values").
 4. **The review file's contents:**
    - `format` (`hedge-school-review`), `version` (1), `exported`, `site` (the site's version), `review` (the finished
      review: the game's mark, with the network's name, as "HedgeFund 0.1 Lite"), `record`, `branches` (as the browser

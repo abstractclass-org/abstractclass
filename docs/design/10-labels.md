@@ -58,6 +58,10 @@ reason. Design 05 gives the searches that the labels read: their schedule, their
      then the second edge of the engine's line, so it is not the first choice of its search, and its loss comes from
      the search between the two edges alone (turn 9 of the sample game: J11-M13 was Good, with a loss
      of 27 in the lead by that search).
+   - **At a book position,** the values are the opening book's, not a search's (design 32, "A book position's
+     values"). The rule above does not apply to an edge between two positions with the book's values: the book's
+     minimax values each such edge, and the book's table gives it its own label. It still applies to an edge that
+     leaves the book or comes into it.
 6. **Great: the only good move, which keeps what the enemy's last turn gave** (En Croissant's rule for "!",
    [`src/utils/score.ts`](https://github.com/franciscoBSalgueiro/en-croissant/blob/d64ce9e/src/utils/score.ts),
    `getAnnotation`, at commit d64ce9e. En Croissant's name for "!" is "Good", in `src/utils/annotation.ts`). En
@@ -87,6 +91,11 @@ reason. Design 05 gives the searches that the labels read: their schedule, their
      (En Croissant reads a missing value as 0.00, an even position). A line from a set-up position in the middle of the
      enemy's turn has no start of that turn. A position not yet searched to the label budget counts as no result
      until it is.
+   - **No Great from or into a book value.** The second condition needs an equal search (below), and the book's
+     values are no search of a depth that the review can match (design 32, "A book position's values"). So a move from
+     or into a position with the book's values is never Great, and a turn is never Great when its start, its middle or
+     its end has them. The third condition reads the book's value where the position before the enemy's last turn is
+     a book position.
    - **The other open tools ask the same of a Great:** the move must matter.
      - Chesskit's "!" (`isPerfectMove` in `src/lib/engine/helpers/moveClassification.ts`, commit 9622d50) needs a
        loss of at most 0.02. It does not mark a simple recapture, a move that leaves the mover under 0.50, or a move
