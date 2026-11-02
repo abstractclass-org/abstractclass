@@ -7678,21 +7678,32 @@ abscls-8tl1.18. Design 33, "How a game comes in from strategyjam.org", items 5 a
 that the designs left open:
 
 - **The engine checks the record before the page offers the choice,** not after a click. A record that the engine
-  refuses then shows no button that would fail. The page starts a rules worker of its own for the check, and ends it
-  after: the rules alone need no network. The wait is not measured alone: in the browser tests (headless Chromium,
-  2 workers, the engine on the CPU), a test of an out-of-date tool, from the page's load to the choice, took 7.7 to
-  8.2 s, and the refused record's test 8.1 to 9.9 s. The page shows the game while the engine checks it.
+  refuses then shows no button that would fail. The check starts a rules worker of its own, and ends it after
+  (`checkRecord` in `recordCheck.ts`, as Hedge School's `checkMoves` starts one): the rules alone need no network.
+  Without the engine's files, the page refuses the record, since no page can check it. No test measures the wait
+  alone: in the browser tests (headless Chromium, 2 workers, the engine on the CPU), a test of an out-of-date tool,
+  from the page's load to the choice, took 7.7 to 8.2 s, and the refused record's test 8.1 to 9.9 s. The page shows
+  the game while the engine checks it.
 - **The page sends the record by each page's own address** (`/review#record=`, `/analysis#record=…&at=`), which
   already took a record and checked it. Hedge School's import keeps the game itself and opens `/review#game=`, since
   its review has a list of games. Drawing Board's review keeps one game, under the key that the review writes. So the
-  record is checked twice, once on each page: the review's check is part of its start, and costs nothing more.
+  engine checks the record twice, once on each page: the review's check is part of its start, and costs nothing more.
 - **The choice's frame moved to `packages/import`** (`ToolChoice.svelte`): the notice's place, the game's line, and
-  the two ways, each a button with what it does. Each site gives its own words. Hedge School's import page gives the
-  same markup as before, and its tests (`tool-choice.spec.ts`, the layout test's choice) are unchanged.
-- **The Analysis board's card says that the game replaces the board's moves.** Hedge School's board asks before it
-  replaces the player's board ("Replace your analysis?"). Drawing Board's board has no such question yet: it replaces
-  the board kept in this browser once the engine accepts the record. The card says so, in place of the question.
+  the two ways, each a button with what it does. Each site gives its own words. While the engine checks the record,
+  a line says so in the ways' place (`pending`), so the game's lines do not move when the ways come. Hedge School's
+  import page gives the same markup as before, and its tests (`tool-choice.spec.ts`, the layout test's choice) are
+  unchanged.
+- **The Analysis board asks before a record replaces the analysis kept here,** as Hedge School's board does
+  ("Replace your analysis?"), when that analysis has moves. The question moved to `packages/review`
+  (`ReplaceAnalysis.svelte`): Hedge School's board gives the same markup and texts, and its test
+  (`tool-choice.spec.ts`) is unchanged. Drawing Board's board asks once the engine accepts the record, so a refused
+  record asks nothing. The choice's card no longer says that the game replaces the board's moves.
 - **The record stays on the page, under "The record", closed.** It helps the test of the tools on strategyjam.org
   (abscls-8tl1.12), and it no longer takes the page's room.
-- **No `via` in the board's address:** Drawing Board counts no import, so `analysisAddress` takes the source only on
-  a site that counts it.
+- **No `via` in the board's address:** Drawing Board counts no import, so `analysisAddress` takes a source or null,
+  and names none for null. Each caller states its source, so a Hedge School call cannot leave it out by mistake.
+- **Drawing Board's accent is Hedge School's lavender** (`#6f5aa8` light, `#b8a6e8` dark), in place of the neutral
+  slate of "Drawing Board's shell" (2026-10-25: `#4f5b69`, `#b4bcc7`), until Drawing Board's own colour comes with its
+  logo. The slate read as a grey, and the site needs a colour. On the tokens that the sites share, the lavender has
+  Hedge School's contrast: 5.2:1 as text on the page and 5.7:1 under white text, light, and 5.9:1 as text on panel-2
+  and 8.2:1 under near-black text, dark.

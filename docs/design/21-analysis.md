@@ -99,7 +99,8 @@ engine does by itself.
 6. **One board in each browser:** its main line, its variations and the moves evaluated, in the browser's store (the
    `branches` store, under `board`), and the position on screen, in the browser's local storage. It stays when the
    player leaves, as the review's variations stay. A link or a record brought in replaces it. The page asks first when
-   the board has moves ("Replace your board?").
+   the board has moves ("Replace your analysis?", `packages/review/src/ReplaceAnalysis.svelte`, which Drawing Board's
+   board uses too).
 7. **Share and export the analysis,** as the review's Export menu does:
    - **The link:** the main line, the variations, the moves evaluated, and the position on screen, packed as a
      review's shared link packs them (design 13). It holds no engine results: the recipient's browser searches what it

@@ -47,5 +47,5 @@ test("the Analysis board's address: the record, the page's position or the game'
   assert.deepEqual([at.get("record"), at.get("at"), at.get("via")], [record, "1", "words_bookmarklet"]);
   assert.equal(read(analysisAddress({ record, at: null }, 3, "words_userscript")).get("at"), "3");
   // A site that counts no events gives no source, and the address names none
-  assert.deepEqual([...read(analysisAddress({ record, at: 2 }, 3)).keys()], ["record", "at"]);
+  assert.deepEqual([...read(analysisAddress({ record, at: 2 }, 3, null)).keys()], ["record", "at"]);
 });

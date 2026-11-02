@@ -10,6 +10,7 @@
   import { Dialog } from "bits-ui";
   import { replaceState } from "$app/navigation";
   import ReviewView, { reviewSkeleton } from "@abstractclass/review/ReviewView.svelte";
+  import ReplaceAnalysis, { ReplaceQuestion } from "@abstractclass/review/ReplaceAnalysis.svelte";
   import { enclosureView } from "#lib/review/enclosureView.ts";
   import { loadDisplay } from "#lib/review/display.ts";
   import NewMenu from "#lib/analysis/NewMenu.svelte";
@@ -90,8 +91,7 @@
   });
 
   // A link's board, when the board kept here has moves of its own: the player chooses which to keep.
-  let ask = $state<((open: boolean) => void) | null>(null);
-  const choose = () => new Promise<boolean>(resolve => (ask = open => { ask = null; resolve(open); }));
+  const question = new ReplaceQuestion();
 
   /** The analysis to open, and where: the kept place (`at`, a path), or a brought line's place on the main line
    *  (`atMain`). How a brought line came (design 17): `imported` for a game from outside, `loaded` for saved work. None
@@ -133,7 +133,7 @@
       }
       return { board: kept, at: keptAt };
     }
-    if (kept?.nodes.length && !(await choose())) return { board: kept, at: keptAt };
+    if (kept?.nodes.length && !(await question.ask())) return { board: kept, at: keptAt };
     return { board: brought.board, atMain: brought.at, imported, loaded };
   }
   /** A record that cannot be imported: unreadable (`record`), or refused by the rules or as a variant (`rejected`). */
@@ -317,22 +317,7 @@
   {@render reviewSkeleton(enclosureView, false, loadDisplay().win === "gauge", PLAYERS, true)}
 {/if}
 
-<!-- A line brought, over the analysis kept here: the player chooses. -->
-<Dialog.Root open={!!ask} onOpenChange={open => { if (!open) ask?.(false); }}>
-  <Dialog.Portal>
-    <Dialog.Overlay class="dialog-overlay" />
-    <Dialog.Content class="dialog-box w-[min(94vw,28rem)]">
-      <Dialog.Title class="mb-2 font-semibold">Replace your analysis?</Dialog.Title>
-      <Dialog.Description class="text-sm">
-        This replaces the analysis you left here, with all its lines. This browser keeps one analysis.
-      </Dialog.Description>
-      <div class="flex justify-end gap-2 mt-4">
-        <button type="button" class="px-4 py-1 text-sm" onclick={() => ask?.(false)}>Keep mine</button>
-        <button type="button" class="btn-primary px-4 py-1 text-sm" onclick={() => ask?.(true)}>Replace it</button>
-      </div>
-    </Dialog.Content>
-  </Dialog.Portal>
-</Dialog.Root>
+<ReplaceAnalysis {question} />
 
 <!-- The board's Import: a position, moves, or both pasted (design 21). An analysis file has its own Load. -->
 <Dialog.Root bind:open={importing}>

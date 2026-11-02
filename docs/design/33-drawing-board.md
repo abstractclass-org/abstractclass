@@ -54,8 +54,8 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
    2. **The view's split** into a package, on Hedge School's board and Blueprints' board: `@abstractclass/review`, with
       the view's game interface (design 29, item 9). Drawing Board gives Blueprints' part of it with the review.
    3. **With the engine's browser build** (request 23): the review, the Analysis board, the import of a
-      strategyjam.org game into them, and the player's own moves. The tools for strategyjam.org and the import page
-      needed no engine, so they came first, and the import page showed the record until the review came.
+      strategyjam.org game into them, and the player's own moves. The tools for strategyjam.org need no engine, and
+      the import page needs its rules alone.
    4. **Later:** practice against Stamp Duty, lessons, puzzles and an opening book. The meaf.us tools stay Hedge
       School's: meaf.us plays Enclosure only.
 4. **Move, do not copy.** A part that both sites use goes into `packages/`, as design 29 moved the engine, the storage
@@ -369,18 +369,20 @@ Drawing Board has Hedge School's bookmarklet and userscript for strategyjam.org 
    Hedge School's does (its designs 21 and 22), in the choice's frame that both sites share
    (`@abstractclass/import/ToolChoice.svelte`). It shows the players, the number of moves and the position that the
    game's page showed (the moves before it, and that move's turn in the record). The review keeps the game in this
-   browser. The Analysis board opens at that position, or at the game's end when the tool sent none, in place of the
-   board kept here: the choice says so. The record as Drawing Board wrote it is under "The record", closed. For an
-   out-of-date tool, the page says how to update it, as Hedge School's does. Without a game, the page goes to the tools
-   page.
+   browser. The Analysis board opens at that position, or at the game's end when the tool sent none. When the board
+   kept here has moves, the board first asks "Replace your analysis?", as Hedge School's does ("The review and the
+   Analysis board", item 11). The record as Drawing Board wrote it is under "The record", closed. For an out-of-date
+   tool, the page says how to update it, as Hedge School's does. Without a game, the page goes to the tools page.
 6. **The record's check comes first.** The page takes the game out of the address at once, as Hedge School's does.
    Then the engine's rules check the record, in a rules worker of the page's own, as the Analysis board checks a record
    brought to it ("The review and the Analysis board", item 11). A record that they refuse shows why, and the page
-   opens nothing. Each choice opens its page by that page's own address with the record (`/review#record=`,
-   `/analysis#record=…&at=`), which takes it out of the address again, and which checks it again. Drawing Board has no
-   analytics yet, so the import counts no event: the board's address names no source (`via`). A reload of the page
-   after the game left its address goes to the tools page. A partner's links (`from=`, `packed=`, a partner's `save=`)
-   are Hedge School's (its design 18): the page refuses `from=` and a link with no record, and reads no `save=`.
+   opens nothing. A site with no engine files cannot check a record, so the page opens nothing there either. Hedge
+   School's import page opens the game without its engine, since its review checks the game later. Each choice opens
+   its page by that page's own address with the record (`/review#record=`, `/analysis#record=…&at=`), which takes it
+   out of the address again, and which checks it again. Drawing Board has no analytics yet, so the import counts no
+   event: the board's address names no source (`via`). A reload of the page after the game left its address goes to
+   the tools page. A partner's links (`from=`, `packed=`, a partner's `save=`) are Hedge School's (its design 18): the
+   page refuses `from=` and a link with no record, and reads no `save=`.
 7. **The tools page** (`/tools`) gives the steps to install the bookmarklet and the userscript, in strict Simplified
    Technical English with the glossary's words. Its link is in the header from a tablet's width, and in the footer on
    a phone, as Hedge School's (design 22).
@@ -440,7 +442,10 @@ drawings of the real page, from the engine's replies. The decision log gives the
     (`src/lib/review/rootViews.engine.test.ts`).
 11. **A record's check:** the engine plays each move of a record and confirms each capture mark (item 6), on the
     review and on the Analysis board alike. The review then shows why it cannot review the game. The Analysis board
-    keeps the board that this browser kept, and a notice says why it did not open the record.
+    keeps the board that this browser kept, and a notice says why it did not open the record. A record that the engine
+    accepts replaces the board kept here. When that board has moves, the board first asks "Replace your analysis?":
+    "Keep mine" keeps it. The question is Hedge School's (its design 21, item 6), in `packages/review`
+    (`ReplaceAnalysis.svelte`), which both boards use.
 12. **Not built yet:** sounds, notes on the board, the image of a line, the opening book, a list of games and a GPU
     setting. The review keeps one game in this browser: `#record=` in a link brings one, and the import page sends
     one so ("How a game comes in from strategyjam.org", item 6). The engine's pool keeps its 2 workers while the page
@@ -542,16 +547,17 @@ The Move header and the fade of a cut name are in the shared table, so Hedge Sch
   threshold of a hard position, and how far below the first choice a candidate shows (design 29, "Consequences"). The
   score's scale is the engine's (`SCORE_SCALE` 12 in the port).
 - **The site's look:** a logo, a colour and the board's style are still to decide. The shell starts with Hedge
-  School's style and a wordmark. The userscript's button shows a blueprint until the logo comes ("How a game comes in
-  from strategyjam.org", item 4).
+  School's style and a wordmark. Its accent is Hedge School's lavender in both themes, until Drawing Board's own colour
+  comes with its logo. The userscript's button shows a blueprint until the logo comes ("How a game comes in from
+  strategyjam.org", item 4).
 
 ## Where it is
 
 - `apps/drawingboard/`: the app. `src/lib/site.ts`: the site's name, the engine's, the live address
   (`https://drawingboard.abstractclass.org`, the canonical address of each page) and the storage keys
   (`drawing-board:…`). `src/routes/+layout.svelte`: the header, with the wordmark, Notation, About and the theme
-  menu. `src/lib/SiteFooter.svelte`: the footer, with Privacy and Notices. `src/app.css`: the neutral accent and the
-  board's colour tokens, after the shared style and the view's (`@abstractclass/review/review.css`).
+  menu. `src/lib/SiteFooter.svelte`: the footer, with Privacy and Notices. `src/app.css`: the accent (Hedge School's
+  lavender) and the board's colour tokens, after the shared style and the view's (`@abstractclass/review/review.css`).
 - `apps/drawingboard/src/routes/`: the pages. The Notation page describes the moves, the marks and the record of
   items 5 to 7, 9 and 10, with one game made by hand as its examples. Item 8 is the move list's display, and comes
   with the move list. `sitemap.xml`, `static/robots.txt` and `static/_headers` follow
@@ -641,11 +647,12 @@ The Move header and the fade of a cut name are in the shared table, so Hedge Sch
   (`blueprintsView.ts`), its game for the analysis (`blueprints.ts`, with the glyphs' parts and the notes), the board
   (`ReviewBoard.svelte`), the glyphs (`MoveLabel.svelte`), the small pictures (`MoveShape.svelte`), the table's least
   size (`table.ts`), the display settings (`display.ts`), and the area map kept for later (`blueprintsMap.ts`).
-  `src/lib/board/chips.ts`: the hands' rank chips.
+  `src/lib/board/chips.ts`: the hands' rank chips. `packages/review/src/ReplaceAnalysis.svelte`: the board's question
+  before a record replaces the analysis kept here, which both sites' boards use.
 - `apps/hedgeschool/tests/drawingboard-review.spec.ts` and `move-header.spec.ts`: the browser tests of the review, and
-  `layout.spec.ts` its layout. `drawingboard-import.spec.ts`: the import page's choice, a record that the engine
-  refuses and the notice of an out-of-date tool, and `layout.spec.ts` the page's layout. They run on this machine,
-  where the engine's files are: without them they skip.
+  `layout.spec.ts` its layout. `drawingboard-import.spec.ts`: the import page's choice, the Analysis board's question
+  over a kept analysis, a record that the engine refuses and the notice of an out-of-date tool, and `layout.spec.ts`
+  the page's layout. They run on this machine, where the engine's files are: without them they skip.
 - `scripts/check-all.mjs`: its type check, its unit tests and its build, in the Tests workflow's checks.
 - [requests/23-blueprints-browser-build.md](../requests/23-blueprints-browser-build.md): what the site asks of the
   engine's browser build.

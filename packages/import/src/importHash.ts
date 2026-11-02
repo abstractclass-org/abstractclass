@@ -46,10 +46,12 @@ export function readImportHash(hash: string): ImportHash {
 }
 
 /** The Analysis board's address for a tool's game (design 21): its record, the position that its page showed, else the
- *  game's end (after its `moves`), and the import's source for the board's events (design 17, importEvents.ts), on a
- *  site that counts them. The board opens a position past the end at the end. */
-export function analysisAddress(sent: Pick<ImportHash, "record" | "at">, moves: number, source?: string): string {
-  return "/analysis#" + new URLSearchParams({ record: sent.record, at: String(sent.at ?? moves), ...source ? { via: source } : {} });
+ *  game's end (after its `moves`), and the import's source for the board's events (design 17, importEvents.ts), or
+ *  null on a site that counts none. The board opens a position past the end at the end. */
+export function analysisAddress(sent: Pick<ImportHash, "record" | "at">, moves: number, source: string | null): string {
+  const p = new URLSearchParams({ record: sent.record, at: String(sent.at ?? moves) });
+  if (source) p.set("via", source);
+  return "/analysis#" + p;
 }
 
 /** The tool that is out of date, or "older" for a tool that sent no version, or null when it is the site's own

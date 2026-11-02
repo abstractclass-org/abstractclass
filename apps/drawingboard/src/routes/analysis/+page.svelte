@@ -2,7 +2,8 @@
   // The Analysis board (Hedge School's design 21, design 33): a free board in the browser, from the standard start, or
   // a line brought after the `#` (`#record=`: a record, whose moves become the main line, and `&at=`, the place on it).
   // The engine checks a record brought as the review checks a game: it plays each move, and confirms each capture mark
-  // (design 33, item 6). A record that fails leaves the board kept here, with a notice.
+  // (design 33, item 6). A record that fails leaves the board kept here, with a notice. A record that passes asks first
+  // when the board kept here has moves, as Hedge School's board does ("Replace your analysis?").
   // The engine searches the position on screen only, and the moves the player asks to evaluate: no pass runs over the
   // line (GameAnalysis's board form). The tree is the player's: its first line is the main line, which "Make main line"
   // changes. One board in each browser, kept as the player leaves it. The engine's settings are the review's, and it
@@ -10,6 +11,7 @@
   import { onDestroy, onMount, untrack } from "svelte";
   import { replaceState } from "$app/navigation";
   import ReviewView, { reviewSkeleton } from "@abstractclass/review/ReviewView.svelte";
+  import ReplaceAnalysis, { ReplaceQuestion } from "@abstractclass/review/ReplaceAnalysis.svelte";
   import { GameAnalysis } from "@abstractclass/analysis/analysis.svelte.ts";
   import { LABEL_VISITS } from "@abstractclass/analysis/cache.ts";
   import { BOARD_ID, boardOfLine, type KeptBoard } from "@abstractclass/analysis/kept.ts";
@@ -61,7 +63,8 @@
   });
 
   /** The board kept here, at its kept place, and a line brought after the `#`, which leaves the address, and which
-   *  replaces the kept board once the engine has checked it (recordCheck.ts). */
+   *  replaces the kept board once the engine has checked it (recordCheck.ts), and the player agrees when the kept board
+   *  has moves. */
   async function chooseBoard(): Promise<{ kept: KeptBoard | null; at: string[]; brought?: { record: GameRecord; at: number } }> {
     const kept = (await dbGet<KeptBoard>(STORES.branches, BOARD_ID)) ?? null;
     const at = readLocal(BOARD_AT_KEY), keptAt = at ? at.split(" ") : [];
@@ -79,6 +82,8 @@
   /** The notice of a record that the board cannot open. */
   const refuse = (problem: string) =>
     (notice = `The Analysis board cannot open this record: ${problem.replace(/\.?$/, ".")} Your own analysis is here instead.`);
+  // A record's board, when the board kept here has moves of its own: the player chooses which to keep.
+  const question = new ReplaceQuestion();
 
   onMount(async () => {
     try {
@@ -89,7 +94,9 @@
         await g.start();
         const problem = chosen.brought && g.rulesReady ? await recordProblem(describeBy(pool.rules), chosen.brought.record) : null;
         if (problem) refuse(problem);
-        const brought = !problem ? chosen.brought : undefined, board = brought ? boardOfLine(brought.record.moves) : chosen.kept;
+        // Only a record that the engine accepted replaces the board kept here: without the rules, the page shows why
+        const replace = chosen.brought && g.rulesReady && !problem && (!chosen.kept?.nodes.length || await question.ask());
+        const brought = replace ? chosen.brought : undefined, board = brought ? boardOfLine(brought.record.moves) : chosen.kept;
         if (board) await g.loadBoard(board);
         const model = modelOf(session.manifest!, session.network)?.sha256;
         if (g.rulesReady && pool.search && model) await g.fromStore(pool.search, model).catch(() => {});
@@ -138,3 +145,5 @@
 {:else}
   {@render reviewSkeleton(blueprintsView, false, loadDisplay().win === "gauge", PLAYERS, true)}
 {/if}
+
+<ReplaceAnalysis {question} />

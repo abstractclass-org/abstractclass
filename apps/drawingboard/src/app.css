@@ -8,15 +8,14 @@
 /* The import page's choice for a tool's game (packages/import): Tailwind finds its classes there. */
 @import "@abstractclass/import/import.css";
 
-/* Drawing Board's accent (design 33, "Consequences"): a neutral slate until its colour is decided, on Hedge School's
-   tokens. Light: 6.4:1 as text on the page, 6.9:1 under white text. Dark: 6.7:1 as text on panel-2, 9.3:1 under
-   near-black text. */
+/* Drawing Board's accent (design 33, "Consequences"): Hedge School's lavender (apps/hedgeschool/src/app.css), on the
+   tokens that the sites share, until Drawing Board's own colour comes with its logo. */
 :root, [data-theme="light"] {
-  --accent: #4f5b69;
+  --accent: #6f5aa8; /* lavender: 5.2:1 as text on the page, 5.7:1 under white text */
   --on-accent: #ffffff; /* text on the accent */
 }
 :root[data-theme="dark"] {
-  --accent: #b4bcc7;
+  --accent: #b8a6e8; /* pale lavender: 5.9:1 as text on panel-2, 8.2:1 under near-black text */
   --on-accent: #16181c;
 }
 

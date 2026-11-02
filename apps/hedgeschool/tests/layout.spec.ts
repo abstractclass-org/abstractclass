@@ -15,10 +15,10 @@
 // Board's import page: the choice for a tool's game, and a record that the engine refuses. A last test checks the
 // step bar on a phone, on the review, the Analysis board and Practice. Run: npm run test:layout (the site running
 // first).
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { loadReviewFile } from "./review-file.ts";
-import { SPREAD_BOARD, noReview, reviewTestGame, testRecord } from "./drawingboard-review.ts";
+import { REFUSED, SPREAD_BOARD, noReview, reviewTestGame, toolLink } from "./drawingboard-review.ts";
 
 const WIDTHS = Array.from({ length: (1920 - 360) / 10 + 1 }, (_, k) => 360 + 10 * k);
 const HEIGHTS = [700, 860, 1000];
@@ -158,6 +158,16 @@ for (const [site, urls] of Object.entries({
 // The page's own rules: the status line shows its whole text, the hands' panel stays on the board, and in one column
 // (under 800 pixels) the field is at least as high as it is wide.
 const DB_PRACTICE_SIZES = [[1376, 952], [1920, 1080], [2560, 1440], [390, 844]];
+/** The problems at each of those sizes, with the page's own rules, one line each with its size. */
+async function problemsAtSizes(page: Page, own: (p: Page) => Promise<string[]> = async () => []): Promise<string[]> {
+  const found: string[] = [];
+  for (const [width, height] of DB_PRACTICE_SIZES) {
+    await page.setViewportSize({ width, height });
+    await settle(page);
+    found.push(...[...await problems(page), ...await own(page)].map(p => `${width} x ${height}: ${p}`));
+  }
+  return found;
+}
 test("layout of Drawing Board's /practice", async ({ page }) => {
   test.skip(!DRAWING_BOARD, "DB_BASE_URL gives no Drawing Board preview");
   await page.goto(new URL("/practice", DRAWING_BOARD).href);
@@ -190,13 +200,7 @@ test("layout of a practice game on Drawing Board", async ({ page }) => {
     return out;
   });
   expect(await sweep(page, "a practice game on Drawing Board", own)).toBe("");
-  const found: string[] = [];
-  for (const [width, height] of DB_PRACTICE_SIZES) {
-    await page.setViewportSize({ width, height });
-    await settle(page);
-    found.push(...[...await problems(page), ...await own(page)].map(p => `${width} x ${height}: ${p}`));
-  }
-  expect(found).toEqual([]);
+  expect(await problemsAtSizes(page, own)).toEqual([]);
 });
 
 // Drawing Board's review and Analysis board (its design 33), when DB_BASE_URL gives its preview with the engine's
@@ -212,12 +216,7 @@ for (const [name, path] of [["review", ""], ["Analysis board", SPREAD_BOARD]] as
       await expect(page.locator("main.review")).not.toHaveAttribute("aria-busy", { timeout: 120_000 });
       await expect(page.locator("table").filter({ hasText: "Visits" }).first().locator("[data-name]").first()).toBeVisible({ timeout: 300_000 });
     } else await reviewTestGame(page);
-    const found: string[] = [];
-    for (const [width, height] of DB_PRACTICE_SIZES) {
-      await page.setViewportSize({ width, height });
-      await settle(page);
-      found.push(...(await problems(page)).map(p => `${width} x ${height}: ${p}`));
-    }
+    const found = await problemsAtSizes(page);
     expect([await sweep(page, `Drawing Board's ${name}`), ...found].filter(Boolean).join("\n")).toBe("");
   });
 }
@@ -232,22 +231,18 @@ test("layout of the choice for a tool's game", async ({ page }) => {
 
 // Drawing Board's import page (its design 33), when DB_BASE_URL gives its preview with the engine's files: the choice
 // for the review's test game, below the notice that an out-of-date userscript gets, and a record that the engine
-// refuses (the test game's first three turns, with an x on a move that captures nothing). Besides the sweep, design
-// 06's window sizes.
-const REFUSED = '[Blue "Ann"]\n[Red "Bo"]\n\n1. 1:-1,1>2:0,-1 2. 1:-1,1>2:-2,1 1:0,2>2:0,3 3. 1:0,2>2:2,2 2@1,-5x *\n';
-for (const [name, record] of [["the choice", ""], ["a refused record", REFUSED]] as const) {
+// refuses (REFUSED: an x on a move that captures nothing). Besides the sweep, design 06's window sizes.
+const IMPORT_PAGES: [string, string | undefined, (p: Page) => Locator][] = [
+  ["the choice", undefined, p => p.getByRole("button", { name: "Analyze on the board" })],
+  ["a refused record", REFUSED, p => p.getByRole("alert")],
+];
+for (const [name, record, shown] of IMPORT_PAGES) {
   test(`layout of Drawing Board's import page: ${name}`, async ({ page }) => {
     const skip = await noReview(page);
     test.skip(!!skip, skip);
-    await page.goto(new URL("/import#" + new URLSearchParams({ tool: "userscript", v: "old", site: "strategyjam.org", at: "5",
-                                                             record: record || testRecord() }), DRAWING_BOARD).href);
-    await expect(page.getByRole(record ? "alert" : "button", record ? {} : { name: "Analyze on the board" })).toBeVisible({ timeout: 120_000 });
-    const found: string[] = [];
-    for (const [width, height] of DB_PRACTICE_SIZES) {
-      await page.setViewportSize({ width, height });
-      await settle(page);
-      found.push(...(await problems(page)).map(p => `${width} x ${height}: ${p}`));
-    }
+    await page.goto(toolLink({ tool: "userscript", v: "old", at: 5, record }));
+    await expect(shown(page)).toBeVisible({ timeout: 120_000 });
+    const found = await problemsAtSizes(page);
     expect([await sweep(page, `Drawing Board's /import, ${name}`), ...found].filter(Boolean).join("\n")).toBe("");
   });
 }

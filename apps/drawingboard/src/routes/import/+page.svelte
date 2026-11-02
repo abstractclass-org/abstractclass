@@ -4,36 +4,32 @@
   // strategyjam.org game with the position that its page showed. The game leaves the address at once, as on Hedge
   // School. The engine's rules then check the record (recordCheck.ts, design 33, item 11): a record that they refuse
   // shows why, and opens nothing. Else the player chooses the review, which keeps the game in this browser, or the
-  // Analysis board at the position that the game's page showed, in place of the board kept here. Each goes to its
-  // page's own address with the record, and that page takes it out of the address again. For an out-of-date tool, the
-  // page also says how to update it. Drawing Board has no analytics yet, so the import counts no event. The page alone
-  // goes to the tools.
-  import { onDestroy, onMount } from "svelte";
+  // Analysis board at the position that the game's page showed, which asks before the game replaces the board kept
+  // here. Each goes to its page's own address with the record, and that page takes it out of the address again. For an
+  // out-of-date tool, the page also says how to update it. Drawing Board has no analytics yet, so the import counts no
+  // event. The page alone goes to the tools.
+  import { onMount } from "svelte";
   import { replaceState } from "$app/navigation";
   import { BOOKMARK_VERSION } from "@abstractclass/import/bookmarklet.ts";
   import { analysisAddress, holdsGame, readImportHash, staleTool, type ImportHash,
            type Tool } from "@abstractclass/import/importHash.ts";
   import ToolChoice from "@abstractclass/import/ToolChoice.svelte";
-  import { EngineWorker, loadManifest } from "@abstractclass/engine/client.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import { turnFromCount } from "#lib/game/notation.ts";
   import { parseRecord, playerNames, type GameRecord } from "#lib/game/record.ts";
-  import { describeBy, recordProblem } from "#lib/review/recordCheck.ts";
+  import { checkRecord } from "#lib/review/recordCheck.ts";
   import { SITE_NAME } from "#lib/site.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
 
   const MESSAGE = "box-content max-w-184 mx-auto my-6 px-4 grid gap-4";
 
-  // What the page shows: the game while the engine checks it, then the choice, or why it opens nothing (`read`: the
-  // record was read, and the engine refused it).
-  type Phase = { at: "reading" }
-    | { at: "checking"; sent: ImportHash; record: GameRecord }
-    | { at: "choose"; sent: ImportHash; record: GameRecord }
-    | { at: "failed"; read: boolean; problem: string };
+  // What the page shows: the game while the engine checks it, then the choice, or why it opens nothing.
+  type Phase = { at: "reading" } | { at: "checking" | "choose"; sent: ImportHash; record: GameRecord }
+    | { at: "failed"; message: string };
   let phase = $state.raw<Phase>({ at: "reading" });
   let stale = $state<Tool | null>(null); // the tool, when it is out of date
-  let rules: EngineWorker | null = null;
+  const sentence = (text: string) => text.replace(/\.?$/, "."); // an error's text, ended by one period
 
   onMount(async () => {
     if (!holdsGame(location.hash)) { location.replace("/tools"); return; }
@@ -50,44 +46,26 @@
       stale = old === "older" ? null : old;
       record = parseRecord(sent.record);
     } catch (e) {
-      phase = { at: "failed", read: false, problem: errorText(e) };
+      phase = { at: "failed", message: `${SITE_NAME} could not read the game: ${sentence(errorText(e))}` };
       return;
     }
     phase = { at: "checking", sent, record };
-    const problem = await check(record);
-    phase = problem ? { at: "failed", read: true, problem: problem.replace(/\.?$/, ".") }
+    const problem = await checkRecord(record);
+    phase = problem ? { at: "failed", message: `${SITE_NAME} cannot open this game: ${sentence(problem)}` }
       : { at: "choose", sent, record };
   });
-  onDestroy(() => rules?.terminate());
-
-  /** What is wrong with the record by the engine's rules, or null, in a rules worker of the page's own, which ends
-   *  after the check. */
-  async function check(record: GameRecord): Promise<string | null> {
-    try {
-      const manifest = await loadManifest();
-      if (!manifest) return "this site has no engine files";
-      rules = new EngineWorker();
-      await rules.init(manifest);
-      return await recordProblem(describeBy(rules), record);
-    } catch (e) {
-      return errorText(e);
-    } finally {
-      rules?.terminate();
-      rules = null;
-    }
-  }
 
   // Each choice replaces this page in the history: Back then leads to the game's page.
   const reviewChosen = (sent: ImportHash) =>
     location.replace("/review#" + new URLSearchParams({ record: sent.record }));
   const analyzeChosen = (sent: ImportHash, record: GameRecord) =>
-    location.replace(analysisAddress(sent, record.moves.length));
+    location.replace(analysisAddress(sent, record.moves.length, null)); // no analytics: no source
   // What each choice does, in strict Simplified Technical English: the player follows it.
   const REVIEW_TEXT = `The engine examines all the moves of the game. It gives a quality label to each move. ${SITE_NAME} `
     + "keeps the game in this browser.";
   const analyzeText = (sent: ImportHash) => `The Analysis board shows ${sent.at === null
     ? "the position after the last move of the game" : "the position that you saw on strategyjam.org"}. Make your own `
-    + "moves to examine other lines. The game replaces the moves on your Analysis board.";
+    + "moves to examine other lines.";
 
   /** The position that the game's page showed, in words: `at` is the game's moves before it, as strategyjam.org's
    *  slider counts them. The record numbers turns: Blue's first turn has one move, each later turn two. */
@@ -99,58 +77,43 @@
     return `The game's page showed the position after move ${at}. Move ${at} is the ${first ? "first" : "second"} move `
       + `of turn ${turn} in the record.`;
   }
-  const heading = (sent: ImportHash) => (sent.site === "strategyjam.org" ? "A game from strategyjam.org" : "A game");
-  const length = (record: GameRecord) => `${record.moves.length} ${record.moves.length === 1 ? "move" : "moves"}`;
 </script>
 
 <PageMeta title={SITE_NAME} noindex /> <!-- a game that a link carries, nothing to index (design 23) -->
 
-<!-- The texts that a player follows, in strict Simplified Technical English. -->
-{#snippet staleNotice()}
-  {#if stale === "bookmarklet"}Your bookmarklet is an old version. Go to the <a href="/tools">tools page</a>. Drag the
-    button to the bookmarks bar again. Then delete the old bookmark.
-  {:else}Your userscript is older than the userscript on this site. Tampermonkey updates it at its next check. To update
-    it now, open the Drawing Board userscript on the <a href="/tools">tools page</a>. Tampermonkey then shows the
-    update.{/if}
-{/snippet}
-{#snippet noticeBox()}
-  <p class="px-4 py-3 bg-panel border border-accent rounded-lg" role="status">{@render staleNotice()}</p>
-{/snippet}
-{#snippet theRecord(text: string)}
-  <details>
-    <summary class="cursor-pointer">The record</summary>
-    <!-- `anywhere`: the Site tag's address breaks, so that the record fits a phone's width. -->
-    <pre class="mt-2 p-3 bg-panel border border-line rounded font-mono text-sm whitespace-pre-wrap
-                [overflow-wrap:anywhere]">{text}</pre>
-  </details>
-{/snippet}
-
 <main class={MESSAGE}>
+  <!-- The texts that a player follows, in strict Simplified Technical English. -->
+  {#if stale}
+    <p class="px-4 py-3 bg-panel border border-accent rounded-lg" role="status">
+      {#if stale === "bookmarklet"}Your bookmarklet is an old version. Go to the <a href="/tools">tools page</a>. Drag
+        the button to the bookmarks bar again. Then delete the old bookmark.
+      {:else}Your userscript is older than the userscript on this site. Tampermonkey updates it at its next check. To
+        update it now, open the Drawing Board userscript on the <a href="/tools">tools page</a>. Tampermonkey then
+        shows the update.{/if}
+    </p>
+  {/if}
   {#if phase.at === "reading"}
     <p class="text-muted">Opening the game…</p>
-  {:else if phase.at === "checking"}
+  {:else if phase.at === "failed"}
+    <p class="text-blunder" role="alert">{phase.message}</p>
+    <p>The newest bookmarklet and userscript are on the <a href="/tools">tools page</a>.</p>
+  {:else}
     {@const { sent, record } = phase}
     {@const names = playerNames(record.tags)}
-    {#if stale}{@render noticeBox()}{/if}
-    <h1 class="text-2xl font-bold">{heading(sent)}</h1>
-    <p><strong>{names.blue} against {names.red}</strong>, {length(record)}.</p>
-    {#if sent.tool}<p>{shown(sent.at, record.moves.length)}</p>{/if}
-    <p class="text-muted" role="status">The engine examines the moves of the game…</p>
-  {:else if phase.at === "choose"}
-    {@const { sent, record } = phase}
-    {@const names = playerNames(record.tags)}
-    <ToolChoice heading={heading(sent)} players="{names.blue} against {names.red}" length={length(record)}
-                notice={stale ? staleNotice : undefined}
+    {@const moves = record.moves.length}
+    <ToolChoice heading={sent.site === "strategyjam.org" ? "A game from strategyjam.org" : "A game"}
+                players="{names.blue} against {names.red}" length="{moves} {moves === 1 ? 'move' : 'moves'}"
+                pending={phase.at === "checking" ? "The engine examines the moves of the game…" : undefined}
                 review={{ label: "Review the game", text: REVIEW_TEXT, onclick: () => reviewChosen(sent) }}
                 analyze={{ label: "Analyze on the board", text: analyzeText(sent), onclick: () => analyzeChosen(sent, record) }}>
-      {#if sent.tool}<p>{shown(sent.at, record.moves.length)}</p>{/if}
+      {#if sent.tool}<p>{shown(sent.at, moves)}</p>{/if}
     </ToolChoice>
-    {@render theRecord(sent.record)}
-  {:else}
-    {#if stale}{@render noticeBox()}{/if}
-    <p class="text-blunder" role="alert">{SITE_NAME} {phase.read ? "cannot open this game" : "could not read the game"}:
-      {phase.problem}</p>
-    <p>The newest bookmarklet and userscript are on the <a href="/tools">tools page</a>.</p>
+    <details>
+      <summary class="cursor-pointer">The record</summary>
+      <!-- `anywhere`: the Site tag's address breaks, so that the record fits a phone's width. -->
+      <pre class="mt-2 p-3 bg-panel border border-line rounded font-mono text-sm whitespace-pre-wrap
+                  [overflow-wrap:anywhere]">{sent.record}</pre>
+    </details>
   {/if}
 </main>
 <SiteFooter />

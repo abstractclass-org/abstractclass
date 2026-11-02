@@ -322,7 +322,8 @@ edit in the same commit), so their changes still apply.
 - `packages/review/` (`@abstractclass/review`): the view (`ReviewView.svelte`) and its parts, on the same rules. Its
   check is `svelte-check`. `src/game.ts`: the view's game interface (item 9), the players' names, the score's
   format, and the class of a number in a move's shape (`DIGITS`). `src/ownership.ts`: the area map's styles and
-  marks. `src/lineImage.ts`: the line that an image draws, and its animation's frames. `src/review.css`: the
+  marks. `src/lineImage.ts`: the line that an image draws, and its animation's frames. `src/ReplaceAnalysis.svelte`:
+  the Analysis board's question before a line brought replaces the analysis kept in the browser. `src/review.css`: the
   package's Tailwind source and the view's style (item 9), which a site's style imports after `site.css`.
 - `apps/hedgeschool/src/lib/review/enclosureView.ts`: Enclosure's part of the view, which the review's and the
   Analysis board's pages give it. Its components: `EnclosureBoard.svelte` (Hedge School's board with the view's

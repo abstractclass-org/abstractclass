@@ -6,6 +6,7 @@
 // test skips, with a message, when the preview has none.
 import { expect, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
+import { BOOKMARK_VERSION } from "../../../packages/import/src/bookmarklet.ts";
 
 export const DRAWING_BOARD = process.env.DB_BASE_URL;
 const TURNS = 20;
@@ -19,6 +20,17 @@ export function testRecord(): string {
   const [tags, moves] = text.split(/\r?\n\r?\n/);
   const words = moves.trim().split(/\s+/);
   return `${tags.split(/\r?\n/).filter(t => !/^\[(Result|Scores) /.test(t)).join("\n")}\n\n${words.slice(0, words.indexOf(`${TURNS + 1}.`)).join(" ")}\n`;
+}
+
+/** A record that the engine refuses: the test game's first three turns, with an x on 2@1,-5, which captures nothing. */
+export const REFUSED = '[Blue "Ann"]\n[Red "Bo"]\n\n1. 1:-1,1>2:0,-1 2. 1:-1,1>2:-2,1 1:0,2>2:0,3 3. 1:0,2>2:2,2 2@1,-5x *\n';
+
+/** The import page's address that a tool opens on strategyjam.org, with the test game unless `record` gives another:
+ *  `at` is the position that the game's page showed, when it says. */
+export function toolLink(more: { tool?: string; v?: string; at?: number; record?: string } = {}): string {
+  const { tool = "bookmarklet", v = String(BOOKMARK_VERSION), at, record = testRecord() } = more;
+  return new URL("/import#" + new URLSearchParams({ tool, v, site: "strategyjam.org", ...(at === undefined ? {} : { at: String(at) }), record }),
+                 DRAWING_BOARD).href;
 }
 
 /** The Analysis board on a position of more views: the practice bot's test position
