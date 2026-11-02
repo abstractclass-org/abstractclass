@@ -418,6 +418,7 @@ cut edges that are on the board, so a line drawn over the board can show edges t
   press, drag and release (a click, a dragged edge, a note), and the notes drawn.
 - `packages/review/src/notes.ts`: the notes, `toggleNote` and `brushFor` (tests in `notes.test.ts`), which Drawing
   Board's board uses too (its design 33, "The player's notes"). Their colours are in `packages/review/src/review.css`.
+  The browser test of the notes on Practice's board: `tests/notes.spec.ts`.
 - The image of a line: `packages/review/src/lineImage.ts` (`imageLine`, the animation's frames `lineFrames`, tests in
   `lineImage.test.ts`), `src/lib/review/enclosureImage.ts` (`imageCaption`, `imageName`, tests in
   `enclosureImage.test.ts`), Enclosure's part of the view (`src/lib/review/enclosureView.ts`, `image`),

@@ -83,8 +83,10 @@ export const arrowPath = (from: Hex, to: Hex): string =>
   `M${arrowPoints(from, to).map(([x, y]) => `${round(x)},${round(y)}`).join("L")}Z`;
 
 /** The hexes that a straight stroke goes across, from one point of the plane to another, in order, each once: the hex
- *  under each point of the stroke, a tenth of a hex's radius apart. A drag of marks (design 33, "The player's notes")
- *  takes the hexes between two of the pointer's moves, so that a fast drag misses none. */
+ *  under each point of the stroke, at most a tenth of a hex's radius apart. A drag of marks (design 33, "The player's
+ *  notes") takes the hexes between two of the pointer's moves. So however fast the drag, it misses no hex that it
+ *  crosses for a tenth of the radius or more. It can leave out a hex whose corner it only clips: the player did not
+ *  mean that hex. */
 export function hexesAlong([ax, ay]: readonly [number, number], [bx, by]: readonly [number, number]): Hex[] {
   const n = Math.max(1, Math.ceil(Math.hypot(bx - ax, by - ay) / 0.1));
   const out: Hex[] = [];

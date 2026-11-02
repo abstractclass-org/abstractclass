@@ -2,7 +2,8 @@
 // button, as Lichess's board draws circles and arrows (its chessground board's drawable shapes). A note is only a
 // drawing: it is not an edge, and cuts or encloses nothing. A point is the game's: Enclosure's point (x, y), and
 // Blueprints' hex (q, r), which Drawing Board's board draws as a marked hex and an arrow (design 33). Each site's
-// board draws the notes, and each site gives its keys for the colours (`BrushKeys`).
+// board draws the notes, and each site gives its keys for the colours (`BrushKeys`) and its rule for the same note
+// (`SameNote`).
 
 export type NoteBrush = "green" | "yellow" | "purple" | "grey";
 type Point = readonly [number, number];
@@ -14,16 +15,26 @@ export const samePoint = (a: Point, b: Point) => a[0] === b[0] && a[1] === b[1];
 export const drawnNote = (from: Point, to: Point, brush: NoteBrush): BoardNote =>
   samePoint(from, to) ? { at: from, brush } : { at: from, to, brush };
 
-/** The same ring, or the same line drawn either way. */
+/** Which notes are one note, for a note drawn again (`toggleNote`). */
+export type SameNote = (a: BoardNote, b: BoardNote) => boolean;
+
+/** The same ring, or the same line drawn either way: Hedge School's rule. Its line has no head, so it has no
+ *  direction. */
 export function sameNote(a: BoardNote, b: BoardNote): boolean {
   if (!a.to || !b.to) return !a.to && !b.to && samePoint(a.at, b.at);
   return (samePoint(a.at, b.at) && samePoint(a.to, b.to)) || (samePoint(a.at, b.to) && samePoint(a.to, b.at));
 }
 
+/** The same ring, or the same arrow from the same point to the same point, as chessground's `sameEndpoints`: an arrow
+ *  drawn the other way is another note. Drawing Board's rule (design 33), whose arrow has a head. */
+export const sameEndpoints: SameNote = (a, b) =>
+  samePoint(a.at, b.at) && (a.to && b.to ? samePoint(a.to, b.to) : !a.to && !b.to);
+
 /** A note drawn again, as chessground toggles a shape: the same note in the same colour goes, in another colour it
- *  changes colour, and a new note joins the others. */
-export function toggleNote(notes: BoardNote[], note: BoardNote): BoardNote[] {
-  const i = notes.findIndex(n => sameNote(n, note));
+ *  changes colour, and a new note joins the others. A site gives its rule for the same note (Hedge School's by
+ *  default). */
+export function toggleNote(notes: BoardNote[], note: BoardNote, same: SameNote = sameNote): BoardNote[] {
+  const i = notes.findIndex(n => same(n, note));
   if (i < 0) return [...notes, note];
   return notes[i].brush === note.brush ? notes.filter((_, k) => k !== i) : notes.map((n, k) => (k === i ? note : n));
 }

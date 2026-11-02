@@ -46,7 +46,8 @@
   import { cellsOf, footprintOf, PLAYER_NAMES, sameHandHex } from "./position.ts";
   import { untrack, type Snippet } from "svelte";
   import LabelMark from "@abstractclass/review/LabelMark.svelte";
-  import { brushFor, drawnNote, ringed, ringPoints, toggleNote, type BoardNote, type NoteBrush } from "@abstractclass/review/notes.ts";
+  import { brushFor, drawnNote, ringed, ringPoints, sameEndpoints, toggleNote, type BoardNote, type NoteBrush }
+    from "@abstractclass/review/notes.ts";
   import { viewHexes } from "../review/blueprintsMap.ts";
   import { clamp, fit, fitAround, pan, pinch, toArea, toPlane, viewBox, zoomAt, type Rect, type Size, type View } from "./view.ts";
   import { FIRST_PLACE, FIRST_SIZE, fitWithPanel, handleSide, handsOf, HANDS_GAP, PANEL_GRIP, PANEL_PAD, panelRect,
@@ -392,7 +393,7 @@
   }
   function up(ev: PointerEvent, click: boolean) {
     if (sketch?.id === ev.pointerId) {
-      const next = !click ? notes : sketchNote ? toggleNote(notes, sketchNote) : markedNotes ?? notes;
+      const next = !click ? notes : sketchNote ? toggleNote(notes, sketchNote, sameEndpoints) : markedNotes ?? notes;
       sketch = null;
       if (next !== notes) onnotes?.(next);
       return;
@@ -426,6 +427,7 @@
 
   // The player's notes (design 33, "The player's notes", with @abstractclass/review/notes.ts, as Hedge School's board):
   // the right button marks a hex, and a right drag draws an arrow to another hex, as Lichess draws circles and arrows.
+  // An arrow keeps its direction, as chessground's shapes do: the other way, it is another arrow (`sameEndpoints`).
   // With Shift, a right drag marks each hex that it goes across, as strategyjam.org's Sandbox does, or clears that
   // colour's marks from them when its first hex has a mark of the colour. The keys held choose the colour (`NOTE_KEYS`).
   // A note is at hexes of the board only. A click on the field clears the position's notes (chessground's

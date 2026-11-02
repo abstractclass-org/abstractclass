@@ -52,7 +52,8 @@ async function holding(page: Page, keys: string[], draw: () => Promise<void>) {
   await draw();
   for (const k of keys.toReversed()) await page.keyboard.up(k);
 }
-/** A right drag from a point to another: an arrow, or with Shift the marks of the hexes that it goes across. */
+/** A right drag from a point of the window to another, with keys held: on Drawing Board's board an arrow, or with
+ *  Shift the marks of the hexes that it goes across, and on Hedge School's a line (notes.spec.ts). */
 export const rightDrag = (page: Page, a: { x: number; y: number }, b: { x: number; y: number }, keys: string[] = []) =>
   holding(page, keys, async () => {
     await page.mouse.move(a.x, a.y);
@@ -60,7 +61,7 @@ export const rightDrag = (page: Page, a: { x: number; y: number }, b: { x: numbe
     await page.mouse.move(b.x, b.y, { steps: 6 });
     await page.mouse.up({ button: "right" });
   });
-/** A right-click at a point: a marked hex. */
+/** A right-click at a point: a marked hex, or on Hedge School's board a ring. */
 export const rightClick = (page: Page, p: { x: number; y: number }, keys: string[] = []) => rightDrag(page, p, p, keys);
 /** The colours, each with the keys that choose it (Drawing Board's: purple with no key, yellow with Ctrl, green with
  *  Alt, grey with both). */

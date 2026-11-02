@@ -1,11 +1,11 @@
 // The player's notes on Drawing Board's board (its design 33, "The player's notes"), on its preview (DB_BASE_URL): on
 // the Analysis board with the review's test game (Stamp Duty against itself), and on Practice with a game in progress.
 // A right-click marks a hex and a right drag draws an arrow, in each colour by the keys held (Drawing Board's: Ctrl,
-// Alt or both). The same note again removes it, and in another colour changes its colour. A right drag with Shift
-// marks each hex that it goes across, or clears that colour's marks when its first hex has one. The notes stay with
-// their position for the visit, a click on the board clears them, and a pan does not. Hedge School's keys are its unit
-// test's (packages/review/src/notes.test.ts). The review's notes are in drawingboard-review.spec.ts, which reviews the
-// game once. Without the engine's files the tests skip, with a message. Run: npx playwright test
+// Alt or both). The same note again removes it, and in another colour changes its colour. An arrow drawn the other way
+// is another arrow. A right drag with Shift marks each hex that it goes across, or clears that colour's marks when its
+// first hex has one. The notes stay with their position for the visit, a click on the board clears them, and a pan
+// does not. Hedge School's notes are in notes.spec.ts. The review's notes are in drawingboard-review.spec.ts, which
+// reviews the game once. Without the engine's files the tests skip, with a message. Run: npx playwright test
 // tests/drawingboard-notes.spec.ts, with DB_BASE_URL.
 import { expect, test } from "@playwright/test";
 import { readFileSync } from "node:fs";
@@ -36,13 +36,18 @@ test.describe("with the engine's files", () => {
     await rightDrag(page, a, b);
     await expect.poll(() => notesOn(page)).toEqual([{ brush: "purple", kind: "hex" }, { brush: "purple", kind: "arrow" }]);
     expect(await page.evaluate(() => (window as unknown as { menus: boolean[] }).menus)).toEqual([true, true]);
-    // The same hex again, in the same colour, removes its note. In another colour, it changes the note's colour. The
-    // arrow drawn the other way is the same arrow.
+    // The same hex again, in the same colour, removes its note. In another colour, it changes the note's colour. An
+    // arrow drawn the other way is another arrow, as on Lichess.
     await rightClick(page, a);
     await expect.poll(() => notesOn(page)).toEqual([{ brush: "purple", kind: "arrow" }]);
     await rightDrag(page, b, a, ["Control"]);
-    await expect.poll(() => notesOn(page)).toEqual([{ brush: "yellow", kind: "arrow" }]);
+    const arrows = [{ brush: "purple", kind: "arrow" }, { brush: "yellow", kind: "arrow" }];
+    await expect.poll(() => notesOn(page)).toEqual(arrows);
     await rightDrag(page, a, b, ["Control"]);
+    await expect.poll(() => notesOn(page)).toEqual([arrows[1], arrows[1]]);
+    await rightDrag(page, a, b, ["Control"]);
+    await expect.poll(() => notesOn(page)).toEqual([arrows[1]]);
+    await rightDrag(page, b, a, ["Control"]);
     await expect.poll(() => notesOn(page)).toEqual([]);
     // Each colour by its keys (none, Ctrl, Alt, both), and Shift alone, which chooses no colour
     for (const [i, [brush, keys]] of [...BRUSHES, ["purple", ["Shift"]] as [string, string[]]].entries()) {

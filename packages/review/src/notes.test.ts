@@ -1,7 +1,8 @@
 // The player's notes (notes.ts): the same note, drawn again, goes or changes colour. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { BRUSH_KEYS, brushFor, drawnNote, ringed, ringPoints, sameNote, toggleNote, type BoardNote, type BrushKeys } from "./notes.ts";
+import { BRUSH_KEYS, brushFor, drawnNote, ringed, ringPoints, sameEndpoints, sameNote, toggleNote, type BoardNote,
+  type BrushKeys } from "./notes.ts";
 
 const ring = (x: number, y: number, brush: BoardNote["brush"] = "green"): BoardNote => ({ at: [x, y], brush });
 const line = (a: [number, number], b: [number, number], brush: BoardNote["brush"] = "green"): BoardNote => ({ at: a, to: b, brush });
@@ -15,6 +16,22 @@ test("a ring or a line drawn again goes; in another colour it changes colour", (
   assert.deepEqual(toggleNote(notes, ring(10, 11)), [notes[1]]);
   assert.deepEqual(toggleNote(notes, line([15, 10], [12, 13])), [notes[0]]);
   assert.deepEqual(toggleNote(notes, ring(10, 11, "yellow")), [ring(10, 11, "yellow"), notes[1]]);
+});
+
+test("Drawing Board's arrow keeps its direction, as chessground's sameEndpoints: drawn back, another arrow", () => {
+  const ab = line([0, 0], [2, -1]), ba = line([2, -1], [0, 0], "yellow");
+  assert.ok(sameEndpoints(ab, line([0, 0], [2, -1], "grey")) && !sameEndpoints(ab, ba));
+  assert.ok(sameEndpoints(ring(0, 0), ring(0, 0, "yellow")));
+  assert.ok(!sameEndpoints(ring(0, 0), ab) && !sameEndpoints(ab, ring(0, 0)));
+  // The arrow back joins the arrow there, and each one drawn again goes or changes colour on its own
+  let notes = toggleNote([ab], ba, sameEndpoints);
+  assert.deepEqual(notes, [ab, ba]);
+  notes = toggleNote(notes, line([0, 0], [2, -1], "yellow"), sameEndpoints);
+  assert.deepEqual(notes, [line([0, 0], [2, -1], "yellow"), ba]);
+  assert.deepEqual(toggleNote(notes, ba, sameEndpoints), [notes[0]]);
+  // Hedge School's line has no head: the line back is the same line, which changes colour or goes
+  assert.deepEqual(toggleNote([ab], ba), [ba]);
+  assert.deepEqual(toggleNote([ab], line([2, -1], [0, 0])), []);
 });
 
 test("the keys pick the colour, as chessground's brushes", () => {

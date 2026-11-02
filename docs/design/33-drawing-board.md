@@ -456,22 +456,26 @@ The player draws notes on the board in the review, on the Analysis board and on 
 have them too (design 07, item 16). The notes are Lichess's circles and arrows (its chessground board's drawable
 shapes) on Blueprints' hexes.
 
-1. **Hedge School's notes, at a hex, with Drawing Board's keys.** The logic and the colours are Hedge School's, in
-   `packages/review` (`notes.ts`, which moved there from Hedge School). A Blueprints hex (q, r) is its point. A
-   right-click highlights a hex, and a right drag from a hex to another draws an arrow. The same note again removes
-   it. The same note in another colour changes its colour. An arrow drawn the other way is the same arrow. The keys
-   held choose the colour: purple with no key, yellow with Ctrl, green with Alt, and grey with Ctrl and Alt. Hedge
-   School gives yellow to Shift or Ctrl. Drawing Board gives Shift to a drag of highlights (item 2). Each site gives
-   its keys as one table (`BrushKeys` in `notes.ts`), and Drawing Board's is `NOTE_KEYS` in `Board.svelte`. The board
-   chooses the colour by its table, and "Keys and clicks" shows the table. The colours are the view's tokens
-   (`review.css`), 3:1 against the board that the two sites share.
+1. **Hedge School's notes, at a hex, with Drawing Board's keys and arrows.** The logic and the colours are Hedge
+   School's, in `packages/review` (`notes.ts`, which moved there from Hedge School). A Blueprints hex (q, r) is its
+   point. A right-click highlights a hex, and a right drag from a hex to another draws an arrow. The same note again
+   removes it. The same note in another colour changes its colour. An arrow drawn the other way is another arrow, as
+   chessground keeps a shape's direction (`sameEndpoints`). An arrow has a head, so its direction is part of the
+   note. Hedge School's line has no head, and the line drawn the other way is the same line (`sameNote`). Each site
+   gives `toggleNote` its rule. The keys held choose the colour: purple with no key, yellow with Ctrl, green with
+   Alt, and grey with Ctrl and Alt. Hedge School gives yellow to Shift or Ctrl. Drawing Board gives Shift to a drag
+   of highlights (item 2). Each site gives its keys as one table (`BrushKeys` in `notes.ts`), and Drawing Board's is
+   `NOTE_KEYS` in `Board.svelte`. The board chooses the colour by its table, and "Keys and clicks" shows the table.
+   The colours are the view's tokens (`review.css`), 3:1 against the board that the two sites share.
 2. **A right drag with Shift highlights each hex that it goes across,** as strategyjam.org's Sandbox does. The other
    keys held choose the colour. A highlight of another colour on a hex changes to the drag's colour. If the drag's
    first hex has a highlight of the drag's colour, the drag clears instead. It removes that colour's highlights from
    the hexes that it goes across, and adds none. So the same drag again clears the group that it drew, as a second
    right-click clears a highlight. A right-click with Shift highlights or clears one hex. Arrows stay. The drag takes
-   each hex between two of the pointer's moves (`hexesAlong` in `hex.ts`), so a fast drag misses none. "Keys and
-   clicks" gives the drag and its clearing.
+   the hexes between two of the pointer's moves (`hexesAlong` in `hex.ts`), at points at most a tenth of a hex's
+   radius apart. So however fast the drag, it misses no hex that it crosses for a tenth of the radius or more. It can
+   leave out a hex whose corner it only clips: the player did not mean that hex. "Keys and clicks" gives the drag and
+   its clearing.
 3. **A drag off the board on screen takes no hex,** as chessground drops a shape that is released off its board. Off
    the board is outside the field or under the hands' panel, where the player cannot see the hex. An arrow released
    there is no note.
@@ -501,6 +505,14 @@ shapes) on Blueprints' hexes.
     green and purple), chosen by a button or a key. In its mode "Mark", a left click marks a hex and a left drag
     draws an arrow. As here, a right drag draws an arrow in any mode, and Shift with a right drag highlights hexes.
     Drawing Board keeps Hedge School's four colours, with Ctrl in the place of Shift for yellow.
+12. **Notes need a mouse.** A touch screen has no gesture for a note, since it has no right button. Hedge School's
+    board has none either, and Lichess's board draws a shape only with the right button or Shift. The layout test of
+    the board with notes draws them with a mouse and then sets the window to a phone's size (390 × 844): it checks the
+    layout, not touch.
+13. **Firefox and Shift, a known limit.** In Firefox, a right-click with Shift opens the browser's own menu, and the
+    page gets no event `contextmenu` that it could cancel (MDN, "Element: contextmenu event"). So in Firefox, a right
+    drag with Shift can end with Firefox's menu on screen. The page cannot stop it. Ctrl and Alt do not open it, and
+    Hedge School's yellow has Ctrl too. The sites are tested in Chromium only.
 
 ### No area map yet
 
@@ -542,11 +554,12 @@ position from move 10. Counts only: the archive's games are other people's, and 
   names have 5 to 19 characters, so one size for every name in a cell would make the short ones small. Enclosure's
   names have 5 to 7 characters, and Hedge School keeps its one size for a cell.
 - **No area map** ("No area map yet").
-- **The notes' keys, their drawing, and a pan that keeps them** ("The player's notes", items 1 to 4 and 10). Ctrl
-  alone gives yellow, and Shift with a right drag highlights the hexes that the drag goes across. Hedge School gives
-  yellow to Shift or Ctrl. A highlighted hex takes the place of a ring round a point, and an arrow the place of a
-  line. A click clears the notes, as on Hedge School's board. A pan does not, since Hedge School's board does not
-  pan.
+- **The notes' keys, their drawing, their arrows, and a pan that keeps them** ("The player's notes", items 1 to 4
+  and 10). Ctrl alone gives yellow, and Shift with a right drag highlights the hexes that the drag goes across. Hedge
+  School gives yellow to Shift or Ctrl. A highlighted hex takes the place of a ring round a point, and an arrow the
+  place of a line. An arrow drawn the other way is another arrow, and Hedge School's line drawn the other way is the
+  same line. A click clears the notes, as on Hedge School's board. A pan does not, since Hedge School's board does
+  not pan.
 - **The cards' second number:** the stars on the board, in the place of the enclosed area (item 2).
 
 The Move header and the fade of a cut name are in the shared table, so Hedge School has them too (design 06, item
@@ -714,7 +727,8 @@ The Move header and the fade of a cut name are in the shared table, so Hedge Sch
   which both sites' boards use.
 - `apps/hedgeschool/tests/drawingboard-review.spec.ts` and `move-header.spec.ts`: the browser tests of the review, and
   `layout.spec.ts` its layout. `drawingboard-notes.spec.ts`: the notes on the Analysis board and on Practice, with
-  `drawingboard-notes.ts`, which the review's test and the layout test of the board with notes use too.
+  `drawingboard-notes.ts`, which the review's test, the layout test of the board with notes and Hedge School's test of
+  its notes (`notes.spec.ts`) use too.
   `drawingboard-import.spec.ts`: the import page's choice, the Analysis board's question over a kept analysis, a
   record that the engine refuses and the notice of an out-of-date tool, and `layout.spec.ts` the page's layout. They
   run on this machine, where the engine's files are: without them they skip.

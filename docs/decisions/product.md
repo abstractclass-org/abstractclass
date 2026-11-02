@@ -7944,8 +7944,10 @@ abscls-8tl1.16. Design 33, "The player's notes", gives the result. What the issu
   colour tokens (`review.css`). The two boards share the board's colours, so the notes' 3:1 against the board holds
   on both. Hedge School's notes do what they did. Its unit test moved unchanged, and its board, view and Practice
   take the same functions from the package. `brushFor` now reads a site's table of keys. So a new unit test checks
-  Hedge School's colour for each of the 16 sets of keys held, against chessground's rule. Hedge School has no browser
-  test of its notes.
+  Hedge School's colour for each of the 16 sets of keys held, against chessground's rule. A new browser test
+  (`tests/notes.spec.ts`) checks Hedge School's notes on Practice's board: a ring, a line, the colours by its keys,
+  the same note again, a left click that clears them, and the notes by position. Before it, no browser test covered
+  them.
 - **Notes on the board only.** The hands' cells are in each blueprint's frame, which a line and an edit change. A note
   there would need another kind of note, and could outlive its cell.
 - **An arrow between touching hexes is a note,** as on Lichess. The tip stops 0.2 short of the centre, and the head is
@@ -7968,3 +7970,21 @@ abscls-8tl1.16. Design 33, "The player's notes", gives the result. What the issu
 - **A drag off the board on screen takes no hex,** as chessground drops a shape that is released off its board. Off
   the board is outside the field or under the hands' panel, where the player cannot see the hex. An arrow released
   there is no note.
+- **An arrow keeps its direction** (from the audit of the open issues, abscls-70t7). Chessground's
+  `sameEndpoints` counts a shape from B to A as another shape than the one from A to B. Drawing Board's arrow has a
+  head, so it takes that rule: an arrow drawn back over an arrow is a second arrow, and does not remove the first or
+  change its colour. Hedge School's line has no head, and keeps its rule (`sameNote`): the line drawn the other way
+  is the same line. `toggleNote` takes the site's rule, with Hedge School's by default. A unit test checks each rule.
+- **What a fast drag of highlights takes.** `hexesAlong` takes the hex under points of the stroke at most a tenth of
+  a hex's radius apart. So it misses no hex that the stroke crosses for a tenth of the radius or more, however far
+  apart the pointer's two moves are. It can leave out a hex whose corner the stroke only clips: the player did not
+  mean that hex. A unit test draws a stroke 30 radii long, 0.03 of a radius past a row of 17 corners: it takes each
+  of the 17 hexes, which it crosses for 0.104 of the radius. Points 0.12 apart or more leave some out. A stroke 0.01
+  past a corner crosses its hex for 0.035, and leaves it out.
+- **Notes need a mouse.** A touch screen has no right button, and no gesture for a note, as on Hedge School's board
+  and Lichess's. The layout test of the board with notes draws them with a mouse at 1,376 × 952 and then sets the
+  window to the other sizes, 390 × 844 too: it checks the layout, not touch.
+- **Firefox and Shift.** In Firefox, a right-click with Shift opens the browser's own menu with no event
+  `contextmenu` for the page to cancel (MDN, "Element: contextmenu event"). A right drag with Shift can then end with
+  Firefox's menu on screen, and the page cannot stop it. Ctrl and Alt do not open it. The sites are tested in Chromium
+  only.

@@ -113,3 +113,31 @@ test("a stroke's hexes: each hex that it goes across, in order, each touching th
   }
   assert.equal(new Set(hs.map(hexKey)).size, hs.length);
 });
+
+/** How far a stroke goes across each hex, by a walk in steps of a thousandth of a radius: each hex's key and length. */
+function across([ax, ay]: [number, number], [bx, by]: [number, number]): Map<string, number> {
+  const length = Math.hypot(bx - ax, by - ay), n = Math.ceil(length / 1e-3), out = new Map<string, number>();
+  for (let i = 0; i < n; i++) {
+    const t = (i + 0.5) / n, k = hexKey(hexAt(ax + (bx - ax) * t, ay + (by - ay) * t));
+    out.set(k, (out.get(k) ?? 0) + length / n);
+  }
+  return out;
+}
+
+test("a fast drag's hexes: each hex that it crosses for a tenth of a radius or more, and not a clipped corner", () => {
+  // Through the hexes' middles, from a point to one 12 hexes away: every hex between
+  assert.deepEqual(hexesAlong(center([-6, 0]), center([6, 0])), Array.from({ length: 13 }, (_, i) => [i - 6, 0]));
+  // Past the corners where the rows r = 0 and r = -1 meet, 0.03 above them, from a point to one 30 radii away: the
+  // stroke crosses a corner of each hex of the row r = -1 for 0.104 of the radius, and takes each one. A walk 0.12
+  // apart or more leaves some out.
+  const a: [number, number] = [0.1, -0.53], b: [number, number] = [30.1, -0.53];
+  const crossed = across(a, b), corners = [...crossed].filter(([h]) => h.endsWith(",-1"));
+  assert.equal(corners.length, 17);
+  assert.ok(corners.every(([, length]) => length > 0.1 && length < 0.11));
+  assert.deepEqual(hexesAlong(a, b).map(hexKey), [...crossed.keys()]);
+  // 0.01 above the corner where the hexes (0, 0), (1, 0) and (1, -1) meet, at (√3 / 2, -0.5), 2 radii long: the
+  // stroke crosses (1, -1) for 0.035 of the radius, between two of its points, and leaves it out
+  const c = Math.sqrt(3) / 2, from: [number, number] = [c - 1.05, -0.51], to: [number, number] = [c + 0.95, -0.51];
+  assert.ok(across(from, to).get("1,-1")! < 0.05);
+  assert.deepEqual(hexesAlong(from, to), [[0, 0], [1, 0]]);
+});
