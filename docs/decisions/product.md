@@ -7797,25 +7797,39 @@ abscls-8981, left by the review of abscls-tpaj.21 ("A book move takes the book's
   The badge after a variation's move is not part of its button in either unit: pointing at it and clicking it do
   nothing, as on any variation move that was evaluated.
 
-### A move that was asked for says "Evaluating…" only while a search can run (2026-11-02)
+### A move that the player asked to evaluate says "Evaluating…" only while a search can run (2026-11-02)
 
 - **The fault:** a variation move that the player marked with "Evaluate quality" showed "Evaluating…" and a pulsing
-  "…" whenever it had no label (`judged` and no label), also with the engine off, when nothing evaluates it.
-- **The rule** (design 07, item 11): the text and the pulse show while a search for the move can run or runs. The states
-  where one can: the engine on (the engine's switch is its pause: `GameAnalysis.paused`, which the session sets from
-  the switch), with its network loaded or still loading, and no engine error. The states where none can: the engine off,
-  an engine error (`GameAnalysis.error`), and a review snapshot (design 20). The rule is in `searchWait.ts`, with the
-  texts, and `ReviewView.svelte` reads it once (`searchReason`).
+  "…" whenever it had no label (`judged` and no label). It did so also with the engine off, when nothing evaluates it.
+- **The rule** (design 07, item 11): the text and the pulse show while a search for the move can run or runs. A
+  search can run while the engine is on, with its network loaded or still loading, and with no engine error. The
+  engine's switch is its pause: the session sets `GameAnalysis.paused` from the switch. No search can run with the
+  engine off, after an engine error (`GameAnalysis.error`), or in a review snapshot (design 20). The rule and the
+  texts are in `searchWait.ts`. `ReviewView.svelte` gives it the analysis's own fields and reads it once
+  (`whyNoSearch`).
 - **Where none can,** the move says "Not analyzed yet", as the game's moves say it, and then why and what to do:
-  "Not analyzed yet. The engine is off. Turn it on to evaluate this move.", "Not analyzed yet. The engine has an error."
-  and "Not analyzed yet. A review snapshot does no searches." The "…" mark does not show. The words "engine is off"
-  are the site's (the Threat line, the review bar: "Engine off. The review is paused.").
-- **Edge and turn, review and board:** the variation's move button (its tooltip, by edge and by turn), the pulse after
-  it, and the Analysis board's main-line moves that the player evaluated (`board.judged`: the edge's tooltip, the turn
-  cell's) use the one rule. Before, the board's main-line moves said "Not analyzed yet" also while their search ran.
-  They now say "Evaluating…" then.
+  "Not analyzed yet. The engine is off. To evaluate this move, set the engine switch to on.", "Not analyzed yet. The
+  engine has an error." and "Not analyzed yet. A review snapshot does no searches." The pulsing "…" does not show.
+  The words "engine is off" are the site's (the Threat line, the review bar: "Engine off. The review is paused.").
+  The step is "set the engine switch to on", Simplified Technical English's form for a switch, not "turn it on": the
+  standard forbids phrasal verbs.
+- **Edge and turn, review and board:** one rule gives the variation move's tooltip, by edge and by turn, and the
+  pulse after the move. It also gives the tooltips of the Analysis board's main-line moves that the player evaluated
+  (`board.judged`: the edge's tooltip, the turn cell's). These get no "…": the game's moves have none. Before, they
+  said "Not analyzed yet" also while their search ran. They now say "Evaluating…" then.
+- **"Review for":** a player that the setting leaves out shows no labels, and now no wait either. Before, by edge, a
+  judged variation move of that player kept the wait for good, because its label was hidden. It showed "Evaluating…"
+  and the pulse with the engine on, and the engine-off text with the engine off. By turn, the wait ended with the
+  judgement.
+- **A move that would be Great** waits for its extra searches only while the engine is on and its network is loaded
+  (`awaitsGreat`). Before that, or with the engine off, it shows the label that the searches done give (Best), not
+  "Not analyzed yet".
+- **An engine error** (`GameAnalysis.error`) stays with the analysis, and the other searches go on. The analysis does
+  not keep the search that failed. So after an error, a move says "The engine has an error." also while its own
+  search runs. Its label then comes as usual.
 - **Not changed:** a game move in a review, which has no label yet because the review is under way, keeps its text.
-  A position that the book holds (abscls-8981) is that branch's work.
-- **Tests:** `searchWait.test.ts` (the rule, with every state, "Evaluating…" included) and `tests/search-wait.spec.ts`
-  (the Analysis board with the engine off, by edge and by turn, on a variation and on the main line: the text, and no
-  pulse). The browser tests keep the engine off, so "Evaluating…" has the unit test alone.
+  abscls-8981 covers a position that the book holds.
+- **Tests:** `searchWait.test.ts` tests the rule in each state, "Evaluating…" included. `tests/search-wait.spec.ts`
+  opens the Analysis board with the engine off, by edge and by turn. On a variation and on the main line, it checks
+  the text and that nothing pulses. It also opens a review with "Review for" Blue, by edge and by turn: Red's
+  evaluated moves say nothing. The browser tests keep the engine off, so "Evaluating…" has the unit test alone.

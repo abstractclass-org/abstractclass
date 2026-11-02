@@ -164,8 +164,9 @@ reason. Design 05 gives the searches that the labels read: their schedule, their
      variation move of that turn is searched and judged as the game's moves are (`judgeTurn`, `judgeMove`). A variation
      that stops in a turn's middle has no turn label until the turn ends. A move that would be Great waits for its extra
      searches (the position before the enemy's last turn, then the confirmation of the gap) and shows "Evaluating…"
-     until they end (`GameAnalysis.awaitsGreat`), while a search can run. With the engine off, it says "Not analyzed
-     yet" and why (design 07, item 11).
+     until they end (`GameAnalysis.awaitsGreat`). It waits only while the engine is on and its network is loaded.
+     Before that, or with the engine off, it shows the label that the searches done give: Best, until the Great's
+     searches end. A move with no label says "Not analyzed yet" and why (design 07, item 11).
    - **A turn's note** gives the turn's cost, then each edge's loss in the lead, in the turn's order: "Blunder:
      −25.2% · −144.0 (−144.0, 0.0)". The parts are rounded together, in tenths, so that they make the turn's loss in
      the lead (Hamilton's largest remainders, `roundTogether`). The engine's own turn, Best or Great, has no parts:

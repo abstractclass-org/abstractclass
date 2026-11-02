@@ -152,17 +152,19 @@ cut edges that are on the board, so a line drawn over the board can show edges t
     searched: the labels take the book's values there, as on the game's line (design 32, "A book position's
     values"). The turn is judged as the game's turns are (`judgeTurn`), and each edge as the game's edges are
     (`judgeMove`, the same bands): "Review by" chooses which shows.
-    Until then the move list shows a pulsing "…", and the move's tooltip says "Evaluating…", for as long as a search for
-    the move can run or runs. A search can run when the engine is on, and its network is loaded or loads. Where none
-    can, the move has no pulse, and its tooltip says "Not analyzed yet", as the game's moves say it, and then why and
-    what the player can do: "The engine is off. Turn it on to evaluate this move." (the engine's switch is its pause),
-    "The engine has an error." and "A review snapshot does no searches." (`searchWait.ts`). The rule is the same by
-    edge and by turn (design 06, item 8), in the review and on the Analysis board, and for the main line's moves that
-    the player evaluated on the board. When the label comes, the move shows it as for the game (Great, Inaccuracy,
-    Mistake, Blunder),
-    by turn after the move that ends the turn, with every label in its tooltip, and the board shows the badges of the
-    turn just played. The moves evaluated are kept with the variations. A variation that stops in a turn's middle has no
-    turn label until the turn ends.
+    Until then the move list shows a pulsing "…" after the move, and the move's tooltip says "Evaluating…", for as long
+    as a search for the move can run or runs. A search can run when the engine is on, and its network is loaded or
+    loads. Where none can, the move has no pulse, and its tooltip says "Not analyzed yet", as the game's moves say it,
+    and then why and what the player can do: "The engine is off. To evaluate this move, set the engine switch to on."
+    (the engine's switch is its pause), "The engine has an error." and "A review snapshot does no searches."
+    (`searchWait.ts`). An engine error stays with the analysis, which does not keep the search that failed: after an
+    error, a move says so also while its own search runs. The rule is the same by edge and by turn (design 06, item 8),
+    in the review and on the Analysis board. The board's main-line moves that the player evaluated get the same
+    tooltips, and no "…": the game's moves have none. A player that "Review for" leaves out shows no labels, so
+    their moves show no wait either. When the label comes, the move shows it as for the game (Great, Inaccuracy,
+    Mistake, Blunder), by turn after the move that ends the turn, with every label in its tooltip, and the board shows
+    the badges of the turn just played. The moves evaluated are kept with the variations. A variation that stops in a
+    turn's middle has no turn label until the turn ends.
     - **A move that is the engine's only good move** also asks for the position before the enemy's last turn, when
       that position has no result of the label budget: a Great needs it (design 10, item 6). A position of the game has
       it already. A position of a variation has it when the player looked at it or evaluated a move from it. The move
