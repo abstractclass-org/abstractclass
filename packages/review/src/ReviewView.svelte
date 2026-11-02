@@ -38,7 +38,7 @@
     secondAt(path: string[]): Analysis<G["move"]> | undefined; // the position after the engine's second choice, which confirms a Great
     otherAt(path: string[], turn: (G["move"] | null)[]): Analysis<G["move"]> | undefined; // the same for a turn
     earlierAt(path: string[], mover: Player): Analysis<G["move"]> | undefined; // before the other player's last turn, which a Great must gain on
-    bookAt(path: string[]): Analysis<G["move"]> | undefined; // the book's values, which the labels take where the book holds the position
+    valuesAt(path: string[]): Analysis<G["move"]> | undefined; // the values that judge a position: the book's where it holds it, else the engine's
     awaitsGreat(key: string): boolean; // the move into this path key waits for the searches of its Great
     turnKeys(path: string[]): string[]; // the variation moves that evaluating this move's quality judges
     pending(path: string[]): boolean; // the review's own searches can still change this position's analysis
@@ -1010,7 +1010,7 @@
   /** The analysis that judges the moves at `p`: the book's values where the book holds the position (design 32). */
   function analysisAt(p: string[]): Analysis<G["move"]> | undefined {
     const i = mainIndex(p, mainNames);
-    return i !== null ? R.data.analysis[i] : game?.bookAt(p) ?? branches[pathKey(p)]?.analysis;
+    return i !== null ? R.data.analysis[i] : game?.valuesAt(p);
   }
   /** The paths of the turn that a variation move ends, or null where the turn goes on after it. */
   function branchTurnPaths(p: string[]): string[][] | null {

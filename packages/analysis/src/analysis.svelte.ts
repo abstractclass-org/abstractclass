@@ -95,7 +95,7 @@ export class GameAnalysis<G extends GameTypes> {
   // holds positions, not lines: a variation that reaches a book position by another move order takes its values too.
   private branchBook = $state.raw<Record<string, Analysis<G["move"]>>>({});
   private bookLookup: ((position: G["position"]) => Promise<Analysis<G["move"]> | undefined>) | null = null;
-  private bookAsked = new Map<string, Promise<Analysis<G["move"]> | undefined>>(); // the lookups, by path key
+  private bookAsked = new Map<string, Promise<void>>(); // the lookups, by path key
   rulesReady = $state(false);
   engineReady = $state(false);
   paused = $state(false); // the engine is off: no search starts
@@ -241,7 +241,7 @@ export class GameAnalysis<G extends GameTypes> {
    *  can come once the stages run: a position that they searched before keeps that result for the column. Not on the
    *  board, whose analysis takes no book.
    *  `lookup` gives the book's values of any position, or undefined where the book does not hold it or its part does
-   *  not load. The variations' positions take their values from it (bookAt): "Evaluate quality" does not search those
+   *  not load. The variations' positions take their values from it (valuesAt): "Evaluate quality" does not search those
    *  positions (judge), and the labels read the book's values there, as on the game's line. */
   useBook(results: (Analysis<G["move"]> | undefined)[],
           lookup?: (position: G["position"]) => Promise<Analysis<G["move"]> | undefined>) {
@@ -249,27 +249,32 @@ export class GameAnalysis<G extends GameTypes> {
     this.bookResults = results;
     if (!lookup) return;
     this.bookLookup = lookup;
-    for (const key of Object.keys(this.branches)) void this.branchBookOf(key);
+    for (const key of Object.keys(this.branches)) void this.askBook(key);
   }
 
   /** The book's values that the review takes at the position at `path` (useBook): a position of the game, or of a
    *  variation once the book has answered for it. */
-  bookAt(path: string[]): Analysis<G["move"]> | undefined {
+  private bookAt(path: string[]): Analysis<G["move"]> | undefined {
     const i = mainIndex(path, this.mainNames);
     return i === null ? this.branchBook[pathKey(path)] : this.bookResults[i];
   }
 
-  /** Asks the book once for the values of the variation's position with path key `key` (useBook's `lookup`).
-   *  Undefined where no book has come yet, where the book does not hold the position, and where the lookup fails: the
-   *  position is then searched, as without a book. */
-  private branchBookOf(key: string): Promise<Analysis<G["move"]> | undefined> {
+  /** The values that judge the position at `path`, the game's or a variation's: the book's where the review takes them
+   *  (bookAt), else the engine's (analysisOf). The game's line reads the same in `data`. */
+  valuesAt(path: string[]): Analysis<G["move"]> | undefined {
+    return this.bookAt(path) ?? this.analysisOf(path);
+  }
+
+  /** Asks the book once for the values of the variation's position with path key `key` (useBook's `lookup`), and
+   *  keeps them for bookAt. None where no book has come yet, where the key is no variation's, where the book does not
+   *  hold the position, and where the lookup fails: the position is then searched, as without a book. */
+  private askBook(key: string): Promise<void> {
     const node = this.branches[key], lookup = this.bookLookup;
-    if (!node || !lookup) return Promise.resolve(undefined);
+    if (!node || !lookup) return Promise.resolve();
     let asked = this.bookAsked.get(key);
     if (!asked) {
       asked = lookup(node.position).catch(() => undefined).then(a => {
         if (a) this.branchBook = { ...this.branchBook, [key]: a };
-        return a;
       });
       this.bookAsked.set(key, asked);
     }
@@ -296,7 +301,7 @@ export class GameAnalysis<G extends GameTypes> {
    *  review takes them (useBook), as the labels read them (data). */
   earlierAt(path: string[], mover: Player): Analysis<G["move"]> | undefined {
     const earlier = this.earlierPath(path, mover);
-    return earlier && (this.bookAt(earlier) ?? this.analysisOf(earlier));
+    return earlier && this.valuesAt(earlier);
   }
 
   /** The path of the position before the other player's last turn (earlierAt), or undefined where the line has none. */
@@ -552,7 +557,7 @@ export class GameAnalysis<G extends GameTypes> {
       };
     }
     this.branches = next;
-    for (let j = k + 1; j <= path.length; j++) void this.branchBookOf(pathKey(path.slice(0, j))); // the book's values there
+    for (const key of prefixKeys(path).slice(k + 1)) void this.askBook(key); // the book's values there
     if (keep) await this.keepBranches();
   }
 
@@ -605,7 +610,7 @@ export class GameAnalysis<G extends GameTypes> {
     // A position that has the book's values needs no search: the game's, or a variation's once the book has answered for
     // it. A book that comes later drops the searches that still wait for an engine.
     const positions = this.judging(path);
-    await Promise.all(positions.map(p => (mainIndex(p, this.mainNames) === null ? this.branchBookOf(pathKey(p)) : undefined)));
+    await Promise.all(positions.map(p => this.askBook(pathKey(p)))); // a game's position: none to wait for
     for (const p of positions)
       if (this.searchable(p) && !this.bookAt(p))
         this.search(p, this.labelVisits, PRIORITY.judge, "judge", { early: LABEL_VISITS, wanted: () => !this.bookAt(p) })

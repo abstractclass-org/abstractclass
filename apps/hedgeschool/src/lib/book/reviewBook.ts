@@ -17,7 +17,7 @@ export async function giveBook(g: GameAnalysis<Enclosure>): Promise<void> {
   try {
     const book = EARLY_ACCESS ? siteBook() : null, opened = book && (await book.opened());
     if (!opened || !g.rulesReady) return;
-    const values = bookValues(opened);
-    g.useBook(await Promise.all(g.positions.map(p => values(p.notation))), p => values(p.notation));
+    const values = bookValues(opened), lookup = (p: Enclosure["position"]) => values(p.notation);
+    g.useBook(await Promise.all(g.positions.map(lookup)), lookup);
   } catch { /* no values: the review searches those positions */ }
 }

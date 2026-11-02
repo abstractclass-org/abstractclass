@@ -66,9 +66,3 @@ export function bookValues(book: Book): (notation: string | undefined) => Promis
     return bookAnalysis(p, book.source.visits, p.moves[0] ? await get(p.moves[0].to) : null);
   };
 }
-
-/** The book's values of a game's positions, by index (`bookValues`). `notations[i]`: position i in the notation,
- *  undefined where it has none. */
-export async function bookResults(book: Book, notations: (string | undefined)[]): Promise<(Analysis<Edge> | undefined)[]> {
-  return Promise.all(notations.map(bookValues(book)));
-}

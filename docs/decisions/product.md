@@ -7759,7 +7759,7 @@ that the designs left open:
 
 ### A book move played from the table takes the book's label: a variation's book positions (2026-11-02)
 
-Bead abscls-8981, left by the review of abscls-tpaj.21 ("A book move takes the book's label and loss", above).
+abscls-8981, left by the review of abscls-tpaj.21 ("A book move takes the book's label and loss", above).
 
 - **What:** a book move that the player plays from the book's table becomes a variation of the game (design 07).
   "Evaluate quality" judged it by the book's value before it, where that position is the game's, and by an engine
@@ -7770,9 +7770,10 @@ Bead abscls-8981, left by the review of abscls-tpaj.21 ("A book move takes the b
   a search of the positions before and after each, to the label budget, at the evaluation's priority. Their results go
   to the variation's nodes (`branches`, each node's `analysis`), and the view judges the move from them (`branchLabel`
   and `branchTurnAt` in `ReviewView.svelte`). Before the change, only the game's positions took the book's values
-  (`bookAt` read `bookResults` by the game's index). Now `bookAt` reads a variation's position too, and the view's
-  `analysisAt` takes it before the node's own search. The Greats' checks read `bookAt` already, so no move from or into
-  a variation's book position is Great, as on the game's line.
+  (`bookAt` read `bookResults` by the game's index). Now `bookAt` reads a variation's position too. The view's
+  `analysisAt` reads `GameAnalysis.valuesAt`: the book's values where the book holds the position, else the node's own
+  search. The Greats' checks read `bookAt` already, so no move from or into a variation's book position is Great, as on
+  the game's line.
 - **How:** `giveBook` gives `useBook` a lookup by position (`bookValues` in `results.ts`), beside the game's values.
   The analysis asks it once for each variation position, when the tree adds the position or when the book comes. The
   evaluation waits for the answers of its positions, then searches the positions with no book values. A search that
@@ -7785,8 +7786,13 @@ Bead abscls-8981, left by the review of abscls-tpaj.21 ("A book move takes the b
   map of a variation's book position is the book's too, as on the game's line (`mapAt` reads `bookAt`).
 - **Measured:** unit tests. In the analysis package, with a book that holds two positions, "Evaluate quality" on a
   variation move between them searches nothing, and the move after it searches only the position outside the book. In
-  the site, with the test book, K12-N11 after A10-D9 N11-Q10 (a variation of book-left-review.json) gets the table's
-  label, Inaccuracy, and its loss of 8.5% by edge, and N11-Q10 K12-N11 the label and the loss of the table's row by
-  turn. A browser test plays K12-N11 from the table with the engine off: "Evaluate quality" shows Inaccuracy in the
-  move list. Before the change the move list kept "…" there, by the code: the position after the move waited for a
-  search that the engine, off, does not start. The test did not run on the code before the change.
+  the site, the test book judges K12-N11 after A10-D9 N11-Q10, a variation of book-left-review.json. By edge, the move
+  gets the table's label, Inaccuracy, and its loss of 8.5%. By turn, N11-Q10 K12-N11 gets the label and the loss of
+  the table's row. A browser test plays K12-N11 from the table with the engine off, by edge and by turn: "Evaluate
+  quality" shows Inaccuracy in the move list and in the move's tooltip. Before the change the move list kept "…"
+  there, by the code: the position after the move waited for a search that the engine, off, does not start. The test
+  did not run on the code before the change.
+- **The review's check by edge and by turn** (design 06, item 8): in headless Chromium, the move has the same
+  tooltip and the same badge in both. Pointing at the move previews the position after it, and a click goes there.
+  The badge after a variation's move is not part of its button in either unit: pointing at it and clicking it do
+  nothing, as on any variation move that was evaluated.

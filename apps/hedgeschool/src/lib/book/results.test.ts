@@ -8,6 +8,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { LABEL_VISITS } from "@abstractclass/analysis/cache.ts";
 import { moverOf } from "#lib/editor/position.ts";
 import { edgeName, mirrorEdge, parseEdge } from "#lib/engine/notation.ts";
 import { playerOf } from "#lib/engine/position.ts";
@@ -15,7 +16,7 @@ import { enclosure, judgeBranchMove, judgeTurn, moverWin, review, valuesAfter, t
 import { decodeArea } from "./area.ts";
 import { bookMove, openBook } from "./book.ts";
 import type { BookPart, BookPosition } from "./form.ts";
-import { bookAnalysis, bookResults, bookValues } from "./results.ts";
+import { bookAnalysis, bookValues } from "./results.ts";
 import { turnRows } from "./rows.ts";
 import { edgeCount, lossTo, moveLabel, moveLoss } from "./sentences.ts";
 
@@ -25,7 +26,7 @@ const book = await openBook("/test-book/prototype/index.json", read);
 const VISITS = book.source.visits;
 const names = (a: Analysis) => a.candidates.map(c => edgeName(c.edge));
 
-/** The book's result of a position, as bookResults gives it: with the position after its first book move. */
+/** The book's result of a position, as bookValues gives it: with the position after its first book move. */
 const resultOf = async (p: BookPosition) => bookAnalysis(p, VISITS, p.moves[0] ? await book.get(p.moves[0].to) : null);
 
 /** The review of a line of book positions, with the book's values at each (`end`: a search's result after the line's
@@ -124,9 +125,9 @@ test("a book whose parts do not load gives no values: the review searches every 
     throw new Error("offline");
   });
   const start = book.start, after = bookMove((await book.get(start))!, "A10-D9")!.to;
-  assert.deepEqual(await bookResults(failing, [start, after, undefined]), [undefined, undefined, undefined]);
+  assert.deepEqual(await Promise.all([start, after, undefined].map(bookValues(failing))), [undefined, undefined, undefined]);
   // The book that loads: the positions that it holds, and none for the one that it does not
-  const given = await bookResults(book, [start, after, "A10-D9 Q10-T10 r2 0/0 1"]);
+  const given = await Promise.all([start, after, "A10-D9 Q10-T10 r2 0/0 1"].map(bookValues(book)));
   assert.deepEqual(given.map(a => a?.book ?? null), [true, true, null]);
 });
 
@@ -134,7 +135,7 @@ test("a book whose parts do not load gives no values: the review searches every 
 // book's values at its positions that the book holds (bookValues, GameAnalysis.useBook's lookup) and searches the
 // others, and the view judges the move from them (ReviewView, branchLabel and branchTurnAt).
 test("a variation's book move, evaluated: the table's label and loss, by edge and by turn; outside the book, a search", async () => {
-  const values = bookValues(book), LABEL_VISITS = 256;
+  const values = bookValues(book);
   // In book-left-review.json Red played N11-Q10 O11-Q10 at turn 2. The variation K12-N11 after N11-Q10: Red's worst
   // book move there.
   const start = (await book.get(bookMove((await book.get(book.start))!, "A10-D9")!.to))!;

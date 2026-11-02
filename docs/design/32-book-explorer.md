@@ -622,14 +622,14 @@ edges).
   search is older than the book: its review searched every position. Its review snapshot and the removal ask for every
   position, as before.
 - **A variation's positions:** a book move that the player plays from the table becomes a variation of the game
-  (design 07). When "Evaluate quality" asks for the labels of a variation's turn (design 07, item 11), each position
-  before or after its moves that the book holds takes the book's values, and the engine does not search it. A
-  position outside the book is searched, as before. The labels then follow by the review's rules, with the exceptions
-  above, as on the game's line. So a book move played from the table gets the label and the loss of the table's row.
+  (design 07). "Evaluate quality" asks for the labels of a variation's turn (design 07, item 11). Each position before
+  or after its moves that the book holds then takes the book's values, and the engine does not search it. The engine
+  searches the positions outside the book. The labels then follow by the review's rules, with the exceptions above, as
+  on the game's line. So a book move played from the table gets the label and the loss of the table's row.
   - **How:** `giveBook` gives `GameAnalysis.useBook` a lookup of the book's values by position (`bookValues` in
     `results.ts`). The analysis asks it once for each variation position that the tree adds, and for the variations
     that the tree has when the book comes. The evaluation waits for the answers before it starts its searches. The view
-    judges a variation move from the book's values where the analysis has them (`bookAt`). The analysis column shows
+    judges a variation move from the book's values where the analysis has them (`valuesAt`). The analysis column shows
     the engine's own search of the position on screen, as on the game's line.
   - **Another move order:** the book holds positions, not lines. A variation that reaches a book position by another
     move order takes that position's values.
@@ -638,9 +638,15 @@ edges).
     labels take the book's values.
   - **A book that does not load,** or a position whose part does not load: the evaluation searches the variation's
     positions, as without a book.
-- **The Analysis board and a set-up board** take no book values: the board's analysis searches its positions as
-  before, its variations' positions too, and its labels stay on the moves that the player evaluates (design 21). The
-  book's table shows the book there.
+  - **A variation move that was not evaluated:** the analysis asks the book for each variation position, evaluated or
+    not. So at a variation's book position, the ◆ of a hard position (design 14) and the area map (design 30) are the
+    book's, as on the game's line.
+  - **The annotated record** writes no labels for a variation (design 13). After a variation's move it writes the
+    engine's `[%eval]` where a search of the position ran. The book's values have no score spread, so the record
+    writes no `[%eval]` from them, on the game's line or in a variation.
+- **The Analysis board and a set-up board** take no book values: the board's analysis searches its positions and its
+  variations' positions, and its labels stay on the moves that the player evaluates (design 21). The book's table
+  shows the book there.
 - **Values with three decimals:** the book's win chances have three decimals, so a loss can fall on a band's limit
   (0.55 less 0.5 is 0.05, Good). A quality label rounds the loss to 6 decimals (`classify` in
   `packages/analysis/src/labels.ts`), as the book's rule does, so that a floating-point error does not put it in the
