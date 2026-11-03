@@ -228,12 +228,15 @@ Lichess sizes its Analysis board from the window, and keeps the board whole in v
      inside the move's button. By turn, they are the turn's judgement cell, which is one button. The cell acts as the
      turn's last edge. Pointing anywhere in it previews the position after the turn, with the status line of a move
      ("Preview: the position after edge 3, …"). A click goes there, and its menu is that edge's. One function gives
-     the move's button and the cell these actions (`asMove` in `ReviewView.svelte`), so they cannot drift apart. A
-     cell with nothing in it is a plain element. "Preview played moves" off turns the preview off, by edge and by
-     turn. The cell keeps its widths (the slot's 2.2 characters, the ◆'s 1.2 and the loss's 5), so it never widens a
-     column (`npm run test:layout`), and its label stands at the slot's left, as in a move's button. Its title is the
-     turn's tooltip. Assistive technology does not read a quality label's badge, so by edge and by turn the label's
-     word names its slot. The book mark keeps its name, and the ◆ its note.
+     the move's button and the cell these actions (`asMove` in `ReviewView.svelte`), so they cannot drift apart. The
+     cell takes its last edge's state too (`mainState`): the "here" outline when the board is after the turn, the picked
+     outline, or the pointer's outline. The place on screen is still one move: the code and the tests find it as
+     `.mv.here`, and the cell is no `.mv`. A variation's move holds its label slot, its "…" and its ◆ in its button too,
+     by edge and by turn (design 07, item 11). A cell with nothing in it is a plain element. "Preview played moves" off
+     turns the preview off, by edge and by turn. The cell keeps its widths (the slot's 2.2 characters, the ◆'s 1.2 and
+     the loss's 5), so it never widens a column (`npm run test:layout`), and its label stands at the slot's left, as in
+     a move's button. Its title is the turn's tooltip. Assistive technology does not read a quality label's badge, so by
+     edge and by turn the label's word names its slot. The book mark keeps its name, and the ◆ its note.
 9. **No text selection on the review page:** the page's text is a
    tool's, not a document's, so it takes no selection (`select-none`), and the pointer stays an arrow over the move
    list's labels and marks instead of a text cursor. An engine error can be selected, to be copied. The board never

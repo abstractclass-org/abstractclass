@@ -1189,6 +1189,9 @@
   // A move's outlines are drawn inside its box (negative offsets): the move list's scroll area clips what is drawn outside
   // it, at the right column's edge.
   const PICKED = "picked outline-2 outline-dashed outline-accent -outline-offset-2";
+  /** The state of the game's move `index` in the move list: on the board ("here"), picked, or the pointer's outline. By
+   *  turn, the turn's judgement cell takes its last edge's (design 06, item 8). */
+  const mainState = (index: number) => (mainAt === index + 1 ? MOVE_HERE : pickedKey === mainKeys[index + 1] ? PICKED : MOVE_HOVER);
   $effect(() => { if (pickedKey) movelist?.querySelector(".picked")?.scrollIntoView({ block: "nearest" }); });
   /** Goes to a position on the game's line. */
   const go = (p: number, sound = false) => setPath(mainNames.slice(0, Math.max(0, Math.min(last, p))), sound);
@@ -1229,6 +1232,17 @@
     && view.book.openingRow(opening, mainNames, shownLabel(opening.at), unit, shownJudgment));
   // The game's book moves, by the edge's index, each with the words of the position symbol after it
   const bookMoves = $derived(new Map(opening?.bookMoves.map(m => [m.index, m.after])));
+  /** The words of the position symbol after the move into `p` where it is a book move, else undefined: a move of the
+   *  game by the game's marks (bookMoves), a variation's by the same rule on its two positions (the book's `opening` of
+   *  that one move), once their parts of the book load. Only where the game's marks show: in a review whose book
+   *  loaded. Each lookup can load a part of the book, so the move list asks only for a move that shows a label. */
+  function bookAfterAt(p: string[]): string | undefined {
+    const i = mainIndex(p, mainNames);
+    if (i !== null) return i > 0 ? bookMoves.get(i - 1) : undefined;
+    const parts = view.book, node = branches[pathKey(p)], before = positionOf(p.slice(0, -1));
+    if (!opening || !parts || !node || !before) return undefined;
+    return parts.opening([parts.notation(before), parts.notation(node.position)], [p.at(-1)!])?.bookMoves[0]?.after;
+  }
   /** Goes to a position of the game from the Report's rows, and shows the book there for this review only: the switch
    *  shows "Book", and the choice that the browser keeps does not change. */
   function openBookAt(at: number, feature: string) {
@@ -1799,9 +1813,11 @@
           {/snippet}
           <!-- The whole cell (the label slot, the ◆ and the loss) is one button that acts as the turn's last edge, as a
                move's button holds them by edge: pointing anywhere in it previews the position after the turn, a click
-               goes there, and a right-click opens that edge's move menu. A cell with nothing in it is a plain element. -->
+               goes there, and a right-click opens that edge's move menu. Its state is that edge's too: "here" when the
+               board is after the turn, picked, or the pointer's outline. It is no `.mv`, so the place on screen is one
+               move (keepInView). A cell with nothing in it is a plain element. -->
           {#if slotted || hard || loss}
-            <button type="button" {...asMove(end)} title={tip} class={[cell, "bg-transparent border-0", MOVE_HOVER]}>
+            <button type="button" {...asMove(end)} title={tip} class={[cell, "bg-transparent border-0", mainState(end)]}>
               {@render judgement()}
             </button>
           {:else}
@@ -1917,7 +1933,7 @@
          the label or widens the column. The ◆ marks the position before the move (by turn, the turn's harder),
          on the board too, wherever that position has a result: the board's tooltips say where it has none. -->
     <button {...asMove(e.index)}
-            class={moveButton(e.player, mainAt === e.index + 1 ? MOVE_HERE : pickedKey === mainKeys[e.index + 1] ? PICKED : MOVE_HOVER)}
+            class={moveButton(e.player, mainState(e.index))}
             title={tip}>
       <span class={view.moveText}>{@render written(e)}</span>
       {#if unit === "edge"}
@@ -1970,26 +1986,31 @@
         {@const status = label ? LABEL_TEXT[label] : waiting ? unlabeled : ""}
         {@const hardness = branchHardness(p)}
         {#if node}
+          {@const text = display.branchForm === "text"}
+          {@const fit = text ? "" : "flex leading-none"}
+          {@const tip = text ? tooltip(status, hardness?.note) : tooltip(`${turnText(t)} ${view.notation(node.move)}`, status, hardness?.note)}
+          <!-- A book move's mark (design 32, item 4) comes with its quality label: by edge the move's, by turn the turn's,
+               when all the turn's edges are book moves (the game's by the game's marks). -->
+          {@const bookAfter = !label ? undefined : !bt ? bookAfterAt(p)
+            : bt.paths.every(q => bookAfterAt(q) !== undefined) ? bookAfterAt(p) : undefined}
           {@render turnMark(t, k)}
-          {#if display.branchForm === "text"}
-            <button class={["mv px-[0.2rem] py-px bg-transparent border-0 whitespace-nowrap", SIDE_TEXT[node.move.player],
-                            at ? "here bg-panel-2 outline outline-accent -outline-offset-1" : pickedKey === pathKey(p) ? PICKED
-                            : "hover:bg-panel-2 hover:outline hover:outline-line hover:-outline-offset-1"]}
-                    onclick={() => setPath(p, true)} onmouseenter={() => startPreview({ kind: "branch", path: p })} onmouseleave={endPreview} tabindex="-1"
-                    data-path={pathKey(p)} title={tooltip(status, hardness?.note)}>{@render written(node.move)}</button>
-          {:else}
-            <button class={["mv flex p-[0.08em] bg-transparent border-0 rounded-full",
-                            at ? "here outline-2 outline-accent" : pickedKey === pathKey(p) ? PICKED : "hover:outline hover:outline-ink"]}
-                    onclick={() => setPath(p, true)} onmouseenter={() => startPreview({ kind: "branch", path: p })} onmouseleave={endPreview} tabindex="-1"
-                    data-path={pathKey(p)} title={tooltip(`${turnText(t)} ${view.notation(node.move)}`, status, hardness?.note)}>
-              {@render edgeShape(node.move.edge, node.move.player, positionOf(p.slice(0, -1)))}
-            </button>
-          {/if}
-          {#if listed(label)}<span class="-ml-0.5 text-[0.9em]">{@render mark(label)}</span>
-          {:else if waiting && whyNoSearch === null}<span class="-ml-0.5 text-[0.9em] text-muted animate-pulse motion-reduce:animate-none" title={unlabeled}>…</span>{/if}
-          <!-- A hard position's ◆, small and muted as the move list's, with no slot of its own, as a variation's labels have
-               none. -->
-          {#if hardness?.hard}<span class="-ml-0.5 text-[0.8em] text-muted" title={HARD_NOTE}>◆</span>{/if}
+          <!-- The move's button holds its judgement, as a game move's button does by edge (design 06, item 8): the label
+               slot (a book mark or a quality label, by turn the turn's after the move that ends it) or the pulsing "…"
+               of its wait, then a hard position's ◆, small and muted as the move list's. Pointing at any of them
+               previews the move's line, a click goes there, and a right-click opens the move's menu. A variation's
+               parts have no fixed slots: its rows do not line up in columns. In the round forms each part is as tall
+               as its glyph (`fit`), not as its line: a label then keeps the row's height. -->
+          <button class={[text ? "mv flex items-center gap-1 px-[0.2rem] py-px whitespace-nowrap" : "mv flex items-center gap-0.5 p-[0.08em] rounded-full",
+                          "bg-transparent border-0", SIDE_TEXT[node.move.player],
+                          at ? (text ? MOVE_HERE : "here outline-2 outline-accent") : pickedKey === pathKey(p) ? PICKED
+                          : text ? MOVE_HOVER : "hover:outline hover:outline-ink"]}
+                  onclick={() => setPath(p, true)} onmouseenter={() => startPreview({ kind: "branch", path: p })} onmouseleave={endPreview} tabindex="-1"
+                  data-path={pathKey(p)} title={tip}>
+            {#if text}{@render written(node.move)}{:else}{@render edgeShape(node.move.edge, node.move.player, positionOf(p.slice(0, -1)))}{/if}
+            {#if (label && bookAfter !== undefined) || listed(label)}{@render labelSlot(label, tip, bookAfter, `text-[0.9em] ${fit}`)}
+            {:else if waiting && whyNoSearch === null}<span class={["text-[0.9em] text-muted animate-pulse motion-reduce:animate-none", fit]} title={unlabeled}>…</span>{/if}
+            {#if hardness?.hard}<span class={["text-[0.8em] text-muted", fit]} title={HARD_NOTE}>◆</span>{/if}
+          </button>
         {:else if engine && step}
           {@render engineEdge(engine, p, step, k)}
         {/if}

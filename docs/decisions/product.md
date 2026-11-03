@@ -7833,3 +7833,45 @@ abscls-8981, left by the review of abscls-tpaj.21 ("A book move takes the book's
   opens the Analysis board with the engine off, by edge and by turn. On a variation and on the main line, it checks
   the text and that nothing pulses. It also opens a review with "Review for" Blue, by edge and by turn: Red's
   evaluated moves say nothing. The browser tests keep the engine off, so "Evaluating…" has the unit test alone.
+
+### A variation's label and ◆ act as its move, and its book move shows the book mark (2026-11-03)
+
+abscls-exfe and abscls-gapn, built together, because both change what follows a variation's move in the move list.
+
+- **What (abscls-exfe):** a variation move's quality label, its pulsing "…" and its ◆ stood after the move's button.
+  Pointing at them and clicking them did nothing, unlike the game's moves (design 06, item 8). Now they are inside
+  the move's button, in each form of the variations (text, pills and dots), by edge and by turn. Pointing at any of
+  them previews the move's line, a click goes there, and a right-click opens the move's menu. By turn, the turn's
+  label is in the button of the move that ends the turn. Assistive technology reads the label's word, as on the
+  game's line (`labelSlot`).
+- **The turn's judgement cell** takes its last edge's state (`mainState`): the "here" outline when the board is after
+  the turn, the picked outline when the fork keys pick that edge, else the pointer's outline. Before, it had the
+  pointer's outline only. The cell is no `.mv`, so `keepInView` and the tests still find one place on screen.
+- **What (abscls-gapn):** a variation's book move showed its quality label, not the book mark that the game's book
+  moves show (design 32, item 4). Now it shows the same mark, by the same rule, with the same settings and tooltip.
+  The mark comes with the label, so only after "Evaluate quality", and "Review for" hides it with the label. By turn,
+  a variation's turn shows the mark when all its edges are book moves. An edge of the game's line in that turn counts
+  by the game's own mark (`bookMoves`). The mark shows only in a review whose book loaded, as the game's marks do. The
+  Analysis board has none.
+- **The data path:** the view asks the site's book about the two positions of one move, with the function that gives
+  the game's marks (`BookParts.opening`, through `bookAfterAt` in `ReviewView.svelte`). This adds one function and no
+  interface: the rule and the words of the position symbol are the game's. Other paths need more parts. The analysis
+  (`GameAnalysis.branchBook`, abscls-8981) knows which variation positions the book holds, but not whether the book
+  lists the move or the symbol after it, so it would need new fields and a new lookup. A new method on the book's
+  interface would repeat `opening`'s rule. Each lookup can load a part of the book, so the move list asks only for a
+  move that shows a label.
+- **The round forms:** in pills and dots, the button grows into a capsule round the shape and its marks, and the
+  "here" outline goes round all of them. Each part is as tall as its glyph (`leading-none`), so a label keeps the
+  row's height.
+- **Measured** in headless Chromium at 1366 × 900, on K12-N11 before and after "Evaluate quality", by edge and by turn
+  alike. Text: the button grows from 62.3 to 80.6 px wide, its height stays 21 px and its row 25 px. Pills: from 17 ×
+  17.4 to 33.3 × 17.4 px, and the row stays 21.4 px. Dots: from 13.4 × 13.4 to 29.8 × 16.6 px, and the row stays 21.1
+  px. Before each part fitted its glyph, the label's line made the pills and dots buttons 19.2 px high and their rows
+  23.2 px. By turn, the cell of turn 2 is "here" after the turn, and the page has one `.mv.here`.
+- **Tests:** `tests/book-review.spec.ts`, with the engine off, by edge and by turn. K12-N11, played from the book's
+  table at turn 2 of book-left-review.json and evaluated, shows the book mark with its name, title and colour, in
+  each form of the variations. Pointing at the mark previews the line, a click goes there, and a right-click opens
+  the move's menu. A review file with two variations and their stored results (made in the test from
+  book-left-review.json) gives a move outside the book, with its plain label, and a move after a hard position, with
+  the ◆. Their label and ◆ act as the move. By turn, the judgement cell is "here" after its turn, not in the turn's
+  middle, and picked with its last edge.
