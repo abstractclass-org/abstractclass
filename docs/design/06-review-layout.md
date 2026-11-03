@@ -229,25 +229,29 @@ Lichess sizes its Analysis board from the window, and keeps the board whole in v
      turn's last edge. Pointing anywhere in it previews the position after the turn, with the status line of a move
      ("Preview: the position after edge 3, …"). A click goes there, and its menu is that edge's. One function gives
      the move's button and the cell these actions (`asMove` in `ReviewView.svelte`), so they cannot drift apart. The
-     cell takes its last edge's "here" and picked outlines too (`mainState`). The place on screen is still one move: the
+     cell takes its last edge's "here" and picked outlines too (`moveState`). The place on screen is still one move: the
      code and the tests find it as `.mv.here`, and the cell is no `.mv`. So by turn the "here" outline is two boxes, the
      last edge's and the cell's: one box round both could read as one move. A variation's turn has the same parts: by
      turn, its label slot, its "…" and its ◆ are the turn's own button after the move that ends the turn (design 07,
      item 11). One function gives a variation's move and that button their actions (`asBranch`). The pointer on a turn's
-     label (the cell, or a variation's button) lights the turn's edges in the label's row and the label as one group:
-     one outline round them, in the pointer's style of the row's form (`GROUP_HOVER` in `moveList.ts` on the game's line
-     and in the text form, the ink outline in pills and dots). The members' own pointer outlines do not show then, and
-     the "here" and picked outlines stay. Pointing at one edge lights that edge alone. So a label lights what it judges:
-     by edge the move that holds it, by turn the turn's edges. A turn that wraps lights each line's part, and on the
-     game's line a turn whose edges take two rows lights each row's part. A variation that starts in a turn's middle
-     lights only the turn's edges in the label's row. An overlay draws the group (`lightTurn` in `ReviewView.svelte`):
-     when the pointer comes onto the label, the view measures the members and draws one box for each line, behind the
-     row's content. A row is a flex or grid box that wraps its items, and CSS alone (`:has()`, a wrapper) cannot draw
-     one outline round some of its items on each line. A cell with nothing in it is a plain element. "Preview played
-     moves" off turns the preview off, by edge and by turn. The cell keeps its widths (the slot's 2.2 characters, the
-     ◆'s 1.2 and the loss's 5), so it never widens a column (`npm run test:layout`), and its label stands at the slot's
-     left, as in a move's button. Its title is the turn's tooltip. Assistive technology does not read a quality label's
-     badge, so by edge and by turn the label's word names its slot. The book mark keeps its name, and the ◆ its note.
+     label (the cell, or a variation's button) lights the turn's edges in the label's row and the label as one group.
+     One outline goes round them, in the pointer's style of the row's form: `GROUP_HOVER` in `moveList.ts` on the game's
+     line and in the text form, and `ROUND_GROUP` in pills and dots. The members' own pointer outlines do not show
+     then, and the "here" and picked outlines stay. Pointing at one edge lights that edge alone. So a label lights
+     what it judges: by edge the move that holds it, by turn the turn's edges. A turn that wraps lights each line's
+     part, and on the game's line a turn whose edges take two rows lights each row's part. A variation that starts in
+     a turn's middle lights only the turn's edges in the label's row. An overlay draws the group (`lightsTurn` in
+     `ReviewView.svelte`): while the pointer is on the label, the view measures the members and draws one box for each
+     line, behind the row's content. The boxes follow the members when they change size or move (a "…" that becomes a
+     label, a narrower list, an element that comes into the row before them), and they go with the label. A row is a
+     flex or grid box that wraps its items, and CSS alone (`:has()`, a wrapper) cannot draw one outline round some of
+     its items on each line. Only a pointer that hovers lights the group. A touch
+     does not, as a move's pointer outline does not show on a touch screen. A cell with nothing in it is a plain
+     element. "Preview played moves" off turns the preview off, by edge and by turn. The cell keeps its widths (the
+     slot's 2.2 characters, the ◆'s 1.2 and the loss's 5), so it never widens a column (`npm run test:layout`), and its
+     label stands at the slot's left, as in a move's button. Its title is the turn's tooltip. Assistive technology does
+     not read a quality label's badge, so by edge and by turn the label's word names its slot. The book mark keeps its
+     name, and the ◆ its note.
 9. **No text selection on the review page:** the page's text is a
    tool's, not a document's, so it takes no selection (`select-none`), and the pointer stays an arrow over the move
    list's labels and marks instead of a text cursor. An engine error can be selected, to be copied. The board never

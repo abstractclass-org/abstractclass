@@ -30,9 +30,14 @@ export const TURN_NUMBER = "text-muted tabular-nums";
 const MOVE = "mv flex items-baseline gap-1 px-[0.2rem] py-px font-mono text-[0.95em] text-left whitespace-nowrap bg-transparent border-0";
 export const MOVE_HERE = "here bg-panel-2 outline outline-accent -outline-offset-1";
 export const MOVE_HOVER = "hover:bg-panel-2 hover:outline hover:outline-line hover:-outline-offset-1";
-/** The pointer's look on a group of moves (by turn, a turn's edges and its label, ReviewView.svelte's `lightTurn`): a
+/** The pointer's look on a group of moves (by turn, a turn's edges and its label, ReviewView.svelte's `lightsTurn`): a
  *  move's (MOVE_HOVER), drawn while the pointer is on the turn's label. */
 export const GROUP_HOVER = "bg-panel-2 outline outline-line -outline-offset-1";
+/** The same three looks on a variation's round button (its pills and dots): on the board, under the pointer, and round
+ *  a group. */
+export const ROUND_HERE = "here outline-2 outline-accent";
+export const ROUND_HOVER = "hover:outline hover:outline-ink";
+export const ROUND_GROUP = "outline outline-ink";
 /** A move's button: the mover's colour, and its state, by default the pointer's outline. */
 export const moveButton = (player: Player, state: string = MOVE_HOVER) => [MOVE, SIDE_TEXT[player], state];
 

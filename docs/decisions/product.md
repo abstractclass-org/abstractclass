@@ -7844,7 +7844,7 @@ abscls-exfe and abscls-gapn, built together, because both change what follows a 
   button after the move that ends the turn ("The design by turn", below). Pointing at any of them previews the
   move's line, a click goes there, and a right-click opens the move's menu. Assistive technology reads the label's
   word, as on the game's line (`labelSlot`).
-- **The turn's judgement cell** takes its last edge's state (`mainState`): the "here" outline when the board is after
+- **The turn's judgement cell** takes its last edge's state (`moveState`): the "here" outline when the board is after
   the turn, and the picked outline when the fork keys pick that edge. Before, it had the pointer's outline only. Now the
   pointer on it lights the turn's group instead ("The design by turn", below). The cell is no `.mv`, so `keepInView` and
   the tests still find one place on screen.
@@ -7877,34 +7877,46 @@ abscls-exfe and abscls-gapn, built together, because both change what follows a 
   book-left-review.json) gives a move outside the book, with its plain label, and a move after a hard position, with
   the ◆. Their label and ◆ act as the move. By turn, the judgement cell is "here" after its turn, not in the turn's
   middle, and picked with its last edge.
-- **The design by turn,** decided at the look of 2026-11-03 (the look page drew each choice into the review). Three
+- **The design by turn,** decided on pages that drew each choice into the review, after the first build. Three
   choices:
   - **The "here" outline stays two boxes:** the turn's last edge and its label (the game's judgement cell, or a
-    variation's label) each show "here". The owner's words: "I lean towards A, as B can be misunderstood." One box
-    round both could read as one move.
+    variation's label) each show "here". The other choice was one box round both. The reason: "B [one box] can be
+    misunderstood". One box round both could read as one move.
   - **A variation's turn label is the turn's own element.** The first build put the turn's label, its "…" and its ◆
-    in the button of the move that ends the turn. The owner's words: "Making it part of a move makes it seem like the
+    in the button of the move that ends the turn. The reason: "Making it part of a move makes it seem like the
     move's label, instead of the turn's." Now they are their own button after the turn's last edge, as the game's
     judgement cell. It acts as that edge: pointing at it previews the edge's line, a click goes there, and a
     right-click opens the edge's menu. One function gives both buttons these actions (`asBranch`, as `asMove` on the
     game's line). Its state is the edge's "here" and picked, and it is no `.mv`, so the place on screen is still one
     move. Its title is the turn's tooltip. A turn with no label, no "…" and no ◆ has no such button. By edge nothing
     changes: the label is the edge's own, in its button.
-  - **The pointer on a turn's label lights the whole turn.** The owner's words: "So for edge mode: edge and labels is
-    one element. For turn mode: edge is its own element. But when hovering over label, both moves and label treat as
-    one element." Then, at the page with the group drawn in: "looks good". By turn, the pointer on a turn's label (a
+  - **The pointer on a turn's label lights the whole turn.** The request: "So for edge mode: edge and labels is one
+    element. For turn mode: edge is its own element. But when hovering over label, both moves and label treat as one
+    element." The page with the group drawn in was then approved. By turn, the pointer on a turn's label (a
     variation's button, or the game's judgement cell) lights the turn's edges in the label's row and the label as one
-    group: one outline round them, in the pointer's style of the row's form (`GROUP_HOVER` in the text form and on
-    the game's line, the ink outline in pills and dots). The members' own pointer outlines do not show then, and the
+    group. One outline goes round them, in the pointer's style of the row's form (`GROUP_HOVER` in the text form and
+    on the game's line, the ink outline in pills and dots). The members' own pointer outlines do not show then, and the
     "here" and picked outlines stay. Pointing at one edge lights that edge alone. A turn that wraps lights each line's
     part. A variation that starts in a turn's middle lights only the turn's edges in the label's row.
-- **How the group is drawn:** an overlay (`lightTurn` in `ReviewView.svelte`). When the pointer comes onto a turn's
-  label (`mouseenter`, the event that starts the preview), the view measures the label and the row's elements that
-  act as the turn's edges. It draws one box for each line that holds them, behind the row's content: the row is
+- **How the group is drawn:** an overlay (`lightsTurn` in `ReviewView.svelte`, an attachment on each turn's label).
+  When a pointer that hovers comes onto a turn's label, the view measures the label and the row's elements that act
+  as the turn's edges. It draws one box for each line that holds them, behind the row's content: the row is
   `isolate`, and the box is at a negative z-index. The other means do not fit. A wrapper round the turn's edges and
   its label would be one flex item, and would change how the row wraps. A row element holds several turns in a
   variation. `:has()` can style each member, but cannot draw one outline round several items and the gaps between
-  them, on each line. A long press on a touch screen is abscls-3wp0's: its fix must cover the group too.
+  them, on each line.
+- **The group while the pointer stays:** a `ResizeObserver` on the row and its elements measures the group again
+  when one of them changes size. A "…" becomes a label, a label becomes the book mark when its part of the book
+  loads, a ◆ comes, or the list gets narrower. A `MutationObserver` adds each element that comes into the row to the
+  watch: one that comes before the members moves them. A group measured only when the pointer came would cut through
+  the new label. The boxes render with their label, and the group goes out when the label goes from under the pointer. A
+  turn whose "…" ends in a label that the list does not show (Best, Excellent or Good, with no ◆) loses its button.
+  A removed element gets no `mouseleave`, so a group that only `mouseleave` cleared would stay lit, and the board
+  would keep the label's preview, until the pointer passed over another label. The label's preview ends with it.
+- **A touch lights no group.** Tailwind's `hover:` applies only where the device can hover, so a tap on a move does
+  not leave its pointer outline. A tap sends `mouseenter` too, so a group that started on it would stay lit after
+  the tap, until the next tap elsewhere. The group starts on `pointerenter`, and not for a touch. The preview that a
+  long press leaves stays abscls-3wp0's.
 - **Measured (the design by turn)** in headless Chromium at 1366 × 900, on K12-N11 before and after "Evaluate quality".
   By turn, the move's button keeps its size (text 62.3 × 21 px, pills 17 × 17.4 px, dots 13.4 × 13.4 px), and the
   turn's own button after it is 20.7 × 19.1 px in the text form and 16.5 × 16.6 px in pills and dots. The rows keep
@@ -7919,4 +7931,7 @@ abscls-exfe and abscls-gapn, built together, because both change what follows a 
   (solid, 1 px), and checks that the members' own outlines do not show. The pointer on one edge lights that edge
   alone. A row made narrow, so that the label wraps, lights two boxes. On the game's line, the pointer on turn 2's
   cell lights N11-Q10, O11-Q10 and the cell, not A10-D9. By edge, the label lights no group. In each form, by edge
-  and by turn, the row has the same height before and after "Evaluate quality".
+  and by turn, the row has the same height before and after "Evaluate quality". In each form, the label grows while
+  the pointer stays on it, and the group grows with it. An element put into the row before the turn's edges moves
+  them, and the group moves with them. A tap on the label, in a page with touch, sends the mouse events of a tap, goes
+  to the move and lights no group.

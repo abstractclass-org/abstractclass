@@ -165,7 +165,7 @@ cut edges that are on the board, so a line drawn over the board can show edges t
     Mistake, Blunder), by turn after the move that ends the turn, with every label in its tooltip, and the board shows
     the badges of the turn just played. A book move's label shows as the book mark (design 32, item 4). By edge, the
     label, the "…" and the ◆ are inside the move's button, in each form of the variations (text, pills and dots), as a
-    game move's are (design 06, item 8): pointing at any of them previews the move's line, a click goes there, and a
+    game move's are (design 06, item 8). Pointing at any of them previews the move's line, a click goes there, and a
     right-click opens the move's menu. In pills and dots, the round button then grows into a capsule round the shape and
     its marks, and its outline goes round all of them. By turn, the label is the turn's, not a move's: the label, the
     "…" and the ◆ are the turn's own button after the move that ends the turn, as the game's judgement cell. That button
