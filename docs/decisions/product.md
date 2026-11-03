@@ -7839,14 +7839,15 @@ abscls-8981, left by the review of abscls-tpaj.21 ("A book move takes the book's
 abscls-exfe and abscls-gapn, built together, because both change what follows a variation's move in the move list.
 
 - **What (abscls-exfe):** a variation move's quality label, its pulsing "…" and its ◆ stood after the move's button.
-  Pointing at them and clicking them did nothing, unlike the game's moves (design 06, item 8). Now they are inside
-  the move's button, in each form of the variations (text, pills and dots), by edge and by turn. Pointing at any of
-  them previews the move's line, a click goes there, and a right-click opens the move's menu. By turn, the turn's
-  label is in the button of the move that ends the turn. Assistive technology reads the label's word, as on the
-  game's line (`labelSlot`).
+  Pointing at them and clicking them did nothing, unlike the game's moves (design 06, item 8). Now, by edge, they are
+  inside the move's button, in each form of the variations (text, pills and dots). By turn, they are the turn's own
+  button after the move that ends the turn ("The design by turn", below). Pointing at any of them previews the
+  move's line, a click goes there, and a right-click opens the move's menu. Assistive technology reads the label's
+  word, as on the game's line (`labelSlot`).
 - **The turn's judgement cell** takes its last edge's state (`mainState`): the "here" outline when the board is after
-  the turn, the picked outline when the fork keys pick that edge, else the pointer's outline. Before, it had the
-  pointer's outline only. The cell is no `.mv`, so `keepInView` and the tests still find one place on screen.
+  the turn, and the picked outline when the fork keys pick that edge. Before, it had the pointer's outline only. Now the
+  pointer on it lights the turn's group instead ("The design by turn", below). The cell is no `.mv`, so `keepInView` and
+  the tests still find one place on screen.
 - **What (abscls-gapn):** a variation's book move showed its quality label, not the book mark that the game's book
   moves show (design 32, item 4). Now it shows the same mark, by the same rule, with the same settings and tooltip.
   The mark comes with the label, so only after "Evaluate quality", and "Review for" hides it with the label. By turn,
@@ -7860,14 +7861,15 @@ abscls-exfe and abscls-gapn, built together, because both change what follows a 
   lists the move or the symbol after it, so it would need new fields and a new lookup. A new method on the book's
   interface would repeat `opening`'s rule. Each lookup can load a part of the book, so the move list asks only for a
   move that shows a label.
-- **The round forms:** in pills and dots, the button grows into a capsule round the shape and its marks, and the
-  "here" outline goes round all of them. Each part is as tall as its glyph (`leading-none`), so a label keeps the
-  row's height.
+- **The round forms:** in pills and dots, by edge, the button grows into a capsule round the shape and its marks, and
+  the "here" outline goes round all of them. By turn, the move's button stays round. Each part is as tall as its glyph
+  (`leading-none`), so a label keeps the row's height.
 - **Measured** in headless Chromium at 1366 × 900, on K12-N11 before and after "Evaluate quality", by edge and by turn
-  alike. Text: the button grows from 62.3 to 80.6 px wide, its height stays 21 px and its row 25 px. Pills: from 17 ×
-  17.4 to 33.3 × 17.4 px, and the row stays 21.4 px. Dots: from 13.4 × 13.4 to 29.8 × 16.6 px, and the row stays 21.1
-  px. Before each part fitted its glyph, the label's line made the pills and dots buttons 19.2 px high and their rows
-  23.2 px. By turn, the cell of turn 2 is "here" after the turn, and the page has one `.mv.here`.
+  alike, in the first build (the label in the move's button by turn too). Text: the button grows from 62.3 to 80.6 px
+  wide, its height stays 21 px and its row 25 px. Pills: from 17 × 17.4 to 33.3 × 17.4 px, and the row stays 21.4 px.
+  Dots: from 13.4 × 13.4 to 29.8 × 16.6 px, and the row stays 21.1 px. Before each part fitted its glyph, the label's
+  line made the pills and dots buttons 19.2 px high and their rows 23.2 px. By turn, the cell of turn 2 is "here" after
+  the turn, and the page has one `.mv.here`.
 - **Tests:** `tests/book-review.spec.ts`, with the engine off, by edge and by turn. K12-N11, played from the book's
   table at turn 2 of book-left-review.json and evaluated, shows the book mark with its name, title and colour, in
   each form of the variations. Pointing at the mark previews the line, a click goes there, and a right-click opens
@@ -7875,3 +7877,46 @@ abscls-exfe and abscls-gapn, built together, because both change what follows a 
   book-left-review.json) gives a move outside the book, with its plain label, and a move after a hard position, with
   the ◆. Their label and ◆ act as the move. By turn, the judgement cell is "here" after its turn, not in the turn's
   middle, and picked with its last edge.
+- **The design by turn,** decided at the look of 2026-11-03 (the look page drew each choice into the review). Three
+  choices:
+  - **The "here" outline stays two boxes:** the turn's last edge and its label (the game's judgement cell, or a
+    variation's label) each show "here". The owner's words: "I lean towards A, as B can be misunderstood." One box
+    round both could read as one move.
+  - **A variation's turn label is the turn's own element.** The first build put the turn's label, its "…" and its ◆
+    in the button of the move that ends the turn. The owner's words: "Making it part of a move makes it seem like the
+    move's label, instead of the turn's." Now they are their own button after the turn's last edge, as the game's
+    judgement cell. It acts as that edge: pointing at it previews the edge's line, a click goes there, and a
+    right-click opens the edge's menu. One function gives both buttons these actions (`asBranch`, as `asMove` on the
+    game's line). Its state is the edge's "here" and picked, and it is no `.mv`, so the place on screen is still one
+    move. Its title is the turn's tooltip. A turn with no label, no "…" and no ◆ has no such button. By edge nothing
+    changes: the label is the edge's own, in its button.
+  - **The pointer on a turn's label lights the whole turn.** The owner's words: "So for edge mode: edge and labels is
+    one element. For turn mode: edge is its own element. But when hovering over label, both moves and label treat as
+    one element." Then, at the page with the group drawn in: "looks good". By turn, the pointer on a turn's label (a
+    variation's button, or the game's judgement cell) lights the turn's edges in the label's row and the label as one
+    group: one outline round them, in the pointer's style of the row's form (`GROUP_HOVER` in the text form and on
+    the game's line, the ink outline in pills and dots). The members' own pointer outlines do not show then, and the
+    "here" and picked outlines stay. Pointing at one edge lights that edge alone. A turn that wraps lights each line's
+    part. A variation that starts in a turn's middle lights only the turn's edges in the label's row.
+- **How the group is drawn:** an overlay (`lightTurn` in `ReviewView.svelte`). When the pointer comes onto a turn's
+  label (`mouseenter`, the event that starts the preview), the view measures the label and the row's elements that
+  act as the turn's edges. It draws one box for each line that holds them, behind the row's content: the row is
+  `isolate`, and the box is at a negative z-index. The other means do not fit. A wrapper round the turn's edges and
+  its label would be one flex item, and would change how the row wraps. A row element holds several turns in a
+  variation. `:has()` can style each member, but cannot draw one outline round several items and the gaps between
+  them, on each line. A long press on a touch screen is abscls-3wp0's: its fix must cover the group too.
+- **Measured (the design by turn)** in headless Chromium at 1366 × 900, on K12-N11 before and after "Evaluate quality".
+  By turn, the move's button keeps its size (text 62.3 × 21 px, pills 17 × 17.4 px, dots 13.4 × 13.4 px), and the
+  turn's own button after it is 20.7 × 19.1 px in the text form and 16.5 × 16.6 px in pills and dots. The rows keep
+  their height: 25 px in the text form, 21.4 px in pills and 21.1 px in dots. By edge the sizes are those of the first
+  build. With the pointer on the turn's label, one box lights the move and the label: in the text form a fill and a
+  1 px line in the line colour, in pills and dots a 1 px ink outline, behind the row's content.
+- **Tests (the design by turn):** `tests/book-review.spec.ts`, in text, pills and dots. By turn, K12-N11's book mark
+  is in the turn's own button, outside the move's button. That button previews the move's line, goes there, opens
+  its menu, and takes "here" and picked. The turn N11-Q10 K12-N11 starts on the game's line: the pointer on its
+  label lights K12-N11 and the label, not the game's N11-Q10. On the review file with two variations, the pointer on
+  the label of D10-G9 D9-G11 lights both edges and the label in one box. The test reads each box's computed outline
+  (solid, 1 px), and checks that the members' own outlines do not show. The pointer on one edge lights that edge
+  alone. A row made narrow, so that the label wraps, lights two boxes. On the game's line, the pointer on turn 2's
+  cell lights N11-Q10, O11-Q10 and the cell, not A10-D9. By edge, the label lights no group. In each form, by edge
+  and by turn, the row has the same height before and after "Evaluate quality".

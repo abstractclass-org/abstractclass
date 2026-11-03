@@ -683,8 +683,9 @@ test.describe("a book move's mark, pointed at and clicked", () => {
 // book's values at its positions that the book holds, as the review does on the game's line, so the move gets the
 // table's label with no search (design 32, "A book position's values"). The engine is off: no search would come. By
 // turn, the move ends Red's turn N11-Q10 K12-N11, an Inaccuracy too, as the table judges that turn (results.test.ts):
-// the move shows the same label and tooltip in both (design 06, item 8). The label comes as the book mark, in the
-// move's button (design 32, item 4): by turn, N11-Q10 is a book move of the game's.
+// the move shows the same label and tooltip in both (design 06, item 8). The label comes as the book mark (design 32,
+// item 4): by edge in the move's button, by turn in the turn's own button after it (design 07, item 11). By turn,
+// N11-Q10 is a book move of the game's.
 test.describe("a book move played from the table", () => {
   test.use({ viewport: { width: 1366, height: 900 } });
 
@@ -700,7 +701,7 @@ test.describe("a book move played from the table", () => {
     const tableRow = table(page).locator('tbody tr[data-move="K12-N11"]');
     await expect(tableRow.getByRole("img", { name: LABEL_WORDS })).toHaveAccessibleName("Inaccuracy");
     await tableRow.click();
-    const move = page.locator('button[data-path="A10-D9 N11-Q10 K12-N11"]');
+    const move = page.locator(`button.mv[data-path="${K12_N11}"]`);
     await expect(move).toBeVisible();
     await move.click({ button: "right" });
     await page.getByRole("menuitem", { name: "Evaluate quality" }).click();
@@ -712,27 +713,49 @@ test.describe("a book move played from the table", () => {
   for (const judge of ["edge", "turn"]) {
     test(`by ${judge}: Evaluate quality gives the move the table's label, with no search, as the book mark`, async ({ page }) => {
       const move = await evaluated(page, { judge });
-      // The move's tooltip names the label, and the book mark takes the label's place in the move's button: the label
-      // on the book's brown (the default form), named by the move's tooltip and the position symbol after it
+      // The move's tooltip names the label, and the book mark takes the label's place: the label on the book's brown
+      // (the default form), named by the tooltip and the position symbol after the move
       await expect(move).toHaveAttribute("title", /(^| · )Inaccuracy( · |$)/);
-      const mark = move.getByRole("img", { name: /^Book move · / });
+      const judgement = judgementOf(page, judge, K12_N11);
+      const mark = judgement.getByRole("img", { name: /^Book move · / });
       await expect(mark).toHaveAccessibleName(/^Book move · (.+ · )?Inaccuracy · .+ after it$/);
       const name = (await mark.getAttribute("aria-label"))!;
       expect(SYMBOL_WORDS.test(/ · ([^·]+) after it$/.exec(name)![1]), name).toBe(true);
       await expect(mark).toHaveAttribute("title", name);
       await expect(mark.locator("circle")).toHaveAttribute("fill", "var(--book)");
-      await expect(move.getByRole("img", { name: LABEL_WORDS })).toHaveCount(0);
+      await expect(judgement.getByRole("img", { name: LABEL_WORDS })).toHaveCount(0);
+      // By turn the mark is the turn's, outside the move's button, and its title is the turn's tooltip
+      if (judge === "turn") {
+        await expect(move.getByRole("img")).toHaveCount(0);
+        await expect(judgement).toHaveAttribute("title", /^Inaccuracy( · |$)/);
+      }
     });
   }
 
-  // Each form of the variations (text, pills, dots), by edge and by turn: the mark is part of the move's button
+  // Each form of the variations (text, pills, dots), by edge and by turn. By edge the mark is part of the move's button.
+  // By turn it is in the turn's own button, which acts as the move: the preview, a click, the menu, "here" and picked.
+  // The turn N11-Q10 K12-N11 starts on the game's line: the pointer on its label lights K12-N11 with the label, not
+  // the game's N11-Q10 (design 06, item 8).
   for (const judge of ["edge", "turn"]) for (const branchForm of ["text", "pills", "dots"]) {
-    test(`by ${judge}, variations as ${branchForm}: pointing at the mark previews the move's line, a click goes there, and a right-click opens its menu`, async ({ page }) => {
+    test(`by ${judge}, variations as ${branchForm}: the mark acts as the move, and by turn lights the turn's edges in its row`, async ({ page }) => {
       const move = await evaluated(page, { judge, branchForm });
-      const mark = move.getByRole("img", { name: /^Book move · / });
+      const judgement = judgementOf(page, judge, K12_N11);
+      const mark = judgement.getByRole("img", { name: /^Book move · / });
       await expect(mark).toBeVisible();
       await page.keyboard.press("ArrowLeft");
       await expect.poll(() => here(page)).toMatch(/^N11-Q10/);
+      if (judge === "turn") {
+        await lightsGroup(page, judgement, [move], [page.locator('.movelist .mv[data-path="A10-D9 N11-Q10"]')]);
+        await lightsAlone(page, move);
+        // At the fork after N11-Q10, ↓ picks K12-N11: its label is picked with it
+        await page.keyboard.press("ArrowDown");
+        await expect(move).toHaveClass(/(^| )picked( |$)/);
+        await expect(judgement).toHaveClass(/(^| )picked( |$)/);
+      } else {
+        await page.mouse.move(5, 5);
+        await mark.hover();
+        await expect(lit(page)).toHaveCount(0);
+      }
       await page.mouse.move(5, 5);
       await mark.hover();
       await expect(variationPreview(page)).toHaveText(/^Variation preview: 1 edge, numbered from the position after edge 2\./);
@@ -740,6 +763,17 @@ test.describe("a book move played from the table", () => {
       await expect(variationPreview(page)).toHaveCount(0);
       await mark.click();
       await expect(move).toHaveClass(/(^| )here( |$)/);
+      await expect(judgement).toHaveClass(/(^| )here( |$)/);
+      await expect(page.locator(".mv.here")).toHaveCount(1);
+      // The "here" outlines stay while the group is lit. The click scrolls the move into view (keepInView), away from
+      // the pointer: the pointer comes back onto the mark.
+      if (judge === "turn") {
+        await page.mouse.move(5, 5);
+        await mark.hover();
+        await expect(lit(page)).toHaveCount(1);
+        expect(await outline(move)).not.toBe("none");
+        expect(await outline(judgement)).not.toBe("none");
+      }
       await mark.click({ button: "right" });
       await expect(page.getByRole("menuitem", { name: "Delete from here" })).toBeEnabled();
       await page.keyboard.press("Escape");
@@ -748,33 +782,90 @@ test.describe("a book move played from the table", () => {
   }
 });
 
+const K12_N11 = "A10-D9 N11-Q10 K12-N11";
+/** A variation move's judgement in the move list: by edge its button, which holds it, and by turn the turn's own button
+ *  after the move that ends the turn (no `.mv`), which acts as that move (its `data-path`). */
+const judgementOf = (page: Page, judge: string, key: string) =>
+  page.locator(judge === "edge" ? `button.mv[data-path="${key}"]` : `button[data-path="${key}"]:not(.mv)`);
 /** The status line while it previews a variation's line. */
 const variationPreview = (page: Page) => page.getByText(/^Variation preview: /);
+/** The boxes of the group that the pointer on a turn's label lights (ReviewView.svelte, lightTurn). */
+const lit = (page: Page) => page.locator("[data-lit]");
+type Box = { left: number; right: number; top: number; bottom: number };
+const boxOf = (l: Locator): Promise<Box> =>
+  l.evaluate(e => { const r = e.getBoundingClientRect(); return { left: r.left, right: r.right, top: r.top, bottom: r.bottom }; });
+const within = (inner: Box, outer: Box) =>
+  inner.left >= outer.left - 0.5 && inner.right <= outer.right + 0.5 && inner.top >= outer.top - 0.5 && inner.bottom <= outer.bottom + 0.5;
+/** An element's computed outline: "none", or its style and width. */
+const outline = (l: Locator) =>
+  l.evaluate(e => { const c = getComputedStyle(e); return c.outlineStyle === "none" ? "none" : `${c.outlineStyle} ${c.outlineWidth}`; });
+
+/** The pointer on the turn's label `label` lights it and the turn's edges `members` as one group: `lines` boxes in the
+ *  pointer's outline (one for each line of the row), round none of `outside`. The members' own outlines and the
+ *  label's do not show. The place on screen must be elsewhere. */
+async function lightsGroup(page: Page, label: Locator, members: Locator[], outside: Locator[] = [], lines = 1) {
+  await page.mouse.move(5, 5);
+  await expect(lit(page)).toHaveCount(0);
+  await label.hover();
+  await expect(lit(page)).toHaveCount(lines);
+  const boxes = await Promise.all((await lit(page).all()).map(boxOf));
+  for (const m of [label, ...members]) {
+    const b = await boxOf(m);
+    expect(boxes.some(g => within(b, g)), JSON.stringify({ b, boxes })).toBe(true);
+    expect(await outline(m)).toBe("none");
+  }
+  for (const m of outside) {
+    const b = await boxOf(m);
+    expect(boxes.some(g => within(b, g)), JSON.stringify({ b, boxes })).toBe(false);
+  }
+  for (const g of await lit(page).all()) expect(await outline(g)).toBe("solid 1px");
+}
+/** The pointer on the edge `edge` lights that edge alone: its own outline, and no group. */
+async function lightsAlone(page: Page, edge: Locator) {
+  await page.mouse.move(5, 5);
+  await edge.hover();
+  await expect(lit(page)).toHaveCount(0);
+  await expect.poll(() => outline(edge)).not.toBe("none");
+}
 
 const TURN_THREE_START = "A10-D9 N11-Q10 O11-Q10";
+const D10_G9 = `${TURN_THREE_START} D10-G9`, D9_G11 = `${TURN_THREE_START} D10-G9 D9-G11`;
+const G12_K10 = `${TURN_THREE_START} D9-G11 D10-G9 K10-N11 G12-K10`;
 /** book-left-review.json with two variations, as a review file keeps them, and the result of each position that they
  *  need, so that nothing searches. Blue's turn 3 in the other order: D10-G9, a book move, then D9-G11, outside the
  *  book. Its end is the game's position after turn 3, whose result it takes. And G12-K10, the engine's second choice
  *  for the second edge of Red's turn 4, from the position after K10-N11, a hard one (the ◆). */
 function withVariations() {
   const f = JSON.parse(readFileSync("tests/fixtures/book-left-review.json", "utf8"));
-  const game = `${TURN_THREE_START} D9-G11 D10-G9`, other = `${TURN_THREE_START} D10-G9 D9-G11`;
+  const game = `${TURN_THREE_START} D9-G11 D10-G9`;
   const results = (f.analyses as [string, unknown][]).filter(([k]) => k.endsWith(`|${game}`));
   expect(results.length).toBeGreaterThan(0);
-  f.branches = { version: 2, nodes: [[`${TURN_THREE_START} D10-G9`, 0], [other, 0], [`${game} K10-N11 G12-K10`, 0]] };
-  f.analyses.push(...results.map(([k, a]) => [k.slice(0, -game.length) + other, a]));
+  f.branches = { version: 2, nodes: [[D10_G9, 0], [D9_G11, 0], [G12_K10, 0]] };
+  f.analyses.push(...results.map(([k, a]) => [k.slice(0, -game.length) + D9_G11, a]));
   return { name: "book-variations-review.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(f)) };
 }
 
-// A variation's parts behave as the game's do (design 06, item 8): its label and its ◆ are in the move's button, by
-// edge and by turn. Pointing at them previews the move's line, a click goes there, and a right-click opens the move's
-// menu. A variation move outside the book shows its plain label. The engine is off: the file holds every result.
+/** Opens withVariations() with the display settings `d` and evaluates D9-G11, after `before`. */
+async function evaluateD9G11(page: Page, d: Record<string, string>, before?: () => Promise<unknown>) {
+  await display(page, d);
+  await open(page, withVariations());
+  await expect(bookMarks(page).first()).toBeVisible({ timeout: 30_000 });
+  await before?.();
+  await page.locator(`button.mv[data-path="${D9_G11}"]`).click({ button: "right" });
+  await page.getByRole("menuitem", { name: "Evaluate quality" }).click();
+  await expect(page.getByRole("menuitem")).toHaveCount(0);
+}
+
+// A variation's parts behave as the game's do (design 06, item 8): by edge its label and its ◆ are in the move's
+// button, and by turn in the turn's own button after the move that ends the turn, which acts as that move. Pointing at
+// them previews the move's line, a click goes there, and a right-click opens the move's menu. A variation move outside
+// the book shows its plain label. The engine is off: the file holds every result.
 test.describe("a variation's label and ◆", () => {
   test.use({ viewport: { width: 1366, height: 900 } });
 
-  /** Pointing at `part` previews the line of the move `move` (`preview`: the status line), a click goes to the move,
-   *  and a right-click opens the move's menu. */
-  async function actsAsMove(page: Page, move: Locator, part: Locator, preview: RegExp) {
+  /** Pointing at `part` previews the line of the move `move` (`preview`: the status line), a click goes to the move
+   *  (and `own`, the turn's button, takes its "here"), and a right-click opens the move's menu. */
+  async function actsAsMove(page: Page, move: Locator, part: Locator, preview: RegExp, own?: Locator) {
     await toMove(page, 0);
     await page.mouse.move(5, 5);
     await expect(variationPreview(page)).toHaveCount(0);
@@ -783,6 +874,7 @@ test.describe("a variation's label and ◆", () => {
     await page.mouse.move(5, 5);
     await part.click();
     await expect(move).toHaveClass(/(^| )here( |$)/);
+    if (own) await expect(own).toHaveClass(/(^| )here( |$)/);
     await expect(page.locator(".mv.here")).toHaveCount(1);
     await part.click({ button: "right" });
     await expect(page.getByRole("menuitem", { name: "Delete from here" })).toBeEnabled();
@@ -792,37 +884,76 @@ test.describe("a variation's label and ◆", () => {
 
   for (const judge of ["edge", "turn"]) {
     test(`by ${judge}: the label and the ◆ act as the move, and a move outside the book shows its plain label`, async ({ page }) => {
-      await display(page, { judge });
-      await open(page, withVariations());
-      await expect(bookMarks(page).first()).toBeVisible({ timeout: 30_000 });
-      const first = page.locator(`button[data-path="${TURN_THREE_START} D10-G9"]`);
-      const second = page.locator(`button[data-path="${TURN_THREE_START} D10-G9 D9-G11"]`);
-      await second.click({ button: "right" });
-      await page.getByRole("menuitem", { name: "Evaluate quality" }).click();
+      await evaluateD9G11(page, { judge });
+      const first = page.locator(`button.mv[data-path="${D10_G9}"]`), second = page.locator(`button.mv[data-path="${D9_G11}"]`);
       // D9-G11 leaves the book: its own label, plain, by edge, and by turn the turn's, which has an edge outside the
-      // book. By edge, D10-G9 is a book move, with the mark.
-      const label = second.getByRole("img", { name: LABEL_WORDS });
+      // book. By edge, D10-G9 is a book move, with the mark. By turn, D10-G9 has no label: the turn's is after D9-G11.
+      const own = judge === "turn" ? judgementOf(page, judge, D9_G11) : undefined;
+      const label = judgementOf(page, judge, D9_G11).getByRole("img", { name: LABEL_WORDS });
       await expect(label).toBeVisible();
-      await expect(second.getByRole("img", { name: /^Book move · / })).toHaveCount(0);
+      await expect(judgementOf(page, judge, D9_G11).getByRole("img", { name: /^Book move · / })).toHaveCount(0);
       if (judge === "edge") await expect(first.getByRole("img", { name: /^Book move · / })).toBeVisible();
-      else await expect(first.getByRole("img", { name: /^Book move · |^(Best|Great|Excellent|Good|Inaccuracy|Mistake|Blunder)$/ })).toHaveCount(0);
-      await actsAsMove(page, second, label, /^Variation preview: 2 edges, numbered from the position after edge 3\./);
-      const hard = page.locator(`button[data-path="${TURN_THREE_START} D9-G11 D10-G9 K10-N11 G12-K10"]`);
-      await expect(hard.getByText("◆")).toHaveAttribute("title", /./);
-      await actsAsMove(page, hard, hard.getByText("◆"), /^Variation preview: 1 edge, numbered from the position after edge 6\./);
+      else {
+        await expect(first.getByRole("img")).toHaveCount(0);
+        await expect(second.getByRole("img")).toHaveCount(0);
+        await expect(judgementOf(page, judge, D10_G9)).toHaveCount(0);
+      }
+      await actsAsMove(page, second, label, /^Variation preview: 2 edges, numbered from the position after edge 3\./, own);
+      const hard = page.locator(`button.mv[data-path="${G12_K10}"]`);
+      const diamond = judgementOf(page, judge, G12_K10).getByText("◆");
+      await expect(diamond).toHaveAttribute("title", /./);
+      await actsAsMove(page, hard, diamond, /^Variation preview: 1 edge, numbered from the position after edge 6\./,
+                       judge === "turn" ? judgementOf(page, judge, G12_K10) : undefined);
+    });
+  }
+
+  // The row keeps its height with a label, in each form, by edge and by turn. By turn, the pointer on the turn's label
+  // lights the turn's two edges and the label as one group, and the pointer on one edge lights that edge alone. A turn
+  // that wraps lights each line's part.
+  for (const judge of ["edge", "turn"]) for (const branchForm of ["text", "pills", "dots"]) {
+    test(`by ${judge}, variations as ${branchForm}: the row keeps its height, and the pointer lights the label's group`, async ({ page }) => {
+      const first = page.locator(`button.mv[data-path="${D10_G9}"]`), second = page.locator(`button.mv[data-path="${D9_G11}"]`);
+      const height = () => second.locator("xpath=..").evaluate(e => e.getBoundingClientRect().height);
+      let before = 0;
+      await evaluateD9G11(page, { judge, branchForm }, async () => { before = await height(); });
+      const judgement = judgementOf(page, judge, D9_G11);
+      await expect(judgement.getByRole("img", { name: LABEL_WORDS })).toBeVisible();
+      expect(Math.abs((await height()) - before), `${before}`).toBeLessThan(0.5);
+      await toMove(page, 0);
+      if (judge === "edge") {
+        await page.mouse.move(5, 5);
+        await judgement.getByRole("img", { name: LABEL_WORDS }).hover();
+        await expect(lit(page)).toHaveCount(0);
+        await lightsAlone(page, first);
+        return;
+      }
+      await lightsGroup(page, judgement, [first, second]);
+      await lightsAlone(page, first);
+      await lightsAlone(page, second);
+      if (branchForm === "text") { // the row made narrow enough that the label goes to a second line
+        const right = (await boxOf(second)).right;
+        await second.locator("xpath=..").evaluate((e, r) => { (e as HTMLElement).style.width = `${r - e.getBoundingClientRect().left + 2}px`; }, right);
+        await expect.poll(async () => (await boxOf(judgement)).top >= (await boxOf(second)).bottom - 1).toBe(true);
+        await lightsGroup(page, judgement, [first, second], [], 2);
+      }
     });
   }
 });
 
 // By turn, the turn's judgement cell takes the state of the turn's last edge (design 06, item 8): "here" when the board
 // is after the turn, and picked when the fork keys pick that edge. The place on screen is still one move (`.mv.here`).
-test("by turn: the judgement cell shows the place and the pick, as its last edge", async ({ page }) => {
+// The pointer on the cell lights the turn's edges and the cell as one group, and on one edge that edge alone.
+test("by turn: the judgement cell shows the place and the pick, as its last edge, and lights the turn", async ({ page }) => {
   await page.setViewportSize({ width: 1366, height: 900 });
   await open(page, withVariations());
   await expect(bookMarks(page).first()).toBeVisible({ timeout: 30_000 });
   const cell = (end: string) => page.locator(`.movelist button.col-start-4[data-path="${end}"]`);
   const edge = (end: string) => page.locator(`.movelist .mv[data-path="${end}"]`);
   const turnFour = `${TURN_THREE_START} D9-G11 D10-G9 K10-N11 L10-O11`;
+  await toMove(page, 0);
+  await lightsGroup(page, cell(TURN_THREE_START), [edge("A10-D9 N11-Q10"), edge(TURN_THREE_START)], [edge("A10-D9")]);
+  await lightsAlone(page, edge(TURN_THREE_START));
+  await page.mouse.move(5, 5);
   await toMove(page, 3); // after turn 2
   await expect(cell(TURN_THREE_START)).toHaveClass(/(^| )here( |$)/);
   await expect(edge(TURN_THREE_START)).toHaveClass(/(^| )here( |$)/);

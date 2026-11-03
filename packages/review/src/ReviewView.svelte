@@ -8,7 +8,7 @@
   import Icon from "@abstractclass/site/Icon.svelte";
   import StepBar from "./StepBar.svelte";
   import { intoView, pageScrollTop } from "@abstractclass/site/pageScroll.ts";
-  import { MOVE_HERE, MOVE_HOVER, MOVE_LIST, TURN_NUMBER, TURN_REM, keepInView, moveButton, turnRow } from "./moveList.ts";
+  import { GROUP_HOVER, MOVE_HERE, MOVE_HOVER, MOVE_LIST, TURN_NUMBER, TURN_REM, keepInView, moveButton, turnRow } from "./moveList.ts";
   import { chartMarks, listed, type Analysis } from "@abstractclass/analysis/model.ts";
   import type { GameTypes, Player } from "@abstractclass/analysis/game.ts";
   import type { BranchNode, MapState, ThreatCost, ThreatState } from "@abstractclass/analysis/analysis.svelte.ts";
@@ -1189,9 +1189,10 @@
   // A move's outlines are drawn inside its box (negative offsets): the move list's scroll area clips what is drawn outside
   // it, at the right column's edge.
   const PICKED = "picked outline-2 outline-dashed outline-accent -outline-offset-2";
-  /** The state of the game's move `index` in the move list: on the board ("here"), picked, or the pointer's outline. By
-   *  turn, the turn's judgement cell takes its last edge's (design 06, item 8). */
-  const mainState = (index: number) => (mainAt === index + 1 ? MOVE_HERE : pickedKey === mainKeys[index + 1] ? PICKED : MOVE_HOVER);
+  /** The state of the game's move `index` in the move list: on the board ("here"), picked, or the pointer's outline
+   *  (`hover`). By turn, the turn's judgement cell takes its last edge's "here" and picked, and the pointer on it lights
+   *  the turn's group instead of its own outline (design 06, item 8). */
+  const mainState = (index: number, hover = MOVE_HOVER) => (mainAt === index + 1 ? MOVE_HERE : pickedKey === mainKeys[index + 1] ? PICKED : hover);
   $effect(() => { if (pickedKey) movelist?.querySelector(".picked")?.scrollIntoView({ block: "nearest" }); });
   /** Goes to a position on the game's line. */
   const go = (p: number, sound = false) => setPath(mainNames.slice(0, Math.max(0, Math.min(last, p))), sound);
@@ -1203,6 +1204,45 @@
     onclick: () => go(index + 1, true),
     onmouseenter: () => startPreview({ kind: "move", index }),
     onmouseleave: endPreview,
+  });
+  /** The same for a variation's move `p`: its button, and by turn the turn's label as the turn's last edge (design 07,
+   *  item 11). */
+  const asBranch = (p: string[]) => ({
+    "data-path": pathKey(p), tabindex: -1,
+    onclick: () => setPath(p, true),
+    onmouseenter: () => startPreview({ kind: "branch", path: p }),
+    onmouseleave: endPreview,
+  });
+  // By turn, the pointer on a turn's label (the game's judgement cell, or a variation's label) lights the turn's edges
+  // in the label's row and the label as one group, in the pointer's style of the row (design 06, item 8). An overlay
+  // draws it, behind the row's content (the row is `isolate`): one box for each line of the row that holds members,
+  // so a turn that wraps lights each line's part, and an edge in another row (a variation that starts in a turn's
+  // middle) stays out. A row's id: `m` and the turn's number on the game's line, `v` and its first path's key in a
+  // variation.
+  let lit = $state<{ row: string; boxes: { x: number; y: number; w: number; h: number }[] } | null>(null);
+  /** Lights the group of the label `label` in the row `row`: the label, and the row's elements that act as one of the
+   *  turn's edges (`keys`, their paths' keys). */
+  function lightTurn(row: string, label: HTMLElement, keys: string[]) {
+    const box = label.parentElement;
+    if (!box) return;
+    const origin = box.getBoundingClientRect(), lines: DOMRect[][] = [];
+    for (const m of box.querySelectorAll<HTMLElement>(":scope > [data-path]")) {
+      if (m !== label && !keys.includes(m.dataset.path!)) continue;
+      const r = m.getBoundingClientRect(), mid = (r.top + r.bottom) / 2;
+      const line = lines.find(l => Math.abs((l[0].top + l[0].bottom) / 2 - mid) < r.height / 2);
+      if (line) line.push(r); else lines.push([r]);
+    }
+    lit = { row, boxes: lines.map(l => {
+      const x = Math.min(...l.map(r => r.left)), y = Math.min(...l.map(r => r.top));
+      return { x: x - origin.left, y: y - origin.top, w: Math.max(...l.map(r => r.right)) - x, h: Math.max(...l.map(r => r.bottom)) - y };
+    }) };
+  }
+  /** By turn, what makes a turn's label act as the turn's last edge (`move`, that edge's actions: asMove or asBranch),
+   *  and light its group while the pointer is on it. */
+  const asTurnLabel = <M extends { onmouseenter: () => void; onmouseleave: () => void }>(move: M, row: string, keys: string[]) => ({
+    ...move,
+    onmouseenter: (e: MouseEvent) => { move.onmouseenter(); lightTurn(row, e.currentTarget as HTMLElement, keys); },
+    onmouseleave: () => { move.onmouseleave(); lit = null; },
   });
   // Along the line on screen, as Lichess's arrows: back to the parent, forward to the first child (the game's move on
   // its line), and to the line's end.
@@ -1789,7 +1829,7 @@
     {#each R.turns as t (t.number)}
       <!-- A turn's number, then its edges in two equal columns (Lichess's move list), each at least a move wide:
            with room to spare, the second edge starts halfway across. By turn, a last column judges the whole turn. -->
-      <div class={turnRow(unit === "turn", view.oneMoveALine)}>
+      <div class={[turnRow(unit === "turn", view.oneMoveALine), unit === "turn" && "relative isolate"]}>
         <span class={TURN_NUMBER}>{t.number}.</span>
         {@render turnMoves(t)}
         <!-- By turn: the turn's glyph and its loss, in the same font and sizes as an edge's by edge, and the turn's note
@@ -1814,15 +1854,18 @@
           <!-- The whole cell (the label slot, the ◆ and the loss) is one button that acts as the turn's last edge, as a
                move's button holds them by edge: pointing anywhere in it previews the position after the turn, a click
                goes there, and a right-click opens that edge's move menu. Its state is that edge's too: "here" when the
-               board is after the turn, picked, or the pointer's outline. It is no `.mv`, so the place on screen is one
-               move (keepInView). A cell with nothing in it is a plain element. -->
+               board is after the turn, or picked. The pointer on it lights the turn's group (lightTurn), not the cell's
+               own outline. It is no `.mv`, so the place on screen is one move (keepInView). A cell with nothing in it is
+               a plain element. -->
           {#if slotted || hard || loss}
-            <button type="button" {...asMove(end)} title={tip} class={[cell, "bg-transparent border-0", mainState(end)]}>
+            <button type="button" {...asTurnLabel(asMove(end), `m${t.number}`, t.edges.map(e => mainKeys[e.index + 1]))} title={tip}
+                    class={[cell, "bg-transparent border-0", mainState(end, "")]}>
               {@render judgement()}
             </button>
           {:else}
             <span class={cell} title={tip}>{@render judgement()}</span>
           {/if}
+          {@render litGroup(`m${t.number}`, GROUP_HOVER)}
         {/if}
       </div>
       <!-- Under the turn, its notes and its variations in one band across the move list (Lichess's column view, its
@@ -1962,7 +2005,8 @@
          review's stages, or the position on screen): its first choice can change,
          and its line grows. -->
     {@const gleams = !!engine && row.paths.some(p => engine.steps.has(pathKey(p))) && !!game?.pending(engine.search)}
-    <div class={["relative flex flex-wrap items-center gap-y-0.5 py-0.5 font-mono text-[0.95em]",
+    {@const rowId = `v${pathKey(row.paths[0])}`}
+    <div class={["relative isolate flex flex-wrap items-center gap-y-0.5 py-0.5 font-mono text-[0.95em]",
                  display.branchForm === "text" ? "gap-x-1" : "gap-x-0.5", gleams && "bar-glider"]}
          style:padding-left="calc({rule(row.depth)} + 0.65rem)">
       {#each lines[r].through as d (d)}
@@ -1993,30 +2037,56 @@
                when all the turn's edges are book moves (the game's by the game's marks). -->
           {@const bookAfter = !label ? undefined : !bt ? bookAfterAt(p)
             : bt.paths.every(q => bookAfterAt(q) !== undefined) ? bookAfterAt(p) : undefined}
-          {@render turnMark(t, k)}
-          <!-- The move's button holds its judgement, as a game move's button does by edge (design 06, item 8): the label
-               slot (a book mark or a quality label, by turn the turn's after the move that ends it) or the pulsing "…"
-               of its wait, then a hard position's ◆, small and muted as the move list's. Pointing at any of them
-               previews the move's line, a click goes there, and a right-click opens the move's menu. A variation's
-               parts have no fixed slots: its rows do not line up in columns. In the round forms each part is as tall
-               as its glyph (`fit`), not as its line: a label then keeps the row's height. -->
-          <button class={[text ? "mv flex items-center gap-1 px-[0.2rem] py-px whitespace-nowrap" : "mv flex items-center gap-0.5 p-[0.08em] rounded-full",
-                          "bg-transparent border-0", SIDE_TEXT[node.move.player],
-                          at ? (text ? MOVE_HERE : "here outline-2 outline-accent") : pickedKey === pathKey(p) ? PICKED
-                          : text ? MOVE_HOVER : "hover:outline hover:outline-ink"]}
-                  onclick={() => setPath(p, true)} onmouseenter={() => startPreview({ kind: "branch", path: p })} onmouseleave={endPreview} tabindex="-1"
-                  data-path={pathKey(p)} title={tip}>
-            {#if text}{@render written(node.move)}{:else}{@render edgeShape(node.move.edge, node.move.player, positionOf(p.slice(0, -1)))}{/if}
-            {#if (label && bookAfter !== undefined) || listed(label)}{@render labelSlot(label, tip, bookAfter, `text-[0.9em] ${fit}`)}
-            {:else if waiting && whyNoSearch === null}<span class={["text-[0.9em] text-muted animate-pulse motion-reduce:animate-none", fit]} title={unlabeled}>…</span>{/if}
+          <!-- The move's judgement: the label slot (a book mark or a quality label) or the pulsing "…" of its wait, then
+               a hard position's ◆, small and muted as the move list's. In the round forms each part is as tall as its
+               glyph (`fit`), not as its line: a label then keeps the row's height. A variation's parts have no fixed
+               slots: its rows do not line up in columns. -->
+          {@const slotted = (label && bookAfter !== undefined) || listed(label)}
+          {@const pulse = !slotted && waiting && whyNoSearch === null}
+          {#snippet judgement(tip: string | undefined)}
+            {#if slotted}{@render labelSlot(label, tip, bookAfter, `text-[0.9em] ${fit}`)}
+            {:else if pulse}<span class={["text-[0.9em] text-muted animate-pulse motion-reduce:animate-none", fit]} title={unlabeled}>…</span>{/if}
             {#if hardness?.hard}<span class={["text-[0.8em] text-muted", fit]} title={HARD_NOTE}>◆</span>{/if}
+          {/snippet}
+          {@const box = text ? "flex items-center gap-1 px-[0.2rem] py-px whitespace-nowrap" : "flex items-center gap-0.5 p-[0.08em] rounded-full"}
+          {@const place = at ? (text ? MOVE_HERE : "here outline-2 outline-accent") : pickedKey === pathKey(p) ? PICKED : ""}
+          {@render turnMark(t, k)}
+          <!-- By edge, the move's button holds its judgement, as a game move's button does (design 06, item 8): pointing
+               at any part previews the move's line, a click goes there, and a right-click opens the move's menu. By
+               turn, the judgement is the turn's, not a move's (design 07, item 11): its own button after the move that
+               ends the turn, as the game's judgement cell. That button acts as the move (asBranch), takes its "here"
+               and picked, and is no `.mv`, so the place on screen is one move (keepInView). The pointer on it lights
+               the turn's edges in this row with it (lightTurn), not its own outline. -->
+          <button class={["mv", box, "bg-transparent border-0", SIDE_TEXT[node.move.player], place || (text ? MOVE_HOVER : "hover:outline hover:outline-ink")]}
+                  {...asBranch(p)} title={tip}>
+            {#if text}{@render written(node.move)}{:else}{@render edgeShape(node.move.edge, node.move.player, positionOf(p.slice(0, -1)))}{/if}
+            {#if unit === "edge"}{@render judgement(tip)}{/if}
           </button>
+          {#if unit === "turn" && (slotted || pulse || hardness?.hard)}
+            {@const turnTip = tooltip(status, hardness?.note)}
+            <button type="button" {...asTurnLabel(asBranch(p), rowId, (branchTurnPaths(p) ?? [p]).map(pathKey))} title={turnTip}
+                    class={[box, "bg-transparent border-0", SIDE_TEXT[node.move.player], place]}>
+              {@render judgement(turnTip)}
+            </button>
+          {/if}
         {:else if engine && step}
           {@render engineEdge(engine, p, step, k)}
         {/if}
       {/each}
+      {@render litGroup(rowId, display.branchForm === "text" ? GROUP_HOVER : "outline outline-ink")}
     </div>
   {/each}
+{/snippet}
+
+<!-- By turn, the group that the pointer on a turn's label lights in the row `row` (lightTurn), in the pointer's style
+     of the row's form (`look`): behind the row's content, one box for each line. -->
+{#snippet litGroup(row: string, look: string)}
+  {#if lit?.row === row}
+    {#each lit.boxes as b, k (k)}
+      <span class={["absolute -z-10 pointer-events-none rounded-md", look]} aria-hidden="true" data-lit
+            style:left="{b.x}px" style:top="{b.y}px" style:width="{b.w}px" style:height="{b.h}px"></span>
+    {/each}
+  {/if}
 {/snippet}
 
 <!-- A variation edge's turn number, before the row's first edge and each turn's first: every turn has its number. -->

@@ -132,11 +132,12 @@ explorers that people use in chess and Go is [../research/03-opening-explorers.m
      position after the turn's last edge, and a click goes there.
    - **A variation's book move** shows the same mark, by the same rule, in the same forms, with the same settings and
      tooltip. The mark comes with the move's quality label, so only after "Evaluate quality" (design 07, item 11): a
-     move with no label shows no mark, and "Review for" hides the mark with the label. By turn, a variation's turn
-     shows the mark when all its edges are book moves. A turn that starts on the game's line counts the game's edge by
-     the game's own mark. The mark is in the label's place in the move's button (design 07, item 11). It shows only
-     where the game's marks show: in a review whose book loaded, not on the Analysis board. The move list asks the
-     book about the two positions of a labelled move only, because each question can load a part of the book.
+     move with no label shows no mark, and "Review for" hides the mark with the label. By turn, a variation's turn shows
+     the mark when all its edges are book moves. A turn that starts on the game's line counts the game's edge by the
+     game's own mark. The mark is in the label's place: by edge in the move's button, by turn in the turn's own button
+     after the move that ends the turn (design 07, item 11). It shows only where the game's marks show: in a review
+     whose book loaded, not on the Analysis board. The move list asks the book about the two positions of a labelled
+     move only, because each question can load a part of the book.
    - **The book's values rule a book position:** at each position of the game that the book holds, the review takes
      the book's values in place of the engine's search, and does not search the position ("The review", "A book
      position's values"). The book's searches are the deeper (item 5). So a book move has one quality label and one

@@ -163,14 +163,18 @@ cut edges that are on the board, so a line drawn over the board can show edges t
     tooltips, and no "…": the game's moves have none. A player that "Review for" leaves out shows no labels, so
     their moves show no wait either. When the label comes, the move shows it as for the game (Great, Inaccuracy,
     Mistake, Blunder), by turn after the move that ends the turn, with every label in its tooltip, and the board shows
-    the badges of the turn just played. A book move's label shows as the book mark (design 32, item 4). The label, the
-    "…" and the ◆ are inside the move's button, in each form of the variations (text, pills and dots), as a game move's
-    are by edge (design 06, item 8): pointing at any of them previews the move's line, a click goes there, and a
-    right-click opens the move's menu. By turn, the turn's label is in the button of the move that ends the turn. In
-    pills and dots, the round button then grows into a capsule round the shape and its marks, and its outline goes round
-    all of them. Each part is as tall as its glyph, so a label keeps the row's height. A variation's parts have no slots
-    of their own, because a variation's rows do not line up in columns. The moves evaluated are kept with the
-    variations. A variation that stops in a turn's middle has no turn label until the turn ends.
+    the badges of the turn just played. A book move's label shows as the book mark (design 32, item 4). By edge, the
+    label, the "…" and the ◆ are inside the move's button, in each form of the variations (text, pills and dots), as a
+    game move's are (design 06, item 8): pointing at any of them previews the move's line, a click goes there, and a
+    right-click opens the move's menu. In pills and dots, the round button then grows into a capsule round the shape and
+    its marks, and its outline goes round all of them. By turn, the label is the turn's, not a move's: the label, the
+    "…" and the ◆ are the turn's own button after the move that ends the turn, as the game's judgement cell. That button
+    acts as the move that ends the turn, takes its "here" and picked outlines, and its title is the turn's tooltip. The
+    pointer on it lights the turn's edges in its row with it (design 06, item 8). The move's button stays round in pills
+    and dots, and a turn with no label, no "…" and no ◆ has no such button. Each part is as tall as its glyph, so a
+    label keeps the row's height. A variation's parts have no slots of their own, because a variation's rows do not line
+    up in columns. The moves evaluated are kept with the variations. A variation that stops in a turn's middle has no
+    turn label until the turn ends.
     - **A move that is the engine's only good move** also asks for the position before the enemy's last turn, when
       that position has no result of the label budget: a Great needs it (design 10, item 6). A position of the game has
       it already. A position of a variation has it when the player looked at it or evaluated a move from it. The move
@@ -178,10 +182,10 @@ cut edges that are on the board, so a line drawn over the board can show edges t
       engine does not find the move to be the only good one, no search is added.
     - **A hard position's ◆** (design 14) needs no request: it shows wherever the position before a variation move has a
       result, from the search of that position. By edge, it follows the move and its label, in the move's button. By
-      turn, it follows the move that ends the turn, from the harder of the turn's positions. It shows for the side
-      reviewed only, as the labels. A marked move's tooltip says "Hard position". A move whose position before it (by
-      turn, one of the turn's) has no result says "Not searched yet". A move without the mark and without that word is
-      easy.
+      turn, it is in the turn's own button after the move that ends the turn, from the harder of the turn's positions.
+      It shows for the side reviewed only, as the labels. A marked move's tooltip says "Hard position". A move whose
+      position before it (by turn, one of the turn's) has no result says "Not searched yet". A move without the mark and
+      without that word is easy.
 12. **Lichess's move menu** on a variation's move, by a right-click or a long press: "Evaluate quality" (item 11),
     "Promote variation" (the nearest variation on the path that is not the first from its parent becomes the first, as
     Lichess's `promoteAt`) and "Delete from here" (the move and what follows it, and the place on screen goes to the
