@@ -1,7 +1,9 @@
 <script lang="ts">
-  // The libraries that the sites' pages ship (design 11), each MIT-licensed, with the licence's text, and the font
-  // Fira Code (site.css), under the SIL Open Font License 1.1, with its copyright line and the licence's text: on each
-  // site's notices page, inside its text style (prose.ts). Their copyright lines are their own (node_modules/*/LICENSE).
+  // The works of others that the sites' pages ship (design 11), on each site's notices page, inside its text style
+  // (prose.ts). The libraries are under the MIT licence. The page gives the copyright line of each library, as its
+  // node_modules/*/LICENSE has it, and then the licence's text. The font Fira Code (site.css) is under the SIL Open
+  // Font License 1.1. That licence asks that each copy of the font carries its copyright line and the licence. The page
+  // gives both word for word from the package's LICENSE file (apps/hedgeschool/tests/notices.spec.ts compares them).
   const MIT = [
     ["Svelte", "https://github.com/sveltejs/svelte", "Copyright (c) 2016-2025 Svelte Contributors"],
     ["SvelteKit", "https://github.com/sveltejs/kit", "Copyright (c) 2020 SvelteKit contributors"],
@@ -13,9 +15,6 @@
     ["esm-env", "https://github.com/benmccann/esm-env", "Copyright 2022 Benjamin McCann"],
     ["Tailwind CSS", "https://github.com/tailwindlabs/tailwindcss", "Copyright (c) Tailwind Labs, Inc."],
   ];
-  // The font's copyright line and licence, as @fontsource-variable/fira-code's LICENSE file has them. The licence asks
-  // that each copy of the font carries both.
-  const FONT_COPYRIGHT = "Copyright 2014-2020 The Fira Code Project Authors (https://github.com/tonsky/FiraCode)";
 </script>
 
 <h2>The pages</h2>
@@ -43,7 +42,7 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
   The sites' monospaced font is <a href="https://github.com/tonsky/FiraCode">Fira Code</a>, under the SIL Open Font
   License, Version 1.1:
 </p>
-<p>{FONT_COPYRIGHT}</p>
+<p>Copyright 2014-2020 The Fira Code Project Authors (https://github.com/tonsky/FiraCode)</p>
 
 <h2>The SIL Open Font License, of the font above</h2>
 <pre class="whitespace-pre-wrap">SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007
