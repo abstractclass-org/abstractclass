@@ -2,7 +2,7 @@
 // a game. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { branchChildren, branchLine, branchRows, lastMove, mainIndex, nextFork, pathKey, prevFork, sharedLength, siblingLine, treeLines, withLine } from "./tree.ts";
+import { branchChildren, branchLine, branchRows, lastMove, mainIndex, nextFork, pathKey, prevFork, sameNodes, sharedLength, siblingLine, treeLines, withLine } from "./tree.ts";
 
 const main = ["a", "b", "c", "d"];
 
@@ -95,4 +95,15 @@ test("the tree's rules: a fork's rule ends at its last line, and passes the line
     { last: true, through: [1] },
     { last: true, through: [] },
   ]);
+});
+
+test("a move that gives the same position as a move of the tree goes along that move, as far as the tree goes", () => {
+  // The game a b c, and a variation x from a. A key: the move's letters in order, so "ba" gives the position of "ab".
+  const kids: Record<string, string[]> = { "": ["ab"], ab: ["c", "xy"], "ab c": [] };
+  const children = (path: string[]) => kids[pathKey(path)] ?? [];
+  const keyAt = (path: string[], name: string) => (pathKey(path) in kids ? [...name].sort().join("") : null);
+  assert.deepEqual(sameNodes(["ba", "yx"], children, keyAt), ["ab", "xy"]);
+  assert.deepEqual(sameNodes(["ba", "z", "dc"], children, keyAt), ["ab", "z", "dc"]); // z is new: past it, nothing known
+  assert.deepEqual(sameNodes(["ab", "c"], children, keyAt), ["ab", "c"]);
+  assert.deepEqual(sameNodes(["ac"], children, keyAt), ["ac"]); // another position: a new node
 });

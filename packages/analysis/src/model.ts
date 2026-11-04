@@ -29,7 +29,8 @@ export interface Candidate<M> {
   prior?: number; // the network's policy for the move: KaTrain's complexity weighs the candidates by it
   lineVisits?: number[];
   // A symmetric twin (protocol 0.4): in a position that is its own image, the searched edge of which this edge is the
-  // mirror image. The engine lists the twin right after it, with its values and visits.
+  // mirror image. The engine lists the twin right after it, with its values and visits. Or a move with another name
+  // that gives the same position as the candidate `twinOf` (withTwins).
   twinOf?: M;
 }
 /** `ownership`: the engine's ownership of each of the game's points (KataGo's, @abstractclass/engine/protocol.ts,
@@ -227,12 +228,58 @@ export function sameMove<M>(game: Moves<M>, a: Analysis<M> | undefined, x: M, y:
   return game.equal(searched(x), searched(y));
 }
 
-/** The same turn: the same edges, in either order. */
-function sameTurn<M>(game: Moves<M>, played: (M | null)[], turn: M[]): boolean {
+/** The same turn: the same edges, in either order. In their order, each edge is one move with the turn's in its own
+ *  position (sameMove): `start`, the analysis before the turn, and `middle`, after its first edge. */
+function sameTurn<M>(game: Moves<M>, played: (M | null)[], turn: M[], start?: Analysis<M>, middle?: Analysis<M>): boolean {
   if (played.length !== turn.length || played.some(e => e == null)) return false;
   const [a, b] = played as M[];
-  return turn.length === 1 ? game.equal(a, turn[0])
-    : (game.equal(a, turn[0]) && game.equal(b, turn[1])) || (game.equal(a, turn[1]) && game.equal(b, turn[0]));
+  return turn.length === 1 ? sameMove(game, start, a, turn[0])
+    : (sameMove(game, start, a, turn[0]) && sameMove(game, middle, b, turn[1])) || (game.equal(a, turn[1]) && game.equal(b, turn[0]));
+}
+
+// The analyses with their twins by position (withTwins), for each analysis and the moves given with it.
+const twinned = new WeakMap<object, Map<string, unknown>>();
+
+/** The analysis `a` of the position `before`, with the moves that give one position as twins (the game's `afterKey`,
+ *  Cyanotype's design 33, item 9): a candidate that gives the same position as a candidate before it becomes that
+ *  one's twin, and each of `moves` (the tree's moves from the position) that gives the same position as a candidate
+ *  under another name is listed after it as its twin. Such a move has the candidate's values and the rest of its line,
+ *  but no prior: the network gave the prior to the candidate. So the shared code takes them as one move, as it takes
+ *  the symmetric twins (sameMove, rankOf, distinctCandidates). `a` itself where the game has no `afterKey`, or where
+ *  no two moves give one position. The same object again for the same analysis and moves. */
+export function withTwins<M, P>(game: { afterKey?(move: M, before: P): string; moveName(move: M | null): string },
+                                a: Analysis<M>, before: P, moves: (M | null)[] = []): Analysis<M> {
+  if (!game.afterKey) return a;
+  const names = moves.map(m => game.moveName(m)).join(" ");
+  const kept = twinned.get(a)?.get(names) as Analysis<M> | undefined;
+  if (kept) return kept;
+  const key = (m: M) => game.afterKey!(m, before);
+  const searched = new Map<string, Candidate<M>>(); // the first candidate that gives each position, by its key
+  let changed = false;
+  const candidates = a.candidates.map(c => {
+    if (c.twinOf) return c;
+    const k = key(c.edge), first = searched.get(k);
+    if (!first) { searched.set(k, c); return c; }
+    changed = true;
+    return { ...c, twinOf: first.edge };
+  });
+  const listed = new Set(candidates.map(c => game.moveName(c.edge)));
+  for (const m of moves) {
+    const c = m == null || listed.has(game.moveName(m)) ? undefined : searched.get(key(m));
+    if (!m || !c) continue;
+    const { prior: _, ...values } = c;
+    const twin: Candidate<M> = { ...values, edge: m, twinOf: c.edge, ...(c.line ? { line: [m, ...c.line.slice(1)] } : {}) };
+    // After the candidate and its twins, as the engine lists a symmetric twin
+    let at = candidates.indexOf(c) + 1;
+    while (at < candidates.length && candidates[at].twinOf === c.edge) at++;
+    candidates.splice(at, 0, twin);
+    listed.add(game.moveName(m));
+    changed = true;
+  }
+  const out = changed ? { ...a, candidates } : a;
+  if (!twinned.has(a)) twinned.set(a, new Map());
+  twinned.get(a)!.set(names, out);
+  return out;
 }
 
 /** An edge's loss and label, from the mover's values before and after it: win chance, and score when both are known.
@@ -369,7 +416,7 @@ export function review<G extends GameTypes>(game: Game<G>, data: ReviewData<G>, 
     // positions with the book's values (Analysis `book`): the book's minimax values it, and its table gives it its own
     // label.
     const byBook = (e: MoveReview<G>) => !!data.analysis[e.index]?.book && !!data.analysis[e.index + 1]?.book;
-    if (t.edges.length > 1 && t.best && sameTurn(game, played, t.best))
+    if (t.edges.length > 1 && t.best && sameTurn(game, played, t.best, data.analysis[t.start], data.analysis[t.start + 1]))
       for (const e of t.edges) if (e.label && e.label !== "great" && !byBook(e)) e.label = "best";
     if (!known(t.start, t.end)) continue;
     const j = judgeTurn(game, p, played, data.analysis[t.start], played.length > 1 ? data.analysis[t.start + 1] : undefined,
@@ -416,7 +463,7 @@ export function judgeTurn<M>(game: Moves<M>, mover: Player, played: (M | null)[]
   // first choice and the next edge of its line, in either order.
   const firstChoices = !!first && played[0] != null && sameMove(game, start, first.edge, played[0])
     && (played.length === 1 || (deepEnough(middle, minVisits) && !!top && played[1] != null && sameMove(game, middle, top.edge, played[1])));
-  const playedBest = firstChoices || (!!best && sameTurn(game, played, best));
+  const playedBest = firstChoices || (!!best && sameTurn(game, played, best, start, middle));
   // `after.blueWin` is the win chance that labels read (valuesAfter).
   const winBefore = moverWin(start.blueWin, p), winAfter = moverWin(after.blueWin, p);
   const s = scoreOf(start, kind), before = s !== undefined ? moverScore(s, p) : undefined;

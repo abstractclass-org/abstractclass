@@ -74,6 +74,8 @@ export const blueprintsView: ViewGame<Blueprints> = {
   // full size. The Move header shows a cut name in full.
   nameText: "w-full truncate font-mono",
   fitName: NAME_LEAST,
+  // A candidate's twins are the moves that give the same position (blueprints.ts, afterKey)
+  twinWords: "Same position",
 
   movesLeft: p => p.movesLeft,
   lineMovers,

@@ -148,9 +148,9 @@
   import { errorText } from "@abstractclass/engine/errors.ts";
   import Toast from "@abstractclass/site/Toast.svelte";
   import {
-    opensTurn, HARD_NOTE, complexity, deepEnough, isHard, turnComplexity, likelyMoves, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchMove, valuesAfter, resultWin, moverWin, costText, pct, shownCandidates, distinctCandidates, rankOf, twinsOf, enoughVisits, threatTurn, trustedLine, type Candidate, LABELS, LABEL_TEXT, LABEL_GLYPH, type Label, type MoveJudgment, type Review, type Unit, type TurnJudgment, type TurnReview,
+    opensTurn, HARD_NOTE, complexity, deepEnough, isHard, turnComplexity, likelyMoves, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchMove, valuesAfter, resultWin, moverWin, costText, pct, shownCandidates, distinctCandidates, rankOf, twinsOf, withTwins, enoughVisits, threatTurn, trustedLine, type Candidate, LABELS, LABEL_TEXT, LABEL_GLYPH, type Label, type MoveJudgment, type Review, type Unit, type TurnJudgment, type TurnReview,
   } from "@abstractclass/analysis/model.ts";
-  import { branchChildren, branchLine, branchRows, mainIndex, nextFork, pathKey, prefixKeys, prevFork, sharedLength, siblingLine, treeLines, withLine,
+  import { branchChildren, branchLine, branchRows, mainIndex, nextFork, pathKey, prefixKeys, prevFork, sameNodes, sharedLength, siblingLine, treeLines, withLine,
            type BranchRow } from "@abstractclass/analysis/tree.ts";
 
   interface Props {
@@ -287,7 +287,10 @@
   const over = $derived(!!position.over);
   // The engine's own result: where the review takes a position's values from the book, the analysis column shows the
   // engine's search there (ReviewData `searched`)
-  const analysis = $derived(over ? undefined : mainAt !== null ? (R.data.searched ?? R.data.analysis)[mainAt] : branchNode?.analysis);
+  const ownAnalysis = $derived(over ? undefined : mainAt !== null ? (R.data.searched ?? R.data.analysis)[mainAt] : branchNode?.analysis);
+  // With the moves that give one position as twins: the candidates, and the tree's moves from here (withTwins)
+  const analysis = $derived(ownAnalysis && view.afterKey
+    ? withTwins(view, ownAnalysis, position, childrenOf(path).map(c => moveOf(c.at(-1)!))) : ownAnalysis);
   // The position's complexity (model.ts), and its likely edges for the meter
   const difficulty = $derived(complexity(analysis, position.player));
   const meter = $derived(likelyMoves(analysis, position.player));
@@ -348,6 +351,17 @@
   function childrenOf(p: string[]): string[][] {
     const i = mainIndex(p, mainNames);
     return [...(i !== null && i < mainNames.length ? [[...p, mainNames[i]]] : []), ...branchKids(p)];
+  }
+  function moveOf(name: string): G["move"] | null { return name === "pass" ? null : view.parseMove(name); }
+  /** The path with each move that gives the same position as a move of the tree from there on that move (sameNodes):
+   *  one position is one node. */
+  function treeNodes(target: string[]): string[] {
+    const afterKey = view.afterKey;
+    if (!afterKey) return target;
+    return sameNodes(target, p => childrenOf(p).map(c => c.at(-1)!), (p, name) => {
+      const before = positionOf(p), m = moveOf(name);
+      return !before ? null : m ? afterKey(m, before) : name;
+    });
   }
   const positionOf = (p: string[]): G["position"] | undefined => {
     const i = mainIndex(p, mainNames);
@@ -481,6 +495,7 @@
    *  A review snapshot plays along the tree alone, and its bar says why (nudge). `feature`: what the player used. `stepwise`:
    *  it goes there edge by edge, at the engine's line's pace (a trap and its refutation, design 32, item 7). */
   async function playPath(target: string[], feature: string, stepwise = false) {
+    target = treeNodes(target);
     if (snapshot && mainIndex(target, mainNames) === null && !(pathKey(target) in branches)) { nudge(); return; }
     used(feature);
     if (onplay) await onplay(target);
@@ -1873,9 +1888,10 @@
             title={analysis && !trusted(c) ? "Too few visits to show the engine's line" : undefined}>
           <!-- A candidate on the board has its number in a badge, as the board draws it. The others have a plain number. -->
           <td>{@render rankBadge(rank, onBoard.has(rank) ? "On the board" : undefined)}</td>
-          <td><div class="@container flex items-center gap-1 min-w-0"><span data-name class="flex-none {view.nameText} [--on-text:var(--panel)] [&>*]:align-middle
+          <!-- A name that fits its cell (`fitName`) leaves room for the twins' mark -->
+          <td><div class="@container flex items-center gap-1 min-w-0"><span data-name style:max-width={twins.length && view.fitName ? "calc(100% - 1.25em)" : undefined} class="flex-none {view.nameText} [--on-text:var(--panel)] [&>*]:align-middle
                 data-cut:text-clip data-cut:[mask-image:linear-gradient(to_right,#000_calc(100%_-_1.25em),transparent)]">{#if glyphs}<glyphs.Label played={glyphs.asPlayed(c.edge, mover, position)} />{:else}{view.moveName(c.edge)}{/if}</span>{#if twins.length}<span
-                class="flex-none leading-none font-normal text-muted" title="Mirror: {twins.map(t => view.moveName(t.edge)).join(', ')}">⇅</span>{/if}</div></td>
+                class="flex-none leading-none font-normal text-muted" title="{view.twinWords ?? "Mirror"}: {twins.map(t => view.moveName(t.edge)).join(', ')}">⇅</span>{/if}</div></td>
           <td>{pct(moverWin(c.blueWin, mover))}</td>
           <td>{c.lead !== undefined ? sideShort(c.lead) : "–"}</td>
           <td>{c.visits}</td>

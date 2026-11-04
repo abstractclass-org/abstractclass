@@ -94,13 +94,30 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
    hex, then `+N` when the move scores, or a small `x` when it captures and scores nothing. An edit shows the kind of
    the cell that it moves. These are the glyphs of the setting "Move notation", whose other form is item 5's text ("The
    review and the Analysis board", item 4).
-9. **Two edits can give the same hand.** A string names one edit, but two edits can leave the same blueprints: for
+9. **Two moves can give one position.** A string names one edit, but two edits can leave the same blueprints: for
    example, the end wall of a line of walls moved to the line's other end, and the star beside it moved one cell up.
-   Some edits leave the hand as it was. So the review compares two moves by the position that they give, not only by
-   their names, as it takes Enclosure's two edges of a turn in either order as one turn (design 29). Not built yet:
-   the view compares the engine's moves with the game's `equal`, which takes no position, and the game's tree keeps a
-   move by its name (design 29, item 9). For now, Cyanotype's review keeps two such edits as two moves, as the
-   game's tree and the engine name them. The comparison by position is still to be decided and built.
+   Some edits leave the hand as it was. Two placements of equal blueprints on one anchor hex give one position too
+   (blueprints 1 and 3 at the start). So the review compares two moves by the position that they give, not only by
+   their names, as it takes Enclosure's two edges of a turn in either order as one turn (design 29):
+   - **The key of the position after a move** (`afterKey`, in `src/lib/review/blueprints.ts`): for an edit, the
+     mover's hand after it, with the two blueprints back in their frames (item 5). For a placement, its footprint: a
+     placement leaves the hands as they are, and the board after it follows from the footprint. The game interface
+     takes the key as an optional member (design 29, item 9). Enclosure gives none: each edge gives a position of its
+     own.
+   - **The candidates' twins.** Where the review reads an analysis with its position, a candidate that gives the
+     position of an earlier candidate becomes the earlier one's twin. A move of the tree from that position (the
+     game's move or a variation's) that gives a candidate's position under another name becomes a twin too
+     (`withTwins`, in the analysis package). The review takes a twin as the same move, as it takes Enclosure's
+     symmetric twins: one row of the table, one rank on the board, and Best for either move. The table's mark ⇅
+     names the twins "Same position". A twin from the tree has the candidate's values and the rest of its line, but
+     no prior. So the meter and the complexity count the network's prior once.
+   - **The tree.** A move from the board, a candidate or a line goes along the tree's move that gives the same
+     position, where the tree has one: one position is one node. After the tree's last known position, the positions
+     are not known yet, so the moves make new nodes.
+   - **The move list's note** names the engine's choice only for a move that gives another position.
+   - **Names stay where the engine reads them.** The engine's queries, the stored results and a line's steps keep each
+     move by its name. When a line changes to a move with another name, its steps come from the engine again. The
+     board then shows the same position.
 10. **A position's notation** (as FEN gives a chess position) waits for the board editor and for starts from a set-up
     position. The first version takes games as records: the standard start and the moves. So the record's reader
     refuses a `Position` tag. The shared frame refuses it for each game that gives the frame no start. The import
@@ -744,5 +761,6 @@ engine's legal moves" (2026-10-27), "The import's frame in packages/import, and 
 (2026-10-27), "Drawing Board's practice: its layout, its engine's files, and the shared parts" (2026-10-30),
 "Drawing Board's practice: the bot and the page" (2026-10-30), "Drawing Board's practice on protocol 0.7.1"
 (2026-10-30), "Drawing Board's review and Analysis board" (2026-11-01), "Drawing Board's import page opens the
-review and the Analysis board" (2026-11-01), "Drawing Board's notes" (2026-11-02), and "Blueprints' site is
-Cyanotype" (2026-11-04). The earlier entries name the site by its first name, Drawing Board.
+review and the Analysis board" (2026-11-01), "Drawing Board's notes" (2026-11-02), "Blueprints' site is
+Cyanotype" (2026-11-04), and "Cyanotype's review takes two moves that give one position as one move" (2026-11-05). The
+earlier entries name the site by its first name, Drawing Board.

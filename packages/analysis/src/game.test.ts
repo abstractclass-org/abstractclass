@@ -8,7 +8,8 @@ import "./testing/svelteModules.ts";
 import type { AnalysisReply, PositionQuery } from "@abstractclass/engine/protocol.ts";
 import type { EnginePool } from "@abstractclass/engine/pool.ts";
 import { memoryDb } from "@abstractclass/storage/memoryDb.ts";
-import { rankOf, review, sameMove, shownCandidates, twinsOf, type Analysis, type ReviewData } from "./model.ts";
+import { distinctCandidates, rankOf, review, sameMove, shownCandidates, twinsOf, withTwins, type Analysis, type ReviewData } from "./model.ts";
+import { SWEEP_VISITS, analysisKey, cachePut } from "./cache.ts";
 import { toAnalysis } from "./reply.ts";
 import { wordFields, words, type Words } from "./testing/game.ts";
 
@@ -90,6 +91,58 @@ test("moves compare by the game's equality, symmetric twins too", () => {
   assert.equal(rankOf(words, a, "b"), 2);
   assert.equal(sameMove(words, a, "a", "a'"), true);
   assert.deepEqual(twinsOf(words, a, a.candidates[0]).map(c => c.edge), ["a'"]);
+});
+
+// The test game with a key of the position that a move gives: the move's letters in order, so "ba" gives the position
+// of "ab", as two of Blueprints' edits can give one hand (Cyanotype's design 33, item 9).
+const keyed = { ...words, afterKey: (m: string) => [...m].sort().join("") };
+
+test("moves that give one position are one move: the engine's candidates, and the tree's moves", () => {
+  const a: Analysis<string> = { blueWin: 0.5, visits: 100, candidates: [
+    { edge: "ab", visits: 50, blueWin: 0.5, prior: 0.3, line: ["ab", "c"] }, { edge: "c", visits: 30, blueWin: 0.45 },
+    { edge: "ba", visits: 20, blueWin: 0.48, prior: 0.2 }] };
+  const at = words.position(wordFields(0));
+  // A game without the key: the analysis as it is, so Enclosure's review is unchanged
+  assert.equal(withTwins(words, a, at, ["ba", "abc"]), a);
+  const t = withTwins(keyed, a, at);
+  assert.deepEqual(t.candidates.map(c => [c.edge, c.twinOf]), [["ab", undefined], ["c", undefined], ["ba", "ab"]]);
+  assert.deepEqual(distinctCandidates(t).map(c => c.edge), ["ab", "c"]);
+  assert.equal(rankOf(keyed, t, "ba"), 1);
+  assert.equal(withTwins(keyed, a, at), t); // the same object again: the page derives nothing again
+  // A move of the tree that gives a candidate's position is its twin, with its values and line, without its prior
+  const two = withTwins(keyed, { ...a, candidates: a.candidates.slice(0, 2) }, at, ["ba", "abc", null]);
+  assert.deepEqual(two.candidates.map(c => [c.edge, c.twinOf, c.visits, c.prior, c.line]),
+                   [["ab", undefined, 50, 0.3, ["ab", "c"]], ["ba", "ab", 50, undefined, ["ba", "c"]], ["c", undefined, 30, undefined, undefined]]);
+  assert.equal(sameMove(keyed, two, "ab", "ba"), true);
+  assert.equal(sameMove(keyed, two, "ab", "abc"), false);
+});
+
+test("the analysis of a game gives each position's analysis with the moves that give one position as twins", async () => {
+  const pool = {
+    search: "test", model: { sha256: "m" },
+    rules: { describeGame: async (q: PositionQuery, from = 0) =>
+      ({ reply: { positions: Array.from({ length: q.moves.length + 1 }, (_, k) => wordFields(k)).slice(from) } }) },
+  } as unknown as EnginePool;
+  // The game "ba" then "c": the engine's first choice at the start is "ab", which gives the same position as "ba"
+  const game = new GameAnalysis(keyed, pool, ["ba", "c"], "twins");
+  await game.start();
+  const start: Analysis<string> = { blueWin: 0.6, visits: SWEEP_VISITS, lead: 0, candidates: [
+    { edge: "ab", visits: SWEEP_VISITS, blueWin: 0.6, lead: 0 }, { edge: "d", visits: 1, blueWin: 0.3, lead: 0 }] };
+  const after: Analysis<string> = { blueWin: 0.6, visits: SWEEP_VISITS, lead: 0, candidates: [{ edge: "c", visits: SWEEP_VISITS, blueWin: 0.6, lead: 0 }] };
+  await cachePut(analysisKey("test", "m", [], SWEEP_VISITS), start);
+  await cachePut(analysisKey("test", "m", ["ba"], SWEEP_VISITS), after);
+  await game.fromStore("test", "m");
+  assert.deepEqual(game.analysisOf([])?.candidates.map(c => [c.edge, c.twinOf]), [["ab", undefined], ["ba", "ab"], ["d", undefined]]);
+  const data = game.data({ blue: "First", red: "Second" })!;
+  assert.deepEqual(data.analysis[0]?.candidates.map(c => c.edge), ["ab", "ba", "d"]);
+  // The game's move gives the first choice's position: Best
+  assert.equal(review(keyed, data, "lead", 0).edges[0].label, "best");
+  // In a game whose move is "d", a variation's move "ba" from the start is the twin of the first choice
+  const other = new GameAnalysis(keyed, pool, ["d", "c"], "twins-variation");
+  await other.start();
+  await other.fromStore("test", "m");
+  await other.addLine(["ba"], false);
+  assert.deepEqual(other.analysisOf([])?.candidates.map(c => [c.edge, c.twinOf]), [["ab", undefined], ["ba", "ab"], ["d", undefined]]);
 });
 
 test("a candidate shows within 3 of Go's points times the game's score scale", () => {

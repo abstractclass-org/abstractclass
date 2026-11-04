@@ -310,6 +310,9 @@ export interface ViewGame<G extends ViewTypes> extends Game<G> {
    *  wider than the cell, down to this share of its size, where it is cut. For names whose widths differ much
    *  (Blueprints' edits and placements, and their glyphs). None: `nameText` gives the size. */
   fitName?: number;
+  /** The words before a candidate's twins in the title of the table's mark ⇅: what the twins are to it (model.ts,
+   *  Candidate `twinOf`). None: "Mirror", Enclosure's symmetric twins. */
+  twinWords?: string;
 
   // --- Who plays each move
   /** The moves left in the turn from a position, for its mover. */

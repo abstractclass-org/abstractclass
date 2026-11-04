@@ -92,6 +92,7 @@ edit in the same commit), so their changes still apply.
      step(after: G["fields"]): G["step"];
      turn(count: number): { turn: number; first: boolean }; // the notation's turn of the next move
      scoreScale: number;                         // the engine's points per Go point (KataGame's SCORE_SCALE)
+     afterKey?(move: G["move"], before: G["position"]): string; // the position after a move, as a key (none: its name)
    }
    ```
 
@@ -196,9 +197,10 @@ edit in the same commit), so their changes still apply.
      Hedge School's early edition). The view shows no tool that the site leaves out. The page's own menus go in the
      step bar (`tools`, a snippet that takes the labels' unit): the Export menu, and the Analysis board's New menu.
    - **The comparison of two moves is the game's** (`equal`): the view compares the engine's moves with it (the
-     candidates, their twins, a line's steps). The game's tree, the engine's queries and the stored results know a
-     move by its name, so there two names are two moves. Two of Blueprints' edits can give the same hand (design 33,
-     item 9): `equal` takes no position, so it cannot compare them by their hands yet (abscls-8tl1.7).
+     candidates, their twins, a line's steps). The engine's queries and the stored results know a move by its name.
+     Two of Blueprints' moves with different names can give one position (design 33, item 9). So a game can give the
+     key of the position after a move (`afterKey`). The review then takes the moves with one key as twins of one
+     candidate (`withTwins`), and the tree takes them as one node. Enclosure gives no key: two names are two moves.
    - **One type for the game:** Hedge School's `Enclosure` (`enclosure.ts`) extends `ViewTypes`, so that the review
      (`Review<Enclosure>`), the analysis and the view take one type. The view takes the game's types from `view` alone
      (TypeScript's `NoInfer` on its other props).
@@ -357,4 +359,5 @@ edit in the same commit), so their changes still apply.
 
 [decisions/product.md](../decisions/product.md), "The analysis and the review in packages/" (2026-10-19), "The
 review's view in packages/review" (2026-10-25), "The review's styles in packages/review and packages/site"
-(2026-10-26), and "The import's frame in packages/import, and Drawing Board's tools" (2026-10-27).
+(2026-10-26), "The import's frame in packages/import, and Drawing Board's tools" (2026-10-27), and "Cyanotype's
+review takes two moves that give one position as one move" (2026-11-05).

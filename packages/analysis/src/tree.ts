@@ -35,6 +35,23 @@ export function branchLine(path: string[], main: string[]): { start: string[]; k
   return { start: path.slice(0, k), keys: prefixKeys(path).slice(k + 1) };
 }
 
+/** The path `target`, with each move that gives the same position as a move of the tree from there on that move: one
+ *  position is one node (the game's `afterKey`: Cyanotype's design 33, item 9). `children(path)` gives the moves of the
+ *  tree from a path, and `keyAt(path, name)` the key of the position that the move `name` gives from it, or null where
+ *  the position at `path` is not known: past the tree's end, where the moves make new nodes. */
+export function sameNodes(target: string[], children: (path: string[]) => string[],
+                          keyAt: (path: string[], name: string) => string | null): string[] {
+  const out = [...target];
+  for (let k = 0; k < out.length; k++) {
+    const before = out.slice(0, k), kids = children(before);
+    if (kids.includes(out[k])) continue;
+    const key = keyAt(before, out[k]), same = key === null ? undefined : kids.find(name => keyAt(before, name) === key);
+    if (!same) break;
+    out[k] = same;
+  }
+  return out;
+}
+
 /** The variation nodes' children, by their parent's key, in the order the nodes were added. */
 export function branchChildren(paths: string[][]): Map<string, string[][]> {
   const kids = new Map<string, string[][]>();

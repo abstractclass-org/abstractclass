@@ -72,4 +72,9 @@ export interface Game<G extends GameTypes> extends Moves<G["move"]> {
   /** The engine's points for one of Go's points (KataGame's SCORE_SCALE: Enclosure's 12), for the bands that KaTrain
    *  sets in Go's points. */
   scoreScale: number;
+  /** The position that `move` gives from `before`, as a key: two moves with one key give one position, though their
+   *  names differ (Blueprints' two edits that give one hand: Cyanotype's design 33, item 9). The review takes them as
+   *  one move: a candidate's twins (model.ts, withTwins), and one node of the tree. None: each name gives a position of
+   *  its own (Enclosure's edges). */
+  afterKey?(move: G["move"], before: G["position"]): string;
 }

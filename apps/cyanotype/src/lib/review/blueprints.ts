@@ -2,8 +2,9 @@
 // its own part of the review. The packages' model and analysis compute with a game (@abstractclass/analysis/game.ts):
 // `blueprints` is Blueprints', from its notation (game/notation.ts) and the engine's describe and describe_game
 // (board/described.ts). The site has no rules: a position, its legal moves and what each move did come from the
-// engine. This module gives Blueprints' types, its game, who plays each move of a line, the players' stars, the area
-// map of the engine's ownership, and the texts that name a move. Its view (blueprintsView.ts) gives the rest of the
+// engine. This module gives Blueprints' types, its game, the key of the position that a move gives (from the frames of
+// the notation, design 33, items 5 and 9), who plays each move of a line, the players' stars, the area map of the
+// engine's ownership, and the texts that name a move. Its view (blueprintsView.ts) gives the rest of the
 // view's game interface: the board, the lists' looks, the settings and the engine's networks.
 import * as shared from "@abstractclass/analysis/model.ts";
 import type { Game, Player } from "@abstractclass/analysis/game.ts";
@@ -12,9 +13,10 @@ import { PLAYER_NAME, WHOLE, type NotePart, type ViewTypes } from "@abstractclas
 import type { BoardNote } from "@abstractclass/review/notes.ts";
 import { moveName, moveText, moves, type BlueprintNumber, type Capture, type Move } from "../game/notation.ts";
 import { boardMove, playerOf, sitePosition, stepOf, type DescribeReply, type EngineStep, type GamePosition } from "../board/described.ts";
+import { anchorOf, hexKey, parseHex } from "../board/hex.ts";
 import type { BlueprintInput } from "../board/blueprintInput.svelte.ts";
 import type { InputRules } from "../board/input.ts";
-import { starsOf, type BoardMove, type Hand, type Kind, type SitePosition } from "../board/position.ts";
+import { footprintOf, starsOf, type Blueprint, type BoardMove, type Hand, type Kind, type SitePosition } from "../board/position.ts";
 import type { Display } from "./display.ts";
 import { mapWithView } from "./blueprintsMap.ts";
 
@@ -123,10 +125,49 @@ export function lineMovers(p: Position, n: number): Player[] {
   return movers;
 }
 
+/** A blueprint moved so that its anchor cell (the least r, then the least q) is at 0,0: its own frame. */
+function inOwnFrame(b: Blueprint): Blueprint {
+  const anchor = anchorOf(Object.keys(b).map(parseHex));
+  if (!anchor || (anchor[0] === 0 && anchor[1] === 0)) return b;
+  return Object.fromEntries(Object.entries(b).map(([key, kind]) => {
+    const [q, r] = parseHex(key);
+    return [hexKey([q - anchor[0], r - anchor[1]]), kind];
+  }));
+}
+
+/** The mover's hand after an edit (design 33, item 5): the cell goes from `from` to `to`, both in the frames before the
+ *  edit, then the two blueprints go back to their own frames. Null when the hand has no cell at `from`. */
+export function handAfter(hand: Hand, { from, to }: Extract<Move, { kind: "edit" }>): Hand | null {
+  const kind = hand[from.blueprint - 1][hexKey([from.q, from.r])];
+  if (!kind) return null;
+  const next: Blueprint[] = hand.map(b => ({ ...b }));
+  delete next[from.blueprint - 1][hexKey([from.q, from.r])];
+  next[to.blueprint - 1][hexKey([to.q, to.r])] = kind;
+  return next.map((b, i) => (i === from.blueprint - 1 || i === to.blueprint - 1 ? inOwnFrame(b) : b)) as unknown as Hand;
+}
+
+/** A set of cells as a key: each cell's hex and the first letter of its kind, in order. */
+const cellsKey = (cells: [string, Kind][]) => cells.map(([key, kind]) => key + kind[0]).sort().join(" ");
+
+/** The position that a move gives from `before`, as a key (design 33, item 9): two moves with one key give one
+ *  position. A placement leaves the hands as they are and puts its footprint on the board, so the board after it (its
+ *  captures, its points) follows from the footprint: two equal blueprints placed on one anchor hex give one position.
+ *  An edit changes only the mover's hand: two edits that give one hand give one position. A move that the hand cannot
+ *  make (an empty blueprint's placement, an edit of a cell that is not there) has its name as its key. */
+export function afterKey(move: Move, before: Pick<Position, "player" | "blueprints">): string {
+  const hand = before.blueprints[before.player];
+  if (move.kind === "place") {
+    const cells = footprintOf(hand[move.blueprint - 1], [move.q, move.r]);
+    return cells.length ? `place ${cellsKey(cells.map(c => [hexKey(c.hex), c.kind]))}` : `move ${moveName(move)}`;
+  }
+  const after = handAfter(hand, move);
+  return after ? `hand ${after.map(b => cellsKey(Object.entries(b))).join(" | ")}` : `move ${moveName(move)}`;
+}
+
 /** Blueprints' game. A move's name is its one spelling (notation.ts), so two moves have one name exactly when
- *  sameMove holds. Two edits that give one hand are two moves here (design 33, item 9). The engine's score is in its
- *  own unit, 12 to one of Go's points (the engine repository's port, SCORE_SCALE). The area map of an ownership holds
- *  the view's place (blueprintsMap.ts). */
+ *  sameMove holds. Two moves with different names can give one position (design 33, item 9): their `afterKey` is the
+ *  same. The engine's score is in its own unit, 12 to one of Go's points (the engine repository's port, SCORE_SCALE).
+ *  The area map of an ownership holds the view's place (blueprintsMap.ts). */
 export const blueprints: Game<Blueprints> = {
   ...moves,
   mapOf: mapWithView,
@@ -140,6 +181,7 @@ export const blueprints: Game<Blueprints> = {
   step: stepOfAfter,
   turn: turnFromCount,
   scoreScale: 12,
+  afterKey,
 };
 
 // --- The shared types, for Blueprints -------------------------------------------------------------------------------
@@ -166,11 +208,12 @@ export function turnShortNote(t: TurnReview, before: Position): string | NotePar
   return [`${said} `, ...best.flatMap((m, k) => [...(k ? [" "] : []), asPlayed(m, t.player, hands(k))]), " was best."];
 }
 
-/** A note for the move list, in one line: the label, and the engine's choice when the move was not it. */
+/** A note for the move list, in one line: the label, and the engine's choice when the move was not it: a move that
+ *  gives the same position is the engine's choice (afterKey). */
 export function shortNote(e: MoveReview, before: Position): string | NotePart<Blueprints>[] {
   if (e.label === "great") return `Great. The only good move. ${KEPT_NOTE}`;
   const said = `${e.label ? shared.LABEL_TEXT[e.label] : "Not analyzed yet"}.`;
-  if (!e.best || !e.edge || e.label === "best" || moves.equal(e.best.edge, e.edge)) return said;
+  if (!e.best || !e.edge || e.label === "best" || afterKey(e.best.edge, before) === afterKey(e.edge, before)) return said;
   return [`${said} `, asPlayed(e.best.edge, e.player, before), " was best."];
 }
 
