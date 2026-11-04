@@ -171,12 +171,11 @@ explorers that people use in chess and Go is [../research/03-opening-explorers.m
    - **The end of the book:** "End of the book" with the symbol in words. Then the live engine searches.
 6. **One sentence a turn, from the book's facts,** as the review builds its sentences from checked engine facts
    (design 04), never from a language model. The facts: how a line ends, how the other book moves end, the traps that a
-   move avoids or sets, a trap's two values and its refutation. One sentence under the table explains the best move,
-   and the pointer or the focus on another row shows that row's sentence. The sentence keeps the height of the
-   position's tallest, so that the move list under it does not move ("The table"). No sentence describes what a
-   turn encloses: such sentences were exact and misleading
-   (design 30, "Why"). The templates are in [journey-book-explorer.md](../ux/book-explorer/journey-book-explorer.md),
-   "Copy specifications".
+   move avoids or sets, a trap's two values and its refutation. One sentence under the table explains the best move, and
+   the pointer or the focus on another row shows that row's sentence. The sentence keeps the height of the position's
+   tallest, so that the move list under it does not move ("The table"). No sentence describes what a turn encloses: such
+   sentences were exact and misleading (design 30, "Why"). The templates are in
+   [journey-book-explorer.md](../ux/book-explorer/journey-book-explorer.md), "Copy specifications".
    - **The module** (`apps/hedgeschool/src/lib/book/sentences.ts`) builds them from a position as the loader gives it:
      a main line's turn (which no page shows now: Openings' first view has no box of the main line,
      "Alternatives"), the best move with the trap that it avoids, another book move with its label, a trap, and
@@ -720,11 +719,11 @@ browser.
 - **The way back:** a click on a move of the path, the step bar's first step, and "Back to the main line" in the step
   bar. "Back to the main line" goes to the last position of the path on the main line: where the path left it. The
   path's own edges count, not the positions that they reach. A move order that reaches a position of the main line by
-  other edges left the main line at its first edge that differs: at A10-D9 O11-Q10 N11-Q10, the way back goes to
-  A10-D9. A mirror image of the main line left it at its first edge: after A10-D11, the image of A10-D9, it goes to
-  the start. On a phone the step bar is fixed to
-  the window's foot (design 06), so the way back is in view whenever the board is. There "Back to the main line" and
-  "Open in Analysis" show their short words, "Main line" and "Analysis", and keep their full words as their names.
+  other edges left the main line at its first edge that differs: at A10-D9 O11-Q10 N11-Q10, the way back goes to A10-D9.
+  A mirror image of the main line left it at its first edge: after A10-D11, the image of A10-D9, it goes to the start.
+  On a phone the step bar is fixed to the window's foot (design 06), so the way back is in view whenever the board is.
+  There "Back to the main line" and "Open in Analysis" show their short words, "Main line" and "Analysis", and keep
+  their full words as their names.
 - **The addresses** (design 22): `/openings` opens the kept board at the position where the last visit ended.
   `#record=<record>` opens a line from the start at its end, and `&at=<n>` after n of its edges. `&via=` names the
   page that sent it, for the analytics (design 17). "Study in Openings" in the review's and the Analysis board's
