@@ -10,6 +10,15 @@
 import { defineConfig } from "@playwright/test";
 import { withEdge } from "./scripts/edge.mjs";
 
+// In CI, Cyanotype's preview must be running: the Tests workflow serves it on port 4174 and sets CYANOTYPE_BASE_URL.
+// Without the address, each Cyanotype case skips (the layout test of the monospaced font, Cyanotype's Practice,
+// import and notes cases, the Notices test, the cyanotype-*.spec.ts files), and a run that tests no Cyanotype page
+// would still pass. Here the config stops the run, whichever tests it selects. Outside CI the cases still skip.
+if (process.env.CI && !process.env.CYANOTYPE_BASE_URL) {
+  throw new Error("CI needs CYANOTYPE_BASE_URL, the address of Cyanotype's preview (the Tests workflow sets " +
+    "http://127.0.0.1:4174). Without it the Cyanotype tests skip and a run passes with no Cyanotype page tested.");
+}
+
 const showScrollBars = { ignoreDefaultArgs: ["--hide-scrollbars"] };
 const OFF_THE_GPU = process.platform === "win32"
   ? ["--disable-gpu", "--disable-d3d11", "--disable-gpu-process-for-dx12-info-collection", "--disable-software-rasterizer"]

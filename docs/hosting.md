@@ -453,6 +453,16 @@ build. Then it uploads `build/` with Wrangler: `main` to production, another bra
   - **`test-windows`, on Windows:** the layout test in Playwright's own Chromium, with Windows' scroll bars, Windows'
     fonts (`system-ui` is Segoe UI there) and Windows' drawing of text. Linux does not show these. They change where
     text wraps or overflows.
+  - **Cyanotype's preview,** in both jobs: the job serves Cyanotype's build (`apps/cyanotype`) with
+    `npm run preview --workspace=cyanotype` on port 4174, beside the site's preview on port 4173, and sets
+    `CYANOTYPE_BASE_URL=http://127.0.0.1:4174`. The job `test` takes the build that `check:all` made. The job
+    `test-windows` builds it in a step of its own, because `check:all` does not run there. The Cyanotype cases of the
+    browser tests run on this preview: the layout test of the monospaced font and of Cyanotype's Practice, review,
+    Analysis board and import page (tests/layout.spec.ts), the Notices test (tests/notices.spec.ts), and the
+    `cyanotype-*.spec.ts` files. On `test-windows`, only the cases of tests/layout.spec.ts run. In CI,
+    `playwright.config.ts` stops the run with a message when `CYANOTYPE_BASE_URL` is missing. Outside CI, those cases
+    skip without it, and a case that needs the engine's files skips when the preview has none (the workflow's build has
+    none).
 
   The sweep loads each page at every width from 360 to 1,920 pixels, with real scroll bars (tests/layout.spec.ts). A
   failed run keeps the failures' screenshots for a week (the run's **Artifacts**: `layout-sweep` for Linux,
