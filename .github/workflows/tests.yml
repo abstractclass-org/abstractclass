@@ -1,11 +1,11 @@
 # The site's tests on each push to dev (docs/hosting.md, "Deploy, check and roll back"): the type check, the unit tests,
 # and the browser tests in Chromium on Linux (tests/): the layout sweep, and the practice games' consent across tabs.
 # Beside them, the layout sweep in Chromium on Windows. On a production build with the practice games' storage on, so
-# that the consent banner shows on every page, and the practice games' test runs. Both jobs also serve Cyanotype's
-# build (CYANOTYPE_BASE_URL), for the layout test of the monospaced font on that site. A release takes only a commit whose
-# run passed. The deploy (deploy.yml) runs the check and the unit tests again before each upload. The sweep in Edge
-# stays an option before a release. A newer push cancels a run still going for an older one. The repository is public,
-# so the standard runners cost no minutes.
+# that the consent banner shows on every page, and the practice games' test runs. Both jobs also serve Cyanotype's build
+# (CYANOTYPE_BASE_URL), for the layout test of the monospaced font on that site. A release takes only a commit whose run
+# passed. The deploy (deploy.yml) runs the check and the unit tests again before each upload. The sweep in Edge stays an
+# option before a release. A newer push cancels a run still going for an older one. The repository is public, so the
+# standard runners cost no minutes.
 name: Tests
 
 on:
@@ -60,8 +60,8 @@ jobs:
           key: playwright-${{ hashFiles('package-lock.json') }}
       - run: npx playwright install --with-deps --only-shell chromium
       # Cyanotype's preview (port 4174) beside the site's, for the layout test of the monospaced font on Cyanotype
-      # (tests/layout.spec.ts), which runs only when CYANOTYPE_BASE_URL gives the preview's address. Its build is the one
-      # that check:all made in this run (the step cyanotype-build), so a stale build cannot pass.
+      # (tests/layout.spec.ts), which runs only when CYANOTYPE_BASE_URL gives the preview's address. Its build is the
+      # one that check:all made in this run (the step cyanotype-build), so a stale build cannot pass.
       - name: The browser tests, in Chromium
         env:
           CYANOTYPE_BASE_URL: http://127.0.0.1:4174

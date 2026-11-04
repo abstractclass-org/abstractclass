@@ -11,8 +11,8 @@
 // scripts/test-fixture.mjs), the Review tab with that game kept, and Practice a game in progress from it. The import
 // page shows the choice for a userscript's game, with the notice to update the userscript. Two tests check that the
 // monospaced font draws no ligatures, on Hedge School and on Cyanotype (CYANOTYPE_BASE_URL). Two check Cyanotype's
-// Practice (CYANOTYPE_BASE_URL): its page, and a game in progress when the site has its practice bot. Two check Cyanotype's
-// import page: the choice for a tool's game, and a record that the engine refuses. One checks Cyanotype's
+// Practice (CYANOTYPE_BASE_URL): its page, and a game in progress when the site has its practice bot. Two check
+// Cyanotype's import page: the choice for a tool's game, and a record that the engine refuses. One checks Cyanotype's
 // board with the player's notes, at design 06's sizes. A last test checks the
 // step bar on a phone, on the review, the Analysis board and Practice. Run: npm run test:layout (the site running
 // first).
@@ -153,17 +153,17 @@ for (const [site, urls] of Object.entries({
   });
 }
 
-// Cyanotype's Practice (its design 33, "Practice against Stamp Duty"), when CYANOTYPE_BASE_URL gives its preview. The page
-// as the site's build gives it: the settings card with the engine's files, a notice without them (CI's build has none).
-// With the practice bot, a game in progress, the player to move: the lab's middle game, Stamp Duty's own moves
+// Cyanotype's Practice (its design 33, "Practice against Stamp Duty"), when CYANOTYPE_BASE_URL gives its preview. The
+// page as the site's build gives it: the settings card with the engine's files, a notice without them (CI's build has
+// none). With the practice bot, a game in progress, the player to move: the lab's middle game, Stamp Duty's own moves
 // (apps/cyanotype/src/lib/board/fixtures.json). Besides the sweep, design 06's window sizes, 2,560 x 1,440 among them.
 // The page's own rules: the status line shows its whole text, the hands' panel stays on the board, and in one column
 // (under 800 pixels) the field is at least as high as it is wide.
-const DB_PRACTICE_SIZES = [[1376, 952], [1920, 1080], [2560, 1440], [390, 844]];
+const CYANOTYPE_PRACTICE_SIZES = [[1376, 952], [1920, 1080], [2560, 1440], [390, 844]];
 /** The problems at each of those sizes, with the page's own rules, one line each with its size. */
 async function problemsAtSizes(page: Page, own: (p: Page) => Promise<string[]> = async () => []): Promise<string[]> {
   const found: string[] = [];
-  for (const [width, height] of DB_PRACTICE_SIZES) {
+  for (const [width, height] of CYANOTYPE_PRACTICE_SIZES) {
     await page.setViewportSize({ width, height });
     await settle(page);
     found.push(...[...await problems(page), ...await own(page)].map(p => `${width} x ${height}: ${p}`));
@@ -254,8 +254,8 @@ test("layout of the choice for a tool's game", async ({ page }) => {
   expect(await sweep(page, "/import, a tool's game")).toBe("");
 });
 
-// Cyanotype's import page (its design 33), when CYANOTYPE_BASE_URL gives its preview with the engine's files: the choice
-// for the review's test game, below the notice that an out-of-date userscript gets, and a record that the engine
+// Cyanotype's import page (its design 33), when CYANOTYPE_BASE_URL gives its preview with the engine's files: the
+// choice for the review's test game, below the notice that an out-of-date userscript gets, and a record that the engine
 // refuses (REFUSED: an x on a move that captures nothing). Besides the sweep, design 06's window sizes.
 const IMPORT_PAGES: [string, string | undefined, (p: Page) => Locator][] = [
   ["the choice", undefined, p => p.getByRole("button", { name: "Analyze on the board" })],

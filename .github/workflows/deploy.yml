@@ -111,13 +111,13 @@ jobs:
           if [ -n "$first" ]; then args+=(--commit-message="${first:0:300}"); fi
           npx --yes wrangler@4.144.0 pages deploy public "${args[@]}"
 
-  # Cyanotype, Blueprints' site (design 33; docs/hosting.md, "Cyanotype"): apps/cyanotype, built and checked
-  # as the site's build is, to the Pages project that the repository variable CYANOTYPE_PAGES_PROJECT names. A push
-  # to main deploys the live site, and a push to another branch a preview, as for the site. While the variable is
-  # empty, the job is skipped, and the workflow passes without it. Its pages are prerendered, and the canonical
-  # address is the live one in src/lib/site.ts. Its userscript holds the build's own address, as the site's does, so
-  # its build takes the branch variables too. Wrangler is the site job's version. It runs in apps/cyanotype, which
-  # has no functions/ folder: in the workflow's default folder, it would upload Hedge School's Function.
+  # Cyanotype, Blueprints' site (design 33; docs/hosting.md, "Cyanotype"): apps/cyanotype, built and checked as the
+  # site's build is, to the Pages project that the repository variable CYANOTYPE_PAGES_PROJECT names. A push to main
+  # deploys the live site, and a push to another branch a preview, as for the site. While the variable is empty, the
+  # job is skipped, and the workflow passes without it. Its pages are prerendered, and the canonical address is the
+  # live one in src/lib/site.ts. Its userscript holds the build's own address, as the site's does, so its build takes
+  # the branch variables too. Wrangler is the site job's version. It runs in apps/cyanotype, which has no functions/
+  # folder: in the workflow's default folder, it would upload Hedge School's Function.
   cyanotype:
     if: vars.CYANOTYPE_PAGES_PROJECT != ''
     runs-on: ubuntu-latest
@@ -127,6 +127,7 @@ jobs:
         working-directory: apps/cyanotype
     env:
       BRANCH: ${{ github.ref_name }}
+      PROJECT: ${{ vars.CYANOTYPE_PAGES_PROJECT }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -137,37 +138,27 @@ jobs:
         working-directory: .
 
       # The two variables of Cloudflare's own build that vite.config.ts reads, as in the site's job: the branch (main
-      # names the live site's address) and the preview's address, for the userscript. A preview is at
-      # <branch>.<host>, where the host is the project's pages.dev address. That host is not always the project's
-      # name: Pages adds characters when the name's address is taken (the project cyanotype is at
-      # cyanotype-ztp.pages.dev). So the host is the repository variable CYANOTYPE_PAGES_HOST (docs/hosting.md,
-      # section 9). The build needs it, so Wrangler's deploy output, which comes after the build, cannot give it.
-      # Before the build, the step compares the variable with the project's address in Cloudflare's API. A missing or
-      # wrong host fails the job, and no userscript that loads from a wrong address is deployed.
+      # names the live site's address) and the preview's address, for the userscript. A preview is at <branch>.<host>,
+      # where the host is the project's pages.dev address. That host is not always <project>.pages.dev: Pages adds
+      # characters when that address is taken (the project cyanotype is at cyanotype-ztp.pages.dev). So the step reads
+      # the host from the project in Cloudflare's API (its `subdomain`), with the deploy's token and account. The build
+      # needs the address, so Wrangler's deploy output, which comes after the build, cannot give it. When the API gives
+      # no pages.dev address, the job fails here and deploys nothing. `|| true` keeps a failed curl or jq from ending
+      # the step before its message: curl -sS writes its own error above it.
       - name: The branch and its address
         env:
-          PROJECT: ${{ vars.CYANOTYPE_PAGES_PROJECT }}
-          HOST: ${{ vars.CYANOTYPE_PAGES_HOST }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          if [ -z "$HOST" ]; then
-            echo "::error::The repository variable CYANOTYPE_PAGES_HOST is empty. Set it to the pages.dev address of the Pages project $PROJECT (docs/hosting.md, section 9)."
-            exit 1
-          fi
           url="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$PROJECT"
-          if ! reply=$(curl -fsS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$url"); then
-            echo "::error::Cloudflare's API did not give the Pages project $PROJECT, so its address cannot be checked."
-            exit 1
-          fi
-          actual=$(printf '%s' "$reply" | jq -r '.result.subdomain // empty')
-          if [ "$HOST" != "$actual" ]; then
-            echo "::error::CYANOTYPE_PAGES_HOST is '$HOST', but the Pages project $PROJECT is at '$actual'. Set the variable to '$actual' (docs/hosting.md, section 9)."
+          host=$(curl -fsS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$url" | jq -r '.result.subdomain') || true
+          if [[ "$host" != *.pages.dev ]]; then
+            echo "::error::Cloudflare's API gave no pages.dev address for the Pages project $PROJECT."
             exit 1
           fi
           alias=$(printf '%s' "$BRANCH" | tr 'A-Z' 'a-z' | sed 's/[^a-z0-9]/-/g')
           echo "CF_PAGES_BRANCH=$BRANCH" >> "$GITHUB_ENV"
-          echo "CF_PAGES_URL=https://$alias.$HOST" >> "$GITHUB_ENV"
+          echo "CF_PAGES_URL=https://$alias.$host" >> "$GITHUB_ENV"
 
       # The shared packages' checks and tests (design 29), then the site's own: a failed step deploys nothing.
       - name: The packages' checks and tests
@@ -179,7 +170,6 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-          PROJECT: ${{ vars.CYANOTYPE_PAGES_PROJECT }}
           MESSAGE: ${{ github.event.head_commit.message }}
         run: |
           args=(--project-name="$PROJECT" --branch="$BRANCH" --commit-hash="$GITHUB_SHA")

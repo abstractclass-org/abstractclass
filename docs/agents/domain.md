@@ -40,7 +40,7 @@ glossary when its first term is settled, and adds it to the shared glossary's "C
 ├── docs/decisions/        ← the archive, by topic
 ├── packages/              ← the shared packages: engine, storage, analysis, review (design 29), record, site (design 33)
 ├── apps/hedgeschool/      ← Hedge School, Enclosure's site (design 26)
-└── apps/cyanotype/     ← Cyanotype, Blueprints' site (design 33)
+└── apps/cyanotype/        ← Cyanotype, Blueprints' site (design 33)
 
 ../                        ← the planning repository
 ├── GLOSSARY.md            ← the shared terms, and the list of the games' glossaries

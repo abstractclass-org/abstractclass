@@ -1,6 +1,6 @@
 // Cyanotype's import page (its design 33, "How a game comes in from strategyjam.org") on its preview
-// (CYANOTYPE_BASE_URL), with the review's test game up to turn 20 (cyanotype-review.ts, Stamp Duty against itself), as the
-// bookmarklet and the userscript send it. The game leaves the address at once. The engine's rules check the record
+// (CYANOTYPE_BASE_URL), with the review's test game up to turn 20 (cyanotype-review.ts, Stamp Duty against itself), as
+// the bookmarklet and the userscript send it. The game leaves the address at once. The engine's rules check the record
 // first: a record that they refuse shows why and opens nothing. Else each choice opens its page with the game: the
 // review, which keeps it, and the Analysis board at the position that the game's page showed, which asks before the
 // game replaces an analysis kept there. An out-of-date tool gets its notice. Each test opens a fresh browser context,

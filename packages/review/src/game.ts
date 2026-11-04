@@ -6,9 +6,9 @@
 // display settings, its sounds, its engine's networks and its own tools (the area map, the image of a line, the
 // opening book). The page gives its own menus (the Export menu, the New menu) in the step bar (`tools`).
 //
-// Each part is shaped for both boards: Enclosure's (Hedge School's review/enclosureView.ts) and Blueprints' (Cyanotype's
-// board/Board.svelte). Blueprints' moves are placements and edits, named by strategyjam.org's strings, and two
-// edits can give the same hand (docs/design/33-cyanotype.md, items 5 and 9). The view compares the engine's moves
+// Each part is shaped for both boards: Enclosure's (Hedge School's review/enclosureView.ts) and Blueprints'
+// (Cyanotype's board/Board.svelte). Blueprints' moves are placements and edits, named by strategyjam.org's strings, and
+// two edits can give the same hand (docs/design/33-cyanotype.md, items 5 and 9). The view compares the engine's moves
 // (the candidates, their twins, a line's steps) with the game's `equal`. The game's tree, the engine's queries and the
 // stored results know a move by its name: there, two names are two moves.
 import type { Component, Snippet } from "svelte";

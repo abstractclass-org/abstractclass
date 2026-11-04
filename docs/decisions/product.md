@@ -8024,9 +8024,10 @@ abscls-8tl1.23.
   needs no migration.
 - **The address:** `cyanotype.abstractclass.org`, from the Pages project `cyanotype`. `cyanotype.pages.dev` belongs
   to another site, so the project is at `cyanotype-ztp.pages.dev`. The deploy job built a preview's address as
-  `<branch>.<project>.pages.dev`, which would have sent a preview's userscript to the other site. It now takes the
-  host from the repository variable `CYANOTYPE_PAGES_HOST`, and compares it with the project's address in
-  Cloudflare's API before the build (docs/hosting.md, section 9).
+  `<branch>.<project>.pages.dev`, which would have sent a preview's userscript to the other site. It now reads the
+  host from the project in Cloudflare's API (`subdomain`) before the build, with the deploy's token, and fails when
+  the API gives none (docs/hosting.md, section 9). The build needs the address, so Wrangler's deploy output, which
+  comes after the build, cannot give it. A repository variable for the host would only repeat the API's answer.
 - **The site's text:** the home page's heading and the About page's paragraph on the names played on the old name.
   They now tell of the cyanotype.
 - **History:** the earlier entries of this log, and the requests to the engine repository, keep the name Drawing

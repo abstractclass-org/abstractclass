@@ -36,12 +36,12 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
 
 ## Decision
 
-1. **The names.** The site is **Cyanotype**, in `apps/cyanotype`. Its address is to be
-   `cyanotype.abstractclass.org`, as Hedge School's is `hedgeschool.abstractclass.org`. The address, the Pages
-   project and the DNS name are a step for the owner of the account (abscls-8tl1.3). The engine and its practice bot
-   are **Stamp Duty**, as Hedge School's are HedgeFund. A cyanotype is the printing process that made blueprints:
-   white lines on Prussian blue. The name belongs to Blueprints alone, and a more general name could fit many other
-   games. Stamp duty is a tax on property, and a stamp is the game's main move.
+1. **The names.** The site is **Cyanotype**, in `apps/cyanotype`. Its address is to be `cyanotype.abstractclass.org`,
+   as Hedge School's is `hedgeschool.abstractclass.org`. The address, the Pages project and the DNS name are a step
+   for the owner of the account (abscls-8tl1.3). The engine and its practice bot are **Stamp Duty**, as Hedge
+   School's are HedgeFund. A cyanotype is the printing process that made blueprints: white lines on Prussian blue.
+   The name belongs to Blueprints alone, and a more general name could fit many other games. Stamp duty is a tax on
+   property, and a stamp is the game's main move.
 2. **Hedge School's design, with Blueprints' parts.** Cyanotype has Hedge School's pages, layout, review, Analysis
    board, import and settings, as Hedge School's design documents give them. Only the game's own parts change: the
    board, the player's own moves, the notation and the record, the players' cards (the scores and the stars), the

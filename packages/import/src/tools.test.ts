@@ -1,6 +1,6 @@
 // Checks the tools' frame (bookmarklet.ts, userscript.ts, pageCode.ts) with a test site unlike Hedge School and
-// Cyanotype: its game is a list of words in a page's `data-moves`, and its page code finds it, says why it finds none, or
-// names another address that has the moves. Run: npm test.
+// Cyanotype: its game is a list of words in a page's `data-moves`, and its page code finds it, says why it finds none,
+// or names another address that has the moves. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { BOOKMARK_VERSION, bookmarkletHref, bookmarkletScript } from "./bookmarklet.ts";

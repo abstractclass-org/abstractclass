@@ -391,19 +391,17 @@ job is skipped while the repository variable `HUB_PAGES_PROJECT` is empty, so th
 
 ## 9. Cyanotype (cyanotype.abstractclass.org)
 
-Cyanotype is Blueprints' site ([design 33](design/33-cyanotype.md)), in `apps/cyanotype`. Its own Pages
-project serves it, apart from Hedge School's and the hub's. The job `cyanotype` of the workflow **Deploy** checks
-and builds it on each push, as the site's job does: the packages' checks and tests, then the site's type check, unit
-tests and build. Then it uploads `build/` with Wrangler: `main` to production, another branch to a preview at
+Cyanotype is Blueprints' site ([design 33](design/33-cyanotype.md)), in `apps/cyanotype`. Its own Pages project
+serves it, apart from Hedge School's and the hub's. The job `cyanotype` of the workflow **Deploy** checks and builds
+it on each push, as the site's job does: the packages' checks and tests, then the site's type check, unit tests and
+build. Then it uploads `build/` with Wrangler: `main` to production, another branch to a preview at
 `<branch>.cyanotype-ztp.pages.dev`. A failed step deploys nothing. The job is skipped while the repository variable
 `CYANOTYPE_PAGES_PROJECT` is empty, so the workflow passes without it.
 
-- **The preview's address** goes into the build: a preview's userscript and bookmarklet load their code from it. The
-  project's pages.dev address is not its name's, because `cyanotype.pages.dev` belongs to another site. So the job
-  takes the address from the repository variable `CYANOTYPE_PAGES_HOST`. Before the build, it compares the variable
-  with the project's address in Cloudflare's API. When the variable is empty or wrong, the job fails with a message
-  and deploys nothing.
-
+- **The preview's address** goes into the build: a preview's userscript updates from it and opens its games there.
+  The project's pages.dev address is not `cyanotype.pages.dev`, which belongs to another site. So, before the build,
+  the job reads the address from the project in Cloudflare's API (its `subdomain`). When the API gives no address,
+  the job fails with a message and deploys nothing.
 - **Its pages** are prerendered. Each names its live address as canonical (`src/lib/site.ts`), wherever it is served,
   so the build needs no variable of the branch.
 - **Its headers** (`static/_headers`): `noindex` on Cloudflare's own addresses for the project, and a year's cache for
@@ -428,17 +426,12 @@ tests and build. Then it uploads `build/` with Wrangler: `main` to production, a
    `cyanotype`, then **Custom domains → Set up a domain**. Enter `cyanotype.abstractclass.org`, then select
    **Continue** and **Activate domain**. The zone is on Cloudflare, so Pages adds the DNS record itself: a CNAME from
    `cyanotype` to `cyanotype-ztp.pages.dev`. The domain shows **Active** when its certificate is ready, in minutes.
-4. **Set the two variables.** On GitHub, in the repository's **Settings → Secrets and variables → Actions**, on the
-   tab **Variables**, select **New repository variable** for each of the two. Each repository variable applies to
-   every branch.
-   1. Name: `CYANOTYPE_PAGES_HOST`. Value: `cyanotype-ztp.pages.dev`, with no `https://` and no `/` at its end.
-   2. Name: `CYANOTYPE_PAGES_PROJECT`. Value: the project's name, `cyanotype`.
-
-   Set `CYANOTYPE_PAGES_HOST` first: the job runs once `CYANOTYPE_PAGES_PROJECT` is set, and without the host it
-   fails. The secret `CLOUDFLARE_API_TOKEN` needs no change: its permission (Account, Cloudflare Pages, Edit) covers
-   every Pages project of the account, and lets the job read the project's address. From now on, each push deploys
-   Cyanotype: a push to `dev` deploys a preview at `dev.cyanotype-ztp.pages.dev`, and a release
-   (`git push origin dev:main`) deploys the live site.
+4. **Set the variable.** On GitHub, in the repository's **Settings → Secrets and variables → Actions**, on the tab
+   **Variables**, select **New repository variable**. Name: `CYANOTYPE_PAGES_PROJECT`. Value: the project's name,
+   `cyanotype`. A repository variable applies to every branch. The secret `CLOUDFLARE_API_TOKEN` needs no change: its
+   permission (Account, Cloudflare Pages, Edit) covers every Pages project of the account, and lets the job read the
+   project's pages.dev address. From now on, each push deploys Cyanotype: a push to `dev` deploys a preview at
+   `dev.cyanotype-ztp.pages.dev`, and a release (`git push origin dev:main`) deploys the live site.
 5. **Check:**
    - `https://cyanotype.abstractclass.org` shows Cyanotype's home page.
    - In the project's **Deployments**, the first deployment is under **Production**, not under **Preview**.

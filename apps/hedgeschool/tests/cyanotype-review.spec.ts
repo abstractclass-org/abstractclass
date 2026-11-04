@@ -1,13 +1,13 @@
-// Cyanotype's review (its design 33) on its preview (CYANOTYPE_BASE_URL): the review's test game up to turn 20, reviewed
-// once from the engine's real replies (cyanotype-review.ts), in one page that the tests share in turn. The tests
-// check the candidates' table's Move header (move-header.ts), the display setting "Move notation", the marks of a
+// Cyanotype's review (its design 33) on its preview (CYANOTYPE_BASE_URL): the review's test game up to turn 20,
+// reviewed once from the engine's real replies (cyanotype-review.ts), in one page that the tests share in turn. The
+// tests check the candidates' table's Move header (move-header.ts), the display setting "Move notation", the marks of a
 // turn's two moves by turn and by move, the hands' rank chips with "+N", that the page has no area map, and the
-// player's notes (cyanotype-notes.ts) by position and while a preview shows. And the
-// Analysis board's check of a record brought to it. Without the engine's files the tests skip, with a message. Run: npm run test:layout -- tests/cyanotype-review.spec.ts, with
-// CYANOTYPE_BASE_URL.
+// player's notes (cyanotype-notes.ts) by position and while a preview shows. And the Analysis board's check of a record
+// brought to it. Without the engine's files the tests skip, with a message. Run: npm run test:layout --
+// tests/cyanotype-review.spec.ts, with CYANOTYPE_BASE_URL.
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import { checkMoveHeader, readTable, tableBox, toMove as stepTo } from "./move-header.ts";
-import { DISPLAY, CYANOTYPE, MOVES, noReview, reviewTestGame } from "./cyanotype-review.ts";
+import { CYANOTYPE, DISPLAY, MOVES, noReview, reviewTestGame } from "./cyanotype-review.ts";
 import { notesOn, rightClick, rightDrag, spot } from "./cyanotype-notes.ts";
 
 test.describe.configure({ mode: "serial" });
