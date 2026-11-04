@@ -7988,3 +7988,17 @@ abscls-8tl1.16. Design 33, "The player's notes", gives the result. What the issu
   `contextmenu` for the page to cancel (MDN, "Element: contextmenu event"). A right drag with Shift can then end with
   Firefox's menu on screen, and the page cannot stop it. Ctrl and Alt do not open it. The sites are tested in Chromium
   only.
+
+### `btn-danger` moves to the practice package (2026-11-04, abscls-8tl1.21)
+
+- **The fault:** Drawing Board's Practice confirms Abort and Resign with a button of class `btn-danger`, but the
+  utility was defined only in Hedge School's `src/app.css`. In Drawing Board the button had no fill, no border colour
+  and no white text.
+- **The place:** `packages/practice/src/practice.css`. Both sites import it, and the practice package already depends
+  on the view's package, so the utility keeps `--blunder-fill` (review.css) and its declarations do not change.
+  `site.css` would need a token of its own with the same two values, because the site package must not read the
+  view's tokens. Two copies of one colour can drift apart. The cost of the choice: a game's Delete in Hedge School's
+  ConfirmDialog is outside Practice, and it gets the utility through the site's import of `practice.css`.
+- **Checked:** Hedge School's built CSS has the same two rules of `btn-danger` (plain and `:not(:disabled)`) with the
+  same declarations. Drawing Board's built CSS has them now. A browser test asserts the confirm button's background
+  in both themes (`tests/drawingboard-practice.spec.ts`).

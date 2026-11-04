@@ -1,3 +1,12 @@
 /* The practice's components (the settings card and the game's frame) use Tailwind's classes: a site that shows them
    imports this file after Tailwind (`@import "@abstractclass/practice/practice.css"`), so that Tailwind finds them. */
 @source ".";
+
+/* A button that ends something for good (Abort and Resign once confirmed, a game's Delete): in the blunder's red, the
+   view's token (review.css). It lives here and not in site.css, because the site package must not read the view's
+   tokens, and every site that shows Practice, or a dialog of Hedge School's, imports this file. */
+@utility btn-danger {
+  background: var(--blunder-fill);
+  border-color: var(--blunder-fill);
+  color: #fff;
+}

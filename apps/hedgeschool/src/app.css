@@ -75,11 +75,3 @@
   inset: calc(100% * 0.8 / 20.6);
   background: radial-gradient(circle closest-side, var(--board-dot) 12%, transparent 15%) 0 0 / calc(100% / 19) calc(100% / 19);
 }
-
-/* A button that ends something for good (Practice's Abort and Resign, a game's Delete, once confirmed): in the
-   blunder's red. */
-@utility btn-danger {
-  background: var(--blunder-fill);
-  border-color: var(--blunder-fill);
-  color: #fff;
-}
