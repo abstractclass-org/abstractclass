@@ -446,27 +446,25 @@ build. Then it uploads `build/` with Wrangler: `main` to production, another bra
 - **Check the tests first:** release only a commit whose run of the workflow **Tests** passed (GitHub, the
   repository's **Actions** tab, or the mark beside the commit). On each push to `dev` it runs two jobs at the same time
   (`.github/workflows/tests.yml`). Each one builds the site as production does, with the practice games' storage on:
-  - **`test`, on Linux,** about 10 minutes: `npm run check:all` at the root, then the layout test in Chromium, and a
-    Decline in one tab while a practice game is open in another (tests/practice-games.spec.ts). `check:all` holds
-    the one list of the checks before the browser tests (`scripts/check-all.mjs`). Run it before a push to get the
-    same result.
+  - **`test`, on Linux,** about 10 minutes: `npm run check:all` at the root, then the browser tests in Chromium, every
+    spec file in tests/. Among them are the layout test, and a Decline in one tab while a practice game is open in
+    another (tests/practice-games.spec.ts). `check:all` holds the one list of the checks before the browser tests
+    (`scripts/check-all.mjs`). Run it before a push to get the same result.
   - **`test-windows`, on Windows:** the layout test in Playwright's own Chromium, with Windows' scroll bars, Windows'
     fonts (`system-ui` is Segoe UI there) and Windows' drawing of text. Linux does not show these. They change where
     text wraps or overflows.
-  - **Cyanotype's preview,** in both jobs: the job serves Cyanotype's build (`apps/cyanotype`) with
-    `npm run preview --workspace=cyanotype` on port 4174, beside the site's preview on port 4173, and sets
-    `CYANOTYPE_BASE_URL=http://127.0.0.1:4174`. The job `test` takes the build that `check:all` made. The job
-    `test-windows` builds it in a step of its own, because `check:all` does not run there. The Cyanotype cases of the
-    browser tests run on this preview: the layout test of the monospaced font and of Cyanotype's Practice, review,
-    Analysis board and import page (tests/layout.spec.ts), the Notices test (tests/notices.spec.ts), and the
-    `cyanotype-*.spec.ts` files. On `test-windows`, only the cases of tests/layout.spec.ts run. In CI,
-    `playwright.config.ts` stops the run with a message when `CYANOTYPE_BASE_URL` is missing. Outside CI, those cases
-    skip without it, and a case that needs the engine's files skips when the preview has none (the workflow's build has
-    none).
 
   The sweep loads each page at every width from 360 to 1,920 pixels, with real scroll bars (tests/layout.spec.ts). A
   failed run keeps the failures' screenshots for a week (the run's **Artifacts**: `layout-sweep` for Linux,
   `layout-sweep-windows` for Windows).
+
+  Both jobs also serve Cyanotype's build (`apps/cyanotype`) on port 4174, beside the site's preview on port 4173, and
+  set `CYANOTYPE_BASE_URL=http://127.0.0.1:4174`. The job `test` takes the build that `check:all` made. The job
+  `test-windows` builds it in a step of its own, because `check:all` does not run there. Each Cyanotype test that a
+  job runs uses this preview. In CI, `playwright.config.ts` stops the run with a message when `CYANOTYPE_BASE_URL`
+  is missing. Outside CI, the Cyanotype tests skip without it ([working-notes.md](working-notes.md), "The layout test
+  on Cyanotype"). The workflow does not run `npm run engine` in `apps/cyanotype`, so its Cyanotype build has no engine
+  files. A test that needs them, such as the review of Cyanotype's test game, skips there with a message.
 - **The sweep in Edge, as an option,** on this computer, by the owner: it shows Edge's own drawing, with this
   computer's settings. A plain `npm run test:layout` runs Chromium alone. The project `edge` comes only when the
   environment has `HS_EDGE=1`. In `apps/hedgeschool`, build as production does (`VITE_EDITION=early npm run build`),

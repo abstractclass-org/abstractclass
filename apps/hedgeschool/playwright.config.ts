@@ -10,13 +10,13 @@
 import { defineConfig } from "@playwright/test";
 import { withEdge } from "./scripts/edge.mjs";
 
-// In CI, Cyanotype's preview must be running: the Tests workflow serves it on port 4174 and sets CYANOTYPE_BASE_URL.
-// Without the address, each Cyanotype case skips (the layout test of the monospaced font, Cyanotype's Practice,
-// import and notes cases, the Notices test, the cyanotype-*.spec.ts files), and a run that tests no Cyanotype page
-// would still pass. Here the config stops the run, whichever tests it selects. Outside CI the cases still skip.
+// Each Cyanotype test skips on its own when CYANOTYPE_BASE_URL is empty. In CI, this file stops every run without the
+// address, whichever tests it selects. So one check covers every spec file, and a new spec file needs no check of its
+// own. Outside CI, the Cyanotype tests still skip (docs/hosting.md, "Deploy, check and roll back").
 if (process.env.CI && !process.env.CYANOTYPE_BASE_URL) {
-  throw new Error("CI needs CYANOTYPE_BASE_URL, the address of Cyanotype's preview (the Tests workflow sets " +
-    "http://127.0.0.1:4174). Without it the Cyanotype tests skip and a run passes with no Cyanotype page tested.");
+  throw new Error("CYANOTYPE_BASE_URL is empty. In CI, set it to the address of Cyanotype's preview " +
+    "(.github/workflows/tests.yml sets it). Without it, every Cyanotype test skips, and the run passes but tests no " +
+    "Cyanotype page.");
 }
 
 const showScrollBars = { ignoreDefaultArgs: ["--hide-scrollbars"] };
