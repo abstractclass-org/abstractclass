@@ -27,7 +27,7 @@
   // the pointer. Points are 0-18 with y up, as in the engine.
   import { pointName, sameEdge } from "#lib/review/enclosure.ts";
   import LabelMark from "@abstractclass/review/LabelMark.svelte";
-  import type { AreaMark } from "@abstractclass/review/ownership.ts";
+  import { signInk, type AreaMark, type SignKind } from "@abstractclass/review/ownership.ts";
   import { brushFor, drawnNote, samePoint, toggleNote, type BoardNote, type NoteBrush } from "@abstractclass/review/notes.ts";
 
   interface Props {
@@ -75,7 +75,8 @@
   const layers = $derived({ ...DEFAULT_LAYERS, ...layersSet });
   const uid = $props.id();
   const shadowId = `${uid}-badge-shadow`; // one board's filter: a page can show several boards
-  const markId = (kind: "close" | "lose" | "rise" | "fall", side: 0 | 1) => `${uid}-${kind}-${side}`; // a map mark's pattern
+  // a map mark's pattern: the change style's by side, a sign by its kind alone
+  const markId = (kind: "close" | "lose" | SignKind, side?: 0 | 1) => `${uid}-${kind}${side === undefined ? "" : `-${side}`}`;
   const blendId = `${uid}-area-blend`;
   const N = 19;
   // A label badge's radius. On a length-1 edge, whose line is 0.68 between its nodes, the badge sidesteps by 80% of its
@@ -286,17 +287,14 @@
         <line x1="0" y1="0.2" x2="0.4" y2="0.2" />
       </pattern>
     {/each}
-    <!-- The difference style's signs (design 30), in the colour of the side that the point moved toward, as every mark
-         of the board: a plus in the colour of the player who chose, where the forecast rose for them, and a minus in
-         the enemy's, where it fell. The sign says good or bad for the player who chose. Where a sign meets its own
-         colour (a region's fill, an edge), the shape carries the meaning: a halo in the board's colour keeps it whole. -->
-    {#each ([0, 1] as const) as side (side)}
-      {#each [["rise", "M0.25 0.13V0.37M0.13 0.25H0.37"], ["fall", "M0.13 0.25H0.37"]] as [kind, d] (kind)}
-        <pattern id={markId(kind as "rise" | "fall", side)} class="sign p{side}" patternUnits="userSpaceOnUse" width="0.5" height="0.5">
-          <path {d} class="halo" />
-          <path {d} class="ink" />
-        </pattern>
-      {/each}
+    <!-- The difference style's signs (design 30), by good or bad for the player who chose, whichever side that is: a
+         green plus where the forecast rose for them, a yellow minus where it fell (signInk). A halo in the board's
+         colour keeps each sign whole, and 3:1 against what is round it, on a region, by an edge or on a mark. -->
+    {#each [["rise", "M0.25 0.13V0.37M0.13 0.25H0.37"], ["fall", "M0.13 0.25H0.37"]] as const as [kind, d] (kind)}
+      <pattern id={markId(kind)} class="sign" patternUnits="userSpaceOnUse" width="0.5" height="0.5">
+        <path {d} class="halo" />
+        <path {d} class="ink" style:stroke={signInk(kind)} />
+      </pattern>
     {/each}
   </defs>
 
@@ -337,7 +335,7 @@
     {#each points as [x, y] (pointKey(x, y))}
       {@const m = areaMap[y * N + x]}
       {#if m && m.kind !== "hold"}
-        <rect x={x - 0.5} y={sy(y) - 0.5} width="1" height="1" fill="url(#{markId(m.kind, m.side)})" opacity={"strength" in m ? m.strength : 1} />
+        <rect x={x - 0.5} y={sy(y) - 0.5} width="1" height="1" fill="url(#{"side" in m ? markId(m.kind, m.side) : markId(m.kind)})" opacity={"strength" in m ? m.strength : 1} />
       {/if}
     {/each}
   {/if}
@@ -528,8 +526,6 @@
   .sign path { fill: none; stroke-linecap: round; }
   .sign .halo { stroke: var(--board-bg); stroke-width: 0.15; }
   .sign .ink { stroke-width: 0.07; }
-  .sign.p0 .ink { stroke: var(--blue); }
-  .sign.p1 .ink { stroke: var(--red); }
   .edge { stroke-width: 0.13; stroke-linecap: round; }
   .edge.p0 { stroke: var(--blue); }
   .edge.p1 { stroke: var(--red); }

@@ -13,13 +13,28 @@ import { PLAYER_NAME } from "./game.ts";
  *  line made to it. */
 export type MapStyle = "ownership" | "change" | "difference";
 
-/** A point that the map marks, in the colour of `side`. The ownership style: `side` holds it, as strongly as
- *  `strength` says, from 0 to 1 (shade). The change style: open area that `side` will probably close, or closed area
- *  that the other side holds now and will probably lose to `side`. The difference style: the forecast rose there for
- *  the player who moved (`side` is that player) or fell (`side` is the other player): the point moved toward `side`, as
- *  strongly as `strength` says. */
+/** A point that the map marks. The ownership style: `side` holds it, as strongly as `strength` says, from 0 to 1
+ *  (shade), in that side's colour. The change style: open area that `side` will probably close, or closed area that
+ *  the other side holds now and will probably lose to `side`, in that side's colour. The difference style: the
+ *  forecast rose there for the player who moved, or fell, as strongly as `strength` says, in its sign's colour
+ *  (`SIGN_COLOUR`), whichever side moved. */
 export type AreaMark = { kind: "hold"; side: Player; strength: number } | { kind: "close" | "lose"; side: Player }
-  | { kind: "fall" | "rise"; side: Player; strength: number };
+  | { kind: SignKind; strength: number };
+
+/** The difference style's two signs: a plus where the forecast rose for the player who chose, a minus where it fell. */
+export type SignKind = "rise" | "fall";
+/** The colour of a sign of the difference style (design 30), by good or bad for the player who chose, the same for
+ *  both sides: green for a rise and yellow for a fall, as the quality labels' green and yellow say good and
+ *  inaccurate. Each is the colour's one name: the explanations say it, and the boards and the legend draw the sign in
+ *  its token, `--sign-green` or `--sign-yellow` (review.css), by `signInk`. The plus and the minus carry the meaning
+ *  too, for a player who cannot tell green from yellow. */
+export const SIGN_COLOUR = { rise: "green", fall: "yellow" } as const satisfies Record<SignKind, string>;
+/** The colour that a board draws a sign of `kind` in: var(--sign-green) or var(--sign-yellow). */
+export const signInk = (kind: SignKind) => `var(--sign-${SIGN_COLOUR[kind]})`;
+/** What the signs say, for a game's explanation of the map's styles (its view's `styleHelp`), after the sentence that
+ *  names the player who moved. */
+export const SIGNS_HELP = `A ${SIGN_COLOUR.rise} plus shows a rise: good for that player. ` +
+  `A ${SIGN_COLOUR.fall} minus shows a fall: bad for that player.`;
 
 /** KaTrain's gamma on its territory's alpha (gui/theme.py, OWNERSHIP_GAMMA): a point held weakly still shows. */
 const OWNERSHIP_GAMMA = 1.33;
@@ -54,7 +69,7 @@ export function differenceMap(before: number[], after: number[], mover: Player, 
   return before.map((b, i) => {
     const fall = (mover === 0 ? 1 : -1) * (b - after[i]);
     if (!fall || Math.abs(fall) < min) return null;
-    return { kind: fall > 0 ? "fall" : "rise", side: fall > 0 ? (mover === 0 ? 1 : 0) : mover, strength: shade(fall) };
+    return { kind: fall > 0 ? "fall" : "rise", strength: shade(fall) };
   });
 }
 

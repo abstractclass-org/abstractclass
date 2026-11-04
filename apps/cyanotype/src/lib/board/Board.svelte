@@ -46,6 +46,7 @@
   import { cellsOf, footprintOf, PLAYER_NAMES, sameHandHex } from "./position.ts";
   import { untrack, type Snippet } from "svelte";
   import LabelMark from "@abstractclass/review/LabelMark.svelte";
+  import { signInk } from "@abstractclass/review/ownership.ts";
   import { brushFor, drawnNote, ringed, ringPoints, sameEndpoints, toggleNote, type BoardNote, type NoteBrush }
     from "@abstractclass/review/notes.ts";
   import { viewHexes } from "../review/blueprintsMap.ts";
@@ -557,7 +558,8 @@
 
         <!-- Over the cells: a cell that the forecast gives the other side gets a smaller hex in that side's colour, as
              KaTrain marks a stone that it expects to die. Then the change style's marks, and the difference style's
-             signs, each as strong as the forecast rose or fell. -->
+             signs, each as strong as the forecast rose or fell: a green plus or a yellow minus, by good or bad for the
+             player who chose (signInk), with a halo in the board's colour that keeps it 3:1 against a cell. -->
         {#each areaMarks as { hex, m } (hexKey(hex))}
           {@const [x, y] = center(hex)}
           {#if m.kind === "hold"}
@@ -568,7 +570,7 @@
             <path d={hexPath(x, y)} fill="url(#{markId(m.kind, m.side)})" class="change-hex" />
           {:else if m.kind === "fall" || m.kind === "rise"}
             {@const d = m.kind === "rise" ? `M${x - 0.38} ${y}H${x + 0.38}M${x} ${y - 0.38}V${y + 0.38}` : `M${x - 0.38} ${y}H${x + 0.38}`}
-            <g class="sign p{m.side}" opacity={m.strength}><path {d} class="halo" /><path {d} class="ink" /></g>
+            <g class="sign" opacity={m.strength}><path {d} class="halo" /><path {d} class="ink" style:stroke={signInk(m.kind)} /></g>
           {/if}
         {/each}
 
@@ -781,8 +783,6 @@
   .sign path { fill: none; stroke-linecap: round; }
   .sign .halo { stroke: var(--board-bg); stroke-width: 0.3; }
   .sign .ink { stroke-width: 0.14; }
-  .sign.p0 .ink { stroke: var(--blue); }
-  .sign.p1 .ink { stroke: var(--red); }
 
   /* Candidates: the first choice in the engine's colour, thicker, the others grey and faded until hover. */
   .candidate { opacity: 0.6; transition: opacity 0.12s; pointer-events: none; }

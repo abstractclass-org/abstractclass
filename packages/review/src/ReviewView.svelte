@@ -137,7 +137,8 @@
   import DifficultyChart from "./DifficultyChart.svelte";
   import { DIGITS, fmtScore, type BoardCandidate, type BoardMark, type BookJudgment, type Display, type LayerSetting,
            type LineMove, type NotePart, type ViewGame } from "./game.ts";
-  import { askOrder, changeMap, differenceMap, differenceReading, mapStep, ownershipMap, valueText, type MapStyle } from "./ownership.ts";
+  import { askOrder, changeMap, differenceMap, differenceReading, mapStep, ownershipMap, signInk, valueText, type MapStyle, type SignKind }
+    from "./ownership.ts";
   import SettingChoice from "@abstractclass/site/SettingChoice.svelte";
   import SettingToggle from "@abstractclass/site/SettingToggle.svelte";
   import { SETTINGS_HEAD, SWITCH, SWITCH_THUMB, settingId } from "@abstractclass/site/settings.ts";
@@ -894,8 +895,8 @@
     return `${name} (${view.words.move} ${drawnCount}: no map)`;
   });
   // The legend's lead, then each mark with its meaning: none for the forecast, whose shade says it all. A sign of the
-  // difference style is in the colour of the side that the point moved toward: a fall toward the other player.
-  type LegendMark = { kind: "close" | "lose" | "fall" | "rise"; side?: Player; text: string };
+  // difference style is in its own colour, as the board draws it (signInk): good or bad for the player who chose.
+  type LegendMark = { kind: "close" | "lose" | SignKind; text: string };
   const mapLegend = $derived.by((): { lead: string; marks: LegendMark[] } => {
     if (display.mapStyle === "ownership")
       return { lead: `${mapPlace ? `${mapPlace}: who` : "Shade: who"} the engine expects to hold each ${view.map?.point}`, marks: [] };
@@ -903,8 +904,7 @@
       return { lead: mapPlace ? `${mapPlace}, forecast vs board:` : "Forecast vs board:",
                marks: [{ kind: "close", text: view.map?.close ?? "" }, { kind: "lose", text: view.map?.lose ?? "" }] };
     const mover = diffBase?.mover ?? 0, name = PLAYER_NAME[mover];
-    return { lead: `${mapPlace}:`, marks: [{ kind: "fall", side: mover === 0 ? 1 : 0, text: `fell for ${name}` },
-                                           { kind: "rise", side: mover, text: `rose for ${name}` }] };
+    return { lead: `${mapPlace}:`, marks: [{ kind: "fall", text: `fell for ${name}` }, { kind: "rise", text: `rose for ${name}` }] };
   });
   // The map's work, always in the legend's slot while the map is on (design 30): for a line, how many of its positions
   // have their maps; for a position, whether its map waits for the engine (the review's searches run first), is
@@ -2361,7 +2361,7 @@
                 {#each [-0.4, 0, 0.4, 0.8] as d (d)}<line x1={d} y1="1" x2={d + 1} y2="0" stroke="currentColor" stroke-width="0.1" />{/each}
               {:else}
                 <path d={m.kind === "fall" ? "M0.15 0.5H0.85" : "M0.5 0.15V0.85M0.15 0.5H0.85"} stroke-width="0.16" stroke-linecap="round"
-                      style:stroke={m.side === 0 ? "var(--blue)" : "var(--red)"} />
+                      style:stroke={signInk(m.kind)} />
               {/if}
             </svg>{m.text}
           </span>

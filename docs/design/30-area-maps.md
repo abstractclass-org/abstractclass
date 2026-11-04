@@ -49,9 +49,9 @@ site asks for the root's alone (item 6).
      that it does not know, and leaves out the maps of item 6.
 2. **The area map has three styles** (the display setting "Area map style", Board: `ownershipMap`, `changeMap` and
    `differenceMap` in `packages/review/src/ownership.ts`). Each name says what the style compares, and the setting gives
-   a short explanation of each. The three use the board's two colours alone, and each mark is in the colour of the side
-   that the point moves toward, as every mark of the board is. They differ by shape: shading, dots and hatching, and
-   signs.
+   a short explanation of each. They differ by shape: shading, dots and hatching, and signs. The forecast's shade and
+   the change's marks are in the colour of the side that the point moves toward, as every other mark of the board is.
+   The signs of after vs before are in the colour of good or bad for the player who chose.
    - **Forecast** (the default): who the engine expects to hold each point, and how surely. Each point is shaded in
      the colour of that side, as strong as |ownership| ^ (1 / 1.33), at most 0.45, and blended by a blur, under
      everything else. These are KaTrain's gamma and drawing, with the strongest shade lower, so that the regions and
@@ -63,11 +63,23 @@ site asks for the root's alone (item 6).
      its owner's gets nothing.
    - **After vs before:** what a choice changed. The forecast after it less the forecast before it, from the side of
      the player who chose: KaTrain's loss grid (katrain/gui/badukpan.py, draw_board_contents), with the rises too.
-     Where the forecast rose for the player who chose, plus signs show in that player's colour. Where it fell, minus
-     signs show in the enemy's colour. So a sign's colour says toward whom the point moved, and its shape says
-     whether that is good or bad for the player who chose. Each sign is as strong as |difference| ^ (1 / 1.33), with
-     no blur. A halo in the board's colour keeps a sign whole where it meets its own colour: a minus in Red's colour
-     on Red's region or edge, a plus in Blue's on Blue's. The choice that it judges:
+     Where the forecast rose for the player who chose, green plus signs show. Where it fell, yellow minus signs show.
+     The colours are the same whichever side chose, so a sign's colour and its shape say the same thing: good or bad
+     for the player who chose. The setting's explanation names the two colours, and the legend draws the two signs.
+     Each sign is as strong as |difference| ^ (1 / 1.33), with no blur.
+     - **The colours** are the tokens `--sign-green` and `--sign-yellow` (`packages/review/src/review.css`), the
+       quality labels' green and yellow (`SIGN_COLOUR` and `signInk` in `ownership.ts`). Each is at least 3:1 against
+       the board (WCAG 2.2, 1.4.11), whose colours Hedge School and Cyanotype share. The green is Excellent's: #4f8830
+       on the light board, 3.6:1, and #6faa52 on the dark board, 4.3:1. The yellow is Inaccuracy's: on the light board
+       its hue darker, #9e7706, 3.5:1, because Inaccuracy's own ink (#bc8d07) is 2.5:1 there, and on the dark board
+       its fill, #d9a521, 5.4:1.
+     - **The shapes** carry the meaning without the colours (1.4.1): a player who cannot tell green from yellow reads
+       the plus and the minus.
+     - **A halo in the board's colour** keeps each sign whole and keeps its contrast where it meets another colour: a
+       region's fill, an edge, and on Cyanotype a Blue or a Red cell. No green or yellow is 3:1 against both the board
+       and a player's colour: against a cell or an edge, the four colours are 1.0:1 to 1.5:1, and on the light board
+       against a region's fill, 2.8:1 to 2.9:1. The halo against a cell or an edge is at least 3.6:1.
+     The choice that it judges:
      - At the position on screen, or a played move's preview, it is the move to it, by the labels' unit (design 10).
        By turn, the forecast at the turn's start against the forecast here. By edge, the edge's. It shows at every
        move, the engine's best too, on the game's line and in a variation. The game's start has no move, and no map.
@@ -201,11 +213,15 @@ site asks for the root's alone (item 6).
 - **After vs before, because a label says what a move cost, and not where.** It compares two forecasts, before and
   after a choice, where forecast vs board compares one forecast with the board. The names and the legends say which,
   so that the two are not confused. The three styles stay while they are compared, and one may go later.
-- **One colour language, two colours.** Every mark of the board is in the colour of the side that it favours: the
-  regions, the edges, the candidates, the forecast and the change. The signs of after vs before take the same
-  colours, so that blue always means toward Blue and red toward Red. Green and red, the labels' colours, would add a
-  second language, and blue against red is easier than green against red for most colour-blind players. So the
-  styles differ by shape alone.
+- **The players' colours say whose, the labels' colours say good or bad.** Every mark of the board that says whose
+  is in the colour of the side that it favours: the regions, the edges, the candidates, the forecast and the change.
+  The signs of after vs before say something else: good or bad for the player who chose. In the players' colours
+  they said it badly. A plus was in the chooser's colour and a minus in the enemy's, so a blue minus read as "Blue
+  lost here" where it meant that the point moved toward Blue, which was bad for Red, the player who chose. The colour
+  and the shape said two things, and the colour won. In green and yellow, the labels' colours for good and
+  inaccurate, the colour and the shape say one thing, for either side, as KaTrain's loss grid draws its losses in one
+  colour of its evaluation scale whichever side moved. This is the labels' colour language, so it adds no new one. A
+  red-green colour-blind player can confuse the green and the yellow, and reads the plus and the minus.
 - **The smallest value is the player's,** because the threshold is a judgement on what is noise, and it changes with
   the player and the position. At 0 the player sees the engine's data as it is.
 - **The numbers under the pointer,** because a shade is a rough reading. A player who doubts a shade can read its
@@ -263,8 +279,9 @@ The site follows KaTrain's review (design 05). The display departs from it on pu
   in one place and gain some in another, a trade, and still be worse than the engine's choice. With the falls alone,
   a trade looks like a pure loss, and what it bought is hidden.
 - **Signs, not a shade.** KaTrain shades its loss grid as it shades its Territory, in one colour of its evaluation
-  scale (draw_territory with its EVAL_COLORS). Here the signs are in the players' colours, for the one colour
-  language of the board, and they differ in shape from the forecast's shade and the regions' fill.
+  scale (draw_territory with its EVAL_COLORS). Here the rises and the falls are signs, a green plus and a yellow
+  minus, so that they differ in shape from the forecast's shade and the regions' fill, and read without their
+  colours.
 - **By turn.** KaTrain's loss grid compares one move with the position before it. Here the difference follows the
   labels' unit: by turn by default, the forecast at the turn's start against the forecast at its end, because a turn
   of Enclosure has up to two edges and the labels judge the turn (design 10). By edge, it compares one edge.

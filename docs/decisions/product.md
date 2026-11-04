@@ -8235,3 +8235,42 @@ one move in the review.
   four of its five tests fail. The analysis package's `game.test.ts` and `tree.test.ts` check `withTwins`, the shared
   analysis's twins and tree nodes (`nodesOf`), a turn in the engine's order with a twin of each kind, and
   `sameNodes` on the packages' test game.
+
+### The signs of After vs before by good and bad: a green plus, a yellow minus (2026-11-04)
+
+abscls-8fe7. The proposal, of 2026-10-23: the signs of the area map's style "After vs before" take neutral colours by
+good and bad for the player who chose, for both sides. A green plus is good for that player, and a yellow minus is
+bad. Each sign took a side's colour: a plus the chooser's, a minus the enemy's. So a blue minus read as "Blue lost
+here", where it meant that the point moved toward Blue, which was bad for Red, the player who chose. The colour and
+the shape said two things, and the colour won. KaTrain's loss grid draws its losses in one colour of its evaluation
+scale, whichever side moved, so the change moves back toward KaTrain. The entry of 2026-10-21, "The marks of After vs
+before, and 0.05", gave the players' colours for one colour language on the board. Green and yellow are the labels'
+colours for good and inaccurate, so the signs now speak the labels' language, and that reason turns around. Hedge
+School and Cyanotype take one rule. Design 30 gives the result.
+
+- **The colours** are two tokens in `packages/review/src/review.css`, `--sign-green` and `--sign-yellow`. The boards
+  and the legend draw a sign in them, and the setting's explanation names them, from one name each (`SIGN_COLOUR`,
+  `signInk` and `SIGNS_HELP` in `ownership.ts`). The two sites share the board's colours: #f3ead7 in the light theme,
+  #3a362e in the dark theme. The contrasts (WCAG 2.2, 1.4.11, at least 3:1):
+
+  | Sign | Theme | Colour | Board | Blue cell or edge | Red cell or edge | Blue region | Red region |
+  | --- | --- | --- | --- | --- | --- | --- | --- |
+  | Green | Light | #4f8830, Excellent's ink | 3.59:1 | 1.10:1 | 1.05:1 | 2.94:1 | 2.94:1 |
+  | Yellow | Light | #9e7706, Inaccuracy's hue darker | 3.45:1 | 1.15:1 | 1.09:1 | 2.83:1 | 2.83:1 |
+  | Green | Dark | #6faa52, Excellent's fill | 4.32:1 | 1.14:1 | 1.18:1 | 3.52:1 | 3.57:1 |
+  | Yellow | Dark | #d9a521, Inaccuracy's fill | 5.35:1 | 1.41:1 | 1.47:1 | 4.36:1 | 4.42:1 |
+
+  A region is the player's colour at 0.16 over the board. The candidate yellow, Inaccuracy's ink #bc8d07, is 2.53:1 on
+  the light board, so the light theme takes its hue darker. The labels' Good green (#6f935a in the light theme) is
+  2.93:1 there. Excellent's green is the lightest of the labels' greens that passes in both themes.
+- **The halo stays.** Its colour is the board's, so a sign keeps its contrast against the board wherever it lies. No
+  green or yellow passes against a cell or an edge, and on the light board none passes against a region: the table
+  shows 1.05:1 to 2.94:1 there. The halo against a cell or an edge is 3.95:1 (Blue) and 3.77:1 (Red) in the light
+  theme, and 3.80:1 and 3.65:1 in the dark theme.
+- **The shapes stay,** the plus and the minus, so that the colour is not the only cue (1.4.1). Green against yellow
+  is 1.04:1 in the light theme and 1.24:1 in the dark theme: a red-green colour-blind player reads the shapes.
+- **The text.** The explanation of "Area map style" says "A green plus shows a rise: good for that player. A yellow
+  minus shows a fall: bad for that player." in the place of the sentences about the players' colours, on both sites.
+  The legend's two signs take the same colours.
+- **Cyanotype offers no area map yet** (its design 33, "No area map yet"). Its board and its kept explanation
+  (`AREA_MAP`) take the rule, for when it does.

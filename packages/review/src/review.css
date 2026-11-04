@@ -45,6 +45,13 @@
   --note-yellow: #a78202;
   --note-green: #359a3b;
   --note-grey: #86868c;
+  /* The area map's signs in after vs before (ownership.ts, SIGN_COLOUR): a green plus good for the player who chose, a
+     yellow minus bad, for both sides, in the labels' green and yellow. Each is 3:1 against the board, whose colours the
+     two sites share: Excellent's green, 3.6:1 on the light board and 4.3:1 on the dark one, and Inaccuracy's yellow,
+     on the light board its hue darker to 3.5:1 (Inaccuracy's own ink is 2.5:1 there), on the dark one its fill, 5.4:1.
+     The sign's halo is the board's colour, so a sign on a region, an edge or a cell keeps these numbers. */
+  --sign-green: var(--excellent);
+  --sign-yellow: #9e7706;
 }
 /* The dark theme (site.css). */
 :root[data-theme="dark"] {
@@ -66,6 +73,7 @@
   --note-yellow: #e9b81c;
   --note-green: #4caf50;
   --note-grey: #a8a8ae;
+  --sign-yellow: var(--inaccuracy);
 }
 /* The view's tokens as Tailwind's colours, beside the shared ones (site.css). Label colours are set from the label in
    the markup (style:background="var(--{label})"), so they stay plain tokens. Blunder's ink is also the colour of an
