@@ -3,7 +3,8 @@
   // (ReviewView in its board form, design 21), with a board of its own (OPENINGS_ID), so that a visit never changes the
   // player's lines on the Analysis board. The book is always on: its table starts on "Book" at each visit, and the
   // live engine waits at a book position while the table shows the book, because the book's searches are deeper.
-  // "Candidates" starts it. Outside the book it searches, as on the Analysis board.
+  // "Candidates" starts it. Outside the book it searches, as on the Analysis board. At a book position the board shows
+  // the book's area map and win chance. The area map is on at each visit.
   //
   // The move list holds the book's tree (book/tree.ts): the main line, and under each move the other book moves at the
   // position after it, folded. A fold opens for this visit only: the page adds each of its moves' lines to the board,
@@ -20,7 +21,7 @@
   import ReviewView, { reviewSkeleton, type MoveFold } from "@abstractclass/review/ReviewView.svelte";
   import { enclosureView } from "#lib/review/enclosureView.ts";
   import { loadDisplay } from "#lib/review/display.ts";
-  import { STANDARD_START, edgeName, parseEdge, setUpStart } from "#lib/engine/notation.ts";
+  import { STANDARD_START } from "#lib/engine/notation.ts";
   import { enclosure, moveName, onlyJudged, review, type Enclosure, type ReviewData } from "#lib/review/enclosure.ts";
   import { GameAnalysis } from "@abstractclass/analysis/analysis.svelte.ts";
   import { LABEL_VISITS } from "@abstractclass/analysis/cache.ts";
@@ -30,9 +31,10 @@
   import { trackSettingChange } from "#lib/analysis/settingChanges.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
   import { OPENINGS_ID, type KeptBoard } from "#lib/game/store.ts";
+  import { boardOfRecord } from "#lib/game/board.ts";
   import { readPasted } from "#lib/game/paste.ts";
   import { STORES, dbGet, dbPut } from "@abstractclass/storage/db.ts";
-  import { mainIndex, pathKey } from "@abstractclass/analysis/tree.ts";
+  import { mainIndex, pathKey, sharedLength } from "@abstractclass/analysis/tree.ts";
   import { startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
   import { readLocal, writeLocal } from "@abstractclass/storage/local.ts";
   import { POSITION_RANGES, range } from "#lib/measure.ts";
@@ -41,8 +43,8 @@
   import { OpeningsPlace } from "#lib/book/openings.svelte.ts";
   import OpeningsBookTable from "#lib/book/OpeningsBookTable.svelte";
   import { decodeArea } from "#lib/book/area.ts";
-  import { mainLine, type LineTurn } from "#lib/book/sentences.ts";
-  import { alsoReached, bookLine, canonical, continues, folded, foldText, type LineLink } from "#lib/book/tree.ts";
+  import { alsoReached, bookLine, canonical, continues, folded, foldText, mainEdges, positionsAlong, type LineLink }
+    from "#lib/book/tree.ts";
   import { bookMove, type Book } from "#lib/book/book.ts";
   import type { BookPosition } from "#lib/book/form.ts";
 
@@ -67,22 +69,28 @@
   const book = siteBook(); // the site's book: none in the build's prerender
 
   // The view, and its book's place on this page: ReviewView makes the place from the view (`book.place`), with its own
-  // path and "Review by", and gives it back (bookPlace).
+  // path and "Review by", and gives it back (bookPlace). The display settings are the site's, but the area map is on at
+  // each visit (design 32, item 5): the page keeps no choice of the map, and leaves the Analysis board's as it is.
   let view = $state<ReviewView<Enclosure> | undefined>();
   const openingsView: typeof enclosureView = {
     ...enclosureView,
+    display: {
+      load: () => { const d = enclosureView.display.load(); return { ...d, areaMap: { ...d.areaMap, board: true } }; },
+      save: d => enclosureView.display.save({ ...d, areaMap: { ...d.areaMap, board: enclosureView.display.load().areaMap.board } }),
+    },
     book: enclosureView.book && {
       ...enclosureView.book,
-      place: (_page, notations, unit, more) => {
+      place: (_page, notations, unit) => {
         const b = siteBook();
-        return b && new OpeningsPlace(b, notations, unit, more);
+        return b && new OpeningsPlace(b, notations, unit, to => void view?.visit(to));
       },
       Table: OpeningsBookTable as typeof enclosureView.book.Table,
     },
   };
   const place = $derived((view?.bookPlace() ?? null) as OpeningsPlace | null);
-  // The engine waits while the table shows the book at a book position (design 32, item 5)
-  const waits = $derived(!!place?.showsBook);
+  // The engine waits while the table shows the book at a book position (design 32, item 5). It searches where the
+  // position's part of the book did not load: the boards work while the book fails (item 11).
+  const waits = $derived(!!place?.showsBook && place.at.state !== "failed");
   const session = new EngineSession({ settings: () => (waits ? { ...engine, on: false } : engine), game: () => game,
                                       position: () => current, tracker: { track, networkName } });
   const failure = $derived(error || session.error);
@@ -108,6 +116,16 @@
     return a?.state === "in" ? a.position : null;
   }
   const known = (p: string[]) => mainIndex(p, mainNames) !== null || (!!game && pathKey(p) in game.branches);
+  // The book's values at each position that it holds, which the board shows ahead of a search's (GameAnalysis
+  // `viewValues`): its area map and its win chance, also while the engine waits. They give no label.
+  const maps = new Map<string, number[]>();
+  function bookValues(path: string[]) {
+    const q = bookAt(path);
+    if (!q) return undefined;
+    let ownership = maps.get(q.position);
+    if (!ownership) maps.set(q.position, (ownership = decodeArea(q.area)));
+    return { ownership, blueWin: q.value.blueWin };
+  }
 
   // The position on screen, kept for the next visit, and the positions looked at in this visit (design 17): an event
   // when their count reaches the start of each range after the first.
@@ -123,47 +141,45 @@
     });
   });
 
-  // The book's main line, for the board's main line and the first view's box
-  let turns = $state.raw<LineTurn[] | null>(null);
-  $effect(() => { if (place) place.turns = turns; });
-  /** The edges of the book's main line, once its parts have loaded. None where the book does not load. */
-  async function bookMain(): Promise<string[]> {
+  // The book's main line, the board's main line at each visit, once its parts have loaded
+  let main = $state.raw<string[] | null>(null);
+  /** The edges of the book's main line. Null where the book or a part of the line does not load. */
+  async function bookMain(): Promise<string[] | null> {
     const b = await book?.opened();
-    if (!b) return [];
-    try {
-      turns = await mainLine(b);
-    } catch {
-      return [];
-    }
-    return turns.flatMap(t => t.edges);
+    return b ? mainEdges(b).catch(() => null) : null;
+  }
+  let mainSetting: Promise<void> | null = null; // the main line on its way to the board: one at a time
+  function setMain(g: GameAnalysis<Enclosure>, edges = bookMain()): Promise<void> {
+    return (mainSetting ??= (async () => {
+      const line = await edges;
+      if (!line?.length) return;
+      main = line;
+      if (line.length === g.mainNames.length && line.every((e, k) => e === g.mainNames[k])) return;
+      await g.playLine(line);
+      await g.setMain(line);
+    })().finally(() => (mainSetting = null)));
   }
   // A book that loads again after "Try again": the main line once it can
   $effect(() => {
-    if (turns || !game || !place || place.at.state !== "in") return;
+    if (main || !game || !place || place.at.state !== "in") return;
     untrack(() => void setMain(game!));
   });
-  async function setMain(g: GameAnalysis<Enclosure>) {
-    const main = await bookMain();
-    if (!main.length || main.every((e, k) => e === g.mainNames[k])) return;
-    await g.playLine(main);
-    await g.setMain(main);
-  }
 
   // The folds (design 32, items 5 and 9): open for this visit only.
   const opened = new SvelteSet<string>();
   const links = new SvelteMap<string, LineLink | null>(), asked = new Set<string>();
-  /** Adds lines from a position to the board, one after another: each a book move's line (tree.ts, `bookLine`). */
+  /** Adds the book moves' lines from a position to the board (tree.ts, `bookLine`): the lines found together, then
+   *  added one after another. A line that the book or the rules refuse is left out. */
   async function addLines(b: Book, p: string[], q: BookPosition, moves: BookPosition["moves"]) {
     const g = game;
-    for (const m of moves) {
-      if (!g || known([...p, m.move])) continue;
-      try { await g.playLine([...p, ...await bookLine(b, q, m)]); } catch { return; }
-    }
+    if (!g) return;
+    const lines = await Promise.all(moves.filter(m => !known([...p, m.move])).map(m => bookLine(b, q, m).catch(() => null)));
+    for (const line of lines) if (line) await g.playLine([...p, ...line]).catch(() => {});
   }
   const fold: MoveFold = {
     at(p, next) {
-      const q = bookAt(p), moves = q ? folded(q, next) : [];
-      return moves.length ? { count: moves.length, text: foldText(moves.length, next, p.at(-1) ?? null), open: opened.has(pathKey(p)) } : null;
+      const q = bookAt(p), moves = q ? folded(q, next).map(m => m.move) : [];
+      return moves.length ? { moves, text: foldText(moves.length, next, p.at(-1) ?? null), open: opened.has(pathKey(p)) } : null;
     },
     toggle(p, next) {
       const key = pathKey(p), q = bookAt(p), b = book?.book;
@@ -172,41 +188,34 @@
       trackOnce("openings fold opened", "feature", { feature_name: "fold opened" });
       if (q && b) void addLines(b, p, q, folded(q, next));
     },
-    hides(c, next) {
-      const p = c.slice(0, -1);
-      if (opened.has(pathKey(p))) return false;
-      const q = bookAt(p);
-      return !!q && folded(q, next).some(m => m.move === c.at(-1));
-    },
+    // A move that reaches a book position by another way than its canonical parent, where the book goes on from there,
+    // ends with a link to the canonical line (tree.ts, `continues`): the book's positions tell at once, and the link's
+    // words come once its line is found.
     link(p) {
-      const key = pathKey(p), had = links.get(key);
-      if (had !== undefined || !book?.book) return had ?? null;
+      const q = bookAt(p), before = bookAt(p.slice(0, -1)), b = book?.book;
+      if (!q || !before || !b || !q.moves.length || canonical(q, before.position, p.at(-1)!)) return null;
+      const key = pathKey(p);
       if (!asked.has(key)) {
         asked.add(key);
-        findLink(book.book, p).then(l => links.set(key, l), () => asked.delete(key));
+        continues(b, q, mainNames).then(l => links.set(key, l), () => asked.delete(key));
       }
-      return null;
+      return links.get(key) ?? null;
     },
   };
-  /** The link at the end of a line that reaches a book position by another way than its canonical parent, where the
-   *  book goes on from there (tree.ts, `continues`). */
-  async function findLink(b: Book, p: string[]): Promise<LineLink | null> {
-    const n = notationAt(p), m = notationAt(p.slice(0, -1));
-    if (!n || !m) throw new Error("not in the tree yet");
-    const [q, before] = await Promise.all([b.get(n), b.get(m)]);
-    if (!q || !before || !q.moves.length || canonical(q, before.position, p.at(-1)!)) return null;
-    return continues(b, q, mainNames);
-  }
 
-  // "Also reached by": the other move orders across turns at the position on screen
+  // "Also reached by": the other move orders across turns at the position on screen. The path's notations as one
+  // string, so that the book is asked again only when the path changes, not at each result of the engine.
+  const notations = $derived.by(() => {
+    const all = [[], ...current.map((_, k) => current.slice(0, k + 1))].map(notationAt);
+    return all.every(n => n !== undefined) ? all.join("\n") : "";
+  });
   $effect(() => {
-    const p = current, b = book?.book, pl = place, notations = [[], ...p.map((_, k) => p.slice(0, k + 1))].map(notationAt);
+    const pl = place, b = book?.book, at = pl?.at, path = current, ns = notations;
     if (!pl) return;
+    const q = at?.state === "in" ? at.position : null;
+    if (!b || !q || !path.length || !ns) { pl.also = []; return; }
     let stale = false;
-    const last = notations.at(-1);
-    if (!b || !last || !p.length || notations.some(n => n === undefined)) { pl.also = []; return; }
-    b.get(last).then(async q => (q ? alsoReached(b, q, p, notations as string[]) : []))
-      .then(also => { if (!stale) pl.also = also; }, () => { if (!stale) pl.also = []; });
+    alsoReached(b, q, path, ns.split("\n")).then(also => { if (!stale) pl.also = also; }, () => { if (!stale) pl.also = []; });
     return () => { stale = true; };
   });
 
@@ -219,12 +228,9 @@
     const b = book?.book;
     if (b) {
       try {
-        // The book's positions along the path, as the player reaches them: the line goes on only where each is
-        let q = await b.get(b.start);
-        for (const e of path.slice(0, -1)) {
-          const m = q && bookMove(q, e);
-          q = m ? await b.get(m.to) : null;
-        }
+        // The book's position before the last edge, as the player reaches it: the line goes on only where each edge
+        // before is a book move
+        const along = await positionsAlong(b, path.slice(0, -1)), q = along.length === path.length ? along.at(-1)! : null;
         const m = q && bookMove(q, path.at(-1)!);
         if (q && m) line = [...path, ...(await bookLine(b, q, m)).slice(1)];
       } catch { /* the book's part did not load: the line alone */ }
@@ -232,61 +238,55 @@
     await g.playLine(line);
   }
 
-  /** "Back to the main line" (design 32, item 5): the main line at the same number of edges, or at its end. */
+  /** "Back to the main line" (design 32, item 5): the last position of the path on the main line, where the path left
+   *  it. The path's own edges count, so a move order or a mirror image that reaches a position of the main line has
+   *  left it at its first edge that differs. */
   const offMain = $derived(mainIndex(current, mainNames) === null);
   function backToMain() {
-    void view?.visit(mainNames.slice(0, Math.min(current.length, mainNames.length)));
+    void view?.visit(current.slice(0, sharedLength(current, mainNames)));
     trackOnce("openings back to main", "feature", { feature_name: "back to main line" });
   }
   // "Open in Analysis" (design 32, item 2): the path on the Analysis board, as a record that it opens at its end
   const analysisHref = $derived(`/analysis#${new URLSearchParams(current.length
     ? { record: current.join(" "), at: String(current.length), via: "openings" } : { position: STANDARD_START, via: "openings" })}`);
 
-  /** The board to open, and where: the kept place, or the end of a brought line (or `at` on it). */
-  interface Opening { board: KeptBoard | null; at: string[]; line?: string[]; from: From }
-  async function chooseBoard(): Promise<Opening> {
-    const kept = (await dbGet<KeptBoard>(STORES.branches, OPENINGS_ID)) ?? null;
+  /** Where the view opens: the kept place, or the end of a brought line (or `at` on it), and where the visit came
+   *  from. */
+  interface Opening { at: string[]; line?: string[]; from: From }
+  const cannotOpen = (e: unknown) =>
+    `Openings cannot open this record: ${errorText(e).replace(/\.?$/, ".")} Openings shows your last position instead.`;
+  async function chooseOpening(): Promise<Opening> {
     const at = readLocal(AT_KEY), keptAt = at ? at.split(" ") : [];
     const hash = location.hash.slice(1);
-    if (!hash) { startAnalytics(); return { board: kept, at: keptAt, from: "page" }; }
+    if (!hash) { startAnalytics(); return { at: keptAt, from: "page" }; }
     const p = new URLSearchParams(hash), record = p.get("record"), via = p.get("via");
     await replaceState("/openings", {}); // async: the address changes only once it resolves
     startAnalytics();
     const from: From = via === "review" || via === "analysis" ? via : "link";
-    if (!record) return { board: kept, at: [], from };
+    if (!record) return { at: [], from };
     try {
-      const read = readPasted(record);
-      const tagged = read.record.tags.Position?.trim();
-      if (tagged && (setUpStart(tagged) ?? STANDARD_START) !== STANDARD_START)
-        throw new Error("the book starts at the standard start, and this record does not");
-      const line = read.record.moves.map(m => (m === "pass" ? m : edgeName(parseEdge(m))));
+      const { main: line, start } = boardOfRecord(readPasted(record).record);
+      if (start) throw new Error("the book starts at the standard start, and this record does not");
       const n = Math.floor(Number(p.get("at") ?? line.length));
-      return { board: kept, at: keptAt, line: line.slice(0, Number.isNaN(n) ? line.length : Math.max(0, n)), from };
+      return { at: keptAt, line: line.slice(0, Number.isNaN(n) ? line.length : Math.max(0, n)), from };
     } catch (e) {
-      notice = `Openings cannot open this record: ${errorText(e).replace(/\.?$/, ".")} Your own place is here instead.`;
-      return { board: kept, at: keptAt, from };
+      notice = cannotOpen(e);
+      return { at: keptAt, from };
     }
   }
 
   onMount(async () => {
+    const mainLoad = bookMain(); // the book's main line loads while the engine does
     try {
       await session.load();
-      const opening = chooseBoard();
-      const g = await session.start(pool => new GameAnalysis(enclosure, pool, [], OPENINGS_ID), async (g, pool) => {
-        const chosen = await opening;
+      const opening = chooseOpening(), kept = dbGet<KeptBoard>(STORES.branches, OPENINGS_ID);
+      const options = { board: true, fixedMain: true, viewValues: bookValues };
+      const g = await session.start(pool => new GameAnalysis(enclosure, pool, [], OPENINGS_ID, null, options), async (g, pool) => {
+        const [chosen, board] = await Promise.all([opening, kept]);
         await g.start();
-        if (chosen.board) await g.loadBoard(chosen.board);
+        if (board) await g.loadBoard(board);
         game = g; // the main line's book moves need the tree's notation (notationAt)
-        await setMain(g);
-        // The book's area map at each position that the book holds, where the engine waits (GameAnalysis `maps`)
-        const maps = new Map<string, number[]>();
-        g.maps = path => {
-          const q = bookAt(path);
-          if (!q) return undefined;
-          let m = maps.get(q.position);
-          if (!m) maps.set(q.position, (m = decodeArea(q.area)));
-          return m;
-        };
+        await setMain(g, mainLoad);
         // The stored results of the board's lines, read before the board shows, as the Analysis board reads its own
         const model = modelOf(session.manifest!, session.network)?.sha256;
         if (g.rulesReady && pool.search && model) await g.fromStore(pool.search, model).catch(() => {});
@@ -296,7 +296,7 @@
             await play(chosen.line);
             at = chosen.line;
           } catch (e) {
-            notice = `Openings cannot open this record: ${errorText(e).replace(/\.?$/, ".")} Your own place is here instead.`;
+            notice = cannotOpen(e);
           }
         }
         await dbPut(STORES.branches, OPENINGS_ID, g.keptBoard());
@@ -323,8 +323,10 @@
 {:else if R && game && start}
   {@const g = game}
   {#if notice}<p class="{MESSAGE} mb-0 text-blunder" role="alert">{notice}</p>{/if}
+  <!-- The engine header's note says why the engine waits, only while its switch is on: with the switch off, the header
+       says what it says on the Analysis board. -->
   <ReviewView bind:this={view} view={openingsView} {R} game={g} deepVisits={engine.visits} onposition={path => (current = path)} {start}
-              onplay={play} reviewVisits={budget} labelVisits={LABEL_VISITS} {engine} {fold} engineNote={waits ? WAITS : null}
+              onplay={play} reviewVisits={budget} labelVisits={LABEL_VISITS} {engine} {fold} engineNote={waits && engine.on ? WAITS : null}
               onengine={(change: Partial<EngineSettings>) => { trackSettingChange(change, engine, false); Object.assign(engine, change); }}
               onfeature={name => trackOnce(`openings ${name}`, "feature", { feature_name: name })} gpu={session.gpuView}
               board={{ judged: g.judgedMain }}>

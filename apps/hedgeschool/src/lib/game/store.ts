@@ -14,8 +14,10 @@ import type { GamePartner } from "./partners.ts";
 
 // The tree of a game's analysis as the browser keeps it, in the `branches` store: the shared analysis's
 // (@abstractclass/analysis/kept.ts). A kept node is a BranchNode here.
-export { BOARD_ID, OPENINGS_ID, branchNodes, keptNode, type KeptBoard, type KeptBranches, type KeptNode as BranchNode }
+export { BOARD_ID, branchNodes, keptNode, type KeptBoard, type KeptBranches, type KeptNode as BranchNode }
   from "@abstractclass/analysis/kept.ts";
+/** Openings' board (design 32), with the Analysis board's form, kept apart from the Analysis board's. */
+export const OPENINGS_ID = "openings";
 
 export interface StoredGame {
   version: 1;

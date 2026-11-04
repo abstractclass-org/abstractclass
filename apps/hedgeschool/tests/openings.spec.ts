@@ -1,19 +1,21 @@
 // Openings (design 32, items 2, 5, 9 and 10; the study journey S1 to S6 where it agrees with design 32) on the test book:
-// the header's fourth tab, the first view's box of the main line, the move list's book tree folded around the path, a
-// trap and its refutation, a move order's link, a mirror image, the way back, "Open in Analysis" and "Study in
-// Openings", at a desktop's and a phone's sizes, and with the keyboard only. The engine is off, so that nothing
-// searches, but in one test: at a book position it waits, and "Candidates" starts it, on the CPU only.
+// the header's fourth tab, the first view (the table and the move list's book tree folded around the path, the book's
+// win chance above the board, the area map on), a trap and its refutation, a move order's link, a mirror image, the
+// way back, "Open in Analysis" and "Study in Openings", at a desktop's and a phone's sizes, and with the keyboard only.
+// The engine is off, so that nothing searches, but in one test: at a book position it waits, and "Candidates" starts
+// it, on the CPU only.
 // The test book is served by the dev and preview servers only, and Openings is in the early edition's builds that they
 // serve (edition.ts, OPENINGS): elsewhere the tests are skipped.
 import { test, expect, type Page } from "@playwright/test";
 
 const ENGINE_KEY = "learn-enclosure:engine:2", DISPLAY_KEY = "learn-enclosure:review-display:1";
+const WAITS = "The engine waits at a book position. To search, select Candidates.";
 /** The test book's main line (sentences.ts, mainLine). */
 const MAIN = ["A10-D9", "N11-Q10", "L10-N11", "D10-G12", "G12-J15"];
 
 /** The page's settings before it loads: the consent answered, which covers the page until the visitor chooses, the
  *  engine's (off by default) and the display's. */
-async function setUp(page: Page, engine: Record<string, unknown> = { on: false }, display: Record<string, string> = {}) {
+async function setUp(page: Page, engine: Record<string, unknown> = { on: false }, display: Record<string, unknown> = {}) {
   await page.addInitScript(([e, d, ek, dk]) => {
     localStorage.setItem("hedge-school:consent:2", JSON.stringify({ analytics: "denied", games: "denied" }));
     localStorage.setItem(ek, e);
@@ -50,20 +52,24 @@ const row = (page: Page, edges: string) => table(page).locator(`tr[data-move="${
 test.describe("desktop", () => {
   test.use({ viewport: { width: 1400, height: 900 } });
 
-  test("the header's fourth tab and the first view: the main line's box, the table, the folded tree", async ({ page }) => {
+  test("the header's fourth tab and the first view: the table, the folded tree, the book's win chance", async ({ page }) => {
     await setUp(page);
     await open(page);
     // The tabs, Openings after Analysis
     const nav = page.locator("header nav").first();
     await expect(nav.getByRole("link")).toHaveText(["Practice", "Review", "Analysis", "Openings"]);
-    // The first view's box: one turn a line, each with its sentence
-    const box = page.getByRole("region", { name: "The main line" });
-    await expect(box.locator("p")).toHaveCount(3);
-    await expect(box.locator("p").first()).toHaveText(/^1\. A10-D9 keeps the game equal\./);
-    await expect(box.locator("p").last()).toContainText("The main line ends here.");
-    // The table follows, on "Book"
+    // The table, on "Book", with no box of the main line: the move list's main line is the line to learn
     await expect(table(page).getByRole("button", { name: "Book" })).toHaveAttribute("aria-pressed", "true");
     await expect(table(page).getByText("Fine moves")).toBeVisible();
+    await expect(page.getByRole("region", { name: "The main line" })).toHaveCount(0);
+    // The engine is off, so the engine header does not say that it waits
+    await expect(page.getByText(WAITS)).toHaveCount(0);
+    // The bar above the board gives the book's win chance, as the table's title row does
+    const win = (await table(page).locator("p").first().textContent())?.match(/Blue (\d+\.\d%)/)?.[1];
+    expect(win).toBeTruthy();
+    const bar = page.locator(`[title="Win chance from the engine's search"]`).first();
+    await expect(bar).toContainText(win!);
+    await expect(bar).not.toContainText("not analyzed yet");
     // The move list: the main line, and the other book moves folded under each move
     for (let k = 1; k <= MAIN.length; k++) await expect(moveAt(page, MAIN.slice(0, k).join(" "))).toBeVisible();
     const first = fold(page, /book moves? instead of A10-D9$/);
@@ -126,21 +132,61 @@ test.describe("desktop", () => {
     await expect(here(page)).toHaveAttribute("data-path", "A10-D11");
     await expect(moveAt(page, "A10-D11 N9-Q10 L10-N9 D10-G8 G8-J5")).toBeVisible();
     await expect(table(page).locator("tbody tr[data-move]").first()).toHaveAttribute("data-move", "N9-Q10");
+    // The path's own edges count: the mirror image left the main line at its first edge
+    await page.getByRole("button", { name: "Back to the main line" }).click();
+    await expect(here(page)).toHaveCount(0);
   });
 
-  test("S5: the way back: a move of the path, Back to the main line, the first step", async ({ page }) => {
+  test("S5: the way back: Back to the main line goes where the path left it; a move of the path, the first step", async ({ page }) => {
     await setUp(page);
-    await open(page, "record=D10-G9 N11-Q10");
-    await expect(here(page)).toHaveAttribute("data-path", "D10-G9 N11-Q10");
-    await moveAt(page, "D10-G9").click();
-    await expect(here(page)).toHaveAttribute("data-path", "D10-G9");
+    await open(page, "record=A10-D9 O11-Q10 N11-Q10");
+    await expect(here(page)).toHaveAttribute("data-path", "A10-D9 O11-Q10 N11-Q10");
+    // A move of the path
+    await moveAt(page, "A10-D9 O11-Q10").click();
+    await expect(here(page)).toHaveAttribute("data-path", "A10-D9 O11-Q10");
+    await moveAt(page, "A10-D9 O11-Q10 N11-Q10").click();
+    // Back to the main line: where the path left it, and the fold that held the path closes again
     const back = page.getByRole("button", { name: "Back to the main line" });
     await back.click();
     await expect(here(page)).toHaveAttribute("data-path", "A10-D9");
     await expect(back).toBeDisabled();
-    await expect(moveAt(page, "D10-G9")).toHaveCount(0);
+    await expect(moveAt(page, "A10-D9 O11-Q10")).toHaveCount(0);
+    // The first step
     await page.getByRole("button", { name: "First" }).click();
     await expect(here(page)).toHaveCount(0);
+    // A line that leaves the main line at its first move goes back to the start, and its fold closes again
+    await row(page, "D10-G9").click();
+    await expect(here(page)).toHaveAttribute("data-path", "D10-G9");
+    await back.click();
+    await expect(here(page)).toHaveCount(0);
+    await expect(moveAt(page, "D10-G9")).toHaveCount(0);
+  });
+
+  test("the main line ends where the book's main line ends: a move played after it is a variation", async ({ page }) => {
+    await setUp(page);
+    await open(page, `record=${MAIN.join(" ")}`);
+    await expect(here(page)).toHaveAttribute("data-path", MAIN.join(" "));
+    // The end of the book: its row is the best move outside the book
+    await table(page).locator("tbody tr[data-move]").first().click();
+    await expect(here(page)).toHaveAttribute("data-path", new RegExp(`^${MAIN.join(" ")} \\S+$`));
+    const back = page.getByRole("button", { name: "Back to the main line" });
+    await expect(back).toBeEnabled();
+    await back.click();
+    await expect(here(page)).toHaveAttribute("data-path", MAIN.join(" "));
+  });
+
+  test("the area map is on at each visit, whatever the Analysis board keeps", async ({ page }) => {
+    await setUp(page, { on: false }, { areaMap: { review: false, board: false } });
+    await open(page);
+    const off = page.getByRole("radio", { name: "Area map off" });
+    await expect(off).toHaveAttribute("aria-checked", "false");
+    // Openings' map stays apart: the Analysis board's choice does not change
+    await off.click();
+    await expect(off).toHaveAttribute("aria-checked", "true");
+    await page.getByRole("radio", { name: "Forecast", exact: true }).click();
+    await expect(off).toHaveAttribute("aria-checked", "false");
+    const kept = await page.evaluate(k => JSON.parse(localStorage.getItem(k) ?? "{}"), DISPLAY_KEY);
+    expect(kept.areaMap?.board).toBe(false);
   });
 
   test("Open in Analysis, then Study in Openings from the Analysis board", async ({ page }) => {
@@ -196,6 +242,15 @@ test.describe("desktop", () => {
     await expect(page.getByText(/ visits/)).toHaveCount(0);
     await table(page).getByRole("button", { name: "Candidates" }).click();
     await expect(page.getByText(/^[\d,]+( of [\d,]+)? visits/).first()).toBeVisible({ timeout: 120_000 });
+    // Back on "Book" it waits again at a book position that it has not searched
+    await table(page).getByRole("button", { name: "Book" }).click();
+    await row(page, "A10-D9").click();
+    await expect(here(page)).toHaveAttribute("data-path", "A10-D9");
+    await expect(page.getByText(WAITS)).toBeVisible();
+    // With the switch off, the header says what it says on the other boards with the engine off
+    await page.getByRole("switch", { name: "Engine" }).click();
+    await expect(page.getByText(WAITS)).toHaveCount(0);
+    await expect(page.getByText("Not analyzed yet", { exact: true }).first()).toBeVisible();
   });
 });
 
@@ -217,6 +272,6 @@ test.describe("phone", () => {
     const back = page.getByRole("button", { name: "Back to the main line" });
     await expect(back).toBeInViewport();
     await back.tap();
-    await expect(here(page)).toHaveAttribute("data-path", "A10-D9");
+    await expect(here(page)).toHaveCount(0);
   });
 });

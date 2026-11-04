@@ -8081,7 +8081,7 @@ abscls-tpaj.12. Openings (`/openings`) is built, as design 32 decides (items 2, 
 - **The counts (design 17):** `openings_open` with `openings_from`, `openings_positions` at 5, 10, 25 and 50 positions
   in a visit, and the features `book shown`, `fold opened` and `back to main line`. The refutations played were
   counted already (`book refutation played`): design 17 now lists them.
-- **Tests with players are no release gate.** The owner's answer (audit abscls-70t7, 2026-11-04): "no release gate".
+- **Tests with players are no release gate.** The answer in the audit abscls-70t7 (2026-11-04): "no release gate".
   The five players a task (abscls-tpaj.10) are a first round that finds problems. Design 32, "Consequences", says so.
 - **Tests:** `src/lib/book/tree.test.ts` on both test books (the main line, a book move's line, a trap's refutation,
   the canonical link, the move orders across turns, a mirror image, the folds' words). `tests/openings.spec.ts` in
@@ -8092,3 +8092,70 @@ abscls-tpaj.12. Openings (`/openings`) is built, as design 32 decides (items 2, 
   phone.
 - **Not built:** the win chance bar above the board says "not analyzed yet" at a book position while the engine
   waits: it reads the engine's search only.
+
+### Openings after a look: no main line's box, a steady sentence, the way back to where the path left (2026-11-04)
+
+abscls-tpaj.12, the review of the page that the entry before records. A look at the built page on the test book gave
+the first three changes. The review found the others. Design 32 gives the result.
+
+- **No box of the main line in the first view.** The box gave the main line, one turn a line, each with its sentence.
+  The reason, from the look: "'The main line' text box doesn't seem particularly useful, to be honest. It doesn't give
+  any insight at the moment. I guess we don't have enough concept knowledge in the game to say things other than this
+  line, that line, who is better after what." The first view is now the table and the move list, whose main line is
+  the line to learn. Design 32 lists the box under "Alternatives": it can come back when the book can name ideas, and
+  not only lines and win chances. `mainLine` in `sentences.ts` stays, for the move list's main line. Its turns'
+  sentences (`lineTurn`) now have no reader but their unit test.
+- **The sentence under the table keeps its height.** It changed height as the pointer went over the rows, so the move
+  list under it jumped. The table now puts every book row's sentence in one grid cell and shows only the current one,
+  so the slot keeps the height of the position's tallest sentence. A fixed height would cut a long sentence or leave a
+  gap under a short one. The sentence is a band of the table, in a lit row's tint under the table's last row, with a
+  rule under it, so it reads as a part of the table. The move list starts after it, under its own rule. The review,
+  the Analysis board and Openings share the table, so the change holds on all three.
+- **"Back to the main line" goes where the path left the main line:** the last position of the path on the main line.
+  It went to the main line after as many edges as the position on screen, a position that the player may never have
+  seen. The path's own edges count, not the positions that they reach: a move order or a mirror image that reaches a
+  position of the main line left the main line at its first edge that differs.
+- **The engine header with the switch off** says what it says on the Analysis board. It said "The engine waits at a
+  book position" with the switch off. The page's note (`engineNote` in ReviewView) now shows only while the switch is
+  on. While the engine waits, the threat's line and a move asked to evaluate give the same note, in the place of "the
+  engine is off", which they said while the switch was on.
+- **The win chance above the board is the book's at a book position,** as the table's title row gives it. It said "not
+  analyzed yet" while the engine waited. The analysis takes the book's values for its view as an option
+  (`AnalysisOptions.viewValues`: the area map and the win chance), in the place of `GameAnalysis.maps`. They give no
+  label.
+- **The area map is on at each visit.** Openings used the Analysis board's choice of the map, so a player who turned
+  the map off there had it off on Openings, against design 32, item 5. The page now keeps no choice of the map, and
+  the Analysis board's choice stays as it is.
+- **The trap and the other move order** stay as they were built: "trap and another move order are fine".
+- **The main line ends where the book's main line ends.** A line played from its end, or a fold opened there ("3 book
+  moves after G12-J15"), made the board's main line longer, as the Analysis board does, and the page kept the longer
+  line at each visit. The analysis now takes `AnalysisOptions.fixedMain`: such lines are variations. The move list
+  had no place for a variation from the main line's end, as a turn's band holds the lines from the positions before
+  its edges: a band after the last turn now holds them, with the fold there first.
+- **The engine searches where a part of the book did not load.** It waited there, with the table's "The book did not
+  load", against design 32, item 11.
+- **"Also reached by" goes to its line.** Its links did nothing: the page never gave the place its way to a line.
+  `OpeningsPlace` now takes it in its constructor.
+- **Simpler code, the same behaviour:**
+  - The shared analysis takes the board's form as an option (`AnalysisOptions.board`). `OPENINGS_ID` is in
+    `src/lib/game/store.ts`, so the shared packages name no page of Hedge School.
+  - A fold gives its moves (`MoveFold.at`), and the move list asks it once a position. A closed fold keeps the path's
+    moves by a string of their keys, so the move list's rows do not run again at each step.
+  - The link "Continues in" knows at once from the book's positions where it shows, and finds only its words later.
+  - Openings' table is the review's table with its own line under the title row (`lead`). Its place counts no
+    feature: the switch's `book shown` is for the review and the Analysis board.
+  - "Also reached by" asks the book again only when the path's positions change, not at each result of the engine.
+  - A fold's lines are found together, then added. The book's main line loads while the engine does.
+  - A brought record's line comes from `boardOfRecord` (`src/lib/game/board.ts`), as on the Analysis board.
+  - `positionsAlong` in `tree.ts` walks a line through the book, for the page and the unit tests.
+- **Tests:** `tests/openings.spec.ts` checks that the first view has no box, the book's win chance above the board,
+  the engine header with the switch off, the area map at each visit with the Analysis board's map off, and the way
+  back at A10-D9 O11-Q10 N11-Q10 (to A10-D9, where the fold closes again), after D10-G9 and after the mirror image
+  A10-D11 (to the start), and a move played at the end of the book's main line, which stays a variation in the move
+  list. `tests/layout.spec.ts` checks that the move list's top, from the table's top, does not move while the
+  pointer, then the focus, goes over each row of the book's table: on Openings and the Analysis board, by edge and
+  by turn, at 1,400 and 360 pixels wide, and in the review by edge and by turn at 360 and 1,400 pixels wide.
+- **Not changed, for a later issue:** while the engine waits at a book position, the session pauses the whole engine,
+  so a move asked to evaluate and the threat wait too, with the note that says why. Only the search of the position
+  on screen needs to wait. The design files in `docs/ux/book-explorer/` still describe the box: they are the design's
+  working files, and design 32 rules where they differ.

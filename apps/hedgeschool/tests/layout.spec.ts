@@ -13,10 +13,12 @@
 // monospaced font draws no ligatures, on Hedge School and on Cyanotype (CYANOTYPE_BASE_URL). Two check Cyanotype's
 // Practice (CYANOTYPE_BASE_URL): its page, and a game in progress when the site has its practice bot. Two check
 // Cyanotype's import page: the choice for a tool's game, and a record that the engine refuses. One checks Cyanotype's
-// board with the player's notes, at design 06's sizes. One checks Openings (design 32) on the test book, with its
-// first view's box and the book's table, where the build has it (edition.ts, OPENINGS). Every page's sweep checks the
-// header in one row, with Openings' fourth tab where the build has it. A last test checks the step bar on a phone, on
-// the review, the Analysis board, Openings and Practice. Run: npm run test:layout (the site running first).
+// board with the player's notes, at design 06's sizes. One checks Openings (design 32) on the test book, with the
+// book's table, where the build has it (edition.ts, OPENINGS). One checks that the sentence under the book's table
+// keeps the move list in place, on Openings and the Analysis board (the review's book table test checks the review).
+// Every page's sweep checks the header in one row, with Openings' fourth tab where the build has it. A last test checks
+// the step bar on a phone, on the review, the Analysis board, Openings and Practice. Run: npm run test:layout (the site
+// running first).
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { loadReviewFile } from "./review-file.ts";
@@ -330,9 +332,42 @@ test("layout of the book's table in a review", async ({ page }) => {
     await page.keyboard.press("ArrowRight");
     await expect(page.locator(".mv.here")).toHaveText(/^A10-D9/);
     await expect(page.getByRole("region", { name: "Opening book" }).locator("tbody tr[data-move]")).toHaveCount(rows);
+    const steady = await steadyMoveList(page, `/review by ${judge}, 360 pixels wide`);
     expect(await sweep(page, `/review, the book's table by ${judge}`, bookTableProblems)).toBe("");
+    await page.setViewportSize({ width: 1400, height: 900 });
+    steady.push(...await steadyMoveList(page, `/review by ${judge}, 1,400 pixels wide`));
+    expect(steady).toEqual([]);
   }
 });
+
+/** The sentence under the book's table (design 32, item 6) keeps the move list in place: the move list's top does not
+ *  move while the pointer goes over each row of the table, then while the focus does. The sentence changes on the way,
+ *  else the check proves nothing. Gives the problems, each named by `where`. */
+async function steadyMoveList(page: Page, where: string): Promise<string[]> {
+  const book = page.getByRole("region", { name: "Opening book" });
+  const rows = book.locator("tbody tr[data-item]");
+  const count = await rows.count();
+  if (!count) return [`${where}: the book's table has no rows`];
+  // From the table's top, as a row that the pointer or the focus goes to scrolls the page on a phone
+  const top = () => page.evaluate(() => {
+    const list = document.querySelector(".movelist"), table = document.querySelector('[aria-label="Opening book"]');
+    return list && table ? list.getBoundingClientRect().top - table.getBoundingClientRect().top : NaN;
+  });
+  const sentence = () => book.locator(".grid > div:not(.invisible)").first().textContent();
+  await page.mouse.move(0, 0);
+  const at = await top(), out: string[] = [], said = new Set([await sentence()]);
+  for (const [how, go] of [["the pointer", (k: number) => rows.nth(k).hover()], ["the focus", (k: number) => rows.nth(k).focus()]] as const) {
+    for (let k = 0; k < count; k++) {
+      await go(k);
+      said.add(await sentence());
+      const now = await top();
+      if (Math.abs(now - at) > 0.5) out.push(`${where}: with ${how} on row ${k + 1}, the move list moves ${Math.round(now - at)} pixels`);
+    }
+  }
+  await page.keyboard.press("Escape");
+  if (said.size < 2) out.push(`${where}: the sentence never changed, so the check proves nothing`);
+  return out;
+}
 
 /** The book's table's own rules at the page's size: it fits its box, each head is one line box, and the rows' badges
  *  start at one place, though their edges differ in length. */
@@ -360,8 +395,8 @@ function bookTableProblems(page: Page) {
   });
 }
 
-// Openings (design 32, items 5 and 10): its first view at the start, with the main line's box and the book's table,
-// and a fold of the move list open. Only where the build has Openings, which the test book's servers serve.
+// Openings (design 32, items 5 and 10): its first view at the start, with the book's table, and a fold of the move
+// list open. Only where the build has Openings, which the test book's servers serve.
 test("layout of /openings", async ({ page }) => {
   const served = await page.request.get("/test-book/prototype/index.json");
   test.skip(!served.ok() || !(served.headers()["content-type"] ?? "").includes("json"), "the site serves no test book");
@@ -372,10 +407,44 @@ test("layout of /openings", async ({ page }) => {
   await page.goto("/about");
   test.skip(!(await page.locator('header a[href="/openings"]').count()), "a build without Openings");
   await page.goto("/openings");
-  await expect(page.getByRole("region", { name: "The main line" }).locator("p")).toHaveCount(3, { timeout: 60_000 });
-  await page.locator("button[aria-expanded]", { hasText: "instead of A10-D9" }).click();
+  await page.locator("button[aria-expanded]", { hasText: "instead of A10-D9" }).click({ timeout: 60_000 });
   await expect(page.locator('button[aria-expanded="true"]')).toHaveCount(1);
   expect(await sweep(page, "/openings")).toBe("");
+});
+
+// The sentence under the book's table keeps the move list in place (design 32, item 6), on Openings and on the
+// Analysis board, by edge and by turn, at a desktop's size and a phone's: at turn 2's start, whose rows by turn are
+// whole turns. The review's book table test checks the review. Only where the build has Openings.
+test("the sentence under the book's table keeps the move list in place", async ({ browser }) => {
+  test.setTimeout(240_000);
+  const out: string[] = [];
+  for (const size of [{ width: 1400, height: 900 }, { width: 360, height: 740 }]) {
+    for (const judge of ["edge", "turn"]) {
+      // A new browser each time: the Analysis board keeps its board and its choice of the book
+      const phone = size.width < 400;
+      const context = await browser.newContext({ viewport: size, isMobile: phone, hasTouch: phone });
+      const page = await context.newPage();
+      const served = await page.request.get("/test-book/prototype/index.json");
+      if (!served.ok() || !(served.headers()["content-type"] ?? "").includes("json")) { await context.close(); test.skip(true, "the site serves no test book"); }
+      await page.addInitScript(([d]) => {
+        localStorage.setItem("hedge-school:consent:2", JSON.stringify({ analytics: "denied", games: "denied" }));
+        localStorage.setItem("learn-enclosure:engine:2", JSON.stringify({ on: false }));
+        localStorage.setItem("learn-enclosure:review-display:1", d);
+      }, [JSON.stringify({ judge })]);
+      await page.goto("/about");
+      if (!(await page.locator('header a[href="/openings"]').count())) { await context.close(); test.skip(true, "a build without Openings"); }
+      await page.goto("/openings#record=A10-D9");
+      await expect(page.locator('button.mv[aria-current="location"]')).toHaveAttribute("data-path", "A10-D9", { timeout: 60_000 });
+      out.push(...await steadyMoveList(page, `/openings by ${judge}, ${size.width} pixels wide`));
+      await page.goto("/analysis#" + new URLSearchParams({ record: "A10-D9", at: "1" }));
+      await expect(page.locator('button.mv[aria-current="location"]')).toHaveAttribute("data-path", "A10-D9", { timeout: 60_000 });
+      const book = page.getByRole("region", { name: "Opening book" });
+      await book.getByRole("button", { name: "Book" }).click();
+      out.push(...await steadyMoveList(page, `/analysis by ${judge}, ${size.width} pixels wide`));
+      await context.close();
+    }
+  }
+  expect(out).toEqual([]);
 });
 
 /** Opens Practice in a game in progress, kept in this browser (hedgefund.ts, KeptPractice): the fixture's first 20
@@ -424,8 +493,8 @@ function stepBarProblems(page: Page) {
 }
 
 // The step bar on a phone (design 06, item 4): on a touch screen of 360 × 640, the bar is fixed to the window's foot,
-// on the review, the Analysis board, Openings (where the build has it) and Practice. The visitor has answered the consent notice, which covers the bar
-// until they choose: a build that stores practice games, as CI's, asks for it.
+// on the review, the Analysis board, Openings (where the build has it) and Practice. The visitor has answered the
+// consent notice, which covers the bar until they choose: a build that stores practice games, as CI's, asks for it.
 test("the step bar on a phone", async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 360, height: 640 }, isMobile: true, hasTouch: true });
   await context.addInitScript(() =>

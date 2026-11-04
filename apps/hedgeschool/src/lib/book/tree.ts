@@ -19,6 +19,18 @@ export async function mainEdges(book: Book): Promise<string[]> {
   return (await mainLine(book)).flatMap(t => t.edges);
 }
 
+/** The book's positions along a line from the start, as the player reaches them: the start, then the position after
+ *  each edge while the edges are book moves. It rejects as the book's lookups do. */
+export async function positionsAlong(book: Book, line: string[]): Promise<BookPosition[]> {
+  const out: BookPosition[] = [];
+  for (let q = await book.get(book.start), k = 0; q; k++) {
+    out.push(q);
+    const m = k < line.length ? bookMove(q, line[k]) : undefined;
+    q = m ? await book.get(m.to) : null;
+  }
+  return out;
+}
+
 /** Whether the edge `edge` from the position `from` (its notation as the player reached it) is the canonical way to
  *  `to`: its first parent. The start has no parent. */
 export const canonical = (to: BookPosition, from: string, edge: string) =>
@@ -79,10 +91,10 @@ export async function continues(book: Book, p: BookPosition, main: string[]): Pr
 }
 
 /** The other move orders that reach a position, for the title row's "Also reached by" (design 32, item 5): each parent
- *  but the one on the player's path, with its canonical line and its last turn's words. A turn's two edges in the
- *  other order are one variation, as the table's one row a position (design 32, item 3), so they are left out: the
- *  list is for the move orders across turns. `path`: the player's edges to the position, and `notations` the notation
- *  of each position on it, the start first. */
+ *  except the one on the player's path, with its canonical line and its last turn's words. A turn's two edges in the
+ *  other order are one variation, as the table's one row a position (design 32, item 3), so they are left out: the list
+ *  is for the move orders across turns. `path`: the player's edges to the position, and `notations` the notation of
+ *  each position on it, the start first. */
 export async function alsoReached(book: Book, p: BookPosition, path: string[], notations: string[]): Promise<LineLink[]> {
   const out: LineLink[] = [];
   const [from, before, last, secondLast] = [notations.at(-2), notations.at(-3), path.at(-1), path.at(-2)];
@@ -98,8 +110,8 @@ export async function alsoReached(book: Book, p: BookPosition, path: string[], n
   return out;
 }
 
-/** The book moves that a fold holds at a position: each book move there but the one that the move list shows after it
- *  (`next`, none at a line's end). */
+/** The book moves that a fold holds at a position: each book move there except the one that the move list shows after
+ *  it (`next`, none at a line's end). */
 export const folded = (p: BookPosition, next: string | null) => p.moves.filter(m => m.move !== next);
 
 /** A fold's words, its button's text: how many book moves it holds, and the move that they replace. */

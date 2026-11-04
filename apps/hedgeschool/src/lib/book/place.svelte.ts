@@ -9,9 +9,10 @@
 // servers serve it, and no build holds it (vite.config.ts, `testBook`): where its index does not load, the analysis
 // column stays as it was, with no switch (`ready`).
 //
-// Openings (design 32, item 5) has a place of its own: the book is always on there, so its switch starts on "Book" at
-// each visit, and the browser keeps no choice for it. The review and the Analysis board give "Study in Openings" in the
-// table (`study`), where the site has Openings (edition.ts, OPENINGS, which the page gives: PlaceOptions `openings`).
+// Openings (design 32, item 5) has a place of its own (openings.svelte.ts): the book is always on there, so its switch
+// starts on "Book" at each visit, and the browser keeps no choice for it. The review and the Analysis board give "Study
+// in Openings" in the table (`study`), where the site has Openings (edition.ts, OPENINGS, which the page gives:
+// PlaceOptions `openings`).
 import type { Unit } from "@abstractclass/analysis/model.ts";
 import { readLocalJson, writeLocal } from "@abstractclass/storage/local.ts";
 import { parseEdge } from "#lib/engine/notation.ts";
@@ -50,7 +51,7 @@ export class BookPlace {
   readonly #page: BookPage;
   // The page's sources, set by the constructor: the $derived values below read them when they first run. The values
   // here only let TypeScript see the fields set before those values' initializers.
-  #path: () => (string | undefined)[] = () => [];
+  #notations: () => (string | undefined)[] = () => [];
   #unit: () => Unit = () => "edge";
   #edges: () => string[] = () => [];
   #used: (name: string) => void = () => {};
@@ -61,16 +62,16 @@ export class BookPlace {
   pointed = $state<string | null>(null);
   #more = $state<string | undefined>(undefined); // the position where the player opened "Show more"
 
-  /** `path`: the notation of each position from the start to the position on screen (undefined where a position has
-   *  none). `unit`: the page's "Review by", which the rows follow. */
-  constructor(book: OpeningBook, page: BookPage, path: () => (string | undefined)[], unit: () => Unit,
+  /** `notations`: the notation of each position from the start to the position on screen (undefined where a position
+   *  has none). `unit`: the page's "Review by", which the rows follow. */
+  constructor(book: OpeningBook, page: BookPage, notations: () => (string | undefined)[], unit: () => Unit,
               options: PlaceOptions = {}) {
     this.book = book;
     this.#page = page;
-    this.#path = path;
+    this.#notations = notations;
     this.#unit = unit;
-    if (options.path) this.#edges = options.path;
-    if (options.used) this.#used = options.used;
+    this.#edges = options.path ?? this.#edges;
+    this.#used = options.used ?? this.#used;
     this.#openings = !!options.openings;
     this.#show = keptChoice(page).show;
   }
@@ -81,9 +82,9 @@ export class BookPlace {
   /** The player's choice, which the browser keeps. Outside the book, the table shows the candidates whatever it is. */
   get show() { return this.#show; }
   set show(v: BookChoice["show"]) {
-    // The book turned on by the switch or the key o in the review or on the Analysis board: where the book opens (design
-    // 17, the feature "book shown")
-    if (v === "book" && this.#show !== "book" && this.#page !== "openings") this.#used("book shown");
+    // The book turned on by the switch or the key o: where the book opens (design 17, the feature "book shown"). Openings
+    // gives no count: its book is always on.
+    if (v === "book" && this.#show !== "book") this.#used("book shown");
     this.#show = v;
     keepChoice(this.#page, { show: v });
   }
@@ -92,7 +93,7 @@ export class BookPlace {
   showForNow() { this.#show = "book"; }
 
   #atOf = (notation: string | undefined): BookAt => (notation === undefined ? OUT : this.book.at(notation));
-  readonly #here = $derived(this.#atOf(this.#path().at(-1)));
+  readonly #here = $derived(this.#atOf(this.#notations().at(-1)));
   #seen: BookAt[] | null = null;
   /** By turn at a turn's start: the book at the position after each book move there, which the whole turns need. A
    *  lookup reads the book's loads, so each load of any part runs this again: the last list stays while its entries
@@ -114,8 +115,8 @@ export class BookPlace {
   readonly byTurn = $derived(this.#table.byTurn);
   /** By turn, the player opened "Show more" at this position: the table and the board show every book turn. The next
    *  position shows the best turns only again. */
-  get more(): boolean { return this.#more !== undefined && this.#more === this.#path().at(-1); }
-  set more(v: boolean) { this.#more = v ? this.#path().at(-1) : undefined; }
+  get more(): boolean { return this.#more !== undefined && this.#more === this.#notations().at(-1); }
+  set more(v: boolean) { this.#more = v ? this.#notations().at(-1) : undefined; }
   /** The rows that the table and the board show: the rows after "Show more" only once the player opens it. */
   readonly shown = $derived(shownRows(this.rows, this.more));
   /** The table shows the book: its index has loaded, the player chose "Book", and the position is not outside the
@@ -140,11 +141,12 @@ export class BookPlace {
 
   /** "Study in Openings" (design 32, items 2 and 8): the address of Openings at the position on screen, from the review
    *  or the Analysis board, while the table shows the book. Its record is the path's edges from the book's start, and
-   *  `via` names the page, for the analytics (design 17, `openings_open`). Null on Openings, where the site has no
-   *  Openings, and where the path starts elsewhere than the book's start (a set-up start). */
+   *  `via` names the page, for the analytics (design 17, `openings_open`). Null where the site has no Openings (and on
+   *  Openings, whose place gives no `openings`), and where the path starts elsewhere than the book's start (a set-up
+   *  start). */
   get study(): string | null {
-    const book = this.book.book, path = this.#path();
-    if (!this.#openings || this.#page === "openings" || !book || path[0] !== book.start || !this.showsBook) return null;
+    const book = this.book.book, notations = this.#notations();
+    if (!this.#openings || !book || notations[0] !== book.start || !this.showsBook) return null;
     const edges = this.#edges();
     return `/openings#${new URLSearchParams({ ...(edges.length ? { record: edges.join(" ") } : {}), via: this.#page === "board" ? "analysis" : "review" })}`;
   }

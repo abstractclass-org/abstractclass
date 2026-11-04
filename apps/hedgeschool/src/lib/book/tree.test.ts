@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 import { bookMove, openBook, type Book, type BookReader } from "./book.ts";
 import type { BookPosition } from "./form.ts";
 import { mirrorEdge } from "#lib/engine/notation.ts";
-import { alsoReached, bookLine, canonical, canonicalPath, continues, folded, foldText, mainEdges } from "./tree.ts";
+import { alsoReached, bookLine, canonical, canonicalPath, continues, folded, foldText, mainEdges, positionsAlong } from "./tree.ts";
 import { edgeCount } from "./sentences.ts";
 
 const root = fileURLToPath(new URL("../../..", import.meta.url));
@@ -17,14 +17,10 @@ const files: BookReader = async url => JSON.parse(readFileSync(join(root, "tests
 const START = "A10-D10 Q10-T10 b1 0/0 0";
 const PROTOTYPE_MAIN = ["A10-D9", "N11-Q10", "L10-N11", "D10-G12", "G12-J15"];
 
-/** The positions along a line from the start, as the player reaches them. */
+/** The positions along a line of book moves from the start, as the player reaches them. */
 async function walk(book: Book, line: string[]): Promise<BookPosition[]> {
-  const out = [(await book.get(START))!];
-  for (const e of line) {
-    const m = bookMove(out.at(-1)!, e);
-    assert.ok(m, `${e} is a book move after ${out.length - 1} edges`);
-    out.push((await book.get(m.to))!);
-  }
+  const out = await positionsAlong(book, line);
+  assert.equal(out.length, line.length + 1, `${line[out.length - 1]} is a book move after ${out.length - 1} edges`);
   return out;
 }
 
@@ -113,7 +109,7 @@ test("a line through a mirror image keeps the player's orientation", async () =>
   assert.deepEqual(await canonicalPath(book, positions.at(-1)!), mirrored);
 });
 
-test("a fold holds the book moves but the one shown, and says how many", async () => {
+test("a fold holds the book moves except the one shown, and says how many", async () => {
   const book = await openBook("/test-book/prototype/index.json", files);
   const start = (await book.get(START))!;
   assert.deepEqual(folded(start, "A10-D9").map(m => m.move), start.moves.slice(1).map(m => m.move));

@@ -33,12 +33,10 @@
    *  Every path is a position's: the moves from the start. `next` is the move that the list shows after a position
    *  (none at a line's end): the game's next move on its line, else the position's first variation. */
   export interface MoveFold {
-    /** The fold at a position: how many moves it holds, its button's words, and whether it is open. Null: none. */
-    at(path: string[], next: string | null): { count: number; text: string; open: boolean } | null;
+    /** The fold at a position: the moves that it holds (their names), its button's words, and whether it is open. A
+     *  closed fold hides the variations that start with its moves, with their lines. Null: none. */
+    at(path: string[], next: string | null): { moves: string[]; text: string; open: boolean } | null;
     toggle(path: string[], next: string | null): void;
-    /** Whether a closed fold hides this variation move (its path), with its line: `next` as for `at`, of the position
-     *  before the move. */
-    hides(path: string[], next: string | null): boolean;
     /** A variation move that ends with a link to the line that holds the position's subtree: its words and its path. */
     link(path: string[]): { text: string; to: string[] } | null;
   }
@@ -64,6 +62,7 @@
     promote(path: string[]): Promise<void>; // promotes a variation one step among the variations from its fork
     judge(path: string[]): Promise<void>; // evaluates a variation move's quality: searches its two positions
     mapAt(path: string[]): number[] | undefined; // a position's ownership: its result's, or the map added to it (design 30)
+    winAt(path: string[]): number | undefined; // the board's own win chance of a position, ahead of a search's (Openings: the book's)
     hasNoMap(path: string[]): boolean; // the position gets no map: the engine did not search it (the game ends there)
     // The state of a position's map: there, its search runs, it waits for the engine, none can come, or none is asked
     mapState(path: string[]): MapState;
@@ -183,8 +182,9 @@
     // engine runs on the CPU only), and the engine settings do not show it.
     gpu?: { status: GpuStatus; downloadMB: string };
     fold?: MoveFold | null; // the move list's tree folded around the path (Openings)
-    // Why the engine does not search the position on screen, in the engine header's values line, while it has no result
-    // there (Openings: the engine waits at a book position, design 32, item 5)
+    // Why the engine searches nothing while its switch is on: the page holds it (Openings: the engine waits at a book
+    // position, design 32, item 5). The engine header's values line says it while the position has no result, and the
+    // threat's line and a move asked to evaluate say it in the place of "the engine is off".
     engineNote?: string | null;
   }
   let { view, R, progress = null, game, deepVisits = 0, onposition, onplay, labelVisits = 0, engine, onengine, gpu, reviewVisits = 0,
@@ -324,13 +324,26 @@
     const i = mainIndex(p, mainNames);
     return (i !== null && i < mainNames.length ? mainNames[i] : allKids(p)[0]?.at(-1)) ?? null;
   }
-  /** A position's variations that the list shows: with a fold (Openings), those that a closed fold does not hide. A
-   *  position's first variation off the game's line stays, and so does the path to the position on screen. */
+  /** A position's fold (Openings), with the move that the list shows after it. */
+  const foldAt = (p: string[]) => fold?.at(p, nextOf(p)) ?? null;
+  // The moves of the path that a closed fold holds, by their keys: they stay, as the path to the position on screen is
+  // always open. A string, so that the list's rows run again only when the path goes into or out of a folded line, not
+  // at each step.
+  const pathFolded = $derived.by(() => {
+    if (!fold) return "";
+    const keys: string[] = [];
+    for (let k = 1; k <= path.length; k++) {
+      const f = foldAt(path.slice(0, k - 1));
+      if (f && !f.open && f.moves.includes(path[k - 1])) keys.push(pathKey(path.slice(0, k)));
+    }
+    return keys.join("\n");
+  });
+  const keptOpen = $derived(new Set(pathFolded.split("\n")));
+  /** A position's variations that the list shows: with a fold (Openings), those that a closed fold does not hide, and
+   *  the path to the position on screen. The move that the list shows after the position is never in its fold. */
   function branchKids(p: string[]): string[][] {
-    const all = allKids(p);
-    if (!fold) return all;
-    const off = mainIndex(p, mainNames) === null, next = nextOf(p);
-    return all.filter((c, k) => (off && k === 0) || sharedLength(path, c) === c.length || !fold.hides(c, next));
+    const all = allKids(p), f = foldAt(p);
+    return !f || f.open ? all : all.filter(c => !f.moves.includes(c.at(-1)!) || keptOpen.has(pathKey(c)));
   }
   function childrenOf(p: string[]): string[][] {
     const i = mainIndex(p, mainNames);
@@ -744,6 +757,13 @@
       return { rows: kidsOf(mainNames.slice(0, e.index)).flatMap(first => branchRows(first, kidsOf)), engine };
     });
   }
+  /** The variations from the end of the main line, with its fold first. A turn's groups start before each of its
+   *  edges, so these have no turn. On Openings they are the lines played or folded after the book's main line ends
+   *  (design 32, `AnalysisOptions.fixedMain`). */
+  const endGroup = $derived.by(() => ({
+    fold: foldAt(mainNames),
+    rows: branchKids(mainNames).flatMap(first => branchRows(first, branchKids)),
+  }));
   // The area map (design 30), in its style (the display setting "Area map style"), on the points whose value is at
   // least the style's smallest value. Off on the review and on on the Analysis board by default, each page's own
   // setting. One rule: the map is the map of the position that the board shows. That is the position on screen, or,
@@ -1529,8 +1549,10 @@
   const statusMove = $derived(!branchPreview && movePreview && glyphs ? {
     before: `Preview: the position after ${view.words.move} ${movePreview.index + 1}, ${turnBefore(movePreview.index)}`,
     played: R.edges[movePreview.index], after: ". Click to go there." } : null);
-  const blueWin = $derived(mainAt !== null ? R.blueWin[mainAt] : over ? resultWin(position.scores[0] - position.scores[1])
-    : analysis?.blueWin ?? NaN);
+  // The win chance above the board: the board's own where it has one (Openings: the book's at a book position, design
+  // 32), else the review's or the search's
+  const blueWin = $derived(game?.winAt(path) ?? (mainAt !== null ? R.blueWin[mainAt]
+    : over ? resultWin(position.scores[0] - position.scores[1]) : analysis?.blueWin ?? NaN));
   // The chart's hover, as Lichess's: the move that led to the position and its label, then one number. The number is
   // the engine's lead, which KaTrain's graph plots (B+n) and from which the loss in the lead comes. Under it, the score and the
   // area of the lines shown: the lines are scaled and have no axis, so their numbers are only here.
@@ -1595,7 +1617,8 @@
     // The threat is there, and its size is not: a result with the threat's settings, of the position or of the threat's
     // position, is still to come (GameAnalysis.threatCost)
     if (threat && snapshot) return { text: "No threat size saved: review snapshots do no searches", busy: false };
-    if (threatState === "off" || (threat && engine && !engine.on)) return { text: "Threat: the engine is off", busy: false };
+    // A page that holds the engine with its switch on says why (`engineNote`)
+    if (threatState === "off" || (threat && engine && !engine.on)) return { text: engineNote ?? "Threat: the engine is off", busy: false };
     if (threat) return { text: "Threat size: searching", busy: true };
     return null;
   });
@@ -1605,8 +1628,9 @@
   // Why no search for a move can run now (searchWait.ts), or null when one can run or runs: a move that the player
   // asked to evaluate says "Evaluating…" and pulses only then (design 07, item 11). The engine's switch is its pause
   // (the session gives the analysis the switch), and a network that loads still counts: its search starts when it is
-  // loaded.
-  const whyNoSearch = $derived(noSearchReason({ snapshot: !!snapshot, paused: !!game?.paused, error: game?.error ?? "" }));
+  // loaded. A page that holds the engine with its switch on says why (`engineNote`): its switch is not off.
+  const whyNoSearch = $derived(noSearchReason({ snapshot: !!snapshot, paused: !!game?.paused && !engineNote, error: game?.error ?? "" })
+                               ?? (game?.paused ? engineNote : null));
   // The text of an asked-for move with no label yet. A review's game moves keep "Not analyzed yet": the review is
   // under way, and they are not asked for.
   const unlabeled = $derived(unlabeledText(whyNoSearch));
@@ -1957,7 +1981,8 @@
       {@const groups = turnGroups(t)}
       <!-- With a fold (Openings), each edge's fold of the other moves at the position before it comes before that
            position's variations. -->
-      {@const folds = t.edges.map(e => fold?.at(mainNames.slice(0, e.index), mainNames[e.index] ?? null) ?? null)}
+      {@const froms = fold ? t.edges.map(e => mainNames.slice(0, e.index)) : []}
+      {@const folds = froms.map(p => foldAt(p))}
       {#if notes.length || groups.some(g => g.rows.length) || folds.some(Boolean)}
         <div class="my-1 py-1 bg-panel-2/50 border-y border-line">
           {#each notes as note (noteText(note))}
@@ -1965,12 +1990,19 @@
           {/each}
           {#each groups as g, k (k)}
             {@const f = folds[k]}
-            {#if f}{@render foldButton(mainNames.slice(0, t.edges[k].index), f, 0)}{/if}
+            {#if f}{@render foldButton(froms[k], f, 0)}{/if}
             {@render branchGroup(g.rows, g.engine)}
           {/each}
         </div>
       {/if}
     {/each}
+    <!-- After the last turn, the variations from the end of the main line in a band of their own (endGroup). -->
+    {#if endGroup.fold || endGroup.rows.length}
+      <div class="my-1 py-1 bg-panel-2/50 border-y border-line">
+        {#if endGroup.fold}{@render foldButton(mainNames, endGroup.fold, 0)}{/if}
+        {@render branchGroup(endGroup.rows, null)}
+      </div>
+    {/if}
     {/if}
   </div>
   {/snippet}
@@ -2167,7 +2199,7 @@
     {#if fold}
       <!-- The folds of the row's positions, under the row: a fold at its last position before that fork's lines -->
       {#each row.paths as p (pathKey(p))}
-        {@const f = pathKey(p) in branches ? fold.at(p, nextOf(p)) : null}
+        {@const f = pathKey(p) in branches ? foldAt(p) : null}
         {#if f}{@render foldButton(p, f, row.depth)}{/if}
       {/each}
     {/if}
@@ -2177,7 +2209,7 @@
 <!-- A fold's chevron button (Openings, design 32, items 5 and 9): it says how many moves it holds and whether it is
      open, down when folded, up when open. Indented as a variation from the position, or at the list's left under a
      turn of the game's line (`depth` 0). -->
-{#snippet foldButton(p: string[], f: { count: number; text: string; open: boolean }, depth: number)}
+{#snippet foldButton(p: string[], f: { text: string; open: boolean }, depth: number)}
   <button type="button" aria-expanded={f.open} onclick={() => fold?.toggle(p, nextOf(p))}
           class="flex items-center gap-1 py-0.5 pr-2 font-sans text-sm text-left text-muted bg-transparent border-0 hover:text-ink"
           style:padding-left={depth ? `calc(${depth + 0.45}rem + 0.65rem)` : "0.5rem"}>

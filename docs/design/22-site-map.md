@@ -70,7 +70,7 @@ ask where it goes (design 21): with that choice, "import" again names what the p
      bare one) gets the Review tab, and the analytics wait while it stays in the address.
 5. **The pages:**
    - **The header:** Practice, Review, Analysis, Openings (later Puzzles, Learn), then Tools, The notation, About and
-     "Support us". Openings, the opening book's page (design 32), shows only in a build that serves the test book
+     "Support Us". Openings, the opening book's page (design 32), shows only in a build that serves the test book
      (`OPENINGS` in `src/lib/edition.ts`), until the engine's book comes. With it, the links and "Support Us" still
      fit one row from 1,024 pixels, which the layout test checks. Practice
      comes first, as play comes first on Lichess: a game against the bot is the quickest way to begin. Tools is

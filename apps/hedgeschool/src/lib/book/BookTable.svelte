@@ -3,11 +3,12 @@
   // candidates. Its title row has the switch "Book" or "Candidates", then the position with its symbol and its win
   // chance. The heading's title gives the book's source. Then the book's rows in their groups (rows.ts), or the page's
   // candidates (`candidates`), and under the table a slot for the sentence of the row pointed at or of the best move
-  // (`sentence`). Outside the book the table shows the candidates alone, as the page does with no book (item 8). The
-  // page owns the choice that the browser keeps (`show`), the key o, the board and what a played move does (`onplay`).
-  // The table and the board point at each other through `pointed`: the table sets it on hover and focus, and the
-  // board's numbers set it from outside. By turn (`byTurn`), each row is a whole turn: it names its two edges, and it
-  // plays both. The best turns show, and the rest after "Show more" (`more`).
+  // (`sentence`), in a band of the table's own, as high as the position's tallest sentence. Outside the book the table
+  // shows the candidates alone, as the page does with no book (item 8). The page owns the choice that the browser keeps
+  // (`show`), the key o, the board and what a played move does (`onplay`). The table and the board point at each other
+  // through `pointed`: the table sets it on hover and focus, and the board's numbers set it from outside. By turn
+  // (`byTurn`), each row is a whole turn: it names its two edges, and it plays both. The best turns show, and the rest
+  // after "Show more" (`more`).
   //
   // The keys (item 9): Tab puts the focus on the table's row (one stop for the whole table), the up and down keys move
   // between the rows, Enter or Space plays the row's edges (or a trap and its refutation), and Escape returns the focus
@@ -52,10 +53,11 @@
     /** Under the table, where the position has book moves: the sentence of the book move pointed at or focused, or of
      *  the best move (null). */
     sentence?: Snippet<[BookRow | null, BookPosition]>;
-    /** The page's own lines under the title row, at a book position while the table shows the book: Openings' box of
-     *  the main line and its other move orders (design 32, item 5). */
+    /** The page's own lines under the title row, at a book position while the table shows the book: on Openings, the
+     *  other move orders that reach the position (design 32, item 5). */
     lead?: Snippet<[BookPosition]>;
-    /** The page's own line after the sentence, where the table shows the book: "Study in Openings" (design 32, item 2). */
+    /** The page's own line after the sentence, where the table shows the book: "Study in Openings" (design 32, item
+     *  2). */
     footer?: Snippet;
   }
   let {
@@ -135,7 +137,9 @@
     box.querySelector(`[data-move="${pointed}"]`)?.scrollIntoView({ block: "nearest" });
   });
 
-  // The sentence's row: the book move or turn pointed at or focused, else null for the best one's sentence
+  // The sentence's row: the book move or turn pointed at or focused, else null for the best one's sentence. The rows
+  // that have a sentence: the best one's (null), then each book row's.
+  const sentenceRows = $derived([null, ...rows.filter(r => r.book)]);
   const sentenceRow = $derived(rows.find(r => r.move === pointed && r.book) ?? null);
   // The polite count of the position's book moves or turns, once a step (item 9). A live region speaks when its text
   // changes, and two steps can have the same count: so the text is emptied at each new position, then set a moment
@@ -214,8 +218,20 @@
         </tbody>
       </table>
     </div>
-    {#if sentence && position.moves.length}<div class="mt-1.5">{@render sentence(sentenceRow, position)}</div>{/if}
-    {@render footer?.()}
+    <!-- Under the table, its sentence, in a band of the table's own: the table's tint and its rule under it. Each book
+         row's sentence is in one grid cell, and only the current one shows, so the band keeps the height of the
+         position's tallest sentence: the move list does not move as the pointer or the focus goes over the rows. Then
+         the page's own line. -->
+    <div class="flex-none">
+      {#if sentence && position.moves.length}
+        <div class="grid px-1 py-1.5 bg-panel-2/50 border-b border-line">
+          {#each sentenceRows as r (r?.move ?? "")}
+            <div class={["[grid-area:1/1]", r !== sentenceRow && "invisible"]}>{@render sentence(r, position)}</div>
+          {/each}
+        </div>
+      {/if}
+      {@render footer?.()}
+    </div>
   {/if}
   <p class="sr-only" aria-live="polite" bind:this={live}></p>
 </section>

@@ -12,6 +12,7 @@ import type { BookReader } from "./book.ts";
 
 const { OpeningBook } = await import("./lookup.svelte.ts");
 const { BookPlace, keptChoice, keepChoice } = await import("./place.svelte.ts");
+const { OpeningsPlace } = await import("./openings.svelte.ts");
 const { SvelteMap } = await import("svelte/reactivity"); // a reactive cell for the path, as a page's $derived is
 const root = fileURLToPath(new URL("../../..", import.meta.url));
 const CASES = "/test-book/cases/index.json", START = "A10-D10 Q10-T10 b1 0/0 0";
@@ -69,7 +70,7 @@ test("Openings starts on Book and keeps no choice; the review's table gives Stud
   assert.equal(kept.size, 0, "Openings keeps no choice");
   assert.deepEqual(keptChoice("openings"), { show: "book" });
   const used: string[] = [];
-  const openings = new BookPlace(new OpeningBook(CASES, read), "openings", () => [START], () => "edge", { openings: true });
+  const openings = new OpeningsPlace(new OpeningBook(CASES, read), () => [START], () => "edge", () => {});
   await settle();
   assert.equal(openings.showsBook, true, "the book is always on there");
   assert.equal(openings.study, null, "no Study in Openings on Openings");
