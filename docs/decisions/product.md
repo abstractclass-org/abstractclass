@@ -8033,3 +8033,62 @@ abscls-8tl1.23.
   They now tell of the cyanotype.
 - **History:** the earlier entries of this log, and the requests to the engine repository, keep the name Drawing
   Board. There, Drawing Board is Cyanotype.
+
+### Openings, the book's own page, on the test book (2026-11-04)
+
+abscls-tpaj.12. Openings (`/openings`) is built, as design 32 decides (items 2, 5 and 13), on the test book.
+
+- **The page:** the Analysis board's layout and controls (ReviewView in its board form), with a board of its own
+  (`OPENINGS_ID`), so that a visit never changes the Analysis board. Its table starts on "Book" at each visit, and the
+  browser keeps no choice for it. The board takes the book's area map at each book position (`GameAnalysis.maps`), so
+  the map shows while the engine waits. It takes no other book value.
+- **The live engine waits** while the table shows the book at a book position: the page gives the session the
+  engine's settings with the engine off there. The engine header says "The engine waits at a book position. To
+  search, select Candidates." The test book's searches have 512 visits, so the reason "the book is deeper" holds only
+  for the engine's book (abscls-tpaj.13).
+- **The tree** (`src/lib/book/tree.ts`): the main line is `mainLine` of the sentences. Each other book move hangs under
+  the move before it, folded under a chevron button that says how many moves it holds ("2 other book moves instead
+  of A10-D9") and whether it is open (`aria-expanded`). An open fold adds each move's line to the board: the move, a
+  trap's refutation, then the best book moves to the end of the move's main line. A book move played from the table
+  adds its line the same way. A line stops after a move that reaches a position by another way than its canonical
+  parent, with the link "Continues in …".
+- **The choices that design 32 left open:**
+  - **The folds are kept for the visit only,** not in the address. The address names a position (design 22), and the
+    page takes it out of the address at once, for the analytics. The path to the position on screen is always open,
+    so a reload at the same position shows the same line. The lines that a fold added stay on the kept board.
+  - **"Continues in" names the canonical line's last turn,** in the notation, with "the main line" where it is on the
+    main line: "Continues in the main line, 2. N11-Q10 L10-N11", or "Continues in 2. N11-Q10 O11-Q10". The turn is
+    what the player reads in the move list, and the link goes there. A turn's two edges in the other order end with
+    this link. "Also reached by" lists only the move orders across turns, as design 32 says.
+  - **"Back to the main line" is in the step bar,** beside "Open in Analysis", on every width. On a phone the bar is
+    fixed to the window's foot, so the way back is in view whenever the board is. There the two take their short
+    words ("Main line", "Analysis"), so that the bar keeps two rows. Their full words stay their names.
+  - **While the start's part loads,** the page shows the board's skeleton until the engine's rules are ready, as the
+    Analysis board does. Then the board shows at once, and the table says "Loading the book…" (item 11) until the
+    start's part loads. The first view's box says "Loading the book…" until the main line's parts load, and the main
+    line then comes into the move list. A book that does not load leaves the board without a main line, with the
+    table's "Try again".
+- **The build:** Openings, its header tab and "Study in Openings" are in the early edition, and only in a build that
+  the dev or preview server serves with the test book (`VITE_TEST_BOOK`, set by `vite.config.ts` where
+  `CF_PAGES_BRANCH` is not set). The deploy's builds are early-edition builds too, and they serve no test book, so
+  `VITE_EDITION` alone would have put a page with no book on the live site. A build without the early edition has no
+  `/openings` page and no fourth tab.
+- **The entry points:** "Study in Openings" under the sentence of the book's table, in the review and on the Analysis
+  board, where the path starts at the book's start. "Open in Analysis" in Openings' step bar: the path as a record,
+  at its end, with `via=openings`, which the board counts as neither an import nor a load.
+- **The move list's current item:** the move of the position on screen has `aria-current="location"`, on every board
+  page.
+- **The counts (design 17):** `openings_open` with `openings_from`, `openings_positions` at 5, 10, 25 and 50 positions
+  in a visit, and the features `book shown`, `fold opened` and `back to main line`. The refutations played were
+  counted already (`book refutation played`): design 17 now lists them.
+- **Tests with players are no release gate.** The owner's answer (audit abscls-70t7, 2026-11-04): "no release gate".
+  The five players a task (abscls-tpaj.10) are a first round that finds problems. Design 32, "Consequences", says so.
+- **Tests:** `src/lib/book/tree.test.ts` on both test books (the main line, a book move's line, a trap's refutation,
+  the canonical link, the move orders across turns, a mirror image, the folds' words). `tests/openings.spec.ts` in
+  Chromium, with the engine off but in one test: the fourth tab and the first view, a fold, a trap and its
+  refutation, a move order's link, a mirror image, the way back, "Open in Analysis" and "Study in Openings", the
+  keyboard only, the phone's layout and a tap, and the engine that waits at a book position and starts with
+  "Candidates", on the CPU. `tests/layout.spec.ts` sweeps `/openings` with a fold open, and checks its step bar on a
+  phone.
+- **Not built:** the win chance bar above the board says "not analyzed yet" at a book position while the engine
+  waits: it reads the engine's search only.

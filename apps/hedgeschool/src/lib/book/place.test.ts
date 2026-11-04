@@ -1,5 +1,6 @@
 // Checks the book where the review and the Analysis board show it (place.svelte.ts, design 32, items 3 and 8) on the
-// hand-made cases of the test book: the choice that each page keeps apart, and the table outside the book and back.
+// hand-made cases of the test book: the choice that each page keeps apart, Openings' place, which keeps none, "Study in
+// Openings", and the table outside the book and back.
 // Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -60,6 +61,33 @@ test("outside the book the table shows the candidates, and the choice of Book co
 
   cell.set("path", [START]);
   assert.equal(place.showsBook, true, "the choice of Book comes back");
+});
+
+test("Openings starts on Book and keeps no choice; the review's table gives Study in Openings, and counts the switch", async () => {
+  kept.clear();
+  keepChoice("openings", { show: "candidates" });
+  assert.equal(kept.size, 0, "Openings keeps no choice");
+  assert.deepEqual(keptChoice("openings"), { show: "book" });
+  const used: string[] = [];
+  const openings = new BookPlace(new OpeningBook(CASES, read), "openings", () => [START], () => "edge", { openings: true });
+  await settle();
+  assert.equal(openings.showsBook, true, "the book is always on there");
+  assert.equal(openings.study, null, "no Study in Openings on Openings");
+  const cell = new SvelteMap([["path", [START, "A10-D9*,A10-D10 Q10-T10 r2 0/0 1"]]]);
+  const options = { path: () => ["A10-D9"], used: (name: string) => void used.push(name) };
+  const board = new BookPlace(new OpeningBook(CASES, read), "board", () => cell.get("path")!, () => "edge",
+                              { ...options, openings: true });
+  await settle();
+  assert.equal(board.study, null, "the table shows the candidates");
+  board.show = "book";
+  assert.deepEqual(used, ["book shown"]);
+  assert.equal(board.study, "/openings#record=A10-D9&via=analysis");
+  cell.set("path", ["A10-D10 Q10-T10 r1 0/0 0", "A10-D9*,A10-D10 Q10-T10 r2 0/0 1"]);
+  assert.equal(board.study, null, "a path from another start");
+  const site = new BookPlace(new OpeningBook(CASES, read), "review", () => [START], () => "edge", options);
+  await settle();
+  site.show = "book";
+  assert.equal(site.study, null, "a site without Openings");
 });
 
 test("a position with no notation is outside the book", async () => {

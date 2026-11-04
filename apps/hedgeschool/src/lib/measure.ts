@@ -24,3 +24,5 @@ export const GAME_RANGES = [0, 1, 2, 5, 10, 25];
 export const TAKEBACK_RANGES = [0, 1, 2, 5];
 /** The practice bot's seconds for a turn, on average over a game: under 1, then 1-2, 3-9, 10-29 and 30 or more. */
 export const BOT_SECOND_RANGES = [0, 1, 3, 10, 30];
+/** The positions looked at in a visit to Openings (design 32, item 13): 1-4, 5-9, 10-24, 25-49, 50+. */
+export const POSITION_RANGES = [1, 5, 10, 25, 50];

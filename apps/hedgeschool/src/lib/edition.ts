@@ -1,6 +1,10 @@
 // The site's edition (design 11): the full site, for development, or the early access, which shows the review only.
 // The build sets it: VITE_EDITION=early. The version is the commit the site was built from (vite.config.ts).
 export const EARLY_ACCESS = import.meta.env.VITE_EDITION === "early";
+/** Openings, the opening book's own page (design 32), with its header tab and its entry points: in the early edition,
+ *  and only in a build that a server with the test book serves (vite.config.ts, VITE_TEST_BOOK). The deploy's builds
+ *  leave it out, so the live site has no Openings until the engine's book comes (beads abscls-tpaj.13). */
+export const OPENINGS = EARLY_ACCESS && import.meta.env.VITE_TEST_BOOK === "1";
 export const SITE_NAME = "Hedge School";
 /** The live site's address: the canonical address of every page, wherever the page is served (design 23). */
 export const SITE_ORIGIN = "https://hedgeschool.abstractclass.org";

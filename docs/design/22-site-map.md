@@ -32,7 +32,10 @@ ask where it goes (design 21): with that choice, "import" again names what the p
    | `/analysis#position=<position>` | a set-up start, from the board editor or another site; with `record=`, the record's start |
    | `/analysis#packed=<code>` | a shared analysis, or an analysis file loaded |
    | `…&at=<n>` | the position the board opens at: n edges from the start |
-   | `…&via=<source>` | the way in that this site's own page names, for the analytics only: a pasted record, a tool's game, an analysis file, the board editor (design 17) |
+   | `…&via=<source>` | the way in that this site's own page names, for the analytics only: a pasted record, a tool's game, an analysis file, the board editor, Openings (design 17) |
+   | `/openings` | Openings, the opening book's page (design 32): its board kept in this browser, at its last position |
+   | `/openings#record=<record>` | a line from the start in the book's tree, at its end: "Study in Openings" in the review and on the Analysis board |
+   | `…&at=<n>` | Openings' position: n edges from the start |
    | `/editor` | the board editor, at the position it was left at |
    | `/editor#position=<position>` | the board editor at a position: the Analysis board's position on screen |
    | `/practice#record=<record>` | a game against the bot after the record's moves: the Analysis board's Play (design 24) |
@@ -66,8 +69,10 @@ ask where it goes (design 21): with that choice, "import" again names what the p
      count on `/review` stops (exploration 6, the tab **Old tools**, by page). A record on `/review` (`record=`, or a
      bare one) gets the Review tab, and the analytics wait while it stays in the address.
 5. **The pages:**
-   - **The header:** Practice, Review, Analysis (later Puzzles, Learn), then Tools, The notation, About and "Support
-     us". Practice
+   - **The header:** Practice, Review, Analysis, Openings (later Puzzles, Learn), then Tools, The notation, About and
+     "Support us". Openings, the opening book's page (design 32), shows only in a build that serves the test book
+     (`OPENINGS` in `src/lib/edition.ts`), until the engine's book comes. With it, the links and "Support Us" still
+     fit one row from 1,024 pixels, which the layout test checks. Practice
      comes first, as play comes first on Lichess: a game against the bot is the quickest way to begin. Tools is
      in the header because a player of meaf.us or strategyjam.org comes back to it for the bookmarklet or the
      userscript. It shows from a tablet's width: the tools are for a computer's browser. On a phone, the footer and
@@ -130,6 +135,8 @@ ask where it goes (design 21): with that choice, "import" again names what the p
    - **The Analysis tab** (`/analysis`): the board, with its New menu (the standard start, the board editor, Import:
      a position or moves pasted, Load: an analysis file) and its Export.
    - **The board editor** (`/editor`): sets up a position for the board (design 21).
+   - **Openings** (`/openings`): the opening book on a board of its own, with the Analysis board's layout and controls
+     (design 32). Its "Open in Analysis" sends the line on screen to the Analysis board (`via=openings`).
    - **Two words for bringing a game in, one for each act, on every page:**
      - **Import:** a game from outside Hedge School, its moves alone: a pasted record, Constellation's export, another
        site's record link, the tools for meaf.us and strategyjam.org. Hedge School then does the work. An import goes

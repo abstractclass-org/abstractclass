@@ -52,10 +52,15 @@
     /** Under the table, where the position has book moves: the sentence of the book move pointed at or focused, or of
      *  the best move (null). */
     sentence?: Snippet<[BookRow | null, BookPosition]>;
+    /** The page's own lines under the title row, at a book position while the table shows the book: Openings' box of
+     *  the main line and its other move orders (design 32, item 5). */
+    lead?: Snippet<[BookPosition]>;
+    /** The page's own line after the sentence, where the table shows the book: "Study in Openings" (design 32, item 2). */
+    footer?: Snippet;
   }
   let {
     at, source, rows, byTurn = false, more = $bindable(false), show = $bindable(), pointed = $bindable(), onplay,
-    onretry, candidates, sentence,
+    onretry, candidates, sentence, lead, footer,
   }: Props = $props();
 
   const position = $derived(at.state === "in" ? at.position : null);
@@ -167,6 +172,7 @@
     <p class="mt-0.5 mb-1.5 text-xs text-muted">
       {positionTitle(position)} · <BookSymbol {symbol} /> · {@render winChance(position.value.blueWin, position.value, `${side} `)}
     </p>
+    {@render lead?.(position)}
   {/if}
 
   {#if !showsBook}
@@ -209,6 +215,7 @@
       </table>
     </div>
     {#if sentence && position.moves.length}<div class="mt-1.5">{@render sentence(sentenceRow, position)}</div>{/if}
+    {@render footer?.()}
   {/if}
   <p class="sr-only" aria-live="polite" bind:this={live}></p>
 </section>

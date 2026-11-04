@@ -13,6 +13,8 @@ export const keptNode = (key: string, order: number, judged?: unknown): KeptNode
  *  line. One board in each browser, under BOARD_ID in the `branches` store. */
 export interface KeptBoard { version: 2; nodes: KeptNode[]; main: string[]; start?: string } // start: a set-up position (design 21)
 export const BOARD_ID = "board";
+/** Hedge School's Openings (its design 32): a board of its own, with the Analysis board's form, kept apart from it. */
+export const OPENINGS_ID = "openings";
 /** A board of one line, its moves by the tree's names: a node for each of its positions, as a link packs every node
  *  with its parent, from the start or from a set-up start (design 21). */
 export const boardOfLine = (main: string[], start?: string): KeptBoard =>

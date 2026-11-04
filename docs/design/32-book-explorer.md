@@ -3,8 +3,8 @@
 **Status:** in force. The book file's form, its loader, a test book ("The book file"), the sentences (item 6) and the
 book's table ("The table") are built. The review and the Analysis board show the table ("Where the pages show it").
 The review's own parts (item 4) are built: the Report's rows, the move list's mark and the book's values at a book
-position ("The review"). Openings is not built. The work uses the test book, and it goes live with the engine
-repository's book (request 22).
+position ("The review"). Openings is built ("Openings"). The work uses the test book, and it goes live with the
+engine repository's book (request 22).
 **Decided:** 2026-10-24, from user stories and journeys, Lichess's opening explorer, KataGo's book pages and OGS's
 Joseki Explorer.
 
@@ -206,8 +206,8 @@ explorers that people use in chess and Go is [../research/03-opening-explorers.m
    switch and no line about the book. Most positions of a review are outside the book, so the book takes no room
    there. The table comes back at the next book position, with the player's choice. The move list's mark and the
    Report's opening row show where the game left the book. On Openings too, the column outside the book shows the
-   candidates, and the path in the move list leads back (item 5). "Study in Openings" gets its place in the review
-   and on the Analysis board when Openings is built.
+   candidates, and the path in the move list leads back (item 5). "Study in Openings" is under the sentence of the
+   book's table, in the review and on the Analysis board.
 9. **Keys and assistive technology:**
    - The arrow keys step, as in the review. The key o turns the book on and off, as t shows the area map and x the
      threat. "Keys and clicks" lists it.
@@ -352,8 +352,8 @@ explorers that people use in chess and Go is [../research/03-opening-explorers.m
   lesson's end), the refutations played, and the positions looked at in a visit, as a range.
 - **The review's Report** gets one or two rows, and its move list one mark.
 - **Tests with players:** five players for each task of the structure's test plan
-  ([sitemap-book-explorer.md](../ux/book-explorer/sitemap-book-explorer.md), "IA test plan"), before the first version
-  ships.
+  ([sitemap-book-explorer.md](../ux/book-explorer/sitemap-book-explorer.md), "IA test plan"). They are a first round
+  that finds problems, not a release gate: the first version can ship before them.
 
 ## The book file
 
@@ -488,7 +488,7 @@ its own choice of "Book" or "Candidates", handles the key o, and plays the moves
 - **The state at a position** (`lookup.svelte.ts`): loading, in the book, outside it, or failed until "Try again".
 - **The lab page** `/lab/book-table` shows the board and the table on the test book. It has no engine: it draws the
   book's positions from their notation, with no regions. It has no display settings, so its rows are single edges.
-  Openings, when it is built, follows its own "Review by", as the Analysis board does.
+  Openings follows its own "Review by", as the Analysis board does.
 
 ### Where the pages show it
 
@@ -660,6 +660,60 @@ edges).
   `packages/analysis/src/labels.ts`), as the book's rule does, so that a floating-point error does not put it in the
   next band. Without the rounding, one book move of the test book went to the next band.
 
+## Openings
+
+Openings (item 5) is `apps/hedgeschool/src/routes/openings/+page.svelte`. It shows ReviewView in its board form, as the
+Analysis board does, with a board of its own (`OPENINGS_ID` in `packages/analysis/src/kept.ts`), kept in the browser.
+
+- **Where it is built:** in the early edition, and only in a build that the dev or preview server serves with the test
+  book (`OPENINGS` in `apps/hedgeschool/src/lib/edition.ts`, `VITE_TEST_BOOK` in `vite.config.ts`). The deploy's
+  builds serve no test book, so they leave Openings, its header tab and "Study in Openings" out. A build without the
+  early edition has none of them.
+- **The table** is `OpeningsBookTable.svelte` on `OpeningsPlace` (`openings.svelte.ts`): the review's table, which
+  starts on "Book" at each visit, with Openings' own lines under its title row. At the start, the first view's box
+  gives the main line, one turn a line, with its sentence (`mainLine`). "Also reached by" lists the move orders across
+  turns, each a link to its line.
+- **The engine waits** while the table shows the book at a book position: the page gives the engine session its
+  settings with the engine off there, and the engine header says "The engine waits at a book position. To search,
+  select Candidates." The board takes the book's area map of each book position (`GameAnalysis.maps`), so the map
+  shows while the engine waits. It takes no other book value: the moves evaluated are searched, as on the Analysis
+  board.
+- **The tree** is `apps/hedgeschool/src/lib/book/tree.ts`, and the move list folds it (`MoveFold` in ReviewView):
+  - **The main line** is the book's main line from the start (`mainLine`). The page makes it the board's main line at
+    each visit, and the menu has no "Make main line".
+  - **A fold** at a position holds its book moves but the one that the move list shows after it (`folded`). Its button
+    says how many it holds and the move that they replace ("2 other book moves instead of A10-D9", `foldText`), and
+    whether it is open (`aria-expanded`). Under the game's line it comes in the band under the turn, before the
+    position's variations. In a variation it comes under the row that holds the position. A fold opens for the visit
+    only: the next visit opens with every fold closed. The path to the position on screen is always open.
+  - **A book move's line** (`bookLine`): the move, a trap's refutation, then the best book move at each position to the
+    end of the move's main line. An open fold adds the line of each move that it holds, and a book move played adds
+    its own line.
+  - **The canonical parent** (`canonical`): a line stops after a move that reaches a position by another way than its
+    first parent. The move then ends with a link to the canonical line, where the book goes on from there
+    (`continues`): "Continues in the main line, 2. N11-Q10 L10-N11", or "Continues in 2. N11-Q10 O11-Q10". It names
+    the canonical line's last turn. A turn's two edges in the other order end so.
+  - **Mirror images:** the lines come from the loader's positions, so a line through a mirror image stays in the
+    player's orientation. After A10-D11, the image of A10-D9, the main line comes as N9-Q10 L10-N9.
+- **The way back:** a click on a move of the path, the step bar's first step, and "Back to the main line" in the step
+  bar: the main line after as many edges as the position on screen, or its end. On a phone the step bar is fixed to
+  the window's foot (design 06), so the way back is in view whenever the board is. There "Back to the main line" and
+  "Open in Analysis" show their short words, "Main line" and "Analysis", and keep their full words as their names.
+- **The addresses** (design 22): `/openings` opens the kept board at the position where the last visit ended.
+  `#record=<record>` opens a line from the start at its end, and `&at=<n>` after n of its edges. `&via=` names the
+  page that sent it, for the analytics (design 17). "Study in Openings" in the review's and the Analysis board's
+  table sends the path to the position on screen, where the path starts at the book's start. "Open in Analysis" sends
+  the path to the Analysis board as a record, at its end.
+- **While the book loads:** the page shows the board's skeleton until the engine's rules are ready. Then the board
+  shows, and the table says "Loading the book…" until the start's part loads. The first view's box says so too until
+  the main line's parts load. A book that does not load leaves the board without a main line, with the table's "Try
+  again".
+- **The counts** (item 13, design 17): `openings_open` with where the visit came from, `openings_positions` as the
+  positions looked at in a visit reach each range, and the features `book shown`, `book refutation played`, `fold
+  opened` and `back to main line`.
+- **Not built:** the win chance bar above the board reads the engine's search only, so it says "not analyzed yet" at a
+  book position while the engine waits.
+
 ## Where it is
 
 The book file's form, its loader and their unit tests are in `apps/hedgeschool/src/lib/book/`, the script that makes
@@ -669,7 +723,9 @@ the test book in `apps/hedgeschool/scripts/test-book.mjs`, and the test book in
 too, with its lab page in `apps/hedgeschool/src/routes/lab/book-table/` ("The table"). The review and the Analysis
 board show it through `place.svelte.ts` ("Where the pages show it"). The book's values in the review are in
 `apps/hedgeschool/src/lib/book/results.ts`, `reviewBook.ts` and `GameAnalysis.useBook` ("A book position's
-values"). Openings is not built. The design's files are in [../ux/book-explorer/](../ux/book-explorer/):
+values"). Openings is in `apps/hedgeschool/src/routes/openings/`, with its tree in
+`apps/hedgeschool/src/lib/book/tree.ts` and its table in `OpeningsBookTable.svelte` and `openings.svelte.ts`
+("Openings"). The design's files are in [../ux/book-explorer/](../ux/book-explorer/):
 `context-book-explorer.md`, `stories-book-explorer.md`, `journey-book-explorer.md` and its diagram,
 `sitemap-book-explorer.md` and its diagram, `wireframes-book-explorer.html`, `evaluation-book-explorer.md` and
 `decisions.md`. The prototypes' code is on the branches abscls-tpaj.1, abscls-tpaj.2
@@ -690,3 +746,4 @@ and abscls-tpaj.3, never merged.
   move" (2026-10-27), replaced by the next entry.
 - [decisions/product.md](../decisions/product.md), "A book move takes the book's label and loss: the review takes a
   book position's values from the book" (2026-10-30).
+- [decisions/product.md](../decisions/product.md), "Openings, the book's own page, on the test book" (2026-11-04).

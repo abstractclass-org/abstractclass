@@ -99,9 +99,10 @@
   interface Opening { board: KeptBoard | null; at?: string[]; atMain?: number; imported?: ImportSource; loaded?: LoadSource }
   // The ways in that this site's own pages name in the address (`via`): a pasted record, Constellation export or
   // position, and a tool's game that the player chose to analyze (Arrival), which are imports (sources.ts), an
-  // analysis file (a load), and the board editor's position and the New menu's standard start (neither: the site's own,
-  // design 17). Without one, `record=` and `position=` are another site's link, and `packed=` a shared analysis.
-  const OWN: string[] = ["editor", "new", "practice", "your_games"];
+  // analysis file (a load), and the board editor's position, the New menu's standard start and Openings' "Open in
+  // Analysis" (neither: the site's own, design 17). Without one, `record=` and `position=` are another site's link, and
+  // `packed=` a shared analysis.
+  const OWN: string[] = ["editor", "new", "openings", "practice", "your_games"];
   /** The analysis to open: one imported after the `#`, else the one kept in this browser. An imported one replaces the
    *  kept one, after the player agrees when the kept one has moves. It leaves the address at once, then the analytics
    *  start (design 22), and a reload keeps the analysis's own state. */

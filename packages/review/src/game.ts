@@ -229,8 +229,10 @@ export interface BookOpening { at: number; bookMoves: BookMoveMark[]; traps: unk
 export interface BookJudgment { label: Label; loss: number }
 export interface BookParts<G extends ViewTypes> {
   /** The book's place on a page, from the notation of each position on the path, and "Review by" (`unit`), which its
-   *  rows follow. Null where the site has no book. */
-  place(page: "review" | "board", notations: () => (string | undefined)[], unit: () => Unit): G["book"] | null;
+   *  rows follow. `more`: the path's moves by their names, and the page's count of a feature's first use (design 17).
+   *  Null where the site has no book. */
+  place(page: "review" | "board", notations: () => (string | undefined)[], unit: () => Unit,
+        more?: { path: () => string[]; used: (name: string) => void }): G["book"] | null;
   notation(position: G["position"]): string | undefined; // the position's notation, by which the book finds it
   /** The game's opening, once every part of the book that the game's positions need has loaded. */
   opening(notations: (string | undefined)[], moves: string[]): BookOpening | null;

@@ -13,9 +13,10 @@
 // monospaced font draws no ligatures, on Hedge School and on Cyanotype (CYANOTYPE_BASE_URL). Two check Cyanotype's
 // Practice (CYANOTYPE_BASE_URL): its page, and a game in progress when the site has its practice bot. Two check
 // Cyanotype's import page: the choice for a tool's game, and a record that the engine refuses. One checks Cyanotype's
-// board with the player's notes, at design 06's sizes. A last test checks the
-// step bar on a phone, on the review, the Analysis board and Practice. Run: npm run test:layout (the site running
-// first).
+// board with the player's notes, at design 06's sizes. One checks Openings (design 32) on the test book, with its
+// first view's box and the book's table, where the build has it (edition.ts, OPENINGS). Every page's sweep checks the
+// header in one row, with Openings' fourth tab where the build has it. A last test checks the step bar on a phone, on
+// the review, the Analysis board, Openings and Practice. Run: npm run test:layout (the site running first).
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { loadReviewFile } from "./review-file.ts";
@@ -359,6 +360,24 @@ function bookTableProblems(page: Page) {
   });
 }
 
+// Openings (design 32, items 5 and 10): its first view at the start, with the main line's box and the book's table,
+// and a fold of the move list open. Only where the build has Openings, which the test book's servers serve.
+test("layout of /openings", async ({ page }) => {
+  const served = await page.request.get("/test-book/prototype/index.json");
+  test.skip(!served.ok() || !(served.headers()["content-type"] ?? "").includes("json"), "the site serves no test book");
+  await page.addInitScript(() => {
+    localStorage.setItem("hedge-school:consent:2", JSON.stringify({ analytics: "denied", games: "denied" }));
+    localStorage.setItem("learn-enclosure:engine:2", JSON.stringify({ on: false }));
+  });
+  await page.goto("/about");
+  test.skip(!(await page.locator('header a[href="/openings"]').count()), "a build without Openings");
+  await page.goto("/openings");
+  await expect(page.getByRole("region", { name: "The main line" }).locator("p")).toHaveCount(3, { timeout: 60_000 });
+  await page.locator("button[aria-expanded]", { hasText: "instead of A10-D9" }).click();
+  await expect(page.locator('button[aria-expanded="true"]')).toHaveCount(1);
+  expect(await sweep(page, "/openings")).toBe("");
+});
+
 /** Opens Practice in a game in progress, kept in this browser (hedgefund.ts, KeptPractice): the fixture's first 20
  *  edges, the player to move next, so that the bot does not search. */
 async function practiceGame(page: Page) {
@@ -405,7 +424,7 @@ function stepBarProblems(page: Page) {
 }
 
 // The step bar on a phone (design 06, item 4): on a touch screen of 360 × 640, the bar is fixed to the window's foot,
-// on the review, the Analysis board and Practice. The visitor has answered the consent notice, which covers the bar
+// on the review, the Analysis board, Openings (where the build has it) and Practice. The visitor has answered the consent notice, which covers the bar
 // until they choose: a build that stores practice games, as CI's, asks for it.
 test("the step bar on a phone", async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 360, height: 640 }, isMobile: true, hasTouch: true });
@@ -420,6 +439,12 @@ test("the step bar on a phone", async ({ browser }) => {
   await page.goto("/analysis#" + new URLSearchParams({ record }));
   await expect(page.locator(".mv").first()).toBeVisible({ timeout: 60_000 });
   for (const problem of await stepBarProblems(page)) found.push(`/analysis: ${problem}`);
+  // Openings, where the build has it (design 32, item 10)
+  if (await page.locator('header a[href="/openings"]').count()) {
+    await page.goto("/openings#" + new URLSearchParams({ record: "D10-G9 N11-Q10" }));
+    await expect(page.locator('button.mv[aria-current="location"]')).toHaveAttribute("data-path", "D10-G9 N11-Q10", { timeout: 60_000 });
+    for (const problem of await stepBarProblems(page)) found.push(`/openings: ${problem}`);
+  }
   await practiceGame(page);
   for (const problem of await stepBarProblems(page)) found.push(`/practice: ${problem}`);
   await context.close();

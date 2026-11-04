@@ -29,7 +29,7 @@
 import { toAnalysis } from "./reply.ts";
 import { positionQuery } from "@abstractclass/engine/protocol.ts";
 import { errorText } from "@abstractclass/engine/errors.ts";
-import { BOARD_ID, branchNodes, keptNode, type KeptNode, type KeptBoard, type KeptBranches } from "./kept.ts";
+import { BOARD_ID, OPENINGS_ID, branchNodes, keptNode, type KeptNode, type KeptBoard, type KeptBranches } from "./kept.ts";
 import type { Game, GameTypes, Player } from "./game.ts";
 import { deepEnough, earlierIndex, equalDepth, keepsGain, moverScore, moverWin, onlyMove, otherCandidate, sameMove, secondChoice, type Analysis,
          type Candidate, type GameEnding, type ReviewData } from "./model.ts";
@@ -167,6 +167,9 @@ export class GameAnalysis<G extends GameTypes> {
   private readonly id: string; // the game's id in the site's store, under which its variations are kept, or the board's
   private nextOrder = 0;
   readonly board: boolean; // the Analysis board's form (design 21)
+  /** The board's own maps, ahead of a search's: Hedge School's Openings gives the opening book's area map of each
+   *  position that the book holds (its design 32), where the engine waits. The board takes no other book value. */
+  maps: ((path: string[]) => number[] | undefined) | null = null;
   readonly startPosition: string | null; // the board's set-up start, in the notation: the standard start when null
   // The board's main-line moves that the player asked to evaluate, by path key: only these have labels. A variation node
   // keeps its own flag (judged).
@@ -178,13 +181,14 @@ export class GameAnalysis<G extends GameTypes> {
   private batchTimer?: ReturnType<typeof setTimeout>;
 
   /** The analysis of the moves `moves` of `game`, from `startPosition` (the board's set-up start), whose tree is kept
-   *  under `id`: the game's id (the site's store), or BOARD_ID for the Analysis board, which takes the board's form. */
+   *  under `id`: the game's id (the site's store), or BOARD_ID for the Analysis board, which takes the board's form, as
+   *  OPENINGS_ID does for Hedge School's Openings, a board of its own. */
   constructor(game: Game<G>, pool: EnginePool, moves: string[], id: string, startPosition: string | null = null) {
     this.game = game;
     this.pool = pool;
     this.moves = moves;
     this.id = id;
-    this.board = id === BOARD_ID;
+    this.board = id === BOARD_ID || id === OPENINGS_ID;
     this.startPosition = startPosition;
     this.analysis = Array(moves.length + 1).fill(undefined);
   }
@@ -952,7 +956,7 @@ export class GameAnalysis<G extends GameTypes> {
   /** A position's map (Hedge School's design 30): the book's where the review takes the book's values (useBook), else
    *  its result's ownership, or else the map added to it (askOwnership). */
   mapAt(path: string[]): number[] | undefined {
-    return this.bookAt(path)?.ownership ?? this.analysisOf(path)?.ownership ?? this.ownership[pathKey(path)];
+    return this.bookAt(path)?.ownership ?? this.maps?.(path) ?? this.analysisOf(path)?.ownership ?? this.ownership[pathKey(path)];
   }
   /** Whether a position gets no map: the game ends there, so the engine does not search it. A position of the tree
    *  says so itself (searchable). A position of a line says so when the engine refuses its search. */

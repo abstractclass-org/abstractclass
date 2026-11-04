@@ -68,13 +68,15 @@ The events use the site's words (design 22), each for one thing:
 | `game_missing` | a review's address in a browser without the game | none | whether players send review addresses, which do not work in another browser |
 | `review_open` | the review starts, with the engine loaded, or a review snapshot opens (design 20) | `network`, `depth`, `depth_on_screen`, `time_limit`, `workers`, `gpu_mode`, `cores`, `edges`, `own_settings`, `done_before`, `practice_game` (a game against the practice bot) | the funnel's second step, and the settings in use |
 | `analysis_open` | the Analysis board opens, with the engine's rules (design 21). A line brought with it is an `import_game` or a `load_saved` too | `edges` (the main line's) | how many players use the board |
+| `openings_open` | Openings opens (design 32), with the engine's rules | `openings_from` (page: its own address, from the header's tab or a bookmark; review, analysis: "Study in Openings" in the book's table there; link: another link with a record) | how many players study the book, and from where: whether the table's way in is used, and the first view is worth its work |
+| `openings_positions` | in a visit to Openings, the positions looked at reach 5, 10, 25 or 50: one event at each | `positions` (5-9, 10-24, 25-49, 50+) | whether players study past the first view, and so which part of Openings to improve first: the first view's box, or the tree |
 | `editor_open` | the board editor opens (design 21) | none | whether players set up positions |
 | `editor_analyze` | the board editor's Analyze: a position that a game can reach goes to the Analysis board | none | whether an editor's position reaches the board |
 | `review_done` | the review ends, in this visit (a review that opened done, `done_before`, sends none) | as `review_open`, and `review_seconds` (a number), `minutes`, `worker_speed` (a CPU worker's visits a second, by 5), `gpu_used` | the engine's defaults: how long a review takes on real machines, by settings and cores |
 | `gpu_test` | Auto's first test of a GPU | `gpu_outcome` (faster, slower), `gpu_ratio` (the GPU's speed over a worker's), `gpu` (maker and kind, as WebGPU gives them), `network` | the GPU's default, and whether it pays off on laptops and phones |
 | `engine_error` | the engine fails | `error_kind` (load, rules, gpu, practice: the bot failed to start, or stopped) | reliability |
 | `setting_change` | an engine setting changes | `setting`, `setting_value`, `setting_scope` (browser, game) | whether the defaults fit |
-| `feature` | a feature's first use in a review, or on the Analysis board in a visit | `feature_name` (the feature, below) | what to keep, to improve, or to explain |
+| `feature` | a feature's first use in a review, or on the Analysis board or in Openings in a visit | `feature_name` (the feature, below) | what to keep, to improve, or to explain |
 | `export` | an export, from the review or the Analysis board (the page's address tells which) | `export_kind` (share_link, review_file, analysis_file, record_copy, record_file, partner_save: the review file saved to a partner site, design 18), `link_length`, `link_too_long` | whether players share, and whether links fit a Discord message |
 | `game_delete`, `game_delete_cancel` | a game deleted after its question (design 11), or the question answered with Cancel, Escape or a click outside it. A click outside or on Cancel within 500 ms of the question's opening, the second click of a double click, counts as neither | none | how often players delete games, and how often the question stops a delete |
 | `practice_start` | a practice game starts (design 24), once the bot has the game: a new one, one from the Analysis board's Play, or one kept from an earlier visit | `practice_from` (new, analysis_board, set_up_start: the Analysis board's Play from a set-up start, resumed), `network`, `bot_visits`, `bot_variety` (low, medium, high), `practice_side` (blue, red), `bot_form` (gpu, cpu, single), `cores` | which settings players choose: the defaults, then the levels; and whether the bot starts on their machines, in which form |
@@ -101,6 +103,9 @@ The features, by their `feature_name` (`ReviewView.svelte`, `used`). Each counts
 | `chart jump` | a click on the Advantage or the Difficulty chart, to go to a position |
 | `chart advantage`, `chart difficulty` | the chart's tab chosen |
 | `book opening row`, `book trap row` | a click on the Report's opening row or on a trap's row, which goes to the position and turns the book on (design 32, item 4) |
+| `book shown` | the book's table turned on by its switch or the key o, in the review or on the Analysis board: where the book opens (design 32, item 3) |
+| `book move played`, `book refutation played` | a row of the book's table played, or a trap with its refutation ("Play the refutation"): in the review, on the Analysis board and in Openings |
+| `fold opened`, `back to main line` | in Openings, a fold of the move list's book tree opened, or "Back to the main line" (design 32, item 5) |
 | `snapshot opened` | a review by an earlier engine opened as it was (design 20) |
 | `review again` | Review again chosen on a review snapshot |
 | `display` and a setting | a display setting changed, by its name in `src/lib/review/display.ts`: `display judge`, `display reviewFor`, `display win`, `display layers`, `display scoreLine`, `display areaLine`, `display lineSteps`, `display branchForm`, `display marks`, `display bookMoves`, `display notes`, `display previewMoves`, `display previewBranches`, `display sound`, `display moveSound`, `display volume` |
@@ -124,7 +129,7 @@ setup needs the Editor role on the site's property.
 **Before you start:** go to [analytics.google.com](https://analytics.google.com). Select the site's property in the
 selector at the top left. Click **Admin**, the gear at the bottom left.
 
-#### 1. The custom dimensions (41 rows of the table below)
+#### 1. The custom dimensions (43 rows of the table below)
 
 1. In Admin, under **Data display**, click **Custom definitions**.
 2. On the **Custom dimensions** tab, click **Create custom dimension**.
@@ -181,9 +186,11 @@ selector at the top left. Click **Admin**, the gear at the bottom left.
 | `practice_takebacks` | Practice takebacks | Event | a practice game's takebacks, as a range |
 | `bot_seconds` | Bot seconds | Event | the practice bot's average seconds a turn in a game, as a range |
 | `practice_game` | Practice game | Event | the review is of a game against the practice bot |
+| `openings_from` | Openings from | Event | how a visit to Openings came: page, review, analysis, link |
+| `positions` | Positions looked at | Event | the positions looked at in a visit to Openings, as a range |
 | `games_stored` | Games stored | **User** | the games that the browser keeps, as a range |
 
-The property can have 50 event-scoped and 25 user-scoped custom dimensions. These take 41 and 1.
+The property can have 50 event-scoped and 25 user-scoped custom dimensions. These take 43 and 1.
 
 **No parameter is named `source`, `medium` or `campaign`.** Google Analytics keeps a visit's traffic source in event
 parameters of those names, so it reads the site's own parameter as the session's source. With the import's way in
@@ -517,7 +524,9 @@ shows few rows. Read it as section "Reading it" says.
 - The events: `packages/import/src/importEvents.ts` (the imports and loads), with Hedge School's sources in
   `src/lib/game/sources.ts`, `src/lib/review/ReviewHome.svelte` (the Review tab's imports and loads, deletes,
   `games_stored`), `src/lib/review/Arrival.svelte` (the tools' imports, the share links' and partners' loads),
-  `src/routes/analysis/+page.svelte` (the board's imports and loads, `analysis_open`), `src/routes/review/+page.svelte`
+  `src/routes/analysis/+page.svelte` (the board's imports and loads, `analysis_open`),
+  `src/routes/openings/+page.svelte` (`openings_open`, `openings_positions`, Openings' features),
+  `src/lib/book/place.svelte.ts` (`book shown`), `src/routes/review/+page.svelte`
   (the review's events, settings, features, `game_missing`, the address), `packages/review/src/ReviewView.svelte`
   (`onfeature`), `src/lib/ExportMenu.svelte` (`export`), `packages/analysis/src/gpu.svelte.ts` (`gpu_test`, the GPU's
   failure), `workerSpeed` in `packages/engine/src/pool.ts`, `src/routes/practice/+page.svelte` (Practice's events and
@@ -536,6 +545,8 @@ shows few rows. Read it as section "Reading it" says.
 - [decisions/product.md](../decisions/product.md): "A question before the practice games' delete, and the cancelled
   deletes counted" (2026-10-17).
 - [decisions/product.md](../decisions/product.md): "The owner's visits marked as internal traffic" (2026-10-17).
+- [decisions/product.md](../decisions/product.md): "Openings, the book's own page, on the test book" (2026-11-04): the
+  book's counts.
 - [decisions/product.md](../decisions/product.md): "The review's custom depth up to 16,384 visits" (2026-10-18): the
   review's minutes past 60 in three ranges.
 - [decisions/product.md](../decisions/product.md): "The Privacy page says what goes where, in less detail"

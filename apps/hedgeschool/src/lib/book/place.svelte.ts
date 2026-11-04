@@ -8,6 +8,10 @@
 // The site serves the test book until the engine repository's book comes (beads abscls-tpaj.13). The dev and preview
 // servers serve it, and no build holds it (vite.config.ts, `testBook`): where its index does not load, the analysis
 // column stays as it was, with no switch (`ready`).
+//
+// Openings (design 32, item 5) has a place of its own: the book is always on there, so its switch starts on "Book" at
+// each visit, and the browser keeps no choice for it. The review and the Analysis board give "Study in Openings" in the
+// table (`study`), where the site has Openings (edition.ts, OPENINGS, which the page gives: PlaceOptions `openings`).
 import type { Unit } from "@abstractclass/analysis/model.ts";
 import { readLocalJson, writeLocal } from "@abstractclass/storage/local.ts";
 import { parseEdge } from "#lib/engine/notation.ts";
@@ -23,17 +27,23 @@ export function siteBook(): OpeningBook | null {
   return (shared ??= new OpeningBook(BOOK_URL));
 }
 
-/** The pages that show the book in their analysis column, each with its own kept choice. */
-export type BookPage = "review" | "board";
+/** The pages that show the book in their analysis column, each with its own choice. */
+export type BookPage = "review" | "board" | "openings";
+/** What a page gives its place besides the positions: the path's edges from the start, for "Study in Openings", and
+ *  the page's count of a feature's first use (design 17). */
+export interface PlaceOptions { path?: () => string[]; used?: (name: string) => void; openings?: boolean }
 export interface BookChoice { show: "book" | "candidates" }
 const keyOf = (page: BookPage) => `hedge-school:book-table:${page}:1`;
 
-/** The page's kept choice: "Candidates" by default (design 32, item 3). */
+/** The page's kept choice: "Candidates" by default (design 32, item 3). Openings: "Book", never kept. */
 export function keptChoice(page: BookPage): BookChoice {
+  if (page === "openings") return { show: "book" };
   const kept = readLocalJson<Partial<BookChoice>>(keyOf(page));
   return { show: kept?.show === "book" ? "book" : "candidates" };
 }
-export const keepChoice = (page: BookPage, choice: BookChoice) => writeLocal(keyOf(page), JSON.stringify(choice));
+export const keepChoice = (page: BookPage, choice: BookChoice) => {
+  if (page !== "openings") writeLocal(keyOf(page), JSON.stringify(choice));
+};
 
 export class BookPlace {
   readonly book: OpeningBook;
@@ -42,6 +52,9 @@ export class BookPlace {
   // here only let TypeScript see the fields set before those values' initializers.
   #path: () => (string | undefined)[] = () => [];
   #unit: () => Unit = () => "edge";
+  #edges: () => string[] = () => [];
+  #used: (name: string) => void = () => {};
+  #openings = false; // the site has Openings: the table gives "Study in Openings"
   #show = $state<BookChoice["show"]>("candidates");
   /** The row pointed at, by its name (rows.ts, BookRow `move`), in the table or by its number on the board: its row is
    *  lit, and the board draws its line. */
@@ -50,11 +63,15 @@ export class BookPlace {
 
   /** `path`: the notation of each position from the start to the position on screen (undefined where a position has
    *  none). `unit`: the page's "Review by", which the rows follow. */
-  constructor(book: OpeningBook, page: BookPage, path: () => (string | undefined)[], unit: () => Unit) {
+  constructor(book: OpeningBook, page: BookPage, path: () => (string | undefined)[], unit: () => Unit,
+              options: PlaceOptions = {}) {
     this.book = book;
     this.#page = page;
     this.#path = path;
     this.#unit = unit;
+    if (options.path) this.#edges = options.path;
+    if (options.used) this.#used = options.used;
+    this.#openings = !!options.openings;
     this.#show = keptChoice(page).show;
   }
 
@@ -63,7 +80,13 @@ export class BookPlace {
 
   /** The player's choice, which the browser keeps. Outside the book, the table shows the candidates whatever it is. */
   get show() { return this.#show; }
-  set show(v: BookChoice["show"]) { this.#show = v; keepChoice(this.#page, { show: v }); }
+  set show(v: BookChoice["show"]) {
+    // The book turned on by the switch or the key o in the review or on the Analysis board: where the book opens (design
+    // 17, the feature "book shown")
+    if (v === "book" && this.#show !== "book" && this.#page !== "openings") this.#used("book shown");
+    this.#show = v;
+    keepChoice(this.#page, { show: v });
+  }
   /** "Book" for this page only: the review's Report rows and its mark turn the book on for the review on screen (design
    *  32, item 4). Only the switch and the key o change the choice that the browser keeps. */
   showForNow() { this.#show = "book"; }
@@ -114,6 +137,17 @@ export class BookPlace {
     const row = this.showsBook ? this.rows.find(r => r.move === this.pointed) : undefined, book = this.book.book;
     return row && book ? rowLine(book, row).map(parseEdge) : null;
   });
+
+  /** "Study in Openings" (design 32, items 2 and 8): the address of Openings at the position on screen, from the review
+   *  or the Analysis board, while the table shows the book. Its record is the path's edges from the book's start, and
+   *  `via` names the page, for the analytics (design 17, `openings_open`). Null on Openings, where the site has no
+   *  Openings, and where the path starts elsewhere than the book's start (a set-up start). */
+  get study(): string | null {
+    const book = this.book.book, path = this.#path();
+    if (!this.#openings || this.#page === "openings" || !book || path[0] !== book.start || !this.showsBook) return null;
+    const edges = this.#edges();
+    return `/openings#${new URLSearchParams({ ...(edges.length ? { record: edges.join(" ") } : {}), via: this.#page === "board" ? "analysis" : "review" })}`;
+  }
 
   /** The key o: "Book" or "Candidates". Outside the book "Book" is unavailable, so the key does nothing there. */
   toggle() {

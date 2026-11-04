@@ -27,7 +27,21 @@
   export interface ReviewSnapshot { text: string; onagain: () => void }
   /** The Analysis board's form of the view (design 21): its main line's moves evaluated on request, by path key, and
    *  "Make main line". No report, no chart, no progress: the review's columns give way to the board and its moves. */
-  export interface BoardForm { judged: Record<string, true>; onmain: (path: string[]) => void }
+  export interface BoardForm { judged: Record<string, true>; onmain?: (path: string[]) => void } // no onmain: no "Make main line"
+  /** A tree folded around the path (Hedge School's Openings, design 32, item 5): the moves of a fold hang under the move
+   *  before them, folded under a chevron until the player opens it. The path to the position on screen is always open.
+   *  Every path is a position's: the moves from the start. `next` is the move that the list shows after a position
+   *  (none at a line's end): the game's next move on its line, else the position's first variation. */
+  export interface MoveFold {
+    /** The fold at a position: how many moves it holds, its button's words, and whether it is open. Null: none. */
+    at(path: string[], next: string | null): { count: number; text: string; open: boolean } | null;
+    toggle(path: string[], next: string | null): void;
+    /** Whether a closed fold hides this variation move (its path), with its line: `next` as for `at`, of the position
+     *  before the move. */
+    hides(path: string[], next: string | null): boolean;
+    /** A variation move that ends with a link to the line that holds the position's subtree: its words and its path. */
+    link(path: string[]): { text: string; to: string[] } | null;
+  }
   /** The analysis behind the view (GameAnalysis): its variations, an engine error, the position searched for the player,
    *  the rules and the results the view asks for, and the changes of the tree. */
   export interface ReviewGame<G extends GameTypes> {
@@ -168,10 +182,14 @@
     // What the GPU does in this review, and its first download (design 15). None: the site offers no GPU (Cyanotype's
     // engine runs on the CPU only), and the engine settings do not show it.
     gpu?: { status: GpuStatus; downloadMB: string };
+    fold?: MoveFold | null; // the move list's tree folded around the path (Openings)
+    // Why the engine does not search the position on screen, in the engine header's values line, while it has no result
+    // there (Openings: the engine waits at a book position, design 32, item 5)
+    engineNote?: string | null;
   }
   let { view, R, progress = null, game, deepVisits = 0, onposition, onplay, labelVisits = 0, engine, onengine, gpu, reviewVisits = 0,
         deeperPositions = 0, again = null, snapshot = null, board = null, start, tools: pageTools, siteLink = null,
-        ownSettings, onfeature }: Props = $props();
+        ownSettings, onfeature, fold = null, engineNote = null }: Props = $props();
   const branches = $derived(game?.branches ?? {});
   const used = (name: string) => onfeature?.(name);
   const last = $derived(R.data.positions.length - 1);
@@ -300,7 +318,20 @@
   // Derived from the variations' keys in their order: a variation's search result changes neither.
   const branchOrder = $derived(Object.entries(branches).sort((a, b) => a[1].order - b[1].order).map(([k]) => k).join("\n"));
   const kids = $derived(branchChildren(branchOrder ? branchOrder.split("\n").map(k => k.split(" ")) : []));
-  const branchKids = (p: string[]) => kids.get(pathKey(p)) ?? [];
+  const allKids = (p: string[]) => kids.get(pathKey(p)) ?? [];
+  /** The move that the list shows after a position: the game's next move on its line, else its first variation. */
+  function nextOf(p: string[]): string | null {
+    const i = mainIndex(p, mainNames);
+    return (i !== null && i < mainNames.length ? mainNames[i] : allKids(p)[0]?.at(-1)) ?? null;
+  }
+  /** A position's variations that the list shows: with a fold (Openings), those that a closed fold does not hide. A
+   *  position's first variation off the game's line stays, and so does the path to the position on screen. */
+  function branchKids(p: string[]): string[][] {
+    const all = allKids(p);
+    if (!fold) return all;
+    const off = mainIndex(p, mainNames) === null, next = nextOf(p);
+    return all.filter((c, k) => (off && k === 0) || sharedLength(path, c) === c.length || !fold.hides(c, next));
+  }
   function childrenOf(p: string[]): string[][] {
     const i = mainIndex(p, mainNames);
     return [...(i !== null && i < mainNames.length ? [[...p, mainNames[i]]] : []), ...branchKids(p)];
@@ -380,7 +411,10 @@
       .map(p => (p ? view.book?.notation(p) : undefined));
   });
   // The site's book (the game's `book`), on this page: none where the site has none
-  const book = untrack(() => view.book?.place(board ? "board" : "review", () => pathNotations, () => unit)) ?? null;
+  const book = untrack(() => view.book?.place(board ? "board" : "review", () => pathNotations, () => unit,
+                                              { path: () => path, used })) ?? null;
+  /** The book's place on this page, which the view made from the game's `book.place`: Openings reads its own. */
+  export function bookPlace() { return book; }
 
   // The engine's line from the candidate pointed at, on the board or in the table (KaTrain's and Lizzie's way), each
   // edge with its mover. Only for a candidate with enough visits (the board's rule), and only as far as the search
@@ -453,6 +487,13 @@
   }
   let stepping: ReturnType<typeof setInterval> | undefined;
   $effect(() => () => clearInterval(stepping));
+  /** Goes to a line from the start, which the page adds to the tree first where it is not there (`onplay`): Openings'
+   *  links to another line and its "Back to the main line" (design 32, item 5). */
+  export async function visit(target: string[]) {
+    if (onplay && mainIndex(target, mainNames) === null && !(pathKey(target) in branches)) await onplay(target);
+    clearInterval(stepping);
+    setPath(target);
+  }
   /** A row from the book's table or its number on the board: its edge or its turn, or a trap and its refutation
    *  (`refutation`). More than one edge plays edge by edge. */
   function playBook(edges: string[], refutation = false) {
@@ -1128,7 +1169,7 @@
     for (let k = p.length; k > 0; k--) {
       const sub = p.slice(0, k);
       if (!(pathKey(sub) in branches)) return false;
-      if (pathKey(branchKids(sub.slice(0, -1))[0] ?? []) !== pathKey(sub)) return true;
+      if (pathKey(allKids(sub.slice(0, -1))[0] ?? []) !== pathKey(sub)) return true;
     }
     return false;
   }
@@ -1914,12 +1955,19 @@
         ? [partsOf(view.turnShortNote(t, R.data.positions[t.start]))] : [])
         : onceEach(t.edges.filter(e => !!e.label && COMMENTED.includes(e.label) && forSide(e.player)).map(e => partsOf(view.shortNote(e, R.data.positions[e.index]))))}
       {@const groups = turnGroups(t)}
-      {#if notes.length || groups.some(g => g.rows.length)}
+      <!-- With a fold (Openings), each edge's fold of the other moves at the position before it comes before that
+           position's variations. -->
+      {@const folds = t.edges.map(e => fold?.at(mainNames.slice(0, e.index), mainNames[e.index] ?? null) ?? null)}
+      {#if notes.length || groups.some(g => g.rows.length) || folds.some(Boolean)}
         <div class="my-1 py-1 bg-panel-2/50 border-y border-line">
           {#each notes as note (noteText(note))}
             <div class="mb-0.5 px-2 text-sm text-muted truncate" title={noteText(note)}>{#each note as part, k (k)}{#if typeof part === "string"}{part}{:else}<span class={SIDE_TEXT[part.player]}>{@render written(part)}</span>{/if}{/each}</div>
           {/each}
-          {#each groups as g, k (k)}{@render branchGroup(g.rows, g.engine)}{/each}
+          {#each groups as g, k (k)}
+            {@const f = folds[k]}
+            {#if f}{@render foldButton(mainNames.slice(0, t.edges[k].index), f, 0)}{/if}
+            {@render branchGroup(g.rows, g.engine)}
+          {/each}
         </div>
       {/if}
     {/each}
@@ -1929,9 +1977,9 @@
   </ContextMenu.Trigger>
   <ContextMenu.Portal>
     <ContextMenu.Content class="z-10 min-w-48 menu-box">
-      {#if board}
-        {@const form = board}
-        <ContextMenu.Item disabled={!menuPath || !(menuPath in branches)} onSelect={() => { if (menuPath) { used("main line made"); form.onmain(menuPath.split(" ")); } }}
+      {#if board?.onmain}
+        {@const onmain = board.onmain}
+        <ContextMenu.Item disabled={!menuPath || !(menuPath in branches)} onSelect={() => { if (menuPath) { used("main line made"); onmain(menuPath.split(" ")); } }}
                           class={MENU_ITEM}>Make main line</ContextMenu.Item>
       {/if}
       <ContextMenu.Item disabled={!!snapshot || !canPromote(menuBranch)} onSelect={() => { if (menuBranch) { used("branch promoted"); game?.promote(menuBranch.split(" ")); } }}
@@ -2011,7 +2059,7 @@
          and by turn, a slot for a hard position's ◆ (design 14) on every row, marked or not: a mark never moves
          the label or widens the column. The ◆ marks the position before the move (by turn, the turn's harder),
          on the board too, wherever that position has a result: the board's tooltips say where it has none. -->
-    <button {...asMove(e.index)}
+    <button {...asMove(e.index)} aria-current={here === mainKeys[e.index + 1] ? "location" : undefined}
             class={moveButton(e.player, moveState(mainKeys[e.index + 1], MOVE_HOVER))}
             title={tip}>
       <span class={view.moveText}>{@render written(e)}</span>
@@ -2093,7 +2141,8 @@
                ends the turn, as the game's judgement cell. That button acts as the move (asBranch), takes its "here"
                and picked, and is no `.mv`, so the place on screen is one move (keepInView). The pointer on it lights
                the turn's edges in this row with it (lightsTurn), not its own outline. -->
-          <button class={["mv", box, moveState(key, text ? MOVE_HOVER : ROUND_HOVER, hereLook)]} {...asBranch(p)} title={tip}>
+          <button class={["mv", box, moveState(key, text ? MOVE_HOVER : ROUND_HOVER, hereLook)]} {...asBranch(p)} title={tip}
+                  aria-current={here === key ? "location" : undefined}>
             {#if text}{@render written(node.move)}{:else}{@render edgeShape(node.move.edge, node.move.player, positionOf(p.slice(0, -1)))}{/if}
             {#if unit === "edge"}{@render judgement(tip)}{/if}
           </button>
@@ -2104,12 +2153,38 @@
             </button>
             {@render litGroup(key, text ? GROUP_HOVER : ROUND_GROUP)}
           {/if}
+          {@const link = fold?.link(p)}
+          {#if link}
+            <!-- The line ends here: its position's subtree is under another line (Openings, design 32, item 5) -->
+            <button type="button" class="px-[0.2rem] py-px font-sans text-[0.9em] text-accent bg-transparent border-0 underline-offset-2 hover:underline"
+                    onclick={() => visit(link.to)}>{link.text}</button>
+          {/if}
         {:else if engine && step}
           {@render engineEdge(engine, p, step, k)}
         {/if}
       {/each}
     </div>
+    {#if fold}
+      <!-- The folds of the row's positions, under the row: a fold at its last position before that fork's lines -->
+      {#each row.paths as p (pathKey(p))}
+        {@const f = pathKey(p) in branches ? fold.at(p, nextOf(p)) : null}
+        {#if f}{@render foldButton(p, f, row.depth)}{/if}
+      {/each}
+    {/if}
   {/each}
+{/snippet}
+
+<!-- A fold's chevron button (Openings, design 32, items 5 and 9): it says how many moves it holds and whether it is
+     open, down when folded, up when open. Indented as a variation from the position, or at the list's left under a
+     turn of the game's line (`depth` 0). -->
+{#snippet foldButton(p: string[], f: { count: number; text: string; open: boolean }, depth: number)}
+  <button type="button" aria-expanded={f.open} onclick={() => fold?.toggle(p, nextOf(p))}
+          class="flex items-center gap-1 py-0.5 pr-2 font-sans text-sm text-left text-muted bg-transparent border-0 hover:text-ink"
+          style:padding-left={depth ? `calc(${depth + 0.45}rem + 0.65rem)` : "0.5rem"}>
+    <svg class={["flex-none size-[0.9em]", f.open && "rotate-180"]} viewBox="0 0 16 16" aria-hidden="true" fill="none"
+         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4" /></svg>
+    {f.text}
+  </button>
 {/snippet}
 
 <!-- By turn, the group that the pointer on the turn's label `key` lights (lightsTurn), in the pointer's style of the
@@ -2662,7 +2737,7 @@
           · lead {sideText(analysis.lead, 0, "0")}
         {:else if over}
           Final margin <strong class="text-ink">{sideText(position.scores[0] - position.scores[1], 1, "0")}</strong>
-        {:else}Not analyzed yet{/if}
+        {:else}{engineNote ?? "Not analyzed yet"}{/if}
       </p>
       {#if !engineOpen && threatOn}
         <!-- With the threat on, the third row gives what the pass costs, in the units of a move's loss (design 10), or

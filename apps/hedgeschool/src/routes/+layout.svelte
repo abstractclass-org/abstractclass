@@ -3,7 +3,7 @@
 	import favicon from '#lib/assets/favicon.svg';
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
-	import { EARLY_ACCESS, ENGINE_FILES, SITE_NAME, SITE_ORIGIN } from '#lib/edition.ts';
+	import { EARLY_ACCESS, ENGINE_FILES, OPENINGS, SITE_NAME, SITE_ORIGIN } from '#lib/edition.ts';
 	import { ASKS_CONSENT, asksToAllow, consentChosen, startAnalytics, track } from '#lib/analytics.svelte.ts';
 	import { flushPractice } from '#lib/practice/send.ts';
 	import { earlierRemovalDue, removeOlderShapes } from '@abstractclass/analysis/cache.ts';
@@ -21,8 +21,10 @@
 	let { children }: LayoutProps = $props();
 
 	// The site map (docs/research/01-ux-survey.md, section 8). The early access has Practice, the review and the Analysis
-	// board. Practice first, as Lichess's play comes first (design 22). Review opens the Review tab.
-	const NAV = EARLY_ACCESS ? [{ href: '/practice', label: 'Practice' }, { href: '/review', label: 'Review' }, { href: '/analysis', label: 'Analysis' }] : [
+	// board, and Openings after Analysis where the build has it (design 32, edition.ts). Practice first, as Lichess's
+	// play comes first (design 22). Review opens the Review tab.
+	const NAV = EARLY_ACCESS ? [{ href: '/practice', label: 'Practice' }, { href: '/review', label: 'Review' }, { href: '/analysis', label: 'Analysis' },
+		...(OPENINGS ? [{ href: '/openings', label: 'Openings' }] : [])] : [
 		{ href: '/practice', label: 'Practice' },
 		{ href: '/review', label: 'Review' },
 		{ href: '/analysis', label: 'Analysis' },

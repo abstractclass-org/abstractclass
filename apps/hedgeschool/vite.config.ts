@@ -25,6 +25,11 @@ const origin = process.env.SITE_ORIGIN
 // VITE_ variables after it loads this file.
 if (process.env.CF_PAGES_BRANCH === 'partner_test') process.env.VITE_PARTNER_TEST ??= '1';
 
+// The test book's page (design 32, Openings): a build that the dev or preview server serves, with the test book
+// (`testBook`, below), has it in the early edition. The deploy's builds (CF_PAGES_BRANCH set) serve no test book, so
+// they leave Openings out: the live site and the deploy's previews. VITE_TEST_BOOK=0 leaves it out of a local build too.
+if (!process.env.CF_PAGES_BRANCH) process.env.VITE_TEST_BOOK ??= '1';
+
 // The userscript's versions (src/lib/game/tools.ts). For Tampermonkey: the build's time (UTC), which grows with each
 // build, so that Tampermonkey takes each new build as an update. For the import page: a hash of the files that make its
 // code (its frame in packages/import, and Hedge School's page code), so that it tells a player of an out-of-date

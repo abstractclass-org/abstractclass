@@ -11,7 +11,7 @@ import { pointName } from "#lib/engine/notation.ts";
 import { playMove, preload } from "#lib/sound.ts";
 import SoundSettings from "#lib/ui/SoundSettings.svelte";
 import { download } from "#lib/game/reviewFile.ts";
-import { EARLY_ACCESS } from "#lib/edition.ts";
+import { EARLY_ACCESS, OPENINGS } from "#lib/edition.ts";
 import { BookPlace, siteBook } from "#lib/book/place.svelte.ts";
 import { OUT, type BookAt } from "#lib/book/lookup.svelte.ts";
 import { gameOpening, openingRow, trapRows } from "#lib/book/game.ts";
@@ -128,9 +128,9 @@ export const enclosureView: ViewGame<Enclosure> = {
 
   // The opening book (design 32): the test book, in the early edition only (book/place.svelte.ts, siteBook)
   book: EARLY_ACCESS ? {
-    place: (page, notations, unit) => {
+    place: (page, notations, unit, more) => {
       const book = siteBook();
-      return book && new BookPlace(book, page, notations, unit);
+      return book && new BookPlace(book, page, notations, unit, { ...more, openings: OPENINGS });
     },
     notation: p => p.notation,
     opening: (notations, edges) => {
