@@ -417,11 +417,11 @@ build. Then it uploads `build/` with Wrangler: `main` to production, another bra
    `npx wrangler@4.144.0 pages project create cyanotype --production-branch=main --force`. The project's name is
    `cyanotype`. Its address is `https://cyanotype-ztp.pages.dev/`, because `cyanotype.pages.dev` belongs to another
    site.
-2. **Deploy its first files.** Run `npm ci` at the repository's root. Then, in the folder `apps/cyanotype`, run
-   `npm run build`, then `npx wrangler@4.144.0 pages deploy build --project-name=cyanotype --branch=main`. The
-   branch `main` is the production branch, so this deployment is the live site. It stays live until a release puts
-   Cyanotype on `main`. If Wrangler asks you to log in, run `npx wrangler@4.144.0 login` first: a browser tab opens on
-   Cloudflare. Sign in, then select **Allow**.
+2. **Deploy its first files.** If Wrangler is not logged in on this computer, run `npx wrangler@4.144.0 login` first:
+   a browser tab opens on Cloudflare. Sign in, then select **Allow**. Run `npm ci` at the repository's root. Then, in
+   the folder `apps/cyanotype`, run `npm run build`, then
+   `npx wrangler@4.144.0 pages deploy build --project-name=cyanotype --branch=main`. The branch `main` is the
+   production branch, so this deployment is the live site. It stays live until a release puts Cyanotype on `main`.
 3. **Give it the domain.** In the Cloudflare dashboard, go to **Workers & Pages**, select the project
    `cyanotype`, then **Custom domains → Set up a domain**. Enter `cyanotype.abstractclass.org`, then select
    **Continue** and **Activate domain**. The zone is on Cloudflare, so Pages adds the DNS record itself: a CNAME from

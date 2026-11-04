@@ -8014,9 +8014,10 @@ abscls-8tl1.21.
 
 abscls-8tl1.23.
 
-- **The decision:** Blueprints' site is named **Cyanotype**, in place of Drawing Board. The owner's words: "It's so
-  generic it can be applied to many other games", then "yes, Cyanotype". A cyanotype is the printing process that
-  made blueprints: white lines on Prussian blue. The engine and its practice bot keep the name Stamp Duty.
+- **The decision:** Blueprints' site is named **Cyanotype**, in place of Drawing Board. The reason: Drawing Board
+  could name many other games ("It's so generic it can be applied to many other games", then "yes, Cyanotype"). A
+  cyanotype is the printing process that made blueprints: white lines on Prussian blue, so the name belongs to
+  Blueprints alone. The engine and its practice bot keep the name Stamp Duty.
 - **The whole name changes now,** the internal names too: the folder `apps/cyanotype`, the package `cyanotype`, the
   storage keys (`cyanotype:…`), the userscript's files (`/cyanotype.user.js`, `/cyanotype.meta.js`), the deploy job
   `cyanotype`, the repository variable `CYANOTYPE_PAGES_PROJECT` and the tests' `CYANOTYPE_BASE_URL`. No release
